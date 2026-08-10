@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import * as properties from '@/lib/data/properties';
+import * as tenantStore from '@/lib/data/tenants';
 import { T, TT, Btn, Spinner, EmptyState, Modal, formGrid } from '@/components/Theme';
 import { Building2 } from 'lucide-react';
 import { InfoHint } from './InfoHint';
@@ -62,8 +63,8 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
   useEffect(() => {
     if (!open || !propId) return;
     (async () => {
-      const [{ data: t }, { data: r }] = await Promise.all([
-        supabase.from('tenants').select('full_name').eq('property_id', propId).eq('user_id', userId).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      const [t, { data: r }] = await Promise.all([
+        tenantStore.current<{ full_name: string | null }>(supabase, propId, 'full_name', userId),
         supabase.from('rent_payments').select('amount').eq('property_id', propId).order('period_year', { ascending: false }).order('period_month', { ascending: false }).limit(1).maybeSingle(),
       ]);
       if (t?.full_name) setTenant(t.full_name);

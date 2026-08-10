@@ -13,6 +13,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import * as properties from '@/lib/data/properties';
+import * as tenantStore from '@/lib/data/tenants';
 import { T, TT, Btn, Spinner, EmptyState, Modal, fp, formGrid } from '@/components/Theme';
 import { Building2 } from 'lucide-react';
 import { InfoHint } from './InfoHint';
@@ -93,9 +94,8 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
       // χρήστης το είχε ήδη καταχωρίσει· και ό,τι έγραφε εδώ εξαφανιζόταν από
       // παντού αλλού μόλις έκλεινε το παράθυρο. Χωρίς κανένα σφάλμα: η στήλη
       // υπάρχει, οπότε το γράψιμο πετύχαινε κανονικά.
-      const { data } = await supabase.from('tenants').select('full_name,afm,monthly_rent,deposit_amount,lease_start')
-        .eq('property_id', propId).eq('user_id', userId).order('updated_at', { ascending: false }).limit(1).maybeSingle();
-      const t = data as { full_name?: string; afm?: string; monthly_rent?: number; deposit_amount?: number; lease_start?: string } | null;
+      const t = await tenantStore.current<{ full_name?: string; afm?: string; monthly_rent?: number; deposit_amount?: number; lease_start?: string }>(
+        supabase, propId, 'full_name,afm,monthly_rent,deposit_amount,lease_start', userId);
       if (!t) return;
       if (t.full_name) setTenant(p => p || t.full_name!);
       if (t.afm) setTenantAfm(p => p || String(t.afm));
@@ -183,12 +183,12 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
 
       // Ενημέρωση/δημιουργία ενοικιαστή από το υπογεγραμμένο συμφωνητικό.
       const payload = { full_name: tenant.trim(), afm: tenantAfm.trim() || null, monthly_rent: res.monthlyRent, deposit_amount: res.deposit || null, lease_start: res.start, lease_end: res.end };
-      const { data: cur } = await supabase.from('tenants').select('id').eq('property_id', prop.id).eq('user_id', userId).order('updated_at', { ascending: false }).limit(1).maybeSingle();
+      const cur = await tenantStore.current<{ id: string }>(supabase, prop.id, 'id', userId);
       // Το try/catch από πάνω δεν καλύπτει αυτό: το Supabase δεν πετά. Χωρίς τον
       // έλεγχο, το συμφωνητικό αρχειοθετούνταν και ο ενοικιαστής δεν υπήρχε πουθενά.
-      await saved('Ο ενοικιαστής δεν ενημερώθηκε από το συμφωνητικό', (cur as { id?: string } | null)?.id
-        ? supabase.from('tenants').update(payload).eq('id', (cur as { id: string }).id)
-        : supabase.from('tenants').insert({ property_id: prop.id, user_id: userId, ...payload }));
+      await saved('Ο ενοικιαστής δεν ενημερώθηκε από το συμφωνητικό', cur?.id
+        ? tenantStore.update(supabase, cur.id, payload)
+        : tenantStore.add(supabase, prop.id, userId, payload));
 
       setArchived(true);
       setTimeout(onClose, 1400);

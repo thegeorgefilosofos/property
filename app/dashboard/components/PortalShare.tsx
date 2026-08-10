@@ -10,6 +10,7 @@ import { Inbox } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import * as expenses from '@/lib/data/expenses';
 import * as calendar from '@/lib/data/calendar'
+import * as tenantStore from '@/lib/data/tenants';
 import { T, fd, fe, EmptyState, Skeleton, pressable } from '@/components/Theme';
 import { notify, notifyOk, notifyError } from '@/components/Toast';
 import { athensToday } from '@/lib/core/time';
@@ -58,10 +59,11 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
     setPayLink(link?.payment_link || '');
     setPinSet(!!link?.pin_hash);
     setLinkTenant(link?.tenant_id || null);
-    // Ίδια σειρά με το backfill του migration και με την παλιά get_portal_data:
-    // «ο πιο πρόσφατος του ακινήτου». Έτσι το «τρέχων» εδώ σημαίνει ό,τι
-    // ακριβώς σήμαινε και στη βάση, χωρίς να αποκλίνουν οι δύο ορισμοί.
-    const { data: t } = await supabase.from('tenants').select('id, full_name').eq('property_id', propertyId).eq('user_id', userId).order('created_at', { ascending: false }).limit(1).maybeSingle();
+    // «Ο τρέχων μισθωτής» έρχεται από το στρώμα, που τον ορίζει μία φορά για
+    // όλη την εφαρμογή: όποιος δεν έχει φύγει, με τη νεότερη μίσθωση πρώτη. Εδώ
+    // έλεγε «ο πιο πρόσφατα δημιουργημένος», που είναι άλλος άνθρωπος όταν ο
+    // ιδιοκτήτης διορθώσει παλιά καταχώρηση.
+    const t = await tenantStore.current<{ id: string; full_name: string }>(supabase, propertyId, tenantStore.NAME_COLUMNS, userId);
     setTenant(t || null);
     const { data: r } = await supabase.from('maintenance_requests').select('*').eq('property_id', propertyId).eq('user_id', userId).order('created_at', { ascending: false });
     setReqs((r as Req[]) || []);

@@ -17,6 +17,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import * as properties from '@/lib/data/properties';
+import * as tenantStore from '@/lib/data/tenants';
 import { T, TT, Btn, Modal, Spinner } from '@/components/Theme';
 import { Copy, Check, ExternalLink, Printer, AlertTriangle, Clock } from 'lucide-react';
 import { notifyError } from '@/components/Toast';
@@ -72,8 +73,7 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
           // ονοματεπώνυμο και το ΑΦΜ του μισθωτή και οι ημερομηνίες και το μίσθωμα —
           // δηλαδή η μισή δήλωση. Το `updated_at` είναι ό,τι ζητούν ήδη οι υπόλοιπες
           // οθόνες για «τον τρέχοντα μισθωτή» (π.χ. ObligationsPanel).
-          must(supabase.from('tenants').select('full_name,afm,id_doc_type,id_doc_number,email,phone,lease_start,lease_end,monthly_rent')
-            .eq('property_id', propertyId).order('updated_at', { ascending: false }).limit(1)),
+          tenantStore.currentAll(supabase, propertyId, 'full_name,afm,id_doc_type,id_doc_number,email,phone,lease_start,lease_end,monthly_rent'),
           // ΚΛΕΙΔΙ ΑΚΙΝΗΤΟΥ, ΟΧΙ ΧΡΗΣΤΗ.
           //
           // Εδώ έγραφε `.eq('user_id', userId).maybeSingle()`. Ο πίνακας όμως έχει

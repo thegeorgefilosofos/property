@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { qrDataUrl } from '@/lib/qr';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
+import * as tenantStore from '@/lib/data/tenants';
 import * as expenses from '@/lib/data/expenses';
 import {
   s, fmt, fmtD, daysLeft, leaseSt, calcEnd,
@@ -1528,7 +1529,7 @@ function DepositView({ tenant, payments, damages, onReturned }:{ tenant:Tenant; 
         {tenant.deposit_returned&&tenant.deposit_return_date&&<DataRow label="Ημερομηνία επιστροφής" value={fmtD(tenant.deposit_return_date)}/>}
         {!tenant.deposit_returned&&deposit>0&&(
           <button style={{ ...s.btnSm, marginTop:14, width:'100%', textAlign:'center' as const }}
-            onClick={async()=>{await saved('Η επιστροφή εγγύησης δεν καταχωρήθηκε', supabase.from('tenants').update({deposit_returned:true,deposit_return_date:todayISO()}).eq('id',tenant.id));onReturned();}}>
+            onClick={async()=>{await saved('Η επιστροφή εγγύησης δεν καταχωρήθηκε', tenantStore.update(supabase,tenant.id,{deposit_returned:true,deposit_return_date:todayISO()}));onReturned();}}>
             Σήμανση ως Επεστράφη
           </button>
         )}
@@ -2087,8 +2088,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
 
   const fetch_=useCallback(async()=>{
     setLoading(true);
-    const{data:td}=await supabase.from('tenants').select('*').eq('property_id',propertyId).eq('user_id',userId).order('created_at',{ascending:false});
-    const list=(td||[]) as Tenant[];
+    const list=await tenantStore.ofProperty<Tenant>(supabase,propertyId,'*',userId);
     const[{data:pd},{data:dd},{data:cd},{data:md},own,pc]=await Promise.all([
       supabase.from('rent_payments').select('*').eq('property_id',propertyId).eq('user_id',userId).order('period_year',{ascending:false}).order('period_month',{ascending:false}),
       supabase.from('tenant_damages').select('*').eq('property_id',propertyId).eq('user_id',userId).order('occurred_on',{ascending:false}),
@@ -2290,8 +2290,8 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
       lease_doc_external_url:form.lease_doc_external_url||null,
     };
     const{data:savedRow,error:err}=await(editId
-      ?supabase.from('tenants').update(payload).eq('id',editId).select('*').single()
-      :supabase.from('tenants').insert(payload).select('*').single());
+      ?tenantStore.updateReturning(supabase,editId,payload)
+      :tenantStore.addReturning(supabase,propertyId,userId,payload));
     if(err){
       const msg=err.message||'Άγνωστο σφάλμα';
       // Μετάφραση των συχνών αιτιών σε σαφές, ενεργήσιμο ελληνικό μήνυμα.
@@ -2305,7 +2305,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
     // Ο ενοικιαστής αποθηκεύτηκε. Οι επόμενες δευτερεύουσες ενέργειες (σύνδεση
     // εγγράφων, συγχρονισμός ημερολογίου) δεν πρέπει ΠΟΤΕ να μπλοκάρουν το κλείσιμο
     // της φόρμας ή την ανανέωση — αλλιώς η καρτέλα θα «κολλούσε» με το ρελ. να γυρίζει.
-    const savedTenant=(savedRow||null) as (TenantScheduleInput&{rent_due_day?:number|null})|null;
+    const savedTenant=(savedRow||null) as unknown as (TenantScheduleInput&{rent_due_day?:number|null})|null;
     if(savedTenant?.id && !editId && formDocs.length){
       await saved('Τα έγγραφα δεν συνδέθηκαν με τον ενοικιαστή',
         supabase.from('property_documents').update({supplier:'tenant:'+savedTenant.id}).in('id',formDocs.map(d=>d.id)));
@@ -2318,7 +2318,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
 
   const markMovedOut=async(t:Tenant)=>{
     if(!(await confirmDialog(`Σήμανση αποχώρησης για «${t.full_name}»; Θα μεταφερθεί στους προηγούμενους ενοικιαστές.`))) return;
-    if(!await saved('Η αποχώρηση δεν καταχωρήθηκε', supabase.from('tenants').update({status:'past',move_out_date:todayISO()}).eq('id',t.id))) return;
+    if(!await saved('Η αποχώρηση δεν καταχωρήθηκε', tenantStore.markPast(supabase,t.id,todayISO()))) return;
     notify('Ο ενοικιαστής μεταφέρθηκε στο ιστορικό'); fetch_();
   };
   const delTenant=async(t:Tenant)=>{
@@ -2328,7 +2328,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
     // φαίνονται πουθενά και εξακολουθούν να μετράνε σε αθροίσματα.
     if(!await saved('Οι πληρωμές του ενοικιαστή δεν διαγράφηκαν', supabase.from('rent_payments').delete().eq('tenant_id',t.id))) return;
     if(!await saved('Οι φθορές του ενοικιαστή δεν διαγράφηκαν', supabase.from('tenant_damages').delete().eq('tenant_id',t.id))) return;
-    if(!await saved('Ο ενοικιαστής δεν διαγράφηκε', supabase.from('tenants').delete().eq('id',t.id))) return;
+    if(!await saved('Ο ενοικιαστής δεν διαγράφηκε', tenantStore.remove(supabase,t.id))) return;
     if(openId===t.id) setOpenId(null);
     notify('Διαγράφηκε'); fetch_();
   };
@@ -2341,7 +2341,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
     if(upErr){setError(failed('Το αρχείο δεν ανέβηκε', upErr));setUploading(false);return;}
     // Το αρχείο ανέβηκε ήδη. Αν δεν καταγραφεί το όνομά του, ο ενοικιαστής δεν
     // έχει συμβόλαιο πουθενά στην οθόνη — και το αρχείο υπάρχει, αόρατο.
-    if(!await saved('Το συμβόλαιο ανέβηκε, αλλά δεν συνδέθηκε με τον ενοικιαστή',supabase.from('tenants').update({lease_doc_name:file.name}).eq('id',t.id))){setUploading(false);return;}
+    if(!await saved('Το συμβόλαιο ανέβηκε, αλλά δεν συνδέθηκε με τον ενοικιαστή',tenantStore.update(supabase,t.id,{lease_doc_name:file.name}))){setUploading(false);return;}
     setUploading(false);notifyOk('Το PDF ανέβηκε');fetch_();
   };
   const openLeaseDoc=async(t:Tenant)=>{
@@ -2628,7 +2628,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
                         <div style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans, overflow:'hidden', textOverflow:'ellipsis' }}>{dc.lease_doc_name}</div>
                         <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>Ανεβασμένο συμβόλαιο</div>
                       </div>
-                      <button style={s.btnDng} onClick={async()=>{if(!dc.lease_doc_name)return;await supabase.storage.from('lease-documents').remove([`${userId}/${dc.id}/${dc.lease_doc_name}`]);if(!await saved('Το συμβόλαιο δεν αποσυνδέθηκε',supabase.from('tenants').update({lease_doc_url:null,lease_doc_name:null}).eq('id',dc.id)))return;notify('PDF διαγράφηκε');fetch_();}}>Διαγραφή</button>
+                      <button style={s.btnDng} onClick={async()=>{if(!dc.lease_doc_name)return;await supabase.storage.from('lease-documents').remove([`${userId}/${dc.id}/${dc.lease_doc_name}`]);if(!await saved('Το συμβόλαιο δεν αποσυνδέθηκε',tenantStore.update(supabase,dc.id,{lease_doc_url:null,lease_doc_name:null})))return;notify('PDF διαγράφηκε');fetch_();}}>Διαγραφή</button>
                     </div>
                     <button onClick={()=>openLeaseDoc(dc)} style={{ ...s.btnGold, display:'inline-block', marginBottom:10 }}>Άνοιγμα PDF</button>
                     <div style={{ marginTop:10 }}>

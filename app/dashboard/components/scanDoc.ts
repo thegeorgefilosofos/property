@@ -20,6 +20,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
+import * as tenantStore from '@/lib/data/tenants';
 import * as expenses from '@/lib/data/expenses';
 import * as calendar from '@/lib/data/calendar';
 import {
@@ -510,14 +511,16 @@ export async function commitScannedDoc(input: CommitInput): Promise<CommitResult
 
     // ── 4) Ενοικιαστής → tenants (ίδιο όνομα → συμπλήρωση, αλλιώς νέα εγγραφή).
     if (plan.tenant) {
-      const { data: existing } = await supabase.from('tenants').select('id,full_name')
-        .eq('property_id', propertyId).eq('user_id', userId)
-        .order('updated_at', { ascending: false }).limit(1);
+      // Ο ΤΡΕΧΩΝ, ΟΧΙ Ο ΤΕΛΕΥΤΑΙΑ ΕΝΗΜΕΡΩΜΕΝΟΣ. Το σαρωμένο συμβόλαιο συγκρινόταν
+      // με όποιον είχε πειραχτεί πιο πρόσφατα — δηλαδή, αν ο ιδιοκτήτης είχε μόλις
+      // διορθώσει το ΑΦΜ του παλιού μισθωτή, η σάρωση συμπλήρωνε ΕΚΕΙΝΟΝ.
+      const existing = await tenantStore.currentAll<{ id: string; full_name: string | null }>(
+        supabase, propertyId, tenantStore.NAME_COLUMNS, userId);
       const cur = existing && existing.length ? existing[0] : null;
       const sameTenant = cur && nrm(cur.full_name as string) === nrm(plan.tenant.full_name as string);
       const { error: tErr } = await (sameTenant
-        ? supabase.from('tenants').update(stripEmpty(plan.tenant)).eq('id', cur!.id)
-        : supabase.from('tenants').insert({ property_id: propertyId, user_id: userId, ...stripEmpty(plan.tenant) }));
+        ? tenantStore.update(supabase, cur!.id, stripEmpty(plan.tenant))
+        : tenantStore.add(supabase, propertyId, userId, stripEmpty(plan.tenant)));
       if (!tErr) add('Ενοικιαστής');
     }
 

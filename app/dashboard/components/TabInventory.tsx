@@ -5,6 +5,7 @@ import { qrDataUrl } from '@/lib/qr';
 import { createPortal } from 'react-dom'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import * as expenses from '@/lib/data/expenses'
+import * as tenantStore from '@/lib/data/tenants'
 import * as calendar from '@/lib/data/calendar'
 import { CustomSelect, NumberInput, TextInput, DatePicker, Toggle, Textarea } from './UIComponents'
 import { T, Modal, PageTitle, KPIGrid, SecHdr, Btn, EmptyState, Skeleton, SkeletonKPIs, fe, feRate, fn, fd, ABSENT, ABSENT_DATE, TT, pressable, formGrid } from '@/components/Theme'
@@ -1963,7 +1964,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
 
   const fetchData = useCallback(async()=>{
     setLoading(true)
-    const [iR,rR,hR,sR,bR,psR,tR] = await Promise.all([
+    const [iR,rR,hR,sR,bR,psR] = await Promise.all([
       supabase.from('inventory_items').select('*').eq('property_id',propertyId).order('created_at',{ascending:false}),
       supabase.from('inventory_repairs').select('*').eq('user_id',userId).order('repair_date',{ascending:false}),
       supabase.from('inventory_handovers').select('*').eq('property_id',propertyId).order('created_at',{ascending:false}),
@@ -1972,15 +1973,18 @@ export default function TabInventory({propertyId,userId,profileType='individual'
       // bills_settings). Το ερώτημα απορριπτόταν ολόκληρο, άρα η εναλλακτική
       // πηγή τιμής kWh ήταν πάντα κενή και ο χρήστης έβλεπε άδειο πεδίο ακόμη
       // κι όταν είχε καταχωρήσει τιμή στο μισθωτήριο. Η τιμή ζει στο tenants.
-      supabase.from('tenants').select('kwh_price').eq('property_id',propertyId).not('kwh_price','is',null).limit(1),
+      //
+      // ΔΥΟ ΕΡΩΤΗΜΑΤΑ ΕΓΙΝΑΝ ΕΝΑ, και τα δύο έλεγαν `.limit(1)` χωρίς καμία σειρά
+      // και χωρίς κανένα φίλτρο κατάστασης: έπαιρναν όποια γραμμή ερχόταν πρώτη,
+      // ακόμη κι ενός μισθωτή που έφυγε πέρσι.
+      tenantStore.currentAll<{ kwh_price?: number | null; furnishing?: string | null }>(supabase,propertyId,'kwh_price,furnishing',userId),
       // Η ΤΙΜΗ ΤΟΥ ΑΚΙΝΗΤΟΥ, που είναι και η μόνη που μπορεί να γράψει ο χρήστης.
       // Το `property_settings.kwh_price` προστέθηκε με migration· ως τότε η
       // αποθήκευση αποτύγχανε σιωπηλά και εδώ διαβαζόταν δύο φορές η ίδια στήλη
       // του μισθωτηρίου, μόνο για να μη χαλάσει η σειρά του Promise.all.
       supabase.from('property_settings').select('kwh_price').eq('property_id',propertyId).limit(1),
-      supabase.from('tenants').select('furnishing').eq('property_id',propertyId).limit(1),
     ])
-    setFurnishing((tR.data?.[0] as {furnishing?:string}|undefined)?.furnishing ?? null)
+    setFurnishing(bR[0]?.furnishing ?? null)
     if(iR.data){
       // Καμία εγγραφή κατά την ανάγνωση: οι υπενθυμίσεις ημερολογίου δημιουργούνται
       // ΜΟΝΟ με ρητή ενέργεια του χρήστη (κουμπί «Ημερολόγιο»), όχι αυτόματα σε κάθε load.
@@ -1990,7 +1994,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
     if(rR.data)setRepairs(rR.data)
     if(hR.data)setHandovers(hR.data as InventoryHandover[])
     if(sR.data)setSchedules(sR.data)
-    const savedKwh=(psR.data?.[0] as {kwh_price?:number}|undefined)?.kwh_price||bR.data?.[0]?.kwh_price
+    const savedKwh=(psR.data?.[0] as {kwh_price?:number}|undefined)?.kwh_price||bR.find(t=>t.kwh_price!=null)?.kwh_price
     if(savedKwh){setKwhPrice(savedKwh);setKwInput(String(savedKwh))}
     setLoading(false)
   },[propertyId,userId])

@@ -11,6 +11,7 @@ import { useState, useEffect, useCallback, useMemo, CSSProperties } from 'react'
 import { createClient } from '@/lib/supabase/client';
 import * as propertyStore from '@/lib/data/properties';
 import * as expenses from '@/lib/data/expenses'
+import * as tenantStore from '@/lib/data/tenants'
 import { CustomSelect } from './UIComponents';
 import { T, PageTitle, KPIGrid, Badge, Btn, ExportButton, EmptyState, InfoBanner, SecHdr, SkeletonKPIs, Skeleton, fe, fn, fp, ABSENT_SHORT, Modal, TT } from '@/components/Theme';
 import { resolveRent } from '@/lib/billing/propertyFacts';
@@ -99,7 +100,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   type StayRow = Pick<ClientStaysRow, 'property_id' | 'check_in' | 'check_out' | 'total' | 'nights' | 'nightly_rate' | 'gross_guest_paid' | 'platform_fee' | 'climate_levy' | 'amount_basis'>;
   type BillRow = Pick<BillsRow, 'id' | 'name' | 'amount' | 'paid' | 'paid_at' | 'created_at' | 'due_date' | 'category' | 'recurring' | 'property_id'>;
   type ExpRow = Pick<ExpensesRow, 'id' | 'bill_id' | 'amount' | 'date' | 'description' | 'category' | 'paid' | 'expense_group' | 'is_recurring' | 'store_vendor' | 'property_id'>;
-  type TenantRow = Pick<TenantsRow, 'property_id' | 'monthly_rent' | 'updated_at'>;
+  type TenantRow = Pick<TenantsRow, 'property_id' | 'monthly_rent'>;
   type ChkRow = Pick<ChecklistItemsRow, 'property_id' | 'status' | 'priority' | 'due_date'>;
   type PropOwnerRow = Pick<UserPropertiesRow, 'id' | 'client_id'>;
   type ClientRow = Pick<ClientsRow, 'id' | 'full_name'>;
@@ -107,7 +108,10 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   const [stays, setStays] = useState<StayRow[]>([]);
   const [bills, setBills] = useState<BillRow[]>([]);
   const [exp, setExp] = useState<ExpRow[]>([]);
-  const [tenants, setTenants] = useState<TenantRow[]>([]);
+  // Ο τρέχων μισθωτής ΑΝΑ ΑΚΙΝΗΤΟ, όπως τον ορίζει το στρώμα. Εδώ κρατιόταν
+  // ολόκληρη λίστα και κρατιόταν «ο πρώτος κάθε ακινήτου» — δηλαδή ο μισθωτής
+  // που ενημερώθηκε τελευταίος, που δεν είναι ο ίδιος με αυτόν που μένει εκεί.
+  const [rentByTenant, setRentByTenant] = useState<Map<string, TenantRow>>(new Map());
   const [rentPays, setRentPays] = useState<RentPay[]>([]);
   const [chk, setChk] = useState<ChkRow[]>([]);
   const [propOwners, setPropOwners] = useState<PropOwnerRow[]>([]);
@@ -136,14 +140,14 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   const [genOfficial, setGenOfficial] = useState(false);
 
   const load = useCallback(async () => {
-    const [{ data: st }, { data: bl }, ex, { data: tn }, { data: ci }, po, { data: cl }, { data: rp }] = await Promise.all([
+    const [{ data: st }, { data: bl }, ex, tn, { data: ci }, po, { data: cl }, { data: rp }] = await Promise.all([
       // Τα πεδία ανάλυσης ποσού ΔΕΝ είναι προαιρετικά εδώ: χωρίς αυτά το
       // declarableGrossOrTotal δεν έχει τι να διαβάσει και υποχωρεί στο ωμό
       // `total` για ΚΑΘΕ γραμμή — δηλαδή σιωπηλά ξαναγυρίζει το payout.
       supabase.from('client_stays').select('property_id,check_in,check_out,total,nights,nightly_rate,gross_guest_paid,platform_fee,climate_levy,amount_basis').eq('user_id', userId),
       supabase.from('bills').select('id,name,amount,paid,paid_at,created_at,due_date,category,recurring,property_id').eq('user_id', userId),
       expenses.ledgerOfUser(supabase, userId, `${year}-01-01`),
-      supabase.from('tenants').select('property_id,monthly_rent,updated_at').eq('user_id', userId).order('updated_at', { ascending: false }),
+      tenantStore.currentByProperty<TenantRow & { property_id: string }>(supabase, userId, 'monthly_rent'),
       supabase.from('checklist_items').select('property_id,status,priority,due_date').eq('user_id', userId).neq('status', 'done').neq('status', 'skipped'),
       propertyStore.list<{ id: string; client_id: string | null }>(supabase, userId, { columns: 'id,client_id' }),
       supabase.from('clients').select('id,full_name').eq('user_id', userId),
@@ -151,7 +155,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
       // της μακροχρόνιας, ίδια πηγή με ReportBuilder/OwnerSplit/Λογιστική.
       supabase.from('rent_payments').select('property_id,amount,paid,period_month').eq('user_id', userId).eq('period_year', year),
     ]);
-    setStays((st || []) as StayRow[]); setBills((bl || []) as BillRow[]); setExp((ex || []) as ExpRow[]); setTenants((tn || []) as TenantRow[]); setChk((ci || []) as ChkRow[]); setPropOwners((po || []) as PropOwnerRow[]); setClients((cl || []) as ClientRow[]); setRentPays((rp || []) as RentPay[]); setLoading(false);
+    setStays((st || []) as StayRow[]); setBills((bl || []) as BillRow[]); setExp((ex || []) as ExpRow[]); setRentByTenant(tn); setChk((ci || []) as ChkRow[]); setPropOwners((po || []) as PropOwnerRow[]); setClients((cl || []) as ClientRow[]); setRentPays((rp || []) as RentPay[]); setLoading(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, year]);
 
@@ -174,7 +178,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
     // Γραμμή χωρίς ακίνητο δεν ανήκει σε κανένα ακίνητο: αγνοείται αντί να
     // προσγειωθεί σε κλειδί «null». Ο τύπος το έκανε ορατό — με `any` η γραμμή
     // θα έμπαινε στον χάρτη και το ενοίκιό της θα χανόταν σιωπηλά.
-    tenants.forEach(t => { const id = t.property_id; if (id && !rentByProp.has(id)) rentByProp.set(id, Number(t.monthly_rent) || 0); });
+    for (const [id, t] of rentByTenant) if (!rentByProp.has(id)) rentByProp.set(id, Number(t.monthly_rent) || 0);
 
     // Καταγεγραμμένες δόσεις της χρήσης ανά ακίνητο: τι εισπράχθηκε πραγματικά,
     // και τι είχε δεδουλευτεί ως σήμερα (οι δόσεις παράγονται για όλο το έτος).
@@ -285,7 +289,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
         value: p.value || 0, annualRevenue, annualExpenses,
       };
     });
-  }, [properties, stays, bills, exp, tenants, rentPays, chk, year, monthsElapsed, daysElapsed, nowMs]);
+  }, [properties, stays, bills, exp, rentByTenant, rentPays, chk, year, monthsElapsed, daysElapsed, nowMs]);
 
   const agg = useMemo(() => portfolioReturns(rows.map(r => ({ value: r.value, annualRevenue: r.annualRevenue, annualExpenses: r.annualExpenses }))), [rows]);
 

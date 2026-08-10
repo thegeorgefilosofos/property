@@ -4,6 +4,7 @@ import { useNavHistory } from './components/useNavHistory';
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as propertyStore from '@/lib/data/properties';
+import * as tenantStore from '@/lib/data/tenants';
 import * as expenseStore from '@/lib/data/expenses'
 import type { User } from '@supabase/supabase-js';
 import TabFinances  from './components/TabFinances';
@@ -99,6 +100,10 @@ interface Bill     { id:string; type:string; amount:number; paid:boolean;
                      due_date?:string|null; name?:string|null; }
 interface Task     { id:string; title:string; due_date:string|null; priority:string; completed:boolean; }
 interface Tenant   { monthly_rent:number|null; lease_end:string|null; }
+/** Το ενοίκιο και ο τρόπος είσπραξης, ανά ακίνητο του χαρτοφυλακίου. */
+interface TenRow { property_id: string; monthly_rent: number | null; e_payment: boolean | null }
+/** Ό,τι θέλει η Επισκόπηση από τον τρέχοντα μισθωτή, πέρα από το ενοίκιο. */
+interface TenantFull { id?:string; lease_start:string|null; lease_end:string|null; e_payment?:boolean|null }
 
 // Κατάσταση ακινήτου: μία κλιμακωτή ράμπα από το μπλε της landing (var(--accent),
 // #1a73e8) — 7 ομοιογενείς αποχρώσεις, από βαθύ προς ανοιχτό, στη λογική σειρά των
@@ -373,7 +378,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
   // τώρα» — αν κάθε κάρτα διάβαζε τα δικά της, θα ξαναγεννιόνταν τα διπλότυπα.
   const [rentPeriods, setRentPeriods] = useState<{ amount:number|null; due_date:string|null; paid:boolean|null; period_year:number|null; period_month:number|null }[]>([]);
   const [maint, setMaint] = useState<OblMaint[]>([]);
-  const [tenantFull, setTenantFull] = useState<{ id?:string; lease_start:string|null; lease_end:string|null; e_payment?:boolean|null } | null>(null);
+  const [tenantFull, setTenantFull] = useState<TenantFull | null>(null);
   // Ενοίκια ΟΛΩΝ των ακινήτων (μισθωτήρια + ρυθμίσεις ενοικίου), για τον
   // προοδευτικό φόρο σε επίπεδο φορολογούμενου.
   // Ο ΤΡΟΠΟΣ ΕΙΣΠΡΑΞΗΣ ΤΑΞΙΔΕΥΕΙ ΜΑΖΙ ΜΕ ΤΟ ΕΝΟΙΚΙΟ.
@@ -387,13 +392,13 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
   const propIds = useMemo(() => properties.map(p => p.id), [properties]);
 
   const load = useCallback(async () => {
-    const [exp,{ data:bil },{ data:tsk },{ data:ten },{ data:ci },{ data:iv },{ data:ln },{ data:hs },allExp,{ data:allTen },{ data:allRc },{ data:rp },{ data:mnt }] = await Promise.all([
+    const [exp,{ data:bil },{ data:tsk },ten,{ data:ci },{ data:iv },{ data:ln },{ data:hs },allExp,allTen,{ data:allRc },{ data:rp },{ data:mnt }] = await Promise.all([
       expenseStore.ledger(supabase,prop.id,{ userId, from:`${year}-01-01`, columns:'*' }),
       supabase.from('bills').select('*').eq('property_id',prop.id).eq('user_id',userId),
       // Δεν είναι πια πέντε για μια χωριστή κάρτα: τροφοδοτούν την ΕΝΙΑΙΑ
       // ατζέντα, που τις ταξινομεί μαζί με όλα τα υπόλοιπα κατά προθεσμία.
       supabase.from('maintenance_tasks').select('*').eq('property_id',prop.id).eq('user_id',userId).eq('completed',false).order('due_date').limit(60),
-      supabase.from('tenants').select('id,monthly_rent,lease_start,lease_end,e_payment').eq('property_id',prop.id).eq('user_id',userId).order('updated_at',{ascending:false}).limit(1),
+      tenantStore.currentAll<Tenant & TenantFull>(supabase,prop.id,'id,monthly_rent,lease_start,lease_end,e_payment',userId),
       supabase.from('checklist_items').select('due_date,status,priority').eq('property_id',prop.id).neq('status','done').neq('status','skipped'),
       supabase.from('inventory_items').select('name,warranty_expiry,condition').eq('property_id',prop.id),
       supabase.from('loans').select(LOAN_COLUMNS).eq('property_id',prop.id).eq('user_id',userId),
@@ -405,7 +410,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
       // ΟΛΟ το χαρτοφυλάκιο: ο φόρος ενοικίων είναι προοδευτικός στο ΣΥΝΟΛΟ (Ε1),
       // οπότε δεν αρκούν τα δεδομένα του επιλεγμένου ακινήτου. Ίδια σειρά
       // προτεραιότητας με το resolveRent: μισθωτήριο → actual → target → ακίνητο.
-      supabase.from('tenants').select('monthly_rent,property_id,e_payment').in('property_id',propIds).eq('user_id',userId),
+      tenantStore.ofUser<TenRow & tenantStore.TenantStatus>(supabase,userId,'monthly_rent,property_id,e_payment,status,move_out_date'),
       supabase.from('rent_config').select('property_id,actual_rent,target_rent').in('property_id',propIds).eq('user_id',userId),
       // ΤΟ ΤΑΜΕΙΟ. Μόνο οι ΑΠΛΗΡΩΤΕΣ περίοδοι — οι πληρωμένες είναι ιστορικό και
       // ζουν στον Ενοικιαστή. Ό,τι δεν εμφανίζεται, δεν κατεβαίνει.
@@ -432,9 +437,11 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
     // ΤΟΥ: αλλιώς θα ζευγαρώναμε το ενοίκιο του ενός με τη δήλωση του άλλου.
     // `e_payment !== false` και όχι `=== true`: κενή στήλη σημαίνει «δεν το έχει
     // δηλώσει», και η προεπιλογή της ίδιας της φόρμας είναι τραπεζική είσπραξη.
-    type TenRow = { property_id: string; monthly_rent: number | null; e_payment: boolean | null };
+    // ΚΑΙ ΜΟΝΟ ΟΣΟΙ ΜΕΝΟΥΝ ΑΚΟΜΗ. Εδώ δεν υπήρχε κανένα φίλτρο κατάστασης: το
+    // ενοίκιο μισθωτή που έφυγε πέρσι έμπαινε στη φορολογική ενοποίηση όλου του
+    // χαρτοφυλακίου, και μαζί του ο τρόπος είσπραξής του.
     const tenById = new Map<string,{ monthly:number; viaBank:boolean }>();
-    ((allTen||[]) as TenRow[]).forEach(t=>{
+    allTen.filter(t=>!tenantStore.hasLeft(t)).forEach(t=>{
       const v = Number(t.monthly_rent)||0;
       if (v > (tenById.get(t.property_id)?.monthly ?? 0)) tenById.set(t.property_id, { monthly: v, viaBank: t.e_payment !== false });
     });

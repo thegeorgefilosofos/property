@@ -28,6 +28,7 @@ const OWNED = {
   calendar_events: 'lib/data/calendar.ts',
   expenses: 'lib/data/expenses.ts',
   user_properties: 'lib/data/properties.ts',
+  tenants: 'lib/data/tenants.ts',
 }
 
 const findings = []

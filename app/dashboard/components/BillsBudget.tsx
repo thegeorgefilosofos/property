@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
+import * as tenantStore from '@/lib/data/tenants';
 import * as expenses from '@/lib/data/expenses'
 import * as calendar from '@/lib/data/calendar'
 import { TextInput } from './UIComponents';
@@ -386,7 +387,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       const [propRes, loansRes, tenantsRes, staysRes] = await Promise.all([
         properties.one(supabase, propertyId, 'rental_mode,target_rent,value,year_built,enfia,purchase_price,sqm,prop_type'),
         supabase.from('loans').select(LOAN_COLUMNS).eq('property_id', propertyId),
-        supabase.from('tenants').select('monthly_rent,status,move_out_date').eq('property_id', propertyId),
+        tenantStore.currentAll<{ monthly_rent: number | null }>(supabase, propertyId, 'monthly_rent'),
         // Καταλύματα από την αρχή του έτους: το τρέχον μήνα για έσοδα μήνα, το σύνολο YTD
         // για ετησιοποίηση (πρόβλεψη φόρου βραχυχρόνιας χωρίς εποχική στρέβλωση).
         supabase.from('client_stays').select('total,nights,nightly_rate,check_in').eq('property_id', propertyId).gte('check_in', `${y}-01-01`).lte('check_in', dateEnd),
@@ -411,10 +412,9 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         setStrNights(staysMonth.reduce((s, st) => s + (Number(st.nights) || 0), 0));
       } else if (rMode === 'long_term') {
         // ΜΟΝΟ ενεργοί ενοικιαστές (όχι παλιοί/αποχωρήσαντες) — αλλιώς διπλασιάζεται το έσοδο.
-        type TenantRow = { status: string | null; move_out_date: string | null; monthly_rent: number | null };
-        const rentSum = ((tenantsRes.data ?? []) as TenantRow[])
-          .filter(t => t.status !== 'past' && !t.move_out_date)
-          .reduce((s, t) => s + (Number(t.monthly_rent) || 0), 0);
+        // Ο κανόνας «ποιος μένει τώρα» δεν ξαναγράφεται εδώ: το στρώμα επιστρέφει
+        // ήδη μόνο όσους δεν έχουν φύγει, με τον ίδιο ορισμό σε κάθε οθόνη.
+        const rentSum = tenantsRes.reduce((s, t) => s + (Number(t.monthly_rent) || 0), 0);
         inc = rentSum > 0 ? rentSum : (Number(propRes?.target_rent) || 0);
       }
       setIncome(Math.round(inc));

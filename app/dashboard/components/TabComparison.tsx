@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as expenses from '@/lib/data/expenses';
+import * as tenantStore from '@/lib/data/tenants';
 import { T, fe, fn, fp, ABSENT, ABSENT_SHORT, Skeleton, ExportButton, EmptyState, InfoBanner, PageTitle } from '@/components/Theme';
 import { Building2 } from 'lucide-react';
 import { comparableGroups } from '@/lib/property/visibility';
@@ -97,7 +98,7 @@ export default function TabComparison({ properties, userId }: Props) {
     const year = new Date().getFullYear();
     // Τα πεδία είναι αυτά που ζητά ο κοινός πυρήνας (lib/expenses/ledger.ts): ο
     // λογαριασμός δίνει πρόγραμμα και προθεσμία, η δαπάνη το γεγονός και το ποσό.
-    const [exp, { data: bil }, { data: ten }, { data: bud }] = await Promise.all([
+    const [exp, { data: bil }, currentTenants, { data: bud }] = await Promise.all([
       expenses.ledgerOfProperties(supabase, ids, userId, `${year}-01-01`),
       supabase.from('bills')
         .select('id,name,amount,paid,paid_at,due_date,created_at,category,recurring,property_id')
@@ -107,9 +108,9 @@ export default function TabComparison({ properties, userId }: Props) {
       // Χωρίς ταξινόμηση η PostgREST δεν εγγυάται σειρά, οπότε η οθόνη έπαιρνε
       // ΟΠΟΙΑΔΗΠΟΤΕ γραμμή έτυχε να έρθει τελευταία — δηλαδή μπορούσε να δείξει
       // το ενοίκιο ενοίκου που έφυγε πέρσι, και να το περάσει και στη φορολογική
-      // ενοποίηση. Ο πιο πρόσφατος μετρά, ίδιος κανόνας με το Χαρτοφυλάκιο.
-      supabase.from('tenants').select('monthly_rent,property_id,updated_at').in('property_id', ids).eq('user_id', userId)
-        .order('updated_at', { ascending: false }),
+      // ενοποίηση. Τώρα ο ορισμός του «τρέχων» έρχεται από το στρώμα, ίδιος με
+      // κάθε άλλη οθόνη: όποιος δεν έχει φύγει, νεότερη μίσθωση πρώτη.
+      tenantStore.currentByProperty<{ property_id: string; monthly_rent: number | null }>(supabase, userId, 'monthly_rent'),
       supabase.from('bills_settings').select('property_id,data').in('property_id', ids).eq('section', 'budgets'),
     ]);
 
@@ -136,7 +137,7 @@ export default function TabComparison({ properties, userId }: Props) {
     // μία φορά, στη μεταγλώττιση.
     const expRows: expenses.LedgerRowWithProperty[] = exp || [];
     const bilRows: Pick<BillsRow, 'id' | 'name' | 'amount' | 'paid' | 'paid_at' | 'due_date' | 'created_at' | 'category' | 'recurring' | 'property_id'>[] = bil || [];
-    const tenRows: Pick<TenantsRow, 'monthly_rent' | 'property_id' | 'updated_at'>[] = ten || [];
+
     const budRows: Pick<BillsSettingsRow, 'property_id' | 'data'>[] = bud || [];
     const expByProp = byProp(expRows);
     const bilByProp = byProp(bilRows);
@@ -156,21 +157,12 @@ export default function TabComparison({ properties, userId }: Props) {
         budgetMonthly: 0,
       };
     });
-    // ΓΡΑΜΜΗ ΧΩΡΙΣ ΑΚΙΝΗΤΟ ΔΕΝ ΑΝΗΚΕΙ ΣΕ ΚΑΝΕΝΑ ΑΚΙΝΗΤΟ.
-    // Το `property_id` και στους δύο πίνακες μπορεί να είναι κενό — ο τύπος το
-    // λέει, το `any` το έκρυβε. Το παλιό `m[t.property_id]` έψαχνε τότε το κλειδί
-    // «null» και ο έλεγχος το προσπερνούσε κατά τύχη, όχι κατά πρόθεση. Τώρα ο
-    // έλεγχος είναι ρητός και τον απαιτεί ο μεταγλωττιστής.
-    //
-    // Η λίστα έρχεται φθίνουσα κατά `updated_at`, άρα ο ΠΡΩΤΟΣ ένοικος κάθε
-    // ακινήτου είναι ο πιο πρόσφατος και κρατά τη θέση του.
-    const rentSeen = new Set<string>();
-    tenRows.forEach(t => {
-      const id = t.property_id;
-      if (!id || !m[id] || rentSeen.has(id)) return;
-      rentSeen.add(id);
-      m[id].monthlyRent = Number(t.monthly_rent) || 0;
-    });
+    // Ένας τρέχων μισθωτής ανά ακίνητο, διαλεγμένος από το στρώμα. Εδώ ζούσε
+    // χειρόγραφη επιλογή «ο πρώτος της λίστας» με σύνολο `rentSeen` — ο τέταρτος
+    // ορισμός του «τρέχων», ο σιωπηλός.
+    for (const [id, t] of currentTenants) {
+      if (m[id]) m[id].monthlyRent = Number(t.monthly_rent) || 0;
+    }
     budRows.forEach(r => {
       const id = r.property_id;
       // Το `data` είναι jsonb: έρχεται απ' έξω, χωρίς σχήμα. Φύλακας πριν τη χρήση.

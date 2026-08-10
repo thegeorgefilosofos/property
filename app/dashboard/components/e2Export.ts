@@ -1,6 +1,7 @@
 'use client';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import * as propertyStore from '@/lib/data/properties';
+import * as tenantStore from '@/lib/data/tenants';
 import { XLSX, FMT, S, setCell, downloadWorkbook, type Cell } from './xlsxStyle';
 import { E2_OFFICIAL_HEADERS, E2_NUM_COLS, buildE2OfficialCells, buildE2Row, buildE1Summary, type E2Stay, E1_HEADERS, E2_INSTRUCTIONS, type E2Property, type E2Tenant, type E2Payment, type E2Row } from '@/lib/billing/e2';
 
@@ -101,8 +102,9 @@ export async function loadE2Rows(
     return { properties: [], rows: [], ownerAfm: '', tenantByProp: new Map(), paymentsByProp: new Map(), afmByProp: new Map(), staysByProp: new Map() };
   }
   const ids = properties.map(p => p.id);
-  const [{ data: tenants }, { data: payments }, { data: settings }, { data: stays }] = await Promise.all([
-    supabase.from('tenants').select('property_id, afm, full_name, monthly_rent, lease_start, lease_end, lease_type, created_at').in('property_id', ids).eq('user_id', userId).order('created_at', { ascending: false }),
+  const [tenants, { data: payments }, { data: settings }, { data: stays }] = await Promise.all([
+    tenantStore.currentByProperty<E2Tenant & { status?: string | null; move_out_date?: string | null }>(
+      supabase, userId, 'property_id,afm,full_name,monthly_rent,lease_start,lease_end,lease_type,created_at'),
     supabase.from('rent_payments').select('property_id, amount, period_year, period_month').in('property_id', ids).eq('user_id', userId).eq('period_year', year),
     supabase.from('property_settings').select('property_id, owner_afm').in('property_id', ids).eq('user_id', userId),
     // ΟΙ ΔΙΑΜΟΝΕΣ ΕΙΝΑΙ ΤΟ ΠΡΑΓΜΑΤΙΚΟ ΕΣΟΔΟ ΤΗΣ ΒΡΑΧΥΧΡΟΝΙΑΣ.
@@ -114,8 +116,10 @@ export async function loadE2Rows(
     // χαρτοφυλακίου.
     supabase.from('client_stays').select('property_id, check_in, check_out, nights, nightly_rate, total, gross_guest_paid, platform_fee, climate_levy, amount_basis, channel, declared_at').in('property_id', ids).eq('user_id', userId),
   ]);
-  const tenantByProp = new Map<string, E2Tenant>();
-  (tenants || []).forEach((t: E2Tenant) => { if (!tenantByProp.has(t.property_id)) tenantByProp.set(t.property_id, t); });
+  // Ένας μισθωτής ανά ακίνητο, ο τρέχων. Εδώ κρατιόταν «ο πρώτος της λίστας»
+  // ταξινομημένης κατά δημιουργία — δηλαδή ο πιο πρόσφατα καταχωρημένος, ακόμη
+  // κι αν είχε ήδη φύγει. Το ΑΦΜ του πηγαινε στο Ε2.
+  const tenantByProp: Map<string, E2Tenant> = tenants;
   const paymentsByProp = new Map<string, E2Payment[]>();
   (payments || []).forEach((p: E2Payment) => { const a = paymentsByProp.get(p.property_id) || []; a.push(p); paymentsByProp.set(p.property_id, a); });
   const staysByProp = new Map<string, E2Stay[]>();

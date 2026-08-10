@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import { isoDate } from '@/lib/core/time'
 import { createClient } from '@/lib/supabase/client'
 import * as properties from '@/lib/data/properties';
+import * as tenantStore from '@/lib/data/tenants';
 import * as expenses from '@/lib/data/expenses'
 // Το Supabase δεν πετάει σε σφάλμα βάσης· η `must` το κάνει να πετάει.
 import { must } from '@/lib/supabase/must'
@@ -675,7 +676,10 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
     }
     // ── Ενοίκιο & μισθώσεις (πραγματικά δεδομένα ενοικιαστή, idempotent) ──
     if(k==='leases'){
-      const tenants=await must(supabase.from('tenants').select('*').eq('property_id',propertyId).neq('status','past'))
+      // Το `.neq('status','past')` άφηνε μέσα όποιον είχε ημερομηνία αποχώρησης
+      // χωρίς αλλαγή κατάστασης — δηλαδή δημιουργούσε δόσεις ενοικίου για
+      // μισθωτή που έχει ήδη φύγει. Ο κανόνας ζει πλέον σε ένα σημείο.
+      const tenants=await tenantStore.currentAll<TenantScheduleRow>(supabase,propertyId,'*',userId)
       let n=0
       for(const t of ((tenants||[]) as TenantScheduleRow[])){
         await syncTenantSchedule(supabase,t,propertyId,userId,'save',{rentDueDay:t.rent_due_day??1})

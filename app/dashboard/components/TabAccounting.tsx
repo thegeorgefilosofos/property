@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import * as properties from '@/lib/data/properties';
+import * as tenantStore from '@/lib/data/tenants';
 import * as expenseStore from '@/lib/data/expenses';
 import { T, Skeleton, SkeletonKPIs, fe, fp } from '@/components/Theme'
 import { ActionMenu } from '@/components/ActionMenu'
@@ -496,8 +497,11 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     if(alive) setClosing((data as { snapshot:BookSnapshot; locked_at:string }|null)||null)
   })(); return ()=>{ alive = false } },[propertyId,userId,year,refreshKey])
   useEffect(()=>{ let alive = true; (async()=>{
-    const { data } = await supabase.from('tenants').select('full_name,afm').eq('property_id',propertyId).eq('user_id',userId).order('created_at',{ ascending:false }).limit(1).maybeSingle()
-    if(alive) setTenant((data as { full_name?:string; afm?:string }|null)||null)
+    // Ο ΤΡΕΧΩΝ ΜΙΣΘΩΤΗΣ, ΟΧΙ Ο ΤΕΛΕΥΤΑΙΟΣ ΠΟΥ ΓΡΑΦΤΗΚΕ. Το όνομα που βγαίνει από
+    // εδώ τυπώνεται στη βεβαίωση ενοικίου: με «πιο πρόσφατα δημιουργημένος», η
+    // βεβαίωση έβγαινε στο όνομα άλλου ανθρώπου από αυτόν που έδειχνε η Επισκόπηση.
+    const data = await tenantStore.current<{ full_name?:string; afm?:string }>(supabase, propertyId, 'full_name,afm', userId)
+    if(alive) setTenant(data||null)
   })(); return ()=>{ alive = false } },[propertyId,userId,refreshKey])
   // Ετήσια βεβαίωση ενοικίου: μόνο εισπραγμένα μισθώματα του έτους, ανά μήνα.
   function printCertificate(){

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { daysUntil } from '@/lib/core/time';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
+import * as tenantStore from '@/lib/data/tenants';
 import * as calendar from '@/lib/data/calendar'
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
@@ -659,18 +660,18 @@ export default function BillsInsurance({ propertyId, userId = '', only }: { prop
         // κατασκευής και ο τρόπος εκμετάλλευσης — ακριβώς τα δεδομένα πάνω στα
         // οποία στηρίζεται η πρόταση ασφάλισης. Η περιοχή έρχεται τώρα από τη
         // διεύθυνση, και το «επιπλωμένο» από τη μίσθωση, όπου όντως ζει.
-        const [prop, { data: loans }, { data: tenants }] = await Promise.all([
+        const [prop, { data: loans }, activeTenants] = await Promise.all([
           properties.one(supabase, propertyId, 'address,sqm,prop_type,status_detail,year_built,rental_mode,target_rent,insurance_company,insurance_expiry,insurance_amount', userId),
           supabase.from('loans').select('status').eq('property_id', propertyId),
-          supabase.from('tenants').select('monthly_rent,status,move_out_date,furnishing').eq('property_id', propertyId),
+          tenantStore.currentAll<{ monthly_rent?: number | null; furnishing?: string | null }>(supabase, propertyId, 'monthly_rent,furnishing', userId),
         ]);
         const activeLoan = (loans ?? []).some(l => (l as { status?: string }).status !== 'closed' && (l as { status?: string }).status !== 'inactive');
-        const activeTenants = (tenants ?? [])
-          .filter(t => (t as { status?: string }).status !== 'past' && !(t as { move_out_date?: string }).move_out_date);
+        // Το φιλτράρισμα «όχι past και χωρίς ημερομηνία αποχώρησης» ζούσε εδώ, και
+        // σε άλλα τέσσερα αρχεία, γραμμένο κάθε φορά από την αρχή. Το στρώμα το κάνει.
         const activeRent = activeTenants
-          .reduce((s, t) => s + (Number((t as { monthly_rent?: number }).monthly_rent) || 0), 0);
+          .reduce((s, t) => s + (Number(t.monthly_rent) || 0), 0);
         const isFurnished = activeTenants.some(t => {
-          const f = (t as { furnishing?: string }).furnishing;
+          const f = t.furnishing ?? undefined;
           return f === 'furnished' || f === 'turnkey';
         });
         const p = (prop ?? {}) as {
