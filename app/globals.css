@@ -1421,6 +1421,22 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 @media (max-width: 720px)  { .lp-plans { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } }
 @media (max-width: 470px)  { .lp-plans { grid-template-columns: 1fr !important; } }
 
+/* ── ΠΛΑΚΙΔΙΑ ΣΥΝΔΡΟΜΩΝ: ΡΗΤΟ ΠΛΗΘΟΣ ΣΤΗΛΩΝ ────────────────────────────────
+   ΓΙΑΤΙ ΟΧΙ auto-fit ΕΔΩ. Το `repeat(auto-fit, minmax(Xpx, 1fr))` δίνει όσες
+   στήλες ΧΩΡΑΝΕ, όχι όσες θέλεις: το ίδιο ελάχιστο βγάζει πέντε στήλες σε
+   οθόνη 100%, τέσσερις στο 125% και τρεις στο 150%, γιατί το zoom αλλάζει το
+   πλάτος σε εικονοστοιχεία CSS. Δέκα πλακίδια γίνονταν έτσι 5+5, 4+4+2 ή
+   3+3+3+1 ανάλογα με τη ρύθμιση του περιηγητή — τρεις διαφορετικές διατάξεις
+   για την ίδια οθόνη.
+
+   Δέκα υπηρεσίες θέλουν δύο σειρές των πέντε, οκτώ θέλουν δύο των τεσσάρων:
+   αυτό είναι απόφαση σχεδίασης, όχι αποτέλεσμα διαθέσιμου πλάτους. Γράφεται
+   ρητά, και σπάει σε λιγότερες στήλες μόνο εκεί που πραγματικά δεν χωρά. */
+.sub-tiles { display: grid; gap: 10px; grid-template-columns: repeat(var(--sub-cols, 5), minmax(0, 1fr)); }
+@media (max-width: 1080px) { .sub-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 760px)  { .sub-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 440px)  { .sub-tiles { grid-template-columns: 1fr; } }
+
 /* ΑΦΑΙΡΕΘΗΚΕ: η απόκρυψη μπάρας κύλισης των .app-tabs — έφυγε μαζί με την
    οριζόντια μπάρα καρτελών (βλ. σχόλιο πιο πάνω· η πλοήγηση είναι sidebar + bottom-nav). */
 

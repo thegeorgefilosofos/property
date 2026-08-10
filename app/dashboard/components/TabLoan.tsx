@@ -57,7 +57,7 @@ function programFacts(p: ComparisonProgram): ProgramFact[] {
   const add = (label: string, value: string, color: string, size: number) => facts.push({ label, value, color, size })
   if (p.maxAmount) add('Μέγιστο ποσό', fmtEur(p.maxAmount), 'var(--text-primary)', 16)
   if (p.maxLtv)    add('Μέγιστο δάνειο προς αξία', fp(p.maxLtv), 'var(--text-primary)', 14)
-  if (p.maxSqm)    add('Μέγιστα τετραγωνικά', `${p.maxSqm} τετραγωνικά μέτρα`, 'var(--text-primary)', 12)
+  if (p.maxSqm)    add('Μέγιστα τ.μ.', `${p.maxSqm} τ.μ.`, 'var(--text-primary)', 12)
   if (p.ageMax)    add('Ηλικία δικαιούχου', `${p.ageMin}–${p.ageMax} ετών`, 'var(--text-primary)', 12)
   if (p.duration)  add('Διάρκεια', p.duration, 'var(--text-secondary)', 12)
   if (p.deadline)  add('Προθεσμία', grDate(p.deadline), 'var(--text-primary)', 13)
@@ -1421,7 +1421,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
               {[
                 {title:'Ένοπλες Δυνάμεις',desc:'ΤΑΠ-ΟΙΚ: επιδοτούμενα στεγαστικά με χαμηλότερο επιτόκιο για εν ενεργεία μέλη.',url:'https://www.tap.gr'},
                 {title:'Κάτοικοι εξωτερικού',desc:'Δάνειο έως 55–70% της αξίας. Επίσημες μεταφράσεις, αποδεικτικό κατοικίας, εισοδήματα ξένης χώρας.',url:'https://www.nbg.gr/el/idiwtes/daneia/stegastika-daneia'},
-                {title:'Νέοι 25–50 ετών',desc:'Σπίτι μου ΙΙ: 50% άτοκο. Εισόδημα άγαμος 25.000€, έγγαμοι 35.000€ +5.000€/τέκνο. Έως 150 τετραγωνικά.',url:'https://greece20.gov.gr/home-loans/'},
+                {title:'Νέοι 25–50 ετών',desc:'Σπίτι μου ΙΙ: 50% άτοκο. Εισόδημα άγαμος 25.000€, έγγαμοι 35.000€ +5.000€/τέκνο. Έως 150 τ.μ..',url:'https://greece20.gov.gr/home-loans/'},
                 {title:'Ελεύθεροι επαγγελματίες',desc:'Μέσος όρος εισοδήματος διετίας. Δάνειο έως 65–70% της αξίας. Συνέπεια στις δηλώσεις.',url:AADE_HOME},
                 {title:'Πολύτεκνοι και τρίτεκνοι',desc:'+50% επιδότηση επιτοκίου στο Σπίτι μου ΙΙ. Εισόδημα έως 45.000€ (2 παιδιά) ή 50.000€ (3+).',url:'https://greece20.gov.gr/home-loans/'},
                 {title:'Εταιρείες και επαγγελματικά',desc:'Ισολογισμοί 3 ετών, απόφαση διοίκησης, προσωπική εγγύηση. Πλήρης έκπτωση τόκων.',url:'https://www.nbg.gr/el/epixeiriseis'},

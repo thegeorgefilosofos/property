@@ -99,7 +99,7 @@ interface InsuranceCompany {
 const INSURANCE_COMPANIES: InsuranceCompany[] = [
   { value: 'hellas_direct', label: 'Hellas Direct',            url: 'https://www.hellasdirect.gr/asfaleia-katoikias', agent_label: 'Ψηφιακή, χωρίς ασφαλιστή',
     propertyTypes: ['Κύρια Κατοικία','Εξοχική Κατοικία','Ενοικιαζόμενη','Βραχυχρόνια Μίσθωση'],
-    note: 'Modular καλύψεις, τιμή εξαρτάται από τετραγωνικά, ζώνη, αξία. Δωρεάν αποτίμηση online.',
+    note: 'Modular καλύψεις, τιμή εξαρτάται από τ.μ., ζώνη, αξία. Δωρεάν αποτίμηση online.',
     plans: [
       { id: 'hd_ktirio',    name: 'Κτίριο',                monthly: 5.50,  annual: 55,  covers: ['Πυρκαγιά','Θραύση Σωληνώσεων','Βραχυκύκλωμα','Φυσικά Φαινόμενα','Αστική Ευθύνη'], earthquake: false, flood: true,  natural: true  },
       { id: 'hd_perieh',   name: 'Περιεχόμενο',            monthly: 4.00,  annual: 40,  covers: ['Κλοπή','Βραχυκύκλωμα','Τυχαίες Ζημιές Περιεχομένου'], earthquake: false, flood: false, natural: false },
@@ -547,6 +547,11 @@ export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate
   onUpdate: <K extends keyof SubscriptionEntry>(svc: string, field: K, val: SubscriptionEntry[K]) => void;
   total: number;
 }) {
+  // ΔΥΟ ΓΕΜΑΤΕΣ ΣΕΙΡΕΣ, ΟΠΟΙΟ ΚΙ ΑΝ ΕΙΝΑΙ ΤΟ ΜΕΓΕΘΟΣ ΤΟΥ ΚΑΤΑΛΟΓΟΥ. Διαλέγεται
+  // το ΜΕΓΑΛΥΤΕΡΟ πλήθος στηλών που χωρίζει ακριβώς τον κατάλογο: δέκα
+  // υπηρεσίες γίνονται πέντε και πέντε, οκτώ τέσσερα και τέσσερα, έξι τρία και
+  // τρία. Καμία μισή σειρά, χωρίς να γράφεται νούμερο στο χέρι σε κάθε κλήση.
+  const tileCols = [5, 4, 3].find(n => catalog.length % n === 0) ?? Math.min(5, catalog.length);
   const isOn = (v: string) => active.some(a => a.service === v);
   return (
     <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
@@ -570,7 +575,12 @@ export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate
           ένα μόνο του στη μέση — συμμετρικό μεν, αλλά το τελευταίο πλακίδιο
           έμοιαζε με λάθος. Πλέγμα πέντε στηλών: δέκα υπηρεσίες γίνονται δύο
           γεμάτες σειρές, πέντε γίνονται μία, και καμία σειρά δεν είναι μισή. */}
-      <div style={tileGrid(230, 10)}>
+      {/* ΤΟ ΠΛΗΘΟΣ ΣΤΗΛΩΝ ΕΙΝΑΙ ΑΠΟΦΑΣΗ, ΟΧΙ ΑΠΟΤΕΛΕΣΜΑ. Δέκα υπηρεσίες θέλουν
+          δύο σειρές των πέντε, οκτώ δύο των τεσσάρων — και γράφεται ρητά, γιατί
+          το `auto-fit` έδινε άλλο πλήθος σε κάθε επίπεδο zoom του περιηγητή:
+          η ίδια οθόνη έβγαζε 5+5, 4+4+2 ή 3+3+3+1 ανάλογα με τη ρύθμιση.
+          Βλ. `.sub-tiles` στο globals.css. */}
+      <div className="sub-tiles" style={{ '--sub-cols': tileCols } as React.CSSProperties}>
         {catalog.map(svc => {
           const entry = active.find(a => a.service === svc.value);
           const on = !!entry;
@@ -1245,7 +1255,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
             {/* Τέσσερα στοιχεία του ίδιου ακινήτου, σε μία σειρά ίσα μοιρασμένη
                 αντί για δύο σειρές των δύο με μισή κάρτα άδεια δεξιά. */}
             <div style={{ ...fieldRow(180), marginBottom: 14 }}>
-              <NumberInput label="Εμβαδόν"           value={effectiveSqm}    onChange={v => u({ insSqm: v })}          suffix="τετραγωνικά" step={5}/>
+              <NumberInput label="Εμβαδόν"           value={effectiveSqm}    onChange={v => u({ insSqm: v })}          suffix="τ.μ." step={5}/>
               <TextInput   label="Πόλη ή περιοχή"    value={effectiveCity}   onChange={v => u({ insCity: v })}         placeholder="Παράδειγμα: Αθήνα…"/>
               <NumberInput label="Αξία κτηρίου"      value={insPropValue}    onChange={v => u({ insPropValue: v })}    suffix="€" step={5000}/>
               <NumberInput label="Αξία περιεχομένου" value={insContentValue} onChange={v => u({ insContentValue: v })} suffix="€" step={1000}/>

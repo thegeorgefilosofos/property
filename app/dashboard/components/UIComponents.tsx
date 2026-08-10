@@ -45,11 +45,12 @@ export function ToggleField({ label, on, onChange }: { label: string; on: boolea
   return (
     <div>
       <label style={{ ...TT.label, display: 'block', marginBottom: 7 }}>{label}</label>
-      <div style={{
-        height: FIELD_HEIGHT, borderRadius: FIELD_RADIUS,
-        border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
-        display: 'flex', alignItems: 'center', padding: '0 14px', boxSizing: 'border-box',
-      }}>
+      {/* ΧΩΡΙΣ ΚΟΥΤΙ. Το πλαίσιο ενός πεδίου σημαίνει «εδώ γράφεις»· γύρω από
+          διακόπτη είναι άδειο περίγραμμα που περικλείει ένα αντικείμενο μισού
+          πλάτους και το κάνει να μοιάζει με πεδίο που δεν γέμισε κανείς. Μένει
+          μόνο το ΥΨΟΣ, ώστε ο διακόπτης να κάθεται στην ίδια γραμμή βάσης με τα
+          κουτιά δίπλα του. */}
+      <div style={{ height: FIELD_HEIGHT, display: 'flex', alignItems: 'center', boxSizing: 'border-box' }}>
         <Toggle on={on} onChange={onChange} ariaLabel={label}/>
       </div>
     </div>
@@ -261,7 +262,7 @@ export function NumberInput({
 
   // FIX: calculate suffix padding based on string length
   // Short suffixes (€, %, η, ω) → 12px each side
-  // Medium (kWh, τετραγωνικά μέτρα, Mbps) → 10px each side, slightly more space
+  // Medium (kWh, τ.μ., Mbps) → 10px each side, slightly more space
   // Long (άτομα, kWp, τεμ.) → 8px each side, ensure min content fits
   const getSuffixPadding = (s: string) => {
     const len = s.length;

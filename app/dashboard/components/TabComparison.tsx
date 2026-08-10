@@ -101,7 +101,7 @@ export default function TabComparison({ properties, userId }: Props) {
     const year = new Date().getFullYear();
     // Τα πεδία είναι αυτά που ζητά ο κοινός πυρήνας (lib/expenses/ledger.ts): ο
     // λογαριασμός δίνει πρόγραμμα και προθεσμία, η δαπάνη το γεγονός και το ποσό.
-    const [exp, bil, currentTenants, { data: bud }] = await Promise.all([
+    const [exp, bil, currentTenants, bud] = await Promise.all([
       expenses.ledgerOfProperties(supabase, ids, userId, `${year}-01-01`),
       billStore.ofProperties(supabase, ids, billStore.PORTFOLIO_COLUMNS, userId),
       // ΠΟΙΟΣ ΕΝΟΙΚΟΣ ΜΕΤΡΑ, ΟΤΑΝ ΕΙΝΑΙ ΠΕΡΙΣΣΟΤΕΡΟΙ ΑΠΟ ΕΝΑΣ.
@@ -409,7 +409,7 @@ export default function TabComparison({ properties, userId }: Props) {
                         δεν γράφεται παύλα για κάθε πεδίο χωριστά. */}
                     <div title={r.p.value ? 'Εμπορική αξία' : 'Αντικειμενική αξία (Ε9), επειδή δεν έχει καταχωρηθεί εμπορική'}
                       style={{ fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginTop: 3, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>
-                      {[statusLabel(r.p as StatusRow) || null, r.sqm > 0 ? `${fn(r.sqm)} τετραγωνικά` : null, r.value != null ? fe(r.value) : null, r.perSqm != null ? `${fe(r.perSqm)} ανά τετραγωνικό` : null].filter(Boolean).join(' · ') || ABSENT}
+                      {[statusLabel(r.p as StatusRow) || null, r.sqm > 0 ? `${fn(r.sqm)} τ.μ.` : null, r.value != null ? fe(r.value) : null, r.perSqm != null ? `${fe(r.perSqm)} ανά τετραγωνικό` : null].filter(Boolean).join(' · ') || ABSENT}
                     </div>
                   </th>
                 ))}

@@ -280,7 +280,7 @@ export default function EnfiaPanel({ propertyId, userId }: { propertyId: string;
         {(showEstimate || inUse.source === 'none') && (
           <>
             <div style={g2}>
-              <NumberInput label="Εμβαδόν" value={s.enfiaSqm} onChange={v => upd({ enfiaSqm: v })} suffix="τετραγωνικά"/>
+              <NumberInput label="Εμβαδόν" value={s.enfiaSqm} onChange={v => upd({ enfiaSqm: v })} suffix="τ.μ."/>
               <NumberInput label="Ποσοστό ιδιοκτησίας" value={s.enfiaOwnership} onChange={v => upd({ enfiaOwnership: v })} suffix="%" max={100}/>
             </div>
             <div style={{ ...g2, marginTop: 14 }}>

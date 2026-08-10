@@ -186,7 +186,7 @@ export function buildLeaseDeclaration(input: LeaseDeclarationInput): LeaseDeclar
     'Συμπλήρωσε τον ΤΚ στα στοιχεία του ακινήτου.', 'Ο ΤΚ πρέπει να έχει 5 ψηφία.');
   const sqm = Number(p.sqm) || 0;
   add({ key: 'sqm', label: 'Επιφάνεια (τ.μ.)', value: sqm > 0 ? String(sqm) : '', required: true, fixIn: 'property',
-        status: sqm > 0 ? 'ok' : 'missing', hint: sqm > 0 ? undefined : 'Συμπλήρωσε τα τετραγωνικά στα στοιχεία του ακινήτου.' });
+        status: sqm > 0 ? 'ok' : 'missing', hint: sqm > 0 ? undefined : 'Συμπλήρωσε τα τ.μ. στα στοιχεία του ακινήτου.' });
   add({ key: 'floor', label: 'Όροφος', value: txt(p.floor), required: false, fixIn: 'property',
         status: 'ok', hint: txt(p.floor) ? undefined : 'Προαιρετικό, αλλά το ζητά η φόρμα για διαμερίσματα.' });
 

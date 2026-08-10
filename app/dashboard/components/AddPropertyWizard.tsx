@@ -291,7 +291,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
   const grossYield = (annualRent != null && effValueN != null && effValueN > 0) ? (annualRent / effValueN) * 100 : null;
 
   const rentLabel = airbnb ? 'Τιμή ανά διανυκτέρευση (€)' : 'Στόχος Ενοικίου (€/μήνα)';
-  const sqmLabel = propType === 'land' ? 'Εμβαδόν Οικοπέδου (τετραγωνικά μέτρα)' : 'Εμβαδόν (τετραγωνικά μέτρα)';
+  const sqmLabel = propType === 'land' ? 'Εμβαδόν Οικοπέδου (τ.μ.)' : 'Εμβαδόν (τ.μ.)';
 
   const canNext = step === 0 ? !!propType : step === 1 ? !!name.trim() : true;
 
@@ -748,7 +748,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
               ['Διεύθυνση', address.trim() || ABSENT],
               postalCode.trim() ? ['Ταχ. Κώδικας', postalCode.trim()] : null,
               atak.trim() ? ['ΑΤΑΚ', atak.trim()] : null,
-              [propType === 'land' ? 'Εμβαδόν Οικοπέδου' : 'Εμβαδόν', num(sqm) != null ? `${fn(num(sqm)!)} τετραγωνικά` : `${fn(0)}τετραγωνικά`],
+              [propType === 'land' ? 'Εμβαδόν Οικοπέδου' : 'Εμβαδόν', num(sqm) != null ? `${fn(num(sqm)!)} τ.μ.` : `${fn(0)}τ.μ.`],
               isLandLike ? null : ['Όροφος', floor.trim() || ABSENT],
               isLandLike ? null : ['Έτος Κατασκευής', yearBuilt.trim() || ABSENT],
               isLandLike ? null : (peaClass ? ['Ενεργειακή Κλάση', peaClass] : null),

@@ -65,7 +65,7 @@ const DISCLAIMER = 'Ενημερωτικό έγγραφο, όχι επίσημη
 
 /** Ό,τι πρέπει να διαβάσει ο λογιστής πριν πιστέψει τα νούμερα. */
 const disclaimerOf = (c: AccountingReportCtx): string => c.enfiaEstimated
-  ? `${DISCLAIMER} Ο ΕΝΦΙΑ είναι αυτόματη εκτίμηση από την αξία και τα τετραγωνικά, όχι ποσό από εκκαθαριστικό.`
+  ? `${DISCLAIMER} Ο ΕΝΦΙΑ είναι αυτόματη εκτίμηση από την αξία και τα τ.μ., όχι ποσό από εκκαθαριστικό.`
   : DISCLAIMER
 
 export function printAccountingReport(c: AccountingReportCtx): void {
