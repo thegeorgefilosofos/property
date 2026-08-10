@@ -564,8 +564,17 @@ export default async function Landing() {
         .lp-feat > .lp-card { grid-row: span 3; display: grid; grid-template-rows: subgrid; gap: 0; }
         .lp-duo { grid-template-rows: auto auto auto 1fr; }
         .lp-duo > .lp-card { grid-row: span 4; display: grid; grid-template-rows: subgrid; gap: 0; }
-        /* Οι τίτλοι και οι γραμμές ελέγχου κάθε κάρτας είναι σύντομα στοιχεία. */
-        .lp-aud h3, .lp-feat h3, .lp-duo h3, .lp-duo .lp-k, .lp-plan-item { text-wrap: balance; }
+        /* ΚΑΙ ΟΙ ΚΑΡΤΕΣ ΤΟΥ ΤΙΜΟΚΑΤΑΛΟΓΟΥ. Στοιχίζονταν με δύο ελάχιστα ύψη στο
+           χέρι (34 για την ταμπέλα, 30 για το δώρο της ετήσιας) — μαγικοί
+           αριθμοί που κρατούσαν κενό ύψος όταν το κείμενο χωρούσε σε μία σειρά
+           και σταματούσαν να αρκούν όταν δεν χωρούσε. Επτά σειρές: όνομα,
+           ταμπέλα, τιμή, ετήσια, δώρο, λίστα, κουμπί. */
+        .lp-plans { grid-template-rows: auto auto auto auto auto 1fr auto; }
+        .lp-plans > .lp-card { grid-row: span 7; display: grid; grid-template-rows: subgrid; gap: 0; }
+        /* Οι τίτλοι και οι γραμμές ελέγχου κάθε κάρτας είναι σύντομα στοιχεία.
+           Ο κανόνας για την κλάση lp-plan-item έφυγε: τέτοια κλάση δεν υπήρχε
+           σε κανένα στοιχείο της σελίδας. */
+        .lp-aud h3, .lp-feat h3, .lp-duo h3, .lp-duo .lp-k { text-wrap: balance; }
 
         /* Συμβατότητα: πυκνό πλέγμα ονομάτων. Το κελί δεν έχει δικό του πλαίσιο,
            μόνο τις εσωτερικές γραμμές του πλέγματος, ώστε να διαβάζεται ως ΕΝΑΣ
@@ -996,7 +1005,7 @@ export default async function Landing() {
             <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a8 8 0 0 1-8 8H8l-5 3 1.4-4.2A8 8 0 1 1 21 12" /><path d="M8.5 12h.01M12 12h.01M15.5 12h.01" /></svg>
           </span>
           <span style={{ fontSize: 14, fontWeight: 680, color: TEXT }}>Ο βοηθός περιλαμβάνεται σε κάθε πακέτο</span>
-          <span style={{ fontSize: 14, color: MUTED }}>Αλλάζει μόνο πόσες ερωτήσεις έχεις κάθε μήνα.</span>
+          <span style={{ fontSize: 14, color: MUTED }}>Αλλάζει μόνο πόσες ερωτήσεις έχει το καθένα τον μήνα.</span>
         </div>
         <div className="lp-plans" style={{ display: 'grid', gridTemplateColumns: `repeat(${LANDING_PLANS.length}, minmax(0, 1fr))`, gap: 12, alignItems: 'stretch' }}>
           {LANDING_PLANS.map((id, i) => {
@@ -1016,10 +1025,9 @@ export default async function Landing() {
                 // πακέτο δίνει έναν μήνα. Μία τιμή που αλλάζει και μια ταμπέλα
                 // που δεν την ακολουθεί είναι ψέμα με ημερομηνία λήξης.
                 discount={`12 μήνες στην τιμή των ${Math.round(plan.priceAnnual / plan.priceMonthly)}`}
-                inherits={prev ? `Ό,τι έχει το «${prev.name}», και:` : 'Περιλαμβάνει:'}
-                // Το «30 ημέρες δωρεάν δοκιμή» ήταν ΚΑΙ τελευταία γραμμή χαρακτηριστικών
-                // ΚΑΙ το ίδιο το κουμπί από κάτω. Μία περιττή γραμμή σε κάθε κάρτα.
-                items={plan.features.filter(f => !f.includes('δωρεάν δοκιμή'))}
+                inherits={prev ? `Όλα του «${prev.name}», και:` : 'Περιλαμβάνει:'}
+                ai={aiLimitsFor(id).perMonth}
+                items={plan.features}
                 cta={`${plan.trialDays} ημέρες δωρεάν`}
                 ctaGhost={id !== FEATURED_PLAN}
                 featured={id === FEATURED_PLAN}
@@ -1161,14 +1169,14 @@ function SectionHead({ over, title, sub }: { over: string; title: string; sub?: 
   );
 }
 
-function PlanCard({ name, nameColor, sub, price, per, note, discount, inherits, items, cta, ctaGhost, featured }: {
-  name: string; nameColor: string; sub: string; price: string; per: string; note: React.ReactNode; discount?: string; inherits?: string; items: string[]; cta: string; ctaGhost?: boolean; featured: boolean;
+function PlanCard({ name, nameColor, sub, price, per, note, discount, inherits, ai, items, cta, ctaGhost, featured }: {
+  name: string; nameColor: string; sub: string; price: string; per: string; note: React.ReactNode; discount?: string; inherits?: string; ai: number; items: string[]; cta: string; ctaGhost?: boolean; featured: boolean;
 }) {
   return (
-    <div className="lp-card" style={{ position: 'relative', background: PANEL, border: featured ? `1.5px solid color-mix(in srgb, var(--accent) 50%, transparent)` : `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(16px, 1.6vw, 20px)', display: 'flex', flexDirection: 'column', boxShadow: featured ? '0 24px 60px -30px color-mix(in srgb, var(--accent) 60%, transparent)' : 'none' }}>
+    <div className="lp-card" style={{ position: 'relative', background: PANEL, border: featured ? `1.5px solid color-mix(in srgb, var(--accent) 50%, transparent)` : `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(16px, 1.6vw, 20px)', boxShadow: featured ? '0 24px 60px -30px color-mix(in srgb, var(--accent) 60%, transparent)' : 'none' }}>
       {featured && <span style={{ position: 'absolute', top: -9, left: 16, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)', background: PANEL, border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)', borderRadius: 100, padding: '2px 9px', whiteSpace: 'nowrap' }}>Προτεινόμενο</span>}
       <div style={{ fontSize: 14, fontWeight: 700, color: nameColor, marginBottom: 3 }}>{name}</div>
-      <div style={{ fontSize: 12, color: FAINT, marginBottom: 14, minHeight: 34, lineHeight: 1.35 }}>{sub}</div>
+      <div style={{ fontSize: 12, color: FAINT, marginBottom: 14, lineHeight: 1.35 }}>{sub}</div>
       {/* ΤΟ ΠΟΣΟ ΚΑΙ Η ΠΕΡΙΟΔΟΣ ΕΙΝΑΙ ΕΝΑ ΠΡΑΓΜΑ: «3,90 € τον μήνα» διαβάζεται
           σαν φράση, όχι σαν αριθμός με λεζάντα από κάτω. Το `baseline` τα
           στοιχίζει στη γραμμή γραφής, οπότε το μικρό «τον μήνα» κάθεται πάνω
@@ -1188,15 +1196,26 @@ function PlanCard({ name, nameColor, sub, price, per, note, discount, inherits, 
           υποσημείωσης. Το πλαίσιο είναι ΟΥΔΕΤΕΡΟ — περίγραμμα και φόντο από τα
           tokens της επιφάνειας, όχι πράσινη κονκάρδα «έκπτωσης»: ξεχωρίζει με
           σχήμα, όχι με χρώμα-ετυμηγορία. */}
-      <div style={{ minHeight: 30, marginTop: 8 }}>
+      <div style={{ marginTop: 8 }}>
         {discount && (
           <span style={{ display: 'inline-flex', alignItems: 'center', borderRadius: 100,
             border: `1px solid ${LINE}`, background: 'var(--bg-elevated)', padding: '3px 10px',
             fontSize: 11, fontWeight: 700, color: TEXT, letterSpacing: '0.01em', whiteSpace: 'nowrap' }}>{discount}</span>
         )}
       </div>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8, textAlign: 'left', margin: '14px 0 16px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, textAlign: 'left', margin: '14px 0 16px' }}>
         {inherits && <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent)', letterSpacing: '-0.01em', marginBottom: 1 }}>{inherits}</div>}
+        {/* ΤΟ ΠΑΚΕΤΟ ΕΡΩΤΗΣΕΩΝ ΜΕ ΝΟΥΜΕΡΟ, ΟΧΙ ΜΕ ΕΠΙΘΕΤΟ. Οι λίστες έλεγαν
+            «διπλάσιο πακέτο ερωτήσεων» και «το μεγαλύτερο πακέτο ερωτήσεων»:
+            διπλάσιο από τι, και μεγαλύτερο από τι, δεν το έλεγε κανείς — και
+            στο φθηνότερο πακέτο δεν γραφόταν τίποτα, οπότε διαβαζόταν ως «δεν
+            τον έχει». Ο αριθμός υπάρχει και είναι ακριβής (aiLimits.ts): μπαίνει.
+            Διαφορετικό εικονίδιο επίτηδες — είναι η μία γραμμή που έχουν ΟΛΑ τα
+            πακέτα, και το μάτι πρέπει να τη βρίσκει στην ίδια θέση σε κάθε κάρτα. */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7 }}>
+          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M21 12a8 8 0 0 1-8 8H8l-5 3 1.4-4.2A8 8 0 1 1 21 12" /></svg>
+          <span className="lp-even" style={{ fontSize: 12, color: TEXT, lineHeight: 1.4 }}>{ai} ερωτήσεις τον μήνα</span>
+        </div>
         {items.map((t, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 7 }}>{check}<span className="lp-even" style={{ fontSize: 12, color: TEXT, lineHeight: 1.4 }}>{t}</span></div>
         ))}
