@@ -37,6 +37,7 @@ import { uploadPath } from '@/lib/core/uploadPath';
 // Το Αρχείο έχει ένα σπίτι: lib/data/documents.
 import * as documents from '@/lib/data/documents';
 import { navLabel } from '@/lib/nav/labels';
+import { findDuplicates, duplicateNotice, type ExpenseLike } from '@/lib/expenses/duplicates';
 import {
   matchPaymentToBills, providerFromBillName,
   type MatchCandidate, type MatchResult,
@@ -356,6 +357,12 @@ export interface CommitInput {
    */
   archiveCategory?: string;
   /**
+   * «Το ξέρω ότι μοιάζει, γράψ' το». Ο έλεγχος διπλοεγγραφής ΔΕΝ σβήνει και δεν
+   * αποφασίζει: σταματά και ρωτά. Μόνο ο χρήστης ξέρει αν πρόκειται για δύο
+   * παροχές ρεύματος ή για την ίδια απόδειξη σαρωμένη δεύτερη φορά.
+   */
+  allowDuplicate?: boolean;
+  /**
    * Απάντηση του χρήστη στην ερώτηση συμφωνίας:
    *   string → εξόφλησε ΑΥΤΟΝ τον λογαριασμό
    *   null   → κανέναν, δημιούργησε νέα εγγραφή
@@ -384,6 +391,12 @@ export interface CommitResult {
   saved: string[];
   /** Όταν υπάρχει, ΤΙΠΟΤΑ δεν γράφτηκε: πρέπει πρώτα να απαντήσει ο χρήστης. */
   ask?: ReconcileQuestion;
+  /**
+   * Πιθανή διπλοεγγραφή. Και εδώ ΤΙΠΟΤΑ δεν γράφτηκε: η πρόταση λέει τι βρέθηκε
+   * και γιατί μοιάζει, και ο χρήστης είτε ακυρώνει είτε ξαναστέλνει με
+   * `allowDuplicate`.
+   */
+  duplicate?: string;
   error?: 'save';
 }
 
@@ -440,6 +453,41 @@ export async function commitScannedDoc(input: CommitInput): Promise<CommitResult
   const add = (s: string) => { if (!written.includes(s)) written.push(s); };
 
   try {
+    // ── 0α) ΜΗΠΩΣ ΕΙΝΑΙ ΗΔΗ ΜΕΣΑ; ────────────────────────────────────────
+    // Ο ιδιοκτήτης φωτογραφίζει τον λογαριασμό τη Δευτέρα και τον καταχωρεί με
+    // το χέρι την Πέμπτη. Ή σαρώνει δεύτερη φορά την ίδια απόδειξη επειδή η
+    // πρώτη βγήκε θολή. Και οι δύο γραμμές είναι σωστές από μόνες τους — ίδιος
+    // πάροχος, ίδιο ποσό, λογικές ημερομηνίες — οπότε κανένα άθροισμα δεν
+    // φωνάζει. Απλώς ο μήνας βγαίνει ακριβότερος και η δήλωση κουβαλά δαπάνη
+    // που δεν υπάρχει.
+    //
+    // Ο έλεγχος γίνεται ΠΡΙΝ γραφτεί οτιδήποτε, και σταματά τα πάντα: ούτε
+    // αρχειοθέτηση ούτε λογαριασμός ούτε ημερολόγιο, γιατί μια μισή καταχώριση
+    // είναι χειρότερη από καμία.
+    if (plan.expense && !input.allowDuplicate) {
+      const window = 5;
+      const around = (d: string, delta: number) => {
+        const [y, m, dd] = d.split('-').map(Number);
+        const t = new Date(Date.UTC(y || 1970, (m || 1) - 1, (dd || 1) + delta));
+        return t.toISOString().slice(0, 10);
+      };
+      // Το σχέδιο δαπάνης είναι χαλαρά τυπωμένο (`Record<string, unknown>`),
+      // οπότε τα τρία πεδία που χρειάζεται ο έλεγχος διαβάζονται ρητά.
+      const exp = plan.expense as { description?: string; amount?: number; category?: string; date?: string };
+      const on = exp.date || today;
+      const near = await expenses.inRangeOfProperty(
+        supabase, propertyId, around(on, -window), around(on, window),
+        'id,description,amount,category,date,store_vendor,bill_id');
+      const hits = findDuplicates({
+        description: exp.description ?? null,
+        amount: Number(exp.amount) || 0,
+        category: exp.category ?? null,
+        date: on,
+        store_vendor: doc.provider || null,
+      }, near as ExpenseLike[], { days: window });
+      if (hits.length) return { saved: [], duplicate: duplicateNotice(hits) };
+    }
+
     // ── 0) Συμφωνία απόδειξης με εκκρεμή λογαριασμό — με τα πέντε πεδία.
     let payOff: string | null = null;
     if (plan.reconcile && doc.amount) {

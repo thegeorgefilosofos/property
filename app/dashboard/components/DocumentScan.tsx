@@ -182,6 +182,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyC
   // Ερώτηση συμφωνίας: όταν η βεβαιότητα ταιριάσματος με εκκρεμή λογαριασμό είναι
   // χαμηλή, ΔΕΝ εξοφλούμε σιωπηλά — ρωτάμε ποιον (ή κανέναν).
   const [ask, setAsk] = useState<ReconcileQuestion | null>(null);
+  const [duplicate, setDuplicate] = useState('');
   // Πρόταση αποθήκευσης του εκδότη (προμηθευτή/επαγγελματία) στις Επαφές, μετά τη
   // σάρωση λογαριασμού/απόδειξης. Ποτέ αυτόματα — μόνο με ρητή επιβεβαίωση χρήστη.
   const [contactState, setContactState] =
@@ -207,7 +208,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyC
     if (f.size > MAX_SCAN_MB * 1024 * 1024) {
       setError(`Το αρχείο είναι πολύ μεγάλο (${(f.size / 1048576).toFixed(1)}MB). Όριο ${MAX_SCAN_MB}MB.`); return;
     }
-    setFile(f); setEdited(null); setError(''); setAsk(null); setStep('review');
+    setFile(f); setEdited(null); setError(''); setAsk(null); setDuplicate(''); setStep('review');
     // Προεπισκόπηση (μόνο για να βλέπει ο χρήστης τι σάρωσε).
     const reader = new FileReader();
     reader.onload = e => setImage(String(e.target?.result || ''));
@@ -229,16 +230,21 @@ export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyC
   // `choice`: undefined → άσε τη μηχανή να κρίνει (και να ρωτήσει αν δεν ξέρει)·
   //           string    → ο χρήστης διάλεξε ποιον λογαριασμό εξοφλεί·
   //           null      → ο χρήστης είπε «κανέναν».
-  const save = async (choice?: string | null) => {
+  const save = async (choice?: string | null, allowDuplicate = false) => {
     if (!edited) return;
     setSaving(true); setError('');
     const r = await commitScannedDoc({
       doc: edited, file, propertyId, userId,
       ...(choice !== undefined ? { reconcileChoice: choice } : {}),
+      ...(allowDuplicate ? { allowDuplicate: true } : {}),
     });
     setSaving(false);
     // Χαμηλή βεβαιότητα ταιριάσματος: ΤΙΠΟΤΑ δεν γράφτηκε, ρωτάμε τον χρήστη.
     if (r.ask) { setAsk(r.ask); return; }
+    // Πιθανή διπλοεγγραφή: ΤΙΠΟΤΑ δεν γράφτηκε. Η απόφαση είναι του χρήστη —
+    // μόνο εκείνος ξέρει αν πρόκειται για δύο παροχές ή για την ίδια απόδειξη.
+    if (r.duplicate) { setDuplicate(r.duplicate); return; }
+    setDuplicate('');
     if (r.error || !r.saved.length) { setError('save'); return; }
     setAsk(null);
     setSavedInfo(r.saved);
@@ -564,6 +570,36 @@ export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyC
             {/* Ερώτηση συμφωνίας. Εμφανίζεται ΠΡΙΝ γραφτεί οτιδήποτε: η μηχανή βρήκε
                 υποψηφίους αλλά δεν έχει αρκετή απόδειξη. Δίνουμε τους λόγους κάθε
                 υποψηφίου, ώστε η επιλογή του χρήστη να είναι τεκμηριωμένη. */}
+            {/* ══════════════════════════════════════════════════════════════
+                ΠΙΘΑΝΗ ΔΙΠΛΟΕΓΓΡΑΦΗ
+                ────────────────────────────────────────────────────────────
+                Χωρίς κόκκινο και χωρίς θαυμαστικό: δεν είναι σφάλμα του
+                χρήστη, είναι πληροφορία που δεν είχε τη στιγμή που σάρωσε.
+                Και χωρίς αυτόματη διαγραφή: δύο λογαριασμοί ρεύματος του
+                ίδιου ποσού την ίδια εβδομάδα ΥΠΑΡΧΟΥΝ (δύο ακίνητα, δύο
+                παροχές, μια δόση και μια εξόφληση).
+                ══════════════════════════════════════════════════════════════ */}
+            {duplicate && (
+              <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '14px 16px', marginTop: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Μήπως το έχεις ήδη καταχωρήσει;</div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 12 }}>{duplicate}</div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  <button type="button" onClick={() => save(undefined, true)} disabled={saving}
+                    style={{ background: 'var(--accent)', border: 'none', borderRadius: T.radius.inner,
+                      height: T.h.lg, padding: '0 18px', color: '#fff', fontSize: 13, fontWeight: 600,
+                      fontFamily: T.font.sans, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.5 : 1 }}>
+                    Καταχώρησέ το ούτως ή άλλως
+                  </button>
+                  <button type="button" onClick={() => { setDuplicate(''); setStep('upload'); }}
+                    style={{ background: 'transparent', border: '1px solid var(--border-subtle)',
+                      borderRadius: T.radius.inner, height: T.h.lg, padding: '0 16px',
+                      color: 'var(--text-secondary)', fontSize: 13, fontFamily: T.font.sans, cursor: 'pointer' }}>
+                    Άκυρο
+                  </button>
+                </div>
+              </div>
+            )}
+
             {ask && (
               <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--accent-border)', borderRadius: T.radius.card, padding: '14px 16px', marginTop: 16 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>{ask.question}</div>
