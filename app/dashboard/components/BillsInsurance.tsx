@@ -18,6 +18,7 @@ import { saved } from '@/components/dbWrite'
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker, addBtn } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
 import { ReminderLinks } from './ReminderLinks';
+import { findDuplicates, type ExpenseLike } from '@/lib/expenses/duplicates';
 import { T, TT, fe, fieldRow, SecHdr, InfoBanner, Skeleton, SkeletonKPIs, localDay, ABSENT_SHORT, pressable } from '@/components/Theme';
 // Ο κατάλογος συνδρομών ζει στο lib: τον διαβάζει και ο Προϋπολογισμός.
 import { STREAMING, SPORTS, CLOUD, SUB_INCLUDES, SUB_GROUPS, planMonthly, entryPlan, entryPlanId,
@@ -1130,22 +1131,48 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
     setBooking(true);
     const from = `${curMonth}-01`;
     const to   = `${curMonth}-31`;
-    const rows = await expenseStore.inRangeOfProperty(supabase, propertyId, from, to, 'store_vendor,category');
+    const rows = await expenseStore.inRangeOfProperty(supabase, propertyId, from, to,
+      'id,description,amount,category,date,store_vendor,bill_id');
+
+    // ΔΥΟ ΔΡΟΜΟΙ ΟΔΗΓΟΥΝ ΣΤΗΝ ΙΔΙΑ ΓΡΑΜΜΗ, ΚΑΙ ΠΡΕΠΕΙ ΝΑ ΤΟ ΞΕΡΟΥΝ Ο ΕΝΑΣ ΓΙΑ
+    // ΤΟΝ ΑΛΛΟΝ. Το `recorded` πιάνει μόνο ό,τι έγραψε ΑΥΤΟ το κουμπί, γιατί
+    // αναγνωρίζει την υπηρεσία από το δικό μας αναγνωριστικό («netflix»). Η
+    // σάρωση όμως γράφει τον πάροχο όπως τον διάβασε («Netflix»), σε άλλη
+    // ημερομηνία και με άλλη περιγραφή: για το `recorded` δεν υπάρχει, και ο
+    // μήνας έβγαινε διπλός.
+    //
+    // Ο έλεγχος ομοιότητας κοιτά αυτό που κοιτά και η σάρωση — ποσό, κοντινή
+    // ημερομηνία, πάροχο, περιγραφή — οπότε οι δύο δρόμοι βλέπουν πλέον ο ένας
+    // τη δουλειά του άλλου.
     const recorded = new Set(
       rows.filter(r => r.category === SUBSCRIPTION_CATEGORY && r.store_vendor)
           .map(r => String(r.store_vendor)),
     );
-    const drafts = toExpenses(charges, { month: curMonth, recorded });
+    const ledger = rows as ExpenseLike[];
+    const planned = toExpenses(charges, { month: curMonth, recorded });
+    const clashes = planned.filter(d => findDuplicates({
+      description: d.description, amount: d.amount, category: d.category,
+      date: d.date, store_vendor: d.store_vendor,
+    }, ledger).length > 0);
+    const drafts = planned.filter(d => !clashes.includes(d));
     if (!drafts.length) {
       setBooking(false);
       setBookedCount(0);
-      notify('Ο μήνας είναι ήδη καταχωρημένος. Καμία διπλή γραμμή.');
+      notify(clashes.length
+        ? `${clashes.length === 1 ? 'Η συνδρομή υπάρχει' : `${clashes.length} συνδρομές υπάρχουν`} ήδη στις δαπάνες, από σάρωση ή χειροκίνητη καταχώριση.`
+        : 'Ο μήνας είναι ήδη καταχωρημένος. Καμία διπλή γραμμή.');
       return;
     }
     const okWrite = await saved('Οι συνδρομές δεν μπήκαν στις δαπάνες',
       expenseStore.insert(supabase, drafts.map(d => expenseStore.row({ propertyId, userId }, d))));
     setBooking(false);
-    if (okWrite) setBookedCount(drafts.length);
+    if (!okWrite) return;
+    setBookedCount(drafts.length);
+    // Ό,τι παραλείφθηκε λέγεται. Ένας αριθμός μικρότερος από τον αναμενόμενο,
+    // χωρίς εξήγηση, διαβάζεται ως σφάλμα.
+    if (clashes.length) {
+      notify(`${clashes.length === 1 ? 'Μία συνδρομή παραλείφθηκε' : `${clashes.length} συνδρομές παραλείφθηκαν`}: υπάρχουν ήδη στις δαπάνες.`);
+    }
   };
 
   // ── ΟΙ ΑΝΑΝΕΩΣΕΙΣ ΣΤΟ ΗΜΕΡΟΛΟΓΙΟ ────────────────────────────────────────
