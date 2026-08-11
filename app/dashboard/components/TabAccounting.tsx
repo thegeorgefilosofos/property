@@ -7,7 +7,7 @@ import * as stayStore from '@/lib/data/stays';
 import * as rentStore from '@/lib/data/rent';
 import * as tenantStore from '@/lib/data/tenants';
 import * as expenseStore from '@/lib/data/expenses';
-import { T, Skeleton, SkeletonKPIs, fe, fp } from '@/components/Theme'
+import { T, Skeleton, SkeletonKPIs, fe, fp, fixedCols } from '@/components/Theme'
 import { ActionMenu } from '@/components/ActionMenu'
 import { ChevronLeft, ChevronRight, Download, Layers, Lightbulb, ArrowUpRight } from 'lucide-react'
 import { buildAdvisory, referLabel, type AdvisoryTone } from '@/lib/accounting/advisory'
@@ -975,10 +975,17 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         {!(businessMode&&elpForm==='company') ? (
           <div style={card}>
             <p style={cardTitle}>{businessMode ? 'Κλίμακα επιχειρηματικής δραστηριότητας 2026' : 'Φορολογική κλίμακα ενοικίων 2026'}</p>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:10 }}>
+            {/* ΜΙΑ ΣΕΙΡΑ, ΟΣΑ ΚΙ ΑΝ ΕΙΝΑΙ ΤΑ ΚΛΙΜΑΚΙΑ. Το `auto-fit` έβγαζε πέντε
+                κουτιά και ένα μόνο του από κάτω: η κλίμακα είναι ΜΙΑ κλίμακα, και
+                διαβάζεται ως σκάλα μόνο όταν τα σκαλιά είναι στην ίδια ευθεία.
+                Το πλήθος στηλών είναι πλέον το πλήθος των κλιμακίων — έξι για την
+                επιχειρηματική, τέσσερα για τα ενοίκια — και τα κουτιά στενεύουν
+                αντί να τυλίγονται. Βλ. `fixedCols`: στα στενά σπάει σε τρία και
+                δύο, όπου η μία σειρά δεν χωρά ούτως ή άλλως. */}
+            <div {...fixedCols((businessMode ? BUSINESS_INCOME_ROWS_2026 : RENTAL_TAX_ROWS_2026).length, 10, 'stretch')}>
               {(businessMode ? BUSINESS_INCOME_ROWS_2026 : RENTAL_TAX_ROWS_2026).map((r,i)=>{ const active=statement.taxableIncome>r.from&&statement.taxableIncome<=r.to; const hot=hoverBracket===i; return (
                 <div key={r.range} onMouseEnter={()=>setHoverBracket(i)} onMouseLeave={()=>setHoverBracket(null)}
-                  style={{ padding:'12px 14px', borderRadius:12, border:`1px solid ${hot?'var(--accent)':active?'var(--border-default)':'var(--border-subtle)'}`, background:active?'var(--bg-elevated)':'var(--bg-surface)', transition:'border-color 0.15s, background 0.15s', cursor:'default' }}>
+                  style={{ padding:'10px 12px', borderRadius:12, minWidth:0, border:`1px solid ${hot?'var(--accent)':active?'var(--border-default)':'var(--border-subtle)'}`, background:active?'var(--bg-elevated)':'var(--bg-surface)', transition:'border-color 0.15s, background 0.15s', cursor:'default' }}>
                   <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:0, fontFamily: T.font.sans }}>{r.range}</p>
                   <p style={{ fontSize:16, fontWeight:700, color:hot?'var(--accent)':'var(--text-primary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans, transition:'color 0.16s ease' }}>{r.rate}</p>
                 </div>
