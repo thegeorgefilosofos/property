@@ -2,6 +2,7 @@ import BrandMark from '@/components/BrandMark';
 import Link from 'next/link';
 import { PLANS, PLAN_ORDER, EXTRA_PROPERTY_PRICE, TRIAL_DAYS } from '@/lib/billing/plans';
 import { aiLimitsFor } from '@/lib/billing/aiLimits';
+import { PARTNER_WELCOME } from '@/lib/referral/referral';
 import { fe } from '@/lib/core/format';
 import { createClient } from '@/lib/supabase/server';
 import LandingShowcase from './LandingShowcase';
@@ -78,7 +79,7 @@ const FAQ = [
   // όριο: το app/api/anthropic μιλά ΜΟΝΟ όταν το πακέτο έχει ήδη εξαντληθεί
   // (dailyExhaustedMessage, monthlyExhaustedMessage). Η υπόσχεση ήταν διπλή
   // και καμία από τις δύο δεν υπάρχει. Γράφεται αυτό που όντως συμβαίνει.
-  { q: 'Πόσες ερωτήσεις μπορώ να κάνω στον βοηθό;', a: `Ο βοηθός περιλαμβάνεται σε κάθε πακέτο και αλλάζει μόνο το πλήθος των ερωτήσεων, από ${aiLimitsFor('solo').perMonth} τον μήνα στον ${PLANS.solo.name} ως ${aiLimitsFor('office').perMonth} στον ${PLANS.office.name}. Το πακέτο ανανεώνεται την 1η κάθε μήνα, και αν το εξαντλήσεις σου το λέμε καθαρά, με το νούμερο μπροστά σου.` },
+  { q: 'Πόσες ερωτήσεις μπορώ να κάνω στον βοηθό;', a: `Ο βοηθός περιλαμβάνεται σε κάθε πακέτο και αλλάζει μόνο το πλήθος των ερωτήσεων, από ${aiLimitsFor('solo').perMonth} τον μήνα στον ${PLANS.solo.name} ως ${aiLimitsFor('office').perMonth} στον ${PLANS.office.name}. Το πακέτο ανανεώνεται την 1η κάθε μήνα, και η ομάδα μας βελτιώνει συνεχώς το μοντέλο ώστε να χωρούν περισσότερες ερωτήσεις με το ίδιο ή και μικρότερο κόστος: ό,τι κερδίζουμε εκεί πηγαίνει σε ερωτήσεις για σένα, όχι σε περιθώριο κέρδους.` },
   { q: 'Σε ποιους απευθύνεται;', a: 'Σε κάθε ιδιοκτήτη ακινήτου στην Ελλάδα, από τον ιδιώτη με ένα διαμέρισμα ως το μεσιτικό γραφείο που διαχειρίζεται χαρτοφυλάκιο τρίτων. Καλύπτει κατοικίες, επαγγελματικούς χώρους, αποθήκες και οικόπεδα, σε μακροχρόνια ή σε βραχυχρόνια μίσθωση.' },
   { q: 'Αντικαθιστά τον λογιστή ή τον φοροτεχνικό μου;', a: 'Όχι, και δεν το επιδιώκει. Κρατά τις υποχρεώσεις και τις προθεσμίες σου ενήμερες όλον τον χρόνο, ώστε να φτάνεις στον λογιστή σου με τα στοιχεία έτοιμα προς εξαγωγή αντί να τα ψάχνεις τον Ιούνιο. Οι υπολογισμοί είναι υποστηρικτικοί, όχι δεσμευτικοί.' },
   { q: 'Πόσο κοστίζει;', a: `Τέσσερα πακέτα: από ${fe(PLANS.solo.priceMonthly)} τον μήνα για ένα ακίνητο με όλα τα φορολογικά, ως ${fe(PLANS.office.priceMonthly)} τον μήνα για απεριόριστα ακίνητα και χρήστες, συν ${fe(EXTRA_PROPERTY_PRICE)} τον μήνα για κάθε επιπλέον ακίνητο στα δύο μεσαία. Με ετήσια πληρώνεις λιγότερους μήνες από όσους παίρνεις.` },
@@ -95,10 +96,10 @@ const FAQ = [
   // Όταν στηθεί η χρέωση, η πρόταση ξαναγράφεται ΕΔΩ, στα ψιλά του
   // τιμοκαταλόγου, στη γραμμή του hero, στους Όρους και στο prompt του βοηθού.
   // Πουθενά αλλού δεν λέγεται τι γίνεται στη λήξη.
-  { q: 'Τι γίνεται όταν λήξει η δοκιμή;', a: 'Δεν ξεκινά καμία χρέωση από μόνη της. Ο λογαριασμός συνεχίζει χωρίς συνδρομή, με το πρώτο σου ακίνητο και τα δεδομένα σου ανέπαφα· απλώς δεν προσθέτεις νέα ακίνητα και δεν χρησιμοποιείς τα εργαλεία των πακέτων, ώσπου να διαλέξεις πακέτο εσύ, όποτε το αποφασίσεις.' },
+  { q: 'Τι γίνεται όταν λήξει η δοκιμή;', a: 'Το πακέτο το διάλεξες ήδη στην εγγραφή, ανάλογα με τα ακίνητα και τις δυνατότητες που θέλεις, και είναι αυτό που συνεχίζει μετά τη δοκιμή. Καμία χρέωση δεν ξεκινά από μόνη της, και μπορείς να αναβαθμίσεις ή να αλλάξεις πακέτο όποτε θέλεις, χωρίς επιπλέον επιβάρυνση.' },
   { q: 'Είναι ασφαλή τα δεδομένα μου;', a: 'Η σύνδεση είναι πάντα κρυπτογραφημένη και κάθε λογαριασμός απομονώνεται σε επίπεδο βάσης: βλέπεις τα δικά σου δεδομένα και μόνο όσα εσύ μοιράζεσαι. Δεν εκπαιδεύουμε μοντέλα με τα έγγραφά σου. Η βάση και τα αρχεία βρίσκονται στη Φρανκφούρτη.' },
   { q: 'Τι γίνεται με τα δεδομένα μου αν σταματήσω;', a: 'Παραμένουν δικά σου. Τα εξάγεις όποτε θέλεις μέσα από την εφαρμογή και διαγράφεις τον λογαριασμό με ένα κουμπί, χωρίς να ζητήσεις τίποτα από κανέναν. Η οριστική διαγραφή ολοκληρώνεται σε 30 ημέρες, εκτός από όσα ο νόμος επιβάλλει να τηρηθούν.' },
-  { q: 'Δουλεύει στο κινητό;', a: 'Παντού: η εφαρμογή προσαρμόζεται σε κινητό, tablet και υπολογιστή, και η σάρωση δουλεύει καλύτερα με την κάμερα του κινητού. Φωτογραφίζεις τον λογαριασμό εκεί που τον παραλαμβάνεις και έχει ήδη καταχωρηθεί πριν προλάβεις να φτάσεις σπίτι.' },
+  { q: 'Δουλεύει στο κινητό;', a: 'Παντού: η εφαρμογή προσαρμόζεται σε κινητό, tablet και υπολογιστή, και η σάρωση δουλεύει καλύτερα με την κάμερα του κινητού. Σύντομα κυκλοφορεί και η εφαρμογή Property OS για συσκευές iOS και Android, και οι συνδρομητές τη λαμβάνουν πρώτοι από όλους τους άλλους.' },
   { q: 'Πόσο γρήγορα ξεκινάω;', a: 'Η εγγραφή θέλει λιγότερο από ένα λεπτό, με Google ή με email. Προσθέτεις το πρώτο ακίνητο με λίγα βασικά στοιχεία και η εικόνα του συμπληρώνεται με κάθε έγγραφο που περνάς. Αν θέλεις να δεις πρώτα πώς λειτουργεί, υπάρχουν δεδομένα επίδειξης.' },
 ];
 
@@ -165,7 +166,7 @@ const AUDIENCE = [
   {
     tag: PLANS.owner.name,
     t: 'Δύο και πάνω ακίνητα',
-    d: 'Ποιο σου αποδίδει και ποιο σε κοστίζει, με νούμερα.',
+    d: 'Ποιο αποδίδει και ποιο κοστίζει, με επιχειρήματα.',
   },
   {
     tag: PLANS.agency.name,
@@ -580,6 +581,14 @@ export default async function Landing() {
            αριθμοί που κρατούσαν κενό ύψος όταν το κείμενο χωρούσε σε μία σειρά
            και σταματούσαν να αρκούν όταν δεν χωρούσε. Επτά σειρές: όνομα,
            ταμπέλα, τιμή, ετήσια, δώρο, λίστα, κουμπί. */
+        /* Υποσελίδο: ταυτότητα διπλού πλάτους, τρεις στήλες συνδέσμων. Σε
+           στενή οθόνη γίνεται δύο στήλες και η ταυτότητα πιάνει ολόκληρη τη
+           σειρά, ώστε να μη σπάσει η περιγραφή σε πέντε λέξεις ανά γραμμή. */
+        .lp-foot { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: clamp(24px, 4vw, 56px); align-items: start; }
+        @media (max-width: 860px) {
+          .lp-foot { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .lp-foot > :first-child { grid-column: 1 / -1; }
+        }
         .lp-plans { grid-template-rows: auto auto auto auto auto 1fr auto; }
         .lp-plans > .lp-card { grid-row: span 7; display: grid; grid-template-rows: subgrid; gap: 0; }
         /* Οι τίτλοι και οι γραμμές ελέγχου κάθε κάρτας είναι σύντομα στοιχεία.
@@ -984,7 +993,7 @@ export default async function Landing() {
       </section>
 
       {/* ── Pricing ── */}
-      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: GAP }}>
+      <section id="pricing" className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: GAP }}>
         <SectionHead over="Τιμολόγηση" title="Και τι κοστίζει το καθένα" sub={`Κάθε πακέτο περιλαμβάνει ό,τι έχει το προηγούμενο. Κάνε εγγραφή και απόλαυσε ${TRIAL_DAYS} ημέρες δωρεάν δοκιμή.`} />
         {/* ΜΙΑ ΠΗΓΗ ΓΙΑ ΤΙΣ ΤΙΜΕΣ ΚΑΙ ΤΑ ΧΑΡΑΚΤΗΡΙΣΤΙΚΑ.
             Οι κάρτες ήταν γραμμένες με το χέρι: τιμές, ετήσιες τιμές και λίστες
@@ -1022,6 +1031,8 @@ export default async function Landing() {
           {LANDING_PLANS.map((id, i) => {
             const plan = PLANS[id];
             const prev = i > 0 ? PLANS[LANDING_PLANS[i - 1]] : null;
+            // Πόσους μήνες χαρίζει η ετήσια: δώδεκα μείον όσους πληρώνεις.
+            const freeMonths = 12 - Math.round(plan.priceAnnual / plan.priceMonthly);
             return (
               <PlanCard
                 key={id}
@@ -1035,8 +1046,16 @@ export default async function Landing() {
                 // «12 μήνες στην τιμή των 10» σε κάθε κάρτα, ενώ το φθηνότερο
                 // πακέτο δίνει έναν μήνα. Μία τιμή που αλλάζει και μια ταμπέλα
                 // που δεν την ακολουθεί είναι ψέμα με ημερομηνία λήξης.
-                discount={`12 μήνες στην τιμή των ${Math.round(plan.priceAnnual / plan.priceMonthly)}`}
+                //
+                // ΚΑΙ ΛΕΓΕΤΑΙ ΩΣ ΚΕΡΔΟΣ, ΟΧΙ ΩΣ ΑΡΙΘΜΗΤΙΚΗ. Το «12 μήνες στην
+                // τιμή των 11» ζητά από τον αναγνώστη να κάνει την αφαίρεση για
+                // να καταλάβει τι παίρνει. Οι κορυφαίες συνδρομές του κλάδου
+                // γράφουν το αποτέλεσμα: «2 μήνες δωρεάν». Ίδιο νούμερο,
+                // μηδέν νοητική εργασία, και είναι το ΜΟΝΟ δωρεάν που υπάρχει
+                // εδώ πέρα από τη δοκιμή και τις συστάσεις.
+                discount={freeMonths === 1 ? '1 μήνας δωρεάν' : `${freeMonths} μήνες δωρεάν`}
                 inherits={prev ? `Όλα του «${prev.name}», και:` : 'Περιλαμβάνει:'}
+                planId={id}
                 ai={aiLimitsFor(id).perMonth}
                 items={plan.features}
                 cta={`${plan.trialDays} ημέρες δωρεάν`}
@@ -1046,8 +1065,13 @@ export default async function Landing() {
             );
           })}
         </div>
-        <p style={{ fontSize: 13, color: FAINT, margin: '22px 0 0', maxWidth: 620, lineHeight: 1.6 }}>
-          Κάθε πακέτο ξεκινά με {TRIAL_DAYS} ημέρες δωρεάν δοκιμή και καμία χρέωση δεν ξεκινά από μόνη της: το πακέτο το διαλέγεις εσύ, όταν το αποφασίσεις. Χωρίς δέσμευση, χωρίς κρυφές χρεώσεις και χωρίς ποινή αν φύγεις· αλλάζεις ή σταματάς όποτε θέλεις, και κάθε τιμή περιλαμβάνει ΦΠΑ.
+        {/* ΤΑ ΨΙΛΑ ΓΡΑΜΜΑΤΑ ΗΤΑΝ ΚΛΕΙΣΜΕΝΑ ΣΕ 620 ΜΕΣΑ ΣΕ ΣΤΗΛΗ 1044. Το κείμενο
+            γέμιζε τις γραμμές ΤΟΥ, αλλά δίπλα στις κάρτες που πιάνουν όλο το
+            πλάτος διαβαζόταν ως μισοτελειωμένο: τρεις κοντές σειρές και δεξιά
+            τους ένα κενό όσο και το κείμενο. Οι απαντήσεις των Συχνών Ερωτήσεων
+            τρέχουν ήδη σε όλο το πλάτος· τα ψιλά γράμματα το κάνουν κι αυτά. */}
+        <p style={{ fontSize: 13, color: FAINT, margin: '22px 0 0', lineHeight: 1.6 }}>
+          Κάθε πακέτο ξεκινά με {TRIAL_DAYS} ημέρες δωρεάν δοκιμή και καμία χρέωση δεν ξεκινά από μόνη της: το πακέτο το διαλέγεις εσύ από την αρχή, ανάλογα με τα ακίνητα και τα εργαλεία που χρειάζεσαι. Χωρίς δέσμευση, χωρίς κρυφές χρεώσεις και χωρίς ποινή αν φύγεις· αναβαθμίζεις, αλλάζεις ή σταματάς όποτε θέλεις χωρίς επιπλέον επιβάρυνση. Δωρεάν είναι μόνο η δοκιμή και οι μήνες που κερδίζεις από συστάσεις· οι τιμές αφορούν καταναλωτές στην Ελλάδα και περιλαμβάνουν ΦΠΑ.
         </p>
       </section>
 
@@ -1071,17 +1095,27 @@ export default async function Landing() {
             </div>
           ))}
         </div>
-        <p style={{ fontSize: 13, color: FAINT, margin: '22px 0 0', maxWidth: 620, lineHeight: 1.6 }}>
+        {/* ΤΑ ΨΙΛΑ ΓΡΑΜΜΑΤΑ ΗΤΑΝ ΚΛΕΙΣΜΕΝΑ ΣΕ 620 ΜΕΣΑ ΣΕ ΣΤΗΛΗ 1044. Το κείμενο
+            γέμιζε τις γραμμές ΤΟΥ, αλλά δίπλα στις κάρτες που πιάνουν όλο το
+            πλάτος διαβαζόταν ως μισοτελειωμένο: τρεις κοντές σειρές και δεξιά
+            τους ένα κενό όσο και το κείμενο. Οι απαντήσεις των Συχνών Ερωτήσεων
+            τρέχουν ήδη σε όλο το πλάτος· τα ψιλά γράμματα το κάνουν κι αυτά. */}
+        <p style={{ fontSize: 13, color: FAINT, margin: '22px 0 0', lineHeight: 1.6 }}>
+          {/* ΤΟ ΟΝΟΜΑ ΤΟΥ ΔΩΡΟΥ ΗΤΑΝ ΤΟΥ ΛΑΘΟΣ ΠΑΚΕΤΟΥ, ΞΑΝΑ. Εδώ γραφόταν
+              «Επαγγελματίας+» ενώ το PARTNER_WELCOME δίνει tier 'agency' —
+              δηλαδή «Επαγγελματίας» — και το ίδιο γράφει και η βάση. Το ίδιο
+              λάθος είχε βρεθεί και στην καρτέλα Πρόσκλησης· διαβάζεται πλέον
+              και εδώ από το PARTNER_WELCOME, ώστε να μη γίνει τρίτη φορά. */}
           Ο φίλος σου επιλέγει πακέτο ανάλογα με τα ακίνητά του και ο πρώτος μήνας είναι δωρεάν. Η ανταμοιβή
           κλειδώνει όταν προσθέσει ακίνητο και σαρώσει ένα έγγραφο. Ο Συνεργάτης κερδίζει έναν μήνα{' '}
-          {PLANS.office.name} με την απόκτηση της ιδιότητας, κρατά τον επόμενο μήνα δωρεάν σε κάθε μήνα που
-          πιάνει τον στόχο, και έχει προτεραιότητα σε νέες κυκλοφορίες και επικοινωνία. Όλες οι ανταμοιβές
-          είναι δωρεάν μήνες και θέσεις ακινήτων· δεν αποδίδουμε μετρητά.
+          {PLANS[PARTNER_WELCOME.tier].name} με την απόκτηση της ιδιότητας, κρατά τον επόμενο μήνα δωρεάν σε
+          κάθε μήνα που πιάνει τον στόχο, και έχει προτεραιότητα σε νέες κυκλοφορίες και επικοινωνία. Όλες οι
+          ανταμοιβές είναι δωρεάν μήνες και θέσεις ακινήτων· δεν αποδίδουμε μετρητά σε καμία περίπτωση.
         </p>
       </section>
 
       {/* ── FAQ: ίδια κεφαλίδα με κάθε άλλη ενότητα, ερωτήσεις σε όλο το πλάτος ── */}
-      <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 0 }}>
+      <section id="faq" className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: 0 }}>
         <SectionHead over="Συχνές ερωτήσεις" title="Ό,τι ρωτούν οι ιδιοκτήτες πριν ξεκινήσουν" sub="Ειλικρινείς απαντήσεις, χωρίς αστερίσκους." />
         <div style={{ borderBottom: `1px solid ${LINE}` }}>
           {FAQ.map((f, i) => (
@@ -1119,37 +1153,69 @@ export default async function Landing() {
         mainEntity: FAQ.map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
       }) }} />
 
-      {/* ── Footer ── */}
+      {/* ── ΤΟ ΥΠΟΣΕΛΙΔΟ ────────────────────────────────────────────────────
+             ΗΤΑΝ ΔΥΟ ΣΤΗΛΕΣ ΣΠΡΩΓΜΕΝΕΣ ΣΤΑ ΑΚΡΑ, ΜΕ ΕΝΑ ΧΑΣΜΑ ΣΤΗ ΜΕΣΗ. Το
+             `space-between` σε δοχείο 1044 άφηνε τετρακόσια εικονοστοιχεία κενό
+             ανάμεσα στην περιγραφή και τους συνδέσμους, και οι δύο ομάδες
+             κολλούσαν η μία στην άλλη στη δεξιά άκρη: ένα υποσελίδο που
+             διαβαζόταν ως δύο κομμάτια που δεν γνωρίζονται.
+
+             Πλέγμα με ρητές στήλες: η ταυτότητα πιάνει το διπλάσιο πλάτος από
+             κάθε στήλη συνδέσμων, οι τρεις ομάδες ξεκινούν από την ίδια γραμμή
+             βάσης, και οι αποστάσεις βγαίνουν από την ίδια κλίμακα με την
+             υπόλοιπη σελίδα αντί για τρία διαφορετικά clamp.
+
+             ΤΡΙΤΗ ΣΤΗΛΗ: οι Συχνές Ερωτήσεις και ο υπολογιστής απόδοσης ζουν
+             μέσα στη σελίδα και δεν είχαν καμία μόνιμη είσοδο. Το υποσελίδο
+             είναι το σημείο όπου ο επισκέπτης ψάχνει «τι άλλο υπάρχει». */}
       <footer style={{ borderTop: `1px solid ${LINE}`, position: 'relative', zIndex: 1 }}>
-        <div style={{ ...wrap, padding: 'clamp(32px, 5vw, 48px) clamp(20px, 5vw, 48px)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', marginBottom: 28 }}>
-            <div style={{ maxWidth: 320 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                <BrandMark size={24} />
-                <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.02em' }}>Property OS</span>
+        <div style={{ ...wrap, padding: 'clamp(40px, 5vw, 64px) clamp(20px, 5vw, 48px) clamp(24px, 3vw, 32px)' }}>
+          <div className="lp-foot">
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                <BrandMark size={26} />
+                <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em' }}>Property OS</span>
               </div>
-              <p style={{ fontSize: 14, color: MUTED, lineHeight: 1.6, margin: 0 }}>Το λειτουργικό σύστημα του ελληνικού ακινήτου. Για ιδιοκτήτες και επαγγελματίες στην Ελλάδα.</p>
+              <p style={{ fontSize: 14, color: MUTED, lineHeight: 1.65, margin: 0, maxWidth: 300 }}>
+                Το λειτουργικό σύστημα του ελληνικού ακινήτου. Για ιδιοκτήτες και επαγγελματίες στην Ελλάδα.
+              </p>
             </div>
-            <div style={{ display: 'flex', gap: 'clamp(28px, 6vw, 64px)', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: FAINT, marginBottom: 2 }}>Προϊόν</span>
-                <Link href="/signup" className="lp-link" style={{ color: MUTED, textDecoration: 'none', fontSize: 14 }}>Ξεκίνα τη δοκιμή</Link>
-                <Link href="/login" className="lp-link" style={{ color: MUTED, textDecoration: 'none', fontSize: 14 }}>Σύνδεση</Link>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: FAINT, marginBottom: 2 }}>Εμπιστοσύνη</span>
-                <Link href="/trust" className="lp-link" style={{ color: MUTED, textDecoration: 'none', fontSize: 14 }}>Ποιοι είμαστε</Link>
-                <Link href="/privacy" className="lp-link" style={{ color: MUTED, textDecoration: 'none', fontSize: 14 }}>Απόρρητο</Link>
-                <Link href="/terms" className="lp-link" style={{ color: MUTED, textDecoration: 'none', fontSize: 14 }}>Όροι χρήσης</Link>
-              </div>
-            </div>
+            <FootCol label="Προϊόν" links={[
+              ['/signup', 'Ξεκίνα τη δοκιμή'],
+              ['/login', 'Σύνδεση'],
+              ['/#pricing', 'Τιμολόγηση'],
+            ]} />
+            <FootCol label="Μάθε" links={[
+              ['/#faq', 'Συχνές ερωτήσεις'],
+              ['/ypologismos-forou-enoikion', 'Φόρος ενοικίων'],
+            ]} />
+            <FootCol label="Εμπιστοσύνη" links={[
+              ['/trust', 'Ποιοι είμαστε'],
+              ['/privacy', 'Απόρρητο'],
+              ['/terms', 'Όροι χρήσης'],
+            ]} />
           </div>
-          <div style={{ paddingTop: 20, borderTop: `1px solid ${LINE}`, display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', fontSize: 13, color: FAINT }}>
+          {/* Η ΚΑΤΩ ΓΡΑΜΜΗ ΕΙΝΑΙ ΨΙΛΑ ΓΡΑΜΜΑΤΑ, ΚΑΙ ΤΟ ΔΕΙΧΝΕΙ. Ήταν στο ίδιο
+              μέγεθος με τους συνδέσμους από πάνω, οπότε το copyright διεκδικούσε
+              την ίδια προσοχή με το «Όροι χρήσης». */}
+          <div style={{ marginTop: 'clamp(32px, 4vw, 48px)', paddingTop: 18, borderTop: `1px solid ${LINE}`, display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', fontSize: 12, color: FAINT }}>
             <span>© {new Date().getFullYear()} Property OS</span>
             <span>Βάση δεδομένων στην ΕΕ · Σχεδιασμένο για GDPR</span>
           </div>
         </div>
       </footer>
+    </div>
+  );
+}
+
+/** Μία στήλη συνδέσμων του υποσελίδου. Ίδια γεωμετρία και στις τρεις. */
+function FootCol({ label, links }: { label: string; links: [string, string][] }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: FAINT }}>{label}</span>
+      {links.map(([href, text]) => (
+        <Link key={href} href={href} className="lp-link" style={{ color: MUTED, textDecoration: 'none', fontSize: 14, lineHeight: 1.3 }}>{text}</Link>
+      ))}
     </div>
   );
 }
@@ -1180,8 +1246,8 @@ function SectionHead({ over, title, sub }: { over: string; title: string; sub?: 
   );
 }
 
-function PlanCard({ name, nameColor, sub, price, per, note, discount, inherits, ai, items, cta, ctaGhost, featured }: {
-  name: string; nameColor: string; sub: string; price: string; per: string; note: React.ReactNode; discount?: string; inherits?: string; ai: number; items: string[]; cta: string; ctaGhost?: boolean; featured: boolean;
+function PlanCard({ planId, name, nameColor, sub, price, per, note, discount, inherits, ai, items, cta, ctaGhost, featured }: {
+  planId: string; name: string; nameColor: string; sub: string; price: string; per: string; note: React.ReactNode; discount?: string; inherits?: string; ai: number; items: string[]; cta: string; ctaGhost?: boolean; featured: boolean;
 }) {
   return (
     <div className="lp-card" style={{ position: 'relative', background: PANEL, border: featured ? `1.5px solid color-mix(in srgb, var(--accent) 50%, transparent)` : `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(16px, 1.6vw, 20px)', boxShadow: featured ? '0 24px 60px -30px color-mix(in srgb, var(--accent) 60%, transparent)' : 'none' }}>
@@ -1231,7 +1297,12 @@ function PlanCard({ name, nameColor, sub, price, per, note, discount, inherits, 
           <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 7 }}>{check}<span className="lp-even" style={{ fontSize: 12, color: TEXT, lineHeight: 1.4 }}>{t}</span></div>
         ))}
       </div>
-      <Link href="/signup" className={ctaGhost ? 'lp-ghost' : 'lp-cta lp-primary'} style={{ display: 'block', textAlign: 'center', background: ctaGhost ? 'transparent' : undefined, color: ctaGhost ? TEXT : undefined, textDecoration: 'none', fontSize: 13, fontWeight: 700, padding: '10px', borderRadius: 100, border: ctaGhost ? `1px solid ${LINE}` : 'none' }}>{cta}</Link>
+      {/* Η ΕΠΙΛΟΓΗ ΤΑΞΙΔΕΥΕΙ ΜΑΖΙ ΜΕ ΤΟ ΚΛΙΚ. Και οι τέσσερις κάρτες οδηγούσαν
+          στο ίδιο γυμνό «/signup», οπότε η επιλογή πακέτου —η μόνη απόφαση που
+          παίρνει ο επισκέπτης σε αυτή τη σελίδα— χανόταν στη μετάβαση: η
+          εγγραφή δεν ήξερε ποια κάρτα πάτησε και δεν μπορούσε να το θυμηθεί.
+          Με το `?plan=`, η εγγραφή το δείχνει και το κρατά στο προφίλ. */}
+      <Link href={`/signup?plan=${planId}`} className={ctaGhost ? 'lp-ghost' : 'lp-cta lp-primary'} style={{ display: 'block', textAlign: 'center', background: ctaGhost ? 'transparent' : undefined, color: ctaGhost ? TEXT : undefined, textDecoration: 'none', fontSize: 13, fontWeight: 700, padding: '10px', borderRadius: 100, border: ctaGhost ? `1px solid ${LINE}` : 'none' }}>{cta}</Link>
     </div>
   );
 }

@@ -9,6 +9,7 @@ import GoogleG from '../GoogleG'
 import { checkPassword } from '@/lib/auth/password'
 import PasswordStrength from '@/components/PasswordStrength'
 import { failed } from '@/lib/core/dbError';
+import { PLANS, TRIAL_DAYS, normalizePlan, type PlanId } from '@/lib/billing/plans';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Εγγραφή, στα χρώματα του app (design tokens, theme-aware). Κοινό marketing
@@ -25,6 +26,12 @@ export default function SignupPage() {
   const [done, setDone] = useState(false)
   const [consent, setConsent] = useState(false)
   const [refCode, setRefCode] = useState('')
+  // ΤΟ ΠΑΚΕΤΟ ΠΟΥ ΔΙΑΛΕΞΕ Ο ΕΠΙΣΚΕΠΤΗΣ ΣΤΟΝ ΤΙΜΟΚΑΤΑΛΟΓΟ. Φτάνει ως `?plan=`
+  // από την κάρτα που πάτησε. Χωρίς αυτό, η μόνη απόφαση που πήρε στην αρχική
+  // σελίδα χανόταν στη μετάβαση, και η εγγραφή ξεκινούσε σαν να μην είχε
+  // επιλέξει ποτέ τίποτα. Κρατιέται στο προφίλ, ώστε στη λήξη της δοκιμής να
+  // ξέρουμε ΚΑΙ εμείς ΚΑΙ ο χρήστης ποιο πακέτο περιμένει.
+  const [chosenPlan, setChosenPlan] = useState<PlanId | null>(null)
   const [sessionEmail, setSessionEmail] = useState<string | null>(null)
   const [signingOut, setSigningOut] = useState(false)
   const [show, setShow] = useState(false)
@@ -43,7 +50,15 @@ export default function SignupPage() {
     : /rate limit|too many/i.test(m) ? 'Πολλές προσπάθειες. Δοκίμασε ξανά σε λίγο.'
     : /valid email/i.test(m) ? 'Το email δεν φαίνεται έγκυρο.'
     : m
-  useEffect(() => { try { const r = new URLSearchParams(window.location.search).get('ref'); if (r) setRefCode(r); } catch {} }, [])
+  useEffect(() => {
+    try {
+      const q = new URLSearchParams(window.location.search)
+      const r = q.get('ref'); if (r) setRefCode(r)
+      // Μόνο πακέτο επί πληρωμή: το «free» δεν επιλέγεται, είναι κατάσταση.
+      const p = q.get('plan')
+      if (p && p !== 'free' && normalizePlan(p) === p) setChosenPlan(p as PlanId)
+    } catch {}
+  }, [])
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(({ data }) => setSessionEmail(data.user?.email ?? null))
@@ -100,6 +115,7 @@ export default function SignupPage() {
           consent_terms_accepted_at: new Date().toISOString(),
           consent_policy_version: '2026-07',
           ...(refCode ? { referred_by: refCode } : {}),
+          ...(chosenPlan ? { chosen_plan: chosenPlan } : {}),
         },
       },
     })
@@ -155,6 +171,19 @@ export default function SignupPage() {
                 Έχεις ήδη λογαριασμό;{' '}
                 <Link href="/login" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Σύνδεση</Link>
               </p>
+
+              {/* Η ΕΠΙΛΟΓΗ ΤΟΥ ΤΙΜΟΚΑΤΑΛΟΓΟΥ, ΕΠΙΒΕΒΑΙΩΜΕΝΗ. Ο επισκέπτης πάτησε
+                  μια συγκεκριμένη κάρτα· το να μην την ξαναδεί πουθενά τον
+                  αφήνει να αναρωτιέται αν καταγράφηκε. Καμία χρέωση δεν ξεκινά
+                  εδώ, και το λέει η ίδια η γραμμή. */}
+              {chosenPlan && (
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', marginBottom: 24, borderRadius: 10, background: 'var(--accent-dim)', border: '1px solid var(--accent-border)' }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0, marginTop: 7 }} />
+                  <span style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                    Διάλεξες το <strong style={{ color: 'var(--text-primary)' }}>{PLANS[chosenPlan].name}</strong>. Το δοκιμάζεις {TRIAL_DAYS} ημέρες χωρίς χρέωση, και το αλλάζεις όποτε θέλεις.
+                  </span>
+                </div>
+              )}
 
               <button type="button" onClick={signInWithGoogle} className="auth-hov"
                 style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '12px', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 100, color: 'var(--text-primary)', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
