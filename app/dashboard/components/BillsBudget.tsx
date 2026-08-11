@@ -14,7 +14,7 @@ import * as calendar from '@/lib/data/calendar'
 import { TextInput } from './UIComponents';
 import { T, TT, fe, feAuto, fp, fn, fixedCols, Skeleton, SkeletonKPIs, pressable } from '@/components/Theme';
 import { waterMonthly } from '@/lib/energy/tariff';
-import { monthNom } from '@/lib/core/months';
+import { monthGen } from '@/lib/core/months';
 import { randomSuffix } from '@/lib/core/uploadPath';
 import { notify } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
@@ -1160,6 +1160,22 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         const safeRaw = income - monthlyCost;
         const val = hasIncome ? safeRaw : monthlyCost;
         const seg = (v: number) => income > 0 ? Math.max(0, Math.min(100, (v / income) * 100)) : 0;
+        // ── ΤΑ ΣΚΕΛΗ ΠΟΥ ΥΠΑΡΧΟΥΝ ΠΡΑΓΜΑΤΙΚΑ ────────────────────────────────
+        // Η υποσημείωση έγραφε «λογαριασμοί και δόση» ΠΑΝΤΑ, και τα σκέλη
+        // γράφονταν ξανά από κάτω ως πλακίδια. Σε ακίνητο χωρίς δάνειο η φράση
+        // υποσχόταν δόση που δεν υπάρχει, και όταν το μόνο σκέλος ήταν τα πάγια
+        // το πλακίδιο «ΠΑΓΙΑ 51,34 €» καθόταν ακριβώς κάτω από το ίδιο 51,34 €
+        // του τίτλου: ο ίδιος αριθμός, δύο φορές, με απόσταση μιας ανάσας.
+        //
+        // Τώρα η σύνθεση γράφεται μία φορά, από τα ΙΔΙΑ τα δεδομένα, και τα
+        // πλακίδια εμφανίζονται μόνο όταν έχουν κάτι να σπάσουν.
+        const parts = [
+          { l: 'Πάγια',        v: committedBills,             sub: 'ρεύμα, νερό, θέρμανση, κοινόχρηστα' },
+          { l: 'Δόση δανείου', v: loanMonthly,                sub: 'τοκοχρεολύσιο του μήνα' },
+          { l: 'Συνδρομές',    v: actuals.subscriptions || 0, sub: 'ό,τι χρεώνεται μόνο του' },
+        ].filter(p => p.v !== 0);
+        const listOf = (xs: string[]) => xs.length < 2 ? (xs[0] ?? '') : `${xs.slice(0, -1).join(', ')} και ${xs[xs.length - 1]}`;
+        const composition = listOf(parts.map(p => p.l.toLowerCase()));
         return (
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
@@ -1171,8 +1187,8 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                 <div className="po-fig" data-tone={hasIncome ? (safeRaw < 0 ? 'negative' : 'accent') : undefined} style={{ fontSize: 28, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1, letterSpacing: '-0.02em', transition: 'color 0.15s' }}>{feAuto(val)}</div>
                 <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6, fontFamily: T.font.sans }}>
                   {hasIncome
-                    ? 'μετά από λογαριασμούς και δόση'
-                    : 'λογαριασμοί και δόση'}
+                    ? (composition ? `μετά από ${composition}` : 'χωρίς δεσμευμένα έξοδα')
+                    : (parts.length > 1 ? composition : (parts[0]?.sub ?? ''))}
                 </div>
               </div>
             </div>
@@ -1192,14 +1208,16 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                 ══════════════════════════════════════════════════════════════ */}
             {!hasIncome && (() => {
               const prev  = monthTotals[_prevYm] || 0;
-              const delta = monthlyCost - prev;
+              // ΤΟ «ΕΝΑΝΤΙ» ΘΕΛΕΙ ΓΕΝΙΚΗ, ΚΑΙ Ο ΜΗΝΑΣ ΤΗΝ ΕΧΕΙ. Έγραφε «751,00 €
+              // τον Ιούλιος»: ονομαστική μετά από πρόθεση, από τα πιο ορατά λάθη
+              // σε ελληνικό κείμενο. Η αιτιατική και η γενική υπάρχουν ήδη στο
+              // lib/core/months.ts ακριβώς γι' αυτό — απλώς δεν είχαν κληθεί εδώ.
               const tiles = [
-                { l: 'Πάγια',        v: committedBills, sub: 'ρεύμα, νερό, θέρμανση, κοινόχρηστα' },
-                { l: 'Δόση δανείου', v: loanMonthly,    sub: 'τοκοχρεολύσιο του μήνα' },
-                { l: 'Συνδρομές',    v: actuals.subscriptions || 0, sub: 'ό,τι χρεώνεται μόνο του' },
-                { l: 'Έναντι προηγούμενου μήνα', v: delta,
-                  sub: prev > 0 ? `${feAuto(prev)} τον ${monthNom(Number(_prevYm.slice(5, 7)) - 1)}` : 'χωρίς προηγούμενο μήνα' },
-              ].filter(t => t.v !== 0 || t.l === 'Πάγια');
+                ...(parts.length > 1 ? parts : []),
+                ...(prev > 0 ? [{ l: `Έναντι ${monthGen(Number(_prevYm.slice(5, 7)) - 1)}`,
+                  v: monthlyCost - prev, sub: `από ${feAuto(prev)}` }] : []),
+              ];
+              if (tiles.length === 0) return null;
               return (
                 <div {...fixedCols(Math.min(tiles.length, 4), 10)} style={{ marginTop: 16 }}>
                   {tiles.map(t => (

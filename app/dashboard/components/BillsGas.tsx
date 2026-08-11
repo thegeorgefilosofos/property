@@ -8,7 +8,7 @@ import * as settings from '@/lib/data/settings';
 import * as calendar from '@/lib/data/calendar'
 import { NumberInput, CustomSelect, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe, feRate, Spinner, formGrid } from '@/components/Theme';
+import { T, fe, feRate, Spinner, fixedCols } from '@/components/Theme';
 import { RAAEY_COMPARE } from '@/lib/energy/freshness';
 import { notifyError } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
@@ -379,8 +379,23 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
 
       {/* ── Στοιχεία σύνδεσης ── */}
       <div style={card}>
-        {secHdr('Στοιχεία σύνδεσης και πάροχος')}
-        <div style={{ ...formGrid(200, 270), gap: 14, marginBottom: 14 }}>
+        {secHdr('Σύνδεση, πάροχος και πρόγραμμα')}
+        {/* ══ ΤΕΣΣΕΡΙΣ ΣΕΙΡΕΣ ΤΩΝ ΔΥΟ ΕΓΙΝΑΝ ΔΥΟ ΣΕΙΡΕΣ ΜΕ ΛΟΓΙΚΗ ═════════════
+            Εννιά πεδία κάθονταν σε τέσσερα ξεχωριστά πλέγματα των δύο, με σειρά
+            που δεν έλεγε τίποτα: πάροχος, μετά κατανάλωση, μετά ημερομηνίες
+            σύμβασης, μετά μια χρηματιστηριακή τιμή δίπλα σε παράγραφο. Το ίδιο
+            θέμα σπασμένο σε κομμάτια, και κάθε κομμάτι στο μισό πλάτος της
+            κάρτας — γι' αυτό η κάρτα ήταν ψηλή και διαβαζόταν σαν ερωτηματολόγιο.
+
+            Δύο σειρές, και η καθεμία απαντά ΕΝΑ ερώτημα:
+              πρώτη   → τι έχεις (δίκτυο, θέρμανση, πάροχος, πρόγραμμα)
+              δεύτερη → η σύμβασή σου και η χρήση σου
+
+            Η παράγραφος του TTF έγινε ⓘ πάνω στο ίδιο του το πεδίο: μια
+            επεξήγηση δίπλα σε ένα πεδίο διαβάζεται μία φορά και μετά είναι
+            θόρυβος για πάντα. Η ίδια σύμβαση με το «Πραγματικό κόστος». */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div {...fixedCols(4, 14, 'start')}>
           <CustomSelect label="Διαχειριστής δικτύου" value={s.networkOperator} onChange={v => upd({ networkOperator: v })} options={networkOptions} />
           <CustomSelect label="Τύπος θέρμανσης" value={s.heatingType} onChange={v => upd({ heatingType: v })}
             options={[
@@ -388,32 +403,20 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
               { value: 'central_gas',    label: 'Κεντρική θέρμανση, κοινόχρηστη' },
               { value: 'combi',          label: 'Συνδυαστικό, αέριο και άλλη πηγή' },
             ]}/>
-        </div>
-        <div style={{ ...formGrid(200, 270), gap: 14, marginBottom: 14 }}>
           <CustomSelect label="Πάροχος" value={s.gasProvider}
             onChange={v => upd({ gasProvider: v, gasTariffId: GAS_PROVIDERS.find(p => p.value === v)?.tariffs[0]?.id || '' })}
             options={providerOptions}/>
           <CustomSelect label="Πρόγραμμα" value={s.gasTariffId || provider?.tariffs[0]?.id || ''} onChange={v => upd({ gasTariffId: v })} options={tariffOptions}/>
         </div>
-        <div style={{ ...formGrid(200, 270), gap: 14 }}>
+        <div {...fixedCols(5, 14, 'start')}>
+          <DatePicker label="Έναρξη σύμβασης" value={s.gasContractStart} onChange={v => upd({ gasContractStart: v })}/>
+          <NumberInput label="Διάρκεια σύμβασης" value={s.gasContractMonths} onChange={v => upd({ gasContractMonths: v })} suffix="μήνες"/>
           <NumberInput label="Μηνιαία κατανάλωση" value={s.gasKwhMonthly} onChange={v => upd({ gasKwhMonthly: v })} suffix="kWh"/>
           <NumberInput label="Πραγματικό κόστος τον μήνα" labelInfo="Ολόκληρο το ποσό του λογαριασμού, με δίκτυο, ΕΦΚ και ΦΠΑ. Χρησιμοποιείται για την παρακολούθηση κόστους, ΟΧΙ για τη σύγκριση παρόχων: εκεί συγκρίνεται προμήθεια με προμήθεια."
             value={s.gasMonthly} onChange={v => upd({ gasMonthly: v })} suffix="€"/>
+          <NumberInput label="Τρέχουσα τιμή TTF" value={s.ttfPrice} onChange={v => upd({ ttfPrice: v })} suffix="€/MWh" step={1}
+            labelInfo={<>Τα κυμαινόμενα προγράμματα (σήμανση ƒ) υπολογίζονται από τον επίσημο τύπο του παρόχου με βάση αυτή την τιμή. Η μηνιαία τιμή δημοσιεύεται στο <a href="https://www.eex.com" target="_blank" rel="noopener noreferrer" title="Ευρωπαϊκό Χρηματιστήριο Ενέργειας (European Energy Exchange)" style={{ color: 'var(--accent)', textDecoration: 'none' }}>EEX</a> και στους λογαριασμούς των παρόχων.</>}/>
         </div>
-        <div style={{ ...formGrid(200, 270), gap: 14, marginTop: 14 }}>
-          <DatePicker label="Έναρξη σύμβασης" value={s.gasContractStart} onChange={v => upd({ gasContractStart: v })}/>
-          <NumberInput label="Διάρκεια σύμβασης" value={s.gasContractMonths} onChange={v => upd({ gasContractMonths: v })} suffix="μήνες"/>
-        </div>
-
-        {/* TTF, για τα κυμαινόμενα */}
-        <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 14, alignItems: 'end' }}>
-          <NumberInput label="Τρέχουσα τιμή TTF" value={s.ttfPrice} onChange={v => upd({ ttfPrice: v })} suffix="€/MWh" step={1}/>
-          <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, paddingBottom: 6 }}>
-            Τα κυμαινόμενα προγράμματα (σήμανση ƒ) υπολογίζονται από τον επίσημο τύπο του παρόχου με βάση αυτή την τιμή TTF.
-            Η μηνιαία τιμή δημοσιεύεται στο{' '}
-            <a href="https://www.eex.com" target="_blank" rel="noopener noreferrer" title="Ευρωπαϊκό Χρηματιστήριο Ενέργειας (European Energy Exchange)" style={{ color: 'var(--accent)', textDecoration: 'none' }}>EEX</a>
-            {' '}και στους λογαριασμούς των παρόχων.
-          </div>
         </div>
 
         {tariff && (

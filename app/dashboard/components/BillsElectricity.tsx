@@ -5,9 +5,9 @@ import { createClient } from '@/lib/supabase/client';
 import * as billStore from '@/lib/data/bills';
 // Οι ρυθμίσεις ανά ενότητα έχουν ένα σπίτι: lib/data/settings.
 import * as settings from '@/lib/data/settings';
-import { NumberInput, CustomSelect, Toggle, DatePicker } from './UIComponents';
+import { NumberInput, CustomSelect, ToggleField, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe, fn, feRate, Skeleton, histInputStyle, ABSENT_SHORT, formGrid } from '@/components/Theme';
+import { T, fe, fn, feRate, Skeleton, histInputStyle, ABSENT_SHORT, fixedCols } from '@/components/Theme';
 import { monthlyCost, compareTariffs, estimateUsage, type Tariff, type Usage } from '@/lib/energy/tariff';
 import { PROVIDERS, COMPARABLE_TARIFFS, FLAT_WITHOUT_ALLOWANCE } from '@/lib/energy/catalogue';
 import { canRecommend, freshness, RAAEY_COMPARE } from '@/lib/energy/freshness';
@@ -414,7 +414,14 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
       {/* ── Provider + Tariff + Contract ── */}
       <div style={card}>
         {secHdr('Πάροχος και τιμολόγιο')}
-        <div style={{ ...formGrid(200, 270), gap: 14, marginBottom: 14 }}>
+        {/* ── ΟΛΑ ΤΑ ΠΕΔΙΑ ΣΕ ΜΙΑ ΓΡΑΜΜΗ, ΚΑΙ ΤΟ ΑΠΟΤΕΛΕΣΜΑ ΑΠΟ ΚΑΤΩ ────────
+            Η κάρτα είχε ΤΡΙΑ επίπεδα: δύο πεδία, μετά το κουτί του τιμολογίου,
+            μετά άλλα τρία πεδία και έναν διακόπτη. Δηλαδή ο χρήστης συμπλήρωνε,
+            διάβαζε ένα αποτέλεσμα, και ξανασυμπλήρωνε από κάτω — με το ίδιο
+            πράγμα (η σύμβασή του) σπασμένο στις δύο άκρες ενός κουτιού.
+            Τώρα: όλα όσα δηλώνει, σε μία σειρά· και από κάτω, μία φορά, ό,τι
+            προκύπτει από αυτά. */}
+        <div {...fixedCols(tariff.fixed_ebill != null ? 5 : 4, 14, 'start')}>
           <CustomSelect label="Πάροχος" value={provider} onChange={p => {
             setProvider(p);
             const prov = PROVIDERS.find(x => x.value === p);
@@ -424,9 +431,24 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
           }} options={PROVIDERS.map(p => ({ value: p.value, label: p.label }))} />
           <CustomSelect label="Τιμολόγιο" value={tariffId} onChange={v => { setTariffId(v); save({ elecTariff: v }); }}
             options={providerObj.tariffs.map(t => ({ value: t.id, label: t.name }))} />
+          <DatePicker label="Έναρξη σύμβασης" value={contractStart}
+            onChange={v => { setContractStart(v); save({ contractStart: v }); }} />
+          <CustomSelect label="Διάρκεια σύμβασης" value={contractMonths}
+            onChange={v => { setContractMonths(v); save({ contractMonths: v }); }}
+            options={DURATION_OPTIONS}/>
+          {/* ΤΟ ΚΟΙΝΟ ΠΕΔΙΟ ΔΙΑΚΟΠΤΗ, ΑΝΤΙ ΓΙΑ ΤΡΙΤΗ ΧΕΙΡΟΓΡΑΦΗ ΓΕΩΜΕΤΡΙΑ. Εδώ
+              ζούσε δική του ετικέτα, δικό του ύψος και `whiteSpace: nowrap` για
+              να χωρέσει το κείμενο «Ενεργό, μειωμένο πάγιο» — που έλεγε ξανά ό,τι
+              γράφει ήδη το κουτί του τιμολογίου από κάτω («3,50 € με e-bill»). Το
+              `ToggleField` υπάρχει ακριβώς γι' αυτή τη θέση: ετικέτα από πάνω,
+              ίδιο ύψος με τα διπλανά κουτιά, όνομα στον αναγνώστη οθόνης. */}
+          {tariff.fixed_ebill != null && (
+            <ToggleField label="Ηλεκτρονικός λογαριασμός" on={useEbill}
+              onChange={v => { setUseEbill(v); save({ useEbill: v }); }} />
+          )}
         </div>
 
-        <div style={{ background: tariffBc.bg, border: `1px solid ${tariffBc.border}`, borderRadius: T.radius.inner, padding: '12px 16px', marginBottom: 14, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+        <div style={{ background: tariffBc.bg, border: `1px solid ${tariffBc.border}`, borderRadius: T.radius.inner, padding: '12px 16px', marginTop: 14, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' as const }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{tariff.name}</span>
@@ -438,6 +460,16 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
               ) : (
                 <span style={{ fontSize: 9, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', fontFamily: T.font.sans }}>
                   Χωρίς δέσμευση
+                </span>
+              )}
+              {/* Η ΛΗΞΗ ΤΗΣ ΔΙΚΗΣ ΣΟΥ ΣΥΜΒΑΣΗΣ, ΔΙΠΛΑ ΣΤΗ ΔΙΑΡΚΕΙΑ ΤΟΥ
+                  ΤΙΜΟΛΟΓΙΟΥ. Ήταν πλακίδιο τριών γραμμών σε σειρά πεδίων —
+                  δηλαδή ένα ΑΠΟΤΕΛΕΣΜΑ ντυμένο σαν πεδίο, ανάμεσα σε πεδία που
+                  όντως συμπληρώνονται. Είναι συνέπεια της έναρξης και της
+                  διάρκειας, οπότε ζει εκεί που διαβάζεται η σύμβαση. */}
+              {contractExpiry && (
+                <span style={{ fontSize: 9, fontWeight: 700, color: contractExpiry.daysLeft <= 60 ? 'var(--warning)' : 'var(--text-secondary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, border: `1px solid ${contractExpiry.daysLeft <= 60 ? 'var(--warning)' : 'var(--border-subtle)'}`, fontFamily: T.font.sans }}>
+                  Λήγει {contractExpiry.date}, σε {contractExpiry.daysLeft} ημέρες
                 </span>
               )}
               {tariff.no_fixed && <span style={{ fontSize: 9, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>Χωρίς πάγιο</span>}
@@ -477,7 +509,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                   </span>
                 )}
                 <span style={FACT}>
-                  Μηνιαίο πάγιο:{' '}<strong style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{tariff.no_fixed ? '0,00 €' : `${fe(((useEbill && tariff.fixed_ebill != null) ? tariff.fixed_ebill : tariff.fixed))} / μήνα`}</strong>
+                  Πάγιο:{' '}<strong style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{tariff.no_fixed ? '0,00 €' : `${fe(((useEbill && tariff.fixed_ebill != null) ? tariff.fixed_ebill : tariff.fixed))} / μήνα`}</strong>
                 </span>
               </div>
             )}
@@ -485,7 +517,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
             {tariff.type === 'fixed_monthly' && (
               <div style={{ display: 'flex', gap: 20, marginTop: 10, flexWrap: 'wrap' as const, alignItems: 'center' }}>
                 <span style={FACT}>
-                  Σταθερό μηνιαίο κόστος:{' '}<strong style={{ color: tariffBc.color, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(tariff.flat_monthly || 0)} / μήνα</strong>
+                  Σταθερό κόστος:{' '}<strong style={{ color: tariffBc.color, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(tariff.flat_monthly || 0)} / μήνα</strong>
                 </span>
                 {tariff.flat_annual_kwh != null && (
                   <span style={FACT}>
@@ -501,52 +533,6 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
           </a>
         </div>
 
-        {/* Ημερομηνίες συμβολαίου και διακόπτης ηλεκτρονικού λογαριασμού */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 14, alignItems: 'center' }}>
-          <DatePicker
-            label="Έναρξη σύμβασης"
-            value={contractStart}
-            onChange={v => { setContractStart(v); save({ contractStart: v }); }}
-          />
-          <CustomSelect label="Διάρκεια σύμβασης" value={contractMonths}
-            onChange={v => { setContractMonths(v); save({ contractMonths: v }); }}
-            options={DURATION_OPTIONS}/>
-          {contractExpiry && (
-            <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '9px 12px', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ fontSize: 9, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 3, fontFamily: T.font.sans }}>Λήξη σύμβασης</div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: contractExpiry.daysLeft <= 60 ? 'var(--warning)' : 'var(--text-primary)', fontFamily: T.font.sans }}>{contractExpiry.date}</div>
-              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{contractExpiry.daysLeft} ημέρες</div>
-            </div>
-          )}
-          {tariff.fixed_ebill != null && (
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>Ηλεκτρονικός λογαριασμός</div>
-              {/* ΤΡΙΤΗ ΓΕΩΜΕΤΡΙΑ ΓΙΑ ΤΟ ΙΔΙΟ ΠΡΑΓΜΑ. Εδώ ζούσε χειρόγραφος
-                  διακόπτης 40×26 με δείκτη 20, ενώ το κοινό `Toggle` υπήρχε ήδη
-                  — και ήταν ΗΔΗ εισαγμένο σε αυτό το αρχείο (γραμμή 5) χωρίς να
-                  χρησιμοποιείται πουθενά. Δηλαδή τρίτο μέγεθος διακόπτη στην
-                  εφαρμογή (36×20, 52×32, 40×26), ωμό #fff στον δείκτη, ωμό rgba
-                  στη σκιά και το ίδιο κείμενο κατάστασης στα 12 αντί για 14. Το
-                  κοινό component κρατά aria-checked και δίνει ρητή ελληνική
-                  aria-label, που πριν έλειπε τελείως. */}
-              {/* Το nowrap έμενε πίσω στη μεταφορά. Ο παλιός χειρόγραφος είχε
-                  whiteSpace: 'nowrap' στο κείμενο κατάστασης· το κοινό `Toggle`
-                  δεν το έχει, και το κείμενο μεγάλωσε από 12 σε 14 (η ετικέτα
-                  «Ενεργό, μειωμένο πάγιο» πάει από ~133px σε ~155px) μέσα σε
-                  στήλη `auto` ενός grid `1fr 1fr 1fr auto`. Σε στενό πλάτος θα
-                  έσπαγε σε δύο γραμμές μέσα σε κουτί σταθερού ύψους T.h.lg (40px)
-                  και θα ξεχείλιζε πάνω στη γραμμή. Το white-space κληρονομείται,
-                  οπότε μπαίνει εδώ αντί να αλλάξει το κοινό component. */}
-              <div style={{ display: 'flex', alignItems: 'center', height: T.h.lg, whiteSpace: 'nowrap' }}>
-                <Toggle
-                  on={useEbill}
-                  onChange={v => { setUseEbill(v); save({ useEbill: v }); }}
-                  label="Ενεργό, μειωμένο πάγιο"
-                />
-              </div>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* ── Κατανάλωση + υπολογισμός ── */}
