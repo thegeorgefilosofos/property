@@ -44,6 +44,18 @@ const TRUST_PAGES: [string, string][] = [
 /** Μία ενότητα με ελεύθερο περιεχόμενο, όπως τη θέλει το «Ποιοι είμαστε». */
 export interface LegalBlock {
   /**
+   * Το ΜΕΡΟΣ στο οποίο ανήκει η ενότητα. Γράφεται μόνο στην ΠΡΩΤΗ ενότητα κάθε
+   * μέρους· οι επόμενες το κληρονομούν.
+   *
+   * ΓΙΑΤΙ ΥΠΑΡΧΕΙ: είκοσι τέσσερις ενότητες στη σειρά δεν είναι ιεραρχία, είναι
+   * λίστα. Ο αναγνώστης που ψάχνει «τι γίνεται αν ακυρώσω» δεν ξέρει αν θα το
+   * βρει στη 8 ή στη 19, και τις διαβάζει όλες ή καμία. Τα μέρη του λένε από
+   * πού να ξεκινήσει. Η ΑΡΙΘΜΗΣΗ ΜΕΝΕΙ ΣΥΝΕΧΟΜΕΝΗ (1 ως N) και όχι ανά μέρος:
+   * αλλιώς κάθε παραπομπή «βλ. ενότητα 12» θα άλλαζε νόημα με το που μπει ένα
+   * μέρος παραπάνω.
+   */
+  part?: string;
+  /**
    * Σταθερό αναγνωριστικό για σύνδεσμο απ' έξω. Χωρίς αυτό, το άγκιστρο είναι
    * η ΘΕΣΗ της ενότητας («#s5»): αρκεί να προστεθεί μία ενότητα παραπάνω και
    * κάθε παλιός σύνδεσμος δείχνει σε λάθος κείμενο, χωρίς 404 που να το
@@ -98,6 +110,7 @@ export function LegalLayout({ eyebrow, title, intro, meta, blocks, closing }: {
             <ol className="lg-toc-list">
               {blocks.map((b, i) => (
                 <li key={i}>
+                  {b.part && <span className="lg-toc-part">{b.part}</span>}
                   <a href={`#${b.id || `s${i + 1}`}`} className="lg-toc-link">
                     <span className="lg-toc-num">{i + 1}</span>
                     <span>{b.h}</span>
@@ -114,6 +127,7 @@ export function LegalLayout({ eyebrow, title, intro, meta, blocks, closing }: {
           <div className="lg-body">
             {blocks.map((b, i) => (
               <section key={i} id={b.id || `s${i + 1}`} style={{ scrollMarginTop: 24, marginTop: i === 0 ? 0 : 'clamp(30px,4vw,46px)' }}>
+                {b.part && <div className={i === 0 ? 'lg-part lg-part-first' : 'lg-part'}>{b.part}</div>}
                 <h2 style={{ display: 'flex', gap: 12, alignItems: 'baseline', fontSize: 'clamp(18px,2.2vw,21px)', fontWeight: 680, letterSpacing: '-0.02em', lineHeight: 1.3, margin: '0 0 12px' }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)', fontVariantNumeric: 'tabular-nums', flexShrink: 0, minWidth: 18 }}>{i + 1}</span>
                   <span style={{ textWrap: 'balance' }}>{b.h}</span>
@@ -140,7 +154,7 @@ export function LegalLayout({ eyebrow, title, intro, meta, blocks, closing }: {
 
 /** Κάθε ενότητα καθαρού κειμένου: παράγραφοι, προαιρετική λίστα, σημείωση. */
 export interface LegalSection {
-  h: string; p?: string[]; list?: string[]; note?: string; id?: string;
+  h: string; p?: string[]; list?: string[]; note?: string; id?: string; part?: string;
 }
 
 /** Απόρρητο και Όροι: μόνο κείμενο, άρα δηλώνονται ως δεδομένα, όχι ως JSX. */
@@ -156,6 +170,7 @@ export function LegalShell({ title, updated, intro, sections, disclaimer }: {
       blocks={sections.map(s => ({
         id: s.id,
         h: s.h,
+        part: s.part,
         body: (
           <>
             {(s.p || []).map((para, j) => <p key={j} className="lg-p">{para}</p>)}

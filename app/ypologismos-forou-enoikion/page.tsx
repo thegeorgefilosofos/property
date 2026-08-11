@@ -132,7 +132,7 @@ export default function Page() {
             Με την κλίμακα του 2026 και την τεκμαρτή έκπτωση 5%. Χωρίς εγγραφή και χωρίς email:
             ο υπολογισμός γίνεται στη συσκευή σου και δεν αποθηκεύεται πουθενά.
           </p>
-          <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: 0, maxWidth: 260 }}>
+          <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: 0, lineHeight: 1.55 }}>
             Ίδιοι υπολογισμοί με αυτούς που τρέχει το Property OS για τους ιδιοκτήτες του.
           </p>
         </div>

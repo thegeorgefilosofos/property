@@ -1729,12 +1729,23 @@ details.lp-faq[open] summary .lp-plus { transform: rotate(45deg); }
 
    Κάτω από τις 900 οι δύο στήλες γίνονται μία και το ευρετήριο ΞΕΚΑΡΦΩΝΕΤΑΙ:
    ένα καρφωμένο στοιχείο σε κινητό τρώει μισή οθόνη σε κάθε κύλιση. */
+/* Η ΕΙΣΑΓΩΓΗ ΠΙΑΝΕΙ ΤΗ ΣΕΛΙΔΑ ΠΕΡΑ ΩΣ ΠΕΡΑ. Με σταθερό μέτρο 720 μέσα σε
+   δοχείο 1044, οι τρεις πρώτες γραμμές της σελίδας σταματούσαν στα δύο τρίτα
+   και δεξιά έμενε ένα λευκό ορθογώνιο τριακοσίων εικονοστοιχείων — το πρώτο
+   πράγμα που βλέπει ο επισκέπτης. Τώρα είναι πλέγμα: το κείμενο παίρνει ό,τι
+   περισσεύει, η σημείωση κρατά σταθερή στήλη δεξιά, και το μέτρο βγαίνει μόνο
+   του στα 744 (δηλαδή εκεί που το θέλαμε) χωρίς να το επιβάλλουμε. */
 .lg-lede {
-  display: flex; gap: 20px 32px; align-items: baseline;
-  justify-content: space-between; flex-wrap: wrap;
-  max-width: 1044px;
+  display: grid; grid-template-columns: minmax(0, 1fr) 250px;
+  gap: 40px; align-items: baseline; max-width: 1044px;
 }
-.lg-lede p:first-child { max-width: 720px; }
+.lg-lede > p:first-child { text-align: justify; text-wrap: pretty; }
+.lg-lede > p:last-child:not(:first-child) { text-align: right; }
+@media (max-width: 760px) {
+  .lg-lede { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .lg-lede > p:first-child { text-align: left; }
+  .lg-lede > p:last-child:not(:first-child) { text-align: left; }
+}
 
 /* Η ΣΤΗΛΗ ΤΟΥ ΚΕΙΜΕΝΟΥ ΕΙΝΑΙ ΤΟ ΜΕΤΡΟ. 1044 μείον 260 του ευρετηρίου μείον 72
    του κενού αφήνουν 712 εικονοστοιχεία: γραμμές ογδόντα εννέα χαρακτήρων στα
@@ -1759,6 +1770,13 @@ details.lp-faq[open] summary .lp-plus { transform: rotate(45deg); }
   transition: color .15s;
 }
 .lg-toc-link:hover { color: var(--accent); }
+/* Τα μέρη μέσα στο ευρετήριο: ίδια ετικέτα με τις ενότητες της αρχικής. */
+.lg-toc-part {
+  display: block; margin: 18px 0 7px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--text-tertiary);
+}
+.lg-toc-list > li:first-child .lg-toc-part { margin-top: 0; }
 .lg-toc-num {
   font-size: 11px; font-weight: 700; color: var(--text-tertiary);
   font-variant-numeric: tabular-nums; flex-shrink: 0; min-width: 14px;
@@ -1788,6 +1806,16 @@ details.lp-faq[open] summary .lp-plus { transform: rotate(45deg); }
   border-radius: 12px;
 }
 .lg-closing { margin-top: clamp(32px, 4vw, 48px); }
+
+/* Ο ΤΙΤΛΟΣ ΤΟΥ ΜΕΡΟΥΣ μέσα στο κείμενο. Λεπτή γραμμή από πάνω αντί για κουτί:
+   χωρίζει χωρίς να προσθέτει άλλο ένα πλαίσιο σε σελίδα που είναι ήδη κείμενο. */
+.lg-part {
+  margin: clamp(40px, 5vw, 60px) 0 22px; padding-top: 20px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 11px; font-weight: 700; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--accent);
+}
+.lg-part-first { margin-top: 0; padding-top: 0; border-top: 0; }
 /* Ίδια στοίχιση για τα κείμενα που δεν είναι παράγραφοι, π.χ. οι εγγυήσεις
    του «Ποιοι είμαστε»: αλλιώς η μισή σελίδα κλείνει ίσια και η άλλη μισή όχι. */
 .lg-just { text-align: justify; text-wrap: pretty; }
