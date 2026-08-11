@@ -31,6 +31,7 @@ import {
 } from '@/lib/accounting/dossier'
 import type { PropertyStatus } from '@/lib/property/status'
 import { exportAccountantDossier, type AccountantStatementLine, type AccountantMovement } from './accountantExport'
+import type { VatDeduction } from '@/lib/tax/myData'
 import { failed } from '@/lib/core/dbError';
 import { AadePill } from '@/components/AadeLink';
 import { aadePath } from '@/lib/tax/aade';
@@ -207,6 +208,8 @@ export interface DossierExportSource {
   statementLines: AccountantStatementLine[]
   provisionMonthly: number
   book: AccountantMovement[]
+  /** Παρόν μόνο για όποιον όντως χαρακτηρίζει έξοδα στο myDATA. */
+  myData?: { vat: VatDeduction }
   /** Κενά στα δεδομένα, γραμμένα από την καρτέλα (π.χ. «καμία δαπάνη για το 2026»). */
   gaps?: string[]
 }
@@ -259,6 +262,7 @@ export default function AccountantDossier({
       statementLines: exportSource.statementLines,
       provisionMonthly: exportSource.provisionMonthly,
       book: exportSource.book,
+      myData: exportSource.myData,
       requirements: reqs,
       haveIds: haveAll,
       readinessMessage: ready.message,

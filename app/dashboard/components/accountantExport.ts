@@ -16,7 +16,8 @@
 // σωστή στοίχιση/πλαίσια — σαν να το ετοίμασε λογιστής. Ασπρόμαυρο, καθαρό.
 // ═══════════════════════════════════════════════════════════════════════════
 import { XLSX, FMT, S, setCell, downloadWorkbook, money, moneySigned, type Cell } from './xlsxStyle';
-import { supplyLabel } from '@/lib/tax/placeOfSupply';
+import { supplyLabel, type Supply } from '@/lib/tax/placeOfSupply';
+import { myDataHint, myDataCell, type VatDeduction } from '@/lib/tax/myData';
 import { csvCell } from '@/lib/core/csv';
 import { buildZip, type ZipFile } from '@/lib/accounting/zip';
 import { WHO_LABEL, type Requirement } from '@/lib/accounting/dossier';
@@ -55,6 +56,16 @@ export interface AccountantBundleInput {
   statementLines: AccountantStatementLine[];
   provisionMonthly: number;
   book: AccountantMovement[];
+  /**
+   * Η ΣΤΗΛΗ myDATA ΥΠΑΡΧΕΙ ΜΟΝΟ ΓΙΑ ΟΠΟΙΟΝ ΚΑΝΕΙ myDATA.
+   *
+   * Ο ιδιοκτήτης που εκμισθώνει κατοικία ως φυσικό πρόσωπο δεν χαρακτηρίζει
+   * έξοδα: δεν τηρεί βιβλία και δεν διαβιβάζει τίποτα. Μια στήλη «2.4 / 2.5»
+   * στο αρχείο του δεν είναι απλώς άχρηστη, είναι παραπλανητική — δείχνει
+   * υποχρέωση που δεν έχει. Όταν λείπει το πεδίο, το φύλλο μένει ακριβώς όπως
+   * ήταν, οκτώ στήλες.
+   */
+  myData?: { vat: VatDeduction };
 }
 
 /**
@@ -137,7 +148,13 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     // συνόλων παράγονται από αυτό (`NC - 2`, `NC - 1`) αντί να είναι γραμμένοι
     // σταθεροί: ήταν 4 και 5, και μια τρίτη στήλη θα τους άφηνε πίσω σιωπηλά —
     // το σύνολο των εξόδων θα καθόταν κάτω από την επικεφαλίδα της χώρας.
-    const NC = 8, HR = 3;
+    // ΤΟ ΠΛΗΘΟΣ ΤΩΝ ΣΤΗΛΩΝ ΕΙΝΑΙ ΜΕΤΑΒΛΗΤΟ, ΚΑΙ ΟΛΑ ΤΑ ΥΠΟΛΟΙΠΑ ΤΟ ΑΚΟΛΟΥΘΟΥΝ.
+    // Η στήλη του χαρακτηρισμού μπαίνει ΠΡΙΝ τα ποσά, δίπλα στον τόπο παροχής
+    // με τον οποίο συνδέεται: «τι, από πού, πώς χαρακτηρίζεται, πόσο».
+    const myData = inp.myData;
+    const NC = myData ? 9 : 8, HR = 3;
+    /** Η στήλη του χαρακτηρισμού, ή −1 όταν δεν υπάρχει. */
+    const C_MYDATA = myData ? 6 : -1;
     // ΤΑ ΠΟΣΑ ΚΛΕΙΝΟΥΝ ΤΗ ΓΡΑΜΜΗ, ΟΠΟΤΕ ΠΑΡΑΓΟΝΤΑΙ ΑΠΟ ΤΟ ΠΛΗΘΟΣ ΣΤΗΛΩΝ: μια
     // ένατη στήλη αύριο τα παίρνει μαζί της, χωρίς να το θυμηθεί κανείς.
     const C_IN = NC - 2, C_EX = NC - 1;
@@ -159,7 +176,14 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     // Η ΧΩΡΑ ΚΑΙ Ο ΤΟΠΟΣ ΠΑΡΟΧΗΣ ΜΠΑΙΝΟΥΝ ΠΡΙΝ ΤΑ ΠΟΣΑ, όχι στο τέλος: ο
     // λογιστής διαβάζει «τι, από πού, πόσο». Τα ποσά κλείνουν τη γραμμή, όπως σε
     // κάθε παραστατικό, και τα σύνολα κάθονται από κάτω τους.
-    const header = ['Α/Α', 'Ημερομηνία', 'Κατηγορία', 'Περιγραφή', 'Χώρα', 'Τόπος παροχής', 'Έσοδα', 'Έξοδα'];
+    const header = ['Α/Α', 'Ημερομηνία', 'Κατηγορία', 'Περιγραφή', 'Χώρα', 'Τόπος παροχής',
+      ...(myData ? ['Χαρακτηρισμός myDATA'] : []), 'Έσοδα', 'Έξοδα'];
+    // Ο ΧΑΡΑΚΤΗΡΙΣΜΟΣ ΑΦΟΡΑ ΜΟΝΟ ΤΑ ΕΞΟΔΑ. Στη γραμμή εσόδου το κελί μένει
+    // κενό: τα έσοδα έχουν δικό τους παραστατικό, που το εκδίδει ο ίδιος ο
+    // ιδιοκτήτης, και δεν «χαρακτηρίζονται» ως έξοδα με κανέναν κωδικό.
+    const myDataOf = (e: AccountantMovement): string =>
+      !myData || e.type !== 'expense' ? ''
+        : myDataCell(myDataHint({ category: e.category, supply: e.supply as Supply | null, vat: myData.vat }));
     const dataRows: Cell['v'][][] = sorted.map((e, i) => [
       i + 1, toDate(e.date), e.category || '', e.description || '',
       // Κενό, όχι «—» και όχι «Ελλάδα»: το έσοδο δεν έχει πάροχο, και η δαπάνη
@@ -167,6 +191,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       // ΦΠΑ είναι εικασία γραμμένη ως δεδομένο.
       e.supplier_country || '',
       supplyCell(e.supply),
+      ...(myData ? [myDataOf(e)] : []),
       e.type === 'income' ? e.amount : '', e.type === 'expense' ? e.amount : '',
     ]);
     const aoa: (string | number | Date)[][] = [
@@ -188,7 +213,10 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     // το Excel το έκοβε, γιατί το διπλανό κελί έχει ποσό και δεν το αφήνει να
     // ξεχειλίσει. Ένας λογιστής που βλέπει «Ενδοκοινοτική λήψη υπηρεσι…» δεν
     // ξέρει αν είναι λήψη ή παράδοση.
-    ws['!cols'] = [{ wch: 6 }, { wch: 13 }, { wch: 24 }, { wch: 40 }, { wch: 8 }, { wch: 31 }, { wch: 14 }, { wch: 14 }];
+    // Ο χαρακτηρισμός φτάνει τους 45 χαρακτήρες («14.3 · 2.5 Γενικά Έξοδα χωρίς
+    // δικαίωμα έκπτωσης Φ.Π.Α.»), και το διπλανό κελί έχει ποσό: δεν ξεχειλίζει.
+    ws['!cols'] = [{ wch: 6 }, { wch: 13 }, { wch: 24 }, { wch: 40 }, { wch: 8 }, { wch: 31 },
+      ...(myData ? [{ wch: 47 }] : []), { wch: 14 }, { wch: 14 }];
     ws['!merges'] = [
       { s: { r: 0, c: 0 }, e: { r: 0, c: NC - 1 } },
       { s: { r: 1, c: 0 }, e: { r: 1, c: NC - 1 } },
@@ -211,6 +239,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       setCell(ws, r, 3, { s: S.txt });                                       // Περιγραφή
       setCell(ws, r, 4, { s: { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } } }); // Χώρα
       setCell(ws, r, 5, { s: S.txt });                                       // Τόπος παροχής
+      if (C_MYDATA >= 0) setCell(ws, r, C_MYDATA, { s: S.txt });             // Χαρακτηρισμός myDATA
       // Έσοδα/Έξοδα ως κείμενο «€» με κόμμα (ίδια εμφάνιση σε κάθε Excel).
       for (const c of [C_IN, C_EX]) { const cell = ws[enc(r, c)] as Cell | undefined; if (cell && typeof cell.v === 'number') setCell(ws, r, c, { v: money(cell.v), t: 's', s: S.num }); else setCell(ws, r, c, { s: S.num }); }
     }

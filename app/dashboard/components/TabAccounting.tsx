@@ -47,6 +47,7 @@ import { isGroupDeductible } from '@/lib/expenses/groups'
 import { RENTAL_TAX_ROWS_2026, BUSINESS_INCOME_ROWS_2026, BUILDING_DEPRECIATION_RATE, BUILDING_VALUE_FRACTION, SELF_EMPLOYED_MIN_NET_INCOME_2026 , rentalBracketsForYear, bracketsLabelForYear } from '@/lib/billing/greekTax'
 import { useReportBranding } from '@/lib/reportBranding'
 import { hasFeature } from '@/lib/billing/entitlements'
+import type { VatDeduction } from '@/lib/tax/myData'
 import type { PlanId } from '@/lib/billing/plans'
 import { exportAccountantBundle, toMovement } from './accountantExport'
 import EnfiaPanel from './EnfiaPanel';
@@ -510,13 +511,28 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     return g
   },[rent,stays,expensesYear,year,regime,uncollectedRent,tenant,enfiaEstimated])
 
+  // ── ΠΟΙΟΣ ΚΑΝΕΙ myDATA, ΚΑΙ ΜΕ ΠΟΙΟ ΔΙΚΑΙΩΜΑ ΕΚΠΤΩΣΗΣ ────────────────────
+  // Ο ιδιοκτήτης που εκμισθώνει ως φυσικό πρόσωπο δεν χαρακτηρίζει έξοδα: δεν
+  // τηρεί βιβλία, δεν διαβιβάζει. Για εκείνον η στήλη δεν υπάρχει καθόλου.
+  //
+  // Για την επιχείρηση, το δικαίωμα έκπτωσης δεν μαντεύεται — και μόνο μία
+  // περίπτωση είναι βέβαιη από τα δεδομένα που ήδη έχουμε: η εκμίσθωση
+  // κατοικίας απαλλάσσεται από ΦΠΑ (άρθρο 22 ν.2859/2000), άρα δεν υπάρχει
+  // δικαίωμα έκπτωσης των εισροών και το γενικό έξοδο πάει στο 2.5. Στη
+  // βραχυχρόνια, όπου το καθεστώς εξαρτάται από το αν παρέχονται υπηρεσίες,
+  // μένει άγνωστο: το κελί βγαίνει κενό και ο λογιστής το συμπληρώνει.
+  const myDataExport = useMemo(()=>(
+    businessMode ? { vat: (regime==='individual_longterm' ? 'none' : 'unknown') as VatDeduction } : undefined
+  ),[businessMode,regime])
+
   const dossierExport = useMemo(()=>({
     propName: prop?.name || 'Ακίνητο',
     statementLines: statement.lines.map(l=>({ label:l.label, amount:l.amount, kind:l.kind, negative:l.negative })),
     provisionMonthly: provision.monthly,
     book: book.map(toMovement),
+    myData: myDataExport,
     gaps: dossierGaps,
-  }),[prop,statement,provision,book,dossierGaps])
+  }),[prop,statement,provision,book,dossierGaps,myDataExport])
 
   // ── Κλείσιμο χρήσης (period lock) ──────────────────────────────────────────
   // Το στιγμιότυπο της κλεισμένης χρήσης: ό,τι γράφεται στο `snapshot`, και
@@ -644,6 +660,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
       statementLines: statement.lines.map(l => ({ label: l.label, amount: l.amount, kind: l.kind, negative: l.negative })),
       provisionMonthly: provision.monthly,
       book: book.map(toMovement),
+      myData: myDataExport,
     })
   }
 
