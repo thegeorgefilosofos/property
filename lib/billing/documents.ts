@@ -17,7 +17,7 @@ import { EXPENSE_MAP, categorizeTransaction, derivePeriod, digitsOnly, isValidAf
 import { navLabel } from '../nav/labels';
 import { fe } from '../core/format';
 import type { EventDraft } from '../data/calendar';
-import { billingPeriod, nextRenewal, reminderDate, PERIOD_LABEL, REMINDER_DAYS_BEFORE } from './invoiceIntel';
+import { billingPeriod, nextRenewal, reminderDate, providerCountry, docSupply, PERIOD_LABEL, REMINDER_DAYS_BEFORE } from './invoiceIntel';
 
 /** «2026-08-08» → «08/08/2026». Η ημερομηνία σε σημείωση διαβάζεται από άνθρωπο. */
 const greekDay = (iso: string): string => {
@@ -480,6 +480,12 @@ export function planDocSave(doc: ScannedDoc, today: string): SavePlan {
         description: `${map.cat} — ${provider}${doc.period ? ` (${doc.period})` : ''}`,
         amount: doc.amount || 0, category: map.cat, expense_group: map.group,
         date: expDate, paid_by: 'owner', paid,
+        // Ο ΤΟΠΟΣ ΠΑΡΟΧΗΣ ΤΑΞΙΔΕΥΕΙ ΩΣ ΔΕΔΟΜΕΝΟ, ΟΧΙ ΩΣ ΠΡΟΤΑΣΗ. Η χώρα βγαίνει
+        // από το ίδιο το παραστατικό (ρητή δήλωση, πρόθεμα αριθμού ΦΠΑ, ή
+        // έγκυρο ελληνικό ΑΦΜ) και το συμπέρασμα από τη χώρα. Ό,τι δεν λέει το
+        // χαρτί μένει κενό: το NULL σημαίνει «δεν το ξέρουμε», ποτέ «εγχώρια».
+        supplier_country: providerCountry(doc) || null,
+        supply: docSupply(doc),
         notes: `Από σάρωση${cons ? ` · ${cons}` : ''}${baseNote ? ` · ${baseNote}` : ''}`,
       },
       archive,

@@ -115,5 +115,22 @@ ok(partialRow.notes.includes('60,00%') && partialRow.notes.includes('9,99'),
 eq('και κρατά το ποσοστό σε δικό του πεδίο', partialRow.share_percent, 60);
 eq('η πλήρης δεν γράφει ποσοστό', rows[0].share_percent, null);
 
+// ── ΟΙ ΔΥΟ ΣΤΗΛΕΣ ΤΑΞΙΔΕΥΟΥΝ ΩΣ ΔΕΔΟΜΕΝΑ ─────────────────────────────────────
+// Η σημείωση είναι για τον άνθρωπο. Η Λογιστική και το Excel θέλουν πεδία.
+{
+  const rows2 = toExpenses(mixed, { month: '2026-08' });
+  const of = (s: string) => rows2.find(r => r.store_vendor === s)!;
+  eq('η χώρα γράφεται σε δική της στήλη', of('microsoft365').supplier_country, 'IE');
+  eq('και ο τόπος παροχής σε δική του', of('microsoft365').supply, 'intra_eu');
+  eq('εγχώρια', of('skroutz_plus').supply, 'domestic');
+  eq('τρίτη χώρα', of('claude').supply, 'third_country');
+  // ΤΟ ΑΓΝΩΣΤΟ ΜΕΝΕΙ NULL, ΠΟΤΕ «εγχώρια»: αλλιώς κάθε συνδρομή που δεν
+  // ρωτήθηκε θα περνούσε σιωπηλά για ελληνικό τιμολόγιο σε δήλωση ΦΠΑ.
+  const blind = toExpenses(subscriptionCharges({ activeStreaming: [entry()] }), { month: '2026-08' })[0];
+  eq('χωρίς χώρα, κενή στήλη', blind.supplier_country, null);
+  eq('χωρίς χώρα, κανένα συμπέρασμα', blind.supply, null);
+}
+
 console.log(`\nsubscriptionBooking: ${fails === 0 ? '✓ όλα' : `✗ ${fails}`}`);
 if (fails) process.exit(1);
+

@@ -151,6 +151,13 @@ export interface SubscriptionExpense {
   store_vendor: string;
   share_percent: number | null;
   share_note: string | null;
+  /**
+   * ΟΙ ΔΥΟ ΣΤΗΛΕΣ ΤΟΥ ΤΟΠΟΥ ΠΑΡΟΧΗΣ. Γράφονται εδώ, όχι μόνο στη σημείωση: η
+   * Λογιστική και το Excel του λογιστή τις χρειάζονται ως δεδομένα, όχι ως
+   * ελληνική πρόταση που θα διαβάσει κάποιο regex.
+   */
+  supplier_country: string | null;
+  supply: string | null;
   notes: string;
 }
 
@@ -183,6 +190,8 @@ export function toExpenses(
       store_vendor: c.service,
       share_percent: c.expensePct < 100 ? c.expensePct : null,
       share_note: c.expensePct < 100 ? 'Ποσοστό επαγγελματικής χρήσης' : null,
+      supplier_country: c.supplierCountry || null,
+      supply: c.supply,
       notes: noteFor(c),
     }));
 }

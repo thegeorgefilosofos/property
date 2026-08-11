@@ -83,6 +83,9 @@ export interface ExpenseDraft {
   recurring_frequency?: string | null;
   share_percent?: number | null;
   share_note?: string | null;
+  /** Χώρα εκδότη (ISO 3166-1 alpha-2) και ο τόπος παροχής που προκύπτει. */
+  supplier_country?: string | null;
+  supply?: string | null;
   /**
    * ΜΟΝΟ όταν ο καλών την ξέρει από αλλού — π.χ. ο χάρτης λογαριασμών του
    * `lib/expenses/pay.ts`. Αλλιώς παράγεται από την κατηγορία, που είναι και
@@ -125,6 +128,8 @@ export function row(scope: Scope, d: ExpenseDraft): Partial<ExpenseRow> {
     recurring_frequency: d.recurring_frequency ?? null,
     share_percent: d.share_percent ?? null,
     share_note: d.share_note ?? null,
+    supplier_country: d.supplier_country ?? null,
+    supply: d.supply ?? null,
   } as Partial<ExpenseRow>;
 }
 

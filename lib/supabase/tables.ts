@@ -512,6 +512,16 @@ export interface ExpensesRow {
   share_percent: number | null;
   share_note: string | null;
   contact_id: string | null;
+  /**
+   * Ο ΤΟΠΟΣ ΠΑΡΟΧΗΣ, ΣΕ ΔΥΟ ΣΤΗΛΕΣ ΚΑΙ ΟΧΙ ΣΕ ΣΗΜΕΙΩΣΗ.
+   *
+   * Η χώρα είναι το ΓΕΓΟΝΟΣ που διαβάστηκε από το παραστατικό· ο τόπος παροχής
+   * το ΣΥΜΠΕΡΑΣΜΑ. Χωριστά, ώστε αν αύριο αλλάξει ο κανόνας να ξαναβγαίνει το
+   * δεύτερο από το πρώτο. `null` σημαίνει «δεν ρωτήθηκε», ποτέ «εγχώρια».
+   * Βλ. supabase/migrations/20260812000000_expense_place_of_supply.sql.
+   */
+  supplier_country: string | null;
+  supply: string | null;
 }
 
 export interface FeedbackCampaignWinnersRow {
