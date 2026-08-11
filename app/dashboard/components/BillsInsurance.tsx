@@ -232,11 +232,11 @@ const INSURANCE_COMPANIES: InsuranceCompany[] = [
 
 export const STREAMING = [
   { value: 'netflix',    label: 'Netflix',            color: '#e50914', url: 'https://www.netflix.com/gr',             plans: [{ id: 'n_basic', name: 'Βασικό · 8,99 €', price: 8.99 },{ id: 'n_standard', name: 'Standard · 12,49 €', price: 12.49 },{ id: 'n_premium', name: 'Premium 4K · 15,99 €', price: 15.99 }] },
-  { value: 'disney',     label: 'Disney+',            color: '#0063e5', url: 'https://www.disneyplus.com/el-gr',        plans: [{ id: 'd_standard', name: 'Standard · 8,99 €', price: 8.99 },{ id: 'd_premium', name: 'Premium · 13,99 €', price: 13.99 }] },
+  { value: 'disney',     label: 'Disney+',            color: '#0063e5', url: 'https://www.disneyplus.com/el-gr',        plans: [{ id: 'd_standard', name: 'Standard · 10,99 €', price: 10.99 },{ id: 'd_standard_year', name: 'Standard ετήσιο 109,90 € · 9,16 € τον μήνα', price: 9.16 },{ id: 'd_premium', name: 'Premium · 15,99 €', price: 15.99 },{ id: 'd_premium_year', name: 'Premium ετήσιο 159,90 € · 13,33 € τον μήνα', price: 13.33 }] },
   { value: 'apple_tv',   label: 'Apple TV+',          color: '#555555', url: 'https://www.apple.com/gr/apple-tv-plus', plans: [{ id: 'a_std', name: 'Apple TV+ · 9,99 €', price: 9.99 }] },
-  { value: 'amazon',     label: 'Amazon Prime Video', color: '#00a8e1', url: 'https://www.primevideo.com',              plans: [{ id: 'am_std', name: 'Prime Video · 8,99 €', price: 8.99 }] },
-  { value: 'max',        label: 'Max (HBO)',           color: '#0d1ce5', url: 'https://www.max.com/gr/el',              plans: [{ id: 'max_basic', name: 'Basic με διαφημίσεις · 5,99 €', price: 5.99 },{ id: 'max_std', name: 'Standard · 9,99 €', price: 9.99 },{ id: 'max_ult', name: 'Ultimate 4K · 15,99 €', price: 15.99 }] },
-  { value: 'spotify',    label: 'Spotify',            color: '#1db954', url: 'https://www.spotify.com/gr',             plans: [{ id: 's_individual', name: 'Individual · 10,99 €', price: 10.99 },{ id: 's_duo', name: 'Duo · 14,99 €', price: 14.99 },{ id: 's_family', name: 'Family (6 άτομα) · 17,99 €', price: 17.99 }] },
+  { value: 'amazon',     label: 'Amazon Prime Video', color: '#00a8e1', url: 'https://www.primevideo.com',              plans: [{ id: 'am_std', name: 'Prime Video · 5,99 €', price: 5.99 }] },
+  { value: 'max',        label: 'Max (HBO)',           color: '#0d1ce5', url: 'https://www.max.com/gr/el',              plans: [{ id: 'max_std', name: 'Standard · 10,99 €', price: 10.99 },{ id: 'max_std_sport', name: 'Standard και Sports · 13,99 €', price: 13.99 },{ id: 'max_prem', name: 'Premium 4K · 15,99 €', price: 15.99 },{ id: 'max_prem_sport', name: 'Premium και Sports · 18,99 €', price: 18.99 }] },
+  { value: 'spotify',    label: 'Spotify',            color: '#1db954', url: 'https://www.spotify.com/gr',             plans: [{ id: 's_student', name: 'Φοιτητικό · 4,99 €', price: 4.99 },{ id: 's_individual', name: 'Ατομικό · 8,99 €', price: 8.99 },{ id: 's_duo', name: 'Duo · 11,99 €', price: 11.99 },{ id: 's_family', name: 'Οικογενειακό · 14,99 €', price: 14.99 }] },
   { value: 'youtube',    label: 'YouTube Premium',    color: '#ff0000', url: 'https://www.youtube.com/premium',        plans: [{ id: 'y_individual', name: 'Ατομικό · 9,99 €', price: 9.99 },{ id: 'y_family', name: 'Οικογενειακό · 17,99 €', price: 17.99 },{ id: 'y_student', name: 'Φοιτητικό · 6,49 €', price: 6.49 }] },
   // ΟΙ ΤΡΕΙΣ ΣΥΝΔΡΟΜΕΣ ΠΑΡΑΔΟΣΗΣ, ΜΕ ΤΙΜΕΣ ΑΠΟ ΤΙΣ ΕΠΙΣΗΜΕΣ ΣΕΛΙΔΕΣ. Ήταν
   // «Εκκρεμεί», επειδή ένα επινοημένο νούμερο σε πλακίδιο που ο ιδιοκτήτης θα
@@ -264,9 +264,9 @@ export const STREAMING = [
   // ο χρήστης να αναγνωρίσει αυτό που πλήρωσε.
   { value: 'ant1plus',   label: 'ANT1+',              color: '#1a56db', url: 'https://www.antennaplus.gr', plans: [
     { id: 'ant_family',        name: 'Family · 10,99 €', price: 10.99 },
-    { id: 'ant_family_sports', name: 'Family & Sports · 13,49 €', price: 13.49 },
+    { id: 'ant_family_sports', name: 'Family και Sports · 13,49 €', price: 13.49 },
     { id: 'ant_family_9m',     name: 'Family 9 μήνες 67,99 € · 7,55 € τον μήνα', price: 7.55 },
-    { id: 'ant_sports_9m',     name: 'Family & Sports 9 μήνες 79,99 € · 8,88 € τον μήνα', price: 8.88 },
+    { id: 'ant_sports_9m',     name: 'Family και Sports 9 μήνες 79,99 € · 8,88 € τον μήνα', price: 8.88 },
   ] },
 ];
 
@@ -317,7 +317,15 @@ export const CLOUD = [
     { id: 'gpt_plus', name: 'Plus · 23,00 €', price: 23 },
     { id: 'gpt_pro',  name: 'Pro · από 103,00 €', price: 103 },
   ] },
-  { value: 'gemini',  label: 'Gemini',  url: 'https://gemini.google.com', plans: [{ id: 'gem_pro', name: 'Gemini', price: 0 }] },
+  // ΤΟ GEMINI ΓΡΑΦΕΤΑΙ ΟΠΩΣ ΤΟ ΔΕΙΧΝΕΙ Η ΣΕΛΙΔΑ ΤΟΥ, ΧΩΡΙΣ ΝΑ ΠΡΟΣΘΕΣΟΥΜΕ ΦΠΑ.
+  // Το Claude δηλώνει ρητά «+ VAT» και «θα χρεωθείς 24%», οπότε εκεί γράφουμε το
+  // ποσό που χρεώνεται. Εδώ η πηγή λέει μόνο «χωρίς τυχόν φόρους», που δεν είναι
+  // βεβαιότητα: μια προσαύξηση 24% πάνω σε επιφύλαξη θα ήταν επινόηση. Αν η
+  // κάρτα δείξει άλλο ποσό, ο χρήστης γράφει το δικό του — το πεδίο υπάρχει.
+  { value: 'gemini',  label: 'Gemini',  url: 'https://gemini.google.com/subscriptions', plans: [
+    { id: 'gem_plus', name: 'AI Plus · 4,99 €', price: 4.99 },
+    { id: 'gem_pro',  name: 'AI Pro · 22,99 €', price: 22.99 },
+  ] },
 ];
 
 
@@ -602,11 +610,17 @@ export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate
   onUpdate: <K extends keyof SubscriptionEntry>(svc: string, field: K, val: SubscriptionEntry[K]) => void;
   total: number;
 }) {
-  // ΔΥΟ ΓΕΜΑΤΕΣ ΣΕΙΡΕΣ, ΟΠΟΙΟ ΚΙ ΑΝ ΕΙΝΑΙ ΤΟ ΜΕΓΕΘΟΣ ΤΟΥ ΚΑΤΑΛΟΓΟΥ. Διαλέγεται
-  // το ΜΕΓΑΛΥΤΕΡΟ πλήθος στηλών που χωρίζει ακριβώς τον κατάλογο: δέκα
-  // υπηρεσίες γίνονται πέντε και πέντε, οκτώ τέσσερα και τέσσερα, έξι τρία και
-  // τρία. Καμία μισή σειρά, χωρίς να γράφεται νούμερο στο χέρι σε κάθε κλήση.
-  const tileCols = [5, 4, 3].find(n => catalog.length % n === 0) ?? Math.min(5, catalog.length);
+  // ΓΕΜΑΤΕΣ ΣΕΙΡΕΣ, ΟΠΟΙΟ ΚΙ ΑΝ ΕΙΝΑΙ ΤΟ ΜΕΓΕΘΟΣ ΤΟΥ ΚΑΤΑΛΟΓΟΥ. Διαλέγεται το
+  // ΜΕΓΑΛΥΤΕΡΟ πλήθος στηλών που χωρίζει ακριβώς τον κατάλογο: δέκα υπηρεσίες
+  // γίνονται πέντε και πέντε, οκτώ τέσσερα και τέσσερα, έξι τρία και τρία.
+  //
+  // ΟΤΑΝ ΚΑΝΕΝΑ ΔΕΝ ΧΩΡΙΖΕΙ ΑΚΡΙΒΩΣ, ΔΕΝ ΠΕΦΤΟΥΜΕ ΣΤΟ ΠΕΝΤΕ. Με έντεκα
+  // υπηρεσίες το πέντε άφηνε τελευταία σειρά με ΕΝΑ πλακίδιο και τέσσερα κενά·
+  // το τέσσερα αφήνει ένα κενό. Διαλέγεται αυτό που αδειάζει τα λιγότερα, και
+  // σε ισοπαλία το φαρδύτερο — γιατί λιγότερες σειρές διαβάζονται πιο γρήγορα.
+  const tileCols = [5, 4, 3]
+    .map(n => ({ n, empty: (n - (catalog.length % n)) % n }))
+    .sort((a, b) => a.empty - b.empty || b.n - a.n)[0].n;
   const isOn = (v: string) => active.some(a => a.service === v);
   return (
     <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>

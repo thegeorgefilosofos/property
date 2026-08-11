@@ -20,18 +20,25 @@ const INTERNET_PROVIDERS = [
 // ═══════════════════════════════════════════════════════════════════════════
 // ΤΑ ΠΑΚΕΤΑ ΣΥΝΔΡΟΜΗΤΙΚΗΣ ΤΗΛΕΟΡΑΣΗΣ
 // ─────────────────────────────────────────────────────────────────────────
-// ΓΙΑΤΙ ΕΙΝΑΙ ΑΔΕΙΟΣ: οι τιμές και τα ονόματα των πακέτων αλλάζουν, και το
-// μόνο που τα κάνει χρήσιμα είναι να είναι ΣΩΣΤΑ. Ένα επινοημένο «Cosmote TV
-// Full, 30 €» δεν είναι προσέγγιση — είναι λάθος νούμερο σε οθόνη που ο
-// ιδιοκτήτης θα συγκρίνει με τον λογαριασμό του. Ο κατάλογος γεμίζει από τις
-// επίσημες σελίδες των παρόχων, όχι από μνήμη.
+// ΗΤΑΝ ΑΔΕΙΟΣ, ΚΑΙ ΣΩΣΤΑ: οι τιμές των πακέτων αλλάζουν, και το μόνο που τα
+// κάνει χρήσιμα είναι να είναι ΣΩΣΤΑ. Ένα επινοημένο «Cosmote TV Full, 30 €»
+// δεν είναι προσέγγιση — είναι λάθος νούμερο σε οθόνη που ο ιδιοκτήτης θα
+// συγκρίνει με τον λογαριασμό του. Γέμισε από τις επίσημες σελίδες.
 //
-// ΟΣΟ ΕΙΝΑΙ ΑΔΕΙΟΣ, το πεδίο μένει ελεύθερο κείμενο — ακριβώς όπως ήταν. Μόλις
-// μπει έστω ένας πάροχος, η οθόνη του δίνει μόνη της αναδιπλούμενη λίστα.
+// ΤΙ ΜΠΗΚΕ ΚΑΙ ΤΙ ΟΧΙ. Μόνο πακέτα ΣΚΕΤΗΣ τηλεόρασης. Οι συνδυασμοί με
+// internet (Fiber 100 με Vodafone TV, Double Play με Τηλεόραση) ΔΕΝ μπαίνουν
+// εδώ: είναι προγράμματα σύνδεσης και ζουν στο INTERNET_PLANS. Αν έμπαιναν και
+// στα δύο, το ίδιο ποσό θα μετριόταν δύο φορές στο μηνιαίο σύνολο.
 //
 // ΤΟ `sports` ΕΙΝΑΙ Ο ΛΟΓΟΣ ΠΟΥ ΥΠΑΡΧΕΙ Ο ΠΙΝΑΚΑΣ: όταν το πακέτο περιέχει
 // αθλητικά κανάλια, ο διακόπτης ανάβει μόνος του. Ο χρήστης δεν ξαναδηλώνει
-// κάτι που ήδη είπε διαλέγοντας το πακέτο.
+// κάτι που ήδη είπε διαλέγοντας το πακέτο. Ανάβει, δεν σβήνει: πακέτο χωρίς
+// αθλητικά δεν σημαίνει ότι δεν έχει ξεχωριστή συνδρομή.
+//
+// ΟΙ ΤΙΜΕΣ ΠΕΡΙΛΑΜΒΑΝΟΥΝ ΦΠΑ 24%, όπως τις δείχνουν οι πάροχοι. Το SkyShowtime
+// μένει άδειο ώσπου να επιβεβαιωθεί από τη σελίδα του — εκεί η οθόνη δίνει
+// ελεύθερο κείμενο, ακριβώς όπως έκανε παντού πριν.
+// ═══════════════════════════════════════════════════════════════════════════
 const TV_PROVIDERS = [
   { value: 'cosmote',     label: 'Cosmote TV',  url: 'https://www.cosmote.gr/static/residential/el/cosmote-tv-packs' },
   { value: 'nova',        label: 'Nova / EON',  url: 'https://nova.gr/eon-tv/programmata/eon' },
@@ -41,7 +48,37 @@ const TV_PROVIDERS = [
 ];
 
 interface TvPack { id: string; name: string; price?: number; sports?: boolean }
-const TV_PACKS: Record<string, TvPack[]> = {};
+
+const TV_PACKS: Record<string, TvPack[]> = {
+  cosmote: [
+    // Πακέτα συμβολαίου
+    { id: 'cos_entry',        name: 'Entry', price: 8.15 },
+    { id: 'cos_cinema',       name: 'Cinema', price: 10.90 },
+    { id: 'cos_sports',       name: 'Sports', price: 25.45, sports: true },
+    { id: 'cos_full',         name: 'Full', price: 28.20, sports: true },
+    // Μηνιαία, χωρίς δέσμευση
+    { id: 'cos_ent_m',        name: 'Entertainment, χωρίς δέσμευση', price: 16.00 },
+    { id: 'cos_sports_m',     name: 'Sports, χωρίς δέσμευση', price: 30.82, sports: true },
+    { id: 'cos_full_m',       name: 'Full, χωρίς δέσμευση', price: 33.54, sports: true },
+    // Με Netflix
+    { id: 'cos_cinema_nflx',  name: 'Cinema και Netflix', price: 17.90 },
+    { id: 'cos_full_nflx',    name: 'Full και Netflix', price: 35.17, sports: true },
+    // Μέσω δορυφόρου
+    { id: 'cos_sat_family',   name: 'Family, μέσω δορυφόρου', price: 11.73 },
+    { id: 'cos_sat_cinema',   name: 'Cinema, μέσω δορυφόρου', price: 15.36 },
+    { id: 'cos_sat_sports',   name: 'Sports, μέσω δορυφόρου', price: 27.18, sports: true },
+    { id: 'cos_sat_full',     name: 'Full, μέσω δορυφόρου', price: 29.91, sports: true },
+  ],
+  nova: [
+    { id: 'eon_nobox',   name: 'EON, χωρίς Smart Box', price: 10, sports: true },
+    { id: 'eon',         name: 'EON', price: 12, sports: true },
+    { id: 'eonp_nobox',  name: 'EON+, χωρίς Smart Box', price: 26, sports: true },
+    { id: 'eonp',        name: 'EON+', price: 28, sports: true },
+  ],
+  vodafone: [
+    { id: 'vf_start', name: 'Vodafone TV Start', price: 3.90 },
+  ],
+};
 
 const INTERNET_PLANS: Record<string, {
   id: string; name: string; speed: string; price: number;
