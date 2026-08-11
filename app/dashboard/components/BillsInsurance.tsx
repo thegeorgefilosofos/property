@@ -15,13 +15,13 @@ import { athensToday } from '@/lib/core/time'
 import { monthNom } from '@/lib/core/months'
 import { notify } from '@/components/Toast'
 import { saved } from '@/components/dbWrite'
-import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker, addBtn } from './UIComponents';
+import { NumberInput, CustomSelect, TextInput, DatePicker, addBtn } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
 import { ReminderLinks } from './ReminderLinks';
 import { findDuplicates, type ExpenseLike } from '@/lib/expenses/duplicates';
 import { T, TT, fe, fieldRow, SecHdr, InfoBanner, Skeleton, SkeletonKPIs, localDay, ABSENT_SHORT, pressable } from '@/components/Theme';
 // Ο κατάλογος συνδρομών ζει στο lib: τον διαβάζει και ο Προϋπολογισμός.
-import { STREAMING, SPORTS, CLOUD, SUB_INCLUDES, SUB_GROUPS, planMonthly, entryPlan, entryPlanId,
+import { SUB_INCLUDES, SUB_GROUPS, planMonthly, entryPlan, entryPlanId,
          planNote, subShare, type SubService, type SubKey } from '@/lib/expenses/subscriptions';
 import { DEFAULT_EXPENSE_PCT, SUBSCRIPTION_CATEGORY, expensePct, subscriptionCharges, bookableTotal,
          reverseChargeTotal, missingCountry, toExpenses, type BookableEntry } from '@/lib/expenses/subscriptionBooking';
@@ -1210,7 +1210,20 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
    * μόλις έδειχνε το πρόγραμμα.
    */
   const toggleCover = (label: string, on: boolean) => {
-    const base = insEditCovers ? insCustomCovers : effectiveCovers.join(', ');
+    // ΤΟ ΠΡΩΤΟ ΠΑΤΗΜΑ ΞΕΚΙΝΑ ΑΠΟ ΟΣΑ ΒΛΕΠΕΙΣ, ΟΧΙ ΑΠΟ ΤΗ ΛΙΣΤΑ ΤΟΥ ΠΡΟΓΡΑΜΜΑΤΟΣ.
+    //
+    // Έπαιρνε το `effectiveCovers`, δηλαδή τις καλύψεις όπως τις γράφει ο
+    // κατάλογος («Κλοπή, Φυσικά Φαινόμενα, Δαπάνες Μεταστέγασης»). Τα πλακίδια
+    // όμως δεν βγαίνουν ΜΟΝΟ από εκεί: κάποια θεωρούνται δεδομένα σε κάθε
+    // ασφαλιστήριο κατοικίας και δείχνουν «Ναι» χωρίς να γράφονται. Μόλις
+    // περνούσε στη δική σου εκδοχή, η λίστα αντικαθιστούσε αυτή τη γνώση και
+    // πέντε «Ναι» γίνονταν «Όχι» με ένα κλικ — σε πράγματα που ο χρήστης ούτε
+    // άγγιξε. Αφετηρία είναι πλέον η ΕΙΚΟΝΑ: ό,τι έδειχνε «Ναι», μένει «Ναι».
+    const shown = deriveCoverages(effectiveCovers, effectiveEarthquake, effectiveFloodState, effectiveNatural);
+    const FLAGGED = ['Σεισμός', 'Πλημμύρα', 'Φυσικά Φαινόμενα'];
+    const base = insEditCovers
+      ? insCustomCovers
+      : shown.filter(c => c.ok && !FLAGGED.includes(c.label)).map(c => c.label).join(', ');
     const list = base.split(',').map(x => x.trim()).filter(Boolean);
     const same = (a: string, b: string) =>
       a.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
@@ -1378,10 +1391,15 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
               <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, border: '1px solid var(--border-subtle)', marginTop: 4 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                   <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>Καλύψεις προγράμματος</div>
-                  <button onClick={() => { u({ insEditCovers: !insEditCovers }); if (!insEditCovers) { u({ insCustomCovers: effectiveCovers.join(', '), insCustomEarthquake: effectiveEarthquake, insCustomFlood: effectiveFloodState, insCustomNatural: effectiveNatural }); } }}
-                    style={{ fontSize: 10, color: 'var(--accent)', background: 'transparent', border: '1px solid var(--accent)', borderRadius: T.radius.badge, padding: '5px 12px', cursor: 'pointer', fontFamily: T.font.sans, fontWeight: 600 }}>
-                    {insEditCovers ? 'Αποθήκευση' : 'Επεξεργασία'}
-                  </button>
+                  {/* ΤΟ «ΕΠΕΞΕΡΓΑΣΙΑ» ΕΦΥΓΕ, ΤΟ «ΕΠΑΝΑΦΟΡΑ» ΕΜΕΙΝΕ. Δεν χρειάζεται
+                      άδεια για να πατήσεις μια κάλυψη· χρειάζεται όμως δρόμος
+                      πίσω, όταν τα άλλαξες και θέλεις ό,τι λέει ο κατάλογος. */}
+                  {insEditCovers && (
+                    <button type="button" onClick={() => u({ insEditCovers: false })}
+                      style={{ fontSize: 10, color: 'var(--text-secondary)', background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, padding: '5px 12px', cursor: 'pointer', fontFamily: T.font.sans, fontWeight: 600 }}>
+                      Επαναφορά προγράμματος
+                    </button>
+                  )}
                 </div>
                 {/* ══════════════════════════════════════════════════════════
                     ΟΙ ΚΑΛΥΨΕΙΣ ΠΑΤΙΟΥΝΤΑΙ.
@@ -1413,16 +1431,17 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
                     </button>
                   ))}
                 </div>
+                {/* ΕΦΥΓΕ Η ΜΠΑΡΑ ΚΕΙΜΕΝΟΥ ΚΑΙ ΟΙ ΤΡΕΙΣ ΔΙΑΚΟΠΤΕΣ. Έλεγαν ακριβώς ό,τι
+                    λένε τα πλακίδια από πάνω, με άλλον τρόπο: μια λίστα με κόμματα
+                    που έπρεπε να γραφτεί σωστά, και τρεις διακόπτες για τρεις από
+                    τις δέκα καλύψεις. Δύο διεπαφές για ένα πράγμα, και η μία
+                    χειρότερη. Το πλακίδιο είναι πλέον ο ΜΟΝΟΣ τρόπος. */}
                 {insEditCovers && (
-                  <div>
-                    <input value={insCustomCovers} onChange={e => u({ insCustomCovers: e.target.value })} placeholder="Παράδειγμα: Πυρκαγιά, Κλοπή, Σεισμός…"
-                      style={{ width: '100%', background: 'var(--bg-base)', border: '1px solid var(--accent)', borderRadius: T.radius.inner, padding: '9px 12px', color: 'var(--text-primary)', fontSize: 12, outline: 'none', boxSizing: 'border-box', fontFamily: T.font.sans, marginBottom: 10 }}/>
-                    <div style={{ display: 'flex', gap: 16 }}>
-                      <Toggle on={insCustomEarthquake} onChange={v => u({ insCustomEarthquake: v })} label="Σεισμός"/>
-                      <Toggle on={insCustomFlood}      onChange={v => u({ insCustomFlood: v })}      label="Πλημμύρα"/>
-                      <Toggle on={insCustomNatural}    onChange={v => u({ insCustomNatural: v })}    label="Φυσικές καταστροφές"/>
-                    </div>
-                  </div>
+                  <p style={{ ...TT.caption, color: 'var(--text-tertiary)', margin: '10px 0 0', lineHeight: 1.55 }}>
+                    Οι καλύψεις είναι δικές σου, όχι του καταλόγου. Πάτησε ό,τι
+                    καλύπτει πραγματικά το συμβόλαιό σου, και διόρθωσε το ασφάλιστρο
+                    από πάνω αν διαφέρει από την τιμή του προγράμματος.
+                  </p>
                 )}
                 {effectiveEarthquake && effectiveFloodState && (
                   <div title="ΕΝΦΙΑ: Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων" style={{ marginTop: 10, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.badge, padding: '8px 14px', fontSize: 11, color: 'var(--accent)', fontFamily: T.font.sans }}>
