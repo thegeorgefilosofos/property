@@ -325,22 +325,9 @@ export default async function Landing() {
         @media (hover: hover) and (pointer: fine) {
           .lp-card:hover::after { opacity: 1; }
         }
-        .lp-cta { transition: transform .15s, filter .15s; }
-        .lp-cta:hover { transform: translateY(-1px); filter: brightness(1.05); }
-        /* Μία κύρια ενέργεια, μία όψη: γεμάτο accent με σκούρο κείμενο. Ορίζεται
-           ΜΟΝΟ εδώ. Κανένα inline background σε CTA, ώστε να μην μπορεί να
-           ξαναδιαφοροποιηθεί κατά λάθος. Η ιεραρχία βγαίνει από την αντίθεση
-           γεμάτου εναντίον περιγράμματος (.lp-ghost), όχι από δεύτερη απόχρωση. */
-        .lp-primary { background: var(--accent); color: var(--accent-text); }
-        .lp-ghost { transition: border-color .15s, background .15s, color .15s; }
-        .lp-ghost:hover { border-color: color-mix(in srgb, var(--accent) 40%, transparent); background: color-mix(in srgb, var(--accent) 5%, transparent); color: var(--accent); }
-        .lp-link { transition: color .15s; }
-        .lp-link:hover { color: var(--accent) !important; }
-        details.lp-faq summary { transition: color .18s; }
-        details.lp-faq summary:hover { color: var(--accent); }
-        details.lp-faq[open] summary { color: var(--accent); }
-        details.lp-faq summary::-webkit-details-marker { display: none; }
-        details.lp-faq[open] summary .lp-plus { transform: rotate(45deg); }
+        /* Τα κοινά στοιχεία των δημόσιων σελίδων (.lp-cta, .lp-primary,
+           .lp-ghost, .lp-eyebrow, details.lp-faq) ζουν στο app/globals.css:
+           τα μοιράζεται και ο υπολογιστής φόρου ενοικίων. */
         /* Κινηματογραφικό hero: πάντα σκοτεινό, ανεξάρτητα από το θέμα της σελίδας.
            Το προϊόν φωτίζεται πάνω του σαν έκθεμα· η υπόλοιπη σελίδα μένει καθαρή. */
         /* Το hero δεν έχει δικό του φόντο πια: μοιράζεται το ενιαίο μπλε-μαύρο
@@ -518,20 +505,6 @@ export default async function Landing() {
           background: linear-gradient(90deg,
             var(--border-default) 0%, var(--border-subtle) 42%, transparent 100%);
         }
-        /* Block-level (και όχι inline-flex): τα κάθετα περιθώρια ενός inline
-           κουτιού δεν μετακινούν τη γραμμή από κάτω, οπότε το margin-bottom
-           απλώς δεν θα ίσχυε και ο τίτλος θα κολλούσε στην ετικέτα. */
-        .lp-eyebrow {
-          display: flex; width: fit-content; align-items: center; gap: 9px;
-          font-size: 12px; font-weight: 700; letter-spacing: 0.13em;
-          text-transform: uppercase; color: var(--text-tertiary);
-          margin-bottom: 13px;
-        }
-        .lp-eyebrow::before {
-          content: ''; width: 5px; height: 5px; border-radius: 50%;
-          background: var(--accent); flex-shrink: 0;
-        }
-
         /* ═══ ΖΥΓΙΣΗ ΚΕΙΜΕΝΟΥ: ΔΥΟ ΡΟΛΟΙ, ΔΥΟ ΣΥΜΠΕΡΙΦΟΡΕΣ ══════════════════
            Το λάθος είναι να τους μπερδέψεις, και η σελίδα τους είχε μπερδέψει
            και προς τις δύο κατευθύνσεις.

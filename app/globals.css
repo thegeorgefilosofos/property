@@ -1673,3 +1673,51 @@ html.a11y-large-text { zoom: 1.08; }
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ΔΗΜΟΣΙΕΣ ΣΕΛΙΔΕΣ — Η ΚΟΙΝΗ ΓΛΩΣΣΑ ΤΟΥΣ
+   ─────────────────────────────────────────────────────────────────────────
+   ΓΙΑΤΙ ΕΦΥΓΑΝ ΑΠΟ ΤΟ <style> ΤΗΣ ΑΡΧΙΚΗΣ. Οι κανόνες αυτοί ζούσαν μέσα στο
+   app/page.tsx, δηλαδή ίσχυαν σε ΜΙΑ σελίδα. Η δεύτερη δημόσια σελίδα — ο
+   υπολογιστής φόρου ενοικίων — έστηνε τα δικά της κουμπιά, τις δικές της
+   ετικέτες και τις δικές της Συχνές Ερωτήσεις με το χέρι, και έμοιαζε με
+   ΑΛΛΟ προϊόν: άλλο σχήμα κουμπιού, άλλη ετικέτα ενότητας, άλλα βελάκια.
+
+   Εδώ είναι μία φορά. Ό,τι βλέπει ο επισκέπτης πριν συνδεθεί μοιράζεται την
+   ίδια γεωμετρία και την ίδια συμπεριφορά, όποια σελίδα κι αν είναι.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Κουμπί: ανύψωση και λάμψη, ίδια σε κάθε δημόσια σελίδα. */
+.lp-cta { transition: transform .15s, filter .15s; }
+.lp-cta:hover { transform: translateY(-1px); filter: brightness(1.05); }
+/* ΕΝΑ ΜΠΛΕ, ΕΝΑ ΝΟΗΜΑ: η κύρια ενέργεια. Η ιεραρχία βγαίνει από γεμάτο
+   εναντίον περιγράμματος (.lp-ghost), όχι από δεύτερη απόχρωση. */
+.lp-primary { background: var(--accent); color: var(--accent-text); }
+.lp-ghost { transition: border-color .15s, background .15s, color .15s; }
+.lp-ghost:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+  color: var(--accent);
+}
+
+/* Ετικέτα ενότητας με κουκκίδα. Block-level και όχι inline-flex: τα κάθετα
+   περιθώρια ενός inline κουτιού δεν μετακινούν τη γραμμή από κάτω, οπότε το
+   margin-bottom απλώς δεν θα ίσχυε και ο τίτλος θα κολλούσε στην ετικέτα. */
+.lp-eyebrow {
+  display: flex; width: fit-content; align-items: center; gap: 9px;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.13em;
+  text-transform: uppercase; color: var(--text-tertiary);
+  margin-bottom: 13px;
+}
+.lp-eyebrow::before {
+  content: ''; width: 5px; height: 5px; border-radius: 50%;
+  background: var(--accent); flex-shrink: 0;
+}
+
+/* Συχνές ερωτήσεις: λεπτή γραμμή αντί για κουτί, και σταυρός που γίνεται
+   «χ» όταν ανοίγει. Το προεπιλεγμένο βελάκι του περιηγητή φεύγει. */
+details.lp-faq summary { transition: color .18s; }
+details.lp-faq summary:hover { color: var(--accent); }
+details.lp-faq[open] summary { color: var(--accent); }
+details.lp-faq summary::-webkit-details-marker { display: none; }
+details.lp-faq[open] summary .lp-plus { transform: rotate(45deg); }

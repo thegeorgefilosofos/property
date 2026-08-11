@@ -21,9 +21,10 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useState, useMemo, useId } from 'react';
 import Link from 'next/link';
-import { T, fe, feAuto, fp, formGrid } from '@/components/tokens';
+import { T, feAuto, fp, fixedCols } from '@/components/tokens';
 import {
-  rentalIncomeTax, marginalRate, effectiveRentalRate, RENTAL_TAX_ROWS_2026,
+  rentalIncomeTax, marginalRate, effectiveRentalRate,
+  RENTAL_TAX_ROWS_2026, RENTAL_TAX_BRACKETS_2026,
 } from '@/lib/billing/greekTax';
 import { parseAmount } from '@/lib/core/greek';
 
@@ -54,6 +55,7 @@ export function RentTaxCalculator() {
     const tax = rentalIncomeTax(taxable);
     return {
       gross, taxable, tax,
+      deduction: gross - taxable,
       net: gross - tax,
       marginal: marginalRate(taxable),
       effective: effectiveRentalRate(taxable),
@@ -78,7 +80,9 @@ export function RentTaxCalculator() {
           Ο επισκέπτης δεν έχει λόγο να μας εμπιστευτεί ακόμη. Κάθε επιπλέον
           πεδίο είναι μια αφορμή να φύγει, οπότε ζητάμε το ελάχιστο που δίνει
           σωστή απάντηση. */}
-      <div style={{ ...formGrid(180, 250), gap: 14 }}>
+      {/* ΔΥΟ ΓΝΩΣΤΑ ΠΕΔΙΑ, ΡΗΤΑ ΔΥΟ ΣΤΗΛΕΣ. Το auto-fit έβγαζε άλλοτε δύο και
+          άλλοτε ένα ανάλογα με το zoom του περιηγητή, στην ίδια οθόνη. */}
+      <div {...fixedCols(2, 14, 'start')}>
         <div>
           <label htmlFor={monthlyId} style={label}>Μηνιαίο ενοίκιο</label>
           <div style={{ position: 'relative' }}>
@@ -103,29 +107,71 @@ export function RentTaxCalculator() {
         background: 'var(--surface-raised)', border: '1px solid var(--border-raised)',
         boxShadow: 'var(--well-inset)',
       }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'clamp(14px, 3vw, 24px)' }}>
-          <Figure label="Ετήσιο ενοίκιο" value={feAuto(r.gross)} />
-          <Figure label="Φόρος" value={feAuto(r.tax)} tone="negative" big />
-          <Figure label="Σου μένουν" value={feAuto(r.net)} tone="positive" big />
+        {/* ═══ ΤΟ ΚΟΚΚΙΝΟ ΚΑΙ ΤΟ ΠΡΑΣΙΝΟ ΕΦΥΓΑΝ ═══════════════════════════════
+            Ο φόρος τυπωνόταν ΚΟΚΚΙΝΟΣ και το υπόλοιπο ΠΡΑΣΙΝΟ. Δύο προβλήματα
+            σε μία γραμμή. Πρώτον, ο κανόνας του προϊόντος: καμία σημασιολογική
+            χρήση πράσινου και κόκκινου — η ιεραρχία βγαίνει από μέγεθος, βάρος,
+            θέση και κενό. Δεύτερον, και σοβαρότερο, το χρώμα έβγαζε ΚΡΙΣΗ: ο
+            φόρος δεν είναι σφάλμα ούτε κίνδυνος, είναι υποχρέωση που μετρήθηκε.
+            Ένα εργαλείο που χρωματίζει τον φόρο κόκκινο δεν πληροφορεί,
+            υπαινίσσεται — και η σελίδα πουλάει ακρίβεια, όχι στάση.
+
+            Η ιεραρχία υπάρχει και είναι σαφέστερη από πριν: «Σου μένουν» είναι
+            ΠΡΩΤΟ και το μεγαλύτερο νούμερο της οθόνης, γιατί είναι η απάντηση
+            στην ερώτηση που έφερε εδώ τον επισκέπτη. Ο φόρος δίπλα του, ίδιο
+            μέγεθος. Το ετήσιο ενοίκιο τρίτο και μικρότερο: είναι η ΕΙΣΟΔΟΣ,
+            που ο χρήστης μόλις πληκτρολόγησε. */}
+        {/* ΤΡΙΑ ΝΟΥΜΕΡΑ ΣΕ ΔΥΟ ΜΕΓΕΘΗ ΔΕΝ ΠΑΤΟΥΝ ΣΤΗΝ ΙΔΙΑ ΓΡΑΜΜΗ. Το «Ετήσιο
+            ενοίκιο» ήταν μικρότερο από τα άλλα δύο, οπότε η βάση του καθόταν
+            ψηλότερα: τρεις αριθμοί δίπλα δίπλα, σε τρία ύψη. Και ήταν ούτως ή
+            άλλως η ΕΙΣΟΔΟΣ που μόλις πληκτρολόγησε ο χρήστης, δύο εκατοστά πιο
+            πάνω — δηλαδή ένα από τα τρία μεγάλα νούμερα δεν του έλεγε τίποτα.
+            Κατεβαίνει στην ανάλυση, όπου ανήκει, και μένουν δύο ισομεγέθη
+            νούμερα με κοινή γραμμή βάσης: αυτό που κρατάει και αυτό που δίνει. */}
+        <div {...fixedCols(2, 24, 'start')}>
+          <Figure label="Σου μένουν" value={feAuto(r.net)} big />
+          <Figure label="Φόρος" value={feAuto(r.tax)} big />
         </div>
 
-        <div style={{ height: 1, background: 'var(--border-subtle)', margin: '18px 0 14px' }}/>
+        <div style={{ height: 1, background: 'var(--border-subtle)', margin: '20px 0 16px' }}/>
 
-        <dl style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '10px 24px', margin: 0 }}>
-          <Row k="Φορολογητέο μετά την έκπτωση 5%" v={feAuto(r.taxable)} />
-          <Row k="Πραγματικός συντελεστής" v={`${fp((r.effective * 100))}`} />
-          <Row k="Συντελεστής στο επόμενο ευρώ" v={`${Math.round(r.marginal * 100)}%`} />
+        {/* ΔΥΟ ΓΡΑΦΕΣ ΓΙΑ ΤΟ ΙΔΙΟ ΕΙΔΟΣ ΝΟΥΜΕΡΟΥ, ΔΙΠΛΑ ΔΙΠΛΑ. Ο πραγματικός
+            συντελεστής τυπωνόταν «15,00%» και ο οριακός «15%», στην ίδια σειρά:
+            ο αναγνώστης ψάχνει τη διαφορά που υπονοούν τα δεκαδικά και δεν
+            υπάρχει. Και τα δύο περνούν πλέον από τον ίδιο μορφοποιητή. */}
+        {/* Η ΤΕΚΜΑΡΤΗ ΕΚΠΤΩΣΗ ΗΤΑΝ ΑΟΡΑΤΗ, ΚΑΙ ΕΙΝΑΙ Ο ΠΥΡΗΝΑΣ ΤΟΥ ΥΠΟΛΟΓΙΣΜΟΥ.
+            Υπήρχε μόνο ως λέξη μέσα σε μια ετικέτα («Φορολογητέο μετά την
+            έκπτωση 5%»): ο χρήστης έβλεπε 7.200 να γίνονται 6.840 και έπρεπε να
+            βγάλει μόνος του τη διαφορά για να καταλάβει τι έγινε. Γραμμένη ως
+            δική της γραμμή, η αλυσίδα διαβάζεται ολόκληρη — ενοίκιο, έκπτωση,
+            φορολογητέο — και το πλέγμα βγαίνει έξι κελιά σε τρεις ισόποσες
+            σειρές, χωρίς ορφανό. */}
+        <dl {...fixedCols(2, 24, 'start')} style={{ ...fixedCols(2, 24, 'start').style, rowGap: 11, margin: 0 }}>
+          <Row k="Ετήσιο ενοίκιο" v={feAuto(r.gross)} />
+          <Row k="Τεκμαρτή έκπτωση 5%" v={feAuto(r.deduction)} />
+          <Row k="Φορολογητέο" v={feAuto(r.taxable)} />
           <Row k="Καθαρά ανά μήνα" v={feAuto(r.monthlyNet)} />
+          <Row k="Πραγματικός συντελεστής" v={fp(r.effective * 100)} />
+          <Row k="Συντελεστής στο επόμενο ευρώ" v={fp(r.marginal * 100)} />
         </dl>
       </div>
 
       {/* ── Η κλίμακα, ώστε να φαίνεται από πού βγήκε ο αριθμός ─────────── */}
-      <div style={{ marginTop: 22 }}>
-        <h2 style={{ fontSize: 13, fontWeight: 700, margin: '0 0 10px', color: 'var(--text-primary)' }}>
-          Η κλίμακα του 2026
-        </h2>
+      {/* ΗΤΑΝ <h2> ΣΤΑ 13 ΕΙΚΟΝΟΣΤΟΙΧΕΙΑ. Δηλαδή επικεφαλίδα δεύτερου επιπέδου —
+          ίδιο βάρος στο δέντρο του εγγράφου με τις «Συχνές ερωτήσεις» — σε
+          μέγεθος μικρότερο από το κείμενο γύρω της. Ο αναγνώστης οθόνης την
+          ανακοίνωνε ως ενότητα, το μάτι την έβλεπε ως ψιλά γράμματα, και η
+          σελίδα είχε δύο τίτλους που μοιάζουν ίδιοι και δεν είναι.
+          Είναι λεζάντα του πίνακα, οπότε γράφεται ως λεζάντα: ίδια τυπογραφία
+          με τις άλλες ετικέτες αυτής της κάρτας, και σωστή σημασιολογία. */}
+      <div style={{ marginTop: 26 }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 300 }}>
+            <caption style={{ captionSide: 'top', textAlign: 'left', fontSize: 11, fontWeight: 700,
+              letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)',
+              paddingBottom: 10 }}>
+              Η κλίμακα του 2026
+            </caption>
             <thead>
               <tr>
                 <th scope="col" style={th}>Εισόδημα</th>
@@ -134,16 +180,25 @@ export function RentTaxCalculator() {
               </tr>
             </thead>
             <tbody>
-              {RENTAL_TAX_ROWS_2026.map(row => {
+              {/* Ο ΣΥΝΤΕΛΕΣΤΗΣ ΔΙΑΒΑΖΟΤΑΝ ΑΠΟ ΤΟ ΚΕΙΜΕΝΟ ΤΗΣ ΕΤΙΚΕΤΑΣ. Η γραμμή
+                  έλεγε `Number(row.rate.replace('%',''))`, δηλαδή ο φόρος του
+                  κλιμακίου προέκυπτε από την αφαίρεση ενός χαρακτήρα από μια
+                  συμβολοσειρά ΓΙΑ ΕΜΦΑΝΙΣΗ. Μια μέρα που κάποιος γράψει «15,0%»
+                  ή «15 %», το `Number` δίνει NaN και ο πίνακας τυπώνει κενά
+                  κελιά — χωρίς σφάλμα, χωρίς ίχνος. Ο αριθμητικός συντελεστής
+                  υπάρχει ήδη στο RENTAL_TAX_BRACKETS_2026, στην ίδια σειρά, και
+                  το test του greekTax επιβεβαιώνει ότι τα όρια ταυτίζονται. */}
+              {RENTAL_TAX_ROWS_2026.map((row, i) => {
                 const slice = Math.max(0, Math.min(r.taxable, row.to) - row.from);
                 const active = slice > 0;
                 return (
                   <tr key={row.range} style={{ background: active ? 'var(--accent-soft)' : 'transparent' }}>
-                    <td style={{ ...td, fontWeight: active ? 700 : 400 }}>{row.range}</td>
-                    <td style={{ ...td, textAlign: 'right', fontFamily: T.font.mono }}>{row.rate}</td>
+                    <td style={{ ...td, fontWeight: active ? 650 : 400, color: active ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{row.range}</td>
+                    <td style={{ ...td, textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{row.rate}</td>
                     <td style={{ ...td, textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums',
+                      fontWeight: active ? 650 : 400,
                       color: active ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
-                      {active ? feAuto(slice * (Number(row.rate.replace('%', '')) / 100)) : fe(0)}
+                      {feAuto(slice * RENTAL_TAX_BRACKETS_2026[i].rate)}
                     </td>
                   </tr>
                 );
@@ -157,11 +212,18 @@ export function RentTaxCalculator() {
           Αυτό το κουτί δεν είναι νομική κάλυψη· είναι ο λόγος που ο υπολογιστής
           αξίζει εμπιστοσύνη. Ένα εργαλείο που παρουσιάζει εκτίμηση ως βεβαιότητα
           σε φορολογικό θέμα κάνει ζημιά στον χρήστη και στη φήμη μας. */}
+      {/* ΤΟ ΠΟΡΤΟΚΑΛΙ ΕΦΥΓΕ. Το κουτί φορούσε τα χρώματα προειδοποίησης
+          (`--warning-soft` / `--warning-border`), δηλαδή το σήμα που η εφαρμογή
+          κρατά για εκκρεμότητες και κινδύνους. Εδώ όμως δεν υπάρχει κίνδυνος:
+          υπάρχει το εύρος του εργαλείου, γραμμένο τίμια. Βαμμένο πορτοκαλί,
+          διαβαζόταν ως «κάτι πάει στραβά» και ο επισκέπτης το προσπερνούσε
+          ακριβώς όπως προσπερνά κάθε κίτρινο πλαίσιο. Ουδέτερη επιφάνεια, και
+          το βάρος του το δίνει η θέση του: ακριβώς κάτω από τον αριθμό. */}
       <div style={{
-        marginTop: 22, padding: '14px 16px', borderRadius: T.radius.inner,
-        background: 'var(--warning-soft)', border: '1px solid var(--warning-border)',
+        marginTop: 22, padding: 'clamp(14px,2.6vw,18px)', borderRadius: T.radius.inner,
+        background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
       }}>
-        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.65, color: 'var(--text-secondary)' }}>
+        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, color: 'var(--text-secondary)' }}>
           <strong style={{ color: 'var(--text-primary)' }}>Τι δεν περιλαμβάνει.</strong>{' '}
           Ο υπολογισμός αφορά <strong>μόνο</strong> το εισόδημα από ενοίκια, με την τεκμαρτή
           έκπτωση 5% που δίνει ο νόμος χωρίς δικαιολογητικά. Δεν περιλαμβάνει άλλα
@@ -187,12 +249,15 @@ export function RentTaxCalculator() {
             βγάζει έτοιμα όσα ζητά ο λογιστής σου. Τριάντα ημέρες δωρεάν δοκιμή, χωρίς δέσμευση.
           </p>
         </div>
-        <Link href="/signup" style={{
-          display: 'inline-flex', alignItems: 'center', gap: 8, height: 44, padding: '0 22px',
-          borderRadius: T.radius.pill, background: 'var(--accent)', color: 'var(--on-tone)',
-          fontSize: 14, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap',
+        {/* Ίδιο κουμπί με την αρχική: ίδια κλάση, ίδια ανύψωση στο πέρασμα, και
+            `--accent-text` αντί για `--on-tone` — το δεύτερο είναι το χρώμα
+            πάνω σε ΤΟΝΟ (θετικό, αρνητικό, προειδοποίηση), όχι πάνω σε έμφαση. */}
+        <Link href="/signup" className="lp-cta lp-primary" style={{
+          display: 'inline-flex', alignItems: 'center', height: 44, padding: '0 24px',
+          borderRadius: T.radius.pill, fontSize: 14, fontWeight: 700,
+          textDecoration: 'none', whiteSpace: 'nowrap',
         }}>
-          Ξεκίνα δωρεάν
+          Ξεκίνα τη δοκιμή
         </Link>
       </div>
     </div>
@@ -208,15 +273,24 @@ const td: React.CSSProperties = {
   padding: '9px 10px', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-secondary)',
 };
 
-function Figure({ label, value, tone, big }: { label: string; value: string; tone?: 'positive' | 'negative'; big?: boolean }) {
+/**
+ * Ένα μετρημένο νούμερο με την ετικέτα του.
+ *
+ * ΧΩΡΙΣ ΠΑΡΑΜΕΤΡΟ ΧΡΩΜΑΤΟΣ, ΕΠΙΤΗΔΕΣ. Είχε `tone: 'positive' | 'negative'` και
+ * το μόνο που έκανε ήταν να βάφει τον φόρο κόκκινο και το υπόλοιπο πράσινο.
+ * Όσο η παράμετρος υπάρχει, ο επόμενος θα τη χρησιμοποιήσει. Η έμφαση δίνεται
+ * με μέγεθος και σειρά, που δουλεύουν και σε ασπρόμαυρη εκτύπωση και σε κάθε
+ * μορφή αχρωματοψίας.
+ */
+function Figure({ label, value, big }: { label: string; value: string; big?: boolean }) {
   return (
     <div>
       <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-        color: 'var(--text-tertiary)', marginBottom: 6 }}>{label}</div>
+        color: 'var(--text-tertiary)', marginBottom: 7 }}>{label}</div>
       <div style={{
-        fontFamily: T.font.num, fontSize: big ? 'clamp(22px, 4.4vw, 30px)' : 'clamp(18px, 3.4vw, 22px)',
-        fontWeight: 700, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', lineHeight: 1.15,
-        color: tone === 'negative' ? 'var(--negative)' : tone === 'positive' ? 'var(--positive)' : 'var(--text-primary)',
+        fontFamily: T.font.num, fontSize: big ? 'clamp(24px, 4.4vw, 32px)' : 'clamp(18px, 3vw, 21px)',
+        fontWeight: 680, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', lineHeight: 1.1,
+        color: big ? 'var(--text-primary)' : 'var(--text-secondary)',
       }}>{value}</div>
     </div>
   );
