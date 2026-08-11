@@ -13,6 +13,23 @@ const rateLimit = new Map<string, { count: number; resetAt: number }>();
 const dailyLimit = new Map<string, { count: number; day: number }>();
 const MAX_REQUESTS_PER_MINUTE = MAX_PER_MINUTE;
 
+/**
+ * Οι κεφαλίδες υπολοίπου, γραμμένες σε ΕΝΑ σημείο.
+ *
+ * Ονόματα με πρόθεμα `x-ai-`: δεν είναι πρότυπο, είναι δικές μας, και το
+ * πρόθεμα το λέει. Τιμές ακέραιες, ώστε ο πελάτης να μη χρειάζεται μορφοποίηση
+ * για να αποφασίσει τι θα δείξει.
+ */
+function quotaHeaders(q: { month: number; monthLimit: number; day: number; dayLimit: number } | null): Record<string, string> {
+  if (!q) return {};
+  return {
+    'x-ai-month': String(q.month),
+    'x-ai-month-limit': String(q.monthLimit),
+    'x-ai-day': String(q.day),
+    'x-ai-day-limit': String(q.dayLimit),
+  };
+}
+
 // Το in-memory ημερήσιο φράγμα ΔΕΝ ξέρει το πλάνο του χρήστη (θα χρειαζόταν
 // ερώτημα στη βάση πριν καν το φράγμα). Κρατά λοιπόν το ΜΕΓΑΛΥΤΕΡΟ όριο όλων
 // των πλάνων: κόβει την προφανή κατάχρηση χωρίς ποτέ να κόψει άδικα συνδρομητή.
@@ -84,6 +101,8 @@ export async function POST(req: NextRequest) {
   // Τα όρια περνούν ως πίνακες [δωρεάν, ιδιοκτήτης, επαγγελματίας]. Η ΑΝΑΓΝΩΡΙΣΗ
   // του πλάνου γίνεται μέσα στη βάση (public.user_plan_rank), ώστε να μη χρειάζεται
   // δεύτερο ερώτημα εδώ και να μην μπορεί να δηλωθεί πλάνο από τον client.
+  /** Πόσες ερωτήσεις έχει κάνει και πόσες δικαιούται. Μπαίνει σε κεφαλίδες. */
+  let quota: { month: number; monthLimit: number; day: number; dayLimit: number } | null = null;
   try {
     const { data: usage } = await supabase.rpc('bump_ai_usage', {
       p_max_min: MAX_REQUESTS_PER_MINUTE,
@@ -97,7 +116,18 @@ export async function POST(req: NextRequest) {
       p_trial_day:   TRIAL_LIMITS.perDay,
       p_trial_month: TRIAL_LIMITS.perMonth,
     });
-    const u = usage as { allowed?: boolean; reason?: string; rank?: number } | null;
+    const u = usage as {
+      allowed?: boolean; reason?: string; rank?: number;
+      month?: number; month_limit?: number; day?: number; day_limit?: number;
+    } | null;
+    // ΤΑ ΝΟΥΜΕΡΑ ΤΟΥ ΥΠΟΛΟΙΠΟΥ ΤΑ ΕΠΕΣΤΡΕΦΕ ΗΔΗ Η ΒΑΣΗ ΚΑΙ ΤΑ ΠΕΤΑΓΑΜΕ. Ο χρήστης
+    // μάθαινε ότι υπάρχει όριο μόνο τη στιγμή που το χτυπούσε — δηλαδή πάντα ως
+    // έκπληξη, και συνήθως στη μέση μιας δουλειάς. Ταξιδεύουν ως κεφαλίδες και
+    // όχι μέσα στο σώμα, γιατί το σώμα είναι αυτούσια η απάντηση του παρόχου και
+    // δεν επιτρέπεται να του προσθέσουμε πεδία που δεν του ανήκουν.
+    if (u && typeof u.month === 'number' && typeof u.month_limit === 'number') {
+      quota = { month: u.month, monthLimit: u.month_limit, day: u.day ?? 0, dayLimit: u.day_limit ?? 0 };
+    }
     if (u && u.allowed === false) {
       // Το μήνυμα λέει το ΠΡΑΓΜΑΤΙΚΟ νούμερο του πλάνου του χρήστη. Ένα γενικό
       // «έφτασες το όριο» αφήνει τον χρήστη να μαντεύει πόσο είναι το όριο και
@@ -218,7 +248,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json(data, { headers: quotaHeaders(quota) });
   } catch (err) {
     console.error('Route error:', err);
     return NextResponse.json({ error: 'Εσωτερικό σφάλμα' }, { status: 500 });

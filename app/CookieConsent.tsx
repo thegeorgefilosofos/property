@@ -5,29 +5,52 @@
 // νόμος δεν απαιτεί συγκατάθεση, απαιτεί όμως σαφή ενημέρωση. Η αναγνώριση του
 // χρήστη καταγράφεται με έκδοση πολιτικής και χρονοσήμανση, ώστε να υπάρχει
 // αποδεικτικό και να ζητείται εκ νέου όταν η πολιτική αλλάξει ουσιωδώς.
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { T } from '@/components/Theme';
 
 const KEY = 'pos-cookie-consent';
 // Συγχρονίζεται με την ημερομηνία «Τελευταία ενημέρωση» της Πολιτικής απορρήτου.
-const POLICY_VERSION = '2026-07';
+const POLICY_VERSION = '2026-08';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ΓΙΑΤΙ `useSyncExternalStore` ΚΑΙ ΟΧΙ `useEffect` ΜΕ `setState`
+// ─────────────────────────────────────────────────────────────────────────
+// Ο localStorage είναι εξωτερική πηγή δεδομένων, όχι κατάσταση της React. Το
+// μοτίβο «ξεκινάω με ψέμα και το διορθώνω σε effect» κάνει ΔΥΟ αποδόσεις σε
+// κάθε φόρτωση —μία με το πλαίσιο κρυμμένο και μία με αυτό ορατό— και ο
+// μεταγλωττιστής της React το σημειώνει ως σφάλμα ακριβώς γι' αυτό.
+//
+// Εδώ ο διακομιστής απαντά «μην το δείξεις» και ο περιηγητής απαντά με την
+// αλήθεια, σε ΜΙΑ απόδοση και χωρίς ασυμφωνία ενυδάτωσης. Και επειδή το
+// `subscribe` ακούει το γεγονός `storage`, αν ο χρήστης το αποδεχτεί σε άλλη
+// καρτέλα, το πλαίσιο κλείνει και εδώ.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Άκυρη ή παλιότερης έκδοσης εγγραφή σημαίνει ότι ζητάμε ξανά αναγνώριση. */
+function needsNotice(): boolean {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return true;
+    const rec = JSON.parse(raw);
+    return !rec || rec.v !== POLICY_VERSION;
+  } catch { return true; }
+}
+
+const listeners = new Set<() => void>();
+const notify = () => listeners.forEach(l => l());
+function subscribe(l: () => void) {
+  listeners.add(l);
+  window.addEventListener('storage', l);
+  return () => { listeners.delete(l); window.removeEventListener('storage', l); };
+}
 
 export default function CookieConsent() {
-  const [show, setShow] = useState(false);
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(KEY);
-      if (!raw) { setShow(true); return; }
-      // Παλαιότερη ή διαφορετική έκδοση πολιτικής → ζητάμε εκ νέου αναγνώριση.
-      const rec = JSON.parse(raw);
-      if (!rec || rec.v !== POLICY_VERSION) setShow(true);
-    } catch { setShow(true); }
-  }, []);
+  const show = useSyncExternalStore(subscribe, needsNotice, () => false);
   if (!show) return null;
   const acknowledge = () => {
     try { localStorage.setItem(KEY, JSON.stringify({ v: POLICY_VERSION, ts: new Date().toISOString() })); } catch { /* ignore */ }
-    setShow(false);
+    notify();
   };
 
   return (

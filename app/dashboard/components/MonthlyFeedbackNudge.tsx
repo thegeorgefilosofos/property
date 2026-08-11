@@ -5,26 +5,35 @@
 // βοηθού (event 'pos:open-feedback'). Χωρίς πίεση, χωρίς backend — η κατάσταση
 // «είδα/έκλεισα» μένει τοπικά ανά μήνα.
 
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 import { T } from '@/components/Theme';
 
 const monthKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 const KEY = 'pos_feedback_nudge';
 
-export default function MonthlyFeedbackNudge() {
-  const [show, setShow] = useState(false);
+// Ο localStorage είναι εξωτερική πηγή, όχι κατάσταση της React. Το μοτίβο
+// «ξεκινάω κρυμμένος και εμφανίζομαι σε effect» κάνει δύο αποδόσεις σε κάθε
+// φόρτωση και ο μεταγλωττιστής της React το σημειώνει ως σφάλμα. Ο διακομιστής
+// απαντά «μην το δείξεις», ο περιηγητής απαντά με την αλήθεια, μία απόδοση.
+function shouldNudge(): boolean {
+  try {
+    const now = new Date();
+    return now.getDate() <= 5 && localStorage.getItem(KEY) !== monthKey(now);
+  } catch { return false; }
+}
 
-  useEffect(() => {
-    try {
-      const now = new Date();
-      const seen = localStorage.getItem(KEY) === monthKey(now);
-      if (now.getDate() <= 5 && !seen) setShow(true);
-    } catch { /* localStorage μη διαθέσιμο */ }
-  }, []);
+const listeners = new Set<() => void>();
+function subscribe(l: () => void) {
+  listeners.add(l);
+  return () => { listeners.delete(l); };
+}
+
+export default function MonthlyFeedbackNudge() {
+  const show = useSyncExternalStore(subscribe, shouldNudge, () => false);
 
   if (!show) return null;
 
-  const close = () => { try { localStorage.setItem(KEY, monthKey()); } catch { /* noop */ } setShow(false); };
+  const close = () => { try { localStorage.setItem(KEY, monthKey()); } catch { /* noop */ } listeners.forEach(l => l()); };
   const give = () => { window.dispatchEvent(new Event('pos:open-feedback')); close(); };
 
   return (

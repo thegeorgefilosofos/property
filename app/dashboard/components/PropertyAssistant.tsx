@@ -145,6 +145,18 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   // δεν είναι βλάβη — είναι κατάσταση με νούμερο και με ημερομηνία επιστροφής, και
   // πρέπει να λέγεται όπως ακριβώς τη διατύπωσε ο server (lib/billing/aiLimits.ts).
   const [limitMsg, setLimitMsg] = useState('');
+  /**
+   * Πόσες ερωτήσεις απομένουν αυτόν τον μήνα.
+   *
+   * ΓΙΑΤΙ ΥΠΑΡΧΕΙ: η βάση επέστρεφε ήδη το υπόλοιπο σε κάθε κλήση και το
+   * πετούσαμε. Ο χρήστης μάθαινε ότι έχει όριο μόνο τη στιγμή που το χτυπούσε,
+   * δηλαδή πάντα ως έκπληξη και συνήθως στη μέση μιας δουλειάς.
+   *
+   * ΓΙΑΤΙ `null` ΣΤΗΝ ΑΡΧΗ: πριν από την πρώτη ερώτηση δεν ΞΕΡΟΥΜΕ το υπόλοιπο,
+   * και ένα νούμερο που μαντεύεται είναι χειρότερο από κανένα. Η γραμμή
+   * εμφανίζεται μόλις υπάρχει πραγματική απάντηση της βάσης.
+   */
+  const [quota, setQuota] = useState<{ used: number; limit: number } | null>(null);
   const [ctxStr, setCtxStr] = useState('');
   const [insightsStr, setInsightsStr] = useState('');
   const [marketStr, setMarketStr] = useState('');
@@ -1043,6 +1055,22 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   };
   const toggleMic = () => { if (listening) stopListening(); else { setOpen(true); startListening(); } };
 
+  /**
+   * Διαβάζει το υπόλοιπο από τις κεφαλίδες της απάντησης.
+   *
+   * Καλείται και στις ΔΥΟ διαδρομές που ξοδεύουν ερώτηση, τη συνομιλία και τη
+   * σάρωση φωτογραφίας: αλλιώς ο μετρητής θα έδειχνε λιγότερα από όσα όντως
+   * ξόδεψε ο χρήστης, που είναι χειρότερο από το να μην υπάρχει.
+   *
+   * Αν οι κεφαλίδες λείπουν —παλιά έκδοση της βάσης— δεν αγγίζει τίποτα: η
+   * γραμμή απλώς δεν εμφανίζεται.
+   */
+  const readQuota = (res: Response) => {
+    const used = Number(res.headers.get('x-ai-month'));
+    const limit = Number(res.headers.get('x-ai-month-limit'));
+    if (Number.isFinite(used) && Number.isFinite(limit) && limit > 0) setQuota({ used, limit });
+  };
+
   const ask = async (question: string, viaVoice = false) => {
     const q = question.trim();
     if (!q || busy) return;
@@ -1085,6 +1113,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         // αυτό σήμαινε λιγότερες ερωτήσεις για τον συνδρομητή (βλ. lib/assistant/model.ts).
         body: JSON.stringify({ model: modelFor(q), max_tokens: 1800, system, messages: history.map(m => ({ role: m.role, content: m.text })) }),
       });
+      readQuota(res);
       const data = await res.json();
       if (!res.ok) {
         if (res.status === 429) { setLimitMsg(String(data?.error || '')); setErr('limit'); }
@@ -1177,6 +1206,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
           messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: file.type || 'image/jpeg', data: b64 } }, { type: 'text', text: 'Διάβασε το αντικείμενο/συσκευή από τη φωτογραφία.' }] }] }),
       });
       clearTimeout(timer);
+      readQuota(res);
       const data = await res.json();
       if (!res.ok || data?.error) { setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να διαβάσω τη φωτογραφία τώρα. Δοκίμασε ξανά ή πες μου τα στοιχεία.' }]); setBusy(false); return; }
       const txt: string = data?.content?.find((c: { type: string }) => c.type === 'text')?.text || '{}';
@@ -1501,6 +1531,19 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                   <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z" /></svg>
                 </button>
               </div>
+              {/* ΤΟ ΥΠΟΛΟΙΠΟ, ΚΑΤΩ ΑΠΟ ΤΟ ΠΛΑΙΣΙΟ ΓΡΑΦΗΣ ΚΑΙ ΧΩΡΙΣ ΧΡΩΜΑ.
+                  Δεν είναι προειδοποίηση και δεν γίνεται κόκκινο όσο μικραίνει:
+                  είναι μέτρηση, όπως η μπάρα προόδου της Αξιοποίησης. Ο χρήστης
+                  που θέλει να ξέρει, κοιτάζει· ο χρήστης που δεν θέλει, δεν το
+                  προσέχει. Εμφανίζεται μόνο αφού απαντήσει η βάση: πριν από την
+                  πρώτη ερώτηση το υπόλοιπο θα ήταν μαντεψιά. */}
+              {quota && (
+                <div style={{ ...TT.caption, color: 'var(--text-tertiary)', textAlign: 'center', marginTop: 8 }}>
+                  {quota.limit - quota.used <= 0
+                    ? 'Εξάντλησες τις ερωτήσεις του μήνα. Ανανεώνονται την 1η.'
+                    : `Απομένουν ${quota.limit - quota.used} από ${quota.limit} ερωτήσεις αυτόν τον μήνα`}
+                </div>
+              )}
             </>
           )}
         </div>
