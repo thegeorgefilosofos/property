@@ -6,7 +6,7 @@ import {
   REFERRER_SLOT_MONTHS, INDIV_PRO_BONUS_MONTHS,
   REFEREE_FREE_SLOT_MONTHS, REFEREE_OWNER_MONTHS, REFEREE_AGENCY_MONTHS,
   INDIV_VOLUME_TARGET, INDIV_VOLUME_BONUS_MONTHS,
-  PRO_PAID_TARGET, PRO_PAID_BONUS_MONTHS, PARTNER_WELCOME, PARTNER_WELCOME_MONTHS,
+  PRO_PAID_TARGET, PRO_PAID_BONUS_MONTHS, partnerWelcome, partnerWelcomeTier, PARTNER_WELCOME_MONTHS,
   progress, currentStreak, isPartner, streakProgress, partnerFreeMonths,
   STREAK_TARGET_MONTHS, PARTNER_MONTHLY_FREE_MONTHS,
 } from './referral';
@@ -76,8 +76,18 @@ ok(PRO_PAID_TARGET === 5 && PRO_PAID_BONUS_MONTHS === 1, '5 συνδρομητέ
 // ΕΝΑΣ ΣΤΟΧΟΣ, ΟΧΙ ΤΡΕΙΣ. Ο δεύτερος μετρητής αντάμειβε «δωρεάν χρήστες» —
 // εγγραφές χωρίς έσοδο, σε προϊόν που δεν έχει πια δωρεάν πακέτο.
 ok(PRO_PAID_BONUS_MONTHS === 1, 'ο στόχος του μήνα δίνει ΕΝΑΝ μήνα, ποτέ δύο');
-ok(PARTNER_WELCOME_MONTHS === 1 && PARTNER_WELCOME.tier === 'agency' && !PARTNER_WELCOME.isSlot,
-  'η ιδιότητα Συνεργάτη δίνει έναν μήνα Επαγγελματίας+');
+ok(PARTNER_WELCOME_MONTHS === 1 && !partnerWelcome('owner').isSlot,
+  'η ιδιότητα Συνεργάτη δίνει ΕΝΑΝ μήνα, όχι θέση ακινήτου');
+
+// ΤΟ ΔΩΡΟ ΕΙΝΑΙ ΕΝΑ ΣΚΑΛΙ ΠΑΝΩ, ΠΟΤΕ ΙΣΟ Ή ΚΑΤΩ. Σταθερό «Επαγγελματίας» για
+// όλους σήμαινε ότι ο ήδη Επαγγελματίας κέρδιζε μήνα σε αυτό που πληρώνει και ο
+// Επαγγελματίας+ σε πακέτο κατώτερο του δικού του.
+ok(partnerWelcomeTier('solo') === 'agency' && partnerWelcomeTier('owner') === 'agency',
+  'ο ιδιοκτήτης κερδίζει μήνα Επαγγελματίας');
+ok(partnerWelcomeTier('agency') === 'office' && partnerWelcomeTier('office') === 'office',
+  'ο επαγγελματίας κερδίζει μήνα Επαγγελματίας+');
+ok(partnerWelcomeTier(null) === 'office' && partnerWelcomeTier(undefined) === 'office',
+  'χωρίς συνδρομή, το δώρο είναι το ανώτερο πακέτο');
 
 // ── Γενική πρόοδος ──
 const pr = progress(3, 5);

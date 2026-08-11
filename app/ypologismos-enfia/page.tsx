@@ -12,10 +12,10 @@
 //
 // Κόστος λειτουργίας: μηδέν. Υπολογισμός στη συσκευή, καμία εγγραφή.
 // ═══════════════════════════════════════════════════════════════════════════
-import BrandMark from '@/components/BrandMark';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { T } from '@/components/tokens';
+import { PublicHeader, PublicFooter, SectionHead, WRAP, WRAP_PAD } from '../PublicChrome';
 import { EnfiaCalculator } from './EnfiaCalculator';
 
 const TITLE = 'Υπολογισμός ΕΝΦΙΑ 2026 · δωρεάν, χωρίς εγγραφή';
@@ -98,50 +98,46 @@ export default function Page() {
       <script type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}/>
 
-      <header style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-surface)' }}>
-        <div style={{ maxWidth: 860, margin: '0 auto', padding: '0 clamp(20px,5vw,40px)', height: 60,
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-            <BrandMark />
-            <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Property OS</span>
-          </Link>
-          <Link href="/signup" style={{ fontSize: 14, fontWeight: 650, color: 'var(--accent)', textDecoration: 'none' }}>
-            Ξεκίνα δωρεάν
-          </Link>
-        </div>
-      </header>
+      <PublicHeader />
 
-      <main style={{ maxWidth: 760, margin: '0 auto', padding: 'clamp(28px,5vw,52px) clamp(20px,5vw,40px) 64px' }}>
-        <h1 style={{ fontSize: 'clamp(25px,4vw,36px)', fontWeight: 800, letterSpacing: '-0.025em',
-          lineHeight: 1.2, margin: '0 0 10px', textWrap: 'balance' }}>
+      <main style={{ ...WRAP, padding: `clamp(36px,5vw,64px) ${WRAP_PAD} clamp(56px,7vw,88px)` }}>
+        <div className="lp-eyebrow">Δωρεάν εργαλείο</div>
+        <h1 style={{ fontSize: 'clamp(28px,4.4vw,42px)', fontWeight: 680, letterSpacing: '-0.035em',
+          lineHeight: 1.1, margin: '0 0 14px', textWrap: 'balance' }}>
           Πόσο ΕΝΦΙΑ θα πληρώσεις φέτος
         </h1>
-        <p style={{ fontSize: 'clamp(14.5px,2vw,16.5px)', lineHeight: 1.65, color: 'var(--text-secondary)',
-          margin: '0 0 6px', textWrap: 'balance' }}>
-          Από τα τετραγωνικά, την τιμή ζώνης, τον όροφο και την παλαιότητα. Χωρίς εγγραφή —
-          ο υπολογισμός γίνεται στη συσκευή σου και δεν αποθηκεύεται πουθενά.
-        </p>
-        <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '0 0 26px' }}>
-          Ίδιοι υπολογισμοί με αυτούς που τρέχει το Property OS για τους ιδιοκτήτες του.
-        </p>
+        {/* Ίδια δομή με τον υπολογιστή φόρου ενοικίων: η σημείωση πάει ΔΕΞΙΑ της
+            εισαγωγής, στην ίδια γραμμή βάσης, ώστε η σειρά να κλείνει πέρα ως
+            πέρα αντί να αφήνει τριακόσια εικονοστοιχεία λευκά. */}
+        <div className="lg-lede" style={{ marginBottom: 'clamp(26px,3.5vw,36px)' }}>
+          <p style={{ fontSize: 'clamp(15px,2vw,17px)', lineHeight: 1.6, color: 'var(--text-secondary)', margin: 0 }}>
+            Από τα τετραγωνικά, την τιμή ζώνης, τον όροφο και την παλαιότητα. Χωρίς εγγραφή και χωρίς email:
+            ο υπολογισμός γίνεται στη συσκευή σου και δεν αποθηκεύεται πουθενά.
+          </p>
+          <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: 0, lineHeight: 1.55 }}>
+            Ίδιοι υπολογισμοί με αυτούς που τρέχει το Property OS για τους ιδιοκτήτες του.
+          </p>
+        </div>
 
         <EnfiaCalculator/>
 
-        <section style={{ marginTop: 44 }}>
-          <h2 style={{ fontSize: 'clamp(18px,2.6vw,22px)', fontWeight: 700, letterSpacing: '-0.015em', margin: '0 0 16px' }}>
-            Συχνές ερωτήσεις
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* ── Συχνές ερωτήσεις ──────────────────────────────────────────────
+               ΗΤΑΝ ΠΕΝΤΕ ΚΟΥΤΙΑ ΜΕ ΠΕΡΙΓΡΑΜΜΑ ΚΑΙ ΤΟ ΒΕΛΑΚΙ ΤΟΥ ΠΕΡΙΗΓΗΤΗ, ενώ ο
+               αδελφός υπολογιστής δίπλα λύνει το ίδιο πρόβλημα με λεπτές γραμμές
+               και έναν σταυρό που γυρίζει. Δύο εργαλεία της ίδιας σελίδας δεν
+               επιτρέπεται να έχουν δύο διαφορετικά σχήματα για την ίδια λίστα. */}
+        <section style={{ marginTop: 'clamp(44px,6vw,72px)' }}>
+          <SectionHead over="Συχνές ερωτήσεις" title="Ό,τι ρωτούν πριν υπολογίσουν" />
+          <div style={{ borderBottom: '1px solid var(--border-subtle)' }}>
             {FAQ.map(f => (
-              <details key={f.q} style={{
-                borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)',
-                background: 'var(--bg-surface)', padding: '12px 16px',
-              }}>
-                <summary style={{ cursor: 'pointer', fontSize: 14, fontWeight: 650,
-                  color: 'var(--text-primary)', listStyle: 'revert' }}>
+              <details key={f.q} className="lp-faq" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                <summary style={{ cursor: 'pointer', listStyle: 'none', padding: '17px 0', fontSize: 15,
+                  fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
                   {f.q}
+                  <span className="lp-plus" style={{ color: 'var(--accent)', fontSize: 20, fontWeight: 450,
+                    lineHeight: 1, transition: 'transform .2s', flexShrink: 0 }}>+</span>
                 </summary>
-                <p style={{ margin: '10px 0 2px', fontSize: 14, lineHeight: 1.7, color: 'var(--text-secondary)' }}>
+                <p style={{ margin: '0 0 18px', fontSize: 15, lineHeight: 1.65, color: 'var(--text-secondary)' }}>
                   {f.a}
                 </p>
               </details>
@@ -149,26 +145,23 @@ export default function Page() {
           </div>
         </section>
 
-        <section style={{ marginTop: 36 }}>
-          <h2 style={{ fontSize: 'clamp(18px,2.6vw,22px)', fontWeight: 700, letterSpacing: '-0.015em', margin: '0 0 12px' }}>
-            Και ο φόρος των ενοικίων;
-          </h2>
-          <p style={{ fontSize: 14, lineHeight: 1.75, color: 'var(--text-secondary)', margin: 0 }}>
-            Ο ΕΝΦΙΑ είναι φόρος <strong>κατοχής</strong> και δεν αφαιρείται από το εισόδημα των
-            ενοικίων. Αν νοικιάζεις το ακίνητο, δες και τον{' '}
-            <Link href="/ypologismos-forou-enoikion" style={{ color: 'var(--accent)' }}>
+        {/* Ο ΔΕΥΤΕΡΟΣ ΥΠΟΛΟΓΙΣΤΗΣ ΕΙΝΑΙ ΤΟ ΕΠΟΜΕΝΟ ΒΗΜΑ, ΟΧΙ ΥΠΟΣΗΜΕΙΩΣΗ. Ο
+            ιδιοκτήτης που μόλις βρήκε τον ΕΝΦΙΑ του και νοικιάζει το ακίνητο
+            έχει ακριβώς μία ακόμη ερώτηση. */}
+        <section style={{ marginTop: 'clamp(40px,5vw,60px)' }}>
+          <SectionHead over="Και μετά" title="Ο φόρος των ενοικίων υπολογίζεται χωριστά" />
+          <p style={{ fontSize: 15, lineHeight: 1.7, color: 'var(--text-secondary)', margin: 0, maxWidth: 720 }}>
+            Ο ΕΝΦΙΑ είναι φόρος <strong style={{ color: 'var(--text-primary)' }}>κατοχής</strong> και δεν
+            αφαιρείται από το εισόδημα των ενοικίων: τα δύο ποσά αθροίζονται, δεν αλληλοεξουδετερώνονται. Αν
+            νοικιάζεις το ακίνητο, δες και τον{' '}
+            <Link href="/ypologismos-forou-enoikion" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
               δωρεάν υπολογισμό φόρου ενοικίων
             </Link>.
           </p>
         </section>
-
-        <footer style={{ marginTop: 44, paddingTop: 20, borderTop: '1px solid var(--border-subtle)',
-          display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: 13 }}>
-          <Link href="/" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>Αρχική</Link>
-          <Link href="/trust" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>Ποιοι είμαστε</Link>
-          <Link href="/privacy" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>Απόρρητο</Link>
-        </footer>
       </main>
+
+      <PublicFooter />
     </div>
   );
 }

@@ -12,7 +12,8 @@
 //   • 5 ΣΥΝΔΡΟΜΗΤΕΣ μέσα στον μήνα, σε ΟΠΟΙΟΔΗΠΟΤΕ πακέτο → η συνδρομή του
 //     επόμενου μήνα δωρεάν.
 //   • 3 ΣΥΝΕΧΟΜΕΝΟΙ ΜΗΝΕΣ με τον στόχο → ΙΔΙΟΤΗΤΑ ΣΥΝΕΡΓΑΤΗ:
-//       – ένας μήνας Επαγγελματίας+ δώρο με την απόκτηση
+//       – ένας μήνας δώρο, ένα σκαλί πάνω από το πακέτο που ήδη έχει:
+//         Ιδιοκτήτης/Ιδιοκτήτης+ → Επαγγελματίας, αλλιώς Επαγγελματίας+
 //       – κάθε μήνας που πιάνει τον στόχο κάνει τον επόμενο δωρεάν
 //       – προτεραιότητα σε νέες κυκλοφορίες, αναβαθμίσεις και επικοινωνία
 //
@@ -125,7 +126,7 @@ export const REFEREE_OWNER_MONTHS = 1;        // μπαίνει Ιδιώτης: 
 export const REFEREE_AGENCY_MONTHS = 1;       // γίνεται Επαγγελματίας: 1 μήνας δωρεάν
 
 export type Outcome = 'free' | 'owner' | 'agency';
-export type SideReward = { months: number; isSlot: boolean; tier: 'owner' | 'agency' };
+export type SideReward = { months: number; isSlot: boolean; tier: 'owner' | 'agency' | 'office' };
 
 /**
  * Τι κερδίζει ο ΣΥΣΤΗΝΩΝ.
@@ -175,11 +176,33 @@ export const PRO_PAID_BONUS_MONTHS = 1;       // → η συνδρομή του 
 // ΙΔΙΟΤΗΤΑ ΣΥΝΕΡΓΑΤΗ
 // ═══════════════════════════════════════════════════════════════════════════
 export const STREAK_TARGET_MONTHS = 3;        // συνεχόμενοι μήνες με PRO_PAID_TARGET συνδρομητές
-export const PARTNER_WELCOME_MONTHS = 1;      // δώρο απόκτησης: 1 μήνας Επαγγελματίας+
+export const PARTNER_WELCOME_MONTHS = 1;      // δώρο απόκτησης: 1 μήνας, ένα σκαλί πάνω
 export const PARTNER_MONTHLY_FREE_MONTHS = 1; // κάθε επιτυχημένος μήνας → επόμενος δωρεάν
 
-/** Τι κερδίζει ο Συνεργάτης μόλις αποκτήσει την ιδιότητα. */
-export const PARTNER_WELCOME: SideReward = { months: PARTNER_WELCOME_MONTHS, isSlot: false, tier: 'agency' };
+/**
+ * ΤΟ ΔΩΡΟ ΤΟΥ ΣΥΝΕΡΓΑΤΗ ΑΚΟΛΟΥΘΕΙ ΤΟ ΠΑΚΕΤΟ ΠΟΥ ΗΔΗ ΕΧΕΙ.
+ *
+ * Ήταν σταθερά «Επαγγελματίας», για όλους. Δηλαδή ο συνδρομητής «Επαγγελματίας»
+ * που έπιασε τρεις συνεχόμενους μήνες στόχου κέρδιζε έναν μήνα σε ΑΥΤΟ ΠΟΥ ΗΔΗ
+ * ΠΛΗΡΩΝΕΙ, και ο «Επαγγελματίας+» κέρδιζε έναν μήνα σε πακέτο ΚΑΤΩΤΕΡΟ από το
+ * δικό του. Δώρο που δεν προσθέτει τίποτα δεν είναι δώρο· είναι υποβάθμιση με
+ * κορδέλα.
+ *
+ *   Ιδιοκτήτης, Ιδιοκτήτης+  →  ένας μήνας Επαγγελματίας
+ *   Επαγγελματίας, Επαγγελματίας+, χωρίς συνδρομή  →  ένας μήνας Επαγγελματίας+
+ *
+ * Ο χωρίς συνδρομή παίρνει το ανώτερο επειδή η ιδιότητα του Συνεργάτη κερδίζεται
+ * με πέντε συνδρομητές τον μήνα επί τρεις μήνες: όποιος τα καταφέρνει αυτά δεν
+ * είναι περιστασιακός χρήστης, ό,τι κι αν λέει η γραμμή της συνδρομής του.
+ */
+export function partnerWelcomeTier(currentPlan: string | null | undefined): 'agency' | 'office' {
+  return currentPlan === 'solo' || currentPlan === 'owner' ? 'agency' : 'office';
+}
+
+/** Τι κερδίζει ο Συνεργάτης μόλις αποκτήσει την ιδιότητα, δεδομένου του πακέτου του. */
+export function partnerWelcome(currentPlan: string | null | undefined): SideReward {
+  return { months: PARTNER_WELCOME_MONTHS, isSlot: false, tier: partnerWelcomeTier(currentPlan) };
+}
 
 /** Γενική πρόοδος «X/target» για τις μπάρες. */
 export function progress(count: number, target: number): { count: number; target: number; remaining: number; reached: boolean; pct: number } {
