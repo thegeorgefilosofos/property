@@ -1416,18 +1416,25 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
                     αυτόματα στη δική σου εκδοχή, κρατώντας ό,τι έδειχνε το
                     πρόγραμμα: αλλάζεις ΕΝΑ πράγμα, όχι δέκα.
                     ══════════════════════════════════════════════════════════ */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 6, marginBottom: insEditCovers ? 12 : 0 }}>
+                {/* ΤΟ ΟΝΟΜΑ ΤΗΣ ΚΑΛΥΨΗΣ ΗΤΑΝ ΜΙΚΡΟΤΕΡΟ ΑΠΟ ΤΗΝ ΑΠΑΝΤΗΣΗ ΤΗΣ.
+                    Το «Ναι» στα 12 και έντονο, η «Πυρκαγιά» στα 10 και ξεθωριασμένη:
+                    το μάτι διάβαζε πρώτα μια στήλη από «Ναι» και «Όχι» και μετά
+                    έψαχνε σε τι αναφέρονται. Το ουσιαστικό είναι το θέμα, η
+                    κατάσταση είναι το σχόλιο — και τα δέκα πλακίδια στέκονταν με
+                    έξι εικονοστοιχεία ανάμεσά τους, δηλαδή κολλημένα, ενώ η σειρά
+                    πεδίων από κάτω ανέπνεε με δεκατέσσερα. */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 10, marginBottom: insEditCovers ? 14 : 0 }}>
                   {deriveCoverages(effectiveCovers, effectiveEarthquake, effectiveFloodState, effectiveNatural).map(c => (
                     <button key={c.label} type="button" onClick={() => toggleCover(c.label, c.ok)}
                       aria-pressed={c.ok} title={`${c.ok ? 'Αφαίρεσε' : 'Πρόσθεσε'} την κάλυψη «${c.label}»`}
-                      style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', boxSizing: 'border-box',
-                        textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, width: '100%', boxSizing: 'border-box',
+                        minHeight: 38, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
                         background: c.ok ? 'var(--accent-soft)' : 'var(--bg-base)',
                         border: `1px solid ${c.ok ? 'var(--accent-border)' : 'var(--border-subtle)'}`,
-                        borderRadius: T.radius.badge, padding: '6px 10px',
+                        borderRadius: T.radius.inner, padding: '9px 12px',
                         transition: 'background-color .15s, border-color .15s' }}>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: c.ok ? 'var(--accent)' : 'var(--text-tertiary)', lineHeight: 1 }}>{c.ok ? 'Ναι' : 'Όχι'}</span>
-                      <span style={{ fontSize: 10, color: c.ok ? 'var(--text-primary)' : 'var(--text-tertiary)', fontFamily: T.font.sans }}>{c.label}</span>
+                      <span style={{ fontSize: 12, fontWeight: c.ok ? 600 : 400, color: c.ok ? 'var(--text-primary)' : 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.3, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.label}</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: c.ok ? 'var(--accent)' : 'var(--text-tertiary)', lineHeight: 1, flexShrink: 0 }}>{c.ok ? 'Ναι' : 'Όχι'}</span>
                     </button>
                   ))}
                 </div>
@@ -1459,7 +1466,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
             </div>
             {crossProperty.sqm && !insSqm && (
               <div style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 8 }}>
-                ✓ Τα στοιχεία συμπληρώθηκαν αυτόματα από {crossProperty.sqmFrom === 'property' ? 'την καρτέλα του ακινήτου' : 'tab Υπηρεσίες (ΕΝΦΙΑ)'}, μπορείς να τα επεξεργαστείς
+                ✓ Τα στοιχεία συμπληρώθηκαν αυτόματα από {crossProperty.sqmFrom === 'property' ? 'την καρτέλα του ακινήτου' : 'τη Λογιστική (ΕΝΦΙΑ)'}, μπορείς να τα επεξεργαστείς
               </div>
             )}
             {/* Τέσσερα στοιχεία του ίδιου ακινήτου, σε μία σειρά ίσα μοιρασμένη

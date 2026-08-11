@@ -31,7 +31,7 @@ import { PLANS, PLAN_ORDER, normalizePlan, type PlanId } from '@/lib/billing/pla
 
 /** Τα πακέτα που αγοράζονται. Το «χωρίς συνδρομή» είναι κατάσταση, όχι πακέτο. */
 const PAID_PLAN_ORDER = PLAN_ORDER.filter(id => PLANS[id].priceMonthly > 0) as PlanId[];
-import { effectivePlan, activeComp, planAtLeast, propertyLimit, trialState, EARLY_ACCESS_DAYS, FEATURE_MIN_PLAN } from '@/lib/billing/entitlements';
+import { effectivePlan, activeComp, planAtLeast, propertyLimit, trialState, isOpenEnded, EARLY_ACCESS_DAYS, FEATURE_MIN_PLAN } from '@/lib/billing/entitlements';
 import { athensToday } from '@/lib/core/time';
 import { savedData } from '@/components/dbWrite';
 import { failed } from '@/lib/core/dbError';
@@ -527,7 +527,17 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
 
       {/* ── 2. ΣΥΝΔΡΟΜΗ (hero) ────────────────────────────────────────── */}
       <Card className="acc-section" style={{ animationDelay: '70ms', background: 'var(--surface-hero)', boxShadow: 'var(--highlight-inset), var(--elev-2)' }}>
-        <SecHdr label="Συνδρομή" right={<TierBadge tier={tier} size={32} />} />
+        {/* ΤΡΕΙΣ ΛΕΞΕΙΣ ΓΙΑ ΔΥΟ ΠΡΑΓΜΑΤΑ, ΣΤΗΝ ΙΔΙΑ ΚΑΡΤΑ. Το μετάλλιο έγραφε
+            «ΙΔΙΟΤΗΤΑ · Επαγγελματίας» — που είναι ο ΤΡΟΠΟΣ ΧΡΗΣΗΣ, όχι το πακέτο
+            — ακριβώς δίπλα στο «Πακέτο Επαγγελματίας», που είναι το πακέτο. Δύο
+            διαφορετικά πράγματα με το ίδιο όνομα, σε απόσταση διακοσίων
+            εικονοστοιχείων, και ο ίδιος τρόπος χρήσης ξαναρωτιέται με κάρτες
+            επιλογής τετρακόσια πιο κάτω. Χειρότερα, όποιος είχε πακέτο
+            «Επαγγελματίας» με προφίλ «Ιδιώτη» διάβαζε «ΙΔΙΟΤΗΤΑ Ιδιώτης» πάνω από
+            το «Πακέτο Επαγγελματίας» και δεν καταλάβαινε ποιο ισχύει.
+            Το μετάλλιο μένει ως σήμα, χωρίς λέξεις: οι λέξεις ζουν εκεί που
+            επιλέγονται. */}
+        <SecHdr label="Συνδρομή" right={<TierBadge tier={tier} showLabel={false} size={32} />} />
 
         {/* Τρέχον πλάνο */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
@@ -609,7 +619,16 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
           <div style={{ marginTop: 14, display: 'flex', alignItems: 'flex-start', gap: 10, background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', borderRadius: T.radius.inner, padding: '12px 14px' }}>
             <span className="acc-live-dot" style={{ width: 6, height: 6, background: 'var(--positive)', flexShrink: 0, marginTop: 6 }} />
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>
-              Έχεις δωρεάν πρόσβαση <strong style={{ color: 'var(--text-primary)' }}>{PLANS[comp.plan].name}</strong> έως τις {fdLong(comp.until)}. Την κέρδισες από το Πρόγραμμα Πρόσκλησης, χωρίς καμία χρέωση.
+              {/* «ΕΩΣ ΤΙΣ 1 ΙΑΝΟΥΑΡΙΟΥ 2100». Δύο λάθη σε μία φράση. Το «τις»
+                  θέλει πληθυντικό ημερομηνιών, όχι «1 Ιανουαρίου». Και το 2100
+                  δεν είναι ημερομηνία: είναι η τιμή που γράφει ο κώδικας όταν η
+                  πρόσβαση δεν λήγει ποτέ. Ο χρήστης διάβαζε ένα αστείο εκεί που
+                  περίμενε όρο. Ό,τι απέχει πάνω από δέκα χρόνια λέγεται με
+                  λέξεις, γιατί αυτό ακριβώς σημαίνει. */}
+              Έχεις δωρεάν πρόσβαση <strong style={{ color: 'var(--text-primary)' }}>{PLANS[comp.plan].name}</strong>
+              {isOpenEnded(comp.until)
+                ? ', χωρίς ημερομηνία λήξης'
+                : <> έως και {fdLong(comp.until)}</>}. Την κέρδισες από το Πρόγραμμα Πρόσκλησης, χωρίς καμία χρέωση.
             </div>
           </div>
         )}

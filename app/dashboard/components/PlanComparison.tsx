@@ -193,30 +193,45 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
                 ? null
                 : colRank > curRank
                   ? <Btn variant="primary" onClick={() => onUpgrade?.()}>Αναβάθμιση</Btn>
-                  : <Btn variant="ghost" onClick={() => onUpgrade?.()}>Υποβάθμιση</Btn>;
+                  // ΤΟ «ΧΩΡΙΣ ΣΥΝΔΡΟΜΗ» ΔΕΝ ΕΙΝΑΙ ΥΠΟΒΑΘΜΙΣΗ, ΕΙΝΑΙ ΔΙΑΚΟΠΗ.
+                  // Η στήλη δεν είναι πακέτο· είναι η κατάσταση όπου δεν έχεις
+                  // πακέτο. Ένα κουμπί «Υποβάθμιση» εκεί υπόσχεται φθηνότερο
+                  // πλάνο και κάνει κάτι άλλο.
+                  : <Btn variant="ghost" onClick={() => onUpgrade?.()}>{isFree ? 'Διακοπή συνδρομής' : 'Υποβάθμιση'}</Btn>;
 
             return (
               <div key={id} className={locked ? undefined : 'acc-choice'} title={locked ? lockHint : undefined}
                 style={{ position: 'relative', display: 'flex', flexDirection: 'column', opacity: locked ? 0.55 : 1, background: heroBg, border: `1.5px solid ${borderColor}`, borderRadius: T.radius.card, boxShadow, padding: 18 }}>
 
-                {popular && (
-                  <span style={{ position: 'absolute', top: -9, left: '50%', transform: 'translateX(-50%)', background: 'var(--accent)', color: 'var(--accent-text)', borderRadius: 100, padding: '2px 10px', fontSize: 9, fontWeight: 700, fontFamily: T.font.sans, letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>Πιο δημοφιλές</span>
+                {/* ══ Η ΚΑΤΑΣΤΑΣΗ ΤΗΣ ΣΤΗΛΗΣ ΕΧΕΙ ΜΙΑ ΘΕΣΗ, ΚΑΙ ΕΙΝΑΙ ΑΥΤΗ ══════
+                    Το «Πιο δημοφιλές» καθόταν ως κορδέλα πάνω από την κάρτα και
+                    το «Το πλάνο σου» ως κονκάρδα ΜΕΣΑ στη σειρά του τίτλου. Δύο
+                    γλώσσες για το ίδιο πράγμα — και η δεύτερη δεν χωρούσε:
+                    «Επαγγελματίας» στα 14 έντονα, συν μετάλλιο 22, συν κονκάρδα
+                    με ζωντανή τελεία, μέσα σε στήλη διακοσίων τριάντα
+                    εικονοστοιχείων. Η κονκάρδα ΠΑΤΟΥΣΕ πάνω στο όνομα, γιατί
+                    κανένα από τα δύο δεν είχε άδεια να συρρικνωθεί.
+                    Οι τρεις καταστάσεις αποκλείουν η μία την άλλη (`popular`
+                    ορίζεται ως «ούτε τρέχον ούτε κλειδωμένο»), οπότε μοιράζονται
+                    την ίδια κορδέλα και η σειρά του τίτλου μένει στο όνομα. */}
+                {(popular || isCurrent) && (
+                  <span style={{ position: 'absolute', top: -9, left: '50%', transform: 'translateX(-50%)', display: 'inline-flex', alignItems: 'center', gap: 6, background: isCurrent ? 'var(--bg-surface)' : 'var(--accent)', color: isCurrent ? 'var(--accent)' : 'var(--accent-text)', border: isCurrent ? '1px solid var(--accent-border)' : 'none', borderRadius: 100, padding: '2px 10px', fontSize: 9, fontWeight: 700, fontFamily: T.font.sans, letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>
+                    {isCurrent && <span className="acc-live-dot accent" style={{ width: 5, height: 5, background: 'var(--accent)' }} />}
+                    {isCurrent ? 'Το πλάνο σου' : 'Πιο δημοφιλές'}
+                  </span>
                 )}
 
-                {/* Όνομα + μετάλλιο + ένδειξη κατάστασης */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                {/* Όνομα + μετάλλιο. Το όνομα κόβεται με αποσιωπητικά αντί να
+                    σπρώξει ό,τι έχει δίπλα του: σε στενή στήλη, ένα «…» είναι
+                    πληροφορία· δύο στοιχεία το ένα πάνω στο άλλο δεν είναι. */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 22 }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                     {(id === 'owner' || id === 'agency') && <TierBadge tier={id} showLabel={false} size={22} />}
-                    <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{p.name}</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
                   </span>
-                  {isCurrent ? (
-                    <Chip tone="accent">
-                      <span className="acc-live-dot accent" style={{ width: 6, height: 6, background: 'var(--accent)' }} />
-                      Το πλάνο σου
-                    </Chip>
-                  ) : locked ? (
+                  {locked && (
                     <span style={{ color: 'var(--text-tertiary)', display: 'inline-flex', flexShrink: 0 }}><LockGlyph /></span>
-                  ) : null}
+                  )}
                 </div>
 
                 {/* Ταγκλάιν πλάνου */}

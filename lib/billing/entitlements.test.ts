@@ -4,7 +4,7 @@ import {
   planAtLeast, effectivePlan, activeComp, hasFeature, isTabAllowed,
   requiredPlanForTab, requiredPlanForFeature, propertyLimit, canAddProperty,
   isPlanAllowedForProfile, paidPlanForProfile, isTabRelevant, isTabPurchasable,
-  trialState,
+  trialState, isOpenEnded,
   type EntitlementInput,
 } from './entitlements';
 
@@ -179,6 +179,21 @@ ok(canAddProperty(compOwner, 3) === false, 'comp owner σταματά στα 3')
   // Στη δοκιμή ξεκλειδώνουν τα χαρακτηριστικά για τα οποία θα πληρώσει.
   ok(hasFeature(mk(5), 'e2_export') === true, 'δοκιμή ξεκλειδώνει Ε2');
   ok(hasFeature(mk(40), 'e2_export') === false, 'μετά τη λήξη κλειδώνει το Ε2');
+}
+
+// ── ΟΤΑΝ Η ΛΗΞΗ ΔΕΝ ΕΙΝΑΙ ΛΗΞΗ ──────────────────────────────────────────────
+// Η πρόσβαση χωρίς λήξη γράφεται με μακρινή ημερομηνία, γιατί η στήλη θέλει τιμή.
+// Η οθόνη δεν επιτρέπεται να την τυπώσει: «έως τις 1 Ιανουαρίου 2100» διαβάζεται
+// ως αστείο εκεί που ο χρήστης περιμένει όρο.
+{
+  const now = Date.UTC(2026, 7, 11);
+  ok(isOpenEnded('2100-01-01', now) === true, 'το 2100 δεν είναι προθεσμία, είναι «ποτέ»');
+  ok(isOpenEnded('2027-01-01', now) === false, 'ένας χρόνος μπροστά είναι κανονική λήξη');
+  ok(isOpenEnded('2036-09-01', now) === true, 'πάνω από δέκα χρόνια μετρά ως «χωρίς λήξη»');
+  ok(isOpenEnded('2036-07-01', now) === false, 'λίγο κάτω από δέκα χρόνια παραμένει ημερομηνία');
+  ok(isOpenEnded(null, now) === false, 'χωρίς ημερομηνία, κανένα συμπέρασμα');
+  ok(isOpenEnded('χθες', now) === false, 'ό,τι δεν είναι ημερομηνία δεν γίνεται «ποτέ»');
+  ok(isOpenEnded('2020-01-01', now) === false, 'περασμένη ημερομηνία δεν είναι «χωρίς λήξη»');
 }
 
 console.log(`\nbilling/entitlements.ts — ${p} passed, ${f} failed`);

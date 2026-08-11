@@ -219,6 +219,27 @@ export function effectivePlan(input: EntitlementInput): PlanId {
   return best;
 }
 
+/**
+ * ΠΟΤΕ ΜΙΑ ΗΜΕΡΟΜΗΝΙΑ ΛΗΞΗΣ ΔΕΝ ΕΙΝΑΙ ΗΜΕΡΟΜΗΝΙΑ.
+ *
+ * Η δωρεάν πρόσβαση που δίνεται χωρίς λήξη γράφεται στη βάση με μια πολύ μακρινή
+ * ημερομηνία, γιατί η στήλη θέλει τιμή. Η οθόνη όμως την τύπωνε αυτούσια, και ο
+ * χρήστης διάβαζε «έως τις 1 Ιανουαρίου 2100»: εκεί που περίμενε όρο, έβρισκε
+ * αστείο. Πάνω από δέκα χρόνια δεν είναι προθεσμία που θυμάται κανείς — είναι
+ * «δεν λήγει», και έτσι πρέπει να λέγεται.
+ *
+ * Το `now` είναι όρισμα ώστε η συνάρτηση να είναι καθαρή και δοκιμάσιμη, και
+ * ώστε η οθόνη να μη διαβάζει ρολόι μέσα στο render.
+ */
+export const OPEN_ENDED_YEARS = 10;
+
+export function isOpenEnded(until: string | null | undefined, now: number = Date.now()): boolean {
+  if (!until) return false;
+  const t = new Date(until).getTime();
+  if (!Number.isFinite(t)) return false;
+  return t - now > OPEN_ENDED_YEARS * 365 * 86400000;
+}
+
 export function hasFeature(input: EntitlementInput, f: Feature): boolean {
   return planAtLeast(effectivePlan(input), FEATURE_MIN_PLAN[f]);
 }
