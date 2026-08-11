@@ -41,7 +41,6 @@ import { shortTermYearSummary } from '@/lib/tax/shortTermTax'
 import { resolveEnfia } from '@/lib/billing/propertyFacts'
 import { estimateENFIAFromFacts } from '@/lib/billing/enfia'
 import { annuityMonthly, interestForYear } from '@/lib/loans/recommend'
-import { LOAN_COLUMNS, toLoanViews } from '@/lib/loans/shape'
 import { usefulLifeYears } from '@/lib/inventory/depreciation'
 import { isGroupDeductible } from '@/lib/expenses/groups'
 import { RENTAL_TAX_ROWS_2026, BUSINESS_INCOME_ROWS_2026, BUILDING_DEPRECIATION_RATE, BUILDING_VALUE_FRACTION, SELF_EMPLOYED_MIN_NET_INCOME_2026 , rentalBracketsForYear, bracketsLabelForYear } from '@/lib/billing/greekTax'
@@ -107,7 +106,6 @@ const card:React.CSSProperties = { position:'relative', background:'var(--surfac
 const cardTitle:React.CSSProperties = { fontSize:13, fontWeight:700, color:'var(--text-primary)', margin:'0 0 14px', fontFamily: T.font.sans, letterSpacing:'0.1px' }
 
 // Χρώμα μόνο στη γραμμή αποτελέσματος, αλλού ουδέτερο (χωρίς θόρυβο).
-const lineColor = (kind:string, amount:number)=> kind==='result' ? (amount>=0?'var(--accent)':'var(--negative)') : 'var(--text-primary)'
 // Ήπια, ουδέτερη ένδειξη τόνου για τη συμβουλευτική (χωρίς έντονα χρώματα/λίστες).
 const ADVISORY_TONE:Record<AdvisoryTone,string> = { opportunity:'Ευκαιρία', action:'Ενέργεια', insight:'Ιδέα', caution:'Προσοχή' }
 
@@ -140,7 +138,7 @@ function Kpi({ label, value, note, hot, tone='accent', onHover }:{
   return (
     <div onMouseEnter={()=>onHover(true)} onMouseLeave={()=>onHover(false)}
       style={{ ...card, padding:'18px 20px', minWidth:0, borderColor:hot?'var(--border-default)':undefined, transition:'border-color 0.15s' }}>
-      <p style={{ fontSize:11, fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--text-tertiary)', margin:0, fontFamily: T.font.sans }}>{label}</p>
+      <p style={{ ...TT.label, color:'var(--text-tertiary)', margin:0 }}>{label}</p>
       <p style={{ ...TT.kpi, fontSize:24, color:hot?(tone==='negative'?'var(--negative)':'var(--accent)'):'var(--text-primary)', margin:'11px 0 0', transition:'color 0.15s' }}>{value}</p>
       <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'9px 0 0', fontFamily: T.font.sans, lineHeight:1.5 }}>{note}</p>
     </div>
@@ -241,6 +239,10 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // ερώτημα — όχι «το πληρώνει;» αλλά «το έχει;»: ισοζύγιο χωρίς διπλογραφικά
   // βιβλία δεν υπάρχει, σε κανένα πλάνο.
   const canJournal = hasFeature({ plan }, 'accounting_journal')
+  // Τα ίδιο ερώτημα για τα τρία εργαλεία χαρτοφυλακίου του μενού: τα δίνει η
+  // ΣΥΝΔΡΟΜΗ (όλα «Επαγγελματίας»), όχι ο διακόπτης εμφάνισης. Ίδιος λόγος με
+  // το ημερολόγιο άρθρων — και ίδιος χρήστης που τα έχανε.
+  const proTools = hasFeature({ plan }, 'bank_import')
   // Τα προχωρημένα εργαλεία ξεκινούν κλειστά για ΟΛΟΥΣ. Ο επαγγελματίας τα
   // βρίσκει με ένα κλικ· ο ιδιώτης δεν χρειάζεται να τα προσπεράσει κάθε φορά.
   const [advancedOpen,setAdvancedOpen] = useState(false)
@@ -694,7 +696,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // Ξέρουμε το σχήμα της οθόνης (σειρά μετρικών + πίνακας λογιστικής), οπότε
   // δείχνουμε το σχήμα αντί για κυκλικό δείκτη: η διάταξη δεν «πηδά» όταν
   // φτάσουν τα δεδομένα.
-  if(loading) return (<><SkeletonKPIs n={4} /><Skeleton h={280} r={14} /></>)
+  if(loading) return (<><SkeletonKPIs n={2} /><Skeleton h={280} r={14} /></>)
 
   const regimeLabel = businessMode ? 'Επιχείρηση (ΕΛΠ)' : (regime==='individual_shortterm' ? 'Βραχυχρόνια μίσθωση' : 'Μακροχρόνια μίσθωση')
   // Έχει το έτος πραγματική κίνηση; Αν όχι, αντί για τοίχο από «0 €» δείχνουμε μια
@@ -713,7 +715,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // Ο φάκελος είναι το κύριο κουμπί και μένει εκεί· εδώ κάθονται τα τρία που
   // δεν είναι ο φάκελος: το σκέτο Excel (για όποιον θέλει μόνο τα νούμερα),
   // η ζωντανή πύλη, και το ημερολόγιο άρθρων όπου υπάρχει.
-  const pillBtn:React.CSSProperties = { display:'inline-flex', alignItems:'center', gap:6, height:T.h.sm, padding:'0 12px', borderRadius:T.radius.pill, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:13, fontWeight:500, cursor:'pointer', fontFamily: T.font.sans }
+  const pillBtn:React.CSSProperties = { display:'inline-flex', alignItems:'center', gap:8, height:T.h.md, padding:'0 14px', borderRadius:T.radius.pill, border:'1px solid var(--border-default)', background:'transparent', color:'var(--text-secondary)', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily: T.font.sans, whiteSpace:'nowrap' }
   const accountantActions = (
     <>
       <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
@@ -721,7 +723,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}>
           <Download size={13}/>Μόνο το Excel
         </button>
-        <button onClick={shareWithAccountant} disabled={acctBusy} title="Ζωντανός σύνδεσμος για τον λογιστή σου, χωρίς login και χωρίς email. Καλύπτει ΟΛΑ τα ακίνητά σου, όχι μόνο αυτό: διεύθυνση, ΑΤΑΚ, μίσθωμα, έσοδα και δαπάνες της χρονιάς."
+        <button onClick={shareWithAccountant} disabled={acctBusy} title="Ζωντανός σύνδεσμος για τον λογιστή σου, χωρίς σύνδεση και χωρίς email. Καλύπτει ΟΛΑ τα ακίνητά σου, όχι μόνο αυτό: διεύθυνση, ΑΤΑΚ, μίσθωμα, έσοδα και δαπάνες της χρονιάς."
           style={{ ...pillBtn, borderColor:acctLink?'var(--accent)':'var(--border-default)', color:acctLink?'var(--accent)':'var(--text-secondary)', cursor:acctBusy?'wait':'pointer', transition:'color 0.15s, border-color 0.15s' }}
           onMouseEnter={e=>{ if(!acctLink){ e.currentTarget.style.borderColor='var(--accent)'; e.currentTarget.style.color='var(--accent)' } }} onMouseLeave={e=>{ if(!acctLink){ e.currentTarget.style.borderColor='var(--border-default)'; e.currentTarget.style.color='var(--text-secondary)' } }}>
           <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M16 6l-4-4-4 4M12 2v13"/></svg>{acctBusy?'Δημιουργία…':acctLink?'Πύλη λογιστή έτοιμη':'Ζωντανή πύλη λογιστή'}
@@ -734,7 +736,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         )}
       </div>
       {acctLink && (
-        <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:10, padding:'8px 8px 8px 12px', borderRadius:10, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', flexWrap:'wrap' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:10, padding:'8px 8px 8px 12px', borderRadius:T.radius.inner, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', flexWrap:'wrap' }}>
           <span style={{ display:'inline-flex', width:24, height:24, borderRadius:8, background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', alignItems:'center', justifyContent:'center', color:'var(--text-tertiary)', flexShrink:0 }}>
             <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
           </span>
@@ -788,7 +790,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             { key:'print', label:'Λογιστική αναφορά', description:'Σύνοψη εσόδων, φόρου και καθαρού σε PDF, έτοιμη για τον λογιστή σου', icon:<Printer size={16}/>, onClick:printReport },
             { key:'official', label:'Επίσημη αναφορά', description:'Υπογεγραμμένο PDF με αριθμό εγγράφου και QR επαλήθευσης', icon:<ShieldCheck size={16}/>, onClick:officialReport, busy:genOfficial },
             { key:'adjust', label:'Αναπροσαρμογή ενοικίου', description:'Νόμιμη ειδοποίηση προς τον μισθωτή, με ηλεκτρονική υπογραφή', icon:<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>, onClick:()=>setAdjustOpen(true) },
-            ...(mode==='professional' ? [
+            ...(proTools ? [
               { key:'builder', label:'Σύνθεση αναφοράς', description:'Προσαρμοσμένη αναφορά για όλο το χαρτοφυλάκιο', icon:<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>, onClick:()=>setReportBuilderOpen(true) },
               { key:'bank', label:'Εισαγωγή από τράπεζα', description:'Ανέβασε κίνηση λογαριασμού και αντιστοίχισε αυτόματα τις εισπράξεις', icon:<Landmark size={16}/>, onClick:()=>setShowBankImport(true) },
               { key:'split', label:'Κατανομή σε ιδιοκτήτες', description:'Καθαρό ανά συνιδιοκτήτη, με διαχειριστική αμοιβή', icon:<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>, onClick:()=>setSplitOpen(true) },
@@ -877,16 +879,13 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
       {hasActivity && (<>
       {/* Οι τρεις αποφάσεις της χρονιάς, ίδιο μέγεθος, μία ευθεία. Ουδέτερα
           (μελάνι) by default· χρώμα ΜΟΝΟ στο hover. */}
-      <div {...fixedCols(3, 12, 'stretch')}>
+      <div {...fixedCols(2, 12, 'stretch')}>
         <Kpi label={`Καθαρό ταμείο · ${year}`} value={eur(statement.netCash)} tone={statement.netCash<0?'negative':'accent'}
           hot={hoverStat==='cash'} onHover={v=>setHoverStat(v?'cash':null)}
           note="Ό,τι απομένει μετά από φόρους, τέλη και δόσεις δανείου." />
-        <Kpi label="Φόρος εισοδήματος" value={eur(statement.incomeTax)}
-          hot={hoverStat==='tax'} onHover={v=>setHoverStat(v?'tax':null)}
-          note={`Μέσος συντελεστής ${pct(statement.effectiveRate)} σε φορολογητέο ${eur(statement.taxableIncome)}.`} />
         <Kpi label="Πρόβλεψη φόρου · μήνα" value={eur(provision.monthly)}
           hot={hoverStat==='prov'} onHover={v=>setHoverStat(v?'prov':null)}
-          note={`Ποσό ανά μήνα για τον φόρο ${year} · σύνολο ${eur(provision.annualTaxTotal)} τον χρόνο.`} />
+          note={`Για τον φόρο ${year} · σύνολο ${eur(provision.annualTaxTotal)} τον χρόνο.`} />
       </div>
 
       {/* Κατάσταση Αποτελεσμάτων + Πρόβλεψη φόρου */}
@@ -944,8 +943,14 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               : (regime==='individual_longterm'
                   ? <>Τεκμαρτή έκπτωση 5% και προοδευτική {bracketsLabelForYear(year)}{!businessMode&&myTaxShare!=null&&(consolidation?.count??0)>1?<>, στο σύνολο των ενοικίων σου όπως στο Ε1: ο φόρος εδώ είναι <strong style={{ color:'var(--text-primary)' }}>το μερίδιο αυτού του ακινήτου</strong></>:''}.</>
                   : <>Φόρος στα μεικτά με την {bracketsLabelForYear(year)}, συν ΤΑΚΚ και τέλος παρεπιδημούντων όπου ισχύει.</>)}
+            {/* Ο «μέσος συντελεστής» του statement.ts είναι φόρος ΠΡΟΣ ΜΕΙΚΤΑ
+                (effRate = incomeTax / gross), όχι προς το φορολογητέο. Γραμμένα
+                στην ίδια πρόταση, τα δύο μεγέθη διαβάζονταν ως πολλαπλασιασμός
+                που δεν βγαίνει: 14,25% επί 11.400 δεν κάνει 1.710. Ο ιδιοκτήτης
+                που κάνει τον έλεγχο συμπεραίνει ότι ο φόρος είναι λάθος. */}
+            {statement.incomeTax>0?<> Ο φόρος εισοδήματος βγαίνει {eur(statement.incomeTax)} σε φορολογητέο {eur(statement.taxableIncome)}, δηλαδή {pct(statement.effectiveRate)} των μεικτών εσόδων.</>:''}
             {provision.propertyTaxes>0?<> Από το ετήσιο σύνολο, {eur(provision.propertyTaxes)} είναι φόροι και τέλη ακινήτου.</>:''}
-            {year===athensYear()?<> Για να προλάβεις τη χρονιά, <strong style={{ color:'var(--text-primary)' }}>{eur(provision.perRemainingMonth)} τον μήνα</strong> ώς τον Δεκέμβριο.</>:''}
+            {year===athensYear()?<> Για να προλάβεις τη χρονιά, <strong style={{ color:'var(--text-primary)' }}>{eur(provision.perRemainingMonth)} τον μήνα</strong> ως τον Δεκέμβριο.</>:''}
             {provision.advanceTax>0?<> Συν προκαταβολή {eur(provision.advanceTax)}, που πιστώνεται τον επόμενο χρόνο: σύνολο πρώτου έτους {eur(provision.firstYearTotal)}.</>:''}
           </p>
           <div style={{ flex:1 }}/>
@@ -1402,10 +1407,13 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         )}
       </div>
 
-      {/* Ιδιώτης: ήρεμη πρόσκληση αναβάθμισης, χωρίς επανάληψη. Ο φάκελος, το
-          Excel και η πύλη λογιστή τα έχει ΗΔΗ — γι' αυτό δεν αναφέρονται εδώ:
-          μια πρόσκληση που υπόσχεται όσα ήδη έχεις δεν πουλάει, ακυρώνει. */}
-      {mode==='individual' && (
+      {/* ΠΡΟΣΚΛΗΣΗ ΜΟΝΟ ΣΕ ΟΠΟΙΟΝ ΔΕΝ ΤΑ ΕΧΕΙ ΗΔΗ. Ήταν δεμένη στο προφίλ, ενώ ό,τι
+          διαφημίζει (ισοζύγιο, ημερολόγιο άρθρων) κρίνεται πλέον από τη
+          ΣΥΝΔΡΟΜΗ: ο συνεργάτης με πλάνο Επαγγελματία και προφίλ Ιδιώτη έβλεπε
+          το ημερολόγιο άρθρων να δουλεύει, και από κάτω μια κάρτα να του
+          πουλάει το ημερολόγιο άρθρων. Ο φάκελος, το Excel και η πύλη λογιστή
+          δεν αναφέρονται καθόλου: τα έχει ήδη κάθε συνδρομητής. */}
+      {!canJournal && (
         <div style={{ ...card, padding:'20px 22px' }}>
           <div style={{ display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
             <div style={{ flex:1, minWidth:240 }}>

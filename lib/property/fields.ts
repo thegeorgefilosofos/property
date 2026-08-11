@@ -253,7 +253,11 @@ export const ACCOUNTING_FIELDS: readonly FieldRule[] = [
   { id: 'acc.advance_tax', label: 'Προκαταβολή φόρου', why: 'Αφορά επιχειρηματικό εισόδημα, όχι ενοίκια φυσικού προσώπου.', when: c => c.business },
   { id: 'acc.building_depreciation', label: 'Απόσβεση κτιρίου', why: 'Μόνο όταν το ακίνητο είναι στα βιβλία επιχείρησης.', when: c => c.business },
   { id: 'acc.balance_sheet', label: 'Ισολογισμός', why: 'Υπάρχει μόνο στα διπλογραφικά. Μια Ο.Ε. με απλογραφικά δεν συντάσσει.', when: c => c.doubleEntry },
-  { id: 'acc.journal', label: 'Ημερολόγιο άρθρων', why: 'Μόνο στα διπλογραφικά.', when: c => c.doubleEntry },
+  // Δύο προϋποθέσεις, και οι δύο αληθινές: το ημερολόγιο υπάρχει μόνο στα
+  // διπλογραφικά (γεγονός) και δίνεται από το πακέτο «Επαγγελματίας» και πάνω
+  // (εμπορικός όρος, βλ. FEATURE_MIN_PLAN.accounting_journal). Το μητρώο έλεγε
+  // μόνο το πρώτο, οπότε υποσχόταν εργαλείο σε συνδρομητή που δεν το βλέπει.
+  { id: 'acc.journal', label: 'Ημερολόγιο άρθρων', why: 'Μόνο στα διπλογραφικά, με το πακέτο Επαγγελματίας.', when: c => c.doubleEntry },
   { id: 'acc.inventory_count', label: 'Απογραφή τέλους χρήσης', why: 'Μόνο στα διπλογραφικά.', when: c => c.doubleEntry, rare: true },
   { id: 'acc.loan_interest', label: 'Τόκοι δανείου', why: 'Εκπίπτουν όταν το δάνειο αφορά το ακίνητο που αποδίδει.', when: c => c.hasLoan === true && letsIt(c) },
   { id: 'acc.portfolio_consolidation', label: 'Ενοποίηση χαρτοφυλακίου', why: 'Ο φόρος είναι προοδευτικός στο ΣΥΝΟΛΟ των ενοικίων, όχι ανά ακίνητο.', when: c => c.propertyCount >= 2 },

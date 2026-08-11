@@ -502,7 +502,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
           <div className="ref-hover-accent" style={{ ...card, padding: PAD, marginBottom: T.sp.xl, ...(partner ? { borderColor: 'var(--accent-border)', background: 'linear-gradient(180deg, var(--accent-soft), transparent 140%)' } : {}) }}>
             {partner ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
-                <TierBadge tier="partner" showLabel={false} size={56} />
+                <TierBadge tier="partner" size={56} />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <span style={{ ...TT.h2, color: 'var(--accent)' }}>Είσαι Συνεργάτης Property OS</span>
                   <span style={{ ...TT.bodySm }}>Ενεργή ιδιότητα. Να τι απολαμβάνεις:</span>

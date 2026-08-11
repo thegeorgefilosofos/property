@@ -72,7 +72,7 @@ eq('το «Άλλο» δεν παράγει χαρακτηρισμό', myDataHin
 eq('ούτε με δικαίωμα έκπτωσης', myDataHint({ category: 'Άλλο', vat: 'full' }).expenseClass, null);
 eq('ούτε τύπο παραστατικού από το εξωτερικό', myDataHint({ category: 'Άλλο', supply: 'intra_eu' }).invoiceType, null);
 eq('και το λέει', myDataHint({ category: 'Άλλο' }).needsInput, true);
-eq('το κελί μένει κενό', myDataCell(myDataHint({ category: 'Άλλο', supply: 'third_country', vat: 'none' })), '');
+eq('και το κελί ζητά κατηγορία', myDataCell(myDataHint({ category: 'Άλλο', supply: 'third_country', vat: 'none' })), 'Ζητά κατηγορία');
 // Το τέλος δεν έχει τιμολόγιο προμηθευτή ούτε όταν έρθει από το εξωτερικό.
 eq('τέλος από κράτος μέλος, κανένας τύπος', myDataHint({ category: 'ΕΝΦΙΑ', supply: 'intra_eu' }).invoiceType, null);
 
@@ -81,8 +81,15 @@ eq('εγχώρια υπηρεσία', myDataCell(myDataHint({ category: 'plumber
 eq('ενδοκοινοτική συνδρομή χωρίς έκπτωση',
   myDataCell(myDataHint({ category: 'subscription', supply: 'intra_eu', vat: 'none' })),
   '14.3 · 2.5 Γενικά Έξοδα χωρίς δικαίωμα έκπτωσης Φ.Π.Α.');
-eq('όταν λείπει ο χαρακτηρισμός, μένει ο τύπος',
-  myDataCell(myDataHint({ category: 'subscription', supply: 'third_country' })), '14.4');
+// ΤΟ ΚΕΝΟ ΚΕΛΙ ΕΙΝΑΙ ΔΥΟ ΔΙΑΦΟΡΕΤΙΚΑ ΠΡΑΓΜΑΤΑ ΚΑΙ ΦΑΙΝΕΤΑΙ ΙΔΙΟ. Ο λογιστής που
+// ανοίγει στήλη με κενά δεν ξεχωρίζει το «δεν χαρακτηρίζεται» από το «δεν
+// μπόρεσα να αποφασίσω»: το πρώτο κλείνει τη γραμμή, το δεύτερο ζητά απάντηση.
+eq('ο τύπος μένει, και δίπλα του η εκκρεμότητα',
+  myDataCell(myDataHint({ category: 'subscription', supply: 'third_country' })), '14.4 · Ζητά δικαίωμα έκπτωσης ΦΠΑ');
+eq('ο ΕΝΦΙΑ λέει ότι δεν χαρακτηρίζεται', myDataCell(myDataHint({ category: 'ΕΝΦΙΑ' })), 'Δεν χαρακτηρίζεται');
+eq('το πάγιο το λέει κι αυτό', myDataCell(myDataHint({ category: 'ψυγείο', supply: 'intra_eu' })), '14.1 · Πάγιο');
+eq('ο πλήρης χαρακτηρισμός δεν κουβαλά εκκρεμότητα',
+  myDataCell(myDataHint({ category: 'plumber', supply: 'domestic' })), '2.3 Λήψη Υπηρεσιών');
 
 console.log('\nΛεκτικά');
 eq('πέντε κατηγορίες', Object.keys(EXPENSE_CLASS_LABEL).length, 5);

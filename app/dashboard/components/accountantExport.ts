@@ -340,15 +340,25 @@ export function exportAccountantDossier(inp: DossierExportInput): void {
   ]);
 
   // ── 02 / 03 · Οι κινήσεις, χωριστά ───────────────────────────────────────
-  const movementCsv = (rows: AccountantMovement[], head: string) => csv([
-    [head],
-    [idLine],
-    [],
-    ['Α/Α', 'Ημερομηνία', 'Κατηγορία', 'Περιγραφή', 'Ποσό (€)'],
-    ...rows.map((e, i) => [i + 1, grDate(e.date), e.category || '', e.description || '', grNum(e.amount)]),
-    [],
-    ['', '', '', 'ΣΥΝΟΛΟ', grNum(sum(rows))],
-  ]);
+  // Ο ΧΑΡΑΚΤΗΡΙΣΜΟΣ ΛΕΙΠΕΙ ΑΚΡΙΒΩΣ ΑΠΟ ΤΟ ΑΡΧΕΙΟ ΠΟΥ ΛΕΓΕΤΑΙ «ΕΞΟΔΑ». Ο λογιστής
+  // που θέλει να χαρακτηρίσει τις δαπάνες ανοίγει τον φάκελο 03 και βρίσκει
+  // πέντε στήλες χωρίς αυτόν, ενώ το Excel της σύνοψης τον έχει. Μπαίνει και εδώ,
+  // με τον ίδιο κανόνα: μόνο όπου υπάρχει υποχρέωση myDATA, και μόνο στα έξοδα.
+  const mdCsv = (e: AccountantMovement): string =>
+    !inp.myData || e.type !== 'expense' ? ''
+      : myDataCell(myDataHint({ category: e.category, supply: e.supply as Supply | null, vat: inp.myData.vat }));
+  const movementCsv = (rows: AccountantMovement[], head: string) => {
+    const md = !!inp.myData && rows.some(r => r.type === 'expense');
+    return csv([
+      [head],
+      [idLine],
+      [],
+      ['Α/Α', 'Ημερομηνία', 'Κατηγορία', 'Περιγραφή', ...(md ? ['Χαρακτηρισμός myDATA'] : []), 'Ποσό (€)'],
+      ...rows.map((e, i) => [i + 1, grDate(e.date), e.category || '', e.description || '', ...(md ? [mdCsv(e)] : []), grNum(e.amount)]),
+      [],
+      ['', '', '', 'ΣΥΝΟΛΟ', ...(md ? [''] : []), grNum(sum(rows))],
+    ]);
+  };
 
   // ── 04 · Ο κατάλογος των παραστατικών ────────────────────────────────────
   const checklist = csv([

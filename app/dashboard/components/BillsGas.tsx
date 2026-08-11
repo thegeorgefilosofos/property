@@ -75,19 +75,19 @@ const GAS_PROVIDERS: { value: string; label: string; url: string; tariffs: GasTa
     value: 'nrg', label: 'nrg (Motor Oil)', url: 'https://www.nrg.gr',
     tariffs: [
       { id: 'nrg_fixed',      name: 'nrg fixed GAS',          badge: 'ΜΠΛΕ',    type: 'fixed',    segment: 'residential', priceStatus: 'verified',
-        kwh: 0.0470, fixed: 4.80, fixedNote: 'Έκπτωση παγίου: −30% με e-bill + πάγια εντολή, −20% με πάγια εντολή, −10% με e-bill', vat: 6, contract_months: 12,
+        kwh: 0.0470, fixed: 4.80, fixedNote: 'Έκπτωση παγίου: −30% με ηλεκτρονικό λογαριασμό και πάγια εντολή, −20% με πάγια εντολή, −10% με ηλεκτρονικό λογαριασμό', vat: 6, contract_months: 12,
         desc: 'Σταθερή τιμή για 12 μήνες, χωρίς προϋποθέσεις και χωρίς ρήτρα αναπροσαρμογής.', sourceNote: 'Επίσημη τιμή nrg, επαληθεύτηκε Ιούλιος 2026' },
       { id: 'nrg_fixed_ot',   name: 'nrg fixed on time GAS',  badge: 'ΜΠΛΕ',    type: 'fixed',    segment: 'residential', priceStatus: 'verified',
         kwh: 0.0350, fixed: 4.80, fixedNote: 'Τελική τιμή με Έκπτωση Συνέπειας ΚΑΙ συνδυασμό με ρεύμα nrg', vat: 6, contract_months: 12,
         desc: 'Σταθερό 12μηνο. Η τιμή 0,035 €/kWh ισχύει με εμπρόθεσμη πληρωμή και ρεύμα nrg, αλλιώς ισχύει υψηλότερη βασική τιμή.', sourceNote: 'Επίσημη τιμή nrg, επαληθεύτηκε Ιούλιος 2026' },
       { id: 'nrg_ontime',     name: 'nrg on time GAS',        badge: 'ΚΙΤΡΙΝΟ', type: 'variable', segment: 'residential', priceStatus: 'formula',
-        ttfMultiplier: 1.10, ttfMargin: 0.0126, fixed: 4.80, fixedNote: 'Πάγιο με εκπτώσεις: 1,8 € (πάγια εντολή + e-bill), 2,8 € (πάγια εντολή), 3,8 € (e-bill)', vat: 6,
+        ttfMultiplier: 1.10, ttfMargin: 0.0126, fixed: 4.80, fixedNote: 'Πάγιο με εκπτώσεις: 1,80 € με πάγια εντολή και ηλεκτρονικό λογαριασμό, 2,80 € με πάγια εντολή, 3,80 € με ηλεκτρονικό λογαριασμό', vat: 6,
         desc: 'Κυμαινόμενο: (1,10 × TTF) + 0,0126 €/kWh με Έκπτωση Συνέπειας 40% στο περιθώριο. Χωρίς έκπτωση: περιθώριο 0,0210 €/kWh. Χωρίς δέσμευση.', sourceNote: 'Τύπος από επίσημη σελίδα nrg' },
       { id: 'nrg_prime',      name: 'nrg prime GAS',          badge: 'ΚΙΤΡΙΝΟ', type: 'variable', segment: 'residential', priceStatus: 'formula',
         ttfMultiplier: 1.00, ttfMargin: 0.0090, fixed: 4.80, fixedNote: 'Προνομιακές εκπτώσεις παγίου', vat: 6,
         desc: 'Ενέργεια στο κόστος + 0,009 €/kWh. Για αυτόνομη ή κεντρική θέρμανση, χωρίς ρήτρα αναπροσαρμογής και χωρίς δέσμευση.', sourceNote: 'Τύπος από επίσημη σελίδα nrg' },
       { id: 'nrg_ontime_biz', name: 'nrg on time GAS 4BUSINESS', badge: 'ΚΙΤΡΙΝΟ', type: 'variable', segment: 'business', priceStatus: 'formula',
-        ttfMultiplier: 1.10, ttfMargin: 0.0099, fixed: 4.80, fixedNote: 'Μηδενικό πάγιο με πάγια εντολή + e-bill', vat: 24,
+        ttfMultiplier: 1.10, ttfMargin: 0.0099, fixed: 4.80, fixedNote: 'Μηδενικό πάγιο με πάγια εντολή και ηλεκτρονικό λογαριασμό', vat: 24,
         desc: 'Επαγγελματικό: (1,10 × TTF) + 0,0099 €/kWh με Έκπτωση Συνέπειας 40% (αρχικό περιθώριο 0,0165).', sourceNote: 'Τύπος από επίσημη σελίδα nrg' },
     ],
   },
@@ -393,7 +393,14 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
 
             Η παράγραφος του TTF έγινε ⓘ πάνω στο ίδιο του το πεδίο: μια
             επεξήγηση δίπλα σε ένα πεδίο διαβάζεται μία φορά και μετά είναι
-            θόρυβος για πάντα. Η ίδια σύμβαση με το «Πραγματικό κόστος». */}
+            θόρυβος για πάντα. Η ίδια σύμβαση με το «Πραγματικό κόστος».
+
+            ΚΑΙ ΕΙΝΑΙ ΣΥΜΒΟΛΟΣΕΙΡΑ, ΟΧΙ JSX. Το `infoNode` τυλίγει σε κουκκίδα
+            ΜΟΝΟ τις συμβολοσειρές· οτιδήποτε άλλο τυπώνεται αυτούσιο μέσα στην
+            ετικέτα. Με σύνδεσμο μέσα σε <>…</> η επεξήγηση θα ξαναγινόταν
+            παράγραφος, θα φούσκωνε η ετικέτα και το πεδίο θα έπεφτε κάτω από τα
+            διπλανά του. Ο σύνδεσμος δεν χάνεται από αδιαφορία: το tooltip έχει
+            `pointerEvents: none`, οπότε δεν πατιέται ούτως ή άλλως. */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div {...fixedCols(4, 14, 'start')}>
           <CustomSelect label="Διαχειριστής δικτύου" value={s.networkOperator} onChange={v => upd({ networkOperator: v })} options={networkOptions} />
@@ -415,7 +422,7 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
           <NumberInput label="Πραγματικό κόστος τον μήνα" labelInfo="Ολόκληρο το ποσό του λογαριασμού, με δίκτυο, ΕΦΚ και ΦΠΑ. Χρησιμοποιείται για την παρακολούθηση κόστους, ΟΧΙ για τη σύγκριση παρόχων: εκεί συγκρίνεται προμήθεια με προμήθεια."
             value={s.gasMonthly} onChange={v => upd({ gasMonthly: v })} suffix="€"/>
           <NumberInput label="Τρέχουσα τιμή TTF" value={s.ttfPrice} onChange={v => upd({ ttfPrice: v })} suffix="€/MWh" step={1}
-            labelInfo={<>Τα κυμαινόμενα προγράμματα (σήμανση ƒ) υπολογίζονται από τον επίσημο τύπο του παρόχου με βάση αυτή την τιμή. Η μηνιαία τιμή δημοσιεύεται στο <a href="https://www.eex.com" target="_blank" rel="noopener noreferrer" title="Ευρωπαϊκό Χρηματιστήριο Ενέργειας (European Energy Exchange)" style={{ color: 'var(--accent)', textDecoration: 'none' }}>EEX</a> και στους λογαριασμούς των παρόχων.</>}/>
+            labelInfo="Τα κυμαινόμενα προγράμματα (σήμανση ƒ) υπολογίζονται από τον επίσημο τύπο του παρόχου με βάση αυτή την τιμή. Η μηνιαία τιμή δημοσιεύεται στο Ευρωπαϊκό Χρηματιστήριο Ενέργειας (EEX) και στους λογαριασμούς των παρόχων."/>
         </div>
         </div>
 

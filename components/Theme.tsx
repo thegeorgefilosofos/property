@@ -438,11 +438,11 @@ export function Chip({ children, tone = 'neutral', title }: { children: ReactNod
 // Premium, minimal, μονοχρωματικά (accent + ουδέτερα): η διαφοροποίηση γίνεται
 // με σχήμα, βάρος, elevation και —μόνο για τον Συνεργάτη— διακριτικό gradient
 // & λάμψη. Καθαρά, χωρίς color noise, στο ίδιο design system με το app.
-export function TierBadge({ tier, showLabel = true, size = 40 }: { tier: 'owner' | 'agency' | 'partner'; showLabel?: boolean; size?: number }) {
+export function TierBadge({ tier, size = 40 }: { tier: 'owner' | 'agency' | 'partner'; size?: number }) {
   const cfg = {
-    owner:   { label: 'Ιδιώτης',      ring: 'var(--border-default)', ic: 'var(--text-secondary)', text: 'var(--text-secondary)' },
-    agency:  { label: 'Επαγγελματίας', ring: 'var(--accent-border)',  ic: 'var(--accent)',          text: 'var(--accent)' },
-    partner: { label: 'Συνεργάτης',    ring: 'var(--accent)',         ic: 'var(--accent-text)',     text: 'var(--accent)' },
+    owner:   { ring: 'var(--border-default)', ic: 'var(--text-secondary)' },
+    agency:  { ring: 'var(--accent-border)',  ic: 'var(--accent)' },
+    partner: { ring: 'var(--accent)',         ic: 'var(--accent-text)' },
   }[tier];
   const isPartner = tier === 'partner';
   // Χτυπημένο «νόμισμα/σφραγίδα»: βάση με λεπτή εσωτερική στεφάνη + top sheen.
@@ -495,19 +495,12 @@ export function TierBadge({ tier, showLabel = true, size = 40 }: { tier: 'owner'
       )}
     </span>
   );
-  if (!showLabel) return medallion;
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-      {medallion}
-      {/* Σταθερό πλάτος στήλης: το μετάλλιο και η ετικέτα «Ιδιότητα» δεν
-          μετακινούνται όταν αλλάζει η ιδιότητα· προσαρμόζεται μόνο η λέξη
-          (Ιδιώτης / Επαγγελματίας / Συνεργάτης). */}
-      <span style={{ display: 'inline-flex', flexDirection: 'column', lineHeight: 1.15, minWidth: 104 }}>
-        <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Ιδιότητα</span>
-        <span style={{ fontSize: 14, fontWeight: 700, color: cfg.text, fontFamily: T.font.sans, letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>{cfg.label}</span>
-      </span>
-    </span>
-  );
+  // ΤΟ ΜΕΤΑΛΛΙΟ ΕΙΝΑΙ ΣΗΜΑ, ΟΧΙ ΕΤΙΚΕΤΑ. Υπήρχε και δεύτερο σκέλος που τύπωνε
+  // «ΙΔΙΟΤΗΤΑ · Επαγγελματίας» δίπλα του. Και οι τέσσερις οθόνες που το
+  // χρησιμοποιούν γράφουν ήδη μόνες τους τι είναι ο χρήστης — η τελευταία, οι
+  // Ρυθμίσεις, το έλεγε ΤΡΕΙΣ φορές στην ίδια κάρτα. Έμεινε κώδικας που δεν
+  // καλείται από πουθενά, μαζί με δύο πεδία χρώματος που κανείς δεν διαβάζει.
+  return medallion;
 }
 
 // ═══ InfoBanner, η γραμμή ειδοποίησης με την τελεία (dot) των Bills ═══════

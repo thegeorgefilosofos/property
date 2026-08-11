@@ -216,7 +216,7 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
                     την ίδια κορδέλα και η σειρά του τίτλου μένει στο όνομα. */}
                 {(popular || isCurrent) && (
                   <span style={{ position: 'absolute', top: -9, left: '50%', transform: 'translateX(-50%)', display: 'inline-flex', alignItems: 'center', gap: 6, background: isCurrent ? 'var(--bg-surface)' : 'var(--accent)', color: isCurrent ? 'var(--accent)' : 'var(--accent-text)', border: isCurrent ? '1px solid var(--accent-border)' : 'none', borderRadius: 100, padding: '2px 10px', fontSize: 9, fontWeight: 700, fontFamily: T.font.sans, letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>
-                    {isCurrent && <span className="acc-live-dot accent" style={{ width: 5, height: 5, background: 'var(--accent)' }} />}
+                    {isCurrent && <span className="acc-live-dot accent" style={{ width: 6, height: 6, background: 'var(--accent)' }} />}
                     {isCurrent ? 'Το πλάνο σου' : 'Πιο δημοφιλές'}
                   </span>
                 )}
@@ -226,7 +226,7 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
                     πληροφορία· δύο στοιχεία το ένα πάνω στο άλλο δεν είναι. */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 22 }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                    {(id === 'owner' || id === 'agency') && <TierBadge tier={id} showLabel={false} size={22} />}
+                    {(id === 'owner' || id === 'agency') && <TierBadge tier={id} size={22} />}
                     <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
                   </span>
                   {locked && (

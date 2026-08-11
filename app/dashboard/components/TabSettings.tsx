@@ -537,7 +537,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
             το «Πακέτο Επαγγελματίας» και δεν καταλάβαινε ποιο ισχύει.
             Το μετάλλιο μένει ως σήμα, χωρίς λέξεις: οι λέξεις ζουν εκεί που
             επιλέγονται. */}
-        <SecHdr label="Συνδρομή" right={<TierBadge tier={tier} showLabel={false} size={32} />} />
+        <SecHdr label="Συνδρομή" right={<TierBadge tier={tier} size={32} />} />
 
         {/* Τρέχον πλάνο */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>

@@ -1860,7 +1860,7 @@ export default function Dashboard() {
                   το μενού, με ένα όνομα. */}
               <span title={isPartner?'Είσαι Συνεργάτης Property OS':`Ιδιότητα: ${effProfileType==='professional'?'Επαγγελματίας':'Ιδιώτης'}`}
                 style={{display:'flex',alignItems:'center',height:T.h.md,marginRight:8}}>
-                <TierBadge tier={isPartner?'partner':(effProfileType==='professional'?'agency':'owner')} showLabel={false} size={30} />
+                <TierBadge tier={isPartner?'partner':(effProfileType==='professional'?'agency':'owner')} size={30} />
               </span>
               <button onClick={()=>setCmdkOpen(true)} title={`Αναζήτηση και γρήγορες ενέργειες (${kbdHint})`} aria-label="Αναζήτηση" style={{display:'flex',alignItems:'center',gap:8,height:T.h.md,padding:'0 10px 0 12px',borderRadius:18,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',cursor:'pointer',marginRight:4}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                 <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>

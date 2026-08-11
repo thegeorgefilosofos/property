@@ -114,6 +114,16 @@ export interface MyDataHint {
   /** Μία πρόταση για άνθρωπο: τι προτείνεται, ή τι λείπει για να προταθεί. */
   note: string;
   /**
+   * Τι γράφεται στο κελί όταν ΔΕΝ υπάρχει κωδικός. Δύο ή τρεις λέξεις.
+   *
+   * ΤΟ ΚΕΝΟ ΚΕΛΙ ΕΙΝΑΙ ΔΥΟ ΔΙΑΦΟΡΕΤΙΚΑ ΠΡΑΓΜΑΤΑ ΚΑΙ ΦΑΙΝΕΤΑΙ ΙΔΙΟ. «Δεν
+   * χαρακτηρίζεται» (ο ΕΝΦΙΑ) και «δεν μπόρεσα να αποφασίσω» (γενικό έξοδο
+   * χωρίς δηλωμένο δικαίωμα έκπτωσης) είναι αντίθετα μηνύματα: το πρώτο
+   * κλείνει τη γραμμή, το δεύτερο ζητά απάντηση. Ο λογιστής που βλέπει στήλη
+   * με κενά δεν ξεχωρίζει ποιες γραμμές του ζητούν δουλειά.
+   */
+  pending: string;
+  /**
    * Λείπει στοιχείο που έχει ΜΟΝΟ ο λογιστής ή ο χρήστης.
    *
    * Δεν σημαίνει «αβέβαιος κωδικός», σημαίνει «η γραμμή δεν αποφασίζεται από τα
@@ -123,7 +133,7 @@ export interface MyDataHint {
   needsInput: boolean;
 }
 
-const EMPTY: MyDataHint = { expenseClass: null, invoiceType: null, note: '', needsInput: false };
+const EMPTY: MyDataHint = { expenseClass: null, invoiceType: null, note: '', pending: '', needsInput: false };
 
 /**
  * Ο τύπος παραστατικού που διαβιβάζει ο λήπτης, από τον τόπο παροχής.
@@ -167,35 +177,35 @@ export function myDataHint(input: {
     : '';
 
   if (nature === 'unknown') {
-    return { expenseClass: null, invoiceType: null, needsInput: true,
+    return { expenseClass: null, invoiceType: null, needsInput: true, pending: 'Ζητά κατηγορία',
       note: 'Η κατηγορία «Άλλο» δεν λέει τι είναι η δαπάνη. Δώσε της κατηγορία και ο χαρακτηρισμός προκύπτει μόνος του.' };
   }
 
   if (nature === 'levy') {
-    return { expenseClass: null, invoiceType: null, needsInput: true,
+    return { expenseClass: null, invoiceType: null, needsInput: true, pending: 'Δεν χαρακτηρίζεται',
       note: 'Φόρος ή τέλος χωρίς τιμολόγιο προμηθευτή: δεν χαρακτηρίζεται ως έξοδο myDATA. Ο λογιστής το περνά από δική του εγγραφή.' };
   }
 
   if (nature === 'asset') {
-    return { expenseClass: null, invoiceType, needsInput: true,
+    return { expenseClass: null, invoiceType, needsInput: true, pending: 'Πάγιο',
       note: `Πάγιο, όχι έξοδο χρήσης: ο χαρακτηρισμός γίνεται στα πάγια και η δαπάνη αποσβένεται.${abroad}` };
   }
 
   if (nature === 'service') {
-    return { expenseClass: '2.3', invoiceType, needsInput: false,
+    return { expenseClass: '2.3', invoiceType, needsInput: false, pending: '',
       note: `Λήψη υπηρεσίας από τεχνικό ή επαγγελματία: ${EXPENSE_CLASS_LABEL['2.3']} (2.3).${abroad}` };
   }
 
   // Γενικό έξοδο: το 2.4 και το 2.5 τα χωρίζει ΜΟΝΟ το δικαίωμα έκπτωσης.
   if (vat === 'full') {
-    return { expenseClass: '2.4', invoiceType, needsInput: false,
-      note: `Γενικό έξοδο, με δικαίωμα έκπτωσης του ΦΠΑ εισροών: ${EXPENSE_CLASS_LABEL['2.4']} (2.4).${abroad}` };
+    return { expenseClass: '2.4', invoiceType, needsInput: false, pending: '',
+      note: `Υπάρχει δικαίωμα έκπτωσης του ΦΠΑ των εισροών: ${EXPENSE_CLASS_LABEL['2.4']} (2.4).${abroad}` };
   }
   if (vat === 'none') {
-    return { expenseClass: '2.5', invoiceType, needsInput: false,
-      note: `Γενικό έξοδο χωρίς δικαίωμα έκπτωσης ΦΠΑ, γιατί οι εκροές απαλλάσσονται: ${EXPENSE_CLASS_LABEL['2.5']} (2.5).${abroad}` };
+    return { expenseClass: '2.5', invoiceType, needsInput: false, pending: '',
+      note: `Οι εκροές απαλλάσσονται, άρα ο ΦΠΑ των εισροών δεν εκπίπτει: ${EXPENSE_CLASS_LABEL['2.5']} (2.5).${abroad}` };
   }
-  return { expenseClass: null, invoiceType, needsInput: true,
+  return { expenseClass: null, invoiceType, needsInput: true, pending: 'Ζητά δικαίωμα έκπτωσης ΦΠΑ',
     note: `Γενικό έξοδο. Το 2.4 ή το 2.5 κρίνεται από το αν εκπίπτεις τον ΦΠΑ των εισροών σου, που δεν έχει δηλωθεί.${abroad}` };
 }
 
@@ -207,8 +217,11 @@ export function myDataHint(input: {
  */
 export function myDataCell(h: MyDataHint): string {
   const cls = h.expenseClass ? `${h.expenseClass} ${EXPENSE_CLASS_LABEL[h.expenseClass]}` : '';
-  if (h.invoiceType && cls) return `${h.invoiceType} · ${cls}`;
-  return h.invoiceType || cls;
+  const code = h.invoiceType && cls ? `${h.invoiceType} · ${cls}` : (h.invoiceType || cls);
+  if (code && !h.pending) return code;
+  // Ο κωδικός πρώτος, η εκκρεμότητα δίπλα του: μια ενδοκοινοτική απόκτηση
+  // παγίου έχει τύπο παραστατικού (14.1) ΚΑΙ ανοιχτό χαρακτηρισμό.
+  return [code, h.pending].filter(Boolean).join(' · ');
 }
 
 /** Οι κατηγορίες της ταξινομίας που δεν έχουν γραμμή εδώ — πρέπει να είναι καμία. */

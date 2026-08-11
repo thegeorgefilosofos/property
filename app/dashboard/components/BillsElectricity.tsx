@@ -467,8 +467,12 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                   δηλαδή ένα ΑΠΟΤΕΛΕΣΜΑ ντυμένο σαν πεδίο, ανάμεσα σε πεδία που
                   όντως συμπληρώνονται. Είναι συνέπεια της έναρξης και της
                   διάρκειας, οπότε ζει εκεί που διαβάζεται η σύμβαση. */}
-              {contractExpiry && (
-                <span style={{ fontSize: 9, fontWeight: 700, color: contractExpiry.daysLeft <= 60 ? 'var(--warning)' : 'var(--text-secondary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, border: `1px solid ${contractExpiry.daysLeft <= 60 ? 'var(--warning)' : 'var(--border-subtle)'}`, fontFamily: T.font.sans }}>
+              {/* ΜΟΝΟ ΟΤΑΝ ΔΕΝ ΤΟ ΛΕΕΙ ΗΔΗ Η ΠΡΟΕΙΔΟΠΟΙΗΣΗ. Κάτω από τις εξήντα
+                  ημέρες, μια μπάρα εκατό εικονοστοιχεία πιο πάνω γράφει την ίδια
+                  ημερομηνία και τις ίδιες ημέρες, στο ίδιο χρώμα. Και ο
+                  πληθυντικός δεν κρατά στο ένα: «σε 1 ημέρες». */}
+              {contractExpiry && contractExpiry.daysLeft > 60 && (
+                <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', fontFamily: T.font.sans }}>
                   Λήγει {contractExpiry.date}, σε {contractExpiry.daysLeft} ημέρες
                 </span>
               )}
@@ -484,7 +488,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                 </span>
               </div>
             )}
-            {/* FIX: new, Picasso-family flat packages had no explanation of the tolerance/overage/settlement mechanic anywhere in the UI */}
+            {/* Τα σταθερά μηνιαία πακέτα δεν εξηγούσαν πουθενά την ανοχή, την υπέρβαση και την ετήσια εκκαθάριση: ο χρήστης έβλεπε ένα ποσό και δεν ήξερε τι το σπάει. */}
             {tariff.type === 'fixed_monthly' && tariff.flat_annual_kwh != null && tariff.flat_overage_rate != null && (
               <div style={{ marginTop: 6, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, padding: '6px 12px', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                 <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
@@ -508,12 +512,17 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                     Άνω των {tariff.tier2_threshold} kWh:{' '}<strong style={{ color: tariffBc.color, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fk(tariff.kwh_tier2)} / kWh</strong>
                   </span>
                 )}
-                <span style={FACT}>
-                  Πάγιο:{' '}<strong style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{tariff.no_fixed ? '0,00 €' : `${fe(((useEbill && tariff.fixed_ebill != null) ? tariff.fixed_ebill : tariff.fixed))} / μήνα`}</strong>
-                </span>
+                {/* Το «Χωρίς πάγιο» το λέει ήδη η σήμανση από πάνω. Ένα
+                    «Πάγιο: 0,00 €» δίπλα της είναι η ίδια πληροφορία δεύτερη
+                    φορά — και μάλιστα χωρίς τη μονάδα που έχουν τα υπόλοιπα. */}
+                {!tariff.no_fixed && (
+                  <span style={FACT}>
+                    Πάγιο:{' '}<strong style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe((useEbill && tariff.fixed_ebill != null) ? tariff.fixed_ebill : tariff.fixed)} / μήνα</strong>
+                  </span>
+                )}
               </div>
             )}
-            {/* FIX: new, fixed_monthly tariffs previously showed nothing here at all (the block above explicitly excludes them) */}
+            {/* Τα σταθερά μηνιαία δεν έδειχναν ΤΙΠΟΤΑ εδώ: το από πάνω μπλοκ τα εξαιρεί ρητά, και κανένα άλλο δεν τα έπιανε. */}
             {tariff.type === 'fixed_monthly' && (
               <div style={{ display: 'flex', gap: 20, marginTop: 10, flexWrap: 'wrap' as const, alignItems: 'center' }}>
                 <span style={FACT}>
@@ -811,7 +820,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
         const kwhNum   = usageEst.kwhMonthly || 0;
         const costNum  = calcMonthly;
 
-        // FIX: new, warn if the SELECTED flat-tier package's kWh limit is smaller than
+        // Προειδοποίηση όταν το όριο kWh του ΕΠΙΛΕΓΜΕΝΟΥ πακέτου είναι μικρότερο από
         // the user's actual projected usage. Without this, someone could pick "Picasso
         // μικρό πακέτο ενώ καταναλώνουν πολύ περισσότερο, χωρίς καμία ένδειξη ότι θα χρεωθούν υπέρβαση.
         // ΔΥΟ ΣΦΑΛΜΑΤΑ ΠΟΥ ΑΠΟΚΑΛΥΨΕ Ο ΦΡΟΥΡΟΣ ΤΟΥ ΚΑΤΑΛΟΓΟΥ:

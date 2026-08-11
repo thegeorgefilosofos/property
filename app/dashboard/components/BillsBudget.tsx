@@ -14,7 +14,7 @@ import * as calendar from '@/lib/data/calendar'
 import { TextInput } from './UIComponents';
 import { T, TT, fe, feAuto, fp, fn, fixedCols, Skeleton, SkeletonKPIs, pressable } from '@/components/Theme';
 import { waterMonthly } from '@/lib/energy/tariff';
-import { monthGen } from '@/lib/core/months';
+import { monthAcc, monthGen } from '@/lib/core/months';
 import { randomSuffix } from '@/lib/core/uploadPath';
 import { notify } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
@@ -22,7 +22,7 @@ import { forecastMonthEnd, categoryStatus, annualSummary, periodTrend, detectRec
 import { rolloverNext, strWaterfall, investmentReturns } from '@/lib/billing/budgetPro';
 import { incomeStatement } from '@/lib/accounting/statement';
 import { annuityMonthly, interestForYear } from '@/lib/loans/recommend';
-import { LOAN_COLUMNS, toLoanViews, isActiveLoan } from '@/lib/loans/shape';
+import { isActiveLoan } from '@/lib/loans/shape';
 import { InfoDot } from './UIComponents';
 import { KPI } from './LoanShared';
 import BudgetImport from './BudgetImport';
@@ -39,25 +39,10 @@ const parseLocalDate = (s: string): Date => {
   const [y, m, d] = s.split('-').map(Number);
   return new Date(y || 1970, (m || 1) - 1, d || 1);   // τοπική ημερομηνία (όχι UTC) — χωρίς off-by-one στα όρια
 };
-const monthsUntilDue = (due?: string): number => {
-  if (!due) return 0;
-  const d = parseLocalDate(due), now = new Date();
-  if (d < new Date(now.getFullYear(), now.getMonth(), now.getDate())) return 0;
-  const m = (d.getFullYear() - now.getFullYear()) * 12 + (d.getMonth() - now.getMonth());
-  return Math.max(1, m);
-};
-
 // Κατηγορίες που θεωρούνται «σταθερές» (πάγιοι λογαριασμοί, χρεώνονται ολόκληρο
 // τον μήνα) — δεν προβάλλονται γραμμικά. Οι υπόλοιπες συσσωρεύονται μέσα στον μήνα.
 const FIXED_CATS = ['electricity', 'water', 'internet', 'heating', 'insurance', 'subscriptions', 'services', 'common'];
 const ymOf = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-// Προτεινόμενη ημερομηνία-στόχος ΕΝΦΙΑ: τέλος Φεβρουαρίου (τελευταία δόση).
-const nextFeb = (): string => {
-  const now = new Date();
-  const y = now.getMonth() >= 1 ? now.getFullYear() + 1 : now.getFullYear();
-  return `${y}-02-28`;
-};
-
 // Μικρογράφημα τάσης 12 μηνών ανά κατηγορία (από το φορτωμένο ιστορικό). Το σημείο
 // του επιλεγμένου μήνα τονίζεται με γαλάζιο. Κρύβεται αν δεν υπάρχει καθόλου ιστορικό.
 function Sparkline({ values, activeIndex }: { values: number[]; activeIndex: number }) {
@@ -252,7 +237,6 @@ const CATS = [
   { key: 'other',        label: 'Λοιπές δαπάνες',      default: 50  },
 ] as const;
 
-type CatKey = typeof CATS[number]['key'];
 
 // Ποιος πληρώνει μια δαπάνη που εξαιρείται από τον προϋπολογισμό.
 const PAYERS = ['Οικογένεια', 'Ενοικιαστής', 'Ασφαλιστική', 'Άλλος'] as const;
@@ -628,7 +612,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         .reduce((s: number, l) => s + interestForYear(l.amount, l.rate, Number(l.years) || 0, 1), 0);
       const regime: 'individual_longterm' | 'individual_shortterm' | 'business' =
         isPro ? 'business' : rMode === 'short_term' ? 'individual_shortterm' : 'individual_longterm';
-      let taxTargetAnnual = 0, taxPerMonth = 0, taxIsBusiness = false;
+      let taxTargetAnnual = 0;
       if (annualGross > 0) {
         const stmt = incomeStatement({
           regime, grossIncome: annualGross,
@@ -636,12 +620,9 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
           ...(isPro ? { itemizedExpenses: annualOpex, loanInterest: Math.round(loanInterestAnnual) } : {}),
           loanPrincipal: Math.round(loanM * 12),
         });
-        taxIsBusiness = isPro;
         // Ιδιώτης: φόρος εισοδήματος. Επιχείρηση: φόρος + προκαταβολή (πραγματική ταμειακή
         // ανάγκη 1ου έτους) — ώστε το αποθεματικό να μην υπολείπεται.
         taxTargetAnnual = Math.round(stmt.incomeTax) + (isPro ? Math.round(stmt.advanceTax) : 0);
-        const remain = Math.max(1, 12 - monthsElapsed + 1);
-        taxPerMonth = Math.ceil(taxTargetAnnual / remain);
       }
       const propValue = Number(propRes?.value) || 0;
 
@@ -887,7 +868,12 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   // «Πραγματικά διαθέσιμα» σε ΚΑΤΑΓΕΓΡΑΜΜΕΝΗ βάση και για τους δύο μήνες (η μεταφορά
   // υπολογίζεται από καταγεγραμμένα σύνολα) — αποφεύγει ανάμειξη με εκτιμήσεις παρόχων.
   const adjAvailable  = masterBudget + carryIn - (monthTotals[_curYm] || 0);
-  const _prevLabel    = new Date(_now.getFullYear(), _now.getMonth() - 1, 1).toLocaleDateString('el-GR', { month: 'long' });
+  // Η ΓΕΝΙΚΗ ΤΟΥ ΜΗΝΑ ΕΡΧΕΤΑΙ ΑΠΡΟΣΚΛΗΤΗ ΑΠΟ ΤΟΝ ΜΟΡΦΟΠΟΙΗΤΗ. Το
+  // `toLocaleDateString('el-GR', { month: 'long' })` επιστρέφει «Ιουλίου», που
+  // είναι σωστό σε ημερομηνία («1 Ιουλίου») και λάθος μόνο του: «Μεταφορά από
+  // Ιουλίου». Το lib/core/months.ts κρατά και τις τρεις πτώσεις γι' αυτόν
+  // ακριβώς τον λόγο.
+  const _prevLabel    = monthAcc(new Date(_now.getFullYear(), _now.getMonth() - 1, 1).getMonth());
 
   // ── Επιλεγμένος μήνας προβολής (πλοήγηση) ────────────────────────────────────
   // Τρέχων μήνας: ζωντανά actuals (με εκτιμήσεις + πρόβλεψη). Παλαιότερος: ΚΑΤΑΓΕΓΡΑΜΜΕΝΑ
@@ -1169,10 +1155,17 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         //
         // Τώρα η σύνθεση γράφεται μία φορά, από τα ΙΔΙΑ τα δεδομένα, και τα
         // πλακίδια εμφανίζονται μόνο όταν έχουν κάτι να σπάσουν.
+        // ΟΙ ΣΥΝΔΡΟΜΕΣ ΕΙΝΑΙ ΗΔΗ ΜΕΣΑ ΣΤΟΥΣ ΛΟΓΑΡΙΑΣΜΟΥΣ. Το `FIXED_CATS` τις
+        // περιέχει, άρα το `committedBills` τις έχει μετρήσει: γραμμένες και
+        // χωριστά, τα σκέλη άθροιζαν παραπάνω από το ίδιο τους το σύνολο και η
+        // πρόταση «πάγια, δόση δανείου και συνδρομές» υποσχόταν τρεις
+        // προσθετέους που δεν προσθέτουν. Αφαιρούνται από τους λογαριασμούς
+        // ώστε το άθροισμα των πλακιδίων να ΕΙΝΑΙ ο αριθμός από πάνω.
+        const subsCost = actuals.subscriptions || 0;
         const parts = [
-          { l: 'Πάγια',        v: committedBills,             sub: 'ρεύμα, νερό, θέρμανση, κοινόχρηστα' },
-          { l: 'Δόση δανείου', v: loanMonthly,                sub: 'τοκοχρεολύσιο του μήνα' },
-          { l: 'Συνδρομές',    v: actuals.subscriptions || 0, sub: 'ό,τι χρεώνεται μόνο του' },
+          { l: 'Λογαριασμοί',  v: committedBills - subsCost, sub: 'ρεύμα, νερό, θέρμανση, τηλέφωνο, ασφάλεια, κοινόχρηστα' },
+          { l: 'Δόση δανείου', v: loanMonthly,               sub: 'τοκοχρεολύσιο του μήνα' },
+          { l: 'Συνδρομές',    v: subsCost,                  sub: 'ό,τι χρεώνεται μόνο του' },
         ].filter(p => p.v !== 0);
         const listOf = (xs: string[]) => xs.length < 2 ? (xs[0] ?? '') : `${xs.slice(0, -1).join(', ')} και ${xs[xs.length - 1]}`;
         const composition = listOf(parts.map(p => p.l.toLowerCase()));
@@ -1182,7 +1175,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
               <div className="po-fig-card" tabIndex={0}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
                   <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>{hasIncome ? (isPro ? 'Διαθέσιμη ταμειακή ροή' : 'Ασφαλές διαθέσιμο') : 'Μηνιαίο κόστος ακινήτου'}</span>
-                  <InfoDot text={hasIncome ? (isPro ? 'Έσοδα μείον τους δεσμευμένους λογαριασμούς, τη δόση του δανείου και τις εισφορές των αποθεματικών. Δηλαδή η ελεύθερη ταμειακή ροή της δραστηριότητας κάθε μήνα.' : 'Έσοδα μείον τους δεσμευμένους λογαριασμούς, τη δόση του δανείου και τις μηνιαίες εισφορές των αποθεματικών. Το ποσό που μπορείς με ασφάλεια να αποσύρεις ή να διαθέσεις κάθε μήνα.') : 'Το άθροισμα των πάγιων λογαριασμών, της δόσης του δανείου και των εισφορών των αποθεματικών. Δηλαδή τι σου κοστίζει το ακίνητο κάθε μήνα.'} />
+                  <InfoDot text={hasIncome ? (isPro ? 'Έσοδα μείον τους δεσμευμένους λογαριασμούς, τη δόση του δανείου και τις εισφορές των αποθεματικών. Δηλαδή η ελεύθερη ταμειακή ροή της δραστηριότητας κάθε μήνα.' : 'Έσοδα μείον τους δεσμευμένους λογαριασμούς, τη δόση του δανείου και τις μηνιαίες εισφορές των αποθεματικών. Το ποσό που μπορείς με ασφάλεια να αποσύρεις ή να διαθέσεις κάθε μήνα.') : 'Το άθροισμα των πάγιων λογαριασμών του μήνα και της δόσης του δανείου. Δηλαδή τι σου κοστίζει το ακίνητο κάθε μήνα.'} />
                 </div>
                 <div className="po-fig" data-tone={hasIncome ? (safeRaw < 0 ? 'negative' : 'accent') : undefined} style={{ fontSize: 28, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1, letterSpacing: '-0.02em', transition: 'color 0.15s' }}>{feAuto(val)}</div>
                 <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6, fontFamily: T.font.sans }}>
@@ -1248,7 +1241,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                   {[
                     { l: 'Έσοδα', v: income },
                     { l: 'Λογαριασμοί', v: committedBills },
-                    { l: 'Δόση', v: loanMonthly },
+                    { l: 'Δόση δανείου', v: loanMonthly },
                     { l: 'Διαθέσιμο', v: safeRaw },
                   ].filter(x => x.v !== 0).map(x => (
                     <span key={x.l} style={{ fontVariantNumeric: 'tabular-nums' }}>{x.l} <strong style={{ color: 'var(--text-primary)', fontFamily: T.font.num }}>{feAuto(x.v)}</strong></span>
@@ -1418,7 +1411,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
               </div>
               {isCurMonth && rolloverOn && hasPrevMonth && carryIn !== 0 && (
                 <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border-subtle)', fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
-                  Μεταφορά από {_prevLabel}: <strong className="po-fig" data-tone={carryIn > 0 ? undefined : 'negative'} style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{carryIn > 0 ? '+' : ''}{feAuto(carryIn)}</strong>
+                  Μεταφορά από τον {_prevLabel}: <strong className="po-fig" data-tone={carryIn > 0 ? undefined : 'negative'} style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{carryIn > 0 ? '+' : ''}{feAuto(carryIn)}</strong>
                   {' · '}πραγματικά διαθέσιμα <strong className="po-fig" data-tone={adjAvailable < 0 ? 'negative' : undefined} style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{feAuto(adjAvailable)}</strong>
                 </div>
               )}

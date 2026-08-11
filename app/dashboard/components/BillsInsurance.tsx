@@ -1387,8 +1387,10 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
               )}
             </div>
 
+            {/* Το `containerType` δίνει στα σπασίματα του `.tile-grid` κάτι να
+                μετρήσουν: το πλάτος ΑΥΤΟΥ του κουτιού, όχι του παραθύρου. */}
             {insPlan && (
-              <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, border: '1px solid var(--border-subtle)', marginTop: 4 }}>
+              <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, border: '1px solid var(--border-subtle)', marginTop: 4, containerType: 'inline-size' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                   <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>Καλύψεις προγράμματος</div>
                   {/* ΤΟ «ΕΠΕΞΕΡΓΑΣΙΑ» ΕΦΥΓΕ, ΤΟ «ΕΠΑΝΑΦΟΡΑ» ΕΜΕΙΝΕ. Δεν χρειάζεται
@@ -1423,12 +1425,17 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
                     κατάσταση είναι το σχόλιο — και τα δέκα πλακίδια στέκονταν με
                     έξι εικονοστοιχεία ανάμεσά τους, δηλαδή κολλημένα, ενώ η σειρά
                     πεδίων από κάτω ανέπνεε με δεκατέσσερα. */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 10, marginBottom: insEditCovers ? 14 : 0 }}>
+                {/* ΠΕΝΤΕ ΣΤΗΛΕΣ, ΟΧΙ «ΟΣΕΣ ΧΩΡΑΝΕ». Το `auto-fill` κρατά και ΚΕΝΕΣ
+                    στήλες: οι δέκα καλύψεις έβγαιναν 5+5, 6+4 ή 7+3 ανάλογα με
+                    το πλάτος και το zoom, με νεκρές λωρίδες δεξιά. Το ίδιο αρχείο
+                    έχει ήδη τη σωστή λύση παραπάνω (`tile-grid`), με το πλήθος
+                    γραμμένο ως απόφαση και τη μισή σειρά κεντραρισμένη. */}
+                <div className="tile-grid" style={{ '--tg-n': 5, marginBottom: insEditCovers ? 14 : 0 } as React.CSSProperties}>
                   {deriveCoverages(effectiveCovers, effectiveEarthquake, effectiveFloodState, effectiveNatural).map(c => (
                     <button key={c.label} type="button" onClick={() => toggleCover(c.label, c.ok)}
                       aria-pressed={c.ok} title={`${c.ok ? 'Αφαίρεσε' : 'Πρόσθεσε'} την κάλυψη «${c.label}»`}
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, width: '100%', boxSizing: 'border-box',
-                        minHeight: 38, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
+                        minHeight: T.h.md, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
                         background: c.ok ? 'var(--accent-soft)' : 'var(--bg-base)',
                         border: `1px solid ${c.ok ? 'var(--accent-border)' : 'var(--border-subtle)'}`,
                         borderRadius: T.radius.inner, padding: '9px 12px',
