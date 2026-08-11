@@ -1,6 +1,7 @@
 import {
-  EXPENSE_CLASS_LABEL, INVOICE_TYPE_LABEL, CATEGORY_NATURE,
-  natureOf, selfTransmittedInvoiceType, myDataHint, myDataCell, unmappedCategories,
+  EXPENSE_CLASS_LABEL, INVOICE_TYPE_LABEL, CATEGORY_NATURE, CATEGORY_CODE, ALLOWED_CLASSES,
+  natureOf, selfTransmittedInvoiceType, myDataHint, myDataCell, unmappedCategories, isAllowedCombination,
+  type ExpenseClass, type InvoiceType,
 } from './myData';
 import { CATEGORIES } from '../expenses/taxonomy';
 
@@ -101,6 +102,41 @@ ok(!myDataHint({ category: 'plumber', supply: 'domestic' }).note.includes('αν�
   'η εγχώρια δεν μιλά για αντίστροφη χρέωση');
 ok(myDataHint({ category: 'subscription', supply: 'third_country' }).note.includes('αντίστροφη χρέωση'),
   'η τρίτη χώρα τη λέει');
+
+console.log('\nΟ πίνακας συνδυασμών της ΑΑΔΕ');
+// ΟΙ ΜΗ ΕΠΙΤΡΕΠΤΟΙ ΣΥΝΔΥΑΣΜΟΙ ΑΠΟΡΡΙΠΤΟΝΤΑΙ ΣΤΗ ΔΙΑΒΙΒΑΣΗ. Αν φύγουν ως
+// υπόδειξη, ο λογιστής τους πληκτρολογεί και τρώει το σφάλμα στο δικό του
+// πρόγραμμα, χωρίς να ξέρει από πού ήρθαν.
+eq('η λήψη υπηρεσιών δεν δέχεται αγορές εμπορευμάτων', isAllowedCombination('14.3', '2.1'), false);
+eq('ούτε η τρίτη χώρα', isAllowedCombination('14.4', '2.2'), false);
+eq('η απόκτηση αγαθών δεν δέχεται λήψη υπηρεσιών', isAllowedCombination('14.1', '2.3'), false);
+eq('δέχεται όμως γενικά έξοδα', isAllowedCombination('14.1', '2.4'), true);
+eq('ο ΕΦΚΑ δέχεται μόνο το 2.5', isAllowedCombination('14.5', '2.4'), false);
+eq('χωρίς τύπο, καμία απαγόρευση', isAllowedCombination(null, '2.3'), true);
+eq('χωρίς χαρακτηρισμό, καμία απαγόρευση', isAllowedCombination('14.3', null), true);
+
+// Ό,τι βγάζει η βιβλιοθήκη πρέπει να περνά τον πίνακα. Κάθε κατηγορία της
+// ταξινομίας, κάθε τόπος παροχής, κάθε δικαίωμα έκπτωσης: ούτε ένας συνδυασμός
+// εκτός πίνακα.
+{
+  let bad = 0;
+  for (const slug of Object.keys(CATEGORY_NATURE)) {
+    for (const supply of ['domestic', 'intra_eu', 'third_country', null] as const) {
+      for (const vat of ['full', 'none', 'unknown'] as const) {
+        const h = myDataHint({ category: slug, supply, vat });
+        if (!isAllowedCombination(h.invoiceType, h.expenseClass)) bad++;
+      }
+    }
+  }
+  eq('καμία υπόδειξη εκτός πίνακα', bad, 0);
+}
+
+eq('κάθε κατηγορία έχει μηχανικό όνομα', Object.keys(CATEGORY_CODE).length, Object.keys(EXPENSE_CLASS_LABEL).length);
+eq('και είναι το όνομα της ΑΑΔΕ', CATEGORY_CODE['2.5'], 'category2_5');
+ok((Object.keys(ALLOWED_CLASSES) as InvoiceType[]).every(t => (Object.keys(INVOICE_TYPE_LABEL) as InvoiceType[]).includes(t)),
+  'κάθε τύπος του πίνακα έχει και λεκτικό');
+ok((Object.keys(ALLOWED_CLASSES) as InvoiceType[]).every(t => ALLOWED_CLASSES[t].every(c => (c as ExpenseClass) in EXPENSE_CLASS_LABEL)),
+  'καμία κατηγορία χωρίς λεκτικό, γιατί δεν γράφουμε όσες δεν ξέρουμε');
 
 console.log(`\nmyData: ${fails === 0 ? '✓ όλα' : `✗ ${fails}`}`);
 if (fails) process.exit(1);
