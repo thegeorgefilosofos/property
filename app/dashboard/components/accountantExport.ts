@@ -16,13 +16,19 @@
 // σωστή στοίχιση/πλαίσια — σαν να το ετοίμασε λογιστής. Ασπρόμαυρο, καθαρό.
 // ═══════════════════════════════════════════════════════════════════════════
 import { XLSX, FMT, S, setCell, downloadWorkbook, money, moneySigned, type Cell } from './xlsxStyle';
+import { supplyLabel } from '@/lib/tax/placeOfSupply';
 import { csvCell } from '@/lib/core/csv';
 import { buildZip, type ZipFile } from '@/lib/accounting/zip';
 import { WHO_LABEL, type Requirement } from '@/lib/accounting/dossier';
 import { downloadFile } from '@/lib/core/download';
 
 export interface AccountantStatementLine { label: string; amount: number; kind: string; negative?: boolean }
-export interface AccountantMovement { date: string; type: 'income' | 'expense'; category: string; description: string; amount: number }
+export interface AccountantMovement {
+  date: string; type: 'income' | 'expense'; category: string; description: string; amount: number;
+  /** Χώρα εκδότη (ISO alpha-2) και τόπος παροχής. Κενά στα έσοδα και σε ό,τι δεν ρωτήθηκε. */
+  supplier_country?: string | null;
+  supply?: string | null;
+}
 export interface AccountantBundleInput {
   year: number;
   propName: string;
@@ -31,6 +37,15 @@ export interface AccountantBundleInput {
   provisionMonthly: number;
   book: AccountantMovement[];
 }
+
+/**
+ * Ο τόπος παροχής όπως τον διαβάζει λογιστής. Κενό όταν δεν ξέρουμε — ΠΟΤΕ
+ * «Εγχώρια» από παράλειψη: το κενό λέει «ρώτησέ με», το «Εγχώρια» λέει ψέματα.
+ * Η ονομασία έρχεται από το lib/tax/placeOfSupply.ts, μία φορά για όλη την
+ * εφαρμογή — οθόνη και αρχείο δεν επιτρέπεται να τον λένε αλλιώς.
+ */
+const supplyCell = (s: string | null | undefined): string =>
+  s === 'domestic' || s === 'intra_eu' || s === 'third_country' ? supplyLabel(s) : '';
 
 const toDate = (d: string): Date | string => { const t = new Date(d + 'T00:00:00'); return isNaN(t.getTime()) ? d : t; };
 // Ιταλική γκρι σημείωση για «memo» γραμμές (π.χ. πρόβλεψη φόρου) — διακριτή από το αποτέλεσμα.
@@ -99,13 +114,26 @@ export function buildWorkbook(inp: AccountantBundleInput) {
 
   // ── Φύλλο 2: Αναλυτικές κινήσεις (Έσοδα / Έξοδα) ────────────────────────────
   {
-    const NC = 6, HR = 3;
+    // ΟΚΤΩ ΣΤΗΛΕΣ, ΚΑΙ ΤΟ `NC` ΕΙΝΑΙ Ο ΜΟΝΟΣ ΤΟΠΟΣ ΠΟΥ ΤΟ ΞΕΡΕΙ. Οι δείκτες των
+    // συνόλων παράγονται από αυτό (`NC - 2`, `NC - 1`) αντί να είναι γραμμένοι
+    // σταθεροί: ήταν 4 και 5, και μια τρίτη στήλη θα τους άφηνε πίσω σιωπηλά —
+    // το σύνολο των εξόδων θα καθόταν κάτω από την επικεφαλίδα της χώρας.
+    const NC = 8, HR = 3;
+    const C_IN = NC - 2, C_EX = NC - 1, C_LABEL = NC - 3;
     const sorted = [...book].sort((a, b) => a.date.localeCompare(b.date));
     const sumIn = sorted.filter(e => e.type === 'income').reduce((s, e) => s + (e.amount || 0), 0);
     const sumEx = sorted.filter(e => e.type === 'expense').reduce((s, e) => s + (e.amount || 0), 0);
-    const header = ['Α/Α', 'Ημερομηνία', 'Κατηγορία', 'Περιγραφή', 'Έσοδα', 'Έξοδα'];
+    // Η ΧΩΡΑ ΚΑΙ Ο ΤΟΠΟΣ ΠΑΡΟΧΗΣ ΜΠΑΙΝΟΥΝ ΠΡΙΝ ΤΑ ΠΟΣΑ, όχι στο τέλος: ο
+    // λογιστής διαβάζει «τι, από πού, πόσο». Τα ποσά κλείνουν τη γραμμή, όπως σε
+    // κάθε παραστατικό, και τα σύνολα κάθονται από κάτω τους.
+    const header = ['Α/Α', 'Ημερομηνία', 'Κατηγορία', 'Περιγραφή', 'Χώρα', 'Τόπος παροχής', 'Έσοδα', 'Έξοδα'];
     const dataRows: Cell['v'][][] = sorted.map((e, i) => [
       i + 1, toDate(e.date), e.category || '', e.description || '',
+      // Κενό, όχι «—» και όχι «Ελλάδα»: το έσοδο δεν έχει πάροχο, και η δαπάνη
+      // που δεν ρωτήθηκε δεν έχει απάντηση. Ένα συμπληρωμένο κενό σε στήλη
+      // ΦΠΑ είναι εικασία γραμμένη ως δεδομένο.
+      e.supplier_country || '',
+      supplyCell(e.supply),
       e.type === 'income' ? e.amount : '', e.type === 'expense' ? e.amount : '',
     ]);
     const aoa: (string | number | Date)[][] = [
@@ -114,11 +142,11 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       [],
       header,
       ...dataRows as (string | number | Date)[][],
-      ['', '', '', 'ΣΥΝΟΛΑ', sumIn, sumEx],
-      ['', '', '', 'Καθαρό αποτέλεσμα (Έσοδα − Έξοδα)', Math.round((sumIn - sumEx) * 100) / 100, ''],
+      [...Array(C_LABEL).fill(''), 'ΣΥΝΟΛΑ', sumIn, sumEx],
+      [...Array(C_LABEL).fill(''), 'Καθαρό αποτέλεσμα (Έσοδα − Έξοδα)', Math.round((sumIn - sumEx) * 100) / 100, ''],
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa, { cellDates: true });
-    ws['!cols'] = [{ wch: 6 }, { wch: 13 }, { wch: 24 }, { wch: 46 }, { wch: 14 }, { wch: 14 }];
+    ws['!cols'] = [{ wch: 6 }, { wch: 13 }, { wch: 24 }, { wch: 40 }, { wch: 8 }, { wch: 26 }, { wch: 14 }, { wch: 14 }];
     ws['!merges'] = [
       { s: { r: 0, c: 0 }, e: { r: 0, c: NC - 1 } },
       { s: { r: 1, c: 0 }, e: { r: 1, c: NC - 1 } },
@@ -138,16 +166,18 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       setCell(ws, r, 1, { s: { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } }, ...(isDate ? { t: 'd', z: FMT.date } : {}) });
       setCell(ws, r, 2, { s: S.txt });                                       // Κατηγορία
       setCell(ws, r, 3, { s: S.txt });                                       // Περιγραφή
+      setCell(ws, r, 4, { s: { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } } }); // Χώρα
+      setCell(ws, r, 5, { s: S.txt });                                       // Τόπος παροχής
       // Έσοδα/Έξοδα ως κείμενο «€» με κόμμα (ίδια εμφάνιση σε κάθε Excel).
-      for (const c of [4, 5]) { const cell = ws[enc(r, c)] as Cell | undefined; if (cell && typeof cell.v === 'number') setCell(ws, r, c, { v: money(cell.v), t: 's', s: S.num }); else setCell(ws, r, c, { s: S.num }); }
+      for (const c of [C_IN, C_EX]) { const cell = ws[enc(r, c)] as Cell | undefined; if (cell && typeof cell.v === 'number') setCell(ws, r, c, { v: money(cell.v), t: 's', s: S.num }); else setCell(ws, r, c, { s: S.num }); }
     }
     // Σύνολα + καθαρό (υπολογισμένα, ως κείμενο «€»).
-    setCell(ws, totalR, 0, { s: S.totTxt }); setCell(ws, totalR, 1, { s: S.totTxt }); setCell(ws, totalR, 2, { s: S.totTxt }); setCell(ws, totalR, 3, { s: S.totTxt });
-    setCell(ws, totalR, 4, { v: money(sumIn), t: 's', s: S.totNum });
-    setCell(ws, totalR, 5, { v: money(sumEx), t: 's', s: S.totNum });
-    setCell(ws, netR, 3, { s: S.strongTxt });
-    setCell(ws, netR, 4, { v: moneySigned(Math.round((sumIn - sumEx) * 100) / 100), t: 's', s: S.strongNum });
-    setCell(ws, netR, 5, { s: S.strongTxt });
+    for (let c = 0; c <= C_LABEL; c++) setCell(ws, totalR, c, { s: S.totTxt });
+    setCell(ws, totalR, C_IN, { v: money(sumIn), t: 's', s: S.totNum });
+    setCell(ws, totalR, C_EX, { v: money(sumEx), t: 's', s: S.totNum });
+    setCell(ws, netR, C_LABEL, { s: S.strongTxt });
+    setCell(ws, netR, C_IN, { v: moneySigned(Math.round((sumIn - sumEx) * 100) / 100), t: 's', s: S.strongNum });
+    setCell(ws, netR, C_EX, { s: S.strongTxt });
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: lastData, c: NC - 1 } }) };
     XLSX.utils.book_append_sheet(wb, ws, `Κινήσεις ${year}`);
   }

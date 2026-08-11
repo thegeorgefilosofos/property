@@ -227,7 +227,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // κόβονται με `Pick` στις στήλες που ΟΝΤΩΣ ζητά το `select`. Έτσι μια στήλη
   // που δεν ζητήθηκε δεν μπορεί να διαβαστεί κατά λάθος παρακάτω — σφάλμα που
   // με `any[]` έβγαινε ως `undefined` και κατέληγε σε μηδενικό ποσό στην οθόνη.
-  type ExpenseRow  = Pick<ExpensesRow, 'date'|'amount'|'category'|'expense_group'|'description'>
+  type ExpenseRow  = Pick<ExpensesRow, 'date'|'amount'|'category'|'expense_group'|'description'|'supplier_country'|'supply'>
   type RentRow     = Pick<RentPaymentsRow, 'period_year'|'period_month'|'amount'|'paid'|'paid_date'|'due_date'>
   type PortfolioRentRow = RentRow & Pick<RentPaymentsRow, 'property_id'>
   type StayRow     = TaxStay & Pick<ClientStaysRow, 'id'|'channel'|'declared_at'>
@@ -259,7 +259,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     setLoading(true)
     try{
       const [ex, rp, st, ln, pr, aps, arp, ast, inv] = await Promise.all([
-        expenseStore.ledger(supabase,propertyId,{ columns:'date,amount,category,expense_group,description' }),
+        expenseStore.ledger<ExpenseRow>(supabase,propertyId,{ columns:'date,amount,category,expense_group,description,supplier_country,supply' }),
         rentStore.ofProperty<RentRow>(supabase,propertyId,rentStore.LEDGER_COLUMNS,userId),
         stayStore.ofProperty<StayRow>(supabase,propertyId,`id,${stayStore.ACCOUNTING_COLUMNS}`,userId),
         loanStore.ofProperty(supabase,propertyId,userId),
@@ -270,7 +270,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         inventoryStore.ofProperty<InventoryRow>(supabase,propertyId,'purchase_value,category,purchase_date',userId),
       ])
       if(!alive) return
-      setExpenses(ex as ExpenseRow[]); setRent(rp)
+      setExpenses(ex); setRent(rp)
       setStays(st); setLoans(ln)
       setProp(pr); setAllProps(aps)
       setAllRent(arp); setAllStays(ast)
@@ -408,7 +408,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     const out:LedgerInput[]=[]
     for(const p of rent){ if(p.paid&&(p.amount||0)>0){ out.push({ date:p.paid_date||p.due_date||`${p.period_year}-${String(p.period_month).padStart(2,'0')}-01`, type:'income', category:'Ενοίκιο', description:`Ενοίκιο ${MONTHS_SHORT[(p.period_month||1)-1]} ${p.period_year}`, amount:p.amount, source:'rent' }) } }
     for(const s of stays){ if((s.total||0)>0&&s.check_in){ out.push({ date:s.check_in, type:'income', category:'Βραχυχρόνια', description:`Κράτηση ${s.channel||''}`.trim(), amount:s.total||0, source:'stay' }) } }
-    for(const e of expenses){ if((e.amount||0)>0&&e.date){ out.push({ date:e.date, type:'expense', category:e.category||'Δαπάνες', description:e.description||'Δαπάνη', amount:e.amount, source:'expense' }) } }
+    for(const e of expenses){ if((e.amount||0)>0&&e.date){ out.push({ date:e.date, type:'expense', category:e.category||'Δαπάνες', description:e.description||'Δαπάνη', amount:e.amount, source:'expense', supplier_country:e.supplier_country, supply:e.supply }) } }
     return out
   },[rent,stays,expenses])
   const yearEntries = useMemo(()=>entries.filter(e=>e.date.slice(0,4)===String(year)),[entries,year])
@@ -480,7 +480,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     propName: prop?.name || 'Ακίνητο',
     statementLines: statement.lines.map(l=>({ label:l.label, amount:l.amount, kind:l.kind, negative:l.negative })),
     provisionMonthly: provision.monthly,
-    book: book.map(e=>({ date:e.date, type:e.type, category:e.category, description:e.description, amount:e.amount })),
+    book: book.map(e=>({ date:e.date, type:e.type, category:e.category, description:e.description, amount:e.amount, supplier_country:e.supplier_country, supply:e.supply })),
     gaps: dossierGaps,
   }),[prop,statement,provision,book,dossierGaps])
 

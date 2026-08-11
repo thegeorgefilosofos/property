@@ -11,6 +11,16 @@ export interface LedgerInput {
   description: string
   amount: number
   source?: string
+  /**
+   * ΤΟΠΟΣ ΠΑΡΟΧΗΣ, ΓΙΑ ΤΟ ΑΡΧΕΙΟ ΤΟΥ ΛΟΓΙΣΤΗ.
+   *
+   * Δεν τα αγγίζει η `buildLedger`: κάνει spread ολόκληρης της εγγραφής, οπότε
+   * ό,τι μπει εδώ φτάνει αυτούσιο στο Excel. Προαιρετικά, γιατί τα έσοδα
+   * (ενοίκια, κρατήσεις) δεν έχουν πάροχο και δεν πρέπει να αναγκαστούν να
+   * επινοήσουν έναν.
+   */
+  supplier_country?: string | null
+  supply?: string | null
 }
 
 export interface LedgerEntry extends LedgerInput {
