@@ -16,7 +16,7 @@ import { useState, type ReactNode } from 'react';
 import { PLANS, PLAN_ORDER, annualPerMonth, type PlanId } from '@/lib/billing/plans';
 import { FEATURE_LABEL, FEATURE_MIN_PLAN, planAtLeast, type Feature } from '@/lib/billing/entitlements';
 import { isPlanAllowedForProfile } from '@/lib/billing/entitlements';
-import { T, Card, SecHdr, Btn, Chip, TierBadge, feAuto } from '@/components/Theme';
+import { T, Card, SecHdr, Btn, Chip, TierBadge, feAuto, fixedCols } from '@/components/Theme';
 
 // ── Ποια πλάνα συγκρίνονται εδώ ─────────────────────────────────────────────
 // ΟΧΙ όλα. Το «Γραφείο» είναι πλάνο για χαρτοφυλάκια άνω των 40 ακινήτων και δεν
@@ -147,7 +147,11 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
           </div>
         } />
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 12 }}>
+        {/* ΠΕΝΤΕ ΓΝΩΣΤΕΣ ΣΤΗΛΕΣ, ΟΧΙ «ΟΣΕΣ ΧΩΡΑΝΕ». Με ελάχιστο 220 το auto-fit
+            έβγαζε τέσσερις κάρτες και μία μόνη της από κάτω στα συνηθισμένα
+            πλάτη — δηλαδή ο τιμοκατάλογος διαβαζόταν σαν «τέσσερα πακέτα και
+            κάτι άλλο». Το πλήθος είναι απόφαση, άρα γράφεται. */}
+        <div {...fixedCols(COMPARED.length, 12, 'stretch')}>
           {COMPARED.map(id => {
             const p = PLANS[id];
             const isCurrent = id === currentPlan;
@@ -157,19 +161,36 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
             const isFree = p.priceMonthly === 0;
             const colRank = rankOf(id);
 
-            const priceMain = isFree ? '0 €' : cycle === 'annual' ? feAuto(annualPerMonth(id)) : feAuto(p.priceMonthly);
-            const priceUnit = isFree ? 'για πάντα' : '/μήνα';
-            const monthsFree = p.priceAnnual > 0 && p.priceMonthly > 0 ? Math.round(12 - p.priceAnnual / p.priceMonthly) : 0;
+            // ΤΟ «0 € ΓΙΑ ΠΑΝΤΑ» ΗΤΑΝ ΚΑΤΑΛΟΙΠΟ ΤΗΣ ΕΠΟΧΗΣ ΤΟΥ ΔΩΡΕΑΝ ΠΑΚΕΤΟΥ.
+            // Η βαθμίδα λέγεται πλέον «Χωρίς συνδρομή» και το tagline της είναι
+            // «Ώσπου να διαλέξεις πακέτο»: δεν είναι προϊόν με τιμή, είναι
+            // κατάσταση αναμονής. Και το «0 €» ήταν γραμμένο με το χέρι, χωρίς
+            // δεκαδικά, δίπλα σε τέσσερα ποσά που περνούν από τον μορφοποιητή.
+            const priceMain = isFree ? '' : cycle === 'annual' ? feAuto(annualPerMonth(id)) : feAuto(p.priceMonthly);
+            const priceUnit = isFree ? 'Χωρίς χρέωση' : 'τον μήνα';
+            // «12 ΜΗΝΕΣ ΣΤΗΝ ΤΙΜΗ ΤΩΝ Χ», ΟΠΩΣ ΚΑΙ ΣΤΗΝ ΑΡΧΙΚΗ. Ήταν «περίπου Ν
+            // μήνες δωρεάν», που για το φθηνότερο πακέτο τύπωνε «περίπου 1 μήνες
+            // δωρεάν»: πληθυντικός με το ένα, και «περίπου» μπροστά σε αριθμό που
+            // προκύπτει από διαίρεση δύο ακριβών τιμών.
+            const paidMonths = p.priceAnnual > 0 && p.priceMonthly > 0 ? Math.round(p.priceAnnual / p.priceMonthly) : 0;
 
             // Ένα και μόνο «ήρωας»: η προτεινόμενη στήλη (βάθος με surface-hero).
             const heroBg = popular ? 'var(--surface-hero)' : 'var(--bg-surface)';
             const borderColor = isCurrent ? 'var(--accent)' : popular ? 'var(--accent-border)' : 'var(--border-subtle)';
             const boxShadow = popular ? 'var(--highlight-inset), var(--elev-2)' : isCurrent ? '0 0 0 3px var(--accent-dim)' : 'none';
 
+            // ΤΟ ΚΟΥΜΠΙ ΕΛΕΓΕ Ο,ΤΙ ΚΑΙ Η ΚΟΝΚΑΡΔΑ ΤΗΣ ΙΔΙΑΣ ΚΑΡΤΑΣ. Πάνω δεξιά
+            // «Το πλάνο σου» με ζωντανή τελεία, και εκατόν πενήντα εικονοστοιχεία
+            // πιο κάτω ένα ανενεργό κουμπί «Το τρέχον πλάνο σου». Η κονκάρδα το
+            // λέει καλύτερα, γιατί είναι κατάσταση και όχι ενέργεια.
             const cta = isCurrent
-              ? <Btn variant="ghost" disabled>Το τρέχον πλάνο σου</Btn>
+              ? null
               : locked
-                ? <Btn variant="ghost" disabled>Κλειδωμένο</Btn>
+                // Το ίδιο και με το «Κλειδωμένο»: η κλειδαριά είναι ήδη πάνω
+                // δεξιά στην κάρτα, με επεξήγηση στο tooltip. Ένα ανενεργό
+                // κουμπί δεν προσθέτει πληροφορία, προσθέτει χειριστήριο που
+                // δεν κάνει τίποτα.
+                ? null
                 : colRank > curRank
                   ? <Btn variant="primary" onClick={() => onUpgrade?.()}>Αναβάθμιση</Btn>
                   : <Btn variant="ghost" onClick={() => onUpgrade?.()}>Υποβάθμιση</Btn>;
@@ -210,23 +231,29 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
                 {!isFree && cycle === 'annual' && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
                     <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{feAuto(p.priceAnnual)}/χρόνο</span>
-                    {monthsFree > 0 && (
-                      <Chip tone="positive">περίπου {monthsFree} μήνες δωρεάν</Chip>
+                    {paidMonths > 0 && paidMonths < 12 && (
+                      <Chip>12 μήνες στην τιμή των {paidMonths}</Chip>
                     )}
                   </div>
                 )}
 
                 {/* Το κόστος ανά ακίνητο βγαίνει από τα PLANS: όποτε αλλάξει τιμή ή
-                    όριο, η γραμμή ακολουθεί χωρίς να ξεχαστεί. */}
+                    όριο, η γραμμή ακολουθεί χωρίς να ξεχαστεί.
+
+                    ΚΑΙ ΑΚΟΛΟΥΘΕΙ ΤΟΝ ΚΥΚΛΟ ΠΟΥ ΒΛΕΠΕΙ Ο ΧΡΗΣΤΗΣ. Διαιρούσε πάντα
+                    τη ΜΗΝΙΑΙΑ τιμή, ακόμη και στην ετήσια καρτέλα: η κάρτα έδειχνε
+                    από πάνω το μηνιαίο ισοδύναμο της ετήσιας και από κάτω κόστος
+                    ανά ακίνητο βγαλμένο από άλλη τιμή. Δύο νούμερα που δεν
+                    διαιρούνται μεταξύ τους, στην ίδια κάρτα. */}
                 {!isFree && Number.isFinite(p.maxProperties) && p.maxProperties > 1 && (
                   <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, marginTop: 8 }}>
-                    {p.maxProperties} ακίνητα, {feAuto(Math.round((p.priceMonthly / p.maxProperties) * 100) / 100)} το καθένα τον μήνα.
+                    {p.maxProperties} ακίνητα, {feAuto(Math.round(((cycle === 'annual' ? annualPerMonth(id) : p.priceMonthly) / p.maxProperties) * 100) / 100)} το καθένα τον μήνα.
                   </div>
                 )}
 
 
                 {/* CTA, καρφωμένο στη βάση ώστε οι στήλες να ισοϋψούνται */}
-                <div style={{ marginTop: 'auto', paddingTop: 16 }}>{cta}</div>
+                {cta && <div style={{ marginTop: 'auto', paddingTop: 16 }}>{cta}</div>}
               </div>
             );
           })}
