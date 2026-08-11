@@ -86,11 +86,19 @@ const TV_PACKS: Record<string, TvPack[]> = Object.fromEntries(Object.entries({
     { id: 'eonp_nobox',  name: 'EON+, χωρίς Smart Box', price: 26, sports: true },
     { id: 'eonp',        name: 'EON+', price: 28, sports: true },
   ],
-  // ΤΟ VODAFONE TV START ΗΤΑΝ ΓΡΑΜΜΕΝΟ 3,90 €, ΤΙΜΗ ΠΟΥ ΔΕΝ ΣΤΕΚΕΙ ΠΟΥΘΕΝΑ. Η
-  // ίδια η Vodafone ανακοίνωσε αναπροσαρμογή από 6,30 € σε 9,90 € τον μήνα, με
-  // ισχύ από τις 17 Μαρτίου 2026 — δηλαδή η τρέχουσα τιμή είναι 9,90 €.
+  // ΤΟ VODAFONE TV START ΕΙΝΑΙ 3,90 €, ΟΠΩΣ ΤΟ ΓΡΑΦΕΙ Η ΣΕΛΙΔΑ ΤΟΥ.
+  //
+  // Είχε γίνει 9,90 € από δημοσιεύματα για την αναπροσαρμογή της 17ης Μαρτίου
+  // 2026 (6,30 € → 9,90 €). Η ζωντανή σελίδα δείχνει «Μόνο 3,90 €/μήνα», και η
+  // σελίδα του παρόχου υπερισχύει κάθε δημοσιεύματος: μια ανακοίνωση αύξησης
+  // δεν είναι η τιμή που θα δει ο ιδιοκτήτης στο καλάθι του.
+  //
+  // Ο ΜΟΝΟΣ ΚΑΤΑΛΟΓΟΣ ΤΗΣ VODAFONE ΜΕ ΣΚΕΤΗ ΤΗΛΕΟΡΑΣΗ. Τα άλλα δύο της σελίδας
+  // («Fiber 100 με Vodafone TV», «Full Fiber 300 Plus με Vodafone TV Plus»)
+  // είναι προγράμματα σύνδεσης και ζουν στο INTERNET_PLANS, αλλιώς το ίδιο ποσό
+  // μετριέται δύο φορές στο μηνιαίο σύνολο.
   vodafone: [
-    { id: 'vf_start', name: 'Vodafone TV Start', price: 9.90 },
+    { id: 'vf_start', name: 'Vodafone TV Start', price: 3.90 },
   ],
   // ΤΑ ΔΥΟ ΑΚΡΙΒΟΤΕΡΑ ΠΑΚΕΤΑ ΤΟΥ SKYSHOWTIME ΜΠΑΙΝΟΥΝ ΧΩΡΙΣ ΤΙΜΗ, ΕΠΙΤΗΔΕΣ.
   // Η πηγή που τα αναφέρει γράφει «περίπου» και για τα δύο. Ένα «περίπου» σε
@@ -151,6 +159,12 @@ const INTERNET_PLANS: Record<string, {
     { id:'v_ff500',    name: 'Full Fiber 500',              speed: '500 Mbps',  price: 42.00, hasPhone: true,  note: 'Οπτική ίνα FTTH. Απεριόριστα λεπτά.', networkType: 'Fiber', contract: '24 μήνες' },
     { id:'v_ff1g',     name: 'Full Fiber 1 Gbps',           speed: '1 Gbps',    price: 49.00, hasPhone: true,  note: 'Οπτική ίνα FTTH. Απεριόριστα λεπτά.', networkType: 'Fiber', contract: '24 μήνες' },
     // ── Triple Play (+ Vodafone TV) ───────────────────────────────────────
+    // ΤΑ ΔΥΟ ΠΡΩΤΑ ΕΙΝΑΙ ΟΣΑ ΔΕΙΧΝΕΙ ΣΗΜΕΡΑ Η ΣΕΛΙΔΑ vodafone.gr/tv, δίπλα στο
+    // σκέτο Vodafone TV Start. Γράφονται με την τιμή εκκίνησης που δηλώνει η
+    // ίδια η σελίδα («Από»), και με το τέλος ενεργοποίησης στη σημείωση: είναι
+    // εφάπαξ, δεν μπαίνει στο μηνιαίο.
+    { id:'v_f100_tv',  name: 'Fiber 100 με Vodafone TV',     speed: '100 Mbps', price: 33.90, hasPhone: true, hasTV: true, note: 'Τιμή εκκίνησης. Εγγυημένη ταχύτητα 93 Mbps, απεριόριστα σταθερά και 360 λεπτά κινητά. HBO Max και Viaplay. Τέλος ενεργοποίησης 6,00 € εφάπαξ.', networkType: 'Fiber' },
+    { id:'v_ff300p_tv', name: 'Full Fiber 300 Plus με Vodafone TV Plus', speed: '300 Mbps', price: 37.00, hasPhone: true, hasTV: true, note: 'Τιμή εκκίνησης. Εγγυημένη ταχύτητα 100%, router Wi-Fi 6, απεριόριστα σταθερά και κινητά. HBO Max, Disney+ και Viaplay. Τέλος ενεργοποίησης 6,00 € εφάπαξ.', networkType: 'Fiber' },
     { id:'v_ff300_tv', name: 'Full Fiber 300 + Vodafone TV', speed: '300 Mbps', price: 44.00, hasPhone: true, hasTV: true, note: 'FTTH + Vodafone TV (45 κανάλια, HBO).', networkType: 'Fiber', contract: '24 μήνες' },
     { id:'v_ff500_tv', name: 'Full Fiber 500 + Vodafone TV', speed: '500 Mbps', price: 51.00, hasPhone: true, hasTV: true, note: 'FTTH + Vodafone TV + αποκωδικοποιητής +2,50 €.', networkType: 'Fiber', contract: '24 μήνες' },
     { id:'v_ff1g_tv',  name: 'Full Fiber 1 Gbps + TV',       speed: '1 Gbps',   price: 58.00, hasPhone: true, hasTV: true, note: 'FTTH + Vodafone TV + αποκωδικοποιητής +2,50 €.', networkType: 'Fiber', contract: '24 μήνες' },

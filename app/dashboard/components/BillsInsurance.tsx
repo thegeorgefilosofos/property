@@ -257,6 +257,28 @@ function planMonthly(p: SubPlan): number {
 }
 
 /**
+ * Η ΤΙΜΗ ΕΙΣΟΔΟΥ ΕΙΝΑΙ ΜΗΝΙΑΙΑ ΧΡΕΩΣΗ, ΟΧΙ ΠΡΟΠΛΗΡΩΜΗ ΕΤΟΥΣ.
+ *
+ * Με τα πακέτα ταξινομημένα από το φθηνότερο, το πρώτο του F1 TV ήταν το ετήσιο
+ * και το πλακίδιο έγραφε «F1 TV, 2,50 €». Ισχύει μόνο αν δώσεις 29,99 € μπροστά·
+ * όποιος πληρώνει κάθε μήνα δίνει 3,49 €. Το ίδιο έκανε το Disney+ (9,16 αντί
+ * για 10,99) και το Skroutz Plus (2,08 αντί για 4,00): ο κατάλογος έδειχνε την
+ * προπληρωμή ως τιμή της υπηρεσίας.
+ *
+ * Το πλακίδιο και η προεπιλογή δείχνουν πλέον το φθηνότερο πακέτο με ΜΗΝΙΑΙΑ
+ * χρέωση. Οι προπληρωμές μένουν στον επιλογέα, με την πράξη τους γραμμένη.
+ */
+function entryPlan(svc: SubService): SubPlan {
+  return svc.plans.find(p => p.price !== undefined) ?? svc.plans[0];
+}
+
+/** Το ίδιο πακέτο, όταν ξέρουμε μόνο το αναγνωριστικό της υπηρεσίας. */
+function entryPlanId(catalog: SubService[], value: string): string {
+  const svc = catalog.find(x => x.value === value);
+  return svc ? entryPlan(svc).id : '';
+}
+
+/**
  * ΤΑΞΗ ΣΤΟΝ ΚΑΤΑΛΟΓΟ, ΧΩΡΙΣ ΝΑ ΤΗ ΘΥΜΑΤΑΙ ΚΑΝΕΙΣ.
  *
  * Οι υπηρεσίες μπήκαν με τη σειρά που τις βρήκαμε, και φαινόταν: το Netflix
@@ -756,44 +778,49 @@ export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate
       <SecHdr label={label} sub={active.length === 0 ? 'Πάτησε ό,τι έχεις. Τα υπόλοιπα μένουν σβηστά.' : undefined}
         right={total > 0 ? <span style={{ ...TT.kpi, fontSize: 18 }}>{fe(total)}</span> : undefined}/>
 
-      {/* Ο ΕΠΙΛΟΓΕΑΣ: ίδια ανατομία σε ΚΑΘΕ πλακίδιο, ένα κλικ, τίποτα άλλο μέσα.
+      {/* ΤΟ ΠΛΑΚΙΔΙΟ ΕΙΝΑΙ ΠΕΔΙΟ ΤΗΣ ΦΟΡΜΑΣ, ΚΑΙ ΤΩΡΑ ΤΟ ΔΕΙΧΝΕΙ.
+          Ίδιο ύψος, ίδια γωνία, ίδιο περιθώριο και ίδιο μέγεθος γραμμάτων με
+          τον επιλογέα «Πάροχος» δίπλα του — ένα σχήμα σε όλη την εφαρμογή.
 
-          ΙΣΑ ΠΛΑΤΗ, ΚΕΝΤΡΑΡΙΣΜΕΝΑ. Όσο κάθε πλακίδιο έπαιρνε το πλάτος του
-          ονόματός του, το «Netflix» ήταν μισό από το «Amazon Prime Video» και
-          δεκαοκτώ άκρες κατέβαιναν σε τυχαία σημεία. Τώρα όλα έχουν το ίδιο
-          πλάτος, τα ονόματα ξεκινούν στο ίδιο σημείο και τα ποσά τελειώνουν στο
-          ίδιο· και η μισή τελευταία σειρά κάθεται στη ΜΕΣΗ αντί να αφήνει τρύπα
-          δεξιά, οπότε το μπλοκ διαβάζεται συμμετρικό αντί για κομμένο.
+          ΤΟ ΚΕΙΜΕΝΟ ΗΤΑΝ ΨΗΛΑ ΜΕΣΑ ΣΤΟ ΚΟΥΤΙ. Η στοίχιση ήταν στη γραμμή βάσης
+          (`baseline`): με δύο διαφορετικά μεγέθη γραμμάτων, το flex κρεμούσε
+          ολόκληρη τη γραμμή από την κορυφή. Μετρήθηκε: σε κουτί 44 εικονοστοιχείων
+          το κέντρο του ονόματος έπεφτε στο 28 αντί για το 42, δηλαδή δεκατέσσερα
+          πιο ψηλά. Με `center` το όνομα και το ποσό κάθονται στον άξονα του
+          κουτιού, ακριβώς όπως το κείμενο κάθε πεδίου.
 
-          Και το ποσό μπαίνει σε ΟΛΑ: πριν, το ενεργό πλακίδιο έχανε την τιμή
-          του ενώ το διπλανό ανενεργό την κρατούσε, οπότε στην ίδια σειρά δύο
-          πλακίδια είχαν διαφορετικό σχήμα. Στα ενεργά γράφεται η ΠΡΑΓΜΑΤΙΚΗ
-          τιμή που πληρώνει ο χρήστης, στα υπόλοιπα η τιμή εισόδου. */}
-      {/* ΤΟ ΠΛΗΘΟΣ ΣΤΗΛΩΝ ΕΙΝΑΙ ΑΠΟΦΑΣΗ, ΟΧΙ ΑΠΟΤΕΛΕΣΜΑ, γιατί το `auto-fit`
-          έδινε άλλο πλήθος σε κάθε επίπεδο zoom του περιηγητή: η ίδια οθόνη
-          έβγαζε 5+5, 4+4+2 ή 3+3+3+1 ανάλογα με τη ρύθμιση. Το κεντράρισμα της
-          τελευταίας σειράς ζει στο `.tile-grid` (app/globals.css). */}
+          ΙΔΙΟ ΜΕΓΕΘΟΣ ΣΤΑ ΔΥΟ. Το ποσό ήταν έντεκα και το όνομα δώδεκα, δηλαδή
+          δύο κλίμακες στην ίδια γραμμή· η διαφορά τους λέγεται με το χρώμα.
+
+          ΚΑΙ ΤΟ ΠΟΣΟ ΜΠΑΙΝΕΙ ΣΕ ΟΛΑ: στα ενεργά η ΠΡΑΓΜΑΤΙΚΗ τιμή που πληρώνει ο
+          χρήστης, στα υπόλοιπα η τιμή εισόδου.
+
+          Το πλήθος στηλών είναι απόφαση και όχι αποτέλεσμα, γιατί το `auto-fit`
+          έδινε άλλο πλήθος σε κάθε επίπεδο zoom του περιηγητή. Το κεντράρισμα
+          της τελευταίας σειράς ζει στο `.tile-grid` (app/globals.css). */}
       <div className="tile-grid" style={{ '--tg-n': tileCols } as React.CSSProperties}>
         {catalog.map(svc => {
           const entry = active.find(a => a.service === svc.value);
           const on = !!entry;
-          const amount = entry ? subShare(svc, entry) : planMonthly(svc.plans[0]);
+          const amount = entry ? subShare(svc, entry) : planMonthly(entryPlan(svc));
           // ΤΟ ΜΗΔΕΝ ΔΕΝ ΕΙΝΑΙ ΤΙΜΗ. Ένα «0,00 €» σε πλακίδιο υπηρεσίας λέει
           // «δεν πληρώνω γι' αυτό», ενώ σημαίνει «δεν ξέρουμε ακόμη πόσο».
           const priceLabel = amount > 0 ? fe(amount) : ABSENT_SHORT;
           return (
             <button key={svc.value} type="button" onClick={() => onToggle(svc.value)} aria-pressed={on}
               style={{
-                display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10,
-                width: '100%',
-                textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+                width: '100%', boxSizing: 'border-box',
+                textAlign: 'left', cursor: 'pointer',
                 height: T.h.lg, padding: '0 14px', borderRadius: T.radius.inner,
                 background: on ? 'var(--accent-soft)' : 'var(--bg-elevated)',
                 border: `1px solid ${on ? 'var(--accent)' : 'var(--border-subtle)'}`,
                 transition: 'background-color .15s, border-color .15s',
               }}>
-              <span style={{ ...TT.bodySm, color: on ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: on ? 600 : 400, whiteSpace: 'nowrap' }}>{svc.label}</span>
-              <span style={{ ...TT.caption, color: on ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{priceLabel}</span>
+              <span style={{ fontFamily: T.font.sans, fontSize: 14, letterSpacing: 0, fontWeight: on ? 600 : 400,
+                color: on ? 'var(--text-primary)' : 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{svc.label}</span>
+              <span style={{ fontFamily: T.font.num, fontSize: 14, fontVariantNumeric: 'tabular-nums',
+                color: on ? 'var(--text-secondary)' : 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{priceLabel}</span>
             </button>
           );
         })}
@@ -1080,7 +1107,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
       toggle: (svc: string) => write(
         active.some(a => a.service === svc)
           ? active.filter(a => a.service !== svc)
-          : [...active, { service: svc, planId: g.catalog.find(x => x.value === svc)?.plans[0].id || '',
+          : [...active, { service: svc, planId: entryPlanId(g.catalog, svc),
                           customPrice: '', splitPeople: 2, splitActive: false, renewalDate: '' }],
       ),
       update: <K extends keyof SubscriptionEntry>(svc: string, field: K, val: SubscriptionEntry[K]) =>
