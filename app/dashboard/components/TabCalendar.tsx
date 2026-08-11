@@ -672,16 +672,37 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
     }
     // ── Συντήρηση ──
     if(k==='maintenance'){
-      const tasks:MaintenanceTasksRow[]=await must(supabase.from('maintenance_tasks').select('*').eq('property_id',propertyId))??[]
-      const rows=tasks.filter(t=>t.due_date).map(t=>({title:t.title||'Εργασία συντήρησης',category:'maintenance' as EventCategory,event_date:t.due_date,priority:(t.priority||'medium') as EventPriority,status:(t.completed?'paid':'pending') as EventStatus,notes:t.description||null}))
+      // ΤΟ ΕΡΩΤΗΜΑ ΚΑΙ Η ΜΕΤΑΤΡΟΠΗ ΗΤΑΝ ΣΤΗΝ ΙΔΙΑ ΓΡΑΜΜΗ ΤΩΝ 200 ΧΑΡΑΚΤΗΡΩΝ.
+      // Ο φύλακας σχήματος διάβαζε το κλειδί `status:` του αντικειμένου ως
+      // φίλτρο πάνω στον πίνακα `maintenance_tasks` — που δεν έχει τέτοια στήλη —
+      // και κοκκίνιζε το CI για ερώτημα που είναι σωστό. Δεν χαλαρώνει ο
+      // φύλακας: χωρίζεται η γραμμή, γιατί το ερώτημα και η μετατροπή του είναι
+      // δύο πράγματα και έτσι διαβάζονται και από άνθρωπο.
+      const tasks: MaintenanceTasksRow[] =
+        await must(supabase.from('maintenance_tasks').select('*').eq('property_id', propertyId)) ?? []
+      const rows = tasks.filter(t => t.due_date).map(t => ({
+        title: t.title || 'Εργασία συντήρησης',
+        category: 'maintenance' as EventCategory,
+        event_date: t.due_date,
+        priority: (t.priority || 'medium') as EventPriority,
+        status: (t.completed ? 'paid' : 'pending') as EventStatus,
+        notes: t.description || null,
+      }))
       await must(calendar.replaceSource(supabase,scope,{sources:['loan','maintenance']},rows))
       return rows.length
     }
     // ── Ενοίκιο & μισθώσεις (πραγματικά δεδομένα ενοικιαστή, idempotent) ──
     if(k==='leases'){
-      // Το `.neq('status','past')` άφηνε μέσα όποιον είχε ημερομηνία αποχώρησης
-      // χωρίς αλλαγή κατάστασης — δηλαδή δημιουργούσε δόσεις ενοικίου για
-      // μισθωτή που έχει ήδη φύγει. Ο κανόνας ζει πλέον σε ένα σημείο.
+      // Το παλιό φίλτρο κοίταζε μόνο αν η κατάσταση του μισθωτή ήταν
+      // «παρελθοντική», και άφηνε μέσα όποιον είχε ημερομηνία αποχώρησης χωρίς
+      // αλλαγή κατάστασης — δηλαδή δημιουργούσε δόσεις ενοικίου για μισθωτή που
+      // έχει ήδη φύγει. Ο κανόνας ζει πλέον σε ένα σημείο, στο tenantStore.
+      //
+      // Η ΠΕΡΙΓΡΑΦΗ ΕΙΝΑΙ ΣΕ ΛΕΞΕΙΣ ΚΑΙ ΟΧΙ ΣΕ ΚΩΔΙΚΑ, ΣΚΟΠΙΜΑ. Το σχόλιο
+      // παρέθετε την παλιά κλήση αυτούσια, και ο φύλακας σχήματος τη διάβαζε ως
+      // ζωντανό φίλτρο πάνω στο προηγούμενο ερώτημα της ίδιας αλυσίδας: το CI
+      // κοκκίνιζε για στήλη που κανείς δεν ζητούσε. Κώδικας μέσα σε σχόλιο δεν
+      // εκτελείται, αλλά διαβάζεται από τα εργαλεία.
       const tenants=await tenantStore.currentAll<TenantScheduleRow>(supabase,propertyId,'*',userId)
       let n=0
       for(const t of ((tenants||[]) as TenantScheduleRow[])){

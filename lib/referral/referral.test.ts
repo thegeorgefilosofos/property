@@ -11,6 +11,7 @@ import {
   STREAK_TARGET_MONTHS, PARTNER_MONTHLY_FREE_MONTHS,
 } from './referral';
 import * as referral from './referral';
+import { readFileSync } from 'node:fs';
 
 let p = 0, f = 0;
 const ok = (c: boolean, m: string) => { if (c) p++; else { f++; console.error('✗', m); } };
@@ -111,6 +112,53 @@ ok(partnerFreeMonths([5, 5, 4]) === 0, 'σπασμένο σερί → κανέν
 ok(partnerFreeMonths([]) === 0, 'κενό ιστορικό → 0');
 ok(!('partnerCommission' in referral) && !('PARTNER_COMMISSION_RATE' in referral),
   'καμία προμήθεια σε μετρητά δεν επιστρέφει στη μηχανή');
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Η ΒΑΣΗ ΠΡΕΠΕΙ ΝΑ ΛΕΕΙ ΤΑ ΙΔΙΑ ΝΟΥΜΕΡΑ ΜΕ ΑΥΤΟ ΤΟ ΑΡΧΕΙΟ
+// ─────────────────────────────────────────────────────────────────────────
+// Αυτό το αρχείο είναι η δηλωμένη πηγή αλήθειας, αλλά ΔΕΝ το εκτελεί κανείς
+// όταν ο χρήστης διεκδικεί ανταμοιβή: το κάνει η `claim_referral_bonus` της
+// Postgres. Οι δύο πλευρές είχαν ήδη αποκλίνει, σιωπηλά και σε βάρος του
+// χρήστη — η οθόνη έδειχνε στόχο τρία, η βάση ζητούσε πέντε και απαντούσε
+// «not_reached» σε γεμάτη μπάρα· και το μπόνους του Επαγγελματία έδινε δύο
+// μήνες εκεί που η οθόνη υποσχόταν έναν.
+//
+// Ο έλεγχος διαβάζει το ΑΡΧΕΙΟ ΤΗΣ ΜΕΤΑΝΑΣΤΕΥΣΗΣ. Δεν αντικαθιστά δοκιμή σε
+// πραγματική βάση, αλλά πιάνει ακριβώς το λάθος που έγινε: αλλαγή σταθεράς εδώ
+// χωρίς αντίστοιχο migration.
+{
+  const sql = readFileSync(
+    new URL('../../supabase/migrations/20260811090000_referral_rules_match_the_app.sql', import.meta.url),
+    'utf8',
+  );
+  const claim = sql.slice(sql.indexOf('function public.claim_referral_bonus'));
+  const rule = (kind: string) => {
+    const m = new RegExp(`p_kind = '${kind}'\\s*then\\s*v_target := (\\d+); v_months := (\\d+);`).exec(claim);
+    return m ? { target: Number(m[1]), months: Number(m[2]) } : null;
+  };
+  const indiv = rule('indiv_volume');
+  const pro = rule('pro_paid');
+  ok(!!indiv && indiv.target === INDIV_VOLUME_TARGET,
+    `η βάση ζητά ${indiv?.target} συστάσεις για τον στόχο του Ιδιώτη, η εφαρμογή ${INDIV_VOLUME_TARGET}`);
+  ok(!!indiv && indiv.months === INDIV_VOLUME_BONUS_MONTHS,
+    `η βάση δίνει ${indiv?.months} μήνες στον στόχο του Ιδιώτη, η εφαρμογή ${INDIV_VOLUME_BONUS_MONTHS}`);
+  ok(!!pro && pro.target === PRO_PAID_TARGET,
+    `η βάση ζητά ${pro?.target} συνδρομητές για τον στόχο του Επαγγελματία, η εφαρμογή ${PRO_PAID_TARGET}`);
+  ok(!!pro && pro.months === PRO_PAID_BONUS_MONTHS,
+    `η βάση δίνει ${pro?.months} μήνες στον στόχο του Επαγγελματία, η εφαρμογή ${PRO_PAID_BONUS_MONTHS}`);
+  ok(!/p_kind = 'pro_free'/.test(claim),
+    'το καταργημένο pro_free δεν επιστρέφει στη βάση: αντάμειβε εγγραφές χωρίς έσοδο');
+  ok(!/v_months := 2\b/.test(claim), 'πουθενά δύο μήνες: το πρόγραμμα δίνει έναν');
+  // Ο μετρητής του Επαγγελματία μετρούσε `plan in ('monthly','annual')` — τιμές
+  // που καμία γραμμή δεν γράφει, αφού η στήλη κρατά ΟΝΟΜΑ ΠΑΚΕΤΟΥ. Ο στόχος
+  // ήταν μαθηματικά ανέφικτος.
+  ok(!/in \('monthly', ?'annual'\)/.test(sql),
+    'κανένας μετρητής δεν συγκρίνει το πακέτο με κύκλο χρέωσης');
+  ok(/is_paying_plan/.test(sql), 'τα πληρωμένα πακέτα αναγνωρίζονται ονομαστικά');
+  // Η πιο συχνή ανταμοιβή του προγράμματος γραφόταν και δεν εφαρμοζόταν ποτέ.
+  ok(/kind = 'slot'/.test(sql), 'οι κερδισμένες θέσεις ακινήτου εφαρμόζονται πραγματικά');
+  ok(/bonus_properties/.test(sql), 'οι κερδισμένες θέσεις έχουν δική τους στήλη, με λήξη');
+}
 
 console.log(`\nreferral/referral.ts — ${p} passed, ${f} failed`);
 if (f > 0) process.exit(1);
