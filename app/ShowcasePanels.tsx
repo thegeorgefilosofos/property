@@ -58,7 +58,14 @@ export function PanelDashboard() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
           {kpis.map(([l, v], i) => (
             <div key={i} className="lp-live" style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '13px 14px', minWidth: 0 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l}</div>
+              {/* Η ΕΤΙΚΕΤΑ ΚΟΒΟΤΑΝ ΜΕ ΑΠΟΣΙΩΠΗΤΙΚΑ: «ΚΑΘΑΡΗ…», «ΜΗΝΙΑΙ…»,
+                  «ΠΛΗΡΟΤ…». Τρεις στήλες σε πάνελ που στενεύει με την οθόνη δεν
+                  χωρούν δεκατέσσερις χαρακτήρες σε μία σειρά, και το `nowrap`
+                  με `ellipsis` έκρυβε ακριβώς τη λέξη που εξηγεί τον αριθμό.
+                  Τώρα τυλίγει σε δύο σειρές, με σταθερό ύψος ώστε οι τρεις
+                  αριθμοί να πατούν στην ίδια γραμμή βάσης ό,τι κι αν γράφει
+                  από πάνω τους. */}
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, lineHeight: 1.3, minHeight: '2.6em' }}>{l}</div>
               <div style={{ fontFamily: T.font.sans, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', fontSize: 'clamp(17px, 2.6vw, 22px)', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>{v}</div>
             </div>
           ))}
@@ -66,7 +73,11 @@ export function PanelDashboard() {
         <div style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '16px 16px 14px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
             <div style={{ fontSize: 12, fontWeight: 700 }}>Έσοδα ανά μήνα</div>
-            <div style={{ fontSize: 11, color: 'var(--positive)', fontWeight: 700 }}>▲ 12% φέτος</div>
+            {/* ΗΤΑΝ ΠΡΑΣΙΝΟ ΜΕ ΤΡΙΓΩΝΟ. Ο κανόνας του προϊόντος είναι ένας: καμία
+                σημασιολογική χρήση πράσινου, καμία επιβράβευση με χρώμα. Η
+                αύξηση φαίνεται ήδη από τις ίδιες τις μπάρες· η γραμμή απλώς τη
+                μετράει. */}
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 650 }}>+12% φέτος</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'clamp(4px, 1.2vw, 9px)', height: 92 }}>
             {months.map((m, i) => (
@@ -129,7 +140,10 @@ export function PanelAssistant() {
           <div style={{ fontSize: 14, fontWeight: 700 }}>Νόα</div>
           <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Ο βοηθός σου για τα ακίνητα</div>
         </div>
-        <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--positive)' }} />
+        {/* Η κουκκίδα «ενεργός» ήταν πράσινη. Στην εφαρμογή το «εδώ είσαι, εδώ
+            πατάς» το λέει το χρώμα της μάρκας, και το πράσινο δεν σημαίνει
+            τίποτα πουθενά αλλού. */}
+        <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)' }} />
       </div>
       <div style={{ padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div className="lp-pop lp-live" style={{ animationDelay: '.1s', alignSelf: 'flex-end', maxWidth: '82%', padding: '10px 14px', borderRadius: 14, borderBottomRightRadius: 4, background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 13, lineHeight: 1.5 }}>Νόα, πόσα ξόδεψα σε ρεύμα φέτος;</div>

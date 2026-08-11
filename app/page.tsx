@@ -554,6 +554,11 @@ export default async function Landing() {
            αριθμοί που κρατούσαν κενό ύψος όταν το κείμενο χωρούσε σε μία σειρά
            και σταματούσαν να αρκούν όταν δεν χωρούσε. Επτά σειρές: όνομα,
            ταμπέλα, τιμή, ετήσια, δώρο, λίστα, κουμπί. */
+        /* Το «Πώς δημιουργήθηκε» σε δύο στήλες: δήλωση αριστερά, εξήγηση
+           δεξιά. Κάτω από τις 860 γίνεται μία, γιατί δύο στήλες των 200
+           εικονοστοιχείων δεν είναι στήλες. */
+        .lp-why { display: grid; grid-template-columns: 1.05fr 1fr; gap: clamp(28px, 5vw, 72px); align-items: start; }
+        @media (max-width: 860px) { .lp-why { grid-template-columns: minmax(0, 1fr); } }
         /* Το υποσέλιδο (.lp-foot) ζει στο globals.css: το μοιράζεται και το PublicChrome. */
         .lp-plans { grid-template-rows: auto auto auto auto auto 1fr auto; }
         .lp-plans > .lp-card { grid-row: span 7; display: grid; grid-template-rows: subgrid; gap: 0; }
@@ -914,24 +919,39 @@ export default async function Landing() {
              αναγνωρίζει όποιος έχει ακίνητο στην Ελλάδα, και σταματά εκεί. */}
       <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: GAP_ACT }}>
         <hr className="lp-hair" />
-        <div style={{ maxWidth: 900 }}>
-          <div className="lp-eyebrow">Πώς δημιουργήθηκε</div>
-          {/* ΧΩΡΙΣ textWrap: balance. Ο κανόνας μοιράζει τις λέξεις σε ίσες γραμμές
-              και ΚΟΝΤΑΙΝΕΙ όλες τις σειρές: το κείμενο σταματούσε στη μέση της
-              στήλης και η παράγραφος διαβαζόταν σαν στίχος. Οι μεγάλες σειρές
-              πάνε ως το τέλος του πλάτους τους. */}
-          <p style={{ fontSize: 'clamp(17px, 2.1vw, 21px)', lineHeight: 1.5, color: 'var(--text-primary)', margin: '0 0 14px', letterSpacing: '-0.015em', fontWeight: 450, maxWidth: 780 }}>
-            Ένα διαμέρισμα αρκεί για να σε μπερδέψει. Ο λογαριασμός σε ένα συρτάρι, το μισθωτήριο σε ένα
-            ξεχασμένο email, η προθεσμία στο μυαλό σου.
-          </p>
-          <p style={{ fontSize: 15, lineHeight: 1.7, color: MUTED, margin: '0 0 18px', maxWidth: 780 }}>
-            Τα φύλλα Excel και οι εφαρμογές σημειώσεων δεν φταίνε. Απλώς δεν ξέρουν τι είναι τα κοινόχρηστα,
-            το Ε2 ή η Δήλωση μίσθωσης, και δεν πρόκειται να μάθουν ποτέ: δεν φτιάχτηκαν γι’ αυτό. Το Property
-            OS φτιάχτηκε ακριβώς γι’ αυτό, από την πρώτη γραμμή και μόνο για την ελληνική πραγματικότητα.
-          </p>
-          <Link href="/trust" className="lp-link" style={{ color: ACCENT, textDecoration: 'none', fontSize: 15, fontWeight: 600 }}>
-            Ποιοι είμαστε και πού βρίσκονται τα δεδομένα σου
-          </Link>
+        {/* ΔΥΟ ΣΤΗΛΕΣ, ΓΙΑΤΙ ΜΙΑ ΔΕΝ ΓΕΜΙΖΕΙ ΤΗ ΣΕΛΙΔΑ. Η ενότητα ήταν κλεισμένη
+            σε 900, με τις παραγράφους σε 780, μέσα σε στήλη 1044: τρεις σειρές
+            που σταματούσαν στα δύο τρίτα και δεξιά τους ένα λευκό ορθογώνιο.
+            Στα 1044 όμως μια παράγραφος 15 εικονοστοιχείων βγάζει γραμμές των
+            εκατόν τριάντα χαρακτήρων, που δεν διαβάζονται. Δύο στήλες λύνουν και
+            τα δύο: η δήλωση αριστερά, η εξήγηση δεξιά, καμία γραμμή κολοβή και
+            κανένα κενό στα δεξιά. */}
+        <div className="lp-why">
+          <div>
+            <div className="lp-eyebrow">Πώς δημιουργήθηκε</div>
+            {/* ΧΩΡΙΣ textWrap: balance. Ο κανόνας μοιράζει τις λέξεις σε ίσες γραμμές
+                και ΚΟΝΤΑΙΝΕΙ όλες τις σειρές: το κείμενο σταματούσε στη μέση της
+                στήλης και η παράγραφος διαβαζόταν σαν στίχος. */}
+            <p style={{ fontSize: 'clamp(19px, 2.3vw, 25px)', lineHeight: 1.4, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em', fontWeight: 450 }}>
+              Κανένα γενικό εργαλείο δεν ξέρει τι ζητά η Ελλάδα από έναν ιδιοκτήτη ακινήτου. Το Property OS
+              δεν κάνει τίποτε άλλο.
+            </p>
+          </div>
+          <div>
+            <p style={{ fontSize: 15, lineHeight: 1.7, color: MUTED, margin: '0 0 18px' }}>
+              Το Ε2, η Δήλωση μίσθωσης, ο ΕΝΦΙΑ, τα κοινόχρηστα και οι προθεσμίες τους δεν χωρούν σε ένα
+              φύλλο Excel ούτε σε μια εφαρμογή σημειώσεων. Όχι επειδή είναι κακά εργαλεία, αλλά επειδή δεν
+              φτιάχτηκαν γι’ αυτή τη δουλειά και δεν πρόκειται να μάθουν ποτέ.
+            </p>
+            <p style={{ fontSize: 15, lineHeight: 1.7, color: MUTED, margin: '0 0 18px' }}>
+              Ξεκινήσαμε από εκεί: κάθε ημερομηνία, κάθε ευρώ και κάθε χαρτί του ακινήτου σε ένα σημείο, με
+              τους ελληνικούς κανόνες γραμμένους μέσα και όχι προσαρμοσμένους εκ των υστέρων. Εσύ κρατάς τις
+              αποφάσεις· τα υπόλοιπα τα κρατά η εφαρμογή.
+            </p>
+            <Link href="/trust" className="lp-link" style={{ color: ACCENT, textDecoration: 'none', fontSize: 15, fontWeight: 600 }}>
+              Ποιοι είμαστε και πού βρίσκονται τα δεδομένα σου
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -943,7 +963,7 @@ export default async function Landing() {
              πράγμα. Κολλητά, οι δύο ενότητες διαβάζονται ως μία κίνηση: «ποιος
              είμαι» και αμέσως «τι κοστίζει». ── */}
       <section className="lp-reveal" style={{ ...wrap, position: 'relative', zIndex: 1, paddingBottom: GAP }}>
-        <SectionHead over="Σε ποιον απευθύνεται" title="Τέσσερα πακέτα, τέσσερις διαφορετικές ανάγκες" sub="Ίδια βάση δεδομένων για όλους. Αλλάζουν τα εργαλεία, ανάλογα με το τι έχεις να λύσεις." />
+        <SectionHead over="Σε ποιον απευθύνεται" title="Τέσσερα πακέτα, τέσσερις διαφορετικές ανάγκες" sub="Ίδια βάση δεδομένων για όλους. Αλλάζουν τα εργαλεία, ανάλογα με τις προκλήσεις που καλείσαι να αντιμετωπίσεις." />
         <div className="lp-aud">
           {AUDIENCE.map((a, i) => (
             <div key={i} className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(22px, 2.6vw, 28px)' }}>
