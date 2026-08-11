@@ -212,12 +212,21 @@ export interface DossierExportSource {
 }
 
 export default function AccountantDossier({
-  state, year, properties, exportSource,
+  state, year, properties, exportSource, actions,
 }: {
   state: DossierState
   year: number
   properties: readonly { name: string; status: PropertyStatus }[]
   exportSource: DossierExportSource
+  /**
+   * ΟΣΑ ΑΛΛΑ ΦΕΥΓΟΥΝ ΠΡΟΣ ΤΟΝ ΛΟΓΙΣΤΗ, ΣΤΟ ΙΔΙΟ ΣΗΜΕΙΟ.
+   *
+   * Ζούσαν στο τέλος της Λογιστικής, μέσα σε διπλωμένα «Προχωρημένα εργαλεία»:
+   * το Excel των κινήσεων και η ζωντανή πύλη. Δηλαδή η ίδια ερώτηση —«τι δίνω
+   * στον λογιστή μου;»— απαντιόταν σε δύο σημεία της οθόνης, με τον φάκελο
+   * πρώτο και το Excel του ΙΔΙΟΥ φακέλου εννιακόσια εικονοστοιχεία πιο κάτω.
+   */
+  actions?: React.ReactNode
 }) {
   const { profile, setProfile, have, toggle, error } = state
   const [assumptionsOpen, setAssumptionsOpen] = useState(false)
@@ -310,6 +319,10 @@ export default function AccountantDossier({
         <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '14px 0 0', fontFamily: T.font.sans, lineHeight: 1.6 }}>
           Ο φάκελος περιέχει 01_ΣΥΝΟΨΗ · 02_ΕΣΟΔΑ · 03_ΕΞΟΔΑ · 04_ΔΙΚΑΙΟΛΟΓΗΤΙΚΑ και ένα 05_ΤΙ_ΛΕΙΠΕΙ που λέει ρητά τι δεν βρέθηκε.
         </p>
+
+        {actions && (
+          <div style={{ margin: '16px 0 0', paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>{actions}</div>
+        )}
 
         {error && (
           <p style={{ fontSize: 12, color: 'var(--negative)', margin: '12px 0 0', fontFamily: T.font.sans, lineHeight: 1.5 }}>
