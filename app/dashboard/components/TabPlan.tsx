@@ -184,6 +184,13 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
   const [kind, setKind] = useState<DisputeKind>(() => readLocal<DisputeKind>(kindKey, 'unknown', isKind));
   const [costs, setCosts] = useState<VacancyCostInput>(() => readLocal<VacancyCostInput>(costKey, {}, isObject));
   const [loanAmount, setLoanAmount] = useState<number | null>(null);
+  // ΤΟ «ΚΑΘΑΡΟ ΕΣΟΔΟ» ΧΡΕΩΝΕ ΠΑΝΤΑ ΜΕΣΙΤΗ, ΧΩΡΙΣ ΝΑ ΤΟ ΛΕΕΙ. Η `saleEstimate`
+  // δέχεται `useAgent` με προεπιλογή «ναι», και καλούνταν χωρίς όρισμα. Στην
+  // ίδια οθόνη, δέκα εκατοστά πιο πάνω, ο χρήστης καλείται να διαλέξει
+  // ΑΚΡΙΒΩΣ ΑΥΤΟ: «Με μεσίτη» ή «Μόνος σου». Του δείχναμε το καθαρό ποσό της
+  // μίας επιλογής και το παρουσιάζαμε ως το καθαρό ποσό της πώλησης.
+  // Τώρα το νούμερο ακολουθεί την επιλογή, οπότε η σύγκριση γίνεται σε ευρώ.
+  const [useAgent, setUseAgent] = useState(true);
 
   const write = useCallback((key: string, value: unknown) => { writeLocal(key, value); }, []);
 
@@ -216,7 +223,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
   }), [status, done, kind, property.sqm, property.value, property.year_built]);
 
   const drain = useMemo(() => vacancyCost(costs), [costs]);
-  const sale = useMemo(() => saleEstimate(property.value ?? 0), [property.value]);
+  const sale = useMemo(() => saleEstimate(property.value ?? 0, { useAgent }), [property.value, useAgent]);
   // Ενδεικτική δόση επισκευαστικού: το τοκοχρεολύσιο έρχεται από το lib/loans και
   // το επιτόκιο δηλώνεται ρητά ως υπόθεση, ακριβώς κάτω από τον αριθμό.
   const loan = useMemo(() => renovationLoan(loanAmount ?? 0, ASSUMED_RATE_PCT, ASSUMED_YEARS), [loanAmount]);
@@ -469,7 +476,25 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
       {/* ── ΤΙ ΜΕΝΕΙ ΚΑΘΑΡΟ (πώληση, όταν υπάρχει καταχωρημένη αξία) ─────── */}
       {plan.status === 'for_sale' && sale && (
         <Section label="Τι μένει καθαρό"
-          sub={`Ενδεικτικά, με βάση την αξία που έχεις καταχωρήσει (${feAuto(sale.price)}).`}>
+          sub={`Ενδεικτικά, με βάση την αξία που έχεις καταχωρήσει (${feAuto(sale.price)}).`}
+          right={
+            <div style={{ display: 'flex', gap: 6 }}>
+              {[{ k: true, l: 'Με μεσίτη' }, { k: false, l: 'Μόνος σου' }].map(o => (
+                <button key={o.l} onClick={() => setUseAgent(o.k)} aria-pressed={useAgent === o.k}
+                  style={{
+                    appearance: 'none', cursor: 'pointer', height: T.h.sm, padding: '0 12px',
+                    borderRadius: T.radius.pill, fontFamily: T.font.sans, fontSize: 12,
+                    fontWeight: useAgent === o.k ? 700 : 500,
+                    background: useAgent === o.k ? 'var(--bg-surface)' : 'transparent',
+                    border: `1px solid ${useAgent === o.k ? 'var(--border-default)' : 'var(--border-subtle)'}`,
+                    color: useAgent === o.k ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    boxShadow: useAgent === o.k ? 'var(--highlight-inset), var(--elev-1)' : 'none',
+                  }}>
+                  {o.l}
+                </button>
+              ))}
+            </div>
+          }>
           {sale.lines.map(l => (
             <div key={l.label} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '9px 2px', borderTop: '1px solid var(--border-subtle)' }}>
               <span style={{ ...TT.bodySm, color: 'var(--text-secondary)' }}>{l.label}</span>
