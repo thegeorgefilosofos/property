@@ -361,6 +361,34 @@ check('κάθε νέο πεδίο έχει ελληνική ετικέτα', ['p
   eq('end-to-end: η απόδειξη Ιουλίου εξοφλεί τον Ιούλιο', [r.verdict, r.best?.bill.id], ['confident', 'jul']);
 }
 
+// ── Η ΕΠΟΜΕΝΗ ΧΡΕΩΣΗ ΜΠΑΙΝΕΙ ΜΟΝΗ ΤΗΣ ΣΤΟ ΗΜΕΡΟΛΟΓΙΟ ────────────────────────
+// Ο χρήστης σαρώνει μια απόδειξη συνδρομής και δεν κάνει τίποτε άλλο. Αν το
+// χαρτί λέει κάθε πότε χρεώνεται, ξέρουμε πότε ξαναχρεώνεται.
+{
+  const sub = (over: Record<string, unknown> = {}) => planDocSave(normalizeScannedDoc(doc({
+    doc_type: 'bill', category: 'streaming', provider: 'Netflix', amount: 12.49,
+    issue_date: '2026-08-11', ...over,
+  })), TODAY);
+
+  const yearly = sub({ billing_period: 'yearly' }).calendar || [];
+  const renewal = yearly.find(e => e.title.startsWith('Ανανέωση'));
+  eq('ετήσια συνδρομή: γεγονός ανανέωσης σε έναν χρόνο', renewal?.event_date, '2027-08-11');
+  eq('κατηγορία συμβολαίου, όχι υπενθύμιση', renewal?.category, 'contract');
+  check('η σημείωση λέει πότε ειδοποιεί', /08\/08\/2027/.test(String(renewal?.notes)));
+  check('και γιατί', /ακυρώσεις/.test(String(renewal?.notes)));
+
+  const monthly = (sub({ billing_period: 'Μηνιαία συνδρομή' }).calendar || [])
+    .find(e => e.title.startsWith('Ανανέωση'));
+  eq('μηνιαία: σε έναν μήνα', monthly?.event_date, '2026-09-11');
+
+  // ΧΩΡΙΣ ΠΕΡΙΟΔΟ ΔΕΝ ΜΑΝΤΕΥΟΥΜΕ. Μια εφάπαξ αγορά δεν λήγει, και ένα γεγονός
+  // «ανανέωση» σε ημερομηνία που δεν υπάρχει είναι θόρυβος με ημερομηνία.
+  check('χωρίς περίοδο, κανένα γεγονός ανανέωσης',
+    !(sub().calendar || []).some(e => e.title.startsWith('Ανανέωση')));
+  check('εφάπαξ, κανένα γεγονός ανανέωσης',
+    !(sub({ billing_period: 'εφάπαξ' }).calendar || []).some(e => e.title.startsWith('Ανανέωση')));
+}
+
 // ── report ───────────────────────────────────────────────────────────────────
 console.log(`\ndocuments.ts — ${passed} passed, ${failed} failed`);
 if (failed) { console.log('FAILED:\n' + fails.map(f => '  ✗ ' + f).join('\n')); process.exit(1); }

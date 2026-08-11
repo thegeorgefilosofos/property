@@ -13,11 +13,11 @@ import * as calendar from '@/lib/data/calendar'
 import * as expenseStore from '@/lib/data/expenses'
 import { athensToday } from '@/lib/core/time'
 import { monthNom } from '@/lib/core/months'
-import { whatsappLink, viberLink } from '@/lib/clients/messages'
 import { notify } from '@/components/Toast'
 import { saved } from '@/components/dbWrite'
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker, addBtn } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
+import { ReminderLinks } from './ReminderLinks';
 import { T, TT, fe, fieldRow, SecHdr, InfoBanner, Skeleton, SkeletonKPIs, localDay, ABSENT_SHORT, pressable } from '@/components/Theme';
 // Ο κατάλογος συνδρομών ζει στο lib: τον διαβάζει και ο Προϋπολογισμός.
 import { STREAMING, SPORTS, CLOUD, SUB_INCLUDES, SUB_GROUPS, planMonthly, entryPlan, entryPlanId,
@@ -912,11 +912,11 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
   const otherCost = (otherSubs || []).reduce((s, o) => s + (parseFloat(o.price) || 0), 0);
   const total     = insCost + subGroups.reduce((s, g) => s + g.cost, 0) + otherCost;
 
-  const renewalAlerts: { name: string; daysLeft: number; type: 'danger'|'warning'|'info' }[] = [];
+  const renewalAlerts: { name: string; date: string; daysLeft: number; type: 'danger'|'warning'|'info' }[] = [];
   const checkRenewal = (name: string, dateStr: string, days: number) => {
     if (!dateStr) return;
     const diff = daysUntil(dateStr) ?? 0;
-    if (diff >= 0 && diff <= days) renewalAlerts.push({ name, daysLeft: diff, type: diff <= 3 ? 'danger' : diff <= 7 ? 'warning' : 'info' });
+    if (diff >= 0 && diff <= days) renewalAlerts.push({ name, date: dateStr, daysLeft: diff, type: diff <= 3 ? 'danger' : diff <= 7 ? 'warning' : 'info' });
   };
   if (insRenewalDate) checkRenewal(`Ασφάλεια κατοικίας (${insCompany?.label})`, insRenewalDate, 60);
   subGroups.forEach(g => g.active.forEach(a => {
@@ -1119,11 +1119,6 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
   const [booking, setBooking] = useState(false);
   const [bookedCount, setBookedCount] = useState(0);
 
-  /** Το μήνυμα της υπενθύμισης, ίδιο σε WhatsApp και Viber. */
-  const reminderText = (c: typeof charges[number]) =>
-    `Υπενθύμιση: η συνδρομή ${c.label} ανανεώνεται στις `
-    + `${localDay(c.renewalDate).toLocaleDateString('el-GR')} και κοστίζει ${fe(c.monthly)} τον μήνα.`;
-
   /**
    * ΔΙΑΒΑΖΕΙ ΠΡΙΝ ΓΡΑΨΕΙ, ΚΑΙ ΤΗ ΣΤΙΓΜΗ ΠΟΥ ΓΡΑΦΕΙ. Το τι έχει ήδη καταχωρηθεί
    * δεν κρατιέται σε κατάσταση της οθόνης: μια δεύτερη καρτέλα ανοιχτή, ή ένα
@@ -1258,6 +1253,16 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
           <div key={i} style={{ background: a.type === 'danger' ? 'var(--negative-soft)' : a.type === 'warning' ? 'var(--warning-soft)' : 'var(--accent-soft)', border: `1px solid ${a.type === 'danger' ? 'var(--negative)' : a.type === 'warning' ? 'var(--warning)' : 'var(--accent)'}`, borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, fontFamily: T.font.sans }}>
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: a.type === 'danger' ? 'var(--negative)' : a.type === 'warning' ? 'var(--warning)' : 'var(--accent)', flexShrink: 0 }}/>
             <strong>{a.name}</strong>: {a.daysLeft === 0 ? 'Λήγει ΣΗΜΕΡΑ' : `Λήγει σε ${a.daysLeft} ημέρες`}
+            {/* Η υπενθύμιση δίπλα στην ειδοποίηση, όχι σε άλλη οθόνη: τη στιγμή
+                που ο χρήστης το μαθαίνει είναι και η μόνη στιγμή που θα κάνει
+                κάτι γι' αυτό. */}
+            <span style={{ marginLeft: 'auto' }}>
+              <ReminderLinks subject={{
+                what: `λήγει «${a.name}»`,
+                when: a.date,
+                action: 'Ανανέωσε ή διέκοψε πριν τη χρέωση',
+              }}/>
+            </span>
           </div>
         ))}
 
@@ -1599,12 +1604,12 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
                     <span style={{ ...TT.bodySm, color: 'var(--text-primary)' }}>
                       {c.label}, ανανέωση {localDay(c.renewalDate).toLocaleDateString('el-GR')}
                     </span>
-                    <span style={{ display: 'flex', gap: 14 }}>
-                      <a href={whatsappLink('', reminderText(c))} target="_blank" rel="noopener noreferrer"
-                        style={{ ...TT.caption, color: 'var(--accent)', textDecoration: 'none' }}>WhatsApp</a>
-                      <a href={viberLink(reminderText(c))}
-                        style={{ ...TT.caption, color: 'var(--accent)', textDecoration: 'none' }}>Viber</a>
-                    </span>
+                    <ReminderLinks subject={{
+                      what: `η συνδρομή ${c.label} ανανεώνεται`,
+                      when: c.renewalDate,
+                      amount: c.monthly,
+                      action: 'Πρόλαβε να την ακυρώσεις ή να αλλάξεις πακέτο πριν τη χρέωση',
+                    }}/>
                   </div>
                 ))}
               </div>

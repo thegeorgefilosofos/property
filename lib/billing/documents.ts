@@ -17,6 +17,13 @@ import { EXPENSE_MAP, categorizeTransaction, derivePeriod, digitsOnly, isValidAf
 import { navLabel } from '../nav/labels';
 import { fe } from '../core/format';
 import type { EventDraft } from '../data/calendar';
+import { billingPeriod, nextRenewal, reminderDate, PERIOD_LABEL, REMINDER_DAYS_BEFORE } from './invoiceIntel';
+
+/** «2026-08-08» → «08/08/2026». Η ημερομηνία σε σημείωση διαβάζεται από άνθρωπο. */
+const greekDay = (iso: string): string => {
+  const [y, m, d] = iso.split('-');
+  return y && m && d ? `${d}/${m}/${y}` : iso;
+};
 
 // Ο προορισμός γράφεται ΜΙΑ φορά, από το μητρώο ονομάτων. Ήταν έξι φορές η
 // σταθερά «Αρχείο», και όταν η καρτέλα μετονομάστηκε σε «Φάκελος ακινήτου» η
@@ -183,6 +190,27 @@ export interface ScannedDoc {
   energy_charge?: number; network_charge?: number; millesimi?: number;
   vat_rate?: number; account_num?: string;
 
+  // ── ΤΑ ΣΤΟΙΧΕΙΑ ΠΟΥ ΚΡΙΝΟΥΝ ΤΟΝ ΦΠΑ ────────────────────────────────────
+  // Ο ιδιοκτήτης δεν θα συμπληρώσει φόρμα: θα φωτογραφίσει το τιμολόγιο. Ό,τι
+  // είναι τυπωμένο πάνω του δεν ξαναρωτιέται — και αυτά τα πέντε είναι που
+  // κρίνουν αν η δαπάνη είναι εγχώρια, ενδοκοινοτική λήψη ή λήψη από τρίτη
+  // χώρα, δηλαδή αν τον φόρο τον αποδίδει ο ίδιος με αντίστροφη χρέωση.
+  // Η συναγωγή ζει στο lib/billing/invoiceIntel.ts, όχι εδώ: εδώ είναι μόνο
+  // ό,τι ΔΙΑΒΑΣΤΗΚΕ.
+  /** Αριθμός ΦΠΑ εκδότη με πρόθεμα κράτους μέλους («IE6388047V»). */
+  provider_vat?: string;
+  /** Χώρα έδρας του εκδότη, ISO 3166-1 alpha-2. */
+  provider_country?: string;
+  /** ΑΦΜ του λήπτη, δηλαδή του ίδιου του χρήστη. */
+  customer_afm?: string;
+  /** Καθαρή αξία προ φόρου και ποσό φόρου, όταν γράφονται χωριστά. */
+  net_amount?: number;
+  vat_amount?: number;
+  /** Κάθε πότε επαναλαμβάνεται η χρέωση· από εδώ βγαίνει η λήξη και η υπενθύμιση. */
+  billing_period?: string;
+  /** Το όνομα του πακέτου («Premium 4K», «Full Fiber 300»). */
+  plan_name?: string;
+
   notes?: string;
   confidence: number;
   // Επιπλέον πεδία που πρόσθεσε χειροκίνητα ο χρήστης (ελεύθερα).
@@ -323,6 +351,17 @@ export function normalizeScannedDoc(doc: ScannedDoc): ScannedDoc {
   const afm = digitsOnly(out.provider_afm);
   out.provider_afm = afm || undefined;
   if (out.afm) out.afm = digitsOnly(out.afm) || undefined;
+  if (out.customer_afm) out.customer_afm = digitsOnly(out.customer_afm) || undefined;
+  // Ο ΑΡΙΘΜΟΣ ΦΠΑ ΔΕΝ ΕΙΝΑΙ ΨΗΦΙΑ. Κρατά το πρόθεμα κράτους μέλους και συχνά
+  // γράμματα στο σώμα του («NL857927374B01»): ένα `digitsOnly` εδώ θα έσβηνε
+  // ακριβώς την πληροφορία για την οποία τον ζητάμε.
+  if (out.provider_vat) out.provider_vat = String(out.provider_vat).replace(/[\s.-]/g, '').toUpperCase() || undefined;
+  // Δύο κεφαλαία γράμματα ή τίποτα: το «Ιρλανδία» και το «Ireland» δεν είναι
+  // κωδικοί, και μια μισή τιμή σε πεδίο χώρας ταξιδεύει ώς τη δήλωση ΦΠΑ.
+  if (out.provider_country) {
+    const c = String(out.provider_country).trim().toUpperCase();
+    out.provider_country = /^[A-Z]{2}$/.test(c) ? c : undefined;
+  }
   if (!out.period_from || !out.period_to) {
     const p = derivePeriod(out.period);
     if (p) { out.period_from = out.period_from || p.from; out.period_to = out.period_to || p.to; }
@@ -454,6 +493,33 @@ export function planDocSave(doc: ScannedDoc, today: string): SavePlan {
         notes: `Από σάρωση${cons ? ` · ${cons}` : ''}`,
       }];
       plan.targets.push('Ημερολόγιο');
+    }
+
+    // ── Η ΕΠΟΜΕΝΗ ΧΡΕΩΣΗ, ΟΤΑΝ ΤΟ ΧΑΡΤΙ ΛΕΕΙ ΚΑΘΕ ΠΟΤΕ ────────────────────
+    // Ο χρήστης σαρώνει μια απόδειξη συνδρομής και δεν κάνει τίποτε άλλο. Αν το
+    // παραστατικό γράφει «ετήσια», ξέρουμε πότε ξαναχρεώνεται: το app βάζει
+    // μόνο του την ημερομηνία στο ημερολόγιο, ώστε να προλάβει να ακυρώσει ή να
+    // αλλάξει πακέτο ΠΡΙΝ φύγουν τα χρήματα, όχι αφού.
+    //
+    // Η ΑΦΕΤΗΡΙΑ ΕΙΝΑΙ Η ΕΚΔΟΣΗ, ΟΧΙ Η ΛΗΞΗ ΠΛΗΡΩΜΗΣ. Η ημερομηνία λήξης
+    // πληρωμής είναι πότε πρέπει να πληρώσεις ΑΥΤΟ το παραστατικό· η επόμενη
+    // περίοδος μετρά από τότε που εκδόθηκε.
+    const period = billingPeriod(doc.billing_period);
+    const renewal = nextRenewal(iso(doc.issue_date) || expDate, period);
+    if (renewal) {
+      (plan.calendar ||= []).push({
+        title: `Ανανέωση: ${provider || map.cat}`,
+        category: 'contract',
+        event_date: renewal,
+        amount: doc.amount || null,
+        priority: 'high',
+        notes: [
+          `${PERIOD_LABEL[period!]} χρέωση`,
+          `Ειδοποίηση ${REMINDER_DAYS_BEFORE} ημέρες πριν, στις ${greekDay(reminderDate(renewal))}`,
+          'Πρόλαβε να ακυρώσεις ή να αλλάξεις πακέτο πριν τη χρέωση',
+        ].join(' · '),
+      });
+      if (!plan.targets.includes('Ημερολόγιο')) plan.targets.push('Ημερολόγιο');
     }
     if (cat === 'common') {
       if (doc.amount) plan.commonMonthAmount = doc.amount;
