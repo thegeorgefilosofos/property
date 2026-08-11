@@ -12,8 +12,9 @@ import * as tenantStore from '@/lib/data/tenants';
 import * as expenses from '@/lib/data/expenses'
 import * as calendar from '@/lib/data/calendar'
 import { TextInput } from './UIComponents';
-import { T, fe, feAuto, fp, fn, Skeleton, SkeletonKPIs, pressable } from '@/components/Theme';
+import { T, TT, fe, feAuto, fp, fn, fixedCols, Skeleton, SkeletonKPIs, pressable } from '@/components/Theme';
 import { waterMonthly } from '@/lib/energy/tariff';
+import { monthNom } from '@/lib/core/months';
 import { randomSuffix } from '@/lib/core/uploadPath';
 import { notify } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
@@ -1175,6 +1176,49 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                 </div>
               </div>
             </div>
+            {/* ══════════════════════════════════════════════════════════════
+                ΧΩΡΙΣ ΕΣΟΔΑ, ΤΟ ΚΟΥΤΙ ΕΙΧΕ ΕΝΑ ΝΟΥΜΕΡΟ ΚΑΙ ΤΡΙΑ ΤΕΤΑΡΤΑ ΚΕΝΟ.
+                ────────────────────────────────────────────────────────────
+                Η ανάλυση (μπάρα και σκέλη) εμφανιζόταν ΜΟΝΟ όταν είχε δηλωθεί
+                εισόδημα, γιατί μοιράζει τα έσοδα. Ο ιδιοκτήτης που δεν έχει
+                δηλώσει ενοίκιο έβλεπε «51,34 €» και «λογαριασμοί και δόση» σε
+                πλαίσιο εκατόν είκοσι εικονοστοιχείων: ένα νούμερο που δεν λέει
+                ΑΠΟ ΤΙ βγήκε, σε χώρο που θα το χωρούσε τρεις φορές.
+
+                Τα ίδια σκέλη υπάρχουν και χωρίς έσοδα — απλώς δεν αφαιρούνται
+                από κάτι. Μπαίνουν ως πλακίδια, και δίπλα τους η διαφορά από τον
+                προηγούμενο μήνα: η μόνη σύγκριση που έχει νόημα όταν λείπει το
+                εισόδημα, γιατί απαντά «ακρίβυνε ή έπεσε;».
+                ══════════════════════════════════════════════════════════════ */}
+            {!hasIncome && (() => {
+              const prev  = monthTotals[_prevYm] || 0;
+              const delta = monthlyCost - prev;
+              const tiles = [
+                { l: 'Πάγια',        v: committedBills, sub: 'ρεύμα, νερό, θέρμανση, κοινόχρηστα' },
+                { l: 'Δόση δανείου', v: loanMonthly,    sub: 'τοκοχρεολύσιο του μήνα' },
+                { l: 'Συνδρομές',    v: actuals.subscriptions || 0, sub: 'ό,τι χρεώνεται μόνο του' },
+                { l: 'Έναντι προηγούμενου μήνα', v: delta,
+                  sub: prev > 0 ? `${feAuto(prev)} τον ${monthNom(Number(_prevYm.slice(5, 7)) - 1)}` : 'χωρίς προηγούμενο μήνα' },
+              ].filter(t => t.v !== 0 || t.l === 'Πάγια');
+              return (
+                <div {...fixedCols(Math.min(tiles.length, 4), 10)} style={{ marginTop: 16 }}>
+                  {tiles.map(t => (
+                    <div key={t.l} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
+                      borderRadius: T.radius.inner, padding: '10px 12px' }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase',
+                        letterSpacing: '0.06em', fontFamily: T.font.sans, whiteSpace: 'nowrap', overflow: 'hidden',
+                        textOverflow: 'ellipsis' }}>{t.l}</div>
+                      {/* Το μέγεθος είναι της κλίμακας (TT.kpi = 18 εδώ, 28 στο
+                          κύριο νούμερο): τα πλακίδια στηρίζουν το σύνολο, δεν
+                          ανταγωνίζονται μαζί του. */}
+                      <div style={{ ...TT.kpi, fontSize: 18, marginTop: 4 }}>{feAuto(t.v)}</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 3,
+                        lineHeight: 1.4 }}>{t.sub}</div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
             {hasIncome && (
               <>
                 <div style={{ display: 'flex', height: 8, borderRadius: 6, overflow: 'hidden', marginTop: 16, marginBottom: 10, background: 'var(--bg-overlay)' }}>
