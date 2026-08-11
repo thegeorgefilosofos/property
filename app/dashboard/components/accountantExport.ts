@@ -17,7 +17,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { XLSX, FMT, S, setCell, downloadWorkbook, money, moneySigned, type Cell } from './xlsxStyle';
 import { supplyLabel, type Supply } from '@/lib/tax/placeOfSupply';
-import { myDataHint, myDataCell, type VatDeduction } from '@/lib/tax/myData';
+import { myDataHint, myDataCell, pendingGroups, type VatDeduction } from '@/lib/tax/myData';
 import { csvCell } from '@/lib/core/csv';
 import { buildZip, type ZipFile } from '@/lib/accounting/zip';
 import { WHO_LABEL, type Requirement } from '@/lib/accounting/dossier';
@@ -390,6 +390,23 @@ export function exportAccountantDossier(inp: DossierExportInput): void {
   ]);
   const blocking = missing.filter(r => r.blocking);
   const pending = missing.filter(r => !r.blocking);
+
+  // ── ΟΙ ΔΑΠΑΝΕΣ ΠΟΥ ΔΕΝ ΑΠΟΦΑΣΙΖΟΝΤΑΙ ΜΟΝΕΣ ΤΟΥΣ ────────────────────────────
+  // Το «05 Τι λείπει» απαντούσε μόνο «ποιο χαρτί δεν βρέθηκε». Ο χαρακτηρισμός
+  // myDATA όμως έχει ΚΑΙ γραμμές που λείπει η ΑΠΟΦΑΣΗ, όχι το χαρτί: ένα γενικό
+  // έξοδο χωρίς δηλωμένο δικαίωμα έκπτωσης, μια δαπάνη στο «Άλλο», ένα πάγιο.
+  // Στο φύλλο του Excel φαίνονται ως δύο λέξεις μέσα σε κελί· εδώ γράφονται
+  // ολόκληρες, με τον λόγο τους, μία φορά ανά περίπτωση και όχι ανά γραμμή —
+  // τριάντα δαπάνες ρεύματος έχουν το ίδιο ακριβώς ερώτημα.
+  const mdPending = inp.myData
+    ? pendingGroups(expense.map(e => ({ category: e.category, supply: e.supply as Supply | null, description: e.description })), inp.myData.vat)
+    : [];
+  const mdBlock = mdPending.flatMap((m, i) => [
+    `${String(i + 1).padStart(2, ' ')}. ${m.label} · ${m.count === 1 ? 'μία δαπάνη' : `${m.count} δαπάνες`}`,
+    `    Γιατί: ${m.note}`,
+    `    Παράδειγμα: ${m.sample}`,
+    '',
+  ]);
   const whatsMissing = txt([
     `ΤΙ ΛΕΙΠΕΙ ΑΠΟ ΑΥΤΟΝ ΤΟΝ ΦΑΚΕΛΟ · ${year}`, rule('═'), '',
     idLine, `Ημερομηνία έκδοσης: ${issued}`, '',
@@ -403,11 +420,14 @@ export function exportAccountantDossier(inp: DossierExportInput): void {
     ...(gaps.length
       ? ['Γ. ΚΕΝΑ ΣΤΑ ΔΕΔΟΜΕΝΑ ΤΗΣ ΕΦΑΡΜΟΓΗΣ', rule(), '', ...gaps.map(g => `  · ${g}`), '']
       : []),
+    ...(mdBlock.length
+      ? [`Δ. ΔΑΠΑΝΕΣ ΠΟΥ ΖΗΤΟΥΝ ΑΠΟΦΑΣΗ ΓΙΑ ΤΟΝ ΧΑΡΑΚΤΗΡΙΣΜΟ myDATA (${mdPending.length})`, rule(), '', ...mdBlock]
+      : []),
     rule(),
-    missing.length === 0 && gaps.length === 0
+    missing.length === 0 && gaps.length === 0 && mdBlock.length === 0
       ? 'Ο φάκελος είναι πλήρης.'
       : 'Τα παραπάνω δεν βρέθηκαν στην εφαρμογή. Δεν σημαίνει ότι δεν υπάρχουν:',
-    ...(missing.length === 0 && gaps.length === 0 ? [] : ['σημαίνει ότι δεν συνοδεύουν αυτόν τον φάκελο.']),
+    ...(missing.length === 0 && gaps.length === 0 && mdBlock.length === 0 ? [] : ['σημαίνει ότι δεν συνοδεύουν αυτόν τον φάκελο.']),
   ]);
 
   // ΤΑ ΟΝΟΜΑΤΑ ΔΙΑΒΑΖΟΝΤΑΙ, ΔΕΝ ΑΠΟΚΩΔΙΚΟΠΟΙΟΥΝΤΑΙ. Οι κάτω παύλες ήταν

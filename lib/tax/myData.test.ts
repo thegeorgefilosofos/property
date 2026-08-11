@@ -1,6 +1,6 @@
 import {
   EXPENSE_CLASS_LABEL, INVOICE_TYPE_LABEL, CATEGORY_NATURE, CATEGORY_CODE, ALLOWED_CLASSES,
-  natureOf, selfTransmittedInvoiceType, myDataHint, myDataCell, unmappedCategories, isAllowedCombination,
+  natureOf, selfTransmittedInvoiceType, myDataHint, myDataCell, unmappedCategories, isAllowedCombination, pendingGroups,
   type ExpenseClass, type InvoiceType,
 } from './myData';
 import { CATEGORIES } from '../expenses/taxonomy';
@@ -102,6 +102,29 @@ ok(!myDataHint({ category: 'plumber', supply: 'domestic' }).note.includes('αν�
   'η εγχώρια δεν μιλά για αντίστροφη χρέωση');
 ok(myDataHint({ category: 'subscription', supply: 'third_country' }).note.includes('αντίστροφη χρέωση'),
   'η τρίτη χώρα τη λέει');
+
+console.log('\nΤι ζητά απόφαση, μαζεμένο');
+{
+  const rows = [
+    { category: 'Ρεύμα',      description: 'ΔΕΗ Ιανουαρίου' },
+    { category: 'Ρεύμα',      description: 'ΔΕΗ Φεβρουαρίου' },
+    { category: 'Νερό',       description: 'ΕΥΔΑΠ' },
+    { category: 'Υδραυλικός', description: 'Επισκευή' },
+    { category: 'ΕΝΦΙΑ',      description: 'Δόση' },
+    { category: 'Άλλο',       description: 'Ανεξήγητο' },
+  ];
+  const g = pendingGroups(rows, 'unknown');
+  // Τρεις περιπτώσεις, όχι πέντε γραμμές: το ίδιο ερώτημα γράφεται μία φορά.
+  eq('τρεις περιπτώσεις', g.length, 3);
+  eq('τα τρία γενικά έξοδα μετρήθηκαν μαζί', g.find(x => x.label.includes('δικαίωμα'))!.count, 3);
+  eq('ο υδραυλικός δεν ζητά τίποτα', g.some(x => x.sample.includes('Υδραυλικός')), false);
+  eq('ο ΕΝΦΙΑ λέει ότι δεν χαρακτηρίζεται', g.some(x => x.label === 'Δεν χαρακτηρίζεται'), true);
+  eq('το δείγμα δείχνει κατηγορία και περιγραφή', g.find(x => x.label === 'Ζητά κατηγορία')!.sample, 'Άλλο, Ανεξήγητο');
+  // Με δηλωμένο δικαίωμα έκπτωσης, τα γενικά έξοδα παύουν να ρωτούν.
+  const g2 = pendingGroups(rows, 'none');
+  eq('μένουν μόνο ο ΕΝΦΙΑ και το «Άλλο»', g2.length, 2);
+  eq('χωρίς δαπάνες, καμία ερώτηση', pendingGroups([], 'unknown').length, 0);
+}
 
 console.log('\nΟ πίνακας συνδυασμών της ΑΑΔΕ');
 // ΟΙ ΜΗ ΕΠΙΤΡΕΠΤΟΙ ΣΥΝΔΥΑΣΜΟΙ ΑΠΟΡΡΙΠΤΟΝΤΑΙ ΣΤΗ ΔΙΑΒΙΒΑΣΗ. Αν φύγουν ως

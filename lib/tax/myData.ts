@@ -285,3 +285,37 @@ export function myDataCell(h: MyDataHint): string {
 export function unmappedCategories(): string[] {
   return Object.keys(BY_SLUG).filter(s => !(s in CATEGORY_NATURE));
 }
+
+/**
+ * ΤΙ ΖΗΤΑ ΑΠΟΦΑΣΗ, ΜΑΖΕΜΕΝΟ ΑΝΑ ΠΕΡΙΠΤΩΣΗ ΚΑΙ ΟΧΙ ΑΝΑ ΓΡΑΜΜΗ.
+ *
+ * Τριάντα λογαριασμοί ρεύματος έχουν το ΙΔΙΟ ερώτημα: εκπίπτεις τον ΦΠΑ των
+ * εισροών σου; Γραμμένο τριάντα φορές, το ερώτημα γίνεται λίστα που δεν
+ * διαβάζεται· γραμμένο μία, με το πλήθος δίπλα του, γίνεται εργασία πέντε
+ * δευτερολέπτων. Το δείγμα υπάρχει για να αναγνωρίσει ο λογιστής τι εννοούμε.
+ */
+export interface PendingGroup {
+  /** Οι δύο λέξεις του κελιού («Ζητά κατηγορία», «Πάγιο», «Δεν χαρακτηρίζεται»). */
+  label: string;
+  note: string;
+  count: number;
+  sample: string;
+}
+
+export function pendingGroups(
+  rows: readonly { category: unknown; supply?: Supply | null; description?: string | null }[],
+  vat: VatDeduction,
+): PendingGroup[] {
+  const seen = new Map<string, PendingGroup>();
+  for (const r of rows) {
+    const h = myDataHint({ category: r.category, supply: r.supply ?? null, vat });
+    if (!h.needsInput) continue;
+    const key = `${h.pending}|${h.note}`;
+    const prev = seen.get(key);
+    if (prev) { prev.count++; continue; }
+    const cat = typeof r.category === 'string' && r.category.trim() ? r.category.trim() : 'χωρίς κατηγορία';
+    const desc = String(r.description ?? '').trim();
+    seen.set(key, { label: h.pending, note: h.note, count: 1, sample: desc ? `${cat}, ${desc}` : cat });
+  }
+  return [...seen.values()];
+}
