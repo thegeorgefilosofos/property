@@ -270,6 +270,45 @@ export const STREAMING = [
   ] },
 ];
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ΟΙ ΑΘΛΗΤΙΚΕΣ ΣΥΝΔΡΟΜΕΣ, ΧΩΡΙΣΤΑ ΑΠΟ ΤΗΝ ΨΥΧΑΓΩΓΙΑ
+// ─────────────────────────────────────────────────────────────────────────
+// ΓΙΑΤΙ ΔΙΚΗ ΤΟΥΣ ΕΝΟΤΗΤΑ. Τα αθλητικά ήταν ένας διακόπτης ναι/όχι δίπλα στο
+// πακέτο συνδρομητικής τηλεόρασης — δηλαδή η οθόνη υπέθετε ότι ο αθλητικός
+// αγώνας έρχεται πάντα από τον πάροχο. Δεν έρχεται: το NBA, η EuroLeague και η
+// Formula 1 πουλάνε απευθείας, με χρέωση που δεν περνά από κανέναν πάροχο και
+// δεν φαινόταν πουθενά στην καρτέλα.
+//
+// ΤΟ ΕΤΗΣΙΟ ΓΡΑΦΕΤΑΙ ΩΣ ΜΗΝΙΑΙΟ ΚΟΣΤΟΣ, όπως και στις υπόλοιπες λίστες: η
+// στήλη αθροίζει μηνιαία έξοδα. Το εφάπαξ ποσό μένει στο όνομα, ώστε να
+// αναγνωρίζει ο χρήστης αυτό που πλήρωσε.
+//
+// ΤΟ ΗΜΕΡΗΣΙΟ ΕΙΣΙΤΗΡΙΟ ΤΗΣ EUROLEAGUE (8,99 € για είκοσι τέσσερις ώρες) ΔΕΝ
+// ΜΠΑΙΝΕΙ. Δεν είναι πάγιο: μια αγορά μιας ημέρας γραμμένη σε στήλη μηνιαίων
+// εξόδων θα χρεωνόταν δώδεκα φορές τον χρόνο για έναν αγώνα που είδε μία.
+// ═══════════════════════════════════════════════════════════════════════════
+export const SPORTS = [
+  { value: 'nba', label: 'NBA League Pass', color: '#c8102e', url: 'https://www.nba.com/watch/league-pass-purchase',
+    plans: [
+      { id: 'nba_lp',   name: 'League Pass · 12,99 €', price: 12.99 },
+      { id: 'nba_prem', name: 'League Pass Premium · 16,99 €', price: 16.99 },
+    ] },
+  { value: 'euroleague', label: 'EuroLeague TV', color: '#ff6a13', url: 'https://www.euroleague.tv',
+    plans: [
+      { id: 'el_month', name: 'Μηνιαίο · 15,99 €', price: 15.99 },
+      { id: 'el_year',  name: 'Ετήσιο 99,99 € · 8,33 € τον μήνα', price: 8.33 },
+    ] },
+  { value: 'f1tv', label: 'F1 TV', color: '#e10600', url: 'https://f1tv.formula1.com',
+    plans: [
+      { id: 'f1_access',      name: 'Access · 3,49 €', price: 3.49 },
+      { id: 'f1_pro',         name: 'Pro · 7,49 €', price: 7.49 },
+      { id: 'f1_premium',     name: 'Premium · 11,99 €', price: 11.99 },
+      { id: 'f1_access_year', name: 'Access ετήσιο 29,99 € · 2,50 € τον μήνα', price: 2.5 },
+      { id: 'f1_pro_year',    name: 'Pro ετήσιο 59,99 € · 5,00 € τον μήνα', price: 5 },
+      { id: 'f1_prem_year',   name: 'Premium ετήσιο 89,99 € · 7,50 € τον μήνα', price: 7.5 },
+    ] },
+];
+
 /**
  * ΥΠΗΡΕΣΙΕΣ ΠΟΥ ΠΕΡΙΕΧΟΥΝ ΑΛΛΕΣ.
  *
@@ -303,9 +342,6 @@ export const CLOUD = [
   //
   // ΤΟ ΕΤΗΣΙΟ ΤΟΥ CLAUDE ΩΣ ΜΗΝΙΑΙΟ: 180 € τον χρόνο, δηλαδή 15 € τον μήνα προ
   // φόρου και 18,60 € με τον φόρο.
-  //
-  // ΤΟ GEMINI ΜΕΝΕΙ ΧΩΡΙΣ ΤΙΜΗ. Δεν επιβεβαιώθηκε από την επίσημη σελίδα του
-  // και δεν μαντεύεται: γράφει «Εκκρεμεί» ώσπου να μπει η πραγματική.
   // ═══════════════════════════════════════════════════════════════════════
   { value: 'claude',  label: 'Claude',  url: 'https://claude.ai/upgrade', plans: [
     { id: 'cl_pro',      name: 'Pro · 22,32 €', price: 22.32 },
@@ -332,8 +368,6 @@ export const CLOUD = [
 // Οι δύο εγγραφές συνδρομής ήταν λέξη προς λέξη ίδιες. Η μία περιγραφή αρκεί:
 // αν αύριο προστεθεί πεδίο στη μία, δεν υπάρχει δεύτερη να ξεχαστεί.
 interface SubscriptionEntry { service: string; planId: string; customPrice: string; splitPeople: number; splitActive: boolean; renewalDate: string; }
-type StreamingEntry = SubscriptionEntry;
-type CloudEntry     = SubscriptionEntry;
 interface OtherSub       { name: string; price: string; renewalDate: string; }
 
 // ─── Ασφαλιστικό Comparison Engine ─────────────────────────────────────────────
@@ -602,6 +636,26 @@ function subShare(svc: SubService | undefined, a: SubscriptionEntry): number {
   return base / n;
 }
 
+/**
+ * ΟΙ ΤΡΕΙΣ ΟΜΑΔΕΣ ΣΥΝΔΡΟΜΩΝ, ΔΗΛΩΜΕΝΕΣ ΜΙΑ ΦΟΡΑ.
+ *
+ * Κάθε ομάδα είχε δικό της αντίγραφο από τα ίδια τέσσερα πράγματα: κλειδί στην
+ * κατάσταση, άθροισμα, εναλλαγή, ενημέρωση πεδίου. Δύο ομάδες σήμαινε δύο
+ * αντίγραφα — και οι ειδοποιήσεις ανανέωσης έτρεχαν μόνο στο ένα, οπότε το
+ * πεδίο «ημερομηνία ανανέωσης» των υπηρεσιών cloud δεν ειδοποιούσε ποτέ.
+ *
+ * Με τον πίνακα, μια τρίτη ομάδα είναι μια γραμμή εδώ και τίποτα άλλο.
+ *
+ * Το `short` είναι το όνομα μέσα στη γραμμή του συνόλου, όπου χωρούν τρεις
+ * λέξεις συνολικά.
+ */
+type SubKey = 'activeStreaming' | 'activeSports' | 'activeCloud';
+const SUB_GROUPS: { key: SubKey; label: string; short: string; catalog: SubService[] }[] = [
+  { key: 'activeStreaming', label: 'Συνδρομές ψυχαγωγίας και υπηρεσιών', short: 'Ψυχαγωγία', catalog: STREAMING },
+  { key: 'activeSports',    label: 'Αθλητικές συνδρομές',                short: 'Αθλητικά',   catalog: SPORTS    },
+  { key: 'activeCloud',     label: 'Cloud και λογισμικό',                short: 'Cloud',      catalog: CLOUD     },
+];
+
 export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate, total }: {
   label: string;
   catalog: readonly SubService[];
@@ -855,8 +909,9 @@ export default function BillsInsurance({ propertyId, userId = '', only }: { prop
     insCustomEarthquake: false, insCustomFlood: false, insCustomNatural: false,
     // NEW: property details for live quotes
     insSqm: '', insFloor: 'second', insAge: 'y10_14', insCity: '',
-    activeStreaming: [] as StreamingEntry[],
-    activeCloud:     [] as CloudEntry[],
+    activeStreaming: [] as SubscriptionEntry[],
+    activeSports:    [] as SubscriptionEntry[],
+    activeCloud:     [] as SubscriptionEntry[],
     otherSubs:       [] as OtherSub[],
   });
 
@@ -864,8 +919,7 @@ export default function BillsInsurance({ propertyId, userId = '', only }: { prop
     insProvider, insPlanId, insCustomPrice, insAgentName, insAgentPhone,
     insRenewalDate, insPropValue, insContentValue, insCustomCovers, insEditCovers,
     insCustomEarthquake, insCustomFlood, insCustomNatural,
-    insSqm, insFloor, insAge, insCity,
-    activeStreaming, activeCloud, otherSubs,
+    insSqm, insFloor, insAge, insCity, otherSubs,
   } = ps;
 
   // Οι ρυθμίσεις ασφάλισης έχουν σχήμα, και το `u` το σέβεται: μια ορθογραφία σε
@@ -935,20 +989,32 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
   const effectiveFloodState = insEditCovers ? insCustomFlood      : (insPlan?.flood      || false);
   const effectiveNatural    = insEditCovers ? insCustomNatural    : (insPlan?.natural    || false);
 
-  const streamingCost = (activeStreaming || []).reduce((s, a) => {
-    const svc  = STREAMING.find(x => x.value === a.service);
-    const plan = svc?.plans.find(p => p.id === a.planId);
-    const base = parseFloat(a.customPrice) || plan?.price || 0;
-    return s + (a.splitActive && a.splitPeople > 1 ? base / a.splitPeople : base);
-  }, 0);
-  const cloudCost = (activeCloud || []).reduce((s, a) => {
-    const svc  = CLOUD.find(x => x.value === a.service);
-    const plan = svc?.plans.find(p => p.id === a.planId);
-    const base = parseFloat(a.customPrice) || plan?.price || 0;
-    return s + (a.splitActive && a.splitPeople > 1 ? base / a.splitPeople : base);
-  }, 0);
+  // ── ΟΙ ΟΜΑΔΕΣ ΣΥΝΔΡΟΜΩΝ, ΜΕ ΤΑ ΔΙΚΑ ΤΟΥΣ ΣΥΝΟΛΑ ΚΑΙ ΧΕΙΡΙΣΜΟΥΣ ───────────
+  // Ο υπολογισμός του κόστους ήταν γραμμένος δύο φορές, δίπλα δίπλα, και ήδη
+  // είχε αποκλίνει από το `subShare` που χρησιμοποιεί η ίδια οθόνη λίγο πιο
+  // πάνω. Μία συνάρτηση, τρεις ομάδες.
+  const subGroups = SUB_GROUPS.map(g => {
+    const active = ps[g.key] || [];
+    // Η TypeScript δεν στενεύει υπολογισμένο κλειδί που είναι ένωση τριών
+    // ονομάτων, γι' αυτό το `Pick`: το κλειδί προέρχεται από τον `SubKey`,
+    // δηλαδή είναι εξ ορισμού πεδίο των ρυθμίσεων.
+    const write = (list: SubscriptionEntry[]) => u({ [g.key]: list } as Pick<InsuranceSettings, SubKey>);
+    return {
+      ...g,
+      active,
+      cost: active.reduce((s, a) => s + subShare(g.catalog.find(x => x.value === a.service), a), 0),
+      toggle: (svc: string) => write(
+        active.some(a => a.service === svc)
+          ? active.filter(a => a.service !== svc)
+          : [...active, { service: svc, planId: g.catalog.find(x => x.value === svc)?.plans[0].id || '',
+                          customPrice: '', splitPeople: 2, splitActive: false, renewalDate: '' }],
+      ),
+      update: <K extends keyof SubscriptionEntry>(svc: string, field: K, val: SubscriptionEntry[K]) =>
+        write(active.map(a => a.service === svc ? { ...a, [field]: val } : a)),
+    };
+  });
   const otherCost = (otherSubs || []).reduce((s, o) => s + (parseFloat(o.price) || 0), 0);
-  const total     = insCost + streamingCost + cloudCost + otherCost;
+  const total     = insCost + subGroups.reduce((s, g) => s + g.cost, 0) + otherCost;
 
   const renewalAlerts: { name: string; daysLeft: number; type: 'danger'|'warning'|'info' }[] = [];
   const checkRenewal = (name: string, dateStr: string, days: number) => {
@@ -957,7 +1023,9 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
     if (diff >= 0 && diff <= days) renewalAlerts.push({ name, daysLeft: diff, type: diff <= 3 ? 'danger' : diff <= 7 ? 'warning' : 'info' });
   };
   if (insRenewalDate) checkRenewal(`Ασφάλεια κατοικίας (${insCompany?.label})`, insRenewalDate, 60);
-  (activeStreaming || []).forEach(a => { const svc = STREAMING.find(x => x.value === a.service); if (a.renewalDate) checkRenewal(svc?.label || a.service, a.renewalDate, 5); });
+  subGroups.forEach(g => g.active.forEach(a => {
+    if (a.renewalDate) checkRenewal(g.catalog.find(x => x.value === a.service)?.label || a.service, a.renewalDate, 5);
+  }));
   (otherSubs || []).forEach(s => { if (s.renewalDate) checkRenewal(s.name, s.renewalDate, 7); });
 
   // ── Auto-detect insurance property type από property settings ──────────────
@@ -1129,28 +1197,6 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
   const insFresh = freshness(INSURANCE_VERIFIED, new Date(), INSURANCE_MAX_AGE_DAYS);
   const recommended: { q: LiveQuote; reason: string } | null = !insFresh.canRank ? null :
     ranked.length ? { q: quoteOf(ranked[0].plan.id), reason: explain(ranked[0], ranked, needs) } : null;
-
-  const toggleStreaming = (svc: string) => {
-    if ((activeStreaming || []).find(a => a.service === svc)) {
-      u({ activeStreaming: (activeStreaming || []).filter(a => a.service !== svc) });
-    } else {
-      const s = STREAMING.find(x => x.value === svc);
-      u({ activeStreaming: [...(activeStreaming || []), { service: svc, planId: s?.plans[0].id || '', customPrice: '', splitPeople: 2, splitActive: false, renewalDate: '' }] });
-    }
-  };
-  const updateS = <K extends keyof SubscriptionEntry>(svc: string, field: K, val: SubscriptionEntry[K]) =>
-    u({ activeStreaming: (activeStreaming || []).map(a => a.service === svc ? { ...a, [field]: val } : a) });
-
-  const toggleCloud = (svc: string) => {
-    if ((activeCloud || []).find(a => a.service === svc)) {
-      u({ activeCloud: (activeCloud || []).filter(a => a.service !== svc) });
-    } else {
-      const s = CLOUD.find(x => x.value === svc);
-      u({ activeCloud: [...(activeCloud || []), { service: svc, planId: s?.plans[0].id || '', customPrice: '', splitPeople: 2, splitActive: false, renewalDate: '' }] });
-    }
-  };
-  const updateC = <K extends keyof SubscriptionEntry>(svc: string, field: K, val: SubscriptionEntry[K]) =>
-    u({ activeCloud: (activeCloud || []).map(a => a.service === svc ? { ...a, [field]: val } : a) });
 
   const [newSubName, setNewSubName] = useState('');
   const [newSubPrice, setNewSubPrice] = useState('');
@@ -1507,12 +1553,10 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
       </>)}
 
       {show('subscriptions') && (<>
-        <SubscriptionSection label="Συνδρομές ψυχαγωγίας και υπηρεσιών" catalog={STREAMING}
-          active={activeStreaming || []} onToggle={toggleStreaming} onUpdate={updateS} total={streamingCost}/>
-
-        <SubscriptionSection label="Cloud και λογισμικό" catalog={CLOUD}
-          active={activeCloud || []} onToggle={toggleCloud} onUpdate={updateC} total={cloudCost}/>
-
+        {subGroups.map(g => (
+          <SubscriptionSection key={g.key} label={g.label} catalog={g.catalog}
+            active={g.active} onToggle={g.toggle} onUpdate={g.update} total={g.cost}/>
+        ))}
 
         {/* ── Άλλες Πάγιες Συνδρομές ───────────────────────────────────────── */}
         <div style={card}>
@@ -1559,7 +1603,11 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
                     στην ίδια ερώτηση, και η μία λάθος. */}
                 <div style={{ ...TT.bodySm, color: 'var(--text-secondary)' }}>Σύνολο ανά μήνα</div>
                 <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2 }}>
-                  {[insCost > 0 && `Ασφάλεια ${fe(insCost)}`, streamingCost > 0 && `Streaming ${fe(streamingCost)}`, cloudCost > 0 && `Cloud ${fe(cloudCost)}`, otherCost > 0 && `Άλλα ${fe(otherCost)}`].filter(Boolean).join(' + ')}
+                  {[
+                    insCost > 0 && `Ασφάλεια ${fe(insCost)}`,
+                    ...subGroups.filter(g => g.cost > 0).map(g => `${g.short} ${fe(g.cost)}`),
+                    otherCost > 0 && `Άλλα ${fe(otherCost)}`,
+                  ].filter(Boolean).join(' + ')}
                 </div>
               </div>
               <div style={{ textAlign: 'right' as const }}>
