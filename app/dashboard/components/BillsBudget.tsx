@@ -27,6 +27,7 @@ import { KPI } from './LoanShared';
 import BudgetImport from './BudgetImport';
 import { mergeLedger, type LedgerBill, type LedgerExpense, type LedgerEntry } from '@/lib/expenses/ledger';
 import { budgetBucket } from '@/lib/expenses/taxonomy';
+import { subscriptionsMonthly } from '@/lib/expenses/subscriptions';
 // Ο ΕΝΦΙΑ διαβάζεται από την ίδια απόφαση με την καρτέλα Υπηρεσίες.
 import { enfiaInUse, estimateENFIA } from '@/lib/billing/enfia';
 import { climateLevyRates, isHighSeasonMonth } from '@/lib/billing/greekTax';
@@ -47,7 +48,7 @@ const monthsUntilDue = (due?: string): number => {
 
 // Κατηγορίες που θεωρούνται «σταθερές» (πάγιοι λογαριασμοί, χρεώνονται ολόκληρο
 // τον μήνα) — δεν προβάλλονται γραμμικά. Οι υπόλοιπες συσσωρεύονται μέσα στον μήνα.
-const FIXED_CATS = ['electricity', 'water', 'internet', 'heating', 'insurance', 'services', 'common'];
+const FIXED_CATS = ['electricity', 'water', 'internet', 'heating', 'insurance', 'subscriptions', 'services', 'common'];
 const ymOf = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 // Προτεινόμενη ημερομηνία-στόχος ΕΝΦΙΑ: τέλος Φεβρουαρίου (τελευταία δόση).
 const nextFeb = (): string => {
@@ -238,7 +239,12 @@ const CATS = [
   { key: 'water',        label: 'Νερό',                default: 25  },
   { key: 'internet',     label: 'Internet και τηλεφωνία',default: 35 },
   { key: 'heating',      label: 'Θέρμανση',            default: 60  },
-  { key: 'insurance',    label: 'Ασφάλεια και συνδρομές',default: 30 },
+  { key: 'insurance',    label: 'Ασφάλεια',            default: 30  },
+  // ΔΙΚΟΣ ΤΟΥΣ ΣΤΟΧΟΣ, ΓΙΑΤΙ ΔΙΚΗ ΤΟΥΣ ΣΥΜΠΕΡΙΦΟΡΑ. Οι συνδρομές ήταν στον
+  // κουβά της ασφάλειας: μία υπέρβαση 20 € σε streaming κρυβόταν πίσω από ένα
+  // ασφάλιστρο που δεν χρεώθηκε ακόμη αυτόν τον μήνα. Και είναι το μόνο πάγιο
+  // που ΜΕΓΑΛΩΝΕΙ μόνο του, μια χρέωση τη φορά, χωρίς κανείς να το αποφασίσει.
+  { key: 'subscriptions',label: 'Συνδρομές',           default: 25  },
   { key: 'services',     label: 'Υπηρεσίες, ΕΝΦΙΑ',  default: 50  },
   { key: 'common',       label: 'Κοινόχρηστα',         default: 40  },
   { key: 'maintenance',  label: 'Συντήρηση',           default: 20  },
@@ -591,6 +597,12 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       }
       const ins = getSett('insurance');
       if (ins && !recorded.has('insurance')) billActuals.insurance = parseFloat(String(ins.insCustomPrice)) || 0;
+      // ΟΙ ΣΥΝΔΡΟΜΕΣ ΔΕΝ ΜΕΤΡΙΟΝΤΑΝ ΠΟΥΘΕΝΑ. Ο χρήστης δήλωνε δεκαπέντε συνδρομές
+      // στην ίδια ενότητα ρυθμίσεων, η καρτέλα έγραφε σωστά το σύνολό τους, και ο
+      // Προϋπολογισμός έδειχνε μηδέν: διαβαζόταν ΜΟΝΟ το `insCustomPrice`, δηλαδή
+      // το ασφάλιστρο. Κόστος που καταγράφεται και δεν αθροίζεται είναι χειρότερο
+      // από κόστος που δεν καταγράφηκε, γιατί ο χρήστης νομίζει ότι το βλέπει.
+      if (ins && !recorded.has('subscriptions')) billActuals.subscriptions = subscriptionsMonthly(ins);
 
       Object.values(bd).forEach(list => list.sort((a, b) => (a.date < b.date ? 1 : -1)));
       setActuals(billActuals);

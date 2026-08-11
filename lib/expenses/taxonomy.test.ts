@@ -138,7 +138,9 @@ eq('δικηγόρος πάει υπηρεσίες', budgetBucket('Συμβολ�
 eq('αέριο πάει θέρμανση', budgetBucket('Φυσικό αέριο'), 'heating');
 eq('πετρέλαιο πάει θέρμανση', budgetBucket('πετρελαιο θερμανσης'), 'heating');
 eq('συναγερμός δίπλα στην ασφάλεια', budgetBucket('Συναγερμός'), 'insurance');
-eq('συνδρομές δίπλα στην ασφάλεια', budgetBucket('streaming'), 'insurance');
+// Οι συνδρομές έχουν δικό τους κουβά: δεκαπέντε μικρές χρεώσεις που πληθαίνουν
+// μόνες τους δεν κρίνονται με τον στόχο του ασφαλίστρου κατοικίας.
+eq('συνδρομές σε δικό τους κουβά', budgetBucket('streaming'), 'subscriptions');
 eq('κοινόχρηστα', budgetBucket('Κοινόχρηστα'), 'common');
 eq('άγνωστο πάει λοιπές', budgetBucket('ξψζ άγνωστο'), 'other');
 // Η ανακαίνιση δεν είναι συντήρηση: μία φορά 8.000 ευρώ δεν σημαίνει ότι ο
@@ -147,7 +149,7 @@ eq('ανακαίνιση δεν είναι συντήρηση', budgetBucket('Α
 eq('έπιπλα δεν είναι συντήρηση', budgetBucket('Έπιπλα'), 'other');
 ok('κάθε κατηγορία προσγειώνεται σε έγκυρο κουβά',
   CATEGORIES.every(c => ['electricity', 'water', 'internet', 'heating', 'insurance',
-    'services', 'common', 'maintenance', 'other'].includes(budgetBucket(c.slug))));
+    'subscriptions', 'services', 'common', 'maintenance', 'other'].includes(budgetBucket(c.slug))));
 ok('καμία κατηγορία πάγιου δεν χάνεται στις λοιπές',
   ['electricity', 'water', 'gas', 'heating', 'internet', 'common', 'insurance']
     .every(s => budgetBucket(s) !== 'other'));

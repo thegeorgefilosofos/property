@@ -14,7 +14,7 @@
 //   5. Κάθε προπληρωμή δείχνει σε βαθμίδα που υπάρχει, με μηνιαία χρέωση.
 //   6. Μοναδικά αναγνωριστικά — ένα διπλό `id` σημαίνει ρύθμιση που χάνεται.
 // ═══════════════════════════════════════════════════════════════════════════
-import { STREAMING, SPORTS, CLOUD } from './BillsInsurance';
+import { STREAMING, SPORTS, CLOUD, SUB_GROUPS, subscriptionsMonthly } from './subscriptions';
 
 let fails = 0;
 const ok = (cond: boolean, msg: string) => {
@@ -37,7 +37,7 @@ for (const [name, catalog] of CATALOGS) {
   console.log(`\n${name} · ${catalog.length} υπηρεσίες`);
 
   const labels = catalog.map(s => s.label);
-  const sorted = [...labels].sort((a, b) => a.localeCompare(b, 'el'));
+  const sorted = [...labels].sort((a: string, b: string) => a.localeCompare(b, 'el'));
   ok(labels.join('|') === sorted.join('|'), `αλφαβητικά: ${labels.join(', ')}`);
 
   for (const svc of catalog) {
@@ -79,6 +79,24 @@ for (const [, catalog] of CATALOGS) {
     ok(first.price !== undefined, `${svc.label} · η τιμή εισόδου είναι μηνιαία χρέωση («${first.name}»)`);
   }
 }
+
+
+// ── ΤΟ ΜΗΝΙΑΙΟ ΣΥΝΟΛΟ, ΟΠΩΣ ΤΟ ΔΙΑΒΑΖΕΙ Ο ΠΡΟΫΠΟΛΟΓΙΣΜΟΣ ──────────────────
+console.log('\nΜηνιαίο σύνολο');
+const S = (extra: Record<string, unknown> = {}) => ({
+  activeStreaming: [{ service: 'netflix', planId: 'n_standard', customPrice: '', splitPeople: 2, splitActive: false, renewalDate: '' }],
+  ...extra,
+});
+ok(subscriptionsMonthly(null) === 0, 'κενές ρυθμίσεις δίνουν μηδέν');
+ok(subscriptionsMonthly({}) === 0, 'ρυθμίσεις χωρίς συνδρομές δίνουν μηδέν');
+ok(subscriptionsMonthly(S()) === 12.49, 'μία συνδρομή: 12,49 €');
+ok(subscriptionsMonthly(S({ activeSports: [{ service: 'f1tv', planId: 'f1_access_year', customPrice: '', splitPeople: 2, splitActive: false, renewalDate: '' }] }))
+   === 12.49 + 29.99 / 12, 'η προπληρωμή μετράει ως μηνιαίο δωδέκατο');
+ok(subscriptionsMonthly(S({ otherSubs: [{ name: 'Canva Pro', price: '11.99' }] })) === 12.49 + 11.99,
+   'οι άλλες πάγιες προστίθενται');
+ok(Math.abs(subscriptionsMonthly({ activeStreaming: [{ service: 'netflix', planId: 'n_standard', customPrice: '', splitPeople: 2, splitActive: true, renewalDate: '' }] }) - 6.245) < 1e-9,
+   'το μοιρασμένο μετράει μόνο το μερίδιο του χρήστη');
+ok(SUB_GROUPS.length === 3 && SUB_GROUPS.every(g => g.catalog.length > 0), 'τρεις ομάδες, καμία άδεια');
 
 console.log(`\nsubscriptions: ${fails === 0 ? '✓ όλα' : `✗ ${fails}`}`);
 if (fails) process.exit(1);

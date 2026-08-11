@@ -215,7 +215,7 @@ export function searchCategories(q: string, limit = 8): Category[] {
 /** Οι εννιά κουβάδες του Προϋπολογισμού. */
 export type BudgetBucket =
   | 'electricity' | 'water' | 'internet' | 'heating'
-  | 'insurance' | 'services' | 'common' | 'maintenance' | 'other';
+  | 'insurance' | 'subscriptions' | 'services' | 'common' | 'maintenance' | 'other';
 
 /**
  * Τα πάγια του σπιτιού έχουν δικό τους κουβά το καθένα, γιατί εκεί ο χρήστης
@@ -231,7 +231,12 @@ const HOME_BUCKET: Record<string, BudgetBucket> = {
   common: 'common',
   insurance: 'insurance',
   security: 'insurance',   // πάγιο μηνιαίο προστασίας, δίπλα στην ασφάλεια
-  subscription: 'insurance',
+  // ΟΙ ΣΥΝΔΡΟΜΕΣ ΕΦΥΓΑΝ ΑΠΟ ΤΗΝ ΑΣΦΑΛΕΙΑ. Ήταν στον ίδιο κουβά, δηλαδή ένας
+  // στόχος για δύο πράγματα που δεν έχουν σχέση: το ασφάλιστρο κατοικίας είναι
+  // ένα ποσό τον χρόνο που ο ιδιοκτήτης διαπραγματεύεται μία φορά, οι συνδρομές
+  // είναι δεκαπέντε μικρές χρεώσεις που πληθαίνουν μόνες τους. Μαζί, η υπέρβαση
+  // της μιας κρυβόταν πίσω από το περιθώριο της άλλης.
+  subscription: 'subscriptions',
 };
 
 const FAMILY_BUCKET: Record<Family, BudgetBucket> = {
