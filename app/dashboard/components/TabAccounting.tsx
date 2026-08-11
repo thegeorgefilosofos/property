@@ -46,7 +46,7 @@ import { usefulLifeYears } from '@/lib/inventory/depreciation'
 import { isGroupDeductible } from '@/lib/expenses/groups'
 import { RENTAL_TAX_ROWS_2026, BUSINESS_INCOME_ROWS_2026, BUILDING_DEPRECIATION_RATE, BUILDING_VALUE_FRACTION, SELF_EMPLOYED_MIN_NET_INCOME_2026 , rentalBracketsForYear, bracketsLabelForYear } from '@/lib/billing/greekTax'
 import { useReportBranding } from '@/lib/reportBranding'
-import { exportAccountantBundle } from './accountantExport'
+import { exportAccountantBundle, toMovement } from './accountantExport'
 import EnfiaPanel from './EnfiaPanel';
 import AccountantDossier, { useAccountantDossier } from './AccountantDossier'
 import { defaultBookkeeping, type LegalForm } from '@/lib/accounting/dossier'
@@ -480,7 +480,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     propName: prop?.name || 'Ακίνητο',
     statementLines: statement.lines.map(l=>({ label:l.label, amount:l.amount, kind:l.kind, negative:l.negative })),
     provisionMonthly: provision.monthly,
-    book: book.map(e=>({ date:e.date, type:e.type, category:e.category, description:e.description, amount:e.amount, supplier_country:e.supplier_country, supply:e.supply })),
+    book: book.map(toMovement),
     gaps: dossierGaps,
   }),[prop,statement,provision,book,dossierGaps])
 
@@ -609,7 +609,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
       year, propName: prop?.name || 'Ακίνητο',
       statementLines: statement.lines.map(l => ({ label: l.label, amount: l.amount, kind: l.kind, negative: l.negative })),
       provisionMonthly: provision.monthly,
-      book: book.map(e => ({ date: e.date, type: e.type, category: e.category, description: e.description, amount: e.amount })),
+      book: book.map(toMovement),
     })
   }
 

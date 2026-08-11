@@ -29,6 +29,25 @@ export interface AccountantMovement {
   supplier_country?: string | null;
   supply?: string | null;
 }
+/**
+ * ΜΙΑ ΜΕΤΑΤΡΟΠΗ ΚΑΘΟΛΙΚΟΥ ΣΕ ΚΙΝΗΣΗ, ΓΙΑ ΟΛΑ ΤΑ ΚΟΥΜΠΙΑ.
+ *
+ * Η εφαρμογή χτίζει το ίδιο βιβλίο σε ΔΥΟ σημεία: στον φάκελο του λογιστή και
+ * στο κουμπί «Excel» της Λογιστικής. Ήταν γραμμένα δύο φορές, πεδίο προς πεδίο,
+ * και όταν προστέθηκαν η χώρα και ο τόπος παροχής μπήκαν μόνο στο ένα: το ένα
+ * αρχείο έβγαινε σωστό και το άλλο με κενές στήλες, χωρίς κανένα σφάλμα και
+ * χωρίς καμία ένδειξη. Μία συνάρτηση, και το επόμενο πεδίο μπαίνει μία φορά.
+ */
+export function toMovement(e: {
+  date: string; type: 'income' | 'expense'; category: string; description: string; amount: number;
+  supplier_country?: string | null; supply?: string | null;
+}): AccountantMovement {
+  return {
+    date: e.date, type: e.type, category: e.category, description: e.description, amount: e.amount,
+    supplier_country: e.supplier_country ?? null, supply: e.supply ?? null,
+  };
+}
+
 export interface AccountantBundleInput {
   year: number;
   propName: string;
@@ -146,7 +165,12 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       [...Array(C_LABEL).fill(''), 'Καθαρό αποτέλεσμα (Έσοδα − Έξοδα)', Math.round((sumIn - sumEx) * 100) / 100, ''],
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa, { cellDates: true });
-    ws['!cols'] = [{ wch: 6 }, { wch: 13 }, { wch: 24 }, { wch: 40 }, { wch: 8 }, { wch: 26 }, { wch: 14 }, { wch: 14 }];
+    // ΤΟ ΠΛΑΤΟΣ ΤΗΣ ΣΤΗΛΗΣ ΜΕΤΡΗΘΗΚΕ ΑΠΟ ΤΟ ΜΑΚΡΥΤΕΡΟ ΚΕΙΜΕΝΟ ΤΗΣ. Το
+    // «Ενδοκοινοτική λήψη υπηρεσιών» είναι 28 χαρακτήρες και το πλάτος ήταν 26:
+    // το Excel το έκοβε, γιατί το διπλανό κελί έχει ποσό και δεν το αφήνει να
+    // ξεχειλίσει. Ένας λογιστής που βλέπει «Ενδοκοινοτική λήψη υπηρεσι…» δεν
+    // ξέρει αν είναι λήψη ή παράδοση.
+    ws['!cols'] = [{ wch: 6 }, { wch: 13 }, { wch: 24 }, { wch: 40 }, { wch: 8 }, { wch: 31 }, { wch: 14 }, { wch: 14 }];
     ws['!merges'] = [
       { s: { r: 0, c: 0 }, e: { r: 0, c: NC - 1 } },
       { s: { r: 1, c: 0 }, e: { r: 1, c: NC - 1 } },
