@@ -23,7 +23,7 @@ import {
   parseAction, cleanForSpeech, buildSystemPrompt, buildSystemBlocks, NAV_MAP,
   DEFAULT_PREFS, type AssistantPrefs, type AssistantAction,
   loadMemories, addMemory, removeMemory, clearMemories,
-  normalizeBookTime, resolveBookDate,
+  normalizeBookTime, resolveBookDate, KNOWLEDGE_PACKS, packsFor,
 } from './assistantPersona';
 import { PLANS, TRIAL_DAYS } from '@/lib/billing/plans';
 import { EARLY_ACCESS_DAYS } from '@/lib/billing/entitlements';
@@ -622,6 +622,28 @@ ok('κενό → undefined', normalizeBookTime('') === undefined);
 }
 
 // ── report ───────────────────────────────────────────────────────────────────
+// ── Ο ΒΟΗΘΟΣ ΞΕΡΕΙ ΤΙΣ ΣΥΝΔΡΟΜΕΣ ΚΑΙ ΤΟΝ ΤΟΠΟ ΠΑΡΟΧΗΣ ──────────────────────
+// «Πληρώνω το Netflix, εκπίπτει;» είναι φορολογική ερώτηση, όσο καθημερινά κι
+// αν ακούγεται. Χωρίς λέξεις-κλειδιά, ο βοηθός φόρτωνε άλλη γνώση.
+{
+  const t = KNOWLEDGE_PACKS.tax;
+  ok('συνδρομές: ο ιδιώτης δεν εκπίπτει', /ΙΔΙΩΤΗΣ δεν εκπίπτει συνδρομές/.test(t));
+  ok('συνδρομές: οι τρεις περιπτώσεις', /ΕΓΧΩΡΙΑ/.test(t) && /ΕΝΔΟΚΟΙΝΟΤΙΚΗ ΛΗΨΗ/.test(t) && /ΤΡΙΤΗ ΧΩΡΑ/.test(t));
+  ok('συνδρομές: το VIES μόνο εντός Ένωσης', /ΧΩΡΙΣ ανακεφαλαιωτικό πίνακα/.test(t));
+  ok('συνδρομές: παραπομπή στον νόμο', /2859\/2000/.test(t) && /4172\/2013/.test(t));
+  ok('συνδρομές: η χώρα διαβάζεται, δεν μαντεύεται', /ΜΗΝ τη μαντεύεις/.test(t));
+  ok('συνδρομές: η ουδετερότητα δεν είναι δεδομένη', /δικαίωμα έκπτωσης/.test(t));
+  ok('συνδρομές: δεν αποφαίνεται σκέτο «εκπίπτει»', /ΜΗΝ αποφαίνεσαι/.test(t));
+  ok('συνδρομές: ξέρει τι κάνει η ίδια η εφαρμογή', /τρεις ημέρες πριν/.test(t));
+  ok('συνδρομές: ξέρει γιατί ρωτά για διπλοεγγραφή', /ΔΙΠΛΟΕΓΓΡΑΦΕΣ/.test(t));
+
+  ok('«εκπίπτει η συνδρομή;» φορτώνει τη φορολογία', packsFor('πληρώνω το netflix, εκπίπτει;').includes('tax'));
+  ok('«ενδοκοινοτική» φορτώνει τη φορολογία', packsFor('είναι ενδοκοινοτική λήψη;').includes('tax'));
+  ok('«αντίστροφη χρέωση» φορτώνει τη φορολογία', packsFor('τι είναι η αντίστροφη χρέωση;').includes('tax'));
+  ok('«τιμολόγιο» φορτώνει τη φορολογία', packsFor('ανέβασα ένα τιμολόγιο').includes('tax'));
+}
+
+
 console.log(`\nassistantPersona.ts, ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`);
 if (failed) { console.log('FAILED:\n' + fails.map(f => '  ✗ ' + f).join('\n')); process.exit(1); }
 console.log('όλα πέρασαν');
