@@ -4,6 +4,8 @@
 // Stripe checkout. Καμία χρέωση δεν γίνεται εδώ· απλώς ορίζει τι επιτρέπει κάθε πλάνο.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { fe } from '../core/format';
+
 export type PlanId = 'free' | 'solo' | 'owner' | 'agency' | 'office';
 
 export interface Plan {
@@ -165,7 +167,7 @@ export const PLANS: Record<PlanId, Plan> = {
     tagline: 'Πολλά ακίνητα, μία εικόνα',
     features: [
       'Έως 3 ακίνητα',
-      `Επιπλέον ακίνητο: ${EXTRA_PROPERTY_PRICE} € τον μήνα`,
+      `Επιπλέον ακίνητο: ${fe(EXTRA_PROPERTY_PRICE)} τον μήνα`,
       'Σύγκριση απόδοσης ανά ακίνητο',
       'Mobile app 15 μέρες νωρίτερα',
     ],
@@ -179,7 +181,7 @@ export const PLANS: Record<PlanId, Plan> = {
     tagline: 'Ομάδα, ρόλοι και λογοδοσία',
     features: [
       'Έως 15 ακίνητα',
-      `Επιπλέον ακίνητο: ${EXTRA_PROPERTY_PRICE} € τον μήνα`,
+      `Επιπλέον ακίνητο: ${fe(EXTRA_PROPERTY_PRICE)} τον μήνα`,
       'Πελατολόγιο και χαρτοφυλάκιο',
       // ΤΟ «ΧΩΡΙΣ ΟΡΙΟ ΧΡΗΣΤΩΝ» ΗΤΑΝ ΓΡΑΜΜΕΝΟ ΣΤΟ ΑΚΡΙΒΟΤΕΡΟ ΠΑΚΕΤΟ, ΣΑΝ ΝΑ ΤΟ
       // ΠΡΟΣΘΕΤΕ. Δεν το προσθέτει: κανένα πακέτο δεν έχει όριο χρηστών, σε

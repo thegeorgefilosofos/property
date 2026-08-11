@@ -21,6 +21,7 @@
 import type { Metadata } from 'next';
 import { T } from '@/components/tokens';
 import { PublicHeader, PublicFooter, SectionHead, WRAP, WRAP_PAD } from '../PublicChrome';
+import { BackLink } from '../BackLink';
 import { RentTaxCalculator } from './RentTaxCalculator';
 
 const TITLE = 'Υπολογισμός φόρου ενοικίων 2026 · δωρεάν, χωρίς εγγραφή';
@@ -115,7 +116,8 @@ export default function Page() {
           το υποσέλιδο ακολουθούσε το δεύτερο. Το λογότυπο δηλαδή ξεκινούσε
           πενήντα εικονοστοιχεία αριστερότερα από τον τίτλο, σε κάθε οθόνη.
           Ένα μέτρο, και κάθε γραμμή της σελίδας ξεκινά από τον ίδιο άξονα. */}
-      <main style={{ ...WRAP, padding: `clamp(36px,5vw,64px) ${WRAP_PAD} clamp(56px,7vw,88px)` }}>
+      <main style={{ ...WRAP, padding: `clamp(28px,4vw,44px) ${WRAP_PAD} clamp(56px,7vw,88px)` }}>
+        <BackLink />
         <div className="lp-eyebrow">Δωρεάν εργαλείο</div>
         <h1 style={{ fontSize: 'clamp(28px,4.4vw,42px)', fontWeight: 680, letterSpacing: '-0.035em',
           lineHeight: 1.1, margin: '0 0 14px', textWrap: 'balance' }}>

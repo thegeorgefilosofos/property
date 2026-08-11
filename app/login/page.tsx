@@ -7,6 +7,7 @@ import Link from 'next/link'
 import AlreadySignedIn from '../AlreadySignedIn'
 import AuthAside from '../AuthAside'
 import GoogleG from '../GoogleG'
+import { BackLink } from '../BackLink'
 import { failed } from '@/lib/core/dbError';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -82,10 +83,14 @@ export default function LoginPage() {
           {sessionEmail ? (
             <AlreadySignedIn email={sessionEmail} onSignOut={signOut} signingOut={signingOut} mode="login" />
           ) : (<>
+          {/* ΣΕ ΚΙΝΗΤΟ ΔΕΝ ΥΠΗΡΧΕ ΚΑΝΕΝΑΣ ΔΡΟΜΟΣ ΠΙΣΩ. Το λογότυπο ζει στο
+              αριστερό πάνελ, που κρύβεται κάτω από τις 900, και δεν ήταν καν
+              σύνδεσμος. Όποιος άνοιγε τη Σύνδεση από την αρχική έμενε εκεί. */}
+          <BackLink home />
           <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: '0 0 6px' }}>Καλώς όρισες ξανά</h1>
           <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: '0 0 24px', lineHeight: 1.5 }}>
             Δεν έχεις λογαριασμό;{' '}
-            <Link href="/signup" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Εγγραφή δωρεάν</Link>
+            <Link href="/signup" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Δημιούργησε λογαριασμό</Link>
           </p>
 
           <button type="button" onClick={signInWithGoogle} className="auth-hov" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '12px', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 100, color: 'var(--text-primary)', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>

@@ -40,7 +40,11 @@ const check = <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke
 // ── Πάνελ: Ο πίνακάς σου ─────────────────────────────────────────────────────
 export function PanelDashboard() {
   const months = [42, 55, 48, 61, 52, 70, 66, 78, 60, 84, 72, 90];
-  const kpis = [['Καθαρή απόδοση', '4,8%'], ['Μηνιαία έσοδα', '1.250 €'], ['Πληρότητα', '92%']];
+  // ΤΡΕΙΣ ΕΤΙΚΕΤΕΣ, ΤΡΙΑ ΔΙΑΦΟΡΕΤΙΚΑ ΥΨΗ. «ΚΑΘΑΡΗ ΑΠΟΔΟΣΗ» και «ΜΗΝΙΑΙΑ ΕΣΟΔΑ»
+  // έπιαναν δύο σειρές, «ΠΛΗΡΟΤΗΤΑ» μία: η σειρά διαβαζόταν ακανόνιστη ό,τι κι αν
+  // έκανε το κατώφλι ύψους από κάτω. Μία λέξη η καθεμία, μία σειρά, τίποτα να
+  // ζυγίσει. Και τα ποσά με δύο δεκαδικά, όπως παντού στην εφαρμογή.
+  const kpis = [['Απόδοση', '4,80%'], ['Έσοδα/μήνα', '1.250,00 €'], ['Πληρότητα', '92%']];
   return (
     <div style={{ display: 'flex', gap: 16, textAlign: 'left' }}>
       <div className="lp-rail" style={{ width: 150, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -60,13 +64,13 @@ export function PanelDashboard() {
             <div key={i} className="lp-live" style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '13px 14px', minWidth: 0 }}>
               {/* Η ΕΤΙΚΕΤΑ ΚΟΒΟΤΑΝ ΜΕ ΑΠΟΣΙΩΠΗΤΙΚΑ: «ΚΑΘΑΡΗ…», «ΜΗΝΙΑΙ…»,
                   «ΠΛΗΡΟΤ…». Τρεις στήλες σε πάνελ που στενεύει με την οθόνη δεν
-                  χωρούν δεκατέσσερις χαρακτήρες σε μία σειρά, και το `nowrap`
-                  με `ellipsis` έκρυβε ακριβώς τη λέξη που εξηγεί τον αριθμό.
-                  Τώρα τυλίγει σε δύο σειρές, με σταθερό ύψος ώστε οι τρεις
-                  αριθμοί να πατούν στην ίδια γραμμή βάσης ό,τι κι αν γράφει
-                  από πάνω τους. */}
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, lineHeight: 1.3, minHeight: '2.6em' }}>{l}</div>
-              <div style={{ fontFamily: T.font.sans, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', fontSize: 'clamp(17px, 2.6vw, 22px)', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>{v}</div>
+                  χωρούν δεκατέσσερις χαρακτήρες, και το κόψιμο έκρυβε ακριβώς τη
+                  λέξη που εξηγεί τον αριθμό. Δοκιμάστηκε το τύλιγμα σε δύο
+                  σειρές και ήταν χειρότερο: δύο ετικέτες σε δύο σειρές, μία σε
+                  μία, δηλαδή σειρά ακανόνιστη. Η λύση ήταν στα ΟΝΟΜΑΤΑ, όχι στο
+                  κουτί — μία λέξη η καθεμία. */}
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, lineHeight: 1.3, whiteSpace: 'nowrap' }}>{l}</div>
+              <div style={{ fontFamily: T.font.sans, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.025em', fontSize: 'clamp(14px, 2.1vw, 19px)', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.1, whiteSpace: 'nowrap' }}>{v}</div>
             </div>
           ))}
         </div>
@@ -90,7 +94,7 @@ export function PanelDashboard() {
             <svg width={14} height={14} viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7z" /></svg>
           </div>
           <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-            <strong style={{ color: 'var(--text-primary)' }}>Πρόταση:</strong> αλλάζοντας πάροχο ρεύματος, γλιτώνεις 184 € τον χρόνο.
+            <strong style={{ color: 'var(--text-primary)' }}>Πρόταση:</strong> αλλάζοντας πάροχο ρεύματος, γλιτώνεις 184,00 € τον χρόνο.
           </div>
         </div>
       </div>
@@ -148,7 +152,7 @@ export function PanelAssistant() {
       <div style={{ padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div className="lp-pop lp-live" style={{ animationDelay: '.1s', alignSelf: 'flex-end', maxWidth: '82%', padding: '10px 14px', borderRadius: 14, borderBottomRightRadius: 4, background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 13, lineHeight: 1.5 }}>Νόα, πόσα ξόδεψα σε ρεύμα φέτος;</div>
         <div className="lp-pop lp-live" style={{ animationDelay: '.5s', alignSelf: 'flex-start', maxWidth: '90%', padding: '10px 14px', borderRadius: 14, borderBottomLeftRadius: 4, background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', fontSize: 13, lineHeight: 1.55, color: 'var(--text-primary)' }}>
-          Φέτος ξόδεψες <strong>1.240&nbsp;€</strong> σε ρεύμα, 18% περισσότερα από πέρσι, ενώ η κατανάλωση έμεινε σχεδόν σταθερή. Θέλεις να σου προτείνω οικονομικότερο πρόγραμμα ή πάροχο για το ακίνητό σου;
+          Φέτος ξόδεψες <strong>1.240,00&nbsp;€</strong> σε ρεύμα, 18% περισσότερα από πέρσι, ενώ η κατανάλωση έμεινε σχεδόν σταθερή. Θέλεις να σου προτείνω οικονομικότερο πρόγραμμα ή πάροχο για το ακίνητό σου;
         </div>
         <div className="lp-pop" style={{ animationDelay: '.9s', alignSelf: 'flex-start' }}>
           <span className="lp-live" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--accent) 26%, transparent)', borderRadius: 100, padding: '6px 12px' }}>

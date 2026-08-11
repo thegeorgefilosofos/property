@@ -6,6 +6,7 @@ import Link from 'next/link'
 import AlreadySignedIn from '../AlreadySignedIn'
 import AuthAside from '../AuthAside'
 import GoogleG from '../GoogleG'
+import { BackLink } from '../BackLink'
 import { checkPassword } from '@/lib/auth/password'
 import PasswordStrength from '@/components/PasswordStrength'
 import { failed } from '@/lib/core/dbError';
@@ -166,6 +167,10 @@ export default function SignupPage() {
             </div>
           ) : (
             <>
+              {/* ΣΕ ΚΙΝΗΤΟ ΔΕΝ ΥΠΗΡΧΕ ΚΑΝΕΝΑΣ ΔΡΟΜΟΣ ΠΙΣΩ. Το λογότυπο ζει στο
+                  αριστερό πάνελ, που κρύβεται κάτω από τις 900, και δεν ήταν καν
+                  σύνδεσμος. */}
+              <BackLink home />
               <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: '0 0 6px' }}>Δημιουργία λογαριασμού</h1>
               <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: '0 0 24px' }}>
                 Έχεις ήδη λογαριασμό;{' '}
@@ -245,7 +250,7 @@ export default function SignupPage() {
                 </div>
 
                 <button type="submit" disabled={loading || !consent || !pw.ok || leaked} className="auth-cta" style={{ width: '100%', padding: '12px', background: 'var(--accent)', border: 'none', borderRadius: 100, color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: (loading || !consent || !pw.ok || leaked) ? 'not-allowed' : 'pointer', opacity: (loading || !consent || !pw.ok || leaked) ? 0.6 : 1, letterSpacing: '-0.01em', marginTop: 4, fontFamily: 'inherit' }}>
-                  {loading ? 'Δημιουργία…' : 'Ξεκίνα δωρεάν'}
+                  {loading ? 'Δημιουργία…' : 'Ξεκίνα τη δοκιμή'}
                 </button>
               </form>
             </>

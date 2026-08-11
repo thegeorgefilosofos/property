@@ -1768,7 +1768,7 @@ details.lp-faq[open] summary .lp-plus { transform: rotate(45deg); }
 
 .lg-lede {
   display: grid; grid-template-columns: minmax(0, 1fr) 250px;
-  gap: 40px; align-items: baseline; max-width: 1044px;
+  gap: 40px; align-items: last baseline; max-width: 1044px;
 }
 .lg-lede > p:first-child { text-align: justify; text-wrap: pretty; }
 .lg-lede > p:last-child:not(:first-child) { text-align: right; }

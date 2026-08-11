@@ -41,12 +41,19 @@ function cameFromApp(): boolean {
   }
 }
 
-export function BackLink() {
+/**
+ * `home`: κρατά πάντα την «Αρχική», ό,τι κι αν λέει ο referrer.
+ *
+ * Το χρειάζονται η Σύνδεση και η Εγγραφή: εκεί ο επισκέπτης έρχεται συχνά από
+ * τον Λογαριασμό του επειδή ΕΛΗΞΕ η συνεδρία του, οπότε ένα κουμπί «Επιστροφή
+ * στην εφαρμογή» θα τον έστελνε πίσω στη σελίδα που μόλις τον έδιωξε.
+ */
+export function BackLink({ home = false }: { home?: boolean } = {}) {
   // Χωρίς useEffect: το `useSyncExternalStore` δίνει στον διακομιστή την
   // ουδέτερη απάντηση και στον περιηγητή την πραγματική, χωρίς δεύτερη απόδοση
   // που να «διορθώνει» την πρώτη.
   const fromApp = useSyncExternalStore(noSubscribe, cameFromApp, () => false);
-  const to = fromApp ? APP : HOME;
+  const to = fromApp && !home ? APP : HOME;
 
   return (
     <Link href={to.href} className="lg-back">
