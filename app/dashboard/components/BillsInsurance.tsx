@@ -10,12 +10,22 @@ import * as settings from '@/lib/data/settings';
 import * as checklist from '@/lib/data/checklist';
 import * as tenantStore from '@/lib/data/tenants';
 import * as calendar from '@/lib/data/calendar'
+import * as expenseStore from '@/lib/data/expenses'
+import { athensToday } from '@/lib/core/time'
+import { monthNom } from '@/lib/core/months'
+import { whatsappLink, viberLink } from '@/lib/clients/messages'
+import { notify } from '@/components/Toast'
+import { saved } from '@/components/dbWrite'
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker, addBtn } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
 import { T, TT, fe, fieldRow, SecHdr, InfoBanner, Skeleton, SkeletonKPIs, localDay, ABSENT_SHORT, pressable } from '@/components/Theme';
 // Ο κατάλογος συνδρομών ζει στο lib: τον διαβάζει και ο Προϋπολογισμός.
 import { STREAMING, SPORTS, CLOUD, SUB_INCLUDES, SUB_GROUPS, planMonthly, entryPlan, entryPlanId,
-         planNote, subShare, type SubService, type SubscriptionEntry, type SubKey } from '@/lib/expenses/subscriptions';
+         planNote, subShare, type SubService, type SubKey } from '@/lib/expenses/subscriptions';
+import { DEFAULT_EXPENSE_PCT, SUBSCRIPTION_CATEGORY, expensePct, subscriptionCharges, bookableTotal,
+         reverseChargeTotal, missingCountry, toExpenses, type BookableEntry } from '@/lib/expenses/subscriptionBooking';
+import { EU_MEMBER_STATES, supplyOf, supplyLabel, supplyNote } from '@/lib/tax/placeOfSupply';
+import { HAS_BUSINESS, type LegalForm } from '@/lib/accounting/dossier';
 import { freshness } from '@/lib/energy/freshness';
 import { seedInsurance, type PropertyInsurance } from '@/lib/insurance/seed';
 import { assessNeeds, matchPlans, explain, NEED_LABEL, type PropertyRisk } from '@/lib/insurance/match';
@@ -475,6 +485,23 @@ function deriveCoverages(covers: string[], earthquake: boolean, flood: boolean, 
 // ένας επιλογέας που λέει την απάντηση με λέξεις: «Μόνος μου», «2 άτομα».
 // ═══════════════════════════════════════════════════════════════════════════
 
+/**
+ * ΟΙ ΕΠΙΛΟΓΕΣ ΧΩΡΑΣ ΤΟΥ ΠΑΡΟΧΟΥ.
+ *
+ * Τα είκοσι επτά κράτη μέλη ονομαστικά, και ΜΙΑ γραμμή για όλες τις υπόλοιπες.
+ * Δεν χρειάζεται να ξέρουμε αν ο πάροχος είναι στις Ηνωμένες Πολιτείες ή στην
+ * Ελβετία: λογιστικά είναι το ίδιο πράγμα, λήψη από τρίτη χώρα. Ένας κατάλογος
+ * με διακόσιες χώρες θα ζητούσε από τον χρήστη ακρίβεια που δεν αλλάζει τίποτα.
+ *
+ * Το «ZZ» δεν είναι χώρα, είναι ο κωδικός «εκτός Ένωσης»: το ISO 3166-1 κρατά
+ * το εύρος ZZ για ιδιωτική χρήση ακριβώς γι' αυτό.
+ */
+const COUNTRY_OPTIONS = [
+  { value: '', label: 'Δεν έχει δηλωθεί' },
+  ...EU_MEMBER_STATES.map(c => ({ value: c.code, label: c.name })),
+  { value: 'ZZ', label: 'Εκτός Ευρωπαϊκής Ένωσης' },
+];
+
 const SPLIT_OPTIONS = [
   { value: '1', label: 'Μόνος μου' },
   ...[2, 3, 4, 5, 6].map(n => ({ value: String(n), label: `${n} άτομα` })),
@@ -482,13 +509,21 @@ const SPLIT_OPTIONS = [
 
 
 
-export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate, total }: {
+export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate, total, business }: {
   label: string;
   catalog: readonly SubService[];
-  active: SubscriptionEntry[];
+  active: BookableEntry[];
   onToggle: (svc: string) => void;
-  onUpdate: <K extends keyof SubscriptionEntry>(svc: string, field: K, val: SubscriptionEntry[K]) => void;
+  onUpdate: <K extends keyof BookableEntry>(svc: string, field: K, val: BookableEntry[K]) => void;
   total: number;
+  /**
+   * Η ΧΩΡΑ ΤΟΥ ΠΑΡΟΧΟΥ ΡΩΤΙΕΤΑΙ ΜΟΝΟ ΟΠΟΥ ΕΧΕΙ ΝΟΗΜΑ. Για ιδιώτη ιδιοκτήτη ο
+   * πάροχος χρεώνει ελληνικό ΦΠΑ και τελείωσε: δεν υπάρχει αντίστροφη χρέωση,
+   * δεν υπάρχει ανακεφαλαιωτικός πίνακας, και μια ερώτηση «σε ποια χώρα είναι
+   * το Netflix;» θα ήταν καθαρός θόρυβος. Η υποχρέωση γεννιέται από την ιδιότητα
+   * του ΛΗΠΤΗ (ν. 2859/2000, άρθρο 14 §2 περ. α΄), οπότε και η ερώτηση.
+   */
+  business: boolean;
 }) {
   // ΓΕΜΑΤΕΣ ΣΕΙΡΕΣ, ΟΠΟΙΟ ΚΙ ΑΝ ΕΙΝΑΙ ΤΟ ΜΕΓΕΘΟΣ ΤΟΥ ΚΑΤΑΛΟΓΟΥ. Διαλέγεται το
   // ΜΕΓΑΛΥΤΕΡΟ πλήθος στηλών που χωρίζει ακριβώς τον κατάλογο: δέκα υπηρεσίες
@@ -577,6 +612,12 @@ export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate
             const svc = catalog.find(x => x.value === a.service);
             if (!svc) return null;
             const note = planNote(svc.plans.find(p => p.id === a.planId));
+            // Ο ΤΟΠΟΣ ΠΑΡΟΧΗΣ ΓΡΑΦΕΤΑΙ ΤΗ ΣΤΙΓΜΗ ΠΟΥ ΔΗΛΩΝΕΤΑΙ Η ΧΩΡΑ, στην ίδια
+            // γραμμή με την υπόλοιπη εξήγηση: μία σειρά κάτω από τα πεδία, όχι
+            // δεύτερο πλαίσιο. Χωρίς χώρα δεν γράφεται τίποτα — το άγνωστο δεν
+            // παριστάνει τον κανόνα.
+            const supply = business ? supplyOf(a.supplierCountry) : null;
+            const supplyLine = supply ? `${supplyLabel(supply)}. ${supplyNote(supply)}` : '';
             return (
               /* Ο ΤΙΤΛΟΣ ΔΕΝ ΕΙΝΑΙ ΠΕΔΙΟ, ΚΑΙ ΟΣΟ ΗΤΑΝ ΜΕΣΑ ΣΤΟ ΠΛΕΓΜΑ ΤΟ ΧΑΛΟΥΣΕ.
                  Απλωνόταν σε όλες τις στήλες (`1 / -1`), και αυτό ακριβώς εμποδίζει
@@ -600,9 +641,22 @@ export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate
                     έσπαγε τη στοίχιση της σειράς. Η ετικέτα λέει ήδη «Ανανέωση»·
                     το κενό λέει ότι είναι προαιρετικό. */}
                 <DatePicker label="Ανανέωση" placeholder="Προαιρετικό" value={a.renewalDate} onChange={v => onUpdate(a.service, 'renewalDate', v)}/>
+                {/* ΠΟΣΟ ΑΠΟ ΤΗ ΣΥΝΔΡΟΜΗ ΕΙΝΑΙ ΔΑΠΑΝΗ. Το Microsoft 365 ενός
+                    διαχειριστή είναι εργαλείο δουλειάς, το Netflix του δεν
+                    είναι, και τα δύο χρεώνονται στην ίδια κάρτα. Προεπιλογή
+                    ολόκληρη, γιατί αυτό ισχύει στις περισσότερες. */}
+                <NumberInput label="Στις δαπάνες" value={String(a.expensePct ?? DEFAULT_EXPENSE_PCT)}
+                  onChange={v => onUpdate(a.service, 'expensePct', expensePct(v))} suffix="%" step={10} max={100}/>
+                {business && (
+                  <CustomSelect label="Χώρα παρόχου" value={a.supplierCountry || ''}
+                    onChange={v => onUpdate(a.service, 'supplierCountry', v)}
+                    options={COUNTRY_OPTIONS}/>
+                )}
                 </div>
-                {note && (
-                  <p style={{ ...TT.caption, color: 'var(--text-tertiary)', margin: '10px 0 0' }}>{note}</p>
+                {(note || supplyLine) && (
+                  <p style={{ ...TT.caption, color: 'var(--text-tertiary)', margin: '10px 0 0', lineHeight: 1.55 }}>
+                    {[note, supplyLine].filter(Boolean).join(' ')}
+                  </p>
                 )}
               </div>
             );
@@ -619,8 +673,14 @@ export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate
  */
 export type InsuranceScope = 'insurance' | 'subscriptions';
 
-export default function BillsInsurance({ propertyId, userId = '', only }: { propertyId: string; userId?: string; only?: InsuranceScope }) {
+export default function BillsInsurance({ propertyId, userId = '', only, legalForm = 'individual' }: {
+  propertyId: string; userId?: string; only?: InsuranceScope; legalForm?: LegalForm;
+}) {
   const show = (k: InsuranceScope) => !only || only === k;
+  // ΤΟ ΚΡΙΤΗΡΙΟ ΕΙΝΑΙ Η ΝΟΜΙΚΗ ΜΟΡΦΗ, ΚΑΙ ΔΗΛΩΘΗΚΕ ΜΙΑ ΦΟΡΑ ΣΤΗΝ ΥΠΟΔΟΧΗ.
+  // Δεν ξαναρωτιέται εδώ με τοπικό διακόπτη: η εφαρμογή έχει ήδη πληρώσει αυτό
+  // το λάθος αλλού, με τρεις οθόνες να κρατούν τρεις διαφορετικές απαντήσεις.
+  const isBusiness = HAS_BUSINESS.has(legalForm);
   const supabase = createClient();
   const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 };
   const g2: React.CSSProperties  = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 };
@@ -745,9 +805,9 @@ export default function BillsInsurance({ propertyId, userId = '', only }: { prop
     insCustomEarthquake: false, insCustomFlood: false, insCustomNatural: false,
     // NEW: property details for live quotes
     insSqm: '', insFloor: 'second', insAge: 'y10_14', insCity: '',
-    activeStreaming: [] as SubscriptionEntry[],
-    activeSports:    [] as SubscriptionEntry[],
-    activeCloud:     [] as SubscriptionEntry[],
+    activeStreaming: [] as BookableEntry[],
+    activeSports:    [] as BookableEntry[],
+    activeCloud:     [] as BookableEntry[],
     otherSubs:       [] as OtherSub[],
   });
 
@@ -834,7 +894,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
     // Η TypeScript δεν στενεύει υπολογισμένο κλειδί που είναι ένωση τριών
     // ονομάτων, γι' αυτό το `Pick`: το κλειδί προέρχεται από τον `SubKey`,
     // δηλαδή είναι εξ ορισμού πεδίο των ρυθμίσεων.
-    const write = (list: SubscriptionEntry[]) => u({ [g.key]: list } as Pick<InsuranceSettings, SubKey>);
+    const write = (list: BookableEntry[]) => u({ [g.key]: list } as Pick<InsuranceSettings, SubKey>);
     return {
       ...g,
       active,
@@ -845,7 +905,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
           : [...active, { service: svc, planId: entryPlanId(g.catalog, svc),
                           customPrice: '', splitPeople: 2, splitActive: false, renewalDate: '' }],
       ),
-      update: <K extends keyof SubscriptionEntry>(svc: string, field: K, val: SubscriptionEntry[K]) =>
+      update: <K extends keyof BookableEntry>(svc: string, field: K, val: BookableEntry[K]) =>
         write(active.map(a => a.service === svc ? { ...a, [field]: val } : a)),
     };
   });
@@ -1033,6 +1093,87 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
   const insFresh = freshness(INSURANCE_VERIFIED, new Date(), INSURANCE_MAX_AGE_DAYS);
   const recommended: { q: LiveQuote; reason: string } | null = !insFresh.canRank ? null :
     ranked.length ? { q: quoteOf(ranked[0].plan.id), reason: explain(ranked[0], ranked, needs) } : null;
+
+  // ══════════════════════════════════════════════════════════════════════
+  //  ΟΙ ΣΥΝΔΡΟΜΕΣ ΩΣ ΔΑΠΑΝΕΣ
+  // ──────────────────────────────────────────────────────────────────────
+  //  Η απόφαση (ποιο ποσό, ποια κατηγορία, ποιος φόρος) ζει στο
+  //  lib/expenses/subscriptionBooking.ts και δοκιμάζεται χωρίς βάση. Εδώ μένει
+  //  μόνο η εκτέλεση: τι διαβάζεται, τι γράφεται, τι λέγεται στον χρήστη.
+  // ══════════════════════════════════════════════════════════════════════
+  const charges      = subscriptionCharges(ps);
+  const chargesTotal = bookableTotal(charges);
+  const vatTotal     = isBusiness ? reverseChargeTotal(charges) : 0;
+  const needCountry  = isBusiness ? missingCountry(charges) : [];
+  const intraEu      = charges.filter(c => c.supply === 'intra_eu');
+  const thirdCountry = charges.filter(c => c.supply === 'third_country');
+  const curMonth     = athensToday().slice(0, 7);
+
+  // Λήξεις μέσα στις επόμενες δεκαπέντε ημέρες: αρκετά νωρίς για να προλάβεις
+  // ακύρωση ή αλλαγή πακέτου, αρκετά αργά για να μην είναι θόρυβος όλο τον μήνα.
+  const expiring = charges.filter(c => {
+    const d = c.renewalDate ? daysUntil(c.renewalDate) : null;
+    return d !== null && d >= 0 && d <= 15;
+  });
+
+  const [booking, setBooking] = useState(false);
+  const [bookedCount, setBookedCount] = useState(0);
+
+  /** Το μήνυμα της υπενθύμισης, ίδιο σε WhatsApp και Viber. */
+  const reminderText = (c: typeof charges[number]) =>
+    `Υπενθύμιση: η συνδρομή ${c.label} ανανεώνεται στις `
+    + `${localDay(c.renewalDate).toLocaleDateString('el-GR')} και κοστίζει ${fe(c.monthly)} τον μήνα.`;
+
+  /**
+   * ΔΙΑΒΑΖΕΙ ΠΡΙΝ ΓΡΑΨΕΙ, ΚΑΙ ΤΗ ΣΤΙΓΜΗ ΠΟΥ ΓΡΑΦΕΙ. Το τι έχει ήδη καταχωρηθεί
+   * δεν κρατιέται σε κατάσταση της οθόνης: μια δεύτερη καρτέλα ανοιχτή, ή ένα
+   * κλικ πριν από δέκα λεπτά, θα το είχαν κάνει ψέμα. Ο έλεγχος γίνεται πάνω
+   * στη βάση, τη στιγμή του πατήματος.
+   */
+  const bookMonth = async () => {
+    if (booking || !propertyId || !userId) return;
+    setBooking(true);
+    const from = `${curMonth}-01`;
+    const to   = `${curMonth}-31`;
+    const rows = await expenseStore.inRangeOfProperty(supabase, propertyId, from, to, 'store_vendor,category');
+    const recorded = new Set(
+      rows.filter(r => r.category === SUBSCRIPTION_CATEGORY && r.store_vendor)
+          .map(r => String(r.store_vendor)),
+    );
+    const drafts = toExpenses(charges, { month: curMonth, recorded });
+    if (!drafts.length) {
+      setBooking(false);
+      setBookedCount(0);
+      notify('Ο μήνας είναι ήδη καταχωρημένος. Καμία διπλή γραμμή.');
+      return;
+    }
+    const okWrite = await saved('Οι συνδρομές δεν μπήκαν στις δαπάνες',
+      expenseStore.insert(supabase, drafts.map(d => expenseStore.row({ propertyId, userId }, d))));
+    setBooking(false);
+    if (okWrite) setBookedCount(drafts.length);
+  };
+
+  // ── ΟΙ ΑΝΑΝΕΩΣΕΙΣ ΣΤΟ ΗΜΕΡΟΛΟΓΙΟ ────────────────────────────────────────
+  // Μία εγγραφή ανά συνδρομή, με πηγή `subscription:<υπηρεσία>`. Ο συγχρονισμός
+  // αντικαθιστά ό,τι υπάρχει με αυτή την πηγή: αλλάζει η ημερομηνία ανανέωσης ή
+  // σβήνει η συνδρομή, και το ημερολόγιο το ακολουθεί χωρίς να μείνει ορφανή
+  // υπενθύμιση για κάτι που ο χρήστης ακύρωσε πριν από τρεις μήνες.
+  const renewalSignature = charges.map(c => `${c.service}:${c.renewalDate}:${c.monthly.toFixed(2)}`).join('|');
+  useEffect(() => {
+    if (!propertyId || !userId || loading) return;
+    const drafts = subscriptionCharges(ps).filter(c => c.renewalDate).map(c => ({
+      title: `Ανανέωση συνδρομής, ${c.label}`,
+      category: 'contract' as const,
+      event_date: c.renewalDate,
+      amount: c.monthly > 0 ? c.monthly : null,
+      notes: c.plan ? `Πακέτο ${c.plan}.` : '',
+      source: `subscription:${c.service}`,
+    }));
+    void calendar.replaceSource(supabase, { propertyId, userId }, { prefix: 'subscription:' }, drafts);
+    // Η υπογραφή είναι η εξάρτηση: χωρίς αυτήν ο συγχρονισμός θα έσβηνε και θα
+    // ξανάγραφε τα ίδια γεγονότα σε κάθε απόδοση της οθόνης.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [propertyId, userId, loading, renewalSignature]);
 
   const [newSubName, setNewSubName] = useState('');
   const [newSubPrice, setNewSubPrice] = useState('');
@@ -1391,8 +1532,85 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
       {show('subscriptions') && (<>
         {subGroups.map(g => (
           <SubscriptionSection key={g.key} label={g.label} catalog={g.catalog}
-            active={g.active} onToggle={g.toggle} onUpdate={g.update} total={g.cost}/>
+            active={g.active} onToggle={g.toggle} onUpdate={g.update} total={g.cost} business={isBusiness}/>
         ))}
+
+        {/* ══════════════════════════════════════════════════════════════════
+            ΑΠΟ ΤΗ ΛΙΣΤΑ ΣΤΟ ΚΑΘΟΛΙΚΟ
+            ────────────────────────────────────────────────────────────────
+            Ως εδώ η καρτέλα ήταν λίστα: ο χρήστης δήλωνε δεκαπέντε συνδρομές,
+            τις έβλεπε, και τίποτα άλλο. Δεν έμπαιναν στις δαπάνες, δεν έφταναν
+            στη λογιστική, δεν έβγαιναν στο Excel του λογιστή.
+
+            ΕΝΑ ΚΟΥΜΠΙ, ΚΑΙ ΟΧΙ ΕΝΑ ΑΝΑ ΣΥΝΔΡΟΜΗ. Δεκαπέντε κουμπιά «καταχώρηση»
+            είναι δεκαπέντε ευκαιρίες να ξεχαστεί το ένα. Ο μήνας καταχωρείται
+            ολόκληρος, και όσα έχουν ήδη γραφτεί δεν ξαναγράφονται.
+            ══════════════════════════════════════════════════════════════════ */}
+        {charges.length > 0 && (
+          <div style={card}>
+            <SecHdr label="Στις δαπάνες"
+              sub={`${monthNom(Number(curMonth.slice(5, 7)) - 1)}, με τα ποσοστά που όρισες.`}
+              right={<span style={{ ...TT.kpi, fontSize: 18 }}>{fe(chargesTotal)}</span>}/>
+
+            {/* Η ΓΡΑΜΜΗ ΤΟΥ ΦΟΡΟΥ ΥΠΑΡΧΕΙ ΜΟΝΟ ΟΤΑΝ ΥΠΑΡΧΕΙ ΦΟΡΟΣ. Ένα «0,00 €
+                αντίστροφη χρέωση» σε ιδιώτη είναι θόρυβος με νομικό ύφος. */}
+            {isBusiness && vatTotal > 0 && (
+              <p style={{ ...TT.bodySm, margin: '0 0 12px', lineHeight: 1.6 }}>
+                Από αυτά, {fe(vatTotal)} είναι ΦΠΑ που αποδίδεις εσύ με αντίστροφη χρέωση:
+                {' '}{intraEu.length > 0 && `${intraEu.length} ενδοκοινοτικές λήψεις`}
+                {intraEu.length > 0 && thirdCountry.length > 0 && ' και '}
+                {thirdCountry.length > 0 && `${thirdCountry.length} από τρίτες χώρες`}.
+              </p>
+            )}
+
+            {/* ΤΟ ΑΓΝΩΣΤΟ ΛΕΓΕΤΑΙ, ΔΕΝ ΜΑΝΤΕΥΕΤΑΙ. Χωρίς χώρα, η συνδρομή
+                καταχωρείται κανονικά ως δαπάνη — αλλά χωρίς κατάταξη, και ο
+                λογιστής θα το βρει τον Απρίλιο αντί για σήμερα. */}
+            {isBusiness && needCountry.length > 0 && (
+              <p style={{ ...TT.bodySm, color: 'var(--text-secondary)', margin: '0 0 12px', lineHeight: 1.6 }}>
+                {needCountry.length === 1 ? 'Μία συνδρομή δεν έχει' : `${needCountry.length} συνδρομές δεν έχουν`} δηλωμένη
+                χώρα παρόχου: {needCountry.map(c => c.label).join(', ')}. Η χώρα γράφεται στο παραστατικό, δίπλα στα
+                στοιχεία της εταιρείας, και κρίνει αν η λήψη είναι ενδοκοινοτική ή από τρίτη χώρα.
+              </p>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <button type="button" onClick={bookMonth} disabled={booking || chargesTotal <= 0}
+                style={addBtn(booking || chargesTotal <= 0)}>
+                {booking ? 'Καταχωρείται…' : 'Καταχώρηση στις δαπάνες'}
+              </button>
+              {bookedCount > 0 && (
+                <span style={{ ...TT.bodySm, color: 'var(--text-secondary)' }}>
+                  {bookedCount === 1 ? 'Μία γραμμή μπήκε' : `${bookedCount} γραμμές μπήκαν`} στο καθολικό.
+                </span>
+              )}
+            </div>
+
+            {/* ΟΙ ΛΗΞΕΙΣ ΠΟΥ ΠΛΗΣΙΑΖΟΥΝ, ΜΕ ΤΡΟΠΟ ΝΑ ΤΙΣ ΘΥΜΗΘΕΙΣ. Οι σύνδεσμοι
+                ανοίγουν το WhatsApp ή το Viber με έτοιμο το μήνυμα — καμία
+                υπηρεσία στη μέση, κανένα κόστος, κανένας αριθμός που φεύγει από
+                τη συσκευή. Η ίδια η ανανέωση μπαίνει ούτως ή άλλως στο
+                ημερολόγιο, από τον συγχρονισμό παραπάνω. */}
+            {expiring.length > 0 && (
+              <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
+                {expiring.map(c => (
+                  <div key={c.service} style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+                    gap: 12, flexWrap: 'wrap', padding: '7px 0' }}>
+                    <span style={{ ...TT.bodySm, color: 'var(--text-primary)' }}>
+                      {c.label}, ανανέωση {localDay(c.renewalDate).toLocaleDateString('el-GR')}
+                    </span>
+                    <span style={{ display: 'flex', gap: 14 }}>
+                      <a href={whatsappLink('', reminderText(c))} target="_blank" rel="noopener noreferrer"
+                        style={{ ...TT.caption, color: 'var(--accent)', textDecoration: 'none' }}>WhatsApp</a>
+                      <a href={viberLink(reminderText(c))}
+                        style={{ ...TT.caption, color: 'var(--accent)', textDecoration: 'none' }}>Viber</a>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ── Άλλες Πάγιες Συνδρομές ───────────────────────────────────────── */}
         <div style={card}>

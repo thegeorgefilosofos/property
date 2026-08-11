@@ -43,6 +43,7 @@ import BillsGas          from './BillsGas';
 import BillsCommon       from './BillsCommon';
 import BillsProviders    from './BillsProviders';
 import BillsInsurance    from './BillsInsurance';
+import { type LegalForm } from '@/lib/accounting/dossier';
 import BillsServices     from './BillsServices';
 import ExpenseSwitchAlert from './ExpenseSwitchAlert';
 
@@ -50,6 +51,8 @@ import ExpenseSwitchAlert from './ExpenseSwitchAlert';
 interface Props {
   propertyId:       string;
   userId:           string;
+  /** Βλ. TabFinances: κρίνει αν οι συνδρομές ρωτούν χώρα παρόχου. */
+  legalForm?:       LegalForm;
 }
 
 interface StripData {
@@ -142,7 +145,7 @@ function ContractTile({ card, active, onOpen }: { card: ContractCard; active: bo
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function TabBills({
-  propertyId, userId,
+  propertyId, userId, legalForm = 'individual',
 }: Props) {
   const supabase   = createClient();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -297,7 +300,7 @@ export default function TabBills({
             {/* Ο συναγερμός είναι μηνιαία συνδρομή σε εταιρεία, όχι πάροχος
                 δικτύου: στέκει με τις υπόλοιπες συνδρομές. */}
             {tool === 'subscriptions' && (<>
-              <BillsInsurance propertyId={propertyId} userId={userId} only="subscriptions"/>
+              <BillsInsurance propertyId={propertyId} userId={userId} only="subscriptions" legalForm={legalForm}/>
               <BillsProviders propertyId={propertyId} userId={userId} only="security"/>
             </>)}
             {tool === 'services'      && <BillsServices  propertyId={propertyId} userId={userId}/>}

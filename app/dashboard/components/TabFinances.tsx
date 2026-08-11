@@ -26,11 +26,19 @@ import { useState } from 'react';
 import { T } from '@/components/Theme';
 import ExpenseLedger from './ExpenseLedger';
 import TabBills from './TabBills';
+import { type LegalForm } from '@/lib/accounting/dossier';
 import BillsBudget from './BillsBudget';
 
 interface Props {
   propertyId: string; userId: string;
   profileType?: 'individual' | 'professional';
+  /**
+   * Η νομική μορφή, όπως δηλώθηκε στην υποδοχή. Ταξιδεύει ως εδώ για ΕΝΑ πράγμα:
+   * ο τόπος παροχής των συνδρομών (ενδοκοινοτική λήψη, τρίτη χώρα) γεννά
+   * υποχρέωση μόνο όταν ο λήπτης είναι υποκείμενος στον φόρο. Ο ιδιώτης
+   * ιδιοκτήτης δεν έχει τίποτα να δηλώσει, οπότε δεν βλέπει τίποτα.
+   */
+  legalForm?: LegalForm;
   // ΤΟ `plan` ΕΦΥΓΕ. Δηλωνόταν ως «ορίζει τι εργαλεία βλέπει ο χρήστης μέσα στις
   // Δαπάνες» και δεν διαβαζόταν πουθενά μέσα στο σώμα: ένα prop που ταξίδευε από
   // το page.tsx ως εδώ για να μη χρησιμοποιηθεί ποτέ. Ο περιορισμός ανά πλάνο
@@ -43,7 +51,7 @@ type View = 'expenses' | 'budget';
 
 export default function TabFinances({
   propertyId, userId,
-  profileType = 'individual', onScan,
+  profileType = 'individual', legalForm = 'individual', onScan,
 }: Props) {
   const [view, setView] = useState<View>('expenses');
   const [contracts, setContracts] = useState(false);
@@ -100,7 +108,7 @@ export default function TabFinances({
       </div>
 
       {contracts
-        ? <TabBills propertyId={propertyId} userId={userId} />
+        ? <TabBills propertyId={propertyId} userId={userId} legalForm={legalForm} />
         : view === 'expenses'
           ? <ExpenseLedger propertyId={propertyId} userId={userId} onScan={onScan} />
           : <BillsBudget propertyId={propertyId} userId={userId} profileType={profileType} />}

@@ -1937,7 +1937,7 @@ export default function Dashboard() {
                 ? <PortfolioTab properties={properties} userId={user.id} onSelectProperty={(id)=>{ const p=properties.find(x=>x.id===id); if(p){ setSelected(p); setNav('overview'); } }}/>
                 : <FeatureLock title="Το χαρτοφυλάκιό σου με μια ματιά" benefit={`Συγκεντρωτική εικόνα του χαρτοφυλακίου, με έσοδα, αποδόσεις και εκκρεμότητες σε ένα σημείο. Ξεκλειδώνει με το πακέτο ${PLANS.agency.name}.`} requiredPlan="agency" currentPlanName={PLANS[effPlan].name} onManage={()=>setNav('settings')} />)}
               {navSafe==='overview'  && <OverviewTab prop={selected} properties={properties} userId={user.id} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : t==='edit' ? setEditProperty(selected) : setNav(t)} onCleanDemo={cleanupDemo} tabVisible={navVisible}/>}
-              {nav==='finances'  && <TabFinances propertyId={selected.id} userId={user.id} profileType={effProfileType} onScan={()=>setQuickAddOpen(true)}/>}
+              {nav==='finances'  && <TabFinances propertyId={selected.id} userId={user.id} profileType={effProfileType} legalForm={taxForm} onScan={()=>setQuickAddOpen(true)}/>}
               {nav==='calendar'  && <TabCalendar propertyId={selected.id} userId={user.id} openTasks={checklistAlerts} onOpenTasks={()=>setNav('checklist')}/>}
               {/* ═══ Η ΒΡΑΧΥΧΡΟΝΙΑ ΣΤΕΚΕΤΑΙ ΜΟΝΗ ΤΗΣ ═══════════════════════════
                   Ζούσε μέσα στην καρτέλα «Πελάτης», που απαιτεί πλάνο
