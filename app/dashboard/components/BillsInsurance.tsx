@@ -237,17 +237,53 @@ export const STREAMING = [
   { value: 'amazon',     label: 'Amazon Prime Video', color: '#00a8e1', url: 'https://www.primevideo.com',              plans: [{ id: 'am_std', name: 'Prime Video · 8,99 €', price: 8.99 }] },
   { value: 'max',        label: 'Max (HBO)',           color: '#0d1ce5', url: 'https://www.max.com/gr/el',              plans: [{ id: 'max_basic', name: 'Basic με διαφημίσεις · 5,99 €', price: 5.99 },{ id: 'max_std', name: 'Standard · 9,99 €', price: 9.99 },{ id: 'max_ult', name: 'Ultimate 4K · 15,99 €', price: 15.99 }] },
   { value: 'spotify',    label: 'Spotify',            color: '#1db954', url: 'https://www.spotify.com/gr',             plans: [{ id: 's_individual', name: 'Individual · 10,99 €', price: 10.99 },{ id: 's_duo', name: 'Duo · 14,99 €', price: 14.99 },{ id: 's_family', name: 'Family (6 άτομα) · 17,99 €', price: 17.99 }] },
-  { value: 'youtube',    label: 'YouTube Premium',    color: '#ff0000', url: 'https://www.youtube.com/premium',        plans: [{ id: 'y_individual', name: 'Individual · 13,99 €', price: 13.99 },{ id: 'y_family', name: 'Family · 22,99 €', price: 22.99 }] },
-  // ΧΩΡΙΣ ΤΙΜΗ ΕΙΣΟΔΟΥ, ΕΠΙΤΗΔΕΣ. Οι δύο παρακάτω αλλάζουν τιμολόγηση συχνά και
-  // δεν επιβεβαιώθηκαν από την επίσημη σελίδα τους· ένα επινοημένο νούμερο σε
-  // πλακίδιο που ο ιδιοκτήτης θα συγκρίνει με την κάρτα του δεν είναι
-  // προσέγγιση, είναι λάθος. Το πλακίδιο γράφει «Εκκρεμεί» ώσπου να μπει η
-  // πραγματική τιμή — που έτσι κι αλλιώς είναι αυτή που μετράει.
-  { value: 'skroutz_plus', label: 'Skroutz Plus', color: '#f68b24', url: 'https://www.skroutz.gr',
-    plans: [{ id: 'sk_plus', name: 'Skroutz Plus', price: 0 }] },
+  { value: 'youtube',    label: 'YouTube Premium',    color: '#ff0000', url: 'https://www.youtube.com/premium',        plans: [{ id: 'y_individual', name: 'Ατομικό · 9,99 €', price: 9.99 },{ id: 'y_family', name: 'Οικογενειακό · 17,99 €', price: 17.99 },{ id: 'y_student', name: 'Φοιτητικό · 6,49 €', price: 6.49 }] },
+  // ΟΙ ΤΡΕΙΣ ΣΥΝΔΡΟΜΕΣ ΠΑΡΑΔΟΣΗΣ, ΜΕ ΤΙΜΕΣ ΑΠΟ ΤΙΣ ΕΠΙΣΗΜΕΣ ΣΕΛΙΔΕΣ. Ήταν
+  // «Εκκρεμεί», επειδή ένα επινοημένο νούμερο σε πλακίδιο που ο ιδιοκτήτης θα
+  // συγκρίνει με την κάρτα του δεν είναι προσέγγιση, είναι λάθος.
+  //
+  // ΤΟ ΕΤΗΣΙΟ ΓΡΑΦΕΤΑΙ ΩΣ ΜΗΝΙΑΙΟ ΚΟΣΤΟΣ. Η στήλη αθροίζει μηνιαία έξοδα· μια
+  // ετήσια συνδρομή 25 € δίπλα σε μια μηνιαία 3,99 € θα φούσκωνε το σύνολο έξι
+  // φορές. Το όνομα κρατά και το ετήσιο ποσό, ώστε ο χρήστης να αναγνωρίζει
+  // αυτό που πλήρωσε.
+  { value: 'skroutz_plus', label: 'Skroutz Plus', color: '#f68b24', url: 'https://www.skroutz.gr/plus',
+    plans: [
+      { id: 'sk_month', name: 'Μηνιαία · 4,00 €', price: 4 },
+      { id: 'sk_year',  name: 'Ετήσια 25,00 € · 2,08 € τον μήνα', price: 2.08 },
+    ] },
   { value: 'wolt_plus',    label: 'Wolt+',        color: '#00c2e8', url: 'https://wolt.com/el',
-    plans: [{ id: 'wp_std', name: 'Wolt+', price: 0 }] },
-  { value: 'ant1plus',   label: 'ANT1+',              color: '#1a56db', url: 'https://www.antennaplus.gr',                plans: [{ id: 'ant_monthly', name: 'Μηνιαία · 2,99 €', price: 2.99 }] },
+    plans: [{ id: 'wp_std', name: 'Wolt+ · 3,99 €', price: 3.99 }] },
+  { value: 'efood_pro',    label: 'efood pro',    color: '#ee2e24', url: 'https://www.e-food.gr',
+    plans: [
+      { id: 'ef_month', name: 'Μηνιαία · 3,99 €', price: 3.99 },
+      { id: 'ef_year',  name: 'Ετήσια 34,90 € · 2,91 € τον μήνα', price: 2.91 },
+    ] },
+  // ΤΟ ANT1+ ΗΤΑΝ ΓΡΑΜΜΕΝΟ 2,99 €, ΤΕΣΣΕΡΙΣ ΦΟΡΕΣ ΚΑΤΩ ΑΠΟ ΤΗΝ ΠΡΑΓΜΑΤΙΚΗ ΤΙΜΗ.
+  // Η εννεάμηνη προπληρωμή γράφεται ως μηνιαίο κόστος (67,99 € διά 9 = 7,55 €),
+  // γιατί η στήλη αθροίζει μηνιαία έξοδα· το εφάπαξ ποσό μένει στο όνομα, ώστε
+  // ο χρήστης να αναγνωρίσει αυτό που πλήρωσε.
+  { value: 'ant1plus',   label: 'ANT1+',              color: '#1a56db', url: 'https://www.antennaplus.gr', plans: [
+    { id: 'ant_family',        name: 'Family · 10,99 €', price: 10.99 },
+    { id: 'ant_family_sports', name: 'Family & Sports · 13,49 €', price: 13.49 },
+    { id: 'ant_family_9m',     name: 'Family 9 μήνες 67,99 € · 7,55 € τον μήνα', price: 7.55 },
+    { id: 'ant_sports_9m',     name: 'Family & Sports 9 μήνες 79,99 € · 8,88 € τον μήνα', price: 8.88 },
+  ] },
+];
+
+/**
+ * ΥΠΗΡΕΣΙΕΣ ΠΟΥ ΠΕΡΙΕΧΟΥΝ ΑΛΛΕΣ.
+ *
+ * ΓΙΑΤΙ ΥΠΑΡΧΕΙ: το Skroutz Plus δίνει το Wolt+ δώρο όσο διαρκεί η συνδρομή. Ο
+ * ιδιοκτήτης που έχει και τα δύο πληρώνει δύο φορές το ίδιο πράγμα και δεν το
+ * ξέρει, γιατί οι δύο χρεώσεις έρχονται από διαφορετικές εταιρείες σε
+ * διαφορετικές ημερομηνίες. Ακριβώς αυτό υπόσχεται η καρτέλα: να δει ο χρήστης
+ * τι πληρώνει, όχι απλώς να το καταγράψει.
+ *
+ * Ο πίνακας είναι δηλωτικός. Όποιος βρει άλλο τέτοιο ζευγάρι, προσθέτει γραμμή.
+ */
+export const SUB_INCLUDES: { holder: string; included: string; note: string }[] = [
+  { holder: 'skroutz_plus', included: 'wolt_plus',
+    note: 'Το Skroutz Plus περιλαμβάνει το Wolt+ όσο διαρκεί η συνδρομή. Πληρώνεις δύο φορές το ίδιο.' },
 ];
 
 export const CLOUD = [
@@ -256,12 +292,31 @@ export const CLOUD = [
   { value: 'microsoft365', label: 'Microsoft 365', url: 'https://www.microsoft.com/el-gr', plans: [{ id: 'ms_pers', name: 'Personal · 6,99 €', price: 6.99 },{ id: 'ms_fam', name: 'Family · 9,99 €', price: 9.99 }] },
   { value: 'dropbox',      label: 'Dropbox',       url: 'https://www.dropbox.com',         plans: [{ id: 'db_plus', name: 'Plus 2 TB · 9,99 €', price: 9.99 }] },
   { value: 'adobe',        label: 'Adobe CC',      url: 'https://www.adobe.com/gr',        plans: [{ id: 'ad_photo', name: 'Photography · 12,29 €', price: 12.29 }] },
-  // ΤΡΕΙΣ ΣΥΝΔΡΟΜΕΣ ΤΕΧΝΗΤΗΣ ΝΟΗΜΟΣΥΝΗΣ, ΧΩΡΙΣ ΤΙΜΗ ΕΙΣΟΔΟΥ. Η τιμολόγησή τους
-  // αλλάζει συχνά και διαφέρει ανά χώρα και ανά τρόπο χρέωσης· ένα νούμερο από
-  // μνήμη σε πλακίδιο που ο ιδιοκτήτης θα συγκρίνει με την κάρτα του δεν είναι
-  // προσέγγιση, είναι λάθος. Γράφουν «Εκκρεμεί» ώσπου να μπει η δική του τιμή.
-  { value: 'claude',  label: 'Claude',  url: 'https://claude.ai',        plans: [{ id: 'cl_pro', name: 'Claude', price: 0 }] },
-  { value: 'chatgpt', label: 'ChatGPT', url: 'https://chatgpt.com',      plans: [{ id: 'gpt_plus', name: 'ChatGPT', price: 0 }] },
+  // ═══════════════════════════════════════════════════════════════════════
+  // ΟΙ ΣΥΝΔΡΟΜΕΣ ΤΕΧΝΗΤΗΣ ΝΟΗΜΟΣΥΝΗΣ, ΚΑΙ ΤΟ ΖΗΤΗΜΑ ΤΟΥ ΦΠΑ
+  // ─────────────────────────────────────────────────────────────────────
+  // Το Claude τιμολογείται «+ VAT»: η σελίδα γράφει 18 € και η κάρτα χρεώνεται
+  // 18 × 1,24 = 22,32 €, με τον ελληνικό συντελεστή 24%. Κάθε άλλη γραμμή αυτής
+  // της λίστας είναι τιμή λιανικής με τον φόρο μέσα, οπότε αν γράφαμε 18 θα
+  // ήταν η ΜΟΝΗ γραμμή που δεν ταιριάζει με το εκκαθαριστικό της κάρτας — και ο
+  // ιδιοκτήτης θα έψαχνε πού πήγαν τα 4,32 €. Γράφουμε το ποσό που χρεώνεται.
+  //
+  // ΤΟ ΕΤΗΣΙΟ ΤΟΥ CLAUDE ΩΣ ΜΗΝΙΑΙΟ: 180 € τον χρόνο, δηλαδή 15 € τον μήνα προ
+  // φόρου και 18,60 € με τον φόρο.
+  //
+  // ΤΟ GEMINI ΜΕΝΕΙ ΧΩΡΙΣ ΤΙΜΗ. Δεν επιβεβαιώθηκε από την επίσημη σελίδα του
+  // και δεν μαντεύεται: γράφει «Εκκρεμεί» ώσπου να μπει η πραγματική.
+  // ═══════════════════════════════════════════════════════════════════════
+  { value: 'claude',  label: 'Claude',  url: 'https://claude.ai/upgrade', plans: [
+    { id: 'cl_pro',      name: 'Pro · 22,32 €', price: 22.32 },
+    { id: 'cl_pro_year', name: 'Pro ετήσιο 223,20 € · 18,60 € τον μήνα', price: 18.6 },
+    { id: 'cl_max',      name: 'Max · από 111,60 €', price: 111.6 },
+  ] },
+  { value: 'chatgpt', label: 'ChatGPT', url: 'https://chatgpt.com/pricing', plans: [
+    { id: 'gpt_go',   name: 'Go · 8,00 €', price: 8 },
+    { id: 'gpt_plus', name: 'Plus · 23,00 €', price: 23 },
+    { id: 'gpt_pro',  name: 'Pro · από 103,00 €', price: 103 },
+  ] },
   { value: 'gemini',  label: 'Gemini',  url: 'https://gemini.google.com', plans: [{ id: 'gem_pro', name: 'Gemini', price: 0 }] },
 ];
 
@@ -605,6 +660,15 @@ export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate
           );
         })}
       </div>
+
+      {/* ΤΟ ΔΙΠΛΟΠΛΗΡΩΜΕΝΟ, ΤΗ ΣΤΙΓΜΗ ΠΟΥ ΓΙΝΕΤΑΙ ΟΡΑΤΟ. Χωρίς χρώμα και χωρίς
+          εικονίδιο κινδύνου: δεν είναι σφάλμα του χρήστη, είναι πληροφορία που
+          δεν είχε. */}
+      {SUB_INCLUDES.filter(r => isOn(r.holder) && isOn(r.included)).map(r => (
+        <p key={`${r.holder}-${r.included}`} style={{ ...TT.caption, color: 'var(--text-secondary)', margin: '12px 0 0', lineHeight: 1.55 }}>
+          {r.note}
+        </p>
+      ))}
 
       {/* Ο ΕΠΕΞΕΡΓΑΣΤΗΣ: μία γραμμή ανά ενεργή, όλες στο ίδιο πλέγμα. */}
       {active.length > 0 && (
