@@ -18,10 +18,9 @@
 // είναι πελάτης. Οι εισαγωγές είναι από lib/ και components/tokens — ποτέ από
 // module με 'use client', αλλιώς σπάει το SSR (βλ. components/tokens.ts).
 // ═══════════════════════════════════════════════════════════════════════════
-import BrandMark from '@/components/BrandMark';
-import Link from 'next/link';
 import type { Metadata } from 'next';
 import { T } from '@/components/tokens';
+import { PublicHeader, PublicFooter, SectionHead, WRAP, WRAP_PAD } from '../PublicChrome';
 import { RentTaxCalculator } from './RentTaxCalculator';
 
 const TITLE = 'Υπολογισμός φόρου ενοικίων 2026 · δωρεάν, χωρίς εγγραφή';
@@ -77,35 +76,6 @@ const FAQ: { q: string; a: string }[] = [
   },
 ];
 
-// ΕΝΑ ΜΕΤΡΟ ΓΙΑ ΟΛΗ ΤΗ ΣΕΛΙΔΑ. Κεφαλίδα, κείμενο και υποσέλιδο ξεκινούν από
-// τον ίδιο άξονα, με τον ίδιο αέρα στα πλάγια. Οι 860 είναι πιο σφιχτές από τις
-// 1044 της αρχικής επειδή αυτή η σελίδα είναι ΕΡΓΑΛΕΙΟ: δύο πεδία και ένας
-// πίνακας θέλουν συγκέντρωση, όχι έκταση.
-const WRAP = { maxWidth: 860, margin: '0 auto', padding: '0 clamp(20px,5vw,40px)' } as const;
-
-/** Κεφαλίδα ενότητας, στο σχήμα της αρχικής: ετικέτα με κουκκίδα και τίτλος. */
-function SectionHead({ over, title }: { over: string; title: string }) {
-  return (
-    <div style={{ marginBottom: 'clamp(18px,2.4vw,26px)' }}>
-      <div className="lp-eyebrow">{over}</div>
-      <h2 style={{ fontSize: 'clamp(21px,3vw,28px)', fontWeight: 680, letterSpacing: '-0.03em',
-        lineHeight: 1.15, margin: 0, textWrap: 'balance' }}>{title}</h2>
-    </div>
-  );
-}
-
-/** Μία στήλη συνδέσμων του υποσελίδου. Ίδια γεωμετρία και στις δύο. */
-function FootCol({ label, links }: { label: string; links: [string, string][] }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>{label}</span>
-      {links.map(([href, text]) => (
-        <Link key={href} href={href} className="lp-link" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: 14, lineHeight: 1.3 }}>{text}</Link>
-      ))}
-    </div>
-  );
-}
-
 export default function Page() {
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -139,43 +109,33 @@ export default function Page() {
       <script type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}/>
 
-      {/* ΤΟ ΙΔΙΟ ΚΕΦΑΛΙ ΜΕ ΤΗΝ ΑΡΧΙΚΗ. Ήταν γυμνός σύνδεσμος σε χρώμα έμφασης
-          δίπλα σε λογότυπο: ο επισκέπτης που έρχεται εδώ από αναζήτηση έβλεπε
-          μια σελίδα που δεν έμοιαζε με το προϊόν που του προτείνει. Ίδιο ύψος,
-          ίδιο κουμπί, ίδια συμπεριφορά — μία μάρκα, όχι δύο. */}
-      <header style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-surface)' }}>
-        <div style={{ ...WRAP, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-          <Link href="/" className="lp-link" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'var(--text-primary)' }}>
-            <BrandMark />
-            <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.02em' }}>Property OS</span>
-          </Link>
-          <Link href="/signup" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 14, fontWeight: 700, padding: '9px 16px', borderRadius: 100, whiteSpace: 'nowrap' }}>
-            Ξεκίνα τη δοκιμή
-          </Link>
-        </div>
-      </header>
+      <PublicHeader />
 
       {/* ΤΡΙΑ ΜΕΤΡΑ ΣΕ ΜΙΑ ΣΕΛΙΔΑ: η κεφαλίδα κρατούσε 860, το κυρίως 760 και
           το υποσέλιδο ακολουθούσε το δεύτερο. Το λογότυπο δηλαδή ξεκινούσε
           πενήντα εικονοστοιχεία αριστερότερα από τον τίτλο, σε κάθε οθόνη.
           Ένα μέτρο, και κάθε γραμμή της σελίδας ξεκινά από τον ίδιο άξονα. */}
-      <main style={{ ...WRAP, padding: `clamp(36px,5vw,64px) ${WRAP.padding.split(' ')[1]} clamp(56px,7vw,88px)` }}>
+      <main style={{ ...WRAP, padding: `clamp(36px,5vw,64px) ${WRAP_PAD} clamp(56px,7vw,88px)` }}>
         <div className="lp-eyebrow">Δωρεάν εργαλείο</div>
         <h1 style={{ fontSize: 'clamp(28px,4.4vw,42px)', fontWeight: 680, letterSpacing: '-0.035em',
           lineHeight: 1.1, margin: '0 0 14px', textWrap: 'balance' }}>
           Πόσο φόρο θα πληρώσεις για τα ενοίκιά σου
         </h1>
         {/* ΤΟ ΜΕΤΡΟ ΤΗΣ ΕΙΣΑΓΩΓΗΣ ΕΙΝΑΙ ΣΤΕΝΟΤΕΡΟ ΑΠΟ ΤΗΣ ΣΕΛΙΔΑΣ, ΣΚΟΠΙΜΑ:
-            μια παράγραφος 16 εικονοστοιχείων σε πλάτος 860 βγάζει γραμμές των
-            εκατόν είκοσι χαρακτήρων, όπου το μάτι χάνει τη σειρά του γυρίζοντας. */}
-        <p style={{ fontSize: 'clamp(15px,2vw,17px)', lineHeight: 1.6, color: 'var(--text-secondary)',
-          margin: '0 0 10px', maxWidth: 620 }}>
-          Με την κλίμακα του 2026 και την τεκμαρτή έκπτωση 5%. Χωρίς εγγραφή και χωρίς email:
-          ο υπολογισμός γίνεται στη συσκευή σου και δεν αποθηκεύεται πουθενά.
-        </p>
-        <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '0 0 clamp(26px,3.5vw,36px)', maxWidth: 620 }}>
-          Ίδιοι υπολογισμοί με αυτούς που τρέχει το Property OS για τους ιδιοκτήτες του.
-        </p>
+            μια παράγραφος 17 εικονοστοιχείων σε πλάτος 1044 βγάζει γραμμές των
+            εκατόν είκοσι χαρακτήρων, όπου το μάτι χάνει τη σειρά του γυρίζοντας.
+            Η δεύτερη σειρά μπαίνει ΔΕΞΙΑ της, στην ίδια γραμμή βάσης, αντί από
+            κάτω: έτσι η σειρά κλείνει πέρα ως πέρα και δεν μένουν τριακόσια
+            εικονοστοιχεία λευκά. Ίδια δομή με τις τρεις νομικές σελίδες. */}
+        <div className="lg-lede" style={{ marginBottom: 'clamp(26px,3.5vw,36px)' }}>
+          <p style={{ fontSize: 'clamp(15px,2vw,17px)', lineHeight: 1.6, color: 'var(--text-secondary)', margin: 0 }}>
+            Με την κλίμακα του 2026 και την τεκμαρτή έκπτωση 5%. Χωρίς εγγραφή και χωρίς email:
+            ο υπολογισμός γίνεται στη συσκευή σου και δεν αποθηκεύεται πουθενά.
+          </p>
+          <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: 0, maxWidth: 260 }}>
+            Ίδιοι υπολογισμοί με αυτούς που τρέχει το Property OS για τους ιδιοκτήτες του.
+          </p>
+        </div>
 
         <RentTaxCalculator/>
 
@@ -206,32 +166,7 @@ export default function Page() {
 
       </main>
 
-      {/* ΗΤΑΝ ΤΡΕΙΣ ΓΥΜΝΟΙ ΣΥΝΔΕΣΜΟΙ ΣΕ ΜΙΑ ΣΕΙΡΑ. Η αρχική έχει ταυτότητα και
-          ομάδες με ετικέτα· εδώ ο επισκέπτης έφτανε στο τέλος μιας σελίδας που
-          του πρότεινε συνδρομή και δεν είχε πού να δει ποιοι είμαστε. Ίδιο
-          σχήμα με το υποσέλιδο της αρχικής, στο μέτρο αυτής της σελίδας. */}
-      <footer style={{ borderTop: '1px solid var(--border-subtle)' }}>
-        <div style={{ ...WRAP, padding: `clamp(36px,5vw,56px) ${WRAP.padding.split(' ')[1]} clamp(24px,3vw,32px)` }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr', gap: 'clamp(24px,4vw,48px)', alignItems: 'start' }}>
-            <div>
-              <Link href="/" className="lp-link" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, textDecoration: 'none', color: 'var(--text-primary)', width: 'fit-content' }}>
-                <BrandMark size={26} />
-                <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em' }}>Property OS</span>
-              </Link>
-              <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.65, margin: 0, maxWidth: 300 }}>
-                Το λειτουργικό σύστημα του ελληνικού ακινήτου. Για ιδιοκτήτες και επαγγελματίες στην Ελλάδα.
-              </p>
-            </div>
-            <FootCol label="Προϊόν" links={[['/', 'Αρχική'], ['/signup', 'Ξεκίνα τη δοκιμή'], ['/login', 'Σύνδεση']]} />
-            <FootCol label="Εμπιστοσύνη" links={[['/trust', 'Ποιοι είμαστε'], ['/privacy', 'Απόρρητο'], ['/terms', 'Όροι χρήσης']]} />
-          </div>
-          <div style={{ marginTop: 'clamp(28px,4vw,40px)', paddingTop: 18, borderTop: '1px solid var(--border-subtle)',
-            display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', fontSize: 12, color: 'var(--text-tertiary)' }}>
-            <span>© {new Date().getFullYear()} Property OS</span>
-            <span>Βάση δεδομένων στην ΕΕ · Σχεδιασμένο για GDPR</span>
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

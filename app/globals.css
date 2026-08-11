@@ -1721,3 +1721,92 @@ details.lp-faq summary:hover { color: var(--accent); }
 details.lp-faq[open] summary { color: var(--accent); }
 details.lp-faq summary::-webkit-details-marker { display: none; }
 details.lp-faq[open] summary .lp-plus { transform: rotate(45deg); }
+
+/* ── ΝΟΜΙΚΕΣ ΣΕΛΙΔΕΣ: ΕΥΡΕΤΗΡΙΟ ΠΟΥ ΜΕΝΕΙ, ΚΕΙΜΕΝΟ ΠΟΥ ΚΥΛΑΕΙ ──────────────
+   Το ευρετήριο ήταν κουτί στην κορυφή: ο αναγνώστης το έβλεπε μία φορά,
+   κατέβαινε δεκατέσσερις ενότητες και από εκεί και πέρα δεν ήξερε ούτε πού
+   βρίσκεται ούτε πώς να πάει αλλού. Νομικό κείμενο δεν διαβάζεται σειριακά.
+
+   Κάτω από τις 900 οι δύο στήλες γίνονται μία και το ευρετήριο ΞΕΚΑΡΦΩΝΕΤΑΙ:
+   ένα καρφωμένο στοιχείο σε κινητό τρώει μισή οθόνη σε κάθε κύλιση. */
+.lg-lede {
+  display: flex; gap: 20px 32px; align-items: baseline;
+  justify-content: space-between; flex-wrap: wrap;
+  max-width: 1044px;
+}
+.lg-lede p:first-child { max-width: 720px; }
+
+/* Η ΣΤΗΛΗ ΤΟΥ ΚΕΙΜΕΝΟΥ ΕΙΝΑΙ ΤΟ ΜΕΤΡΟ. 1044 μείον 260 του ευρετηρίου μείον 72
+   του κενού αφήνουν 712 εικονοστοιχεία: γραμμές ογδόντα εννέα χαρακτήρων στα
+   15, δηλαδή ακριβώς όσο αντέχει το μάτι. Έτσι καμία παράγραφος δεν χρειάζεται
+   δικό της πλάτος, και καμία δεν σταματά πριν από την επόμενη. */
+.lg-grid {
+  display: grid; grid-template-columns: 260px minmax(0, 1fr);
+  gap: clamp(28px, 5vw, 72px); align-items: start;
+  margin-top: clamp(32px, 4.5vw, 52px);
+}
+.lg-body { min-width: 0; }
+.lg-toc { position: sticky; top: 24px; }
+.lg-toc-head {
+  font-size: 11px; font-weight: 700; color: var(--text-tertiary);
+  text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 12px;
+}
+.lg-toc-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 1px; }
+.lg-toc-link {
+  display: flex; gap: 10px; align-items: baseline;
+  padding: 6px 0; font-size: 13.5px; line-height: 1.45;
+  color: var(--text-secondary); text-decoration: none;
+  transition: color .15s;
+}
+.lg-toc-link:hover { color: var(--accent); }
+.lg-toc-num {
+  font-size: 11px; font-weight: 700; color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums; flex-shrink: 0; min-width: 14px;
+}
+
+/* Τρεχούμενο κείμενο νομικής σελίδας. Στα 15, όσο και η αρχική: ό,τι δεσμεύει
+   τον χρήστη δεν επιτρέπεται να είναι το πιο δυσανάγνωστο κείμενο του
+   προϊόντος, και ήταν, στα 14. */
+/* ΓΙΑΤΙ ΠΛΗΡΗΣ ΣΤΟΙΧΙΣΗ ΕΔΩ, ΚΑΙ ΜΟΝΟ ΕΔΩ. Μετρημένο στον περιηγητή, το ίδιο
+   κείμενο με ελεύθερο δεξί άκρο έβγαζε γραμμές στο 83%, στο 90%, στο 99% και
+   ξανά στο 85%: το δεξί περιθώριο πριονωτό σε σαράντα εφτά παραγράφους. Με
+   πλήρη στοίχιση κάθε γραμμή πλην της τελευταίας πιάνει ακριβώς το 100%, που
+   είναι και ο τρόπος που τυπώνεται κάθε σύμβαση. Δεν επεκτείνεται στην αρχική
+   ούτε στην εφαρμογή: εκεί τα κείμενα είναι κοντά και οι στήλες στενές, όπου
+   η πλήρης στοίχιση ανοίγει κενά αντί να τα κλείνει — γι' αυτό και φεύγει
+   κάτω από τα 560. Το `pretty` μένει για να μην ξεμένει μία λέξη μόνη της
+   στην τελευταία σειρά. */
+.lg-p { font-size: 15px; color: var(--text-secondary); line-height: 1.7; margin: 0 0 12px; text-align: justify; text-wrap: pretty; }
+.lg-p strong, .lg-ul strong { color: var(--text-primary); font-weight: 650; }
+.lg-p:last-child, .lg-ul:last-child { margin-bottom: 0; }
+.lg-ul { margin: 2px 0 12px; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
+.lg-ul li { font-size: 15px; color: var(--text-secondary); line-height: 1.65; text-align: justify; text-wrap: pretty; }
+.lg-note {
+  font-size: 13.5px; color: var(--text-tertiary); line-height: 1.65; text-align: justify;
+  margin: 12px 0 0; padding: 13px 16px;
+  background: var(--bg-elevated); border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+}
+.lg-closing { margin-top: clamp(32px, 4vw, 48px); }
+/* Ίδια στοίχιση για τα κείμενα που δεν είναι παράγραφοι, π.χ. οι εγγυήσεις
+   του «Ποιοι είμαστε»: αλλιώς η μισή σελίδα κλείνει ίσια και η άλλη μισή όχι. */
+.lg-just { text-align: justify; text-wrap: pretty; }
+
+@media (max-width: 900px) {
+  .lg-grid { grid-template-columns: minmax(0, 1fr); }
+  /* ΣΕ ΚΙΝΗΤΟ ΤΟ ΕΥΡΕΤΗΡΙΟ ΚΥΛΑΕΙ ΜΕΣΑ ΤΟΥ. Είκοσι τέσσερις ενότητες η μία
+     κάτω από την άλλη σημαίνουν τρεις οθόνες ευρετηρίου πριν από την πρώτη
+     λέξη του κειμένου: ο αναγνώστης νομίζει ότι η σελίδα είναι το ευρετήριο.
+     Με όριο ύψους φαίνονται περίπου δέκα και το κείμενο ξεκινά αμέσως μετά. */
+  .lg-toc {
+    position: static; padding: 16px 18px; border-radius: 12px;
+    background: var(--bg-elevated); border: 1px solid var(--border-subtle);
+    max-height: 46vh; overflow-y: auto; overscroll-behavior: contain;
+  }
+  .lg-toc-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; }
+  .lg-body { max-width: 720px; }
+}
+@media (max-width: 560px) {
+  .lg-toc-list { grid-template-columns: minmax(0, 1fr); }
+  .lg-p, .lg-ul li, .lg-note, .lg-just { text-align: left; }
+}

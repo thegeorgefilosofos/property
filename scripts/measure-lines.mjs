@@ -9,7 +9,7 @@
 //
 // ΧΡΗΣΗ (χρειάζεται τρέχοντα server στο 3111):
 //   npm run build && PORT=3111 npx next start &
-//   node scripts/measure-lines.mjs 1160 "section p"
+//   node scripts/measure-lines.mjs 1160 "section p" [διαδρομή, εξ ορισμού «/»]
 //
 // ΚΑΝΟΝΑΣ: κάθε γραμμή πάνω από μία να είναι ≥ 88%. Εξαίρεση μόνο όταν δεν
 // επαρκούν οι λέξεις, δηλαδή σε στοιχεία μίας γραμμής.
@@ -19,7 +19,7 @@ const w = Number(process.argv[2]) || 1160;
 const sel = process.argv[3];
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
 const p = await b.newPage({ viewport: { width: w, height: 1000 } });
-await p.goto('http://localhost:3111/', { waitUntil: 'networkidle' });
+await p.goto(`http://localhost:3111${process.argv[4] || '/'}`, { waitUntil: 'networkidle' });
 await p.evaluate(() => { document.querySelectorAll('.lp-reveal').forEach(e => { e.style.opacity='1'; e.style.transform='none'; }); document.querySelectorAll('details').forEach(d => d.open = true); });
 await p.waitForTimeout(600);
 const rows = await p.evaluate(sel => {

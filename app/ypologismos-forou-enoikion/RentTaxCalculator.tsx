@@ -27,6 +27,7 @@ import {
   RENTAL_TAX_ROWS_2026, RENTAL_TAX_BRACKETS_2026,
 } from '@/lib/billing/greekTax';
 import { parseAmount } from '@/lib/core/greek';
+import { TRIAL_DAYS } from '@/lib/billing/plans';
 
 /** Το 5% τεκμαρτής έκπτωσης δαπανών του άρθρου 39 — ισχύει χωρίς δικαιολογητικά. */
 const STANDARD_DEDUCTION = 0.05;
@@ -246,7 +247,7 @@ export function RentTaxCalculator() {
           </p>
           <p style={{ margin: '5px 0 0', fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary)' }}>
             Το Property OS κρατά ενοίκια, λογαριασμούς και δαπάνες όλη τη χρονιά και
-            βγάζει έτοιμα όσα ζητά ο λογιστής σου. Τριάντα ημέρες δωρεάν δοκιμή, χωρίς δέσμευση.
+            βγάζει έτοιμα όσα ζητά ο λογιστής σου. {TRIAL_DAYS} ημέρες δωρεάν δοκιμή, χωρίς δέσμευση.
           </p>
         </div>
         {/* Ίδιο κουμπί με την αρχική: ίδια κλάση, ίδια ανύψωση στο πέρασμα, και

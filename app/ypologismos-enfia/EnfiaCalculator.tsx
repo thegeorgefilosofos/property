@@ -26,6 +26,7 @@ import { useState, useMemo, useId } from 'react';
 import Link from 'next/link';
 import { T, feAuto, formGrid } from '@/components/tokens';
 import { parseAmount } from '@/lib/core/greek';
+import { TRIAL_DAYS } from '@/lib/billing/plans';
 import { estimateENFIA, zoneKeyFromPricePerSqm, ENFIA_FLOOR_COEF, ENFIA_AGE_BANDS } from '@/lib/billing/enfia';
 
 const amount = (s: string): number => Math.max(0, parseAmount(s) ?? 0);
@@ -168,7 +169,7 @@ export function EnfiaCalculator() {
           </p>
           <p style={{ margin: '5px 0 0', fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary)' }}>
             Το Property OS υπολογίζει τον ΕΝΦΙΑ για όλο το χαρτοφυλάκιο μαζί, με τη σωστή
-            μείωση, και σου θυμίζει τις δόσεις πριν λήξουν. Τριάντα ημέρες δωρεάν δοκιμή, χωρίς δέσμευση.
+            μείωση, και σου θυμίζει τις δόσεις πριν λήξουν. {TRIAL_DAYS} ημέρες δωρεάν δοκιμή, χωρίς δέσμευση.
           </p>
         </div>
         <Link href="/signup" style={{
