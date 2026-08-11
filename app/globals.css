@@ -1714,6 +1714,25 @@ html.a11y-large-text { zoom: 1.08; }
   background: var(--accent); flex-shrink: 0;
 }
 
+/* ── ΤΟ ΥΠΟΣΕΛΙΔΟ ΟΛΩΝ ΤΩΝ ΔΗΜΟΣΙΩΝ ΣΕΛΙΔΩΝ ───────────────────────────────
+   ΗΤΑΝ ΓΡΑΜΜΕΝΟ ΜΕΣΑ ΣΤΟ <style> ΤΗΣ ΑΡΧΙΚΗΣ, ΚΑΙ ΤΟ ΧΡΗΣΙΜΟΠΟΙΟΥΣΑΝ ΤΕΣΣΕΡΙΣ
+   ΣΕΛΙΔΕΣ. Στην αρχική έβγαινε σε τέσσερις στήλες· παντού αλλού ο κανόνας δεν
+   έφτανε ποτέ, οπότε το πλέγμα δεν υπήρχε καν και οι στήλες στοιβάζονταν η μία
+   πάνω στην άλλη, με τις ετικέτες κολλημένες στον προηγούμενο σύνδεσμο. Ένα
+   κοινό στοιχείο με ιδιωτικό στιλ δεν είναι κοινό στοιχείο.
+
+   Ταυτότητα διπλού πλάτους, τρεις στήλες συνδέσμων. Σε στενή οθόνη γίνονται
+   δύο και η ταυτότητα πιάνει ολόκληρη τη σειρά, ώστε να μη σπάσει η περιγραφή
+   σε πέντε λέξεις ανά γραμμή. */
+.lp-foot {
+  display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: clamp(24px, 4vw, 56px); align-items: start;
+}
+@media (max-width: 860px) {
+  .lp-foot { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lp-foot > :first-child { grid-column: 1 / -1; }
+}
+
 /* Συχνές ερωτήσεις: λεπτή γραμμή αντί για κουτί, και σταυρός που γίνεται
    «χ» όταν ανοίγει. Το προεπιλεγμένο βελάκι του περιηγητή φεύγει. */
 details.lp-faq summary { transition: color .18s; }
@@ -1735,6 +1754,18 @@ details.lp-faq[open] summary .lp-plus { transform: rotate(45deg); }
    πράγμα που βλέπει ο επισκέπτης. Τώρα είναι πλέγμα: το κείμενο παίρνει ό,τι
    περισσεύει, η σημείωση κρατά σταθερή στήλη δεξιά, και το μέτρο βγαίνει μόνο
    του στα 744 (δηλαδή εκεί που το θέλαμε) χωρίς να το επιβάλλουμε. */
+/* Επιστροφή, πάνω πάνω. Γυμνός σύνδεσμος με βέλος, όχι κουμπί: το κουμπί της
+   κεφαλίδας είναι ένα και είναι η δοκιμή. */
+.lg-back {
+  display: inline-flex; align-items: center; gap: 7px;
+  margin-bottom: clamp(16px, 2.2vw, 24px);
+  font-size: 13.5px; font-weight: 600; text-decoration: none;
+  color: var(--text-tertiary); transition: color .15s;
+}
+.lg-back:hover { color: var(--accent); }
+.lg-back svg { transition: transform .15s; }
+.lg-back:hover svg { transform: translateX(-2px); }
+
 .lg-lede {
   display: grid; grid-template-columns: minmax(0, 1fr) 250px;
   gap: 40px; align-items: baseline; max-width: 1044px;

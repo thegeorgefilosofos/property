@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { T } from '@/components/tokens';
 import { PublicHeader, PublicFooter, WRAP, WRAP_PAD } from './PublicChrome';
+import { BackLink } from './BackLink';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ΤΟ ΚΕΛΥΦΟΣ ΤΩΝ ΤΡΙΩΝ ΣΕΛΙΔΩΝ ΕΜΠΙΣΤΟΣΥΝΗΣ
@@ -87,7 +88,8 @@ export function LegalLayout({ eyebrow, title, intro, meta, blocks, closing }: {
     <div style={{ background: 'var(--bg-base)', color: 'var(--text-primary)', minHeight: '100vh', fontFamily: T.font.sans }}>
       <PublicHeader />
 
-      <main style={{ ...WRAP, padding: `clamp(36px,5vw,64px) ${WRAP_PAD} clamp(48px,6vw,80px)` }}>
+      <main style={{ ...WRAP, padding: `clamp(28px,4vw,44px) ${WRAP_PAD} clamp(48px,6vw,80px)` }}>
+        <BackLink />
         <div className="lp-eyebrow">{eyebrow}</div>
         <h1 style={{ fontSize: 'clamp(28px,4.4vw,42px)', fontWeight: 680, letterSpacing: '-0.035em', lineHeight: 1.1, margin: '0 0 14px', textWrap: 'balance' }}>
           {title}

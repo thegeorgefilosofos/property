@@ -97,8 +97,11 @@ export function PublicFooter() {
               Το λειτουργικό σύστημα του ελληνικού ακινήτου. Για ιδιοκτήτες και επαγγελματίες στην Ελλάδα.
             </p>
           </div>
+          {/* ΤΡΕΙΣ ΣΤΗΛΕΣ ΤΩΝ ΤΡΙΩΝ. Η μεσαία είχε δύο συνδέσμους και έμοιαζε
+              κολοβή δίπλα στις άλλες· έλειπε όμως και ο υπολογιστής ΕΝΦΙΑ, που
+              υπάρχει, σερβίρεται και δεν τον έδειχνε καμία σελίδα. */}
           <FootCol label="Προϊόν" links={[['/', 'Αρχική'], ['/signup', 'Ξεκίνα τη δοκιμή'], ['/login', 'Σύνδεση']]} />
-          <FootCol label="Μάθε" links={[['/ypologismos-forou-enoikion', 'Φόρος ενοικίων'], ['/#faq', 'Συχνές ερωτήσεις']]} />
+          <FootCol label="Εργαλεία" links={[['/ypologismos-forou-enoikion', 'Φόρος ενοικίων'], ['/ypologismos-enfia', 'ΕΝΦΙΑ'], ['/#faq', 'Συχνές ερωτήσεις']]} />
           <FootCol label="Εμπιστοσύνη" links={[['/trust', 'Ποιοι είμαστε'], ['/privacy', 'Απόρρητο'], ['/terms', 'Όροι χρήσης']]} />
         </div>
         <div style={{ marginTop: 'clamp(32px,4vw,48px)', paddingTop: 18, borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', fontSize: 12, color: 'var(--text-tertiary)' }}>

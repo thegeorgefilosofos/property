@@ -9,6 +9,7 @@ import LandingShowcase from './LandingShowcase';
 import ScrollStory from './ScrollStory';
 import LandingCalculator from './LandingCalculator';
 import Spotlight from './Spotlight';
+import { PublicFooter } from './PublicChrome';
 import { T } from '@/components/tokens';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -31,7 +32,6 @@ export const metadata = {
 };
 
 const ACCENT = 'var(--accent)';
-const BG = 'var(--bg-base)';
 const PANEL = 'var(--bg-surface)';
 const TEXT = 'var(--text-primary)';
 const MUTED = 'var(--text-secondary)';
@@ -554,14 +554,7 @@ export default async function Landing() {
            αριθμοί που κρατούσαν κενό ύψος όταν το κείμενο χωρούσε σε μία σειρά
            και σταματούσαν να αρκούν όταν δεν χωρούσε. Επτά σειρές: όνομα,
            ταμπέλα, τιμή, ετήσια, δώρο, λίστα, κουμπί. */
-        /* Υποσελίδο: ταυτότητα διπλού πλάτους, τρεις στήλες συνδέσμων. Σε
-           στενή οθόνη γίνεται δύο στήλες και η ταυτότητα πιάνει ολόκληρη τη
-           σειρά, ώστε να μη σπάσει η περιγραφή σε πέντε λέξεις ανά γραμμή. */
-        .lp-foot { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: clamp(24px, 4vw, 56px); align-items: start; }
-        @media (max-width: 860px) {
-          .lp-foot { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-          .lp-foot > :first-child { grid-column: 1 / -1; }
-        }
+        /* Το υποσέλιδο (.lp-foot) ζει στο globals.css: το μοιράζεται και το PublicChrome. */
         .lp-plans { grid-template-rows: auto auto auto auto auto 1fr auto; }
         .lp-plans > .lp-card { grid-row: span 7; display: grid; grid-template-rows: subgrid; gap: 0; }
         /* Οι τίτλοι και οι γραμμές ελέγχου κάθε κάρτας είναι σύντομα στοιχεία.
@@ -1141,57 +1134,16 @@ export default async function Landing() {
              ΤΡΙΤΗ ΣΤΗΛΗ: οι Συχνές Ερωτήσεις και ο υπολογιστής απόδοσης ζουν
              μέσα στη σελίδα και δεν είχαν καμία μόνιμη είσοδο. Το υποσελίδο
              είναι το σημείο όπου ο επισκέπτης ψάχνει «τι άλλο υπάρχει». */}
-      <footer style={{ borderTop: `1px solid ${LINE}`, position: 'relative', zIndex: 1 }}>
-        <div style={{ ...wrap, padding: 'clamp(40px, 5vw, 64px) clamp(20px, 5vw, 48px) clamp(24px, 3vw, 32px)' }}>
-          <div className="lp-foot">
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                <BrandMark size={26} />
-                <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em' }}>Property OS</span>
-              </div>
-              <p style={{ fontSize: 14, color: MUTED, lineHeight: 1.65, margin: 0, maxWidth: 300 }}>
-                Το λειτουργικό σύστημα του ελληνικού ακινήτου. Για ιδιοκτήτες και επαγγελματίες στην Ελλάδα.
-              </p>
-            </div>
-            <FootCol label="Προϊόν" links={[
-              ['/signup', 'Ξεκίνα τη δοκιμή'],
-              ['/login', 'Σύνδεση'],
-              ['/#pricing', 'Τιμολόγηση'],
-            ]} />
-            <FootCol label="Μάθε" links={[
-              ['/#faq', 'Συχνές ερωτήσεις'],
-              ['/ypologismos-forou-enoikion', 'Φόρος ενοικίων'],
-            ]} />
-            <FootCol label="Εμπιστοσύνη" links={[
-              ['/trust', 'Ποιοι είμαστε'],
-              ['/privacy', 'Απόρρητο'],
-              ['/terms', 'Όροι χρήσης'],
-            ]} />
-          </div>
-          {/* Η ΚΑΤΩ ΓΡΑΜΜΗ ΕΙΝΑΙ ΨΙΛΑ ΓΡΑΜΜΑΤΑ, ΚΑΙ ΤΟ ΔΕΙΧΝΕΙ. Ήταν στο ίδιο
-              μέγεθος με τους συνδέσμους από πάνω, οπότε το copyright διεκδικούσε
-              την ίδια προσοχή με το «Όροι χρήσης». */}
-          <div style={{ marginTop: 'clamp(32px, 4vw, 48px)', paddingTop: 18, borderTop: `1px solid ${LINE}`, display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', fontSize: 12, color: FAINT }}>
-            <span>© {new Date().getFullYear()} Property OS</span>
-            <span>Βάση δεδομένων στην ΕΕ · Σχεδιασμένο για GDPR</span>
-          </div>
-        </div>
-      </footer>
+      {/* ΤΟ ΥΠΟΣΕΛΙΔΟ ΕΙΝΑΙ ΤΟ ΙΔΙΟ ΜΕ ΤΩΝ ΑΛΛΩΝ ΤΕΣΣΑΡΩΝ ΔΗΜΟΣΙΩΝ ΣΕΛΙΔΩΝ.
+          Ήταν γραμμένο δύο φορές, εδώ και στο PublicChrome, και οι δύο εκδοχές
+          είχαν ήδη αποκλίνει: άλλη τρίτη στήλη, άλλος τίτλος ομάδας, άλλη σειρά
+          συνδέσμων. Δύο υποσέλιδα που λένε διαφορετικά πράγματα δεν είναι δύο
+          σχεδιαστικές επιλογές· είναι ένα που ξεχάστηκε. */}
+      <div style={{ position: 'relative', zIndex: 1 }}><PublicFooter /></div>
     </div>
   );
 }
 
-/** Μία στήλη συνδέσμων του υποσελίδου. Ίδια γεωμετρία και στις τρεις. */
-function FootCol({ label, links }: { label: string; links: [string, string][] }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: FAINT }}>{label}</span>
-      {links.map(([href, text]) => (
-        <Link key={href} href={href} className="lp-link" style={{ color: MUTED, textDecoration: 'none', fontSize: 14, lineHeight: 1.3 }}>{text}</Link>
-      ))}
-    </div>
-  );
-}
 
 // Η κεφαλίδα κάθε ενότητας: λεπτή γραμμή που δηλώνει την τομή, ετικέτα με κουκκίδα,
 // τίτλος, υπότιτλος. Και τα τέσσερα ξεκινούν από το ΙΔΙΟ αριστερό σημείο.
