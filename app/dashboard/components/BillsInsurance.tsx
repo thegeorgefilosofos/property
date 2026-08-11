@@ -1197,6 +1197,43 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propertyId, userId, loading, renewalSignature]);
 
+  /**
+   * ΤΟ ΠΛΑΚΙΔΙΟ ΚΑΛΥΨΗΣ ΩΣ ΔΙΑΚΟΠΤΗΣ.
+   *
+   * ΤΡΕΙΣ ΚΑΛΥΨΕΙΣ ΕΧΟΥΝ ΔΙΚΟ ΤΟΥΣ ΠΕΔΙΟ, ΚΑΙ ΟΧΙ ΓΙΑ ΛΟΓΟΥΣ ΟΘΟΝΗΣ: ο σεισμός,
+   * η πλημμύρα και τα φυσικά φαινόμενα κρίνουν τη μείωση ΕΝΦΙΑ και τη σύγκριση
+   * προσφορών, οπότε διαβάζονται από αλλού ως λογικές τιμές. Οι υπόλοιπες ζουν
+   * στη λίστα κειμένου. Ο χρήστης δεν χρειάζεται να ξέρει τη διαφορά.
+   *
+   * ΤΟ ΠΡΩΤΟ ΠΑΤΗΜΑ ΓΡΑΦΕΙ ΚΑΙ ΤΑ ΥΠΟΛΟΙΠΑ. Χωρίς αυτό, το πέρασμα στη δική σου
+   * εκδοχή θα ξεκινούσε από άδεια λίστα και θα έσβηνε τις εννέα καλύψεις που
+   * μόλις έδειχνε το πρόγραμμα.
+   */
+  const toggleCover = (label: string, on: boolean) => {
+    const base = insEditCovers ? insCustomCovers : effectiveCovers.join(', ');
+    const list = base.split(',').map(x => x.trim()).filter(Boolean);
+    const same = (a: string, b: string) =>
+      a.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+      === b.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+    const flag =
+      label === 'Σεισμός' ? 'insCustomEarthquake' as const
+      : label === 'Πλημμύρα' ? 'insCustomFlood' as const
+      : label === 'Φυσικά Φαινόμενα' ? 'insCustomNatural' as const
+      : null;
+
+    u({
+      insEditCovers: true,
+      // Η λίστα κρατά ΠΑΝΤΑ ό,τι φαινόταν, και αλλάζει μόνο η μία κάλυψη.
+      insCustomCovers: flag
+        ? (insEditCovers ? insCustomCovers : base)
+        : (on ? list.filter(x => !same(x, label)) : [...list, label]).join(', '),
+      insCustomEarthquake: flag === 'insCustomEarthquake' ? !on : (insEditCovers ? insCustomEarthquake : effectiveEarthquake),
+      insCustomFlood:      flag === 'insCustomFlood'      ? !on : (insEditCovers ? insCustomFlood      : effectiveFloodState),
+      insCustomNatural:    flag === 'insCustomNatural'    ? !on : (insEditCovers ? insCustomNatural    : effectiveNatural),
+    });
+  };
+
   const [newSubName, setNewSubName] = useState('');
   const [newSubPrice, setNewSubPrice] = useState('');
   const [newSubRenewal, setNewSubRenewal] = useState('');
@@ -1346,13 +1383,34 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
                     {insEditCovers ? 'Αποθήκευση' : 'Επεξεργασία'}
                   </button>
                 </div>
-                {/* Δυναμικός πίνακας καλύψεων, ✓/✗ αυτόματα βάσει επιλεγμένου προγράμματος */}
+                {/* ══════════════════════════════════════════════════════════
+                    ΟΙ ΚΑΛΥΨΕΙΣ ΠΑΤΙΟΥΝΤΑΙ.
+                    ────────────────────────────────────────────────────────
+                    ΗΤΑΝ ΔΕΚΑ ΤΑΜΠΕΛΑΚΙΑ ΠΟΥ ΔΕΝ ΕΚΑΝΑΝ ΤΙΠΟΤΑ. Για να πει ο
+                    ιδιοκτήτης «το δικό μου καλύπτει και θραύση κρυστάλλων»
+                    έπρεπε να βρει το «Επεξεργασία», να ανοίξει ένα πεδίο
+                    ελεύθερου κειμένου, και να γράψει ΞΑΝΑ ολόκληρη τη λίστα
+                    με κόμματα — μαζί με όσα ήδη φαίνονταν σωστά από πάνω.
+                    Ένα «Όχι» δίπλα σε κάτι που έχεις, και ο μόνος τρόπος να
+                    το διορθώσεις είναι να ξαναγράψεις τα πάντα.
+
+                    Τώρα το πλακίδιο είναι ο διακόπτης. Το πρώτο πάτημα περνά
+                    αυτόματα στη δική σου εκδοχή, κρατώντας ό,τι έδειχνε το
+                    πρόγραμμα: αλλάζεις ΕΝΑ πράγμα, όχι δέκα.
+                    ══════════════════════════════════════════════════════════ */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 6, marginBottom: insEditCovers ? 12 : 0 }}>
-                  {deriveCoverages(effectiveCovers, effectiveEarthquake, effectiveFloodState, effectiveNatural).map((c, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: c.ok ? 'var(--accent-soft)' : 'var(--bg-base)', border: `1px solid ${c.ok ? 'var(--accent-border)' : 'var(--border-subtle)'}`, borderRadius: T.radius.badge, padding: '6px 10px' }}>
+                  {deriveCoverages(effectiveCovers, effectiveEarthquake, effectiveFloodState, effectiveNatural).map(c => (
+                    <button key={c.label} type="button" onClick={() => toggleCover(c.label, c.ok)}
+                      aria-pressed={c.ok} title={`${c.ok ? 'Αφαίρεσε' : 'Πρόσθεσε'} την κάλυψη «${c.label}»`}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', boxSizing: 'border-box',
+                        textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
+                        background: c.ok ? 'var(--accent-soft)' : 'var(--bg-base)',
+                        border: `1px solid ${c.ok ? 'var(--accent-border)' : 'var(--border-subtle)'}`,
+                        borderRadius: T.radius.badge, padding: '6px 10px',
+                        transition: 'background-color .15s, border-color .15s' }}>
                       <span style={{ fontSize: 12, fontWeight: 700, color: c.ok ? 'var(--accent)' : 'var(--text-tertiary)', lineHeight: 1 }}>{c.ok ? 'Ναι' : 'Όχι'}</span>
                       <span style={{ fontSize: 10, color: c.ok ? 'var(--text-primary)' : 'var(--text-tertiary)', fontFamily: T.font.sans }}>{c.label}</span>
-                    </div>
+                    </button>
                   ))}
                 </div>
                 {insEditCovers && (
