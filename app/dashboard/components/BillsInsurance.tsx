@@ -246,8 +246,12 @@ const INSURANCE_COMPANIES: InsuranceCompany[] = [
  *
  * ΤΟ `note` ΓΡΑΦΕΤΑΙ ΚΑΤΩ ΑΠΟ ΤΗ ΓΡΑΜΜΗ, όταν το ποσό χρειάζεται μια πρόταση για
  * να μην παραπλανά — «ξεκινά από» ή «ανεβαίνει με τη χρήση».
+ *
+ * ΤΟ `tier` ΔΕΝΕΙ ΤΗΝ ΠΡΟΠΛΗΡΩΜΗ ΜΕ ΤΗ ΒΑΘΜΙΔΑ ΤΗΣ. Το «Access Ετήσια» δεν είναι
+ * άλλο πακέτο από το «Access», είναι ο ίδιος λογαριασμός πληρωμένος μπροστά —
+ * και δείχνει προς αυτό.
  */
-interface SubPlan { id: string; name: string; price?: number; upfront?: number; months?: number; note?: string }
+interface SubPlan { id: string; name: string; price?: number; upfront?: number; months?: number; note?: string; tier?: string }
 interface SubService { value: string; label: string; url: string; plans: SubPlan[] }
 
 /** Το μηνιαίο κόστος ενός πακέτου, όποια κι αν είναι η περίοδος χρέωσης. */
@@ -288,10 +292,22 @@ function entryPlanId(catalog: SubService[], value: string): string {
  * Οι υπηρεσίες αλφαβητικά, γιατί ο χρήστης ΨΑΧΝΕΙ μια συγκεκριμένη. Τα πακέτα
  * από το φθηνότερο στο ακριβότερο, γιατί εκεί ΔΙΑΛΕΓΕΙ — και έτσι το πρώτο
  * πακέτο είναι η τιμή εισόδου που δείχνει το πλακίδιο.
+ *
+ * ΤΟ ΣΚΕΤΟ «ΦΘΗΝΟΤΕΡΟ ΠΡΩΤΑ» ΟΜΩΣ ΔΙΕΛΥΕ ΤΙΣ ΒΑΘΜΙΔΕΣ. Το F1 TV έβγαινε «Access
+ * ετήσια, Access, Pro ετήσια, Pro, Premium ετήσια, Premium»: σωστό ως αριθμοί,
+ * ακατανόητο ως επιλογή, γιατί το πρώτο πράγμα που διαλέγει κανείς είναι ΒΑΘΜΙΔΑ
+ * και μετά τρόπο πληρωμής. Οι βαθμίδες μπαίνουν στη σειρά με τη μηνιαία τους
+ * τιμή, και κάθε προπληρωμή κάθεται ΑΜΕΣΩΣ κάτω από τη δική της.
  */
 function tidy(list: SubService[]): SubService[] {
   return [...list]
-    .map(s => ({ ...s, plans: [...s.plans].sort((a, b) => planMonthly(a) - planMonthly(b)) }))
+    .map(s => {
+      /** Η τιμή που τοποθετεί το πακέτο: η δική του, ή της βαθμίδας που ανήκει. */
+      const anchor = (p: SubPlan) => planMonthly(s.plans.find(x => x.id === p.tier) ?? p);
+      return { ...s, plans: [...s.plans].sort((a, b) =>
+        anchor(a) - anchor(b)                        // πρώτα η βαθμίδα, με τη μηνιαία της τιμή
+        || (a.months ?? 1) - (b.months ?? 1)) };     // μέσα της, κατά διάρκεια: 1, 3, 12
+    })
     .sort((a, b) => a.label.localeCompare(b.label, 'el'));
 }
 
@@ -303,14 +319,14 @@ export const STREAMING = tidy([
   ] },
   { value: 'disney',    label: 'Disney+',            url: 'https://www.disneyplus.com/el-gr', plans: [
     { id: 'd_standard',      name: 'Standard',           price: 10.99 },
-    { id: 'd_standard_year', name: 'Standard, ετήσια',   upfront: 109.90, months: 12 },
+    { id: 'd_standard_year', name: 'Standard Ετήσια',    upfront: 109.90, months: 12, tier: 'd_standard' },
     { id: 'd_premium',       name: 'Premium',            price: 15.99 },
-    { id: 'd_premium_year',  name: 'Premium, ετήσια',    upfront: 159.90, months: 12 },
+    { id: 'd_premium_year',  name: 'Premium Ετήσια',     upfront: 159.90, months: 12, tier: 'd_premium' },
   ] },
   { value: 'apple_tv',  label: 'Apple TV+',          url: 'https://www.apple.com/gr/apple-tv-plus', plans: [
     { id: 'a_std', name: 'Apple TV+', price: 9.99 },
   ] },
-  { value: 'amazon',    label: 'Amazon Prime Video', url: 'https://www.primevideo.com', plans: [
+  { value: 'amazon',    label: 'Prime Video',        url: 'https://www.primevideo.com', plans: [
     { id: 'am_std', name: 'Prime Video', price: 5.99 },
   ] },
   { value: 'max',       label: 'Max (HBO)',          url: 'https://www.max.com/gr/el', plans: [
@@ -335,14 +351,35 @@ export const STREAMING = tidy([
   // συγκρίνει με την κάρτα του δεν είναι προσέγγιση, είναι λάθος.
   { value: 'skroutz_plus', label: 'Skroutz Plus', url: 'https://www.skroutz.gr/plus', plans: [
     { id: 'sk_month', name: 'Μηνιαία', price: 4 },
-    { id: 'sk_year',  name: 'Ετήσια',  upfront: 25, months: 12 },
+    { id: 'sk_year',  name: 'Ετήσια',  upfront: 25, months: 12, tier: 'sk_month' },
   ] },
   { value: 'wolt_plus',    label: 'Wolt+',        url: 'https://wolt.com/el', plans: [
     { id: 'wp_std', name: 'Wolt+', price: 3.99 },
   ] },
-  { value: 'efood_pro',    label: 'efood pro',    url: 'https://www.e-food.gr', plans: [
+  { value: 'efood_pro',    label: 'Efood Pro',    url: 'https://www.e-food.gr', plans: [
     { id: 'ef_month', name: 'Μηνιαία', price: 3.99 },
-    { id: 'ef_year',  name: 'Ετήσια',  upfront: 34.90, months: 12 },
+    { id: 'ef_year',  name: 'Ετήσια',  upfront: 34.90, months: 12, tier: 'ef_month' },
+  ] },
+  // ΤΟ PLAYSTATION PLUS: ΤΡΕΙΣ ΒΑΘΜΙΔΕΣ ΕΠΙ ΤΡΕΙΣ ΔΙΑΡΚΕΙΕΣ, ΕΝΝΕΑ ΠΑΚΕΤΑ.
+  //
+  // Η δομή του είναι ακριβώς αυτή που περιγράφει το `tier`: το «Essential 12
+  // μήνες» δεν είναι τέταρτη βαθμίδα, είναι το Essential πληρωμένο μπροστά. Έτσι
+  // ο επιλογέας βγαίνει Essential, Essential 3 μήνες, Essential 12 μήνες, μετά
+  // Extra, μετά Premium — βαθμίδα πρώτα, διάρκεια μέσα της.
+  //
+  // ΑΠΟ ΤΟ ΦΘΗΝΟΤΕΡΟ, ΟΠΩΣ ΚΑΙ ΟΙ ΥΠΟΛΟΙΠΕΣ ΕΝΝΕΑ ΥΠΗΡΕΣΙΕΣ ΤΟΥ ΚΑΤΑΛΟΓΟΥ. Μία
+  // λίστα που τρέχει ανάποδα από τις άλλες δεν είναι ιεραρχία, είναι εξαίρεση
+  // που ο χρήστης θα πρέπει να προσέξει.
+  { value: 'psplus',       label: 'PlayStation Plus', url: 'https://www.playstation.com/el-gr/ps-plus', plans: [
+    { id: 'ps_ess',       name: 'Essential',          price: 9.99 },
+    { id: 'ps_ess_3',     name: 'Essential 3 μήνες',  upfront: 27.99,  months: 3,  tier: 'ps_ess' },
+    { id: 'ps_ess_12',    name: 'Essential 12 μήνες', upfront: 71.99,  months: 12, tier: 'ps_ess' },
+    { id: 'ps_extra',     name: 'Extra',              price: 15.99 },
+    { id: 'ps_extra_3',   name: 'Extra 3 μήνες',      upfront: 43.99,  months: 3,  tier: 'ps_extra' },
+    { id: 'ps_extra_12',  name: 'Extra 12 μήνες',     upfront: 125.99, months: 12, tier: 'ps_extra' },
+    { id: 'ps_prem',      name: 'Premium',            price: 18.99 },
+    { id: 'ps_prem_3',    name: 'Premium 3 μήνες',    upfront: 54.99,  months: 3,  tier: 'ps_prem' },
+    { id: 'ps_prem_12',   name: 'Premium 12 μήνες',   upfront: 151.99, months: 12, tier: 'ps_prem' },
   ] },
   // ΤΟ ANT1+ ΗΤΑΝ ΓΡΑΜΜΕΝΟ 2,99 €, ΤΕΣΣΕΡΙΣ ΦΟΡΕΣ ΚΑΤΩ ΑΠΟ ΤΗΝ ΠΡΑΓΜΑΤΙΚΗ ΤΙΜΗ.
   // Η εννεάμηνη προπληρωμή δεν είναι ούτε μηνιαία ούτε ετήσια: 67,99 € για εννέα
@@ -350,8 +387,8 @@ export const STREAMING = tidy([
   { value: 'ant1plus',     label: 'ANT1+',        url: 'https://www.antennaplus.gr', plans: [
     { id: 'ant_family',        name: 'Family',                    price: 10.99 },
     { id: 'ant_family_sports', name: 'Family και Sports',         price: 13.49 },
-    { id: 'ant_family_9m',     name: 'Family, 9 μήνες',           upfront: 67.99, months: 9 },
-    { id: 'ant_sports_9m',     name: 'Family και Sports, 9 μήνες', upfront: 79.99, months: 9 },
+    { id: 'ant_family_9m',     name: 'Family 9 μήνες',            upfront: 67.99, months: 9, tier: 'ant_family' },
+    { id: 'ant_sports_9m',     name: 'Family και Sports 9 μήνες', upfront: 79.99, months: 9, tier: 'ant_family_sports' },
   ] },
 ]);
 
@@ -376,15 +413,15 @@ export const SPORTS = tidy([
   ] },
   { value: 'euroleague', label: 'EuroLeague TV',  url: 'https://www.euroleague.tv', plans: [
     { id: 'el_month', name: 'Monthly Pass', price: 15.99 },
-    { id: 'el_year',  name: 'Annual Pass',  upfront: 99.99, months: 12 },
+    { id: 'el_year',  name: 'Annual Pass',  upfront: 99.99, months: 12, tier: 'el_month' },
   ] },
   { value: 'f1tv',       label: 'F1 TV',          url: 'https://f1tv.formula1.com', plans: [
     { id: 'f1_access',      name: 'Access',           price: 3.49 },
     { id: 'f1_pro',         name: 'Pro',              price: 7.49 },
     { id: 'f1_premium',     name: 'Premium',          price: 11.99 },
-    { id: 'f1_access_year', name: 'Access, ετήσια',   upfront: 29.99, months: 12 },
-    { id: 'f1_pro_year',    name: 'Pro, ετήσια',      upfront: 59.99, months: 12 },
-    { id: 'f1_prem_year',   name: 'Premium, ετήσια',  upfront: 89.99, months: 12 },
+    { id: 'f1_access_year', name: 'Access Ετήσια',    upfront: 29.99, months: 12, tier: 'f1_access' },
+    { id: 'f1_pro_year',    name: 'Pro Ετήσια',       upfront: 59.99, months: 12, tier: 'f1_pro' },
+    { id: 'f1_prem_year',   name: 'Premium Ετήσια',   upfront: 89.99, months: 12, tier: 'f1_premium' },
   ] },
 ]);
 
@@ -438,7 +475,7 @@ export const CLOUD = tidy([
   // ═══════════════════════════════════════════════════════════════════════
   { value: 'claude',  label: 'Claude',  url: 'https://claude.ai/upgrade', plans: [
     { id: 'cl_pro',      name: 'Pro',           price: 22.32 },
-    { id: 'cl_pro_year', name: 'Pro, ετήσια',   upfront: 223.20, months: 12 },
+    { id: 'cl_pro_year', name: 'Pro Ετήσια',    upfront: 223.20, months: 12, tier: 'cl_pro' },
     { id: 'cl_max',      name: 'Max',           price: 111.60,
       note: 'Το Max ξεκινά από αυτό το ποσό και ανεβαίνει με τη χρήση.' },
   ] },
@@ -774,7 +811,9 @@ export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate
     .sort((a, b) => a.empty - b.empty || b.n - a.n)[0].n;
   const isOn = (v: string) => active.some(a => a.service === v);
   return (
-    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 }}>
+    /* Το `containerType` δίνει στα σπασίματα του `.tile-grid` κάτι να μετρήσουν:
+       το πλάτος ΑΥΤΗΣ της κάρτας, όχι του παραθύρου. Βλ. app/globals.css. */
+    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16, containerType: 'inline-size' }}>
       <SecHdr label={label} sub={active.length === 0 ? 'Πάτησε ό,τι έχεις. Τα υπόλοιπα μένουν σβηστά.' : undefined}
         right={total > 0 ? <span style={{ ...TT.kpi, fontSize: 18 }}>{fe(total)}</span> : undefined}/>
 
@@ -817,10 +856,14 @@ export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate
                 border: `1px solid ${on ? 'var(--accent)' : 'var(--border-subtle)'}`,
                 transition: 'background-color .15s, border-color .15s',
               }}>
+              {/* Το όνομα υποχωρεί, το ποσό ποτέ: σε πολύ στενό κουτί κόβεται η
+                  τελευταία συλλαβή ενός ονόματος που ο χρήστης αναγνωρίζει ήδη,
+                  αντί να σπάσει η σειρά ή να κρυφτεί η τιμή. */}
               <span style={{ fontFamily: T.font.sans, fontSize: 14, letterSpacing: 0, fontWeight: on ? 600 : 400,
-                color: on ? 'var(--text-primary)' : 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{svc.label}</span>
+                color: on ? 'var(--text-primary)' : 'var(--text-secondary)',
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{svc.label}</span>
               <span style={{ fontFamily: T.font.num, fontSize: 14, fontVariantNumeric: 'tabular-nums',
-                color: on ? 'var(--text-secondary)' : 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{priceLabel}</span>
+                color: on ? 'var(--text-secondary)' : 'var(--text-tertiary)', whiteSpace: 'nowrap', flexShrink: 0 }}>{priceLabel}</span>
             </button>
           );
         })}
