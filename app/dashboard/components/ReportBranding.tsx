@@ -6,7 +6,8 @@ import { createClient } from '@/lib/supabase/client';
 import * as billing from '@/lib/data/billing';
 import { T, Btn, InfoBanner, Spinner, Card, SecHdr, formGrid } from '@/components/Theme';
 import { TextInput, Toggle } from './UIComponents';
-import { normalizePlan } from '@/lib/billing/plans';
+import { normalizePlan, PLANS } from '@/lib/billing/plans';
+import { planAtLeast, FEATURE_MIN_PLAN } from '@/lib/billing/entitlements';
 import { sanitizeAccent, sanitizeLogo, DEFAULT_ACCENT } from '@/lib/reportBranding';
 import { INK, INK_MUTED, PAPER } from '@/lib/print/ink';
 import { failed } from '@/lib/core/dbError';
@@ -88,11 +89,18 @@ export default function ReportBranding({ userId, onUpgrade }: { userId: string; 
 
   if (loading) return <Spinner label="Φόρτωση…" />;
 
-  if (normalizePlan(plan) !== 'agency') {
+  // ΤΟ «ΔΙΑΦΟΡΕΤΙΚΟ ΑΠΟ agency» ΕΚΛΕΙΝΕ ΕΞΩ ΤΟΝ ΑΚΡΙΒΟΤΕΡΟ ΣΥΝΔΡΟΜΗΤΗ.
+  // Ο κάτοχος του «Επαγγελματίας+» πληρώνει 79,90 € τον μήνα για ένα πακέτο που
+  // ΠΕΡΙΛΑΜΒΑΝΕΙ ό,τι έχει ο «Επαγγελματίας» — και έβλεπε κλειδωμένη οθόνη που
+  // του πρότεινε να αναβαθμίσει σε ΦΘΗΝΟΤΕΡΟ πακέτο. Η ισότητα είναι λάθος
+  // εργαλείο για κλίμακα: η ερώτηση είναι «φτάνει το επίπεδό του;», και την
+  // απαντά το planAtLeast, όπως σε κάθε άλλο κλείδωμα της εφαρμογής.
+  const minPlan = FEATURE_MIN_PLAN.report_branding;
+  if (!planAtLeast(normalizePlan(plan), minPlan)) {
     return (
       <Card>
         <SecHdr label="Επωνυμία στις αναφορές" />
-        <InfoBanner tone="info">Διαθέσιμο στο πλάνο «Επαγγελματίας». Με την αναβάθμιση, κάθε εκτυπώσιμο PDF φέρει το λογότυπο, τα στοιχεία και τα χρώματα της επιχείρησής σου.</InfoBanner>
+        <InfoBanner tone="info">Διαθέσιμο από το πακέτο «{PLANS[minPlan].name}». Με την αναβάθμιση, κάθε εκτυπώσιμο PDF φέρει το λογότυπο, τα στοιχεία και τα χρώματα της επιχείρησής σου.</InfoBanner>
         <div style={{ marginTop: 14 }}><Btn variant="primary" onClick={onUpgrade}>Δες τα πλάνα</Btn></div>
       </Card>
     );

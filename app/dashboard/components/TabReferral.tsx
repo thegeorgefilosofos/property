@@ -5,13 +5,14 @@ import { downloadTableXlsx, csvDate } from './exportCsv';
 import { saved } from '@/components/dbWrite';
 import { drawQrToCanvas } from '@/lib/qr';
 import { T, TT, Badge, TierBadge, PageTitle, ExportButton, EmptyState, Modal, SkeletonKPIs, fn, fixedCols } from '@/components/Theme';
+import { PLANS } from '@/lib/billing/plans';
 import { UserPlus } from 'lucide-react';
 import {
   referralCode, referralLink, progress,
   individualReferrerReward, refereeWelcome,
   INDIV_PRO_BONUS_MONTHS, REFEREE_OWNER_MONTHS, REFERRER_SLOT_MONTHS,
   INDIV_VOLUME_TARGET, INDIV_VOLUME_BONUS_MONTHS,
-  PRO_PAID_TARGET, PRO_PAID_BONUS_MONTHS, PARTNER_WELCOME_MONTHS,
+  PRO_PAID_TARGET, PRO_PAID_BONUS_MONTHS, PARTNER_WELCOME_MONTHS, PARTNER_WELCOME,
   STREAK_TARGET_MONTHS, PARTNER_MONTHLY_FREE_MONTHS,
   ACTIVATION_MIN_PROPERTIES, ACTIVATION_MIN_DOCUMENTS,
 } from '@/lib/referral/referral';
@@ -521,7 +522,11 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             )}
             <ul style={{ ...TT.bodySm, lineHeight: 1.7, margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: 6 }}>
               {[
-                `${moNom(PARTNER_WELCOME_MONTHS)} Επαγγελματίας+ δώρο, μόλις αποκτήσεις την ιδιότητα`,
+                // ΤΟ ΟΝΟΜΑ ΤΟΥ ΔΩΡΟΥ ΗΤΑΝ ΓΡΑΜΜΕΝΟ ΜΕ ΤΟ ΧΕΡΙ, ΚΑΙ ΗΤΑΝ ΑΛΛΟ.
+                // Η γραμμή διαφήμιζε «Επαγγελματίας+», ενώ το PARTNER_WELCOME δίνει
+                // tier 'agency' — δηλαδή «Επαγγελματίας», ένα σκαλί χαμηλότερα — και το
+                // ίδιο γράφει και η βάση. Διαβάζεται από την πηγή.
+                `${moNom(PARTNER_WELCOME_MONTHS)} ${PLANS[PARTNER_WELCOME.tier].name} δώρο, μόλις αποκτήσεις την ιδιότητα`,
                 'Κάθε μήνας που πιάνει τον στόχο κάνει τον επόμενο δωρεάν',
                 'Προτεραιότητα σε νέες κυκλοφορίες, αναβαθμίσεις και επικοινωνία',
               ].map((t, i) => (
