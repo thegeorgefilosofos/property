@@ -37,8 +37,14 @@ const toDate = (d: string): Date | string => { const t = new Date(d + 'T00:00:00
 const MEMO_TXT = { font: { name: 'Calibri', color: { rgb: '6B7280' }, sz: 10, italic: true }, alignment: { horizontal: 'left', vertical: 'center' } };
 const MEMO_NUM = { font: { name: 'Calibri', color: { rgb: '6B7280' }, sz: 10, italic: true }, alignment: { horizontal: 'right', vertical: 'center' } };
 
-/** Το βιβλίο εργασίας των δύο φύλλων — κοινό για το σκέτο Excel και για τον φάκελο. */
-function buildWorkbook(inp: AccountantBundleInput) {
+/**
+ * Το βιβλίο εργασίας των δύο φύλλων — κοινό για το σκέτο Excel και για τον φάκελο.
+ *
+ * ΕΞΑΓΕΤΑΙ ΓΙΑ ΝΑ ΔΟΚΙΜΑΖΕΤΑΙ. Το αρχείο που φεύγει στον λογιστή δεν μπορεί να
+ * επαληθεύεται με το μάτι: μια στήλη που μετακινήθηκε κατά ένα δίνει σύνολο
+ * κάτω από λάθος επικεφαλίδα, και το Excel ανοίγει κανονικά.
+ */
+export function buildWorkbook(inp: AccountantBundleInput) {
   const { year, propName, ownerAfm, statementLines, provisionMonthly, book } = inp;
   const wb = XLSX.utils.book_new();
   // Ταυτότητα φορολογούμενου/περιόδου — ίδια ακριβώς και στα δύο φύλλα.
