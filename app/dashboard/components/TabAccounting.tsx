@@ -1409,7 +1409,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
 
       {/* ΠΡΟΣΚΛΗΣΗ ΜΟΝΟ ΣΕ ΟΠΟΙΟΝ ΔΕΝ ΤΑ ΕΧΕΙ ΗΔΗ. Ήταν δεμένη στο προφίλ, ενώ ό,τι
           διαφημίζει (ισοζύγιο, ημερολόγιο άρθρων) κρίνεται πλέον από τη
-          ΣΥΝΔΡΟΜΗ: ο συνεργάτης με πλάνο Επαγγελματία και προφίλ Ιδιώτη έβλεπε
+          ΣΥΝΔΡΟΜΗ: ο συνεργάτης με πακέτο Επαγγελματία και προφίλ Ιδιώτη έβλεπε
           το ημερολόγιο άρθρων να δουλεύει, και από κάτω μια κάρτα να του
           πουλάει το ημερολόγιο άρθρων. Ο φάκελος, το Excel και η πύλη λογιστή
           δεν αναφέρονται καθόλου: τα έχει ήδη κάθε συνδρομητής. */}
@@ -1418,7 +1418,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           <div style={{ display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
             <div style={{ flex:1, minWidth:240 }}>
               <p style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', margin:0, fontFamily: T.font.sans }}>Διαχειρίζεσαι πολλά ακίνητα ή θέλεις πλήρη λογιστική;</p>
-              <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'3px 0 0', lineHeight:1.55, fontFamily: T.font.sans, maxWidth:520 }}>Το πλάνο Επαγγελματίας προσθέτει καθεστώς Επιχείρησης (ΕΛΠ), ισοζύγιο διπλογραφικής, ημερολόγιο άρθρων, ενοποίηση χαρτοφυλακίου και εκπιπτόμενα έξοδα με ακρίβεια λογιστή.</p>
+              <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'3px 0 0', lineHeight:1.55, fontFamily: T.font.sans, maxWidth:520 }}>Το πακέτο Επαγγελματίας προσθέτει καθεστώς Επιχείρησης (ΕΛΠ), ισοζύγιο διπλογραφικής, ημερολόγιο άρθρων, ενοποίηση χαρτοφυλακίου και εκπιπτόμενα έξοδα με ακρίβεια λογιστή.</p>
             </div>
             <button onClick={()=>onNavigate?.('settings')} style={{ flexShrink:0, height:T.h.md, padding:'0 17px', borderRadius:10, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily: T.font.sans }}>Δες το Επαγγελματίας</button>
           </div>

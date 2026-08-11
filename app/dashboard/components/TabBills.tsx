@@ -290,7 +290,7 @@ export default function TabBills({
             {/* Ο ίδιος λογαριασμός ζεσταίνει το σπίτι: το αέριο και ο τρόπος
                 θέρμανσης απαντούν στην ίδια ερώτηση και μπαίνουν μαζί. */}
             {tool === 'gas'           && (<>
-              <BillsGas propertyId={propertyId} userId={userId} onNavigateTab={t => openTool(t as ContractKind)}/>
+              <BillsGas propertyId={propertyId} userId={userId}/>
               <BillsProviders propertyId={propertyId} userId={userId} only="heating"/>
             </>)}
             {tool === 'common'        && <BillsCommon    propertyId={propertyId} userId={userId}/>}

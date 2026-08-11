@@ -26,7 +26,7 @@ const Check = () => (
 // Μικρό λουκέτο για τα στοιχεία της μπάρας πλοήγησης.
 export function LockBadge() {
   return (
-    <span aria-label="Κλειδωμένο" title="Διαθέσιμο σε ανώτερο πλάνο"
+    <span aria-label="Κλειδωμένο" title="Διαθέσιμο σε ανώτερο πακέτο"
       style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)', flexShrink: 0 }}>
       <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
@@ -53,7 +53,7 @@ export default function FeatureLock({ title, benefit, requiredPlan, currentPlanN
           </div>
           <div style={{ width: '100%' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', marginBottom: 10, border: '1px solid var(--border-subtle)', borderRadius: 100, padding: '4px 12px' }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>Πλάνο {plan.name}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>Πακέτο {plan.name}</span>
             </div>
             <h2 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: '0 0 8px', lineHeight: 1.2 }}>{title}</h2>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 16px', lineHeight: 1.6 }}>{benefit}</p>
@@ -75,9 +75,9 @@ export default function FeatureLock({ title, benefit, requiredPlan, currentPlanN
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-            <Btn variant="primary" onClick={onManage}>Δες τα πλάνα και αναβάθμισε</Btn>
+            <Btn variant="primary" onClick={onManage}>Δες τα πακέτα και αναβάθμισε</Btn>
             {currentPlanName && (
-              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Τρέχον πλάνο: {currentPlanName}</span>
+              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Τρέχον πακέτο: {currentPlanName}</span>
             )}
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>

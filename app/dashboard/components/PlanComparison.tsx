@@ -136,7 +136,7 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
     <div>
       {/* ── 1+2. Κεφαλίδα με διακόπτη κύκλου + στήλες πλάνων ───────────────── */}
       <Card className="acc-section" style={{ animationDelay: '0ms' }}>
-        <SecHdr label="Σύγκριση πλάνων" right={
+        <SecHdr label="Σύγκριση πακέτων" right={
           <div style={{ display: 'inline-flex', padding: 3, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 100 }}>
             {(['monthly', 'annual'] as const).map(c => (
               <button key={c} onClick={() => setCycle(c)}
@@ -205,7 +205,7 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
 
                 {/* ══ Η ΚΑΤΑΣΤΑΣΗ ΤΗΣ ΣΤΗΛΗΣ ΕΧΕΙ ΜΙΑ ΘΕΣΗ, ΚΑΙ ΕΙΝΑΙ ΑΥΤΗ ══════
                     Το «Πιο δημοφιλές» καθόταν ως κορδέλα πάνω από την κάρτα και
-                    το «Το πλάνο σου» ως κονκάρδα ΜΕΣΑ στη σειρά του τίτλου. Δύο
+                    το «Το πακέτο σου» ως κονκάρδα ΜΕΣΑ στη σειρά του τίτλου. Δύο
                     γλώσσες για το ίδιο πράγμα — και η δεύτερη δεν χωρούσε:
                     «Επαγγελματίας» στα 14 έντονα, συν μετάλλιο 22, συν κονκάρδα
                     με ζωντανή τελεία, μέσα σε στήλη διακοσίων τριάντα
@@ -217,7 +217,7 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
                 {(popular || isCurrent) && (
                   <span style={{ position: 'absolute', top: -9, left: '50%', transform: 'translateX(-50%)', display: 'inline-flex', alignItems: 'center', gap: 6, background: isCurrent ? 'var(--bg-surface)' : 'var(--accent)', color: isCurrent ? 'var(--accent)' : 'var(--accent-text)', border: isCurrent ? '1px solid var(--accent-border)' : 'none', borderRadius: 100, padding: '2px 10px', fontSize: 9, fontWeight: 700, fontFamily: T.font.sans, letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>
                     {isCurrent && <span className="acc-live-dot accent" style={{ width: 6, height: 6, background: 'var(--accent)' }} />}
-                    {isCurrent ? 'Το πλάνο σου' : 'Πιο δημοφιλές'}
+                    {isCurrent ? 'Το πακέτο σου' : 'Πιο δημοφιλές'}
                   </span>
                 )}
 
@@ -277,7 +277,7 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
 
       {/* ── 3. Πίνακας δυνατοτήτων ────────────────────────────────────────── */}
       <Card className="acc-section" style={{ animationDelay: '80ms' }}>
-        <SecHdr label="Τι περιλαμβάνει κάθε πλάνο" />
+        <SecHdr label="Τι περιλαμβάνει κάθε πακέτο" />
 
         <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: 560 }}>

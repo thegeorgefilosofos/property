@@ -1158,7 +1158,7 @@ export default function Dashboard() {
   const [quickAddOpen, setQuickAddOpen] = useState(false);// γρήγορη προσθήκη με φωτογραφία/σάρωση
   const [showWelcome, setShowWelcome] = useState(false);// καλωσόρισμα πρώτης χρήσης
   const [scanDraftId, setScanDraftId] = useState<string|null>(null);// προσχέδιο από scan-to-create
-  const [plan, setPlan] = useState<string>('free');       // τρέχον πλάνο συνδρομής (billing_profiles)
+  const [plan, setPlan] = useState<string>('free');       // τρέχον πακέτο συνδρομής (billing_profiles)
   const [compPlan, setCompPlan] = useState<string|null>(null);   // δωρεάν πρόσβαση: επίπεδο (π.χ. από referral)
   const [compUntil, setCompUntil] = useState<string|null>(null); // δωρεάν πρόσβαση: λήξη (ISO)
   // ΤΟ ΟΝΟΜΑ ΙΔΙΟΚΤΗΤΗ ΕΙΧΕ ΔΥΟ ΣΤΗΛΕΣ ΚΑΙ ΚΑΝΕΝΑΝ ΑΝΑΓΝΩΣΤΗ ΕΔΩ.
@@ -1736,7 +1736,7 @@ export default function Dashboard() {
                 // την αφήνουμε στη θέση της για όποιον θέλει να ξέρει ότι υπάρχει.
                 <button key={id} className={`sidebar-item ${nav===id?'active':''}`} onClick={()=>{setNav(id);setSidebarOpen(false);}} disabled={!selected}
                   style={d.visible ? undefined : { opacity: 0.45 }}
-                  title={d.visible ? (locked ? 'Διαθέσιμο σε ανώτερο πλάνο' : undefined) : d.reason}>
+                  title={d.visible ? (locked ? 'Διαθέσιμο σε ανώτερο πακέτο' : undefined) : d.reason}>
                   <span className="sidebar-item-icon" aria-hidden>{ic(NAV_ICON[id]||'')}</span>
                   <span className="sidebar-item-label">{id==='referral' && effProfileType==='professional' ? 'Πρόγραμμα Συνεργατών' : NAV_LABEL[id]}</span>
                   {!d.visible ? null : locked ? <LockBadge/> : (badge>0&&<span style={{marginLeft:'auto',minWidth:20,height:20,borderRadius:10,background:'var(--negative)',color:'var(--text-inverse)',fontFamily: T.font.sans,fontSize:11,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',padding:'0 6px'}}>{badge>9?'9+':badge}</span>)}
@@ -1940,7 +1940,7 @@ export default function Dashboard() {
               {nav==='finances'  && <TabFinances propertyId={selected.id} userId={user.id} profileType={effProfileType} legalForm={taxForm} onScan={()=>setQuickAddOpen(true)}/>}
               {nav==='calendar'  && <TabCalendar propertyId={selected.id} userId={user.id} openTasks={checklistAlerts} onOpenTasks={()=>setNav('checklist')}/>}
               {/* ═══ Η ΒΡΑΧΥΧΡΟΝΙΑ ΣΤΕΚΕΤΑΙ ΜΟΝΗ ΤΗΣ ═══════════════════════════
-                  Ζούσε μέσα στην καρτέλα «Πελάτης», που απαιτεί πλάνο
+                  Ζούσε μέσα στην καρτέλα «Πελάτης», που απαιτεί πακέτο
                   Επαγγελματία. Ο ιδιώτης με ακίνητο σε Airbnb δεν έφτανε ΠΟΤΕ
                   στη δυναμική τιμή ούτε στο «τι μου μένει» — τα δύο εργαλεία που
                   τον αφορούν περισσότερο από κάθε άλλο. Το πελατολόγιο μένει

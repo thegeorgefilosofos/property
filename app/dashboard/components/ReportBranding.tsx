@@ -101,7 +101,7 @@ export default function ReportBranding({ userId, onUpgrade }: { userId: string; 
       <Card>
         <SecHdr label="Επωνυμία στις αναφορές" />
         <InfoBanner tone="info">Διαθέσιμο από το πακέτο «{PLANS[minPlan].name}». Με την αναβάθμιση, κάθε εκτυπώσιμο PDF φέρει το λογότυπο, τα στοιχεία και τα χρώματα της επιχείρησής σου.</InfoBanner>
-        <div style={{ marginTop: 14 }}><Btn variant="primary" onClick={onUpgrade}>Δες τα πλάνα</Btn></div>
+        <div style={{ marginTop: 14 }}><Btn variant="primary" onClick={onUpgrade}>Δες τα πακέτα</Btn></div>
       </Card>
     );
   }

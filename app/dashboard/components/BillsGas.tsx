@@ -211,7 +211,7 @@ const priceBadge = (status: PriceStatus) => {
   }
 };
 
-interface Props { propertyId: string; userId?: string; onNavigateTab?: (tab: string) => void; }
+interface Props { propertyId: string; userId?: string; }
 
 const DEFAULTS = {
   gasProvider: 'nrg', gasTariffId: '', gasMonthly: '', gasKwhMonthly: '',
@@ -220,7 +220,7 @@ const DEFAULTS = {
   ttfPrice: String(DEFAULT_TTF_EUR_MWH), // €/MWh, ο χρήστης το ενημερώνει από ΕΕΧ
 };
 
-export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Props) {
+export default function BillsGas({ propertyId, userId = '' }: Props) {
   const supabase = createClient();
   const [s, su, loading] = useBillsSettings(propertyId, userId, 'gas', DEFAULTS);
   const [segmentFilter, setSegmentFilter] = useState<'residential' | 'business'>('residential');
@@ -427,7 +427,7 @@ export default function BillsGas({ propertyId, userId = '', onNavigateTab }: Pro
         </div>
 
         {tariff && (
-          <div style={{ marginTop: 16, padding: 14, background: 'var(--bg-base)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
+          <div style={{ marginTop: 14, padding: '12px 16px', background: 'var(--bg-base)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' as const, gap: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' as const }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{tariff.name}</span>

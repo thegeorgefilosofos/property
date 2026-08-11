@@ -595,8 +595,8 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
             {(atLimit || nearLimit) && (
               <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 8, lineHeight: 1.5 }}>
                 {atLimit
-                  ? 'Έφτασες το όριο του πλάνου σου. Αναβάθμισε για να κρατάς κι άλλα ακίνητα σε ένα σημείο.'
-                  : 'Ένα ακόμη ακίνητο και φτάνεις το όριο του πλάνου σου.'}
+                  ? 'Έφτασες το όριο του πακέτου σου. Αναβάθμισε για να κρατάς κι άλλα ακίνητα σε ένα σημείο.'
+                  : 'Ένα ακόμη ακίνητο και φτάνεις το όριο του πακέτου σου.'}
               </div>
             )}
           </div>
@@ -645,7 +645,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
               const requiresUpgrade = o.v === 'professional' && !proEligible;
               return (
                 <button key={o.v} onClick={() => setProfile(o.v)} className="acc-choice"
-                  title={requiresUpgrade ? 'Απαιτεί το πλάνο Επαγγελματίας' : undefined}
+                  title={requiresUpgrade ? 'Απαιτεί το πακέτο Επαγγελματίας' : undefined}
                   style={{ textAlign: 'left', cursor: 'pointer', borderRadius: 14, padding: '16px 16px 15px', border: `1.5px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent-soft)' : 'var(--bg-surface)', boxShadow: on ? '0 0 0 3px var(--accent-dim)' : 'none' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                     <span style={{ fontSize: 15, fontWeight: 700, color: on ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.sans }}>{o.title}</span>
@@ -661,7 +661,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginTop: 5, lineHeight: 1.5 }}>{o.sub}</div>
                   {requiresUpgrade && (
-                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 8 }}>Απαιτεί αναβάθμιση στο πλάνο Επαγγελματίας.</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 8 }}>Απαιτεί αναβάθμιση στο πακέτο Επαγγελματίας.</div>
                   )}
                 </button>
               );

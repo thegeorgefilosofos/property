@@ -52,12 +52,12 @@ export default function UpgradeModal({ currentCount, planId, profileType = 'indi
         <div style={{ background: 'var(--bg-surface)', borderRadius: 18, width: '100%', maxWidth: 520, boxShadow: 'var(--shadow-xl)', padding: 'clamp(24px, 3vw, 34px)' }}>
           <h2 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: '0 0 8px' }}>Διαχειρίζεσαι μεγάλο χαρτοφυλάκιο</h2>
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 20px', lineHeight: 1.6 }}>
-            Το πλάνο Επαγγελματίας καλύπτει έως {PLANS.agency.maxProperties} ακίνητα και τα έχεις ήδη συμπληρώσει.
-            Για περισσότερα, στήνουμε πλάνο στα μέτρα σου. Γράψε μας στο <strong style={{ color: 'var(--text-primary)' }}>support@propertyos.gr</strong> και απαντάμε την ίδια ημέρα.
+            Το πακέτο Επαγγελματίας καλύπτει έως {PLANS.agency.maxProperties} ακίνητα και τα έχεις ήδη συμπληρώσει.
+            Για περισσότερα, στήνουμε πακέτο στα μέτρα σου. Γράψε μας στο <strong style={{ color: 'var(--text-primary)' }}>support@propertyos.gr</strong> και απαντάμε την ίδια ημέρα.
           </p>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
             <button onClick={onClose} style={{ height: 44, padding: '0 20px', borderRadius: 100, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Κλείσιμο</button>
-            <a href="mailto:support@propertyos.gr?subject=Χαρτοφυλάκιο%20άνω%20των%20ακινήτων%20του%20πλάνου"
+            <a href="mailto:support@propertyos.gr?subject=Χαρτοφυλάκιο%20άνω%20των%20ακινήτων%20του%20πακέτου"
               style={{ height: 44, padding: '0 24px', borderRadius: 100, background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 14, fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>Επικοινώνησε μαζί μας</a>
           </div>
         </div>
@@ -74,10 +74,10 @@ export default function UpgradeModal({ currentCount, planId, profileType = 'indi
           <div>
             <h2 style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: '0 0 6px' }}>Χρειάζεσαι λίγο περισσότερο χώρο</h2>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.55 }}>
-              Το πλάνο σου ({PLANS[current].name}) καλύπτει {PLANS[current].maxProperties === Infinity ? 'απεριόριστα' : PLANS[current].maxProperties} {PLANS[current].maxProperties === 1 ? 'ακίνητο' : 'ακίνητα'}.{' '}
+              Το πακέτο σου ({PLANS[current].name}) καλύπτει {PLANS[current].maxProperties === Infinity ? 'απεριόριστα' : PLANS[current].maxProperties} {PLANS[current].maxProperties === 1 ? 'ακίνητο' : 'ακίνητα'}.{' '}
               {needsProfileSwitch
-                ? <>Με περισσότερα από {PLANS.owner.maxProperties} ακίνητα η διαχείριση γίνεται επαγγελματική δουλειά. Στις Ρυθμίσεις άλλαξε τον τρόπο χρήσης σε «Επαγγελματίας» — περνά αμέσως, χωρίς προϋπόθεση — και ξεκλειδώνει η αγορά του πλάνου Επαγγελματίας: έως {PLANS.agency.maxProperties} ακίνητα, χαρτοφυλάκιο και ομάδα.</>
-                : <>Για να προσθέσεις κι άλλο, διάλεξε ένα πλάνο που σου ταιριάζει. Χωρίς δέσμευση, ακυρώνεις όποτε θέλεις.</>}
+                ? <>Με περισσότερα από {PLANS.owner.maxProperties} ακίνητα η διαχείριση γίνεται επαγγελματική δουλειά. Στις Ρυθμίσεις άλλαξε τον τρόπο χρήσης σε «Επαγγελματίας» — περνά αμέσως, χωρίς προϋπόθεση — και ξεκλειδώνει η αγορά του πακέτου Επαγγελματίας: έως {PLANS.agency.maxProperties} ακίνητα, χαρτοφυλάκιο και ομάδα.</>
+                : <>Για να προσθέσεις κι άλλο, διάλεξε ένα πακέτο που σου ταιριάζει. Χωρίς δέσμευση, ακυρώνεις όποτε θέλεις.</>}
             </p>
           </div>
           <button onClick={onClose} aria-label="Κλείσιμο" style={{ width: T.h.md, height: T.h.md, borderRadius: 18, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>✕</button>
@@ -112,7 +112,7 @@ export default function UpgradeModal({ currentCount, planId, profileType = 'indi
                     ))}
                   </ul>
                 )}
-                {isCurrent && <div style={{ marginTop: 'auto', paddingTop: 12, fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 600 }}>Το τρέχον πλάνο σου</div>}
+                {isCurrent && <div style={{ marginTop: 'auto', paddingTop: 12, fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 600 }}>Το τρέχον πακέτο σου</div>}
               </div>
             );
           })}
@@ -120,7 +120,7 @@ export default function UpgradeModal({ currentCount, planId, profileType = 'indi
 
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
           <button onClick={onClose} style={{ height: 44, padding: '0 20px', borderRadius: 100, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Όχι τώρα</button>
-          <button onClick={onManage} style={{ height: 44, padding: '0 24px', borderRadius: 100, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Δες τα πλάνα και αναβάθμισε</button>
+          <button onClick={onManage} style={{ height: 44, padding: '0 24px', borderRadius: 100, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Δες τα πακέτα και αναβάθμισε</button>
         </div>
       </div>
     </div>
