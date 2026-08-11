@@ -379,7 +379,7 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
 
       {/* ── Στοιχεία σύνδεσης ── */}
       <div style={card}>
-        {secHdr('Σύνδεση, πάροχος και πρόγραμμα')}
+        {secHdr('Σύνδεση, πάροχος και τιμολόγιο')}
         {/* ══ ΤΕΣΣΕΡΙΣ ΣΕΙΡΕΣ ΤΩΝ ΔΥΟ ΕΓΙΝΑΝ ΔΥΟ ΣΕΙΡΕΣ ΜΕ ΛΟΓΙΚΗ ═════════════
             Εννιά πεδία κάθονταν σε τέσσερα ξεχωριστά πλέγματα των δύο, με σειρά
             που δεν έλεγε τίποτα: πάροχος, μετά κατανάλωση, μετά ημερομηνίες
@@ -388,7 +388,7 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
             κάρτας — γι' αυτό η κάρτα ήταν ψηλή και διαβαζόταν σαν ερωτηματολόγιο.
 
             Δύο σειρές, και η καθεμία απαντά ΕΝΑ ερώτημα:
-              πρώτη   → τι έχεις (δίκτυο, θέρμανση, πάροχος, πρόγραμμα)
+              πρώτη   → τι έχεις (δίκτυο, θέρμανση, πάροχος, τιμολόγιο)
               δεύτερη → η σύμβασή σου και η χρήση σου
 
             Η παράγραφος του TTF έγινε ⓘ πάνω στο ίδιο του το πεδίο: μια
@@ -413,7 +413,7 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
           <CustomSelect label="Πάροχος" value={s.gasProvider}
             onChange={v => upd({ gasProvider: v, gasTariffId: GAS_PROVIDERS.find(p => p.value === v)?.tariffs[0]?.id || '' })}
             options={providerOptions}/>
-          <CustomSelect label="Πρόγραμμα" value={s.gasTariffId || provider?.tariffs[0]?.id || ''} onChange={v => upd({ gasTariffId: v })} options={tariffOptions}/>
+          <CustomSelect label="Τιμολόγιο" value={s.gasTariffId || provider?.tariffs[0]?.id || ''} onChange={v => upd({ gasTariffId: v })} options={tariffOptions}/>
         </div>
         <div {...fixedCols(5, 14, 'start')}>
           <DatePicker label="Έναρξη σύμβασης" value={s.gasContractStart} onChange={v => upd({ gasContractStart: v })}/>
@@ -422,7 +422,7 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
           <NumberInput label="Πραγματικό κόστος τον μήνα" labelInfo="Ολόκληρο το ποσό του λογαριασμού, με δίκτυο, ΕΦΚ και ΦΠΑ. Χρησιμοποιείται για την παρακολούθηση κόστους, ΟΧΙ για τη σύγκριση παρόχων: εκεί συγκρίνεται προμήθεια με προμήθεια."
             value={s.gasMonthly} onChange={v => upd({ gasMonthly: v })} suffix="€"/>
           <NumberInput label="Τρέχουσα τιμή TTF" value={s.ttfPrice} onChange={v => upd({ ttfPrice: v })} suffix="€/MWh" step={1}
-            labelInfo="Τα κυμαινόμενα προγράμματα (σήμανση ƒ) υπολογίζονται από τον επίσημο τύπο του παρόχου με βάση αυτή την τιμή. Η μηνιαία τιμή δημοσιεύεται στο Ευρωπαϊκό Χρηματιστήριο Ενέργειας (EEX) και στους λογαριασμούς των παρόχων."/>
+            labelInfo="Τα κυμαινόμενα τιμολόγια (σήμανση ƒ) υπολογίζονται από τον επίσημο τύπο του παρόχου με βάση αυτή την τιμή. Η μηνιαία τιμή δημοσιεύεται στο Ευρωπαϊκό Χρηματιστήριο Ενέργειας (EEX) και στους λογαριασμούς των παρόχων."/>
         </div>
         </div>
 
@@ -476,7 +476,7 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
             <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 14, display: 'flex', gap: 10, alignItems: 'center' }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)' }}/>
               <span style={{ fontSize: 12, fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
-                Δυνητική εξοικονόμηση <strong style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>{fe(savings)} τον μήνα</strong> ({fe(savings * 12)} τον χρόνο) με το φθηνότερο πρόγραμμα, στη χρέωση προμήθειας. Δίκτυο, ΕΦΚ και ΦΠΑ είναι ίδια σε κάθε πάροχο και δεν εξοικονομούνται. Επιβεβαίωσε την τρέχουσα προσφορά στον πάροχο.
+                Δυνητική εξοικονόμηση <strong style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>{fe(savings)} τον μήνα</strong> ({fe(savings * 12)} τον χρόνο) με το φθηνότερο τιμολόγιο, στη χρέωση προμήθειας. Δίκτυο, ΕΦΚ και ΦΠΑ είναι ίδια σε κάθε πάροχο και δεν εξοικονομούνται. Επιβεβαίωσε την τρέχουσα προσφορά στον πάροχο.
               </span>
             </div>
           )}
@@ -484,7 +484,7 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
               <thead>
-                <tr>{['Πάροχος', 'Πρόγραμμα', 'Τύπος', 'Τιμή', 'kWh', 'Πάγιο', 'Μήνας', 'Έτος', 'Διαφορά'].map(h => (
+                <tr>{['Πάροχος', 'Τιμολόγιο', 'Τύπος', 'Τιμή', 'kWh', 'Πάγιο', 'Μήνας', 'Έτος', 'Διαφορά'].map(h => (
                   <th key={h} style={{ fontSize: 9, color: 'var(--text-secondary)', padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.05em', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, background: 'var(--bg-elevated)' }}>{h}</th>
                 ))}</tr>
               </thead>
@@ -535,10 +535,10 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
         const hints: { text: string; severity: 'info' | 'warning' | 'tip' }[] = [];
 
         if (sameDualFuelProvider && !dualFuelTariff) {
-          hints.push({ text: `Έχεις ${provider?.label} και στα δύο (ρεύμα + αέριο), έλεγξε αν δικαιούσαι dual fuel πρόγραμμα με έκπτωση.`, severity: 'tip' });
+          hints.push({ text: `Έχεις ${provider?.label} και στα δύο (ρεύμα + αέριο), έλεγξε αν δικαιούσαι τιμολόγιο dual fuel με έκπτωση.`, severity: 'tip' });
         }
         if (dualFuelTariff) {
-          hints.push({ text: `Το τρέχον πρόγραμμα έχει Dual Fuel έκπτωση −${fk(dualFuelTariff)}/kWh λόγω κοινού παρόχου με το ρεύμα.`, severity: 'info' });
+          hints.push({ text: `Το τρέχον τιμολόγιο έχει Dual Fuel έκπτωση −${fk(dualFuelTariff)}/kWh λόγω κοινού παρόχου με το ρεύμα.`, severity: 'info' });
         }
         if (isHeatingSeason && noGasDataYet && s.heatingType === 'autonomous_gas') {
           hints.push({ text: 'Είμαστε σε περίοδο θέρμανσης και δεν έχεις καταχωρήσει ακόμη κατανάλωση ή κόστος αερίου. Συμπλήρωσε τα στοιχεία για ακριβή παρακολούθηση.', severity: 'warning' });
@@ -581,7 +581,7 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
             Το δίκτυο διανομής ανήκει στον τοπικό διαχειριστή (ΕΔΑ Αττικής, ΕΔΑ ΘΕΣΣ ή ΔΕΔΑ), δεν αλλάζει όποιον πάροχο κι αν επιλέξεις. Η αλλαγή παρόχου είναι καθαρά εμπορική, δεν γίνεται καμία επέμβαση στον αγωγό ή τον λέβητα, και ολοκληρώνεται σε περίπου 3 εβδομάδες χωρίς χρέωση.
           </div>
           <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-            Πρόσεχε την «έκπτωση συνέπειας»: πολλά προγράμματα διαφημίζουν χαμηλή τιμή που ισχύει μόνο με εμπρόθεσμη εξόφληση, αν αργήσεις μία πληρωμή, χρεώνεσαι τη βασική (υψηλότερη) τιμή. Σύγκρινε πάντα και την «καθαρή» τιμή χωρίς έκπτωση.
+            Πρόσεχε την «έκπτωση συνέπειας»: πολλά τιμολόγια διαφημίζουν χαμηλή τιμή που ισχύει μόνο με εμπρόθεσμη εξόφληση, αν αργήσεις μία πληρωμή, χρεώνεσαι τη βασική (υψηλότερη) τιμή. Σύγκρινε πάντα και την «καθαρή» τιμή χωρίς έκπτωση.
           </div>
           <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             Τα κίτρινα/κυμαινόμενα τιμολόγια ακολουθούν τον δείκτη TTF (ευρωπαϊκή χονδρεμπορική αγορά). Οι τιμές ανεβαίνουν συνήθως τον χειμώνα λόγω ζήτησης θέρμανσης, αν θες σιγουριά, κλείδωσε σταθερό πριν την ψυχρή περίοδο.
