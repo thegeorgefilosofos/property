@@ -240,8 +240,15 @@ export function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string
           {useCustom&&(
             <div style={{ marginBottom:16 }}>
               <div style={{ ...labelStyle, marginBottom:8 }}>Ποσοστό αναπροσαρμογής (%)</div>
-              <input type="number" value={customPct} onChange={e=>setCustomPct(e.target.value)} placeholder="Παράδειγμα: 3.5" step="0.1"
+              {/* ΤΟ ΠΕΔΙΟ ΔΕΧΟΤΑΝ ΑΡΝΗΤΙΚΟ ΠΟΣΟΣΤΟ. Το ποσοστό είναι αυτό που
+                  γράφει η σύμβαση, και σύμβαση δεν ορίζει αρνητική
+                  αναπροσαρμογή· ένα «-3» θα κατέβαζε σιωπηλά το ενοίκιο σε κάθε
+                  υπολογισμό. Και η υπόδειξη έγραφε «3.5» με αγγλική υποδιαστολή,
+                  μέσα σε εφαρμογή που γράφει παντού ελληνικό κόμμα. Το κενό
+                  πεδίο μένει κενό και η υπόδειξη πάει από κάτω, με λέξεις. */}
+              <input type="number" min={0} value={customPct} onChange={e=>setCustomPct(e.target.value)} placeholder="" step="0.1"
                 style={{ ...selectStyle, border:'1px solid var(--border-default)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontSize:14 }}/>
+              <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, marginTop:5 }}>Όπως το γράφει η σύμβαση, για παράδειγμα τρία και μισό.</div>
             </div>
           )}
 

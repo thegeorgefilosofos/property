@@ -26,6 +26,18 @@ const SINK = /(notifyError|setErr|setError|set\w*Err)\s*\(/
 // για να το αναφέρει ο χρήστης — δεν είναι μήνυμα ροής εργασίας.
 const ALLOWED = ['app/error.tsx', 'app/global-error.tsx', 'app/dashboard/components/TabBoundary.tsx']
 
+// ── ΔΙΚΑ ΜΑΣ ΣΦΑΛΜΑΤΑ, ΜΕ ΜΗΝΥΜΑ ΓΡΑΜΜΕΝΟ ΓΙΑ ΤΗΝ ΟΘΟΝΗ ────────────────────
+// Ο κανόνας είναι «κανένα μήνυμα ΤΗΣ ΒΑΣΗΣ», όχι «κανένα .message ποτέ». Η
+// `SheetError` του lib/core/readSheet.ts πετιέται από εμάς, με ελληνικό κείμενο
+// που λέει στον χρήστη τι να κάνει («Το αρχείο είναι πολύ μεγάλο, όριο 5 MB»):
+// το να το αντικαταστήσουμε με γενικό μήνυμα ΑΦΑΙΡΕΙ πληροφορία.
+//
+// Η εξαίρεση δένεται στον ΤΥΠΟ, όχι στο αρχείο: ισχύει μόνο όταν η ίδια γραμμή
+// ελέγχει ρητά `instanceof` πάνω σε τέτοια κλάση. Άγνωστο σφάλμα στο ίδιο
+// σημείο εξακολουθεί να πιάνεται.
+const USER_FACING_ERRORS = ['SheetError']
+const OURS = new RegExp(`instanceof\\s+(?:${USER_FACING_ERRORS.join('|')})\\b`)
+
 const findings = []
 for (const f of findSources().filter(x => x.endsWith('.tsx') && !x.includes('.test.') && !ALLOWED.includes(x))) {
   readFileSync(f, 'utf8').split('\n').forEach((line, i) => {
@@ -33,6 +45,7 @@ for (const f of findSources().filter(x => x.endsWith('.tsx') && !x.includes('.te
     if (t.startsWith('//') || t.startsWith('*')) return
     if (!SINK.test(line)) return
     // `x.message` μέσα στην ίδια γραμμή με τον καταναλωτή του μηνύματος.
+    if (OURS.test(line)) return
     if (/\b\w+(\?)?\.message\b/.test(line)) findings.push(`${f}:${i + 1}  ${t.slice(0, 96)}`)
   })
 }

@@ -11,9 +11,14 @@ import { athensToday } from '@/lib/core/time';
 import { normalizePhone } from '@/lib/clients/clients';
 import { instalmentPeriods, type InstalmentPeriod } from '@/lib/rent/frequency';
 import { ABSENT_DATE } from '@/components/Theme';
+// ΟΙ ΔΥΟ ΣΥΝΑΡΤΗΣΕΙΣ ΕΡΧΟΝΤΑΙ ΑΠΟ ΤΟ lib/, ΟΧΙ ΑΠΟ ΤΟ ΑΡΧΕΙΟ ΤΩΝ ΟΘΟΝΩΝ.
+// Το TabTenantHelpers ξεκινά με 'use client'· αυτό εδώ είναι σχήματα και
+// κανόνες, που πρέπει να διαβάζονται και από τον διακομιστή. Τιμή που έρχεται
+// από module πελάτη φτάνει `undefined` στο SSR — χωρίς σφάλμα και χωρίς ίχνος.
+import { serviceLinesFrom, servicesTenantCharge, type ServiceLine } from '@/lib/rent/services';
 import {
-  ID_DOCS, serviceLinesFrom, servicesTenantCharge,
-  type LeaseType, type LeaseCategory, type PaymentFreq, type IdDocType, type ServiceLine,
+  ID_DOCS,
+  type LeaseType, type LeaseCategory, type PaymentFreq, type IdDocType,
 } from './TabTenantHelpers';
 
 // ─── Types ────────────────────────────────────────────────────────────────────

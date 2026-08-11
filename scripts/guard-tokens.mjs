@@ -57,6 +57,16 @@ function walk(dir, acc = []) {
 }
 
 // ── Τι ορίζεται ───────────────────────────────────────────────────────────
+//
+// ΟΧΙ ΜΟΝΟ ΤΟ globals.css. Ο φύλακας κοίταζε αποκλειστικά εκεί, και κατήγγειλε
+// ως αόριστα τα επτά `--ge-*` της σελίδας σφάλματος ρίζας. Εκείνη τα ορίζει
+// ΜΕΣΑ ΤΗΣ, σε ένα <style> — υποχρεωτικά, γιατί αντικαθιστά ΟΛΟΚΛΗΡΟ το δέντρο
+// μαζί με το layout που φορτώνει το θέμα: όταν αποδίδεται, το globals.css δεν
+// έχει φορτώσει. Ένας φύλακας που κοκκινίζει για το ΜΟΝΟ σημείο όπου ο κανόνας
+// δεν μπορεί να ισχύσει, μαθαίνει τον επόμενο να τον αγνοεί.
+//
+// Ο κανόνας μένει ο ίδιος: κάθε token που ζητείται πρέπει να ορίζεται ΚΑΠΟΥ.
+// Απλώς το «κάπου» περιλαμβάνει και τα φύλλα στυλ που γράφει η ίδια η οθόνη.
 const css = readFileSync(CSS, 'utf8')
 const defined = new Set([...css.matchAll(/(--[a-z][a-z0-9-]*)\s*:/g)].map(m => m[1]))
 for (const r of RUNTIME) defined.add(r.name)
@@ -65,7 +75,16 @@ for (const r of RUNTIME) defined.add(r.name)
 // Κρατάμε και το αν η χρήση είχε εφεδρική τιμή: χωρίς fallback η δήλωση
 // πετιέται ολόκληρη, που είναι αυστηρά χειρότερο από λάθος απόχρωση.
 const missing = new Map()
-for (const file of SCAN.flatMap(d => walk(join(ROOT, d)))) {
+const FILES = SCAN.flatMap(d => walk(join(ROOT, d)))
+// Πρώτο πέρασμα: ό,τι ορίζεται μέσα σε <style> ή σε συμβολοσειρά CSS αρχείου
+// .tsx μετράει ως ορισμένο, όπως ακριβώς και στο globals.css.
+for (const file of FILES) {
+  if (!file.endsWith('.tsx') && !file.endsWith('.ts')) continue
+  for (const block of readFileSync(file, 'utf8').matchAll(/:root[^{]*\{([^}]*)\}/g)) {
+    for (const d of block[1].matchAll(/(--[a-z][a-z0-9-]*)\s*:/g)) defined.add(d[1])
+  }
+}
+for (const file of FILES) {
   const src = readFileSync(file, 'utf8')
   const lines = src.split('\n')
   lines.forEach((line, i) => {

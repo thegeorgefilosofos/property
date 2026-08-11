@@ -1432,13 +1432,21 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
    Δέκα υπηρεσίες θέλουν δύο σειρές των πέντε, οκτώ θέλουν δύο των τεσσάρων:
    αυτό είναι απόφαση σχεδίασης, όχι αποτέλεσμα διαθέσιμου πλάτους. Γράφεται
    ρητά, και σπάει σε λιγότερες στήλες μόνο εκεί που πραγματικά δεν χωρά. */
-.fixed-cols { display: grid; gap: var(--fc-gap, 12px); align-items: end; grid-template-columns: repeat(var(--fc), minmax(0, 1fr)); }
+/* ΟΙ ΠΡΟΕΠΙΛΟΓΕΣ ΓΡΑΦΟΝΤΑΙ ΕΔΩ, ΟΧΙ ΜΟΝΟ ΣΤΟ INLINE STYLE. Το `repeat(var(--fc))`
+   ήταν ΧΩΡΙΣ εφεδρική τιμή: σε στοιχείο που παίρνει την κλάση χωρίς το inline
+   style του `fixedCols()`, η δήλωση `grid-template-columns` πετιέται ΟΛΟΚΛΗΡΗ
+   και το πλέγμα καταρρέει σε μία στήλη. Σιωπηλά, και μόνο σε εκείνο το σημείο. */
+.fixed-cols {
+  --fc: 3; --fc-md: 3; --fc-sm: 2; --fc-gap: 12px;
+  display: grid; gap: var(--fc-gap); align-items: end;
+  grid-template-columns: repeat(var(--fc), minmax(0, 1fr));
+}
 /* ΤΑ ΣΠΑΣΙΜΑΤΑ ΕΙΝΑΙ ΓΙΑ ΜΙΚΡΕΣ ΟΘΟΝΕΣ, ΟΧΙ ΓΙΑ ΜΕΓΑΛΕΣ ΜΕ ZOOM. Στα 1.080
    έσπαγαν και σε παράθυρο υπολογιστή στο 125%, όπου το πλάτος φτάνει άνετα για
    τέσσερις ή πέντε στήλες: δηλαδή η ρύθμιση του περιηγητή αποφάσιζε τη διάταξη
    αντί για την οθόνη. Το πρώτο σπάσιμο πάει εκεί που όντως δεν χωρούν. */
-@media (max-width: 820px) { .fixed-cols { grid-template-columns: repeat(var(--fc-md, 3), minmax(0, 1fr)); } }
-@media (max-width: 600px) { .fixed-cols { grid-template-columns: repeat(var(--fc-sm, 2), minmax(0, 1fr)); } }
+@media (max-width: 820px) { .fixed-cols { grid-template-columns: repeat(var(--fc-md), minmax(0, 1fr)); } }
+@media (max-width: 600px) { .fixed-cols { grid-template-columns: repeat(var(--fc-sm), minmax(0, 1fr)); } }
 @media (max-width: 420px) { .fixed-cols { grid-template-columns: 1fr; } }
 
 /* ΑΦΑΙΡΕΘΗΚΕ: η απόκρυψη μπάρας κύλισης των .app-tabs — έφυγε μαζί με την
