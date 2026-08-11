@@ -71,7 +71,13 @@ export type VatDeduction = 'full' | 'none' | 'unknown';
  * ώστε μια καινούρια κατηγορία να μη «κληρονομήσει» σιωπηλά λάθος χαρακτηρισμό.
  * Το myData.test.ts απαιτεί γραμμή για ΚΑΘΕ κατηγορία της ταξινομίας.
  */
-export type Nature = 'service' | 'general' | 'asset' | 'levy';
+/**
+ * Το `unknown` ΔΕΝ είναι το ίδιο με το «δεν βρέθηκε κατηγορία». Σημαίνει ότι η
+ * κατηγορία βρέθηκε και δεν λέει τίποτα: το «Άλλο» είναι υπαρκτή επιλογή του
+ * χρήστη, αλλά δεν αποκαλύπτει αν η δαπάνη είναι υπηρεσία, αγαθό ή τέλος — και
+ * χωρίς αυτό δεν βγαίνει ούτε χαρακτηρισμός ούτε τύπος παραστατικού.
+ */
+export type Nature = 'service' | 'general' | 'asset' | 'levy' | 'unknown';
 
 export const CATEGORY_NATURE: Record<string, Nature> = {
   // Πάγια του σπιτιού: λογαριασμοί και έξοδα λειτουργίας.
@@ -88,9 +94,10 @@ export const CATEGORY_NATURE: Record<string, Nature> = {
   enfia: 'levy', municipal: 'levy',
   // Εξοπλισμός και ανακαίνιση: πάγιο, με δικό του χαρακτηρισμό.
   renovation: 'asset', appliance: 'asset', furniture: 'asset',
-  // Το «Άλλο» δεν λέει τίποτα για τη φύση της δαπάνης, άρα ούτε ο χαρακτηρισμός
-  // του μπορεί να βγει μόνος του: μένει γενικό έξοδο και ζητά επιβεβαίωση.
-  other: 'general',
+  // ΤΟ «ΑΛΛΟ» ΔΕΝ ΕΙΝΑΙ ΓΕΝΙΚΟ ΕΞΟΔΟ, ΕΙΝΑΙ ΑΓΝΩΣΤΟ. Ήταν γραμμένο ως 'general'
+  // και έβγαινε στο Excel με σίγουρο «2.5 Γενικά Έξοδα χωρίς δικαίωμα έκπτωσης»:
+  // χαρακτηρισμός βγαλμένος από κατηγορία που σημαίνει «δεν είπα τι είναι».
+  other: 'unknown',
 };
 
 /** Η φύση μιας δαπάνης, από ό,τι κι αν έχει γραφτεί στη στήλη της κατηγορίας. */
@@ -128,6 +135,9 @@ const EMPTY: MyDataHint = { expenseClass: null, invoiceType: null, note: '', nee
  */
 export function selfTransmittedInvoiceType(supply: Supply | null, nature: Nature | null): InvoiceType | null {
   if (supply !== 'intra_eu' && supply !== 'third_country') return null;
+  // Χωρίς να ξέρουμε αν ελήφθη αγαθό ή υπηρεσία, ο κωδικός θα ήταν κορώνα
+  // γράμματα ανάμεσα σε 14.1 και 14.3 — και οι δύο μπαίνουν σε δήλωση.
+  if (!nature || nature === 'unknown' || nature === 'levy') return null;
   const goods = nature === 'asset';
   if (supply === 'intra_eu') return goods ? '14.1' : '14.3';
   return goods ? '14.2' : '14.4';
@@ -155,6 +165,11 @@ export function myDataHint(input: {
   const abroad = invoiceType
     ? ` Η λήψη από ${supply === 'intra_eu' ? 'κράτος μέλος' : 'τρίτη χώρα'} διαβιβάζεται από τον λήπτη ως ${invoiceType} ${INVOICE_TYPE_LABEL[invoiceType]}, με αντίστροφη χρέωση.`
     : '';
+
+  if (nature === 'unknown') {
+    return { expenseClass: null, invoiceType: null, needsInput: true,
+      note: 'Η κατηγορία «Άλλο» δεν λέει τι είναι η δαπάνη. Δώσε της κατηγορία και ο χαρακτηρισμός προκύπτει μόνος του.' };
+  }
 
   if (nature === 'levy') {
     return { expenseClass: null, invoiceType: null, needsInput: true,

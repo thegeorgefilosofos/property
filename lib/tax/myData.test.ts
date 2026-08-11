@@ -64,6 +64,18 @@ eq('ο ΕΝΦΙΑ δεν χαρακτηρίζεται', myDataHint({ category: '
 eq('ούτε διαβιβάζεται', myDataHint({ category: 'ΕΝΦΙΑ', supply: 'domestic' }).invoiceType, null);
 eq('άγνωστη κατηγορία, καθαρά κενό', myDataCell(myDataHint({ category: 'ξψζ' })), '');
 
+// ΤΟ «ΑΛΛΟ» ΕΙΝΑΙ ΥΠΑΡΚΤΗ ΕΠΙΛΟΓΗ ΠΟΥ ΔΕΝ ΛΕΕΙ ΤΙΠΟΤΑ. Έβγαινε στο Excel με
+// σίγουρο «2.5», δηλαδή χαρακτηρισμός βγαλμένος από κατηγορία που σημαίνει «δεν
+// είπα τι είναι» — και για ξένο πάροχο θα διάλεγε στα τυφλά ανάμεσα σε 14.1
+// (αγαθό) και 14.3 (υπηρεσία), που είναι δύο διαφορετικές δηλώσεις.
+eq('το «Άλλο» δεν παράγει χαρακτηρισμό', myDataHint({ category: 'Άλλο', vat: 'none' }).expenseClass, null);
+eq('ούτε με δικαίωμα έκπτωσης', myDataHint({ category: 'Άλλο', vat: 'full' }).expenseClass, null);
+eq('ούτε τύπο παραστατικού από το εξωτερικό', myDataHint({ category: 'Άλλο', supply: 'intra_eu' }).invoiceType, null);
+eq('και το λέει', myDataHint({ category: 'Άλλο' }).needsInput, true);
+eq('το κελί μένει κενό', myDataCell(myDataHint({ category: 'Άλλο', supply: 'third_country', vat: 'none' })), '');
+// Το τέλος δεν έχει τιμολόγιο προμηθευτή ούτε όταν έρθει από το εξωτερικό.
+eq('τέλος από κράτος μέλος, κανένας τύπος', myDataHint({ category: 'ΕΝΦΙΑ', supply: 'intra_eu' }).invoiceType, null);
+
 console.log('\nΤο κελί του Excel');
 eq('εγχώρια υπηρεσία', myDataCell(myDataHint({ category: 'plumber', supply: 'domestic' })), '2.3 Λήψη Υπηρεσιών');
 eq('ενδοκοινοτική συνδρομή χωρίς έκπτωση',
