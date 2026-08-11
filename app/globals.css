@@ -1449,6 +1449,24 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 @media (max-width: 600px) { .fixed-cols { grid-template-columns: repeat(var(--fc-sm), minmax(0, 1fr)); } }
 @media (max-width: 420px) { .fixed-cols { grid-template-columns: 1fr; } }
 
+/* ΤΑ ΠΛΑΚΙΔΙΑ ΤΩΝ ΣΥΝΔΡΟΜΩΝ: ΙΣΑ ΠΛΑΤΗ, ΚΑΙ Η ΜΙΣΗ ΣΕΙΡΑ ΣΤΟ ΚΕΝΤΡΟ.
+   Έντεκα υπηρεσίες σε τέσσερις στήλες βγάζουν 4+4+3: το πλέγμα άφηνε την
+   τελευταία σειρά κολλημένη αριστερά και μια τρύπα δεξιά, που διαβάζεται ως
+   λάθος και όχι ως διάταξη. Με flex και κεντράρισμα, οι γεμάτες σειρές πιάνουν
+   ΑΚΡΙΒΩΣ το πλάτος του κουτιού — άρα δεν μετακινούνται καθόλου — και μόνο η
+   τελευταία κάθεται στη μέση, συμμετρικά ως προς το κουτί.
+
+   Το πλήθος στηλών το δίνει η οθόνη ως `--tg-n`· τα σπασίματα το ΜΕΙΩΝΟΥΝ, ποτέ
+   δεν το αυξάνουν, γι' αυτό το `min`. */
+.tile-grid {
+  --tg-n: 4; --tg-gap: 10px; --tg: var(--tg-n);
+  display: flex; flex-wrap: wrap; gap: var(--tg-gap); justify-content: center;
+}
+.tile-grid > * { flex: 0 0 calc((100% - (var(--tg) - 1) * var(--tg-gap)) / var(--tg)); }
+@media (max-width: 820px) { .tile-grid { --tg: min(var(--tg-n), 3); } }
+@media (max-width: 600px) { .tile-grid { --tg: min(var(--tg-n), 2); } }
+@media (max-width: 420px) { .tile-grid { --tg: 1; } }
+
 /* ΑΦΑΙΡΕΘΗΚΕ: η απόκρυψη μπάρας κύλισης των .app-tabs — έφυγε μαζί με την
    οριζόντια μπάρα καρτελών (βλ. σχόλιο πιο πάνω· η πλοήγηση είναι sidebar + bottom-nav). */
 

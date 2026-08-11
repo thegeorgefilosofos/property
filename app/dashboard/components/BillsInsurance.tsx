@@ -12,7 +12,7 @@ import * as tenantStore from '@/lib/data/tenants';
 import * as calendar from '@/lib/data/calendar'
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker, addBtn } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, TT, fe, formGrid, fieldRow, fixedCols, SecHdr, InfoBanner, Skeleton, SkeletonKPIs, localDay, ABSENT_SHORT, pressable } from '@/components/Theme';
+import { T, TT, fe, fieldRow, SecHdr, InfoBanner, Skeleton, SkeletonKPIs, localDay, ABSENT_SHORT, pressable } from '@/components/Theme';
 import { freshness } from '@/lib/energy/freshness';
 import { seedInsurance, type PropertyInsurance } from '@/lib/insurance/seed';
 import { assessNeeds, matchPlans, explain, NEED_LABEL, type PropertyRisk } from '@/lib/insurance/match';
@@ -230,45 +230,108 @@ const INSURANCE_COMPANIES: InsuranceCompany[] = [
     plans: [{ id: 'other_custom', name: 'Προσαρμοσμένο', monthly: 0, annual: 0, covers: [], earthquake: false, flood: false, natural: false }] },
 ];
 
-export const STREAMING = [
-  { value: 'netflix',    label: 'Netflix',            color: '#e50914', url: 'https://www.netflix.com/gr',             plans: [{ id: 'n_basic', name: 'Βασικό · 8,99 €', price: 8.99 },{ id: 'n_standard', name: 'Standard · 12,49 €', price: 12.49 },{ id: 'n_premium', name: 'Premium 4K · 15,99 €', price: 15.99 }] },
-  { value: 'disney',     label: 'Disney+',            color: '#0063e5', url: 'https://www.disneyplus.com/el-gr',        plans: [{ id: 'd_standard', name: 'Standard · 10,99 €', price: 10.99 },{ id: 'd_standard_year', name: 'Standard ετήσιο 109,90 € · 9,16 € τον μήνα', price: 9.16 },{ id: 'd_premium', name: 'Premium · 15,99 €', price: 15.99 },{ id: 'd_premium_year', name: 'Premium ετήσιο 159,90 € · 13,33 € τον μήνα', price: 13.33 }] },
-  { value: 'apple_tv',   label: 'Apple TV+',          color: '#555555', url: 'https://www.apple.com/gr/apple-tv-plus', plans: [{ id: 'a_std', name: 'Apple TV+ · 9,99 €', price: 9.99 }] },
-  { value: 'amazon',     label: 'Amazon Prime Video', color: '#00a8e1', url: 'https://www.primevideo.com',              plans: [{ id: 'am_std', name: 'Prime Video · 5,99 €', price: 5.99 }] },
-  { value: 'max',        label: 'Max (HBO)',           color: '#0d1ce5', url: 'https://www.max.com/gr/el',              plans: [{ id: 'max_std', name: 'Standard · 10,99 €', price: 10.99 },{ id: 'max_std_sport', name: 'Standard και Sports · 13,99 €', price: 13.99 },{ id: 'max_prem', name: 'Premium 4K · 15,99 €', price: 15.99 },{ id: 'max_prem_sport', name: 'Premium και Sports · 18,99 €', price: 18.99 }] },
-  { value: 'spotify',    label: 'Spotify',            color: '#1db954', url: 'https://www.spotify.com/gr',             plans: [{ id: 's_student', name: 'Φοιτητικό · 4,99 €', price: 4.99 },{ id: 's_individual', name: 'Ατομικό · 8,99 €', price: 8.99 },{ id: 's_duo', name: 'Duo · 11,99 €', price: 11.99 },{ id: 's_family', name: 'Οικογενειακό · 14,99 €', price: 14.99 }] },
-  { value: 'youtube',    label: 'YouTube Premium',    color: '#ff0000', url: 'https://www.youtube.com/premium',        plans: [{ id: 'y_individual', name: 'Ατομικό · 9,99 €', price: 9.99 },{ id: 'y_family', name: 'Οικογενειακό · 17,99 €', price: 17.99 },{ id: 'y_student', name: 'Φοιτητικό · 6,49 €', price: 6.49 }] },
+/**
+ * ΕΝΑ ΠΑΚΕΤΟ ΣΥΝΔΡΟΜΗΣ, ΚΑΙ ΤΟ ΠΟΣΟ ΤΟΥ ΜΙΑ ΦΟΡΑ.
+ *
+ * ΤΟ ΟΝΟΜΑ ΕΙΝΑΙ ΣΚΕΤΟ ΟΝΟΜΑ. Ήταν «Pro · από 103,00 €», δηλαδή το ποσό γραμμένο
+ * μέσα στο κείμενο, και ένα regex το έκοβε πριν το δείξει ο επιλογέας. Το regex
+ * περίμενε την τιμή στο τέλος· με το «από» μπροστά δεν έπιανε, και ο επιλογέας
+ * έγραφε «Pro · από 103» — μισό ποσό, χωρίς νόμισμα. Η τιμή ζει σε δικό της
+ * πεδίο και τη μορφοποιεί η οθόνη, μία φορά, όπως κάθε άλλο ποσό.
+ *
+ * ΤΟ ΕΤΗΣΙΟ ΤΟ ΔΙΑΙΡΟΥΜΕ ΕΜΕΙΣ. Το `upfront` είναι το ποσό που χρεώνεται εφάπαξ
+ * και το `months` οι μήνες που καλύπτει: 99,99 € για δώδεκα μήνες κάνουν 8,33 €
+ * τον μήνα, και η στήλη αθροίζει μηνιαία έξοδα. Ο χρήστης δηλώνει αυτό που
+ * πλήρωσε· τη διαίρεση δεν τη χρωστά σε κανέναν.
+ *
+ * ΤΟ `note` ΓΡΑΦΕΤΑΙ ΚΑΤΩ ΑΠΟ ΤΗ ΓΡΑΜΜΗ, όταν το ποσό χρειάζεται μια πρόταση για
+ * να μην παραπλανά — «ξεκινά από» ή «ανεβαίνει με τη χρήση».
+ */
+interface SubPlan { id: string; name: string; price?: number; upfront?: number; months?: number; note?: string }
+interface SubService { value: string; label: string; url: string; plans: SubPlan[] }
+
+/** Το μηνιαίο κόστος ενός πακέτου, όποια κι αν είναι η περίοδος χρέωσης. */
+function planMonthly(p: SubPlan): number {
+  if (p.price !== undefined) return p.price;
+  return p.upfront && p.months ? p.upfront / p.months : 0;
+}
+
+/**
+ * ΤΑΞΗ ΣΤΟΝ ΚΑΤΑΛΟΓΟ, ΧΩΡΙΣ ΝΑ ΤΗ ΘΥΜΑΤΑΙ ΚΑΝΕΙΣ.
+ *
+ * Οι υπηρεσίες μπήκαν με τη σειρά που τις βρήκαμε, και φαινόταν: το Netflix
+ * δίπλα στο Disney+, το ANT1+ στο τέλος επειδή προστέθηκε τελευταίο. Τα πακέτα
+ * το ίδιο — το φοιτητικό του YouTube ήταν κάτω από το οικογενειακό.
+ *
+ * Οι υπηρεσίες αλφαβητικά, γιατί ο χρήστης ΨΑΧΝΕΙ μια συγκεκριμένη. Τα πακέτα
+ * από το φθηνότερο στο ακριβότερο, γιατί εκεί ΔΙΑΛΕΓΕΙ — και έτσι το πρώτο
+ * πακέτο είναι η τιμή εισόδου που δείχνει το πλακίδιο.
+ */
+function tidy(list: SubService[]): SubService[] {
+  return [...list]
+    .map(s => ({ ...s, plans: [...s.plans].sort((a, b) => planMonthly(a) - planMonthly(b)) }))
+    .sort((a, b) => a.label.localeCompare(b.label, 'el'));
+}
+
+export const STREAMING = tidy([
+  { value: 'netflix',   label: 'Netflix',            url: 'https://www.netflix.com/gr', plans: [
+    { id: 'n_basic',    name: 'Βασικό',      price: 8.99 },
+    { id: 'n_standard', name: 'Standard',    price: 12.49 },
+    { id: 'n_premium',  name: 'Premium 4K',  price: 15.99 },
+  ] },
+  { value: 'disney',    label: 'Disney+',            url: 'https://www.disneyplus.com/el-gr', plans: [
+    { id: 'd_standard',      name: 'Standard',           price: 10.99 },
+    { id: 'd_standard_year', name: 'Standard, ετήσια',   upfront: 109.90, months: 12 },
+    { id: 'd_premium',       name: 'Premium',            price: 15.99 },
+    { id: 'd_premium_year',  name: 'Premium, ετήσια',    upfront: 159.90, months: 12 },
+  ] },
+  { value: 'apple_tv',  label: 'Apple TV+',          url: 'https://www.apple.com/gr/apple-tv-plus', plans: [
+    { id: 'a_std', name: 'Apple TV+', price: 9.99 },
+  ] },
+  { value: 'amazon',    label: 'Amazon Prime Video', url: 'https://www.primevideo.com', plans: [
+    { id: 'am_std', name: 'Prime Video', price: 5.99 },
+  ] },
+  { value: 'max',       label: 'Max (HBO)',          url: 'https://www.max.com/gr/el', plans: [
+    { id: 'max_std',        name: 'Standard',            price: 10.99 },
+    { id: 'max_std_sport',  name: 'Standard και Sports', price: 13.99 },
+    { id: 'max_prem',       name: 'Premium 4K',          price: 15.99 },
+    { id: 'max_prem_sport', name: 'Premium και Sports',  price: 18.99 },
+  ] },
+  { value: 'spotify',   label: 'Spotify',            url: 'https://www.spotify.com/gr', plans: [
+    { id: 's_student',    name: 'Φοιτητικό',    price: 4.99 },
+    { id: 's_individual', name: 'Ατομικό',      price: 8.99 },
+    { id: 's_duo',        name: 'Duo',          price: 11.99 },
+    { id: 's_family',     name: 'Οικογενειακό', price: 14.99 },
+  ] },
+  { value: 'youtube',   label: 'YouTube Premium',    url: 'https://www.youtube.com/premium', plans: [
+    { id: 'y_student',    name: 'Φοιτητικό',    price: 6.49 },
+    { id: 'y_individual', name: 'Ατομικό',      price: 9.99 },
+    { id: 'y_family',     name: 'Οικογενειακό', price: 17.99 },
+  ] },
   // ΟΙ ΤΡΕΙΣ ΣΥΝΔΡΟΜΕΣ ΠΑΡΑΔΟΣΗΣ, ΜΕ ΤΙΜΕΣ ΑΠΟ ΤΙΣ ΕΠΙΣΗΜΕΣ ΣΕΛΙΔΕΣ. Ήταν
   // «Εκκρεμεί», επειδή ένα επινοημένο νούμερο σε πλακίδιο που ο ιδιοκτήτης θα
   // συγκρίνει με την κάρτα του δεν είναι προσέγγιση, είναι λάθος.
-  //
-  // ΤΟ ΕΤΗΣΙΟ ΓΡΑΦΕΤΑΙ ΩΣ ΜΗΝΙΑΙΟ ΚΟΣΤΟΣ. Η στήλη αθροίζει μηνιαία έξοδα· μια
-  // ετήσια συνδρομή 25 € δίπλα σε μια μηνιαία 3,99 € θα φούσκωνε το σύνολο έξι
-  // φορές. Το όνομα κρατά και το ετήσιο ποσό, ώστε ο χρήστης να αναγνωρίζει
-  // αυτό που πλήρωσε.
-  { value: 'skroutz_plus', label: 'Skroutz Plus', color: '#f68b24', url: 'https://www.skroutz.gr/plus',
-    plans: [
-      { id: 'sk_month', name: 'Μηνιαία · 4,00 €', price: 4 },
-      { id: 'sk_year',  name: 'Ετήσια 25,00 € · 2,08 € τον μήνα', price: 2.08 },
-    ] },
-  { value: 'wolt_plus',    label: 'Wolt+',        color: '#00c2e8', url: 'https://wolt.com/el',
-    plans: [{ id: 'wp_std', name: 'Wolt+ · 3,99 €', price: 3.99 }] },
-  { value: 'efood_pro',    label: 'efood pro',    color: '#ee2e24', url: 'https://www.e-food.gr',
-    plans: [
-      { id: 'ef_month', name: 'Μηνιαία · 3,99 €', price: 3.99 },
-      { id: 'ef_year',  name: 'Ετήσια 34,90 € · 2,91 € τον μήνα', price: 2.91 },
-    ] },
-  // ΤΟ ANT1+ ΗΤΑΝ ΓΡΑΜΜΕΝΟ 2,99 €, ΤΕΣΣΕΡΙΣ ΦΟΡΕΣ ΚΑΤΩ ΑΠΟ ΤΗΝ ΠΡΑΓΜΑΤΙΚΗ ΤΙΜΗ.
-  // Η εννεάμηνη προπληρωμή γράφεται ως μηνιαίο κόστος (67,99 € διά 9 = 7,55 €),
-  // γιατί η στήλη αθροίζει μηνιαία έξοδα· το εφάπαξ ποσό μένει στο όνομα, ώστε
-  // ο χρήστης να αναγνωρίσει αυτό που πλήρωσε.
-  { value: 'ant1plus',   label: 'ANT1+',              color: '#1a56db', url: 'https://www.antennaplus.gr', plans: [
-    { id: 'ant_family',        name: 'Family · 10,99 €', price: 10.99 },
-    { id: 'ant_family_sports', name: 'Family και Sports · 13,49 €', price: 13.49 },
-    { id: 'ant_family_9m',     name: 'Family 9 μήνες 67,99 € · 7,55 € τον μήνα', price: 7.55 },
-    { id: 'ant_sports_9m',     name: 'Family και Sports 9 μήνες 79,99 € · 8,88 € τον μήνα', price: 8.88 },
+  { value: 'skroutz_plus', label: 'Skroutz Plus', url: 'https://www.skroutz.gr/plus', plans: [
+    { id: 'sk_month', name: 'Μηνιαία', price: 4 },
+    { id: 'sk_year',  name: 'Ετήσια',  upfront: 25, months: 12 },
   ] },
-];
+  { value: 'wolt_plus',    label: 'Wolt+',        url: 'https://wolt.com/el', plans: [
+    { id: 'wp_std', name: 'Wolt+', price: 3.99 },
+  ] },
+  { value: 'efood_pro',    label: 'efood pro',    url: 'https://www.e-food.gr', plans: [
+    { id: 'ef_month', name: 'Μηνιαία', price: 3.99 },
+    { id: 'ef_year',  name: 'Ετήσια',  upfront: 34.90, months: 12 },
+  ] },
+  // ΤΟ ANT1+ ΗΤΑΝ ΓΡΑΜΜΕΝΟ 2,99 €, ΤΕΣΣΕΡΙΣ ΦΟΡΕΣ ΚΑΤΩ ΑΠΟ ΤΗΝ ΠΡΑΓΜΑΤΙΚΗ ΤΙΜΗ.
+  // Η εννεάμηνη προπληρωμή δεν είναι ούτε μηνιαία ούτε ετήσια: 67,99 € για εννέα
+  // μήνες, και το μηνιαίο βγαίνει από τη διαίρεση όπως παντού αλλού.
+  { value: 'ant1plus',     label: 'ANT1+',        url: 'https://www.antennaplus.gr', plans: [
+    { id: 'ant_family',        name: 'Family',                    price: 10.99 },
+    { id: 'ant_family_sports', name: 'Family και Sports',         price: 13.49 },
+    { id: 'ant_family_9m',     name: 'Family, 9 μήνες',           upfront: 67.99, months: 9 },
+    { id: 'ant_sports_9m',     name: 'Family και Sports, 9 μήνες', upfront: 79.99, months: 9 },
+  ] },
+]);
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ΟΙ ΑΘΛΗΤΙΚΕΣ ΣΥΝΔΡΟΜΕΣ, ΧΩΡΙΣΤΑ ΑΠΟ ΤΗΝ ΨΥΧΑΓΩΓΙΑ
@@ -279,35 +342,29 @@ export const STREAMING = [
 // Formula 1 πουλάνε απευθείας, με χρέωση που δεν περνά από κανέναν πάροχο και
 // δεν φαινόταν πουθενά στην καρτέλα.
 //
-// ΤΟ ΕΤΗΣΙΟ ΓΡΑΦΕΤΑΙ ΩΣ ΜΗΝΙΑΙΟ ΚΟΣΤΟΣ, όπως και στις υπόλοιπες λίστες: η
-// στήλη αθροίζει μηνιαία έξοδα. Το εφάπαξ ποσό μένει στο όνομα, ώστε να
-// αναγνωρίζει ο χρήστης αυτό που πλήρωσε.
 //
 // ΤΟ ΗΜΕΡΗΣΙΟ ΕΙΣΙΤΗΡΙΟ ΤΗΣ EUROLEAGUE (8,99 € για είκοσι τέσσερις ώρες) ΔΕΝ
 // ΜΠΑΙΝΕΙ. Δεν είναι πάγιο: μια αγορά μιας ημέρας γραμμένη σε στήλη μηνιαίων
 // εξόδων θα χρεωνόταν δώδεκα φορές τον χρόνο για έναν αγώνα που είδε μία.
 // ═══════════════════════════════════════════════════════════════════════════
-export const SPORTS = [
-  { value: 'nba', label: 'NBA League Pass', color: '#c8102e', url: 'https://www.nba.com/watch/league-pass-purchase',
-    plans: [
-      { id: 'nba_lp',   name: 'League Pass · 12,99 €', price: 12.99 },
-      { id: 'nba_prem', name: 'League Pass Premium · 16,99 €', price: 16.99 },
-    ] },
-  { value: 'euroleague', label: 'EuroLeague TV', color: '#ff6a13', url: 'https://www.euroleague.tv',
-    plans: [
-      { id: 'el_month', name: 'Μηνιαίο · 15,99 €', price: 15.99 },
-      { id: 'el_year',  name: 'Ετήσιο 99,99 € · 8,33 € τον μήνα', price: 8.33 },
-    ] },
-  { value: 'f1tv', label: 'F1 TV', color: '#e10600', url: 'https://f1tv.formula1.com',
-    plans: [
-      { id: 'f1_access',      name: 'Access · 3,49 €', price: 3.49 },
-      { id: 'f1_pro',         name: 'Pro · 7,49 €', price: 7.49 },
-      { id: 'f1_premium',     name: 'Premium · 11,99 €', price: 11.99 },
-      { id: 'f1_access_year', name: 'Access ετήσιο 29,99 € · 2,50 € τον μήνα', price: 2.5 },
-      { id: 'f1_pro_year',    name: 'Pro ετήσιο 59,99 € · 5,00 € τον μήνα', price: 5 },
-      { id: 'f1_prem_year',   name: 'Premium ετήσιο 89,99 € · 7,50 € τον μήνα', price: 7.5 },
-    ] },
-];
+export const SPORTS = tidy([
+  { value: 'nba',        label: 'NBA',           url: 'https://www.nba.com/watch/league-pass-purchase', plans: [
+    { id: 'nba_lp',   name: 'League Pass',         price: 12.99 },
+    { id: 'nba_prem', name: 'League Pass Premium', price: 16.99 },
+  ] },
+  { value: 'euroleague', label: 'EuroLeague TV',  url: 'https://www.euroleague.tv', plans: [
+    { id: 'el_month', name: 'Monthly Pass', price: 15.99 },
+    { id: 'el_year',  name: 'Annual Pass',  upfront: 99.99, months: 12 },
+  ] },
+  { value: 'f1tv',       label: 'F1 TV',          url: 'https://f1tv.formula1.com', plans: [
+    { id: 'f1_access',      name: 'Access',           price: 3.49 },
+    { id: 'f1_pro',         name: 'Pro',              price: 7.49 },
+    { id: 'f1_premium',     name: 'Premium',          price: 11.99 },
+    { id: 'f1_access_year', name: 'Access, ετήσια',   upfront: 29.99, months: 12 },
+    { id: 'f1_pro_year',    name: 'Pro, ετήσια',      upfront: 59.99, months: 12 },
+    { id: 'f1_prem_year',   name: 'Premium, ετήσια',  upfront: 89.99, months: 12 },
+  ] },
+]);
 
 /**
  * ΥΠΗΡΕΣΙΕΣ ΠΟΥ ΠΕΡΙΕΧΟΥΝ ΑΛΛΕΣ.
@@ -325,12 +382,27 @@ export const SUB_INCLUDES: { holder: string; included: string; note: string }[] 
     note: 'Το Skroutz Plus περιλαμβάνει το Wolt+ όσο διαρκεί η συνδρομή. Πληρώνεις δύο φορές το ίδιο.' },
 ];
 
-export const CLOUD = [
-  { value: 'icloud',       label: 'iCloud+',       url: 'https://www.icloud.com',          plans: [{ id: 'ic_50', name: '50 GB · 0,99 €', price: 0.99 },{ id: 'ic_200', name: '200 GB · 2,99 €', price: 2.99 },{ id: 'ic_2t', name: '2 TB · 9,99 €', price: 9.99 }] },
-  { value: 'google_one',   label: 'Google One',    url: 'https://one.google.com',          plans: [{ id: 'g_100', name: '100 GB · 1,99 €', price: 1.99 },{ id: 'g_200', name: '200 GB · 2,99 €', price: 2.99 },{ id: 'g_2t', name: '2 TB · 9,99 €', price: 9.99 }] },
-  { value: 'microsoft365', label: 'Microsoft 365', url: 'https://www.microsoft.com/el-gr', plans: [{ id: 'ms_pers', name: 'Personal · 6,99 €', price: 6.99 },{ id: 'ms_fam', name: 'Family · 9,99 €', price: 9.99 }] },
-  { value: 'dropbox',      label: 'Dropbox',       url: 'https://www.dropbox.com',         plans: [{ id: 'db_plus', name: 'Plus 2 TB · 9,99 €', price: 9.99 }] },
-  { value: 'adobe',        label: 'Adobe CC',      url: 'https://www.adobe.com/gr',        plans: [{ id: 'ad_photo', name: 'Photography · 12,29 €', price: 12.29 }] },
+export const CLOUD = tidy([
+  { value: 'icloud',       label: 'iCloud+',       url: 'https://www.icloud.com', plans: [
+    { id: 'ic_50',  name: '50 GB',  price: 0.99 },
+    { id: 'ic_200', name: '200 GB', price: 2.99 },
+    { id: 'ic_2t',  name: '2 TB',   price: 9.99 },
+  ] },
+  { value: 'google_one',   label: 'Google One',    url: 'https://one.google.com', plans: [
+    { id: 'g_100', name: '100 GB', price: 1.99 },
+    { id: 'g_200', name: '200 GB', price: 2.99 },
+    { id: 'g_2t',  name: '2 TB',   price: 9.99 },
+  ] },
+  { value: 'microsoft365', label: 'Microsoft 365', url: 'https://www.microsoft.com/el-gr', plans: [
+    { id: 'ms_pers', name: 'Personal', price: 6.99 },
+    { id: 'ms_fam',  name: 'Family',   price: 9.99 },
+  ] },
+  { value: 'dropbox',      label: 'Dropbox',       url: 'https://www.dropbox.com', plans: [
+    { id: 'db_plus', name: 'Plus 2 TB', price: 9.99 },
+  ] },
+  { value: 'adobe',        label: 'Adobe CC',      url: 'https://www.adobe.com/gr', plans: [
+    { id: 'ad_photo', name: 'Photography', price: 12.29 },
+  ] },
   // ═══════════════════════════════════════════════════════════════════════
   // ΟΙ ΣΥΝΔΡΟΜΕΣ ΤΕΧΝΗΤΗΣ ΝΟΗΜΟΣΥΝΗΣ, ΚΑΙ ΤΟ ΖΗΤΗΜΑ ΤΟΥ ΦΠΑ
   // ─────────────────────────────────────────────────────────────────────
@@ -340,18 +412,19 @@ export const CLOUD = [
   // ήταν η ΜΟΝΗ γραμμή που δεν ταιριάζει με το εκκαθαριστικό της κάρτας — και ο
   // ιδιοκτήτης θα έψαχνε πού πήγαν τα 4,32 €. Γράφουμε το ποσό που χρεώνεται.
   //
-  // ΤΟ ΕΤΗΣΙΟ ΤΟΥ CLAUDE ΩΣ ΜΗΝΙΑΙΟ: 180 € τον χρόνο, δηλαδή 15 € τον μήνα προ
-  // φόρου και 18,60 € με τον φόρο.
+  // ΤΟ ΕΤΗΣΙΟ ΤΟΥ CLAUDE: 180 € τον χρόνο προ φόρου, δηλαδή 223,20 € με τον φόρο.
   // ═══════════════════════════════════════════════════════════════════════
   { value: 'claude',  label: 'Claude',  url: 'https://claude.ai/upgrade', plans: [
-    { id: 'cl_pro',      name: 'Pro · 22,32 €', price: 22.32 },
-    { id: 'cl_pro_year', name: 'Pro ετήσιο 223,20 € · 18,60 € τον μήνα', price: 18.6 },
-    { id: 'cl_max',      name: 'Max · από 111,60 €', price: 111.6 },
+    { id: 'cl_pro',      name: 'Pro',           price: 22.32 },
+    { id: 'cl_pro_year', name: 'Pro, ετήσια',   upfront: 223.20, months: 12 },
+    { id: 'cl_max',      name: 'Max',           price: 111.60,
+      note: 'Το Max ξεκινά από αυτό το ποσό και ανεβαίνει με τη χρήση.' },
   ] },
   { value: 'chatgpt', label: 'ChatGPT', url: 'https://chatgpt.com/pricing', plans: [
-    { id: 'gpt_go',   name: 'Go · 8,00 €', price: 8 },
-    { id: 'gpt_plus', name: 'Plus · 23,00 €', price: 23 },
-    { id: 'gpt_pro',  name: 'Pro · από 103,00 €', price: 103 },
+    { id: 'gpt_go',   name: 'Go',   price: 8 },
+    { id: 'gpt_plus', name: 'Plus', price: 23 },
+    { id: 'gpt_pro',  name: 'Pro',  price: 103,
+      note: 'Το Pro ξεκινά από αυτό το ποσό και ανεβαίνει με τη χρήση.' },
   ] },
   // ΤΟ GEMINI ΓΡΑΦΕΤΑΙ ΟΠΩΣ ΤΟ ΔΕΙΧΝΕΙ Η ΣΕΛΙΔΑ ΤΟΥ, ΧΩΡΙΣ ΝΑ ΠΡΟΣΘΕΣΟΥΜΕ ΦΠΑ.
   // Το Claude δηλώνει ρητά «+ VAT» και «θα χρεωθείς 24%», οπότε εκεί γράφουμε το
@@ -359,10 +432,10 @@ export const CLOUD = [
   // βεβαιότητα: μια προσαύξηση 24% πάνω σε επιφύλαξη θα ήταν επινόηση. Αν η
   // κάρτα δείξει άλλο ποσό, ο χρήστης γράφει το δικό του — το πεδίο υπάρχει.
   { value: 'gemini',  label: 'Gemini',  url: 'https://gemini.google.com/subscriptions', plans: [
-    { id: 'gem_plus', name: 'AI Plus · 4,99 €', price: 4.99 },
-    { id: 'gem_pro',  name: 'AI Pro · 22,99 €', price: 22.99 },
+    { id: 'gem_plus', name: 'AI Plus', price: 4.99 },
+    { id: 'gem_pro',  name: 'AI Pro',  price: 22.99 },
   ] },
-];
+]);
 
 
 // Οι δύο εγγραφές συνδρομής ήταν λέξη προς λέξη ίδιες. Η μία περιγραφή αρκεί:
@@ -609,29 +682,31 @@ function deriveCoverages(covers: string[], earthquake: boolean, flood: boolean, 
 // ένας επιλογέας που λέει την απάντηση με λέξεις: «Μόνος μου», «2 άτομα».
 // ═══════════════════════════════════════════════════════════════════════════
 
-interface SubService { value: string; label: string; url: string; plans: { id: string; name: string; price: number }[] }
-
 const SPLIT_OPTIONS = [
   { value: '1', label: 'Μόνος μου' },
   ...[2, 3, 4, 5, 6].map(n => ({ value: String(n), label: `${n} άτομα` })),
 ];
 
 /**
- * Το όνομα του πακέτου ΧΩΡΙΣ την τιμή του.
+ * Η ΠΡΟΤΑΣΗ ΠΟΥ ΧΡΩΣΤΑΕΙ Η ΟΘΟΝΗ ΟΤΑΝ ΤΟ ΠΟΣΟ ΔΕΝ ΕΙΝΑΙ ΑΥΤΟ ΠΟΥ ΠΛΗΡΩΣΕ.
  *
- * Τα πακέτα λέγονται «Βασικό, 8,99 €», «Individual, 13,99 €». Μέσα σε επιλογέα
- * πλάτους 150 εικονοστοιχείων αυτό γίνεται «Βασικό, 8,9…» και «Individual, …»:
- * το κείμενο που κόβεται είναι ακριβώς η τιμή, δηλαδή η πληροφορία που η ίδια
- * γραμμή γράφει ήδη με μεγάλα γράμματα δεξιά. Τα ονόματα των βαθμίδων είναι
- * μοναδικά από μόνα τους σε κάθε υπηρεσία, και έτσι διαλέγει ο κόσμος:
- * «βασικό ή premium», όχι «8,99 ή 15,99».
+ * Ο επιλογέας δείχνει σκέτο όνομα πακέτου και η γραμμή δείχνει ΜΗΝΙΑΙΟ ποσό.
+ * Όποιος διάλεξε «Ετήσια» πλήρωσε 99,99 € μία φορά και βλέπει 8,33 €: χωρίς
+ * αυτή τη γραμμή θα νόμιζε ότι κάτι μετρήθηκε λάθος. Η διαίρεση γράφεται, ώστε
+ * να συμφωνεί η οθόνη με την κάρτα του.
  */
-const planLabel = (name: string) => name.replace(/\s*[,·]\s*[\d.,]+\s*€\s*$/, '').trim();
+function planNote(p: SubPlan | undefined): string {
+  if (!p) return '';
+  if (p.note) return p.note;
+  if (!p.upfront || !p.months) return '';
+  const period = p.months === 12 ? 'Ετήσια χρέωση' : `Χρέωση ${p.months} μηνών`;
+  return `${period} ${fe(p.upfront)}, δηλαδή ${fe(p.upfront / p.months)} τον μήνα.`;
+}
 
 /** Το ποσό που βαρύνει τον χρήστη: πακέτο ή δική του τιμή, διά τα άτομα. */
 function subShare(svc: SubService | undefined, a: SubscriptionEntry): number {
   const plan = svc?.plans.find(p => p.id === a.planId);
-  const base = parseFloat(a.customPrice) || plan?.price || 0;
+  const base = parseFloat(a.customPrice) || (plan ? planMonthly(plan) : 0);
   const n = a.splitActive && a.splitPeople > 1 ? a.splitPeople : 1;
   return base / n;
 }
@@ -694,20 +769,15 @@ export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate
           του ενώ το διπλανό ανενεργό την κρατούσε, οπότε στην ίδια σειρά δύο
           πλακίδια είχαν διαφορετικό σχήμα. Στα ενεργά γράφεται η ΠΡΑΓΜΑΤΙΚΗ
           τιμή που πληρώνει ο χρήστης, στα υπόλοιπα η τιμή εισόδου. */}
-      {/* ΠΕΝΤΕ ΑΝΑ ΣΕΙΡΑ, ΙΣΑ. Η κεντραρισμένη σειρά έβγαζε τέσσερα, τέσσερα και
-          ένα μόνο του στη μέση — συμμετρικό μεν, αλλά το τελευταίο πλακίδιο
-          έμοιαζε με λάθος. Πλέγμα πέντε στηλών: δέκα υπηρεσίες γίνονται δύο
-          γεμάτες σειρές, πέντε γίνονται μία, και καμία σειρά δεν είναι μισή. */}
-      {/* ΤΟ ΠΛΗΘΟΣ ΣΤΗΛΩΝ ΕΙΝΑΙ ΑΠΟΦΑΣΗ, ΟΧΙ ΑΠΟΤΕΛΕΣΜΑ. Δέκα υπηρεσίες θέλουν
-          δύο σειρές των πέντε, οκτώ δύο των τεσσάρων — και γράφεται ρητά, γιατί
-          το `auto-fit` έδινε άλλο πλήθος σε κάθε επίπεδο zoom του περιηγητή:
-          η ίδια οθόνη έβγαζε 5+5, 4+4+2 ή 3+3+3+1 ανάλογα με τη ρύθμιση.
-          Βλ. `fixedCols` στο components/tokens.ts. */}
-      <div {...fixedCols(tileCols, 10)}>
+      {/* ΤΟ ΠΛΗΘΟΣ ΣΤΗΛΩΝ ΕΙΝΑΙ ΑΠΟΦΑΣΗ, ΟΧΙ ΑΠΟΤΕΛΕΣΜΑ, γιατί το `auto-fit`
+          έδινε άλλο πλήθος σε κάθε επίπεδο zoom του περιηγητή: η ίδια οθόνη
+          έβγαζε 5+5, 4+4+2 ή 3+3+3+1 ανάλογα με τη ρύθμιση. Το κεντράρισμα της
+          τελευταίας σειράς ζει στο `.tile-grid` (app/globals.css). */}
+      <div className="tile-grid" style={{ '--tg-n': tileCols } as React.CSSProperties}>
         {catalog.map(svc => {
           const entry = active.find(a => a.service === svc.value);
           const on = !!entry;
-          const amount = entry ? subShare(svc, entry) : svc.plans[0].price;
+          const amount = entry ? subShare(svc, entry) : planMonthly(svc.plans[0]);
           // ΤΟ ΜΗΔΕΝ ΔΕΝ ΕΙΝΑΙ ΤΙΜΗ. Ένα «0,00 €» σε πλακίδιο υπηρεσίας λέει
           // «δεν πληρώνω γι' αυτό», ενώ σημαίνει «δεν ξέρουμε ακόμη πόσο».
           const priceLabel = amount > 0 ? fe(amount) : ABSENT_SHORT;
@@ -744,6 +814,7 @@ export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate
           {active.map(a => {
             const svc = catalog.find(x => x.value === a.service);
             if (!svc) return null;
+            const note = planNote(svc.plans.find(p => p.id === a.planId));
             return (
               /* Ο ΤΙΤΛΟΣ ΔΕΝ ΕΙΝΑΙ ΠΕΔΙΟ, ΚΑΙ ΟΣΟ ΗΤΑΝ ΜΕΣΑ ΣΤΟ ΠΛΕΓΜΑ ΤΟ ΧΑΛΟΥΣΕ.
                  Απλωνόταν σε όλες τις στήλες (`1 / -1`), και αυτό ακριβώς εμποδίζει
@@ -758,7 +829,7 @@ export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate
                 </div>
                 <div style={fieldRow(150, 12)}>
                 <CustomSelect label="Πακέτο" value={a.planId} onChange={v => onUpdate(a.service, 'planId', v)}
-                  options={svc.plans.map(p => ({ value: p.id, label: planLabel(p.name) }))}/>
+                  options={svc.plans.map(p => ({ value: p.id, label: p.name }))}/>
                 <CustomSelect label="Μοιράζεται" value={String(a.splitActive && a.splitPeople > 1 ? a.splitPeople : 1)}
                   onChange={v => { const n = parseInt(v) || 1; onUpdate(a.service, 'splitPeople', n); onUpdate(a.service, 'splitActive', n > 1); }}
                   options={SPLIT_OPTIONS}/>
@@ -768,6 +839,9 @@ export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate
                     το κενό λέει ότι είναι προαιρετικό. */}
                 <DatePicker label="Ανανέωση" placeholder="Προαιρετικό" value={a.renewalDate} onChange={v => onUpdate(a.service, 'renewalDate', v)}/>
                 </div>
+                {note && (
+                  <p style={{ ...TT.caption, color: 'var(--text-tertiary)', margin: '10px 0 0' }}>{note}</p>
+                )}
               </div>
             );
           })}

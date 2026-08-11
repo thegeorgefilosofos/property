@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { T, TT, localDay } from '@/components/Theme';
 import { athensToday, isoYear, isoMonth } from '@/lib/core/time';
 import { MONTHS_SHORT } from '@/lib/core/months';
+import { fn } from '@/lib/core/format';
 
 // ── ΕΝΙΑΙΟ σύστημα πεδίων (ένα μέγεθος/σχήμα/focus παντού) ───────────────────
 // Γωνία 10, 1px border + accent focus-ring (χωρίς μετατόπιση layout — δεν
@@ -302,6 +303,20 @@ export function NumberInput({
     }
   };
 
+  // ΤΑ ΠΟΣΑ ΣΕ ΕΥΡΩ ΓΡΑΦΟΝΤΑΙ ΩΣ ΠΟΣΑ, ΚΑΙ ΟΤΑΝ ΕΙΝΑΙ ΠΕΔΙΟ.
+  //
+  // Το πεδίο έδειχνε ό,τι του έδινε ο κώδικας: «3.9» εκεί που ολόκληρη η
+  // εφαρμογή γράφει «3,90 €», και «1112» εκεί που γράφει «1.112,00 €». Δεν
+  // ήταν αθώο: το ίδιο ποσό εμφανιζόταν με δύο μορφές στην ίδια οθόνη, και η
+  // τελεία διαβάζεται από Έλληνα ως διαχωριστικό χιλιάδων.
+  //
+  // ΜΟΝΟ ΟΣΟ ΔΕΝ ΓΡΑΦΕΙ Ο ΧΡΗΣΤΗΣ. Με την εστίαση επιστρέφει ο γυμνός αριθμός,
+  // αλλιώς θα πάλευε με κόμματα και τελείες που βάζει άλλος. Και μόνο στα ευρώ:
+  // το «Έτος 2026» δεν είναι ποσό και δεν γίνεται «2.026,00».
+  const euro = suffix === '€';
+  const parsed = parseFloat(local);
+  const shown = !focused && euro && local !== '' && !isNaN(parsed) ? fn(parsed, 2) : local;
+
   // FIX: calculate suffix padding based on string length
   // Short suffixes (€, %, η, ω) → 12px each side
   // Medium (kWh, τ.μ., Mbps) → 10px each side, slightly more space
@@ -349,7 +364,7 @@ export function NumberInput({
           aria-label={label ? undefined : ariaLabel}
           type="text"
           inputMode="decimal"
-          value={local}
+          value={shown}
           onChange={e => handleChange(e.target.value)}
           onFocus={handleFocus}
           onBlur={handleBlur}

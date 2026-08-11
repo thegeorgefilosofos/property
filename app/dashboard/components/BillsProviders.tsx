@@ -48,7 +48,19 @@ const TV_PROVIDERS = [
 
 interface TvPack { id: string; name: string; price?: number; sports?: boolean }
 
-const TV_PACKS: Record<string, TvPack[]> = {
+/**
+ * ΑΠΟ ΤΟ ΦΘΗΝΟΤΕΡΟ ΣΤΟ ΑΚΡΙΒΟΤΕΡΟ, ΚΑΙ ΤΑ ΑΤΙΜΟΛΟΓΗΤΑ ΣΤΟ ΤΕΛΟΣ.
+ *
+ * Τα πακέτα μπήκαν όπως τα βρήκαμε στη σελίδα του καθενός: συμβολαίου, μετά
+ * χωρίς δέσμευση, μετά δορυφορικά. Στον επιλογέα αυτό δεν φαίνεται ως ομάδες —
+ * φαίνεται ως 8,15, 10,90, 25,45, 28,20, 16,00, δηλαδή ως αταξία. Η μόνη σειρά
+ * που βοηθά όποιον διαλέγει πακέτο είναι η τιμή, και τη βγάζει ο κώδικας ώστε
+ * να μη χρειάζεται να τη θυμάται όποιος προσθέτει γραμμή.
+ */
+const byPrice = (packs: TvPack[]): TvPack[] =>
+  [...packs].sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity));
+
+const TV_PACKS: Record<string, TvPack[]> = Object.fromEntries(Object.entries({
   cosmote: [
     // Πακέτα συμβολαίου
     { id: 'cos_entry',        name: 'Entry', price: 8.15 },
@@ -74,8 +86,11 @@ const TV_PACKS: Record<string, TvPack[]> = {
     { id: 'eonp_nobox',  name: 'EON+, χωρίς Smart Box', price: 26, sports: true },
     { id: 'eonp',        name: 'EON+', price: 28, sports: true },
   ],
+  // ΤΟ VODAFONE TV START ΗΤΑΝ ΓΡΑΜΜΕΝΟ 3,90 €, ΤΙΜΗ ΠΟΥ ΔΕΝ ΣΤΕΚΕΙ ΠΟΥΘΕΝΑ. Η
+  // ίδια η Vodafone ανακοίνωσε αναπροσαρμογή από 6,30 € σε 9,90 € τον μήνα, με
+  // ισχύ από τις 17 Μαρτίου 2026 — δηλαδή η τρέχουσα τιμή είναι 9,90 €.
   vodafone: [
-    { id: 'vf_start', name: 'Vodafone TV Start', price: 3.90 },
+    { id: 'vf_start', name: 'Vodafone TV Start', price: 9.90 },
   ],
   // ΤΑ ΔΥΟ ΑΚΡΙΒΟΤΕΡΑ ΠΑΚΕΤΑ ΤΟΥ SKYSHOWTIME ΜΠΑΙΝΟΥΝ ΧΩΡΙΣ ΤΙΜΗ, ΕΠΙΤΗΔΕΣ.
   // Η πηγή που τα αναφέρει γράφει «περίπου» και για τα δύο. Ένα «περίπου» σε
@@ -84,11 +99,11 @@ const TV_PACKS: Record<string, TvPack[]> = {
   // όνομα του πακέτου το ξέρουμε, οπότε δίνεται· το ποσό το γράφει ο ίδιος στο
   // διπλανό πεδίο.
   skyshowtime: [
-    { id: 'sky_ads',   name: 'Standard, με διαφημίσεις', price: 4.99 },
-    { id: 'sky_std',   name: 'Standard, χωρίς διαφημίσεις' },
-    { id: 'sky_prem',  name: 'Premium' },
+    { id: 'sky_ads',  name: 'Standard, με διαφημίσεις', price: 4.99 },
+    { id: 'sky_std',  name: 'Standard, χωρίς διαφημίσεις' },
+    { id: 'sky_prem', name: 'Premium' },
   ],
-};
+}).map(([provider, packs]) => [provider, byPrice(packs)]));
 
 const INTERNET_PLANS: Record<string, {
   id: string; name: string; speed: string; price: number;
@@ -265,10 +280,10 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
   const totalM    = internetCost + tvCost + waterM + heatingM + gasM + securityM;
 
   const provData     = INTERNET_PROVIDERS.find(p => p.value === s.internetProvider);
-  const tvPackOptions = (TV_PACKS[s.tvProvider] || []).map(p => ({
-    value: p.id,
-    label: p.price ? `${p.name} · ${fe(p.price)}` : p.name,
-  }));
+  // ΣΚΕΤΟ ΤΟ ΟΝΟΜΑ ΤΟΥ ΠΑΚΕΤΟΥ. Η τιμή γραφόταν και εδώ και στο διπλανό πεδίο
+  // «Μηνιαίο κόστος», που ΑΥΤΟ το ίδιο κλικ συμπληρώνει: δύο φορές το ίδιο ποσό,
+  // σε απόσταση δέκα εικονοστοιχείων.
+  const tvPackOptions = (TV_PACKS[s.tvProvider] || []).map(p => ({ value: p.id, label: p.name }));
   const planOptions  = (INTERNET_PLANS[s.internetProvider] || []).sort((a, b) => a.price - b.price).map(p => ({
     value: p.id,
     label: [
@@ -518,7 +533,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
                       const pack = (TV_PACKS[s.tvProvider] || []).find(x => x.id === v);
                       upd({
                         tvPlanId: v, tvPlan: pack?.name || '',
-                        ...(pack?.price ? { tvPrice: String(pack.price) } : {}),
+                        ...(pack?.price ? { tvPrice: pack.price.toFixed(2) } : {}),
                         // Ανάβει, δεν σβήνει: ένα πακέτο χωρίς αθλητικά δεν
                         // σημαίνει ότι ο χρήστης δεν έχει ξεχωριστή συνδρομή.
                         ...(pack?.sports ? { tvHasSports: true } : {}),
