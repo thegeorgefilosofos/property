@@ -138,7 +138,21 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     // σταθεροί: ήταν 4 και 5, και μια τρίτη στήλη θα τους άφηνε πίσω σιωπηλά —
     // το σύνολο των εξόδων θα καθόταν κάτω από την επικεφαλίδα της χώρας.
     const NC = 8, HR = 3;
-    const C_IN = NC - 2, C_EX = NC - 1, C_LABEL = NC - 3;
+    // ΤΑ ΠΟΣΑ ΚΛΕΙΝΟΥΝ ΤΗ ΓΡΑΜΜΗ, ΟΠΟΤΕ ΠΑΡΑΓΟΝΤΑΙ ΑΠΟ ΤΟ ΠΛΗΘΟΣ ΣΤΗΛΩΝ: μια
+    // ένατη στήλη αύριο τα παίρνει μαζί της, χωρίς να το θυμηθεί κανείς.
+    const C_IN = NC - 2, C_EX = NC - 1;
+    // Η ΕΤΙΚΕΤΑ ΤΩΝ ΣΥΝΟΛΩΝ ΟΜΩΣ ΕΙΝΑΙ ΘΕΣΗ, ΟΧΙ ΑΠΟΣΤΑΣΗ. Παραγόταν κι αυτή
+    // από το `NC` και προσγειώθηκε κάτω από τον «Τόπο παροχής»: ένα «ΣΥΝΟΛΑ»
+    // κάτω από στήλη που λέει «Ενδοκοινοτική λήψη υπηρεσιών» διαβάζεται ως
+    // σύνολο ΕΚΕΙΝΗΣ της στήλης. Η θέση της είναι η Περιγραφή, εκεί που ήταν
+    // πάντα και εκεί που τη διαβάζει λογιστής.
+    const C_LABEL = 3;
+    /** Γραμμή συνόλων: ετικέτα στην Περιγραφή, ποσά κάτω από τα ποσά. */
+    const totalsRow = (label: string, income: number | string, expense: number | string) => {
+      const r: (string | number)[] = Array(NC).fill('');
+      r[C_LABEL] = label; r[C_IN] = income; r[C_EX] = expense;
+      return r;
+    };
     const sorted = [...book].sort((a, b) => a.date.localeCompare(b.date));
     const sumIn = sorted.filter(e => e.type === 'income').reduce((s, e) => s + (e.amount || 0), 0);
     const sumEx = sorted.filter(e => e.type === 'expense').reduce((s, e) => s + (e.amount || 0), 0);
@@ -160,9 +174,13 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       [idLine],
       [],
       header,
+      // ΧΩΡΙΣ ΚΙΝΗΣΕΙΣ, ΤΟ ΦΥΛΛΟ ΤΟ ΛΕΕΙ. Ένα αρχείο με επικεφαλίδες και μηδενικά
+      // δεν ξεχωρίζει από αρχείο που χάλασε: ο λογιστής δεν ξέρει αν η χρονιά
+      // ήταν άδεια ή αν η εξαγωγή απέτυχε, και θα ρωτήσει.
+      ...(sorted.length ? [] : [[...Array(C_LABEL).fill(''), `Καμία καταγεγραμμένη κίνηση για το ${year}`]]),
       ...dataRows as (string | number | Date)[][],
-      [...Array(C_LABEL).fill(''), 'ΣΥΝΟΛΑ', sumIn, sumEx],
-      [...Array(C_LABEL).fill(''), 'Καθαρό αποτέλεσμα (Έσοδα − Έξοδα)', Math.round((sumIn - sumEx) * 100) / 100, ''],
+      totalsRow('ΣΥΝΟΛΑ', sumIn, sumEx),
+      totalsRow('Καθαρό αποτέλεσμα (Έσοδα − Έξοδα)', Math.round((sumIn - sumEx) * 100) / 100, ''),
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa, { cellDates: true });
     // ΤΟ ΠΛΑΤΟΣ ΤΗΣ ΣΤΗΛΗΣ ΜΕΤΡΗΘΗΚΕ ΑΠΟ ΤΟ ΜΑΚΡΥΤΕΡΟ ΚΕΙΜΕΝΟ ΤΗΣ. Το
@@ -177,7 +195,8 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     ];
     ws['!rows'] = []; ws['!rows'][0] = { hpt: 22 }; ws['!rows'][1] = { hpt: 15 }; ws['!rows'][HR] = { hpt: 26 };
     const enc = (r: number, c: number) => XLSX.utils.encode_cell({ r, c });
-    const lastData = HR + sorted.length;
+    const emptyNote = sorted.length ? 0 : 1;
+    const lastData = HR + sorted.length + emptyNote;
     const totalR = lastData + 1, netR = lastData + 2;
     setCell(ws, 0, 0, { s: S.title });
     setCell(ws, 1, 0, { s: S.sub });
