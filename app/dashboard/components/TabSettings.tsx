@@ -599,7 +599,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
             <span className="acc-live-dot accent" style={{ width: 6, height: 6, background: 'var(--accent)', flexShrink: 0, marginTop: 6 }} />
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>
               Δοκιμάζεις δωρεάν το <strong style={{ color: 'var(--text-primary)' }}>{PLANS[effPlan].name}</strong> για {trial.daysLeft === 1 ? 'ακόμη μία ημέρα' : `ακόμη ${trial.daysLeft} ημέρες`}.
-              {' '}Δεν ζητήσαμε κάρτα και δεν θα χρεωθείς: όταν λήξει, ο λογαριασμός σου συνεχίζει στο Δωρεάν, με το πρώτο σου ακίνητο και τα δεδομένα σου ανέπαφα.
+              {' '}Δεν θα χρεωθείς: όταν λήξει, ο λογαριασμός σου συνεχίζει στο «{PLANS.free.name}», με το πρώτο σου ακίνητο και τα δεδομένα σου ανέπαφα.
             </div>
           </div>
         )}

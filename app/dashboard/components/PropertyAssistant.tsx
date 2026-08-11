@@ -1105,13 +1105,13 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       const willAutoRun = !!action && !isReach && (viaVoice || handsFreeRef.current);
       setMsgs(m => [...m, { role: 'assistant', text: clean, action: (isReach || willAutoRun) ? undefined : action }]);
       if (isReach) runAction(action, true);
-      // Μετά τις ~12 πρώτες απαντήσεις, πρότεινε (μία φορά) αξιολόγηση του PropertyOS.
+      // Μετά τις ~12 πρώτες απαντήσεις, πρότεινε (μία φορά) αξιολόγηση του Property OS.
       answeredRef.current += 1;
       if (answeredRef.current >= 12 && !nudgedRef.current && !action) {
         nudgedRef.current = true;
         setMsgs(m => [...m, {
           role: 'assistant',
-          text: `Με βοηθάς λίγο; Αξιολόγησε το PropertyOS κι εμένα, ώστε να βελτιώσουμε τις υπηρεσίες μας. Ό,τι γράψεις το διαβάζει άνθρωπος από την ομάδα και το παίρνουμε στα σοβαρά.`,
+          text: `Με βοηθάς λίγο; Αξιολόγησε το Property OS κι εμένα, ώστε να βελτιώσουμε τις υπηρεσίες μας. Ό,τι γράψεις το διαβάζει άνθρωπος από την ομάδα και το παίρνουμε στα σοβαρά.`,
           action: { type: 'feedback' },
         }]);
       }
