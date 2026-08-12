@@ -1,6 +1,11 @@
-import { e3CodesFor, e3NoteFor, e3Triples, e3PairCount, INCOME_CLASS_LABEL, E3_LABEL } from './e3Combinations';
+import {
+  e3CodesFor, e3NoteFor, e3Triples, e3PairCount, expenseClassSign,
+  INCOME_CLASS_LABEL, EXPENSE_CLASS_LABEL_ALL, E3_LABEL,
+} from './e3Combinations';
+import { EXPENSE_CLASS_LABEL, type ExpenseClass } from './myData';
+
 import { AADE_DOC_TYPES } from './aadeDocTypes';
-import { ALLOWED_CLASSES, CATEGORY_CODE, type InvoiceType, type ExpenseClass } from './myData';
+import { ALLOWED_CLASSES, CATEGORY_CODE, type InvoiceType } from './myData';
 
 let fails = 0;
 const ok = (c: boolean, m: string) => { if (c) console.log(`  ✓ ${m}`); else { console.log(`  ✗ ${m}`); fails++; } };
@@ -65,10 +70,29 @@ eq('η παροχή υπηρεσιών', INCOME_CLASS_LABEL.category1_3, 'Έσο
 const incomeCats = new Set(Object.values(AADE_DOC_TYPES).flatMap(d => d.income).filter(c => c.startsWith('category1_')));
 eq('καμία κατηγορία εσόδων χωρίς όνομα', [...incomeCats].filter(c => !INCOME_CLASS_LABEL[c]).join(', '), '');
 eq('τα λοιπά συνήθη έσοδα', E3_LABEL.E3_562, 'Λοιπά συνήθη έσοδα');
+eq('τα ενοίκια ως έξοδο στο Ε3', E3_LABEL.E3_585_014, 'Ενοίκια');
 ok(Object.keys(E3_LABEL).every(k => /^E3_/.test(k)), 'κάθε κλειδί είναι κωδικός Ε3');
-// ΤΑ ΛΕΚΤΙΚΑ ΤΩΝ ΕΞΟΔΩΝ ΔΕΝ ΕΧΟΥΝ ΔΙΑΒΑΣΤΕΙ, ΚΑΙ ΔΕΝ ΕΠΙΝΟΟΥΝΤΑΙ. Ο έλεγχος
-// υπάρχει ώστε, αν κάποτε προστεθούν, να προστεθούν από πηγή και όχι από μνήμη.
-ok(!Object.keys(E3_LABEL).some(k => /^E3_585/.test(k)), 'κανένα λεκτικό εξόδου γραμμένο από μνήμη');
+
+// ══ ΚΑΝΕΝΑΣ ΚΩΔΙΚΟΣ ΚΑΙ ΚΑΜΙΑ ΚΑΤΗΓΟΡΙΑ ΔΕΝ ΜΕΝΕΙ ΑΝΩΝΥΜΗ ═══════════════════
+// Ένας κωδικός χωρίς όνομα σε έγγραφο λογιστή είναι γρίφος: ξέρει ότι πρέπει να
+// γράψει «E3_585_010» κάπου, δεν ξέρει αν είναι το σωστό.
+{
+  const codes = [...new Set(e3Triples().filter(t => t.code).map(t => t.code))];
+  eq('κάθε κωδικός Ε3 του πίνακα έχει ονομασία', codes.filter(c => !E3_LABEL[c]).join(', '), '');
+  const cats = [...new Set(e3Triples().map(t => t.category))];
+  eq('κάθε κατηγορία επίσης',
+    cats.filter(c => !EXPENSE_CLASS_LABEL_ALL[c] && !INCOME_CLASS_LABEL[c]).join(', '), '');
+}
+eq('δεκαπέντε κατηγορίες εξόδων', Object.keys(EXPENSE_CLASS_LABEL_ALL).length, 15);
+// ΔΥΟ ΠΙΝΑΚΕΣ ΓΙΑ ΤΟ ΙΔΙΟ ΠΡΑΓΜΑ ΔΕΝ ΕΠΙΤΡΕΠΕΤΑΙ ΝΑ ΑΠΟΚΛΙΝΟΥΝ. Το myData.ts
+// ονομάζει τους εννέα που παράγει η εφαρμογή· εδώ είναι και οι δεκαπέντε.
+for (const c of Object.keys(EXPENSE_CLASS_LABEL) as ExpenseClass[]) {
+  eq(`το ${c} λέγεται το ίδιο και στα δύο`, EXPENSE_CLASS_LABEL_ALL[`category${c.replace('.', '_')}`], EXPENSE_CLASS_LABEL[c]);
+}
+// Το πρόσημο: δύο κατηγορίες δέχονται ένα μόνο, οι υπόλοιπες και τα δύο.
+eq('τα αποθέματα έναρξης πάντα αφαιρούνται', expenseClassSign('category2_13'), '−');
+eq('τα αποθέματα λήξης πάντα προστίθενται', expenseClassSign('category2_14'), '+');
+eq('η λήψη υπηρεσιών δέχεται και πιστωτικό', expenseClassSign('category2_3'), '+ ή −');
 
 console.log(`\ne3Combinations: ${fails === 0 ? '✓ όλα' : `✗ ${fails}`}`);
 if (fails) process.exit(1);

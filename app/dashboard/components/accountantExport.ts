@@ -22,7 +22,10 @@ import {
   CATEGORY_CODE, type VatDeduction, type ExpenseClass,
 } from '@/lib/tax/myData';
 import { AADE_DOC_TYPES, incomeDocTypes, expenseDocTypes } from '@/lib/tax/aadeDocTypes';
-import { e3CodesFor, e3NoteFor, e3Triples, INCOME_CLASS_LABEL, E3_LABEL } from '@/lib/tax/e3Combinations';
+import {
+  e3CodesFor, e3NoteFor, e3Triples, expenseClassSign,
+  INCOME_CLASS_LABEL, EXPENSE_CLASS_LABEL_ALL, E3_LABEL,
+} from '@/lib/tax/e3Combinations';
 import { ELP_ALL, eglsOf, CAPITALISABLE, CAPITALISATION_NOTE } from '@/lib/tax/elpAccounts';
 import { ACCOUNTS, expenseAccount } from '@/lib/accounting/journal';
 import { CATEGORIES } from '@/lib/expenses/taxonomy';
@@ -139,8 +142,10 @@ const comboSheet = (() => {
   // κινήσεων, γιατί είναι η ΠΗΓΗ του αναπτυσσόμενου καταλόγου εκεί: μια
   // διαφορετική μορφή («2.5» εδώ, «2.5 Γενικά Έξοδα…» εκεί) θα έκανε το Excel
   // να θεωρεί άκυρη κάθε τιμή που έχει ήδη γράψει η εφαρμογή.
-  const namedRows = (Object.keys(EXPENSE_CLASS_LABEL) as ExpenseClass[])
-    .map(c => [CATEGORY_CODE[c], `${c} ${EXPENSE_CLASS_LABEL[c]}`]);
+  // ΟΛΟΙ οι χαρακτηρισμοί που έχει ο πίνακας, όχι μόνο οι εννέα που παράγει η
+  // εφαρμογή: ο πίνακας από πάνω έχει δεκαπέντε στήλες, και έξι από αυτές θα
+  // έμεναν σκέτοι αριθμοί. Το πρόσημο λέει ποιος δέχεται πιστωτικό.
+  const namedRows = expCols.map(c => [c, `${shortOf(c)} ${EXPENSE_CLASS_LABEL_ALL[c] ?? ''}`.trim(), expenseClassSign(c)]);
   // ΚΑΙ Η ΠΛΕΥΡΑ ΤΩΝ ΕΣΟΔΩΝ ΑΠΟΚΤΑ ΟΝΟΜΑΤΑ. Ήταν σκέτοι αριθμοί («1.7»), γιατί
   // ο πίνακας συνδυασμών δίνει μόνο κωδικούς· τα λεκτικά έρχονται από τον πίνακα
   // «Κωδικός Κατηγορίας Χαρακτηρισμού Εσόδων» της τεκμηρίωσης myDATA.
@@ -580,7 +585,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       ...incRows,
       [],
       ['ΟΙ ΧΑΡΑΚΤΗΡΙΣΜΟΙ ΕΞΟΔΩΝ ΜΕ ΤΟ ΟΝΟΜΑ ΤΟΥΣ'],
-      ['Κωδικός ΑΑΔΕ', 'Χαρακτηρισμός'],
+      ['Κωδικός ΑΑΔΕ', 'Χαρακτηρισμός', 'Πρόσημο'],
       ...namedRows,
       [],
       ['ΟΙ ΧΑΡΑΚΤΗΡΙΣΜΟΙ ΕΣΟΔΩΝ ΜΕ ΤΟ ΟΝΟΜΑ ΤΟΥΣ'],
@@ -617,10 +622,15 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     for (const r of [HR - 1, incSec, namSec, incNamSec]) setCell(ws, r, 0, { s: S.section });
     grid(HR, expRows.length, expCols.length);
     grid(incHead, incRows.length, incCols.length);
+    // Ο κατάλογος των εξόδων έχει τρεις στήλες (με το πρόσημο), των εσόδων δύο:
+    // το πρόσημο δεν έχει διαβαστεί από πηγή για την πλευρά των εσόδων και δεν
+    // επινοείται. Το πλήθος βγαίνει από την ίδια τη γραμμή.
     for (const [head, rows] of [[namHead, namedRows], [incNamHead, incomeNamedRows]] as const) {
-      for (let c = 0; c < 2; c++) setCell(ws, head, c, { s: S.head });
+      const cols = rows[0]?.length ?? 2;
+      for (let c = 0; c < cols; c++) setCell(ws, head, c, { s: S.head });
       for (let i = 0; i < rows.length; i++) {
         setCell(ws, head + 1 + i, 0, { s: S.txt }); setCell(ws, head + 1 + i, 1, { s: S.txt });
+        if (cols > 2) setCell(ws, head + 1 + i, 2, { s: CTR });
       }
     }
     setCell(ws, noteR, 0, { s: S.sub });
@@ -643,8 +653,8 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     const NC = 6, HR = 4;
     const catLabel = (c: string): string => {
       const short = c.replace(/^category(\d)_/, '$1.');
-      const exp = EXPENSE_CLASS_LABEL[short as ExpenseClass];
-      return exp ? `${short} ${exp}` : INCOME_CLASS_LABEL[c] ? `${short} ${INCOME_CLASS_LABEL[c]}` : short;
+      const name = EXPENSE_CLASS_LABEL_ALL[c] ?? INCOME_CLASS_LABEL[c];
+      return name ? `${short} ${name}` : short;
     };
     const rows = e3Triples().map(t => [
       t.type, AADE_DOC_TYPES[t.type]?.title ?? '', catLabel(t.category),
@@ -658,10 +668,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       ['Τύπος', 'Παραστατικό', 'Χαρακτηρισμός', 'Κωδικός Ε3', 'Ονομασία κωδικού Ε3', 'Σημείωση ΑΑΔΕ'],
       ...rows.map(r => [r[0], r[1], r[2], r[3], r[4], r[5]]),
       [],
-      // ΤΑ ΛΕΚΤΙΚΑ ΤΩΝ ΕΞΟΔΩΝ ΛΕΙΠΟΥΝ, ΚΑΙ ΤΟ ΛΕΕΙ. Η τεκμηρίωση της ΑΑΔΕ τα
-      // δίνει σε άλλη σελίδα που δεν έχει διαβαστεί· ένα όνομα από μνήμη σε
-      // έγγραφο λογιστή είναι χειρότερο από ένα κενό που ομολογείται.
-      ['Οι ονομασίες δίνονται για τους κωδικούς Ε3 της πλευράς των εσόδων. Των εξόδων γράφονται ως κωδικοί, όπως ακριβώς τους ζητά το σύστημα διαβίβασης.'],
+      ['Κάθε κωδικός γράφεται όπως ακριβώς τον ζητά το σύστημα διαβίβασης, με την ονομασία του δίπλα. Η επιλογή ανάμεσα σε πολλούς επιτρεπτούς κωδικούς κρίνεται από τη φύση της συναλλαγής.'],
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws['!cols'] = [{ wch: 8 }, { wch: 40 }, { wch: 40 }, { wch: 15 }, { wch: 52 }, { wch: 46 }];
