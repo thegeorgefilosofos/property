@@ -1467,7 +1467,14 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
           </div>
 
           {/* ── Property details for live quotes ──────────────────────────── */}
-          <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
+          {/* ΔΥΟ ΚΟΥΤΙΑ ΠΟΥ ΑΚΟΥΜΠΟΥΣΑΝ ΔΙΑΒΑΖΟΝΤΑΙ ΩΣ ΕΝΑ. Το κουτί των
+              καλύψεων από πάνω δεν είχε κανένα κάτω περιθώριο και αυτό εδώ
+              κανένα πάνω: δύο πλαίσια του ίδιου γκρι, με τα περιγράμματά τους
+              κολλητά, φτιάχνουν μια χοντρή γραμμή στη μέση και μοιάζουν με ένα
+              κουτί που κάποιος ξέχασε να κλείσει. Το περιθώριο μπαίνει ΕΔΩ και
+              όχι στο από πάνω, γιατί εκείνο ζει μέσα σε συνθήκη: όταν δεν
+              εμφανίζεται, το περιθώριό του θα έλειπε μαζί του. */}
+          <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, marginTop: 14, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>
               Στοιχεία Ακινήτου, για Συγκριτική Εκτίμηση Ασφαλίστρων
             </div>
@@ -1488,7 +1495,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
 
           {/* ── Live Quotes Engine ────────────────────────────────────────── */}
           {(parseFloat(effectiveSqm) > 0 && parseFloat(insPropValue) > 0) && (
-            <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: quotesLoading ? 'var(--text-tertiary)' : liveQuotes.length > 0 ? 'var(--accent)' : 'var(--border-default)', flexShrink: 0, transition: 'background 0.3s' }}/>

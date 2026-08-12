@@ -756,8 +756,13 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
           {suggestions.map(c => {
             const on = slug === c.slug;
             return (
+              // ΤΟ ΔΕΥΤΕΡΟ ΠΑΤΗΜΑ ΞΕΔΙΑΛΕΓΕΙ. Το πλακίδιο κλείδωνε: μια
+              // κατηγορία πατημένη κατά λάθος έμενε εκεί, και ο μόνος τρόπος να
+              // φύγει ήταν να διαλέξει ο χρήστης ΑΛΛΗ — δηλαδή να πει κάτι που
+              // δεν εννοεί. Ξεδιαλέγοντας, η φόρμα γυρίζει στη μαντεψιά από την
+              // περιγραφή, που είναι ακριβώς η κατάσταση πριν το λάθος πάτημα.
               <button key={c.slug} type="button" aria-pressed={on}
-                onClick={() => { setPicked(c.slug); setTouched(true); }}
+                onClick={() => { if (on) { setPicked(''); setTouched(false); } else { setPicked(c.slug); setTouched(true); } }}
                 style={{
                   appearance: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13,
                   padding: '7px 14px', borderRadius: T.radius.pill,
