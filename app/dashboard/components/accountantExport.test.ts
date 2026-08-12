@@ -804,6 +804,37 @@ eq('τα πλάτη στηλών είναι όσα και οι στήλες', (w
   eq('με κινήσεις, η έκτη στήλη είναι το ποσό', fat(fhead, 5), 'Ποσό');
 }
 
+// ── ΚΑΘΕ ΦΥΛΛΟ ΕΞΗΓΕΙΤΑΙ ΣΤΗ ΣΥΝΟΨΗ ────────────────────────────────────────
+// Ο κατάλογος των φύλλων διαβάζεται από το ίδιο το βιβλίο, οπότε δεν μπορεί να
+// υποσχεθεί φύλλο που λείπει. Μπορεί όμως το αντίστροφο: νέο φύλλο εμφανίζεται
+// στη λίστα με ΚΕΝΗ εξήγηση, γιατί κανείς δεν πρόσθεσε γραμμή στον χάρτη. Είναι
+// η ίδια σήψη που άφησε την κάρτα να υπόσχεται πέντε υποφακέλους που δεν
+// υπήρχαν: κείμενο γραμμένο μια φορά, δίπλα σε δομή που μεγάλωσε.
+{
+  const full = buildWorkbook({
+    year: 2026, propName: 'Έλεγχος', statementLines: [], provisionMonthly: 0, book: BOOK,
+    myData: { vat: 'none' },
+    dossier: {
+      requirements: [], haveIds: [], gaps: [], readinessMessage: 'Έτοιμο',
+      formLabel: 'Φυσικό πρόσωπο', booksLabel: 'Απλογραφικά',
+      properties: [{ name: 'Α', status: 'Εκμισθωμένο' }],
+    },
+  });
+  const ws = full.Sheets['Σύνοψη'];
+  const range = XLSX.utils.decode_range(ws['!ref'] as string);
+  const at = (r: number, c: number) => (ws[XLSX.utils.encode_cell({ r, c })] as Cell | undefined)?.v;
+  let head = -1;
+  for (let r = range.s.r; r <= range.e.r; r++) if (at(r, 0) === 'Φύλλο') head = r;
+  ok('η Σύνοψη έχει κατάλογο φύλλων', head >= 0);
+  const blank: string[] = [];
+  for (let r = head + 1; r <= range.e.r; r++) {
+    const name = String(at(r, 0) ?? '');
+    if (!name) break;
+    if (!String(at(r, 1) ?? '').trim()) blank.push(name);
+  }
+  eq('κανένα φύλλο χωρίς εξήγηση στη Σύνοψη', blank.join(', '), '');
+}
+
 console.log(`\naccountantExport.ts — ${passed} passed, ${failed} failed`);
 if (failed) { console.log('FAILED:\n' + fails.map(f => '  ✗ ' + f).join('\n')); process.exit(1); }
 console.log('✓ όλα πέρασαν');
