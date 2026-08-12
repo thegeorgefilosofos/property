@@ -1,7 +1,7 @@
 // npx tsx lib/accounting/dossier.test.ts
 import {
   requirementsFor, readiness, groupByWho, traps, defaultBookkeeping,
-  statusForAccountant, statusesOf, WHO_LABEL,
+  statusForAccountant, statusesOf, WHO_LABEL, missingAfmGroups,
   type DossierContext, type Requirement, type LegalForm,
 } from './dossier';
 import type { PropertyStatus } from '../property/status';
@@ -364,3 +364,27 @@ eq('καταστάσεις από γραμμές βάσης', statusesOf([{ stat
 
 console.log(fail === 0 ? `✓ dossier: ${pass} έλεγχοι πέρασαν` : `✗ dossier: ${fail} απέτυχαν από ${pass + fail}`);
 if (fail > 0) process.exit(1);
+// ── ΟΙ ΔΑΠΑΝΕΣ ΧΩΡΙΣ ΑΦΜ ────────────────────────────────────────────────────
+// Ο λογιστής δεν καταχωρεί δαπάνη χωρίς αντισυμβαλλόμενο. Είκοσι δαπάνες
+// ρεύματος όμως έχουν τον ίδιο προμηθευτή: η ερώτηση γίνεται μία φορά.
+{
+  const rows = [
+    { category: 'Ρεύμα', description: 'ΔΕΗ Ιανουαρίου', amount: 95, afm: '094014201' },
+    { category: 'Υδραυλικός', description: 'Επισκευή μπάνιου', amount: 120, afm: '' },
+    { category: 'Υδραυλικός', description: 'Δεύτερη επίσκεψη', amount: 80, afm: null },
+    { category: 'Κοινόχρηστα', description: 'Α΄ τρίμηνο', amount: 300, afm: undefined },
+    { category: '  ', description: '', amount: 40 },
+  ];
+  const groups = missingAfmGroups(rows);
+  eq('όσες έχουν ΑΦΜ δεν ρωτιούνται', groups.some(g => g.category === 'Ρεύμα'), false);
+  eq('τρεις ομάδες', groups.length, 3);
+  eq('η ακριβότερη πρώτη', groups[0].category, 'Κοινόχρηστα');
+  eq('ο υδραυλικός μετρήθηκε δύο φορές', groups[1].count, 2);
+  eq('με άθροισμα', groups[1].amount, 200);
+  eq('και παράδειγμα τη μεγαλύτερη δαπάνη', groups[1].sample, 'Επισκευή μπάνιου');
+  eq('η κατηγορία που λείπει έχει όνομα', groups[2].category, 'Χωρίς κατηγορία');
+  // Η ΣΕΙΡΑ ΔΕΝ ΕΞΑΡΤΑΤΑΙ ΑΠΟ ΤΗ ΣΕΙΡΑ ΕΙΣΑΓΩΓΗΣ: δύο εξαγωγές των ίδιων
+  // δεδομένων πρέπει να δίνουν το ίδιο αρχείο, αλλιώς η διαφορά τους είναι θόρυβος.
+  eq('ίδια δεδομένα, ίδια σειρά', JSON.stringify(missingAfmGroups([...rows].reverse())), JSON.stringify(groups));
+  eq('χωρίς δαπάνες, καμία ερώτηση', missingAfmGroups([]).length, 0);
+}

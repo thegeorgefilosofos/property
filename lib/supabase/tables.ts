@@ -522,6 +522,14 @@ export interface ExpensesRow {
    */
   supplier_country: string | null;
   supply: string | null;
+  /**
+   * ΑΦΜ του εκδότη, εννέα ψηφία. Διαβάζεται από το σαρωμένο παραστατικό (όπου
+   * ελέγχεται και με το checksum της ΑΑΔΕ) ή δηλώνεται από τον χρήστη. Χωρίς
+   * αυτό, ο λογιστής δεν μπορεί να καταχωρήσει τον αντισυμβαλλόμενο και κάθε
+   * εγχώρια δαπάνη γίνεται ένα τηλεφώνημα.
+   * Βλ. supabase/migrations/20260812120000_expense_supplier_afm.sql.
+   */
+  supplier_afm: string | null;
 }
 
 export interface FeedbackCampaignWinnersRow {

@@ -21,6 +21,8 @@ export interface LedgerInput {
    */
   supplier_country?: string | null
   supply?: string | null
+  /** ΑΦΜ εκδότη, εννέα ψηφία. Ό,τι δεν είναι ΑΦΜ δεν φτάνει στο αρχείο. */
+  supplier_afm?: string | null
 }
 
 export interface LedgerEntry extends LedgerInput {

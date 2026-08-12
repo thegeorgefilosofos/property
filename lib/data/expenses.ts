@@ -86,6 +86,8 @@ export interface ExpenseDraft {
   /** Χώρα εκδότη (ISO 3166-1 alpha-2) και ο τόπος παροχής που προκύπτει. */
   supplier_country?: string | null;
   supply?: string | null;
+  /** ΑΦΜ εκδότη, εννέα ψηφία. Ό,τι δεν περνά τον έλεγχο δεν γράφεται. */
+  supplier_afm?: string | null;
   /**
    * ΜΟΝΟ όταν ο καλών την ξέρει από αλλού — π.χ. ο χάρτης λογαριασμών του
    * `lib/expenses/pay.ts`. Αλλιώς παράγεται από την κατηγορία, που είναι και
@@ -130,6 +132,7 @@ export function row(scope: Scope, d: ExpenseDraft): Partial<ExpenseRow> {
     share_note: d.share_note ?? null,
     supplier_country: d.supplier_country ?? null,
     supply: d.supply ?? null,
+    supplier_afm: d.supplier_afm ?? null,
   } as Partial<ExpenseRow>;
 }
 

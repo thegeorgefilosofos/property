@@ -486,6 +486,12 @@ export function planDocSave(doc: ScannedDoc, today: string): SavePlan {
         // χαρτί μένει κενό: το NULL σημαίνει «δεν το ξέρουμε», ποτέ «εγχώρια».
         supplier_country: providerCountry(doc) || null,
         supply: docSupply(doc),
+        // ΤΟ ΑΦΜ ΤΑΞΙΔΕΥΕΙ ΜΑΖΙ ΜΕ ΤΗ ΔΑΠΑΝΗ, ΚΑΙ ΜΟΝΟ ΑΝ ΕΙΝΑΙ ΑΦΜ. Διαβάστηκε
+        // ήδη από το παραστατικό και ελέγχθηκε με το checksum της ΑΑΔΕ· εδώ
+        // ελέγχεται δεύτερη φορά, γιατί το `normalizeDoc` μπορεί να το άφησε
+        // κενό. Χωρίς αυτό, ο λογιστής βλέπει «Υδραυλικός» και δεν έχει
+        // αντισυμβαλλόμενο να καταχωρήσει.
+        supplier_afm: isValidAfm(doc.provider_afm) ? String(doc.provider_afm) : null,
         notes: `Από σάρωση${cons ? ` · ${cons}` : ''}${baseNote ? ` · ${baseNote}` : ''}`,
       },
       archive,

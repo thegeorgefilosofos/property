@@ -595,3 +595,53 @@ export const statusForAccountant = (s: PropertyStatus): string => ({
 /** Οι καταστάσεις των ακινήτων, από γραμμές βάσης. */
 export const statusesOf = (rows: readonly StatusRow[]): PropertyStatus[] =>
   rows.map(readStatus);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ΟΙ ΔΑΠΑΝΕΣ ΠΟΥ ΔΕΝ ΕΧΟΥΝ ΑΝΤΙΣΥΜΒΑΛΛΟΜΕΝΟ
+// ─────────────────────────────────────────────────────────────────────────
+// Ο λογιστής ΔΕΝ καταχωρεί δαπάνη χωρίς ΑΦΜ εκδότη. Το ΑΦΜ διαβάζεται μόνο του
+// από τα παραστατικά που σαρώνονται· όσες δαπάνες γράφτηκαν με το χέρι ή ήρθαν
+// από τραπεζική κίνηση δεν το έχουν.
+//
+// ΓΙΑΤΙ ΟΜΑΔΟΠΟΙΗΜΕΝΑ ΚΑΙ ΟΧΙ ΓΡΑΜΜΗ ΓΡΑΜΜΗ. Είκοσι δαπάνες ρεύματος έχουν τον
+// ΙΔΙΟ προμηθευτή: είκοσι γραμμές «λείπει ΑΦΜ» είναι μία ερώτηση γραμμένη είκοσι
+// φορές. Ταξινομημένες κατά ποσό, ώστε να απαντηθεί πρώτα η ακριβότερη.
+//
+// ΚΑΙ ΤΟ ΠΑΡΑΔΕΙΓΜΑ ΕΙΝΑΙ Η ΜΕΓΑΛΥΤΕΡΗ ΔΑΠΑΝΗ ΤΗΣ ΟΜΑΔΑΣ, ΟΧΙ Η ΠΡΩΤΗ ΠΟΥ
+// ΣΥΝΑΝΤΗΘΗΚΕ. Η «πρώτη» εξαρτάται από τη σειρά που ήρθαν οι γραμμές: δύο
+// εξαγωγές των ίδιων δεδομένων έβγαζαν διαφορετικό κείμενο, και η διαφορά τους
+// ήταν θόρυβος. Η μεγαλύτερη είναι και αυτή που θυμάται ο ιδιοκτήτης.
+
+/** Μια ομάδα δαπανών του ίδιου προμηθευτή, χωρίς ΑΦΜ. */
+export interface MissingAfmGroup { category: string; count: number; amount: number; sample: string }
+
+/** Η περιγραφή που θυμάται ο ιδιοκτήτης: αυτή της μεγαλύτερης δαπάνης. */
+interface AfmTally extends MissingAfmGroup { top: number }
+
+/** Οι δαπάνες χωρίς ΑΦΜ, ανά κατηγορία, με τη μεγαλύτερη πρώτη. */
+export function missingAfmGroups(
+  rows: readonly { category?: string | null; description?: string | null; amount?: number | null; afm?: string | null }[],
+): MissingAfmGroup[] {
+  const by = new Map<string, AfmTally>();
+  for (const r of rows) {
+    if (r.afm) continue;
+    const category = String(r.category || '').trim() || 'Χωρίς κατηγορία';
+    const amount = Number(r.amount) || 0;
+    const description = String(r.description || '').trim();
+    const cur = by.get(category) ?? { category, count: 0, amount: 0, sample: '', top: -Infinity };
+    // Ισοπαλία στο ποσό: αλφαβητικά, ώστε η επιλογή να μην κρίνεται από τη σειρά.
+    const wins = amount > cur.top || (amount === cur.top && description.localeCompare(cur.sample, 'el') < 0);
+    by.set(category, {
+      category,
+      count: cur.count + 1,
+      amount: cur.amount + amount,
+      sample: wins && description ? description : cur.sample,
+      top: wins ? amount : cur.top,
+    });
+  }
+  // Ίδιο ποσό, αλφαβητικά: η σειρά δεν επιτρέπεται να εξαρτάται από τη σειρά
+  // εισαγωγής, αλλιώς δύο εξαγωγές των ίδιων δεδομένων διαφέρουν.
+  return [...by.values()]
+    .map(({ category, count, amount, sample }) => ({ category, count, amount, sample }))
+    .sort((a, b) => b.amount - a.amount || a.category.localeCompare(b.category, 'el'));
+}

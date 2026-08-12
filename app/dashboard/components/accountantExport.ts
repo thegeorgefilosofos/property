@@ -35,8 +35,9 @@ import { ACCOUNTS, expenseAccount } from '@/lib/accounting/journal';
 import { CATEGORIES } from '@/lib/expenses/taxonomy';
 import { resolveCategory } from '@/lib/expenses/taxonomy';
 import { csvCell } from '@/lib/core/csv';
+import { isValidAfm } from '@/lib/core/greek';
 import { buildZip, type ZipFile } from '@/lib/accounting/zip';
-import { WHO_LABEL, type Requirement } from '@/lib/accounting/dossier';
+import { WHO_LABEL, missingAfmGroups, type Requirement } from '@/lib/accounting/dossier';
 import { downloadFile } from '@/lib/core/download';
 
 export interface AccountantStatementLine { label: string; amount: number; kind: string; negative?: boolean }
@@ -45,6 +46,11 @@ export interface AccountantMovement {
   /** Χώρα εκδότη (ISO alpha-2) και τόπος παροχής. Κενά στα έσοδα και σε ό,τι δεν ρωτήθηκε. */
   supplier_country?: string | null;
   supply?: string | null;
+  /**
+   * ΑΦΜ εκδότη, εννέα ψηφία. Ο λογιστής δεν καταχωρεί δαπάνη χωρίς
+   * αντισυμβαλλόμενο: κενό εδώ σημαίνει ένα τηλεφώνημα στον ιδιοκτήτη.
+   */
+  supplier_afm?: string | null;
 }
 /**
  * ΜΙΑ ΜΕΤΑΤΡΟΠΗ ΚΑΘΟΛΙΚΟΥ ΣΕ ΚΙΝΗΣΗ, ΓΙΑ ΟΛΑ ΤΑ ΚΟΥΜΠΙΑ.
@@ -57,11 +63,12 @@ export interface AccountantMovement {
  */
 export function toMovement(e: {
   date: string; type: 'income' | 'expense'; category: string; description: string; amount: number;
-  supplier_country?: string | null; supply?: string | null;
+  supplier_country?: string | null; supply?: string | null; supplier_afm?: string | null;
 }): AccountantMovement {
   return {
     date: e.date, type: e.type, category: e.category, description: e.description, amount: e.amount,
     supplier_country: e.supplier_country ?? null, supply: e.supply ?? null,
+    supplier_afm: e.supplier_afm ?? null,
   };
 }
 
@@ -104,6 +111,18 @@ const e3Cell = (type: string, category: string): string => {
   const codes = e3CodesFor(type, category);
   return codes.length ? codes.join(', ') : e3NoteFor(type, category);
 };
+/**
+ * Το ΑΦΜ του εκδότη, μόνο όταν είναι ΑΦΜ.
+ *
+ * ΕΛΕΓΧΕΤΑΙ ΞΑΝΑ ΕΔΩ, ΚΑΙ ΟΧΙ ΑΠΟ ΚΑΧΥΠΟΨΙΑ. Η στήλη γεμίζει και με το χέρι, και
+ * από παλιές εγγραφές που γράφτηκαν πριν υπάρξει ο περιορισμός της βάσης. Ένα
+ * οκταψήφιο σε στήλη ΑΦΜ δεν είναι «σχεδόν σωστό»: ταξιδεύει ώς τη διαβίβαση
+ * και γυρίζει ως απόρριψη, μήνες μετά, χωρίς να ξέρει κανείς από πού ήρθε.
+ * Τα έσοδα δεν έχουν προμηθευτή: εκεί το κελί μένει κενό, όπως και η χώρα.
+ */
+const afmCell = (e: AccountantMovement): string =>
+  e.type === 'expense' && isValidAfm(e.supplier_afm) ? String(e.supplier_afm) : '';
+
 /** Οι τιμές του αναπτυσσόμενου καταλόγου στον τόπο παροχής, από τη μία πηγή. */
 const SUPPLY_VALUES: readonly string[] = (['domestic', 'intra_eu', 'third_country'] as const).map(supplyLabel);
 // Ιταλική γκρι σημείωση για «memo» γραμμές (π.χ. πρόβλεψη φόρου) — διακριτή από το αποτέλεσμα.
@@ -235,9 +254,9 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     // Η στήλη του χαρακτηρισμού μπαίνει ΠΡΙΝ τα ποσά, δίπλα στον τόπο παροχής
     // με τον οποίο συνδέεται: «τι, από πού, πώς χαρακτηρίζεται, πόσο».
     const myData = inp.myData;
-    const NC = myData ? 9 : 8, HR = 3;
+    const NC = myData ? 10 : 9, HR = 3;
     /** Η στήλη του χαρακτηρισμού, ή −1 όταν δεν υπάρχει. */
-    const C_MYDATA = myData ? 6 : -1;
+    const C_MYDATA = myData ? 7 : -1;
     // ΤΑ ΠΟΣΑ ΚΛΕΙΝΟΥΝ ΤΗ ΓΡΑΜΜΗ, ΟΠΟΤΕ ΠΑΡΑΓΟΝΤΑΙ ΑΠΟ ΤΟ ΠΛΗΘΟΣ ΣΤΗΛΩΝ: μια
     // ένατη στήλη αύριο τα παίρνει μαζί της, χωρίς να το θυμηθεί κανείς.
     const C_IN = NC - 2, C_EX = NC - 1;
@@ -259,7 +278,9 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     // Η ΧΩΡΑ ΚΑΙ Ο ΤΟΠΟΣ ΠΑΡΟΧΗΣ ΜΠΑΙΝΟΥΝ ΠΡΙΝ ΤΑ ΠΟΣΑ, όχι στο τέλος: ο
     // λογιστής διαβάζει «τι, από πού, πόσο». Τα ποσά κλείνουν τη γραμμή, όπως σε
     // κάθε παραστατικό, και τα σύνολα κάθονται από κάτω τους.
-    const header = ['Α/Α', 'Ημερομηνία', 'Κατηγορία', 'Περιγραφή', 'Χώρα', 'Τόπος παροχής',
+    // ΤΟ ΑΦΜ ΜΠΑΙΝΕΙ ΔΙΠΛΑ ΣΤΗ ΧΩΡΑ, ΓΙΑΤΙ ΕΙΝΑΙ Η ΙΔΙΑ ΕΡΩΤΗΣΗ: «ποιος εξέδωσε
+    // το χαρτί». Ο λογιστής διαβάζει «τι, από ποιον, από πού, πόσο».
+    const header = ['Α/Α', 'Ημερομηνία', 'Κατηγορία', 'Περιγραφή', 'ΑΦΜ προμηθευτή', 'Χώρα', 'Τόπος παροχής',
       ...(myData ? ['Χαρακτηρισμός myDATA'] : []), 'Έσοδα', 'Έξοδα'];
     // Ο ΧΑΡΑΚΤΗΡΙΣΜΟΣ ΑΦΟΡΑ ΜΟΝΟ ΤΑ ΕΞΟΔΑ. Στη γραμμή εσόδου το κελί μένει
     // κενό: τα έσοδα έχουν δικό τους παραστατικό, που το εκδίδει ο ίδιος ο
@@ -272,6 +293,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       // Κενό, όχι «—» και όχι «Ελλάδα»: το έσοδο δεν έχει πάροχο, και η δαπάνη
       // που δεν ρωτήθηκε δεν έχει απάντηση. Ένα συμπληρωμένο κενό σε στήλη
       // ΦΠΑ είναι εικασία γραμμένη ως δεδομένο.
+      afmCell(e),
       e.supplier_country || '',
       supplyCell(e.supply),
       ...(myData ? [myDataOf(e)] : []),
@@ -315,8 +337,11 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       setCell(ws, r, 1, { s: { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } }, ...(isDate ? { t: 'd', z: FMT.date } : {}) });
       setCell(ws, r, 2, { s: S.txt });                                       // Κατηγορία
       setCell(ws, r, 3, { s: S.txt });                                       // Περιγραφή
-      setCell(ws, r, 4, { s: { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } } }); // Χώρα
-      setCell(ws, r, 5, { s: S.txt });                                       // Τόπος παροχής
+      // Το ΑΦΜ είναι αριθμός που ΔΕΝ αθροίζεται: κεντραρισμένο σαν κωδικός, όχι
+      // δεξιά σαν ποσό. Και ως κείμενο, ώστε να μη χαθεί αρχικό μηδενικό.
+      setCell(ws, r, 4, { s: { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } } }); // ΑΦΜ
+      setCell(ws, r, 5, { s: { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } } }); // Χώρα
+      setCell(ws, r, 6, { s: S.txt });                                       // Τόπος παροχής
       if (C_MYDATA >= 0) setCell(ws, r, C_MYDATA, { s: S.txt });             // Χαρακτηρισμός myDATA
       // Έσοδα/Έξοδα ως κείμενο «€» με κόμμα (ίδια εμφάνιση σε κάθε Excel).
       for (const c of [C_IN, C_EX]) { const cell = ws[enc(r, c)] as Cell | undefined; if (cell && typeof cell.v === 'number') setCell(ws, r, c, { v: money(cell.v), t: 's', s: S.num }); else setCell(ws, r, c, { s: S.num }); }
@@ -460,8 +485,8 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     // απορρίπτει τον συνδυασμό που δεν υπάρχει στον επίσημο πίνακα. Η στήλη
     // δίνει ΟΛΟΥΣ τους επιτρεπτούς για τη γραμμή, γιατί η επιλογή εξαρτάται από
     // τη φύση της δαπάνης και είναι δουλειά λογιστή.
-    const NC = 13, HR = 3;
-    const head = ['Α/Α', 'Ημερομηνία', 'Κατηγορία', 'Περιγραφή', 'Χώρα', 'Τόπος παροχής',
+    const NC = 14, HR = 3;
+    const head = ['Α/Α', 'Ημερομηνία', 'Κατηγορία', 'Περιγραφή', 'ΑΦΜ προμηθευτή', 'Χώρα', 'Τόπος παροχής',
       'Τύπος παραστατικού', 'Κωδικός', 'Χαρακτηρισμός', 'Επιτρεπτοί κωδικοί Ε3', 'Αξία παραστατικού',
       `ΦΠΑ αντίστροφης χρέωσης ${VAT_STANDARD}%`, 'Εκκρεμότητα'];
     const rows = book.filter(e => e.type === 'expense').sort((a, b) => a.date.localeCompare(b.date));
@@ -477,7 +502,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     const sumRc = rows.reduce((t, e) => t + rcOf(e), 0);
     const totals = (label: string) => {
       const r: (string | number)[] = Array(NC).fill('');
-      r[3] = label; r[10] = money(sumVal); r[11] = money(sumRc);
+      r[3] = label; r[11] = money(sumVal); r[12] = money(sumRc);
       return r;
     };
     // Σύνολα ανά χαρακτηρισμό: η γραμμή που ζητά ο λογιστής όταν συμφωνεί τα
@@ -502,7 +527,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       ...(rows.length ? [] : [[...Array(3).fill(''), `Καμία καταγεγραμμένη δαπάνη για το ${year}`]]),
       ...hints.map(({ e, h }, i) => [
         i + 1, toDate(e.date), e.category || '', e.description || '',
-        e.supplier_country || '', supplyCell(e.supply),
+        afmCell(e), e.supplier_country || '', supplyCell(e.supply),
         h.invoiceType ? `${h.invoiceType} ${INVOICE_TYPE_LABEL[h.invoiceType]}` : '',
         h.expenseClass ? CATEGORY_CODE[h.expenseClass] : '',
         h.expenseClass ? `${h.expenseClass} ${EXPENSE_CLASS_LABEL[h.expenseClass]}` : '',
@@ -535,25 +560,26 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       const dcell = ws[encM(r, 1)] as Cell | undefined;
       const isDate = !!dcell && dcell.v instanceof Date;
       setCell(ws, r, 1, { s: { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } }, ...(isDate ? { t: 'd', z: FMT.date } : {}) });
-      for (const c of [2, 3, 5, 6, 7, 8, 9, 12]) setCell(ws, r, c, { s: S.txt });
+      for (const c of [2, 3, 6, 7, 8, 9, 10, 13]) setCell(ws, r, c, { s: S.txt });
       // Ο ΚΩΔΙΚΟΣ ΔΕΝ ΕΙΝΑΙ ΔΕΥΤΕΡΗ ΚΑΤΑΧΩΡΗΣΗ, ΕΙΝΑΙ ΜΕΤΑΦΡΑΣΗ. Γραμμένος ως
       // σταθερή τιμή, έμενε ο παλιός μόλις ο λογιστής άλλαζε τον χαρακτηρισμό
       // από τον κατάλογο, και το αρχείο έλεγε δύο διαφορετικά πράγματα στην
       // ίδια γραμμή. Ως τύπος, ακολουθεί. Η αποθηκευμένη τιμή μένει για όποιον
       // ανοίξει το αρχείο χωρίς επανυπολογισμό.
-      if (String((ws[encM(r, 8)] as Cell | undefined)?.v ?? '')) {
-        setCell(ws, r, 7, { f: `IFERROR(INDEX(${comboSheet.codeList},MATCH(${encM(r, 8)},${comboSheet.classList},0)),"")` });
+      if (String((ws[encM(r, 9)] as Cell | undefined)?.v ?? '')) {
+        setCell(ws, r, 8, { f: `IFERROR(INDEX(${comboSheet.codeList},MATCH(${encM(r, 9)},${comboSheet.classList},0)),"")` });
       }
-      setCell(ws, r, 4, { s: { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } } });
-      for (const c of [10, 11]) {
+      // ΑΦΜ και χώρα: κωδικοί, κεντραρισμένοι, όχι ποσά.
+      for (const c of [4, 5]) setCell(ws, r, c, { s: { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } } });
+      for (const c of [11, 12]) {
         const cell = ws[encM(r, c)] as Cell | undefined;
         if (cell && typeof cell.v === 'number') setCell(ws, r, c, { v: money(cell.v), t: 's', s: S.num });
         else setCell(ws, r, c, { s: S.num });
       }
     }
     const totR = last + 1;
-    for (let c = 0; c <= 9; c++) setCell(ws, totR, c, { s: S.strongTxt });
-    for (const c of [10, 11, 12]) setCell(ws, totR, c, { s: c === 12 ? S.strongTxt : S.strongNum });
+    for (let c = 0; c <= 10; c++) setCell(ws, totR, c, { s: S.strongTxt });
+    for (const c of [11, 12, 13]) setCell(ws, totR, c, { s: c === 13 ? S.strongTxt : S.strongNum });
     // Οι πίνακες του έτους: επικεφαλίδα ενότητας, γραμμή στηλών, δεδομένα.
     const secA = totR + 2, headA = secA + 1;
     bannerRow(ws, secA, NC, S.section);
@@ -578,8 +604,8 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     sheetFinish(ws, {
       landscape: true, freezeRows: HR + 1,
       ...(rows.length ? { lists: [
-        { ref: `F${HR + 2}:F${last + 1}`, values: SUPPLY_VALUES },
-        { ref: `I${HR + 2}:I${last + 1}`, source: comboSheet.classList },
+        { ref: `G${HR + 2}:G${last + 1}`, values: SUPPLY_VALUES },
+        { ref: `J${HR + 2}:J${last + 1}`, source: comboSheet.classList },
       ] } : {}),
     });
     XLSX.utils.book_append_sheet(wb, ws, `Χαρακτηρισμοί myDATA`);
@@ -838,14 +864,22 @@ export function exportAccountantDossier(inp: DossierExportInput): void {
       : myDataCell(myDataHint({ category: e.category, supply: e.supply as Supply | null, vat: inp.myData.vat }));
   const movementCsv = (rows: AccountantMovement[], head: string) => {
     const md = !!inp.myData && rows.some(r => r.type === 'expense');
+    // Η στήλη υπάρχει μόνο όπου έχει περιεχόμενο: μια κενή στήλη «ΑΦΜ» σε αρχείο
+    // εσόδων είναι ερώτηση χωρίς νόημα, και σε αρχείο εξόδων χωρίς κανένα ΑΦΜ
+    // είναι υπόσχεση που δεν κρατήθηκε.
+    const afm = rows.some(r => afmCell(r));
     return csv([
       [head],
       [idLine],
       [],
-      ['Α/Α', 'Ημερομηνία', 'Κατηγορία', 'Περιγραφή', ...(md ? ['Χαρακτηρισμός myDATA'] : []), 'Ποσό (€)'],
-      ...rows.map((e, i) => [i + 1, grDate(e.date), e.category || '', e.description || '', ...(md ? [mdCsv(e)] : []), grNum(e.amount)]),
+      // ΤΟ ΑΦΜ ΜΠΑΙΝΕΙ ΚΑΙ ΣΤΑ ΞΕΧΩΡΙΣΤΑ ΑΡΧΕΙΑ. Ο λογιστής που ανοίγει το
+      // «03 ΕΞΟΔΑ» έβρισκε πέντε στήλες χωρίς αντισυμβαλλόμενο, ενώ το Excel
+      // της σύνοψης τον έχει: το ίδιο βιβλίο, δύο διαφορετικές απαντήσεις.
+      ['Α/Α', 'Ημερομηνία', 'Κατηγορία', 'Περιγραφή', ...(afm ? ['ΑΦΜ προμηθευτή'] : []), ...(md ? ['Χαρακτηρισμός myDATA'] : []), 'Ποσό (€)'],
+      ...rows.map((e, i) => [i + 1, grDate(e.date), e.category || '', e.description || '',
+        ...(afm ? [afmCell(e)] : []), ...(md ? [mdCsv(e)] : []), grNum(e.amount)]),
       [],
-      ['', '', '', 'ΣΥΝΟΛΟ', ...(md ? [''] : []), grNum(sum(rows))],
+      ['', '', '', 'ΣΥΝΟΛΟ', ...(afm ? [''] : []), ...(md ? [''] : []), grNum(sum(rows))],
     ]);
   };
 
@@ -896,6 +930,20 @@ export function exportAccountantDossier(inp: DossierExportInput): void {
     `    Παράδειγμα: ${m.sample}`,
     '',
   ]);
+  // ── ΟΙ ΔΑΠΑΝΕΣ ΧΩΡΙΣ ΑΝΤΙΣΥΜΒΑΛΛΟΜΕΝΟ ──────────────────────────────────────
+  // Το κενό ΑΦΜ φαινόταν μόνο ως άδειο κελί σε μια στήλη. Εδώ γίνεται ΕΡΩΤΗΣΗ
+  // προς τον ιδιοκτήτη, ομαδοποιημένη ανά προμηθευτή: «ποιανού είναι αυτά τα
+  // τιμολόγια» ρωτιέται μία φορά, όχι είκοσι. Η ομαδοποίηση ζει στο
+  // lib/accounting/dossier.ts, όπου δοκιμάζεται χωρίς να κατέβει αρχείο.
+  const afmGroups = missingAfmGroups(expense.map(e => ({
+    category: e.category, description: e.description, amount: e.amount, afm: afmCell(e),
+  })));
+  const afmBlock = afmGroups.flatMap((m, i) => [
+    `${String(i + 1).padStart(2, ' ')}. ${m.category} · ${m.count === 1 ? 'μία δαπάνη' : `${m.count} δαπάνες`} · ${grNum(m.amount)} €`,
+    ...(m.sample ? [`    Παράδειγμα: ${m.sample}`] : []),
+    '',
+  ]);
+
   const whatsMissing = txt([
     `ΤΙ ΛΕΙΠΕΙ ΑΠΟ ΑΥΤΟΝ ΤΟΝ ΦΑΚΕΛΟ · ${year}`, rule('═'), '',
     idLine, `Ημερομηνία έκδοσης: ${issued}`, '',
@@ -912,11 +960,17 @@ export function exportAccountantDossier(inp: DossierExportInput): void {
     ...(mdBlock.length
       ? [`Δ. ΔΑΠΑΝΕΣ ΠΟΥ ΖΗΤΟΥΝ ΑΠΟΦΑΣΗ ΓΙΑ ΤΟΝ ΧΑΡΑΚΤΗΡΙΣΜΟ myDATA (${mdPending.length})`, rule(), '', ...mdBlock]
       : []),
+    ...(afmBlock.length
+      ? [`Ε. ΔΑΠΑΝΕΣ ΧΩΡΙΣ ΑΦΜ ΠΡΟΜΗΘΕΥΤΗ (${afmGroups.length})`, rule(), '',
+        'Ο λογιστής δεν καταχωρεί δαπάνη χωρίς αντισυμβαλλόμενο. Το ΑΦΜ διαβάζεται',
+        'μόνο του από τα παραστατικά που σαρώνονται στην εφαρμογή· για τις παρακάτω',
+        'χρειάζεται το χαρτί ή το ΑΦΜ του εκδότη.', '', ...afmBlock]
+      : []),
     rule(),
-    missing.length === 0 && gaps.length === 0 && mdBlock.length === 0
+    missing.length === 0 && gaps.length === 0 && mdBlock.length === 0 && afmBlock.length === 0
       ? 'Ο φάκελος είναι πλήρης.'
       : 'Τα παραπάνω δεν βρέθηκαν στην εφαρμογή. Δεν σημαίνει ότι δεν υπάρχουν:',
-    ...(missing.length === 0 && gaps.length === 0 && mdBlock.length === 0 ? [] : ['σημαίνει ότι δεν συνοδεύουν αυτόν τον φάκελο.']),
+    ...(missing.length === 0 && gaps.length === 0 && mdBlock.length === 0 && afmBlock.length === 0 ? [] : ['σημαίνει ότι δεν συνοδεύουν αυτόν τον φάκελο.']),
   ]);
 
   // ΤΑ ΟΝΟΜΑΤΑ ΔΙΑΒΑΖΟΝΤΑΙ, ΔΕΝ ΑΠΟΚΩΔΙΚΟΠΟΙΟΥΝΤΑΙ. Οι κάτω παύλες ήταν
