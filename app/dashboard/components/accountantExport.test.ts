@@ -341,7 +341,12 @@ eq('τα πλάτη στηλών είναι όσα και οι στήλες', (w
   ok('υπάρχει και ο πίνακας των εσόδων', incAt > 0);
   const incHead = cbRows[incAt + 1];
   eq('με τους έντεκα χαρακτηρισμούς εσόδων', incHead.length, 13);
-  const incRow = (t: string) => cbRows.slice(incAt).find(r => r[0] === t) ?? [];
+  // Ο ΠΙΝΑΚΑΣ ΤΩΝ ΕΣΟΔΩΝ ΣΤΑΜΑΤΑΕΙ ΣΤΗΝ ΕΠΟΜΕΝΗ ΕΝΟΤΗΤΑ. Χωρίς όριο, η
+  // αναζήτηση έπεφτε στους καταλόγους ονομάτων από κάτω και «έβρισκε» εκεί
+  // τύπους που δεν είναι στον πίνακα των εσόδων.
+  const incEnd = cbRows.findIndex((r, i) => i > incAt + 1 && String(r[0] ?? '').startsWith('ΟΙ '));
+  const incBody = cbRows.slice(incAt, incEnd > 0 ? incEnd : undefined);
+  const incRow = (t: string) => incBody.find(r => r[0] === t) ?? [];
   eq('τα ενοίκια ως έσοδο', incRow('8.1')[1], 'Ενοίκια - Έσοδο');
   eq('με τον χαρακτηρισμό 1.3', incRow('8.1')[incHead.indexOf('1.3')], '✓');
   // ΜΙΑ ΙΔΙΑΙΤΕΡΟΤΗΤΑ ΤΗΣ ΠΗΓΗΣ: το φύλλο 17.6 γράφει κωδικούς ΕΞΟΔΩΝ στη στήλη
@@ -399,23 +404,44 @@ eq('τα πλάτη στηλών είναι όσα και οι στήλες', (w
   const finish = (sheet: XLSX.WorkSheet) => (sheet as Record<string, unknown>)['!finish'] as
     { landscape?: boolean; lists?: { ref: string; values?: string[]; source?: string }[] } | undefined;
   const mdLists = finish(m)?.lists ?? [];
-  eq('δύο κατάλογοι στο φύλλο των χαρακτηρισμών', mdLists.length, 2);
+  eq('τρεις κατάλογοι στο φύλλο των χαρακτηρισμών', mdLists.length, 3);
   eq('ο τόπος παροχής, με τις τρεις τιμές του', mdLists[0]?.values?.length, 3);
   ok('και τα λεκτικά είναι της μίας πηγής', mdLists[0]?.values?.includes(supplyLabel('intra_eu')) === true);
-  ok('ο χαρακτηρισμός δείχνει στο φύλλο των συνδυασμών',
-    (mdLists[1]?.source ?? '').startsWith("'Επιτρεπτοί συνδυασμοί ΑΑΔΕ'!$B$"));
-  eq('και ο κατάλογος κάθεται στη στήλη του χαρακτηρισμού', mdLists[1]?.ref?.slice(0, 1), 'J');
+  // Ο ΚΑΘΕ ΚΑΤΑΛΟΓΟΣ ΣΤΗ ΣΤΗΛΗ ΤΟΥ. Μια στήλη παραπάνω και το Excel προτείνει
+  // χαρακτηρισμούς μέσα στη στήλη της αξίας.
+  const listAt = (col: string) => mdLists.find(l => l.ref.startsWith(col));
+  ok('ο τύπος παραστατικού στη στήλη H', !!listAt('H')?.source);
+  ok('ο χαρακτηρισμός στη στήλη J', !!listAt('J')?.source);
+  for (const col of ['H', 'J']) {
+    ok(`ο κατάλογος της ${col} δείχνει στο φύλλο των συνδυασμών`,
+      (listAt(col)?.source ?? '').startsWith("'Επιτρεπτοί συνδυασμοί ΑΑΔΕ'!$B$"));
+  }
   // Η ΔΙΕΥΘΥΝΣΗ ΔΕΝ ΕΛΕΓΧΕΤΑΙ ΩΣ ΚΕΙΜΕΝΟ ΑΛΛΑ ΩΣ ΠΕΡΙΕΧΟΜΕΝΟ. Μια λάθος γραμμή
   // δίνει κατάλογο με κενά ή με τίτλους ενοτήτων, και το Excel θα το δεχόταν.
-  {
-    const [, a, b] = (mdLists[1]?.source ?? '').match(/\$B\$(\d+):\$B\$(\d+)/) ?? [];
-    const values = Array.from({ length: Number(b) - Number(a) + 1 },
+  const valuesOf = (source: string): string[] => {
+    const [, a, b] = source.match(/\$B\$(\d+):\$B\$(\d+)/) ?? [];
+    return Array.from({ length: Number(b) - Number(a) + 1 },
       (_, i) => String((cb[`B${Number(a) + i}`] as Cell | undefined)?.v ?? ''));
+  };
+  {
+    const values = valuesOf(listAt('J')?.source ?? '');
     eq('ο κατάλογος έχει και τους δεκαπέντε χαρακτηρισμούς', values.length, 15);
     ok('όλοι γραμμένοι «2.x Ονομασία»', values.every(v => /^2\.\d+ \S/.test(v)));
     // ΚΑΙ ΤΑΥΤΙΖΟΝΤΑΙ ΜΕ ΟΣΑ ΕΧΕΙ ΗΔΗ ΓΡΑΨΕΙ Η ΕΦΑΡΜΟΓΗ. Αλλιώς το Excel
     // σημαδεύει ως άκυρη κάθε τιμή που έβαλε μόνη της η υπόδειξη.
     ok('και με ό,τι γράφει η στήλη του χαρακτηρισμού', values.includes(String(mv(HR + 1, C('Χαρακτηρισμός')))));
+  }
+  {
+    // ΤΟ ΙΔΙΟ ΓΙΑ ΤΟΝ ΤΥΠΟ ΠΑΡΑΣΤΑΤΙΚΟΥ. Η εφαρμογή γράφει μόνη της τους 14.x
+    // στις λήψεις από το εξωτερικό: αν ο κατάλογος τους έγραφε αλλιώς, κάθε
+    // τέτοια γραμμή θα σημαδευόταν ως άκυρη μέσα στο ίδιο μας το αρχείο.
+    const values = valuesOf(listAt('H')?.source ?? '');
+    ok('ο κατάλογος έχει όλους τους τύπους εξόδων', values.length >= 25);
+    ok('όλοι γραμμένοι «κωδικός Ονομασία»', values.every(v => /^\d+\.\d+ \S/.test(v)));
+    ok('μαζί με τα κοινόχρηστα και τις συνδρομές',
+      values.includes('13.3 Κοινόχρηστα') && values.includes('13.4 Συνδρομές'));
+    const written = String(mv(HR + 3, C('Τύπος παραστατικού')) ?? '');
+    ok(`και με ό,τι γράφει η εφαρμογή («${written}»)`, !written || values.includes(written));
   }
   ok('τα φαρδιά φύλλα τυπώνονται οριζόντια',
     [m, cb, w.Sheets['Κινήσεις 2026'], w.Sheets['Λογαριασμοί ΕΛΠ']].every(sh => finish(sh)?.landscape === true));

@@ -220,6 +220,11 @@ const comboSheet = (() => {
   // ο πίνακας συνδυασμών δίνει μόνο κωδικούς· τα λεκτικά έρχονται από τον πίνακα
   // «Κωδικός Κατηγορίας Χαρακτηρισμού Εσόδων» της τεκμηρίωσης myDATA.
   const incomeNamedRows = incCols.map(c => [c, `${shortOf(c)} ${INCOME_CLASS_LABEL[c] ?? ''}`.trim()]);
+  // ΚΑΙ ΟΙ ΤΥΠΟΙ ΤΩΝ ΠΑΡΑΣΤΑΤΙΚΩΝ, ΓΡΑΜΜΕΝΟΙ ΟΠΩΣ ΑΚΡΙΒΩΣ ΤΟΥΣ ΓΡΑΦΕΙ ΤΟ ΦΥΛΛΟ
+  // ΤΩΝ ΧΑΡΑΚΤΗΡΙΣΜΩΝ. Είναι η πηγή του αναπτυσσόμενου καταλόγου εκεί: μια
+  // διαφορετική μορφή («14.3» εδώ, «14.3 Τιμολόγιο / …» εκεί) θα έκανε το Excel
+  // να θεωρεί άκυρη κάθε τιμή που έχει ήδη γράψει η εφαρμογή.
+  const typeNamedRows = expenseDocTypes().map(t => [t, `${t} ${AADE_DOC_TYPES[t].title}`]);
   const HR = 4;
   const incSec = HR + 1 + expRows.length + 1, incHead = incSec + 1;
   const namSec = incHead + 1 + incRows.length + 1, namHead = namSec + 1;
@@ -231,8 +236,14 @@ const comboSheet = (() => {
   // αλλάξει από τον αναπτυσσόμενο κατάλογο, αντί να μείνει ο παλιός.
   const codeList = `'${COMBO_SHEET}'!$A$${namHead + 2}:$A$${namHead + 1 + namedRows.length}`;
   const incNamSec = namHead + 1 + namedRows.length + 1, incNamHead = incNamSec + 1;
-  return { expCols, incCols, shortOf, expRows, incRows, namedRows, incomeNamedRows, incSec, incHead, namSec, namHead,
-    incNamSec, incNamHead, classList, codeList, NC: 2 + Math.max(expCols.length, incCols.length), HR };
+  const typeSec = incNamHead + 1 + incomeNamedRows.length + 1, typeHead = typeSec + 1;
+  // Ο ΚΑΤΑΛΟΓΟΣ ΤΩΝ ΤΥΠΩΝ, ΩΣ ΠΕΡΙΟΧΗ. Τριάντα τύποι με τους τίτλους τους
+  // ξεπερνούν κατά πολύ τους 255 χαρακτήρες που δέχεται ένας κατάλογος
+  // γραμμένος μέσα στο ίδιο το κελί: το Excel θα απέρριπτε το αρχείο ολόκληρο.
+  const typeList = `'${COMBO_SHEET}'!$B$${typeHead + 2}:$B$${typeHead + 1 + typeNamedRows.length}`;
+  return { expCols, incCols, shortOf, expRows, incRows, namedRows, incomeNamedRows, typeNamedRows,
+    incSec, incHead, namSec, namHead, incNamSec, incNamHead, typeSec, typeHead,
+    classList, codeList, typeList, NC: 2 + Math.max(expCols.length, incCols.length), HR };
 })();
 
 /**
@@ -759,7 +770,7 @@ export function buildWorkbook(inp: AccountantBundleInput, papers: readonly Filed
       ...classRows,
       [],
       [`Υπόδειξη προς τον λογιστή, όχι διαβίβαση: τίποτα δεν αποστέλλεται στην ΑΑΔΕ από την εφαρμογή. Ποιοι χαρακτηρισμοί επιτρέπονται σε κάθε τύπο παραστατικού, στο φύλλο «${COMBO_SHEET}».`],
-      ['Οι κωδικοί Ε3 δίνονται όπου υπάρχει τύπος παραστατικού, δηλαδή στις λήψεις από το εξωτερικό που διαβιβάζει ο ίδιος ο λήπτης. Στην εγχώρια δαπάνη τον τύπο τον δηλώνει ο προμηθευτής, και ο κωδικός Ε3 εξαρτάται από εκείνον.'],
+      ['Οι κωδικοί Ε3 δίνονται όπου υπάρχει τύπος παραστατικού, δηλαδή στις λήψεις από το εξωτερικό που διαβιβάζει ο ίδιος ο λήπτης. Στην εγχώρια δαπάνη τον τύπο τον δηλώνει ο προμηθευτής, και ο κωδικός Ε3 εξαρτάται από εκείνον: η στήλη «Τύπος παραστατικού» έχει κατάλογο με τους τριάντα τύπους εξόδων, και μόλις συμπληρωθεί, οι επιτρεπτοί κωδικοί βρίσκονται στο φύλλο «Κωδικοί Ε3 ανά συνδυασμό».'],
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa, { cellDates: true });
     // Τα πλάτη μετρώνται σε ΟΛΟΝ τον πίνακα, μαζί με τα «ΣΥΝΟΛΑ ΑΝΑ
@@ -814,16 +825,30 @@ export function buildWorkbook(inp: AccountantBundleInput, papers: readonly Filed
     }
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: last, c: NC - 1 } }) };
     ws['!margins'] = { ...MARGINS };
-    // ΟΙ ΔΥΟ ΣΤΗΛΕΣ ΠΟΥ ΑΛΛΑΖΕΙ Ο ΛΟΓΙΣΤΗΣ, ΜΕ ΚΑΤΑΛΟΓΟ. Ο χαρακτηρισμός είναι
+    // ΟΙ ΤΡΕΙΣ ΣΤΗΛΕΣ ΠΟΥ ΑΛΛΑΖΕΙ Ο ΛΟΓΙΣΤΗΣ, ΜΕ ΚΑΤΑΛΟΓΟ. Ο χαρακτηρισμός είναι
     // υπόδειξη: όποιος τη διορθώνει πρέπει να διαλέγει από τους εννέα του
     // myDATA και όχι να γράφει «2,5» ή «γενικά έξοδα». Ο κατάλογος δείχνει στη
     // στήλη του φύλλου των συνδυασμών, γιατί τα λεκτικά ξεπερνούν κατά πολύ
     // τους 255 χαρακτήρες που δέχεται μια λίστα γραμμένη μέσα στο κελί.
+    //
+    // ΚΑΙ Ο ΤΥΠΟΣ ΠΑΡΑΣΤΑΤΙΚΟΥ, ΠΟΥ ΕΙΝΑΙ Η ΣΤΗΛΗ ΜΕ ΤΑ ΠΕΡΙΣΣΟΤΕΡΑ ΚΕΝΑ.
+    //
+    // Η εφαρμογή τον ξέρει μόνο στις λήψεις από το εξωτερικό, όπου υπόχρεος
+    // διαβίβασης είναι ο ΛΗΠΤΗΣ. Στην εγχώρια δαπάνη τον δηλώνει ο προμηθευτής
+    // και εμείς ΔΕΝ τον μαντεύουμε: ένα λάθος «13.1» εκεί ταξιδεύει σε
+    // διαβίβαση και επιστρέφει ως απόρριψη. Ο λογιστής όμως τον ξέρει, και ώς
+    // τώρα τον πληκτρολογούσε: τριάντα τύποι με ονόματα που δεν θυμάται κανείς,
+    // και ένα «13.3» γραμμένο ως «13,3» δεν το δέχεται κανένα πρόγραμμα.
+    // Ο κατάλογος τους δίνει και τους τριάντα, γραμμένους όπως ακριβώς τους
+    // γράφει η ΑΑΔΕ — και το φύλλο των συνδυασμών λέει ποιοι χαρακτηρισμοί
+    // επιτρέπονται σε καθέναν.
+    const colOf = (c: number) => XLSX.utils.encode_col(c);
     sheetFinish(ws, {
       landscape: true, freezeRows: HR + 1,
       ...(rows.length ? { lists: [
-        { ref: `G${HR + 2}:G${last + 1}`, values: SUPPLY_VALUES },
-        { ref: `J${HR + 2}:J${last + 1}`, source: comboSheet.classList },
+        { ref: `${colOf(6)}${HR + 2}:${colOf(6)}${last + 1}`, values: SUPPLY_VALUES },
+        { ref: `${colOf(7)}${HR + 2}:${colOf(7)}${last + 1}`, source: comboSheet.typeList },
+        { ref: `${colOf(9)}${HR + 2}:${colOf(9)}${last + 1}`, source: comboSheet.classList },
       ] } : {}),
     });
     XLSX.utils.book_append_sheet(wb, ws, `Χαρακτηρισμοί myDATA`);
@@ -848,7 +873,7 @@ export function buildWorkbook(inp: AccountantBundleInput, papers: readonly Filed
   // ΕΝΑ πλάτος. Κάτω από τις «Κινήσεις», η στήλη «Περιγραφή» των 46 χαρακτήρων
   // θα έκανε τον πίνακα των «✓» να απλώνεται σε τρεις οθόνες.
   if (inp.myData) {
-    const { expCols, incCols, shortOf, expRows, incRows, namedRows, incomeNamedRows, NC, HR } = comboSheet;
+    const { expCols, incCols, shortOf, expRows, incRows, namedRows, incomeNamedRows, typeNamedRows, NC, HR } = comboSheet;
 
     const aoa: (string | number)[][] = [
       ['ΕΠΙΤΡΕΠΤΟΙ ΣΥΝΔΥΑΣΜΟΙ ΧΑΡΑΚΤΗΡΙΣΜΩΝ ΑΝΑ ΤΥΠΟ ΠΑΡΑΣΤΑΤΙΚΟΥ'],
@@ -870,14 +895,19 @@ export function buildWorkbook(inp: AccountantBundleInput, papers: readonly Filed
       ['Κωδικός ΑΑΔΕ', 'Χαρακτηρισμός'],
       ...incomeNamedRows,
       [],
+      ['ΟΙ ΤΥΠΟΙ ΠΑΡΑΣΤΑΤΙΚΩΝ ΕΞΟΔΩΝ ΜΕ ΤΟ ΟΝΟΜΑ ΤΟΥΣ'],
+      ['Κωδικός ΑΑΔΕ', 'Τύπος παραστατικού'],
+      ...typeNamedRows,
+      [],
       ['Ο ιδιοκτήτης εκδίδει κι εκείνος παραστατικά· ποιο εκδίδει εξαρτάται από τη δραστηριότητα και το κρίνει ο λογιστής. Η εφαρμογή υποδεικνύει μόνο τύπους 14.x, όπου υπόχρεος διαβίβασης είναι ο λήπτης.'],
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
-    // Το όριο είναι 62: ο μακρύτερος τίτλος παραστατικού («Παραστατικά Οντότητας
-    // ως Αναγράφονται από την ίδια (Δυναμικό)») πιάνει 61, και μια αναδίπλωση θα
+    // Το όριο είναι 68: ο μακρύτερος τίτλος παραστατικού («Παραστατικά Οντότητας
+    // ως Αναγράφονται από την ίδια (Δυναμικό)») πιάνει 61, και στον κατάλογο των
+    // τύπων γράφεται με τον κωδικό μπροστά του, δηλαδή 67. Μια αναδίπλωση θα
     // έκανε διγράμμες τις μισές από τις σαράντα πέντε γραμμές.
-    const { incSec, incHead, namSec, namHead, incNamSec, incNamHead } = comboSheet;
-    const noteR = incNamHead + 1 + incomeNamedRows.length + 1;
+    const { incSec, incHead, namSec, namHead, incNamSec, incNamHead, typeSec, typeHead } = comboSheet;
+    const noteR = typeHead + 1 + typeNamedRows.length + 1;
     const hgt: { hpt: number }[] = []; ws['!rows'] = hgt;
     hgt[0] = { hpt: ROW.title }; hgt[1] = { hpt: ROW.sub }; hgt[HR] = { hpt: ROW.head };
     bannerRow(ws, 0, NC, S.title);
@@ -896,13 +926,13 @@ export function buildWorkbook(inp: AccountantBundleInput, papers: readonly Filed
         for (let c = 2; c < 2 + cols; c++) setCell(ws, r, c, { s: CTR });
       }
     };
-    for (const r of [HR - 1, incSec, namSec, incNamSec]) bannerRow(ws, r, NC, S.section);
+    for (const r of [HR - 1, incSec, namSec, incNamSec, typeSec]) bannerRow(ws, r, NC, S.section);
     grid(HR, expRows.length, expCols.length);
     grid(incHead, incRows.length, incCols.length);
     // Ο κατάλογος των εξόδων έχει τρεις στήλες (με το πρόσημο), των εσόδων δύο:
     // το πρόσημο δεν έχει διαβαστεί από πηγή για την πλευρά των εσόδων και δεν
     // επινοείται. Το πλήθος βγαίνει από την ίδια τη γραμμή.
-    for (const [head, rows] of [[namHead, namedRows], [incNamHead, incomeNamedRows]] as const) {
+    for (const [head, rows] of [[namHead, namedRows], [incNamHead, incomeNamedRows], [typeHead, typeNamedRows]] as const) {
       const cols = rows[0]?.length ?? 2;
       for (let c = 0; c < cols; c++) setCell(ws, head, c, { s: S.head });
       for (let i = 0; i < rows.length; i++) {
@@ -910,7 +940,7 @@ export function buildWorkbook(inp: AccountantBundleInput, papers: readonly Filed
         if (cols > 2) setCell(ws, head + 1 + i, 2, { s: CTR });
       }
     }
-    ws['!cols'] = autoWidths(ws, { headRow: HR, max: 62 }).cols;
+    ws['!cols'] = autoWidths(ws, { headRow: HR, max: 68 }).cols;
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: HR + expRows.length, c: NC - 1 } }) };
     ws['!margins'] = { ...MARGINS };
     // ΠΑΓΩΝΟΥΝ ΜΟΝΟ Ο ΤΙΤΛΟΣ ΚΑΙ Η ΠΗΓΗ. Παγωμένη στη γραμμή των στηλών, η
