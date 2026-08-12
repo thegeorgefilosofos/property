@@ -115,13 +115,20 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
     const from = `${year}-${String(month || 1).padStart(2, '0')}-01`;
     const to = month > 0 ? `${year}-${String(month).padStart(2, '0')}-31` : `${year}-12-31`;
     const [rentData, expData, loanData] = await Promise.all([
-      rentStore.ofProperties(supabase, selIds, `property_id,${rentStore.LEDGER_COLUMNS}`, userId, { year, month, paid: true }),
+      // ΧΩΡΙΣ ΦΙΛΤΡΟ ΠΕΡΙΟΔΟΥ ΣΤΟΝ ΔΙΑΚΟΜΙΣΤΗ, ΚΑΙ ΓΙ' ΑΥΤΟ ΥΠΑΡΧΕΙ ΛΟΓΟΣ.
+      // Το `period_year` λέει ΤΙ ΜΗΝΑ αφορά η δόση, όχι πότε εισπράχθηκε. Το
+      // ημερολόγιο είναι ταμειακό: κρατά ό,τι μπήκε στο ταμείο μέσα στην
+      // περίοδο. Το ενοίκιο Δεκεμβρίου που πληρώθηκε τον Ιανουάριο ανήκει στον
+      // Ιανουάριο, και το φιλτράρισμα γίνεται με τον έναν κανόνα του
+      // lib/data/rent.ts. Οι στήλες είναι έξι αριθμοί ανά δόση: δώδεκα γραμμές
+      // τον χρόνο ανά ακίνητο δεν είναι φορτίο που αξίζει λάθος βιβλίο.
+      rentStore.ofProperties(supabase, selIds, `property_id,${rentStore.LEDGER_COLUMNS}`, userId, { paid: true }),
       expenseStore.inRange(supabase, selIds, from, to),
       loanStore.ofUser(supabase, userId),
     ]);
-    type RentRow = { property_id: string | null; period_year: number | null; period_month: number | null; amount: number | null; paid_date: string | null; due_date: string | null };
-    const incomes: IncomeRec[] = ((rentData || []) as RentRow[]).map(r => ({
-      date: r.paid_date || r.due_date || `${r.period_year}-${String(r.period_month || 1).padStart(2, '0')}-01`,
+    type RentRow = rentStore.BookableRent & { property_id: string | null };
+    const incomes: IncomeRec[] = rentStore.collectedIn((rentData || []) as RentRow[], year, month).map(r => ({
+      date: rentStore.bookDate(r),
       amount: Number(r.amount) || 0, property: r.property_id ? nameById.get(r.property_id) : undefined,
     }));
 

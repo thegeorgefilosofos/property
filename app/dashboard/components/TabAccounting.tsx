@@ -514,7 +514,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // Ενοποιημένο καθολικό & ταμειακές ροές (όπως πριν, αλλά με τη νέα μηχανή για φόρο)
   const entries = useMemo<LedgerInput[]>(()=>{
     const out:LedgerInput[]=[]
-    for(const p of rent){ if(p.paid&&(p.amount||0)>0){ out.push({ date:p.paid_date||p.due_date||`${p.period_year}-${String(p.period_month).padStart(2,'0')}-01`, type:'income', category:'Ενοίκιο', description:`Ενοίκιο ${MONTHS_SHORT[(p.period_month||1)-1]} ${p.period_year}`, amount:p.amount, source:'rent' }) } }
+    for(const p of rent){ if(p.paid&&(p.amount||0)>0){ out.push({ date:rentStore.bookDate(p), type:'income', category:'Ενοίκιο', description:`Ενοίκιο ${MONTHS_SHORT[(p.period_month||1)-1]} ${p.period_year}`, amount:p.amount, source:'rent' }) } }
     for(const s of stays){ if((s.total||0)>0&&s.check_in){ out.push({ date:s.check_in, type:'income', category:'Βραχυχρόνια', description:`Κράτηση ${s.channel||''}`.trim(), amount:s.total||0, source:'stay' }) } }
     for(const e of expenses){ if((e.amount||0)>0&&e.date){ out.push({ date:e.date, type:'expense', category:e.category||'Δαπάνες', description:e.description||'Δαπάνη', amount:e.amount, source:'expense', supplier_country:e.supplier_country, supply:e.supply, supplier_afm:e.supplier_afm }) } }
     // Η προμήθεια της κάθε κράτησης, δίπλα στο έσοδο της ίδιας κράτησης.
@@ -531,7 +531,8 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // διαχωρισμένες σε τόκους (65.01) και χρεολύσιο (52). Κάθε άρθρο ισοσκελισμένο.
   const journalLines = useMemo(()=>{
     const incomes:IncomeRec[] = []
-    for(const p of rent){ if(p.paid&&(p.amount||0)>0&&p.period_year===year){ incomes.push({ date:p.paid_date||p.due_date||`${p.period_year}-${String(p.period_month).padStart(2,'0')}-01`, amount:p.amount, description:`Ενοίκιο ${MONTHS_SHORT[(p.period_month||1)-1]} ${p.period_year}` }) } }
+    // ΤΑΜΕΙΑΚΗ ΕΠΙΛΟΓΗ, ΟΠΩΣ ΚΑΙ ΟΙ ΚΙΝΗΣΕΙΣ. Ο κανόνας ζει στο lib/data/rent.ts.
+    for(const p of rentStore.collectedIn(rent, year)){ incomes.push({ date:rentStore.bookDate(p), amount:p.amount||0, description:`Ενοίκιο ${MONTHS_SHORT[(p.period_month||1)-1]} ${p.period_year}` }) }
     for(const s of stays){ if((s.total||0)>0&&s.check_in&&String(s.check_in).slice(0,4)===String(year)){ incomes.push({ date:s.check_in, amount:s.total||0, description:`Κράτηση ${s.channel||''}`.trim() }) } }
     const exp:ExpenseRec[] = []
     for(const e of expenses){ if((e.amount||0)>0&&e.date&&String(e.date).slice(0,4)===String(year)){ exp.push({ date:e.date, amount:e.amount, category:e.category, description:e.description }) } }

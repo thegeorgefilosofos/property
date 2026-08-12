@@ -5,7 +5,7 @@
 // χρωστάνε». Μια ασυνέπεια εδώ δεν είναι οπτική: είναι λάθος νούμερο σε έντυπο
 // που υπογράφει ο ιδιοκτήτης.
 import {
-  daysLate, dueDateOf, paidFields, unpaidFields, PERIOD_KEY,
+  daysLate, dueDateOf, paidFields, unpaidFields, PERIOD_KEY, bookDate, collectedIn,
   ofProperty, chronological, ofProperties, ofUser, latestAmount,
   markPaid, markUnpaid, upsertPeriod, removeOfTenant,
 } from './rent';
@@ -147,6 +147,41 @@ async function asyncChecks() {
     removeOfTenant(db, 't1');
     ok('η διαγραφή μισθωτή σβήνει τις δόσεις ΤΟΥ', calls[0].del === true && calls[0].eq[0][0] === 'tenant_id');
   }
+}
+
+// ── ΤΟ ΒΙΒΛΙΟ ΕΙΝΑΙ ΤΑΜΕΙΑΚΟ, ΚΑΙ ΤΟ ΛΕΕΙ ΜΕ ΕΝΑΝ ΚΑΝΟΝΑ ──────────────────
+// Το ενοίκιο Δεκεμβρίου 2026 που πληρώθηκε στις 8 Ιανουαρίου 2027 έμπαινε στο
+// ισοζύγιο του 2026 με ημερομηνία 08/01/2027 — άρθρο εκτός χρήσης μέσα στο
+// βιβλίο της χρήσης — και ταυτόχρονα έλειπε από τις κινήσεις της ίδιας χρήσης.
+// Δύο φύλλα του ίδιου Excel διαφωνούσαν κατά ένα μίσθωμα.
+{
+  const rows = [
+    { period_year: 2026, period_month: 11, amount: 650, paid: true, paid_date: '2026-11-05', due_date: '2026-11-05' },
+    { period_year: 2026, period_month: 12, amount: 650, paid: true, paid_date: '2027-01-08', due_date: '2026-12-05' },
+    { period_year: 2025, period_month: 12, amount: 600, paid: true, paid_date: '2026-01-09', due_date: '2025-12-05' },
+    { period_year: 2026, period_month: 10, amount: 650, paid: false, paid_date: null, due_date: '2026-10-05' },
+    // Παλιά γραμμή χωρίς ημερομηνία πληρωμής: πέφτει στην προθεσμία της.
+    { period_year: 2026, period_month: 9, amount: 650, paid: true, paid_date: null, due_date: '2026-09-05' },
+  ];
+
+  ok('η ημερομηνία βιβλίου είναι η ημερομηνία είσπραξης', bookDate(rows[1]) === '2027-01-08');
+  ok('χωρίς είσπραξη, η προθεσμία', bookDate(rows[4]) === '2026-09-05');
+  ok('χωρίς καμία ημερομηνία, η πρώτη του μήνα της περιόδου',
+    bookDate({ period_year: 2026, period_month: 3 }) === '2026-03-01');
+
+  const y26 = collectedIn(rows, 2026);
+  ok('η χρήση 2026 κρατά ό,τι ΕΙΣΠΡΑΧΘΗΚΕ μέσα στο 2026',
+    y26.length === 3 && y26.every(r => bookDate(r).startsWith('2026')));
+  ok('το μίσθωμα Δεκεμβρίου που πληρώθηκε τον Ιανουάριο ΔΕΝ είναι του 2026',
+    !y26.some(r => r.period_month === 12 && r.period_year === 2026));
+  ok('είναι όμως του 2027', collectedIn(rows, 2027).length === 1);
+  ok('και το περυσινό που πληρώθηκε φέτος μετρά φέτος',
+    y26.some(r => r.period_year === 2025));
+  ok('η απλήρωτη δόση δεν μπαίνει πουθενά',
+    !y26.some(r => r.period_month === 10));
+  ok('ο μήνας φιλτράρει με τον ίδιο κανόνα',
+    collectedIn(rows, 2026, 1).length === 1 && collectedIn(rows, 2026, 11).length === 1);
+  ok('μήνας 0 σημαίνει όλη η χρήση', collectedIn(rows, 2026, 0).length === 3);
 }
 
 void asyncChecks().then(() => {
