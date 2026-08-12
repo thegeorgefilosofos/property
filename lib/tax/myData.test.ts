@@ -58,9 +58,12 @@ eq('η προεπιλογή είναι το άγνωστο', myDataHint({ catego
 
 console.log('\nΠάγια και τέλη');
 const fridge = myDataHint({ category: 'ψυγείο', supply: 'intra_eu' });
-eq('το πάγιο δεν είναι έξοδο χρήσης', fridge.expenseClass, null);
+// ΤΟ ΠΑΓΙΟ ΕΧΕΙ ΔΙΚΗ ΤΟΥ ΚΑΤΗΓΟΡΙΑ. Έβγαινε κενό όσο το όνομα του `category2_7`
+// δεν είχε διαβαστεί από επίσημη πηγή· ο κωδικός δεν αλλάζει τη λογιστική του.
+eq('το πάγιο παίρνει 2.7', fridge.expenseClass, '2.7');
 eq('αλλά η ενδοκοινοτική απόκτηση διαβιβάζεται', fridge.invoiceType, '14.1');
-eq('και ζητά τον λογιστή', fridge.needsInput, true);
+eq('και δεν ζητά τίποτα άλλο', fridge.needsInput, false);
+ok(fridge.note.includes('αποσβένεται'), 'και θυμίζει ότι δεν είναι έξοδο χρήσης');
 eq('ο ΕΝΦΙΑ δεν χαρακτηρίζεται', myDataHint({ category: 'ΕΝΦΙΑ' }).expenseClass, null);
 eq('ούτε διαβιβάζεται', myDataHint({ category: 'ΕΝΦΙΑ', supply: 'domestic' }).invoiceType, null);
 eq('άγνωστη κατηγορία, καθαρά κενό', myDataCell(myDataHint({ category: 'ξψζ' })), '');
@@ -88,12 +91,18 @@ eq('ενδοκοινοτική συνδρομή χωρίς έκπτωση',
 eq('ο τύπος μένει, και δίπλα του η εκκρεμότητα',
   myDataCell(myDataHint({ category: 'subscription', supply: 'third_country' })), '14.4 · Ζητά δικαίωμα έκπτωσης ΦΠΑ');
 eq('ο ΕΝΦΙΑ λέει ότι δεν χαρακτηρίζεται', myDataCell(myDataHint({ category: 'ΕΝΦΙΑ' })), 'Δεν χαρακτηρίζεται');
-eq('το πάγιο το λέει κι αυτό', myDataCell(myDataHint({ category: 'ψυγείο', supply: 'intra_eu' })), '14.1 · Πάγιο');
+eq('το πάγιο με τον κωδικό του', myDataCell(myDataHint({ category: 'ψυγείο', supply: 'intra_eu' })), '14.1 · 2.7 Αγορές Παγίων');
 eq('ο πλήρης χαρακτηρισμός δεν κουβαλά εκκρεμότητα',
   myDataCell(myDataHint({ category: 'plumber', supply: 'domestic' })), '2.3 Λήψη Υπηρεσιών');
 
 console.log('\nΛεκτικά');
-eq('πέντε κατηγορίες', Object.keys(EXPENSE_CLASS_LABEL).length, 5);
+eq('εννέα κατηγορίες με όνομα', Object.keys(EXPENSE_CLASS_LABEL).length, 9);
+eq('το 2.7 είναι τα πάγια', EXPENSE_CLASS_LABEL['2.7'], 'Αγορές Παγίων');
+eq('και ο κωδικός του', CATEGORY_CODE['2.95'], 'category2_95');
+// Ο πίνακας δέχεται το 2.7 στις αποκτήσεις αγαθών, όχι στη λήψη υπηρεσιών ως
+// εμπόρευμα: ο έλεγχος του συνδυασμού παραμένει ο ίδιος.
+eq('η απόκτηση αγαθών δέχεται πάγια', isAllowedCombination('14.1', '2.7'), true);
+eq('ο ΕΦΚΑ δεν δέχεται πάγια', isAllowedCombination('14.5', '2.7'), false);
 eq('το 2.5 λέει χωρίς δικαίωμα', EXPENSE_CLASS_LABEL['2.5'], 'Γενικά Έξοδα χωρίς δικαίωμα έκπτωσης Φ.Π.Α.');
 ok(Object.values(INVOICE_TYPE_LABEL).every(l => l.length > 0), 'κάθε τύπος παραστατικού έχει λεκτικό');
 // Η αντίστροφη χρέωση γράφεται ΜΟΝΟ όπου υπάρχει: μια εγχώρια γραμμή που τη
