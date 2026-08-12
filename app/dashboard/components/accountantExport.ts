@@ -22,6 +22,8 @@ import {
   CATEGORY_CODE, ALLOWED_CLASSES, type VatDeduction, type ExpenseClass, type InvoiceType,
 } from '@/lib/tax/myData';
 import { AADE_DOC_TYPES, incomeDocTypes } from '@/lib/tax/aadeDocTypes';
+import { elpAccountFor, usedElpAccounts } from '@/lib/tax/elpAccounts';
+import { resolveCategory } from '@/lib/expenses/taxonomy';
 import { csvCell } from '@/lib/core/csv';
 import { buildZip, type ZipFile } from '@/lib/accounting/zip';
 import { WHO_LABEL, type Requirement } from '@/lib/accounting/dossier';
@@ -310,6 +312,15 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     // εφαρμογή. Οι κατηγορίες εσόδων μένουν κωδικοί: τα ελληνικά τους ονόματα
     // δεν υπάρχουν στον πίνακα της ΑΑΔΕ και δεν επινοούνται εδώ.
     const incomeRows = incomeDocTypes().map(t => [t, AADE_DOC_TYPES[t].title, AADE_DOC_TYPES[t].income.join(', ')]);
+    // ΚΑΙ Ο ΛΟΓΑΡΙΑΣΜΟΣ ΤΩΝ ΕΛΠ, ΓΙΑ ΝΑ ΜΗ ΧΡΕΙΑΣΤΕΙ ΝΑ ΤΟΝ ΨΑΞΕΙ. Ο 64
+    // «Διάφορα λειτουργικά έξοδα» είναι σχεδόν όλο το κόστος ενός ακινήτου, και
+    // τα αθροίσματά του καταλήγουν στους κωδικούς 185/285/385/485 και 585 του Ε3.
+    const elpRows = usedElpAccounts().map(a => [
+      a.code, a.name,
+      // Ποιες δικές μας κατηγορίες κάθονται εκεί, με τα ονόματα που βλέπει ο χρήστης.
+      [...new Set(rows.map(e => resolveCategory(e.category)).filter(sl => sl && elpAccountFor(sl)?.code === a.code)
+        .map(sl => rows.find(e => resolveCategory(e.category) === sl)?.category || ''))].filter(Boolean).join(', '),
+    ]).filter(r => r[2]);
 
     const aoa: (string | number | Date)[][] = [
       [`ΧΑΡΑΚΤΗΡΙΣΜΟΙ myDATA ${year}`],
@@ -339,6 +350,11 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       ['Τύπος', 'Περιγραφή', 'Επιτρεπτοί χαρακτηρισμοί εσόδων'],
       ...incomeRows,
       [],
+      ...(elpRows.length ? [
+        ['ΛΟΓΑΡΙΑΣΜΟΣ ΕΛΠ 64 «ΔΙΑΦΟΡΑ ΛΕΙΤΟΥΡΓΙΚΑ ΕΞΟΔΑ», ΑΝΑ ΚΑΤΗΓΟΡΙΑ ΤΟΥ ΕΤΟΥΣ'],
+        ['Λογαριασμός', 'Ονομασία κατά το Παράρτημα Γ του ν. 4308/2014', 'Κατηγορίες δαπάνης'],
+        ...elpRows, [],
+      ] : []),
       ['Πηγή: ΑΑΔΕ, Συνδυασμοί Χαρακτηρισμών v1.0.4. Υπόδειξη προς τον λογιστή, όχι διαβίβαση: τίποτα δεν αποστέλλεται στην ΑΑΔΕ από την εφαρμογή.'],
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa, { cellDates: true });
@@ -392,7 +408,15 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     for (let i = 0; i < incomeRows.length; i++) {
       for (let c = 0; c < 3; c++) setCell(ws, headC + 1 + i, c, { s: S.txt });
     }
-    setCell(ws, headC + 1 + incomeRows.length + 1, 0, { s: S.sub });
+    let after = headC + 1 + incomeRows.length + 1;
+    if (elpRows.length) {
+      const secD = after, headD = secD + 1;
+      setCell(ws, secD, 0, { s: S.section });
+      for (let c = 0; c < 3; c++) setCell(ws, headD, c, { s: S.head });
+      for (let i = 0; i < elpRows.length; i++) for (let c = 0; c < 3; c++) setCell(ws, headD + 1 + i, c, { s: S.txt });
+      after = headD + 1 + elpRows.length + 1;
+    }
+    setCell(ws, after, 0, { s: S.sub });
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: last, c: NC - 1 } }) };
     XLSX.utils.book_append_sheet(wb, ws, `Χαρακτηρισμοί myDATA`);
   }
