@@ -14,7 +14,7 @@ import * as calendar from '@/lib/data/calendar'
 import { TextInput } from './UIComponents';
 import { T, TT, fe, feAuto, fp, fn, fixedCols, Skeleton, SkeletonKPIs, pressable } from '@/components/Theme';
 import { waterMonthly } from '@/lib/energy/tariff';
-import { monthAcc, monthGen } from '@/lib/core/months';
+import { monthAcc, monthGen, monthYearLabel } from '@/lib/core/months';
 import { randomSuffix } from '@/lib/core/uploadPath';
 import { notify } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
@@ -883,7 +883,11 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   const viewYm          = ymOf(viewDate);
   const viewActuals     = isCurMonth ? actuals : (catMonth[viewYm] || {});
   const viewActualTotal = activeCats.reduce((s, c) => s + (viewActuals[c.key] || 0), 0);
-  const viewMonthLabel  = viewDate.toLocaleDateString('el-GR', { month: 'long', year: 'numeric' });
+  // ΤΟ ΙΔΙΟ ΟΝΟΜΑ ΜΗΝΑ, ΑΠΟ ΤΗΝ ΙΔΙΑ ΠΗΓΗ. Ο μορφοποιητής του περιηγητή δίνει
+  // άλλη πτώση ανάλογα με το τι του ζητάς: «Ιούλιος 2026» με τον χρόνο, σκέτο
+  // «Ιουλίου» χωρίς αυτόν. Δύο κλήσεις στο ίδιο αρχείο έβγαζαν διαφορετική
+  // λέξη για τον ίδιο μήνα. Το `monthYearLabel` τη λέει μία φορά.
+  const viewMonthLabel  = monthYearLabel(viewYm);
   const displayOver     = activeCats.filter(c => (viewActuals[c.key] || 0) > catBudget(c.key));
   const canGoNewer      = monthOffset < 0;
   const canGoOlder      = monthOffset > -12;

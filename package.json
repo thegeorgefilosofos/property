@@ -57,6 +57,7 @@
     "no-arrows": "node scripts/guard-no-arrows.mjs",
     "field-name": "node scripts/guard-field-name.mjs",
     "em-dash": "node scripts/guard-em-dash.mjs",
+    "month-case": "node scripts/guard-month-case.mjs",
     "form-grid": "node scripts/guard-form-grid.mjs",
     "decimal-comma": "node scripts/guard-decimal-comma.mjs",
     "data-layer": "node scripts/guard-data-layer.mjs",
