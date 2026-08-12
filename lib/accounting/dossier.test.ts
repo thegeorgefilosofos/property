@@ -362,8 +362,6 @@ eq('καταστάσεις από γραμμές βάσης', statusesOf([{ stat
   ok('κάθε προορισμός υπάρχει', withPath.every(r => aadePath(r.aade!).includes(' · ')));
 }
 
-console.log(fail === 0 ? `✓ dossier: ${pass} έλεγχοι πέρασαν` : `✗ dossier: ${fail} απέτυχαν από ${pass + fail}`);
-if (fail > 0) process.exit(1);
 // ── ΟΙ ΔΑΠΑΝΕΣ ΧΩΡΙΣ ΑΦΜ ────────────────────────────────────────────────────
 // Ο λογιστής δεν καταχωρεί δαπάνη χωρίς αντισυμβαλλόμενο. Είκοσι δαπάνες
 // ρεύματος όμως έχουν τον ίδιο προμηθευτή: η ερώτηση γίνεται μία φορά.
@@ -388,3 +386,6 @@ if (fail > 0) process.exit(1);
   eq('ίδια δεδομένα, ίδια σειρά', JSON.stringify(missingAfmGroups([...rows].reverse())), JSON.stringify(groups));
   eq('χωρίς δαπάνες, καμία ερώτηση', missingAfmGroups([]).length, 0);
 }
+
+console.log(fail === 0 ? `✓ dossier: ${pass} έλεγχοι πέρασαν` : `✗ dossier: ${fail} απέτυχαν από ${pass + fail}`);
+if (fail > 0) process.exit(1);
