@@ -18,7 +18,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import {
   XLSX, FMT, S, ROW, setCell, autoWidths, wrapColumns, bannerRow, downloadWorkbook, printTitles,
-  MARGINS, sheetFinish, workbookBytes, money, moneySigned, type Cell,
+  MARGINS, sheetFinish, workbookBytes, money, moneySigned, sectionSheet, moveSheetFirst, type Cell,
 } from './xlsxStyle';
 import { supplyLabel, reverseChargeVat, reverseCharge, VAT_STANDARD, type Supply } from '@/lib/tax/placeOfSupply';
 import {
@@ -33,12 +33,11 @@ import {
 import { ELP_ALL, eglsOf, CAPITALISABLE, CAPITALISATION_NOTE } from '@/lib/tax/elpAccounts';
 import { ACCOUNTS, expenseAccount } from '@/lib/accounting/journal';
 import {
-  ELP_ASSETS, elpAsset, sortAssets, totalsByAccount, depreciationSchedule, depreciableBase,
-  chargeForYear, closingValue, missingFor, type FixedAsset,
+  ELP_ASSETS, sortAssets, totalsByAccount, depreciationSchedule, depreciableBase,
+  closingValue, missingFor, type FixedAsset,
 } from '@/lib/accounting/fixedAssets';
 import { CATEGORIES } from '@/lib/expenses/taxonomy';
 import { resolveCategory } from '@/lib/expenses/taxonomy';
-import { csvCell } from '@/lib/core/csv';
 import { isValidAfm } from '@/lib/core/greek';
 import { buildZip, type ZipFile } from '@/lib/accounting/zip';
 import {
@@ -106,6 +105,30 @@ export interface AccountantBundleInput {
   assets?: readonly FixedAsset[];
   /** Η αναλογία της αξίας που αφορά το κτίσμα — το υπόλοιπο είναι το οικόπεδο. */
   buildingFraction?: number;
+  /**
+   * ΟΣΑ ΞΕΡΕΙ Ο ΦΑΚΕΛΟΣ ΚΑΙ ΔΕΝ ΞΕΡΕΙ ΤΟ ΚΟΥΜΠΙ «EXCEL».
+   *
+   * Το κουμπί κατεβάζει το βιβλίο των αριθμών. Ο φάκελος κουβαλά επιπλέον την
+   * ταυτότητα, τον κατάλογο δικαιολογητικών και το τι λείπει — τρία φύλλα που
+   * σε σκέτο Excel θα ήταν άσχετα. Παρόν εδώ σημαίνει «φτιάξε τα».
+   */
+  dossier?: DossierNarrative;
+}
+
+/** Η αφήγηση του φακέλου: ποιος είναι ο φορολογούμενος και τι του λείπει. */
+export interface DossierNarrative {
+  /** Ο πλήρης κατάλογος για αυτόν τον χρήστη (από requirementsFor). */
+  requirements: readonly Requirement[];
+  /** Τι έχει ήδη ο χρήστης. */
+  haveIds: readonly string[];
+  /** Η φράση ετοιμότητας, ίδια με αυτή που βλέπει ο χρήστης στην οθόνη. */
+  readinessMessage: string;
+  /** Τα ακίνητα και η κατάστασή τους, στη γλώσσα του λογιστή. */
+  properties: readonly { name: string; status: string }[];
+  formLabel: string;
+  booksLabel: string;
+  /** Κενά στα δεδομένα της εφαρμογής (π.χ. «καμία δαπάνη για το 2026»). */
+  gaps?: readonly string[];
 }
 
 /**
@@ -114,6 +137,9 @@ export interface AccountantBundleInput {
  * Η ονομασία έρχεται από το lib/tax/placeOfSupply.ts, μία φορά για όλη την
  * εφαρμογή — οθόνη και αρχείο δεν επιτρέπεται να τον λένε αλλιώς.
  */
+/** Ημερομηνία όπως τη διαβάζει Έλληνας: 11/03/2026 από 2026-03-11. */
+const grDate = (d: string): string => { const p = d.split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : d; };
+
 const supplyCell = (s: string | null | undefined): string =>
   s === 'domestic' || s === 'intra_eu' || s === 'third_country' ? supplyLabel(s) : '';
 
@@ -217,6 +243,19 @@ const comboSheet = (() => {
  * κάτω από λάθος επικεφαλίδα, και το Excel ανοίγει κανονικά.
  */
 /**
+ * ΤΑ ΓΡΑΜΜΑΤΑ ΤΩΝ ΕΝΟΤΗΤΩΝ ΒΓΑΙΝΟΥΝ ΑΠΟ ΤΗ ΘΕΣΗ ΤΟΥΣ, ΟΧΙ ΑΠΟ ΤΟ ΧΕΡΙ.
+ *
+ * Γραμμένα σταθερά, ένα φύλλο έδειχνε «Α», «Γ», «Ε»: οι ενότητες Β και Δ ήταν
+ * άδειες και έλειπαν, και ο λογιστής έψαχνε τι δεν του δώσαμε. Το γράμμα είναι
+ * αρίθμηση, και η αρίθμηση δεν έχει τρύπες.
+ */
+const lettered = <T extends { title?: string }>(blocks: readonly T[]): T[] => {
+  const letters = 'ΑΒΓΔΕΖΗΘΙΚ';
+  let i = 0;
+  return blocks.map(b => (b.title ? { ...b, title: `${letters[i++] || '·'}. ${b.title}` } : b));
+};
+
+/**
  * Το βιβλίο του έτους ως βιβλίο εργασίας.
  *
  * ΤΑ ΧΑΡΤΙΑ ΕΡΧΟΝΤΑΙ ΩΣ ΔΕΥΤΕΡΟ ΟΡΙΣΜΑ, ΚΑΙ ΜΟΝΟ ΑΠΟ ΤΟΝ ΦΑΚΕΛΟ. Το κουμπί
@@ -230,7 +269,11 @@ export function buildWorkbook(inp: AccountantBundleInput, papers: readonly Filed
   const buildingFraction = inp.buildingFraction ?? 1;
   const wb = XLSX.utils.book_new();
   // Ταυτότητα φορολογούμενου/περιόδου — ίδια ακριβώς και στα δύο φύλλα.
-  const idLine = `Property OS · ${propName}${ownerAfm ? ` · ΑΦΜ ${ownerAfm}` : ''} · Περίοδος 01/01/${year}–31/12/${year} · Ημερομηνία έκδοσης ${new Date().toLocaleDateString('el-GR')}`;
+  // ΔΥΟ ΨΗΦΙΑ ΚΑΙ ΣΤΗ ΜΕΡΑ ΚΑΙ ΣΤΟΝ ΜΗΝΑ. Το σκέτο `toLocaleDateString` γράφει
+  // «12/8/2026»: σε αρχείο που δίπλα του έχει «11/03/2026» φαίνεται λάθος, και
+  // είναι η μόνη ημερομηνία του βιβλίου με άλλη μορφή από τις υπόλοιπες.
+  const issued = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const idLine = `Property OS · ${propName}${ownerAfm ? ` · ΑΦΜ ${ownerAfm}` : ''} · Περίοδος 01/01/${year}–31/12/${year} · Ημερομηνία έκδοσης ${issued}`;
 
   // ── Φύλλο 1: Κατάσταση Αποτελεσμάτων ───────────────────────────────────────
   {
@@ -949,6 +992,202 @@ export function buildWorkbook(inp: AccountantBundleInput, papers: readonly Filed
     printTitles(wb, wb.SheetNames.length - 1, e3Sheet, HR + 1);
   }
 
+  // ══ ΤΑ ΦΥΛΛΑ ΤΟΥ ΦΑΚΕΛΟΥ ═════════════════════════════════════════════════
+  // Ήταν αρχεία CSV μέσα σε αριθμημένους υποφακέλους. Δεν άνοιγαν: το Excel
+  // χωρίζει στηλες με τον διαχωριστή του συστήματος, που σε αγγλικά Windows
+  // είναι το κόμμα — και ολόκληρη η γραμμή «Α/Α;Ημερομηνία;Κατηγορία…»
+  // προσγειωνόταν μέσα στο κελί A1. Ο λογιστής άνοιγε τον φάκελο και έβλεπε
+  // σκουπίδια, χωρίς να φταίει σε τίποτα.
+  //
+  // Τώρα είναι φύλλα του ΙΔΙΟΥ βιβλίου, με τη διάταξη που έχουν και τα
+  // υπόλοιπα. Δεν υπάρχει διαδρομή που να καταλήγει σε ημιτελή πίνακα.
+  if (inp.dossier) {
+    const d = inp.dossier;
+    const have = new Set(d.haveIds);
+    const missing = d.requirements.filter(r => !have.has(r.id));
+    const blocking = missing.filter(r => r.blocking);
+    const pending = missing.filter(r => !r.blocking);
+    const traps = d.requirements.filter(r => r.trap);
+    const gaps = d.gaps ?? [];
+    const expenses = book.filter(e => e.type === 'expense');
+    const mdPending = inp.myData
+      ? pendingGroups(expenses.map(e => ({ category: e.category, supply: e.supply as Supply | null, description: e.description })), inp.myData.vat)
+      : [];
+    const afmGroups = missingAfmGroups(expenses.map(e => ({
+      category: e.category, description: e.description, amount: e.amount, afm: afmCell(e),
+    })));
+
+    // ── ΔΙΚΑΙΟΛΟΓΗΤΙΚΑ ────────────────────────────────────────────────────
+    {
+      const { ws } = sectionSheet({
+        title: `ΔΙΚΑΙΟΛΟΓΗΤΙΚΑ ${year}`,
+        sub: idLine,
+        blocks: lettered([
+          {
+            title: 'ΤΙ ΧΡΕΙΑΖΕΤΑΙ, ΚΑΙ ΠΟΙΟΣ ΤΟ ΦΕΡΝΕΙ',
+            head: ['Παραστατικό', 'Κατάσταση', 'Ποιος το φέρνει', 'Απαραίτητο', 'Γιατί χρειάζεται', 'Πού βρίσκεται'],
+            rows: d.requirements.map(r => [
+              r.title, have.has(r.id) ? 'Υπάρχει' : 'Λείπει', WHO_LABEL[r.who],
+              r.blocking ? 'ΝΑΙ' : '', r.why, r.source || '',
+            ]),
+            empty: 'Δεν προέκυψε καμία υποχρέωση για αυτή τη χρήση.',
+          },
+          // Η ΕΝΟΤΗΤΑ ΤΩΝ ΧΑΡΤΙΩΝ ΥΠΑΡΧΕΙ ΜΟΝΟ ΟΤΑΝ ΤΑΞΙΔΕΥΟΥΝ ΧΑΡΤΙΑ. Ένας
+          // κενός πίνακας «ευρετήριο παραστατικών» σε φάκελο χωρίς παραστατικά
+          // είναι υπόσχεση που δεν κρατήθηκε.
+          ...(papers.length ? [{
+            title: 'ΤΑ ΧΑΡΤΙΑ ΠΟΥ ΣΥΝΟΔΕΥΟΥΝ ΤΟΝ ΦΑΚΕΛΟ',
+            head: ['Α/Α', 'Αρχείο', 'Ημερομηνία', 'Εκδότης', 'ΑΦΜ', 'Κατηγορία', 'Αξία', 'Γραμμή στις «Κινήσεις»'],
+            numeric: [0, 4, 6, 7],
+            rows: papers.map(p => [
+              p.label, p.file, p.paper.docDate ? grDate(p.paper.docDate) : '',
+              p.paper.supplier || p.paper.title || '', p.paper.afm || '', p.paper.category || '',
+              Number.isFinite(Number(p.paper.amount)) && Number(p.paper.amount) !== 0 ? money(Number(p.paper.amount)) : '',
+              p.row ?? '',
+            ]),
+            notes: [
+              'Τα αρχεία βρίσκονται στον υποφάκελο «Παραστατικά», με τον ίδιο αριθμό μπροστά από το όνομά τους. Ο ίδιος αριθμός γράφεται και στη στήλη «Παραστατικό» του φύλλου των κινήσεων.',
+              'Όπου η τελευταία στήλη είναι κενή, το χαρτί δεν ταυτίστηκε με βεβαιότητα σε μία κίνηση: η ημερομηνία και το ποσό του ταιριάζουν σε καμία ή σε περισσότερες από μία.',
+            ],
+          }] : []),
+          ...(traps.length ? [{
+            title: 'ΠΑΓΙΔΕΣ ΠΟΥ ΚΟΣΤΙΖΟΥΝ',
+            head: ['Παραστατικό', 'Τι πάει στραβά, και τι κοστίζει'],
+            rows: traps.map(r => [r.title, r.trap || '']),
+          }] : []),
+        ]),
+      });
+      XLSX.utils.book_append_sheet(wb, ws, 'Δικαιολογητικά');
+    }
+
+    // ── ΤΙ ΛΕΙΠΕΙ ─────────────────────────────────────────────────────────
+    // ΤΕΣΣΕΡΙΣ ΔΙΑΦΟΡΕΤΙΚΕΣ ΕΛΛΕΙΨΕΙΣ, ΤΕΣΣΕΡΙΣ ΠΙΝΑΚΕΣ. Ένα χαρτί που δεν
+    // βρέθηκε, ένα κενό στα δεδομένα, μια δαπάνη που ζητά απόφαση και μια
+    // δαπάνη χωρίς αντισυμβαλλόμενο δεν λύνονται με τον ίδιο τρόπο και δεν τα
+    // κάνει ο ίδιος άνθρωπος.
+    {
+      const reqRows = (rs: readonly Requirement[]) => rs.map(r => [r.title, WHO_LABEL[r.who], r.why, r.source || '']);
+      const reqHead = ['Παραστατικό', 'Ποιος το φέρνει', 'Γιατί χρειάζεται', 'Πού βρίσκεται'];
+      const clean = missing.length === 0 && gaps.length === 0 && mdPending.length === 0 && afmGroups.length === 0;
+      const { ws } = sectionSheet({
+        title: `ΤΙ ΛΕΙΠΕΙ ΑΠΟ ΑΥΤΟΝ ΤΟΝ ΦΑΚΕΛΟ · ${year}`,
+        sub: `${idLine} · ${d.readinessMessage}`,
+        blocks: lettered([
+          {
+            title: `ΧΩΡΙΣ ΑΥΤΑ ΔΕΝ ΚΛΕΙΝΕΙ Η ΔΗΛΩΣΗ${blocking.length ? ` (${blocking.length})` : ''}`,
+            head: reqHead, rows: reqRows(blocking),
+            empty: 'Κανένα. Όλα τα απαραίτητα υπάρχουν.',
+          },
+          ...(pending.length ? [{
+            title: `ΚΑΛΟ ΝΑ ΥΠΑΡΧΟΥΝ, ΔΕΝ ΜΠΛΟΚΑΡΟΥΝ (${pending.length})`,
+            head: reqHead, rows: reqRows(pending),
+          }] : []),
+          ...(gaps.length ? [{
+            title: 'ΚΕΝΑ ΣΤΑ ΔΕΔΟΜΕΝΑ ΤΗΣ ΕΦΑΡΜΟΓΗΣ',
+            head: ['Τι δεν βρέθηκε στις καταχωρήσεις'],
+            rows: gaps.map(g => [g]),
+          }] : []),
+          ...(mdPending.length ? [{
+            title: `ΔΑΠΑΝΕΣ ΠΟΥ ΖΗΤΟΥΝ ΑΠΟΦΑΣΗ ΓΙΑ ΤΟΝ ΧΑΡΑΚΤΗΡΙΣΜΟ myDATA (${mdPending.length})`,
+            head: ['Εκκρεμότητα', 'Δαπάνες', 'Γιατί', 'Παράδειγμα'],
+            numeric: [1],
+            rows: mdPending.map(m => [m.label, m.count, m.note, m.sample]),
+          }] : []),
+          ...(afmGroups.length ? [{
+            title: `ΔΑΠΑΝΕΣ ΧΩΡΙΣ ΑΦΜ ΠΡΟΜΗΘΕΥΤΗ (${afmGroups.length})`,
+            head: ['Κατηγορία', 'Δαπάνες', 'Αξία', 'Παράδειγμα'],
+            numeric: [1, 2],
+            rows: afmGroups.map(m => [m.category, m.count, money(m.amount), m.sample]),
+            notes: ['Ο λογιστής δεν καταχωρεί δαπάνη χωρίς αντισυμβαλλόμενο. Το ΑΦΜ διαβάζεται μόνο του από τα παραστατικά που σαρώνονται στην εφαρμογή· για τις παραπάνω χρειάζεται το χαρτί ή το ΑΦΜ του εκδότη.'],
+          }] : []),
+          {
+            notes: [clean
+              ? 'Ο φάκελος είναι πλήρης.'
+              : 'Τα παραπάνω δεν βρέθηκαν στην εφαρμογή. Δεν σημαίνει ότι δεν υπάρχουν: σημαίνει ότι δεν συνοδεύουν αυτόν τον φάκελο.'],
+          },
+        ]),
+      });
+      XLSX.utils.book_append_sheet(wb, ws, 'Τι λείπει');
+    }
+
+    // ── ΣΥΝΟΨΗ, ΓΡΑΜΜΕΝΗ ΤΕΛΕΥΤΑΙΑ ΚΑΙ ΔΙΑΒΑΣΜΕΝΗ ΠΡΩΤΗ ───────────────────
+    // Λέει τι περιέχει το βιβλίο, άρα δεν μπορεί να φτιαχτεί πριν από τα φύλλα
+    // του. Ο κατάλογος των φύλλων ΔΕΝ είναι γραμμένος με το χέρι: διαβάζεται
+    // από το ίδιο το βιβλίο, οπότε δεν γίνεται να υποσχεθεί φύλλο που λείπει.
+    {
+      const income = book.filter(e => e.type === 'income');
+      const sum = (rows: readonly AccountantMovement[]) => rows.reduce((s, e) => s + (e.amount || 0), 0);
+      const answers: Record<string, string> = {
+        'Κατάσταση αποτελεσμάτων': 'Έσοδα, εκπιπτόμενα, αποτέλεσμα και πρόβλεψη φόρου.',
+        [`Κινήσεις ${year}`]: 'Κάθε είσπραξη και πληρωμή της χρήσης, χρονολογικά.',
+        'Λογαριασμοί ΕΛΠ': 'Πού κάθεται κάθε κατηγορία, με την αντιστοιχία ΕΓΛΣ.',
+        'Μητρώο παγίων': 'Τα πάγια, ο πίνακας αποσβέσεων και οι λογαριασμοί τους.',
+        'Χαρακτηρισμοί myDATA': 'Τύπος παραστατικού, χαρακτηρισμός και κωδικοί Ε3 ανά δαπάνη.',
+        [COMBO_SHEET]: 'Ποιος χαρακτηρισμός επιτρέπεται σε ποιον τύπο παραστατικού.',
+        'Κωδικοί Ε3 ανά συνδυασμό': 'Οι επιτρεπτοί κωδικοί Ε3 για κάθε συνδυασμό.',
+        'Δικαιολογητικά': 'Τι χρειάζεται, ποιος το φέρνει, και τι συνοδεύει τον φάκελο.',
+        'Τι λείπει': 'Ό,τι ΔΕΝ βρέθηκε. Διαβάστε το πρώτο.',
+      };
+      const { ws } = sectionSheet({
+        title: 'ΦΑΚΕΛΟΣ ΓΙΑ ΤΟΝ ΛΟΓΙΣΤΗ',
+        sub: idLine,
+        maxWidth: 60,
+        blocks: [
+          {
+            title: 'ΠΟΥ ΒΡΙΣΚΕΤΑΙ Ο ΦΑΚΕΛΟΣ',
+            // Η ΠΡΩΤΗ ΠΡΟΤΑΣΗ ΠΟΥ ΔΙΑΒΑΖΕΤΑΙ ΕΧΕΙ ΤΟ ΒΑΡΟΣ ΠΟΥ ΤΗΣ ΑΝΑΛΟΓΕΙ.
+            // Γραμμένη σε γκρι πλάγια, όπως οι υποσημειώσεις, έλεγε στον λογιστή
+            // ότι είναι υποσημείωση — ενώ είναι η απάντηση στο «είμαστε έτοιμοι;».
+            lead: d.readinessMessage,
+          },
+          {
+            title: 'ΤΑΥΤΟΤΗΤΑ',
+            head: ['Πεδίο', 'Τιμή'],
+            rows: [
+              ['Χρήση', `01/01/${year} έως 31/12/${year}`],
+              ['Φορολογούμενος', `${propName}${ownerAfm ? ` · ΑΦΜ ${ownerAfm}` : ''}`],
+              ['Νομική μορφή', d.formLabel],
+              ['Βιβλία', d.booksLabel],
+            ],
+          },
+          {
+            title: 'ΑΚΙΝΗΤΑ',
+            head: ['Ακίνητο', 'Κατάσταση'],
+            rows: d.properties.map(p => [p.name, p.status]),
+            empty: 'Δεν έχουν καταχωρηθεί ακίνητα.',
+          },
+          {
+            title: 'ΣΥΝΟΛΑ ΕΤΟΥΣ',
+            head: ['', 'Κινήσεις', 'Ποσό'],
+            numeric: [1, 2],
+            rows: [
+              ['Έσοδα', income.length, money(sum(income))],
+              ['Έξοδα', expenses.length, money(sum(expenses))],
+              ['Καθαρό', '', money(sum(income) - sum(expenses))],
+            ],
+            totals: [2],
+          },
+          {
+            title: 'ΤΙ ΠΕΡΙΕΧΕΙ ΑΥΤΟ ΤΟ ΒΙΒΛΙΟ',
+            head: ['Φύλλο', 'Τι απαντά'],
+            rows: wb.SheetNames.map(n => [n, answers[n] || '']),
+          },
+          ...(papers.length ? [{
+            title: 'ΚΑΙ ΤΑ ΙΔΙΑ ΤΑ ΧΑΡΤΙΑ',
+            notes: [
+              `Ο υποφάκελος «Παραστατικά» περιέχει ${papers.length === 1 ? 'ένα αρχείο' : `${papers.length} αρχεία`}, αριθμημένα. Ο αριθμός κάθε αρχείου γράφεται στη στήλη «Παραστατικό» δίπλα στην κίνηση που τεκμηριώνει, και το φύλλο «Δικαιολογητικά» δείχνει σε ποια γραμμή ανήκει το καθένα.`,
+            ],
+          }] : []),
+          {
+            notes: ['Τα ποσά προέρχονται από τις καταχωρήσεις του ιδιοκτήτη στο Property OS και δεν αποτελούν φορολογική δήλωση ούτε λογιστική συμβουλή.'],
+          },
+        ],
+      });
+      XLSX.utils.book_append_sheet(wb, ws, 'Σύνοψη');
+      moveSheetFirst(wb, 'Σύνοψη');
+    }
+  }
+
   return wb;
 }
 
@@ -974,295 +1213,49 @@ export interface DossierAttachment extends DossierPaper {
 }
 
 export interface DossierExportInput extends AccountantBundleInput {
-  /** Ο πλήρης κατάλογος για αυτόν τον χρήστη (από requirementsFor). */
-  requirements: readonly Requirement[];
-  /** Τι έχει ήδη ο χρήστης — τα υπόλοιπα γράφονται στο 05_ΤΙ_ΛΕΙΠΕΙ. */
-  haveIds: readonly string[];
-  /** Η φράση ετοιμότητας, ίδια με αυτή που βλέπει ο χρήστης στην οθόνη. */
-  readinessMessage: string;
-  /** Τα ακίνητα και η κατάστασή τους, στη γλώσσα του λογιστή. */
-  properties: readonly { name: string; status: string }[];
-  formLabel: string;
-  booksLabel: string;
-  /** Κενά στα δεδομένα της εφαρμογής (π.χ. «καμία δαπάνη για το 2026»). */
-  gaps?: readonly string[];
+  dossier: DossierNarrative;
   /** Τα ίδια τα χαρτιά, με τα bytes τους. Κενό όταν δεν υπάρχουν ή δεν ζητήθηκαν. */
   attachments?: readonly DossierAttachment[];
 }
 
-const CRLF = '\r\n';
-const BOM = '﻿';                                   // ώστε το ελληνικό Excel να ανοίγει σωστά τα CSV
-
-const csv = (rows: (string | number)[][]): string => BOM + rows.map(r => r.map(v => csvCell(v, ';')).join(';')).join(CRLF) + CRLF;
-const txt = (lines: string[]): string => BOM + lines.join(CRLF) + CRLF;
-const grDate = (d: string): string => { const p = d.split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : d; };
-const grNum = (n: number): string => (n || 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const rule = (ch = '─', n = 74) => ch.repeat(n);
+// ΤΙ ΕΦΥΓΕ ΜΑΖΙ ΜΕ ΤΑ CSV. Ένας κατασκευαστής CSV με ελληνικό ερωτηματικό, ένας
+// κατασκευαστής απλού κειμένου με BOM, και μια συνάρτηση που ζωγράφιζε γραμμές
+// από παύλες για να μοιάζει το .txt με έγγραφο. Κανένα από τα τρία δεν έχει
+// θέση σε βιβλίο εργασίας, και κανένα δεν διαγράφτηκε «προσωρινά».
 
 /**
  * Τα περιεχόμενα του φακέλου, πριν γίνουν zip.
  *
- * Η ΑΡΙΘΜΗΣΗ ΕΙΝΑΙ Η ΟΔΗΓΙΑ ΧΡΗΣΗΣ. Ο λογιστής δεν διαβάζει README· διαβάζει
- * ονόματα φακέλων. 01 η σύνοψη, 02 τα έσοδα, 03 τα έξοδα, 04 τα δικαιολογητικά
- * και 05 —μόνο του, έξω από κάθε υποφάκελο, για να μη χαθεί— τι λείπει.
+ * ΕΝΑ ΒΙΒΛΙΟ ΚΑΙ ΤΑ ΧΑΡΤΙΑ ΤΟΥ. ΤΙΠΟΤΑ ΑΛΛΟ.
  *
- * ΞΕΧΩΡΙΣΤΑ ΑΠΟ ΤΟ ΚΑΤΕΒΑΣΜΑ, ΓΙΑΤΙ ΑΛΛΙΩΣ ΔΕΝ ΕΛΕΓΧΕΤΑΙ. Όσο ο φάκελος
- * γεννιόταν μέσα στην ίδια συνάρτηση που καλεί τον browser, τίποτα από όσα
- * γράφει —ούτε τα ονόματα, ούτε το ευρετήριο— δεν μπορούσε να δοκιμαστεί χωρίς
- * DOM. Και ένας φάκελος που δεν δοκιμάζεται είναι ένας φάκελος που θα βγει
- * λάθος στον λογιστή του πελάτη.
+ * Ο φάκελος ήταν πέντε αριθμημένοι υποφάκελοι με CSV μέσα. Τα CSV ΔΕΝ άνοιγαν
+ * ως πίνακες: το Excel χωρίζει στήλες με τον διαχωριστή του συστήματος, που σε
+ * αγγλικά Windows είναι το κόμμα, και ολόκληρη η γραμμή προσγειωνόταν στο κελί
+ * A1. Ο λογιστής άνοιγε τέσσερα αρχεία και έβλεπε τέσσερις φορές το ίδιο
+ * χάλι — και από πάνω ένα κίτρινο μήνυμα ότι θα χάσει δεδομένα αν το σώσει.
+ *
+ * Η αρίθμηση 01..05 υπήρχε για να διαβάζονται οι υποφάκελοι με σειρά. Δεν
+ * χρειάζεται πια σειρά υποφακέλων: υπάρχει σειρά ΦΥΛΛΩΝ, και η «Σύνοψη» είναι
+ * το πρώτο. Ο λογιστής ανοίγει ένα αρχείο, βλέπει τις καρτέλες, και ξέρει.
+ *
+ * ΓΙΑΤΙ ΕΞΑΚΟΛΟΥΘΕΙ ΝΑ ΕΙΝΑΙ ZIP. Γιατί δίπλα στο βιβλίο ταξιδεύουν τα ίδια τα
+ * παραστατικά, και αυτά είναι αρχεία. Ένα zip με ένα βιβλίο και έναν υποφάκελο
+ * είναι ο φάκελος που στέλνεις με ένα συνημμένο.
  */
 export function dossierFiles(inp: DossierExportInput): ZipFile[] {
-  const { year, propName, ownerAfm, requirements, haveIds, readinessMessage, properties, formLabel, booksLabel, gaps = [], book } = inp;
-  const have = new Set(haveIds);
-  const missing = requirements.filter(r => !have.has(r.id));
-  const issued = new Date().toLocaleDateString('el-GR');
-  const idLine = `${propName}${ownerAfm ? ` · ΑΦΜ ${ownerAfm}` : ''} · χρήση ${year}`;
-
-  const income = book.filter(e => e.type === 'income').sort((a, b) => a.date.localeCompare(b.date));
-  const expense = book.filter(e => e.type === 'expense').sort((a, b) => a.date.localeCompare(b.date));
-  const sum = (rows: AccountantMovement[]) => rows.reduce((s, e) => s + (e.amount || 0), 0);
+  const { year, propName, book } = inp;
 
   // ── ΤΑ ΧΑΡΤΙΑ, ΑΡΙΘΜΗΜΕΝΑ ────────────────────────────────────────────────
-  // Υπολογίζονται ΜΙΑ φορά και μοιράζονται σε τέσσερα σημεία: τη στήλη του
-  // Excel, τα δύο αρχεία των κινήσεων, το ευρετήριο και τα ίδια τα ονόματα των
-  // αρχείων. Δεύτερη κλήση θα έδινε τα ίδια αποτελέσματα (η `filePapers` είναι
-  // καθαρή), αλλά μία μόνο κλήση το κάνει αδύνατο να αποκλίνουν ποτέ.
-  const attachments = inp.attachments ?? [];
-  const papers = filePapers(attachments, book.map(e => ({
+  // Υπολογίζονται ΜΙΑ φορά και μοιράζονται σε τρία σημεία: τη στήλη των
+  // κινήσεων, το φύλλο των δικαιολογητικών και τα ίδια τα ονόματα των αρχείων.
+  const papers = filePapers(inp.attachments ?? [], book.map(e => ({
     date: e.date, amount: e.amount, afm: afmCell(e) || null,
   })));
-  // Από την κίνηση στον αριθμό του χαρτιού της: η ταυτότητα του αντικειμένου
-  // είναι το κλειδί, γιατί οι δύο ταξινομήσεις κρατούν τις ΙΔΙΕΣ γραμμές.
-  const sortedBook = [...book].sort((a, b) => a.date.localeCompare(b.date));
-  const paperOf = new Map<AccountantMovement, string>();
-  for (const p of papers) {
-    if (p.row == null) continue;
-    const e = sortedBook[p.row - 1];
-    const cur = paperOf.get(e);
-    paperOf.set(e, cur ? `${cur} · ${p.label}` : p.label);
-  }
-  const anyPaper = papers.length > 0;
 
-  // ── 00 · Τι κρατάς στα χέρια σου ─────────────────────────────────────────
-  const readme = txt([
-    'ΦΑΚΕΛΟΣ ΓΙΑ ΤΟΝ ΛΟΓΙΣΤΗ', rule('═'), '',
-    idLine,
-    `Νομική μορφή: ${formLabel} · Βιβλία: ${booksLabel}`,
-    `Ημερομηνία έκδοσης: ${issued}`, '',
-    readinessMessage, '', rule(), '',
-    'ΠΕΡΙΕΧΟΜΕΝΑ',
-    // Ο ΠΙΝΑΚΑΣ ΠΕΡΙΕΧΟΜΕΝΩΝ ΛΕΕΙ ΤΙ ΥΠΑΡΧΕΙ ΟΝΤΩΣ ΜΕΣΑ. Το Excel αποκτά δύο
-    // φύλλα ακόμη όταν υπάρχει υποχρέωση myDATA· μια σταθερή πρόταση θα έλεγε
-    // «αποτελέσματα και κινήσεις» σε αρχείο που έχει και τους χαρακτηρισμούς.
-    `  01 ΣΥΝΟΨΗ            ${inp.myData
-      ? 'Αποτελέσματα, κινήσεις, λογαριασμοί ΕΛΠ και χαρακτηρισμοί myDATA (Excel).'
-      : 'Αποτελέσματα, κινήσεις και λογαριασμοί ΕΛΠ (Excel).'}`,
-    ...(inp.assets?.length ? ['                       Και το μητρώο παγίων με τον πίνακα αποσβέσεων.'] : []),
-    '  02 ΕΣΟΔΑ             Κάθε είσπραξη του έτους, με ημερομηνία και περιγραφή.',
-    '  03 ΕΞΟΔΑ             Κάθε πληρωμή του έτους, ανά κατηγορία.',
-    '  04 ΔΙΚΑΙΟΛΟΓΗΤΙΚΑ    Ο κατάλογος των παραστατικών, με το ποιος φέρνει το καθένα.',
-    ...(anyPaper ? [`                       Και τα ίδια τα χαρτιά: ${papers.length === 1 ? 'ένα αρχείο' : `${papers.length} αρχεία`}, αριθμημένα.`] : []),
-    '  05 Τι λείπει         Ό,τι ΔΕΝ βρέθηκε. Διαβάστε το πρώτο.', '', rule(), '',
-    // Ο ΑΡΙΘΜΟΣ ΤΟΥ ΑΡΧΕΙΟΥ ΕΙΝΑΙ Ο ΑΡΙΘΜΟΣ ΣΤΗ ΣΤΗΛΗ. Λέγεται εδώ μία φορά,
-    // και δεν επαναλαμβάνεται σε κανένα από τα υπόλοιπα αρχεία.
-    ...(anyPaper ? [
-      'ΠΩΣ ΔΕΝΟΥΝ ΤΑ ΧΑΡΤΙΑ ΜΕ ΤΟΥΣ ΑΡΙΘΜΟΥΣ',
-      'Κάθε παραστατικό έχει αριθμό μπροστά από το όνομά του. Ο ίδιος αριθμός',
-      'γράφεται στη στήλη «Παραστατικό», δίπλα στην κίνηση που τεκμηριώνει. Όπου',
-      'η στήλη είναι κενή, το χαρτί δεν ταυτίστηκε με βεβαιότητα σε μία κίνηση:',
-      'το ευρετήριο του 04 δείχνει τι ξέρουμε γι\' αυτό.', '', rule(), '',
-    ] : []),
-    'Τα ποσά προέρχονται από τις καταχωρήσεις του ιδιοκτήτη στο Property OS και',
-    'δεν αποτελούν φορολογική δήλωση ούτε λογιστική συμβουλή.',
-  ]);
-
-  // ── 01 · Ταυτότητα και σύνοψη ────────────────────────────────────────────
-  // ΤΟ ΙΔΙΟ ΑΡΧΕΙΟ ΜΕ ΤΟ ΚΟΥΜΠΙ «EXCEL», ΚΑΙ ΜΕ ΤΟΝ ΙΔΙΟ ΤΡΟΠΟ ΓΡΑΨΙΜΑΤΟΣ:
-  // η `workbookBytes` προσθέτει τους αναπτυσσόμενους καταλόγους και τη διάταξη
-  // σελίδας. Γραμμένο με σκέτο `XLSX.write`, ο φάκελος θα κουβαλούσε ΑΛΛΟ αρχείο
-  // από το κουμπί, χωρίς να το δει κανείς.
-  const wbBytes = workbookBytes(buildWorkbook(inp, papers));
-  const identity = txt([
-    'ΤΑΥΤΟΤΗΤΑ ΦΑΚΕΛΟΥ', rule('═'), '',
-    `Χρήση:          01/01/${year} – 31/12/${year}`,
-    `Φορολογούμενος: ${propName}${ownerAfm ? ` (ΑΦΜ ${ownerAfm})` : ''}`,
-    `Νομική μορφή:   ${formLabel}`,
-    `Βιβλία:         ${booksLabel}`, '',
-    'ΑΚΙΝΗΤΑ ΚΑΙ ΚΑΤΑΣΤΑΣΗ', rule(),
-    ...(properties.length ? properties.map(p => `  · ${p.name} — ${p.status}`) : ['  (δεν έχουν καταχωρηθεί ακίνητα)']), '',
-    'ΣΥΝΟΛΑ ΕΤΟΥΣ', rule(),
-    `  Έσοδα:  ${grNum(sum(income))} €  (${income.length} κινήσεις)`,
-    `  Έξοδα:  ${grNum(sum(expense))} €  (${expense.length} κινήσεις)`,
-    `  Καθαρό: ${grNum(sum(income) - sum(expense))} €`,
-  ]);
-
-  // ── 02 / 03 · Οι κινήσεις, χωριστά ───────────────────────────────────────
-  // Ο ΧΑΡΑΚΤΗΡΙΣΜΟΣ ΛΕΙΠΕΙ ΑΚΡΙΒΩΣ ΑΠΟ ΤΟ ΑΡΧΕΙΟ ΠΟΥ ΛΕΓΕΤΑΙ «ΕΞΟΔΑ». Ο λογιστής
-  // που θέλει να χαρακτηρίσει τις δαπάνες ανοίγει τον φάκελο 03 και βρίσκει
-  // πέντε στήλες χωρίς αυτόν, ενώ το Excel της σύνοψης τον έχει. Μπαίνει και εδώ,
-  // με τον ίδιο κανόνα: μόνο όπου υπάρχει υποχρέωση myDATA, και μόνο στα έξοδα.
-  const mdCsv = (e: AccountantMovement): string =>
-    !inp.myData || e.type !== 'expense' ? ''
-      : myDataCell(myDataHint({ category: e.category, supply: e.supply as Supply | null, vat: inp.myData.vat }));
-  const movementCsv = (rows: AccountantMovement[], head: string) => {
-    const md = !!inp.myData && rows.some(r => r.type === 'expense');
-    // Η στήλη υπάρχει μόνο όπου έχει περιεχόμενο: μια κενή στήλη «ΑΦΜ» σε αρχείο
-    // εσόδων είναι ερώτηση χωρίς νόημα, και σε αρχείο εξόδων χωρίς κανένα ΑΦΜ
-    // είναι υπόσχεση που δεν κρατήθηκε. Το ίδιο ισχύει για το παραστατικό: σε
-    // αρχείο εσόδων χωρίς κανένα χαρτί η στήλη δεν μπαίνει καθόλου.
-    const afm = rows.some(r => afmCell(r));
-    const pap = rows.some(r => paperOf.has(r));
-    return csv([
-      [head],
-      [idLine],
-      [],
-      // ΤΟ ΑΦΜ ΜΠΑΙΝΕΙ ΚΑΙ ΣΤΑ ΞΕΧΩΡΙΣΤΑ ΑΡΧΕΙΑ. Ο λογιστής που ανοίγει το
-      // «03 ΕΞΟΔΑ» έβρισκε πέντε στήλες χωρίς αντισυμβαλλόμενο, ενώ το Excel
-      // της σύνοψης τον έχει: το ίδιο βιβλίο, δύο διαφορετικές απαντήσεις.
-      ['Α/Α', 'Ημερομηνία', 'Κατηγορία', 'Περιγραφή', ...(pap ? ['Παραστατικό'] : []),
-        ...(afm ? ['ΑΦΜ προμηθευτή'] : []), ...(md ? ['Χαρακτηρισμός myDATA'] : []), 'Ποσό (€)'],
-      ...rows.map((e, i) => [i + 1, grDate(e.date), e.category || '', e.description || '',
-        ...(pap ? [paperOf.get(e) || ''] : []),
-        ...(afm ? [afmCell(e)] : []), ...(md ? [mdCsv(e)] : []), grNum(e.amount)]),
-      [],
-      ['', '', '', 'ΣΥΝΟΛΟ', ...(pap ? [''] : []), ...(afm ? [''] : []), ...(md ? [''] : []), grNum(sum(rows))],
-    ]);
-  };
-
-  // ── 04 · Ο κατάλογος των παραστατικών ────────────────────────────────────
-  const checklist = csv([
-    [`ΚΑΤΑΛΟΓΟΣ ΔΙΚΑΙΟΛΟΓΗΤΙΚΩΝ ${year}`],
-    [idLine],
-    [],
-    ['Παραστατικό', 'Κατάσταση', 'Ποιος το φέρνει', 'Απαραίτητο', 'Γιατί χρειάζεται', 'Πού βρίσκεται'],
-    ...requirements.map(r => [
-      r.title, have.has(r.id) ? 'Υπάρχει' : 'Λείπει', WHO_LABEL[r.who],
-      r.blocking ? 'ΝΑΙ' : '', r.why, r.source || '',
-    ]),
-  ]);
-
-  // ── 04 · ΤΟ ΕΥΡΕΤΗΡΙΟ ΤΩΝ ΧΑΡΤΙΩΝ ────────────────────────────────────────
-  // Ο ΚΑΤΑΛΟΓΟΣ ΑΠΟ ΠΑΝΩ ΛΕΕΙ ΤΙ ΠΡΕΠΕΙ ΝΑ ΥΠΑΡΧΕΙ· ΑΥΤΟ ΛΕΕΙ ΤΙ ΥΠΑΡΧΕΙ ΕΔΩ.
-  // Δύο διαφορετικές ερωτήσεις, δύο αρχεία — και το δεύτερο υπάρχει μόνο όταν
-  // ταξιδεύουν όντως χαρτιά. Η τελευταία στήλη είναι όλη η δουλειά του: από το
-  // χαρτί στη γραμμή. Κενή σημαίνει «δεν ξέρουμε», ποτέ «καμία».
-  const paperIndex = csv([
-    [`ΕΥΡΕΤΗΡΙΟ ΠΑΡΑΣΤΑΤΙΚΩΝ ${year}`],
-    [idLine],
-    [],
-    ['Α/Α', 'Αρχείο', 'Ημερομηνία', 'Εκδότης', 'ΑΦΜ', 'Κατηγορία', 'Ποσό (€)', 'Γραμμή στις «Κινήσεις»'],
-    ...papers.map(p => [
-      p.label, p.file, p.paper.docDate ? grDate(p.paper.docDate) : '',
-      p.paper.supplier || p.paper.title || '', p.paper.afm || '', p.paper.category || '',
-      // Ποσό μόνο όταν το ξέρουμε: ένα «0,00» σε τιμολόγιο που δεν διαβάστηκε
-      // είναι ψέμα, και ο λογιστής θα το αθροίσει.
-      Number.isFinite(Number(p.paper.amount)) && Number(p.paper.amount) !== 0 ? grNum(Number(p.paper.amount)) : '',
-      p.row ?? '',
-    ]),
-  ]);
-
-  const trapRows = requirements.filter(r => r.trap);
-  const trapsFile = txt([
-    'ΠΑΓΙΔΕΣ ΠΟΥ ΚΟΣΤΙΖΟΥΝ', rule('═'), '',
-    'Σημειώσεις για σημεία που, όταν πάνε στραβά, κοστίζουν χρήματα ή χρόνια.', '',
-    ...trapRows.flatMap(r => [`· ${r.title}`, `  ${r.trap}`, '']),
-  ]);
-
-  // ── 05 · ΤΙ ΛΕΙΠΕΙ ───────────────────────────────────────────────────────
-  const block = (rs: readonly Requirement[]) => rs.flatMap((r, i) => [
-    `${String(i + 1).padStart(2, ' ')}. ${r.title}`,
-    `    Ποιος το φέρνει: ${WHO_LABEL[r.who]}`,
-    `    Γιατί: ${r.why}`,
-    ...(r.source ? [`    Πού: ${r.source}`] : []),
-    ...(r.trap ? [`    Προσοχή: ${r.trap}`] : []),
-    '',
-  ]);
-  const blocking = missing.filter(r => r.blocking);
-  const pending = missing.filter(r => !r.blocking);
-
-  // ── ΟΙ ΔΑΠΑΝΕΣ ΠΟΥ ΔΕΝ ΑΠΟΦΑΣΙΖΟΝΤΑΙ ΜΟΝΕΣ ΤΟΥΣ ────────────────────────────
-  // Το «05 Τι λείπει» απαντούσε μόνο «ποιο χαρτί δεν βρέθηκε». Ο χαρακτηρισμός
-  // myDATA όμως έχει ΚΑΙ γραμμές που λείπει η ΑΠΟΦΑΣΗ, όχι το χαρτί: ένα γενικό
-  // έξοδο χωρίς δηλωμένο δικαίωμα έκπτωσης, μια δαπάνη στο «Άλλο», ένα πάγιο.
-  // Στο φύλλο του Excel φαίνονται ως δύο λέξεις μέσα σε κελί· εδώ γράφονται
-  // ολόκληρες, με τον λόγο τους, μία φορά ανά περίπτωση και όχι ανά γραμμή —
-  // τριάντα δαπάνες ρεύματος έχουν το ίδιο ακριβώς ερώτημα.
-  const mdPending = inp.myData
-    ? pendingGroups(expense.map(e => ({ category: e.category, supply: e.supply as Supply | null, description: e.description })), inp.myData.vat)
-    : [];
-  const mdBlock = mdPending.flatMap((m, i) => [
-    `${String(i + 1).padStart(2, ' ')}. ${m.label} · ${m.count === 1 ? 'μία δαπάνη' : `${m.count} δαπάνες`}`,
-    `    Γιατί: ${m.note}`,
-    `    Παράδειγμα: ${m.sample}`,
-    '',
-  ]);
-  // ── ΟΙ ΔΑΠΑΝΕΣ ΧΩΡΙΣ ΑΝΤΙΣΥΜΒΑΛΛΟΜΕΝΟ ──────────────────────────────────────
-  // Το κενό ΑΦΜ φαινόταν μόνο ως άδειο κελί σε μια στήλη. Εδώ γίνεται ΕΡΩΤΗΣΗ
-  // προς τον ιδιοκτήτη, ομαδοποιημένη ανά προμηθευτή: «ποιανού είναι αυτά τα
-  // τιμολόγια» ρωτιέται μία φορά, όχι είκοσι. Η ομαδοποίηση ζει στο
-  // lib/accounting/dossier.ts, όπου δοκιμάζεται χωρίς να κατέβει αρχείο.
-  const afmGroups = missingAfmGroups(expense.map(e => ({
-    category: e.category, description: e.description, amount: e.amount, afm: afmCell(e),
-  })));
-  const afmBlock = afmGroups.flatMap((m, i) => [
-    `${String(i + 1).padStart(2, ' ')}. ${m.category} · ${m.count === 1 ? 'μία δαπάνη' : `${m.count} δαπάνες`} · ${grNum(m.amount)} €`,
-    ...(m.sample ? [`    Παράδειγμα: ${m.sample}`] : []),
-    '',
-  ]);
-
-  const whatsMissing = txt([
-    `ΤΙ ΛΕΙΠΕΙ ΑΠΟ ΑΥΤΟΝ ΤΟΝ ΦΑΚΕΛΟ · ${year}`, rule('═'), '',
-    idLine, `Ημερομηνία έκδοσης: ${issued}`, '',
-    readinessMessage, '', rule(), '',
-    ...(blocking.length
-      ? [`Α. ΧΩΡΙΣ ΑΥΤΑ ΔΕΝ ΚΛΕΙΝΕΙ Η ΔΗΛΩΣΗ (${blocking.length})`, rule(), '', ...block(blocking)]
-      : ['Α. ΧΩΡΙΣ ΑΥΤΑ ΔΕΝ ΚΛΕΙΝΕΙ Η ΔΗΛΩΣΗ', rule(), '', '    Κανένα. Όλα τα απαραίτητα υπάρχουν.', '']),
-    ...(pending.length
-      ? [`Β. ΚΑΛΟ ΝΑ ΥΠΑΡΧΟΥΝ, ΔΕΝ ΜΠΛΟΚΑΡΟΥΝ (${pending.length})`, rule(), '', ...block(pending)]
-      : []),
-    ...(gaps.length
-      ? ['Γ. ΚΕΝΑ ΣΤΑ ΔΕΔΟΜΕΝΑ ΤΗΣ ΕΦΑΡΜΟΓΗΣ', rule(), '', ...gaps.map(g => `  · ${g}`), '']
-      : []),
-    ...(mdBlock.length
-      ? [`Δ. ΔΑΠΑΝΕΣ ΠΟΥ ΖΗΤΟΥΝ ΑΠΟΦΑΣΗ ΓΙΑ ΤΟΝ ΧΑΡΑΚΤΗΡΙΣΜΟ myDATA (${mdPending.length})`, rule(), '', ...mdBlock]
-      : []),
-    ...(afmBlock.length
-      ? [`Ε. ΔΑΠΑΝΕΣ ΧΩΡΙΣ ΑΦΜ ΠΡΟΜΗΘΕΥΤΗ (${afmGroups.length})`, rule(), '',
-        'Ο λογιστής δεν καταχωρεί δαπάνη χωρίς αντισυμβαλλόμενο. Το ΑΦΜ διαβάζεται',
-        'μόνο του από τα παραστατικά που σαρώνονται στην εφαρμογή· για τις παρακάτω',
-        'χρειάζεται το χαρτί ή το ΑΦΜ του εκδότη.', '', ...afmBlock]
-      : []),
-    rule(),
-    missing.length === 0 && gaps.length === 0 && mdBlock.length === 0 && afmBlock.length === 0
-      ? 'Ο φάκελος είναι πλήρης.'
-      : 'Τα παραπάνω δεν βρέθηκαν στην εφαρμογή. Δεν σημαίνει ότι δεν υπάρχουν:',
-    ...(missing.length === 0 && gaps.length === 0 && mdBlock.length === 0 && afmBlock.length === 0 ? [] : ['σημαίνει ότι δεν συνοδεύουν αυτόν τον φάκελο.']),
-  ]);
-
-  // ΤΑ ΟΝΟΜΑΤΑ ΔΙΑΒΑΖΟΝΤΑΙ, ΔΕΝ ΑΠΟΚΩΔΙΚΟΠΟΙΟΥΝΤΑΙ. Οι κάτω παύλες ήταν
-  // συνήθεια από ονόματα χωρίς ελληνικά· τα σύγχρονα συστήματα αρχείων δέχονται
-  // κενά, και ο λογιστής που ανοίγει τον φάκελο διαβάζει προτάσεις αντί για
-  // κώδικα. Το «ΔΙΑΒΑΣΕ_ΜΕ» ήταν και άτονο. Τα αριθμητικά προθέματα μένουν:
-  // κρατούν τη σειρά με την οποία διαβάζεται ο φάκελος.
-  const files: ZipFile[] = [
-    { path: '00 Διάβασέ με.txt', data: readme },
-    { path: '01 ΣΥΝΟΨΗ/Ταυτότητα φακέλου.txt', data: identity },
-    { path: `01 ΣΥΝΟΨΗ/Λογιστική ${year}.xlsx`, data: wbBytes },
-    { path: `02 ΕΣΟΔΑ/Έσοδα ${year}.csv`, data: movementCsv(income, `ΕΣΟΔΑ ${year}`) },
-    { path: `03 ΕΞΟΔΑ/Έξοδα ${year}.csv`, data: movementCsv(expense, `ΕΞΟΔΑ ${year}`) },
-    { path: `04 ΔΙΚΑΙΟΛΟΓΗΤΙΚΑ/Κατάλογος δικαιολογητικών ${year}.csv`, data: checklist },
-    // ΤΑ ΧΑΡΤΙΑ ΣΕ ΔΙΚΟ ΤΟΥΣ ΥΠΟΦΑΚΕΛΟ, ΚΑΙ ΤΟ ΕΥΡΕΤΗΡΙΟ ΕΞΩ ΑΠΟ ΑΥΤΟΝ. Είκοσι
-    // αρχεία δίπλα σε δύο καταλόγους θα έθαβαν τους καταλόγους· ο λογιστής
-    // ανοίγει το 04, βλέπει τρία ονόματα, και μπαίνει στα «Παραστατικά» όταν
-    // θέλει το ίδιο το χαρτί.
-    ...(anyPaper ? [{ path: `04 ΔΙΚΑΙΟΛΟΓΗΤΙΚΑ/Ευρετήριο παραστατικών ${year}.csv`, data: paperIndex }] : []),
-    ...papers.map(p => ({ path: `04 ΔΙΚΑΙΟΛΟΓΗΤΙΚΑ/Παραστατικά/${p.file}`, data: p.paper.bytes })),
-    ...(trapRows.length ? [{ path: '04 ΔΙΚΑΙΟΛΟΓΗΤΙΚΑ/Παγίδες που κοστίζουν.txt', data: trapsFile }] : []),
-    { path: '05 Τι λείπει.txt', data: whatsMissing },
+  return [
+    { path: `Λογιστική ${propName || 'ακίνητο'} ${year}.xlsx`, data: workbookBytes(buildWorkbook(inp, papers)) },
+    ...papers.map(p => ({ path: `Παραστατικά/${p.file}`, data: p.paper.bytes })),
   ];
-
-  return files;
 }
 
 /** Ο φάκελος, ως ένα αρχείο .zip στον υπολογιστή του χρήστη. */

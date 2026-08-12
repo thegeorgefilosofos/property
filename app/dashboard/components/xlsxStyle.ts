@@ -93,6 +93,30 @@ export function printTitles(wb: XLSX.WorkBook, sheetIndex: number, sheetName: st
 }
 
 /**
+ * ΤΟ ΦΥΛΛΟ ΠΟΥ ΔΙΑΒΑΖΕΤΑΙ ΠΡΩΤΟ ΓΡΑΦΕΤΑΙ ΤΕΛΕΥΤΑΙΟ.
+ *
+ * Η σύνοψη λέει τι περιέχει το βιβλίο, άρα δεν μπορεί να φτιαχτεί πριν από τα
+ * φύλλα του. Η μετακίνηση δεν είναι όμως αλλαγή ενός πίνακα ονομάτων: οι
+ * επαναλαμβανόμενες γραμμές εκτύπωσης δείχνουν το φύλλο τους με ΔΕΙΚΤΗ, και
+ * μια σιωπηλή μετατόπιση θα τις κόλλαγε σε λάθος φύλλο — το Excel θα άνοιγε
+ * κανονικά και θα τύπωνε επικεφαλίδα εκεί που δεν υπάρχει πίνακας. Οι δείκτες
+ * ξαναβγαίνουν από το ΟΝΟΜΑ που κουβαλά η ίδια η αναφορά.
+ */
+export function moveSheetFirst(wb: XLSX.WorkBook, name: string): void {
+  const at = wb.SheetNames.indexOf(name);
+  if (at <= 0) return;
+  wb.SheetNames = [name, ...wb.SheetNames.filter(n => n !== name)];
+  for (const nm of wb.Workbook?.Names ?? []) {
+    const ref = String(nm.Ref || '');
+    const quoted = /^'((?:[^']|'')*)'!/.exec(ref);
+    const plain = /^([^'!]+)!/.exec(ref);
+    const sheet = quoted ? quoted[1].replace(/''/g, "'") : plain ? plain[1] : '';
+    const idx = wb.SheetNames.indexOf(sheet);
+    if (idx >= 0) nm.Sheet = idx;
+  }
+}
+
+/**
  * Έγκυρο, μοναδικό όνομα φύλλου. Το Excel απορρίπτει το αρχείο ολόκληρο αν το
  * όνομα ξεπερνά τους 31 χαρακτήρες ή περιέχει \ / ? * [ ] :
  */
@@ -207,6 +231,113 @@ export function bannerRow(ws: XLSX.WorkSheet, r: number, cols: number, style: ob
   const merges = (ws['!merges'] ||= []);
   merges.push({ s: { r, c: 0 }, e: { r, c: cols - 1 } });
   for (let c = 0; c < cols; c++) setCell(ws, r, c, { s: style });
+}
+
+// ═══ ΜΙΑ ΔΙΑΤΑΞΗ ΓΙΑ ΚΑΘΕ ΦΥΛΛΟ ΠΟΥ ΕΙΝΑΙ ΕΝΟΤΗΤΕΣ ══════════════════════════
+// Τρία φύλλα του φακέλου —η σύνοψη, τα δικαιολογητικά και το τι λείπει— έχουν
+// την ίδια δομή: τίτλος, ταυτότητα, και από κάτω ενότητες με πίνακα η καθεμία.
+// Γραμμένα χωριστά, το ένα θα είχε επικεφαλίδες στη γραμμή 4 και το άλλο στη 5,
+// άλλο ύψος γραμμής και άλλη απόσταση ανάμεσα στις ενότητες. Ο λογιστής δεν
+// θα το έλεγε «ασυνέπεια»· θα το έλεγε «πρόχειρο», και θα είχε δίκιο.
+//
+// Η ΓΡΑΜΜΗ ΤΗΣ ΕΝΟΤΗΤΑΣ ΑΠΛΩΝΕΤΑΙ ΠΕΡΑ ΠΕΡΑ, και το πλάτος του φύλλου είναι ο
+// ΠΛΑΤΥΤΕΡΟΣ πίνακάς του: μια ενότητα δύο στηλών μέσα σε φύλλο οκτώ στηλών
+// έδειχνε το πανό της να σταματά στη μέση.
+
+export interface SheetBlock {
+  /** Ο τίτλος της ενότητας. Κενός για ενότητα χωρίς επικεφαλίδα. */
+  title?: string;
+  /** Μία πρόταση με βάρος, κάτω από τον τίτλο: η επικεφαλίδα της ενότητας. */
+  lead?: string;
+  head?: readonly string[];
+  rows?: readonly (string | number)[][];
+  /** Ποιες στήλες είναι ποσά ή πλήθη — στοιχίζονται δεξιά. */
+  numeric?: readonly number[];
+  /** Τι γράφεται όταν δεν υπάρχει ούτε μία γραμμή. Ποτέ άδειος πίνακας. */
+  empty?: string;
+  /** Προτάσεις κάτω από τον πίνακα, απλωμένες σε όλο το πλάτος. */
+  notes?: readonly string[];
+  /** Γραμμές του μπλοκ που είναι σύνολα (δείκτες μέσα στο `rows`). */
+  totals?: readonly number[];
+}
+
+/**
+ * Ένα φύλλο από ενότητες, με την ίδια διάταξη κάθε φορά.
+ *
+ * Επιστρέφει και τη γραμμή της πρώτης επικεφαλίδας, για το πάγωμα και για την
+ * επανάληψη στην εκτύπωση.
+ */
+export function sectionSheet(o: {
+  title: string;
+  sub: string;
+  blocks: readonly SheetBlock[];
+  landscape?: boolean;
+  /** Ανώτατο πλάτος στήλης πριν αναδιπλωθεί το κείμενο. */
+  maxWidth?: number;
+}): { ws: XLSX.WorkSheet; headRow: number } {
+  const width = Math.max(2, ...o.blocks.map(b => Math.max(
+    b.head?.length ?? 0,
+    ...(b.rows ?? []).map(r => r.length),
+  )));
+
+  const aoa: (string | number)[][] = [[o.title], [o.sub], []];
+  type Mark = { r: number; kind: 'section' | 'lead' | 'head' | 'row' | 'note' | 'total'; block: SheetBlock };
+  const marks: Mark[] = [];
+  let firstHead = -1;
+  for (const b of o.blocks) {
+    if (b.title) { marks.push({ r: aoa.length, kind: 'section', block: b }); aoa.push([b.title]); }
+    if (b.lead) { marks.push({ r: aoa.length, kind: 'lead', block: b }); aoa.push([b.lead]); }
+    if (b.head) {
+      if (firstHead < 0) firstHead = aoa.length;
+      marks.push({ r: aoa.length, kind: 'head', block: b });
+      aoa.push([...b.head]);
+    }
+    const rows = b.rows ?? [];
+    if (rows.length) {
+      rows.forEach((row, i) => {
+        marks.push({ r: aoa.length, kind: b.totals?.includes(i) ? 'total' : 'row', block: b });
+        aoa.push([...row]);
+      });
+    } else if (b.empty) {
+      // ΑΔΕΙΟΣ ΠΙΝΑΚΑΣ ΔΕΝ ΕΙΝΑΙ ΑΠΑΝΤΗΣΗ. Επικεφαλίδες πάνω από το τίποτα δεν
+      // ξεχωρίζουν από εξαγωγή που χάλασε: ο λόγος γράφεται μέσα στον πίνακα.
+      marks.push({ r: aoa.length, kind: 'note', block: b });
+      aoa.push([b.empty]);
+    }
+    for (const n of b.notes ?? []) { marks.push({ r: aoa.length, kind: 'note', block: b }); aoa.push([n]); }
+    aoa.push([]);
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!rows'] = [];
+  ws['!rows'][0] = { hpt: ROW.title };
+  ws['!rows'][1] = { hpt: ROW.sub };
+  bannerRow(ws, 0, width, S.title);
+  bannerRow(ws, 1, width, S.sub);
+  for (const m of marks) {
+    if (m.kind === 'section') { bannerRow(ws, m.r, width, S.section); ws['!rows'][m.r] = { hpt: ROW.head - 8 }; continue; }
+    if (m.kind === 'lead') { bannerRow(ws, m.r, width, S.strongTxt); ws['!rows'][m.r] = { hpt: ROW.head }; continue; }
+    if (m.kind === 'note') { bannerRow(ws, m.r, width, S.sub); continue; }
+    if (m.kind === 'head') {
+      ws['!rows'][m.r] = { hpt: ROW.head };
+      for (let c = 0; c < (m.block.head?.length ?? 0); c++) setCell(ws, m.r, c, { s: S.head });
+      continue;
+    }
+    const cols = m.block.head?.length ?? width;
+    const total = m.kind === 'total';
+    ws['!rows'][m.r] = { hpt: ROW.data };
+    for (let c = 0; c < cols; c++) {
+      const numeric = m.block.numeric?.includes(c);
+      setCell(ws, m.r, c, { s: total ? (numeric ? S.totNum : S.totTxt) : (numeric ? S.num : S.txt) });
+    }
+  }
+  const headRow = firstHead < 0 ? 3 : firstHead;
+  const { cols, wrap } = autoWidths(ws, { headRow, max: o.maxWidth ?? 46 });
+  ws['!cols'] = cols;
+  wrapColumns(ws, wrap, headRow + 1);
+  ws['!margins'] = { ...MARGINS };
+  sheetFinish(ws, { landscape: o.landscape ?? true, freezeRows: 3 });
+  return { ws, headRow };
 }
 
 // ═══ ΟΣΑ ΤΟ EXCEL ΞΕΡΕΙ ΚΑΙ Η ΒΙΒΛΙΟΘΗΚΗ ΔΕΝ ΓΡΑΦΕΙ ═══════════════════════

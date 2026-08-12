@@ -562,60 +562,113 @@ eq('τα πλάτη στηλών είναι όσα και οι στήλες', (w
     (finish?.lists?.[0].ref || '').slice(0, 1), XLSX.utils.encode_col(C2('Τόπος παροχής')));
 }
 
-// ═══ Ο ΦΑΚΕΛΟΣ ΚΟΥΒΑΛΑΕΙ ΤΑ ΧΑΡΤΙΑ, ΚΑΙ ΤΑ ΒΡΙΣΚΕΙ ΚΑΝΕΙΣ ═══════════════════
-// Το «αριθμημένα, με ευρετήριο που δείχνει στη γραμμή» είναι τρία πράγματα που
-// πρέπει να συμφωνούν: το όνομα του αρχείου, η στήλη του Excel και το
-// ευρετήριο. Αν αποκλίνουν, ο λογιστής ανοίγει λάθος χαρτί για τη γραμμή που
-// ελέγχει — και δεν έχει τρόπο να το καταλάβει.
+// ═══ Ο ΦΑΚΕΛΟΣ: ΕΝΑ ΒΙΒΛΙΟ ΚΑΙ ΤΑ ΧΑΡΤΙΑ ΤΟΥ ════════════════════════════════
+// Ήταν πέντε υποφάκελοι με CSV μέσα, και τα CSV δεν άνοιγαν ως πίνακες: το
+// Excel χωρίζει στήλες με τον διαχωριστή του συστήματος, οπότε ολόκληρη η
+// γραμμή «Α/Α;Ημερομηνία;…» προσγειωνόταν στο κελί A1.
 {
   const bytes = (n: number) => new Uint8Array(n).fill(65);
   const attachments: DossierAttachment[] = [
     { fileName: 'ΔΕΗ Μαρτίου.pdf', supplier: 'ΔΕΗ', docDate: '2026-03-11', amount: 88.5, afm: '094014201', category: 'Ρεύμα', bytes: bytes(10) },
     { fileName: 'σύμβαση.pdf', title: 'Μισθωτήριο', bytes: bytes(20) },
   ];
+  const narrative = {
+    requirements: [{ id: 'e2', title: 'Ε2 · Αναλυτική κατάσταση μισθωμάτων', why: 'Το βασικό έντυπο.', who: 'app' as const, blocking: true }],
+    haveIds: [], readinessMessage: 'Λείπουν δύο πράγματα',
+    properties: [{ name: 'Διαμέρισμα Αθήνα', status: 'Εκμίσθωση' }],
+    formLabel: 'Φυσικό πρόσωπο', booksLabel: 'Χωρίς βιβλία',
+    gaps: ['Καμία καταχωρημένη δαπάνη για το 2026.'],
+  };
   const base = {
     year: 2026, propName: 'Διαμέρισμα Αθήνα', ownerAfm: '094014201',
-    statementLines: [], provisionMonthly: 0, book: BOOK,
-    requirements: [], haveIds: [], readinessMessage: 'Έτοιμο',
-    properties: [], formLabel: 'Φυσικό πρόσωπο', booksLabel: 'Χωρίς βιβλία',
+    statementLines: [], provisionMonthly: 0, book: BOOK, dossier: narrative,
   };
   const withPapers = dossierFiles({ ...base, attachments });
   const paths = withPapers.map(f => f.path);
-  ok('τα χαρτιά μπαίνουν στον δικό τους υποφάκελο',
-    paths.includes('04 ΔΙΚΑΙΟΛΟΓΗΤΙΚΑ/Παραστατικά/01 2026-03-11 ΔΕΗ.pdf'));
-  ok('και το αχρονολόγητο επίσης',
-    paths.includes('04 ΔΙΚΑΙΟΛΟΓΗΤΙΚΑ/Παραστατικά/02 χωρίς ημερομηνία Μισθωτήριο.pdf'));
-  ok('με το ευρετήριό τους δίπλα', paths.includes('04 ΔΙΚΑΙΟΛΟΓΗΤΙΚΑ/Ευρετήριο παραστατικών 2026.csv'));
 
+  // ΤΙΠΟΤΑ ΔΕΝ ΦΕΥΓΕΙ ΩΣ CSV. Ούτε ένα, σε καμία διαδρομή.
+  eq('κανένα CSV στον φάκελο', paths.filter(p => p.endsWith('.csv')), []);
+  eq('κανένα σκέτο κείμενο', paths.filter(p => p.endsWith('.txt')), []);
+  eq('ένα βιβλίο εργασίας', paths.filter(p => p.endsWith('.xlsx')), ['Λογιστική Διαμέρισμα Αθήνα 2026.xlsx']);
+  ok('τα χαρτιά σε δικό τους υποφάκελο, αριθμημένα',
+    paths.includes('Παραστατικά/01 2026-03-11 ΔΕΗ.pdf') && paths.includes('Παραστατικά/02 χωρίς ημερομηνία Μισθωτήριο.pdf'));
+  eq('και τίποτα άλλο', paths.length, 3);
   // ΤΑ BYTES ΤΑΞΙΔΕΥΟΥΝ ΟΝΤΩΣ. Ένα άδειο αρχείο με σωστό όνομα είναι χειρότερο
   // από κανένα: ο λογιστής θα νομίζει ότι το χαρτί χάλασε στη μεταφορά.
-  const dehFile = withPapers.find(f => f.path.endsWith('01 2026-03-11 ΔΕΗ.pdf'));
-  eq('με το περιεχόμενό τους', (dehFile?.data as Uint8Array).length, 10);
+  eq('με το περιεχόμενό τους',
+    (withPapers.find(f => f.path.endsWith('01 2026-03-11 ΔΕΗ.pdf'))?.data as Uint8Array).length, 10);
 
-  const indexCsv = String(withPapers.find(f => f.path.includes('Ευρετήριο'))?.data);
-  ok('το ευρετήριο δείχνει τη γραμμή', indexCsv.includes('01;01 2026-03-11 ΔΕΗ.pdf;11/03/2026;ΔΕΗ;094014201;Ρεύμα;88,50;2'));
-  // ΤΟ ΑΧΡΟΝΟΛΟΓΗΤΟ ΔΕΝ ΤΑΥΤΙΖΕΤΑΙ, ΚΑΙ ΤΟ ΚΕΛΙ ΜΕΝΕΙ ΚΕΝΟ — ποτέ «1» επειδή
-  // έπρεπε να γραφτεί κάτι. Κενό ποσό επίσης: το «0,00» θα αθροιζόταν.
-  ok('όπου δεν ξέρουμε, κενό', indexCsv.includes('02;02 χωρίς ημερομηνία Μισθωτήριο.pdf;;Μισθωτήριο;;;;'));
+  // ── ΤΑ ΦΥΛΛΑ ΤΟΥ ΦΑΚΕΛΟΥ ────────────────────────────────────────────────
+  const wbD = buildWorkbook(base,
+    filePapers(attachments, BOOK.map(e => ({ date: e.date, amount: e.amount, afm: e.supplier_afm ?? null }))));
+  // Η ΣΥΝΟΨΗ ΕΙΝΑΙ ΤΟ ΠΡΩΤΟ ΦΥΛΛΟ, αν και γράφεται τελευταία.
+  eq('η σύνοψη πρώτη', wbD.SheetNames[0], 'Σύνοψη');
+  ok('με τα δικαιολογητικά και το τι λείπει',
+    wbD.SheetNames.includes('Δικαιολογητικά') && wbD.SheetNames.includes('Τι λείπει'));
+  // ΚΑΙ ΤΟ ΚΟΥΜΠΙ «EXCEL» ΔΕΝ ΤΑ ΑΠΟΚΤΑ: εκεί δεν υπάρχει φάκελος να περιγραφεί.
+  const bare = buildWorkbook({ year: 2026, propName: 'Χ', statementLines: [], provisionMonthly: 0, book: BOOK });
+  ok('χωρίς φάκελο, κανένα από τα τρία',
+    !bare.SheetNames.some(n => ['Σύνοψη', 'Δικαιολογητικά', 'Τι λείπει'].includes(n)));
 
-  // Η ΣΤΗΛΗ ΤΟΥ ΑΡΙΘΜΟΥ ΜΠΑΙΝΕΙ ΚΑΙ ΣΤΟ CSV ΤΩΝ ΕΞΟΔΩΝ, ΜΕ ΤΟΝ ΙΔΙΟ ΑΡΙΘΜΟ.
-  const exp = String(withPapers.find(f => f.path.startsWith('03 ΕΞΟΔΑ'))?.data);
-  ok('τα έξοδα δείχνουν το παραστατικό', exp.includes('Περιγραφή;Παραστατικό;ΑΦΜ προμηθευτή'));
-  ok('με τον ίδιο αριθμό', exp.includes('ΔΕΗ, Φεβρουάριος;01;094014201'));
-  // ΚΑΙ ΔΕΝ ΜΠΑΙΝΕΙ ΣΤΑ ΕΣΟΔΑ, ΠΟΥ ΔΕΝ ΕΧΟΥΝ ΚΑΝΕΝΑ ΧΑΡΤΙ. Μια κενή στήλη
-  // «Παραστατικό» εκεί είναι ερώτηση χωρίς νόημα.
-  const inc = String(withPapers.find(f => f.path.startsWith('02 ΕΣΟΔΑ'))?.data);
-  eq('τα έσοδα χωρίς τη στήλη', inc.includes('Παραστατικό'), false);
+  const cellsOf = (name: string): string[] => {
+    const sh = wbD.Sheets[name];
+    const range = XLSX.utils.decode_range(sh['!ref'] as string);
+    const out: string[] = [];
+    for (let r = range.s.r; r <= range.e.r; r++)
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const v = (sh[XLSX.utils.encode_cell({ r, c })] as Cell | undefined)?.v;
+        if (v != null && String(v) !== '') out.push(String(v));
+      }
+    return out;
+  };
+  const summary = cellsOf('Σύνοψη');
+  // Ο ΚΑΤΑΛΟΓΟΣ ΤΩΝ ΦΥΛΛΩΝ ΔΙΑΒΑΖΕΤΑΙ ΑΠΟ ΤΟ ΒΙΒΛΙΟ, δεν είναι γραμμένος με το
+  // χέρι: δεν γίνεται να υποσχεθεί φύλλο που λείπει.
+  // Ο κατάλογος δεν αναφέρει τον εαυτό του: «Σύνοψη — αυτό το φύλλο» είναι
+  // γραμμή που δεν λέει τίποτα σε κανέναν.
+  ok('η σύνοψη απαριθμεί κάθε άλλο φύλλο',
+    wbD.SheetNames.filter(n => n !== 'Σύνοψη').every(n => summary.includes(n)));
+  ok('και λέει τι απαντά το καθένα', summary.includes('Ό,τι ΔΕΝ βρέθηκε. Διαβάστε το πρώτο.'));
+  ok('η ετοιμότητα, με τα λόγια της οθόνης', summary.includes('Λείπουν δύο πράγματα'));
+  ok('τα ακίνητα με την κατάστασή τους', summary.includes('Εκμίσθωση'));
+  ok('και τα σύνολα του έτους', summary.some(v => /^650,00/.test(v)));
 
-  // ΧΩΡΙΣ ΧΑΡΤΙΑ, Ο ΦΑΚΕΛΟΣ ΕΙΝΑΙ ΑΚΡΙΒΩΣ Ο ΠΑΛΙΟΣ: ούτε άδειος υποφάκελος,
-  // ούτε ευρετήριο που δείχνει σε τίποτα.
+  const docs = cellsOf('Δικαιολογητικά');
+  ok('ο κατάλογος με το ποιος φέρνει τι', docs.includes('Ε2 · Αναλυτική κατάσταση μισθωμάτων'));
+  ok('το ευρετήριο δείχνει το αρχείο', docs.includes('01 2026-03-11 ΔΕΗ.pdf'));
+  // Η ΔΕΗ ταυτίζεται με τη δεύτερη κίνηση (ίδια ημερομηνία, ίδιο ποσό)· το
+  // μισθωτήριο δεν ταυτίζεται με καμία και το κελί μένει κενό.
+  ok('και τη γραμμή της', docs.includes('2'));
+  eq('το ευρετήριο έχει δύο χαρτιά', docs.filter(v => /^0[12]$/.test(v)).length, 2);
+
+  const miss = cellsOf('Τι λείπει');
+  ok('τα μπλοκάροντα πρώτα', miss.some(v => v.startsWith('Α. ΧΩΡΙΣ ΑΥΤΑ ΔΕΝ ΚΛΕΙΝΕΙ Η ΔΗΛΩΣΗ')));
+  ok('τα κενά στα δεδομένα', miss.includes('Καμία καταχωρημένη δαπάνη για το 2026.'));
+  ok('και οι δαπάνες χωρίς ΑΦΜ', miss.some(v => v.includes('ΔΑΠΑΝΕΣ ΧΩΡΙΣ ΑΦΜ ΠΡΟΜΗΘΕΥΤΗ')));
+  // ══ ΤΑ ΓΡΑΜΜΑΤΑ ΤΩΝ ΕΝΟΤΗΤΩΝ ΔΕΝ ΕΧΟΥΝ ΤΡΥΠΕΣ ═══════════════════════════
+  // Γραμμένα σταθερά, το φύλλο έδειχνε «Α», «Γ», «Ε» όταν οι ενδιάμεσες
+  // ενότητες ήταν άδειες: ο λογιστής έψαχνε τι δεν του δώσαμε.
+  const letters = miss.filter(v => /^[Α-Ω]\. /.test(v)).map(v => v[0]);
+  eq('συνεχόμενα γράμματα', letters, 'ΑΒΓΔΕΖ'.slice(0, letters.length).split(''));
+
+  // ── ΧΩΡΙΣ ΧΑΡΤΙΑ, Ο ΦΑΚΕΛΟΣ ΕΙΝΑΙ ΣΚΕΤΟ ΤΟ ΒΙΒΛΙΟ ───────────────────────
   const without = dossierFiles(base).map(f => f.path);
-  eq('κανένας υποφάκελος «Παραστατικά»', without.some(p => p.includes('Παραστατικά/')), false);
-  eq('κανένα ευρετήριο', without.some(p => p.includes('Ευρετήριο')), false);
-  eq('και το «Διάβασέ με» δεν υπόσχεται χαρτιά',
-    String(dossierFiles(base).find(f => f.path.startsWith('00'))?.data).includes('Παραστατικό'), false);
-  ok('ενώ με χαρτιά το εξηγεί',
-    String(withPapers.find(f => f.path.startsWith('00'))?.data).includes('Κάθε παραστατικό έχει αριθμό'));
+  eq('ένα αρχείο, χωρίς άδειους υποφακέλους', without.length, 1);
+  eq('κανένα «Παραστατικά»', without.some(p => p.startsWith('Παραστατικά/')), false);
+  // Και η σύνοψη δεν υπόσχεται υποφάκελο που δεν υπάρχει.
+  const wbBare = buildWorkbook(base);
+  const bareSummary: string[] = [];
+  {
+    const sh = wbBare.Sheets['Σύνοψη'];
+    const range = XLSX.utils.decode_range(sh['!ref'] as string);
+    for (let r = range.s.r; r <= range.e.r; r++)
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const v = (sh[XLSX.utils.encode_cell({ r, c })] as Cell | undefined)?.v;
+        if (v != null && String(v) !== '') bareSummary.push(String(v));
+      }
+  }
+  eq('η σύνοψη δεν υπόσχεται χαρτιά που δεν υπάρχουν',
+    bareSummary.some(v => v.includes('Παραστατικά')), false);
 }
 
 // ═══ ΤΟ ΜΗΤΡΩΟ ΠΑΓΙΩΝ ═══════════════════════════════════════════════════════

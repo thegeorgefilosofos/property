@@ -299,13 +299,15 @@ export default function AccountantDossier({
       myData: exportSource.myData,
       assets: exportSource.assets,
       buildingFraction: exportSource.buildingFraction,
-      requirements: reqs,
-      haveIds: haveAll,
-      readinessMessage: ready.message,
-      properties: properties.map(p => ({ name: p.name, status: statusForAccountant(p.status) })),
-      formLabel: LEGAL_FORM_LABEL[profile.form],
-      booksLabel: BOOKS_LABEL[profile.books],
-      gaps: [...(exportSource.gaps || []), ...notes],
+      dossier: {
+        requirements: reqs,
+        haveIds: haveAll,
+        readinessMessage: ready.message,
+        properties: properties.map(p => ({ name: p.name, status: statusForAccountant(p.status) })),
+        formLabel: LEGAL_FORM_LABEL[profile.form],
+        booksLabel: BOOKS_LABEL[profile.books],
+        gaps: [...(exportSource.gaps || []), ...notes],
+      },
       attachments,
     })
     setDownloaded(true)
