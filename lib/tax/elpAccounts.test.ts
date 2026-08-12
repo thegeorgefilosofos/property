@@ -1,4 +1,4 @@
-import { ELP_64, ELP_OTHER, ELP_ALL, CATEGORY_ELP, CAPITALISABLE, elpAccount, elpAccountFor, eglsOf, usedElpAccounts } from './elpAccounts';
+import { ELP_64, ELP_OTHER, ELP_ALL, CATEGORY_ELP, CAPITALISABLE, elpAccount, elpAccountFor, eglsOf } from './elpAccounts';
 import { CATEGORIES } from '../expenses/taxonomy';
 
 let fails = 0;
@@ -85,11 +85,10 @@ ok(CAPITALISABLE.every(s => !!CATEGORY_ELP[s]), 'και έχουν λογαρι�
 eq('η ανακαίνιση ως έξοδο είναι συντήρηση', elpAccountFor('renovation')?.code, '64.09');
 eq('τα έπιπλα ως έξοδο είναι λοιπά', elpAccountFor('furniture')?.code, '64.12');
 
-console.log('\nΌσοι χρησιμοποιούνται');
-const used = usedElpAccounts();
-ok(used.length > 0 && used.length < ELP_ALL.length, 'υποσύνολο, όχι ολόκληρο το σχέδιο');
-ok(used.every((a, i) => i === 0 || a.code > used[i - 1].code), 'κρατούν τη σειρά του σχεδίου');
-ok(!used.some(a => a.code === '64.13'), 'οι συνδεδεμένες οντότητες δεν αφορούν ιδιοκτήτη ακινήτου');
+// ΤΙ ΕΦΥΓΕ ΚΑΙ ΓΙΑΤΙ. Υπήρχε μια `usedElpAccounts()` που επέστρεφε «όσους
+// χρησιμοποιεί όντως η εφαρμογή». Έλεγε ψέματα (αγνοούσε ταμείο, δάνεια, τόκους
+// και έσοδα) και δεν την καλούσε κανείς αφότου το φύλλο των λογαριασμών άρχισε
+// να γράφει ολόκληρο το σχέδιο. Διαγράφηκε αντί να διορθωθεί.
 
 console.log(`\nelpAccounts: ${fails === 0 ? '✓ όλα' : `✗ ${fails}`}`);
 if (fails) process.exit(1);

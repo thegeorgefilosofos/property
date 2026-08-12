@@ -93,6 +93,10 @@ for (const c of Object.keys(EXPENSE_CLASS_LABEL) as ExpenseClass[]) {
 eq('τα αποθέματα έναρξης πάντα αφαιρούνται', expenseClassSign('category2_13'), '−');
 eq('τα αποθέματα λήξης πάντα προστίθενται', expenseClassSign('category2_14'), '+');
 eq('η λήψη υπηρεσιών δέχεται και πιστωτικό', expenseClassSign('category2_3'), '+ ή −');
+// ΚΑΜΙΑ ΠΡΟΕΠΙΛΟΓΗ: ό,τι δεν γράφει η πηγή, δεν γράφεται. Αλλιώς μια νέα
+// κατηγορία θα έπαιρνε σιωπηλά πρόσημο που κανείς δεν διάβασε.
+eq('άγνωστη κατηγορία, κανένα πρόσημο', expenseClassSign('category2_99'), '');
+eq('και οι δεκαπέντε έχουν πρόσημο γραμμένο', Object.keys(EXPENSE_CLASS_LABEL_ALL).filter(c => !expenseClassSign(c)).join(', '), '');
 
 console.log(`\ne3Combinations: ${fails === 0 ? '✓ όλα' : `✗ ${fails}`}`);
 if (fails) process.exit(1);

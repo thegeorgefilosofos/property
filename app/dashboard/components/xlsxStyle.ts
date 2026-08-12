@@ -98,6 +98,111 @@ export function sheetName(raw: string, used: Set<string>): string {
   return name;
 }
 
+// ═══ ΤΑ ΠΛΑΤΗ ΒΓΑΙΝΟΥΝ ΑΠΟ ΤΟ ΠΕΡΙΕΧΟΜΕΝΟ ════════════════════════════════
+// Ήταν γραμμένα στο χέρι, ένας αριθμός ανά στήλη, και μάντευαν: «ο τόπος
+// παροχής χρειάζεται 19, ο χαρακτηρισμός 45». Δούλευε ώσπου το κείμενο μεγάλωσε
+// κατά επτά χαρακτήρες — και τότε δεν έσκασε τίποτα, απλώς ο λογιστής είδε
+// «Ενδοκοινοτική λή…» και δεν ήξερε αν είναι λήψη ή παράδοση. Μετρημένα σε ένα
+// πραγματικό βιβλίο, δεκατρείς στήλες σε τέσσερα φύλλα έκοβαν.
+//
+// ΤΙ ΔΕΝ ΜΕΤΡΑΕΙ, ΚΑΙ ΓΙΑΤΙ:
+//   · Οι γραμμές-πανό (τίτλος, ενότητα, σημείωση) έχουν περιεχόμενο ΜΟΝΟ στην
+//     πρώτη στήλη και απλώνονται. Μετρημένες, θα έκαναν την πρώτη στήλη 190
+//     χαρακτήρες πλατιά.
+//   · Η γραμμή των επικεφαλίδων αναδιπλώνεται (wrapText), οπότε μετράει μισή:
+//     το «ΦΠΑ αντίστροφης χρέωσης 24%» χωρά σε δύο σειρές των δεκατεσσάρων.
+//
+// ΚΑΙ ΤΟ ΑΝΩΤΑΤΟ ΟΡΙΟ ΔΕΝ ΕΙΝΑΙ ΓΟΥΣΤΟ. Στήλη 246 χαρακτήρων (οι είκοσι ένας
+// επιτρεπτοί κωδικοί Ε3 μιας γραμμής) δεν είναι στήλη, είναι οριζόντια κύλιση.
+// Πέρα από το όριο η στήλη ΑΝΑΔΙΠΛΩΝΕΤΑΙ, και το ύψος της γραμμής το αφήνουμε
+// στο Excel — γι' αυτό ο καλών μαθαίνει ποιες στήλες αναδιπλώθηκαν.
+
+export interface AutoWidths {
+  cols: { wch: number }[];
+  /** Οι στήλες που δεν χώρεσαν στο όριο και θέλουν αναδίπλωση. */
+  wrap: Set<number>;
+}
+
+/**
+ * Τα πλάτη ΤΟΥ ΕΤΟΙΜΟΥ ΦΥΛΛΟΥ, και όχι των ωμών δεδομένων.
+ *
+ * ΓΙΑΤΙ ΤΟΥ ΕΤΟΙΜΟΥ. Τα ποσά μπαίνουν στον πίνακα ως αριθμοί (12.5) και γίνονται
+ * κείμενο αργότερα («12,50 €»): μετρημένα πριν, βγάζουν στήλη τεσσάρων
+ * χαρακτήρων για περιεχόμενο επτά. Οι ημερομηνίες το ίδιο. Μετά το τελευταίο
+ * `setCell`, το φύλλο λέει την αλήθεια.
+ */
+export function autoWidths(ws: XLSX.WorkSheet, opts: { headRow?: number; min?: number; max?: number } = {}): AutoWidths {
+  const { headRow = -1, min = 6, max = 46 } = opts;
+  const ref = ws['!ref'] as string | undefined;
+  if (!ref) return { cols: [], wrap: new Set() };
+  const range = XLSX.utils.decode_range(ref);
+  const text = (r: number, c: number): string => {
+    const cell = ws[XLSX.utils.encode_cell({ r, c })] as Cell | undefined;
+    if (!cell || cell.v == null) return '';
+    return cell.v instanceof Date ? 'dd/mm/yyyy' : String(cell.v);
+  };
+  const width: number[] = [];
+  for (let r = range.s.r; r <= range.e.r; r++) {
+    // ΟΙ ΓΡΑΜΜΕΣ-ΠΑΝΟ ΔΕΝ ΜΕΤΡΑΝΕ. Ο τίτλος, η επικεφαλίδα ενότητας και η
+    // σημείωση έχουν περιεχόμενο μόνο στην πρώτη στήλη και απλώνονται σε όλο το
+    // πλάτος. Μετρημένες, θα έκαναν την πρώτη στήλη 190 χαρακτήρες πλατιά.
+    let filled = 0;
+    for (let c = range.s.c; c <= range.e.c; c++) if (text(r, c) !== '') filled++;
+    if (filled === 1 && text(r, range.s.c) !== '') continue;
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      // Η επικεφαλίδα αναδιπλώνεται (wrapText) σε δύο σειρές· μετράει η μισή.
+      const len = text(r, c).length;
+      const need = r === headRow ? Math.ceil(len / 2) : len;
+      width[c] = Math.max(width[c] ?? 0, need);
+    }
+  }
+  const wrap = new Set<number>();
+  const cols: { wch: number }[] = [];
+  for (let c = range.s.c; c <= range.e.c; c++) {
+    const w = width[c] ?? 0;
+    if (w > max) wrap.add(c);
+    // Δύο χαρακτήρες αέρας: το Excel μετράει σε πλάτος του «0», και τα ελληνικά
+    // κεφαλαία είναι φαρδύτερα. Χωρίς αυτό, το τελευταίο γράμμα ξύνει το πλαίσιο.
+    cols[c] = { wch: Math.min(max, Math.max(min, w + 2)) };
+  }
+  return { cols, wrap };
+}
+
+/**
+ * Αναδιπλώνει τις στήλες που δεν χώρεσαν, και ΞΕΚΛΕΙΔΩΝΕΙ το ύψος των γραμμών.
+ *
+ * Η αναδίπλωση χωρίς αυτό δεν φαίνεται: με κλειδωμένο ύψος δεκαέξι στιγμών, οι
+ * είκοσι ένας κωδικοί Ε3 μιας γραμμής δείχνουν τους πρώτους οκτώ σαν να ήταν
+ * όλοι. Το ύψος το βρίσκει το Excel, που ξέρει τη γραμματοσειρά του αναγνώστη.
+ */
+export function wrapColumns(ws: XLSX.WorkSheet, wrap: Set<number>, firstRow: number, lastRow?: number): void {
+  if (!wrap.size) return;
+  // Ώς το ΤΕΛΟΣ του φύλλου όταν δεν δοθεί όριο: μια στήλη που αναδιπλώνεται στον
+  // κύριο πίνακα και όχι στον πίνακα από κάτω, κόβει εκεί — και εκεί ακριβώς
+  // κόβονταν τα «ΣΥΝΟΛΑ ΑΝΑ ΧΑΡΑΚΤΗΡΙΣΜΟ».
+  const end = lastRow ?? XLSX.utils.decode_range(String(ws['!ref'] ?? 'A1')).e.r;
+  const rows = (ws['!rows'] ||= []) as ({ hpt: number } | undefined)[];
+  for (let r = firstRow; r <= end; r++) {
+    rows[r] = undefined;
+    for (const c of wrap) setCell(ws, r, c, { s: S.txtWrap });
+  }
+}
+
+// ═══ Η ΓΡΑΜΜΗ ΠΟΥ ΑΠΛΩΝΕΤΑΙ ══════════════════════════════════════════════
+// Ο τίτλος, η επικεφαλίδα ενότητας και η σημείωση πιάνουν όλο το πλάτος. Δύο
+// πράγματα πρέπει να γίνουν μαζί, και γίνονταν χωριστά: η ΕΝΩΣΗ των κελιών και
+// το ΣΤΥΛ σε καθένα τους. Στο OOXML κάθε κελί κρατά το δικό του γέμισμα, οπότε
+// μια ενωμένη γραμμή με στυλ μόνο στο πρώτο κελί βάφει γκρι το ένα πέμπτο και
+// αφήνει λευκό το υπόλοιπο — με το κείμενο να τρέχει από πάνω. Εννέα
+// επικεφαλίδες ενοτήτων σε τέσσερα φύλλα ήταν έτσι.
+
+/** Ενώνει τη γραμμή σε όλο το πλάτος ΚΑΙ στυλίζει κάθε κελί της. */
+export function bannerRow(ws: XLSX.WorkSheet, r: number, cols: number, style: object): void {
+  const merges = (ws['!merges'] ||= []);
+  merges.push({ s: { r, c: 0 }, e: { r, c: cols - 1 } });
+  for (let c = 0; c < cols; c++) setCell(ws, r, c, { s: style });
+}
+
 // ═══ ΟΣΑ ΤΟ EXCEL ΞΕΡΕΙ ΚΑΙ Η ΒΙΒΛΙΟΘΗΚΗ ΔΕΝ ΓΡΑΦΕΙ ═══════════════════════
 // Η κοινοτική έκδοση δεν γράφει ΟΥΤΕ επικύρωση δεδομένων (αναπτυσσόμενους
 // καταλόγους) ΟΥΤΕ διάταξη σελίδας: δέχεται τις ιδιότητες και τις πετά. Το
@@ -154,16 +259,23 @@ function applyFinish(xml: string, f: SheetFinish): string {
       + '<selection pane="bottomLeft"/>';
     out = out.replace(/<sheetView([^>]*)\/>/, `<sheetView$1>${pane}</sheetView>`);
   }
-  if (f.lists?.length) {
-    const dv = validationsXml(f.lists);
-    out = out.includes('<pageMargins') ? out.replace('<pageMargins', dv + '<pageMargins') : out.replace('</worksheet>', dv + '</worksheet>');
-  }
+  // ΤΟ ΣΗΜΕΙΟ ΕΙΣΑΓΩΓΗΣ ΔΕΝ ΕΙΝΑΙ «ΣΤΟ ΤΕΛΟΣ». Το `ignoredErrors` έρχεται ΜΕΤΑ
+  // το pageSetup στο πρότυπο, και η βιβλιοθήκη το γράφει πάντα. Χωρίς περιθώρια
+  // στο φύλλο, το «πριν το </worksheet>» τα προσγείωνε μετά από αυτό — και το
+  // Excel αρνείται να ανοίξει ΟΛΟ το αρχείο, χωρίς να πει γιατί.
+  const before = (xml: string, block: string): string =>
+    xml.includes('<pageMargins') ? xml.replace('<pageMargins', block + '<pageMargins')
+      : xml.includes('<ignoredErrors') ? xml.replace('<ignoredErrors', block + '<ignoredErrors')
+        : xml.replace('</worksheet>', block + '</worksheet>');
+  if (f.lists?.length) out = before(out, validationsXml(f.lists));
   if (f.landscape) {
     // Το «σε μία σελίδα πλάτος» ισχύει μόνο αν το φύλλο το δηλώσει στο sheetPr,
     // που πρέπει να είναι το ΠΡΩΤΟ παιδί του worksheet.
     out = out.replace(/(<worksheet[^>]*>)/, '$1<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>');
     const ps = '<pageSetup orientation="landscape" fitToWidth="1" fitToHeight="0" paperSize="9"/>';
-    out = /<pageMargins[^>]*\/>/.test(out) ? out.replace(/(<pageMargins[^>]*\/>)/, '$1' + ps) : out.replace('</worksheet>', ps + '</worksheet>');
+    out = /<pageMargins[^>]*\/>/.test(out) ? out.replace(/(<pageMargins[^>]*\/>)/, '$1' + ps)
+      : out.includes('<ignoredErrors') ? out.replace('<ignoredErrors', ps + '<ignoredErrors')
+        : out.replace('</worksheet>', ps + '</worksheet>');
   }
   return out;
 }

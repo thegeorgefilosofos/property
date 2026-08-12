@@ -22,6 +22,17 @@ ok(!ids.some(id => /ΤΥΠΟΣ ΠΑΡΑΣΤΑΤΙΚΟΥ/.test(AADE_DOC_TYPES[id]
 const allCodes = ids.flatMap(id => [...AADE_DOC_TYPES[id].income, ...AADE_DOC_TYPES[id].expense]);
 ok(allCodes.every(c => /^category[12]_\d+$/.test(c)), 'κάθε κωδικός είναι λατινικός και καλοσχηματισμένος');
 ok(AADE_DOC_TYPES['1.5'].expense.includes('category2_3'), 'το τυπογραφικό του 1.5 κανονικοποιήθηκε');
+// ΚΑΙ ΤΟ ΔΕΥΤΕΡΟ ΤΥΠΟΓΡΑΦΙΚΟ: το φύλλο 14.2 της πηγής επαναλαμβάνει τον τίτλο
+// του 14.1. Ο τύπος είναι οι αποκτήσεις τρίτων χωρών — όπως ο 14.4 είναι η λήψη
+// υπηρεσιών τρίτων χωρών απέναντι στον ενδοκοινοτικό 14.3.
+eq('το 14.2 είναι οι αποκτήσεις τρίτων χωρών', AADE_DOC_TYPES['14.2'].title, 'Τιμολόγιο / Αποκτήσεις Τρίτων Χωρών');
+ok(AADE_DOC_TYPES['14.1'].title !== AADE_DOC_TYPES['14.2'].title, 'και δεν λέγεται πια όπως το 14.1');
+// ΚΑΝΕΝΑΣ ΤΥΠΟΣ ΔΕΝ ΟΝΟΜΑΖΕΤΑΙ ΔΥΟ ΤΡΟΠΟΥΣ ΜΕΣΑ ΣΤΟ ΙΔΙΟ ΒΙΒΛΙΟ. Το μητρώο και
+// τα ελληνικά λεκτικά του myData.ts εμφανίζονται σε διαφορετικά φύλλα του ίδιου
+// Excel: μια απόκλιση διαβάζεται ως δύο διαφορετικοί τύποι.
+for (const t of Object.keys(INVOICE_TYPE_LABEL) as InvoiceType[]) {
+  eq(`ο τύπος ${t} λέγεται το ίδιο και στα δύο`, AADE_DOC_TYPES[t].title, INVOICE_TYPE_LABEL[t]);
+}
 
 console.log('\nΈσοδα και έξοδα');
 ok(incomeDocTypes().length > 0 && expenseDocTypes().length > 0, 'υπάρχουν και οι δύο πλευρές');

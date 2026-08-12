@@ -5,9 +5,10 @@
 // Ό,τι δεν χωρά ένα CSV (μορφοποίηση €, φίλτρα, ζωντανές φόρμουλες SUM, πλάτη
 // στηλών, πλαίσια, ισοζύγιο, έλεγχος) το δίνει αυτό, με το ΕΝΙΑΙΟ λογιστικό στυλ
 // του app (xlsxStyle). Τρία φύλλα: Ημερολόγιο (διπλογραφικό, με σύνολα & έλεγχο
-// ισοζυγίου ως φόρμουλα), Ισοζύγιο (ΕΓΛΣ trial balance), Έλεγχος (audit).
+// ισοζυγίου ως φόρμουλα), Ισοζύγιο, Έλεγχος (audit). Το σχέδιο λογαριασμών
+// είναι των ΕΛΠ (ν. 4308/2014), όπως και σε κάθε άλλο έγγραφο της εφαρμογής.
 // ═══════════════════════════════════════════════════════════════════════════
-import { XLSX, FMT, S, setCell, downloadWorkbook, type Cell } from './xlsxStyle';
+import { XLSX, FMT, S, setCell, sheetFinish, downloadWorkbook, type Cell } from './xlsxStyle';
 import {
   trialBalance, journalTotals, auditJournal,
   type JournalLine,
@@ -26,7 +27,10 @@ export function downloadJournalWorkbook(opts: {
 }): void {
   const { lines, periodLabel, entityName } = opts;
   const wb = XLSX.utils.book_new();
-  const idLine = `${entityName || 'Property OS'} · Διπλογραφική μέθοδος · Ελληνικό Γενικό Λογιστικό Σχέδιο`;
+  // ΤΟ ΣΧΕΔΙΟ ΓΡΑΦΕΤΑΙ ΟΠΩΣ ΕΙΝΑΙ. Έλεγε «Ελληνικό Γενικό Λογιστικό Σχέδιο» ενώ
+  // οι κωδικοί μέσα στο ίδιο αρχείο είναι πλέον των ΕΛΠ: ο λογιστής διάβαζε
+  // υπογραφή ΕΓΛΣ και έβλεπε 64.02.
+  const idLine = `${entityName || 'Property OS'} · Διπλογραφική μέθοδος · Ελληνικά Λογιστικά Πρότυπα, ν. 4308/2014`;
 
   // ── Φύλλο 1: Ημερολόγιο ────────────────────────────────────────────────────
   {
@@ -88,18 +92,24 @@ export function downloadJournalWorkbook(opts: {
     const balOk = t.balanced;
     setCell(ws, checkR, CD, {
       t: 's',
-      f: `IF(ROUND(${A1(totalR, CD)}-${A1(totalR, CC)},2)=0,"✓ ΙΣΟΣΚΕΛΙΣΜΕΝΟ","⚠ ΑΣΥΜΦΩΝΙΑ")`,
-      v: balOk ? '✓ ΙΣΟΣΚΕΛΙΣΜΕΝΟ' : '⚠ ΑΣΥΜΦΩΝΙΑ',
-      s: { ...S.strongTxt, alignment: { horizontal: 'left', vertical: 'center' }, font: { name: 'Calibri', bold: true, sz: 10, color: { rgb: balOk ? '027A48' : 'B42318' } } },
+      // ΧΩΡΙΣ ΠΡΑΣΙΝΟ ΚΑΙ ΚΟΚΚΙΝΟ. Το ίδιο αρχείο απαγόρευε το σημασιολογικό
+      // χρώμα εξήντα γραμμές πιο κάτω και το χρησιμοποιούσε εδώ. Η διαφορά
+      // φαίνεται από τη λέξη, που είναι και η μόνη που διαβάζεται τυπωμένη
+      // ασπρόμαυρη ή από δαλτωνικό.
+      f: `IF(ROUND(${A1(totalR, CD)}-${A1(totalR, CC)},2)=0,"✓ ΙΣΟΣΚΕΛΙΣΜΕΝΟ","ΑΣΥΜΦΩΝΙΑ")`,
+      v: balOk ? '✓ ΙΣΟΣΚΕΛΙΣΜΕΝΟ' : 'ΑΣΥΜΦΩΝΙΑ',
+      s: { ...S.strongTxt, alignment: { horizontal: 'left', vertical: 'center' } },
     });
     if (ws['!merges']) ws['!merges'].push({ s: { r: checkR, c: CD }, e: { r: checkR, c: 8 } });
 
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: lastData, c: NC - 1 } }) };
-    ws['!freeze'] = { xSplit: 0, ySplit: HR + 1, topLeftCell: A1(HR + 1, 0), activePane: 'bottomLeft', state: 'frozen' };
+    // Το `ws['!freeze']` καθόταν εδώ και ΔΕΝ έκανε τίποτα: η βιβλιοθήκη το
+    // δέχεται και δεν το γράφει ποτέ. Το `sheetFinish` το γράφει στο XML.
+    sheetFinish(ws, { freezeRows: HR + 1 });
     XLSX.utils.book_append_sheet(wb, ws, 'Ημερολόγιο');
   }
 
-  // ── Φύλλο 2: Ισοζύγιο (trial balance, ΕΓΛΣ) ─────────────────────────────────
+  // ── Φύλλο 2: Ισοζύγιο (trial balance) ──────────────────────────────────────
   {
     const NC = 6, HR = 3;
     const tb = trialBalance(lines);
@@ -139,7 +149,7 @@ export function downloadJournalWorkbook(opts: {
   {
     const NC = 3, HR = 3;
     const audit = auditJournal(lines, { year: opts.year, month: opts.month });
-    const mark = (s: string) => (s === 'pass' ? '✓' : s === 'warn' ? '⚠' : '✗');
+    const mark = (s: string) => (s === 'pass' ? '✓' : s === 'warn' ? '·' : '✗');
     const header = ['Έλεγχος', 'Κατάσταση', 'Λεπτομέρεια και πρόταση'];
     const aoa: (string | number)[][] = [
       [`ΕΛΕΓΧΟΣ ΙΣΟΖΥΓΙΟΥ · ${periodLabel}`],
@@ -152,8 +162,9 @@ export function downloadJournalWorkbook(opts: {
     ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: NC - 1 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: NC - 1 } }];
     ws['!rows'] = []; ws['!rows'][0] = { hpt: 22 }; ws['!rows'][1] = { hpt: 15 }; ws['!rows'][HR] = { hpt: 24 };
     setCell(ws, 0, 0, { s: S.title });
-    const auditRgb = audit.tone === 'positive' ? '027A48' : audit.tone === 'warning' ? 'B54708' : 'B42318';
-    setCell(ws, 1, 0, { s: { ...S.sub, font: { name: 'Calibri', bold: true, sz: 10, color: { rgb: auditRgb } } } });
+    // Η σύνοψη του ελέγχου ξεχωρίζει με ΒΑΡΟΣ, όχι με χρώμα: η ίδια πρόταση
+    // διαβάζεται τυπωμένη ασπρόμαυρη και από όποιον δεν ξεχωρίζει το κόκκινο.
+    setCell(ws, 1, 0, { s: { ...S.sub, font: { name: 'Calibri', bold: true, sz: 10 } } });
     for (let c = 0; c < NC; c++) setCell(ws, HR, c, { s: S.head });
     audit.checks.forEach((c, i) => {
       const r = HR + 1 + i; ws['!rows']![r] = { hpt: c.fix ? 30 : 18 };

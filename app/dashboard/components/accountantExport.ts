@@ -2,8 +2,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // «Φάκελος για τον λογιστή» — δύο επίπεδα, το ίδιο υλικό.
 //
-//   exportAccountantBundle()  → ΕΝΑ .xlsx δύο φύλλων (κατάσταση αποτελεσμάτων
-//                               + αναλυτικές κινήσεις). Το «δώσ' μου τα νούμερα».
+//   exportAccountantBundle()  → ΕΝΑ .xlsx: κατάσταση αποτελεσμάτων, αναλυτικές
+//                               κινήσεις, λογαριασμοί ΕΛΠ, και άλλα τρία φύλλα
+//                               όπου υπάρχει υποχρέωση myDATA. Τα «νούμερα».
 //   exportAccountantDossier() → ΟΛΟΚΛΗΡΟΣ φάκελος .zip με αριθμημένους
 //                               υποφακέλους και ρητό «05_ΤΙ_ΛΕΙΠΕΙ».
 //
@@ -15,7 +16,10 @@
 // Πραγματικά κελιά, ημερομηνίες ως ημερομηνίες, ποσά ως νόμισμα (2 δεκαδικά),
 // σωστή στοίχιση/πλαίσια — σαν να το ετοίμασε λογιστής. Ασπρόμαυρο, καθαρό.
 // ═══════════════════════════════════════════════════════════════════════════
-import { XLSX, FMT, S, setCell, downloadWorkbook, printTitles, MARGINS, sheetFinish, workbookBytes, money, moneySigned, type Cell } from './xlsxStyle';
+import {
+  XLSX, FMT, S, setCell, autoWidths, wrapColumns, bannerRow, downloadWorkbook, printTitles,
+  MARGINS, sheetFinish, workbookBytes, money, moneySigned, type Cell,
+} from './xlsxStyle';
 import { supplyLabel, reverseChargeVat, reverseCharge, VAT_STANDARD, type Supply } from '@/lib/tax/placeOfSupply';
 import {
   myDataHint, myDataCell, pendingGroups, EXPENSE_CLASS_LABEL, INVOICE_TYPE_LABEL,
@@ -156,13 +160,17 @@ const comboSheet = (() => {
   // Η διεύθυνση του καταλόγου, σε μορφή που καταλαβαίνει το Excel (1-based, με
   // το όνομα του φύλλου σε εισαγωγικά γιατί έχει κενά).
   const classList = `'${COMBO_SHEET}'!$B$${namHead + 2}:$B$${namHead + 1 + namedRows.length}`;
+  // Η ΔΙΠΛΑΝΗ ΣΤΗΛΗ ΤΟΥ ΙΔΙΟΥ ΚΑΤΑΛΟΓΟΥ: ο μηχανικός κωδικός. Χρειάζεται ώστε ο
+  // «Κωδικός» της κίνησης να ΑΚΟΛΟΥΘΕΙ τον χαρακτηρισμό όταν ο λογιστής τον
+  // αλλάξει από τον αναπτυσσόμενο κατάλογο, αντί να μείνει ο παλιός.
+  const codeList = `'${COMBO_SHEET}'!$A$${namHead + 2}:$A$${namHead + 1 + namedRows.length}`;
   const incNamSec = namHead + 1 + namedRows.length + 1, incNamHead = incNamSec + 1;
   return { expCols, incCols, shortOf, expRows, incRows, namedRows, incomeNamedRows, incSec, incHead, namSec, namHead,
-    incNamSec, incNamHead, classList, NC: 2 + Math.max(expCols.length, incCols.length), HR };
+    incNamSec, incNamHead, classList, codeList, NC: 2 + Math.max(expCols.length, incCols.length), HR };
 })();
 
 /**
- * Το βιβλίο εργασίας των δύο φύλλων — κοινό για το σκέτο Excel και για τον φάκελο.
+ * Το βιβλίο εργασίας — κοινό για το σκέτο Excel και για τον φάκελο.
  *
  * ΕΞΑΓΕΤΑΙ ΓΙΑ ΝΑ ΔΟΚΙΜΑΖΕΤΑΙ. Το αρχείο που φεύγει στον λογιστή δεν μπορεί να
  * επαληθεύεται με το μάτι: μια στήλη που μετακινήθηκε κατά ένα δίνει σύνολο
@@ -197,16 +205,10 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       ...plRows.map(r => [r.label, r.amount ?? '']),
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws['!cols'] = [{ wch: 46 }, { wch: 16 }];
-    ws['!merges'] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: NC - 1 } },
-      { s: { r: 1, c: 0 }, e: { r: 1, c: NC - 1 } },
-      { s: { r: 3, c: 0 }, e: { r: 3, c: NC - 1 } },
-    ];
     ws['!rows'] = []; ws['!rows'][0] = { hpt: 22 }; ws['!rows'][1] = { hpt: 15 };
-    setCell(ws, 0, 0, { s: S.title });
-    setCell(ws, 1, 0, { s: S.sub });
-    setCell(ws, 3, 0, { s: S.section });
+    bannerRow(ws, 0, NC, S.title);
+    bannerRow(ws, 1, NC, S.sub);
+    bannerRow(ws, 3, NC, S.section);
     setCell(ws, HR, 0, { s: S.head }); setCell(ws, HR, 1, { s: S.head });
     plRows.forEach((r, i) => {
       const rr = HR + 1 + i;
@@ -218,6 +220,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       setCell(ws, rr, 0, { s: txtS });
       setCell(ws, rr, 1, { v: moneySigned(r.amount ?? 0), t: 's', s: numS }); // κείμενο «€» με κόμμα
     });
+    ws['!cols'] = autoWidths(ws, { headRow: HR }).cols;
     ws['!margins'] = { ...MARGINS };
     XLSX.utils.book_append_sheet(wb, ws, 'Κατάσταση αποτελεσμάτων');
   }
@@ -293,19 +296,16 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     // βλέπει «Ενδοκοινοτική λή…» δεν ξέρει αν είναι λήψη ή παράδοση. Ο τόπος
     // παροχής χρειάζεται 19 («Λήψη από τρίτη χώρα») και ο χαρακτηρισμός 45
     // («14.3 · 2.5 Γενικά Έξοδα χωρίς δικαίωμα έκπτωσης Φ.Π.Α.»).
-    ws['!cols'] = [{ wch: 6 }, { wch: 13 }, { wch: 24 }, { wch: 40 }, { wch: 8 }, { wch: 22 },
-      ...(myData ? [{ wch: 47 }] : []), { wch: 14 }, { wch: 14 }];
-    ws['!merges'] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: NC - 1 } },
-      { s: { r: 1, c: 0 }, e: { r: 1, c: NC - 1 } },
-    ];
+    // Το όριο είναι 56 και όχι το προεπιλεγμένο: ο μακρύτερος χαρακτηρισμός
+    // («14.3 · 2.5 Γενικά Έξοδα χωρίς δικαίωμα έκπτωσης Φ.Π.Α.») πιάνει 54, και
+    // μια αναδίπλωση θα έκανε κάθε ξένη δαπάνη διγράμμη χωρίς λόγο.
     ws['!rows'] = []; ws['!rows'][0] = { hpt: 22 }; ws['!rows'][1] = { hpt: 15 }; ws['!rows'][HR] = { hpt: 26 };
     const enc = (r: number, c: number) => XLSX.utils.encode_cell({ r, c });
     const emptyNote = sorted.length ? 0 : 1;
     const lastData = HR + sorted.length + emptyNote;
     const totalR = lastData + 1, netR = lastData + 2;
-    setCell(ws, 0, 0, { s: S.title });
-    setCell(ws, 1, 0, { s: S.sub });
+    bannerRow(ws, 0, NC, S.title);
+    bannerRow(ws, 1, NC, S.sub);
     for (let c = 0; c < NC; c++) setCell(ws, HR, c, { s: S.head });
     for (let r = HR + 1; r <= lastData; r++) {
       ws['!rows'][r] = { hpt: 16 };
@@ -325,18 +325,36 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     // στήλες που είχαν κείμενο ή ποσό, οπότε η μεσαία γραμμή του συνόλου έσπαγε
     // πάνω από τη «Χώρα» και τον «Τόπο παροχής» και ξανάρχιζε στα ποσά: ένα
     // σύνολο με τρύπες δεν διαβάζεται ως σύνολο.
-    for (let c = 0; c < NC; c++) setCell(ws, totalR, c, { s: c === C_IN || c === C_EX ? S.totNum : S.totTxt });
+    // Η ΕΝΤΟΝΗ ΓΡΑΜΜΗ ΣΗΜΑΙΝΕΙ ΠΑΝΤΟΥ ΤΟ ΙΔΙΟ: ΤΕΛΙΚΟ ΑΠΟΤΕΛΕΣΜΑ. Τα σύνολα
+    // εσόδων και εξόδων είναι υποσύνολα και κλείνουν τη λίστα· το καθαρό είναι
+    // το αποτέλεσμα. Ήταν αντίστροφα εδώ και σωστά στην κατάσταση
+    // αποτελεσμάτων: το ίδιο πάχος γραμμής έλεγε άλλο πράγμα σε κάθε φύλλο.
+    for (let c = 0; c < NC; c++) setCell(ws, totalR, c, { s: c === C_IN || c === C_EX ? S.strongNum : S.strongTxt });
     setCell(ws, totalR, C_IN, { v: money(sumIn), t: 's' });
     setCell(ws, totalR, C_EX, { v: money(sumEx), t: 's' });
-    for (let c = 0; c < NC; c++) setCell(ws, netR, c, { s: c === C_IN || c === C_EX ? S.strongNum : S.strongTxt });
+    // ΤΟ ΚΑΘΑΡΟ ΔΕΝ ΕΙΝΑΙ ΕΣΟΔΟ. Καθόταν κάτω από την επικεφαλίδα «Έσοδα» και
+    // διαβαζόταν ως έσοδο· απλώνεται στις δύο στήλες των ποσών, γιατί είναι η
+    // διαφορά τους και δεν ανήκει σε καμία.
+    for (let c = 0; c < NC; c++) setCell(ws, netR, c, { s: c === C_IN || c === C_EX ? S.totNum : S.totTxt });
     setCell(ws, netR, C_IN, { v: moneySigned(Math.round((sumIn - sumEx) * 100) / 100), t: 's' });
+    (ws['!merges'] ||= []).push({ s: { r: netR, c: C_IN }, e: { r: netR, c: C_EX } });
+    {
+      const { cols, wrap } = autoWidths(ws, { headRow: HR, max: 56 });
+      ws['!cols'] = cols; wrapColumns(ws, wrap, HR + 1, netR);
+    }
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: lastData, c: NC - 1 } }) };
     ws['!margins'] = { ...MARGINS };
     // ΟΡΙΖΟΝΤΙΑ ΣΕΛΙΔΑ ΚΑΙ ΚΑΤΑΛΟΓΟΣ ΣΤΟΝ ΤΟΠΟ ΠΑΡΟΧΗΣ. Εννέα στήλες σε όρθια
     // σελίδα κόβονται στη μέση. Και ο τόπος παροχής είναι το πεδίο που ο
     // λογιστής διορθώνει συχνότερα: με κατάλογο, η διόρθωση δεν μπορεί να
     // γραφτεί με λέξεις που δεν καταλαβαίνει μετά κανείς.
-    sheetFinish(ws, { landscape: true, freezeRows: HR + 1, lists: [{ ref: `F${HR + 2}:F${lastData + 1}`, values: SUPPLY_VALUES }] });
+    // Ο κατάλογος μπαίνει ΜΟΝΟ όπου υπάρχουν κινήσεις: σε άδεια χρονιά θα έπεφτε
+    // πάνω στη γραμμή που λέει «Καμία καταγεγραμμένη κίνηση» και θα της πρότεινε
+    // τόπο παροχής.
+    sheetFinish(ws, {
+      landscape: true, freezeRows: HR + 1,
+      ...(sorted.length ? { lists: [{ ref: `F${HR + 2}:F${lastData + 1}`, values: SUPPLY_VALUES }] } : {}),
+    });
     // Ο ΛΟΓΙΣΤΗΣ ΤΥΠΩΝΕΙ, ΚΑΙ Η ΔΕΥΤΕΡΗ ΣΕΛΙΔΑ ΧΡΕΙΑΖΕΤΑΙ ΟΝΟΜΑΤΑ. Χωρίς
     // επανάληψη της επικεφαλίδας, από τη σελίδα 2 και μετά ο πίνακας είναι
     // στήλες αριθμών χωρίς τίτλο — και το «Έσοδα / Έξοδα» δεν μαντεύεται.
@@ -351,9 +369,10 @@ export function buildWorkbook(inp: AccountantBundleInput) {
   // βλέπει κατηγορίες της εφαρμογής («Υδραυλικός», «Κοινόχρηστα»), όχι
   // λογαριασμούς. Η μετάφραση γινόταν στο κεφάλι του, μία φορά ανά γραμμή. Εδώ
   // είναι γραμμένη: κάθε λογαριασμός του νόμου, ποιες κατηγορίες κάθονται πάνω
-  // του, και πόσα. Δεν είναι ισοζύγιο — τα ταμειακά και τα δάνεια δεν περνούν
-  // από αυτό το βιβλίο — είναι ο χάρτης από τη γλώσσα του ιδιοκτήτη σε αυτή
-  // του Ε3.
+  // του, και πόσα. ΔΕΝ είναι ισοζύγιο: το βιβλίο αυτού του αρχείου έχει έσοδα
+  // και έξοδα, όχι τα σκέλη του ταμείου· και μια δόση δανείου καταχωρημένη ως
+  // δαπάνη θα φανεί εδώ ολόκληρη στους τόκους, γιατί έτσι ακριβώς την έγραψε ο
+  // χρήστης. Είναι ο χάρτης από τη γλώσσα του ιδιοκτήτη σε αυτή του Ε3.
   //
   // ΚΑΙ Η ΓΕΦΥΡΑ ΜΕ ΤΟ ΕΓΛΣ, ΓΙΑΤΙ ΠΟΛΛΑ ΛΟΓΙΣΤΗΡΙΑ ΤΟ ΚΡΑΤΟΥΝ. Αντιγραμμένη
   // από το Παράρτημα Ε του ν. 4308/2014, με όλους τους κωδικούς που δίνει ο
@@ -396,24 +415,28 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       ['Ταμειακή βάση: τα ποσά είναι εισπράξεις και πληρωμές της χρονιάς. Πηγή ονομασιών και αντιστοιχίας: ν. 4308/2014, Παραρτήματα Γ και Ε.'],
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws['!cols'] = [{ wch: 10 }, { wch: 44 }, { wch: 34 }, { wch: 40 }, { wch: 10 }, { wch: 15 }];
+    // Η αντιστοιχία ΕΓΛΣ του 71.04 είναι δεκαέξι κωδικοί, 110 χαρακτήρες: δεν
+    // γίνεται στήλη, γίνεται αναδίπλωση — και το ύψος το βρίσκει το Excel.
+
     // Οι γραμμές σημειώσεων: η κεφαλαιοποίηση μόνο όταν υπάρχει τέτοια δαπάνη,
     // και από κάτω πάντα η πηγή. Απλωμένες σε όλο το πλάτος για να διαβάζονται.
     const noteR = HR + 1 + ELP_ALL.length + 1;
     const notes = capitalised.length ? [noteR, noteR + 1] : [noteR];
-    ws['!merges'] = [0, 1, ...notes].map(r => ({ s: { r, c: 0 }, e: { r, c: NC - 1 } }));
     ws['!rows'] = []; ws['!rows'][0] = { hpt: 22 }; ws['!rows'][1] = { hpt: 15 }; ws['!rows'][HR] = { hpt: 26 };
-    setCell(ws, 0, 0, { s: S.title });
-    setCell(ws, 1, 0, { s: S.sub });
-    setCell(ws, HR - 1, 0, { s: S.section });
+    bannerRow(ws, 0, NC, S.title);
+    bannerRow(ws, 1, NC, S.sub);
+    bannerRow(ws, HR - 1, NC, S.section);
     for (let c = 0; c < NC; c++) setCell(ws, HR, c, { s: S.head });
     for (let i = 0; i < ELP_ALL.length; i++) {
       const r = HR + 1 + i;
-      ws['!rows'][r] = { hpt: 15 };
       for (const c of [0, 1, 2, 3]) setCell(ws, r, c, { s: S.txt });
       for (const c of [4, 5]) setCell(ws, r, c, { s: S.num });
     }
-    for (const r of notes) setCell(ws, r, 0, { s: S.sub });
+    for (const r of notes) bannerRow(ws, r, NC, S.sub);
+    {
+      const { cols, wrap } = autoWidths(ws, { headRow: HR });
+      ws['!cols'] = cols; wrapColumns(ws, wrap, HR + 1, HR + ELP_ALL.length);
+    }
     ws['!margins'] = { ...MARGINS };
     sheetFinish(ws, { landscape: true, freezeRows: HR + 1 });
     XLSX.utils.book_append_sheet(wb, ws, 'Λογαριασμοί ΕΛΠ');
@@ -493,17 +516,15 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       ...classRows,
       [],
       [`Υπόδειξη προς τον λογιστή, όχι διαβίβαση: τίποτα δεν αποστέλλεται στην ΑΑΔΕ από την εφαρμογή. Ποιοι χαρακτηρισμοί επιτρέπονται σε κάθε τύπο παραστατικού, στο φύλλο «${COMBO_SHEET}».`],
+      ['Οι κωδικοί Ε3 δίνονται όπου υπάρχει τύπος παραστατικού, δηλαδή στις λήψεις από το εξωτερικό που διαβιβάζει ο ίδιος ο λήπτης. Στην εγχώρια δαπάνη τον τύπο τον δηλώνει ο προμηθευτής, και ο κωδικός Ε3 εξαρτάται από εκείνον.'],
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa, { cellDates: true });
-    ws['!cols'] = [{ wch: 6 }, { wch: 13 }, { wch: 22 }, { wch: 34 }, { wch: 8 }, { wch: 22 },
-      { wch: 38 }, { wch: 15 }, { wch: 46 }, { wch: 34 }, { wch: 17 }, { wch: 20 }, { wch: 26 }];
-    ws['!merges'] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: NC - 1 } },
-      { s: { r: 1, c: 0 }, e: { r: 1, c: NC - 1 } },
-    ];
+    // Τα πλάτη μετρώνται σε ΟΛΟΝ τον πίνακα, μαζί με τα «ΣΥΝΟΛΑ ΑΝΑ
+    // ΧΑΡΑΚΤΗΡΙΣΜΟ» από κάτω: δανείζονταν τα πλάτη του μεγάλου πίνακα και
+    // έβγαιναν κομμένα, γιατί οι στήλες του ενός δεν είναι οι στήλες του άλλου.
     ws['!rows'] = []; ws['!rows'][0] = { hpt: 22 }; ws['!rows'][1] = { hpt: 15 }; ws['!rows'][HR] = { hpt: 30 };
-    setCell(ws, 0, 0, { s: S.title });
-    setCell(ws, 1, 0, { s: S.sub });
+    bannerRow(ws, 0, NC, S.title);
+    bannerRow(ws, 1, NC, S.sub);
     for (let c = 0; c < NC; c++) setCell(ws, HR, c, { s: S.head });
     const emptyNote = rows.length ? 0 : 1;
     const last = HR + rows.length + emptyNote;
@@ -514,9 +535,15 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       const dcell = ws[encM(r, 1)] as Cell | undefined;
       const isDate = !!dcell && dcell.v instanceof Date;
       setCell(ws, r, 1, { s: { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } }, ...(isDate ? { t: 'd', z: FMT.date } : {}) });
-      for (const c of [2, 3, 5, 6, 7, 8, 12]) setCell(ws, r, c, { s: S.txt });
-      // Οι κωδικοί Ε3 αναδιπλώνονται: είναι ως και είκοσι ένας σε μία γραμμή.
-      setCell(ws, r, 9, { s: S.txtWrap });
+      for (const c of [2, 3, 5, 6, 7, 8, 9, 12]) setCell(ws, r, c, { s: S.txt });
+      // Ο ΚΩΔΙΚΟΣ ΔΕΝ ΕΙΝΑΙ ΔΕΥΤΕΡΗ ΚΑΤΑΧΩΡΗΣΗ, ΕΙΝΑΙ ΜΕΤΑΦΡΑΣΗ. Γραμμένος ως
+      // σταθερή τιμή, έμενε ο παλιός μόλις ο λογιστής άλλαζε τον χαρακτηρισμό
+      // από τον κατάλογο, και το αρχείο έλεγε δύο διαφορετικά πράγματα στην
+      // ίδια γραμμή. Ως τύπος, ακολουθεί. Η αποθηκευμένη τιμή μένει για όποιον
+      // ανοίξει το αρχείο χωρίς επανυπολογισμό.
+      if (String((ws[encM(r, 8)] as Cell | undefined)?.v ?? '')) {
+        setCell(ws, r, 7, { f: `IFERROR(INDEX(${comboSheet.codeList},MATCH(${encM(r, 8)},${comboSheet.classList},0)),"")` });
+      }
       setCell(ws, r, 4, { s: { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } } });
       for (const c of [10, 11]) {
         const cell = ws[encM(r, c)] as Cell | undefined;
@@ -525,18 +552,22 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       }
     }
     const totR = last + 1;
-    for (let c = 0; c <= 9; c++) setCell(ws, totR, c, { s: S.totTxt });
-    for (const c of [10, 11, 12]) setCell(ws, totR, c, { s: c === 12 ? S.totTxt : S.totNum });
+    for (let c = 0; c <= 9; c++) setCell(ws, totR, c, { s: S.strongTxt });
+    for (const c of [10, 11, 12]) setCell(ws, totR, c, { s: c === 12 ? S.strongTxt : S.strongNum });
     // Οι πίνακες του έτους: επικεφαλίδα ενότητας, γραμμή στηλών, δεδομένα.
     const secA = totR + 2, headA = secA + 1;
-    setCell(ws, secA, 0, { s: S.section });
+    bannerRow(ws, secA, NC, S.section);
     for (let c = 0; c < 4; c++) setCell(ws, headA, c, { s: S.head });
     for (let i = 0; i < classRows.length; i++) {
       const r = headA + 1 + i;
       setCell(ws, r, 0, { s: S.txt }); setCell(ws, r, 1, { s: S.txt });
       setCell(ws, r, 2, { s: S.num }); setCell(ws, r, 3, { s: S.num });
     }
-    setCell(ws, headA + 1 + classRows.length + 1, 0, { s: S.sub });
+    for (const r of [headA + 1 + classRows.length + 1, headA + 2 + classRows.length + 1]) bannerRow(ws, r, NC, S.sub);
+    {
+      const { cols, wrap } = autoWidths(ws, { headRow: HR });
+      ws['!cols'] = cols; wrapColumns(ws, wrap, HR + 1);
+    }
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: last, c: NC - 1 } }) };
     ws['!margins'] = { ...MARGINS };
     // ΟΙ ΔΥΟ ΣΤΗΛΕΣ ΠΟΥ ΑΛΛΑΖΕΙ Ο ΛΟΓΙΣΤΗΣ, ΜΕ ΚΑΤΑΛΟΓΟ. Ο χαρακτηρισμός είναι
@@ -544,10 +575,13 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     // myDATA και όχι να γράφει «2,5» ή «γενικά έξοδα». Ο κατάλογος δείχνει στη
     // στήλη του φύλλου των συνδυασμών, γιατί τα λεκτικά ξεπερνούν κατά πολύ
     // τους 255 χαρακτήρες που δέχεται μια λίστα γραμμένη μέσα στο κελί.
-    sheetFinish(ws, { landscape: true, freezeRows: HR + 1, lists: [
-      { ref: `F${HR + 2}:F${last + 1}`, values: SUPPLY_VALUES },
-      { ref: `I${HR + 2}:I${last + 1}`, source: comboSheet.classList },
-    ] });
+    sheetFinish(ws, {
+      landscape: true, freezeRows: HR + 1,
+      ...(rows.length ? { lists: [
+        { ref: `F${HR + 2}:F${last + 1}`, values: SUPPLY_VALUES },
+        { ref: `I${HR + 2}:I${last + 1}`, source: comboSheet.classList },
+      ] } : {}),
+    });
     XLSX.utils.book_append_sheet(wb, ws, `Χαρακτηρισμοί myDATA`);
   }
 
@@ -563,8 +597,8 @@ export function buildWorkbook(inp: AccountantBundleInput) {
   // φίλτρο μπαίνει σε ΟΛΟΝ τον πίνακα: ο λογιστής πατά το βελάκι της στήλης
   // «2.5», διαλέγει «✓», και βλέπει μόνο τους τύπους που τον δέχονται — και
   // αντίστροφα, φιλτράροντας τη στήλη «Τύπος» βλέπει τι δέχεται ένας τύπος.
-  // (Πραγματική «επικύρωση δεδομένων» του Excel δεν γράφεται από τη βιβλιοθήκη
-  // που παράγει το αρχείο· το φίλτρο δίνει την ίδια δουλειά, με ό,τι υπάρχει.)
+  // (Ο πίνακας απαντά και το αντίστροφο: φιλτράροντας τη στήλη ενός
+  // χαρακτηρισμού, βλέπεις μόνο τους τύπους που τον δέχονται.)
   //
   // ΤΟ ΦΥΛΛΟ ΕΙΝΑΙ ΧΩΡΙΣΤΟ ΓΙΑ ΕΝΑΝ ΠΡΑΚΤΙΚΟ ΛΟΓΟ. Οι στήλες ενός φύλλου έχουν
   // ΕΝΑ πλάτος. Κάτω από τις «Κινήσεις», η στήλη «Περιγραφή» των 46 χαρακτήρων
@@ -574,7 +608,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
 
     const aoa: (string | number)[][] = [
       ['ΕΠΙΤΡΕΠΤΟΙ ΣΥΝΔΥΑΣΜΟΙ ΧΑΡΑΚΤΗΡΙΣΜΩΝ ΑΝΑ ΤΥΠΟ ΠΑΡΑΣΤΑΤΙΚΟΥ'],
-      ['Πηγή: ΑΑΔΕ, Συνδυασμοί Χαρακτηρισμών v1.0.4 · «✓» όπου ο τύπος δέχεται τον χαρακτηρισμό · φίλτρο σε στήλη χαρακτηρισμού: μόνο οι τύποι που τον δέχονται'],
+      ['Πηγή: ΑΑΔΕ, Συνδυασμοί Χαρακτηρισμών v1.0.4 · «✓» όπου ο τύπος δέχεται τον χαρακτηρισμό · στον πίνακα των εξόδων, φίλτρο σε στήλη χαρακτηρισμού δείχνει μόνο τους τύπους που τον δέχονται'],
       [],
       ['ΧΑΡΑΚΤΗΡΙΣΜΟΙ ΕΞΟΔΩΝ'],
       ['Τύπος', 'Περιγραφή', ...expCols.map(shortOf)],
@@ -595,17 +629,16 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       ['Ο ιδιοκτήτης εκδίδει κι εκείνος παραστατικά· ποιο εκδίδει εξαρτάται από τη δραστηριότητα και το κρίνει ο λογιστής. Η εφαρμογή υποδεικνύει μόνο τύπους 14.x, όπου υπόχρεος διαβίβασης είναι ο λήπτης.'],
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
-    // Η πρώτη στήλη χωρά και τον μηχανικό κωδικό («category2_95») του καταλόγου
-    // από κάτω, ώστε να μην κόβεται όταν η διπλανή στήλη έχει τιμή.
-    ws['!cols'] = [{ wch: 13 }, { wch: 52 }, ...Array.from({ length: NC - 2 }, () => ({ wch: 7 }))];
-    const wide = (r: number) => ({ s: { r, c: 0 }, e: { r, c: NC - 1 } });
+    // Το όριο είναι 62: ο μακρύτερος τίτλος παραστατικού («Παραστατικά Οντότητας
+    // ως Αναγράφονται από την ίδια (Δυναμικό)») πιάνει 61, και μια αναδίπλωση θα
+    // έκανε διγράμμες τις μισές από τις σαράντα πέντε γραμμές.
     const { incSec, incHead, namSec, namHead, incNamSec, incNamHead } = comboSheet;
     const noteR = incNamHead + 1 + incomeNamedRows.length + 1;
-    ws['!merges'] = [wide(0), wide(1), wide(noteR)];
     const hgt: { hpt: number }[] = []; ws['!rows'] = hgt;
     hgt[0] = { hpt: 22 }; hgt[1] = { hpt: 15 };
-    setCell(ws, 0, 0, { s: S.title });
-    setCell(ws, 1, 0, { s: S.sub });
+    bannerRow(ws, 0, NC, S.title);
+    bannerRow(ws, 1, NC, S.sub);
+    bannerRow(ws, noteR, NC, S.sub);
     const CTR = { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } };
     // Η επικεφαλίδα σταματά όπου σταματούν οι στήλες του ΣΥΓΚΕΚΡΙΜΕΝΟΥ πίνακα:
     // οι χαρακτηρισμοί εσόδων είναι λιγότεροι, και γκρι κελιά που συνεχίζουν
@@ -619,7 +652,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
         for (let c = 2; c < 2 + cols; c++) setCell(ws, r, c, { s: CTR });
       }
     };
-    for (const r of [HR - 1, incSec, namSec, incNamSec]) setCell(ws, r, 0, { s: S.section });
+    for (const r of [HR - 1, incSec, namSec, incNamSec]) bannerRow(ws, r, NC, S.section);
     grid(HR, expRows.length, expCols.length);
     grid(incHead, incRows.length, incCols.length);
     // Ο κατάλογος των εξόδων έχει τρεις στήλες (με το πρόσημο), των εσόδων δύο:
@@ -633,10 +666,13 @@ export function buildWorkbook(inp: AccountantBundleInput) {
         if (cols > 2) setCell(ws, head + 1 + i, 2, { s: CTR });
       }
     }
-    setCell(ws, noteR, 0, { s: S.sub });
+    ws['!cols'] = autoWidths(ws, { headRow: HR, max: 62 }).cols;
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: HR + expRows.length, c: NC - 1 } }) };
     ws['!margins'] = { ...MARGINS };
-    sheetFinish(ws, { landscape: true, freezeRows: HR + 1 });
+    // ΠΑΓΩΝΟΥΝ ΜΟΝΟ Ο ΤΙΤΛΟΣ ΚΑΙ Η ΠΗΓΗ. Παγωμένη στη γραμμή των στηλών, η
+    // επικεφαλίδα των ΕΞΟΔΩΝ έμενε στην οθόνη πάνω από τον πίνακα των ΕΣΟΔΩΝ,
+    // όπου η ίδια στήλη «2.4» σημαίνει «1.4»: χειρότερο από καθόλου πάγωμα.
+    sheetFinish(ws, { landscape: true, freezeRows: 2 });
     XLSX.utils.book_append_sheet(wb, ws, COMBO_SHEET);
   }
 
@@ -668,27 +704,32 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       ['Τύπος', 'Παραστατικό', 'Χαρακτηρισμός', 'Κωδικός Ε3', 'Ονομασία κωδικού Ε3', 'Σημείωση ΑΑΔΕ'],
       ...rows.map(r => [r[0], r[1], r[2], r[3], r[4], r[5]]),
       [],
-      ['Κάθε κωδικός γράφεται όπως ακριβώς τον ζητά το σύστημα διαβίβασης, με την ονομασία του δίπλα. Η επιλογή ανάμεσα σε πολλούς επιτρεπτούς κωδικούς κρίνεται από τη φύση της συναλλαγής.'],
+      ['Κάθε κωδικός γράφεται όπως ακριβώς τον ζητά το σύστημα διαβίβασης, με την ονομασία του δίπλα.'],
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws['!cols'] = [{ wch: 8 }, { wch: 40 }, { wch: 40 }, { wch: 15 }, { wch: 52 }, { wch: 46 }];
+    // Χωρίς όριο πλάτους σε αυτό το φύλλο: με 1.442 γραμμές, μια αναδίπλωση θα
+    // διπλασίαζε το ύψος του πίνακα για να κερδίσει λίγη οριζόντια κύλιση.
     const noteR = HR + 1 + rows.length + 1;
-    ws['!merges'] = [0, 1, noteR].map(r => ({ s: { r, c: 0 }, e: { r, c: NC - 1 } }));
     ws['!rows'] = []; ws['!rows'][0] = { hpt: 22 }; ws['!rows'][1] = { hpt: 15 };
-    setCell(ws, 0, 0, { s: S.title });
-    setCell(ws, 1, 0, { s: S.sub });
-    setCell(ws, HR - 1, 0, { s: S.section });
+    bannerRow(ws, 0, NC, S.title);
+    bannerRow(ws, 1, NC, S.sub);
+    bannerRow(ws, HR - 1, NC, S.section);
     for (let c = 0; c < NC; c++) setCell(ws, HR, c, { s: S.head });
     for (let i = 0; i < rows.length; i++) {
       const r = HR + 1 + i;
       ws['!rows'][r] = { hpt: 15 };
       for (let c = 0; c < NC; c++) setCell(ws, r, c, { s: S.txt });
     }
-    setCell(ws, noteR, 0, { s: S.sub });
+    bannerRow(ws, noteR, NC, S.sub);
+    ws['!cols'] = autoWidths(ws, { headRow: HR, max: 110 }).cols;
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: HR + rows.length, c: NC - 1 } }) };
     ws['!margins'] = { ...MARGINS };
     sheetFinish(ws, { landscape: true, freezeRows: HR + 1 });
-    XLSX.utils.book_append_sheet(wb, ws, 'Κωδικοί Ε3 ανά συνδυασμό');
+    // Χίλιες τετρακόσιες γραμμές σε έναν πίνακα: από τη δεύτερη τυπωμένη σελίδα
+    // και μετά, χωρίς επανάληψη της επικεφαλίδας, είναι κωδικοί χωρίς στήλες.
+    const e3Sheet = 'Κωδικοί Ε3 ανά συνδυασμό';
+    XLSX.utils.book_append_sheet(wb, ws, e3Sheet);
+    printTitles(wb, wb.SheetNames.length - 1, e3Sheet, HR + 1);
   }
 
   return wb;
@@ -757,8 +798,8 @@ export function exportAccountantDossier(inp: DossierExportInput): void {
     // φύλλα ακόμη όταν υπάρχει υποχρέωση myDATA· μια σταθερή πρόταση θα έλεγε
     // «αποτελέσματα και κινήσεις» σε αρχείο που έχει και τους χαρακτηρισμούς.
     `  01 ΣΥΝΟΨΗ            ${inp.myData
-      ? 'Αποτελέσματα, κινήσεις και χαρακτηρισμοί myDATA (Excel).'
-      : 'Κατάσταση αποτελεσμάτων και αναλυτικές κινήσεις (Excel).'}`,
+      ? 'Αποτελέσματα, κινήσεις, λογαριασμοί ΕΛΠ και χαρακτηρισμοί myDATA (Excel).'
+      : 'Αποτελέσματα, κινήσεις και λογαριασμοί ΕΛΠ (Excel).'}`,
     '  02 ΕΣΟΔΑ             Κάθε είσπραξη του έτους, με ημερομηνία και περιγραφή.',
     '  03 ΕΞΟΔΑ             Κάθε πληρωμή του έτους, ανά κατηγορία.',
     '  04 ΔΙΚΑΙΟΛΟΓΗΤΙΚΑ    Ο κατάλογος των παραστατικών, με το ποιος φέρνει το καθένα.',

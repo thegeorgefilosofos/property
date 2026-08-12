@@ -409,8 +409,12 @@ eq('τα πλάτη στηλών είναι όσα και οι στήλες', (w
   ok('κάθε φύλλο έχει περιθώρια εκτύπωσης', w.SheetNames.every(n => !!w.Sheets[n]['!margins']));
   const names = (w.Workbook?.Names ?? []) as { Name: string; Sheet?: number; Ref: string }[];
   const titles = names.filter(n => n.Name === '_xlnm.Print_Titles');
-  eq('η επικεφαλίδα επαναλαμβάνεται σε ΕΝΑ φύλλο', titles.length, 1);
-  eq('στις Κινήσεις, και στη γραμμή των στηλών', titles[0]?.Ref, "'Κινήσεις 2026'!$4:$4");
+  // Στα ΔΥΟ φύλλα που είναι ένας ενιαίος πίνακας και απλώνονται σε σελίδες. Τα
+  // υπόλοιπα έχουν πίνακες με διαφορετικές στήλες το καθένα: μια επαναλαμβανόμενη
+  // επικεφαλίδα δεκατριών στηλών πάνω από τετράστηλο μπλοκ θα ήταν λάθος.
+  eq('η επικεφαλίδα επαναλαμβάνεται σε δύο φύλλα', titles.length, 2);
+  eq('στις Κινήσεις, στη γραμμή των στηλών', titles[0]?.Ref, "'Κινήσεις 2026'!$4:$4");
+  eq('και στον πίνακα των 1.442 γραμμών', titles[1]?.Ref, "'Κωδικοί Ε3 ανά συνδυασμό'!$5:$5");
 }
 
 // ═══ ΚΑΙ ΟΤΙ ΦΤΑΝΟΥΝ ΟΝΤΩΣ ΜΕΣΑ ΣΤΟ ΑΡΧΕΙΟ ═══════════════════════════════════
@@ -433,8 +437,12 @@ eq('τα πλάτη στηλών είναι όσα και οι στήλες', (w
   // η εκατοστή γραμμή είναι κωδικοί χωρίς στήλες. Η ιδιότητα της βιβλιοθήκης
   // δεν γράφεται ποτέ· το XML το γράφει.
   eq('πέντε φύλλα με παγωμένες επικεφαλίδες', xml.filter(x => x.includes('state="frozen"')).length, 5);
-  ok('το πάγωμα κόβει ΚΑΤΩ από τη γραμμή των στηλών',
-    xml.every(x => !x.includes('state="frozen"') || /<pane ySplit="[45]" topLeftCell="A[56]"/.test(x)));
+  // Στα φύλλα με ΕΝΑΝ πίνακα, κάτω από τη γραμμή των στηλών. Στο φύλλο των
+  // συνδυασμών, που έχει τρεις πίνακες με άλλες στήλες ο καθένας, μόνο ο τίτλος:
+  // παγωμένη η επικεφαλίδα των εξόδων θα στεκόταν πάνω από τα έσοδα, όπου η ίδια
+  // στήλη σημαίνει άλλο πράγμα.
+  ok('το πάγωμα κόβει κάτω από τη γραμμή των στηλών ή κάτω από τον τίτλο',
+    xml.every(x => !x.includes('state="frozen"') || /<pane ySplit="[245]" topLeftCell="A[356]"/.test(x)));
   // Η ΣΕΙΡΑ ΤΩΝ ΣΤΟΙΧΕΙΩΝ ΕΙΝΑΙ ΟΡΟΣ ΤΟΥ ΠΡΟΤΥΠΟΥ, ΟΧΙ ΓΟΥΣΤΟ: με λάθος σειρά
   // το Excel αρνείται να ανοίξει ΟΛΟ το αρχείο, και το μήνυμα δεν λέει γιατί.
   const order = ['sheetPr', 'sheetData', 'dataValidations', 'pageMargins', 'pageSetup'];
@@ -442,6 +450,49 @@ eq('τα πλάτη στηλών είναι όσα και οι στήλες', (w
     const pos = order.map(t => x.indexOf(`<${t}`)).filter(i => i >= 0);
     return pos.every((v, i) => i === 0 || v > pos[i - 1]);
   }));
+}
+
+// ═══ ΚΑΜΙΑ ΣΤΗΛΗ ΔΕΝ ΚΟΒΕΙ, ΣΕ ΚΑΝΕΝΑ ΦΥΛΛΟ ═════════════════════════════════
+// Τα πλάτη ήταν γραμμένα στο χέρι και μάντευαν. Μετρημένα σε πραγματικό βιβλίο,
+// δεκατρείς στήλες σε τέσσερα φύλλα έκοβαν — και το χειρότερο ήταν η γέφυρα με
+// το ΕΓΛΣ, 110 χαρακτήρες σε στήλη 34. Ο έλεγχος επαναλαμβάνει τον κανόνα της
+// `autoWidths`: οι γραμμές-πανό απλώνονται, η επικεφαλίδα αναδιπλώνεται στη
+// μέση, και ό,τι αναδιπλώνεται δεν κόβει.
+{
+  const wide = buildWorkbook({
+    year: 2026, propName: 'Διαμέρισμα Αθήνα, Κολωνάκι', ownerAfm: '094014201',
+    statementLines: [{ label: 'Έσοδα από ενοίκια', amount: 700, kind: 'line' }],
+    provisionMonthly: 12.5, myData: { vat: 'none' },
+    book: [
+      ...BOOK,
+      { date: '2026-05-09', type: 'expense', category: 'Ανακαίνιση', description: 'Επισκευή μπάνιου, αντικατάσταση μπαταρίας', amount: 3120, supplier_country: 'GR', supply: 'domestic' },
+      { date: '2026-06-20', type: 'expense', category: 'Έπιπλα', description: 'Καναπές τριθέσιος', amount: 800, supplier_country: 'IT', supply: 'intra_eu' },
+    ],
+  });
+  const clipped: string[] = [];
+  for (const name of wide.SheetNames) {
+    const sheet = wide.Sheets[name];
+    const cols = (sheet['!cols'] ?? []) as { wch: number }[];
+    const range = XLSX.utils.decode_range(sheet['!ref'] as string);
+    const cellAt = (r: number, c: number) => sheet[XLSX.utils.encode_cell({ r, c })] as Cell | undefined;
+    const textAt = (r: number, c: number) => {
+      const x = cellAt(r, c);
+      return !x || x.v == null ? '' : x.v instanceof Date ? 'dd/mm/yyyy' : String(x.v);
+    };
+    for (let r = range.s.r; r <= range.e.r; r++) {
+      let filled = 0;
+      for (let c = range.s.c; c <= range.e.c; c++) if (textAt(r, c) !== '') filled++;
+      if (filled <= 1) continue;                                  // πανό ή κενή γραμμή
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const style = cellAt(r, c)?.s as { alignment?: { wrapText?: boolean } } | undefined;
+        if (style?.alignment?.wrapText) continue;                 // αναδιπλώνεται, δεν κόβει
+        const len = textAt(r, c).length;
+        if (len > (cols[c]?.wch ?? 0)) clipped.push(`${name} ${XLSX.utils.encode_col(c)}${r + 1}: ${len} σε ${cols[c]?.wch}`);
+      }
+    }
+  }
+  eq('καμία στήλη δεν κόβει το περιεχόμενό της', [...new Set(clipped)].slice(0, 3).join(' · '), '');
+  ok('κάθε φύλλο δηλώνει πλάτη', wide.SheetNames.every(n => ((wide.Sheets[n]['!cols'] ?? []) as unknown[]).length > 0));
 }
 
 console.log(`\naccountantExport.ts — ${passed} passed, ${failed} failed`);

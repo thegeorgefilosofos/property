@@ -108,7 +108,9 @@ const cardTitle:React.CSSProperties = { fontSize:13, fontWeight:700, color:'var(
 // Οι στήλες του ισοζυγίου, ΜΙΑ φορά: επικεφαλίδες, γραμμές και σύνολα διαβάζουν
 // την ίδια τιμή. Γραμμένες τρεις φορές, μια αλλαγή σε δύο από τις τρεις έδινε
 // πίνακα με μετατοπισμένα σύνολα — που δεν σκάει πουθενά, απλώς είναι λάθος.
-const TRIAL_COLS = '64px minmax(0,1fr) 92px 92px 100px'
+// Η πρώτη στήλη χωρά την επικεφαλίδα της. Ήταν 72px με «Κωδικός», στένεψε σε
+// 64px ενώ η επικεφαλίδα μεγάλωνε σε «Κωδικός ΕΛΠ», και έσπαγε σε δύο γραμμές.
+const TRIAL_COLS = '86px minmax(0,1fr) 92px 92px 100px'
 
 // Χρώμα μόνο στη γραμμή αποτελέσματος, αλλού ουδέτερο (χωρίς θόρυβο).
 // Ήπια, ουδέτερη ένδειξη τόνου για τη συμβουλευτική (χωρίς έντονα χρώματα/λίστες).
@@ -460,7 +462,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
 
   // Ισοζύγιο διπλογραφικής (trial balance) — για τον λογιστή. Ταμειακή βάση:
   // εισπραγμένα ενοίκια/κρατήσεις → έσοδα, πληρωμένα έξοδα, δόσεις δανείου
-  // διαχωρισμένες σε τόκους (65) και χρεολύσιο (45). Κάθε άρθρο ισοσκελισμένο.
+  // διαχωρισμένες σε τόκους (65.01) και χρεολύσιο (52). Κάθε άρθρο ισοσκελισμένο.
   const journalLines = useMemo(()=>{
     const incomes:IncomeRec[] = []
     for(const p of rent){ if(p.paid&&(p.amount||0)>0&&p.period_year===year){ incomes.push({ date:p.paid_date||p.due_date||`${p.period_year}-${String(p.period_month).padStart(2,'0')}-01`, amount:p.amount, description:`Ενοίκιο ${MONTHS_SHORT[(p.period_month||1)-1]} ${p.period_year}` }) } }

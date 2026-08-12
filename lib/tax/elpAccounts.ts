@@ -130,9 +130,3 @@ export function elpAccountFor(slug: string | null | undefined): ElpAccount | nul
 export function eglsOf(code: string): string {
   return (elpAccount(code)?.egls ?? []).join(', ');
 }
-
-/** Οι λογαριασμοί που χρησιμοποιεί όντως η εφαρμογή, στη σειρά του σχεδίου. */
-export function usedElpAccounts(): ElpAccount[] {
-  const used = new Set(Object.values(CATEGORY_ELP));
-  return ELP_ALL.filter(a => used.has(a.code));
-}
