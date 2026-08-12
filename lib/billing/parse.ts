@@ -8,6 +8,7 @@
 // στο app, στο lib/core/greek.ts. Τα εισάγουμε — δεν τα αντιγράφουμε.
 import { fe } from '../core/format';
 import { greekWord } from '../core/greek';
+import { csvLines, csvDelimiter, csvSplitLine } from '../core/csv';
 import {
   isValidAfm,
   parseAmount as coreParseAmount,
@@ -111,18 +112,20 @@ const findCol = (headers: string[], keys: string[]): number =>
   headers.findIndex(h => keys.some(k => h.includes(k)));
 
 export function parseCSV(text: string): ParsedTransaction[] {
-  const lines = (text || '').split('\n').filter(l => l.trim());
+  const lines = csvLines(text);
   if (!lines.length) return [];
-  // Ανίχνευση διαχωριστή ΜΙΑ φορά από την κεφαλίδα: tab > semicolon > comma.
-  const header = lines[0];
-  const delim = header.includes('\t') ? '\t' : header.includes(';') ? ';' : ',';
-  const splitLine = (l: string): string[] =>
-    delim === ',' ? l.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/) : l.split(delim);
+  // ΤΟ ΣΠΑΣΙΜΟ ΤΗΣ ΓΡΑΜΜΗΣ ΕΙΝΑΙ ΕΝΑ, ΣΤΟ lib/core/csv.ts. Εδώ ήταν γραμμένο
+  // δεύτερη φορά, και ήταν λάθος με δύο τρόπους: για κόμμα έσπαγε με κανονική
+  // έκφραση που δεν καταλαβαίνει το διπλό εισαγωγικό μέσα σε εισαγωγικά, και
+  // για «;» έκοβε ΧΩΡΙΣ καθόλου εισαγωγικά — μια αιτιολογία «Ενοίκιο· κατάθεση»
+  // με ερωτηματικό μέσα της μετακινούσε κάθε επόμενη στήλη κατά μία.
+  const delim = csvDelimiter(lines[0]);
+  const splitLine = (l: string): string[] => csvSplitLine(l, delim);
 
   // ── Header-aware λειτουργία: εντόπισε ονομασμένες στήλες (τα περισσότερα bank
   // exports έχουν κεφαλίδα). Έτσι Υπόλοιπο/κωδικοί ΔΕΝ μπερδεύονται με το ποσό,
   // και ξεχωριστές στήλες Χρέωση/Πίστωση διαβάζονται σωστά.
-  const H = splitLine(header).map(c => stripAccents(c.replace(/^"|"$/g, '')));
+  const H = splitLine(lines[0]).map(c => stripAccents(c.replace(/^"|"$/g, '')));
   const iDate = findCol(H, ['ημερομηνια', 'ημ/νια', 'ημ. συν', 'date', 'ημερομ']);
   const iAmount = findCol(H, ['ποσο', 'amount']);
   const iDebit = findCol(H, ['χρεωση', 'debit', 'αναληψη', 'εξοδα', 'χρεωσεις']);

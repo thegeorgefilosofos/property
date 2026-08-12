@@ -25,7 +25,9 @@ import { athensToday, daysUntil as athensDaysUntil } from '@/lib/core/time';
 import { addMonths as addCalendarMonths } from '@/lib/loans/progress';
 import { navLabel } from '@/lib/nav/labels';
 import { INK, INK_FAINT, INK_MUTED, PAPER_ALT, RULE } from '@/lib/print/ink';
-import { downloadCsv } from '@/lib/core/download';
+import { XLSX, S, ROW, setCell, autoWidths, downloadWorkbook } from './xlsxStyle';
+import { csvTable } from '@/lib/core/csv';
+import { readSheetAsCsv, SheetError } from '@/lib/core/readSheet';
 import { failed, MSG } from '@/lib/core/dbError';
 import { uploadPath } from '@/lib/core/uploadPath';
 import type { InventoryItemsRow } from '@/lib/supabase/tables';
@@ -546,16 +548,40 @@ function BulkImportModal({propertyId,userId,onImported,onClose}:{propertyId:stri
   const fileRef = useRef<HTMLInputElement>(null)
   // Δες DocumentScan: το ref διαβάζεται σε useCallback, όχι στην απόδοση.
   const openFilePicker = useCallback(() => fileRef.current?.click(), [])
-  const TEMPLATE = `Ονομασία,Κατηγορία,Δωμάτιο,Μάρκα,Μοντέλο,Σειριακός,Κατάσταση,Αξία Αγοράς,Ημερομηνία Αγοράς,Λήξη Εγγύησης,Ενεργειακή Κλάση,Ισχύς (W),Ώρες ανά Ημέρα,Κόστος Αντικατάστασης\nΠλυντήριο,Ηλεκτρικές Συσκευές,Κουζίνα,Bosch,WAU28,SN123,Καλή,650,2021-03-15,2026-03-15,A+,2100,1,700`
+  // ══ ΤΟ ΥΠΟΔΕΙΓΜΑ ΕΙΝΑΙ ΒΙΒΛΙΟ ΕΡΓΑΣΙΑΣ, ΟΧΙ CSV ══════════════════════════
+  //
+  // Ήταν CSV χωρισμένο με ΚΟΜΜΑ. Το Excel όμως χωρίζει στήλες με το
+  // διαχωριστικό ΤΟΥ ΣΥΣΤΗΜΑΤΟΣ, και σε ελληνικά Windows αυτό είναι το
+  // ερωτηματικό — γιατί το κόμμα είναι το δεκαδικό σημείο. Ο χρήστης άνοιγε το
+  // υπόδειγμα και έβλεπε ΟΛΟΚΛΗΡΗ τη γραμμή μέσα στο κελί A1: δεκατέσσερις
+  // στήλες στοιβαγμένες σε μία, χωρίς κανένα μήνυμα λάθους.
+  //
+  // Και ο γυρισμός ήταν χειρότερος: αν τελικά το συμπλήρωνε, το Excel το
+  // αποθήκευε ΜΕ ΕΡΩΤΗΜΑΤΙΚΑ, ενώ η ανάγνωση έσπαγε στο κόμμα. Κάθε γραμμή
+  // εισαγόταν ως ένα αντικείμενο με ολόκληρη τη γραμμή για όνομα — «επιτυχώς».
+  //
+  // Ένα .xlsx δεν έχει διαχωριστικό. Ανοίγει το ίδιο σε κάθε υπολογιστή.
+  const TEMPLATE_HEAD = ['Ονομασία','Κατηγορία','Δωμάτιο','Μάρκα','Μοντέλο','Σειριακός','Κατάσταση','Αξία Αγοράς','Ημερομηνία Αγοράς','Λήξη Εγγύησης','Ενεργειακή Κλάση','Ισχύς (W)','Ώρες ανά Ημέρα','Κόστος Αντικατάστασης']
+  const TEMPLATE_ROW = ['Πλυντήριο','Ηλεκτρικές Συσκευές','Κουζίνα','Bosch','WAU28','SN123','Καλή','650','2021-03-15','2026-03-15','A+','2100','1','700']
   const downloadTemplate = () => {
-    downloadCsv(TEMPLATE, 'υπόδειγμα απογραφής.csv')
+    const wb = XLSX.utils.book_new()
+    const ws = XLSX.utils.aoa_to_sheet([TEMPLATE_HEAD, TEMPLATE_ROW])
+    ws['!rows'] = []; ws['!rows'][0] = { hpt: ROW.head }
+    for (let c = 0; c < TEMPLATE_HEAD.length; c++) setCell(ws, 0, c, { s: S.head })
+    for (let c = 0; c < TEMPLATE_HEAD.length; c++) setCell(ws, 1, c, { s: S.txt })
+    ws['!cols'] = autoWidths(ws, { headRow: 0 }).cols
+    XLSX.utils.book_append_sheet(wb, ws, 'Απογραφή')
+    downloadWorkbook(wb, 'υπόδειγμα απογραφής')
   }
   const parseCSV = (text:string) => {
-    const lines=text.trim().split('\n').filter(l=>l.trim())
-    if(lines.length<2){setErrors(['Το αρχείο δεν έχει δεδομένα.']);return}
+    // Ο αναλυτής ζει στο lib/core/csv.ts: ξέρει και το «;» και τα εισαγωγικά.
+    // Εδώ έκανε σκέτο `split(',')`, οπότε μια «Πολυθρόνα, δερμάτινη» έγραφε την
+    // κατηγορία μέσα στο όνομα και μετακινούσε κάθε επόμενη στήλη κατά μία.
+    const table=csvTable(text)
+    if(table.length<2){setErrors(['Το αρχείο δεν έχει δεδομένα.']);return}
     const parsed:Partial<InventoryItem>[]=[]; const errs:string[]=[]
-    for(let i=1;i<lines.length;i++){
-      const cols=lines[i].split(',').map(c=>c.replace(/^"|"$/g,'').trim())
+    for(let i=1;i<table.length;i++){
+      const cols=table[i]
       if(!cols[0])continue
       const cat=cols[1]||'Λοιπά'; const cond=cols[6]||'Καλή'
       if(![...INVENTORY_CATEGORIES].includes(cat))errs.push(`Γραμμή ${i+1}: Άγνωστη κατηγορία "${cat}"`)
@@ -563,7 +589,19 @@ function BulkImportModal({propertyId,userId,onImported,onClose}:{propertyId:stri
     }
     setRows(parsed);setErrors(errs);if(parsed.length>0)setStep('preview')
   }
-  const handleFile=(file:File)=>{const r=new FileReader();r.onload=e=>parseCSV(e.target?.result as string);r.readAsText(file,'UTF-8')}
+  // ΤΟ ΑΡΧΕΙΟ ΠΟΥ ΓΥΡΙΖΕΙ ΕΙΝΑΙ ΣΥΝΗΘΩΣ ΑΥΤΟ ΠΟΥ ΕΦΥΓΕ. Αφού το υπόδειγμα είναι
+  // βιβλίο εργασίας, ο χρήστης το συμπληρώνει και το ανεβάζει όπως είναι· το
+  // «αποθήκευση ως CSV» ήταν βήμα που δεν έπρεπε να ζητηθεί ποτέ. Το CSV
+  // εξακολουθεί να γίνεται δεκτό, για όποιον το εξάγει από αλλού.
+  const handleFile=async(file:File)=>{
+    const isSheet=/\.(xlsx|xlsm|xls)$/i.test(file.name)
+    if(isSheet){
+      try{ parseCSV(await readSheetAsCsv(file)) }
+      catch(e){ setErrors([e instanceof SheetError?e.message:'Το αρχείο δεν διαβάστηκε.']) }
+      return
+    }
+    const r=new FileReader();r.onload=e=>parseCSV(e.target?.result as string);r.readAsText(file,'UTF-8')
+  }
   const handleImport=async()=>{
     setImporting(true)
     const {error}=await inventory.add(supabase,propertyId,userId,rows.map(r=>({...r,photos:[]})))
@@ -592,10 +630,10 @@ function BulkImportModal({propertyId,userId,onImported,onClose}:{propertyId:stri
           {/* Ρητά, όχι με spread: δες DocumentScan — το spread κρύβει τις ιδιότητες
               από τον μεταγλωττιστή και ξυπνά τα σφάλματα των διπλανών χειριστών. */}
           <div role="button" tabIndex={0} onClick={openFilePicker} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openFilePicker()}}} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)handleFile(f)}} style={{border:'2px dashed var(--border-accent)',borderRadius:T.radius.card,padding:'40px 20px',textAlign:'center',cursor:'pointer',background:'var(--accent-dim)'}}>
-            <p style={{fontSize:14,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:8}}>Σύρτε ή κλικ για ανέβασμα CSV</p>
-            <p title="UTF-8: κωδικοποίηση κειμένου που υποστηρίζει ελληνικούς χαρακτήρες" style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Μορφή: UTF-8 CSV</p>
+            <p style={{fontSize:14,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:8}}>Σύρτε ή κλικ για ανέβασμα αρχείου</p>
+            <p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Excel ή CSV</p>
           </div>
-          <input ref={fileRef} type="file" accept=".csv" style={{display:'none'}} onChange={e=>{const f=e.target.files?.[0];if(f)handleFile(f)}}/>
+          <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" style={{display:'none'}} onChange={e=>{const f=e.target.files?.[0];if(f)handleFile(f)}}/>
           {errors.length>0&&<div style={{padding:'10px 14px',background:'var(--negative-dim)',borderRadius:8,border:'1px solid var(--negative-border)'}}>{errors.map((e,i)=><p key={i} style={{fontSize:11,color:'var(--negative)',fontFamily:T.font.sans}}>{e}</p>)}</div>}
         </>
       )}

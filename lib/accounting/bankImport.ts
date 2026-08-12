@@ -6,6 +6,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { parseAmount, parseDate as coreParseDate } from '../core/greek'
+import { csvDelimiter, csvSplitLine } from '../core/csv'
 
 export interface BankTxn {
   date: string          // ISO YYYY-MM-DD (κενό αν δεν αναγνωρίστηκε)
@@ -20,25 +21,10 @@ const AMOUNT_KEYS = ['ποσό', 'amount', 'αξία']
 const DEBIT_KEYS = ['χρέωση', 'debit', 'χρεωσεις']
 const CREDIT_KEYS = ['πίστωση', 'credit', 'πιστωσεις']
 
-function detectDelimiter(line: string): string {
-  const counts: Record<string, number> = { ';': (line.match(/;/g) || []).length, '\t': (line.match(/\t/g) || []).length, ',': (line.match(/,/g) || []).length }
-  // Προτίμηση σε ; και tab (τα ελληνικά CSV χρησιμοποιούν κόμμα ως δεκαδικό).
-  if (counts[';'] >= counts['\t'] && counts[';'] > 0) return ';'
-  if (counts['\t'] > 0) return '\t'
-  return ','
-}
-
-function splitCsvLine(line: string, delim: string): string[] {
-  const out: string[] = []; let cur = ''; let inQ = false
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i]
-    if (c === '"') { if (inQ && line[i + 1] === '"') { cur += '"'; i++ } else inQ = !inQ }
-    else if (c === delim && !inQ) { out.push(cur); cur = '' }
-    else cur += c
-  }
-  out.push(cur)
-  return out.map(s => s.trim())
-}
+// Ο ΑΝΑΛΥΤΗΣ ΕΦΥΓΕ ΣΤΟ lib/core/csv.ts. Ήταν σωστός και ιδιωτικός εδώ, ενώ δύο
+// ακόμη οθόνες διάβαζαν CSV με δικό τους, λανθασμένο. Τώρα ένας.
+const detectDelimiter = csvDelimiter
+const splitCsvLine = csvSplitLine
 
 /**
  * Ποσό κίνησης. Η ανάγνωση γίνεται ΜΙΑ φορά, στο lib/core/greek.ts — εδώ απλώς
