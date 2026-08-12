@@ -91,6 +91,16 @@ if ! out=$($PSQL -d posdb -f "$ROOT/scripts/db/rls-probe.sql" 2>&1); then
 fi
 probes=$(echo "$out" | grep -c 'probe:' || true)
 
+# ── ΤΙ ΜΠΟΡΕΙ ΝΑ ΚΑΛΕΣΕΙ ΚΑΠΟΙΟΣ ΧΩΡΙΣ ΛΟΓΑΡΙΑΣΜΟ ──────────────────────────
+# Κάθε SECURITY DEFINER παρακάμπτει την RLS. Όσες φτάνουν στον ανώνυμο πρέπει
+# να είναι ονομαστικά γραμμένες, με τον λόγο τους.
+if ! sout=$($PSQL -d posdb -f "$ROOT/scripts/db/anon-surface.sql" 2>&1); then
+  echo "🔴 Η δημόσια επιφάνεια της βάσης άλλαξε:"
+  echo "$sout" | grep -m6 -E 'ERROR|ΝΕΑ|ΓΡΑΜΜΕΣ|SECURITY' | sed 's/^/    /'
+  exit 1
+fi
+probes=$((probes + $(echo "$sout" | grep -c 'probe:' || true)))
+
 # ── ΤΡΕΧΕΙ ΑΚΟΜΗ ΤΟ ΣΕΝΑΡΙΟ ΤΟΥ STAGING; ────────────────────────────────────
 # Το scripts/db/staging-demo.sql γεμίζει λογαριασμό δοκιμών με μια ολόκληρη
 # χρονιά. Γράφτηκε μία φορά και θα σάπιζε στην πρώτη μετονομασία στήλης — όπως
