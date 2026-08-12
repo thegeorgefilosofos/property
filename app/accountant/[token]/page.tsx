@@ -82,6 +82,21 @@ export default function AccountantPortal() {
   // επαγγελματίας έδειχνε φόρο 2026 σε δήλωση 2025.
   const estTax = rentalIncomeTax(taxableIncome, rentalBracketsForYear(year));
 
+  // ΤΟ ΚΕΝΟ ΕΤΟΣ ΔΕΝ ΕΙΝΑΙ ΜΗΔΕΝ. Η οθόνη έδειχνε «Εκτιμώμενος φόρος 0,00 €» σε
+  // χρονιά χωρίς καμία καταχώρηση: υπολογισμό πάνω σε τίποτα, με το κύρος του
+  // αριθμού. Ο λογιστής δεν μπορεί να ξεχωρίσει «δεν απέδωσε» από «δεν
+  // καταχωρήθηκε», και η διαφορά είναι ολόκληρη δήλωση.
+  const hasEntries = totalIncome > 0 || totalExpenses > 0;
+
+  // ΤΙ ΛΕΙΠΕΙ, ΜΙΑ ΦΟΡΑ ΚΑΙ ΠΑΝΩ. Η ίδια πρόταση «Καμία καταχωρημένη είσπραξη»
+  // επαναλαμβανόταν σε κάθε κάρτα ακινήτου. Σε πέντε ακίνητα, πέντε φορές το
+  // ίδιο πράγμα, και καμία φορά η απάντηση στο «τι κάνω τώρα;».
+  const silent = perProp.filter(x => x.income === 0);
+  const noExpenses = perProp.filter(x => x.expenses === 0);
+  const noAtak = props.filter(p => !p.atak);
+
+  const issued = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
   const row = (k: string, v: string, strong?: boolean) => (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border-subtle)' }}>
       <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{k}</span>
@@ -118,35 +133,99 @@ export default function AccountantPortal() {
 
         {state === 'ok' && data && (
           <>
-            <Card>
-              <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em', marginBottom: 2 }}>{data.owner || 'Ιδιοκτήτης'}</div>
-              <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Οικονομική εικόνα ακινήτων · φορολογικό έτος {year}</div>
-            </Card>
+            {/* ΤΑΥΤΟΤΗΤΑ, ΟΧΙ ΚΑΡΤΑ. Ήταν πλαίσιο γύρω από δύο γραμμές κειμένου,
+                δηλαδή ένα κουτί που δεν περιείχε τίποτα να ξεχωρίσει. Ένα
+                έγγραφο που πάει σε επαγγελματία ξεκινά όπως κάθε επαγγελματικό
+                έγγραφο: ποιος, για ποια περίοδο, πότε βγήκε. */}
+            <div style={{ margin: '4px 0 22px' }}>
+              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', margin: 0 }}>
+                Οικονομική εικόνα ακινήτων
+              </p>
+              <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.4px', margin: '6px 0 0', color: 'var(--text-primary)' }}>
+                {data.owner || 'Ιδιοκτήτης'}
+              </h1>
+              <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '6px 0 0', lineHeight: 1.6 }}>
+                Χρήση 01/01/{year} έως 31/12/{year} · {props.length === 1 ? '1 ακίνητο' : `${props.length} ακίνητα`} · Ημερομηνία έκδοσης {issued}
+              </p>
+            </div>
+
+            {/* ΤΙ ΛΕΙΠΕΙ, ΠΡΙΝ ΑΠΟ ΚΑΘΕ ΑΡΙΘΜΟ. Είναι η πρώτη ερώτηση του
+                λογιστή και μέχρι τώρα δεν απαντιόταν πουθενά: κατέβαινε στις
+                κάρτες και μάζευε μόνος του ποια ακίνητα ήταν άδεια. */}
+            {(silent.length > 0 || noExpenses.length > 0 || noAtak.length > 0) && (
+              <Card>
+                <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', margin: 0 }}>
+                  Τι λείπει από αυτή τη χρήση
+                </p>
+                <ul style={{ listStyle: 'none', padding: 0, margin: '10px 0 0', display: 'grid', gap: 1 }}>
+                  {silent.length > 0 && (
+                    <li style={{ fontSize: 13, padding: '8px 0', borderTop: '1px solid var(--border-subtle)', lineHeight: 1.5 }}>
+                      <strong style={{ fontWeight: 600 }}>{silent.length === props.length ? 'Κανένα ακίνητο' : `${silent.length} από ${props.length} ακίνητα`}</strong> χωρίς καταχωρημένη είσπραξη: {silent.map(x => x.p.name).join(', ')}
+                    </li>
+                  )}
+                  {noExpenses.length > 0 && (
+                    <li style={{ fontSize: 13, padding: '8px 0', borderTop: '1px solid var(--border-subtle)', lineHeight: 1.5, color: 'var(--text-secondary)' }}>
+                      Καμία δαπάνη σε: {noExpenses.map(x => x.p.name).join(', ')}
+                    </li>
+                  )}
+                  {noAtak.length > 0 && (
+                    <li style={{ fontSize: 13, padding: '8px 0', borderTop: '1px solid var(--border-subtle)', lineHeight: 1.5, color: 'var(--text-secondary)' }}>
+                      Χωρίς ΑΤΑΚ: {noAtak.map(p => p.name).join(', ')}
+                    </li>
+                  )}
+                </ul>
+                <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '12px 0 0', lineHeight: 1.6 }}>
+                  Σημαίνει ότι δεν καταχωρήθηκε, όχι ότι δεν υπάρχει. Ζήτησέ το από τον ιδιοκτήτη πριν κλείσεις τη χρήση.
+                </p>
+              </Card>
+            )}
 
             <Card>
               <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>Σύνοψη έτους</div>
-              {row('Συνολικά έσοδα από ενοίκια/βραχυχρόνια', feAuto(totalIncome))}
-              {row('Συνολικές καταγεγραμμένες δαπάνες', feAuto(totalExpenses))}
-              {row('Εκτιμώμενος φόρος εισοδήματος (ενδεικτικά)', feAuto(estTax), true)}
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 10, lineHeight: 1.6 }}>
-                Τα ενοίκια είναι οι ΕΙΣΠΡΑΞΕΙΣ που καταχώρησε ο ιδιοκτήτης για το {year}, όχι το συμβατικό μίσθωμα επί δώδεκα. Εφαρμόστηκε η {bracketsLabelForYear(year)} για εισοδήματα {year}. {PRESUMPTIVE_RULE_2026} Επιβεβαιώστε με τα επίσημα παραστατικά και το myAADE.
-              </div>
+              {hasEntries ? (
+                <>
+                  {row('Έσοδα από ενοίκια και βραχυχρόνια', feAuto(totalIncome))}
+                  {row('Καταγεγραμμένες δαπάνες', feAuto(totalExpenses))}
+                  {row('Εκτιμώμενος φόρος εισοδήματος', feAuto(estTax), true)}
+                  {/* Η ΥΠΟΣΗΜΕΙΩΣΗ ΗΤΑΝ ΤΟΙΧΟΣ ΠΕΝΤΕ ΣΕΙΡΩΝ. Ο λογιστής ξέρει
+                      την κλίμακα και την τεκμαρτή έκπτωση· δεν ξέρει ΤΙ ΑΚΡΙΒΩΣ
+                      μετρήσαμε εμείς. Μένει μόνο αυτό, και η παραπομπή. */}
+                  <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 12, lineHeight: 1.7 }}>
+                    Εισπράξεις της χρήσης, όχι συμβατικό μίσθωμα επί δώδεκα. {bracketsLabelForYear(year)}, με τεκμαρτή έκπτωση {Math.round(presumptiveDeductionRate(true) * 100)}%. {PRESUMPTIVE_RULE_2026}
+                  </p>
+                </>
+              ) : (
+                /* ΚΑΜΙΑ ΚΑΤΑΧΩΡΗΣΗ ΣΗΜΑΙΝΕΙ ΚΑΜΙΑ ΚΑΤΑΧΩΡΗΣΗ. Τρία μηδενικά και
+                   ένας «εκτιμώμενος φόρος 0,00 €» είναι υπολογισμός πάνω στο
+                   τίποτα, με το κύρος του αριθμού. */
+                <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.7 }}>
+                  Δεν υπάρχει καμία καταχώρηση εσόδου ή δαπάνης για τη χρήση {year}. Δεν υπολογίζεται φόρος πάνω σε κενή χρήση. Αν περίμενες κινήσεις, διάλεξε άλλη χρονιά από πάνω ή ζήτησε από τον ιδιοκτήτη να τις καταχωρήσει.
+                </p>
+              )}
             </Card>
 
             {perProp.map((x, i) => (
               <Card key={i}>
                 <div style={{ fontSize: 16, fontWeight: 700 }}>{x.p.name}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 12 }}>{[x.p.address, x.p.atak ? `ΑΤΑΚ ${x.p.atak}` : null].filter(Boolean).join(' · ') || 'Χωρίς στοιχεία'}</div>
+                {/* Η ΔΙΕΥΘΥΝΣΗ ΚΑΙ ΤΟ ΑΤΑΚ ΔΕΝ ΕΙΝΑΙ ΤΟ ΙΔΙΟ ΠΡΑΓΜΑ. Το ΑΤΑΚ
+                    είναι ο αριθμός που πληκτρολογεί ο λογιστής στο Ε2· η
+                    διεύθυνση είναι για να καταλάβει ποιο ακίνητο κοιτά. */}
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 12 }}>
+                  {x.p.address || 'Χωρίς διεύθυνση'}
+                  {x.p.atak ? <span style={{ fontFamily: T.font.num, color: 'var(--text-secondary)' }}>{` · ΑΤΑΚ ${x.p.atak}`}</span> : null}
+                </div>
                 {x.rentAnnual > 0 && row(`Ενοίκια ${year} · ${x.rentMonths} ${x.rentMonths === 1 ? 'καταχωρημένη περίοδος' : 'καταχωρημένες περίοδοι'}`, feAuto(x.rentAnnual))}
                 {/* ΤΟ ΜΗΔΕΝ ΛΕΓΕΤΑΙ, ΔΕΝ ΠΑΡΑΛΕΙΠΕΤΑΙ. Ένα ακίνητο που απλώς
                     λείπει από τη λίστα διαβάζεται ως «δεν απέδωσε»· ο λογιστής
                     πρέπει να ξέρει ότι δεν καταχωρήθηκε τίποτα, για να ρωτήσει. */}
-                {x.rentAnnual === 0 && x.shortGross === 0 && (
+                {/* ΤΟ «ΚΑΜΙΑ ΕΙΣΠΡΑΞΗ» ΕΙΠΩΘΗΚΕ ΗΔΗ ΠΑΝΩ, ΟΝΟΜΑΣΤΙΚΑ. Εδώ μένει
+                    μόνο ό,τι ΔΕΝ χωρά εκεί: το σημερινό μίσθωμα, που είναι
+                    συμφραζόμενο και όχι έσοδο της χρήσης. */}
+                {x.income === 0 && x.p.rent_monthly ? (
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '8px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-                    Καμία καταχωρημένη είσπραξη ενοικίου για το {year}
-                    {x.p.rent_monthly ? `· σήμερα νοικιάζεται ${feAuto(x.p.rent_monthly)} τον μήνα` : ''}.
+                    Σήμερα νοικιάζεται {feAuto(x.p.rent_monthly)} τον μήνα, χωρίς καταχωρημένη είσπραξη στη χρήση {year}.
                   </div>
-                )}
+                ) : null}
                 {x.shortGross > 0 && row('Βραχυχρόνια (καταγεγραμμένο ποσό)', feAuto(x.shortGross))}
                 {row('Δαπάνες έτους', feAuto(x.expenses))}
                 {(x.p.expenses || []).length > 0 && (
