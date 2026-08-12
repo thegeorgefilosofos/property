@@ -16,8 +16,11 @@
 // σωστή στοίχιση/πλαίσια — σαν να το ετοίμασε λογιστής. Ασπρόμαυρο, καθαρό.
 // ═══════════════════════════════════════════════════════════════════════════
 import { XLSX, FMT, S, setCell, downloadWorkbook, money, moneySigned, type Cell } from './xlsxStyle';
-import { supplyLabel, type Supply } from '@/lib/tax/placeOfSupply';
-import { myDataHint, myDataCell, pendingGroups, type VatDeduction } from '@/lib/tax/myData';
+import { supplyLabel, reverseChargeVat, reverseCharge, VAT_STANDARD, type Supply } from '@/lib/tax/placeOfSupply';
+import {
+  myDataHint, myDataCell, pendingGroups, EXPENSE_CLASS_LABEL, INVOICE_TYPE_LABEL,
+  CATEGORY_CODE, ALLOWED_CLASSES, type VatDeduction, type ExpenseClass, type InvoiceType,
+} from '@/lib/tax/myData';
 import { csvCell } from '@/lib/core/csv';
 import { buildZip, type ZipFile } from '@/lib/accounting/zip';
 import { WHO_LABEL, type Requirement } from '@/lib/accounting/dossier';
@@ -250,6 +253,131 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     setCell(ws, netR, C_EX, { s: S.strongTxt });
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: lastData, c: NC - 1 } }) };
     XLSX.utils.book_append_sheet(wb, ws, `Κινήσεις ${year}`);
+  }
+
+
+  // ══ ΦΥΛΛΟ 3: ΧΑΡΑΚΤΗΡΙΣΜΟΙ myDATA ════════════════════════════════════════
+  // ΓΙΑΤΙ ΔΙΚΟ ΤΟΥ ΦΥΛΛΟ. Στις «Κινήσεις» ο χαρακτηρισμός είναι ΜΙΑ στήλη δίπλα
+  // σε έσοδα και έξοδα, γιατί εκεί το ερώτημα είναι «τι κινήθηκε». Εδώ το
+  // ερώτημα είναι άλλο: «τι θα δηλωθεί, με ποιον κωδικό, και πόσος φόρος
+  // αποδίδεται από τον λήπτη». Είναι η δουλειά που κάνει ο λογιστής γραμμή
+  // γραμμή, οπότε παίρνει τη μορφή που τη διευκολύνει: μηχανικοί κωδικοί δίπλα
+  // στα λεκτικά, σύνολα ανά χαρακτηρισμό, και ο επίσημος πίνακας επιτρεπτών
+  // συνδυασμών από κάτω για να μη χρειαστεί να τον ανοίξει αλλού.
+  if (inp.myData) {
+    const vat = inp.myData.vat;
+    const NC = 12, HR = 3;
+    const head = ['Α/Α', 'Ημερομηνία', 'Κατηγορία', 'Περιγραφή', 'Χώρα', 'Τόπος παροχής',
+      'Τύπος παραστατικού', 'Κωδικός', 'Χαρακτηρισμός', 'Αξία παραστατικού',
+      `ΦΠΑ αντίστροφης χρέωσης ${VAT_STANDARD}%`, 'Εκκρεμότητα'];
+    const rows = book.filter(e => e.type === 'expense').sort((a, b) => a.date.localeCompare(b.date));
+    const hints = rows.map(e => ({ e, h: myDataHint({ category: e.category, supply: e.supply as Supply | null, vat }) }));
+    // Ο ΦΟΡΟΣ ΜΠΑΙΝΕΙ ΜΟΝΟ ΟΠΟΥ ΟΦΕΙΛΕΤΑΙ. Στην εγχώρια δαπάνη τον έχει ήδη
+    // χρεώσει ο πάροχος μέσα στο ποσό: μια στήλη με 24% παντού θα ζητούσε από
+    // τον λογιστή να αποδώσει φόρο δεύτερη φορά.
+    const rcOf = (e: AccountantMovement) => {
+      const sup = e.supply as Supply | null;
+      return sup && reverseCharge(sup) ? reverseChargeVat(e.amount || 0, sup).vat : 0;
+    };
+    const sumVal = rows.reduce((t, e) => t + (e.amount || 0), 0);
+    const sumRc = rows.reduce((t, e) => t + rcOf(e), 0);
+    const totals = (label: string) => {
+      const r: (string | number)[] = Array(NC).fill('');
+      r[3] = label; r[9] = money(sumVal); r[10] = money(sumRc);
+      return r;
+    };
+    // Σύνολα ανά χαρακτηρισμό: η γραμμή που ζητά ο λογιστής όταν συμφωνεί τα
+    // βιβλία με τη δήλωση. Οι ακατάτακτες μετριούνται χωριστά και ονομαστικά.
+    const byClass = new Map<string, { n: number; v: number }>();
+    for (const { e, h } of hints) {
+      const key = h.expenseClass ?? '';
+      const prev = byClass.get(key) ?? { n: 0, v: 0 };
+      byClass.set(key, { n: prev.n + 1, v: prev.v + (e.amount || 0) });
+    }
+    const classRows = [...byClass.entries()]
+      .sort((a, b) => (a[0] || 'ω').localeCompare(b[0] || 'ω'))
+      .map(([k, v]) => [
+        k ? CATEGORY_CODE[k as ExpenseClass] : '', k ? `${k} ${EXPENSE_CLASS_LABEL[k as ExpenseClass]}` : 'Χωρίς χαρακτηρισμό',
+        v.n, money(v.v),
+      ]);
+    const comboRows = (Object.keys(ALLOWED_CLASSES) as InvoiceType[]).map(t => [
+      t, INVOICE_TYPE_LABEL[t], ALLOWED_CLASSES[t].map(c => CATEGORY_CODE[c]).join(', '),
+    ]);
+
+    const aoa: (string | number | Date)[][] = [
+      [`ΧΑΡΑΚΤΗΡΙΣΜΟΙ myDATA ${year}`],
+      [idLine],
+      [],
+      head,
+      ...(rows.length ? [] : [[...Array(3).fill(''), `Καμία καταγεγραμμένη δαπάνη για το ${year}`]]),
+      ...hints.map(({ e, h }, i) => [
+        i + 1, toDate(e.date), e.category || '', e.description || '',
+        e.supplier_country || '', supplyCell(e.supply),
+        h.invoiceType ? `${h.invoiceType} ${INVOICE_TYPE_LABEL[h.invoiceType]}` : '',
+        h.expenseClass ? CATEGORY_CODE[h.expenseClass] : '',
+        h.expenseClass ? `${h.expenseClass} ${EXPENSE_CLASS_LABEL[h.expenseClass]}` : '',
+        e.amount, rcOf(e) || '', h.pending,
+      ]),
+      totals('ΣΥΝΟΛΑ'),
+      [],
+      ['ΣΥΝΟΛΑ ΑΝΑ ΧΑΡΑΚΤΗΡΙΣΜΟ'],
+      ['Κωδικός', 'Χαρακτηρισμός', 'Πλήθος', 'Αξία'],
+      ...classRows,
+      [],
+      ['ΕΠΙΤΡΕΠΤΟΙ ΣΥΝΔΥΑΣΜΟΙ ΑΝΑ ΤΥΠΟ ΠΑΡΑΣΤΑΤΙΚΟΥ'],
+      ['Τύπος', 'Περιγραφή', 'Επιτρεπτοί χαρακτηρισμοί εξόδων'],
+      ...comboRows,
+      [],
+      ['Πηγή: ΑΑΔΕ, Συνδυασμοί Χαρακτηρισμών v1.0.4. Υπόδειξη προς τον λογιστή, όχι διαβίβαση: τίποτα δεν αποστέλλεται στην ΑΑΔΕ από την εφαρμογή.'],
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(aoa, { cellDates: true });
+    ws['!cols'] = [{ wch: 6 }, { wch: 13 }, { wch: 22 }, { wch: 34 }, { wch: 8 }, { wch: 22 },
+      { wch: 38 }, { wch: 15 }, { wch: 46 }, { wch: 17 }, { wch: 20 }, { wch: 26 }];
+    ws['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: NC - 1 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: NC - 1 } },
+    ];
+    ws['!rows'] = []; ws['!rows'][0] = { hpt: 22 }; ws['!rows'][1] = { hpt: 15 }; ws['!rows'][HR] = { hpt: 30 };
+    setCell(ws, 0, 0, { s: S.title });
+    setCell(ws, 1, 0, { s: S.sub });
+    for (let c = 0; c < NC; c++) setCell(ws, HR, c, { s: S.head });
+    const emptyNote = rows.length ? 0 : 1;
+    const last = HR + rows.length + emptyNote;
+    const encM = (r: number, c: number) => XLSX.utils.encode_cell({ r, c });
+    for (let r = HR + 1; r <= last; r++) {
+      ws['!rows'][r] = { hpt: 16 };
+      setCell(ws, r, 0, { s: S.num });
+      const dcell = ws[encM(r, 1)] as Cell | undefined;
+      const isDate = !!dcell && dcell.v instanceof Date;
+      setCell(ws, r, 1, { s: { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } }, ...(isDate ? { t: 'd', z: FMT.date } : {}) });
+      for (const c of [2, 3, 5, 6, 7, 8, 11]) setCell(ws, r, c, { s: S.txt });
+      setCell(ws, r, 4, { s: { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } } });
+      for (const c of [9, 10]) {
+        const cell = ws[encM(r, c)] as Cell | undefined;
+        if (cell && typeof cell.v === 'number') setCell(ws, r, c, { v: money(cell.v), t: 's', s: S.num });
+        else setCell(ws, r, c, { s: S.num });
+      }
+    }
+    const totR = last + 1;
+    for (let c = 0; c <= 8; c++) setCell(ws, totR, c, { s: S.totTxt });
+    for (const c of [9, 10, 11]) setCell(ws, totR, c, { s: c === 11 ? S.totTxt : S.totNum });
+    // Οι δύο πίνακες αναφοράς: επικεφαλίδα ενότητας, γραμμή στηλών, δεδομένα.
+    const secA = totR + 2, headA = secA + 1;
+    const secB = headA + 1 + classRows.length + 1, headB = secB + 1;
+    for (const r of [secA, secB]) setCell(ws, r, 0, { s: S.section });
+    for (const [r, n] of [[headA, 4], [headB, 3]] as const) for (let c = 0; c < n; c++) setCell(ws, r, c, { s: S.head });
+    for (let i = 0; i < classRows.length; i++) {
+      const r = headA + 1 + i;
+      setCell(ws, r, 0, { s: S.txt }); setCell(ws, r, 1, { s: S.txt });
+      setCell(ws, r, 2, { s: S.num }); setCell(ws, r, 3, { s: S.num });
+    }
+    for (let i = 0; i < comboRows.length; i++) {
+      const r = headB + 1 + i;
+      for (let c = 0; c < 3; c++) setCell(ws, r, c, { s: S.txt });
+    }
+    setCell(ws, headB + 1 + comboRows.length + 1, 0, { s: S.sub });
+    ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: last, c: NC - 1 } }) };
+    XLSX.utils.book_append_sheet(wb, ws, `Χαρακτηρισμοί myDATA`);
   }
 
   return wb;
