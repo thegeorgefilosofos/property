@@ -32,6 +32,10 @@ import {
 } from '@/lib/tax/e3Combinations';
 import { ELP_ALL, eglsOf, CAPITALISABLE, CAPITALISATION_NOTE } from '@/lib/tax/elpAccounts';
 import { ACCOUNTS, expenseAccount } from '@/lib/accounting/journal';
+import {
+  ELP_ASSETS, elpAsset, sortAssets, totalsByAccount, depreciationSchedule, depreciableBase,
+  chargeForYear, closingValue, missingFor, type FixedAsset,
+} from '@/lib/accounting/fixedAssets';
 import { CATEGORIES } from '@/lib/expenses/taxonomy';
 import { resolveCategory } from '@/lib/expenses/taxonomy';
 import { csvCell } from '@/lib/core/csv';
@@ -92,6 +96,16 @@ export interface AccountantBundleInput {
    * ήταν, οκτώ στήλες.
    */
   myData?: { vat: VatDeduction };
+  /**
+   * ΤΟ ΜΗΤΡΩΟ ΠΑΓΙΩΝ ΥΠΑΡΧΕΙ ΜΟΝΟ ΓΙΑ ΟΠΟΙΟΝ ΤΗΡΕΙ ΒΙΒΛΙΑ.
+   *
+   * Ο ιδιοκτήτης που δηλώνει ενοίκια ως φυσικό πρόσωπο δεν εκπίπτει αποσβέσεις:
+   * ένα φύλλο με πίνακα αποσβέσεων στο αρχείο του θα του έδειχνε έκπτωση που
+   * δεν δικαιούται. Κενό εδώ σημαίνει ότι το φύλλο λείπει ολόκληρο.
+   */
+  assets?: readonly FixedAsset[];
+  /** Η αναλογία της αξίας που αφορά το κτίσμα — το υπόλοιπο είναι το οικόπεδο. */
+  buildingFraction?: number;
 }
 
 /**
@@ -212,6 +226,8 @@ const comboSheet = (() => {
  */
 export function buildWorkbook(inp: AccountantBundleInput, papers: readonly FiledPaper[] = []) {
   const { year, propName, ownerAfm, statementLines, provisionMonthly, book } = inp;
+  const assets = inp.assets ?? [];
+  const buildingFraction = inp.buildingFraction ?? 1;
   const wb = XLSX.utils.book_new();
   // Ταυτότητα φορολογούμενου/περιόδου — ίδια ακριβώς και στα δύο φύλλα.
   const idLine = `Property OS · ${propName}${ownerAfm ? ` · ΑΦΜ ${ownerAfm}` : ''} · Περίοδος 01/01/${year}–31/12/${year} · Ημερομηνία έκδοσης ${new Date().toLocaleDateString('el-GR')}`;
@@ -498,6 +514,148 @@ export function buildWorkbook(inp: AccountantBundleInput, papers: readonly Filed
     ws['!margins'] = { ...MARGINS };
     sheetFinish(ws, { landscape: true, freezeRows: HR + 1 });
     XLSX.utils.book_append_sheet(wb, ws, 'Λογαριασμοί ΕΛΠ');
+  }
+
+  // ══ ΦΥΛΛΟ: ΜΗΤΡΩΟ ΠΑΓΙΩΝ ΚΑΙ ΑΠΟΣΒΕΣΕΙΣ ══════════════════════════════════
+  // ΓΙΑΤΙ ΥΠΑΡΧΕΙ. Το βιβλίο της εφαρμογής είναι ταμειακό: μια ανακαίνιση
+  // 12.000 € φαίνεται ως πληρωμή ενός μήνα. Κατά τα ΕΛΠ είναι πάγιο, μπαίνει
+  // στον 16 και αποσβένεται σε βάθος ετών. Ο λογιστής το ήξερε και κρατούσε
+  // δικό του πρόχειρο μητρώο, σε δικό του αρχείο, με δικά του νούμερα.
+  //
+  // ΤΡΕΙΣ ΠΙΝΑΚΕΣ, ΤΡΙΑ ΕΡΩΤΗΜΑΤΑ. Τι έχουμε (μητρώο), πώς εξελίσσεται (πίνακας
+  // αποσβέσεων ανά έτος), και σε ποιους λογαριασμούς γράφεται (το σχέδιο του
+  // νόμου). Χωρίς τον τρίτο, ο λογιστής ξέρει το ποσό και ψάχνει τον κωδικό.
+  //
+  // ΜΟΝΟ ΓΙΑ ΟΠΟΙΟΝ ΤΗΡΕΙ ΒΙΒΛΙΑ. Ο ιδιοκτήτης που δηλώνει ενοίκια ως φυσικό
+  // πρόσωπο ΔΕΝ εκπίπτει αποσβέσεις· ένα μητρώο παγίων στο αρχείο του θα του
+  // έδειχνε έκπτωση που δεν δικαιούται. Το φύλλο λείπει ολόκληρο.
+  if (assets.length) {
+    const NC = 12, HR = 4;
+    const sorted = sortAssets(assets);
+    const totals = totalsByAccount(sorted, year);
+    const pct = (r: number | null): string =>
+      r == null ? '' : `${(r * 100).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} %`;
+
+    /** Μία γραμμή του μητρώου, με ό,τι ξέρουμε και κενό σε ό,τι δεν ξέρουμε. */
+    const assetRow = (a: FixedAsset): (string | number)[] => {
+      const rows = depreciationSchedule(a, year);
+      const last = rows.length ? rows[rows.length - 1] : null;
+      const thisYear = rows.find(r => r.year === year);
+      return [
+        a.elp, a.name, a.source, a.acquired ? grDate(a.acquired) : '',
+        money(a.cost), a.land ? money(a.land) : '', money(depreciableBase(a)),
+        pct(a.rate),
+        thisYear ? money(thisYear.charge) : '',
+        last ? money(last.accumulated) : '',
+        money(closingValue(a, year)),
+        // Η εκκρεμότητα λέει ΓΙΑΤΙ λείπει ο πίνακας. Ένα κενό χωρίς εξήγηση
+        // διαβάζεται ως «δεν αποσβένεται», που είναι άλλο πράγμα.
+        [missingFor(a), a.candidate ? 'Υποψήφιο για κεφαλαιοποίηση' : ''].filter(Boolean).join(' · '),
+      ];
+    };
+
+    // ΤΑ ΠΑΓΙΑ ΟΜΑΔΟΠΟΙΗΜΕΝΑ ΑΝΑ ΛΟΓΑΡΙΑΣΜΟ, με υποσύνολο κάτω από κάθε ομάδα:
+    // έτσι ακριβώς καταχωρούνται, και έτσι συμφωνούν με το ισοζύγιο.
+    const registry: (string | number)[][] = [];
+    const subtotalRows: number[] = [];
+    let cursor = HR + 1;
+    for (const t of totals) {
+      for (const a of sorted.filter(x => x.elp === t.code)) { registry.push(assetRow(a)); cursor++; }
+      // Η σωρευμένη απόσβεση της ομάδας δεν κρατιέται χωριστά: είναι η βάση
+      // μείον την αναπόσβεστη αξία, δηλαδή ήδη γνωστή. Ένα τρίτο πεδίο θα
+      // μπορούσε να αποκλίνει από τα δύο που το ορίζουν.
+      const base = t.cost - t.land;
+      registry.push([
+        '', `Σύνολο ${t.code} ${t.name}`, '', '', money(t.cost), t.land ? money(t.land) : '', money(base), '',
+        // Κενό και όχι «0,00 €» όταν κανένα πάγιο της ομάδας δεν αποσβένεται:
+        // το μηδέν διαβάζεται ως «δεν αποσβένεται», ενώ η αλήθεια είναι ότι
+        // λείπει ο συντελεστής.
+        t.charge ? money(t.charge) : '', base - t.closing ? money(base - t.closing) : '', money(t.closing), '',
+      ]);
+      subtotalRows.push(cursor); cursor++;
+    }
+    const grand = {
+      cost: totals.reduce((s, t) => s + t.cost, 0),
+      land: totals.reduce((s, t) => s + t.land, 0),
+      charge: totals.reduce((s, t) => s + t.charge, 0),
+      closing: totals.reduce((s, t) => s + t.closing, 0),
+    };
+    const grandBase = grand.cost - grand.land;
+    registry.push(['', 'ΣΥΝΟΛΑ', '', '', money(grand.cost), grand.land ? money(grand.land) : '', money(grandBase), '',
+      grand.charge ? money(grand.charge) : '', grandBase - grand.closing ? money(grandBase - grand.closing) : '', money(grand.closing), '']);
+    const grandRow = cursor;
+
+    // ── Ο πίνακας αποσβέσεων ανά έτος ────────────────────────────────────
+    const scheduleRows: (string | number)[][] = [];
+    for (const a of sorted) {
+      for (const r of depreciationSchedule(a, year)) {
+        scheduleRows.push([a.elp, a.name, r.year, r.months, money(r.opening), money(r.charge), money(r.accumulated), money(r.closing)]);
+      }
+    }
+
+    const schedHeadR = grandRow + 2;
+    const schedR = schedHeadR + 1;
+    const lawHeadR = schedR + Math.max(1, scheduleRows.length) + 2;
+
+    const aoa: (string | number)[][] = [
+      [`ΜΗΤΡΩΟ ΠΑΓΙΩΝ ${year}`],
+      [idLine],
+      [],
+      ['Α. ΤΑ ΠΑΓΙΑ, ΑΝΑ ΛΟΓΑΡΙΑΣΜΟ ΤΩΝ ΕΛΠ'],
+      ['Λογαριασμός', 'Πάγιο', 'Πηγή', 'Ημ. κτήσης', 'Αξία κτήσης', 'Οικόπεδο', 'Αποσβεστέα βάση',
+        'Συντελεστής', `Απόσβεση ${year}`, `Σωρευμένες 31/12/${year}`, `Αναπόσβεστη 31/12/${year}`, 'Εκκρεμότητα'],
+      ...registry,
+      [],
+      ['Β. ΠΙΝΑΚΑΣ ΑΠΟΣΒΕΣΕΩΝ ΑΝΑ ΕΤΟΣ'],
+      ['Λογαριασμός', 'Πάγιο', 'Έτος', 'Μήνες', 'Αναπόσβεστη 1/1', 'Απόσβεση έτους', 'Σωρευμένες', 'Αναπόσβεστη 31/12'],
+      ...(scheduleRows.length ? scheduleRows : [['', 'Κανένα πάγιο δεν έχει συντελεστή απόσβεσης']]),
+      [],
+      ['Γ. ΟΙ ΛΟΓΑΡΙΑΣΜΟΙ ΠΑΓΙΩΝ ΤΟΥ ν. 4308/2014'],
+      ['Κωδικός', 'Ονομασία κατά τον νόμο', 'Μικτή αξία', 'Σωρευμένες αποσβέσεις', 'Σωρευμένες απομειώσεις', 'Έξοδο απόσβεσης'],
+      // Η ΓΗ ΕΧΕΙ ΚΕΝΟ ΕΚΕΙ ΠΟΥ ΟΙ ΑΛΛΟΙ ΕΧΟΥΝ ΑΠΟΣΒΕΣΕΙΣ, ΚΑΙ ΑΥΤΟ ΕΙΝΑΙ ΤΟ
+      // ΜΗΝΥΜΑ. Ο νόμος δεν δίνει λογαριασμό σωρευμένων αποσβέσεων γης επειδή
+      // δεν υπάρχουν αποσβέσεις γης.
+      ...ELP_ASSETS.map(a => [a.code, a.name, a.gross, a.depreciation || '', a.impairment,
+        a.expense ? `${a.expense} ${a.expenseName}` : '']),
+      [],
+      [`Η γη δεν αποσβένεται. Η αποσβεστέα βάση του ακινήτου είναι η τιμή κτήσης μείον το τμήμα που αναλογεί στο οικόπεδο, εδώ ${pct(1 - buildingFraction)}: ενδεικτικό ποσοστό, που αντικαθίσταται από το συμβόλαιο ή την αντικειμενική αξία του οικοπέδου.`],
+      ['Η απόσβεση αρχίζει από τον επόμενο μήνα από αυτόν που το πάγιο τέθηκε σε χρήση (ν. 4172/2013, άρθρο 24 §2). Οι συντελεστές ορίζονται στο ίδιο άρθρο· όπου η στήλη είναι κενή, ο συντελεστής δεν έχει δηλωθεί στην εφαρμογή και τον συμπληρώνει ο λογιστής.'],
+      ['Πηγή ονομασιών και λογαριασμών: ν. 4308/2014, Παράρτημα Γ. Οι λογαριασμοί εξόδου (66.x) από τον οδηγό συμπλήρωσης του εντύπου Ε3 της ΑΑΔΕ.'],
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!rows'] = []; ws['!rows'][0] = { hpt: ROW.title }; ws['!rows'][1] = { hpt: ROW.sub }; ws['!rows'][HR] = { hpt: ROW.head };
+    bannerRow(ws, 0, NC, S.title);
+    bannerRow(ws, 1, NC, S.sub);
+    bannerRow(ws, HR - 1, NC, S.section);
+    for (let c = 0; c < NC; c++) setCell(ws, HR, c, { s: S.head });
+    for (let r = HR + 1; r < grandRow; r++) {
+      const strong = subtotalRows.includes(r);
+      for (let c = 0; c < NC; c++) {
+        setCell(ws, r, c, { s: c >= 4 && c <= 10 ? (strong ? S.strongNum : S.num) : (strong ? S.strongTxt : S.txt) });
+      }
+    }
+    for (let c = 0; c < NC; c++) setCell(ws, grandRow, c, { s: c >= 4 && c <= 10 ? S.totNum : S.totTxt });
+    bannerRow(ws, schedHeadR - 1, NC, S.section);
+    for (let c = 0; c < 8; c++) setCell(ws, schedHeadR, c, { s: S.head });
+    ws['!rows'][schedHeadR] = { hpt: ROW.head };
+    for (let r = schedR; r < schedR + scheduleRows.length; r++) {
+      for (let c = 0; c < 8; c++) setCell(ws, r, c, { s: c >= 2 ? S.num : S.txt });
+    }
+    bannerRow(ws, lawHeadR - 1, NC, S.section);
+    for (let c = 0; c < 6; c++) setCell(ws, lawHeadR, c, { s: S.head });
+    ws['!rows'][lawHeadR] = { hpt: ROW.head };
+    for (let r = lawHeadR + 1; r <= lawHeadR + ELP_ASSETS.length; r++) {
+      for (let c = 0; c < 6; c++) setCell(ws, r, c, { s: S.txt });
+    }
+    for (let r = lawHeadR + ELP_ASSETS.length + 2; r <= lawHeadR + ELP_ASSETS.length + 4; r++) bannerRow(ws, r, NC, S.sub);
+    {
+      const { cols, wrap } = autoWidths(ws, { headRow: HR, max: 46 });
+      ws['!cols'] = cols; wrapColumns(ws, wrap, HR + 1);
+    }
+    ws['!margins'] = { ...MARGINS };
+    sheetFinish(ws, { landscape: true, freezeRows: HR + 1 });
+    XLSX.utils.book_append_sheet(wb, ws, 'Μητρώο παγίων');
   }
 
 
@@ -900,6 +1058,7 @@ export function dossierFiles(inp: DossierExportInput): ZipFile[] {
     `  01 ΣΥΝΟΨΗ            ${inp.myData
       ? 'Αποτελέσματα, κινήσεις, λογαριασμοί ΕΛΠ και χαρακτηρισμοί myDATA (Excel).'
       : 'Αποτελέσματα, κινήσεις και λογαριασμοί ΕΛΠ (Excel).'}`,
+    ...(inp.assets?.length ? ['                       Και το μητρώο παγίων με τον πίνακα αποσβέσεων.'] : []),
     '  02 ΕΣΟΔΑ             Κάθε είσπραξη του έτους, με ημερομηνία και περιγραφή.',
     '  03 ΕΞΟΔΑ             Κάθε πληρωμή του έτους, ανά κατηγορία.',
     '  04 ΔΙΚΑΙΟΛΟΓΗΤΙΚΑ    Ο κατάλογος των παραστατικών, με το ποιος φέρνει το καθένα.',

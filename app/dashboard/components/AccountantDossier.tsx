@@ -31,6 +31,7 @@ import {
 } from '@/lib/accounting/dossier'
 import type { PropertyStatus } from '@/lib/property/status'
 import { exportAccountantDossier, type AccountantStatementLine, type AccountantMovement, type DossierAttachment } from './accountantExport'
+import type { FixedAsset } from '@/lib/accounting/fixedAssets'
 import type { VatDeduction } from '@/lib/tax/myData'
 import { failed } from '@/lib/core/dbError';
 import { AadePill } from '@/components/AadeLink';
@@ -212,6 +213,10 @@ export interface DossierExportSource {
   myData?: { vat: VatDeduction }
   /** Κενά στα δεδομένα, γραμμένα από την καρτέλα (π.χ. «καμία δαπάνη για το 2026»). */
   gaps?: string[]
+  /** Το μητρώο παγίων — παρόν μόνο για όποιον τηρεί βιβλία. */
+  assets?: readonly FixedAsset[]
+  /** Η αναλογία της αξίας που αφορά το κτίσμα· το υπόλοιπο είναι το οικόπεδο. */
+  buildingFraction?: number
   /**
    * ΤΑ ΙΔΙΑ ΤΑ ΧΑΡΤΙΑ, ΚΑΤΕΒΑΣΜΕΝΑ ΤΗ ΣΤΙΓΜΗ ΤΟΥ ΚΟΥΜΠΙΟΥ.
    *
@@ -292,6 +297,8 @@ export default function AccountantDossier({
       provisionMonthly: exportSource.provisionMonthly,
       book: exportSource.book,
       myData: exportSource.myData,
+      assets: exportSource.assets,
+      buildingFraction: exportSource.buildingFraction,
       requirements: reqs,
       haveIds: haveAll,
       readinessMessage: ready.message,

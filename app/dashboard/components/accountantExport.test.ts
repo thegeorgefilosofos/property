@@ -22,6 +22,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { buildWorkbook, dossierFiles, type AccountantMovement, type DossierAttachment } from './accountantExport';
 import { filePapers } from '@/lib/accounting/dossier';
+import { buildRegister } from '@/lib/accounting/fixedAssets';
 import { XLSX, workbookBytes, type Cell } from './xlsxStyle';
 import { unzipSync, strFromU8 } from 'fflate';
 import { supplyLabel } from '@/lib/tax/placeOfSupply';
@@ -615,6 +616,62 @@ eq('τα πλάτη στηλών είναι όσα και οι στήλες', (w
     String(dossierFiles(base).find(f => f.path.startsWith('00'))?.data).includes('Παραστατικό'), false);
   ok('ενώ με χαρτιά το εξηγεί',
     String(withPapers.find(f => f.path.startsWith('00'))?.data).includes('Κάθε παραστατικό έχει αριθμό'));
+}
+
+// ═══ ΤΟ ΜΗΤΡΩΟ ΠΑΓΙΩΝ ═══════════════════════════════════════════════════════
+// Το βιβλίο είναι ταμειακό: μια ανακαίνιση 8.000 € φαίνεται ως πληρωμή ενός
+// μήνα. Κατά τα ΕΛΠ είναι πάγιο του 16 και αποσβένεται σε βάθος ετών.
+{
+  const assets = buildRegister({
+    property: { name: 'Διαμέρισμα Αθήνα', purchasePrice: 150000, purchaseDate: '2019-04-20', rented: true },
+    buildingFraction: 0.6, buildingRate: 0.04,
+    inventory: [{ name: 'Πλυντήριο', purchase_value: 480, purchase_date: '2026-05-10' }],
+    expenses: [{ date: '2026-02-01', category: 'Ανακαίνιση', description: 'Μπάνιο', amount: 8000 }],
+    capitalisable: { 'Ανακαίνιση': '16' },
+  });
+  const base = { year: 2026, propName: 'Χ', statementLines: [], provisionMonthly: 0, book: BOOK };
+  // ΜΟΝΟ ΓΙΑ ΟΠΟΙΟΝ ΤΗΡΕΙ ΒΙΒΛΙΑ. Ο ιδιοκτήτης που δηλώνει ενοίκια ως φυσικό
+  // πρόσωπο δεν εκπίπτει αποσβέσεις: ένα φύλλο με πίνακα αποσβέσεων θα του
+  // έδειχνε έκπτωση που δεν δικαιούται.
+  ok('χωρίς πάγια, κανένα φύλλο', !buildWorkbook(base).Sheets['Μητρώο παγίων']);
+
+  const w = buildWorkbook({ ...base, assets, buildingFraction: 0.6 });
+  const m = w.Sheets['Μητρώο παγίων'];
+  ok('με πάγια, υπάρχει', !!m);
+  const mv = (r: number, c: number) => (m[XLSX.utils.encode_cell({ r, c })] as Cell | undefined)?.v;
+  const H = ['Λογαριασμός', 'Πάγιο', 'Πηγή', 'Ημ. κτήσης', 'Αξία κτήσης', 'Οικόπεδο', 'Αποσβεστέα βάση',
+    'Συντελεστής', 'Απόσβεση 2026', 'Σωρευμένες 31/12/2026', 'Αναπόσβεστη 31/12/2026', 'Εκκρεμότητα'];
+  eq('οι δώδεκα επικεφαλίδες', H.map((_, c) => mv(HR + 1, c)), H);
+  const C = (name: string) => H.indexOf(name);
+
+  // Ο εξοπλισμός πρώτος (15), το ακίνητο μετά (16) — έτσι καταχωρούνται.
+  eq('ο λοιπός εξοπλισμός πρώτος', mv(HR + 2, C('Λογαριασμός')), '15');
+  // ΤΟ ΚΡΙΣΙΜΟ: ο συντελεστής του εξοπλισμού ΔΕΝ μαντεύεται, και το κελί το λέει.
+  eq('χωρίς συντελεστή', mv(HR + 2, C('Συντελεστής')) ?? '', '');
+  eq('και ο λόγος γράφεται', mv(HR + 2, C('Εκκρεμότητα')), 'Λείπει ο συντελεστής απόσβεσης');
+
+  // Η ΓΗ ΔΕΝ ΑΠΟΣΒΕΝΕΤΑΙ: 40% της τιμής κτήσης μένει έξω από τη βάση.
+  const flatR = HR + 4;
+  eq('το ακίνητο με την τιμή κτήσης', String(mv(flatR, C('Αξία κτήσης'))).replace(/\s/g, ' '), '150.000,00 €');
+  ok(`το οικόπεδο ξεχωρίζει (${String(mv(flatR, C('Οικόπεδο')))})`, /^60\.000,00/.test(String(mv(flatR, C('Οικόπεδο')))));
+  ok(`και αποσβένεται μόνο το κτίσμα (${String(mv(flatR, C('Απόσβεση 2026')))})`, /^3\.600,00/.test(String(mv(flatR, C('Απόσβεση 2026')))));
+  eq('με τον συντελεστή του νόμου', mv(flatR, C('Συντελεστής')), '4,00 %');
+
+  // ΟΙ ΛΟΓΑΡΙΑΣΜΟΙ ΤΟΥ ΝΟΜΟΥ ΜΕΣΑ ΣΤΟ ΦΥΛΛΟ: ο λογιστής δεν ψάχνει αλλού ποιος
+  // είναι ο 16.02 ή γιατί η γη δεν έχει σωρευμένες αποσβέσεις.
+  const all: string[] = [];
+  {
+    const range = XLSX.utils.decode_range(m['!ref'] as string);
+    for (let r = range.s.r; r <= range.e.r; r++)
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const v = (m[XLSX.utils.encode_cell({ r, c })] as Cell | undefined)?.v;
+        if (v != null) all.push(String(v));
+      }
+  }
+  ok('ο πίνακας αποσβέσεων ανά έτος', all.includes('Β. ΠΙΝΑΚΑΣ ΑΠΟΣΒΕΣΕΩΝ ΑΝΑ ΕΤΟΣ'));
+  ok('ο λογαριασμός εξόδου των επενδύσεων', all.some(v => v.startsWith('66.06 ')));
+  ok('η μικτή αξία της γης', all.includes('10.01'));
+  ok('και η αρχή της απόσβεσης, με το άρθρο της', all.some(v => v.includes('άρθρο 24 §2')));
 }
 
 console.log(`\naccountantExport.ts — ${passed} passed, ${failed} failed`);

@@ -49,6 +49,9 @@ import { hasFeature } from '@/lib/billing/entitlements'
 import type { VatDeduction } from '@/lib/tax/myData'
 import type { PlanId } from '@/lib/billing/plans'
 import { exportAccountantBundle, toMovement } from './accountantExport'
+import { buildRegister, chargeForYear, RENTED_PROPERTY_ACCOUNT, EQUIPMENT_ACCOUNT } from '@/lib/accounting/fixedAssets'
+import { CAPITALISABLE } from '@/lib/tax/elpAccounts'
+import { CATEGORIES } from '@/lib/expenses/taxonomy'
 import EnfiaPanel from './EnfiaPanel';
 import AccountantDossier, { useAccountantDossier } from './AccountantDossier'
 import { fetchDossierPapers } from './dossierPapers'
@@ -280,9 +283,9 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // Το `year_built` και το `floor` υπάρχουν στην καρτέλα του ακινήτου αλλά δεν
   // ζητούνταν εδώ, οπότε η αυτόματη εκτίμηση ΕΝΦΙΑ έπεφτε στις προεπιλογές της
   // (2ος όροφος, 10-20 ετών) και έβγαινε 16,15% ψηλότερα από την ουδέτερη βάση.
-  type PropRow     = Pick<UserPropertiesRow, 'id'|'name'|'address'|'rental_mode'|'enfia'|'sqm'|'value'|'year_built'|'floor'>
+  type PropRow     = Pick<UserPropertiesRow, 'id'|'name'|'address'|'rental_mode'|'enfia'|'sqm'|'value'|'year_built'|'floor'|'purchase_price'|'purchase_date'>
   type PropListRow = Pick<UserPropertiesRow, 'id'|'name'|'rental_mode'|'status_detail'|'enfia'|'sqm'>
-  type InventoryRow = Pick<InventoryItemsRow, 'purchase_value'|'category'|'purchase_date'>
+  type InventoryRow = Pick<InventoryItemsRow, 'name'|'purchase_value'|'category'|'purchase_date'>
 
   const [expenses,setExpenses] = useState<ExpenseRow[]>([])
   const [rent,setRent] = useState<RentRow[]>([])
@@ -308,11 +311,11 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         rentStore.ofProperty<RentRow>(supabase,propertyId,rentStore.LEDGER_COLUMNS,userId),
         stayStore.ofProperty<StayRow>(supabase,propertyId,`id,${stayStore.ACCOUNTING_COLUMNS}`,userId),
         loanStore.ofProperty(supabase,propertyId,userId),
-        properties.one<PropRow>(supabase, propertyId, 'id,name,address,rental_mode,enfia,sqm,value,year_built,floor', userId),
+        properties.one<PropRow>(supabase, propertyId, 'id,name,address,rental_mode,enfia,sqm,value,year_built,floor,purchase_price,purchase_date', userId),
         properties.list<PropListRow>(supabase, userId, { columns: 'id,name,rental_mode,status_detail,enfia,sqm' }),
         rentStore.ofUser<PortfolioRentRow>(supabase,userId,`property_id,${rentStore.LEDGER_COLUMNS}`),
         stayStore.ofUser<PortfolioStayRow>(supabase,userId,`property_id,${stayStore.ACCOUNTING_COLUMNS}`),
-        inventoryStore.ofProperty<InventoryRow>(supabase,propertyId,'purchase_value,category,purchase_date',userId),
+        inventoryStore.ofProperty<InventoryRow>(supabase,propertyId,'name,purchase_value,category,purchase_date',userId),
       ])
       if(!alive) return
       setExpenses(ex); setRent(rp)
@@ -370,8 +373,38 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const loanInterestYear = useMemo(()=>loans.reduce((s,l)=>{ const amount=Number(l.amount)||0, rate=Number(l.rate)||0, yrs=Number(l.years)||0; const startY=l.start_date?Number(String(l.start_date).slice(0,4)):year; const idx=year-startY+1; return s+interestForYear(amount,rate,yrs,idx) },0),[loans,year])
 
   const businessMode = mode==='professional' && elp==='business'
-  // Απόσβεση κτιρίου (4% επί του τμήματος αξίας που αναλογεί στο κτίσμα), μόνο επιχείρηση.
-  const buildingDepr = useMemo(()=>{ const val=Number(prop?.value)||0; return val>0 ? Math.round(val*BUILDING_VALUE_FRACTION*BUILDING_DEPRECIATION_RATE) : 0 },[prop])
+
+  // ── ΤΟ ΜΗΤΡΩΟ ΠΑΓΙΩΝ, ΚΑΙ ΓΙΑΤΙ ΕΙΝΑΙ ΑΥΤΟ ΠΟΥ ΔΙΝΕΙ ΤΗΝ ΑΠΟΣΒΕΣΗ ──────────
+  // Η απόσβεση κτιρίου υπολογιζόταν εδώ με μια γραμμή: αξία × 60% × 4%, ίδια
+  // κάθε χρόνο, από την πρώτη μέρα ώς το άπειρο. Δύο λάθη μέσα σε μία γραμμή:
+  // η πρώτη χρήση αποσβένεται ΚΑΤΑ ΜΗΝΑ (άρθρο 24 §2), και μετά την πλήρη
+  // απόσβεση δεν υπάρχει άλλη απόσβεση — το κτίσμα δεν αποσβένεται για πάντα.
+  // Και η βάση ήταν η ΕΚΤΙΜΗΣΗ αξίας, που αλλάζει κάθε χρόνο, αντί για την
+  // τιμή κτήσης, που δεν αλλάζει ποτέ. Πλέον υπάρχει ένα μητρώο, και η
+  // απόσβεση της χρονιάς βγαίνει από εκεί — το ίδιο νούμερο στην οθόνη, στο
+  // Excel και στον φάκελο.
+  const capitalisableAccounts = useMemo(()=>Object.fromEntries(
+    CAPITALISABLE.map(slug=>[
+      CATEGORIES.find(c=>c.slug===slug)?.label || slug,
+      slug==='renovation' ? RENTED_PROPERTY_ACCOUNT : EQUIPMENT_ACCOUNT,
+    ])),[])
+  const assets = useMemo(()=>buildRegister({
+    property: prop ? {
+      name: prop.name,
+      purchasePrice: prop.purchase_price,
+      purchaseDate: prop.purchase_date,
+      rented: prop.rental_mode!=='own_use',
+    } : null,
+    buildingFraction: BUILDING_VALUE_FRACTION,
+    buildingRate: BUILDING_DEPRECIATION_RATE,
+    inventory,
+    expenses: expensesYear,
+    capitalisable: capitalisableAccounts,
+  }),[prop,inventory,expensesYear,capitalisableAccounts])
+  // Μόνο η ΑΚΙΝΗΤΗ περιουσία αποσβένεται με δηλωμένο συντελεστή· ο εξοπλισμός
+  // περιμένει τον συντελεστή του λογιστή και δίνει μηδέν ώς τότε.
+  const buildingDepr = useMemo(()=>
+    Math.round(assets.filter(a=>a.elp!==EQUIPMENT_ACCOUNT).reduce((s,a)=>s+chargeForYear(a,year),0)),[assets,year])
   const grossIncome = regime==='individual_shortterm' ? shortSummary.grossRevenue : rentAccruedYear
   const uncollectedRent = regime==='individual_shortterm' ? 0 : Math.max(0, rentAccruedYear - rentCollectedYear)
 
@@ -541,11 +574,15 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     provisionMonthly: provision.monthly,
     book: book.map(toMovement),
     myData: myDataExport,
+    // Το μητρώο παγίων υπάρχει μόνο για όποιον τηρεί βιβλία: ο ιδιοκτήτης που
+    // δηλώνει ενοίκια ως φυσικό πρόσωπο δεν εκπίπτει αποσβέσεις.
+    assets: businessMode ? assets : undefined,
+    buildingFraction: BUILDING_VALUE_FRACTION,
     gaps: dossierGaps,
     // ΤΑ ΧΑΡΤΙΑ ΚΑΤΕΒΑΙΝΟΥΝ ΟΤΑΝ ΠΑΤΗΘΕΙ ΤΟ ΚΟΥΜΠΙ, ΟΧΙ ΟΤΑΝ ΑΝΟΙΞΕΙ Η ΟΘΟΝΗ.
     // Είναι μεγαβάιτ· κανείς δεν τα θέλει επειδή κοίταξε τη Λογιστική.
     attachments: ()=>fetchDossierPapers(supabase, propertyId, userId, year),
-  }),[prop,statement,provision,book,dossierGaps,myDataExport,supabase,propertyId,userId,year])
+  }),[prop,statement,provision,book,dossierGaps,myDataExport,assets,businessMode,supabase,propertyId,userId,year])
 
   // ── Κλείσιμο χρήσης (period lock) ──────────────────────────────────────────
   // Το στιγμιότυπο της κλεισμένης χρήσης: ό,τι γράφεται στο `snapshot`, και
@@ -674,6 +711,8 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
       provisionMonthly: provision.monthly,
       book: book.map(toMovement),
       myData: myDataExport,
+      assets: businessMode ? assets : undefined,
+      buildingFraction: BUILDING_VALUE_FRACTION,
     })
   }
 
