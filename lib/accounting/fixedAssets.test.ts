@@ -136,7 +136,7 @@ eq('σκέτο οικόπεδο', missingFor(asset({ cost: 40000, land: 40000 })
 {
   const reg = buildRegister({
     property: { name: 'Διαμέρισμα Αθήνα', purchasePrice: 150000, purchaseDate: '2019-04-20', rented: true },
-    buildingFraction: 0.6, buildingRate: 0.04,
+    buildingFraction: 0.6, buildingRate: 0.04, equipmentRate: 0.1,
     inventory: [
       { name: 'Πλυντήριο', category: 'Ηλεκτρικές Συσκευές', purchase_value: 480, purchase_date: '2026-05-10' },
       { name: 'Χωρίς αξία', purchase_value: 0, purchase_date: '2026-01-01' },
@@ -159,9 +159,13 @@ eq('σκέτο οικόπεδο', missingFor(asset({ cost: 40000, land: 40000 })
 
   const wm = reg.find(a => a.source === 'Απογραφή')!;
   eq('το πλυντήριο στον λοιπό εξοπλισμό', wm.elp, '15');
-  // ΤΟ ΚΡΙΣΙΜΟ: ο συντελεστής του εξοπλισμού ΔΕΝ μαντεύεται.
-  eq('χωρίς συντελεστή, γιατί δεν τον ξέρουμε', wm.rate, null);
-  eq('και το λέει', missingFor(wm), 'Λείπει ο συντελεστής απόσβεσης');
+  // Ο ΣΥΝΤΕΛΕΣΤΗΣ ΤΟΥ ΕΞΟΠΛΙΣΜΟΥ ΕΙΝΑΙ ΤΟΥ ΝΟΜΟΥ: «λοιπά πάγια στοιχεία της
+  // επιχείρησης», 10% (άρθρο 24 §4). Δεν είναι δικιά μας εκτίμηση διάρκειας
+  // ζωής, που έδινε 11,1% στις συσκευές και 8,3% στα έπιπλα.
+  eq('με τον συντελεστή του νόμου', wm.rate, 0.1);
+  eq('τίποτα δεν λείπει', missingFor(wm), '');
+  // Αγορά Μαΐου: επτά μήνες μέσα στη χρήση, όχι δώδεκα. 480 × 10% × 7/12.
+  eq('και αποσβένεται κατά μήνα', chargeForYear(wm, 2026), 28);
 
   const ren = reg.find(a => a.source === 'Δαπάνη')!;
   eq('η ανακαίνιση είναι υποψήφια, όχι κριμένη', ren.candidate, true);
@@ -172,14 +176,14 @@ eq('σκέτο οικόπεδο', missingFor(asset({ cost: 40000, land: 40000 })
   // σε μητρώο παγίων διαβάζεται ως «δεν αξίζει τίποτα», όχι ως «δεν ξέρουμε».
   const noPrice = buildRegister({
     property: { name: 'Χωρίς συμβόλαιο', purchasePrice: null, purchaseDate: null, rented: true },
-    buildingFraction: 0.6, buildingRate: 0.04, capitalisable: {},
+    buildingFraction: 0.6, buildingRate: 0.04, equipmentRate: 0.1, capitalisable: {},
   });
   eq('χωρίς τιμή κτήσης, καμία γραμμή ακινήτου', noPrice.length, 0);
 
   // Ιδιοχρησιμοποιούμενο: 12 «Κτήρια», όχι 16 «Επενδύσεις σε ακίνητα».
   const own = buildRegister({
     property: { name: 'Κατοικία', purchasePrice: 100000, purchaseDate: '2020-01-01', rented: false },
-    buildingFraction: 0.6, buildingRate: 0.04, capitalisable: {},
+    buildingFraction: 0.6, buildingRate: 0.04, equipmentRate: 0.1, capitalisable: {},
   });
   eq('το ιδιοχρησιμοποιούμενο στον 12', own[0].elp, '12');
 }

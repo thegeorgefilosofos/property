@@ -41,9 +41,8 @@ import { shortTermYearSummary } from '@/lib/tax/shortTermTax'
 import { resolveEnfia } from '@/lib/billing/propertyFacts'
 import { estimateENFIAFromFacts } from '@/lib/billing/enfia'
 import { annuityMonthly, interestForYear } from '@/lib/loans/recommend'
-import { usefulLifeYears } from '@/lib/inventory/depreciation'
 import { isGroupDeductible } from '@/lib/expenses/groups'
-import { RENTAL_TAX_ROWS_2026, BUSINESS_INCOME_ROWS_2026, BUILDING_DEPRECIATION_RATE, BUILDING_VALUE_FRACTION, SELF_EMPLOYED_MIN_NET_INCOME_2026 , rentalBracketsForYear, bracketsLabelForYear } from '@/lib/billing/greekTax'
+import { RENTAL_TAX_ROWS_2026, BUSINESS_INCOME_ROWS_2026, BUILDING_DEPRECIATION_RATE, EQUIPMENT_DEPRECIATION_RATE, BUILDING_VALUE_FRACTION, SELF_EMPLOYED_MIN_NET_INCOME_2026 , rentalBracketsForYear, bracketsLabelForYear } from '@/lib/billing/greekTax'
 import { useReportBranding } from '@/lib/reportBranding'
 import { hasFeature } from '@/lib/billing/entitlements'
 import type { VatDeduction } from '@/lib/tax/myData'
@@ -369,7 +368,6 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const deductibleTotal = useMemo(()=>expensesYear.filter(e=>isGroupDeductible(e.expense_group)&&e.category!=='ΕΝΦΙΑ').reduce((s,e)=>s+(e.amount||0),0),[expensesYear])
   // Δόσεις δανείων ΜΟΝΟ όσο το δάνειο είναι ενεργό στη χρήση (όχι φαντάσματα).
   const loanAnnual = useMemo(()=>loans.reduce((s,l)=>{ if(!loanActiveInYear(l))return s; const m=annuityMonthly(Number(l.amount)||0,Number(l.rate)||0,Number(l.years)||0); return s+m*12 },0),[loans,year,loanActiveInYear])
-  const inventoryDepr = useMemo(()=>inventory.reduce((s,it)=>{ const val=Number(it.purchase_value)||0; if(val<=0||!it.purchase_date)return s; const py=Number(String(it.purchase_date).slice(0,4)); if(!py||py>year)return s; const life=usefulLifeYears(it.category); if(year-py>=life)return s; return s+val/life },0),[inventory,year])
   const loanInterestYear = useMemo(()=>loans.reduce((s,l)=>{ const amount=Number(l.amount)||0, rate=Number(l.rate)||0, yrs=Number(l.years)||0; const startY=l.start_date?Number(String(l.start_date).slice(0,4)):year; const idx=year-startY+1; return s+interestForYear(amount,rate,yrs,idx) },0),[loans,year])
 
   const businessMode = mode==='professional' && elp==='business'
@@ -397,6 +395,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     } : null,
     buildingFraction: BUILDING_VALUE_FRACTION,
     buildingRate: BUILDING_DEPRECIATION_RATE,
+    equipmentRate: EQUIPMENT_DEPRECIATION_RATE,
     inventory,
     expenses: expensesYear,
     capitalisable: capitalisableAccounts,
@@ -405,6 +404,25 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // περιμένει τον συντελεστή του λογιστή και δίνει μηδέν ώς τότε.
   const buildingDepr = useMemo(()=>
     Math.round(assets.filter(a=>a.elp!==EQUIPMENT_ACCOUNT).reduce((s,a)=>s+chargeForYear(a,year),0)),[assets,year])
+  // ══ Η ΑΠΟΣΒΕΣΗ ΕΞΟΠΛΙΣΜΟΥ ΗΤΑΝ ΕΚΤΙΜΗΣΗ ΠΡΟΪΟΝΤΟΣ, ΚΑΙ ΕΚΠΙΠΤΟΤΑΝ ΩΣ ΦΟΡΟΣ ══
+  //
+  // Υπολογιζόταν εδώ με το `usefulLifeYears` — «τυπική διάρκεια ζωής» ανά
+  // κατηγορία, που το ίδιο του το αρχείο (lib/inventory/depreciation.ts)
+  // δηλώνει ρητά ότι ΔΕΝ είναι φορολογική απόσβεση και ότι δεν πρέπει να μπει
+  // σε δήλωση. Το νούμερο όμως περνούσε αυτούσιο στην κατάσταση αποτελεσμάτων
+  // και μείωνε τη φορολογητέα βάση: ένα πλυντήριο 650 € «αποσβενόταν» σε εννιά
+  // χρόνια (11,1%) αντί για τα δέκα του νόμου, και ένα έπιπλο σε δώδεκα (8,3%).
+  //
+  // Ο πίνακας του άρθρου 24 §4 δίνει τον σωστό συντελεστή για όλα: «λοιπά πάγια
+  // στοιχεία της επιχείρησης», 10%. Το νούμερο βγαίνει πλέον από το ΜΗΤΡΩΟ, με
+  // την έναρξη από τον επόμενο μήνα και με στάση όταν το πάγιο αποσβεστεί —
+  // δηλαδή από την ίδια πηγή που βλέπει ο λογιστής στο Excel του.
+  //
+  // Η ΕΚΤΙΜΗΣΗ ΔΕΝ ΚΑΤΑΡΓΕΙΤΑΙ, ΑΛΛΑΖΕΙ ΘΕΣΗ. Η Απογραφή εξακολουθεί να δείχνει
+  // υπολειπόμενη αξία και προτάσεις αντικατάστασης με τη διάρκεια ζωής: εκεί το
+  // ερώτημα είναι «πόσο αξίζει σήμερα», που δεν το απαντά ο φορολογικός πίνακας.
+  const inventoryDepr = useMemo(()=>
+    Math.round(assets.filter(a=>a.elp===EQUIPMENT_ACCOUNT).reduce((s,a)=>s+chargeForYear(a,year),0)),[assets,year])
   const grossIncome = regime==='individual_shortterm' ? shortSummary.grossRevenue : rentAccruedYear
   const uncollectedRent = regime==='individual_shortterm' ? 0 : Math.max(0, rentAccruedYear - rentCollectedYear)
 
