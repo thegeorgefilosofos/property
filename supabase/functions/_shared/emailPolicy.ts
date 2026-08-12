@@ -53,9 +53,13 @@ export const CAPS = {
 // safe P4 lifecycle default (see policyFor).
 
 const P1_TRANSACTIONAL = [
-  'welcome_free', 'welcome_individual', 'welcome_professional', 'verify_email',
+  // Το `verify_email` και το `password_reset` έφυγαν μαζί με τα πρότυπά τους:
+  // τα δύο αυτά μηνύματα τα στέλνει το Supabase Auth, με πραγματικό token.
+  // Ένα copy_id χωρίς πρότυπο είναι φάντασμα — δείχνει στον επόμενο ότι
+  // υπάρχει μήνυμα που δεν υπάρχει.
+  'welcome_free', 'welcome_individual', 'welcome_professional',
   'first_property_success', 'trial_started',
-  'subscription_receipt', 'plan_changed', 'payment_failed', 'security_login', 'password_reset', 'reply_ack',
+  'subscription_receipt', 'plan_changed', 'payment_failed', 'security_login', 'reply_ack',
   'tenant_rent_receipt', 'payout_received', 'maintenance_completed',
   'referral_reward', 'referral_friend_activated',
 ];
@@ -63,7 +67,7 @@ const P1_TRANSACTIONAL = [
 // Wake-worthy transactional: security-critical events that may legitimately buzz a
 // phone at night. Everything else transactional (receipts, payout) is night-holdable
 // — the dispatcher may hold its lock-screen buzz to civil hours (content still sends).
-const WAKE_WORTHY = new Set(['security_login', 'password_reset', 'payment_failed']);
+const WAKE_WORTHY = new Set(['security_login', 'payment_failed']);
 export const isWakeWorthy = (copyId: string) => WAKE_WORTHY.has(copyId);
 
 // Time-critical obligations. Same-day ones consolidate into one digest, except

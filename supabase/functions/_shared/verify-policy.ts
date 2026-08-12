@@ -130,9 +130,9 @@ console.log('\n13) Quiet hours are clamped in code, not just by slot choice');
 
 console.log('\n14) Wake-worthy transactional classification');
 {
-  ok(isWakeWorthy('security_login') && isWakeWorthy('password_reset') && isWakeWorthy('payment_failed'), 'security-critical events are wake-worthy');
+  ok(isWakeWorthy('security_login') && isWakeWorthy('payment_failed'), 'security-critical events are wake-worthy');
   ok(!isWakeWorthy('subscription_receipt') && !isWakeWorthy('payout_received'), 'receipts/payouts are night-holdable, not wake-worthy');
-  ok(policyFor('password_reset').category === 'transactional', 'password_reset is transactional (uncapped, immediate)');
+  ok(policyFor('security_login').category === 'transactional', 'security_login is transactional (uncapped, immediate)');
   ok(policyFor('enfia_installment_reminder').priority === 2 && policyFor('enfia_installment_reminder').digestGroup === 'tax', 'ENFIA instalment reminder is a P2 obligation in the tax digest');
   ok(policyFor('energy_pulse').category === 'opportunity' && policyFor('portfolio_digest_nudge').category === 'soft', 'energy_pulse=opportunity, portfolio nudge=soft');
 }
