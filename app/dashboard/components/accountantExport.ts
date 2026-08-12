@@ -17,7 +17,7 @@
 // σωστή στοίχιση/πλαίσια — σαν να το ετοίμασε λογιστής. Ασπρόμαυρο, καθαρό.
 // ═══════════════════════════════════════════════════════════════════════════
 import {
-  XLSX, FMT, S, setCell, autoWidths, wrapColumns, bannerRow, downloadWorkbook, printTitles,
+  XLSX, FMT, S, ROW, setCell, autoWidths, wrapColumns, bannerRow, downloadWorkbook, printTitles,
   MARGINS, sheetFinish, workbookBytes, money, moneySigned, type Cell,
 } from './xlsxStyle';
 import { supplyLabel, reverseChargeVat, reverseCharge, VAT_STANDARD, type Supply } from '@/lib/tax/placeOfSupply';
@@ -205,7 +205,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       ...plRows.map(r => [r.label, r.amount ?? '']),
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws['!rows'] = []; ws['!rows'][0] = { hpt: 22 }; ws['!rows'][1] = { hpt: 15 };
+    ws['!rows'] = []; ws['!rows'][0] = { hpt: ROW.title }; ws['!rows'][1] = { hpt: ROW.sub }; ws['!rows'][HR] = { hpt: ROW.head };
     bannerRow(ws, 0, NC, S.title);
     bannerRow(ws, 1, NC, S.sub);
     bannerRow(ws, 3, NC, S.section);
@@ -299,7 +299,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     // Το όριο είναι 56 και όχι το προεπιλεγμένο: ο μακρύτερος χαρακτηρισμός
     // («14.3 · 2.5 Γενικά Έξοδα χωρίς δικαίωμα έκπτωσης Φ.Π.Α.») πιάνει 54, και
     // μια αναδίπλωση θα έκανε κάθε ξένη δαπάνη διγράμμη χωρίς λόγο.
-    ws['!rows'] = []; ws['!rows'][0] = { hpt: 22 }; ws['!rows'][1] = { hpt: 15 }; ws['!rows'][HR] = { hpt: 26 };
+    ws['!rows'] = []; ws['!rows'][0] = { hpt: ROW.title }; ws['!rows'][1] = { hpt: ROW.sub }; ws['!rows'][HR] = { hpt: ROW.head };
     const enc = (r: number, c: number) => XLSX.utils.encode_cell({ r, c });
     const emptyNote = sorted.length ? 0 : 1;
     const lastData = HR + sorted.length + emptyNote;
@@ -308,7 +308,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     bannerRow(ws, 1, NC, S.sub);
     for (let c = 0; c < NC; c++) setCell(ws, HR, c, { s: S.head });
     for (let r = HR + 1; r <= lastData; r++) {
-      ws['!rows'][r] = { hpt: 16 };
+      ws['!rows'][r] = { hpt: ROW.data };
       setCell(ws, r, 0, { s: S.num });                                       // Α/Α
       const dcell = ws[enc(r, 1)] as Cell | undefined;                       // Ημ/νία — t:'d' μόνο αν όντως Date
       const isDate = !!dcell && dcell.v instanceof Date;
@@ -422,7 +422,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     // και από κάτω πάντα η πηγή. Απλωμένες σε όλο το πλάτος για να διαβάζονται.
     const noteR = HR + 1 + ELP_ALL.length + 1;
     const notes = capitalised.length ? [noteR, noteR + 1] : [noteR];
-    ws['!rows'] = []; ws['!rows'][0] = { hpt: 22 }; ws['!rows'][1] = { hpt: 15 }; ws['!rows'][HR] = { hpt: 26 };
+    ws['!rows'] = []; ws['!rows'][0] = { hpt: ROW.title }; ws['!rows'][1] = { hpt: ROW.sub }; ws['!rows'][HR] = { hpt: ROW.head };
     bannerRow(ws, 0, NC, S.title);
     bannerRow(ws, 1, NC, S.sub);
     bannerRow(ws, HR - 1, NC, S.section);
@@ -522,7 +522,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     // Τα πλάτη μετρώνται σε ΟΛΟΝ τον πίνακα, μαζί με τα «ΣΥΝΟΛΑ ΑΝΑ
     // ΧΑΡΑΚΤΗΡΙΣΜΟ» από κάτω: δανείζονταν τα πλάτη του μεγάλου πίνακα και
     // έβγαιναν κομμένα, γιατί οι στήλες του ενός δεν είναι οι στήλες του άλλου.
-    ws['!rows'] = []; ws['!rows'][0] = { hpt: 22 }; ws['!rows'][1] = { hpt: 15 }; ws['!rows'][HR] = { hpt: 30 };
+    ws['!rows'] = []; ws['!rows'][0] = { hpt: ROW.title }; ws['!rows'][1] = { hpt: ROW.sub }; ws['!rows'][HR] = { hpt: ROW.head };
     bannerRow(ws, 0, NC, S.title);
     bannerRow(ws, 1, NC, S.sub);
     for (let c = 0; c < NC; c++) setCell(ws, HR, c, { s: S.head });
@@ -530,7 +530,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     const last = HR + rows.length + emptyNote;
     const encM = (r: number, c: number) => XLSX.utils.encode_cell({ r, c });
     for (let r = HR + 1; r <= last; r++) {
-      ws['!rows'][r] = { hpt: 16 };
+      ws['!rows'][r] = { hpt: ROW.data };
       setCell(ws, r, 0, { s: S.num });
       const dcell = ws[encM(r, 1)] as Cell | undefined;
       const isDate = !!dcell && dcell.v instanceof Date;
@@ -635,7 +635,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     const { incSec, incHead, namSec, namHead, incNamSec, incNamHead } = comboSheet;
     const noteR = incNamHead + 1 + incomeNamedRows.length + 1;
     const hgt: { hpt: number }[] = []; ws['!rows'] = hgt;
-    hgt[0] = { hpt: 22 }; hgt[1] = { hpt: 15 };
+    hgt[0] = { hpt: ROW.title }; hgt[1] = { hpt: ROW.sub }; hgt[HR] = { hpt: ROW.head };
     bannerRow(ws, 0, NC, S.title);
     bannerRow(ws, 1, NC, S.sub);
     bannerRow(ws, noteR, NC, S.sub);
@@ -647,7 +647,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       for (let c = 0; c < 2 + cols; c++) setCell(ws, head, c, { s: S.head });
       for (let i = 0; i < n; i++) {
         const r = head + 1 + i;
-        hgt[r] = { hpt: 15 };
+        hgt[r] = { hpt: ROW.data };
         setCell(ws, r, 0, { s: CTR }); setCell(ws, r, 1, { s: S.txt });
         for (let c = 2; c < 2 + cols; c++) setCell(ws, r, c, { s: CTR });
       }
@@ -710,14 +710,14 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     // Χωρίς όριο πλάτους σε αυτό το φύλλο: με 1.442 γραμμές, μια αναδίπλωση θα
     // διπλασίαζε το ύψος του πίνακα για να κερδίσει λίγη οριζόντια κύλιση.
     const noteR = HR + 1 + rows.length + 1;
-    ws['!rows'] = []; ws['!rows'][0] = { hpt: 22 }; ws['!rows'][1] = { hpt: 15 };
+    ws['!rows'] = []; ws['!rows'][0] = { hpt: ROW.title }; ws['!rows'][1] = { hpt: ROW.sub }; ws['!rows'][HR] = { hpt: ROW.head };
     bannerRow(ws, 0, NC, S.title);
     bannerRow(ws, 1, NC, S.sub);
     bannerRow(ws, HR - 1, NC, S.section);
     for (let c = 0; c < NC; c++) setCell(ws, HR, c, { s: S.head });
     for (let i = 0; i < rows.length; i++) {
       const r = HR + 1 + i;
-      ws['!rows'][r] = { hpt: 15 };
+      ws['!rows'][r] = { hpt: ROW.data };
       for (let c = 0; c < NC; c++) setCell(ws, r, c, { s: S.txt });
     }
     bannerRow(ws, noteR, NC, S.sub);

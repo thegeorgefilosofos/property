@@ -80,6 +80,12 @@ export function setCell(ws: XLSX.WorkSheet, r: number, c: number, patch: Partial
 // σελίδας και τους αναπτυσσόμενους καταλόγους (`sheetFinish`, πιο κάτω).
 export const MARGINS = { left: 0.4, right: 0.4, top: 0.55, bottom: 0.55, header: 0.3, footer: 0.3 } as const;
 
+// ΤΑ ΥΨΗ ΕΙΝΑΙ ΤΥΠΟΠΟΙΗΣΗ, ΟΧΙ ΓΟΥΣΤΟ. Η γραμμή των επικεφαλίδων είχε τρία
+// διαφορετικά ύψη στα έξι φύλλα του ίδιου βιβλίου (22, 26, 30) και σε δύο δεν
+// είχε καθόλου. Οι επικεφαλίδες αναδιπλώνονται σε δύο σειρές των 9,5 στιγμών:
+// 28 τις χωρά, και είναι το ίδιο παντού.
+export const ROW = { title: 22, sub: 15, head: 28, data: 16 } as const;
+
 /** Οι γραμμές που επαναλαμβάνονται σε κάθε τυπωμένη σελίδα, ανά φύλλο. */
 export function printTitles(wb: XLSX.WorkBook, sheetIndex: number, sheetName: string, row1: number) {
   const names = (wb.Workbook ||= {}).Names ||= [];
