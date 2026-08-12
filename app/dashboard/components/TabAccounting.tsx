@@ -51,6 +51,7 @@ import type { PlanId } from '@/lib/billing/plans'
 import { exportAccountantBundle, toMovement } from './accountantExport'
 import EnfiaPanel from './EnfiaPanel';
 import AccountantDossier, { useAccountantDossier } from './AccountantDossier'
+import { fetchDossierPapers } from './dossierPapers'
 import { defaultBookkeeping, type LegalForm } from '@/lib/accounting/dossier'
 import { readStatus, type PropertyStatus, type StatusRow } from '@/lib/property/status'
 import { printAccountingReport, downloadOfficialAccountingReport, type ReconLite } from './accountingReport'
@@ -541,7 +542,10 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     book: book.map(toMovement),
     myData: myDataExport,
     gaps: dossierGaps,
-  }),[prop,statement,provision,book,dossierGaps,myDataExport])
+    // ΤΑ ΧΑΡΤΙΑ ΚΑΤΕΒΑΙΝΟΥΝ ΟΤΑΝ ΠΑΤΗΘΕΙ ΤΟ ΚΟΥΜΠΙ, ΟΧΙ ΟΤΑΝ ΑΝΟΙΞΕΙ Η ΟΘΟΝΗ.
+    // Είναι μεγαβάιτ· κανείς δεν τα θέλει επειδή κοίταξε τη Λογιστική.
+    attachments: ()=>fetchDossierPapers(supabase, propertyId, userId, year),
+  }),[prop,statement,provision,book,dossierGaps,myDataExport,supabase,propertyId,userId,year])
 
   // ── Κλείσιμο χρήσης (period lock) ──────────────────────────────────────────
   // Το στιγμιότυπο της κλεισμένης χρήσης: ό,τι γράφεται στο `snapshot`, και

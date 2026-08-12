@@ -1,8 +1,8 @@
 // npx tsx lib/accounting/dossier.test.ts
 import {
   requirementsFor, readiness, groupByWho, traps, defaultBookkeeping,
-  statusForAccountant, statusesOf, WHO_LABEL, missingAfmGroups,
-  type DossierContext, type Requirement, type LegalForm,
+  statusForAccountant, statusesOf, WHO_LABEL, missingAfmGroups, filePapers,
+  type DossierContext, type Requirement, type LegalForm, type DossierPaper,
 } from './dossier';
 import type { PropertyStatus } from '../property/status';
 import { aadePath } from '@/lib/tax/aade';
@@ -385,6 +385,82 @@ eq('καταστάσεις από γραμμές βάσης', statusesOf([{ stat
   // δεδομένων πρέπει να δίνουν το ίδιο αρχείο, αλλιώς η διαφορά τους είναι θόρυβος.
   eq('ίδια δεδομένα, ίδια σειρά', JSON.stringify(missingAfmGroups([...rows].reverse())), JSON.stringify(groups));
   eq('χωρίς δαπάνες, καμία ερώτηση', missingAfmGroups([]).length, 0);
+}
+
+// ── ΤΑ ΠΑΡΑΣΤΑΤΙΚΑ ΜΕΣΑ ΣΤΟΝ ΦΑΚΕΛΟ ────────────────────────────────────────
+// Ο αριθμός είναι το κλειδί που δένει το αρχείο με τη γραμμή. Αν η αρίθμηση ή η
+// ταύτιση αλλάξει σιωπηλά, ο λογιστής θα ανοίξει λάθος χαρτί για τη γραμμή που
+// ελέγχει — και θα το πιστέψει, γιατί το γράψαμε εμείς.
+{
+  const book = [
+    { date: '2026-03-10', amount: 120, afm: '094014201' },   // 1
+    { date: '2026-01-15', amount: 95, afm: null },           // η ταξινόμηση την κάνει 1η
+    { date: '2026-05-02', amount: 300, afm: null },
+    { date: '2026-05-02', amount: 300, afm: '999999999' },
+  ];
+  // Το βιβλίο ταξινομείται μέσα στη `filePapers`: 15/01, 10/03, 02/05, 02/05.
+  const papers: DossierPaper[] = [
+    { fileName: 'ΔΕΗ.pdf', supplier: 'ΔΕΗ', docDate: '2026-01-15', amount: 95 },
+    { fileName: 'scan_0042.PDF', supplier: 'Υδραυλικός', docDate: '2026-03-10', amount: 120 },
+    { fileName: 'διφορούμενο.pdf', supplier: 'Κοινόχρηστα', docDate: '2026-05-02', amount: 300 },
+    { fileName: 'με ΑΦΜ.pdf', supplier: 'Συνεργείο', docDate: '2026-05-02', amount: 300, afm: '999999999' },
+    { fileName: 'άγνωστο.jpg', title: 'Χωρίς στοιχεία' },
+  ];
+  const filed = filePapers(papers, book);
+  eq('όλα τα χαρτιά πήραν αριθμό', filed.length, 5);
+  eq('χρονολογική σειρά', filed.map(f => f.label).join(','), '01,02,03,04,05');
+  eq('το πρώτο είναι της 15ης Ιανουαρίου', filed[0].paper.fileName, 'ΔΕΗ.pdf');
+  eq('και δείχνει στην πρώτη γραμμή', filed[0].row, 1);
+  eq('το δεύτερο στη δεύτερη', filed[1].row, 2);
+  // ΔΥΟ ΚΙΝΗΣΕΙΣ ΙΔΙΑΣ ΜΕΡΑΣ ΚΑΙ ΙΔΙΟΥ ΠΟΣΟΥ: χωρίς ΑΦΜ δεν αποφασίζουμε.
+  eq('διφορούμενο, καμία γραμμή', filed[2].row, null);
+  eq('με ΑΦΜ, ξεχωρίζει', filed[3].row, 4);
+  // ΧΩΡΙΣ ΗΜΕΡΟΜΗΝΙΑ: στο τέλος, χωρίς γραμμή, και το λέει το όνομά του.
+  eq('το αχρονολόγητο τελευταίο', filed[4].paper.fileName, 'άγνωστο.jpg');
+  eq('χωρίς γραμμή', filed[4].row, null);
+  eq('και το γράφει', filed[4].file, '05 χωρίς ημερομηνία Χωρίς στοιχεία.jpg');
+  eq('η κατάληξη πεζή', filed[1].file, '02 2026-03-10 Υδραυλικός.pdf');
+  // Η ΣΕΙΡΑ ΕΙΣΑΓΩΓΗΣ ΔΕΝ ΑΛΛΑΖΕΙ ΤΙΠΟΤΑ: δύο εξαγωγές, ίδιος φάκελος.
+  eq('ίδια δεδομένα, ίδιος φάκελος',
+    filePapers([...papers].reverse(), book).map(f => f.file).join('|'),
+    filed.map(f => f.file).join('|'));
+}
+{
+  // ΤΟ ΟΝΟΜΑ ΑΡΧΕΙΟΥ ΔΕΝ ΕΠΙΤΡΕΠΕΤΑΙ ΝΑ ΣΠΑΕΙ ΤΟ ZIP. Μια κάθετος μέσα στο
+  // όνομα του εκδότη θα έφτιαχνε υποφάκελο· μια άνω κάτω τελεία δεν ανοίγει
+  // καν στα Windows.
+  const filed = filePapers(
+    [{ fileName: 'a.pdf', supplier: 'ΔΕΗ / ΕΥΔΑΠ: λογαριασμοί' }],
+    [],
+  );
+  eq('καθαρό όνομα', filed[0].file, '01 χωρίς ημερομηνία ΔΕΗ ΕΥΔΑΠ λογαριασμοί.pdf');
+  eq('χωρίς κίνηση, καμία γραμμή', filed[0].row, null);
+}
+{
+  // ΧΩΡΙΣ ΠΟΣΟ ΔΕΝ ΥΠΑΡΧΕΙ ΤΑΥΤΙΣΗ. Μια ημερομηνία με δύο δαπάνες πάνω της δεν
+  // λέει ποια είναι, και ένα μηδενικό ποσό δεν είναι ποσό.
+  const book = [{ date: '2026-04-01', amount: 50 }];
+  eq('μόνο ημερομηνία, καμία γραμμή',
+    filePapers([{ fileName: 'x.pdf', docDate: '2026-04-01' }], book)[0].row, null);
+  eq('ποσό μηδέν, καμία γραμμή',
+    filePapers([{ fileName: 'x.pdf', docDate: '2026-04-01', amount: 0 }], book)[0].row, null);
+  eq('ημερομηνία και ποσό, γραμμή',
+    filePapers([{ fileName: 'x.pdf', docDate: '2026-04-01', amount: 50 }], book)[0].row, 1);
+  // Λεπτά: το 49,999 από στρογγύλευση είναι το ίδιο ποσό, το 50,50 δεν είναι.
+  eq('ανοχή λεπτού',
+    filePapers([{ fileName: 'x.pdf', docDate: '2026-04-01', amount: 49.999 }], book)[0].row, 1);
+  eq('πενήντα λεπτά διαφορά, όχι',
+    filePapers([{ fileName: 'x.pdf', docDate: '2026-04-01', amount: 50.5 }], book)[0].row, null);
+}
+{
+  // ΤΑ ΜΗΔΕΝΙΚΑ ΜΠΡΟΣΤΑ ΚΡΑΤΟΥΝ ΤΗ ΣΕΙΡΑ ΣΤΟΝ ΕΞΕΡΕΥΝΗΤΗ ΑΡΧΕΙΩΝ. Χωρίς αυτά,
+  // το «10» κάθεται πριν από το «2» και ο φάκελος διαβάζεται ανάποδα.
+  const many = Array.from({ length: 12 }, (_, i) => ({ fileName: `${i}.pdf`, supplier: `Α${String(i).padStart(2, '0')}` }));
+  const filed = filePapers(many, []);
+  eq('δύο ψηφία ώς τα 99', filed[0].label, '01');
+  eq('και το δωδέκατο', filed[11].label, '12');
+  const huge = Array.from({ length: 101 }, (_, i) => ({ fileName: `${i}.pdf`, supplier: `Α${String(i).padStart(3, '0')}` }));
+  eq('τρία ψηφία από τα 100', filePapers(huge, [])[0].label, '001');
 }
 
 console.log(fail === 0 ? `✓ dossier: ${pass} έλεγχοι πέρασαν` : `✗ dossier: ${fail} απέτυχαν από ${pass + fail}`);

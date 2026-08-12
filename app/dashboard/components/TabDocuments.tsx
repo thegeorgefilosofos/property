@@ -7,6 +7,7 @@ import * as billStore from '@/lib/data/bills';
 import { T, fd, fe, fn, Modal, Skeleton, EmptyState, InfoBanner, PageTitle, SecHdr, Badge, Btn, ExportButton, ABSENT_DATE, pressable } from '@/components/Theme';
 import { useCoarsePointer } from '@/components/useCoarsePointer';
 import { showTool } from '@/lib/ui/thresholds';
+import { fmtBytes } from '@/lib/core/bytes';
 import { SearchX, FolderOpen } from 'lucide-react';
 import { confirmDialog } from '@/components/ConfirmDialog';
 import { CustomSelect, TextInput, DatePicker, Textarea, NumberInput } from './UIComponents';
@@ -190,12 +191,6 @@ interface Draft {
   open: boolean;
 }
 
-const fmtSize = (b: number | null) => {
-  if (!b) return '';
-  if (b < 1024) return `${b} B`;
-  if (b < 1024 * 1024) return `${(b / 1024).toFixed(0)} KB`;
-  return `${(b / 1024 / 1024).toFixed(1)} MB`;
-};
 // Η ΧΡΟΝΙΑ ΔΙΑΒΑΖΕΤΑΙ ΩΣ ΚΕΙΜΕΝΟ, ΟΧΙ ΩΣ ΣΤΙΓΜΗ.
 // Εδώ γραφόταν `new Date(d).getFullYear()`: το «2026-01-01» διαβάζεται σε UTC
 // και ρωτιέται σε ΤΟΠΙΚΗ ώρα. Σε ζώνη με αρνητική απόκλιση γίνεται 31
@@ -1135,7 +1130,7 @@ function FileRow({ i, a }: { i: Item; a: FileActions }) {
           {a.showFolder && <span style={{ fontSize: 9, color: 'var(--accent)', fontWeight: 600 }}>{FOLDER_LABEL[i.folder]}</span>}
         </div>
         <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>
-          {[i.date ? fd(i.date) : null, i.sizeBytes ? fmtSize(i.sizeBytes) : null, i.note].filter(Boolean).join(' · ')}
+          {[i.date ? fd(i.date) : null, i.sizeBytes ? fmtBytes(i.sizeBytes) : null, i.note].filter(Boolean).join(' · ')}
         </div>
       </div>
       {i.value != null && <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, whiteSpace: 'nowrap' }}>{fe(i.value)}</span>}

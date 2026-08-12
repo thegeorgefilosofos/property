@@ -20,7 +20,8 @@
 //   · ότι τα σύνολα κάθονται κάτω από τη σωστή στήλη
 //   · ότι το άθροισμα είναι το άθροισμα, όχι κάτι κοντινό
 // ═══════════════════════════════════════════════════════════════════════════
-import { buildWorkbook, type AccountantMovement } from './accountantExport';
+import { buildWorkbook, dossierFiles, type AccountantMovement, type DossierAttachment } from './accountantExport';
+import { filePapers } from '@/lib/accounting/dossier';
 import { XLSX, workbookBytes, type Cell } from './xlsxStyle';
 import { unzipSync, strFromU8 } from 'fflate';
 import { supplyLabel } from '@/lib/tax/placeOfSupply';
@@ -510,6 +511,110 @@ eq('τα πλάτη στηλών είναι όσα και οι στήλες', (w
   }
   eq('καμία στήλη δεν κόβει το περιεχόμενό της', [...new Set(clipped)].slice(0, 3).join(' · '), '');
   ok('κάθε φύλλο δηλώνει πλάτη', wide.SheetNames.every(n => ((wide.Sheets[n]['!cols'] ?? []) as unknown[]).length > 0));
+}
+
+// ═══ Η ΣΤΗΛΗ ΤΟΥ ΠΑΡΑΣΤΑΤΙΚΟΥ ═══════════════════════════════════════════════
+// ΤΟ ΚΟΥΜΠΙ «EXCEL» ΚΑΙ Ο ΦΑΚΕΛΟΣ ΔΕΝ ΒΓΑΖΟΥΝ ΤΟ ΙΔΙΟ ΑΡΧΕΙΟ, ΚΑΙ ΕΙΝΑΙ ΣΩΣΤΟ.
+// Μέσα στον φάκελο τα χαρτιά ταξιδεύουν δίπλα στο Excel, άρα ένας αριθμός
+// «02» δείχνει σε αρχείο που ο παραλήπτης ΕΧΕΙ. Το σκέτο Excel ταξιδεύει μόνο
+// του: η ίδια στήλη εκεί θα έδειχνε σε αρχεία που δεν υπάρχουν πουθενά.
+{
+  const papers = filePapers([
+    { fileName: 'δεη.pdf', supplier: 'ΔΕΗ', docDate: '2026-03-11', amount: 88.5 },
+    { fileName: 'ms.pdf', supplier: 'Microsoft', docDate: '2026-04-02', amount: 6.99 },
+    { fileName: 'άσχετο.pdf', supplier: 'Άγνωστο', docDate: '2026-09-09', amount: 1 },
+  ], BOOK.map(e => ({ date: e.date, amount: e.amount, afm: e.supplier_afm ?? null })));
+
+  const bare = buildWorkbook({ year: 2026, propName: 'Χ', statementLines: [], provisionMonthly: 0, book: BOOK });
+  const bareWs = bare.Sheets['Κινήσεις 2026'];
+  const bareHead = HEADER.map((_, c) => (bareWs[XLSX.utils.encode_cell({ r: HR, c })] as Cell | undefined)?.v);
+  eq('χωρίς χαρτιά, καμία στήλη «Παραστατικό»', bareHead.includes('Παραστατικό'), false);
+
+  const w = buildWorkbook({ year: 2026, propName: 'Χ', statementLines: [], provisionMonthly: 0, book: BOOK }, papers);
+  const s2 = w.Sheets['Κινήσεις 2026'];
+  const v2 = (r: number, c: number) => (s2[XLSX.utils.encode_cell({ r, c })] as Cell | undefined)?.v;
+  const H2 = ['Α/Α', 'Ημερομηνία', 'Κατηγορία', 'Περιγραφή', 'Παραστατικό', 'ΑΦΜ προμηθευτή', 'Χώρα', 'Τόπος παροχής', 'Έσοδα', 'Έξοδα'];
+  eq('με χαρτιά, δέκα στήλες στη σειρά τους', H2.map((_, c) => v2(HR, c)), H2);
+  ok('και καμία παραπάνω', v2(HR, H2.length) === undefined);
+  const C2 = (name: string) => H2.indexOf(name);
+  // Η ΤΑΥΤΙΣΗ ΔΕΝ ΕΙΝΑΙ ΔΙΑΚΟΣΜΗΤΙΚΗ: το «01» πρέπει να κάθεται στη ΔΙΚΗ του
+  // γραμμή. Το ενοίκιο της 4ης Μαρτίου δεν έχει χαρτί και μένει κενό.
+  eq('το ενοίκιο χωρίς χαρτί', v2(HR + 1, C2('Παραστατικό')) ?? '', '');
+  eq('η ΔΕΗ παίρνει το πρώτο', v2(HR + 2, C2('Παραστατικό')), '01');
+  eq('η συνδρομή το δεύτερο', v2(HR + 3, C2('Παραστατικό')), '02');
+  // Το τρίτο χαρτί δεν ταυτίστηκε με καμία κίνηση: δεν εμφανίζεται πουθενά στο
+  // φύλλο, και ΔΕΝ κολλάει σε γραμμή επειδή «περίσσεψε».
+  eq('τρία χαρτιά, δύο δεμένα', papers.filter(p => p.row != null).length, 2);
+
+  // ΤΑ ΣΥΝΟΛΑ ΑΚΟΛΟΥΘΟΥΝ ΤΗ ΝΕΑ ΣΤΗΛΗ. Εδώ ήταν το σφάλμα που θα περνούσε
+  // απαρατήρητο: σταθεροί δείκτες θα άφηναν το σύνολο των εξόδων κάτω από τον
+  // «Τόπο παροχής», με το Excel να ανοίγει κανονικά.
+  const totalR = HR + BOOK.length + 1;
+  eq('η ετικέτα των συνόλων στην Περιγραφή', v2(totalR, C2('Περιγραφή')), 'ΣΥΝΟΛΑ');
+  ok(`το σύνολο εξόδων κάτω από τα έξοδα (${String(v2(totalR, C2('Έξοδα')))})`,
+    /^95,49\s?€$/.test(String(v2(totalR, C2('Έξοδα')))));
+
+  // Ο ΑΝΑΠΤΥΣΣΟΜΕΝΟΣ ΚΑΤΑΛΟΓΟΣ ΜΕΤΑΚΙΝΕΙΤΑΙ ΜΑΖΙ ΤΗΣ. Γραμμένος ως «F», θα
+  // πρότεινε «Εγχώρια» μέσα στη στήλη της χώρας.
+  const finish = (s2 as unknown as { '!finish'?: { lists?: { ref: string }[] } })['!finish'];
+  eq('ο κατάλογος στη στήλη του τόπου παροχής',
+    (finish?.lists?.[0].ref || '').slice(0, 1), XLSX.utils.encode_col(C2('Τόπος παροχής')));
+}
+
+// ═══ Ο ΦΑΚΕΛΟΣ ΚΟΥΒΑΛΑΕΙ ΤΑ ΧΑΡΤΙΑ, ΚΑΙ ΤΑ ΒΡΙΣΚΕΙ ΚΑΝΕΙΣ ═══════════════════
+// Το «αριθμημένα, με ευρετήριο που δείχνει στη γραμμή» είναι τρία πράγματα που
+// πρέπει να συμφωνούν: το όνομα του αρχείου, η στήλη του Excel και το
+// ευρετήριο. Αν αποκλίνουν, ο λογιστής ανοίγει λάθος χαρτί για τη γραμμή που
+// ελέγχει — και δεν έχει τρόπο να το καταλάβει.
+{
+  const bytes = (n: number) => new Uint8Array(n).fill(65);
+  const attachments: DossierAttachment[] = [
+    { fileName: 'ΔΕΗ Μαρτίου.pdf', supplier: 'ΔΕΗ', docDate: '2026-03-11', amount: 88.5, afm: '094014201', category: 'Ρεύμα', bytes: bytes(10) },
+    { fileName: 'σύμβαση.pdf', title: 'Μισθωτήριο', bytes: bytes(20) },
+  ];
+  const base = {
+    year: 2026, propName: 'Διαμέρισμα Αθήνα', ownerAfm: '094014201',
+    statementLines: [], provisionMonthly: 0, book: BOOK,
+    requirements: [], haveIds: [], readinessMessage: 'Έτοιμο',
+    properties: [], formLabel: 'Φυσικό πρόσωπο', booksLabel: 'Χωρίς βιβλία',
+  };
+  const withPapers = dossierFiles({ ...base, attachments });
+  const paths = withPapers.map(f => f.path);
+  ok('τα χαρτιά μπαίνουν στον δικό τους υποφάκελο',
+    paths.includes('04 ΔΙΚΑΙΟΛΟΓΗΤΙΚΑ/Παραστατικά/01 2026-03-11 ΔΕΗ.pdf'));
+  ok('και το αχρονολόγητο επίσης',
+    paths.includes('04 ΔΙΚΑΙΟΛΟΓΗΤΙΚΑ/Παραστατικά/02 χωρίς ημερομηνία Μισθωτήριο.pdf'));
+  ok('με το ευρετήριό τους δίπλα', paths.includes('04 ΔΙΚΑΙΟΛΟΓΗΤΙΚΑ/Ευρετήριο παραστατικών 2026.csv'));
+
+  // ΤΑ BYTES ΤΑΞΙΔΕΥΟΥΝ ΟΝΤΩΣ. Ένα άδειο αρχείο με σωστό όνομα είναι χειρότερο
+  // από κανένα: ο λογιστής θα νομίζει ότι το χαρτί χάλασε στη μεταφορά.
+  const dehFile = withPapers.find(f => f.path.endsWith('01 2026-03-11 ΔΕΗ.pdf'));
+  eq('με το περιεχόμενό τους', (dehFile?.data as Uint8Array).length, 10);
+
+  const indexCsv = String(withPapers.find(f => f.path.includes('Ευρετήριο'))?.data);
+  ok('το ευρετήριο δείχνει τη γραμμή', indexCsv.includes('01;01 2026-03-11 ΔΕΗ.pdf;11/03/2026;ΔΕΗ;094014201;Ρεύμα;88,50;2'));
+  // ΤΟ ΑΧΡΟΝΟΛΟΓΗΤΟ ΔΕΝ ΤΑΥΤΙΖΕΤΑΙ, ΚΑΙ ΤΟ ΚΕΛΙ ΜΕΝΕΙ ΚΕΝΟ — ποτέ «1» επειδή
+  // έπρεπε να γραφτεί κάτι. Κενό ποσό επίσης: το «0,00» θα αθροιζόταν.
+  ok('όπου δεν ξέρουμε, κενό', indexCsv.includes('02;02 χωρίς ημερομηνία Μισθωτήριο.pdf;;Μισθωτήριο;;;;'));
+
+  // Η ΣΤΗΛΗ ΤΟΥ ΑΡΙΘΜΟΥ ΜΠΑΙΝΕΙ ΚΑΙ ΣΤΟ CSV ΤΩΝ ΕΞΟΔΩΝ, ΜΕ ΤΟΝ ΙΔΙΟ ΑΡΙΘΜΟ.
+  const exp = String(withPapers.find(f => f.path.startsWith('03 ΕΞΟΔΑ'))?.data);
+  ok('τα έξοδα δείχνουν το παραστατικό', exp.includes('Περιγραφή;Παραστατικό;ΑΦΜ προμηθευτή'));
+  ok('με τον ίδιο αριθμό', exp.includes('ΔΕΗ, Φεβρουάριος;01;094014201'));
+  // ΚΑΙ ΔΕΝ ΜΠΑΙΝΕΙ ΣΤΑ ΕΣΟΔΑ, ΠΟΥ ΔΕΝ ΕΧΟΥΝ ΚΑΝΕΝΑ ΧΑΡΤΙ. Μια κενή στήλη
+  // «Παραστατικό» εκεί είναι ερώτηση χωρίς νόημα.
+  const inc = String(withPapers.find(f => f.path.startsWith('02 ΕΣΟΔΑ'))?.data);
+  eq('τα έσοδα χωρίς τη στήλη', inc.includes('Παραστατικό'), false);
+
+  // ΧΩΡΙΣ ΧΑΡΤΙΑ, Ο ΦΑΚΕΛΟΣ ΕΙΝΑΙ ΑΚΡΙΒΩΣ Ο ΠΑΛΙΟΣ: ούτε άδειος υποφάκελος,
+  // ούτε ευρετήριο που δείχνει σε τίποτα.
+  const without = dossierFiles(base).map(f => f.path);
+  eq('κανένας υποφάκελος «Παραστατικά»', without.some(p => p.includes('Παραστατικά/')), false);
+  eq('κανένα ευρετήριο', without.some(p => p.includes('Ευρετήριο')), false);
+  eq('και το «Διάβασέ με» δεν υπόσχεται χαρτιά',
+    String(dossierFiles(base).find(f => f.path.startsWith('00'))?.data).includes('Παραστατικό'), false);
+  ok('ενώ με χαρτιά το εξηγεί',
+    String(withPapers.find(f => f.path.startsWith('00'))?.data).includes('Κάθε παραστατικό έχει αριθμό'));
 }
 
 console.log(`\naccountantExport.ts — ${passed} passed, ${failed} failed`);

@@ -37,7 +37,10 @@ import { resolveCategory } from '@/lib/expenses/taxonomy';
 import { csvCell } from '@/lib/core/csv';
 import { isValidAfm } from '@/lib/core/greek';
 import { buildZip, type ZipFile } from '@/lib/accounting/zip';
-import { WHO_LABEL, missingAfmGroups, type Requirement } from '@/lib/accounting/dossier';
+import {
+  WHO_LABEL, missingAfmGroups, filePapers,
+  type Requirement, type FiledPaper, type DossierPaper,
+} from '@/lib/accounting/dossier';
 import { downloadFile } from '@/lib/core/download';
 
 export interface AccountantStatementLine { label: string; amount: number; kind: string; negative?: boolean }
@@ -128,6 +131,10 @@ const SUPPLY_VALUES: readonly string[] = (['domestic', 'intra_eu', 'third_countr
 // Ιταλική γκρι σημείωση για «memo» γραμμές (π.χ. πρόβλεψη φόρου) — διακριτή από το αποτέλεσμα.
 const MEMO_TXT = { font: { name: 'Calibri', color: { rgb: '6B7280' }, sz: 10, italic: true }, alignment: { horizontal: 'left', vertical: 'center' } };
 const MEMO_NUM = { font: { name: 'Calibri', color: { rgb: '6B7280' }, sz: 10, italic: true }, alignment: { horizontal: 'right', vertical: 'center' } };
+// ΚΩΔΙΚΟΣ, ΟΧΙ ΠΟΣΟ. Το ΑΦΜ, η χώρα και ο αριθμός του παραστατικού είναι
+// αναγνωριστικά που δεν αθροίζονται: κεντραρισμένα, ώστε η στήλη να μη
+// διαβάζεται ως στήλη ποσών επειδή είναι στοιχισμένη δεξιά.
+const CODE_TXT = { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } } as const;
 
 /**
  * Ο ΠΙΝΑΚΑΣ ΤΩΝ ΕΠΙΤΡΕΠΤΩΝ ΣΥΝΔΥΑΣΜΩΝ, ΥΠΟΛΟΓΙΣΜΕΝΟΣ ΜΙΑ ΦΟΡΑ.
@@ -195,7 +202,15 @@ const comboSheet = (() => {
  * επαληθεύεται με το μάτι: μια στήλη που μετακινήθηκε κατά ένα δίνει σύνολο
  * κάτω από λάθος επικεφαλίδα, και το Excel ανοίγει κανονικά.
  */
-export function buildWorkbook(inp: AccountantBundleInput) {
+/**
+ * Το βιβλίο του έτους ως βιβλίο εργασίας.
+ *
+ * ΤΑ ΧΑΡΤΙΑ ΕΡΧΟΝΤΑΙ ΩΣ ΔΕΥΤΕΡΟ ΟΡΙΣΜΑ, ΚΑΙ ΜΟΝΟ ΑΠΟ ΤΟΝ ΦΑΚΕΛΟ. Το κουμπί
+ * «Excel» κατεβάζει ένα αρχείο που ταξιδεύει μόνο του: μια στήλη «Παραστατικό»
+ * εκεί θα έδειχνε αριθμούς αρχείων που ο παραλήπτης δεν έχει. Μέσα στον φάκελο
+ * τα αρχεία ΕΙΝΑΙ δίπλα, οπότε η στήλη δείχνει σε κάτι υπαρκτό.
+ */
+export function buildWorkbook(inp: AccountantBundleInput, papers: readonly FiledPaper[] = []) {
   const { year, propName, ownerAfm, statementLines, provisionMonthly, book } = inp;
   const wb = XLSX.utils.book_new();
   // Ταυτότητα φορολογούμενου/περιόδου — ίδια ακριβώς και στα δύο φύλλα.
@@ -246,26 +261,45 @@ export function buildWorkbook(inp: AccountantBundleInput) {
 
   // ── Φύλλο 2: Αναλυτικές κινήσεις (Έσοδα / Έξοδα) ────────────────────────────
   {
-    // ΟΚΤΩ ΣΤΗΛΕΣ, ΚΑΙ ΤΟ `NC` ΕΙΝΑΙ Ο ΜΟΝΟΣ ΤΟΠΟΣ ΠΟΥ ΤΟ ΞΕΡΕΙ. Οι δείκτες των
-    // συνόλων παράγονται από αυτό (`NC - 2`, `NC - 1`) αντί να είναι γραμμένοι
-    // σταθεροί: ήταν 4 και 5, και μια τρίτη στήλη θα τους άφηνε πίσω σιωπηλά —
-    // το σύνολο των εξόδων θα καθόταν κάτω από την επικεφαλίδα της χώρας.
-    // ΤΟ ΠΛΗΘΟΣ ΤΩΝ ΣΤΗΛΩΝ ΕΙΝΑΙ ΜΕΤΑΒΛΗΤΟ, ΚΑΙ ΟΛΑ ΤΑ ΥΠΟΛΟΙΠΑ ΤΟ ΑΚΟΛΟΥΘΟΥΝ.
-    // Η στήλη του χαρακτηρισμού μπαίνει ΠΡΙΝ τα ποσά, δίπλα στον τόπο παροχής
-    // με τον οποίο συνδέεται: «τι, από πού, πώς χαρακτηρίζεται, πόσο».
+    // ΟΙ ΘΕΣΕΙΣ ΤΩΝ ΣΤΗΛΩΝ ΒΓΑΙΝΟΥΝ ΑΠΟ ΤΗΝ ΙΔΙΑ ΤΗΝ ΕΠΙΚΕΦΑΛΙΔΑ.
+    //
+    // Ήταν γραμμένες ως αριθμοί και ως αποστάσεις: `NC = myData ? 10 : 9`,
+    // `C_MYDATA = 7`, `C_IN = NC - 2`. Κάθε νέα στήλη σήμαινε τέσσερις σωστές
+    // αλλαγές σε τέσσερα σημεία, και μία ξεχασμένη έβαζε το σύνολο των εξόδων
+    // κάτω από την επικεφαλίδα της χώρας — χωρίς σφάλμα και χωρίς ένδειξη.
+    // Ο πίνακας των ονομάτων είναι ήδη η αλήθεια· τα υπόλοιπα τη ρωτούν.
+    //
+    // Η ΣΕΙΡΑ ΕΙΝΑΙ Η ΣΕΙΡΑ ΠΟΥ ΔΙΑΒΑΖΕΙ ΛΟΓΙΣΤΗΣ: τι, με ποιο χαρτί, από ποιον,
+    // από πού, πώς χαρακτηρίζεται, πόσο. Τα ποσά κλείνουν πάντα τη γραμμή.
     const myData = inp.myData;
-    const NC = myData ? 10 : 9, HR = 3;
-    /** Η στήλη του χαρακτηρισμού, ή −1 όταν δεν υπάρχει. */
-    const C_MYDATA = myData ? 7 : -1;
-    // ΤΑ ΠΟΣΑ ΚΛΕΙΝΟΥΝ ΤΗ ΓΡΑΜΜΗ, ΟΠΟΤΕ ΠΑΡΑΓΟΝΤΑΙ ΑΠΟ ΤΟ ΠΛΗΘΟΣ ΣΤΗΛΩΝ: μια
-    // ένατη στήλη αύριο τα παίρνει μαζί της, χωρίς να το θυμηθεί κανείς.
-    const C_IN = NC - 2, C_EX = NC - 1;
-    // Η ΕΤΙΚΕΤΑ ΤΩΝ ΣΥΝΟΛΩΝ ΟΜΩΣ ΕΙΝΑΙ ΘΕΣΗ, ΟΧΙ ΑΠΟΣΤΑΣΗ. Παραγόταν κι αυτή
-    // από το `NC` και προσγειώθηκε κάτω από τον «Τόπο παροχής»: ένα «ΣΥΝΟΛΑ»
+    // ΠΟΙΑ ΓΡΑΜΜΗ ΕΧΕΙ ΧΑΡΤΙ, ΚΑΙ ΠΟΙΟ. Ο αριθμός εδώ είναι ο ίδιος αριθμός που
+    // έχει μπροστά του το αρχείο μέσα στον φάκελο: ο λογιστής διαβάζει «07» και
+    // ξέρει ποιο αρχείο να ανοίξει, χωρίς να ψάξει σε ευρετήριο. Δύο χαρτιά για
+    // την ίδια κίνηση (τιμολόγιο και απόδειξη) γράφονται και τα δύο.
+    const byRow = new Map<number, string>();
+    for (const p of papers) {
+      if (p.row == null) continue;
+      const cur = byRow.get(p.row);
+      byRow.set(p.row, cur ? `${cur} · ${p.label}` : p.label);
+    }
+    const hasPapers = byRow.size > 0;
+    const header = ['Α/Α', 'Ημερομηνία', 'Κατηγορία', 'Περιγραφή',
+      ...(hasPapers ? ['Παραστατικό'] : []),
+      'ΑΦΜ προμηθευτή', 'Χώρα', 'Τόπος παροχής',
+      ...(myData ? ['Χαρακτηρισμός myDATA'] : []), 'Έσοδα', 'Έξοδα'];
+    const NC = header.length, HR = 3;
+    /** Η θέση μιας στήλης από το όνομά της, ή −1 όταν δεν υπάρχει φέτος. */
+    const col = (name: string) => header.indexOf(name);
+    const C_PAPER = col('Παραστατικό'), C_AFM = col('ΑΦΜ προμηθευτή');
+    const C_COUNTRY = col('Χώρα'), C_SUPPLY = col('Τόπος παροχής');
+    const C_MYDATA = col('Χαρακτηρισμός myDATA');
+    const C_IN = col('Έσοδα'), C_EX = col('Έξοδα');
+    // Η ΕΤΙΚΕΤΑ ΤΩΝ ΣΥΝΟΛΩΝ ΕΙΝΑΙ ΘΕΣΗ, ΟΧΙ ΑΠΟΣΤΑΣΗ. Παραγόταν από το πλήθος
+    // των στηλών και προσγειώθηκε κάτω από τον «Τόπο παροχής»: ένα «ΣΥΝΟΛΑ»
     // κάτω από στήλη που λέει «Ενδοκοινοτική λήψη υπηρεσιών» διαβάζεται ως
     // σύνολο ΕΚΕΙΝΗΣ της στήλης. Η θέση της είναι η Περιγραφή, εκεί που ήταν
     // πάντα και εκεί που τη διαβάζει λογιστής.
-    const C_LABEL = 3;
+    const C_LABEL = col('Περιγραφή');
     /** Γραμμή συνόλων: ετικέτα στην Περιγραφή, ποσά κάτω από τα ποσά. */
     const totalsRow = (label: string, income: number | string, expense: number | string) => {
       const r: (string | number)[] = Array(NC).fill('');
@@ -275,13 +309,6 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     const sorted = [...book].sort((a, b) => a.date.localeCompare(b.date));
     const sumIn = sorted.filter(e => e.type === 'income').reduce((s, e) => s + (e.amount || 0), 0);
     const sumEx = sorted.filter(e => e.type === 'expense').reduce((s, e) => s + (e.amount || 0), 0);
-    // Η ΧΩΡΑ ΚΑΙ Ο ΤΟΠΟΣ ΠΑΡΟΧΗΣ ΜΠΑΙΝΟΥΝ ΠΡΙΝ ΤΑ ΠΟΣΑ, όχι στο τέλος: ο
-    // λογιστής διαβάζει «τι, από πού, πόσο». Τα ποσά κλείνουν τη γραμμή, όπως σε
-    // κάθε παραστατικό, και τα σύνολα κάθονται από κάτω τους.
-    // ΤΟ ΑΦΜ ΜΠΑΙΝΕΙ ΔΙΠΛΑ ΣΤΗ ΧΩΡΑ, ΓΙΑΤΙ ΕΙΝΑΙ Η ΙΔΙΑ ΕΡΩΤΗΣΗ: «ποιος εξέδωσε
-    // το χαρτί». Ο λογιστής διαβάζει «τι, από ποιον, από πού, πόσο».
-    const header = ['Α/Α', 'Ημερομηνία', 'Κατηγορία', 'Περιγραφή', 'ΑΦΜ προμηθευτή', 'Χώρα', 'Τόπος παροχής',
-      ...(myData ? ['Χαρακτηρισμός myDATA'] : []), 'Έσοδα', 'Έξοδα'];
     // Ο ΧΑΡΑΚΤΗΡΙΣΜΟΣ ΑΦΟΡΑ ΜΟΝΟ ΤΑ ΕΞΟΔΑ. Στη γραμμή εσόδου το κελί μένει
     // κενό: τα έσοδα έχουν δικό τους παραστατικό, που το εκδίδει ο ίδιος ο
     // ιδιοκτήτης, και δεν «χαρακτηρίζονται» ως έξοδα με κανέναν κωδικό.
@@ -290,6 +317,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
         : myDataCell(myDataHint({ category: e.category, supply: e.supply as Supply | null, vat: myData.vat }));
     const dataRows: Cell['v'][][] = sorted.map((e, i) => [
       i + 1, toDate(e.date), e.category || '', e.description || '',
+      ...(hasPapers ? [byRow.get(i + 1) || ''] : []),
       // Κενό, όχι «—» και όχι «Ελλάδα»: το έσοδο δεν έχει πάροχο, και η δαπάνη
       // που δεν ρωτήθηκε δεν έχει απάντηση. Ένα συμπληρωμένο κενό σε στήλη
       // ΦΠΑ είναι εικασία γραμμένη ως δεδομένο.
@@ -336,12 +364,14 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       const isDate = !!dcell && dcell.v instanceof Date;
       setCell(ws, r, 1, { s: { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } }, ...(isDate ? { t: 'd', z: FMT.date } : {}) });
       setCell(ws, r, 2, { s: S.txt });                                       // Κατηγορία
-      setCell(ws, r, 3, { s: S.txt });                                       // Περιγραφή
+      setCell(ws, r, C_LABEL, { s: S.txt });                                 // Περιγραφή
+      // Ο αριθμός του παραστατικού είναι κωδικός, όπως το ΑΦΜ: κεντραρισμένος.
+      if (C_PAPER >= 0) setCell(ws, r, C_PAPER, { s: CODE_TXT });
       // Το ΑΦΜ είναι αριθμός που ΔΕΝ αθροίζεται: κεντραρισμένο σαν κωδικός, όχι
       // δεξιά σαν ποσό. Και ως κείμενο, ώστε να μη χαθεί αρχικό μηδενικό.
-      setCell(ws, r, 4, { s: { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } } }); // ΑΦΜ
-      setCell(ws, r, 5, { s: { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } } }); // Χώρα
-      setCell(ws, r, 6, { s: S.txt });                                       // Τόπος παροχής
+      setCell(ws, r, C_AFM, { s: CODE_TXT });
+      setCell(ws, r, C_COUNTRY, { s: CODE_TXT });
+      setCell(ws, r, C_SUPPLY, { s: S.txt });
       if (C_MYDATA >= 0) setCell(ws, r, C_MYDATA, { s: S.txt });             // Χαρακτηρισμός myDATA
       // Έσοδα/Έξοδα ως κείμενο «€» με κόμμα (ίδια εμφάνιση σε κάθε Excel).
       for (const c of [C_IN, C_EX]) { const cell = ws[enc(r, c)] as Cell | undefined; if (cell && typeof cell.v === 'number') setCell(ws, r, c, { v: money(cell.v), t: 's', s: S.num }); else setCell(ws, r, c, { s: S.num }); }
@@ -376,9 +406,12 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     // Ο κατάλογος μπαίνει ΜΟΝΟ όπου υπάρχουν κινήσεις: σε άδεια χρονιά θα έπεφτε
     // πάνω στη γραμμή που λέει «Καμία καταγεγραμμένη κίνηση» και θα της πρότεινε
     // τόπο παροχής.
+    // Η στήλη του καταλόγου γράφεται από τη θέση της και όχι ως «F»: μια στήλη
+    // παραπάνω και το «F» θα πρότεινε τόπο παροχής μέσα στη στήλη της χώρας.
+    const supplyCol = XLSX.utils.encode_col(C_SUPPLY);
     sheetFinish(ws, {
       landscape: true, freezeRows: HR + 1,
-      ...(sorted.length ? { lists: [{ ref: `F${HR + 2}:F${lastData + 1}`, values: SUPPLY_VALUES }] } : {}),
+      ...(sorted.length ? { lists: [{ ref: `${supplyCol}${HR + 2}:${supplyCol}${lastData + 1}`, values: SUPPLY_VALUES }] } : {}),
     });
     // Ο ΛΟΓΙΣΤΗΣ ΤΥΠΩΝΕΙ, ΚΑΙ Η ΔΕΥΤΕΡΗ ΣΕΛΙΔΑ ΧΡΕΙΑΖΕΤΑΙ ΟΝΟΜΑΤΑ. Χωρίς
     // επανάληψη της επικεφαλίδας, από τη σελίδα 2 και μετά ο πίνακας είναι
@@ -770,6 +803,18 @@ export function exportAccountantBundle(inp: AccountantBundleInput): void {
 // Ο ΦΑΚΕΛΟΣ
 // ═══════════════════════════════════════════════════════════════════════════
 
+/**
+ * ΕΝΑ ΠΑΡΑΣΤΑΤΙΚΟ ΠΟΥ ΤΑΞΙΔΕΥΕΙ ΜΕΣΑ ΣΤΟΝ ΦΑΚΕΛΟ.
+ *
+ * Ο φάκελος έλεγε ώς τώρα ΤΙ ΛΕΙΠΕΙ, αλλά δεν κουβαλούσε ό,τι ΥΠΑΡΧΕΙ: ο
+ * λογιστής έπαιρνε αριθμούς και μετά ζητούσε τα χαρτιά με δεύτερο μήνυμα. Τα
+ * bytes έρχονται από τον καλούντα, γιατί αυτός ξέρει από πού κατεβαίνουν — αυτό
+ * το αρχείο δεν έχει και δεν πρέπει να αποκτήσει γνώση της αποθήκευσης.
+ */
+export interface DossierAttachment extends DossierPaper {
+  bytes: Uint8Array;
+}
+
 export interface DossierExportInput extends AccountantBundleInput {
   /** Ο πλήρης κατάλογος για αυτόν τον χρήστη (από requirementsFor). */
   requirements: readonly Requirement[];
@@ -783,6 +828,8 @@ export interface DossierExportInput extends AccountantBundleInput {
   booksLabel: string;
   /** Κενά στα δεδομένα της εφαρμογής (π.χ. «καμία δαπάνη για το 2026»). */
   gaps?: readonly string[];
+  /** Τα ίδια τα χαρτιά, με τα bytes τους. Κενό όταν δεν υπάρχουν ή δεν ζητήθηκαν. */
+  attachments?: readonly DossierAttachment[];
 }
 
 const CRLF = '\r\n';
@@ -795,13 +842,19 @@ const grNum = (n: number): string => (n || 0).toLocaleString('el-GR', { minimumF
 const rule = (ch = '─', n = 74) => ch.repeat(n);
 
 /**
- * Ο φάκελος, ως ένα αρχείο .zip.
+ * Τα περιεχόμενα του φακέλου, πριν γίνουν zip.
  *
  * Η ΑΡΙΘΜΗΣΗ ΕΙΝΑΙ Η ΟΔΗΓΙΑ ΧΡΗΣΗΣ. Ο λογιστής δεν διαβάζει README· διαβάζει
  * ονόματα φακέλων. 01 η σύνοψη, 02 τα έσοδα, 03 τα έξοδα, 04 τα δικαιολογητικά
  * και 05 —μόνο του, έξω από κάθε υποφάκελο, για να μη χαθεί— τι λείπει.
+ *
+ * ΞΕΧΩΡΙΣΤΑ ΑΠΟ ΤΟ ΚΑΤΕΒΑΣΜΑ, ΓΙΑΤΙ ΑΛΛΙΩΣ ΔΕΝ ΕΛΕΓΧΕΤΑΙ. Όσο ο φάκελος
+ * γεννιόταν μέσα στην ίδια συνάρτηση που καλεί τον browser, τίποτα από όσα
+ * γράφει —ούτε τα ονόματα, ούτε το ευρετήριο— δεν μπορούσε να δοκιμαστεί χωρίς
+ * DOM. Και ένας φάκελος που δεν δοκιμάζεται είναι ένας φάκελος που θα βγει
+ * λάθος στον λογιστή του πελάτη.
  */
-export function exportAccountantDossier(inp: DossierExportInput): void {
+export function dossierFiles(inp: DossierExportInput): ZipFile[] {
   const { year, propName, ownerAfm, requirements, haveIds, readinessMessage, properties, formLabel, booksLabel, gaps = [], book } = inp;
   const have = new Set(haveIds);
   const missing = requirements.filter(r => !have.has(r.id));
@@ -811,6 +864,27 @@ export function exportAccountantDossier(inp: DossierExportInput): void {
   const income = book.filter(e => e.type === 'income').sort((a, b) => a.date.localeCompare(b.date));
   const expense = book.filter(e => e.type === 'expense').sort((a, b) => a.date.localeCompare(b.date));
   const sum = (rows: AccountantMovement[]) => rows.reduce((s, e) => s + (e.amount || 0), 0);
+
+  // ── ΤΑ ΧΑΡΤΙΑ, ΑΡΙΘΜΗΜΕΝΑ ────────────────────────────────────────────────
+  // Υπολογίζονται ΜΙΑ φορά και μοιράζονται σε τέσσερα σημεία: τη στήλη του
+  // Excel, τα δύο αρχεία των κινήσεων, το ευρετήριο και τα ίδια τα ονόματα των
+  // αρχείων. Δεύτερη κλήση θα έδινε τα ίδια αποτελέσματα (η `filePapers` είναι
+  // καθαρή), αλλά μία μόνο κλήση το κάνει αδύνατο να αποκλίνουν ποτέ.
+  const attachments = inp.attachments ?? [];
+  const papers = filePapers(attachments, book.map(e => ({
+    date: e.date, amount: e.amount, afm: afmCell(e) || null,
+  })));
+  // Από την κίνηση στον αριθμό του χαρτιού της: η ταυτότητα του αντικειμένου
+  // είναι το κλειδί, γιατί οι δύο ταξινομήσεις κρατούν τις ΙΔΙΕΣ γραμμές.
+  const sortedBook = [...book].sort((a, b) => a.date.localeCompare(b.date));
+  const paperOf = new Map<AccountantMovement, string>();
+  for (const p of papers) {
+    if (p.row == null) continue;
+    const e = sortedBook[p.row - 1];
+    const cur = paperOf.get(e);
+    paperOf.set(e, cur ? `${cur} · ${p.label}` : p.label);
+  }
+  const anyPaper = papers.length > 0;
 
   // ── 00 · Τι κρατάς στα χέρια σου ─────────────────────────────────────────
   const readme = txt([
@@ -829,7 +903,17 @@ export function exportAccountantDossier(inp: DossierExportInput): void {
     '  02 ΕΣΟΔΑ             Κάθε είσπραξη του έτους, με ημερομηνία και περιγραφή.',
     '  03 ΕΞΟΔΑ             Κάθε πληρωμή του έτους, ανά κατηγορία.',
     '  04 ΔΙΚΑΙΟΛΟΓΗΤΙΚΑ    Ο κατάλογος των παραστατικών, με το ποιος φέρνει το καθένα.',
+    ...(anyPaper ? [`                       Και τα ίδια τα χαρτιά: ${papers.length === 1 ? 'ένα αρχείο' : `${papers.length} αρχεία`}, αριθμημένα.`] : []),
     '  05 Τι λείπει         Ό,τι ΔΕΝ βρέθηκε. Διαβάστε το πρώτο.', '', rule(), '',
+    // Ο ΑΡΙΘΜΟΣ ΤΟΥ ΑΡΧΕΙΟΥ ΕΙΝΑΙ Ο ΑΡΙΘΜΟΣ ΣΤΗ ΣΤΗΛΗ. Λέγεται εδώ μία φορά,
+    // και δεν επαναλαμβάνεται σε κανένα από τα υπόλοιπα αρχεία.
+    ...(anyPaper ? [
+      'ΠΩΣ ΔΕΝΟΥΝ ΤΑ ΧΑΡΤΙΑ ΜΕ ΤΟΥΣ ΑΡΙΘΜΟΥΣ',
+      'Κάθε παραστατικό έχει αριθμό μπροστά από το όνομά του. Ο ίδιος αριθμός',
+      'γράφεται στη στήλη «Παραστατικό», δίπλα στην κίνηση που τεκμηριώνει. Όπου',
+      'η στήλη είναι κενή, το χαρτί δεν ταυτίστηκε με βεβαιότητα σε μία κίνηση:',
+      'το ευρετήριο του 04 δείχνει τι ξέρουμε γι\' αυτό.', '', rule(), '',
+    ] : []),
     'Τα ποσά προέρχονται από τις καταχωρήσεις του ιδιοκτήτη στο Property OS και',
     'δεν αποτελούν φορολογική δήλωση ούτε λογιστική συμβουλή.',
   ]);
@@ -839,7 +923,7 @@ export function exportAccountantDossier(inp: DossierExportInput): void {
   // η `workbookBytes` προσθέτει τους αναπτυσσόμενους καταλόγους και τη διάταξη
   // σελίδας. Γραμμένο με σκέτο `XLSX.write`, ο φάκελος θα κουβαλούσε ΑΛΛΟ αρχείο
   // από το κουμπί, χωρίς να το δει κανείς.
-  const wbBytes = workbookBytes(buildWorkbook(inp));
+  const wbBytes = workbookBytes(buildWorkbook(inp, papers));
   const identity = txt([
     'ΤΑΥΤΟΤΗΤΑ ΦΑΚΕΛΟΥ', rule('═'), '',
     `Χρήση:          01/01/${year} – 31/12/${year}`,
@@ -866,8 +950,10 @@ export function exportAccountantDossier(inp: DossierExportInput): void {
     const md = !!inp.myData && rows.some(r => r.type === 'expense');
     // Η στήλη υπάρχει μόνο όπου έχει περιεχόμενο: μια κενή στήλη «ΑΦΜ» σε αρχείο
     // εσόδων είναι ερώτηση χωρίς νόημα, και σε αρχείο εξόδων χωρίς κανένα ΑΦΜ
-    // είναι υπόσχεση που δεν κρατήθηκε.
+    // είναι υπόσχεση που δεν κρατήθηκε. Το ίδιο ισχύει για το παραστατικό: σε
+    // αρχείο εσόδων χωρίς κανένα χαρτί η στήλη δεν μπαίνει καθόλου.
     const afm = rows.some(r => afmCell(r));
+    const pap = rows.some(r => paperOf.has(r));
     return csv([
       [head],
       [idLine],
@@ -875,11 +961,13 @@ export function exportAccountantDossier(inp: DossierExportInput): void {
       // ΤΟ ΑΦΜ ΜΠΑΙΝΕΙ ΚΑΙ ΣΤΑ ΞΕΧΩΡΙΣΤΑ ΑΡΧΕΙΑ. Ο λογιστής που ανοίγει το
       // «03 ΕΞΟΔΑ» έβρισκε πέντε στήλες χωρίς αντισυμβαλλόμενο, ενώ το Excel
       // της σύνοψης τον έχει: το ίδιο βιβλίο, δύο διαφορετικές απαντήσεις.
-      ['Α/Α', 'Ημερομηνία', 'Κατηγορία', 'Περιγραφή', ...(afm ? ['ΑΦΜ προμηθευτή'] : []), ...(md ? ['Χαρακτηρισμός myDATA'] : []), 'Ποσό (€)'],
+      ['Α/Α', 'Ημερομηνία', 'Κατηγορία', 'Περιγραφή', ...(pap ? ['Παραστατικό'] : []),
+        ...(afm ? ['ΑΦΜ προμηθευτή'] : []), ...(md ? ['Χαρακτηρισμός myDATA'] : []), 'Ποσό (€)'],
       ...rows.map((e, i) => [i + 1, grDate(e.date), e.category || '', e.description || '',
+        ...(pap ? [paperOf.get(e) || ''] : []),
         ...(afm ? [afmCell(e)] : []), ...(md ? [mdCsv(e)] : []), grNum(e.amount)]),
       [],
-      ['', '', '', 'ΣΥΝΟΛΟ', ...(afm ? [''] : []), ...(md ? [''] : []), grNum(sum(rows))],
+      ['', '', '', 'ΣΥΝΟΛΟ', ...(pap ? [''] : []), ...(afm ? [''] : []), ...(md ? [''] : []), grNum(sum(rows))],
     ]);
   };
 
@@ -892,6 +980,26 @@ export function exportAccountantDossier(inp: DossierExportInput): void {
     ...requirements.map(r => [
       r.title, have.has(r.id) ? 'Υπάρχει' : 'Λείπει', WHO_LABEL[r.who],
       r.blocking ? 'ΝΑΙ' : '', r.why, r.source || '',
+    ]),
+  ]);
+
+  // ── 04 · ΤΟ ΕΥΡΕΤΗΡΙΟ ΤΩΝ ΧΑΡΤΙΩΝ ────────────────────────────────────────
+  // Ο ΚΑΤΑΛΟΓΟΣ ΑΠΟ ΠΑΝΩ ΛΕΕΙ ΤΙ ΠΡΕΠΕΙ ΝΑ ΥΠΑΡΧΕΙ· ΑΥΤΟ ΛΕΕΙ ΤΙ ΥΠΑΡΧΕΙ ΕΔΩ.
+  // Δύο διαφορετικές ερωτήσεις, δύο αρχεία — και το δεύτερο υπάρχει μόνο όταν
+  // ταξιδεύουν όντως χαρτιά. Η τελευταία στήλη είναι όλη η δουλειά του: από το
+  // χαρτί στη γραμμή. Κενή σημαίνει «δεν ξέρουμε», ποτέ «καμία».
+  const paperIndex = csv([
+    [`ΕΥΡΕΤΗΡΙΟ ΠΑΡΑΣΤΑΤΙΚΩΝ ${year}`],
+    [idLine],
+    [],
+    ['Α/Α', 'Αρχείο', 'Ημερομηνία', 'Εκδότης', 'ΑΦΜ', 'Κατηγορία', 'Ποσό (€)', 'Γραμμή στις «Κινήσεις»'],
+    ...papers.map(p => [
+      p.label, p.file, p.paper.docDate ? grDate(p.paper.docDate) : '',
+      p.paper.supplier || p.paper.title || '', p.paper.afm || '', p.paper.category || '',
+      // Ποσό μόνο όταν το ξέρουμε: ένα «0,00» σε τιμολόγιο που δεν διαβάστηκε
+      // είναι ψέμα, και ο λογιστής θα το αθροίσει.
+      Number.isFinite(Number(p.paper.amount)) && Number(p.paper.amount) !== 0 ? grNum(Number(p.paper.amount)) : '',
+      p.row ?? '',
     ]),
   ]);
 
@@ -985,10 +1093,21 @@ export function exportAccountantDossier(inp: DossierExportInput): void {
     { path: `02 ΕΣΟΔΑ/Έσοδα ${year}.csv`, data: movementCsv(income, `ΕΣΟΔΑ ${year}`) },
     { path: `03 ΕΞΟΔΑ/Έξοδα ${year}.csv`, data: movementCsv(expense, `ΕΞΟΔΑ ${year}`) },
     { path: `04 ΔΙΚΑΙΟΛΟΓΗΤΙΚΑ/Κατάλογος δικαιολογητικών ${year}.csv`, data: checklist },
+    // ΤΑ ΧΑΡΤΙΑ ΣΕ ΔΙΚΟ ΤΟΥΣ ΥΠΟΦΑΚΕΛΟ, ΚΑΙ ΤΟ ΕΥΡΕΤΗΡΙΟ ΕΞΩ ΑΠΟ ΑΥΤΟΝ. Είκοσι
+    // αρχεία δίπλα σε δύο καταλόγους θα έθαβαν τους καταλόγους· ο λογιστής
+    // ανοίγει το 04, βλέπει τρία ονόματα, και μπαίνει στα «Παραστατικά» όταν
+    // θέλει το ίδιο το χαρτί.
+    ...(anyPaper ? [{ path: `04 ΔΙΚΑΙΟΛΟΓΗΤΙΚΑ/Ευρετήριο παραστατικών ${year}.csv`, data: paperIndex }] : []),
+    ...papers.map(p => ({ path: `04 ΔΙΚΑΙΟΛΟΓΗΤΙΚΑ/Παραστατικά/${p.file}`, data: p.paper.bytes })),
     ...(trapRows.length ? [{ path: '04 ΔΙΚΑΙΟΛΟΓΗΤΙΚΑ/Παγίδες που κοστίζουν.txt', data: trapsFile }] : []),
     { path: '05 Τι λείπει.txt', data: whatsMissing },
   ];
 
-  downloadFile(new Blob([buildZip(files)], { type: 'application/zip' }),
-    `Φάκελος λογιστή ${propName || 'ακίνητο'} ${year}.zip`);
+  return files;
+}
+
+/** Ο φάκελος, ως ένα αρχείο .zip στον υπολογιστή του χρήστη. */
+export function exportAccountantDossier(inp: DossierExportInput): void {
+  downloadFile(new Blob([buildZip(dossierFiles(inp))], { type: 'application/zip' }),
+    `Φάκελος λογιστή ${inp.propName || 'ακίνητο'} ${inp.year}.zip`);
 }

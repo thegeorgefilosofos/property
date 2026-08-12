@@ -30,7 +30,7 @@ import {
   type LegalForm, type BookKeeping, type Requirement, type Who,
 } from '@/lib/accounting/dossier'
 import type { PropertyStatus } from '@/lib/property/status'
-import { exportAccountantDossier, type AccountantStatementLine, type AccountantMovement } from './accountantExport'
+import { exportAccountantDossier, type AccountantStatementLine, type AccountantMovement, type DossierAttachment } from './accountantExport'
 import type { VatDeduction } from '@/lib/tax/myData'
 import { failed } from '@/lib/core/dbError';
 import { AadePill } from '@/components/AadeLink';
@@ -212,6 +212,17 @@ export interface DossierExportSource {
   myData?: { vat: VatDeduction }
   /** Κενά στα δεδομένα, γραμμένα από την καρτέλα (π.χ. «καμία δαπάνη για το 2026»). */
   gaps?: string[]
+  /**
+   * ΤΑ ΙΔΙΑ ΤΑ ΧΑΡΤΙΑ, ΚΑΤΕΒΑΣΜΕΝΑ ΤΗ ΣΤΙΓΜΗ ΤΟΥ ΚΟΥΜΠΙΟΥ.
+   *
+   * Συνάρτηση και όχι πίνακας: τα αρχεία είναι μεγαβάιτ και δεν έχουν λόγο να
+   * κατεβαίνουν όσο ο χρήστης απλώς κοιτάζει την οθόνη. Η καρτέλα ξέρει από πού
+   * κατεβαίνουν· αυτό το αρχείο δεν πρέπει να μάθει ποτέ.
+   *
+   * Τα `notes` είναι όσα ΔΕΝ χώρεσαν ή δεν κατέβηκαν, με τον λόγο τους. Δεν
+   * σιωπούμε ποτέ για χαρτί που έμεινε πίσω: γράφεται στο «05 Τι λείπει».
+   */
+  attachments?: () => Promise<{ files: DossierAttachment[]; notes: string[] }>
 }
 
 export default function AccountantDossier({
@@ -254,7 +265,25 @@ export default function AccountantDossier({
     return { total: items.length, done: items.filter(r => haveAll.includes(r.id)).length }
   }
 
-  function download() {
+  // ΤΟ ΚΟΥΜΠΙ ΠΕΡΙΜΕΝΕΙ ΤΑ ΧΑΡΤΙΑ, ΚΑΙ ΤΟ ΛΕΕΙ. Το κατέβασμα των παραστατικών
+  // παίρνει δευτερόλεπτα· χωρίς ένδειξη ο χρήστης πατά δεύτερη φορά και παίρνει
+  // δύο φακέλους. Το κουμπί κλειδώνει όσο ετοιμάζεται.
+  const [preparing, setPreparing] = useState(false)
+
+  async function download() {
+    if (preparing) return
+    let attachments: DossierAttachment[] = []
+    let notes: string[] = []
+    if (exportSource.attachments) {
+      setPreparing(true)
+      try {
+        const got = await exportSource.attachments()
+        attachments = got.files
+        notes = got.notes
+      } finally {
+        setPreparing(false)
+      }
+    }
     exportAccountantDossier({
       year,
       propName: exportSource.propName,
@@ -269,7 +298,8 @@ export default function AccountantDossier({
       properties: properties.map(p => ({ name: p.name, status: statusForAccountant(p.status) })),
       formLabel: LEGAL_FORM_LABEL[profile.form],
       booksLabel: BOOKS_LABEL[profile.books],
-      gaps: exportSource.gaps,
+      gaps: [...(exportSource.gaps || []), ...notes],
+      attachments,
     })
     setDownloaded(true)
     setTimeout(() => setDownloaded(false), 2600)
@@ -289,8 +319,8 @@ export default function AccountantDossier({
               {ready.message}
             </p>
           </div>
-          <button onClick={download} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: T.h.md, padding: '0 17px', borderRadius: 10, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans, flexShrink: 0 }}>
-            <Download size={14} />{downloaded ? 'Κατέβηκε' : 'Κατέβασε τον φάκελο'}
+          <button onClick={download} disabled={preparing} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: T.h.md, padding: '0 17px', borderRadius: 10, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 13, fontWeight: 600, cursor: preparing ? 'default' : 'pointer', opacity: preparing ? 0.6 : 1, fontFamily: T.font.sans, flexShrink: 0 }}>
+            <Download size={14} />{preparing ? 'Ετοιμάζεται' : downloaded ? 'Κατέβηκε' : 'Κατέβασε τον φάκελο'}
           </button>
         </div>
 
