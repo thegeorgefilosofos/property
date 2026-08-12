@@ -1,7 +1,7 @@
 // Τεστ για τη double-entry μηχανή ημερολογίου (lib/accounting/journal.ts).
 import {
   buildJournal, journalTotals, trialBalance, expenseAccount,
-  journalCsvGeneric, journalCsvQuickBooks, journalCsvXero, journalToCsv,
+  journalCsvGeneric, elpFor, journalCsvQuickBooks, journalCsvXero, journalToCsv,
   auditJournal,
 } from './journal'
 
@@ -55,7 +55,26 @@ ok('trial balance nets to zero', tbSum === 0)
 // CSV formatters παράγουν σωστό αριθμό γραμμών + header.
 const gen = journalCsvGeneric(lines).split('\r\n')
 ok('generic CSV header greek (articles)', gen[0].startsWith('Αρ.Άρθρου;Ημ/νία;Κωδικός'))
-ok('generic CSV has cost-centre column', gen[0].endsWith(';Κέντρο Κόστους'))
+ok('generic CSV has cost-centre column', gen[0].includes(';Κέντρο Κόστους'))
+// ── ΤΟ ΙΔΙΟ ΕΞΟΔΟ ΚΑΙ ΣΤΟ ΣΧΕΔΙΟ ΠΟΥ ΤΡΟΦΟΔΟΤΕΙ ΤΟ Ε3 ─────────────────────────
+// Η στήλη μπαίνει ΤΕΛΕΥΤΑΙΑ επίτηδες: οι αποθηκευμένες αντιστοιχίσεις των
+// ελληνικών import wizards μετρούν θέσεις, και μια στήλη στη μέση θα μετακινούσε
+// σιωπηλά τη χρέωση με την πίστωση σε βιβλία πελατών.
+ok('generic CSV ends with the ELP column', gen[0].endsWith(';Λογαριασμός ΕΛΠ'))
+{
+  const idx = gen[0].split(';').indexOf('Λογαριασμός ΕΛΠ')
+  const row = gen.slice(1).find(r => r.split(';')[2] === '62.03')
+  ok('ρεύμα ΕΓΛΣ 62.03 → ΕΛΠ 64.02 Ενέργεια', !!row && row.split(';')[idx] === '64.02 Ενέργεια')
+  ok('ελπ κωδικός για κάθε έξοδο 6x', gen.slice(1)
+    .filter(r => /^6[1-5]/.test(r.split(';')[2]))
+    .every(r => r.split(';')[idx].length > 0))
+  // Το ταμείο και τα έσοδα δεν έχουν σωσμένη αντιστοιχία: κενό, όχι εικασία.
+  ok('το ταμείο μένει κενό', gen.slice(1)
+    .filter(r => r.split(';')[2] === '38.00')
+    .every(r => r.split(';')[idx] === ''))
+}
+ok('elpFor άγνωστου κωδικού είναι κενό', elpFor('99.99') === '')
+ok('elpFor δίνει κωδικό ΚΑΙ όνομα', elpFor('62.02') === '64.03 Ύδρευση')
 // Αρχείο ΕΙΣΑΓΩΓΗΣ: καμία γραμμή συνόλων — θα την διάβαζε ο wizard ως κίνηση.
 ok('generic CSV has NO totals row', !journalCsvGeneric(lines).includes('ΣΥΝΟΛΑ'))
 ok('generic CSV row count = lines + header', gen.length === lines.length + 1)
