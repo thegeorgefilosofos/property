@@ -73,13 +73,11 @@ export function setCell(ws: XLSX.WorkSheet, r: number, c: number, patch: Partial
 // Ο λογιστής ΤΥΠΩΝΕΙ. Χωρίς περιθώρια και χωρίς επανάληψη επικεφαλίδων, η
 // δεύτερη σελίδα είναι στήλες αριθμών χωρίς ονόματα — άχρηστη.
 //
-// ΤΙ ΔΕΝ ΓΡΑΦΕΤΑΙ ΕΔΩ, ΚΑΙ ΓΙΑΤΙ. Το «πάγωμα» της γραμμής επικεφαλίδων
-// (`ws['!freeze']`) ΔΕΝ υποστηρίζεται από την κοινοτική έκδοση της βιβλιοθήκης:
-// η ιδιότητα δέχεται τιμή, δεν γράφεται όμως ποτέ στο αρχείο. Ήταν γραμμένη στο
-// `portfolioXlsx.ts` και δεν έκανε τίποτα — νεκρός κώδικας που έμοιαζε με
-// λειτουργία. Η επανάληψη επικεφαλίδων στην εκτύπωση, από κάτω, ΔΟΥΛΕΥΕΙ και
-// λύνει το ίδιο πρόβλημα εκεί που πονάει. Η διάταξη της σελίδας γράφεται
-// κατευθείαν στο XML του φύλλου, πιο κάτω (`sheetFinish`).
+// ΤΟ «ΠΑΓΩΜΑ» ΤΩΝ ΕΠΙΚΕΦΑΛΙΔΩΝ ΔΕΝ ΓΡΑΦΕΤΑΙ ΜΕ ΤΗΝ ΙΔΙΟΤΗΤΑ `ws['!freeze']`:
+// η κοινοτική έκδοση της βιβλιοθήκης τη δέχεται και δεν τη γράφει ποτέ. Ήταν
+// γραμμένη στο `portfolioXlsx.ts` και δεν έκανε τίποτα — νεκρός κώδικας που
+// έμοιαζε με λειτουργία. Γράφεται πλέον κατευθείαν στο XML, μαζί με τη διάταξη
+// σελίδας και τους αναπτυσσόμενους καταλόγους (`sheetFinish`, πιο κάτω).
 export const MARGINS = { left: 0.4, right: 0.4, top: 0.55, bottom: 0.55, header: 0.3, footer: 0.3 } as const;
 
 /** Οι γραμμές που επαναλαμβάνονται σε κάθε τυπωμένη σελίδα, ανά φύλλο. */
@@ -122,6 +120,12 @@ export interface SheetFinish {
   lists?: { ref: string; values?: readonly string[]; source?: string }[];
   /** Οριζόντια σελίδα, προσαρμοσμένη σε ένα πλάτος. Για τους φαρδιούς πίνακες. */
   landscape?: boolean;
+  /**
+   * Πάγωμα των πρώτων γραμμών (1-based: 4 = μένουν ορατές οι τέσσερις πρώτες).
+   * Σε πίνακα χιλίων γραμμών, χωρίς αυτό η εκατοστή γραμμή είναι αριθμοί χωρίς
+   * επικεφαλίδα. Η ιδιότητα `!freeze` της βιβλιοθήκης δεν γράφεται ποτέ.
+   */
+  freezeRows?: number;
 }
 
 /** Κρατά την προδιαγραφή πάνω στο φύλλο, εκεί που χτίζεται. */
@@ -145,6 +149,11 @@ function validationsXml(lists: NonNullable<SheetFinish['lists']>): string {
 
 function applyFinish(xml: string, f: SheetFinish): string {
   let out = xml;
+  if (f.freezeRows) {
+    const pane = `<pane ySplit="${f.freezeRows}" topLeftCell="A${f.freezeRows + 1}" activePane="bottomLeft" state="frozen"/>`
+      + '<selection pane="bottomLeft"/>';
+    out = out.replace(/<sheetView([^>]*)\/>/, `<sheetView$1>${pane}</sheetView>`);
+  }
   if (f.lists?.length) {
     const dv = validationsXml(f.lists);
     out = out.includes('<pageMargins') ? out.replace('<pageMargins', dv + '<pageMargins') : out.replace('</worksheet>', dv + '</worksheet>');

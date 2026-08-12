@@ -331,7 +331,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     // σελίδα κόβονται στη μέση. Και ο τόπος παροχής είναι το πεδίο που ο
     // λογιστής διορθώνει συχνότερα: με κατάλογο, η διόρθωση δεν μπορεί να
     // γραφτεί με λέξεις που δεν καταλαβαίνει μετά κανείς.
-    sheetFinish(ws, { landscape: true, lists: [{ ref: `F${HR + 2}:F${lastData + 1}`, values: SUPPLY_VALUES }] });
+    sheetFinish(ws, { landscape: true, freezeRows: HR + 1, lists: [{ ref: `F${HR + 2}:F${lastData + 1}`, values: SUPPLY_VALUES }] });
     // Ο ΛΟΓΙΣΤΗΣ ΤΥΠΩΝΕΙ, ΚΑΙ Η ΔΕΥΤΕΡΗ ΣΕΛΙΔΑ ΧΡΕΙΑΖΕΤΑΙ ΟΝΟΜΑΤΑ. Χωρίς
     // επανάληψη της επικεφαλίδας, από τη σελίδα 2 και μετά ο πίνακας είναι
     // στήλες αριθμών χωρίς τίτλο — και το «Έσοδα / Έξοδα» δεν μαντεύεται.
@@ -410,7 +410,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     }
     for (const r of notes) setCell(ws, r, 0, { s: S.sub });
     ws['!margins'] = { ...MARGINS };
-    sheetFinish(ws, { landscape: true });
+    sheetFinish(ws, { landscape: true, freezeRows: HR + 1 });
     XLSX.utils.book_append_sheet(wb, ws, 'Λογαριασμοί ΕΛΠ');
   }
 
@@ -539,7 +539,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     // myDATA και όχι να γράφει «2,5» ή «γενικά έξοδα». Ο κατάλογος δείχνει στη
     // στήλη του φύλλου των συνδυασμών, γιατί τα λεκτικά ξεπερνούν κατά πολύ
     // τους 255 χαρακτήρες που δέχεται μια λίστα γραμμένη μέσα στο κελί.
-    sheetFinish(ws, { landscape: true, lists: [
+    sheetFinish(ws, { landscape: true, freezeRows: HR + 1, lists: [
       { ref: `F${HR + 2}:F${last + 1}`, values: SUPPLY_VALUES },
       { ref: `I${HR + 2}:I${last + 1}`, source: comboSheet.classList },
     ] });
@@ -626,7 +626,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     setCell(ws, noteR, 0, { s: S.sub });
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: HR + expRows.length, c: NC - 1 } }) };
     ws['!margins'] = { ...MARGINS };
-    sheetFinish(ws, { landscape: true });
+    sheetFinish(ws, { landscape: true, freezeRows: HR + 1 });
     XLSX.utils.book_append_sheet(wb, ws, COMBO_SHEET);
   }
 
@@ -680,7 +680,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     setCell(ws, noteR, 0, { s: S.sub });
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: HR + rows.length, c: NC - 1 } }) };
     ws['!margins'] = { ...MARGINS };
-    sheetFinish(ws, { landscape: true });
+    sheetFinish(ws, { landscape: true, freezeRows: HR + 1 });
     XLSX.utils.book_append_sheet(wb, ws, 'Κωδικοί Ε3 ανά συνδυασμό');
   }
 
