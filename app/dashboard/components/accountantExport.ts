@@ -496,7 +496,6 @@ export function buildWorkbook(inp: AccountantBundleInput, papers: readonly Filed
   // νόμος: η αντιστοιχία ΕΙΝΑΙ ένα προς πολλά, και μια «επιλογή του ενός» θα
   // ήταν δική μας απόφαση περασμένη για διάταξη νόμου.
   {
-    const NC = 6, HR = 4;
     const sorted = [...book].sort((a, b) => a.date.localeCompare(b.date));
     // Τι κάθεται σε κάθε λογαριασμό: τα ονόματα των κατηγοριών όπως τα βλέπει ο
     // χρήστης, ώστε να αναγνωρίζει τη δαπάνη του, και τα δικά μας σύνολα.
@@ -517,45 +516,30 @@ export function buildWorkbook(inp: AccountantBundleInput, papers: readonly Filed
       .map(slug => CATEGORIES.find(c => c.slug === slug)?.label || slug)
       .filter(label => sorted.some(e => e.category === label));
 
-    const aoa: (string | number)[][] = [
-      [`ΛΟΓΑΡΙΑΣΜΟΙ ΕΛΠ ${year}`],
-      [idLine],
-      [],
-      ['ΤΟ ΣΧΕΔΙΟ ΛΟΓΑΡΙΑΣΜΩΝ ΤΟΥ ν. 4308/2014, ΚΑΙ ΟΙ ΚΙΝΗΣΕΙΣ ΤΗΣ ΧΡΟΝΙΑΣ'],
-      ['Κωδικός', 'Ονομασία κατά τον νόμο', 'Αντιστοιχία ΕΓΛΣ', 'Κατηγορίες της χρονιάς', 'Κινήσεις', 'Ποσό'],
-      ...ELP_ALL.map(a => {
-        const u = per.get(a.code);
-        return [a.code, a.name, eglsOf(a.code), u ? [...u.cats].join(', ') : '', u ? u.n : '', u ? money(u.v) : ''];
-      }),
-      [],
-      ...(capitalised.length ? [[`${capitalised.join(', ')}: ${CAPITALISATION_NOTE}`]] : []),
-      ['Ταμειακή βάση: τα ποσά είναι εισπράξεις και πληρωμές της χρονιάς. Πηγή ονομασιών και αντιστοιχίας: ν. 4308/2014, Παραρτήματα Γ και Ε.'],
-    ];
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-    // Η αντιστοιχία ΕΓΛΣ του 71.04 είναι δεκαέξι κωδικοί, 110 χαρακτήρες: δεν
-    // γίνεται στήλη, γίνεται αναδίπλωση — και το ύψος το βρίσκει το Excel.
-
-    // Οι γραμμές σημειώσεων: η κεφαλαιοποίηση μόνο όταν υπάρχει τέτοια δαπάνη,
-    // και από κάτω πάντα η πηγή. Απλωμένες σε όλο το πλάτος για να διαβάζονται.
-    const noteR = HR + 1 + ELP_ALL.length + 1;
-    const notes = capitalised.length ? [noteR, noteR + 1] : [noteR];
-    ws['!rows'] = []; ws['!rows'][0] = { hpt: ROW.title }; ws['!rows'][1] = { hpt: ROW.sub }; ws['!rows'][HR] = { hpt: ROW.head };
-    bannerRow(ws, 0, NC, S.title);
-    bannerRow(ws, 1, NC, S.sub);
-    bannerRow(ws, HR - 1, NC, S.section);
-    for (let c = 0; c < NC; c++) setCell(ws, HR, c, { s: S.head });
-    for (let i = 0; i < ELP_ALL.length; i++) {
-      const r = HR + 1 + i;
-      for (const c of [0, 1, 2, 3]) setCell(ws, r, c, { s: S.txt });
-      for (const c of [4, 5]) setCell(ws, r, c, { s: S.num });
-    }
-    for (const r of notes) bannerRow(ws, r, NC, S.sub);
-    {
-      const { cols, wrap } = autoWidths(ws, { headRow: HR });
-      ws['!cols'] = cols; wrapColumns(ws, wrap, HR + 1, HR + ELP_ALL.length);
-    }
-    ws['!margins'] = { ...MARGINS };
-    sheetFinish(ws, { landscape: true, freezeRows: HR + 1 });
+    // ΤΟ ΙΔΙΟ ΣΤΗΣΙΜΟ ΜΕ ΤΑ ΥΠΟΛΟΙΠΑ ΦΥΛΛΑ ΕΝΟΤΗΤΩΝ. Ήταν γραμμένο με το χέρι,
+    // με δικούς του δείκτες γραμμών, δικό του πάγωμα και δικά του ύψη: το ίδιο
+    // βιβλίο είχε την επικεφαλίδα αλλού σε κάθε φύλλο.
+    const { ws } = sectionSheet({
+      title: `ΛΟΓΑΡΙΑΣΜΟΙ ΕΛΠ ${year}`,
+      sub: idLine,
+      // Η ΑΝΤΙΣΤΟΙΧΙΑ ΕΓΛΣ ΧΩΡΑΕΙ ΣΕ ΜΙΑ ΓΡΑΜΜΗ. Με το προεπιλεγμένο όριο των
+      // 46 χαρακτήρων, η μακρύτερη («61.00 έως 61.03, 62.06, 64.01, 64.03,
+      // 64.05, 64.09») αναδιπλωνόταν και έκανε τη γραμμή διπλή χωρίς λόγο.
+      maxWidth: 64,
+      blocks: [{
+        title: 'ΤΟ ΣΧΕΔΙΟ ΛΟΓΑΡΙΑΣΜΩΝ ΤΟΥ ν. 4308/2014, ΚΑΙ ΟΙ ΚΙΝΗΣΕΙΣ ΤΗΣ ΧΡΟΝΙΑΣ',
+        head: ['Κωδικός', 'Ονομασία κατά τον νόμο', 'Αντιστοιχία ΕΓΛΣ', 'Κατηγορίες της χρονιάς', 'Κινήσεις', 'Ποσό'],
+        numeric: [4, 5],
+        rows: ELP_ALL.map(a => {
+          const u = per.get(a.code);
+          return [a.code, a.name, eglsOf(a.code), u ? [...u.cats].join(', ') : '', u ? u.n : '', u ? money(u.v) : ''];
+        }),
+        notes: [
+          ...(capitalised.length ? [`${capitalised.join(', ')}: ${CAPITALISATION_NOTE}`] : []),
+          'Ταμειακή βάση: τα ποσά είναι εισπράξεις και πληρωμές της χρονιάς. Πηγή ονομασιών και αντιστοιχίας: ν. 4308/2014, Παραρτήματα Γ και Ε. Οι συνεχόμενοι κωδικοί ΕΓΛΣ γράφονται ως σειρά («74.00 έως 74.02»).',
+        ],
+      }],
+    });
     XLSX.utils.book_append_sheet(wb, ws, 'Λογαριασμοί ΕΛΠ');
   }
 

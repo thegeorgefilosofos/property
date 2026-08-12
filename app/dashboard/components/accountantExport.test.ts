@@ -727,6 +727,32 @@ eq('τα πλάτη στηλών είναι όσα και οι στήλες', (w
   ok('και η αρχή της απόσβεσης, με το άρθρο της', all.some(v => v.includes('άρθρο 24 §2')));
 }
 
+// ═══ ΟΙ ΕΠΙΚΕΦΑΛΙΔΕΣ ΔΕΝ ΣΠΑΝΕ ΜΕΣΑ ΣΕ ΛΕΞΗ ══════════════════════════════════
+// Το πλάτος της επικεφαλίδας μετριόταν στο μισό της, σαν να αναδιπλώνεται
+// πάντα στη μέση. Μια «Εκκρεμότητα» όμως δεν έχει πού να σπάσει: το Excel την
+// έκοβε σε «Εκκρεμότητ / α». Φαινόταν σε ΚΑΘΕ χρονιά χωρίς κινήσεις, όπου δεν
+// υπάρχουν δεδομένα να πλατύνουν τη στήλη.
+{
+  const empty = buildWorkbook({ year: 2026, propName: 'Χωρίς κινήσεις', statementLines: [], provisionMonthly: 0, book: [], myData: { vat: 'none' } });
+  const narrow: string[] = [];
+  for (const name of empty.SheetNames) {
+    const sh = empty.Sheets[name];
+    const cols = (sh['!cols'] ?? []) as { wch: number }[];
+    const range = XLSX.utils.decode_range(sh['!ref'] as string);
+    for (let r = range.s.r; r <= range.e.r; r++) {
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const cell = sh[XLSX.utils.encode_cell({ r, c })] as Cell | undefined;
+        const style = cell?.s as { alignment?: { wrapText?: boolean }; fill?: unknown } | undefined;
+        if (!cell || !style?.alignment?.wrapText || typeof cell.v !== 'string') continue;
+        // Η μακρύτερη λέξη πρέπει να χωράει· αλλιώς η αναδίπλωση κόβει μέσα της.
+        const longest = Math.max(...cell.v.split(/\s+/).map(w => w.length));
+        if (longest > (cols[c]?.wch ?? 0)) narrow.push(`${name} ${XLSX.utils.encode_col(c)}${r + 1}: «${cell.v}» ${longest} σε ${cols[c]?.wch}`);
+      }
+    }
+  }
+  eq('καμία λέξη δεν κόβεται στη μέση', [...new Set(narrow)].slice(0, 3).join(' · '), '');
+}
+
 console.log(`\naccountantExport.ts — ${passed} passed, ${failed} failed`);
 if (failed) { console.log('FAILED:\n' + fails.map(f => '  ✗ ' + f).join('\n')); process.exit(1); }
 console.log('✓ όλα πέρασαν');

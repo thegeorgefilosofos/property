@@ -180,9 +180,17 @@ export function autoWidths(ws: XLSX.WorkSheet, opts: { headRow?: number; min?: n
     for (let c = range.s.c; c <= range.e.c; c++) if (text(r, c) !== '') filled++;
     if (filled === 1 && text(r, range.s.c) !== '') continue;
     for (let c = range.s.c; c <= range.e.c; c++) {
-      // Η επικεφαλίδα αναδιπλώνεται (wrapText) σε δύο σειρές· μετράει η μισή.
-      const len = text(r, c).length;
-      const need = r === headRow ? Math.ceil(len / 2) : len;
+      // Η ΕΠΙΚΕΦΑΛΙΔΑ ΑΝΑΔΙΠΛΩΝΕΤΑΙ, ΑΛΛΑ ΜΟΝΟ ΣΤΑ ΚΕΝΑ ΤΗΣ.
+      //
+      // Μετριόταν στο μισό της, σαν να σπάει πάντα στη μέση. Μια «Εκκρεμότητα»
+      // όμως δεν έχει πού να σπάσει: το Excel την κόβει μέσα στη λέξη και ο
+      // λογιστής διαβάζει «Εκκρεμότητ / α» σε στήλη οκτώ χαρακτήρων. Το
+      // πάτωμα κάθε επικεφαλίδας είναι η ΜΑΚΡΥΤΕΡΗ ΛΕΞΗ της.
+      const s = text(r, c);
+      const len = s.length;
+      const need = r === headRow
+        ? Math.max(Math.ceil(len / 2), ...s.split(/\s+/).map(w => w.length))
+        : len;
       width[c] = Math.max(width[c] ?? 0, need);
     }
   }
@@ -336,7 +344,11 @@ export function sectionSheet(o: {
   ws['!cols'] = cols;
   wrapColumns(ws, wrap, headRow + 1);
   ws['!margins'] = { ...MARGINS };
-  sheetFinish(ws, { landscape: o.landscape ?? true, freezeRows: 3 });
+  // ΤΟ ΠΑΓΩΜΑ ΚΑΤΩ ΑΠΟ ΤΗΝ ΠΡΩΤΗ ΕΠΙΚΕΦΑΛΙΔΑ, ΟΧΙ ΣΕ ΣΤΑΘΕΡΗ ΓΡΑΜΜΗ. Με
+  // παγωμένες τις τρεις πρώτες, ο τίτλος έμενε και η επικεφαλίδα των στηλών
+  // έφευγε προς τα πάνω: ο λογιστής κατέβαινε στη γραμμή 40 και έβλεπε στήλες
+  // χωρίς ονόματα, με τον τίτλο του φύλλου καρφωμένο από πάνω τους.
+  sheetFinish(ws, { landscape: o.landscape ?? true, freezeRows: headRow + 1 });
   return { ws, headRow };
 }
 
