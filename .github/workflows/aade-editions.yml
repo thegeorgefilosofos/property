@@ -1,0 +1,122 @@
+name: AADE editions
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ΤΟ ΠΡΟΒΛΗΜΑ ΠΟΥ ΛΥΝΕΙ
+# Οι Συνδυασμοί Χαρακτηρισμών της ΑΑΔΕ είναι αντιγραμμένοι στον κώδικα από την
+# έκδοση v1.0.4: 320 ζεύγη τύπου και χαρακτηρισμού, 1.307 κωδικοί Ε3. Όταν
+# δημοσιευτεί v1.0.5, τίποτα δεν σπάει. Το build περνά, τα 25.000 τεστ περνούν,
+# και ο λογιστής παίρνει απόρριψη διαβίβασης μήνες αργότερα για συνδυασμό που
+# εμείς τον λέγαμε επιτρεπτό. Το μαθαίνουμε από παράπονο πελάτη.
+#
+# ΤΙ ΚΑΝΕΙ
+# Κάθε Δευτέρα διαβάζει τη σελίδα τεχνικών προδιαγραφών της ΑΑΔΕ και συγκρίνει
+# τους αριθμούς έκδοσης που αναφέρει με αυτόν στον οποίο είμαστε κλειδωμένοι.
+# Ελέγχει και τη φρεσκάδα κάθε πηγής του μητρώου: όσες δεν τις είδε άνθρωπος
+# μέσα στο όριό τους, μπαίνουν στο ίδιο issue.
+#
+# ΤΙ ΔΕΝ ΚΑΝΕΙ
+# Δεν κατεβάζει το αρχείο και δεν ενημερώνει πίνακες μόνο του. Ένας πίνακας
+# 1.307 κωδικών που ενημερώνεται αυτόματα από σελίδα τρίτου είναι ο πιο σίγουρος
+# τρόπος να μπει λάθος κωδικός σε φορολογική δήλωση με το κύρος του αυτοματισμού.
+# Ειδοποιεί· την αντιγραφή τη κάνει άνθρωπος.
+#
+# ΠΩΣ ΕΙΔΟΠΟΙΕΙ
+# Ανοίγει GitHub issue. Ένα issue είναι ΚΑΤΑΣΤΑΣΗ και όχι μήνυμα: μένει ανοιχτό
+# μέχρι να γίνει η δουλειά, φαίνεται στην αρχική του repo και φτάνει ως
+# ειδοποίηση στο κινητό. Δεν ανοίγει δεύτερο αν υπάρχει ήδη.
+# ═══════════════════════════════════════════════════════════════════════════
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'    # κάθε Δευτέρα, 06:00 UTC
+  workflow_dispatch:        # και με το χέρι, από την καρτέλα Actions
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: aade-editions
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Νέα έκδοση ΑΑΔΕ και φρεσκάδα πηγών
+        id: check
+        run: |
+          set +e
+          OUT=$( { node scripts/check-aade-editions.mjs; node scripts/guard-accounting-sources.mjs --strict; } 2>&1 )
+          CODE=$?
+          echo "$OUT"
+          {
+            echo 'report<<AADE_EOF'
+            echo "$OUT"
+            echo 'AADE_EOF'
+          } >> "$GITHUB_OUTPUT"
+          echo "stale=$([ $CODE -ne 0 ] && echo yes || echo no)" >> "$GITHUB_OUTPUT"
+
+      - name: Άνοιγμα issue όταν κάτι άλλαξε ή πάλιωσε
+        if: steps.check.outputs.stale == 'yes'
+        uses: actions/github-script@v7
+        env:
+          REPORT: ${{ steps.check.outputs.report }}
+        with:
+          script: |
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'aade-editions', per_page: 5,
+            });
+            if (open.length) {
+              core.info('Υπάρχει ήδη ανοιχτό issue. Δεν ανοίγει δεύτερο.');
+              return;
+            }
+            const body = [
+              'Κάτι από όσα στηρίζουν τη λογιστική άλλαξε ή δεν ελέγχθηκε εγκαίρως.',
+              '',
+              '```',
+              process.env.REPORT || '',
+              '```',
+              '',
+              '### Τι χρειάζεται',
+              '1. Άνοιξε την πηγή που αναφέρεται πιο πάνω.',
+              '2. Αν υπάρχει νέα έκδοση, κατέβασε το αρχείο και ενημέρωσε τους πίνακες',
+              '   (`lib/tax/e3Combinations.ts`, `lib/tax/aadeDocTypes.ts`).',
+              '3. Ανέβασε την έκδοση ΚΑΙ στο `data/accounting-sources.json` ΚΑΙ στον κώδικα.',
+              '   Ο φύλακας `guard-accounting-sources` δεν αφήνει το ένα να πάει χωρίς το άλλο.',
+              '4. Αν δεν άλλαξε τίποτα, ενημέρωσε μόνο το `checkedAt`.',
+              '',
+              'Το issue κλείνει μόνο του στον επόμενο έλεγχο.',
+            ].join('\n');
+            await github.rest.issues.create({
+              owner: context.repo.owner, repo: context.repo.repo,
+              title: 'Λογιστικές πηγές: κάτι άλλαξε ή θέλει έλεγχο',
+              body, labels: ['aade-editions'],
+            });
+
+      - name: Κλείσιμο issue όταν όλα είναι εντάξει
+        if: steps.check.outputs.stale == 'no'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'aade-editions', per_page: 20,
+            });
+            for (const issue of open) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: issue.number,
+                body: 'Οι λογιστικές πηγές είναι ενημερωμένες. Κλείνει αυτόματα.',
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: issue.number, state: 'closed', state_reason: 'completed',
+              });
+            }

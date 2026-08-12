@@ -10,6 +10,8 @@
     "lint:ratchet": "node scripts/lint-ratchet.mjs",
     "security": "node scripts/security-check.mjs",
     "prices": "node scripts/price-freshness.mjs",
+    "sources": "node scripts/guard-accounting-sources.mjs",
+    "aade-editions": "node scripts/check-aade-editions.mjs",
     "money": "node scripts/money-reads.mjs",
     "module-init": "node scripts/check-module-init.mjs",
     "color:ratchet": "node scripts/color-ratchet.mjs",
