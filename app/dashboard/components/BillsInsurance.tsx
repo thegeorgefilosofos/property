@@ -439,7 +439,12 @@ function hasCov(covers: string[], keys: string[], allRiskImplies = false): boole
   return false;
 }
 // Επιστρέφει τον πλήρη πίνακα καλύψεων με ✓/✗ βάσει του προγράμματος.
-function deriveCoverages(covers: string[], earthquake: boolean, flood: boolean, natural: boolean) {
+/**
+ * ΟΙ ΚΑΛΥΨΕΙΣ ΠΟΥ ΔΕΙΧΝΕΙ Η ΟΘΟΝΗ. Εξάγεται για να ελέγχεται: το πλήθος τους
+ * πρέπει να μοιράζεται στις στήλες του πλέγματος, και κανένα όνομα δεν
+ * επιτρέπεται να εμφανίζεται δύο φορές.
+ */
+export function deriveCoverages(covers: string[], earthquake: boolean, flood: boolean, natural: boolean) {
   return [
     { label: 'Πυρκαγιά',            ok: hasCov(covers, ['πυρκαγιά', 'φωτιά'], true) },
     { label: 'Σεισμός',             ok: !!earthquake },
