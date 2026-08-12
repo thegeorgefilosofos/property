@@ -48,3 +48,9 @@ docs/marketing/console/messages-preview.html
 
 # Supabase CLI local state (contains project-ref / pooler-url — must not be committed)
 supabase/.temp/
+
+# Πρόχειρα αρχεία δοκιμής στη ρίζα. Το «npx tsx -e» και τα σενάρια ελέγχου
+# αφήνουν πίσω τους αρχεία σαν «__gen.ts»· ένα από αυτά μπήκε κάποτε σε commit.
+__gen*.ts
+*.tmp.ts
+*.tmp.cjs
