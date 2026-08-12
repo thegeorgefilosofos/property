@@ -22,7 +22,9 @@ import {
   CATEGORY_CODE, type VatDeduction, type ExpenseClass,
 } from '@/lib/tax/myData';
 import { AADE_DOC_TYPES, incomeDocTypes, expenseDocTypes } from '@/lib/tax/aadeDocTypes';
-import { elpAccountFor, usedElpAccounts } from '@/lib/tax/elpAccounts';
+import { ELP_ALL, eglsOf, CAPITALISABLE, CAPITALISATION_NOTE } from '@/lib/tax/elpAccounts';
+import { ACCOUNTS, expenseAccount } from '@/lib/accounting/journal';
+import { CATEGORIES } from '@/lib/expenses/taxonomy';
 import { resolveCategory } from '@/lib/expenses/taxonomy';
 import { csvCell } from '@/lib/core/csv';
 import { buildZip, type ZipFile } from '@/lib/accounting/zip';
@@ -270,6 +272,78 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     printTitles(wb, wb.SheetNames.length - 1, sheetTitle, HR + 1);
   }
 
+  // ══ ΦΥΛΛΟ 3: ΤΟ ΣΧΕΔΙΟ ΛΟΓΑΡΙΑΣΜΩΝ, ΜΕ ΤΑ ΠΟΣΑ ΤΗΣ ΧΡΟΝΙΑΣ ΠΑΝΩ ΤΟΥ ══════
+  // ΤΙ ΑΠΑΝΤΑ ΠΟΥ ΔΕΝ ΑΠΑΝΤΟΥΣΕ ΤΙΠΟΤΑ. Ο λογιστής που παίρνει τις «Κινήσεις»
+  // βλέπει κατηγορίες της εφαρμογής («Υδραυλικός», «Κοινόχρηστα»), όχι
+  // λογαριασμούς. Η μετάφραση γινόταν στο κεφάλι του, μία φορά ανά γραμμή. Εδώ
+  // είναι γραμμένη: κάθε λογαριασμός του νόμου, ποιες κατηγορίες κάθονται πάνω
+  // του, και πόσα. Δεν είναι ισοζύγιο — τα ταμειακά και τα δάνεια δεν περνούν
+  // από αυτό το βιβλίο — είναι ο χάρτης από τη γλώσσα του ιδιοκτήτη σε αυτή
+  // του Ε3.
+  //
+  // ΚΑΙ Η ΓΕΦΥΡΑ ΜΕ ΤΟ ΕΓΛΣ, ΓΙΑΤΙ ΠΟΛΛΑ ΛΟΓΙΣΤΗΡΙΑ ΤΟ ΚΡΑΤΟΥΝ. Αντιγραμμένη
+  // από το Παράρτημα Ε του ν. 4308/2014, με όλους τους κωδικούς που δίνει ο
+  // νόμος: η αντιστοιχία ΕΙΝΑΙ ένα προς πολλά, και μια «επιλογή του ενός» θα
+  // ήταν δική μας απόφαση περασμένη για διάταξη νόμου.
+  {
+    const NC = 6, HR = 4;
+    const sorted = [...book].sort((a, b) => a.date.localeCompare(b.date));
+    // Τι κάθεται σε κάθε λογαριασμό: τα ονόματα των κατηγοριών όπως τα βλέπει ο
+    // χρήστης, ώστε να αναγνωρίζει τη δαπάνη του, και τα δικά μας σύνολα.
+    const per = new Map<string, { cats: Set<string>; n: number; v: number }>();
+    const put = (code: string, cat: string, amount: number) => {
+      const cur = per.get(code) ?? { cats: new Set<string>(), n: 0, v: 0 };
+      if (cat) cur.cats.add(cat);
+      cur.n += 1; cur.v += amount;
+      per.set(code, cur);
+    };
+    for (const e of sorted) {
+      if (e.type === 'income') put(ACCOUNTS.rentIncome.code, e.category || '', e.amount || 0);
+      else put(expenseAccount(resolveCategory(e.category) || e.category).code, e.category || '', e.amount || 0);
+    }
+    // Οι κατηγορίες που ίσως κεφαλαιοποιηθούν, με τα ονόματα που βλέπει ο
+    // χρήστης — και μόνο όσες εμφανίστηκαν όντως φέτος.
+    const capitalised = CAPITALISABLE
+      .map(slug => CATEGORIES.find(c => c.slug === slug)?.label || slug)
+      .filter(label => sorted.some(e => e.category === label));
+
+    const aoa: (string | number)[][] = [
+      [`ΛΟΓΑΡΙΑΣΜΟΙ ΕΛΠ ${year}`],
+      [idLine],
+      [],
+      ['ΤΟ ΣΧΕΔΙΟ ΛΟΓΑΡΙΑΣΜΩΝ ΤΟΥ ν. 4308/2014, ΚΑΙ ΟΙ ΚΙΝΗΣΕΙΣ ΤΗΣ ΧΡΟΝΙΑΣ'],
+      ['Κωδικός', 'Ονομασία κατά τον νόμο', 'Αντιστοιχία ΕΓΛΣ', 'Κατηγορίες της χρονιάς', 'Κινήσεις', 'Ποσό'],
+      ...ELP_ALL.map(a => {
+        const u = per.get(a.code);
+        return [a.code, a.name, eglsOf(a.code), u ? [...u.cats].join(', ') : '', u ? u.n : '', u ? money(u.v) : ''];
+      }),
+      [],
+      ...(capitalised.length ? [[`${capitalised.join(', ')}: ${CAPITALISATION_NOTE}`]] : []),
+      ['Ταμειακή βάση: τα ποσά είναι εισπράξεις και πληρωμές της χρονιάς. Πηγή ονομασιών και αντιστοιχίας: ν. 4308/2014, Παραρτήματα Γ και Ε.'],
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = [{ wch: 10 }, { wch: 44 }, { wch: 34 }, { wch: 40 }, { wch: 10 }, { wch: 15 }];
+    // Οι γραμμές σημειώσεων: η κεφαλαιοποίηση μόνο όταν υπάρχει τέτοια δαπάνη,
+    // και από κάτω πάντα η πηγή. Απλωμένες σε όλο το πλάτος για να διαβάζονται.
+    const noteR = HR + 1 + ELP_ALL.length + 1;
+    const notes = capitalised.length ? [noteR, noteR + 1] : [noteR];
+    ws['!merges'] = [0, 1, ...notes].map(r => ({ s: { r, c: 0 }, e: { r, c: NC - 1 } }));
+    ws['!rows'] = []; ws['!rows'][0] = { hpt: 22 }; ws['!rows'][1] = { hpt: 15 }; ws['!rows'][HR] = { hpt: 26 };
+    setCell(ws, 0, 0, { s: S.title });
+    setCell(ws, 1, 0, { s: S.sub });
+    setCell(ws, HR - 1, 0, { s: S.section });
+    for (let c = 0; c < NC; c++) setCell(ws, HR, c, { s: S.head });
+    for (let i = 0; i < ELP_ALL.length; i++) {
+      const r = HR + 1 + i;
+      ws['!rows'][r] = { hpt: 15 };
+      for (const c of [0, 1, 2, 3]) setCell(ws, r, c, { s: S.txt });
+      for (const c of [4, 5]) setCell(ws, r, c, { s: S.num });
+    }
+    for (const r of notes) setCell(ws, r, 0, { s: S.sub });
+    ws['!margins'] = { ...MARGINS };
+    XLSX.utils.book_append_sheet(wb, ws, 'Λογαριασμοί ΕΛΠ');
+  }
+
 
   // ══ ΦΥΛΛΟ 3: ΧΑΡΑΚΤΗΡΙΣΜΟΙ myDATA ════════════════════════════════════════
   // ΓΙΑΤΙ ΔΙΚΟ ΤΟΥ ΦΥΛΛΟ. Στις «Κινήσεις» ο χαρακτηρισμός είναι ΜΙΑ στήλη δίπλα
@@ -277,9 +351,10 @@ export function buildWorkbook(inp: AccountantBundleInput) {
   // ερώτημα είναι άλλο: «τι θα δηλωθεί, με ποιον κωδικό, και πόσος φόρος
   // αποδίδεται από τον λήπτη». Είναι η δουλειά που κάνει ο λογιστής γραμμή
   // γραμμή, οπότε παίρνει τη μορφή που τη διευκολύνει: μηχανικοί κωδικοί δίπλα
-  // στα λεκτικά, σύνολα ανά χαρακτηρισμό, και οι λογαριασμοί των ΕΛΠ πάνω στους
-  // οποίους κάθονται οι δαπάνες ΤΟΥ ΕΤΟΥΣ. Ο επίσημος πίνακας των επιτρεπτών
-  // συνδυασμών, που δεν αφορά το έτος αλλά το πλαίσιο, έχει δικό του φύλλο.
+  // στα λεκτικά, και σύνολα ανά χαρακτηρισμό. Ο επίσημος πίνακας των επιτρεπτών
+  // συνδυασμών, που δεν αφορά το έτος αλλά το πλαίσιο, έχει δικό του φύλλο —
+  // όπως και οι λογαριασμοί των ΕΛΠ, που αφορούν κάθε δαπάνη και όχι μόνο όσες
+  // χαρακτηρίζονται.
   if (inp.myData) {
     const vat = inp.myData.vat;
     const NC = 12, HR = 3;
@@ -316,16 +391,6 @@ export function buildWorkbook(inp: AccountantBundleInput) {
         k ? CATEGORY_CODE[k as ExpenseClass] : '', k ? `${k} ${EXPENSE_CLASS_LABEL[k as ExpenseClass]}` : 'Χωρίς χαρακτηρισμό',
         v.n, money(v.v),
       ]);
-    // ΚΑΙ Ο ΛΟΓΑΡΙΑΣΜΟΣ ΤΩΝ ΕΛΠ, ΓΙΑ ΝΑ ΜΗ ΧΡΕΙΑΣΤΕΙ ΝΑ ΤΟΝ ΨΑΞΕΙ. Ο 64
-    // «Διάφορα λειτουργικά έξοδα» είναι σχεδόν όλο το κόστος ενός ακινήτου, και
-    // τα αθροίσματά του καταλήγουν στους κωδικούς 185/285/385/485 και 585 του Ε3.
-    const elpRows = usedElpAccounts().map(a => [
-      a.code, a.name,
-      // Ποιες δικές μας κατηγορίες κάθονται εκεί, με τα ονόματα που βλέπει ο χρήστης.
-      [...new Set(rows.map(e => resolveCategory(e.category)).filter(sl => sl && elpAccountFor(sl)?.code === a.code)
-        .map(sl => rows.find(e => resolveCategory(e.category) === sl)?.category || ''))].filter(Boolean).join(', '),
-    ]).filter(r => r[2]);
-
     const aoa: (string | number | Date)[][] = [
       [`ΧΑΡΑΚΤΗΡΙΣΜΟΙ myDATA ${year}`],
       [idLine],
@@ -346,11 +411,6 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       ['Κωδικός', 'Χαρακτηρισμός', 'Πλήθος', 'Αξία'],
       ...classRows,
       [],
-      ...(elpRows.length ? [
-        ['ΛΟΓΑΡΙΑΣΜΟΣ ΕΛΠ 64 «ΔΙΑΦΟΡΑ ΛΕΙΤΟΥΡΓΙΚΑ ΕΞΟΔΑ», ΑΝΑ ΚΑΤΗΓΟΡΙΑ ΤΟΥ ΕΤΟΥΣ'],
-        ['Λογαριασμός', 'Ονομασία κατά το Παράρτημα Γ του ν. 4308/2014', 'Κατηγορίες δαπάνης'],
-        ...elpRows, [],
-      ] : []),
       [`Υπόδειξη προς τον λογιστή, όχι διαβίβαση: τίποτα δεν αποστέλλεται στην ΑΑΔΕ από την εφαρμογή. Ποιοι χαρακτηρισμοί επιτρέπονται σε κάθε τύπο παραστατικού, στο φύλλο «${COMBO_SHEET}».`],
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa, { cellDates: true });
@@ -393,15 +453,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       setCell(ws, r, 0, { s: S.txt }); setCell(ws, r, 1, { s: S.txt });
       setCell(ws, r, 2, { s: S.num }); setCell(ws, r, 3, { s: S.num });
     }
-    let after = headA + 1 + classRows.length + 1;
-    if (elpRows.length) {
-      const secB = after, headB = secB + 1;
-      setCell(ws, secB, 0, { s: S.section });
-      for (let c = 0; c < 3; c++) setCell(ws, headB, c, { s: S.head });
-      for (let i = 0; i < elpRows.length; i++) for (let c = 0; c < 3; c++) setCell(ws, headB + 1 + i, c, { s: S.txt });
-      after = headB + 1 + elpRows.length + 1;
-    }
-    setCell(ws, after, 0, { s: S.sub });
+    setCell(ws, headA + 1 + classRows.length + 1, 0, { s: S.sub });
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: last, c: NC - 1 } }) };
     ws['!margins'] = { ...MARGINS };
     XLSX.utils.book_append_sheet(wb, ws, `Χαρακτηρισμοί myDATA`);

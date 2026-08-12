@@ -30,7 +30,7 @@ import {
   type LedgerInput, type Expected, type Actual, type ReconStatus,
 } from '@/lib/accounting/ledger'
 import {
-  buildJournal, trialBalance, journalTotals, elpFor, elpCodeFor,
+  buildJournal, trialBalance, journalTotals,
   type IncomeRec, type ExpenseRec, type LoanPaymentRec,
 } from '@/lib/accounting/journal'
 import {
@@ -108,7 +108,7 @@ const cardTitle:React.CSSProperties = { fontSize:13, fontWeight:700, color:'var(
 // Οι στήλες του ισοζυγίου, ΜΙΑ φορά: επικεφαλίδες, γραμμές και σύνολα διαβάζουν
 // την ίδια τιμή. Γραμμένες τρεις φορές, μια αλλαγή σε δύο από τις τρεις έδινε
 // πίνακα με μετατοπισμένα σύνολα — που δεν σκάει πουθενά, απλώς είναι λάθος.
-const TRIAL_COLS = '64px minmax(0,1fr) 64px 88px 88px 96px'
+const TRIAL_COLS = '64px minmax(0,1fr) 92px 92px 100px'
 
 // Χρώμα μόνο στη γραμμή αποτελέσματος, αλλού ουδέτερο (χωρίς θόρυβο).
 // Ήπια, ουδέτερη ένδειξη τόνου για τη συμβουλευτική (χωρίς έντονα χρώματα/λίστες).
@@ -1380,7 +1380,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           ):(
             <div style={{ borderRadius:12, border:'1px solid var(--border-subtle)', overflow:'hidden' }}>
               <div style={{ display:'grid', gridTemplateColumns:TRIAL_COLS, gap:8, padding:'9px 14px', background:'var(--bg-elevated)', borderBottom:'1px solid var(--border-subtle)' }}>
-                {[['Κωδικός','left'],['Λογαριασμός','left'],['ΕΛΠ','left'],['Χρέωση','right'],['Πίστωση','right'],['Υπόλοιπο','right']].map(([h,a])=>(
+                {[['Κωδικός ΕΛΠ','left'],['Λογαριασμός','left'],['Χρέωση','right'],['Πίστωση','right'],['Υπόλοιπο','right']].map(([h,a])=>(
                   <span key={h} style={{ fontSize:10, fontWeight:700, letterSpacing:'0.05em', textTransform:'uppercase', color:'var(--text-tertiary)', fontFamily: T.font.sans, textAlign:a as 'left'|'right' }}>{h}</span>
                 ))}
               </div>
@@ -1388,10 +1388,6 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
                 <div key={r.code} style={{ display:'grid', gridTemplateColumns:TRIAL_COLS, gap:8, padding:'8px 14px', borderBottom:i<trial.length-1?'1px solid var(--border-subtle)':'none', alignItems:'center' }}>
                   <span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums' }}>{r.code}</span>
                   <span style={{ fontSize:13, color:'var(--text-primary)', fontFamily: T.font.sans, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }} title={r.account}>{r.account}</span>
-                  {/* Ο κωδικός των ΕΛΠ, με το όνομα του νόμου στο hover: η διπλανή
-                      στήλη λέει ήδη τι είναι ο λογαριασμός. Κενό όπου η αντιστοιχία
-                      δεν έχει διαβαστεί από επίσημη πηγή — ταμείο, έσοδα, δάνεια. */}
-                  <span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums' }} title={elpFor(r.code)}>{elpCodeFor(r.code)}</span>
                   <span style={{ fontSize:13, color:r.debit?'var(--text-secondary)':'var(--text-tertiary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{r.debit?eur(r.debit):fe(0)}</span>
                   <span style={{ fontSize:13, color:r.credit?'var(--text-secondary)':'var(--text-tertiary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{r.credit?eur(r.credit):fe(0)}</span>
                   <span style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{eur(r.balance)}</span>
@@ -1400,7 +1396,6 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               <div style={{ display:'grid', gridTemplateColumns:TRIAL_COLS, gap:8, padding:'10px 14px', background:'var(--bg-elevated)', borderTop:'1px solid var(--border-default)', alignItems:'center' }}>
                 <span/>
                 <span style={{ fontSize:11, fontWeight:700, color:'var(--text-primary)', fontFamily: T.font.sans, textTransform:'uppercase', letterSpacing:'0.05em' }}>Σύνολα</span>
-                <span/>
                 <span style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{eur(jTotals.debit)}</span>
                 <span style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{eur(jTotals.credit)}</span>
                 <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'flex-end', gap:5, fontSize:11, fontWeight:600, color:jTotals.balanced?'var(--text-tertiary)':'var(--negative)', fontFamily: T.font.sans, whiteSpace:'nowrap' }}>
@@ -1409,7 +1404,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               </div>
             </div>
             )}
-          <p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'12px 0 0', fontFamily: T.font.sans, lineHeight:1.55 }}>Ταμειακή βάση. Οι κωδικοί είναι του Ελληνικού Γενικού Λογιστικού Σχεδίου· η στήλη ΕΛΠ δίνει τον λογαριασμό του ν. 4308/2014, αυτόν που τροφοδοτεί το έντυπο Ε3, όπου η αντιστοιχία προκύπτει από τον νόμο. Κάθε άρθρο ισοσκελισμένο (χρέωση ίση με πίστωση), έτοιμο για καταχώρηση από τον λογιστή σου.</p>
+          <p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'12px 0 0', fontFamily: T.font.sans, lineHeight:1.55 }}>Ταμειακή βάση, σχέδιο λογαριασμών των Ελληνικών Λογιστικών Προτύπων (ν. 4308/2014), αυτό που τροφοδοτεί το έντυπο Ε3. Κάθε άρθρο ισοσκελισμένο (χρέωση ίση με πίστωση), έτοιμο για καταχώρηση από τον λογιστή σου. Η αντιστοιχία με το παλιό ΕΓΛΣ, για όποιο λογιστήριο τη χρειάζεται, ταξιδεύει στο Excel.</p>
         </div>
         )}
 

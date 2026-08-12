@@ -1,4 +1,4 @@
-import { ELP_64, CATEGORY_ELP, elpAccountFor, usedElpAccounts } from './elpAccounts';
+import { ELP_64, ELP_OTHER, ELP_ALL, CATEGORY_ELP, CAPITALISABLE, elpAccount, elpAccountFor, eglsOf, usedElpAccounts } from './elpAccounts';
 import { CATEGORIES } from '../expenses/taxonomy';
 
 let fails = 0;
@@ -13,29 +13,82 @@ ok(ELP_64.every((a, i) => i === 0 || a.code > ELP_64[i - 1].code), 'στη σε�
 eq('64.02 είναι η ενέργεια', ELP_64[1].name, 'Ενέργεια');
 eq('64.09 οι επισκευές', elpAccountFor('plumber')?.name, 'Επισκευές και συντηρήσεις');
 
+console.log('\nΟι υπόλοιποι λογαριασμοί που κινεί το ημερολόγιο');
+eq('τέσσερις', ELP_OTHER.length, 4);
+eq('τα διαθέσιμα', elpAccount('38')?.name, 'Ταμειακά διαθέσιμα και ισοδύναμα');
+eq('τα δάνεια', elpAccount('52')?.name, 'Τραπεζικά δάνεια');
+eq('οι τόκοι', elpAccount('65.01')?.name, 'Τόκοι τραπεζικών δανείων');
+eq('τα έσοδα', elpAccount('71.04')?.name, 'Άλλα λειτουργικά έσοδα');
+eq('όλοι μαζί', ELP_ALL.length, ELP_64.length + ELP_OTHER.length);
+ok(ELP_ALL.every((a, i) => i === 0 || a.code.localeCompare(ELP_ALL[i - 1].code, 'en', { numeric: true }) > 0),
+  'ταξινομημένοι αριθμητικά, ώστε το 65.01 να μη μπαίνει πριν από το 64.02');
+eq('άγνωστος κωδικός, κανένα συμπέρασμα', elpAccount('99.99'), null);
+
+// ══ Η ΓΕΦΥΡΑ ΜΕ ΤΟ ΕΓΛΣ ΕΙΝΑΙ ΤΟΥ ΝΟΜΟΥ ══════════════════════════════════════
+// Οι κωδικοί ΕΓΛΣ ήταν γραμμένοι από μνήμη και ήταν ΛΑΘΟΣ: το ρεύμα καθόταν στο
+// 62.03, που είναι οι τηλεπικοινωνίες, και το αέριο στο 62.04, που είναι τα
+// ενοίκια. Το Παράρτημα Ε δίνει την αντιστοιχία· εδώ ελέγχεται ότι αντιγράφηκε.
+console.log('\nΗ αντιστοιχία με το ΕΓΛΣ, κατά το Παράρτημα Ε');
+eq('η ενέργεια', eglsOf('64.02'), '62.00, 62.01');
+eq('η ύδρευση', eglsOf('64.03'), '62.02');
+eq('οι τηλεπικοινωνίες', eglsOf('64.04'), '62.03');
+eq('τα ενοίκια ως έξοδο', eglsOf('64.05'), '62.04');
+eq('τα ασφάλιστρα', eglsOf('64.06'), '62.05');
+eq('οι επισκευές', eglsOf('64.09'), '62.07');
+ok(eglsOf('71.04').includes('75.00'), 'τα έσοδα από ενοίκια (ΕΓΛΣ 75.00) στο 71.04');
+ok(eglsOf('52').includes('45.00'), 'οι μακροπρόθεσμες υποχρεώσεις (ΕΓΛΣ 45.00) στο 52');
+// Ο νόμος γράφει «δεν υπάρχει» για τις συνδεδεμένες οντότητες: κενό, όχι εικασία.
+eq('όπου ο νόμος δεν δίνει αντιστοιχία, κενό', eglsOf('64.13'), '');
+// Κανένας κωδικός ΕΓΛΣ δεν επιτρέπεται να δείχνει σε δύο λογαριασμούς ΕΛΠ: τότε
+// η γέφυρα δεν θα ήταν συνάρτηση και το «από ποιον ήρθε» δεν θα είχε απάντηση.
+{
+  const seen = new Map<string, string>();
+  const clash: string[] = [];
+  for (const a of ELP_ALL) for (const e of a.egls) {
+    if (seen.has(e) && seen.get(e) !== a.code) clash.push(`${e} → ${seen.get(e)} και ${a.code}`);
+    seen.set(e, a.code);
+  }
+  eq('κάθε κωδικός ΕΓΛΣ οδηγεί σε έναν μόνο λογαριασμό ΕΛΠ', clash.join(' · '), '');
+}
+
 console.log('\nΗ αντιστοίχιση των κατηγοριών');
 // ΚΑΘΕ ΚΛΕΙΔΙ ΠΡΕΠΕΙ ΝΑ ΕΙΝΑΙ ΥΠΑΡΚΤΗ ΚΑΤΗΓΟΡΙΑ. Ένα ορφανό κλειδί δεν σκάει:
 // απλώς δεν ταιριάζει ποτέ, και η στήλη μένει κενή χωρίς να το μάθει κανείς.
 const slugs = new Set(CATEGORIES.map(c => c.slug));
 eq('κανένα ορφανό κλειδί', Object.keys(CATEGORY_ELP).filter(k => !slugs.has(k)).join(', '), '');
-ok(Object.values(CATEGORY_ELP).every(c => ELP_64.some(a => a.code === c)), 'κανένας κωδικός εκτός του 64');
+// ΚΑΙ ΚΑΜΙΑ ΚΑΤΗΓΟΡΙΑ ΧΩΡΙΣ ΛΟΓΑΡΙΑΣΜΟ. Μια δαπάνη χωρίς λογαριασμό εξαφανίζεται
+// από το ισοζύγιο: το βιβλίο δεν ισοσκελίζει και κανείς δεν ξέρει γιατί.
+eq('καμία κατηγορία χωρίς λογαριασμό', CATEGORIES.filter(c => !CATEGORY_ELP[c.slug]).map(c => c.slug).join(', '), '');
+ok(Object.values(CATEGORY_ELP).every(c => ELP_ALL.some(a => a.code === c)), 'κανένας κωδικός εκτός σχεδίου');
 eq('ρεύμα και αέριο στον ίδιο λογαριασμό', CATEGORY_ELP.electricity, CATEGORY_ELP.gas);
+eq('και η θέρμανση μαζί τους', CATEGORY_ELP.heating, '64.02');
 eq('το νερό στην ύδρευση', elpAccountFor('water')?.code, '64.03');
 eq('τα δημοτικά τέλη στους φόρους και τέλη', elpAccountFor('municipal')?.code, '64.11');
-
-// ΟΣΑ ΔΕΝ ΑΝΗΚΟΥΝ ΣΤΟΝ 64, ΛΕΙΠΟΥΝ ΕΠΙΤΗΔΕΣ. Τα πάγια δεν είναι λειτουργικό
-// έξοδο (αποσβένονται) και ο ΕΝΦΙΑ δεν είναι έξοδο εκμετάλλευσης.
-console.log('\nΌσα λείπουν, λείπουν με λόγο');
-for (const slug of ['renovation', 'appliance', 'furniture', 'enfia', 'other']) {
-  eq(`το «${slug}» δεν μπαίνει στον 64`, elpAccountFor(slug), null);
+eq('και ο ΕΝΦΙΑ μαζί τους', elpAccountFor('enfia')?.code, '64.11');
+// Ο κανόνας των δύο λογαριασμών υπηρεσιών, γραμμένος ως έλεγχος: δουλειά ΠΑΝΩ
+// στο ακίνητο είναι συντήρηση, αμοιβή τρίτου ΠΡΟΣ την οντότητα είναι υπηρεσία.
+for (const s of ['plumber', 'electrician', 'elevator', 'ac_service', 'pool', 'repair', 'renovation']) {
+  eq(`«${s}» είναι συντήρηση`, CATEGORY_ELP[s], '64.09');
+}
+for (const s of ['cleaning', 'garden', 'pest', 'security', 'notary', 'engineer', 'broker_fee']) {
+  eq(`«${s}» είναι αμοιβή για υπηρεσία`, CATEGORY_ELP[s], '64.01');
 }
 eq('άγνωστο, κανένα συμπέρασμα', elpAccountFor('ξψζ'), null);
 eq('κενό, κανένα συμπέρασμα', elpAccountFor(null), null);
 
+// ΤΑ ΠΑΓΙΑ ΦΑΙΝΟΝΤΑΙ, ΚΑΙ ΛΕΓΟΝΤΑΙ. Το βιβλίο είναι ταμειακό και τα καταγράφει
+// ως πληρωμές· ο λογιστής ίσως τα κεφαλαιοποιήσει. Να έλειπαν από λογαριασμό θα
+// σήμαινε ότι εξαφανίζονται από το ισοζύγιο, που είναι χειρότερο.
+console.log('\nΌσα ίσως κεφαλαιοποιηθούν');
+ok(CAPITALISABLE.every(s => slugs.has(s)), 'είναι υπαρκτές κατηγορίες');
+ok(CAPITALISABLE.every(s => !!CATEGORY_ELP[s]), 'και έχουν λογαριασμό, δεν εξαφανίζονται');
+eq('η ανακαίνιση ως έξοδο είναι συντήρηση', elpAccountFor('renovation')?.code, '64.09');
+eq('τα έπιπλα ως έξοδο είναι λοιπά', elpAccountFor('furniture')?.code, '64.12');
+
 console.log('\nΌσοι χρησιμοποιούνται');
 const used = usedElpAccounts();
-ok(used.length > 0 && used.length < ELP_64.length, 'υποσύνολο, όχι ολόκληρος ο λογαριασμός');
-ok(used.every((a, i) => i === 0 || a.code > used[i - 1].code), 'κρατούν τη σειρά του νόμου');
+ok(used.length > 0 && used.length < ELP_ALL.length, 'υποσύνολο, όχι ολόκληρο το σχέδιο');
+ok(used.every((a, i) => i === 0 || a.code > used[i - 1].code), 'κρατούν τη σειρά του σχεδίου');
 ok(!used.some(a => a.code === '64.13'), 'οι συνδεδεμένες οντότητες δεν αφορούν ιδιοκτήτη ακινήτου');
 
 console.log(`\nelpAccounts: ${fails === 0 ? '✓ όλα' : `✗ ${fails}`}`);
