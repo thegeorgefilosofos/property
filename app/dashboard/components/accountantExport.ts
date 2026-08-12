@@ -15,7 +15,7 @@
 // Πραγματικά κελιά, ημερομηνίες ως ημερομηνίες, ποσά ως νόμισμα (2 δεκαδικά),
 // σωστή στοίχιση/πλαίσια — σαν να το ετοίμασε λογιστής. Ασπρόμαυρο, καθαρό.
 // ═══════════════════════════════════════════════════════════════════════════
-import { XLSX, FMT, S, setCell, downloadWorkbook, money, moneySigned, type Cell } from './xlsxStyle';
+import { XLSX, FMT, S, setCell, downloadWorkbook, printTitles, MARGINS, money, moneySigned, type Cell } from './xlsxStyle';
 import { supplyLabel, reverseChargeVat, reverseCharge, VAT_STANDARD, type Supply } from '@/lib/tax/placeOfSupply';
 import {
   myDataHint, myDataCell, pendingGroups, EXPENSE_CLASS_LABEL, INVOICE_TYPE_LABEL,
@@ -147,6 +147,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       setCell(ws, rr, 0, { s: txtS });
       setCell(ws, rr, 1, { v: moneySigned(r.amount ?? 0), t: 's', s: numS }); // κείμενο «€» με κόμμα
     });
+    ws['!margins'] = { ...MARGINS };
     XLSX.utils.book_append_sheet(wb, ws, 'Κατάσταση αποτελεσμάτων');
   }
 
@@ -249,15 +250,24 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       // Έσοδα/Έξοδα ως κείμενο «€» με κόμμα (ίδια εμφάνιση σε κάθε Excel).
       for (const c of [C_IN, C_EX]) { const cell = ws[enc(r, c)] as Cell | undefined; if (cell && typeof cell.v === 'number') setCell(ws, r, c, { v: money(cell.v), t: 's', s: S.num }); else setCell(ws, r, c, { s: S.num }); }
     }
-    // Σύνολα + καθαρό (υπολογισμένα, ως κείμενο «€»).
-    for (let c = 0; c <= C_LABEL; c++) setCell(ws, totalR, c, { s: S.totTxt });
-    setCell(ws, totalR, C_IN, { v: money(sumIn), t: 's', s: S.totNum });
-    setCell(ws, totalR, C_EX, { v: money(sumEx), t: 's', s: S.totNum });
-    setCell(ws, netR, C_LABEL, { s: S.strongTxt });
-    setCell(ws, netR, C_IN, { v: moneySigned(Math.round((sumIn - sumEx) * 100) / 100), t: 's', s: S.strongNum });
-    setCell(ws, netR, C_EX, { s: S.strongTxt });
+    // ΣΥΝΟΛΑ ΚΑΙ ΚΑΘΑΡΟ, ΜΕ ΤΗ ΓΡΑΜΜΗ ΝΑ ΤΡΕΧΕΙ ΠΕΡΑ ΠΕΡΑ. Στυλίζονταν μόνο οι
+    // στήλες που είχαν κείμενο ή ποσό, οπότε η μεσαία γραμμή του συνόλου έσπαγε
+    // πάνω από τη «Χώρα» και τον «Τόπο παροχής» και ξανάρχιζε στα ποσά: ένα
+    // σύνολο με τρύπες δεν διαβάζεται ως σύνολο.
+    for (let c = 0; c < NC; c++) setCell(ws, totalR, c, { s: c === C_IN || c === C_EX ? S.totNum : S.totTxt });
+    setCell(ws, totalR, C_IN, { v: money(sumIn), t: 's' });
+    setCell(ws, totalR, C_EX, { v: money(sumEx), t: 's' });
+    for (let c = 0; c < NC; c++) setCell(ws, netR, c, { s: c === C_IN || c === C_EX ? S.strongNum : S.strongTxt });
+    setCell(ws, netR, C_IN, { v: moneySigned(Math.round((sumIn - sumEx) * 100) / 100), t: 's' });
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: lastData, c: NC - 1 } }) };
-    XLSX.utils.book_append_sheet(wb, ws, `Κινήσεις ${year}`);
+    ws['!margins'] = { ...MARGINS };
+    // Ο ΛΟΓΙΣΤΗΣ ΤΥΠΩΝΕΙ, ΚΑΙ Η ΔΕΥΤΕΡΗ ΣΕΛΙΔΑ ΧΡΕΙΑΖΕΤΑΙ ΟΝΟΜΑΤΑ. Χωρίς
+    // επανάληψη της επικεφαλίδας, από τη σελίδα 2 και μετά ο πίνακας είναι
+    // στήλες αριθμών χωρίς τίτλο — και το «Έσοδα / Έξοδα» δεν μαντεύεται.
+    // Μπαίνει στις «Κινήσεις» μόνο: είναι το φύλλο που απλώνεται σε σελίδες.
+    const sheetTitle = `Κινήσεις ${year}`;
+    XLSX.utils.book_append_sheet(wb, ws, sheetTitle);
+    printTitles(wb, wb.SheetNames.length - 1, sheetTitle, HR + 1);
   }
 
 
@@ -393,6 +403,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     }
     setCell(ws, after, 0, { s: S.sub });
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: last, c: NC - 1 } }) };
+    ws['!margins'] = { ...MARGINS };
     XLSX.utils.book_append_sheet(wb, ws, `Χαρακτηρισμοί myDATA`);
   }
 
@@ -499,6 +510,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     }
     setCell(ws, noteR, 0, { s: S.sub });
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: HR + expRows.length, c: NC - 1 } }) };
+    ws['!margins'] = { ...MARGINS };
     XLSX.utils.book_append_sheet(wb, ws, COMBO_SHEET);
   }
 
@@ -564,7 +576,12 @@ export function exportAccountantDossier(inp: DossierExportInput): void {
     `Ημερομηνία έκδοσης: ${issued}`, '',
     readinessMessage, '', rule(), '',
     'ΠΕΡΙΕΧΟΜΕΝΑ',
-    '  01 ΣΥΝΟΨΗ            Κατάσταση αποτελεσμάτων και αναλυτικές κινήσεις (Excel).',
+    // Ο ΠΙΝΑΚΑΣ ΠΕΡΙΕΧΟΜΕΝΩΝ ΛΕΕΙ ΤΙ ΥΠΑΡΧΕΙ ΟΝΤΩΣ ΜΕΣΑ. Το Excel αποκτά δύο
+    // φύλλα ακόμη όταν υπάρχει υποχρέωση myDATA· μια σταθερή πρόταση θα έλεγε
+    // «αποτελέσματα και κινήσεις» σε αρχείο που έχει και τους χαρακτηρισμούς.
+    `  01 ΣΥΝΟΨΗ            ${inp.myData
+      ? 'Αποτελέσματα, κινήσεις και χαρακτηρισμοί myDATA (Excel).'
+      : 'Κατάσταση αποτελεσμάτων και αναλυτικές κινήσεις (Excel).'}`,
     '  02 ΕΣΟΔΑ             Κάθε είσπραξη του έτους, με ημερομηνία και περιγραφή.',
     '  03 ΕΞΟΔΑ             Κάθε πληρωμή του έτους, ανά κατηγορία.',
     '  04 ΔΙΚΑΙΟΛΟΓΗΤΙΚΑ    Ο κατάλογος των παραστατικών, με το ποιος φέρνει το καθένα.',
