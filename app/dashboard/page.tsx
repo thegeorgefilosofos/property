@@ -4,6 +4,7 @@ import { useNavHistory } from './components/useNavHistory';
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as propertyStore from '@/lib/data/properties';
+import * as calendarStore from '@/lib/data/calendar';
 import * as loanStore from '@/lib/data/loans';
 import * as stayStore from '@/lib/data/stays';
 import * as billStore from '@/lib/data/bills';
@@ -45,6 +46,8 @@ import PortfolioTab from './components/PortfolioTab';
 import AddPropertyWizard from './components/AddPropertyWizard';
 import DocumentScan from './components/DocumentScan';
 import WelcomeOnboarding from './components/WelcomeOnboarding';
+import StartPanel from './components/StartPanel';
+import DemoPreview from './components/DemoPreview';
 import { useAppPreferences } from './components/useAppPreferences';
 import { CommandPalette, type CommandItem } from './components/CommandPalette';
 import { T, Modal, SkeletonKPIs, Skeleton, Spinner, EmptyState, TierBadge, KPIGrid, SecHdr, fp, feOr, fd, type KPIItem } from '@/components/Theme';
@@ -66,7 +69,7 @@ import { consolidateRentTax, taxShareOf, consolidationSummary, CONSOLIDATION_NOT
 import UpgradeModal from './components/UpgradeModal';
 import FeatureLock, { LockBadge } from './components/FeatureLock';
 import { PLANS } from '@/lib/billing/plans';
-import { effectivePlan, isTabAllowed, isTabPurchasable, canAddProperty, planAtLeast, type EntitlementInput } from '@/lib/billing/entitlements';
+import { effectivePlan, isTabAllowed, isTabPurchasable, canAddProperty, planAtLeast, trialState, type EntitlementInput } from '@/lib/billing/entitlements';
 import { isTabVisible, hiddenTabCount, reveal, sanitizeRevealed, coreTabs, CORE_TABS, type DisclosureSignals } from '@/lib/nav/disclosure';
 import AthensNow from './components/AthensNow';
 import CashHero from './components/CashHero';
@@ -74,6 +77,7 @@ import AgendaPanel from './components/AgendaPanel';
 import AssistantStrip, { askAssistant } from './components/AssistantStrip';
 import { cashPosition } from '@/lib/home/cash';
 import { buildAgenda, type SetupLike as SetupStep } from '@/lib/home/agenda';
+import { startPanel } from '@/lib/home/start';
 import { computeObligations, type OblMaint } from './components/obligations';
 import { taxProfileOf } from '@/lib/tax/greekTaxCalendar';
 import PortalShare from './components/PortalShare';
@@ -357,7 +361,7 @@ function useChecklistAlerts(propertyId: string | null) {
 // γιατί τίποτα δεν θα είχε «σπάσει». Τώρα η σήμανση είναι δεδομένο του
 // πλακιδίου (`incomeOnly`), όχι σύμπτωση κειμένου.
 
-function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVisible }: { prop: Property;
+function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { prop: Property;
   /** ΟΛΑ τα ακίνητα του χρήστη — χρειάζονται για τον φόρο: η κλίμακα των ενοικίων
    *  είναι προοδευτική στο σύνολο του φορολογούμενου, όχι ανά ακίνητο. */
   properties: Property[];
@@ -366,11 +370,10 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
   // η οθόνη δεν το έδειχνε και δεν το άλλαζε. Το όνομα ζει στο
   // `property_settings.owner_name`, όπου το γράφει ο οδηγός προσθήκης ακινήτου
   // και το διαβάζουν τα επίσημα έγγραφα και η δήλωση μίσθωσης.
-  userId: string; onNavigate: (tab: string) => void; onCleanDemo?: () => void;
+  userId: string; onNavigate: (tab: string) => void;
   /** Οδηγεί κάπου αυτό το βήμα; Βήμα που δείχνει σε καρτέλα η οποία δεν αφορά τον
    *  χρήστη είναι νεκρός σύνδεσμος: το πάτημα θα τον γύριζε στην Επισκόπηση. */
   tabVisible: (id: string) => boolean }) {
-  const isDemo = (prop.name || '').startsWith('Demo —');
   const supabase = createClient();
   const branding = useReportBranding(userId);
   const { prefs } = useAppPreferences(prop.id);
@@ -830,14 +833,6 @@ function OverviewTab({ prop, properties, userId, onNavigate, onCleanDemo, tabVis
         </button>
       </div>
 
-      {isDemo && (
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap', marginBottom:16, padding:'12px 16px', borderRadius:12, background:'var(--accent-soft)', border:'1px solid var(--accent-border)' }}>
-          <div style={{ fontSize:13, color:'var(--text-secondary)' }}>
-            <strong style={{ color:'var(--text-primary)' }}>Δείγμα (demo).</strong> Περιήγησε τα εργαλεία με έτοιμα δεδομένα. Όταν είσαι έτοιμος, καθάρισέ το και πρόσθεσε το δικό σου ακίνητο.
-          </div>
-          {onCleanDemo && <button onClick={onCleanDemo} style={{ background:'var(--bg-surface)', border:'1px solid var(--border-default)', borderRadius:18, padding:'7px 16px', fontSize:13, fontWeight:600, fontFamily: T.font.sans, color:'var(--accent)', cursor:'pointer', whiteSpace:'nowrap' }}>Καθάρισε το demo</button>}
-        </div>
-      )}
 
       {/* ═══ ΤΟ ΤΑΜΕΙΟ ══════════════════════════════════════════════════════
           Η οθόνη άνοιγε με «Μηνιαίο ενοίκιο · Μεικτή απόδοση · Καθαρή απόδοση»:
@@ -1157,6 +1152,12 @@ export default function Dashboard() {
   const [cmdkOpen, setCmdkOpen] = useState(false);        // command palette (⌘K)
   const [quickAddOpen, setQuickAddOpen] = useState(false);// γρήγορη προσθήκη με φωτογραφία/σάρωση
   const [showWelcome, setShowWelcome] = useState(false);// καλωσόρισμα πρώτης χρήσης
+  // ── Ο ΠΙΝΑΚΑΣ «ΑΠΟ ΠΟΥ ΞΕΚΙΝΑΣ» ─────────────────────────────────────────
+  // Τα σήματα διαβάζονται ΜΙΑ φορά, μαζί με τα υπόλοιπα counts της εκκίνησης:
+  // ο πίνακας δεν δικαιολογεί δικό του ερώτημα σε κάθε φόρτωση της Επισκόπησης.
+  const [startSignals, setStartSignals] = useState({ documents: 0, taxEvents: 0 });
+  const [startCollapsed, setStartCollapsed] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [scanDraftId, setScanDraftId] = useState<string|null>(null);// προσχέδιο από scan-to-create
   const [plan, setPlan] = useState<string>('free');       // τρέχον πακέτο συνδρομής (billing_profiles)
   const [compPlan, setCompPlan] = useState<string|null>(null);   // δωρεάν πρόσβαση: επίπεδο (π.χ. από referral)
@@ -1224,6 +1225,25 @@ export default function Dashboard() {
   // ανυψωμένο από ενεργούς δωρεάν μήνες ή ιδιότητα Συνεργάτη).
   const ent: EntitlementInput = { plan, profileType, partner: isPartner, compPlan, compUntil, createdAt: user?.created_at ?? null };
   const effPlan = effectivePlan(ent);
+
+  // ── ΤΟ ΠΕΡΙΕΧΟΜΕΝΟ ΤΟΥ ΠΙΝΑΚΑ ΥΠΟΔΟΧΗΣ ──────────────────────────────────
+  // Η ΔΟΚΙΜΗ ΡΩΤΙΕΤΑΙ ΑΠΟ ΤΗΝ ΙΔΙΑ ΠΗΓΗ ΜΕ ΤΟ ΠΛΑΝΟ. Ένας δεύτερος υπολογισμός
+  // «είναι σε δοκιμή;» εδώ θα διαφωνούσε με το `effectivePlan` την ημέρα που θα
+  // άλλαζε ο ορισμός — και ο χρήστης θα έβλεπε πίνακα δοκιμής με πληρωμένο πλάνο.
+  const trial = trialState(ent);
+  const startState = startPanel({
+    properties: properties.length,
+    documents: startSignals.documents,
+    taxEvents: startSignals.taxEvents,
+    trialActive: trial.active,
+    daysLeft: trial.daysLeft,
+  });
+  const toggleStartPanel = (next: boolean) => {
+    setStartCollapsed(next);
+    if (!user) return;
+    void saved('Η προτίμηση του πίνακα δεν αποθηκεύτηκε', supabase.from('onboarding_progress')
+      .upsert({ user_id: user.id, start_collapsed: next, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }));
+  };
 
   // Ο τρόπος «Επαγγελματίας» απαιτεί το πλάνο Επαγγελματίας (agency). Χωρίς αυτό, ο
   // χρήστης βλέπει ΜΟΝΟ την εμπειρία «Ιδιώτη» — δεν εμφανίζονται καθόλου οι
@@ -1353,13 +1373,19 @@ export default function Dashboard() {
         // 'contacts' δεν ρωτήθηκε ποτέ. Οι Επαφές αποδίδονται ως ενότητα μέσα
         // στο Αρχείο, και ο μόνος δρόμος στο nav==='contacts' (ο βοηθός) κρίνεται
         // από το tabDecision. Πέντε COUNT έγιναν τέσσερα, ίδια ακριβώς οθόνη.
-        const [{ data: ob, error: obErr }, { count }, { count: docCount }, loanRes, invRes] = await Promise.all([
-          supabase.from('onboarding_progress').select('welcomed, revealed_tabs, nav_show_all').eq('user_id', user.id).maybeSingle(),
+        const [{ data: ob, error: obErr }, { count }, { count: docCount }, loanRes, invRes, taxEvents] = await Promise.all([
+          supabase.from('onboarding_progress').select('welcomed, revealed_tabs, nav_show_all, start_collapsed').eq('user_id', user.id).maybeSingle(),
           cnt('user_properties'),
           cnt('property_documents'),
           cnt('loans'),
           cnt('inventory_items'),
+          // Το τρίτο βήμα του πίνακα υποδοχής: «είδε τις προθεσμίες του». Το
+          // σήμα δεν είναι επίσκεψη σε καρτέλα αλλά ΓΕΓΟΝΟΣ στο ημερολόγιό του —
+          // μια επίσκεψη δεν αφήνει ίχνος και θα ζητούσε δικό της πεδίο, δηλαδή
+          // δεύτερη αλήθεια για το ίδιο πράγμα.
+          calendarStore.taxEventCount(supabase, user.id),
         ]);
+        setStartSignals({ documents: docCount || 0, taxEvents: taxEvents });
         if (!ob?.welcomed && (count || 0) === 0) setShowWelcome(true);
         // Σταδιακή αποκάλυψη: τι έχει ήδη ανοίξει + τι δικαιολογούν τα δεδομένα.
         //
@@ -1369,7 +1395,8 @@ export default function Dashboard() {
         // πριν εφαρμοστεί το migration που προσθέτει τις στήλες) θα περνούσε ως
         // «διαβάστηκαν κενές προτιμήσεις» και θα ΕΚΡΥΒΕ καρτέλες αντί να ανοίξει
         // fail-open. Μόνο όταν το read πετύχει δηλώνουμε τις προτιμήσεις φορτωμένες.
-        const rec = ob as { revealed_tabs?: unknown; nav_show_all?: boolean } | null;
+        const rec = ob as { revealed_tabs?: unknown; nav_show_all?: boolean; start_collapsed?: boolean | null } | null;
+        setStartCollapsed(!!rec?.start_collapsed);
         if (obErr) {
           setNavPrefsFailed(true);    // → fail-open: φαίνονται ΟΛΕΣ οι καρτέλες
         } else {
@@ -1445,26 +1472,6 @@ export default function Dashboard() {
   const deleteProperty = () => { if (selected) deletePropertyById(selected.id, selected.name); };
 
   // Καθάρισμα demo με ένα κλικ: σβήνει τα δείγματα ακίνητα/πελάτες/διαμονές.
-  const cleanupDemo = async () => {
-    if (!user) return;
-    // Ίδιος λόγος με τη διαγραφή ακινήτου: το σύνολο των demo κλειδώνει ΠΡΙΝ τη
-    // ερώτηση, ώστε να μη σβηστεί κάτι που δεν υπήρχε όταν ρωτήθηκε ο χρήστης.
-    const demoProps = properties.filter(p => (p.name || '').startsWith('Demo —'));
-    if (!(await confirmDialog('Να αφαιρεθούν τα δείγματα (demo) δεδομένα;', { tone: 'negative' }))) return;
-    const childTables = ['expenses','calendar_events','bills','tenants','inventory_items','loans','property_settings','rent_comparables','property_documents','client_stays','pricing_settings','ical_feeds'];
-    for (const p of demoProps) {
-      await Promise.allSettled(childTables.map(t => supabase.from(t).delete().eq('property_id', p.id)));
-      if (!await saved('Το δείγμα ακινήτου δεν αφαιρέθηκε',
-        propertyStore.remove(supabase, p.id, user.id))) return;
-      try { clearAssistantHistory(p.id); } catch {}
-    }
-    // Σβήσε και τους demo πελάτες (και τις διαμονές τους μέσω cascade στη βάση).
-    await saved('Οι δείγματα πελάτες δεν αφαιρέθηκαν',
-      supabase.from('clients').delete().eq('user_id', user.id).like('full_name', 'Demo —%'));
-    setSelected(null);
-    await fetchProperties(user.id);
-    setNav('overview');
-  };
 
   // Κλείσιμο σάρωσης: αν ήταν προσχέδιο από scan-to-create και δεν αποθηκεύτηκε
   // τίποτα (κανένα έγγραφο), σβήσε το κενό ακίνητο ώστε να μη μένουν σκουπίδια.
@@ -1936,7 +1943,17 @@ export default function Dashboard() {
               {navSafe==='portfolio' && (isTabAllowed(ent,'portfolio')
                 ? <PortfolioTab properties={properties} userId={user.id} onSelectProperty={(id)=>{ const p=properties.find(x=>x.id===id); if(p){ setSelected(p); setNav('overview'); } }}/>
                 : <FeatureLock title="Το χαρτοφυλάκιό σου με μια ματιά" benefit={`Συγκεντρωτική εικόνα του χαρτοφυλακίου, με έσοδα, αποδόσεις και εκκρεμότητες σε ένα σημείο. Ξεκλειδώνει με το πακέτο ${PLANS.agency.name}.`} requiredPlan="agency" currentPlanName={PLANS[effPlan].name} onManage={()=>setNav('settings')} />)}
-              {navSafe==='overview'  && <OverviewTab prop={selected} properties={properties} userId={user.id} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : t==='edit' ? setEditProperty(selected) : setNav(t)} onCleanDemo={cleanupDemo} tabVisible={navVisible}/>}
+              {/* ═══ Ο ΠΙΝΑΚΑΣ ΤΗΣ ΔΟΚΙΜΗΣ, ΠΑΝΩ ΑΠΟ ΤΑ ΠΑΝΤΑ ═══════════════
+                  Ζει ΕΔΩ και όχι μέσα στην Επισκόπηση για δύο λόγους: είναι
+                  πλαίσιο του λογαριασμού, όχι του ακινήτου (τα βήματά του
+                  μετρούν ό,τι έχει ο ΧΡΗΣΤΗΣ), και η Επισκόπηση θα κουβαλούσε
+                  έξι ακόμη props για κάτι που δεν την αφορά. */}
+              {navSafe==='overview' && (
+                <StartPanel state={startState} collapsed={startCollapsed} onToggle={toggleStartPanel}
+                  onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : setNav(t)}
+                  onPreview={()=>setShowPreview(true)} onAsk={()=>askAssistant('', false)} />
+              )}
+              {navSafe==='overview'  && <OverviewTab prop={selected} properties={properties} userId={user.id} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : t==='edit' ? setEditProperty(selected) : setNav(t)} tabVisible={navVisible}/>}
               {nav==='finances'  && <TabFinances propertyId={selected.id} userId={user.id} profileType={effProfileType} legalForm={taxForm} onScan={()=>setQuickAddOpen(true)}/>}
               {nav==='calendar'  && <TabCalendar propertyId={selected.id} userId={user.id} openTasks={checklistAlerts} onOpenTasks={()=>setNav('checklist')}/>}
               {/* ═══ Η ΒΡΑΧΥΧΡΟΝΙΑ ΣΤΕΚΕΤΑΙ ΜΟΝΗ ΤΗΣ ═══════════════════════════
@@ -2167,8 +2184,11 @@ export default function Dashboard() {
           setNav('overview'); setQuickAddOpen(true);
         }}
         onProfile={setProfileType}
-        onDemoReady={async()=>{ setShowWelcome(false); await fetchProperties(user.id); setNav('pricing'); }}
         onClose={()=>setShowWelcome(false)} />}
+      {/* ΤΟ ΠΑΡΑΔΕΙΓΜΑ ΔΕΝ ΓΡΑΦΕΙ ΤΙΠΟΤΑ. Ήταν ακίνητο μέσα στον λογαριασμό, με
+          κουμπί καθαρισμού που έψαχνε λάθος όνομα και δεν εμφανιζόταν ποτέ. */}
+      <DemoPreview open={showPreview} onClose={()=>setShowPreview(false)}
+        onAddProperty={()=>{ setShowPreview(false); tryAddProperty(); }} />
       {showAddModal&&user&&<AddPropertyWizard userId={user.id} onClose={()=>setShowAddModal(false)} onSaved={async()=>{setShowAddModal(false);await fetchProperties(user.id);}}/>}
       {editProperty&&user&&<AddPropertyWizard userId={user.id} existing={editProperty} onClose={()=>setEditProperty(null)} onSaved={async()=>{setEditProperty(null);await fetchProperties(user.id);}}/>}
       {showUpgrade&&<UpgradeModal currentCount={properties.length} planId={effPlan} profileType={effProfileType} onClose={()=>setShowUpgrade(false)} onManage={()=>{setShowUpgrade(false);setNav('settings');}}/>}

@@ -861,6 +861,7 @@ export interface OnboardingProgressRow {
   updated_at: string;
   revealed_tabs: string[] | null;
   nav_show_all: boolean | null;
+  start_collapsed: boolean | null;
 }
 
 export interface OrganizationMembersRow {

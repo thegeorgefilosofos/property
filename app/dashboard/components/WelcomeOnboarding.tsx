@@ -1,58 +1,122 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// WelcomeOnboarding — καλωσόρισμα πρώτης χρήσης (guided first-run). Τρεις οθόνες
-// (τι κάνει το app, τι θα δεις, πώς ξεκινάς) και επιλογές: προσθήκη πρώτου
-// ακινήτου, demo (με δείγμα δεδομένων ώστε να λάμψουν τιμολόγηση/φόρος), ή
-// «αργότερα». Η πρόοδος αποθηκεύεται στη βάση (onboarding_progress) ώστε να μη
-// ξαναεμφανίζεται. Σχεδίαση: premium, minimal, Google αισθητική, near-monochrome.
+// WelcomeOnboarding — η πρώτη είσοδος, σε τέσσερις κάρτες
+// ─────────────────────────────────────────────────────────────────────────
+// ΤΙ ΑΛΛΑΞΕ ΚΑΙ ΓΙΑΤΙ. Οι τρεις παλιές διαφάνειες περιέγραφαν την εφαρμογή με
+// επίθετα («όλη η διαχείριση σε ένα σημείο», «βγάλε τα περισσότερα από κάθε
+// νύχτα»). Κάθε προϊόν λέει τα ίδια. Οι τέσσερις κάρτες λένε τέσσερα πράγματα
+// με την ίδια σειρά: πού βρίσκεσαι στην εφαρμογή, τι είναι αυτό, γιατί αξίζει,
+// και η ΑΠΟΔΕΙΞΗ σε αριθμούς.
+//
+// ΟΙ ΑΡΙΘΜΟΙ ΤΩΝ ΚΑΡΤΩΝ ΔΕΝ ΕΙΝΑΙ ΓΡΑΜΜΕΝΟΙ ΕΔΩ. Βγαίνουν από το
+// lib/demo/sample.ts και από το πραγματικό φορολογικό ημερολόγιο. Ένας αριθμός
+// γραμμένος στο χέρι σε οθόνη υποδοχής γερνά σιωπηλά: την επόμενη χρονιά
+// υπόσχεται προθεσμία που πέρασε, ή φόρο με κλίμακα που καταργήθηκε.
+//
+// ΟΙ ΕΡΩΤΗΣΕΙΣ ΕΙΝΑΙ ΣΤΗΝ ΤΕΛΕΥΤΑΙΑ ΚΑΡΤΑ, ΟΧΙ ΣΤΗΝ ΠΡΩΤΗ. Πριν δει τι αγοράζει,
+// ο χρήστης δεν έχει λόγο να δηλώσει νομική μορφή· στο σημείο που πατά «Ας
+// ξεκινήσουμε», έχει.
+//
+// ═══ ΓΙΑΤΙ ΑΥΤΟ ΔΕΝ ΕΓΙΝΕ Modal ═══════════════════════════════════════════
+// 1. ΔΕΝ ΚΛΕΙΝΕΙ ΜΕ Escape ΟΥΤΕ ΜΕ ΚΛΙΚ ΣΤΟ ΦΟΝΤΟ, ΕΠΙΤΗΔΕΣ. Ο μόνος δρόμος
+//    εξόδου είναι το «Αργότερα», που πρώτα γράφει `welcomed: true` στο
+//    onboarding_progress και ΜΕΤΑ κλείνει. Με Modal, ένα Escape θα καλούσε
+//    κατευθείαν το onClose του γονέα (σκέτο `setShowWelcome(false)`): η υποδοχή
+//    θα «έκλεινε» χωρίς να καταγραφεί και θα ξαναέσκαγε στην επόμενη φόρτωση.
+// 2. ΔΕΝ ΕΙΝΑΙ ΤΙΤΛΟΣ + ΣΩΜΑ + ΕΝΕΡΓΕΙΕΣ, είναι κάρτα με δεδομένα και δείκτες
+//    βημάτων. Η κεφαλίδα του Modal θα πρόσθετε δεύτερο τρόπο κλεισίματος δίπλα
+//    στο «Αργότερα» — δηλαδή θα έλεγε το ίδιο πράγμα δύο φορές.
+// 3. ΖΕΙ ΠΑΝΩ ΑΠΟ ΤΑ ΠΑΡΑΘΥΡΑ (z-index 3000): από εδώ ανοίγει ο οδηγός
+//    προσθήκης ακινήτου, δεν ανοίγει από πάνω του.
 // ═══════════════════════════════════════════════════════════════════════════
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import * as properties from '@/lib/data/properties';
-import * as stayStore from '@/lib/data/stays';
-import { T } from '@/components/Theme';
+import { T, TT, fe } from '@/components/Theme';
 import { isoDate } from '@/lib/core/time';
 import { saved } from '@/components/dbWrite';
-import { must } from '@/lib/supabase/must';
-// Το προφίλ χρέωσης έχει ένα σπίτι: lib/data/billing.
 import * as billing from '@/lib/data/billing';
 import { defaultBookkeeping, type LegalForm, type BookKeeping } from '@/lib/accounting/dossier';
+import { demoSummary, demoLedger, demoExpenses } from '@/lib/demo/sample';
+import { expenseAccount } from '@/lib/accounting/journal';
+import { categoryLabel } from '@/lib/expenses/taxonomy';
+import { taxObligationsHorizon } from '@/lib/tax/greekTaxCalendar';
 
 interface Props {
   userId: string;
-  onAddProperty: () => void;                 // άνοιγμα wizard προσθήκης
+  onAddProperty: () => void;                 // άνοιγμα οδηγού προσθήκης
   onScanCreate: () => void;                  // δημιουργία + άνοιγμα σάρωσης εγγράφου
-  onDemoReady: (propertyId: string) => void; // μετά το seed, πήγαινε στο ακίνητο
-  onProfile?: (v: 'individual' | 'professional') => void; // επιλογή τύπου προφίλ
-  onClose: () => void;                       // «αργότερα» / κλείσιμο
+  onProfile?: (v: 'individual' | 'professional') => void;
+  onClose: () => void;                       // «Αργότερα» / κλείσιμο
 }
 
-const SLIDES = [
-  {
-    icon: 'M3 9.5 12 3l9 6.5|M5 10v10h14V10',
-    title: 'Καλωσόρισες στο Property OS',
-    body: 'Όλη η διαχείριση των ακινήτων σου σε ένα σημείο: έσοδα, δαπάνες, λογαριασμοί, ενοικιαστές και επισκέπτες, και τη Νόα δίπλα σου, να απαντάει για τα δικά σου δεδομένα και αριθμούς.',
-  },
-  {
-    icon: 'M20 12V7H4v10h10|M4 11h16|M16 19l2 2 4-4',
-    title: 'Βγάλε τα περισσότερα από κάθε νύχτα',
-    body: 'Δυναμική τιμολόγηση με βάση την ελληνική εποχικότητα και τη ζήτηση, φορολογική εικόνα βραχυχρόνιας μίσθωσης, και αυτόματος συγχρονισμός κρατήσεων από Airbnb και Booking.',
-  },
-  {
-    icon: 'M9 11l3 3L22 4|M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11',
-    title: 'Ας ξεκινήσουμε',
-    body: 'Πρόσθεσε το πρώτο σου ακίνητο σε ένα λεπτό και θα δεις αμέσως τι αξίζει. Θέλεις να ρίξεις μια ματιά πρώτα; Δοκίμασε το demo με έτοιμα δείγματα.',
-  },
-];
+interface CardRow { left: string; right: string }
+interface WelcomeCard { label: string; title: string; copy: string; rows: [CardRow, CardRow] }
 
-const ic = (d: string) => <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{d.split('|').map((p, i) => <path key={i} d={p} />)}</svg>;
+/** Ημέρα και μήνας μιας προθεσμίας, όπως γράφεται σε ημερολόγιο. */
+const dayMonth = (iso: string): string => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 
-export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate, onDemoReady, onProfile, onClose }: Props) {
+/**
+ * Οι τέσσερις κάρτες, με τα δεδομένα τους.
+ *
+ * ΤΑ ΛΕΚΤΙΚΑ ΕΙΝΑΙ ΟΝΟΜΑΤΙΚΕΣ ΦΡΑΣΕΙΣ, ΟΧΙ ΠΡΟΣΤΑΚΤΙΚΗ. «Ο φάκελος του
+ * λογιστή», όχι «Ετοίμασε τον φάκελο». Η προστακτική ανήκει στα κουμπιά.
+ * Τα τέσσερα κείμενα γράφτηκαν να έχουν σχεδόν ίδιο μήκος ώστε να ξεκινούν και
+ * να τελειώνουν μαζί μέσα στην κάρτα.
+ */
+function buildCards(today: string): WelcomeCard[] {
+  const s = demoSummary(today);
+  const ledger = demoLedger(s.year);
+  const power = demoExpenses(s.year).find(e => e.category === 'electricity')!;
+  const deadlines = taxObligationsHorizon(today, 'long_term').slice(0, 2);
+  const monthlyTax = s.statement.incomeTax / 12;
+
+  return [
+    {
+      label: 'ΛΟΓΙΣΤΙΚΗ',
+      title: 'Ο φάκελος του λογιστή',
+      copy: 'Ένα ενημερωμένο αρχείο με όσα ζητά ο λογιστής και μια σελίδα με τις ελλείψεις.',
+      rows: [
+        { left: `Κατάσταση αποτελεσμάτων ${s.year}`, right: fe(s.collected) },
+        { left: 'Δαπάνες σε λογαριασμούς ΕΛΠ', right: `${ledger.length} κατηγορίες` },
+      ],
+    },
+    {
+      label: 'ΔΑΠΑΝΕΣ',
+      title: 'Αναγνώριση παραστατικών',
+      copy: 'Από τη σάρωση προκύπτουν η κατηγορία, το ΑΦΜ και ο λογαριασμός.',
+      rows: [
+        { left: power.description, right: fe(power.amount) },
+        { left: categoryLabel(power.category), right: `λογαριασμός ${expenseAccount(power.category).code}` },
+      ],
+    },
+    {
+      label: 'ΥΠΟΧΡΕΩΣΕΙΣ',
+      title: 'Το ημερολόγιο προθεσμιών',
+      copy: 'Κάθε δήλωση και κάθε δόση με την επίσημη καταληκτική ημερομηνία.',
+      rows: [
+        { left: deadlines[0]?.title ?? '', right: deadlines[0] ? dayMonth(deadlines[0].date) : '' },
+        { left: deadlines[1]?.title ?? '', right: deadlines[1] ? dayMonth(deadlines[1].date) : '' },
+      ],
+    },
+    {
+      label: 'ΒΟΗΘΟΣ',
+      title: 'Νόα, δίπλα σου',
+      copy: 'Απαντά στα ελληνικά, με βάση τα δικά σου δεδομένα και στοιχεία.',
+      rows: [
+        { left: 'Πόσο φόρο θα πληρώσω φέτος;', right: fe(s.statement.incomeTax) },
+        { left: 'Στο παράδειγμα της χρονιάς', right: `${fe(monthlyTax)} τον μήνα` },
+      ],
+    },
+  ];
+}
+
+export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate, onProfile, onClose }: Props) {
   const supabase = createClient();
   const [step, setStep] = useState(0);
-  const [busy, setBusy] = useState(false);
   const [profile, setProfile] = useState<'individual' | 'professional'>('individual');
+  const [cards] = useState(() => buildCards(isoDate(new Date())));
+
   const chooseProfile = (v: 'individual' | 'professional') => {
     setProfile(v); onProfile?.(v);
     void saved('Ο τύπος προφίλ δεν αποθηκεύτηκε',
@@ -86,213 +150,148 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
     if (v) chooseForm('sole_trader'); else saveLegal('individual', 'none');
   };
 
-  const mark = async (patch: Record<string, boolean>) => {
+  const mark = async () => {
     await saved('Η πρόοδος της υποδοχής δεν αποθηκεύτηκε', supabase.from('onboarding_progress')
-      .upsert({ user_id: userId, welcomed: true, ...patch, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }));
+      .upsert({ user_id: userId, welcomed: true, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }));
   };
 
-  const addProperty = async () => { await mark({}); onAddProperty(); };
-  const scanCreate = async () => { await mark({}); onScanCreate(); };
-  const later = async () => { await mark({}); onClose(); };
+  const addProperty = async () => { await mark(); onAddProperty(); };
+  const scanCreate = async () => { await mark(); onScanCreate(); };
+  const later = async () => { await mark(); onClose(); };
 
-  // Demo: δημιουργεί ένα δείγμα ακινήτου με διαμονές ώστε να λάμψουν τα εργαλεία.
-  const startDemo = async () => {
-    setBusy(true);
-    try {
-      const { data: prop, error: pe } = await properties.add(supabase, {
-        user_id: userId, name: 'Demo: Διαμέρισμα, Κουκάκι', prop_type: 'apartment', status_detail: 'seasonal',
-        address: 'Δείγμα, Αθήνα', postal_code: '11742', sqm: 62, value: 195000, target_rent: 850, year_built: 2006, bedrooms: 1,
-      });
-      if (pe || !prop) throw new Error(pe?.message || 'demo property');
-      const pid = prop.id as string;
+  const c = cards[step];
+  const last = step === cards.length - 1;
 
-      // Το try/catch εδώ ΕΧΕΙ αληθινή εναλλακτική (κανονική προσθήκη ακινήτου),
-      // οπότε το σωστό εργαλείο είναι η `must`: κάνει το σφάλμα να πετάξει, ώστε
-      // μισό δείγμα να μη φτάσει ποτέ στην οθόνη.
-      const cl = await must(supabase.from('clients').insert({
-        user_id: userId, type: 'client', full_name: 'Demo: Επισκέπτης', stage: 'closed', notes: 'Δείγμα για επίδειξη.',
-      }).select('id').single());
-      const clientId = cl?.id as string | undefined;
-
-      if (clientId) {
-        // Τοπική ημερομηνία, όχι UTC: το δείγμα διαμονών έμπαινε μία μέρα πίσω
-        // για δύο ως τρεις ώρες κάθε νύχτα.
-        const iso = (dt: Date) => isoDate(dt);
-        const mk = (offsetDays: number, nights: number, rate: number, channel: string) => {
-          const ci = new Date(); ci.setDate(ci.getDate() + offsetDays);
-          const co = new Date(ci); co.setDate(co.getDate() + nights);
-          return { user_id: userId, client_id: clientId, property_id: pid, check_in: iso(ci), check_out: iso(co), nights, nightly_rate: rate, total: nights * rate, channel };
-        };
-        await must(stayStore.add(supabase, [
-          mk(-45, 4, 95, 'airbnb'), mk(-20, 3, 110, 'booking'), mk(8, 5, 120, 'airbnb'), mk(30, 2, 130, 'airbnb'),
-        ]));
-      }
-      await must(supabase.from('pricing_settings').upsert({ user_id: userId, property_id: pid, base: 100, min_price: 60, max_price: 220, weekend_premium: 0.18, min_stay: 2, updated_at: new Date().toISOString() }, { onConflict: 'user_id,property_id' }));
-
-      await mark({ demo_seen: true, first_property: true });
-      onDemoReady(pid);
-    } catch {
-      // Αν αποτύχει το demo, απλώς προχώρα στην κανονική προσθήκη.
-      await mark({});
-      onAddProperty();
-    } finally { setBusy(false); }
-  };
-
-  const s = SLIDES[step];
-  const last = step === SLIDES.length - 1;
-
-  // Premium κουμπιά (κεντραρισμένα, καθαρά, με hover) — χωρίς το γενικό Btn.
-  // Τα ύψη ήταν 50 και 48, δηλαδή δύο ακόμη τιμές έξω από την κλίμακα, για δύο
-  // κουμπιά που στέκονται το ένα κάτω από το άλλο· και το μέγεθος 15 δεν υπάρχει
-  // στην τυπογραφική κλίμακα. Η ιεραρχία δεν χανόταν με τα 2px διαφορά — τη
-  // δίνουν το φόντο, το βάρος και η σκιά, που μένουν ως έχουν.
+  // Premium κουμπιά (καθαρά, με hover) — χωρίς το γενικό Btn: εδώ τα κουμπιά
+  // πιάνουν όλο το πλάτος της κάρτας και έχουν δική τους ιεραρχία βάρους.
   const primaryBtn: React.CSSProperties = {
-    width: '100%', height: T.h.lg, borderRadius: T.radius.inner, border: 'none', cursor: busy ? 'default' : 'pointer',
+    height: T.h.lg, borderRadius: T.radius.inner, border: 'none', cursor: 'pointer',
     background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 14, fontWeight: 700, fontFamily: T.font.sans,
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, letterSpacing: '-0.01em',
+    padding: '0 22px',
     boxShadow: '0 8px 20px -8px color-mix(in srgb, var(--accent) 65%, transparent)',
-    transition: 'filter 0.15s ease, transform 0.08s ease', opacity: busy ? 0.7 : 1,
-  };
-  const secondaryBtn: React.CSSProperties = {
-    width: '100%', height: T.h.lg, borderRadius: T.radius.inner, cursor: busy ? 'default' : 'pointer',
-    background: 'var(--surface-raised)', color: 'var(--text-primary)', border: '1px solid var(--border-default)',
-    fontSize: 14, fontWeight: 600, fontFamily: T.font.sans, display: 'flex', alignItems: 'center', justifyContent: 'center',
-    boxShadow: 'var(--highlight-inset), var(--elev-1)', transition: 'background 0.15s ease, transform 0.08s ease',
+    transition: `filter 0.15s ${T.ease.standard}, transform 0.15s ${T.ease.standard}`,
   };
   const linkBtn: React.CSSProperties = {
     background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: T.font.sans,
-    padding: '8px 6px', width: '100%', textAlign: 'center',
+    padding: '8px 6px', textAlign: 'center',
   };
   // Μία ετικέτα ενότητας και δύο σχήματα επιλογής για ΟΛΕΣ τις ερωτήσεις αυτής
   // της οθόνης: κάρτα για τη βασική επιλογή, pill για τη λεπτομέρεια. Χωρίς αυτά
   // η ίδια επιλογή γραφόταν τρεις φορές με τρεις μικροδιαφορές.
-  const capLabel: React.CSSProperties = {
-    fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
-    color: 'var(--text-tertiary)', textAlign: 'center', marginBottom: 10,
-  };
+  const capLabel: React.CSSProperties = { ...TT.label, color: 'var(--text-tertiary)', marginBottom: 10 };
   const choice = (on: boolean): React.CSSProperties => ({
     textAlign: 'center', cursor: 'pointer', borderRadius: T.radius.inner, padding: '11px 8px',
     border: `1px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`,
     background: on ? 'var(--accent-soft)' : 'var(--surface-raised)',
     boxShadow: on ? '0 0 0 3px var(--accent-dim)' : 'none',
-    transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s', fontFamily: T.font.sans,
+    transition: `background-color 0.15s ${T.ease.standard}, border-color 0.15s ${T.ease.standard}, box-shadow 0.15s ${T.ease.standard}`,
+    fontFamily: T.font.sans,
   });
   const pill = (on: boolean): React.CSSProperties => ({
     flex: 1, minWidth: 88, cursor: 'pointer', borderRadius: T.radius.pill, padding: '7px 12px',
     border: `1px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`,
     background: on ? 'var(--accent-soft)' : 'var(--surface-raised)',
     color: on ? 'var(--accent)' : 'var(--text-secondary)',
-    fontSize: 12, fontWeight: 600, fontFamily: T.font.sans, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s',
+    fontSize: 12, fontWeight: 600, fontFamily: T.font.sans,
+    transition: `background-color 0.15s ${T.ease.standard}, border-color 0.15s ${T.ease.standard}, color 0.15s ${T.ease.standard}`,
   });
 
   const press = (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.transform = 'scale(0.985)'; };
   const release = (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.transform = 'none'; };
-  const brighten = (e: React.MouseEvent<HTMLButtonElement>) => { if (!busy) e.currentTarget.style.filter = 'brightness(1.06)'; };
+  const brighten = (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.filter = 'brightness(1.06)'; };
   const unbrighten = (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.filter = 'none'; };
 
   return (
-    // ═══ ΓΙΑΤΙ ΑΥΤΟ ΔΕΝ ΕΓΙΝΕ Modal ═══════════════════════════════════════
-    // 1. ΔΕΝ ΚΛΕΙΝΕΙ ΜΕ Escape ΟΥΤΕ ΜΕ ΚΛΙΚ ΣΤΟ ΦΟΝΤΟ, ΕΠΙΤΗΔΕΣ. Ο μόνος
-    //    δρόμος εξόδου είναι η «Παράλειψη» / «Θα το κάνω αργότερα», που πρώτα
-    //    γράφουν `welcomed: true` στο onboarding_progress και ΜΕΤΑ κλείνουν
-    //    (later → mark → onClose). Το `onClose` του γονέα κάνει σκέτο
-    //    `setShowWelcome(false)` (dashboard/page.tsx). Με Modal, ένα Escape θα
-    //    καλούσε κατευθείαν εκείνο το onClose: η υποδοχή θα «έκλεινε» χωρίς να
-    //    καταγραφεί και θα ξαναέσκαγε στην επόμενη φόρτωση, για πάντα.
-    // 2. ΔΕΝ ΕΙΝΑΙ ΤΙΤΛΟΣ + ΣΩΜΑ + ΕΝΕΡΓΕΙΕΣ. Είναι τρεις διαφάνειες υποδοχής:
-    //    εικονίδιο 72px στο κέντρο, τίτλος και κείμενο κεντραρισμένα, δείκτες
-    //    βημάτων, κουμπιά σε στήλη. Η κεφαλίδα του Modal (μικρό εικονίδιο και
-    //    τίτλος αριστερά, «×» δεξιά) θα διέλυε ακριβώς αυτή τη γεωμετρία και θα
-    //    πρόσθετε δεύτερο τρόπο κλεισίματος δίπλα στην «Παράλειψη».
-    // 3. ΖΕΙ ΠΑΝΩ ΑΠΟ ΤΑ ΠΑΡΑΘΥΡΑ (z-index 3000 έναντι 1000): από εδώ ανοίγει ο
-    //    οδηγός προσθήκης ακινήτου, δεν ανοίγει από πάνω του.
-    // Ό,τι ΜΠΟΡΟΥΣΕ να ευθυγραμμιστεί, ευθυγραμμίστηκε: scrim, ακτίνες, ύψη
-    // χειριστηρίων, μεγέθη γραμματοσειράς.
-    <div role="dialog" aria-modal="true" aria-label="Καλωσόρισμα" style={{ position: 'fixed', inset: 0, background: T.scrim, backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: 16 }}>
+    <div role="dialog" aria-modal="true" aria-label="Καλωσόρισμα"
+      style={{ position: 'fixed', inset: 0, background: T.scrim, backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: T.sp.lg, overflowY: 'auto' }}>
       <style>{`@keyframes welcomeIn{from{opacity:0;transform:translateY(8px) scale(0.98)}to{opacity:1;transform:none}}`}</style>
-      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.modal, width: 'min(440px, 100%)', overflow: 'hidden', boxShadow: 'var(--elev-3)', fontFamily: T.font.sans, animation: 'welcomeIn 0.3s cubic-bezier(0.2,0,0,1)' }}>
-        {/* Κεφαλίδα: παράλειψη */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '14px 16px 0' }}>
-          <button onClick={later} style={{ ...linkBtn, width: 'auto', color: 'var(--text-tertiary)', fontSize: 12, padding: 6 }}>Παράλειψη</button>
+      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.modal, width: 'min(460px, 100%)', boxShadow: 'var(--elev-3)', fontFamily: T.font.sans, animation: `welcomeIn 0.3s ${T.ease.standard}`, padding: '26px 26px 22px' }}>
+
+        {/* ── Η ΚΑΡΤΑ ────────────────────────────────────────────────────────
+            Ετικέτα, τίτλος, κείμενο, δεδομένα — πάντα με αυτή τη σειρά και σε
+            σταθερά ύψη, ώστε καμία λέξη να μη μετακινείται από κάρτα σε κάρτα. */}
+        <div style={{ ...TT.label, color: 'var(--accent)' }}>{c.label}</div>
+        <div style={{ ...TT.h1, fontSize: 20, marginTop: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.title}</div>
+        <div style={{ ...TT.bodySm, fontSize: 13, lineHeight: 1.55, marginTop: 8, minHeight: 40 }}>{c.copy}</div>
+
+        <div style={{ marginTop: 16, border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, background: 'var(--bg-elevated)', padding: '12px 14px' }}>
+          {c.rows.map((r, i) => (
+            <div key={r.left} style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: T.sp.md, marginTop: i === 0 ? 0 : 8 }}>
+              <span style={{ ...(i === 0 ? TT.bodySm : TT.caption), color: i === 0 ? 'var(--text-primary)' : 'var(--text-tertiary)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.left}</span>
+              <span style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: i === 0 ? 13 : 11, fontWeight: i === 0 ? 700 : 500, color: i === 0 ? 'var(--text-primary)' : 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{r.right}</span>
+            </div>
+          ))}
         </div>
 
-        {/* Οπτικό + κείμενο */}
-        <div style={{ padding: '4px 36px 4px', textAlign: 'center' }}>
-          <div style={{ width: 72, height: 72, borderRadius: 18, background: 'linear-gradient(150deg, var(--accent-soft), color-mix(in srgb, var(--accent) 8%, transparent))', border: '1px solid var(--accent-border)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 22px', boxShadow: 'var(--highlight-inset), var(--elev-2)' }}>{ic(s.icon)}</div>
-          <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', lineHeight: 1.25, marginBottom: 12 }}>{s.title}</div>
-          <div style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--text-secondary)', minHeight: 92, maxWidth: 340, margin: '0 auto' }}>{s.body}</div>
-        </div>
-
-        {/* Επιλογή τύπου προφίλ (μόνο στο πρώτο slide) */}
-        {step === 0 && (
-          <div style={{ padding: '18px 24px 0' }}>
-            <div style={capLabel}>Τι σε περιγράφει;</div>
+        {/* ── ΟΙ ΕΡΩΤΗΣΕΙΣ, ΜΟΝΟ ΣΤΗΝ ΤΕΛΕΥΤΑΙΑ ΚΑΡΤΑ ────────────────────── */}
+        {last && (
+          <div style={{ marginTop: 22, paddingTop: 20, borderTop: '1px solid var(--border-subtle)' }}>
+            <div style={capLabel}>ΤΙ ΣΕ ΠΕΡΙΓΡΑΦΕΙ</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               {([['individual', 'Ιδιώτης', 'δικά μου ακίνητα'], ['professional', 'Επαγγελματίας', 'διαχείριση πολλών']] as const).map(([v, t, sub]) => {
                 const on = profile === v;
                 return (
                   <button key={v} onClick={() => chooseProfile(v)} style={choice(on)}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: on ? 'var(--accent)' : 'var(--text-primary)' }}>{t}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{sub}</div>
+                    <div style={{ ...TT.caption, marginTop: 2 }}>{sub}</div>
                   </button>
                 );
               })}
             </div>
 
-            {/* Νομική μορφή: ένα ναι/όχι, και τα υπόλοιπα μόνο αν χρειάζονται. */}
-            <div style={{ ...capLabel, marginTop: 18 }}>Φορολογικά, τι είσαι;</div>
+            <div style={{ ...capLabel, marginTop: 18 }}>ΦΟΡΟΛΟΓΙΚΑ, ΤΙ ΕΙΣΑΙ</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               {([[false, 'Φυσικό πρόσωπο', 'μόνο δήλωση'], [true, 'Έχω επιχείρηση', 'ή ελεύθ. επαγγελματίας']] as const).map(([v, t, sub]) => (
                 <button key={String(v)} onClick={() => chooseBiz(v)} style={choice(hasBiz === v)}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: hasBiz === v ? 'var(--accent)' : 'var(--text-primary)' }}>{t}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{sub}</div>
+                  <div style={{ ...TT.caption, marginTop: 2 }}>{sub}</div>
                 </button>
               ))}
             </div>
 
             {hasBiz === true && (
               <>
-                <div style={{ ...capLabel, marginTop: 14 }}>Μορφή</div>
+                <div style={{ ...capLabel, marginTop: 14 }}>ΜΟΡΦΗ</div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {([['sole_trader', 'Ατομική'], ['partnership', 'ΟΕ / ΕΕ'], ['company', 'ΑΕ / ΕΠΕ / ΙΚΕ']] as const).map(([v, t]) => (
                     <button key={v} onClick={() => chooseForm(v)} style={pill(legalForm === v)}>{t}</button>
                   ))}
                 </div>
 
-                <div style={{ ...capLabel, marginTop: 14 }}>Βιβλία</div>
+                <div style={{ ...capLabel, marginTop: 14 }}>ΒΙΒΛΙΑ</div>
                 <div style={{ display: 'flex', gap: 6 }}>
                   {([['single_entry', 'Απλογραφικά'], ['double_entry', 'Διπλογραφικά']] as const).map(([v, t]) => (
                     <button key={v} onClick={() => saveLegal(legalForm, v)} style={pill(books === v)}>{t}</button>
                   ))}
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 8, lineHeight: 1.45 }}>
-                  Δεν είσαι σίγουρος; Άσε την πρόταση όπως είναι· αλλάζει από τις Ρυθμίσεις όποτε θέλεις.
+                <div style={{ ...TT.caption, marginTop: 8 }}>
+                  Η πρόταση αλλάζει από τις Ρυθμίσεις όποτε χρειαστεί.
                 </div>
               </>
             )}
           </div>
         )}
 
-        {/* Δείκτες βημάτων */}
-        <div style={{ display: 'flex', gap: 7, justifyContent: 'center', padding: '20px 0 22px' }}>
-          {SLIDES.map((_, i) => (
-            <span key={i} style={{ width: i === step ? 24 : 7, height: 7, borderRadius: 6, background: i === step ? 'var(--accent)' : 'var(--border-default)', transition: 'background-color 0.28s cubic-bezier(0.2,0,0,1), border-color 0.28s cubic-bezier(0.2,0,0,1), color 0.28s cubic-bezier(0.2,0,0,1), box-shadow 0.28s cubic-bezier(0.2,0,0,1), transform 0.28s cubic-bezier(0.2,0,0,1), opacity 0.28s cubic-bezier(0.2,0,0,1)' }} />
-          ))}
+        {/* ── ΔΕΙΚΤΕΣ ΚΑΙ ΕΝΕΡΓΕΙΕΣ, ΣΤΗΝ ΙΔΙΑ ΓΡΑΜΜΗ ────────────────────── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: T.sp.md, marginTop: 22, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 7, flex: 1 }}>
+            {cards.map((_, i) => (
+              <span key={i} style={{ width: i === step ? 22 : 7, height: 7, borderRadius: 6, background: i === step ? 'var(--accent)' : 'var(--border-default)', transition: `width 0.28s ${T.ease.standard}, background-color 0.28s ${T.ease.standard}` }} />
+            ))}
+          </div>
+          {!last && <button onClick={later} style={{ ...linkBtn, color: 'var(--text-tertiary)' }}>Αργότερα</button>}
+          {!last
+            ? <button onClick={() => setStep(step + 1)} style={primaryBtn} onMouseEnter={brighten} onMouseLeave={e => { unbrighten(e); release(e); }} onMouseDown={press} onMouseUp={release}>Επόμενο</button>
+            : <button onClick={addProperty} style={primaryBtn} onMouseEnter={brighten} onMouseLeave={e => { unbrighten(e); release(e); }} onMouseDown={press} onMouseUp={release}>Ας ξεκινήσουμε</button>}
         </div>
 
-        {/* Ενέργειες */}
-        <div style={{ padding: '0 24px 26px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {!last ? (
-            <button onClick={() => setStep(step + 1)} style={primaryBtn} onMouseEnter={brighten} onMouseLeave={e => { unbrighten(e); release(e); }} onMouseDown={press} onMouseUp={release}>Επόμενο</button>
-          ) : (
-            <>
-              <button onClick={addProperty} disabled={busy} style={primaryBtn} onMouseEnter={brighten} onMouseLeave={e => { unbrighten(e); release(e); }} onMouseDown={press} onMouseUp={release}>Πρόσθεσε το πρώτο σου ακίνητο</button>
-              <button onClick={startDemo} disabled={busy} style={secondaryBtn} onMouseEnter={e => { if (!busy) e.currentTarget.style.background = 'var(--bg-elevated)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface-raised)'; release(e); }} onMouseDown={press} onMouseUp={release}>{busy ? 'Προετοιμασία demo…' : 'Δες demo με έτοιμα δεδομένα'}</button>
-              <button onClick={scanCreate} disabled={busy} style={{ ...linkBtn, color: 'var(--accent)' }}>ή σκάναρε λογαριασμό ή συμβόλαιο</button>
-              <button onClick={later} disabled={busy} style={{ ...linkBtn, color: 'var(--text-tertiary)' }}>Θα το κάνω αργότερα</button>
-            </>
-          )}
-        </div>
+        {last && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: T.sp.md, marginTop: 6 }}>
+            <button onClick={scanCreate} style={{ ...linkBtn, color: 'var(--accent)' }}>Σάρωση εγγράφου</button>
+            <button onClick={later} style={{ ...linkBtn, color: 'var(--text-tertiary)' }}>Αργότερα</button>
+          </div>
+        )}
       </div>
     </div>
   );

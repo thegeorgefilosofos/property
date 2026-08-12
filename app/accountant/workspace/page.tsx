@@ -48,7 +48,17 @@ export default function AccountantWorkspace() {
     setRows(await clients(supabase, y));
   }, [supabase]);
 
-  useEffect(() => { if (email) void load(year); }, [email, year, load]);
+  // ΤΟ ΑΠΟΤΕΛΕΣΜΑ ΓΡΑΦΕΤΑΙ ΜΟΝΟ ΑΝ Η ΟΘΟΝΗ ΤΟ ΠΕΡΙΜΕΝΕΙ ΑΚΟΜΗ. Χωρίς το `alive`,
+  // δύο γρήγορες αλλαγές έτους αφήνουν το ΑΡΓΟΤΕΡΟ ερώτημα να απαντήσει πρώτο:
+  // ο λογιστής διαλέγει 2025 και βλέπει τους πελάτες του 2024. Και η κλήση
+  // φεύγει από το σώμα του effect, όπου ένα σύγχρονο setState προκαλεί
+  // αλυσιδωτές αποδόσεις.
+  useEffect(() => {
+    if (!email) return;
+    let alive = true;
+    clients(supabase, year).then(r => { if (alive) setRows(r); });
+    return () => { alive = false; };
+  }, [supabase, email, year]);
 
   // ΑΠΟ ΤΟΝ ΣΥΝΔΕΣΜΟ, ΟΧΙ ΜΟΝΟ ΑΠΟ ΤΟ TOKEN. Ο ιδιοκτήτης στέλνει ολόκληρη τη
   // διεύθυνση· το να ζητάμε από τον λογιστή να ψαλιδίσει το τελευταίο κομμάτι
@@ -126,7 +136,7 @@ export default function AccountantWorkspace() {
           Όταν η λίστα γεμίσει, παύει να είναι η πρώτη — αλλά ούτε ενοχλεί, γιατί
           είναι μία γραμμή. */}
       <Card style={{ marginTop: 22 }}>
-        <p style={label}>Πρόσθεσε πελάτη</p>
+        <p style={label}>Νέος πελάτης</p>
         <div style={{ display: 'flex', gap: 10, marginTop: 10, flexWrap: 'wrap' }}>
           <input
             value={token}
@@ -134,7 +144,7 @@ export default function AccountantWorkspace() {
             onKeyDown={e => { if (e.key === 'Enter') void addClient(); }}
             placeholder="Επικόλλησε τον σύνδεσμο που σου έστειλε ο ιδιοκτήτης"
             style={{
-              flex: '1 1 340px', height: 40, padding: '0 13px', borderRadius: 10,
+              flex: '1 1 340px', height: T.h.lg, padding: '0 13px', borderRadius: T.radius.inner,
               border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)',
               color: 'var(--text-primary)', fontSize: 13, fontFamily: T.font.sans,
             }}
@@ -143,12 +153,12 @@ export default function AccountantWorkspace() {
             onClick={() => void addClient()}
             disabled={adding || !token.trim()}
             style={{
-              height: 40, padding: '0 18px', borderRadius: 10, border: 'none',
+              height: T.h.lg, padding: '0 18px', borderRadius: T.radius.inner, border: 'none',
               background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 13, fontWeight: 600,
               fontFamily: T.font.sans, cursor: adding || !token.trim() ? 'default' : 'pointer',
               opacity: adding || !token.trim() ? 0.5 : 1,
             }}
-          >{adding ? 'Γίνεται' : 'Πρόσθεσε'}</button>
+          >{adding ? 'Προσθήκη…' : 'Πρόσθεσε'}</button>
         </div>
         {notice && (
           <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '10px 0 0', fontFamily: T.font.sans }}>{notice}</p>

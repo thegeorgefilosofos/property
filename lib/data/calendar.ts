@@ -38,6 +38,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { CalendarEventsRow } from '@/lib/supabase/tables';
 import type { DbError } from '@/lib/supabase/writeResult';
+// ΤΟ ΠΡΟΘΕΜΑ ΤΩΝ ΦΟΡΟΛΟΓΙΚΩΝ ΓΕΓΟΝΟΤΩΝ ΖΕΙ ΣΤΟ ΗΜΕΡΟΛΟΓΙΟ ΤΩΝ ΥΠΟΧΡΕΩΣΕΩΝ, ΜΙΑ
+// ΦΟΡΑ. Η αντίστροφη εισαγωγή εκεί είναι `import type`, δηλαδή σβήνεται στη
+// μεταγλώττιση: δεν σχηματίζεται κύκλος στην εκτέλεση.
+import { TAX_SOURCE_PREFIX } from '@/lib/tax/greekTaxCalendar';
 
 const TABLE = 'calendar_events';
 
@@ -247,6 +251,25 @@ export async function upcoming(
 export async function exists(db: Db, propertyId: string, match: EventMatch): Promise<boolean> {
   const { data } = await applyMatch(scoped(db, propertyId, 'id'), match).limit(1);
   return !!(data && (data as unknown[]).length);
+}
+
+/**
+ * Πόσα φορολογικά γεγονότα έχει ο ΧΡΗΣΤΗΣ, σε όλα του τα ακίνητα.
+ *
+ * ΓΙΑΤΙ ΔΕΝ ΕΙΝΑΙ ΑΝΑ ΑΚΙΝΗΤΟ, ΟΠΩΣ ΟΛΑ ΤΑ ΥΠΟΛΟΙΠΑ ΕΔΩ. Ο πίνακας υποδοχής
+ * ρωτά «είδε ποτέ τις προθεσμίες του;» — ερώτηση του λογαριασμού, όχι του
+ * ακινήτου. Με εμβέλεια ακινήτου, ο χρήστης που δέχτηκε τις προθεσμίες στο
+ * πρώτο του ακίνητο και μετά άνοιξε δεύτερο θα ξανάβλεπε το βήμα ανοιχτό.
+ *
+ * ΜΕΤΡΑΕΙ, ΔΕΝ ΚΑΤΕΒΑΖΕΙ (`head: true`): η απάντηση είναι ένας αριθμός, και σε
+ * λογαριασμό με τριάντα ακίνητα οι γραμμές θα ήταν εκατοντάδες για ένα «>0».
+ */
+export async function taxEventCount(db: Db, userId: string): Promise<number> {
+  const { count } = await db.from(TABLE)
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .like('source', `${TAX_SOURCE_PREFIX}%`);
+  return count || 0;
 }
 
 // ── ΓΡΑΨΙΜΟ ────────────────────────────────────────────────────────────────
