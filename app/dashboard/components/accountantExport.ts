@@ -15,7 +15,7 @@
 // Πραγματικά κελιά, ημερομηνίες ως ημερομηνίες, ποσά ως νόμισμα (2 δεκαδικά),
 // σωστή στοίχιση/πλαίσια — σαν να το ετοίμασε λογιστής. Ασπρόμαυρο, καθαρό.
 // ═══════════════════════════════════════════════════════════════════════════
-import { XLSX, FMT, S, setCell, downloadWorkbook, printTitles, MARGINS, money, moneySigned, type Cell } from './xlsxStyle';
+import { XLSX, FMT, S, setCell, downloadWorkbook, printTitles, MARGINS, sheetFinish, workbookBytes, money, moneySigned, type Cell } from './xlsxStyle';
 import { supplyLabel, reverseChargeVat, reverseCharge, VAT_STANDARD, type Supply } from '@/lib/tax/placeOfSupply';
 import {
   myDataHint, myDataCell, pendingGroups, EXPENSE_CLASS_LABEL, INVOICE_TYPE_LABEL,
@@ -88,9 +88,59 @@ const supplyCell = (s: string | null | undefined): string =>
 const toDate = (d: string): Date | string => { const t = new Date(d + 'T00:00:00'); return isNaN(t.getTime()) ? d : t; };
 /** Το φύλλο αναφοράς, ονομασμένο ΜΙΑ φορά: το φύλλο και η παραπομπή σε αυτό. */
 const COMBO_SHEET = 'Επιτρεπτοί συνδυασμοί ΑΑΔΕ';
+/** Οι τιμές του αναπτυσσόμενου καταλόγου στον τόπο παροχής, από τη μία πηγή. */
+const SUPPLY_VALUES: readonly string[] = (['domestic', 'intra_eu', 'third_country'] as const).map(supplyLabel);
 // Ιταλική γκρι σημείωση για «memo» γραμμές (π.χ. πρόβλεψη φόρου) — διακριτή από το αποτέλεσμα.
 const MEMO_TXT = { font: { name: 'Calibri', color: { rgb: '6B7280' }, sz: 10, italic: true }, alignment: { horizontal: 'left', vertical: 'center' } };
 const MEMO_NUM = { font: { name: 'Calibri', color: { rgb: '6B7280' }, sz: 10, italic: true }, alignment: { horizontal: 'right', vertical: 'center' } };
+
+/**
+ * Ο ΠΙΝΑΚΑΣ ΤΩΝ ΕΠΙΤΡΕΠΤΩΝ ΣΥΝΔΥΑΣΜΩΝ, ΥΠΟΛΟΓΙΣΜΕΝΟΣ ΜΙΑ ΦΟΡΑ.
+ *
+ * Είναι σταθερός: βγαίνει από το μητρώο της ΑΑΔΕ και δεν εξαρτάται από τα
+ * δεδομένα του χρήστη. Ζει εδώ, έξω από τη `buildWorkbook`, γιατί ΔΥΟ φύλλα
+ * τον χρειάζονται — το φύλλο των συνδυασμών για να τον γράψει, και το φύλλο
+ * των χαρακτηρισμών για να δείξει τον αναπτυσσόμενο κατάλογό του σε στήλη που
+ * γράφεται ΠΡΙΝ από αυτόν. Χωρίς αυτό, η διεύθυνση του καταλόγου («$B$63»)
+ * θα ήταν γραμμένη με το χέρι σε δύο σημεία.
+ */
+const comboSheet = (() => {
+  // Οι στήλες βγαίνουν ΑΠΟ ΤΟ ΜΗΤΡΩΟ, όχι από λίστα γραμμένη με το χέρι: αν
+  // η ΑΑΔΕ προσθέσει κατηγορία, ο πίνακας την αποκτά μόνος του.
+  const famCols = (fam: 'income' | 'expense', prefix: string) => {
+    const set = new Set<string>();
+    for (const t of Object.values(AADE_DOC_TYPES)) for (const c of t[fam]) if (c.startsWith(prefix)) set.add(c);
+    return [...set].sort((a, b) => Number(a.slice(prefix.length)) - Number(b.slice(prefix.length)));
+  };
+  const expCols = famCols('expense', 'category2_'), incCols = famCols('income', 'category1_');
+  const shortOf = (code: string) => code.replace(/^category(\d)_/, '$1.');
+  // ΜΙΑ ΙΔΙΑΙΤΕΡΟΤΗΤΑ ΤΗΣ ΠΗΓΗΣ, ΠΟΥ ΔΕΝ «ΔΙΟΡΘΩΝΕΤΑΙ» ΣΙΩΠΗΛΑ. Το φύλλο 17.6
+  // γράφει κωδικούς ΕΞΟΔΩΝ στη στήλη των εσόδων. Ο πίνακας των εσόδων κρατά
+  // μόνο κωδικούς `category1_`, οπότε ο τύπος απλώς δεν εμφανίζεται εκεί —
+  // αντί να εμφανιστεί με στήλες που δεν του ανήκουν.
+  const matrix = (fam: 'income' | 'expense', cols: string[], ids: string[]) => ids
+    .filter(t => AADE_DOC_TYPES[t][fam].some(c => cols.includes(c)))
+    .map(t => [t, AADE_DOC_TYPES[t].title, ...cols.map(c => (AADE_DOC_TYPES[t][fam].includes(c) ? '✓' : ''))]);
+  const expRows = matrix('expense', expCols, expenseDocTypes());
+  const incRows = matrix('income', incCols, incomeDocTypes());
+  // Τα ελληνικά ονόματα υπάρχουν για όσους χαρακτηρισμούς εξόδων παράγει η
+  // εφαρμογή. Των υπολοίπων δεν γράφονται: ο πίνακας της ΑΑΔΕ δίνει κωδικούς,
+  // και ένα όνομα από τη μνήμη μας θα ήταν εικασία σε έγγραφο λογιστή.
+  // Η στήλη Β γράφει τον χαρακτηρισμό ΑΚΡΙΒΩΣ όπως τον γράφει το φύλλο των
+  // κινήσεων, γιατί είναι η ΠΗΓΗ του αναπτυσσόμενου καταλόγου εκεί: μια
+  // διαφορετική μορφή («2.5» εδώ, «2.5 Γενικά Έξοδα…» εκεί) θα έκανε το Excel
+  // να θεωρεί άκυρη κάθε τιμή που έχει ήδη γράψει η εφαρμογή.
+  const namedRows = (Object.keys(EXPENSE_CLASS_LABEL) as ExpenseClass[])
+    .map(c => [CATEGORY_CODE[c], `${c} ${EXPENSE_CLASS_LABEL[c]}`]);
+  const HR = 4;
+  const incSec = HR + 1 + expRows.length + 1, incHead = incSec + 1;
+  const namSec = incHead + 1 + incRows.length + 1, namHead = namSec + 1;
+  // Η διεύθυνση του καταλόγου, σε μορφή που καταλαβαίνει το Excel (1-based, με
+  // το όνομα του φύλλου σε εισαγωγικά γιατί έχει κενά).
+  const classList = `'${COMBO_SHEET}'!$B$${namHead + 2}:$B$${namHead + 1 + namedRows.length}`;
+  return { expCols, incCols, shortOf, expRows, incRows, namedRows, incSec, incHead, namSec, namHead, classList,
+    NC: 2 + Math.max(expCols.length, incCols.length), HR };
+})();
 
 /**
  * Το βιβλίο εργασίας των δύο φύλλων — κοινό για το σκέτο Excel και για τον φάκελο.
@@ -263,6 +313,11 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     setCell(ws, netR, C_IN, { v: moneySigned(Math.round((sumIn - sumEx) * 100) / 100), t: 's' });
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: lastData, c: NC - 1 } }) };
     ws['!margins'] = { ...MARGINS };
+    // ΟΡΙΖΟΝΤΙΑ ΣΕΛΙΔΑ ΚΑΙ ΚΑΤΑΛΟΓΟΣ ΣΤΟΝ ΤΟΠΟ ΠΑΡΟΧΗΣ. Εννέα στήλες σε όρθια
+    // σελίδα κόβονται στη μέση. Και ο τόπος παροχής είναι το πεδίο που ο
+    // λογιστής διορθώνει συχνότερα: με κατάλογο, η διόρθωση δεν μπορεί να
+    // γραφτεί με λέξεις που δεν καταλαβαίνει μετά κανείς.
+    sheetFinish(ws, { landscape: true, lists: [{ ref: `F${HR + 2}:F${lastData + 1}`, values: SUPPLY_VALUES }] });
     // Ο ΛΟΓΙΣΤΗΣ ΤΥΠΩΝΕΙ, ΚΑΙ Η ΔΕΥΤΕΡΗ ΣΕΛΙΔΑ ΧΡΕΙΑΖΕΤΑΙ ΟΝΟΜΑΤΑ. Χωρίς
     // επανάληψη της επικεφαλίδας, από τη σελίδα 2 και μετά ο πίνακας είναι
     // στήλες αριθμών χωρίς τίτλο — και το «Έσοδα / Έξοδα» δεν μαντεύεται.
@@ -341,6 +396,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     }
     for (const r of notes) setCell(ws, r, 0, { s: S.sub });
     ws['!margins'] = { ...MARGINS };
+    sheetFinish(ws, { landscape: true });
     XLSX.utils.book_append_sheet(wb, ws, 'Λογαριασμοί ΕΛΠ');
   }
 
@@ -456,6 +512,15 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     setCell(ws, headA + 1 + classRows.length + 1, 0, { s: S.sub });
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: last, c: NC - 1 } }) };
     ws['!margins'] = { ...MARGINS };
+    // ΟΙ ΔΥΟ ΣΤΗΛΕΣ ΠΟΥ ΑΛΛΑΖΕΙ Ο ΛΟΓΙΣΤΗΣ, ΜΕ ΚΑΤΑΛΟΓΟ. Ο χαρακτηρισμός είναι
+    // υπόδειξη: όποιος τη διορθώνει πρέπει να διαλέγει από τους εννέα του
+    // myDATA και όχι να γράφει «2,5» ή «γενικά έξοδα». Ο κατάλογος δείχνει στη
+    // στήλη του φύλλου των συνδυασμών, γιατί τα λεκτικά ξεπερνούν κατά πολύ
+    // τους 255 χαρακτήρες που δέχεται μια λίστα γραμμένη μέσα στο κελί.
+    sheetFinish(ws, { landscape: true, lists: [
+      { ref: `F${HR + 2}:F${last + 1}`, values: SUPPLY_VALUES },
+      { ref: `I${HR + 2}:I${last + 1}`, source: comboSheet.classList },
+    ] });
     XLSX.utils.book_append_sheet(wb, ws, `Χαρακτηρισμοί myDATA`);
   }
 
@@ -478,31 +543,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
   // ΕΝΑ πλάτος. Κάτω από τις «Κινήσεις», η στήλη «Περιγραφή» των 46 χαρακτήρων
   // θα έκανε τον πίνακα των «✓» να απλώνεται σε τρεις οθόνες.
   if (inp.myData) {
-    // Οι στήλες βγαίνουν ΑΠΟ ΤΟ ΜΗΤΡΩΟ, όχι από λίστα γραμμένη με το χέρι: αν
-    // η ΑΑΔΕ προσθέσει κατηγορία, ο πίνακας την αποκτά μόνος του.
-    const famCols = (fam: 'income' | 'expense', prefix: string) => {
-      const set = new Set<string>();
-      for (const t of Object.values(AADE_DOC_TYPES)) for (const c of t[fam]) if (c.startsWith(prefix)) set.add(c);
-      return [...set].sort((a, b) => Number(a.slice(prefix.length)) - Number(b.slice(prefix.length)));
-    };
-    const expCols = famCols('expense', 'category2_'), incCols = famCols('income', 'category1_');
-    const shortOf = (code: string) => code.replace(/^category(\d)_/, '$1.');
-    // ΜΙΑ ΙΔΙΑΙΤΕΡΟΤΗΤΑ ΤΗΣ ΠΗΓΗΣ, ΠΟΥ ΔΕΝ «ΔΙΟΡΘΩΝΕΤΑΙ» ΣΙΩΠΗΛΑ. Το φύλλο 17.6
-    // γράφει κωδικούς ΕΞΟΔΩΝ στη στήλη των εσόδων. Ο πίνακας των εσόδων κρατά
-    // μόνο κωδικούς `category1_`, οπότε ο τύπος απλώς δεν εμφανίζεται εκεί —
-    // αντί να εμφανιστεί με στήλες που δεν του ανήκουν.
-    const matrix = (fam: 'income' | 'expense', cols: string[], ids: string[]) => ids
-      .filter(t => AADE_DOC_TYPES[t][fam].some(c => cols.includes(c)))
-      .map(t => [t, AADE_DOC_TYPES[t].title, ...cols.map(c => (AADE_DOC_TYPES[t][fam].includes(c) ? '✓' : ''))]);
-    const expRows = matrix('expense', expCols, expenseDocTypes());
-    const incRows = matrix('income', incCols, incomeDocTypes());
-    // Τα ελληνικά ονόματα υπάρχουν για όσους χαρακτηρισμούς εξόδων παράγει η
-    // εφαρμογή. Των υπολοίπων δεν γράφονται: ο πίνακας της ΑΑΔΕ δίνει κωδικούς,
-    // και ένα όνομα από τη μνήμη μας θα ήταν εικασία σε έγγραφο λογιστή.
-    const namedRows = (Object.keys(EXPENSE_CLASS_LABEL) as ExpenseClass[])
-      .map(c => [c, EXPENSE_CLASS_LABEL[c], CATEGORY_CODE[c]]);
-    const NC = 2 + Math.max(expCols.length, incCols.length);
-    const HR = 4;
+    const { expCols, incCols, shortOf, expRows, incRows, namedRows, NC, HR } = comboSheet;
 
     const aoa: (string | number)[][] = [
       ['ΕΠΙΤΡΕΠΤΟΙ ΣΥΝΔΥΑΣΜΟΙ ΧΑΡΑΚΤΗΡΙΣΜΩΝ ΑΝΑ ΤΥΠΟ ΠΑΡΑΣΤΑΤΙΚΟΥ'],
@@ -517,23 +558,19 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       ...incRows,
       [],
       ['ΟΙ ΧΑΡΑΚΤΗΡΙΣΜΟΙ ΕΞΟΔΩΝ ΜΕ ΤΟ ΟΝΟΜΑ ΤΟΥΣ'],
-      ['Χαρακτηρισμός', 'Ονομασία', 'Κωδικός'],
+      ['Κωδικός ΑΑΔΕ', 'Χαρακτηρισμός'],
       ...namedRows,
       [],
       ['Ο ιδιοκτήτης εκδίδει κι εκείνος παραστατικά· ποιο εκδίδει εξαρτάται από τη δραστηριότητα και το κρίνει ο λογιστής. Η εφαρμογή υποδεικνύει μόνο τύπους 14.x, όπου υπόχρεος διαβίβασης είναι ο λήπτης.'],
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws['!cols'] = [{ wch: 9 }, { wch: 52 }, ...Array.from({ length: NC - 2 }, () => ({ wch: 7 }))];
+    // Η πρώτη στήλη χωρά και τον μηχανικό κωδικό («category2_95») του καταλόγου
+    // από κάτω, ώστε να μην κόβεται όταν η διπλανή στήλη έχει τιμή.
+    ws['!cols'] = [{ wch: 13 }, { wch: 52 }, ...Array.from({ length: NC - 2 }, () => ({ wch: 7 }))];
     const wide = (r: number) => ({ s: { r, c: 0 }, e: { r, c: NC - 1 } });
-    const incSec = HR + 1 + expRows.length + 1, incHead = incSec + 1;
-    const namSec = incHead + 1 + incRows.length + 1, namHead = namSec + 1;
+    const { incSec, incHead, namSec, namHead } = comboSheet;
     const noteR = namHead + 1 + namedRows.length + 1;
-    ws['!merges'] = [
-      wide(0), wide(1), wide(noteR),
-      // Ο μηχανικός κωδικός («category2_10») δεν χωρά σε στήλη επτά χαρακτήρων:
-      // στον κατάλογο των ονομάτων απλώνεται σε όσες χρειάζεται.
-      ...[namHead, ...namedRows.map((_, i) => namHead + 1 + i)].map(r => ({ s: { r, c: 2 }, e: { r, c: 5 } })),
-    ];
+    ws['!merges'] = [wide(0), wide(1), wide(noteR)];
     const hgt: { hpt: number }[] = []; ws['!rows'] = hgt;
     hgt[0] = { hpt: 22 }; hgt[1] = { hpt: 15 };
     setCell(ws, 0, 0, { s: S.title });
@@ -554,15 +591,15 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     for (const r of [HR - 1, incSec, namSec]) setCell(ws, r, 0, { s: S.section });
     grid(HR, expRows.length, expCols.length);
     grid(incHead, incRows.length, incCols.length);
-    for (let c = 0; c < 6; c++) setCell(ws, namHead, c, { s: S.head });
+    for (let c = 0; c < 2; c++) setCell(ws, namHead, c, { s: S.head });
     for (let i = 0; i < namedRows.length; i++) {
       const r = namHead + 1 + i;
-      setCell(ws, r, 0, { s: CTR }); setCell(ws, r, 1, { s: S.txt });
-      for (let c = 2; c < 6; c++) setCell(ws, r, c, { s: S.txt });
+      setCell(ws, r, 0, { s: S.txt }); setCell(ws, r, 1, { s: S.txt });
     }
     setCell(ws, noteR, 0, { s: S.sub });
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: HR + expRows.length, c: NC - 1 } }) };
     ws['!margins'] = { ...MARGINS };
+    sheetFinish(ws, { landscape: true });
     XLSX.utils.book_append_sheet(wb, ws, COMBO_SHEET);
   }
 
@@ -643,7 +680,11 @@ export function exportAccountantDossier(inp: DossierExportInput): void {
   ]);
 
   // ── 01 · Ταυτότητα και σύνοψη ────────────────────────────────────────────
-  const wbBytes = new Uint8Array(XLSX.write(buildWorkbook(inp), { bookType: 'xlsx', type: 'array' }) as ArrayBuffer);
+  // ΤΟ ΙΔΙΟ ΑΡΧΕΙΟ ΜΕ ΤΟ ΚΟΥΜΠΙ «EXCEL», ΚΑΙ ΜΕ ΤΟΝ ΙΔΙΟ ΤΡΟΠΟ ΓΡΑΨΙΜΑΤΟΣ:
+  // η `workbookBytes` προσθέτει τους αναπτυσσόμενους καταλόγους και τη διάταξη
+  // σελίδας. Γραμμένο με σκέτο `XLSX.write`, ο φάκελος θα κουβαλούσε ΑΛΛΟ αρχείο
+  // από το κουμπί, χωρίς να το δει κανείς.
+  const wbBytes = workbookBytes(buildWorkbook(inp));
   const identity = txt([
     'ΤΑΥΤΟΤΗΤΑ ΦΑΚΕΛΟΥ', rule('═'), '',
     `Χρήση:          01/01/${year} – 31/12/${year}`,

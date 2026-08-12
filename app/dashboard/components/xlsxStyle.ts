@@ -6,6 +6,7 @@
 // δεκαδικά, ημερομηνίες. Ασπρόμαυρο (γκρι/μαύρο) — χωρίς χρώμα/θόρυβο.
 // ═══════════════════════════════════════════════════════════════════════════
 import XLSX from 'xlsx-js-style';
+import { unzipSync, zipSync, strFromU8, strToU8 } from 'fflate';
 import { downloadFile, safeFilename } from '@/lib/core/download';
 export { XLSX };
 
@@ -77,7 +78,8 @@ export function setCell(ws: XLSX.WorkSheet, r: number, c: number, patch: Partial
 // η ιδιότητα δέχεται τιμή, δεν γράφεται όμως ποτέ στο αρχείο. Ήταν γραμμένη στο
 // `portfolioXlsx.ts` και δεν έκανε τίποτα — νεκρός κώδικας που έμοιαζε με
 // λειτουργία. Η επανάληψη επικεφαλίδων στην εκτύπωση, από κάτω, ΔΟΥΛΕΥΕΙ και
-// λύνει το ίδιο πρόβλημα εκεί που πονάει.
+// λύνει το ίδιο πρόβλημα εκεί που πονάει. Η διάταξη της σελίδας γράφεται
+// κατευθείαν στο XML του φύλλου, πιο κάτω (`sheetFinish`).
 export const MARGINS = { left: 0.4, right: 0.4, top: 0.55, bottom: 0.55, header: 0.3, footer: 0.3 } as const;
 
 /** Οι γραμμές που επαναλαμβάνονται σε κάθε τυπωμένη σελίδα, ανά φύλλο. */
@@ -98,6 +100,93 @@ export function sheetName(raw: string, used: Set<string>): string {
   return name;
 }
 
+// ═══ ΟΣΑ ΤΟ EXCEL ΞΕΡΕΙ ΚΑΙ Η ΒΙΒΛΙΟΘΗΚΗ ΔΕΝ ΓΡΑΦΕΙ ═══════════════════════
+// Η κοινοτική έκδοση δεν γράφει ΟΥΤΕ επικύρωση δεδομένων (αναπτυσσόμενους
+// καταλόγους) ΟΥΤΕ διάταξη σελίδας: δέχεται τις ιδιότητες και τις πετά. Το
+// .xlsx όμως είναι zip με XML μέσα, και τα δύο είναι λίγες γραμμές XML στη
+// σωστή θέση — το αρχείο ξαναδιαβάζεται κανονικά μετά.
+//
+// Η ΣΕΙΡΑ ΤΩΝ ΣΤΟΙΧΕΙΩΝ ΔΕΝ ΕΙΝΑΙ ΓΟΥΣΤΟ. Το Excel απορρίπτει ολόκληρο το
+// αρχείο αν τα παιδιά του <worksheet> δεν είναι στη σειρά του προτύπου:
+// sheetPr … sheetData … autoFilter … mergeCells … dataValidations …
+// pageMargins … pageSetup. Γι' αυτό οι εισαγωγές γίνονται ΔΙΠΛΑ σε γνωστά
+// στοιχεία και όχι στο τέλος.
+
+/** Τι θέλει ένα φύλλο πέρα από όσα γράφει η βιβλιοθήκη. */
+export interface SheetFinish {
+  /**
+   * Αναπτυσσόμενοι κατάλογοι. `values` για σύντομες λίστες (το Excel δέχεται
+   * έως 255 χαρακτήρες συνολικά), `source` για αναφορά σε στήλη άλλου φύλλου
+   * όταν τα λεκτικά είναι μεγάλα.
+   */
+  lists?: { ref: string; values?: readonly string[]; source?: string }[];
+  /** Οριζόντια σελίδα, προσαρμοσμένη σε ένα πλάτος. Για τους φαρδιούς πίνακες. */
+  landscape?: boolean;
+}
+
+/** Κρατά την προδιαγραφή πάνω στο φύλλο, εκεί που χτίζεται. */
+export function sheetFinish(ws: XLSX.WorkSheet, finish: SheetFinish): void {
+  (ws as Record<string, unknown>)['!finish'] = finish;
+}
+
+const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+function validationsXml(lists: NonNullable<SheetFinish['lists']>): string {
+  const items = lists.map(l => {
+    // Το κόμμα χωρίζει τιμές μέσα σε λίστα: μια τιμή που το περιέχει θα έσπαγε
+    // σε δύο επιλογές. Όπου συμβαίνει, η λίστα δίνεται ως αναφορά σε στήλη.
+    const f = l.source ?? `"${(l.values ?? []).join(',')}"`;
+    return `<dataValidation type="list" allowBlank="1" showInputMessage="1" showErrorMessage="1" `
+      + `errorTitle="Μη επιτρεπτή τιμή" error="Διάλεξε μία από τις τιμές του καταλόγου." `
+      + `sqref="${esc(l.ref)}"><formula1>${esc(f)}</formula1></dataValidation>`;
+  });
+  return `<dataValidations count="${items.length}">${items.join('')}</dataValidations>`;
+}
+
+function applyFinish(xml: string, f: SheetFinish): string {
+  let out = xml;
+  if (f.lists?.length) {
+    const dv = validationsXml(f.lists);
+    out = out.includes('<pageMargins') ? out.replace('<pageMargins', dv + '<pageMargins') : out.replace('</worksheet>', dv + '</worksheet>');
+  }
+  if (f.landscape) {
+    // Το «σε μία σελίδα πλάτος» ισχύει μόνο αν το φύλλο το δηλώσει στο sheetPr,
+    // που πρέπει να είναι το ΠΡΩΤΟ παιδί του worksheet.
+    out = out.replace(/(<worksheet[^>]*>)/, '$1<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>');
+    const ps = '<pageSetup orientation="landscape" fitToWidth="1" fitToHeight="0" paperSize="9"/>';
+    out = /<pageMargins[^>]*\/>/.test(out) ? out.replace(/(<pageMargins[^>]*\/>)/, '$1' + ps) : out.replace('</worksheet>', ps + '</worksheet>');
+  }
+  return out;
+}
+
+/** Τα bytes του βιβλίου, με όσα προσθέτει το `sheetFinish` γραμμένα μέσα. */
+export function workbookBytes(wb: XLSX.WorkBook): Uint8Array {
+  const raw = new Uint8Array(XLSX.write(wb, { bookType: 'xlsx', type: 'array' }) as ArrayBuffer);
+  const finishes = wb.SheetNames.map(n => (wb.Sheets[n] as Record<string, unknown>)['!finish'] as SheetFinish | undefined);
+  if (!finishes.some(Boolean)) return raw;
+  const zip = unzipSync(raw);
+  // Το όνομα του φύλλου δεν λέει σε ποιο αρχείο γράφτηκε. Η διαδρομή είναι
+  // workbook.xml (όνομα → rId) και rels (rId → αρχείο) — διαβασμένη και όχι
+  // υποτεθειμένη, γιατί η σειρά των sheetN.xml δεν είναι εγγυημένη.
+  const wbXml = strFromU8(zip['xl/workbook.xml']);
+  const relsXml = strFromU8(zip['xl/_rels/workbook.xml.rels']);
+  const target = new Map<string, string>();
+  for (const m of relsXml.matchAll(/Id="([^"]+)"[^>]*Target="([^"]+)"/g)) target.set(m[1], m[2]);
+  const fileOf = new Map<string, string>();
+  for (const m of wbXml.matchAll(/<sheet name="([^"]*)"[^>]*r:id="([^"]+)"/g)) {
+    const t = target.get(m[2]);
+    if (t) fileOf.set(m[1].replace(/&quot;/g, '"').replace(/&amp;/g, '&'), `xl/${t.replace(/^\//, '')}`);
+  }
+  let touched = false;
+  wb.SheetNames.forEach((name, i) => {
+    const f = finishes[i], path = fileOf.get(name);
+    if (!f || !path || !zip[path]) return;
+    zip[path] = strToU8(applyFinish(strFromU8(zip[path]), f));
+    touched = true;
+  });
+  return touched ? zipSync(zip) : raw;
+}
+
 // ═══ ΤΟ ΚΑΤΕΒΑΣΜΑ ΠΕΡΝΑ ΑΠΟ ΤΟ ΕΝΑ ΣΗΜΕΙΟ ════════════════════════════════
 // Η `XLSX.writeFile` έχει δικό της μονοπάτι λήψης και ΔΕΝ καθαρίζει το όνομα.
 // Ένα ακίνητο ονομασμένο «Αθήνα / Κολωνάκι» παρήγαγε όνομα με κάθετο μέσα του.
@@ -106,7 +195,7 @@ export function sheetName(raw: string, used: Set<string>): string {
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
 export function downloadWorkbook(wb: XLSX.WorkBook, filename: string): boolean {
-  const bytes = XLSX.write(wb, { bookType: 'xlsx', type: 'array' }) as ArrayBuffer;
+  const bytes = workbookBytes(wb);
   const name = filename.replace(/\.xlsx$/i, '');
-  return downloadFile(new Blob([bytes], { type: XLSX_MIME }), `${safeFilename(name)}.xlsx`, XLSX_MIME);
+  return downloadFile(new Blob([bytes.slice().buffer], { type: XLSX_MIME }), `${safeFilename(name)}.xlsx`, XLSX_MIME);
 }

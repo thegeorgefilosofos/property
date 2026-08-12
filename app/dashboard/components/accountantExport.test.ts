@@ -21,7 +21,8 @@
 //   · ότι το άθροισμα είναι το άθροισμα, όχι κάτι κοντινό
 // ═══════════════════════════════════════════════════════════════════════════
 import { buildWorkbook, type AccountantMovement } from './accountantExport';
-import { XLSX, type Cell } from './xlsxStyle';
+import { XLSX, workbookBytes, type Cell } from './xlsxStyle';
+import { unzipSync, strFromU8 } from 'fflate';
 import { supplyLabel } from '@/lib/tax/placeOfSupply';
 
 let passed = 0, failed = 0;
@@ -323,15 +324,46 @@ eq('τα πλάτη στηλών είναι όσα και οι στήλες', (w
   // εμφανίζεται εκεί — αντί να εμφανιστεί με στήλες που δεν του ανήκουν.
   ok('καμία στήλη εσόδου δεν είναι χαρακτηρισμός εξόδου', incHead.every(h => !h.startsWith('2.')));
   ok('και το 17.6 μένει στα έξοδα', !incRow('17.6').length && !!at('17.6').length);
-  // Τα ονόματα μπαίνουν μία φορά, εκεί που εξηγούν τις στήλες του πίνακα.
-  const named = cbRows.filter(r => /^2\.\d+$/.test(r[0]) && (r[2] ?? '').startsWith('category2_'));
+  // Τα ονόματα μπαίνουν μία φορά, εκεί που εξηγούν τις στήλες του πίνακα — και
+  // στη μορφή που τα γράφει το φύλλο των κινήσεων, γιατί είναι η πηγή του
+  // αναπτυσσόμενου καταλόγου εκεί.
+  const named = cbRows.filter(r => (r[0] ?? '').startsWith('category2_'));
   eq('οι εννέα χαρακτηρισμοί με όνομα', named.length, 9);
-  eq('ο 2.5 με το λεκτικό του', named.find(r => r[0] === '2.5')?.[1], 'Γενικά Έξοδα χωρίς δικαίωμα έκπτωσης Φ.Π.Α.');
+  eq('ο 2.5 με το λεκτικό του', named.find(r => r[0] === 'category2_5')?.[1], '2.5 Γενικά Έξοδα χωρίς δικαίωμα έκπτωσης Φ.Π.Α.');
   ok('η πηγή αναφέρεται', cbRows.some(r => r[0].includes('Συνδυασμοί Χαρακτηρισμών v1.0.4')));
   // Το φίλτρο είναι ο «κατάλογος»: καλύπτει επικεφαλίδα και ΟΛΕΣ τις γραμμές.
   eq('το φίλτρο πιάνει όλον τον πίνακα των εξόδων',
     (cb['!autofilter'] as { ref: string } | undefined)?.ref, `A5:Q${incAt - 1}`);
   eq('κάθε στήλη έχει πλάτος', (cb['!cols'] as unknown[] | undefined)?.length, 17);
+
+  // ══ ΟΙ ΑΝΑΠΤΥΣΣΟΜΕΝΟΙ ΚΑΤΑΛΟΓΟΙ ═══════════════════════════════════════════
+  // Ο χαρακτηρισμός είναι ΥΠΟΔΕΙΞΗ, και ο λογιστής τη διορθώνει. Χωρίς κατάλογο
+  // η διόρθωση γράφεται ελεύθερα («2,5», «γενικά έξοδα») και δεν διαβάζεται από
+  // κανένα σύστημα μετά. Ο κατάλογος δείχνει σε στήλη ΑΛΛΟΥ φύλλου, γιατί μια
+  // λίστα γραμμένη μέσα στο κελί έχει όριο 255 χαρακτήρες.
+  const finish = (sheet: XLSX.WorkSheet) => (sheet as Record<string, unknown>)['!finish'] as
+    { landscape?: boolean; lists?: { ref: string; values?: string[]; source?: string }[] } | undefined;
+  const mdLists = finish(m)?.lists ?? [];
+  eq('δύο κατάλογοι στο φύλλο των χαρακτηρισμών', mdLists.length, 2);
+  eq('ο τόπος παροχής, με τις τρεις τιμές του', mdLists[0]?.values?.length, 3);
+  ok('και τα λεκτικά είναι της μίας πηγής', mdLists[0]?.values?.includes(supplyLabel('intra_eu')) === true);
+  ok('ο χαρακτηρισμός δείχνει στο φύλλο των συνδυασμών',
+    (mdLists[1]?.source ?? '').startsWith("'Επιτρεπτοί συνδυασμοί ΑΑΔΕ'!$B$"));
+  // Η ΔΙΕΥΘΥΝΣΗ ΔΕΝ ΕΛΕΓΧΕΤΑΙ ΩΣ ΚΕΙΜΕΝΟ ΑΛΛΑ ΩΣ ΠΕΡΙΕΧΟΜΕΝΟ. Μια λάθος γραμμή
+  // δίνει κατάλογο με κενά ή με τίτλους ενοτήτων, και το Excel θα το δεχόταν.
+  {
+    const [, a, b] = (mdLists[1]?.source ?? '').match(/\$B\$(\d+):\$B\$(\d+)/) ?? [];
+    const values = Array.from({ length: Number(b) - Number(a) + 1 },
+      (_, i) => String((cb[`B${Number(a) + i}`] as Cell | undefined)?.v ?? ''));
+    eq('ο κατάλογος έχει τους εννέα χαρακτηρισμούς', values.length, 9);
+    ok('όλοι γραμμένοι «2.x Ονομασία»', values.every(v => /^2\.\d+ \S/.test(v)));
+    // ΚΑΙ ΤΑΥΤΙΖΟΝΤΑΙ ΜΕ ΟΣΑ ΕΧΕΙ ΗΔΗ ΓΡΑΨΕΙ Η ΕΦΑΡΜΟΓΗ. Αλλιώς το Excel
+    // σημαδεύει ως άκυρη κάθε τιμή που έβαλε μόνη της η υπόδειξη.
+    ok('και με ό,τι γράφει η στήλη του χαρακτηρισμού', values.includes(String(mv(HR + 1, 8))));
+  }
+  ok('τα φαρδιά φύλλα τυπώνονται οριζόντια',
+    [m, cb, w.Sheets['Κινήσεις 2026'], w.Sheets['Λογαριασμοί ΕΛΠ']].every(sh => finish(sh)?.landscape === true));
+  ok('η κατάσταση αποτελεσμάτων όχι, είναι δύο στήλες', !finish(w.Sheets['Κατάσταση αποτελεσμάτων'])?.landscape);
 
   // ══ ΤΟ ΑΡΧΕΙΟ ΤΥΠΩΝΕΤΑΙ ═══════════════════════════════════════════════════
   // Ο λογιστής το βάζει στον φάκελο του πελάτη. Χωρίς περιθώρια, η πρώτη στήλη
@@ -342,6 +374,31 @@ eq('τα πλάτη στηλών είναι όσα και οι στήλες', (w
   const titles = names.filter(n => n.Name === '_xlnm.Print_Titles');
   eq('η επικεφαλίδα επαναλαμβάνεται σε ΕΝΑ φύλλο', titles.length, 1);
   eq('στις Κινήσεις, και στη γραμμή των στηλών', titles[0]?.Ref, "'Κινήσεις 2026'!$4:$4");
+}
+
+// ═══ ΚΑΙ ΟΤΙ ΦΤΑΝΟΥΝ ΟΝΤΩΣ ΜΕΣΑ ΣΤΟ ΑΡΧΕΙΟ ═══════════════════════════════════
+// Η βιβλιοθήκη ΔΕΧΕΤΑΙ τις ιδιότητες και τις πετά σιωπηλά: το `!dataValidation`
+// γραφόταν, δεν έφτανε ποτέ στο .xlsx, και τίποτα δεν έσκαγε. Ένας έλεγχος που
+// κοιτά μόνο το αντικείμενο στη μνήμη θα περνούσε με άδειο αρχείο. Εδώ το
+// βιβλίο γράφεται, ξε-ζιπάρεται και διαβάζεται το XML του φύλλου.
+{
+  const full = buildWorkbook({ year: 2026, propName: 'Χ', statementLines: [], provisionMonthly: 0, book: BOOK, myData: { vat: 'none' } });
+  const bytes = workbookBytes(full);
+  const zip = unzipSync(bytes);
+  const sheets = Object.keys(zip).filter(k => /worksheets\/sheet\d+\.xml$/.test(k)).sort();
+  const xml = sheets.map(k => strFromU8(zip[k]));
+  ok('το βιβλίο ξαναδιαβάζεται μετά την επεξεργασία', XLSX.read(bytes, { type: 'array' }).SheetNames.length === 5);
+  ok('ο κατάλογος του τόπου παροχής γράφτηκε', xml.some(x => x.includes('Ενδοκοινοτική λήψη') && x.includes('<dataValidation ')));
+  ok('και ο κατάλογος των χαρακτηρισμών', xml.some(x => x.includes(`'${'Επιτρεπτοί συνδυασμοί ΑΑΔΕ'}'!$B$`)));
+  eq('τέσσερα φύλλα οριζόντια', xml.filter(x => x.includes('orientation="landscape"')).length, 4);
+  ok('με προσαρμογή σε ένα πλάτος', xml.every(x => !x.includes('landscape') || x.includes('fitToPage="1"')));
+  // Η ΣΕΙΡΑ ΤΩΝ ΣΤΟΙΧΕΙΩΝ ΕΙΝΑΙ ΟΡΟΣ ΤΟΥ ΠΡΟΤΥΠΟΥ, ΟΧΙ ΓΟΥΣΤΟ: με λάθος σειρά
+  // το Excel αρνείται να ανοίξει ΟΛΟ το αρχείο, και το μήνυμα δεν λέει γιατί.
+  const order = ['sheetPr', 'sheetData', 'dataValidations', 'pageMargins', 'pageSetup'];
+  ok('τα στοιχεία του φύλλου στη σειρά του προτύπου', xml.every(x => {
+    const pos = order.map(t => x.indexOf(`<${t}`)).filter(i => i >= 0);
+    return pos.every((v, i) => i === 0 || v > pos[i - 1]);
+  }));
 }
 
 console.log(`\naccountantExport.ts — ${passed} passed, ${failed} failed`);
