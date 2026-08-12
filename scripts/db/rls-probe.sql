@@ -96,6 +96,109 @@ end $probe$;
 
 reset role;
 
+-- ── Ο ΧΩΡΟΣ ΤΟΥ ΛΟΓΙΣΤΗ ΔΕΙΧΝΕΙ ΜΟΝΟ ΟΣΟΥΣ ΤΟΝ ΕΞΟΥΣΙΟΔΟΤΗΣΑΝ ────────────
+-- Ο λογιστής βλέπει δεδομένα ΞΕΝΟΥ λογαριασμού μέσα από συνάρτηση που
+-- παρακάμπτει την RLS. Αν ο έλεγχος σύνδεσης μέσα σε αυτήν λείψει ή σπάσει,
+-- ένας λογαριασμός βλέπει ολόκληρη τη βάση. Εδώ δοκιμάζεται σαν επίθεση.
+set role authenticated;
+set session "probe.uid" = '22222222-2222-2222-2222-222222222222';
+
+do $probe$
+declare
+  a uuid := '11111111-1111-1111-1111-111111111111';
+  b uuid := '22222222-2222-2222-2222-222222222222';
+  res json;
+  n int;
+begin
+  -- Ο Β, χωρίς καμία σύνδεση, δεν βλέπει κανέναν πελάτη.
+  res := public.accountant_clients_overview(2026);
+  if json_array_length(res) <> 0 then
+    raise exception 'ΔΙΑΡΡΟΗ: ασύνδετος λογιστής βλέπει % πελάτες', json_array_length(res);
+  end if;
+
+  -- Και δεν μπορεί να ζητήσει τίποτα από τον Α.
+  res := public.accountant_request_item(a, 'Εκκαθαριστικό ΕΝΦΙΑ', null);
+  if (res->>'ok')::boolean then
+    raise exception 'ΔΙΑΡΡΟΗ: ασύνδετος λογιστής υπέβαλε αίτημα σε ξένο ιδιοκτήτη';
+  end if;
+
+  -- Ούτε με πλαστό token.
+  res := public.accountant_claim('δεν-υπάρχει-τέτοιο-token');
+  if (res->>'ok')::boolean then
+    raise exception 'ΔΙΑΡΡΟΗ: άκυρο token έγινε δεκτό';
+  end if;
+
+  raise notice 'probe: ασύνδετος λογιστής δεν βλέπει και δεν ζητά τίποτα';
+end $probe$;
+
+reset role;
+
+-- Τώρα ο Α τον εξουσιοδοτεί, και μόνο τότε ανοίγει η πόρτα.
+do $probe$
+declare
+  a uuid := '11111111-1111-1111-1111-111111111111';
+  b uuid := '22222222-2222-2222-2222-222222222222';
+begin
+  insert into public.accountant_links (user_id, token, active) values (a, 'probe-token-α', true)
+  on conflict do nothing;
+end $probe$;
+
+set role authenticated;
+set session "probe.uid" = '22222222-2222-2222-2222-222222222222';
+
+do $probe$
+declare
+  a uuid := '11111111-1111-1111-1111-111111111111';
+  res json;
+  row json;
+begin
+  res := public.accountant_claim('probe-token-α');
+  if not (res->>'ok')::boolean then
+    raise exception 'Η σύνδεση με έγκυρο token απέτυχε: %', res->>'reason';
+  end if;
+
+  res := public.accountant_clients_overview(2026);
+  if json_array_length(res) <> 1 then
+    raise exception 'Ο λογιστής έπρεπε να βλέπει έναν πελάτη, βλέπει %', json_array_length(res);
+  end if;
+  row := res->0;
+  if (row->>'ownerId')::uuid <> a then
+    raise exception 'Λάθος ιδιοκτήτης στη λίστα';
+  end if;
+  if (row->>'properties')::int <> 1 then
+    raise exception 'Ο λογιστής βλέπει % ακίνητα αντί για 1', row->>'properties';
+  end if;
+
+  -- Το αίτημα περνά τώρα, και το δεύτερο ίδιο δεν διπλογράφεται.
+  res := public.accountant_request_item(a, 'Εκκαθαριστικό ΕΝΦΙΑ', 'Για τη δήλωση');
+  if not (res->>'ok')::boolean then raise exception 'Το αίτημα απέτυχε: %', res->>'reason'; end if;
+  res := public.accountant_request_item(a, 'Εκκαθαριστικό ΕΝΦΙΑ', 'Ξανά');
+  if not (res->>'existing')::boolean then
+    raise exception 'Το ίδιο αίτημα γράφτηκε δεύτερη φορά';
+  end if;
+
+  raise notice 'probe: με εξουσιοδότηση, ο λογιστής βλέπει έναν πελάτη και ζητά μία φορά';
+end $probe$;
+
+-- Και ο ΤΡΙΤΟΣ, που δεν τον εξουσιοδότησε κανείς, εξακολουθεί να μη βλέπει.
+set session "probe.uid" = '33333333-3333-3333-3333-333333333333';
+do $probe$
+declare res json;
+begin
+  res := public.accountant_clients_overview(2026);
+  if json_array_length(res) <> 0 then
+    raise exception 'ΔΙΑΡΡΟΗ: τρίτος λογιστής βλέπει % πελάτες', json_array_length(res);
+  end if;
+  -- Και δεν διαβάζει τα αιτήματα των άλλων: η RLS του πίνακα το κόβει.
+  perform 1 from public.accountant_requests;
+  if (select count(*) from public.accountant_requests) <> 0 then
+    raise exception 'ΔΙΑΡΡΟΗ: τρίτος βλέπει αιτήματα άλλων';
+  end if;
+  raise notice 'probe: τρίτος λογιστής δεν βλέπει ούτε πελάτες ούτε αιτήματα';
+end $probe$;
+
+reset role;
+
 -- ── ΚΑΙ ΟΙ ΒΟΗΘΟΙ ΤΗΣ RLS ΔΕΝ ΕΙΝΑΙ ΠΙΑ ΕΚΤΕΘΕΙΜΕΝΟΙ ──────────────────────
 -- Ο έλεγχος ασφαλείας της Supabase βρήκε έντεκα εσωτερικές συναρτήσεις που
 -- εκτελούνταν μέσω `/rest/v1/rpc/...`. Δεν τις καλεί ποτέ η εφαρμογή· τις

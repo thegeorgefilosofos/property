@@ -173,6 +173,13 @@ export default function AccountantPortal() {
                 Διάλεξε άλλη χρονιά από πάνω.
               </div>
             )}
+            {/* Ο ΛΟΓΙΣΤΗΣ ΜΕ ΠΟΛΛΟΥΣ ΠΕΛΑΤΕΣ ΤΟ ΜΑΘΑΙΝΕΙ ΕΔΩ, ΟΧΙ ΑΠΟ ΔΙΑΦΗΜΙΣΗ.
+                Είναι η στιγμή που κρατά στα χέρια του τον έναν σύνδεσμο και
+                σκέφτεται ότι έχει άλλους εβδομήντα εννιά. */}
+            <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-secondary)', marginTop: 18, lineHeight: 1.7 }}>
+              Έχεις κι άλλους πελάτες με Property OS;{' '}
+              <a href="/accountant/workspace" style={{ color: 'var(--text-primary)', fontWeight: 600, textDecoration: 'underline' }}>Δες τους όλους μαζί</a>, με ό,τι λείπει από τον καθένα.
+            </div>
             <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-tertiary)', marginTop: 8 }}>Powered by Property OS · read-only · <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-secondary)', textDecoration: 'underline' }}>Απόρρητο</a></div>
           </>
         )}

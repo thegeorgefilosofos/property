@@ -17,6 +17,13 @@
 /** Τιμή στήλης `jsonb`: υπάρχει, αλλά το σχήμα της δεν ζει στη βάση. */
 export type Json = unknown;
 
+export interface AccountantClientsRow {
+  accountant_id: string;
+  owner_id: string;
+  linked_at: string;
+  active: boolean;
+}
+
 export interface AccountantDossierRow {
   user_id: string;
   year: number;
@@ -36,6 +43,17 @@ export interface AccountantLinksRow {
   active: boolean | null;
   created_at: string | null;
   expires_at: string | null;
+}
+
+export interface AccountantRequestsRow {
+  id: string | null;
+  accountant_id: string;
+  owner_id: string;
+  item: string;
+  note: string | null;
+  status: string;
+  created_at: string;
+  resolved_at: string | null;
 }
 
 export interface ActivityLogRow {
@@ -161,6 +179,8 @@ export interface BillingProfilesRow {
   extra_properties: number | null;
   legal_form: string | null;
   bookkeeping: string | null;
+  bonus_properties: number | null;
+  bonus_properties_until: string | null;
 }
 
 export interface BillsRow {
@@ -512,23 +532,8 @@ export interface ExpensesRow {
   share_percent: number | null;
   share_note: string | null;
   contact_id: string | null;
-  /**
-   * Ο ΤΟΠΟΣ ΠΑΡΟΧΗΣ, ΣΕ ΔΥΟ ΣΤΗΛΕΣ ΚΑΙ ΟΧΙ ΣΕ ΣΗΜΕΙΩΣΗ.
-   *
-   * Η χώρα είναι το ΓΕΓΟΝΟΣ που διαβάστηκε από το παραστατικό· ο τόπος παροχής
-   * το ΣΥΜΠΕΡΑΣΜΑ. Χωριστά, ώστε αν αύριο αλλάξει ο κανόνας να ξαναβγαίνει το
-   * δεύτερο από το πρώτο. `null` σημαίνει «δεν ρωτήθηκε», ποτέ «εγχώρια».
-   * Βλ. supabase/migrations/20260812000000_expense_place_of_supply.sql.
-   */
   supplier_country: string | null;
   supply: string | null;
-  /**
-   * ΑΦΜ του εκδότη, εννέα ψηφία. Διαβάζεται από το σαρωμένο παραστατικό (όπου
-   * ελέγχεται και με το checksum της ΑΑΔΕ) ή δηλώνεται από τον χρήστη. Χωρίς
-   * αυτό, ο λογιστής δεν μπορεί να καταχωρήσει τον αντισυμβαλλόμενο και κάθε
-   * εγχώρια δαπάνη γίνεται ένα τηλεφώνημα.
-   * Βλ. supabase/migrations/20260812120000_expense_supplier_afm.sql.
-   */
   supplier_afm: string | null;
 }
 
@@ -840,6 +845,11 @@ export interface NotificationPreferencesRow {
   dunning_every_days: number | null;
   dunning_max: number | null;
   legal_updates: boolean | null;
+  reminder_today: boolean | null;
+  reminder_overdue: boolean | null;
+  reminder_email_verified: string | null;
+  reminder_email_token: string | null;
+  reminder_email_token_at: string | null;
 }
 
 export interface OnboardingProgressRow {
@@ -1082,6 +1092,14 @@ export interface ReportBrandingRow {
   updated_at: string | null;
 }
 
+export interface SendQuotaRow {
+  user_id: string;
+  kind: string;
+  bucket: string;
+  units: number;
+  updated_at: string;
+}
+
 export interface TenantCommLogRow {
   id: string;
   tenant_id: string;
@@ -1261,8 +1279,10 @@ export interface UserPropertiesRow {
 
 /** Όνομα πίνακα → τύπος γραμμής, για γενικούς βοηθούς. */
 export interface Tables {
+  accountant_clients: AccountantClientsRow;
   accountant_dossier: AccountantDossierRow;
   accountant_links: AccountantLinksRow;
+  accountant_requests: AccountantRequestsRow;
   activity_log: ActivityLogRow;
   ai_budget: AiBudgetRow;
   ai_usage: AiUsageRow;
@@ -1330,6 +1350,7 @@ export interface Tables {
   rent_config: RentConfigRow;
   rent_payments: RentPaymentsRow;
   report_branding: ReportBrandingRow;
+  send_quota: SendQuotaRow;
   tenant_comm_log: TenantCommLogRow;
   tenant_damages: TenantDamagesRow;
   tenants: TenantsRow;

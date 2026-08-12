@@ -34,6 +34,7 @@ import { exportAccountantDossier, type AccountantStatementLine, type AccountantM
 import type { FixedAsset } from '@/lib/accounting/fixedAssets'
 import type { VatDeduction } from '@/lib/tax/myData'
 import { failed } from '@/lib/core/dbError';
+import { openRequests, answerRequest, type OpenRequest } from '@/lib/data/accountant';
 import { AadePill } from '@/components/AadeLink';
 import { aadePath } from '@/lib/tax/aade';
 
@@ -368,6 +369,13 @@ export default function AccountantDossier({
           Ένα βιβλίο εργασίας, με χωριστό φύλλο για κάθε ερώτημα του λογιστή και πρώτη σελίδα που λέει τι περιέχει και τι λείπει. Όσα παραστατικά έχεις ανεβάσει κατεβαίνουν μαζί, αριθμημένα.
         </p>
 
+        {/* ── ΤΙ ΣΟΥ ΖΗΤΗΣΕ Ο ΛΟΓΙΣΤΗΣ ────────────────────────────────────
+            Η αντίστροφη κατεύθυνση. Μέχρι τώρα η πληροφορία πήγαινε μόνο προς
+            τον λογιστή· η επιστροφή ήταν τηλεφώνημα. Κάθεται ΕΔΩ και όχι σε
+            δική της καρτέλα, γιατί εδώ βρίσκεται ήδη ο χρήστης όταν σκέφτεται
+            «τι θέλει από μένα ο λογιστής μου». */}
+        <AccountantAsks />
+
         {actions && (
           <div style={{ margin: '16px 0 0', paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>{actions}</div>
         )}
@@ -522,6 +530,57 @@ export default function AccountantDossier({
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+/**
+ * ΟΣΑ ΖΗΤΗΣΕ Ο ΛΟΓΙΣΤΗΣ, ΚΑΙ ΤΟ ΚΟΥΜΠΙ ΠΟΥ ΤΑ ΚΛΕΙΝΕΙ.
+ *
+ * ΔΕΝ ΚΑΤΑΛΑΜΒΑΝΕΙ ΧΩΡΟ ΟΤΑΝ ΔΕΝ ΕΧΕΙ ΝΑ ΠΕΙ ΤΙΠΟΤΑ. Μια ενότητα «Αιτήματα (0)»
+ * είναι θόρυβος που ο χρήστης μαθαίνει να προσπερνά, και μαζί της προσπερνά και
+ * τη φορά που θα έχει περιεχόμενο.
+ *
+ * ΤΟ «ΔΕΝ ΙΣΧΥΕΙ» ΥΠΑΡΧΕΙ ΕΠΙΤΗΔΕΣ. Χωρίς αυτό, ένα αίτημα που δεν έχει νόημα
+ * μένει ανοιχτό για πάντα και ο κατάλογος γεμίζει ψέματα.
+ */
+function AccountantAsks() {
+  const supabase = useMemo(() => createClient(), [])
+  const [asks, setAsks] = useState<OpenRequest[]>([])
+
+  useEffect(() => { void openRequests(supabase).then(setAsks) }, [supabase])
+
+  const answer = useCallback(async (id: string, status: 'done' | 'dismissed') => {
+    if (await answerRequest(supabase, id, status)) setAsks(a => a.filter(x => x.id !== id))
+  }, [supabase])
+
+  if (asks.length === 0) return null
+
+  const btn: React.CSSProperties = {
+    height: 28, padding: '0 11px', borderRadius: 8, border: '1px solid var(--border-subtle)',
+    background: 'transparent', color: 'var(--text-primary)', fontSize: 12, fontWeight: 600,
+    fontFamily: T.font.sans, cursor: 'pointer', flexShrink: 0,
+  }
+
+  return (
+    <div style={{ margin: '16px 0 0', paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
+      <p style={{ fontSize: 10, letterSpacing: '0.5px', textTransform: 'uppercase', color: 'var(--text-tertiary)', margin: 0, fontFamily: T.font.sans }}>
+        {asks.length === 1 ? 'Ο λογιστής σου ζήτησε' : `Ο λογιστής σου ζήτησε ${asks.length} πράγματα`}
+      </p>
+      <ul style={{ listStyle: 'none', padding: 0, margin: '10px 0 0', display: 'grid', gap: 1 }}>
+        {asks.map(a => (
+          <li key={a.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '9px 0', borderTop: '1px solid var(--border-subtle)' }}>
+            <span style={{ fontSize: 13, color: 'var(--text-primary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
+              {a.item}
+              {a.note ? <span style={{ color: 'var(--text-tertiary)' }}>{` · ${a.note}`}</span> : null}
+            </span>
+            <span style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => void answer(a.id, 'done')} style={btn}>Το έστειλα</button>
+              <button onClick={() => void answer(a.id, 'dismissed')} style={{ ...btn, color: 'var(--text-tertiary)' }}>Δεν ισχύει</button>
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }
