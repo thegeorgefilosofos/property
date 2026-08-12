@@ -22,6 +22,7 @@ import {
   CATEGORY_CODE, type VatDeduction, type ExpenseClass,
 } from '@/lib/tax/myData';
 import { AADE_DOC_TYPES, incomeDocTypes, expenseDocTypes } from '@/lib/tax/aadeDocTypes';
+import { e3CodesFor, e3NoteFor, e3Triples, INCOME_CLASS_LABEL, E3_LABEL } from '@/lib/tax/e3Combinations';
 import { ELP_ALL, eglsOf, CAPITALISABLE, CAPITALISATION_NOTE } from '@/lib/tax/elpAccounts';
 import { ACCOUNTS, expenseAccount } from '@/lib/accounting/journal';
 import { CATEGORIES } from '@/lib/expenses/taxonomy';
@@ -88,6 +89,14 @@ const supplyCell = (s: string | null | undefined): string =>
 const toDate = (d: string): Date | string => { const t = new Date(d + 'T00:00:00'); return isNaN(t.getTime()) ? d : t; };
 /** Το φύλλο αναφοράς, ονομασμένο ΜΙΑ φορά: το φύλλο και η παραπομπή σε αυτό. */
 const COMBO_SHEET = 'Επιτρεπτοί συνδυασμοί ΑΑΔΕ';
+/**
+ * Οι κωδικοί Ε3 που δέχεται ένας συνδυασμός, ή η σημείωση της ΑΑΔΕ όπου δεν
+ * δίνει κανέναν. Ποτέ κενό χωρίς εξήγηση: το κενό θα διαβαζόταν ως «δεν βρήκα».
+ */
+const e3Cell = (type: string, category: string): string => {
+  const codes = e3CodesFor(type, category);
+  return codes.length ? codes.join(', ') : e3NoteFor(type, category);
+};
 /** Οι τιμές του αναπτυσσόμενου καταλόγου στον τόπο παροχής, από τη μία πηγή. */
 const SUPPLY_VALUES: readonly string[] = (['domestic', 'intra_eu', 'third_country'] as const).map(supplyLabel);
 // Ιταλική γκρι σημείωση για «memo» γραμμές (π.χ. πρόβλεψη φόρου) — διακριτή από το αποτέλεσμα.
@@ -132,14 +141,19 @@ const comboSheet = (() => {
   // να θεωρεί άκυρη κάθε τιμή που έχει ήδη γράψει η εφαρμογή.
   const namedRows = (Object.keys(EXPENSE_CLASS_LABEL) as ExpenseClass[])
     .map(c => [CATEGORY_CODE[c], `${c} ${EXPENSE_CLASS_LABEL[c]}`]);
+  // ΚΑΙ Η ΠΛΕΥΡΑ ΤΩΝ ΕΣΟΔΩΝ ΑΠΟΚΤΑ ΟΝΟΜΑΤΑ. Ήταν σκέτοι αριθμοί («1.7»), γιατί
+  // ο πίνακας συνδυασμών δίνει μόνο κωδικούς· τα λεκτικά έρχονται από τον πίνακα
+  // «Κωδικός Κατηγορίας Χαρακτηρισμού Εσόδων» της τεκμηρίωσης myDATA.
+  const incomeNamedRows = incCols.map(c => [c, `${shortOf(c)} ${INCOME_CLASS_LABEL[c] ?? ''}`.trim()]);
   const HR = 4;
   const incSec = HR + 1 + expRows.length + 1, incHead = incSec + 1;
   const namSec = incHead + 1 + incRows.length + 1, namHead = namSec + 1;
   // Η διεύθυνση του καταλόγου, σε μορφή που καταλαβαίνει το Excel (1-based, με
   // το όνομα του φύλλου σε εισαγωγικά γιατί έχει κενά).
   const classList = `'${COMBO_SHEET}'!$B$${namHead + 2}:$B$${namHead + 1 + namedRows.length}`;
-  return { expCols, incCols, shortOf, expRows, incRows, namedRows, incSec, incHead, namSec, namHead, classList,
-    NC: 2 + Math.max(expCols.length, incCols.length), HR };
+  const incNamSec = namHead + 1 + namedRows.length + 1, incNamHead = incNamSec + 1;
+  return { expCols, incCols, shortOf, expRows, incRows, namedRows, incomeNamedRows, incSec, incHead, namSec, namHead,
+    incNamSec, incNamHead, classList, NC: 2 + Math.max(expCols.length, incCols.length), HR };
 })();
 
 /**
@@ -413,9 +427,14 @@ export function buildWorkbook(inp: AccountantBundleInput) {
   // χαρακτηρίζονται.
   if (inp.myData) {
     const vat = inp.myData.vat;
-    const NC = 12, HR = 3;
+    // ΔΕΚΑΤΡΕΙΣ ΣΤΗΛΕΣ: Ο ΧΑΡΑΚΤΗΡΙΣΜΟΣ ΔΕΝ ΑΡΚΕΙ. Μια διαβίβαση θέλει ΚΑΙ τον
+    // κωδικό του εντύπου Ε3 στον οποίο προσγειώνεται το ποσό, και η ΑΑΔΕ
+    // απορρίπτει τον συνδυασμό που δεν υπάρχει στον επίσημο πίνακα. Η στήλη
+    // δίνει ΟΛΟΥΣ τους επιτρεπτούς για τη γραμμή, γιατί η επιλογή εξαρτάται από
+    // τη φύση της δαπάνης και είναι δουλειά λογιστή.
+    const NC = 13, HR = 3;
     const head = ['Α/Α', 'Ημερομηνία', 'Κατηγορία', 'Περιγραφή', 'Χώρα', 'Τόπος παροχής',
-      'Τύπος παραστατικού', 'Κωδικός', 'Χαρακτηρισμός', 'Αξία παραστατικού',
+      'Τύπος παραστατικού', 'Κωδικός', 'Χαρακτηρισμός', 'Επιτρεπτοί κωδικοί Ε3', 'Αξία παραστατικού',
       `ΦΠΑ αντίστροφης χρέωσης ${VAT_STANDARD}%`, 'Εκκρεμότητα'];
     const rows = book.filter(e => e.type === 'expense').sort((a, b) => a.date.localeCompare(b.date));
     const hints = rows.map(e => ({ e, h: myDataHint({ category: e.category, supply: e.supply as Supply | null, vat }) }));
@@ -430,7 +449,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     const sumRc = rows.reduce((t, e) => t + rcOf(e), 0);
     const totals = (label: string) => {
       const r: (string | number)[] = Array(NC).fill('');
-      r[3] = label; r[9] = money(sumVal); r[10] = money(sumRc);
+      r[3] = label; r[10] = money(sumVal); r[11] = money(sumRc);
       return r;
     };
     // Σύνολα ανά χαρακτηρισμό: η γραμμή που ζητά ο λογιστής όταν συμφωνεί τα
@@ -459,6 +478,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
         h.invoiceType ? `${h.invoiceType} ${INVOICE_TYPE_LABEL[h.invoiceType]}` : '',
         h.expenseClass ? CATEGORY_CODE[h.expenseClass] : '',
         h.expenseClass ? `${h.expenseClass} ${EXPENSE_CLASS_LABEL[h.expenseClass]}` : '',
+        h.invoiceType && h.expenseClass ? e3Cell(h.invoiceType, CATEGORY_CODE[h.expenseClass]) : '',
         e.amount, rcOf(e) || '', h.pending,
       ]),
       totals('ΣΥΝΟΛΑ'),
@@ -471,7 +491,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa, { cellDates: true });
     ws['!cols'] = [{ wch: 6 }, { wch: 13 }, { wch: 22 }, { wch: 34 }, { wch: 8 }, { wch: 22 },
-      { wch: 38 }, { wch: 15 }, { wch: 46 }, { wch: 17 }, { wch: 20 }, { wch: 26 }];
+      { wch: 38 }, { wch: 15 }, { wch: 46 }, { wch: 34 }, { wch: 17 }, { wch: 20 }, { wch: 26 }];
     ws['!merges'] = [
       { s: { r: 0, c: 0 }, e: { r: 0, c: NC - 1 } },
       { s: { r: 1, c: 0 }, e: { r: 1, c: NC - 1 } },
@@ -489,17 +509,19 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       const dcell = ws[encM(r, 1)] as Cell | undefined;
       const isDate = !!dcell && dcell.v instanceof Date;
       setCell(ws, r, 1, { s: { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } }, ...(isDate ? { t: 'd', z: FMT.date } : {}) });
-      for (const c of [2, 3, 5, 6, 7, 8, 11]) setCell(ws, r, c, { s: S.txt });
+      for (const c of [2, 3, 5, 6, 7, 8, 12]) setCell(ws, r, c, { s: S.txt });
+      // Οι κωδικοί Ε3 αναδιπλώνονται: είναι ως και είκοσι ένας σε μία γραμμή.
+      setCell(ws, r, 9, { s: S.txtWrap });
       setCell(ws, r, 4, { s: { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } } });
-      for (const c of [9, 10]) {
+      for (const c of [10, 11]) {
         const cell = ws[encM(r, c)] as Cell | undefined;
         if (cell && typeof cell.v === 'number') setCell(ws, r, c, { v: money(cell.v), t: 's', s: S.num });
         else setCell(ws, r, c, { s: S.num });
       }
     }
     const totR = last + 1;
-    for (let c = 0; c <= 8; c++) setCell(ws, totR, c, { s: S.totTxt });
-    for (const c of [9, 10, 11]) setCell(ws, totR, c, { s: c === 11 ? S.totTxt : S.totNum });
+    for (let c = 0; c <= 9; c++) setCell(ws, totR, c, { s: S.totTxt });
+    for (const c of [10, 11, 12]) setCell(ws, totR, c, { s: c === 12 ? S.totTxt : S.totNum });
     // Οι πίνακες του έτους: επικεφαλίδα ενότητας, γραμμή στηλών, δεδομένα.
     const secA = totR + 2, headA = secA + 1;
     setCell(ws, secA, 0, { s: S.section });
@@ -543,7 +565,7 @@ export function buildWorkbook(inp: AccountantBundleInput) {
   // ΕΝΑ πλάτος. Κάτω από τις «Κινήσεις», η στήλη «Περιγραφή» των 46 χαρακτήρων
   // θα έκανε τον πίνακα των «✓» να απλώνεται σε τρεις οθόνες.
   if (inp.myData) {
-    const { expCols, incCols, shortOf, expRows, incRows, namedRows, NC, HR } = comboSheet;
+    const { expCols, incCols, shortOf, expRows, incRows, namedRows, incomeNamedRows, NC, HR } = comboSheet;
 
     const aoa: (string | number)[][] = [
       ['ΕΠΙΤΡΕΠΤΟΙ ΣΥΝΔΥΑΣΜΟΙ ΧΑΡΑΚΤΗΡΙΣΜΩΝ ΑΝΑ ΤΥΠΟ ΠΑΡΑΣΤΑΤΙΚΟΥ'],
@@ -561,6 +583,10 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       ['Κωδικός ΑΑΔΕ', 'Χαρακτηρισμός'],
       ...namedRows,
       [],
+      ['ΟΙ ΧΑΡΑΚΤΗΡΙΣΜΟΙ ΕΣΟΔΩΝ ΜΕ ΤΟ ΟΝΟΜΑ ΤΟΥΣ'],
+      ['Κωδικός ΑΑΔΕ', 'Χαρακτηρισμός'],
+      ...incomeNamedRows,
+      [],
       ['Ο ιδιοκτήτης εκδίδει κι εκείνος παραστατικά· ποιο εκδίδει εξαρτάται από τη δραστηριότητα και το κρίνει ο λογιστής. Η εφαρμογή υποδεικνύει μόνο τύπους 14.x, όπου υπόχρεος διαβίβασης είναι ο λήπτης.'],
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
@@ -568,8 +594,8 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     // από κάτω, ώστε να μην κόβεται όταν η διπλανή στήλη έχει τιμή.
     ws['!cols'] = [{ wch: 13 }, { wch: 52 }, ...Array.from({ length: NC - 2 }, () => ({ wch: 7 }))];
     const wide = (r: number) => ({ s: { r, c: 0 }, e: { r, c: NC - 1 } });
-    const { incSec, incHead, namSec, namHead } = comboSheet;
-    const noteR = namHead + 1 + namedRows.length + 1;
+    const { incSec, incHead, namSec, namHead, incNamSec, incNamHead } = comboSheet;
+    const noteR = incNamHead + 1 + incomeNamedRows.length + 1;
     ws['!merges'] = [wide(0), wide(1), wide(noteR)];
     const hgt: { hpt: number }[] = []; ws['!rows'] = hgt;
     hgt[0] = { hpt: 22 }; hgt[1] = { hpt: 15 };
@@ -588,19 +614,74 @@ export function buildWorkbook(inp: AccountantBundleInput) {
         for (let c = 2; c < 2 + cols; c++) setCell(ws, r, c, { s: CTR });
       }
     };
-    for (const r of [HR - 1, incSec, namSec]) setCell(ws, r, 0, { s: S.section });
+    for (const r of [HR - 1, incSec, namSec, incNamSec]) setCell(ws, r, 0, { s: S.section });
     grid(HR, expRows.length, expCols.length);
     grid(incHead, incRows.length, incCols.length);
-    for (let c = 0; c < 2; c++) setCell(ws, namHead, c, { s: S.head });
-    for (let i = 0; i < namedRows.length; i++) {
-      const r = namHead + 1 + i;
-      setCell(ws, r, 0, { s: S.txt }); setCell(ws, r, 1, { s: S.txt });
+    for (const [head, rows] of [[namHead, namedRows], [incNamHead, incomeNamedRows]] as const) {
+      for (let c = 0; c < 2; c++) setCell(ws, head, c, { s: S.head });
+      for (let i = 0; i < rows.length; i++) {
+        setCell(ws, head + 1 + i, 0, { s: S.txt }); setCell(ws, head + 1 + i, 1, { s: S.txt });
+      }
     }
     setCell(ws, noteR, 0, { s: S.sub });
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: HR + expRows.length, c: NC - 1 } }) };
     ws['!margins'] = { ...MARGINS };
     sheetFinish(ws, { landscape: true });
     XLSX.utils.book_append_sheet(wb, ws, COMBO_SHEET);
+  }
+
+  // ══ ΦΥΛΛΟ 6: ΚΑΙ Ο ΚΩΔΙΚΟΣ ΤΟΥ Ε3, ΓΙΑ ΚΑΘΕ ΣΥΝΔΥΑΣΜΟ ═══════════════════
+  // ΤΟ ΤΡΙΤΟ ΕΠΙΠΕΔΟ ΤΟΥ ΕΛΕΓΧΟΥ ΤΗΣ ΑΑΔΕ. Ο τύπος παραστατικού και ο
+  // χαρακτηρισμός δεν αρκούν: η διαβίβαση απορρίπτεται και όταν ο κωδικός Ε3
+  // δεν ανήκει στον συνδυασμό. Ο πίνακας ζει σε σαράντα πέντε φύλλα ενός .xls
+  // της ΑΑΔΕ· εδώ γράφεται ολόκληρος, μία γραμμή ανά επιτρεπτή τριάδα, με
+  // αυτόματο φίλτρο ώστε να απαντά «τι δέχεται το 14.3;» με δύο κλικ.
+  //
+  // ΜΙΑ ΓΡΑΜΜΗ ΑΝΑ ΚΩΔΙΚΟ, ΚΑΙ ΟΧΙ ΛΙΣΤΑ ΜΕ ΚΟΜΜΑΤΑ: έτσι το φίλτρο δουλεύει
+  // και στη στήλη του κωδικού («ποιοι συνδυασμοί οδηγούν στο E3_585_016;»).
+  if (inp.myData) {
+    const NC = 6, HR = 4;
+    const catLabel = (c: string): string => {
+      const short = c.replace(/^category(\d)_/, '$1.');
+      const exp = EXPENSE_CLASS_LABEL[short as ExpenseClass];
+      return exp ? `${short} ${exp}` : INCOME_CLASS_LABEL[c] ? `${short} ${INCOME_CLASS_LABEL[c]}` : short;
+    };
+    const rows = e3Triples().map(t => [
+      t.type, AADE_DOC_TYPES[t.type]?.title ?? '', catLabel(t.category),
+      t.code, t.code ? E3_LABEL[t.code] ?? '' : '', t.note,
+    ]);
+    const aoa: (string | number)[][] = [
+      ['ΚΩΔΙΚΟΙ Ε3 ΑΝΑ ΤΥΠΟ ΠΑΡΑΣΤΑΤΙΚΟΥ ΚΑΙ ΧΑΡΑΚΤΗΡΙΣΜΟ'],
+      ['Πηγή: ΑΑΔΕ, Συνδυασμοί Χαρακτηρισμών v1.0.4 · μία γραμμή ανά επιτρεπτό συνδυασμό · η επιλογή ανάμεσα σε πολλούς επιτρεπτούς κωδικούς εξαρτάται από τη φύση της συναλλαγής'],
+      [],
+      ['ΟΛΟΙ ΟΙ ΕΠΙΤΡΕΠΤΟΙ ΣΥΝΔΥΑΣΜΟΙ'],
+      ['Τύπος', 'Παραστατικό', 'Χαρακτηρισμός', 'Κωδικός Ε3', 'Ονομασία κωδικού Ε3', 'Σημείωση ΑΑΔΕ'],
+      ...rows.map(r => [r[0], r[1], r[2], r[3], r[4], r[5]]),
+      [],
+      // ΤΑ ΛΕΚΤΙΚΑ ΤΩΝ ΕΞΟΔΩΝ ΛΕΙΠΟΥΝ, ΚΑΙ ΤΟ ΛΕΕΙ. Η τεκμηρίωση της ΑΑΔΕ τα
+      // δίνει σε άλλη σελίδα που δεν έχει διαβαστεί· ένα όνομα από μνήμη σε
+      // έγγραφο λογιστή είναι χειρότερο από ένα κενό που ομολογείται.
+      ['Οι ονομασίες δίνονται για τους κωδικούς Ε3 της πλευράς των εσόδων. Των εξόδων γράφονται ως κωδικοί, όπως ακριβώς τους ζητά το σύστημα διαβίβασης.'],
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = [{ wch: 8 }, { wch: 40 }, { wch: 40 }, { wch: 15 }, { wch: 52 }, { wch: 46 }];
+    const noteR = HR + 1 + rows.length + 1;
+    ws['!merges'] = [0, 1, noteR].map(r => ({ s: { r, c: 0 }, e: { r, c: NC - 1 } }));
+    ws['!rows'] = []; ws['!rows'][0] = { hpt: 22 }; ws['!rows'][1] = { hpt: 15 };
+    setCell(ws, 0, 0, { s: S.title });
+    setCell(ws, 1, 0, { s: S.sub });
+    setCell(ws, HR - 1, 0, { s: S.section });
+    for (let c = 0; c < NC; c++) setCell(ws, HR, c, { s: S.head });
+    for (let i = 0; i < rows.length; i++) {
+      const r = HR + 1 + i;
+      ws['!rows'][r] = { hpt: 15 };
+      for (let c = 0; c < NC; c++) setCell(ws, r, c, { s: S.txt });
+    }
+    setCell(ws, noteR, 0, { s: S.sub });
+    ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: HR + rows.length, c: NC - 1 } }) };
+    ws['!margins'] = { ...MARGINS };
+    sheetFinish(ws, { landscape: true });
+    XLSX.utils.book_append_sheet(wb, ws, 'Κωδικοί Ε3 ανά συνδυασμό');
   }
 
   return wb;
