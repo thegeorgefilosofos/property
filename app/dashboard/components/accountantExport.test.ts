@@ -781,6 +781,29 @@ eq('τα πλάτη στηλών είναι όσα και οι στήλες', (w
   eq('καμία λέξη δεν κόβεται στη μέση', [...new Set(narrow)].slice(0, 3).join(' · '), '');
 }
 
+// ── ΧΡΗΣΗ ΧΩΡΙΣ ΚΙΝΗΣΕΙΣ: ΟΙ ΣΤΗΛΕΣ ΤΩΝ ΠΟΣΩΝ ΛΕΙΠΟΥΝ, ΔΕΝ ΕΙΝΑΙ ΚΕΝΕΣ ─────
+// Ο φάκελος ακινήτου χωρίς καταχωρήσεις έβγαζε τον πλήρη χάρτη λογαριασμών με
+// τρεις ολόκληρες στήλες άδειες. Δεκαπέντε γραμμές κενού μοιάζουν με βλάβη.
+{
+  const empty = buildWorkbook({ year: 2026, propName: 'Χωρίς κινήσεις', statementLines: [], provisionMonthly: 0, book: [] });
+  const ws = empty.Sheets['Λογαριασμοί ΕΛΠ'];
+  const range = XLSX.utils.decode_range(ws['!ref'] as string);
+  const at = (r: number, c: number) => (ws[XLSX.utils.encode_cell({ r, c })] as Cell | undefined)?.v;
+  let headRow = -1;
+  for (let r = range.s.r; r <= range.e.r && headRow < 0; r++) if (at(r, 0) === 'Κωδικός') headRow = r;
+  ok('ο χάρτης λογαριασμών υπάρχει και χωρίς κινήσεις', headRow >= 0);
+  eq('τρεις στήλες, όχι έξι', [at(headRow, 2), at(headRow, 3)], ['Αντιστοιχία ΕΓΛΣ', undefined]);
+
+  // Και με κινήσεις, οι έξι στήλες επιστρέφουν στη θέση τους.
+  const full = buildWorkbook({ year: 2026, propName: 'Με κινήσεις', statementLines: [], provisionMonthly: 0, book: BOOK });
+  const fw = full.Sheets['Λογαριασμοί ΕΛΠ'];
+  const frange = XLSX.utils.decode_range(fw['!ref'] as string);
+  const fat = (r: number, c: number) => (fw[XLSX.utils.encode_cell({ r, c })] as Cell | undefined)?.v;
+  let fhead = -1;
+  for (let r = frange.s.r; r <= frange.e.r && fhead < 0; r++) if (fat(r, 0) === 'Κωδικός') fhead = r;
+  eq('με κινήσεις, η έκτη στήλη είναι το ποσό', fat(fhead, 5), 'Ποσό');
+}
+
 console.log(`\naccountantExport.ts — ${passed} passed, ${failed} failed`);
 if (failed) { console.log('FAILED:\n' + fails.map(f => '  ✗ ' + f).join('\n')); process.exit(1); }
 console.log('✓ όλα πέρασαν');
