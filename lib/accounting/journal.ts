@@ -222,11 +222,23 @@ const EGLS_TO_ELP: Record<string, string> = {
 };
 
 /**
+ * Ο ΚΩΔΙΚΟΣ των ΕΛΠ για έναν κωδικό ΕΓΛΣ. Κενός χωρίς σωσμένη αντιστοιχία.
+ *
+ * Χωριστός από το `elpFor` γιατί η οθόνη έχει άλλο πλάτος από το αρχείο: στο
+ * ισοζύγιο η στήλη χωρά τον κωδικό, το όνομα του λογαριασμού το λέει ήδη η
+ * διπλανή στήλη, και ένα «64.02 Ενέργεια» δίπλα στο «Ηλεκτρικό ρεύμα» θα ήταν
+ * το ίδιο πράγμα δύο φορές.
+ */
+export function elpCodeFor(code: string): string {
+  return EGLS_TO_ELP[code] || '';
+}
+
+/**
  * Ο λογαριασμός των ΕΛΠ για έναν κωδικό ΕΓΛΣ, με το όνομα του νόμου.
  * Κενό όταν δεν υπάρχει σωσμένη αντιστοιχία.
  */
 export function elpFor(code: string): string {
-  const elp = EGLS_TO_ELP[code];
+  const elp = elpCodeFor(code);
   if (!elp) return '';
   const named = ELP_64.find(a => a.code === elp);
   return named ? `${named.code} ${named.name}` : elp;

@@ -1,7 +1,7 @@
 // Τεστ για τη double-entry μηχανή ημερολογίου (lib/accounting/journal.ts).
 import {
   buildJournal, journalTotals, trialBalance, expenseAccount,
-  journalCsvGeneric, elpFor, journalCsvQuickBooks, journalCsvXero, journalToCsv,
+  journalCsvGeneric, elpFor, elpCodeFor, journalCsvQuickBooks, journalCsvXero, journalToCsv,
   auditJournal,
 } from './journal'
 
@@ -75,6 +75,11 @@ ok('generic CSV ends with the ELP column', gen[0].endsWith(';Λογαριασμ�
 }
 ok('elpFor άγνωστου κωδικού είναι κενό', elpFor('99.99') === '')
 ok('elpFor δίνει κωδικό ΚΑΙ όνομα', elpFor('62.02') === '64.03 Ύδρευση')
+// Η ΟΘΟΝΗ ΠΑΙΡΝΕΙ ΜΟΝΟ ΤΟΝ ΚΩΔΙΚΟ. Στο ισοζύγιο το όνομα του λογαριασμού το
+// λέει ήδη η διπλανή στήλη· οι δύο συναρτήσεις δεν επιτρέπεται να αποκλίνουν.
+ok('elpCodeFor δίνει σκέτο τον κωδικό', elpCodeFor('62.02') === '64.03')
+ok('elpCodeFor άγνωστου κωδικού είναι κενό', elpCodeFor('38.00') === '')
+ok('ο κωδικός είναι το πρόθεμα του λεκτικού', elpFor('62.03').startsWith(elpCodeFor('62.03') + ' '))
 // Αρχείο ΕΙΣΑΓΩΓΗΣ: καμία γραμμή συνόλων — θα την διάβαζε ο wizard ως κίνηση.
 ok('generic CSV has NO totals row', !journalCsvGeneric(lines).includes('ΣΥΝΟΛΑ'))
 ok('generic CSV row count = lines + header', gen.length === lines.length + 1)

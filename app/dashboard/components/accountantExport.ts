@@ -19,9 +19,9 @@ import { XLSX, FMT, S, setCell, downloadWorkbook, money, moneySigned, type Cell 
 import { supplyLabel, reverseChargeVat, reverseCharge, VAT_STANDARD, type Supply } from '@/lib/tax/placeOfSupply';
 import {
   myDataHint, myDataCell, pendingGroups, EXPENSE_CLASS_LABEL, INVOICE_TYPE_LABEL,
-  CATEGORY_CODE, ALLOWED_CLASSES, type VatDeduction, type ExpenseClass, type InvoiceType,
+  CATEGORY_CODE, type VatDeduction, type ExpenseClass,
 } from '@/lib/tax/myData';
-import { AADE_DOC_TYPES, incomeDocTypes } from '@/lib/tax/aadeDocTypes';
+import { AADE_DOC_TYPES, incomeDocTypes, expenseDocTypes } from '@/lib/tax/aadeDocTypes';
 import { elpAccountFor, usedElpAccounts } from '@/lib/tax/elpAccounts';
 import { resolveCategory } from '@/lib/expenses/taxonomy';
 import { csvCell } from '@/lib/core/csv';
@@ -84,6 +84,8 @@ const supplyCell = (s: string | null | undefined): string =>
   s === 'domestic' || s === 'intra_eu' || s === 'third_country' ? supplyLabel(s) : '';
 
 const toDate = (d: string): Date | string => { const t = new Date(d + 'T00:00:00'); return isNaN(t.getTime()) ? d : t; };
+/** Το φύλλο αναφοράς, ονομασμένο ΜΙΑ φορά: το φύλλο και η παραπομπή σε αυτό. */
+const COMBO_SHEET = 'Επιτρεπτοί συνδυασμοί ΑΑΔΕ';
 // Ιταλική γκρι σημείωση για «memo» γραμμές (π.χ. πρόβλεψη φόρου) — διακριτή από το αποτέλεσμα.
 const MEMO_TXT = { font: { name: 'Calibri', color: { rgb: '6B7280' }, sz: 10, italic: true }, alignment: { horizontal: 'left', vertical: 'center' } };
 const MEMO_NUM = { font: { name: 'Calibri', color: { rgb: '6B7280' }, sz: 10, italic: true }, alignment: { horizontal: 'right', vertical: 'center' } };
@@ -265,8 +267,9 @@ export function buildWorkbook(inp: AccountantBundleInput) {
   // ερώτημα είναι άλλο: «τι θα δηλωθεί, με ποιον κωδικό, και πόσος φόρος
   // αποδίδεται από τον λήπτη». Είναι η δουλειά που κάνει ο λογιστής γραμμή
   // γραμμή, οπότε παίρνει τη μορφή που τη διευκολύνει: μηχανικοί κωδικοί δίπλα
-  // στα λεκτικά, σύνολα ανά χαρακτηρισμό, και ο επίσημος πίνακας επιτρεπτών
-  // συνδυασμών από κάτω για να μη χρειαστεί να τον ανοίξει αλλού.
+  // στα λεκτικά, σύνολα ανά χαρακτηρισμό, και οι λογαριασμοί των ΕΛΠ πάνω στους
+  // οποίους κάθονται οι δαπάνες ΤΟΥ ΕΤΟΥΣ. Ο επίσημος πίνακας των επιτρεπτών
+  // συνδυασμών, που δεν αφορά το έτος αλλά το πλαίσιο, έχει δικό του φύλλο.
   if (inp.myData) {
     const vat = inp.myData.vat;
     const NC = 12, HR = 3;
@@ -303,15 +306,6 @@ export function buildWorkbook(inp: AccountantBundleInput) {
         k ? CATEGORY_CODE[k as ExpenseClass] : '', k ? `${k} ${EXPENSE_CLASS_LABEL[k as ExpenseClass]}` : 'Χωρίς χαρακτηρισμό',
         v.n, money(v.v),
       ]);
-    const comboRows = (Object.keys(ALLOWED_CLASSES) as InvoiceType[]).map(t => [
-      t, INVOICE_TYPE_LABEL[t], ALLOWED_CLASSES[t].map(c => CATEGORY_CODE[c]).join(', '),
-    ]);
-    // ΚΑΙ Η ΠΛΕΥΡΑ ΤΩΝ ΕΣΟΔΩΝ, ΩΣ ΑΝΑΦΟΡΑ ΚΑΙ ΜΟΝΟ. Ο ιδιοκτήτης εκδίδει κι
-    // εκείνος παραστατικά — «8.1 Ενοίκια - Έσοδο», «11.2 ΑΠΥ» — αλλά ΠΟΙΟ
-    // εκδίδει εξαρτάται από τη δραστηριότητα και το κρίνει ο λογιστής, όχι η
-    // εφαρμογή. Οι κατηγορίες εσόδων μένουν κωδικοί: τα ελληνικά τους ονόματα
-    // δεν υπάρχουν στον πίνακα της ΑΑΔΕ και δεν επινοούνται εδώ.
-    const incomeRows = incomeDocTypes().map(t => [t, AADE_DOC_TYPES[t].title, AADE_DOC_TYPES[t].income.join(', ')]);
     // ΚΑΙ Ο ΛΟΓΑΡΙΑΣΜΟΣ ΤΩΝ ΕΛΠ, ΓΙΑ ΝΑ ΜΗ ΧΡΕΙΑΣΤΕΙ ΝΑ ΤΟΝ ΨΑΞΕΙ. Ο 64
     // «Διάφορα λειτουργικά έξοδα» είναι σχεδόν όλο το κόστος ενός ακινήτου, και
     // τα αθροίσματά του καταλήγουν στους κωδικούς 185/285/385/485 και 585 του Ε3.
@@ -342,20 +336,12 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       ['Κωδικός', 'Χαρακτηρισμός', 'Πλήθος', 'Αξία'],
       ...classRows,
       [],
-      ['ΕΠΙΤΡΕΠΤΟΙ ΣΥΝΔΥΑΣΜΟΙ ΑΝΑ ΤΥΠΟ ΠΑΡΑΣΤΑΤΙΚΟΥ'],
-      ['Τύπος', 'Περιγραφή', 'Επιτρεπτοί χαρακτηρισμοί εξόδων'],
-      ...comboRows,
-      [],
-      ['ΤΥΠΟΙ ΠΑΡΑΣΤΑΤΙΚΩΝ ΕΣΟΔΩΝ, ΓΙΑ ΑΝΑΦΟΡΑ'],
-      ['Τύπος', 'Περιγραφή', 'Επιτρεπτοί χαρακτηρισμοί εσόδων'],
-      ...incomeRows,
-      [],
       ...(elpRows.length ? [
         ['ΛΟΓΑΡΙΑΣΜΟΣ ΕΛΠ 64 «ΔΙΑΦΟΡΑ ΛΕΙΤΟΥΡΓΙΚΑ ΕΞΟΔΑ», ΑΝΑ ΚΑΤΗΓΟΡΙΑ ΤΟΥ ΕΤΟΥΣ'],
         ['Λογαριασμός', 'Ονομασία κατά το Παράρτημα Γ του ν. 4308/2014', 'Κατηγορίες δαπάνης'],
         ...elpRows, [],
       ] : []),
-      ['Πηγή: ΑΑΔΕ, Συνδυασμοί Χαρακτηρισμών v1.0.4. Υπόδειξη προς τον λογιστή, όχι διαβίβαση: τίποτα δεν αποστέλλεται στην ΑΑΔΕ από την εφαρμογή.'],
+      [`Υπόδειξη προς τον λογιστή, όχι διαβίβαση: τίποτα δεν αποστέλλεται στην ΑΑΔΕ από την εφαρμογή. Ποιοι χαρακτηρισμοί επιτρέπονται σε κάθε τύπο παραστατικού, στο φύλλο «${COMBO_SHEET}».`],
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa, { cellDates: true });
     ws['!cols'] = [{ wch: 6 }, { wch: 13 }, { wch: 22 }, { wch: 34 }, { wch: 8 }, { wch: 22 },
@@ -388,37 +374,132 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     const totR = last + 1;
     for (let c = 0; c <= 8; c++) setCell(ws, totR, c, { s: S.totTxt });
     for (const c of [9, 10, 11]) setCell(ws, totR, c, { s: c === 11 ? S.totTxt : S.totNum });
-    // Οι δύο πίνακες αναφοράς: επικεφαλίδα ενότητας, γραμμή στηλών, δεδομένα.
+    // Οι πίνακες του έτους: επικεφαλίδα ενότητας, γραμμή στηλών, δεδομένα.
     const secA = totR + 2, headA = secA + 1;
-    const secB = headA + 1 + classRows.length + 1, headB = secB + 1;
-    for (const r of [secA, secB]) setCell(ws, r, 0, { s: S.section });
-    for (const [r, n] of [[headA, 4], [headB, 3]] as const) for (let c = 0; c < n; c++) setCell(ws, r, c, { s: S.head });
+    setCell(ws, secA, 0, { s: S.section });
+    for (let c = 0; c < 4; c++) setCell(ws, headA, c, { s: S.head });
     for (let i = 0; i < classRows.length; i++) {
       const r = headA + 1 + i;
       setCell(ws, r, 0, { s: S.txt }); setCell(ws, r, 1, { s: S.txt });
       setCell(ws, r, 2, { s: S.num }); setCell(ws, r, 3, { s: S.num });
     }
-    for (let i = 0; i < comboRows.length; i++) {
-      const r = headB + 1 + i;
-      for (let c = 0; c < 3; c++) setCell(ws, r, c, { s: S.txt });
-    }
-    const secC = headB + 1 + comboRows.length + 1, headC = secC + 1;
-    setCell(ws, secC, 0, { s: S.section });
-    for (let c = 0; c < 3; c++) setCell(ws, headC, c, { s: S.head });
-    for (let i = 0; i < incomeRows.length; i++) {
-      for (let c = 0; c < 3; c++) setCell(ws, headC + 1 + i, c, { s: S.txt });
-    }
-    let after = headC + 1 + incomeRows.length + 1;
+    let after = headA + 1 + classRows.length + 1;
     if (elpRows.length) {
-      const secD = after, headD = secD + 1;
-      setCell(ws, secD, 0, { s: S.section });
-      for (let c = 0; c < 3; c++) setCell(ws, headD, c, { s: S.head });
-      for (let i = 0; i < elpRows.length; i++) for (let c = 0; c < 3; c++) setCell(ws, headD + 1 + i, c, { s: S.txt });
-      after = headD + 1 + elpRows.length + 1;
+      const secB = after, headB = secB + 1;
+      setCell(ws, secB, 0, { s: S.section });
+      for (let c = 0; c < 3; c++) setCell(ws, headB, c, { s: S.head });
+      for (let i = 0; i < elpRows.length; i++) for (let c = 0; c < 3; c++) setCell(ws, headB + 1 + i, c, { s: S.txt });
+      after = headB + 1 + elpRows.length + 1;
     }
     setCell(ws, after, 0, { s: S.sub });
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: last, c: NC - 1 } }) };
     XLSX.utils.book_append_sheet(wb, ws, `Χαρακτηρισμοί myDATA`);
+  }
+
+  // ══ ΦΥΛΛΟ 4: ΟΙ ΕΠΙΤΡΕΠΤΟΙ ΣΥΝΔΥΑΣΜΟΙ, ΩΣ ΠΙΝΑΚΑΣ ═══════════════════════
+  // ΤΟ ΠΡΟΒΛΗΜΑ ΠΟΥ ΛΥΝΕΤΑΙ ΕΔΩ. Οι επιτρεπτοί χαρακτηρισμοί ήταν γραμμένοι ως
+  // κείμενο σε ένα κελί — «category2_1, category2_2, category2_4, …» — δηλαδή
+  // αδιάβαστοι: για να απαντήσει «δέχεται το 13.3 τον 2.4;» ο λογιστής έπρεπε
+  // να διαβάσει μια σειρά από κόμματα και να προσέξει ότι το «2.1» δεν είναι
+  // πρόθεμα του «2.10». Εδώ γίνεται πίνακας: μία γραμμή ανά τύπο, μία στήλη ανά
+  // χαρακτηρισμό, «✓» στη διασταύρωση. Η απάντηση είναι ΘΕΣΗ, όχι ανάγνωση.
+  //
+  // ΚΑΙ ΤΟ ΦΙΛΤΡΟ ΚΑΝΕΙ ΤΗ ΔΟΥΛΕΙΑ ΤΟΥ ΑΝΑΠΤΥΣΣΟΜΕΝΟΥ ΚΑΤΑΛΟΓΟΥ. Το αυτόματο
+  // φίλτρο μπαίνει σε ΟΛΟΝ τον πίνακα: ο λογιστής πατά το βελάκι της στήλης
+  // «2.5», διαλέγει «✓», και βλέπει μόνο τους τύπους που τον δέχονται — και
+  // αντίστροφα, φιλτράροντας τη στήλη «Τύπος» βλέπει τι δέχεται ένας τύπος.
+  // (Πραγματική «επικύρωση δεδομένων» του Excel δεν γράφεται από τη βιβλιοθήκη
+  // που παράγει το αρχείο· το φίλτρο δίνει την ίδια δουλειά, με ό,τι υπάρχει.)
+  //
+  // ΤΟ ΦΥΛΛΟ ΕΙΝΑΙ ΧΩΡΙΣΤΟ ΓΙΑ ΕΝΑΝ ΠΡΑΚΤΙΚΟ ΛΟΓΟ. Οι στήλες ενός φύλλου έχουν
+  // ΕΝΑ πλάτος. Κάτω από τις «Κινήσεις», η στήλη «Περιγραφή» των 46 χαρακτήρων
+  // θα έκανε τον πίνακα των «✓» να απλώνεται σε τρεις οθόνες.
+  if (inp.myData) {
+    // Οι στήλες βγαίνουν ΑΠΟ ΤΟ ΜΗΤΡΩΟ, όχι από λίστα γραμμένη με το χέρι: αν
+    // η ΑΑΔΕ προσθέσει κατηγορία, ο πίνακας την αποκτά μόνος του.
+    const famCols = (fam: 'income' | 'expense', prefix: string) => {
+      const set = new Set<string>();
+      for (const t of Object.values(AADE_DOC_TYPES)) for (const c of t[fam]) if (c.startsWith(prefix)) set.add(c);
+      return [...set].sort((a, b) => Number(a.slice(prefix.length)) - Number(b.slice(prefix.length)));
+    };
+    const expCols = famCols('expense', 'category2_'), incCols = famCols('income', 'category1_');
+    const shortOf = (code: string) => code.replace(/^category(\d)_/, '$1.');
+    // ΜΙΑ ΙΔΙΑΙΤΕΡΟΤΗΤΑ ΤΗΣ ΠΗΓΗΣ, ΠΟΥ ΔΕΝ «ΔΙΟΡΘΩΝΕΤΑΙ» ΣΙΩΠΗΛΑ. Το φύλλο 17.6
+    // γράφει κωδικούς ΕΞΟΔΩΝ στη στήλη των εσόδων. Ο πίνακας των εσόδων κρατά
+    // μόνο κωδικούς `category1_`, οπότε ο τύπος απλώς δεν εμφανίζεται εκεί —
+    // αντί να εμφανιστεί με στήλες που δεν του ανήκουν.
+    const matrix = (fam: 'income' | 'expense', cols: string[], ids: string[]) => ids
+      .filter(t => AADE_DOC_TYPES[t][fam].some(c => cols.includes(c)))
+      .map(t => [t, AADE_DOC_TYPES[t].title, ...cols.map(c => (AADE_DOC_TYPES[t][fam].includes(c) ? '✓' : ''))]);
+    const expRows = matrix('expense', expCols, expenseDocTypes());
+    const incRows = matrix('income', incCols, incomeDocTypes());
+    // Τα ελληνικά ονόματα υπάρχουν για όσους χαρακτηρισμούς εξόδων παράγει η
+    // εφαρμογή. Των υπολοίπων δεν γράφονται: ο πίνακας της ΑΑΔΕ δίνει κωδικούς,
+    // και ένα όνομα από τη μνήμη μας θα ήταν εικασία σε έγγραφο λογιστή.
+    const namedRows = (Object.keys(EXPENSE_CLASS_LABEL) as ExpenseClass[])
+      .map(c => [c, EXPENSE_CLASS_LABEL[c], CATEGORY_CODE[c]]);
+    const NC = 2 + Math.max(expCols.length, incCols.length);
+    const HR = 4;
+
+    const aoa: (string | number)[][] = [
+      ['ΕΠΙΤΡΕΠΤΟΙ ΣΥΝΔΥΑΣΜΟΙ ΧΑΡΑΚΤΗΡΙΣΜΩΝ ΑΝΑ ΤΥΠΟ ΠΑΡΑΣΤΑΤΙΚΟΥ'],
+      ['Πηγή: ΑΑΔΕ, Συνδυασμοί Χαρακτηρισμών v1.0.4 · «✓» όπου ο τύπος δέχεται τον χαρακτηρισμό · φίλτρο σε στήλη χαρακτηρισμού: μόνο οι τύποι που τον δέχονται'],
+      [],
+      ['ΧΑΡΑΚΤΗΡΙΣΜΟΙ ΕΞΟΔΩΝ'],
+      ['Τύπος', 'Περιγραφή', ...expCols.map(shortOf)],
+      ...expRows,
+      [],
+      ['ΧΑΡΑΚΤΗΡΙΣΜΟΙ ΕΣΟΔΩΝ'],
+      ['Τύπος', 'Περιγραφή', ...incCols.map(shortOf)],
+      ...incRows,
+      [],
+      ['ΟΙ ΧΑΡΑΚΤΗΡΙΣΜΟΙ ΕΞΟΔΩΝ ΜΕ ΤΟ ΟΝΟΜΑ ΤΟΥΣ'],
+      ['Χαρακτηρισμός', 'Ονομασία', 'Κωδικός'],
+      ...namedRows,
+      [],
+      ['Ο ιδιοκτήτης εκδίδει κι εκείνος παραστατικά· ποιο εκδίδει εξαρτάται από τη δραστηριότητα και το κρίνει ο λογιστής. Η εφαρμογή υποδεικνύει μόνο τύπους 14.x, όπου υπόχρεος διαβίβασης είναι ο λήπτης.'],
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = [{ wch: 9 }, { wch: 52 }, ...Array.from({ length: NC - 2 }, () => ({ wch: 7 }))];
+    const wide = (r: number) => ({ s: { r, c: 0 }, e: { r, c: NC - 1 } });
+    const incSec = HR + 1 + expRows.length + 1, incHead = incSec + 1;
+    const namSec = incHead + 1 + incRows.length + 1, namHead = namSec + 1;
+    const noteR = namHead + 1 + namedRows.length + 1;
+    ws['!merges'] = [
+      wide(0), wide(1), wide(noteR),
+      // Ο μηχανικός κωδικός («category2_10») δεν χωρά σε στήλη επτά χαρακτήρων:
+      // στον κατάλογο των ονομάτων απλώνεται σε όσες χρειάζεται.
+      ...[namHead, ...namedRows.map((_, i) => namHead + 1 + i)].map(r => ({ s: { r, c: 2 }, e: { r, c: 5 } })),
+    ];
+    const hgt: { hpt: number }[] = []; ws['!rows'] = hgt;
+    hgt[0] = { hpt: 22 }; hgt[1] = { hpt: 15 };
+    setCell(ws, 0, 0, { s: S.title });
+    setCell(ws, 1, 0, { s: S.sub });
+    const CTR = { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } };
+    // Η επικεφαλίδα σταματά όπου σταματούν οι στήλες του ΣΥΓΚΕΚΡΙΜΕΝΟΥ πίνακα:
+    // οι χαρακτηρισμοί εσόδων είναι λιγότεροι, και γκρι κελιά που συνεχίζουν
+    // πέρα από την τελευταία στήλη μοιάζουν με στήλες που έμειναν κενές.
+    const grid = (head: number, n: number, cols: number) => {
+      for (let c = 0; c < 2 + cols; c++) setCell(ws, head, c, { s: S.head });
+      for (let i = 0; i < n; i++) {
+        const r = head + 1 + i;
+        hgt[r] = { hpt: 15 };
+        setCell(ws, r, 0, { s: CTR }); setCell(ws, r, 1, { s: S.txt });
+        for (let c = 2; c < 2 + cols; c++) setCell(ws, r, c, { s: CTR });
+      }
+    };
+    for (const r of [HR - 1, incSec, namSec]) setCell(ws, r, 0, { s: S.section });
+    grid(HR, expRows.length, expCols.length);
+    grid(incHead, incRows.length, incCols.length);
+    for (let c = 0; c < 6; c++) setCell(ws, namHead, c, { s: S.head });
+    for (let i = 0; i < namedRows.length; i++) {
+      const r = namHead + 1 + i;
+      setCell(ws, r, 0, { s: CTR }); setCell(ws, r, 1, { s: S.txt });
+      for (let c = 2; c < 6; c++) setCell(ws, r, c, { s: S.txt });
+    }
+    setCell(ws, noteR, 0, { s: S.sub });
+    ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: HR + expRows.length, c: NC - 1 } }) };
+    XLSX.utils.book_append_sheet(wb, ws, COMBO_SHEET);
   }
 
   return wb;
