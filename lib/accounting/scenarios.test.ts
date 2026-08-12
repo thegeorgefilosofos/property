@@ -28,6 +28,9 @@ import { buildWorkbook, toMovement } from '@/app/dashboard/components/accountant
 import { XLSX, type Cell } from '@/app/dashboard/components/xlsxStyle';
 import { ELP_ALL } from '@/lib/tax/elpAccounts';
 import { CATEGORIES } from '@/lib/expenses/taxonomy';
+import {
+  shortTermYearSummary, platformFeeExpenses, staysMissingPlatformFee, PLATFORM_FEE_CATEGORY,
+} from '@/lib/tax/shortTermTax';
 
 let pass = 0, fail = 0;
 const fails: string[] = [];
@@ -230,6 +233,80 @@ near('σύνολο δαπανών', SUM_EXPENSE, 10091.7);
   const misc = CATEGORIES.filter(c => expenseAccount(c.label).code === '64.12');
   ok(`τα «λοιπά έξοδα» δεν είναι σκουπιδοτενεκές (${misc.length} από ${CATEGORIES.length})`,
     misc.length <= CATEGORIES.length / 3);
+}
+
+// ══ 6. ΜΙΑ ΣΕΖΟΝ ΒΡΑΧΥΧΡΟΝΙΑΣ, ΜΕ ΤΗΝ ΠΡΟΜΗΘΕΙΑ ΜΕΣΑ ════════════════════════
+// ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΒΡΕΘΗΚΕ ΓΡΑΦΟΝΤΑΣ ΑΥΤΟ ΤΟ ΤΕΣΤ. Η προμήθεια της πλατφόρμας
+// καταγραφόταν ανά κράτηση και τη διάβαζαν τέσσερις οθόνες ως «δαπάνη που
+// εκπίπτει». Στο ημερολόγιο, στο ισοζύγιο και στον φάκελο του λογιστή δεν
+// έφτανε καμία. Ο ίδιος χρήστης έβλεπε «προμήθειες 2.700 €» στην Πληρότητα και
+// παρέδιδε βιβλίο χωρίς ούτε ένα ευρώ προμήθειας.
+//
+// Οι έλεγχοι εδώ κρατούν ταυτόχρονα τα δύο που είναι εύκολο να μπερδευτούν: η
+// προμήθεια είναι ΔΑΠΑΝΗ, και ΔΕΝ μειώνει το δηλωτέο ακαθάριστο.
+{
+  // Οκτώ κρατήσεις: έξι από πλατφόρμα με προμήθεια, μία απευθείας χωρίς, και
+  // μία από πλατφόρμα όπου η προμήθεια δεν καταγράφηκε — το κενό που πρέπει να
+  // ονομαστεί αντί να συμπληρωθεί με εκτίμηση.
+  const stay = (i: number, month: number, gross: number, fee: number | null, channel: string) => ({
+    id: `s${i}`, check_in: `${YEAR}-${m(month)}-10`, check_out: `${YEAR}-${m(month)}-14`,
+    nights: 4, channel, gross_guest_paid: gross, climate_levy: 8, platform_fee: fee,
+    total: gross - 8, amount_basis: 'gross',
+  });
+  const stays = [
+    stay(1, 5, 508, 60, 'airbnb'),
+    stay(2, 6, 608, 75, 'airbnb'),
+    stay(3, 7, 808, 100, 'booking'),
+    stay(4, 7, 908, 120, 'airbnb'),
+    stay(5, 8, 1008, 135, 'booking'),
+    stay(6, 8, 908, 110, 'airbnb'),
+    stay(7, 9, 408, null, 'direct'),
+    stay(8, 9, 508, null, 'airbnb'),
+  ];
+
+  const summary = shortTermYearSummary(stays, YEAR, { sqm: 70, isHouse: false, individual: true });
+  const fees = platformFeeExpenses(stays, YEAR);
+  const feeSum = fees.reduce((s, f) => s + f.amount, 0);
+
+  eq('έξι κρατήσεις με προμήθεια, έξι γραμμές δαπάνης', fees.length, 6);
+  near('η σύνοψη και οι γραμμές λένε το ίδιο ποσό', feeSum, summary.platformFees);
+  near('το άθροισμα των προμηθειών', feeSum, 600);
+
+  // Η κρίσιμη διάκριση: το ακαθάριστο είναι «τι πλήρωσε ο επισκέπτης − τέλος»,
+  // και η προμήθεια ΔΕΝ το αγγίζει. 5664 πληρωμένα − 8×8 τέλος = 5600.
+  near('το δηλωτέο ακαθάριστο δεν μειώνεται από την προμήθεια', summary.grossRevenue, 5600);
+
+  // Το ίδιο, αποδεδειγμένα: μηδενίζοντας ΚΑΘΕ προμήθεια, το ακαθάριστο μένει.
+  const noFees = stays.map(s => ({ ...s, platform_fee: null }));
+  near('χωρίς καμία προμήθεια, ίδιο ακαθάριστο',
+    shortTermYearSummary(noFees, YEAR, { sqm: 70, isHouse: false, individual: true }).grossRevenue, 5600);
+  eq('και καμία γραμμή δαπάνης', platformFeeExpenses(noFees, YEAR).length, 0);
+
+  // Το κενό ονομάζεται: μία κράτηση Airbnb χωρίς προμήθεια. Η απευθείας δεν
+  // λείπει — δεν έχει προμήθεια εξ ορισμού.
+  eq('μία κράτηση πλατφόρμας χωρίς καταγεγραμμένη προμήθεια',
+    staysMissingPlatformFee(stays, YEAR), 1);
+
+  // ══ ΚΑΙ ΤΩΡΑ ΤΟ ΒΙΒΛΙΟ ══════════════════════════════════════════════════
+  const stIncomes = stays.map((s, i) => ({
+    date: s.check_in, amount: s.gross_guest_paid - 8, description: `Κράτηση ${i + 1}`,
+  }));
+  const stLines = buildJournal({ incomes: stIncomes, expenses: fees });
+  const stTotals = journalTotals(stLines);
+  ok('η σεζόν ισοσκελίζει', stTotals.balanced);
+
+  const stTrial = new Map(trialBalance(stLines).map(r => [r.code, r]));
+  near('τα έσοδα της σεζόν στο 71.04',
+    stTrial.get(ACCOUNTS.rentIncome.code)?.credit ?? 0, 5600);
+  // 64.01 «Αμοιβές για υπηρεσίες»: μεσιτεία κράτησης, όπως και ο μεσίτης.
+  near('η προμήθεια στο 64.01', stTrial.get('64.01')?.debit ?? 0, 600);
+  eq('κάθε γραμμή προμήθειας πάει στον ίδιο λογαριασμό',
+    [...new Set(fees.map(f => expenseAccount(f.category).code))].join(','), '64.01');
+
+  // Η προμήθεια δεν εξαφανίζεται σε «λοιπά»: αν έχανε την κατηγορία της, θα
+  // κατέληγε στο 64.12 μαζί με τις συνδρομές, και ο λογιστής δεν θα ήξερε.
+  ok('η προμήθεια δεν πέφτει στα λοιπά έξοδα',
+    expenseAccount(PLATFORM_FEE_CATEGORY).code !== '64.12');
 }
 
 console.log(`\nscenarios: ${fail === 0 ? `✓ ${pass} έλεγχοι` : `✗ ${fail} απέτυχαν από ${pass + fail}`}`);

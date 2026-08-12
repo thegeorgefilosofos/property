@@ -37,7 +37,7 @@ import {
   incomeStatement, taxProvision, consolidateIndividual,
   type TaxRegime, type StatementInput, type IncomeStatement,
 } from '@/lib/accounting/statement'
-import { shortTermYearSummary } from '@/lib/tax/shortTermTax'
+import { shortTermYearSummary, platformFeeExpenses, staysMissingPlatformFee } from '@/lib/tax/shortTermTax'
 import { resolveEnfia } from '@/lib/billing/propertyFacts'
 import { estimateENFIAFromFacts } from '@/lib/billing/enfia'
 import { annuityMonthly, interestForYear } from '@/lib/loans/recommend'
@@ -50,7 +50,7 @@ import type { PlanId } from '@/lib/billing/plans'
 import { exportAccountantBundle, toMovement } from './accountantExport'
 import { buildRegister, chargeForYear, RENTED_PROPERTY_ACCOUNT, EQUIPMENT_ACCOUNT } from '@/lib/accounting/fixedAssets'
 import { CAPITALISABLE } from '@/lib/tax/elpAccounts'
-import { CATEGORIES } from '@/lib/expenses/taxonomy'
+import { CATEGORIES, resolveCategory } from '@/lib/expenses/taxonomy'
 import EnfiaPanel from './EnfiaPanel';
 import AccountantDossier, { useAccountantDossier } from './AccountantDossier'
 import { fetchDossierPapers } from './dossierPapers'
@@ -363,9 +363,21 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const rentCollectedYear = useMemo(()=>rent.filter(p=>p.paid&&p.period_year===year).reduce((s,p)=>s+(p.amount||0),0),[rent,year])
   const shortSummary = useMemo(()=>shortTermYearSummary(stays, year, { sqm: prop?.sqm, isHouse:false, propertyCount:propCount, individual:true }),[stays,year,prop,propCount])
   const expensesYear = useMemo(()=>expenses.filter(e=>(e.date||'').slice(0,4)===String(year)&&(e.amount||0)>0),[expenses,year])
+  // ── Η ΠΡΟΜΗΘΕΙΑ ΤΗΣ ΠΛΑΤΦΟΡΜΑΣ ΕΙΝΑΙ ΔΑΠΑΝΗ, ΚΑΙ ΜΠΑΙΝΕΙ ΣΤΑ ΒΙΒΛΙΑ ──────
+  // Καταγραφόταν ανά κράτηση, φαινόταν σε τέσσερις οθόνες ως «δαπάνη που
+  // εκπίπτει», και δεν έφτανε ΠΟΤΕ στο ημερολόγιο, στο ισοζύγιο ή στον φάκελο
+  // του λογιστή. Ο κανόνας και η αιτιολογία ζουν στο lib/tax/shortTermTax.ts.
+  //
+  // ΔΕΝ ΔΙΠΛΟΓΡΑΦΕΤΑΙ. Όταν ο χρήστης έχει ήδη καταχωρήσει προμήθεια ως δαπάνη
+  // — γιατί η πλατφόρμα του έστειλε τιμολόγιο και το πέρασε — η δική του
+  // καταχώρηση υπερισχύει και δεν παράγεται τίποτα: το παραστατικό είναι πιο
+  // βαρύ από τον υπολογισμό μας.
+  const ownPlatformFees = useMemo(()=>expensesYear.some(e=>resolveCategory(e.category)==='platform_fee'),[expensesYear])
+  const platformFeeRows = useMemo(()=>ownPlatformFees?[]:platformFeeExpenses(stays,year),[ownPlatformFees,stays,year])
+  const platformFeesYear = useMemo(()=>platformFeeRows.reduce((s,r)=>s+r.amount,0),[platformFeeRows])
   // Εξαιρούμε τον ΕΝΦΙΑ ως δαπάνη, τον μετράμε ξεχωριστά (αποφυγή διπλομέτρησης).
-  const expensesTotal = useMemo(()=>expensesYear.filter(e=>e.category!=='ΕΝΦΙΑ').reduce((s,e)=>s+(e.amount||0),0),[expensesYear])
-  const deductibleTotal = useMemo(()=>expensesYear.filter(e=>isGroupDeductible(e.expense_group)&&e.category!=='ΕΝΦΙΑ').reduce((s,e)=>s+(e.amount||0),0),[expensesYear])
+  const expensesTotal = useMemo(()=>expensesYear.filter(e=>e.category!=='ΕΝΦΙΑ').reduce((s,e)=>s+(e.amount||0),0)+platformFeesYear,[expensesYear,platformFeesYear])
+  const deductibleTotal = useMemo(()=>expensesYear.filter(e=>isGroupDeductible(e.expense_group)&&e.category!=='ΕΝΦΙΑ').reduce((s,e)=>s+(e.amount||0),0)+platformFeesYear,[expensesYear,platformFeesYear])
   // Δόσεις δανείων ΜΟΝΟ όσο το δάνειο είναι ενεργό στη χρήση (όχι φαντάσματα).
   const loanAnnual = useMemo(()=>loans.reduce((s,l)=>{ if(!loanActiveInYear(l))return s; const m=annuityMonthly(Number(l.amount)||0,Number(l.rate)||0,Number(l.years)||0); return s+m*12 },0),[loans,year,loanActiveInYear])
   const loanInterestYear = useMemo(()=>loans.reduce((s,l)=>{ const amount=Number(l.amount)||0, rate=Number(l.rate)||0, yrs=Number(l.years)||0; const startY=l.start_date?Number(String(l.start_date).slice(0,4)):year; const idx=year-startY+1; return s+interestForYear(amount,rate,yrs,idx) },0),[loans,year])
@@ -505,8 +517,10 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     for(const p of rent){ if(p.paid&&(p.amount||0)>0){ out.push({ date:p.paid_date||p.due_date||`${p.period_year}-${String(p.period_month).padStart(2,'0')}-01`, type:'income', category:'Ενοίκιο', description:`Ενοίκιο ${MONTHS_SHORT[(p.period_month||1)-1]} ${p.period_year}`, amount:p.amount, source:'rent' }) } }
     for(const s of stays){ if((s.total||0)>0&&s.check_in){ out.push({ date:s.check_in, type:'income', category:'Βραχυχρόνια', description:`Κράτηση ${s.channel||''}`.trim(), amount:s.total||0, source:'stay' }) } }
     for(const e of expenses){ if((e.amount||0)>0&&e.date){ out.push({ date:e.date, type:'expense', category:e.category||'Δαπάνες', description:e.description||'Δαπάνη', amount:e.amount, source:'expense', supplier_country:e.supplier_country, supply:e.supply, supplier_afm:e.supplier_afm }) } }
+    // Η προμήθεια της κάθε κράτησης, δίπλα στο έσοδο της ίδιας κράτησης.
+    for(const f of platformFeeRows){ out.push({ date:f.date, type:'expense', category:f.category, description:f.description, amount:f.amount, source:'expense' }) }
     return out
-  },[rent,stays,expenses])
+  },[rent,stays,expenses,platformFeeRows])
   const yearEntries = useMemo(()=>entries.filter(e=>e.date.slice(0,4)===String(year)),[entries,year])
   const cash = useMemo(()=>cashflowByYear(entries,year),[entries,year])
   const book = useMemo(()=>buildLedger(yearEntries),[yearEntries])
@@ -521,10 +535,11 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     for(const s of stays){ if((s.total||0)>0&&s.check_in&&String(s.check_in).slice(0,4)===String(year)){ incomes.push({ date:s.check_in, amount:s.total||0, description:`Κράτηση ${s.channel||''}`.trim() }) } }
     const exp:ExpenseRec[] = []
     for(const e of expenses){ if((e.amount||0)>0&&e.date&&String(e.date).slice(0,4)===String(year)){ exp.push({ date:e.date, amount:e.amount, category:e.category, description:e.description }) } }
+    for(const f of platformFeeRows){ exp.push({ date:f.date, amount:f.amount, category:f.category, description:f.description }) }
     const loanPayments:LoanPaymentRec[] = []
     for(const l of loans){ if(!loanActiveInYear(l))continue; const amount=Number(l.amount)||0, rate=Number(l.rate)||0, yrs=Number(l.years)||0; const startY=l.start_date?Number(String(l.start_date).slice(0,4)):year; const idx=year-startY+1; const annual=Math.round(annuityMonthly(amount,rate,yrs)*12); const interest=Math.round(interestForYear(amount,rate,yrs,idx)); if(annual>0) loanPayments.push({ date:`${year}-06-30`, amount:annual, interest, description:`Δόσεις δανείου${l.bank?` · ${l.bank}`:''}` }) }
     return buildJournal({ incomes, expenses:exp, loanPayments })
-  },[rent,stays,expenses,loans,year,loanActiveInYear])
+  },[rent,stays,expenses,loans,year,loanActiveInYear,platformFeeRows])
   const trial = useMemo(()=>trialBalance(journalLines),[journalLines])
   const jTotals = useMemo(()=>journalTotals(journalLines),[journalLines])
 
@@ -563,6 +578,11 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     if(regime==='individual_shortterm'){
       if(stays.filter(s=>String(s.check_in||'').slice(0,4)===String(year)).length===0) g.push(`Καμία καταχωρημένη διαμονή για το ${year}.`)
     } else if(rentRows.length===0){ g.push(`Κανένα καταχωρημένο μίσθωμα για το ${year}.`) }
+    // Η προμήθεια δεν μαντεύεται. Κράτηση Airbnb ή Booking.com έχει πάντα
+    // προμήθεια· όταν λείπει, λείπει δαπάνη από τα βιβλία και το λέμε.
+    const noFee = staysMissingPlatformFee(stays, year)
+    if(noFee>0) g.push(`${noFee} κρατήσεις από πλατφόρμα χωρίς καταγεγραμμένη προμήθεια: λείπει δαπάνη που εκπίπτει.`)
+    if(ownPlatformFees) g.push('Οι προμήθειες πλατφορμών λαμβάνονται από τις καταχωρημένες δαπάνες, όχι από τις κρατήσεις.')
     if(expensesYear.length===0) g.push(`Καμία καταχωρημένη δαπάνη για το ${year}.`)
     if(uncollectedRent>0) g.push(`Ανείσπρακτα μισθώματα ${eur(uncollectedRent)}: χρειάζεται τεκμηρίωση της νομικής διεκδίκησης.`)
     if(regime==='individual_longterm' && !tenant?.afm) g.push('Δεν έχει καταχωρηθεί ΑΦΜ μισθωτή.')
@@ -570,7 +590,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     const noCat = expensesYear.filter(e=>!e.category).length
     if(noCat>0) g.push(`${noCat} δαπάνες χωρίς κατηγορία.`)
     return g
-  },[rent,stays,expensesYear,year,regime,uncollectedRent,tenant,enfiaEstimated])
+  },[rent,stays,expensesYear,year,regime,uncollectedRent,tenant,enfiaEstimated,ownPlatformFees])
 
   // ── ΠΟΙΟΣ ΚΑΝΕΙ myDATA, ΚΑΙ ΜΕ ΠΟΙΟ ΔΙΚΑΙΩΜΑ ΕΚΠΤΩΣΗΣ ────────────────────
   // Ο ιδιοκτήτης που εκμισθώνει ως φυσικό πρόσωπο δεν χαρακτηρίζει έξοδα: δεν

@@ -20,6 +20,8 @@ import {
   declarableGross, declarableGrossOrTotal, platformFee, collectedLevy as levyOfStay,
   isDeclared, type StayAmountLike,
 } from '@/lib/clients/stayAmounts';
+import { STAY_CHANNEL_LABELS, type StayChannel } from '@/lib/clients/clients';
+import { categoryLabel } from '@/lib/expenses/taxonomy';
 import {
   climateLevyForNights, climateLevyRates, isHighSeasonMonth,
   rentalIncomeTax, rentalBracketsForYear, municipalAccommodationTax,
@@ -208,6 +210,72 @@ export function shortTermYearSummary(stays: TaxStay[], year: number, meta?: Prop
     undeclaredCount: inYear.filter(s => !isDeclared(s)).length,
     byChannel: channelBreakdownForYear(stays, year),
   };
+}
+
+// ── Η ΠΡΟΜΗΘΕΙΑ ΤΗΣ ΠΛΑΤΦΟΡΜΑΣ ΦΤΑΝΕΙ ΚΑΙ ΣΤΑ ΒΙΒΛΙΑ ────────────────────────
+//
+// ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΔΙΟΡΘΩΝΕΙ, ΓΡΑΜΜΕΝΟ ΓΙΑ ΝΑ ΜΗΝ ΞΑΝΑΓΙΝΕΙ. Η προμήθεια
+// καταγράφεται ανά διαμονή (`platform_fee`), αθροίζεται στη σύνοψη
+// (`platformFees`), και τέσσερις οθόνες τη δείχνουν γραμμένη «δαπάνη που
+// εκπίπτει»: Πελάτες, Τιμολόγηση, Πληρότητα, Απόδοση. Στο ημερολόγιο, στο
+// ισοζύγιο και στον φάκελο του λογιστή ΔΕΝ ΕΦΤΑΝΕ ΠΟΤΕ. Ο ίδιος χρήστης,
+// στην ίδια εφαρμογή, την ίδια μέρα: η μία οθόνη του έλεγε «προμήθειες 3.000 €,
+// εκπίπτουν» και ο φάκελος που παρέδιδε στον λογιστή δεν είχε ούτε ένα ευρώ
+// προμήθειας. Για όποιον τηρεί βιβλία αυτό είναι χαμένη έκπτωση· για όλους
+// είναι δύο αλήθειες από το ίδιο πρόγραμμα.
+//
+// ΓΙΑΤΙ ΠΑΡΑΓΩΓΗ ΚΑΙ ΟΧΙ ΚΑΤΑΧΩΡΗΣΗ. Το ποσό υπάρχει ήδη, ανά κράτηση, γραμμένο
+// από τον χρήστη ή από τον εισαγωγέα. Το να του ζητάμε να το ξαναγράψει ως
+// δαπάνη είναι δουλειά που την έχουμε ήδη κάνει — και ευκαιρία να ξεχαστεί. Ο
+// ίδιος κανόνας ισχύει ήδη για τους τόκους του δανείου, που κι εκείνοι δεν
+// καταχωρούνται ως δαπάνη αλλά προκύπτουν από τα στοιχεία του δανείου.
+//
+// ΤΙΠΟΤΑ ΔΕΝ ΕΠΙΝΟΕΙΤΑΙ. Διαμονή χωρίς καταγεγραμμένη προμήθεια δεν παράγει
+// γραμμή. Δεν εφαρμόζεται μέσο ποσοστό, δεν συμπληρώνεται «15%»: αν δεν το
+// ξέρουμε, δεν υπάρχει.
+
+/** Δαπάνη που ΠΡΟΚΥΠΤΕΙ από τα δεδομένα, χωρίς να την καταχωρήσει ο χρήστης. */
+export interface DerivedExpense { date: string; amount: number; category: string; description: string }
+
+/** Η ετικέτα της κατηγορίας ζει στην ταξινομία, μία φορά. */
+export const PLATFORM_FEE_CATEGORY = categoryLabel('platform_fee');
+
+/**
+ * Οι προμήθειες των πλατφορμών του έτους, μία γραμμή ανά διαμονή.
+ *
+ * Μία ανά διαμονή και όχι ένα ετήσιο σύνολο, ώστε κάθε γραμμή δαπάνης να έχει
+ * απέναντί της τη γραμμή εσόδου της ίδιας κράτησης, με την ίδια ημερομηνία.
+ * Ο λογιστής που ανοίγει το ισοζύγιο βλέπει ζευγάρια, όχι ένα ποσό στο τέλος.
+ */
+export function platformFeeExpenses(stays: TaxStay[], year: number): DerivedExpense[] {
+  const out: DerivedExpense[] = [];
+  for (const s of stays) {
+    if (y4(s.check_in) !== String(year)) continue;
+    const fee = platformFee(s);
+    if (fee <= 0) continue;
+    const ch = STAY_CHANNEL_LABELS[(s.channel || 'other') as StayChannel];
+    out.push({
+      date: String(s.check_in).slice(0, 10),
+      amount: fee,
+      category: PLATFORM_FEE_CATEGORY,
+      description: ch ? `Προμήθεια ${ch}` : PLATFORM_FEE_CATEGORY,
+    });
+  }
+  return out.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/**
+ * Πόσες διαμονές του έτους ήρθαν από πλατφόρμα χωρίς καταγεγραμμένη προμήθεια.
+ *
+ * Η απευθείας κράτηση δεν έχει προμήθεια και δεν λείπει τίποτα. Η κράτηση από
+ * Airbnb ή Booking.com έχει πάντα, οπότε το κενό είναι πραγματικό κενό — και το
+ * λέμε στον λογιστή αντί να το γεμίσουμε με εκτίμηση.
+ */
+export function staysMissingPlatformFee(stays: TaxStay[], year: number): number {
+  return stays.filter(s =>
+    y4(s.check_in) === String(year)
+    && (s.channel === 'airbnb' || s.channel === 'booking')
+    && platformFee(s) <= 0).length;
 }
 
 // ── Η γραμμή που κανείς δεν επινοεί, κάτω από κάθε προτεινόμενη τιμή ─────────

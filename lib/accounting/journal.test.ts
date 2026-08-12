@@ -149,5 +149,28 @@ const unsplit = buildJournal({ incomes: [], expenses: [], loanPayments: [{ date:
 ok('unsplit loan → 2 lines (52 + 38)', unsplit.length === 2 && unsplit.some(l => l.code === '52' && l.debit === 400))
 ok('unsplit loan warns on split', auditJournal(unsplit, { year: 2026 }).checks.find(c => c.key === 'loansplit')!.status === 'warn')
 
+// ── Η ΛΕΞΗ-ΚΛΕΙΔΙ ΠΙΑΝΕΙ ΜΟΝΟ ΣΕ ΑΡΧΗ ΛΕΞΗΣ ────────────────────────────────
+// Οι ελληνικές ρίζες κρύβονται μέσα σε άσχετες λέξεις. Πριν το όριο λέξης, μια
+// «Χρέωση πλατφόρμας» πήγαινε στους «Φόρους και τέλη» (το «φόρ» της πλατΦΟΡμας),
+// ένα «Αποτέλεσμα ελέγχου» επίσης (το «τέλ» του αποΤΕΛέσματος), και ένα «Τόνερ»
+// στην Ύδρευση (το «νερ» του τόΝΕΡ). Ο λογιστής έβλεπε προμήθεια ως φόρο.
+for (const [text, code] of [
+  ['Χρέωση πλατφόρμας', '64.12'],
+  ['Αποτέλεσμα ελέγχου', '64.12'],
+  ['Τόνερ εκτυπωτή', '64.12'],
+] as const) {
+  ok(`«${text}» δεν πιάνεται από ρίζα μέσα σε λέξη → ${code}`, expenseAccount(text).code === code)
+}
+// Και οι πραγματικές λέξεις συνεχίζουν να πιάνονται, σε αρχή λέξης ή φράσης.
+for (const [text, code] of [
+  ['Φόρος εισοδήματος', '64.11'],
+  ['Δημοτικά τέλη', '64.11'],
+  ['Λογαριασμός νερού', '64.03'],
+  ['Προμήθεια Airbnb', '64.01'],
+  ['Τόκοι δανείου', '65.01'],
+] as const) {
+  ok(`«${text}» → ${code}`, expenseAccount(text).code === code)
+}
+
 console.log(`journal.test.ts: ${passed} passed, ${failed} failed`)
 if (failed > 0) process.exit(1)

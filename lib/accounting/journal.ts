@@ -59,6 +59,30 @@ export const ACCOUNTS = {
 } as const;
 
 /**
+ * Λέξη-κλειδί που πιάνει ΜΟΝΟ σε αρχή λέξης.
+ *
+ * ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΔΙΟΡΘΩΝΕΙ. Οι λέξεις έπιαναν οπουδήποτε μέσα στη φράση, και
+ * μερικές ελληνικές ρίζες κρύβονται μέσα σε άσχετες λέξεις: το «φόρ» των φόρων
+ * ζει μέσα στην «πλατΦΟΡμα», το «τέλ» των τελών μέσα στο «αποΤΕΛεσμα», το «νερ»
+ * της ύδρευσης μέσα στο «τόΝΕΡ». Μια «Χρέωση πλατφόρμας» γραμμένη ελεύθερα
+ * καταχωρούνταν στους «Φόρους και τέλη»: η προμήθεια της πλατφόρμας εμφανιζόταν
+ * στο ισοζύγιο ως φόρος.
+ *
+ * ΧΩΡΙΣ `\b`. Το όριο λέξης της JavaScript ορίζεται πάνω σε ASCII και δεν
+ * υπάρχει ποτέ πριν από ελληνικό γράμμα· η αναζήτηση απλώς δεν θα ταίριαζε
+ * ΠΟΤΕ. Το `(?<![\p{L}\p{N}])` λέει το ίδιο πράγμα για κάθε αλφάβητο.
+ */
+const words = (alts: string) => new RegExp(`(?<![\\p{L}\\p{N}])(?:${alts})`, 'u');
+const KEY_ENERGY = words('ρεύμ|ενέργ|αέρι|θέρμ|electric|δεη|gas|heat');
+const KEY_WATER = words('νερ|ύδρ|water');
+const KEY_TELECOM = words('τηλέφ|internet|τηλεπικοιν');
+const KEY_INSURANCE = words('ασφάλ|insur');
+const KEY_TAX = words('φόρ|ενφια|enfia|tax|τέλ');
+const KEY_INTEREST = words('τόκ|δάνει|interest|loan');
+const KEY_REPAIR = words('επισκ|συντήρ|ανακαίν|renov|mainten|υδραυλ|ηλεκτρολ|ασανσέρ|ανελκυστ|κλιματ|πισίν');
+const KEY_SERVICE = words('αμοιβ|καθαρ|κήπ|απεντ|συναγερμ|φύλαξ|clean|garden|δικηγ|συμβολαιογρ|μηχανικ|μεσιτ|προμήθει');
+
+/**
  * Ο λογαριασμός μιας δαπάνης.
  *
  * Η ΑΝΤΙΣΤΟΙΧΙΣΗ ΖΕΙ ΣΤΟ elpAccounts.ts, ΜΙΑ ΦΟΡΑ, ΚΑΙ ΕΙΝΑΙ ΑΝΑ ΚΑΤΗΓΟΡΙΑ.
@@ -81,14 +105,14 @@ export function expenseAccount(category?: string | null): ElpAccount {
   const direct = elpAccountFor(resolveCategory(category));
   if (direct) return direct;
   const key = String(category || '').trim().toLowerCase();
-  if (/ρεύμ|ενέργ|αέρι|θέρμ|electric|δεη|gas|heat/.test(key)) return acct('64.02');
-  if (/νερ|ύδρ|water/.test(key)) return acct('64.03');
-  if (/τηλέφ|internet|τηλεπικοιν/.test(key)) return acct('64.04');
-  if (/ασφάλ|insur/.test(key)) return acct('64.06');
-  if (/φόρ|ενφια|enfia|tax|τέλ/.test(key)) return acct('64.11');
-  if (/τόκ|δάνει|interest|loan/.test(key)) return acct('65.01');
-  if (/επισκ|συντήρ|ανακαίν|renov|mainten|υδραυλ|ηλεκτρολ|ασανσέρ|ανελκυστ|κλιματ|πισίν/.test(key)) return acct('64.09');
-  if (/αμοιβ|καθαρ|κήπ|απεντ|συναγερμ|φύλαξ|clean|garden|δικηγ|συμβολαιογρ|μηχανικ|μεσιτ/.test(key)) return acct('64.01');
+  if (KEY_ENERGY.test(key)) return acct('64.02');
+  if (KEY_WATER.test(key)) return acct('64.03');
+  if (KEY_TELECOM.test(key)) return acct('64.04');
+  if (KEY_INSURANCE.test(key)) return acct('64.06');
+  if (KEY_TAX.test(key)) return acct('64.11');
+  if (KEY_INTEREST.test(key)) return acct('65.01');
+  if (KEY_REPAIR.test(key)) return acct('64.09');
+  if (KEY_SERVICE.test(key)) return acct('64.01');
   return acct('64.12');
 }
 
