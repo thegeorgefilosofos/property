@@ -21,6 +21,7 @@ import {
   myDataHint, myDataCell, pendingGroups, EXPENSE_CLASS_LABEL, INVOICE_TYPE_LABEL,
   CATEGORY_CODE, ALLOWED_CLASSES, type VatDeduction, type ExpenseClass, type InvoiceType,
 } from '@/lib/tax/myData';
+import { AADE_DOC_TYPES, incomeDocTypes } from '@/lib/tax/aadeDocTypes';
 import { csvCell } from '@/lib/core/csv';
 import { buildZip, type ZipFile } from '@/lib/accounting/zip';
 import { WHO_LABEL, type Requirement } from '@/lib/accounting/dossier';
@@ -303,6 +304,12 @@ export function buildWorkbook(inp: AccountantBundleInput) {
     const comboRows = (Object.keys(ALLOWED_CLASSES) as InvoiceType[]).map(t => [
       t, INVOICE_TYPE_LABEL[t], ALLOWED_CLASSES[t].map(c => CATEGORY_CODE[c]).join(', '),
     ]);
+    // ΚΑΙ Η ΠΛΕΥΡΑ ΤΩΝ ΕΣΟΔΩΝ, ΩΣ ΑΝΑΦΟΡΑ ΚΑΙ ΜΟΝΟ. Ο ιδιοκτήτης εκδίδει κι
+    // εκείνος παραστατικά — «8.1 Ενοίκια - Έσοδο», «11.2 ΑΠΥ» — αλλά ΠΟΙΟ
+    // εκδίδει εξαρτάται από τη δραστηριότητα και το κρίνει ο λογιστής, όχι η
+    // εφαρμογή. Οι κατηγορίες εσόδων μένουν κωδικοί: τα ελληνικά τους ονόματα
+    // δεν υπάρχουν στον πίνακα της ΑΑΔΕ και δεν επινοούνται εδώ.
+    const incomeRows = incomeDocTypes().map(t => [t, AADE_DOC_TYPES[t].title, AADE_DOC_TYPES[t].income.join(', ')]);
 
     const aoa: (string | number | Date)[][] = [
       [`ΧΑΡΑΚΤΗΡΙΣΜΟΙ myDATA ${year}`],
@@ -327,6 +334,10 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       ['ΕΠΙΤΡΕΠΤΟΙ ΣΥΝΔΥΑΣΜΟΙ ΑΝΑ ΤΥΠΟ ΠΑΡΑΣΤΑΤΙΚΟΥ'],
       ['Τύπος', 'Περιγραφή', 'Επιτρεπτοί χαρακτηρισμοί εξόδων'],
       ...comboRows,
+      [],
+      ['ΤΥΠΟΙ ΠΑΡΑΣΤΑΤΙΚΩΝ ΕΣΟΔΩΝ, ΓΙΑ ΑΝΑΦΟΡΑ'],
+      ['Τύπος', 'Περιγραφή', 'Επιτρεπτοί χαρακτηρισμοί εσόδων'],
+      ...incomeRows,
       [],
       ['Πηγή: ΑΑΔΕ, Συνδυασμοί Χαρακτηρισμών v1.0.4. Υπόδειξη προς τον λογιστή, όχι διαβίβαση: τίποτα δεν αποστέλλεται στην ΑΑΔΕ από την εφαρμογή.'],
     ];
@@ -375,7 +386,13 @@ export function buildWorkbook(inp: AccountantBundleInput) {
       const r = headB + 1 + i;
       for (let c = 0; c < 3; c++) setCell(ws, r, c, { s: S.txt });
     }
-    setCell(ws, headB + 1 + comboRows.length + 1, 0, { s: S.sub });
+    const secC = headB + 1 + comboRows.length + 1, headC = secC + 1;
+    setCell(ws, secC, 0, { s: S.section });
+    for (let c = 0; c < 3; c++) setCell(ws, headC, c, { s: S.head });
+    for (let i = 0; i < incomeRows.length; i++) {
+      for (let c = 0; c < 3; c++) setCell(ws, headC + 1 + i, c, { s: S.txt });
+    }
+    setCell(ws, headC + 1 + incomeRows.length + 1, 0, { s: S.sub });
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: last, c: NC - 1 } }) };
     XLSX.utils.book_append_sheet(wb, ws, `Χαρακτηρισμοί myDATA`);
   }
