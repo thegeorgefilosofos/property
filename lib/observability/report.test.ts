@@ -13,7 +13,7 @@
 // ακριβώς το ίδιο, και η μόνη διαφορά όταν μπει το DSN είναι ότι κάποιος
 // μαθαίνει τα σφάλματα χωρίς να τηλεφωνήσει ο πελάτης.
 // ═══════════════════════════════════════════════════════════════════════════
-import { captureError } from './report'
+import { captureError, worthReporting } from './report'
 
 let passed = 0, failed = 0
 function ok(name: string, cond: boolean) { if (cond) { passed++ } else { failed++; console.log('  ✗ ' + name) } }
@@ -109,6 +109,26 @@ const event = (body: string) => JSON.parse(body.split('\n')[2]) as Record<string
 
   const bad = withCapture('όχι-έγκυρο-dsn', () => captureError(new Error('x')))
   ok('με άκυρο DSN δεν φεύγει τίποτα', bad.length === 0)
+}
+
+// ── ΠΟΙΑ ΣΦΑΛΜΑΤΑ ΑΞΙΖΕΙ ΝΑ ΤΑΞΙΔΕΨΟΥΝ ────────────────────────────────────
+// Ο καθολικός ακροατής ακούει ΚΑΘΕ σφάλμα της σελίδας, και οι επεκτάσεις του
+// περιηγητή πετούν πολλά. Μια λίστα σφαλμάτων γεμάτη θόρυβο δεν διαβάζεται —
+// και τότε δεν διαβάζονται ούτε τα αληθινά.
+{
+  ok('κανονικό σφάλμα ταξιδεύει', worthReporting(new Error('χάλασε η αποθήκευση')))
+  ok('σφάλμα με στοίβα αλλά χωρίς μήνυμα ταξιδεύει', worthReporting(Object.assign(new Error(''), { stack: 'at x' })))
+  ok('κείμενο ταξιδεύει', worthReporting('κάτι έσπασε'))
+  ok('αντικείμενο ταξιδεύει', worthReporting({ code: 500 }))
+
+  // Το «Script error.» είναι ό,τι δίνει ο περιηγητής για σφάλμα άλλης
+  // προέλευσης: χωρίς μήνυμα, χωρίς στοίβα, χωρίς καμία πληροφορία.
+  ok('σφάλμα άλλης προέλευσης δεν ταξιδεύει', !worthReporting(new Error('Script error.')))
+  ok('…ούτε ως σκέτο κείμενο', !worthReporting('Script error'))
+  ok('σφάλμα χωρίς μήνυμα και χωρίς στοίβα δεν ταξιδεύει',
+     !worthReporting(Object.assign(new Error(''), { stack: '' })))
+  ok('κενό κείμενο δεν ταξιδεύει', !worthReporting('   '))
+  ok('κενή απόρριψη promise δεν ταξιδεύει', !worthReporting(null) && !worthReporting(undefined))
 }
 
 console.log(`observability/report.test.ts: ${passed} passed, ${failed} failed`)

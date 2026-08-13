@@ -5,6 +5,7 @@ import { ThemeProvider } from "./ThemeProvider";
 import CookieConsent from "./CookieConsent";
 import PwaProvider from "./PwaProvider";
 import { ToastHost } from "@/components/Toast";
+import ErrorListener from "@/components/ErrorListener";
 import { ConfirmHost } from "@/components/ConfirmDialog";
 
 export const metadata: Metadata = {
@@ -97,6 +98,7 @@ export default async function RootLayout({
       </head>
       <body>
         <ThemeProvider>
+          <ErrorListener />
           {children}
           <ToastHost />
           <ConfirmHost />
