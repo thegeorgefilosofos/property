@@ -47,6 +47,16 @@ export type AnnouncementResult =
 const tenth = (n: number) => Math.round(n * 10) / 10;
 
 /**
+ * Τα ψηφία ενός αριθμού, ενωμένα ξανά.
+ *
+ * Η στοίχιση του δελτίου σπάει τους αριθμούς σε κομμάτια: το «2026» βγαίνει από
+ * την εξαγωγή ως «20 2 6», γιατί ο συντάκτης τοποθέτησε τα ψηφία χωριστά για να
+ * πέσουν πάνω στη γραμμή. Κανένα κενό ΑΝΑΜΕΣΑ σε δύο ψηφία δεν είναι σημαντικό
+ * σε αυτό το έγγραφο, οπότε φεύγουν όλα πριν από την ανάγνωση.
+ */
+const joinDigits = (text: string) => text.replace(/(\d)[\s ]+(?=\d)/g, '$1');
+
+/**
  * Ο μήνας εφαρμογής από το όνομα του αρχείου της ΕΛΣΤΑΤ.
  *
  * Το «A0515_DKT87_DT_MM_07_2026_02_F_GR.pdf» φέρει τον μήνα ΑΝΑΦΟΡΑΣ (Ιούλιος
@@ -68,10 +78,11 @@ export function ymFromFileName(name: string): string | null {
 /**
  * Τα δύο ποσοστά του δελτίου, με τον έλεγχό τους.
  *
- * @param text  το κείμενο του PDF, όπως βγαίνει από την εξαγωγή
- * @param ym    ο μήνας που περιμένουμε («YYYY-MM»), από το όνομα αρχείου
+ * @param raw  το κείμενο του PDF, όπως βγαίνει από την εξαγωγή
+ * @param ym   ο μήνας που περιμένουμε («YYYY-MM»), από το όνομα αρχείου
  */
-export function parseAnnouncement(text: string, ym: string): AnnouncementResult {
+export function parseAnnouncement(raw: string, ym: string): AnnouncementResult {
+  const text = joinDigits(raw);
   const pcts = [...text.matchAll(/(\d{1,2}),(\d)\s*%/g)].map(m => Number(`${m[1]}.${m[2]}`));
   if (pcts.length < 2) return { ok: false, reason: `βρέθηκαν ${pcts.length} ποσοστά, χρειάζονται δύο` };
 

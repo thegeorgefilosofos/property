@@ -1,0 +1,168 @@
+name: ELSTAT rent index
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ΤΟ ΠΡΟΒΛΗΜΑ ΠΟΥ ΛΥΝΕΙ
+# Η αναπροσαρμογή μισθώματος υπολογίζεται από την απλή δωδεκάμηνη μεταβολή του
+# ΔΤΚ, που η ΕΛΣΤΑΤ ανακοινώνει μία φορά τον μήνα σε ένα PDF μιας σελίδας. Ώσπου
+# να μπει η νέα γραμμή στον πίνακα, η εφαρμογή εφαρμόζει τον περασμένο μήνα:
+# σωστά, αλλά όχι φρέσκα. Και ο ιδιοκτήτης δεν έχει λόγο να ξέρει ότι βγήκε νέο
+# δελτίο — αυτό είναι ακριβώς η δουλειά του συστήματος.
+#
+# ΤΙ ΚΑΝΕΙ
+# Από τις 6 ως τις 14 κάθε μήνα, μία φορά την ημέρα: φτιάχνει τη διεύθυνση της
+# σελίδας του μήνα, βρίσκει μέσα της τον σύνδεσμο «ΔΤΚ - Ανακοίνωση
+# Αναπροσαρμογής Μισθωμάτων», κατεβάζει το PDF, διαβάζει τα δύο ποσοστά και
+# ελέγχει ότι το δεύτερο είναι το 75% του πρώτου. Αν όλα δένουν, γράφει τη
+# γραμμή και ανοίγει pull request.
+#
+# ΤΙ ΔΕΝ ΚΑΝΕΙ
+# Δεν γράφει στο main. Το ποσοστό καταλήγει σε υπογεγραμμένη ειδοποίηση προς
+# μισθωτή· ένα pull request με μία γραμμή διαφορά είναι ένα πάτημα, και η
+# διαφορά ανάμεσα σε «το είδε άνθρωπος» και «το έγραψε script τη νύχτα» είναι
+# ολόκληρη. Το CI τρέχει πάνω στο pull request όπως σε κάθε άλλη αλλαγή.
+#
+# ΤΙ ΓΙΝΕΤΑΙ ΟΤΑΝ ΔΕΝ ΔΙΑΒΑΖΕΤΑΙ
+# Τις πρώτες μέρες του μήνα το δελτίο απλώς δεν έχει βγει: αυτό δεν είναι βλάβη
+# και δεν ειδοποιεί κανέναν. Όταν λείπουν δύο ή περισσότεροι μήνες, ανοίγει
+# issue — και ανεξάρτητα από εδώ, ο φύλακας φρεσκάδας σταματά το build στους
+# δύο μήνες καθυστέρησης, οπότε το λάθος δεν μπορεί να περάσει σιωπηλά.
+# ═══════════════════════════════════════════════════════════════════════════
+
+on:
+  schedule:
+    - cron: '0 6 6-14 * *'   # καθημερινά 06:00 UTC, στο παράθυρο δημοσίευσης
+  workflow_dispatch:          # και με το χέρι, από την καρτέλα Actions
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: elstat-cpi
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Ανάγνωση του δελτίου και προσθήκη γραμμής
+        id: read
+        run: |
+          set +e
+          OUT=$(npx tsx scripts/check-elstat-cpi.ts --write 2>&1)
+          CODE=$?
+          echo "$OUT"
+          {
+            echo 'report<<ELSTAT_EOF'
+            echo "$OUT"
+            echo 'ELSTAT_EOF'
+          } >> "$GITHUB_OUTPUT"
+          echo "changed=$(git diff --quiet -- lib/market/cpi.ts && echo no || echo yes)" >> "$GITHUB_OUTPUT"
+          echo "broken=$([ $CODE -ne 0 ] && echo yes || echo no)" >> "$GITHUB_OUTPUT"
+
+      # Η νέα γραμμή περνά τους ίδιους ελέγχους με κάθε άλλη αλλαγή ΠΡΙΝ γίνει
+      # pull request: ένα PR που δεν χτίζει είναι θόρυβος, όχι ειδοποίηση.
+      - name: Έλεγχοι πάνω στη νέα γραμμή
+        if: steps.read.outputs.changed == 'yes'
+        run: |
+          npx tsc --noEmit
+          npm test
+          node scripts/guard-cpi-freshness.mjs
+
+      - name: Κλάδος και pull request
+        if: steps.read.outputs.changed == 'yes'
+        env:
+          REPORT: ${{ steps.read.outputs.report }}
+        run: |
+          BRANCH="dtk/$(date -u +%Y-%m)"
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git checkout -b "$BRANCH"
+          git add lib/market/cpi.ts
+          git commit -m "Ο δείκτης αναπροσαρμογής μισθωμάτων, από το δελτίο της ΕΛΣΤΑΤ" -m "$REPORT"
+          git push -u origin "$BRANCH" --force-with-lease
+
+      - name: Άνοιγμα του pull request
+        if: steps.read.outputs.changed == 'yes'
+        uses: actions/github-script@v9
+        env:
+          REPORT: ${{ steps.read.outputs.report }}
+        with:
+          script: |
+            const head = `dtk/${new Date().toISOString().slice(0, 7)}`;
+            const { data: open } = await github.rest.pulls.list({
+              owner: context.repo.owner, repo: context.repo.repo, state: 'open', head: `${context.repo.owner}:${head}`,
+            });
+            if (open.length) { core.info('Υπάρχει ήδη ανοιχτό pull request για τον μήνα.'); return; }
+            const body = [
+              'Νέα γραμμή στον πίνακα `RENT_INDEX`, διαβασμένη από το μηνιαίο δελτίο της ΕΛΣΤΑΤ.',
+              '',
+              '```',
+              process.env.REPORT || '',
+              '```',
+              '',
+              '### Τι να ελέγξεις πριν το κλείσεις',
+              '1. Το ποσοστό συμφωνεί με το δελτίο της ΕΛΣΤΑΤ για τον μήνα.',
+              '2. Ο έλεγχος του 75% πέρασε — αλλιώς δεν θα υπήρχε αυτό το pull request.',
+              '3. Το `CPI_CONFIRMED_AT` ανανεώθηκε.',
+            ].join('\n');
+            await github.rest.pulls.create({
+              owner: context.repo.owner, repo: context.repo.repo,
+              title: 'ΔΤΚ: νέα γραμμή αναπροσαρμογής μισθωμάτων', head, base: 'main', body,
+            });
+
+      - name: Issue όταν το δελτίο δεν διαβάζεται
+        if: steps.read.outputs.changed == 'no' && steps.read.outputs.broken == 'yes'
+        uses: actions/github-script@v9
+        env:
+          REPORT: ${{ steps.read.outputs.report }}
+        with:
+          script: |
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'elstat-cpi', per_page: 5,
+            });
+            if (open.length) { core.info('Υπάρχει ήδη ανοιχτό issue. Δεν ανοίγει δεύτερο.'); return; }
+            const body = [
+              'Ο αυτόματος έλεγχος δεν κατάφερε να διαβάσει το δελτίο για δύο ή περισσότερους μήνες.',
+              '',
+              '```',
+              process.env.REPORT || '',
+              '```',
+              '',
+              '### Τι χρειάζεται',
+              '1. Άνοιξε τη σελίδα του μήνα στη statistics.gr και δες αν άλλαξε ο τίτλος του συνδέσμου.',
+              '2. Αν άλλαξε, ενημέρωσε τις ρίζες στο `lib/market/elstatCatalog.ts`.',
+              '3. Αν το δελτίο απλώς καθυστερεί, το issue κλείνει μόνο του στον επόμενο έλεγχο.',
+            ].join('\n');
+            await github.rest.issues.create({
+              owner: context.repo.owner, repo: context.repo.repo,
+              title: 'ΔΤΚ: το δελτίο της ΕΛΣΤΑΤ δεν διαβάζεται', body, labels: ['elstat-cpi'],
+            });
+
+      - name: Κλείσιμο issue όταν όλα είναι εντάξει
+        if: steps.read.outputs.broken == 'no'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'elstat-cpi', per_page: 20,
+            });
+            for (const issue of open) {
+              await github.rest.issues.update({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: issue.number, state: 'closed', state_reason: 'completed',
+              });
+            }
