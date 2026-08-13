@@ -889,15 +889,27 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
         </button>
       )}
       {showMore&&(<>
-        <Field d={f('inv.warranty')}><DatePicker value={form.warranty_expiry||''} onChange={v=>set('warranty_expiry',v)}/></Field>
+        {/* ═══ ΤΡΙΑ ΠΕΔΙΑ ΣΕ ΔΥΟ ΣΤΗΛΕΣ, ΚΑΙ ΤΟ ΕΝΑ ΚΟΒΟΤΑΝ ══════════════════════
+            Η «Μάρκα και μοντέλο» είναι ΔΥΟ κουτιά μέσα σε ΕΝΑ κελί πλέγματος,
+            με τον «Σειριακό» δίπλα στο δεύτερο κελί. Το κελί φτάνει τα 270
+            εικονοστοιχεία, οπότε τα δύο κουτιά έμεναν με 130 το καθένα: το
+            «WAU28PI0GR» δεν χωρούσε και φαινόταν κομμένο κάτω από τον σειριακό.
+            Ο κωδικός μοντέλου είναι ακριβώς αυτό που πάει στον τεχνικό — ένα
+            πεδίο που δεν δείχνει την τιμή του δεν έχει λόγο ύπαρξης.
+
+            Η μάρκα και το μοντέλο παίρνουν δική τους σειρά σε όλο το πλάτος, και
+            ο σειριακός κατεβαίνει δίπλα στην εγγύηση: δύο κωδικοί που ζητούνται
+            σε δύο διαφορετικές στιγμές (ανταλλακτικό, ασφαλιστική) δεν χρειάζεται
+            να μοιράζονται σειρά. */}
+        <Field d={f('inv.brand_model')}>
+          <div style={{...formGrid(160, 300),gap:10}}>
+            <TextInput ariaLabel="Μάρκα" value={form.brand||''} onChange={v=>set('brand',v)} placeholder="Bosch"/>
+            <TextInput ariaLabel="Μοντέλο" value={form.model||''} onChange={v=>set('model',v)} placeholder="WAU28PI0GR"/>
+          </div>
+        </Field>
         <div style={{...formGrid(200, 270),gap:12}}>
-          <Field d={f('inv.brand_model')}>
-            <div style={{display:'flex',gap:8}}>
-              <TextInput ariaLabel="Μάρκα" value={form.brand||''} onChange={v=>set('brand',v)} placeholder="Bosch"/>
-              <TextInput ariaLabel="Μοντέλο" value={form.model||''} onChange={v=>set('model',v)} placeholder="WAU28PI0GR"/>
-            </div>
-          </Field>
           <Field d={f('inv.serial')}><TextInput ariaLabel={fl('inv.serial')} value={form.serial_number||''} onChange={v=>set('serial_number',v)} placeholder="SN / IMEI"/></Field>
+          <Field d={f('inv.warranty')}><DatePicker value={form.warranty_expiry||''} onChange={v=>set('warranty_expiry',v)}/></Field>
         </div>
         <Field d={f('inv.replacement_cost')}>
           <NumberInput ariaLabel={fl('inv.replacement_cost')} value={String(form.replacement_cost||0)} onChange={v=>set('replacement_cost',parseFloat(v)||0)} suffix="€" min={0}/>
