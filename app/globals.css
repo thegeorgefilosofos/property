@@ -1793,17 +1793,30 @@ html.a11y-large-text { zoom: 1.08; }
 }
 
 /* Συχνές ερωτήσεις: λεπτή γραμμή αντί για κουτί, και σταυρός που γίνεται
-   «χ» όταν ανοίγει. Το προεπιλεγμένο βελάκι του περιηγητή φεύγει. */
-details.lp-faq summary { transition: color .18s; }
-details.lp-faq summary:hover { color: var(--accent); }
-details.lp-faq[open] summary { color: var(--accent); }
-details.lp-faq summary::-webkit-details-marker { display: none; }
-details.lp-faq[open] summary .lp-plus { transform: rotate(45deg); }
+   «χ» όταν ανοίγει. Το προεπιλεγμένο βελάκι του περιηγητή φεύγει.
+
+   ΚΑΘΕ ΚΑΝΟΝΑΣ ΕΙΝΑΙ ΓΙΑ ΤΟ ΔΙΚΟ ΤΟΥ summary, ΟΧΙ ΓΙΑ ΤΑ ΑΠΟΓΟΝΙΚΑ. Ήταν
+   γραμμένοι με απόγονο (`details.lp-faq summary`), και οι κρυμμένες ερωτήσεις
+   ζουν ΜΕΣΑ στο «Περισσότερες ερωτήσεις»: μόλις εκείνο άνοιγε, ο κανόνας του
+   ανοιχτού έβαφε μπλε και τις έξι από κάτω, χωρίς να έχει πατηθεί καμία. */
+details.lp-faq { border-top: 1px solid var(--border-subtle); }
+details.lp-faq > summary { transition: color .18s; }
+details.lp-faq > summary:hover { color: var(--accent); }
+details.lp-faq[open] > summary { color: var(--accent); }
+details.lp-faq > summary::-webkit-details-marker { display: none; }
+details.lp-faq[open] > summary .lp-plus { transform: rotate(45deg); }
 /* ΤΟ «ΠΕΡΙΣΣΟΤΕΡΕΣ ΕΡΩΤΗΣΕΙΣ» ΔΕΝ ΕΙΝΑΙ ΕΡΩΤΗΣΗ. Μοιράζεται το ίδιο <details>
-   για τη συμπεριφορά και τον σταυρό που γυρίζει, αλλά δεν παίρνει γραμμή από
-   πάνω: αν την έπαιρνε, θα διαβαζόταν ως δωδέκατη ερώτηση με παράξενο τίτλο. */
+   για τη συμπεριφορά, αλλά δεν παίρνει γραμμή από πάνω: αν την έπαιρνε, θα
+   διαβαζόταν ως δωδέκατη ερώτηση με παράξενο τίτλο. */
 details.lp-faq-more { border-top: none; }
 details.lp-faq-more > summary:hover { opacity: .8; }
+/* ΚΑΙ ΦΕΥΓΕΙ ΜΟΛΙΣ ΚΑΝΕΙ ΤΗ ΔΟΥΛΕΙΑ ΤΟΥ. Ο ρόλος του είναι να φέρει τις
+   υπόλοιπες ερωτήσεις· αφού τις φέρει, μένοντας στη μέση κόβει τη λίστα στα
+   δύο και η ενότητα διαβάζεται ως δύο ξεχωριστά πράγματα. Το κλείσιμο δεν
+   επιστρέφει: κανείς δεν ανοίγει έντεκα ερωτήσεις για να τις ξανακρύψει. */
+details.lp-faq-more[open] > summary { display: none; }
+/* Η γραμμή δεν διπλογράφεται στη ραφή: από πάνω κλείνει ήδη η πρώτη ομάδα. */
+details.lp-faq-more[open] > div > details.lp-faq:first-child { border-top: none; }
 
 /* ── ΝΟΜΙΚΕΣ ΣΕΛΙΔΕΣ: ΕΥΡΕΤΗΡΙΟ ΠΟΥ ΜΕΝΕΙ, ΚΕΙΜΕΝΟ ΠΟΥ ΚΥΛΑΕΙ ──────────────
    Το ευρετήριο ήταν κουτί στην κορυφή: ο αναγνώστης το έβλεπε μία φορά,

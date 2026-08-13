@@ -162,7 +162,7 @@ export default function Page() {
           <SectionHead over="Συχνές ερωτήσεις" title="Ό,τι ρωτούν πριν υπολογίσουν" />
           <div style={{ borderBottom: '1px solid var(--border-subtle)' }}>
             {FAQ.map(f => (
-              <details key={f.q} className="lp-faq" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+              <details key={f.q} className="lp-faq">
                 <summary style={{ cursor: 'pointer', listStyle: 'none', padding: '17px 0', fontSize: 15,
                   fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
                   {f.q}
