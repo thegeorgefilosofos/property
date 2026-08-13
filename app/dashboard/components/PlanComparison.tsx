@@ -83,7 +83,7 @@ const MATRIX: FeatureRow[] = [
   // διαφήμιση· με τη σειρά, γίνεται σύγκριση.
   { label: `Ερωτήσεις στη ${ASSISTANT_NAME} τον μήνα`,
     values: Object.fromEntries(COMPARED.map(p => [p, fn(aiLimitsFor(p).perMonth)])) as Record<ComparedPlan, CellValue> },
-  forAll('Σάρωση εγγράφων και φωνητική καταχώριση'),
+  forAll('Σάρωση εγγράφων και φωνητική καταχώρηση'),
   forAll('Αποδόσεις, δαπάνες, ενέργεια και φόρος 2026'),
   forAll('Έξυπνες ειδοποιήσεις και υπενθυμίσεις'),
   gated('e2_export'),

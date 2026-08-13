@@ -540,7 +540,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
             αναγνώστη οθόνης, όπου ανήκει. */}
         <input value={search} onChange={e=>setSearch(e.target.value)}
           className="po-field" aria-label="Αναζήτηση ενοικιαστή" placeholder="Όνομα, ΑΦΜ ή τηλέφωνο"
-          style={{ background:'var(--bg-base)', border:'1px solid var(--border-default)', borderRadius:10, padding:'10px 14px', color:'var(--text-primary)', fontSize:14, height:40, maxWidth:280, flex:'1 1 220px', outline:'none', boxSizing:'border-box', fontFamily:T.font.sans }}/>
+          style={{ background:'var(--bg-base)', border:'1px solid var(--border-default)', borderRadius:10, padding:'10px 14px', color:'var(--text-primary)', fontSize:14, height:T.h.lg, maxWidth:280, flex:'1 1 220px', outline:'none', boxSizing:'border-box', fontFamily:T.font.sans }}/>
         <div style={{ display:'flex', gap:6, flexWrap:'wrap' as const }}>
           {/* «Όλοι», «Τρέχων», «Προηγούμενοι»: δύο πληθυντικοί και ένας ενικός, σε
               τρία διπλανά κουμπιά που φιλτράρουν ΛΙΣΤΑ. Το «Τρέχων» είναι σωστό

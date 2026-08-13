@@ -106,7 +106,7 @@ export default function AccountantWorkspace() {
           Συνδέσου με τον λογαριασμό σου για να δεις όλους τους ιδιοκτήτες που σε εξουσιοδότησαν, μαζί, και τι λείπει από τον καθένα.
         </p>
         <a href="/login?next=/accountant/workspace" style={{
-          display: 'inline-flex', alignItems: 'center', height: 40, padding: '0 18px', marginTop: 22,
+          display: 'inline-flex', alignItems: 'center', height: T.h.lg, padding: '0 18px', marginTop: 22,
           borderRadius: 10, background: 'var(--accent)', color: 'var(--accent-text)',
           fontSize: 13, fontWeight: 600, textDecoration: 'none', fontFamily: T.font.sans,
         }}>Σύνδεση</a>

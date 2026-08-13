@@ -72,7 +72,7 @@ ok('σύνοψη: κενό χαρτοφυλάκιο', (() => { const s = amaSumm
 // ═══ ΚΕΙΜΕΝΟ ═══════════════════════════════════════════════════════════════
 ok('κείμενο για τις τρεις καταστάσεις', (['missing', 'unconfirmed', 'ok'] as const).every(k => AMA_COPY[k].title.length > 5 && AMA_COPY[k].body.length > 20));
 ok('το missing αναφέρει το πραγματικό μέγεθος (12.145)', AMA_COPY.missing.body.includes('12.145'));
-ok('το unconfirmed μιλά για την ΑΓΓΕΛΙΑ', AMA_COPY.unconfirmed.body.includes('καταχώριση') || AMA_COPY.unconfirmed.body.includes('αγγελία'));
+ok('το unconfirmed μιλά για την ΑΓΓΕΛΙΑ', AMA_COPY.unconfirmed.body.includes('καταχώρηση') || AMA_COPY.unconfirmed.body.includes('αγγελία'));
 ok('τόνοι σημασιολογικοί', AMA_COPY.missing.tone === 'negative' && AMA_COPY.unconfirmed.tone === 'warning' && AMA_COPY.ok.tone === 'positive');
 
 console.log(`\nama — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`);

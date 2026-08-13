@@ -226,7 +226,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyC
   // Στρίψιμο null/undefined από payload (χρησιμοποιείται στις Επαφές παρακάτω).
   const nrm = (s?: string) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 
-  // Η ΚΑΤΑΧΩΡΙΣΗ. Όλη η εγγραφή (8 πίνακες + αρχειοθέτηση + συμφωνία) ζει στο
+  // Η ΚΑΤΑΧΩΡΗΣΗ. Όλη η εγγραφή (8 πίνακες + αρχειοθέτηση + συμφωνία) ζει στο
   // scanDoc.ts ώστε να είναι ΙΔΙΑ από κάθε οθόνη. Εδώ μένει μόνο η οθόνη.
   // `choice`: undefined → άσε τη μηχανή να κρίνει (και να ρωτήσει αν δεν ξέρει)·
   //           string    → ο χρήστης διάλεξε ποιον λογαριασμό εξοφλεί·

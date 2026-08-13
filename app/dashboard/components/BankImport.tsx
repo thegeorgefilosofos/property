@@ -13,7 +13,7 @@ import type { RentPaymentsRow, BankTransactionsRow } from '@/lib/supabase/tables
 const hashOf = (t:BankTxn)=>`${t.date}|${t.amount}|${t.description}`.slice(0,200)
 
 // Εισαγωγή τραπεζικής κίνησης (CSV) και αντιστοίχιση σε ενοίκια/έξοδα. Καθαρό,
-// minimal modal: επικόλληση ή αρχείο → ανάλυση → επιβεβαίωση → καταχώριση.
+// minimal modal: επικόλληση ή αρχείο → ανάλυση → επιβεβαίωση → καταχώρηση.
 export default function BankImport({ propertyId, userId, year, onClose, onDone }:{ propertyId:string; userId:string; year:number; onClose:()=>void; onDone:()=>void }) {
   const supabase = createClient()
   const [text,setText] = useState('')
@@ -75,7 +75,7 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
       setSavedMsg(`Καταχωρήθηκαν ${nR} ${nR===1?'ενοίκιο':'ενοίκια'} και ${toAdd.length} ${toAdd.length===1?'έξοδο':'έξοδα'}.`)
       onDone()
       setTimeout(onClose, 1400)
-    }catch(_){ setError('Σφάλμα κατά την καταχώριση. Δοκίμασε ξανά.'); setStep('review') }
+    }catch(_){ setError('Σφάλμα κατά την καταχώρηση. Δοκίμασε ξανά.'); setStep('review') }
   }
 
   const field:React.CSSProperties = { width:'100%', minHeight:104, padding:'11px 14px', borderRadius:T.radius.inner, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:13, fontFamily:T.font.mono, lineHeight:'19px', resize:'vertical', outline:'none', transition:'border-color 0.14s' }
@@ -85,7 +85,7 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
     return <button type="button" role="checkbox" aria-checked={checked} onClick={onClick} style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:18, height:18, borderRadius:6, border:`1.5px solid ${checked?'var(--accent)':'var(--border-default)'}`, background:checked?'var(--accent)':'var(--bg-elevated)', cursor:'pointer', flexShrink:0, padding:0 }}>{checked&&<Check size={12} style={{ color:'var(--accent-text)' }}/>}</button>
   }
 
-  // Η ίδια συνθήκη ήταν γραμμένη ΤΡΕΙΣ φορές στο κουμπί «Καταχώριση» (disabled,
+  // Η ίδια συνθήκη ήταν γραμμένη ΤΡΕΙΣ φορές στο κουμπί «Καταχώρηση» (disabled,
   // φόντο, χρώμα κειμένου) — τρία αντίγραφα που μπορούσαν να διαφωνήσουν.
   const canSave = rentMatches.some(m=>m.confirm) || expenses.some(e=>e.confirm)
   // ── ΔΕΝ ΚΛΕΙΝΕΙ ΟΣΟ ΚΑΤΑΧΩΡΕΙ ────────────────────────────────────────────
@@ -120,7 +120,7 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
           <button disabled={!text.trim()} onClick={()=>analyze(text)} style={{ display:'inline-flex', alignItems:'center', gap:7, padding:'9px 18px', borderRadius:T.radius.btn, border:'none', background:text.trim()?'var(--accent)':'var(--bg-surface)', color:text.trim()?'var(--accent-text)':'var(--text-tertiary)', fontSize:12, fontWeight:700, cursor:text.trim()?'pointer':'default', fontFamily: T.font.sans }}>Ανάλυση<ArrowRight size={15}/></button>
         ) : step==='review' ? (<>
           <button onClick={()=>setStep('input')} style={{ padding:'9px 18px', borderRadius:T.radius.btn, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily: T.font.sans }}>Πίσω</button>
-          <button disabled={!canSave} onClick={save} style={{ display:'inline-flex', alignItems:'center', gap:7, padding:'9px 18px', borderRadius:T.radius.btn, border:'none', background:canSave?'var(--accent)':'var(--bg-surface)', color:canSave?'var(--accent-text)':'var(--text-tertiary)', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily: T.font.sans }}>Καταχώριση</button>
+          <button disabled={!canSave} onClick={save} style={{ display:'inline-flex', alignItems:'center', gap:7, padding:'9px 18px', borderRadius:T.radius.btn, border:'none', background:canSave?'var(--accent)':'var(--bg-surface)', color:canSave?'var(--accent-text)':'var(--text-tertiary)', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily: T.font.sans }}>Καταχώρηση</button>
         </>) : undefined
       }>
       {step==='input'&&(<div>
@@ -170,7 +170,7 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
       </div>)}
 
       {step==='saving'&&(
-        <Spinner size={20} label={savedMsg||'Καταχώριση…'}/>
+        <Spinner size={20} label={savedMsg||'Καταχώρηση…'}/>
       )}
     </Modal>
   )

@@ -311,7 +311,7 @@ export default function SecuritySettings() {
                 <img src={enrollFactor.qr} alt="Κωδικός QR επαλήθευσης" width={168} height={168} />
               </div>
               <div style={{ ...TT.bodySm, color: 'var(--text-tertiary)', marginTop: 12, marginBottom: 6 }}>
-                ή καταχώρισε τον κωδικό χειροκίνητα
+                ή καταχώρησε τον κωδικό χειροκίνητα
               </div>
               <div style={{ ...TT.mono, userSelect: 'all', wordBreak: 'break-all', padding: '9px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: T.radius.inner }}>
                 {enrollFactor.secret}
@@ -319,7 +319,7 @@ export default function SecuritySettings() {
             </div>
             <div>
               <label htmlFor="sec-mfa-code" style={{ ...TT.bodySm, color: 'var(--text-primary)', fontWeight: 600, marginBottom: 8, display: 'block' }}>
-                2. Καταχώρισε τον εξαψήφιο κωδικό από την εφαρμογή
+                2. Καταχώρησε τον εξαψήφιο κωδικό από την εφαρμογή
               </label>
               <input
                 id="sec-mfa-code" inputMode="numeric" maxLength={6} autoComplete="one-time-code" className="po-field"

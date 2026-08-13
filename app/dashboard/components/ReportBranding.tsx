@@ -140,7 +140,7 @@ export default function ReportBranding({ userId, onUpgrade }: { userId: string; 
         <SecHdr label="Χρώμα επωνυμίας" />
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
           <input type="color" value={sanitizeAccent(accent)} onChange={e => setAccent(e.target.value)}
-            style={{ width: 48, height: 40, border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, background: 'transparent', cursor: 'pointer', padding: 2 }} />
+            style={{ width: 48, height: T.h.lg, border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, background: 'transparent', cursor: 'pointer', padding: 2 }} />
           <div style={{ width: 160 }}>
             <TextInput label="" value={accent} onChange={v => setAccent(v)} placeholder="#1a73e8" />
           </div>

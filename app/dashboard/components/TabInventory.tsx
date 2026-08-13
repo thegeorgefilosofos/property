@@ -1318,7 +1318,7 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
       {filtered.length===0?(
         <EmptyState
           icon={items.length===0?<PackageOpen size={20}/>:<SearchX size={20}/>}
-          title={items.length===0?'Δεν έχεις καταχωρίσει αντικείμενα':'Δεν βρέθηκαν αποτελέσματα'}
+          title={items.length===0?'Δεν έχεις καταχωρήσει αντικείμενα':'Δεν βρέθηκαν αποτελέσματα'}
           hint={items.length===0?'Πρόσθεσε το πρώτο αντικείμενο για να ξεκινήσεις.':'Δοκίμασε διαφορετικά φίλτρα ή αναζήτηση.'}
           action={items.length===0?<Btn variant="primary" onClick={onAdd}>Νέο αντικείμενο</Btn>:undefined}
         />
@@ -2143,7 +2143,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   // παραδώσουν. Η βραχυχρόνια είναι εξ ορισμού επιπλωμένη (δεν νοικιάζεται γυμνό
   // διαμέρισμα ανά νύχτα)· στη μακροχρόνια το κρίνει η δήλωση επίπλωσης της
   // καρτέλας ενοικιαστή. ΔΙΧΤΥ ΑΣΦΑΛΕΙΑΣ: αν υπάρχουν ήδη αντικείμενα, η καρτέλα
-  // εμφανίζεται ΠΑΝΤΑ — δεν κρύβουμε ποτέ δεδομένα που ο χρήστης έχει καταχωρίσει.
+  // εμφανίζεται ΠΑΝΤΑ — δεν κρύβουμε ποτέ δεδομένα που ο χρήστης έχει καταχωρήσει.
   // ΤΟ CAST ΕΚΡΥΒΕ ΤΟ ΛΑΘΟΣ. Ήταν `(properties as StatusRow[]).find((p:any)=>…)`:
   // το StatusRow ΔΕΝ έχει `id`, οπότε το cast ήταν άκυρο και το `any` το έκρυβε.
   // Ο σωστός τύπος λέει και τα δύο — ό,τι χρειάζεται η κατάσταση, και το κλειδί.

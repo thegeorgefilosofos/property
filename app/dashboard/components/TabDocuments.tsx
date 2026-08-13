@@ -22,7 +22,7 @@ import type { BillsRow, ExpensesRow, InventoryItemsRow } from '@/lib/supabase/ta
 import * as inventory from '@/lib/data/inventory';
 // Το Αρχείο έχει ένα σπίτι: lib/data/documents.
 import * as documents from '@/lib/data/documents';
-// Η ΜΙΑ μηχανή σάρωσης/καταχώρισης. Το Αρχείο δεν έχει δική του λογική OCR, δικό
+// Η ΜΙΑ μηχανή σάρωσης/καταχώρησης. Το Αρχείο δεν έχει δική του λογική OCR, δικό
 // του prompt, ούτε δική του απόφαση για το ράφι: όλα ζουν στο scanDoc.ts και στο
 // lib/billing (δοκιμασμένα). Ό,τι φαίνεται εδώ είναι μόνο οθόνη.
 import { ARCHIVE_CATEGORIES, validateDoc, DOC_FIELD_LABELS, DOC_TYPE_LABELS, type ScannedDoc } from '@/lib/billing/documents';
@@ -167,7 +167,7 @@ const enrich = (i: RawItem): Item => ({
   afm: i.raw?.provider_afm ?? null,
 });
 
-/* ── Η ουρά σάρωσης → επιβεβαίωσης → καταχώρισης ──────────────────────────
+/* ── Η ουρά σάρωσης → επιβεβαίωσης → καταχώρησης ──────────────────────────
    ΔΕΝ υπάρχει ποσοστό. Το προηγούμενο «pct = done ? 100 : uploading ? 70 : ocr
    ? 35 : 12» ήταν τέσσερις σταθερές που δεν μέτραγαν τίποτα, παρουσιασμένες ως
    πρόοδος: μια σάρωση 40 δευτερολέπτων έδειχνε ακίνητο 35%. Τώρα λέμε ποιο
@@ -319,10 +319,10 @@ export default function TabDocuments({
   const [fixItems, setFixItems] = useState<Item[] | null>(null);     // «διόρθωση αναγνώρισης»
   const [renameItem, setRenameItem] = useState<Item | null>(null);   // ανοιχτό modal μετονομασίας
 
-  // Σάρωση → επιβεβαίωση → καταχώριση. Καμία χειροκίνητη φόρμα, κανένας διακόπτης.
+  // Σάρωση → επιβεβαίωση → καταχώρηση. Καμία χειροκίνητη φόρμα, κανένας διακόπτης.
   const [showUpload, setShowUpload] = useState(false);
   const [uploadMin, setUploadMin] = useState(false);   // ελαχιστοποιημένη (collapsed) κάρτα
-  const [busy, setBusy] = useState(false);             // σάρωση ή καταχώριση σε εξέλιξη
+  const [busy, setBusy] = useState(false);             // σάρωση ή καταχώρηση σε εξέλιξη
   const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [drafts, setDrafts] = useState<Draft[]>([]);
@@ -449,11 +449,11 @@ export default function TabDocuments({
   }, [lightbox]);
 
   /* ══════════════════════════════════════════════════════════════════════
-     Η ΡΟΗ: φωτογραφία → αναγνώριση → επιβεβαίωση → καταχώριση παντού.
+     Η ΡΟΗ: φωτογραφία → αναγνώριση → επιβεβαίωση → καταχώρηση παντού.
      Τι έφυγε από εδώ και γιατί:
        • Ο διακόπτης «Αυτόματη αναγνώριση (AI)» — δεν είναι επιλογή, είναι η ροή.
        • Ο διακόπτης Έγγραφο/Φωτογραφία — το AI τα ξεχωρίζει (scanFile).
-       • Τα πέντε πεδία χειροκίνητης καταχώρισης — η αναγνώριση τα γράφει και ο
+       • Τα πέντε πεδία χειροκίνητης καταχώρησης — η αναγνώριση τα γράφει και ο
          χρήστης τα διορθώνει στην οθόνη επιβεβαίωσης, όπου φαίνεται και τι λείπει.
        • Οι ~90 σταθεροί πάροχοι και τα 13 regex: υπήρχαν αποκλειστικά για το
          datalist της πληκτρολόγησης. Ο πάροχος διαβάζεται από το χαρτί, και η
@@ -501,7 +501,7 @@ export default function TabDocuments({
     setBusy(false);
   };
 
-  // Καταχώριση ενός σχεδίου. Για παραστατικό περνά από τη ΜΙΑ μηχανή (γράφει
+  // Καταχώρηση ενός σχεδίου. Για παραστατικό περνά από τη ΜΙΑ μηχανή (γράφει
   // Αρχείο + Λογαριασμούς + Δαπάνες + Ημερολόγιο…). Για φωτογραφία, μόνο Αρχείο.
   const commitDraft = async (d: Draft, choice?: string | null) => {
     patch(d.id, { status: 'saving', errorText: undefined });
@@ -605,7 +605,7 @@ export default function TabDocuments({
   // ── Η ΑΝΕΞΑΡΤΗΤΗ ΑΠΟΔΕΙΞΗ: πόσα λένε ΤΑ ΔΙΚΑ ΜΟΥ ΧΑΡΤΙΑ ────────────────────
   // Αθροίζει ΜΟΝΟ σαρωμένα/ανεβασμένα παραστατικά (source 'document'), όχι τα
   // κάτοπτρα Εξόδων/Λογαριασμών — αλλιώς δεν θα ήταν ανεξάρτητη απόδειξη αλλά
-  // επανάληψη των ίδιων καταχωρίσεων. Λέει επίσης πόσα χαρτιά ΔΕΝ έχουν ποσό,
+  // επανάληψη των ίδιων καταχωρήσεων. Λέει επίσης πόσα χαρτιά ΔΕΝ έχουν ποσό,
   // ώστε το σύνολο να μη διαβάζεται ως πλήρες όταν δεν είναι.
   const paperTotals = useMemo(() => {
     const docs = items.filter(i => i.source === 'document');
@@ -667,7 +667,7 @@ export default function TabDocuments({
   // Ενιαίο σημείο ανεβάσματος — ζει στο PageTitle (ή στη γραμμή εργαλείων όταν embedded).
   const uploadBtn = (
     <Btn variant="primary" onClick={() => setShowUpload(s => !s)}>
-      <svg {...S} width={15} height={15}><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Καταχώριση αρχείου
+      <svg {...S} width={15} height={15}><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Καταχώρηση αρχείου
     </Btn>
   );
   // Όταν το αρχείο είναι κενό, το κουμπί ζει ΜΟΝΟ στην κενή κατάσταση
@@ -733,7 +733,7 @@ export default function TabDocuments({
       {/* ══ Η ΜΙΑ ΕΠΙΦΑΝΕΙΑ: «Φωτογράφισε ή σύρε» ══════════════════════════ */}
       {showUpload && (
         <div className="card" style={{ marginBottom: 20 }}>
-          <SecHdr label="Καταχώριση αρχείων"
+          <SecHdr label="Καταχώρηση αρχείων"
             sub={uploadMin ? undefined : 'Λογαριασμός, απόδειξη, μισθωτήριο, ασφαλιστήριο, ΕΝΦΙΑ ή φωτογραφία χώρου. Αναγνωρίζεται, παρουσιάζεται προς έλεγχο, και καταχωρείται όπου ανήκει.'}
             right={<button onClick={() => setUploadMin(m => !m)} title={uploadMin ? 'Ανάπτυξη' : 'Ελαχιστοποίηση'} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 2 }}>
               {uploadMin ? <svg {...S} width={16} height={16}><path d="m6 9 6 6 6-6"/></svg> : <IconX/>}
@@ -786,7 +786,7 @@ export default function TabDocuments({
 
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 4 }}>
                 <Btn variant="primary" onClick={commitAll} disabled={busy || drafts.every(d => d.status === 'saved' || d.status === 'failed')}>
-                  {busy ? 'Σε εξέλιξη…' : 'Καταχώριση'}
+                  {busy ? 'Σε εξέλιξη…' : 'Καταχώρηση'}
                 </Btn>
                 <Btn variant="ghost" onClick={clearDrafts} disabled={busy}>Απόρριψη</Btn>
                 <Btn variant="secondary" onClick={() => fileRef.current?.click()} disabled={busy}>Προσθήκη αρχείων</Btn>
@@ -936,7 +936,7 @@ export default function TabDocuments({
            που δεν έχει. */
         <EmptyState icon={<FolderOpen size={20}/>} title="Κανένα έγγραφο ακόμη"
           hint="Από κάθε λογαριασμό, απόδειξη ή συμβόλαιο αναγνωρίζονται πάροχος, ΑΦΜ, ποσό, ημερομηνία και περίοδος, και το έγγραφο αρχειοθετείται στην κατηγορία του."
-          action={showUpload ? undefined : <Btn variant="primary" onClick={() => setShowUpload(true)}>Καταχώριση πρώτου αρχείου</Btn>}/>
+          action={showUpload ? undefined : <Btn variant="primary" onClick={() => setShowUpload(true)}>Καταχώρηση πρώτου αρχείου</Btn>}/>
       ) : (
         <FileList items={visible} groups={groups} a={fileActions(true)}
           empty={<EmptyState icon={<SearchX size={20}/>}
@@ -1174,7 +1174,7 @@ const RowSpinner = () => (
 
 const STAGE_TEXT: Record<DraftStatus, string> = {
   pending: 'Σε αναμονή', scanning: 'Ανάγνωση εγγράφου…', ready: '',
-  failed: 'Δεν διαβάστηκε', saving: 'Καταχώριση…', saved: '', error: 'Δεν αποθηκεύτηκε',
+  failed: 'Δεν διαβάστηκε', saving: 'Καταχώρηση…', saved: '', error: 'Δεν αποθηκεύτηκε',
 };
 
 const SCAN_ERROR_TEXT: Record<ScanError, string> = {

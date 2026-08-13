@@ -67,7 +67,10 @@
     "csv-injection": "node scripts/guard-csv-injection.mjs",
     "rls-parent-scope": "node scripts/guard-rls-parent-scope.mjs",
     "uppercase-tonos": "node scripts/guard-uppercase-tonos.mjs",
-    "export-name": "node scripts/guard-export-name.mjs"
+    "export-name": "node scripts/guard-export-name.mjs",
+    "euro-space": "node scripts/guard-euro-space.mjs",
+    "terminology": "node scripts/guard-terminology.mjs",
+    "surface-scale": "node scripts/guard-surface-scale.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

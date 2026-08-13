@@ -140,7 +140,7 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
     const at = new Date().toISOString();
     setSubmitted({ at, ref: refInput.trim() });
     // Το μητρώο δραστηριότητας δεν μπλοκάρει τη δήλωση, αλλά η σιωπή του
-    // σήμαινε ότι η καταχώριση έλειπε από το ιστορικό χωρίς κανείς να το ξέρει.
+    // σήμαινε ότι η καταχώρηση έλειπε από το ιστορικό χωρίς κανείς να το ξέρει.
     await saved('Η δήλωση δεν καταγράφηκε στο ιστορικό', supabase.from('activity_log').insert({
       user_id: userId, action: 'lease_declaration_submitted', entity: 'property', entity_id: propertyId,
       metadata: { reference: refInput.trim() || null, deadline: decl.deadline.due },
@@ -242,7 +242,7 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
           ) : (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <input value={refInput} onChange={e => setRefInput(e.target.value)} placeholder="Αριθμός δήλωσης (προαιρετικό)"
-                style={{ flex: 1, minWidth: 200, height: 40, padding: '0 13px', borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none' }} />
+                style={{ flex: 1, minWidth: 200, height: T.h.lg, padding: '0 13px', borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none' }} />
               <Btn variant="secondary" onClick={markSubmitted} disabled={saving}>{saving ? 'Αποθήκευση…' : 'Την υπέβαλα'}</Btn>
             </div>
           )}

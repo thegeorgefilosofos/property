@@ -181,11 +181,11 @@ export function enfiaFloorKeyFromValue(floor: string | number | null | undefined
 // Εκπτώσεις/απαλλαγές κύριου φόρου (άρθρο 7 ν.4223/2013), ΕΠΙΠΛΕΟΝ της αυτόματης
 // μείωσης ανά συνολική αξία. Ο χρήστης επιλέγει όσες πληροί (με κριτήρια, βλ. note).
 export const ENFIA_REDUCTIONS: { key: string; label: string; pct: number; note: string }[] = [
-  { key: 'low_income', label: 'Χαμηλό εισόδημα (κύρια κατοικία)', pct: 50, note: 'Μείωση 50% με κριτήρια: εισόδημα ≤9.000€ (+1.000€/μέλος), κτίσματα ≤150 τ.μ., περιουσία ≤85.000€ (άγαμος) / 200.000€ (έγγαμος με 2 τέκνα)' },
-  { key: 'small_settlement_2026', label: 'Κύρια κατοικία μικρού οικισμού (2026)', pct: 50, note: 'Αυτόματη μείωση 50% ΕΝΦΙΑ 2026 για οικισμούς ≤1.500 κατ., αξία κατοικίας ≤400.000€' },
-  { key: 'large_family', label: 'Τρίτεκνοι / Πολύτεκνοι', pct: 100, note: '100% απαλλαγή με κριτήρια: εισόδημα ≤12.000€ (+1.000€/μέλος), κτίσματα ≤150 τ.μ.' },
+  { key: 'low_income', label: 'Χαμηλό εισόδημα (κύρια κατοικία)', pct: 50, note: 'Μείωση 50% με κριτήρια: εισόδημα ≤9.000 € (+1.000 €/μέλος), κτίσματα ≤150 τ.μ., περιουσία ≤85.000 € (άγαμος) / 200.000 € (έγγαμος με 2 τέκνα)' },
+  { key: 'small_settlement_2026', label: 'Κύρια κατοικία μικρού οικισμού (2026)', pct: 50, note: 'Αυτόματη μείωση 50% ΕΝΦΙΑ 2026 για οικισμούς ≤1.500 κατ., αξία κατοικίας ≤400.000 €' },
+  { key: 'large_family', label: 'Τρίτεκνοι / Πολύτεκνοι', pct: 100, note: '100% απαλλαγή με κριτήρια: εισόδημα ≤12.000 € (+1.000 €/μέλος), κτίσματα ≤150 τ.μ.' },
   { key: 'disability', label: 'Αναπηρία ≥80%', pct: 100, note: '100% απαλλαγή με τα ίδια εισοδηματικά/περιουσιακά κριτήρια' },
-  { key: 'insurance', label: 'Ασφαλισμένη κατοικία', pct: 20, note: '20% (αξία ≤500.000€) ή 10% (>500.000€), κάλυψη σεισμού+πυρκαγιάς+πλημμύρας ≥3 μήνες' },
+  { key: 'insurance', label: 'Ασφαλισμένη κατοικία', pct: 20, note: '20% (αξία ≤500.000 €) ή 10% (>500.000 €), κάλυψη σεισμού+πυρκαγιάς+πλημμύρας ≥3 μήνες' },
 ]
 // Αυτόματη μείωση κύριου φόρου ανά συνολική αξία ακίνητης περιουσίας (άρθρο 7 §2Α,
 // άρθρο 46 ν.4916/2022) — ισχύει για ΟΛΑ τα φυσικά πρόσωπα.
@@ -193,14 +193,14 @@ export const ENFIA_WEALTH_REDUCTION: { limit: number; pct: number }[] = [
   { limit: 100_000, pct: 30 }, { limit: 150_000, pct: 25 }, { limit: 250_000, pct: 20 },
   { limit: 300_000, pct: 15 }, { limit: 400_000, pct: 10 }, { limit: Infinity, pct: 0 },
 ]
-// Προσαύξηση κύριου φόρου φυσικών προσώπων για συνολική αξία >500.000€
+// Προσαύξηση κύριου φόρου φυσικών προσώπων για συνολική αξία >500.000 €
 // (άρθρο 4, Ενότητα Ε΄, άρθρο 43 ν.4916/2022). Ποσοστό ΕΠΙ ΤΟΥ ΚΥΡΙΟΥ ΦΟΡΟΥ.
 export const ENFIA_SURCHARGE_THRESHOLD = 500_000
 export const ENFIA_SURCHARGE_BRACKETS: { limit: number; pct: number }[] = [
   { limit: 650_000, pct: 5 }, { limit: 800_000, pct: 10 }, { limit: 1_000_000, pct: 15 }, { limit: Infinity, pct: 20 },
 ]
-// Ενότητα Γ΄ (άρθρο 43 ν.4916/2022): πρόσθετος φόρος ΑΝΑ ακίνητο αξίας >400.000€,
-// κλιμακωτά επί της αξίας, εφόσον η ΣΥΝΟΛΙΚΗ αξία περιουσίας υπερβαίνει τις 300.000€.
+// Ενότητα Γ΄ (άρθρο 43 ν.4916/2022): πρόσθετος φόρος ΑΝΑ ακίνητο αξίας >400.000 €,
+// κλιμακωτά επί της αξίας, εφόσον η ΣΥΝΟΛΙΚΗ αξία περιουσίας υπερβαίνει τις 300.000 €.
 export const ENFIA_EXTRA_TAX_FREE = 400_000
 export const ENFIA_EXTRA_WEALTH_THRESHOLD = 300_000
 export const ENFIA_EXTRA_BRACKETS: { upto: number; rate: number }[] = [
@@ -209,8 +209,8 @@ export const ENFIA_EXTRA_BRACKETS: { upto: number; rate: number }[] = [
   { upto: 2_000_000, rate: 0.0090 }, { upto: Infinity, rate: 0.0100 },
 ]
 
-/** Πρόσθετος φόρος Ενότητας Γ΄ επί της αξίας ενός ακινήτου (κλιμακωτά, αφορολόγητο 400.000€),
- *  απομειωμένος με το ποσοστό ιδιοκτησίας. Ο έλεγχος συνολικής αξίας >300.000€ γίνεται από τον καλούντα. */
+/** Πρόσθετος φόρος Ενότητας Γ΄ επί της αξίας ενός ακινήτου (κλιμακωτά, αφορολόγητο 400.000 €),
+ *  απομειωμένος με το ποσοστό ιδιοκτησίας. Ο έλεγχος συνολικής αξίας >300.000 € γίνεται από τον καλούντα. */
 export function enfiaExtraPropertyTax(propertyValue: number, ownership = 100): number {
   const v = Number(propertyValue) || 0
   if (v <= ENFIA_EXTRA_TAX_FREE) return 0
@@ -238,13 +238,13 @@ export interface ENFIAInput {
   age?: string
   ownership?: number   // ποσοστό ιδιοκτησίας (0–100)
   totalValue?: number  // συνολική αξία ακίνητης περιουσίας (για μείωση & προσαύξηση)
-  propertyValue?: number // αντικειμενική αξία ΤΟΥ ακινήτου (για Ενότητα Γ, >400.000€)
+  propertyValue?: number // αντικειμενική αξία ΤΟΥ ακινήτου (για Ενότητα Γ, >400.000 €)
   reductions?: string[]
 }
 export interface ENFIAResult {
   basic: number
-  extra: number          // πρόσθετος φόρος Ενότητας Γ (αξία ακινήτου >400.000€)
-  supplementary: number  // προσαύξηση κύριου φόρου (συνολική αξία >500.000€)
+  extra: number          // πρόσθετος φόρος Ενότητας Γ (αξία ακινήτου >400.000 €)
+  supplementary: number  // προσαύξηση κύριου φόρου (συνολική αξία >500.000 €)
   subtotal: number
   reductionPct: number
   reductionAmount: number
@@ -269,12 +269,12 @@ export function estimateENFIA(input: ENFIAInput): ENFIAResult | null {
   const basic = sqm * ENFIA_ZONE_TAX[input.zone] *
     enfiaFloorCoef(input.floor) * enfiaAgeCoef(input.age) * (ownership / 100)
   const totalVal = Number(input.totalValue) || 0
-  // Ενότητα Γ: πρόσθετος φόρος ακινήτου >400.000€, εφόσον συνολική περιουσία >300.000€.
+  // Ενότητα Γ: πρόσθετος φόρος ακινήτου >400.000 €, εφόσον συνολική περιουσία >300.000 €.
   const propVal = Number(input.propertyValue) || 0
   const extra = totalVal > ENFIA_EXTRA_WEALTH_THRESHOLD ? enfiaExtraPropertyTax(propVal, ownership) : 0
   // Κύριος φόρος (Ενότητα Δ) = κτίσματα (Α) + πρόσθετος (Γ).
   const kyrios = basic + extra
-  // Προσαύξηση κύριου φόρου για συνολική αξία >500.000€ (Ενότητα Ε).
+  // Προσαύξηση κύριου φόρου για συνολική αξία >500.000 € (Ενότητα Ε).
   let suppl = 0
   if (totalVal > ENFIA_SURCHARGE_THRESHOLD) {
     const bracket = ENFIA_SURCHARGE_BRACKETS.find(b => totalVal <= b.limit)

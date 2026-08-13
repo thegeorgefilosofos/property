@@ -666,7 +666,7 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
         if (error) throw error;
       } else {
         // Η ΟΜΑΔΑ ΕΙΝΑΙ ΤΟ ΠΕΔΙΟ ΠΟΥ ΚΡΙΝΕΙ ΤΗΝ ΕΚΠΤΩΣΗ, ΚΑΙ ΔΕΝ ΓΡΑΦΟΤΑΝ. Η
-        // κύρια, διαφημισμένη διαδρομή καταχώρισης παρήγαγε δαπάνες με κενή
+        // κύρια, διαφημισμένη διαδρομή καταχώρησης παρήγαγε δαπάνες με κενή
         // ομάδα — που το isGroupDeductible θεωρεί ΜΗ εκπεστέες. Την παράγει
         // πλέον το στρώμα, από την κατηγορία, για κάθε οθόνη το ίδιο.
         const { error } = await expenseStore.insert(supabase, [{

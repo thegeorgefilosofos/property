@@ -29,7 +29,7 @@ const splitCsvLine = csvSplitLine
 /**
  * Ποσό κίνησης. Η ανάγνωση γίνεται ΜΙΑ φορά, στο lib/core/greek.ts — εδώ απλώς
  * επανεξάγεται, ώστε το ίδιο αντίγραφο κίνησης να διαβάζεται ίδια από την
- * Τραπεζική Εισαγωγή και από τη Μαζική Καταχώριση.
+ * Τραπεζική Εισαγωγή και από τη Μαζική Καταχώρηση.
  *
  * ΠΡΟΣΟΧΗ: εδώ ΔΕΝ μπαίνει το φίλτρο «κάτω από 0,01 / πάνω από 1.000.000» του
  * lib/billing/parse.ts. Αυτό αφορά το ταίριασμα λογαριασμών· σε τραπεζικό
@@ -91,7 +91,7 @@ export interface RentMatch { rentId: string; txn: BankTxn; confidence: 'high' | 
 export interface ExpenseSuggestion { txn: BankTxn; description: string; amount: number }
 export interface MatchResult {
   rentMatches: RentMatch[]           // πιστώσεις που ταιριάζουν σε αναμενόμενο ενοίκιο
-  expenseSuggestions: ExpenseSuggestion[] // χρεώσεις → πιθανά έξοδα προς καταχώριση
+  expenseSuggestions: ExpenseSuggestion[] // χρεώσεις → πιθανά έξοδα προς καταχώρηση
   unmatched: BankTxn[]
 }
 

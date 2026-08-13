@@ -189,7 +189,7 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
     finally { setBusy(false); }
   };
 
-  const field: React.CSSProperties = { height: 40, padding: '0 12px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box' };
+  const field: React.CSSProperties = { height: T.h.lg, padding: '0 12px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box' };
   const pill = (on: boolean): React.CSSProperties => ({ fontSize: 12, fontWeight: 600, padding: '8px 12px', borderRadius: T.radius.inner, cursor: 'pointer', textAlign: 'left', border: `1px solid ${on ? 'var(--accent-border)' : 'var(--border-default)'}`, background: on ? 'var(--accent-soft)' : 'transparent', color: on ? 'var(--accent)' : 'var(--text-secondary)', fontFamily: T.font.sans });
 
   const footerInfo = <>{selIds.length} {selIds.length === 1 ? 'ακίνητο' : 'ακίνητα'} · {periodLabel}</>;

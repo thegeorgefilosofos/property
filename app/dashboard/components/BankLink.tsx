@@ -121,8 +121,8 @@ export function BankLinkRow() {
       <span style={{ ...TT.bodySm, color: 'var(--text-primary)', fontWeight: 700 }}>{BANK_LINK_TITLE}</span>
       <span style={{ ...TT.caption, flex: 1, minWidth: 140 }}>
         {state === 'open'
-          ? 'Κάθε χρέωση και είσπραξη έτοιμη για καταχώριση, με ένα πάτημα.'
-          : 'Κάθε χρέωση και είσπραξη έτοιμη για καταχώριση. Ετοιμάζεται.'}
+          ? 'Κάθε χρέωση και είσπραξη έτοιμη για καταχώρηση, με ένα πάτημα.'
+          : 'Κάθε χρέωση και είσπραξη έτοιμη για καταχώρηση. Ετοιμάζεται.'}
       </span>
       <button onClick={() => setOpen(true)}
         style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, padding: '6px 14px', cursor: 'pointer', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', flexShrink: 0 }}>

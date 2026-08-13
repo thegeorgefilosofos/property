@@ -444,8 +444,8 @@ const BORROWER_OPTIONS  = Object.entries(BORROWER_PROFILES).map(([k,v])=>({value
 const BANK_OPTIONS      = [...BANKS.map(b=>({value:b.id,label:b.name,description:`${b.note} · ${b.fees}`})),{value:'custom',label:'Άλλη τράπεζα',description:'Καταχώρησε το όνομά της'}]
 const RATE_TYPE_OPTIONS = [{value:'fixed',label:'Σταθερό',description:'Σταθερό για την επιλεγμένη περίοδο'},{value:'variable',label:'Κυμαινόμενο',description:'Euribor συν περιθώριο τράπεζας'},{value:'mixed',label:'Μικτό',description:'Σταθερό αρχικά, μετά κυμαινόμενο'}]
 const FIXED_PERIOD_OPTIONS = ['3','5','10','15','20'].map(v=>({value:v,label:`${v} χρόνια`,description:v==='5'?'Πιο συνηθισμένο':v==='10'?'Καλή ισορροπία':''}))
-const MARITAL_OPTIONS   = [{value:'single',label:'Άγαμος / Άγαμη',description:'Όριο ΦΜΑ: 200.000€'},{value:'married',label:'Έγγαμος / Έγγαμη',description:'Όριο ΦΜΑ: 250.000€'}]
-const CHILDREN_OPTIONS  = [0,1,2,3,4,5].map(n=>({value:String(n),label:n===0?'Χωρίς τέκνα':`${n} εξαρτώμεν${n===1?'ο':'α'} τέκν${n===1?'ο':'α'}`,description:n===0?'':n===1?'+25.000€':n===2?'+50.000€':`+${50+(n-2)*30}.000€`}))
+const MARITAL_OPTIONS   = [{value:'single',label:'Άγαμος / Άγαμη',description:'Όριο ΦΜΑ: 200.000 €'},{value:'married',label:'Έγγαμος / Έγγαμη',description:'Όριο ΦΜΑ: 250.000 €'}]
+const CHILDREN_OPTIONS  = [0,1,2,3,4,5].map(n=>({value:String(n),label:n===0?'Χωρίς τέκνα':`${n} εξαρτώμεν${n===1?'ο':'α'} τέκν${n===1?'ο':'α'}`,description:n===0?'':n===1?'+25.000 €':n===2?'+50.000 €':`+${50+(n-2)*30}.000 €`}))
 const PROP_TYPE_OPTIONS = PROPERTY_TYPES.map(p=>({value:p.value,label:p.label,description:p.desc}))
 
 const PRESETS = [
@@ -706,7 +706,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
   const spitiM   = calcMonthly(LA*0.5,0,Y) + calcMonthly(LA*0.5,effRate,Y)
   const spitiR   = effRate/2
   const spitiSv  = (monthly-spitiM)*Y*12
-  // «Σπίτι μου ΙΙ»: μόνο πρώτη κατοικία, αξία έως 250.000€, υφιστάμενο (όχι νεόδμητο)
+  // «Σπίτι μου ΙΙ»: μόνο πρώτη κατοικία, αξία έως 250.000 €, υφιστάμενο (όχι νεόδμητο)
   // και όχι επαγγελματικό. Χωρίς αυτά τα κριτήρια η εκτίμηση εξοικονόμησης είναι
   // παραπλανητική — γι' αυτό την εμφανίζουμε μόνο όταν το ακίνητο πληροί τα βασικά.
   const spitiEligible = loanType==='first_home' && PV<=250000 && !isNewBuilding && !isCommercial
@@ -1233,7 +1233,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
           <div style={{display:'flex',flexDirection:'column',gap:8}}>
             {[
               {ok:loanType==='first_home',t:'Σκοπός: αγορά πρώτης κατοικίας'},
-              {ok:PV<=250000,t:'Αξία ακινήτου έως 250.000€'},
+              {ok:PV<=250000,t:'Αξία ακινήτου έως 250.000 €'},
               {ok:!isNewBuilding,t:'Υφιστάμενο ακίνητο (όχι νεόδμητο)'},
               {ok:!isCommercial,t:'Κατοικία (όχι επαγγελματικό ακίνητο)'},
             ].map(c=>(
@@ -1288,7 +1288,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
                 <span style={{fontSize:13,color:'var(--text-secondary)',fontFamily: T.font.sans}}>Η δόση ως ποσοστό του εισοδήματος</span>
                 <span style={{fontSize:13,color:'var(--text-primary)',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:600}}>{fmtPct1(usedPct)} <span style={{color:'var(--text-tertiary)'}}>από {Math.round(limitPct)}%</span></span>
               </div>
-              <div style={{position:'relative',height:36,borderRadius:12,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',overflow:'hidden'}}>
+              <div style={{position:'relative',height:T.h.md,borderRadius:12,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',overflow:'hidden'}}>
                 <div style={{position:'absolute',left:0,top:0,bottom:0,width:`${usedW}%`,borderRadius:'12px 0 0 12px',transition:'width 0.4s ease',
                   background:over?'linear-gradient(90deg, color-mix(in srgb, var(--text-secondary) 55%, transparent), var(--text-secondary))':'linear-gradient(90deg, color-mix(in srgb, var(--accent) 78%, transparent), var(--accent))'}}/>
                 <div style={{position:'absolute',left:`${limitX}%`,top:0,bottom:0,width:0,borderLeft:'2px dashed var(--text-secondary)'}}/>

@@ -120,7 +120,7 @@ ok('η ΕΝΦΙΑ 1η δόση είναι «announced»', enfiaFirst!.confidence
 ok('η δήλωση διαμονής είναι «statutory»', shortTax.find(o => taxKindOfEventSource(o.source) === 'str-registry')!.confidence === 'statutory')
 ok('ΕΝΦΙΑ: ο ιδιοκτήτης', enfiaFirst!.who === 'owner')
 ok('Ε9: ο λογιστής', taxObls.find(o => o.id.startsWith('e9-'))?.who === 'accountant')
-// Το ΔΙΚΟ ΤΟΥ νούμερο μπαίνει, καμία εκτίμηση: ο ΕΝΦΙΑ που καταχώρισε ο χρήστης.
+// Το ΔΙΚΟ ΤΟΥ νούμερο μπαίνει, καμία εκτίμηση: ο ΕΝΦΙΑ που καταχώρησε ο χρήστης.
 ok('ο ΕΝΦΙΑ του χρήστη μπαίνει στο κείμενο', enfiaFirst!.note.includes('480'))
 ok('χωρίς καταχωρισμένο ΕΝΦΙΑ, κανένα νούμερο', (() => {
   const o = computeObligations({ ...prop, enfia: null }, tenant, [], NOW, 'long_term').find(x => x.id.startsWith('enfia-first'))!

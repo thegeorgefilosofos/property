@@ -175,7 +175,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
   const airbnb = statusKey === 'rent_short';
   // ΑΜΑ: πεδίο ΤΟΥ ΑΚΙΝΗΤΟΥ, ζητούμενο τη στιγμή που η κατάσταση γίνεται
   // βραχυχρόνια — όχι κρυμμένο σε accordion άλλης καρτέλας πίσω από τρίτο
-  // διακόπτη. Το 2025 στάλθηκαν 12.145 καταχωρίσεις για απενεργοποίηση επειδή
+  // διακόπτη. Το 2025 στάλθηκαν 12.145 καταχωρήσεις για απενεργοποίηση επειδή
   // ο ΑΜΑ έλειπε ή ήταν άκυρος.
   const [ama, setAma] = useState(cleanAma(existing?.ama || ''));
 
@@ -357,7 +357,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
         .upsert({ ...settings, property_id: propertyId, user_id: userId }, { onConflict: 'property_id' });
       // Το ακίνητο έχει ήδη αποθηκευτεί — λέμε ρητά τι έμεινε πίσω, ώστε το
       // «δοκίμασε ξανά» να μη διαβάζεται ως «ξαναφτιάξ' το από την αρχή».
-      if (sErr) { setSaving(false); setError(failed('Το ακίνητο αποθηκεύτηκε, αλλά οι ρυθμίσεις του δεν καταχωρίστηκαν', sErr)); return; }
+      if (sErr) { setSaving(false); setError(failed('Το ακίνητο αποθηκεύτηκε, αλλά οι ρυθμίσεις του δεν καταχωρήθηκαν', sErr)); return; }
     }
 
     setSaving(false);
@@ -510,7 +510,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
               <div style={{ fontFamily: T.font.sans, fontSize: 12, color: amaLengthLooksUnusual(ama) ? 'var(--warning)' : 'var(--text-secondary)', marginTop: 6, lineHeight: 1.6 }}>
                 {amaLengthLooksUnusual(ama)
                   ? `Ο αριθμός έχει ${ama.length} ψηφία, που είναι ασυνήθιστο. Έλεγξέ τον στο myAADE πριν συνεχίσεις.`
-                  : 'Ο ΑΜΑ πρέπει να αναγράφεται σε κάθε καταχώριση σε Airbnb και Booking. Το 2025 στάλθηκαν 12.145 καταχωρίσεις για απενεργοποίηση επειδή έλειπε ή ήταν άκυρος.'}
+                  : 'Ο ΑΜΑ πρέπει να αναγράφεται σε κάθε καταχώρηση σε Airbnb και Booking. Το 2025 στάλθηκαν 12.145 καταχωρήσεις για απενεργοποίηση επειδή έλειπε ή ήταν άκυρος.'}
               </div>
             </div>
           )}
@@ -680,7 +680,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
             {/* ΤΟ «ΠΡΟΓΡΑΜΜΑ» ΕΦΥΓΕ. Ζητούσε το εμπορικό όνομα του πακέτου
                 internet — κάτι που ούτε ο ίδιος ο συνδρομητής θυμάται, δεν
                 χρησιμοποιείται πουθενά στην εφαρμογή, και δεν αλλάζει καμία
-                απόφαση. Μια φόρμα καταχώρισης δεν έχει δικαίωμα να ρωτά κάτι
+                απόφαση. Μια φόρμα καταχώρησης δεν έχει δικαίωμα να ρωτά κάτι
                 που δεν πρόκειται να χρησιμοποιήσει. */}
             <div style={sectionLabelStyle}>Πάροχοι</div>
             <div style={grid2}>

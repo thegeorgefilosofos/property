@@ -86,7 +86,7 @@ export default class TabBoundary extends Component<Props, State> {
           <button
             onClick={() => this.setState({ error: null })}
             style={{
-              height: 40, padding: '0 20px', borderRadius: 100, border: 'none',
+              height: T.h.lg, padding: '0 20px', borderRadius: 100, border: 'none',
               background: 'var(--accent)', color: 'var(--accent-text)',
               fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
             }}>

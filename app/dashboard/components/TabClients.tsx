@@ -378,7 +378,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   // φορά, το νούμερο θα ήταν 0 για πάντα) ούτε «Επισήμανση/μαύρη λίστα».
   // Υπάρχει το μόνο που κοστίζει χρήματα σήμερα: οι αδήλωτες διαμονές.
   // ΤΟ ΜΗΔΕΝ ΔΕΝ ΕΙΝΑΙ ΕΠΙΤΕΥΓΜΑ. Οι αδήλωτες διαμονές έβγαιναν πράσινες όταν
-  // ήταν μηδέν — δηλαδή η οθόνη επιβράβευε τον χρήστη που δεν έχει καταχωρίσει
+  // ήταν μηδέν — δηλαδή η οθόνη επιβράβευε τον χρήστη που δεν έχει καταχωρήσει
   // ακόμη καμία κράτηση. Χρώμα μπαίνει μόνο όταν υπάρχει κάτι να γίνει.
   // Και καμία πλακέτα δεν λέει το ίδιο μηδενικό δύο φορές: το «Νύχτες 0» με
   // υπότιτλο «0 διαμονές» ήταν η ίδια πληροφορία, γραμμένη δύο φορές.
@@ -866,7 +866,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   };
 
   // ── Κοινά inline styles ────────────────────────────────────────────────────
-  const inp: React.CSSProperties = { background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, height: 40, width: '100%', outline: 'none', boxSizing: 'border-box', fontFamily: T.font.sans };
+  const inp: React.CSSProperties = { background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, height: T.h.lg, width: '100%', outline: 'none', boxSizing: 'border-box', fontFamily: T.font.sans };
   const lbl: React.CSSProperties = { fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)', display: 'block', marginBottom: 7, fontFamily: T.font.sans };
   const chip = (active: boolean): React.CSSProperties => ({ padding: '8px 14px', borderRadius: T.radius.pill, border: `1px solid ${active ? 'var(--accent)' : 'var(--border-subtle)'}`, background: active ? 'var(--accent-soft)' : 'transparent', color: active ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: 12, fontFamily: T.font.sans, fontWeight: 500, whiteSpace: 'nowrap' });
   const msgLink: React.CSSProperties = { fontSize: 11, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', padding: '3px 9px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', background: 'var(--accent-soft)', whiteSpace: 'nowrap' };

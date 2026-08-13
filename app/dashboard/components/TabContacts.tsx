@@ -123,7 +123,7 @@ type ViewMode = 'cards' | 'compact'
 
 // ─── Design System ────────────────────────────────────────────────────────────
 const iStyle: React.CSSProperties = {
-  width: '100%', height: 40, padding: '10px 16px', borderRadius: 6,
+  width: '100%', height: T.h.lg, padding: '10px 16px', borderRadius: 6,
   border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
   color: 'var(--text-primary)', fontSize: 14, letterSpacing: 0, outline: 'none',
   fontFamily: T.font.sans, boxSizing: 'border-box', transition: 'border-color 0.15s, box-shadow 0.15s',
@@ -1615,7 +1615,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
       {/* ΤΑ ΚΟΥΜΠΙΑ ΤΗΣ ΚΕΦΑΛΙΔΑΣ ΑΠΟΔΙΔΟΝΤΑΙ ΠΑΝΤΑ. Πριν, όλα μαζί — και η σάρωση —
           εμφανίζονταν ΜΟΝΟ αν υπήρχε ήδη επαφή: ο νέος χρήστης δεν έβλεπε ποτέ τη
           σάρωση και ο μόνος δρόμος για την πρώτη του επαφή ήταν η φόρμα. Το κύριο
-          κουμπί είναι η ΦΩΤΟΓΡΑΦΙΑ, όχι η χειροκίνητη καταχώριση. */}
+          κουμπί είναι η ΦΩΤΟΓΡΑΦΙΑ, όχι η χειροκίνητη καταχώρηση. */}
       {/* ΕΝΘΕΤΟ: ΕΠΙΚΕΦΑΛΙΔΑ ΕΝΟΤΗΤΑΣ, ΟΧΙ ΔΕΥΤΕΡΟΣ ΤΙΤΛΟΣ ΣΕΛΙΔΑΣ.
           Μέσα στο Αρχείο υπήρχαν δύο τίτλοι πρώτου επιπέδου ο ένας κάτω από τον
           άλλο, με δύο υπότιτλους που έλεγαν την ίδια πρόταση με άλλες λέξεις.
@@ -1628,7 +1628,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
       // στην πρώτη του επίσκεψη και δεν αξίζει μόνιμη θέση δίπλα στη δημιουργία.
       //
       // Μένει ΜΙΑ κύρια ενέργεια, η γρήγορη: η φωτογραφία της κάρτας διαβάζει
-      // όνομα, τηλέφωνο, email και ΑΦΜ μόνη της. Η χειροκίνητη καταχώριση και οι
+      // όνομα, τηλέφωνο, email και ΑΦΜ μόνη της. Η χειροκίνητη καταχώρηση και οι
       // τρεις εξαγωγές πάνε στο κοινό μενού «Περισσότερα» — το ίδιο που
       // χρησιμοποιεί ήδη η Απογραφή, ώστε οι δύο οθόνες να διαβάζονται σαν μία.
       const actions = <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>

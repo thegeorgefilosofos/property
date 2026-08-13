@@ -51,8 +51,8 @@ export default function SpitiMouPanel({
   const crit: Crit[] = [
     { label: 'Πρώτη και κύρια κατοικία', status: 'unknown', detail: 'Προς επιβεβαίωση' },
     { label: 'Ηλικία 25–50 ετών', status: 'unknown', detail: 'Προς επιβεβαίωση' },
-    { label: 'Αξία ακινήτου έως 250.000€', status: propertyValue > 0 ? (propertyValue <= SPITI_MOU.maxPropertyValue ? 'pass' : 'fail') : 'unknown', detail: propertyValue > 0 ? fmtEur(propertyValue) : 'Προς επιβεβαίωση' },
-    { label: 'Ποσό δανείου έως 190.000€', status: amount > 0 ? (amount <= SPITI_MOU.maxAmount ? 'pass' : 'fail') : 'unknown', detail: amount > 0 ? fmtEur(amount) : 'Προς επιβεβαίωση' },
+    { label: 'Αξία ακινήτου έως 250.000 €', status: propertyValue > 0 ? (propertyValue <= SPITI_MOU.maxPropertyValue ? 'pass' : 'fail') : 'unknown', detail: propertyValue > 0 ? fmtEur(propertyValue) : 'Προς επιβεβαίωση' },
+    { label: 'Ποσό δανείου έως 190.000 €', status: amount > 0 ? (amount <= SPITI_MOU.maxAmount ? 'pass' : 'fail') : 'unknown', detail: amount > 0 ? fmtEur(amount) : 'Προς επιβεβαίωση' },
     { label: 'Εμβαδόν έως 150 τ.μ.', status: sqm && sqm > 0 ? (sqm <= SPITI_MOU.maxSqm ? 'pass' : 'fail') : 'unknown', detail: sqm && sqm > 0 ? `${sqm} τ.μ.` : 'Προς επιβεβαίωση' },
     { label: 'Έτος κατασκευής έως 2007', status: yearBuilt && yearBuilt > 0 ? (yearBuilt <= SPITI_MOU.maxYearBuilt ? 'pass' : 'fail') : 'unknown', detail: yearBuilt && yearBuilt > 0 ? String(yearBuilt) : 'Προς επιβεβαίωση' },
     { label: 'Διάρκεια έως 30 έτη', status: years > 0 ? (years <= SPITI_MOU.maxYears ? 'pass' : 'fail') : 'unknown', detail: `${years} έτη` },

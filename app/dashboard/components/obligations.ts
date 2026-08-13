@@ -119,9 +119,9 @@ export function computeObligations(
     if (seenKind.has(t.kind)) continue;
     seenKind.add(t.kind);
     // Το μόνο που προσθέτουμε στο κείμενο είναι ΔΙΚΟ ΤΟΥ δεδομένο: ο ΕΝΦΙΑ που
-    // έχει καταχωρίσει ο ίδιος. Καμία εκτίμηση, κανένα δικό μας νούμερο.
+    // έχει καταχωρήσει ο ίδιος. Καμία εκτίμηση, κανένα δικό μας νούμερο.
     const own = (t.kind.startsWith('enfia') && prop.enfia)
-      ? ` Ο ΕΝΦΙΑ που έχεις καταχωρίσει: ${Math.round(prop.enfia)} € τον χρόνο.`
+      ? ` Ο ΕΝΦΙΑ που έχεις καταχωρήσει: ${Math.round(prop.enfia)} € τον χρόνο.`
       : '';
     push({
       id: t.id, source: taxEventSource(t.id), title: t.title, date: fromISO(t.date),

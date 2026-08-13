@@ -1181,7 +1181,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
       setBooking(false);
       setBookedCount(0);
       notify(clashes.length
-        ? `${clashes.length === 1 ? 'Η συνδρομή υπάρχει' : `${clashes.length} συνδρομές υπάρχουν`} ήδη στις δαπάνες, από σάρωση ή χειροκίνητη καταχώριση.`
+        ? `${clashes.length === 1 ? 'Η συνδρομή υπάρχει' : `${clashes.length} συνδρομές υπάρχουν`} ήδη στις δαπάνες, από σάρωση ή χειροκίνητη καταχώρηση.`
         : 'Ο μήνας είναι ήδη καταχωρημένος. Καμία διπλή γραμμή.');
       return;
     }
@@ -1513,7 +1513,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
             <div style={{ ...fieldRow(180), marginBottom: 14 }}>
               <NumberInput label="Εμβαδόν"           value={effectiveSqm}    onChange={v => u({ insSqm: v })}          suffix="τ.μ." step={5}/>
               <TextInput   label="Πόλη ή περιοχή"    value={effectiveCity}   onChange={v => u({ insCity: v })}         placeholder="Παράδειγμα: Αθήνα…"/>
-              <NumberInput label="Αξία κτηρίου"      value={insPropValue}    onChange={v => u({ insPropValue: v })}    suffix="€" step={5000}/>
+              <NumberInput label="Αξία κτιρίου"      value={insPropValue}    onChange={v => u({ insPropValue: v })}    suffix="€" step={5000}/>
               <NumberInput label="Αξία περιεχομένου" value={insContentValue} onChange={v => u({ insContentValue: v })} suffix="€" step={1000}/>
             </div>
           </div>
@@ -1677,7 +1677,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
           {(!parseFloat(effectiveSqm) || !parseFloat(insPropValue)) && (
             // Τα σκληροκωδικοποιημένα rgba(26,115,232,…) αγνοούσαν τα tokens: στο σκούρο
             // θέμα το πλαίσιο έμενε γαλάζιο-σε-γαλάζιο. Το InfoBanner παίρνει χρώμα από τον τόνο.
-            <InfoBanner tone="info">Συμπλήρωσε εμβαδόν και αξία κτηρίου για συγκριτική εκτίμηση ασφαλίστρων.</InfoBanner>
+            <InfoBanner tone="info">Συμπλήρωσε εμβαδόν και αξία κτιρίου για συγκριτική εκτίμηση ασφαλίστρων.</InfoBanner>
           )}
 
         </div>

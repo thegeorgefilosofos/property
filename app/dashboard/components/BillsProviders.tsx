@@ -131,7 +131,7 @@ const INTERNET_PLANS: Record<string, {
     // ── 5G WiFi (Internet backup μέσω 5G) ────────────────────────────────
     { id:'c_5g50',     name: '5G WiFi Double Play 50',      speed: '50 Mbps',   price: 30.90, hasPhone: true,  note: 'Ασύρματο 5G, Internet backup. Χωρίς καλωδίωση.', networkType: '5G', backup: true },
     { id:'c_5g300',    name: '5G WiFi Double Play 300',     speed: '300 Mbps',  price: 35.90, hasPhone: true,  note: 'Ασύρματο 5G, Internet backup. Χωρίς καλωδίωση.', networkType: '5G', backup: true },
-    { id:'c_5g_free',  name: '5G WiFi 300 Χωρίς Σύμβαση',  speed: '300 Mbps',  price: 35.90, hasPhone: true,  note: 'Ασύρματο 5G χωρίς δέσμευση. Εξοπλισμός 349€.', networkType: '5G', backup: true },
+    { id:'c_5g_free',  name: '5G WiFi 300 Χωρίς Σύμβαση',  speed: '300 Mbps',  price: 35.90, hasPhone: true,  note: 'Ασύρματο 5G χωρίς δέσμευση. Εξοπλισμός 349 €.', networkType: '5G', backup: true },
     // ── Triple Play (Σταθερή + Internet + Τηλεόραση) ─────────────────────
     { id:'c_f100_tv',  name: 'Fiber 100 + Cosmote TV Full', speed: '100 Mbps',  price: 48.77, hasPhone: true, hasTV: true, note: 'FTTH + Cosmote TV πλήρες πακέτο. Δωρεάν εξοπλισμός.', networkType: 'Fiber', contract: '24 μήνες' },
     { id:'c_f300_tv',  name: 'Fiber 300 + Cosmote TV Full', speed: '300 Mbps',  price: 51.85, hasPhone: true, hasTV: true, note: 'FTTH + Cosmote TV πλήρες πακέτο. Δωρεάν εξοπλισμός.', networkType: 'Fiber', contract: '24 μήνες' },
@@ -173,7 +173,7 @@ const INTERNET_PLANS: Record<string, {
     { id:'dei_f500',   name: 'ΔΕΗ Fiber 500',              speed: '500 Mbps',  price: 17.90, hasPhone: false, note: 'Φθηνότερο fiber στην αγορά. Χωρίς τηλεφωνία.', networkType: 'Fiber', contract: '24 μήνες' },
     { id:'dei_f1g',    name: 'ΔΕΗ Fiber 1 Gbps',           speed: '1 Gbps',    price: 24.90, hasPhone: false, note: 'Οπτική ίνα. Χωρίς τηλεφωνία.', networkType: 'Fiber', contract: '24 μήνες' },
     { id:'dei_f25g',   name: 'ΔΕΗ Fiber 2.5 Gbps',         speed: '2.5 Gbps',  price: 52.90, hasPhone: false, note: 'Ultra broadband. Χωρίς τηλεφωνία.', networkType: 'Fiber', contract: '24 μήνες' },
-    { id:'dei_f500_v', name: 'ΔΕΗ Fiber 500 + Φωνή',       speed: '500 Mbps',  price: 21.90, hasPhone: true,  note: 'Fiber + τηλεφωνία (+4€). Απεριόριστα λεπτά σταθερά.', networkType: 'Fiber', contract: '24 μήνες' },
+    { id:'dei_f500_v', name: 'ΔΕΗ Fiber 500 + Φωνή',       speed: '500 Mbps',  price: 21.90, hasPhone: true,  note: 'Fiber + τηλεφωνία (+4 €). Απεριόριστα λεπτά σταθερά.', networkType: 'Fiber', contract: '24 μήνες' },
   ],
   inalan: [
     // ── Οικιακά (με σύμβαση 24 μηνών) ────────────────────────────────────

@@ -47,7 +47,7 @@ const COMMON_CATEGORIES: { key: string; label: string; payer: 'tenant' | 'owner'
   { key: 'garden',      label: 'Κηπουρός / πράσινο',      payer: 'tenant' },
   { key: 'manager',     label: 'Αμοιβή διαχειριστή',      payer: 'tenant' },
   { key: 'maintenance', label: 'Συντήρηση / επισκευές',   payer: 'owner'  },
-  { key: 'reserve',     label: 'Αποθεματικό κτηρίου',     payer: 'owner'  },
+  { key: 'reserve',     label: 'Αποθεματικό κτιρίου',     payer: 'owner'  },
 ];
 
 
@@ -121,7 +121,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
   const sMill    = (v: string) => { setMillesimi(v); upd({ millesimi: v }); };
   // ΚΑΝΕΝΑ ΑΡΝΗΤΙΚΟ ΚΟΙΝΟΧΡΗΣΤΟ. Το `min={0}` του HTML εμποδίζει τα βελάκια,
   // όχι την πληκτρολόγηση: το «-50» γραφόταν κανονικά, αποθηκευόταν, και έβγαζε
-  // αρνητικό μερίδιο σε πίνακα δαπανών. Το κτήριο δεν σου δίνει χρήματα.
+  // αρνητικό μερίδιο σε πίνακα δαπανών. Το κτίριο δεν σου δίνει χρήματα.
   const sCat     = (key: string, v: string) => {
     const clean = v.replace(/-/g, '');
     const n = { ...catData, [key]: clean }; setCatData(n); upd({ catData: n });
@@ -176,7 +176,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
   // Ανάλυση κοινοχρήστων ανά κατηγορία, κατανομή με χιλιοστά (Billys logic)
   const millRatio    = (parseFloat(millesimi) || 0) / 1000;          // μερίδιο ιδιοκτησίας
   const catRows      = COMMON_CATEGORIES.map(c => {
-    const building = parseFloat(catData[c.key]) || 0;                // μηνιαίο σύνολο κτηρίου
+    const building = parseFloat(catData[c.key]) || 0;                // μηνιαίο σύνολο κτιρίου
     const myShare  = building * millRatio;                            // το μερίδιό μου
     return { ...c, building, myShare };
   });
@@ -245,7 +245,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
 
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '10px 14px', marginBottom: 16, border: '1px solid var(--border-subtle)', borderLeft: '3px solid var(--accent)' }}>
           <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, fontFamily: T.font.sans }}>
-            Καταχώρησε το <strong>μηνιαίο σύνολο του κτηρίου</strong> για κάθε κατηγορία. Το μερίδιό σου υπολογίζεται αυτόματα με βάση τα <strong>χιλιοστά</strong> σου, όπως στην κατανομή κοινοχρήστων της πολυκατοικίας.
+            Καταχώρησε το <strong>μηνιαίο σύνολο του κτιρίου</strong> για κάθε κατηγορία. Το μερίδιό σου υπολογίζεται αυτόματα με βάση τα <strong>χιλιοστά</strong> σου, όπως στην κατανομή κοινοχρήστων της πολυκατοικίας.
           </div>
         </div>
 
@@ -266,7 +266,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         <div key={payer} style={{ marginTop: payer === 'owner' ? 20 : 0 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 150px 110px', gap: 14, padding: '0 4px 8px', borderBottom: '1px solid var(--border-subtle)', marginBottom: 4, alignItems: 'baseline' }}>
           <div style={{ ...TT.label, fontSize: 9, color: 'var(--text-secondary)' }}>{payer === 'tenant' ? 'Βαρύνουν τον ενοικιαστή' : 'Βαρύνουν εσένα'}</div>
-          <div style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)', textAlign: 'right' }}>Σύνολο κτηρίου</div>
+          <div style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)', textAlign: 'right' }}>Σύνολο κτιρίου</div>
           <div style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)', textAlign: 'right' }}>Μερίδιό μου</div>
         </div>
 
@@ -279,7 +279,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
                 εφαρμογής. Ίδια επιφάνεια, ίδιο περίγραμμα, ίδια ακτίνα, ίδιο
                 δαχτυλίδι εστίασης με τα υπόλοιπα. */}
             <input
-              aria-label={`${r.label}, μηνιαίο σύνολο κτηρίου σε ευρώ`}
+              aria-label={`${r.label}, μηνιαίο σύνολο κτιρίου σε ευρώ`}
               type="number" min={0} inputMode="decimal" value={catData[r.key] ?? ''} onChange={e => sCat(r.key, e.target.value)}
               className="po-field"
               style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: T.radius.inner, padding: '8px 12px', fontSize: 13, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', textAlign: 'right', outline: 'none' }}/>

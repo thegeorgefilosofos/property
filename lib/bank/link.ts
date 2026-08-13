@@ -49,7 +49,7 @@ export const bankLinkState = (): BankLinkState => (available('bank_link') ? 'ope
 export const BANK_LINK_TITLE = 'Σύνδεση με την τράπεζα';
 
 /** Η μία γραμμή κάτω από τον τίτλο. Ονοματική φράση, όχι προστακτική. */
-export const BANK_LINK_TAGLINE = 'Οι κινήσεις σου, έτοιμες για καταχώριση';
+export const BANK_LINK_TAGLINE = 'Οι κινήσεις σου, έτοιμες για καταχώρηση';
 
 export interface BankLinkPoint { title: string; body: string }
 

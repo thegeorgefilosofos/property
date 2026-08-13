@@ -343,12 +343,12 @@ export function archiveInputFrom(plan: ArchivePlan, file: File, propertyId: stri
   };
 }
 
-// ── Η καταχώριση: ένα έγγραφο → όλοι οι σωστοί πίνακες ─────────────────────
+// ── Η καταχώρηση: ένα έγγραφο → όλοι οι σωστοί πίνακες ─────────────────────
 export interface CommitInput {
   doc: ScannedDoc;
   propertyId: string;
   userId: string;
-  /** Το πρωτότυπο αρχείο. Χωρίς αυτό δεν γίνεται αρχειοθέτηση (μόνο καταχωρίσεις). */
+  /** Το πρωτότυπο αρχείο. Χωρίς αυτό δεν γίνεται αρχειοθέτηση (μόνο καταχωρήσεις). */
   file?: File | null;
   today?: string;
   /**
@@ -462,7 +462,7 @@ export async function commitScannedDoc(input: CommitInput): Promise<CommitResult
     // που δεν υπάρχει.
     //
     // Ο έλεγχος γίνεται ΠΡΙΝ γραφτεί οτιδήποτε, και σταματά τα πάντα: ούτε
-    // αρχειοθέτηση ούτε λογαριασμός ούτε ημερολόγιο, γιατί μια μισή καταχώριση
+    // αρχειοθέτηση ούτε λογαριασμός ούτε ημερολόγιο, γιατί μια μισή καταχώρηση
     // είναι χειρότερη από καμία.
     if (plan.expense && !input.allowDuplicate) {
       const window = 5;
