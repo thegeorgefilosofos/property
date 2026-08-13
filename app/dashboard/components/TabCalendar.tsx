@@ -335,8 +335,13 @@ function EventCard({ event, onToggleStatus, onEdit, onDelete, selected, onSelect
           </span>
         </button>
       )}
+      {/* ΤΟ ΙΔΙΟ ΣΤΡΟΓΓΥΛΟ ΚΟΥΤΑΚΙ, ΔΥΟ ΧΡΩΜΑΤΑ, ΔΥΟ ΚΑΡΤΕΛΕΣ. Στις Εκκρεμότητες
+          το κουμπί ολοκλήρωσης άλλαξε από πράσινο σε μπλε, με τον λόγο γραμμένο
+          δίπλα του: το πράσινο γινόταν το πιο δυνατό χρώμα της οθόνης και
+          μετέτρεπε μια μέτρηση σε επιβράβευση. Το ημερολόγιο δεν πήρε ποτέ την
+          ίδια διόρθωση. Το μπλε μένει το χρώμα της πράξης, εδώ και εκεί. */}
       {!bulkMode&&(
-        <button aria-label={done?'Αναίρεση':'Ολοκλήρωση'} onClick={()=>onToggleStatus(event)} style={{ marginTop:1, flexShrink:0, width:18, height:18, borderRadius:'50%', border:`2px solid ${done?'var(--positive)':'var(--border-default)'}`, background:done?'var(--positive)':'transparent', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' }}>
+        <button aria-label={done?'Αναίρεση':'Ολοκλήρωση'} onClick={()=>onToggleStatus(event)} style={{ marginTop:1, flexShrink:0, width:18, height:18, borderRadius:'50%', border:`2px solid ${done?'var(--accent)':'var(--border-default)'}`, background:done?'var(--accent)':'transparent', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' }}>
           {done&&<Check size={9} color="var(--accent-text)"/>}
         </button>
       )}
@@ -1231,7 +1236,11 @@ function SubscribeModal({ token, propertyId, onClose }: { token:string|null; pro
           <label style={{ display:'block', fontSize:11, fontWeight:600, color:'var(--text-secondary)', marginBottom:7, textTransform:'uppercase', letterSpacing:'0.06em', fontFamily: T.font.sans }}>Σύνδεσμος συνδρομής</label>
           <div style={{ display:'flex', gap:8 }}>
             <input readOnly value={httpsUrl} onFocus={e=>e.currentTarget.select()} style={{ flex:1, minWidth:0, height:T.h.lg, padding:'0 12px', borderRadius:T.radius.btn, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:13, fontFamily: T.font.sans }}/>
-            <button onClick={copy} style={{ height:T.h.lg, padding:'0 16px', borderRadius:T.radius.btn, border:'none', background:copied?'var(--positive)':'var(--accent)', color:'var(--accent-text)', fontSize:13, fontWeight:600, cursor:'pointer', whiteSpace:'nowrap', fontFamily: T.font.sans }}>{copied?'Αντιγράφηκε':'Αντιγραφή'}</button>
+            {/* Η ΚΥΡΙΑ ΕΝΕΡΓΕΙΑ ΑΛΛΑΖΕ ΧΡΩΜΑ ΣΤΗ ΜΕΣΗ ΤΗΣ ΧΕΙΡΟΝΟΜΙΑΣ. Το μπλε
+                γινόταν πράσινο για δύο δευτερόλεπτα, δηλαδή το χρώμα της κύριας
+                ενέργειας εγκατέλειπε το κουμπί της κύριας ενέργειας. Η λέξη
+                «Αντιγράφηκε» λέει ήδη ό,τι έχει να ειπωθεί. */}
+            <button onClick={copy} style={{ height:T.h.lg, padding:'0 16px', borderRadius:T.radius.btn, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:13, fontWeight:600, cursor:'pointer', whiteSpace:'nowrap', fontFamily: T.font.sans }}>{copied?'Αντιγράφηκε':'Αντιγραφή'}</button>
           </div>
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
@@ -1248,7 +1257,7 @@ function SubscribeModal({ token, propertyId, onClose }: { token:string|null; pro
           <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'0 0 8px', lineHeight:1.5, fontFamily: T.font.sans }}>Επικόλλησε αυτόν τον σύνδεσμο στο «Import calendar» κάθε καναλιού, κάθε κράτηση μπλοκάρει αυτόματα τις ημερομηνίες παντού (χωρίς όνομα επισκέπτη).</p>
           <div style={{ display:'flex', gap:8 }}>
             <input readOnly value={busyUrl} onFocus={e=>e.currentTarget.select()} style={{ flex:1, minWidth:0, height:T.h.lg, padding:'0 12px', borderRadius:T.radius.btn, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:13, fontFamily: T.font.sans }}/>
-            <button onClick={copyBusy} style={{ height:T.h.lg, padding:'0 16px', borderRadius:T.radius.btn, border:'none', background:copiedBusy?'var(--positive)':'var(--accent)', color:'var(--accent-text)', fontSize:13, fontWeight:600, cursor:'pointer', whiteSpace:'nowrap', fontFamily: T.font.sans }}>{copiedBusy?'Αντιγράφηκε':'Αντιγραφή'}</button>
+            <button onClick={copyBusy} style={{ height:T.h.lg, padding:'0 16px', borderRadius:T.radius.btn, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:13, fontWeight:600, cursor:'pointer', whiteSpace:'nowrap', fontFamily: T.font.sans }}>{copiedBusy?'Αντιγράφηκε':'Αντιγραφή'}</button>
           </div>
         </div>
       </>)}

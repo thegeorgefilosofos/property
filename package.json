@@ -86,7 +86,6 @@
     "qrcode-generator": "^2.0.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "recharts": "^3.10.1",
     "xlsx-js-style": "^1.2.0"
   },
   "devDependencies": {
