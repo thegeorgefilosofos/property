@@ -343,6 +343,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
   const [openFund, setOpenFund] = useState<string | null>(null);
   const [openOption, setOpenOption] = useState<string | null>(null);
   const [refOpen, setRefOpen] = useState(false);
+  const [openRef, setOpenRef] = useState<string | null>(null);
   // ΤΑ ΠΕΔΙΑ ΤΟΥ ΚΕΝΟΥ ΜΑΖΕΥΟΝΤΑΝ ΚΑΤΩ ΑΠΟ ΤΑ ΔΑΧΤΥΛΑ ΤΟΥ ΧΡΗΣΤΗ. Η κατάσταση
   // υπολογιζόταν από το τρέχον σύνολο («υπάρχει νούμερο, άρα κλείσε»), οπότε με
   // το που έμπαινε ο ΕΝΦΙΑ — πρώτο από τα τέσσερα πεδία — η φόρμα εξαφανιζόταν
@@ -760,40 +761,57 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
         </RowToggle>
 
         {refOpen && (
-          <div className="budget-rise" style={{
-            display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
-            gap: T.sp.section, paddingTop: T.sp.lg, marginTop: 2, borderTop: '1px solid var(--border-subtle)',
-          }}>
-            <section>
-              <div style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)', marginBottom: 4 }}>Οι κανόνες που κοστίζουν χρήματα</div>
-              <div style={{ ...TT.caption, color: 'var(--text-tertiary)', marginBottom: 10 }}>Λίγα πράγματα, και όλα τους τα έχει πληρώσει κάποιος που δεν τα ήξερε.</div>
-              {plan.rules.map((r, i) => (
-                <div key={r.id} style={{ padding: '14px 0', borderTop: '1px solid var(--border-subtle)', paddingBottom: i === plan.rules.length - 1 ? 0 : 14 }}>
-                  <div style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{r.title}</div>
-                  <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 5 }}>{r.body}</div>
+          /* ΔΥΟ ΣΤΗΛΕΣ ΔΕΝ ΖΥΓΙΖΟΝΤΑΙ ΠΟΤΕ, ΓΙΑΤΙ ΤΟ ΠΕΡΙΕΧΟΜΕΝΟ ΤΟΥΣ ΔΕΝ ΕΙΝΑΙ
+             ΙΣΟ. Τέσσερις κανόνες με παραγράφους αριστερά, τρία ερωτήματα με από
+             δύο απαντήσεις δεξιά: η μία στήλη τελείωνε τριακόσια εικονοστοιχεία
+             πριν την άλλη, και καμία από τις δύο δεν έφτανε στην άκρη της κάρτας.
+             Το πλέγμα δεν διορθώνεται με ρυθμίσεις — αφαιρείται.
+
+             Μία στήλη σε όλο το πλάτος, και το ίδιο χειριστήριο με ΟΛΗ την
+             υπόλοιπη οθόνη: τίτλος που ανοίγει. Κλειστά, οι επτά γραμμές λένε τι
+             υπάρχει· ανοιχτή, η μία που ρώτησες λέει τα πάντα. Οκτακόσιες λέξεις
+             ανοιχτές ταυτόχρονα δεν είναι πληρότητα, είναι θόρυβος. */
+          <div className="budget-rise" style={{ paddingTop: T.sp.md, marginTop: 2, borderTop: '1px solid var(--border-subtle)' }}>
+            <div style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)', paddingBottom: 6, marginBottom: 2, borderBottom: '1px solid var(--border-subtle)' }}>
+              Οι κανόνες που κοστίζουν χρήματα
+            </div>
+            {plan.rules.map(r => {
+              const open = openRef === r.id;
+              return (
+                <div key={r.id}>
+                  <RowToggle open={open} label={r.title} onClick={() => setOpenRef(open ? null : r.id)}>
+                    <span style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 600, lineHeight: 1.35, color: 'var(--text-primary)' }}>{r.title}</span>
+                  </RowToggle>
+                  {open && <RowBody><div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: -4 }}>{r.body}</div></RowBody>}
                 </div>
-              ))}
-            </section>
+              );
+            })}
 
             {/* ΤΟ ΠΟΡΤΟΚΑΛΙ ΣΗΜΑ ΜΕ ΤΟ «3» ΕΦΥΓΕ. Ένα γυμνό «3» δεν λέει καν
                 τρία τι, και ήταν γραμμένο στο χρώμα που η εφαρμογή κρατά για
                 εκκρεμότητες — σε ενότητα που ρητά δεν ζητά καμία ενέργεια. */}
-            <section>
-              <div style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)', marginBottom: 4 }}>Προς επιβεβαίωση</div>
-              <div style={{ ...TT.caption, color: 'var(--text-tertiary)', marginBottom: 10 }}>Ό,τι αλλάζει από χρονιά σε χρονιά δεν γράφεται εδώ ως βεβαιότητα. Γράφεται τι να ελέγξεις και πού.</div>
-              {plan.verify.map((v, i) => (
-                <div key={v.id} style={{ padding: '14px 0', borderTop: '1px solid var(--border-subtle)', paddingBottom: i === plan.verify.length - 1 ? 0 : 14 }}>
-                  {/* ΔΕΝ ΕΙΝΑΙ ΤΙΤΛΟΣ, ΕΙΝΑΙ ΕΡΩΤΗΜΑ. Δοκιμάστηκε με το βάρος του
-                      τίτλου κανόνα δίπλα, για ομοιομορφία — και μια ερώτηση τριών
-                      σειρών σε 14/700 διαβάζεται σαν κραυγή. Οι δύο στήλες δεν
-                      έχουν το ίδιο σχήμα: αριστερά τίτλος και κείμενο, δεξιά
-                      ερώτημα και δύο απαντήσεις. */}
-                  <div style={{ ...TT.body, fontWeight: 600, color: 'var(--text-primary)' }}>{v.what}</div>
-                  <Meta label="Πού">{v.where}</Meta>
-                  <Meta label="Γιατί αλλάζει">{v.why}</Meta>
+            <div style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)', paddingBottom: 6, marginTop: T.sp.lg, marginBottom: 2, borderBottom: '1px solid var(--border-subtle)' }}>
+              Προς επιβεβαίωση
+            </div>
+            {plan.verify.map(v => {
+              const open = openRef === v.id;
+              return (
+                <div key={v.id}>
+                  {/* ΔΕΝ ΕΙΝΑΙ ΤΙΤΛΟΣ, ΕΙΝΑΙ ΕΡΩΤΗΜΑ, και γι᾽ αυτό δεν φοράει το
+                      βάρος του τίτλου κανόνα από πάνω: μια ερώτηση δύο σειρών σε
+                      14/600 διαβάζεται σαν κραυγή. */}
+                  <RowToggle open={open} label={v.what} onClick={() => setOpenRef(open ? null : v.id)}>
+                    <span style={{ ...TT.body, color: 'var(--text-primary)' }}>{v.what}</span>
+                  </RowToggle>
+                  {open && (
+                    <RowBody>
+                      <Meta label="Πού">{v.where}</Meta>
+                      <Meta label="Γιατί αλλάζει">{v.why}</Meta>
+                    </RowBody>
+                  )}
                 </div>
-              ))}
-            </section>
+              );
+            })}
           </div>
         )}
       </Card>
