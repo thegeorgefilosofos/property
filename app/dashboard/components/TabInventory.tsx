@@ -30,7 +30,7 @@ import * as calendar from '@/lib/data/calendar'
 import { INVENTORY_CATEGORIES, type InventoryItem, type InventoryRepair, type InventoryHandover, type MaintenanceSchedule, type HandoverIntent, type InventoryPropertyOption, type TabInventoryProps, ROOM_PRESETS, STARTER_PACK } from './inventory/model'
 import { calcCurrentValue, calcDepreciationPct, calcYearsLeft, calcAgeDisplay, calcMonthlyKwh, calcMonthlyCost, hasEnergy, fmtDate, daysUntil, warrantyStatus, needsAction } from './inventory/calc'
 import { DOCS_BUCKET } from './inventory/storage'
-import { Badge, EnergyBadge, DepBar, ReplacementHint, InlineConditionEdit, OverflowMenu, SelectBox, BulkPicker, SectionLabel, QRModal, cardStyle, IconEdit, IconRepair, IconQR, IconCal, IconTrash, type OverflowAction } from './inventory/Bits'
+import { Badge, EnergyBadge, DepBar, ReplacementHint, InlineConditionEdit, OverflowMenu, SelectBox, BulkPicker, SectionLabel, QRModal, cardStyle, quietAction, IconEdit, IconRepair, IconQR, IconCal, IconTrash, type OverflowAction } from './inventory/Bits'
 import { ItemFormModal } from './inventory/ItemFormModal'
 import { RepairModal } from './inventory/RepairModal'
 import { BulkImportModal } from './inventory/BulkImportModal'
@@ -498,6 +498,8 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   const [kwInput,setKwInput] = useState('')
   const [loading,setLoading] = useState(true)
   const [showItemForm,setShowItemForm] = useState(false)
+  // Χειροκίνητο άνοιγμα: όλα τα πεδία ορατά από την πρώτη στιγμή.
+  const [formManual,setFormManual] = useState(false)
   const [editingItem,setEditingItem] = useState<InventoryItem|null>(null)
   const [repairItem,setRepairItem] = useState<InventoryItem|null>(null)
   const [qrItem,setQrItem] = useState<InventoryItem|null>(null)
@@ -688,7 +690,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
 
   return (
     <div style={{minWidth:0,width:'100%'}}>
-      {(showItemForm||editingItem)&&<ItemFormModal item={editingItem} onSave={handleSaveItem} onClose={()=>{setShowItemForm(false);setEditingItem(null)}} propertyId={propertyId} ctx={fieldCtx} kwhPrice={kwhPrice}/>}
+      {(showItemForm||editingItem)&&<ItemFormModal item={editingItem} startManual={formManual} onSave={handleSaveItem} onClose={()=>{setShowItemForm(false);setEditingItem(null);setFormManual(false)}} propertyId={propertyId} ctx={fieldCtx} kwhPrice={kwhPrice}/>}
       {repairItem&&<RepairModal item={repairItem} repairs={repairs} onAdd={handleAddRepair} onClose={()=>setRepairItem(null)} propertyId={propertyId} userId={userId}/>}
       {qrItem&&<QRModal item={qrItem} onClose={()=>setQrItem(null)}/>}
       {showBulkImport&&<BulkImportModal propertyId={propertyId} userId={userId} onImported={fetchData} onClose={()=>setShowBulkImport(false)}/>}
@@ -746,35 +748,41 @@ export default function TabInventory({propertyId,userId,profileType='individual'
             <div style={{width:64,height:64,borderRadius:18,background:'var(--accent-soft)',border:'1px solid var(--accent-border)',color:'var(--accent)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 18px'}}>
               <svg width={30} height={30} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M10 12h4"/></svg>
             </div>
-            <p style={{fontSize:20,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:8}}>{handoverSeed?'Πρόσθεσε εξοπλισμό πρώτα':'Ξεκίνησε την καταγραφή'}</p>
-            <p style={{fontSize:13,color:'var(--text-secondary)',fontFamily:T.font.sans,maxWidth:440,margin:'0 auto 22px',lineHeight:1.6}}>Κατέγραψε έπιπλα, συσκευές και εξοπλισμό: αξία, εγγυήσεις και κατανάλωση, όλα οργανωμένα και εύκολα.</p>
-            <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap',marginBottom:14}}>
-              {/* Η σάρωση είναι το ΚΥΡΙΟ μονοπάτι: ανοίγει η φόρμα με τη φωτογραφία
-                  πρώτη και το AI συμπληρώνει μάρκα, μοντέλο, αξία και εγγύηση. */}
-              <Btn variant="primary" onClick={()=>{setEditingItem(null);setShowItemForm(true)}}>Φωτογράφισε αντικείμενο</Btn>
-              <Btn variant="ghost" onClick={()=>setShowBulkImport(true)}>Μαζική εισαγωγή</Btn>
+            <p style={{fontSize:20,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',letterSpacing:'-0.01em',marginBottom:8}}>{handoverSeed?'Πρόσθεσε εξοπλισμό πρώτα':'Ξεκίνησε την καταγραφή'}</p>
+            {/* ═══ ΔΥΟ ΔΡΟΜΟΙ, ΚΑΙ Ο ΔΕΥΤΕΡΟΣ ΕΙΝΑΙ ΤΟ ΧΕΡΙ ══════════════════════
+                ΤΙ ΕΛΕΙΠΕ. Το μόνο κύριο κουμπί έλεγε «Φωτογράφισε αντικείμενο»,
+                και όποιος δεν είχε τι να φωτογραφήσει —παλιό έπιπλο, καναπές,
+                τραπέζι— δεν έβλεπε πουθενά δρόμο. Η χειροκίνητη συμπλήρωση
+                υπήρχε, αλλά κρυμμένη ΜΕΣΑ στο παράθυρο της φωτογραφίας: για να
+                τη βρεις έπρεπε πρώτα να πατήσεις κάτι που δεν σε αφορούσε.
+
+                ΤΙ ΕΦΥΓΕ. Τρεις κάρτες που εξηγούσαν τι κάνει η απογραφή. Η
+                πρώτη επαναλάμβανε το κύριο κουμπί, και οι τρεις μαζί
+                επαναλάμβαναν λέξη προς λέξη τον υπότιτλο από πάνω τους: αξία,
+                εγγυήσεις, κατανάλωση. Μια οθόνη που λέει το ίδιο πράγμα τρεις
+                φορές δεν πείθει περισσότερο, κουράζει.
+
+                ΤΙ ΜΕΝΕΙ. Δύο δρόμοι στο ίδιο βάρος, γιατί δύο είναι — και από
+                κάτω, πιο ήσυχα, οι τρεις συντομεύσεις για όποιον έχει ήδη
+                λίστα, πρότυπο ή δεύτερο ακίνητο. Η ιεραρχία λέγεται με το
+                μέγεθος και τη θέση, όχι με πλαίσια. */}
+            <p style={{fontSize:13,color:'var(--text-secondary)',fontFamily:T.font.sans,maxWidth:430,margin:'0 auto 26px',lineHeight:1.6}}>Έπιπλα, συσκευές και εξοπλισμός σε ένα μητρώο: αξία, εγγυήσεις και κατανάλωση ρεύματος.</p>
+            <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap',marginBottom:20}}>
+              {/* Η φωτογραφία μπροστά: το AI διαβάζει μάρκα, μοντέλο, αξία και
+                  εγγύηση, οπότε είναι ο συντομότερος δρόμος όταν υπάρχει ετικέτα. */}
+              <Btn variant="primary" onClick={()=>{setEditingItem(null);setFormManual(false);setShowItemForm(true)}}>Με φωτογραφία</Btn>
+              <Btn onClick={()=>{setEditingItem(null);setFormManual(true);setShowItemForm(true)}}>Με το χέρι</Btn>
             </div>
-            <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap',alignItems:'center',marginBottom:28}}>
-              <button onClick={insertStarterPack} disabled={cloning} style={{display:'inline-flex',alignItems:'center',gap:7,height:T.h.md,padding:'0 14px',borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',color:'var(--text-secondary)',fontSize:13,fontFamily:T.font.sans,fontWeight:500,cursor:cloning?'wait':'pointer'}}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 22V12h6v10"/></svg>
+            <div style={{display:'flex',gap:8,justifyContent:'center',flexWrap:'wrap',alignItems:'center'}}>
+              <button onClick={()=>setShowBulkImport(true)} style={quietAction}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+                Μαζική εισαγωγή
+              </button>
+              <button onClick={insertStarterPack} disabled={cloning} style={{...quietAction,cursor:cloning?'wait':'pointer'}}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 22V12h6v10"/></svg>
                 {cloning?'Δημιουργία…':`Πρότυπο επιπλωμένου (${STARTER_PACK.length})`}
               </button>
               {otherProps.length>0&&<BulkPicker label="Αντιγραφή από ακίνητο" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>} options={otherProps.map(p=>p.label)} onPick={label=>{const p=otherProps.find(x=>x.label===label);if(p)cloneFromProperty(p.id)}}/>}
-            </div>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(185px,1fr))',gap:12,maxWidth:640,margin:'0 auto',textAlign:'left'}}>
-              {[
-                {icon:<svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3.2"/></svg>,t:'Φωτογράφισε ή σάρωσε',d:'Το AI διαβάζει μάρκα, μοντέλο, αξία και εγγύηση'},
-                {icon:<svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>,t:'Παρακολούθησε εγγυήσεις',d:'Υπενθύμιση πριν λήξουν, χωρίς να το ξεχνάς'},
-                {icon:<svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7z"/></svg>,t:'Υπολόγισε κατανάλωση',d:'Κόστος ρεύματος ανά συσκευή και εξοικονόμηση'},
-              ].map((s,i)=>(
-                <div key={i} style={{display:'flex',gap:11,padding:'13px 14px',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)'}}>
-                  <div style={{color:'var(--accent)',flexShrink:0,marginTop:1}}>{s.icon}</div>
-                  <div>
-                    <p style={{fontSize:13,fontWeight:600,color:'var(--text-primary)',fontFamily:T.font.sans,marginBottom:2}}>{s.t}</p>
-                    <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.45}}>{s.d}</p>
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
         : page==='handover' ? null : (

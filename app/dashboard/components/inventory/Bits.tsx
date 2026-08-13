@@ -50,6 +50,23 @@ export function SelectBox({checked,indeterminate,onChange,size=18}:{checked:bool
 }
 
 // Μικρό labeled dropdown (portal) για μαζικές ενέργειες — δεν το κόβει κανένα overflow.
+/**
+ * Η ΗΣΥΧΗ ΣΥΝΤΟΜΕΥΣΗ: ΕΝΑ ΣΧΗΜΑ ΓΙΑ ΟΛΕΣ.
+ *
+ * Στην άδεια οθόνη στέκονται δίπλα δίπλα τρεις εναλλακτικές του ίδιου πράγματος
+ * — μαζική εισαγωγή, έτοιμο πρότυπο, αντιγραφή από άλλο ακίνητο. Ήταν γραμμένες
+ * με τρία διαφορετικά στυλ στο χέρι, και φαινόταν: διαφορετικό ύψος,
+ * διαφορετικό φόντο, διαφορετικό κενό. Το μάτι έψαχνε ποια είναι η σημαντική,
+ * ενώ καμία δεν είναι — είναι τρεις δρόμοι για την ίδια δουλειά.
+ */
+export const quietAction: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: 6,
+  height: T.h.sm, padding: '0 12px', borderRadius: T.radius.pill,
+  border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)',
+  color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500,
+  fontFamily: T.font.sans, cursor: 'pointer',
+}
+
 export function BulkPicker({label,icon,options,onPick,accent}:{label:string;icon:React.ReactNode;options:string[];onPick:(v:string)=>void;accent?:boolean}) {
   const [open,setOpen] = useState(false)
   const [rect,setRect] = useState<{top:number;left:number}|null>(null)
@@ -67,7 +84,9 @@ export function BulkPicker({label,icon,options,onPick,accent}:{label:string;icon
   return (
     <div style={{display:'inline-block'}}>
       <button ref={btnRef} onClick={()=>setOpen(v=>!v)}
-        style={{display:'inline-flex',alignItems:'center',gap:6,height:T.h.sm,padding:'0 12px',borderRadius:T.radius.pill,fontSize:13,fontWeight:500,fontFamily:T.font.sans,cursor:'pointer',border:`1px solid ${accent?'var(--accent-border)':'var(--border-subtle)'}`,background:accent?'var(--accent-soft)':'var(--bg-surface)',color:accent?'var(--accent)':'var(--text-secondary)'}}>
+        style={accent
+          ? {...quietAction, border:'1px solid var(--accent-border)', background:'var(--accent-soft)', color:'var(--accent)'}
+          : quietAction}>
         <span style={{display:'flex'}}>{icon}</span>{label}
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4l3 3 3-3"/></svg>
       </button>

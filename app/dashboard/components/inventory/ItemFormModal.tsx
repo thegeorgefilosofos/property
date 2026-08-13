@@ -41,7 +41,9 @@ const ITEM_SCAN_SYSTEM = `Είσαι σύστημα αναγνώρισης οι�
 Διάβασε ό,τι φαίνεται με ακρίβεια· άφησε κενά όσα δεν διακρίνονται. Το name να είναι περιγραφικό (π.χ. «Πλυντήριο Bosch WAU28»). Χωρίς κείμενο εκτός του JSON.`
 
 
-export function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:InventoryItem|null;onSave:(d:Partial<InventoryItem>)=>void;onClose:()=>void;propertyId:string;ctx:FieldContext;kwhPrice:number}) {
+export function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice,startManual}:{item?:InventoryItem|null;onSave:(d:Partial<InventoryItem>)=>void;onClose:()=>void;propertyId:string;ctx:FieldContext;kwhPrice:number;
+  /** Ανοίγει με όλα τα πεδία ορατά, όταν ο χρήστης ζήτησε ρητά το χέρι. */
+  startManual?:boolean}) {
   const [form,setForm] = useState<Partial<InventoryItem>>(item?{...item,photos:item.photos||[]}:{...EMPTY_ITEM})
   const [saving,setSaving] = useState(false)
   const [scanning,setScanning] = useState(false)
@@ -76,7 +78,7 @@ export function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{ite
   //
   // ΣΤΗΝ ΕΠΕΞΕΡΓΑΣΙΑ ΑΝΟΙΓΕΙ ΟΛΟΚΛΗΡΗ. Όποιος πατά «Επεξεργασία» ήρθε για ένα
   // συγκεκριμένο πεδίο· να το ψάξει πίσω από κουμπί θα ήταν εχθρικό.
-  const [manual,setManual] = useState<boolean>(!!item)
+  const [manual,setManual] = useState<boolean>(!!item||!!startManual)
   const revealed = manual || (form.photos||[]).length>0
   // Ο αποθηκευμένος τρόπος, αλλιώς η πρόταση της κατηγορίας. Η πρόταση ΔΕΝ
   // γράφεται σιωπηλά στη βάση: γράφεται μόνο αν ο χρήστης αποθηκεύσει, οπότε
