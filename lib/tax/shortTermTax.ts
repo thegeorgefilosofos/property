@@ -42,7 +42,7 @@ const addDay = (isoDate: string) => { const dt = new Date(isoDate + 'T00:00:00Z'
  * είναι συνολικά. Χρειάζεται ώστε ό,τι μοιράζεται ΑΝΑ ΔΙΑΝΥΚΤΕΡΕΥΣΗ να
  * μοιράζεται με τον ίδιο κανόνα και στις δύο πλευρές του λογαριασμού.
  */
-function nightsSplit(s: TaxStay, year: number): { inYear: number; total: number } {
+export function nightsSplit(s: TaxStay, year: number): { inYear: number; total: number } {
   if (!s.check_in) return { inYear: 0, total: 0 };
   const start = s.check_in.slice(0, 10);
   const end = s.check_out ? s.check_out.slice(0, 10) : null;
@@ -109,18 +109,50 @@ export function nightsByMonthForYear(stays: TaxStay[], year: number): number[] {
 }
 
 export interface TaxChannelRow { channel: string; revenue: number; nights: number; stays: number }
-/** Ανάλυση ακαθαρίστων/νυχτών ανά κανάλι για το έτος (με βάση την ημερομηνία άφιξης). */
+
+/**
+ * ΤΟ ΜΕΡΙΔΙΟ ΤΟΥ ΕΤΟΥΣ, ΓΙΑ ΚΑΘΕ ΜΕΓΕΘΟΣ ΤΗΣ ΔΙΑΜΟΝΗΣ.
+ *
+ * Μία διαμονή που περνά την Πρωτοχρονιά ανήκει σε ΔΥΟ χρήσεις. Ο κανόνας που
+ * τη μοιράζει είναι ένας — οι διανυκτερεύσεις — και εφαρμόζεται σε ΟΛΑ τα
+ * ποσά της: ακαθάριστο, προμήθεια πλατφόρμας, τέλος. Δεν υπάρχει μέγεθος που
+ * ακολουθεί το check-in ενώ το διπλανό του ακολουθεί τις νύχτες.
+ */
+export const yearShare = (s: TaxStay, year: number): number => {
+  const { inYear, total } = nightsSplit(s, year);
+  return total > 0 ? inYear / total : 0;
+};
+
+/**
+ * Ανάλυση ακαθαρίστων και νυχτών ανά κανάλι, με το ΜΕΡΙΔΙΟ του έτους.
+ *
+ * ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΔΙΟΡΘΩΝΕΤΑΙ. Εδώ φιλτραριζόταν κατά check-in και προστίθεντο
+ * ΟΛΕΣ οι νύχτες της διαμονής, ενώ η σύνοψη από πάνω μετρούσε μόνο όσες
+ * πέφτουν μέσα στο έτος. Για διαμονή 28/12 → 5/1 με 784 € ακαθάριστο:
+ *
+ *     κάρτα σύνοψης    784 / 4 = 196 € τη νύχτα
+ *     πίνακας καναλιών 784 / 8 =  98 € τη νύχτα
+ *
+ * Δύο αριθμοί για το ίδιο πράγμα, στην ίδια οθόνη, ο ένας διπλάσιος του άλλου.
+ *
+ * ΟΙ ΔΙΑΜΟΝΕΣ ΜΕΤΡΙΟΥΝΤΑΙ ΟΛΟΚΛΗΡΕΣ, ΕΠΙΤΗΔΕΣ. Το `stays` είναι πλήθος
+ * γεγονότων, όχι ποσό: μια διαμονή δηλώνεται μία φορά, στο έτος της άφιξης.
+ * Μισή διαμονή δεν υπάρχει.
+ */
 export function channelBreakdownForYear(stays: TaxStay[], year: number): TaxChannelRow[] {
   const m = new Map<string, TaxChannelRow>();
   for (const s of stays) {
-    if (y4(s.check_in) !== String(year)) continue;
+    const share = yearShare(s, year);
+    if (!share) continue;
+    const { inYear } = nightsSplit(s, year);
     const ch = (s.channel || 'other') as string;
     const row = m.get(ch) || { channel: ch, revenue: 0, nights: 0, stays: 0 };
-    row.revenue += declarableGrossOrTotal(s);
-    row.nights += s.nights ?? 0;
-    row.stays += 1;
+    row.revenue += declarableGrossOrTotal(s) * share;
+    row.nights += inYear;
+    if (y4(s.check_in) === String(year)) row.stays += 1;
     m.set(ch, row);
   }
+  for (const row of m.values()) row.revenue = Math.round(row.revenue * 100) / 100;
   return [...m.values()].sort((a, b) => b.revenue - a.revenue);
 }
 
@@ -158,12 +190,28 @@ export interface ShortTermYearSummary {
  *  Τέλους Ανθεκτικότητας (>80 τ.μ.) και την εξαίρεση του τέλους παρεπιδημούντων.
  *  Χωρίς meta, το τέλος παρεπιδημούντων θεωρείται 0 (τυπική εξαίρεση μικρού ιδιοκτήτη). */
 export function shortTermYearSummary(stays: TaxStay[], year: number, meta?: PropertyTaxMeta): ShortTermYearSummary {
+  // ═══ ΕΝΑΣ ΚΑΝΟΝΑΣ ΓΙΑ ΤΗ ΔΙΑΜΟΝΗ ΠΟΥ ΠΕΡΝΑ ΤΗΝ ΠΡΩΤΟΧΡΟΝΙΑ ══════════════
+  //
+  // ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΔΙΟΡΘΩΝΕΤΑΙ. Το αρχείο εφάρμοζε ΔΥΟ κανόνες ταυτόχρονα: οι
+  // διανυκτερεύσεις και το τέλος μοιράζονταν στα δύο έτη, ενώ το έσοδο πήγαινε
+  // ΟΛΟΚΛΗΡΟ στο έτος της άφιξης. Για διαμονή 28/12/2025 → 5/1/2026, 800 €:
+  //
+  //     2025 → έσοδο 784 €, τέσσερις νύχτες, φόρος πάνω σε ολόκληρο το ποσό
+  //     2026 → έσοδο   0 €, τέσσερις νύχτες, ΤΑΚΚ 8 € πάνω σε τζίρο μηδέν
+  //
+  // Η χρήση του 2026 έβγαινε με υποχρέωση και χωρίς έσοδο, και ο φόρος του 2025
+  // υπολογιζόταν σε τέσσερις νύχτες που δεν του ανήκουν.
+  //
+  // Τώρα ΚΑΘΕ ποσό της διαμονής μοιράζεται με τον ίδιο κανόνα — τις νύχτες.
+  // Τα ΠΛΗΘΗ (διαμονές, αδήλωτες, απροσδιόριστες) μένουν στο έτος της άφιξης:
+  // είναι γεγονότα, όχι ποσά, και μια διαμονή δηλώνεται μία φορά.
   const inYear = stays.filter(s => y4(s.check_in) === String(year));
   const nightsByMonth = nightsByMonthForYear(stays, year);
   const totalNights = nightsByMonth.reduce((a, b) => a + b, 0);
-  const grossRevenue = inYear.reduce((sum, s) => sum + declarableGrossOrTotal(s), 0);
+  const cents2 = (n: number) => Math.round(n * 100) / 100;
+  const grossRevenue = cents2(stays.reduce((sum, s) => sum + declarableGrossOrTotal(s) * yearShare(s, year), 0));
   const unresolved = inYear.filter(s => declarableGross(s) == null && declarableGrossOrTotal(s) > 0);
-  const platformFees = inYear.reduce((sum, s) => sum + platformFee(s), 0);
+  const platformFees = cents2(stays.reduce((sum, s) => sum + platformFee(s) * yearShare(s, year), 0));
   // ΟΧΙ `inYear.reduce(...)`. Το οφειλόμενο τέλος βγαίνει από τις διανυκτερεύσεις
   // που πέφτουν ΜΕΣΑ στο έτος (nightsByMonth), οπότε και το εισπραγμένο πρέπει να
   // μετρηθεί με τον ίδιο κανόνα. Με φιλτράρισμα κατά check-in, μια διαμονή που

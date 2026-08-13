@@ -172,5 +172,47 @@ for (const [text, code] of [
   ok(`«${text}» → ${code}`, expenseAccount(text).code === code)
 }
 
+// ═══ ΤΟ ΠΙΣΤΩΤΙΚΟ ΓΡΑΦΕΤΑΙ ΑΝΑΠΟΔΑ, ΟΧΙ ΑΡΝΗΤΙΚΑ ═══════════════════════════
+//
+// Καμία εισαγωγή σε Soft1/Epsilon/Xero δεν δέχεται «-50,00» σε στήλη Χρέωσης,
+// και ο ίδιος μας ο έλεγχος το απέρριπτε ως μη έγκυρο ποσό.
+{
+  const lines = buildJournal({
+    incomes: [],
+    expenses: [{ date: '2026-01-10', amount: -50, category: 'electricity', description: 'Πιστωτικό ΔΕΗ' }],
+  });
+  ok('δύο γραμμές', lines.length === 2);
+  ok('κανένα αρνητικό ποσό', lines.every(l => l.debit >= 0 && l.credit >= 0));
+  const d = lines.find(l => l.debit > 0)!;
+  const c = lines.find(l => l.credit > 0)!;
+  ok('χρεώνεται το ταμείο', d.code === '38' && d.debit === 50);
+  ok('πιστώνεται η ενέργεια', c.code === '64.02' && c.credit === 50);
+  ok('το άρθρο ισοσκελίζει', journalTotals(lines).balanced);
+  ok('και ο έλεγχος το δέχεται', auditJournal(lines).ok);
+}
+
+// Αρνητικό έσοδο (ακύρωση είσπραξης) ακολουθεί τον ίδιο κανόνα.
+{
+  const lines = buildJournal({
+    incomes: [{ date: '2026-02-01', amount: -300, description: 'Ακύρωση είσπραξης' }],
+    expenses: [],
+  });
+  ok('η ακύρωση χρεώνει το έσοδο', lines.find(l => l.debit > 0)!.code === '71.04');
+  ok('και πιστώνει το ταμείο', lines.find(l => l.credit > 0)!.code === '38');
+  ok('χωρίς αρνητικά', lines.every(l => l.debit >= 0 && l.credit >= 0));
+}
+
+// Ένα ενοίκιο και ένα πιστωτικό μαζί: το ταμείο δείχνει την αλήθεια.
+{
+  const lines = buildJournal({
+    incomes: [{ date: '2026-01-01', amount: 800, description: 'Ενοίκιο' }],
+    expenses: [{ date: '2026-01-10', amount: -50, category: 'electricity', description: 'Πιστωτικό' }],
+  });
+  const bank = lines.filter(l => l.code === '38');
+  const net = bank.reduce((s, l) => s + l.debit - l.credit, 0);
+  ok('στο ταμείο μπήκαν 850,00 €', Math.abs(net - 850) < 0.005);
+}
+
+
 console.log(`journal.test.ts: ${passed} passed, ${failed} failed`)
 if (failed > 0) process.exit(1)

@@ -72,7 +72,15 @@ export function profitAndLoss(
   for (const e of entries) {
     if (from !== undefined && e.date < from) continue
     if (to !== undefined && e.date > to) continue
-    const amt = Math.abs(safeAmount(e.amount))
+    // ΤΟ ΠΡΟΣΗΜΟ ΜΕΝΕΙ, ΟΠΩΣ ΚΑΙ ΣΤΟ ΚΑΘΟΛΙΚΟ.
+    //
+    // Εδώ γραφόταν `Math.abs`. Μια επιστροφή ΔΕΗ, καταχωρημένη ως δαπάνη
+    // −50 €, μετρούσε ως δαπάνη +50 €: το καθολικό έβγαζε 850 € και τα
+    // αποτελέσματα 750 € για τα ΙΔΙΑ δεδομένα. Εκατό ευρώ διαφορά ανάμεσα σε
+    // δύο οθόνες της ίδιας χρονιάς, με το καθολικό να έχει δίκιο.
+    //
+    // Το πιστωτικό δεν είναι έξοδο· είναι έξοδο που γύρισε πίσω.
+    const amt = safeAmount(e.amount)
     const cat = (byCategory[e.category] ??= { income: 0, expense: 0, net: 0 })
     if (e.type === 'income') {
       income += amt
@@ -108,7 +116,7 @@ export function cashflowByYear(entries: LedgerInput[], year: number): MonthCash[
     if (!e.date.startsWith(prefix)) continue
     const m = Number(e.date.slice(5, 7))
     if (!(m >= 1 && m <= 12)) continue
-    const amt = Math.abs(safeAmount(e.amount))
+    const amt = safeAmount(e.amount)   // ίδιος κανόνας με το profitAndLoss: το πρόσημο μένει
     const row = months[m - 1]
     if (e.type === 'income') row.income += amt
     else row.expense += amt
@@ -171,17 +179,42 @@ export function reconcile(expected: Expected[], actual: Actual[], today: string)
 
   // Φάση 2: εφεδρική αντιστοίχιση κατά μήνα+έτος, greedy από την παλαιότερη
   // αναμενόμενη· κάθε πραγματική πληρωμή καταναλώνεται το πολύ μία φορά.
+  // ═══ ΜΙΑ ΓΡΑΜΜΗ ΣΤΑΜΑΤΑ ΝΑ ΡΟΥΦΑ ΜΟΛΙΣ ΚΑΛΥΦΘΕΙ ═══════════════════════════
+  //
+  // ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΔΙΟΡΘΩΘΗΚΕ. Το σχόλιο υποσχόταν «κάθε πραγματική πληρωμή
+  // καταναλώνεται το πολύ μία φορά» — και ίσχυε. Δεν ίσχυε το αντίστροφο: το
+  // πρώτο αναμενόμενο μίσθωμα ρουφούσε ΟΛΕΣ τις ασύνδετες πληρωμές του μήνα
+  // του, γιατί ο βρόχος δεν σταματούσε ποτέ. Με δύο μισθωτές στο ίδιο ακίνητο
+  // και δύο εμβάσματα τον ίδιο μήνα:
+  //
+  //     r1 → 1.600,00 €, «πληρωμένο»
+  //     r2 →     0,00 €, «εκπρόθεσμο»
+  //
+  // Ο ιδιοκτήτης κυνηγούσε μισθωτή που είχε πληρώσει, ενώ η ίδια οθόνη έγραφε
+  // «οφειλές 0 €». Οι δύο προτάσεις δεν μπορούν να ισχύουν μαζί.
+  //
+  // ΓΙΑΤΙ ΟΧΙ «ΜΙΑ ΠΛΗΡΩΜΗ ΑΝΑ ΓΡΑΜΜΗ». Η μερική εξόφληση σε δύο δόσεις είναι
+  // πραγματική και συχνή. Το κριτήριο δεν είναι το πλήθος αλλά η ΚΑΛΥΨΗ: όσο
+  // λείπουν χρήματα, η γραμμή δέχεται· μόλις καλυφθεί, παραδίδει τη σειρά.
+  // Η ανοχή του λεπτού είναι η ίδια με εκείνη του `status` παρακάτω, ώστε μια
+  // γραμμή να μη θεωρείται «πληρωμένη» εκεί και «ανοιχτή» εδώ.
+  const covered = (e: Expected): boolean =>
+    paidByExpected.get(e.id)! >= e.amount - 0.01
+
   for (const e of ordered) {
     const ekey = monthKey(e.date)
-    actual.forEach((a, idx) => {
-      if (consumed[idx]) return
-      if (!a.paid) return
-      if (a.refId !== undefined) return // οι refId πληρωμές δεν πέφτουν στο fallback
-      if (a.date === undefined) return
-      if (monthKey(a.date) !== ekey) return
+    if (covered(e)) continue          // την έκλεισε ήδη μια πληρωμή με refId
+    for (let idx = 0; idx < actual.length; idx++) {
+      const a = actual[idx]
+      if (consumed[idx]) continue
+      if (!a.paid) continue
+      if (a.refId !== undefined) continue // οι refId πληρωμές δεν πέφτουν στο fallback
+      if (a.date === undefined) continue
+      if (monthKey(a.date) !== ekey) continue
       paidByExpected.set(e.id, paidByExpected.get(e.id)! + safeAmount(a.amount))
       consumed[idx] = true
-    })
+      if (covered(e)) break
+    }
   }
 
   return ordered.map((e) => {

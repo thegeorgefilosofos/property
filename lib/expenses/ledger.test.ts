@@ -154,9 +154,12 @@ const exp = (o: Partial<LedgerExpense> & { id: string }): LedgerExpense => o;
       bill({ id: 'B2', name: 'ΕΥΔΑΠ', category: 'water', amount: 42.5, due_date: '2026-07-25', paid: false }),
     ],
     [
+      // Το E1 δεν δηλώνει `paid`: το κληρονομεί από τον πληρωμένο λογαριασμό
+      // του. Τα E2/E3 το δηλώνουν, γιατί δεν κρέμονται από λογαριασμό — και
+      // άγνωστο δεν σημαίνει πληρωμένο.
       exp({ id: 'E1', bill_id: 'B1', description: 'ΔΕΗ Ιουνίου', category: 'Ρεύμα', amount: 80, date: '2026-07-08', expense_group: 'fixed' }),
-      exp({ id: 'E2', description: 'Υδραυλικός', category: 'Υδραυλικός', amount: 143, date: '2026-07-12', expense_group: 'maintenance' }),
-      exp({ id: 'E3', description: 'Κοινόχρηστα', category: 'Κοινόχρηστα', amount: 40, date: '2026-07-05' }),
+      exp({ id: 'E2', description: 'Υδραυλικός', category: 'Υδραυλικός', amount: 143, date: '2026-07-12', expense_group: 'maintenance', paid: true }),
+      exp({ id: 'E3', description: 'Κοινόχρηστα', category: 'Κοινόχρηστα', amount: 40, date: '2026-07-05', paid: true }),
     ],
   );
   eq('τέσσερις γραμμές, όχι πέντε', r.entries.length, 4);
@@ -302,6 +305,37 @@ const exp = (o: Partial<LedgerExpense> & { id: string }): LedgerExpense => o;
 
   // Καμία γραμμή δεν χάθηκε: 6 ζεύγη + 3 απλήρωτοι.
   eq('εννέα γραμμές συνολικά', entries.length, 9);
+}
+
+// ═══ Η ΔΑΠΑΝΗ ΧΩΡΙΣ `paid` ΔΕΝ ΕΙΝΑΙ ΠΛΗΡΩΜΕΝΗ ════════════════════════════
+//
+// ΤΟ ΣΦΑΛΜΑ, ΜΕΤΡΗΜΕΝΟ. Εδώ γραφόταν `e.paid !== false`, δηλαδή το NULL
+// διαβαζόταν ως «πληρωμένο». Η στήλη είναι `boolean | null`, και υπήρχε
+// διαδρομή που έγραφε δαπάνη ΧΩΡΙΣ `paid`: η σάρωση παραστατικού.
+//
+// Ο χρήστης σάρωνε απλήρωτο λογαριασμό ΔΕΗ 84,50 € και τον έβλεπε
+// ΕΞΟΦΛΗΜΕΝΟ. Έχανε την προθεσμία του (η προθεσμία κρύβεται όταν κάτι έχει
+// πληρωθεί), έφευγε από τις οφειλές, και μετριόταν στα πληρωμένα του μήνα.
+//
+// Άγνωστο σημαίνει άγνωστο, και για χρήματα το άγνωστο δεν είναι «έγινε».
+{
+  const r = mergeLedger(
+    [bill({ id: 'b9', name: 'ΔΕΗ Ιουνίου', amount: 84.5, due_date: '2026-07-10', paid: false })],
+    [exp({ id: 'e9', bill_id: 'b9', description: 'ΔΕΗ Ιουνίου', amount: 84.5, date: '2026-07-02' })],
+  );
+  eq('χωρίς paid → απλήρωτη', r.entries[0].paid, false);
+  eq('κρατά την προθεσμία της', r.entries[0].due, '2026-07-10');
+  eq('φαίνεται στις οφειλές', ledgerUnpaid(r.entries).length, 1);
+}
+
+// Το ρητό `true` μένει πληρωμένο — η διόρθωση δεν αντιστρέφει τη σημασία.
+{
+  const r = mergeLedger(
+    [],
+    [exp({ id: 'e10', description: 'Ασφάλεια', amount: 148, date: '2026-01-22', paid: true })],
+  );
+  eq('ρητό true → πληρωμένη', r.entries[0].paid, true);
+  eq('και δεν φαίνεται στις οφειλές', ledgerUnpaid(r.entries).length, 0);
 }
 
 console.log(fail === 0 ? `✓ ledger: ${pass} έλεγχοι πέρασαν` : `✗ ledger: ${fail} απέτυχαν από ${pass + fail}`);

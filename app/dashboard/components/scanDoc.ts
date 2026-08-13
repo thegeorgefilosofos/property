@@ -523,7 +523,7 @@ export async function commitScannedDoc(input: CommitInput): Promise<CommitResult
       // Αν ο εξοφλημένος λογαριασμός δεν είχε συνδεδεμένο έξοδο, δημιούργησέ το
       // τώρα ώστε η πληρωμή να φαίνεται στις Δαπάνες.
       if ((!updExp || !updExp.length) && plan.expense) {
-        const { error: expErr } = await expenses.insert(supabase, [{ property_id: propertyId, user_id: userId, bill_id: payOff, ...plan.expense, paid: true }]);
+        const { error: expErr } = await expenses.insert(supabase, [expenses.row({ propertyId, userId }, { ...(plan.expense as unknown as expenses.ExpenseDraft), bill_id: payOff, paid: true })]);
         add(expErr ? 'Λογαριασμός εξοφλήθηκε' : 'Δαπάνες');
       } else { add('Δαπάνες'); }
       reconciled = true;
@@ -546,7 +546,13 @@ export async function commitScannedDoc(input: CommitInput): Promise<CommitResult
       const isDup = dup.some(x => nrm(x.description as string) === nrm(desc));
       if (isDup) { add('Δαπάνες (υπάρχει ήδη)'); }
       else {
-        const { error: expErr } = await expenses.insert(supabase, [{ property_id: propertyId, user_id: userId, bill_id: billId, ...plan.expense }]);
+        // ═══ ΜΕΣΩ ΤΟΥ ΣΤΡΩΜΑΤΟΣ, ΟΧΙ ΜΕ ΩΜΟ ΑΝΤΙΚΕΙΜΕΝΟ ══════════════════
+        // Εδώ γραφόταν η γραμμή στο χέρι, παρακάμπτοντας το `expenses.row()`.
+        // Έλειπαν δύο πεδία που το στρώμα συμπληρώνει πάντα: το `paid` (που
+        // έμενε NULL και διαβαζόταν ως «πληρωμένο», άρα ο σαρωμένος
+        // λογαριασμός φαινόταν εξοφλημένος) και το `expense_group` (χωρίς το
+        // οποίο η δαπάνη δεν εκπίπτει ποτέ). Δύο σφάλματα από μία παράκαμψη.
+        const { error: expErr } = await expenses.insert(supabase, [expenses.row({ propertyId, userId }, { ...(plan.expense as unknown as expenses.ExpenseDraft), bill_id: billId })]);
         if (!expErr) add('Δαπάνες');
       }
     }

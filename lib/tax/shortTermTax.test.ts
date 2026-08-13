@@ -210,6 +210,52 @@ ok('η προμήθεια δεν αγγίζει το δηλωτέο ακαθάρ
   ok('διαμονή άλλης χρονιάς: μηδέν οφειλόμενο', s.levy === 0)
 }
 
+// ═══ Η ΔΙΑΜΟΝΗ ΠΟΥ ΠΕΡΝΑ ΤΗΝ ΠΡΩΤΟΧΡΟΝΙΑ, ΜΕ ΕΝΑΝ ΚΑΝΟΝΑ ══════════════════
+//
+// ΠΡΙΝ: το 2026 έβγαινε με ΤΑΚΚ 8 € πάνω σε τζίρο 0 €, και ο φόρος του 2025
+// υπολογιζόταν σε οκτώ νύχτες εκ των οποίων οι τέσσερις ανήκουν στο 2026.
+{
+  const straddle: TaxStay[] = [{
+    check_in: '2025-12-28', check_out: '2026-01-05', nights: 8,
+    gross_guest_paid: 800, climate_levy: 16, channel: 'airbnb',
+    platform_fee: 40, declared_at: '2025-12-20',
+  }];
+
+  const a = shortTermYearSummary(straddle, 2025);
+  const b = shortTermYearSummary(straddle, 2026);
+
+  ok('τέσσερις νύχτες στο 2025', a.totalNights === 4);
+  ok('τέσσερις νύχτες στο 2026', b.totalNights === 4);
+  ok('το ακαθάριστο μοιράζεται στα δύο', near(a.grossRevenue, b.grossRevenue, 0.02));
+  ok('και αθροίζει στο σύνολο της διαμονής', near(a.grossRevenue + b.grossRevenue, 784, 0.02));
+  ok('καμία χρονιά με τέλος και μηδέν έσοδο', !(b.levy > 0 && b.grossRevenue === 0));
+  ok('η προμήθεια πλατφόρμας μοιράζεται κι αυτή', near(a.platformFees + b.platformFees, 40, 0.02));
+
+  // Ο πίνακας καναλιών λέει ό,τι και η κάρτα σύνοψης.
+  ok('οι νύχτες ανά κανάλι αθροίζουν στο σύνολο',
+     a.byChannel.reduce((s, r) => s + r.nights, 0) === a.totalNights);
+  ok('και τα έσοδα ανά κανάλι επίσης',
+     near(a.byChannel.reduce((s, r) => s + r.revenue, 0), a.grossRevenue, 0.02));
+  ok('ίδιο ποσό ανά νύχτα στις δύο οθόνες',
+     near(a.grossRevenue / a.totalNights, a.byChannel[0].revenue / a.byChannel[0].nights, 0.02));
+
+  // Τα ΠΛΗΘΗ δεν μοιράζονται: μια διαμονή δηλώνεται μία φορά.
+  ok('η διαμονή μετριέται στο έτος της άφιξης', a.stayCount === 1 && b.stayCount === 0);
+  ok('και το κανάλι τη μετρά μία φορά',
+     a.byChannel[0].stays === 1 && (b.byChannel[0]?.stays ?? 0) === 0);
+}
+
+// Διαμονή εξ ολοκλήρου μέσα στο έτος: τίποτα δεν αλλάζει.
+{
+  const inside: TaxStay[] = [{
+    check_in: '2026-06-01', check_out: '2026-06-05', nights: 4,
+    gross_guest_paid: 400, climate_levy: 8, channel: 'booking',
+  }];
+  const r = shortTermYearSummary(inside, 2026);
+  ok('ολόκληρο το ακαθάριστο στο έτος του', near(r.grossRevenue, 392, 0.02));
+  ok('όλες οι νύχτες στο έτος του', r.totalNights === 4);
+}
+
 console.log(`\nshortTermTax — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`);
 if (failed) { console.log('FAILED:\n' + fails.map(f => '  ✗ ' + f).join('\n')); process.exit(1); }
 console.log('όλα πέρασαν');

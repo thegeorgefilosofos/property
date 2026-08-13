@@ -124,14 +124,40 @@ const short = (s?: string) => (s || '').replace(/\s+/g, ' ').trim();
 export function buildJournal(input: { incomes: IncomeRec[]; expenses: ExpenseRec[]; loanPayments?: LoanPaymentRec[] }): JournalLine[] {
   const vouchers: JournalLine[][] = [];
 
+  // ═══ ΑΝΤΙΣΤΡΟΦΗ ΣΚΕΛΩΝ, ΟΧΙ ΑΡΝΗΤΙΚΗ ΧΡΕΩΣΗ ═══════════════════════════════
+  //
+  // ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΔΙΟΡΘΩΝΕΤΑΙ. Το `if (!amt) continue` έκοβε μόνο το μηδέν. Ένα
+  // πιστωτικό ΔΕΗ −50 € παρήγαγε άρθρο με χρέωση −50,00 στον 64.02:
+  //
+  //     38     Χ  800,00     71.04  Π  800,00
+  //     64.02  Χ  −50,00     38     Π  −50,00
+  //
+  // Το ισοζύγιο «έκλεινε» (750 = 750) αλλά ο `auditJournal` το απέρριπτε ως
+  // «μη έγκυρο ποσό», και το CSV προς Soft1/Epsilon/Xero έγραφε «-50,00» σε
+  // στήλη Χρέωσης — καμία εισαγωγή δεν το δέχεται.
+  //
+  // Η ΛΟΓΙΣΤΙΚΗ ΑΠΑΝΤΗΣΗ ΕΙΝΑΙ ΓΝΩΣΤΗ ΕΔΩ ΚΑΙ ΕΞΑΚΟΣΙΑ ΧΡΟΝΙΑ: αρνητικό ποσό σε
+  // ένα σκέλος σημαίνει ότι τα σκέλη είναι ανάποδα. Το πιστωτικό γράφεται
+  // Χρέωση 38 / Πίστωση 64.02 με ΘΕΤΙΚΟ 50,00 — η επιστροφή χρημάτων είναι
+  // είσπραξη, όχι αρνητικό έξοδο.
+  const entry = (
+    date: string, debitAcc: ElpAccount, creditAcc: ElpAccount, amount: number,
+    desc: string, meta: { doc?: string; party?: string; property?: string },
+  ): JournalLine[] => {
+    // Αρνητικό ποσό → τα σκέλη ανταλλάσσουν θέση και το ποσό γίνεται θετικό.
+    const [d, c, a] = amount < 0 ? [creditAcc, debitAcc, -amount] : [debitAcc, creditAcc, amount];
+    return [
+      { date, code: d.code, account: d.name, description: desc, debit: a, credit: 0, ...meta },
+      { date, code: c.code, account: c.name, description: desc, debit: 0, credit: a, ...meta },
+    ];
+  };
+
   for (const inc of input.incomes || []) {
     const amt = round2(inc.amount);
     if (!amt) continue;
     const desc = short(inc.description) || `Είσπραξη ενοικίου${inc.property ? ` · ${inc.property}` : ''}`;
-    vouchers.push([
-      { date: inc.date, code: ACCOUNTS.bank.code, account: ACCOUNTS.bank.name, description: desc, debit: amt, credit: 0, doc: inc.doc, party: inc.party, property: inc.property },
-      { date: inc.date, code: ACCOUNTS.rentIncome.code, account: ACCOUNTS.rentIncome.name, description: desc, debit: 0, credit: amt, doc: inc.doc, party: inc.party, property: inc.property },
-    ]);
+    vouchers.push(entry(inc.date, ACCOUNTS.bank, ACCOUNTS.rentIncome, amt, desc,
+      { doc: inc.doc, party: inc.party, property: inc.property }));
   }
 
   for (const ex of input.expenses || []) {
@@ -139,10 +165,8 @@ export function buildJournal(input: { incomes: IncomeRec[]; expenses: ExpenseRec
     if (!amt) continue;
     const acc = expenseAccount(ex.category);
     const desc = short(ex.description) || `${acc.name}${ex.property ? ` · ${ex.property}` : ''}`;
-    vouchers.push([
-      { date: ex.date, code: acc.code, account: acc.name, description: desc, debit: amt, credit: 0, doc: ex.doc, party: ex.party, property: ex.property },
-      { date: ex.date, code: ACCOUNTS.bank.code, account: ACCOUNTS.bank.name, description: desc, debit: 0, credit: amt, doc: ex.doc, party: ex.party, property: ex.property },
-    ]);
+    vouchers.push(entry(ex.date, acc, ACCOUNTS.bank, amt, desc,
+      { doc: ex.doc, party: ex.party, property: ex.property }));
   }
 
   // Δόσεις δανείου — σωστό διπλογραφικό άρθρο: Χρέωση 65.01 (τόκοι) + Χρέωση 52

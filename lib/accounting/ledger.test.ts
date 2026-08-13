@@ -97,12 +97,39 @@ ok('ledger κενό', buildLedger([]).length === 0)
   ok('pnl μόνο to', toOnly.income === 800 && toOnly.expense === 300)
 }
 
-// pnl με απόλυτα ποσά (αρνητικό input γίνεται magnitude)
+// ═══ ΤΟ ΠΙΣΤΩΤΙΚΟ ΔΕΝ ΕΙΝΑΙ ΔΑΠΑΝΗ ══════════════════════════════════════════
+//
+// ΤΟ ΣΦΑΛΜΑ, ΜΕΤΡΗΜΕΝΟ. Ο έλεγχος εδώ ζητούσε ρητά `Math.abs`: μια επιστροφή
+// ΔΕΗ γραμμένη ως δαπάνη −50 € μετρούσε ως δαπάνη +50 €. Το `buildLedger`
+// όμως κρατά το πρόσημο. Για ενοίκιο 800 € και πιστωτικό −50 €:
+//
+//     καθολικό      →  850,00 €  (σωστό: το πιστωτικό επιστρέφει χρήματα)
+//     αποτελέσματα  →  750,00 €  (λάθος: το πιστωτικό μετρήθηκε ως έξοδο)
+//
+// Εκατό ευρώ διαφορά ανάμεσα σε δύο οθόνες που δείχνουν την ΙΔΙΑ χρονιά. Το
+// `cashflowByYear` κουβαλούσε το ίδιο λάθος στο μηνιαίο γράφημα.
 {
   const pnl = profitAndLoss([
     { date: '2026-01-01', type: 'expense', category: 'x', description: 'a', amount: -50 },
   ])
-  ok('pnl απόλυτο magnitude', pnl.expense === 50 && pnl.net === -50)
+  ok('το πιστωτικό ΜΕΙΩΝΕΙ τις δαπάνες', pnl.expense === -50 && pnl.net === 50)
+
+  const mixed = profitAndLoss([
+    { date: '2026-01-01', type: 'income', category: 'rent', description: 'ενοίκιο', amount: 800 },
+    { date: '2026-01-10', type: 'expense', category: 'electricity', description: 'πιστωτικό', amount: -50 },
+  ])
+  ok('καθολικό και αποτελέσματα συμφωνούν',
+     mixed.net === buildLedger([
+       { date: '2026-01-01', type: 'income', category: 'rent', description: 'ενοίκιο', amount: 800 },
+       { date: '2026-01-10', type: 'expense', category: 'electricity', description: 'πιστωτικό', amount: -50 },
+     ]).slice(-1)[0].balance)
+  ok('το πιστωτικό μειώνει και την κατηγορία του',
+     mixed.byCategory.electricity.expense === -50)
+
+  const cash = cashflowByYear([
+    { date: '2026-01-10', type: 'expense', category: 'x', description: 'πιστωτικό', amount: -50 },
+  ], 2026)
+  ok('και στο μηνιαίο γράφημα', cash[0].expense === -50 && cash[0].net === 50)
 }
 
 // ── cashflowByYear ───────────────────────────────────────────────────────────
@@ -157,6 +184,64 @@ const today = '2026-07-11'
   ok('recon μισή partial', rows[0].status === 'partial')
   ok('recon μισή paidAmount', rows[0].paidAmount === 400)
   ok('recon μισή shortfall', rows[0].shortfall === 400)
+}
+
+// ═══ ΔΥΟ ΜΙΣΘΩΤΕΣ, ΕΝΑ ΑΚΙΝΗΤΟ, ΙΔΙΟΣ ΜΗΝΑΣ ═══════════════════════════════
+//
+// ΤΟ ΣΦΑΛΜΑ, ΜΕΤΡΗΜΕΝΟ. Η δεύτερη φάση της συμφωνίας —αυτή που πιάνει τις
+// πληρωμές ΧΩΡΙΣ refId, δηλαδή ό,τι φτάνει από την τραπεζική κατάσταση—
+// έδινε στο ΠΡΩΤΟ αναμενόμενο μίσθωμα ΟΛΕΣ τις πληρωμές του μήνα του:
+//
+//     r1 → 1.600,00 €, «πληρωμένο»
+//     r2 →     0,00 €, «εκπρόθεσμο», οφειλή 800,00 €
+//
+// Η οθόνη έλεγε ταυτόχρονα «εισπράχθηκαν 1.600 €, οφειλές 0 €» ΚΑΙ «ο Β
+// χρωστά 800 € εκπρόθεσμα». Ο ιδιοκτήτης κυνηγούσε μισθωτή που είχε πληρώσει.
+//
+// Ο κανόνας που έλειπε: μια αναμενόμενη γραμμή σταματά να ρουφά πληρωμές
+// μόλις καλυφθεί. Η επόμενη ανεξόφλητη παίρνει τη σειρά της.
+{
+  const exp: Expected[] = [
+    { id: 'r1', date: '2026-06-01', amount: 800 },
+    { id: 'r2', date: '2026-06-05', amount: 800 },
+  ]
+  const act: Actual[] = [
+    { date: '2026-06-03', amount: 800, paid: true },
+    { date: '2026-06-06', amount: 800, paid: true },
+  ]
+  const rows = reconcile(exp, act, today)
+  ok('ο πρώτος μισθωτής παίρνει το δικό του', rows[0].paidAmount === 800 && rows[0].status === 'paid')
+  ok('ο δεύτερος μισθωτής παίρνει το δικό του', rows[1].paidAmount === 800 && rows[1].status === 'paid')
+  const sum = reconSummary(rows)
+  ok('κανένας εκπρόθεσμος', sum.counts.overdue === 0 && sum.counts.paid === 2)
+  ok('το σύνολο δεν διπλομετριέται', sum.collectedTotal === 1600 && sum.outstanding === 0)
+}
+
+// Η υπερπληρωμή ΜΕΝΕΙ στη γραμμή που την έλαβε — δεν σπάει σε δόσεις.
+{
+  const exp: Expected[] = [
+    { id: 'r1', date: '2026-06-01', amount: 800 },
+    { id: 'r2', date: '2026-06-05', amount: 800 },
+  ]
+  const act: Actual[] = [{ date: '2026-06-03', amount: 1000, paid: true }]
+  const rows = reconcile(exp, act, today)
+  ok('η υπερπληρωμή δεν μεταφέρεται', rows[0].paidAmount === 1000 && rows[1].paidAmount === 0)
+}
+
+// Μερική πληρωμή: η γραμμή ΔΕΝ έχει καλυφθεί, οπότε δέχεται και τη δεύτερη.
+{
+  const exp: Expected[] = [
+    { id: 'r1', date: '2026-06-01', amount: 800 },
+    { id: 'r2', date: '2026-06-05', amount: 800 },
+  ]
+  const act: Actual[] = [
+    { date: '2026-06-03', amount: 300, paid: true },
+    { date: '2026-06-04', amount: 500, paid: true },
+    { date: '2026-06-06', amount: 800, paid: true },
+  ]
+  const rows = reconcile(exp, act, today)
+  ok('δύο δόσεις κλείνουν το πρώτο', rows[0].paidAmount === 800 && rows[0].status === 'paid')
+  ok('και το τρίτο έμβασμα πάει στο δεύτερο', rows[1].paidAmount === 800 && rows[1].status === 'paid')
 }
 
 // τίποτα + παρελθόν → overdue
