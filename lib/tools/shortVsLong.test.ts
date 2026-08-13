@@ -48,15 +48,21 @@ const BASE: ShortVsLongInput = {
   const nights = 0.6 * NIGHTS_PER_YEAR
   const levyByHand = (nights / 12) * (7 * r.high + 5 * r.low)
 
-  ok('Β. 219 νύχτες', s.nights === 219)
-  ok('Β. οι επισκέπτες πληρώνουν 17.520 €', eq(s.guestTotal, 219 * 80))
-  ok('Β. το τέλος βγαίνει από επτά υψηλούς και πέντε χαμηλούς μήνες', eq(s.levy, levyByHand, 0.01))
-  ok('Β. δηλωτέο ακαθάριστο = πληρωμές − τέλος', eq(s.gross, 219 * 80 - levyByHand, 0.02))
-  ok('Β. η προμήθεια υπολογίζεται στο σύνολο της κράτησης', eq(s.platformFee, 219 * 80 * 0.15))
+  ok('Β. 219 διανυκτερεύσεις', s.nights === 219)
+  // ΤΟ ΤΕΛΟΣ ΜΠΑΙΝΕΙ ΠΑΝΩ ΑΠΟ ΤΗΝ ΤΙΜΗ, ΔΕΝ ΒΓΑΙΝΕΙ ΑΠΟ ΜΕΣΑ ΤΗΣ. Ο
+  // οικοδεσπότης ορίζει 80 € και ο επισκέπτης πληρώνει 80 € συν το τέλος.
+  ok('Β. δηλωτέο ακαθάριστο 17.520 € (219 × 80)', eq(s.gross, 219 * 80))
+  ok('Β. το τέλος βγαίνει από επτά υψηλούς και πέντε χαμηλούς μήνες', eq(s.levy, levyByHand, 0.02))
+  ok('Β. οι επισκέπτες πληρώνουν την τιμή συν το τέλος', eq(s.guestTotal, 219 * 80 + levyByHand, 0.02))
+  ok('Β. η προμήθεια υπολογίζεται στο κατάλυμα, όχι στα τέλη', eq(s.platformFee, 219 * 80 * 0.15))
   ok('Β. λειτουργικά = 219 × 12 + 12 × 90', eq(s.running, 219 * 12 + 1080))
   ok('Β. φόρος πάνω στο 95% του δηλωτέου', eq(s.tax, rentalIncomeTax(s.gross * 0.95), 0.02))
   ok('Β. καθαρά = ακαθάριστο − φόρος − τέλος δήμου − προμήθεια − λειτουργικά',
      eq(s.net, s.gross - s.tax - s.municipalTax - s.platformFee - s.running))
+  // Ο ΠΙΝΑΚΑΣ ΤΗΣ ΟΘΟΝΗΣ ΚΛΕΙΝΕΙ: εισπράξεις μείον τέλος, φόρο, προμήθεια και
+  // λειτουργικά δίνουν ακριβώς τα καθαρά.
+  ok('Β. η αφαίρεση της οθόνης κλείνει',
+     eq(s.guestTotal - s.levy - s.tax - s.municipalTax - s.platformFee - s.running, s.net))
 }
 
 // ═══ 3. ΤΟ ΛΑΘΟΣ ΠΟΥ ΥΠΑΡΧΕΙ Ο ΥΠΟΛΟΓΙΣΤΗΣ ΓΙΑ ΝΑ ΔΕΙΞΕΙ ══════════════════
@@ -108,11 +114,17 @@ const BASE: ShortVsLongInput = {
     if (b.net < a.net - 0.01) monotonic = false
     if (shortTermSide({ ...BASE, platformFeePct: 25 }, occ).net > a.net + 0.01) feeHurts = false
     // Μονοκατοικία άνω των 80 τ.μ. πληρώνει μεγαλύτερο τέλος, άρα λιγότερα καθαρά.
-    if (occ > 0 && shortTermSide({ ...BASE, sqm: 120, isHouse: true }, occ).net >= a.net) levyHurts = false
+    if (occ > 0 && shortTermSide({ ...BASE, sqm: 120, isHouse: true }, occ).levy <= a.levy) levyHurts = false
   }
   ok('Ε. περισσότερη πληρότητα ⇒ ποτέ λιγότερα καθαρά', monotonic)
   ok('Ε. μεγαλύτερη προμήθεια ⇒ ποτέ περισσότερα καθαρά', feeHurts)
-  ok('Ε. μεγάλη μονοκατοικία πληρώνει μεγαλύτερο τέλος', levyHurts)
+  ok('Ε. μεγάλη μονοκατοικία επιβαρύνει τον επισκέπτη με μεγαλύτερο τέλος', levyHurts)
+  // ΤΟ ΤΕΛΟΣ ΔΕΝ ΑΓΓΙΖΕΙ ΤΗΝ ΤΣΕΠΗ ΤΟΥ ΙΔΙΟΚΤΗΤΗ, ΚΑΙ ΑΥΤΟ ΠΡΕΠΕΙ ΝΑ ΜΕΝΕΙ
+  // ΑΛΗΘΕΙΑ. Το εισπράττει από τον επισκέπτη και το αποδίδει: αυξάνει το τι
+  // πληρώνει ο επισκέπτης, όχι το τι κρατά ο ιδιοκτήτης. Αν κάποια στιγμή η
+  // οθόνη υπονοήσει το αντίθετο, το τεστ εδώ θα το διαψεύσει.
+  ok('Ε. ο τύπος του ακινήτου δεν αλλάζει τα καθαρά του ιδιοκτήτη',
+     eq(shortTermSide({ ...BASE, sqm: 120, isHouse: true }, 60).net, shortTermSide(BASE, 60).net))
 
   ok('Ε. οι νύχτες μοιράζονται ισομερώς στους δώδεκα μήνες',
      spreadNights(120).length === 12 && spreadNights(120).every(n => eq(n, 10)))
@@ -143,10 +155,12 @@ const BASE: ShortVsLongInput = {
   // ίδια έσοδα, αλλά το τέλος και τα καθαρά αλλάζουν.
   const evenSide = shortTermSide({ ...BASE, season: 'even' }, 40)
   const highSide = shortTermSide({ ...BASE, season: 'high' }, 40)
-  ok('ΣΤ. ίδιες νύχτες και στις δύο κατανομές', evenSide.nights === highSide.nights)
-  ok('ΣΤ. ίδιες εισπράξεις από τους επισκέπτες', eq(evenSide.guestTotal, highSide.guestTotal))
-  ok('ΣΤ. αλλά μεγαλύτερο τέλος όταν γεμίζει το καλοκαίρι', highSide.levy > evenSide.levy)
-  ok('ΣΤ. …άρα λιγότερα καθαρά', highSide.net < evenSide.net)
+  ok('ΣΤ. ίδιες διανυκτερεύσεις και στις δύο κατανομές', evenSide.nights === highSide.nights)
+  ok('ΣΤ. ίδιο δηλωτέο ακαθάριστο', eq(evenSide.gross, highSide.gross))
+  ok('ΣΤ. μεγαλύτερο τέλος όταν γεμίζει το καλοκαίρι', highSide.levy > evenSide.levy)
+  ok('ΣΤ. …άρα ακριβότερα για τον επισκέπτη', highSide.guestTotal > evenSide.guestTotal)
+  ok('ΣΤ. …αλλά ίδια καθαρά για τον ιδιοκτήτη, γιατί το τέλος αποδίδεται',
+     eq(evenSide.net, highSide.net))
   // Με 146 νύχτες όλες στην υψηλή: 146 × 8 = 1.168. Ισομερώς: 146/12 ανά μήνα,
   // επτά υψηλοί × 8 και πέντε χαμηλοί × 2 = (146/12) × (56 + 10) = 803,00.
   ok('ΣΤ. τέλος 1.168,00 € στην υψηλή περίοδο', eq(highSide.levy, 1168, 0.5))

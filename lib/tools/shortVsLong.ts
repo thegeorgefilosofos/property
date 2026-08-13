@@ -39,7 +39,7 @@ export const NIGHTS_PER_YEAR = 365;
 export interface ShortVsLongInput {
   /** Μακροχρόνια: μηνιαίο μίσθωμα. */
   monthlyRent: number;
-  /** Βραχυχρόνια: τι πληρώνει ο επισκέπτης ανά διανυκτέρευση, τέλος μέσα. */
+  /** Βραχυχρόνια: η ΔΙΚΗ ΣΟΥ τιμή ανά διανυκτέρευση, χωρίς το τέλος. */
   nightlyPrice: number;
   /** 0 ώς 100. */
   occupancyPct: number;
@@ -65,11 +65,11 @@ export interface LongSide {
 
 export interface ShortSide {
   nights: number;
-  /** Τι πληρώνουν συνολικά οι επισκέπτες. */
+  /** Τι πληρώνουν συνολικά οι επισκέπτες: η τιμή σου συν το τέλος. */
   guestTotal: number;
-  /** Τέλος Ανθεκτικότητας: εισπράττεται από τον επισκέπτη και αποδίδεται. */
+  /** Τέλος Ανθεκτικότητας: μπαίνει πάνω από την τιμή σου και αποδίδεται. */
   levy: number;
-  /** Δηλωτέο ακαθάριστο = όσα πλήρωσαν οι επισκέπτες − τέλος. */
+  /** Δηλωτέο ακαθάριστο = διανυκτερεύσεις × η τιμή σου. */
   gross: number;
   deduction: number;
   taxable: number;
@@ -143,28 +143,43 @@ export function longTermSide(monthlyRent: number): LongSide {
   return { gross, deduction: cents(gross - taxable), taxable: cents(taxable), tax, net: cents(gross - tax) };
 }
 
-/** Η βραχυχρόνια πλευρά, για δεδομένη πληρότητα. */
+/**
+ * Η βραχυχρόνια πλευρά, για δεδομένη πληρότητα.
+ *
+ * ΤΟ ΤΕΛΟΣ ΜΠΑΙΝΕΙ ΠΑΝΩ ΑΠΟ ΤΗΝ ΤΙΜΗ ΣΟΥ, ΔΕΝ ΒΓΑΙΝΕΙ ΑΠΟ ΜΕΣΑ ΤΗΣ.
+ *
+ * Η πρώτη εκδοχή θεωρούσε ότι η τιμή που δίνει ο χρήστης ΠΕΡΙΕΧΕΙ το τέλος, και
+ * το αφαιρούσε για να βρει το δηλωτέο ακαθάριστο. Δεν είναι έτσι που δουλεύει
+ * ούτε ο οικοδεσπότης ούτε η πλατφόρμα: ο οικοδεσπότης ορίζει τη ΔΙΚΗ ΤΟΥ τιμή
+ * διανυκτέρευσης και το τέλος ανθεκτικότητας προστίθεται στον επισκέπτη ως
+ * χωριστή επιβάρυνση, την οποία ο οικοδεσπότης απλώς αποδίδει.
+ *
+ * Η διαφορά δεν είναι θεωρητική: με 219 διανυκτερεύσεις στα 80 €, η παλιά
+ * εκδοχή έβγαζε δηλωτέο ακαθάριστο μικρότερο κατά όσο ήταν το τέλος, δηλαδή
+ * υπολόγιζε φόρο σε ποσό που ο ιδιοκτήτης ΟΝΤΩΣ εισέπραξε. Το εργαλείο έδειχνε
+ * τη βραχυχρόνια χειρότερη από ό,τι είναι.
+ */
 export function shortTermSide(i: ShortVsLongInput, occupancyPct = i.occupancyPct): ShortSide {
   const nights = (Math.min(100, pos(occupancyPct)) / 100) * NIGHTS_PER_YEAR;
   const price = pos(i.nightlyPrice);
-  const guestTotal = nights * price;
-  // Το τέλος ΟΦΕΙΛΕΤΑΙ ολόκληρο· δεν μπορεί όμως να ξεπεράσει όσα εισπράχθηκαν
-  // στην αριθμητική της οθόνης, αλλιώς με τιμή 1 €/νύχτα θα έβγαινε αρνητικό
-  // ακαθάριστο και ο πίνακας θα τύπωνε νούμερα που δεν υπάρχουν.
-  const levy = Math.min(guestTotal, climateLevyForNights(spreadNights(nights, i.season), i.sqm, i.isHouse));
-  const gross = cents(guestTotal - levy);
+  // Δηλωτέο ακαθάριστο: διανυκτερεύσεις × η τιμή του οικοδεσπότη. Το τέλος δεν
+  // είναι έσοδό του και δεν μπαίνει ποτέ εδώ.
+  const gross = cents(nights * price);
+  const levy = cents(climateLevyForNights(spreadNights(nights, i.season), i.sqm, i.isHouse));
+  const guestTotal = cents(gross + levy);
   const taxable = gross * (1 - PRESUMPTIVE_DEDUCTION_RATE);
   const tax = cents(rentalIncomeTax(taxable));
-  // Η προμήθεια υπολογίζεται σε ΟΣΑ ΠΛΗΡΩΣΕ Ο ΕΠΙΣΚΕΠΤΗΣ, γιατί έτσι τη χρεώνουν
-  // οι πλατφόρμες: πάνω στο σύνολο της κράτησης, όχι στο δηλωτέο ακαθάριστο.
-  const platformFee = cents(guestTotal * (pos(i.platformFeePct) / 100));
+  // Η προμήθεια υπολογίζεται στο ΚΑΤΑΛΥΜΑ, όχι στο σύνολο που πλήρωσε ο
+  // επισκέπτης: οι πλατφόρμες κρατούν ποσοστό επί της τιμής διαμονής, όχι επί
+  // των φόρων και τελών που απλώς εισπράττουν για λογαριασμό του κράτους.
+  const platformFee = cents(gross * (pos(i.platformFeePct) / 100));
   const running = cents(nights * pos(i.costPerNight) + 12 * pos(i.fixedPerMonth));
   // Φυσικό πρόσωπο με έως δύο ακίνητα: εξαιρείται, δηλαδή 0 €. Η παραδοχή
   // γράφεται στην οθόνη· η συνάρτηση καλείται ούτως ή άλλως, ώστε αν αλλάξει ο
   // κανόνας να αλλάξει σε ένα σημείο.
   const municipalTax = municipalAccommodationTax(gross, { individual: true, propertyCount: 1 });
   return {
-    nights: Math.round(nights), guestTotal: cents(guestTotal), levy: cents(levy), gross,
+    nights: Math.round(nights), guestTotal, levy, gross,
     deduction: cents(gross - taxable), taxable: cents(taxable), tax,
     municipalTax, platformFee, running,
     net: cents(gross - tax - municipalTax - platformFee - running),
