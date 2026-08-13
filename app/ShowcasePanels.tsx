@@ -35,8 +35,6 @@ export const PanelFX = () => (
   `}</style>
 );
 
-const check = <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>;
-
 // ── Πάνελ: Ο πίνακάς σου ─────────────────────────────────────────────────────
 export function PanelDashboard() {
   const months = [42, 55, 48, 61, 52, 70, 66, 78, 60, 84, 72, 90];
@@ -149,9 +147,24 @@ export function PanelScan() {
         <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7z" /></svg>
         Μπήκε μόνος του σε:
       </div>
+      {/* ═══ ΤΑ ΤΕΣΣΕΡΑ ΣΕ ΜΙΑ ΕΥΘΕΙΑ ════════════════════════════════════════
+          ΤΙ ΔΕΝ ΧΩΡΟΥΣΕ. Κάθε σήμα κουβαλούσε ένα «✓». Τέσσερα εικονίδια επί 20
+          εικονοστοιχεία (εικονίδιο και κενό) είναι ογδόντα, και ακριβώς αυτά τα
+          ογδόντα έσπρωχναν το τέταρτο σήμα σε δεύτερη σειρά: τρία πάνω, ένα
+          κάτω, δηλαδή η χειρότερη δυνατή αναδίπλωση.
+
+          ΓΙΑΤΙ ΕΦΥΓΕ ΤΟ ΕΙΚΟΝΙΔΙΟ ΚΑΙ ΟΧΙ ΤΟ ΚΕΙΜΕΝΟ. Η σειρά από πάνω λέει ήδη
+          «Μπήκε μόνος του σε:». Το «✓» δεν πρόσθετε πληροφορία — την
+          επαναλάμβανε τέσσερις φορές. Χωρίς αυτό, τα τέσσερα σήματα πιάνουν 410
+          από τα 440 εικονοστοιχεία του πάνελ και κάθονται σε μία ευθεία, με τα
+          ονόματα των οθονών να μένουν ακέραια όπως τα λέει η εφαρμογή.
+
+          Η αναδίπλωση μένει ως δίχτυ για πολύ στενές οθόνες: εκεί καμία
+          γραμματοσειρά δεν χωράει δεκαέξι γράμματα, και μια σπασμένη σειρά είναι
+          προτιμότερη από κείμενο που ξεχειλίζει. */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
         {filed.map((t, i) => (
-          <span key={i} className="lp-pop lp-live" style={{ animationDelay: `${0.18 * i + 0.3}s`, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 100, padding: '6px 12px' }}>{check}{t}</span>
+          <span key={i} className="lp-pop lp-live" style={{ animationDelay: `${0.18 * i + 0.3}s`, display: 'inline-flex', alignItems: 'center', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 100, padding: '6px 12px', whiteSpace: 'nowrap' }}>{t}</span>
         ))}
       </div>
     </div>

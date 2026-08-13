@@ -102,7 +102,7 @@ export function PublicFooter() {
               κολοβή δίπλα στις άλλες· έλειπε όμως και ο υπολογιστής ΕΝΦΙΑ, που
               υπάρχει, σερβίρεται και δεν τον έδειχνε καμία σελίδα. */}
           <FootCol label="Προϊόν" links={[['/', 'Αρχική'], ['/signup', 'Ξεκίνα τη δοκιμή'], ['/login', 'Σύνδεση'], ['/#faq', 'Συχνές ερωτήσεις']]} />
-          <FootCol label="Εργαλεία" links={[['/ypologismos-forou-enoikion', 'Φόρος Ενοικίων'], ['/ypologismos-enfia', 'ΕΝΦΙΑ'], ['/vraxyxronia-i-makroxronia', 'Βραχυχρόνια vs μακροχρόνια']]} />
+          <FootCol label="Εργαλεία" links={[['/vraxyxronia-i-makroxronia', 'Βραχυχρόνια vs Μακροχρόνια'], ['/ypologismos-enfia', 'ΕΝΦΙΑ'], ['/ypologismos-forou-enoikion', 'Φορολογία Ενοικίων']]} />
           <FootCol label="Εμπιστοσύνη" links={[['/trust', 'Ποιοι είμαστε'], ['/privacy', 'Απόρρητο'], ['/terms', 'Όροι χρήσης']]} />
         </div>
         <div style={{ marginTop: 'clamp(32px,4vw,48px)', paddingTop: 18, borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', fontSize: 12, color: 'var(--text-tertiary)' }}>

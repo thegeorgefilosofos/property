@@ -70,6 +70,7 @@
     "export-name": "node scripts/guard-export-name.mjs",
     "euro-space": "node scripts/guard-euro-space.mjs",
     "terminology": "node scripts/guard-terminology.mjs",
+    "cpi-freshness": "node scripts/guard-cpi-freshness.mjs",
     "surface-scale": "node scripts/guard-surface-scale.mjs"
   },
   "dependencies": {

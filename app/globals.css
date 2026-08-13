@@ -1799,6 +1799,11 @@ details.lp-faq summary:hover { color: var(--accent); }
 details.lp-faq[open] summary { color: var(--accent); }
 details.lp-faq summary::-webkit-details-marker { display: none; }
 details.lp-faq[open] summary .lp-plus { transform: rotate(45deg); }
+/* ΤΟ «ΠΕΡΙΣΣΟΤΕΡΕΣ ΕΡΩΤΗΣΕΙΣ» ΔΕΝ ΕΙΝΑΙ ΕΡΩΤΗΣΗ. Μοιράζεται το ίδιο <details>
+   για τη συμπεριφορά και τον σταυρό που γυρίζει, αλλά δεν παίρνει γραμμή από
+   πάνω: αν την έπαιρνε, θα διαβαζόταν ως δωδέκατη ερώτηση με παράξενο τίτλο. */
+details.lp-faq-more { border-top: none; }
+details.lp-faq-more > summary:hover { opacity: .8; }
 
 /* ── ΝΟΜΙΚΕΣ ΣΕΛΙΔΕΣ: ΕΥΡΕΤΗΡΙΟ ΠΟΥ ΜΕΝΕΙ, ΚΕΙΜΕΝΟ ΠΟΥ ΚΥΛΑΕΙ ──────────────
    Το ευρετήριο ήταν κουτί στην κορυφή: ο αναγνώστης το έβλεπε μία φορά,
