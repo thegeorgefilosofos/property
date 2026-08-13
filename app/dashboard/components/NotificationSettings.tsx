@@ -1,9 +1,28 @@
 'use client'
-import { useState, useEffect } from 'react'
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Ειδοποιήσεις — τι φτάνει στα εισερχόμενά σου, και πότε
+// ─────────────────────────────────────────────────────────────────────────
+// ΔΥΟ ΠΡΑΓΜΑΤΑ ΑΛΛΑΞΑΝ ΚΑΙ ΤΑ ΔΥΟ ΗΤΑΝ ΟΡΑΤΑ.
+//
+// ΠΡΩΤΟ, ΚΑΡΤΑ ΜΕΣΑ ΣΕ ΚΑΡΤΑ. Η ενότητα ζει ήδη μέσα σε `Card` με κεφαλίδα
+// «Ειδοποιήσεις», και εδώ ξαναγραφόταν δεύτερο πλαίσιο με δικό του
+// περίγραμμα, δικό του γέμισμα, εικονίδιο καμπάνας και τίτλο «Ειδοποιήσεις
+// email». Δύο περιγράμματα σε απόσταση δεκαέξι εικονοστοιχείων, και ο ίδιος
+// τίτλος δύο φορές. Έμεινε το εξωτερικό, που το βάζει ο γονέας.
+//
+// ΔΕΥΤΕΡΟ, ΚΟΥΜΠΙ ΑΠΟΘΗΚΕΥΣΗΣ ΣΕ ΣΕΛΙΔΑ ΠΟΥ ΑΠΟΘΗΚΕΥΕΙ ΜΟΝΗ ΤΗΣ. Το θέμα, ο
+// ορίζοντας προθεσμιών, η προσβασιμότητα και τα δεδομένα κοινότητας
+// αποθηκεύονταν με το που τα άγγιζες. Εδώ, επτά διακόπτες περίμεναν πάτημα —
+// και όποιος είχε μάθει τη σελίδα έφευγε νομίζοντας ότι τους άλλαξε.
+// ═══════════════════════════════════════════════════════════════════════════
+
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Bell, Send } from 'lucide-react'
-import { T, Btn, settingsField } from '@/components/Theme'
+import { Send } from 'lucide-react'
+import { T, TT, Btn, settingsField } from '@/components/Theme'
 import { Toggle } from './UIComponents'
+import { SetList, SetRow, SetGroup, SaveNote, useAutosave } from './SettingsKit'
 
 interface NotifPrefs {
   email_enabled: boolean
@@ -39,51 +58,14 @@ const DEFAULT: NotifPrefs = {
   legal_updates: true,
 }
 
-// Γραμμή διακόπτη με τίτλο/περιγραφή, με το κοινό MD3 Toggle (ίδιο με όλες τις Ρυθμίσεις).
-//
-// ΣΕ MODULE SCOPE, ΟΧΙ ΜΕΣΑ ΣΤΟ COMPONENT: όταν ένα component ορίζεται μέσα σε
-// άλλο, κάθε render του γονέα φτιάχνει ΝΕΟ τύπο. Ο React δεν μπορεί να ξέρει ότι
-// είναι «το ίδιο», οπότε αποσυναρμολογεί και ξαναχτίζει όλο το υποδέντρο: χάνεται
-// το state, κόβεται το focus, ξαναρχίζουν τα animations. Εδώ ήταν επτά διακόπτες
-// που ξαναγεννιούνταν σε κάθε πάτημα οποιουδήποτε από αυτούς.
-function NotifRow({ val, onChange, label, desc }: {
-  val: boolean; onChange: (v: boolean) => void; label: string; desc: string
-}) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '12px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-      <div style={{ minWidth: 0 }}>
-        <p style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600, fontFamily: T.font.sans }}>{label}</p>
-        <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 1 }}>{desc}</p>
-      </div>
-      <Toggle on={val} onChange={onChange} size="sm" />
-    </div>
-  )
-}
-
 export default function NotificationSettings({ userId }: { userId: string }) {
   const supabase = createClient()
   const [prefs, setPrefs] = useState<NotifPrefs>(DEFAULT)
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-  const [saveErr, setSaveErr] = useState(false)
   const [testMsg, setTestMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [testing, setTesting] = useState(false)
 
-  async function load() {
-    const { data } = await supabase
-      .from('notification_preferences')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle()
-    if (data) setPrefs(p => ({ ...p, ...data }))
-  }
-
-  useEffect(() => { load() }, [userId])
-
-
-  async function save() {
-    setSaving(true); setSaveErr(false); setSaved(false)
-    const row = { ...prefs, user_id: userId, updated_at: new Date().toISOString() }
+  const persist = useCallback(async (next: NotifPrefs): Promise<boolean> => {
+    const row = { ...next, user_id: userId, updated_at: new Date().toISOString() }
     let { error } = await supabase.from('notification_preferences').upsert(row, { onConflict: 'user_id' })
     // ΑΜΥΝΤΙΚΗ ΓΡΑΦΗ: η στήλη `legal_updates` προστίθεται με migration
     // (supabase/migrations/20260730092000_checklist_actuals.sql). Αν δεν έχει
@@ -94,15 +76,36 @@ export default function NotificationSettings({ userId }: { userId: string }) {
       void _omit
       ;({ error } = await supabase.from('notification_preferences').upsert(rest, { onConflict: 'user_id' }))
     }
-    setSaving(false)
-    if (error) { setSaveErr(true); return }
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
+    return !error
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId])
+
+  const { state: saveState, schedule } = useAutosave(persist)
+
+  useEffect(() => {
+    let alive = true
+    supabase.from('notification_preferences').select('*').eq('user_id', userId).maybeSingle()
+      .then(({ data }) => { if (alive && data) setPrefs(p => ({ ...p, ...data })) })
+    return () => { alive = false }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId])
+
+  /**
+   * Μία πόρτα για κάθε αλλαγή: ενημερώνει την οθόνη και βάζει την αποθήκευση σε
+   * αναμονή. Η φόρτωση ΔΕΝ περνά από εδώ — αλλιώς η σελίδα θα έγραφε στη βάση
+   * μόλις ανοίξει, χωρίς ο χρήστης να έχει αγγίξει τίποτα.
+   */
+  const update = (patch: Partial<NotifPrefs>) => {
+    setPrefs(p => {
+      const next = { ...p, ...patch }
+      schedule(next)
+      return next
+    })
   }
 
   async function testEmail() {
     const email = prefs.reminder_email.trim()
-    if (!email) { setTestMsg({ ok: false, text: 'Βάλε πρώτα το email σου.' }); return }
+    if (!email) { setTestMsg({ ok: false, text: 'Χωρίς διεύθυνση δεν υπάρχει πού να σταλεί.' }); return }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setTestMsg({ ok: false, text: 'Η μορφή του email δεν είναι σωστή.' }); return }
     setTesting(true); setTestMsg(null)
     // ΤΟ ΙΔΙΟ ΚΟΥΜΠΙ, ΔΥΟ ΕΙΛΙΚΡΙΝΑ ΝΟΗΜΑΤΑ. Αν η διεύθυνση είναι η δική σου,
@@ -131,114 +134,86 @@ export default function NotificationSettings({ userId }: { userId: string }) {
     if (ok) {
       setTestMsg({ ok: true, text: confirm
         ? `Στάλθηκε αίτημα επιβεβαίωσης στο ${sentTo || email}. Οι υπενθυμίσεις θα ξεκινήσουν μόλις πατηθεί ο σύνδεσμος μέσα στο μήνυμα. Ο σύνδεσμος λήγει σε 48 ώρες.`
-        : `Στάλθηκε δοκιμαστικό email στο ${sentTo || email}. Έλεγξε τα εισερχόμενά σου.` })
+        : `Στάλθηκε δοκιμαστικό email στο ${sentTo || email}. Το βρίσκεις στα εισερχόμενά σου.` })
       return
     }
     // Σαφές, ειλικρινές μήνυμα ανάλογα με τον λόγο (χωρίς τεχνικό θόρυβο στον χρήστη).
     const low = reason.toLowerCase()
     const text = /testing emails|verify a domain|not allowed|403|only send/.test(low)
-      ? 'Το email δεν στάλθηκε: ο πάροχος επιτρέπει αποστολή μόνο σε επαληθευμένη διεύθυνση/τομέα ακόμη. Θα ενεργοποιηθεί με την επίσημη διεύθυνση αποστολής.'
+      ? 'Το email δεν στάλθηκε: ο πάροχος επιτρέπει αποστολή μόνο σε επαληθευμένη διεύθυνση ή τομέα ακόμη. Θα ενεργοποιηθεί με την επίσημη διεύθυνση αποστολής.'
       : 'Δεν στάλθηκε το δοκιμαστικό email. Δοκίμασε ξανά σε λίγο.'
     setTestMsg({ ok: false, text })
   }
 
-  const lbl: React.CSSProperties = {
-    fontSize: 12, fontFamily: T.font.sans, fontWeight: 500, color: 'var(--text-secondary)',
-    display: 'block', marginBottom: 6,
-  }
+  const numField = { ...settingsField, maxWidth: 120, fontVariantNumeric: 'tabular-nums' as const }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <SetList>
 
-      {/* ── Ειδοποιήσεις email ── */}
-      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-          <div style={{ width: 32, height: 32, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Bell size={15} color="var(--accent)"/>
-          </div>
-          <div>
-            <p style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600, fontFamily: T.font.sans }}>Ειδοποιήσεις email</p>
-            <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 1 }}>Υπενθυμίσεις για επερχόμενα γεγονότα στα εισερχόμενά σου</p>
-          </div>
+      {/* Η διεύθυνση: πρώτη, γιατί χωρίς αυτήν κανένας από τους διακόπτες πιο
+          κάτω δεν έχει πού να καταλήξει. */}
+      <SetRow title="Διεύθυνση αποστολής"
+        desc="Η δική σου διεύθυνση δουλεύει αμέσως. Σε οποιαδήποτε άλλη, η δοκιμή στέλνει αίτημα επιβεβαίωσης και οι υπενθυμίσεις ξεκινούν μόλις το εγκρίνει ο παραλήπτης.">
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <input id="notif-email" className="po-field" style={{ ...settingsField, flex: 1, minWidth: 220 }} type="email"
+            aria-label="Διεύθυνση αποστολής ειδοποιήσεων" placeholder="ονομα@email.com"
+            value={prefs.reminder_email} onChange={e => update({ reminder_email: e.target.value })} />
+          <Btn variant="secondary" onClick={testEmail} disabled={testing}><Send size={11} />{testing ? 'Αποστολή…' : 'Δοκιμή'}</Btn>
         </div>
+        {testMsg && <div style={{ ...TT.bodySm, marginTop: 8, color: testMsg.ok ? 'var(--text-secondary)' : 'var(--negative)' }}>{testMsg.text}</div>}
+      </SetRow>
 
-        <div style={{ marginBottom: 14 }}>
-          <label htmlFor="notif-email" style={lbl}>Ηλεκτρονικό ταχυδρομείο αποστολής</label>
-          {/* Ο ΚΑΝΟΝΑΣ ΛΕΓΕΤΑΙ ΠΡΙΝ, ΟΧΙ ΜΕΤΑ. Ο χρήστης που βάζει ξένη διεύθυνση
-              πρέπει να ξέρει από την αρχή ότι θα χρειαστεί το «ναι» του άλλου,
-              αλλιώς θα νομίζει ότι κάτι χάλασε όταν δεν φτάνει τίποτα. */}
-          <p style={{ fontSize: 11, fontFamily: T.font.sans, color: 'var(--text-tertiary)', margin: '0 0 6px', lineHeight: 1.5 }}>
-            Η δική σου διεύθυνση δουλεύει αμέσως. Σε οποιαδήποτε άλλη, το «Δοκιμή» στέλνει αίτημα επιβεβαίωσης και οι υπενθυμίσεις ξεκινούν μόλις το εγκρίνει ο παραλήπτης.
-          </p>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input id="notif-email" className="po-field" style={{ ...settingsField, flex: 1 }} type="email" placeholder="ονομα@email.com"
-              value={prefs.reminder_email} onChange={e => setPrefs(p => ({ ...p, reminder_email: e.target.value }))}/>
-            <Btn variant="secondary" onClick={testEmail} disabled={testing}><Send size={11}/>{testing ? 'Αποστολή…' : 'Δοκιμή'}</Btn>
-          </div>
-          {testMsg && <p style={{ marginTop: 6, fontSize: 11, fontFamily: T.font.sans, color: testMsg.ok ? 'var(--positive)' : 'var(--negative)' }}>{testMsg.text}</p>}
-        </div>
-
-        <NotifRow val={prefs.email_enabled} onChange={v => setPrefs(p => ({ ...p, email_enabled: v }))}
-          label="Ενεργοποίηση ειδοποιήσεων" desc="Λήψη email για τα γεγονότα του ημερολογίου"/>
-
+      <SetRow title="Υπενθυμίσεις με email" desc="Για τα γεγονότα του ημερολογίου σου."
+        control={<Toggle on={prefs.email_enabled} onChange={v => update({ email_enabled: v })} size="sm" />}>
         {prefs.email_enabled && (
-          <div style={{ marginTop: 4 }}>
-            <p style={{ fontSize: 9, fontFamily: T.font.sans, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 14, marginBottom: 4 }}>
-              Πότε να λαμβάνεις υπενθύμιση
-            </p>
-            <NotifRow val={prefs.reminder_7days} onChange={v => setPrefs(p => ({ ...p, reminder_7days: v }))} label="7 ημέρες πριν" desc="Εβδομαδιαία προειδοποίηση"/>
-            <NotifRow val={prefs.reminder_3days} onChange={v => setPrefs(p => ({ ...p, reminder_3days: v }))} label="3 ημέρες πριν" desc="Τριήμερη προειδοποίηση"/>
-            <NotifRow val={prefs.reminder_1day} onChange={v => setPrefs(p => ({ ...p, reminder_1day: v }))} label="Την προηγούμενη ημέρα" desc="Υπενθύμιση αύριο το πρωί"/>
-            <NotifRow val={prefs.reminder_today} onChange={v => setPrefs(p => ({ ...p, reminder_today: v }))} label="Ημέρα εκτέλεσης" desc="Υπενθύμιση την ίδια ημέρα στις 08:00"/>
-            <NotifRow val={prefs.reminder_overdue} onChange={v => setPrefs(p => ({ ...p, reminder_overdue: v }))} label="Εκπρόθεσμα" desc="Ειδοποίηση για ληξιπρόθεσμες υποχρεώσεις"/>
+          <SetList>
+            <SetGroup>Πόσο πριν</SetGroup>
+            <SetRow title="Επτά ημέρες πριν" desc="Εβδομαδιαία προειδοποίηση."
+              control={<Toggle on={prefs.reminder_7days} onChange={v => update({ reminder_7days: v })} size="sm" />} />
+            <SetRow title="Τρεις ημέρες πριν" desc="Τριήμερη προειδοποίηση."
+              control={<Toggle on={prefs.reminder_3days} onChange={v => update({ reminder_3days: v })} size="sm" />} />
+            <SetRow title="Την προηγούμενη ημέρα" desc="Υπενθύμιση αύριο το πρωί."
+              control={<Toggle on={prefs.reminder_1day} onChange={v => update({ reminder_1day: v })} size="sm" />} />
+            <SetRow title="Την ίδια ημέρα" desc="Υπενθύμιση στις 08:00."
+              control={<Toggle on={prefs.reminder_today} onChange={v => update({ reminder_today: v })} size="sm" />} />
+            <SetRow title="Εκπρόθεσμα" desc="Ειδοποίηση για ληξιπρόθεσμες υποχρεώσεις."
+              control={<Toggle on={prefs.reminder_overdue} onChange={v => update({ reminder_overdue: v })} size="sm" />} />
+          </SetList>
+        )}
+      </SetRow>
+
+      <SetRow title="Ληξιπρόθεσμο ενοίκιο" desc="Διακριτική ενημέρωση με email όταν μια δόση καθυστερεί."
+        control={<Toggle on={prefs.dunning_enabled} onChange={v => update({ dunning_enabled: v })} size="sm" />}>
+        {prefs.dunning_enabled && (
+          <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+            <div>
+              <label htmlFor="dunning-every" style={{ ...TT.bodySm, display: 'block', marginBottom: 6 }}>Ανά πόσες ημέρες</label>
+              <input id="dunning-every" className="po-field" type="number" min={1} max={30} style={numField} value={prefs.dunning_every_days}
+                onChange={e => update({ dunning_every_days: Math.max(1, Math.min(30, parseInt(e.target.value) || 7)) })} />
+              <div style={{ ...TT.caption, marginTop: 4 }}>Ελάχιστο διάστημα για την ίδια δόση.</div>
+            </div>
+            <div>
+              <label htmlFor="dunning-max" style={{ ...TT.bodySm, display: 'block', marginBottom: 6 }}>Μέγιστες ειδοποιήσεις</label>
+              <input id="dunning-max" className="po-field" type="number" min={1} max={12} style={numField} value={prefs.dunning_max}
+                onChange={e => update({ dunning_max: Math.max(1, Math.min(12, parseInt(e.target.value) || 3)) })} />
+              <div style={{ ...TT.caption, marginTop: 4 }}>Ανώτατος αριθμός ανά δόση.</div>
+            </div>
           </div>
         )}
+      </SetRow>
 
-        {/* ── Ληξιπρόθεσμο ενοίκιο (dunning) ── */}
-        <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
-          <p style={{ fontSize: 9, fontFamily: T.font.sans, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
-            Ληξιπρόθεσμο ενοίκιο
-          </p>
-          <NotifRow val={prefs.dunning_enabled} onChange={v => setPrefs(p => ({ ...p, dunning_enabled: v }))}
-            label="Αυτόματες ειδοποιήσεις για ληξιπρόθεσμο ενοίκιο" desc="Διακριτική ενημέρωση με email όταν μια δόση καθυστερεί."/>
-          {prefs.dunning_enabled && (
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 12 }}>
-              <div style={{ flex: 1, minWidth: 150 }}>
-                <label htmlFor="dunning-every" style={lbl}>Ανά πόσες ημέρες</label>
-                <input id="dunning-every" className="po-field" type="number" min={1} max={30} style={settingsField} value={prefs.dunning_every_days}
-                  onChange={e => setPrefs(p => ({ ...p, dunning_every_days: Math.max(1, Math.min(30, parseInt(e.target.value) || 7)) }))}/>
-                <p style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 4 }}>Ελάχιστο διάστημα μεταξύ ειδοποιήσεων για την ίδια δόση.</p>
-              </div>
-              <div style={{ flex: 1, minWidth: 150 }}>
-                <label htmlFor="dunning-max" style={lbl}>Μέγιστες ειδοποιήσεις</label>
-                <input id="dunning-max" className="po-field" type="number" min={1} max={12} style={settingsField} value={prefs.dunning_max}
-                  onChange={e => setPrefs(p => ({ ...p, dunning_max: Math.max(1, Math.min(12, parseInt(e.target.value) || 3)) }))}/>
-                <p style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 4 }}>Ανώτατος αριθμός ειδοποιήσεων ανά δόση.</p>
-              </div>
-            </div>
-          )}
-        </div>
+      {/* Η ΜΗΧΑΝΗ ΥΠΗΡΧΕ ΚΑΙ ΗΤΑΝ ΑΠΟΣΥΝΔΕΔΕΜΕΝΗ. Το lib/accounting/updates2026.ts
+          κρατά τους ισχύοντες κανόνες με νομική βάση, ισχύ και επίσημη πηγή, και
+          κανένας διακόπτης δεν τους αφορούσε: επτά διακόπτες για προθεσμίες
+          ημερολογίου, κανένας για το ότι άλλαξε ο νόμος. */}
+      <SetRow title="Αλλαγές νομοθεσίας"
+        desc="Μόνο όσες αφορούν τα ακίνητά σου και ζητούν κίνηση, με τη νομική βάση και σύνδεσμο στην επίσημη πηγή. Εμφανίζονται και ως εκκρεμότητες στο ακίνητο που αφορούν."
+        control={<Toggle on={prefs.legal_updates} onChange={v => update({ legal_updates: v })} size="sm" />} />
 
-        {/* ── Αλλαγές νομοθεσίας ── */}
-        {/* Η ΜΗΧΑΝΗ ΥΠΗΡΧΕ ΚΑΙ ΗΤΑΝ ΑΠΟΣΥΝΔΕΔΕΜΕΝΗ. Το lib/accounting/updates2026.ts
-            κρατά τους ισχύοντες κανόνες με νομική βάση, ισχύ και επίσημη πηγή, και
-            κανένας διακόπτης δεν τους αφορούσε: επτά διακόπτες για προθεσμίες
-            ημερολογίου, κανένας για το ότι άλλαξε ο νόμος. */}
-        <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
-          <p style={{ fontSize: 9, fontFamily: T.font.sans, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
-            Νομοθεσία
-          </p>
-          <NotifRow val={prefs.legal_updates} onChange={v => setPrefs(p => ({ ...p, legal_updates: v }))}
-            label="Αλλαγές νομοθεσίας που αφορούν τα ακίνητά μου"
-            desc="Μόνο όσες ζητούν κίνηση από εσένα, με τη νομική βάση και σύνδεσμο στην επίσημη πηγή. Εμφανίζονται και ως εκκρεμότητες στο ακίνητο που αφορούν."/>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12, marginTop: 16 }}>
-          {saveErr && <span style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans }}>Δεν αποθηκεύτηκε. Δοκίμασε ξανά.</span>}
-          {saved && <span style={{ fontSize: 12, color: 'var(--positive)', fontFamily: T.font.sans, fontWeight: 600 }}>Αποθηκεύτηκε ✓</span>}
-          <Btn variant="primary" onClick={save} disabled={saving}>{saving ? 'Αποθήκευση…' : 'Αποθήκευση'}</Btn>
-        </div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', minHeight: 18 }}>
+        <SaveNote state={saveState} />
       </div>
-    </div>
+
+    </SetList>
   )
 }

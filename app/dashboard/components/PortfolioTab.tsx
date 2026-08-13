@@ -501,7 +501,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
       <PageTitle title="Χαρτοφυλάκιο" sub={`${properties.length} ${properties.length === 1 ? 'ακίνητο' : 'ακίνητα'} · έσοδα και εκκρεμότητες ${year}`}
         right={<>
           <Btn variant="ghost" onClick={openStatements}>Καταστάσεις ιδιοκτήτη</Btn>
-          <ExportButton onClick={exportCsv} label="Εξαγωγή CSV" />
+          <ExportButton onClick={exportCsv} />
         </>} />
 
       {/* ═══ ΤΕΣΣΕΡΑ ΧΡΩΜΑΤΑ ΣΕ ΠΕΝΤΕ ΠΛΑΚΙΔΙΑ ══════════════════════════════
@@ -689,10 +689,10 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
         title="Καταστάσεις ιδιοκτήτη" subtitle={`Έσοδα, δαπάνες και καθαρό ανά ακίνητο · ${year}`}
         footer={stmt ? <>
           <Btn variant="secondary" onClick={officialStatement} disabled={genOfficial}><ShieldCheck size={14} />{genOfficial ? 'Δημιουργία…' : 'Επίσημο PDF'}</Btn>
-          {/* Λεγόταν κι αυτό «Εξαγωγή CSV», όπως το κουμπί της κεφαλίδας
+          {/* Λεγόταν κι αυτό «Εξαγωγή Excel», όπως το κουμπί της κεφαλίδας
               τριάντα εικονοστοιχεία πιο πάνω — δύο αρχεία με το ίδιο όνομα
               και άλλο περιεχόμενο. Εδώ είναι η κατάσταση του ιδιοκτήτη. */}
-          <ExportButton onClick={exportStatement} label="Κατάσταση σε CSV" />
+          <ExportButton onClick={exportStatement} label="Κατάσταση σε Excel" />
         </> : undefined}>
         {/* Τα κενά τα δίνει το σώμα του <Modal> (flex column, gap 20). Τα
             χειρόγραφα marginBottom/marginTop που έμειναν από το παλιό κέλυφος

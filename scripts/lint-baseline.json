@@ -1,5 +1,5 @@
 {
   "_comment": "Lint-debt ceiling enforced by scripts/lint-ratchet.mjs in CI. The count may only go DOWN. When you fix lint errors, lower maxErrors to the new count so the gain is locked in. Never raise it.",
-  "maxErrors": 63,
+  "maxErrors": 62,
   "note": "Κατέβηκε από 529 στις 30/07/2026, μετά τη σάρωση επτά agents. Από 98 σε 93 με πέντε «καταστάσεις που αντιγράφουν καταστάσεις», και σε 75 όταν έφυγαν και τα δεκαεπτά «any» των ελέγχων. Μόνο προς τα κάτω. Και σε 65: δύο effects που «διόρθωναν» κατάσταση μετά την απόδοση έγιναν παράγωγα, τρεις αναγνώσεις ref κατά την απόδοση έφυγαν, τέσσερις συναρτήσεις καλούνταν πριν δηλωθούν, και τα τέσσερα τελευταία «any» έγιναν τύποι. Και σε 63: δύο αναγνώσεις του localStorage κατά την προσάρτηση έγιναν `useSyncExternalStore` — ο localStorage είναι εξωτερική πηγή, όχι κατάσταση της React, και το μοτίβο «ξεκινάω με ψέμα και το διορθώνω σε effect» έκανε δύο αποδόσεις σε κάθε φόρτωση."
 }

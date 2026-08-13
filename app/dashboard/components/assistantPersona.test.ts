@@ -487,14 +487,18 @@ ok('κενό → undefined', normalizeBookTime('') === undefined);
   const p = buildSystemPrompt(id(), 'Διαμέρισμα');
   ok('settings: knows Λογαριασμός page section', /ΛΟΓΑΡΙΑΣΜΟΣ & ΡΥΘΜΙΣΕΙΣ ΕΦΑΡΜΟΓΗΣ/.test(p));
   ok('settings: five sections named', /«Προφίλ»/.test(p) && /«Συνδρομή»/.test(p) && /«Εμφάνιση & Γλώσσα»/.test(p) && /«Ειδοποιήσεις»/.test(p) && /«Δεδομένα & Απόρρητο»/.test(p));
-  ok('settings: profile has email + billing', /email λογαριασμού/.test(p) && /στοιχεία τιμολόγησης/.test(p));
+  ok('settings: profile has email + name, billing lives elsewhere',
+     /email λογαριασμού/.test(p) && /όνομα ή επωνυμία/.test(p) && /στοιχεία τιμολόγησης[^.]*ΔΕΝ είναι εδώ/.test(p));
   ok('settings: theme/dark → Εμφάνιση & Γλώσσα', /θέμα \(φωτεινό\/σκοτεινό\)/.test(p) && /«Εμφάνιση & Γλώσσα»/.test(p));
   ok('settings: theme also from top-right icon', /εικονίδιο πάνω δεξιά/.test(p));
   ok('settings: subscription + upgrade', /διαχείριση και αναβάθμιση συνδρομής/.test(p) && /απαιτεί αναβάθμιση συνδρομής/.test(p));
   ok('settings: individual↔professional in subscription', /Ιδιώτης↔Επαγγελματίας/.test(p));
   ok('settings: report branding for professionals', /επωνυμία στις αναφορές/.test(p));
   ok('settings: notifications routing', /ειδοποιήσεις.*dunning|dunning/i.test(p) && /«Ειδοποιήσεις»/.test(p));
-  ok('settings: data & privacy routing', /εξαγωγή CSV/.test(p) && /σύνδεσμος λογιστή/.test(p) && /διαγραφή λογαριασμού/.test(p) && /αποσύνδεση/.test(p));
+  ok('settings: data & privacy routing', /εξαγωγή όλων των δεδομένων σε JSON/.test(p) && /σύνδεσμος λογιστή/.test(p) && /διαγραφή λογαριασμού/.test(p));
+  // Η ασφάλεια είναι δική της ενότητα: η αποσύνδεση και το 2FA δρομολογούνται εκεί,
+  // όχι στα «Δεδομένα & Απόρρητο» όπου κατέληγαν όταν η ενότητα δεν υπήρχε στο κείμενο.
+  ok('settings: security is its own section', /ΑΣΦΑΛΕΙΑ:[^\n]*επαλήθευση δύο βημάτων/.test(p) && /«Ασφάλεια»/.test(p) && /αποσύνδεση/i.test(p));
   ok('settings: recognises short/greeklish/no-accents', /χωρίς τόνους/.test(p) && /greeklish/.test(p) && /μία λέξη/.test(p));
   ok('settings: links to settings tab', /\[\[go:settings\]\]/.test(p));
   ok('settings: property fields moved to property edit', /«Επεξεργασία ακινήτου»/.test(p) && /οδηγός ακινήτου/.test(p) && /ΑΤΑΚ/.test(p) && /εκτιμώμενος ΕΝΦΙΑ/.test(p));
@@ -511,11 +515,12 @@ ok('κενό → undefined', normalizeBookTime('') === undefined);
 {
   const p = buildSystemPrompt(id(), 'x');
   const SHORT_TRIGGERS = [
-    'θέμα', 'σκοτεινο', 'φωτεινο/light', 'γλωσσα', 'νομισμα', 'δεκαδικα',
+    'θέμα', 'σκοτεινο', 'φωτεινο/light', 'γλωσσα', 'νομισμα', 'προθεσμιες',
     'συνδρομη', 'πλανο', 'χρεωση', 'τιμολογιο', 'αναβαθμιση',
     'να γινω επαγγελματιας', 'αλλαγη σε ιδιωτη', 'επωνυμια αναφορων/branding',
     'ειδοποιησεις', 'notifications', 'υπενθυμισεις', 'οχληση για ενοικιο',
-    'εξαγωγη', 'csv', 'συνδεσμος λογιστη', 'λογιστης', 'ενσωματωσεις',
+    'εξαγωγη', 'csv', 'συνδεσμος λογιστη', 'λογιστης', 'ιστορικο',
+    'κωδικος', '2fa', 'διπλη επαληθευση',
     'αποσυνδεση/logout', 'διαγραφη λογαριασμου', 'dark mode',
   ];
   for (const t of SHORT_TRIGGERS) ok(`settings: trigger «${t}» documented`, p.includes(t));

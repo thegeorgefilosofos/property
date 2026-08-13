@@ -1965,7 +1965,7 @@ function inventoryExports({items,repairs,kwhPrice}:{items:InventoryItem[];repair
     {key:'insur', label:'Έκθεση για τον ασφαλιστή',  description:missingRepl>0
       ? `Φωτογραφία και κόστος αντικατάστασης ανά αντικείμενο. Λείπει από ${missingRepl} στα ${items.length} και γράφεται ρητά: ελλιπές άθροισμα σημαίνει υπασφάλιση που φαίνεται μόνο μετά τη ζημιά.`
       : 'Φωτογραφία και κόστος αντικατάστασης ανά αντικείμενο, για όλα.', onClick:exportInsurancePDF},
-    {key:'csv',   label:'Αναλυτικά δεδομένα σε CSV', description:'Όλα τα πεδία σε αρχείο για λογιστικά φύλλα.', onClick:exportCSV},
+    {key:'csv',   label:'Αναλυτικά δεδομένα σε Excel', description:'Όλα τα πεδία σε αρχείο για λογιστικά φύλλα.', onClick:exportCSV},
   ]
 }
 

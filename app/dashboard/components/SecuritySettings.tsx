@@ -11,19 +11,18 @@
 
 import { useState, useEffect, CSSProperties } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, Btn, settingsField, Spinner, ABSENT, ABSENT_DATE, formGrid } from '@/components/Theme';
+import { T, TT, Btn, settingsField, Spinner, ABSENT, ABSENT_DATE, fixedCols } from '@/components/Theme';
+import { SetList, SetRow, SetFact } from './SettingsKit';
 import { logActivity } from '@/lib/activity';
 import { checkPassword } from '@/lib/auth/password';
 import PasswordStrength from '@/components/PasswordStrength';
 import { failed } from '@/lib/core/dbError';
 
-// ── Κοινά στυλ, ευθυγραμμισμένα με τις υπόλοιπες κάρτες ρυθμίσεων ──────────
-const group: CSSProperties = { padding: '13px 0', borderBottom: '1px solid var(--border-subtle)' };
-const subLabel: CSSProperties = { fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans };
-const desc: CSSProperties = { fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, marginTop: 4 };
-const fieldLabel: CSSProperties = { fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 6, display: 'block' };
+// Η γεωμετρία της γραμμής (περιθώρια, περιγράμματα) έρχεται από το SettingsKit
+// και το `.po-settings`. Εδώ μένουν μόνο τα δύο που είναι ειδικά της ασφάλειας.
+const fieldLabel: CSSProperties = { ...TT.bodySm, marginBottom: 6, display: 'block' };
 const field: CSSProperties = settingsField;
-const rowVal: CSSProperties = { fontSize: 13, fontWeight: 600, fontFamily: T.font.sans, textAlign: 'right', overflowWrap: 'anywhere' };
+const note: CSSProperties = { ...TT.bodySm, marginTop: 10 };
 
 // ── Ελάχιστοι τοπικοί τύποι για τα αποτελέσματα του Supabase MFA ──────────
 interface MfaFactor { id: string; friendly_name?: string; factor_type: string; status: 'verified' | 'unverified' }
@@ -217,7 +216,7 @@ export default function SecuritySettings() {
     }
     setNewPass('');
     setConfirm('');
-    setPwMsg({ ok: true, text: 'Ο κωδικός ενημερώθηκε ✓' });
+    setPwMsg({ ok: true, text: 'Ο κωδικός ενημερώθηκε.' });
     void logActivity(supabase, 'password_changed', 'security');
   }
 
@@ -234,13 +233,12 @@ export default function SecuritySettings() {
     : ABSENT_DATE;
 
   return (
-    <div className="acc-section" style={{ display: 'flex', flexDirection: 'column' }}>
+    <SetList>
 
       {/* 1. Κωδικός πρόσβασης */}
-      <div style={group}>
-        <div style={subLabel}>Κωδικός πρόσβασης</div>
-        <div style={desc}>Όρισε έναν νέο κωδικό για τον λογαριασμό σου. Τουλάχιστον 8 χαρακτήρες, με πεζό, κεφαλαίο, αριθμό και σύμβολο.</div>
-        <div style={{ ...formGrid(220, 297), gap: 12, marginTop: 12 }}>
+      <SetRow title="Κωδικός πρόσβασης"
+        desc="Τουλάχιστον οκτώ χαρακτήρες, με πεζό, κεφαλαίο, αριθμό και σύμβολο.">
+        <div {...fixedCols(2, 12, 'start')}>
           <div>
             <label htmlFor="sec-new-pass" style={fieldLabel}>Νέος κωδικός</label>
             <input
@@ -263,92 +261,65 @@ export default function SecuritySettings() {
           </Btn>
         </div>
         {pwMsg && (
-          <div style={{ fontSize: 12, color: pwMsg.ok ? 'var(--positive)' : 'var(--negative)', fontFamily: T.font.sans, marginTop: 10, lineHeight: 1.5 }}>
-            {pwMsg.text}
-          </div>
+          <div style={{ ...note, color: pwMsg.ok ? 'var(--text-secondary)' : 'var(--negative)' }}>{pwMsg.text}</div>
         )}
-      </div>
+      </SetRow>
 
-      {/* 2. Τρέχουσα σύνδεση */}
-      <div style={group}>
-        <div style={subLabel}>Τρέχουσα σύνδεση</div>
-        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 9 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 16 }}>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Ηλεκτρονικό ταχυδρομείο</span>
-            <span style={{ ...rowVal, color: 'var(--text-primary)' }}>{email || ABSENT}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 16 }}>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Τελευταία σύνδεση</span>
-            <span style={{ ...rowVal, color: lastSignIn ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>{lastSignInText}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. Καθολική αποσύνδεση */}
-      <div style={group}>
-        <div style={subLabel}>Καθολική αποσύνδεση</div>
-        <div style={desc}>Κλείνει τη σύνδεση σε κάθε συσκευή και περιηγητή. Θα χρειαστεί να συνδεθείς ξανά.</div>
-        <div style={{ marginTop: 12 }}>
-          <Btn variant="secondary" onClick={signOutEverywhere} disabled={signingOut}>
-            {signingOut ? 'Αποσύνδεση…' : 'Αποσύνδεση από όλες τις συσκευές'}
-          </Btn>
-        </div>
-      </div>
-
-      {/* 4. Επαλήθευση δύο βημάτων (2FA / TOTP) */}
-      <div style={group}>
-        <div style={subLabel}>Επαλήθευση δύο βημάτων</div>
-        <div style={desc}>Πρόσθεσε ένα δεύτερο επίπεδο ασφάλειας με εφαρμογή επαλήθευσης. Προτείνουμε το Google Authenticator (δωρεάν, από App Store ή Google Play) ως την πιο ασφαλή και απλή επιλογή, αλλά λειτουργεί με οποιαδήποτε (Authy, Microsoft Authenticator, 1Password).</div>
+      {/* 2. Επαλήθευση δύο βημάτων (2FA / TOTP)
+          ΑΝΕΒΗΚΕ ΑΠΟ ΤΗΝ ΤΕΤΑΡΤΗ ΘΕΣΗ. Είναι το ισχυρότερο πράγμα που μπορεί να
+          κάνει κάποιος για τον λογαριασμό του, και ζούσε κάτω από ένα κουμπί
+          αποσύνδεσης: η σειρά έλεγε ότι μετράει λιγότερο. Οι δύο ενέργειες που
+          απλώς περιγράφουν ή κλείνουν τη συνεδρία πήγαν από κάτω. */}
+      <SetRow title="Επαλήθευση δύο βημάτων"
+        desc="Ένα δεύτερο επίπεδο ασφάλειας, με εφαρμογή επαλήθευσης. Δουλεύει με οποιαδήποτε (Google Authenticator, Authy, Microsoft Authenticator, 1Password).">
 
         {mfaState === 'loading' && (
           <Spinner size={18} label="Έλεγχος κατάστασης…" />
         )}
 
         {mfaUnavailable && (
-          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 12, lineHeight: 1.5 }}>
+          <div style={{ ...TT.bodySm, color: 'var(--text-tertiary)' }}>
             Η επαλήθευση δύο βημάτων δεν είναι ενεργή για τον λογαριασμό ακόμη.
           </div>
         )}
 
         {/* OFF: όφελος + «Ενεργοποίηση» */}
         {mfaState === 'off' && !mfaUnavailable && (
-          <div style={{ marginTop: 12 }}>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5, marginBottom: 10 }}>
+          <div>
+            <div style={{ ...TT.bodySm, marginBottom: 10 }}>
               Ακόμη κι αν κάποιος μάθει τον κωδικό σου, δεν θα μπορεί να συνδεθεί χωρίς τον προσωρινό κωδικό από την εφαρμογή σου.
             </div>
-            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, marginBottom: 12 }}>
+            <div style={{ ...TT.bodySm, color: 'var(--text-tertiary)', marginBottom: 12 }}>
               Αφορά μόνο τον δικό σου λογαριασμό. Σε ομάδα, κάθε μέλος έχει δικό του λογαριασμό και δική του επαλήθευση, οπότε η ενεργοποίηση εδώ δεν επηρεάζει την πρόσβαση των υπολοίπων.
             </div>
             <Btn variant="primary" onClick={startEnroll} disabled={mfaBusy}>
               {mfaBusy ? 'Ενεργοποίηση…' : 'Ενεργοποίηση'}
             </Btn>
-            {mfaErr && (
-              <div style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, marginTop: 10, lineHeight: 1.5 }}>{mfaErr}</div>
-            )}
+            {mfaErr && <div style={{ ...note, color: 'var(--negative)' }}>{mfaErr}</div>}
           </div>
         )}
 
         {/* ENROLLING: QR + secret + 6ψήφιος κωδικός */}
         {mfaState === 'enrolling' && enrollFactor && (
-          <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, lineHeight: 1.5, marginBottom: 10 }}>
-                1. Σάρωσε τον κωδικό QR με την εφαρμογή επαλήθευσης (Google Authenticator προτεινόμενο, ή Authy, Microsoft Authenticator, 1Password)
+              <div style={{ ...TT.bodySm, color: 'var(--text-primary)', fontWeight: 600, marginBottom: 10 }}>
+                1. Σάρωσε τον κωδικό QR με την εφαρμογή επαλήθευσης
               </div>
               <div style={{ display: 'inline-flex', padding: 10, background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-default)' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={enrollFactor.qr} alt="Κωδικός QR επαλήθευσης" width={168} height={168} />
               </div>
-              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 12, marginBottom: 6 }}>
-                ή καταχώρησε τον κωδικό χειροκίνητα
+              <div style={{ ...TT.bodySm, color: 'var(--text-tertiary)', marginTop: 12, marginBottom: 6 }}>
+                ή καταχώρισε τον κωδικό χειροκίνητα
               </div>
-              <div style={{ fontFamily: T.font.mono, fontSize: 13, color: 'var(--text-primary)', userSelect: 'all', wordBreak: 'break-all', padding: '9px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: T.radius.inner }}>
+              <div style={{ ...TT.mono, userSelect: 'all', wordBreak: 'break-all', padding: '9px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: T.radius.inner }}>
                 {enrollFactor.secret}
               </div>
             </div>
             <div>
-              <label htmlFor="sec-mfa-code" style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, lineHeight: 1.5, marginBottom: 8, display: 'block' }}>
-                2. Καταχώρησε τον 6ψήφιο κωδικό από την εφαρμογή
+              <label htmlFor="sec-mfa-code" style={{ ...TT.bodySm, color: 'var(--text-primary)', fontWeight: 600, marginBottom: 8, display: 'block' }}>
+                2. Καταχώρισε τον εξαψήφιο κωδικό από την εφαρμογή
               </label>
               <input
                 id="sec-mfa-code" inputMode="numeric" maxLength={6} autoComplete="one-time-code" className="po-field"
@@ -362,57 +333,52 @@ export default function SecuritySettings() {
                 </Btn>
                 <Btn variant="secondary" onClick={cancelEnroll} disabled={mfaBusy}>Ακύρωση</Btn>
               </div>
-              {mfaErr && (
-                <div style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, marginTop: 10, lineHeight: 1.5 }}>{mfaErr}</div>
-              )}
+              {mfaErr && <div style={{ ...note, color: 'var(--negative)' }}>{mfaErr}</div>}
             </div>
           </div>
         )}
 
-        {/* ON: θετικό chip «Ενεργό» + απενεργοποίηση με διπλή επιβεβαίωση */}
+        {/* ON: η κατάσταση λέγεται ΜΙΑ φορά, και είναι το κουμπί που την αλλάζει.
+            Πριν, το ίδιο πράγμα γραφόταν τρεις φορές στη σειρά: ένα σήμα
+            «Ενεργό», μια πρόταση «Η επαλήθευση δύο βημάτων είναι ενεργή», και
+            από κάτω το κουμπί «Απενεργοποίηση» που το προϋποθέτει. */}
         {mfaState === 'on' && (
-          <div style={{ marginTop: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: T.radius.pill, color: 'var(--positive)', background: 'color-mix(in srgb, var(--positive) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--positive) 40%, transparent)', fontFamily: T.font.sans }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--positive)' }} />
-                Ενεργό
-              </span>
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5, marginBottom: 12 }}>
-              Η επαλήθευση δύο βημάτων είναι ενεργή.
-            </div>
+          <div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ ...TT.bodySm, color: 'var(--text-primary)', fontWeight: 700 }}>Ενεργή</span>
               <Btn variant="secondary" onClick={disableMfa} disabled={mfaBusy}>
                 {mfaBusy ? 'Απενεργοποίηση…' : confirmDisable ? 'Επιβεβαίωση απενεργοποίησης' : 'Απενεργοποίηση'}
               </Btn>
               {confirmDisable && !mfaBusy && (
-                <button
-                  type="button" onClick={() => setConfirmDisable(false)}
-                  style={{ background: 'none', border: 'none', padding: 0, color: 'var(--text-tertiary)', fontSize: 12, fontFamily: T.font.sans, cursor: 'pointer', textDecoration: 'underline' }}
-                >
-                  Ακύρωση
-                </button>
+                <Btn variant="ghost" onClick={() => setConfirmDisable(false)}>Ακύρωση</Btn>
               )}
             </div>
             {confirmDisable && (
-              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 10, lineHeight: 1.5 }}>
+              <div style={{ ...note, color: 'var(--text-tertiary)' }}>
                 Ο λογαριασμός σου θα προστατεύεται μόνο με τον κωδικό πρόσβασης.
               </div>
             )}
-            {mfaErr && (
-              <div style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, marginTop: 10, lineHeight: 1.5 }}>{mfaErr}</div>
-            )}
+            {mfaErr && <div style={{ ...note, color: 'var(--negative)' }}>{mfaErr}</div>}
           </div>
         )}
-      </div>
+      </SetRow>
 
-      {/* 5. Τι έρχεται (μία τίμια γραμμή, όχι ψεύτικο control) */}
-      <div style={{ paddingTop: 13 }}>
-        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
-          Η αναλυτική λίστα ενεργών συσκευών έρχεται σύντομα.
-        </div>
-      </div>
+      {/* 3. Τρέχουσα σύνδεση */}
+      <SetRow title="Τρέχουσα σύνδεση">
+        <SetList>
+          <SetFact label="Ηλεκτρονικό ταχυδρομείο" value={email || ABSENT} muted={!email} />
+          <SetFact label="Τελευταία σύνδεση" value={lastSignInText} muted={!lastSignIn} />
+        </SetList>
+      </SetRow>
 
-    </div>
+      {/* 4. Καθολική αποσύνδεση */}
+      <SetRow title="Καθολική αποσύνδεση"
+        desc="Κλείνει τη σύνδεση σε κάθε συσκευή και περιηγητή. Θα χρειαστεί να συνδεθείς ξανά.">
+        <Btn variant="secondary" onClick={signOutEverywhere} disabled={signingOut}>
+          {signingOut ? 'Αποσύνδεση…' : 'Αποσύνδεση από όλες τις συσκευές'}
+        </Btn>
+      </SetRow>
+
+    </SetList>
   );
 }

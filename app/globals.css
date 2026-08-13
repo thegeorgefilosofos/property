@@ -1677,6 +1677,19 @@ a.lp-link:hover { color: var(--accent) !important; filter: brightness(1.12); }
 .po-field { transition: border-color 0.15s, box-shadow 0.15s; }
 .po-field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
 
+/* ═══ Ο ΡΥΘΜΟΣ ΤΩΝ ΡΥΘΜΙΣΕΩΝ, ΓΡΑΜΜΕΝΟΣ ΜΙΑ ΦΟΡΑ ═════════════════════════════
+   Επτά αρχεία έγραφαν το ίδιο σχήμα «γραμμή ρύθμισης» με τρία διαφορετικά
+   περιθώρια (11, 12, 13 εικονοστοιχεία) και δικό του κάτω περίγραμμα το
+   καθένα. Δύο συνέπειες, και οι δύο ορατές: οι γραμμές δεν ανέπνεαν το ίδιο
+   από ενότητα σε ενότητα, και η τελευταία γραμμή κάθε κάρτας άφηνε ένα
+   περίγραμμα να κρέμεται δυο εικονοστοιχεία πάνω από το περίγραμμα της
+   κάρτας — δύο παράλληλες γραμμές που δεν σήμαιναν τίποτα.
+   Ο ρυθμός ανήκει στο δοχείο, όχι στη γραμμή: το πρώτο παιδί δεν σπρώχνει από
+   πάνω, το τελευταίο δεν κόβει από κάτω, όλα τα ενδιάμεσα ίσα. */
+.po-settings > * { padding: 13px 0; border-bottom: 1px solid var(--border-subtle); }
+.po-settings > *:first-child { padding-top: 0; }
+.po-settings > *:last-child { padding-bottom: 0; border-bottom: none; }
+
 /* Μενού ενεργειών (native <details>): κρύβει τον προεπιλεγμένο δείκτη, ώστε το
    summary να μοιάζει με κανονικό κουμπί του design system. */
 .po-menu > summary { list-style: none; cursor: pointer; }

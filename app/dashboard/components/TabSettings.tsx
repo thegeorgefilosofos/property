@@ -5,7 +5,7 @@
 // ειδοποιήσεις, δεδομένα & απόρρητο). Στυλ fintech: κάρτες, SecHdr, tokens.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { useState, useEffect, useRef, useId, type ReactNode } from 'react';
+import { useState, useEffect, useRef, useId, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
 // Οι ρυθμίσεις ανά ενότητα έχουν ένα σπίτι: lib/data/settings.
@@ -14,7 +14,8 @@ import * as settings from '@/lib/data/settings';
 import * as billing from '@/lib/data/billing';
 import NotificationSettings from './NotificationSettings';
 import { CustomSelect, Toggle } from './UIComponents';
-import { T, Card, SecHdr, Btn, TierBadge, InfoBanner, PageTitle, fdLong, fn, settingsField, ABSENT } from '@/components/Theme';
+import { T, TT, Card, SecHdr, Btn, TierBadge, InfoBanner, PageTitle, fdLong, fn, settingsField, ABSENT } from '@/components/Theme';
+import { SetList, SetRow, SaveNote, useAutosave } from './SettingsKit';
 import { AppPreferences, DEFAULT_PREFERENCES } from './useAppPreferences';
 import { downloadTableXlsx } from './exportCsv';
 import Billing from './Billing';
@@ -43,41 +44,29 @@ type ProfileType = 'individual' | 'professional';
 type S = Record<string, unknown>;
 
 // ── Κοινά δομικά κομμάτια της σελίδας ─────────────────────────────────────
+// Οι γραμμές ρύθμισης (τίτλος, εξήγηση, διακόπτης, «ετικέτα … τιμή») ζουν στο
+// SettingsKit — εδώ γράφονταν ξεχωριστά, με άλλα περιθώρια από τις υπόλοιπες
+// έξι ενότητες της ίδιας σελίδας.
 const divider = { borderTop: '1px solid var(--border-subtle)', paddingTop: 16, marginTop: 16 } as const;
 
-// Γραμμή «ετικέτα … τιμή» (στατικά στοιχεία, π.χ. email).
-function InfoLine({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, padding: '11px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-      <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{label}</span>
-      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{value}</span>
-    </div>
-  );
-}
-
-// Γραμμή ρύθμισης «τίτλος + περιγραφή … control».
-function SettingRow({ title, desc, control }: { title: string; desc?: string; control: ReactNode }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '13px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{title}</div>
-        {desc && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 3, lineHeight: 1.5 }}>{desc}</div>}
-      </div>
-      <div style={{ flexShrink: 0 }}>{control}</div>
-    </div>
-  );
-}
-
-// ── Ενότητα ρυθμίσεων που ελαχιστοποιείται (καθαρό, χωρίς «λίστα σουπερμάρκετ»).
-//    Ξεκινά κλειστή· ανοίγει με ένα κλικ. Η κεφαλίδα ακολουθεί το ίδιο στυλ SecHdr.
-function CollapsibleSection({ title, defaultOpen = false, delay, children }: { title: string; defaultOpen?: boolean; delay?: string; children: React.ReactNode }) {
+/**
+ * Ενότητα ρυθμίσεων που ελαχιστοποιείται. Ξεκινά κλειστή· ανοίγει με ένα κλικ.
+ *
+ * Η `hint` ΕΙΝΑΙ Ο ΛΟΓΟΣ ΠΟΥ ΤΟ ΚΛΕΙΣΤΟ ΔΕΝ ΕΙΝΑΙ ΚΡΥΦΟ. Έξι κλειστές
+ * κεφαλίδες η μία κάτω από την άλλη έλεγαν μόνο το όνομά τους: για να μάθει ο
+ * χρήστης αν το «Δεδομένα και απόρρητο» περιέχει τη διαγραφή λογαριασμού,
+ * έπρεπε να το ανοίξει. Τρεις λέξεις δίπλα στον τίτλο λύνουν έξι ανοίγματα, και
+ * σβήνουν μόλις η ενότητα ανοίξει, γιατί τότε το λέει το ίδιο το περιεχόμενο.
+ */
+function CollapsibleSection({ title, hint, defaultOpen = false, delay, children }: { title: string; hint?: string; defaultOpen?: boolean; delay?: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(defaultOpen);
   const panelId = useId();
   return (
     <Card className="acc-section" style={{ animationDelay: delay }}>
       <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} aria-controls={panelId} className="po-sec-toggle"
         style={{ appearance: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none', borderBottom: open ? '1px solid var(--border-subtle)' : 'none', background: 'transparent', width: '100%', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, padding: 0, textAlign: 'left', marginBottom: open ? 16 : 0, paddingBottom: open ? 10 : 0 }}>
-        <span style={{ flex: 1, minWidth: 0, fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>{title}</span>
+        <span style={{ ...TT.label, flex: 1, minWidth: 0 }}>{title}</span>
+        {hint && !open && <span style={{ ...TT.caption, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{hint}</span>}
         <svg aria-hidden="true" focusable="false" width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, transition: 'transform 0.2s cubic-bezier(0.2,0,0,1)', transform: open ? 'rotate(180deg)' : 'none' }}>
           <path d="M6 9l6 6 6-6" />
         </svg>
@@ -105,12 +94,11 @@ function AccountantLink({ userId }: { userId: string }) {
     if (data?.token) { const u = `${window.location.origin}/accountant/${data.token}`; setUrl(u); try { await navigator.clipboard.writeText(u); setCopied(true); setTimeout(() => setCopied(false), 2600); } catch { /* ignore */ } }
   };
   return (
-    <div style={divider}>
-      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 4 }}>Σύνδεσμος για τον λογιστή σου</div>
-      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginBottom: 12 }}>Δώσε στον λογιστή σου έναν ασφαλή σύνδεσμο μόνο ανάγνωσης με την εικόνα εσόδων και δαπανών των ακινήτων σου ανά έτος. Δεν βλέπει πελατολόγιο ούτε στοιχεία τρίτων.</div>
-      {url && <div style={{ fontFamily: T.font.mono, fontSize: 12, color: 'var(--accent)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '9px 12px', marginBottom: 10, wordBreak: 'break-all' }}>{url}</div>}
-      <Btn variant="secondary" onClick={gen} disabled={busy}>{busy ? 'Δημιουργία…' : copied ? 'Αντιγράφηκε ✓' : url ? 'Αντιγραφή συνδέσμου' : 'Δημιουργία συνδέσμου'}</Btn>
-    </div>
+    <SetRow title="Σύνδεσμος για τον λογιστή σου"
+      desc="Ασφαλής σύνδεσμος μόνο ανάγνωσης με την εικόνα εσόδων και δαπανών των ακινήτων σου ανά έτος. Ο λογιστής δεν βλέπει πελατολόγιο ούτε στοιχεία τρίτων.">
+      {url && <div style={{ ...TT.mono, fontSize: 12, color: 'var(--accent)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '9px 12px', marginBottom: 10, wordBreak: 'break-all' }}>{url}</div>}
+      <Btn variant="secondary" onClick={gen} disabled={busy}>{busy ? 'Δημιουργία…' : copied ? 'Αντιγράφηκε' : url ? 'Αντιγραφή συνδέσμου' : 'Δημιουργία συνδέσμου'}</Btn>
+    </SetRow>
   );
 }
 
@@ -122,52 +110,36 @@ function AccountantLink({ userId }: { userId: string }) {
 function MarketDataSharing({ userId }: { userId: string }) {
   const supabase = createClient();
   const [on, setOn] = useState(false);
-  const [decided, setDecided] = useState(true);   // αισιόδοξο: κρύβει το badge μέχρι να ξέρουμε
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
-    billing.profileOutcome<{ share_market_data: boolean | null; share_market_data_decided_at: string | null }>(
-      supabase, userId, 'share_market_data, share_market_data_decided_at')
+    billing.profileOutcome<{ share_market_data: boolean | null }>(supabase, userId, 'share_market_data')
       .then(({ data, error }) => {
         // Σφάλμα ανάγνωσης ⇒ μένουμε στο ΚΛΕΙΣΤΟ. Fail-closed: ένα πρόβλημα
         // δικτύου δεν επιτρέπεται να δείξει τον διακόπτη ανοιχτό και να
         // παραπλανήσει τον χρήστη ότι συμμετέχει ή ότι δεν συμμετέχει.
-        if (!error && data) {
-          setOn(data.share_market_data === true);
-          setDecided(data.share_market_data_decided_at != null);
-        } else if (!error) {
-          setDecided(false);                       // δεν υπάρχει προφίλ: ποτέ δεν ρωτήθηκε
-        }
+        if (!error && data) setOn(data.share_market_data === true);
         setLoaded(true);
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
   const toggle = async (v: boolean) => {
     setOn(v);
+    // Η ΧΡΟΝΟΣΗΜΑΝΣΗ ΜΕΝΕΙ, ΚΑΙ ΔΕΝ ΕΙΝΑΙ ΔΙΑΚΟΣΜΗΤΙΚΗ: το άρθρο 7§1 GDPR ζητά
+    // να μπορούμε να ΑΠΟΔΕΙΞΟΥΜΕ πότε δόθηκε η συγκατάθεση. Απλώς δεν την
+    // ανακοινώνει πια η οθόνη — ο διακόπτης λέει ήδη πού βρίσκεται.
     const { error } = await billing.save(supabase, userId,
       { share_market_data: v, share_market_data_decided_at: new Date().toISOString() });
-    if (error) { setOn(!v); return; }   // επαναφορά αν η αποθήκευση απέτυχε
-    setDecided(true);
+    if (error) setOn(!v);   // επαναφορά αν η αποθήκευση απέτυχε
   };
   return (
-    <div style={{ ...divider, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          Συνεισφορά στα δεδομένα κοινότητας
-          {loaded && !decided && (
-            <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '.01em', color: 'var(--text-tertiary)', border: '1px solid var(--border-default)', borderRadius: 100, padding: '2px 8px' }}>
-              Ανενεργό
-            </span>
-          )}
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>
-          Αν το ενεργοποιήσεις, τα ακίνητά σου συμμετέχουν <strong>ανώνυμα και συγκεντρωτικά</strong> στα δεδομένα
-          αγοράς ανά περιοχή (διάμεση απόδοση και τιμή), που βοηθούν κάθε ιδιοκτήτη να συγκρίνει ρεαλιστικά.
-          Δεν κοινοποιείται ποτέ μεμονωμένο ακίνητο, διεύθυνση ή στοιχείο σου· εμφανίζονται μόνο περιοχές με
-          τουλάχιστον πέντε ακίνητα. <strong>Είναι κλειστό εξ ορισμού</strong> και το ανοίγεις ή το κλείνεις όποτε θέλεις.
-        </div>
-      </div>
-      {loaded && <Toggle on={on} onChange={toggle} size="sm" />}
-    </div>
+    <SetRow title="Συνεισφορά στα δεδομένα κοινότητας"
+      control={loaded ? <Toggle on={on} onChange={toggle} size="sm" /> : null}
+      desc={<>
+        Αν το ενεργοποιήσεις, τα ακίνητά σου συμμετέχουν <strong>ανώνυμα και συγκεντρωτικά</strong> στα δεδομένα
+        αγοράς ανά περιοχή (διάμεση απόδοση και τιμή), που βοηθούν κάθε ιδιοκτήτη να συγκρίνει ρεαλιστικά.
+        Δεν κοινοποιείται ποτέ μεμονωμένο ακίνητο, διεύθυνση ή στοιχείο σου· εμφανίζονται μόνο περιοχές με
+        τουλάχιστον πέντε ακίνητα. Είναι κλειστό εξ ορισμού και το ανοίγεις ή το κλείνεις όποτε θέλεις.
+      </>} />
   );
 }
 
@@ -190,11 +162,8 @@ function DeleteAccount() {
   };
 
   return (
-    <div style={divider}>
-      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 4 }}>Διαγραφή λογαριασμού</div>
-      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 14, lineHeight: 1.55 }}>
-        Διαγράφει οριστικά τον λογαριασμό και όλα τα δεδομένα σου: ακίνητα, ενοικιαστές, πελάτες, δαπάνες, λογαριασμούς, έγγραφα και αρχεία. Η ενέργεια δεν αναιρείται. Αν θέλεις αντίγραφο, κάνε πρώτα την εξαγωγή δεδομένων παραπάνω.
-      </div>
+    <SetRow title="Διαγραφή λογαριασμού"
+      desc="Διαγράφει οριστικά τον λογαριασμό και όλα τα δεδομένα σου: ακίνητα, ενοικιαστές, πελάτες, δαπάνες, λογαριασμούς, έγγραφα και αρχεία. Η ενέργεια δεν αναιρείται. Αν θέλεις αντίγραφο, προηγείται η εξαγωγή δεδομένων παραπάνω.">
       {!open ? (
         // Ουδέτερο ως προεπιλογή· γίνεται κόκκινο μόνο στο hover/focus, ώστε να μη
         // «σπρώχνει» τον χρήστη προς την έξοδο, αλλά να είναι σαφές όταν το πλησιάζει.
@@ -231,32 +200,89 @@ function DeleteAccount() {
           </div>
         </div>
       )}
-    </div>
+    </SetRow>
   );
 }
 
 
+/**
+ * Στοιχείο ταυτότητας που αλλάζει: κλειστό δείχνει την τιμή, ανοιχτό γίνεται πεδίο.
+ *
+ * ΗΤΑΝ ΓΡΑΜΜΕΝΟ ΔΥΟ ΦΟΡΕΣ, ΚΑΙ ΤΟ «ΣΧΕΔΟΝ ΙΔΙΟ» ΦΑΙΝΟΤΑΝ. Η μία γραμμή έλεγε
+ * για την κενή τιμή «—» και η άλλη «Δεν έχει οριστεί»· η μία κρατούσε το
+ * μήνυμα σε πράσινο και η άλλη μόνο σε κόκκινο· η μία είχε ετικέτα «Νέο email»
+ * στην επεξεργασία και η άλλη «Όνομα ή επωνυμία». Τέσσερις μικρές αποκλίσεις σε
+ * δύο διαδοχικές γραμμές της ίδιας κάρτας. Τώρα μία φορά, με τα ίδια λόγια.
+ */
+function IdentityRow({ label, value, empty, type = 'text', placeholder, locked = false, hint, onSave }: {
+  label: string; value: string; empty: string;
+  type?: 'text' | 'email'; placeholder: string;
+  locked?: boolean; hint?: string;
+  onSave: (v: string) => Promise<{ ok: boolean; text: string } | null>;
+}) {
+  const [edit, setEdit] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const commit = async () => {
+    const v = draft.trim();
+    if (!v || v === value) { setEdit(false); return; }
+    setBusy(true); setMsg(null);
+    const res = await onSave(v);
+    setBusy(false); setMsg(res);
+    if (!res || res.ok) setEdit(false);
+  };
+
+  return (
+    <div>
+      {!edit ? (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: T.sp.lg }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ ...TT.bodySm }}>{label}</div>
+            <div style={{ ...TT.body, fontWeight: 600, color: value ? 'var(--text-primary)' : 'var(--text-tertiary)', marginTop: 2, overflowWrap: 'anywhere' }}>{value || empty}</div>
+          </div>
+          <button onClick={() => { setDraft(value); setMsg(null); setEdit(true); }} disabled={locked}
+            onMouseEnter={e => { if (!locked) e.currentTarget.style.color = 'var(--accent)'; }}
+            onMouseLeave={e => { if (!locked) e.currentTarget.style.color = 'var(--text-secondary)'; }}
+            style={{ appearance: 'none', border: 'none', background: 'transparent', cursor: locked ? 'default' : 'pointer', color: locked ? 'var(--text-tertiary)' : 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, padding: 0, flexShrink: 0, transition: 'color 0.15s' }}>
+            Αλλαγή
+          </button>
+        </div>
+      ) : (
+        <div>
+          <div style={{ ...TT.bodySm, marginBottom: 6 }}>{label}</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <input type={type} autoFocus value={draft} onChange={e => setDraft(e.target.value)} className="po-field"
+              aria-label={label} placeholder={placeholder} style={{ ...settingsField, flex: 1, minWidth: 200 }} />
+            <Btn variant="primary" onClick={commit} disabled={busy}>{busy ? 'Αποθήκευση…' : 'Αποθήκευση'}</Btn>
+            <Btn variant="secondary" onClick={() => setEdit(false)} disabled={busy}>Ακύρωση</Btn>
+          </div>
+        </div>
+      )}
+      {msg && <div style={{ ...TT.bodySm, marginTop: 8, color: msg.ok ? 'var(--text-secondary)' : 'var(--negative)' }}>{msg.text}</div>}
+      {hint && <div style={{ ...TT.caption, marginTop: 6 }}>{hint}</div>}
+    </div>
+  );
+}
+
 // ── Προφίλ: email (επεξεργάσιμο) + όνομα (μία αλλαγή ανά μήνα) ─────────────
+//
+// ΤΟ ΑΦΜ ΕΦΥΓΕ ΑΠΟ ΕΔΩ. Εμφανιζόταν ως τρίτη γραμμή, μόνο για ανάγνωση, ενώ
+// γράφεται και διορθώνεται στα «Στοιχεία τιμολόγησης». Ο χρήστης που ήθελε να
+// το αλλάξει το έβλεπε εδώ και δεν είχε πού να το πατήσει· χειρότερα, αν άλλαζε
+// τύπο παραστατικού σε «Απόδειξη», το πεδίο εξαφανιζόταν από την τιμολόγηση και
+// έμενε ορατό μόνο εδώ, οριστικά αμετάβλητο. Το στοιχείο ζει σε ένα σημείο:
+// εκεί που το γράφεις.
 function ProfileCard({ userId, email }: { userId: string; email: string }) {
   const supabase = createClient();
   const [name, setName] = useState('');
-  const [afm, setAfm] = useState('');
   const [changedAt, setChangedAt] = useState<string | null>(null);
 
-  const [emailEdit, setEmailEdit] = useState(false);
-  const [emailVal, setEmailVal] = useState('');
-  const [emailMsg, setEmailMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const [emailBusy, setEmailBusy] = useState(false);
-
-  const [nameEdit, setNameEdit] = useState(false);
-  const [nameVal, setNameVal] = useState('');
-  const [nameErr, setNameErr] = useState('');
-  const [nameBusy, setNameBusy] = useState(false);
-
   useEffect(() => {
-    billing.profile<{ full_name: string | null; afm: string | null; full_name_changed_at: string | null }>(
-      supabase, userId, 'full_name, afm, full_name_changed_at')
-      .then(data => { if (data) { setName(data.full_name || ''); setAfm(data.afm || ''); setChangedAt(data.full_name_changed_at || null); } });
+    billing.profile<{ full_name: string | null; full_name_changed_at: string | null }>(
+      supabase, userId, 'full_name, full_name_changed_at')
+      .then(data => { if (data) { setName(data.full_name || ''); setChangedAt(data.full_name_changed_at || null); } });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
@@ -265,90 +291,32 @@ function ProfileCard({ userId, email }: { userId: string; email: string }) {
   const daysLeft = changedAt ? Math.max(0, 30 - Math.floor((nowMs - new Date(changedAt).getTime()) / 86400000)) : 0;
   const nameLocked = daysLeft > 0;
 
-  const saveEmail = async () => {
-    const v = emailVal.trim();
-    if (!v || v === email) { setEmailEdit(false); return; }
-    setEmailBusy(true); setEmailMsg(null);
+  const saveEmail = async (v: string) => {
     const { error } = await supabase.auth.updateUser({ email: v });
-    setEmailBusy(false);
-    if (error) { setEmailMsg({ ok: false, text: 'Δεν ήταν δυνατή η αλλαγή. Δοκίμασε ξανά.' }); return; }
-    setEmailMsg({ ok: true, text: 'Σου στείλαμε σύνδεσμο επιβεβαίωσης στη νέα διεύθυνση.' });
-    setEmailEdit(false);
+    return error
+      ? { ok: false, text: 'Δεν ήταν δυνατή η αλλαγή. Δοκίμασε ξανά.' }
+      : { ok: true, text: 'Σου στείλαμε σύνδεσμο επιβεβαίωσης στη νέα διεύθυνση.' };
   };
-  const saveName = async () => {
-    const v = nameVal.trim();
-    if (!v || v === name || nameLocked) { setNameEdit(false); return; }
-    setNameBusy(true); setNameErr('');
+  const saveName = async (v: string) => {
     const nowIso = new Date().toISOString();
     const { error } = await billing.save(supabase, userId, { full_name: v, full_name_changed_at: nowIso });
-    setNameBusy(false);
-    if (error) { setNameErr(failed('Το όνομα δεν αποθηκεύτηκε', error)); return; }
-    setName(v); setChangedAt(nowIso); setNameEdit(false);
+    if (error) return { ok: false, text: failed('Το όνομα δεν αποθηκεύτηκε', error) };
+    setName(v); setChangedAt(nowIso);
+    return null;
   };
-
-  const editBtn = (onClick: () => void, disabled = false) => (
-    <button onClick={onClick} disabled={disabled}
-      onMouseEnter={e => { if (!disabled) e.currentTarget.style.color = 'var(--accent)'; }}
-      onMouseLeave={e => { if (!disabled) e.currentTarget.style.color = 'var(--text-secondary)'; }}
-      style={{ appearance: 'none', border: 'none', background: 'transparent', cursor: disabled ? 'default' : 'pointer', color: disabled ? 'var(--text-tertiary)' : 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, padding: 0, transition: 'color 0.15s' }}>
-      Αλλαγή
-    </button>
-  );
 
   return (
     <Card className="acc-section">
       <SecHdr label="Προφίλ" />
-
-      {/* Ηλεκτρονικό ταχυδρομείο */}
-      <div style={{ padding: '11px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-        {!emailEdit ? (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Ηλεκτρονικό ταχυδρομείο</div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginTop: 2, overflowWrap: 'anywhere' }}>{email || ABSENT}</div>
-            </div>
-            {editBtn(() => { setEmailVal(email); setEmailMsg(null); setEmailEdit(true); })}
-          </div>
-        ) : (
-          <div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 6 }}>Νέο email</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <input type="email" autoFocus value={emailVal} onChange={e => setEmailVal(e.target.value)} className="po-field" style={{ ...settingsField, flex: 1, minWidth: 200 }} placeholder="name@example.com" />
-              <Btn variant="primary" onClick={saveEmail} disabled={emailBusy}>{emailBusy ? 'Αποθήκευση…' : 'Αποθήκευση'}</Btn>
-              <Btn variant="secondary" onClick={() => setEmailEdit(false)} disabled={emailBusy}>Ακύρωση</Btn>
-            </div>
-          </div>
-        )}
-        {emailMsg && <div style={{ fontSize: 12, color: emailMsg.ok ? 'var(--positive)' : 'var(--negative)', fontFamily: T.font.sans, marginTop: 8, lineHeight: 1.5 }}>{emailMsg.text}</div>}
-      </div>
-
-      {/* Όνομα (μία αλλαγή / μήνα) */}
-      <div style={{ padding: '11px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-        {!nameEdit ? (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Όνομα</div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: name ? 'var(--text-primary)' : 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2 }}>{name || 'Δεν έχει οριστεί'}</div>
-            </div>
-            {editBtn(() => { setNameVal(name); setNameErr(''); setNameEdit(true); }, nameLocked)}
-          </div>
-        ) : (
-          <div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 6 }}>Όνομα ή επωνυμία</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <input autoFocus value={nameVal} onChange={e => setNameVal(e.target.value)} className="po-field" style={{ ...settingsField, flex: 1, minWidth: 200 }} placeholder="Το όνομά σου" />
-              <Btn variant="primary" onClick={saveName} disabled={nameBusy}>{nameBusy ? 'Αποθήκευση…' : 'Αποθήκευση'}</Btn>
-              <Btn variant="secondary" onClick={() => setNameEdit(false)} disabled={nameBusy}>Ακύρωση</Btn>
-            </div>
-          </div>
-        )}
-        {nameErr && <div style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, marginTop: 8 }}>{nameErr}</div>}
-        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 6, lineHeight: 1.5 }}>
-          {nameLocked ? `Το όνομα αλλάζει μία φορά τον μήνα. Θα μπορείς ξανά σε ${daysLeft} ${daysLeft === 1 ? 'ημέρα' : 'ημέρες'}.` : 'Το όνομα μπορεί να αλλάξει μία φορά τον μήνα.'}
-        </div>
-      </div>
-
-      {afm && <InfoLine label="ΑΦΜ" value={afm} />}
+      <SetList>
+        <IdentityRow label="Ηλεκτρονικό ταχυδρομείο" value={email} empty={ABSENT}
+          type="email" placeholder="ονομα@email.com" onSave={saveEmail} />
+        <IdentityRow label="Όνομα ή επωνυμία" value={name} empty={ABSENT}
+          placeholder="Το όνομά σου" locked={nameLocked} onSave={saveName}
+          hint={nameLocked
+            ? `Το όνομα αλλάζει μία φορά τον μήνα. Ξανά σε ${daysLeft} ${daysLeft === 1 ? 'ημέρα' : 'ημέρες'}.`
+            : 'Το όνομα αλλάζει μία φορά τον μήνα.'} />
+      </SetList>
     </Card>
   );
 }
@@ -369,14 +337,11 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   const [propertyCount, setPropertyCount] = useState<number | null>(null);
   const [inOrg, setInOrg] = useState(false);
 
-  // Ρυθμίσεις ακινήτου (μόνο για εξαγωγή CSV)
+  // Ρυθμίσεις ακινήτου (μόνο για την εξαγωγή τους σε φύλλο)
   const [s, setS] = useState<S>({});
 
-  // Προτιμήσεις εφαρμογής (κρατάμε μόνο τα δεκαδικά ορατά εδώ, χωρίς απώλεια των υπολοίπων)
+  // Προτιμήσεις εφαρμογής: κρατούνται ΟΛΕΣ, γράφεται πίσω το πλήρες αντικείμενο.
   const [prefs, setPrefs] = useState<AppPreferences>(DEFAULT_PREFERENCES);
-  const [prefsSaved, setPrefsSaved] = useState(false);
-  const [prefsErr, setPrefsErr] = useState(false);
-  const prefsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Ενιαία «Διαχείριση συνδρομής»: σύγκριση πλάνων + στοιχεία τιμολόγησης, σε μία
   // αποκάλυψη (κλειστή ως προεπιλογή, ώστε να μη μοιάζει με λίστα).
@@ -419,15 +384,17 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
 
   useEffect(() => { loadSettings(); loadPrefs(); }, [propertyId]);
 
+  const savePrefs = useCallback(async (next: AppPreferences) => {
+    const { error } = await settings.put(supabase, propertyId, userId, 'app_preferences', { ...next });
+    return !error;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [propertyId, userId]);
+  const { state: prefsState, schedule: schedulePrefs } = useAutosave(savePrefs);
+
   function updatePrefs(partial: Partial<AppPreferences>) {
     setPrefs(prev => {
       const next = { ...prev, ...partial };
-      if (prefsTimer.current) clearTimeout(prefsTimer.current);
-      prefsTimer.current = setTimeout(async () => {
-        const { error } = await settings.put(supabase, propertyId, userId, 'app_preferences', next);
-        if (error) { setPrefsErr(true); return; }
-        setPrefsErr(false); setPrefsSaved(true); setTimeout(() => setPrefsSaved(false), 1800);
-      }, 800);
+      schedulePrefs(next);
       return next;
     });
   }
@@ -478,7 +445,11 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   const proEligible = planAtLeast(effPlan, 'agency');
   const tier: 'owner' | 'agency' | 'partner' = partner ? 'partner' : profileType === 'professional' ? 'agency' : 'owner';
 
-  const exportSettingsCsv = () => {
+  // ΤΟ ΚΟΥΜΠΙ ΕΛΕΓΕ «CSV» ΚΑΙ ΚΑΤΕΒΑΖΕ EXCEL. Η συνάρτηση είναι
+  // `downloadTableXlsx` και το αρχείο που φτάνει στις λήψεις τελειώνει σε
+  // `.xlsx` — δηλαδή η οθόνη ονόμαζε λάθος αυτό που έκανε. Το όνομα ακολουθεί
+  // το αρχείο, όχι το αντίστροφο.
+  const exportSettingsSheet = () => {
     const rows = Object.entries(s as Record<string, unknown>).map(([k, v]) => [k, v == null ? '' : String(v)]);
     downloadTableXlsx(`Ρυθμίσεις ακινήτου ${athensToday()}`, {
       title: 'Ρυθμίσεις ακινήτου', headers: ['Πεδίο', 'Τιμή'], rows,
@@ -520,7 +491,12 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)', maxWidth: 880, margin: '0 auto' }}>
 
-      <PageTitle title="Λογαριασμός" sub="Προφίλ, συνδρομή, ειδοποιήσεις, ασφάλεια και τα δεδομένα σου" />
+      {/* Ο ΥΠΟΤΙΤΛΟΣ ΑΠΑΡΙΘΜΟΥΣΕ ΤΙΣ ΕΝΟΤΗΤΕΣ ΠΟΥ ΕΠΟΝΤΑΙ. «Προφίλ, συνδρομή,
+          ειδοποιήσεις, ασφάλεια και τα δεδομένα σου» — και από κάτω, με τη
+          σειρά: Προφίλ, Συνδρομή, Ειδοποιήσεις, Ασφάλεια, Δεδομένα. Ο ίδιος
+          κατάλογος δύο φορές, σε απόσταση σαράντα εικονοστοιχείων. Ο υπότιτλος
+          λέει τώρα τι ΕΙΝΑΙ η σελίδα· τι περιέχει το λένε οι κεφαλίδες της. */}
+      <PageTitle title="Λογαριασμός" sub="Ό,τι αφορά εσένα και τον έλεγχό σου πάνω στα δεδομένα σου" />
 
       {/* ── 1. ΠΡΟΦΙΛ ─────────────────────────────────────────────────── */}
       <ProfileCard userId={userId} email={accountEmail} />
@@ -699,117 +675,111 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
         </div>
       )}
 
+      {/* ═══ Η ΣΕΙΡΑ ΤΩΝ ΕΝΟΤΗΤΩΝ ΑΛΛΑΞΕ, ΚΑΙ ΕΙΝΑΙ ΑΠΟΦΑΣΗ ══════════════════
+          «Η γνώμη σου» και «Τι έρχεται» κάθονταν ΑΝΑΜΕΣΑ στις ειδοποιήσεις και
+          στην εμφάνιση: δύο μεγάλες, μόνιμα ανοιχτές κάρτες που έκοβαν στη μέση
+          τη στήλη των έξι ελαχιστοποιημένων ρυθμίσεων. Όποιος κατέβαινε για την
+          «Ασφάλεια» περνούσε πρώτα από ένα ερωτηματολόγιο και μια εφαρμογή
+          κινητού που δεν έχει βγει ακόμη.
+          Πρώτα ό,τι ρυθμίζεται, μετά ό,τι έρχεται και ό,τι μας λες. */}
+
       {/* ── ΟΡΓΑΝΙΣΜΟΣ & ΟΜΑΔΑ (Επαγγελματίας ή μέλος ομάδας) ───────────── */}
       {(profileType === 'professional' || inOrg) && (
-        <CollapsibleSection title="Οργανισμός και ομάδα" delay="110ms">
+        <CollapsibleSection title="Οργανισμός και ομάδα" hint="Μέλη και δικαιώματα" delay="110ms">
           <OrgTeam userId={userId} />
         </CollapsibleSection>
       )}
 
-      {/* ── 3. ΕΙΔΟΠΟΙΗΣΕΙΣ ──────────────────────────────────────────── */}
-      <CollapsibleSection title="Ειδοποιήσεις" delay="140ms">
+      <CollapsibleSection title="Ειδοποιήσεις" hint="Υπενθυμίσεις και μηνύματα" delay="140ms">
         <NotificationSettings userId={userId} />
       </CollapsibleSection>
 
-      {/* ── Η ΓΝΩΜΗ ΣΟΥ (εμφανές, πελατοκεντρικό) ─────────────────────── */}
-      <div className="acc-section" style={{ animationDelay: '170ms', marginBottom: T.sp.lg }}>
-        <Feedback target="general" />
-      </div>
-
-      {/* ── ΤΙ ΕΡΧΕΤΑΙ (εμφανές, χτίζει προσδοκία) ────────────────────── */}
-      <Card className="acc-section" style={{ animationDelay: '200ms' }}>
-        <SettingsRoadmap userId={userId} />
-      </Card>
-
-      {/* ── 4. ΕΜΦΑΝΙΣΗ & ΓΛΩΣΣΑ ──────────────────────────────────────── */}
-      <CollapsibleSection title="Εμφάνιση και γλώσσα" delay="210ms">
-        <SettingRow title="Θέμα" desc="Εναλλαγή ανάμεσα σε φωτεινό και σκοτεινό." control={<ThemeToggle />} />
-        {/* Η ΡΥΘΜΙΣΗ «ΔΕΚΑΔΙΚΑ ΣΤΑ ΠΟΣΑ» ΕΦΥΓΕ, ΚΑΙ ΔΕΝ ΕΛΕΙΨΕ ΣΕ ΚΑΝΕΝΑΝ.
-            Δεν τη διάβαζε ΟΥΤΕ ΕΝΑ σημείο της εφαρμογής: ο χρήστης άλλαζε την
-            επιλογή, η οθόνη έδειχνε ότι αποθηκεύτηκε, και δεν συνέβαινε τίποτα.
-            Ένας διακόπτης που δεν κάνει τίποτα είναι χειρότερος από απόντα —
-            διδάσκει ότι οι ρυθμίσεις δεν μετράνε.
-            Τα ποσά γράφονται πάντα με δύο δεκαδικά, γιατί αλλιώς η υποδιαστολή
-            κάθεται σε άλλη θέση σε κάθε γραμμή και η στήλη σπάει. */}
-        <SettingRow title="Ορίζοντας προθεσμιών" desc="Πόσο μπροστά κοιτά η λίστα «Τι χρειάζεται τώρα» στην αρχική οθόνη. Ό,τι είναι πιο μακριά ζει στο Ημερολόγιο και στις Εκκρεμότητες. Οι εκπρόθεσμες εμφανίζονται πάντα, όποια τιμή κι αν επιλέξεις."
-          control={<div style={{ width: 264 }}>
-            <CustomSelect value={String(prefs.agendaHorizonDays)}
-              onChange={v => updatePrefs({ agendaHorizonDays: Number(v) as AppPreferences['agendaHorizonDays'] })}
-              options={[
-                { value: '30',  label: 'Επόμενος μήνας (30 ημέρες)' },
-                { value: '60',  label: 'Δύο μήνες (60 ημέρες)' },
-                { value: '90',  label: 'Τρίμηνο (90 ημέρες)' },
-                { value: '180', label: 'Εξάμηνο (180 ημέρες)' },
-                { value: '365', label: 'Ολόκληρο έτος (365 ημέρες)' },
-              ]} />
-          </div>} />
-        <SettingRow title="Μειωμένη κίνηση" desc="Περιορίζει τα εφέ κίνησης σε όλη την εφαρμογή, για πιο ήρεμη εμπειρία."
-          control={<Toggle on={reduceMotion} onChange={v => setA11y('po_reduce_motion', 'a11y-reduce-motion', v, setReduceMotion)} size="sm" />} />
-        <SettingRow title="Μεγαλύτερο κείμενο" desc="Ήπια μεγέθυνση της διεπαφής για πιο άνετη ανάγνωση."
-          control={<Toggle on={largeText} onChange={v => setA11y('po_large_text', 'a11y-large-text', v, setLargeText)} size="sm" />} />
-        {/* ── ΤΟ «ΑΠΛΟΠΟΙΗΜΕΝΟ ΜΕΝΟΥ» ΕΦΥΓΕ ΑΠΟ ΕΔΩ ────────────────────────
-            Η ίδια προτίμηση ρυθμιζόταν σε δύο σημεία, με δύο ονόματα και
-            ΑΝΤΙΣΤΡΟΦΗ πολικότητα: στην πλαϊνή μπάρα ως «Όλες οι καρτέλες» /
-            «Λιγότερες καρτέλες», κι εδώ ως διακόπτης που είναι ΑΝΟΙΧΤΟΣ όταν
-            το `navShowAll` είναι ψευδές. Ο χρήστης που πατούσε «Όλες οι
-            καρτέλες» στη μπάρα και ερχόταν εδώ, έβρισκε έναν διακόπτη που
-            είχε κλείσει μόνος του.
-            Μένει η μπάρα: εκεί γίνεται η ενέργεια και εκεί φαίνεται αμέσως
-            το αποτέλεσμά της. Μια ρύθμιση που τη βλέπεις να συμβαίνει δεν
-            χρειάζεται δεύτερο διακόπτη σε άλλη οθόνη. */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 10, minHeight: 18 }}>
-          <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-            Γλώσσα: Ελληνικά · Νόμισμα: ευρώ (€)
-          </span>
-          {prefsErr
-            ? <span style={{ fontSize: 11, color: 'var(--negative)', fontFamily: T.font.sans }}>Δεν αποθηκεύτηκε. Δοκίμασε ξανά.</span>
-            : prefsSaved && (
-              <span style={{ fontSize: 11, color: 'var(--positive)', fontFamily: T.font.sans, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--positive)' }} />
-                Αποθηκεύτηκε
-              </span>
-            )}
-        </div>
+      <CollapsibleSection title="Εμφάνιση και γλώσσα" hint="Θέμα, κείμενο, προθεσμίες" delay="170ms">
+        <SetList>
+          <SetRow title="Θέμα" desc="Εναλλαγή ανάμεσα σε φωτεινό και σκοτεινό." control={<ThemeToggle />} />
+          {/* Η ΡΥΘΜΙΣΗ «ΔΕΚΑΔΙΚΑ ΣΤΑ ΠΟΣΑ» ΕΦΥΓΕ, ΚΑΙ ΔΕΝ ΕΛΕΙΨΕ ΣΕ ΚΑΝΕΝΑΝ.
+              Δεν τη διάβαζε ΟΥΤΕ ΕΝΑ σημείο της εφαρμογής: ο χρήστης άλλαζε την
+              επιλογή, η οθόνη έδειχνε ότι αποθηκεύτηκε, και δεν συνέβαινε τίποτα.
+              Ένας διακόπτης που δεν κάνει τίποτα είναι χειρότερος από απόντα —
+              διδάσκει ότι οι ρυθμίσεις δεν μετράνε.
+              Τα ποσά γράφονται πάντα με δύο δεκαδικά, γιατί αλλιώς η υποδιαστολή
+              κάθεται σε άλλη θέση σε κάθε γραμμή και η στήλη σπάει. */}
+          <SetRow title="Ορίζοντας προθεσμιών" desc="Πόσο μπροστά κοιτά η λίστα «Τι χρειάζεται τώρα» στην αρχική οθόνη. Ό,τι είναι πιο μακριά ζει στο Ημερολόγιο και στις Εκκρεμότητες. Οι εκπρόθεσμες εμφανίζονται πάντα, όποια τιμή κι αν επιλέξεις."
+            control={<div style={{ width: 264 }}>
+              <CustomSelect value={String(prefs.agendaHorizonDays)}
+                onChange={v => updatePrefs({ agendaHorizonDays: Number(v) as AppPreferences['agendaHorizonDays'] })}
+                options={[
+                  { value: '30',  label: 'Επόμενος μήνας (30 ημέρες)' },
+                  { value: '60',  label: 'Δύο μήνες (60 ημέρες)' },
+                  { value: '90',  label: 'Τρίμηνο (90 ημέρες)' },
+                  { value: '180', label: 'Εξάμηνο (180 ημέρες)' },
+                  { value: '365', label: 'Ολόκληρο έτος (365 ημέρες)' },
+                ]} />
+            </div>} />
+          <SetRow title="Μειωμένη κίνηση" desc="Περιορίζει τα εφέ κίνησης σε όλη την εφαρμογή, για πιο ήρεμη εμπειρία."
+            control={<Toggle on={reduceMotion} onChange={v => setA11y('po_reduce_motion', 'a11y-reduce-motion', v, setReduceMotion)} size="sm" />} />
+          <SetRow title="Μεγαλύτερο κείμενο" desc="Ήπια μεγέθυνση της διεπαφής για πιο άνετη ανάγνωση."
+            control={<Toggle on={largeText} onChange={v => setA11y('po_large_text', 'a11y-large-text', v, setLargeText)} size="sm" />} />
+          {/* ── ΤΟ «ΑΠΛΟΠΟΙΗΜΕΝΟ ΜΕΝΟΥ» ΕΦΥΓΕ ΑΠΟ ΕΔΩ ────────────────────────
+              Η ίδια προτίμηση ρυθμιζόταν σε δύο σημεία, με δύο ονόματα και
+              ΑΝΤΙΣΤΡΟΦΗ πολικότητα: στην πλαϊνή μπάρα ως «Όλες οι καρτέλες» /
+              «Λιγότερες καρτέλες», κι εδώ ως διακόπτης που είναι ΑΝΟΙΧΤΟΣ όταν
+              το `navShowAll` είναι ψευδές. Ο χρήστης που πατούσε «Όλες οι
+              καρτέλες» στη μπάρα και ερχόταν εδώ, έβρισκε έναν διακόπτη που
+              είχε κλείσει μόνος του.
+              Μένει η μπάρα: εκεί γίνεται η ενέργεια και εκεί φαίνεται αμέσως
+              το αποτέλεσμά της. Μια ρύθμιση που τη βλέπεις να συμβαίνει δεν
+              χρειάζεται δεύτερο διακόπτη σε άλλη οθόνη. */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: 18 }}>
+            <span style={{ ...TT.caption }}>Γλώσσα: Ελληνικά · Νόμισμα: ευρώ (€)</span>
+            <SaveNote state={prefsState} />
+          </div>
+        </SetList>
       </CollapsibleSection>
 
-      {/* ── ΑΣΦΑΛΕΙΑ ─────────────────────────────────────────────────── */}
-      <CollapsibleSection title="Ασφάλεια" delay="280ms">
+      <CollapsibleSection title="Ασφάλεια" hint="Κωδικός και επαλήθευση δύο βημάτων" delay="200ms">
         <SecuritySettings />
       </CollapsibleSection>
 
-      {/* ── ΔΡΑΣΤΗΡΙΟΤΗΤΑ (audit log) ─────────────────────────────────── */}
-      <CollapsibleSection title="Δραστηριότητα" delay="310ms">
+      <CollapsibleSection title="Δραστηριότητα" hint="Το ιστορικό των ενεργειών σου" delay="230ms">
         <ActivityLog />
       </CollapsibleSection>
 
-      {/* ── ΔΕΔΟΜΕΝΑ & ΑΠΟΡΡΗΤΟ ──────────────────────────────────────── */}
-      <CollapsibleSection title="Δεδομένα και απόρρητο" delay="340ms">
-        <SettingRow title="Εξαγωγή όλων των δεδομένων" desc="Κάθε εγγραφή που σας αφορά, σε ένα αρχείο JSON: ακίνητα, μισθώσεις, δαπάνες, λογαριασμοί, πελάτες, έγγραφα και ό,τι άλλο έχει καταχωρηθεί. Δικαίωμα φορητότητας δεδομένων."
-          control={<Btn variant="secondary" onClick={exportAll} disabled={exporting}>{exporting ? 'Εξαγωγή…' : 'Εξαγωγή όλων'}</Btn>} />
-        {exportErr && <div style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, marginTop: 8 }}>{exportErr}</div>}
-        {exportOk && <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginTop: 8 }}>{exportOk}</div>}
-        <SettingRow title="Εξαγωγή ρυθμίσεων ακινήτου" desc="Μόνο τις ρυθμίσεις αυτού του ακινήτου, σε αρχείο CSV για γρήγορη ματιά."
-          control={<Btn variant="secondary" onClick={exportSettingsCsv}>Εξαγωγή CSV</Btn>} />
-        <div style={{ marginTop: 12 }}>
-          <InfoBanner tone="info">Για αναλυτικά δεδομένα ανά κατηγορία, κάθε καρτέλα (δαπάνες, λογαριασμοί, ενοικιαστές) έχει και τη δική της εξαγωγή CSV.</InfoBanner>
-        </div>
-        <AccountantLink userId={userId} />
-        <MarketDataSharing userId={userId} />
-        {/* Η εμπιστοσύνη δεν είναι μόνο για τη σελίδα πωλήσεων: ο υπάρχων χρήστης
-            πρέπει να βρίσκει με ένα κλικ πού ζουν τα δεδομένα του και ποιοι είμαστε. */}
-        <div style={divider}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 4 }}>Πού φυλάσσονται τα δεδομένα σου</div>
-          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginBottom: 12 }}>
-            Ποιοι είμαστε, σε ποια χώρα βρίσκονται τα δεδομένα σου, ποιος μπορεί να τα δει και τι δεν κάνουμε ποτέ μ’ αυτά.
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <a href="/trust" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}><Btn variant="secondary">Ποιοι είμαστε</Btn></a>
-            <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}><Btn variant="ghost">Πολιτική απορρήτου</Btn></a>
-            <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}><Btn variant="ghost">Όροι χρήσης</Btn></a>
-          </div>
-        </div>
-        <DeleteAccount />
+      <CollapsibleSection title="Δεδομένα και απόρρητο" hint="Εξαγωγή, λογιστής, διαγραφή" delay="260ms">
+        <SetList>
+          <SetRow title="Εξαγωγή όλων των δεδομένων" desc="Κάθε εγγραφή που σε αφορά, σε ένα αρχείο JSON: ακίνητα, μισθώσεις, δαπάνες, λογαριασμοί, πελάτες, έγγραφα και ό,τι άλλο έχει καταχωριστεί. Δικαίωμα φορητότητας δεδομένων."
+            control={<Btn variant="secondary" onClick={exportAll} disabled={exporting}>{exporting ? 'Εξαγωγή…' : 'Εξαγωγή όλων'}</Btn>}>
+            {exportErr && <div style={{ ...TT.bodySm, color: 'var(--negative)' }}>{exportErr}</div>}
+            {exportOk && <div style={{ ...TT.bodySm }}>{exportOk}</div>}
+          </SetRow>
+          <SetRow title="Εξαγωγή ρυθμίσεων ακινήτου" desc="Μόνο τις ρυθμίσεις αυτού του ακινήτου, σε φύλλο Excel για γρήγορη ματιά. Για αναλυτικά δεδομένα ανά κατηγορία, κάθε καρτέλα έχει και τη δική της εξαγωγή."
+            control={<Btn variant="secondary" onClick={exportSettingsSheet}>Εξαγωγή Excel</Btn>} />
+          <AccountantLink userId={userId} />
+          <MarketDataSharing userId={userId} />
+          {/* Η εμπιστοσύνη δεν είναι μόνο για τη σελίδα πωλήσεων: ο υπάρχων χρήστης
+              πρέπει να βρίσκει με ένα κλικ πού ζουν τα δεδομένα του και ποιοι είμαστε. */}
+          <SetRow title="Πού φυλάσσονται τα δεδομένα σου"
+            desc="Ποιοι είμαστε, σε ποια χώρα βρίσκονται τα δεδομένα σου, ποιος μπορεί να τα δει και τι δεν κάνουμε ποτέ μ’ αυτά.">
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <a href="/trust" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}><Btn variant="secondary">Ποιοι είμαστε</Btn></a>
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}><Btn variant="ghost">Πολιτική απορρήτου</Btn></a>
+              <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}><Btn variant="ghost">Όροι χρήσης</Btn></a>
+            </div>
+          </SetRow>
+          <DeleteAccount />
+        </SetList>
       </CollapsibleSection>
+
+      {/* ── ΤΙ ΕΡΧΕΤΑΙ, ΚΑΙ ΜΕΤΑ Η ΓΝΩΜΗ ΣΟΥ ─────────────────────────────
+          Στο τέλος, όχι επειδή μετρούν λιγότερο, αλλά επειδή δεν είναι
+          ρυθμίσεις: κοιτούν μπροστά, ενώ όλα τα παραπάνω ρυθμίζουν το τώρα. */}
+      <Card className="acc-section" style={{ animationDelay: '290ms' }}>
+        <SettingsRoadmap userId={userId} />
+      </Card>
+
+      <div className="acc-section" style={{ animationDelay: '320ms', marginBottom: T.sp.lg }}>
+        <Feedback target="general" />
+      </div>
 
     </div>
   );

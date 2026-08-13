@@ -304,7 +304,7 @@ export default function TabComparison({ properties, userId }: Props) {
     return vals.filter(x => x.v === win.v).length > 1 ? null : win.id;
   };
 
-  // ── Εξαγωγή CSV (μορφή Ελληνικού Excel: διαχωριστικό «;», κόμμα δεκαδικών,
+  // ── Εξαγωγή σε φύλλο Excel (μορφή Ελληνικού Excel: κόμμα δεκαδικών,
   //    UTF-8 BOM ώστε να φαίνονται σωστά τα ελληνικά). Χρήσιμο για λογιστή. ──
   const exportCSV = () => {
     // Κοινοί, τυποποιημένοι formatters: «1.234,56 €», «5,20 %», «85,5» (τ.μ.).

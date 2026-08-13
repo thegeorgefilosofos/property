@@ -691,7 +691,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
       </p>
 
       {(list.length > 0 || rewards.length > 0) && (
-        <div style={{ marginTop: 14 }}><ExportButton onClick={exportMyData} label="Εξαγωγή των δεδομένων μου (CSV)" /></div>
+        <div style={{ marginTop: 14 }}><ExportButton onClick={exportMyData} label="Εξαγωγή των δεδομένων μου" /></div>
       )}
     </div>
   );
