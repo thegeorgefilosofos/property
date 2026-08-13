@@ -629,6 +629,12 @@ export interface InventoryItemsRow {
   created_at: string | null;
   updated_at: string | null;
   energy_class: string | null;
+  // ── Κατανάλωση: τρεις τρόποι, γιατί η ενεργειακή ετικέτα της ΕΕ δηλώνει
+  //    διαφορετικό μέγεθος ανά είδος συσκευής. Δες lib/property/energy.ts.
+  energy_mode: string | null;
+  kwh_per_100_cycles: number | null;
+  cycles_per_month: number | null;
+  annual_kwh: number | null;
   power_watts: number | null;
   daily_hours_use: number | null;
   standby_watts: number | null;

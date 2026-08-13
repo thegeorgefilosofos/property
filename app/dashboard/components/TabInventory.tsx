@@ -14,6 +14,7 @@ import { downloadTableXlsx } from './exportCsv'
 import { money as csvEur, percent as csvPct } from './xlsxStyle'
 import { depreciate, replacementSuggestion, portfolioSummary, NOT_TAX_DEPRECIATION_NOTE } from '@/lib/inventory/depreciation'
 import { formFields, INVENTORY_FIELDS, type FieldContext, type FieldDecision } from '@/lib/property/fields'
+import { monthlyKwh, monthlyEnergyCost, suggestedEnergyMode, ENERGY_MODE_LABEL, type EnergyMode, type EnergyInput } from '@/lib/property/energy'
 import { readStatus, statusLabel, type StatusRow } from '@/lib/property/status'
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rPct, rEsc, rDate } from './reportPdf'
 import { uploadUserScoped } from '@/lib/storage/scopedUpload';
@@ -84,6 +85,8 @@ interface InventoryItem {
   purchase_date: string; warranty_expiry: string; condition: string
   notes: string; photo_url: string; photos: string[]
   energy_class: string; power_watts: number; daily_hours_use: number
+  // Τρεις τρόποι μέτρησης κατανάλωσης — δες lib/property/energy.ts.
+  energy_mode: EnergyMode | null; kwh_per_100_cycles: number; cycles_per_month: number; annual_kwh: number
   replacement_cost: number
   // ΠΑΛΙΕΣ ΣΤΗΛΕΣ, ΔΕΝ ΓΡΑΦΟΝΤΑΙ ΠΙΑ. Μένουν στον τύπο επειδή μένουν στη βάση και
   // το select('*') τις επιστρέφει: τα δεδομένα όσων τις συμπλήρωσαν δεν χάνονται.
@@ -211,11 +214,19 @@ const calcAgeDisplay = (d: string) => {
 }
 // Χωρίς «κατανάλωση αναμονής»: κανείς δεν ξέρει τα standby watt του ψυγείου του,
 // άρα το πεδίο έμενε κενό και πρόσθετε μόνο άλλη μία σειρά στη φόρμα.
-const calcMonthlyKwh = (item: InventoryItem) => {
-  if (!item.power_watts||!item.daily_hours_use) return 0
-  return Math.round(((item.power_watts/1000)*item.daily_hours_use*30)*10)/10
-}
-const calcMonthlyCost = (item: InventoryItem, price: number) => Math.round(calcMonthlyKwh(item)*price*100)/100
+// ═══════════════════════════════════════════════════════════════════════════
+// Η ΚΑΤΑΝΑΛΩΣΗ ΔΕΝ ΥΠΟΛΟΓΙΖΕΤΑΙ ΠΙΑ ΕΔΩ
+// ─────────────────────────────────────────────────────────────────────────
+// Ήταν `Watt × ώρες × 30`, πάντα, για κάθε συσκευή. Σωστό για κλιματιστικό,
+// χωρίς νόημα για πλυντήριο: η ενεργειακή ετικέτα δεν δηλώνει Watt, δηλώνει
+// kWh ανά 100 κύκλους — και ο παλιός τύπος έβγαζε δεκαεπταπλάσιο νούμερο.
+// Η λογική ζει στο lib/property/energy.ts με τους τρεις τρόπους της, και
+// επιστρέφει `null` όταν λείπουν τα στοιχεία: το μηδέν θα σήμαινε «δεν
+// καταναλώνει», που είναι άλλο πράγμα από «δεν το ξέρουμε».
+const calcMonthlyKwh = (item: InventoryItem) => monthlyKwh(item) ?? 0
+const calcMonthlyCost = (item: InventoryItem, price: number) => monthlyEnergyCost(item, price) ?? 0
+/** Έχει αρκετά στοιχεία ώστε να ΞΕΡΟΥΜΕ την κατανάλωσή του; */
+const hasEnergy = (item: InventoryItem) => monthlyKwh(item) != null
 // Ήταν `fmtEur` (μηδέν δεκαδικά) και `fmtEurC` (δύο) — δύο ονόματα για το ίδιο
 // πράγμα από τη στιγμή που τα δεκαδικά έπαψαν να είναι επιλογή του κάθε σημείου.
 // Δύο ονόματα σημαίνουν δύο πιθανές απαντήσεις στο «πώς γράφεται ένα ποσό εδώ».
@@ -658,7 +669,7 @@ function BulkImportModal({propertyId,userId,onImported,onClose}:{propertyId:stri
 const EMPTY_ITEM: Partial<InventoryItem> = {
   name:'',category:'Ηλεκτρικές Συσκευές',room:'',brand:'',model:'',serial_number:'',
   purchase_value:0,purchase_date:'',warranty_expiry:'',condition:'Καλή',notes:'',
-  photo_url:'',photos:[],energy_class:'',power_watts:0,daily_hours_use:0,
+  photo_url:'',photos:[],energy_class:'',energy_mode:null,kwh_per_100_cycles:0,cycles_per_month:0,annual_kwh:0,power_watts:0,daily_hours_use:0,
   replacement_cost:0,
 }
 
@@ -731,8 +742,11 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
   // συγκεκριμένο πεδίο· να το ψάξει πίσω από κουμπί θα ήταν εχθρικό.
   const [manual,setManual] = useState<boolean>(!!item)
   const revealed = manual || (form.photos||[]).length>0
-  const liveKwh = (form.power_watts||0)>0&&(form.daily_hours_use||0)>0
-    ? ((form.power_watts||0)/1000)*(form.daily_hours_use||0)*30 : 0
+  // Ο αποθηκευμένος τρόπος, αλλιώς η πρόταση της κατηγορίας. Η πρόταση ΔΕΝ
+  // γράφεται σιωπηλά στη βάση: γράφεται μόνο αν ο χρήστης αποθηκεύσει, οπότε
+  // ένα άνοιγμα της φόρμας δεν αλλάζει δεδομένα.
+  const energyMode = (form.energy_mode || suggestedEnergyMode(form.category) || 'hours') as EnergyMode
+  const liveKwh = monthlyKwh({ ...form, energy_mode: energyMode } as EnergyInput) ?? 0
   const handleSave = async() => {
     if(!form.name?.trim()){notifyError('Το όνομα είναι υποχρεωτικό.');return}
     const primaryUrl = form.photo_url||(form.photos&&form.photos.length>0?form.photos[0]:'')
@@ -965,12 +979,44 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
           <Field d={f('inv.energy_class')}>
             <CustomSelect value={form.energy_class||''} onChange={v=>set('energy_class',v)} options={[{value:'',label:'Δεν γνωρίζω'},...ENERGY_CLASSES.map(c=>({value:c,label:c}))]}/>
           </Field>
-          <Field d={f('inv.power_use')}>
-            <div style={{...formGrid(160, 220),gap:12}}>
-              <NumberInput ariaLabel="Ισχύς σε βατ" value={blankIfZero(form.power_watts)} onChange={v=>set('power_watts',parseFloat(v)||0)} suffix="W" min={0}/>
-              <NumberInput ariaLabel="Ώρες χρήσης ανά ημέρα" value={blankIfZero(form.daily_hours_use)} onChange={v=>set('daily_hours_use',parseFloat(v)||0)} suffix="ώρες/ημέρα" min={0} max={24}/>
-            </div>
-          </Field>
+          {/* ═══ ΤΡΕΙΣ ΤΡΟΠΟΙ, ΓΙΑΤΙ Η ΕΤΙΚΕΤΑ ΔΗΛΩΝΕΙ ΔΙΑΦΟΡΕΤΙΚΟ ΜΕΓΕΘΟΣ ══════
+              Η φόρμα ρωτούσε ΠΑΝΤΑ Watt και ώρες την ημέρα. Το πλυντήριο όμως
+              δεν δουλεύει ώρες την ημέρα, δουλεύει κύκλους — και η ενεργειακή
+              του ετικέτα δεν γράφει πουθενά Watt: γράφει kWh ανά 100 κύκλους.
+              Το ψυγείο γράφει kWh τον χρόνο. Ζητούσαμε δηλαδή νούμερα που δεν
+              υπάρχουν πάνω στη συσκευή, και βγάζαμε κόστος δεκαεπτά φορές πάνω
+              από το πραγματικό.
+
+              Ο ΤΡΟΠΟΣ ΠΡΟΤΕΙΝΕΤΑΙ ΑΠΟ ΤΗΝ ΚΑΤΗΓΟΡΙΑ ΚΑΙ ΑΛΛΑΖΕΙ. Η κατηγορία
+              «Ηλεκτρικές Συσκευές» χωράει και πλυντήριο και ψυγείο, οπότε η
+              πρόταση θα πέφτει έξω τις μισές φορές· γι' αυτό αποθηκεύεται και
+              δεν συνάγεται κάθε φορά από το είδος. */}
+          <div>
+            <label style={labelStyle}>Πώς μετριέται</label>
+            <CustomSelect value={energyMode} onChange={v=>set('energy_mode',v as EnergyMode)}
+              options={(['cycles','annual','hours'] as const).map(m=>({value:m,label:ENERGY_MODE_LABEL[m]}))}/>
+          </div>
+          {energyMode==='cycles'&&(
+            <Field d={f('inv.power_use')}>
+              <div style={{...formGrid(160, 220),gap:12}}>
+                <NumberInput ariaLabel="Κιλοβατώρες ανά 100 κύκλους" value={blankIfZero(form.kwh_per_100_cycles)} onChange={v=>set('kwh_per_100_cycles',parseFloat(v)||0)} suffix="kWh/100" min={0}/>
+                <NumberInput ariaLabel="Κύκλοι ανά μήνα" value={blankIfZero(form.cycles_per_month)} onChange={v=>set('cycles_per_month',parseFloat(v)||0)} suffix="φορές/μήνα" min={0}/>
+              </div>
+            </Field>
+          )}
+          {energyMode==='annual'&&(
+            <Field d={f('inv.power_use')}>
+              <NumberInput ariaLabel="Κιλοβατώρες ανά έτος" value={blankIfZero(form.annual_kwh)} onChange={v=>set('annual_kwh',parseFloat(v)||0)} suffix="kWh/έτος" min={0}/>
+            </Field>
+          )}
+          {energyMode==='hours'&&(
+            <Field d={f('inv.power_use')}>
+              <div style={{...formGrid(160, 220),gap:12}}>
+                <NumberInput ariaLabel="Ισχύς σε βατ" value={blankIfZero(form.power_watts)} onChange={v=>set('power_watts',parseFloat(v)||0)} suffix="W" min={0}/>
+                <NumberInput ariaLabel="Ώρες χρήσης ανά ημέρα" value={blankIfZero(form.daily_hours_use)} onChange={v=>set('daily_hours_use',parseFloat(v)||0)} suffix="ώρες/ημέρα" min={0} max={24}/>
+              </div>
+            </Field>
+          )}
           {/* ΤΟ ΚΟΣΤΟΣ ΕΜΦΑΝΙΖΕΤΑΙ ΜΟΝΟ ΜΕ ΔΗΛΩΜΕΝΗ ΤΙΜΗ ΡΕΥΜΑΤΟΣ. Πριν, εδώ
               πολλαπλασιαζόταν με σταθερά 0,22 €/kWh — νούμερο που κανείς δεν είχε
               δηλώσει και που άλλαζε το συμπέρασμα κάθε συσκευής. */}
@@ -1180,7 +1226,7 @@ function AttentionCard({items,onEdit,onWarrantyReminder}:{items:InventoryItem[];
 // υπάρχει τι να δείξουν: χωρίς μετρημένη κατανάλωση δεν υπάρχει κάρτα ρεύματος.
 function AnalysisCards({items,repairs,kwhPrice,kwhControl}:{items:InventoryItem[];repairs:InventoryRepair[];kwhPrice:number;kwhControl?:React.ReactNode}) {
   const totalRepairs = repairs.reduce((s,r)=>s+(r.cost||0),0)
-  const electricItems = items.filter(i=>i.power_watts>0&&i.daily_hours_use>0)
+  const electricItems = items.filter(hasEnergy)
   const byCategory = [...INVENTORY_CATEGORIES].map(cat=>{const ci=items.filter(i=>i.category===cat);return{cat,count:ci.length,val:ci.reduce((s,i)=>s+calcCurrentValue(i),0)}}).filter(x=>x.count>0)
   const maxVal = Math.max(...byCategory.map(x=>x.val),1)
   const topEnergy = [...electricItems].sort((a,b)=>calcMonthlyCost(b,kwhPrice)-calcMonthlyCost(a,kwhPrice)).slice(0,5)
@@ -1923,7 +1969,7 @@ function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{items:Inven
 function inventoryExports({items,repairs,kwhPrice}:{items:InventoryItem[];repairs:InventoryRepair[];kwhPrice:number}) {
   const totalCurrent=items.reduce((s,i)=>s+calcCurrentValue(i),0)
   const totalRepairs=repairs.reduce((s,r)=>s+(r.cost||0),0)
-  const electricItems=items.filter(i=>i.power_watts>0&&i.daily_hours_use>0)
+  const electricItems=items.filter(hasEnergy)
   const totalMonthlyCost=electricItems.reduce((s,i)=>s+calcMonthlyCost(i,kwhPrice),0)
   // Η ασφαλιστέα αξία είναι ΜΟΝΟ ό,τι έχει δηλωθεί ως κόστος αντικατάστασης.
   // Το «τρέχουσα × 1,1» έφυγε από παντού: έβγαζε νούμερο για κάθε αντικείμενο,
@@ -1947,14 +1993,14 @@ function inventoryExports({items,repairs,kwhPrice}:{items:InventoryItem[];repair
   const exportCSV=()=>{
     downloadTableXlsx('Απογραφή ακινήτου', {
       title: 'Απογραφή ακινήτου',
-      headers:['Ονομασία','Κατηγορία','Δωμάτιο','Μάρκα','Μοντέλο','Σειριακός','Κατάσταση','Αξία αγοράς (€)','Εκτιμώμενη υπολειπόμενη αξία (€)','Ποσοστό υπολειπόμενης αξίας','Κόστος αντικατάστασης (€)','Ενεργειακή κλάση','Watt','Ώρες ανά ημέρα','kWh ανά μήνα','Κόστος ρεύματος ανά μήνα (€)','Ηλικία','Ημερομηνία αγοράς','Λήξη εγγύησης','Σημειώσεις'],
-      rows: items.map(i=>[i.name,i.category,i.room,i.brand,i.model,i.serial_number,i.condition,i.purchase_value||'',calcCurrentValue(i),Math.max(0,100-calcDepreciationPct(i)),i.replacement_cost||'',i.energy_class||'',i.power_watts||'',i.daily_hours_use||'',calcMonthlyKwh(i)||'',kwhPrice>0?calcMonthlyCost(i,kwhPrice):'',calcAgeDisplay(i.purchase_date),i.purchase_date,i.warranty_expiry,i.notes]),
+      headers:['Ονομασία','Κατηγορία','Δωμάτιο','Μάρκα','Μοντέλο','Σειριακός','Κατάσταση','Αξία αγοράς (€)','Εκτιμώμενη υπολειπόμενη αξία (€)','Ποσοστό υπολειπόμενης αξίας','Κόστος αντικατάστασης (€)','Ενεργειακή κλάση','Τρόπος μέτρησης','kWh ανά 100 κύκλους','Κύκλοι ανά μήνα','kWh ανά έτος','Watt','Ώρες ανά ημέρα','kWh ανά μήνα','Κόστος ρεύματος ανά μήνα (€)','Ηλικία','Ημερομηνία αγοράς','Λήξη εγγύησης','Σημειώσεις'],
+      rows: items.map(i=>[i.name,i.category,i.room,i.brand,i.model,i.serial_number,i.condition,i.purchase_value||'',calcCurrentValue(i),Math.max(0,100-calcDepreciationPct(i)),i.replacement_cost||'',i.energy_class||'',i.energy_mode?ENERGY_MODE_LABEL[i.energy_mode]:'',i.kwh_per_100_cycles||'',i.cycles_per_month||'',i.annual_kwh||'',i.power_watts||'',i.daily_hours_use||'',hasEnergy(i)?calcMonthlyKwh(i):'',kwhPrice>0?calcMonthlyCost(i,kwhPrice):'',calcAgeDisplay(i.purchase_date),i.purchase_date,i.warranty_expiry,i.notes]),
     })
   }
   const exportPDF=()=>{
     const byCat=[...INVENTORY_CATEGORIES].map(cat=>{const ci=items.filter(i=>i.category===cat);return{cat,count:ci.length,val:ci.reduce((s,i)=>s+calcCurrentValue(i),0)}}).filter(x=>x.count>0)
     const catRows=byCat.sort((a,b)=>b.val-a.val).map(({cat,count,val})=>reportRow(`${cat} (${count})`,rEur(val))).join('')
-    const detailRows=items.map(i=>`<tr><td><strong>${rEsc(i.name)}</strong>${i.brand?`<br><small class="muted">${rEsc(i.brand)} ${rEsc(i.model||'')}</small>`:''}</td><td>${rEsc(i.energy_class||ABSENT)}</td><td>${rEsc(i.condition)}</td><td class="n">${rEsc(rEur(i.purchase_value||0))}</td><td class="n">${rEsc(rEur(calcCurrentValue(i)))}</td><td class="n">${rEsc(rPct(Math.max(0,100-calcDepreciationPct(i))))}</td><td class="n">${rEsc(rEur(i.replacement_cost||0))}</td><td class="n">${rEsc(calcMonthlyKwh(i)+' kWh')}</td><td>${rEsc(i.warranty_expiry?fmtDate(i.warranty_expiry):ABSENT_DATE)}</td></tr>`).join('')
+    const detailRows=items.map(i=>`<tr><td><strong>${rEsc(i.name)}</strong>${i.brand?`<br><small class="muted">${rEsc(i.brand)} ${rEsc(i.model||'')}</small>`:''}</td><td>${rEsc(i.energy_class||ABSENT)}</td><td>${rEsc(i.condition)}</td><td class="n">${rEsc(rEur(i.purchase_value||0))}</td><td class="n">${rEsc(rEur(calcCurrentValue(i)))}</td><td class="n">${rEsc(rPct(Math.max(0,100-calcDepreciationPct(i))))}</td><td class="n">${rEsc(rEur(i.replacement_cost||0))}</td><td class="n">${rEsc(hasEnergy(i)?calcMonthlyKwh(i)+' kWh':ABSENT)}</td><td>${rEsc(i.warranty_expiry?fmtDate(i.warranty_expiry):ABSENT_DATE)}</td></tr>`).join('')
     const html = reportHead('Κατάσταση εξοπλισμού')
       + `<body><div class="page">`
       + reportHeader(null, 'Κατάσταση εξοπλισμού')
@@ -2223,7 +2269,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   const invSummary=portfolioSummary(items)
   const totalValue=items.reduce((s,i)=>s+calcCurrentValue(i),0)
   const categoryCount=new Set(items.map(i=>i.category)).size
-  const electricItems=items.filter(i=>i.power_watts>0&&i.daily_hours_use>0)
+  const electricItems=items.filter(hasEnergy)
   const monthlyKwh=electricItems.reduce((s,i)=>s+calcMonthlyKwh(i),0)
   const monthlyCost=electricItems.reduce((s,i)=>s+calcMonthlyCost(i,kwhPrice),0)
   const declaredRepl=items.filter(i=>(i.replacement_cost||0)>0)
