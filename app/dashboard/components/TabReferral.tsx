@@ -5,7 +5,7 @@ import { SITE } from '@/lib/core/site';
 import { downloadTableXlsx, csvDate } from './exportCsv';
 import { saved } from '@/components/dbWrite';
 import { drawQrToCanvas } from '@/lib/qr';
-import { T, TT, Badge, TierBadge, PageTitle, ExportButton, EmptyState, Modal, SkeletonKPIs, fn, fixedCols } from '@/components/Theme';
+import { T, TT, Badge, TierBadge, PageTitle, ExportButton, EmptyState, Modal, SkeletonKPIs, fn, fixedCols, pageShell } from '@/components/Theme';
 import { PLANS } from '@/lib/billing/plans';
 import { UserPlus } from 'lucide-react';
 import {
@@ -337,7 +337,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
   );
 
   return (
-    <div style={{ maxWidth: 900, fontFamily: T.font.sans }}>
+    <div style={pageShell(900)}>
       {styleBlock}
 
       {/* ── QR κωδικός συνδέσμου (για διά ζώσης πρόσκληση) ──

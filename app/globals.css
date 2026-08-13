@@ -411,8 +411,13 @@ body {
    μετά το Tab το πλάτος ήταν 0px και στα 250ms 2px. Δηλαδή το δαχτυλίδι
    έμπαινε με καθυστέρηση, και σε γρήγορη πλοήγηση με Tab φαινόταν να «κυνηγά»
    την εστίαση. Οι ιδιότητες ονομάζονται πλέον ρητά, παντού. */
+/* ΤΟ ΔΑΧΤΥΛΙΔΙ ΕΣΤΙΑΣΗΣ ΔΕΝ ΠΕΡΝΟΥΣΕ ΤΟ ΔΙΚΟ ΤΟΥ ΟΡΙΟ ΑΝΤΙΘΕΣΗΣ.
+   Το `60%` πάνω σε λευκό δίνει #76a6f1: λόγος 2,47:1, όταν το WCAG 1.4.11 ζητά
+   3:1 για μη-κειμενικά στοιχεία. Σε κάθε ανοιχτή επιφάνεια της εφαρμογής
+   μετρήθηκε 2,28 ώς 2,47 — δηλαδή ο χρήστης πληκτρολογίου δεν έβλεπε πού
+   βρίσκεται. Με πλήρη κορεσμό: 4,92:1 στο ανοιχτό θέμα, 7,64:1 στο σκούρο. */
 :focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -1186,7 +1191,7 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 
 /* Google-style focus ring for all interactive elements */
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 /* Πτυσσόμενες κεφαλίδες/στοιχεία ενοτήτων: χωρίς έντονο μπλε πλαίσιο (θόρυβος).
@@ -1194,7 +1199,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .acc-toggle:focus { outline: none; }
 /* Καμία υπογράμμιση στον τίτλο. Ένδειξη εστίασης πληκτρολογίου μόνο, με διακριτικό δαχτυλίδι
    (εμφανίζεται αποκλειστικά σε πλοήγηση με πληκτρολόγιο, ποτέ με ποντίκι). */
-.acc-toggle:focus-visible { outline: none; border-radius: 10px; box-shadow: 0 0 0 2px var(--accent-dim); }
+/* Το `--accent-dim` είναι 12% κορεσμού: λόγος ~1,4:1, δηλαδή αόρατο. Μια
+   διακριτική ένδειξη που δεν φαίνεται δεν είναι διακριτική, είναι ανύπαρκτη. */
+.acc-toggle:focus-visible { outline: none; border-radius: 10px; box-shadow: 0 0 0 2px var(--accent); }
 
 /* ═══ Η ΓΡΑΜΜΗ ΤΗΣ ΑΞΙΟΠΟΙΗΣΗΣ: ΤΙΤΛΟΣ, ΙΔΙΟΤΗΤΑ, ΒΕΛΑΚΙ ══════════════════
    Τρεις στήλες σε οθόνη γραφείου: ο τίτλος απλώνεται, η ιδιότητα («Εσύ»,
@@ -1355,10 +1362,23 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     max-width: 86vw;
     z-index: 1200;
     transform: translateX(-100%);
-    transition: transform 0.28s cubic-bezier(0.2, 0, 0, 1);
+    /* ΤΟ ΚΛΕΙΣΤΟ ΜΕΝΟΥ ΕΜΕΝΕ ΣΤΗ ΣΕΙΡΑ ΤΟΥ TAB ΚΑΙ ΣΤΟΝ ΑΝΑΓΝΩΣΤΗ ΟΘΟΝΗΣ.
+       Κρυβόταν ΜΟΝΟ με μετατόπιση, που δεν αφαιρεί τίποτα από το δέντρο
+       προσβασιμότητας. Επειδή προηγείται του κυρίως περιεχομένου στο DOM, σε
+       κάθε οθόνη κινητού οι πρώτες ~30 στάσεις του Tab ήταν ένα μενού εκτός
+       οθόνης, και ο αναγνώστης διάβαζε ολόκληρη την πλοήγηση πριν φτάσει στο
+       περιεχόμενο. Η `visibility` το βγάζει και από τα δύο, και επανέρχεται
+       μαζί με το άνοιγμα. Η μετάβαση την καθυστερεί ώστε να μη «σβήνει» το
+       μενού πριν τελειώσει η κίνηση κλεισίματος. */
+    visibility: hidden;
+    transition: transform 0.28s cubic-bezier(0.2, 0, 0, 1), visibility 0s linear 0.28s;
     box-shadow: var(--shadow-xl);
   }
-  .app-sidebar.open { transform: translateX(0); }
+  .app-sidebar.open {
+    transform: translateX(0);
+    visibility: visible;
+    transition: transform 0.28s cubic-bezier(0.2, 0, 0, 1), visibility 0s;
+  }
 
   .app-scrim {
     display: block;
@@ -1703,7 +1723,7 @@ a.lp-link:hover { color: var(--accent) !important; filter: brightness(1.12); }
 /* Κεφαλίδα ελαχιστοποιήσιμης ενότητας: καθαρή, χωρίς default outline «γραμμή» στο
    κλικ· διακριτικό δαχτυλίδι μόνο για πλοήγηση με πληκτρολόγιο (focus-visible). */
 .po-sec-toggle { outline: none; }
-.po-sec-toggle:focus-visible { box-shadow: 0 0 0 2px var(--accent-dim); border-radius: 6px; }
+.po-sec-toggle:focus-visible { box-shadow: 0 0 0 2px var(--accent); border-radius: 6px; }
 
 /* Χειροποίητα πεδία Ρυθμίσεων: ορατό, ομοιόμορφο focus ring (ίδιο με τα shared
    primitives), χωρίς μετατόπιση layout. */

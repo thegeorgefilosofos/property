@@ -49,7 +49,7 @@
 
 import { useCallback, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { ChevronRight } from 'lucide-react';
-import { T, TT, Card, SecHdr, PageTitle, fixedCols, settingsField, feAuto } from '@/components/Theme';
+import { T, TT, Card, SecHdr, PageTitle, fixedCols, settingsField, feAuto, pageShell } from '@/components/Theme';
 import { feSigned } from '@/lib/core/format';
 import type { PropertyStatus } from '@/lib/property/status';
 import {
@@ -495,7 +495,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
   };
 
   return (
-    <div style={{ fontFamily: T.font.sans, maxWidth: 920 }}>
+    <div style={pageShell(920)}>
       {/* ── Η ΚΕΦΑΛΙΔΑ ────────────────────────────────────────────────────
           ΗΤΑΝ ΔΥΟ ΚΕΦΑΛΙΔΕΣ, ΚΑΙ Η ΚΑΤΑΣΤΑΣΗ ΓΡΑΦΟΤΑΝ ΔΥΟ ΦΟΡΕΣ. Η σελίδα
           τύπωνε από πάνω «ΑΞΙΟΠΟΙΗΣΗ ΑΚΙΝΗΤΟΥ / Κενό· πώς θα μισθωθεί ή θα

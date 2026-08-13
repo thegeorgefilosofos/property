@@ -688,7 +688,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
           </>}>
           {dossierTab==='overview'&&(
             <>
-              {isPastTenant(dc)&&<InfoBanner tone="neutral">Προηγούμενος ενοικιαστής{dc.move_out_date?`: αποχώρηση ${fmtD(dc.move_out_date)}`:''}. Το φάκελος διατηρείται για το ιστορικό του ακινήτου.</InfoBanner>}
+              {isPastTenant(dc)&&<InfoBanner tone="neutral">Προηγούμενος ενοικιαστής{dc.move_out_date?`: αποχώρηση ${fmtD(dc.move_out_date)}`:''}. Ο φάκελος διατηρείται για το ιστορικό του ακινήτου.</InfoBanner>}
               <DashboardView tenant={dc} payments={dcPayments} propertyCount={propertyCount}/>
             </>
           )}

@@ -9,7 +9,7 @@ import * as checklist from '@/lib/data/checklist'
 import * as loanStore from '@/lib/data/loans'
 import * as contactStore from '@/lib/data/contacts'
 import * as billing from '@/lib/data/billing'
-import { T, fn, fe, fp, PageTitle, InfoBanner, Btn, EmptyState, Skeleton, SkeletonKPIs, isOverlayOpen } from '@/components/Theme'
+import { T, fn, fe, fp, PageTitle, InfoBanner, Btn, EmptyState, Skeleton, SkeletonKPIs, isOverlayOpen, pageShell } from '@/components/Theme'
 import { confirmDialog } from '@/components/confirmBus'
 import { notify, notifyOk } from '@/components/Toast'
 import { saved, savedData } from '@/components/dbWrite'
@@ -597,7 +597,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   // στον υπότιτλο, η πρόοδος στη μπάρα, η κατανομή στα chips.
 
   return (
-    <div style={{ padding: '28px 24px', maxWidth: 1100, margin: '0 auto', fontFamily: T.font.sans }}>
+    <div style={pageShell(1100)}>
 
       {/* ΔΕΝ ΕΙΝΑΙ ΠΑΡΑΘΥΡΟ ΚΑΙ ΔΕΝ ΓΙΝΕΤΑΙ <Modal>. Δεν ρωτά τίποτα, δεν έχει
           κουμπιά, δεν έχει «×» και δεν κλείνει ο χρήστης: φεύγει μόνο του σε 4
@@ -609,8 +609,12 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       {showCelebration && (
         <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9997, pointerEvents: 'none' }}>
           <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.modal, padding: '32px 48px', textAlign: 'center', boxShadow: 'var(--elev-3)' }}>
+            {/* ΗΤΑΝ Η ΙΔΙΑ ΠΡΟΤΑΣΗ ΔΥΟ ΦΟΡΕΣ, ΣΤΟΙΒΑΓΜΕΝΗ. «Όλα ολοκληρώθηκαν» και
+                από κάτω «Όλες οι εργασίες έχουν ολοκληρωθεί» — στη μία στιγμή που
+                η εφαρμογή έχει να πει κάτι καλό. Η δεύτερη γραμμή λέει τώρα κάτι
+                που ο χρήστης δεν ξέρει ήδη. */}
             <div style={{ fontFamily: T.font.sans, fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>Όλα ολοκληρώθηκαν</div>
-            <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Όλες οι εργασίες έχουν ολοκληρωθεί</div>
+            <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Οι επαναλαμβανόμενες θα ξαναεμφανιστούν στην ώρα τους.</div>
           </div>
         </div>
       )}

@@ -14,7 +14,7 @@ import * as settings from '@/lib/data/settings';
 import * as billing from '@/lib/data/billing';
 import NotificationSettings from './NotificationSettings';
 import { CustomSelect, Toggle } from './UIComponents';
-import { T, TT, Card, SecHdr, Btn, TierBadge, InfoBanner, PageTitle, fdLong, fn, settingsField, ABSENT } from '@/components/Theme';
+import { T, TT, Card, SecHdr, Btn, TierBadge, InfoBanner, PageTitle, fdLong, fn, settingsField, ABSENT, pageShell } from '@/components/Theme';
 import { SetList, SetRow, SaveNote, useAutosave } from './SettingsKit';
 import { AppPreferences, DEFAULT_PREFERENCES } from './useAppPreferences';
 import { downloadTableXlsx } from './exportCsv';
@@ -489,7 +489,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   ];
 
   return (
-    <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)', maxWidth: 880, margin: '0 auto' }}>
+    <div style={{ ...pageShell(880), color: 'var(--text-primary)' }}>
 
       {/* Ο ΥΠΟΤΙΤΛΟΣ ΑΠΑΡΙΘΜΟΥΣΕ ΤΙΣ ΕΝΟΤΗΤΕΣ ΠΟΥ ΕΠΟΝΤΑΙ. «Προφίλ, συνδρομή,
           ειδοποιήσεις, ασφάλεια και τα δεδομένα σου» — και από κάτω, με τη
