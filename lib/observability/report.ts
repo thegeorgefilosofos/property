@@ -68,6 +68,12 @@ export function captureError(err: unknown, extra?: Extra): void {
       platform: 'javascript',
       level: 'error',
       environment: (typeof process !== 'undefined' && process.env?.NODE_ENV) || 'production',
+      // ΠΟΙΑ ΕΚΔΟΣΗ ΕΣΠΑΣΕ. Χωρίς αυτό, μια αναφορά λέει «κάτι χάλασε» και όχι
+      // «το χάλασε αυτό το ανέβασμα»: η ίδια εξαίρεση από τρία διαφορετικά
+      // builds συγκεντρώνεται σε ένα σωρό, και δεν φαίνεται ούτε πότε
+      // εμφανίστηκε ούτε αν η διόρθωση δούλεψε. Το `NEXT_PUBLIC_BUILD_SHA` το
+      // γράφει ήδη το next.config από το commit του Vercel.
+      release: (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_BUILD_SHA) || undefined,
       exception: { values: [{ type: e.name || 'Error', value: (e.message || '').slice(0, 1000) }] },
       extra: { ...scrub(extra), stack: (e.stack || '').slice(0, 4000) },
     }
