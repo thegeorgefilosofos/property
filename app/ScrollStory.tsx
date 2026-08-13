@@ -145,9 +145,22 @@ export default function ScrollStory() {
       {/* Δεξιά: τα βήματα της αφήγησης */}
       <div className="story-steps" ref={stepsRef}>
         {ACTS.map((a, i) => (
-          <div key={a.key} data-idx={i} className={`story-step${i === active ? ' on' : ''}`}>
+          <div key={a.key} data-idx={i} className={`story-step${i === active ? ' on' : ''}`} style={{ containerType: 'inline-size' }}>
             <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--accent)', margin: '0 0 14px' }}>{a.over}</p>
-            <h3 style={{ fontSize: 'clamp(22px, 2.6vw, 30px)', fontWeight: 680, letterSpacing: '-0.03em', lineHeight: 1.1, color: 'var(--text-primary)', margin: '0 0 14px' }}>{a.h}</h3>
+            {/* ═══ Ο ΤΙΤΛΟΣ ΔΕΝ ΣΠΑΕΙ ΣΤΑ ΔΥΟ ══════════════════════════════════
+                «Δεν πληκτρολογείς. Φωτογραφίζεις.» είναι ΜΙΑ αντίθεση: κομμένη
+                στη μέση, το «Φωτογραφίζεις.» πέφτει μόνο του σε δεύτερη σειρά και
+                χάνει τη σύγκριση που κάνει τη φράση να δουλεύει.
+                Το μέγεθος ήταν δεμένο στο πλάτος ΟΘΟΝΗΣ (2.6vw) ενώ ο τίτλος ζει
+                σε στήλη 460 εικονοστοιχείων: στα 30 δεν χωράει, και σε καμία
+                οθόνη δεν θα χωρούσε. Μετριέται πλέον σε cqi, δηλαδή σε ποσοστό
+                του πλάτους της ΣΤΗΛΗΣ, με τον συντελεστή βγαλμένο από τον
+                ΜΑΚΡΥΤΕΡΟ από τους τρεις τίτλους — ώστε να χωρούν και οι τρεις σε
+                μία σειρά, στο ίδιο μέγεθος.
+                ΧΩΡΙΣ nowrap, ΕΠΙΤΗΔΕΣ: αν ο συντελεστής πέσει έξω σε κάποια
+                οθόνη, ο τίτλος αναδιπλώνεται αντί να ξεχειλίσει. Το πρώτο είναι
+                ατέλεια, το δεύτερο είναι σπασμένη σελίδα. */}
+            <h3 style={{ fontSize: 'clamp(18px, 5.8cqi, 30px)', fontWeight: 680, letterSpacing: '-0.03em', lineHeight: 1.1, color: 'var(--text-primary)', margin: '0 0 14px' }}>{a.h}</h3>
             <p style={{ fontSize: 15, color: 'var(--text-secondary)', lineHeight: 1.7, margin: '0 0 20px', maxWidth: 460 }}>{a.p}</p>
             <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
               {a.b.map((t, j) => (
