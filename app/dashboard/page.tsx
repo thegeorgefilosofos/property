@@ -1,7 +1,7 @@
 'use client';
 
 import { useNavHistory } from './components/useNavHistory';
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef, useSyncExternalStore } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as propertyStore from '@/lib/data/properties';
 import * as calendarStore from '@/lib/data/calendar';
@@ -1091,6 +1091,9 @@ function ToolTile({ title, metric, sub, badge, onOpen }: { title: string; metric
   );
 }
 
+/** Η πλατφόρμα δεν αλλάζει όσο είναι ανοιχτή η σελίδα: καμία συνδρομή. */
+const KBD_NEVER_CHANGES = () => () => {};
+
 export default function Dashboard() {
   const supabase = createClient();
   // Ο χρήστης έρχεται από `supabase.auth.getUser()` — έχει δικό του τύπο. Με
@@ -1199,11 +1202,16 @@ export default function Dashboard() {
   const [taxForm, setTaxForm] = useState<DossierLegalForm>('individual');
   const [isPartner, setIsPartner] = useState(false);      // ιδιότητα Συνεργάτη (referral_partners)
   const [showUpgrade, setShowUpgrade] = useState(false);  // modal ορίου ακινήτων
-  const [kbdHint, setKbdHint] = useState('Ctrl K');       // ένδειξη συντόμευσης ανά πλατφόρμα (Mac → ⌘K)
-  useEffect(() => {
-    const mac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/i.test(navigator.platform || navigator.userAgent || '');
-    setKbdHint(mac ? '⌘K' : 'Ctrl K');
-  }, []);
+  // Η ΕΝΔΕΙΞΗ ΣΥΝΤΟΜΕΥΣΗΣ ΔΕΝ ΕΙΝΑΙ ΚΑΤΑΣΤΑΣΗ, ΕΙΝΑΙ ΙΔΙΟΤΗΤΑ ΤΗΣ ΣΥΣΚΕΥΗΣ.
+  // Ήταν κατάσταση με προεπιλογή «Ctrl K» και ένα effect που την άλλαζε σε «⌘K»
+  // μετά την πρώτη απόδοση: ο χρήστης του Mac έβλεπε το «Ctrl K» να αναβοσβήνει.
+  // Το `useSyncExternalStore` δέχεται ξεχωριστή τιμή για τον διακομιστή, οπότε το
+  // React ξέρει ότι η διαφορά είναι δηλωμένη και όχι ασυμφωνία ενυδάτωσης.
+  const kbdHint = useSyncExternalStore(
+    KBD_NEVER_CHANGES,
+    () => (/Mac|iPhone|iPad|iPod/i.test(navigator.platform || navigator.userAgent || '') ? '⌘K' : 'Ctrl K'),
+    () => 'Ctrl K',
+  );
 
   // Προσβασιμότητα: εφαρμογή αποθηκευμένων προτιμήσεων σε όλη την εφαρμογή.
   useEffect(() => {

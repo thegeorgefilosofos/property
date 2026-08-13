@@ -1,6 +1,7 @@
 'use client';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { SITE } from '@/lib/core/site';
 import { downloadTableXlsx, csvDate } from './exportCsv';
 import { saved } from '@/components/dbWrite';
 import { drawQrToCanvas } from '@/lib/qr';
@@ -186,10 +187,13 @@ function Milestone({ title, count, target, kind, reward, claimState, onClaim }: 
     );
   }
 
+/** Ο τομέας δεν αλλάζει όσο είναι ανοιχτή η σελίδα: καμία συνδρομή. */
+const ORIGIN_NEVER_CHANGES = () => () => {};
+
 export default function TabReferral({ userId, plan = 'free', profileType }: {
   userId: string; plan?: string; profileType: 'individual' | 'professional';
 }) {
-  const [origin, setOrigin] = useState('https://propertyos.gr');
+
   const [copied, setCopied] = useState(false);
   const [msgCopied, setMsgCopied] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
@@ -204,7 +208,11 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
   const [list, setList] = useState<Referee[]>([]);
   const [standing, setStanding] = useState(0);
   const [claim, setClaim] = useState<Record<string, 'idle' | 'saving' | 'done' | 'error'>>({});
-  useEffect(() => { try { setOrigin(window.location.origin); } catch { /* SSR */ } }, []);
+  // Η ΔΙΕΥΘΥΝΣΗ ΤΟΥ ΙΣΤΟΤΟΠΟΥ ΔΕΝ ΕΙΝΑΙ ΚΑΤΑΣΤΑΣΗ. Ήταν κατάσταση με προεπιλογή
+  // και effect που την αντικαθιστούσε μετά την πρώτη απόδοση: ο σύνδεσμος
+  // πρόσκλησης εμφανιζόταν στιγμιαία με λάθος τομέα, και ένα γρήγορο πάτημα
+  // «Αντιγραφή» τον έπαιρνε λάθος. Ο διακομιστής δηλώνει τη δική του τιμή.
+  const origin = useSyncExternalStore(ORIGIN_NEVER_CHANGES, () => window.location.origin, () => SITE);
 
   const code = useMemo(() => referralCode(userId), [userId]);
   const link = useMemo(() => referralLink(origin, userId), [origin, userId]);
