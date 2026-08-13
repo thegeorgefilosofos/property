@@ -1604,7 +1604,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         .pa-fab-cta{font-family:'Inter',sans-serif;font-size:14px;font-weight:600;letter-spacing:-.01em;white-space:nowrap}
         .pa-fab-close{padding:0;width:var(--fab-h);justify-content:center;background:var(--bg-surface);color:var(--text-secondary);border-color:var(--border-default)}
         .pa-fab-live{position:absolute;top:8px;left:34px;width:9px;height:9px;border-radius:50%;animation:pa-pulse 1.4s infinite}
-        /* ΔΕΝ ΕΙΝΑΙ ΠΑΡΑΘΥΡΟ ΚΑΙ ΔΕΝ ΓΙΝΕΤΑΙ <Modal>. Δεν έχει scrim, δεν
+        /* ΔΕΝ ΕΙΝΑΙ ΠΑΡΑΘΥΡΟ ΚΑΙ ΔΕΝ ΓΙΝΕΤΑΙ Modal. Δεν έχει scrim, δεν
            μπλοκάρει την εφαρμογή και δεν κεντράρεται: αγκυρώνεται στο πλωτό
            κουμπί (και το ακολουθεί όταν ο χρήστης το σύρει αλλού — panelFixed),
            ώστε να μπορείς να ρωτήσεις τη Νόα ΚΟΙΤΑΖΟΝΤΑΣ την οθόνη για την

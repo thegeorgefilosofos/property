@@ -29,6 +29,7 @@
     "e2e": "node scripts/e2e-public-tools.mjs",
     "e2e:dashboard": "node scripts/e2e-dashboard.mjs",
     "public-routes": "node scripts/guard-public-routes.mjs",
+    "style-tags": "node scripts/guard-style-tags.mjs",
     "greek-numbers": "node scripts/guard-greek-numbers.mjs",
     "dashes": "node scripts/guard-dashes.mjs",
     "empty-states": "node scripts/guard-empty-states.mjs",
