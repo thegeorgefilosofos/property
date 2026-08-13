@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCoarsePointer } from '@/components/useCoarsePointer'
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
 import * as loanStore from '@/lib/data/loans';
@@ -303,6 +304,9 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   const [newCatName,   setNewCatName]   = useState('');
   const [hoverRec,     setHoverRec]     = useState<string | null>(null);
   const [hoverWeek,    setHoverWeek]    = useState<string | null>(null);
+  // Το κουμπί ήταν αόρατο αλλά πατήσιμο σε οθόνη αφής: ο χρήστης διέγραφε
+  // κατηγορία προϋπολογισμού χωρίς να δει τι πάτησε.
+  const coarse = useCoarsePointer()
   const [exclAmtDraft, setExclAmtDraft] = useState<Record<string, string>>({});  // ό,τι πληκτρολογεί ο χρήστης στο μερικό ποσό εξαίρεσης
   const [addingCat,    setAddingCat]    = useState(false);   // εμφάνιση πεδίου «νέα κατηγορία» (inline)
   // Η μία σημείωση για την αλλαγή στα σύνολα. Διαβάζεται τεμπέλικα κατά την
@@ -1695,7 +1699,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                   <button type="button" title="Αφαίρεση κατηγορίας" aria-label={`Αφαίρεση «${cat.label}»`}
                     onClick={e => { e.stopPropagation(); removeCategory(cat.key); }}
                     onMouseEnter={() => setDelCatHover(cat.key)} onMouseLeave={() => setDelCatHover(null)}
-                    style={{ width: 22, height: 22, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: 'none', background: 'transparent', color: delCatHover === cat.key ? 'var(--negative)' : 'var(--text-tertiary)', cursor: 'pointer', transition: 'opacity 0.15s, color 0.15s', padding: 0, opacity: hov ? 1 : 0, pointerEvents: hov ? 'auto' : 'none' }}>
+                    style={{ width: 22, height: 22, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: 'none', background: 'transparent', color: delCatHover === cat.key ? 'var(--negative)' : 'var(--text-tertiary)', cursor: 'pointer', transition: 'opacity 0.15s, color 0.15s', padding: 0, opacity: (hov || coarse) ? 1 : 0, pointerEvents: (hov || coarse) ? 'auto' : 'none' }}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                   </button>
                   {hasBd && (

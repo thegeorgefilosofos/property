@@ -317,8 +317,16 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
     if (!months) return null;
     const expiry = new Date(start);
     expiry.setMonth(expiry.getMonth() + months);
+    // ΤΟ ΜΠΑΝΕΡ ΕΓΡΑΦΕ «ΛΗΓΕΙ ΣΕ −45 ΗΜΕΡΕΣ». Η συνθήκη εμφάνισης ήταν
+    // `daysLeft <= 60` χωρίς κάτω όριο, οπότε κάθε αρνητικός αριθμός περνούσε.
+    // Σύμβαση δύο ετών που δεν ενημερώθηκε ποτέ — η συνηθέστερη περίπτωση —
+    // έβγαζε κόκκινη ειδοποίηση με αρνητικό νούμερο, δηλαδή ένα προφανές
+    // ελάττωμα ακριβώς στο σημείο που η εφαρμογή ζητά εμπιστοσύνη σε αριθμούς.
     const daysLeft = Math.ceil((expiry.getTime() - new Date().getTime()) / 86400000);
-    return { date: expiry.toLocaleDateString('el-GR', { day: 'numeric', month: 'long', year: 'numeric' }), daysLeft };
+    return {
+      date: expiry.toLocaleDateString('el-GR', { day: 'numeric', month: 'long', year: 'numeric' }),
+      daysLeft, expired: daysLeft < 0,
+    };
   }, [contractStart, contractMonths]);
 
   // Σύγκριση με ΤΟΝ ΙΔΙΟ τύπο που υπολόγισε το τρέχον τιμολόγιο.
@@ -399,7 +407,15 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
       </div>
 
       {/* ── Contract expiry alert ── */}
-      {contractExpiry && contractExpiry.daysLeft <= 60 && (
+      {contractExpiry && contractExpiry.expired && (
+        <div style={{ marginBottom: 14, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)' }}/>
+          <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
+            Η σύμβαση ρεύματος έληξε στις {contractExpiry.date}. Αν την ανανέωσες, ενημέρωσε την ημερομηνία έναρξης.
+          </span>
+        </div>
+      )}
+      {contractExpiry && !contractExpiry.expired && contractExpiry.daysLeft <= 60 && (
         <div style={{ marginBottom: 14, background: contractExpiry.daysLeft <= 14 ? 'color-mix(in srgb, var(--negative) 6%, transparent)' : 'color-mix(in srgb, var(--warning) 5%, transparent)', border: `1px solid ${contractExpiry.daysLeft <= 14 ? 'color-mix(in srgb, var(--negative) 20%, transparent)' : 'color-mix(in srgb, var(--warning) 20%, transparent)'}`, borderRadius: T.radius.inner, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: contractExpiry.daysLeft <= 14 ? 'var(--negative)' : 'var(--warning)' }}/>
           <span style={{ fontSize: 12, fontFamily: T.font.sans, color: 'var(--text-primary)', fontWeight: 600 }}>
@@ -471,7 +487,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                   ημέρες, μια μπάρα εκατό εικονοστοιχεία πιο πάνω γράφει την ίδια
                   ημερομηνία και τις ίδιες ημέρες, στο ίδιο χρώμα. Και ο
                   πληθυντικός δεν κρατά στο ένα: «σε 1 ημέρες». */}
-              {contractExpiry && contractExpiry.daysLeft > 60 && (
+              {contractExpiry && !contractExpiry.expired && contractExpiry.daysLeft > 60 && (
                 <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', fontFamily: T.font.sans }}>
                   Λήγει {contractExpiry.date}, σε {contractExpiry.daysLeft} ημέρες
                 </span>

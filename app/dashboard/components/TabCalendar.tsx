@@ -1,7 +1,8 @@
 'use client'
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { isoDate } from '@/lib/core/time'
+import { isoDate, athensToday } from '@/lib/core/time'
+import { addMonths } from '@/lib/loans/progress'
 import { createClient } from '@/lib/supabase/client'
 import * as properties from '@/lib/data/properties';
 import * as stayStore from '@/lib/data/stays';
@@ -646,7 +647,7 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
     // ── Λογαριασμοί ──
     if(k==='bills'){
       const bills=await billStore.ofProperty(supabase,propertyId,'*',userId)
-      const today=new Date()
+      const todayIso=athensToday()
       // ΔΥΟ ΝΕΚΡΑ ΕΝΑΛΛΑΚΤΙΚΑ ΠΕΔΙΑ. Το `next_due_date` δεν υπάρχει σε κανέναν
       // από τους πίνακες, και το `provider` υπάρχει μόνο στα τιμολόγια ρεύματος.
       // Το `(b:any)` τα έκρυβε από τον μεταγλωττιστή, όπως το `as any` στα δάνεια.
@@ -654,9 +655,29 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
       // «Λογαριασμός» — πέντε πανομοιότυπες γραμμές στο ημερολόγιο, χωρίς να
       // ξεχωρίζει ποια είναι το ρεύμα και ποια το νερό. Ο τύπος του λογαριασμού
       // υπάρχει και είναι ήδη ο τίτλος του στην Επισκόπηση.
+      // ── Η ΠΡΟΘΕΣΜΙΑ ΓΡΑΦΟΤΑΝ ΜΙΑ ΜΕΡΑ ΝΩΡΙΤΕΡΑ, ΣΤΟ 27% ΤΩΝ ΠΕΡΙΠΤΩΣΕΩΝ ──
+      // Η παλιά γραμμή έφτιαχνε `new Date('2026-03-10')` — μεσάνυχτα UTC — και
+      // μετά την πείραζε με ΤΟΠΙΚΟΥΣ setters (`setMonth`, `setFullYear`) για να
+      // τη φέρει στον τρέχοντα μήνα, και τη διάβαζε πίσω με `toISOString()`,
+      // δηλαδή ξανά σε UTC. Όταν η αφετηρία είναι χειμερινή ώρα (UTC+2) και ο
+      // προορισμός θερινή (UTC+3), χάνεται μία ώρα πάνω από τα μεσάνυχτα και
+      // πέφτει μία μέρα. Μετρημένο σε 222 μετακινήσεις: 60 έπεφταν λάθος.
+      //
+      // Χειρότερα, το αποτέλεσμα ΓΡΑΦΕΤΑΙ στη βάση: κάθε επαναλαμβανόμενος
+      // λογαριασμός καθόταν στο ημερολόγιο μια μέρα πριν από την πραγματική του
+      // προθεσμία, σιωπηλά.
+      //
+      // Η αριθμητική γίνεται τώρα σε ημερολογιακούς μήνες πάνω σε κείμενο, με
+      // την `addMonths` που ήδη προστατεύει και από την υπερχείλιση (31 Ιανουαρίου
+      // συν έναν μήνα δεν είναι 31 Φεβρουαρίου). Καμία ζώνη ώρας δεν συμμετέχει.
       const rows=((bills||[]) as BillsRow[]).filter(b=>b.due_date).map(b=>{
-        let dueDate=b.due_date; const d=new Date(dueDate)
-        if(d<today){d.setMonth(today.getMonth());d.setFullYear(today.getFullYear());if(d<today)d.setMonth(d.getMonth()+1);dueDate=d.toISOString().split('T')[0]}
+        let dueDate=b.due_date
+        if(dueDate<todayIso){
+          const monthsApart=(Number(todayIso.slice(0,4))-Number(dueDate.slice(0,4)))*12
+            +(Number(todayIso.slice(5,7))-Number(dueDate.slice(5,7)))
+          const moved=addMonths(dueDate,monthsApart)??dueDate
+          dueDate=moved<todayIso?(addMonths(moved,1)??moved):moved
+        }
         return{title:b.name||b.type||'Λογαριασμός',category:'bills' as EventCategory,event_date:dueDate,amount:b.amount||null,status:(b.paid?'paid':'pending') as EventStatus,recurring:true,recurring_interval:'monthly',notes:b.category?`Κατηγορία: ${b.category}`:null}
       })
       await must(calendar.replaceSource(supabase,scope,{source:'bills'},rows))

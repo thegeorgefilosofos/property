@@ -377,7 +377,17 @@ function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { pro
   const supabase = createClient();
   const branding = useReportBranding(userId);
   const { prefs } = useAppPreferences(prop.id);
-  const now = new Date(); const year = now.getFullYear(); const month = now.getMonth() + 1;
+  // ΤΟ ΕΤΟΣ ΕΒΓΑΙΝΕ ΑΠΟ ΤΟ ΡΟΛΟΙ ΤΟΥ ΠΕΡΙΗΓΗΤΗ, ΟΧΙ ΑΠΟ ΤΗΝ ΑΘΗΝΑ. Στις 31
+  // Δεκεμβρίου, 19:00 Νέα Υόρκη, στην Αθήνα είναι ήδη 1η Ιανουαρίου: η ίδια
+  // οθόνη έγραφε «Η χρονιά 2026» και φόρτωνε δαπάνες 2026, ενώ το ημερολόγιο
+  // δίπλα της — που χρησιμοποιεί σωστά την `athensToday` — ήταν ήδη στο 2027.
+  // Δύο πάνελ, μία οθόνη, δύο φορολογικά έτη. Ο Έλληνας ιδιοκτήτης στο εξωτερικό
+  // δεν είναι ακραία περίπτωση· είναι μεγάλο κομμάτι του κοινού.
+  const todayAthens = athensToday();
+  const year = Number(todayAthens.slice(0, 4)); const month = Number(todayAthens.slice(5, 7));
+  // Το στιγμιότυπο χρόνου μένει για όσα το θέλουν ως Date (insights, υποχρεώσεις):
+  // εκείνα συγκρίνουν αποστάσεις, όχι ημερολογιακό έτος, οπότε η ζώνη δεν κρίνει.
+  const now = new Date();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [allExpenses, setAllExpenses] = useState<{ amount:number; date:string; category:string; is_recurring?:boolean; recurring_frequency?:string|null }[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
@@ -1966,9 +1976,23 @@ export default function Dashboard() {
                   onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : setNav(t)}
                   onPreview={()=>setShowPreview(true)} onAsk={()=>askAssistant('', false)} />
               )}
-              {navSafe==='overview'  && <OverviewTab prop={selected} properties={properties} userId={user.id} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : t==='edit' ? setEditProperty(selected) : setNav(t)} tabVisible={navVisible}/>}
+              {/* ═══ ΤΟ `key` ΕΙΝΑΙ Ο ΔΙΑΚΟΠΤΗΣ ΤΗΣ ΚΟΥΡΣΑΣ ═══════════════════════
+                  ΤΟ ΣΦΑΛΜΑ: αλλάζεις ακίνητο ενώ φορτώνει το προηγούμενο. Η
+                  `load` δεν έχει ακύρωση, και το component ΔΕΝ ξαναστηνόταν —
+                  άρα οι δεκατρείς παράλληλες ερωτήσεις του παλιού ακινήτου
+                  γύριζαν αργότερα και έγραφαν πάνω στις καινούργιες. Ο χρήστης
+                  έβλεπε το όνομα, τη διεύθυνση και την κατάσταση του ακινήτου Β
+                  με τις δαπάνες, τους λογαριασμούς, τον μισθωτή και τον
+                  ΕΚΤΙΜΩΜΕΝΟ ΦΟΡΟ του ακινήτου Α. Χωρίς σφάλμα, χωρίς σπίνερ,
+                  και απολύτως πειστικά.
+
+                  Με `key`, η αλλαγή ακινήτου δεν είναι ενημέρωση· είναι νέος
+                  πίνακας. Ό,τι επιστρέψει από την προηγούμενη φόρτωση γράφει σε
+                  component που δεν υπάρχει πια, και η React το αγνοεί. Το ίδιο
+                  ισχύει για κάθε καρτέλα που φορτώνει δικά της δεδομένα. */}
+              {navSafe==='overview'  && <OverviewTab key={selected.id} prop={selected} properties={properties} userId={user.id} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : t==='edit' ? setEditProperty(selected) : setNav(t)} tabVisible={navVisible}/>}
               {nav==='finances'  && <TabFinances propertyId={selected.id} userId={user.id} profileType={effProfileType} legalForm={taxForm} onScan={()=>setQuickAddOpen(true)}/>}
-              {nav==='calendar'  && <TabCalendar propertyId={selected.id} userId={user.id} openTasks={checklistAlerts} onOpenTasks={()=>setNav('checklist')}/>}
+              {nav==='calendar'  && <TabCalendar key={selected.id} propertyId={selected.id} userId={user.id} openTasks={checklistAlerts} onOpenTasks={()=>setNav('checklist')}/>}
               {/* ═══ Η ΒΡΑΧΥΧΡΟΝΙΑ ΣΤΕΚΕΤΑΙ ΜΟΝΗ ΤΗΣ ═══════════════════════════
                   Ζούσε μέσα στην καρτέλα «Πελάτης», που απαιτεί πακέτο
                   Επαγγελματία. Ο ιδιώτης με ακίνητο σε Airbnb δεν έφτανε ΠΟΤΕ
@@ -1987,7 +2011,7 @@ export default function Dashboard() {
                   ήδη ο τίτλος της καρτέλας με καλύτερα λόγια. Η επικεφαλίδα ζει
                   μέσα στο component, όπως σε κάθε άλλη καρτέλα. */}
               {navSafe==='plan'      && <TabPlan propertyId={selected.id} userId={user.id} status={readStatus(selected)} property={selected}/>}
-              {navSafe==='tenant'    && <TabTenant propertyId={selected.id} userId={user.id} onStartHandover={(tenantName,tenantPhone,type)=>{ setHandoverIntent({tenantName,tenantPhone,type}); setNav('inventory'); }}/>}
+              {navSafe==='tenant'    && <TabTenant key={selected.id} propertyId={selected.id} userId={user.id} onStartHandover={(tenantName,tenantPhone,type)=>{ setHandoverIntent({tenantName,tenantPhone,type}); setNav('inventory'); }}/>}
               {/* ═══ ΑΠΟΔΟΣΗ — ΜΙΑ ΚΑΡΤΕΛΑ ΓΙΑ ΜΙΑ ΕΡΩΤΗΣΗ ═══════════════════════
                   Τρεις καρτέλες απαντούσαν στο ίδιο πράγμα από τρεις μεριές:
                   «Αποδόσεις» (πόσο αποδίδει ΑΥΤΟ), «Σύγκριση» (πόσο αποδίδει σε
@@ -1998,7 +2022,7 @@ export default function Dashboard() {
                   η Σύγκριση μόνο με δεύτερο ακίνητο. Καμία υποκαρτέλα. */}
               {navSafe==='roi' && (
                 <>
-                  <TabRentROI propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} profileType={effProfileType} legalForm={taxForm}/>
+                  <TabRentROI key={selected.id} propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} profileType={effProfileType} legalForm={taxForm}/>
                   {/* ═══ ΤΟ «ΣΧΕΔΙΟ» ΗΤΑΝ ΕΔΩ, ΚΑΙ ΔΕΝ ΤΟ ΕΒΛΕΠΕ ΚΑΝΕΙΣ ═══════════
                       Αποδιδόταν μέσα στην Απόδοση, με συνθήκη τις τέσσερις
                       καταστάσεις κενό / προς πώληση / ανακαίνιση / αμφισβητούμενο.
@@ -2026,10 +2050,10 @@ export default function Dashboard() {
                   )}
                 </>
               )}
-              {nav==='loan'      && <TabLoan propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} propertySqm={selected.sqm??undefined} propertyYearBuilt={selected.year_built??undefined} profileType={effProfileType}/>}
-              {nav==='accounting'&& <TabAccounting propertyId={selected.id} userId={user.id} profileType={effProfileType} legalForm={taxForm} plan={effPlan} onNavigate={(t)=>setNav(t)}/>}
-              {navSafe==='inventory' && <TabInventory propertyId={selected.id} userId={user.id} profileType={effProfileType} handoverIntent={handoverIntent} onIntentConsumed={()=>setHandoverIntent(null)} properties={properties}/>}
-              {nav==='checklist' && <TabChecklist propertyId={selected.id} userId={user.id} profileType={effProfileType}/>}
+              {nav==='loan'      && <TabLoan key={selected.id} propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} propertySqm={selected.sqm??undefined} propertyYearBuilt={selected.year_built??undefined} profileType={effProfileType}/>}
+              {nav==='accounting'&& <TabAccounting key={selected.id} propertyId={selected.id} userId={user.id} profileType={effProfileType} legalForm={taxForm} plan={effPlan} onNavigate={(t)=>setNav(t)}/>}
+              {navSafe==='inventory' && <TabInventory key={selected.id} propertyId={selected.id} userId={user.id} profileType={effProfileType} handoverIntent={handoverIntent} onIntentConsumed={()=>setHandoverIntent(null)} properties={properties}/>}
+              {nav==='checklist' && <TabChecklist key={selected.id} propertyId={selected.id} userId={user.id} profileType={effProfileType}/>}
               {/* Ο ΕΛΕΓΧΟΣ ΤΟΥ ΑΜΑ ΕΙΝΑΙ ΕΞΩ ΑΠΟ ΤΟ FeatureLock, ΣΚΟΠΙΜΑ.
                   Ο ΑΜΑ που λείπει ή δεν αναγράφεται στην αγγελία κλείνει την
                   καταχώρηση — 12.145 στάλθηκαν για απενεργοποίηση το 2025. Κανείς
@@ -2059,7 +2083,7 @@ export default function Dashboard() {
                   στέλνει ο βοηθός— και οδηγεί εκεί που όντως είναι οι επαφές. */}
               {(nav==='documents' || nav==='contacts') && (
                 <>
-                  <TabDocuments propertyId={selected.id} userId={user.id} profileType={effProfileType}/>
+                  <TabDocuments key={selected.id} propertyId={selected.id} userId={user.id} profileType={effProfileType}/>
                   {/* Η επικεφαλίδα ζει ΜΕΣΑ στο component, μαζί με τις ενέργειές
                       της. Εδώ γραφόταν δεύτερη φορά, και από κάτω το ίδιο το
                       component τύπωνε τίτλο σελίδας με υπότιτλο που έλεγε την

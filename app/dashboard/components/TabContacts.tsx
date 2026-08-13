@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo, useRef, type ElementType } from 'react'
+import { useCoarsePointer } from '@/components/useCoarsePointer'
 import { downloadWorkbook } from './xlsxStyle'
 import { qrDataUrl } from '@/lib/qr';
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
@@ -903,6 +904,13 @@ function ContactCard({ contact, onOpen, onEdit, onDelete, onQuickExpense, onQuic
   const extra = contact._extra || {}
   const initials = initialsOf(contact.full_name)
   const [hov, setHov] = useState(false); const [showActions, setShowActions] = useState(false)
+  // ΣΕ ΟΘΟΝΗ ΑΦΗΣ ΔΕΝ ΥΠΑΡΧΕΙ hover, ΑΡΑ ΔΕΝ ΥΠΗΡΧΑΝ ΚΑΙ ΟΙ ΕΝΕΡΓΕΙΕΣ. Κλήση,
+  // WhatsApp, Viber, email και ολόκληρο το μενού «···» (Επεξεργασία, Νέα δαπάνη,
+  // Ραντεβού, Ιστορικό, QR, Εκτύπωση, Διαγραφή) εμφανίζονταν μόνο με ποντίκι.
+  // Δηλαδή σε κινητό — που είναι η πλειονότητα των χρηστών — η καρτέλα Επαφές
+  // ήταν λίστα ονομάτων χωρίς καμία ενέργεια. Η εφαρμογή έχει ήδη τη λύση δύο
+  // φορές: το `useCoarsePointer` και ένα `@media (hover: none)` στο φύλλο στυλ.
+  const coarse = useCoarsePointer()
   const actionsRef = useRef<HTMLDivElement>(null)
   // Κλείσιμο του μενού «···» με κλικ εκτός ή με Escape (χωρίς μετατόπιση διάταξης).
   useEffect(() => {
@@ -924,7 +932,7 @@ function ContactCard({ contact, onOpen, onEdit, onDelete, onQuickExpense, onQuic
       <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: overdue ? 'var(--negative)' : 'var(--border-subtle)', borderRadius: '16px 0 0 16px', opacity: bulkMode ? 0 : 1 }} />
       {bulkMode && <div style={{ position: 'absolute', top: 17, left: 15, zIndex: 2 }}><SelectBox checked={!!selected} onToggle={onSelect} /></div>}
       {overdue && <div style={{ position: 'absolute', top: 0, right: 0, background: 'var(--negative)', color: 'var(--text-inverse)', fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: '0 16px 0 8px', letterSpacing: '0.07em' }}>ΛΗΞΗ ΡΑΝΤΕΒΟΥ</div>}
-      {(hov || showActions) && !bulkMode && (
+      {(hov || showActions || coarse) && !bulkMode && (
         <div ref={actionsRef} style={{ position: 'absolute', top: 12, right: 12, zIndex: 20 }}>
           {/* Ορατές μόνο οι πιο συχνές ενέργειες — όλες οι υπόλοιπες μπαίνουν στο «···» */}
           <div style={{ display: 'flex', gap: 5, justifyContent: 'flex-end' }}>
@@ -1211,6 +1219,10 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
 function CompactRow({ contact, onOpen, onEdit, onDelete, selected, onSelect, bulkMode, scopePortfolio }: { contact: Contact; onOpen?: () => void; onEdit: () => void; onDelete: () => void; selected?: boolean; onSelect?: () => void; bulkMode?: boolean; scopePortfolio?: boolean }) {
   const meta = ROLE_META[contact.role] || { label: contact.role, groupColor: 'var(--text-tertiary)' }
   const extra = contact._extra || {}; const [hov, setHov] = useState(false)
+  // Η γραμμή της λίστας ήταν χειρότερη από την κάρτα: `opacity: 0` χωρίς
+  // `pointerEvents: none`, άρα «Επεξεργασία» και «Διαγραφή» ήταν ΑΟΡΑΤΕΣ αλλά
+  // πατιόνταν. Σε κινητό ο χρήστης διέγραφε επαφή χωρίς να δει τι πάτησε.
+  const coarse = useCoarsePointer()
   const overdue = extra.next_appointment && isOverdue(extra.next_appointment)
   return (
     <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
@@ -1228,7 +1240,7 @@ function CompactRow({ contact, onOpen, onEdit, onDelete, selected, onSelect, bul
       <div style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{contact.email || ABSENT}</div>
       <div style={{ display: 'flex', gap: 4, maxWidth: 160, flexWrap: 'wrap' }}>{(extra.tags || []).slice(0, 2).map(t => <span key={t} style={{ fontSize: 10, padding: '2px 7px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>{t}</span>)}</div>
       <div style={{ width: 120, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{extra.afm ? 'ΑΦΜ ' + extra.afm : ''}</div>
-      <div style={{ display: 'flex', gap: 6, opacity: bulkMode ? 0 : hov ? 1 : 0, pointerEvents: bulkMode ? 'none' : undefined, transition: 'opacity 0.15s', flexShrink: 0 }}>
+      <div style={{ display: 'flex', gap: 6, opacity: bulkMode ? 0 : (hov || coarse) ? 1 : 0, pointerEvents: bulkMode || !(hov || coarse) ? 'none' : undefined, transition: 'opacity 0.15s', flexShrink: 0 }}>
         {contact.phone && <a href={'tel:' + contact.phone} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', padding: 4, color: 'var(--text-secondary)' }}><Phone size={14} /></a>}
         {extra.whatsapp && contact.phone && <a href={'https://wa.me/' + contact.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', padding: '4px 6px', fontSize: 10, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', borderRadius: 6 }}>WA</a>}
         {extra.viber && contact.phone && <a href={'viber://chat?number=' + contact.phone.replace(/\D/g, '')} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', padding: '4px 6px', fontSize: 10, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', borderRadius: 6 }}>VB</a>}

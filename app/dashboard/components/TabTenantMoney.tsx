@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { MAX_SCAN_MB } from './scanDoc'
 import { qrDataUrl } from '@/lib/qr';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
@@ -575,14 +576,33 @@ export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }
 
   // ── Scan → payment matching ──
   const runScan=async(file:File)=>{
+    // ── ΤΟ ΠΑΡΑΘΥΡΟ ΕΚΛΕΙΝΕ ΜΟΝΟ ΜΕ ΕΠΑΝΑΦΟΡΤΩΣΗ ΣΕΛΙΔΑΣ ──────────────────
+    // Η κλήση δεν είχε χρονικό όριο, και το παράθυρο είναι επίτηδες σφραγισμένο
+    // όσο σαρώνει: το Escape δεν κάνει τίποτα, το «×» δεν κάνει τίποτα, το πέπλο
+    // δεν κάνει τίποτα. Σε κακό δίκτυο κινητού, η αίτηση κρεμούσε και ο χρήστης
+    // έμενε με τον σπίνερ «Ανάλυση εγγράφου…» για πάντα, χάνοντας ό,τι είχε
+    // συμπληρώσει. Το ίδιο πρότυπο με το scanDoc.ts, που το είχε ήδη λύσει.
+    if(file.size>MAX_SCAN_MB*1024*1024){
+      setScan({stage:'error',msg:`Το αρχείο είναι μεγαλύτερο από ${MAX_SCAN_MB} MB. Δοκίμασε μικρότερη φωτογραφία.`});
+      return;
+    }
     setScan({stage:'scanning'});
+    const ctrl=new AbortController();
+    const timer=setTimeout(()=>ctrl.abort(),45000);
     try{
       const dataUrl:string=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result as string);r.onerror=rej;r.readAsDataURL(file);});
       const base64=dataUrl.split(',')[1]; const mime=file.type||'image/jpeg'; const isPdf=mime==='application/pdf';
       const contentPart=isPdf?{type:'document',source:{type:'base64',media_type:'application/pdf',data:base64}}:{type:'image',source:{type:'base64',media_type:mime,data:base64}};
-      const res=await fetch('/api/anthropic',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-5',max_tokens:1500,system:SYSTEM_PROMPT,messages:[{role:'user',content:[contentPart,{type:'text',text:'Αναγνώρισε και ανάλυσε αυτό το έγγραφο. Διάβασε κάθε στοιχείο με ακρίβεια.'}]}]})});
+      const res=await fetch('/api/anthropic',{method:'POST',headers:{'Content-Type':'application/json'},signal:ctrl.signal,body:JSON.stringify({model:'claude-sonnet-5',max_tokens:1500,system:SYSTEM_PROMPT,messages:[{role:'user',content:[contentPart,{type:'text',text:'Αναγνώρισε και ανάλυσε αυτό το έγγραφο. Διάβασε κάθε στοιχείο με ακρίβεια.'}]}]})});
       const data=await res.json();
-      if(!res.ok||data?.error){ setScan({stage:'error',msg:'Η υπηρεσία σάρωσης δεν είναι διαθέσιμη αυτή τη στιγμή.'}); return; }
+      // Ο διακομιστής επιστρέφει ήδη ελληνικό, χρήσιμο μήνυμα. Το πετούσαμε και
+      // βάζαμε στη θέση του «η υπηρεσία δεν είναι διαθέσιμη» — δηλαδή λέγαμε
+      // «χαλάσαμε εμείς» για αρχείο που ήταν απλώς μεγάλο ή για όριο που
+      // ξεπεράστηκε.
+      if(!res.ok||data?.error){
+        const detail=typeof data?.error==='string'&&data.error.trim()?data.error.trim():'Η σάρωση δεν ολοκληρώθηκε. Δοκίμασε ξανά.';
+        setScan({stage:'error',msg:detail}); return;
+      }
       const text=(data.content||[]).find((c:{type:string})=>c.type==='text')?.text||'{}';
       let doc:ScannedDoc; try{ doc=JSON.parse(text.replace(/```json?|```/g,'').trim()); }catch{ setScan({stage:'error',msg:'Δεν ήταν δυνατή η ανάγνωση του εγγράφου.'}); return; }
       if(doc.amount!=null) doc.amount=numify(doc.amount as unknown);
@@ -607,7 +627,10 @@ export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }
       const amt=scored.filter(x=>x.amtOk).sort((a,b)=>a.dist-b.dist);
       const best=amt[0]||[...scored].sort((a,b)=>a.dist-b.dist)[0];
       setScan({stage:'match',doc,method,docId,periodId:best?.p.id});
-    }catch{ setScan({stage:'error',msg:'Παρουσιάστηκε σφάλμα κατά τη σάρωση.'}); }
+    }catch(err){ setScan({stage:'error',msg:(err as Error)?.name==='AbortError'
+      ?'Η σάρωση άργησε πολύ. Έλεγξε τη σύνδεσή σου και δοκίμασε ξανά.'
+      :'Παρουσιάστηκε σφάλμα κατά τη σάρωση.'}); }
+    finally{ clearTimeout(timer); }
   };
   const confirmScan=async()=>{
     if(!scan?.periodId||!scan.doc){ setScan(null); return; }
