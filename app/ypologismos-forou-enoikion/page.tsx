@@ -18,8 +18,10 @@
 // είναι πελάτης. Οι εισαγωγές είναι από lib/ και components/tokens — ποτέ από
 // module με 'use client', αλλιώς σπάει το SSR (βλ. components/tokens.ts).
 // ═══════════════════════════════════════════════════════════════════════════
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { T } from '@/components/tokens';
+import { siteUrl } from '@/lib/core/site';
 import { PublicHeader, PublicFooter, SectionHead, WRAP, WRAP_PAD } from '../PublicChrome';
 import { BackLink } from '../BackLink';
 import { RentTaxCalculator } from './RentTaxCalculator';
@@ -29,7 +31,7 @@ const DESC =
   'Υπολόγισε πόσο φόρο θα πληρώσεις για τα ενοίκιά σου με την κλίμακα του 2026 '
   + '(15% / 25% / 35% / 45%) και την τεκμαρτή έκπτωση 5%. Δωρεάν, χωρίς εγγραφή, '
   + 'ο υπολογισμός γίνεται στη συσκευή σου.';
-const URL = 'https://propertyos.gr/ypologismos-forou-enoikion';
+const URL = siteUrl('/ypologismos-forou-enoikion');
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -56,6 +58,13 @@ const FAQ: { q: string; a: string }[] = [
     q: 'Τι είναι η έκπτωση 5%;',
     a: 'Ο νόμος αναγνωρίζει τεκμαρτή δαπάνη 5% επί του ακαθάριστου εισοδήματος από ακίνητα, '
      + 'χωρίς να χρειάζεται να προσκομίσεις δικαιολογητικά. Ο φόρος υπολογίζεται στο υπόλοιπο 95%.',
+  },
+  {
+    q: 'Τι αλλάζει αν εισπράττω το ενοίκιο σε μετρητά;',
+    a: 'Από 1/1/2026 (ν.5246/2025) τα μισθώματα κατοικίας εξοφλούνται με ηλεκτρονικό ή τραπεζικό '
+     + 'μέσο. Αν εισπραχθούν με μετρητά, χάνεται η τεκμαρτή έκπτωση 5% και ο φόρος υπολογίζεται '
+     + 'στο 100% του ενοικίου αντί για το 95%. Ο διακόπτης «Εισπράττω μέσω τραπέζης» δείχνει '
+     + 'ακριβώς πόσο κοστίζει η διαφορά στο δικό σου ποσό.',
   },
   {
     q: 'Περιλαμβάνεται ο ΕΝΦΙΑ;',
@@ -103,7 +112,7 @@ export default function Page() {
   };
 
   return (
-    <div style={{ background: 'var(--bg-base)', color: 'var(--text-primary)', minHeight: '100vh', fontFamily: T.font.sans }}>
+    <div className="po-tool-page" style={{ background: 'var(--bg-base)', color: 'var(--text-primary)', minHeight: '100vh', fontFamily: T.font.sans }}>
       {/* Το δομημένο σχήμα δίνει στη Google τις ερωτήσεις/απαντήσεις αυτούσιες.
           Παράγεται από τον ΙΔΙΟ πίνακα FAQ που αποδίδεται παρακάτω, ώστε να μην
           μπορεί ποτέ να πει άλλα η σελίδα και άλλα το σχήμα. */}
@@ -145,7 +154,17 @@ export default function Page() {
           </span>
         </p>
 
-        <RentTaxCalculator/>
+        {/* Ο ΥΠΟΛΟΓΙΣΤΗΣ ΔΙΑΒΑΖΕΙ ΤΗ ΔΙΕΥΘΥΝΣΗ, ΑΡΑ ΘΕΛΕΙ ΟΡΙΟ ΑΝΑΜΟΝΗΣ. Το
+            `useSearchParams` σε προαποδοσμένη διαδρομή αναγκάζει απόδοση στον
+            πελάτη μέχρι το πλησιέστερο <Suspense>· χωρίς αυτό, ολόκληρη η
+            σελίδα —τίτλος, κείμενο, συχνές ερωτήσεις— θα έβγαινε από τη
+            στατική απόδοση και θα έχανε το SEO για το οποίο υπάρχει. Με το
+            όριο εδώ, μόνο η φόρμα περιμένει τον πελάτη.
+            Η εφεδρεία έχει το ΙΔΙΟ ύψος με τη φόρμα, ώστε το κείμενο από κάτω
+            να μην αναπηδήσει μόλις φορτώσει. */}
+        <Suspense fallback={<div style={{ minHeight: 420 }} aria-hidden/>}>
+          <RentTaxCalculator/>
+        </Suspense>
 
         {/* ── Συχνές ερωτήσεις ──────────────────────────────────────────────
                ΗΤΑΝ ΠΕΝΤΕ ΚΟΥΤΙΑ ΜΕ ΠΕΡΙΓΡΑΜΜΑ ΚΑΙ ΤΟ ΒΕΛΑΚΙ ΤΟΥ ΠΕΡΙΗΓΗΤΗ. Η

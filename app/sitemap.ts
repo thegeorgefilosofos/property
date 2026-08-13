@@ -1,9 +1,10 @@
 import type { MetadataRoute } from 'next'
+import { SITE } from '@/lib/core/site'
 
 // Χάρτης της δημόσιας σελίδας για τις μηχανές αναζήτησης. Μόνο δημόσιες
 // διαδρομές: το dashboard, τα portals και οι σελίδες με token μένουν εκτός.
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = 'https://propertyos.gr'
+  const base = SITE
   return [
     { url: base, changeFrequency: 'weekly', priority: 1 },
     // Δωρεάν εργαλείο χωρίς εγγραφή. Υψηλή προτεραιότητα επειδή είναι η μόνη

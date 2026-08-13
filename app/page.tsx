@@ -4,6 +4,7 @@ import { PLANS, PLAN_ORDER, EXTRA_PROPERTY_PRICE, TRIAL_DAYS } from '@/lib/billi
 import { aiLimitsFor } from '@/lib/billing/aiLimits';
 import { partnerWelcomeTier } from '@/lib/referral/referral';
 import { fe } from '@/lib/core/format';
+import { SITE } from '@/lib/core/site';
 import { createClient } from '@/lib/supabase/server';
 import LandingShowcase from './LandingShowcase';
 import ScrollStory from './ScrollStory';
@@ -24,7 +25,7 @@ const OG_TITLE = 'Property OS · Διαχείριση ακινήτων με μί
 const OG_DESC = 'Σάρωσε λογαριασμό, μισθωτήριο ή ασφαλιστήριο και καταχωρείται αυτόματα εκεί που πρέπει. Ρώτα τον βοηθό με τη φωνή σου. Αποδόσεις, δαπάνες, φορολογία 2026 και σύγκριση παρόχων ενέργειας, σε μία οθόνη.';
 
 export const metadata = {
-  metadataBase: new URL('https://propertyos.gr'),
+  metadataBase: new URL(SITE),
   title: OG_TITLE,
   description: OG_DESC,
   openGraph: { title: OG_TITLE, description: OG_DESC, type: 'website', locale: 'el_GR', siteName: 'Property OS' },
@@ -947,18 +948,23 @@ export default async function Landing() {
               υποχρεώσεις πληθαίνουν, οι προθεσμίες δεν περιμένουν.
             </p>
             <p style={{ fontSize: 15, lineHeight: 1.7, color: MUTED, margin: 0, textAlign: 'justify', textWrap: 'pretty' }}>
-              Ε2, Δήλωση Μίσθωσης, ΕΝΦΙΑ, τεκμαρτή έκπτωση, κοινόχρηστα. Καθένα με τον δικό του κανόνα και
-              τη δική του ημερομηνία, και η ευθύνη πάντα στο δικό σου όνομα.
+              Ε2, Δήλωση Μίσθωσης, ΕΝΦΙΑ, τεκμαρτή έκπτωση, κοινόχρηστα. Καθένα με τη δική του προθεσμία,
+              και η ευθύνη πάντα πάνω σου.
             </p>
           </div>
           <div>
             <p style={{ fontSize: 15, lineHeight: 1.7, color: MUTED, margin: '0 0 16px', textAlign: 'justify', textWrap: 'pretty' }}>
-              Γι’ αυτό σχεδιάσαμε το Property OS. Οι ελληνικοί κανόνες ζουν μέσα του, σε ένα σημείο,
-              ενημερωμένοι.
+              Γι’ αυτό σχεδιάσαμε το Property OS. Ό,τι σχετίζεται με το ακίνητο σε ένα σημείο, φορολογικά,
+              νομικά, οικονομικά, πάντα πλήρες και ενημερωμένο.
             </p>
+            {/* ΤΕΣΣΕΡΙΣ ΠΡΟΤΑΣΕΙΣ, ΤΕΣΣΕΡΑ ΔΙΑΦΟΡΕΤΙΚΑ ΡΗΜΑΤΑ. Η προηγούμενη
+                εκδοχή έλεγε δύο φορές «έτοιμος» και τελείωνε σε «έτοιμος για
+                δουλειά», δηλαδή σε κατάσταση αντί για αποτέλεσμα. Κάθε πρόταση
+                ονομάζει τώρα την κίνηση που ΔΕΝ κάνει πια ο ιδιοκτήτης, και η
+                τελευταία κλείνει με το μόνο που τον ενδιαφέρει: ότι φεύγει. */}
             <p style={{ fontSize: 15, lineHeight: 1.7, color: MUTED, margin: 0, textAlign: 'justify', textWrap: 'pretty' }}>
-              Ο υπολογισμός έτοιμος πριν τον ζητήσεις. Η προθεσμία στο ημερολόγιο πριν τη θυμηθείς. Το
-              παραστατικό με μια φωτογραφία. Ο φάκελος του λογιστή έτοιμος για δουλειά.
+              Ο υπολογισμός βγαίνει πριν τον ζητήσεις. Η προθεσμία εμφανίζεται πριν τη θυμηθείς. Το
+              παραστατικό μπαίνει με μια φωτογραφία. Ο φάκελος του λογιστή φεύγει με ένα πάτημα.
             </p>
           </div>
         </div>

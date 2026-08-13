@@ -1923,3 +1923,66 @@ details.lp-faq[open] summary .lp-plus { transform: rotate(45deg); }
   .lg-toc-list { grid-template-columns: minmax(0, 1fr); }
   .lg-p, .lg-ul li, .lg-note, .lg-just { text-align: left; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   Η ΕΚΤΥΠΩΣΗ ΤΩΝ ΔΗΜΟΣΙΩΝ ΥΠΟΛΟΓΙΣΤΩΝ
+   ──────────────────────────────────────────────────────────────
+   ΓΙΑΤΙ ΥΠΑΡΧΕΙ. Ο υπολογισμός του φόρου ή του ΕΝΦΙΑ δεν μένει στην οθόνη:
+   πηγαίνει σε φάκελο, σε λογιστή, σε τράπεζα, σε συνάντηση συνιδιοκτητών.
+   Χωρίς κανόνες εκτύπωσης, το «Ctrl+P» έβγαζε τη ΣΚΟΥΡΗ διεπαφή σε χαρτί:
+   μαύρες σελίδες, λευκά γράμματα, τρία κουμπιά που δεν πατιούνται και δύο
+   σελίδες υποσέλιδο με συνδέσμους.
+
+   ΤΙ ΜΕΝΕΙ ΚΑΙ ΤΙ ΦΕΥΓΕΙ. Μένουν ο τίτλος, τα δεδομένα που έδωσε ο χρήστης, το
+   αποτέλεσμα, η ανάλυση και —υποχρεωτικά— το «τι δεν περιλαμβάνει»: ένα χαρτί
+   με ποσό και χωρίς το εύρος του είναι ακριβώς ο τρόπος να παρεξηγηθεί.
+   Φεύγουν η πλοήγηση, το υποσέλιδο, η πρόσκληση για δοκιμή και οι συχνές
+   ερωτήσεις — τίποτα από αυτά δεν είναι ο υπολογισμός.
+
+   ΤΟ ΧΡΩΜΑ ΓΥΡΙΖΕΙ ΣΕ ΜΕΛΑΝΙ. Οι μεταβλητές θέματος ξαναδηλώνονται εδώ σε
+   λευκό/μαύρο αντί να κυνηγηθεί κάθε κανόνας χωριστά. Είναι το ίδιο σκεπτικό
+   με το lib/print/ink.ts για τα PDF: το χαρτί δεν έχει θέμα.
+   ══════════════════════════════════════════════════════════════ */
+.po-printonly { display: none; }
+
+@media print {
+  :root {
+    color-scheme: light;
+    --bg-base: #fff;
+    --bg-surface: #fff;
+    --bg-elevated: #fff;
+    --bg-overlay: #fff;
+    --surface-raised: #fff;
+    --text-primary: #000;
+    --text-secondary: #2b2b2b;
+    --text-tertiary: #555;
+    --border-subtle: #d5d5d5;
+    --border-default: #b9b9b9;
+    --border-raised: #d5d5d5;
+    --accent: #000;
+    --accent-soft: #f0f0f0;
+    --well-inset: none;
+    --elev-1: none;
+    --elev-2: none;
+    --highlight-inset: none;
+    --highlight-inset-strong: none;
+  }
+
+  .po-noprint { display: none !important; }
+  .po-printonly { display: block; }
+
+  .po-tool-page > header,
+  .po-tool-page > footer,
+  .po-tool-page .lg-back,
+  .po-tool-page .lp-eyebrow { display: none !important; }
+
+  /* Ο τίτλος και η ανάλυση δεν κόβονται στη μέση από αλλαγή σελίδας. */
+  .po-tool-page h1 { break-after: avoid; font-size: 22px; }
+  .po-tool-page table { break-inside: avoid; }
+  .po-tool-page dl { break-inside: avoid; }
+
+  /* Το χαρτί έχει δικά του περιθώρια· η σελίδα δεν χρειάζεται τα δικά της. */
+  .po-tool-page main { padding: 0 !important; max-width: none !important; }
+
+  @page { margin: 16mm; }
+}

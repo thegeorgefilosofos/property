@@ -22,15 +22,21 @@ import { OBJECTIVE_VALUES } from '@/lib/tax/aade';
 // χρήστης δεν πει άλλο — και το γράφουμε καθαρά, γιατί όποιος έχει και δεύτερο
 // ακίνητο θα δει διαφορετικό ποσό στο εκκαθαριστικό.
 // ═══════════════════════════════════════════════════════════════════════════
-import { useState, useMemo, useId } from 'react';
+import { useMemo, useId } from 'react';
 import Link from 'next/link';
 import { T, feAuto, fixedCols } from '@/components/tokens';
 import { fn, feRate } from '@/lib/core/format';
 import { parseAmount } from '@/lib/core/greek';
 import { TRIAL_DAYS } from '@/lib/billing/plans';
 import { estimateENFIA, zoneKeyFromPricePerSqm, enfiaFloorCoef, enfiaAgeCoef, ENFIA_ZONE_TAX, ENFIA_FLOOR_COEF, ENFIA_AGE_BANDS } from '@/lib/billing/enfia';
+import { enfiaInstalments, ENFIA_INSTALMENTS } from '@/lib/tools/enfiaSchedule';
+import { useToolState, ToolActions } from '@/app/ToolShare';
 
 const amount = (s: string): number => Math.max(0, parseAmount(s) ?? 0);
+
+/** Τα πεδία όπως ταξιδεύουν στη διεύθυνση, με τις προεπιλογές τους. */
+const SPEC = { tm: '85', zoni: '1400', orofos: 'second', palaiotita: 'y26_plus', pososto: '100' } as const;
+const PATH = '/ypologismos-enfia';
 
 // Οι ετικέτες αντλούνται από τα ΚΛΕΙΔΙΑ του lib, ώστε αν προστεθεί συντελεστής
 // να μη μείνει η οθόνη πίσω σιωπηλά.
@@ -48,12 +54,9 @@ const FLOORS: { key: keyof typeof ENFIA_FLOOR_COEF | string; label: string }[] =
 // ίδιο κλειδί — και καμία δεν είχε το κλιμάκιο 15-19 ετών.
 const AGES = ENFIA_AGE_BANDS;
 
-export function EnfiaCalculator() {
-  const [sqm, setSqm] = useState('85');
-  const [zonePrice, setZonePrice] = useState('1400');
-  const [floor, setFloor] = useState('second');
-  const [age, setAge] = useState('y26_plus');
-  const [ownership, setOwnership] = useState('100');
+export function EnfiaCalculator({ year }: { year: number }) {
+  const [v, set] = useToolState(SPEC, PATH);
+  const sqm = v.tm, zonePrice = v.zoni, floor = v.orofos, age = v.palaiotita, ownership = v.pososto;
   const ids = { sqm: useId(), zone: useId(), floor: useId(), age: useId(), own: useId() };
 
   const r = useMemo(() => {
@@ -104,12 +107,12 @@ export function EnfiaCalculator() {
       <div {...fixedCols(2, 14, 'start')}>
         <div>
           <label htmlFor={ids.sqm} style={label}>Τετραγωνικά</label>
-          <input id={ids.sqm} inputMode="decimal" value={sqm} onChange={e => setSqm(e.target.value)} style={numField}/>
+          <input id={ids.sqm} inputMode="decimal" value={sqm} onChange={e => set('tm', e.target.value)} style={numField}/>
         </div>
         <div>
           <label htmlFor={ids.zone} style={label}>Τιμή ζώνης</label>
           <div style={{ position: 'relative' }}>
-            <input id={ids.zone} inputMode="decimal" value={zonePrice} onChange={e => setZonePrice(e.target.value)}
+            <input id={ids.zone} inputMode="decimal" value={zonePrice} onChange={e => set('zoni', e.target.value)}
               style={{ ...numField, paddingRight: 52 }} aria-describedby={`${ids.zone}-unit`}/>
             <span id={`${ids.zone}-unit`} aria-hidden style={unitStyle}>€/τ.μ.</span>
           </div>
@@ -122,18 +125,18 @@ export function EnfiaCalculator() {
             που διαβάζει το μάτι. */}
         <div>
           <span style={label}>Όροφος</span>
-          <CustomSelect ariaLabel="Όροφος" value={floor} onChange={setFloor}
+          <CustomSelect ariaLabel="Όροφος" value={floor} onChange={x => set('orofos', x)}
             options={FLOORS.map(f => ({ value: f.key, label: f.label }))} />
         </div>
         <div>
           <span style={label}>Παλαιότητα</span>
-          <CustomSelect ariaLabel="Παλαιότητα" value={age} onChange={setAge}
+          <CustomSelect ariaLabel="Παλαιότητα" value={age} onChange={x => set('palaiotita', x)}
             options={AGES.map(a => ({ value: a.key, label: a.label }))} />
         </div>
         <div>
           <label htmlFor={ids.own} style={label}>Ποσοστό ιδιοκτησίας</label>
           <div style={{ position: 'relative' }}>
-            <input id={ids.own} inputMode="numeric" value={ownership} onChange={e => setOwnership(e.target.value)}
+            <input id={ids.own} inputMode="numeric" value={ownership} onChange={e => set('pososto', e.target.value)}
               style={{ ...numField, paddingRight: 34 }} aria-describedby={`${ids.own}-unit`}/>
             <span id={`${ids.own}-unit`} aria-hidden style={unitStyle}>%</span>
           </div>
@@ -170,7 +173,9 @@ export function EnfiaCalculator() {
                 που πρέπει να βρίσκεις κάθε μήνα. */}
             <div {...fixedCols(2, 24, 'start')}>
               <Figure label="ΕΝΦΙΑ ετησίως" value={feAuto(r.annual)} big />
-              <Figure label="Ανά μήνα, σε 12 δόσεις" value={feAuto(r.annual / 12)} big />
+              {/* Το «σε 12 δόσεις» έφυγε από την ετικέτα: το λέει πλέον ο
+                  πίνακας των δόσεων από κάτω, με ημερομηνίες. */}
+              <Figure label="Ανά μήνα" value={feAuto(r.annual / ENFIA_INSTALMENTS)} big />
             </div>
 
             <div style={{ height: 1, background: 'var(--border-subtle)', margin: '20px 0 16px' }}/>
@@ -207,6 +212,10 @@ export function EnfiaCalculator() {
         )}
       </div>
 
+      {r && <Instalments annual={r.annual} year={year}/>}
+
+      <ToolActions path={PATH} spec={SPEC} values={v}/>
+
       {/* ── Τι ΔΕΝ περιλαμβάνει ──────────────────────────────────────────── */}
       <div style={{
         marginTop: 22, padding: '14px 16px', borderRadius: T.radius.inner,
@@ -224,7 +233,9 @@ export function EnfiaCalculator() {
         </p>
       </div>
 
-      <div style={{
+      {/* Δεν τυπώνεται: σε χαρτί που πάει στον λογιστή, μια πρόσκληση για δοκιμή
+          δεν είναι πληροφορία. */}
+      <div className="po-noprint" style={{
         marginTop: 20, padding: 'clamp(16px, 4vw, 22px)', borderRadius: T.radius.card,
         border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)',
         display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14,
@@ -249,6 +260,73 @@ export function EnfiaCalculator() {
     </div>
   );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ΟΙ ΔΟΣΕΙΣ, ΜΕ ΗΜΕΡΟΜΗΝΙΑ Η ΚΑΘΕΜΙΑ
+// ─────────────────────────────────────────────────────────────────────────
+// Η σελίδα απαντούσε «πόσο» και σταματούσε. Ο ιδιοκτήτης όμως δεν πληρώνει ένα
+// ποσό, πληρώνει δώδεκα — και η επόμενη ερώτησή του, μία ανάσα μετά το νούμερο,
+// είναι «πότε». Χωρίς ημερομηνίες, το «ανά μήνα» είναι διαίρεση διά δώδεκα και
+// τίποτα άλλο: δεν μπαίνει σε προϋπολογισμό, δεν μπαίνει σε ημερολόγιο.
+//
+// ΤΙ ΕΙΝΑΙ ΒΕΒΑΙΟ ΚΑΙ ΤΙ ΤΥΠΙΚΟ, ΓΡΑΜΜΕΝΟ ΧΩΡΙΣ ΩΡΑΙΟΠΟΙΗΣΗ. Ο ΚΑΝΟΝΑΣ (δώδεκα
+// μηνιαίες δόσεις, τελευταία εργάσιμη κάθε μήνα, από τον Μάρτιο ώς τον
+// Φεβρουάριο) είναι σταθερός τα τελευταία χρόνια· οι ΑΚΡΙΒΕΙΣ ημερομηνίες
+// ανακοινώνονται κάθε χρόνο με απόφαση. Ο πίνακας το λέει από κάτω, με τα ίδια
+// λόγια που το λέει και το φορολογικό ημερολόγιο μέσα στην εφαρμογή.
+// ═══════════════════════════════════════════════════════════════════════════
+function Instalments({ annual, year }: { annual: number; year: number }) {
+  const rows = enfiaInstalments(annual, year);
+  if (!rows.length) return null;
+
+  return (
+    <div style={{ marginTop: 26 }}>
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 300 }}>
+          {/* Ίδια τυπογραφία λεζάντας με τον πίνακα κλιμακίων του αδελφού
+              υπολογιστή: οι δύο σελίδες διαβάζονται ως ένα εργαλείο. */}
+          <caption style={{ captionSide: 'top', textAlign: 'left', fontSize: 11, fontWeight: 700,
+            letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)',
+            paddingBottom: 10 }}>
+            Οι {ENFIA_INSTALMENTS} δόσεις του {year}
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col" style={th}>Δόση</th>
+              <th scope="col" style={th}>Καταληκτική ημερομηνία</th>
+              <th scope="col" style={{ ...th, textAlign: 'right' }}>Ποσό</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(row => (
+              <tr key={row.no}>
+                <td style={{ ...td, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', width: '1%', whiteSpace: 'nowrap' }}>{row.no}</td>
+                <td style={{ ...td, whiteSpace: 'nowrap' }}>{row.label}</td>
+                <td style={{ ...td, textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums',
+                  color: 'var(--text-primary)', fontWeight: 600 }}>{feAuto(row.amount)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p style={{ margin: '10px 0 0', fontSize: 12, lineHeight: 1.6, color: 'var(--text-tertiary)' }}>
+        Οι ημερομηνίες είναι οι τυπικές των τελευταίων ετών, δηλαδή η τελευταία εργάσιμη
+        κάθε μήνα· ανακοινώνονται κάθε χρόνο με απόφαση. Ο ΕΝΦΙΑ πληρώνεται εφάπαξ ή σε
+        δόσεις. Η τελευταία δόση φέρει τη διαφορά της στρογγυλοποίησης, ώστε οι δώδεκα να
+        δίνουν ακριβώς το ετήσιο.
+      </p>
+    </div>
+  );
+}
+
+const th: React.CSSProperties = {
+  textAlign: 'left', padding: '8px 10px', fontSize: 11, fontWeight: 700,
+  letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)',
+  borderBottom: '1px solid var(--border-default)', whiteSpace: 'nowrap',
+};
+const td: React.CSSProperties = {
+  padding: '9px 10px', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-secondary)',
+};
 
 function Figure({ label, value, big }: { label: string; value: string; big?: boolean }) {
   return (

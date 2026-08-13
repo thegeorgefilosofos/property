@@ -19,7 +19,7 @@
 // ελέγχου. Αν διαφωνούσε, ο επισκέπτης θα έβλεπε άλλο νούμερο εδώ και άλλο μετά
 // την εγγραφή — που είναι ο γρηγορότερος τρόπος να χάσεις την εμπιστοσύνη του.
 // ═══════════════════════════════════════════════════════════════════════════
-import { useState, useMemo, useId } from 'react';
+import { useMemo, useId } from 'react';
 import Link from 'next/link';
 import { T, feAuto, fp, fixedCols } from '@/components/tokens';
 import {
@@ -28,9 +28,33 @@ import {
 } from '@/lib/billing/greekTax';
 import { parseAmount } from '@/lib/core/greek';
 import { TRIAL_DAYS } from '@/lib/billing/plans';
+import { presumptiveDeductionRate } from '@/lib/billing/consolidate';
+import { PRESUMPTIVE_DEDUCTION_RATE } from '@/lib/accounting/statement';
+import { Toggle } from '@/app/dashboard/components/UIComponents';
+import { useToolState, ToolActions } from '@/app/ToolShare';
 
-/** Το 5% τεκμαρτής έκπτωσης δαπανών του άρθρου 39 — ισχύει χωρίς δικαιολογητικά. */
-const STANDARD_DEDUCTION = 0.05;
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΟ 5% ΔΕΝ ΕΙΝΑΙ ΔΕΔΟΜΕΝΟ ΑΠΟ ΤΟ 2026, ΚΑΙ Η ΣΕΛΙΔΑ ΤΟ ΕΛΕΓΕ ΣΑΝ ΝΑ ΕΙΝΑΙ
+// ─────────────────────────────────────────────────────────────────────────
+// Ο υπολογιστής εφάρμοζε πάντα την τεκμαρτή έκπτωση 5%, με μια σταθερά γραμμένη
+// εδώ μέσα. Από 1/1/2026 όμως (ν.5246/2025) η έκπτωση ΠΡΟΫΠΟΘΕΤΕΙ ότι το ενοίκιο
+// κατοικίας εισπράττεται με ηλεκτρονικό ή τραπεζικό μέσο· με μετρητά φορολογείται
+// το 100% του ενοικίου αντί για το 95%.
+//
+// Δηλαδή η δημόσια σελίδα έδειχνε στον ιδιοκτήτη που εισπράττει σε μετρητά ΜΙΚΡΟΤΕΡΟ
+// φόρο από τον πραγματικό, στην πρώτη του επαφή με το προϊόν. Και το χειρότερο:
+// δεν του έλεγε καν ότι υπάρχει η προϋπόθεση, δηλαδή του έκρυβε ακριβώς την
+// πληροφορία που θα του γλίτωνε τα χρήματα.
+//
+// Ο ΣΥΝΤΕΛΕΣΤΗΣ ΕΡΧΕΤΑΙ ΑΠΟ ΤΟ lib, ΟΧΙ ΑΠΟ ΣΤΑΘΕΡΑ ΕΔΩ. Η `presumptiveDeductionRate`
+// είναι η ίδια συνάρτηση που τρέχει μέσα στην εφαρμογή (lib/billing/consolidate.ts),
+// και η ίδια λογική με τη βραχυχρόνια (lib/tax/shortTermTax.ts). Τρεις οθόνες,
+// ένας κανόνας: αν αλλάξει ο νόμος, δεν υπάρχει αντίγραφο να ξεχαστεί.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Τα πεδία όπως ταξιδεύουν στη διεύθυνση, με τις προεπιλογές τους. */
+const SPEC = { enoikio: '600', mines: '12', trapeza: '1' } as const;
+const PATH = '/ypologismos-forou-enoikion';
 
 // Η ανάγνωση ποσού έρχεται από το lib/core/greek.ts, που ξέρει και τις δύο
 // ελληνικές γραφές («1.234,56» και «1,234.56») και τα αρνητικά με παρενθέσεις.
@@ -40,19 +64,20 @@ const STANDARD_DEDUCTION = 0.05;
 const amount = (s: string): number => Math.max(0, parseAmount(s) ?? 0);
 
 export function RentTaxCalculator() {
-  const [monthly, setMonthly] = useState('600');
-  const [months, setMonths] = useState('12');
+  const [v, set] = useToolState(SPEC, PATH);
+  const monthly = v.enoikio, months = v.mines, viaBank = v.trapeza !== '0';
   const monthlyId = useId(), monthsId = useId();
 
   const r = useMemo(() => {
     const m = amount(monthly);
     const n = Math.min(12, Math.max(0, Math.round(amount(months))));
     const gross = m * n;
-    // Τεκμαρτή έκπτωση 5%: ο νόμος τη δίνει χωρίς αποδείξεις, οπότε είναι το
+    // Τεκμαρτή έκπτωση: ο νόμος τη δίνει χωρίς αποδείξεις, οπότε είναι το
     // ρεαλιστικό ελάχιστο για κάθε ιδιοκτήτη — και ο φόρος υπολογίζεται πάνω σε
-    // αυτό, όχι στο μεικτό. Χωρίς αυτήν, το νούμερο θα έβγαινε σταθερά μεγαλύτερο
-    // από το πραγματικό και ο υπολογιστής θα ήταν άχρηστος.
-    const taxable = gross * (1 - STANDARD_DEDUCTION);
+    // αυτό, όχι στο μεικτό. Από 1/1/2026 όμως προϋποθέτει τραπεζική είσπραξη,
+    // και ο συντελεστής γίνεται μηδέν όταν ο χρήστης πει «μετρητά».
+    const rate = presumptiveDeductionRate(viaBank);
+    const taxable = gross * (1 - rate);
     const tax = rentalIncomeTax(taxable);
     return {
       gross, taxable, tax,
@@ -61,8 +86,13 @@ export function RentTaxCalculator() {
       marginal: marginalRate(taxable),
       effective: effectiveRentalRate(taxable),
       monthlyNet: n > 0 ? (gross - tax) / n : 0,
+      // ΤΙ ΚΟΣΤΙΖΟΥΝ ΤΑ ΜΕΤΡΗΤΑ, ΣΕ ΕΥΡΩ. Η διαφορά των δύο φόρων, όχι το 5%
+      // του ενοικίου: η έκπτωση μειώνει τη ΒΑΣΗ, οπότε το κόστος εξαρτάται από
+      // το κλιμάκιο. Στα 7.200 € είναι 54,00 € (15%), στα 48.000 € είναι 108,00 €
+      // (45%) — ένα ποσοστό στη θέση αυτού του αριθμού θα ήταν λάθος.
+      cashCost: rentalIncomeTax(gross) - rentalIncomeTax(gross * (1 - PRESUMPTIVE_DEDUCTION_RATE)),
     };
-  }, [monthly, months]);
+  }, [monthly, months, viaBank]);
 
   const field: React.CSSProperties = {
     width: '100%', height: T.h.lg, padding: '0 14px', borderRadius: T.radius.btn,
@@ -88,7 +118,7 @@ export function RentTaxCalculator() {
           <label htmlFor={monthlyId} style={label}>Μηνιαίο ενοίκιο</label>
           <div style={{ position: 'relative' }}>
             <input id={monthlyId} inputMode="decimal" value={monthly}
-              onChange={e => setMonthly(e.target.value)}
+              onChange={e => set('enoikio', e.target.value)}
               style={{ ...field, paddingRight: 34 }} aria-describedby={`${monthlyId}-unit`}/>
             <span id={`${monthlyId}-unit`} aria-hidden style={{
               position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
@@ -98,8 +128,36 @@ export function RentTaxCalculator() {
         <div>
           <label htmlFor={monthsId} style={label}>Μήνες που νοικιάζεται</label>
           <input id={monthsId} inputMode="numeric" value={months}
-            onChange={e => setMonths(e.target.value)} style={field}/>
+            onChange={e => set('mines', e.target.value)} style={field}/>
         </div>
+      </div>
+
+      {/* ── Ο ΟΡΟΣ ΠΟΥ ΑΛΛΑΖΕΙ ΤΟ ΝΟΥΜΕΡΟ, ΣΕ ΔΙΚΗ ΤΟΥ ΣΕΙΡΑ ────────────────
+             Δεν μπαίνει τρίτο κελί στο πλέγμα των δύο πεδίων: τα άλλα δύο είναι
+             ΠΟΣΑ που πληκτρολογείς, αυτό είναι ΓΕΓΟΝΟΣ που δηλώνεις. Μια
+             ολόκληρη σειρά με την εξήγηση δίπλα του λέει και τι ρωτάμε και
+             γιατί ρωτάμε, χωρίς να στριμωχτεί κάτω από ετικέτα δύο λέξεων. */}
+      <div style={{
+        marginTop: 14, padding: '12px 14px', borderRadius: T.radius.inner,
+        border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        gap: 16, flexWrap: 'wrap',
+      }}>
+        <div style={{ flex: 1, minWidth: 210 }}>
+          <div style={{ fontSize: 14, fontWeight: 650, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+            Εισπράττω μέσω τραπέζης
+          </div>
+          {/* ΤΟ ΚΕΙΜΕΝΟ ΑΛΛΑΖΕΙ ΜΕ ΤΗΝ ΑΠΑΝΤΗΣΗ, ΚΑΙ ΔΕΝ ΛΕΕΙ ΔΥΟ ΦΟΡΕΣ ΤΟ ΙΔΙΟ.
+              Όσο ο διακόπτης είναι ανοιχτός αρκεί ο κανόνας· μόλις κλείσει,
+              στη θέση του κανόνα μπαίνει το ΠΟΣΟ που κοστίζει η επιλογή. */}
+          <p style={{ margin: '3px 0 0', fontSize: 12.5, lineHeight: 1.55, color: 'var(--text-tertiary)' }}>
+            {viaBank
+              ? 'Προϋπόθεση για την τεκμαρτή έκπτωση 5%, από 1/1/2026 (ν.5246/2025).'
+              : `Με μετρητά φορολογείται το 100% του ενοικίου (ν.5246/2025). Η έκπτωση που χάνεται κοστίζει ${feAuto(r.cashCost)} τον χρόνο.`}
+          </p>
+        </div>
+        <Toggle on={viaBank} onChange={on => set('trapeza', on ? '1' : '0')}
+          ariaLabel="Εισπράττω μέσω τραπέζης"/>
       </div>
 
       {/* ── Το αποτέλεσμα ──────────────────────────────────────────────── */}
@@ -149,13 +207,18 @@ export function RentTaxCalculator() {
             σειρές, χωρίς ορφανό. */}
         <dl {...fixedCols(2, 24, 'start')} style={{ ...fixedCols(2, 24, 'start').style, rowGap: 11, margin: 0 }}>
           <Row k="Ετήσιο ενοίκιο" v={feAuto(r.gross)} />
-          <Row k="Τεκμαρτή έκπτωση 5%" v={feAuto(r.deduction)} />
+          {/* Η ΕΤΙΚΕΤΑ ΕΛΕΓΕ «5%» ΚΑΙ ΜΕ ΤΟΝ ΔΙΑΚΟΠΤΗ ΚΛΕΙΣΤΟ ΘΑ ΕΛΕΓΕ ΨΕΜΑ:
+              «Τεκμαρτή έκπτωση 5%: 0,00 €». Ο συντελεστής ζει πλέον στην
+              εξήγηση του διακόπτη, δηλαδή εκεί που αποφασίζεται. */}
+          <Row k="Τεκμαρτή έκπτωση" v={feAuto(r.deduction)} />
           <Row k="Φορολογητέο" v={feAuto(r.taxable)} />
           <Row k="Καθαρά ανά μήνα" v={feAuto(r.monthlyNet)} />
           <Row k="Πραγματικός συντελεστής" v={fp(r.effective * 100)} />
           <Row k="Συντελεστής στο επόμενο ευρώ" v={fp(r.marginal * 100)} />
         </dl>
       </div>
+
+      <ToolActions path={PATH} spec={SPEC} values={v}/>
 
       {/* ── Η κλίμακα, ώστε να φαίνεται από πού βγήκε ο αριθμός ─────────── */}
       {/* ΗΤΑΝ <h2> ΣΤΑ 13 ΕΙΚΟΝΟΣΤΟΙΧΕΙΑ. Δηλαδή επικεφαλίδα δεύτερου επιπέδου —
@@ -236,7 +299,10 @@ export function RentTaxCalculator() {
       </div>
 
       {/* ── Πρόσκληση, χωρίς πίεση ─────────────────────────────────────── */}
-      <div style={{
+      {/* Δεν τυπώνεται: σε χαρτί που πάει στον λογιστή, μια πρόσκληση για
+          δοκιμή δεν είναι πληροφορία — είναι διαφήμιση που πλήρωσε ο χρήστης
+          με το μελάνι του. */}
+      <div className="po-noprint" style={{
         marginTop: 20, padding: 'clamp(16px, 4vw, 22px)', borderRadius: T.radius.card,
         border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)',
         display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14,

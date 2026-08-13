@@ -12,9 +12,12 @@
 //
 // Κόστος λειτουργίας: μηδέν. Υπολογισμός στη συσκευή, καμία εγγραφή.
 // ═══════════════════════════════════════════════════════════════════════════
+import { Suspense } from 'react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { T } from '@/components/tokens';
+import { siteUrl } from '@/lib/core/site';
+import { athensParts } from '@/lib/core/time';
 import { PublicHeader, PublicFooter, SectionHead, WRAP, WRAP_PAD } from '../PublicChrome';
 import { BackLink } from '../BackLink';
 import { EnfiaCalculator } from './EnfiaCalculator';
@@ -23,7 +26,22 @@ const TITLE = 'Υπολογισμός ΕΝΦΙΑ 2026 · δωρεάν, χωρί�
 const DESC =
   'Υπολόγισε τον ΕΝΦΙΑ του ακινήτου σου από τα τετραγωνικά, την τιμή ζώνης, τον όροφο '
   + 'και την παλαιότητα. Δωρεάν, χωρίς εγγραφή, ο υπολογισμός γίνεται στη συσκευή σου.';
-const URL = 'https://propertyos.gr/ypologismos-enfia';
+const PATH = '/ypologismos-enfia';
+const URL = siteUrl(PATH);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΟ ΕΤΟΣ ΤΩΝ ΔΟΣΕΩΝ ΕΡΧΕΤΑΙ ΑΠΟ ΤΟΝ ΔΙΑΚΟΜΙΣΤΗ, ΚΑΙ ΕΙΝΑΙ ΤΟ ΤΡΕΧΟΝ
+// ─────────────────────────────────────────────────────────────────────────
+// Ο πίνακας των δόσεων χρειάζεται χρονιά. Αν την υπολόγιζε ο υπολογιστής μέσα
+// στην απόδοση, ο διακομιστής και ο περιηγητής θα μπορούσαν να διαφωνήσουν
+// —ακριβώς την παραμονή της Πρωτοχρονιάς— και η ενυδάτωση θα έσπαγε. Ένα
+// στήριγμα λύνει και τα δύο: υπολογίζεται μία φορά, στην ώρα Ελλάδας, και ο
+// πελάτης δεν ρωτά ποτέ τι μέρα είναι.
+//
+// Δεν χρειάζεται ρύθμιση επαναπροσδιορισμού: η ρίζα της εφαρμογής διαβάζει
+// κεφαλίδα (nonce ασφαλείας) σε κάθε αίτημα, οπότε κάθε σελίδα αποδίδεται ήδη
+// κατά παραγγελία και το έτος δεν παγώνει ποτέ στη στιγμή του build.
+// ═══════════════════════════════════════════════════════════════════════════
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -71,6 +89,7 @@ const FAQ: { q: string; a: string }[] = [
 ];
 
 export default function Page() {
+  const { year } = athensParts();
   const jsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
@@ -95,7 +114,7 @@ export default function Page() {
   };
 
   return (
-    <div style={{ background: 'var(--bg-base)', color: 'var(--text-primary)', minHeight: '100vh', fontFamily: T.font.sans }}>
+    <div className="po-tool-page" style={{ background: 'var(--bg-base)', color: 'var(--text-primary)', minHeight: '100vh', fontFamily: T.font.sans }}>
       <script type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}/>
 
@@ -122,7 +141,17 @@ export default function Page() {
           </span>
         </p>
 
-        <EnfiaCalculator/>
+        {/* Ο ΥΠΟΛΟΓΙΣΤΗΣ ΔΙΑΒΑΖΕΙ ΤΗ ΔΙΕΥΘΥΝΣΗ, ΑΡΑ ΘΕΛΕΙ ΟΡΙΟ ΑΝΑΜΟΝΗΣ. Το
+            `useSearchParams` σε προαποδοσμένη διαδρομή αναγκάζει απόδοση στον
+            πελάτη μέχρι το πλησιέστερο <Suspense>· χωρίς αυτό, ολόκληρη η
+            σελίδα —τίτλος, κείμενο, συχνές ερωτήσεις— θα έβγαινε από τη
+            στατική απόδοση και θα έχανε το SEO για το οποίο υπάρχει. Με το
+            όριο εδώ, μόνο η φόρμα περιμένει τον πελάτη.
+            Η εφεδρεία έχει το ΙΔΙΟ ύψος με τη φόρμα, ώστε το κείμενο από κάτω
+            να μην αναπηδήσει μόλις φορτώσει. */}
+        <Suspense fallback={<div style={{ minHeight: 420 }} aria-hidden/>}>
+          <EnfiaCalculator year={year}/>
+        </Suspense>
 
         {/* ── Συχνές ερωτήσεις ──────────────────────────────────────────────
                ΗΤΑΝ ΠΕΝΤΕ ΚΟΥΤΙΑ ΜΕ ΠΕΡΙΓΡΑΜΜΑ ΚΑΙ ΤΟ ΒΕΛΑΚΙ ΤΟΥ ΠΕΡΙΗΓΗΤΗ, ενώ ο
