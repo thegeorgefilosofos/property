@@ -5,6 +5,7 @@ import {
   SPITI_MOU, spitiMouEligibility, spitiMouPayment, spitiMouIncomeLimit,
   annuityMonthly, rankLoans, type UserLoanNeeds, type BankInput,
 } from '@/lib/loans/recommend'
+import { athensToday } from '@/lib/core/time'
 
 // ── «Σπίτι μου ΙΙ — για σένα» ────────────────────────────────────────────────
 // Συγκεντρώνει σε μία εικόνα: το 50/50 σκέλος (άτοκο/τραπεζικό), την πραγματική
@@ -39,7 +40,7 @@ export default function SpitiMouPanel({
     income: incomeAnnual, maritalStatus: marital ?? 'single', children: childCount ?? 0,
     propertySqm: sqm, propertyYearBuilt: yearBuilt, firstHome: true,
   }
-  const elig = spitiMouEligibility(needs)
+  const elig = spitiMouEligibility(needs, athensToday())
   const pay = spitiMouPayment(amount, bankRatePct, years, elig.interestFreeShare, elig.rateSubsidyShare)
   const normalMonthly = annuityMonthly(amount, bankRatePct, years)
   const months = years * 12
@@ -61,7 +62,7 @@ export default function SpitiMouPanel({
   const hardFail = crit.some(c => c.status === 'fail')
 
   // Συμμετέχουσες τράπεζες, κατά συνολικό κόστος.
-  const ranked = rankLoans(needs, banks, euribor).filter(r => r.spitiMouApplied && r.eligible).slice(0, 3)
+  const ranked = rankLoans(needs, banks, euribor, athensToday()).filter(r => r.spitiMouApplied && r.eligible).slice(0, 3)
 
   // ── ΤΟ ΠΡΟΓΡΑΜΜΑ ΔΕΧΕΤΑΙ ΑΚΟΜΗ ΑΙΤΗΣΗ; ─────────────────────────────────────
   // ΤΟ ΣΦΑΛΜΑ: η αντίστροφη μέτρηση ήταν ως τη λήξη ΣΥΝΑΨΗΣ ΣΥΜΒΟΛΑΙΩΝ, και το

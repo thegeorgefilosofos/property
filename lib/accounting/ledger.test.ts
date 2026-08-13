@@ -416,6 +416,20 @@ const today = '2026-07-11'
 }
 
 // ── report ───────────────────────────────────────────────────────────────────
+// ── ΤΟ ΠΛΕΟΝΑΣΜΑ ΤΟΥ ΕΝΟΣ ΔΕΝ ΣΒΗΝΕΙ ΤΗΝ ΟΦΕΙΛΗ ΤΟΥ ΑΛΛΟΥ ─────────────────
+// Δύο μισθωτές των 1.000 €. Ο ένας πληρώνει 1.500, ο άλλος τίποτα. Η διαφορά
+// των συνόλων έλεγε «ανείσπρακτα 500 €» — και ο ιδιοκτήτης κυνηγούσε 500 αντί
+// για 1.000, από τον λάθος άνθρωπο.
+{
+  const exp: Expected[] = [
+    { id: 'a', date: '2026-06-01', amount: 1000 },
+    { id: 'b', date: '2026-06-01', amount: 1000 },
+  ]
+  const act: Actual[] = [{ refId: 'a', date: '2026-06-03', amount: 1500, paid: true }]
+  const sum = reconSummary(reconcile(exp, act, today))
+  ok('τα ανείσπρακτα δεν συμψηφίζονται μεταξύ μισθωτών', sum.outstanding === 1000)
+}
+
 console.log(`\nledger.ts — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`)
 if (failed) { console.log('FAILED:\n' + fails.map(f => '  ✗ ' + f).join('\n')); process.exit(1) }
 console.log('όλα πέρασαν')

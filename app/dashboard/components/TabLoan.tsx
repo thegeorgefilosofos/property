@@ -980,8 +980,8 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
           purpose: advType, ratePreference: calcState.rateType,
         }
         const euribor = market.euribor_3m || MARKET_FALLBACK.euribor_3m
-        const ranked = rankLoans(needs, BANKS, euribor)
-        const spiti = spitiMouEligibility(needs)
+        const ranked = rankLoans(needs, BANKS, euribor, athensToday())
+        const spiti = spitiMouEligibility(needs, athensToday())
         // Το πλήρες πάνελ «Σπίτι μου ΙΙ» εμφανίζεται μόνο όταν αφορά· τότε αποφεύγουμε
         // να επαναλάβουμε την ίδια πληροφορία στη σύνοψη πιο κάτω (ενιαία πηγή).
         const spitiPanelShown = advType==='first_home'||advBorr==='young'||advBorr==='family'

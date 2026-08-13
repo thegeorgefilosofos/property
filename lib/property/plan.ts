@@ -1078,8 +1078,16 @@ export function vacancyCost(i: VacancyCostInput): VacancyCost {
     { label: 'Πάγια ρεύματος και νερού', monthly: cents(num(i.utilitiesMonthly)) },
     { label: 'Ασφάλιστρο', monthly: cents(num(i.insuranceYear) / 12) },
   ].filter(p => p.monthly > 0);
+  // ΤΟ ΕΤΗΣΙΟ ΔΕΝ ΒΓΑΙΝΕΙ ΑΠΟ ΤΟ ΜΗΝΙΑΙΟ ΕΠΙ ΔΩΔΕΚΑ. Στρογγυλοποιώντας κάθε
+  // γραμμή στο λεπτό και μετά πολλαπλασιάζοντας, το σφάλμα δωδεκαπλασιάζεται:
+  // ΕΝΦΙΑ 500 και ασφάλιστρο 200 τον χρόνο έβγαζαν ετήσιο 2.200,08 € — οκτώ
+  // λεπτά που ο χρήστης δεν μπορεί να εξηγήσει, γιατί τα δικά του νούμερα
+  // αθροίζουν ακριβώς 2.200. Το ετήσιο υπολογίζεται από τα ετήσια δεδομένα, και
+  // το μηνιαίο είναι εκείνο που προκύπτει με διαίρεση.
+  const yearly = cents(num(i.enfiaYear) + num(i.insuranceYear)
+    + 12 * num(i.commonMonthly) + 12 * num(i.utilitiesMonthly));
   const monthly = cents(parts.reduce((s, p) => s + p.monthly, 0));
-  return { monthly, yearly: cents(monthly * 12), parts };
+  return { monthly, yearly, parts };
 }
 
 export interface LoanEstimate { monthly: number; interest: number; total: number }

@@ -71,9 +71,17 @@ export function analyzeEsis(input: EsisInput, opts?: { benchmarkAprc?: number })
   const monthly = r0(input.monthlyPayment && input.monthlyPayment > 0
     ? input.monthlyPayment
     : annuityMonthly(amount, nominal, years))
+  // ΣΤΡΟΓΓΥΛΟΠΟΙΗΣΗ ΠΡΙΝ ΤΟΝ ΠΟΛΛΑΠΛΑΣΙΑΣΜΟ, ΕΠΙ ΤΡΙΑΚΟΣΙΑ ΕΞΗΝΤΑ. Η δόση
+  // στρογγυλοποιούνταν στο ευρώ και μετά πολλαπλασιαζόταν με τους μήνες: σε
+  // 100.000 € με 2,50% για 35 έτη, η πραγματική δόση είναι 357,4952 και οι
+  // συνολικοί τόκοι 50.148 € — η οθόνη έγραφε 49.940 €, δηλαδή 208 € λιγότερους.
+  // Το `lib/loans/recommend` το κάνει ήδη σωστά· εδώ αντιγράφεται από εκεί.
+  const exactMonthly = input.monthlyPayment && input.monthlyPayment > 0
+    ? input.monthlyPayment
+    : annuityMonthly(amount, nominal, years)
   const totalInterest = input.totalPayable && input.totalPayable > amount
     ? r0(input.totalPayable - amount)
-    : r0(monthly * years * 12 - amount)
+    : r0(exactMonthly * years * 12 - amount)
   const totalCost = totalInterest + totalFees + totalInsurance
 
   const aprc = input.aprcPct && input.aprcPct > 0

@@ -138,9 +138,36 @@ export function spitiMouIncomeLimit(maritalStatus: UserLoanNeeds['maritalStatus'
 
 // Επιλεξιμότητα «Σπίτι μου ΙΙ» με βάση τις καταχωρήσεις. Ελέγχει μόνο ό,τι ξέρουμε,
 // δεν «κόβει» για στοιχεία που λείπουν (τα σημειώνει ως προς επιβεβαίωση).
-export function spitiMouEligibility(n: UserLoanNeeds): SpitiMouResult {
+/**
+ * ΤΟ ΠΡΟΓΡΑΜΜΑ ΕΚΛΕΙΣΕ ΚΑΙ Η ΚΑΤΑΤΑΞΗ ΣΥΝΕΧΙΖΕ ΝΑ ΤΟ ΜΕΤΡΑΕΙ.
+ *
+ * Η συνάρτηση έλεγχε ηλικία, αξία, εμβαδόν, έτος, διάρκεια, εισόδημα — ποτέ
+ * ΗΜΕΡΟΜΗΝΙΑ. Και οι δύο προθεσμίες κάθονταν πενήντα γραμμές πιο πάνω, η μία
+ * με σχόλιο «(έχει παρέλθει)» γραμμένο με το χέρι. Αποτέλεσμα: στις 13/08/2026,
+ * δέκα εβδομάδες μετά το κλείσιμο των αιτήσεων, η κατάταξη μοίραζε στα δύο το
+ * έντοκο κεφάλαιο και τύπωνε «50% άτοκο» σε δάνειο που κανείς δεν μπορεί πια να
+ * πάρει. Σε 190.000 € για 30 έτη με 3,5%: δόση 690,48 € αντί για 853,18 €, και
+ * μια τράπεζα ανέβαινε πρώτη σε κέρδος 58.573 € που δεν υπάρχει.
+ *
+ * Η μέρα ΔΙΝΕΤΑΙ, δεν διαβάζεται από το ρολόι: ίδια είσοδος, ίδια έξοδος, και τα
+ * tests δεν αλλάζουν απάντηση στις 31 Αυγούστου. Είναι υποχρεωτική παράμετρος
+ * επίτηδες — μια προαιρετική που όταν λείπει επιτρέπει τα πάντα είναι ακριβώς
+ * το σχήμα του σφάλματος που διορθώνεται εδώ.
+ *
+ * @param today Η σημερινή μέρα σε μορφή ΕΕΕΕ-ΜΜ-ΗΗ.
+ */
+export function spitiMouEligibility(n: UserLoanNeeds, today: string): SpitiMouResult {
   const reasons: string[] = []
   let eligible = true
+
+  if (today > SPITI_MOU.applicationDeadline) {
+    eligible = false
+    reasons.push(
+      today > SPITI_MOU.contractDeadline
+        ? 'Ο κύκλος του «Σπίτι μου ΙΙ» έχει κλείσει. Νέος κύκλος ανακοινώνεται από τον φορέα του προγράμματος.'
+        : 'Οι αιτήσεις υπαγωγής έκλεισαν. Η προθεσμία σύναψης σύμβασης αφορά μόνο όσους έχουν ήδη έγκριση.',
+    )
+  }
 
   if (n.age != null) {
     if (n.age < SPITI_MOU.ageMin || n.age > SPITI_MOU.ageMax) {
@@ -199,11 +226,11 @@ export function spitiMouPayment(amount: number, bankRatePct: number, years: numb
 }
 
 // Κεντρική σύσταση: κατατάσσει τις τράπεζες κατά ΣΥΝΟΛΙΚΟ κόστος (όχι μόνο επιτόκιο).
-export function rankLoans(needs: UserLoanNeeds, banks: BankInput[], euribor3m: number): LoanRanking[] {
+export function rankLoans(needs: UserLoanNeeds, banks: BankInput[], euribor3m: number, today: string): LoanRanking[] {
   const pref = needs.ratePreference ?? 'fixed'
   const ltv = needs.propertyValue > 0 ? (needs.amount / needs.propertyValue) * 100 : 0
   const green = !!needs.energyClass && /^a/i.test(needs.energyClass.trim())
-  const spiti = spitiMouEligibility(needs)
+  const spiti = spitiMouEligibility(needs, today)
 
   const rows: LoanRanking[] = banks.map(bank => {
     const blockers: string[] = []

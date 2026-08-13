@@ -34,26 +34,44 @@ ok('married +2 kids 45k', spitiMouIncomeLimit('married', 2) === 45000)
 ok('single_parent 3 kids 49k', spitiMouIncomeLimit('single_parent', 3) === 49000)
 
 // ── eligibility ──
+// Η μέρα δίνεται, δεν διαβάζεται: αλλιώς τα tests θα άλλαζαν απάντηση στις 31
+// Μαΐου 2026 και θα το μάθαινε ο πρώτος χρήστης, όχι το CI.
+const OPEN_DAY = '2026-03-01'   // μέσα στον κύκλο αιτήσεων
+const AFTER_APPLY = '2026-06-15' // αιτήσεις κλειστές, συμβάσεις ακόμη ανοιχτές
+const AFTER_ALL = '2026-09-01'  // ο κύκλος τελείωσε
+
 const baseNeeds: UserLoanNeeds = {
   amount: 150000, propertyValue: 200000, years: 25, purpose: 'first_home',
   age: 32, income: 30000, maritalStatus: 'married', children: 1,
   firstHome: true, propertySqm: 95, propertyYearBuilt: 2004,
 }
-const e1 = spitiMouEligibility(baseNeeds)
+const e1 = spitiMouEligibility(baseNeeds, OPEN_DAY)
 ok('eligible base case', e1.eligible === true)
 ok('share 0.5 for all', e1.interestFreeShare === 0.5)
 ok('no rate subsidy <3 kids', e1.rateSubsidyShare === 0)
-const e2 = spitiMouEligibility({ ...baseNeeds, children: 3 })
+const e2 = spitiMouEligibility({ ...baseNeeds, children: 3 }, OPEN_DAY)
 ok('interest-free stays 0.5 for 3+ kids', e2.interestFreeShare === 0.5)
 ok('rate subsidy 0.5 for 3+ kids', e2.rateSubsidyShare === 0.5)
-const e3 = spitiMouEligibility({ ...baseNeeds, propertyValue: 300000 })
+const e3 = spitiMouEligibility({ ...baseNeeds, propertyValue: 300000 }, OPEN_DAY)
 ok('ineligible when value > 250k', e3.eligible === false)
-const e4 = spitiMouEligibility({ ...baseNeeds, age: 60 })
+const e4 = spitiMouEligibility({ ...baseNeeds, age: 60 }, OPEN_DAY)
 ok('ineligible when age out of band', e4.eligible === false)
-const e5 = spitiMouEligibility({ ...baseNeeds, propertyYearBuilt: 2020 })
+const e5 = spitiMouEligibility({ ...baseNeeds, propertyYearBuilt: 2020 }, OPEN_DAY)
 ok('ineligible when built after 2007', e5.eligible === false)
-const e6 = spitiMouEligibility({ ...baseNeeds, income: 999999 })
+const e6 = spitiMouEligibility({ ...baseNeeds, income: 999999 }, OPEN_DAY)
 ok('ineligible when income over limit', e6.eligible === false)
+
+// ── Η ΠΡΟΘΕΣΜΙΑ ΕΙΝΑΙ ΚΡΙΤΗΡΙΟ ΟΠΩΣ ΚΑΘΕ ΑΛΛΟ ──────────────────────────────
+// Δέκα εβδομάδες μετά το κλείσιμο των αιτήσεων, η κατάταξη εξακολουθούσε να
+// μοιράζει στα δύο το έντοκο κεφάλαιο και να τυπώνει «50% άτοκο» σε δάνειο που
+// κανείς δεν μπορεί πια να πάρει: 690,48 € δόση αντί για 853,18 €.
+const eLate = spitiMouEligibility(baseNeeds, AFTER_APPLY)
+ok('μετά τη λήξη των αιτήσεων, δεν είναι επιλέξιμο', eLate.eligible === false)
+ok('...και το λέει με λόγια', eLate.reasons.some(r => /αιτήσεις/i.test(r)))
+const eClosed = spitiMouEligibility(baseNeeds, AFTER_ALL)
+ok('μετά και τη σύναψη συμβάσεων, ο κύκλος έχει κλείσει', eClosed.eligible === false)
+ok('...με διαφορετική εξήγηση', eClosed.reasons.some(r => /κύκλος/i.test(r)))
+
 
 // ── spitiMouPayment ──
 const sp = spitiMouPayment(100000, 3.5, 20, 0.5)
@@ -67,7 +85,11 @@ const banks: BankInput[] = [
   { id: 'pricey', name: 'Pricey', fixed_min: 3.9, variable_spread_min: 2.0, max_ltv: 90, max_years: 30, max_amount: 500000, min_amount: 10000, green_discount: 0, spiti_mou: true },
   { id: 'toosmall', name: 'TooSmall', fixed_min: 2.4, variable_spread_min: 1.0, max_ltv: 90, max_years: 30, max_amount: 100000, min_amount: 10000, green_discount: 0, spiti_mou: false },
 ]
-const ranked = rankLoans(baseNeeds, banks, 2.324)
+const ranked = rankLoans(baseNeeds, banks, 2.324, OPEN_DAY)
+// Και η κατάταξη δεν πουλάει το ανύπαρκτο όφελος μετά τη λήξη.
+const lateRanked = rankLoans(baseNeeds, banks, 2.324, AFTER_APPLY)
+ok('καμία τράπεζα δεν εμφανίζει «Σπίτι μου» μετά τη λήξη',
+  lateRanked.every(r => !r.spitiMouApplied))
 ok('ranked returns all banks', ranked.length === 3)
 ok('eligible banks come before ineligible', ranked[ranked.length - 1].bankId === 'toosmall')
 ok('toosmall is ineligible (amount>max)', ranked.find(r => r.bankId === 'toosmall')!.eligible === false)
@@ -76,8 +98,8 @@ ok('spiti applied for eligible first_home', ranked.find(r => r.bankId === 'cheap
 ok('totalCost = amount + interest', ranked[0].totalCost === baseNeeds.amount + ranked[0].totalInterest)
 
 // green discount lowers the effective/nominal rate
-const greenRanked = rankLoans({ ...baseNeeds, purpose: 'purchase', energyClass: 'A+' }, banks, 2.324)
-const noGreen = rankLoans({ ...baseNeeds, purpose: 'purchase' }, banks, 2.324)
+const greenRanked = rankLoans({ ...baseNeeds, purpose: 'purchase', energyClass: 'A+' }, banks, 2.324, OPEN_DAY)
+const noGreen = rankLoans({ ...baseNeeds, purpose: 'purchase' }, banks, 2.324, OPEN_DAY)
 ok('green class lowers Cheap nominal rate', greenRanked.find(r => r.bankId === 'cheap')!.nominalRatePct < noGreen.find(r => r.bankId === 'cheap')!.nominalRatePct)
 
 console.log(`\nrecommend.test: ${passed} passed, ${failed} failed`)

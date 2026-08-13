@@ -248,7 +248,13 @@ export function reconSummary(rows: ReconRow[]): {
   return {
     expectedTotal,
     collectedTotal,
-    outstanding: cents(Math.max(0, expectedTotal - collectedTotal)),
+    // ΤΟ ΠΛΕΟΝΑΣΜΑ ΤΟΥ ΕΝΟΣ ΕΣΒΗΝΕ ΤΗΝ ΟΦΕΙΛΗ ΤΟΥ ΑΛΛΟΥ. Η διαφορά των δύο
+    // συνόλων συμψηφίζει: δύο μισθωτές των 1.000 €, ο ένας πληρώνει 1.500 και ο
+    // άλλος τίποτα, και η οθόνη έγραφε «ανείσπρακτα 500 €» ενώ οφείλονται 1.000.
+    // Είναι η ίδια αστοχία που διορθώθηκε εξήντα γραμμές πιο πάνω σε επίπεδο
+    // γραμμής, και ξαναγεννήθηκε στο σύνολο. Το `shortfall` υπολογίζεται ήδη ανά
+    // γραμμή και το πετούσαμε.
+    outstanding: cents(rows.reduce((sum, r) => sum + r.shortfall, 0)),
     counts,
   }
 }

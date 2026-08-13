@@ -252,7 +252,7 @@ export default function LoanDocScan({ banks, euribor, defaultPropertyValue, onAp
     energyClass: ex.energy_class,
   } : null
 
-  const ranked = needs ? rankLoans(needs, banks, euribor) : []
+  const ranked = needs ? rankLoans(needs, banks, euribor, athensToday()) : []
   const best = ranked.find(r => r.eligible) || ranked[0]
 
   // ── ΤΟ «v» ΕΙΝΑΙ ΚΛΕΙΔΙ ΑΛΛΑΓΗΣ, ΟΧΙ ΧΡΟΝΟΣ ───────────────────────────────

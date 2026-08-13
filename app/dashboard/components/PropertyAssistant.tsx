@@ -432,10 +432,18 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const acctStmt = incomeStatement({
       regime: isShortAcct ? 'individual_shortterm' : 'individual_longterm',
       grossIncome: acctGross, otherCashExpenses: paid,
-      // ΤΟ ΠΕΔΙΟ ΖΗΤΑΕΙ ΚΕΦΑΛΑΙΟ, ΟΧΙ ΔΟΣΗ. Εδώ περνιόταν η τοκοχρεολυτική δόση
-      // επί δώδεκα, που περιλαμβάνει και τον τόκο: το ταμείο έβγαινε μικρότερο
-      // από την πραγματικότητα κατά όλο τον ετήσιο τόκο.
-      loanPrincipal: Math.max(0, Math.round(monthlyDebt * 12 - loanInterestYear)),
+      // ΤΟ ΠΕΔΙΟ ΖΗΤΑΕΙ ΚΕΦΑΛΑΙΟ ΟΤΑΝ Ο ΤΟΚΟΣ ΕΚΠΙΠΤΕΙ ΧΩΡΙΣΤΑ. ΕΔΩ ΔΕΝ ΕΚΠΙΠΤΕΙ.
+      //
+      // Η προηγούμενη διόρθωση αφαιρούσε τον τόκο από τη δόση, και είχε δίκιο —
+      // για καθεστώς επιχείρησης, όπου ο τόκος είναι δική του εκπεστέα γραμμή.
+      // Σε `individual_*` όμως η `incomeStatement` μηδενίζει τον τόκο, οπότε το
+      // ταμείο αφαιρούσε ΜΟΝΟ το κεφάλαιο: ο ιδιώτης πληρώνει ολόκληρη τη δόση
+      // και δεν εκπίπτει τον τόκο πουθενά.
+      //
+      // Το αποτέλεσμα ήταν δύο διαφορετικά ταμειακά υπόλοιπα για το ίδιο ακίνητο
+      // και το ίδιο έτος: η Νόα έλεγε 6.591,88 € περισσότερα από τη Λογιστική σε
+      // δάνειο 190.000 € με 3,5%. Όποιος έβλεπε και τα δύο, δεν πίστευε κανένα.
+      loanPrincipal: Math.max(0, Math.round(monthlyDebt * 12)),
       uncollectedIncome: isShortAcct || rentFromTarget ? 0 : Math.max(0, accruedRent - collectedRent),
     });
     const acctProv = taxProvision(acctStmt, now.getMonth() + 1);
@@ -790,7 +798,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       })]));
       setCtxStr('');   // ξαναφόρτωσε το πλαίσιο ώστε να «ξέρει» τη νέα δαπάνη
       loadContext();
-      setMsgs(m => [...m, { role: 'assistant', text: `Το κατέγραψα. Πρόσθεσα δαπάνη «${description}» ${eur(amount)}${monthLbl} στην κατηγορία «${category}»${deductible ? ' (εκπίπτει φορολογικά)' : ''}. Αν η κατηγορία ή ο μήνας δεν είναι σωστά, άλλαξέ τα στις Δαπάνες.`, action: { type: 'go', tab: 'finances' } }]);
+      setMsgs(m => [...m, { role: 'assistant', text: `Το κατέγραψα. Πρόσθεσα δαπάνη «${description}» ${eur(amount)}${monthLbl} στην κατηγορία «${category}»${deductible ? ' (εκπεστέα σε καθεστώς επιχείρησης· ο ιδιώτης με εισόδημα από ακίνητα δεν εκπίπτει αναλυτικά έξοδα, ισχύει η τεκμαρτή έκπτωση 5%)' : ''}. Αν η κατηγορία ή ο μήνας δεν είναι σωστά, άλλαξέ τα στις Δαπάνες.`, action: { type: 'go', tab: 'finances' } }]);
     } catch {
       setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να αποθηκεύσω τη δαπάνη τώρα. Δοκίμασε ξανά ή πρόσθεσέ την από την καρτέλα Δαπάνες.' }]);
     }
