@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { rentalIncomeTax } from '@/lib/billing/greekTax'
+import { fe, fp } from '@/lib/core/format'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Ζωντανό εργαλείο απόδοσης μέσα στο landing. Τρέχει την ΙΔΙΑ ακριβή φορολογική
@@ -11,10 +12,19 @@ import { rentalIncomeTax } from '@/lib/billing/greekTax'
 // σου στοιχεία. Καθαρά client-side, καμία αποθήκευση, καμία αποστολή.
 // ═══════════════════════════════════════════════════════════════════════════
 
-const el0 = new Intl.NumberFormat('el-GR', { maximumFractionDigits: 0 })
-const el1 = new Intl.NumberFormat('el-GR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
-const eur = (n: number) => `${el0.format(Math.round(n))} €`
-const pct = (n: number) => `${el1.format(n * 100)}%`
+// ═══ ΔΥΟ ΤΟΠΙΚΟΙ ΜΟΡΦΟΠΟΙΗΤΕΣ, ΜΕ ΑΛΛΟΥΣ ΚΑΝΟΝΕΣ ΑΠΟ ΟΛΗ ΤΗΝ ΕΦΑΡΜΟΓΗ ══════
+// Έγραφαν «650 €» και «3,0%»: μηδέν δεκαδικά στα ποσά, ένα στα ποσοστά — ενώ ο
+// κανόνας του έργου είναι ΔΥΟ, παντού, ώστε οι υποδιαστολές να στοιχίζονται
+// κάθετα. Ο επισκέπτης έβλεπε «457 €» εδώ και «457,00 €» δύο κλικ μετά, στην
+// ίδια αριθμομηχανή που υπόσχεται «οι ίδιοι υπολογισμοί με την εφαρμογή».
+//
+// Και ο φύλακας τοπικών μορφοποιητών ΔΕΝ το έπιασε: έψαχνε `toLocaleString`,
+// ενώ εδώ ήταν `new Intl.NumberFormat`. Ίδια δουλειά, άλλο API — και η τρύπα
+// ήταν ακριβώς στη μία σελίδα που βλέπει ο επισκέπτης πριν πληρώσει. Ο φύλακας
+// επεκτάθηκε την ίδια μέρα.
+//
+// Το `fp` δέχεται ποσοστιαία μονάδα, όχι κλάσμα: 0,043 γίνεται fp(4,3).
+const pct = (n: number) => fp(n * 100)
 
 // Πλάτος κλιμακίου φόρου, για την οπτική «πού πέφτεις» στην κλίμακα.
 const BANDS = [
@@ -41,11 +51,17 @@ function Control({ label, hint, value, set, min, max, step, format }: {
   )
 }
 
-function Stat({ label, value, big, tone }: { label: string; value: string; big?: boolean; tone?: 'accent' | 'positive' }) {
+// ═══ ΤΟ ΠΡΑΣΙΝΟ ΕΦΥΓΕ ΑΠΟ ΤΗΝ ΑΠΟΔΟΣΗ ══════════════════════════════════════
+// Ο μεγάλος αριθμός ήταν `var(--positive)`, δηλαδή η οθόνη έλεγε «καλό» για
+// κάθε τιμή: και για 3,00% και για 0,40%. Μια απόδοση δεν είναι θετική ή
+// αρνητική από μόνη της· εξαρτάται από το τι θα έκανε ο ίδιος με τα ίδια
+// χρήματα αλλού, και αυτό το κρίνει εκείνος. Η έμφαση μένει, και τη δίνει το
+// μέγεθος: σαράντα δύο εικονοστοιχεία δίπλα σε είκοσι.
+function Stat({ label, value, big, tone }: { label: string; value: string; big?: boolean; tone?: 'accent' }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: '0.02em' }}>{label}</span>
-      <span style={{ fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.03em', lineHeight: 1, fontWeight: 700, fontSize: big ? 'clamp(30px, 5vw, 42px)' : 20, color: tone === 'positive' ? 'var(--positive)' : tone === 'accent' ? 'var(--accent)' : 'var(--text-primary)' }}>{value}</span>
+      <span style={{ fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.03em', lineHeight: 1, fontWeight: 700, fontSize: big ? 'clamp(30px, 5vw, 42px)' : 20, color: tone === 'accent' ? 'var(--accent)' : 'var(--text-primary)' }}>{value}</span>
     </div>
   )
 }
@@ -77,15 +93,15 @@ export default function LandingCalculator() {
 
       {/* Αριστερά: τα δικά σου δεδομένα */}
       <div className="calc-panel" style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-        <Control label="Μηνιαίο ενοίκιο" hint="Το μεικτό μηνιαίο μίσθωμα" value={rent} set={setRent} min={100} max={5000} step={10} format={eur} />
-        <Control label="Αξία ακινήτου" hint="Τρέχουσα εμπορική αξία, για τον υπολογισμό απόδοσης" value={value} set={setValue} min={2000} max={1000000} step={1000} format={eur} />
-        <Control label="Ετήσιες δαπάνες" hint="ΕΝΦΙΑ, ασφάλεια, συντήρηση, κοινόχρηστα ιδιοκτήτη" value={costs} set={setCosts} min={0} max={10000} step={100} format={eur} />
+        <Control label="Μηνιαίο ενοίκιο" hint="Το μεικτό μηνιαίο μίσθωμα" value={rent} set={setRent} min={100} max={5000} step={10} format={fe} />
+        <Control label="Αξία ακινήτου" hint="Τρέχουσα εμπορική αξία, για τον υπολογισμό απόδοσης" value={value} set={setValue} min={2000} max={1000000} step={1000} format={fe} />
+        <Control label="Ετήσιες δαπάνες" hint="ΕΝΦΙΑ, ασφάλεια, συντήρηση, κοινόχρηστα ιδιοκτήτη" value={costs} set={setCosts} min={0} max={10000} step={100} format={fe} />
 
         {/* Πού πέφτεις στην κλίμακα ενοικίων 2026 */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 2 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-tertiary)' }}>
             <span>Κλίμακα ενοικίων 2026</span>
-            <span style={{ fontVariantNumeric: 'tabular-nums' }}>φορολογητέο {eur(taxable)}</span>
+            <span style={{ fontVariantNumeric: 'tabular-nums' }}>φορολογητέο {fe(taxable)}</span>
           </div>
           <div className="calc-band">
             {BANDS.map((b, i) => (
@@ -101,11 +117,11 @@ export default function LandingCalculator() {
 
       {/* Δεξιά: το αποτέλεσμα, ζωντανά */}
       <div className="calc-panel" style={{ display: 'flex', flexDirection: 'column', gap: 22, background: 'var(--bg-elevated)' }}>
-        <Stat label="Καθαρή απόδοση, μετά τον φόρο" value={pct(netYield)} big tone="positive" />
+        <Stat label="Καθαρή απόδοση, μετά τον φόρο" value={pct(netYield)} big />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, paddingTop: 4, borderTop: '1px solid var(--border-subtle)' }}>
-          <Stat label="Καθαρά τον μήνα" value={eur(monthlyNet)} />
+          <Stat label="Καθαρά τον μήνα" value={fe(monthlyNet)} />
           <Stat label="Ακαθάριστη απόδοση" value={pct(grossYield)} />
-          <Stat label="Ετήσιος φόρος ενοικίων" value={eur(tax)} />
+          <Stat label="Ετήσιος φόρος ενοικίων" value={fe(tax)} />
           <Stat label="Μέσος συντελεστής" value={pct(effRate)} />
         </div>
         <div style={{ flex: 1 }} />

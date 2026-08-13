@@ -2109,7 +2109,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   const makeTaskCal = async (it: { description: string; assigned_contact_name?: string | null; due_date: string | null; priority: Priority; recurring: Recurring; estimated_cost: number }): Promise<string | null> => {
     if (!it.due_date) return null
     const data = await savedData<{ id?: string }>('Η εκκρεμότητα δεν μπήκε στο ημερολόγιο',
-      calendar.add(supabase, { propertyId, userId }, 'checklist', { title: taskTitleOf(it), notes: it.estimated_cost > 0 ? `Δική σου εκτίμηση κόστους ${it.estimated_cost} €, χωρίς παραστατικό` : null, category: 'maintenance', event_date: it.due_date, priority: calPriorityOf(it.priority), recurring: it.recurring !== 'none' }))
+      calendar.add(supabase, { propertyId, userId }, 'checklist', { title: taskTitleOf(it), notes: it.estimated_cost > 0 ? `Δική σου εκτίμηση κόστους ${fe(it.estimated_cost)}, χωρίς παραστατικό` : null, category: 'maintenance', event_date: it.due_date, priority: calPriorityOf(it.priority), recurring: it.recurring !== 'none' }))
     return data?.id || null
   }
 

@@ -62,15 +62,22 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
     try { setPresets(JSON.parse(localStorage.getItem(PRESET_KEY) || '[]')); } catch { /* ignore */ }
   }, []);
 
+  // Η ΣΗΜΑΙΑ ΦΟΡΤΩΣΗΣ ΜΠΑΙΝΕΙ ΜΕΣΑ ΣΤΗΝ ΑΛΥΣΙΔΑ, ΟΧΙ ΠΡΙΝ ΑΠΟ ΑΥΤΗΝ. Γραμμένη
+  // στο σώμα του effect, προκαλεί δεύτερη απόδοση ΠΡΙΝ καν ξεκινήσει το αίτημα.
+  // Μέσα στην ασύγχρονη συνάρτηση κάνει την ίδια δουλειά, χωρίς την επιπλέον
+  // απόδοση, και σταματά να ενοχλεί τον κανόνα set-state-in-effect.
   useEffect(() => {
     if (!open) return;
-    setLoading(true);
-    properties.list<Prop>(supabase, userId, { orderBy: 'name' })
-      .then(ps => {
-        setProps(ps);
-        setPropIds(prev => prev.size ? prev : new Set(ps.map(p => p.id)));
-        setLoading(false);
-      });
+    let alive = true;
+    (async () => {
+      setLoading(true);
+      const ps = await properties.list<Prop>(supabase, userId, { orderBy: 'name' });
+      if (!alive) return;
+      setProps(ps);
+      setPropIds(prev => prev.size ? prev : new Set(ps.map(p => p.id)));
+      setLoading(false);
+    })();
+    return () => { alive = false; };
   }, [open, userId, supabase]);
 
   const savePresets = (list: Preset[]) => { setPresets(list); try { localStorage.setItem(PRESET_KEY, JSON.stringify(list)); } catch { /* ignore */ } };

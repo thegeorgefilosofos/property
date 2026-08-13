@@ -3,6 +3,7 @@
 // και σύσταση καλύτερου δανείου με βάση τις καταχωρήσεις και τις ανάγκες του χρήστη.
 // ΟΛΑ τα αποτελέσματα είναι ΕΝΔΕΙΚΤΙΚΑ, όχι δεσμευτική προσφορά τράπεζας.
 
+import { fe } from '@/lib/core/format'
 import { fp } from '../core/format'
 
 export type RateType = 'fixed' | 'variable' | 'mixed'
@@ -152,11 +153,11 @@ export function spitiMouEligibility(n: UserLoanNeeds): SpitiMouResult {
 
   if (n.propertyValue > SPITI_MOU.maxPropertyValue) {
     eligible = false
-    reasons.push(`Αξία ${Math.round(n.propertyValue)}€ > όριο ${SPITI_MOU.maxPropertyValue}€`)
+    reasons.push(`Αξία ${fe(n.propertyValue)} > όριο ${fe(SPITI_MOU.maxPropertyValue)}`)
   }
   if (n.amount > SPITI_MOU.maxAmount) {
     eligible = false
-    reasons.push(`Ποσό ${Math.round(n.amount)}€ > όριο ${SPITI_MOU.maxAmount}€`)
+    reasons.push(`Ποσό ${fe(n.amount)} > όριο ${fe(SPITI_MOU.maxAmount)}`)
   }
   if (n.propertySqm != null && n.propertySqm > SPITI_MOU.maxSqm) {
     eligible = false
@@ -172,9 +173,9 @@ export function spitiMouEligibility(n: UserLoanNeeds): SpitiMouResult {
   }
   if (n.income != null) {
     const limit = spitiMouIncomeLimit(n.maritalStatus, n.children)
-    if (n.income > limit) { eligible = false; reasons.push(`Εισόδημα ${Math.round(n.income)}€ > ενδεικτικό όριο ${limit}€`) }
-    else if (n.income < SPITI_MOU.incomeMin) { eligible = false; reasons.push(`Εισόδημα ${Math.round(n.income)}€ < ελάχιστο ${SPITI_MOU.incomeMin}€`) }
-    else reasons.push(`Εισόδημα εντός ορίου (${SPITI_MOU.incomeMin}€–${limit}€)`)
+    if (n.income > limit) { eligible = false; reasons.push(`Εισόδημα ${fe(n.income)} > ενδεικτικό όριο ${fe(limit)}`) }
+    else if (n.income < SPITI_MOU.incomeMin) { eligible = false; reasons.push(`Εισόδημα ${fe(n.income)} < ελάχιστο ${fe(SPITI_MOU.incomeMin)}`) }
+    else reasons.push(`Εισόδημα εντός ορίου (${fe(SPITI_MOU.incomeMin)} ώς ${fe(limit)})`)
   } else reasons.push('Εισόδημα: προς επιβεβαίωση')
 
   // Το άτοκο σκέλος είναι 50% για ΟΛΟΥΣ. Οι τρίτεκνοι/πολύτεκνοι λαμβάνουν επιπλέον
@@ -206,8 +207,8 @@ export function rankLoans(needs: UserLoanNeeds, banks: BankInput[], euribor3m: n
 
   const rows: LoanRanking[] = banks.map(bank => {
     const blockers: string[] = []
-    if (needs.amount > bank.max_amount) blockers.push(`Ποσό > όριο τράπεζας ${bank.max_amount}€`)
-    if (needs.amount < bank.min_amount) blockers.push(`Ποσό < ελάχιστο ${bank.min_amount}€`)
+    if (needs.amount > bank.max_amount) blockers.push(`Ποσό > όριο τράπεζας ${fe(bank.max_amount)}`)
+    if (needs.amount < bank.min_amount) blockers.push(`Ποσό < ελάχιστο ${fe(bank.min_amount)}`)
     if (ltv > bank.max_ltv) blockers.push(`LTV ${fp(ltv)} > μέγιστο ${bank.max_ltv}%`)
     if (needs.years > bank.max_years) blockers.push(`Διάρκεια > ${bank.max_years} έτη`)
 

@@ -39,7 +39,13 @@ const ALLOWED = [
 ]
 
 // Ποσό ή ποσοστό — όχι ημερομηνία, όχι σκέτος ακέραιος.
-const MONEY_LOCALE = /toLocaleString\([^)]*(?:FractionDigits|currency)/i
+//
+// ΔΥΟ API ΓΙΑ ΤΗΝ ΙΔΙΑ ΔΟΥΛΕΙΑ, ΚΑΙ Ο ΦΥΛΑΚΑΣ ΗΞΕΡΕ ΜΟΝΟ ΤΟ ΕΝΑ. Έλεγχε
+// `toLocaleString`, οπότε η αριθμομηχανή της αρχικής σελίδας πέρασε από κάτω
+// του με `new Intl.NumberFormat('el-GR', { maximumFractionDigits: 0 })` και
+// έγραφε «650 €» στη μοναδική οθόνη που βλέπει ο επισκέπτης πριν πληρώσει.
+// Ένας φύλακας που ξέρει μία γραφή του ίδιου πράγματος δεν φυλάει τίποτα.
+const MONEY_LOCALE = /(?:toLocaleString\([^)]*|Intl\.NumberFormat\([^)]*)(?:FractionDigits|currency)/i
 const FIXED_UNIT = /toFixed\(\s*\d+\s*\)[^\n]{0,40}(?:%|€|(?<![\p{L}\p{N}])ευρώ(?![\p{L}\p{N}]))/u
 
 const files = findSources().filter(f => !f.includes('.test.') && !ALLOWED.includes(f))

@@ -459,7 +459,7 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
       {kwh > 0 && (
         <div style={card}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4, flexWrap: 'wrap' as const, gap: 10 }}>
-            {secHdr('Σύγκριση παρόχων', `Βάσει ${kwh} kWh/μήνα και TTF ${s.ttfPrice} €/MWh, χρέωση προμήθειας, χωρίς ρυθμιζόμενες/ΦΠΑ`)}
+            {secHdr('Σύγκριση παρόχων', `Βάσει ${kwh} kWh/μήνα και TTF ${feRate(parseFloat(s.ttfPrice) || DEFAULT_TTF_EUR_MWH)}/MWh, χρέωση προμήθειας, χωρίς ρυθμιζόμενες/ΦΠΑ`)}
             <div style={{ display: 'flex', background: 'var(--bg-base)', borderRadius: T.radius.pill, padding: 3, border: '1px solid var(--border-default)' }}>
               {(['residential', 'business'] as const).map(seg => (
                 <button key={seg} onClick={() => setSegmentFilter(seg)}

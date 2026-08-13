@@ -25,7 +25,7 @@ import { OBJECTIVE_VALUES } from '@/lib/tax/aade';
 import { useState, useMemo, useId } from 'react';
 import Link from 'next/link';
 import { T, feAuto, fixedCols } from '@/components/tokens';
-import { fn } from '@/lib/core/format';
+import { fn, feRate } from '@/lib/core/format';
 import { parseAmount } from '@/lib/core/greek';
 import { TRIAL_DAYS } from '@/lib/billing/plans';
 import { estimateENFIA, zoneKeyFromPricePerSqm, enfiaFloorCoef, enfiaAgeCoef, ENFIA_ZONE_TAX, ENFIA_FLOOR_COEF, ENFIA_AGE_BANDS } from '@/lib/billing/enfia';
@@ -195,7 +195,7 @@ export function EnfiaCalculator() {
                 γίνεται ακριβής. */}
             <dl {...fixedCols(2, 24, 'start')} style={{ ...fixedCols(2, 24, 'start').style, rowGap: 11, margin: 0 }}>
               <Row k="Αντικειμενική αξία (εκτίμηση)" v={feAuto(r.value)}/>
-              <Row k="Βασικός φόρος ζώνης" v={`${fn(ENFIA_ZONE_TAX[r.zone] ?? 0, 2)} €/τ.μ.`}/>
+              <Row k="Βασικός φόρος ζώνης" v={`${feRate(ENFIA_ZONE_TAX[r.zone] ?? 0)}/τ.μ.`}/>
               <Row k="Συντελεστής ορόφου" v={fn(enfiaFloorCoef(floor), 2)}/>
               <Row k="Συντελεστής παλαιότητας" v={fn(enfiaAgeCoef(age), 2)}/>
               <Row k="Κύριος φόρος κτίσματος" v={feAuto(r.basic)}/>

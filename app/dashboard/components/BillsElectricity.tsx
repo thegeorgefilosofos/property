@@ -400,7 +400,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
 
       {/* ── Contract expiry alert ── */}
       {contractExpiry && contractExpiry.daysLeft <= 60 && (
-        <div style={{ marginBottom: 14, background: contractExpiry.daysLeft <= 14 ? 'rgba(197,34,31,0.06)' : 'rgba(242,153,0,0.05)', border: `1px solid ${contractExpiry.daysLeft <= 14 ? 'rgba(197,34,31,0.2)' : 'rgba(242,153,0,0.2)'}`, borderRadius: T.radius.inner, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ marginBottom: 14, background: contractExpiry.daysLeft <= 14 ? 'color-mix(in srgb, var(--negative) 6%, transparent)' : 'color-mix(in srgb, var(--warning) 5%, transparent)', border: `1px solid ${contractExpiry.daysLeft <= 14 ? 'color-mix(in srgb, var(--negative) 20%, transparent)' : 'color-mix(in srgb, var(--warning) 20%, transparent)'}`, borderRadius: T.radius.inner, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: contractExpiry.daysLeft <= 14 ? 'var(--negative)' : 'var(--warning)' }}/>
           <span style={{ fontSize: 12, fontFamily: T.font.sans, color: 'var(--text-primary)', fontWeight: 600 }}>
             Σύμβαση ρεύματος λήγει σε {contractExpiry.daysLeft} ημέρες, {contractExpiry.date}
@@ -895,7 +895,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
         if (hints.length === 0) return null;
 
         const SEV_STYLE = {
-          warning: { bg: 'rgba(242,153,0,0.05)', border: 'rgba(242,153,0,0.2)', dot: 'var(--warning)', text: 'var(--warning)' },
+          warning: { bg: 'color-mix(in srgb, var(--warning) 5%, transparent)', border: 'color-mix(in srgb, var(--warning) 20%, transparent)', dot: 'var(--warning)', text: 'var(--warning)' },
           info:    { bg: 'var(--bg-elevated)', border: 'var(--border-subtle)', dot: 'var(--text-tertiary)', text: 'var(--accent)' },
           tip:     { bg: 'var(--bg-elevated)', border: 'var(--border-subtle)', dot: 'var(--text-tertiary)', text: 'var(--accent)' },
         };

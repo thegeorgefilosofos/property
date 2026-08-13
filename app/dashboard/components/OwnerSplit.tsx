@@ -47,11 +47,20 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
 
+  // Η ΣΗΜΑΙΑ ΦΟΡΤΩΣΗΣ ΜΠΑΙΝΕΙ ΜΕΣΑ ΣΤΗΝ ΑΛΥΣΙΔΑ, ΟΧΙ ΠΡΙΝ ΑΠΟ ΑΥΤΗΝ. Το
+  // `setLoading(true)` στο σώμα του effect προκαλεί δεύτερη απόδοση πριν καν
+  // ξεκινήσει το αίτημα — και η κατάσταση ξεκινά ήδη `true`, οπότε στο πρώτο
+  // άνοιγμα δεν άλλαζε τίποτα. Έμεινε μόνο εκεί που κάτι πράγματι αλλάζει.
   useEffect(() => {
     if (!open) return;
-    setLoading(true);
-    properties.list<Prop>(supabase, userId, { orderBy: 'name' })
-      .then(ps => { setProps(ps); setPropId(prev => prev || ps[0]?.id || ''); setLoading(false); });
+    let alive = true;
+    (async () => {
+      setLoading(true);
+      const ps = await properties.list<Prop>(supabase, userId, { orderBy: 'name' });
+      if (!alive) return;
+      setProps(ps); setPropId(prev => prev || ps[0]?.id || ''); setLoading(false);
+    })();
+    return () => { alive = false; };
   }, [open, userId, supabase]);
 
   // Φόρτωσε αποθηκευμένη διάταξη ιδιοκτητών ανά ακίνητο (localStorage).

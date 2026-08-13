@@ -64,7 +64,7 @@ export default function DemoPreview({ open, onClose, onAddProperty }: {
       {/* ── ΤΑ ΤΡΙΑ ΠΟΣΑ ─────────────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: T.sp.lg }}>
         <Figure label="Εισπράχθηκαν" value={fe(s.collected)}
-          note={`${DEMO_PROPERTY.monthlyRent} € τον μήνα, έντεκα μήνες μέσα στη χρονιά`} />
+          note={`${fe(DEMO_PROPERTY.monthlyRent)} τον μήνα, έντεκα μήνες μέσα στη χρονιά`} />
         <Figure label="Δαπάνες" value={fe(s.expenses)}
           note={`${ledger.length} κατηγορίες, μαζί με τον ΕΝΦΙΑ`} />
         <Figure label="Στο ταμείο" value={fe(s.statement.netCash)}

@@ -151,7 +151,7 @@ export function InfoDot({ text }: { text: string }) {
         </span>
       </button>
       {open && typeof document !== 'undefined' && createPortal(
-        <div role="tooltip" style={{ position: 'fixed', top: pos.top, left: pos.left, transform: pos.up ? 'translateY(-100%)' : 'none', width: 260, maxWidth: 'calc(100vw - 16px)', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '10px 12px', boxShadow: '0 18px 40px -22px rgba(0,0,0,0.7)', zIndex: 3000, pointerEvents: 'none' }}>
+        <div role="tooltip" style={{ position: 'fixed', top: pos.top, left: pos.left, transform: pos.up ? 'translateY(-100%)' : 'none', width: 260, maxWidth: 'calc(100vw - 16px)', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '10px 12px', boxShadow: 'var(--elev-3)', zIndex: 3000, pointerEvents: 'none' }}>
           <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>{text}</p>
         </div>,
         document.body,
@@ -612,7 +612,7 @@ export function CustomSelect({
           background: 'var(--bg-surface)',
           borderRadius: T.radius.inner,
           zIndex: 2000,
-          boxShadow: 'var(--elev-3), 0 12px 32px -8px rgba(0,0,0,0.35)',
+          boxShadow: 'var(--elev-3)',
           border: '1px solid var(--border-default)',
           maxHeight: menuPos.maxH,
           overflowY: 'auto',
@@ -949,7 +949,7 @@ export function Toggle({ on, onChange, label, ariaLabel, size = 'md' }: TogglePr
           transform: 'translateY(-50%)',
           left: on ? `calc(100% - ${on ? thumbOn : thumbOff}px - 2px)` : '2px',
           transition: 'background-color 0.2s cubic-bezier(0.2,0,0,1), border-color 0.2s cubic-bezier(0.2,0,0,1), color 0.2s cubic-bezier(0.2,0,0,1), box-shadow 0.2s cubic-bezier(0.2,0,0,1), transform 0.2s cubic-bezier(0.2,0,0,1), opacity 0.2s cubic-bezier(0.2,0,0,1)',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+          boxShadow: 'var(--elev-1)',
         }}/>
       </button>
       {/* ΤΟ ΑΝΟΙΧΤΟ ΔΕΝ ΕΙΝΑΙ ΠΡΑΣΙΝΟ. Το ίδιο το primitive έβαφε το «Ναι» με το

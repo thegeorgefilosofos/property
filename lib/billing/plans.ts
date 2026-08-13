@@ -347,6 +347,6 @@ export function propertyLimitLabel(planId: string | null | undefined): string {
   const n = plan.maxProperties;
   const base = n === 1 ? '1 ακίνητο' : `${n} ακίνητα`;
   return plan.extraPropertyPrice > 0
-    ? `${base}, και όσα θέλεις παραπάνω με ${plan.extraPropertyPrice} € το καθένα`
+    ? `${base}, και όσα θέλεις παραπάνω με ${fe(plan.extraPropertyPrice)} το καθένα`
     : base;
 }

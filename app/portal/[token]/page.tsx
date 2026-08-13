@@ -361,7 +361,7 @@ export default function TenantPortal() {
                               type="button"
                               aria-label="Αφαίρεση φωτογραφίας"
                               onClick={() => removePhoto(i)}
-                              style={{ position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: 100, border: 'none', background: 'var(--bg-base)', color: 'var(--text-primary)', fontSize: 13, lineHeight: 1, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit', boxShadow: '0 1px 3px rgba(0,0,0,0.25)' }}
+                              style={{ position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: 100, border: 'none', background: 'var(--bg-base)', color: 'var(--text-primary)', fontSize: 13, lineHeight: 1, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit', boxShadow: 'var(--elev-1)' }}
                             >
                               ×
                             </button>

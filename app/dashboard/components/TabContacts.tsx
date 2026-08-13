@@ -43,7 +43,7 @@ const DossierRow = ({ icon: Ic, children, onCopy }: { icon: React.ComponentType<
   </div>
 )
 const DossierSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '15px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+  <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '15px 16px', boxShadow: 'var(--elev-1)' }}>
     <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>{title}</div>
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{children}</div>
   </div>
@@ -347,7 +347,7 @@ function SecHead({ children }: { children: React.ReactNode }) {
 function Tog({ value, onChange, colorOn = 'var(--accent)' }: { value: boolean; onChange: (v: boolean) => void; colorOn?: string }) {
   return (
     <button type="button" onClick={() => onChange(!value)} style={{ width: 46, height: 26, borderRadius: 12, border: 'none', cursor: 'pointer', background: value ? colorOn : 'var(--border-default)', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
-      <div style={{ position: 'absolute', top: 3, left: value ? 23 : 3, width: 20, height: 20, borderRadius: '50%', background: 'var(--bg-surface)', boxShadow: '0 1px 4px rgba(0,0,0,0.35)', transition: 'left 0.18s' }} />
+      <div style={{ position: 'absolute', top: 3, left: value ? 23 : 3, width: 20, height: 20, borderRadius: '50%', background: 'var(--bg-surface)', boxShadow: 'var(--elev-1)', transition: 'left 0.18s' }} />
     </button>
   )
 }
@@ -364,7 +364,7 @@ function QuickAct({ as, href, target, rel, onClick, title, label, children }: {
     width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
     textDecoration: 'none', border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)',
     color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 10, fontWeight: 800, flexShrink: 0,
-    transition: 'border-color 0.15s, color 0.15s, background 0.15s', boxShadow: '0 1px 3px rgba(0,0,0,0.14)',
+    transition: 'border-color 0.15s, color 0.15s, background 0.15s', boxShadow: 'var(--elev-1)',
   }
   const enter = (e: React.MouseEvent<HTMLElement>) => { const s = e.currentTarget.style; s.borderColor = 'var(--accent-border)'; s.color = 'var(--accent)'; s.background = 'var(--accent-soft)' }
   const leave = (e: React.MouseEvent<HTMLElement>) => { const s = e.currentTarget.style; s.borderColor = 'var(--border-subtle)'; s.color = 'var(--text-secondary)'; s.background = 'var(--bg-elevated)' }
@@ -920,7 +920,7 @@ function ContactCard({ contact, onOpen, onEdit, onDelete, onQuickExpense, onQuic
   return (
     <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       onClick={bulkMode ? onSelect : undefined}
-      style={{ background: selected ? 'color-mix(in srgb, var(--accent) 6%, var(--bg-surface))' : 'var(--bg-surface)', border: '1.5px solid ' + (selected ? 'var(--accent)' : hov ? 'var(--accent-border)' : overdue ? 'var(--negative-border)' : 'var(--border-subtle)'), borderRadius: T.radius.card, padding: bulkMode ? '18px 18px 16px 46px' : '18px 18px 16px', position: 'relative', boxShadow: selected ? '0 0 0 3px var(--accent-soft)' : hov ? '0 6px 24px rgba(0,0,0,0.18)' : 'none', transition: 'border-color 0.2s, box-shadow 0.2s, background 0.2s', cursor: bulkMode ? 'pointer' : 'default' }}>
+      style={{ background: selected ? 'color-mix(in srgb, var(--accent) 6%, var(--bg-surface))' : 'var(--bg-surface)', border: '1.5px solid ' + (selected ? 'var(--accent)' : hov ? 'var(--accent-border)' : overdue ? 'var(--negative-border)' : 'var(--border-subtle)'), borderRadius: T.radius.card, padding: bulkMode ? '18px 18px 16px 46px' : '18px 18px 16px', position: 'relative', boxShadow: selected ? '0 0 0 3px var(--accent-soft)' : hov ? 'var(--elev-2)' : 'none', transition: 'border-color 0.2s, box-shadow 0.2s, background 0.2s', cursor: bulkMode ? 'pointer' : 'default' }}>
       <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: overdue ? 'var(--negative)' : 'var(--border-subtle)', borderRadius: '16px 0 0 16px', opacity: bulkMode ? 0 : 1 }} />
       {bulkMode && <div style={{ position: 'absolute', top: 17, left: 15, zIndex: 2 }}><SelectBox checked={!!selected} onToggle={onSelect} /></div>}
       {overdue && <div style={{ position: 'absolute', top: 0, right: 0, background: 'var(--negative)', color: 'var(--text-inverse)', fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: '0 16px 0 8px', letterSpacing: '0.07em' }}>ΛΗΞΗ ΡΑΝΤΕΒΟΥ</div>}
@@ -935,7 +935,7 @@ function ContactCard({ contact, onOpen, onEdit, onDelete, onQuickExpense, onQuic
             <QuickAct as="button" onClick={() => setShowActions(s => !s)} title="Περισσότερες ενέργειες"><span style={{ fontSize: 16, fontWeight: 700, lineHeight: 0, marginTop: -5 }}>···</span></QuickAct>
           </div>
           {showActions && (
-            <div role="menu" style={{ position: 'absolute', top: 38, right: 0, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '6px', minWidth: 210, boxShadow: '0 12px 40px rgba(0,0,0,0.4)' }}>
+            <div role="menu" style={{ position: 'absolute', top: 38, right: 0, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '6px', minWidth: 210, boxShadow: 'var(--elev-3)' }}>
               {[
                 { Icon: Pencil, label: 'Επεξεργασία', onClick: onEdit, color: 'var(--text-secondary)' },
                 { Icon: Receipt, label: 'Νέα δαπάνη', onClick: onQuickExpense, color: 'var(--text-secondary)' },
@@ -954,7 +954,7 @@ function ContactCard({ contact, onOpen, onEdit, onDelete, onQuickExpense, onQuic
               <div style={{ height: 1, background: 'var(--border-subtle)', margin: '5px 8px' }} />
               <button type="button" role="menuitem" onClick={() => { onDelete(); setShowActions(false) }}
                 style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '8px 12px', borderRadius: T.radius.badge, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 13, color: 'var(--negative)', textAlign: 'left' }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,59,48,0.08)')}
+                onMouseEnter={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--negative) 8%, transparent)')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                 <Trash2 size={14} color="var(--negative)" style={{ flexShrink: 0 }} />Διαγραφή
               </button>
@@ -1018,7 +1018,7 @@ function CommButton({ label, Icon, href, target, accent }: { label: string; Icon
   return (
     <a href={href} target={target} rel={target ? 'noopener noreferrer' : undefined}
       onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
-      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '13px 6px', borderRadius: 14, cursor: 'pointer', textDecoration: 'none', fontFamily: T.font.sans, background: accent ? 'var(--accent)' : 'var(--bg-surface)', color: accent ? 'var(--accent-text)' : 'var(--text-primary)', border: '1px solid ' + (accent ? 'transparent' : 'var(--border-subtle)'), boxShadow: h ? '0 10px 26px rgba(0,0,0,0.26)' : '0 2px 8px rgba(0,0,0,0.12)', transform: h ? 'translateY(-3px)' : 'none', transition: 'transform .18s cubic-bezier(.2,0,0,1), box-shadow .18s' }}>
+      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '13px 6px', borderRadius: 14, cursor: 'pointer', textDecoration: 'none', fontFamily: T.font.sans, background: accent ? 'var(--accent)' : 'var(--bg-surface)', color: accent ? 'var(--accent-text)' : 'var(--text-primary)', border: '1px solid ' + (accent ? 'transparent' : 'var(--border-subtle)'), boxShadow: h ? 'var(--elev-2)' : 'var(--elev-1)', transform: h ? 'translateY(-3px)' : 'none', transition: 'transform .18s cubic-bezier(.2,0,0,1), box-shadow .18s' }}>
       <Icon size={19} /><span style={{ fontSize: 11, fontWeight: 600 }}>{label}</span>
     </a>
   )
@@ -1029,7 +1029,7 @@ function ContactActionTile({ Icon, label, sub, onClick, primary }: { Icon: React
   const [h, setH] = useState(false)
   return (
     <button type="button" onClick={onClick} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
-      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, width: 150, padding: '22px 14px', borderRadius: 18, cursor: 'pointer', fontFamily: T.font.sans, textAlign: 'center', background: primary ? 'var(--accent)' : 'var(--bg-surface)', color: primary ? 'var(--accent-text)' : 'var(--text-primary)', border: '1px solid ' + (primary ? 'transparent' : 'var(--border-subtle)'), boxShadow: h ? '0 16px 36px rgba(0,0,0,0.22)' : '0 2px 10px rgba(0,0,0,0.10)', transform: h ? 'translateY(-4px)' : 'none', transition: 'transform .2s cubic-bezier(.2,0,0,1), box-shadow .2s' }}>
+      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, width: 150, padding: '22px 14px', borderRadius: 18, cursor: 'pointer', fontFamily: T.font.sans, textAlign: 'center', background: primary ? 'var(--accent)' : 'var(--bg-surface)', color: primary ? 'var(--accent-text)' : 'var(--text-primary)', border: '1px solid ' + (primary ? 'transparent' : 'var(--border-subtle)'), boxShadow: h ? 'var(--elev-3)' : 'var(--elev-1)', transform: h ? 'translateY(-4px)' : 'none', transition: 'transform .2s cubic-bezier(.2,0,0,1), box-shadow .2s' }}>
       <div style={{ width: 48, height: 48, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', background: primary ? 'rgba(255,255,255,0.18)' : 'var(--accent-soft)', color: primary ? 'var(--accent-text)' : 'var(--accent)' }}><Icon size={23} /></div>
       <div>
         <div style={{ fontSize: 14, fontWeight: 700 }}>{label}</div>
@@ -1109,7 +1109,7 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
       </div>
 
       {(exp.count > 0 || exp.docs > 0) && (
-        <button type="button" onClick={onShowHistory} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '14px 16px', cursor: 'pointer', textAlign: 'left', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', fontFamily: T.font.sans }}>
+        <button type="button" onClick={onShowHistory} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '14px 16px', cursor: 'pointer', textAlign: 'left', boxShadow: 'var(--elev-1)', fontFamily: T.font.sans }}>
           <div>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Πληρωμές</div>
             <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginTop: 4 }}>{fe(exp.total)}</div>
@@ -1133,7 +1133,7 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
           ο χρήστης να ζητήσει χάρτη. Τώρα ανοίγει με ρητό κλικ, σε νέα καρτέλα. */}
       {mapLink && (
         <a href={mapLink} target="_blank" rel="noopener noreferrer"
-          style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '13px 16px', color: 'var(--text-secondary)', fontSize: 13, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '13px 16px', color: 'var(--text-secondary)', fontSize: 13, boxShadow: 'var(--elev-1)' }}>
           <MapPin size={15} color="var(--accent)" style={{ flexShrink: 0 }} />
           <span style={{ flex: 1, minWidth: 0 }}>Άνοιγμα διεύθυνσης στον χάρτη</span>
           <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>›</span>
@@ -1699,7 +1699,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
         const hasEmail = contacts.some(c => selected.has(c.id) && c.email)
         const none = selected.size === 0
         return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '11px 16px', marginBottom: 18, flexWrap: 'wrap', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '11px 16px', marginBottom: 18, flexWrap: 'wrap', boxShadow: 'var(--elev-1)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
               <SelectBox checked={allOn} indeterminate={someOn} onToggle={masterToggle} />
               <span style={{ fontSize: 14, fontWeight: 650, color: none ? 'var(--text-secondary)' : 'var(--text-primary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>

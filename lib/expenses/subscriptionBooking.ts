@@ -19,7 +19,7 @@
 
 import { SUB_GROUPS, subShare, type SubscriptionEntry, type SubService } from './subscriptions';
 import { supplyOf, reverseChargeVat, type Supply } from '../tax/placeOfSupply';
-import { fn } from '../core/format';
+import { fn, fe } from '../core/format';
 
 /** Η κατηγορία δαπάνης των συνδρομών — μία, και οδηγεί στον κουβά «Συνδρομές». */
 export const SUBSCRIPTION_CATEGORY = 'subscription';
@@ -206,9 +206,9 @@ export function toExpenses(
 function noteFor(c: SubscriptionCharge): string {
   const parts: string[] = [];
   if (c.expensePct < 100) {
-    parts.push(`${fn(c.expensePct, 2)}% από ${fn(c.monthly, 2)} € τον μήνα`);
+    parts.push(`${fn(c.expensePct, 2)}% από ${fe(c.monthly)} τον μήνα`);
   }
-  if (c.supply === 'intra_eu') parts.push(`Ενδοκοινοτική λήψη, ΦΠΑ ${fn(c.reverseChargeVat, 2)} € με αντίστροφη χρέωση`);
-  if (c.supply === 'third_country') parts.push(`Λήψη από τρίτη χώρα, ΦΠΑ ${fn(c.reverseChargeVat, 2)} € με αντίστροφη χρέωση`);
+  if (c.supply === 'intra_eu') parts.push(`Ενδοκοινοτική λήψη, ΦΠΑ ${fe(c.reverseChargeVat)} με αντίστροφη χρέωση`);
+  if (c.supply === 'third_country') parts.push(`Λήψη από τρίτη χώρα, ΦΠΑ ${fe(c.reverseChargeVat)} με αντίστροφη χρέωση`);
   return parts.join('. ');
 }

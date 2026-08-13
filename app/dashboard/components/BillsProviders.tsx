@@ -443,7 +443,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
                 const pct = parseFloat(s.internetSpeed) > 0 ? Math.round((parseFloat(s.internetSpeedReal) / parseFloat(s.internetSpeed)) * 100) : 0;
                 const good = pct >= 80;
                 return (
-                  <div style={{ background: good ? 'rgba(52,168,83,0.07)' : 'rgba(242,153,0,0.07)', border: `1px solid ${good ? 'rgba(52,168,83,0.25)' : 'rgba(242,153,0,0.25)'}`, borderRadius: T.radius.inner, padding: '10px 14px' }}>
+                  <div style={{ background: good ? 'color-mix(in srgb, var(--positive) 7%, transparent)' : 'color-mix(in srgb, var(--warning) 7%, transparent)', border: `1px solid ${good ? 'color-mix(in srgb, var(--positive) 25%, transparent)' : 'color-mix(in srgb, var(--warning) 25%, transparent)'}`, borderRadius: T.radius.inner, padding: '10px 14px' }}>
                     <div style={{ fontSize: 18, fontWeight: 700, color: good ? 'var(--positive)' : 'var(--warning)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{pct}%</div>
                     <div style={{ fontSize: 9, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>{good ? 'Καλή απόδοση' : 'Μειωμένη ταχύτητα'}</div>
                   </div>
@@ -461,7 +461,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
             const days = daysUntil(s.internetContractEnd) ?? 0;
             if (days > 90 || days < 0) return null;
             return (
-              <div style={{ background: days <= 14 ? 'rgba(197,34,31,0.07)' : 'rgba(242,153,0,0.07)', border: `1px solid ${days <= 14 ? 'rgba(197,34,31,0.25)' : 'rgba(242,153,0,0.25)'}`, borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontFamily: T.font.sans }}>
+              <div style={{ background: days <= 14 ? 'color-mix(in srgb, var(--negative) 7%, transparent)' : 'color-mix(in srgb, var(--warning) 7%, transparent)', border: `1px solid ${days <= 14 ? 'color-mix(in srgb, var(--negative) 25%, transparent)' : 'color-mix(in srgb, var(--warning) 25%, transparent)'}`, borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontFamily: T.font.sans }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: days <= 14 ? 'var(--negative)' : 'var(--warning)', flexShrink: 0 }}/>
                 <span style={{ color: 'var(--text-secondary)' }}>
                   Λήξη συμβολαίου Internet σε{' '}

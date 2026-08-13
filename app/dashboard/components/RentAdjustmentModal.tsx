@@ -52,13 +52,22 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
   const [archiving, setArchiving] = useState(false);
   const [archived, setArchived] = useState(false);
 
+  // Η ΣΗΜΑΙΑ ΦΟΡΤΩΣΗΣ ΜΠΑΙΝΕΙ ΜΕΣΑ ΣΤΗΝ ΑΛΥΣΙΔΑ, ΟΧΙ ΠΡΙΝ ΑΠΟ ΑΥΤΗΝ. Γραμμένη
+  // στο σώμα του effect, προκαλεί δεύτερη απόδοση ΠΡΙΝ καν ξεκινήσει το αίτημα.
+  // Μέσα στην ασύγχρονη συνάρτηση κάνει την ίδια δουλειά, χωρίς την επιπλέον
+  // απόδοση, και σταματά να ενοχλεί τον κανόνα set-state-in-effect.
   useEffect(() => {
     if (!open) return;
-    setLoading(true);
-    properties.list<Prop>(supabase, userId, { orderBy: 'name' })
-      .then(ps => { setProps(ps); setPropId(prev => prev || ps[0]?.id || ''); setLoading(false); });
-    if (branding?.companyName && !ownerName) setOwnerName(branding.companyName);
-  }, [open, userId, supabase]);
+    let alive = true;
+    (async () => {
+      setLoading(true);
+      const ps = await properties.list<Prop>(supabase, userId, { orderBy: 'name' });
+      if (!alive) return;
+      setProps(ps); setPropId(prev => prev || ps[0]?.id || ''); setLoading(false);
+      if (branding?.companyName) setOwnerName(prev => prev || branding.companyName);
+    })();
+    return () => { alive = false; };
+  }, [open, userId, supabase, branding?.companyName]);
 
   // Prefill μισθωτή + τρέχοντος μισθώματος από τα δεδομένα του ακινήτου.
   useEffect(() => {

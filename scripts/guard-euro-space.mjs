@@ -33,11 +33,23 @@ const files = execSync(
 
 /** Ψηφίο κολλητά στο ευρώ. Το ` ` γράφεται και ως escape στον κώδικα. */
 const GLUED = /(?<!\\u00A)(\d)€/g;
+/**
+ * ΠΟΣΟ ΠΟΥ ΜΠΑΙΝΕΙ ΣΕ ΠΡΟΤΑΣΗ ΧΩΡΙΣ ΝΑ ΠΕΡΑΣΕΙ ΑΠΟ ΜΟΡΦΟΠΟΙΗΤΗ.
+ *
+ * Το «${Math.round(prop.enfia)} €» γράφει «751 €» εκεί που όλη η εφαρμογή
+ * γράφει «751,00 €»: ίδιο ποσό, δύο γραφές, και η υποδιαστολή δεν στοιχίζεται
+ * με τη διπλανή γραμμή. Βρέθηκαν έντεκα τέτοια, τα εφτά μέσα στους λόγους
+ * απόρριψης του «Σπίτι μου ΙΙ» — δηλαδή στην οθόνη όπου ο χρήστης μαθαίνει
+ * γιατί δεν δικαιούται δάνειο.
+ */
+const UNFORMATTED = /\$\{(?!\s*(?:fe|feAuto|feRate|feSigned|feCompact|pEur|fmtEur|eur|money)\s*\()[^}]*\}[\s\u00A0]*€/g;
+
 /** Δύο κενά πριν το ευρώ: συμβαίνει όταν κάποιος «διορθώσει» ήδη σωστό κείμενο. */
 const DOUBLE = /[\s ]{2}€/g;
 
 const glued = [];
 const doubled = [];
+const unformatted = [];
 
 for (const file of files) {
   if (/\.test\.tsx?$/.test(file)) continue;
@@ -45,6 +57,7 @@ for (const file of files) {
   src.split('\n').forEach((line, i) => {
     for (const m of line.matchAll(GLUED)) glued.push(`${file}:${i + 1}  «${m[0]}»`);
     for (const m of line.matchAll(DOUBLE)) { void m; doubled.push(`${file}:${i + 1}`); }
+    for (const m of line.matchAll(UNFORMATTED)) unformatted.push(`${file}:${i + 1}  «${m[0].slice(0, 46)}»`);
   });
 }
 
@@ -64,6 +77,15 @@ if (doubled.length) {
   bad = true;
   console.log(red(`\n✗ ${doubled.length} ποσά με δύο κενά πριν το ευρώ:\n`));
   for (const d of doubled.slice(0, 20)) console.log('  ' + d);
+}
+
+if (unformatted.length) {
+  bad = true;
+  console.log(red(`\n✗ ${unformatted.length} ποσά που δεν πέρασαν από μορφοποιητή:\n`));
+  for (const u of unformatted.slice(0, 25)) console.log('  ' + u);
+  if (unformatted.length > 25) console.log(`  … και άλλα ${unformatted.length - 25}`);
+  console.log('\n  Τα ποσά γράφονται πάντα με δύο δεκαδικά, ώστε οι υποδιαστολές να');
+  console.log('  στοιχίζονται κάθετα. Πέρνα την τιμή από fe(), ή feRate() για μοναδιαία τιμή.');
 }
 
 if (bad) process.exit(1);

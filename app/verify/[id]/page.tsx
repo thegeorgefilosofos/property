@@ -42,7 +42,7 @@ export default function VerifyDocument() {
   }, [id]);
 
   const wrap: React.CSSProperties = { minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: 'Inter, system-ui, Arial, sans-serif', color: 'var(--text-primary)' };
-  const card: React.CSSProperties = { width: '100%', maxWidth: 460, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '30px 30px 26px', boxShadow: '0 1px 3px rgba(0,0,0,.08)' };
+  const card: React.CSSProperties = { width: '100%', maxWidth: 460, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '30px 30px 26px', boxShadow: 'var(--elev-1)' };
   const label: React.CSSProperties = { fontSize: 10, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700 };
   const value: React.CSSProperties = { fontSize: 14, color: 'var(--text-primary)', fontWeight: 600, marginTop: 3 };
 

@@ -409,6 +409,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { pro
   const propIds = useMemo(() => properties.map(p => p.id), [properties]);
 
   const load = useCallback(async () => {
+    setLoading(true);
     const [exp,bil,{ data:tsk },ten,ci,iv,ln,hs,allExp,allTen,{ data:allRc },rp,{ data:mnt }] = await Promise.all([
       expenseStore.ledger(supabase,prop.id,{ userId, from:`${year}-01-01`, columns:'*' }),
       billStore.ofProperty<Bill>(supabase,prop.id,'*',userId),
@@ -474,8 +475,12 @@ function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { pro
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prop.id, userId, year, propIds]);
 
+  // Η ΣΗΜΑΙΑ ΦΟΡΤΩΣΗΣ ΜΠΑΙΝΕΙ ΜΕΣΑ ΣΤΗΝ ΑΛΥΣΙΔΑ, ΟΧΙ ΠΡΙΝ ΑΠΟ ΑΥΤΗΝ. Γραμμένη
+  // στο σώμα του effect, προκαλεί δεύτερη απόδοση ΠΡΙΝ καν ξεκινήσει το αίτημα.
+  // Μέσα στην ασύγχρονη συνάρτηση κάνει την ίδια δουλειά, χωρίς την επιπλέον
+  // απόδοση, και σταματά να ενοχλεί τον κανόνα set-state-in-effect.
   useEffect(() => {
-    setLoading(true); load();
+    void load();
     // Real-time: κάθε αλλαγή σε άλλα tabs ενημερώνει ζωντανά την Επισκόπηση
     const ch = supabase.channel(`overview_${prop.id}`)
       .on('postgres_changes', { event:'*', schema:'public', table:'bills',             filter:`property_id=eq.${prop.id}` }, () => load())

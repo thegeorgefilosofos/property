@@ -85,11 +85,20 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
     onClose();
   };
 
+  // Η ΣΗΜΑΙΑ ΦΟΡΤΩΣΗΣ ΜΠΑΙΝΕΙ ΜΕΣΑ ΣΤΗΝ ΑΛΥΣΙΔΑ, ΟΧΙ ΠΡΙΝ ΑΠΟ ΑΥΤΗΝ. Γραμμένη
+  // στο σώμα του effect, προκαλεί δεύτερη απόδοση ΠΡΙΝ καν ξεκινήσει το αίτημα.
+  // Μέσα στην ασύγχρονη συνάρτηση κάνει την ίδια δουλειά, χωρίς την επιπλέον
+  // απόδοση, και σταματά να ενοχλεί τον κανόνα set-state-in-effect.
   useEffect(() => {
     if (!open) return;
-    setLoading(true);
-    properties.list<Prop>(supabase, userId, { columns: 'id,name', orderBy: 'name' })
-      .then(ps => { setProps(ps); setPropIds(prev => prev.size ? prev : new Set(ps.map(p => p.id))); setLoading(false); });
+    let alive = true;
+    (async () => {
+      setLoading(true);
+      const ps = await properties.list<Prop>(supabase, userId, { columns: 'id,name', orderBy: 'name' });
+      if (!alive) return;
+      setProps(ps); setPropIds(prev => prev.size ? prev : new Set(ps.map(p => p.id))); setLoading(false);
+    })();
+    return () => { alive = false; };
   }, [open, userId, supabase]);
 
   const yearsAvail = useMemo(() => Array.from({ length: 7 }, (_, i) => nowYear - i), [nowYear]);

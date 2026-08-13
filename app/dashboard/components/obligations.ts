@@ -1,3 +1,4 @@
+import { fe } from '@/lib/core/format';
 import { declarationDeadline } from '@/lib/tax/leaseDeclaration';
 import {
   taxObligationsHorizon, taxEventSource, taxObligationNotes,
@@ -121,7 +122,7 @@ export function computeObligations(
     // Το μόνο που προσθέτουμε στο κείμενο είναι ΔΙΚΟ ΤΟΥ δεδομένο: ο ΕΝΦΙΑ που
     // έχει καταχωρήσει ο ίδιος. Καμία εκτίμηση, κανένα δικό μας νούμερο.
     const own = (t.kind.startsWith('enfia') && prop.enfia)
-      ? ` Ο ΕΝΦΙΑ που έχεις καταχωρήσει: ${Math.round(prop.enfia)} € τον χρόνο.`
+      ? ` Ο ΕΝΦΙΑ που έχεις καταχωρήσει: ${fe(prop.enfia)} τον χρόνο.`
       : '';
     push({
       id: t.id, source: taxEventSource(t.id), title: t.title, date: fromISO(t.date),
@@ -186,7 +187,7 @@ export function computeObligations(
     push({
       id: `maint_${idx}`, source: null, date: d, category: 'maintenance', who: 'owner',
       title: `Συντήρηση, ${m.task}${m.item_name ? `, ${m.item_name}` : ''}`,
-      note: m.est_cost ? `Προγραμματισμένη εργασία συντήρησης εξοπλισμού. Εκτιμώμενο κόστος ${Math.round(m.est_cost)} €.` : 'Προγραμματισμένη εργασία συντήρησης εξοπλισμού.',
+      note: m.est_cost ? `Προγραμματισμένη εργασία συντήρησης εξοπλισμού. Εκτιμώμενο κόστος ${fe(m.est_cost)}.` : 'Προγραμματισμένη εργασία συντήρησης εξοπλισμού.',
       priority: du < 0 ? 'high' : 'medium',
     });
   });

@@ -60,13 +60,37 @@ const COLOR_HOMES = [
   /^lib\/pdf\//,
 ];
 
+/**
+ * ΤΟ ΧΡΩΜΑ ΠΑΝΩ ΣΕ ΦΩΤΟΓΡΑΦΙΑ ΔΕΝ ΑΚΟΛΟΥΘΕΙ ΘΕΜΑ, ΚΑΙ ΣΩΣΤΑ.
+ *
+ * Ένα σήμα «3 φωτογραφίες» πάνω σε εικόνα πρέπει να είναι σκούρο και στο
+ * φωτεινό θέμα: η φωτογραφία δεν ξέρει τι θέμα διάλεξε ο χρήστης, και ένα
+ * ημιδιάφανο λευκό πάνω σε ανοιχτόχρωμη λήψη γίνεται αόρατο. Το ίδιο ισχύει
+ * για τη γραμμή υπογραφής, που πρέπει να διαβάζεται και στα δύο, και για την
+ * πλαϊνή στήλη της σύνδεσης, που είναι ΜΟΝΙΜΑ σκούρα από σχεδιασμό.
+ *
+ * Δεν είναι εξαίρεση από τεμπελιά: είναι η μία περίπτωση όπου το χρώμα δεν
+ * ανήκει στη διεπαφή αλλά στο περιεχόμενο από κάτω του.
+ */
+const OVER_CONTENT = [
+  /^app\/AuthAside\.tsx$/,
+  /^app\/LandingShowcase\.tsx$/,
+  /^components\/SignaturePad\.tsx$/,
+];
+
 const heights = [];
 const colors = [];
 
 for (const file of files) {
   if (/\.test\.tsx?$/.test(file)) continue;
-  const src = readFileSync(file, 'utf8');
-  const homeForColor = COLOR_HOMES.some(re => re.test(file));
+  // ΤΑ ΣΧΟΛΙΑ ΠΟΥ ΠΕΡΙΓΡΑΦΟΥΝ ΤΟ ΠΑΛΙΟ ΧΡΩΜΑ ΔΕΝ ΕΙΝΑΙ ΤΟ ΠΑΛΙΟ ΧΡΩΜΑ. Πέντε
+  // ευρήματα ήταν γραμμές μέσα σε `{/* … */}` που εξηγούσαν «είχε ωμή σκιά
+  // rgba(0,0,0,0.45) αντί για token» — δηλαδή ο φύλακας χτυπούσε την ίδια την
+  // τεκμηρίωση της διόρθωσης. Τα μπλοκ σβήνονται, κρατώντας τις αλλαγές γραμμής
+  // ώστε οι αριθμοί γραμμών να παραμένουν σωστοί.
+  const src = readFileSync(file, 'utf8')
+    .replace(/\{?\/\*[\s\S]*?\*\/\}?/g, m => m.replace(/[^\n]/g, ' '));
+  const homeForColor = COLOR_HOMES.some(re => re.test(file)) || OVER_CONTENT.some(re => re.test(file));
   src.split('\n').forEach((line, i) => {
     if (/^\s*(\/\/|\*|\/\*)/.test(line)) return;              // σχόλιο, όχι κώδικας
     for (const m of line.matchAll(RAW_HEIGHT)) heights.push({ file, line: i + 1, v: m[1] });

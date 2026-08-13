@@ -144,6 +144,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   const [genOfficial, setGenOfficial] = useState(false);
 
   const load = useCallback(async () => {
+    setLoading(true);
     const [st, bl, ex, tn, ci, po, { data: cl }, rp] = await Promise.all([
       // Τα πεδία ανάλυσης ποσού ΔΕΝ είναι προαιρετικά εδώ: χωρίς αυτά το
       // declarableGrossOrTotal δεν έχει τι να διαβάσει και υποχωρεί στο ωμό
@@ -163,8 +164,12 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, year]);
 
+  // Η ΣΗΜΑΙΑ ΦΟΡΤΩΣΗΣ ΜΠΑΙΝΕΙ ΜΕΣΑ ΣΤΗΝ ΑΛΥΣΙΔΑ, ΟΧΙ ΠΡΙΝ ΑΠΟ ΑΥΤΗΝ. Γραμμένη
+  // στο σώμα του effect, προκαλεί δεύτερη απόδοση ΠΡΙΝ καν ξεκινήσει το αίτημα.
+  // Μέσα στην ασύγχρονη συνάρτηση κάνει την ίδια δουλειά, χωρίς την επιπλέον
+  // απόδοση, και σταματά να ενοχλεί τον κανόνα set-state-in-effect.
   useEffect(() => {
-    setLoading(true); load();
+    void load();
     const ch = supabase.channel(`portfolio_${userId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'client_stays' }, () => load())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'bills' }, () => load())

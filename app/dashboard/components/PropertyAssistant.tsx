@@ -33,7 +33,7 @@ import * as expenseStore from '@/lib/data/expenses';
 import * as calendar from '@/lib/data/calendar'
 import { speechRecognizer, speechSupported, type SpeechEvent, type SpeechErrorEvent, type SpeechRecognizer } from '@/lib/core/speech';
 import type { BillsRow, ChecklistItemsRow, ClientStaysRow, ClientsRow, ContactsRow, ExpensesRow, RentPaymentsRow, UserPropertiesRow } from '@/lib/supabase/tables';
-import { T, TT, Modal, feAuto, feOr, fp } from '@/components/Theme';
+import { T, TT, Modal, fe, feAuto, feOr, fp } from '@/components/Theme';
 import Feedback from './Feedback';
 import { resolveRent, resolveValue, computeYields } from '@/lib/billing/propertyFacts';
 import { mergeLedger, ledgerTotal, ledgerUnpaid } from '@/lib/expenses/ledger';
@@ -1219,7 +1219,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       const val = d.price ? Math.round(parseFloat(String(d.price).replace(/[^\d.]/g, '')) || 0) : 0;
       const category = d.category && CATS.includes(d.category) ? d.category : undefined;
       const action = { type: 'inventory' as const, name, category, value: val > 0 ? val : undefined, brand: d.brand || undefined, model: d.model || undefined };
-      const bits = [d.brand, d.model && `μοντ. ${d.model}`, val > 0 && `~${val}€`, category].filter(Boolean).join(' · ');
+      const bits = [d.brand, d.model && `μοντ. ${d.model}`, val > 0 && `~${fe(val)}`, category].filter(Boolean).join(' · ');
       setMsgs(m => [...m, { role: 'assistant', text: `Διάβασα: ${name}${bits ? ` (${bits})` : ''}. Να το καταγράψω στα «${navLabel('inventory')}»;`, action }]);
     } catch { setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να διαβάσω τη φωτογραφία τώρα. Δοκίμασε ξανά.' }]); }
     finally { setBusy(false); }
@@ -1643,7 +1643,7 @@ function Switch({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   return (
     <button onClick={onToggle} role="switch" aria-checked={on}
       style={{ width: 42, height: 26, borderRadius: 12, border: 'none', cursor: 'pointer', flexShrink: 0, background: on ? 'var(--accent)' : 'var(--border-default)', position: 'relative', transition: 'background 0.2s' }}>
-      <span style={{ position: 'absolute', top: 3, left: on ? 21 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
+      <span style={{ position: 'absolute', top: 3, left: on ? 21 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: 'var(--elev-1)' }} />
     </button>
   );
 }
