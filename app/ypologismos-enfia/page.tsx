@@ -115,7 +115,7 @@ export default function Page() {
             δύο διατάξεις. */}
         <p style={{ fontSize: 'clamp(15px,2vw,17px)', lineHeight: 1.6, color: 'var(--text-secondary)',
           margin: '0 0 clamp(26px,3.5vw,36px)', maxWidth: 1044, textWrap: 'pretty' }}>
-          <span style={{ display: 'block' }}>Από τα τετραγωνικά, την τιμή ζώνης, τον όροφο και την παλαιότητα. Χωρίς εγγραφή και χωρίς email:</span>
+          <span style={{ display: 'block' }}>Καθορίζεται από τα τετραγωνικά, την τιμή ζώνης, τον όροφο και την παλαιότητα. Χωρίς εγγραφή και χωρίς email:</span>
           ο υπολογισμός γίνεται στη συσκευή σου και μένει εκεί.
           <span style={{ fontSize: 12, color: 'var(--text-tertiary)', marginLeft: 14 }}>
             *Οι ίδιοι υπολογισμοί που τρέχει το Property OS.
