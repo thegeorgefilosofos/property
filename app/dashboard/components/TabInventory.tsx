@@ -667,6 +667,19 @@ const ITEM_SCAN_SYSTEM = `Είσαι σύστημα αναγνώρισης οι�
 {"name":"","brand":"","model":"","serial_number":"","category":"<μία από: Έπιπλα, Ηλεκτρικές Συσκευές, Ηλεκτρονικά, Υδραυλικά, Θέρμανση & Ψύξη, Φωτιστικά, Διακόσμηση, Λοιπά>","price":"αριθμός € ή κενό","warranty_expiry":"YYYY-MM-DD ή κενό","energy_class":"π.χ. A+++ ή κενό","power_watts":"αριθμός W ή κενό","store":"","purchase_date":"YYYY-MM-DD ή κενό"}
 Διάβασε ό,τι φαίνεται με ακρίβεια· άφησε κενά όσα δεν διακρίνονται. Το name να είναι περιγραφικό (π.χ. «Πλυντήριο Bosch WAU28»). Χωρίς κείμενο εκτός του JSON.`
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΟ ΚΕΝΟ ΠΕΔΙΟ ΔΕΙΧΝΕΙ ΚΕΝΟ, ΟΧΙ ΜΗΔΕΝ
+// ─────────────────────────────────────────────────────────────────────────
+// Η φόρμα άνοιγε με «0,00 €» στην αξία αγοράς, «0,00 €» στο κόστος
+// αντικατάστασης και «0 W / 0 ώρες» στην ενέργεια. Κανένα από αυτά δεν είχε
+// δηλωθεί: ήταν η αρχική τιμή της δομής, τυπωμένη σαν απάντηση.
+//
+// ΓΙΑΤΙ ΕΙΝΑΙ ΣΗΜΑΝΤΙΚΟ ΚΑΙ ΟΧΙ ΑΙΣΘΗΤΙΚΟ. Το μηδέν είναι ΔΗΛΩΣΗ: λέει «αυτό
+// το αντικείμενο δεν αξίζει τίποτα». Ο χρήστης που το προσπερνά έχει στο
+// μητρώο του δέκα αντικείμενα με μηδενική ασφαλιστέα αξία, και το μαθαίνει την
+// ημέρα της ζημιάς. Το κενό πεδίο λέει την αλήθεια: δεν το ξέρουμε ακόμη.
+const blankIfZero = (n?: number | null) => (n ? String(n) : '');
+
 // Ετικέτα πεδίου ΜΕ ΤΟ «ΓΙΑΤΙ» ΤΟΥ. Δεν είναι διακόσμηση: όποιος δεν καταλαβαίνει
 // γιατί ζητάμε κάτι δεν το συμπληρώνει, και μετά λείπει από τη δήλωση. Το κείμενο
 // έρχεται από το μητρώο (lib/property/fields.ts) — μία πηγή, ίδια λόγια παντού.
@@ -841,7 +854,7 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
       <SectionLabel label="Αγορά"/>
       <div style={{...formGrid(200, 270),gap:12}}>
         <Field d={f('inv.purchase_date')}><DatePicker value={form.purchase_date||''} onChange={v=>set('purchase_date',v)}/></Field>
-        <Field d={f('inv.value')}><NumberInput ariaLabel={fl('inv.value')} value={String(form.purchase_value||0)} onChange={v=>set('purchase_value',parseFloat(v)||0)} suffix="€" min={0}/></Field>
+        <Field d={f('inv.value')}><NumberInput ariaLabel={fl('inv.value')} value={blankIfZero(form.purchase_value)} onChange={v=>set('purchase_value',parseFloat(v)||0)} suffix="€" min={0}/></Field>
       </div>
 
       {/* Η ΑΠΟΔΕΙΞΗ ΕΙΝΑΙ CORE, ΟΧΙ «ΠΕΡΙΣΣΟΤΕΡΑ»: χωρίς παραστατικό η δαπάνη
@@ -912,7 +925,7 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
           <Field d={f('inv.warranty')}><DatePicker value={form.warranty_expiry||''} onChange={v=>set('warranty_expiry',v)}/></Field>
         </div>
         <Field d={f('inv.replacement_cost')}>
-          <NumberInput ariaLabel={fl('inv.replacement_cost')} value={String(form.replacement_cost||0)} onChange={v=>set('replacement_cost',parseFloat(v)||0)} suffix="€" min={0}/>
+          <NumberInput ariaLabel={fl('inv.replacement_cost')} value={blankIfZero(form.replacement_cost)} onChange={v=>set('replacement_cost',parseFloat(v)||0)} suffix="€" min={0}/>
         </Field>
         {isElectric&&(<>
           <SectionLabel label="Ενέργεια"/>
@@ -921,8 +934,8 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
           </Field>
           <Field d={f('inv.power_use')}>
             <div style={{...formGrid(160, 220),gap:12}}>
-              <NumberInput ariaLabel="Ισχύς σε βατ" value={String(form.power_watts||0)} onChange={v=>set('power_watts',parseFloat(v)||0)} suffix="W" min={0}/>
-              <NumberInput ariaLabel="Ώρες χρήσης ανά ημέρα" value={String(form.daily_hours_use||0)} onChange={v=>set('daily_hours_use',parseFloat(v)||0)} suffix="ώρες/ημέρα" min={0} max={24}/>
+              <NumberInput ariaLabel="Ισχύς σε βατ" value={blankIfZero(form.power_watts)} onChange={v=>set('power_watts',parseFloat(v)||0)} suffix="W" min={0}/>
+              <NumberInput ariaLabel="Ώρες χρήσης ανά ημέρα" value={blankIfZero(form.daily_hours_use)} onChange={v=>set('daily_hours_use',parseFloat(v)||0)} suffix="ώρες/ημέρα" min={0} max={24}/>
             </div>
           </Field>
           {/* ΤΟ ΚΟΣΤΟΣ ΕΜΦΑΝΙΖΕΤΑΙ ΜΟΝΟ ΜΕ ΔΗΛΩΜΕΝΗ ΤΙΜΗ ΡΕΥΜΑΤΟΣ. Πριν, εδώ
