@@ -115,7 +115,7 @@ export const histInputStyle = (isCurrent: boolean, isHovered = false) => ({
 // χρειάζεται και ο πυρήνας (insights, δάνεια, αποδόσεις παράγουν κείμενο για
 // τον χρήστη), αλλά το `lib/` δεν επιτρέπεται να εισάγει από το `components/`.
 // Οι οθόνες συνεχίζουν να γράφουν `import { fe } from '@/components/Theme'`.
-export { fe, feAuto, feRate, feCompact, fp, fn, feOr, fpOr, DASH, isBlankMetric, ABSENT, ABSENT_DATE, ABSENT_SHORT } from '@/lib/core/format';
+export { fe, feAuto, feRate, feCompact, fp, fn, feOr, fpOr, DASH, isBlankMetric, ABSENT, ABSENT_DATE, ABSENT_SHORT, grUpper } from '@/lib/core/format';
 
 // ── ΜΙΑ ΗΜΕΡΟΛΟΓΙΑΚΗ ΗΜΕΡΑ ΔΕΝ ΕΙΝΑΙ ΣΤΙΓΜΗ ──────────────────────────────
 //

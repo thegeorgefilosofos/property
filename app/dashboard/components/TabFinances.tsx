@@ -25,6 +25,7 @@
 import { useState } from 'react';
 import { T } from '@/components/Theme';
 import ExpenseLedger from './ExpenseLedger';
+import { BankLinkRow } from './BankLink';
 import TabBills from './TabBills';
 import { type LegalForm } from '@/lib/accounting/dossier';
 import BillsBudget from './BillsBudget';
@@ -110,7 +111,11 @@ export default function TabFinances({
       {contracts
         ? <TabBills propertyId={propertyId} userId={userId} legalForm={legalForm} />
         : view === 'expenses'
-          ? <ExpenseLedger propertyId={propertyId} userId={userId} onScan={onScan} />
+          // Η ΤΡΑΠΕΖΑ ΠΡΟΤΕΙΝΕΤΑΙ ΕΚΕΙ ΠΟΥ ΓΕΝΝΙΕΤΑΙ Η ΑΠΟΡΙΑ. Ο χρήστης
+          // κοιτάζει τι έχει καταχωρήσει και σκέφτεται «πρέπει να τα περνάω ένα
+          // ένα;». Μία γραμμή, όχι κάρτα: η κάρτα θα έπαιρνε τη θέση αυτού που
+          // ήρθε να δει.
+          ? <><BankLinkRow /><ExpenseLedger propertyId={propertyId} userId={userId} onScan={onScan} /></>
           : <BillsBudget propertyId={propertyId} userId={userId} profileType={profileType} />}
     </div>
   );

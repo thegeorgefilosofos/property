@@ -12,6 +12,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 // Οι επαφές έχουν ένα σπίτι: lib/data/contacts.
 import * as contacts from '@/lib/data/contacts';
+import { BankLinkTile } from './BankLink';
 import { T, fe, formGrid } from '@/components/Theme';
 import { CustomSelect } from './UIComponents';
 import {
@@ -431,6 +432,13 @@ export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyC
                 <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>JPG · PNG · PDF</div>
               </div>
               <input ref={fileRef} type="file" accept="image/*,.pdf,.csv,.txt,.xlsx,.xls,.ods" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && loadFile(e.target.files[0])} />
+
+              {/* ΤΡΙΤΗ ΑΠΑΝΤΗΣΗ ΣΤΗΝ ΙΔΙΑ ΕΡΩΤΗΣΗ. Ο χρήστης στέκεται εδώ
+                  ρωτώντας «πώς μπαίνει αυτό μέσα;». Η φωτογραφία και το αρχείο
+                  απαντούν για ένα παραστατικό· η τράπεζα απαντά για όλα μαζί.
+                  Το ίδιο ελάχιστο ύψος με τα δύο διπλανά, ώστε τα τρία
+                  πλακίδια να είναι μία σειρά και όχι δύο και μισό. */}
+              <BankLinkTile minHeight={172} />
             </div>
           ) : (
             <div>

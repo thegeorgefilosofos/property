@@ -13,7 +13,13 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { reportAccent, type ReportBranding } from '@/lib/reportBranding';
 import { localDay } from '@/lib/core/time';
-import { fp, fn, feCompact } from '@/lib/core/format';
+// ΤΟ PDF ΔΕΝ ΕΧΕΙ CSS, ΑΡΑ ΔΕΝ ΕΧΕΙ ΚΑΙ ΤΟΝ ΚΑΝΟΝΑ ΤΟΥ ΠΕΡΙΗΓΗΤΗ.
+// Στην οθόνη το `text-transform: uppercase` με `lang="el"` αφαιρεί μόνο του τον
+// τόνο — μετρημένο σε πραγματικό Chromium. Εδώ όμως τα κεφαλαία τα φτιάχνει η
+// JavaScript, και το `toUpperCase()` ΚΡΑΤΑΕΙ τον τόνο: κάθε επικεφαλίδα κάθε
+// εκτυπωμένης αναφοράς έβγαινε «ΣΤΟΙΧΕΊΑ ΑΚΙΝΉΤΟΥ». Το ίδιο έγγραφο που ο
+// ιδιοκτήτης δίνει στον λογιστή ή στην τράπεζα.
+import { fp, fn, feCompact, grUpper } from '@/lib/core/format';
 import { INK, INK_FAINT, INK_MUTED, PAPER_ALT, RULE, RULE_SOFT } from '@/lib/print/ink';
 import { BRAND_MARK_INK } from '@/components/BrandMark';
 
@@ -99,7 +105,7 @@ type Node = any;
 // Επικεφαλίδα ενότητας: κεφαλαία + λεπτή μαύρη γραμμή από κάτω.
 function sectionTitle(title: string): Node[] {
   return [
-    { text: title.toUpperCase(), bold: true, fontSize: 9, characterSpacing: 0.6, color: INK, margin: [0, 18, 0, 0] },
+    { text: grUpper(title), bold: true, fontSize: 9, characterSpacing: 0.6, color: INK, margin: [0, 18, 0, 0] },
     { canvas: [{ type: 'line', x1: 0, y1: 3, x2: 515, y2: 3, lineWidth: 1, lineColor: HEAVY_RULE }], margin: [0, 3, 0, 8] },
   ];
 }
@@ -141,7 +147,7 @@ function rowsTable(rows: PdfRow[]): Node {
 function kpisRow(items: { label: string; value: string }[]): Node {
   const cells = items.map(it => ({
     stack: [
-      { text: it.label.toUpperCase(), fontSize: 7.5, characterSpacing: 0.4, color: INK_FAINT, bold: true, lineHeight: 1.15 },
+      { text: grUpper(it.label), fontSize: 7.5, characterSpacing: 0.4, color: INK_FAINT, bold: true, lineHeight: 1.15 },
       { text: it.value, fontSize: 14, bold: true, color: INK, margin: [0, 6, 0, 0] },
     ],
     margin: [10, 9, 10, 9],
@@ -160,7 +166,7 @@ function kpisRow(items: { label: string; value: string }[]): Node {
 function headedTable(head: string[], rows: string[][], align?: ('l' | 'r')[], result?: string[]): Node {
   const al = (i: number) => (align?.[i] === 'r' ? 'right' : 'left');
   const headRow = head.map((h, i) => ({
-    text: h.toUpperCase(), fontSize: 8, bold: true, color: INK_FAINT, alignment: al(i),
+    text: grUpper(h), fontSize: 8, bold: true, color: INK_FAINT, alignment: al(i),
     border: [false, false, false, true], borderColor: [HEAVY_RULE, HEAVY_RULE, HEAVY_RULE, HEAVY_RULE], margin: [0, 0, 0, 6],
   }));
   const bodyRows = rows.map(r => r.map((c, i) => ({
@@ -247,7 +253,7 @@ function signNode(signers: { role: string; name?: string; image?: string; place?
   const cells = signers.map(s => ({
     width: '*',
     stack: [
-      { text: s.role.toUpperCase(), fontSize: 8, bold: true, color: INK_FAINT, characterSpacing: 0.5, margin: [0, 0, 0, 6] },
+      { text: grUpper(s.role), fontSize: 8, bold: true, color: INK_FAINT, characterSpacing: 0.5, margin: [0, 0, 0, 6] },
       (s.image && /^data:image\//.test(s.image))
         ? { image: s.image, fit: [150, 52], margin: [0, 0, 0, 2] }
         : { text: ' ', margin: [0, 0, 0, 42] },
@@ -289,7 +295,7 @@ export function buildDocDefinition(model: PdfReportModel): Node {
 
   const metaBlock: Node = {
     width: 'auto', alignment: 'right', stack: [
-      { text: asOfLabel.toUpperCase(), fontSize: 7.5, characterSpacing: 0.5, color: INK_FAINT, bold: true },
+      { text: grUpper(asOfLabel), fontSize: 7.5, characterSpacing: 0.5, color: INK_FAINT, bold: true },
       { text: asOfValue, fontSize: 12, bold: true, color: INK, margin: [0, 2, 0, 0] },
       { text: 'Αρ. εγγράφου ' + model.meta.id, fontSize: 8.5, color: INK_MUTED, margin: [0, 3, 0, 0] },
       ...(model.meta.note ? [{ text: model.meta.note, fontSize: 9, color: INK_MUTED, margin: [0, 2, 0, 0] }] : []),

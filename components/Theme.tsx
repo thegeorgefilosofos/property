@@ -21,7 +21,7 @@ import { ReactNode, CSSProperties, useState, useEffect, useRef, useSyncExternalS
 // Τα tokens ζουν σε module ΧΩΡΙΣ React (components/tokens.ts) ώστε να μπορεί να
 // τα εισάγει και Server Component. Εδώ ξανα-εξάγονται αυτούσια, ώστε τα ~600
 // σημεία που γράφουν `from '@/components/Theme'` να μη χρειαστεί να αλλάξουν.
-export { T, TT, formGrid, fieldRow, fixedCols, tileGrid, tileRow, fe, feAuto, feRate, feCompact, fp, feOr, fpOr, DASH, fn, fd, fdLong, localDay, histInputStyle, ABSENT, ABSENT_DATE, ABSENT_SHORT } from './tokens';
+export { T, TT, formGrid, fieldRow, fixedCols, tileGrid, tileRow, fe, feAuto, feRate, feCompact, fp, feOr, fpOr, DASH, fn, fd, fdLong, localDay, histInputStyle, ABSENT, ABSENT_DATE, ABSENT_SHORT, grUpper } from './tokens';
 export type { Tone } from './tokens';
 import { T, TT, fe, isBlankMetric, type Tone } from './tokens';
 
