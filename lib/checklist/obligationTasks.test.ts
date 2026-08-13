@@ -1,7 +1,7 @@
 // Τεστ για τις παραγόμενες εκκρεμότητες και τον φύλακα του παραστατικού
 // (lib/checklist/obligationTasks.ts). Τρέξε με:
 //   npx tsx lib/checklist/obligationTasks.test.ts
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import {
   taxTaskDrafts, lawTaskDrafts, obligationDrafts, pendingDrafts, audiencesFor,
   expenseFromReceipt, actualCostFromReceipt, costVariance,
@@ -159,7 +159,16 @@ eq('υπέρ του χρήστη', costVariance(200, 143), -57);
 // 6) ΦΡΟΥΡΟΣ ΠΗΓΑΙΟΥ ΚΩΔΙΚΑ — ό,τι σβήστηκε να μην επιστρέψει σιωπηλά
 // ═══════════════════════════════════════════════════════════════════════════
 {
-  const raw = readFileSync('app/dashboard/components/TabChecklist.tsx', 'utf8')
+  // Ο ΦΡΟΥΡΟΣ ΔΙΑΒΑΖΕΙ ΟΛΕΣ ΤΙΣ ΟΘΟΝΕΣ ΤΩΝ ΕΚΚΡΕΜΟΤΗΤΩΝ, ΟΧΙ ΜΙΑ. Όσο ο κώδικας
+  // ζούσε σε ένα αρχείο, το όνομα του αρχείου ήταν αρκετό. Τώρα ζει σε οκτώ, και
+  // ένας φρουρός που κοιτάζει μόνο το πρώτο θα άφηνε ό,τι σβήστηκε να επιστρέψει
+  // σε οποιοδήποτε από τα υπόλοιπα εφτά — σιωπηλά, που είναι ακριβώς ο λόγος που
+  // γράφτηκε.
+  const dir = 'app/dashboard/components/checklist'
+  const raw = [
+    readFileSync('app/dashboard/components/TabChecklist.tsx', 'utf8'),
+    ...readdirSync(dir).sort().map(f => readFileSync(`${dir}/${f}`, 'utf8')),
+  ].join('\n')
   // Τα σχόλια ΕΞΑΙΡΟΥΝΤΑΙ: το αρχείο τεκμηριώνει ρητά τι σβήστηκε και γιατί, και
   // αυτή η τεκμηρίωση δεν πρέπει να πέφτει πάνω στον φρουρό. Ελέγχεται ο κώδικας.
   const src = raw.split('\n').filter(l => !l.trim().startsWith('//')).join('\n')
