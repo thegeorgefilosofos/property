@@ -1,0 +1,91 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// ΟΣΑ ΠΡΟΚΥΠΤΟΥΝ ΑΠΟ ΕΝΑ ΑΝΤΙΚΕΙΜΕΝΟ ΑΠΟΓΡΑΦΗΣ
+// ─────────────────────────────────────────────────────────────────────────
+// Καθαρές συναρτήσεις: μπαίνει αντικείμενο, βγαίνει νούμερο ή κείμενο. Καμία
+// δεν αγγίζει τη βάση και καμία δεν ξέρει από οθόνη — γι' αυτό τις μοιράζονται
+// και οι έξι οθόνες της απογραφής και οι εξαγωγές, χωρίς να τις ξαναγράφει
+// καμία. Η ουσία των υπολογισμών ζει ένα επίπεδο πιο κάτω, στο
+// `lib/inventory/depreciation.ts` και στο `lib/property/energy.ts`: εδώ είναι
+// μόνο το τελευταίο βήμα προς την οθόνη.
+// ═══════════════════════════════════════════════════════════════════════════
+import { depreciate } from '@/lib/inventory/depreciation'
+import { monthlyKwh, monthlyEnergyCost } from '@/lib/property/energy'
+import { fd, ABSENT_DATE } from '@/components/Theme'
+import { athensToday, daysUntil as athensDaysUntil } from '@/lib/core/time'
+import { addMonths as addCalendarMonths } from '@/lib/loans/progress'
+import type { InventoryItem } from './model'
+
+// Οι υπολογισμοί υπολειπόμενης αξίας διοχετεύονται στην καθαρή μηχανή του lib (μία πηγή αλήθειας).
+export const calcCurrentValue = (item: InventoryItem) => depreciate(item).bookValue
+export const calcDepreciationPct = (item: InventoryItem) => depreciate(item).depreciatedPct
+export const calcYearsLeft = (item: InventoryItem) => depreciate(item).yearsRemaining
+export const calcAgeDisplay = (d: string) => {
+  if (!d) return ''
+  const ms = Date.now() - new Date(d).getTime()
+  const y = Math.floor(ms/(1000*60*60*24*365))
+  const m = Math.floor((ms%(1000*60*60*24*365))/(1000*60*60*24*30))
+  if (y===0) return `${m} μήνες`
+  if (m===0) return `${y} χρόνια`
+  return `${y} χρόνια ${m} μήνες`
+}
+// Χωρίς «κατανάλωση αναμονής»: κανείς δεν ξέρει τα standby watt του ψυγείου του,
+// άρα το πεδίο έμενε κενό και πρόσθετε μόνο άλλη μία σειρά στη φόρμα.
+// ═══════════════════════════════════════════════════════════════════════════
+// Η ΚΑΤΑΝΑΛΩΣΗ ΔΕΝ ΥΠΟΛΟΓΙΖΕΤΑΙ ΠΙΑ ΕΔΩ
+// ─────────────────────────────────────────────────────────────────────────
+// Ήταν `Watt × ώρες × 30`, πάντα, για κάθε συσκευή. Σωστό για κλιματιστικό,
+// χωρίς νόημα για πλυντήριο: η ενεργειακή ετικέτα δεν δηλώνει Watt, δηλώνει
+// kWh ανά 100 κύκλους — και ο παλιός τύπος έβγαζε δεκαεπταπλάσιο νούμερο.
+// Η λογική ζει στο lib/property/energy.ts με τους τρεις τρόπους της, και
+// επιστρέφει `null` όταν λείπουν τα στοιχεία: το μηδέν θα σήμαινε «δεν
+// καταναλώνει», που είναι άλλο πράγμα από «δεν το ξέρουμε».
+export const calcMonthlyKwh = (item: InventoryItem) => monthlyKwh(item) ?? 0
+export const calcMonthlyCost = (item: InventoryItem, price: number) => monthlyEnergyCost(item, price) ?? 0
+/** Έχει αρκετά στοιχεία ώστε να ΞΕΡΟΥΜΕ την κατανάλωσή του; */
+export const hasEnergy = (item: InventoryItem) => monthlyKwh(item) != null
+// Ήταν `fmtEur` (μηδέν δεκαδικά) και `fmtEurC` (δύο) — δύο ονόματα για το ίδιο
+// πράγμα από τη στιγμή που τα δεκαδικά έπαψαν να είναι επιλογή του κάθε σημείου.
+// Δύο ονόματα σημαίνουν δύο πιθανές απαντήσεις στο «πώς γράφεται ένα ποσό εδώ».
+export const fmtDate = (d: string) => d ? fd(d) : ABSENT_DATE
+// ═══ ΟΙ ΜΕΡΕΣ ΜΕΤΡΙΟΥΝΤΑΙ ΣΤΗΝ ΩΡΑ ΑΘΗΝΑΣ ════════════════════════════════
+// Ήταν `Math.ceil((new Date(d) - Date.now()) / 86400000)`. Το `new Date('2026-08-10')`
+// είναι μεσάνυχτα UTC· το `Date.now()` είναι πραγματική ώρα. Στην Ελλάδα, από τα
+// μεσάνυχτα ως τις 03:00 (θερινή ώρα), η ημερομηνία έχει ήδη αλλάξει τοπικά αλλά
+// όχι σε UTC: μια εγγύηση που λήγει ΣΗΜΕΡΑ εμφανιζόταν ως «λήγει σε 1 ημέρα», και
+// μια που έληξε χθες ως «λήγει σήμερα». Κάθε ξημέρωμα, σε κάθε φίλτρο ≤30/≤90
+// ημερών, σε κάθε προτεραιότητα υπενθύμισης.
+// Η κοινή `daysUntil` του lib/core/time συγκρίνει ΗΜΕΡΟΛΟΓΙΑΚΕΣ ημέρες Αθήνας.
+// Επιστρέφει null για κενή ημερομηνία· εδώ το κενό σημαίνει «ποτέ», δηλαδή άπειρο.
+export const daysUntil = (d: string) => athensDaysUntil(d) ?? Infinity
+export const warrantyStatus = (expiry: string) => {
+  if (!expiry) return {label:'Χωρίς εγγύηση',color:'var(--text-tertiary)'}
+  const d = daysUntil(expiry)
+  if (d<0) return {label:'Έληξε',color:'var(--negative)'}
+  if (d<=30) return {label:`${d} μέρες`,color:'var(--negative)'}
+  if (d<=90) return {label:`${d} μέρες`,color:'var(--warning)'}
+  return {label:`έως ${fmtDate(expiry)}`,color:'var(--positive)'}
+}
+// Το ίδιο πρόβλημα από την άλλη πλευρά: `new Date().toISOString()` μετά τις 21:00
+// ώρα Ελλάδας γράφει τη ΧΘΕΣΙΝΗ ημερομηνία. Όποιος πατούσε «Έγινε» το βράδυ
+// κατέγραφε τη συντήρηση μια μέρα πριν και όριζε το επόμενο ραντεβού μια μέρα
+// νωρίς. Και η `setMonth` έκανε 31 Ιανουαρίου + 1 μήνα = 3 Μαρτίου.
+export const addMonths = (date: string, months: number) =>
+  addCalendarMonths(date || athensToday(), months) ?? athensToday()
+export const needsAction = (item: InventoryItem) => {
+  const d = daysUntil(item.warranty_expiry)
+  return item.condition==='Κακή'||item.condition==='Εκτός Λειτουργίας'||calcDepreciationPct(item)>=100||(d>=0&&d<=90)
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΟ ΚΕΝΟ ΠΕΔΙΟ ΔΕΙΧΝΕΙ ΚΕΝΟ, ΟΧΙ ΜΗΔΕΝ
+// ─────────────────────────────────────────────────────────────────────────
+// Η φόρμα άνοιγε με «0,00 €» στην αξία αγοράς, «0,00 €» στο κόστος
+// αντικατάστασης και «0 W / 0 ώρες» στην ενέργεια. Κανένα από αυτά δεν είχε
+// δηλωθεί: ήταν η αρχική τιμή της δομής, τυπωμένη σαν απάντηση.
+//
+// ΓΙΑΤΙ ΕΙΝΑΙ ΣΗΜΑΝΤΙΚΟ ΚΑΙ ΟΧΙ ΑΙΣΘΗΤΙΚΟ. Το μηδέν είναι ΔΗΛΩΣΗ: λέει «αυτό
+// το αντικείμενο δεν αξίζει τίποτα». Ο χρήστης που το προσπερνά έχει στο
+// μητρώο του δέκα αντικείμενα με μηδενική ασφαλιστέα αξία, και το μαθαίνει την
+// ημέρα της ζημιάς. Το κενό πεδίο λέει την αλήθεια: δεν το ξέρουμε ακόμη.
+export const blankIfZero = (n?: number | null) => (n ? String(n) : '');
