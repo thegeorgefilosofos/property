@@ -10,13 +10,11 @@ import {
   s,
   fmt,
   fmtD,
-  CPI_BY_YEAR,
-  CPI_SOURCE_URL,
-  CPI_LATEST_YEAR,
-  cpiFor,
-  cpiConfirmedLabel,
   setRentDueOccurrencePaid,
 } from './TabTenantHelpers';
+import {
+  CPI_BY_YEAR, CPI_SOURCE_URL, CPI_LATEST_YEAR, cpiFor, cpiConfirmedLabel,
+} from '@/lib/market/cpi';
 import {
   Toggle,
   NumberInput,

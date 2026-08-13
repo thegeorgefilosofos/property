@@ -27,6 +27,7 @@ import { MYAADE } from '@/lib/tax/aade';
 import { aadeTitle } from '@/components/AadeLink';
 import { failed } from '@/lib/core/dbError';
 import { acceptNumeric, PCT_MAX } from '@/lib/core/numInput';
+import { cpiFor, CPI_LATEST_YEAR, CPI_SOURCE_URL, cpiConfirmedDate } from '@/lib/market/cpi';
 
 interface Prop { id: string; name: string; address: string | null }
 
@@ -39,6 +40,25 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
   const [currentRent, setCurrentRent] = useState('');
   const [method, setMethod] = useState<AdjMethod>('percent');
   const [percent, setPercent] = useState('');
+  // ═══ Ο ΔΤΚ ΕΡΧΕΤΑΙ ΣΥΜΠΛΗΡΩΜΕΝΟΣ, ΓΙΑΤΙ ΤΟΝ ΞΕΡΕΙ ΤΟ ΣΥΣΤΗΜΑ ══════════════
+  //
+  // ΤΟ ΠΡΟΒΛΗΜΑ. Ο χρήστης πατούσε «ΔΤΚ (ΕΛΣΤΑΤ)» και έβρισκε ΑΔΕΙΟ πεδίο με μια
+  // προτροπή: «βάλε την ετήσια μεταβολή». Δηλαδή του ζητούσαμε κρατικό στοιχείο
+  // που δεν το ξέρει απ' έξω κανείς — και το ζητούσαμε τη στιγμή που ετοιμάζει
+  // υπογεγραμμένη ειδοποίηση προς τον μισθωτή του. Το αναμενόμενο αποτέλεσμα
+  // ήταν να το μαντέψει ή να αντιγράψει ό,τι βρει σε μια αναζήτηση.
+  //
+  // ΞΕΧΩΡΙΣΤΗ ΚΑΤΑΣΤΑΣΗ ΑΠΟ ΤΟ «ΠΟΣΟΣΤΟ», ΕΠΙΤΗΔΕΣ. Τα δύο πεδία μοιράζονταν
+  // την ίδια μεταβλητή: όποιος έγραφε 3% συμβατικό και μετά γύριζε στον ΔΤΚ,
+  // κρατούσε το 3 με την ετικέτα «Μεταβολή ΔΤΚ» από πάνω. Χωριστά, το καθένα
+  // θυμάται το δικό του και ο ΔΤΚ ξεκινά πάντα από την επίσημη τιμή.
+  //
+  // ΑΝ ΔΕΝ ΤΗΝ ΞΕΡΟΥΜΕ, ΜΕΝΕΙ ΚΕΝΟ. Κανένα fallback, καμία περυσινή τιμή στη
+  // θέση της φετινής: το `cpiFor` επιστρέφει null και το πεδίο δεν γεμίζει.
+  const [cpiPct, setCpiPct] = useState(() => {
+    const v = cpiFor(CPI_LATEST_YEAR);
+    return v == null ? '' : String(v);
+  });
   const [newRentManual, setNewRentManual] = useState('');
   const [effective, setEffective] = useState(todayIso());
   const [ownerName, setOwnerName] = useState('');
@@ -83,7 +103,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
   }, [open, propId, userId, supabase]);
 
   const prop = props.find(p => p.id === propId);
-  const res = useMemo(() => computeRentAdjustment({ currentRent: num(currentRent), method, percent: num(percent), cpiPct: num(percent), newRentManual: num(newRentManual) }), [currentRent, method, percent, newRentManual]);
+  const res = useMemo(() => computeRentAdjustment({ currentRent: num(currentRent), method, percent: num(percent), cpiPct: num(cpiPct), newRentManual: num(newRentManual) }), [currentRent, method, percent, cpiPct, newRentManual]);
 
   if (!open) return null;
 
@@ -94,7 +114,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
     if (!sig) { setErr('Υπόγραψε το έγγραφο.'); return; }
     setBusy(true);
     try {
-      const notice = adjustmentNoticeText({ tenantName: tenant.trim() || undefined, address: prop.address || undefined, effectiveDate: grDate(effective), method, res });
+      const notice = adjustmentNoticeText({ tenantName: tenant.trim() || undefined, address: prop.address || undefined, effectiveDate: grDate(effective), method, res, cpiYear: CPI_LATEST_YEAR });
       const issued = await issueDocument(supabase, {
         userId, docType: 'Ειδοποίηση αναπροσαρμογής μισθώματος', // Ίδιος λόγος με το μισθωτήριο: το «αντικείμενο» είναι δημόσιο.
         subject: prop.name,
@@ -109,7 +129,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
           { type: 'note', text: notice },
           { type: 'rows', title: 'Στοιχεία αναπροσαρμογής', rows: [
             { label: 'Τρέχον μηνιαίο μίσθωμα', value: pEur(res.currentRent) },
-            { label: 'Μεταβολή', value: pPct(res.pctApplied) },
+            { label: method === 'cpi' ? `Μεταβολή ΔΤΚ ${CPI_LATEST_YEAR}` : 'Μεταβολή', value: pPct(res.pctApplied) },
             { label: 'Νέο μηνιαίο μίσθωμα', value: pEur(res.newRent), kind: 'result' },
             { label: 'Ισχύς από', value: grDate(effective) },
           ] },
@@ -154,9 +174,19 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
   // Ύψος από την κοινή κλίμακα: το ίδιο segmented control ζει αυτούσιο και στο
   // LeaseModal με το ίδιο literal 34, οπότε κάθε τοπική αλλαγή τα ξεσυγχρόνιζε.
   const seg = (m: AdjMethod): React.CSSProperties => ({ flex: 1, fontSize: 13, fontWeight: 600, height: T.h.md, borderRadius: T.radius.inner, cursor: 'pointer', textAlign: 'center', border: 'none', background: method === m ? 'var(--accent)' : 'transparent', color: method === m ? 'var(--accent-text)' : 'var(--text-secondary)', fontFamily: T.font.sans, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' });
-  const METHOD_HINT: Record<AdjMethod, string> = {
+  // ΤΟ ΔΙΑΚΡΙΤΙΚΟ ΠΟΥ ΛΕΕΙ ΑΠΟ ΠΟΥ ΗΡΘΕ Ο ΑΡΙΘΜΟΣ ΚΑΙ ΠΟΤΕ. Ένα πεδίο που
+  // γεμίζει μόνο του χωρίς να πει από πού, σε έγγραφο που θα υπογραφεί, είναι
+  // χειρότερο από άδειο πεδίο: ο χρήστης δεν ξέρει τι υπογράφει. Η προτροπή
+  // «βάλε την ετήσια μεταβολή» έφυγε — δεν βάζει τίποτα πια.
+  const METHOD_HINT: Record<AdjMethod, React.ReactNode> = {
     percent: 'Σταθερό ποσοστό αύξησης, όπως το συμφωνήσατε στο μισθωτήριο.',
-    cpi: 'Επίσημος Δείκτης Τιμών Καταναλωτή της ΕΛΣΤΑΤ. Βάλε την ετήσια μεταβολή.',
+    cpi: cpiFor(CPI_LATEST_YEAR) == null
+      ? `Επίσημος Δείκτης Τιμών Καταναλωτή της ΕΛΣΤΑΤ. Για το ${CPI_LATEST_YEAR} δεν έχουμε ακόμη επιβεβαιωμένη τιμή.`
+      : <>
+          Μέση ετήσια μεταβολή του Δείκτη Τιμών Καταναλωτή {CPI_LATEST_YEAR}, συμπληρωμένη από την
+          ΕΛΣΤΑΤ. Τελευταία ενημέρωση {cpiConfirmedDate()}.{' '}
+          <a href={CPI_SOURCE_URL} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Έλεγχος στην πηγή</a>
+        </>,
     manual: 'Όρισε απευθείας το νέο μίσθωμα, όπως το συμφωνήσατε.',
   };
   // Πεδίο ποσού με διακριτικό σύμβολο (€ ή %) στη δεξιά άκρη, αριθμοί δεξιά.
@@ -270,7 +300,9 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
                 <div><div style={lbl}>Τρέχον μίσθωμα</div>{money(currentRent, setCurrentRent, '€')}</div>
                 {method === 'manual'
                   ? <div><div style={lbl}>Νέο μίσθωμα</div>{money(newRentManual, setNewRentManual, '€')}</div>
-                  : <div><div style={lbl}>{method === 'cpi' ? 'Μεταβολή ΔΤΚ' : 'Ποσοστό'}</div>{money(percent, setPercent, '%', PCT_MAX)}</div>}
+                  : method === 'cpi'
+                    ? <div><div style={lbl}>Μεταβολή ΔΤΚ {CPI_LATEST_YEAR}</div>{money(cpiPct, setCpiPct, '%', PCT_MAX)}</div>
+                    : <div><div style={lbl}>Ποσοστό</div>{money(percent, setPercent, '%', PCT_MAX)}</div>}
                 <div><div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 5 }}>Ισχύς από<InfoHint>Η ημερομηνία από την οποία εφαρμόζεται το νέο μίσθωμα. Κοινοποίησε την ειδοποίηση στον μισθωτή εγκαίρως, τηρώντας την προθεσμία που ορίζει το μισθωτήριο ή ο νόμος.</InfoHint></div><DatePicker value={effective} onChange={setEffective} /></div>
               </div>
 
