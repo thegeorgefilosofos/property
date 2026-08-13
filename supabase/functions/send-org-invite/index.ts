@@ -90,6 +90,24 @@ Deno.serve(async (req) => {
     .from('organization_members').select('role, status').eq('org_id', orgRow.id).eq('email', email).maybeSingle()
   if (!member) return json({ error: 'not_a_member' }, 404)
 
+  // ── ΤΟ «ΠΡΕΠΕΙ ΝΑ ΕΙΝΑΙ ΜΕΛΟΣ» ΔΕΝ ΕΙΝΑΙ ΦΡΑΓΜΟΣ, ΕΙΝΑΙ ΚΥΚΛΟΣ ──────────
+  // Ο ίδιος ο καλών φτιάχνει τον οργανισμό, ο ίδιος γράφει το μέλος: το σύνολο
+  // των επιτρεπτών παραληπτών είναι ό,τι αποφασίσει εκείνος. Και το όνομα του
+  // οργανισμού μπαίνει αυτούσιο στο θέμα και στην επικεφαλίδα του μηνύματος.
+  // Χωρίς μετρητή, αυτό ήταν απεριόριστη αποστολή σε οποιαδήποτε διεύθυνση, με
+  // κείμενο της επιλογής του αποστολέα, από το επαληθευμένο μας domain.
+  //
+  // Οι άλλες πέντε συναρτήσεις αποστολής μετρούν ήδη. Αυτή ξεχάστηκε.
+  const { data: quota } = await supabase.rpc('bump_send_quota', {
+    p_kind: 'org_invite', p_units: 1, p_max: 20, p_window: '24 hours',
+  })
+  if (!quota?.allowed) {
+    return json({
+      error: 'daily_cap',
+      detail: 'Ξεπεράστηκε το όριο προσκλήσεων (20 ανά 24 ώρες).',
+    }, 429)
+  }
+
   const { subject, html } = inviteEmail(orgRow.name || '', inviter, member.role || 'member')
   try {
     const res = await fetch('https://api.resend.com/emails', {

@@ -84,8 +84,19 @@ Deno.serve(async (req) => {
   const periodLabel = `${MONTHS[pm - 1]} ${py}`
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()
 
-  const { data: prefs } = await supabase.from('notification_preferences').select('user_id,reminder_email').eq('email_enabled', true)
-  if (!prefs?.length) return json({ message: 'no_users' })
+  // ── ΣΕ ΠΟΙΑ ΔΙΕΥΘΥΝΣΗ ΕΠΙΤΡΕΠΕΤΑΙ ΝΑ ΣΤΑΛΕΙ, ΤΟ ΛΕΕΙ Η ΒΑΣΗ ──────────────
+  // Το `reminder_email` είναι ελεύθερο κείμενο που έγραψε ο ιδιοκτήτης: μπορεί
+  // να είναι πρώην σύντροφος, γείτονας ή παλιά διεύθυνση. Η μηνιαία κατάσταση
+  // περιέχει ΚΑΘΕ όνομα ακινήτου, κάθε όνομα ενοικιαστή, και τι εισπράχθηκε.
+  //
+  // Ο έλεγχος διπλής συναίνεσης γράφτηκε ακριβώς γι' αυτό (20260810070000) και
+  // η `send-reminders` τον χρησιμοποιεί. Αυτός ο αποστολέας διάβαζε την
+  // ανεπιβεβαίωτη διεύθυνση κατευθείαν από τον πίνακα και έστελνε.
+  const { data: allowedRows } = await supabase.rpc('reminder_recipients')
+  const prefs = ((allowedRows || []) as { user_id: string; email: string | null }[])
+    .filter(r => !!r.email)
+    .map(r => ({ user_id: r.user_id, reminder_email: r.email }))
+  if (!prefs.length) return json({ message: 'no_users' })
 
   let sent = 0, skipped = 0, failed = 0
   for (const pref of prefs as { user_id: string; reminder_email: string | null }[]) {

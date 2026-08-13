@@ -119,13 +119,26 @@ export async function proxy(request: NextRequest) {
     // άλλα δύο εργαλεία. Κανένα σφάλμα πουθενά — απλώς μια σελίδα που υπάρχει
     // για να απαντά ΠΡΙΝ μας ξέρει κανείς, και δεν απαντούσε σε κανέναν.
     "/ypologismos-forou-enoikion", "/ypologismos-enfia", "/vraxyxronia-i-makroxronia",
+    // ΤΟ /reset-password ΕΛΕΙΠΕ, ΚΑΙ Η ΕΠΑΝΑΦΟΡΑ ΚΩΔΙΚΟΥ ΗΤΑΝ ΝΕΚΡΗ.
+    // Η σελίδα είναι συνδεδεμένη από το «Ξέχασες τον κωδικό;» της εισόδου, και
+    // ο σύνδεσμος του email γυρίζει ΕΚΕΙ. Και στις δύο περιπτώσεις ο χρήστης
+    // δεν έχει cookie συνεδρίας — αυτός είναι όλος ο λόγος που βρίσκεται εκεί —
+    // οπότε ο έλεγχος τον έστελνε πίσω στο /login. Ο μόνος δρόμος επαναφοράς
+    // γινόταν η υποστήριξη, δηλαδή ακριβώς η επιφάνεια που εκμεταλλεύεται η
+    // κοινωνική μηχανική.
+    "/reset-password",
   ]);
   // Σελίδες με capability-token (/portal, /accountant, /checkin, /verify) είναι
   // δημόσιες by-design — η πρόσβαση ελέγχεται από το ίδιο το token, όχι από login.
   const isPublic = PUBLIC.has(pathname)
     || pathname.startsWith("/portal/") || pathname.startsWith("/accountant/")
     || pathname.startsWith("/checkin/") || pathname.startsWith("/verify/")
-    || pathname.startsWith("/unsubscribe/");
+    || pathname.startsWith("/unsubscribe/")
+    // Η διπλή συναίνεση της διεύθυνσης υπενθυμίσεων φτάνει σε ΤΡΙΤΟ πρόσωπο που
+    // δεν έχει λογαριασμό. Χωρίς αυτή τη γραμμή ο σύνδεσμος επιβεβαίωσης
+    // γυρνούσε σε οθόνη εισόδου, και ο έλεγχος που μπήκε για να προστατεύει
+    // εκείνον τον τρίτο δεν λειτουργούσε ποτέ.
+    || pathname.startsWith("/epivevaiosi-email/");
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();

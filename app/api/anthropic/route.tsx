@@ -5,6 +5,7 @@ import {
   dailyLimitsByRank, monthlyLimitsByRank, FREE_POOL_PER_MONTH, TRIAL_LIMITS,
   dailyExhaustedMessage, monthlyExhaustedMessage, poolExhaustedMessage,
 } from '@/lib/billing/aiLimits';
+import { ASSISTANT_NAME } from '@/lib/assistant/identity';
 
 // Rate limiting: simple in-memory store (για production χρησιμοποίησε Redis)
 // ΣΗΜ.: σε serverless/πολλαπλά instances αυτό είναι ανά-instance. Είναι φράγμα
@@ -104,7 +105,7 @@ export async function POST(req: NextRequest) {
   /** Πόσες ερωτήσεις έχει κάνει και πόσες δικαιούται. Μπαίνει σε κεφαλίδες. */
   let quota: { month: number; monthLimit: number; day: number; dayLimit: number } | null = null;
   try {
-    const { data: usage } = await supabase.rpc('bump_ai_usage', {
+    const { data: usage, error: usageError } = await supabase.rpc('bump_ai_usage', {
       p_max_min: MAX_REQUESTS_PER_MINUTE,
       p_day:     dailyLimitsByRank(),
       p_month:   monthlyLimitsByRank(),
@@ -116,6 +117,20 @@ export async function POST(req: NextRequest) {
       p_trial_day:   TRIAL_LIMITS.perDay,
       p_trial_month: TRIAL_LIMITS.perMonth,
     });
+    // ΤΟ supabase-js ΔΕΝ ΠΕΤΑΕΙ ΣΕ ΣΦΑΛΜΑ RPC — ΤΟ ΕΠΙΣΤΡΕΦΕΙ. Το `catch` από
+    // κάτω δεν έπιανε ποτέ τίποτα, άρα ένα σφάλμα δικαιωμάτων, ένα timeout ή
+    // μια στιγμή ασυμφωνίας υπογραφής κατά το deploy έβγαζε `usage = null`, το
+    // `u.allowed === false` ήταν ψευδές, και το αίτημα ΠΡΟΧΩΡΟΥΣΕ στον πάροχο
+    // χωρίς κανένα ανθεκτικό φράγμα. Ο μοναδικός φρουρός που έμενε ήταν ο
+    // χάρτης στη μνήμη, που το ίδιο το migration περιγράφει ως παρακάμψιμο.
+    //
+    // Ένας μετρητής κόστους που ανοίγει όταν χαλάσει δεν είναι μετρητής.
+    if (usageError || usage == null) {
+      return NextResponse.json(
+        { error: `Η ${ASSISTANT_NAME} δεν είναι διαθέσιμη αυτή τη στιγμή. Δοκίμασε ξανά σε λίγο.` },
+        { status: 503 },
+      );
+    }
     const u = usage as {
       allowed?: boolean; reason?: string; rank?: number;
       month?: number; month_limit?: number; day?: number; day_limit?: number;
@@ -140,7 +155,13 @@ export async function POST(req: NextRequest) {
         : 'Πολλές ερωτήσεις μαζί. Δοκίμασε ξανά σε ένα λεπτό.';
       return NextResponse.json({ error, reason: u.reason, plan }, { status: 429 });
     }
-  } catch { /* RPC unavailable — rely on the in-memory guard above */ }
+  } catch {
+    // Δικτυακή αποτυχία προς τη βάση: η ίδια απόφαση με το παραπάνω. Κλειστά.
+    return NextResponse.json(
+      { error: `Η ${ASSISTANT_NAME} δεν είναι διαθέσιμη αυτή τη στιγμή. Δοκίμασε ξανά σε λίγο.` },
+      { status: 503 },
+    );
+  }
 
   // ── Anthropic API call ───────────────────────────────────────
   const apiKey = process.env.ANTHROPIC_API_KEY;
