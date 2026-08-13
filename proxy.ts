@@ -113,7 +113,12 @@ export async function proxy(request: NextRequest) {
   // ερώτηση που ο ιδιοκτήτης κάνει ΠΡΙΝ μας ξέρει.
   const PUBLIC = new Set([
     "/", "/login", "/signup", "/privacy", "/terms", "/trust", "/offline",
-    "/ypologismos-forou-enoikion", "/ypologismos-enfia",
+    // ΚΑΙ ΤΑ ΤΡΙΑ ΕΡΓΑΛΕΙΑ, ΟΧΙ ΤΑ ΔΥΟ. Το «Βραχυχρόνια ή μακροχρόνια;»
+    // προστέθηκε στον ιστότοπο και ΞΕΧΑΣΤΗΚΕ από αυτόν τον κατάλογο: ζητούσε
+    // σύνδεση, ενώ είναι συνδεδεμένο από το υποσέλιδο κάθε σελίδας και από τα
+    // άλλα δύο εργαλεία. Κανένα σφάλμα πουθενά — απλώς μια σελίδα που υπάρχει
+    // για να απαντά ΠΡΙΝ μας ξέρει κανείς, και δεν απαντούσε σε κανέναν.
+    "/ypologismos-forou-enoikion", "/ypologismos-enfia", "/vraxyxronia-i-makroxronia",
   ]);
   // Σελίδες με capability-token (/portal, /accountant, /checkin, /verify) είναι
   // δημόσιες by-design — η πρόσβαση ελέγχεται από το ίδιο το token, όχι από login.

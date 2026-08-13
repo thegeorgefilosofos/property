@@ -32,6 +32,7 @@ const NOT_A_GUARD = {
   'db-types':  'γεννήτρια τύπων από τη βάση — τρέχει στο δικό της workflow',
   'pg-schema': 'τοπικό sandbox Postgres — θέλει εγκατεστημένη βάση',
   'e2e':       'δοκιμή άκρο-σε-άκρο — θέλει ζωντανό διακομιστή',
+  'e2e:dashboard': 'δοκιμή άκρο-σε-άκρο — θέλει ζωντανό διακομιστή, και για το δεύτερο μέρος λογαριασμό δοκιμών',
 }
 
 const pkg = JSON.parse(readFileSync('package.json', 'utf8')).scripts || {}
