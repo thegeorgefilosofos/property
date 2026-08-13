@@ -13,10 +13,12 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState, type ReactNode } from 'react';
-import { PLANS, PLAN_ORDER, annualPerMonth, type PlanId } from '@/lib/billing/plans';
+import { PLANS, PLAN_ORDER, annualPerMonth, TRIAL_DAYS, type PlanId } from '@/lib/billing/plans';
+import { aiLimitsFor } from '@/lib/billing/aiLimits';
+import { ASSISTANT_NAME, ASSISTANT_ACC } from '@/lib/assistant/identity';
 import { FEATURE_LABEL, FEATURE_MIN_PLAN, planAtLeast, type Feature } from '@/lib/billing/entitlements';
 import { isPlanAllowedForProfile } from '@/lib/billing/entitlements';
-import { T, Card, SecHdr, Btn, Chip, TierBadge, feAuto, fixedCols } from '@/components/Theme';
+import { T, TT, Card, SecHdr, Btn, Chip, TierBadge, feAuto, fn, fixedCols } from '@/components/Theme';
 
 // ── Ποια πλάνα συγκρίνονται εδώ ─────────────────────────────────────────────
 // ΟΧΙ όλα. Το «Γραφείο» είναι πλάνο για χαρτοφυλάκια άνω των 40 ακινήτων και δεν
@@ -75,7 +77,13 @@ const forAll = (label: string): FeatureRow => ({
 
 const MATRIX: FeatureRow[] = [
   { label: 'Ακίνητα', values: Object.fromEntries(COMPARED.map(p => [p, limitLabel(p)])) as Record<ComparedPlan, CellValue> },
-  forAll('Σάρωση εγγράφων και βοηθός με φωνή'),
+  // Ο ΙΣΧΥΡΙΣΜΟΣ ΓΙΝΕΤΑΙ ΑΡΙΘΜΟΣ. Η γραμμή από πάνω λέει «αλλάζει μόνο πόσες
+  // ερωτήσεις έχει το καθένα» — και ο πίνακας δεν έδειχνε πουθενά πόσες. Μια
+  // υπόσχεση που ο αναγνώστης δεν μπορεί να επαληθεύσει στην ίδια οθόνη είναι
+  // διαφήμιση· με τη σειρά, γίνεται σύγκριση.
+  { label: `Ερωτήσεις στη ${ASSISTANT_NAME} τον μήνα`,
+    values: Object.fromEntries(COMPARED.map(p => [p, fn(aiLimitsFor(p).perMonth)])) as Record<ComparedPlan, CellValue> },
+  forAll('Σάρωση εγγράφων και φωνητική καταχώριση'),
   forAll('Αποδόσεις, δαπάνες, ενέργεια και φόρος 2026'),
   forAll('Έξυπνες ειδοποιήσεις και υπενθυμίσεις'),
   gated('e2_export'),
@@ -120,7 +128,11 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
   currentPlan: PlanId;
   onUpgrade?: () => void;
 }) {
-  const [cycle, setCycle] = useState<'monthly' | 'annual'>('monthly');
+  // ΞΕΚΙΝΑ ΣΤΗΝ ΕΤΗΣΙΑ, ΚΑΙ ΕΙΝΑΙ ΤΙΜΙΟ ΕΠΕΙΔΗ ΦΑΙΝΟΝΤΑΙ ΚΑΙ ΤΑ ΔΥΟ ΝΟΥΜΕΡΑ.
+  // Η κάρτα δείχνει το μηνιαίο ισοδύναμο ΚΑΙ το ετήσιο σύνολο δίπλα του, οπότε
+  // κανείς δεν μπορεί να νομίσει ότι πληρώνει 3,58 € τον μήνα χωρίς δέσμευση
+  // έτους. Χωρίς το ετήσιο σύνολο ορατό, η προεπιλογή θα ήταν παραπλάνηση.
+  const [cycle, setCycle] = useState<'monthly' | 'annual'>('annual');
 
   const rankOf = (id: PlanId) => PLAN_ORDER.indexOf(id);
   const curRank = rankOf(currentPlan);
@@ -157,6 +169,24 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
           </div>
         } />
 
+        {/* ═══ Ο ΒΟΗΘΟΣ ΔΕΝ ΕΙΝΑΙ ΠΡΟΝΟΜΙΟ ΤΩΝ ΑΚΡΙΒΩΝ ΠΑΚΕΤΩΝ ═══════════════
+            Η αρχική σελίδα το λέει πριν από τη σκάλα των τιμών· ο συνδρομητής
+            που άνοιγε τη σύγκριση ΜΕΣΑ στην εφαρμογή δεν το ξανάβλεπε πουθενά,
+            και ο πίνακας από κάτω έδειχνε τον βοηθό ως μία ακόμη γραμμή. Όποιος
+            κοιτούσε το φθηνότερο πακέτο έβγαζε το αντίθετο συμπέρασμα από την
+            αλήθεια: ότι δεν τον έχει. Λέγεται μία φορά, πάνω από τη σκάλα,
+            γιατί αφορά ΟΛΗ τη σκάλα. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '11px 14px', marginBottom: 14, borderRadius: T.radius.inner, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: 8, background: 'var(--accent-dim)', color: 'var(--accent)', flexShrink: 0 }}>
+            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M21 12a8 8 0 0 1-8 8H8l-5 3 1.4-4.2A8 8 0 1 1 21 12" /><path d="M8.5 12h.01M12 12h.01M15.5 12h.01" /></svg>
+          </span>
+          {/* Η αρχική σελίδα γράφει «ο βοηθός», γιατί ο επισκέπτης δεν ξέρει
+              ακόμη το όνομα. Μέσα στην εφαρμογή το ξέρει, και ο βοηθός έχει
+              όνομα αντί για γένος (lib/assistant/identity.ts). */}
+          <span style={{ ...TT.bodySm, color: 'var(--text-primary)', fontWeight: 700 }}>Κάθε πακέτο περιλαμβάνει {ASSISTANT_ACC}</span>
+          <span style={{ ...TT.bodySm, color: 'var(--text-tertiary)' }}>Αλλάζει μόνο πόσες ερωτήσεις έχει το καθένα τον μήνα.</span>
+        </div>
+
         {/* ΠΕΝΤΕ ΓΝΩΣΤΕΣ ΣΤΗΛΕΣ, ΟΧΙ «ΟΣΕΣ ΧΩΡΑΝΕ». Με ελάχιστο 220 το auto-fit
             έβγαζε τέσσερις κάρτες και μία μόνη της από κάτω στα συνηθισμένα
             πλάτη — δηλαδή ο τιμοκατάλογος διαβαζόταν σαν «τέσσερα πακέτα και
@@ -173,11 +203,13 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
             // Κάθε στήλη έχει τιμή, οπότε δεν υπάρχει «χωρίς χρέωση» να
             // ξεχωρίσει. Το ποσό περνά πάντα από τον μορφοποιητή.
             const priceMain = cycle === 'annual' ? feAuto(annualPerMonth(id)) : feAuto(p.priceMonthly);
-            // «12 ΜΗΝΕΣ ΣΤΗΝ ΤΙΜΗ ΤΩΝ Χ», ΟΠΩΣ ΚΑΙ ΣΤΗΝ ΑΡΧΙΚΗ. Ήταν «περίπου Ν
-            // μήνες δωρεάν», που για το φθηνότερο πακέτο τύπωνε «περίπου 1 μήνες
-            // δωρεάν»: πληθυντικός με το ένα, και «περίπου» μπροστά σε αριθμό που
-            // προκύπτει από διαίρεση δύο ακριβών τιμών.
+            // ΤΟ ΚΕΡΔΟΣ ΛΕΓΕΤΑΙ ΩΣ ΚΕΡΔΟΣ, ΜΕ ΤΑ ΙΔΙΑ ΛΟΓΙΑ ΜΕ ΤΗΝ ΑΡΧΙΚΗ. Το
+            // «12 μήνες στην τιμή των 11» ζητά από τον αναγνώστη να κάνει την
+            // αφαίρεση για να καταλάβει τι παίρνει — και η αρχική σελίδα, δύο
+            // κλικ πιο πριν, του έλεγε ήδη «1 μήνας δωρεάν». Δύο διατυπώσεις για
+            // την ίδια έκπτωση, στην ίδια αγορά.
             const paidMonths = p.priceAnnual > 0 && p.priceMonthly > 0 ? Math.round(p.priceAnnual / p.priceMonthly) : 0;
+            const freeMonths = paidMonths > 0 ? 12 - paidMonths : 0;
 
             // Ένα και μόνο «ήρωας»: η προτεινόμενη στήλη (βάθος με surface-hero).
             const heroBg = popular ? 'var(--surface-hero)' : 'var(--bg-surface)';
@@ -254,8 +286,8 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
                 {cycle === 'annual' && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
                     <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{feAuto(p.priceAnnual)}/χρόνο</span>
-                    {paidMonths > 0 && paidMonths < 12 && (
-                      <Chip>12 μήνες στην τιμή των {paidMonths}</Chip>
+                    {freeMonths > 0 && (
+                      <Chip>{freeMonths === 1 ? '1 μήνας δωρεάν' : `${freeMonths} μήνες δωρεάν`}</Chip>
                     )}
                   </div>
                 )}
@@ -325,14 +357,15 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
           </div>
         </div>
 
-        {/* ── 4. Γραμμή εμπιστοσύνης ─────────────────────────────────────── */}
-        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 16 }}>
-          Χωρίς δέσμευση. Αναβαθμίζεις ή προσαρμόζεις όποτε θες, με ένα κλικ.
-        </div>
-        {/* ── 5. Διαφάνεια ΦΠΑ ───────────────────────────────────────────── */}
-        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, marginTop: 8 }}>
-          Η τελική τιμή με ΦΠΑ και η ακριβής ημερομηνία χρέωσης επιβεβαιώνονται στην πληρωμή, που έρχεται σύντομα.
-        </div>
+        {/* ── ΤΑ ΨΙΛΑ ΓΡΑΜΜΑΤΑ, ΜΙΑ ΦΟΡΑ ΚΑΙ ΟΛΟΚΛΗΡΑ ────────────────────────
+            Ήταν δύο μισές παράγραφοι σε δύο μεγέθη: «Χωρίς δέσμευση» στα 12 και
+            ο ΦΠΑ στα 11, με διαφορετικό περιθώριο η καθεμία. Και οι δύο μαζί
+            έλεγαν λιγότερα από όσα λέει η αρχική σελίδα στον επισκέπτη ΠΡΙΝ
+            εγγραφεί: ο συνδρομητής που πληρώνει έβλεπε λιγότερους όρους από τον
+            περαστικό. Ένα κείμενο, τα ίδια λόγια με την αρχική. */}
+        <p style={{ ...TT.bodySm, color: 'var(--text-tertiary)', marginTop: 16, marginBottom: 0 }}>
+          Κάθε πακέτο ξεκινά με {TRIAL_DAYS} ημέρες δωρεάν δοκιμή, και τίποτα δεν αλλάζει χωρίς να το ξέρεις: το πακέτο το διαλέγεις εσύ από την αρχή, ανάλογα με τα ακίνητα και τα εργαλεία που χρειάζεσαι. Χωρίς δέσμευση, χωρίς κρυφές χρεώσεις και χωρίς ποινή αν φύγεις· αναβαθμίζεις, αλλάζεις ή σταματάς όποτε θέλεις, σύμφωνα με την ισχύουσα τιμολογιακή πολιτική. Δωρεάν είναι μόνο η δοκιμή και οι μήνες που κερδίζεις από συστάσεις· οι τιμές αφορούν καταναλωτές στην Ελλάδα και περιλαμβάνουν ΦΠΑ.
+        </p>
       </Card>
     </div>
   );
