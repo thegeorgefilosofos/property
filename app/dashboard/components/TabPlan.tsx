@@ -147,9 +147,16 @@ function RowToggle({ open, onClick, label, dim, children }: {
   );
 }
 
-/** Το σώμα που αποκαλύπτεται, στοιχισμένο με τον τίτλο από πάνω. */
+/**
+ * Το σώμα που αποκαλύπτεται, στοιχισμένο με τον τίτλο από πάνω.
+ *
+ * Η κίνηση είναι η ΥΠΑΡΧΟΥΣΑ `budget-rise` του φύλλου στυλ, όχι καινούργια: έξι
+ * εικονοστοιχεία ανόδου με σβήσιμο. Ένα δεύτερο, «δικό μας» άνοιγμα θα έκανε την
+ * ίδια χειρονομία να αισθάνεται αλλιώς σε δύο οθόνες. Και σε όποιον έχει ζητήσει
+ * μειωμένη κίνηση, ο καθολικός κανόνας του globals.css τη μηδενίζει ήδη.
+ */
 function RowBody({ indent, children }: { indent?: number; children: ReactNode }) {
-  return <div style={{ paddingLeft: indent ?? 0, paddingBottom: 14 }}>{children}</div>;
+  return <div className="budget-rise" style={{ paddingLeft: indent ?? 0, paddingBottom: 14 }}>{children}</div>;
 }
 
 /**
@@ -275,6 +282,9 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
   // «τα έκλεισε ο χρήστης όλα» και το σέβεται. Καμία επίδραση, κανένας
   // συγχρονισμός: η τιμή προκύπτει τη στιγμή της απόδοσης.
   const [openStep, setOpenStep] = useState<string | null | undefined>(undefined);
+  // Ρητή επιλογή του χρήστη ανά ομάδα. Χωρίς εγγραφή, η ομάδα ακολουθεί τον
+  // κανόνα: όσο έχει ανοιχτά βήματα μένει ανοιχτή, όταν τελειώσει διπλώνεται.
+  const [shutGroups, setShutGroups] = useState<Record<string, boolean>>({});
   const [openFund, setOpenFund] = useState<string | null>(null);
   const [openOption, setOpenOption] = useState<string | null>(null);
   const [refOpen, setRefOpen] = useState(false);
@@ -543,22 +553,39 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
             </span>
           </div>
         }>
-        {groups.map((g, gi) => (
-          <div key={g.group ?? `g${gi}`} style={{ marginTop: g.group && gi > 0 ? T.sp.xl : 0 }}>
-            {g.group && (
-              /* Η ομάδα κουβαλά και τη μέτρησή της: τέσσερα βήματα «πριν
-                 ξεκινήσεις» με τα δύο τσεκαρισμένα είναι διαφορετική εικόνα από
-                 τέσσερα άθικτα, και φαίνεται χωρίς να μετρήσει κανείς κουτάκια. */
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4, paddingBottom: 6, borderBottom: '1px solid var(--border-subtle)' }}>
-                <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)', flex: 1, minWidth: 0 }}>{g.group}</span>
-                <span style={{ ...TT.caption, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
-                  {g.items.filter(s => checked.has(s.id)).length} από {g.items.length}
-                </span>
-              </div>
-            )}
-            {g.items.map((s, i) => stepRow(s, i === 0))}
-          </div>
-        ))}
+        {groups.map((g, gi) => {
+          const doneHere = g.items.filter(s => checked.has(s.id)).length;
+          const finished = doneHere === g.items.length;
+          // Η ΟΘΟΝΗ ΜΙΚΡΑΙΝΕΙ ΟΣΟ ΠΡΟΧΩΡΑΣ. Μια ομάδα που τελείωσε δεν έχει τι
+          // άλλο να πει: διπλώνεται σε μία γραμμή που κρατά το όνομα και τη
+          // μέτρησή της, και η δουλειά που απομένει ανεβαίνει πιο ψηλά. Ένα
+          // πάτημα την ξανανοίγει, και τότε μένει ανοιχτή όσο τη θέλει ο χρήστης.
+          const shut = g.group ? shutGroups[g.group] ?? finished : false;
+          return (
+            <div key={g.group ?? `g${gi}`} style={{ marginTop: g.group && gi > 0 ? T.sp.xl : 0 }}>
+              {g.group && (
+                /* Η ομάδα κουβαλά και τη μέτρησή της: τέσσερα βήματα «πριν
+                   ξεκινήσεις» με τα δύο τσεκαρισμένα είναι διαφορετική εικόνα από
+                   τέσσερα άθικτα, και φαίνεται χωρίς να μετρήσει κανείς κουτάκια. */
+                <button type="button" className="acc-toggle" aria-expanded={!shut} aria-label={g.group}
+                  onClick={() => setShutGroups(prev => ({ ...prev, [g.group as string]: !shut }))}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left',
+                    padding: '0 0 6px', marginBottom: 4, cursor: 'pointer', background: 'none',
+                    border: 'none', borderBottom: '1px solid var(--border-subtle)',
+                    opacity: finished ? 0.55 : 1, transition: 'opacity .15s',
+                  }}>
+                  <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)', flex: 1, minWidth: 0 }}>{g.group}</span>
+                  <span style={{ ...TT.caption, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
+                    {doneHere} από {g.items.length}
+                  </span>
+                  <Caret open={!shut} />
+                </button>
+              )}
+              {!shut && g.items.map((s, i) => stepRow(s, i === 0))}
+            </div>
+          );
+        })}
         {!plan.next && (
           <div style={{ marginTop: T.sp.lg, paddingTop: T.sp.lg, borderTop: '1px solid var(--border-subtle)' }}>
             <div style={{ ...TT.h2 }}>Δεν μένει κάτι ανοιχτό.</div>
@@ -721,9 +748,12 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
               sub="Ό,τι αλλάζει από χρονιά σε χρονιά δεν γράφεται εδώ ως βεβαιότητα. Γράφεται τι να ελέγξεις και πού.">
               {plan.verify.map((v, i) => (
                 <div key={v.id} style={{ padding: '14px 2px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
-                  {/* Ίδιο βάρος με τον τίτλο κανόνα δίπλα: δύο στήλες με το ίδιο
-                      νόημα δεν επιτρέπεται να έχουν άλλο μέγεθος και άλλο πάχος. */}
-                  <div style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{v.what}</div>
+                  {/* ΔΕΝ ΕΙΝΑΙ ΤΙΤΛΟΣ, ΕΙΝΑΙ ΕΡΩΤΗΜΑ. Δοκιμάστηκε με το βάρος του
+                      τίτλου κανόνα δίπλα (14/700), για ομοιομορφία — και μια
+                      ερώτηση τριών σειρών σε αυτό το βάρος διαβάζεται σαν κραυγή.
+                      Οι δύο στήλες δεν έχουν το ίδιο σχήμα: αριστερά τίτλος και
+                      κείμενο, δεξιά ερώτημα και δύο απαντήσεις. */}
+                  <div style={{ ...TT.body, fontWeight: 600, color: 'var(--text-primary)' }}>{v.what}</div>
                   <Meta label="Πού">{v.where}</Meta>
                   <Meta label="Γιατί αλλάζει">{v.why}</Meta>
                 </div>
