@@ -12,14 +12,23 @@ name: ELSTAT rent index
 # Από τις 6 ως τις 14 κάθε μήνα, μία φορά την ημέρα: φτιάχνει τη διεύθυνση της
 # σελίδας του μήνα, βρίσκει μέσα της τον σύνδεσμο «ΔΤΚ - Ανακοίνωση
 # Αναπροσαρμογής Μισθωμάτων», κατεβάζει το PDF, διαβάζει τα δύο ποσοστά και
-# ελέγχει ότι το δεύτερο είναι το 75% του πρώτου. Αν όλα δένουν, γράφει τη
-# γραμμή και ανοίγει pull request.
+# ελέγχει ότι το δεύτερο είναι το 75% του πρώτου. Αν όλα δένουν, γράφει τη νέα
+# γραμμή στον πίνακα και η εφαρμογή ανεβαίνει με αυτήν.
 #
-# ΤΙ ΔΕΝ ΚΑΝΕΙ
-# Δεν γράφει στο main. Το ποσοστό καταλήγει σε υπογεγραμμένη ειδοποίηση προς
-# μισθωτή· ένα pull request με μία γραμμή διαφορά είναι ένα πάτημα, και η
-# διαφορά ανάμεσα σε «το είδε άνθρωπος» και «το έγραψε script τη νύχτα» είναι
-# ολόκληρη. Το CI τρέχει πάνω στο pull request όπως σε κάθε άλλη αλλαγή.
+# ΓΡΑΦΕΙ ΚΑΤΕΥΘΕΙΑΝ ΣΤΟ MAIN, ΚΑΙ ΤΙ ΤΟ ΣΤΗΡΙΖΕΙ
+# Κανένα ανθρώπινο βήμα: ο δείκτης φτάνει στην εφαρμογή μόνος του. Αυτό που
+# αντικαθιστά το ανθρώπινο μάτι είναι τέσσερις έλεγχοι που πρέπει ΟΛΟΙ να
+# περάσουν πριν γραφτεί οτιδήποτε:
+#
+#   1. Το ίδιο το δελτίο περιέχει τον έλεγχό του: το δεύτερο ποσοστό είναι το
+#      75% του πρώτου. Αν δεν δένουν, δεν διαβάστηκαν τα σωστά νούμερα.
+#   2. Το ποσοστό πρέπει να πέφτει σε πραγματικό εύρος δωδεκάμηνης μεταβολής.
+#   3. Το έτος αναφοράς πρέπει να υπάρχει μέσα στο κείμενο του δελτίου.
+#   4. Μετά τη γραφή τρέχουν typecheck, ολόκληρη η σουίτα και ο φύλακας
+#      φρεσκάδας. Ό,τι δεν περάσει, δεν φτάνει ποτέ στο main.
+#
+# Αν κάτι από αυτά αποτύχει, δεν γράφεται τίποτα και ανοίγει issue. Η εφαρμογή
+# συνεχίζει με τον τελευταίο δημοσιευμένο δείκτη — σωστά, απλώς όχι φρέσκα.
 #
 # ΤΙ ΓΙΝΕΤΑΙ ΟΤΑΝ ΔΕΝ ΔΙΑΒΑΖΕΤΑΙ
 # Τις πρώτες μέρες του μήνα το δελτίο απλώς δεν έχει βγει: αυτό δεν είναι βλάβη
@@ -35,7 +44,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
   issues: write
 
 concurrency:
@@ -71,55 +79,55 @@ jobs:
           echo "changed=$(git diff --quiet -- lib/market/cpi.ts && echo no || echo yes)" >> "$GITHUB_OUTPUT"
           echo "broken=$([ $CODE -ne 0 ] && echo yes || echo no)" >> "$GITHUB_OUTPUT"
 
-      # Η νέα γραμμή περνά τους ίδιους ελέγχους με κάθε άλλη αλλαγή ΠΡΙΝ γίνει
-      # pull request: ένα PR που δεν χτίζει είναι θόρυβος, όχι ειδοποίηση.
+      # ΟΙ ΕΛΕΓΧΟΙ ΤΡΕΧΟΥΝ ΠΡΙΝ ΓΡΑΦΤΕΙ ΤΙΠΟΤΑ, ΚΑΙ ΕΙΝΑΙ ΑΥΤΟΙ ΠΟΥ ΑΝΤΙΚΑΘΙΣΤΟΥΝ
+      # ΤΟ ΑΝΘΡΩΠΙΝΟ ΜΑΤΙ. Αν κάποιος πέσει, το βήμα αποτυγχάνει, το main δεν
+      # αγγίζεται, και το επόμενο βήμα ανοίγει issue.
       - name: Έλεγχοι πάνω στη νέα γραμμή
+        id: verify
         if: steps.read.outputs.changed == 'yes'
         run: |
           npx tsc --noEmit
           npm test
           node scripts/guard-cpi-freshness.mjs
 
-      - name: Κλάδος και pull request
-        if: steps.read.outputs.changed == 'yes'
+      - name: Γραφή στο main
+        if: steps.read.outputs.changed == 'yes' && steps.verify.outcome == 'success'
         env:
           REPORT: ${{ steps.read.outputs.report }}
         run: |
-          BRANCH="dtk/$(date -u +%Y-%m)"
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
-          git checkout -b "$BRANCH"
           git add lib/market/cpi.ts
           git commit -m "Ο δείκτης αναπροσαρμογής μισθωμάτων, από το δελτίο της ΕΛΣΤΑΤ" -m "$REPORT"
-          git push -u origin "$BRANCH" --force-with-lease
+          # Η ανάγνωση κρατά δευτερόλεπτα· αν στο μεταξύ έπεσε άλλο commit, το
+          # rebase το σέβεται αντί να το σβήσει.
+          git pull --rebase origin main
+          git push origin HEAD:main
 
-      - name: Άνοιγμα του pull request
-        if: steps.read.outputs.changed == 'yes'
+      - name: Issue όταν οι έλεγχοι δεν περάσουν
+        if: failure() && steps.read.outputs.changed == 'yes'
         uses: actions/github-script@v9
         env:
           REPORT: ${{ steps.read.outputs.report }}
         with:
           script: |
-            const head = `dtk/${new Date().toISOString().slice(0, 7)}`;
-            const { data: open } = await github.rest.pulls.list({
-              owner: context.repo.owner, repo: context.repo.repo, state: 'open', head: `${context.repo.owner}:${head}`,
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'elstat-cpi', per_page: 5,
             });
-            if (open.length) { core.info('Υπάρχει ήδη ανοιχτό pull request για τον μήνα.'); return; }
+            if (open.length) { core.info('Υπάρχει ήδη ανοιχτό issue. Δεν ανοίγει δεύτερο.'); return; }
             const body = [
-              'Νέα γραμμή στον πίνακα `RENT_INDEX`, διαβασμένη από το μηνιαίο δελτίο της ΕΛΣΤΑΤ.',
+              'Ο νέος δείκτης διαβάστηκε αλλά ΔΕΝ γράφτηκε: κάποιος έλεγχος δεν πέρασε.',
               '',
               '```',
               process.env.REPORT || '',
               '```',
               '',
-              '### Τι να ελέγξεις πριν το κλείσεις',
-              '1. Το ποσοστό συμφωνεί με το δελτίο της ΕΛΣΤΑΤ για τον μήνα.',
-              '2. Ο έλεγχος του 75% πέρασε — αλλιώς δεν θα υπήρχε αυτό το pull request.',
-              '3. Το `CPI_CONFIRMED_AT` ανανεώθηκε.',
+              'Η εφαρμογή συνεχίζει με τον τελευταίο δημοσιευμένο δείκτη. Δες το αρχείο καταγραφής της εργασίας για το ποιος έλεγχος έπεσε.',
             ].join('\n');
-            await github.rest.pulls.create({
+            await github.rest.issues.create({
               owner: context.repo.owner, repo: context.repo.repo,
-              title: 'ΔΤΚ: νέα γραμμή αναπροσαρμογής μισθωμάτων', head, base: 'main', body,
+              title: 'ΔΤΚ: ο νέος δείκτης δεν πέρασε τους ελέγχους', body, labels: ['elstat-cpi'],
             });
 
       - name: Issue όταν το δελτίο δεν διαβάζεται

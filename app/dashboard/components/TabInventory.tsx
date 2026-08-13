@@ -15,6 +15,7 @@ import { money as csvEur, percent as csvPct } from './xlsxStyle'
 import { depreciate, replacementSuggestion, portfolioSummary, NOT_TAX_DEPRECIATION_NOTE } from '@/lib/inventory/depreciation'
 import { formFields, INVENTORY_FIELDS, type FieldContext, type FieldDecision } from '@/lib/property/fields'
 import { monthlyKwh, monthlyEnergyCost, suggestedEnergyMode, ENERGY_MODE_LABEL, type EnergyMode, type EnergyInput } from '@/lib/property/energy'
+import { parseEprelRef, warrantyExpiry, type EprelFill } from '@/lib/property/eprel'
 import { readStatus, statusLabel, type StatusRow } from '@/lib/property/status'
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rPct, rEsc, rDate } from './reportPdf'
 import { uploadUserScoped } from '@/lib/storage/scopedUpload';
@@ -807,6 +808,45 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
     setScanning(false)
   }
 
+  // ═══ Ο ΚΩΔΙΚΟΣ ΤΗΣ ΕΝΕΡΓΕΙΑΚΗΣ ΕΤΙΚΕΤΑΣ ΣΥΜΠΛΗΡΩΝΕΙ ΤΗΝ ΚΑΡΤΕΛΑ ═══════════
+  //
+  // ΤΙ ΑΛΛΑΖΕΙ. Τα kWh ανά 100 κύκλους δεν τα θυμάται κανείς και δεν γράφονται
+  // στο ταμπελάκι του σασί: γράφονται στην ενεργειακή ετικέτα, που συνήθως έχει
+  // πεταχτεί μαζί με το κουτί. Το QR της ετικέτας οδηγεί στο ευρωπαϊκό μητρώο,
+  // όπου ο ΙΔΙΟΣ ο κατασκευαστής είναι υποχρεωμένος να τα έχει δηλώσει.
+  //
+  // ΓΙΑΤΙ ΓΡΑΦΕΙ ΠΑΝΩ ΑΠΟ ΟΣΑ ΥΠΑΡΧΟΥΝ. Σε αντίθεση με τη σάρωση φωτογραφίας,
+  // που μαντεύει και άρα δεν πειράζει ό,τι έγραψε ο χρήστης, εδώ η πηγή είναι ο
+  // κατασκευαστής και ο χρήστης ζήτησε ρητά τη συμπλήρωση. Η εγγύηση είναι η
+  // εξαίρεση: το μητρώο δίνει ΜΗΝΕΣ, όχι ημερομηνία, οπότε χρειάζεται
+  // ημερομηνία αγοράς — και δεν σβήνει ημερομηνία που έχει βάλει ο χρήστης.
+  const [eprelInput,setEprelInput] = useState('')
+  const [eprelBusy,setEprelBusy] = useState(false)
+  const [eprelSource,setEprelSource] = useState('')
+  const fillFromEprel = async() => {
+    if(!parseEprelRef(eprelInput)){notifyError('Χρειάζεται ο σύνδεσμος του QR της ετικέτας ή η ομάδα προϊόντος με τον αριθμό μητρώου.');return}
+    setEprelBusy(true)
+    try {
+      const res=await fetch(`/api/eprel?ref=${encodeURIComponent(eprelInput.trim())}`)
+      const data=await res.json() as {fill?:EprelFill;source?:string;error?:string}
+      if(!res.ok||data.error||!data.fill){notifyError(data.error||failed('Η ανάγνωση του μητρώου'));setEprelBusy(false);return}
+      const fill=data.fill
+      setForm(f=>({...f,
+        name:f.name||[fill.brand,fill.model].filter(Boolean).join(' '),
+        brand:fill.brand??f.brand,
+        model:fill.model??f.model,
+        energy_class:fill.energy_class&&ENERGY_CLASSES.includes(fill.energy_class)?fill.energy_class:f.energy_class,
+        energy_mode:fill.energy_mode??f.energy_mode,
+        kwh_per_100_cycles:fill.kwh_per_100_cycles??f.kwh_per_100_cycles,
+        annual_kwh:fill.annual_kwh??f.annual_kwh,
+        warranty_expiry:f.warranty_expiry||warrantyExpiry(f.purchase_date,fill.guarantee_months)||'',
+      }))
+      setEprelSource(data.source||'')
+      setShowMore(true)
+    } catch { notifyError(failed('Η ανάγνωση του μητρώου')) }
+    setEprelBusy(false)
+  }
+
   // Ενιαίο πεδίο φωτογραφίας: ανεβάζει τη φωτογραφία ΚΑΙ (προαιρετικά) τη διαβάζει
   // με AI — μία ενέργεια, όχι δύο ξεχωριστά «πεδία φωτο».
   const [photoBusy,setPhotoBusy] = useState(false)
@@ -976,6 +1016,28 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
         </Field>
         {isElectric&&(<>
           <SectionLabel label="Ενέργεια"/>
+          {/* ═══ Ο ΚΩΔΙΚΟΣ ΤΗΣ ΕΤΙΚΕΤΑΣ ΠΡΩΤΟΣ, ΤΑ ΠΕΔΙΑ ΜΕΤΑ ═══════════════════
+              Ό,τι ακολουθεί από κάτω το δηλώνει ήδη ο κατασκευαστής στο
+              ευρωπαϊκό μητρώο. Το να ζητηθεί πρώτα το χέρι και μετά να
+              προσφερθεί ο εύκολος δρόμος είναι η ίδια αντιστροφή που είχε και η
+              φωτογραφία: ο χρήστης προλαβαίνει να πληκτρολογήσει. */}
+          <div>
+            <label style={labelStyle}>Ενεργειακή ετικέτα (μητρώο EPREL)</label>
+            <div style={{...formGrid(200, 150),gap:10}}>
+              <TextInput ariaLabel="Σύνδεσμος ή κωδικός μητρώου EPREL" value={eprelInput} onChange={setEprelInput}
+                placeholder="eprel.ec.europa.eu/screen/product/…"/>
+              <Btn onClick={fillFromEprel} disabled={eprelBusy||!eprelInput.trim()}>
+                {eprelBusy?'Ανάγνωση…':'Συμπλήρωση'}
+              </Btn>
+            </div>
+            {/* Η ΠΗΓΗ ΜΕΝΕΙ ΟΡΑΤΗ. Νούμερα που μπήκαν μόνα τους χωρίς τρόπο να
+                ελεγχθούν είναι χειρότερα από νούμερα που έγραψε ο χρήστης. */}
+            <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.45,marginTop:5}}>
+              {eprelSource
+                ? <>Συμπληρώθηκαν από τον κατασκευαστή. <a href={eprelSource} target="_blank" rel="noopener noreferrer" style={{color:'var(--accent)'}}>Η καταχώρηση στο μητρώο</a></>
+                : 'Σάρωσε το QR της ενεργειακής ετικέτας και επικόλλησε τον σύνδεσμο. Μάρκα, μοντέλο, κλάση και κατανάλωση έρχονται όπως τα δηλώνει ο κατασκευαστής.'}
+            </p>
+          </div>
           <Field d={f('inv.energy_class')}>
             <CustomSelect value={form.energy_class||''} onChange={v=>set('energy_class',v)} options={[{value:'',label:'Δεν γνωρίζω'},...ENERGY_CLASSES.map(c=>({value:c,label:c}))]}/>
           </Field>
