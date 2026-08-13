@@ -710,6 +710,27 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
   const fl = (id:string) => byId.get(id)?.label
   // «Περισσότερα»: ανοιχτό εξ αρχής όταν το αντικείμενο έχει ήδη τέτοια στοιχεία.
   const [showMore,setShowMore] = useState<boolean>(!!(item&&(item.replacement_cost||item.energy_class||item.power_watts||item.serial_number||item.brand||item.notes)))
+  // ═══ Η ΦΩΤΟΓΡΑΦΙΑ ΕΙΝΑΙ Ο ΠΡΩΤΟΣ ΔΡΟΜΟΣ, ΟΧΙ ΕΝΑΣ ΑΠΟ ΤΟΥΣ ΔΕΚΑΠΕΝΤΕ ══════
+  //
+  // ΤΙ ΕΛΕΓΕ ΚΑΙ ΤΙ ΕΚΑΝΕ. Η κάρτα υπόσχεται «φωτογράφισε την ετικέτα και
+  // συμπληρώνουμε μάρκα, μοντέλο, αξία, εγγύηση και ενεργειακή κλάση» — και
+  // αμέσως από κάτω άνοιγε δεκατέσσερα άδεια πεδία. Ο χρήστης διαβάζει την
+  // υπόσχεση, βλέπει τη φόρμα, και συμπεραίνει ότι η φωτογραφία είναι ένα ακόμη
+  // προαιρετικό βήμα πριν τη χειρωνακτική δουλειά. Έτσι η δυνατότητα που
+  // ξεχωρίζει το προϊόν καταλήγει να μη χρησιμοποιείται.
+  //
+  // ΤΙ ΜΕΝΕΙ ΟΡΑΤΟ ΠΡΙΝ ΤΗ ΦΩΤΟΓΡΑΦΙΑ. Τα τρία που ΔΕΝ βγαίνουν ποτέ από
+  // εικόνα: δωμάτιο, κατάσταση και απόδειξη. Όλα τα υπόλοιπα τα διαβάζει η
+  // σάρωση, οπότε το να ζητηθούν πρώτα είναι δουλειά που ίσως δεν χρειαστεί.
+  //
+  // ΚΑΙ ΠΑΝΤΑ ΥΠΑΡΧΕΙ ΤΟ ΧΕΡΙ. Παλιό έπιπλο χωρίς ετικέτα, συσκευή που δεν
+  // φωτογραφίζεται, χρήστης που βιάζεται: ένα πάτημα ανοίγει τα πάντα. Κρύβουμε
+  // βήματα, δεν κλειδώνουμε δρόμους.
+  //
+  // ΣΤΗΝ ΕΠΕΞΕΡΓΑΣΙΑ ΑΝΟΙΓΕΙ ΟΛΟΚΛΗΡΗ. Όποιος πατά «Επεξεργασία» ήρθε για ένα
+  // συγκεκριμένο πεδίο· να το ψάξει πίσω από κουμπί θα ήταν εχθρικό.
+  const [manual,setManual] = useState<boolean>(!!item)
+  const revealed = manual || (form.photos||[]).length>0
   const liveKwh = (form.power_watts||0)>0&&(form.daily_hours_use||0)>0
     ? ((form.power_watts||0)/1000)*(form.daily_hours_use||0)*30 : 0
   const handleSave = async() => {
@@ -837,25 +858,29 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
       )}
 
       {/* Ταυτότητα αντικειμένου — μόνο όσα ορίζει το μητρώο, με το «γιατί» τους */}
-      <Field d={f('inv.name')}>
-        <TextInput ariaLabel={fl('inv.name')} value={form.name||''} onChange={v=>set('name',v)} placeholder="Παράδειγμα: Πλυντήριο Ρούχων Bosch WAU28"/>
-      </Field>
-      <div style={{...formGrid(200, 270),gap:12}}>
+      {revealed && (<>
+        <Field d={f('inv.name')}>
+          <TextInput ariaLabel={fl('inv.name')} value={form.name||''} onChange={v=>set('name',v)} placeholder="Παράδειγμα: Πλυντήριο Ρούχων Bosch WAU28"/>
+        </Field>
         <Field d={f('inv.category')}>
           <CustomSelect value={form.category||'Λοιπά'} onChange={v=>set('category',v)} options={[...INVENTORY_CATEGORIES].map(c=>({value:c,label:c}))}/>
         </Field>
+      </>)}
+      <div style={{...formGrid(200, 270),gap:12}}>
         <Field d={f('inv.condition')}>
           <CustomSelect value={form.condition||'Καλή'} onChange={v=>set('condition',v)} options={CONDITIONS.map(c=>({value:c,label:c}))}/>
         </Field>
+        <Field d={f('inv.room')}><RoomInput value={form.room||''} onChange={v=>set('room',v)}/></Field>
       </div>
-      <Field d={f('inv.room')}><RoomInput value={form.room||''} onChange={v=>set('room',v)}/></Field>
 
       {/* Αγορά */}
-      <SectionLabel label="Αγορά"/>
-      <div style={{...formGrid(200, 270),gap:12}}>
-        <Field d={f('inv.purchase_date')}><DatePicker value={form.purchase_date||''} onChange={v=>set('purchase_date',v)}/></Field>
-        <Field d={f('inv.value')}><NumberInput ariaLabel={fl('inv.value')} value={blankIfZero(form.purchase_value)} onChange={v=>set('purchase_value',parseFloat(v)||0)} suffix="€" min={0}/></Field>
-      </div>
+      {revealed && (<>
+        <SectionLabel label="Αγορά"/>
+        <div style={{...formGrid(200, 270),gap:12}}>
+          <Field d={f('inv.purchase_date')}><DatePicker value={form.purchase_date||''} onChange={v=>set('purchase_date',v)}/></Field>
+          <Field d={f('inv.value')}><NumberInput ariaLabel={fl('inv.value')} value={blankIfZero(form.purchase_value)} onChange={v=>set('purchase_value',parseFloat(v)||0)} suffix="€" min={0}/></Field>
+        </div>
+      </>)}
 
       {/* Η ΑΠΟΔΕΙΞΗ ΕΙΝΑΙ CORE, ΟΧΙ «ΠΕΡΙΣΣΟΤΕΡΑ»: χωρίς παραστατικό η δαπάνη
           δεν εκπίπτει, και το χαρτί δεν ξαναβρίσκεται έξι μήνες μετά. */}
@@ -894,14 +919,22 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
         </div>
       )}
 
+      {/* ΤΟ ΧΕΡΙ, ΓΙΑ ΟΣΑ ΔΕΝ ΦΩΤΟΓΡΑΦΙΖΟΝΤΑΙ. Παλιό έπιπλο χωρίς ετικέτα,
+          αντικείμενο που δεν έχει πια συσκευασία, χρήστης που βιάζεται. */}
+      {!revealed && (
+        <button onClick={()=>setManual(true)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,width:'100%',padding:'11px 14px',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)',background:'transparent',cursor:'pointer',fontFamily:T.font.sans,fontSize:13,fontWeight:500,color:'var(--text-secondary)'}}>
+          Συμπλήρωση με το χέρι
+        </button>
+      )}
+
       {/* Περισσότερα — υπαρκτά αλλά σπάνια, κλειστά εξ αρχής */}
-      {fields.more.length>0 && (
+      {revealed && fields.more.length>0 && (
         <button onClick={()=>setShowMore(m=>!m)} style={{display:'flex',alignItems:'center',gap:8,width:'100%',textAlign:'left',padding:'11px 14px',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',cursor:'pointer',fontFamily:T.font.sans}}>
           <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{color:'var(--text-tertiary)',transform:showMore?'rotate(90deg)':'none',transition:'transform 0.15s'}}><path d="m9 18 6-6-6-6"/></svg>
           <span style={{flex:1,fontSize:13,fontWeight:500,color:'var(--text-primary)'}}>Περισσότερα: εγγύηση, ταυτότητα συσκευής{isElectric?', ενέργεια':''} και κόστος αντικατάστασης</span>
         </button>
       )}
-      {showMore&&(<>
+      {revealed&&showMore&&(<>
         {/* ═══ ΤΡΙΑ ΠΕΔΙΑ ΣΕ ΔΥΟ ΣΤΗΛΕΣ, ΚΑΙ ΤΟ ΕΝΑ ΚΟΒΟΤΑΝ ══════════════════════
             Η «Μάρκα και μοντέλο» είναι ΔΥΟ κουτιά μέσα σε ΕΝΑ κελί πλέγματος,
             με τον «Σειριακό» δίπλα στο δεύτερο κελί. Το κελί φτάνει τα 270
