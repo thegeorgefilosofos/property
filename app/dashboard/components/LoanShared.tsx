@@ -1,6 +1,5 @@
 'use client'
 import { T, TT } from '@/components/Theme'
-import { useState } from 'react'
 
 // ── Κοινά primitives του Δανείου (μία πηγή αλήθειας για TabLoan + TabLoanCalculator) ──
 // Πριν υπήρχαν διπλά αντίγραφα που είχαν αποκλίνει (διαφορετικές ακτίνες/μεγέθη).
@@ -11,11 +10,32 @@ import { useState } from 'react'
 // για το ίδιο ακριβώς πράγμα — δηλαδή οι ίδιες ετικέτες άλλαζαν μέγεθος από
 // οθόνη σε οθόνη. Επανεξάγεται από εδώ ώστε να μη σπάσει καμία εισαγωγή.
 export const labelStyle: React.CSSProperties = TT.label
-// Οι ακτίνες/κενά έρχονται πλέον από τα tokens και όχι από literals: όταν αλλάξει η
-// ακτίνα κάρτας στο components/tokens.ts, το Δάνειο δεν μένει πίσω με το δικό του 14.
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΟ ΓΚΡΙ ΤΟΥ ΔΑΝΕΙΟΥ ΗΤΑΝ ΑΛΛΟ ΓΚΡΙ ΑΠΟ ΟΛΗΣ ΤΗΣ ΕΦΑΡΜΟΓΗΣ
+// ─────────────────────────────────────────────────────────────────────────
+// Κάθε κάρτα του Property OS είναι η `Card` του Theme, δηλαδή:
+//
+//     background  var(--surface-raised)   ήπια βαθμίδα, #313236 → #2a2b2e
+//     border      var(--border-raised)
+//     box-shadow  var(--highlight-inset), var(--elev-1)
+//
+// Το Δάνειο έγραφε δικό του κουτί: `var(--bg-elevated)` — ΕΠΙΠΕΔΟ #35363a, ένα
+// σκαλί ανοιχτότερο, χωρίς βαθμίδα, χωρίς σκιά και χωρίς τη λεπτή φωτεινή ακμή
+// στην κορυφή. Δίπλα σε οποιαδήποτε άλλη καρτέλα διαβαζόταν ως κομμάτι άλλης
+// εφαρμογής, και δεν μπορούσε κανείς να πει γιατί: η διαφορά είναι τρία
+// εικονοστοιχεία φωτεινότητας και μια σκιά που λείπει.
+//
+// ΚΑΙ ΤΟ `--bg-elevated` ΔΕΝ ΕΙΝΑΙ ΛΑΘΟΣ ΤΟΚΕΝ — είναι λάθος ΘΕΣΗ. Είναι η
+// βυθισμένη επιφάνεια ΜΕΣΑ σε κάρτα (σημειώσεις, πλακίδια, κεφαλίδες πίνακα).
+// Ως κάρτα, το βύθισμα γίνεται ανύψωση και η ιεραρχία αντιστρέφεται.
+// ═══════════════════════════════════════════════════════════════════════════
 export const cardStyle: React.CSSProperties = {
-  background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:T.radius.card,padding:T.sp.lg,
+  background:'var(--surface-raised)',border:'1px solid var(--border-raised)',borderRadius:T.radius.card,padding:T.sp.lg,
+  boxShadow:'var(--highlight-inset), var(--elev-1)',
 }
+
+/** Το ίδιο κουτί χωρίς εσωτερικό περιθώριο, για ενότητες με δική τους κεφαλίδα. */
+export const panelStyle: React.CSSProperties = { ...cardStyle, padding:0, overflow:'hidden' }
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ΤΟ ΧΡΩΜΑ ΕΦΥΓΕ ΑΠΟ ΕΔΩ, ΚΑΙ ΓΙ' ΑΥΤΟ ΕΦΥΓΕ ΑΠΟ ΠΑΝΤΟΥ.
@@ -35,14 +55,24 @@ export const cardStyle: React.CSSProperties = {
 // ένταση κειμένου (`--text-primary`) αντί για τη δευτερεύουσα, και ο τόνος
 // μπαίνει ΜΟΝΟ στην αλληλεπίδραση — ίδιος κανόνας με το KPIGrid του Theme.
 // ═══════════════════════════════════════════════════════════════════════════
+// ΚΑΙ Η ΑΝΥΨΩΣΗ ΤΗΝ ΚΑΝΕΙ ΤΟ CSS, ΟΧΙ ΤΟ REACT. Το πλακίδιο κρατούσε δική του
+// κατάσταση `hover` με τέσσερις ακροατές (mouse enter/leave, touch start/end)
+// για να αλλάξει ένα περίγραμμα και ένα χρώμα — δηλαδή μια απόδοση σε κάθε
+// κίνηση του ποντικιού, σε δώδεκα πλακίδια ταυτόχρονα. Η `.kpi-card` του
+// globals.css το κάνει χωρίς JavaScript, και το κάνει ΙΔΙΟ με τα KPI των
+// υπόλοιπων δεκατεσσάρων καρτελών: ίδια βαθμίδα, ίδια σκιά, ίδιο σήκωμα.
 export function KPI({label,value,emphasis,sub,title}:{label:string;value:string;emphasis?:boolean;sub?:string;title?:string}) {
-  const [h,setH]=useState(false)
   return (
-    <div onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)} onTouchStart={()=>setH(true)} onTouchEnd={()=>setH(false)}
-      style={{background:'var(--bg-elevated)',border:`1px solid ${h?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:T.radius.card,padding:'12px 16px',transition:'border-color 0.15s, box-shadow 0.15s',boxShadow:h?'0 2px 4px color-mix(in srgb, var(--text-primary) 9%, transparent)':'none'}}>
-      <p title={title} style={{...labelStyle,marginBottom:6,cursor:title?'help':undefined}}>{label}</p>
-      <p style={{fontSize:16,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:h?'var(--accent)':'var(--text-primary)',fontWeight:emphasis?700:600,transition:'color 0.15s'}}>{value}</p>
-      {sub&&<p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:3,fontFamily: T.font.sans}}>{sub}</p>}
+    <div className="kpi-card" style={{display:'flex',flexDirection:'column',gap:6}}>
+      <p title={title} className="kpi-label" style={{cursor:title?'help':undefined}}>{label}</p>
+      {/* ΙΔΙΟ ΚΟΥΤΙ, ΠΙΟ ΣΦΙΧΤΟΣ ΑΡΙΘΜΟΣ, ΚΑΙ ΕΧΕΙ ΛΟΓΟ. Τα πλέγματα του Δανείου
+          κατεβαίνουν σε στήλες των 120 εικονοστοιχείων — έξι και εφτά δείκτες
+          στη σειρά, όχι τέσσερις όπως στις υπόλοιπες καρτέλες. Με το ταβάνι των
+          24 της `.kpi-value`, ένα «1.234,56 €» θα έσπαγε σε δεύτερη γραμμή σε
+          κάθε στενή στήλη. Κλιμακώνεται με το πλάτος της κάρτας όπως παντού,
+          απλώς με χαμηλότερο ταβάνι. */}
+      <p className="kpi-value" style={{fontSize:'clamp(15px, 12cqi, 18px)',marginBottom:0,fontWeight:emphasis?700:600}}>{value}</p>
+      {sub&&<p style={{fontSize:10,color:'var(--text-tertiary)',fontFamily: T.font.sans,lineHeight:1.4}}>{sub}</p>}
     </div>
   )
 }
@@ -50,9 +80,9 @@ export function KPI({label,value,emphasis,sub,title}:{label:string;value:string;
 // Cockpit: εναλλαγή φακών επί τόπου (segmented control, ένα πάνελ τη φορά).
 export function LensBar({value,onChange,items}:{value:string;onChange:(v:string)=>void;items:{id:string;label:string}[]}) {
   return (
-    <div style={{display:'flex',gap:3,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:14,padding:4,overflowX:'auto'}}>
+    <div style={{display:'flex',gap:3,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:T.radius.card,padding:4,overflowX:'auto'}}>
       {items.map(it=>{const on=value===it.id;return(
-        <button key={it.id} onClick={()=>onChange(it.id)} aria-pressed={on} style={{flex:'1 0 auto',minWidth:92,borderRadius:10,padding:'9px 14px',cursor:'pointer',fontFamily: T.font.sans,fontSize:13,fontWeight:on?600:500,whiteSpace:'nowrap' as const,border:'none',
+        <button key={it.id} onClick={()=>onChange(it.id)} aria-pressed={on} style={{flex:'1 0 auto',minWidth:92,borderRadius:T.radius.inner,padding:'9px 14px',cursor:'pointer',fontFamily: T.font.sans,fontSize:13,fontWeight:on?600:500,whiteSpace:'nowrap' as const,border:'none',
           color:on?'var(--accent)':'var(--text-tertiary)',background:on?'var(--bg-elevated)':'transparent',
           boxShadow:on?'0 1px 2px color-mix(in srgb, var(--text-primary) 10%, transparent), 0 2px 8px -4px color-mix(in srgb, var(--text-primary) 18%, transparent)':'none',
           transition:'color 0.2s, background 0.2s, box-shadow 0.2s'}}>{it.label}</button>

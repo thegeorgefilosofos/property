@@ -26,6 +26,7 @@ import type { ReportBranding } from '@/lib/reportBranding';
 import { MYAADE } from '@/lib/tax/aade';
 import { aadeTitle } from '@/components/AadeLink';
 import { failed } from '@/lib/core/dbError';
+import { acceptNumeric, PCT_MAX } from '@/lib/core/numInput';
 
 interface Prop { id: string; name: string; address: string | null }
 
@@ -150,9 +151,15 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
     manual: 'Όρισε απευθείας το νέο μίσθωμα, όπως το συμφωνήσατε.',
   };
   // Πεδίο ποσού με διακριτικό σύμβολο (€ ή %) στη δεξιά άκρη, αριθμοί δεξιά.
-  const money = (value: string, on: (v: string) => void, suffix: string) => (
+  //
+  // ΤΟ ΦΙΛΤΡΟ ΔΕΝ ΕΙΝΑΙ ΚΑΛΛΩΠΙΣΜΟΣ. Το πεδίο δεχόταν «-500» και «12ε», και το
+  // αποτέλεσμα έφτανε σε υπογεγραμμένο PDF με QR επαλήθευσης: αρνητικό μίσθωμα
+  // σε επίσημη ειδοποίηση προς τον μισθωτή. Το ποσοστό δέχεται έως 100, γιατί
+  // πάνω από αυτό δεν είναι ποσοστό (lib/core/numInput.ts).
+  const money = (value: string, on: (v: string) => void, suffix: string, max?: number) => (
     <div style={{ position: 'relative' }}>
-      <input value={value} onChange={e => on(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} inputMode="decimal" placeholder=""
+      <input value={value} onChange={e => { const v = acceptNumeric(e.target.value, max); if (v !== null) on(v); }}
+        onFocus={onFieldFocus} onBlur={onFieldBlur} inputMode="decimal" placeholder=""
         style={{ ...field, paddingRight: 30, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} />
       {/* Ίδιο ύψος με το πεδίο, από την ΙΔΙΑ πηγή: με literal 40 εδώ και πεδίο
           που γίνεται 44 στο δάχτυλο, το «€» καθόταν 2px ψηλότερα από το ποσό. */}
@@ -254,7 +261,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
                 <div><div style={lbl}>Τρέχον μίσθωμα</div>{money(currentRent, setCurrentRent, '€')}</div>
                 {method === 'manual'
                   ? <div><div style={lbl}>Νέο μίσθωμα</div>{money(newRentManual, setNewRentManual, '€')}</div>
-                  : <div><div style={lbl}>{method === 'cpi' ? 'Μεταβολή ΔΤΚ' : 'Ποσοστό'}</div>{money(percent, setPercent, '%')}</div>}
+                  : <div><div style={lbl}>{method === 'cpi' ? 'Μεταβολή ΔΤΚ' : 'Ποσοστό'}</div>{money(percent, setPercent, '%', PCT_MAX)}</div>}
                 <div><div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 5 }}>Ισχύς από<InfoHint>Η ημερομηνία από την οποία εφαρμόζεται το νέο μίσθωμα. Κοινοποίησε την ειδοποίηση στον μισθωτή εγκαίρως, τηρώντας την προθεσμία που ορίζει το μισθωτήριο ή ο νόμος.</InfoHint></div><DatePicker value={effective} onChange={setEffective} /></div>
               </div>
 

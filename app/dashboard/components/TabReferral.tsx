@@ -19,7 +19,9 @@ import {
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TabReferral — δύο ΞΕΧΩΡΙΣΤΑ προγράμματα ανά προφίλ:
-//  • Ιδιώτης  → «Πρόγραμμα Πρόσκλησης»  (κοινωνικό, αξία ανά φίλο)
+//  • Ιδιώτης  → «Πρόγραμμα Πρόσκλησης»  (κοινωνικό, αξία ανά φίλο). Ο τρόπος
+//    χρήσης λέγεται «Ιδιώτης»· το ΠΑΚΕΤΟ που κερδίζει λέγεται «Ιδιοκτήτης», και
+//    το όνομά του διαβάζεται πάντα από το PLANS, ποτέ γραμμένο στο χέρι εδώ.
 //  • Επαγγελματίας → «Πρόγραμμα Συνεργατών» (milestones συνδρομητών + ιδιότητα
 //    Συνεργάτη). Καθένας βλέπει ΜΟΝΟ ό,τι τον αφορά.
 //
@@ -561,7 +563,12 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                 <Ic d="M12 2l2.4 7.4H22l-6 4.4 2.3 7.2L12 16.6 5.7 21l2.3-7.2-6-4.4h7.6z" s={16} c="var(--text-secondary)" />
                 <span style={{ ...TT.label }}>Εσύ κερδίζεις</span>
               </div>
-              <div style={{ ...TT.displaySm, marginBottom: 6 }}>{youBase.isSlot ? '+1 ακίνητο' : `+${moNom(youBase.months)} Ιδιώτη`}</div>
+              {/* ΤΟ ΟΝΟΜΑ ΤΟΥ ΠΑΚΕΤΟΥ ΕΡΧΕΤΑΙ ΑΠΟ ΤΟΝ ΤΙΜΟΚΑΤΑΛΟΓΟ. Έγραφε
+                  «Ιδιώτη» — πακέτο με αυτό το όνομα δεν υπάρχει· «Ιδιώτης»
+                  είναι ο τρόπος χρήσης στις Ρυθμίσεις. Το πακέτο λέγεται
+                  «Ιδιοκτήτης», και η ανταμοιβή πρέπει να λέγεται όπως αυτό που
+                  θα βρει ο χρήστης στη «Συνδρομή». */}
+              <div style={{ ...TT.displaySm, marginBottom: 6 }}>{youBase.isSlot ? '+1 ακίνητο' : `+${moNom(youBase.months)} ${PLANS.solo.nameGen}`}</div>
               <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>{youBase.isSlot
                 ? `δωρεάν για ${moAcc(youBase.months)}, στο πακέτο που ήδη έχεις, για κάθε φίλο που προσκαλείς. Προστίθεται στα ακίνητα του πακέτου σου και πιστώνεται μόλις εκείνος ενεργοποιήσει τον λογαριασμό του.`
                 : 'για κάθε φίλο που προσκαλείς. Πιστώνεται αυτόματα στη συνδρομή σου, μόλις εκείνος ενεργοποιήσει τον λογαριασμό του.'}</div>
@@ -572,7 +579,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                 <span style={{ ...TT.label }}>Ο φίλος σου κερδίζει</span>
               </div>
               <div style={{ ...TT.displaySm, marginBottom: 6 }}>+{moNom(REFEREE_OWNER_MONTHS)} δωρεάν</div>
-              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>στο πακέτο που θα διαλέξει στην αρχή, Ιδιώτης ή Επαγγελματίας, ανάλογα με τα ακίνητά του. Αν αργότερα χρειαστεί δεύτερο ακίνητο, το έχει δωρεάν για {moAcc(friendBase.months)}.</div>
+              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>στο πακέτο που θα διαλέξει στην αρχή, «{PLANS.solo.name}» ή «{PLANS.agency.name}», ανάλογα με τα ακίνητά του. Αν αργότερα χρειαστεί δεύτερο ακίνητο, το έχει δωρεάν για {moAcc(friendBase.months)}.</div>
             </div>
           </div>
 
@@ -584,11 +591,11 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                 <span style={{ ...TT.h2 }}>Προσκάλεσε έναν Επαγγελματία</span>
                 {(stats?.m_pro ?? 0) >= 1 && <Badge tone="positive">Το πέτυχες</Badge>}
               </div>
-              <div style={{ ...TT.displaySm, marginBottom: 6 }}>+{moNom(INDIV_PRO_BONUS_MONTHS)} Ιδιώτη</div>
-              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>για σένα, μόλις κάποιος που προσκάλεσες γίνει Επαγγελματίας. Εδώ κερδίζεις ολόκληρο μήνα συνδρομής, όχι ένα ακίνητο, γιατί η σύσταση είναι μεγαλύτερη. Κι εκείνος ξεκινά με {moAcc(REFEREE_OWNER_MONTHS)} Επαγγελματία δωρεάν.</div>
+              <div style={{ ...TT.displaySm, marginBottom: 6 }}>+{moNom(INDIV_PRO_BONUS_MONTHS)} {PLANS.solo.nameGen}</div>
+              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>για σένα, μόλις κάποιος που προσκάλεσες γίνει Επαγγελματίας. Εδώ κερδίζεις ολόκληρο μήνα συνδρομής, όχι ένα ακίνητο, γιατί η σύσταση είναι μεγαλύτερη. Κι εκείνος ξεκινά με {moAcc(REFEREE_OWNER_MONTHS)} {PLANS.agency.nameGen} δωρεάν.</div>
             </div>
             {/* Μπόνους όγκου: ο στόχος διαβάζεται από τη μηχανή, δεν ξαναγράφεται. */}
-            <Milestone title={`${INDIV_VOLUME_TARGET} νέοι τον μήνα`} count={stats?.m_indiv ?? 0} target={INDIV_VOLUME_TARGET} kind="indiv_volume" reward={`${moAcc(INDIV_VOLUME_BONUS_MONTHS)} επιπλέον Ιδιώτη`} claimState={claim.indiv_volume || 'idle'} onClaim={doClaim} />
+            <Milestone title={`${INDIV_VOLUME_TARGET} νέοι τον μήνα`} count={stats?.m_indiv ?? 0} target={INDIV_VOLUME_TARGET} kind="indiv_volume" reward={`${moAcc(INDIV_VOLUME_BONUS_MONTHS)} επιπλέον ${PLANS.solo.nameGen}`} claimState={claim.indiv_volume || 'idle'} onClaim={doClaim} />
           </div>
         </>
       )}
@@ -658,7 +665,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {rewards.map((r, i) => {
               const granted = r.status === 'granted';
-              const tierLabel = r.tier === 'agency' ? 'Επαγγελματία' : 'Ιδιώτη';
+              const tierLabel = r.tier === 'agency' ? PLANS.agency.nameGen : PLANS.solo.nameGen;
               const title = r.kind === 'slot'
                 ? `1 δωρεάν ακίνητο για ${moAcc(r.months)}`
                 : `${moNom(r.months)} ${tierLabel} δωρεάν`;

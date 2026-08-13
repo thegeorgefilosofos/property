@@ -592,6 +592,12 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
   border-color: var(--border-default);
 }
 @media (prefers-reduced-motion: reduce) { .kpi-card:hover { transform: none; } }
+/* Πλακίδιο KPI ΜΕΣΑ σε κάρτα: ίδιο κουτί, χωρίς δεύτερο περίγραμμα.
+   Μια γραμμή τριάντα εικονοστοιχεία μέσα σε άλλη γραμμή διαβάζεται ως κορνίζα
+   μέσα σε κορνίζα — και όσο πιο ήσυχο το φόντο, τόσο περισσότερο ξεχωρίζει το
+   περίγραμμα αντί για το νούμερο. Το βάθος εδώ το δίνει η σκιά. */
+.kpi-card.nested { border-color: transparent; box-shadow: var(--highlight-inset), var(--elev-1); }
+.kpi-card.nested:hover { border-color: transparent; box-shadow: var(--highlight-inset-strong), var(--elev-2); }
 .kpi-value {
   font-family: 'Inter', system-ui, sans-serif;
   /* Κλιμακώνεται με το πλάτος ΤΗΣ ΚΑΡΤΑΣ (cqi), όχι του παραθύρου: σε δύο

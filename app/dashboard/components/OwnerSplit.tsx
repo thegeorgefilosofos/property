@@ -12,6 +12,7 @@ import * as properties from '@/lib/data/properties';
 import * as rentStore from '@/lib/data/rent';
 import * as expenses from '@/lib/data/expenses';
 import { T, TT, Btn, Badge, EmptyState, Modal, Spinner, ABSENT } from '@/components/Theme';
+import { acceptNumeric, PCT_MAX } from '@/lib/core/numInput';
 import { Building2 } from 'lucide-react';
 import { InfoHint } from './InfoHint';
 import { CustomSelect as Select } from './UIComponents';
@@ -206,9 +207,13 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
               <div key={i} onMouseEnter={() => setHoverRow(i)} onMouseLeave={() => setHoverRow(null)} onFocusCapture={() => setHoverRow(i)}
                 style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <input value={r.name} onChange={e => setRow(i, 'name', e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="Όνομα" style={{ ...field, flex: '2 1 140px' }} />
-                <input value={r.afm} onChange={e => setRow(i, 'afm', e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="ΑΦΜ" style={{ ...field, flex: '1 1 100px' }} inputMode="numeric" />
+                <input value={r.afm} onChange={e => setRow(i, 'afm', e.target.value.replace(/\D/g, '').slice(0, 9))} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="ΑΦΜ" style={{ ...field, flex: '1 1 100px' }} inputMode="numeric" />
                 <div style={{ position: 'relative', flex: '0 0 92px' }}>
-                  <input value={r.pct} onChange={e => setRow(i, 'pct', e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="" style={{ ...field, width: '100%', paddingRight: 32, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} inputMode="decimal" />
+                  {/* ΤΟ ΠΟΣΟΣΤΟ ΙΔΙΟΚΤΗΣΙΑΣ ΔΕΝ ΠΕΡΝΑΕΙ ΤΟ 100 ΚΑΙ ΔΕΝ ΓΙΝΕΤΑΙ
+                      ΑΡΝΗΤΙΚΟ. Το πεδίο δεχόταν «250» και «-40», και το ποσό
+                      κάθε συνιδιοκτήτη έβγαινε από εκεί — σε κατάσταση που
+                      κατεβαίνει ως PDF και πάει στον λογιστή. */}
+                  <input value={r.pct} onChange={e => { const v = acceptNumeric(e.target.value, PCT_MAX); if (v !== null) setRow(i, 'pct', v); }} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="" style={{ ...field, width: '100%', paddingRight: 32, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} inputMode="decimal" />
                   <span style={{ position: 'absolute', right: 13, top: 0, height: T.h.lg, display: 'flex', alignItems: 'center', color: 'var(--text-tertiary)', fontSize: 13, pointerEvents: 'none' }}>%</span>
                 </div>
                 <button onClick={() => delRow(i)} aria-label="Αφαίρεση ιδιοκτήτη" title="Αφαίρεση"
@@ -225,7 +230,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
           <div style={{ flex: '1 1 160px' }}>
             <div style={{ ...TT.label, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Αμοιβή διαχείρισης<InfoHint>Η αμοιβή του διαχειριστή, ως ποσοστό επί των εσόδων. Αφαιρείται από το σύνολο πριν μοιραστεί το καθαρό στους ιδιοκτήτες. Άφησέ την κενή αν δεν υπάρχει.</InfoHint></div>
             <div style={{ position: 'relative' }}>
-              <input value={feePct} onChange={e => setFeePct(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="" style={{ ...field, width: '100%', paddingRight: 84, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} inputMode="decimal" />
+              <input value={feePct} onChange={e => { const v = acceptNumeric(e.target.value, PCT_MAX); if (v !== null) setFeePct(v); }} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="" style={{ ...field, width: '100%', paddingRight: 84, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} inputMode="decimal" />
               <span style={{ position: 'absolute', right: 13, top: 0, height: T.h.lg, display: 'flex', alignItems: 'center', color: 'var(--text-tertiary)', fontSize: 12, pointerEvents: 'none', whiteSpace: 'nowrap' }}>% εσόδων</span>
             </div>
           </div>
@@ -243,7 +248,18 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
               {miniStat('Έξοδα', pEur(result.expenses))}
               {miniStat('Αμοιβή', pEur(result.managementFee))}
               {miniStat('Προς διανομή', pEur(result.distributable), true)}
-              <span style={{ marginLeft: 'auto' }}><Badge tone={result.valid ? 'positive' : 'warning'}>Ποσοστά {pPct(result.pctSum)}</Badge></span>
+              {/* ═══ ΤΟ ΚΙΤΡΙΝΟ ΕΦΥΓΕ, ΚΑΙ ΜΑΖΙ ΤΟΥ Η ΑΣΑΦΕΙΑ ══════════════════
+                  Το σήμα έβγαινε πράσινο στα 100% και κίτρινο σε οτιδήποτε
+                  άλλο — δύο σημασιολογικά χρώματα για έναν αριθμό που τα λέει
+                  ήδη όλα, στη μοναδική οθόνη όπου δεν υπάρχει τίποτα άλλο
+                  χρωματιστό. Και το «ΠΟΣΟΣΤΑ 0,00%» σκέτο δεν έλεγε ΤΙ ΠΕΡΙΜΕΝΕΙ:
+                  ο χρήστης έβλεπε κίτρινο και μάντευε.
+                  Τώρα το ίδιο το κείμενο λέει το ζητούμενο («0,00% από 100%»),
+                  η γραμμή από κάτω το μεταφράζει σε ευρώ, και το χρώμα μένει
+                  ουδέτερο όπως σε κάθε άλλο σήμα της εφαρμογής. */}
+              <span style={{ marginLeft: 'auto' }}>
+                <Badge>Ποσοστά {result.valid ? pPct(result.pctSum) : `${pPct(result.pctSum)} από ${pPct(100)}`}</Badge>
+              </span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, padding: '8px 16px', borderTop: '1px solid var(--border-subtle)' }}>
               <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Ιδιοκτήτης</span>
@@ -264,7 +280,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
                 ψάχνει γιατί οι γραμμές δεν βγάζουν το σύνολο, το λείπον ποσό
                 γράφεται εδώ σε ευρώ: δείχνει ακριβώς πόσα δεν έχουν ιδιοκτήτη. */}
             {unassigned !== null && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, padding: '9px 16px', borderTop: '1px solid var(--border-subtle)', fontSize: 13, alignItems: 'center', background: 'var(--warning-soft)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, padding: '9px 16px', borderTop: '1px solid var(--border-subtle)', fontSize: 13, alignItems: 'center', background: 'var(--bg-elevated)' }}>
                 <span style={{ color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{unassigned.label}<span style={{ color: 'var(--text-tertiary)', marginLeft: 8, fontSize: 11 }}>{pPct(unassigned.pct)}</span></span>
                 <span style={{ color: 'var(--text-tertiary)', fontSize: 12, fontVariantNumeric: 'tabular-nums', textAlign: 'right', fontFamily: T.font.sans }}>{pEur(0)}</span>
                 <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', textAlign: 'right', minWidth: 84, fontFamily: T.font.sans, color: 'var(--text-secondary)' }}>{pSigned(unassigned.amount)}</span>

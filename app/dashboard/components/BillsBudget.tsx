@@ -1230,12 +1230,16 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
               if (tiles.length === 0) return null;
               return (
                 <div {...fixedCols(Math.min(tiles.length, 4), 10)} style={{ marginTop: 16 }}>
+                  {/* ΤΟ ΙΔΙΟ ΠΛΑΚΙΔΙΟ ΜΕ ΟΛΗ ΤΗΝ ΕΦΑΡΜΟΓΗ, ΜΕ ΕΝΑ ΛΙΓΟΤΕΡΟ
+                      ΠΕΡΙΓΡΑΜΜΑ. Ήταν επίπεδο κουτί με δική του γραμμή γύρω
+                      γύρω, μέσα σε κάρτα που έχει ήδη γραμμή: δύο κορνίζες σε
+                      απόσταση δεκαέξι εικονοστοιχείων, και το μάτι έπιανε τη
+                      γραμμή πριν τον αριθμό. Τώρα είναι η `.kpi-card` (ίδια
+                      βαθμίδα, ίδια σκιά, ίδιο σήκωμα στο πέρασμα) στην ένθετη
+                      εκδοχή της, όπου το βάθος το δίνει η σκιά. */}
                   {tiles.map(t => (
-                    <div key={t.l} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
-                      borderRadius: T.radius.inner, padding: '10px 12px' }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase',
-                        letterSpacing: '0.06em', fontFamily: T.font.sans, whiteSpace: 'nowrap', overflow: 'hidden',
-                        textOverflow: 'ellipsis' }}>{t.l}</div>
+                    <div key={t.l} className="kpi-card nested" style={{ padding: '11px 13px' }}>
+                      <div className="kpi-label" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.l}</div>
                       {/* Το μέγεθος είναι της κλίμακας (TT.kpi = 18 εδώ, 28 στο
                           κύριο νούμερο): τα πλακίδια στηρίζουν το σύνολο, δεν
                           ανταγωνίζονται μαζί του. */}

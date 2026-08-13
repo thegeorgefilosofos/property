@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useId, ReactNode, Fragment, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { T, TT, localDay } from '@/components/Theme';
+import { acceptNumeric } from '@/lib/core/numInput';
 import { athensToday, isoYear, isoMonth } from '@/lib/core/time';
 import { MONTHS_SHORT } from '@/lib/core/months';
 import { fn } from '@/lib/core/format';
@@ -264,23 +265,22 @@ export function NumberInput({
   }, [value, focused]);
 
   const handleChange = (raw: string) => {
-    const normalized = raw.replace(',', '.');
+    // Ο ΓΡΑΜΜΑΤΙΚΟΣ ΕΛΕΓΧΟΣ ΖΕΙ ΣΕ ΕΝΑ ΣΗΜΕΙΟ. Ήταν γραμμένος εδώ και ΠΟΥΘΕΝΑ
+    // αλλού: τα χειροποίητα πεδία ποσού των παραθύρων (μισθωτήριο,
+    // αναπροσαρμογή, κατανομή) δέχονταν πλην και γράμματα. Τώρα και τα δύο
+    // περνούν από την ίδια `acceptNumeric` (lib/core/numInput.ts), οπότε μια
+    // διόρθωση εδώ φτάνει παντού.
+    const normalized = acceptNumeric(raw, max);
+    if (normalized === null) return;
     if (normalized === '' || normalized === '.') { setLocal(normalized); return; }
-    if (!/^(\d+\.?\d*|\.\d+)$/.test(normalized)) return;
     const n = parseFloat(normalized);
     // ΤΟ ΚΑΤΩΤΑΤΟ ΟΡΙΟ ΔΕΝ ΚΡΙΝΕΤΑΙ ΣΤΟ ΚΑΘΕ ΠΛΗΚΤΡΟ. Όποιος γράφει «2026» περνά
     // πρώτα από το «2», το «20» και το «202» — και τα τρία είναι μικρότερα από το
     // 2000. Με έλεγχο εδώ, κάθε ενδιάμεσο πάτημα απορριπτόταν και το πεδίο δεν
     // άλλαζε ΠΟΤΕ: το «Έτος» της πληρωμής ενοικίου (min 2000) ήταν αδύνατο να
     // διορθωθεί, και στη διάρκεια δανείου (min 3) δεν γράφονταν τα 10, 15, 20, 25.
-    //
-    // Το όριο ζει στο `handleBlur`, που ήδη κάνει clamp: γράφεις ελεύθερα, και
-    // διορθώνεσαι μία φορά, στο τέλος.
-    //
-    // Το ΑΝΩΤΑΤΟ μένει, και δεν έχει το ίδιο πρόβλημα: κάθε πρόθεμα ενός θετικού
-    // αριθμού είναι μικρότερο από τον αριθμό, άρα η πορεία προς έγκυρη τιμή δεν
-    // περνά ποτέ πάνω από το ανώτατο.
-    if (!isNaN(n) && max !== undefined && n > max) return;
+    // Το `min` ζει στο `handleBlur`, που κάνει clamp μία φορά, στο τέλος. Το
+    // αρνητικό δεν χρειάζεται όριο: δεν είναι καν έγκυρος χαρακτήρας πια.
     setLocal(normalized);
     if (!isNaN(n)) onChange(normalized);
   };

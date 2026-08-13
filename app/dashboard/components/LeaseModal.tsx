@@ -30,6 +30,7 @@ import type { ReportBranding } from '@/lib/reportBranding';
 import { MYAADE } from '@/lib/tax/aade';
 import { aadeTitle } from '@/components/AadeLink';
 import { failed } from '@/lib/core/dbError';
+import { acceptNumeric, PCT_MAX } from '@/lib/core/numInput';
 
 interface Prop { id: string; name: string; address: string | null; sqm?: number | null; atak?: string | null }
 
@@ -206,9 +207,14 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
   const onF = (e: React.FocusEvent<HTMLInputElement>) => { e.currentTarget.style.borderColor = 'var(--accent)'; };
   const onB = (e: React.FocusEvent<HTMLInputElement>) => { e.currentTarget.style.borderColor = 'var(--border-default)'; };
   const seg = (u: LeaseUse): React.CSSProperties => ({ flex: 1, fontSize: 13, fontWeight: 600, height: T.h.md, borderRadius: T.radius.inner, cursor: 'pointer', textAlign: 'center', border: 'none', background: use === u ? 'var(--accent)' : 'transparent', color: use === u ? 'var(--accent-text)' : 'var(--text-secondary)', fontFamily: T.font.sans, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' });
-  const money = (value: string, on: (v: string) => void, suffix: string) => (
+  // ΤΟ ΦΙΛΤΡΟ ΔΕΝ ΕΙΝΑΙ ΚΑΛΛΩΠΙΣΜΟΣ. Το πεδίο δεχόταν «-500» και «12ε», και το
+  // αποτέλεσμα έφτανε σε υπογεγραμμένο μισθωτήριο με QR επαλήθευσης: αρνητικό
+  // μίσθωμα σε συμφωνητικό που υπογράφουν δύο μέρη. Όπου υπάρχει φυσικό
+  // ανώτατο (ποσοστό 100, ημέρα μήνα 31) το λέμε ρητά (lib/core/numInput.ts).
+  const money = (value: string, on: (v: string) => void, suffix: string, max?: number) => (
     <div style={{ position: 'relative' }}>
-      <input value={value} onChange={e => on(e.target.value)} onFocus={onF} onBlur={onB} inputMode="decimal" placeholder=""
+      <input value={value} onChange={e => { const v = acceptNumeric(e.target.value, max); if (v !== null) on(v); }}
+        onFocus={onF} onBlur={onB} inputMode="decimal" placeholder=""
         style={{ ...field, paddingRight: 32, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} />
       {/* Ίδιο ύψος με το πεδίο, από την ΙΔΙΑ πηγή: αλλιώς το «€» δεν ακολουθεί
           το πεδίο όταν η κλίμακα ανεβαίνει στα 44 για το δάχτυλο. */}
@@ -312,8 +318,8 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
                 <div><div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 5 }}>Εγγύηση<InfoHint>Συνήθως ένα ή δύο μισθώματα. Δεν συμψηφίζεται με μισθώματα και επιστρέφεται ατόκως στη λήξη, εφόσον δεν υπάρχουν φθορές ή οφειλές.</InfoHint></div>{money(deposit, setDeposit, '€')}</div>
                 <div><div style={lbl}>Έναρξη</div><DatePicker value={start} onChange={setStart} /></div>
                 <div><div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 5 }}>Διάρκεια<InfoHint>Στις μισθώσεις κατοικίας ισχύει η κατά νόμο ελάχιστη τριετής διάρκεια, ακόμη και αν συμφωνηθεί μικρότερη.</InfoHint></div>{money(years, setYears, 'έτη')}</div>
-                <div><div style={lbl}>Αναπροσαρμογή</div>{money(adjust, setAdjust, '%')}</div>
-                <div><div style={lbl}>Ημέρα πληρωμής</div>{money(payDay, setPayDay, 'ημ.')}</div>
+                <div><div style={lbl}>Αναπροσαρμογή</div>{money(adjust, setAdjust, '%', PCT_MAX)}</div>
+                <div><div style={lbl}>Ημέρα πληρωμής</div>{money(payDay, setPayDay, 'ημ.', 31)}</div>
               </div>
 
               {/* Σύνοψη διάρκειας — ουδέτερη, με προειδοποίηση μόνο όπου έχει νόημα */}

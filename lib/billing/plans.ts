@@ -11,6 +11,19 @@ export type PlanId = 'free' | 'solo' | 'owner' | 'agency' | 'office';
 export interface Plan {
   id: PlanId;
   name: string;
+  /**
+   * Το ίδιο όνομα σε ΓΕΝΙΚΗ: «ένας μήνας Ιδιοκτήτη», «δύο μήνες Επαγγελματία».
+   *
+   * ΓΙΑΤΙ ΖΕΙ ΕΔΩ ΚΑΙ ΟΧΙ ΣΤΗΝ ΟΘΟΝΗ. Η κάρτα του Προγράμματος Πρόσκλησης
+   * έγραφε «+1 μήνας Ιδιώτη» — πακέτο με αυτό το όνομα ΔΕΝ ΥΠΑΡΧΕΙ. Ο «Ιδιώτης»
+   * είναι ο τρόπος χρήσης (Ιδιώτης / Επαγγελματίας) στις Ρυθμίσεις· το πακέτο
+   * λέγεται «Ιδιοκτήτης». Ο χρήστης διάβαζε ανταμοιβή σε πακέτο που δεν θα
+   * έβρισκε ποτέ στον τιμοκατάλογο.
+   * Τα ελληνικά κλίνονται, οπότε το όνομα δεν αρκεί: αν μπει σε πρόταση ως
+   * ονομαστική βγαίνει «μήνας Ιδιοκτήτης». Η πτώση ανήκει στην πηγή του
+   * ονόματος, ώστε μια μετονομασία πακέτου να μη χρειάζεται κυνήγι σε οθόνες.
+   */
+  nameGen: string;
   /** Τιμή σε ευρώ. */
   priceMonthly: number;
   priceAnnual: number;
@@ -105,7 +118,7 @@ export const PLANS: Record<PlanId, Plan> = {
   // διαλέξει ο χρήστης πακέτο, ώστε τα δεδομένα του να μη χαθούν.
   // ═══════════════════════════════════════════════════════════════════════
   free: {
-    id: 'free', name: 'Χωρίς συνδρομή', priceMonthly: 0, priceAnnual: 0, maxProperties: 1, trialDays: 0, extraPropertyPrice: 0,
+    id: 'free', name: 'Χωρίς συνδρομή', nameGen: 'χωρίς συνδρομή', priceMonthly: 0, priceAnnual: 0, maxProperties: 1, trialDays: 0, extraPropertyPrice: 0,
     tagline: 'Ώσπου να διαλέξεις πακέτο',
     features: ['Τα δεδομένα σου δεν χάνονται', 'Χωρίς τα φορολογικά εργαλεία'],
   },
@@ -147,7 +160,7 @@ export const PLANS: Record<PlanId, Plan> = {
   // αντέχει τη μεγαλύτερη έκπτωση της κλίμακας: 42,90 € είναι έντεκα μήνες,
   // ένας δώρο, και η προπληρωμή εξακολουθεί να συμφέρει.
   solo: {
-    id: 'solo', name: 'Ιδιοκτήτης', priceMonthly: 3.9, priceAnnual: 42.9, maxProperties: 1, trialDays: TRIAL_DAYS, extraPropertyPrice: 0,
+    id: 'solo', name: 'Ιδιοκτήτης', nameGen: 'Ιδιοκτήτη', priceMonthly: 3.9, priceAnnual: 42.9, maxProperties: 1, trialDays: TRIAL_DAYS, extraPropertyPrice: 0,
     tagline: 'Το ακίνητό σου σε τάξη',
     features: [
       'Ε2 έτοιμο για τον λογιστή',
@@ -163,7 +176,7 @@ export const PLANS: Record<PlanId, Plan> = {
   // συγκρίνεις· από το δεύτερο και πάνω, το «ποιο μου αποδίδει και ποιο με
   // τρώει» είναι η ερώτηση που δεν απαντά κανένα φύλλο Excel.
   owner: {
-    id: 'owner', name: 'Ιδιοκτήτης+', priceMonthly: 9.9, priceAnnual: 99, maxProperties: 3, trialDays: TRIAL_DAYS, extraPropertyPrice: EXTRA_PROPERTY_PRICE,
+    id: 'owner', name: 'Ιδιοκτήτης+', nameGen: 'Ιδιοκτήτη+', priceMonthly: 9.9, priceAnnual: 99, maxProperties: 3, trialDays: TRIAL_DAYS, extraPropertyPrice: EXTRA_PROPERTY_PRICE,
     tagline: 'Πολλά ακίνητα, μία εικόνα',
     features: [
       'Έως 3 ακίνητα',
@@ -177,7 +190,7 @@ export const PLANS: Record<PlanId, Plan> = {
   // Εδώ αλλάζει το ερώτημα: δεν είναι «τι πληρώνω», είναι «τι λέω στον πελάτη
   // μου». Πελατολόγιο, ομάδα, επώνυμες αναφορές και επενδυτική ανάλυση.
   agency: {
-    id: 'agency', name: 'Επαγγελματίας', priceMonthly: 24.9, priceAnnual: 249, maxProperties: 15, trialDays: TRIAL_DAYS, extraPropertyPrice: EXTRA_PROPERTY_PRICE,
+    id: 'agency', name: 'Επαγγελματίας', nameGen: 'Επαγγελματία', priceMonthly: 24.9, priceAnnual: 249, maxProperties: 15, trialDays: TRIAL_DAYS, extraPropertyPrice: EXTRA_PROPERTY_PRICE,
     tagline: 'Ομάδα, ρόλοι και λογοδοσία',
     features: [
       'Έως 15 ακίνητα',
@@ -198,7 +211,7 @@ export const PLANS: Record<PlanId, Plan> = {
   // Δεν αγοράζει δυνατότητες, αγοράζει να μη μετράει: ακίνητα, χρήστες και
   // ερωτήσεις χωρίς μετρητή, και άνθρωπο στο τηλέφωνο.
   office: {
-    id: 'office', name: 'Επαγγελματίας+', priceMonthly: 79.9, priceAnnual: 799, maxProperties: Infinity, trialDays: TRIAL_DAYS, extraPropertyPrice: 0,
+    id: 'office', name: 'Επαγγελματίας+', nameGen: 'Επαγγελματία+', priceMonthly: 79.9, priceAnnual: 799, maxProperties: Infinity, trialDays: TRIAL_DAYS, extraPropertyPrice: 0,
     tagline: 'Επαγγελματικό χαρτοφυλάκιο',
     // ΔΥΟ ΑΠΟ ΤΙΣ ΤΕΣΣΕΡΙΣ ΓΡΑΜΜΕΣ ΔΕΝ ΠΡΟΣΘΕΤΑΝ ΤΙΠΟΤΑ, ΚΑΙ Η ΚΑΡΤΑ ΛΕΕΙ ΑΠΟ
     // ΠΑΝΩ «ΟΛΑ ΤΟΥ ΕΠΑΓΓΕΛΜΑΤΙΑ, ΚΑΙ:». Το «Ομάδα χωρίς όριο χρηστών» ίσχυε ήδη
