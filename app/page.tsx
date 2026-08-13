@@ -963,8 +963,8 @@ export default async function Landing() {
           </div>
           <div>
             <p style={{ fontSize: 15, lineHeight: 1.7, color: MUTED, margin: '0 0 16px', textAlign: 'justify', textWrap: 'pretty' }}>
-              Γι’ αυτό σχεδιάσαμε το Property OS. Ό,τι σχετίζεται με το ακίνητο σε ένα σημείο,
-              φορολογικά, νομικά, οικονομικά, πάντα πλήρες και ενημερωμένο.
+              Γι’ αυτό σχεδιάσαμε το Property OS. Τα πάντα για το ακίνητο σε ένα σημείο,
+              φορολογικά, νομικά, οικονομικά, πλήρως ενημερωμένα.
             </p>
             <p style={{ fontSize: 15, lineHeight: 1.7, color: MUTED, margin: 0, textAlign: 'justify', textWrap: 'pretty' }}>
               Ο υπολογισμός βγαίνει πριν τον ζητήσεις. Η προθεσμία εμφανίζεται πριν τη θυμηθείς. Το

@@ -77,10 +77,16 @@ export function PanelDashboard() {
             (πλάτος/3 μείον γεμίσματα και κενά), με περιθώριο ασφαλείας.
             Και επειδή το δοχείο είναι το πάνελ και όχι το κάθε πλακίδιο, τα
             τρία ποσά έχουν ΤΟ ΙΔΙΟ μέγεθος: αλλιώς το φαρδύ θα μίκραινε μόνο
-            του και η σειρά θα είχε τρεις τυπογραφίες. */}
+            του και η σειρά θα είχε τρεις τυπογραφίες.
+
+            ΚΑΙ ΣΤΟ ΚΕΝΤΡΟ, ΚΑΙ ΤΑ ΤΡΙΑ. Αριστερά στοιχισμένα, η ετικέτα και ο
+            αριθμός έχουν διαφορετικό πλάτος μέσα σε κάθε πλακίδιο, οπότε το
+            κενό έπεφτε πάντα δεξιά και σε άλλο μέγεθος σε καθένα: τρία κουτιά
+            ίδιου σχήματος με τρία διαφορετικά βάρη. Στο κέντρο, το κενό
+            μοιράζεται και στις δύο πλευρές και η σειρά ισορροπεί. */}
         <div style={{ containerType: 'inline-size', display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
           {kpis.map(([l, v], i) => (
-            <div key={i} className="lp-live" style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '13px 14px', minWidth: 0, overflow: 'hidden' }}>
+            <div key={i} className="lp-live" style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '13px 14px', minWidth: 0, overflow: 'hidden', textAlign: 'center' }}>
               {/* Η ΕΤΙΚΕΤΑ ΚΟΒΟΤΑΝ ΜΕ ΑΠΟΣΙΩΠΗΤΙΚΑ: «ΚΑΘΑΡΗ…», «ΜΗΝΙΑΙ…»,
                   «ΠΛΗΡΟΤ…». Πρώτα διορθώθηκαν τα ΟΝΟΜΑΤΑ, μία λέξη το καθένα.
                   Το «ΕΣΟΔΑ/ΜΗΝΑ» όμως είναι ακόμη δέκα κεφαλαία με αραίωση και

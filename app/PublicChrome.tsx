@@ -78,7 +78,7 @@ function FootCol({ label, links }: { label: string; links: [string, string][] })
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>{label}</span>
       {links.map(([href, text]) => (
-        <Link key={href} href={href} className="lp-link" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: 14, lineHeight: 1.3 }}>{text}</Link>
+        <Link key={href} href={href} className="lp-link" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: 14, lineHeight: 1.3, whiteSpace: 'nowrap' }}>{text}</Link>
       ))}
     </div>
   );
@@ -102,7 +102,7 @@ export function PublicFooter() {
               κολοβή δίπλα στις άλλες· έλειπε όμως και ο υπολογιστής ΕΝΦΙΑ, που
               υπάρχει, σερβίρεται και δεν τον έδειχνε καμία σελίδα. */}
           <FootCol label="Προϊόν" links={[['/', 'Αρχική'], ['/signup', 'Ξεκίνα τη δοκιμή'], ['/login', 'Σύνδεση'], ['/#faq', 'Συχνές ερωτήσεις']]} />
-          <FootCol label="Εργαλεία" links={[['/ypologismos-forou-enoikion', 'Φόρος ενοικίων'], ['/ypologismos-enfia', 'ΕΝΦΙΑ'], ['/vraxyxronia-i-makroxronia', 'Βραχυχρόνια ή μακροχρόνια']]} />
+          <FootCol label="Εργαλεία" links={[['/ypologismos-forou-enoikion', 'Φόρος ενοικίων'], ['/ypologismos-enfia', 'ΕΝΦΙΑ'], ['/vraxyxronia-i-makroxronia', 'Βραχυχρόνια vs μακροχρόνια']]} />
           <FootCol label="Εμπιστοσύνη" links={[['/trust', 'Ποιοι είμαστε'], ['/privacy', 'Απόρρητο'], ['/terms', 'Όροι χρήσης']]} />
         </div>
         <div style={{ marginTop: 'clamp(32px,4vw,48px)', paddingTop: 18, borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', fontSize: 12, color: 'var(--text-tertiary)' }}>
