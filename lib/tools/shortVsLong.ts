@@ -51,6 +51,8 @@ export interface ShortVsLongInput {
   costPerNight: number;
   /** Ρεύμα, νερό, ίντερνετ ανά μήνα. Στη μακροχρόνια τα πληρώνει ο ενοικιαστής. */
   fixedPerMonth: number;
+  /** Πότε γεμίζει το ακίνητο. Αλλάζει το τέλος ανθεκτικότητας, όχι τα έσοδα. */
+  season: SeasonSpread;
 }
 
 export interface LongSide {
@@ -96,16 +98,42 @@ const cents = (n: number) => Math.round((Number.isFinite(n) ? n : 0) * 100) / 10
 const pos = (n: number) => Math.max(0, Number.isFinite(n) ? n : 0);
 
 /**
- * ΟΙ ΝΥΧΤΕΣ ΜΟΙΡΑΖΟΝΤΑΙ ΙΣΟΜΕΡΩΣ ΣΤΟΥΣ ΔΩΔΕΚΑ ΜΗΝΕΣ, ΚΑΙ ΤΟ ΛΕΜΕ.
+ * ΠΩΣ ΜΟΙΡΑΖΟΝΤΑΙ ΟΙ ΝΥΧΤΕΣ ΣΤΟΥΣ ΜΗΝΕΣ, ΚΑΙ ΓΙΑΤΙ ΤΟ ΡΩΤΑΜΕ.
  *
- * Το τέλος ανθεκτικότητας είναι τετραπλάσιο στην υψηλή περίοδο (Απρίλιος ώς
- * Οκτώβριος), οπότε η κατανομή αλλάζει το αποτέλεσμα. Μια «ρεαλιστική» καμπύλη
- * με βάρος στο καλοκαίρι θα ήταν επινόηση: δεν ξέρουμε πότε γεμίζει το ΔΙΚΟ ΤΟΥ
- * ακίνητο. Η ισομερής κατανομή είναι η μόνη ουδέτερη παραδοχή, και γράφεται στην
- * οθόνη ώστε όποιος νοικιάζει μόνο καλοκαίρι να ξέρει ότι το τέλος του βγαίνει
- * μεγαλύτερο από αυτό που δείχνουμε.
+ * Το τέλος ανθεκτικότητας είναι ΤΕΤΡΑΠΛΑΣΙΟ στην υψηλή περίοδο (Απρίλιος ώς
+ * Οκτώβριος): 8,00 € έναντι 2,00 € για διαμέρισμα. Η κατανομή δηλαδή δεν είναι
+ * λεπτομέρεια — αλλάζει το τελικό ποσό κατά εκατοντάδες ευρώ.
+ *
+ * Η πρώτη εκδοχή μοίραζε ΠΑΝΤΑ ισομερώς και το έγραφε ως παραδοχή. Ήταν τίμιο,
+ * αλλά ήταν και το μεγαλύτερο σφάλμα του εργαλείου: το ελληνικό εξοχικό δεν
+ * νοικιάζεται τον Ιανουάριο, και σε αυτό ακριβώς το προφίλ το τέλος βγαίνει
+ * σχεδόν διπλάσιο από αυτό που δείχναμε.
+ *
+ * Δύο επιλογές, καμία επινοημένη καμπύλη:
+ *   • «όλο τον χρόνο» — ισομερώς στους δώδεκα, η ουδέτερη παραδοχή.
+ *   • «κυρίως το καλοκαίρι» — γεμίζει πρώτα τους επτά μήνες της υψηλής περιόδου
+ *     μέχρι τις ημέρες τους (214), και ό,τι περισσεύει πέφτει στους πέντε της
+ *     χαμηλής. Δεν μαντεύει ποσοστά ανά μήνα: γεμίζει με τη σειρά.
  */
-export const spreadNights = (nights: number): number[] => new Array(12).fill(pos(nights) / 12);
+export type SeasonSpread = 'even' | 'high';
+
+/** Ημέρες ανά μήνα, μη δίσεκτο έτος. Χρειάζονται ως ΧΩΡΗΤΙΚΟΤΗΤΑ, όχι ως βάρη. */
+const DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+const HIGH = [3, 4, 5, 6, 7, 8, 9];           // Απρίλιος ώς Οκτώβριος
+const LOW = [0, 1, 2, 10, 11];                // Νοέμβριος ώς Μάρτιος
+/** 214 νύχτες: όσες χωράνε στους επτά μήνες της υψηλής περιόδου. */
+export const HIGH_SEASON_NIGHTS = HIGH.reduce((s, m) => s + DAYS_IN_MONTH[m], 0);
+
+export function spreadNights(nights: number, season: SeasonSpread = 'even'): number[] {
+  const n = pos(nights);
+  if (season === 'even') return new Array(12).fill(n / 12);
+  const out = new Array(12).fill(0);
+  const inHigh = Math.min(n, HIGH_SEASON_NIGHTS);
+  for (const m of HIGH) out[m] = inHigh / HIGH.length;
+  const rest = n - inHigh;
+  if (rest > 0) for (const m of LOW) out[m] = rest / LOW.length;
+  return out;
+}
 
 /** Η μακροχρόνια πλευρά: ακαθάριστο, τεκμαρτή έκπτωση, φόρος, καθαρά. */
 export function longTermSide(monthlyRent: number): LongSide {
@@ -123,7 +151,7 @@ export function shortTermSide(i: ShortVsLongInput, occupancyPct = i.occupancyPct
   // Το τέλος ΟΦΕΙΛΕΤΑΙ ολόκληρο· δεν μπορεί όμως να ξεπεράσει όσα εισπράχθηκαν
   // στην αριθμητική της οθόνης, αλλιώς με τιμή 1 €/νύχτα θα έβγαινε αρνητικό
   // ακαθάριστο και ο πίνακας θα τύπωνε νούμερα που δεν υπάρχουν.
-  const levy = Math.min(guestTotal, climateLevyForNights(spreadNights(nights), i.sqm, i.isHouse));
+  const levy = Math.min(guestTotal, climateLevyForNights(spreadNights(nights, i.season), i.sqm, i.isHouse));
   const gross = cents(guestTotal - levy);
   const taxable = gross * (1 - PRESUMPTIVE_DEDUCTION_RATE);
   const tax = cents(rentalIncomeTax(taxable));
@@ -164,6 +192,21 @@ export function breakEvenOccupancy(i: ShortVsLongInput, targetNet: number): numb
     if (shortTermSide(i, mid).net >= targetNet) hi = mid; else lo = mid;
   }
   return hi;
+}
+
+/**
+ * ΤΑ ΚΑΘΑΡΑ ΣΕ ΟΛΟ ΤΟ ΕΥΡΟΣ ΤΗΣ ΠΛΗΡΟΤΗΤΑΣ.
+ *
+ * Η πληρότητα είναι η πιο αβέβαιη είσοδος της σελίδας και η μόνη που ο χρήστης
+ * μαντεύει. Ένα νούμερο για μία μαντεψιά κρύβει το σχήμα της καμπύλης: πόσο
+ * ευαίσθητο είναι το αποτέλεσμα, και πόσο κοστίζει να πέσει έξω κατά δέκα
+ * μονάδες. Ο πίνακας το δείχνει ολόκληρο, χωρίς να ζητά τίποτα παραπάνω.
+ */
+export function netByOccupancy(i: ShortVsLongInput, steps: number[]): { pct: number; nights: number; net: number }[] {
+  return steps.map(pct => {
+    const s = shortTermSide(i, pct);
+    return { pct, nights: s.nights, net: s.net };
+  });
 }
 
 export function compareShortVsLong(i: ShortVsLongInput): ShortVsLong {

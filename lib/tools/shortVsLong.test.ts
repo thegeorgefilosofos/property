@@ -12,7 +12,8 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import {
   compareShortVsLong, longTermSide, shortTermSide, breakEvenOccupancy,
-  spreadNights, NIGHTS_PER_YEAR, type ShortVsLongInput,
+  spreadNights, netByOccupancy, NIGHTS_PER_YEAR, HIGH_SEASON_NIGHTS,
+  type ShortVsLongInput,
 } from './shortVsLong'
 import { climateLevyRates, rentalIncomeTax } from '@/lib/billing/greekTax'
 
@@ -23,7 +24,7 @@ const eq = (a: number, b: number, tol = 0.02) => Math.abs(a - b) <= tol
 const BASE: ShortVsLongInput = {
   monthlyRent: 700, nightlyPrice: 80, occupancyPct: 60,
   sqm: 75, isHouse: false, platformFeePct: 15,
-  costPerNight: 12, fixedPerMonth: 90,
+  costPerNight: 12, fixedPerMonth: 90, season: 'even',
 }
 
 // ═══ 1. Η ΜΑΚΡΟΧΡΟΝΙΑ ΠΛΕΥΡΑ ══════════════════════════════════════════════
@@ -119,24 +120,68 @@ const BASE: ShortVsLongInput = {
      eq(spreadNights(219).reduce((a, b) => a + b, 0), 219))
 }
 
-// ═══ 6. ΑΚΡΑΙΕΣ ΕΙΣΟΔΟΙ: Η ΟΘΟΝΗ ΔΕΝ ΠΡΕΠΕΙ ΝΑ ΔΕΙΞΕΙ NaN ΟΥΤΕ ΑΡΝΗΤΙΚΑ ═══
+// ═══ 5β. Η ΚΑΤΑΝΟΜΗ ΤΩΝ ΝΥΧΤΩΝ ΣΤΗΝ ΥΨΗΛΗ ΠΕΡΙΟΔΟ ═════════════════════════
+// Το τέλος είναι τετραπλάσιο Απρίλιο ώς Οκτώβριο. Όποιος νοικιάζει μόνο
+// καλοκαίρι πληρώνει σχεδόν διπλάσιο τέλος με τις ίδιες ακριβώς νύχτες.
+{
+  ok('ΣΤ. στην υψηλή περίοδο χωρούν 214 νύχτες', HIGH_SEASON_NIGHTS === 214)
+
+  const s120 = spreadNights(120, 'high')
+  ok('ΣΤ. 120 νύχτες πάνε όλες στους επτά μήνες Απριλίου-Οκτωβρίου',
+     [3, 4, 5, 6, 7, 8, 9].every(m => eq(s120[m], 120 / 7)))
+  ok('ΣΤ. …και κανένας μήνας χαμηλής δεν παίρνει νύχτα',
+     [0, 1, 2, 10, 11].every(m => s120[m] === 0))
+  ok('ΣΤ. το άθροισμα μένει 120', eq(s120.reduce((a, b) => a + b, 0), 120))
+
+  // Πάνω από 214 δεν χωρούν: το υπόλοιπο πέφτει στους πέντε χαμηλούς μήνες.
+  const s300 = spreadNights(300, 'high')
+  ok('ΣΤ. πάνω από 214, οι υψηλοί μήνες γεμίζουν', eq(s300[5], 214 / 7))
+  ok('ΣΤ. …και τα υπόλοιπα 86 μοιράζονται στους πέντε χαμηλούς', eq(s300[0], 86 / 5))
+  ok('ΣΤ. το άθροισμα μένει 300', eq(s300.reduce((a, b) => a + b, 0), 300))
+
+  // Το ΝΟΗΜΑ ολόκληρης της επιλογής, σε ένα νούμερο: ίδιες νύχτες, ίδια τιμή,
+  // ίδια έσοδα, αλλά το τέλος και τα καθαρά αλλάζουν.
+  const evenSide = shortTermSide({ ...BASE, season: 'even' }, 40)
+  const highSide = shortTermSide({ ...BASE, season: 'high' }, 40)
+  ok('ΣΤ. ίδιες νύχτες και στις δύο κατανομές', evenSide.nights === highSide.nights)
+  ok('ΣΤ. ίδιες εισπράξεις από τους επισκέπτες', eq(evenSide.guestTotal, highSide.guestTotal))
+  ok('ΣΤ. αλλά μεγαλύτερο τέλος όταν γεμίζει το καλοκαίρι', highSide.levy > evenSide.levy)
+  ok('ΣΤ. …άρα λιγότερα καθαρά', highSide.net < evenSide.net)
+  // Με 146 νύχτες όλες στην υψηλή: 146 × 8 = 1.168. Ισομερώς: 146/12 ανά μήνα,
+  // επτά υψηλοί × 8 και πέντε χαμηλοί × 2 = (146/12) × (56 + 10) = 803,00.
+  ok('ΣΤ. τέλος 1.168,00 € στην υψηλή περίοδο', eq(highSide.levy, 1168, 0.5))
+  ok('ΣΤ. τέλος 803,00 € ισομερώς', eq(evenSide.levy, 803, 0.5))
+}
+
+// ═══ 5γ. ΤΑ ΚΑΘΑΡΑ ΣΕ ΟΛΟ ΤΟ ΕΥΡΟΣ ΤΗΣ ΠΛΗΡΟΤΗΤΑΣ ════════════════════════
+{
+  const rows = netByOccupancy(BASE, [30, 50, 70, 90])
+  ok('Ζ. μία γραμμή ανά βήμα', rows.length === 4)
+  ok('Ζ. οι νύχτες ακολουθούν την πληρότητα', rows[0].nights === Math.round(0.3 * 365))
+  ok('Ζ. τα καθαρά ανεβαίνουν με την πληρότητα',
+     rows.every((r, i) => i === 0 || r.net >= rows[i - 1].net))
+  ok('Ζ. κάθε γραμμή συμφωνεί με τον κανονικό υπολογισμό',
+     rows.every(r => eq(r.net, shortTermSide(BASE, r.pct).net)))
+}
+
+// ═══ 8. ΑΚΡΑΙΕΣ ΕΙΣΟΔΟΙ: Η ΟΘΟΝΗ ΔΕΝ ΠΡΕΠΕΙ ΝΑ ΔΕΙΞΕΙ NaN ΟΥΤΕ ΑΡΝΗΤΙΚΑ ═══
 {
   const zero = compareShortVsLong({ ...BASE, monthlyRent: 0, nightlyPrice: 0, occupancyPct: 0 })
-  ok('ΣΤ. όλα μηδέν δίνει μηδενικά, όχι NaN',
+  ok('Η. όλα μηδέν δίνει μηδενικά, όχι NaN',
      Number.isFinite(zero.short.net) && Number.isFinite(zero.long.net) && zero.long.net === 0)
 
   // Τιμή μικρότερη από το τέλος: το ακαθάριστο δεν επιτρέπεται να βγει αρνητικό.
   const tiny = shortTermSide({ ...BASE, nightlyPrice: 1 }, 100)
-  ok('ΣΤ. τιμή κάτω από το τέλος δεν δίνει αρνητικό ακαθάριστο', tiny.gross >= 0)
-  ok('ΣΤ. …ούτε τέλος μεγαλύτερο από όσα εισπράχθηκαν', tiny.levy <= tiny.guestTotal + 0.01)
+  ok('Η. τιμή κάτω από το τέλος δεν δίνει αρνητικό ακαθάριστο', tiny.gross >= 0)
+  ok('Η. …ούτε τέλος μεγαλύτερο από όσα εισπράχθηκαν', tiny.levy <= tiny.guestTotal + 0.01)
 
   const over = shortTermSide(BASE, 500)
-  ok('ΣΤ. πληρότητα πάνω από 100 κόβεται στο 100', over.nights === NIGHTS_PER_YEAR)
+  ok('Η. πληρότητα πάνω από 100 κόβεται στο 100', over.nights === NIGHTS_PER_YEAR)
   const neg = shortTermSide({ ...BASE, costPerNight: -50 }, 50)
-  ok('ΣΤ. αρνητικό κόστος διαβάζεται ως μηδέν', neg.running === 12 * 90)
+  ok('Η. αρνητικό κόστος διαβάζεται ως μηδέν', neg.running === 12 * 90)
 }
 
-// ═══ 7. ΤΟ ΤΕΛΟΣ ΠΑΡΕΠΙΔΗΜΟΥΝΤΩΝ ══════════════════════════════════════════
+// ═══ 9. ΤΟ ΤΕΛΟΣ ΠΑΡΕΠΙΔΗΜΟΥΝΤΩΝ ══════════════════════════════════════════
 // Ο υπολογιστής δηλώνει ρητά ότι θεωρεί φυσικό πρόσωπο με έως δύο ακίνητα.
 // Αν αυτό αλλάξει σιωπηλά, το τεστ πέφτει και το κείμενο της οθόνης διορθώνεται.
 {

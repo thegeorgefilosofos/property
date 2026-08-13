@@ -21,9 +21,11 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useMemo, useId } from 'react';
 import { T, feAuto, fp, fixedCols } from '@/components/tokens';
-import { fn } from '@/lib/core/format';
+import { fn, feSigned } from '@/lib/core/format';
 import { parseAmount } from '@/lib/core/greek';
-import { compareShortVsLong, NIGHTS_PER_YEAR } from '@/lib/tools/shortVsLong';
+import { compareShortVsLong, netByOccupancy, NIGHTS_PER_YEAR, HIGH_SEASON_NIGHTS, type SeasonSpread } from '@/lib/tools/shortVsLong';
+import { climateLevyRates } from '@/lib/billing/greekTax';
+import { REGULATORY_UPDATES_2026 } from '@/lib/accounting/updates2026';
 import { CustomSelect } from '@/app/dashboard/components/UIComponents';
 import { useToolState, ToolActions } from '@/app/ToolShare';
 import { ToolCta } from '@/app/PublicChrome';
@@ -33,8 +35,14 @@ const amount = (s: string): number => Math.max(0, parseAmount(s) ?? 0);
 /** Τα πεδία όπως ταξιδεύουν στη διεύθυνση, με τις προεπιλογές τους. */
 const SPEC = {
   enoikio: '700', timi: '80', plirotita: '60', tm: '75', typos: 'flat',
-  promitheia: '15', kostos: '12', pagia: '90',
+  promitheia: '15', kostos: '12', pagia: '90', sezon: 'even',
 } as const;
+
+/** Ο κανόνας των «κόκκινων ζωνών», από τη μία πηγή κανόνων της εφαρμογής. */
+const AMA_RULE = REGULATORY_UPDATES_2026.find(u => u.id === 'ama-red-zones');
+
+/** Τα βήματα πληρότητας του πίνακα ευαισθησίας. */
+const OCCUPANCY_STEPS = [30, 40, 50, 60, 70, 80, 90];
 const PATH = '/vraxyxronia-i-makroxronia';
 
 const TYPES = [
@@ -49,7 +57,10 @@ export function ShortVsLongCalculator() {
     fee: useId(), cost: useId(), fixed: useId(),
   };
 
-  const r = useMemo(() => compareShortVsLong({
+  // ΜΙΑ ΑΝΑΓΝΩΣΗ ΤΩΝ ΠΕΔΙΩΝ, ΤΡΕΙΣ ΧΡΗΣΕΙΣ. Η σύγκριση και ο πίνακας ευαισθησίας
+  // πρέπει να τρέχουν πάνω στα ΙΔΙΑ δεδομένα· δύο αντίγραφα του ίδιου
+  // αντικειμένου θα απέκλιναν με την πρώτη αλλαγή πεδίου.
+  const input = useMemo(() => ({
     monthlyRent: amount(v.enoikio),
     nightlyPrice: amount(v.timi),
     occupancyPct: Math.min(100, amount(v.plirotita)),
@@ -58,7 +69,11 @@ export function ShortVsLongCalculator() {
     platformFeePct: Math.min(100, amount(v.promitheia)),
     costPerNight: amount(v.kostos),
     fixedPerMonth: amount(v.pagia),
+    season: (v.sezon === 'high' ? 'high' : 'even') as SeasonSpread,
   }), [v]);
+  const r = useMemo(() => compareShortVsLong(input), [input]);
+  const curve = useMemo(() => netByOccupancy(input, OCCUPANCY_STEPS), [input]);
+  const levyRates = climateLevyRates(amount(v.tm), v.typos === 'house');
 
   const field: React.CSSProperties = {
     width: '100%', height: T.h.lg, padding: '0 12px', borderRadius: T.radius.btn,
@@ -70,6 +85,15 @@ export function ShortVsLongCalculator() {
     display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
     textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 7,
   };
+  // Ίδιο σχήμα με τους επιλογείς της εφαρμογής: ενεργό γεμάτο, ανενεργό διάφανο.
+  const segStyle = (on: boolean): React.CSSProperties => ({
+    height: T.h.sm, padding: '0 14px', borderRadius: T.radius.inner, border: 'none',
+    background: on ? 'var(--accent)' : 'transparent',
+    color: on ? 'var(--accent-text)' : 'var(--text-secondary)',
+    fontSize: 12.5, fontWeight: 600, fontFamily: T.font.sans, cursor: 'pointer',
+    whiteSpace: 'nowrap', transition: 'background-color 0.15s, color 0.15s',
+  });
+
   const unit: React.CSSProperties = {
     position: 'absolute', right: 13, top: '50%', transform: 'translateY(-50%)',
     color: 'var(--text-tertiary)', fontSize: 14, pointerEvents: 'none',
@@ -115,6 +139,40 @@ export function ShortVsLongCalculator() {
         Η τιμή ανά διανυκτέρευση είναι όση πληρώνει ο επισκέπτης, με το τέλος ανθεκτικότητας μέσα.
         Τα πάγια είναι ρεύμα, νερό και ίντερνετ, που στη μακροχρόνια τα πληρώνει ο ενοικιαστής.
       </p>
+
+      {/* ═══ ΠΟΤΕ ΓΕΜΙΖΕΙ ΤΟ ΑΚΙΝΗΤΟ ══════════════════════════════════════════
+          ΔΕΝ ΕΙΝΑΙ ΛΕΠΤΟΜΕΡΕΙΑ. Το τέλος ανθεκτικότητας είναι ΤΕΤΡΑΠΛΑΣΙΟ από
+          Απρίλιο ώς Οκτώβριο. Με τις ίδιες ακριβώς νύχτες και την ίδια τιμή, το
+          ελληνικό εξοχικό που γεμίζει μόνο το καλοκαίρι πληρώνει σχεδόν
+          διπλάσιο τέλος από ένα διαμέρισμα πόλης που δουλεύει όλο τον χρόνο.
+          Η πρώτη εκδοχή μοίραζε πάντα ισομερώς και το έγραφε ως παραδοχή· ήταν
+          τίμιο, αλλά ήταν και λάθος για τα μισά ελληνικά ακίνητα.
+
+          ΔΕΝ ΕΙΝΑΙ ΠΕΔΙΟ ΤΟΥ ΠΛΕΓΜΑΤΟΣ, ΓΙΑΤΙ ΔΕΝ ΕΙΝΑΙ ΠΟΣΟ. Τα οκτώ από πάνω
+          είναι μεγέθη που πληκτρολογείς· αυτό είναι παραδοχή του μοντέλου, και
+          χρειάζεται τη δική του σειρά για να εξηγηθεί. */}
+      <div style={{
+        marginTop: 14, padding: '12px 14px', borderRadius: T.radius.inner,
+        border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        gap: 16, flexWrap: 'wrap',
+      }}>
+        <div style={{ flex: 1, minWidth: 230 }}>
+          <div style={{ fontSize: 14, fontWeight: 650, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+            Πότε γεμίζει
+          </div>
+          <p style={{ margin: '3px 0 0', fontSize: 12.5, lineHeight: 1.55, color: 'var(--text-tertiary)' }}>
+            {input.season === 'high'
+              ? `Οι κρατήσεις πέφτουν πρώτα στους επτά μήνες της υψηλής περιόδου, δηλαδή έως ${HIGH_SEASON_NIGHTS} διανυκτερεύσεις. Εκεί το τέλος είναι ${feAuto(levyRates.high)} τη νύχτα.`
+              : `Οι κρατήσεις μοιράζονται ισομερώς στους δώδεκα μήνες. Το τέλος είναι ${feAuto(levyRates.high)} τη νύχτα από Απρίλιο ώς Οκτώβριο και ${feAuto(levyRates.low)} τους υπόλοιπους.`}
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 3, padding: 3, background: 'var(--bg-surface)',
+          border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
+          <button type="button" onClick={() => set('sezon', 'even')} style={segStyle(input.season === 'even')}>Όλο τον χρόνο</button>
+          <button type="button" onClick={() => set('sezon', 'high')} style={segStyle(input.season === 'high')}>Κυρίως το καλοκαίρι</button>
+        </div>
+      </div>
 
       {/* ── Το αποτέλεσμα ──────────────────────────────────────────────── */}
       <div style={{
@@ -200,6 +258,49 @@ export function ShortVsLongCalculator() {
         </div>
       </div>
 
+      {/* ═══ Η ΠΛΗΡΟΤΗΤΑ ΕΙΝΑΙ ΜΑΝΤΕΨΙΑ, ΚΑΙ Ο ΠΙΝΑΚΑΣ ΤΟ ΠΑΡΑΔΕΧΕΤΑΙ ══════════
+          Ολόκληρο το αποτέλεσμα κρέμεται από ένα νούμερο που ο χρήστης δεν
+          ξέρει και το μαντεύει. Ένα εργαλείο που δίνει ΕΝΑ ποσό για ΜΙΑ
+          μαντεψιά, χωρίς να δείξει πόσο ευαίσθητο είναι, δίνει βεβαιότητα που
+          δεν υπάρχει. Επτά γραμμές δείχνουν τι κοστίζει να πέσει έξω κατά δέκα
+          μονάδες — και δεν ζητούν τίποτα παραπάνω από τον χρήστη.
+          Η γραμμή που περνά το κατώφλι σημειώνεται με την ίδια απαλή επιφάνεια
+          που χρησιμοποιεί ο υπολογιστής φόρου για το ενεργό κλιμάκιο. */}
+      <div style={{ marginTop: 26 }}>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 340 }}>
+            <caption style={{ captionSide: 'top', textAlign: 'left', fontSize: 11, fontWeight: 700,
+              letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)',
+              paddingBottom: 10 }}>
+              Αν πέσεις έξω στην πληρότητα
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col" style={th}>Πληρότητα</th>
+                <th scope="col" style={{ ...th, textAlign: 'right' }}>Διανυκτερεύσεις</th>
+                <th scope="col" style={{ ...th, textAlign: 'right' }}>Καθαρά βραχυχρόνιας</th>
+                <th scope="col" style={{ ...th, textAlign: 'right' }}>Έναντι μακροχρόνιας</th>
+              </tr>
+            </thead>
+            <tbody>
+              {curve.map(row => {
+                const ahead = row.net >= r.long.net;
+                return (
+                  <tr key={row.pct} style={{ background: ahead ? 'var(--accent-soft)' : 'transparent' }}>
+                    <td style={{ ...td, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums',
+                      fontWeight: ahead ? 650 : 400, color: ahead ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{fp(row.pct)}</td>
+                    <td style={numTd}>{fn(row.nights)}</td>
+                    <td style={{ ...numTd, fontWeight: ahead ? 650 : 400,
+                      color: ahead ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{feAuto(row.net)}</td>
+                    <td style={numTd}>{feSigned(row.net - r.long.net)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <ToolActions path={PATH} spec={SPEC} values={v}/>
 
       {/* ── Τι ΔΕΝ περιλαμβάνει ──────────────────────────────────────────── */}
@@ -212,14 +313,47 @@ export function ShortVsLongCalculator() {
           Θεωρεί <strong>φυσικό πρόσωπο με έως δύο ακίνητα</strong>, που δεν παρέχει υπηρεσίες
           πέρα από τη διαμονή: γι’ αυτό ισχύει η τεκμαρτή έκπτωση 5% και το τέλος παρεπιδημούντων
           είναι μηδέν. Με τρία ακίνητα και πάνω, η δραστηριότητα γίνεται επιχειρηματική και
-          αλλάζουν και η κλίμακα και τα τέλη. Οι διανυκτερεύσεις μοιράζονται{' '}
-          <strong>ισομερώς στους δώδεκα μήνες</strong>· όποιος νοικιάζει κυρίως το καλοκαίρι
-          πληρώνει μεγαλύτερο τέλος ανθεκτικότητας από αυτό που δείχνει ο πίνακας. Δεν
-          περιλαμβάνει ΕΝΦΙΑ, ασφάλιση, έπιπλα και εξοπλισμό, κενά διαστήματα λόγω ανακαίνισης,
-          ούτε τους περιορισμούς εγγραφής ΑΜΑ σε ορισμένες περιοχές. Είναι{' '}
+          αλλάζουν και η κλίμακα και τα τέλη. Οι συντελεστές του τέλους ανθεκτικότητας είναι οι{' '}
+          <strong>ενδεικτικοί του 2025</strong>: τα ακριβή ποσά και οι μήνες ορίζονται από την ΑΑΔΕ.
+          Δεν περιλαμβάνει ΕΝΦΙΑ, ασφάλιση, έπιπλα και εξοπλισμό, κενά διαστήματα λόγω ανακαίνισης,
+          ούτε τον χρόνο που θα δώσεις εσύ στη διαχείριση. Είναι{' '}
           <strong>εκτίμηση</strong> για να ξέρεις την τάξη μεγέθους, όχι φορολογική συμβουλή.
         </p>
       </div>
+
+      {/* ═══ Ο ΚΑΝΟΝΑΣ ΠΟΥ ΑΚΥΡΩΝΕΙ ΟΛΟΚΛΗΡΗ ΤΗ ΣΥΓΚΡΙΣΗ ═══════════════════════
+          Ο υπολογισμός μπορεί να βγάζει τη βραχυχρόνια μπροστά κατά τρεις
+          χιλιάδες ευρώ και να μην έχει καμία σημασία: αν το ακίνητο είναι σε
+          περιοχή όπου δεν δίνεται νέος ΑΜΑ, η επιλογή δεν υπάρχει. Κανένα
+          εργαλείο της αγοράς δεν το λέει αυτό δίπλα στο νούμερο, και είναι το
+          πρώτο που πρέπει να ελέγξει ο ιδιοκτήτης.
+
+          ΤΟ ΚΕΙΜΕΝΟ ΔΕΝ ΞΑΝΑΓΡΑΦΕΤΑΙ ΕΔΩ. Έρχεται από τον ίδιο πίνακα κανόνων
+          που διαβάζει η Συμβουλευτική και ο βοηθός μέσα στην εφαρμογή, με τη
+          νομική βάση και την πηγή του: αλλιώς η δημόσια σελίδα και η εφαρμογή
+          θα έλεγαν διαφορετικά πράγματα για τον ίδιο νόμο. */}
+      {AMA_RULE && (
+        <div style={{
+          marginTop: 20, padding: 'clamp(14px,2.6vw,18px)', borderRadius: T.radius.inner,
+          background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
+        }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+            color: 'var(--text-tertiary)', marginBottom: 7 }}>
+            Πριν αποφασίσεις
+          </div>
+          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, color: 'var(--text-secondary)' }}>
+            <strong style={{ color: 'var(--text-primary)' }}>{AMA_RULE.title}</strong>{' '}
+            {AMA_RULE.summary}
+          </p>
+          <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--text-tertiary)' }}>
+            {AMA_RULE.legalBasis} · ισχύς {AMA_RULE.effective}
+            {AMA_RULE.sourceHref && <>{' · '}
+              <a href={AMA_RULE.sourceHref} target="_blank" rel="noopener noreferrer"
+                style={{ color: 'var(--accent)' }}>{AMA_RULE.sourceLabel}</a>
+            </>}
+          </p>
+        </div>
+      )}
 
       <ToolCta
         title="Η απόφαση παίρνεται μία φορά, η διαχείριση κάθε μέρα."
