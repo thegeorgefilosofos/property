@@ -1,7 +1,7 @@
+'use client'
 // ═══════════════════════════════════════════════════════════════════════════
 // Η ΚΑΡΤΕΛΑ ΜΙΑΣ ΕΚΚΡΕΜΟΤΗΤΑΣ
 // ═══════════════════════════════════════════════════════════════════════════
-'use client'
 import { useState } from 'react'
 import { T, Modal, Btn, fe, formGrid } from '@/components/Theme'
 import { WHO_LABEL } from '@/lib/accounting/dossier'

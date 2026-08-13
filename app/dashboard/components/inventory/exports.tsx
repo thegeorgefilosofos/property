@@ -1,3 +1,4 @@
+'use client'
 // ═══════════════════════════════════════════════════════════════════════════
 // ΟΙ ΤΡΕΙΣ ΕΞΑΓΩΓΕΣ ΤΗΣ ΑΠΟΓΡΑΦΗΣ
 // ─────────────────────────────────────────────────────────────────────────
@@ -9,7 +10,6 @@
 // πόσα αντικείμενα λείπει το κόστος αντικατάστασης: ένα ελλιπές άθροισμα που
 // παρουσιάζεται ως πλήρες είναι υπασφάλιση που φαίνεται μόνο μετά τη ζημιά.
 // ═══════════════════════════════════════════════════════════════════════════
-'use client'
 import { downloadTableXlsx } from '../exportCsv'
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rPct, rEsc } from '../reportPdf'
 import { ENERGY_MODE_LABEL } from '@/lib/property/energy'

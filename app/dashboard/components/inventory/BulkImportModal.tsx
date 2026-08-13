@@ -1,7 +1,7 @@
+'use client'
 // ═══════════════════════════════════════════════════════════════════════════
 // ΜΑΖΙΚΗ ΕΙΣΑΓΩΓΗ ΑΠΟΓΡΑΦΗΣ: ΑΡΧΕΙΟ, ΕΠΙΚΟΛΛΗΣΗ, Η ΕΤΟΙΜΟ ΠΡΟΤΥΠΟ
 // ═══════════════════════════════════════════════════════════════════════════
-'use client'
 import { useState, useRef, useCallback } from 'react'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { T, Modal, Btn, fe, ABSENT } from '@/components/Theme'

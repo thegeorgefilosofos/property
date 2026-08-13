@@ -167,7 +167,7 @@ eq('υπέρ του χρήστη', costVariance(200, 143), -57);
   const dir = 'app/dashboard/components/checklist'
   const raw = [
     readFileSync('app/dashboard/components/TabChecklist.tsx', 'utf8'),
-    ...readdirSync(dir).sort().map(f => readFileSync(`${dir}/${f}`, 'utf8')),
+    ...readdirSync(dir).sort().filter(f => !f.endsWith('.test.ts')).map(f => readFileSync(`${dir}/${f}`, 'utf8')),
   ].join('\n')
   // Τα σχόλια ΕΞΑΙΡΟΥΝΤΑΙ: το αρχείο τεκμηριώνει ρητά τι σβήστηκε και γιατί, και
   // αυτή η τεκμηρίωση δεν πρέπει να πέφτει πάνω στον φρουρό. Ελέγχεται ο κώδικας.

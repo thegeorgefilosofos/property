@@ -12,6 +12,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { fd } from '@/components/Theme'
 import { daysUntil as athensDaysUntil } from '@/lib/core/time'
+import { addMonths as addCalendarMonths } from '@/lib/loans/progress'
 import type { ChecklistItemsRow } from '@/lib/supabase/tables'
 import {
   CATEGORIES, PRIORITIES, STATUSES,
@@ -47,17 +48,26 @@ export function getStatusMeta(v: string) { return byValue(STATUSES, v, 'pending'
 export function priDotColor(v: string) { return v === 'critical' ? 'var(--text-primary)' : 'var(--text-tertiary)' }
 /** Δείχνεται τελεία; Μόνο για ανεβασμένη προτεραιότητα. */
 export function priShowDot(v: string) { return v === 'critical' || v === 'high' }
-// Ίδιο σφάλμα θερινής ώρας με τη λήξη μίσθωσης: τα `setMonth`/`setFullYear`
-// είναι ΤΟΠΙΚΑ πάνω σε ημερομηνία που γεννήθηκε σε UTC. Μια μηνιαία εργασία με
-// προθεσμία 20 Μαρτίου έπαιρνε επόμενη προθεσμία 19 Απριλίου, και κάθε επόμενη
-// έχανε άλλη μία μέρα — η απόκλιση συσσωρευόταν χρόνο με τον χρόνο.
+// ΔΥΟ ΣΦΑΛΜΑΤΑ ΣΤΗΝ ΙΔΙΑ ΓΡΑΜΜΗ, ΚΑΙ ΤΟ ΔΕΥΤΕΡΟ ΕΖΗΣΕ ΤΗ ΔΙΟΡΘΩΣΗ ΤΟΥ ΠΡΩΤΟΥ.
+//
+// Το πρώτο ήταν η ώρα: τα `setMonth`/`setFullYear` είναι ΤΟΠΙΚΑ πάνω σε
+// ημερομηνία γεννημένη σε UTC, οπότε μια μηνιαία εργασία με προθεσμία 20
+// Μαρτίου έπαιρνε 19 Απριλίου και κάθε επόμενη έχανε άλλη μία μέρα.
+//
+// Το δεύτερο ήταν η υπερχείλιση, και έμεινε: το `setUTCMonth(+1)` πάνω σε 31
+// Ιανουαρίου δίνει 31 Φεβρουαρίου, που ο JavaScript «διορθώνει» σε 3 Μαρτίου.
+// Δηλαδή κάθε επαναλαμβανόμενη εργασία με προθεσμία στο τέλος του μήνα
+// ολίσθαινε δύο ή τρεις μέρες μέσα στον επόμενο, κάθε φορά.
+//
+// Η σωστή πρόσθεση μηνών —με το κλείδωμα στην τελευταία ημέρα του μήνα— είναι
+// γραμμένη και δοκιμασμένη μία φορά, στο `lib/loans/progress`. Δεν γράφεται
+// δεύτερη εδώ: δύο αντίγραφα του ίδιου ημερολογιακού κανόνα αποκλίνουν.
+const RECUR_MONTHS: Readonly<Record<Recurring, number>> = {
+  none: 0, monthly: 1, quarterly: 3, yearly: 12,
+}
+
 export function nextDueDate(due: string, recurring: Recurring): string {
-  const d = new Date(`${due}T00:00:00Z`)
-  if (Number.isNaN(d.getTime())) return due
-  if (recurring === 'monthly') d.setUTCMonth(d.getUTCMonth() + 1)
-  else if (recurring === 'quarterly') d.setUTCMonth(d.getUTCMonth() + 3)
-  else if (recurring === 'yearly') d.setUTCFullYear(d.getUTCFullYear() + 1)
-  return d.toISOString().slice(0, 10)
+  return addCalendarMonths(due, RECUR_MONTHS[recurring]) ?? due
 }
 // ── Η σημείωση ως φάκελος ──────────────────────────────────────────────────
 // Η στήλη `note` κρατά JSON (__cv:2) με τη σημείωση, τις υπο-εργασίες, τα σχόλια
