@@ -12,7 +12,7 @@ import * as properties from '@/lib/data/properties';
 // Το προφίλ χρέωσης έχει ένα σπίτι: lib/data/billing.
 import * as billing from '@/lib/data/billing';
 import { TextInput, CustomSelect } from './UIComponents';
-import { T, Btn, InfoBanner, Spinner, Card, SecHdr, formGrid } from '@/components/Theme';
+import { T, Btn, InfoBanner, Spinner, Card, SecHdr, fixedCols } from '@/components/Theme';
 import { ALL_COUNTRIES, isEuCountry, isReverseCharge, missingInvoiceFields, type InvoiceProfile } from '@/lib/billing/invoiceProfile';
 import { determineVat, vatTreatmentLabel } from '@/lib/billing/invoicing';
 
@@ -105,7 +105,14 @@ export default function Billing({ userId }: { userId: string }) {
             Προσυμπληρώσαμε ό,τι ήδη ξέραμε από το ακίνητό σου. Έλεγξέ τα και αποθήκευσε.
           </div>
         )}
-        <div style={{ ...formGrid(220, 297), gap: 14 }}>
+        {/* ΤΡΕΙΣ ΣΤΗΛΕΣ, ΓΡΑΜΜΕΝΕΣ ΩΣ ΑΠΟΦΑΣΗ. Το `formGrid` κόβει κάθε στήλη σε
+            σταθερό μέγιστο, οπότε στην κάρτα των ρυθμίσεων έβγαζε δύο πεδία
+            ανά σειρά και μισή κάρτα άδεια δεξιά: έντεκα πεδία σε έξι σειρές,
+            με τη φόρμα να εκτείνεται πιο κάτω από την οθόνη. Με τρεις στήλες
+            γίνονται τέσσερις σειρές και η φόρμα διαβάζεται με μια ματιά.
+            Η στοίχιση είναι στην ΚΟΡΥΦΗ: μια ετικέτα δύο γραμμών δεν σπρώχνει
+            το διπλανό πεδίο πιο κάτω από τα υπόλοιπα της σειράς. */}
+        <div {...fixedCols(3, 14, 'start')}>
           <CustomSelect label="Τύπος παραστατικού" value={d.doc_type} onChange={v => set('doc_type', v)}
             options={[{ value: 'receipt', label: 'Απόδειξη (ιδιώτης)' }, { value: 'invoice', label: 'Τιμολόγιο (επιχείρηση)' }]} />
           <CustomSelect label="Χώρα" value={country} onChange={v => set('country', v)}
@@ -134,7 +141,7 @@ export default function Billing({ userId }: { userId: string }) {
         )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 16 }}>
           <Btn variant="primary" onClick={save} disabled={saving}>{saving ? 'Αποθήκευση…' : 'Αποθήκευση στοιχείων'}</Btn>
-          {saved && <span style={{ fontSize: 12, color: 'var(--positive)', fontFamily: T.font.sans, fontWeight: 600 }}>Αποθηκεύτηκε ✓</span>}
+          {saved && <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, fontWeight: 600 }}>Αποθηκεύτηκε</span>}
           {saveErr && <span style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans }}>Δεν αποθηκεύτηκε. Δοκίμασε ξανά.</span>}
         </div>
       </Card>
@@ -146,7 +153,7 @@ export default function Billing({ userId }: { userId: string }) {
           Ο λογαριασμός σου ξεκινά με <strong>τριάντα ημέρες δωρεάν δοκιμή</strong>, χωρίς καμία χρέωση όσο διαρκεί. Η πληρωμή με κάρτα ενεργοποιείται πολύ σύντομα· συμπλήρωσε από τώρα τα στοιχεία τιμολόγησης, ώστε η ενεργοποίηση να γίνει με ένα κλικ.
         </InfoBanner>
         <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 14 }}>
-          Η ακύρωση θα είναι τόσο απλή όσο και η εγγραφή: αλλάζεις, υποβαθμίζεις ή σταματάς όποτε θες, με ένα κλικ και χωρίς ερωτήσεις.
+          Η ακύρωση θα είναι τόσο απλή όσο και η εγγραφή: αλλάζεις πακέτο ή σταματάς όποτε θες, με ένα κλικ και χωρίς ερωτήσεις.
         </div>
       </Card>
     </div>

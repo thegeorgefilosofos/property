@@ -27,8 +27,18 @@ import { T, Card, SecHdr, Btn, Chip, TierBadge, feAuto, fixedCols } from '@/comp
 // ΟΙ ΣΤΗΛΕΣ ΕΙΝΑΙ ΤΑ ΠΛΑΝΑ ΠΟΥ ΜΠΟΡΕΙ ΝΑ ΑΓΟΡΑΣΕΙ ΚΑΠΟΙΟΣ — ΟΛΑ ΤΟΥΣ.
 // Έλειπαν το «Ένα ακίνητο» (3,90 €) και το «Γραφείο»: ο συνδρομητής του πρώτου
 // άνοιγε τη σύγκριση πλάνων και δεν έβρισκε το δικό του πλάνο πουθενά.
-type ComparedPlan = Extract<PlanId, 'free' | 'solo' | 'owner' | 'agency' | 'office'>;
-const COMPARED: ComparedPlan[] = ['free', 'solo', 'owner', 'agency', 'office'];
+// ═══ ΤΕΣΣΕΡΑ ΠΑΚΕΤΑ. ΤΟ «ΧΩΡΙΣ ΣΥΝΔΡΟΜΗ» ΔΕΝ ΕΙΝΑΙ ΠΑΚΕΤΟ ══════════════════
+//
+// Στεκόταν πρώτη στήλη στον τιμοκατάλογο, με τίτλο, ταγκλάιν, «Χωρίς χρέωση»
+// και δικό της κουμπί — δηλαδή διαβαζόταν ως προσφορά. Δεν είναι: είναι η
+// κατάσταση όπου ΔΕΝ έχεις πακέτο, ο σταθμός όπου κάθεται ο λογαριασμός ώσπου
+// να διαλέξεις. Δωρεάν είναι μόνο η δοκιμαστική περίοδος, και το λέει η
+// υποδοχή, η αρχική σελίδα και οι Όροι.
+//
+// Μια στήλη με τιμή 0 € δίπλα σε τέσσερις με τιμή δεν είναι διαφάνεια — είναι
+// πρόσκληση να μείνεις εκεί.
+type ComparedPlan = Extract<PlanId, 'solo' | 'owner' | 'agency' | 'office'>;
+const COMPARED: ComparedPlan[] = ['solo', 'owner', 'agency', 'office'];
 
 // ── Πίνακας δυνατοτήτων (μία πηγή, καθρεφτίζει τα entitlements) ─────────────
 type CellValue = boolean | string;
@@ -158,16 +168,11 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
             const allowed = isPlanAllowedForProfile(profileType, id);
             const locked = !allowed && !isCurrent;
             const popular = !locked && !isCurrent && id === recommended;
-            const isFree = p.priceMonthly === 0;
             const colRank = rankOf(id);
 
-            // ΤΟ «0 € ΓΙΑ ΠΑΝΤΑ» ΗΤΑΝ ΚΑΤΑΛΟΙΠΟ ΤΗΣ ΕΠΟΧΗΣ ΤΟΥ ΔΩΡΕΑΝ ΠΑΚΕΤΟΥ.
-            // Η βαθμίδα λέγεται πλέον «Χωρίς συνδρομή» και το tagline της είναι
-            // «Ώσπου να διαλέξεις πακέτο»: δεν είναι προϊόν με τιμή, είναι
-            // κατάσταση αναμονής. Και το «0 €» ήταν γραμμένο με το χέρι, χωρίς
-            // δεκαδικά, δίπλα σε τέσσερα ποσά που περνούν από τον μορφοποιητή.
-            const priceMain = isFree ? '' : cycle === 'annual' ? feAuto(annualPerMonth(id)) : feAuto(p.priceMonthly);
-            const priceUnit = isFree ? 'Χωρίς χρέωση' : 'τον μήνα';
+            // Κάθε στήλη έχει τιμή, οπότε δεν υπάρχει «χωρίς χρέωση» να
+            // ξεχωρίσει. Το ποσό περνά πάντα από τον μορφοποιητή.
+            const priceMain = cycle === 'annual' ? feAuto(annualPerMonth(id)) : feAuto(p.priceMonthly);
             // «12 ΜΗΝΕΣ ΣΤΗΝ ΤΙΜΗ ΤΩΝ Χ», ΟΠΩΣ ΚΑΙ ΣΤΗΝ ΑΡΧΙΚΗ. Ήταν «περίπου Ν
             // μήνες δωρεάν», που για το φθηνότερο πακέτο τύπωνε «περίπου 1 μήνες
             // δωρεάν»: πληθυντικός με το ένα, και «περίπου» μπροστά σε αριθμό που
@@ -183,21 +188,24 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
             // «Το πλάνο σου» με ζωντανή τελεία, και εκατόν πενήντα εικονοστοιχεία
             // πιο κάτω ένα ανενεργό κουμπί «Το τρέχον πλάνο σου». Η κονκάρδα το
             // λέει καλύτερα, γιατί είναι κατάσταση και όχι ενέργεια.
-            const cta = isCurrent
+            // ═══ ΕΝΑ ΚΟΥΜΠΙ, ΚΑΙ ΜΟΝΟ ΠΡΟΣ ΤΑ ΠΑΝΩ ═══════════════════════════
+            //
+            // Υπήρχαν τρία λεκτικά: «Αναβάθμιση», «Υποβάθμιση» και «Διακοπή
+            // συνδρομής». Τα δύο τελευταία έφυγαν, για διαφορετικό λόγο το
+            // καθένα.
+            //
+            // Η ΥΠΟΒΑΘΜΙΣΗ δεν χρειάζεται όνομα. Ολόκληρη η κάρτα είναι ήδη
+            // πατήσιμη: όποιος θέλει φθηνότερο πακέτο πατά εκείνο το πακέτο.
+            // Μια ετικέτα «Υποβάθμιση» κάτω από κάθε φθηνότερη στήλη είναι μια
+            // λέξη που δεν ζήτησε κανείς, τυπωμένη τρεις φορές στην ίδια σειρά.
+            //
+            // Η ΔΙΑΚΟΠΗ έφυγε μαζί με τη στήλη της. Δεν είναι πακέτο, και ένας
+            // τιμοκατάλογος δεν είναι το σημείο όπου προτείνεις στον συνδρομητή
+            // να σταματήσει. Γίνεται από τις Ρυθμίσεις της χρέωσης, όπου
+            // ανήκει.
+            const cta = isCurrent || locked || colRank <= curRank
               ? null
-              : locked
-                // Το ίδιο και με το «Κλειδωμένο»: η κλειδαριά είναι ήδη πάνω
-                // δεξιά στην κάρτα, με επεξήγηση στο tooltip. Ένα ανενεργό
-                // κουμπί δεν προσθέτει πληροφορία, προσθέτει χειριστήριο που
-                // δεν κάνει τίποτα.
-                ? null
-                : colRank > curRank
-                  ? <Btn variant="primary" onClick={() => onUpgrade?.()}>Αναβάθμιση</Btn>
-                  // ΤΟ «ΧΩΡΙΣ ΣΥΝΔΡΟΜΗ» ΔΕΝ ΕΙΝΑΙ ΥΠΟΒΑΘΜΙΣΗ, ΕΙΝΑΙ ΔΙΑΚΟΠΗ.
-                  // Η στήλη δεν είναι πακέτο· είναι η κατάσταση όπου δεν έχεις
-                  // πακέτο. Ένα κουμπί «Υποβάθμιση» εκεί υπόσχεται φθηνότερο
-                  // πλάνο και κάνει κάτι άλλο.
-                  : <Btn variant="ghost" onClick={() => onUpgrade?.()}>{isFree ? 'Διακοπή συνδρομής' : 'Υποβάθμιση'}</Btn>;
+              : <Btn variant="primary" onClick={() => onUpgrade?.()}>Αναβάθμιση</Btn>;
 
             return (
               <div key={id} className={locked ? undefined : 'acc-choice'} title={locked ? lockHint : undefined}
@@ -240,10 +248,10 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
                 {/* Τιμή */}
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginTop: 12 }}>
                   <span style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em', color: isCurrent ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{priceMain}</span>
-                  <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{priceUnit}</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>τον μήνα</span>
                 </div>
 
-                {!isFree && cycle === 'annual' && (
+                {cycle === 'annual' && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
                     <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{feAuto(p.priceAnnual)}/χρόνο</span>
                     {paidMonths > 0 && paidMonths < 12 && (
@@ -260,7 +268,7 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
                     από πάνω το μηνιαίο ισοδύναμο της ετήσιας και από κάτω κόστος
                     ανά ακίνητο βγαλμένο από άλλη τιμή. Δύο νούμερα που δεν
                     διαιρούνται μεταξύ τους, στην ίδια κάρτα. */}
-                {!isFree && Number.isFinite(p.maxProperties) && p.maxProperties > 1 && (
+                {Number.isFinite(p.maxProperties) && p.maxProperties > 1 && (
                   <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, marginTop: 8 }}>
                     {p.maxProperties} ακίνητα, {feAuto(Math.round(((cycle === 'annual' ? annualPerMonth(id) : p.priceMonthly) / p.maxProperties) * 100) / 100)} το καθένα τον μήνα.
                   </div>
