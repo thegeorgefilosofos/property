@@ -19,6 +19,7 @@
 // module με 'use client', αλλιώς σπάει το SSR (βλ. components/tokens.ts).
 // ═══════════════════════════════════════════════════════════════════════════
 import { Suspense } from 'react';
+import Link from 'next/link';
 import type { Metadata } from 'next';
 import { T } from '@/components/tokens';
 import { siteUrl } from '@/lib/core/site';
@@ -191,6 +192,22 @@ export default function Page() {
           </div>
         </section>
 
+        {/* Ο ΕΠΙΣΚΕΠΤΗΣ ΠΟΥ ΒΡΗΚΕ ΤΟΝ ΦΟΡΟ ΤΟΥ ΕΧΕΙ ΔΥΟ ΑΚΟΜΗ ΕΡΩΤΗΣΕΙΣ, ΚΑΙ ΤΙΣ
+            ΑΠΑΝΤΟΥΝ ΟΙ ΔΙΠΛΑΝΕΣ ΣΕΛΙΔΕΣ. Τα τρία εργαλεία είναι μια αλυσίδα, όχι
+            τρεις άσχετες σελίδες που τυχαίνει να ζουν στο ίδιο domain. */}
+        <section style={{ marginTop: 'clamp(40px,5vw,60px)' }}>
+          <SectionHead over="Και μετά" title="Ο φόρος δεν είναι το μόνο που πληρώνεις" />
+          <p style={{ fontSize: 15, lineHeight: 1.7, color: 'var(--text-secondary)', margin: 0, maxWidth: 720 }}>
+            Ο ΕΝΦΙΑ είναι φόρος <strong style={{ color: 'var(--text-primary)' }}>κατοχής</strong> και
+            υπολογίζεται χωριστά: δες τον{' '}
+            <Link href="/ypologismos-enfia" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
+              υπολογισμό ΕΝΦΙΑ
+            </Link>. Και αν σκέφτεσαι να βγάλεις το ακίνητο σε βραχυχρόνια, η{' '}
+            <Link href="/vraxyxronia-i-makroxronia" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
+              σύγκριση βραχυχρόνιας και μακροχρόνιας
+            </Link>{' '}δείχνει από ποια πληρότητα και πάνω συμφέρει.
+          </p>
+        </section>
       </main>
 
       <PublicFooter />

@@ -1,0 +1,187 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// ΒΡΑΧΥΧΡΟΝΙΑ Ή ΜΑΚΡΟΧΡΟΝΙΑ — η δημόσια σελίδα
+// ─────────────────────────────────────────────────────────────────────────
+// ΤΡΙΤΟ ΔΩΡΕΑΝ ΕΡΓΑΛΕΙΟ, ΚΑΙ ΤΟ ΠΙΟ ΑΚΡΙΒΟ ΣΕ ΣΥΝΕΠΕΙΕΣ. Οι δύο πρώτοι
+// υπολογιστές απαντούν σε ερώτηση πληροφορίας («πόσο φόρο», «πόσο ΕΝΦΙΑ»).
+// Αυτός απαντά σε ερώτηση ΑΠΟΦΑΣΗΣ: κάποιος θα βγάλει ή θα βάλει ενοικιαστή με
+// βάση το νούμερο. Γι' αυτό η λογική ζει σε δικό της αρχείο με 36 δοκιμές
+// (lib/tools/shortVsLong.ts) και η σελίδα γράφει ρητά κάθε παραδοχή.
+//
+// ΓΙΑΤΙ ΦΕΡΝΕΙ ΕΠΙΣΚΕΨΕΙΣ. Είναι η πιο συζητημένη ερώτηση της ελληνικής αγοράς
+// ακινήτων και δεν την απαντά σωστά κανείς: τα εργαλεία που κυκλοφορούν
+// πολλαπλασιάζουν τιμή επί νύχτες. Η διαφορά μας δεν είναι το σχέδιο, είναι ότι
+// μετράμε το τέλος ανθεκτικότητας, την προμήθεια που δεν εκπίπτει και το
+// ανέβασμα κλιμακίου — δηλαδή ακριβώς τα τέσσερα που κάνουν τη σύγκριση να
+// γυρίσει ανάποδα.
+//
+// Κόστος λειτουργίας: μηδέν. Υπολογισμός στη συσκευή, καμία εγγραφή.
+// ═══════════════════════════════════════════════════════════════════════════
+import { Suspense } from 'react';
+import Link from 'next/link';
+import type { Metadata } from 'next';
+import { T } from '@/components/tokens';
+import { siteUrl } from '@/lib/core/site';
+import { PublicHeader, PublicFooter, SectionHead, WRAP, WRAP_PAD } from '../PublicChrome';
+import { BackLink } from '../BackLink';
+import { ShortVsLongCalculator } from './ShortVsLongCalculator';
+
+const TITLE = 'Βραχυχρόνια ή μακροχρόνια μίσθωση; · δωρεάν υπολογισμός 2026';
+const DESC =
+  'Σύγκρινε τι σου αφήνει πραγματικά η βραχυχρόνια και τι η μακροχρόνια μίσθωση, '
+  + 'με το τέλος ανθεκτικότητας, την προμήθεια της πλατφόρμας, τα λειτουργικά και τον '
+  + 'φόρο του 2026. Δες από ποια πληρότητα και πάνω συμφέρει. Χωρίς εγγραφή.';
+const URL = siteUrl('/vraxyxronia-i-makroxronia');
+
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESC,
+  alternates: { canonical: URL },
+  openGraph: {
+    title: TITLE, description: DESC, url: URL,
+    siteName: 'Property OS', locale: 'el_GR', type: 'website',
+  },
+  twitter: { card: 'summary_large_image', title: TITLE, description: DESC },
+};
+
+// Οι ερωτήσεις που κάνει πραγματικά ο ιδιοκτήτης πριν αποφασίσει. Ίδια πηγή για
+// τη σελίδα και για το δομημένο σχήμα, ώστε να μη διαφωνήσουν ποτέ.
+const FAQ: { q: string; a: string }[] = [
+  {
+    q: 'Τι είναι η πληρότητα ισορροπίας;',
+    a: 'Είναι το ποσοστό των νυχτών του χρόνου από το οποίο και πάνω η βραχυχρόνια αφήνει '
+     + 'περισσότερα από τη μακροχρόνια. Είναι το νούμερο που πραγματικά αποφασίζει, γιατί δεν '
+     + 'εξαρτάται από το πόσο αισιόδοξος ήσουν στην πρόβλεψη της πληρότητας: το συγκρίνεις με ό,τι '
+     + 'ξέρεις για την περιοχή σου και απαντάς μόνος σου.',
+  },
+  {
+    q: 'Τι είναι το τέλος ανθεκτικότητας και ποιος το πληρώνει;',
+    a: 'Είναι τέλος ανά διανυκτέρευση που εισπράττει ο οικοδεσπότης από τον επισκέπτη και το '
+     + 'αποδίδει στο κράτος. Δεν είναι έσοδό σου, οπότε μειώνει το δηλωτέο ακαθάριστο. Είναι '
+     + 'σημαντικά υψηλότερο στην υψηλή περίοδο (Απρίλιος έως Οκτώβριος) και εξαρτάται από τον τύπο '
+     + 'και το μέγεθος του ακινήτου.',
+  },
+  {
+    q: 'Η προμήθεια της πλατφόρμας εκπίπτει;',
+    a: 'Για φυσικό πρόσωπο που δηλώνει εισόδημα από ακίνητη περιουσία, όχι: ο φόρος υπολογίζεται '
+     + 'στο ακαθάριστο με την τεκμαρτή έκπτωση 5%, ανεξάρτητα από το τι κράτησε η πλατφόρμα. '
+     + 'Πρακτικά φορολογείσαι και σε ποσό που δεν εισέπραξες ποτέ, και γι’ αυτό η προμήθεια '
+     + 'μετράει διπλά στη σύγκριση.',
+  },
+  {
+    q: 'Γιατί το αποτέλεσμα διαφέρει από το «τιμή επί 365»;',
+    a: 'Επειδή από εκείνο τον πολλαπλασιασμό λείπουν πέντε πράγματα: η πληρότητα, το τέλος '
+     + 'ανθεκτικότητας, η προμήθεια της πλατφόρμας, τα λειτουργικά (καθαριότητα, αναλώσιμα, ρεύμα, '
+     + 'νερό, ίντερνετ) και το ανέβασμα φορολογικού κλιμακίου. Στη μακροχρόνια τα λειτουργικά τα '
+     + 'πληρώνει ο ενοικιαστής.',
+  },
+  {
+    q: 'Μπορώ να νοικιάζω βραχυχρόνια όπου θέλω;',
+    a: 'Όχι παντού. Ισχύουν περιορισμοί νέων εγγραφών στο Μητρώο Βραχυχρόνιας Διαμονής σε '
+     + 'ορισμένες περιοχές, και ο αριθμός των ακινήτων αλλάζει το φορολογικό καθεστώς: από τρία '
+     + 'ακίνητα και πάνω η δραστηριότητα θεωρείται επιχειρηματική. Έλεγξε τη ζώνη και το καθεστώς '
+     + 'σου πριν αποφασίσεις.',
+  },
+  {
+    q: 'Τα δεδομένα μου αποθηκεύονται;',
+    a: 'Όχι. Ο υπολογισμός γίνεται εξ ολοκλήρου στον browser σου. Κανένα ποσό δεν στέλνεται σε '
+     + 'διακομιστή και δεν χρειάζεται ούτε email ούτε εγγραφή.',
+  },
+];
+
+export default function Page() {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebApplication',
+        name: 'Βραχυχρόνια ή μακροχρόνια μίσθωση',
+        url: URL,
+        applicationCategory: 'FinanceApplication',
+        operatingSystem: 'Web',
+        inLanguage: 'el',
+        description: DESC,
+        offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+      },
+      {
+        '@type': 'FAQPage',
+        mainEntity: FAQ.map(f => ({
+          '@type': 'Question', name: f.q,
+          acceptedAnswer: { '@type': 'Answer', text: f.a },
+        })),
+      },
+    ],
+  };
+
+  return (
+    <div className="po-tool-page" style={{ background: 'var(--bg-base)', color: 'var(--text-primary)', minHeight: '100vh', fontFamily: T.font.sans }}>
+      <script type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}/>
+
+      <PublicHeader />
+
+      <main style={{ ...WRAP, padding: `clamp(28px,4vw,44px) ${WRAP_PAD} clamp(56px,7vw,88px)` }}>
+        <BackLink />
+        <div className="lp-eyebrow">Δωρεάν εργαλείο</div>
+        <h1 style={{ fontSize: 'clamp(28px,4.4vw,42px)', fontWeight: 680, letterSpacing: '-0.035em',
+          lineHeight: 1.1, margin: '0 0 14px', textWrap: 'balance' }}>
+          Βραχυχρόνια ή μακροχρόνια;
+        </h1>
+        {/* Ίδια δομή με τους δύο αδελφούς υπολογιστές: η υπόσχεση κλείνει με την
+            άνω τελεία της, η εγγύηση απορρήτου πιάνει δική της σειρά, και η
+            υποσημείωση ακολουθεί με αστερίσκο στο τέλος της. */}
+        <p style={{ fontSize: 'clamp(15px,2vw,17px)', lineHeight: 1.6, color: 'var(--text-secondary)',
+          margin: '0 0 clamp(26px,3.5vw,36px)', maxWidth: 1044, textWrap: 'pretty' }}>
+          <span style={{ display: 'block' }}>Με το τέλος ανθεκτικότητας, την προμήθεια, τα λειτουργικά και τον φόρο του 2026. Χωρίς εγγραφή και χωρίς email:</span>
+          ο υπολογισμός γίνεται στη συσκευή σου και μένει εκεί.
+          <span style={{ fontSize: 12, color: 'var(--text-tertiary)', marginLeft: 14 }}>
+            *Οι ίδιοι υπολογισμοί που τρέχει το Property OS.
+          </span>
+        </p>
+
+        {/* Ο υπολογιστής διαβάζει τη διεύθυνση, άρα θέλει όριο αναμονής: χωρίς
+            αυτό, ολόκληρη η σελίδα θα έβγαινε από τη στατική απόδοση και θα
+            έχανε το SEO για το οποίο υπάρχει. */}
+        <Suspense fallback={<div style={{ minHeight: 480 }} aria-hidden/>}>
+          <ShortVsLongCalculator/>
+        </Suspense>
+
+        <section style={{ marginTop: 'clamp(44px,6vw,72px)' }}>
+          <SectionHead over="Συχνές ερωτήσεις" title="Ό,τι ρωτούν πριν αποφασίσουν" />
+          <div style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+            {FAQ.map(f => (
+              <details key={f.q} className="lp-faq" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                <summary style={{ cursor: 'pointer', listStyle: 'none', padding: '17px 0', fontSize: 15,
+                  fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+                  {f.q}
+                  <span className="lp-plus" style={{ color: 'var(--accent)', fontSize: 20, fontWeight: 450,
+                    lineHeight: 1, transition: 'transform .2s', flexShrink: 0 }}>+</span>
+                </summary>
+                <p style={{ margin: '0 0 18px', fontSize: 15, lineHeight: 1.65, color: 'var(--text-secondary)' }}>
+                  {f.a}
+                </p>
+              </details>
+            ))}
+          </div>
+        </section>
+
+        {/* ΤΑ ΤΡΙΑ ΕΡΓΑΛΕΙΑ ΕΙΝΑΙ ΜΙΑ ΑΛΥΣΙΔΑ, ΟΧΙ ΤΡΕΙΣ ΣΕΛΙΔΕΣ. Όποιος
+            αποφάσισε τρόπο εκμετάλλευσης έχει αμέσως δύο ακόμη ερωτήσεις, και
+            τις απαντούν οι διπλανές σελίδες. */}
+        <section style={{ marginTop: 'clamp(40px,5vw,60px)' }}>
+          <SectionHead over="Και μετά" title="Ο φόρος και ο ΕΝΦΙΑ υπολογίζονται χωριστά" />
+          <p style={{ fontSize: 15, lineHeight: 1.7, color: 'var(--text-secondary)', margin: 0, maxWidth: 720 }}>
+            Η σύγκριση δείχνει τι σου αφήνει κάθε επιλογή. Για τον ίδιο τον φόρο των ενοικίων δες τον{' '}
+            <Link href="/ypologismos-forou-enoikion" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
+              υπολογισμό φόρου ενοικίων
+            </Link>, και για τον φόρο κατοχής, που τον πληρώνεις όποιον τρόπο κι αν διαλέξεις, τον{' '}
+            <Link href="/ypologismos-enfia" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
+              υπολογισμό ΕΝΦΙΑ
+            </Link>.
+          </p>
+        </section>
+      </main>
+
+      <PublicFooter />
+    </div>
+  );
+}

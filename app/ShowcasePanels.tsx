@@ -59,18 +59,36 @@ export function PanelDashboard() {
         ))}
       </div>
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
+        {/* ═══ ΤΟ ΠΟΣΟ ΕΒΓΑΙΝΕ ΕΞΩ ΑΠΟ ΤΟ ΠΛΑΚΙΔΙΟ ═════════════════════════════
+            ΤΙ ΣΥΝΕΒΑΙΝΕ. Το «1.250,00 €» είναι δέκα χαρακτήρες· τα άλλα δύο
+            πλακίδια έχουν πέντε και τρεις. Με μέγεθος δεμένο στο ΠΛΑΤΟΣ ΟΘΟΝΗΣ
+            (2.1vw) και χωρίς αναδίπλωση, το ποσό δεν είχε πού να χωρέσει σε στήλη που
+            είναι το ένα τρίτο ενός πάνελ: το ευρώ έβγαινε έξω από το περίγραμμα.
+            Στην αρχική σελίδα, δηλαδή στην πρώτη εικόνα του προϊόντος.
+
+            ΓΙΑΤΙ ΔΕΝ ΑΡΚΕΙ ΜΙΚΡΟΤΕΡΗ ΓΡΑΜΜΑΤΟΣΕΙΡΑ. Ένα μικρότερο σταθερό
+            μέγεθος λύνει τη μία οθόνη και σπάει την επόμενη· το πρόβλημα δεν
+            είναι το μέγεθος αλλά ότι μετριέται με λάθος μονάδα. Η οθόνη δεν
+            ξέρει πόσο πλατύ είναι το πάνελ.
+
+            Η ΛΥΣΗ: το πάνελ γίνεται ΔΟΧΕΙΟ και το μέγεθος μετριέται σε cqi,
+            δηλαδή σε ποσοστό του δικού του πλάτους. Ο συντελεστής βγαίνει από
+            τον ΠΛΑΤΥΤΕΡΟ αριθμό και από το καθαρό πλάτος του πλακιδίου
+            (πλάτος/3 μείον γεμίσματα και κενά), με περιθώριο ασφαλείας.
+            Και επειδή το δοχείο είναι το πάνελ και όχι το κάθε πλακίδιο, τα
+            τρία ποσά έχουν ΤΟ ΙΔΙΟ μέγεθος: αλλιώς το φαρδύ θα μίκραινε μόνο
+            του και η σειρά θα είχε τρεις τυπογραφίες. */}
+        <div style={{ containerType: 'inline-size', display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
           {kpis.map(([l, v], i) => (
-            <div key={i} className="lp-live" style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '13px 14px', minWidth: 0 }}>
+            <div key={i} className="lp-live" style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '13px 14px', minWidth: 0, overflow: 'hidden' }}>
               {/* Η ΕΤΙΚΕΤΑ ΚΟΒΟΤΑΝ ΜΕ ΑΠΟΣΙΩΠΗΤΙΚΑ: «ΚΑΘΑΡΗ…», «ΜΗΝΙΑΙ…»,
-                  «ΠΛΗΡΟΤ…». Τρεις στήλες σε πάνελ που στενεύει με την οθόνη δεν
-                  χωρούν δεκατέσσερις χαρακτήρες, και το κόψιμο έκρυβε ακριβώς τη
-                  λέξη που εξηγεί τον αριθμό. Δοκιμάστηκε το τύλιγμα σε δύο
-                  σειρές και ήταν χειρότερο: δύο ετικέτες σε δύο σειρές, μία σε
-                  μία, δηλαδή σειρά ακανόνιστη. Η λύση ήταν στα ΟΝΟΜΑΤΑ, όχι στο
-                  κουτί — μία λέξη η καθεμία. */}
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, lineHeight: 1.3, whiteSpace: 'nowrap' }}>{l}</div>
-              <div style={{ fontFamily: T.font.sans, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.025em', fontSize: 'clamp(14px, 2.1vw, 19px)', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.1, whiteSpace: 'nowrap' }}>{v}</div>
+                  «ΠΛΗΡΟΤ…». Πρώτα διορθώθηκαν τα ΟΝΟΜΑΤΑ, μία λέξη το καθένα.
+                  Το «ΕΣΟΔΑ/ΜΗΝΑ» όμως είναι ακόμη δέκα κεφαλαία με αραίωση και
+                  ξεχειλίζει από το ίδιο πλακίδιο λίγο μετά τον αριθμό, οπότε
+                  παίρνει την ίδια μονάδα με αυτόν: διορθωμένο μόνο το ένα από
+                  τα δύο θα άφηνε το άλλο να σπάσει στο επόμενο στένεμα. */}
+              <div style={{ fontSize: 'clamp(8px, 2.8cqi, 10px)', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, lineHeight: 1.3, whiteSpace: 'nowrap' }}>{l}</div>
+              <div style={{ fontFamily: T.font.sans, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.025em', fontSize: 'clamp(11px, 4.2cqi, 19px)', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.1, whiteSpace: 'nowrap' }}>{v}</div>
             </div>
           ))}
         </div>

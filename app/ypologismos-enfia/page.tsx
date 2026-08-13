@@ -187,7 +187,10 @@ export default function Page() {
             αφαιρείται από το εισόδημα των ενοικίων: τα δύο ποσά αθροίζονται, δεν αλληλοεξουδετερώνονται. Αν
             νοικιάζεις το ακίνητο, δες και τον{' '}
             <Link href="/ypologismos-forou-enoikion" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
-              δωρεάν υπολογισμό φόρου ενοικίων
+              υπολογισμό φόρου ενοικίων
+            </Link>· και αν σκέφτεσαι να το βγάλεις σε βραχυχρόνια, τη{' '}
+            <Link href="/vraxyxronia-i-makroxronia" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
+              σύγκριση βραχυχρόνιας και μακροχρόνιας
             </Link>.
           </p>
         </section>

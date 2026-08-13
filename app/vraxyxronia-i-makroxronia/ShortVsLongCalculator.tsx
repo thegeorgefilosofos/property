@@ -1,0 +1,276 @@
+'use client';
+// ═══════════════════════════════════════════════════════════════════════════
+// ΒΡΑΧΥΧΡΟΝΙΑ Ή ΜΑΚΡΟΧΡΟΝΙΑ — ο διαδραστικός πυρήνας
+// ─────────────────────────────────────────────────────────────────────────
+// ΓΙΑΤΙ ΑΥΤΟΣ Ο ΤΡΙΤΟΣ ΥΠΟΛΟΓΙΣΤΗΣ ΚΑΙ ΟΧΙ ΚΑΠΟΙΟΣ ΑΛΛΟΣ. Είναι η ερώτηση που
+// κάνει κάθε Έλληνας ιδιοκτήτης πριν βάλει ή βγάλει ενοικιαστή, η απάντηση
+// υπάρχει ήδη δοκιμασμένη μέσα στην εφαρμογή, και κανείς δεν τη δίνει σωστά:
+// τα εργαλεία που κυκλοφορούν πολλαπλασιάζουν τιμή επί νύχτες και σταματούν
+// εκεί, αγνοώντας το τέλος ανθεκτικότητας, την προμήθεια που δεν εκπίπτει, τα
+// λειτουργικά και το ανέβασμα κλιμακίου.
+//
+// Η ΟΘΟΝΗ ΕΧΕΙ ΤΡΙΑ ΕΠΙΠΕΔΑ, ΜΕ ΑΥΤΗ ΤΗ ΣΕΙΡΑ:
+//   1. Η ΕΤΥΜΗΓΟΡΙΑ σε μία πρόταση, με το ποσό της διαφοράς.
+//   2. Η ΠΛΗΡΟΤΗΤΑ ΙΣΟΡΡΟΠΙΑΣ, που είναι το νούμερο που πραγματικά αποφασίζει:
+//      δεν εξαρτάται από το πόσο αισιόδοξος ήταν ο χρήστης στην πρόβλεψή του.
+//   3. Ο ΠΙΝΑΚΑΣ, όπου φαίνεται πού πήγαν τα χρήματα σε κάθε πλευρά.
+//
+// ΧΩΡΙΣ ΧΡΩΜΑ ΣΤΗΝ ΕΤΥΜΗΓΟΡΙΑ. Ούτε η βραχυχρόνια είναι «σωστή» ούτε η
+// μακροχρόνια «λάθος»· είναι δύο νόμιμες επιλογές με διαφορετικό ρίσκο και
+// διαφορετική δουλειά. Η έμφαση βγαίνει από μέγεθος και θέση.
+// ═══════════════════════════════════════════════════════════════════════════
+import { useMemo, useId } from 'react';
+import { T, feAuto, fp, fixedCols } from '@/components/tokens';
+import { fn } from '@/lib/core/format';
+import { parseAmount } from '@/lib/core/greek';
+import { compareShortVsLong, NIGHTS_PER_YEAR } from '@/lib/tools/shortVsLong';
+import { CustomSelect } from '@/app/dashboard/components/UIComponents';
+import { useToolState, ToolActions } from '@/app/ToolShare';
+import { ToolCta } from '@/app/PublicChrome';
+
+const amount = (s: string): number => Math.max(0, parseAmount(s) ?? 0);
+
+/** Τα πεδία όπως ταξιδεύουν στη διεύθυνση, με τις προεπιλογές τους. */
+const SPEC = {
+  enoikio: '700', timi: '80', plirotita: '60', tm: '75', typos: 'flat',
+  promitheia: '15', kostos: '12', pagia: '90',
+} as const;
+const PATH = '/vraxyxronia-i-makroxronia';
+
+const TYPES = [
+  { value: 'flat', label: 'Διαμέρισμα' },
+  { value: 'house', label: 'Μονοκατοικία' },
+];
+
+export function ShortVsLongCalculator() {
+  const [v, set] = useToolState(SPEC, PATH);
+  const ids = {
+    rent: useId(), price: useId(), occ: useId(), sqm: useId(),
+    fee: useId(), cost: useId(), fixed: useId(),
+  };
+
+  const r = useMemo(() => compareShortVsLong({
+    monthlyRent: amount(v.enoikio),
+    nightlyPrice: amount(v.timi),
+    occupancyPct: Math.min(100, amount(v.plirotita)),
+    sqm: amount(v.tm),
+    isHouse: v.typos === 'house',
+    platformFeePct: Math.min(100, amount(v.promitheia)),
+    costPerNight: amount(v.kostos),
+    fixedPerMonth: amount(v.pagia),
+  }), [v]);
+
+  const field: React.CSSProperties = {
+    width: '100%', height: T.h.lg, padding: '0 12px', borderRadius: T.radius.btn,
+    border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
+    color: 'var(--text-primary)', fontSize: 15, fontFamily: T.font.num,
+    fontVariantNumeric: 'tabular-nums', outline: 'none', boxSizing: 'border-box',
+  };
+  const label: React.CSSProperties = {
+    display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
+    textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 7,
+  };
+  const unit: React.CSSProperties = {
+    position: 'absolute', right: 13, top: '50%', transform: 'translateY(-50%)',
+    color: 'var(--text-tertiary)', fontSize: 14, pointerEvents: 'none',
+  };
+
+  /** Πεδίο με μονάδα μέσα του, όπως και στους δύο αδελφούς υπολογιστές. */
+  const num = (id: string, key: keyof typeof SPEC, text: string, suffix: string, pad = 34) => (
+    <div>
+      <label htmlFor={id} style={label}>{text}</label>
+      <div style={{ position: 'relative' }}>
+        <input id={id} inputMode="decimal" value={v[key]} onChange={e => set(key, e.target.value)}
+          style={{ ...field, paddingRight: pad }} aria-describedby={`${id}-u`}/>
+        <span id={`${id}-u`} aria-hidden style={unit}>{suffix}</span>
+      </div>
+    </div>
+  );
+
+  const be = r.breakEvenPct;
+
+  return (
+    <div style={{ fontFamily: T.font.sans }}>
+      {/* ── ΤΙ ΖΗΤΑΜΕ, ΚΑΙ ΓΙΑΤΙ ΤΟΣΑ ────────────────────────────────────────
+             Οκτώ πεδία είναι περισσότερα από τους άλλους δύο υπολογιστές, και
+             είναι τα ΛΙΓΟΤΕΡΑ που δίνουν τίμια απάντηση: χωρίς προμήθεια και
+             λειτουργικά, η σύγκριση γέρνει ψευδώς προς τη βραχυχρόνια, που
+             είναι ακριβώς το λάθος για το οποίο υπάρχει η σελίδα. */}
+      <div {...fixedCols(2, 14, 'start')}>
+        {num(ids.rent, 'enoikio', 'Μηνιαίο ενοίκιο', '€')}
+        {num(ids.price, 'timi', 'Τιμή ανά διανυκτέρευση', '€')}
+        {num(ids.occ, 'plirotita', 'Πληρότητα', '%')}
+        {num(ids.sqm, 'tm', 'Τετραγωνικά', 'τ.μ.', 44)}
+        <div>
+          <span style={label}>Τύπος ακινήτου</span>
+          <CustomSelect ariaLabel="Τύπος ακινήτου" value={v.typos}
+            onChange={x => set('typos', x)} options={TYPES}/>
+        </div>
+        {num(ids.fee, 'promitheia', 'Προμήθεια πλατφόρμας', '%')}
+        {num(ids.cost, 'kostos', 'Καθαριότητα ανά διανυκτέρευση', '€')}
+        {num(ids.fixed, 'pagia', 'Πάγια ανά μήνα', '€')}
+      </div>
+
+      <p style={{ margin: '10px 0 0', fontSize: 12, lineHeight: 1.6, color: 'var(--text-tertiary)' }}>
+        Η τιμή ανά διανυκτέρευση είναι όση πληρώνει ο επισκέπτης, με το τέλος ανθεκτικότητας μέσα.
+        Τα πάγια είναι ρεύμα, νερό και ίντερνετ, που στη μακροχρόνια τα πληρώνει ο ενοικιαστής.
+      </p>
+
+      {/* ── Το αποτέλεσμα ──────────────────────────────────────────────── */}
+      <div style={{
+        marginTop: 20, padding: 'clamp(18px, 4vw, 26px)', borderRadius: T.radius.card,
+        background: 'var(--surface-raised)', border: '1px solid var(--border-raised)',
+        boxShadow: 'var(--well-inset)',
+      }}>
+        {/* Η ΕΤΥΜΗΓΟΡΙΑ ΣΕ ΜΙΑ ΠΡΟΤΑΣΗ. Χωρίς αυτήν, ο επισκέπτης βλέπει δύο
+            ποσά και κάνει ο ίδιος την αφαίρεση — που είναι η μόνη πράξη για την
+            οποία ήρθε. Η ισοπαλία λέγεται ισοπαλία, δεν στρογγυλοποιείται προς
+            κάποια πλευρά. */}
+        <p style={{
+          margin: '0 0 18px', fontSize: 'clamp(16px, 2.2vw, 20px)', lineHeight: 1.4,
+          fontWeight: 650, letterSpacing: '-0.02em', color: 'var(--text-primary)', textWrap: 'balance',
+        }}>
+          {Math.abs(r.difference) < 1
+            ? 'Οι δύο επιλογές αφήνουν ουσιαστικά τα ίδια.'
+            : `Η ${r.difference > 0 ? 'βραχυχρόνια' : 'μακροχρόνια'} αφήνει ${feAuto(Math.abs(r.difference))} περισσότερα τον χρόνο.`}
+        </p>
+
+        <div {...fixedCols(2, 24, 'start')}>
+          <Figure label="Μακροχρόνια, καθαρά" value={feAuto(r.long.net)} />
+          <Figure label="Βραχυχρόνια, καθαρά" value={feAuto(r.short.net)} />
+        </div>
+
+        <div style={{ height: 1, background: 'var(--border-subtle)', margin: '20px 0 16px' }}/>
+
+        {/* ═══ ΤΟ ΝΟΥΜΕΡΟ ΠΟΥ ΑΠΟΦΑΣΙΖΕΙ ═══════════════════════════════════════
+            Τα δύο ποσά από πάνω απαντούν για την πληρότητα που ΜΑΝΤΕΨΕ ο
+            χρήστης — και ακριβώς αυτήν δεν την ξέρει· είναι η πιο αβέβαιη
+            είσοδος ολόκληρης της σελίδας. Το κατώφλι δεν εξαρτάται από την
+            πρόβλεψή του: το συγκρίνει με ό,τι ξέρει για τη γειτονιά του και
+            απαντά μόνος του. */}
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+            color: 'var(--text-tertiary)', marginBottom: 7 }}>
+            Πληρότητα ισορροπίας
+          </div>
+          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.65, color: 'var(--text-secondary)' }}>
+            {be === null
+              ? 'Ούτε με πλήρη πληρότητα η βραχυχρόνια δεν φτάνει τη μακροχρόνια, με αυτά τα δεδομένα.'
+              : be === 0
+                ? 'Η βραχυχρόνια βγαίνει μπροστά από την πρώτη κιόλας κράτηση.'
+                : <>Από <strong style={{ color: 'var(--text-primary)', fontFamily: T.font.num,
+                    fontVariantNumeric: 'tabular-nums' }}>{fp(be)}</strong> πληρότητα και πάνω η
+                    βραχυχρόνια αφήνει περισσότερα, δηλαδή από{' '}
+                    <strong style={{ color: 'var(--text-primary)', fontFamily: T.font.num,
+                      fontVariantNumeric: 'tabular-nums' }}>{fn(Math.ceil(be / 100 * NIGHTS_PER_YEAR))}</strong>{' '}
+                    διανυκτερεύσεις τον χρόνο.</>}
+          </p>
+        </div>
+      </div>
+
+      {/* ── Πού πήγαν τα χρήματα, στις δύο πλευρές ──────────────────────────
+             Κάθε γραμμή εκτός από την τελευταία είναι χρήμα που ΦΕΥΓΕΙ, οπότε ο
+             πίνακας διαβάζεται ως αφαίρεση που κλείνει: εισπράξεις μείον τα
+             τέσσερα δίνουν ακριβώς τα καθαρά. Ένας πίνακας που δεν κλείνει
+             μπροστά στον αναγνώστη είναι χειρότερος από κανέναν πίνακα. */}
+      <div style={{ marginTop: 26 }}>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 340 }}>
+            <caption style={{ captionSide: 'top', textAlign: 'left', fontSize: 11, fontWeight: 700,
+              letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)',
+              paddingBottom: 10 }}>
+              Πού πάνε τα χρήματα, τον χρόνο
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col" style={th}> </th>
+                <th scope="col" style={{ ...th, textAlign: 'right' }}>Μακροχρόνια</th>
+                <th scope="col" style={{ ...th, textAlign: 'right' }}>Βραχυχρόνια</th>
+              </tr>
+            </thead>
+            <tbody>
+              <Line k="Εισπράξεις" a={r.long.gross} b={r.short.guestTotal} />
+              <Line k="Τέλος ανθεκτικότητας" a={0} b={r.short.levy} />
+              <Line k="Φόρος εισοδήματος" a={r.long.tax} b={r.short.tax} />
+              <Line k="Προμήθεια πλατφόρμας" a={0} b={r.short.platformFee} />
+              <Line k="Καθαριότητα και πάγια" a={0} b={r.short.running} />
+              <Line k="Καθαρά" a={r.long.net} b={r.short.net} strong />
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <ToolActions path={PATH} spec={SPEC} values={v}/>
+
+      {/* ── Τι ΔΕΝ περιλαμβάνει ──────────────────────────────────────────── */}
+      <div style={{
+        marginTop: 22, padding: 'clamp(14px,2.6vw,18px)', borderRadius: T.radius.inner,
+        background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
+      }}>
+        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, color: 'var(--text-secondary)' }}>
+          <strong style={{ color: 'var(--text-primary)' }}>Τι δεν περιλαμβάνει.</strong>{' '}
+          Θεωρεί <strong>φυσικό πρόσωπο με έως δύο ακίνητα</strong>, που δεν παρέχει υπηρεσίες
+          πέρα από τη διαμονή: γι’ αυτό ισχύει η τεκμαρτή έκπτωση 5% και το τέλος παρεπιδημούντων
+          είναι μηδέν. Με τρία ακίνητα και πάνω, η δραστηριότητα γίνεται επιχειρηματική και
+          αλλάζουν και η κλίμακα και τα τέλη. Οι διανυκτερεύσεις μοιράζονται{' '}
+          <strong>ισομερώς στους δώδεκα μήνες</strong>· όποιος νοικιάζει κυρίως το καλοκαίρι
+          πληρώνει μεγαλύτερο τέλος ανθεκτικότητας από αυτό που δείχνει ο πίνακας. Δεν
+          περιλαμβάνει ΕΝΦΙΑ, ασφάλιση, έπιπλα και εξοπλισμό, κενά διαστήματα λόγω ανακαίνισης,
+          ούτε τους περιορισμούς εγγραφής ΑΜΑ σε ορισμένες περιοχές. Είναι{' '}
+          <strong>εκτίμηση</strong> για να ξέρεις την τάξη μεγέθους, όχι φορολογική συμβουλή.
+        </p>
+      </div>
+
+      <ToolCta
+        title="Η απόφαση παίρνεται μία φορά, η διαχείριση κάθε μέρα."
+        body="Το Property OS κρατά κρατήσεις, ενοίκια και δαπάνες στο ίδιο σημείο, υπολογίζει το τέλος ανθεκτικότητας ανά διανυκτέρευση και ετοιμάζει τη δήλωση με τα πραγματικά σου δεδομένα."
+      />
+    </div>
+  );
+}
+
+const th: React.CSSProperties = {
+  textAlign: 'left', padding: '8px 10px', fontSize: 11, fontWeight: 700,
+  letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)',
+  borderBottom: '1px solid var(--border-default)', whiteSpace: 'nowrap',
+};
+const td: React.CSSProperties = {
+  padding: '9px 10px', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-secondary)',
+};
+const numTd: React.CSSProperties = {
+  ...td, textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums',
+};
+
+function Line({ k, a, b, strong }: { k: string; a: number; b: number; strong?: boolean }) {
+  const weight = strong ? 700 : 400;
+  const ink = strong ? 'var(--text-primary)' : 'var(--text-secondary)';
+  return (
+    <tr>
+      <td style={{ ...td, fontWeight: strong ? 650 : 400, color: ink }}>{k}</td>
+      <td style={{ ...numTd, fontWeight: weight, color: ink }}>{feAuto(a)}</td>
+      <td style={{ ...numTd, fontWeight: weight, color: ink }}>{feAuto(b)}</td>
+    </tr>
+  );
+}
+
+/**
+ * Τα δύο καθαρά ποσά, ΙΣΟΜΕΓΕΘΗ.
+ *
+ * Ο υπολογιστής φόρου ενοικίων δίνει έμφαση στο ένα από τα δύο νούμερά του,
+ * γιατί εκεί το ένα είναι η απάντηση και το άλλο το κόστος της. Εδώ τα δύο
+ * ποσά είναι οι δύο υποψήφιες απαντήσεις: διαφορετικό μέγεθος θα ήταν υπόδειξη
+ * πριν καν διαβάσει ο επισκέπτης τα ποσά.
+ */
+function Figure({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+        color: 'var(--text-tertiary)', marginBottom: 7 }}>{label}</div>
+      <div style={{
+        fontFamily: T.font.num, fontSize: 'clamp(24px, 4.4vw, 32px)', fontWeight: 680,
+        letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', lineHeight: 1.1,
+        color: 'var(--text-primary)',
+      }}>{value}</div>
+    </div>
+  );
+}

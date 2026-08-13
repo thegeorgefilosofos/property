@@ -23,14 +23,13 @@ import { OBJECTIVE_VALUES } from '@/lib/tax/aade';
 // ακίνητο θα δει διαφορετικό ποσό στο εκκαθαριστικό.
 // ═══════════════════════════════════════════════════════════════════════════
 import { useMemo, useId } from 'react';
-import Link from 'next/link';
 import { T, feAuto, fixedCols } from '@/components/tokens';
 import { fn, feRate } from '@/lib/core/format';
 import { parseAmount } from '@/lib/core/greek';
-import { TRIAL_DAYS } from '@/lib/billing/plans';
 import { estimateENFIA, zoneKeyFromPricePerSqm, enfiaFloorCoef, enfiaAgeCoef, ENFIA_ZONE_TAX, ENFIA_FLOOR_COEF, ENFIA_AGE_BANDS } from '@/lib/billing/enfia';
 import { enfiaInstalments, ENFIA_INSTALMENTS } from '@/lib/tools/enfiaSchedule';
 import { useToolState, ToolActions } from '@/app/ToolShare';
+import { ToolCta } from '@/app/PublicChrome';
 
 const amount = (s: string): number => Math.max(0, parseAmount(s) ?? 0);
 
@@ -233,30 +232,10 @@ export function EnfiaCalculator({ year }: { year: number }) {
         </p>
       </div>
 
-      {/* Δεν τυπώνεται: σε χαρτί που πάει στον λογιστή, μια πρόσκληση για δοκιμή
-          δεν είναι πληροφορία. */}
-      <div className="po-noprint" style={{
-        marginTop: 20, padding: 'clamp(16px, 4vw, 22px)', borderRadius: T.radius.card,
-        border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)',
-        display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14,
-      }}>
-        <div style={{ flex: 1, minWidth: 220 }}>
-          <p style={{ margin: 0, fontSize: 14, fontWeight: 650, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
-            Έχεις παραπάνω από ένα ακίνητο;
-          </p>
-          <p style={{ margin: '5px 0 0', fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary)' }}>
-            Το Property OS υπολογίζει τον ΕΝΦΙΑ για όλο το χαρτοφυλάκιο μαζί, με τη σωστή
-            μείωση, και σου θυμίζει τις δόσεις πριν λήξουν. {TRIAL_DAYS} ημέρες δωρεάν δοκιμή, χωρίς δέσμευση.
-          </p>
-        </div>
-        <Link href="/signup" style={{
-          display: 'inline-flex', alignItems: 'center', gap: 8, height: 44, padding: '0 22px',
-          borderRadius: T.radius.pill, background: 'var(--accent)', color: 'var(--on-tone)',
-          fontSize: 14, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap',
-        }}>
-          Ξεκίνα τη δοκιμή
-        </Link>
-      </div>
+      <ToolCta
+        title="Έχεις παραπάνω από ένα ακίνητο;"
+        body="Το Property OS υπολογίζει τον ΕΝΦΙΑ για όλο το χαρτοφυλάκιο μαζί, με τη σωστή μείωση, και σου θυμίζει κάθε δόση πριν λήξει."
+      />
     </div>
   );
 }

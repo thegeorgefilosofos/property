@@ -25,6 +25,7 @@
 import BrandMark from '@/components/BrandMark';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { TRIAL_DAYS } from '@/lib/billing/plans';
 
 /**
  * ΕΝΑ ΜΕΤΡΟ ΓΙΑ ΟΛΕΣ ΤΙΣ ΔΗΜΟΣΙΕΣ ΣΕΛΙΔΕΣ — ΤΟ ΙΔΙΟ ΜΕ ΤΗΣ ΑΡΧΙΚΗΣ.
@@ -100,8 +101,8 @@ export function PublicFooter() {
           {/* ΤΡΕΙΣ ΣΤΗΛΕΣ ΤΩΝ ΤΡΙΩΝ. Η μεσαία είχε δύο συνδέσμους και έμοιαζε
               κολοβή δίπλα στις άλλες· έλειπε όμως και ο υπολογιστής ΕΝΦΙΑ, που
               υπάρχει, σερβίρεται και δεν τον έδειχνε καμία σελίδα. */}
-          <FootCol label="Προϊόν" links={[['/', 'Αρχική'], ['/signup', 'Ξεκίνα τη δοκιμή'], ['/login', 'Σύνδεση']]} />
-          <FootCol label="Εργαλεία" links={[['/ypologismos-forou-enoikion', 'Φόρος ενοικίων'], ['/ypologismos-enfia', 'ΕΝΦΙΑ'], ['/#faq', 'Συχνές ερωτήσεις']]} />
+          <FootCol label="Προϊόν" links={[['/', 'Αρχική'], ['/signup', 'Ξεκίνα τη δοκιμή'], ['/login', 'Σύνδεση'], ['/#faq', 'Συχνές ερωτήσεις']]} />
+          <FootCol label="Εργαλεία" links={[['/ypologismos-forou-enoikion', 'Φόρος ενοικίων'], ['/ypologismos-enfia', 'ΕΝΦΙΑ'], ['/vraxyxronia-i-makroxronia', 'Βραχυχρόνια ή μακροχρόνια']]} />
           <FootCol label="Εμπιστοσύνη" links={[['/trust', 'Ποιοι είμαστε'], ['/privacy', 'Απόρρητο'], ['/terms', 'Όροι χρήσης']]} />
         </div>
         <div style={{ marginTop: 'clamp(32px,4vw,48px)', paddingTop: 18, borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', fontSize: 12, color: 'var(--text-tertiary)' }}>
@@ -120,6 +121,54 @@ export function SectionHead({ over, title, sub }: { over: string; title: string;
       <div className="lp-eyebrow">{over}</div>
       <h2 style={{ fontSize: 'clamp(21px,3vw,28px)', fontWeight: 680, letterSpacing: '-0.03em', lineHeight: 1.15, margin: 0, textWrap: 'balance' }}>{title}</h2>
       {sub && <p style={{ fontSize: 15, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '10px 0 0', maxWidth: READING }}>{sub}</p>}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Η ΠΡΟΣΚΛΗΣΗ ΣΤΟ ΤΕΛΟΣ ΤΩΝ ΔΩΡΕΑΝ ΕΡΓΑΛΕΙΩΝ
+// ─────────────────────────────────────────────────────────────────────────
+// ΓΙΑΤΙ ΚΟΙΝΗ. Ο κάθε υπολογιστής έστηνε τη δική του κάρτα, με το χέρι: ίδια
+// γεωμετρία αντιγραμμένη, ίδιο κουμπί γραμμένο δύο φορές, και δύο εκδοχές της
+// φράσης για τη δοκιμή. Με τρίτο εργαλείο θα γίνονταν τρεις.
+//
+// ΔΥΟ ΓΡΑΜΜΕΣ, ΟΧΙ ΜΙΑ ΠΑΡΑΓΡΑΦΟΣ. Η υπόσχεση του προϊόντος και οι όροι της
+// δοκιμής είναι δύο διαφορετικά πράγματα και τα διαβάζει διαφορετικός
+// άνθρωπος: το πρώτο πείθει, το δεύτερο καθησυχάζει. Κολλημένα σε μία σειρά,
+// το «30 ημέρες δωρεάν» χανόταν στο τέλος μιας πρότασης για λογιστική.
+//
+// ΔΕΝ ΤΥΠΩΝΕΤΑΙ. Σε χαρτί που πάει στον λογιστή, μια πρόσκληση για δοκιμή δεν
+// είναι πληροφορία.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Η φράση της δοκιμής, μία φορά για όλα τα εργαλεία. */
+export const TRIAL_LINE = `${TRIAL_DAYS} ημέρες δωρεάν δοκιμή, χωρίς δέσμευση.`;
+
+export function ToolCta({ title, body }: { title: string; body: ReactNode }) {
+  return (
+    <div className="po-noprint" style={{
+      marginTop: 20, padding: 'clamp(16px, 4vw, 22px)', borderRadius: 14,
+      border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)',
+      display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14,
+    }}>
+      <div style={{ flex: 1, minWidth: 240 }}>
+        <p style={{ margin: 0, fontSize: 15, fontWeight: 650, color: 'var(--text-primary)', letterSpacing: '-0.015em' }}>
+          {title}
+        </p>
+        <p style={{ margin: '6px 0 0', fontSize: 14, lineHeight: 1.6, color: 'var(--text-secondary)', textWrap: 'pretty' }}>
+          {body}
+        </p>
+        <p style={{ margin: '8px 0 0', fontSize: 12.5, color: 'var(--text-tertiary)' }}>
+          {TRIAL_LINE}
+        </p>
+      </div>
+      <Link href="/signup" className="lp-cta lp-primary" style={{
+        display: 'inline-flex', alignItems: 'center', height: 44, padding: '0 24px',
+        borderRadius: 100, fontSize: 14, fontWeight: 700,
+        textDecoration: 'none', whiteSpace: 'nowrap',
+      }}>
+        Ξεκίνα τη δοκιμή
+      </Link>
     </div>
   );
 }

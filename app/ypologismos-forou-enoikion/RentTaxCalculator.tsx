@@ -27,10 +27,10 @@ import {
   RENTAL_TAX_ROWS_2026, RENTAL_TAX_BRACKETS_2026,
 } from '@/lib/billing/greekTax';
 import { parseAmount } from '@/lib/core/greek';
-import { TRIAL_DAYS } from '@/lib/billing/plans';
 import { presumptiveDeductionRate } from '@/lib/billing/consolidate';
 import { PRESUMPTIVE_DEDUCTION_RATE } from '@/lib/accounting/statement';
 import { Toggle } from '@/app/dashboard/components/UIComponents';
+import { ToolCta } from '@/app/PublicChrome';
 import { useToolState, ToolActions } from '@/app/ToolShare';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -298,35 +298,10 @@ export function RentTaxCalculator() {
         </p>
       </div>
 
-      {/* ── Πρόσκληση, χωρίς πίεση ─────────────────────────────────────── */}
-      {/* Δεν τυπώνεται: σε χαρτί που πάει στον λογιστή, μια πρόσκληση για
-          δοκιμή δεν είναι πληροφορία — είναι διαφήμιση που πλήρωσε ο χρήστης
-          με το μελάνι του. */}
-      <div className="po-noprint" style={{
-        marginTop: 20, padding: 'clamp(16px, 4vw, 22px)', borderRadius: T.radius.card,
-        border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)',
-        display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14,
-      }}>
-        <div style={{ flex: 1, minWidth: 220 }}>
-          <p style={{ margin: 0, fontSize: 14, fontWeight: 650, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
-            Θέλεις να μη χρειάζεται να το ξαναϋπολογίσεις;
-          </p>
-          <p style={{ margin: '5px 0 0', fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary)' }}>
-            Το Property OS κρατά ενοίκια, λογαριασμούς και δαπάνες όλη τη χρονιά και
-            βγάζει έτοιμα όσα ζητά ο λογιστής σου. {TRIAL_DAYS} ημέρες δωρεάν δοκιμή, χωρίς δέσμευση.
-          </p>
-        </div>
-        {/* Ίδιο κουμπί με την αρχική: ίδια κλάση, ίδια ανύψωση στο πέρασμα, και
-            `--accent-text` αντί για `--on-tone` — το δεύτερο είναι το χρώμα
-            πάνω σε ΤΟΝΟ (θετικό, αρνητικό, προειδοποίηση), όχι πάνω σε έμφαση. */}
-        <Link href="/signup" className="lp-cta lp-primary" style={{
-          display: 'inline-flex', alignItems: 'center', height: 44, padding: '0 24px',
-          borderRadius: T.radius.pill, fontSize: 14, fontWeight: 700,
-          textDecoration: 'none', whiteSpace: 'nowrap',
-        }}>
-          Ξεκίνα τη δοκιμή
-        </Link>
-      </div>
+      <ToolCta
+        title="Θέλεις να μη χρειάζεται να το ξαναϋπολογίσεις;"
+        body="Το Property OS διατηρεί οργανωμένα ενοίκια, λογαριασμούς και δαπάνες όλη τη χρονιά, και εξάγει με ένα κλικ όσα ζητά ο λογιστής σου."
+      />
     </div>
   );
 }
