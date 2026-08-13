@@ -78,7 +78,7 @@ const REAL = JSON.parse(
   ok('χωρίς απάντηση, άρνηση', !readEprel(null).ok)
   ok('κείμενο αντί για αντικείμενο, άρνηση', !readEprel('<html>').ok)
   ok('χωρίς ομάδα και αριθμό, άρνηση', !readEprel({ energyClass: 'A' }).ok)
-  ok('καταχώριση χωρίς κανένα χρήσιμο πεδίο, άρνηση',
+  ok('καταχώρηση χωρίς κανένα χρήσιμο πεδίο, άρνηση',
      !readEprel({ productGroup: 'ovens', eprelRegistrationNumber: '1', noise: 44 }).ok)
 
   // Μηδενικά και αρνητικά διαβάζονται ως κενά: μια συσκευή δεν καταναλώνει μηδέν.

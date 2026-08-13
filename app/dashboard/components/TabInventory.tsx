@@ -1024,7 +1024,10 @@ function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice}:{item?:Inve
           <div>
             <label style={labelStyle}>Ενεργειακή ετικέτα (μητρώο EPREL)</label>
             <div style={{...formGrid(200, 150),gap:10}}>
-              <TextInput ariaLabel="Σύνδεσμος ή κωδικός μητρώου EPREL" value={eprelInput} onChange={setEprelInput}
+              {/* Μόλις αλλάξει ο κωδικός, η αναφορά στην πηγή σβήνει: θα έδειχνε
+                  τη ΓΕΙΤΟΝΙΚΗ καταχώρηση για νούμερα που δεν ήρθαν από εκείνη. */}
+              <TextInput ariaLabel="Σύνδεσμος ή κωδικός μητρώου EPREL" value={eprelInput}
+                onChange={v=>{setEprelInput(v);setEprelSource('')}}
                 placeholder="eprel.ec.europa.eu/screen/product/…"/>
               <Btn onClick={fillFromEprel} disabled={eprelBusy||!eprelInput.trim()}>
                 {eprelBusy?'Ανάγνωση…':'Συμπλήρωση'}
