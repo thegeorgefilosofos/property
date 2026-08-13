@@ -1196,6 +1196,33 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
    (εμφανίζεται αποκλειστικά σε πλοήγηση με πληκτρολόγιο, ποτέ με ποντίκι). */
 .acc-toggle:focus-visible { outline: none; border-radius: 10px; box-shadow: 0 0 0 2px var(--accent-dim); }
 
+/* ═══ Η ΓΡΑΜΜΗ ΤΗΣ ΑΞΙΟΠΟΙΗΣΗΣ: ΤΙΤΛΟΣ, ΙΔΙΟΤΗΤΑ, ΒΕΛΑΚΙ ══════════════════
+   Τρεις στήλες σε οθόνη γραφείου: ο τίτλος απλώνεται, η ιδιότητα («Εσύ»,
+   «Μηχανικός», «Επιδότηση») κλείνει πάντα στο ίδιο δεξιό άκρο, το βελάκι στην
+   άκρη. Έτσι σαρώνεις «ποιος κάνει τι» χωρίς να διαβάσεις τους τίτλους.
+
+   ΓΙΑΤΙ ΔΕΝ ΓΙΝΕΤΑΙ ΜΕ ΕΝΣΩΜΑΤΩΜΕΝΟ ΣΤΥΛ: σε πλάτος κινητού μια καρφωμένη
+   στήλη 116 εικονοστοιχείων άφηνε στον τίτλο εκατόν πενήντα, και το «Δες τι
+   κρύβεται, με κάποιον που ξέρει» έσπαγε σε τέσσερις σειρές. Στο στενό, η
+   ιδιότητα κατεβαίνει από κάτω και ο τίτλος παίρνει όλο το πλάτος. Ένα ερώτημα
+   μέσων (media query) δεν γράφεται σε ενσωματωμένο στυλ — γι' αυτό ζει εδώ. */
+.plan-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 116px 15px;
+  align-items: center;
+  gap: 4px 12px;
+  width: 100%;
+}
+.plan-row-wide { grid-template-columns: minmax(0, 1fr) 150px 15px; }
+.plan-row-bare { grid-template-columns: minmax(0, 1fr) 15px; }
+.plan-tag { text-align: right; }
+
+@media (max-width: 720px) {
+  .plan-row, .plan-row-wide { grid-template-columns: minmax(0, 1fr) 15px; }
+  .plan-row .plan-tag { grid-column: 1; grid-row: 2; text-align: left; }
+  .plan-row .plan-caret { grid-column: 2; grid-row: 1 / span 2; }
+}
+
 /* MD3 Scrim (for dialogs/modals) */
 .md-scrim {
   position: fixed; inset: 0;

@@ -21,7 +21,13 @@ export const calcDepreciationPct = (item: InventoryItem) => depreciate(item).dep
 export const calcYearsLeft = (item: InventoryItem) => depreciate(item).yearsRemaining
 export const calcAgeDisplay = (d: string) => {
   if (!d) return ''
-  const ms = Date.now() - new Date(d).getTime()
+  // ΤΟ ΣΗΜΕΡΑ ΕΙΝΑΙ ΑΥΡΙΟ, ΤΡΕΙΣ ΩΡΕΣ ΤΗ ΝΥΧΤΑ. Η ημερομηνία έρχεται ως ημέρα
+  // Αθήνας («2026-08-14») και διαβάζεται ως μεσάνυχτα UTC — δηλαδή, όσο η Αθήνα
+  // είναι μπροστά, μια ΣΗΜΕΡΙΝΗ αγορά είναι χρονικά μπροστά από το `Date.now()`.
+  // Η αφαίρεση έβγαινε αρνητική και η συσκευή που αγοράστηκε σήμερα εμφανιζόταν
+  // «−1 μήνες». Ηλικία κάτω από το μηδέν δεν υπάρχει· ούτε καν για ημερομηνία
+  // αγοράς που γράφτηκε λάθος στο μέλλον.
+  const ms = Math.max(0, Date.now() - new Date(d).getTime())
   const y = Math.floor(ms/(1000*60*60*24*365))
   const m = Math.floor((ms%(1000*60*60*24*365))/(1000*60*60*24*30))
   if (y===0) return `${m} μήνες`

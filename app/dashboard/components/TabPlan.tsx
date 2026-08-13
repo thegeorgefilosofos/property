@@ -8,26 +8,37 @@
 // εισπραχθεί — και στην ιδιοχρησία δεν υπάρχει καν ερώτηση. Ποια κατάσταση
 // δείχνει η καρτέλα το ορίζει το lib/property/visibility, όχι αυτό το αρχείο.
 //
-// ΤΟ ΠΡΟΒΛΗΜΑ ΠΟΥ ΛΥΝΕΙ Η ΑΠΟΚΑΛΥΨΗ
-// Στην ανακαίνιση η οθόνη έβγαζε, ανοιχτά και ταυτόχρονα: δώδεκα βήματα με
-// περιγραφή, «πότε» και «αν παραλειφθεί», πέντε χρηματοδοτήσεις με «τι κάνει»
-// και «τι να επιβεβαιώσεις», τέσσερις κανόνες και τέσσερα σημεία ελέγχου.
-// Πάνω από δυόμισι χιλιάδες εικονοστοιχεία κύλισης, όλα στο ίδιο βάρος. Ο
-// άνθρωπος που ανοίγει την καρτέλα δεν έχει να διαβάσει εγχειρίδιο· έχει να
-// κάνει το ΕΠΟΜΕΝΟ πράγμα.
+// ══ ΤΟ ΑΡΧΕΙΟ ΕΓΡΑΦΕ ΕΔΩ «ΚΑΜΙΑ ΚΑΡΤΑ, ΚΑΙ ΑΥΤΟ ΕΙΝΑΙ Η ΑΠΟΦΑΣΗ» ═══════════
+// Η σκέψη ήταν ότι εδώ ο χρήστης δεν καταχωρεί, αποφασίζει, άρα η οθόνη πρέπει
+// να είναι κείμενο και όχι εργαλείο. Το αποτέλεσμα όμως ήταν οι ΕΝΤΕΚΑ άλλες
+// καρτέλες να μιλούν τη γλώσσα των επιφανειών της εφαρμογής (ανασηκωμένο φόντο,
+// λεπτό περίγραμμα, βάθος) και η Αξιοποίηση να είναι η μόνη με γυμνό κείμενο
+// πάνω στο φόντο της σελίδας. Δεν ήταν λιτότητα· ήταν ασυμφωνία, και φαινόταν.
 //
-// Τώρα κάθε γραμμή δείχνει ΤΙ είναι και ΠΟΙΟΣ το κάνει, και ανοίγει μόνη της
-// όταν τη χρειάζεσαι: το επόμενο βήμα είναι ήδη ανοιχτό, και μόλις το τσεκάρεις
-// κλείνει και ανοίγει το αμέσως επόμενο. Καμία δεύτερη κίνηση, κανένα ψάξιμο.
+// Πλέον κάθε ενότητα είναι `Card`, όπως παντού αλλού. Η λιτότητα δεν χάθηκε:
+// ζει στο ΠΕΡΙΕΧΟΜΕΝΟ κάθε κάρτας, όχι στην απουσία της κάρτας.
 //
-// ΕΝΑΣ ΚΑΝΟΝΑΣ ΑΠΟΚΑΛΥΨΗΣ ΣΕ ΟΛΗ ΤΗΝ ΟΘΟΝΗ: ό,τι ανοίγει, ανοίγει με βελάκι στο
-// ΔΕΞΙ άκρο της γραμμής, και ανοίγει ΕΝΑ τη φορά μέσα στην ίδια λίστα. Έτσι το
-// μάτι δεν ξαναμαθαίνει τον μηχανισμό σε κάθε ενότητα.
+// ══ ΤΡΕΙΣ ΚΑΝΟΝΕΣ ΠΟΥ ΚΡΑΤΟΥΝ ΟΛΗ ΤΗΝ ΟΘΟΝΗ ΣΤΟΙΧΙΣΜΕΝΗ ══════════════════
+//
+// 1. Η ΣΕΙΡΑ ΕΧΕΙ ΡΑΓΑ. Τα βήματα δεν είναι λίστα, είναι διαδρομή: μια λεπτή
+//    κατακόρυφη γραμμή περνά μέσα από τα κουτάκια και τα δένει. Οι επιλογές και
+//    τα προγράμματα ΔΕΝ έχουν ράγα, γιατί δεν είναι διαδρομή — η ίδια η γραμμή
+//    είναι το σήμα «αυτό εδώ έχει σειρά».
+//
+// 2. ΚΑΘΕ ΓΡΑΜΜΗ ΕΧΕΙ ΤΙΣ ΙΔΙΕΣ ΣΤΗΛΕΣ. Ο τίτλος αριστερά, η ιδιότητα («Εσύ»,
+//    «Μηχανικός», «Επιδότηση») σε ΔΙΚΗ ΤΗΣ στήλη στοιχισμένη δεξιά, το βελάκι
+//    στο άκρο. Πριν, η ιδιότητα ακολουθούσε τον τίτλο: σε δώδεκα γραμμές με
+//    δώδεκα διαφορετικά μήκη τίτλου, δώδεκα διαφορετικές θέσεις — και το μάτι
+//    δεν μπορούσε να σαρώσει «ποιος κάνει τι» χωρίς να διαβάσει τα πάντα.
+//
+// 3. ΟΤΙ ΑΝΟΙΓΕΙ, ΑΝΟΙΓΕΙ ΜΕ ΤΟΝ ΙΔΙΟ ΤΡΟΠΟ: βελάκι στο δεξί άκρο, ένα ανοιχτό
+//    τη φορά μέσα στην ίδια λίστα. Το επόμενο βήμα είναι ήδη ανοιχτό, και μόλις
+//    το τσεκάρεις κλείνει και ανοίγει το αμέσως επόμενο. Οι ολοκληρωμένες ομάδες
+//    διπλώνονται μόνες τους: η οθόνη μικραίνει όσο προχωράς.
 //
 // ΤΟ ΧΡΩΜΑ ΛΕΕΙ ΕΝΑ ΠΡΑΓΜΑ: «ΕΔΩ ΠΑΤΑΣ». Το μπλε εμφανίζεται μόνο στο κουτάκι
 // που τσεκάρεις, όπως ακριβώς και στις Εργασίες. Καμία πράσινη επιβράβευση,
-// κανένα πορτοκαλί σήμα: η πρόοδος είναι μέτρηση, όχι καλά νέα, και ό,τι θέλει
-// επιβεβαίωση το λέει με λέξεις.
+// κανένα πορτοκαλί σήμα: η πρόοδος είναι μέτρηση, όχι καλά νέα.
 //
 // ΤΙ ΚΡΑΤΑΕΙ ΑΥΤΟ ΤΟ ΑΡΧΕΙΟ ΚΑΙ ΤΙ ΟΧΙ
 // Καμία γνώση. Όλο το περιεχόμενο και όλη η λογική ζουν στο `lib/property/plan`
@@ -38,7 +49,7 @@
 
 import { useCallback, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { ChevronRight } from 'lucide-react';
-import { T, TT, SecHdr, PageTitle, fixedCols, settingsField, feAuto } from '@/components/Theme';
+import { T, TT, Card, SecHdr, PageTitle, fixedCols, settingsField, feAuto } from '@/components/Theme';
 import { feSigned } from '@/lib/core/format';
 import type { PropertyStatus } from '@/lib/property/status';
 import {
@@ -69,22 +80,24 @@ const ASSUMED_YEARS = 7;
 // ── Μικρά δομικά στοιχεία της οθόνης ──────────────────────────────────────
 
 /**
- * Ετικέτα ενότητας πάνω από τυπογραφικό περιεχόμενο, χωρίς πλαίσιο.
+ * Μια ενότητα: κάρτα με επικεφαλίδα, όπως σε κάθε άλλη καρτέλα της εφαρμογής.
  *
- * Το `tight` μηδενίζει το πάνω περιθώριο, για τις ενότητες που ζουν μέσα σε
- * πλέγμα με δικό του gap: αλλιώς η δεύτερη στήλη ξεκινά τριάντα δύο
- * εικονοστοιχεία πιο κάτω από την πρώτη, χωρίς λόγο.
+ * Το εσωτερικό περιθώριο είναι 20 και οι γραμμές μέσα «ξεχειλίζουν» 12 προς τα
+ * έξω (`ROW_BLEED`), ώστε το ανασηκωμένο φόντο μιας γραμμής να μη σφίγγει πάνω
+ * στο κείμενό της. Το κείμενο μένει στοιχισμένο με την επικεφαλίδα.
  */
-function Section({ label, sub, right, tight, children }: {
-  label: string; sub?: string; right?: ReactNode; tight?: boolean; children: ReactNode;
+function Panel({ label, sub, right, children }: {
+  label: string; sub?: string; right?: ReactNode; children: ReactNode;
 }) {
   return (
-    <section style={{ marginTop: tight ? 0 : T.sp.section }}>
+    <Card pad="lg" gap={false} style={{ marginBottom: T.sp.lg }}>
       <SecHdr label={label} sub={sub} right={right} />
       {children}
-    </section>
+    </Card>
   );
 }
+
+const ROW_BLEED: CSSProperties = { margin: '0 -12px', padding: '0 12px' };
 
 /**
  * Γραμμή «ετικέτα: κείμενο», για τα μικρά μεταδεδομένα κάθε γραμμής.
@@ -101,16 +114,26 @@ function Section({ label, sub, right, tight, children }: {
  */
 function Meta({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 104px) minmax(0, 1fr)', gap: '0 10px', marginTop: 6, alignItems: 'baseline' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 104px) minmax(0, 1fr)', gap: '0 10px', marginTop: 7, alignItems: 'baseline' }}>
       <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)' }}>{label}</span>
       <span style={{ ...TT.caption, color: 'var(--text-secondary)' }}>{children}</span>
     </div>
   );
 }
 
-/** Η μικρή ετικέτα που συνοδεύει έναν τίτλο: ποιος το κάνει, τι είδους είναι. */
+/**
+ * Η στήλη της ιδιότητας: ποιος το κάνει, τι είδους χρήμα είναι.
+ *
+ * ΤΟ ΠΛΑΤΟΣ ΤΗΣ ΒΓΑΙΝΕΙ ΑΠΟ ΤΗ ΜΑΚΡΥΤΕΡΗ ΛΕΞΗ, ΟΧΙ ΑΠΟ ΤΟ ΜΑΤΙ. Το
+ * «ΣΥΜΒΟΛΑΙΟΓΡΑΦΟΣ» είναι μία λέξη: δεν σπάει πουθενά, οπότε σε στενότερη στήλη
+ * δεν αναδιπλώνεται — ξεχειλίζει προς τα αριστερά και πέφτει πάνω στον τίτλο.
+ * Οι δύο πλάτη (116 για πρόσωπα, 150 για είδη χρηματοδότησης) ζουν στο φύλλο
+ * στυλ μαζί με το ερώτημα μέσων που τα καταργεί σε κινητό.
+ */
 const Tag = ({ children }: { children: ReactNode }) => (
-  <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{children}</span>
+  <span className="plan-tag" style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)', lineHeight: 1.3 }}>
+    {children}
+  </span>
 );
 
 /** Το βελάκι της αποκάλυψης. Ένα σχήμα, μία θέση: δεξί άκρο, σε κάθε λίστα. */
@@ -129,55 +152,55 @@ const Caret = ({ open }: { open: boolean }) => (
  * εικονοστοιχείων είναι στόχος για ποντίκι σε γραφείο, όχι για δάχτυλο σε
  * κινητό — και η γραμμή είναι ούτως ή άλλως εκεί.
  */
-function RowToggle({ open, onClick, label, dim, children }: {
-  open: boolean; onClick: () => void; label: string; dim?: boolean; children: ReactNode;
+function RowToggle({ open, onClick, label, dim, tag, wide, children }: {
+  open: boolean; onClick: () => void; label: string; dim?: boolean; tag?: ReactNode; wide?: boolean; children: ReactNode;
 }) {
+  const shape = !tag ? 'plan-row-bare' : wide ? 'plan-row-wide' : '';
   return (
-    <button type="button" onClick={onClick} aria-expanded={open} aria-label={label} className="acc-toggle"
+    <button type="button" onClick={onClick} aria-expanded={open} aria-label={label}
+      className={`acc-toggle plan-row ${shape}`}
       style={{
-        display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '13px 0',
-        background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
-        fontFamily: T.font.sans, opacity: dim ? 0.55 : 1, transition: 'opacity .15s',
+        padding: '12px 0', background: 'none', border: 'none', cursor: 'pointer',
+        textAlign: 'left', fontFamily: T.font.sans, opacity: dim ? 0.5 : 1, transition: 'opacity .15s',
       }}>
-      <span style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
-        {children}
-      </span>
-      <Caret open={open} />
+      <span style={{ minWidth: 0 }}>{children}</span>
+      {tag}
+      <span className="plan-caret" style={{ display: 'flex', justifyContent: 'flex-end' }}><Caret open={open} /></span>
     </button>
   );
 }
 
 /**
- * Το σώμα που αποκαλύπτεται, στοιχισμένο με τον τίτλο από πάνω.
+ * Το σώμα που αποκαλύπτεται.
  *
  * Η κίνηση είναι η ΥΠΑΡΧΟΥΣΑ `budget-rise` του φύλλου στυλ, όχι καινούργια: έξι
  * εικονοστοιχεία ανόδου με σβήσιμο. Ένα δεύτερο, «δικό μας» άνοιγμα θα έκανε την
  * ίδια χειρονομία να αισθάνεται αλλιώς σε δύο οθόνες. Και σε όποιον έχει ζητήσει
  * μειωμένη κίνηση, ο καθολικός κανόνας του globals.css τη μηδενίζει ήδη.
  */
-function RowBody({ indent, children }: { indent?: number; children: ReactNode }) {
-  return <div className="budget-rise" style={{ paddingLeft: indent ?? 0, paddingBottom: 14 }}>{children}</div>;
+function RowBody({ children }: { children: ReactNode }) {
+  return <div className="budget-rise" style={{ paddingBottom: 16 }}>{children}</div>;
 }
 
 /**
  * ΤΟ ΙΔΙΟ ΧΕΙΡΙΣΤΗΡΙΟ ΜΕ ΤΙΣ ΕΡΓΑΣΙΕΣ, ΓΙΑΤΙ ΕΙΝΑΙ Η ΙΔΙΑ ΠΡΑΞΗ.
  *
- * Ήταν ΠΡΑΣΙΝΟ (`--positive`) με περίγραμμα 1,5 εικονοστοιχείου, ενώ το
- * αντίστοιχο κουμπί των Εργασιών είναι ΜΠΛΕ με περίγραμμα 2: δύο χρώματα και
- * δύο πάχη για «το τσέκαρα», σε δύο οθόνες της ίδιας εφαρμογής.
+ * Ήταν ΠΡΑΣΙΝΟ (`--positive`), ενώ το αντίστοιχο κουμπί των Εργασιών είναι ΜΠΛΕ:
+ * δύο χρώματα για «το τσέκαρα», σε δύο οθόνες της ίδιας εφαρμογής. Και το
+ * πράσινο έλεγε κάτι που δεν ισχύει — η μπάρα προόδου δίπλα του γεμίζει με το
+ * χρώμα του κειμένου, γιατί η πρόοδος είναι μέτρηση, όχι καλά νέα.
  *
- * Και το πράσινο έλεγε κάτι που δεν ισχύει. Δέκα γραμμές πιο κάτω, η μπάρα
- * προόδου της ίδιας οθόνης φέρει γραμμένο τον κανόνα: «η πρόοδος είναι μέτρηση,
- * δεν είναι καλά νέα» — και γεμίζει με το χρώμα του κειμένου, όχι με χρώμα
- * επιτεύγματος. Το κουτάκι δίπλα της γέμιζε πράσινο. Ο ίδιος κανόνας, δύο
- * απαντήσεις, στο ίδιο αρχείο.
+ * ΤΟ ΠΕΡΙΓΡΑΜΜΑ ΔΕΙΧΝΕΙ ΠΟΥ ΒΡΙΣΚΕΣΑΙ. Όλα τα άτσεκα κουτάκια είχαν το ίδιο
+ * έντονο περίγραμμα, οπότε η ράγα ήταν δώδεκα ισοδύναμοι κρίκοι. Τώρα ο κρίκος
+ * του επόμενου βήματος είναι ο μόνος με πλήρες περίγραμμα: η θέση σου στη
+ * διαδρομή φαίνεται από ένα μέτρο απόσταση, χωρίς λέξη και χωρίς χρώμα.
  */
-const Check = ({ on }: { on: boolean }) => (
+const Check = ({ on, next }: { on: boolean; next?: boolean }) => (
   <span aria-hidden style={{
     width: 20, height: 20, borderRadius: '50%', flexShrink: 0, boxSizing: 'border-box',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    background: on ? 'var(--accent)' : 'transparent',
-    border: `2px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`,
+    background: on ? 'var(--accent)' : 'var(--surface-raised)',
+    border: `2px solid ${on ? 'var(--accent)' : next ? 'var(--border-default)' : 'var(--border-subtle)'}`,
   }}>
     {on && (
       <svg width={10} height={10} viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="var(--text-inverse)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -196,10 +219,10 @@ function Pick({ on, onClick, small, children }: { on: boolean; onClick: () => vo
   return (
     <button type="button" onClick={onClick} aria-pressed={on}
       style={{
-        appearance: 'none', cursor: 'pointer', height: small ? T.h.sm : T.h.md, padding: small ? '0 12px' : '0 16px',
+        appearance: 'none', cursor: 'pointer', height: small ? T.h.sm : T.h.md, padding: small ? '0 14px' : '0 16px',
         borderRadius: T.radius.pill, fontFamily: T.font.sans, fontSize: small ? 12 : 13,
         fontWeight: on ? 700 : 500,
-        background: on ? 'var(--bg-surface)' : 'transparent',
+        background: on ? 'var(--bg-elevated)' : 'transparent',
         border: `1px solid ${on ? 'var(--border-default)' : 'var(--border-subtle)'}`,
         color: on ? 'var(--text-primary)' : 'var(--text-secondary)',
         boxShadow: on ? 'var(--highlight-inset), var(--elev-1)' : 'none',
@@ -207,6 +230,39 @@ function Pick({ on, onClick, small, children }: { on: boolean; onClick: () => vo
       }}>
       {children}
     </button>
+  );
+}
+
+/**
+ * Πεδίο ποσού: ετικέτα, κουτί, και το ευρώ ΜΕΣΑ στο κουτί, δεξιά.
+ *
+ * Το σύμβολο δεν είναι διακόσμηση — είναι η μονάδα. Χωρίς αυτό, τέσσερα γυμνά
+ * κουτιά δίπλα δίπλα («ΕΝΦΙΑ», «Κοινόχρηστα», «Πάγια», «Ασφάλιστρο») δεν λένε αν
+ * περιμένουν ευρώ, μήνες ή ποσοστό. Το ίδιο σχήμα χρησιμοποιούν ήδη οι
+ * Λογαριασμοί και το Καθολικό Δαπανών.
+ */
+function MoneyField({ label, hint, value, onChange }: {
+  label: string; hint?: string; value: number | null | undefined; onChange: (v: number | undefined) => void;
+}) {
+  return (
+    <label style={{ display: 'block' }}>
+      <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)' }}>{label}</span>
+      <span style={{ position: 'relative', display: 'block', marginTop: 6 }}>
+        {/* ΤΟ placeholder ΗΤΑΝ «0» ΚΑΙ ΤΑ ΠΕΔΙΑ ΔΙΑΒΑΖΟΝΤΑΝ ΩΣ ΜΗΔΕΝΙΚΑ. Το ίδιο
+            σφάλμα είχε ήδη βρεθεί στο ιστορικό κατανάλωσης του ρεύματος: κενή
+            φόρμα που δηλώνει «ΕΝΦΙΑ μηδέν» δεν είναι κενή, είναι λάθος απάντηση.
+            Το άγνωστο δεν γράφεται μηδέν. */}
+        <input type="number" min={0} inputMode="decimal" className="po-field" placeholder=""
+          value={value ?? ''}
+          onChange={e => onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+          style={{ ...settingsField, height: T.h.md, fontSize: 13, paddingRight: 30 }} />
+        <span aria-hidden style={{
+          position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%)',
+          fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.num, pointerEvents: 'none',
+        }}>€</span>
+      </span>
+      {hint && <span style={{ ...TT.caption, color: 'var(--text-tertiary)', display: 'block', marginTop: 5 }}>{hint}</span>}
+    </label>
   );
 }
 
@@ -270,10 +326,9 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
   const [loanAmount, setLoanAmount] = useState<number | null>(null);
   // ΤΟ «ΚΑΘΑΡΟ ΕΣΟΔΟ» ΧΡΕΩΝΕ ΠΑΝΤΑ ΜΕΣΙΤΗ, ΧΩΡΙΣ ΝΑ ΤΟ ΛΕΕΙ. Η `saleEstimate`
   // δέχεται `useAgent` με προεπιλογή «ναι», και καλούνταν χωρίς όρισμα. Στην
-  // ίδια οθόνη, δέκα εκατοστά πιο πάνω, ο χρήστης καλείται να διαλέξει
-  // ΑΚΡΙΒΩΣ ΑΥΤΟ: «Με μεσίτη» ή «Μόνος σου». Του δείχναμε το καθαρό ποσό της
-  // μίας επιλογής και το παρουσιάζαμε ως το καθαρό ποσό της πώλησης.
-  // Τώρα το νούμερο ακολουθεί την επιλογή, οπότε η σύγκριση γίνεται σε ευρώ.
+  // ίδια οθόνη ο χρήστης καλείται να διαλέξει ΑΚΡΙΒΩΣ ΑΥΤΟ: «Με μεσίτη» ή «Μόνος
+  // σου». Του δείχναμε το καθαρό ποσό της μίας επιλογής και το παρουσιάζαμε ως
+  // το καθαρό ποσό της πώλησης. Τώρα το νούμερο ακολουθεί την επιλογή.
   const [useAgent, setUseAgent] = useState(true);
 
   // ── ΤΙ ΕΙΝΑΙ ΑΝΟΙΧΤΟ ─────────────────────────────────────────────────────
@@ -346,43 +401,50 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
   const hasGroups = groups.some(g => g.group);
   const openStepId = openStep === undefined ? plan.next?.id ?? null : openStep;
 
-  const stepRow = (s: Step, first: boolean) => {
+  /**
+   * Ένα βήμα πάνω στη ράγα.
+   *
+   * Η ράγα είναι δύο κομμάτια γραμμής μέσα στην πρώτη στήλη: ένα κοντό από πάνω
+   * (μόνο αν υπάρχει προηγούμενο βήμα) και ένα που τεντώνεται ως το κάτω άκρο
+   * της γραμμής (μόνο αν υπάρχει επόμενο). Έτσι δεν σπάει όταν το βήμα ανοίγει
+   * και ψηλώνει, και δεν προεξέχει στο πρώτο και στο τελευταίο.
+   */
+  const stepRow = (s: Step, first: boolean, last: boolean) => {
     const on = checked.has(s.id);
     const isNext = plan.next?.id === s.id;
     const open = openStepId === s.id;
+    const rail: CSSProperties = { width: 1, background: 'var(--border-subtle)' };
     return (
-      // ΤΟ ΕΠΟΜΕΝΟ ΒΗΜΑ ΞΕΧΩΡΙΖΕΙ ΜΕΣΑ ΣΤΗ ΣΕΙΡΑ, ΟΧΙ ΣΕ ΔΙΚΗ ΤΟΥ ΚΑΡΤΑ.
-      // Η έμφαση είναι θέση και βάρος: ένα ήρεμο φόντο και μία λέξη στο άκρο.
-      // Χωρίς σημασιολογικό χρώμα, χωρίς δεύτερο κουμπί.
-      <div key={s.id} style={{
-        borderTop: first || isNext ? 'none' : '1px solid var(--border-subtle)',
-        background: isNext ? 'var(--bg-elevated)' : 'transparent',
-        borderRadius: isNext ? T.radius.inner : 0,
-        margin: isNext ? '6px -12px' : 0,
-        padding: isNext ? '0 12px' : 0,
-      }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 12, alignItems: 'center' }}>
+      <div key={s.id} style={{ display: 'grid', gridTemplateColumns: '20px minmax(0, 1fr)', gap: 14, alignItems: 'stretch' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ ...rail, height: 12, opacity: first ? 0 : 1 }} />
           <button type="button" onClick={() => toggle(s.id)} aria-pressed={on}
             aria-label={on ? `Αναίρεση: ${s.title}` : `Ολοκληρώθηκε: ${s.title}`}
             style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', lineHeight: 0 }}>
-            <Check on={on} />
+            <Check on={on} next={isNext} />
           </button>
-          <RowToggle open={open} dim={on} label={s.title} onClick={() => setOpenStep(open ? null : s.id)}>
-            <span style={{
-              fontFamily: T.font.sans, fontSize: 14, fontWeight: 600, color: 'var(--text-primary)',
-              textDecoration: on ? 'line-through' : 'none',
-            }}>{s.title}</span>
-            <Tag>{ACTOR_LABEL[s.who]}</Tag>
-            {isNext && !on && <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-secondary)', marginLeft: 'auto' }}>Το επόμενο</span>}
-          </RowToggle>
+          <div style={{ ...rail, flex: 1, opacity: last ? 0 : 1 }} />
         </div>
-        {open && (
-          <RowBody indent={32}>
-            <div style={{ ...TT.bodySm, color: 'var(--text-secondary)' }}>{s.detail}</div>
-            {s.when && <Meta label="Πότε">{s.when}</Meta>}
-            {s.cost && <Meta label="Αν παραλειφθεί">{s.cost}</Meta>}
-          </RowBody>
-        )}
+        <div style={{ minWidth: 0 }}>
+          <RowToggle open={open} dim={on} label={s.title} tag={<Tag>{ACTOR_LABEL[s.who]}</Tag>}
+            onClick={() => setOpenStep(open ? null : s.id)}>
+            {/* Η λέξη μπαίνει ΠΑΝΩ από τον τίτλο και όχι δίπλα του: δίπλα θα
+                διεκδικούσε τη στήλη της ιδιότητας, που είναι η μόνη άλλη στήλη
+                της γραμμής και έχει ήδη δουλειά. */}
+            {isNext && !on && <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-secondary)', display: 'block', marginBottom: 3 }}>Το επόμενο</span>}
+            <span style={{
+              fontFamily: T.font.sans, fontSize: 14, fontWeight: 600, lineHeight: 1.35,
+              color: 'var(--text-primary)', textDecoration: on ? 'line-through' : 'none',
+            }}>{s.title}</span>
+          </RowToggle>
+          {open && (
+            <RowBody>
+              <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: -4 }}>{s.detail}</div>
+              {s.when && <Meta label="Πότε">{s.when}</Meta>}
+              {s.cost && <Meta label="Αν παραλειφθεί">{s.cost}</Meta>}
+            </RowBody>
+          )}
+        </div>
       </div>
     );
   };
@@ -390,38 +452,36 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
   const optionRow = (o: Option, first: boolean) => {
     const open = openOption === o.id;
     return (
-      <div key={o.id} style={{ borderTop: first ? 'none' : '1px solid var(--border-subtle)' }}>
+      <div key={o.id} style={{ borderTop: first ? 'none' : '1px solid var(--border-subtle)', paddingBottom: open ? 0 : 14 }}>
         <RowToggle open={open} label={o.title} onClick={() => setOpenOption(open ? null : o.id)}>
           <span style={{ fontFamily: T.font.sans, fontSize: 15, fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--text-primary)' }}>{o.title}</span>
         </RowToggle>
-        <div style={{ paddingBottom: open ? 0 : 14 }}>
-          <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: -6 }}>{o.payoff}</div>
-          {/* ── Η ΣΥΓΚΡΙΣΗ ΠΟΥ ΔΕΝ ΜΠΟΡΟΥΣΕ ΝΑ ΓΙΝΕΙ ────────────────────────
-              Οι τρεις άξονες ήταν πλέγμα τριών στηλών ύψους σαράντα
-              εικονοστοιχείων, με την ετικέτα πάνω και την τιμή από κάτω. Σε
-              επτά επιλογές, η μία κάτω από την άλλη, το «Ρίσκο» της τρίτης
-              απείχε πάνω από τετρακόσια εικονοστοιχεία από το «Ρίσκο» της
-              δεύτερης. Δηλαδή μια οθόνη σύγκρισης όπου η σύγκριση απαιτούσε να
-              θυμάσαι τρεις λέξεις ενώ κυλάς.
+        <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: -4 }}>{o.payoff}</div>
+        {/* ── Η ΣΥΓΚΡΙΣΗ ΠΟΥ ΔΕΝ ΜΠΟΡΟΥΣΕ ΝΑ ΓΙΝΕΙ ──────────────────────────
+            Οι τρεις άξονες ήταν πλέγμα τριών στηλών ύψους σαράντα
+            εικονοστοιχείων, με την ετικέτα πάνω και την τιμή από κάτω. Σε επτά
+            επιλογές, η μία κάτω από την άλλη, το «Ρίσκο» της τρίτης απείχε πάνω
+            από τετρακόσια εικονοστοιχεία από το «Ρίσκο» της δεύτερης — δηλαδή
+            μια οθόνη σύγκρισης όπου η σύγκριση απαιτούσε να θυμάσαι τρεις λέξεις
+            ενώ κυλάς.
 
-              Τώρα οι τρεις άξονες είναι ΜΙΑ γραμμή, στην ίδια θέση σε κάθε
-              επιλογή, και μένουν ΠΑΝΤΑ ορατοί: είναι το μόνο που συγκρίνεται
-              μεταξύ γραμμών, οπότε δεν κρύβεται πίσω από άνοιγμα. */}
-          <div style={{
-            display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '4px 14px',
-            marginTop: 8, fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-primary)',
-          }}>
-            {[
-              { k: 'Κόπος', v: EFFORT_LABEL[o.effort] },
-              { k: 'Ρίσκο', v: RISK_LABEL[o.risk] },
-              { k: 'Χρόνος', v: o.speed },
-            ].map(x => (
-              <span key={x.k} style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6 }}>
-                <Tag>{x.k}</Tag>
-                <span style={{ fontWeight: 600 }}>{x.v}</span>
-              </span>
-            ))}
-          </div>
+            Τώρα οι τρεις άξονες είναι ΜΙΑ γραμμή, στην ίδια θέση σε κάθε
+            επιλογή, και μένουν ΠΑΝΤΑ ορατοί: είναι το μόνο που συγκρίνεται
+            μεταξύ γραμμών, οπότε δεν κρύβεται πίσω από άνοιγμα. */}
+        <div style={{
+          display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '4px 16px',
+          marginTop: 9, fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-primary)',
+        }}>
+          {[
+            { k: 'Κόπος', v: EFFORT_LABEL[o.effort] },
+            { k: 'Ρίσκο', v: RISK_LABEL[o.risk] },
+            { k: 'Χρόνος', v: o.speed },
+          ].map(x => (
+            <span key={x.k} style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6 }}>
+              <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)' }}>{x.k}</span>
+              <span style={{ fontWeight: 600 }}>{x.v}</span>
+            </span>
+          ))}
         </div>
         {open && (
           <RowBody>
@@ -433,57 +493,35 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
     );
   };
 
-  const numField = (label: string, field: keyof VacancyCostInput, hint: string) => (
-    <label style={{ display: 'block' }}>
-      <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)' }}>{label}</span>
-      {/* ΤΟ placeholder ΗΤΑΝ «0» ΚΑΙ ΤΑ ΤΕΣΣΕΡΑ ΠΕΔΙΑ ΔΙΑΒΑΖΟΝΤΑΝ ΩΣ ΜΗΔΕΝΙΚΑ.
-          Ακριβώς το ίδιο σφάλμα είχε ήδη βρεθεί και διορθωθεί στο ιστορικό
-          κατανάλωσης του ρεύματος: κενή φόρμα που δηλώνει «ΕΝΦΙΑ μηδέν,
-          κοινόχρηστα μηδέν» δεν είναι κενή, είναι λάθος απάντηση. Το άγνωστο δεν
-          γράφεται μηδέν — και η υπόδειξη από κάτω λέει ήδη τι μπαίνει εδώ. */}
-      <input type="number" min={0} inputMode="decimal" className="po-field" placeholder=""
-        value={costs[field] ?? ''}
-        onChange={e => setCost(field, e.target.value === '' ? undefined : Number(e.target.value))}
-        style={{ ...settingsField, height: T.h.md, fontSize: 13, marginTop: 5 }} />
-      <span style={{ ...TT.caption, color: 'var(--text-tertiary)', display: 'block', marginTop: 4 }}>{hint}</span>
-    </label>
-  );
-
   return (
-    <div style={{ fontFamily: T.font.sans, maxWidth: 900 }}>
+    <div style={{ fontFamily: T.font.sans, maxWidth: 920 }}>
       {/* ── Η ΚΕΦΑΛΙΔΑ ────────────────────────────────────────────────────
           ΗΤΑΝ ΔΥΟ ΚΕΦΑΛΙΔΕΣ, ΚΑΙ Η ΚΑΤΑΣΤΑΣΗ ΓΡΑΦΟΤΑΝ ΔΥΟ ΦΟΡΕΣ. Η σελίδα
           τύπωνε από πάνω «ΑΞΙΟΠΟΙΗΣΗ ΑΚΙΝΗΤΟΥ / Κενό· πώς θα μισθωθεί ή θα
           αξιοποιηθεί» και αμέσως μετά η καρτέλα τύπωνε «ΚΕΝΟ · Όνομα» και τον
           δικό της τίτλο: τέσσερα μπλοκ επικεφαλίδας στη σειρά, με τη λέξη
-          «Κενό» δύο φορές μέσα σε εξήντα εικονοστοιχεία.
-
-          Μία κεφαλίδα, από το κοινό PageTitle που χρησιμοποιούν οι άλλες δέκα
-          καρτέλες — ίδιες αποστάσεις, ίδια μεγέθη, ίδια θέση. */}
+          «Κενό» δύο φορές μέσα σε εξήντα εικονοστοιχεία. Μία κεφαλίδα, από το
+          κοινό PageTitle που χρησιμοποιούν οι άλλες έντεκα καρτέλες. */}
       <PageTitle over={`Αξιοποίηση · ${plan.label}`} title={plan.headline} lede={plan.lede} />
 
       {/* ── ΤΙ ΕΙΔΟΥΣ ΕΚΚΡΕΜΟΤΗΤΑ: αλλάζει ΟΛΗ τη σειρά, άρα ρωτιέται πρώτο ── */}
       {isDispute && (
-        <div style={{ marginTop: T.sp.xl }}>
-          <div style={{ ...TT.label, color: 'var(--text-secondary)', marginBottom: 10 }}>Τι είδους εκκρεμότητα είναι</div>
+        <Panel label="Τι είδους εκκρεμότητα είναι"
+          sub={DISPUTE_KINDS.find(k => k.key === kind)?.hint}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {DISPUTE_KINDS.map(k => (
               <Pick key={k.key} on={k.key === kind} onClick={() => pickKind(k.key)}>{k.label}</Pick>
             ))}
           </div>
-          <div style={{ ...TT.caption, color: 'var(--text-tertiary)', marginTop: 8 }}>
-            {DISPUTE_KINDS.find(k => k.key === kind)?.hint}
-          </div>
-        </div>
+        </Panel>
       )}
 
       {/* ── ΤΟ ΝΟΥΜΕΡΟ ΤΟΥ ΚΕΝΟΥ: χωρίς αυτό, οι επιλογές μοιάζουν ίδιες ───
           ΤΑ ΤΕΣΣΕΡΑ ΠΕΔΙΑ ΜΕΝΟΥΝ ΑΝΟΙΧΤΑ ΟΣΟ ΔΕΝ ΕΧΟΥΝ ΑΠΑΝΤΗΣΗ. Μόλις υπάρχει
           νούμερο, η φόρμα δεν έχει τι άλλο να πει: μαζεύεται και μένει το
-          αποτέλεσμα, που είναι και ο λόγος που ζητήθηκαν. Ξανανοίγει με ένα
-          πάτημα, στην ίδια θέση όπου έκλεισε. */}
+          αποτέλεσμα, που είναι και ο λόγος που ζητήθηκαν. */}
       {plan.status === 'vacant' && (
-        <Section label="Τι κοστίζει ο μήνας που περνάει"
+        <Panel label="Τι κοστίζει ο μήνας που περνάει"
           sub="Μόνο όσα φεύγουν από τον λογαριασμό σου. Το ενοίκιο που δεν εισπράττεις είναι άλλη συζήτηση."
           right={drain.monthly > 0
             ? <button type="button" style={quietBtn} onClick={() => setCostsOpen(o => !o)} aria-expanded={costsOpen}>
@@ -494,15 +532,14 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
             /* ΡΗΤΕΣ ΤΕΣΣΕΡΙΣ ΣΤΗΛΕΣ, ΟΧΙ auto-fit. Με ελάχιστο 170 το ίδιο
                πλέγμα έβγαζε τέσσερα πεδία στο 100% zoom και «τρία και ένα» στο
                125%: η ίδια οθόνη, άλλη διάταξη σε κάθε ρύθμιση περιηγητή. Το
-               `fixedCols` είναι η μία απάντηση της εφαρμογής σε αυτό (βλ.
-               components/tokens.ts) και το χρησιμοποιούν ήδη οι Λογαριασμοί, ο
-               Έλεγχος και οι Πάροχοι. Στοίχιση στην κορυφή: κάθε πεδίο κουβαλά
-               υπόδειξη ΑΠΟ ΚΑΤΩ, οπότε το κάτω άκρο δεν είναι το κουτί. */
+               `fixedCols` είναι η μία απάντηση της εφαρμογής σε αυτό. Στοίχιση
+               στην κορυφή: κάθε πεδίο κουβαλά υπόδειξη ΑΠΟ ΚΑΤΩ, οπότε το κάτω
+               άκρο δεν είναι το κουτί. */
             <div {...fixedCols(4, 14, 'start')}>
-              {numField('ΕΝΦΙΑ (έτος)', 'enfiaYear', 'Από το εκκαθαριστικό')}
-              {numField('Κοινόχρηστα (μήνας)', 'commonMonthly', 'Ό,τι πληρώνεις κλειστό')}
-              {numField('Πάγια ρεύμα/νερό (μήνας)', 'utilitiesMonthly', 'Χωρίς κατανάλωση')}
-              {numField('Ασφάλιστρο (έτος)', 'insuranceYear', 'Αν υπάρχει')}
+              <MoneyField label="ΕΝΦΙΑ (έτος)" hint="Από το εκκαθαριστικό" value={costs.enfiaYear} onChange={v => setCost('enfiaYear', v)} />
+              <MoneyField label="Κοινόχρηστα (μήνας)" hint="Ό,τι πληρώνεις κλειστό" value={costs.commonMonthly} onChange={v => setCost('commonMonthly', v)} />
+              <MoneyField label="Πάγια ρεύμα/νερό (μήνας)" hint="Χωρίς κατανάλωση" value={costs.utilitiesMonthly} onChange={v => setCost('utilitiesMonthly', v)} />
+              <MoneyField label="Ασφάλιστρο (έτος)" hint="Αν υπάρχει" value={costs.insuranceYear} onChange={v => setCost('insuranceYear', v)} />
             </div>
           )}
           {drain.monthly > 0 && (
@@ -518,7 +555,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
               </div>
             </div>
           )}
-        </Section>
+        </Panel>
       )}
 
       {/* ── Η ΣΕΙΡΑ ──────────────────────────────────────────────────────
@@ -527,7 +564,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
           κρατάει», «Μετά· εδώ κρίνεται το ενοίκιο», «Τελευταία· το φαινόμενο»)
           ΕΙΝΑΙ η εξήγηση της σειράς. Μια πρόταση από πάνω που λέει «ό,τι είναι
           πιο πάνω εμποδίζει ό,τι είναι πιο κάτω» απλώς την επαναλαμβάνει. */}
-      <Section
+      <Panel
         label="Η σειρά"
         sub={hasGroups ? undefined : isDispute
           ? 'Δεν είναι λίστα. Είναι ακολουθία, και η αντιστροφή δύο βημάτων κοστίζει χρήματα.'
@@ -541,7 +578,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
              12» δεν δείχνει πρόοδο, δείχνει ότι δεν υπάρχει. */
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
             {plan.progress.done > 0 && (
-              <div style={{ width: 90, height: 3, borderRadius: 2, background: 'var(--border-subtle)', overflow: 'hidden' }}>
+              <div style={{ width: 88, height: 3, borderRadius: 2, background: 'var(--border-subtle)', overflow: 'hidden' }}>
                 <div style={{
                   width: `${plan.progress.pct}%`, height: '100%',
                   background: 'var(--text-primary)', transition: `width .3s ${T.ease.standard}`,
@@ -562,18 +599,17 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
           // πάτημα την ξανανοίγει, και τότε μένει ανοιχτή όσο τη θέλει ο χρήστης.
           const shut = g.group ? shutGroups[g.group] ?? finished : false;
           return (
-            <div key={g.group ?? `g${gi}`} style={{ marginTop: g.group && gi > 0 ? T.sp.xl : 0 }}>
+            <div key={g.group ?? `g${gi}`} style={{ marginTop: g.group && gi > 0 ? T.sp.lg : 0 }}>
               {g.group && (
                 /* Η ομάδα κουβαλά και τη μέτρησή της: τέσσερα βήματα «πριν
-                   ξεκινήσεις» με τα δύο τσεκαρισμένα είναι διαφορετική εικόνα από
-                   τέσσερα άθικτα, και φαίνεται χωρίς να μετρήσει κανείς κουτάκια. */
+                   ξεκινήσεις» με τα δύο τσεκαρισμένα είναι διαφορετική εικόνα
+                   από τέσσερα άθικτα, χωρίς να μετρήσει κανείς κουτάκια. */
                 <button type="button" className="acc-toggle" aria-expanded={!shut} aria-label={g.group}
                   onClick={() => setShutGroups(prev => ({ ...prev, [g.group as string]: !shut }))}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left',
-                    padding: '0 0 6px', marginBottom: 4, cursor: 'pointer', background: 'none',
-                    border: 'none', borderBottom: '1px solid var(--border-subtle)',
-                    opacity: finished ? 0.55 : 1, transition: 'opacity .15s',
+                    ...ROW_BLEED, display: 'flex', alignItems: 'center', gap: 10, width: 'calc(100% + 24px)',
+                    textAlign: 'left', paddingTop: 6, paddingBottom: 8, cursor: 'pointer', background: 'none',
+                    border: 'none', opacity: finished ? 0.5 : 1, transition: 'opacity .15s',
                   }}>
                   <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)', flex: 1, minWidth: 0 }}>{g.group}</span>
                   <span style={{ ...TT.caption, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
@@ -582,7 +618,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
                   <Caret open={!shut} />
                 </button>
               )}
-              {!shut && g.items.map((s, i) => stepRow(s, i === 0))}
+              {!shut && g.items.map((s, i) => stepRow(s, i === 0, i === g.items.length - 1))}
             </div>
           );
         })}
@@ -595,18 +631,18 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
             </div>
           </div>
         )}
-      </Section>
+      </Panel>
 
       {/* ── Η ΣΥΓΚΡΙΣΗ ───────────────────────────────────────────────────── */}
       {plan.options.length > 0 && (
-        <Section label={plan.optionsTitle} sub={plan.optionsSub}>
+        <Panel label={plan.optionsTitle} sub={plan.optionsSub}>
           {plan.options.map((o, i) => optionRow(o, i === 0))}
-        </Section>
+        </Panel>
       )}
 
       {/* ── ΤΙ ΜΕΝΕΙ ΚΑΘΑΡΟ (πώληση, όταν υπάρχει καταχωρημένη αξία) ─────── */}
       {plan.status === 'for_sale' && sale && (
-        <Section label="Τι μένει καθαρό"
+        <Panel label="Τι μένει καθαρό"
           sub={`Ενδεικτικά, με βάση την αξία που έχεις καταχωρήσει (${feAuto(sale.price)}).`}
           right={
             <div style={{ display: 'flex', gap: 6 }}>
@@ -615,8 +651,8 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
               ))}
             </div>
           }>
-          {sale.lines.map(l => (
-            <div key={l.label} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '9px 2px', borderTop: '1px solid var(--border-subtle)' }}>
+          {sale.lines.map((l, i) => (
+            <div key={l.label} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '10px 0', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
               <span style={{ ...TT.bodySm, color: 'var(--text-secondary)' }}>{l.label}</span>
               {/* Το λογιστικό μείον γραφόταν με το χέρι, δίπλα σε `feAuto`, ενώ το
                   `feSigned` υπάρχει στο `lib/core/format` ακριβώς γι’ αυτό, με δικό
@@ -625,12 +661,12 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
               <span style={{ ...TT.mono, fontSize: 13, color: 'var(--text-primary)' }}>{feSigned(-l.amount)}</span>
             </div>
           ))}
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '12px 2px 0', borderTop: '2px solid var(--border-subtle)', marginTop: 4 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, padding: '14px 0 0', borderTop: '1px solid var(--border-default)', marginTop: 4 }}>
             <span style={{ fontFamily: T.font.sans, fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Καθαρό έσοδο</span>
-            <span style={{ ...TT.kpi, fontSize: 18 }}>{feAuto(sale.net)}</span>
+            <span style={{ ...TT.kpi, fontSize: 20 }}>{feAuto(sale.net)}</span>
           </div>
           <Meta label="Επιβεβαίωσε">{sale.note}</Meta>
-        </Section>
+        </Panel>
       )}
 
       {/* ── ΠΟΙΟΣ ΜΠΟΡΕΙ ΝΑ ΠΛΗΡΩΣΕΙ ΤΙ (ανακαίνιση) ─────────────────────
@@ -640,15 +676,15 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
           Κλειστά, οι πέντε γραμμές απαντούν στο μόνο που ρωτάει κάποιος που
           μόλις έμαθε ότι υπάρχουν: ποια είναι, και τι είδους χρήμα είναι. */}
       {plan.funding.length > 0 && (
-        <Section label="Ποιος μπορεί να πληρώσει τι"
+        <Panel label="Ποιος μπορεί να πληρώσει τι"
           sub="Οι όροι κάθε προγράμματος αλλάζουν σε κάθε κύκλο, γι’ αυτό δεν γράφεται εδώ κανένα ποσοστό.">
           {plan.funding.map((f, i) => {
             const open = openFund === f.id;
             return (
               <div key={f.id} style={{ borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
-                <RowToggle open={open} label={f.title} onClick={() => setOpenFund(open ? null : f.id)}>
-                  <span style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{f.title}</span>
-                  <Tag>{FUNDING_KIND_LABEL[f.kind]}</Tag>
+                <RowToggle open={open} label={f.title} wide tag={<Tag>{FUNDING_KIND_LABEL[f.kind]}</Tag>}
+                  onClick={() => setOpenFund(open ? null : f.id)}>
+                  <span style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 600, lineHeight: 1.35, color: 'var(--text-primary)' }}>{f.title}</span>
                 </RowToggle>
                 {open && (
                   <RowBody>
@@ -659,12 +695,11 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
                         ΜΟΝΟ στην κύρια ενέργεια, ώστε το μάτι να ξέρει πάντα πού να πάει».
                         Και τέσσερις γραμμές πιο κάτω, ο σύνδεσμος του προγράμματος ήταν
                         `var(--info)` — άλλο μπλε, ίδια ένταση, σε ενότητα που δεν είναι
-                        ενέργεια. Ο κανόνας του αρχείου παραβιαζόταν από το ίδιο το αρχείο.
-                        Εδώ γίνεται αυτό που είναι: ήσυχος σύνδεσμος κειμένου. */}
+                        ενέργεια. Εδώ γίνεται αυτό που είναι: ήσυχος σύνδεσμος κειμένου. */}
                     {f.href && (
                       <a href={f.href} target="_blank" rel="noopener noreferrer"
                         style={{
-                          display: 'inline-block', marginTop: 12, fontFamily: T.font.sans,
+                          display: 'inline-block', marginTop: 14, fontFamily: T.font.sans,
                           fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)',
                           textDecoration: 'none', borderBottom: '1px solid var(--border-default)',
                         }}>
@@ -677,21 +712,21 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
             );
           })}
 
-          {/* Ενδεικτική δόση επισκευαστικού. Το τοκοχρεολύσιο δεν ξαναγράφεται:
-              έρχεται από το lib/loans, που είναι η πηγή αλήθειας για κάθε δόση.
-              Η υπόθεση του επιτοκίου γράφεται ΜΑΖΙ με το αποτέλεσμα και ποτέ
-              χωρίς αυτό: πριν μπει ποσό δεν υπάρχει νούμερο να παρεξηγηθεί. */}
-          <div style={{ marginTop: T.sp.xl, paddingTop: T.sp.lg, borderTop: '1px solid var(--border-subtle)' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18, flexWrap: 'wrap' }}>
-              <label style={{ display: 'block', width: 190 }}>
-                <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)' }}>Ποσό ανακαίνισης</span>
-                <input type="number" min={0} inputMode="decimal" className="po-field" placeholder=""
-                  value={loanAmount ?? ''}
-                  onChange={e => setLoanAmount(e.target.value === '' ? null : Number(e.target.value))}
-                  style={{ ...settingsField, height: T.h.md, fontSize: 13, marginTop: 5 }} />
-              </label>
+          {/* ── Ο ΥΠΟΛΟΓΙΣΜΟΣ ΤΗΣ ΔΟΣΗΣ ───────────────────────────────────
+              Ήταν ένα γυμνό κουτάκι κρεμασμένο κάτω από τη λίστα, με μια λεζάντα
+              από κάτω. Τώρα είναι ένα ένθετο πλαίσιο με δύο πλευρές: αριστερά τι
+              δίνεις, δεξιά τι βγαίνει. Το τοκοχρεολύσιο δεν ξαναγράφεται εδώ —
+              έρχεται από το lib/loans, που είναι η πηγή αλήθειας για κάθε δόση. */}
+          <div style={{
+            marginTop: T.sp.xl, padding: 16, borderRadius: T.radius.inner,
+            background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 20, flexWrap: 'wrap' }}>
+              <div style={{ width: 180 }}>
+                <MoneyField label="Ποσό ανακαίνισης" value={loanAmount} onChange={v => setLoanAmount(v ?? null)} />
+              </div>
               {loan && (
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', paddingBottom: 2 }}>
                   <span style={{ ...TT.kpi, fontSize: 20 }}>{feAuto(loan.monthly)}</span>
                   <span style={{ ...TT.bodySm, color: 'var(--text-secondary)' }}>
                     τον μήνα για {ASSUMED_YEARS} έτη · συνολικοί τόκοι {feAuto(loan.interest)}
@@ -699,12 +734,12 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
                 </div>
               )}
             </div>
-            <div style={{ ...TT.caption, color: 'var(--text-tertiary)', marginTop: 10 }}>
+            <div style={{ ...TT.caption, color: 'var(--text-tertiary)', marginTop: 12 }}>
               Ενδεικτική δόση επισκευαστικού με υποθετικό επιτόκιο {ASSUMED_RATE_PCT}% σε {ASSUMED_YEARS} έτη.
               Τα σημερινά επιτόκια και τα έξοδα συγκρίνονται στην καρτέλα Δάνειο.
             </div>
           </div>
-        </Section>
+        </Panel>
       )}
 
       {/* ═══ ΑΝΑΦΟΡΑ ══════════════════════════════════════════════════════
@@ -712,58 +747,58 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
           «Οι κανόνες» και «Προς επιβεβαίωση»: ίδια ετικέτα, ίδια λεπτή γραμμή,
           ίδιες σειρές κειμένου με τις τρεις από πάνω. Όταν όλα μοιάζουν εξίσου
           σημαντικά, τίποτα δεν είναι — και ο χρήστης κάνει το μόνο λογικό: κυλά
-          μέχρι κάτω χωρίς να διαβάσει.
-
-          Καμία από τις δύο δεν ζητά ενέργεια, και το λέει και η ίδια η οθόνη
-          δύο γραμμές πιο πάνω. Είναι υλικό αναφοράς: μία γραμμή που ανοίγει,
-          κλειστή στην πρώτη επίσκεψη. Δεν χάθηκε τίποτα — απλώς έπαψε να
-          διεκδικεί την ίδια προσοχή με τη δουλειά. */}
-      <div style={{ marginTop: T.sp.section, paddingTop: T.sp.xl, borderTop: '1px solid var(--border-default)' }}>
+          μέχρι κάτω χωρίς να διαβάσει. Καμία από τις δύο δεν ζητά ενέργεια:
+          είναι υλικό αναφοράς, μία γραμμή που ανοίγει. */}
+      <Card pad="lg" gap={false} style={{ marginBottom: T.sp.lg }}>
         <RowToggle open={refOpen} label="Αναφορά" onClick={() => setRefOpen(o => !o)}>
-          <span style={{ ...TT.label, color: 'var(--text-secondary)' }}>Αναφορά</span>
-          <span style={{ ...TT.caption, color: 'var(--text-tertiary)' }}>
-            Δεν υπάρχει κάτι να κάνεις εδώ. Είναι όσα καλό είναι να ξέρεις πριν αποφασίσεις.
+          <span style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+            <span style={{ ...TT.label, fontSize: 10, color: 'var(--text-secondary)' }}>Αναφορά</span>
+            <span style={{ ...TT.caption, color: 'var(--text-tertiary)' }}>
+              Κανόνες που κοστίζουν χρήματα, και όσα αλλάζουν από χρονιά σε χρονιά.
+            </span>
           </span>
         </RowToggle>
 
         {refOpen && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 330px), 1fr))', gap: T.sp.section, paddingTop: T.sp.md }}>
-            <Section tight label="Οι κανόνες που κοστίζουν χρήματα"
-              sub="Λίγα πράγματα, και όλα τους τα έχει πληρώσει κάποιος που δεν τα ήξερε.">
+          <div className="budget-rise" style={{
+            display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
+            gap: T.sp.section, paddingTop: T.sp.lg, marginTop: 2, borderTop: '1px solid var(--border-subtle)',
+          }}>
+            <section>
+              <div style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)', marginBottom: 4 }}>Οι κανόνες που κοστίζουν χρήματα</div>
+              <div style={{ ...TT.caption, color: 'var(--text-tertiary)', marginBottom: 10 }}>Λίγα πράγματα, και όλα τους τα έχει πληρώσει κάποιος που δεν τα ήξερε.</div>
               {plan.rules.map((r, i) => (
-                <div key={r.id} style={{ padding: '14px 2px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
+                <div key={r.id} style={{ padding: '14px 0', borderTop: '1px solid var(--border-subtle)', paddingBottom: i === plan.rules.length - 1 ? 0 : 14 }}>
                   <div style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{r.title}</div>
-                  <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 4 }}>{r.body}</div>
+                  <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 5 }}>{r.body}</div>
                 </div>
               ))}
-            </Section>
+            </section>
 
-            {/* ΤΟ ΠΟΡΤΟΚΑΛΙ ΣΗΜΑ ΜΕ ΤΟ «3» ΕΦΥΓΕ. Δύο γραμμές πιο πάνω η ίδια
-                οθόνη γράφει «δεν υπάρχει κάτι να κάνεις εδώ» — και δίπλα στον
-                τίτλο στεκόταν ένας μετρητής σε χρώμα προειδοποίησης, δηλαδή το
-                σήμα που η εφαρμογή χρησιμοποιεί για εκκρεμότητες. Ένα γυμνό «3»
-                δεν λέει καν τρία τι· το πλήθος φαίνεται από τη λίστα. */}
-            <Section tight
-              label="Προς επιβεβαίωση"
-              sub="Ό,τι αλλάζει από χρονιά σε χρονιά δεν γράφεται εδώ ως βεβαιότητα. Γράφεται τι να ελέγξεις και πού.">
+            {/* ΤΟ ΠΟΡΤΟΚΑΛΙ ΣΗΜΑ ΜΕ ΤΟ «3» ΕΦΥΓΕ. Ένα γυμνό «3» δεν λέει καν
+                τρία τι, και ήταν γραμμένο στο χρώμα που η εφαρμογή κρατά για
+                εκκρεμότητες — σε ενότητα που ρητά δεν ζητά καμία ενέργεια. */}
+            <section>
+              <div style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)', marginBottom: 4 }}>Προς επιβεβαίωση</div>
+              <div style={{ ...TT.caption, color: 'var(--text-tertiary)', marginBottom: 10 }}>Ό,τι αλλάζει από χρονιά σε χρονιά δεν γράφεται εδώ ως βεβαιότητα. Γράφεται τι να ελέγξεις και πού.</div>
               {plan.verify.map((v, i) => (
-                <div key={v.id} style={{ padding: '14px 2px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
+                <div key={v.id} style={{ padding: '14px 0', borderTop: '1px solid var(--border-subtle)', paddingBottom: i === plan.verify.length - 1 ? 0 : 14 }}>
                   {/* ΔΕΝ ΕΙΝΑΙ ΤΙΤΛΟΣ, ΕΙΝΑΙ ΕΡΩΤΗΜΑ. Δοκιμάστηκε με το βάρος του
-                      τίτλου κανόνα δίπλα (14/700), για ομοιομορφία — και μια
-                      ερώτηση τριών σειρών σε αυτό το βάρος διαβάζεται σαν κραυγή.
-                      Οι δύο στήλες δεν έχουν το ίδιο σχήμα: αριστερά τίτλος και
-                      κείμενο, δεξιά ερώτημα και δύο απαντήσεις. */}
+                      τίτλου κανόνα δίπλα, για ομοιομορφία — και μια ερώτηση τριών
+                      σειρών σε 14/700 διαβάζεται σαν κραυγή. Οι δύο στήλες δεν
+                      έχουν το ίδιο σχήμα: αριστερά τίτλος και κείμενο, δεξιά
+                      ερώτημα και δύο απαντήσεις. */}
                   <div style={{ ...TT.body, fontWeight: 600, color: 'var(--text-primary)' }}>{v.what}</div>
                   <Meta label="Πού">{v.where}</Meta>
                   <Meta label="Γιατί αλλάζει">{v.why}</Meta>
                 </div>
               ))}
-            </Section>
+            </section>
           </div>
         )}
-      </div>
+      </Card>
 
-      <p style={{ ...TT.caption, color: 'var(--text-tertiary)', marginTop: T.sp.xl, paddingTop: T.sp.lg, borderTop: '1px solid var(--border-subtle)' }}>
+      <p style={{ ...TT.caption, color: 'var(--text-tertiary)', margin: 0, padding: '0 2px' }}>
         {PLAN_DISCLAIMER}
       </p>
     </div>
