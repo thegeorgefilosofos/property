@@ -4,7 +4,6 @@
 // ώστε να μην επαναλαμβάνεται η ίδια λογική σε κάθε modal.
 // ═══════════════════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { speechRecognizer, type SpeechEvent } from '@/lib/core/speech';
 // Το Αρχείο έχει ένα σπίτι: lib/data/documents.
 import * as documents from '@/lib/data/documents';
 
@@ -53,26 +52,10 @@ export async function archivePdfToProperty(i: ArchiveInput): Promise<void> {
   if (error) throw error;
 }
 
-// ── Φωνητική απάντηση «ναι / αργότερα» ───────────────────────────────────────
-// Οι τύποι της αναγνώρισης ομιλίας ζουν σε ένα σημείο (lib/core/speech.ts).
-// Εδώ περιγράφονταν ιδιωτικά, και στη Νόα ως `any` — η ίδια διεπαφή, δύο φορές,
-// με δύο διαφορετικά επίπεδα αλήθειας.
-export { speechSupported } from '@/lib/core/speech';
-
-/** Ακούει μία σύντομη απάντηση στα ελληνικά και καλεί onYes/onNo. Επιστρέφει
- *  false αν δεν υποστηρίζεται, ώστε ο καλών να μην αλλάξει κατάσταση. */
-export function askByVoice(o: { onYes: () => void; onNo: () => void; onEnd?: () => void }): boolean {
-  const SR = speechRecognizer();
-  if (!SR) return false;
-  const rec = new SR();
-  rec.lang = 'el-GR'; rec.interimResults = false; rec.continuous = false; rec.maxAlternatives = 1;
-  rec.onresult = (e: SpeechEvent) => {
-    const said = String(e.results?.[0]?.[0]?.transcript || '').toLowerCase();
-    if (/(ναι|ναί|αποθήκευσ|σώσ|φύλαξ)/.test(said)) o.onYes();
-    else if (/(όχι|οχι|αργότερα|αργοτερα|ίσως|ισως|άκυρο)/.test(said)) o.onNo();
-  };
-  rec.onerror = () => o.onEnd?.();
-  rec.onend = () => o.onEnd?.();
-  try { rec.start(); } catch { o.onEnd?.(); return false; }
-  return true;
-}
+// ── ΤΟ ΜΙΚΡΟΦΩΝΟ ΤΗΣ ΑΡΧΕΙΟΘΕΤΗΣΗΣ ΕΦΥΓΕ ─────────────────────────────────────
+// Δύο παράθυρα (μισθωτήριο, αναπροσαρμογή) έβαζαν στρογγυλό κουμπί μικροφώνου
+// ΔΙΠΛΑ στα δύο κουμπιά που έκαναν ακριβώς το ίδιο πράγμα: «Ίσως αργότερα» και
+// «Ναι, αποθήκευσε». Δηλαδή τρίτος τρόπος να απαντηθεί ένα ναι/όχι που ήδη
+// απαντιόταν με ένα πάτημα — και ο τρίτος ζητούσε άδεια μικροφώνου, περίμενε
+// να μιλήσει ο χρήστης δυνατά στο γραφείο του, και αναγνώριζε δύο λέξεις.
+// Ο,τι δεν θα πατηθεί ποτέ δεν κρύβεται· σβήνεται.

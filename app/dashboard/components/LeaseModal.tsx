@@ -14,7 +14,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import * as properties from '@/lib/data/properties';
 import * as tenantStore from '@/lib/data/tenants';
-import { T, TT, Btn, Spinner, EmptyState, Modal, fp, formGrid } from '@/components/Theme';
+import { T, TT, Btn, Spinner, EmptyState, Modal, fp, fixedCols } from '@/components/Theme';
 import { Building2 } from 'lucide-react';
 import { InfoHint } from './InfoHint';
 import { saved } from '@/components/dbWrite';
@@ -22,7 +22,7 @@ import { saved } from '@/components/dbWrite';
 import { CustomSelect as Select, DatePicker } from './UIComponents';
 import ScanButton from './ScanButton';
 import SignaturePad from '@/components/SignaturePad';
-import { grDate, todayIso, num, archivePdfToProperty, askByVoice, speechSupported } from './docUtils';
+import { grDate, todayIso, num, archivePdfToProperty } from './docUtils';
 import { computeLease, leasePreamble, leaseTerms, type LeaseUse } from '@/lib/documents/lease';
 import { issueDocument } from '@/lib/documents/issue';
 import { generateReportPdf, reportPdfBlob, pEur, type PdfReportModel } from '@/lib/pdf/pdfReport';
@@ -62,7 +62,6 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
   const [pending, setPending] = useState<{ model: PdfReportModel; fname: string } | null>(null);
   const [archiving, setArchiving] = useState(false);
   const [archived, setArchived] = useState(false);
-  const [listening, setListening] = useState(false);
 
   // Φόρτωση ακινήτων και προσυμπλήρωση εκμισθωτή από το branding. Όλα τα setState
   // γίνονται στο callback (όχι στο σώμα του effect), ώστε να μην προκαλούνται
@@ -196,11 +195,6 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
     finally { setArchiving(false); }
   };
 
-  const answerByVoice = () => {
-    const started = askByVoice({ onYes: archive, onNo: onClose, onEnd: () => setListening(false) });
-    if (started) setListening(true);
-  };
-
   // Ύψη από την κοινή κλίμακα, όχι literals. Το 40 του πεδίου ήταν η τιμή του
   // T.h.lg στο ποντίκι — αλλά ΜΟΝΟ εκεί: με δάχτυλο η κλίμακα ανεβαίνει στα 44
   // (globals.css, `@media (pointer: coarse)`) και το πεδίο έμενε στα 40. Το 34
@@ -211,7 +205,7 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
   const lbl = { ...TT.label, marginBottom: 6 } as React.CSSProperties;
   const onF = (e: React.FocusEvent<HTMLInputElement>) => { e.currentTarget.style.borderColor = 'var(--accent)'; };
   const onB = (e: React.FocusEvent<HTMLInputElement>) => { e.currentTarget.style.borderColor = 'var(--border-default)'; };
-  const seg = (u: LeaseUse): React.CSSProperties => ({ flex: 1, fontSize: 13, fontWeight: 600, height: T.h.md, borderRadius: 8, cursor: 'pointer', textAlign: 'center', border: 'none', background: use === u ? 'var(--accent)' : 'transparent', color: use === u ? 'var(--accent-text)' : 'var(--text-secondary)', fontFamily: T.font.sans, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' });
+  const seg = (u: LeaseUse): React.CSSProperties => ({ flex: 1, fontSize: 13, fontWeight: 600, height: T.h.md, borderRadius: T.radius.inner, cursor: 'pointer', textAlign: 'center', border: 'none', background: use === u ? 'var(--accent)' : 'transparent', color: use === u ? 'var(--accent-text)' : 'var(--text-secondary)', fontFamily: T.font.sans, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' });
   const money = (value: string, on: (v: string) => void, suffix: string) => (
     <div style={{ position: 'relative' }}>
       <input value={value} onChange={e => on(e.target.value)} onFocus={onF} onBlur={onB} inputMode="decimal" placeholder=""
@@ -265,10 +259,6 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
   const footer = pending ? (
     !archived && (
       <>
-        {speechSupported() && <button type="button" onClick={answerByVoice} disabled={archiving} aria-label="Απάντησε με φωνή" title="Απάντησε με φωνή: «ναι» ή «αργότερα»"
-          style={{ width: T.h.sm, height: T.h.sm, borderRadius: '50%', border: `1px solid ${listening ? 'var(--accent)' : 'var(--border-default)'}`, background: listening ? 'var(--accent-soft)' : 'var(--bg-surface)', color: listening ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0M12 17v4" /></svg>
-        </button>}
         <Btn variant="secondary" onClick={onClose} disabled={archiving}>Ίσως αργότερα</Btn>
         <Btn variant="primary" onClick={archive} disabled={archiving}>{archiving ? 'Αποθήκευση…' : 'Ναι, αποθήκευσε'}</Btn>
       </>
@@ -283,7 +273,7 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
   return (
     <Modal open={open} onClose={closeIfIdle} width={760}
       ariaLabel="Σύνταξη μισθωτηρίου"
-      title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>Μισθωτήριο<InfoHint>Συντάσσει ολοκληρωμένο ιδιωτικό συμφωνητικό μίσθωσης με τους τυποποιημένους όρους, το υπογράφουν ηλεκτρονικά και τα δύο μέρη, και παράγεται επαληθεύσιμο PDF με αριθμό εγγράφου και QR. Αρχειοθετείται στα έγγραφα του ακινήτου και ενημερώνει την καρτέλα ενοικιαστή.</InfoHint></span>}
+      title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>Μισθωτήριο<InfoHint>Το PDF βγαίνει με αριθμό εγγράφου και QR επαλήθευσης, αρχειοθετείται στα έγγραφα του ακινήτου και ενημερώνει την καρτέλα ενοικιαστή.</InfoHint></span>}
       subtitle="Ιδιωτικό συμφωνητικό με υπογραφή και των δύο μερών"
       icon={<svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M9 13h6M9 17h4" /></svg>}
       footer={footer} footerInfo={footerInfo}>
@@ -303,21 +293,21 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
                 <div><div style={lbl}>Ακίνητο</div><Select value={propId} onChange={setPropId} options={props.map(p => ({ value: p.id, label: p.name }))} placeholder="Επιλογή ακινήτου" /></div>
                 <div>
                   <div style={lbl}>Χρήση</div>
-                  <div style={{ display: 'flex', gap: 3, padding: 3, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 10 }}>
+                  <div style={{ display: 'flex', gap: 3, padding: 3, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
                     <button onClick={() => setUse('residence')} style={seg('residence')}>Κατοικία</button>
                     <button onClick={() => setUse('professional')} style={seg('professional')}>Επαγγελματική</button>
                   </div>
                 </div>
               </div>
 
-              <div style={{ ...formGrid(200, 270), gap: 12 }}>
+              <div {...fixedCols(2, 12, 'start')}>
                 <div><div style={lbl}>Εκμισθωτής</div><input value={landlord} onChange={e => setLandlord(e.target.value)} onFocus={onF} onBlur={onB} placeholder="Ονοματεπώνυμο ή επωνυμία" style={field} /></div>
                 <div><div style={lbl}>ΑΦΜ εκμισθωτή</div><input value={landlordAfm} onChange={e => setLandlordAfm(e.target.value)} onFocus={onF} onBlur={onB} placeholder="Προαιρετικό" inputMode="numeric" style={field} /></div>
                 <div><div style={lbl}>Μισθωτής</div><input value={tenant} onChange={e => setTenant(e.target.value)} onFocus={onF} onBlur={onB} placeholder="Ονοματεπώνυμο" style={field} /></div>
                 <div><div style={lbl}>ΑΦΜ μισθωτή</div><input value={tenantAfm} onChange={e => setTenantAfm(e.target.value)} onFocus={onF} onBlur={onB} placeholder="Προαιρετικό" inputMode="numeric" style={field} /></div>
               </div>
 
-              <div style={{ ...formGrid(150, 210), gap: 12 }}>
+              <div {...fixedCols(3, 12, 'start')}>
                 <div><div style={lbl}>Μηνιαίο μίσθωμα</div>{money(rent, setRent, '€')}</div>
                 <div><div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 5 }}>Εγγύηση<InfoHint>Συνήθως ένα ή δύο μισθώματα. Δεν συμψηφίζεται με μισθώματα και επιστρέφεται ατόκως στη λήξη, εφόσον δεν υπάρχουν φθορές ή οφειλές.</InfoHint></div>{money(deposit, setDeposit, '€')}</div>
                 <div><div style={lbl}>Έναρξη</div><DatePicker value={start} onChange={setStart} /></div>
@@ -327,7 +317,7 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
               </div>
 
               {/* Σύνοψη διάρκειας — ουδέτερη, με προειδοποίηση μόνο όπου έχει νόημα */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap', padding: '14px 16px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', padding: '13px 16px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card }}>
                 {stat('Έναρξη', grDate(res.start))}
                 <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M5 12h14M13 6l6 6-6 6" /></svg>
                 {stat('Λήξη', grDate(res.end), true)}
@@ -335,7 +325,7 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
                 <div style={{ marginLeft: 'auto' }}>{stat('Δήλωση έως', grDate(res.declarationDeadline))}</div>
               </div>
               {res.belowLegalMinimum && (
-                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '11px 13px', borderRadius: 10, background: 'var(--warning-soft)', border: '1px solid var(--warning-border)' }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '11px 13px', borderRadius: T.radius.inner, background: 'var(--warning-soft)', border: '1px solid var(--warning-border)' }}>
                   <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--warning)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /></svg>
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55, fontFamily: T.font.sans }}>Στην κατοικία ισχύει η <strong style={{ color: 'var(--text-primary)' }}>ελάχιστη τριετής διάρκεια</strong> κατά νόμο, ακόμη και με μικρότερη συμφωνία.</div>
                 </div>
@@ -343,7 +333,7 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 14 }}>
                 <div>
-                  <div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 5 }}>Υπογραφή εκμισθωτή<InfoHint>Υπόγραψε με το ποντίκι ή το δάχτυλο. Η υπογραφή ενσωματώνεται στο PDF και, μαζί με το QR, το καθιστά επαληθεύσιμο.</InfoHint></div>
+                  <div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 5 }}>Υπογραφή εκμισθωτή<InfoHint>Η υπογραφή ενσωματώνεται στο PDF και, μαζί με το QR, το καθιστά επαληθεύσιμο.</InfoHint></div>
                   <SignaturePad onChange={setSigL} height={92} />
                 </div>
                 <div>
@@ -357,14 +347,14 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
                 <input value={place} onChange={e => setPlace(e.target.value)} onFocus={onF} onBlur={onB} placeholder="Παράδειγμα: Αθήνα" style={field} />
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '11px 13px', borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '11px 13px', borderRadius: T.radius.inner, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
                 <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55, fontFamily: T.font.sans }}>
                   Μετά την υπογραφή, υπόβαλε τη <strong style={{ color: 'var(--text-primary)' }}>Δήλωση Πληροφοριακών Στοιχείων Μίσθωσης</strong> στο <a href={MYAADE} target="_blank" rel="noreferrer" title={aadeTitle('lease')} style={{ color: 'var(--accent)', textDecoration: 'none' }}>myAADE</a>, έως {grDate(res.declarationDeadline)}.
                 </div>
               </div>
 
-              {err && <div style={{ fontSize: 13, color: 'var(--negative)', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 14px' }}>{err}</div>}
+              {err && <div style={{ fontSize: 13, color: 'var(--negative)', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.inner, padding: '10px 14px' }}>{err}</div>}
             </>
           )}
       </>

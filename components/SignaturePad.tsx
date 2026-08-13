@@ -87,6 +87,9 @@ export default function SignaturePad({ onChange, height = 116 }: { onChange: (da
 
   const clear = () => { strokes.current = []; redraw(); setHasInk(false); setTyped(''); onChange(''); };
 
+  /** Υπάρχει υπογραφή, με όποιον από τους δύο τρόπους. */
+  const signed = mode === 'draw' ? hasInk : typed.trim().length > 0;
+
   // Πληκτρολόγηση → render με σκούρο μελάνι σε διάφανο καμβά (για το PDF).
   const renderTyped = (text: string) => {
     setTyped(text);
@@ -103,7 +106,7 @@ export default function SignaturePad({ onChange, height = 116 }: { onChange: (da
   // είχαν 30/34/36 ανάλογα με το αρχείο, οπότε η ίδια «γλώσσα» κουμπιού έδειχνε
   // διαφορετική σε κάθε οθόνη. T.h.sm είναι το πλησιέστερο σκαλί.
   const seg = (m: 'draw' | 'type'): React.CSSProperties => ({
-    fontSize: 12, fontWeight: 600, height: T.h.sm, padding: '0 14px', borderRadius: 8, cursor: 'pointer', border: 'none',
+    fontSize: 12, fontWeight: 600, height: T.h.sm, padding: '0 14px', borderRadius: T.radius.inner, cursor: 'pointer', border: 'none',
     background: mode === m ? 'var(--accent)' : 'transparent', color: mode === m ? 'var(--accent-text)' : 'var(--text-secondary)',
     fontFamily: T.font.sans, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s',
   });
@@ -115,12 +118,15 @@ export default function SignaturePad({ onChange, height = 116 }: { onChange: (da
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <div style={{ display: 'flex', gap: 3, padding: 3, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 10 }}>
+      {/* Ο ΚΑΘΑΡΙΣΜΟΣ ΕΜΦΑΝΙΖΕΤΑΙ ΟΤΑΝ ΥΠΑΡΧΕΙ ΚΑΤΙ ΝΑ ΚΑΘΑΡΙΣΕΙ. Στο άδειο
+          πλαίσιο ήταν κουμπί που δεν έκανε τίποτα — και το «τίποτα» το μαθαίνει
+          ο χρήστης μόνο αφού το πατήσει. */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
+        <div style={{ display: 'flex', gap: 3, padding: 3, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
           <button type="button" style={seg('draw')} onClick={() => setMode('draw')}>Σχέδιο</button>
           <button type="button" style={seg('type')} onClick={() => setMode('type')}>Πληκτρολόγηση</button>
         </div>
-        <button type="button" onClick={clear} style={{ ...TT.caption, background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontWeight: 700 }}>Καθαρισμός</button>
+        {signed && <button type="button" onClick={clear} style={{ ...TT.caption, background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontWeight: 700, flexShrink: 0 }}>Καθαρισμός</button>}
       </div>
 
       {mode === 'draw' ? (
@@ -132,7 +138,10 @@ export default function SignaturePad({ onChange, height = 116 }: { onChange: (da
             style={{ width: '100%', border: 'none', outline: 'none', background: 'transparent', color: 'var(--text-primary)', fontSize: 28, fontStyle: 'italic', fontFamily: '"Brush Script MT","Segoe Script","Comic Sans MS",cursive', boxSizing: 'border-box' }} />
         </div>
       )}
-      <div style={{ ...TT.caption, marginTop: 6 }}>{mode === 'draw' ? (hasInk ? 'Μπορείς να καθαρίσεις και να υπογράψεις ξανά.' : 'Υπόγραψε με το ποντίκι ή το δάχτυλο.') : 'Η υπογραφή δημιουργείται από το όνομά σου.'}</div>
+      {/* Η ΟΔΗΓΙΑ ΦΕΥΓΕΙ ΜΟΛΙΣ ΓΙΝΕΙ ΠΕΡΙΤΤΗ. Όποιος έχει ήδη υπογράψει ξέρει
+          πώς υπογράφεται, και το «μπορείς να καθαρίσεις» ήταν το κουμπί
+          «Καθαρισμός» γραμμένο με άλλα λόγια, τρεις εκατοστές πιο κάτω. */}
+      {!signed && <div style={{ ...TT.caption, marginTop: 6 }}>{mode === 'draw' ? 'Υπόγραψε με το ποντίκι ή το δάχτυλο.' : 'Η υπογραφή δημιουργείται από το όνομά σου.'}</div>}
     </div>
   );
 }

@@ -11,14 +11,14 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import * as properties from '@/lib/data/properties';
 import * as rentStore from '@/lib/data/rent';
 import * as tenantStore from '@/lib/data/tenants';
-import { T, TT, Btn, Spinner, EmptyState, Modal, formGrid } from '@/components/Theme';
+import { T, TT, Btn, Spinner, EmptyState, Modal, fixedCols } from '@/components/Theme';
 import { Building2 } from 'lucide-react';
 import { InfoHint } from './InfoHint';
 
 import { CustomSelect as Select, DatePicker } from './UIComponents';
 import ScanButton from './ScanButton';
 import SignaturePad from '@/components/SignaturePad';
-import { grDate, todayIso, num, archivePdfToProperty, askByVoice, speechSupported } from './docUtils';
+import { grDate, todayIso, num, archivePdfToProperty } from './docUtils';
 import { computeRentAdjustment, adjustmentNoticeText, type AdjMethod } from '@/lib/documents/rentAdjustment';
 import { issueDocument } from '@/lib/documents/issue';
 import { generateReportPdf, reportPdfBlob, pEur, pPct, type PdfReportModel } from '@/lib/pdf/pdfReport';
@@ -50,7 +50,6 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
   const [pending, setPending] = useState<{ model: PdfReportModel; fname: string } | null>(null);
   const [archiving, setArchiving] = useState(false);
   const [archived, setArchived] = useState(false);
-  const [listening, setListening] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -136,13 +135,6 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
     finally { setArchiving(false); }
   };
 
-  // Φωνητική απάντηση στην ερώτηση αρχειοθέτησης: «ναι» → αποθήκευση,
-  // «όχι / αργότερα» → κλείσιμο. Χρησιμοποιεί την αναγνώριση ομιλίας του browser.
-  const answerByVoice = () => {
-    const started = askByVoice({ onYes: archive, onNo: onClose, onEnd: () => setListening(false) });
-    if (started) setListening(true);
-  };
-
   // Το ύψος ήταν literal 40, δηλαδή η τιμή του T.h.lg στο ποντίκι — αλλά ΜΟΝΟ
   // στο ποντίκι: με δάχτυλο η κλίμακα ανεβαίνει στα 44 και το πεδίο έμενε στα 40.
   const field: React.CSSProperties = { height: T.h.lg, padding: '0 13px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box', width: '100%', transition: 'border-color 0.14s' };
@@ -151,7 +143,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
   const onFieldBlur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.currentTarget.style.borderColor = 'var(--border-default)'; };
   // Ύψος από την κοινή κλίμακα: το ίδιο segmented control ζει αυτούσιο και στο
   // LeaseModal με το ίδιο literal 34, οπότε κάθε τοπική αλλαγή τα ξεσυγχρόνιζε.
-  const seg = (m: AdjMethod): React.CSSProperties => ({ flex: 1, fontSize: 13, fontWeight: 600, height: T.h.md, borderRadius: 8, cursor: 'pointer', textAlign: 'center', border: 'none', background: method === m ? 'var(--accent)' : 'transparent', color: method === m ? 'var(--accent-text)' : 'var(--text-secondary)', fontFamily: T.font.sans, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' });
+  const seg = (m: AdjMethod): React.CSSProperties => ({ flex: 1, fontSize: 13, fontWeight: 600, height: T.h.md, borderRadius: T.radius.inner, cursor: 'pointer', textAlign: 'center', border: 'none', background: method === m ? 'var(--accent)' : 'transparent', color: method === m ? 'var(--accent-text)' : 'var(--text-secondary)', fontFamily: T.font.sans, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' });
   const METHOD_HINT: Record<AdjMethod, string> = {
     percent: 'Σταθερό ποσοστό αύξησης, όπως το συμφωνήσατε στο μισθωτήριο.',
     cpi: 'Επίσημος Δείκτης Τιμών Καταναλωτή της ΕΛΣΤΑΤ. Βάλε την ετήσια μεταβολή.',
@@ -205,10 +197,6 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
   const footer = pending ? (
     !archived && (
       <>
-        {speechSupported() && <button type="button" onClick={answerByVoice} disabled={archiving} aria-label="Απάντησε με φωνή" title="Απάντησε με φωνή: «ναι» ή «αργότερα»"
-          style={{ width: T.h.sm, height: T.h.sm, borderRadius: '50%', border: `1px solid ${listening ? 'var(--accent)' : 'var(--border-default)'}`, background: listening ? 'var(--accent-soft)' : 'var(--bg-surface)', color: listening ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0M12 17v4" /></svg>
-        </button>}
         <Btn variant="secondary" onClick={onClose} disabled={archiving}>Ίσως αργότερα</Btn>
         <Btn variant="primary" onClick={archive} disabled={archiving}>{archiving ? 'Αποθήκευση…' : 'Ναι, αποθήκευσε'}</Btn>
       </>
@@ -220,10 +208,14 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
     </>
   );
 
+  // ΤΟ ⓘ ΤΟΥ ΤΙΤΛΟΥ ΕΛΕΓΕ ΤΟΝ ΥΠΟΤΙΤΛΟ, ΜΕ ΠΕΡΙΣΣΟΤΕΡΕΣ ΛΕΞΕΙΣ. «Επίσημη έγγραφη
+  // ειδοποίηση προς τον μισθωτή … υπογράφεις ηλεκτρονικά … επαλήθευση» — και από
+  // κάτω, ορατός χωρίς πάτημα: «Επίσημη ειδοποίηση προς τον μισθωτή, με
+  // ηλεκτρονική υπογραφή και επαλήθευση». Έμεινε αυτός που φαίνεται.
   return (
     <Modal open={open} onClose={closeIfIdle} width={720}
       ariaLabel="Δήλωση αναπροσαρμογής"
-      title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>Αναπροσαρμογή ενοικίου<InfoHint>Ετοιμάζει την επίσημη έγγραφη ειδοποίηση προς τον μισθωτή για το νέο μίσθωμα. Υπολογίζει το νέο ποσό, το υπογράφεις ηλεκτρονικά και βγαίνει υπογεγραμμένο PDF με αριθμό εγγράφου και QR επαλήθευσης, έτοιμο να το κοινοποιήσεις.</InfoHint></span>}
+      title="Αναπροσαρμογή ενοικίου"
       subtitle="Επίσημη ειδοποίηση προς τον μισθωτή, με ηλεκτρονική υπογραφή και επαλήθευση"
       icon={<svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>}
       footer={footer} footerInfo={footerInfo}>
@@ -239,14 +231,14 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
                 if (doc.landlord_name && !ownerName.trim()) setOwnerName(doc.landlord_name);
               }} />
 
-              <div style={{ ...formGrid(220, 297), gap: 12 }}>
+              <div {...fixedCols(2, 12, 'start')}>
                 <div><div style={lbl}>Ακίνητο</div><Select value={propId} onChange={setPropId} options={props.map(p => ({ value: p.id, label: p.name }))} placeholder="Επιλογή ακινήτου" /></div>
                 <div><div style={lbl}>Μισθωτής</div><input value={tenant} onChange={e => setTenant(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="Ονοματεπώνυμο" style={field} /></div>
               </div>
 
               <div>
                 <div style={lbl}>Μέθοδος αναπροσαρμογής</div>
-                <div style={{ display: 'flex', gap: 3, padding: 3, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 10 }}>
+                <div style={{ display: 'flex', gap: 3, padding: 3, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
                   <button onClick={() => setMethod('percent')} style={seg('percent')}>Ποσοστό</button>
                   <button onClick={() => setMethod('cpi')} style={seg('cpi')}>ΔΤΚ (ΕΛΣΤΑΤ)</button>
                   <button onClick={() => setMethod('manual')} style={seg('manual')}>Χειροκίνητο</button>
@@ -254,7 +246,11 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
                 <div style={{ ...TT.bodySm, marginTop: 8, lineHeight: 1.5 }}>{METHOD_HINT[method]}</div>
               </div>
 
-              <div style={{ ...formGrid(160, 220), gap: 12 }}>
+              {/* ΤΡΕΙΣ ΙΣΕΣ ΣΤΗΛΕΣ, ΜΙΑ ΣΕΙΡΑ. Το `formGrid` κόβει κάθε στήλη σε
+                  σταθερό μέγιστο: τρία πεδία των 220 με δύο κενά δεν χωρούσαν στα
+                  672 του παραθύρου, οπότε το «Ισχύς από» έπεφτε μόνο του σε δεύτερη
+                  σειρά, με δυόμισι στήλες κενές δεξιά του. */}
+              <div {...fixedCols(3, 12, 'start')}>
                 <div><div style={lbl}>Τρέχον μίσθωμα</div>{money(currentRent, setCurrentRent, '€')}</div>
                 {method === 'manual'
                   ? <div><div style={lbl}>Νέο μίσθωμα</div>{money(newRentManual, setNewRentManual, '€')}</div>
@@ -262,43 +258,46 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
                 <div><div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 5 }}>Ισχύς από<InfoHint>Η ημερομηνία από την οποία εφαρμόζεται το νέο μίσθωμα. Κοινοποίησε την ειδοποίηση στον μισθωτή εγκαίρως, τηρώντας την προθεσμία που ορίζει το μισθωτήριο ή ο νόμος.</InfoHint></div><DatePicker value={effective} onChange={setEffective} /></div>
               </div>
 
-              {/* Live αποτέλεσμα: Τρέχον → Νέο, ουδέτερο μελάνι, χρώμα μόνο σε μείωση */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap', padding: '15px 18px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 12 }}>
+              {/* ΤΟ ΑΠΟΤΕΛΕΣΜΑ, ΖΩΝΤΑΝΑ: Τρέχον → Νέο, και δίπλα η μεταβολή.
+                  Οι τρεις ετικέτες ήταν γραμμένες τρεις φορές στο χέρι, με τα ίδια
+                  πέντε γνωρίσματα αντιγραμμένα (μέγεθος, βάρος, letterSpacing,
+                  uppercase, γραμματοσειρά) — δηλαδή τρεις ευκαιρίες να αποκλίνουν.
+                  Τώρα είναι το `TT.label`, όπως κάθε άλλη ετικέτα της εφαρμογής.
+                  Ουδέτερο μελάνι παντού, χρώμα μόνο όταν το μίσθωμα ΜΕΙΩΝΕΤΑΙ. */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', padding: '13px 16px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card }}>
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Τρέχον</div>
-                  {/* Ήταν 17, εκτός κλίμακας. Το 16 κρατά την ίδια ιεραρχία:
-                      το νέο μίσθωμα από δίπλα είναι 22 και παραμένει το βαρύ. */}
-                  <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums', marginTop: 3, fontFamily: T.font.sans }}>{pEur(res.currentRent)}</div>
+                  <div style={TT.label}>Τρέχον</div>
+                  <div style={{ ...TT.h2, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums', marginTop: 3 }}>{pEur(res.currentRent)}</div>
                 </div>
                 <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M5 12h14M13 6l6 6-6 6" /></svg>
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Νέο μίσθωμα</div>
-                  <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', marginTop: 2, letterSpacing: '-0.01em', fontFamily: T.font.sans }}>{pEur(res.newRent)}</div>
+                  <div style={TT.label}>Νέο μίσθωμα</div>
+                  <div style={{ ...TT.kpi, marginTop: 3 }}>{pEur(res.newRent)}</div>
                 </div>
                 <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Μεταβολή</div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: res.increase >= 0 ? 'var(--text-secondary)' : 'var(--negative)', fontVariantNumeric: 'tabular-nums', marginTop: 4, fontFamily: T.font.sans }}>{pPct(res.pctApplied)} · {res.increase >= 0 ? '+' : ''}{pEur(res.increase)}</div>
+                  <div style={TT.label}>Μεταβολή</div>
+                  <div style={{ ...TT.body, fontWeight: 600, color: res.increase >= 0 ? 'var(--text-secondary)' : 'var(--negative)', fontVariantNumeric: 'tabular-nums', marginTop: 4 }}>{pPct(res.pctApplied)} · {res.increase >= 0 ? '+' : ''}{pEur(res.increase)}</div>
                 </div>
               </div>
 
-              <div style={{ ...formGrid(200, 270), gap: 12 }}>
+              <div {...fixedCols(2, 12, 'start')}>
                 <div><div style={lbl}>Εκμισθωτής (υπογράφων)</div><input value={ownerName} onChange={e => setOwnerName(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="Ονοματεπώνυμο ή επωνυμία" style={field} /></div>
                 <div><div style={lbl}>Τόπος</div><input value={place} onChange={e => setPlace(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="Παράδειγμα: Αθήνα" style={field} /></div>
               </div>
 
               <div>
-                <div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 5 }}>Ηλεκτρονική υπογραφή<InfoHint>Υπόγραψε με το ποντίκι ή το δάχτυλο. Η υπογραφή ενσωματώνεται στο PDF και, μαζί με το QR, το καθιστά επαληθεύσιμο έγγραφο.</InfoHint></div>
+                <div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 5 }}>Ηλεκτρονική υπογραφή<InfoHint>Η υπογραφή ενσωματώνεται στο PDF και, μαζί με το QR, το καθιστά επαληθεύσιμο έγγραφο.</InfoHint></div>
                 <SignaturePad onChange={setSig} height={92} />
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '11px 13px', borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '11px 13px', borderRadius: T.radius.inner, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
                 <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55, fontFamily: T.font.sans }}>
                   Ιδιωτική ειδοποίηση με ισχύ έγγραφης απόδειξης. Η <strong style={{ color: 'var(--text-primary)' }}>αλλαγή μισθώματος</strong> δηλώνεται επίσημα στη «Δήλωση Πληροφοριακών Στοιχείων Μίσθωσης» στο <a href={MYAADE} target="_blank" rel="noreferrer" title={aadeTitle('lease')} style={{ color: 'var(--accent)', textDecoration: 'none' }}>myAADE</a>.
                 </div>
               </div>
 
-              {err && <div style={{ fontSize: 13, color: 'var(--negative)', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 14px' }}>{err}</div>}
+              {err && <div style={{ fontSize: 13, color: 'var(--negative)', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.inner, padding: '10px 14px' }}>{err}</div>}
             </>
           )}
       </>
