@@ -66,7 +66,10 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
       }}
       const toAdd = expenses.filter(e=>e.confirm)
       if(toAdd.length){
-        const { error } = await expenseStore.insert(supabase, toAdd.map(e=>expenseStore.row({ propertyId, userId }, { amount:e.amount, description:e.description.slice(0,120), date:e.txn.date||athensToday(), category:'Τραπεζική κίνηση' })))
+        const { error } = await expenseStore.insertFromBank(supabase, toAdd.map(e=>({
+          ...expenseStore.row({ propertyId, userId }, { amount:e.amount, description:e.description.slice(0,120), date:e.txn.date||athensToday(), category:'Τραπεζική κίνηση' }),
+          dedup_hash: hashOf(e.txn),
+        })))
         if(error) throw error
         for(const e of toAdd) rows.push({ user_id:userId, property_id:propertyId, txn_date:e.txn.date||null, description:e.txn.description, amount:e.txn.amount, dedup_hash:hashOf(e.txn) })
       }

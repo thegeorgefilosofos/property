@@ -227,6 +227,28 @@ export async function insert(db: Db, rows: Partial<ExpenseRow>[]): Promise<Outco
   return { data: null, error: null };
 }
 
+/**
+ * Εισαγωγή δαπανών που προέρχονται από τραπεζική κίνηση.
+ *
+ * ΤΟ ΙΔΙΟ ΑΝΤΙΓΡΑΦΟ ΚΙΝΗΣΕΩΝ, ΔΥΟ ΦΟΡΕΣ, ΔΥΟ ΣΥΝΟΛΑ. Η εισαγωγή γράφει σε δύο
+ * πίνακες: το `bank_transactions` κάνει upsert πάνω στο αποτύπωμα και δεν
+ * διπλογράφει, τα `expenses` γράφονταν με σκέτο insert σε πίνακα χωρίς κανένα
+ * μοναδικό κλειδί. Ο χρήστης που ξανακάνει επικόλληση μετά από διακοπείσα
+ * εισαγωγή — συνηθέστατο — έπαιρνε διπλάσιες δαπάνες στο Ε2 και δήλωνε στην
+ * ΑΑΔΕ έξοδα που δεν έκανε, ενώ το τραπεζικό καθολικό δίπλα του έδειχνε σωστά.
+ *
+ * Το `ignoreDuplicates` κάνει τη δεύτερη εισαγωγή σιωπηλή, όχι αποτυχημένη:
+ * σωστό, γιατί ο χρήστης δεν έκανε λάθος — απλώς επανέλαβε.
+ */
+export async function insertFromBank(db: Db, rows: Partial<ExpenseRow>[]): Promise<Outcome> {
+  for (let i = 0; i < rows.length; i += BATCH) {
+    const { error } = await db.from(TABLE)
+      .upsert(rows.slice(i, i + BATCH), { onConflict: 'user_id,dedup_hash', ignoreDuplicates: true });
+    if (error) return { data: null, error };
+  }
+  return { data: null, error: null };
+}
+
 /** Εισαγωγή με τα αναγνωριστικά πίσω — για όσους πρέπει να κρατήσουν αναφορά. */
 export function insertReturning(
   db: Db, rows: Partial<ExpenseRow>[],
