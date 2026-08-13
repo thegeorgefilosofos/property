@@ -147,5 +147,53 @@ if (!EMAIL || !PASSWORD) {
   await b.close()
 }
 
+// ── Γ. Η ΑΝΑΦΟΡΑ ΣΦΑΛΜΑΤΟΣ ΦΤΑΝΕΙ ΟΝΤΩΣ ΣΤΟ ΔΙΚΤΥΟ ────────────────────────
+// ΓΙΑΤΙ ΥΠΑΡΧΕΙ. Η αλυσίδα «σφάλμα → ακροατής → φίλτρο → φάκελος → δίκτυο» ήταν
+// το μόνο κομμάτι που κανένα τεστ δεν έπιανε ολόκληρο: τα μονάδας ελέγχουν τον
+// φάκελο, αλλά κανένα δεν επιβεβαιώνει ότι ο ακροατής ακούει.
+//
+// ΚΑΙ ΤΟ ΠΙΟ ΧΡΗΣΙΜΟ ΠΟΥ ΑΠΕΔΕΙΞΕ: ένα σκέτο `throw` γραμμένο στην κονσόλα του
+// περιηγητή ΔΕΝ φτάνει ποτέ. Τα εργαλεία προγραμματιστή πιάνουν την εξαίρεση
+// στα δικά τους όρια και δεν την αφήνουν να γίνει σφάλμα της σελίδας. Όποιος
+// δοκίμαζε έτσι, θα συμπέραινε λανθασμένα ότι η αναφορά δεν δουλεύει.
+//
+// ΧΡΗΣΗ: ο διακομιστής πρέπει να έχει ξεκινήσει ΜΕ DSN.
+//     NEXT_PUBLIC_SENTRY_DSN=https://k@o1.ingest.sentry.io/1 npm run dev
+//     E2E_SENTRY=1 node scripts/e2e-dashboard.mjs
+if (process.env.E2E_SENTRY === '1') {
+  console.log('\nΓ. Η αναφορά σφάλματος')
+  const b = await chromium.launch({
+    executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+    args: ['--no-sandbox'],
+  })
+  const p = await b.newPage()
+  const sent = []
+  await p.route('**/*ingest.sentry.io/**', r => { sent.push(r.request().postData() || ''); r.fulfill({ status: 200, body: '' }) })
+  await p.goto(B + '/', { waitUntil: 'domcontentloaded' })
+  await p.waitForTimeout(2000)
+
+  const fires = async (fn) => {
+    const before = sent.length
+    await p.evaluate(fn).catch(() => {})
+    await p.waitForTimeout(900)
+    return sent.length > before
+  }
+
+  ok('σφάλμα σε χρονοδιακόπτη αναφέρεται',
+     await fires(() => { setTimeout(() => { throw new Error('δοκιμή χρονοδιακόπτη') }, 5) }))
+  ok('απορριφθέν promise αναφέρεται',
+     await fires(() => { Promise.reject(new Error('δοκιμή promise')) }))
+  // Ο θόρυβος των επεκτάσεων μένει έξω, αλλιώς η λίστα δεν διαβάζεται.
+  ok('σφάλμα άλλης προέλευσης ΔΕΝ αναφέρεται',
+     !(await fires(() => { setTimeout(() => { throw new Error('Script error.') }, 5) })))
+
+  if (sent.length) {
+    const ev = JSON.parse(sent[sent.length - 1].split('\n')[2])
+    ok('ο φάκελος φέρει το μήνυμα του σφάλματος', /δοκιμή/.test(ev.exception.values[0].value))
+    ok('…και την έκδοση του build', typeof ev.release === 'string' && ev.release.length > 0)
+  }
+  await b.close()
+}
+
 console.log(`\ne2e-dashboard: ${pass} passed, ${fail} failed`)
 if (fail > 0) process.exit(1)
