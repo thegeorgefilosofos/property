@@ -11,10 +11,12 @@ import { checkPassword } from '@/lib/auth/password'
 import PasswordStrength from '@/components/PasswordStrength'
 import { failed } from '@/lib/core/dbError';
 import { PLANS, TRIAL_DAYS, normalizePlan, type PlanId } from '@/lib/billing/plans';
+import { POLICY_VERSION as CONSENT_VERSION } from '@/lib/legal/identity'
 
-// Η έκδοση των Όρων που δέχεται ο χρήστης. Γραφόταν καρφωτή σε ένα σημείο· με
-// δύο διαδρομές εγγραφής θα ήταν δύο διαφορετικές τιμές στην ίδια βάση.
-const CONSENT_VERSION = '2026-07'
+// Η έκδοση των Όρων που δέχεται ο χρήστης. Ήταν καρφωτή εδώ ως «2026-07», ενώ
+// οι δύο σελίδες που υπογράφει γράφουν «Αύγουστος 2026»: η απόδειξη
+// συγκατάθεσης έδειχνε σε κείμενο άλλου μήνα. Μία πηγή, στο μητρώο που κρατά
+// ήδη κάθε νομικό στοιχείο.
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Εγγραφή, στα χρώματα του app (design tokens, theme-aware). Κοινό marketing

@@ -1,5 +1,5 @@
 import { LegalShell } from '../legal-shell';
-import { IDENTITY, identityIsPublished } from '@/lib/legal/identity';
+import { IDENTITY, identityIsPublished, POLICY_UPDATED } from '@/lib/legal/identity';
 import { ACTIVE_SUBPROCESSORS, PLANNED_SUBPROCESSORS, subprocessorLine } from '@/lib/legal/subprocessors';
 import { siteUrl } from '@/lib/core/site';
 
@@ -9,7 +9,7 @@ export default function PrivacyPage() {
   return (
     <LegalShell
       title="Πολιτική απορρήτου"
-      updated="Αύγουστος 2026"
+      updated={POLICY_UPDATED}
       intro="Ποια δεδομένα συλλέγουμε, για ποιον σκοπό, σε ποια νομική βάση, με ποιους τα μοιραζόμαστε και ποια δικαιώματα έχεις. Γραμμένη με βάση τον Γενικό Κανονισμό Προστασίας Δεδομένων (GDPR, Καν. ΕΕ 2016/679) και τον ελληνικό νόμο 4624/2019."
       sections={[
         { h: 'Υπεύθυνος Επεξεργασίας', part: 'Α. Ποιοι είμαστε', p: [
