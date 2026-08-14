@@ -80,7 +80,11 @@ export interface OblMaint {
 
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const fromISO = (s: string) => new Date(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10));
-const daysBetween = (target: Date, from: Date) => Math.ceil((target.getTime() - from.getTime()) / 86400000);
+// ΣΤΡΟΓΓΥΛΟΠΟΙΕΙ ΠΡΟΣ ΤΑ ΠΑΝΩ, ΚΑΙ ΕΧΕΙ ΛΟΓΟ: μια προθεσμία που λήγει σε
+// δεκαοκτώ ώρες είναι «σε 1 ημέρα», όχι «σε 0». Το γενικό όνομα `daysBetween`
+// έκρυβε ακριβώς αυτό — και δίπλα του, σε άλλο αρχείο, ζούσε ομώνυμη που
+// στρογγυλοποιεί στο πλησιέστερο και θα έδινε άλλη ημέρα.
+const daysUntilDate = (target: Date, from: Date) => Math.ceil((target.getTime() - from.getTime()) / 86400000);
 
 function tone(days: number): OblTone {
   if (days < 0) return 'negative';
@@ -103,7 +107,7 @@ export function computeObligations(
 ): Obligation[] {
   const out: Obligation[] = [];
   const push = (o: Omit<Obligation, 'daysUntil' | 'tone' | 'date'> & { date: Date }) => {
-    const du = daysBetween(o.date, now);
+    const du = daysUntilDate(o.date, now);
     out.push({ ...o, date: iso(o.date), daysUntil: du, tone: tone(du) });
   };
 
@@ -165,7 +169,7 @@ export function computeObligations(
       // που έδειχνε προθεσμία έως και δύο εβδομάδες νωρίτερα από την πραγματική.
       const dISO = declarationDeadline(tenant.lease_start.slice(0, 10));
       const deadline = fromISO(dISO);
-      const du = daysBetween(deadline, now);
+      const du = daysUntilDate(deadline, now);
       // Δείξ' το μόνο αν είναι πρόσφατη έναρξη ή επικείμενη προθεσμία.
       if (du >= -30 && du <= 60) push({
         id: 'lease_decl', source: 'obligations:lease_decl', date: deadline,
@@ -182,7 +186,7 @@ export function computeObligations(
   maint.forEach((m, idx) => {
     const d = new Date(m.next_due);
     if (isNaN(d.getTime())) return;
-    const du = daysBetween(d, now);
+    const du = daysUntilDate(d, now);
     if (du > 60) return;
     push({
       id: `maint_${idx}`, source: null, date: d, category: 'maintenance', who: 'owner',

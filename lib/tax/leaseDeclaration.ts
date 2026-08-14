@@ -25,6 +25,7 @@ import { isValidAfm } from '../core/greek';
 import { athensToday } from '../core/time'
 import { MYAADE, aadePath } from './aade';
 import { fe } from '../core/format';
+import { daysBetweenIso } from '@/lib/core/time';
 
 // ── Κανόνες που αλλάζουν με τον νόμο — ΜΙΑ θέση για ενημέρωση ───────────────
 // Αν αλλάξει η νομοθεσία, αλλάζει ΜΟΝΟ αυτό το μπλοκ.
@@ -113,12 +114,6 @@ const fmtDate = (iso: string) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso
 // Η δήλωση μίσθωσης γράφει τα ποσά όπως η οθόνη.
 const eur = fe;
 
-/** Ημέρες μεταξύ δύο ISO ημερομηνιών (UTC, χωρίς ώρες). */
-function daysBetween(fromIso: string, toIso: string): number {
-  const a = Date.UTC(+fromIso.slice(0, 4), +fromIso.slice(5, 7) - 1, +fromIso.slice(8, 10));
-  const b = Date.UTC(+toIso.slice(0, 4), +toIso.slice(5, 7) - 1, +toIso.slice(8, 10));
-  return Math.round((b - a) / 86400000);
-}
 
 /** Τελευταία ημέρα του ΕΠΟΜΕΝΟΥ μήνα από την έναρξη της μίσθωσης. */
 export function declarationDeadline(leaseStartIso: string): string {
@@ -133,7 +128,7 @@ function buildDeadline(leaseStart: string | null | undefined, today: string): De
     return { due: null, daysLeft: null, state: 'unknown', label: 'Συμπλήρωσε την έναρξη μίσθωσης για να υπολογιστεί η προθεσμία.' };
   }
   const due = declarationDeadline(leaseStart);
-  const daysLeft = daysBetween(today, due);
+  const daysLeft = daysBetweenIso(today, due);
   if (daysLeft < 0) {
     return { due, daysLeft, state: 'overdue',
       label: `Η προθεσμία έληξε στις ${fmtDate(due)} (πριν ${Math.abs(daysLeft)} ${Math.abs(daysLeft) === 1 ? 'ημέρα' : 'ημέρες'}). Η εκπρόθεσμη δήλωση υποβάλλεται κανονικά, αλλά επισύρει πρόστιμο.` };
@@ -201,7 +196,7 @@ export function buildLeaseDeclaration(input: LeaseDeclarationInput): LeaseDeclar
   add({ key: 'lease_start', label: 'Έναρξη μίσθωσης', value: start ? fmtDate(start) : '', required: true, fixIn: 'tenant',
         status: !start ? 'missing' : isIsoDate(start) ? 'ok' : 'invalid',
         hint: !start ? 'Συμπλήρωσε την ημερομηνία έναρξης στην καρτέλα Ενοικιαστής.' : isIsoDate(start) ? undefined : 'Μη έγκυρη ημερομηνία.' });
-  const endBad = !!(start && end && isIsoDate(start) && isIsoDate(end) && daysBetween(start, end) <= 0);
+  const endBad = !!(start && end && isIsoDate(start) && isIsoDate(end) && daysBetweenIso(start, end) <= 0);
   add({ key: 'lease_end', label: 'Λήξη μίσθωσης', value: end ? fmtDate(end) : '', required: true, fixIn: 'tenant',
         status: !end ? 'missing' : endBad ? 'invalid' : 'ok',
         hint: !end ? 'Συμπλήρωσε την ημερομηνία λήξης στην καρτέλα Ενοικιαστής.' : endBad ? 'Η λήξη πρέπει να είναι μετά την έναρξη.' : undefined });

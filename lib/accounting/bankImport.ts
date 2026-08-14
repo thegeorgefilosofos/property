@@ -95,7 +95,11 @@ export interface MatchResult {
   unmatched: BankTxn[]
 }
 
-const daysBetween = (a: string, b: string) => {
+// ΔΕΝ ΕΙΝΑΙ «ημέρες μεταξύ»: είναι ΑΠΟΣΤΑΣΗ, χωρίς πρόσημο, και γυρίζει
+// `Infinity` σε άκυρη ημερομηνία ώστε η αντιστοίχιση να την απορρίψει αντί να
+// τη θεωρήσει τέλεια. Με το γενικό όνομα, ο επόμενος θα την καλούσε για
+// προθεσμία και θα έπαιρνε θετικό αριθμό για κάτι που έχει ήδη περάσει.
+const dayGap = (a: string, b: string) => {
   const t1 = Date.parse(a + 'T00:00:00Z'), t2 = Date.parse(b + 'T00:00:00Z')
   if (isNaN(t1) || isNaN(t2)) return Infinity
   return Math.abs(t1 - t2) / 86400000
@@ -118,7 +122,7 @@ export function matchTransactions(txns: BankTxn[], expectedRents: ExpectedRent[]
       if (usedTxn.has(i)) continue
       const t = txns[i]
       if (t.amount <= 0 || !money(t.amount, rent.amount)) continue
-      const d = t.date ? daysBetween(t.date, rent.dueDate) : windowDays
+      const d = t.date ? dayGap(t.date, rent.dueDate) : windowDays
       if (d <= windowDays && d < bestDays) { best = i; bestDays = d }
     }
     if (best >= 0) {

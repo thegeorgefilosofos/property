@@ -91,7 +91,10 @@ export function parseProgramDate(raw?: string | null): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
-const daysBetween = (from: Date, to: Date): number =>
+// Παίρνει `Date` και όχι συμβολοσειρά, γιατί οι προθεσμίες των προγραμμάτων
+// έρχονται ήδη ως αντικείμενα. Το όνομα το λέει, ώστε να μη συγχέεται με τη
+// `daysBetweenIso` του lib/core/time.
+const daysBetweenDates = (from: Date, to: Date): number =>
   Math.round((to.getTime() - from.getTime()) / DAY_MS);
 
 /** «31/05/2026» για την οθόνη, από οποιαδήποτε από τις δύο γραφές. */
@@ -127,7 +130,7 @@ export function programStatus(p: ProgramDates, today: Date): ProgramStatus {
     return { state: 'open-ended', badge: 'Ενεργό', acceptsApplications: true, daysLeft: null, note: '' };
   }
 
-  const daysToApply = daysBetween(t, applyBy);
+  const daysToApply = daysBetweenDates(t, applyBy);
   if (daysToApply >= 0) {
     const closing = daysToApply <= CLOSING_SOON_DAYS;
     return {
@@ -145,7 +148,7 @@ export function programStatus(p: ProgramDates, today: Date): ProgramStatus {
   // πρόγραμμα τρέχει ακόμη για όσους έχουν έγκριση — και αυτό πρέπει να ειπωθεί
   // ρητά, αλλιώς η μεταγενέστερη ημερομηνία διαβάζεται ως προθεσμία αίτησης.
   if (sign && apply && sign.getTime() > apply.getTime()) {
-    const daysToSign = daysBetween(t, sign);
+    const daysToSign = daysBetweenDates(t, sign);
     if (daysToSign >= 0) {
       return {
         state: 'applications-closed', badge: 'Έκλεισαν οι αιτήσεις',
