@@ -26,6 +26,7 @@ import BrandMark from '@/components/BrandMark';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { TRIAL_DAYS } from '@/lib/billing/plans';
+import { IDENTITY } from '@/lib/legal/identity';
 
 /**
  * ΕΝΑ ΜΕΤΡΟ ΓΙΑ ΟΛΕΣ ΤΙΣ ΔΗΜΟΣΙΕΣ ΣΕΛΙΔΕΣ — ΤΟ ΙΔΙΟ ΜΕ ΤΗΣ ΑΡΧΙΚΗΣ.
@@ -64,9 +65,19 @@ export function PublicHeader() {
           <BrandMark />
           <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.02em' }}>Property OS</span>
         </Link>
-        <Link href="/signup" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 14, fontWeight: 700, padding: '9px 16px', borderRadius: 100, whiteSpace: 'nowrap' }}>
-          Ξεκίνα τη δοκιμή
-        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+          {/* Ο ΤΙΜΟΚΑΤΑΛΟΓΟΣ ΔΕΝ ΕΙΧΕ ΔΡΟΜΟ. Η ενότητα υπάρχει, έχει άγκυρα
+              `#pricing`, και καμία σελίδα δεν έδειχνε προς τα εκεί: ο
+              επισκέπτης που έφτανε από τον υπολογιστή ΕΝΦΙΑ ή από τους Όρους
+              έπρεπε να μαντέψει ότι πρέπει να γυρίσει στην αρχική και να
+              κυλήσει. Η πιο συχνή ερώτηση πριν την εγγραφή είναι η τιμή. */}
+          <Link href="/#pricing" className="lp-link" style={{ textDecoration: 'none', fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+            Τιμές
+          </Link>
+          <Link href="/signup" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 14, fontWeight: 700, padding: '9px 16px', borderRadius: 100, whiteSpace: 'nowrap' }}>
+            Ξεκίνα τη δοκιμή
+          </Link>
+        </div>
       </div>
     </header>
   );
@@ -101,9 +112,14 @@ export function PublicFooter() {
           {/* ΤΡΕΙΣ ΣΤΗΛΕΣ ΤΩΝ ΤΡΙΩΝ. Η μεσαία είχε δύο συνδέσμους και έμοιαζε
               κολοβή δίπλα στις άλλες· έλειπε όμως και ο υπολογιστής ΕΝΦΙΑ, που
               υπάρχει, σερβίρεται και δεν τον έδειχνε καμία σελίδα. */}
-          <FootCol label="Προϊόν" links={[['/', 'Αρχική'], ['/signup', 'Ξεκίνα τη δοκιμή'], ['/login', 'Σύνδεση'], ['/#faq', 'Συχνές ερωτήσεις']]} />
+          <FootCol label="Προϊόν" links={[['/', 'Αρχική'], ['/#pricing', 'Τιμές'], ['/signup', 'Ξεκίνα τη δοκιμή'], ['/#faq', 'Συχνές ερωτήσεις']]} />
           <FootCol label="Εργαλεία" links={[['/vraxyxronia-i-makroxronia', 'Βραχυχρόνια vs Μακροχρόνια'], ['/ypologismos-enfia', 'ΕΝΦΙΑ'], ['/ypologismos-forou-enoikion', 'Φορολογία Ενοικίων']]} />
-          <FootCol label="Εμπιστοσύνη" links={[['/trust', 'Ποιοι είμαστε'], ['/privacy', 'Απόρρητο'], ['/terms', 'Όροι χρήσης']]} />
+          {/* ΚΑΜΙΑ ΔΗΜΟΣΙΑ ΣΕΛΙΔΑ ΔΕΝ ΕΔΙΝΕ ΤΡΟΠΟ ΝΑ ΜΑΣ ΜΙΛΗΣΕΙ ΚΑΝΕΙΣ. Η
+              διεύθυνση υποστήριξης υπήρχε στο μητρώο νομικής ταυτότητας και
+              δεν την τύπωνε καμία σελίδα εκτός από το «Ποιοι είμαστε». Ο
+              επισκέπτης που έχει ερώτηση πριν δώσει τα φορολογικά του
+              στοιχεία δεν ψάχνει· φεύγει. */}
+          <FootCol label="Εμπιστοσύνη" links={[['/trust', 'Ποιοι είμαστε'], ['/privacy', 'Απόρρητο'], ['/terms', 'Όροι χρήσης'], [`mailto:${IDENTITY.supportEmail}`, 'Επικοινωνία']]} />
         </div>
         <div style={{ marginTop: 'clamp(32px,4vw,48px)', paddingTop: 18, borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', fontSize: 12, color: 'var(--text-tertiary)' }}>
           <span>© {new Date().getFullYear()} Property OS</span>

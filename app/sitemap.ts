@@ -13,7 +13,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${base}/ypologismos-enfia`, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${base}/vraxyxronia-i-makroxronia`, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${base}/signup`, changeFrequency: 'monthly', priority: 0.8 },
-    { url: `${base}/login`, changeFrequency: 'yearly', priority: 0.5 },
+    // Η ΣΥΝΔΕΣΗ ΒΓΗΚΕ. Ο χάρτης λέει «ευρετηρίασε αυτό», και η ίδια η σελίδα
+    // λέει πλέον `noindex`: δύο αντικρουόμενα σήματα για το ίδιο πράγμα. Η
+    // φόρμα εισόδου δεν είναι απάντηση σε καμία αναζήτηση — όποιος ψάχνει το
+    // όνομα πρέπει να φτάνει στην αρχική.
     { url: `${base}/trust`, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${base}/privacy`, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${base}/terms`, changeFrequency: 'yearly', priority: 0.3 },

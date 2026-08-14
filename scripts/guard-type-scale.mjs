@@ -32,6 +32,17 @@ import { join } from 'node:path'
 const SCAN = ['app', 'components']
 
 /**
+ * ΤΙ ΔΕΝ ΕΙΝΑΙ ΟΘΟΝΗ.
+ *
+ * Η εικόνα κοινοποίησης (`opengraph-image`) είναι PNG 1200×630 που αποδίδεται
+ * στον διακομιστή και το βλέπει κανείς ως μικρογραφία μέσα σε συνομιλία. Η
+ * κλίμακα της εφαρμογής μετρά εικονοστοιχεία σε οθόνη 16 ώς 28: πάνω σε καμβά
+ * 1200 πλάτους, ένα «σωστό» 24άρι είναι κόκκος. Ο κανόνας δεν ισχύει επειδή
+ * δεν υπάρχει άνθρωπος που διαβάζει αυτό το αρχείο δίπλα σε ένα άλλο.
+ */
+const NOT_A_SCREEN = /(^|\/)(opengraph|twitter)-image\.tsx$/
+
+/**
  * Η κλίμακα, όπως την ορίζει το `TT` και το `T.sp`.
  *
  * Το 14, το 15 και το 9 δεν είναι στο `TT` αλλά χρησιμοποιούνται εκατοντάδες
@@ -61,6 +72,7 @@ const offScale = []
 const tooSmall = []
 for (const dir of SCAN) {
   for (const f of walk(dir)) {
+    if (NOT_A_SCREEN.test(f)) continue
     const lines = readFileSync(f, 'utf8').split('\n')
     lines.forEach((l, i) => {
       if (/^\s*(\/\/|\*)/.test(l)) return                    // σχόλιο, όχι κώδικας

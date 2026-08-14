@@ -7,10 +7,38 @@ import PwaProvider from "./PwaProvider";
 import { ToastHost } from "@/components/Toast";
 import ErrorListener from "@/components/ErrorListener";
 import { ConfirmHost } from "@/components/ConfirmDialog";
+import { SITE } from "@/lib/core/site";
+
+const TITLE = "Property OS";
+const DESCRIPTION = "Έσοδα, δαπάνες, ενοικιαστές, φόρος και προθεσμίες για τα ακίνητά σου, σε ένα σημείο.";
 
 export const metadata: Metadata = {
-  title: "Property OS",
-  description: "Έσοδα, δαπάνες, ενοικιαστές, φόρος και προθεσμίες για τα ακίνητά σου, σε ένα σημείο.",
+  // ═══════════════════════════════════════════════════════════════════════
+  // ΤΙ ΕΒΛΕΠΕ ΟΠΟΙΟΣ ΜΟΙΡΑΖΟΤΑΝ ΤΟΝ ΣΥΝΔΕΣΜΟ: ΤΙΠΟΤΑ
+  // ─────────────────────────────────────────────────────────────────────
+  // Δεν υπήρχε `metadataBase`, οπότε κάθε σχετική διεύθυνση εικόνας που θα
+  // δήλωνε οποιαδήποτε σελίδα έβγαινε άκυρη. Δεν υπήρχε `openGraph`, οπότε το
+  // Messenger, το Viber, το WhatsApp και το Slack έδειχναν γυμνό σύνδεσμο —
+  // ακριβώς στο κανάλι όπου ένας ιδιοκτήτης στέλνει την εφαρμογή σε άλλον.
+  // Και δεν υπήρχε `canonical`, οπότε το ίδιο περιεχόμενο με `?ref=` ή
+  // `?plan=` μετριόταν από τις μηχανές ως ξεχωριστή σελίδα.
+  //
+  // Η εικόνα ΠΑΡΑΓΕΤΑΙ από το app/opengraph-image.tsx, δεν είναι αρχείο που
+  // ξεχνιέται όταν αλλάξει το σήμα.
+  // ═══════════════════════════════════════════════════════════════════════
+  metadataBase: new URL(SITE),
+  alternates: { canonical: "/" },
+  title: { default: TITLE, template: `%s · ${TITLE}` },
+  description: DESCRIPTION,
+  openGraph: {
+    type: "website",
+    siteName: TITLE,
+    locale: "el_GR",
+    url: SITE,
+    title: TITLE,
+    description: DESCRIPTION,
+  },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
   applicationName: "Property OS",
   // Εγκαταστάσιμη εφαρμογή: το manifest παράγεται από το app/manifest.ts.
   manifest: "/manifest.webmanifest",

@@ -7,8 +7,9 @@ import { IDENTITY } from '@/lib/legal/identity';
 // PLANS, με τον ίδιο μορφοποιητή που τυπώνει κάθε ποσό της εφαρμογής.
 import { PLANS, EXTRA_PROPERTY_PRICE, TRIAL_DAYS } from '@/lib/billing/plans';
 import { fe } from '@/lib/core/format';
+import { siteUrl } from '@/lib/core/site';
 
-export const metadata = { title: 'Όροι χρήσης, Property OS' };
+export const metadata = { title: 'Όροι χρήσης', alternates: { canonical: siteUrl('/terms') } };
 
 export default function TermsPage() {
   return (

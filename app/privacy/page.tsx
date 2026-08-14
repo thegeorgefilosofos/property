@@ -1,8 +1,9 @@
 import { LegalShell } from '../legal-shell';
 import { IDENTITY, identityIsPublished } from '@/lib/legal/identity';
 import { ACTIVE_SUBPROCESSORS, PLANNED_SUBPROCESSORS, subprocessorLine } from '@/lib/legal/subprocessors';
+import { siteUrl } from '@/lib/core/site';
 
-export const metadata = { title: 'Πολιτική απορρήτου, Property OS' };
+export const metadata = { title: 'Πολιτική απορρήτου', alternates: { canonical: siteUrl('/privacy') } };
 
 export default function PrivacyPage() {
   return (

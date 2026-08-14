@@ -44,7 +44,9 @@ const URL = siteUrl(PATH);
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const metadata: Metadata = {
-  title: TITLE,
+  // Απόλυτος: ο τίτλος είναι γραμμένος για τη σελίδα αποτελεσμάτων και δεν
+  // αντέχει τρίτο τμήμα από το πρότυπο της ρίζας.
+  title: { absolute: TITLE },
   description: DESC,
   alternates: { canonical: URL },
   openGraph: {

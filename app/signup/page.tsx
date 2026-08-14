@@ -12,6 +12,10 @@ import PasswordStrength from '@/components/PasswordStrength'
 import { failed } from '@/lib/core/dbError';
 import { PLANS, TRIAL_DAYS, normalizePlan, type PlanId } from '@/lib/billing/plans';
 
+// Η έκδοση των Όρων που δέχεται ο χρήστης. Γραφόταν καρφωτή σε ένα σημείο· με
+// δύο διαδρομές εγγραφής θα ήταν δύο διαφορετικές τιμές στην ίδια βάση.
+const CONSENT_VERSION = '2026-07'
+
 // ═══════════════════════════════════════════════════════════════════════════
 // Εγγραφή, στα χρώματα του app (design tokens, theme-aware). Κοινό marketing
 // panel (AuthAside) με Σύνδεση/Επαναφορά. Google-first, με email ως δεύτερη οδό.
@@ -26,6 +30,9 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
   const [consent, setConsent] = useState(false)
+  // Το κουμπί της Google δεν έχει «υποβολή» για να δείξει το πρόβλημα. Χωρίς
+  // αυτό, το πάτημα χωρίς αποδοχή δεν έκανε τίποτα και έμοιαζε με βλάβη.
+  const [consentTouched, setConsentTouched] = useState(false)
   const [refCode, setRefCode] = useState('')
   // ΤΟ ΠΑΚΕΤΟ ΠΟΥ ΔΙΑΛΕΞΕ Ο ΕΠΙΣΚΕΠΤΗΣ ΣΤΟΝ ΤΙΜΟΚΑΤΑΛΟΓΟ. Φτάνει ως `?plan=`
   // από την κάρτα που πάτησε. Χωρίς αυτό, η μόνη απόφαση που πήρε στην αρχική
@@ -62,7 +69,29 @@ export default function SignupPage() {
   }, [])
   useEffect(() => {
     const supabase = createClient()
-    supabase.auth.getUser().then(({ data }) => setSessionEmail(data.user?.email ?? null))
+    supabase.auth.getUser().then(async ({ data }) => {
+      const u = data.user
+      if (!u) { setSessionEmail(null); return }
+      // ΕΠΙΣΤΡΟΦΗ ΑΠΟ ΤΗΝ GOOGLE. Συμπληρώνουμε ΜΟΝΟ ό,τι λείπει: ο χρήστης
+      // που ξανασυνδέεται δεν επιτρέπεται να δει τη σφραγίδα συγκατάθεσής του
+      // να ξαναγράφεται με σημερινή ημερομηνία — η απόδειξη είναι η ΠΡΩΤΗ.
+      const q = new URLSearchParams(window.location.search)
+      if (q.get('oauth') === '1') {
+        const meta = (u.user_metadata ?? {}) as Record<string, unknown>
+        const patch: Record<string, unknown> = {}
+        if (!meta.consent_terms_accepted_at) {
+          patch.consent_terms_accepted_at = new Date().toISOString()
+          patch.consent_policy_version = CONSENT_VERSION
+        }
+        const r = q.get('ref'); if (r && !meta.referred_by) patch.referred_by = r
+        const p = q.get('plan')
+        if (p && p !== 'free' && normalizePlan(p) === p && !meta.chosen_plan) patch.chosen_plan = p
+        if (Object.keys(patch).length) { try { await supabase.auth.updateUser({ data: patch }) } catch {} }
+        window.location.replace('/dashboard')
+        return
+      }
+      setSessionEmail(u.email ?? null)
+    })
   }, [])
 
   async function signOut() {
@@ -72,12 +101,36 @@ export default function SignupPage() {
     setSessionEmail(null); setSigningOut(false)
   }
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // Η ΕΓΓΡΑΦΗ ΜΕΣΩ GOOGLE ΕΧΑΝΕ ΤΡΙΑ ΠΡΑΓΜΑΤΑ ΠΟΥ Η ΕΓΓΡΑΦΗ ΜΕ EMAIL ΚΡΑΤΑ
+  // ─────────────────────────────────────────────────────────────────────
+  // Η φόρμα email γράφει στο προφίλ πότε έγιναν δεκτοί οι Όροι, ποια έκδοση,
+  // ποιος έστειλε την πρόσκληση και ποιο πακέτο διάλεξε ο επισκέπτης. Η
+  // `signInWithOAuth` δεν δέχεται `data`, οπότε η διαδρομή της Google δεν
+  // έγραφε ΤΙΠΟΤΑ από τα τέσσερα:
+  //
+  //   • Καμία απόδειξη συγκατάθεσης. Η αρχή λογοδοσίας του GDPR ζητά να
+  //     μπορούμε να δείξουμε ΠΟΤΕ και ΤΙ δέχθηκε ο χρήστης. Χειρότερα: το
+  //     κουμπί δούλευε χωρίς καν να τσεκαριστεί το κουτί, άρα γινόταν
+  //     λογαριασμός χωρίς αποδοχή των Όρων.
+  //   • Καμία πρόσκληση. Ο συστήνων δεν έπαιρνε ποτέ τον μήνα του, και δεν
+  //     το μάθαινε κανείς — ο νέος χρήστης υπήρχε, απλώς χωρίς πατέρα.
+  //   • Κανένα πακέτο. Ο επισκέπτης που πάτησε «Ιδιοκτήτης» στον τιμοκατάλογο
+  //     έφτανε σαν να μην είχε διαλέξει ποτέ.
+  //
+  // Η λύση δεν χρειάζεται αποθήκευση στον περιηγητή: ό,τι ξέρουμε ταξιδεύει
+  // στη διεύθυνση επιστροφής, και γράφεται μόλις υπάρξει συνεδρία.
+  // ═══════════════════════════════════════════════════════════════════════
   async function signInWithGoogle() {
+    if (!consent) { setConsentTouched(true); return }
     setError('')
     const supabase = createClient()
+    const back = new URLSearchParams({ oauth: '1' })
+    if (refCode) back.set('ref', refCode)
+    if (chosenPlan) back.set('plan', chosenPlan)
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/dashboard` },
+      options: { redirectTo: `${window.location.origin}/signup?${back.toString()}` },
     })
     if (error) setError(failed('Η εγγραφή δεν ολοκληρώθηκε', error))
   }
@@ -114,7 +167,7 @@ export default function SignupPage() {
         data: {
           full_name: fullName.trim(),
           consent_terms_accepted_at: new Date().toISOString(),
-          consent_policy_version: '2026-07',
+          consent_policy_version: CONSENT_VERSION,
           ...(refCode ? { referred_by: refCode } : {}),
           ...(chosenPlan ? { chosen_plan: chosenPlan } : {}),
         },
@@ -196,6 +249,29 @@ export default function SignupPage() {
                 </div>
               )}
 
+              {/* Η ΑΠΟΔΟΧΗ ΚΑΘΟΤΑΝ ΜΕΣΑ ΣΤΗ ΦΟΡΜΑ EMAIL, ΔΗΛΑΔΗ ΚΑΤΩ ΑΠΟ ΤΗΝ GOOGLE.
+                  Όποιος πατούσε το πάνω κουμπί δεν την είχε δει ποτέ. Μία
+                  αποδοχή, πάνω από τις δύο πόρτες, και ισχύει και για τις δύο.
+                  Ο έλεγχος δεν τυλίγει τους συνδέσμους (χωρίς ένθετα
+                  διαδραστικά): περιγράφεται με aria-label και οι σύνδεσμοι
+                  είναι διπλανό κείμενο. */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 16 }}>
+                <input id="su-consent" type="checkbox" checked={consent}
+                  onChange={e => { setConsent(e.target.checked); if (e.target.checked) setConsentTouched(false) }}
+                  required aria-label="Αποδοχή των Όρων Χρήσης και της Πολιτικής απορρήτου"
+                  style={{ marginTop: 2, width: 16, height: 16, accentColor: 'var(--accent)', flexShrink: 0, cursor: 'pointer' }} />
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                  Αποδέχομαι τους{' '}
+                  <Link href="/terms" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Όρους χρήσης</Link>{' '}και την{' '}
+                  <Link href="/privacy" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Πολιτική απορρήτου</Link>.
+                </span>
+              </div>
+              {consentTouched && !consent && (
+                <p role="alert" style={{ fontSize: 12, color: 'var(--negative-on-container)', margin: '0 0 12px', lineHeight: 1.5 }}>
+                  Χρειάζεται να αποδεχθείς τους Όρους και την Πολιτική απορρήτου για να συνεχίσεις.
+                </p>
+              )}
+
               <button type="button" onClick={signInWithGoogle} className="auth-hov"
                 style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '12px', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 100, color: 'var(--text-primary)', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                 <GoogleG />Συνέχισε με Google
@@ -237,17 +313,6 @@ export default function SignupPage() {
                     {trans(error)}
                   </div>
                 )}
-
-                {/* Ο έλεγχος δεν τυλίγει τους συνδέσμους (χωρίς ένθετα διαδραστικά)· το checkbox
-                    περιγράφεται με aria-label και οι σύνδεσμοι είναι διπλανό κείμενο. */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 2 }}>
-                  <input id="su-consent" type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} required aria-label="Αποδοχή των Όρων Χρήσης και της Πολιτικής απορρήτου" style={{ marginTop: 2, width: 16, height: 16, accentColor: 'var(--accent)', flexShrink: 0, cursor: 'pointer' }} />
-                  <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                    Αποδέχομαι τους{' '}
-                    <Link href="/terms" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Όρους χρήσης</Link>{' '}και την{' '}
-                    <Link href="/privacy" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Πολιτική απορρήτου</Link>.
-                  </span>
-                </div>
 
                 <button type="submit" disabled={loading || !consent || !pw.ok || leaked} className="auth-cta" style={{ width: '100%', padding: '12px', background: 'var(--accent)', border: 'none', borderRadius: 100, color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: (loading || !consent || !pw.ok || leaked) ? 'not-allowed' : 'pointer', opacity: (loading || !consent || !pw.ok || leaked) ? 0.6 : 1, letterSpacing: '-0.01em', marginTop: 4, fontFamily: 'inherit' }}>
                   {loading ? 'Δημιουργία…' : 'Ξεκίνα τη δοκιμή'}

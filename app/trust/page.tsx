@@ -21,9 +21,11 @@ import type { Metadata } from 'next';
 import { IDENTITY } from '@/lib/legal/identity';
 import { SUBPROCESSORS as SUBPROCESSORS_SOURCE } from '@/lib/legal/subprocessors';
 import { LegalLayout, type LegalBlock } from '../legal-shell';
+import { siteUrl } from '@/lib/core/site';
 
 export const metadata: Metadata = {
-  title: 'Ποιοι είμαστε · Property OS',
+  title: 'Ποιοι είμαστε',
+  alternates: { canonical: siteUrl('/trust') },
   description: 'Ποιοι είμαστε, πού φυλάσσονται τα δεδομένα σου, ποιος μπορεί να τα δει και τι δεν κάνουμε ποτέ μ’ αυτά.',
 };
 
