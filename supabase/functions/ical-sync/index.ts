@@ -259,8 +259,21 @@ async function syncFeed(feed: Feed): Promise<Record<string, unknown>> {
       .filter(d => d.nights > 0)
     const toImport = drafts.filter(d => feed.include_blocked || !d.blocked)
 
+    // ── Η ΤΑΥΤΟΤΗΤΑ ΤΗΣ ΚΡΑΤΗΣΗΣ ΕΙΝΑΙ ΤΟ UID, ΟΧΙ ΟΙ ΗΜΕΡΟΜΗΝΙΕΣ ──────────
+    // Το κλειδί (ακίνητο, άφιξη, αναχώρηση) έσπαγε μόλις ο επισκέπτης άλλαζε
+    // ημερομηνίες: το κανάλι ξαναστέλνει ΤΗΝ ΙΔΙΑ κράτηση με άλλες, το κλειδί
+    // δεν ταιριάζει, και μπαίνει δεύτερη γραμμή. Το έσοδο μετριόταν δύο φορές.
+    //
+    // Το πρόθεμα του καναλιού δεν είναι διακοσμητικό: τα UID είναι μοναδικά
+    // μέσα στο κάθε κανάλι, όχι μεταξύ τους.
+    const uidOf = (uid: string) => `${feed.channel}:${uid}`
+
+    // Ο ΠΑΛΙΟΣ ΕΛΕΓΧΟΣ ΜΕΝΕΙ, ΚΑΙ ΜΟΝΟ ΓΙΑ ΤΙΣ ΠΑΛΙΕΣ ΓΡΑΜΜΕΣ. Όσες μπήκαν
+    // πριν υπάρξει η στήλη δεν έχουν UID, οπότε η σύγκρουση δεν θα τις έβρισκε
+    // και θα ξαναγράφονταν ολόκληρες.
     const { data: existing } = await admin.from('client_stays')
-      .select('property_id,check_in,check_out').eq('user_id', feed.user_id).eq('property_id', feed.property_id)
+      .select('property_id,check_in,check_out')
+      .eq('user_id', feed.user_id).eq('property_id', feed.property_id).is('source_uid', null)
     const keys = new Set((existing || []).map((s: { property_id: string; check_in: string; check_out: string }) => `${s.property_id}|${s.check_in}|${s.check_out}`))
     const fresh = toImport.filter(d => !keys.has(`${feed.property_id}|${d.start}|${d.end}`))
 
@@ -270,10 +283,15 @@ async function syncFeed(feed: Feed): Promise<Record<string, unknown>> {
       const rows = fresh.map(d => ({
         user_id: feed.user_id, client_id: clientId, property_id: feed.property_id,
         check_in: d.start, check_out: d.end, nights: d.nights, channel: feed.channel,
-        notes: `Εισαγωγή iCal · ${d.uid}`,
+        source_uid: uidOf(d.uid),
+        notes: 'Εισαγωγή iCal',
       }))
       for (let i = 0; i < rows.length; i += 100) {
-        const { error } = await admin.from('client_stays').insert(rows.slice(i, i + 100))
+        // Η ίδια κράτηση με νέες ημερομηνίες ΕΝΗΜΕΡΩΝΕΙ τη γραμμή της αντί να
+        // γεννά δεύτερη. Το upsert κλείνει και τον αγώνα δρόμου: δύο
+        // ταυτόχρονοι συγχρονισμοί δεν μπορούν πια να γράψουν και οι δύο.
+        const { error } = await admin.from('client_stays')
+          .upsert(rows.slice(i, i + 100), { onConflict: 'user_id,source_uid' })
         if (error) throw new Error(error.message)
         inserted += rows.slice(i, i + 100).length
       }

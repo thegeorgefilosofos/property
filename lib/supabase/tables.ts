@@ -357,6 +357,8 @@ export interface ClientStaysRow {
   amount_basis: string | null;
   declared_at: string | null;
   damage_item_id: string | null;
+  /** Το UID του γεγονότος iCal, με πρόθεμα το κανάλι. Κενό στις χειροκίνητες. */
+  source_uid: string | null;
 }
 
 export interface ClientsRow {
