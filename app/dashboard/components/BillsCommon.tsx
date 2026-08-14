@@ -51,6 +51,12 @@ const COMMON_CATEGORIES: { key: string; label: string; payer: 'tenant' | 'owner'
 ];
 
 
+// Η γεωμετρία της στήλης του πεδίου, σε ένα σημείο: το πλάτος της στήλης και το
+// εσωτερικό περιθώριο του πεδίου. Το δεύτερο το χρειάζεται ΚΑΙ η επικεφαλίδα,
+// για να πέφτει πάνω από τα ψηφία και όχι πάνω από το περίγραμμα.
+const FIELD_COL = 150
+const FIELD_PAD = 12
+
 interface Props { propertyId: string; userId?: string; }
 
 export default function BillsCommon({ propertyId, userId = '' }: Props) {
@@ -264,14 +270,25 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
           if (!rows.length) return null;
           return (
         <div key={payer} style={{ marginTop: payer === 'owner' ? 20 : 0 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 150px 110px', gap: 14, padding: '0 4px 8px', borderBottom: '1px solid var(--border-subtle)', marginBottom: 4, alignItems: 'baseline' }}>
+        {/* ═══ Η ΕΠΙΚΕΦΑΛΙΔΑ ΣΤΟΙΧΙΖΟΤΑΝ ΣΤΟ ΠΕΡΙΓΡΑΜΜΑ, Η ΤΙΜΗ ΣΤΟ ΜΕΛΑΝΙ ══
+            Το «Σύνολο κτιρίου» ήταν δεξιά στοιχισμένο στο ΑΚΡΟ της στήλης, ενώ
+            τα ψηφία που τιτλοφορεί κάθονται δώδεκα εικονοστοιχεία πιο μέσα —
+            όσο το padding του πεδίου. Δηλαδή η ετικέτα δεν κάθεται ποτέ πάνω
+            από τον αριθμό της· κάθεται πάνω από το πλαίσιο. Με άδεια πεδία, που
+            είναι και η πρώτη εικόνα που βλέπει ο χρήστης, η απόκλιση διαβάζεται
+            ως στραβή στοίχιση.
+
+            Η στοίχιση βγαίνει τώρα από ΤΟ ΙΔΙΟ νούμερο με το πεδίο (FIELD_PAD),
+            οπότε δεν μπορεί να ξαναποκλίνει. Η διπλανή στήλη δεν έχει πλαίσιο,
+            άρα το μελάνι της είναι ήδη στο άκρο και μένει όπως είναι. */}
+        <div style={{ display: 'grid', gridTemplateColumns: `minmax(0, 1fr) ${FIELD_COL}px 110px`, gap: 14, padding: '0 4px 8px', borderBottom: '1px solid var(--border-subtle)', marginBottom: 4, alignItems: 'baseline' }}>
           <div style={{ ...TT.label, fontSize: 9, color: 'var(--text-secondary)' }}>{payer === 'tenant' ? 'Βαρύνουν τον ενοικιαστή' : 'Βαρύνουν εσένα'}</div>
-          <div style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)', textAlign: 'right' }}>Σύνολο κτιρίου</div>
+          <div style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)', textAlign: 'right', paddingRight: FIELD_PAD }}>Σύνολο κτιρίου</div>
           <div style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)', textAlign: 'right' }}>Μερίδιό μου</div>
         </div>
 
         {rows.map(r => (
-          <div key={r.key} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 150px 110px', gap: 14, alignItems: 'center', padding: '8px 4px', borderBottom: '1px solid var(--border-subtle)' }}>
+          <div key={r.key} style={{ display: 'grid', gridTemplateColumns: `minmax(0, 1fr) ${FIELD_COL}px 110px`, gap: 14, alignItems: 'center', padding: '8px 4px', borderBottom: '1px solid var(--border-subtle)' }}>
             <div style={{ fontSize: 12, color: 'var(--text-primary)', fontFamily: T.font.sans, fontWeight: 500 }}>{r.label}</div>
             {/* ΤΟ ΣΚΟΥΡΟ «ΧΑΠΙ» ΕΓΙΝΕ ΠΕΔΙΟ. Ήταν `background: bg-base` με ακτίνα
                 σήματος: μέσα σε σκούρο θέμα διαβαζόταν ως τρύπα, όχι ως κουτί
@@ -282,7 +299,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
               aria-label={`${r.label}, μηνιαίο σύνολο κτιρίου σε ευρώ`}
               type="number" min={0} inputMode="decimal" value={catData[r.key] ?? ''} onChange={e => sCat(r.key, e.target.value)}
               className="po-field"
-              style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: T.radius.inner, padding: '8px 12px', fontSize: 13, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', textAlign: 'right', outline: 'none' }}/>
+              style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: T.radius.inner, padding: `8px ${FIELD_PAD}px`, fontSize: 13, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', textAlign: 'right', outline: 'none' }}/>
             <div style={{ fontSize: 12, fontWeight: 600, color: r.myShare > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{r.myShare > 0 ? fe(r.myShare) : ''}</div>
           </div>
         ))}

@@ -39,30 +39,127 @@ export function staysOnDay(stays: StaySpan[], dateStr: string): StaySpan[] {
     .sort((a, b) => (a.start === b.start ? a.id.localeCompare(b.id) : a.start.localeCompare(b.start)))
 }
 
-// Χαρακτηριστικά τμήματος για ένα κελί: στρογγύλεψη στα άκρα της κράτησης ή στα
-// άκρα της γραμμής (Κυρ=0 αριστερά, Σαβ=6 δεξιά)· ετικέτα μόνο στην αρχή ή όταν
-// συνεχίζεται σε νέα εβδομάδα (col 0), για να μη διαβάζεται δύο φορές το όνομα.
-export function segMeta(stay: StaySpan, dateStr: string, col: number): {
-  isStart: boolean; isEnd: boolean; roundLeft: boolean; roundRight: boolean; showLabel: boolean
+// ═══════════════════════════════════════════════════════════════════════════
+// Η ΚΡΑΤΗΣΗ ΕΙΝΑΙ ΕΝΑ ΣΤΟΙΧΕΙΟ, ΟΧΙ ΕΠΤΑ ΚΟΜΜΑΤΙΑ
+// ─────────────────────────────────────────────────────────────────────────
+// ΤΙ ΙΣΧΥΕ ΚΑΙ ΓΙΑΤΙ ΦΑΙΝΟΤΑΝ ΣΠΑΣΜΕΝΟ. Η προηγούμενη γραφή ζωγράφιζε ένα
+// τμήμα ΑΝΑ ΚΕΛΙ και έλπιζε ότι τα εφτά τμήματα θα διαβάζονταν ως μία μπάρα.
+// Δεν διαβάζονταν, για λόγο μηχανικό: το τμήμα ζούσε μέσα σε `Tooltip`, που
+// αποδίδεται ως `display:inline-flex`, άρα το τμήμα γινόταν ΣΤΟΙΧΕΙΟ ΕΥΕΛΙΚΤΟΥ
+// ΔΟΧΕΙΟΥ και έπαιρνε το πλάτος του ΠΕΡΙΕΧΟΜΕΝΟΥ του:
+//
+//   ημέρα άφιξης      έχει ετικέτα  →  πλάτος όσο το όνομα, κομμένο στο κελί
+//   ενδιάμεσες ημέρες καμία ετικέτα →  πλάτος ΜΗΔΕΝ, δηλαδή αόρατες
+//   ημέρα αναχώρησης  μόνο padding  →  πλάτος 6 εικονοστοιχείων, μια γραμμούλα
+//
+// Ακριβώς αυτό δείχνει η οθόνη: ένα χάπι με κομμένο όνομα, τρία κενά κελιά, και
+// μια κόκκινη γραμμούλα στο τέλος. Δεν ήταν αισθητικό λάθος· ήταν λάθος
+// μοντέλου. Μια κράτηση τεσσάρων νυχτών ΕΙΝΑΙ ένα πράγμα και πρέπει να είναι
+// ένα στοιχείο, με το όνομα γραμμένο ΜΙΑ φορά μέσα σε ολόκληρο το πλάτος του.
+//
+// ΤΙ ΚΑΝΕΙ Η ΝΕΑ ΓΕΩΜΕΤΡΙΑ. Για κάθε εβδομάδα του μήνα υπολογίζει, για κάθε
+// κράτηση που την αγγίζει, ΜΙΑ λωρίδα: από ποια στήλη ξεκινά, πόσες στήλες
+// πιάνει, σε ποια σειρά (lane) κάθεται ώστε να μη συγκρούεται με άλλη, και αν
+// συνεχίζεται πριν ή μετά την εβδομάδα. Η οθόνη τη ζωγραφίζει ως ΕΝΑ απόλυτα
+// τοποθετημένο στοιχείο πάνω από τα κελιά.
+//
+// ΓΙΑΤΙ ΑΝΑ ΕΒΔΟΜΑΔΑ ΚΑΙ ΟΧΙ ΑΝΑ ΜΗΝΑ: το πλέγμα σπάει σε γραμμή κάθε επτά
+// ημέρες. Μια μπάρα που περνά από Κυριακή σε Δευτέρα δεν είναι συνεχής στην
+// οθόνη — είναι δύο λωρίδες, και το λέει με ίσιο άκρο αντί για στρογγυλό.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface WeekSegment {
+  stay: StaySpan
+  /** Στήλη έναρξης μέσα στην εβδομάδα, 0 ώς 6. */
+  startCol: number
+  /** Πόσες στήλες πιάνει, 1 ώς 7. */
+  span: number
+  /** Σε ποια σειρά κάθεται, ώστε δύο κρατήσεις να μη γράφονται η μία πάνω στην άλλη. */
+  lane: number
+  /** Ξεκίνησε πριν από αυτή την εβδομάδα (ίσιο άκρο αριστερά). */
+  openLeft: boolean
+  /** Συνεχίζεται μετά από αυτή την εβδομάδα (ίσιο άκρο δεξιά). */
+  openRight: boolean
+  /** Νύχτες ΟΛΗΣ της κράτησης, όχι του τμήματος: η ετικέτα λέει την κράτηση. */
+  nights: number
+}
+
+const dayNum = (iso: string): number =>
+  Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)) / 86400000
+
+/** Νύχτες μεταξύ άφιξης και αναχώρησης. Ίδια ημέρα = 1, ώστε να μη γράφει «0 ν.». */
+export function stayNights(stay: StaySpan): number {
+  return Math.max(1, Math.round(dayNum(stay.end) - dayNum(stay.start)))
+}
+
+/**
+ * Οι λωρίδες μιας εβδομάδας.
+ *
+ * `weekDates` είναι επτά θέσεις· `null` όπου το κελί ανήκει σε άλλον μήνα. Οι
+ * κενές θέσεις ΔΕΝ σπάνε τη λωρίδα: μια κράτηση που ξεκινά στις 31 του
+ * προηγούμενου μήνα και τελειώνει στις 2 απλώς αρχίζει από την πρώτη
+ * πραγματική στήλη, με ίσιο άκρο που λέει «έρχεται από πριν».
+ */
+export function weekSegments(stays: StaySpan[], weekDates: (string | null)[]): {
+  segments: WeekSegment[]; lanes: number
 } {
-  const isStart = dateStr === stay.start
-  const isEnd = dateStr === stay.end
-  return {
-    isStart, isEnd,
-    roundLeft: isStart || col === 0,
-    roundRight: isEnd || col === 6,
-    showLabel: isStart || col === 0,
+  const real = weekDates.map((d, i) => ({ d, i })).filter((x): x is { d: string; i: number } => !!x.d)
+  if (!real.length || !stays?.length) return { segments: [], lanes: 0 }
+  const first = real[0].d, last = real[real.length - 1].d
+
+  const touching = stays
+    .filter(s => s && s.start <= last && s.end >= first)
+    // Σταθερή σειρά: πρώτα η παλαιότερη άφιξη, μετά η μεγαλύτερη διάρκεια, μετά
+    // το αναγνωριστικό. Χωρίς αυτό, οι σειρές θα χοροπηδούσαν σε κάθε απόδοση.
+    .sort((a, b) =>
+      a.start === b.start
+        ? (a.end === b.end ? a.id.localeCompare(b.id) : b.end.localeCompare(a.end))
+        : a.start.localeCompare(b.start))
+
+  // Ποιες στήλες ΕΙΝΑΙ ΗΔΗ πιασμένες σε κάθε σειρά.
+  const taken: boolean[][] = []
+  const segments: WeekSegment[] = []
+
+  for (const stay of touching) {
+    const from = real.find(x => x.d >= stay.start) ?? real[0]
+    const toArr = real.filter(x => x.d <= stay.end)
+    const to = toArr.length ? toArr[toArr.length - 1] : real[0]
+    const startCol = from.i
+    const span = Math.max(1, to.i - startCol + 1)
+
+    let lane = 0
+    for (;;) {
+      if (!taken[lane]) taken[lane] = new Array(7).fill(false)
+      let free = true
+      for (let c = startCol; c < startCol + span; c++) if (taken[lane][c]) { free = false; break }
+      if (free) break
+      lane++
+    }
+    for (let c = startCol; c < startCol + span; c++) taken[lane][c] = true
+
+    segments.push({
+      stay, startCol, span, lane,
+      openLeft: stay.start < first,
+      openRight: stay.end > last,
+      nights: stayNights(stay),
+    })
   }
+
+  return { segments, lanes: taken.length }
 }
 
 // Ετικέτα μπάρας: όνομα + (προαιρετικά) κανάλι όταν χωράει.
 
-// Χρωματική διάκριση ανά κανάλι — επίσημα χρώματα Airbnb/Booking, εναρμονισμένα
-// με το app (λεπτή απόχρωση, λευκό κείμενο). Άγνωστο κανάλι → μπλε accent του app.
+// Χρωματική διάκριση ανά κανάλι. Η ΑΠΟΧΡΩΣΗ είναι πληροφορία (από πού ήρθε η
+// κράτηση)· η ΕΝΤΑΣΗ ανήκει στο θέμα. Γι' αυτό εδώ δεν γράφονται τιμές αλλά
+// μεταβλητές: το app/globals.css τις ορίζει δύο φορές, βαθιές για το φωτεινό
+// και παστέλ για το σκούρο, ώστε το κοινό μελάνι `--on-tone` να διαβάζεται και
+// στις δύο περιπτώσεις. Με καρφωτά τα επίσημα χρώματα των πλατφορμών, το όνομα
+// του επισκέπτη μετρούσε 3,05:1 — αδιάβαστο.
 export const CHANNEL_COLORS: Record<string, { solid: string; label: string }> = {
-  airbnb:  { solid: '#FF5A5F', label: 'Airbnb' },
-  booking: { solid: '#0071C2', label: 'Booking.com' },
-  vrbo:    { solid: '#3D5AFE', label: 'Vrbo' },
+  airbnb:  { solid: 'var(--ch-airbnb)',  label: 'Airbnb' },
+  booking: { solid: 'var(--ch-booking)', label: 'Booking.com' },
+  vrbo:    { solid: 'var(--ch-vrbo)',    label: 'Vrbo' },
 }
 export function channelColor(channel?: string | null): { solid: string; label: string } {
   return CHANNEL_COLORS[(channel || '').toLowerCase()] || { solid: 'var(--accent)', label: 'Κράτηση' }

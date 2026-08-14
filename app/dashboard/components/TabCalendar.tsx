@@ -60,7 +60,7 @@ import { parseQuickAdd } from '@/lib/calendar/quickAdd'
 import { groupSeries, rowCount, type SeriesRow } from '@/lib/calendar/series'
 import { dueReminders, notifyBody } from '@/lib/calendar/notify'
 import { buildBookingEvents } from '@/lib/calendar/bookingEvents'
-import { toStaySpan, staysOnDay, segMeta, channelColor, type StaySpan } from '@/lib/calendar/stayBars'
+import { toStaySpan, staysOnDay, weekSegments, channelColor, type StaySpan } from '@/lib/calendar/stayBars'
 import { buildInviteICS, inviteMailto, inviteWhatsApp, inviteViber, canInvite } from '@/lib/calendar/invite'
 import {
   taxObligationsHorizon, taxObligationToEvent, taxProfileOf, taxKindMeta, taxKindOfEventSource,
@@ -199,7 +199,20 @@ function todayStr() { const d=athensNow(); return `${d.getFullYear()}-${String(d
 function addDaysStr(date:string, days:number) { const [y,m,d]=date.split('-').map(Number); const dt=new Date(Date.UTC(y,m-1,d+days)); return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth()+1).padStart(2,'0')}-${String(dt.getUTCDate()).padStart(2,'0')}` }
 
 // Google-style tooltip — portal ώστε να ΜΗΝ κόβεται από overflow (π.χ. στα κελιά του μήνα).
-function Tooltip({ text, children }: { text: string; children: React.ReactNode }) {
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΟ `inline-flex` ΤΟΥ TOOLTIP ΕΙΝΑΙ ΠΟΥ ΕΣΠΑΣΕ ΤΙΣ ΜΠΑΡΕΣ ΔΙΑΜΟΝΗΣ
+// ─────────────────────────────────────────────────────────────────────────
+// Το περιτύλιγμα είναι σωστό για ό,τι τυλίγει μέχρι σήμερα: ένα εικονίδιο, ένα
+// σήμα, ένα κουμπί — πράγματα που ΠΡΕΠΕΙ να έχουν το πλάτος του περιεχομένου
+// τους. Για κάτι που πρέπει να ΓΕΜΙΣΕΙ τον χώρο του όμως, το `inline-flex`
+// είναι παγίδα: το παιδί γίνεται στοιχείο ευέλικτου δοχείου και ένα
+// `width:'100%'` επάνω του μετρά το 100% ΤΟΥ ΙΔΙΟΥ του περιεχομένου. Δηλαδή
+// κυκλικά: πλάτος όσο το κείμενο, όσο μεγάλο κι αν είναι το δοχείο.
+//
+// Γι' αυτό η κράτηση τεσσάρων νυχτών φαινόταν σαν ένα χάπι, τρία κενά κελιά και
+// μια γραμμούλα. Το `fill` το λύνει ρητά, χωρίς να αλλάξει τίποτα στις
+// υπόλοιπες τριάντα χρήσεις.
+function Tooltip({ text, children, fill }: { text: string; children: React.ReactNode; fill?: boolean }) {
   const [show, setShow] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const [pos, setPos] = useState<{ left:number; top:number; below:boolean }>({ left:0, top:0, below:false })
@@ -207,7 +220,7 @@ function Tooltip({ text, children }: { text: string; children: React.ReactNode }
   const place = () => { const el=ref.current; if(!el)return; const r=el.getBoundingClientRect(); const below=r.top<170; const cx=r.left+r.width/2; const left=Math.max(8+W/2, Math.min(cx, window.innerWidth-8-W/2)); setPos({ left, top: below?r.bottom+8:r.top-8, below }) }
   useEffect(()=>{ if(!show)return; place(); const s=()=>place(); window.addEventListener('scroll',s,true); window.addEventListener('resize',s); return ()=>{ window.removeEventListener('scroll',s,true); window.removeEventListener('resize',s) } },[show])
   return (
-    <div ref={ref} style={{ display:'inline-flex' }} onMouseEnter={()=>setShow(true)} onMouseLeave={()=>setShow(false)}>
+    <div ref={ref} style={fill?{ display:'flex', width:'100%', height:'100%' }:{ display:'inline-flex' }} onMouseEnter={()=>setShow(true)} onMouseLeave={()=>setShow(false)}>
       {children}
       {show && text && createPortal(
         <div style={{ position:'fixed', left:pos.left, top:pos.top, transform:`translate(-50%, ${pos.below?'0':'-100%'})`, background:'var(--bg-elevated)', border:'1px solid var(--border-default)', borderRadius:8, padding:'9px 13px', fontSize:12, lineHeight:1.5, color:'var(--text-primary)', fontFamily: T.font.sans, zIndex:3000, pointerEvents:'none', width:W, maxWidth:'calc(100vw - 16px)', whiteSpace:'pre-wrap' as const, boxShadow:'var(--elev-3)' }}>
@@ -439,6 +452,23 @@ function usePointerDrag(onMove:(id:string,date:string,time?:string|null)=>void):
   return { onDown, ghost }
 }
 
+// ═══ Η ΓΕΩΜΕΤΡΙΑ ΤΟΥ ΔΙΑΔΡΟΜΟΥ ΚΡΑΤΗΣΕΩΝ, ΣΕ ΕΝΑ ΣΗΜΕΙΟ ══════════════════
+// Τα ίδια νούμερα τα χρειάζονται δύο ανεξάρτητα σημεία: το κελί, που κρατά τον
+// χώρο, και η επικάλυψη, που τοποθετεί τη μπάρα. Αν αποκλίνουν έστω κατά ένα
+// εικονοστοιχείο, η μπάρα κάθεται πάνω στο κείμενο ή αφήνει κενή λωρίδα.
+const BAR_H = 18            // ύψος μπάρας
+const BAR_GAP = 3           // απόσταση μεταξύ σειρών
+const BAR_INSET = 3         // πόσο μαζεύει το κλειστό άκρο, ώστε δύο κρατήσεις να μην ακουμπούν
+const MAX_LANES = 3         // πάνω από τρεις, η ημέρα γράφει «+N κρατήσεις»
+const CELL_PAD = 6          // το padding του κελιού
+const DAY_HEAD_H = 27       // ύψος της γραμμής με τον αριθμό της ημέρας (24 + 3 κενό)
+// Η ΑΡΓΙΑ ΑΝΗΚΕΙ ΣΤΗΝ ΗΜΕΡΑ, Ο ΔΙΑΔΡΟΜΟΣ ΣΤΗΝ ΕΒΔΟΜΑΔΑ. Με τον διάδρομο από
+// πάνω, το «Κοίμηση της Θεοτόκου» έπεφτε σαράντα εικονοστοιχεία κάτω από το 15
+// και διαβαζόταν σαν να ανήκει σε άλλο πράγμα. Η αργία γράφεται τώρα ΠΡΙΝ τον
+// διάδρομο, και ο χώρος της κρατιέται σε ΟΛΑ τα κελιά της εβδομάδας που έχει
+// έστω μία — αλλιώς οι μπάρες της εβδομάδας θα κάθονταν σε δύο ύψη.
+const HOL_H = 16
+
 function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick, upcomingAll, drag, stays=[] }: {
   events: CalEvent[]; currentDate: Date; selectedDate?:string; onDayClick:(date:string)=>void; onEventClick:(e:CalEvent)=>void; upcomingAll:CalEvent[]; drag?:DragCtl; stays?:StaySpan[]
 }) {
@@ -450,6 +480,10 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
   for(let i=0;i<firstDay;i++) cells.push(null)
   for(let i=1;i<=daysInMonth;i++) cells.push(i)
   while(cells.length%7!==0) cells.push(null)
+  // Το πλέγμα δεν είναι πια σαράντα δύο αδερφά κελιά αλλά έξι γραμμές των επτά:
+  // η μπάρα της κράτησης χρειάζεται ΓΡΑΜΜΗ για να τοποθετηθεί απόλυτα επάνω της.
+  const weeks:(number|null)[][]=[]
+  for(let i=0;i<cells.length;i+=7) weeks.push(cells.slice(i,i+7))
   // Οι κρατήσεις φαίνονται ως ενιαία μπάρα διαμονής — κρύβουμε τα booking: chips
   // ώστε να μη διπλογράφονται.
   const eventsForDay=(day:number)=>{ const ds=`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`; return events.filter(e=>e.event_date===ds&&!(e.source||'').startsWith('booking:')) }
@@ -497,8 +531,16 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
               <div key={d} style={{ padding:'8px 0', textAlign:'center', fontSize:12, fontFamily: T.font.sans, fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase' }}>{d}</div>
             ))}
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)' }}>
-            {cells.map((day,idx)=>{
+          {weeks.map((week,wIdx)=>{
+            const weekDates=week.map(day=>day?`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`:null)
+            const { segments, lanes }=weekSegments(stays,weekDates)
+            const weekHasHoliday=weekDates.some(d=>!!d&&!!holidayName(d))
+            const shownLanes=Math.min(lanes,MAX_LANES)
+            const railH=shownLanes*(BAR_H+BAR_GAP)
+            return (
+            <div key={wIdx} style={{ position:'relative', display:'grid', gridTemplateColumns:'repeat(7,1fr)' }}>
+            {week.map((day,col)=>{
+              const idx=wIdx*7+col
               const dateStr=day?`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`:''
               const dayEvents=day?eventsForDay(day):[]
               const isToday=dateStr===today
@@ -519,19 +561,20 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
                         <span style={{ fontSize:13, fontFamily: T.font.sans, fontWeight:isToday||isSelected?700:400, color:isToday||isSelected?'var(--accent)':wknd||hol?'var(--text-tertiary)':'var(--text-secondary)', width:24, height:24, borderRadius:'50%', background:isToday?'var(--accent-dim)':'transparent', display:'flex', alignItems:'center', justifyContent:'center' }}>{day}</span>
                         {hasOverdue&&<span style={{ width:6, height:6, borderRadius:'50%', background:'var(--negative)' }}/>}
                       </div>
-                      {hol&&<div title={hol} style={{ fontSize:10, color:'var(--accent)', fontWeight:600, marginBottom:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontFamily: T.font.sans }}>{hol}</div>}
-                      {(()=>{ const ds=staysOnDay(stays,dateStr); if(!ds.length)return null; const col=idx%7; return (
-                        <div style={{ margin:'0 -6px 3px', display:'flex', flexDirection:'column', gap:2 }}>
-                          {ds.slice(0,3).map(s=>{ const m=segMeta(s,dateStr,col); const cc=channelColor(s.channel); const nights=Math.max(1,Math.round((Date.UTC(+s.end.slice(0,4),+s.end.slice(5,7)-1,+s.end.slice(8,10))-Date.UTC(+s.start.slice(0,4),+s.start.slice(5,7)-1,+s.start.slice(8,10)))/86400000)); return (
-                            <Tooltip key={s.id} text={`${s.guest} · ${cc.label}\n${s.start} έως ${s.end}${s.total?`\n${fe(s.total)}`:''}`}>
-                              <div onClick={e=>e.stopPropagation()} style={{ height:17, display:'flex', alignItems:'center', background:`color-mix(in srgb, ${cc.solid} 90%, var(--bg-elevated))`, color:'var(--on-tone)', fontSize:11, fontWeight:600, fontFamily: T.font.sans, letterSpacing:'0.2px', paddingLeft:m.showLabel?8:0, paddingRight:m.roundRight?6:0, borderTopLeftRadius:m.roundLeft?8:0, borderBottomLeftRadius:m.roundLeft?8:0, borderTopRightRadius:m.roundRight?8:0, borderBottomRightRadius:m.roundRight?8:0, marginLeft:m.roundLeft?4:0, marginRight:m.roundRight?4:0, overflow:'hidden', whiteSpace:'nowrap', cursor:'default' }}>
-                                {m.showLabel&&<span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>{m.isStart&&<User size={9} style={{ marginRight:3, verticalAlign:'-1px', opacity:0.85 }}/>}{s.guest}{m.isStart&&nights>1?` · ${nights} ν.`:''}</span>}
-                              </div>
-                            </Tooltip>
-                          )})}
-                          {ds.length>3&&<span style={{ fontSize:10, color:'var(--text-tertiary)', paddingLeft:8, fontFamily: T.font.sans }}>+{ds.length-3} κρατήσεις</span>}
-                        </div>
-                      )})()}
+                      {/* Η αργία, κολλητά στην ημερομηνία της. Ο χώρος κρατιέται
+                          και στα κελιά χωρίς αργία, ώστε ο διάδρομος από κάτω να
+                          ξεκινά στο ίδιο ύψος σε όλη την εβδομάδα. */}
+                      {weekHasHoliday&&(
+                        <div title={hol||undefined} style={{ height:HOL_H, fontSize:10, lineHeight:'14px', color:'var(--accent)', fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontFamily: T.font.sans }}>{hol||''}</div>
+                      )}
+                      {/* Ο ΔΙΑΔΡΟΜΟΣ ΤΩΝ ΚΡΑΤΗΣΕΩΝ. Το κελί δεν ζωγραφίζει πια
+                          κομμάτια μπάρας — κρατά μόνο το ύψος τους, ώστε ό,τι
+                          έρχεται από κάτω να μη γράφεται επάνω τους. Οι μπάρες
+                          ζωγραφίζονται ΜΙΑ φορά, πάνω από ολόκληρη την εβδομάδα. */}
+                      {railH>0&&<div aria-hidden style={{ height:railH, marginBottom:3 }}/>}
+                      {(()=>{ const extra=staysOnDay(stays,dateStr).length-shownLanes; return extra>0
+                        ? <div style={{ fontSize:10, color:'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom:2 }}>+{extra} {extra===1?'κράτηση':'κρατήσεις'}</div>
+                        : null })()}
                       <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
                         {dayEvents.slice(0,3).map(ev=>(
                           <Tooltip key={ev.id} text={`${ev.title}${ev.event_time?` · ${ev.event_time}`:''}${ev.amount?` · ${fe(ev.amount)}` :''}${ev._virtual?'\n(επαναλαμβανόμενο)':''}${ev.notes?`\n${ev.notes}`:''}`}>
@@ -548,7 +591,33 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
                 </div>
               )
             })}
-          </div>
+            {/* ═══ ΟΙ ΜΠΑΡΕΣ, ΠΑΝΩ ΑΠΟ ΤΑ ΚΕΛΙΑ ═══════════════════════════
+                Μία ανά κράτηση και ανά εβδομάδα, με το όνομα γραμμένο μία φορά
+                μέσα σε ΟΛΟ το πλάτος της. Το `pointerEvents:'none'` στο στρώμα
+                αφήνει το κλικ να περάσει στο κελί από κάτω· η ίδια η μπάρα το
+                ξαναπιάνει, ώστε το tooltip να δουλεύει και το κλικ επάνω της να
+                μην αλλάζει ημέρα. */}
+            {shownLanes>0&&(
+              <div aria-hidden={false} style={{ position:'absolute', left:0, right:0, top:CELL_PAD+DAY_HEAD_H+(weekHasHoliday?HOL_H:0), height:railH, pointerEvents:'none' }}>
+                {segments.filter(g=>g.lane<MAX_LANES).map(g=>{
+                  const cc=channelColor(g.stay.channel)
+                  const L=g.openLeft?0:BAR_INSET, R=g.openRight?0:BAR_INSET
+                  return (
+                    <div key={g.stay.id} style={{ position:'absolute', top:g.lane*(BAR_H+BAR_GAP), left:`calc(${(g.startCol/7)*100}% + ${L}px)`, width:`calc(${(g.span/7)*100}% - ${L+R}px)`, height:BAR_H, pointerEvents:'auto' }}>
+                      <Tooltip fill text={`${g.stay.guest} · ${cc.label}\n${g.stay.start} έως ${g.stay.end} · ${g.nights} ${g.nights===1?'νύχτα':'νύχτες'}${g.stay.total?`\n${fe(g.stay.total)}`:''}`}>
+                        <div onClick={e=>e.stopPropagation()} style={{ width:'100%', height:BAR_H, boxSizing:'border-box', display:'flex', alignItems:'center', gap:4, padding:`0 ${g.openRight?4:8}px 0 ${g.openLeft?4:9}px`, background:cc.solid, color:'var(--on-tone)', fontSize:11, fontWeight:600, fontFamily: T.font.sans, letterSpacing:'0.1px', borderTopLeftRadius:g.openLeft?2:BAR_H/2, borderBottomLeftRadius:g.openLeft?2:BAR_H/2, borderTopRightRadius:g.openRight?2:BAR_H/2, borderBottomRightRadius:g.openRight?2:BAR_H/2, overflow:'hidden', whiteSpace:'nowrap', cursor:'default' }}>
+                          {!g.openLeft&&<User size={10} style={{ flexShrink:0, opacity:0.9 }}/>}
+                          <span style={{ minWidth:0, overflow:'hidden', textOverflow:'ellipsis' }}>{g.stay.guest}{!g.openLeft&&g.nights>1?` · ${g.nights} ν.`:''}</span>
+                        </div>
+                      </Tooltip>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            </div>
+            )
+          })}
         </div>
       </div>
       <div className="cal-rail" style={{ width:200, flexShrink:0, display:'flex', flexDirection:'column', gap:10 }}>
