@@ -58,7 +58,11 @@ export function Spinner({ size = 22, label }: { size?: number; label?: string })
 const toneVars = (tone: Tone) => {
   if (tone === 'neutral')
     return { color: 'var(--text-secondary)', bg: 'var(--bg-elevated)', border: 'var(--border-subtle)' };
-  return { color: `var(--${tone})`, bg: `var(--${tone}-soft)`, border: `var(--${tone}-border)` };
+  // Το μελάνι ΔΕΝ είναι ο τόνος. Το χαρτί του σήματος είναι tint του ίδιου
+  // τόνου, οπότε μελάνι και χαρτί έλκονταν μεταξύ τους και η αντίθεση έπεφτε
+  // κάτω από το όριο σε κάθε τόνο. Το `-on-container` είναι ο ίδιος τόνος
+  // μετακινημένος όσο χρειάζεται — βλ. app/globals.css.
+  return { color: `var(--${tone}-on-container)`, bg: `var(--${tone}-soft)`, border: `var(--${tone}-border)` };
 };
 
 // ═══ Card, η βασική επιφάνεια κάθε ενότητας ═══════════════════════════════
@@ -418,10 +422,16 @@ export function KPIGrid({ items, columns }: { items: KPIItem[]; columns?: number
 }
 
 // ═══ Badge, μικρή ετικέτα κατάστασης (Πληρώθηκε, Ενεργό…) ════════════════
+//
+// ΤΑ ΕΝΝΕΑ ΕΙΚΟΝΟΣΤΟΙΧΕΙΑ ΗΤΑΝ ΚΕΦΑΛΑΙΑ ΕΛΛΗΝΙΚΑ. Το Badge γράφει με
+// `text-transform: uppercase` και letter-spacing, δηλαδή στο πιο δύσκολο
+// σχήμα για μικρό μέγεθος: χωρίς κάτω ουρές και χωρίς ψηλά γράμματα, το μάτι
+// δεν έχει σε τι να πιαστεί και διαβάζει σχήμα αντί για λέξη. Έντεκα
+// εικονοστοιχεία σε Badge και Chip, ένα μέγεθος και για τα δύο.
 export function Badge({ children, tone = 'neutral' }: { children: ReactNode; tone?: Tone }) {
   const tv = toneVars(tone);
   return (
-    <span style={{ fontSize: 9, fontWeight: 700, padding: '3px 9px', borderRadius: T.radius.badge, background: tv.bg, border: `1px solid ${tv.border}`, color: tv.color, fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, textTransform: 'uppercase' as const, letterSpacing: '0.04em' }}>
+    <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: T.radius.badge, background: tv.bg, border: `1px solid ${tv.border}`, color: tv.color, fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, textTransform: 'uppercase' as const, letterSpacing: '0.04em' }}>
       {children}
     </span>
   );
@@ -434,7 +444,7 @@ export function Badge({ children, tone = 'neutral' }: { children: ReactNode; ton
 export function Chip({ children, tone = 'neutral', title }: { children: ReactNode; tone?: Tone; title?: string }) {
   const tv = toneVars(tone);
   return (
-    <span title={title} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: T.radius.pill, background: tv.bg, border: `1px solid ${tv.border}`, color: tv.color, fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, letterSpacing: '0.01em', lineHeight: 1.4 }}>
+    <span title={title} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: T.radius.pill, background: tv.bg, border: `1px solid ${tv.border}`, color: tv.color, fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, letterSpacing: '0.01em', lineHeight: 1.4 }}>
       {children}
     </span>
   );

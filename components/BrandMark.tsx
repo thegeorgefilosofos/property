@@ -44,7 +44,7 @@ export default function BrandMark({ size = 28, style }: { size?: number; style?:
  * έγγραφο, ή email client που τις αγνοεί), οπότε τα χρώματα είναι κυριολεκτικά —
  * αλλά βγαίνουν από ΕΔΩ, ώστε να αλλάζουν μαζί με το υπόλοιπο σήμα.
  */
-export const BRAND_MARK_BG = '#1a6ae8';
+export const BRAND_MARK_BG = '#1560d4';
 // Λευκό, όπως και το --logo-mark-text των δύο θεμάτων.
 export const BRAND_MARK_INK = '#ffffff';
 

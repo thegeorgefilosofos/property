@@ -100,9 +100,15 @@ body {
 
   /* Accent: το γαλάζιο (Google blue). ΜΙΑ τιμή· dim/soft/border/hover
      παράγονται από αυτό ώστε να μη ξαναδιαφωνήσουν ποτέ. */
-  --accent:        #1a6ae8;   /* γαλάζιο (light) — AA (≥4.5:1) και ως κείμενο-σύνδεσμος πάνω στο off-white --bg-base */
+  /* ΤΟ «AA» ΤΟΥ ΣΧΟΛΙΟΥ ΗΤΑΝ ΜΕΤΡΗΜΕΝΟ ΣΕ ΛΑΘΟΣ ΦΟΝΤΟ. Το #1a6ae8 περνούσε
+     πράγματι πάνω στο --bg-base (4,66:1), αλλά το ίδιο γαλάζιο γράφεται και
+     πάνω στις δύο βαθύτερες επιφάνειες — --bg-elevated και --bg-overlay — όπου
+     έπεφτε σε 4,42 και 4,08:1. Δηλαδή κάθε σύνδεσμος μέσα σε ανασηκωμένη κάρτα
+     ή σε παράθυρο έκοβε το όριο. Το #1560d4 μετρά 5,74 ώς 4,77:1 και στις
+     τέσσερις επιφάνειες, και κρατά την ίδια απόχρωση. */
+  --accent:        #1560d4;   /* γαλάζιο (light) — AA (≥4,5:1) πάνω ΚΑΙ στις τέσσερις επιφάνειες του θέματος */
   --accent-dim:    color-mix(in srgb, var(--accent) 12%, transparent);
-  --accent-hover:  #1765cc;
+  --accent-hover:  #1257ba;
 
   /* Το μελάνι που κάθεται πάνω σε ΚΑΘΕ κορεσμένο γέμισμα — accent, positive,
      negative, warning, info. Ένας κανόνας, μία τιμή ανά θέμα: στο light τα
@@ -131,13 +137,26 @@ body {
   /* Εκλεπτυσμένη, muted σημασιολογική παλέτα (deep emerald / bronze-amber /
      brick-rose / indigo) — premium & σοβαρή, όχι «traffic-light». Dim
      παράγεται από το ίδιο το χρώμα ώστε να μη διαφωνεί ποτέ. */
-  --positive:      #0c815a;   /* deep emerald/jade */
+  --positive:      #0a6f4e;   /* deep emerald/jade — 5,13:1 στη βαθύτερη επιφάνεια (ήταν #0c815a, 4,05) */
   --positive-dim:  color-mix(in srgb, var(--positive) 12%, transparent);
   --negative:      #b23b3b;   /* refined brick-rose */
   --negative-dim:  color-mix(in srgb, var(--negative) 12%, transparent);
-  --warning:       #9a6714;   /* bronze-amber (όχι λεμονί) */
+  --warning:       #855810;   /* bronze-amber (όχι λεμονί) — 5,12:1 στη βαθύτερη επιφάνεια (ήταν #9a6714, 4,03) */
   --warning-dim:   color-mix(in srgb, var(--warning) 12%, transparent);
-  --warning-on-container: #7a4d00;   /* AA-safe μελάνι για badge σε ανοιχτό tint */
+  /* ── ΤΟ ΜΕΛΑΝΙ ΤΟΥ ΣΗΜΑΤΟΣ, ΓΙΑ ΚΑΘΕ ΤΟΝΟ ────────────────────────────────
+     Το σήμα (Badge/Chip) γράφει τον τόνο ΠΑΝΩ ΣΕ tint 9 ώς 11% ΤΟΥ ΙΔΙΟΥ
+     ΤΟΝΟΥ. Το φόντο έλκεται δηλαδή προς το μελάνι, και η αντίθεση πέφτει σε
+     4,16 ώς 4,55:1 — κάτω από το όριο, σε κάθε τόνο και στα δύο θέματα (στο
+     σκούρο ήταν χειρότερα, 3,61 ώς 4,27). Δεν ήταν λάθος ενός χρώματος, ήταν
+     λάθος του κανόνα: το ίδιο χρώμα δεν μπορεί να είναι και μελάνι και χαρτί.
+     Το `--warning-on-container` υπήρχε ήδη ως χειροκίνητη εξαίρεση για έναν
+     τόνο· εδώ γίνεται κανόνας για όλους, και ΠΑΡΑΓΕΤΑΙ αντί να διαλέγεται.
+     Στο φωτεινό θέμα το μελάνι βαθαίνει, στο σκούρο ανοίγει. */
+  --accent-on-container:   color-mix(in srgb, var(--accent)   90%, #000000);
+  --info-on-container:     color-mix(in srgb, var(--info)     90%, #000000);
+  --positive-on-container: color-mix(in srgb, var(--positive) 90%, #000000);
+  --negative-on-container: color-mix(in srgb, var(--negative) 90%, #000000);
+  --warning-on-container:  color-mix(in srgb, var(--warning)  90%, #000000);
   --info:          #2f58cc;   /* indigo-blue, στην οικογένεια του accent */
   --info-dim:      color-mix(in srgb, var(--info) 12%, transparent);
 
@@ -286,9 +305,14 @@ body {
   --negative-dim:  color-mix(in srgb, var(--negative) 15%, transparent);
   --warning:       #d8b267;   /* muted gold, όχι λεμονί */
   --warning-dim:   color-mix(in srgb, var(--warning) 15%, transparent);
-  --warning-on-container: #e6c179;   /* απαλό χρυσό μελάνι για badge σε σκούρο tint */
+  /* Βλ. σχόλιο στο φωτεινό: εδώ το μελάνι του σήματος ανοίγει αντί να βαθαίνει. */
   --info:          #97abf5;   /* soft indigo */
   --info-dim:      color-mix(in srgb, var(--info) 15%, transparent);
+  --accent-on-container:   color-mix(in srgb, var(--accent)   70%, #ffffff);
+  --info-on-container:     color-mix(in srgb, var(--info)     70%, #ffffff);
+  --positive-on-container: color-mix(in srgb, var(--positive) 70%, #ffffff);
+  --negative-on-container: color-mix(in srgb, var(--negative) 70%, #ffffff);
+  --warning-on-container:  color-mix(in srgb, var(--warning)  70%, #ffffff);
 
   --text-primary:   #e8eaed;
   --text-secondary: #9aa0a6;

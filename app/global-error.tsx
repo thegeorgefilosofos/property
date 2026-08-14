@@ -18,7 +18,7 @@ import { recoverFromStaleBuild, alreadyRecovered } from '@/lib/recovery';
 const PALETTE = `
   :root {
     --ge-bg: #f8f9fa; --ge-surface: #ffffff; --ge-border: #dadce0;
-    --ge-text: #202124; --ge-muted: #5f6368; --ge-accent: #1a6ae8; --ge-on-accent: #ffffff;
+    --ge-text: #202124; --ge-muted: #5f6368; --ge-accent: #1560d4; --ge-on-accent: #ffffff;
   }
   @media (prefers-color-scheme: dark) {
     :root {
