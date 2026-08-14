@@ -13,9 +13,10 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { fe } from '../core/format';
+import { centsOr0 } from '@/lib/core/money'
 
-const round2 = (n: number): number => Math.round((Number.isFinite(n) ? n : 0) * 100) / 100
-const pos = (n: number): number => Math.max(0, round2(n))
+
+const pos = (n: number): number => Math.max(0, centsOr0(n))
 const VAT = 0.24 // ΦΠΑ υπηρεσιών (συμβολαιογράφος/μεσίτης/δικηγόρος)
 
 // ── Συντελεστές (ενδεικτικοί, ισχύον πλαίσιο) ──────────────────────────────
@@ -103,35 +104,35 @@ export function transferCosts(input: TransferInput): TransferResult {
     // Φόρος μεταβίβασης ή ΦΠΑ νεόδμητου.
     const vatApplies = !!input.newBuild && input.vatSuspended === false
     if (vatApplies) {
-      lines.push({ key: 'vat', label: 'ΦΠΑ νεόδμητου (24%)', amount: round2(taxBase * NEW_BUILD_VAT_RATE), note: 'Αντί φόρου μεταβίβασης, για νεόδμητα από κατασκευαστή.' })
+      lines.push({ key: 'vat', label: 'ΦΠΑ νεόδμητου (24%)', amount: centsOr0(taxBase * NEW_BUILD_VAT_RATE), note: 'Αντί φόρου μεταβίβασης, για νεόδμητα από κατασκευαστή.' })
     } else {
       const exemption = input.firstHome ? firstHomeExemption(input) : 0
       const taxable = Math.max(0, taxBase - exemption)
-      lines.push({ key: 'transferTax', label: 'Φόρος μεταβίβασης (3,09%)', amount: round2(taxable * TRANSFER_TAX_RATE),
+      lines.push({ key: 'transferTax', label: 'Φόρος μεταβίβασης (3,09%)', amount: centsOr0(taxable * TRANSFER_TAX_RATE),
         note: input.firstHome ? `Μετά απαλλαγή πρώτης κατοικίας έως ${fe(Math.round(exemption))}.` : 'Επί της μεγαλύτερης μεταξύ τιμήματος και αντικειμενικής.' })
     }
     // Συμβολαιογραφικά (κλιμακωτά ~0,8% + ΦΠΑ), δικηγόρος, μεσίτης, Κτηματολόγιο, πιστοποιητικά.
-    lines.push({ key: 'notary', label: 'Συμβολαιογραφικά', amount: round2(taxBase * 0.008 * (1 + VAT)), note: 'Ενδεικτικά ~0,8% + ΦΠΑ (κλιμακωτά).' })
-    if (input.useLawyer) lines.push({ key: 'lawyer', label: 'Δικηγόρος', amount: round2(taxBase * ((input.lawyerRatePct ?? 0.5) / 100) * (1 + VAT)), note: 'Προαιρετικός, έλεγχος τίτλων/βαρών.' })
-    if (input.useAgent) lines.push({ key: 'agent', label: 'Μεσιτική αμοιβή', amount: round2(price * ((input.agentRatePct ?? AGENT_RATE_DEFAULT * 100) / 100) * (1 + VAT)), note: 'Ενδεικτικά 2% + ΦΠΑ.' })
-    lines.push({ key: 'cadastre', label: 'Τέλη Κτηματολογίου', amount: round2(taxBase * CADASTRE_RATE + CADASTRE_FIXED), note: 'Αναλογικό 5‰ + πάγιο (ΦΕΚ Β\'64/2026). Σε περιοχές με ενεργό κτηματολόγιο ~6‰.' })
+    lines.push({ key: 'notary', label: 'Συμβολαιογραφικά', amount: centsOr0(taxBase * 0.008 * (1 + VAT)), note: 'Ενδεικτικά ~0,8% + ΦΠΑ (κλιμακωτά).' })
+    if (input.useLawyer) lines.push({ key: 'lawyer', label: 'Δικηγόρος', amount: centsOr0(taxBase * ((input.lawyerRatePct ?? 0.5) / 100) * (1 + VAT)), note: 'Προαιρετικός, έλεγχος τίτλων/βαρών.' })
+    if (input.useAgent) lines.push({ key: 'agent', label: 'Μεσιτική αμοιβή', amount: centsOr0(price * ((input.agentRatePct ?? AGENT_RATE_DEFAULT * 100) / 100) * (1 + VAT)), note: 'Ενδεικτικά 2% + ΦΠΑ.' })
+    lines.push({ key: 'cadastre', label: 'Τέλη Κτηματολογίου', amount: centsOr0(taxBase * CADASTRE_RATE + CADASTRE_FIXED), note: 'Αναλογικό 5‰ + πάγιο (ΦΕΚ Β\'64/2026). Σε περιοχές με ενεργό κτηματολόγιο ~6‰.' })
     lines.push({ key: 'certs', label: 'Πιστοποιητικά και παράβολα', amount: CERTS_COST, note: 'Ενδεικτικό πάγιο.' })
 
-    const totalCosts = round2(lines.reduce((s, l) => s + l.amount, 0))
-    return { side: 'buy', price, lines, totalCosts, costPct: price > 0 ? totalCosts / price : 0, cashOut: round2(price + totalCosts) }
+    const totalCosts = centsOr0(lines.reduce((s, l) => s + l.amount, 0))
+    return { side: 'buy', price, lines, totalCosts, costPct: price > 0 ? totalCosts / price : 0, cashOut: centsOr0(price + totalCosts) }
   }
 
   // ── Πώληση ──
-  if (input.useAgent) lines.push({ key: 'agent', label: 'Μεσιτική αμοιβή', amount: round2(price * ((input.agentRatePct ?? AGENT_RATE_DEFAULT * 100) / 100) * (1 + VAT)), note: 'Ενδεικτικά 2% + ΦΠΑ.' })
+  if (input.useAgent) lines.push({ key: 'agent', label: 'Μεσιτική αμοιβή', amount: centsOr0(price * ((input.agentRatePct ?? AGENT_RATE_DEFAULT * 100) / 100) * (1 + VAT)), note: 'Ενδεικτικά 2% + ΦΠΑ.' })
   lines.push({ key: 'pea', label: 'Πιστοποιητικό ενεργειακής απόδοσης (ΠΕΑ)', amount: PEA_COST, note: 'Υποχρεωτικό στην πώληση.' })
   lines.push({ key: 'buildingId', label: 'Ταυτότητα κτιρίου / βεβαιώσεις μηχανικού', amount: BUILDING_ID_COST, note: 'Ενδεικτικό, από μηχανικό.' })
-  if (input.useLawyer) lines.push({ key: 'lawyer', label: 'Δικηγόρος', amount: round2(price * ((input.lawyerRatePct ?? 0.5) / 100) * (1 + VAT)), note: 'Προαιρετικός.' })
+  if (input.useLawyer) lines.push({ key: 'lawyer', label: 'Δικηγόρος', amount: centsOr0(price * ((input.lawyerRatePct ?? 0.5) / 100) * (1 + VAT)), note: 'Προαιρετικός.' })
   // Φόρος υπεραξίας 15%, σε αναστολή (default 0, με σημείωση).
   const gain = Math.max(0, price - pos(input.acquisitionCost ?? 0))
   const cgtActive = !!input.capitalGainsActive
-  lines.push({ key: 'capitalGains', label: 'Φόρος υπεραξίας (15%)', amount: cgtActive ? round2(gain * CAPITAL_GAINS_RATE) : 0,
+  lines.push({ key: 'capitalGains', label: 'Φόρος υπεραξίας (15%)', amount: cgtActive ? centsOr0(gain * CAPITAL_GAINS_RATE) : 0,
     note: cgtActive ? `Επί υπεραξίας ${fe(Math.round(gain))}.` : 'Σε αναστολή, δεν επιβαρύνει επί του παρόντος.' })
 
-  const totalCosts = round2(lines.reduce((s, l) => s + l.amount, 0))
-  return { side: 'sell', price, lines, totalCosts, costPct: price > 0 ? totalCosts / price : 0, netProceeds: round2(price - totalCosts) }
+  const totalCosts = centsOr0(lines.reduce((s, l) => s + l.amount, 0))
+  return { side: 'sell', price, lines, totalCosts, costPct: price > 0 ? totalCosts / price : 0, netProceeds: centsOr0(price - totalCosts) }
 }

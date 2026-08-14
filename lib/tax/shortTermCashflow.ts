@@ -1,3 +1,4 @@
+import { centsOr0 } from '@/lib/core/money'
 // ═══════════════════════════════════════════════════════════════════════════
 // ΤΙ ΜΕΝΕΙ ΣΕ ΕΣΕΝΑ, ΣΕ ΜΙΑ ΣΤΗΛΗ
 // ─────────────────────────────────────────────────────────────────────────
@@ -65,8 +66,8 @@ export interface ShortTermCashflow {
   keptPct: number | null;
 }
 
-const round2 = (n: number): number => Math.round((Number.isFinite(n) ? n : 0) * 100) / 100;
-const pos = (n: number): number => Math.max(0, round2(n));
+
+const pos = (n: number): number => Math.max(0, centsOr0(n));
 
 /**
  * Η αλυσίδα από το ακαθάριστο ως το χέρι του ιδιοκτήτη.
@@ -84,7 +85,7 @@ export function shortTermCashflow(input: ShortTermCashflowInput): ShortTermCashf
   const shortfall = pos(input.levyShortfall);
   const tax = pos(input.incomeTax);
 
-  const net = round2(gross - fees - opex - municipal - shortfall - tax);
+  const net = centsOr0(gross - fees - opex - municipal - shortfall - tax);
 
   const steps: CashflowStep[] = [
     { key: 'gross', label: 'Ακαθάριστα έσοδα', amount: gross, kind: 'in',
@@ -105,5 +106,5 @@ export function shortTermCashflow(input: ShortTermCashflowInput): ShortTermCashf
       ? 'Αρνητικό: τα έξοδα, τα τέλη και ο φόρος ξεπερνούν τα έσοδα της χρονιάς.'
       : 'Ταμειακό υπόλοιπο μετά από έξοδα, τέλη και φόρο. Δεν περιλαμβάνει δόσεις δανείου.' });
 
-  return { steps, net, keptPct: gross > 0 ? round2((net / gross) * 100) : null };
+  return { steps, net, keptPct: gross > 0 ? centsOr0((net / gross) * 100) : null };
 }

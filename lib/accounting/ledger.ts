@@ -1,3 +1,4 @@
+import { cents } from '@/lib/core/money'
 // Καθολικό λογιστικό (general ledger) + συμφωνία (reconciliation) για διαχείριση
 // ακινήτων. Καθαρές συναρτήσεις — χωρίς I/O, χωρίς DOM. Όλα τα ποσά σε EUR
 // (αριθμοί). Όλες οι ημερομηνίες 'YYYY-MM-DD' και συγκρίνονται λεξικογραφικά.
@@ -30,7 +31,7 @@ export interface LedgerEntry extends LedgerInput {
 }
 
 // Στρογγυλοποίηση σε λεπτά (cents) για την αποφυγή σφαλμάτων κινητής υποδιαστολής.
-const cents = (n: number): number => Math.round(n * 100) / 100
+
 
 // Ασφαλές ποσό: μη-πεπερασμένα / NaN θεωρούνται 0.
 const safeAmount = (n: number): number => (Number.isFinite(n) ? n : 0)

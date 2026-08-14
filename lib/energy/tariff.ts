@@ -1,3 +1,4 @@
+import { cents } from '@/lib/core/money'
 // ═══════════════════════════════════════════════════════════════════════════
 // ΕΝΑΣ ΤΥΠΟΣ ΓΙΑ ΤΟ ΚΟΣΤΟΣ ΤΟΥ ΡΕΥΜΑΤΟΣ.
 //
@@ -77,7 +78,7 @@ export interface CostBreakdown {
   manual: boolean;
 }
 
-const r2 = (n: number): number => Math.round(n * 100) / 100;
+
 
 /**
  * Χρέωση υπέρβασης για πακέτα «όλα μέσα» με ετήσιο όριο κιλοβατωρών.
@@ -138,7 +139,7 @@ export function monthlyCost(t: Tariff, u: Usage): CostBreakdown {
     const supply = (t.flat_monthly || 0) + over;
     // Στα πακέτα «όλα μέσα» τα ρυθμιζόμενα περιλαμβάνονται στην τιμή πακέτου.
     const vat = supply * vatRate;
-    return { supply: r2(supply), regulated: 0, vat: r2(vat), total: r2(supply + vat), overage: r2(over), manual: false };
+    return { supply: cents(supply), regulated: 0, vat: cents(vat), total: cents(supply + vat), overage: cents(over), manual: false };
   }
 
   const fixed = (u.ebill && t.fixed_ebill != null) ? t.fixed_ebill : t.fixed;
@@ -147,10 +148,10 @@ export function monthlyCost(t: Tariff, u: Usage): CostBreakdown {
   const vat = (supply + regulated) * vatRate;
 
   return {
-    supply: r2(supply),
-    regulated: r2(regulated),
-    vat: r2(vat),
-    total: r2(supply + regulated + vat),
+    supply: cents(supply),
+    regulated: cents(regulated),
+    vat: cents(vat),
+    total: cents(supply + regulated + vat),
     overage: 0,
     manual: false,
   };
@@ -178,7 +179,7 @@ export function compareTariffs<T extends Tariff>(
     .map(t => {
       const cost = monthlyCost(t, u);
       const isCurrent = t.id === currentId;
-      return { tariff: t, cost, isCurrent, diff: isCurrent ? 0 : r2(cost.total - currentCost) };
+      return { tariff: t, cost, isCurrent, diff: isCurrent ? 0 : cents(cost.total - currentCost) };
     })
     .sort((a, b) => a.cost.total - b.cost.total);
 }

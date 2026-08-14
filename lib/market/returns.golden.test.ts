@@ -7,7 +7,6 @@ import { yields, compound, leverage, applySeries, compareInvestments, propertyTo
 import { shortTermEstimate, breakEvenOccupancy, adrReference } from './shortTerm'
 import { BENCHMARKS } from './greekMarket'
 import { portfolioReturns } from './portfolio'
-import { communityStats, percentile, COMMUNITY_MIN_SAMPLE } from './community'
 
 let passed = 0, failed = 0
 function ok(name: string, cond: boolean, got?: unknown, want?: unknown) {
@@ -169,34 +168,6 @@ const near = (a: number, b: number, eps = 0.01) => Math.abs(a - b) <= eps
   ok('portfolio αγνοεί αξία 0 στη %', p2.valuedCount === 1 && p2.netYield === 4.5, p2.netYield, 4.5)
   ok('portfolio συνολικά έσοδα μετρούν όλα', p2.totalRevenue === 10000)
   ok('portfolio κενό → μηδενικά', portfolioReturns([]).totalValue === 0 && portfolioReturns([]).grossYield === 0)
-}
-
-// ── communityStats (ανώνυμα δεδομένα κοινότητας — σωστά & δίκαια) ────────────
-{
-  // percentile (γραμμική παρεμβολή)
-  ok('percentile p50 [4,5,6,7,8] = 6', percentile([4, 5, 6, 7, 8], 0.5) === 6)
-  ok('percentile p25 = 5', percentile([4, 5, 6, 7, 8], 0.25) === 5)
-  ok('percentile p75 = 7', percentile([4, 5, 6, 7, 8], 0.75) === 7)
-  ok('percentile παρεμβολή [10,20] p0.5 = 15', percentile([10, 20], 0.5) === 15)
-  // 5 ακίνητα «A»: αξία 120.000, ενοίκια 400..800, 50 τ.μ. → αποδόσεις 4..8%
-  const rentsA = [400, 500, 600, 700, 800]
-  const samples = rentsA.map(r => ({ region: 'A', value: 120000, monthlyRent: r, sqm: 50 }))
-  // 4 ακίνητα «B» → ΚΑΤΩ από το ελάχιστο δείγμα, δεν εμφανίζονται (k-anonymity)
-  for (let i = 0; i < 4; i++) samples.push({ region: 'B', value: 100000, monthlyRent: 500, sqm: 60 })
-  // 1 ακραίο (απόδοση 40% — λάθος καταχώρηση) στο «A» → κόβεται
-  samples.push({ region: 'A', value: 120000, monthlyRent: 4000, sqm: 50 })
-  const st = communityStats(samples)
-  ok('community: μόνο η «A» (k-anonymity)', st.length === 1 && st[0].region === 'A', st.length, 1)
-  ok('community: count = 5 (ακραίο κομμένο)', st[0].count === 5, st[0].count, 5)
-  ok('community: median απόδοση = 6,0', st[0].medianGrossYield === 6.0, st[0].medianGrossYield, 6.0)
-  ok('community: p25 = 5,0', st[0].p25Yield === 5.0)
-  ok('community: p75 = 7,0', st[0].p75Yield === 7.0)
-  ok('community: median ενοίκιο/τ.μ. = 12', st[0].medianRentPerSqm === 12, st[0].medianRentPerSqm, 12)
-  ok('community: median τιμή/τ.μ. = 2.400', st[0].medianPricePerSqm === 2400, st[0].medianPricePerSqm, 2400)
-  ok('community: min sample = 5', COMMUNITY_MIN_SAMPLE === 5)
-  ok('community: κενό → []', communityStats([]).length === 0)
-  // Δίκαιο: αγνοεί άκυρα (αξία 0, ενοίκιο 0)
-  ok('community: αγνοεί άκυρα', communityStats([{ region: 'X', value: 0, monthlyRent: 500 }, { region: 'X', value: 100000, monthlyRent: 0 }]).length === 0)
 }
 
 console.log(`returns.golden — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`)

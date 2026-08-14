@@ -12,6 +12,7 @@
 
 import { standardVatRate } from './vatRates';
 import { isEuCountry } from './invoiceProfile';
+import { cents } from '@/lib/core/money'
 
 export type VatTreatment = 'domestic' | 'oss_b2c' | 'reverse_charge' | 'outside_eu';
 
@@ -56,18 +57,18 @@ export function vatTreatmentLabel(v: VatDecision): string {
 }
 
 export interface VatBreakdown { net: number; vatPct: number; vat: number; gross: number }
-const r2 = (n: number) => Math.round(n * 100) / 100;
+
 
 // Από καθαρή αξία (χωρίς ΦΠΑ) → ανάλυση.
 export function vatFromNet(net: number, pct: number): VatBreakdown {
-  const vat = r2(net * pct / 100);
-  return { net: r2(net), vatPct: pct, vat, gross: r2(net + vat) };
+  const vat = cents(net * pct / 100);
+  return { net: cents(net), vatPct: pct, vat, gross: cents(net + vat) };
 }
 
 // Από τελική αξία (με ΦΠΑ) → ανάλυση.
 export function vatFromGross(gross: number, pct: number): VatBreakdown {
-  const net = pct > 0 ? r2(gross / (1 + pct / 100)) : r2(gross);
-  return { net, vatPct: pct, vat: r2(gross - net), gross: r2(gross) };
+  const net = pct > 0 ? cents(gross / (1 + pct / 100)) : cents(gross);
+  return { net, vatPct: pct, vat: cents(gross - net), gross: cents(gross) };
 }
 
 // ── Αρίθμηση παραστατικών ───────────────────────────────────────────────────

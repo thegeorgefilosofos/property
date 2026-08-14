@@ -22,6 +22,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { PLANS, type PlanId } from './plans';
+import { cents } from '@/lib/core/money'
 
 export type AddonId = 'bank_link';
 
@@ -70,7 +71,7 @@ export interface CheckoutInput {
   bankAccounts?: number;
 }
 
-const cents = (n: number) => Math.round(n * 100) / 100;
+
 const count = (n: number | undefined) => Math.max(0, Math.floor(n ?? 0));
 
 /**

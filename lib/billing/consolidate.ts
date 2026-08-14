@@ -23,8 +23,9 @@ import {
   consolidateIndividual, PRESUMPTIVE_DEDUCTION_RATE,
   type StatementInput, type TaxRegime,
 } from '@/lib/accounting/statement'
+import { centsOr0 } from '@/lib/core/money'
 
-const cents = (n: number): number => Math.round((Number.isFinite(n) ? n : 0) * 100) / 100
+
 
 /** Τεκμαρτή έκπτωση φυσικού προσώπου: 5% ΜΟΝΟ με τραπεζική είσπραξη (από 1/1/2026). */
 export function presumptiveDeductionRate(rentsPaidViaBank = true): number {
@@ -116,11 +117,11 @@ export function consolidateRentTax(items: RentSource[], brackets?: TaxBracket[])
       annualRent: hit.statement.grossIncome,
       taxableIncome: hit.statement.taxableIncome,
       taxShare: hit.taxShare,
-      standaloneTax: cents(rentalIncomeTax(hit.statement.taxableIncome, brackets)),
+      standaloneTax: centsOr0(rentalIncomeTax(hit.statement.taxableIncome, brackets)),
     }
   })
 
-  const sumOfStandaloneTax = cents(perProperty.reduce((s, p) => s + p.standaloneTax, 0))
+  const sumOfStandaloneTax = centsOr0(perProperty.reduce((s, p) => s + p.standaloneTax, 0))
   return {
     count: earning.length,
     totalAnnualRent: con.grossIncome,
@@ -130,7 +131,7 @@ export function consolidateRentTax(items: RentSource[], brackets?: TaxBracket[])
     marginalRate: marginalRate(con.taxableIncome, brackets),
     perProperty,
     sumOfStandaloneTax,
-    understatement: cents(Math.max(0, con.incomeTax - sumOfStandaloneTax)),
+    understatement: centsOr0(Math.max(0, con.incomeTax - sumOfStandaloneTax)),
   }
 }
 

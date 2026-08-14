@@ -1,3 +1,4 @@
+import { cents } from '@/lib/core/money'
 // lib/billing/budgetPro.ts
 // Καθαρές, ελεγχόμενες συναρτήσεις προϋπολογισμού. Χωρίς I/O — η UI τροφοδοτεί
 // πραγματικά ποσά.
@@ -9,7 +10,7 @@
 // αυτά είναι μια επιπλέον οθόνη που πρέπει να μάθει και να αγνοήσει.
 
 const r0 = (n: number) => Math.round(n)
-const r2 = (n: number) => Math.round(n * 100) / 100
+
 
 
 // ── B4 · Rollover: αδιάθετο μεταφέρεται μπροστά· υπέρβαση μειώνει την επόμενη ──
@@ -79,8 +80,8 @@ export interface InvestmentReturns { noi: number; preTaxCashFlow: number; capRat
 export function investmentReturns(i: InvestmentInput): InvestmentReturns {
   const noi = r0((i.annualIncome || 0) - (i.annualOpEx || 0))
   const preTaxCashFlow = r0(noi - (i.annualLoanPayment || 0))
-  const capRatePct = (i.purchasePrice || 0) > 0 ? r2((noi / i.purchasePrice) * 100) : 0
-  const cashOnCashPct = (i.equityInvested || 0) > 0 ? r2((preTaxCashFlow / i.equityInvested) * 100) : 0
+  const capRatePct = (i.purchasePrice || 0) > 0 ? cents((noi / i.purchasePrice) * 100) : 0
+  const cashOnCashPct = (i.equityInvested || 0) > 0 ? cents((preTaxCashFlow / i.equityInvested) * 100) : 0
   return { noi, preTaxCashFlow, capRatePct, cashOnCashPct }
 }
 

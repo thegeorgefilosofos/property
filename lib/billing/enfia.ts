@@ -6,6 +6,7 @@
 // ποσό εκκαθαρίζεται από την ΑΑΔΕ.
 // ═══════════════════════════════════════════════════════════════════════════
 import { athensToday } from '@/lib/core/time'
+import { cents } from '@/lib/core/money'
 
 // Πίνακας Συντελεστή Βασικού Φόρου (ΣΒΦ) κτισμάτων ανά Τιμή Ζώνης (€/τ.μ.).
 // Άρθρο 43 ν.4916/2022 (Ενότητα Α΄, παρ. 2, περ. α΄).
@@ -221,7 +222,7 @@ export function enfiaExtraPropertyTax(propertyValue: number, ownership = 100): n
     if (slice > 0) tax += slice * b.rate
     prev = b.upto
   }
-  return round2(tax * (Math.max(0, Math.min(100, ownership)) / 100))
+  return cents(tax * (Math.max(0, Math.min(100, ownership)) / 100))
 }
 
 /** Αυτόματη μείωση % ανά συνολική αξία περιουσίας (0 αν άγνωστη). */
@@ -288,15 +289,15 @@ export function estimateENFIA(input: ENFIAInput): ENFIAResult | null {
   const reductionAmount = subtotal * combinedFrac
   // Στρογγυλοποιούμε ΜΙΑ φορά και βγάζουμε τη δόση από το ΕΜΦΑΝΙΖΟΜΕΝΟ ετήσιο ποσό,
   // ώστε δόση = ceil(ετήσιο/12) να είναι πάντα συνεπής με το ετήσιο που δείχνουμε.
-  const annual = round2(Math.max(0, subtotal - reductionAmount))
+  const annual = cents(Math.max(0, subtotal - reductionAmount))
   return {
-    basic: round2(basic), extra: round2(extra), supplementary: round2(suppl), subtotal: round2(subtotal),
-    reductionPct: Math.round(combinedFrac * 100), reductionAmount: round2(reductionAmount), annual,
+    basic: cents(basic), extra: cents(extra), supplementary: cents(suppl), subtotal: cents(subtotal),
+    reductionPct: Math.round(combinedFrac * 100), reductionAmount: cents(reductionAmount), annual,
     installment: Math.ceil(annual / 12),
   }
 }
 
-const round2 = (n: number) => Math.round(n * 100) / 100
+
 
 /** Αντιστοίχιση €/τ.μ. τιμής ζώνης σε κλειδί ζώνης (άρθρο 43, 9 κλιμάκια). */
 export function zoneKeyFromPricePerSqm(pricePerSqm: number): string | null {
@@ -407,10 +408,10 @@ export function enfiaLastYearAnnual(input: {
   annual?: unknown; instalment?: unknown; instalments?: unknown;
 }): number {
   const direct = numOr0(input.annual)
-  if (direct > 0) return round2(direct)
+  if (direct > 0) return cents(direct)
   const per = numOr0(input.instalment)
   const n = numOr0(input.instalments)
-  if (per > 0 && n > 0) return round2(per * n)
+  if (per > 0 && n > 0) return cents(per * n)
   return 0
 }
 
@@ -444,11 +445,11 @@ export function enfiaInUse(
   lastYearAnnual?: number | null,
 ): EnfiaInUse {
   const annual = numOr0(declaredAnnual) || numOr0(declaredMonthly) * 12
-  if (annual > 0) return { annual: round2(annual), monthly: round2(annual / 12), source: 'declared' }
+  if (annual > 0) return { annual: cents(annual), monthly: cents(annual / 12), source: 'declared' }
   // Το περσινό προηγείται της εκτίμησης: είναι μετρημένο ποσό, όχι μοντέλο.
   const last = numOr0(lastYearAnnual)
-  if (last > 0) return { annual: round2(last), monthly: round2(last / 12), source: 'lastYear' }
+  if (last > 0) return { annual: cents(last), monthly: cents(last / 12), source: 'lastYear' }
   const est = numOr0(estimateAnnual)
-  if (est > 0) return { annual: round2(est), monthly: round2(est / 12), source: 'estimate' }
+  if (est > 0) return { annual: cents(est), monthly: cents(est / 12), source: 'estimate' }
   return { annual: 0, monthly: 0, source: 'none' }
 }

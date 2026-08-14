@@ -1,3 +1,4 @@
+import { cents } from '@/lib/core/money'
 // ═══════════════════════════════════════════════════════════════════════════
 // ΜΗΤΡΩΟ ΠΑΓΙΩΝ ΚΑΙ ΠΙΝΑΚΑΣ ΑΠΟΣΒΕΣΕΩΝ
 // ─────────────────────────────────────────────────────────────────────────
@@ -120,7 +121,7 @@ export interface DepreciationRow {
   closing: number;
 }
 
-const cents = (n: number): number => Math.round(n * 100) / 100;
+
 
 /** Η αξία που αποσβένεται: το κόστος μείον το οικόπεδο. Ποτέ αρνητική. */
 export const depreciableBase = (a: FixedAsset): number =>
