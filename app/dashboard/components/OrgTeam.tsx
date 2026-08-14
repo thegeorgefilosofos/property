@@ -561,7 +561,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
                       Μαζεμένα by default — η γραμμή μένει καθαρή, οι λεπτομέρειες on demand. */}
                   {canAct && (
                     <div style={{ paddingBottom: 12 }}>
-                      <button onClick={() => setOpenPerms(permsOpen ? null : m.email)}
+                      <button onClick={() => setOpenPerms(permsOpen ? null : m.email)} aria-expanded={!!permsOpen}
                         style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: T.font.sans }}>
                         <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-tertiary)', transform: permsOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }}><path d="M9 6l6 6-6 6" /></svg>
                         <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Δικαιώματα</span>

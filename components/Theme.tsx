@@ -625,14 +625,26 @@ export function TotalRow({ label, monthly }: { label: string; monthly: number })
 export function pressable<E extends { key: string; preventDefault: () => void }>(
   onActivate: () => void,
   label?: string,
+  /**
+   * ΓΙΑ ΟΣΑ ΑΝΟΙΓΟΥΝ ΚΑΙ ΚΛΕΙΝΟΥΝ. Χωρίς αυτό, ο αναγνώστης οθόνης ακούει
+   * «κουμπί» και τίποτα άλλο: δεν μαθαίνει ούτε ότι υπάρχει κρυμμένο
+   * περιεχόμενο ούτε αν είναι ήδη ανοιχτό. Ο χρήστης που βλέπει το βελάκι το
+   * ξέρει· ο χρήστης που ακούει, όχι.
+   *
+   * Μένει `undefined` όταν δεν δίνεται, οπότε καμία υπάρχουσα χρήση δεν
+   * αποκτά ιδιότητα που δεν της ταιριάζει.
+   */
+  expanded?: boolean,
 ): {
   role: 'button'; tabIndex: 0; 'aria-label': string | undefined;
+  'aria-expanded': boolean | undefined;
   onClick: () => void; onKeyDown: (e: E) => void;
 } {
   return {
     role: 'button',
     tabIndex: 0,
     'aria-label': label,
+    'aria-expanded': expanded,
     onClick: onActivate,
     onKeyDown: (e: E) => {
       if (e.key !== 'Enter' && e.key !== ' ') return;

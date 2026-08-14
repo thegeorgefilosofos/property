@@ -1791,11 +1791,10 @@ a.lp-link:hover { color: var(--accent) !important; filter: brightness(1.12); }
 .po-settings > *:first-child { padding-top: 0; }
 .po-settings > *:last-child { padding-bottom: 0; border-bottom: none; }
 
-/* Μενού ενεργειών (native <details>): κρύβει τον προεπιλεγμένο δείκτη, ώστε το
-   summary να μοιάζει με κανονικό κουμπί του design system. */
-.po-menu > summary { list-style: none; cursor: pointer; }
-.po-menu > summary::-webkit-details-marker { display: none; }
-.po-menu > summary::marker { content: ''; }
+/* ΤΟ `.po-menu > summary` ΕΦΥΓΕ. Ήταν τρεις κανόνες για native <details> που
+   δεν υπάρχει σε κανένα .tsx της εφαρμογής: το μενού ενεργειών ξαναγράφτηκε ως
+   components/ActionMenu.tsx με κανονικό <button>. Νεκρός κώδικας που έμοιαζε
+   ζωντανός, ακριβώς επειδή είχε σχόλιο. */
 @media (prefers-reduced-motion: reduce) {
   .acc-section { animation: none; }
   .acc-live-dot::after { animation: none; }

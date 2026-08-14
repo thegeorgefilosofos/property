@@ -262,7 +262,7 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
           {/* Ισοζύγιο & έλεγχος */}
           {preview && totals && (
             <div>
-              <button onClick={() => setShowBalance(s => !s)} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: showBalance ? 10 : 0, width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+              <button onClick={() => setShowBalance(s => !s)} aria-expanded={showBalance} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: showBalance ? 10 : 0, width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
                 <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-tertiary)', transform: showBalance ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}><path d="M9 6l6 6-6 6"/></svg>
                 <span style={{ ...TT.label }}>ΙΣΟΖΥΓΙΟ</span>
                 <Badge tone={audit ? (audit.tone === 'positive' ? 'neutral' : audit.tone) : (totals.balanced ? 'neutral' : 'negative')}>{audit ? (audit.tone === 'positive' ? 'Ισοσκελισμένο' : audit.tone === 'warning' ? 'Ισοσκελισμένο · προσοχή' : 'Απαιτεί διόρθωση') : (totals.balanced ? 'Ισοσκελισμένο' : 'Ασυμφωνία')}</Badge>
@@ -313,7 +313,7 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
 
                     {/* Αναλυτικοί έλεγχοι — μαζεύουν από default */}
                     <div style={{ marginTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
-                      <button onClick={() => setShowChecks(s => !s)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '13px 2px 4px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)' }}>
+                      <button onClick={() => setShowChecks(s => !s)} aria-expanded={showChecks} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '13px 2px 4px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)' }}>
                         <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-tertiary)', transform: showChecks ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }}><path d="M9 6l6 6-6 6"/></svg>
                         Αναλυτικοί έλεγχοι
                         <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 12, fontWeight: 600 }}>
