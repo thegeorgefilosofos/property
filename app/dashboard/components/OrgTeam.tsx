@@ -102,7 +102,8 @@ function SegBtn({ active, disabled, divider, onClick, children }: {
       type="button"
       onClick={disabled ? undefined : onClick}
       style={{
-        height: 28, padding: '0 12px', fontSize: 12, fontWeight: 600, fontFamily: T.font.sans,
+        display: 'inline-flex', alignItems: 'center', minHeight: T.h.sm,
+        padding: '0 12px', fontSize: 12, fontWeight: 600, fontFamily: T.font.sans,
         cursor: disabled ? 'default' : 'pointer', whiteSpace: 'nowrap',
         border: 'none', borderLeft: divider ? '1px solid var(--border-default)' : 'none',
         background: active ? 'var(--accent-soft)' : 'transparent',

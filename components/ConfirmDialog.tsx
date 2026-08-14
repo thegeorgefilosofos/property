@@ -152,7 +152,11 @@ export function ConfirmHost() {
 // τιμές παρακάτω είναι ΑΚΡΙΒΩΣ οι δικές του, ώστε το υποσέλιδο του διαλόγου να
 // μη μοιάζει ξένο δίπλα στα άλλα παράθυρα της εφαρμογής.
 const btnBase: CSSProperties = {
-  display: 'inline-flex', alignItems: 'center', gap: 8,
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+  // ΤΟ ΣΧΟΛΙΟ ΑΠΟ ΠΑΝΩ ΕΛΕΓΕ «ΑΚΡΙΒΩΣ ΟΙ ΔΙΚΕΣ ΤΟΥ», ΚΑΙ ΕΛΕΙΠΕ ΜΙΑ ΓΡΑΜΜΗ.
+  // Το `Btn` έχει `minHeight: T.h.md`· εδώ δεν υπήρχε, οπότε το «Άκυρο» και το
+  // «Επιβεβαίωση» ΚΑΘΕ διαλόγου της εφαρμογής έβγαιναν 35 εικονοστοιχεία.
+  minHeight: T.h.md,
   padding: '9px 18px', borderRadius: T.radius.btn,
   fontSize: 12, fontWeight: 700, fontFamily: T.font.sans,
   cursor: 'pointer', border: '1px solid transparent',

@@ -903,7 +903,11 @@ function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { pro
               <div key={k} title={k==='ΑΤΑΚ'?'Αριθμός Ταυτότητας Ακινήτου, από το έντυπο Ε9':k==='Εκτιμώμενος ΕΝΦΙΑ'?'Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων: ο ετήσιος φόρος περιουσίας':undefined}
                 style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:14,padding:'8px 0',borderBottom:'1px solid var(--border-subtle)'}}>
                 <span style={{fontFamily:T.font.sans,color:'var(--text-secondary)',fontSize:13,letterSpacing:'0.25px',whiteSpace:'nowrap'}}>{k}</span>
-                <span style={{fontFamily:T.font.sans,color:'var(--text-primary)',fontSize:13,letterSpacing:'0.25px',textAlign:'right',minWidth:0,overflow:'hidden',textOverflow:'ellipsis'}}>{v}</span>
+                {/* Το `textOverflow:'ellipsis'` δεν πυροδοτείται χωρίς
+                    `whiteSpace:'nowrap'`: η τιμή τύλιγε σε δεύτερη σειρά και
+                    έσπαγε τη γραμμή βάσης της ετικέτας δίπλα της, αντί να
+                    κοπεί με τρεις τελείες όπως δήλωνε ο κώδικας. */}
+                <span title={String(v)} style={{fontFamily:T.font.sans,color:'var(--text-primary)',fontSize:13,letterSpacing:'0.25px',textAlign:'right',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{v}</span>
               </div>
             ))}
           </div>

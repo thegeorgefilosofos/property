@@ -118,10 +118,21 @@ export const s = {
   th:       { fontSize:'9px', letterSpacing:'0.12em', textTransform:'uppercase' as const, color:'var(--text-secondary)', padding:'8px 12px', borderBottom:'1px solid var(--border-subtle)', textAlign:'left' as const, fontWeight:400 } as React.CSSProperties,
   td:       { padding:'10px 12px', borderBottom:'1px solid var(--border-subtle)', color:'var(--text-primary)', fontSize:'12px', verticalAlign:'middle' as const } as React.CSSProperties,
   tdM:      { padding:'10px 12px', borderBottom:'1px solid var(--border-subtle)', color:'var(--text-secondary)', fontSize:'12px', verticalAlign:'middle' as const } as React.CSSProperties,
-  btnGold:  { background:'var(--accent)', color:'var(--accent-text)', border:'none', borderRadius:'10px', padding:'9px 18px', fontSize:'12px', letterSpacing:'0.04em', fontFamily:T.font.sans, cursor:'pointer', fontWeight:700 } as React.CSSProperties,
-  btnGhost: { background:'transparent', color:'var(--text-secondary)', border:'1px solid var(--border-default)', borderRadius:'10px', padding:'8px 14px', fontSize:'11px', fontFamily:T.font.sans, cursor:'pointer' } as React.CSSProperties,
-  btnSm:    { background:'var(--bg-elevated)', color:'var(--accent)', border:'1px solid var(--border-accent)', borderRadius:'10px', padding:'6px 12px', fontSize:'10px', fontFamily:T.font.sans, cursor:'pointer', fontWeight:600 } as React.CSSProperties,
-  btnDng:   { background:'transparent', color:'var(--negative)', border:'1px solid var(--negative-dim)', borderRadius:'10px', padding:'6px 12px', fontSize:'10px', fontFamily:T.font.sans, cursor:'pointer' } as React.CSSProperties,
+  // ── ΤΟ ΔΑΧΤΥΛΟ ─────────────────────────────────────────────────────────
+  // Τα τέσσερα κουμπιά της καρτέλας ενοικιαστή είναι το πυκνότερο σημείο της
+  // εφαρμογής: εξήντα δύο σημεία κλήσης σε τρία αρχεία. Το ύψος τους έβγαινε
+  // αποκλειστικά από το padding — 26 ώς 33 εικονοστοιχεία, δηλαδή κάτω από
+  // κάθε όριο αφής, στην οθόνη που ο ιδιοκτήτης ανοίγει από το κινητό όταν
+  // τον παίρνει τηλέφωνο ο ενοικιαστής.
+  //
+  // Η διόρθωση είναι το ίδιο μοτίβο που ήδη έλυσε 148 σημεία στο κοινό `Btn`:
+  // `minHeight` από την κλίμακα. Το `T.h.*` μεγαλώνει ΜΟΝΟ σε δείκτη αφής
+  // (globals.css, `@media (pointer: coarse)`), οπότε στο ποντίκι δεν αλλάζει
+  // τίποτα και οι πυκνοί πίνακες μένουν πυκνοί.
+  btnGold:  { display:'inline-flex', alignItems:'center', justifyContent:'center', minHeight:T.h.md, background:'var(--accent)', color:'var(--accent-text)', border:'none', borderRadius:'10px', padding:'9px 18px', fontSize:'12px', letterSpacing:'0.04em', fontFamily:T.font.sans, cursor:'pointer', fontWeight:700 } as React.CSSProperties,
+  btnGhost: { display:'inline-flex', alignItems:'center', justifyContent:'center', minHeight:T.h.sm, background:'transparent', color:'var(--text-secondary)', border:'1px solid var(--border-default)', borderRadius:'10px', padding:'8px 14px', fontSize:'11px', fontFamily:T.font.sans, cursor:'pointer' } as React.CSSProperties,
+  btnSm:    { display:'inline-flex', alignItems:'center', justifyContent:'center', minHeight:T.h.sm, background:'var(--bg-elevated)', color:'var(--accent)', border:'1px solid var(--border-accent)', borderRadius:'10px', padding:'6px 12px', fontSize:'10px', fontFamily:T.font.sans, cursor:'pointer', fontWeight:600 } as React.CSSProperties,
+  btnDng:   { display:'inline-flex', alignItems:'center', justifyContent:'center', minHeight:T.h.sm, background:'transparent', color:'var(--negative)', border:'1px solid var(--negative-dim)', borderRadius:'10px', padding:'6px 12px', fontSize:'10px', fontFamily:T.font.sans, cursor:'pointer' } as React.CSSProperties,
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

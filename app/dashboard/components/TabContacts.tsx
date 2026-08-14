@@ -1238,7 +1238,13 @@ function CompactRow({ contact, onOpen, onEdit, onDelete, selected, onSelect, bul
       </div>
       <div style={{ width: 140, fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{contact.phone || ABSENT}</div>
       <div style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{contact.email || ABSENT}</div>
-      <div style={{ display: 'flex', gap: 4, maxWidth: 160, flexWrap: 'wrap' }}>{(extra.tags || []).slice(0, 2).map(t => <span key={t} style={{ fontSize: 10, padding: '2px 7px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>{t}</span>)}</div>
+      {/* ΤΟ maxWidth ΔΕΝ ΕΙΝΑΙ ΠΛΑΤΟΣ. Η κεφαλίδα δίνει στις «Ετικέτες» στήλη
+          120, η γραμμή όμως έδινε `maxWidth:160` χωρίς `width` — δηλαδή πλάτος
+          όσο το περιεχόμενο. Επαφή χωρίς ετικέτες κατέληγε 0 πλάτος και η
+          στήλη ΑΦΜ ανέβαινε 120 εικονοστοιχεία αριστερά από την επικεφαλίδα
+          της· επαφή με δύο ετικέτες την έσπρωχνε δεξιά. Η ίδια στήλη άλλαζε
+          θέση σε κάθε γραμμή. Σταθερό πλάτος, ίδιο με την κεφαλίδα. */}
+      <div style={{ display: 'flex', gap: 4, width: 120, flexShrink: 0, overflow: 'hidden', whiteSpace: 'nowrap' }}>{(extra.tags || []).slice(0, 2).map(t => <span key={t} style={{ fontSize: 10, padding: '2px 7px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>{t}</span>)}</div>
       <div style={{ width: 120, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{extra.afm ? 'ΑΦΜ ' + extra.afm : ''}</div>
       <div style={{ display: 'flex', gap: 6, opacity: bulkMode ? 0 : (hov || coarse) ? 1 : 0, pointerEvents: bulkMode || !(hov || coarse) ? 'none' : undefined, transition: 'opacity 0.15s', flexShrink: 0 }}>
         {contact.phone && <a href={'tel:' + contact.phone} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', padding: 4, color: 'var(--text-secondary)' }}><Phone size={14} /></a>}

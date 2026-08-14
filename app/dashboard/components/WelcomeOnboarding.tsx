@@ -174,7 +174,9 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
   };
   const linkBtn: React.CSSProperties = {
     background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: T.font.sans,
-    padding: '8px 6px', textAlign: 'center',
+    // Πρώτη οθόνη κάθε νέου λογαριασμού, και τα δύο κουμπιά της ήταν 32ψηλά.
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: T.h.md,
+    padding: '8px 12px', textAlign: 'center',
   };
   // Μία ετικέτα ενότητας και δύο σχήματα επιλογής για ΟΛΕΣ τις ερωτήσεις αυτής
   // της οθόνης: κάρτα για τη βασική επιλογή, pill για τη λεπτομέρεια. Χωρίς αυτά

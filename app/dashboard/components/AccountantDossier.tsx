@@ -557,7 +557,10 @@ function AccountantAsks() {
   if (asks.length === 0) return null
 
   const btn: React.CSSProperties = {
-    height: 28, padding: '0 11px', borderRadius: 8, border: '1px solid var(--border-subtle)',
+    // ΡΗΤΟ ΥΨΟΣ 28 ΕΙΝΑΙ ΧΕΙΡΟΤΕΡΟ ΑΠΟ ΥΨΟΣ ΑΠΟ PADDING: δεν μεγαλώνει ποτέ,
+    // ούτε με μεγαλύτερη γραμματοσειρά ούτε σε δείκτη αφής. Η κλίμακα το κάνει.
+    display: 'inline-flex', alignItems: 'center', minHeight: T.h.sm,
+    padding: '0 11px', borderRadius: 8, border: '1px solid var(--border-subtle)',
     background: 'transparent', color: 'var(--text-primary)', fontSize: 12, fontWeight: 600,
     fontFamily: T.font.sans, cursor: 'pointer', flexShrink: 0,
   }

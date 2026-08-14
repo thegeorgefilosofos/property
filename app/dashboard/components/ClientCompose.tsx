@@ -162,6 +162,7 @@ export default function ClientCompose({ open, onClose, clients, supabase }: {
     color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box',
   };
   const chip = (on: boolean): React.CSSProperties => ({
+    display: 'inline-flex', alignItems: 'center', minHeight: T.h.sm,
     fontSize: 11, fontWeight: 700, padding: '6px 12px', borderRadius: T.radius.pill, cursor: 'pointer',
     border: `1px solid ${on ? 'var(--accent-border)' : 'var(--border-default)'}`,
     background: on ? 'var(--accent-soft)' : 'transparent', color: on ? 'var(--accent)' : 'var(--text-secondary)',

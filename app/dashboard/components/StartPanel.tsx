@@ -46,6 +46,9 @@ export default function StartPanel({ state, collapsed, onToggle, onNavigate, onP
 
   const quiet: React.CSSProperties = {
     background: 'none', border: 'none', cursor: 'pointer',
+    // Το ύψος βγαίνει από την κλίμακα και όχι από το padding: γυμνό κουμπί
+    // κειμένου με padding 6 είναι στόχος 27 εικονοστοιχείων.
+    display: 'inline-flex', alignItems: 'center', minHeight: T.h.sm,
     fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, color: 'var(--text-tertiary)', padding: '6px 4px',
   };
   const shell: React.CSSProperties = {
