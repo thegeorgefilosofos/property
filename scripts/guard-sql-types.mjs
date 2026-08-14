@@ -32,6 +32,15 @@
 // Τα INSERT (`values (v_link.property_id, …)`) δεν είναι συγκρίσεις και δεν
 // αγγίζονται: εκεί text μπαίνει σε text.
 //
+// ΔΕΥΤΕΡΗ ΑΠΟΔΕΚΤΗ ΓΡΑΦΗ, ΚΑΙ ΓΙΑΤΙ ΕΙΝΑΙ Η ΚΑΛΥΤΕΡΗ:
+//
+//     where id = v_link.property_id::uuid                 ← user_properties
+//
+// Το `::text` και στις δύο πλευρές λύνει τον τύπο αλλά μετατρέπει τη ΣΤΗΛΗ,
+// οπότε το ευρετήριό της μένει αχρησιμοποίητο. Το `::uuid` μετατρέπει τη
+// ΜΕΤΑΒΛΗΤΗ, δηλαδή τη μία τιμή, και το πρωτεύον κλειδί δουλεύει κανονικά.
+// Δεκτό μόνο όταν η άλλη πλευρά είναι σκέτη — δηλαδή είναι όντως uuid.
+//
 // Δεν είναι πλήρης τυπικός έλεγχος SQL — είναι το ΣΥΓΚΕΚΡΙΜΕΝΟ λάθος που μας
 // στοίχισε δύο λειτουργίες, κλειδωμένο ώστε να μην ξαναγραφτεί.
 // ═══════════════════════════════════════════════════════════════════════════
@@ -43,7 +52,7 @@ const findings = []
 
 // Σύγκριση: `… = v_x.property_id` ή `v_x.property_id = …`, με `=`, `<>` ή `!=`.
 // Το `values (…)` και το `insert` δεν ταιριάζουν γιατί δεν έχουν τελεστή.
-const CMP = /([\w.]+(?:::text)?)\s*(=|<>|!=)\s*(v_\w+\.property_id(?:::text)?)|(v_\w+\.property_id(?:::text)?)\s*(=|<>|!=)\s*([\w.]+(?:::text)?)/g
+const CMP = /([\w.]+(?:::(?:text|uuid))?)\s*(=|<>|!=)\s*(v_\w+\.property_id(?:::(?:text|uuid))?)|(v_\w+\.property_id(?:::(?:text|uuid))?)\s*(=|<>|!=)\s*([\w.]+(?:::(?:text|uuid))?)/g
 
 // ΕΛΕΓΧΕΤΑΙ Η ΖΩΝΤΑΝΗ ΕΚΔΟΣΗ, ΟΧΙ Η ΙΣΤΟΡΙΑ.
 //
@@ -80,8 +89,13 @@ for (const def of live.values()) {
     for (const m of line.matchAll(CMP)) {
       const left = m[1] ?? m[4]
       const right = m[3] ?? m[6]
-      // Και οι δύο πλευρές πρέπει να είναι ρητά text.
+      // Και οι δύο πλευρές ρητά text: η παλιά, ασφαλής γραφή.
       if (left.endsWith('::text') && right.endsWith('::text')) continue
+      // Ή η μεταβλητή γίνεται uuid και η στήλη μένει άθικτη: ίδια ασφάλεια,
+      // με το ευρετήριο στη θέση του.
+      const varSide = (m[3] ?? m[4]) === right ? right : left
+      const colSide = varSide === right ? left : right
+      if (varSide.endsWith('::uuid') && !colSide.includes('::')) continue
       findings.push({ file: def.file, line: i + 1, fn: def.name, text: raw.trim() })
     }
   }
@@ -93,6 +107,7 @@ if (findings.length) {
   console.error('  η Postgres πετά 42883 ΣΤΗΝ ΕΚΤΕΛΕΣΗ, με το deploy πράσινο.\n')
   for (const f of findings) console.error(`  ${f.file}:${f.line}  (${f.fn})\n     ${f.text.slice(0, 120)}`)
   console.error('\n  Γράψε: where property_id::text = v_link.property_id::text')
+  console.error('  ή, όταν η στήλη είναι uuid: where id = v_link.property_id::uuid')
   process.exit(1)
 }
 

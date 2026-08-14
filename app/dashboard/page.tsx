@@ -1479,9 +1479,20 @@ export default function Dashboard() {
     );
     if (!ok) return;
     setStatusDropdown(false);
-    // Καθαρισμός συνδεδεμένων εγγραφών (best-effort· η RLS περιορίζει στα δικά σου).
-    const childTables = ['expenses','calendar_events','bills','bills_history','bills_settings','checklist_items','tenants','tenant_comm_log','contacts','inventory_items','inventory_maintenance','inventory_handovers','loans','property_settings','rent_payments','rent_config','rent_comparables','property_documents','maintenance_tasks','maintenance_requests','portal_links','notification_preferences','client_stays','pricing_settings','ical_feeds'];
-    await Promise.allSettled(childTables.map(t => supabase.from(t).delete().eq('property_id', pid)));
+    // ── ΤΟ ΚΑΘΑΡΙΣΜΑ ΕΦΥΓΕ ΑΠΟ ΕΔΩ ────────────────────────────────────────
+    // Εδώ καθόταν χειρόγραφη λίστα είκοσι πέντε πινάκων, και είκοσι πέντε
+    // ερωτήματα διαγραφής με `allSettled` — δηλαδή χωρίς κανείς να κοιτάζει τι
+    // απάντησαν. Η λίστα ξεχνούσε έξι πίνακες (ανάμεσά τους τον ενεργό σύνδεσμο
+    // δήλωσης άφιξης, με τα στοιχεία ταυτότητας των επισκεπτών), περιλάμβανε
+    // έναν που δεν έχει καν στήλη `property_id`, και ίσχυε μόνο για όποιον
+    // σβήνει ακίνητο ΑΠΟ ΑΥΤΗ ΤΗΝ ΟΘΟΝΗ.
+    //
+    // Το καθάρισμα είναι πλέον ιδιότητα της βάσης: ξένα κλειδιά με CASCADE όπου
+    // ο τύπος τα επιτρέπει, σκανδάλη όπου δεν τα επιτρέπει ακόμη. Ισχύει για
+    // κάθε καλούντα — οθόνη, edge function, διαγραφή λογαριασμού — και δεν
+    // ξεχνά, γιατί δεν είναι λίστα που συντηρεί άνθρωπος.
+    // Βλ. supabase/migrations/20260814090000_referential_integrity.sql
+    //
     // Το ακίνητο είναι η τελευταία γραμμή που φεύγει. Αν μείνει, ο χρήστης το
     // βλέπει άδειο στη λίστα και νομίζει ότι κάτι χάλασε μόνο του.
     if (!await saved('Το ακίνητο δεν διαγράφηκε',
