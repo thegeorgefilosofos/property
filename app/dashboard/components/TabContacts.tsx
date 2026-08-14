@@ -1032,16 +1032,68 @@ function CommButton({ label, Icon, href, target, accent }: { label: string; Icon
   )
 }
 
-// ─── Premium action tile (κενή κατάσταση) — Apple/Google αισθητική ─────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// ΟΙ ΔΥΟ ΔΡΟΜΟΙ ΤΗΣ ΚΕΝΗΣ ΚΑΤΑΣΤΑΣΗΣ
+// ─────────────────────────────────────────────────────────────────────────
+// ΤΙ ΔΕΝ ΠΗΓΑΙΝΕ. Το πλακίδιο είχε σταθερό πλάτος 150 και ελληνικούς τίτλους
+// σε προστακτική: «Φωτογράφισε κάρτα» έσπαγε σε δύο σειρές και «Γράψ' την με
+// το χέρι» άφηνε τη λέξη «χέρι» μόνη της στη δεύτερη. Δίπλα τους, ο ένας
+// υπότιτλος έπιανε τρεις σειρές και ο άλλος μία, οπότε τα δύο πλακίδια είχαν
+// ίδιο ύψος αλλά διαφορετική εσωτερική ισορροπία: ο τίτλος του ενός δεν
+// βρισκόταν ποτέ στη γραμμή βάσης του άλλου.
+//
+// ΤΡΕΙΣ ΔΙΟΡΘΩΣΕΙΣ, ΚΑΙ ΟΙ ΤΡΕΙΣ ΚΑΝΟΝΑΣ ΚΑΙ ΟΧΙ ΓΟΥΣΤΟ:
+//
+//   • ΙΣΕΣ ΣΤΗΛΕΣ. Το πλάτος δεν είναι καρφωτό· βγαίνει από πλέγμα δύο ίσων
+//     στηλών (`contactRouteGrid`). Δύο επιλογές ισότιμης βαρύτητας πρέπει να
+//     έχουν ίδιο εμβαδόν, αλλιώς η μία διαβάζεται ως δευτερεύουσα πριν καν
+//     διαβαστεί το κείμενο.
+//   • ΟΝΟΜΑΤΑ, ΟΧΙ ΕΝΤΟΛΕΣ. «Από φωτογραφία» και «Με το χέρι» ονομάζουν τον
+//     ΔΡΟΜΟ. Η προστακτική σε κάρτα διαβάζεται ως πίεση, και οι δύο μαζί
+//     («Φωτογράφισε», «Γράψ' την») ακούγονται σαν να μαλώνουν.
+//   • ΣΤΑΘΕΡΗ ΓΡΑΜΜΗ ΒΑΣΗΣ. Ο υπότιτλος κρατά ύψος δύο σειρών σε κάθε
+//     περίπτωση, οπότε ο τίτλος κάθεται στο ίδιο ύψος και στα δύο πλακίδια
+//     ανεξάρτητα από το μήκος του κειμένου.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Δύο ίσες στήλες, με ανώτατο πλάτος ώστε τα πλακίδια να μη διαλυθούν σε μεγάλη οθόνη. */
+const contactRouteGrid: React.CSSProperties = {
+  display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+  gap: T.sp.md, maxWidth: 420, margin: `${T.sp.sm}px auto 0`, alignItems: 'stretch',
+}
+
+const SUB_LINE = 15   // ύψος γραμμής υποτίτλου· δύο από αυτές κρατούν το ύψος
+
 function ContactActionTile({ Icon, label, sub, onClick, primary }: { Icon: React.ComponentType<{ size?: number }>; label: string; sub?: string; onClick: () => void; primary?: boolean }) {
   const [h, setH] = useState(false)
   return (
     <button type="button" onClick={onClick} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
-      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, width: 150, padding: '22px 14px', borderRadius: 18, cursor: 'pointer', fontFamily: T.font.sans, textAlign: 'center', background: primary ? 'var(--accent)' : 'var(--bg-surface)', color: primary ? 'var(--accent-text)' : 'var(--text-primary)', border: '1px solid ' + (primary ? 'transparent' : 'var(--border-subtle)'), boxShadow: h ? 'var(--elev-3)' : 'var(--elev-1)', transform: h ? 'translateY(-4px)' : 'none', transition: 'transform .2s cubic-bezier(.2,0,0,1), box-shadow .2s' }}>
-      <div style={{ width: 48, height: 48, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', background: primary ? 'rgba(255,255,255,0.18)' : 'var(--accent-soft)', color: primary ? 'var(--accent-text)' : 'var(--accent)' }}><Icon size={23} /></div>
-      <div>
-        <div style={{ fontSize: 14, fontWeight: 700 }}>{label}</div>
-        {sub && <div style={{ fontSize: 11, fontWeight: 400, opacity: 0.72, marginTop: 3 }}>{sub}</div>}
+      style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: T.sp.md,
+        width: '100%', padding: `${T.sp.xl}px ${T.sp.lg}px`, borderRadius: T.radius.card,
+        cursor: 'pointer', fontFamily: T.font.sans, textAlign: 'center',
+        background: primary ? 'var(--accent)' : 'var(--bg-surface)',
+        color: primary ? 'var(--accent-text)' : 'var(--text-primary)',
+        border: '1px solid ' + (primary ? 'transparent' : 'var(--border-subtle)'),
+        boxShadow: h ? 'var(--elev-3)' : 'var(--elev-1)',
+        transform: h ? 'translateY(-3px)' : 'none',
+        transition: 'transform .2s cubic-bezier(.2,0,0,1), box-shadow .2s',
+      }}>
+      {/* Το γέμισμα του εικονιδίου βγαίνει από το ΜΕΛΑΝΙ του πλακιδίου, όχι από
+          καρφωτό λευκό: στο σκούρο θέμα το `--accent` είναι ανοιχτό παστέλ και
+          ένα λευκό 18% επάνω του ήταν πρακτικά αόρατο. */}
+      <div style={{ width: 46, height: 46, borderRadius: T.radius.inner, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: primary ? 'color-mix(in srgb, var(--accent-text) 20%, transparent)' : 'var(--accent-soft)', color: primary ? 'var(--accent-text)' : 'var(--accent)' }}><Icon size={22} /></div>
+      <div style={{ width: '100%' }}>
+        <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.25, textWrap: 'balance' }}>{label}</div>
+        {/* Ο υπότιτλος είχε `opacity: 0.75`. Μετρημένο: πάνω στο γεμάτο accent
+            του φωτεινού θέματος έβγαινε 3,94:1, δηλαδή ΚΑΤΩ από το 4,5:1 που
+            απαιτούν έντεκα εικονοστοιχεία. Η διαφάνεια είναι λάθος εργαλείο για
+            υποβάθμιση πάνω σε κορεσμένο φόντο: για να περάσει χρειάζεται 0,90,
+            που είναι οπτικά αδιάκριτο από το γεμάτο και άρα δεν υποβαθμίζει.
+            Η ιεραρχία βγαίνει από την ΚΛΙΜΑΚΑ (14/700 έναντι 11/400) και το
+            χρώμα από ΔΕΙΚΤΗ, έναν ανά ρόλο. Μετρημένο μετά: 5,74 και 9,00 στο
+            κύριο, 6,05 και 5,43 στο δεύτερο. */}
+        <div style={{ fontSize: 11, fontWeight: 400, color: primary ? 'var(--accent-text)' : 'var(--text-secondary)', marginTop: 4, lineHeight: `${SUB_LINE}px`, minHeight: SUB_LINE * 2, textWrap: 'balance' }}>{sub}</div>
       </div>
     </button>
   )
@@ -1873,13 +1925,18 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[0, 1, 2, 3, 4].map(i => <Skeleton key={i} h={54} r={10} />)}</div>
         </>
       ) : contacts.length === 0 ? (
+        // Η βοήθεια έλεγε ΤΑ ΙΔΙΑ με τα δύο πλακίδια από κάτω, σε προστακτική και
+        // με τη λίστα των πεδίων δύο φορές. Λέει τώρα ΜΟΝΟ αυτό που δεν λένε τα
+        // πλακίδια: τι κάνει η σάρωση και ποιος αποφασίζει τελικά.
         <EmptyState
           icon={<Users size={20} />}
           title="Καμία επαφή ακόμη"
-          hint="Φωτογράφισε την επαγγελματική κάρτα ή ένα τιμολόγιό του: διαβάζονται όνομα, ειδικότητα, τηλέφωνο, ΑΦΜ και IBAN, και τα ελέγχεις πριν αποθηκευτούν."
-          action={<div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center', marginTop: 6 }}>
-            <ContactActionTile Icon={Camera} label="Φωτογράφισε κάρτα" sub={scanning ? 'Ανάλυση…' : 'ή τιμολόγιο του συνεργάτη'} onClick={() => cardRef.current?.click()} primary />
-            <ContactActionTile Icon={UserPlus} label="Γράψ’ την με το χέρι" sub="Τέσσερα πεδία" onClick={openAdd} />
+          hint="Η κάρτα ή ένα τιμολόγιό του διαβάζεται και συμπληρώνει τα πεδία, μαζί με το IBAN. Τίποτα δεν αποθηκεύεται πριν το ελέγξεις."
+          action={<div style={contactRouteGrid}>
+            <ContactActionTile Icon={Camera} label="Από φωτογραφία" sub={scanning ? 'Ανάλυση…' : 'Κάρτα ή τιμολόγιο του συνεργάτη'} onClick={() => cardRef.current?.click()} primary />
+            {/* «Τέσσερα πεδία» ήταν σωστό και αόριστο. Τα τέσσερα ονομάζονται:
+                ο χρήστης ξέρει τι τον περιμένει πριν πατήσει. */}
+            <ContactActionTile Icon={UserPlus} label="Με το χέρι" sub="Όνομα, ειδικότητα, τηλέφωνο, ΑΦΜ" onClick={openAdd} />
           </div>}
         />
       ) : processed.length === 0 ? (
