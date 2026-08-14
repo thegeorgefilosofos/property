@@ -163,10 +163,37 @@ function useOverlayShell(open: boolean, onClose: () => void) {
     overlayStack.push(id);
     notifyOverlays();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      // Μόνο η κορυφαία απαντά. Οι από κάτω αγνοούν.
+      // Μόνο η κορυφαία απαντά, και στο Escape και στο Tab. Οι από κάτω αγνοούν.
       if (overlayStack[overlayStack.length - 1] !== id) return;
-      onClose();
+      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key !== 'Tab') return;
+
+      // ── Η ΕΣΤΙΑΣΗ ΕΒΓΑΙΝΕ ΑΠΟ ΤΟ ΠΑΡΑΘΥΡΟ ─────────────────────────────
+      // Το παράθυρο έπαιρνε σωστά την εστίαση στο άνοιγμα και τη γύριζε στο
+      // κλείσιμο, αλλά ΤΙΠΟΤΑ δεν την κρατούσε μέσα. Ο χρήστης πληκτρολογίου
+      // που πατούσε Tab μετά το τελευταίο κουμπί έβγαινε στη σελίδα ΑΠΟ ΚΑΤΩ:
+      // σε στοιχεία που δεν βλέπει (τα σκεπάζει το πέπλο) και που δεν μπορεί
+      // να πατήσει με το ποντίκι. Ο δείκτης εστίασης εξαφανιζόταν και η
+      // πλοήγηση γινόταν μαντεψιά — ενώ ο αναγνώστης οθόνης συνέχιζε να λέει
+      // «διάλογος». Το ίδιο έκανε και το Shift+Tab προς τα πίσω.
+      //
+      // Ο κανόνας ζει ΕΔΩ και όχι στο κάθε παράθυρο: το Modal και το SideSheet
+      // μοιράζονται αυτό το κέλυφος, οπότε διορθώνονται και τα δύο μαζί, και
+      // κάθε επόμενη επικάλυψη το παίρνει χωρίς να το ζητήσει.
+      const panel = panelRef.current;
+      if (!panel) return;
+      const items = Array.from(
+        panel.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter(el => el.offsetParent !== null || el === document.activeElement);
+      if (!items.length) { e.preventDefault(); panel.focus(); return; }
+
+      const first = items[0], last = items[items.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      if (!active || !panel.contains(active)) { e.preventDefault(); first.focus(); return; }
+      if (e.shiftKey && active === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && active === last) { e.preventDefault(); first.focus(); }
     };
     document.addEventListener('keydown', onKey);
     return () => {
