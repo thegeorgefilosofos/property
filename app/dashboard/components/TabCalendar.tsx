@@ -549,16 +549,28 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
               const dayAmt=dayEvents.filter(e=>e.amount&&e.status==='pending').reduce((s,e)=>s+(e.amount||0),0)
               const hol=day?holidayName(dateStr):null
               const wknd=day?isWeekend(dateStr):false
-              const cellBg=isToday?'var(--accent-dim)':isSelected?'color-mix(in srgb, var(--accent) 12%, transparent)':hol?'color-mix(in srgb, var(--accent) 5%, transparent)':wknd?'color-mix(in srgb, var(--text-tertiary) 5%, transparent)':'transparent'
+              // ═══ ΤΟ «ΣΗΜΕΡΑ» ΛΕΓΟΤΑΝ ΔΥΟ ΦΟΡΕΣ ═════════════════════════════
+              // Ολόκληρο το κελί έπαιρνε `--accent-dim` ΚΑΙ ο αριθμός έπαιρνε
+              // κύκλο με το ίδιο ακριβώς χρώμα. Δύο σήματα για ένα γεγονός, και
+              // το ένα από αυτά είναι ένα γεμάτο ορθογώνιο ενενήντα επί εκατόν
+              // σαράντα εικονοστοιχείων: σε γραμμή που δεν έχει τίποτα άλλο, το
+              // κελί διαβάζεται ως κουτί που κάθεται πάνω στο πλέγμα και η
+              // διπλανή ημέρα μοιάζει να ξεφεύγει από αυτό.
+              //
+              // Το σήμερα είναι ΜΙΑ ημέρα, όχι μια περιοχή. Το λέει ο αριθμός
+              // της, με γεμάτο κύκλο — όπως σε κάθε ημερολόγιο που δουλεύει.
+              // Η επιλεγμένη ημέρα κρατά το δαχτυλίδι της: είναι άλλο πράγμα
+              // (τι κοιτάς) και πρέπει να ξεχωρίζει από το σήμερα (τι μέρα είναι).
+              const cellBg=isSelected?'color-mix(in srgb, var(--accent) 12%, transparent)':hol?'color-mix(in srgb, var(--accent) 5%, transparent)':wknd?'color-mix(in srgb, var(--text-tertiary) 5%, transparent)':'transparent'
               return (
                 <div key={idx} {...pressable(()=>day&&onDayClick(dateStr))} data-drop-date={day?dateStr:undefined} style={{ minHeight:80, padding:'6px', borderRight:(idx+1)%7===0?'none':'1px solid var(--border-subtle)', borderBottom:idx<cells.length-7?'1px solid var(--border-subtle)':'none', background:cellBg, boxShadow:isSelected&&!isToday?'inset 0 0 0 2px var(--accent)':'none', cursor:day?'pointer':'default', transition:'background 0.1s' }}
-                  onMouseEnter={e=>{if(day)(e.currentTarget as HTMLElement).style.background=isToday?'var(--accent-dim)':'var(--bg-hover)'}}
+                  onMouseEnter={e=>{if(day)(e.currentTarget as HTMLElement).style.background='var(--bg-hover)'}}
                   onMouseLeave={e=>{if(day)(e.currentTarget as HTMLElement).style.background=cellBg}}
                 >
                   {day!=null&&(
                     <>
                       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:3 }}>
-                        <span style={{ fontSize:13, fontFamily: T.font.sans, fontWeight:isToday||isSelected?700:400, color:isToday||isSelected?'var(--accent)':wknd||hol?'var(--text-tertiary)':'var(--text-secondary)', width:24, height:24, borderRadius:'50%', background:isToday?'var(--accent-dim)':'transparent', display:'flex', alignItems:'center', justifyContent:'center' }}>{day}</span>
+                        <span aria-current={isToday?'date':undefined} style={{ fontSize:13, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', fontWeight:isToday||isSelected?700:400, color:isToday?'var(--accent-text)':isSelected?'var(--accent)':wknd||hol?'var(--text-tertiary)':'var(--text-secondary)', width:24, height:24, borderRadius:'50%', background:isToday?'var(--accent)':'transparent', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>{day}</span>
                         {hasOverdue&&<span style={{ width:6, height:6, borderRadius:'50%', background:'var(--negative)' }}/>}
                       </div>
                       {/* Η αργία, κολλητά στην ημερομηνία της. Ο χώρος κρατιέται
