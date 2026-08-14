@@ -27,6 +27,8 @@ import {
 } from '@/lib/market/greekMarket';
 import { incomeStatement } from '@/lib/accounting/statement';
 import { consolidateRentTax, taxShareOf, CONSOLIDATION_NOTE, PRESUMPTIVE_RULE_2026 } from '@/lib/billing/consolidate';
+import { hasFeature } from '@/lib/billing/entitlements';
+import type { PlanId } from '@/lib/billing/plans';
 import { GLOSSARY as G } from '@/lib/market/glossary';
 import { navLabel } from '@/lib/nav/labels';
 import { useReportBranding } from '@/lib/reportBranding';
@@ -62,7 +64,7 @@ const ST_ALIAS: Record<string, string> = {
 const stRefFor = (regionKey: string): ShortTermStat =>
   SHORT_TERM.find(s => s.key === (ST_ALIAS[regionKey] || regionKey)) || SHORT_TERM[0];
 
-interface Props { propertyId: string; userId: string; propertyValue?: number; profileType?: 'individual' | 'professional'; legalForm?: DossierLegalForm; }
+interface Props { propertyId: string; userId: string; propertyValue?: number; profileType?: 'individual' | 'professional'; legalForm?: DossierLegalForm; plan?: PlanId; }
 
 // Εδώ ζούσε τοπικός «fp» με ΕΝΑ δεκαδικό, που ΣΚΙΑΖΕ τον κανονικό: όλη η οθόνη
 // απόδοσης έγραφε «4,2%» ενώ η διπλανή έγραφε «4,20%». Ένας μορφοποιητής.
@@ -446,7 +448,7 @@ function Toggle({ checked, onChange, label, note }: { checked: boolean; onChange
 const DEFAULT_LOAN_YEARS = '25';
 const DEFAULT_SELL_COSTS_PCT = '3';
 
-export default function TabRentROI({ propertyId, userId, propertyValue, profileType = 'individual', legalForm = 'individual' }: Props) {
+export default function TabRentROI({ propertyId, userId, propertyValue, profileType = 'individual', legalForm = 'individual', plan = 'free' }: Props) {
   const supabase = createClient();
   const branding = useReportBranding(userId);
   const [loading, setLoading] = useState(true);
@@ -464,6 +466,17 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   const [inputsPinned, setInputsPinned] = useState<boolean | null>(null);
   const apprId = useId();
   const pro = profileType === 'professional';
+  // ── Η ΚΛΕΙΔΑΡΙΑ ΤΗΣ ΕΠΕΝΔΥΤΙΚΗΣ ΑΝΑΛΥΣΗΣ ΗΤΑΝ Ο ΤΥΠΟΣ ΠΡΟΦΙΛ ────────────
+  // Το IRR, το NPV, ο DSCR και η ανάλυση ευαισθησίας πωλούνται: ο πίνακας
+  // σύγκρισης τα δείχνει με λουκέτο στο «Επαγγελματίας». Φυλάγονταν όμως από το
+  // `profileType`, που ο χρήστης το διαλέγει μόνος του σε ένα κουμπί των
+  // ρυθμίσεων, χωρίς κανέναν έλεγχο. Δηλαδή η κλειδαριά είχε το κλειδί επάνω.
+  //
+  // Οι δύο όροι ρωτούν διαφορετικά πράγματα και χρειάζονται ΚΑΙ ΟΙ ΔΥΟ: το
+  // πακέτο απαντά «το πληρώνει;», το προφίλ «βγάζει νόημα;» — η μόχλευση
+  // υπολογίζεται πάνω στο επιχειρηματικό καθεστώς, και σε φυσικό πρόσωπο δεν
+  // εμφανίζονται καν τα πεδία του δανείου που τη γεννούν.
+  const canInvest = pro && hasFeature({ plan }, 'investment_analysis');
 
   // ── ΔΥΟ ΔΙΑΚΟΠΤΕΣ ΠΟΥ ΞΑΝΑΡΩΤΟΥΣΑΝ Ο,ΤΙ Η ΕΦΑΡΜΟΓΗ ΗΔΗ ΞΕΡΕΙ ─────────────
   // Η νομική μορφή δηλώνεται ΜΙΑ φορά, στην εγγραφή, και ζει στο
@@ -874,7 +887,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
       : [['Το ακίνητό σου', rPct(y.grossYield)], [reg?.label || 'Περιοχή', rPct(reg?.grossYield || 0)], ['Μέσος όρος Αθήνας', rPct(ATHENS_AVG_GROSS_YIELD)], ['Εθνικός μέσος όρος', rPct(GREECE_AVG_GROSS_YIELD)]];
 
     // Χρηματοδότηση & μόχλευση (μόνο επαγγελματικό προφίλ).
-    const finBlock = pro ? reportSection('Χρηματοδότηση και μόχλευση') + `<table><tbody>
+    const finBlock = canInvest ? reportSection('Χρηματοδότηση και μόχλευση') + `<table><tbody>
         ${R('Ίδια κεφάλαια', rEur(deal.equity))}
         ${R('Δάνειο', rEur(deal.loan))}
         ${R('Ετήσια δόση δανείου', rEur(deal.annualDebtService))}
@@ -888,7 +901,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
       </tbody></table>` : '';
 
     // Ανάλυση ευαισθησίας (επαγγελματικό προφίλ).
-    const sensBlock = pro ? reportSection('Ανάλυση ευαισθησίας') + `<table>
+    const sensBlock = canInvest ? reportSection('Ανάλυση ευαισθησίας') + `<table>
         <thead><tr><th>Σενάριο</th><th class="n">Συνολική απόδοση</th><th class="n">Απόδοση ιδίων</th><th class="n">Ταμειακή ροή</th></tr></thead>
         <tbody>${scenarios.map(sc => `<tr><td>${rEsc(sc.label)} <span class="muted" style="font-size:10px">${rEsc(sc.note)}</span></td><td class="n">${rEsc(rPct(sc.totalReturn))}</td><td class="n">${rEsc(rPct(sc.roe))}</td><td class="n">${rEsc(rEur(sc.cashFlow))}</td></tr>`).join('')}</tbody>
       </table>` : '';
@@ -908,7 +921,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
       `Είσπραξη ενοικίων μέσω τραπέζης: ${rentsBank ? 'ναι, ισχύει η τεκμαρτή έκπτωση 5%' : 'όχι, φόρος στο 100% του ενοικίου'}`,
       ...(consolidated ? [`Φόρος: μερίδιο από τον προοδευτικό φόρο ${portfolioTax.count} ακινήτων (σύνολο ενοικίων ${rEur(portfolioTax.totalAnnualRent)}, συνολικός φόρος ${rEur(portfolioTax.totalTax)})`] : []),
       `Λειτουργικά έξοδα: ${rPct(opexPctOfRent)} των εσόδων (${rEur(effOpex)})`,
-      ...(pro ? [`Χρηματοδότηση: δάνειο ${rPct(parseFloat(ltv) || 0)} της αξίας, επιτόκιο ${rPct(parseFloat(loanRate) || 0)}, διάρκεια ${nLoanYears} έτη, ορίζοντας κατοχής ${parseInt(holdYears)} έτη, κόστη πώλησης ${rPct(nSellCosts)} (πλευρά πωλητή)`] : []),
+      ...(canInvest ? [`Χρηματοδότηση: δάνειο ${rPct(parseFloat(ltv) || 0)} της αξίας, επιτόκιο ${rPct(parseFloat(loanRate) || 0)}, διάρκεια ${nLoanYears} έτη, ορίζοντας κατοχής ${parseInt(holdYears)} έτη, κόστη πώλησης ${rPct(nSellCosts)} (πλευρά πωλητή)`] : []),
       `Δεδομένα αναφοράς αγοράς: ${MARKET_DATA_ASOF}`,
     ].map(t => `<li>${rEsc(t)}</li>`).join('');
 
@@ -982,7 +995,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         `Είσπραξη ενοικίων μέσω τραπέζης: ${rentsBank ? 'ναι, ισχύει η τεκμαρτή έκπτωση 5%' : 'όχι, φόρος στο 100% του ενοικίου'}`,
         ...(consolidated ? [`Φόρος: μερίδιο από τον προοδευτικό φόρο ${portfolioTax.count} ακινήτων (σύνολο ενοικίων ${pEur(portfolioTax.totalAnnualRent)}, συνολικός φόρος ${pEur(portfolioTax.totalTax)})`] : []),
         `Λειτουργικά έξοδα: ${pPct(opexPctOfRent)} των εσόδων (${pEur(effOpex)})`,
-        ...(pro ? [`Χρηματοδότηση: δάνειο ${pPct(parseFloat(ltv) || 0)} της αξίας, επιτόκιο ${pPct(parseFloat(loanRate) || 0)}, διάρκεια ${nLoanYears} έτη, ορίζοντας κατοχής ${parseInt(holdYears)} έτη, κόστη πώλησης ${pPct(nSellCosts)} (πλευρά πωλητή)`] : []),
+        ...(canInvest ? [`Χρηματοδότηση: δάνειο ${pPct(parseFloat(ltv) || 0)} της αξίας, επιτόκιο ${pPct(parseFloat(loanRate) || 0)}, διάρκεια ${nLoanYears} έτη, ορίζοντας κατοχής ${parseInt(holdYears)} έτη, κόστη πώλησης ${pPct(nSellCosts)} (πλευρά πωλητή)`] : []),
         `Δεδομένα αναφοράς αγοράς: ${MARKET_DATA_ASOF}`,
       ];
 
@@ -1014,7 +1027,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         { type: 'rows', title: 'Σύγκριση με την αγορά', rows: regionRows },
       ];
 
-      if (pro) {
+      if (canInvest) {
         sections.push({ type: 'rows', title: 'Χρηματοδότηση και μόχλευση', rows: [
           { label: 'Ίδια κεφάλαια', value: pEur(deal.equity) },
           { label: 'Δάνειο', value: pEur(deal.loan) },
@@ -1192,7 +1205,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           <KPI label="Απόδοση μετά τον φόρο" value={fp(y.netYieldAfterTax)}
             sub={consolidated ? `μερίδιο φόρου ${fe(annualTax)} τον χρόνο` : `φόρος ${fe(annualTax)} τον χρόνο`}
             accent info={consolidated ? `${G.after_tax_yield} ${CONSOLIDATION_NOTE}` : G.after_tax_yield} />
-          {pro
+          {canInvest
             ? <KPI label="Απόδοση ιδίων κεφαλαίων" value={fp(lev.cashOnCash)} sub={lev.cashOnCash >= 0 ? 'θετική μόχλευση' : (lev.positiveCarry ? 'θετική μόχλευση, αρνητική ροή' : 'αρνητική μόχλευση')} info={G.cash_on_cash} />
             : term === 'short'
               ? <KPI label="Τυπική βραχυχρόνια απόδοση" value={fp(stRef.grossYield)} sub={reg?.region || 'Ελλάδα'} info={G.region_short_ref} />
@@ -1319,8 +1332,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           </p>
         </Section>
 
-        {/* 4) Εργαλεία & μοχλοί — μόνο επαγγελματίας */}
-        {pro && (
+        {/* 4) Εργαλεία & μοχλοί — πακέτο «Επαγγελματίας», σε επιχειρηματικό καθεστώς */}
+        {canInvest && (
           <Section icon={<Percent size={15} />} title="Εργαλεία απόδοσης" sub="Ανατοκισμός επανεπένδυσης και μόχλευση ιδίων κεφαλαίων">
             {/* ΔΥΟ ΚΑΡΤΕΣ, ΙΔΙΑ ΓΕΩΜΕΤΡΙΑ, ΙΔΙΟ ΥΨΟΣ.
                 Η αριστερή είχε τα πεδία της σε flex με χειρόγραφο πλάτος 150 και
@@ -1389,8 +1402,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           </Section>
         )}
 
-        {/* Επενδυτική ανάλυση IRR/NPV/DSCR — μόνο επαγγελματίας */}
-        {pro && (
+        {/* Επενδυτική ανάλυση IRR/NPV/DSCR — πακέτο «Επαγγελματίας» */}
+        {canInvest && (
           <Section icon={<Percent size={15} />} title="Επενδυτική ανάλυση" sub="IRR / NPV / DSCR: αγορά, κατοχή και πώληση στον ορίζοντα">
             {/* ΤΕΣΣΕΡΑ ΧΕΙΡΙΣΤΗΡΙΑ ΜΕ ΤΡΙΑ ΧΕΙΡΟΓΡΑΦΑ ΠΛΑΤΗ (128, 158, 148) ΚΑΙ
                 ΕΝΑ ΧΩΡΙΣ. Η ετικέτα «Επιτόκιο προεξόφλησης» δεν χωρούσε στα 158
@@ -1441,8 +1454,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           </Section>
         )}
 
-        {/* Ανάλυση ευαισθησίας & αντοχή — μόνο επαγγελματίας */}
-        {pro && (
+        {/* Ανάλυση ευαισθησίας & αντοχή — πακέτο «Επαγγελματίας» */}
+        {canInvest && (
           <Section icon={<TrendingUp size={15} />} title="Ανάλυση ευαισθησίας" sub="Πώς αντέχει η επένδυση σε μεταβολές επιτοκίου και ανατίμησης" info={G.sensitivity}>
             <div style={{ overflowX: 'auto' }}>
               <div className="po-fig-card" tabIndex={0} style={{ minWidth: 460, display: 'flex', flexDirection: 'column', gap: 2 }}>

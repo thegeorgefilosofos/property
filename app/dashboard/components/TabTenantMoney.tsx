@@ -52,6 +52,8 @@ import { reportHead, reportHeader, reportSection, reportRow, reportDisclaimer, o
 import { whatsappLink, viberLink } from '@/lib/clients/messages';
 import { SYSTEM_PROMPT } from './DocumentScan';
 import { classifyDocType, type ScannedDoc } from '@/lib/billing/documents';
+import { hasFeature } from '@/lib/billing/entitlements';
+import type { PlanId } from '@/lib/billing/plans';
 import {
   daysUntil,
 } from '@/lib/core/time';
@@ -341,9 +343,20 @@ export function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string
 
 // ─── Communication View ────────────────────────────────────────────────────────
 
-export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }:{
-  tenant:Tenant; propertyId:string; userId:string; payments:RentPayment[]; onRefresh:()=>void;
+export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, plan='free' }:{
+  tenant:Tenant; propertyId:string; userId:string; payments:RentPayment[]; onRefresh:()=>void; plan?:PlanId;
 }) {
+  // ── Η ΕΙΣΠΡΑΞΗ ΕΙΝΑΙ ΧΡΕΩΣΙΜΗ. ΔΕΝ ΗΤΑΝ ΠΟΥΘΕΝΑ ΚΛΕΙΔΩΜΕΝΗ. ────────────
+  // Το `rent_collection` ξεκλειδώνει από το «Ένα ακίνητο» και πάνω, και είναι
+  // ρητά «αιτήματα είσπραξης ΚΑΙ υπενθυμίσεις οφειλών». Η διατύπωση ορίζει και
+  // το όριο: η ΑΠΟΔΕΙΞΗ σε πληρωμένο μίσθωμα δεν είναι είσπραξη, είναι
+  // ευγένεια προς τον μισθωτή που πλήρωσε — μένει ανοιχτή σε όλους.
+  //
+  // Οι κλειδωμένες ενέργειες εδώ ΚΡΥΒΟΝΤΑΙ αντί να δείχνουν λουκέτο: το κελί
+  // «Ενέργειες» κρατά ήδη ώς επτά κουμπιά, και ένα λουκέτο ανάμεσά τους δεν
+  // διαβάζεται ως πρόσκληση, διαβάζεται ως θόρυβος. Η πρόσκληση ζει στη
+  // σύγκριση πακέτων, όπου υπάρχει χώρος να ειπωθεί ολόκληρη.
+  const canCollect = hasFeature({ plan }, 'rent_collection');
   const supabase=createClient();
   const branding=useReportBranding(userId);
   const [rentDueDay,setRentDueDay]=useState(Math.min(Math.max(1,tenant.rent_due_day||1),28));
@@ -756,11 +769,11 @@ export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh }
                       {!p.paid
                         ?<button style={s.btnSm} onClick={()=>setMark({p,method:'Τραπεζική κατάθεση',receipt:''})}>Πληρωμένο</button>
                         :<button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} onClick={()=>doUnpay(p)}>Αναίρεση</button>}
-                      {!p.paid&&<button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} onClick={()=>{setCopied(false);setReq(p);}}>Αίτημα πληρωμής</button>}
+                      {!p.paid&&canCollect&&<button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} onClick={()=>{setCopied(false);setReq(p);}}>Αίτημα πληρωμής</button>}
                       <button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} onClick={()=>printStatement(p)}>Κατάσταση</button>
                       {p.paid&&<button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} onClick={()=>printReceipt(p)}>Απόδειξη</button>}
-                      {tenant.phone&&<a href={p.paid?whatsappLink(msgDigits(tenant.phone),receiptText(p)):whatsappLink(msgDigits(tenant.phone),reminderText(p))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>WhatsApp</a>}
-                      {tenant.phone&&<a href={viberLink(p.paid?receiptText(p):reminderText(p))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>Viber</a>}
+                      {tenant.phone&&(p.paid||canCollect)&&<a href={p.paid?whatsappLink(msgDigits(tenant.phone),receiptText(p)):whatsappLink(msgDigits(tenant.phone),reminderText(p))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>WhatsApp</a>}
+                      {tenant.phone&&(p.paid||canCollect)&&<a href={viberLink(p.paid?receiptText(p):reminderText(p))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>Viber</a>}
                       <button style={s.btnDng} onClick={async()=>{if(!(await confirmDialog('Διαγραφή πληρωμής;',{tone:'negative'})))return;if(await saved('Η πληρωμή δεν διαγράφηκε',rentStore.remove(supabase,p.id)))onRefresh();}}>Διαγραφή</button>
                     </div>
                   </td>

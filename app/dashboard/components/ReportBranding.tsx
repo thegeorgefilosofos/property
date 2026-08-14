@@ -2,11 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-// Το προφίλ χρέωσης έχει ένα σπίτι: lib/data/billing.
-import * as billing from '@/lib/data/billing';
 import { T, Btn, InfoBanner, Spinner, Card, SecHdr, formGrid } from '@/components/Theme';
 import { TextInput, Toggle } from './UIComponents';
-import { normalizePlan, PLANS } from '@/lib/billing/plans';
+import { PLANS, type PlanId } from '@/lib/billing/plans';
 import { planAtLeast, FEATURE_MIN_PLAN } from '@/lib/billing/entitlements';
 import { sanitizeAccent, sanitizeLogo, DEFAULT_ACCENT } from '@/lib/reportBranding';
 import { INK, INK_MUTED, PAPER } from '@/lib/print/ink';
@@ -14,10 +12,9 @@ import { failed } from '@/lib/core/dbError';
 
 const MAX_LOGO_BYTES = 500_000;
 
-export default function ReportBranding({ userId, onUpgrade }: { userId: string; onUpgrade: () => void }) {
+export default function ReportBranding({ userId, plan, onUpgrade }: { userId: string; plan: PlanId; onUpgrade: () => void }) {
   const supabase = createClient();
   const [loading, setLoading] = useState(true);
-  const [plan, setPlan] = useState('free');
   const [enabled, setEnabled] = useState(true);
   const [companyName, setCompanyName] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
@@ -31,11 +28,13 @@ export default function ReportBranding({ userId, onUpgrade }: { userId: string; 
 
   useEffect(() => {
     (async () => {
-      const [bp, { data: rb }] = await Promise.all([
-        billing.profile<{ plan: string | null }>(supabase, userId, 'plan'),
-        supabase.from('report_branding').select('*').eq('user_id', userId).maybeSingle(),
-      ]);
-      setPlan(bp?.plan || 'free');
+      // ΤΟ ΠΑΚΕΤΟ ΔΙΑΒΑΖΟΤΑΝ ΞΑΝΑ, ΚΑΙ ΑΛΛΙΩΣ. Η οθόνη ρωτούσε μόνη της το
+      // `billing_profiles.plan` — το ΒΑΣΙΚΟ πακέτο, χωρίς τη δοκιμή, χωρίς τους
+      // δωρεάν μήνες της πρόσκλησης, χωρίς την ιδιότητα του συνεργάτη. Δηλαδή
+      // ο δοκιμαστής, ο προσκεκλημένος και ο συνεργάτης έβλεπαν κλειδωμένη μια
+      // δυνατότητα που είχαν, ενώ κάθε άλλη οθόνη τους την έδινε. Το ενεργό
+      // πακέτο υπολογίζεται ΜΙΑ φορά, στη σελίδα, και κατεβαίνει ως ιδιότητα.
+      const { data: rb } = await supabase.from('report_branding').select('*').eq('user_id', userId).maybeSingle();
       if (rb) {
         setEnabled(rb.enabled !== false);
         setCompanyName((rb.company_name as string) || '');
@@ -96,7 +95,7 @@ export default function ReportBranding({ userId, onUpgrade }: { userId: string; 
   // εργαλείο για κλίμακα: η ερώτηση είναι «φτάνει το επίπεδό του;», και την
   // απαντά το planAtLeast, όπως σε κάθε άλλο κλείδωμα της εφαρμογής.
   const minPlan = FEATURE_MIN_PLAN.report_branding;
-  if (!planAtLeast(normalizePlan(plan), minPlan)) {
+  if (!planAtLeast(plan, minPlan)) {
     return (
       <Card>
         <SecHdr label="Επωνυμία στις αναφορές" />

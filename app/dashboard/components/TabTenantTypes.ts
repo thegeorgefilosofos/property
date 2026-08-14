@@ -84,7 +84,9 @@ export const lastDayNextMonth = (iso:string) => {
   return last.toLocaleDateString('el-GR', { day:'2-digit', month:'long', year:'numeric' });
 };
 export interface CommLog { id:string; tenant_id:string; type:'call'|'email'|'sms'|'meeting'|'note'; summary:string; date:string; outcome:string|null; }
-export interface TabTenantProps { propertyId:string; userId:string; onStartHandover?:(tenantName:string,tenantPhone:string,type:'check_in'|'check_out')=>void; }
+import type { PlanId } from '@/lib/billing/plans';
+
+export interface TabTenantProps { propertyId:string; userId:string; onStartHandover?:(tenantName:string,tenantPhone:string,type:'check_in'|'check_out')=>void; plan?:PlanId; }
 
 
 // ─── Τύπος επίπλωσης ───────────────────────────────────────────────────────────

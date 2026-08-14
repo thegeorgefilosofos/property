@@ -663,7 +663,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
 
       {/* Επωνυμία αναφορών (Επαγγελματίας): δική της ενότητα, χωρίς Card-in-Card. */}
       {profileType === 'professional' && (
-        <ReportBranding userId={userId} onUpgrade={openComparison} />
+        <ReportBranding userId={userId} plan={effPlan} onUpgrade={openComparison} />
       )}
 
       {/* Ενοποιημένη «Διαχείριση συνδρομής»: πρώτα η σύγκριση πλάνων (τι κερδίζεις),

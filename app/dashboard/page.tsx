@@ -2011,7 +2011,7 @@ export default function Dashboard() {
                   ήδη ο τίτλος της καρτέλας με καλύτερα λόγια. Η επικεφαλίδα ζει
                   μέσα στο component, όπως σε κάθε άλλη καρτέλα. */}
               {navSafe==='plan'      && <TabPlan propertyId={selected.id} userId={user.id} status={readStatus(selected)} property={selected}/>}
-              {navSafe==='tenant'    && <TabTenant key={selected.id} propertyId={selected.id} userId={user.id} onStartHandover={(tenantName,tenantPhone,type)=>{ setHandoverIntent({tenantName,tenantPhone,type}); setNav('inventory'); }}/>}
+              {navSafe==='tenant'    && <TabTenant key={selected.id} propertyId={selected.id} userId={user.id} plan={effPlan} onStartHandover={(tenantName,tenantPhone,type)=>{ setHandoverIntent({tenantName,tenantPhone,type}); setNav('inventory'); }}/>}
               {/* ═══ ΑΠΟΔΟΣΗ — ΜΙΑ ΚΑΡΤΕΛΑ ΓΙΑ ΜΙΑ ΕΡΩΤΗΣΗ ═══════════════════════
                   Τρεις καρτέλες απαντούσαν στο ίδιο πράγμα από τρεις μεριές:
                   «Αποδόσεις» (πόσο αποδίδει ΑΥΤΟ), «Σύγκριση» (πόσο αποδίδει σε
@@ -2022,7 +2022,7 @@ export default function Dashboard() {
                   η Σύγκριση μόνο με δεύτερο ακίνητο. Καμία υποκαρτέλα. */}
               {navSafe==='roi' && (
                 <>
-                  <TabRentROI key={selected.id} propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} profileType={effProfileType} legalForm={taxForm}/>
+                  <TabRentROI key={selected.id} propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} profileType={effProfileType} legalForm={taxForm} plan={effPlan}/>
                   {/* ═══ ΤΟ «ΣΧΕΔΙΟ» ΗΤΑΝ ΕΔΩ, ΚΑΙ ΔΕΝ ΤΟ ΕΒΛΕΠΕ ΚΑΝΕΙΣ ═══════════
                       Αποδιδόταν μέσα στην Απόδοση, με συνθήκη τις τέσσερις
                       καταστάσεις κενό / προς πώληση / ανακαίνιση / αμφισβητούμενο.

@@ -8,6 +8,7 @@
 // ουσιαστική επιβολή του ορίου γίνεται και server-side· εδώ είναι το UX.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import type { ReactNode } from 'react';
 import { T, Card, Btn, feAuto } from '@/components/Theme';
 import { PLANS, annualPerMonth, type PlanId } from '@/lib/billing/plans';
 
@@ -32,6 +33,37 @@ export function LockBadge() {
         <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
       </svg>
     </span>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ΜΙΑ ΚΛΕΙΔΩΜΕΝΗ ΕΝΕΡΓΕΙΑ ΦΑΙΝΕΤΑΙ. ΔΕΝ ΕΞΑΦΑΝΙΖΕΤΑΙ.
+// ─────────────────────────────────────────────────────────────────────────
+// Ολόκληρη καρτέλα που δεν καλύπτει το πακέτο δείχνει το `FeatureLock`. Ένα
+// μεμονωμένο κουμπί όμως δεν χωράει κάρτα, και μέχρι τώρα κάθε οθόνη το έλυνε
+// αλλιώς: άλλες το έκρυβαν με `&&`, άλλες δεν το φύλαγαν καθόλου. Και τα δύο
+// είναι λάθος προς αντίθετες κατευθύνσεις — το κρυφό κουμπί δεν πουλά ποτέ
+// αυτό που φυλάει, και το αφύλαχτο το χαρίζει.
+//
+// Το λουκέτο είναι το ίδιο σχήμα με το `LockBadge` της πλοήγησης, ώστε ο
+// χρήστης να μαθαίνει ΕΝΑ σύμβολο: εδώ υπάρχει κάτι, το ανοίγει το πακέτο.
+// ═══════════════════════════════════════════════════════════════════════════
+export function FeatureBtn({ locked, onUpgrade, onClick, children, variant = 'secondary', disabled }: {
+  locked: boolean;
+  onUpgrade: () => void;
+  onClick?: () => void;
+  children: ReactNode;
+  variant?: 'primary' | 'secondary' | 'ghost';
+  disabled?: boolean;
+}) {
+  if (!locked) return <Btn variant={variant} onClick={onClick} disabled={disabled}>{children}</Btn>;
+  return (
+    <Btn variant="secondary" onClick={onUpgrade}>
+      <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }} aria-hidden="true">
+        <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+      </svg>
+      {children}
+    </Btn>
   );
 }
 

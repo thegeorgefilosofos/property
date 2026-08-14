@@ -31,6 +31,9 @@ import { T, TT, EmptyState, Btn, fe } from '@/components/Theme';
 import { loadE2Rows, runE2Export } from './e2Export';
 import { notify, notifyError } from '@/components/Toast';
 import { reconcileE2, type DeclaredRow, type OurEvidence, type Line } from '@/lib/billing/e2Reconcile';
+import { hasFeature } from '@/lib/billing/entitlements';
+import type { PlanId } from '@/lib/billing/plans';
+import { FeatureBtn } from './FeatureLock';
 import type { E2Row } from '@/lib/billing/e2';
 
 // Χρώμα ΜΟΝΟ όπου υπάρχει κάτι να γίνει. Η συμφωνία δεν είναι επίτευγμα που
@@ -46,7 +49,13 @@ function toneOf(l: Line): { color: string; label: string } {
     : { color: 'var(--text-secondary)', label: 'Διαφορά που εξηγείται' };
 }
 
-export default function E2ReconcileCard({ userId, year }: { userId: string; year: number }) {
+export default function E2ReconcileCard({ userId, year, plan = 'free', onUpgrade }: {
+  userId: string; year: number; plan?: PlanId; onUpgrade?: () => void;
+}) {
+  // Η εξαγωγή ξεκλειδώνει από το «Ένα ακίνητο» και πάνω. Ο έλεγχος του
+  // προσυμπληρωμένου — η ίδια η κάρτα — μένει ανοιχτός σε όλους: είναι ο λόγος
+  // που ο δοκιμαστής καταλαβαίνει τι αγοράζει.
+  const canExport = hasFeature({ plan }, 'e2_export');
   const supabase = useMemo(() => createClient(), []);
   const [rows, setRows] = useState<E2Row[]>([]);
   const [evidence, setEvidence] = useState<OurEvidence[]>([]);
@@ -55,13 +64,13 @@ export default function E2ReconcileCard({ userId, year }: { userId: string; year
   const [declared, setDeclared] = useState<Record<string, string>>({});
   const [exporting, setExporting] = useState(false);
 
-  // ── ΤΟ ΑΡΧΕΙΟ ΠΟΥ ΠΟΥΛΙΕΤΑΙ ΚΑΙ ΔΕΝ ΠΑΡΑΓΟΤΑΝ ────────────────────────────
-  // Η «Εξαγωγή Ε2» είναι χρεώσιμο χαρακτηριστικό: ξεκλειδώνει από το πρόγραμμα
-  // «Ένα ακίνητο» και προς τα πάνω, δηλώνεται στα entitlements και ελέγχεται
-  // από δύο σουίτες δοκιμών. Η συνάρτηση που φτιάχνει το βιβλίο υπήρχε, δούλευε,
-  // και ΔΕΝ ΤΗΝ ΚΑΛΟΥΣΕ ΚΑΝΕΙΣ — ούτε ένα κουμπί σε ολόκληρη την εφαρμογή.
-  // Ο συνδρομητής πλήρωνε για έντυπο που δεν μπορούσε να κατεβάσει.
+  // ── ΤΟ ΑΡΧΕΙΟ ΠΟΥ ΠΟΥΛΙΕΤΑΙ ────────────────────────────────────────────
+  // Η συνάρτηση που φτιάχνει το βιβλίο υπήρχε και δούλευε χωρίς να την καλεί
+  // κανένα κουμπί· ο συνδρομητής πλήρωνε για έντυπο που δεν κατέβαινε. Όταν
+  // μπήκε το κουμπί, μπήκε χωρίς κλειδαριά: το ίδιο έντυπο το έπαιρνε και ο
+  // δωρεάν λογαριασμός. Τώρα το κουμπί υπάρχει ΚΑΙ φυλάγεται.
   const exportE2 = async () => {
+    if (!canExport) return;
     setExporting(true);
     try {
       const n = await runE2Export(supabase, userId, year);
@@ -141,9 +150,9 @@ export default function E2ReconcileCard({ userId, year }: { userId: string; year
       <div style={{ marginBottom: 14 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
           <p style={{ ...TT.h2 }}>Έλεγχος του προσυμπληρωμένου Ε2 · {year}</p>
-          <Btn variant="secondary" onClick={exportE2} disabled={exporting}>
+          <FeatureBtn locked={!canExport} onUpgrade={() => onUpgrade?.()} onClick={exportE2} disabled={exporting}>
             {exporting ? 'Σε εξέλιξη…' : 'Λήψη Ε2 σε Excel'}
-          </Btn>
+          </FeatureBtn>
         </div>
         <p style={{ ...TT.bodySm, marginTop: 4 }}>
           Η ΑΑΔΕ στέλνει το Ε2 προσυμπληρωμένο και συχνά λανθασμένο. Γράψε το ακαθάριστο

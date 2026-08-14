@@ -44,7 +44,7 @@ import { annuityMonthly, interestForYear } from '@/lib/loans/recommend'
 import { isGroupDeductible } from '@/lib/expenses/groups'
 import { RENTAL_TAX_ROWS_2026, BUSINESS_INCOME_ROWS_2026, BUILDING_DEPRECIATION_RATE, EQUIPMENT_DEPRECIATION_RATE, BUILDING_VALUE_FRACTION, SELF_EMPLOYED_MIN_NET_INCOME_2026 , rentalBracketsForYear, bracketsLabelForYear } from '@/lib/billing/greekTax'
 import { useReportBranding } from '@/lib/reportBranding'
-import { hasFeature } from '@/lib/billing/entitlements'
+import { hasFeature, planAtLeast } from '@/lib/billing/entitlements'
 import type { VatDeduction } from '@/lib/tax/myData'
 import type { PlanId } from '@/lib/billing/plans'
 import { exportAccountantBundle, toMovement } from './accountantExport'
@@ -252,7 +252,19 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // Τα ίδιο ερώτημα για τα τρία εργαλεία χαρτοφυλακίου του μενού: τα δίνει η
   // ΣΥΝΔΡΟΜΗ (όλα «Επαγγελματίας»), όχι ο διακόπτης εμφάνισης. Ίδιος λόγος με
   // το ημερολόγιο άρθρων — και ίδιος χρήστης που τα έχανε.
-  const proTools = hasFeature({ plan }, 'bank_import')
+  //
+  // ΚΑΘΕΝΑ ΡΩΤΑΕΙ ΓΙΑ ΤΟΝ ΕΑΥΤΟ ΤΟΥ. Και τα τρία κρέμονταν από ένα κλειδί, το
+  // `bank_import`. Σήμερα δεν φαίνεται γιατί όλα ξεκλειδώνουν στο ίδιο σκαλί —
+  // την ημέρα όμως που η εισαγωγή κινήσεων κατέβει ένα πακέτο, θα κατέβαινε
+  // μαζί της και η σύνθεση αναφοράς, χωρίς να το ζητήσει κανείς.
+  const canBankImport = hasFeature({ plan }, 'bank_import')
+  // Η σύνθεση αναφοράς κατεβάζει τη σύγκριση ΟΛΟΚΛΗΡΟΥ του χαρτοφυλακίου: είναι
+  // η ίδια δυνατότητα με την καρτέλα «Χαρτοφυλάκιο», από άλλη πόρτα.
+  const canPortfolioReport = hasFeature({ plan }, 'portfolio')
+  // Η κατανομή σε συνιδιοκτήτες δεν πωλείται χωριστά και δεν έχει δική της
+  // εγγραφή στο μητρώο δυνατοτήτων. Έρχεται ολόκληρη με το «Επαγγελματίας», και
+  // το γράφουμε έτσι αντί να τη δανειστούμε από ξένο κλειδί.
+  const canOwnerSplit = planAtLeast(plan, 'agency')
   // Τα προχωρημένα εργαλεία ξεκινούν κλειστά για ΟΛΟΥΣ. Ο επαγγελματίας τα
   // βρίσκει με ένα κλικ· ο ιδιώτης δεν χρειάζεται να τα προσπεράσει κάθε φορά.
   const [advancedOpen,setAdvancedOpen] = useState(false)
@@ -879,9 +891,13 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             { key:'print', label:'Λογιστική αναφορά', description:'Σύνοψη εσόδων, φόρου και καθαρού σε PDF, έτοιμη για τον λογιστή σου', icon:<Printer size={16}/>, onClick:printReport },
             { key:'official', label:'Επίσημη αναφορά', description:'Υπογεγραμμένο PDF με αριθμό εγγράφου και QR επαλήθευσης', icon:<ShieldCheck size={16}/>, onClick:officialReport, busy:genOfficial },
             { key:'adjust', label:'Αναπροσαρμογή ενοικίου', description:'Νόμιμη ειδοποίηση προς τον μισθωτή, με ηλεκτρονική υπογραφή', icon:<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>, onClick:()=>setAdjustOpen(true) },
-            ...(proTools ? [
+            ...(canPortfolioReport ? [
               { key:'builder', label:'Σύνθεση αναφοράς', description:'Προσαρμοσμένη αναφορά για όλο το χαρτοφυλάκιο', icon:<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>, onClick:()=>setReportBuilderOpen(true) },
+            ] : []),
+            ...(canBankImport ? [
               { key:'bank', label:'Εισαγωγή από τράπεζα', description:'Ανέβασε κίνηση λογαριασμού και αντιστοίχισε αυτόματα τις εισπράξεις', icon:<Landmark size={16}/>, onClick:()=>setShowBankImport(true) },
+            ] : []),
+            ...(canOwnerSplit ? [
               { key:'split', label:'Κατανομή σε ιδιοκτήτες', description:'Καθαρό ανά συνιδιοκτήτη, με διαχειριστική αμοιβή', icon:<svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>, onClick:()=>setSplitOpen(true) },
             ] : []),
           ]}/>
@@ -1117,7 +1133,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           πάνω του. Μπαίνουν μαζί, μετά την εικόνα της χρήσης: πρώτα «πόσα
           βγάζω και τι φόρο», μετά «τι λέει το κάθε έντυπο». */}
       <EnfiaPanel propertyId={propertyId} userId={userId} />
-      <E2ReconcileCard userId={userId} year={year} />
+      <E2ReconcileCard userId={userId} year={year} plan={plan} onUpgrade={()=>onNavigate?.('settings')} />
 
       {/* ── ΠΡΟΧΩΡΗΜΕΝΑ ───────────────────────────────────────────────────────
           Ο απλός ιδιοκτήτης θέλει τέσσερα πράγματα: έσοδα, έξοδα, φόρους και τι

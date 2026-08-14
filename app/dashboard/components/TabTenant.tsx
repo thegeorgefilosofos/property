@@ -121,7 +121,7 @@ const labelStyle = { ...TT.label, marginBottom:7 };
 // ─── Main Export ──────────────────────────────────────────────────────────────
 type DossierTab='overview'|'lease'|'condition'|'legal'|'comm'|'docs';
 
-export default function TabTenant({ propertyId, userId, onStartHandover }:TabTenantProps) {
+export default function TabTenant({ propertyId, userId, onStartHandover, plan='free' }:TabTenantProps) {
   const supabase=createClient();
   const branding=useReportBranding(userId);
   // Ψηφιακό μισθωτήριο: σύνταξη, υπογραφή και των δύο μερών, επαληθεύσιμο PDF.
@@ -696,7 +696,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover }:TabTen
             <div style={{ display:'flex', flexDirection:'column' }}>
               <div>
                 <InfoBanner tone="info">Περιμένεις το ενοίκιο κάθε μήνα την <strong>{fn(Math.min(Math.max(1,dc.rent_due_day||1),28))}η</strong> ημέρα. Οι μηνιαίες δόσεις δημιουργούνται αυτόματα από την έναρξη της μίσθωσης.</InfoBanner>
-                <PaymentsView tenant={dc} propertyId={propertyId} userId={userId} payments={dcPayments} onRefresh={fetch_}/>
+                <PaymentsView tenant={dc} propertyId={propertyId} userId={userId} payments={dcPayments} onRefresh={fetch_} plan={plan}/>
               </div>
               <div style={{ borderTop:'1px solid var(--border-subtle)', marginTop:28, paddingTop:28 }}><DepositView tenant={dc} payments={dcPayments} damages={dcDamages} onReturned={fetch_}/></div>
               <div style={{ borderTop:'1px solid var(--border-subtle)', marginTop:28, paddingTop:28 }}><RenewalView tenant={dc} userId={userId} comps={comps} sqm={propSqm}/></div>
