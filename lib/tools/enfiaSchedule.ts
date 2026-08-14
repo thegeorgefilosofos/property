@@ -58,8 +58,15 @@ const cents = (n: number) => Math.round(n * 100) / 100
  *  (85,5 × 100 δίνει 8549,999… και το κόψιμο θα έβγαζε 85,49). */
 const centsDown = (n: number) => Math.floor(n * 100 + 1e-9) / 100
 
-/** Η ημερομηνία σε ελληνική ανάγνωση, με τον μήνα σε γενική. */
-export function grDate(isoDate: string): string {
+/**
+ * Η ημερομηνία ΟΛΟΓΡΑΦΩΣ, με τον μήνα σε γενική: «14 Αυγούστου 2026».
+ *
+ * Λεγόταν `grDate`, όπως και η αριθμητική «14/08/2026» που ζει στο
+ * lib/core/format. Ίδιο όνομα, άλλη έξοδος, σε δύο αρχεία: όποιος έγραφε
+ * `grDate(x)` δεν μπορούσε να ξέρει τι θα δει ο χρήστης χωρίς να ανοίξει το
+ * αρχείο. Το όνομα λέει τώρα τη διαφορά.
+ */
+export function grDateLong(isoDate: string): string {
   const [y, m, d] = isoDate.split('-').map(Number)
   return `${d} ${monthGen(m - 1)} ${y}`
 }
@@ -81,7 +88,7 @@ export function enfiaInstalments(annual: number, year: number): EnfiaInstalment[
     out.push({
       no: i + 1,
       date,
-      label: grDate(date),
+      label: grDateLong(date),
       amount: last ? cents(annual - each * (ENFIA_INSTALMENTS - 1)) : each,
     })
   }

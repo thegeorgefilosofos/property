@@ -45,6 +45,7 @@ import {
   type Requirement, type FiledPaper, type DossierPaper,
 } from '@/lib/accounting/dossier';
 import { downloadFile } from '@/lib/core/download';
+import { grDate } from '@/lib/core/format';
 
 export interface AccountantStatementLine { label: string; amount: number; kind: string; negative?: boolean }
 export interface AccountantMovement {
@@ -138,7 +139,6 @@ export interface DossierNarrative {
  * εφαρμογή — οθόνη και αρχείο δεν επιτρέπεται να τον λένε αλλιώς.
  */
 /** Ημερομηνία όπως τη διαβάζει Έλληνας: 11/03/2026 από 2026-03-11. */
-const grDate = (d: string): string => { const p = d.split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : d; };
 
 const supplyCell = (s: string | null | undefined): string =>
   s === 'domestic' || s === 'intra_eu' || s === 'third_country' ? supplyLabel(s) : '';

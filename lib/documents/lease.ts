@@ -12,6 +12,7 @@
 
 import { declarationDeadline as taxDeclarationDeadline } from '../tax/leaseDeclaration';
 import { fe, fp } from '../core/format';
+import { grDate } from '@/lib/core/format';
 
 export type LeaseUse = 'residence' | 'professional';
 
@@ -104,7 +105,6 @@ export function computeLease(i: LeaseInput): LeaseResult {
   };
 }
 
-const grDate = (iso: string) => { const d = parseIso(iso); return d ? `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}` : iso; };
 // Το συμφωνητικό γράφει τα ποσά όπως η οθόνη — και με αδιάσπαστο κενό, ώστε
 // το «€» να μη μείνει μόνο του σε αλλαγή γραμμής μέσα σε νομικό κείμενο.
 const eur = fe;

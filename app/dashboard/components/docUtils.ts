@@ -6,12 +6,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 // Το Αρχείο έχει ένα σπίτι: lib/data/documents.
 import * as documents from '@/lib/data/documents';
+// Η ελληνική ημερομηνία έχει ένα σπίτι: lib/core/format.
+export { grDate } from '@/lib/core/format';
 
-/** Ημερομηνία σε ελληνική μορφή ΗΗ/ΜΜ/ΕΕΕΕ (ανεκτικό σε άκυρη είσοδο). */
-export const grDate = (iso: string) => {
-  const d = new Date(iso);
-  return isNaN(d.getTime()) ? iso : d.toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-};
 
 /** Σημερινή ημερομηνία σε YYYY-MM-DD (τοπική, όχι UTC — ώστε να μη «γυρίζει» μέρα). */
 export const todayIso = () => {

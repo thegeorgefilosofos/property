@@ -34,6 +34,7 @@ import { KPI, LensBar, labelStyle, cardStyle, panelStyle } from './LoanShared'
 import { athensToday, isoDate } from '@/lib/core/time';
 import { MONTHS_SHORT } from '@/lib/core/months';
 import { failed } from '@/lib/core/dbError';
+import { grDate } from '@/lib/core/format'
 
 // Μορφοποίηση επιτοκίων ως κείμενο: κόμμα δεκαδικό και σωστή παύλα εύρους (–),
 // π.χ. «2.40-4.70» → «2,40–4,70». Καθαρά ελληνικά, χωρίς πρόχειρες παύλες.
@@ -52,7 +53,6 @@ const NO_RATE = 'Χωρίς στοιχεία'
 interface ProgramFact { label: string; value: string; color: string; size: number }
 
 function programFacts(p: ComparisonProgram): ProgramFact[] {
-  const grDate = (d: string) => /^\d{4}-\d{2}-\d{2}$/.test(d) ? d.split('-').reverse().join('/') : d
   const facts: ProgramFact[] = []
   const add = (label: string, value: string, color: string, size: number) => facts.push({ label, value, color, size })
   if (p.maxAmount) add('Μέγιστο ποσό', fmtEur(p.maxAmount), 'var(--text-primary)', 16)

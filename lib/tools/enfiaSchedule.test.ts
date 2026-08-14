@@ -6,7 +6,7 @@
 // Κυριακή. Και τα δύο κλειδώνονται εδώ, με ημερομηνίες υπολογισμένες στο χέρι
 // από ημερολόγιο.
 // ═══════════════════════════════════════════════════════════════════════════
-import { enfiaInstalments, grDate, ENFIA_INSTALMENTS } from './enfiaSchedule'
+import { enfiaInstalments, grDateLong, ENFIA_INSTALMENTS } from './enfiaSchedule'
 import { isNonWorkingDay } from '../calendar/greekHolidays'
 
 let passed = 0, failed = 0
@@ -86,11 +86,11 @@ const eq = (a: number, b: number, tol = 0.005) => Math.abs(a - b) <= tol
 // ── Η ΕΛΛΗΝΙΚΗ ΑΝΑΓΝΩΣΗ ΤΗΣ ΗΜΕΡΟΜΗΝΙΑΣ ───────────────────────────────────
 // Γενική πτώση, όπως τη λέει ο Έλληνας: «31 Μαρτίου», όχι «31 Μάρτιος».
 {
-  ok('γενική πτώση μήνα', grDate('2026-03-31') === '31 Μαρτίου 2026')
-  ok('χωρίς μηδενικό μπροστά στη μέρα', grDate('2026-08-03') === '3 Αυγούστου 2026')
-  ok('Φεβρουάριος επόμενου έτους', grDate('2027-02-26') === '26 Φεβρουαρίου 2027')
+  ok('γενική πτώση μήνα', grDateLong('2026-03-31') === '31 Μαρτίου 2026')
+  ok('χωρίς μηδενικό μπροστά στη μέρα', grDateLong('2026-08-03') === '3 Αυγούστου 2026')
+  ok('Φεβρουάριος επόμενου έτους', grDateLong('2027-02-26') === '26 Φεβρουαρίου 2027')
   ok('η ετικέτα της δόσης ακολουθεί την ημερομηνία της',
-     enfiaInstalments(1200, 2026)[0].label === grDate(enfiaInstalments(1200, 2026)[0].date))
+     enfiaInstalments(1200, 2026)[0].label === grDateLong(enfiaInstalments(1200, 2026)[0].date))
 }
 
 console.log(`tools/enfiaSchedule.test.ts: ${passed} passed, ${failed} failed`)
