@@ -41,11 +41,38 @@ const workflows = readdirSync(CI)
   .map(f => readFileSync(CI + f, 'utf8'))
   .join('\n')
 
+// ΤΟ ΣΦΑΛΜΑ ΔΕΝ ΔΙΟΡΘΩΘΗΚΕ, ΚΑΤΑΡΓΗΘΗΚΕ Η ΑΙΤΙΑ ΤΟΥ.
+//
+// Ο φύλακας γεννήθηκε επειδή τρεις φύλακες ήταν γραμμένοι και κανένα workflow
+// δεν τους καλούσε. Η αιτία ήταν η ασυμμετρία: μία γραμμή για να γράψεις την
+// εντολή, άλλο αρχείο και άλλη στιγμή για να τη συνδέσεις.
+//
+// Το `scripts/run-guards.mjs` έσβησε την ασυμμετρία. Ανακαλύπτει τα
+// `scripts/guard-*.mjs` από το σύστημα αρχείων, οπότε ένας φύλακας τρέχει από
+// τη στιγμή που υπάρχει το αρχείο του. Δεν υπάρχει πια δεύτερη κίνηση να
+// ξεχαστεί.
+//
+// Αυτό που μένει να φυλαχτεί είναι Ο ΙΔΙΟΣ Ο ΕΚΤΕΛΕΣΤΗΣ: αν αυτός βγει από το
+// CI, πέφτουν πενήντα τέσσερις φύλακες μονομιάς και σιωπηλά. Ελέγχεται πρώτος
+// και ονομαστικά, γιατί χωρίς αυτόν ο υπόλοιπος έλεγχος παρακάτω λέει ψέματα.
+const RUNNER = 'scripts/run-guards.mjs'
+if (!workflows.includes(RUNNER)) {
+  console.error(`✗ Το ${RUNNER} δεν καλείται από κανένα workflow.`)
+  console.error('\n  Ολοι οι φύλακες περνούν από αυτόν. Χωρίς αυτόν δεν τρέχει ΚΑΝΕΝΑΣ,')
+  console.error('  και επειδή δεν κοκκινίζει τίποτα, το CI διαβάζεται ως πράσινο.')
+  console.error(`\n  ΔΙΟΡΘΩΣΗ: βήμα «run: node ${RUNNER}» στο ${CI}ci.yml.`)
+  process.exit(1)
+}
+
 const orphans = []
 for (const [name, cmd] of Object.entries(pkg)) {
   if (name in NOT_A_GUARD) continue
   const m = cmd.match(/scripts\/[\w.-]+/)
   if (!m) continue                                    // dev/build/start — όχι φύλακας
+  // Οσα λέγονται `guard-*.mjs` τα βρίσκει μόνος του ο εκτελεστής, που μόλις
+  // επαληθεύτηκε ότι τρέχει. Το να απαιτηθεί και ονομαστική αναφορά σε workflow
+  // θα ζητούσε πίσω ακριβώς τη διπλοεγγραφή που καταργήθηκε.
+  if (/^scripts\/guard-.+\.mjs$/.test(m[0])) continue
   if (workflows.includes(m[0]) || workflows.includes(`npm run ${name}`)) continue
   orphans.push({ name, file: m[0] })
 }
@@ -60,5 +87,6 @@ if (orphans.length) {
   process.exit(1)
 }
 
-const guarded = Object.keys(pkg).filter(n => !(n in NOT_A_GUARD) && /scripts\//.test(pkg[n])).length
-console.log(`✅ Κάλυψη CI: και οι ${guarded} φύλακες τρέχουν σε workflow.`)
+const discovered = readdirSync('scripts/').filter(f => /^guard-.+\.mjs$/.test(f)).length
+const named = Object.keys(pkg).filter(n => !(n in NOT_A_GUARD) && /scripts\//.test(pkg[n]) && !/scripts\/guard-/.test(pkg[n])).length
+console.log(`✅ Κάλυψη CI: ${discovered} φύλακες μέσω του εκτελεστή, ${named} ονομαστικά βήματα.`)

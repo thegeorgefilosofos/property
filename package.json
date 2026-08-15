@@ -39,6 +39,7 @@
     "test-tail": "node scripts/guard-test-tail.mjs",
     "ci-coverage": "node scripts/guard-ci-coverage.mjs",
     "ci-minutes": "node scripts/guard-ci-minutes.mjs",
+    "guards": "node scripts/run-guards.mjs",
     "rendered-zero": "node scripts/guard-rendered-zero.mjs",
     "rls-initplan": "node scripts/guard-rls-initplan.mjs",
     "csp-connect": "node scripts/guard-csp-connect.mjs",
