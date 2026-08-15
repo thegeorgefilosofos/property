@@ -6,7 +6,7 @@ import { downloadTableXlsx, csvDate } from './exportCsv';
 import { saved } from '@/components/dbWrite';
 import { drawQrToCanvas } from '@/lib/qr';
 import { T, TT, Badge, TierBadge, PageTitle, ExportButton, EmptyState, Modal, SkeletonKPIs, fn, fixedCols, pageShell } from '@/components/Theme';
-import { PLANS } from '@/lib/billing/plans';
+import { PLANS, type PlanId } from '@/lib/billing/plans';
 import { UserPlus } from 'lucide-react';
 import {
   referralCode, referralLink, progress,
@@ -133,6 +133,31 @@ type Reward = { kind: string; months: number; tier: string; reason: string; stat
 type Referee = { created_at: string; activated_at: string | null };
 
 // ═══════════════════════════════════════════════════════════════════════════
+// ΤΟ ΟΝΟΜΑ ΤΗΣ ΑΝΤΑΜΟΙΒΗΣ ΓΡΑΦΕΤΑΙ ΜΙΑ ΦΟΡΑ, ΓΙΑ ΤΙΣ ΔΥΟ ΟΨΕΙΣ ΤΗΣ
+// ─────────────────────────────────────────────────────────────────────────
+// Η λίστα «Τα δώρα σου» είχε τα ονόματα μέσα στον βρόχο απόδοσης, και η
+// εξαγωγή δεδομένων δίπλα της έγραφε τον ωμό κωδικό της βάσης με σταθερό
+// πληθυντικό: «1 μήνες · per_referral». Δύο λάθη σε ένα κελί, μέσα στο αρχείο
+// που κατεβάζει ο χρήστης όταν ζητά τα δεδομένα του (Άρθ. 15/20).
+//
+// ΤΟ 'referee_welcome' ΕΙΝΑΙ ΤΟ ΔΩΡΟ ΤΟΥ ΝΕΟΥ ΧΡΗΣΤΗ. Το πρόγραμμα υπόσχεται
+// δύο δώρα σε κάθε σύσταση, ένα σε καθέναν από τους δύο. Χωρίς όνομα εδώ, ο
+// νέος χρήστης θα έβλεπε τον δικό του μήνα ως σκέτο «Μπόνους», δηλαδή δεν θα
+// τον αναγνώριζε ως αυτό που του υποσχέθηκε η πρόσκληση.
+// ═══════════════════════════════════════════════════════════════════════════
+const REWARD_REASON: Record<string, string> = {
+  per_referral: 'Σύσταση φίλου', per_referral_pro: 'Σύσταση Επαγγελματία',
+  indiv_volume: `${INDIV_VOLUME_TARGET} νέοι μέσα στον μήνα`,
+  pro_paid: `${PRO_PAID_TARGET} συνδρομητές μέσα στον μήνα`,
+  referee_welcome: 'Δώρο καλωσορίσματος',
+  milestone: 'Μηνιαίο μπόνους', partner: 'Ιδιότητα συνεργάτη',
+};
+const rewardReason = (reason: string) => REWARD_REASON[reason] || 'Μπόνους';
+const rewardTitle = (r: Reward) => r.kind === 'slot'
+  ? `1 δωρεάν ακίνητο για ${moAcc(r.months)}`
+  : `${moNom(r.months)} ${r.tier === 'agency' ? PLANS.agency.nameGen : PLANS.solo.nameGen} δωρεάν`;
+
+// ═══════════════════════════════════════════════════════════════════════════
 // ΚΑΡΤΑ ΜΗΝΙΑΙΟΥ ΣΤΟΧΟΥ — ΟΡΙΖΕΤΑΙ ΕΞΩ ΑΠΟ ΤΟ COMPONENT
 // ─────────────────────────────────────────────────────────────────────────
 // Ήταν δηλωμένη ΜΕΣΑ στο σώμα του TabReferral. Κάθε render έφτιαχνε ΝΕΑ
@@ -257,7 +282,19 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
   // ΤΟ ΜΗΝΥΜΑ ΠΟΥ ΣΤΕΛΝΕΙ Ο ΧΡΗΣΤΗΣ ΣΕ ΦΙΛΟ ΤΟΥ. Αν ο φίλος ανοίξει το app και
   // δει άλλο πράγμα από αυτό που του υποσχέθηκαν, εκτίθεται ο χρήστης μας — γι'
   // αυτό το κείμενο διαβάζεται από τη μηχανή, όχι από τη διάθεση.
-  const friendGift = `${moAcc(REFEREE_OWNER_MONTHS)} δωρεάν στο πακέτο που θα διαλέξεις`;
+  //
+  // ΕΦΥΓΕ ΤΟ «ΣΤΟ ΠΑΚΕΤΟ ΠΟΥ ΘΑ ΔΙΑΛΕΞΕΙΣ», ΓΙΑ ΔΥΟ ΜΕΤΡΗΜΕΝΟΥΣ ΛΟΓΟΥΣ.
+  // 1) Ο δωρεάν μήνας δεν αποδίδεται στο πακέτο της επιλογής: η
+  //    sync_comp_from_referrals γράφει comp_plan από τον ΤΥΠΟ ΠΡΟΦΙΛ, άρα
+  //    «Ιδιοκτήτης+» στον Ιδιώτη και «Επαγγελματίας» στον Επαγγελματία. Ο
+  //    φίλος που διάλεγε «Επαγγελματίας+» (79,90 €) διάβαζε μήνα σε αυτό και
+  //    έπαιρνε ένα σκαλί πιο κάτω (24,90 €).
+  // 2) Η ίδια φράση μπαίνει και στο τρίτο βήμα, όπου ο υποκείμενος είναι ο
+  //    φίλος: έβγαινε «Εκείνος παίρνει έναν μήνα δωρεάν στο πακέτο που θα
+  //    διαλέξεις», δηλαδή δεύτερο πρόσωπο μέσα σε πρόταση τρίτου προσώπου.
+  // Ποιο πακέτο πιάνει ο μήνας λέγεται στην κάρτα «Ο φίλος σου κερδίζει», που
+  // έχει χώρο να ονομάσει και τα δύο.
+  const friendGift = `${moAcc(REFEREE_OWNER_MONTHS)} συνδρομή δωρεάν`;
   const invite = isPro
     ? `Για το ακίνητό σου, σου προτείνω το Property OS. Κρατάει τα οικονομικά σου σε τάξη και ετοιμάζει σωστά τα στοιχεία για τη φορολογική σου δήλωση, ώστε να μην τρέχεις εσύ. Με τον σύνδεσμό μου κερδίζεις ${friendGift}: ${link}`
     : `Οργανώνω το ακίνητό μου με το Property OS και μου έλυσε τα χέρια: σαρώνω λογαριασμούς, βλέπω φόρους και αποδόσεις, όλα σε ένα. Ρίξε του μια ματιά. Με τον σύνδεσμό μου κερδίζεις ${friendGift}: ${link}`;
@@ -268,7 +305,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
   const exportMyData = () => {
     const rows: (string | number | null)[][] = [];
     list.forEach(rf => rows.push(['Πρόσκληση', csvDate(rf.created_at), rf.activated_at ? 'Ενεργοποιήθηκε' : 'Εκκρεμεί ενεργοποίηση', rf.activated_at ? csvDate(rf.activated_at) : '']));
-    rewards.forEach(r => rows.push(['Ανταμοιβή', csvDate(r.created_at), r.status === 'granted' ? 'Ενεργό' : 'Σε εκκρεμότητα', `${r.months} μήνες · ${r.reason}`]));
+    rewards.forEach(r => rows.push(['Ανταμοιβή', csvDate(r.created_at), r.status === 'granted' ? 'Ενεργό' : 'Σε εκκρεμότητα', `${rewardTitle(r)} · ${rewardReason(r.reason)}`]));
     downloadTableXlsx(`Προσκλήσεις ${code}`, {
       title: 'Προσκλήσεις και ανταμοιβές',
       headers: ['Κατηγορία', 'Ημερομηνία', 'Κατάσταση', 'Λεπτομέρεια'], rows,
@@ -293,7 +330,14 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
     { label: 'Ηλεκτρονικό ταχυδρομείο', href: `mailto:?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(invite)}`, d: 'M2 5h20v14H2z|M2 6l10 7 10-7' },
   ];
 
-  const referrerPaying = plan === 'monthly' || plan === 'annual';
+  // ΤΟ «monthly / annual» ΔΕΝ ΕΙΝΑΙ ΠΑΚΕΤΟ, ΕΙΝΑΙ ΚΥΚΛΟΣ ΧΡΕΩΣΗΣ. Η στήλη
+  // billing_profiles.plan κρατά ΟΝΟΜΑ ΠΑΚΕΤΟΥ ('free', 'solo', 'owner',
+  // 'agency', 'office'), οπότε η σύγκριση με τις δύο αυτές τιμές ήταν πάντα
+  // false: κανένας συστήνων δεν μετρούσε ποτέ ως συνδρομητής. Η βάση είχε ήδη
+  // την ίδια διόρθωση (20260811090000, is_paying_plan) και ένα test τη φυλάει
+  // στο SQL· το αντίγραφο εδώ έμεινε πίσω. Η ίδια πηγή δίνει την απάντηση:
+  // πληρωμένο είναι το πακέτο με τιμή.
+  const referrerPaying = (PLANS[plan as PlanId]?.priceMonthly ?? 0) > 0;
   const steps = isPro
     ? [
         { n: '1', t: 'Στέλνεις τον σύνδεσμο', d: 'Στους πελάτες-ιδιοκτήτες σου, όπου σε βολεύει.', d2: 'M22 2 11 13|M22 2 15 22l-4-9-9-4z' },
@@ -673,16 +717,8 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {rewards.map((r, i) => {
               const granted = r.status === 'granted';
-              const tierLabel = r.tier === 'agency' ? PLANS.agency.nameGen : PLANS.solo.nameGen;
-              const title = r.kind === 'slot'
-                ? `1 δωρεάν ακίνητο για ${moAcc(r.months)}`
-                : `${moNom(r.months)} ${tierLabel} δωρεάν`;
-              const reasonLabel = ({
-                per_referral: 'Σύσταση φίλου', per_referral_pro: 'Σύσταση Επαγγελματία',
-                indiv_volume: `${INDIV_VOLUME_TARGET} νέοι μέσα στον μήνα`,
-                pro_paid: `${PRO_PAID_TARGET} συνδρομητές μέσα στον μήνα`,
-                milestone: 'Μηνιαίο μπόνους', partner: 'Ιδιότητα συνεργάτη',
-              } as Record<string, string>)[r.reason] || 'Μπόνους';
+              const title = rewardTitle(r);
+              const reasonLabel = rewardReason(r.reason);
               return (
                 <div key={i} className="ref-lift" style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px' }}>
                   <div style={{ width: 38, height: 38, borderRadius: T.radius.inner, background: 'var(--accent-dim)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

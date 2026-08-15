@@ -5,7 +5,7 @@
 // τον σύνδεσμο και εμφανίζει τα εισερχόμενα αιτήματα βλάβης (cross-tab).
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Inbox } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import * as expenses from '@/lib/data/expenses';
@@ -16,6 +16,7 @@ import { notify, notifyOk, notifyError } from '@/components/Toast';
 import { athensToday } from '@/lib/core/time';
 import { saved } from '@/components/dbWrite';
 import { failed } from '@/lib/core/dbError';
+import { photosKey, signMaintenancePhotos } from '@/lib/maintenance/photos';
 
 interface Req { id: string; title: string; description: string | null; contact: string | null; status: string; created_at: string; photos?: string[] | null; }
 
@@ -52,6 +53,12 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
   const [loading, setLoading] = useState(true);
   const [linkTenant, setLinkTenant] = useState<string | null>(null);              // σε ποιον ενοικιαστή είναι δεμένος ο σύνδεσμος
   const [tenant, setTenant] = useState<{ id: string; full_name: string | null } | null>(null);  // ποιος μένει τώρα
+  // Το maintenance-photos είναι ΙΔΙΩΤΙΚΟ bucket: το αποθηκευμένο είναι
+  // διαδρομή, όχι διεύθυνση. Η κάρτα την έβαζε ωμή στο <img src> και ο
+  // περιηγητής τη διάβαζε ως σχετικό URL πάνω στο /dashboard: 404 και
+  // σπασμένη εικόνα σε κάθε αίτημα με φωτογραφίες. Ιδια υπογραφή με το
+  // MaintenanceView, από το ίδιο σημείο.
+  const [signedPhotos, setSignedPhotos] = useState<Record<string, string[]>>({});
 
   const load = useCallback(async () => {
     const { data: link } = await supabase.from('portal_links').select('token, payment_link, pin_hash, tenant_id').eq('property_id', propertyId).eq('user_id', userId).maybeSingle();
@@ -93,6 +100,14 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
   };
 
   useEffect(() => { load(); }, [load]);
+
+  const photoSig = useMemo(() => photosKey(reqs), [reqs]);
+  useEffect(() => {
+    let alive = true;
+    signMaintenancePhotos(supabase, reqs).then(map => { if (alive) setSignedPhotos(map); });
+    return () => { alive = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [photoSig]);
 
   const enable = async () => {
     setBusy(true);
@@ -282,11 +297,12 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
                             <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: `var(--${st.tone})`, background: `var(--${st.tone}-soft)`, border: `1px solid var(--${st.tone}-border)`, borderRadius: T.radius.badge, padding: '3px 9px', fontFamily: T.font.sans }}>{st.label}</span>
                           </div>
                           {r.description && <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3, lineHeight: 1.5 }}>{r.description}</div>}
-                          {Array.isArray(r.photos) && r.photos.length > 0 && (
+                          {(signedPhotos[r.id]?.length ?? 0) > 0 && (
                             <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
-                              {r.photos.slice(0, 4).map((ph, pi) => (
-                                <a key={pi} href={ph} target="_blank" rel="noopener noreferrer" style={{ display: 'block', width: 44, height: 44, borderRadius: 6, overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
-                                  <img src={ph} alt="Φωτογραφία βλάβης" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                              {signedPhotos[r.id].slice(0, 4).map((url, pi) => (
+                                <a key={pi} href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'block', width: 44, height: 44, borderRadius: 6, overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img src={url} alt="Φωτογραφία βλάβης" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                                 </a>
                               ))}
                             </div>

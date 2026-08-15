@@ -54,10 +54,23 @@ function findCol(headers: string[], keys: string[]): number {
   return -1
 }
 
-/** Διαβάζει CSV κειμένου και επιστρέφει τις κινήσεις. */
-export function parseBankCsv(text: string): BankTxn[] {
+// ── ΤΟ ΠΟΣΟ ΠΟΥ ΔΕΝ ΔΙΑΒΑΣΤΗΚΕ ΕΡΙΧΝΕ ΤΗ ΓΡΑΜΜΗ ΣΙΩΠΗΛΑ ────────────────────
+// Το `continue` της γραμμής 82 πετούσε κάθε γραμμή χωρίς αναγνωρίσιμο ποσό
+// (κενό κελί, «ΥΠΟΛΟΙΠΟ», μορφή που δεν αναγνωρίζεται) χωρίς κανέναν μετρητή,
+// και η μόνη ανατροφοδότηση της οθόνης ήταν το μήνυμα που βγαίνει όταν δεν
+// διαβάζεται ΚΑΜΙΑ κίνηση. Σε αντίγραφο όπου διαβάστηκαν οι μισές γραμμές, ο
+// χρήστης δεν μάθαινε τίποτα για τις άλλες μισές: η εισαγωγή έμοιαζε πλήρης.
+// Ο μετρητής επιστρέφεται τώρα μαζί με τις κινήσεις, ώστε η οθόνη να μπορεί
+// να πει πόσες γραμμές έμειναν εκτός.
+export interface BankCsvRead {
+  txns: BankTxn[]
+  unreadable: number   // γραμμές δεδομένων που πετάχτηκαν, χωρίς ποσό
+}
+
+/** Διαβάζει CSV κειμένου: τις κινήσεις ΚΑΙ όσες γραμμές δεν διαβάστηκαν. */
+export function readBankCsv(text: string): BankCsvRead {
   const lines = text.split(/\r?\n/).filter(l => l.trim().length)
-  if (lines.length < 2) return []
+  if (lines.length < 2) return { txns: [], unreadable: 0 }
   const delim = detectDelimiter(lines[0])
   const headers = splitCsvLine(lines[0], delim)
   const di = findCol(headers, DATE_KEYS)
@@ -66,9 +79,10 @@ export function parseBankCsv(text: string): BankTxn[] {
   const debit = findCol(headers, DEBIT_KEYS)
   const credit = findCol(headers, CREDIT_KEYS)
   const out: BankTxn[] = []
+  let unreadable = 0
   for (let r = 1; r < lines.length; r++) {
     const cells = splitCsvLine(lines[r], delim)
-    if (!cells.length) continue
+    if (!cells.length) { unreadable++; continue }
     const date = parseDate(di >= 0 ? cells[di] || '' : '')
     const description = desc >= 0 ? (cells[desc] || '') : cells.filter((_, i) => i !== di && i !== ai).join(' ').trim()
     let amount: number | null = null
@@ -79,10 +93,15 @@ export function parseBankCsv(text: string): BankTxn[] {
       if (c != null && c !== 0) amount = Math.abs(c)
       else if (d != null && d !== 0) amount = -Math.abs(d)
     }
-    if (amount == null) continue
+    if (amount == null) { unreadable++; continue }
     out.push({ date, description, amount, raw: lines[r] })
   }
-  return out
+  return { txns: out, unreadable }
+}
+
+/** Μόνο οι κινήσεις, για όποιον δεν μετρά τις γραμμές που έμειναν εκτός. */
+export function parseBankCsv(text: string): BankTxn[] {
+  return readBankCsv(text).txns
 }
 
 // ── Αντιστοίχιση σε αναμενόμενα ενοίκια & έξοδα ──────────────────────────────

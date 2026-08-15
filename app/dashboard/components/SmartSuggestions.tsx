@@ -23,12 +23,15 @@ import { Check, Plus, X, RotateCcw, CircleCheckBig } from 'lucide-react';
 import { isoDate } from '@/lib/core/time';
 import { T, TT, fe, EmptyState } from '@/components/Theme';
 import { saved } from '@/components/dbWrite';
-import { ASSISTANT_INITIAL, suggestionsTitle, suggestionsSub, suggestionsTeaser } from '@/lib/assistant/identity';
+import { ASSISTANT_INITIAL, ASSISTANT_ACC, suggestionsTitle, suggestionsSub, suggestionsTeaser } from '@/lib/assistant/identity';
 
 interface Suggestion {
   title: string;
   category: string;
   amount?: number;
+  /** «YYYY-MM-DD» από τη συνάρτηση. Προαιρετικό: παλιό ανεβασμένο bundle δεν
+   *  το στέλνει καθόλου, οπότε ισχύει η εφεδρική ημερομηνία της addSuggestion. */
+  event_date?: string;
   recurring: boolean;
   recurring_interval?: string;
   priority?: string;
@@ -39,6 +42,47 @@ const catLabels: Record<string, string> = {
   financial: 'Οικονομικά', bills: 'Λογαριασμοί', maintenance: 'Συντήρηση',
   contract: 'Συμβόλαιο', tenant: 'Ενοικιαστής', reminder: 'Υπενθύμιση',
 };
+
+// ΟΙ ΕΞΙ ΣΥΧΝΟΤΗΤΕΣ ΠΟΥ ΞΕΡΕΙ ΤΟ ΗΜΕΡΟΛΟΓΙΟ, ΜΕ ΤΟ ΟΝΟΜΑ ΤΟΥΣ.
+//
+// Η γραμμή της κάρτας τις έγραφε με αλυσίδα δύο ελέγχων: «annual» ετήσιο,
+// «monthly» μηνιαίο, ΚΑΘΕ ΑΛΛΗ ΤΙΜΗ «Τριμηνιαίο». Το σχήμα που ζητά η
+// συνάρτηση προσφέρει τέσσερις τιμές, άρα το «biannual» έπεφτε πάντα στο
+// τελευταίο σκέλος: εξαμηνιαία υποχρέωση διαβαζόταν ως τριμηνιαία, δίπλα στο
+// εικονίδιο επανάληψης, χωρίς τίποτα στην οθόνη να τη διαψεύδει.
+//
+// Οι τιμές είναι ακριβώς οι έξι που επεκτείνει το lib/calendar/recurrence.ts.
+// Ο,τι δεν είναι εδώ δεν παράγει ποτέ δεύτερη εμφάνιση.
+const intervalLabels: Record<string, string> = {
+  weekly: 'Εβδομαδιαίο', monthly: 'Μηνιαίο', bimonthly: 'Διμηνιαίο',
+  quarterly: 'Τριμηνιαίο', biannual: 'Εξαμηνιαίο', annual: 'Ετήσιο',
+};
+
+// Η συχνότητα της πρότασης, μόνο αν το ημερολόγιο ξέρει να την επεκτείνει.
+//
+// Γραφόταν αυτούσια στη στήλη (`s.recurring_interval || null`), δίπλα σε
+// κατηγορία και προτεραιότητα που περνούν από φύλακες. Μια τιμή εκτός των έξι
+// σήμαινε γεγονός σημαιοδοτημένο «επαναλαμβανόμενο» που δεν επαναλαμβανόταν
+// ποτέ: υπόσχεση στην οθόνη χωρίς κανένα γεγονός από πίσω.
+const intervalOf = (s: Suggestion): string | null => {
+  const v = typeof s.recurring_interval === 'string' ? s.recurring_interval.trim() : '';
+  return s.recurring === true && v in intervalLabels ? v : null;
+};
+
+// ΤΟ ΠΟΣΟ ΤΗΣ ΠΡΟΤΑΣΗΣ ΔΕΝ ΕΙΝΑΙ ΜΕΤΡΗΣΗ.
+//
+// Δηλώνεται `number` παραπάνω, αλλά βγαίνει από `JSON.parse` της απάντησης του
+// μοντέλου (supabase/functions/smart-suggestions/index.ts:187, χωρίς κανέναν
+// έλεγχο πεδίου), και το σχήμα που ζητά η συνάρτηση γράφει ρητά «amount: 150»:
+// το μοντέλο ΠΡΕΠΕΙ να συμπληρώσει κάτι, ακόμη κι όταν καμία δαπάνη, κανένας
+// λογαριασμός και κανένα γεγονός του ακινήτου δεν το στηρίζει.
+//
+// Δύο διαφορετικά πράγματα φτάνουν εδώ. Ποσό εκτός τύπου («450 €», Infinity),
+// που το `fe()` το τυπώνει «0,00 €» — ποσό που δεν είπε κανείς, με δύο δεκαδικά
+// και βεβαιότητα. Και ποσό εντός τύπου, που απλώς δεν προκύπτει από πουθενά.
+// Το πρώτο κόβεται εδώ. Το δεύτερο μένει ορατό ως εκτίμηση, με «~» μπροστά.
+const estimate = (v: unknown): number | null =>
+  typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : null;
 
 export default function SmartSuggestions({ userId, propertyId }: { userId: string; propertyId: string }) {
   const supabase = createClient();
@@ -134,16 +178,51 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
     // μεσάνυχτα· το `toISOString()` γυρίζει UTC, που στην Ελλάδα είναι η
     // προηγούμενη μέρα. Δηλαδή η «1η του επόμενου μήνα» γινόταν η ΤΕΛΕΥΤΑΙΑ
     // του τρέχοντος, και η πρόταση έμπαινε στο ημερολόγιο σε λάθος μήνα.
-    const eventDate = isoDate(new Date(today.getFullYear(), today.getMonth() + 1, 1));
+    const fallback = isoDate(new Date(today.getFullYear(), today.getMonth() + 1, 1));
+    // ΟΛΕΣ ΟΙ ΠΡΟΤΑΣΕΙΣ ΕΠΑΙΡΝΑΝ ΤΗΝ ΙΔΙΑ ΜΕΡΑ.
+    //
+    // Η παραπάνω γραμμή ήταν η ΜΟΝΗ διαδρομή, χωρίς καμία διακλάδωση ανά είδος:
+    // δόση ΕΝΦΙΑ, service λέβητα, λήξη μίσθωσης και ασφαλιστήριο γράφονταν όλα
+    // την 1η του επόμενου μήνα. Πέντε προτάσεις, πέντε γεγονότα στην ίδια μέρα,
+    // οι υπόλοιπες 364 άδειες, και καμία από τις πέντε στη σωστή της θέση. Το
+    // σχήμα που ζητούσε η συνάρτηση δεν είχε καν πεδίο ημερομηνίας.
+    //
+    // Τώρα η κάθε πρόταση φέρνει τη δική της. Ελέγχεται και η μορφή και το ότι
+    // η μέρα υπάρχει: το «2027-02-31» περνά το μοτίβο και ρίχνει ολόκληρη την
+    // εγγραφή. Η εφεδρική μένει, γιατί το `event_date` είναι NOT NULL και η
+    // ανάπτυξη γίνεται σε δύο κομμάτια: πελάτης με παλιά ανεβασμένη συνάρτηση
+    // δεν παίρνει πεδίο, και το κουμπί πρέπει να δουλεύει.
+    const wanted = typeof s.event_date === 'string' ? s.event_date.trim() : '';
+    const eventDate = /^\d{4}-\d{2}-\d{2}$/.test(wanted)
+      && isoDate(new Date(`${wanted}T00:00:00`)) === wanted ? wanted : fallback;
+    const interval = intervalOf(s);
+    // ΤΟ ΕΠΙΝΟΗΜΕΝΟ ΠΟΣΟ ΕΠΑΨΕ ΝΑ ΓΡΑΦΕΤΑΙ ΩΣ ΒΕΒΑΙΟ.
+    //
+    // Γραφόταν στο `calendar_events.amount` — την ΙΔΙΑ στήλη με τα ποσά που
+    // πληκτρολογεί ο χρήστης. Από εκεί το διάβαζαν πέντε σημεία του ημερολογίου
+    // (κεφαλίδα μήνα «εκκρεμή», κελί ημέρας, κάρτα γεγονότος, ICS, CSV), όλα με
+    // δύο δεκαδικά και χωρίς «~»: το «~450,00 €» της πρότασης γινόταν 450,00 €
+    // μέσα στο άθροισμα του μήνα. Η λέξη «πρόταση» δεν εμφανιζόταν σε καμία από
+    // αυτές τις οθόνες, και σε έξι μήνες το ξένο ποσό δεν ξεχωρίζει από δικό του.
+    //
+    // Τώρα η στήλη μένει κενή και το ποσό μένει στις σημειώσεις, με την πηγή
+    // του δίπλα. Το κόστος: όποιος θέλει το ποσό στο άθροισμα το γράφει ο ίδιος
+    // από τη φόρμα επεξεργασίας. Αυτό είναι το ζητούμενο, όχι παρενέργεια.
+    const amount = estimate(s.amount);
+    // Ο λόγος έρχεται κι αυτός από το μοντέλο: μπορεί να λείπει ή να τελειώνει
+    // με τελεία, οπότε η σημείωση διάβαζε «…σου.. Ενδεικτικό ποσό».
+    const reason = typeof s.reason === 'string' ? s.reason.trim().replace(/\.+$/, '') : '';
+    const origin = `Πρόταση από ${ASSISTANT_ACC}${reason ? `: ${reason}` : ''}`;
     const ok = await saved('Η πρόταση δεν μπήκε στο ημερολόγιο', calendar.insert(supabase, [calendar.row({ propertyId, userId }, 'manual', {
       // Η ΠΡΟΤΑΣΗ ΕΡΧΕΤΑΙ ΑΠΟ ΤΟ ΔΙΚΤΥΟ, ΟΧΙ ΑΠΟ ΕΜΑΣ. Η κατηγορία και η
       // προτεραιότητα γράφονταν αυτούσιες: ό,τι κι αν επέστρεφε η συνάρτηση
       // κατέληγε στη βάση, και το ημερολόγιο δεν ήξερε τι να το κάνει.
       title: s.title, category: calendar.canonicalCategory(s.category),
-      event_date: eventDate, amount: s.amount || null,
+      event_date: eventDate, amount: null,
       priority: calendar.eventPriority(s.priority),
-      recurring: s.recurring, recurring_interval: s.recurring_interval || null,
-      notes: `Πρόταση: ${s.reason}`,
+      recurring: interval != null, recurring_interval: interval,
+      notes: amount == null ? origin
+        : `${origin}. Ενδεικτικό ποσό ~${fe(amount)}, χωρίς πηγή στα δικά σου στοιχεία. Το γεγονός μένει χωρίς ποσό.`,
     })]));
     setAddingId(null);
     // Η πρόταση φεύγει από τη λίστα ΜΟΝΟ αν μπήκε κάπου αλλού. Αλλιώς χάνεται
@@ -233,6 +312,7 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
           {suggestions.map((s, idx) => {
             if (dismissedIds.has(idx)) return null;
             const label = catLabels[s.category] || s.category;
+            const amt = estimate(s.amount);
             const isAdded = addingId === idx;
             const first = visibleSuggestions[0] === s;
             return (
@@ -243,14 +323,17 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, flexWrap: 'wrap' }}>
                     <span style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>{s.title}</span>
-                    {s.amount != null && <span style={{ fontFamily: T.font.num, fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em', color: 'var(--text-secondary)' }}>~{fe(s.amount)}</span>}
+                    {amt != null && <span style={{ fontFamily: T.font.num, fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em', color: 'var(--text-secondary)' }}>~{fe(amt)}</span>}
                   </div>
                   <p style={{ ...TT.caption, marginTop: 3 }}>{s.reason}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
                     <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)' }}>{label}</span>
                     {s.recurring && (
                       <span style={{ ...TT.caption, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                        <RotateCcw size={10} aria-hidden />{s.recurring_interval === 'annual' ? 'Ετήσιο' : s.recurring_interval === 'monthly' ? 'Μηνιαίο' : 'Τριμηνιαίο'}
+                        {/* Χωρίς αναγνωρίσιμη συχνότητα λέμε μόνο ότι επαναλαμβάνεται.
+                            Το γεγονός γράφεται τότε χωρίς επανάληψη, και η κάρτα δεν
+                            επιτρέπεται να ονομάσει ρυθμό που δεν θα συμβεί. */}
+                        <RotateCcw size={10} aria-hidden />{intervalLabels[s.recurring_interval || ''] || 'Επαναλαμβανόμενο'}
                       </span>
                     )}
                   </div>

@@ -82,10 +82,30 @@ export default function NotificationSettings({ userId }: { userId: string }) {
 
   const { state: saveState, schedule } = useAutosave(persist)
 
+  // ΤΟ ΚΕΝΟ ΠΕΔΙΟ ΓΕΜΙΖΕΙ ΜΕ ΤΗ ΔΙΕΥΘΥΝΣΗ ΤΟΥ ΛΟΓΑΡΙΑΣΜΟΥ, ΚΑΙ ΕΙΝΑΙ ΤΟ ΣΦΑΛΜΑ.
+  // Οποιος άναβε μόνο τον διακόπτη «Υπενθυμίσεις με email» αποθήκευε γραμμή με
+  // `reminder_email = ''`. Η reminder_recipients() (20260810070000:65-83) δεν
+  // βρίσκει παραλήπτη για κενή διεύθυνση, οπότε η send-reminders δεν έστελνε
+  // ποτέ τίποτα, χωρίς κανένα μήνυμα στην οθόνη. Η διεύθυνση του λογαριασμού
+  // περνά το πρώτο σκέλος της συνάρτησης χωρίς δεύτερη επιβεβαίωση.
+  // ΜΟΝΟ ΟΤΑΝ ΤΟ ΑΠΟΘΗΚΕΥΜΕΝΟ ΕΙΝΑΙ ΚΕΝΟ. Αποθηκευμένη διεύθυνση τρίτου μένει
+  // ως έχει: αντικατάστασή της θα έσβηνε ρύθμιση του χρήστη και θα ακύρωνε την
+  // επιβεβαίωση που ήδη είχε δώσει ο παραλήπτης.
   useEffect(() => {
     let alive = true
-    supabase.from('notification_preferences').select('*').eq('user_id', userId).maybeSingle()
-      .then(({ data }) => { if (alive && data) setPrefs(p => ({ ...p, ...data })) })
+    ;(async () => {
+      const [{ data }, { data: auth }] = await Promise.all([
+        supabase.from('notification_preferences').select('*').eq('user_id', userId).maybeSingle(),
+        supabase.auth.getUser(),
+      ])
+      if (!alive) return
+      const own = (auth?.user?.email || '').trim()
+      setPrefs(p => {
+        const next = { ...p, ...(data || {}) }
+        const stored = String(next.reminder_email ?? '')
+        return { ...next, reminder_email: stored.trim() ? stored : own }
+      })
+    })()
     return () => { alive = false }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])
@@ -167,6 +187,14 @@ export default function NotificationSettings({ userId }: { userId: string }) {
         control={<Toggle on={prefs.email_enabled} onChange={v => update({ email_enabled: v })} size="sm" />}>
         {prefs.email_enabled && (
           <SetList>
+            {/* ΤΟ ΔΙΧΤΥ, ΓΙΑ ΟΣΟΥΣ ΣΒΗΝΟΥΝ ΤΟ ΠΕΔΙΟ Η ΕΧΟΥΝ ΗΔΗ ΚΕΝΗ ΓΡΑΜΜΗ.
+                Ο διακόπτης αναμμένος με κενή διεύθυνση δεν στέλνει τίποτα, και
+                μέχρι σήμερα η σιωπή ήταν ολική: καμία ένδειξη σε καμία οθόνη. */}
+            {!prefs.reminder_email.trim() && (
+              <div style={{ ...TT.bodySm, color: 'var(--negative)' }}>
+                Η διεύθυνση αποστολής είναι κενή. Καμία υπενθύμιση δεν θα σταλεί.
+              </div>
+            )}
             <SetGroup>Πόσο πριν</SetGroup>
             <SetRow title="Επτά ημέρες πριν" desc="Εβδομαδιαία προειδοποίηση."
               control={<Toggle on={prefs.reminder_7days} onChange={v => update({ reminder_7days: v })} size="sm" />} />

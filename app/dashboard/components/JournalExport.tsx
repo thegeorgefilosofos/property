@@ -13,6 +13,11 @@ import * as properties from '@/lib/data/properties';
 import * as loanStore from '@/lib/data/loans';
 import * as rentStore from '@/lib/data/rent';
 import * as expenseStore from '@/lib/data/expenses';
+import * as stayStore from '@/lib/data/stays';
+import { declarableGrossOrTotal } from '@/lib/clients/stayAmounts';
+import { STAY_CHANNEL_LABELS, type StayChannel } from '@/lib/clients/clients';
+import { platformFeeExpenses, type TaxStay } from '@/lib/tax/shortTermTax';
+import { resolveCategory } from '@/lib/expenses/taxonomy';
 import { T, TT, Btn, Badge, Modal } from '@/components/Theme';
 import PropertyPicker from './PropertyPicker';
 import { CustomSelect } from './UIComponents';
@@ -33,6 +38,7 @@ import { monthEndIso } from '@/lib/core/time';
 const LOAN_RE = /δάνει|δόσ\w*\s*δάν|τοκοχρε|χρεολ|loan|installment|mortgage|στεγαστ/i;
 interface LoanRow { property_id: string | null; loan_amount: number | null; rate_type: string | null; fixed_rate: number | null; euribor: number | null; spread: number | null; years: number | null; start_date: string | null }
 interface ExpRow { property_id: string | null; date: string; amount: number | string | null; category: string | null; description: string | null }
+type StayRow = TaxStay & { property_id?: string | null };
 const loanAnnualRate = (l: LoanRow) => l.rate_type === 'variable' ? (Number(l.euribor || 0) + Number(l.spread || 0)) : Number(l.fixed_rate || 0);
 // Τόκος της δόσης = υπόλοιπο κεφαλαίου πριν τη δόση × μηνιαίο επιτόκιο (clamped στο ποσό).
 function loanInterestForPayment(l: LoanRow, isoDate: string, payment: number): number {
@@ -124,7 +130,7 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
     const nameById = new Map(props.filter(p => propIds.has(p.id)).map(p => [p.id, p.name]));
     const from = `${year}-${String(month || 1).padStart(2, '0')}-01`;
     const to = month > 0 ? monthEndIso(year, month) : `${year}-12-31`;
-    const [rentData, expData, loanData] = await Promise.all([
+    const [rentData, expData, loanData, stayData] = await Promise.all([
       // ΧΩΡΙΣ ΦΙΛΤΡΟ ΠΕΡΙΟΔΟΥ ΣΤΟΝ ΔΙΑΚΟΜΙΣΤΗ, ΚΑΙ ΓΙ' ΑΥΤΟ ΥΠΑΡΧΕΙ ΛΟΓΟΣ.
       // Το `period_year` λέει ΤΙ ΜΗΝΑ αφορά η δόση, όχι πότε εισπράχθηκε. Το
       // ημερολόγιο είναι ταμειακό: κρατά ό,τι μπήκε στο ταμείο μέσα στην
@@ -135,12 +141,47 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
       rentStore.ofProperties(supabase, selIds, `property_id,${rentStore.LEDGER_COLUMNS}`, userId, { paid: true }),
       expenseStore.inRange(supabase, selIds, from, to),
       loanStore.ofUser(supabase, userId),
+      // ΟΙ ΔΙΑΜΟΝΕΣ ΕΡΧΟΝΤΑΙ ΑΠΟ ΟΛΟ ΤΟ ΧΑΡΤΟΦΥΛΑΚΙΟ ΚΑΙ ΚΟΒΟΝΤΑΙ ΕΔΩ.
+      // Το `client_stays.property_id` είναι nullable (baseline:1882): ερώτημα
+      // με `.in(property_id, …)` θα άφηνε έξω τις ιστορικές γραμμές χωρίς
+      // ακίνητο. Οι στήλες είναι οι PORTFOLIO_COLUMNS και όχι σκέτο `total`:
+      // το ωμό total είναι το payout, όχι το δηλωτέο ακαθάριστο (stays.ts:8-17).
+      stayStore.ofUser<StayRow>(supabase, userId, stayStore.PORTFOLIO_COLUMNS),
     ]);
     type RentRow = rentStore.BookableRent & { property_id: string | null };
     const incomes: IncomeRec[] = rentStore.collectedIn((rentData || []) as RentRow[], year, month).map(r => ({
       date: rentStore.bookDate(r),
       amount: Number(r.amount) || 0, property: r.property_id ? nameById.get(r.property_id) : undefined,
     }));
+
+    // ── ΤΟ ΕΣΟΔΟ ΤΗΣ ΒΡΑΧΥΧΡΟΝΙΑΣ, ΠΟΥ ΕΛΕΙΠΕ ΟΛΟΚΛΗΡΟ ──────────────────────
+    // Το gather() έφερνε μόνο rent_payments. Ο χρήστης με 210 διαμονές και
+    // μηδέν μισθώματα κατέβαζε ημερολόγιο με τα έξοδα μόνο: πιστωτικό υπόλοιπο
+    // στον 38, καμία γραμμή 71.04, και από κάτω «Ισοσκελισμένο και πλήρες».
+    //
+    // Το ποσό είναι το ΔΗΛΩΤΕΟ ΑΚΑΘΑΡΙΣΤΟ (declarableGrossOrTotal), όχι το ωμό
+    // total: η διαφορά είναι η προμήθεια και το τέλος ανθεκτικότητας.
+    // Το κόψιμο γίνεται στην ΑΦΙΞΗ, όπως στο lib/data/stays.ts:53-56.
+    const prefix = month > 0 ? `${year}-${String(month).padStart(2, '0')}` : String(year);
+    // Διαμονή χωρίς ακίνητο ανήκει στο χαρτοφυλάκιο και μπαίνει ΜΟΝΟ όταν η
+    // εξαγωγή καλύπτει όλα τα ακίνητα· σε μερική επιλογή θα φόρτωνε έσοδο σε
+    // κέντρο κόστους που ο χρήστης δεν ζήτησε.
+    const allSelected = props.length > 0 && nameById.size === props.length;
+    const stays = (stayData || []).filter(s => {
+      if (!String(s.check_in || '').startsWith(prefix)) return false;
+      const pid = s.property_id ? String(s.property_id) : '';
+      return pid ? nameById.has(pid) : allSelected;
+    });
+    for (const s of stays) {
+      const amount = declarableGrossOrTotal(s);
+      if (amount <= 0) continue;
+      const ch = s.channel ? (STAY_CHANNEL_LABELS[s.channel as StayChannel] || s.channel) : '';
+      incomes.push({
+        date: String(s.check_in).slice(0, 10), amount,
+        property: s.property_id ? nameById.get(String(s.property_id)) : undefined,
+        description: ch ? `Κράτηση ${ch}` : 'Κράτηση',
+      });
+    }
 
     // Χωρίζουμε τα έξοδα-δόσεις δανείου από τα κανονικά έξοδα, ώστε να καταχωρηθούν
     // διπλογραφικά σωστά (τόκοι 65 + χρεολύσιο 45), όχι σαν απλό έξοδο.
@@ -160,6 +201,21 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
         loanPayments.push({ date: e.date, amount, interest, description: e.description || 'Δόση δανείου', property });
       } else {
         expenses.push({ date: e.date, amount, category: e.category ?? undefined, description: e.description ?? undefined, property });
+      }
+    }
+
+    // Η ΠΡΟΜΗΘΕΙΑ ΤΗΣ ΠΛΑΤΦΟΡΜΑΣ ΕΙΝΑΙ ΔΑΠΑΝΗ ΤΗΣ ΙΔΙΑΣ ΚΡΑΤΗΣΗΣ. Χωρίς αυτήν
+    // το ημερολόγιο έγραφε το ακαθάριστο ως είσπραξη και ο 38 έδειχνε χρήματα
+    // που δεν μπήκαν ποτέ. Ο κανόνας ζει στο lib/tax/shortTermTax.ts και
+    // καλείται ανά διαμονή ώστε η δαπάνη να κρατά το κέντρο κόστους του εσόδου.
+    // ΔΕΝ ΔΙΠΛΟΓΡΑΦΕΤΑΙ: αν ο χρήστης έχει ήδη περάσει προμήθεια ως δαπάνη της
+    // περιόδου, η καταχώρησή του υπερισχύει — ίδιος έλεγχος με το TabAccounting.
+    const ownPlatformFees = ((expData || []) as ExpRow[])
+      .some(e => resolveCategory(e.category) === 'platform_fee');
+    if (!ownPlatformFees) {
+      for (const s of stays) {
+        const property = s.property_id ? nameById.get(String(s.property_id)) : undefined;
+        for (const f of platformFeeExpenses([s], year)) expenses.push({ ...f, property });
       }
     }
     return buildJournal({ incomes, expenses, loanPayments });

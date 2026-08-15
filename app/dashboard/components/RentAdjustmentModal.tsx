@@ -9,8 +9,8 @@
 import { useEffect, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import * as properties from '@/lib/data/properties';
-import * as rentStore from '@/lib/data/rent';
 import * as tenantStore from '@/lib/data/tenants';
+import { saved } from '@/components/dbWrite';
 import { T, TT, Btn, Spinner, EmptyState, Modal, fixedCols } from '@/components/Theme';
 import { Building2 } from 'lucide-react';
 import { InfoHint } from './InfoHint';
@@ -38,7 +38,14 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
   const [props, setProps] = useState<Prop[]>([]);
   const [propId, setPropId] = useState('');
   const [tenant, setTenant] = useState('');
+  // Το αναγνωριστικό της γραμμής `tenants` που θα πάρει το νέο μίσθωμα. Το
+  // όνομα από πάνω είναι επεξεργάσιμο κείμενο για το έγγραφο, δεν δείχνει
+  // γραμμή· χωρίς το id η εγγραφή δεν έχει πού να πάει.
+  const [tenantId, setTenantId] = useState('');
   const [currentRent, setCurrentRent] = useState('');
+  // Γράφτηκε όντως το νέο μίσθωμα; Κρατιέται από την επιστροφή της `saved`,
+  // ώστε το υποσέλιδο να μην ανακοινώνει εγγραφή που απέτυχε ή δεν έγινε.
+  const [rentSaved, setRentSaved] = useState(false);
   const [method, setMethod] = useState<AdjMethod>('percent');
   const [percent, setPercent] = useState('');
   // ═══ Ο ΔΤΚ ΔΕΝ ΕΙΝΑΙ ΠΕΔΙΟ, ΕΙΝΑΙ ΔΕΔΟΜΕΝΟ ══════════════════════════════════
@@ -92,16 +99,27 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
     return () => { alive = false; };
   }, [open, userId, supabase, branding?.companyName]);
 
-  // Prefill μισθωτή + τρέχοντος μισθώματος από τα δεδομένα του ακινήτου.
+  // Prefill μισθωτή + τρέχοντος μισθώματος από την καρτέλα του μισθωτή.
+  //
+  // ΤΟ ΠΟΣΟ ΤΗΣ ΤΕΛΕΥΤΑΙΑΣ ΔΟΣΗΣ ΔΕΝ ΕΙΝΑΙ ΤΟ ΜΗΝΙΑΙΟ ΜΙΣΘΩΜΑ. Το πεδίο γέμιζε
+  // από `rentStore.latestAmount`, δηλαδή από τη στήλη `amount` της νεότερης
+  // γραμμής `rent_payments`. Εκείνη γράφεται ως (μίσθωμα + υπηρεσίες) επί τους
+  // μήνες της δόσης (TabTenantMoney.tsx:398). Με τριμηνιαία εξόφληση 500,00 €
+  // τον μήνα, η οθόνη έγραφε «Τρέχον 1.500,00 €» και το υπογεγραμμένο PDF
+  // ειδοποιούσε τον μισθωτή για τριπλάσιο μίσθωμα· με χρέωση υπηρεσιών, το
+  // ίδιο έγγραφο ανέβαζε τις υπηρεσίες μαζί με το μίσθωμα.
+  //
+  // Η πηγή είναι το `tenants.monthly_rent`, το ίδιο πεδίο που διαβάζει και
+  // γράφει το LeaseModal. Μαζί κρατιέται το `id` της γραμμής, γιατί εκεί
+  // γράφεται το νέο μίσθωμα μόλις εκδοθεί η ειδοποίηση.
   useEffect(() => {
     if (!open || !propId) return;
     (async () => {
-      const [t, latest] = await Promise.all([
-        tenantStore.current<{ full_name: string | null }>(supabase, propId, 'full_name', userId),
-        rentStore.latestAmount(supabase, propId, userId),
-      ]);
+      const t = await tenantStore.current<{ id: string; full_name: string | null; monthly_rent: number | null }>(
+        supabase, propId, 'id,full_name,monthly_rent', userId);
+      setTenantId(t?.id || '');
       if (t?.full_name) setTenant(t.full_name);
-      if (latest) setCurrentRent(String(latest));
+      if (t?.monthly_rent) setCurrentRent(String(t.monthly_rent));
     })();
   }, [open, propId, userId, supabase]);
 
@@ -158,6 +176,25 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
       await generateReportPdf(model, fname);
       // Δεν κλείνουμε ακόμη: ρωτάμε αν θα αρχειοθετηθεί στα έγγραφα του ακινήτου.
       setPending({ model, fname });
+      // ΤΟ ΕΓΓΡΑΦΟ ΕΒΓΑΙΝΕ ΚΑΙ ΤΟ ΜΙΣΘΩΜΑ ΕΜΕΝΕ ΤΟ ΠΑΛΙΟ. Οι μόνες εγγραφές του
+      // παραθύρου ήταν το `issued_documents` και το αρχείο του PDF· καμία στην
+      // καρτέλα του μισθωτή. Με ειδοποίηση 600,00 € προς 626,40 €, η δόση
+      // Σεπτεμβρίου γεννιόταν στα 600,00 € και το ίδιο ποσό περνούσε σε αίτημα
+      // πληρωμής, πύλη μισθωτή και Ε2.
+      //
+      // ΕΔΩ ΚΑΙ ΟΧΙ ΣΤΟ archive(). Η αρχειοθέτηση είναι προαιρετική («Ίσως
+      // αργότερα»), οπότε εκεί το μισό κοινό θα έφευγε πάλι με παλιό μίσθωμα.
+      // Σε αυτό το σημείο το PDF έχει ήδη υπογραφεί, εκδοθεί και κατέβει.
+      //
+      // ΤΙ ΚΟΣΤΙΖΕΙ. Με μελλοντική ημερομηνία ισχύος το πεδίο παίρνει το νέο
+      // ποσό αμέσως, γιατί ο πίνακας `tenants` δεν έχει στήλη ιστορικού
+      // μισθώματος. Οι ήδη δημιουργημένες απλήρωτες δόσεις δεν ξαναγράφονται
+      // από εδώ: γίνονται «ξεπερασμένες» και τις πιάνει το υπάρχον κουμπί
+      // συγχρονισμού της καρτέλας Χρήματα, που τώρα ανάβει σωστά.
+      if (tenantId) {
+        setRentSaved(await saved('Το νέο μίσθωμα δεν αποθηκεύτηκε στην καρτέλα του μισθωτή',
+          tenantStore.update(supabase, tenantId, { monthly_rent: res.newRent })));
+      }
     // Το `catch (e: any)` άφηνε το `e?.message` να γραφτεί σε ΟΤΙΔΗΠΟΤΕ, χωρίς
     // εγγύηση ότι το πεδίο υπάρχει ή ότι είναι κείμενο. Το `e` είναι `unknown`
     // εξ ορισμού: μόνο ο έλεγχος `instanceof Error` δικαιολογεί το `.message`.
@@ -268,6 +305,10 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
       <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
         {archived ? 'Αποθηκεύτηκε στα έγγραφα του ακινήτου.' : 'Να αποθηκευτεί στα έγγραφα του ακινήτου;'}
       </span>
+      {/* Η ΣΙΩΠΗΛΗ ΕΓΓΡΑΦΗ ΣΕ ΧΡΗΜΑΤΙΚΟ ΠΕΔΙΟ ΛΕΓΕΤΑΙ. Η γραμμή βγαίνει μόνο
+          όταν το γράψιμο πέτυχε: χωρίς καρτέλα μισθωτή, ή με αποτυχία που την
+          ανακοίνωσε ήδη η `saved`, δεν υπάρχει τίποτα να ανακοινωθεί εδώ. */}
+      {rentSaved && <span style={{ display: 'block', fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>Το μηνιαίο μίσθωμα ενημερώθηκε σε {pEur(res.newRent)} στην καρτέλα του μισθωτή.</span>}
       {!archived && <span style={{ display: 'block', fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>Αρχειοθετείται με ημερομηνία ισχύος {grDate(effective)}, σε χρονολογική σειρά.</span>}
     </span>
   ) : undefined;

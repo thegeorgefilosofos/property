@@ -4,8 +4,8 @@ import { createClient } from '@/lib/supabase/client'
 import * as expenseStore from '@/lib/data/expenses'
 import * as rentStore from '@/lib/data/rent'
 import { Check, ArrowRight, Landmark, SearchX } from 'lucide-react'
-import { parseBankCsv, matchTransactions, type BankTxn, type ExpectedRent, type RentMatch, type ExpenseSuggestion } from '@/lib/accounting/bankImport'
-import { feAuto, T, EmptyState, Modal, Spinner } from '@/components/Theme'
+import { readBankCsv, matchTransactions, type BankTxn, type ExpectedRent, type RentMatch, type ExpenseSuggestion } from '@/lib/accounting/bankImport'
+import { feAuto, T, ABSENT_DATE, EmptyState, Modal, Spinner } from '@/components/Theme'
 import { athensToday } from '@/lib/core/time';
 import { MONTHS_NOM } from '@/lib/core/months';
 import type { RentPaymentsRow, BankTransactionsRow } from '@/lib/supabase/tables';
@@ -20,14 +20,24 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
   const [step,setStep] = useState<'input'|'review'|'saving'>('input')
   const [rentMatches,setRentMatches] = useState<(RentMatch&{label:string;due:string|null;confirm:boolean})[]>([])
   const [expenses,setExpenses] = useState<(ExpenseSuggestion&{confirm:boolean})[]>([])
+  // ΤΡΙΑ ΣΥΝΟΛΑ ΕΠΙΣΤΡΕΦΕΙ Η ΜΗΧΑΝΗ, ΔΥΟ ΔΙΑΒΑΖΕ Η ΟΘΟΝΗ. Οι πιστώσεις που δεν
+  // δέσμευσαν ανεξόφλητο ενοίκιο έφταναν ως εδώ και πέθαιναν: καμία μεταβλητή,
+  // κανένα JSX, κανένας μετρητής. Στο αντίγραφο που μετρήθηκε (μερική πληρωμή
+  // 750,00, ενοίκιο ήδη σημειωμένο 800,00, εγγύηση 1.600,00) η matchTransactions
+  // γύριζε τρεις αταίριαστες κινήσεις, 3.150,00 ευρώ, και η οθόνη έγραφε «Δεν
+  // βρέθηκαν νέες αντιστοιχίσεις» στέλνοντας τον χρήστη να ελέγξει την περίοδο
+  // του αρχείου: το λάθος δεν ήταν έλλειψη πληροφορίας, ήταν λάθος πληροφορία.
+  const [unmatched,setUnmatched] = useState<BankTxn[]>([])
+  const [unreadable,setUnreadable] = useState(0)
   const [skipped,setSkipped] = useState(0)
   const [error,setError] = useState('')
   const [savedMsg,setSavedMsg] = useState('')
 
   async function analyze(raw:string){
-    setError('')
-    const txns = parseBankCsv(raw)
-    if(!txns.length){ setError('Δεν βρέθηκαν κινήσεις. Έλεγξε ότι το αρχείο έχει στήλες ημερομηνία, περιγραφή και ποσό.'); return }
+    setError(''); setUnmatched([]); setUnreadable(0)
+    const { txns, unreadable:lost } = readBankCsv(raw)
+    setUnreadable(lost)
+    if(!txns.length){ setError(lost>0?`Δεν διαβάστηκε καμία κίνηση: ${lost} ${lost===1?'γραμμή δεν είχε':'γραμμές δεν είχαν'} αναγνωρίσιμο ποσό.`:'Δεν βρέθηκαν κινήσεις. Έλεγξε ότι το αρχείο έχει στήλες ημερομηνία, περιγραφή και ποσό.'); return }
     // Dedup: πέτα ό,τι έχει ξαναμπεί.
     const { data: existing } = await supabase.from('bank_transactions').select('dedup_hash').eq('user_id',userId)
     const seen = new Set((existing||[]).map(r=>r.dedup_hash))
@@ -47,6 +57,7 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
     const byId = new Map(expected.map(e=>[e.id,e]))
     setRentMatches(res.rentMatches.map(m=>({ ...m, label:byId.get(m.rentId)?.label||'Ενοίκιο', due:byId.get(m.rentId)?.dueDate||null, confirm:true })))
     setExpenses(res.expenseSuggestions.map(e=>({ ...e, confirm:false })))
+    setUnmatched(res.unmatched)
     setStep('review')
   }
 
@@ -134,8 +145,13 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
       </div>)}
 
       {step==='review'&&(<div>
-        {rentMatches.length===0&&expenses.length===0?(
-          <EmptyState icon={<SearchX size={20}/>} title="Δεν βρέθηκαν νέες αντιστοιχίσεις" hint={skipped>0?`${skipped} κινήσεις είχαν ήδη εισαχθεί.`:'Έλεγξε ότι το αρχείο καλύπτει την περίοδο που περιμένεις.'}/>
+        {/* Η ΥΠΟΔΕΙΞΗ ΤΗΣ ΚΕΝΗΣ ΚΑΤΑΣΤΑΣΗΣ ΕΛΕΓΕ ΨΕΜΑΤΑ. Οσο οι αταίριαστες
+            πιστώσεις ήταν αόρατες, η κατάσταση αυτή έβγαινε ΚΑΙ με γεμάτο
+            αρχείο και έστελνε τον χρήστη να ελέγξει την περίοδο. Με το τρίτο
+            τμήμα στη θέση του, βγαίνει μόνο όταν κάθε κίνηση είχε ήδη εισαχθεί,
+            οπότε λέει ακριβώς αυτό. */}
+        {rentMatches.length===0&&expenses.length===0&&unmatched.length===0?(
+          <EmptyState icon={<SearchX size={20}/>} title="Δεν βρέθηκαν νέες αντιστοιχίσεις" hint={skipped>0?`${skipped} ${skipped===1?'κίνηση είχε':'κινήσεις είχαν'} ήδη εισαχθεί.`:'Καμία νέα κίνηση στο αρχείο.'}/>
         ):(<>
           {rentMatches.length>0&&(<>
             <p style={{ fontSize:10, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--text-secondary)', margin:'0 0 8px', fontFamily: T.font.sans }}>Ενοίκια που εισπράχθηκαν</p>
@@ -167,8 +183,28 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
               ))}
             </div>
           </>)}
-          {skipped>0&&<p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'12px 0 0', fontFamily: T.font.sans }}>{skipped} κινήσεις παραλείφθηκαν (είχαν ήδη εισαχθεί).</p>}
+          {/* ΜΟΝΟ ΑΝΑΓΝΩΣΗ, ΧΩΡΙΣ ΚΟΥΤΑΚΙ: δεν υπάρχει ενέργεια να προσφερθεί.
+              Οι γραμμές αυτές ΔΕΝ γράφονται στο bank_transactions ούτε όταν ο
+              χρήστης πατήσει «Καταχώρηση»: το dedup της ανάλυσης θα τις έκρυβε
+              στην επόμενη εισαγωγή, δηλαδή το ίδιο σφάλμα με άλλο τρόπο. */}
+          {unmatched.length>0&&(<>
+            <p style={{ fontSize:10, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--text-secondary)', margin:'16px 0 8px', fontFamily: T.font.sans }}>Κινήσεις χωρίς αντιστοίχιση</p>
+            <p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'0 0 8px', fontFamily: T.font.sans, lineHeight:1.5 }}>Δεν ταιριάζουν σε ανεξόφλητο ενοίκιο του {year} και δεν καταχωρούνται από εδώ. Επανεμφανίζονται σε κάθε εισαγωγή, μέχρι να τακτοποιηθούν.</p>
+            <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
+              {unmatched.map((t,i)=>(
+                <div key={i} style={row}>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <p style={{ fontSize:13, color:'var(--text-primary)', margin:0, fontFamily: T.font.sans, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{t.description||'Χωρίς περιγραφή'}</p>
+                    <p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'1px 0 0', fontFamily: T.font.sans }}>{t.date||ABSENT_DATE}</p>
+                  </div>
+                  <span style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{feAuto(t.amount)}</span>
+                </div>
+              ))}
+            </div>
+          </>)}
+          {skipped>0&&<p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'12px 0 0', fontFamily: T.font.sans }}>{skipped} {skipped===1?'κίνηση παραλείφθηκε: είχε':'κινήσεις παραλείφθηκαν: είχαν'} ήδη εισαχθεί.</p>}
         </>)}
+        {unreadable>0&&<p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'12px 0 0', fontFamily: T.font.sans }}>{unreadable} {unreadable===1?'γραμμή του αρχείου δεν διαβάστηκε':'γραμμές του αρχείου δεν διαβάστηκαν'}: χωρίς αναγνωρίσιμο ποσό.</p>}
         {error&&<p style={{ fontSize:13, color:'var(--negative)', margin:'12px 0 0', fontFamily: T.font.sans }}>{error}</p>}
       </div>)}
 

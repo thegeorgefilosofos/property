@@ -39,6 +39,15 @@ const AI_LIMITS = {
   trialPerMonth: 20,
 }
 
+// ── Το «σήμερα» της Ελλάδας, μέσα σε Deno ───────────────────────────────────
+// ΚΑΘΡΕΦΤΗΣ του lib/core/time.ts, για τον ίδιο λόγο με τα όρια AI: το Deno δεν
+// φτάνει στο lib/. Το `toISOString().slice(0,10)` του τώρα γυρίζει UTC, και
+// στην Ελλάδα από τα μεσάνυχτα ως τις 02:00/03:00 δείχνει ΧΘΕΣ. Εδώ κοστίζει
+// διπλά: με λάθος αφετηρία το μοντέλο δίνει και λάθος ημερομηνίες γεγονότων.
+const athensToday = () => new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Europe/Athens', year: 'numeric', month: '2-digit', day: '2-digit',
+}).format(new Date())
+
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, content-type',
@@ -125,7 +134,14 @@ Deno.serve(async (req) => {
     const expenses = expensesRes.data || []
 
     // ── 5. Ask the model for missing calendar obligations ─────────────────────
+    // Η ΑΓΚΥΡΑ ΧΡΟΝΟΥ ΕΛΕΙΠΕ ΕΝΤΕΛΩΣ. Το prompt ζητούσε «εποχικότητα» και
+    // «ελληνική νομοθεσία» χωρίς να λέει ποια μέρα είναι σήμερα: το μοντέλο
+    // υπέθετε, και ο πελάτης πετούσε ούτως ή άλλως ό,τι έβγαινε, γιατί το
+    // σχήμα δεν είχε πεδίο ημερομηνίας να γεμίσει.
+    const todayIso = athensToday()
     const prompt = `Είσαι expert σύμβουλος διαχείρισης ακινήτων στην Ελλάδα. Ανάλυσε τα παρακάτω δεδομένα και πρότεινε 4-6 γεγονότα ημερολογίου που λείπουν ή χρειάζονται προσοχή.
+
+ΣΗΜΕΡΑ: ${todayIso}
 
 ΣΤΟΙΧΕΙΑ ΑΚΙΝΗΤΟΥ:
 ${JSON.stringify(owned, null, 2)}
@@ -145,12 +161,14 @@ ${JSON.stringify(expenses, null, 2)}
 3. Λάβε υπόψη ελληνική νομοθεσία (ΕΝΦΙΑ, ΤΑΠ, πιστοποιητικά)
 4. Αν το ακίνητο έχει ενοικιαστή, πρότεινε σχετικά γεγονότα
 5. Λάβε υπόψη εποχικότητα (καλοκαίρι=κλιματιστικά, χειμώνας=θέρμανση)
+6. Κάθε γεγονός παίρνει τη ΔΙΚΗ ΤΟΥ ημερομηνία, μέσα στους επόμενους 12 μήνες από το ΣΗΜΕΡΑ. Μη δίνεις σε δύο γεγονότα την ίδια, εκτός αν όντως συμπίπτουν.
 
 Απάντησε ΜΟΝΟ με valid JSON array, χωρίς markdown, χωρίς εξηγήσεις:
 [
   {
     "title": "τίτλος γεγονότος στα ελληνικά",
     "category": "financial|bills|maintenance|contract|tenant|reminder",
+    "event_date": "YYYY-MM-DD, η πραγματική ημερομηνία της υποχρέωσης μέσα στους επόμενους 12 μήνες",
     "amount": 150,
     "recurring": true,
     "recurring_interval": "monthly|annual|quarterly|biannual",
@@ -168,7 +186,11 @@ ${JSON.stringify(expenses, null, 2)}
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1024,
+        // 1024 ήταν σφιχτό ήδη με έξι προτάσεις. Η ημερομηνία προσθέτει ~10
+        // tokens σε καθεμία: με κομμένη απάντηση το `JSON.parse` αποτυγχάνει,
+        // το `catch` γυρίζει άδειο array και ο χρήστης διαβάζει «δεν κατάφερα
+        // να διαβάσω το ακίνητο» για ένα όριο, όχι για σφάλμα.
+        max_tokens: 1536,
         messages: [{ role: 'user', content: prompt }],
       }),
     })
@@ -185,6 +207,35 @@ ${JSON.stringify(expenses, null, 2)}
 
     let suggestions = []
     try { suggestions = JSON.parse(clean) } catch { suggestions = [] }
+    // Το μοντέλο μπορεί να απαντήσει με αντικείμενο αντί για array. Ο πελάτης
+    // διάβαζε `data.suggestions?.length` και έβγαζε undefined, δηλαδή σφάλμα
+    // χωρίς αιτία· και ο έλεγχος από κάτω θα έσκαγε σε 500.
+    if (!Array.isArray(suggestions)) suggestions = []
+
+    // ── 6. Η ημερομηνία του μοντέλου είναι είσοδος, όχι μέτρηση ───────────────
+    // Ο ίδιος έλεγχος που κάνει ήδη ο πελάτης στην κατηγορία και στην
+    // προτεραιότητα (canonicalCategory, eventPriority στο lib/data/calendar.ts).
+    // Ο,τι δεν είναι πραγματική μέρα μέσα στους επόμενους 18 μήνες σβήνεται
+    // εδώ, ώστε ο πελάτης να πέσει στην εφεδρική του ημερομηνία αντί να γράψει
+    // στο ημερολόγιο μέρα που έχει περάσει, ή μέρα που δεν υπάρχει και ρίχνει
+    // ολόκληρη την εγγραφή. Το ταβάνι είναι 18 μήνες και όχι 12: ο κανόνας 6
+    // ζητά δωδεκάμηνο, αλλά μια υποχρέωση στην άκρη του δεν πρέπει να κόβεται
+    // επειδή το μοντέλο μέτρησε τον μήνα με μισή διαφορά.
+    const [ty, tm, td] = todayIso.split('-').map(Number)
+    const limitIso = new Date(Date.UTC(ty, tm - 1 + 18, td)).toISOString().slice(0, 10)
+    for (const s of suggestions) {
+      if (!s || typeof s !== 'object') continue
+      const d = typeof s.event_date === 'string' ? s.event_date.trim() : ''
+      // Ο γύρος από `Date.UTC` κανονικοποιεί: η 31η Φεβρουαρίου γυρίζει 3
+      // Μαρτίου και δεν ισούται με την είσοδο. Το `new Date('2027-02-31T…')`
+      // θα ήταν Invalid Date και το `toISOString()` του πετάει RangeError,
+      // δηλαδή 500 αντί για μία σβησμένη ημερομηνία.
+      const [y, mo, day] = d.split('-').map(Number)
+      const realDay = /^\d{4}-\d{2}-\d{2}$/.test(d)
+        && new Date(Date.UTC(y, mo - 1, day)).toISOString().slice(0, 10) === d
+      if (realDay && d >= todayIso && d <= limitIso) s.event_date = d
+      else delete s.event_date
+    }
 
     return json({ suggestions }, 200)
   } catch (err) {

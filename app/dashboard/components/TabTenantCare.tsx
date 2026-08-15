@@ -56,6 +56,7 @@ import {
   TENANT_FIELDS,
   missingCritical,
 } from '@/lib/property/fields';
+import { photosKey, signMaintenancePhotos } from '@/lib/maintenance/photos';
 import { whatsappLink, viberLink } from '@/lib/clients/messages';
 import { normalizePhone } from '@/lib/clients/clients';
 import {
@@ -581,14 +582,10 @@ const MAINT_STATUS:Record<string,{label:string;c:string;bg:string}>={
   in_progress:{label:'Σε εξέλιξη',c:'var(--warning)',bg:'var(--warning-soft)'},
   done:{label:'Ολοκληρώθηκε',c:'var(--positive)',bg:'var(--positive-dim)'},
 };
-// Το bucket maintenance-photos είναι ιδιωτικό: αποθηκεύουμε το PATH. Από παλιές
-// εγγραφές μπορεί να έχει μείνει ολόκληρο public URL — κρατάμε ό,τι ακολουθεί το
-// «/maintenance-photos/» ώστε να υπογράφεται κι εκείνο σωστά.
-function maintPhotoPath(stored:string):string {
-  const marker='/maintenance-photos/';
-  const i=stored.indexOf(marker);
-  return i>=0 ? stored.slice(i+marker.length) : stored;
-}
+// Το bucket maintenance-photos είναι ιδιωτικό: αποθηκεύουμε το PATH. Η υπογραφή
+// του (και η ανοχή στις παλιές εγγραφές που κρατούν ολόκληρο public URL) ζούσε
+// εδώ, ενώ την ίδια λίστα αιτημάτων δείχνει και το PortalShare. Μετακόμισε στο
+// lib/maintenance/photos, ώστε οι δύο οθόνες να δείχνουν τις ίδιες εικόνες.
 // Ίδιος λόγος με το PaymentsView: το prop `notify` σκίαζε το κοινό import.
 
 export function MaintenanceView({ tenant, propertyId, userId, requests, others, onRefresh }:{ tenant:Tenant; propertyId:string; userId:string; requests:MaintenanceReq[]; others:MaintenanceReq[]; onRefresh:()=>void }) {
@@ -600,20 +597,10 @@ export function MaintenanceView({ tenant, propertyId, userId, requests, others, 
   // Signed URLs ανά αίτημα (id → λίστα προσωρινών URL). Το ιδιωτικό bucket
   // απαιτεί υπογραφή· η ανάγνωση περνά από την owns_portal_token SELECT policy.
   const [signed,setSigned]=useState<Record<string,string[]>>({});
-  const photoSig=useMemo(()=>requests.map(m=>`${m.id}:${(m.photos||[]).join(',')}`).join('|'),[requests]);
+  const photoSig=useMemo(()=>photosKey(requests),[requests]);
   useEffect(()=>{
     let alive=true;
-    (async()=>{
-      const items:{id:string;path:string}[]=[];
-      for(const m of requests){ if(Array.isArray(m.photos)) for(const ph of m.photos){ if(ph) items.push({id:m.id,path:maintPhotoPath(ph)}); } }
-      if(items.length===0){ if(alive) setSigned({}); return; }
-      // 7 ημέρες: αρκετό ώστε ένα κοινοποιημένο link στο συνεργείο να μείνει ενεργό.
-      const { data }=await supabase.storage.from('maintenance-photos').createSignedUrls(items.map(i=>i.path),604800);
-      if(!alive||!data) return;
-      const map:Record<string,string[]>={};
-      data.forEach((d,i)=>{ if(d.signedUrl){ const id=items[i].id; (map[id]||=[]).push(d.signedUrl); } });
-      setSigned(map);
-    })();
+    signMaintenancePhotos(supabase,requests).then(map=>{ if(alive) setSigned(map); });
     return ()=>{ alive=false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[photoSig]);
