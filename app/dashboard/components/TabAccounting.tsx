@@ -900,7 +900,11 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
       {/* Κεφαλίδα: τίτλος, διακόπτης όψης και έτος */}
       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
         <div style={{ minWidth:0 }}>
-          <h2 style={{ fontFamily: T.font.sans, fontSize:20, fontWeight:700, color:'var(--text-primary)', margin:0, letterSpacing:'0.1px' }}>Λογιστική</h2>
+          {/* `h1` ΚΑΙ ΟΧΙ `h2`: ΕΙΝΑΙ Ο ΤΙΤΛΟΣ ΤΗΣ ΟΘΟΝΗΣ. Ως `h2` άφηνε την
+              ιεραρχία χωρίς κορυφή και η πλοήγηση ανά επικεφαλίδα ξεκινούσε από
+              το δεύτερο επίπεδο. Η εμφάνιση δεν αλλάζει: ίδιο μέγεθος, ίδιο
+              βάρος, ίδια απόσταση — αλλάζει μόνο τι ακούει ο αναγνώστης οθόνης. */}
+          <h1 style={{ fontFamily: T.font.sans, fontSize:20, fontWeight:700, color:'var(--text-primary)', margin:0, letterSpacing:'0.1px' }}>Λογιστική</h1>
           <p style={{ fontSize:13, color:'var(--text-secondary)', margin:'4px 0 0', fontFamily: T.font.sans }}>{regimeLabel} · έσοδα, φόρος και καθαρό αποτέλεσμα, με βάση τα πραγματικά σου δεδομένα.</p>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>

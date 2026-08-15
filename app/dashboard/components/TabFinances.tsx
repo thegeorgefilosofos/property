@@ -22,6 +22,7 @@
 // δαπάνες κάθε φορά που μπαίνεις.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { navLabel } from '@/lib/nav/labels';
 import { useState } from 'react';
 import { T } from '@/components/Theme';
 import ExpenseLedger from './ExpenseLedger';
@@ -81,6 +82,16 @@ export default function TabFinances({
 
   return (
     <div>
+      {/* ── Η ΟΘΟΝΗ ΧΡΕΙΑΖΕΤΑΙ ΟΝΟΜΑ, ΚΑΙ ΑΣ ΜΗΝ ΤΟ ΔΕΙΧΝΕΙ ──────────────────
+          Δώδεκα καρτέλες έχουν ορατό τίτλο μέσω `PageTitle`, δηλαδή `h1`. Αυτή
+          δεν είχε ΚΑΝΕΝΑ: ο αναγνώστης οθόνης ανακοίνωνε τη σελίδα χωρίς όνομα,
+          η πλοήγηση ανά επικεφαλίδα —ο βασικός τρόπος που διαβάζει κανείς μια
+          άγνωστη οθόνη— ξεκινούσε από `h2` ή `h3`, και η ιεραρχία δεν είχε
+          κορυφή. Το όνομα έρχεται από το `lib/nav/labels.ts`, την ίδια πηγή με
+          το μενού και τη Νόα: δεν επινοείται δεύτερο εδώ.
+          Κρυφό ΟΠΤΙΚΑ, όχι από τον αναγνώστη — η οθόνη έχει ήδη τη δική της
+          κεφαλίδα και δεν αλλάζει ούτε ένα εικονοστοιχείο. */}
+      <h1 className="sr-only">{navLabel('finances')}</h1>
       <div style={{
         display: 'inline-flex', padding: 3, gap: 2, marginBottom: T.sp.xl,
         background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',

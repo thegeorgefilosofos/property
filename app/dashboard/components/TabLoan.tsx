@@ -1,4 +1,5 @@
 'use client'
+import { navLabel } from '@/lib/nav/labels';
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import * as expenses from '@/lib/data/expenses'
@@ -639,6 +640,16 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
 
   return (
     <div style={{fontFamily: T.font.sans,color:'var(--text-primary)',display:'flex',flexDirection:'column',gap:16}}>
+      {/* ── Η ΟΘΟΝΗ ΧΡΕΙΑΖΕΤΑΙ ΟΝΟΜΑ, ΚΑΙ ΑΣ ΜΗΝ ΤΟ ΔΕΙΧΝΕΙ ──────────────────
+          Δώδεκα καρτέλες έχουν ορατό τίτλο μέσω `PageTitle`, δηλαδή `h1`. Αυτή
+          δεν είχε ΚΑΝΕΝΑ: ο αναγνώστης οθόνης ανακοίνωνε τη σελίδα χωρίς όνομα,
+          η πλοήγηση ανά επικεφαλίδα —ο βασικός τρόπος που διαβάζει κανείς μια
+          άγνωστη οθόνη— ξεκινούσε από `h2` ή `h3`, και η ιεραρχία δεν είχε
+          κορυφή. Το όνομα έρχεται από το `lib/nav/labels.ts`, την ίδια πηγή με
+          το μενού και τη Νόα: δεν επινοείται δεύτερο εδώ.
+          Κρυφό ΟΠΤΙΚΑ, όχι από τον αναγνώστη — η οθόνη έχει ήδη τη δική της
+          κεφαλίδα και δεν αλλάζει ούτε ένα εικονοστοιχείο. */}
+      <h1 className="sr-only">{navLabel('loan')}</h1>
 
       {/* Header — compact, premium, ήσυχο */}
       <div style={{...cardStyle,padding:'13px 18px',display:'flex',alignItems:'center',gap:18,flexWrap:'wrap'}}>

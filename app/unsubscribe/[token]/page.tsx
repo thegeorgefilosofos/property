@@ -50,7 +50,9 @@ export default function Unsubscribe() {
       <div style={card}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, paddingBottom: 18, borderBottom: '1px solid var(--border-subtle)' }}>
           <BrandMark size={34} />
-          <div><div style={{ fontSize: 15, fontWeight: 700 }}>Property OS</div><div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Προτιμήσεις ενημερωτικών emails</div></div>
+          {/* Ο τίτλος της σελίδας είναι η δεύτερη γραμμή· το «Property OS» είναι
+              σήμα. Χωρίς `h1` η σελίδα ανακοινωνόταν ανώνυμη. */}
+          <div><div style={{ fontSize: 15, fontWeight: 700 }}>Property OS</div><h1 style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 400, margin: 0 }}>Προτιμήσεις ενημερωτικών emails</h1></div>
         </div>
 
         {state === 'loading' && <div style={{ padding: '34px 0', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>Φόρτωση…</div>}

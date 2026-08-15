@@ -68,7 +68,15 @@ export default function GuestCheckin() {
       <header style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', marginBottom: 24 }}>
         <div style={{ ...wrap, height: 60, display: 'flex', alignItems: 'center', gap: 10 }}>
           <BrandMark />
-          <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em' }}>Στοιχεία διαμονής</span>
+          {/* ΤΙΤΛΟΣ ΣΕΛΙΔΑΣ, ΟΧΙ ΔΙΑΚΟΣΜΗΤΙΚΟ ΚΕΙΜΕΝΟ. Ηταν `span`, οπότε η
+              σελίδα δεν είχε ΚΑΜΙΑ επικεφαλίδα: ο αναγνώστης οθόνης την
+              ανακοίνωνε χωρίς όνομα, και η πλοήγηση ανά επικεφαλίδα δεν είχε
+              πού να προσγειωθεί. Δημόσια σελίδα που ανοίγει από σύνδεσμο σε
+              μήνυμα, συχνά από άνθρωπο που δεν ξέρει τι είναι το Property OS.
+              Τα γνωρίσματα είναι αυτούσια αυτά του `span`, συν `margin:0` που
+              ακυρώνει το προεπιλεγμένο περιθώριο του `h1`: η εμφάνιση δεν
+              αλλάζει ούτε κατά ένα εικονοστοιχείο. */}
+          <h1 style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em', margin: 0 }}>Στοιχεία διαμονής</h1>
         </div>
       </header>
 

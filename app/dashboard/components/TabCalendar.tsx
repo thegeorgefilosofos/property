@@ -1,4 +1,5 @@
 'use client'
+import { navLabel } from '@/lib/nav/labels';
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { isoDate, athensToday } from '@/lib/core/time'
@@ -1808,6 +1809,16 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+      {/* ── Η ΟΘΟΝΗ ΧΡΕΙΑΖΕΤΑΙ ΟΝΟΜΑ, ΚΑΙ ΑΣ ΜΗΝ ΤΟ ΔΕΙΧΝΕΙ ──────────────────
+          Δώδεκα καρτέλες έχουν ορατό τίτλο μέσω `PageTitle`, δηλαδή `h1`. Αυτή
+          δεν είχε ΚΑΝΕΝΑ: ο αναγνώστης οθόνης ανακοίνωνε τη σελίδα χωρίς όνομα,
+          η πλοήγηση ανά επικεφαλίδα —ο βασικός τρόπος που διαβάζει κανείς μια
+          άγνωστη οθόνη— ξεκινούσε από `h2` ή `h3`, και η ιεραρχία δεν είχε
+          κορυφή. Το όνομα έρχεται από το `lib/nav/labels.ts`, την ίδια πηγή με
+          το μενού και τη Νόα: δεν επινοείται δεύτερο εδώ.
+          Κρυφό ΟΠΤΙΚΑ, όχι από τον αναγνώστη — η οθόνη έχει ήδη τη δική της
+          κεφαλίδα και δεν αλλάζει ούτε ένα εικονοστοιχείο. */}
+      <h1 className="sr-only">{navLabel('calendar')}</h1>
 
       {/* ═══ ΟΙ ΕΚΚΡΕΜΟΤΗΤΕΣ ΑΝΟΙΓΟΥΝ ΑΠΟ ΕΔΩ ══════════════════════════════════
           Ήταν δική τους γραμμή στην πλαϊνή μπάρα, στα «Εργαλεία», δίπλα στην

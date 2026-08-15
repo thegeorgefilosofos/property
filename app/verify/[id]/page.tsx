@@ -53,7 +53,13 @@ export default function VerifyDocument() {
           <BrandMark size={34} />
           <div>
             <div style={{ fontSize: 15, fontWeight: 700 }}>Property OS</div>
-            <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Επαλήθευση γνησιότητας εγγράφου</div>
+            {/* Ο ΤΙΤΛΟΣ ΤΗΣ ΣΕΛΙΔΑΣ ΕΙΝΑΙ ΑΥΤΗ Η ΓΡΑΜΜΗ, ΟΧΙ ΤΟ ΟΝΟΜΑ ΤΗΣ
+                ΕΦΑΡΜΟΓΗΣ. Το «Property OS» από πάνω είναι σήμα, όχι επικεφαλίδα.
+                Η σελίδα δεν είχε καμία: ο αναγνώστης οθόνης την ανακοίνωνε
+                χωρίς όνομα, σε δημόσιο σύνδεσμο που ανοίγει άνθρωπος ο οποίος
+                μπορεί να μη μας έχει ξανασυναντήσει. Ιδια γνωρίσματα, συν
+                `margin:0` που ακυρώνει το προεπιλεγμένο περιθώριο του `h1`. */}
+            <h1 style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 400, margin: 0 }}>Επαλήθευση γνησιότητας εγγράφου</h1>
           </div>
         </div>
 
