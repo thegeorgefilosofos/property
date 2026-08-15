@@ -6,6 +6,7 @@ import * as properties from '@/lib/data/properties'
 import * as billStore from '@/lib/data/bills'
 import * as calendar from '@/lib/data/calendar'
 import * as checklist from '@/lib/data/checklist'
+import { BulkActionBar } from './UIComponents'
 import * as loanStore from '@/lib/data/loans'
 import * as contactStore from '@/lib/data/contacts'
 import * as billing from '@/lib/data/billing'
@@ -827,35 +828,27 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
           ήδη οι προτάσεις προτύπων. Ό,τι προτείνεται, προστίθεται εδώ. */}
       {!embedded && <SmartSuggestions userId={userId} propertyId={propertyId} />}
 
-      {/* Γραμμή μαζικών ενεργειών — εμφανίζεται μόλις επιλεγεί ≥1 εργασία */}
+      {/* Γραμμή μαζικών ενεργειών — εμφανίζεται μόλις επιλεγεί ≥1 εργασία.
+          Ηταν γραμμένη εδώ και ξανά στο Χαρτοφυλάκιο, με πέντε διαφορές που δεν
+          αποφάσισε ποτέ κανείς. Ζει τώρα μία φορά, στο UIComponents. */}
       {selected.size > 0 && (
-        <div style={{ position: 'fixed', bottom: 'var(--float-bottom)', left: '50%', transform: 'translateX(-50%)', zIndex: 'var(--float-z)', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 24, boxShadow: 'var(--elev-3)', overflow: 'hidden', minWidth: 'min(520px, calc(100vw - 24px))', maxWidth: 'calc(100vw - 24px)' }}>
-          <div style={{ padding: '12px 18px', borderRight: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 9, flexShrink: 0 }}>
-            <div style={{ minWidth: 24, height: 26, padding: '0 6px', borderRadius: 6, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: 'var(--accent-text)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{selected.size}</div>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', fontFamily: T.font.sans }}>{selected.size === filtered.length ? 'όλα επιλεγμένα' : 'επιλεγμένα'}</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-            {[
-              { label: selected.size === filtered.length ? 'Καθαρισμός επιλογής' : `Επιλογή όλων (${filtered.length})`, fn: () => { if (selected.size === filtered.length) setSelected(new Set()); else setSelected(new Set(filtered.map(i => i.id))) }, color: 'var(--text-secondary)', hoverBg: 'var(--bg-surface)' },
-              // Πράσινο και κόκκινο δίπλα δίπλα σε δύο ενέργειες που εκτελεί ο
-              // ίδιος άνθρωπος με τον ίδιο τρόπο. Η διαγραφή ζητά ούτως ή άλλως
-              // επιβεβαίωση, και ΕΚΕΙ το κόκκινο έχει νόημα.
-              { label: 'Ολοκλήρωση', fn: bulkComplete, color: 'var(--text-primary)', hoverBg: 'var(--bg-surface)' },
-              { label: 'Διαγραφή', fn: bulkDelete, color: 'var(--text-secondary)', hoverBg: 'var(--bg-surface)' },
-            ].map((a, i, arr) => (
-              <button key={i} type="button" onClick={a.fn}
-                style={{ flex: 1, padding: '12px 4px', border: 'none', borderRight: i < arr.length - 1 ? '1px solid var(--border-subtle)' : 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: a.color, fontWeight: 600, fontSize: 13, transition: 'background 0.15s', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}
-                onMouseEnter={e => e.currentTarget.style.background = a.hoverBg}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                {a.label}
-              </button>
-            ))}
-          </div>
-          <button type="button" aria-label="Ακύρωση επιλογής" onClick={exitSelectMode}
-            style={{ padding: '12px 16px', border: 'none', borderLeft: '1px solid var(--border-subtle)', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, lineHeight: 1, flexShrink: 0, transition: 'background 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-surface)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
-        </div>
+        <BulkActionBar
+          count={selected.size}
+          countLabel={selected.size === filtered.length ? 'όλα επιλεγμένα' : 'επιλεγμένα'}
+          onClear={exitSelectMode}
+          minWidth={520}
+          actions={[
+            {
+              label: selected.size === filtered.length ? 'Καθαρισμός επιλογής' : `Επιλογή όλων (${filtered.length})`,
+              onClick: () => { if (selected.size === filtered.length) setSelected(new Set()); else setSelected(new Set(filtered.map(i => i.id))); },
+            },
+            // Πράσινο και κόκκινο δίπλα δίπλα σε δύο ενέργειες που εκτελεί ο
+            // ίδιος άνθρωπος με τον ίδιο τρόπο. Η διαγραφή ζητά ούτως ή άλλως
+            // επιβεβαίωση, και ΕΚΕΙ το κόκκινο έχει νόημα.
+            { label: 'Ολοκλήρωση', onClick: bulkComplete, tone: 'strong' as const },
+            { label: 'Διαγραφή', onClick: bulkDelete },
+          ]}
+        />
       )}
 
       {showTemplates && <TemplateModal onSelect={loadTemplate} onLoadObligations={loadObligations} onClose={() => setShowTemplates(false)} ctx={fieldCtx} pending={pendingObligations} smart={smartSuggestions} />}

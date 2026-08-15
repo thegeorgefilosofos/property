@@ -16,7 +16,7 @@ import * as rentStore from '@/lib/data/rent';
 import * as checklist from '@/lib/data/checklist';
 import * as expenses from '@/lib/data/expenses'
 import * as tenantStore from '@/lib/data/tenants'
-import { CustomSelect } from './UIComponents';
+import { CustomSelect, BulkActionBar } from './UIComponents';
 import { T, PageTitle, KPIGrid, Badge, Btn, ExportButton, EmptyState, InfoBanner, SecHdr, SkeletonKPIs, Skeleton, fe, fn, fp, ABSENT_SHORT, Modal, TT } from '@/components/Theme';
 import { resolveRent } from '@/lib/billing/propertyFacts';
 import { statusLabel, type StatusRow } from '@/lib/property/status';
@@ -636,34 +636,21 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
         Όπου δεν υπάρχει καταχωρημένη δόση ενοικίου, το ποσό είναι εκτίμηση και σημειώνεται δίπλα του.
       </div>
 
-      {/* Ήρεμη μπάρα μαζικών ενεργειών (Gmail/Linear style) */}
+      {/* Η ΜΠΑΡΑ ΗΤΑΝ ΓΡΑΜΜΕΝΗ ΕΔΩ ΚΑΙ ΞΑΝΑ ΣΤΙΣ ΕΚΚΡΕΜΟΤΗΤΕΣ, με πέντε
+          διαφορές που δεν αποφάσισε ποτέ κανείς. Ζει τώρα μία φορά. */}
       {selected.size > 0 && (
-        <div style={{ position: 'fixed', bottom: 'var(--float-bottom)', left: '50%', transform: 'translateX(-50%)', zIndex: 'var(--float-z)', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 24, boxShadow: 'var(--elev-3)', overflow: 'hidden', minWidth: 'min(480px, calc(100vw - 24px))', maxWidth: 'calc(100vw - 24px)' }}>
-          <div style={{ padding: '12px 18px', borderRight: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 9, flexShrink: 0 }}>
-            <div style={{ minWidth: 24, height: 26, padding: '0 6px', borderRadius: T.radius.pill, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--accent-text)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{selected.size}</div>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', fontFamily: T.font.sans }}>{allSelected ? 'όλα επιλεγμένα' : 'επιλεγμένα'}</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-            {[
-              // Όταν είναι όλα επιλεγμένα, το «Καθαρισμός» έκανε ό,τι ακριβώς και
-              // το ✕ δεξιά του: δύο κουμπιά για μία ενέργεια, δίπλα-δίπλα. Μένει
-              // η επιλογή όλων, που είναι η μόνη που προσθέτει κάτι.
-              ...(allSelected ? [] : [{ label: `Επιλογή όλων (${rows.length})`, fn: toggleAll, color: 'var(--text-secondary)', hoverBg: 'var(--bg-surface)' }]),
-              { label: 'Νέα εργασία σε επιλεγμένα', fn: () => setShowBulk(true), color: 'var(--accent)', hoverBg: 'var(--accent-soft)' },
-            ].map((a, i, arr) => (
-              <button key={i} type="button" onClick={a.fn}
-                style={{ flex: 1, padding: '12px 6px', border: 'none', borderRight: i < arr.length - 1 ? '1px solid var(--border-subtle)' : 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: a.color, fontWeight: 600, fontSize: 13, transition: 'background 0.15s', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}
-                onMouseEnter={e => e.currentTarget.style.background = a.hoverBg}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                {a.label}
-              </button>
-            ))}
-          </div>
-          <button type="button" aria-label="Ακύρωση επιλογής" onClick={clearSelection}
-            style={{ padding: '12px 16px', border: 'none', borderLeft: '1px solid var(--border-subtle)', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, lineHeight: 1, flexShrink: 0, transition: 'background 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-surface)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>✕</button>
-        </div>
+        <BulkActionBar
+          count={selected.size}
+          countLabel={allSelected ? 'όλα επιλεγμένα' : 'επιλεγμένα'}
+          onClear={clearSelection}
+          actions={[
+            // Οταν είναι όλα επιλεγμένα, το «Καθαρισμός» έκανε ό,τι ακριβώς και
+            // το ✕ δεξιά του: δύο κουμπιά για μία ενέργεια, δίπλα-δίπλα. Μένει
+            // η επιλογή όλων, που είναι η μόνη που προσθέτει κάτι.
+            ...(allSelected ? [] : [{ label: `Επιλογή όλων (${rows.length})`, onClick: toggleAll }]),
+            { label: 'Νέα εργασία σε επιλεγμένα', onClick: () => setShowBulk(true), tone: 'accent' as const },
+          ]}
+        />
       )}
 
       {/* Modal: νέα εργασία σε επιλεγμένα ακίνητα */}

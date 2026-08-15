@@ -936,6 +936,65 @@ interface ToggleProps {
   size?: 'sm' | 'md';
 }
 
+// ═══ Η ΜΠΑΡΑ ΜΑΖΙΚΩΝ ΕΝΕΡΓΕΙΩΝ ════════════════════════════════════════════
+//
+// ΗΤΑΝ ΓΡΑΜΜΕΝΗ ΔΥΟ ΦΟΡΕΣ ΣΤΟ ΧΕΡΙ, στις Εκκρεμότητες και στο Χαρτοφυλάκιο, και
+// είχε ΗΔΗ αποκλίνει σε πέντε σημεία: το σήμα του πλήθους με `borderRadius: 6`
+// εδώ και `T.radius.pill` εκεί, βάρος 800 έναντι 700, γραμματοσειρά `mono`
+// έναντι `num`, εσωτερική απόσταση κουμπιού 4 έναντι 6, και το κλείσιμο άλλοτε
+// εικονίδιο και άλλοτε ο χαρακτήρας «✕».
+//
+// Καμία από αυτές τις διαφορές δεν αποφασίστηκε ποτέ: προέκυψαν επειδή το ίδιο
+// πράγμα γράφτηκε δεύτερη φορά. Ο χρήστης που επιλέγει πολλαπλά στη μία οθόνη
+// και μετά στην άλλη βλέπει δύο παραλλαγές του ίδιου εργαλείου.
+//
+// ΤΙ ΚΡΑΤΗΘΗΚΕ ΑΠΟ ΠΟΙΑ. Οι τιμές που βγαίνουν από τα tokens (pill, `num`,
+// βάρος 700) και το εικονίδιο αντί για χαρακτήρα, που είναι το μόνο από τα δύο
+// που παραμένει σωστό σε κάθε γραμματοσειρά.
+export interface BulkAction {
+  label: string;
+  onClick: () => void;
+  /** «accent» για τη δημιουργική ενέργεια, «strong» για την κύρια. */
+  tone?: 'default' | 'strong' | 'accent';
+}
+
+export function BulkActionBar({ count, countLabel, actions, onClear, minWidth = 480 }: {
+  count: number;
+  /** Τι μετρήθηκε, ήδη στον σωστό αριθμό: «επιλεγμένα», «όλα επιλεγμένα». */
+  countLabel: string;
+  actions: BulkAction[];
+  onClear: () => void;
+  minWidth?: number;
+}) {
+  const ink = (t: BulkAction['tone']) =>
+    t === 'accent' ? 'var(--accent)' : t === 'strong' ? 'var(--text-primary)' : 'var(--text-secondary)';
+  const hover = (t: BulkAction['tone']) => (t === 'accent' ? 'var(--accent-soft)' : 'var(--bg-surface)');
+  return (
+    <div style={{ position: 'fixed', bottom: 'var(--float-bottom)', left: '50%', transform: 'translateX(-50%)', zIndex: 'var(--float-z)', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: T.radius.modal, boxShadow: 'var(--elev-3)', overflow: 'hidden', minWidth: `min(${minWidth}px, calc(100vw - 24px))`, maxWidth: 'calc(100vw - 24px)' }}>
+      <div style={{ padding: '12px 18px', borderRight: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 9, flexShrink: 0 }}>
+        <div style={{ minWidth: 24, height: 26, padding: '0 6px', borderRadius: T.radius.pill, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--accent-text)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{count}</div>
+        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', fontFamily: T.font.sans }}>{countLabel}</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+        {actions.map((a, i, arr) => (
+          <button key={a.label} type="button" onClick={a.onClick}
+            style={{ flex: 1, padding: '12px 6px', border: 'none', borderRight: i < arr.length - 1 ? '1px solid var(--border-subtle)' : 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: ink(a.tone), fontWeight: 600, fontSize: 13, transition: 'background 0.15s', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}
+            onMouseEnter={e => { e.currentTarget.style.background = hover(a.tone); }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
+            {a.label}
+          </button>
+        ))}
+      </div>
+      <button type="button" aria-label="Ακύρωση επιλογής" onClick={onClear}
+        style={{ padding: '12px 16px', border: 'none', borderLeft: '1px solid var(--border-subtle)', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, lineHeight: 1, flexShrink: 0, transition: 'background 0.15s' }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-surface)'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
+        <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+  );
+}
+
 /**
  * ΜΟΝΟ Η ΟΨΗ ΤΟΥ ΔΙΑΚΟΠΤΗ, ΧΩΡΙΣ ΚΟΥΜΠΙ.
  *
