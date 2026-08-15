@@ -102,8 +102,9 @@ begin
   -- Η έβδομη είναι απευθείας, χωρίς προμήθεια. Η όγδοη είναι Airbnb ΧΩΡΙΣ
   -- καταγεγραμμένη προμήθεια: το κενό που ο φάκελος του λογιστή ονομάζει
   -- ρητά, αντί να το γεμίσει με εκτίμηση.
-  -- Ο επισκέπτης είναι πελάτης: η διαμονή κρέμεται από αυτόν, και το
-  -- `property_id` των διαμονών είναι κείμενο, όχι uuid.
+  -- Ο επισκέπτης είναι πελάτης και η διαμονή κρέμεται από αυτόν. Το
+  -- `property_id` ήταν κείμενο ώς το 20260815100000 και χρειαζόταν ρητό cast
+  -- εδώ· τώρα είναι `uuid` όπως παντού, οπότε το cast έφυγε.
   insert into public.clients(id, user_id, type, full_name, email)
   select gen_random_uuid(), uid, 'client', g.name, g.mail
     from (values
@@ -115,7 +116,7 @@ begin
 
   insert into public.client_stays(user_id, client_id, property_id, check_in, check_out, nights, channel,
                                   gross_guest_paid, climate_levy, platform_fee, total, amount_basis)
-  select uid, c.id, p_short::text, s.cin::date, s.cout::date, 4, s.ch,
+  select uid, c.id, p_short, s.cin::date, s.cout::date, 4, s.ch,
          s.gross, 8, s.fee, s.gross - 8 - s.fee, 'gross'
     from (values
       ('Marco R.',   '2026-05-10', '2026-05-14', 'airbnb',   508,  60),

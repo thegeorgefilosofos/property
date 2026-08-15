@@ -255,69 +255,77 @@ begin
 end $probe$;
 
 -- ═══════════════════════════════════════════════════════════════════════════
--- 10. Η ΕΓΓΥΗΣΗ ΤΗΣ ΔΙΑΓΡΑΦΗΣ ΕΠΙΒΙΩΝΕΙ ΤΗΣ ΑΝΑΚΛΗΣΗΣ ΔΙΚΑΙΩΜΑΤΩΝ
+-- 10. Η ΕΓΓΥΗΣΗ ΤΗΣ ΔΙΑΓΡΑΦΗΣ ΕΙΝΑΙ ΔΗΛΩΤΙΚΗ, ΟΧΙ ΔΙΑΔΙΚΑΣΤΙΚΗ
 -- ─────────────────────────────────────────────────────────────────────────
--- ΓΙΑΤΙ ΓΡΑΦΤΗΚΕ. Η `purge_property_children()` δημιουργήθηκε SECURITY DEFINER
--- και κληρονόμησε το προεπιλεγμένο EXECUTE που η Postgres δίνει στο PUBLIC.
--- Το `20260815080000_purge_trigger_least_privilege.sql` το ανακάλεσε από
--- public, anon και authenticated.
+-- ΤΙ ΑΛΛΑΞΕ ΚΑΙ ΓΙΑΤΙ ΓΡΑΦΤΗΚΕ ΞΑΝΑ ΑΥΤΟΣ Ο ΕΛΕΓΧΟΣ. Ωσπου το `property_id` να
+-- γίνει `uuid`, δεν μπορούσαν να μπουν ξένα κλειδιά, οπότε το σβήσιμο ακινήτου
+-- κρεμόταν από σκανδάλη που έσβηνε δέκα πίνακες με το χέρι. Μια λίστα δέκα
+-- ονομάτων μέσα σε συνάρτηση ξεχνά τον ενδέκατο πίνακα σιωπηλά.
 --
--- Η ανάκληση στηρίζεται σε μια συμπεριφορά της Postgres που είναι σωστή αλλά
--- ΔΕΝ ΕΙΝΑΙ ΠΡΟΦΑΝΗΣ: το δικαίωμα EXECUTE σε συνάρτηση σκανδάλης ελέγχεται μία
--- φορά, στο CREATE TRIGGER, και ΟΧΙ σε κάθε πυροδότηση. Αν αυτό άλλαζε ποτέ,
--- ή αν κάποιος έγραφε τη σκανδάλη αλλιώς, η διαγραφή ακινήτου θα σταματούσε να
--- καθαρίζει τους δέκα πίνακες και θα έμεναν πίσω δεδομένα πελάτη σε βάση όπου
--- ο ιδιοκτήτης νομίζει ότι έσβησε το ακίνητό του. Καμία οθόνη δεν θα το έδειχνε.
+-- Τώρα η εγγύηση είναι είκοσι τέσσερα ξένα κλειδιά `on delete cascade` και η
+-- σκανδάλη έφυγε. Ο έλεγχος ελέγχει το ΑΠΟΤΕΛΕΣΜΑ, όχι τον μηχανισμό: αν
+-- κάποτε αλλάξει ξανά ο τρόπος, ο έλεγχος συνεχίζει να έχει νόημα.
 --
--- Ενα σχόλιο δεν εγγυάται τίποτα. Ο έλεγχος εγγυάται.
+-- ΤΟ ΚΟΣΤΟΣ ΤΗΣ ΑΠΟΤΥΧΙΑΣ ΤΟΥ: ο ιδιοκτήτης πατά «Διαγραφή ακινήτου», η οθόνη
+-- λέει ότι έγινε, και στη βάση μένουν πίσω σύνδεσμοι πύλης, τιμολόγηση και
+-- στοιχεία επισκεπτών. Καμία οθόνη δεν τα δείχνει και κανείς δεν μαθαίνει ποτέ.
 do $probe$
 declare
   v_uid  uuid := '11111111-1111-1111-1111-111111111111';
   v_prop uuid := '3f3f3f3f-3f3f-4f3f-8f3f-3f3f3f3f3f3f';
-  n_after integer;
+  n_fk integer; n integer;
 begin
-  -- Ο ανώνυμος ΔΕΝ πρέπει να μπορεί να την καλέσει.
-  if has_function_privilege('anon', 'public.purge_property_children()', 'execute') then
-    raise exception 'Ο ανώνυμος έχει EXECUTE στην purge_property_children: SECURITY DEFINER ανοιχτή στο διαδίκτυο';
-  end if;
-  if has_function_privilege('public', 'public.purge_property_children()', 'execute') then
-    raise exception 'Το PUBLIC έχει EXECUTE στην purge_property_children';
+  -- Τα ξένα κλειδιά υπάρχουν και ΟΛΑ κάνουν cascade. Ενα «no action» ανάμεσά
+  -- τους θα εμπόδιζε ολόκληρη τη διαγραφή αντί να καθαρίσει.
+  select count(*) into n_fk
+  from pg_constraint con join pg_class c on c.oid = con.conrelid
+  join pg_namespace ns on ns.oid = c.relnamespace
+  where ns.nspname = 'public' and con.contype = 'f' and con.confdeltype = 'c'
+    and c.relname in ('checkin_links','client_stays','guest_checkins','ical_feeds','inventory_handovers',
+      'inventory_items','inventory_maintenance','maintenance_requests','portal_links','pricing_settings')
+    and con.conkey = array[(select attnum from pg_attribute where attrelid = c.oid and attname = 'property_id')];
+  if n_fk <> 10 then
+    raise exception 'Περίμενα δέκα ξένα κλειδιά property_id με cascade, βρήκα %', n_fk;
   end if;
 
-  -- Και όμως η σκανδάλη πρέπει να κάνει τη δουλειά της.
+  -- Και η σκανδάλη ΔΕΝ πρέπει να έχει επιστρέψει: δύο μηχανισμοί για την ίδια
+  -- εγγύηση σημαίνει ότι κανείς δεν ξέρει ποιος από τους δύο δουλεύει.
+  if exists (select 1 from pg_proc p join pg_namespace ns on ns.oid = p.pronamespace
+             where ns.nspname = 'public' and p.proname = 'purge_property_children') then
+    raise exception 'Η σκανδάλη purge_property_children ξαναγύρισε δίπλα στα ξένα κλειδιά';
+  end if;
+
   insert into auth.users (id, email) values (v_uid, 'purge-probe@example.gr')
     on conflict (id) do nothing;
   insert into public.user_properties (id, user_id, name)
     values (v_prop, v_uid, 'Ακίνητο δοκιμής διαγραφής');
   insert into public.portal_links (property_id, user_id, token)
-    values (v_prop::text, v_uid, 'purge-probe-token');
+    values (v_prop, v_uid, 'purge-probe-token');
   insert into public.pricing_settings (property_id, user_id)
-    values (v_prop::text, v_uid);
+    values (v_prop, v_uid);
 
   -- ΠΡΩΤΑ ΒΕΒΑΙΩΣΟΥ ΟΤΙ ΥΠΑΡΧΟΥΝ. Χωρίς αυτό ο έλεγχος είναι κενός: αν οι
   -- εισαγωγές αποτύγχαναν σιωπηλά, το πλήθος μετά τη διαγραφή θα ήταν μηδέν
   -- έτσι κι αλλιώς και ο έλεγχος θα περνούσε χωρίς να έχει δοκιμάσει τίποτα.
-  select (select count(*) from public.portal_links     where property_id = v_prop::text)
-       + (select count(*) from public.pricing_settings where property_id = v_prop::text)
-    into n_after;
-  if n_after <> 2 then
-    raise exception 'Ο έλεγχος είναι κενός: περίμενα δύο γραμμές παιδιών πριν τη διαγραφή, βρήκα %', n_after;
+  select (select count(*) from public.portal_links     where property_id = v_prop)
+       + (select count(*) from public.pricing_settings where property_id = v_prop)
+    into n;
+  if n <> 2 then
+    raise exception 'Ο έλεγχος είναι κενός: περίμενα δύο γραμμές παιδιών πριν τη διαγραφή, βρήκα %', n;
   end if;
 
   delete from public.user_properties where id = v_prop;
 
-  select (select count(*) from public.portal_links     where property_id = v_prop::text)
-       + (select count(*) from public.pricing_settings where property_id = v_prop::text)
-    into n_after;
-
-  if n_after <> 0 then
-    raise exception 'Η σκανδάλη καθαρισμού δεν έτρεξε: έμειναν % γραμμές παιδιών μετά τη διαγραφή του ακινήτου', n_after;
+  select (select count(*) from public.portal_links     where property_id = v_prop)
+       + (select count(*) from public.pricing_settings where property_id = v_prop)
+    into n;
+  if n <> 0 then
+    raise exception 'Η διαγραφή ακινήτου άφησε % γραμμές παιδιών πίσω', n;
   end if;
 
-  raise notice 'probe: η διαγραφή ακινήτου καθαρίζει τα παιδιά της, με ανακλημένο EXECUTE';
+  raise notice 'probe: η διαγραφή ακινήτου καθαρίζει τα παιδιά της από ξένο κλειδί';
 end $probe$;
 
--- ═══════════════════════════════════════════════════════════════════════════
 -- 11. ΤΟ ON CONFLICT ΤΗΣ ΕΙΣΑΓΩΓΗΣ ΤΡΑΠΕΖΑΣ ΒΡΙΣΚΕΙ ΤΟ ΕΥΡΕΤΗΡΙΟ ΤΟΥ
 -- ─────────────────────────────────────────────────────────────────────────
 -- ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΚΑΡΦΩΝΕΤΑΙ ΕΔΩ. Το `uq_expenses_dedup` ήταν μερικό ευρετήριο
