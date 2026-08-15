@@ -3,6 +3,7 @@
 // Χωρίς I/O ώστε να δοκιμάζεται ντετερμινιστικά· η άντληση/εγγραφή γίνεται στο UI.
 
 import { nightsBetween } from '../core/greek'
+import { declarableGrossOrTotal } from '../clients/stayAmounts'
 import type { EventDraft } from '../data/calendar'
 
 export interface StayInput {
@@ -10,6 +11,12 @@ export interface StayInput {
   check_in: string                 // YYYY-MM-DD
   check_out?: string | null        // YYYY-MM-DD
   total?: number | null
+  /** Η ανάλυση της πλατφόρμας, όταν υπάρχει. Χωρίς αυτήν το `total` είναι το
+   *  μόνο που ξέρουμε, και το `declarableGrossOrTotal` το επιστρέφει αυτούσιο. */
+  gross_guest_paid?: number | null
+  platform_fee?: number | null
+  climate_levy?: number | null
+  amount_basis?: string | null
   nights?: number | null
   guests?: number | null
   channel?: string | null          // airbnb | booking | other
@@ -55,7 +62,11 @@ export function buildBookingEvents(stays: StayInput[]): EventDraft[] {
       .filter(Boolean).join(' · ')
     rows.push({
       title: `Άφιξη, ${guest}`, category: 'tenant', event_date: s.check_in,
-      amount: s.total ?? null, priority: 'medium', status: 'pending',
+      // ΔΗΛΩΤΕΟ ΑΚΑΘΑΡΙΣΤΟ, ΟΧΙ ΩΜΟ `total`. Το γεγονός γράφεται με
+      // `status: 'pending'`, και το ημερολόγιο αθροίζει τα εκκρεμή ποσά του
+      // μήνα στην κεφαλίδα του. Με payout, η ίδια κράτηση έδειχνε εδώ ένα
+      // νούμερο και στη Λογιστική άλλο, μικρότερο κατά την προμήθεια.
+      amount: declarableGrossOrTotal(s) || null, priority: 'medium', status: 'pending',
       recurring: false, recurring_interval: null, source: `booking:${s.id}:in`,
       notes: [detail, validDate(s.check_out) ? `Αναχώρηση: ${s.check_out}` : ''].filter(Boolean).join('\n') || null,
     })

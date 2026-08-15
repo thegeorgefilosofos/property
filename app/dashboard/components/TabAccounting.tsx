@@ -49,6 +49,7 @@ import type { VatDeduction } from '@/lib/tax/myData'
 import type { PlanId } from '@/lib/billing/plans'
 import { exportAccountantBundle, toMovement } from './accountantExport'
 import { buildRegister, chargeForYear, RENTED_PROPERTY_ACCOUNT, EQUIPMENT_ACCOUNT } from '@/lib/accounting/fixedAssets'
+import { declarableGrossOrTotal } from '@/lib/clients/stayAmounts'
 import { CAPITALISABLE } from '@/lib/tax/elpAccounts'
 import { CATEGORIES, resolveCategory } from '@/lib/expenses/taxonomy'
 import EnfiaPanel from './EnfiaPanel';
@@ -527,7 +528,25 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const entries = useMemo<LedgerInput[]>(()=>{
     const out:LedgerInput[]=[]
     for(const p of rent){ if(p.paid&&(p.amount||0)>0){ out.push({ date:rentStore.bookDate(p), type:'income', category:'Ενοίκιο', description:`Ενοίκιο ${MONTHS_SHORT[(p.period_month||1)-1]} ${p.period_year}`, amount:p.amount, source:'rent' }) } }
-    for(const s of stays){ if((s.total||0)>0&&s.check_in){ out.push({ date:s.check_in, type:'income', category:'Βραχυχρόνια', description:`Κράτηση ${s.channel||''}`.trim(), amount:s.total||0, source:'stay' }) } }
+    // ═══ Η ΠΡΟΜΗΘΕΙΑ ΑΦΑΙΡΟΥΝΤΑΝ ΔΥΟ ΦΟΡΕΣ ═══════════════════════════════
+    // Το `total` μιας διαμονής ΔΕΝ είναι πάντα το ακαθάριστο: όταν το
+    // `amount_basis` είναι «payout», είναι ΗΔΗ καθαρό από την προμήθεια της
+    // πλατφόρμας. Εδώ γραφόταν αυτούσιο ως έσοδο, και τρεις γραμμές πιο κάτω
+    // η ΙΔΙΑ προμήθεια ξαναμπαίνει ως δαπάνη. Δηλαδή αφαιρούνταν δύο φορές,
+    // ακριβώς στις κρατήσεις που έχουν ανάλυση, δηλαδή στις εισαγόμενες από
+    // πλατφόρμα.
+    //
+    // Το lib/clients/stayAmounts.ts το γράφει ρητά στην κεφαλίδα του: «η
+    // προμήθεια αφαιρείται ΜΕΤΑ το ακαθάριστο επίτηδες, εκπίπτει ως δαπάνη,
+    // δεν μειώνει το δηλωτέο έσοδο». Και η σωστή γραφή υπήρχε ήδη είκοσι
+    // αρχεία δίπλα, στο JournalExport.
+    //
+    // ΠΟΥ ΕΦΤΑΝΕ ΤΟ ΛΑΘΟΣ: στις «Κινήσεις», στο ταμειακό γράφημα, και μέσω του
+    // `book` στο ΠΡΩΤΟ ΦΥΛΛΟ του φακέλου του λογιστή («ΣΥΝΟΛΑ ΕΤΟΥΣ»), όπου
+    // διαφωνούσε με την «Κατάσταση αποτελεσμάτων» του διπλανού φύλλου κατά
+    // ολόκληρη την προμήθεια. Ενα βιβλίο που αντιφάσκει με τον εαυτό του στο
+    // εξώφυλλο δεν διορθώνεται από τον λογιστή: απορρίπτεται.
+    for(const s of stays){ const g=declarableGrossOrTotal(s); if(g>0&&s.check_in){ out.push({ date:s.check_in, type:'income', category:'Βραχυχρόνια', description:`Κράτηση ${s.channel||''}`.trim(), amount:g, source:'stay' }) } }
     for(const e of expenses){ if((e.amount||0)>0&&e.date){ out.push({ date:e.date, type:'expense', category:e.category||'Δαπάνες', description:e.description||'Δαπάνη', amount:e.amount, source:'expense', supplier_country:e.supplier_country, supply:e.supply, supplier_afm:e.supplier_afm }) } }
     // Η προμήθεια της κάθε κράτησης, δίπλα στο έσοδο της ίδιας κράτησης.
     for(const f of platformFeeRows){ out.push({ date:f.date, type:'expense', category:f.category, description:f.description, amount:f.amount, source:'expense' }) }
@@ -545,7 +564,9 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     const incomes:IncomeRec[] = []
     // ΤΑΜΕΙΑΚΗ ΕΠΙΛΟΓΗ, ΟΠΩΣ ΚΑΙ ΟΙ ΚΙΝΗΣΕΙΣ. Ο κανόνας ζει στο lib/data/rent.ts.
     for(const p of rentStore.collectedIn(rent, year)){ incomes.push({ date:rentStore.bookDate(p), amount:p.amount||0, description:`Ενοίκιο ${MONTHS_SHORT[(p.period_month||1)-1]} ${p.period_year}` }) }
-    for(const s of stays){ if((s.total||0)>0&&s.check_in&&String(s.check_in).slice(0,4)===String(year)){ incomes.push({ date:s.check_in, amount:s.total||0, description:`Κράτηση ${s.channel||''}`.trim() }) } }
+    // Δηλωτέο ακαθάριστο, όχι payout: η προμήθεια μπαίνει χωριστά ως δαπάνη
+    // τρεις γραμμές πιο κάτω, και δεν επιτρέπεται να αφαιρεθεί και από τα δύο.
+    for(const s of stays){ const g=declarableGrossOrTotal(s); if(g>0&&s.check_in&&String(s.check_in).slice(0,4)===String(year)){ incomes.push({ date:s.check_in, amount:g, description:`Κράτηση ${s.channel||''}`.trim() }) } }
     const exp:ExpenseRec[] = []
     for(const e of expenses){ if((e.amount||0)>0&&e.date&&String(e.date).slice(0,4)===String(year)){ exp.push({ date:e.date, amount:e.amount, category:e.category, description:e.description }) } }
     for(const f of platformFeeRows){ exp.push({ date:f.date, amount:f.amount, category:f.category, description:f.description }) }
