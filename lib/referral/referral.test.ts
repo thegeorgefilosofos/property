@@ -1,6 +1,6 @@
 // npx tsx lib/referral/referral.test.ts
 import {
-  referralCode, referralLink, isValidReferral, isSelfOrDuplicate, normalizePhone,
+  referralCode, referralLink, isReferralCode, isValidReferral, isSelfOrDuplicate, normalizePhone,
   isActivated, REFEREE_TRIAL_MONTHS,
   individualReferrerReward, refereeWelcome,
   REFERRER_SLOT_MONTHS, INDIV_PRO_BONUS_MONTHS,
@@ -23,6 +23,15 @@ ok(/^PO[0-9A-Z]{7}$/.test(referralCode(uid)), 'κωδικός σε μορφή (P
 ok(referralCode(uid).length === 9, 'κωδικός σταθερού μήκους 9');
 ok(referralCode(uid) !== referralCode('other'), 'διαφορετικοί χρήστες → διαφορετικοί κωδικοί');
 ok(referralLink('https://propertyos.gr/', uid) === `https://propertyos.gr/signup?ref=${referralCode(uid)}`, 'σύνδεσμος καθαρός');
+
+// Ο έλεγχος μορφής φυλάει την οθόνη της εγγραφής: ό,τι δείχνεται ως «κωδικός
+// πρόσκλησης» έρχεται από τη διεύθυνση, άρα το γράφει ο καθένας.
+ok(isReferralCode(referralCode(uid)), 'ο παραγόμενος κωδικός περνά τον δικό του έλεγχο');
+ok(isReferralCode(' ' + referralCode(uid) + ' '), 'τα κενά γύρω δεν ακυρώνουν κωδικό');
+ok(!isReferralCode('po1234567'), 'πεζά: δεν είναι κωδικός');
+ok(!isReferralCode('PO12345'), 'κοντός: δεν είναι κωδικός');
+ok(!isReferralCode('<b>PO1234567</b>'), 'κείμενο γύρω από κωδικό: δεν είναι κωδικός');
+ok(!isReferralCode(null) && !isReferralCode(''), 'κενό: δεν είναι κωδικός');
 
 // ── Εγκυρότητα ──
 ok(isValidReferral('A', 'B', true) === true, 'έγκυρη');

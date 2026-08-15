@@ -35,6 +35,7 @@ import TabInventory from './components/TabInventory';
 import { ASSISTANT_NAME } from '@/lib/assistant/identity';
 import type { OpenerContext } from '@/lib/assistant/openers';
 import { NAV_LABELS, navLabel } from '@/lib/nav/labels';
+import { readLaunchShortcut } from '@/lib/nav/history';
 import { mergeLedger, ledgerTotal } from '@/lib/expenses/ledger';
 import TabContacts  from './components/TabContacts';
 import TabChecklist from './components/TabChecklist';
@@ -170,6 +171,34 @@ const NAV_ORDER = ['portfolio','overview','calendar','finances','accounting','lo
   'referral','settings'];
 const NAV_ITEMS = NAV_ORDER.map(id => ({ id, label: navLabel(id) }));
 const NAV_LABEL = NAV_LABELS;
+
+// ═══ ΟΙ ΔΥΟ ΣΥΝΤΟΜΕΥΣΕΙΣ ΤΟΥ ΕΙΚΟΝΙΔΙΟΥ ΦΤΑΝΟΥΝ ΕΠΙΤΕΛΟΥΣ ΚΑΠΟΥ ═════════
+//
+// Το app/manifest.ts δηλώνει δύο συντομεύσεις για το μακρύ πάτημα στο εικονίδιο:
+// «Σάρωση εγγράφου» (?action=scan) και «Δαπάνες» (?tab=finances). Ο πίνακας δεν
+// διάβαζε ΚΑΝΕΝΑ κλειδί ερωτήματος, οπότε και οι δύο κατέληγαν στην Επισκόπηση:
+// δύο υποσχέσεις γραμμένες στο λειτουργικό του χρήστη, καμία εκτελεσμένη. Ο
+// ιδιοκτήτης που κρατά τον λογαριασμό της ΔΕΗ στο ένα χέρι πατούσε «Σάρωση» και
+// έβλεπε αρχική οθόνη.
+//
+// ΓΙΑΤΙ ΕΔΩ ΚΑΙ ΟΧΙ ΣΕ EFFECT. Η συντόμευση είναι ψυχρή εκκίνηση: το λειτουργικό
+// ανοίγει τη διεύθυνση από την αρχή, άρα η μετάφρασή της ανήκει στη φόρτωση της
+// μονάδας, πριν αποδοθεί οτιδήποτε. Σε effect θα γινόταν μετά την πρώτη βαφή:
+// ο χρήστης θα έβλεπε την Επισκόπηση για ένα καρέ και μετά την καρτέλα του.
+//
+// Η καρτέλα ζει στο hash (useNavHistory), γι' αυτό το `tab` ΜΕΤΑΦΡΑΖΕΤΑΙ σε hash
+// αντί να διαβάζεται παράλληλα. Το `action` ανοίγει τη γρήγορη προσθήκη, που
+// ούτως ή άλλως περιμένει επιλεγμένο ακίνητο.
+function takeLaunchShortcut(): { scan: boolean } {
+  if (typeof window === 'undefined') return { scan: false };
+  const s = readLaunchShortcut(window.location.search, window.location.hash, NAV_ORDER);
+  if (!s.consumed) return { scan: false };
+  // Η διεύθυνση καθαρίζεται με replaceState: αλλιώς κάθε ανανέωση θα ξανάνοιγε
+  // το παράθυρο σάρωσης και το «πίσω» θα κολλούσε στην ίδια συντόμευση.
+  window.history.replaceState(null, '', window.location.pathname + s.search + (s.hash ?? window.location.hash));
+  return { scan: s.scan };
+}
+const LAUNCH = takeLaunchShortcut();
 
 // Εικονίδια πλοήγησης, καθαρή, γρήγορη οπτική αναγνώριση (ακόμη κι από άπειρο μάτι).
 // Τέσσερα κλειδιά έφυγαν από εδώ: comparison, bills, expenses και contacts. Δεν
@@ -1172,8 +1201,13 @@ export default function Dashboard() {
   const [editProperty, setEditProperty] = useState<Property | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);  // συρόμενο μενού σε κινητό/tablet
   const [cmdkOpen, setCmdkOpen] = useState(false);        // command palette (⌘K)
-  const [quickAddOpen, setQuickAddOpen] = useState(false);// γρήγορη προσθήκη με φωτογραφία/σάρωση
+  // Ανοιχτή από την πρώτη απόδοση όταν το ζήτησε η συντόμευση του εικονιδίου. Το
+  // παράθυρο ούτως ή άλλως περιμένει χρήστη και ακίνητο, που φορτώνονται μετά,
+  // οπότε η αρχική τιμή δεν αλλάζει τίποτα στην πρώτη εικόνα — αλλάζει το ότι
+  // δεν χρειάζεται δεύτερη απόδοση για να φανεί.
+  const [quickAddOpen, setQuickAddOpen] = useState(LAUNCH.scan);// γρήγορη προσθήκη με φωτογραφία/σάρωση
   const [showWelcome, setShowWelcome] = useState(false);// καλωσόρισμα πρώτης χρήσης
+
   // ── Ο ΠΙΝΑΚΑΣ «ΑΠΟ ΠΟΥ ΞΕΚΙΝΑΣ» ─────────────────────────────────────────
   // Τα σήματα διαβάζονται ΜΙΑ φορά, μαζί με τα υπόλοιπα counts της εκκίνησης:
   // ο πίνακας δεν δικαιολογεί δικό του ερώτημα σε κάθε φόρτωση της Επισκόπησης.

@@ -144,27 +144,69 @@ function MarketDataSharing({ userId }: { userId: string }) {
 }
 
 // ── Οριστική διαγραφή λογαριασμού (μη αναστρέψιμη), bare block ─────────────
+/**
+ * ΤΟ RPC ΕΠΕΣΤΡΕΦΕ `void` ΚΑΙ Η ΟΘΟΝΗ ΕΒΓΑΖΕ ΣΥΜΠΕΡΑΣΜΑ. Οσο η
+ * `delete_my_account` κατάπινε τις αποτυχίες του αποθηκευτικού χώρου
+ * (`exception when others then null`), το «χωρίς σφάλμα» εδώ σήμαινε μόνο
+ * «η βάση δεν παραπονέθηκε»: τα μισθωτήρια και οι ταυτότητες μπορεί να
+ * έμεναν στους τέσσερις ιδιωτικούς κάδους και ο χρήστης έβλεπε επιβεβαίωση.
+ *
+ * Από το 20260815120000 η συνάρτηση επιστρέφει μετρημένο απολογισμό. Οταν
+ * μένει έστω ένα αρχείο πίσω, η οθόνη το λέει αντί να ανακατευθύνει σιωπηλά.
+ */
+type DeleteReport = { ok?: boolean; files_left?: number | null };
+
+/** Τι έμεινε πίσω, με λέξεις. Κενό `left` σημαίνει «δεν μετρήθηκε καν». */
+function leftoverText(left: number | null | undefined): string {
+  const base = 'Ο λογαριασμός και τα δεδομένα σου διαγράφηκαν.';
+  if (left === null || left === undefined)
+    return `${base} Η διαγραφή των αρχείων σου από τον αποθηκευτικό χώρο δεν επιβεβαιώθηκε. Το περιστατικό καταγράφηκε.`;
+  const files = left === 1 ? '1 αρχείο' : `${fn(left)} αρχεία`;
+  return `${base} Δεν διαγράφηκαν ${files} από τον αποθηκευτικό χώρο. Το περιστατικό καταγράφηκε.`;
+}
+
 function DeleteAccount() {
   const supabase = createClient();
   const [open, setOpen] = useState(false);
   const [confirmText, setConfirmText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [leftover, setLeftover] = useState<string | null>(null);
   const ready = confirmText.trim().toUpperCase() === 'ΔΙΑΓΡΑΦΗ';
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    window.location.href = '/login';
+  };
 
   const del = async () => {
     if (!ready || busy) return;
     setBusy(true); setError(null);
-    const { error } = await supabase.rpc('delete_my_account');
+    const { data, error } = await supabase.rpc('delete_my_account');
     if (error) { setError(failed('Ο λογαριασμός δεν διαγράφηκε', error)); setBusy(false); return; }
-    await supabase.auth.signOut();
-    window.location.href = '/login';
+    const report = (data ?? {}) as DeleteReport;
+    // Ο λογαριασμός έχει ήδη φύγει, οπότε η αποσύνδεση γίνεται ούτως ή άλλως:
+    // εδώ κρίνεται μόνο αν ο χρήστης θα δει πρώτα τι δεν σβήστηκε.
+    if (report.ok === false) { setLeftover(leftoverText(report.files_left)); setBusy(false); return; }
+    await signOut();
   };
 
   return (
     <SetRow title="Διαγραφή λογαριασμού"
       desc="Διαγράφει οριστικά τον λογαριασμό και όλα τα δεδομένα σου: ακίνητα, ενοικιαστές, πελάτες, δαπάνες, λογαριασμούς, έγγραφα και αρχεία. Η ενέργεια δεν αναιρείται. Αν θέλεις αντίγραφο, προηγείται η εξαγωγή δεδομένων παραπάνω.">
-      {!open ? (
+      {leftover ? (
+        // Ο λογαριασμός έφυγε, κάτι όμως έμεινε πίσω. Η αποσύνδεση περιμένει
+        // τον χρήστη, ώστε το μήνυμα να μην περάσει με μια ανακατεύθυνση.
+        <div style={{ background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: T.radius.inner, padding: 16 }}>
+          <div style={{ fontSize: 13, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 12 }}>
+            {leftover}
+          </div>
+          <button onClick={signOut}
+            style={{ appearance: 'none', cursor: 'pointer', minHeight: 44, padding: '9px 18px', borderRadius: T.radius.btn, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700 }}>
+            Αποσύνδεση
+          </button>
+        </div>
+      ) : !open ? (
         // Ουδέτερο ως προεπιλογή· γίνεται κόκκινο μόνο στο hover/focus, ώστε να μη
         // «σπρώχνει» τον χρήστη προς την έξοδο, αλλά να είναι σαφές όταν το πλησιάζει.
         <button onClick={() => setOpen(true)}
@@ -347,6 +389,10 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   // αποκάλυψη (κλειστή ως προεπιλογή, ώστε να μη μοιάζει με λίστα).
   const [showManage, setShowManage] = useState(false);
   const manageRef = useRef<HTMLDivElement | null>(null);
+  // Δεύτερος στόχος κύλισης, μέσα στην ίδια αποκάλυψη: η χρέωση. Χωρίς αυτόν,
+  // κάθε CTA κατέληγε στην ΚΟΡΥΦΗ της ενότητας, και το κουμπί που πατιέται από
+  // τη μέση της σύγκρισης έστελνε τον χρήστη πίσω σε ό,τι μόλις διάβαζε.
+  const billingRef = useRef<HTMLDivElement | null>(null);
   const [exporting, setExporting] = useState(false);
   const [exportErr, setExportErr] = useState('');
   const [exportOk, setExportOk] = useState('');
@@ -427,6 +473,24 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
     setTimeout(() => manageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
   };
   const openComparison = openManage;
+
+  // ═══ ΤΟ ΚΟΥΜΠΙ ΤΗΣ ΣΥΓΚΡΙΣΗΣ ΠΗΓΑΙΝΕΙ ΠΛΕΟΝ ΚΑΠΟΥ ═══════════════════════
+  //
+  // Το κύριο κουμπί κάθε ανώτερης στήλης καλούσε `openManage`, ενώ ο μόνος
+  // τρόπος να το δει κανείς είναι να είναι ΗΔΗ ανοιχτή η ενότητα (η σύγκριση
+  // αποδίδεται μέσα στο `showManage`). Δηλαδή έθετε σε true κάτι που ήταν true
+  // και κυλούσε στην κορυφή της ίδιας ενότητας: μία ενέργεια που ακύρωνε την
+  // ανάγνωση αντί να την προχωρήσει.
+  //
+  // Πληρωμή με κάρτα δεν υπάρχει ακόμη σε κανένα σημείο του κώδικα, οπότε
+  // «αναβάθμιση με ένα κλικ» δεν μπορεί να υποσχεθεί κουμπί. Το ΜΟΝΟ αληθινό
+  // επόμενο βήμα σήμερα είναι η χρέωση από κάτω: στοιχεία τιμολόγησης, και το
+  // πλαίσιο που λέει ειλικρινά πότε ενεργοποιείται η κάρτα. Εκεί οδηγεί, και
+  // έτσι ονομάζεται.
+  const openBilling = () => {
+    setShowManage(true);
+    setTimeout(() => billingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+  };
 
   const ent = { plan, profileType, partner, compPlan, compUntil, createdAt: accountCreatedAt };
   const effPlan = effectivePlan(ent);
@@ -670,8 +734,8 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
           έπειτα τα στοιχεία τιμολόγησης και η χρέωση (νηφάλια). Μία αποκάλυψη. */}
       {showManage && (
         <div ref={manageRef} style={{ scrollMarginTop: 16 }}>
-          <PlanComparison profileType={profileType} currentPlan={effPlan} onUpgrade={openManage} />
-          <Billing userId={userId} />
+          <PlanComparison profileType={profileType} currentPlan={effPlan} onUpgrade={openBilling} />
+          <div ref={billingRef} style={{ scrollMarginTop: 16 }}><Billing userId={userId} /></div>
         </div>
       )}
 

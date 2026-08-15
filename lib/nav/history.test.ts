@@ -4,7 +4,7 @@
 // Μπορεί να το πληκτρολογήσει, να το επικολλήσει από παλιό μήνυμα, ή να μείνει
 // από προηγούμενη έκδοση της εφαρμογής. Καμία τιμή δεν επιτρέπεται να ρίξει τον
 // πίνακα — και καμία δεν επιτρέπεται να μπει αυτούσια σε επόμενο σύνδεσμο.
-import { parseNavHash, formatNavHash, shouldPush } from './history'
+import { parseNavHash, formatNavHash, shouldPush, readLaunchShortcut } from './history'
 
 let pass = 0, fail = 0
 const ok = (n: string, c: boolean) => { if (c) pass++; else { fail++; console.error('✗ ' + n) } }
@@ -63,6 +63,35 @@ ok('αφαίρεση ακινήτου → εγγραφή', shouldPush(L('a', 'p'
   const b = parseNavHash('#tenant/p1', FB)
   ok('το ακίνητο επιβιώνει της αλλαγής καρτέλας', a.propertyId === b.propertyId)
   ok('και μετράει ως νέα θέση', shouldPush(a, b))
+}
+
+// ── ΟΙ ΣΥΝΤΟΜΕΥΣΕΙΣ ΤΟΥ ΕΙΚΟΝΙΔΙΟΥ ────────────────────────────────────────
+// Το manifest υπόσχεται δύο ενέργειες στο μακρύ πάτημα. Οποιος τις πατά είναι
+// όρθιος, με το ένα χέρι, και δεν έχει διάθεση να ψάξει καρτέλα.
+{
+  const KNOWN = ['overview', 'finances', 'calendar']
+  const s1 = readLaunchShortcut('?tab=finances', '', KNOWN)
+  ok('η καρτέλα γίνεται hash', s1.hash === '#finances' && s1.consumed && !s1.scan)
+  ok('και το ερώτημα αδειάζει', s1.search === '')
+
+  const s2 = readLaunchShortcut('?action=scan', '', KNOWN)
+  ok('η σάρωση ζητείται', s2.scan && s2.hash === null && s2.consumed)
+
+  const s3 = readLaunchShortcut('?tab=hack', '', KNOWN)
+  ok('άγνωστη καρτέλα αγνοείται', s3.hash === null)
+  ok('αλλά το κλειδί καταναλώνεται, ώστε να φύγει από τη διεύθυνση', s3.consumed)
+
+  const s4 = readLaunchShortcut('?tab=finances', '#overview/p7', KNOWN)
+  ok('το ακίνητο επιβιώνει της συντόμευσης', s4.hash === '#finances/p7')
+
+  const s5 = readLaunchShortcut('?utm_source=x&tab=calendar', '', KNOWN)
+  ok('τα ξένα κλειδιά μένουν', s5.search === '?utm_source=x' && s5.hash === '#calendar')
+
+  const s6 = readLaunchShortcut('', '#finances', KNOWN)
+  ok('χωρίς ερώτημα δεν αγγίζεται τίποτα', !s6.consumed && s6.hash === null && !s6.scan)
+
+  const s7 = readLaunchShortcut('?action=whatever', '', KNOWN)
+  ok('άγνωστη ενέργεια δεν ανοίγει παράθυρο', !s7.scan && s7.consumed)
 }
 
 console.log(fail === 0 ? `✓ navHistory: ${pass} έλεγχοι πέρασαν` : `✗ navHistory: ${fail} απέτυχαν από ${pass + fail}`)

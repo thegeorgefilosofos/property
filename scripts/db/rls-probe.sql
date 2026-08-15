@@ -379,3 +379,155 @@ begin
   delete from public.user_properties where id = v_prop;
   raise notice 'probe: το ON CONFLICT της εισαγωγής τράπεζας βρίσκει το ευρετήριό του';
 end $probe$;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 12. ΤΟ ΜΕΛΟΣ ΧΩΡΙΣ ΟΙΚΟΝΟΜΙΚΑ ΔΕΝ ΒΛΕΠΕΙ ΤΟ ΜΙΣΘΩΜΑ
+-- ─────────────────────────────────────────────────────────────────────────
+-- ΤΟ ΚΕΝΟ ΠΟΥ ΚΛΕΙΝΕΙ. Ο διακόπτης «Οικονομικά στοιχεία → Κρυφά» πυλωρούσε
+-- επτά πίνακες και ΟΧΙ τον `tenants`, όπου ζει το μίσθωμα, η εγγύηση, το
+-- IBAN είσπραξης, το ΑΦΜ και η ταυτότητα του μισθωτή. Κανένας έλεγχος δεν
+-- ρωτούσε τη βάση «τι βλέπει το μέλος χωρίς δικαίωμα;», οπότε η υπόσχεση της
+-- οθόνης και η συμπεριφορά της βάσης απέκλιναν χωρίς να το μάθει κανείς.
+--
+-- ΓΙΑΤΙ ΕΛΕΓΧΟΝΤΑΙ ΚΑΙ ΟΙ ΔΥΟ ΠΛΕΥΡΕΣ. Ενας έλεγχος που ζητά μόνο μηδενικά
+-- περνά και όταν το μέλος δεν βλέπει ΤΙΠΟΤΑ — δηλαδή και όταν η διόρθωση
+-- έχει σπάσει την εφαρμογή. Εδώ το ίδιο ερώτημα τρέχει τρεις φορές: για το
+-- μέλος χωρίς δικαίωμα, για το μέλος ΜΕ δικαίωμα, και για τον ιδιοκτήτη.
+do $probe$
+declare
+  a     uuid := '11111111-1111-1111-1111-111111111111';
+  pa    uuid := 'aaaaaaaa-0000-0000-0000-000000000001';
+  m_no  uuid := '55555555-5555-5555-5555-555555555555';
+  m_yes uuid := '66666666-6666-6666-6666-666666666666';
+  org   uuid := '77777777-7777-7777-7777-777777777777';
+begin
+  insert into auth.users (id, email)
+    values (m_no, 'xoris-oikonomika@probe.test'), (m_yes, 'me-oikonomika@probe.test')
+    on conflict (id) do nothing;
+
+  insert into public.organizations (id, owner_user_id, name)
+    values (org, a, 'Οργανισμός δοκιμής') on conflict (id) do nothing;
+
+  insert into public.organization_members (org_id, user_id, email, role, status, can_view_financials)
+    values (org, m_no,  'xoris-oikonomika@probe.test', 'member', 'active', false),
+           (org, m_yes, 'me-oikonomika@probe.test',    'member', 'active', true)
+    on conflict (org_id, email) do nothing;
+
+  -- Ο μισθωτής, με ό,τι ακριβώς περιγράφει το εύρημα.
+  insert into public.tenants (property_id, user_id, full_name, monthly_rent,
+                              deposit_amount, rent_iban, afm, id_number)
+    values (pa, a, 'Μισθωτής δοκιμής', 750.00, 1500.00,
+            'GR1601101250000000012300695', '123456789', 'ΑΒ123456');
+  insert into public.rent_config (property_id, user_id, actual_rent, target_rent)
+    values (pa, a, 750.00, 800.00);
+  insert into public.expenses (user_id, property_id, amount, description, category, date)
+    values (a, pa, 42.00, 'Κοινόχρηστα', 'other', current_date);
+
+  raise notice 'probe: οργανισμός με δύο μέλη, μίσθωμα 750,00 € και IBAN';
+end $probe$;
+
+-- ── Το μέλος ΧΩΡΙΣ δικαίωμα ────────────────────────────────────────────────
+set role authenticated;
+set session "probe.uid" = '55555555-5555-5555-5555-555555555555';
+
+do $probe$
+declare
+  pa uuid := 'aaaaaaaa-0000-0000-0000-000000000001';
+  n int;
+begin
+  -- ΠΡΩΤΑ ΟΤΙ Ο ΕΛΕΓΧΟΣ ΔΕΝ ΕΙΝΑΙ ΚΕΝΟΣ: το μέλος βλέπει κανονικά το ακίνητο.
+  select count(*) into n from public.user_properties where id = pa;
+  if n <> 1 then
+    raise exception 'Ο έλεγχος είναι κενός: το μέλος βλέπει % ακίνητα αντί για 1', n;
+  end if;
+
+  -- ΚΑΙ ΜΕΤΑ ΟΤΙ ΤΟ ΜΙΣΘΩΜΑ ΔΕΝ ΦΤΑΝΕΙ ΠΟΤΕ ΣΕ ΑΥΤΟ.
+  select count(*) into n from public.tenants where property_id = pa;
+  if n <> 0 then
+    raise exception 'ΔΙΑΡΡΟΗ: μέλος χωρίς οικονομικά βλέπει % μισθωτές', n;
+  end if;
+
+  select count(*) into n from public.tenants where monthly_rent is not null;
+  if n <> 0 then
+    raise exception 'ΔΙΑΡΡΟΗ: μέλος χωρίς οικονομικά διαβάζει το μίσθωμα';
+  end if;
+
+  select count(*) into n from public.tenants where rent_iban is not null or afm is not null;
+  if n <> 0 then
+    raise exception 'ΔΙΑΡΡΟΗ: μέλος χωρίς οικονομικά διαβάζει IBAN ή ΑΦΜ μισθωτή';
+  end if;
+
+  select count(*) into n from public.expenses where property_id = pa;
+  if n <> 0 then
+    raise exception 'ΔΙΑΡΡΟΗ: μέλος χωρίς οικονομικά βλέπει % δαπάνες', n;
+  end if;
+
+  -- Ούτε γράφει: χωρίς αυτό, το μέλος θα μπορούσε να αλλάξει το IBAN
+  -- είσπραξης χωρίς να το βλέπει, που είναι χειρότερο από τη διαρροή.
+  update public.tenants set rent_iban = 'GR0000000000000000000000000' where property_id = pa;
+  get diagnostics n = row_count;
+  if n <> 0 then
+    raise exception 'ΔΙΑΡΡΟΗ: μέλος χωρίς οικονομικά άλλαξε % γραμμές μισθωτή', n;
+  end if;
+
+  raise notice 'probe: μέλος χωρίς οικονομικά βλέπει το ακίνητο, όχι το μίσθωμα';
+end $probe$;
+
+-- ── Το μέλος ΜΕ δικαίωμα, και ο ιδιοκτήτης ────────────────────────────────
+set session "probe.uid" = '66666666-6666-6666-6666-666666666666';
+
+do $probe$
+declare
+  pa uuid := 'aaaaaaaa-0000-0000-0000-000000000001';
+  n int;
+  v numeric;
+begin
+  select count(*) into n from public.tenants where property_id = pa;
+  if n <> 1 then
+    raise exception 'Η διόρθωση έκρυψε τον μισθωτή και από μέλος ΜΕ δικαίωμα: % γραμμές', n;
+  end if;
+
+  select monthly_rent into v from public.tenants where property_id = pa;
+  if v is distinct from 750.00 then
+    raise exception 'Το μέλος με δικαίωμα διαβάζει μίσθωμα % αντί για 750,00', v;
+  end if;
+
+  select count(*) into n from public.expenses where property_id = pa;
+  if n <> 1 then
+    raise exception 'Η διόρθωση έκρυψε τις δαπάνες από μέλος ΜΕ δικαίωμα';
+  end if;
+
+  raise notice 'probe: μέλος με δικαίωμα διαβάζει μίσθωμα 750,00 € και δαπάνες';
+end $probe$;
+
+set session "probe.uid" = '11111111-1111-1111-1111-111111111111';
+
+do $probe$
+declare
+  pa uuid := 'aaaaaaaa-0000-0000-0000-000000000001';
+  n int;
+begin
+  select count(*) into n from public.tenants where property_id = pa;
+  if n <> 1 then
+    raise exception 'Ο ΙΔΙΟΚΤΗΤΗΣ έχασε τον μισθωτή του: % γραμμές', n;
+  end if;
+
+  -- Ο `rent_config` κρατά το ίδιο ποσό δεύτερη φορά και μπήκε στην ίδια πύλη.
+  -- Σήμερα τον διαβάζει ΜΟΝΟ ο ιδιοκτήτης (καμία policy οργανισμού πάνω του),
+  -- οπότε το μηδέν ενός μέλους δεν αποδεικνύει τίποτα· η νέα restrictive
+  -- policy όμως θα μπορούσε να κόψει τον ίδιο τον ιδιοκτήτη. Αυτό ελέγχεται.
+  select count(*) into n from public.rent_config where property_id = pa;
+  if n <> 1 then
+    raise exception 'Ο ΙΔΙΟΚΤΗΤΗΣ έχασε το ενοίκιο του ακινήτου του';
+  end if;
+
+  update public.tenants set full_name = 'Μισθωτής, μετονομασμένος' where property_id = pa;
+  get diagnostics n = row_count;
+  if n <> 1 then
+    raise exception 'Ο ΙΔΙΟΚΤΗΤΗΣ δεν μπορεί πια να ενημερώσει τον μισθωτή του';
+  end if;
+
+  raise notice 'probe: ο ιδιοκτήτης βλέπει και ενημερώνει τα πάντα, όπως πριν';
+end $probe$;
+
+reset role;

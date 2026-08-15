@@ -32,10 +32,25 @@ const src = readFileSync(join(process.cwd(), 'app/dashboard/page.tsx'), 'utf8')
  * μετρούσε σαν κανονική εγγραφή. Ένα τεστ που δεν πέφτει όταν πρέπει είναι
  * χειρότερο από κανένα τεστ: δίνει σιγουριά χωρίς να τη δικαιολογεί.
  */
+// ΤΟ ΤΕΛΟΣ ΤΟΥ ΠΙΝΑΚΑ ΒΡΙΣΚΕΤΑΙ ΜΕ ΖΥΓΙΣΜΑ ΑΓΚΥΛΩΝ, ΟΧΙ ΜΕ ΕΙΚΑΣΙΑ. Ζητούσε
+// το πρώτο «\n];» μετά την αρχή· ο NAV_ORDER όμως κλείνει στο τέλος γραμμής,
+// οπότε το κομμάτι κατάπινε ό,τι ακολουθούσε μέχρι τον επόμενο πίνακα και
+// μετρούσε τα δικά του αλφαριθμητικά ως καρτέλες. Ο έλεγχος έπεφτε για μια
+// «καρτέλα undefined» που δεν υπήρξε ποτέ: ψεύτικη αποτυχία, δηλαδή θόρυβος
+// που μαθαίνει τον επόμενο να αγνοεί το κόκκινο.
 function block(name: string): string {
   const start = src.indexOf(`const ${name}`)
   if (start < 0) return ''
-  const end = src.indexOf('\n];', start)
+  // Η αγκύλη μετριέται ΜΕΤΑ το «=», αλλιώς πρώτη έρχεται αυτή του τύπου
+  // (`ids: string[]`) και ο πίνακας κλείνει πριν καν αρχίσει.
+  const eq = src.indexOf('=', start)
+  const open = eq < 0 ? -1 : src.indexOf('[', eq)
+  if (open < 0) return ''
+  let depth = 0, end = -1
+  for (let i = open; i < src.length; i++) {
+    if (src[i] === '[') depth++
+    else if (src[i] === ']' && --depth === 0) { end = i; break }
+  }
   if (end < 0) return ''
   return src.slice(start, end)
     .replace(/\/\*[\s\S]*?\*\//g, '')   // σχόλια /* … */

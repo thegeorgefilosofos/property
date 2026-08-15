@@ -1,5 +1,5 @@
 // Τεστ για την εισαγωγή τραπεζικής κίνησης + αντιστοίχιση (lib/accounting/bankImport.ts).
-import { parseBankCsv, parseAmount, parseDate, matchTransactions, type ExpectedRent } from './bankImport'
+import { parseBankCsv, parseAmount, parseDate, matchTransactions, legacyKeyOf, type ExpectedRent } from './bankImport'
 
 let passed = 0, failed = 0
 function ok(name: string, cond: boolean) { if (cond) { passed++ } else { failed++; console.log('  ✗ ' + name) } }
@@ -75,6 +75,41 @@ ok('άκυρη → κενό', parseDate('foo') === '')
   const txns = parseBankCsv('Ημερομηνία;Περιγραφή;Ποσό\n01/06/2026;Ενοίκιο;800,00')
   const res = matchTransactions(txns, [{ id: 'jan', label: 'Ιαν', amount: 800, dueDate: '2026-01-01' }], 20)
   ok('εκτός 20 ημερών δεν ταιριάζει', res.rentMatches.length === 0)
+}
+
+// ── Αποτύπωμα: δύο ίδιες αναλήψεις είναι ΔΥΟ κινήσεις ───────────────────────
+{
+  const line = '12/03/2026;ΑΝΑΛΗΨΗ ΑΤΜ 1234;-50,00'
+  const txns = parseBankCsv(`Ημερομηνία;Περιγραφή;Ποσό\n${line}\n${line}`)
+  ok('δύο ίδιες γραμμές μένουν δύο κινήσεις', txns.length === 2)
+  ok('με διαφορετικό αποτύπωμα', txns[0].key !== txns[1].key)
+  ok('το παλιό αποτύπωμα τις έσβηνε', legacyKeyOf(txns[0]) === legacyKeyOf(txns[1]))
+}
+
+// ── Αποτύπωμα: το υπόλοιπο της γραμμής ξεχωρίζει τις κινήσεις ───────────────
+{
+  const csv = 'Ημερομηνία;Περιγραφή;Ποσό;Υπόλοιπο\n12/03/2026;ΑΝΑΛΗΨΗ ΑΤΜ;-50,00;1.200,00\n12/03/2026;ΑΝΑΛΗΨΗ ΑΤΜ;-50,00;1.150,00'
+  const txns = parseBankCsv(csv)
+  ok('διαφορετικό υπόλοιπο → διαφορετικό αποτύπωμα', txns[0].key !== txns[1].key)
+}
+
+// ── Αποτύπωμα: σταθερό στην ίδια εξαγωγή, ώστε να πιάνει τα διπλότυπα ───────
+{
+  const csv = 'Ημερομηνία;Περιγραφή;Ποσό\n12/03/2026;ΑΝΑΛΗΨΗ ΑΤΜ;-50,00\n12/03/2026;ΑΝΑΛΗΨΗ ΑΤΜ;-50,00\n15/03/2026;Ενοίκιο;800,00'
+  const a = parseBankCsv(csv).map(t => t.key)
+  const b = parseBankCsv(csv).map(t => t.key)
+  ok('δεύτερη ανάγνωση δίνει τα ίδια αποτυπώματα', a.join('#') === b.join('#'))
+  ok('τρία μοναδικά αποτυπώματα', new Set(a).size === 3)
+  // Ενα κενό παραπάνω στο τέλος της γραμμής δεν κάνει νέα κίνηση.
+  const c = parseBankCsv(csv.split('\n').map(l => l + ' ').join('\n')).map(t => t.key)
+  ok('τα κενά στα άκρα δεν αλλάζουν αποτύπωμα', a.join('#') === c.join('#'))
+}
+
+// ── Το παλιό αποτύπωμα διαβάζεται όπως γράφτηκε στη βάση ────────────────────
+{
+  const t = parseBankCsv('Ημερομηνία;Περιγραφή;Ποσό\n05/03/2026;Ενοίκιο Μαρτίου;800,00')[0]
+  ok('παλιό κλειδί = ημερομηνία|ποσό|περιγραφή', legacyKeyOf(t) === '2026-03-05|800|Ενοίκιο Μαρτίου')
+  ok('νέο κλειδί χωριστής μορφής', t.key.startsWith('v2|') && t.key !== legacyKeyOf(t))
 }
 
 console.log(`bankImport.ts — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`)

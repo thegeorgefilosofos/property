@@ -3,6 +3,7 @@ import { enfiaLastYearAnnual,
   estimateENFIA, estimateENFIAFromFacts, enfiaExtraPropertyTax, zoneKeyFromPricePerSqm,
   ENFIA_ZONE_TAX, enfiaInUse, enfiaAgeCoef, enfiaFloorCoef,
   enfiaAgeKeyFromYears, enfiaAgeKeyFromYearBuilt, enfiaFloorKeyFromValue,
+  enfiaTypeBlock, ENFIA_TYPE_BLOCK_NOTE,
 } from './enfia'
 
 let passed = 0, failed = 0
@@ -106,6 +107,38 @@ const near = (a: number, b: number, eps = 0.5) => Math.abs(a - b) <= eps
   ok('auto: χωρίς δεδομένα → null', estimateENFIAFromFacts({ value: 0, sqm: 90 }) === null)
   const big = estimateENFIAFromFacts({ value: 700000, sqm: 120 })!
   ok('auto: προσαύξηση όταν αξία >500k', big.supplementary > 0)
+}
+
+// ═══ ΟΙΚΟΠΕΔΟ ΚΑΙ ΒΟΗΘΗΤΙΚΟΣ ΧΩΡΟΣ ΔΕΝ ΕΙΝΑΙ ΚΑΤΟΙΚΙΑ ══════════════════════
+// Το σφάλμα: η αυτόματη εκτίμηση εφάρμοζε τον πίνακα των ΚΤΙΣΜΑΤΩΝ σε ό,τι είχε
+// αξία και τετραγωνικά. Αποθήκη 20 τ.μ. αξίας 30.000 € έβγαζε 39,20 € τον χρόνο,
+// οικόπεδο 400 τ.μ. αξίας 120.000 € έβγαζε 600,00 € — και τα δύο περνούσαν στους
+// φόρους ακινήτου και στην πρόβλεψη. Ο νόμος έχει άλλον πίνακα για τα γήπεδα και
+// δικό του συντελεστή για τους βοηθητικούς χώρους· δεν υπάρχουν εδώ, άρα δεν
+// βγαίνει νούμερο.
+{
+  ok('κλειδί οδηγού: land', enfiaTypeBlock('land') === 'land')
+  ok('ελληνική ετικέτα: Οικόπεδο', enfiaTypeBlock('Οικόπεδο') === 'land')
+  ok('κλειδιά βοηθητικών', enfiaTypeBlock('storage') === 'auxiliary' && enfiaTypeBlock('parking') === 'auxiliary')
+  ok('ετικέτα «Αποθήκη Κτιρίου»', enfiaTypeBlock('Αποθήκη Κτιρίου') === 'auxiliary')
+  ok('ετικέτα «Θέση Στάθμευσης»', enfiaTypeBlock('Θέση Στάθμευσης') === 'auxiliary')
+  ok('κατοικία δεν μπλοκάρει', enfiaTypeBlock('Κατοικία') === null && enfiaTypeBlock('apartment') === null)
+  ok('γραφείο/κατάστημα δεν μπλοκάρουν', enfiaTypeBlock('office') === null && enfiaTypeBlock('shop') === null)
+  ok('άγνωστος τύπος δεν μπλοκάρει', enfiaTypeBlock(null) === null && enfiaTypeBlock('') === null)
+
+  // Τα ίδια στοιχεία, μόνο ο τύπος αλλάζει: με κτίσμα βγαίνει ποσό, χωρίς όχι.
+  ok('αποθήκη 20 τ.μ. → καμία εκτίμηση',
+    estimateENFIAFromFacts({ value: 30000, sqm: 20, propType: 'storage' }) === null)
+  ok('τα ίδια στοιχεία ως διαμέρισμα έβγαζαν 39,20 €',
+    estimateENFIAFromFacts({ value: 30000, sqm: 20, propType: 'apartment' })?.annual === 39.20)
+  ok('οικόπεδο 400 τ.μ. → καμία εκτίμηση',
+    estimateENFIAFromFacts({ value: 120000, sqm: 400, propType: 'Οικόπεδο' }) === null)
+  ok('τα ίδια στοιχεία ως κατοικία έβγαζαν 600,00 €',
+    estimateENFIAFromFacts({ value: 120000, sqm: 400, propType: 'Κατοικία' })?.annual === 600.00)
+
+  // Κάθε λόγος έχει κείμενο, και το κείμενο λέει ότι δεν βγαίνει εκτίμηση.
+  ok('κείμενο για κάθε λόγο',
+    ENFIA_TYPE_BLOCK_NOTE.land.includes('Δεν βγαίνει') && ENFIA_TYPE_BLOCK_NOTE.auxiliary.includes('Δεν βγαίνει'))
 }
 
 // ═══ ΕΤΟΣ ΚΑΤΑΣΚΕΥΗΣ ΚΑΙ ΟΡΟΦΟΣ — ΔΙΑΒΑΖΟΝΤΑΙ, ΔΕΝ ΜΑΝΤΕΥΟΝΤΑΙ ═════════════

@@ -234,7 +234,15 @@ export async function scanDocument(file: File): Promise<{ doc?: ScannedDoc; erro
     }));
   }
   doc.doc_type = classifyDocType(doc);
-  if (typeof doc.confidence !== 'number') doc.confidence = 70;
+  // ΒΕΒΑΙΟΤΗΤΑ ΠΟΥ ΔΕΝ ΤΗΝ ΕΙΠΕ ΚΑΝΕΙΣ. Εδώ γραφόταν `confidence = 70` όποτε
+  // το μοντέλο δεν έδινε αριθμό, και η οθόνη τύπωνε «70% βεβαιότητα»: μέτρηση
+  // με δύο ψηφία, χωρίς μετρητή από πίσω. Το ίδιο έσβηνε και πραγματική
+  // απάντηση σε κείμενο («85») — έμπαινε 70 στη θέση του 85. Τώρα: ο αριθμός
+  // όταν δόθηκε, στο 0-100· τίποτα όταν δεν δόθηκε. Η οθόνη σωπαίνει αντί να
+  // μαντεύει (DocumentScan.tsx:489, ReceiptScanModal.tsx:221).
+  const conf = numify(doc.confidence);
+  if (conf === undefined) delete doc.confidence;
+  else doc.confidence = Math.max(0, Math.min(100, Math.round(conf)));
   // ΑΦΜ σε ψηφία + περίοδος από κείμενο σε δύο ημερομηνίες (ποτέ μαντεψιά).
   return { doc: normalizeScannedDoc(doc) };
 }

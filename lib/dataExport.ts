@@ -26,6 +26,15 @@ import { downloadFile } from '@/lib/core/download';
 // μείνει πίσω από αυτό — ο βρόχος του διαβάζει το `information_schema`. Η ίδια
 // τεχνική με τη `delete_my_account`, που σβήνει από τους ίδιους ακριβώς πίνακες:
 // ό,τι κατεβάζεις είναι ό,τι διαγράφεται.
+//
+// ΚΑΙ ΜΙΑ ΔΕΥΤΕΡΗ ΔΙΟΡΘΩΣΗ, ΣΤΟ ΙΔΙΟ ΣΗΜΕΙΟ. Το «κάθε πίνακας με στήλη
+// `user_id`» έπιανε 62 από τους 78: έμεναν έξω `organizations`, `referrals`,
+// `accountant_clients` και `accountant_requests`, που λένε τον χρήστη
+// `owner_user_id`, `referrer_user_id` ή `accountant_id`. Από το
+// 20260815120000_the_export_matches_the_promise.sql ο κανόνας είναι η ΣΧΕΣΗ και
+// όχι το όνομα: κάθε στήλη με ξένο κλειδί προς `auth.users(id)`, συν το
+// `user_id` για τον έναν πίνακα που δεν έχει κλειδί. Σύνολο 66, και ο
+// λογαριασμός ο ίδιος στο κλειδί `account`.
 // ═══════════════════════════════════════════════════════════════════════════
 
 export interface ExportResult {

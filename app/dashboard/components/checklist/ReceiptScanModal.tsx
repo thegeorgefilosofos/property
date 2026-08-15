@@ -217,10 +217,14 @@ export function ReceiptScanModal({ item, propertyId, userId, onClose, onSaved }:
             <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
             <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file?.name}</span>
             {/* Η ΒΕΒΑΙΟΤΗΤΑ ΤΗΣ ΑΝΑΓΝΩΣΗΣ, ρητά. Χαμηλή βεβαιότητα σημαίνει
-                «κοίτα τα νούμερα», όχι «είναι λάθος». */}
-            <span style={{ marginLeft: 'auto', fontSize: 11, color: doc.confidence >= 80 ? 'var(--text-tertiary)' : 'var(--warning)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
-              {doc.confidence >= 80 ? 'Διαβάστηκε καθαρά' : 'Έλεγξε τα πεδία'}
-            </span>
+                «κοίτα τα νούμερα», όχι «είναι λάθος». Οταν το μοντέλο δεν την
+                έδωσε, το πεδίο λείπει και η θέση μένει κενή: το «Διαβάστηκε
+                καθαρά» ήταν κρίση πάνω σε προεπιλογή 70 που δεν είπε κανείς. */}
+            {typeof doc.confidence === 'number' && (
+              <span style={{ marginLeft: 'auto', fontSize: 11, color: doc.confidence >= 80 ? 'var(--text-tertiary)' : 'var(--warning)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
+                {doc.confidence >= 80 ? 'Διαβάστηκε καθαρά' : 'Έλεγξε τα πεδία'}
+              </span>
+            )}
           </div>
           <div style={{ ...formGrid(150, 210), gap: 12 }}>
             <div><FL>Ποσό (€) *</FL><Inp value={amount} onChange={setAmount} placeholder="" type="number" min={0} /></div>

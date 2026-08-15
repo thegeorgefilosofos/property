@@ -13,6 +13,8 @@ import { failed } from '@/lib/core/dbError';
 import { PLANS, TRIAL_DAYS, type PlanId } from '@/lib/billing/plans';
 // Καθαρή λογική, χωρίς React/Supabase: ασφαλής σε 'use client'.
 import { TRIAL_PLAN, planFromParam, isPlanAllowedForProfile } from '@/lib/billing/entitlements';
+// Η μορφή του κωδικού πρόσκλησης ζει δίπλα στη γεννήτριά του, όχι εδώ.
+import { isReferralCode } from '@/lib/referral/referral';
 import { POLICY_VERSION as CONSENT_VERSION } from '@/lib/legal/identity'
 
 // Η έκδοση των Όρων που δέχεται ο χρήστης. Ήταν καρφωτή εδώ ως «2026-07», ενώ
@@ -308,6 +310,36 @@ export default function SignupPage() {
                 Έχεις ήδη λογαριασμό;{' '}
                 <Link href="/login" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Σύνδεση</Link>
               </p>
+
+              {/* ══ Η ΠΡΟΣΚΛΗΣΗ ΛΕΓΕΤΑΙ, ΚΑΙ ΛΕΓΕΤΑΙ ΜΟΝΟ ΟΣΟ ΕΙΝΑΙ ΑΛΗΘΕΙΑ ══
+                  Το `?ref=` διαβαζόταν σε κατάσταση, ταξίδευε στη Google και
+                  γραφόταν στο προφίλ, αλλά δεν αποδιδόταν πουθενά: ο
+                  προσκεκλημένος δεν μάθαινε ποτέ ότι η πρόσκληση καταγράφηκε,
+                  ενώ το `?plan=` δίπλα του έπαιρνε ολόκληρο πλαίσιο.
+
+                  ΓΙΑΤΙ ΔΕΝ ΓΡΑΦΕΙ «ΚΕΡΔΙΣΕΣ ΕΝΑΝ ΜΗΝΑ». Το REFEREE_TRIAL_MONTHS
+                  του lib/referral υπάρχει μόνο στη βιβλιοθήκη και στο τεστ της:
+                  η `redeem_referral` καταγράφει τη σύσταση και τίποτε άλλο, και
+                  η `sync_comp_from_referrals` πιστώνει μήνες ΜΟΝΟ στον
+                  συστήνοντα. Δώρο στον νέο χρήστη δεν απονέμει κανένας κώδικας,
+                  οπότε δεν υπόσχεται κανένα κείμενο.
+
+                  ΓΙΑΤΙ ΟΥΔΕΤΕΡΟ ΚΑΙ ΟΧΙ ΜΠΛΕ: το accent πλαίσιο ανήκει στην
+                  επιλογή που έκανε ο επισκέπτης. Δύο έντονα πλαίσια στη σειρά
+                  θα διάβαζαν και τα δύο ως προσφορά.
+
+                  ΚΑΙ ΓΙΑΤΙ ΠΕΡΝΑΕΙ ΑΠΟ isReferralCode: ο κωδικός έρχεται από τη
+                  διεύθυνση, δηλαδή τον γράφει ο καθένας. Οτι δεν έχει τη μορφή
+                  της γεννήτριας δεν τυπώνεται στην οθόνη· ταξιδεύει όπως πριν
+                  και το κρίνει ο server. */}
+              {isReferralCode(refCode) && (
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', marginBottom: chosenPlan ? 12 : 24, borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0, marginTop: 7 }} />
+                  <span style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                    Ηρθες με πρόσκληση. Ο κωδικός <strong style={{ color: 'var(--text-primary)' }}>{refCode.trim()}</strong> καταγράφεται στον λογαριασμό σου με την εγγραφή και μετράει σε εκείνον που σε κάλεσε. Η δοκιμή των {TRIAL_DAYS} ημερών είναι η ίδια για κάθε νέο λογαριασμό, με πρόσκληση ή χωρίς.
+                  </span>
+                </div>
+              )}
 
               {/* Η ΕΠΙΛΟΓΗ ΤΟΥ ΤΙΜΟΚΑΤΑΛΟΓΟΥ, ΕΠΙΒΕΒΑΙΩΜΕΝΗ. Ο επισκέπτης πάτησε
                   μια συγκεκριμένη κάρτα· το να μην την ξαναδεί πουθενά τον

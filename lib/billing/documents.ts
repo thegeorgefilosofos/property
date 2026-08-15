@@ -212,7 +212,10 @@ export interface ScannedDoc {
   plan_name?: string;
 
   notes?: string;
-  confidence: number;
+  /** Βεβαιότητα ανάγνωσης 0-100. ΛΕΙΠΕΙ όταν το μοντέλο δεν την έδωσε — δεν
+   *  συμπληρώνεται με προεπιλογή, ώστε καμία οθόνη να μη γράψει νούμερο που
+   *  δεν είπε κανείς. */
+  confidence?: number;
   // Επιπλέον πεδία που πρόσθεσε χειροκίνητα ο χρήστης (ελεύθερα).
   custom?: { label: string; value: string }[];
 }

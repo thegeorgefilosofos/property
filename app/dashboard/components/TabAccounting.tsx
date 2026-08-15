@@ -39,7 +39,7 @@ import {
 } from '@/lib/accounting/statement'
 import { shortTermYearSummary, platformFeeExpenses, staysMissingPlatformFee } from '@/lib/tax/shortTermTax'
 import { resolveEnfia } from '@/lib/billing/propertyFacts'
-import { estimateENFIAFromFacts } from '@/lib/billing/enfia'
+import { estimateENFIAFromFacts, enfiaTypeBlock, ENFIA_TYPE_BLOCK_NOTE } from '@/lib/billing/enfia'
 import { annuityMonthly, interestForYear } from '@/lib/loans/recommend'
 import { isGroupDeductible } from '@/lib/expenses/groups'
 import { RENTAL_TAX_ROWS_2026, BUSINESS_INCOME_ROWS_2026, BUILDING_DEPRECIATION_RATE, EQUIPMENT_DEPRECIATION_RATE, BUILDING_VALUE_FRACTION, SELF_EMPLOYED_MIN_NET_INCOME_2026 , rentalBracketsForYear, bracketsLabelForYear } from '@/lib/billing/greekTax'
@@ -295,7 +295,9 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // Το `year_built` και το `floor` υπάρχουν στην καρτέλα του ακινήτου αλλά δεν
   // ζητούνταν εδώ, οπότε η αυτόματη εκτίμηση ΕΝΦΙΑ έπεφτε στις προεπιλογές της
   // (2ος όροφος, 10-20 ετών) και έβγαινε 16,15% ψηλότερα από την ουδέτερη βάση.
-  type PropRow     = Pick<UserPropertiesRow, 'id'|'name'|'address'|'rental_mode'|'enfia'|'sqm'|'value'|'year_built'|'floor'|'purchase_price'|'purchase_date'>
+  // Και ο `prop_type`: χωρίς αυτόν η εκτίμηση χρέωνε αποθήκη 20 τ.μ. με τον
+  // πίνακα των κατοικιών (39,20 € τον χρόνο) και οικόπεδο 400 τ.μ. με 600,00 €.
+  type PropRow     = Pick<UserPropertiesRow, 'id'|'name'|'address'|'rental_mode'|'enfia'|'sqm'|'value'|'year_built'|'floor'|'purchase_price'|'purchase_date'|'prop_type'>
   type PropListRow = Pick<UserPropertiesRow, 'id'|'name'|'rental_mode'|'status_detail'|'enfia'|'sqm'>
   type InventoryRow = Pick<InventoryItemsRow, 'name'|'purchase_value'|'category'|'purchase_date'>
 
@@ -323,7 +325,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         rentStore.ofProperty<RentRow>(supabase,propertyId,rentStore.LEDGER_COLUMNS,userId),
         stayStore.ofProperty<StayRow>(supabase,propertyId,`id,${stayStore.ACCOUNTING_COLUMNS}`,userId),
         loanStore.ofProperty(supabase,propertyId,userId),
-        properties.one<PropRow>(supabase, propertyId, 'id,name,address,rental_mode,enfia,sqm,value,year_built,floor,purchase_price,purchase_date', userId),
+        properties.one<PropRow>(supabase, propertyId, 'id,name,address,rental_mode,enfia,sqm,value,year_built,floor,purchase_price,purchase_date,prop_type', userId),
         properties.list<PropListRow>(supabase, userId, { columns: 'id,name,rental_mode,status_detail,enfia,sqm' }),
         rentStore.ofUser<PortfolioRentRow>(supabase,userId,`property_id,${rentStore.LEDGER_COLUMNS}`),
         stayStore.ofUser<PortfolioStayRow>(supabase,userId,`property_id,${stayStore.ACCOUNTING_COLUMNS}`),
@@ -357,10 +359,17 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     return estimateENFIAFromFacts({
       value: prop?.value, sqm: prop?.sqm,
       yearBuilt: prop?.year_built, floor: prop?.floor,
-      taxYear: year,
+      taxYear: year, propType: prop?.prop_type,
     })?.annual ?? 0
   },[prop,year])
   const enfiaEstimated = useMemo(()=>!(resolveEnfia({ propertyEnfia: prop?.enfia }).annual>0) && enfia>0,[prop,enfia])
+  // Οικόπεδο ή βοηθητικός χώρος χωρίς καταχωρημένο ποσό: ο ΕΝΦΙΑ λείπει από τα
+  // βιβλία και η οθόνη το λέει, αντί να δείχνει εκτίμηση κατοικίας.
+  const enfiaBlock = useMemo(()=>{
+    if(resolveEnfia({ propertyEnfia: prop?.enfia }).annual>0) return null
+    const b = enfiaTypeBlock(prop?.prop_type)
+    return b ? ENFIA_TYPE_BLOCK_NOTE[b] : null
+  },[prop])
 
   // Ενεργό δάνειο στη χρήση Y; (μεταξύ έτους έναρξης και λήξης).
   // ΣΕ useCallback ΓΙΑ ΤΟΝ ΙΔΙΟ ΛΟΓΟ ΜΕ ΤΟ tariffKwh: κλείνει πάνω στο `year`,
@@ -621,10 +630,11 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     if(uncollectedRent>0) g.push(`Ανείσπρακτα μισθώματα ${eur(uncollectedRent)}: χρειάζεται τεκμηρίωση της νομικής διεκδίκησης.`)
     if(regime==='individual_longterm' && !tenant?.afm) g.push('Δεν έχει καταχωρηθεί ΑΦΜ μισθωτή.')
     if(enfiaEstimated) g.push('Ο ΕΝΦΙΑ είναι αυτόματη εκτίμηση, όχι ποσό από εκκαθαριστικό.')
+    if(enfiaBlock) g.push(`Δεν έχει καταχωρηθεί ΕΝΦΙΑ. ${enfiaBlock}`)
     const noCat = expensesYear.filter(e=>!e.category).length
     if(noCat>0) g.push(`${noCat} δαπάνες χωρίς κατηγορία.`)
     return g
-  },[rent,stays,expensesYear,year,regime,uncollectedRent,tenant,enfiaEstimated,ownPlatformFees])
+  },[rent,stays,expensesYear,year,regime,uncollectedRent,tenant,enfiaEstimated,enfiaBlock,ownPlatformFees])
 
   // ── ΠΟΙΟΣ ΚΑΝΕΙ myDATA, ΚΑΙ ΜΕ ΠΟΙΟ ΔΙΚΑΙΩΜΑ ΕΚΠΤΩΣΗΣ ────────────────────
   // Ο ιδιοκτήτης που εκμισθώνει ως φυσικό πρόσωπο δεν χαρακτηρίζει έξοδα: δεν
@@ -1091,6 +1101,10 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
                   συμπλήρωσε έτος κατασκευής ή όροφο έβλεπε το νούμερο να
                   αλλάζει χωρίς να λέει τίποτα η οθόνη από πού ήρθε. */}
               {enfiaEstimated&&provision.propertyTaxes>0?` Ο ΕΝΦΙΑ (${eur(enfia)}) είναι αυτόματη εκτίμηση από τα καταχωρημένα στοιχεία του ακινήτου: αξία, τ.μ., έτος κατασκευής και όροφος. Καταχώρησε το ακριβές στους Λογαριασμούς.`:''}
+              {/* Ο ΕΝΦΙΑ ΠΟΥ ΛΕΙΠΕΙ ΛΕΓΕΤΑΙ. Η πρόβλεψη χωρίς αυτόν είναι
+                  μικρότερη από την πραγματική, και ο ιδιοκτήτης δεν είχε τρόπο
+                  να δει γιατί το ποσό δεν εμφανίστηκε ποτέ. */}
+              {enfiaBlock?` ${enfiaBlock} Το ποσό λείπει από την πρόβλεψη ώσπου να καταχωρηθεί στους Λογαριασμούς.`:''}
             </InfoHint>
           </p>
         </div>

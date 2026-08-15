@@ -4,13 +4,18 @@ import { createClient } from '@/lib/supabase/client'
 import * as expenseStore from '@/lib/data/expenses'
 import * as rentStore from '@/lib/data/rent'
 import { Check, ArrowRight, Landmark, SearchX } from 'lucide-react'
-import { readBankCsv, matchTransactions, type BankTxn, type ExpectedRent, type RentMatch, type ExpenseSuggestion } from '@/lib/accounting/bankImport'
+import { readBankCsv, matchTransactions, legacyKeyOf, type BankTxn, type ExpectedRent, type RentMatch, type ExpenseSuggestion } from '@/lib/accounting/bankImport'
 import { feAuto, T, ABSENT_DATE, EmptyState, Modal, Spinner } from '@/components/Theme'
 import { athensToday } from '@/lib/core/time';
 import { MONTHS_NOM } from '@/lib/core/months';
 import type { RentPaymentsRow, BankTransactionsRow } from '@/lib/supabase/tables';
 
-const hashOf = (t:BankTxn)=>`${t.date}|${t.amount}|${t.description}`.slice(0,200)
+// ΤΟ ΑΠΟΤΥΠΩΜΑ ΕΦΥΓΕ ΣΤΗ ΜΗΧΑΝΗ, ΔΙΠΛΑ ΣΤΗΝ ΑΝΑΓΝΩΣΗ ΤΟΥ ΑΡΧΕΙΟΥ. Ηταν εδώ
+// `${date}|${amount}|${description}`: δύο αναλήψεις 50,00 από το ίδιο ΑΤΜ την
+// ίδια ημέρα έδιναν ένα κλειδί και η δεύτερη χανόταν στο ignoreDuplicates,
+// δηλαδή 50,00 λιγότερα έξοδα στο Ε2. Μόνο η `readBankCsv` βλέπει ολόκληρη τη
+// γραμμή του αρχείου και τη σειρά της, οπότε μόνο εκείνη μπορεί να ξεχωρίσει
+// δύο πραγματικά διαφορετικές κινήσεις. Εδώ διαβάζεται έτοιμο: `t.key`.
 
 // Εισαγωγή τραπεζικής κίνησης (CSV) και αντιστοίχιση σε ενοίκια/έξοδα. Καθαρό,
 // minimal modal: επικόλληση ή αρχείο → ανάλυση → επιβεβαίωση → καταχώρηση.
@@ -39,9 +44,13 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
     setUnreadable(lost)
     if(!txns.length){ setError(lost>0?`Δεν διαβάστηκε καμία κίνηση: ${lost} ${lost===1?'γραμμή δεν είχε':'γραμμές δεν είχαν'} αναγνωρίσιμο ποσό.`:'Δεν βρέθηκαν κινήσεις. Έλεγξε ότι το αρχείο έχει στήλες ημερομηνία, περιγραφή και ποσό.'); return }
     // Dedup: πέτα ό,τι έχει ξαναμπεί.
+    // ΚΑΘΕ ΠΑΛΙΟ ΑΠΟΤΥΠΩΜΑ ΚΑΤΑΝΑΛΩΝΕΤΑΙ ΜΙΑ ΦΟΡΑ. Το uq_bank_txn_dedup αφήνει
+    // το πολύ μία γραμμή ανά παλιό κλειδί, οπότε από δύο πανομοιότυπες γραμμές
+    // του αρχείου η πρώτη μετρά ως ήδη εισαγμένη και η δεύτερη, που παλιότερα
+    // χανόταν, περνά. Χωρίς την κατανάλωση θα έμενε χαμένη για πάντα.
     const { data: existing } = await supabase.from('bank_transactions').select('dedup_hash').eq('user_id',userId)
     const seen = new Set((existing||[]).map(r=>r.dedup_hash))
-    const fresh = txns.filter(t=>!seen.has(hashOf(t)))
+    const fresh = txns.filter(t=>!(seen.has(t.key) || seen.delete(legacyKeyOf(t))))
     setSkipped(txns.length - fresh.length)
     // Αναμενόμενα ενοίκια (ανεξόφλητα) του έτους.
     const rp = await rentStore.ofProperty(supabase,propertyId,`id,${rentStore.LEDGER_COLUMNS}`,userId,{ year })
@@ -73,16 +82,16 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
         // λογιστής διάβαζε συνεπή μισθωτή που δεν ήταν.
         const { error } = await rentStore.markPaid(supabase, m.rentId, m.due, m.txn.date || athensToday(), 'Τραπεζική κατάθεση')
         if(error) throw error
-        rows.push({ user_id:userId, property_id:propertyId, txn_date:m.txn.date||null, description:m.txn.description, amount:m.txn.amount, dedup_hash:hashOf(m.txn) })
+        rows.push({ user_id:userId, property_id:propertyId, txn_date:m.txn.date||null, description:m.txn.description, amount:m.txn.amount, dedup_hash:m.txn.key })
       }}
       const toAdd = expenses.filter(e=>e.confirm)
       if(toAdd.length){
         const { error } = await expenseStore.insertFromBank(supabase, toAdd.map(e=>({
           ...expenseStore.row({ propertyId, userId }, { amount:e.amount, description:e.description.slice(0,120), date:e.txn.date||athensToday(), category:'Τραπεζική κίνηση' }),
-          dedup_hash: hashOf(e.txn),
+          dedup_hash: e.txn.key,
         })))
         if(error) throw error
-        for(const e of toAdd) rows.push({ user_id:userId, property_id:propertyId, txn_date:e.txn.date||null, description:e.txn.description, amount:e.txn.amount, dedup_hash:hashOf(e.txn) })
+        for(const e of toAdd) rows.push({ user_id:userId, property_id:propertyId, txn_date:e.txn.date||null, description:e.txn.description, amount:e.txn.amount, dedup_hash:e.txn.key })
       }
       if(rows.length){ const { error } = await supabase.from('bank_transactions').upsert(rows,{ onConflict:'user_id,dedup_hash', ignoreDuplicates:true }); if(error) throw error }
       const nR = rentMatches.filter(m=>m.confirm).length

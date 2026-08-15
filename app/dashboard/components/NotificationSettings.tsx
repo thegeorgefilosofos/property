@@ -183,7 +183,14 @@ export default function NotificationSettings({ userId }: { userId: string }) {
         {testMsg && <div style={{ ...TT.bodySm, marginTop: 8, color: testMsg.ok ? 'var(--text-secondary)' : 'var(--negative)' }}>{testMsg.text}</div>}
       </SetRow>
 
-      <SetRow title="Υπενθυμίσεις με email" desc="Για τα γεγονότα του ημερολογίου σου."
+      {/* Ο ΚΕΝΤΡΙΚΟΣ ΔΙΑΚΟΠΤΗΣ, ΚΑΙ ΟΛΑ ΟΣΑ ΚΡΕΜΟΝΤΑΙ ΑΠΟ ΑΥΤΟΝ.
+          Η send-reminders διαβάζει προτιμήσεις με ΕΝΑ φίλτρο, `email_enabled =
+          true` (supabase/functions/send-reminders/index.ts:192), και το ίδιο
+          σύνολο τροφοδοτεί ΚΑΙ το pass για το ληξιπρόθεσμο ενοίκιο (γρ. 276).
+          Ο διακόπτης του ενοικίου καθόταν έξω από εδώ, με προεπιλογή αναμμένη:
+          με σβηστό το email έδειχνε αναμμένο κάτι που δεν έστελνε ποτέ τίποτα.
+          Οσο δεν φεύγει email, δεν φαίνεται ρύθμιση email. */}
+      <SetRow title="Υπενθυμίσεις με email" desc="Για τα γεγονότα του ημερολογίου σου και για το ληξιπρόθεσμο ενοίκιο."
         control={<Toggle on={prefs.email_enabled} onChange={v => update({ email_enabled: v })} size="sm" />}>
         {prefs.email_enabled && (
           <SetList>
@@ -206,27 +213,41 @@ export default function NotificationSettings({ userId }: { userId: string }) {
               control={<Toggle on={prefs.reminder_today} onChange={v => update({ reminder_today: v })} size="sm" />} />
             <SetRow title="Εκπρόθεσμα" desc="Ειδοποίηση για ληξιπρόθεσμες υποχρεώσεις."
               control={<Toggle on={prefs.reminder_overdue} onChange={v => update({ reminder_overdue: v })} size="sm" />} />
-          </SetList>
-        )}
-      </SetRow>
 
-      <SetRow title="Ληξιπρόθεσμο ενοίκιο" desc="Διακριτική ενημέρωση με email όταν μια δόση καθυστερεί."
-        control={<Toggle on={prefs.dunning_enabled} onChange={v => update({ dunning_enabled: v })} size="sm" />}>
-        {prefs.dunning_enabled && (
-          <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-            <div>
-              <label htmlFor="dunning-every" style={{ ...TT.bodySm, display: 'block', marginBottom: 6 }}>Ανά πόσες ημέρες</label>
-              <input id="dunning-every" className="po-field" type="number" min={1} max={30} style={numField} value={prefs.dunning_every_days}
-                onChange={e => update({ dunning_every_days: Math.max(1, Math.min(30, parseInt(e.target.value) || 7)) })} />
-              <div style={{ ...TT.caption, marginTop: 4 }}>Ελάχιστο διάστημα για την ίδια δόση.</div>
-            </div>
-            <div>
-              <label htmlFor="dunning-max" style={{ ...TT.bodySm, display: 'block', marginBottom: 6 }}>Μέγιστες ειδοποιήσεις</label>
-              <input id="dunning-max" className="po-field" type="number" min={1} max={12} style={numField} value={prefs.dunning_max}
-                onChange={e => update({ dunning_max: Math.max(1, Math.min(12, parseInt(e.target.value) || 3)) })} />
-              <div style={{ ...TT.caption, marginTop: 4 }}>Ανώτατος αριθμός ανά δόση.</div>
-            </div>
-          </div>
+            <SetGroup>Ενοίκιο</SetGroup>
+            {/* ΕΛΕΓΕ «ΔΙΑΚΡΙΤΙΚΗ ΕΝΗΜΕΡΩΣΗ» ΚΑΙ ΔΕΝ ΕΛΕΓΕ ΣΕ ΠΟΙΟΝ.
+                Με κλιμάκωση («Δεύτερη υπενθύμιση», «Τελική υπόμνηση»), ρυθμό ανά
+                7 ημέρες και όριο 3 ανά δόση, διαβαζόταν ως όχληση οφειλέτη. Και
+                τα δύο περάσματα της send-reminders στέλνουν στο mailbox() του
+                ιδιοκτήτη· το tenants.email δεν το διαβάζει κανένας αποστολέας. */}
+            <SetRow title="Ληξιπρόθεσμο ενοίκιο" desc="Ενημέρωση στη δική σου διεύθυνση αποστολής όταν μια δόση καθυστερεί. Στον ενοικιαστή δεν στέλνει τίποτα η εφαρμογή."
+              control={<Toggle on={prefs.dunning_enabled} onChange={v => update({ dunning_enabled: v })} size="sm" />}>
+              {prefs.dunning_enabled && (
+                <>
+                <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+                  <div>
+                    <label htmlFor="dunning-every" style={{ ...TT.bodySm, display: 'block', marginBottom: 6 }}>Ανά πόσες ημέρες</label>
+                    <input id="dunning-every" className="po-field" type="number" min={1} max={30} style={numField} value={prefs.dunning_every_days}
+                      onChange={e => update({ dunning_every_days: Math.max(1, Math.min(30, parseInt(e.target.value) || 7)) })} />
+                    <div style={{ ...TT.caption, marginTop: 4 }}>Ελάχιστο διάστημα για την ίδια δόση.</div>
+                  </div>
+                  <div>
+                    <label htmlFor="dunning-max" style={{ ...TT.bodySm, display: 'block', marginBottom: 6 }}>Μέγιστες ειδοποιήσεις</label>
+                    <input id="dunning-max" className="po-field" type="number" min={1} max={12} style={numField} value={prefs.dunning_max}
+                      onChange={e => update({ dunning_max: Math.max(1, Math.min(12, parseInt(e.target.value) || 3)) })} />
+                    <div style={{ ...TT.caption, marginTop: 4 }}>Ανώτατος αριθμός ανά δόση.</div>
+                  </div>
+                </div>
+                <div style={{ ...TT.caption, marginTop: 10 }}>
+                  Την υπενθύμιση προς τον ενοικιαστή τη στέλνεις εσύ, από την
+                  καρτέλα «Ενοικιαστής», με WhatsApp, Viber ή ηλεκτρονικό
+                  ταχυδρομείο. Η εφαρμογή δεν γράφει ποτέ σε διεύθυνση
+                  ενοικιαστή χωρίς τη δική του συγκατάθεση.
+                </div>
+                </>
+              )}
+            </SetRow>
+          </SetList>
         )}
       </SetRow>
 

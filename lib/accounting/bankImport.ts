@@ -13,6 +13,8 @@ export interface BankTxn {
   description: string
   amount: number        // θετικό = πίστωση (είσοδος), αρνητικό = χρέωση (έξοδος)
   raw: string
+  /** Αποτύπωμα της κίνησης για τη διπλοεγγραφή. Δες `keyOfLine` πιο κάτω. */
+  key: string
 }
 
 const DATE_KEYS = ['ημερομηνία', 'ημ/νία', 'date', 'ημερ']
@@ -54,6 +56,48 @@ function findCol(headers: string[], keys: string[]): number {
   return -1
 }
 
+// ── ΤΟ ΑΠΟΤΥΠΩΜΑ ΤΗΣ ΤΡΑΠΕΖΑΣ ΕΣΒΗΝΕ ΑΛΗΘΙΝΕΣ ΚΙΝΗΣΕΙΣ ─────────────────────
+// Το κλειδί ήταν `ημερομηνία|ποσό|περιγραφή`, κομμένο στους 200 χαρακτήρες.
+// Δύο αναλήψεις 50,00 από το ίδιο ΑΤΜ την ίδια ημέρα έδιναν ΤΟ ΙΔΙΟ κλειδί,
+// και το upsert με ignoreDuplicates κρατούσε μία: η δεύτερη χανόταν σιωπηλά
+// και στους δύο πίνακες (expenses, bank_transactions). Στο Ε2 έμπαιναν 50,00
+// αντί για 100,00, ενώ το αντίγραφο της τράπεζας δίπλα έδειχνε δύο γραμμές.
+//
+// Το αρχείο δίνει περισσότερες από τρεις στήλες: υπόλοιπο μετά την κίνηση,
+// κωδικό συναλλαγής, αύξοντα αριθμό. Δεν τα διαβάζουμε ονομαστικά, γιατί
+// κάθε τράπεζα τα ονομάζει αλλιώς, αλλά είναι ΟΛΑ μέσα στη γραμμή: το κλειδί
+// δένεται σε ολόκληρη τη γραμμή. Οταν ακόμη και η γραμμή είναι κατά λέξη
+// ίδια, ξεχωρίζει η σειρά εμφάνισης μέσα στο ίδιο αρχείο.
+// Κόστος: ένα hash 32 bit ανά γραμμή. Η σειρά μένει σταθερή ανάμεσα σε δύο
+// εξαγωγές, γιατί μετριέται μόνο μέσα σε ομάδα πανομοιότυπων γραμμών, που
+// έχουν εξ ορισμού την ίδια ημερομηνία και δεν χωρίζονται από ένα διάστημα.
+
+/** Πρόθεμα μορφής: ξεχωρίζει τα νέα αποτυπώματα από τα παλιά της βάσης. */
+const KEY_VERSION = 'v2'
+
+/** FNV-1a 32 bit. Σταθερό και μικρό, όχι κρυπτογραφικό: δεν χρειάζεται. */
+function fnv1a(s: string): string {
+  let h = 0x811c9dc5
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) }
+  return (h >>> 0).toString(36)
+}
+
+/** Το αποτύπωμα μιας γραμμής: ημερομηνία, ποσό, όλη η γραμμή, σειρά. */
+function keyOfLine(date: string, amount: number, line: string, nth: number): string {
+  return `${KEY_VERSION}|${date}|${amount.toFixed(2)}|${fnv1a(line)}|${nth}`
+}
+
+/**
+ * ΤΟ ΠΑΛΙΟ ΑΠΟΤΥΠΩΜΑ, ΜΟΝΟ ΓΙΑ ΑΝΑΓΝΩΡΙΣΗ.
+ *
+ * Ο,τι εισήχθη πριν από αυτή την αλλαγή είναι γραμμένο έτσι στη βάση. Χωρίς
+ * τον έλεγχο και με το παλιό κλειδί, η πρώτη εισαγωγή μετά την αναβάθμιση θα
+ * ξανάγραφε ΚΑΘΕ παλιά κίνηση ως καινούργια: διπλά έξοδα σε όλο το έτος.
+ */
+export function legacyKeyOf(t: { date: string; description: string; amount: number }): string {
+  return `${t.date}|${t.amount}|${t.description}`.slice(0, 200)
+}
+
 // ── ΤΟ ΠΟΣΟ ΠΟΥ ΔΕΝ ΔΙΑΒΑΣΤΗΚΕ ΕΡΙΧΝΕ ΤΗ ΓΡΑΜΜΗ ΣΙΩΠΗΛΑ ────────────────────
 // Το `continue` της γραμμής 82 πετούσε κάθε γραμμή χωρίς αναγνωρίσιμο ποσό
 // (κενό κελί, «ΥΠΟΛΟΙΠΟ», μορφή που δεν αναγνωρίζεται) χωρίς κανέναν μετρητή,
@@ -80,6 +124,8 @@ export function readBankCsv(text: string): BankCsvRead {
   const credit = findCol(headers, CREDIT_KEYS)
   const out: BankTxn[] = []
   let unreadable = 0
+  // Πόσες φορές έχει ξαναφανεί η ίδια ακριβώς γραμμή μέσα στο ίδιο αρχείο.
+  const seenLine = new Map<string, number>()
   for (let r = 1; r < lines.length; r++) {
     const cells = splitCsvLine(lines[r], delim)
     if (!cells.length) { unreadable++; continue }
@@ -94,7 +140,11 @@ export function readBankCsv(text: string): BankCsvRead {
       else if (d != null && d !== 0) amount = -Math.abs(d)
     }
     if (amount == null) { unreadable++; continue }
-    out.push({ date, description, amount, raw: lines[r] })
+    // Τα κενά κανονικοποιούνται: ένα κενό παραπάνω δεν κάνει νέα κίνηση.
+    const line = lines[r].trim().replace(/\s+/g, ' ')
+    const nth = (seenLine.get(line) || 0) + 1
+    seenLine.set(line, nth)
+    out.push({ date, description, amount, raw: lines[r], key: keyOfLine(date, amount, line, nth) })
   }
   return { txns: out, unreadable }
 }

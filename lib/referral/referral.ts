@@ -56,6 +56,18 @@ export function referralLink(origin: string, userId: string): string {
   return `${origin.replace(/\/+$/, '')}/signup?ref=${referralCode(userId)}`;
 }
 
+/**
+ * Εχει ο κωδικός τη μορφή που παράγει η `referralCode`;
+ *
+ * ΓΙΑΤΙ ΥΠΑΡΧΕΙ: ο κωδικός φτάνει στην εγγραφή ως `?ref=`, δηλαδή ως κείμενο
+ * που γράφει ο καθένας. Οποια οθόνη τον ΔΕΙΧΝΕΙ, δείχνει περιεχόμενο της
+ * διεύθυνσης. Ο έλεγχος ζει δίπλα στη γεννήτρια, ώστε η μορφή να μην αντιγραφεί
+ * σε δεύτερο σημείο και να αποκλίνει σιωπηλά.
+ */
+export function isReferralCode(code: string | null | undefined): boolean {
+  return /^PO[0-9A-Z]{7}$/.test((code || '').trim());
+}
+
 // ── Anti-abuse: αυτο-παραπομπή / διπλότυπο (id, email, τηλέφωνο, συσκευή) ─────
 // Η κανονικοποίηση τηλεφώνου γίνεται ΜΙΑ φορά, στο lib/core/greek.ts.
 export { normalizePhone };

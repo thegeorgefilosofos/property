@@ -72,3 +72,45 @@ export function formatNavHash(loc: NavLocation): string {
 export function shouldPush(from: NavLocation, to: NavLocation): boolean {
   return formatNavHash(from) !== formatNavHash(to);
 }
+
+/** Τι ζήτησε η διεύθυνση εκκίνησης, αφού μεταφραστεί σε γλώσσα του πίνακα. */
+export interface LaunchShortcut {
+  /** Το hash που πρέπει να ισχύσει, ή `null` όταν το ερώτημα δεν όριζε καρτέλα. */
+  hash: string | null;
+  /** Ζητήθηκε η γρήγορη προσθήκη με σάρωση. */
+  scan: boolean;
+  /** Το ερώτημα που ΜΕΝΕΙ, με τα καταναλωμένα κλειδιά αφαιρεμένα. */
+  search: string;
+  /** Καταναλώθηκε κάτι· αλλιώς η διεύθυνση δεν αγγίζεται καθόλου. */
+  consumed: boolean;
+}
+
+/**
+ * Μεταφράζει τις συντομεύσεις του εικονιδίου (`?tab=`, `?action=`) σε hash και
+ * σε σημαία σάρωσης.
+ *
+ * ΓΙΑΤΙ ΜΕΤΑΦΡΑΣΗ ΚΑΙ ΟΧΙ ΑΝΑΓΝΩΣΗ ΕΠΙ ΤΟΠΟΥ. Η καρτέλα ζει στο hash· αν το
+ * `?tab=` έμενε ως έχει, θα υπήρχαν δύο διευθύνσεις για την ίδια οθόνη και το
+ * «πίσω» θα κολλούσε στη συντόμευση σε κάθε ανανέωση.
+ *
+ * ΤΑ ΑΛΛΑ ΚΛΕΙΔΙΑ ΤΟΥ ΕΡΩΤΗΜΑΤΟΣ ΕΠΙΖΟΥΝ. Το να σβηστεί ολόκληρο το ερώτημα
+ * θα έπαιρνε μαζί και ό,τι δεν μας αφορά, π.χ. σήμανση καμπάνιας.
+ */
+export function readLaunchShortcut(
+  search: string,
+  hash: string,
+  known: readonly string[],
+): LaunchShortcut {
+  const q = new URLSearchParams(search || '');
+  const tab = q.get('tab');
+  const action = q.get('action');
+  const consumed = tab !== null || action !== null;
+  q.delete('tab');
+  q.delete('action');
+  const rest = q.toString();
+  // Μόνο γνωστές καρτέλες. Η διεύθυνση γράφεται και με το χέρι.
+  const next = tab && known.includes(tab)
+    ? formatNavHash({ tab, propertyId: parseNavHash(hash, '').propertyId })
+    : '';
+  return { hash: next || null, scan: action === 'scan', search: rest ? `?${rest}` : '', consumed };
+}

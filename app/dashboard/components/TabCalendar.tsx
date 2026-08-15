@@ -513,8 +513,11 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
   const [gridW,setGridW]=useState(0)
   useEffect(()=>{
     const el=gridRef.current; if(!el) return
+    // Ο παρατηρητής πυροδοτεί ΜΙΑ φορά μόλις ξεκινήσει, οπότε δεν χρειάζεται
+    // δεύτερη μέτρηση εδώ. Μια κλήση `setGridW` κατευθείαν μέσα στο effect θα
+    // ήταν και περιττή και δεύτερη απόδοση.
     const ro=new ResizeObserver(([e])=>setGridW(e.contentRect.width))
-    ro.observe(el); setGridW(el.getBoundingClientRect().width)
+    ro.observe(el)
     return ()=>ro.disconnect()
   },[])
 

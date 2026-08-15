@@ -14,7 +14,7 @@ import * as tenantStore from '@/lib/data/tenants';
 import { T, fd, fe, EmptyState, Skeleton, pressable } from '@/components/Theme';
 import { notify, notifyOk, notifyError } from '@/components/Toast';
 import { athensToday } from '@/lib/core/time';
-import { saved } from '@/components/dbWrite';
+import { saved, savedData } from '@/components/dbWrite';
 import { failed } from '@/lib/core/dbError';
 import { photosKey, signMaintenancePhotos } from '@/lib/maintenance/photos';
 
@@ -85,18 +85,35 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
     setBusy(false);
     if (ok) notifyOk('Ο σύνδεσμος πληρωμής αποθηκεύτηκε');
   };
-  const savePin = async () => {
-    if (!token) return;
+  // Η ΚΛΕΙΔΑΡΙΑ ΠΟΥ ΕΛΕΓΕ «ΚΛΕΙΔΩΣΑ» ΧΩΡΙΣ ΝΑ ΤΟ ΞΕΡΕΙ.
+  //
+  // Η set_portal_pin επιστρέφει boolean: ψευδές όταν το UPDATE δεν άγγιξε καμία
+  // γραμμή — ξένο ή ανύπαρκτο token, ληγμένη συνεδρία. Οι δύο χειριστές πέταγαν
+  // και το `data` και το `error` και έλεγαν ΠΑΝΤΑ «Ο κωδικός πύλης ορίστηκε».
+  // Ο ιδιοκτήτης έφευγε πιστεύοντας ότι κλείδωσε την πύλη του ενοικιαστή, με
+  // pin_hash ακόμη null: ο σύνδεσμος άνοιγε σε όποιον τον είχε. Δίπλα, η
+  // saveLink έκανε ήδη το σωστό με τη `saved`. Ιδια σύμβαση και εδώ.
+  const writePin = async (pin: string): Promise<boolean> => {
+    if (!token) return false;
+    const what = pin ? 'Ο κωδικός πύλης δεν ορίστηκε' : 'Ο κωδικός πύλης δεν καταργήθηκε';
     setBusy(true);
-    await supabase.rpc('set_portal_pin', { p_token: token, p_pin: pinInput.trim() });
-    setBusy(false); setPinSet(!!pinInput.trim()); setPinInput('');
-    notifyOk(pinInput.trim() ? 'Ο κωδικός πύλης ορίστηκε' : 'Ο κωδικός πύλης καταργήθηκε');
+    const ok = await savedData<boolean>(what, supabase.rpc('set_portal_pin', { p_token: token, p_pin: pin }));
+    setBusy(false);
+    // `null` σημαίνει σφάλμα, και ο χρήστης το έχει ήδη δει. `false` σημαίνει
+    // ότι η κλήση πέτυχε αλλά δεν βρέθηκε δική σου γραμμή με αυτό το token.
+    if (ok === null) return false;
+    if (!ok) { notifyError(failed(what)); return false; }
+    return true;
+  };
+  const savePin = async () => {
+    const pin = pinInput.trim();
+    if (!await writePin(pin)) return;
+    setPinSet(!!pin); setPinInput('');
+    notifyOk(pin ? 'Ο κωδικός πύλης ορίστηκε' : 'Ο κωδικός πύλης καταργήθηκε');
   };
   const clearPin = async () => {
-    if (!token) return;
-    setBusy(true);
-    await supabase.rpc('set_portal_pin', { p_token: token, p_pin: '' });
-    setBusy(false); setPinSet(false); setPinInput(''); notifyOk('Ο κωδικός πύλης καταργήθηκε');
+    if (!await writePin('')) return;
+    setPinSet(false); setPinInput(''); notifyOk('Ο κωδικός πύλης καταργήθηκε');
   };
 
   useEffect(() => { load(); }, [load]);
