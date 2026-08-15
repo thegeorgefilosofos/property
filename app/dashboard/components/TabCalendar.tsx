@@ -467,11 +467,57 @@ const DAY_HEAD_H = 27       // ύψος της γραμμής με τον αρι
 // και διαβαζόταν σαν να ανήκει σε άλλο πράγμα. Η αργία γράφεται τώρα ΠΡΙΝ τον
 // διάδρομο, και ο χώρος της κρατιέται σε ΟΛΑ τα κελιά της εβδομάδας που έχει
 // έστω μία — αλλιώς οι μπάρες της εβδομάδας θα κάθονταν σε δύο ύψη.
-const HOL_H = 16
+const HOL_H = 16          // μία γραμμή αργίας
+const HOL_H2 = 30         // δύο γραμμές, όταν το όνομα δεν χωράει σε μία
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΟ ΚΕΛΙ ΜΕ ΤΗΝ ΑΡΓΙΑ ΜΕΓΑΛΩΝΕ ΚΑΙ ΕΣΠΡΩΧΝΕ ΤΑ ΥΠΟΛΟΙΠΑ
+// ─────────────────────────────────────────────────────────────────────────
+// Το πλέγμα έγραφε `repeat(7, 1fr)`. Το `1fr` σημαίνει `minmax(auto, 1fr)`,
+// και το `auto` ως ΕΛΑΧΙΣΤΟ είναι το min-content: με `white-space: nowrap`,
+// ολόκληρο το κείμενο. Αρα η στήλη που είχε αργία φούσκωνε όσο χρειαζόταν το
+// «Εθνική εορτή 25ης Μαρτίου» και έκλεβε πλάτος από τις άλλες έξι.
+//
+// Και επειδή κάθε εβδομάδα είναι ΔΙΚΟ ΤΗΣ πλέγμα, το φούσκωμα ήταν τοπικό:
+// στον Μάρτιο 2027 η γραμμή με την Καθαρά Δευτέρα και η γραμμή με την 25η
+// Μαρτίου είχαν διαφορετικά όρια στηλών από τις υπόλοιπες. Το ημερολόγιο
+// έπαυε να είναι πλέγμα. Με `minmax(0, 1fr)` οι εφτά στήλες είναι ίσες πάντα.
+//
+// ΤΟ ΔΕΥΤΕΡΟ ΜΙΣΟ: με ίσες στήλες, το μακρύ όνομα κόβεται. Μετρημένο σε
+// πραγματικό φυλλομετρητή, στήλη 79 εικονοστοιχείων έναντι κειμένου 138.
+// Τυλίγεται πια σε δεύτερη γραμμή, και ο χώρος κρατιέται σε ΟΛΑ τα κελιά της
+// εβδομάδας ώστε ο διάδρομος των κρατήσεων να ξεκινά στο ίδιο ύψος.
+//
+// ΠΟΣΕΣ ΓΡΑΜΜΕΣ ΧΡΕΙΑΖΟΝΤΑΙ: μετριέται, δεν μαντεύεται. Ο καμβάς δίνει το
+// ακριβές πλάτος του κειμένου στη γραμματοσειρά που θα αποδοθεί, οπότε η
+// δεύτερη γραμμή κρατιέται μόνο όταν η πρώτη δεν φτάνει. Χωρίς μέτρηση θα
+// έπρεπε είτε να κρατιέται πάντα (χαμένος χώρος σε κάθε αργία) είτε να
+// μαντεύεται με χαρακτήρες (και να κόβεται όταν η εικασία πέσει έξω).
+let holCanvas: CanvasRenderingContext2D | null = null
+function textWidth(text: string, font: string): number {
+  if (typeof document === 'undefined') return 0
+  if (!holCanvas) holCanvas = document.createElement('canvas').getContext('2d')
+  if (!holCanvas) return 0
+  holCanvas.font = font
+  return holCanvas.measureText(text).width
+}
 
 function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick, upcomingAll, drag, stays=[] }: {
   events: CalEvent[]; currentDate: Date; selectedDate?:string; onDayClick:(date:string)=>void; onEventClick:(e:CalEvent)=>void; upcomingAll:CalEvent[]; drag?:DragCtl; stays?:StaySpan[]
 }) {
+  // Το πλάτος του πλέγματος, μετρημένο. Χρειάζεται για να κριθεί αν το όνομα
+  // της αργίας χωράει σε μία γραμμή. Μηδέν στην πρώτη απόδοση και στον
+  // διακομιστή: τότε κρατιέται μία γραμμή, και η δεύτερη μπαίνει μόλις γίνει η
+  // μέτρηση, χωρίς να κοπεί ποτέ κείμενο στο ενδιάμεσο.
+  const gridRef=useRef<HTMLDivElement|null>(null)
+  const [gridW,setGridW]=useState(0)
+  useEffect(()=>{
+    const el=gridRef.current; if(!el) return
+    const ro=new ResizeObserver(([e])=>setGridW(e.contentRect.width))
+    ro.observe(el); setGridW(el.getBoundingClientRect().width)
+    return ()=>ro.disconnect()
+  },[])
+
   const year=currentDate.getFullYear(); const month=currentDate.getMonth()
   const firstDay=mondayFirst(new Date(year,month,1).getDay())
   const daysInMonth=new Date(year,month+1,0).getDate()
@@ -526,7 +572,7 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
                 κάτι πληρωμένο· αλλιώς μιλά η κενή κατάσταση από κάτω. */}
             {monthPaid.length>0&&<span style={{ fontSize:12, fontFamily: T.font.sans, color:'var(--text-secondary)' }}>{monthPaid.length===1?'1 πληρωμένο':`${monthPaid.length} πληρωμένα`}</span>}
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', borderBottom:'1px solid var(--border-subtle)' }}>
+          <div ref={gridRef} style={{ display:'grid', gridTemplateColumns:'repeat(7, minmax(0, 1fr))', borderBottom:'1px solid var(--border-subtle)' }}>
             {DAY_NAMES_GR.map(d=>(
               <div key={d} style={{ padding:'8px 0', textAlign:'center', fontSize:12, fontFamily: T.font.sans, fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase' }}>{d}</div>
             ))}
@@ -535,10 +581,18 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
             const weekDates=week.map(day=>day?`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`:null)
             const { segments, lanes }=weekSegments(stays,weekDates)
             const weekHasHoliday=weekDates.some(d=>!!d&&!!holidayName(d))
+            // Χωράει το μακρύτερο όνομα της εβδομάδας σε μία γραμμή; Το πλάτος
+            // της στήλης είναι το πλάτος του πλέγματος διά εφτά, μείον το
+            // εσωτερικό περιθώριο του κελιού από τις δύο πλευρές.
+            const colInner=Math.max(0,(gridW/7)-CELL_PAD*2)
+            const weekHolH=!weekHasHoliday?0:(weekDates.some(d=>{
+              const n=d?holidayName(d):null
+              return !!n && colInner>0 && textWidth(n,'600 10px '+T.font.sans)>colInner
+            })?HOL_H2:HOL_H)
             const shownLanes=Math.min(lanes,MAX_LANES)
             const railH=shownLanes*(BAR_H+BAR_GAP)
             return (
-            <div key={wIdx} style={{ position:'relative', display:'grid', gridTemplateColumns:'repeat(7,1fr)' }}>
+            <div key={wIdx} style={{ position:'relative', display:'grid', gridTemplateColumns:'repeat(7, minmax(0, 1fr))' }}>
             {week.map((day,col)=>{
               const idx=wIdx*7+col
               const dateStr=day?`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`:''
@@ -577,7 +631,7 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
                           και στα κελιά χωρίς αργία, ώστε ο διάδρομος από κάτω να
                           ξεκινά στο ίδιο ύψος σε όλη την εβδομάδα. */}
                       {weekHasHoliday&&(
-                        <div title={hol||undefined} style={{ height:HOL_H, fontSize:10, lineHeight:'14px', color:'var(--accent)', fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontFamily: T.font.sans }}>{hol||''}</div>
+                        <div title={hol||undefined} style={{ height:weekHolH, fontSize:10, lineHeight:'14px', color:'var(--accent)', fontWeight:600, overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', textWrap:'balance', wordBreak:'break-word', fontFamily: T.font.sans }}>{hol||''}</div>
                       )}
                       {/* Ο ΔΙΑΔΡΟΜΟΣ ΤΩΝ ΚΡΑΤΗΣΕΩΝ. Το κελί δεν ζωγραφίζει πια
                           κομμάτια μπάρας — κρατά μόνο το ύψος τους, ώστε ό,τι
@@ -610,7 +664,7 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
                 ξαναπιάνει, ώστε το tooltip να δουλεύει και το κλικ επάνω της να
                 μην αλλάζει ημέρα. */}
             {shownLanes>0&&(
-              <div aria-hidden={false} style={{ position:'absolute', left:0, right:0, top:CELL_PAD+DAY_HEAD_H+(weekHasHoliday?HOL_H:0), height:railH, pointerEvents:'none' }}>
+              <div aria-hidden={false} style={{ position:'absolute', left:0, right:0, top:CELL_PAD+DAY_HEAD_H+weekHolH, height:railH, pointerEvents:'none' }}>
                 {segments.filter(g=>g.lane<MAX_LANES).map(g=>{
                   const cc=channelColor(g.stay.channel)
                   const L=g.openLeft?0:BAR_INSET, R=g.openRight?0:BAR_INSET

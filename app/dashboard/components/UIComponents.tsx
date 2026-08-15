@@ -487,7 +487,18 @@ export function CustomSelect({
     // κάτω είναι πραγματικά ελάχιστος (και υπάρχει σαφώς περισσότερος πάνω).
     const up = below < 132 && above > below + 24;
     const maxH = Math.min(DESIRED, Math.max(112, (up ? above : below) - GAP));
-    const left = Math.max(8, Math.min(r.left, window.innerWidth - r.width - 8));
+    // ΤΟ ΠΑΝΕΛ ΕΒΓΑΙΝΕ ΕΞΩ ΑΠΟ ΤΗΝ ΟΘΟΝΗ, ΓΙΑΤΙ Η ΣΤΟΙΧΙΣΗ ΚΟΙΤΟΥΣΕ ΛΑΘΟΣ ΠΛΑΤΟΣ.
+    // Ο περιορισμός γραφόταν με το πλάτος του ΚΟΥΜΠΙΟΥ (`r.width`), αλλά το πάνελ
+    // είναι `minWidth: r.width` ΚΑΙ `maxWidth: min(340px, 86vw)`: όταν το κουμπί
+    // είναι στενότερο από 340, το πάνελ μεγαλώνει και βγαίνει έξω δεξιά. Στο
+    // κινητό αυτό σήμαινε ότι η δεύτερη γραμμή κάθε επιλογής («Ανταγωνιστικοί
+    // όροι · Χωρίς έξοδα εξέτασης») κοβόταν στη μέση της λέξης, και ο χρήστης
+    // διάβαζε μισή πρόταση χωρίς να υπάρχει τρόπος να δει την υπόλοιπη.
+    //
+    // Το ΠΡΑΓΜΑΤΙΚΟ πλάτος είναι το μεγαλύτερο από τα δύο, γιατί στο CSS το
+    // `min-width` κερδίζει το `max-width`. Ο περιορισμός γράφεται με αυτό.
+    const panelW = Math.max(r.width, Math.min(340, window.innerWidth * 0.86));
+    const left = Math.max(8, Math.min(r.left, window.innerWidth - panelW - 8));
     setMenuPos({ top: up ? r.top - GAP : r.bottom + GAP, left, minWidth: r.width, maxH, up });
   };
   useEffect(() => {
@@ -656,7 +667,7 @@ export function CustomSelect({
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ whiteSpace: 'nowrap' }}>{opt.label}</div>
                 {opt.description && (
-                  <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginTop: 1, letterSpacing: '0.4px' }}>{opt.description}</div>
+                  <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginTop: 1, letterSpacing: '0.4px', textWrap: 'pretty', overflowWrap: 'anywhere' }}>{opt.description}</div>
                 )}
               </div>
               {opt.value === value && (
