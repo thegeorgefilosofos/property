@@ -11,7 +11,7 @@ import * as checklist from '@/lib/data/checklist';
 import * as tenantStore from '@/lib/data/tenants';
 import * as calendar from '@/lib/data/calendar'
 import * as expenseStore from '@/lib/data/expenses'
-import { athensToday } from '@/lib/core/time'
+import { athensToday, monthEndIso } from '@/lib/core/time'
 import { monthNom } from '@/lib/core/months'
 import { notify } from '@/components/Toast'
 import { saved } from '@/components/dbWrite'
@@ -1152,7 +1152,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
     if (booking || !propertyId || !userId) return;
     setBooking(true);
     const from = `${curMonth}-01`;
-    const to   = `${curMonth}-31`;
+    const to   = monthEndIso(+curMonth.slice(0, 4), +curMonth.slice(5, 7));
     const rows = await expenseStore.inRangeOfProperty(supabase, propertyId, from, to,
       'id,description,amount,category,date,store_vendor,bill_id');
 

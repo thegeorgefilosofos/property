@@ -27,6 +27,7 @@ import { askAssistant } from './AssistantStrip';
 import { MONTHS_NOM } from '@/lib/core/months';
 import { downloadCsv } from '@/lib/core/download';
 import { failed } from '@/lib/core/dbError';
+import { monthEndIso } from '@/lib/core/time';
 
 // Δόση δανείου (από περιγραφή/κατηγορία εξόδου) — ελληνικά & αγγλικά.
 const LOAN_RE = /δάνει|δόσ\w*\s*δάν|τοκοχρε|χρεολ|loan|installment|mortgage|στεγαστ/i;
@@ -122,7 +123,7 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
   const gather = async () => {
     const nameById = new Map(props.filter(p => propIds.has(p.id)).map(p => [p.id, p.name]));
     const from = `${year}-${String(month || 1).padStart(2, '0')}-01`;
-    const to = month > 0 ? `${year}-${String(month).padStart(2, '0')}-31` : `${year}-12-31`;
+    const to = month > 0 ? monthEndIso(year, month) : `${year}-12-31`;
     const [rentData, expData, loanData] = await Promise.all([
       // ΧΩΡΙΣ ΦΙΛΤΡΟ ΠΕΡΙΟΔΟΥ ΣΤΟΝ ΔΙΑΚΟΜΙΣΤΗ, ΚΑΙ ΓΙ' ΑΥΤΟ ΥΠΑΡΧΕΙ ΛΟΓΟΣ.
       // Το `period_year` λέει ΤΙ ΜΗΝΑ αφορά η δόση, όχι πότε εισπράχθηκε. Το

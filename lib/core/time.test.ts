@@ -9,7 +9,7 @@
 import {
   athensToday, athensMonth, athensTime, athensParts, athensOffsetMinutes,
   isAthensDST, daysUntil, isToday, isPast, isFuture, athensDatePlus,
-  athensWeekdayName, isAthensWorkday, athensNowLabel, GREECE_TZ,
+  athensWeekdayName, isAthensWorkday, athensNowLabel, GREECE_TZ, monthEndIso,
 } from './time'
 
 let passed = 0, failed = 0
@@ -145,6 +145,38 @@ function ok(name: string, cond: boolean) { if (cond) { passed++ } else { failed+
   ok('athensToday() δίνει μορφή YYYY-MM-DD', /^\d{4}-\d{2}-\d{2}$/.test(athensToday()))
   ok('athensTime() δίνει μορφή HH:MM', /^\d{2}:\d{2}$/.test(athensTime()))
   ok('η μετατόπιση είναι πάντα 120 ή 180', [120, 180].includes(athensOffsetMinutes()))
+}
+
+// ── monthEndIso: η τελευταία ημέρα του μήνα ─────────────────────────────
+// ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΚΑΡΦΩΝΕΤΑΙ ΕΔΩ: πέντε οθόνες έχτιζαν το πάνω άκρο του εύρους με
+// κυριολεκτικό «-31». Στον Φεβρουάριο έβγαινε «2026-02-31», η Postgres
+// απέρριπτε ΟΛΟΚΛΗΡΟ το ερώτημα με 22008, και ο λογιστής έπαιρνε ημερολόγιο με
+// μηδέν δαπάνες που ισοζύγιζε κανονικά. Καμία εξαίρεση, καμία κόκκινη οθόνη.
+{
+  ok('Ιανουάριος', monthEndIso(2026, 1) === '2026-01-31')
+  ok('Φεβρουάριος κοινού έτους', monthEndIso(2026, 2) === '2026-02-28')
+  ok('Φεβρουάριος δίσεκτου', monthEndIso(2024, 2) === '2024-02-29')
+  ok('αιώνας διαιρετός με 400 είναι δίσεκτος', monthEndIso(2000, 2) === '2000-02-29')
+  ok('αιώνας μη διαιρετός με 400 δεν είναι', monthEndIso(1900, 2) === '1900-02-28')
+  ok('Απρίλιος τριάντα ημερών', monthEndIso(2026, 4) === '2026-04-30')
+  ok('Ιούνιος τριάντα ημερών', monthEndIso(2026, 6) === '2026-06-30')
+  ok('Νοέμβριος τριάντα ημερών', monthEndIso(2026, 11) === '2026-11-30')
+  ok('Δεκέμβριος δεν ξεχειλίζει στην επόμενη χρονιά', monthEndIso(2026, 12) === '2026-12-31')
+  // Η μορφή πρέπει να είναι ΠΑΝΤΑ δέκα χαρακτήρες: το «2026-2-28» θα περνούσε
+  // τον έλεγχο ισότητας παραπάνω αν κάποιος έγραφε τον μήνα χωρίς μηδενικό, και
+  // η PostgREST θα το δεχόταν, αλλά η λεξικογραφική σύγκριση αλλού θα έσπαγε.
+  for (let m = 1; m <= 12; m++) {
+    ok(`μορφή δέκα χαρακτήρων για τον μήνα ${m}`, /^\d{4}-\d{2}-\d{2}$/.test(monthEndIso(2026, m)))
+  }
+  // Η τελευταία ημέρα είναι πάντα ΕΓΚΥΡΗ ημερομηνία: αν δεν ήταν, θα γύριζε
+  // πίσω σε άλλον μήνα κατά την ανάλυση.
+  for (let y = 2024; y <= 2030; y++) {
+    for (let m = 1; m <= 12; m++) {
+      const iso = monthEndIso(y, m)
+      const d = new Date(iso + 'T00:00:00Z')
+      ok(`${iso} μένει στον μήνα του`, d.getUTCMonth() + 1 === m && d.getUTCFullYear() === y)
+    }
+  }
 }
 
 console.log(`core/time.test.ts: ${passed} passed, ${failed} failed`)

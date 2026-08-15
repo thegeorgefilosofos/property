@@ -24,6 +24,7 @@ import { generateReportPdf, pEur, pSigned, pPct, type PdfReportModel } from '@/l
 import type { ReportBranding } from '@/lib/reportBranding';
 import { MONTHS_NOM } from '@/lib/core/months';
 import { failed } from '@/lib/core/dbError';
+import { monthEndIso } from '@/lib/core/time';
 
 interface Prop { id: string; name: string; address: string | null }
 const LS = (pid: string) => `po_owner_split_${pid}`;
@@ -78,7 +79,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
     if (!open || !propId) { setFigures(null); return; }
     (async () => {
       const from = `${year}-${String(month || 1).padStart(2, '0')}-01`;
-      const to = month > 0 ? `${year}-${String(month).padStart(2, '0')}-31` : `${year}-12-31`;
+      const to = month > 0 ? monthEndIso(year, month) : `${year}-12-31`;
       const [r, e] = await Promise.all([
         rentStore.ofProperties<{ amount: number | null; paid: boolean | null; period_year: number; period_month: number }>(
           supabase, [propId], rentStore.PERIOD_COLUMNS, userId, { year, month, paid: true }),

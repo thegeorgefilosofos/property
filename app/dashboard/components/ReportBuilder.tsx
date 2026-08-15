@@ -24,6 +24,7 @@ import { downloadPortfolioComparison, type PortfolioRow } from './portfolioXlsx'
 import type { ReportBranding } from '@/lib/reportBranding';
 import { MONTHS_NOM } from '@/lib/core/months';
 import { failed } from '@/lib/core/dbError';
+import { monthEndIso } from '@/lib/core/time';
 
 interface Prop { id: string; name: string; address: string | null }
 interface RentRow { property_id: string | null; period_year: number | null; period_month: number | null; amount: number | null; paid: boolean | null }
@@ -113,7 +114,7 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
       const rentQ = rentStore.ofProperties<{ property_id: string; period_year: number; period_month: number; amount: number | null; paid: boolean | null }>(
         supabase, ids, `property_id,${rentStore.PERIOD_COLUMNS}`, userId, { year, month });
       const from = `${year}-${String(month || 1).padStart(2, '0')}-01`;
-      const to = month > 0 ? `${year}-${String(month).padStart(2, '0')}-31` : `${year}-12-31`;
+      const to = month > 0 ? monthEndIso(year, month) : `${year}-12-31`;
       const [rentData, expData] = await Promise.all([
         rentQ,
         expenses.inRange(supabase, ids, from, to, 'property_id,date,amount,category'),
@@ -228,7 +229,7 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
       const rentQ = rentStore.ofProperties<{ property_id: string; period_year: number; period_month: number; amount: number | null; paid: boolean | null }>(
         supabase, ids, `property_id,${rentStore.PERIOD_COLUMNS}`, userId, { year, month });
       const from = `${year}-${String(month || 1).padStart(2, '0')}-01`;
-      const to = month > 0 ? `${year}-${String(month).padStart(2, '0')}-31` : `${year}-12-31`;
+      const to = month > 0 ? monthEndIso(year, month) : `${year}-12-31`;
       const [rentData, expData] = await Promise.all([
         rentQ,
         expenses.inRange(supabase, ids, from, to, 'property_id,date,amount,category'),
