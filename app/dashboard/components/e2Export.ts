@@ -107,7 +107,10 @@ export async function loadE2Rows(
   const [tenants, payments, { data: settings }, stays] = await Promise.all([
     tenantStore.currentByProperty<E2Tenant & { status?: string | null; move_out_date?: string | null }>(
       supabase, userId, 'property_id,afm,full_name,monthly_rent,lease_start,lease_end,lease_type,created_at'),
-    rentStore.ofProperties<E2Payment>(supabase, ids, 'property_id,amount,period_year,period_month', userId, { year }),
+    // Το `paid` είναι μία στήλη παραπάνω στο ίδιο ερώτημα, καμία νέα κλήση: χωρίς
+    // αυτό ο έλεγχος του προσυμπληρωμένου δεν μπορεί να ξεχωρίσει τι οφείλεται
+    // απο τι εισπράχθηκε, δηλαδή δεν μπορεί να δει τα ανείσπρακτα του έτους.
+    rentStore.ofProperties<E2Payment>(supabase, ids, 'property_id,amount,period_year,period_month,paid', userId, { year }),
     supabase.from('property_settings').select('property_id, owner_afm').in('property_id', ids).eq('user_id', userId),
     // ΟΙ ΔΙΑΜΟΝΕΣ ΕΙΝΑΙ ΤΟ ΠΡΑΓΜΑΤΙΚΟ ΕΣΟΔΟ ΤΗΣ ΒΡΑΧΥΧΡΟΝΙΑΣ.
     // Μέχρι σήμερα δεν διαβάζονταν καθόλου εδώ, οπότε το Ε2 έβγαζε τα

@@ -35,6 +35,7 @@ export function activityLabel(row: ActivityRow): string {
   const m = row.metadata || {};
   const email = typeof m.email === 'string' ? m.email : '';
   const role = m.role === 'admin' ? 'Διαχειριστής' : m.role === 'member' ? 'Μέλος' : '';
+  const reference = typeof m.reference === 'string' ? m.reference : '';
   switch (row.action) {
     case 'password_changed':    return 'Άλλαξες τον κωδικό πρόσβασης';
     case 'mfa_enabled':         return 'Ενεργοποίησες την επαλήθευση δύο βημάτων';
@@ -46,6 +47,11 @@ export function activityLabel(row: ActivityRow): string {
     case 'member_revoked':      return `Αφαίρεσες μέλος${email ? `: ${email}` : ''}`;
     case 'member_edit_granted': return `Έδωσες δικαίωμα επεξεργασίας${email ? `: ${email}` : ''}`;
     case 'member_edit_revoked': return `Αφαίρεσες δικαίωμα επεξεργασίας${email ? `: ${email}` : ''}`;
+    // Το κλειδί γραφόταν από τη Δήλωση μίσθωσης χωρίς περιγραφή εδώ, οπότε το
+    // `default` τύπωνε σε ελληνική οθόνη το ωμό `lease_declaration_submitted`.
+    // Δεν φάνηκε ποτέ επειδή η ίδια η εγγραφή δεν περνούσε τη RLS.
+    case 'lease_declaration_submitted':
+      return `Δήλωσες τη μίσθωση στο myAADE${reference ? `, αρ. δήλωσης ${reference}` : ''}`;
     default:                    return row.action;
   }
 }

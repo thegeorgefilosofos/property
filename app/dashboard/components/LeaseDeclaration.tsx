@@ -22,7 +22,7 @@ import { T, TT, Btn, Modal, Spinner } from '@/components/Theme';
 import { Copy, Check, ExternalLink, Printer, AlertTriangle, Clock } from 'lucide-react';
 import { notifyError } from '@/components/Toast';
 import { must } from '@/lib/supabase/must';
-import { saved } from '@/components/dbWrite';
+import { logActivity } from '@/lib/activity';
 import { INK } from '@/lib/print/ink';
 import { aadePath } from '@/lib/tax/aade';
 import { failed } from '@/lib/core/dbError';
@@ -34,6 +34,31 @@ import {
 const TAB_LABEL: Record<NonNullable<DeclField['fixIn']>, string> = {
   property: 'Ακίνητο', tenant: 'Ενοικιαστής', settings: 'Ρυθμίσεις',
 };
+
+// Ενα κλειδί, τρεις χρήσεις: γράψιμο, ανάγνωση πίσω, περιγραφή στο ιστορικό
+// (lib/activity.ts). Γραμμένο δεύτερη φορά στο χέρι, οι τρεις θα απέκλιναν.
+const DECL_ACTION = 'lease_declaration_submitted';
+
+// Η ΚΑΤΑΣΤΑΣΗ ΥΠΟΒΟΛΗΣ ΖΟΥΣΕ ΜΟΝΟ ΣΕ REACT STATE ΚΑΙ ΔΕΝ ΔΙΑΒΑΖΟΤΑΝ ΠΟΤΕ ΠΙΣΩ.
+//
+// Κλείσιμο και άνοιγμα του παραθύρου έσβηνε το «Καταγράφηκε» και τον αριθμό
+// δήλωσης, και η φόρμα ξαναζητούσε «Την υπέβαλα» για δήλωση ήδη υποβληθείσα:
+// ο ιδιοκτήτης μπορούσε να καταγράψει την ίδια δήλωση δέκα φορές, με δέκα
+// γραμμές στο ιστορικό και καμία ένδειξη ποια ίσχυε.
+//
+// Πηγή αλήθειας είναι η τελευταία γραμμή του activity_log για ΑΥΤΟ το ακίνητο.
+// Το activity_log έχει πολιτική SELECT (baseline.sql:4207), όχι INSERT, οπότε
+// η ανάγνωση περνά απευθείας ενώ το γράψιμο μόνο μέσω RPC.
+async function readSubmitted(supabase: SupabaseClient, userId: string, propertyId: string):
+  Promise<{ at: string; ref: string } | null> {
+  const row = await must(supabase.from('activity_log')
+    .select('created_at,metadata')
+    .eq('user_id', userId).eq('action', DECL_ACTION).eq('entity_id', propertyId)
+    .order('created_at', { ascending: false }).limit(1).maybeSingle());
+  if (!row) return null;
+  const meta = (row.metadata ?? {}) as Record<string, unknown>;
+  return { at: row.created_at as string, ref: typeof meta.reference === 'string' ? meta.reference : '' };
+}
 
 export default function LeaseDeclaration({ open, onClose, propertyId, userId, supabase }: {
   open: boolean; onClose: () => void; propertyId: string; userId: string; supabase: SupabaseClient;
@@ -53,7 +78,7 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
     (async () => {
       if (alive) setLoading(true);
       try {
-        const [prop, tenants, settings] = await Promise.all([
+        const [prop, tenants, settings, prior] = await Promise.all([
           // ΤΑ ΟΝΟΜΑΤΑ ΤΩΝ ΣΤΗΛΩΝ ΟΠΩΣ ΤΑ ΕΧΕΙ Η ΒΑΣΗ, ΟΧΙ ΟΠΩΣ ΤΑ ΛΕΜΕ ΕΜΕΙΣ.
           //
           // Εδώ ζητούσε στήλη `type`. Ο πίνακας έχει `prop_type` — `type` δεν υπάρχει.
@@ -88,11 +113,16 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
           // ως υποχρεωτικό, οπότε μια νόμιμη δήλωση μπλόκαρε από ένα λάθος φίλτρο.
           // Και με ΕΝΑ ακίνητο δούλευε, άρα δεν φαινόταν ποτέ στη δοκιμή.
           must(supabase.from('property_settings').select('owner_name,owner_afm').eq('property_id', propertyId).maybeSingle()),
+          // Η προηγούμενη υποβολή, αν υπάρχει. Φορτώνεται μαζί με τα υπόλοιπα
+          // ώστε το παράθυρο να ανοίγει ήδη γνωρίζοντας τι έχει καταγραφεί.
+          readSubmitted(supabase, userId, propertyId),
         ]);
         const t = (tenants || [])[0] as Record<string, unknown> | undefined;
         const p = prop as Record<string, unknown> | null;
         const s = settings as Record<string, unknown> | null;
         if (!alive) return;
+        setSubmitted(prior);
+        setRefInput(prior?.ref ?? '');
         setInput({
           owner: { name: (s?.owner_name as string) ?? null, afm: (s?.owner_afm as string) ?? null },
           property: { name: (p?.name as string) ?? null, atak: (p?.atak as string) ?? null, address: (p?.address as string) ?? null,
@@ -137,15 +167,23 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
 
   const markSubmitted = async () => {
     setSaving(true);
-    const at = new Date().toISOString();
-    setSubmitted({ at, ref: refInput.trim() });
-    // Το μητρώο δραστηριότητας δεν μπλοκάρει τη δήλωση, αλλά η σιωπή του
-    // σήμαινε ότι η καταχώρηση έλειπε από το ιστορικό χωρίς κανείς να το ξέρει.
-    await saved('Η δήλωση δεν καταγράφηκε στο ιστορικό', supabase.from('activity_log').insert({
-      user_id: userId, action: 'lease_declaration_submitted', entity: 'property', entity_id: propertyId,
-      metadata: { reference: refInput.trim() || null, deadline: decl.deadline.due },
-    }));
-    setSaving(false);
+    try {
+      // ΤΟ ΓΡΑΨΙΜΟ ΠΕΡΝΑ ΜΟΝΟ ΑΠΟ ΤΟ RPC. Εδώ γινόταν απευθείας insert στο
+      // activity_log, που έχει πολιτική SELECT και καμία INSERT: η RLS το
+      // έκοβε με 42501 και καμία δήλωση δεν μπήκε ποτέ στο ιστορικό.
+      await logActivity(supabase, DECL_ACTION, 'property', propertyId,
+        { reference: refInput.trim() || null, deadline: decl.deadline.due });
+      // Η ΕΠΙΒΕΒΑΙΩΣΗ ΕΡΧΕΤΑΙ ΑΠΟ ΤΗ ΒΑΣΗ, ΟΧΙ ΑΠΟ ΤΗΝ ΠΡΟΘΕΣΗ. Το logActivity
+      // σωπαίνει σε αποτυχία, οπότε το «Καταγράφηκε» πριν την ανάγνωση ήταν
+      // ακριβώς το ψέμα που έβλεπε ο ιδιοκτήτης δίπλα στο κόκκινο μήνυμα.
+      const now = await readSubmitted(supabase, userId, propertyId);
+      if (now) setSubmitted(now);
+      else notifyError(failed('Η δήλωση δεν καταγράφηκε στο ιστορικό'));
+    } catch (e) {
+      notifyError(failed('Η δήλωση δεν καταγράφηκε στο ιστορικό', e));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const tone = decl.readiness === 'ready' ? (decl.deadline.state === 'overdue' ? 'warning' : 'positive')

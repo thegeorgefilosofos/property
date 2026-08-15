@@ -49,6 +49,13 @@ export interface LedgerExpense {
   paid?: boolean | null;
   store_vendor?: string | null;
   is_recurring?: boolean | null;
+  /**
+   * ΑΦΜ εκδότη, εννέα ψηφία. Δεν περνά στο `LedgerEntry`: η συγχώνευση δεν το
+   * χρειάζεται και ο λογαριασμός δεν έχει τέτοια στήλη, οπότε μια γραμμή
+   * `LedgerEntry` θα το κουβαλούσε πάντα κενό. Η οθόνη επεξεργασίας το παίρνει
+   * από την ίδια τη γραμμή δαπάνης.
+   */
+  supplier_afm?: string | null;
 }
 
 /** Μία γραμμή της ενιαίας λίστας. */

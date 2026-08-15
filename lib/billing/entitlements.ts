@@ -16,7 +16,7 @@
 // και να το μοιράζονται client (UI gating) και server (RLS/trigger έχει δικό του).
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { propertyAllowance, PLAN_ORDER, TRIAL_DAYS, normalizePlan, type PlanId } from './plans';
+import { PLANS, propertyAllowance, PLAN_ORDER, TRIAL_DAYS, normalizePlan, type PlanId } from './plans';
 
 export type ProfileType = 'individual' | 'professional';
 
@@ -167,7 +167,7 @@ export function activeComp(input: EntitlementInput): { plan: PlanId; until: stri
 
 /** Κατάσταση δωρεάν δοκιμής.
  *
- * Κάθε νέος λογαριασμός παίρνει TRIAL_DAYS ημέρες στο πλάνο «Ιδιοκτήτης», ώστε
+ * Κάθε νέος λογαριασμός παίρνει TRIAL_DAYS ημέρες στο πλάνο «Ιδιοκτήτης+», ώστε
  * να δει την πραγματική αξία (Δήλωση μίσθωσης, Ε2, ημερολόγιο λογιστή) πριν
  * αποφασίσει. Χωρίς αυτό, ο χρήστης με ένα ακίνητο δεν συναντά ποτέ τους λόγους
  * να πληρώσει. Η δοκιμή ΔΕΝ ισχύει αν έχει ήδη πληρωμένο πλάνο.
@@ -202,15 +202,20 @@ export function trialState(input: EntitlementInput): TrialState {
  *  μήνες ή ιδιότητα Συνεργάτη. */
 export function effectivePlan(input: EntitlementInput): PlanId {
   let best = normalizePlan(input.plan);
-  // Δωρεάν δοκιμή → ΠΑΝΤΑ «Ιδιοκτήτης», ανεξάρτητα από τον τύπο προφίλ.
+  // Δωρεάν δοκιμή → ΠΑΝΤΑ «Ιδιοκτήτης+», ανεξάρτητα από τον τύπο προφίλ.
   //
   // ΓΙΑΤΙ ΟΧΙ «Επαγγελματίας» ΓΙΑ ΤΟΥΣ ΕΠΑΓΓΕΛΜΑΤΙΕΣ: ο τύπος προφίλ δηλώνεται
   // ελεύθερα από τον χρήστη στο onboarding, χωρίς κανέναν έλεγχο. Αν η δοκιμή
   // ακολουθούσε το προφίλ, οποιοσδήποτε θα έπαιρνε 15 ακίνητα δηλώνοντας
-  // «Επαγγελματίας». Κυριότερο: ο server (user_plan_rank) δίνει rank 1 σε κάθε
-  // δοκιμή και οι Όροι χρήσης λένε ρητά «στο επίπεδο Ιδιοκτήτης» — αν το UI
+  // «Επαγγελματίας». Κυριότερο: ο server (user_plan_rank) δίνει rank 2 σε κάθε
+  // δοκιμή και οι Όροι χρήσης λένε ρητά «στο επίπεδο Ιδιοκτήτης+»: αν το UI
   // έδειχνε όριο 15 ενώ το trigger κόβει στα 3, ο χρήστης θα πατούσε
   // «Προσθήκη ακινήτου» και θα έτρωγε σφάλμα βάσης. Μία αλήθεια παντού.
+  //
+  // ΤΟ ΣΧΟΛΙΟ ΕΓΡΑΦΕ «rank 1» ΚΑΙ ΑΝΤΙΦΑΣΚΕ ΜΕ ΤΟ ΙΔΙΟ ΑΡΧΕΙΟ, 30 ΓΡΑΜΜΕΣ ΠΙΟ
+  // ΠΑΝΩ. Η θέση 1 ανήκει στο `solo` από το 20260805090000_solo_plan.sql, που
+  // γράφει `greatest(v_rank, 2)` για τη δοκιμή. Δύο αριθμοί για το ίδιο
+  // πράγμα σήμαιναν ότι ο επόμενος αναγνώστης θα «διόρθωνε» τη σωστή πλευρά.
   const trial = trialState(input);
   if (trial.active && rank(TRIAL_PLAN) > rank(best)) best = TRIAL_PLAN;
   const comp = activeComp(input);
@@ -279,6 +284,25 @@ export function canAddProperty(input: EntitlementInput, currentCount: number): b
 /** Επιτρέπεται αυτό το πλάνο για το συγκεκριμένο προφίλ; */
 export function isPlanAllowedForProfile(profile: ProfileType, plan: PlanId): boolean {
   return ALLOWED_PLANS[profile].includes(plan);
+}
+
+/**
+ * ΤΟ ΠΑΚΕΤΟ ΠΟΥ ΗΡΘΕ ΩΣ `?plan=`, ΕΠΑΛΗΘΕΥΜΕΝΟ ΑΠΟ ΤΟΝ ΤΙΜΟΚΑΤΑΛΟΓΟ.
+ *
+ * Η εγγραφή έκανε τον έλεγχο μόνη της, σε δύο σημεία (φόρμα email και
+ * επιστροφή Google), με τον ίδιο κανόνα γραμμένο δύο φορές στο χέρι:
+ * `p !== 'free' && normalizePlan(p) === p`. Δύο αντίγραφα και μία σταθερή
+ * 'free' καρφωμένη έξω από τα πλάνα. Ο κανόνας βγαίνει πλέον από την πηγή:
+ * δεκτό είναι ό,τι έχει τιμή στο PLANS, δηλαδή τα τέσσερα πακέτα των καρτών.
+ *
+ * ΤΙ ΔΕΝ ΕΛΕΓΧΕΤΑΙ ΕΔΩ ΚΑΙ ΓΙΑΤΙ: αν το πακέτο ταιριάζει στον τύπο προφίλ. Ο
+ * τύπος δηλώνεται μετά την εγγραφή (WelcomeOnboarding), οπότε τη στιγμή που
+ * διαβάζεται το `?plan=` δεν υπάρχει με τι να συγκριθεί. Η οθόνη της εγγραφής
+ * το ΛΕΕΙ αντί να το κρύψει, με το `isPlanAllowedForProfile`.
+ */
+export function planFromParam(id: string | null | undefined): PlanId | null {
+  const plan = normalizePlan(id);
+  return PLANS[plan].priceMonthly > 0 ? plan : null;
 }
 
 /** Το κορυφαίο (πληρωμένο) πλάνο του προφίλ — στόχος αναβάθμισης & δωρεάν μηνών. */

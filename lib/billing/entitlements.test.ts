@@ -4,7 +4,7 @@ import {
   planAtLeast, effectivePlan, activeComp, hasFeature, isTabAllowed,
   requiredPlanForTab, requiredPlanForFeature, propertyLimit, canAddProperty,
   isPlanAllowedForProfile, paidPlanForProfile, isTabRelevant, isTabPurchasable,
-  trialState, isOpenEnded,
+  trialState, isOpenEnded, planFromParam,
   type EntitlementInput,
 } from './entitlements';
 
@@ -194,6 +194,28 @@ ok(canAddProperty(compOwner, 3) === false, 'comp owner σταματά στα 3')
   ok(isOpenEnded(null, now) === false, 'χωρίς ημερομηνία, κανένα συμπέρασμα');
   ok(isOpenEnded('χθες', now) === false, 'ό,τι δεν είναι ημερομηνία δεν γίνεται «ποτέ»');
   ok(isOpenEnded('2020-01-01', now) === false, 'περασμένη ημερομηνία δεν είναι «χωρίς λήξη»');
+}
+
+// ── ΤΟ `?plan=` ΤΗΣ ΕΓΓΡΑΦΗΣ ────────────────────────────────────────────────
+// Η παράμετρος γράφεται με το χέρι στη διεύθυνση. Δεκτά μόνο τα τέσσερα πακέτα
+// με τιμή· το «free» είναι κατάσταση, όχι επιλογή, και ό,τι άλλο δεν υπάρχει.
+ok(planFromParam('solo') === 'solo', 'το solo περνά');
+ok(planFromParam('owner') === 'owner', 'το owner περνά');
+ok(planFromParam('agency') === 'agency', 'το agency περνά');
+ok(planFromParam('office') === 'office', 'το office περνά');
+ok(planFromParam('free') === null, 'το free δεν είναι επιλογή πακέτου');
+ok(planFromParam('trial') === null, 'πακέτο που δεν υπάρχει δεν γίνεται δεκτό');
+ok(planFromParam('OWNER') === null, 'η γραφή δεν διορθώνεται σιωπηλά');
+ok(planFromParam(null) === null, 'χωρίς παράμετρο, καμία επιλογή');
+ok(planFromParam('') === null, 'κενή παράμετρος, καμία επιλογή');
+// Ο,τι περνά τον έλεγχο πρέπει να είναι αγοράσιμο από ΚΑΠΟΙΟ προφίλ. Ο τύπος
+// προφίλ δεν έχει δηλωθεί ακόμη στην εγγραφή, οπότε αυτό είναι το ανώτατο που
+// μπορεί να επαληθευτεί εκείνη τη στιγμή.
+for (const id of ['solo', 'owner', 'agency', 'office'] as const) {
+  const chosen = planFromParam(id);
+  ok(chosen !== null
+    && (isPlanAllowedForProfile('individual', chosen) || isPlanAllowedForProfile('professional', chosen)),
+    `το ${id} αγοράζεται από κάποιο προφίλ`);
 }
 
 console.log(`\nbilling/entitlements.ts — ${p} passed, ${f} failed`);

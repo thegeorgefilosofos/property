@@ -677,13 +677,20 @@ const DAYS_GR = ['Δε','Τρ','Τε','Πε','Πα','Σά','Κυ'];
 
 interface DatePickerProps {
   label?: string;
+  /**
+   * Χωρίς ετικέτα, το ημερολόγιο ονομαζόταν από την τιμή του, και όσο η τιμή
+   * είναι κενή, από το placeholder: δύο ημερολόγια στον οδηγό ακινήτου έλεγαν
+   * και τα δύο «Επιλογή ημερομηνίας». Το `ariaLabel` δίνει σταθερό όνομα που
+   * λέει ΤΙ ρυθμίζει, όχι τι δείχνει. Ιδιο συμβόλαιο με το CustomSelect.
+   */
+  ariaLabel?: string;
   value: string;
   onChange: (v: string) => void;
   disabled?: boolean;
   placeholder?: string;
 }
 
-export function DatePicker({ label, value, onChange, disabled, placeholder = 'Επιλογή ημερομηνίας' }: DatePickerProps) {
+export function DatePicker({ label, ariaLabel, value, onChange, disabled, placeholder = 'Επιλογή ημερομηνίας' }: DatePickerProps) {
   const [open, setOpen] = useState(false);
   const [focused, setFocused] = useState(false);
   // ΤΟ ΗΜΕΡΟΛΟΓΙΟ ΑΝΟΙΓΕ ΣΕ ΛΑΘΟΣ ΜΗΝΑ. Εδώ γραφόταν `new Date(value).getMonth()`:
@@ -753,6 +760,10 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
   const prevMonth = () => month === 0 ? (setMonth(11), setYear(y => y-1)) : setMonth(m => m-1);
   const nextMonth = () => month === 11 ? (setMonth(0), setYear(y => y+1)) : setMonth(m => m+1);
 
+  // Ποιος γράφει το όνομα: η ρητή ετικέτα του γονιού, αλλιώς η δική μας. Η τιμή
+  // μπαίνει πάντα από πίσω, ώστε το όνομα να λέει και τι ρυθμίζει και τι δείχνει.
+  const naming = ariaLabel || label;
+
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       {label && <label style={fieldLabelStyle}>{label}</label>}
@@ -762,7 +773,7 @@ export function DatePicker({ label, value, onChange, disabled, placeholder = 'Ε
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-disabled={disabled || undefined}
-        aria-label={`${label ? label + ': ' : ''}${value ? fmtDisplay(value) : placeholder}`}
+        aria-label={`${naming ? naming + ': ' : ''}${value ? fmtDisplay(value) : placeholder}`}
         onClick={() => !disabled && setOpen(v => !v)}
         onKeyDown={e => {
           if (disabled) return;

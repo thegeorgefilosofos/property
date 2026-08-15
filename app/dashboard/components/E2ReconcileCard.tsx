@@ -35,6 +35,8 @@ import { hasFeature } from '@/lib/billing/entitlements';
 import type { PlanId } from '@/lib/billing/plans';
 import { FeatureBtn } from './FeatureLock';
 import type { E2Row } from '@/lib/billing/e2';
+import { readStatus } from '@/lib/property/status';
+import { shortTermYearSummary } from '@/lib/tax/shortTermTax';
 
 // Χρώμα ΜΟΝΟ όπου υπάρχει κάτι να γίνει. Η συμφωνία δεν είναι επίτευγμα που
 // θέλει πράσινο· είναι η αναμενόμενη κατάσταση και γράφεται με τον τόνο του
@@ -88,17 +90,48 @@ export default function E2ReconcileCard({ userId, year, plan = 'free', onUpgrade
     (async () => {
       setLoading(true);
       try {
-        const { properties, rows: r } = await loadE2Rows(supabase, userId, year);
+        const { properties, rows: r, paymentsByProp, staysByProp } =
+          await loadE2Rows(supabase, userId, year);
         if (!alive) return;
         setRows(r);
-        // Ό,τι βοηθά να εξηγηθεί μια διαφορά, από δεδομένα που ΕΧΟΥΜΕ ήδη.
-        // Δεν κάνουμε νέα ερωτήματα για να «εμπλουτίσουμε»: ό,τι δεν ξέρουμε,
-        // η μηχανή το αφήνει ανεξήγητο, που είναι η σωστή απάντηση.
-        setEvidence(properties.map(p => ({
-          atak: p.atak,
-          name: p.address || p.atak || 'Ακίνητο',
-          shortTerm: p.status_detail === 'seasonal',
-        })));
+        // ── ΤΕΣΣΕΡΑ ΜΕΓΕΘΗ ΠΟΥ ΥΠΗΡΧΑΝ ΚΑΙ ΔΕΝ ΠΕΡΝΟΥΣΑΝ ────────────────────
+        //
+        // Η μηχανή συμφωνίας ξέρει επτά λόγους διαφοράς. Εδώ της δίνονταν
+        // στοιχεία για δύο (μήνες, συνιδιοκτησία): οι τέσσερις λόγοι που
+        // στηρίζονται σε προμήθεια πλατφόρμας, τέλος ανθεκτικότητας,
+        // ανείσπρακτα και απροσδιόριστη βάση ποσού ΔΕΝ μπορούσαν να
+        // ενεργοποιηθούν ποτέ, όσο σωστά κι αν ήταν τα δεδομένα. Ο χρήστης
+        // διάβαζε «διαφορά χωρίς εξήγηση» για διαφορά που τα δικά του
+        // δεδομένα εξηγούσαν, και την πήγαινε στον λογιστή του ως άγνωστη.
+        //
+        // Καμία νέα αριθμητική: τα τρία της βραχυχρόνιας βγαίνουν απο την ίδια
+        // `shortTermYearSummary` που δίνει το ακαθάριστο στο `buildE2Row`, τα
+        // ανείσπρακτα απο τις δόσεις του έτους που δεν έχουν σημανθεί ως
+        // εισπραγμένες. Κόστος: μία στήλη παραπάνω στο ερώτημα των δόσεων.
+        //
+        // Η ΚΑΤΑΣΤΑΣΗ ΔΙΑΒΑΖΕΤΑΙ ΟΠΩΣ ΣΤΟ ΕΝΤΥΠΟ. Εδώ κρινόταν μόνο απο το
+        // `status_detail === 'seasonal'`, ενώ το `buildE2Row` περνά απο το
+        // `readStatus`: ακίνητο αποθηκευμένο «rented» με `rental_mode`
+        // «short_term» έμπαινε στο έντυπο ως βραχυχρόνιο και ταυτόχρονα
+        // έχανε εδώ τις δύο εξηγήσεις της βραχυχρόνιας.
+        setEvidence(properties.map(p => {
+          const shortTerm = readStatus(p) === 'rent_short';
+          const stayYear = shortTerm ? shortTermYearSummary(staysByProp.get(p.id) || [], year) : null;
+          // Στη βραχυχρόνια το ακαθάριστο βγαίνει απο τις διαμονές, όχι απο
+          // δόσεις: εκεί τα ανείσπρακτα μισθώματα δεν έχουν νόημα, ακριβώς
+          // όπως τα μηδενίζει και η Λογιστική.
+          const due = shortTerm ? [] : (paymentsByProp.get(p.id) || []);
+          const unpaid = due.reduce((s, x) => s + (x.paid ? 0 : (x.amount || 0)), 0);
+          return {
+            atak: p.atak,
+            name: p.address || p.atak || 'Ακίνητο',
+            shortTerm,
+            platformFees: stayYear?.platformFees ?? null,
+            climateLevy: stayYear?.collectedLevy ?? null,
+            unresolvedAmounts: stayYear?.unresolvedAmount ?? null,
+            unpaid: unpaid > 0 ? unpaid : null,
+          };
+        }));
       } finally { if (alive) setLoading(false); }
     })();
     return () => { alive = false; };

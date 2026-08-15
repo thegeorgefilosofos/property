@@ -15,7 +15,10 @@ import { readStatus } from '@/lib/property/status';
 // ασυμφωνίας: «ακίνητο μπορούσε να είναι 'rented' με rental_mode 'short_term'».
 export interface E2Property { id: string; atak: string | null; address: string | null; postal_code: string | null; ownership: string | number | null; prop_type: string | null; status_detail: string | null; rental_mode?: string | null; target_rent: number | null; sqm?: number | null; floor?: string | number | null; }
 export interface E2Tenant { property_id: string; afm: string | null; monthly_rent: number | null; lease_start: string | null; lease_end: string | null; lease_type: string | null; full_name?: string | null; }
-export interface E2Payment { property_id: string; amount: number | null; period_year: number; period_month: number; }
+// Το `paid` δεν το χρειάζεται το ακαθάριστο του εντύπου (δεδουλευμένο, ανεξάρτητα
+// είσπραξης) — το χρειάζεται ο ΕΛΕΓΧΟΣ του προσυμπληρωμένου, που εξηγεί τη διαφορά
+// με τα ανείσπρακτα του έτους. Προαιρετικό: παλιοί καλούντες δεν αλλάζουν.
+export interface E2Payment { property_id: string; amount: number | null; period_year: number; period_month: number; paid?: boolean | null; }
 /** Διαμονή βραχυχρόνιας (client_stays) — τα ΠΡΑΓΜΑΤΙΚΑ έσοδα ενός `seasonal` ακινήτου. */
 export interface E2Stay extends TaxStay { property_id?: string | null }
 

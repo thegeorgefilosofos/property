@@ -48,15 +48,22 @@ export interface Scope { propertyId: string; userId: string }
  * και η στήλη που δεν ζητήθηκε γίνεται `undefined` — όχι σφάλμα, απλώς λάθος
  * νούμερο παρακάτω.
  */
-export const LEDGER_COLUMNS = 'id,bill_id,amount,date,description,category,paid,expense_group,is_recurring,store_vendor';
+export const LEDGER_COLUMNS = 'id,bill_id,amount,date,description,category,paid,expense_group,is_recurring,store_vendor,supplier_afm';
 
 /**
  * Ο τύπος της γραμμής που γυρίζει το `LEDGER_COLUMNS`, κομμένος από το
  * παραγόμενο σχήμα. Η λίστα και ο τύπος είναι δίπλα δίπλα: αν αλλάξει η μία
  * χωρίς τον άλλο, φαίνεται εδώ και όχι στην οθόνη.
+ *
+ * ΤΟ `supplier_afm` ΜΠΗΚΕ ΣΤΗ ΛΙΣΤΑ ΓΙΑΤΙ ΚΑΜΙΑ ΟΘΟΝΗ ΔΕΝ ΤΟ ΔΙΑΒΑΖΕ ΠΙΣΩ. Η
+ * στήλη υπάρχει από τη μετανάστευση 20260812120000, ο φάκελος του λογιστή
+ * μετρά τις δαπάνες χωρίς ΑΦΜ (lib/data/accountant.ts, κενό «no_supplier_afm»)
+ * και η εξαγωγή έχει στήλη γι' αυτό — αλλά η μόνη διαδρομή που το ΕΓΡΑΦΕ ήταν
+ * η σάρωση παραστατικού (lib/billing/documents.ts). Χωρίς ανάγνωση δεν υπήρχε
+ * τρόπος να συμπληρωθεί μετά. Κόστος: μία στήλη κειμένου ανά γραμμή.
  */
 export type LedgerRow = Pick<ExpensesRow,
-  'id' | 'bill_id' | 'amount' | 'date' | 'description' | 'category' | 'paid' | 'expense_group' | 'is_recurring' | 'store_vendor'>;
+  'id' | 'bill_id' | 'amount' | 'date' | 'description' | 'category' | 'paid' | 'expense_group' | 'is_recurring' | 'store_vendor' | 'supplier_afm'>;
 
 /** Η ίδια γραμμή, όταν τα ακίνητα είναι πολλά και πρέπει να ξεχωρίζουν. */
 export type LedgerRowWithProperty = LedgerRow & Pick<ExpensesRow, 'property_id'>;

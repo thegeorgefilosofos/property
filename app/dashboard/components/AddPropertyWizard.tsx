@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useId, cloneElement, isValidElement } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
 // Το προφίλ χρέωσης έχει ένα σπίτι: lib/data/billing.
@@ -135,8 +135,28 @@ const onFocus = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => {
 const onBlur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.target.style.borderColor = 'var(--border-default)'; e.target.style.boxShadow = 'none'; };
 
 
+// ── Η ΕΤΙΚΕΤΑ ΔΙΝΕΙ ΤΟ ΟΝΟΜΑ, ΔΕΝ ΚΑΘΕΤΑΙ ΑΠΛΩΣ ΑΠΟ ΠΑΝΩ ────────────────────
+//
+// Η <label> ήταν ΑΔΕΛΦΟΣ του πεδίου μέσα σε <div>: ούτε htmlFor, ούτε id, ούτε
+// τύλιγμα. Ο βλέπων διάβαζε το κείμενο από πάνω· ο αναγνώστης οθόνης άκουγε
+// «επεξεργασία κειμένου» και τίποτε άλλο. Μετρημένα, 36 πεδία του οδηγού: 31
+// ντόπια (30 <input> και 1 <textarea>), 3 CustomSelect και 2 DatePicker.
+//
+// Ενα id ανά στιγμιότυπο, από το useId. Στα ντόπια γίνεται id + htmlFor, οπότε
+// το κλικ στην ετικέτα εστιάζει πλέον στο πεδίο, όπως παντού αλλού· στα σύνθετα
+// γίνεται ariaLabel, που και τα δύο το δέχονται ήδη. Τα 36 σημεία κλήσης δεν
+// άλλαξαν ούτε κατά μία λέξη.
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div><label style={labelStyle}>{label}</label>{children}</div>;
+  const id = useId();
+  const el = isValidElement(children) ? children : null;
+  // Ντόπιο στοιχείο σημαίνει τύπος-συμβολοσειρά («input», «textarea»). Τα
+  // σύνθετα (CustomSelect, DatePicker) έχουν συνάρτηση για τύπο.
+  const isNative = !!el && typeof el.type === 'string';
+  const child = el
+    ? cloneElement(el as React.ReactElement<Record<string, unknown>>,
+        isNative ? { id } : { ariaLabel: label })
+    : children;
+  return <div><label htmlFor={isNative ? id : undefined} style={labelStyle}>{label}</label>{child}</div>;
 }
 
 // Επικεφαλίδα υποενότητας (ίδιο accent uppercase look με το panel απόδοσης)

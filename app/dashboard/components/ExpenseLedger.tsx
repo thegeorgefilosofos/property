@@ -32,13 +32,13 @@ import * as expenseStore from '@/lib/data/expenses'
 import * as billStore from '@/lib/data/bills'
 import ExpenseCompare from './ExpenseCompare';
 import type { Spend } from '@/lib/expenses/compare';
-import { T, TT, fe, Btn, Card, EmptyState, Skeleton, ABSENT_DATE } from '@/components/Theme';
+import { T, TT, fe, Btn, Card, EmptyState, Modal, Skeleton, ABSENT_DATE } from '@/components/Theme';
 import { notify, notifyError } from '@/components/toastBus';
 import {
   mergeLedger, ledgerTotal, groupByMonth,
   type LedgerEntry, type LedgerBill, type LedgerExpense,
 } from '@/lib/expenses/ledger';
-import { categoryLabel, resolveCategory, searchCategories, BY_SLUG } from '@/lib/expenses/taxonomy';
+import { categoryLabel, resolveCategory, searchCategories, BY_SLUG, CATEGORIES } from '@/lib/expenses/taxonomy';
 import { missingThisMonth } from '@/lib/expenses/expected';
 import { priceChanges } from '@/lib/expenses/priceChange';
 import { planBillPayment, type BillToPay } from '@/lib/expenses/pay';
@@ -47,6 +47,7 @@ import { PAID_BY_OPTIONS, SHARED_SCOPES, DEFAULT_SHARE_PERCENT } from '@/lib/exp
 import { CustomSelect, DatePicker, Toggle } from './UIComponents';
 import { athensToday, athensMonth } from '@/lib/core/time';
 import { MONTHS_NOM } from '@/lib/core/months';
+import { afmDigits, isValidAfm, parseAmount } from '@/lib/core/greek';
 
 interface Props {
   propertyId: string;
@@ -116,6 +117,10 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
   const [q, setQ] = useState('');
   const [adding, setAdding] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  // Ποια δαπάνη είναι ανοιχτή για επεξεργασία. Κρατιέται το αναγνωριστικό και
+  // όχι αντίγραφο της γραμμής: μετά την αποθήκευση η λίστα ξαναφορτώνεται, και
+  // ένα αντίγραφο θα έδειχνε τα παλιά δεδομένα αν ο χρήστης ξανάνοιγε αμέσως.
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // ═══════════════════════════════════════════════════════════════════════
   // Η ΣΥΓΚΡΙΣΗ ΜΗΝΑ ΔΙΑΒΑΖΕΙ ΤΑ ΙΔΙΑ ΔΕΔΟΜΕΝΑ — ΔΕΝ ΞΑΝΑΡΩΤΑ ΤΗ ΒΑΣΗ
@@ -179,6 +184,13 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
   }, [supabase, propertyId, load]);
 
   const { entries, duplicates } = useMemo(() => mergeLedger(bills, expenses), [bills, expenses]);
+
+  // Η γραμμή που επεξεργάζεται, από την ΙΔΙΑ λίστα που δείχνει η οθόνη. Αν η
+  // δαπάνη διαγραφεί από άλλη συσκευή όσο το παράθυρο είναι ανοιχτό, το
+  // realtime ξαναφορτώνει, η γραμμή δεν βρίσκεται και το παράθυρο κλείνει μόνο
+  // του αντί να αποθηκεύσει σε αναγνωριστικό που δεν υπάρχει πια.
+  const editingRow = useMemo(
+    () => (editingId ? expenses.find(x => x.id === editingId) ?? null : null), [expenses, editingId]);
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -501,12 +513,17 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
               </div>
               <div style={{ padding: '4px 0' }}>
                 {m.entries.map(e => (
-                  <Row key={e.key} e={e} busy={busy === e.key} onPaid={() => markPaid(e)} />
+                  <Row key={e.key} e={e} busy={busy === e.key} onPaid={() => markPaid(e)}
+                    onEdit={e.expenseId ? () => setEditingId(e.expenseId) : null} />
                 ))}
               </div>
             </div>
           ))}
         </Card>
+      )}
+
+      {editingRow && (
+        <EditExpense row={editingRow} onClose={() => setEditingId(null)} onSaved={load} />
       )}
     </div>
   );
@@ -538,7 +555,7 @@ function Figure({ label, value, sub, tone }: { label: string; value: string | nu
 const bare = (s: string): string =>
   s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
 
-function Row({ e, busy, onPaid }: { e: LedgerEntry; busy: boolean; onPaid: () => void }) {
+function Row({ e, busy, onPaid, onEdit }: { e: LedgerEntry; busy: boolean; onPaid: () => void; onEdit: (() => void) | null }) {
   const cat = categoryLabel(e.category);
   const due = e.due ? dueText(e.due) : null;
   // «Δόση δανείου» με από κάτω «Δόση Δανείου» δεν είναι δεύτερη πληροφορία,
@@ -568,6 +585,15 @@ function Row({ e, busy, onPaid }: { e: LedgerEntry; busy: boolean; onPaid: () =>
         )}
       </span>
       <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {/* ΜΟΝΟ ΟΠΟΥ ΥΠΑΡΧΕΙ ΚΑΤΙ ΝΑ ΑΛΛΑΞΕΙ. Η γραμμή του απλήρωτου
+            λογαριασμού δεν είναι δαπάνη ακόμη: ζει σε άλλον πίνακα, με άλλα
+            πεδία. Κουμπί που θα άνοιγε φόρμα δαπάνης πάνω της θα υποσχόταν
+            επεξεργασία που δεν γίνεται. */}
+        {onEdit && (
+          <span className="exp-act">
+            <Btn variant="ghost" onClick={onEdit}>Επεξεργασία</Btn>
+          </span>
+        )}
         {!e.paid && (
           <span className="exp-act">
             <Btn variant="secondary" onClick={onPaid} disabled={busy}>
@@ -580,6 +606,157 @@ function Row({ e, busy, onPaid }: { e: LedgerEntry; busy: boolean; onPaid: () =>
         </span>
       </span>
     </div>
+  );
+}
+
+// ── ΤΑ ΔΥΟ ΠΕΔΙΑ ΤΗΣ ΦΟΡΜΑΣ, ΓΡΑΜΜΕΝΑ ΜΙΑ ΦΟΡΑ ─────────────────────────────
+// Η γεωμετρία ζούσε μέσα στη QuickAdd. Με δεύτερη φόρμα δίπλα (η επεξεργασία)
+// θα αντιγραφόταν, και δύο αντίγραφα ενός στυλ αποκλίνουν στην πρώτη διόρθωση.
+const FIELD: React.CSSProperties = {
+  height: T.h.lg, padding: '0 14px', borderRadius: T.radius.inner,
+  border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
+  color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', width: '100%', boxSizing: 'border-box',
+};
+const LAB: React.CSSProperties = { display: 'block', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 5 };
+
+/** Ποσό σε πεδίο κειμένου: δύο δεκαδικά, κόμμα, χωρίς τελεία χιλιάδων. */
+const amountText = (n: number): string => n.toFixed(2).replace('.', ',');
+
+// ── ΤΟ ΑΦΜ ΤΟΥ ΠΡΟΜΗΘΕΥΤΗ ─────────────────────────────────────────────────
+/**
+ * ΤΙ ΕΛΕΙΠΕ: η στήλη `supplier_afm` υπάρχει, ο φάκελος του λογιστή μετρά τις
+ * δαπάνες που δεν την έχουν, και η εξαγωγή έχει στήλη γι' αυτήν — αλλά η μόνη
+ * διαδρομή που την ΕΓΡΑΦΕ ήταν η σάρωση παραστατικού. Ο,τι γραφόταν με το χέρι
+ * έφτανε στον λογιστή χωρίς ΑΦΜ, και το ταίριασμα γινόταν με το όνομα: τρεις
+ * διαφορετικοί «Συντήρηση Παπαδόπουλος» είναι τρία διαφορετικά τιμολόγια.
+ *
+ * Ο ΕΛΕΓΧΟΣ ΕΙΝΑΙ Ο ΥΠΑΡΧΩΝ, ένας για όλη την εφαρμογή (lib/core/greek.ts):
+ * εννέα ψηφία με άθροισμα ελέγχου, και δέχεται τα κενά του εκκαθαριστικού
+ * («094 014 201»). Στη βάση γράφονται μόνο τα ψηφία, γιατί ο περιορισμός της
+ * στήλης είναι `^[0-9]{9}$`.
+ */
+function AfmField({ value, onChange, note }: { value: string; onChange: (v: string) => void; note: string }) {
+  const bad = value.trim() !== '' && !isValidAfm(value);
+  return (
+    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+      <label style={{ flex: '0 1 190px', minWidth: 0 }}>
+        <span style={LAB}>ΑΦΜ προμηθευτή;</span>
+        <input value={value} onChange={e => onChange(e.target.value)} inputMode="numeric" maxLength={13}
+          aria-invalid={bad || undefined}
+          style={{ ...FIELD, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}
+          placeholder="Εννέα ψηφία" />
+      </label>
+      {/* Το λάθος λέγεται στη ΘΕΣΗ της οδηγίας, όχι σε δεύτερη γραμμή από κάτω:
+          η φόρμα δεν αλλάζει ύψος τη στιγμή που ο χρήστης πληκτρολογεί. */}
+      <span style={{ ...TT.caption, flex: '1 1 240px', minWidth: 0, paddingBottom: 11, lineHeight: 1.5 }}>
+        {bad ? 'Δεν είναι έγκυρο ΑΦΜ. Εννέα ψηφία, όπως στο παραστατικό.' : note}
+      </span>
+    </div>
+  );
+}
+
+const AFM_NOTE = 'Προαιρετικό. Χωρίς αυτό, ο λογιστής ταιριάζει τα παραστατικά με το όνομα.';
+
+// ── ΕΠΕΞΕΡΓΑΣΙΑ ΥΠΑΡΧΟΥΣΑΣ ΔΑΠΑΝΗΣ ────────────────────────────────────────
+/**
+ * ΤΙ ΔΕΝ ΥΠΗΡΧΕ: καμία οθόνη δεν άλλαζε δαπάνη που είχε ήδη γραφτεί. Ενα λάθος
+ * ποσό ή μια λάθος κατηγορία διορθωνόταν μόνο με διαγραφή και ξαναγράψιμο —
+ * και η διαγραφή δεν προσφέρεται καν για πληρωμένη δαπάνη (removeIfUnpaid).
+ *
+ * Η ΚΑΤΗΓΟΡΙΑ ΣΕΡΝΕΙ ΤΗΝ ΟΜΑΔΑ ΜΑΖΙ ΤΗΣ. Το `expense_group` κρίνει την
+ * έκπτωση, και μια ενημέρωση που άλλαζε μόνο την κατηγορία θα άφηνε γραμμή
+ * «ΕΝΦΙΑ» με ομάδα «fixed», δηλαδή μη εκπεστέα δαπάνη δηλωμένη ως εκπεστέα. Η
+ * ομάδα ξαναπαράγεται εδώ από την ταξινομία, όπως και στην καταχώρηση.
+ */
+function EditExpense({ row, onClose, onSaved }: {
+  row: LedgerExpense; onClose: () => void; onSaved: () => Promise<void>;
+}) {
+  const supabase = useMemo(() => createClient(), []);
+  const [what, setWhat] = useState((row.description || '').trim());
+  const [amount, setAmount] = useState(amountText(Number(row.amount) || 0));
+  const [date, setDate] = useState(String(row.date || '').slice(0, 10) || athensToday());
+  // ΚΕΝΟ ΣΗΜΑΙΝΕΙ «ΔΕΝ ΤΗΝ ΞΕΡΟΥΜΕ», ΟΧΙ «ΑΛΛΟ». Το κείμενο της βάσης μπορεί να
+  // μην είναι στην ταξινομία — αυτές ακριβώς είναι οι γραμμές που «θέλουν μια
+  // ματιά» και για τις οποίες ανοίγει η οθόνη. Προεπιλογή «Άλλο» θα έδειχνε
+  // κατηγορία που κανείς δεν διάλεξε, και ένα αφηρημένο πάτημα θα την έγραφε.
+  const [slug, setSlug] = useState(resolveCategory(row.category) || '');
+  const [afm, setAfm] = useState(row.supplier_afm || '');
+  const [saving, setSaving] = useState(false);
+
+  const amt = parseAmount(amount);
+  const afmOk = afm.trim() === '' || isValidAfm(afm);
+  // Το ΑΦΜ λέει μόνο του τι του φταίει, δίπλα στο πεδίο. Εδώ μένει ό,τι δεν
+  // φαίνεται αλλού, ώστε το κλειδωμένο κουμπί να μην είναι ποτέ ανεξήγητο.
+  const missing = !what.trim() ? 'Θέλει περιγραφή.'
+    : (amt === null || amt <= 0) ? 'Θέλει ποσό μεγαλύτερο από μηδέν.'
+    : null;
+  const ready = !missing && afmOk;
+
+  const save = async () => {
+    if (!ready || amt === null) return;
+    setSaving(true);
+    try {
+      const cat = slug ? BY_SLUG[slug] : null;
+      const { error } = await expenseStore.update(supabase, row.id, {
+        description: what.trim(),
+        amount: amt,
+        date,
+        // Χωρίς επιλογή, η κατηγορία της βάσης μένει ακριβώς όπως είναι: η
+        // ενημέρωση διορθώνει ό,τι άγγιξε ο χρήστης και τίποτα άλλο.
+        ...(cat ? { category: cat.label, expense_group: expenseStore.groupOf(cat.label) } : {}),
+        supplier_afm: afm.trim() ? afmDigits(afm) : null,
+      });
+      if (error) throw error;
+      notify('Αποθηκεύτηκε');
+      onClose();
+      await onSaved();
+    } catch { notifyError('Δεν αποθηκεύτηκε. Δοκίμασε ξανά.'); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <Modal open onClose={onClose} title="Επεξεργασία δαπάνης" width={560}
+      footerInfo={missing ?? undefined}
+      footer={<>
+        <Btn variant="secondary" onClick={onClose}>Ακύρωση</Btn>
+        <Btn variant="primary" onClick={save} disabled={saving || !ready}>
+          {saving ? 'Γίνεται…' : 'Αποθήκευση'}
+        </Btn>
+      </>}>
+      <label style={{ display: 'block', minWidth: 0 }}>
+        <span style={LAB}>Τι ήταν;</span>
+        <input value={what} onChange={e => setWhat(e.target.value)} style={FIELD}
+          placeholder="Παράδειγμα: λογαριασμός ΔΕΗ, υδραυλικός" />
+      </label>
+
+      {/* Ίδια γεωμετρία με την καταχώρηση: το ευρώ μέσα στο πεδίο, δεξιά. */}
+      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+        <label style={{ flex: '0 1 150px', minWidth: 0, position: 'relative' }}>
+          <span style={LAB}>Πόσο;</span>
+          <input value={amount} onChange={e => setAmount(e.target.value)} inputMode="decimal"
+            style={{ ...FIELD, paddingRight: 34, textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}
+            placeholder="0,00" />
+          <span aria-hidden style={{ position: 'absolute', right: 14, bottom: 0, height: T.h.lg, display: 'flex', alignItems: 'center', fontSize: 14, color: 'var(--text-tertiary)', pointerEvents: 'none' }}>€</span>
+        </label>
+        <div style={{ flex: '1 1 190px', minWidth: 0 }}>
+          <span style={LAB}>Πότε;</span>
+          <DatePicker value={date} onChange={setDate} />
+        </div>
+      </div>
+
+      {/* ΠΛΗΡΗΣ ΚΑΤΑΛΟΓΟΣ, ΟΧΙ ΠΡΟΤΑΣΕΙΣ. Στην καταχώρηση τα πλακίδια μαντεύουν
+          από την περιγραφή, γιατί εκεί δεν υπάρχει ακόμη κατηγορία. Εδώ υπάρχει
+          και ο λόγος που άνοιξε η οθόνη είναι συχνά ότι είναι λάθος: μια λίστα
+          με ΟΛΕΣ τις κατηγορίες απαντά σε αυτό, έξι πλακίδια όχι. */}
+      <div style={{ minWidth: 0 }}>
+        <span style={LAB}>Τι κατηγορία;</span>
+        <CustomSelect value={slug} onChange={setSlug} ariaLabel="Κατηγορία δαπάνης"
+          placeholder="Χωρίς κατηγορία"
+          options={CATEGORIES.map(c => ({ value: c.slug, label: c.label }))} />
+      </div>
+
+      <AfmField value={afm} onChange={setAfm} note={AFM_NOTE} />
+    </Modal>
   );
 }
 
@@ -600,6 +777,9 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
   // δεν έπρεπε να υπάρχει. Ζει τώρα εδώ, στη μία φόρμα.
   const [paidBy, setPaidBy] = useState('owner');
   const [sharePct, setSharePct] = useState('');
+  // ΑΦΜ προμηθευτή: το πεδίο που ζητά ο φάκελος του λογιστή και δεν υπήρχε
+  // πουθενά στη χειροκίνητη καταχώρηση. Βλ. AfmField παραπάνω.
+  const [afm, setAfm] = useState('');
   const [saving, setSaving] = useState(false);
   const first = useRef<HTMLInputElement>(null);
 
@@ -621,9 +801,16 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
     return chosen ? [chosen, ...base.slice(0, 5)] : base;
   }, [what, touched, slug]);
 
+  const afmOk = afm.trim() === '' || isValidAfm(afm);
+
   const save = async () => {
-    const amt = parseFloat(amount.replace(',', '.'));
-    if (!what.trim() || !Number.isFinite(amt) || amt <= 0) return;
+    // ΕΝΑΣ ΑΝΑΓΝΩΣΤΗΣ ΠΟΣΟΥ ΓΙΑ ΟΛΗ ΤΗΝ ΕΦΑΡΜΟΓΗ. Ηταν
+    // `parseFloat(amount.replace(',', '.'))`: το «1.234,56» γινόταν «1.234.56»
+    // και μετά 1,23 ευρώ — τρεις τάξεις μεγέθους λάθος, σιωπηλά, στη μία φόρμα
+    // καταχώρησης. Το `parseAmount` κρίνει από το τελευταίο σύμβολο και το
+    // διαβάζει σωστά και στις δύο γραφές, με 19 ελέγχους από πίσω.
+    const amt = parseAmount(amount);
+    if (!what.trim() || amt === null || amt <= 0 || !afmOk) return;
     setSaving(true);
     try {
       // Ο SUPABASE ΔΕΝ ΠΕΤΑΕΙ ΕΞΑΙΡΕΣΗ ΣΕ ΣΦΑΛΜΑ ΒΑΣΗΣ — ΕΠΙΣΤΡΕΦΕΙ { error }.
@@ -676,6 +863,9 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
             date,
             category: cat ? cat.label : 'Άλλο',
             paid: true,
+            // Μόνο τα ψηφία: ο περιορισμός της στήλης είναι `^[0-9]{9}$`, και το
+            // «094 014 201» του εκκαθαριστικού θα το απέρριπτε η βάση.
+            supplier_afm: afm.trim() ? afmDigits(afm) : null,
           }),
           ...sharing,
         }]);
@@ -686,13 +876,6 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
     } catch { notifyError('Δεν αποθηκεύτηκε. Δοκίμασε ξανά.'); }
     finally { setSaving(false); }
   };
-
-  const field: React.CSSProperties = {
-    height: T.h.lg, padding: '0 14px', borderRadius: T.radius.inner,
-    border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
-    color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', width: '100%', boxSizing: 'border-box',
-  };
-  const lab: React.CSSProperties = { display: 'block', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 5 };
 
   return (
     <Card pad="sm" style={{ marginBottom: T.sp.md }}>
@@ -720,17 +903,17 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
       <div className="qa-form">
       <div className="qa-grid">
         <label className="qa-wide" style={{ minWidth: 0 }}>
-          <span style={lab}>Τι ήταν;</span>
-          <input ref={first} value={what} onChange={e => setWhat(e.target.value)} style={field}
+          <span style={LAB}>Τι ήταν;</span>
+          <input ref={first} value={what} onChange={e => setWhat(e.target.value)} style={FIELD}
             placeholder="Παράδειγμα: λογαριασμός ΔΕΗ, υδραυλικός" />
         </label>
         {/* Το ευρώ ζει ΜΕΣΑ στο πεδίο, δεξιά, όπως σε κάθε άλλο ποσό της
             εφαρμογής. Χωρίς αυτό, ένα κενό κουτί δίπλα στη λέξη «Πόσο;» δεν
             έλεγε καν σε τι μονάδα απαντά ο χρήστης. */}
         <label style={{ minWidth: 0, position: 'relative' }}>
-          <span style={lab}>Πόσο;</span>
+          <span style={LAB}>Πόσο;</span>
           <input value={amount} onChange={e => setAmount(e.target.value)} inputMode="decimal"
-            style={{ ...field, paddingRight: 34, textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}
+            style={{ ...FIELD, paddingRight: 34, textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}
             placeholder="0,00" />
           <span aria-hidden style={{ position: 'absolute', right: 14, bottom: 0, height: T.h.lg, display: 'flex', alignItems: 'center', fontSize: 14, color: 'var(--text-tertiary)', pointerEvents: 'none' }}>€</span>
         </label>
@@ -741,7 +924,7 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
             επιλέγει η γλώσσα του περιηγητή. Ο επιλογέας της εφαρμογής είναι
             ελληνικός, με Δευτέρα πρώτη, και ο ίδιος σε κάθε οθόνη. */}
         <div style={{ minWidth: 0 }}>
-          <span style={lab}>{paid ? 'Πότε;' : 'Λήγει;'}</span>
+          <span style={LAB}>{paid ? 'Πότε;' : 'Λήγει;'}</span>
           <DatePicker value={paid ? date : (due || date)}
             onChange={v => (paid ? setDate(v) : setDue(v))} />
         </div>
@@ -751,7 +934,7 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
           άλλες μισές ονόμαζαν («Κατηγορία», «Πληρωμένη»): δύο ύφη στην ίδια
           φόρμα, έξι γραμμές απόσταση. Ρωτούν όλες. */}
       <div style={{ marginTop: 16 }}>
-        <span style={lab}>Τι κατηγορία;</span>
+        <span style={LAB}>Τι κατηγορία;</span>
         <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
           {suggestions.map(c => {
             const on = slug === c.slug;
@@ -789,28 +972,38 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
           τσεκαρισμένο. Τώρα είναι πεδίο σαν τα άλλα, με θετική διατύπωση, και
           στέκεται δίπλα στα υπόλοιπα αντί να αιωρείται. */}
       <div className="qa-grid" style={{ marginTop: 14 }}>
-        {/* Η ετικέτα μένει η τοπική `lab`, όχι αυτή του CustomSelect: όλη η φόρμα
+        {/* Η ετικέτα μένει η κοινή `LAB`, όχι αυτή του CustomSelect: όλη η φόρμα
             χρησιμοποιεί την ίδια, και η ενσωματωμένη έχει minHeight 32, οπότε θα
             ξεχώριζε η μία γραμμή από τις άλλες ακριβώς δίπλα της. */}
         <div className="qa-wide" style={{ minWidth: 0 }}>
-          <span style={lab}>Ποιος πληρώνει;</span>
+          <span style={LAB}>Ποιος πληρώνει;</span>
           <CustomSelect value={paidBy} onChange={setPaidBy} options={PAID_BY_OPTIONS} />
         </div>
         {SHARED_SCOPES.has(paidBy) && (
           <label style={{ minWidth: 0 }}>
-            <span style={lab}>Πόσο δικό μου;</span>
+            <span style={LAB}>Πόσο δικό μου;</span>
             <input value={sharePct} onChange={e => setSharePct(e.target.value)} inputMode="numeric"
-              style={{ ...field, textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}
+              style={{ ...FIELD, textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}
               placeholder={`${DEFAULT_SHARE_PERCENT} %`} />
           </label>
         )}
         <div style={{ minWidth: 0 }}>
-          <span style={lab}>Πληρώθηκε;</span>
+          <span style={LAB}>Πληρώθηκε;</span>
           <div style={{ height: T.h.lg, display: 'flex', alignItems: 'center' }}>
             <Toggle on={paid} onChange={setPaid} ariaLabel="Πληρώθηκε" />
           </div>
         </div>
       </div>
+
+      {/* ΜΟΝΟ ΣΤΗΝ ΠΛΗΡΩΜΕΝΗ. Η απλήρωτη γραμμή γράφεται στον πίνακα των
+          λογαριασμών, που ΔΕΝ έχει στήλη ΑΦΜ: ένα πεδίο που θα φαινόταν και
+          δεν θα αποθηκευόταν είναι χειρότερο από πεδίο που λείπει. Το ΑΦΜ
+          μπαίνει μετά την εξόφληση, από την επεξεργασία της δαπάνης. */}
+      {paid && (
+        <div style={{ marginTop: 14 }}>
+          <AfmField value={afm} onChange={setAfm} note={AFM_NOTE} />
+        </div>
+      )}
 
       {/* Η ΓΡΑΜΜΗ ΤΗΣ ΕΝΕΡΓΕΙΑΣ ΛΕΕΙ ΤΙ ΘΑ ΓΙΝΕΙ. Ήταν ένα κουμπί καρφωμένο
           δεξιά και τίποτα άλλο σε ολόκληρο το πλάτος. Η απλήρωτη δαπάνη ΔΕΝ
@@ -822,7 +1015,10 @@ function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: 
             ? 'Μπαίνει στις δαπάνες του μήνα που διάλεξες.'
             : 'Μπαίνει στα απλήρωτα και εμφανίζεται στο Ημερολόγιο μέχρι να πληρωθεί.'}
         </span>
-        <Btn variant="primary" onClick={save} disabled={saving || !what.trim() || !amount}>
+        {/* Το κουμπί κλειδώνει και σε άκυρο ΑΦΜ: ο περιορισμός της στήλης θα το
+            απέρριπτε ούτως ή άλλως, και τότε ο χρήστης θα έχανε ολόκληρη τη
+            φόρμα για ένα ψηφίο. */}
+        <Btn variant="primary" onClick={save} disabled={saving || !what.trim() || !amount || !afmOk}>
           {saving ? 'Γίνεται…' : 'Καταχώρησε'}
         </Btn>
       </div>

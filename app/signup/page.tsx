@@ -10,7 +10,9 @@ import { BackLink } from '../BackLink'
 import { checkPassword } from '@/lib/auth/password'
 import PasswordStrength from '@/components/PasswordStrength'
 import { failed } from '@/lib/core/dbError';
-import { PLANS, TRIAL_DAYS, normalizePlan, type PlanId } from '@/lib/billing/plans';
+import { PLANS, TRIAL_DAYS, type PlanId } from '@/lib/billing/plans';
+// Καθαρή λογική, χωρίς React/Supabase: ασφαλής σε 'use client'.
+import { TRIAL_PLAN, planFromParam, isPlanAllowedForProfile } from '@/lib/billing/entitlements';
 import { POLICY_VERSION as CONSENT_VERSION } from '@/lib/legal/identity'
 
 // Η έκδοση των Όρων που δέχεται ο χρήστης. Ήταν καρφωτή εδώ ως «2026-07», ενώ
@@ -54,6 +56,10 @@ export default function SignupPage() {
   // μόλις ο χρήστης αλλάξει έστω έναν χαρακτήρα.
   const leaked = leakedPw !== null && leakedPw === password
   const pw = checkPassword(password)
+  // Πακέτο που ο Ιδιώτης δεν αγοράζει με κανένα σκαλί (ALLOWED_PLANS). Στην
+  // εγγραφή ο τύπος προφίλ δεν έχει δηλωθεί ακόμη, οπότε δεν μπορεί να κριθεί
+  // η επιλογή: λέγεται όμως ο όρος της, αντί να σιωπάται.
+  const proOnlyPlan = chosenPlan !== null && !isPlanAllowedForProfile('individual', chosenPlan)
   const trans = (m: string) =>
     /already registered|already exists/i.test(m) ? 'Υπάρχει ήδη λογαριασμός με αυτό το email.'
     : /weak|at least|6 char/i.test(m) ? 'Ο κωδικός είναι πολύ αδύναμος. Χρησιμοποίησε τουλάχιστον 8 χαρακτήρες.'
@@ -65,8 +71,8 @@ export default function SignupPage() {
       const q = new URLSearchParams(window.location.search)
       const r = q.get('ref'); if (r) setRefCode(r)
       // Μόνο πακέτο επί πληρωμή: το «free» δεν επιλέγεται, είναι κατάσταση.
-      const p = q.get('plan')
-      if (p && p !== 'free' && normalizePlan(p) === p) setChosenPlan(p as PlanId)
+      // Ο κανόνας ζει στο planFromParam, όχι σε δύο αντίγραφα εδώ μέσα.
+      setChosenPlan(planFromParam(q.get('plan')))
     } catch {}
   }, [])
   useEffect(() => {
@@ -86,8 +92,8 @@ export default function SignupPage() {
           patch.consent_policy_version = CONSENT_VERSION
         }
         const r = q.get('ref'); if (r && !meta.referred_by) patch.referred_by = r
-        const p = q.get('plan')
-        if (p && p !== 'free' && normalizePlan(p) === p && !meta.chosen_plan) patch.chosen_plan = p
+        const p = planFromParam(q.get('plan'))
+        if (p && !meta.chosen_plan) patch.chosen_plan = p
         if (Object.keys(patch).length) { try { await supabase.auth.updateUser({ data: patch }) } catch {} }
         window.location.replace('/dashboard')
         return
@@ -241,12 +247,23 @@ export default function SignupPage() {
                   την πρώτη μέρα που θα μπει η χρέωση, και τότε αυτή η γραμμή θα
                   στέκει δίπλα σε πεδίο κάρτας λέγοντας το αντίθετο. Ό,τι γράφεται
                   εδώ πρέπει να στέκει ΚΑΙ ΠΡΙΝ ΚΑΙ ΜΕΤΑ: η δοκιμή είναι δωρεάν
-                  και το πακέτο αλλάζει όποτε θέλει ο χρήστης. */}
+                  και το πακέτο αλλάζει όποτε θέλει ο χρήστης.
+
+                  ΚΑΙ ΓΙΑΤΙ ΔΕΝ ΓΡΑΦΕΙ ΠΙΑ «ΤΟ ΔΟΚΙΜΑΖΕΙΣ 30 ΗΜΕΡΕΣ». Το πακέτο
+                  δεν δοκιμάζεται: η δοκιμή τρέχει σε σταθερό επίπεδο
+                  (TRIAL_PLAN) για κάθε νέο λογαριασμό, έτσι το λέει και ο
+                  server (user_plan_rank, rank 2) και οι Όροι χρήσης. Ο μεσίτης
+                  που πάτησε την κάρτα «Επαγγελματίας» διάβαζε ότι δοκιμάζει
+                  15 ακίνητα, Πελατολόγιο, Χαρτοφυλάκιο και επώνυμες αναφορές,
+                  και μέσα στην εφαρμογή έβρισκε 3 ακίνητα και έξι κλειδωμένες
+                  δυνατότητες. Το επίπεδο ονομάζεται από το PLANS, ώστε μία
+                  μετονομασία πακέτου να μην αφήσει εδώ παλιό όνομα. */}
               {chosenPlan && (
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', marginBottom: 24, borderRadius: 10, background: 'var(--accent-dim)', border: '1px solid var(--accent-border)' }}>
                   <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0, marginTop: 7 }} />
                   <span style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-                    Διάλεξες το <strong style={{ color: 'var(--text-primary)' }}>{PLANS[chosenPlan].name}</strong>. Το δοκιμάζεις {TRIAL_DAYS} ημέρες χωρίς χρέωση, και το αλλάζεις όποτε θέλεις.
+                    Διάλεξες το <strong style={{ color: 'var(--text-primary)' }}>{PLANS[chosenPlan].name}</strong>. Οι πρώτες {TRIAL_DAYS} ημέρες τρέχουν δωρεάν στο επίπεδο «{PLANS[TRIAL_PLAN].name}», για κάθε νέο λογαριασμό. Η επιλογή σου μένει στον λογαριασμό για μετά τη δοκιμή, και την αλλάζεις όποτε θέλεις.
+                    {proOnlyPlan ? ' Είναι πακέτο επαγγελματία και ισχύει εφόσον δηλώσεις τον αντίστοιχο τρόπο χρήσης.' : null}
                   </span>
                 </div>
               )}
