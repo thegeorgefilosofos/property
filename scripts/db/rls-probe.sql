@@ -253,3 +253,121 @@ begin
   reset role;
   raise notice 'probe: και οι τρεις υπερφορτώσεις κειμένου εκτελούνται';
 end $probe$;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 10. Η ΕΓΓΥΗΣΗ ΤΗΣ ΔΙΑΓΡΑΦΗΣ ΕΠΙΒΙΩΝΕΙ ΤΗΣ ΑΝΑΚΛΗΣΗΣ ΔΙΚΑΙΩΜΑΤΩΝ
+-- ─────────────────────────────────────────────────────────────────────────
+-- ΓΙΑΤΙ ΓΡΑΦΤΗΚΕ. Η `purge_property_children()` δημιουργήθηκε SECURITY DEFINER
+-- και κληρονόμησε το προεπιλεγμένο EXECUTE που η Postgres δίνει στο PUBLIC.
+-- Το `20260815080000_purge_trigger_least_privilege.sql` το ανακάλεσε από
+-- public, anon και authenticated.
+--
+-- Η ανάκληση στηρίζεται σε μια συμπεριφορά της Postgres που είναι σωστή αλλά
+-- ΔΕΝ ΕΙΝΑΙ ΠΡΟΦΑΝΗΣ: το δικαίωμα EXECUTE σε συνάρτηση σκανδάλης ελέγχεται μία
+-- φορά, στο CREATE TRIGGER, και ΟΧΙ σε κάθε πυροδότηση. Αν αυτό άλλαζε ποτέ,
+-- ή αν κάποιος έγραφε τη σκανδάλη αλλιώς, η διαγραφή ακινήτου θα σταματούσε να
+-- καθαρίζει τους δέκα πίνακες και θα έμεναν πίσω δεδομένα πελάτη σε βάση όπου
+-- ο ιδιοκτήτης νομίζει ότι έσβησε το ακίνητό του. Καμία οθόνη δεν θα το έδειχνε.
+--
+-- Ενα σχόλιο δεν εγγυάται τίποτα. Ο έλεγχος εγγυάται.
+do $probe$
+declare
+  v_uid  uuid := '11111111-1111-1111-1111-111111111111';
+  v_prop uuid := '3f3f3f3f-3f3f-4f3f-8f3f-3f3f3f3f3f3f';
+  n_after integer;
+begin
+  -- Ο ανώνυμος ΔΕΝ πρέπει να μπορεί να την καλέσει.
+  if has_function_privilege('anon', 'public.purge_property_children()', 'execute') then
+    raise exception 'Ο ανώνυμος έχει EXECUTE στην purge_property_children: SECURITY DEFINER ανοιχτή στο διαδίκτυο';
+  end if;
+  if has_function_privilege('public', 'public.purge_property_children()', 'execute') then
+    raise exception 'Το PUBLIC έχει EXECUTE στην purge_property_children';
+  end if;
+
+  -- Και όμως η σκανδάλη πρέπει να κάνει τη δουλειά της.
+  insert into auth.users (id, email) values (v_uid, 'purge-probe@example.gr')
+    on conflict (id) do nothing;
+  insert into public.user_properties (id, user_id, name)
+    values (v_prop, v_uid, 'Ακίνητο δοκιμής διαγραφής');
+  insert into public.portal_links (property_id, user_id, token)
+    values (v_prop::text, v_uid, 'purge-probe-token');
+  insert into public.pricing_settings (property_id, user_id)
+    values (v_prop::text, v_uid);
+
+  -- ΠΡΩΤΑ ΒΕΒΑΙΩΣΟΥ ΟΤΙ ΥΠΑΡΧΟΥΝ. Χωρίς αυτό ο έλεγχος είναι κενός: αν οι
+  -- εισαγωγές αποτύγχαναν σιωπηλά, το πλήθος μετά τη διαγραφή θα ήταν μηδέν
+  -- έτσι κι αλλιώς και ο έλεγχος θα περνούσε χωρίς να έχει δοκιμάσει τίποτα.
+  select (select count(*) from public.portal_links     where property_id = v_prop::text)
+       + (select count(*) from public.pricing_settings where property_id = v_prop::text)
+    into n_after;
+  if n_after <> 2 then
+    raise exception 'Ο έλεγχος είναι κενός: περίμενα δύο γραμμές παιδιών πριν τη διαγραφή, βρήκα %', n_after;
+  end if;
+
+  delete from public.user_properties where id = v_prop;
+
+  select (select count(*) from public.portal_links     where property_id = v_prop::text)
+       + (select count(*) from public.pricing_settings where property_id = v_prop::text)
+    into n_after;
+
+  if n_after <> 0 then
+    raise exception 'Η σκανδάλη καθαρισμού δεν έτρεξε: έμειναν % γραμμές παιδιών μετά τη διαγραφή του ακινήτου', n_after;
+  end if;
+
+  raise notice 'probe: η διαγραφή ακινήτου καθαρίζει τα παιδιά της, με ανακλημένο EXECUTE';
+end $probe$;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 11. ΤΟ ON CONFLICT ΤΗΣ ΕΙΣΑΓΩΓΗΣ ΤΡΑΠΕΖΑΣ ΒΡΙΣΚΕΙ ΤΟ ΕΥΡΕΤΗΡΙΟ ΤΟΥ
+-- ─────────────────────────────────────────────────────────────────────────
+-- ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΚΑΡΦΩΝΕΤΑΙ ΕΔΩ. Το `uq_expenses_dedup` ήταν μερικό ευρετήριο
+-- και η Postgres δεν συμπεραίνει μερικό ευρετήριο από σκέτο ON CONFLICT: κάθε
+-- εισαγωγή δαπάνης από τράπεζα έσκαγε με 42P10, ΑΦΟΥ όμως είχαν ήδη γραφτεί οι
+-- εισπράξεις ενοικίων. Ο πληρωμένος πελάτης έβλεπε σφάλμα με τη μισή δουλειά
+-- καταχωρημένη.
+--
+-- Ο έλεγχος εκτελεί ΤΗΝ ΙΔΙΑ εντολή που στέλνει η εφαρμογή, όχι κάτι παρόμοιο.
+do $probe$
+declare
+  v_uid  uuid := '11111111-1111-1111-1111-111111111111';
+  v_prop uuid := '4a4a4a4a-4a4a-4a4a-8a4a-4a4a4a4a4a4a';
+  n integer;
+begin
+  insert into auth.users (id, email) values (v_uid, 'dedup-probe@example.gr')
+    on conflict (id) do nothing;
+  insert into public.user_properties (id, user_id, name)
+    values (v_prop, v_uid, 'Ακίνητο δοκιμής αποτυπώματος')
+    on conflict (id) do nothing;
+
+  -- Πρώτη εισαγωγή με αποτύπωμα: πρέπει να μπει.
+  insert into public.expenses (user_id, property_id, amount, description, category, date, dedup_hash)
+    values (v_uid, v_prop, 87.40, 'ΔΕΗ', 'utilities', current_date, 'probe-hash-1')
+    on conflict (user_id, dedup_hash) do nothing;
+
+  -- Η ΙΔΙΑ δεύτερη φορά: πρέπει να παραλειφθεί σιωπηλά, όχι να σκάσει.
+  insert into public.expenses (user_id, property_id, amount, description, category, date, dedup_hash)
+    values (v_uid, v_prop, 87.40, 'ΔΕΗ', 'utilities', current_date, 'probe-hash-1')
+    on conflict (user_id, dedup_hash) do nothing;
+
+  select count(*) into n from public.expenses
+    where user_id = v_uid and dedup_hash = 'probe-hash-1';
+  if n <> 1 then
+    raise exception 'Το αποτύπωμα δαπάνης δεν εμποδίζει τη διπλοεγγραφή: βρέθηκαν % γραμμές', n;
+  end if;
+
+  -- Και οι ΧΕΙΡΟΚΙΝΗΤΕΣ δαπάνες, που δεν έχουν αποτύπωμα, πρέπει να μένουν
+  -- ελεύθερες: δύο πανομοιότυπες με NULL είναι δύο πραγματικά έξοδα.
+  insert into public.expenses (user_id, property_id, amount, description, category, date)
+    values (v_uid, v_prop, 12.00, 'Χειροκίνητη', 'other', current_date);
+  insert into public.expenses (user_id, property_id, amount, description, category, date)
+    values (v_uid, v_prop, 12.00, 'Χειροκίνητη', 'other', current_date);
+
+  select count(*) into n from public.expenses
+    where user_id = v_uid and dedup_hash is null and description = 'Χειροκίνητη';
+  if n <> 2 then
+    raise exception 'Η μοναδικότητα αποτυπώματος μπλοκάρει χειροκίνητες δαπάνες: βρέθηκαν % αντί για 2', n;
+  end if;
+
+  delete from public.user_properties where id = v_prop;
+  raise notice 'probe: το ON CONFLICT της εισαγωγής τράπεζας βρίσκει το ευρετήριό του';
+end $probe$;
