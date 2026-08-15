@@ -15,9 +15,17 @@ import { createClient } from '@/lib/supabase/client';
 import { rentalIncomeTax, rentalBracketsForYear, bracketsLabelForYear } from '@/lib/billing/greekTax';
 import { presumptiveDeductionRate, PRESUMPTIVE_RULE_2026 } from '@/lib/billing/consolidate';
 import { T, feAuto, Card } from '@/components/Theme';
+import { declarableGrossOrTotal, needsAmountReview } from '@/lib/clients/stayAmounts';
 
 interface Expense { category: string; amount: number; date: string }
-interface Stay { check_in: string | null; check_out: string | null; nights: number | null; total: number | null }
+// Η ΑΝΑΛΥΣΗ ΤΟΥ ΠΟΣΟΥ ΤΑΞΙΔΕΥΕΙ ΜΑΖΙ ΜΕ ΤΗ ΔΙΑΜΟΝΗ. Χωρίς αυτά τα τέσσερα
+// πεδία η οθόνη δεν ξεχωρίζει ακαθάριστο από payout ούτε βγάζει έξω το τέλος
+// ανθεκτικότητας — δηλαδή δεν μπορεί να συμφωνήσει με το Ε2 του ίδιου προϊόντος.
+interface Stay {
+  check_in: string | null; check_out: string | null; nights: number | null; total: number | null;
+  gross_guest_paid?: number | null; climate_levy?: number | null;
+  platform_fee?: number | null; amount_basis?: string | null;
+}
 interface Prop {
   name: string; atak: string | null; address: string | null; prop_type: string | null;
   /** Εισπραχθέν ενοίκιο ΤΟΥ ΕΤΟΥΣ, από rent_payments — ίδια πηγή με το Ε2. */
@@ -63,10 +71,20 @@ export default function AccountantPortal() {
     // παρήγαγε δωδεκάμηνο εισόδημα για χρονιά που το ακίνητο απέδωσε μηδέν.
     const rentAnnual = p.rent_collected || 0;
     const rentMonths = p.rent_months || 0;
-    const shortGross = sum((p.stays || []).map(s => s.total || 0));
+    // ΗΤΑΝ ΤΟ ΩΜΟ `total`, ΚΑΙ ΤΟ ΕΝΤΥΠΟ ΕΛΕΓΕ ΑΛΛΟ ΝΟΥΜΕΡΟ. Το `total` είναι
+    // ακαθάριστο Η payout, ανάλογα με το `amount_basis`· το Ε2 του ίδιου
+    // προϊόντος περνά από το δηλωτέο ακαθάριστο (τι πλήρωσε ο επισκέπτης μείον
+    // το τέλος ανθεκτικότητας, που δεν είναι έσοδο του ιδιοκτήτη). Ο λογιστής
+    // διάβαζε στην πύλη του ένα ποσό και υπέβαλλε άλλο.
+    const stays = p.stays || [];
+    const shortGross = sum(stays.map(declarableGrossOrTotal));
+    // Ιστορικές γραμμές χωρίς ανάλυση και χωρίς δηλωμένη βάση: μπαίνουν με το
+    // `total` τους, αλλά ο αριθμός δεν επιτρέπεται να φαίνεται πιο βέβαιος
+    // απ' όσο είναι. Ο λογιστής υπογράφει τη δήλωση.
+    const staysUnresolved = stays.filter(needsAmountReview).length;
     const income = rentAnnual + shortGross;
     const expenses = sum((p.expenses || []).map(e => e.amount || 0));
-    return { p, rentAnnual, rentMonths, shortGross, income, expenses };
+    return { p, rentAnnual, rentMonths, shortGross, staysUnresolved, income, expenses };
   });
   const totalIncome = sum(perProp.map(x => x.income));
   const totalExpenses = sum(perProp.map(x => x.expenses));
@@ -227,7 +245,14 @@ export default function AccountantPortal() {
                     Σήμερα νοικιάζεται {feAuto(x.p.rent_monthly)} τον μήνα, χωρίς καταχωρημένη είσπραξη στη χρήση {year}.
                   </div>
                 ) : null}
-                {x.shortGross > 0 && row('Βραχυχρόνια (καταγεγραμμένο ποσό)', feAuto(x.shortGross))}
+                {x.shortGross > 0 && row('Βραχυχρόνια, δηλωτέο ακαθάριστο', feAuto(x.shortGross))}
+                {x.staysUnresolved > 0 && (
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '8px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+                    {x.staysUnresolved === 1
+                      ? 'Μία διαμονή δεν δηλώνει αν το ποσό της είναι ακαθάριστο ή καθαρή είσπραξη. Μπαίνει όπως καταχωρήθηκε.'
+                      : `${x.staysUnresolved} διαμονές δεν δηλώνουν αν το ποσό τους είναι ακαθάριστο ή καθαρή είσπραξη. Μπαίνουν όπως καταχωρήθηκαν.`}
+                  </div>
+                )}
                 {row('Δαπάνες έτους', feAuto(x.expenses))}
                 {(x.p.expenses || []).length > 0 && (
                   <div style={{ marginTop: 12 }}>
