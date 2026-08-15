@@ -210,6 +210,11 @@ export default function TenantPortal() {
                 onChange={e => { setPin(e.target.value); if (pinErr) setPinErr(''); }}
                 onKeyDown={e => { if (e.key === 'Enter') submitPin(); }}
                 placeholder="Κωδικός"
+                // ΤΟ PLACEHOLDER ΔΕΝ ΕΙΝΑΙ ΟΝΟΜΑ. Εξαφανίζεται μόλις γραφτεί ο
+                // πρώτος χαρακτήρας, οπότε ο αναγνώστης οθόνης ανακοινώνει «πεδίο
+                // κειμένου» σε κάθε διόρθωση. Το πεδίο έχει και ορατό τίτλο από
+                // πάνω («Απαιτείται κωδικός»), αλλά τίποτα δεν τα συνδέει.
+                aria-label="Κωδικός πύλης"
                 style={{ ...field, textAlign: 'center', letterSpacing: '0.3em' }}
               />
               {pinErr && <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: 'var(--negative)' }}>{pinErr}</div>}
@@ -341,15 +346,15 @@ export default function TenantPortal() {
                 </div>
               ) : (
                 <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  <div><label style={label}>Θέμα</label><input required value={title} onChange={e => setTitle(e.target.value)} placeholder="Παράδειγμα: Διαρροή στο μπάνιο" style={field} /></div>
-                  <div><label style={label}>Περιγραφή</label><textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="Περίγραψε το πρόβλημα…" rows={4} style={{ ...field, resize: 'vertical' }} /></div>
-                  <div><label style={label}>Τηλέφωνο επικοινωνίας (προαιρετικό)</label><input value={contact} onChange={e => setContact(e.target.value)} placeholder="69XXXXXXXX" style={field} /></div>
+                  <div><label htmlFor="portal-title" style={label}>Θέμα</label><input id="portal-title" required value={title} onChange={e => setTitle(e.target.value)} placeholder="Παράδειγμα: Διαρροή στο μπάνιο" style={field} /></div>
+                  <div><label htmlFor="portal-desc" style={label}>Περιγραφή</label><textarea id="portal-desc" value={desc} onChange={e => setDesc(e.target.value)} placeholder="Περίγραψε το πρόβλημα…" rows={4} style={{ ...field, resize: 'vertical' }} /></div>
+                  <div><label htmlFor="portal-contact" style={label}>Τηλέφωνο επικοινωνίας (προαιρετικό)</label><input id="portal-contact" value={contact} onChange={e => setContact(e.target.value)} placeholder="69XXXXXXXX" style={field} /></div>
 
                   <div>
                     <label style={label}>Φωτογραφίες (προαιρετικό)</label>
                     <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--bg-base)', border: '1px solid var(--border-default)', color: 'var(--text-primary)', fontSize: 13, fontWeight: 600, borderRadius: 8, padding: '9px 14px', cursor: photos.length >= MAX_PHOTOS ? 'not-allowed' : 'pointer', opacity: photos.length >= MAX_PHOTOS ? 0.6 : 1, fontFamily: 'inherit' }}>
                       Προσθήκη φωτογραφιών
-                      <input type="file" accept="image/*" multiple disabled={photos.length >= MAX_PHOTOS} onChange={onPickFiles} style={{ display: 'none' }} />
+                      <input type="file" accept="image/*" multiple aria-label="Φωτογραφίες του προβλήματος" disabled={photos.length >= MAX_PHOTOS} onChange={onPickFiles} style={{ display: 'none' }} />
                     </label>
                     {photos.length > 0 && (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 12 }}>

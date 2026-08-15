@@ -287,9 +287,25 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
       const unpaid = owedEntries.length;
       const owed = ledgerTotal(owedEntries);
       const chkAtt = chk.filter(c => c.property_id === p.id && ((c.due_date && new Date(c.due_date).getTime() < nowMs) || c.priority === 'critical')).length;
-      // Ετησιοποίηση (εκτίμηση ρυθμού): μακροχρόνια = ενοίκιο×12· βραχυχρόνια = έσοδα ανά
-      // ημέρα × 365· έξοδα ετησιοποιημένα με τους μήνες που πέρασαν (ομαλότερα από τις ημέρες).
-      const annualRevenue = mode === 'long' ? rent * 12 : mode === 'short' ? Math.round(revenue * (365 / daysElapsed)) : 0;
+      // ── Η ΑΠΟΔΟΣΗ ΔΙΑΙΡΟΥΣΕ ΔΥΟ ΔΙΑΦΟΡΕΤΙΚΕΣ ΒΑΣΕΙΣ ─────────────────────
+      //
+      // Ο αριθμητής ήταν `rent × 12`, όπου το `rent` βγαίνει από το
+      // `resolveRent` και μπορεί να είναι ο ΣΤΟΧΟΣ του ακινήτου: ποσό που δεν
+      // συμφωνήθηκε με κανέναν και δεν εισπράχθηκε ποτέ. Ο παρονομαστής ήταν
+      // πραγματικά έξοδα, ετησιοποιημένα. Δηλαδή φιλοδοξία μείον πραγματικότητα,
+      // και το αποτέλεσμα τυπωνόταν ως «Καθαρή απόδοση» με ένα δεκαδικό.
+      //
+      // Η ίδια οθόνη έδειχνε ήδη, στη στήλη «Έσοδα έτους», τα ΕΙΣΠΡΑΧΘΕΝΤΑ. Δύο
+      // νούμερα για το ίδιο ακίνητο, στην ίδια σελίδα, με το ένα να λέει τι
+      // μπήκε στον λογαριασμό και το άλλο τι θα ήθελε ο ιδιοκτήτης να μπει.
+      //
+      // Τώρα ο αριθμητής ετησιοποιείται ΜΕ ΤΟΝ ΙΔΙΟ ΤΡΟΠΟ που ετησιοποιείται ο
+      // παρονομαστής, από τα ίδια εισπραχθέντα. Ο στόχος μένει μόνο για ακίνητο
+      // χωρίς καμία δόση, όπου δεν υπάρχει τίποτα άλλο — και εκείνο σημαίνεται
+      // ήδη ως εκτίμηση από το `revenueEstimated`.
+      const annualRevenue = mode === 'long'
+        ? (hasRentRows ? Math.round(pay!.collected * (12 / monthsElapsed)) : rent * 12)
+        : mode === 'short' ? Math.round(revenue * (365 / daysElapsed)) : 0;
       const annualExpenses = Math.round(expenses * (12 / monthsElapsed));
       return {
         id: p.id, name: p.name, typeLabel: PROP_LABEL[p.prop_type || ''] || p.prop_type || 'Ακίνητο', mode, statusLabel: declaredStatus,
@@ -301,6 +317,8 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   }, [properties, stays, bills, exp, rentByTenant, rentPays, chk, year, monthsElapsed, daysElapsed, nowMs]);
 
   const agg = useMemo(() => portfolioReturns(rows.map(r => ({ value: r.value, annualRevenue: r.annualRevenue, annualExpenses: r.annualExpenses }))), [rows]);
+  /** Πόσα από τα ακίνητα που μετρούν στην απόδοση μπαίνουν με εκτιμώμενα έσοδα. */
+  const estimatedValued = rows.filter(r => r.value > 0 && r.revenueEstimated).length;
 
   const sorted = useMemo(() => {
     const dir = asc ? 1 : -1;
@@ -530,7 +548,11 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
       {/* Συγκεντρωτική απόδοση χαρτοφυλακίου (σταθμισμένη με την αξία) */}
       {agg.valuedCount > 0 && (
         <div className="card" style={{ marginTop: 12, padding: 16 }}>
-          <SecHdr label="Απόδοση χαρτοφυλακίου" sub={`Σε ετήσια βάση (εκτίμηση ρυθμού) · ${agg.valuedCount} από ${agg.count} ${agg.count === 1 ? 'ακίνητο' : 'ακίνητα'} με καταχωρημένη αξία`} />
+          {/* ΟΤΑΝ ΜΕΣΑ ΣΤΟ ΠΟΣΟΣΤΟ ΥΠΑΡΧΕΙ ΕΚΤΙΜΗΣΗ, ΛΕΓΕΤΑΙ. Ακίνητο χωρίς καμία
+              καταχωρημένη δόση μπαίνει με τον στόχο ενοικίου· η στήλη «Έσοδα
+              έτους» το σημαίνει ήδη γραμμή-γραμμή, και η σύνοψη δεν επιτρέπεται
+              να το κρύψει πίσω από ένα δεκαδικό. */}
+          <SecHdr label="Απόδοση χαρτοφυλακίου" sub={`Σε ετήσια βάση (εκτίμηση ρυθμού) · ${agg.valuedCount} από ${agg.count} ${agg.count === 1 ? 'ακίνητο' : 'ακίνητα'} με καταχωρημένη αξία${estimatedValued > 0 ? ` · ${estimatedValued} με εκτιμώμενα έσοδα` : ''}`} />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 16, marginTop: 14 }}>
             <PStat label="Αξία χαρτοφυλακίου" value={eur(agg.totalValue)} />
             <PStat label="Ετήσια έσοδα" value={eur(agg.totalRevenue)} />

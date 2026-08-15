@@ -36,7 +36,6 @@
     "app/dashboard/components/TabLoanCalculator.tsx": 1,
     "app/dashboard/components/TabSettings.tsx": 1,
     "app/dashboard/components/TabTenantMoney.tsx": 1,
-    "app/portal/[token]/page.tsx": 4,
     "components/SignaturePad.tsx": 1
   }
 }

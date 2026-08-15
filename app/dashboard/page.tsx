@@ -434,6 +434,8 @@ function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { pro
   // τώρα» — αν κάθε κάρτα διάβαζε τα δικά της, θα ξαναγεννιόνταν τα διπλότυπα.
   const [rentPeriods, setRentPeriods] = useState<{ amount:number|null; due_date:string|null; paid:boolean|null; period_year:number|null; period_month:number|null }[]>([]);
   const [maint, setMaint] = useState<OblMaint[]>([]);
+  /** Πότε καταγράφηκε η υποβολή της δήλωσης μίσθωσης· κλείνει την υποχρέωση. */
+  const [leaseDeclaredAt, setLeaseDeclaredAt] = useState<string|null>(null);
   const [tenantFull, setTenantFull] = useState<TenantFull | null>(null);
   // Ενοίκια ΟΛΩΝ των ακινήτων (μισθωτήρια + ρυθμίσεις ενοικίου), για τον
   // προοδευτικό φόρο σε επίπεδο φορολογούμενου.
@@ -449,7 +451,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { pro
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [exp,bil,{ data:tsk },ten,ci,iv,ln,hs,allExp,allTen,{ data:allRc },rp,{ data:mnt }] = await Promise.all([
+    const [exp,bil,{ data:tsk },ten,ci,iv,ln,hs,allExp,allTen,{ data:allRc },rp,{ data:mnt },{ data:decl }] = await Promise.all([
       expenseStore.ledger(supabase,prop.id,{ userId, from:`${year}-01-01`, columns:'*' }),
       billStore.ofProperty<Bill>(supabase,prop.id,'*',userId),
       // Δεν είναι πια πέντε για μια χωριστή κάρτα: τροφοδοτούν την ΕΝΙΑΙΑ
@@ -473,9 +475,16 @@ function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { pro
       // ζουν στον Ενοικιαστή. Ό,τι δεν εμφανίζεται, δεν κατεβαίνει.
       rentStore.ofProperty<{ amount:number|null; due_date:string|null; paid:boolean|null; period_year:number|null; period_month:number|null }>(supabase,prop.id,'amount,due_date,paid,period_year,period_month',userId,{ paid:false }),
       supabase.from('inventory_maintenance').select('task,item_name,next_due,est_cost').eq('property_id',prop.id),
+      // ΠΟΤΕ ΚΑΤΑΓΡΑΦΗΚΕ Η ΔΗΛΩΣΗ ΜΙΣΘΩΣΗΣ. Η υποχρέωση εμφανιζόταν για ενενήντα
+      // μέρες γύρω από την προθεσμία ασχέτως υποβολής, ενώ υποβάλλεται μία φορά.
+      // Το LeaseDeclaration γράφει ήδη εδώ· έλειπε μόνο η ανάγνωση.
+      supabase.from('activity_log').select('created_at')
+        .eq('user_id',userId).eq('action','lease_declaration_submitted').eq('entity_id',prop.id)
+        .order('created_at',{ascending:false}).limit(1),
     ]);
     setExpenses((exp||[]) as Expense[]); setBills(bil); setTasks(tsk||[]); setTenant(ten?.[0]||null);
     setRentPeriods(rp); setMaint((mnt||[]) as OblMaint[]); setTenantFull(ten?.[0]||null);
+    setLeaseDeclaredAt((decl?.[0]?.created_at as string|undefined) ?? null);
     setChk(ci); setInv(iv); setLoans(ln); setHostStays(hs); setAllExpenses((allExp||[]) as { amount:number; date:string; category:string; is_recurring?:boolean; recurring_frequency?:string|null }[]);
     // ΑΚΡΙΒΩΣ οι στήλες του select('property_id,actual_rent,target_rent') — όχι
     // ολόκληρη η γραμμή του rent_config. Με `any` το `r.property_id` δεν
@@ -771,9 +780,9 @@ function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { pro
   // φορές, η ασφάλεια δύο, τα ελλιπή στοιχεία δύο. Τώρα οι πηγές συγχωνεύονται
   // ανά ΘΕΜΑ (lib/home/agenda.ts) και βγαίνει μία σειρά προτεραιότητας.
   const obligations = useMemo(
-    () => computeObligations(prop, tenantFull, maint, now, taxProfileOf(prop)),
+    () => computeObligations(prop, tenantFull, maint, now, taxProfileOf(prop), { leaseDeclaredAt }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [prop, tenantFull, maint, todayIso],
+    [prop, tenantFull, maint, todayIso, leaseDeclaredAt],
   );
   // ═══ ΔΥΟ ΛΙΣΤΕΣ «ΤΙ ΕΡΧΕΤΑΙ», Η ΜΙΑ ΚΑΤΩ ΑΠΟ ΤΗΝ ΑΛΛΗ ═══════════════════
   // Η ατζέντα στην κορυφή έλεγε «τι χρειάζεται τώρα». Τρεις ζώνες πιο κάτω, μια

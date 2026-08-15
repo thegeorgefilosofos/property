@@ -1151,6 +1151,10 @@ export interface TenantsRow {
   lease_start: string | null;
   lease_end: string | null;
   monthly_rent: number | null;
+  /** Αναπροσαρμογή με μελλοντική ισχύ. ΔΕΝ είναι το τρέχον μίσθωμα. */
+  pending_rent: number | null;
+  /** Η ημερομηνία που το `pending_rent` γίνεται `monthly_rent`. */
+  pending_rent_from: string | null;
   deposit: number | null;
   payment_day: number | null;
   contract_type: string | null;

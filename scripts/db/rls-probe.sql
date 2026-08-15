@@ -531,3 +531,75 @@ begin
 end $probe$;
 
 reset role;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Η ΑΝΑΠΡΟΣΑΡΜΟΓΗ ΠΕΦΤΕΙ ΣΤΗΝ ΗΜΕΡΟΜΗΝΙΑ ΤΗΣ, ΟΥΤΕ ΜΙΑ ΜΕΡΑ ΝΩΡΙΤΕΡΑ
+-- ─────────────────────────────────────────────────────────────────────────
+-- Το εύρημα ήταν ότι υπογεγραμμένη ειδοποίηση με ισχύ 01/01/2027 ανέβαζε το
+-- μίσθωμα ΣΗΜΕΡΑ. Δεν αρκεί να διαβαστεί η νέα συνάρτηση: τρεις ιδιότητες
+-- ελέγχονται με εκτέλεση, γιατί και οι τρεις είναι σιωπηλές όταν σπάσουν.
+-- ═══════════════════════════════════════════════════════════════════════════
+do $probe$
+declare
+  a  uuid := '11111111-1111-1111-1111-111111111111';
+  pa uuid := 'aaaaaaaa-0000-0000-0000-000000000001';
+  t_future uuid; t_due uuid; t_expired uuid;
+  n int; v numeric; d date; rest numeric;
+begin
+  insert into public.tenants (property_id, user_id, full_name, monthly_rent,
+                              pending_rent, pending_rent_from)
+    values (pa, a, 'Μελλοντική ισχύς', 600.00, 626.40, current_date + 120)
+    returning id into t_future;
+  insert into public.tenants (property_id, user_id, full_name, monthly_rent,
+                              pending_rent, pending_rent_from)
+    values (pa, a, 'Ωρίμασε προχθές', 600.00, 626.40, current_date - 2)
+    returning id into t_due;
+  -- Μίσθωση που έληξε ΠΡΙΝ την ημερομηνία ισχύος: δεν αναπροσαρμόζεται.
+  insert into public.tenants (property_id, user_id, full_name, monthly_rent,
+                              lease_end, pending_rent, pending_rent_from)
+    values (pa, a, 'Ελήξε πριν την ισχύ', 600.00, current_date - 30, 626.40, current_date - 2)
+    returning id into t_expired;
+
+  n := public.apply_due_rent_adjustments();
+  if n <> 1 then
+    raise exception 'Εφαρμόστηκαν % αναπροσαρμογές αντί για 1', n;
+  end if;
+
+  select monthly_rent, pending_rent_from into v, d from public.tenants where id = t_future;
+  if v is distinct from 600.00 or d is distinct from (current_date + 120) then
+    raise exception 'Η ΜΕΛΛΟΝΤΙΚΗ ισχύς εφαρμόστηκε σήμερα: μίσθωμα %, ραντεβού %', v, d;
+  end if;
+
+  select monthly_rent, pending_rent into v, rest from public.tenants where id = t_due;
+  if v is distinct from 626.40 then
+    raise exception 'Η ωριμασμένη αναπροσαρμογή δεν εφαρμόστηκε: μίσθωμα %', v;
+  end if;
+  if rest is not null then
+    raise exception 'Το ραντεβού έμεινε μετά την εφαρμογή του: %', rest;
+  end if;
+
+  select monthly_rent, pending_rent into v, rest from public.tenants where id = t_expired;
+  if v is distinct from 600.00 then
+    raise exception 'Ληγμένη μίσθωση πήρε αναπροσαρμογή: μίσθωμα %', v;
+  end if;
+  if rest is not null then
+    raise exception 'Το ραντεβού ληγμένης μίσθωσης έμεινε να κοιτάζει το κενό: %', rest;
+  end if;
+
+  -- ΑΘΩΑ ΣΤΗΝ ΕΠΑΝΑΛΗΨΗ. Ο χρονοδρομολογητής μπορεί να τρέξει δύο φορές.
+  n := public.apply_due_rent_adjustments();
+  if n <> 0 then
+    raise exception 'Δεύτερο τρέξιμο εφάρμοσε % αναπροσαρμογές· η εργασία δεν είναι ιδιοδύναμη', n;
+  end if;
+
+  -- Το ραντεβού είναι ΖΕΥΓΟΣ: ποσό χωρίς ημερομηνία δεν γράφεται.
+  begin
+    insert into public.tenants (property_id, user_id, full_name, pending_rent)
+      values (pa, a, 'Μισό ραντεβού', 626.40);
+    raise exception 'Γράφτηκε ποσό αναπροσαρμογής ΧΩΡΙΣ ημερομηνία ισχύος';
+  exception when check_violation then null;
+  end;
+
+  delete from public.tenants where id in (t_future, t_due, t_expired);
+  raise notice 'probe: η αναπροσαρμογή πέφτει στην ημερομηνία της, μία φορά';
+end $probe$;

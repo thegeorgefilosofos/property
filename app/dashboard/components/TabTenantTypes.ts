@@ -37,6 +37,10 @@ export interface Tenant {
   afm:string|null; id_doc_type:IdDocType|null; id_doc_number:string|null; iban:string|null; notes:string|null;
   lease_type:LeaseType|null; lease_category:LeaseCategory|null; lease_start:string|null; lease_end:string|null; custom_lease_days:number|null;
   monthly_rent:number|null; payment_frequency:PaymentFreq|null;
+  // ΑΝΑΠΡΟΣΑΡΜΟΓΗ ΜΕ ΜΕΛΛΟΝΤΙΚΗ ΙΣΧΥ, ΟΧΙ ΤΟ ΤΡΕΧΟΝ ΜΙΣΘΩΜΑ. Γράφεται από την
+  // υπογεγραμμένη ειδοποίηση και περνά στο `monthly_rent` την ημερομηνία της,
+  // με τη νυχτερινή `apply_due_rent_adjustments`.
+  pending_rent:number|null; pending_rent_from:string|null;
   deposit_amount:number|null; deposit_returned:boolean; deposit_return_date:string|null;
   // `streaming` και `cleaning`: οι δύο στήλες όπου ζουν τα παλιά δεδομένα υπηρεσιών.
   // Διαβάζονται μέσω serviceLinesFrom() και γράφονται ως ServiceLine[] στο `streaming`.

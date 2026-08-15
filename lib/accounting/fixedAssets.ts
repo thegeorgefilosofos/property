@@ -248,12 +248,27 @@ export interface RegisterInput {
     name?: string | null; category?: string | null;
     purchase_value?: number | null; purchase_date?: string | null;
   }[];
-  /** Οι δαπάνες της χρήσης· κρατούνται μόνο όσες είναι υποψήφιες για πάγιο. */
+  /**
+   * ΟΛΕΣ οι δαπάνες, όχι της χρήσης. Κρατούνται όσες είναι υποψήφιες για πάγιο
+   * και αποκτήθηκαν ώς το τέλος του `year`.
+   */
   expenses?: readonly {
     date: string; category?: string | null; description?: string | null; amount?: number | null;
   }[];
   /** Ποιες κατηγορίες δαπανών είναι υποψήφιες, και σε ποιον λογαριασμό. */
   capitalisable: Readonly<Record<string, string>>;
+  /**
+   * Η χρήση του μητρώου. Κόβει ό,τι αποκτήθηκε ΜΕΤΑ το τέλος της.
+   *
+   * ΓΙΑΤΙ ΕΙΝΑΙ ΜΕΡΟΣ ΤΟΥ ΜΗΤΡΩΟΥ ΚΑΙ ΟΧΙ ΤΟΥ ΚΑΛΟΥΝΤΟΣ. Το μητρώο παγίων ΕΙΝΑΙ
+   * μια φωτογραφία σε ημερομηνία. Οσο το φιλτράρισμα ζούσε στον καλούντα, ο
+   * καλών περνούσε τις δαπάνες ΤΗΣ ΧΡΟΝΙΑΣ και έχανε κάθε πάγιο των
+   * προηγούμενων· βλ. την τεκμηρίωση της `buildRegister`.
+   *
+   * Προαιρετική για συμβατότητα με κλήσεις που δεν έχουν χρήση: χωρίς αυτήν
+   * δεν κόβεται τίποτα.
+   */
+  year?: number;
 }
 
 /**
@@ -267,12 +282,27 @@ export interface RegisterInput {
  * ΟΙ ΔΑΠΑΝΕΣ ΜΠΑΙΝΟΥΝ ΩΣ ΥΠΟΨΗΦΙΕΣ. Το αν μια ανακαίνιση κεφαλαιοποιείται ή
  * είναι συντήρηση δεν κρίνεται από την κατηγορία: το ίδιο τιμολόγιο μπορεί να
  * είναι και τα δύο. Σημαδεύονται και ο λογιστής αποφασίζει.
+ *
+ * ΤΟ ΜΗΤΡΩΟ ΞΕΧΝΟΥΣΕ ΚΑΘΕ ΠΑΓΙΟ ΤΟΥ ΠΕΡΑΣΜΕΝΟΥ ΕΤΟΥΣ. Ο καλών περνούσε τις
+ * δαπάνες ΤΗΣ ΧΡΗΣΗΣ (`expensesYear`), οπότε ανακαίνιση 12.000 € του 2025
+ * υπήρχε στο μητρώο του 2025 και ΕΞΑΦΑΝΙΖΟΤΑΝ από αυτό του 2026 — μαζί της και
+ * οι υπόλοιπες εικοσιτέσσερις δόσεις απόσβεσης, δηλαδή 11.520 € έκπτωσης που
+ * δεν θα ζητούσε ποτέ κανείς. Το μητρώο είναι ΣΩΡΕΥΤΙΚΟ εξ ορισμού: γράφει τι
+ * κατέχεις, όχι τι αγόρασες φέτος.
+ *
+ * ΚΑΙ ΤΟ ΑΝΤΙΣΤΡΟΦΟ, ΠΟΥ ΘΑ ΓΕΝΝΟΥΣΕ Η ΙΔΙΑ ΔΙΟΡΘΩΣΗ. Περνώντας πια ολόκληρο
+ * το καθολικό, το μητρώο του 2025 θα περιείχε την ανακαίνιση του 2026. Ενα
+ * μητρώο «στις 31/12/2025» με πάγιο που δεν είχε αποκτηθεί είναι εξίσου λάθος,
+ * και μάλιστα προς την επικίνδυνη κατεύθυνση. Γι' αυτό το `year` κόβει.
  */
 export function buildRegister(inp: RegisterInput): FixedAsset[] {
   const out: FixedAsset[] = [];
+  /** Αποκτήθηκε ώς το τέλος της χρήσης; Χωρίς ημερομηνία, δεν κρίνεται. */
+  const acquiredByYearEnd = (iso: string | null | undefined): boolean =>
+    inp.year == null || !iso || String(iso).slice(0, 4) <= String(inp.year);
   const p = inp.property;
   const price = Number(p?.purchasePrice) || 0;
-  if (p && price > 0) {
+  if (p && price > 0 && acquiredByYearEnd(p.purchaseDate)) {
     const land = cents(price * (1 - inp.buildingFraction));
     out.push({
       name: p.name || 'Ακίνητο',
@@ -286,7 +316,7 @@ export function buildRegister(inp: RegisterInput): FixedAsset[] {
   }
   for (const it of inp.inventory ?? []) {
     const cost = Number(it.purchase_value) || 0;
-    if (cost <= 0) continue;
+    if (cost <= 0 || !acquiredByYearEnd(it.purchase_date)) continue;
     out.push({
       name: it.name || it.category || 'Εξοπλισμός',
       elp: EQUIPMENT_ACCOUNT,
@@ -303,7 +333,7 @@ export function buildRegister(inp: RegisterInput): FixedAsset[] {
   for (const e of inp.expenses ?? []) {
     const account = inp.capitalisable[String(e.category || '')];
     const cost = Number(e.amount) || 0;
-    if (!account || cost <= 0) continue;
+    if (!account || cost <= 0 || !acquiredByYearEnd(e.date)) continue;
     out.push({
       name: [e.category, e.description].filter(Boolean).join(', ') || 'Δαπάνη',
       elp: account,

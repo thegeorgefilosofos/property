@@ -98,12 +98,31 @@ function tone(days: number): OblTone {
  *  φιλτράρισμα, ώστε να μη λέει η μία γραμμή άλλα από την άλλη. */
 const LOOKBACK_DAYS = 45;
 
+/**
+ * Σήματα «έγινε ήδη», για υποχρεώσεις που ΚΛΕΙΝΟΥΝ.
+ *
+ * ΓΙΑΤΙ ΥΠΑΡΧΕΙ. Η «Δήλωση Πληροφοριακών Στοιχείων Μίσθωσης» εμφανιζόταν για
+ * ενενήντα μέρες γύρω από την προθεσμία, ΑΣΧΕΤΑ με το αν υποβλήθηκε — και
+ * υποβάλλεται μία φορά. Ο ιδιοκτήτης που την είχε ήδη καταγράψει, με αριθμό
+ * δήλωσης, έβλεπε την ίδια «υψηλής προτεραιότητας» εκκρεμότητα κάθε πρωί. Μια
+ * λίστα που δεν αδειάζει παύει να διαβάζεται, και τότε χάνεται και η επόμενη
+ * που είναι αληθινή.
+ */
+export interface OblDone {
+  /**
+   * Πότε καταγράφηκε η υποβολή της δήλωσης μίσθωσης (ISO), ή `null`.
+   * Πηγή: το `activity_log`, action `lease_declaration_submitted`.
+   */
+  leaseDeclaredAt?: string | null;
+}
+
 export function computeObligations(
   prop: OblProp,
   tenant: OblTenant | null,
   maint: OblMaint[] = [],
   now = new Date(),
   profile: PropertyTaxProfile = 'owner',
+  done: OblDone = {},
 ): Obligation[] {
   const out: Obligation[] = [];
   const push = (o: Omit<Obligation, 'daysUntil' | 'tone' | 'date'> & { date: Date }) => {
@@ -161,7 +180,14 @@ export function computeObligations(
     });
   }
   // Δήλωση μίσθωσης στην ΑΑΔΕ — Η ΔΙΚΗ ΜΑΣ ημερομηνία, από τη δική του υπογραφή.
-  if (tenant?.lease_start) {
+  //
+  // ΚΑΙ ΣΒΗΝΕΙ ΟΤΑΝ ΓΙΝΕΙ. Η σύγκριση είναι με το `lease_start` και όχι με το
+  // «υπάρχει καταγραφή»: κάθε ΝΕΑ μίσθωση θέλει ΝΕΑ δήλωση, οπότε καταγραφή
+  // παλαιότερη από την έναρξη αφορά τον προηγούμενο μισθωτή και δεν κλείνει
+  // τίποτα. Ημερομηνία που δεν διαβάζεται δεν κλείνει επίσης τίποτα.
+  const declaredForThisLease = !!(tenant?.lease_start && done.leaseDeclaredAt
+    && done.leaseDeclaredAt.slice(0, 10) >= tenant.lease_start.slice(0, 10));
+  if (tenant?.lease_start && !declaredForThisLease) {
     const start = new Date(tenant.lease_start);
     if (!isNaN(start.getTime())) {
       // ΜΙΑ πηγή αλήθειας με τη μηχανή της δήλωσης (lib/tax/leaseDeclaration):

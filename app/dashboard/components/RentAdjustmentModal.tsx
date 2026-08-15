@@ -186,14 +186,25 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
       // αργότερα»), οπότε εκεί το μισό κοινό θα έφευγε πάλι με παλιό μίσθωμα.
       // Σε αυτό το σημείο το PDF έχει ήδη υπογραφεί, εκδοθεί και κατέβει.
       //
-      // ΤΙ ΚΟΣΤΙΖΕΙ. Με μελλοντική ημερομηνία ισχύος το πεδίο παίρνει το νέο
-      // ποσό αμέσως, γιατί ο πίνακας `tenants` δεν έχει στήλη ιστορικού
-      // μισθώματος. Οι ήδη δημιουργημένες απλήρωτες δόσεις δεν ξαναγράφονται
-      // από εδώ: γίνονται «ξεπερασμένες» και τις πιάνει το υπάρχον κουμπί
-      // συγχρονισμού της καρτέλας Χρήματα, που τώρα ανάβει σωστά.
+      // Η ΗΜΕΡΟΜΗΝΙΑ ΙΣΧΥΟΣ ΤΗΡΕΙΤΑΙ. Το ποσό γραφόταν αμέσως, όποια κι αν ήταν
+      // η «Ισχύς από»: ειδοποίηση υπογεγραμμένη τον Αύγουστο με ισχύ 01/01/2027
+      // ανέβαζε το μίσθωμα του Αυγούστου, και ο μισθωτής έβλεπε στην πύλη του
+      // ποσό διαφορετικό από αυτό που του κοινοποιήθηκε εγγράφως.
+      //
+      // Μελλοντική ισχύς γίνεται ΡΑΝΤΕΒΟΥ (pending_rent / pending_rent_from) και
+      // το τηρεί η νυχτερινή `apply_due_rent_adjustments`. Ισχύς σήμερα ή
+      // παλαιότερη γράφεται κατευθείαν, και το τυχόν παλιό ραντεβού ακυρώνεται:
+      // δεύτερη ειδοποίηση αντικαθιστά την πρώτη, δεν στοιβάζεται πάνω της.
+      //
+      // Οι ήδη δημιουργημένες απλήρωτες δόσεις δεν ξαναγράφονται από εδώ:
+      // γίνονται «ξεπερασμένες» και τις πιάνει το κουμπί συγχρονισμού της
+      // καρτέλας Χρήματα.
       if (tenantId) {
+        const patch = effective > todayIso()
+          ? { pending_rent: res.newRent, pending_rent_from: effective }
+          : { monthly_rent: res.newRent, pending_rent: null, pending_rent_from: null };
         setRentSaved(await saved('Το νέο μίσθωμα δεν αποθηκεύτηκε στην καρτέλα του μισθωτή',
-          tenantStore.update(supabase, tenantId, { monthly_rent: res.newRent })));
+          tenantStore.update(supabase, tenantId, patch)));
       }
     // Το `catch (e: any)` άφηνε το `e?.message` να γραφτεί σε ΟΤΙΔΗΠΟΤΕ, χωρίς
     // εγγύηση ότι το πεδίο υπάρχει ή ότι είναι κείμενο. Το `e` είναι `unknown`
@@ -308,7 +319,9 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
       {/* Η ΣΙΩΠΗΛΗ ΕΓΓΡΑΦΗ ΣΕ ΧΡΗΜΑΤΙΚΟ ΠΕΔΙΟ ΛΕΓΕΤΑΙ. Η γραμμή βγαίνει μόνο
           όταν το γράψιμο πέτυχε: χωρίς καρτέλα μισθωτή, ή με αποτυχία που την
           ανακοίνωσε ήδη η `saved`, δεν υπάρχει τίποτα να ανακοινωθεί εδώ. */}
-      {rentSaved && <span style={{ display: 'block', fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>Το μηνιαίο μίσθωμα ενημερώθηκε σε {pEur(res.newRent)} στην καρτέλα του μισθωτή.</span>}
+      {rentSaved && <span style={{ display: 'block', fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{effective > todayIso()
+        ? `Το μίσθωμα γίνεται ${pEur(res.newRent)} στην καρτέλα του μισθωτή την ${grDate(effective)}. Μέχρι τότε μένει ${pEur(res.currentRent)}.`
+        : `Το μηνιαίο μίσθωμα ενημερώθηκε σε ${pEur(res.newRent)} στην καρτέλα του μισθωτή.`}</span>}
       {!archived && <span style={{ display: 'block', fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>Αρχειοθετείται με ημερομηνία ισχύος {grDate(effective)}, σε χρονολογική σειρά.</span>}
     </span>
   ) : undefined;

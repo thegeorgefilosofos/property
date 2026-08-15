@@ -359,6 +359,9 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
     setDocBusy(false);
   };
 
+  /** Η γραμμή που επεξεργάζεται, για όσα δεν ζουν στη φόρμα (εκκρεμής αναπροσαρμογή). */
+  const editRow=editId?tenants.find(t=>t.id===editId):undefined;
+
   const save=async()=>{
     if(!form.full_name.trim()){setError('Το ονοματεπώνυμο είναι υποχρεωτικό');return;}
     if(!form.lease_category){setError('Ο τύπος μίσθωσης (κατοικία ή επαγγελματική) είναι υποχρεωτικός');return;}
@@ -381,6 +384,13 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
       e_payment:form.e_payment,streaming:svcLines,cleaning:null,extra_perks:form.extra_perks||null,
       parking_included:form.parking_included,parking_extra:form.parking_extra,parking_extra_price:n(form.parking_extra_price),
       lease_doc_external_url:form.lease_doc_external_url||null,
+      // ΤΟ ΧΕΡΙ ΥΠΕΡΙΣΧΥΕΙ ΤΟΥ ΡΑΝΤΕΒΟΥ. Με εκκρεμή αναπροσαρμογή και χειροκίνητη
+      // αλλαγή του ενοικίου, οι δύο τιμές συγκρούονται: αφημένο το ραντεβού θα
+      // επανέγραφε τη νέα τιμή μια νύχτα, χωρίς να το έχει ζητήσει κανείς. Το
+      // πεδίο το γράφει ο ίδιος που υπέγραψε την ειδοποίηση, και η οθόνη το λέει
+      // δίπλα στο πεδίο πριν πατηθεί η αποθήκευση.
+      ...(editRow?.pending_rent!=null && n(form.monthly_rent)!==editRow.monthly_rent
+        ? { pending_rent:null, pending_rent_from:null } : {}),
     };
     const{data:savedRow,error:err}=await(editId
       ?tenantStore.updateReturning(supabase,editId,payload)
@@ -596,6 +606,11 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
                         </div>
                       ))}
                     </div>
+                    {/* ΤΟ ΡΑΝΤΕΒΟΥ ΤΗΣ ΑΝΑΠΡΟΣΑΡΜΟΓΗΣ ΛΕΓΕΤΑΙ. Το «Μηνιαίο ενοίκιο» από
+                        πάνω δείχνει το ποσό που ΙΣΧΥΕΙ σήμερα· χωρίς αυτή τη γραμμή, η
+                        υπογεγραμμένη ειδοποίηση θα ζούσε μόνο σε ένα PDF και η αλλαγή
+                        θα εμφανιζόταν μια νύχτα χωρίς εξήγηση. */}
+                    {!isPastTenant(t)&&t.pending_rent!=null&&t.pending_rent_from&&<div style={{ fontSize:11, color:'var(--text-secondary)', fontFamily:T.font.sans }}>Αναπροσαρμογή σε {fmt(t.pending_rent)} από {fmtD(t.pending_rent_from)}</div>}
                     {!isPastTenant(t)&&d!=null&&d>=0&&d<=60&&<div style={{ fontSize:11, color:'var(--warning)', fontFamily:T.font.sans }}>Λήξη μίσθωσης σε {fn(d)} ημέρες</div>}
                   </div>
                 );
@@ -832,6 +847,12 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
               {show('tenant.rent')&&<NumberInput label="Μηνιαίο ενοίκιο" value={form.monthly_rent} onChange={v=>sf('monthly_rent',v)} suffix="€"/>}
               {show('tenant.rent_due_day')&&<SelectField label="Ημέρα πληρωμής" value={form.rent_due_day} onChange={v=>sf('rent_due_day',v)} options={Array.from({length:28},(_,i)=>({value:String(i+1),label:`${i+1}η`}))}/>}
             </div>
+            {/* Ο,τι θα συμβεί μόνο του, λέγεται πριν συμβεί — και μαζί τι το ακυρώνει. */}
+            {editRow?.pending_rent!=null&&editRow.pending_rent_from&&(
+              <div style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans, lineHeight:1.55, marginBottom:6 }}>
+                Εκκρεμεί αναπροσαρμογή σε {fmt(editRow.pending_rent)} από {fmtD(editRow.pending_rent_from)}, από υπογεγραμμένη ειδοποίηση. Αλλαγή του ενοικίου εδώ την ακυρώνει.
+              </div>
+            )}
             <div style={{ marginBottom:16 }}><Why id="tenant.rent_due_day"/></div>
             {show('tenant.rent_iban')&&(
               <>

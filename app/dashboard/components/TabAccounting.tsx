@@ -431,9 +431,14 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     buildingRate: BUILDING_DEPRECIATION_RATE,
     equipmentRate: EQUIPMENT_DEPRECIATION_RATE,
     inventory,
-    expenses: expensesYear,
+    // ΟΛΟΚΛΗΡΟ ΤΟ ΚΑΘΟΛΙΚΟ, ΟΧΙ Η ΧΡΗΣΗ. Εδώ περνούσε το `expensesYear`, οπότε
+    // ανακαίνιση του 2025 δεν υπήρχε στο μητρώο του 2026 και οι υπόλοιπες
+    // εικοσιτέσσερις δόσεις απόσβεσής της χάνονταν για πάντα. Το `year` κόβει
+    // ό,τι αποκτήθηκε αργότερα, ώστε το μητρώο να μένει φωτογραφία της 31/12.
+    expenses,
     capitalisable: capitalisableAccounts,
-  }),[prop,inventory,expensesYear,capitalisableAccounts])
+    year,
+  }),[prop,inventory,expenses,capitalisableAccounts,year])
   // Μόνο η ΑΚΙΝΗΤΗ περιουσία αποσβένεται με δηλωμένο συντελεστή· ο εξοπλισμός
   // περιμένει τον συντελεστή του λογιστή και δίνει μηδέν ώς τότε.
   const buildingDepr = useMemo(()=>
