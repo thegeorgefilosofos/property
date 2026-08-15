@@ -748,7 +748,10 @@ function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { pro
     tasks: tasks.map(t => ({ due_date: t.due_date })),
     checklist: chk,
     inventory: inv,
-    loanPayment: 0,
+    // ΗΤΑΝ ΣΤΑΘΕΡΑ ΜΗΔΕΝ. Το `monthlyDebt` υπολογίζεται τρεις δεκάδες γραμμές
+    // πιο πάνω και το δείχνει ήδη η ίδια οθόνη· ο σύμβουλος όμως έπαιρνε μηδέν
+    // και μιλούσε για αποδόσεις σε ιδιοκτήτη που πληρώνει δόση.
+    loanPayment: monthlyDebt,
   });
 
   // ── ΤΑ ΒΗΜΑΤΑ ΡΥΘΜΙΣΗΣ ────────────────────────────────────────────────────
@@ -803,10 +806,15 @@ function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { pro
     })),
     [tasks],
   );
-  const agendaAll = useMemo(
-    () => buildAgenda({ insights, obligations: [...obligations, ...taskObligations],
-                        setup: setupSteps, today: todayIso,
-                        horizonDays: prefs.agendaHorizonDays })
+  // ΧΩΡΙΣ useMemo, ΚΑΙ ΟΧΙ ΑΠΟ ΑΜΕΛΕΙΑ. Το `insights` παράγεται με απευθείας κλήση
+  // σε κάθε απόδοση, άρα είναι ΠΑΝΤΑ νέος πίνακας: η χειροκίνητη απομνημόνευση
+  // εδώ δεν γλίτωνε ποτέ ούτε μία εκτέλεση, κρατούσε μια σιωπηλή παράκαμψη του
+  // κανόνα εξαρτήσεων, και εμπόδιζε τον μεταγλωττιστή του React να απομνημονεύσει
+  // ΟΛΟΚΛΗΡΟ το σημείο. Ιδιο σκεπτικό με το RentAdjustmentModal.
+  const agendaAll =
+    buildAgenda({ insights, obligations: [...obligations, ...taskObligations],
+                  setup: setupSteps, today: todayIso,
+                  horizonDays: prefs.agendaHorizonDays })
       // ── ΔΥΟ ΚΑΝΟΝΕΣ ΓΙΑ ΤΗΝ ΙΔΙΑ ΛΙΣΤΑ ────────────────────────────────
       // Τα βήματα ρύθμισης φιλτράρονται ήδη με `tabVisible` πριν μπουν εδώ
       // (βλ. setupSteps). Τα insights ΔΕΝ φιλτράρονταν καθόλου — και το
@@ -818,10 +826,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { pro
       // τις Αποδόσεις, που φαίνονται ΜΟΝΟ σε εκμισθωμένο ακίνητο. Οι δύο
       // συνθήκες αποκλείονται, άρα το κουμπί ήταν νεκρό κάθε φορά που
       // εμφανιζόταν. Ένας κανόνας, μία λίστα.
-      .map(it => (it.action && !tabVisible(it.action.tab) ? { ...it, action: null } : it)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [insights, obligations, taskObligations, setupSteps, todayIso, prefs.agendaHorizonDays, tabVisible],
-  );
+      .map(it => (it.action && !tabVisible(it.action.tab) ? { ...it, action: null } : it));
   // Πέντε στην αρχική. Η πλήρης λίστα ζει στις «Εκκρεμότητες» — και η οθόνη το λέει.
   const agenda = agendaAll.slice(0, 5);
 

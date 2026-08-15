@@ -97,6 +97,20 @@ ok(greeting(new Date('2026-07-06T17:00:00Z').getTime()) === 'Καλησπέρα'
   const all = computeInsights(input);
   ok(all.every(i => !/Infinity|NaN/.test(i.detail) && !/Infinity|NaN/.test(i.title)), 'no Infinity/NaN anywhere'); }
 
+// 22. ΤΟ ΔΑΝΕΙΟ. Το `loanPayment` δηλωνόταν, αποδομούνταν και δεν διαβαζόταν από
+// καμία γραμμή· ο πίνακας του περνούσε σταθερά μηδέν. Η καθαρή απόδοση δεν
+// αφαιρεί τη δόση επίτηδες (μετρά το ακίνητο, όχι τη χρηματοδότηση) — αλλά το
+// ταμείο το γεμίζει ο ίδιος άνθρωπος.
+{ ok(!has(base({ loanPayment: 0 }), 'loan-cash-negative') && !has(base({ loanPayment: 0 }), 'loan-cash-positive'),
+     'χωρίς δόση, ο σύμβουλος δεν μιλά για δάνειο');
+  // Ενοίκιο 700, δόση 900, δαπάνες 3.000 ώς σήμερα: το ταμείο είναι αρνητικό.
+  ok(has(base({ loanPayment: 900 }), 'loan-cash-negative'), 'δόση πάνω από το ενοίκιο = αρνητικό ταμείο');
+  ok(has(base({ loanPayment: 100, expensesYTD: 120 }), 'loan-cash-positive'), 'μικρή δόση = θετικό ταμείο');
+  // Χωρίς ενοίκιο δεν υπάρχει σύγκριση· ένα «μείον» από κενά πεδία θα ήταν ψεύτικο.
+  ok(!has(base({ loanPayment: 900, rent: 0 }), 'loan-cash-negative'), 'χωρίς ενοίκιο, καμία ετυμηγορία');
+  const neg = get(base({ loanPayment: 900 }), 'loan-cash-negative')!;
+  ok(!/Infinity|NaN/.test(neg.detail) && neg.action?.tab === 'loan', 'η γραμμή οδηγεί στο Δάνειο, χωρίς σκουπίδια'); }
+
 console.log(`\ninsights/engine.ts — ${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);
 console.log('όλα πέρασαν');
