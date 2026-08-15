@@ -45,6 +45,8 @@ export default function SignupPage() {
   // ξέρουμε ΚΑΙ εμείς ΚΑΙ ο χρήστης ποιο πακέτο περιμένει.
   const [chosenPlan, setChosenPlan] = useState<PlanId | null>(null)
   const [sessionEmail, setSessionEmail] = useState<string | null>(null)
+  /** Ηρθε από τη σύνδεση με Google και δεν έχει δεχτεί ποτέ τους Ορους. */
+  const [needsConsent, setNeedsConsent] = useState<string | null>(null)
   const [signingOut, setSigningOut] = useState(false)
   const [show, setShow] = useState(false)
   const [pwTouched, setPwTouched] = useState(false)
@@ -84,7 +86,29 @@ export default function SignupPage() {
       // που ξανασυνδέεται δεν επιτρέπεται να δει τη σφραγίδα συγκατάθεσής του
       // να ξαναγράφεται με σημερινή ημερομηνία — η απόδειξη είναι η ΠΡΩΤΗ.
       const q = new URLSearchParams(window.location.search)
-      if (q.get('oauth') === '1') {
+      // ═══ ΔΥΟ ΔΙΑΔΡΟΜΕΣ ΕΠΙΣΤΡΟΦΗΣ, ΚΑΙ Η ΔΙΑΦΟΡΑ ΤΟΥΣ ΕΙΝΑΙ Η ΣΥΓΚΑΤΑΘΕΣΗ ═══
+      //
+      // «oauth=1» σημαίνει ότι ο χρήστης ΤΣΕΚΑΡΕ το κουτί σε αυτή τη σελίδα
+      // πριν φύγει για την Google: η αποδοχή έγινε, μένει να καταγραφεί.
+      //
+      // «oauth=login» έρχεται από τη σελίδα σύνδεσης, όπου ΔΕΝ υπάρχει κουτί.
+      // Και η `signInWithOAuth` είναι ΚΑΙ εγγραφή: ο πρωτοεμφανιζόμενος
+      // αποκτούσε λογαριασμό χωρίς να δει ποτέ τους Ορους. Ηταν ακριβώς το
+      // κενό που το σχόλιο παρακάτω περιγράφει ως διορθωμένο, ζωντανό μία
+      // διαδρομή παραδίπλα.
+      //
+      // ΤΟ ΝΑ ΣΥΜΠΛΗΡΩΘΕΙ ΕΔΩ Η ΣΥΓΚΑΤΑΘΕΣΗ ΘΑ ΗΤΑΝ ΧΕΙΡΟΤΕΡΟ ΑΠΟ ΤΟ ΚΕΝΟ:
+      // θα κατασκεύαζε απόδειξη για κάτι που δεν συνέβη. Οποιος έρχεται από τη
+      // σύνδεση και ΔΕΝ έχει ήδη συγκατάθεση σταματά εδώ και ερωτάται. Οποιος
+      // έχει, προχωρά χωρίς να το καταλάβει.
+      const oauth = q.get('oauth')
+      if (oauth === 'login') {
+        const meta = (u.user_metadata ?? {}) as Record<string, unknown>
+        if (meta.consent_terms_accepted_at) { window.location.replace('/dashboard'); return }
+        setNeedsConsent(u.email ?? '')
+        return
+      }
+      if (oauth === '1') {
         const meta = (u.user_metadata ?? {}) as Record<string, unknown>
         const patch: Record<string, unknown> = {}
         if (!meta.consent_terms_accepted_at) {
@@ -101,6 +125,19 @@ export default function SignupPage() {
       setSessionEmail(u.email ?? null)
     })
   }, [])
+
+  /** Γράφει την απόδειξη συγκατάθεσης ΜΟΝΟ αφού δοθεί, και μετά ανοίγει τον πίνακα. */
+  async function acceptOauthConsent() {
+    if (!consent) { setConsentTouched(true); return }
+    const supabase = createClient()
+    try {
+      await supabase.auth.updateUser({ data: {
+        consent_terms_accepted_at: new Date().toISOString(),
+        consent_policy_version: CONSENT_VERSION,
+      } })
+    } catch {}
+    window.location.replace('/dashboard')
+  }
 
   async function signOut() {
     setSigningOut(true)
@@ -211,7 +248,41 @@ export default function SignupPage() {
       {/* RIGHT, form */}
       <div className="auth-main" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 40px' }}>
         <div style={{ width: '100%', maxWidth: 400 }}>
-          {sessionEmail ? (
+          {needsConsent ? (
+            /* Ηρθε από τη σύνδεση με Google, ο λογαριασμός δημιουργήθηκε, και οι
+               Οροι δεν έχουν γίνει ποτέ δεκτοί. Δεν προχωρά χωρίς ρητή αποδοχή,
+               και δεν γράφεται τίποτα στο προφίλ πριν από αυτήν. */
+            <div>
+              <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: '0 0 8px' }}>Ενα βήμα ακόμη</h1>
+              <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 20px' }}>
+                Ο λογαριασμός <strong style={{ color: 'var(--text-primary)', overflowWrap: 'anywhere' }}>{needsConsent}</strong> είναι καινούργιος. Πριν ανοίξει, χρειάζεται η αποδοχή σου.
+              </p>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 12 }}>
+                <input id="su-consent-oauth" type="checkbox" checked={consent}
+                  onChange={e => { setConsent(e.target.checked); if (e.target.checked) setConsentTouched(false) }}
+                  aria-label="Αποδοχή των Όρων Χρήσης και της Πολιτικής απορρήτου"
+                  style={{ marginTop: 2, width: 16, height: 16, accentColor: 'var(--accent)', flexShrink: 0, cursor: 'pointer' }} />
+                <label htmlFor="su-consent-oauth" style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, cursor: 'pointer' }}>
+                  Αποδέχομαι τους{' '}
+                  <Link href="/terms" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Όρους χρήσης</Link>{' '}και την{' '}
+                  <Link href="/privacy" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Πολιτική απορρήτου</Link>.
+                </label>
+              </div>
+              {consentTouched && !consent && (
+                <p role="alert" style={{ fontSize: 12, color: 'var(--negative-on-container)', margin: '0 0 12px', lineHeight: 1.5 }}>
+                  Χρειάζεται να αποδεχθείς τους Όρους και την Πολιτική απορρήτου για να συνεχίσεις.
+                </p>
+              )}
+              <button type="button" onClick={acceptOauthConsent} className="auth-hov"
+                style={{ width: '100%', minHeight: 44, borderRadius: 8, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                Συνέχεια
+              </button>
+              <button type="button" onClick={signOut} disabled={signingOut}
+                style={{ width: '100%', minHeight: 44, marginTop: 10, borderRadius: 8, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                {signingOut ? 'Ακύρωση…' : 'Ακύρωση'}
+              </button>
+            </div>
+          ) : sessionEmail ? (
             <AlreadySignedIn email={sessionEmail} onSignOut={signOut} signingOut={signingOut} mode="signup" />
           ) : done ? (
             <div style={{ textAlign: 'center' }} role="status">

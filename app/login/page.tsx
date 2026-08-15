@@ -53,9 +53,18 @@ export default function LoginPage() {
     else router.push('/dashboard')
   }
 
+  // Η `signInWithOAuth` ΕΙΝΑΙ ΚΑΙ ΕΓΓΡΑΦΗ. Οποιος πατούσε εδώ χωρίς λογαριασμό
+  // αποκτούσε έναν, χωρίς να δει ποτέ τους Ορους και χωρίς καμία απόδειξη
+  // συγκατάθεσης στο προφίλ του: ακριβώς το κενό που το app/signup/page.tsx
+  // περιγράφει ως διορθωμένο, ζωντανό μία διαδρομή παραδίπλα.
+  //
+  // Η επιστροφή πάει τώρα στο `/signup?oauth=login`, που ελέγχει αν υπάρχει ήδη
+  // συγκατάθεση. Αν υπάρχει, προωθεί στον πίνακα χωρίς να το καταλάβει κανείς.
+  // Αν δεν υπάρχει, σταματά και ρωτά. Δεν συμπληρώνεται ποτέ εδώ: μια απόδειξη
+  // που γράφτηκε χωρίς να δοθεί είναι χειρότερη από απόδειξη που λείπει.
   async function signInWithGoogle() {
     const supabase = createClient()
-    await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}/dashboard` } })
+    await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}/signup?oauth=login` } })
   }
 
   const field: React.CSSProperties = {
