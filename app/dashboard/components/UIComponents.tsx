@@ -942,6 +942,21 @@ export function Toggle({ on, onChange, label, ariaLabel, size = 'md' }: TogglePr
   const thumbOff = size === 'sm' ? 12 : 16;
   const thumbOn  = size === 'sm' ? 16 : 24;
 
+  // ═══ Ο ΣΤΟΧΟΣ ΑΦΗΣ ΕΙΝΑΙ 44, Η ΟΨΗ ΜΕΝΕΙ ΟΠΩΣ ΗΤΑΝ ══════════════════════
+  //
+  // Το κουμπί ΗΤΑΝ το ίδιο το ορατό ελατήριο: 52×32 στο κανονικό μέγεθος και
+  // 36×20 στο μικρό. Δηλαδή ο στόχος αφής ήταν 32 και 20 εικονοστοιχεία σε ύψος,
+  // ενώ το ελάχιστο αξιόπιστο με δάχτυλο είναι 44. Το μικρό μέγεθος ζει ακριβώς
+  // εκεί που πονάει: στη στήλη των ειδοποιήσεων, όπου δέκα διακόπτες στοιβάζονται
+  // ο ένας κάτω από τον άλλο και η αστοχία πατά τον διπλανό.
+  //
+  // ΤΩΡΑ ΤΟ ΚΟΥΜΠΙ ΕΙΝΑΙ 44×44 ΚΑΙ ΤΟ ΕΛΑΤΗΡΙΟ ΖΩΓΡΑΦΙΖΕΤΑΙ ΜΕΣΑ ΤΟΥ. Το
+  // αρνητικό περιθώριο επαναφέρει το κουτί ΔΙΑΤΑΞΗΣ στις παλιές διαστάσεις, ώστε
+  // καμία σειρά να μη μετακινηθεί ούτε κατά ένα εικονοστοιχείο: η περιοχή που
+  // δέχεται το δάχτυλο μεγαλώνει, η εικόνα όχι.
+  const hit = 44;
+  const boxW = Math.max(w, hit);
+
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12, userSelect: 'none' }}>
       <button
@@ -952,27 +967,35 @@ export function Toggle({ on, onChange, label, ariaLabel, size = 'md' }: TogglePr
         onClick={() => onChange(!on)}
         onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onChange(!on); } }}
         style={{
-          width: w, height: h, borderRadius: h,
-          background: on ? 'var(--accent)' : 'transparent',
-          border: `2px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`,
-          position: 'relative', flexShrink: 0, padding: 0,
-          transition: 'background 0.2s, border-color 0.2s',
-          cursor: 'pointer',
+          width: boxW, height: hit,
+          margin: `${(h - hit) / 2}px ${(w - boxW) / 2}px`,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          background: 'transparent', border: 'none', padding: 0,
+          flexShrink: 0, cursor: 'pointer',
         }}
       >
         <span style={{
           display: 'block',
-          width: on ? thumbOn : thumbOff,
-          height: on ? thumbOn : thumbOff,
-          borderRadius: '50%',
-          background: on ? 'var(--accent-text)' : 'var(--text-secondary)',
-          position: 'absolute',
-          top: '50%',
-          transform: 'translateY(-50%)',
-          left: on ? `calc(100% - ${on ? thumbOn : thumbOff}px - 2px)` : '2px',
-          transition: 'background-color 0.2s cubic-bezier(0.2,0,0,1), border-color 0.2s cubic-bezier(0.2,0,0,1), color 0.2s cubic-bezier(0.2,0,0,1), box-shadow 0.2s cubic-bezier(0.2,0,0,1), transform 0.2s cubic-bezier(0.2,0,0,1), opacity 0.2s cubic-bezier(0.2,0,0,1)',
-          boxShadow: 'var(--elev-1)',
-        }}/>
+          width: w, height: h, borderRadius: h,
+          background: on ? 'var(--accent)' : 'transparent',
+          border: `2px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`,
+          position: 'relative', boxSizing: 'border-box',
+          transition: 'background 0.2s, border-color 0.2s',
+        }}>
+          <span style={{
+            display: 'block',
+            width: on ? thumbOn : thumbOff,
+            height: on ? thumbOn : thumbOff,
+            borderRadius: '50%',
+            background: on ? 'var(--accent-text)' : 'var(--text-secondary)',
+            position: 'absolute',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            left: on ? `calc(100% - ${on ? thumbOn : thumbOff}px - 2px)` : '2px',
+            transition: 'background-color 0.2s cubic-bezier(0.2,0,0,1), border-color 0.2s cubic-bezier(0.2,0,0,1), color 0.2s cubic-bezier(0.2,0,0,1), box-shadow 0.2s cubic-bezier(0.2,0,0,1), transform 0.2s cubic-bezier(0.2,0,0,1), opacity 0.2s cubic-bezier(0.2,0,0,1)',
+            boxShadow: 'var(--elev-1)',
+          }}/>
+        </span>
       </button>
       {/* ΤΟ ΑΝΟΙΧΤΟ ΔΕΝ ΕΙΝΑΙ ΠΡΑΣΙΝΟ. Το ίδιο το primitive έβαφε το «Ναι» με το
           σημασιολογικό πράσινο — μέσα στο κοινό component, δηλαδή σε κάθε

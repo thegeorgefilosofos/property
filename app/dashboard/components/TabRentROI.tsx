@@ -16,7 +16,7 @@ import { readStatus, type StatusRow } from '@/lib/property/status'
 import { businessFormOf } from '@/lib/accounting/taxProfile'
 import type { LegalForm as DossierLegalForm } from '@/lib/accounting/dossier'
 import { Skeleton, SkeletonKPIs, fe, feCompact, fp, fn, ABSENT, ABSENT_SHORT, T, fixedCols } from '@/components/Theme';
-import { NumberInput, CustomSelect, fieldLabelStyle } from './UIComponents';
+import { NumberInput, CustomSelect, fieldLabelStyle, Toggle as Switch } from './UIComponents';
 import { ChevronRight, TrendingUp, Landmark, Percent, Wallet, Layers, ArrowUpRight, Info, ShieldCheck } from 'lucide-react';
 import { yields, compound, leverage, compareInvestments, propertyTotalReturn, projectLine, yieldGrade, dealAnalysis, type LeverageResult, type YieldGrade } from '@/lib/market/returns';
 import { shortTermEstimate, breakEvenOccupancy, adrReference, MAX_ST_GROSS_YIELD_WARN } from '@/lib/market/shortTerm';
@@ -424,14 +424,28 @@ function MetricTile({ label, value, info, tone }: { label: string; value: string
 const g4 = fixedCols(4, 12);
 
 // ── Διακόπτης παραδοχής (ναι/όχι), με το κείμενο του κανόνα από κάτω ─────────
+// ═══ ΔΕΥΤΕΡΟΣ ΔΙΑΚΟΠΤΗΣ ΓΙΑ ΤΗΝ ΙΔΙΑ ΔΟΥΛΕΙΑ ═══════════════════════════════
+//
+// Εδώ ζούσε δικό του χειριστήριο: γυμνό `input type="checkbox"` 15×15. Δύο
+// προβλήματα, και κανένα δεν είναι στιλιστικό.
+//
+// ΤΟ ΙΔΙΟ ΕΡΩΤΗΜΑ, ΑΛΛΟ ΣΧΗΜΑ. Το «εισπράττονται μέσω τραπέζης» είναι διακόπτης
+// ναι/όχι, ακριβώς όπως οι δεκάδες άλλοι της εφαρμογής — που είναι ελατήρια. Ο
+// χρήστης μάθαινε δύο σχήματα για το ίδιο νόημα, και το ένα εμφανιζόταν σε μία
+// μόνο οθόνη.
+//
+// ΚΑΙ ΣΤΟΧΟΣ ΑΦΗΣ 15 ΕΙΚΟΝΟΣΤΟΙΧΕΙΩΝ, όταν το ελάχιστο αξιόπιστο με δάχτυλο
+// είναι 44. Το κοινό `Toggle` δίνει 44 χωρίς να μεγαλώσει η εικόνα.
+//
+// Η ΠΕΡΙΓΡΑΦΗ ΜΕΝΕΙ, γιατί εδώ ο διακόπτης αλλάζει ΦΟΡΟ: χωρίς την επεξήγηση
+// του κανόνα, ο χρήστης πατά κάτι που μετακινεί νούμερα και δεν ξέρει γιατί.
+// Η εσοχή είναι το πλάτος του διακόπτη συν το κενό του (36 + 12), ώστε το
+// κείμενο να ευθυγραμμίζεται με την ετικέτα από πάνω του.
 function Toggle({ checked, onChange, label, note }: { checked: boolean; onChange: (v: boolean) => void; label: string; note: string }) {
   return (
     <div>
-      <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, fontFamily: SANS, color: 'var(--text-primary)', fontWeight: 600 }}>
-        <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} style={{ width: 15, height: 15, accentColor: 'var(--accent)', cursor: 'pointer' }} />
-        {label}
-      </label>
-      <p style={{ margin: '4px 0 0 23px', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: SANS, lineHeight: 1.5 }}>{note}</p>
+      <Switch on={checked} onChange={onChange} label={label} size="sm" />
+      <p style={{ margin: '4px 0 0 48px', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: SANS, lineHeight: 1.5 }}>{note}</p>
     </div>
   );
 }
