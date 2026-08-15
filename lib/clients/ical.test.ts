@@ -148,5 +148,26 @@ ok('κενό δεν είναι μπλοκάρισμα', !isBlocked(''))
   eq('το κόμμα και η νέα γραμμή αποξεφεύγονται', ev[0].summary, 'Παπαδόπουλος, Γιώργος Δύο άτομα')
 }
 
+// ═══ Η ΑΚΥΡΩΣΗ, ΟΠΩΣ ΤΗ ΓΡΑΦΕΙ ΤΟ ΠΡΟΤΥΠΟ ════════════════════════════════
+// Airbnb και Booking απλώς ΣΒΗΝΟΥΝ το γεγονός — αυτό το πιάνει η αντιπαραβολή
+// του συγχρονισμού. Οσα ημερολόγια στέλνουν `STATUS:CANCELLED` (Google, iCloud,
+// ξενοδοχειακά PMS) μας γλιτώνουν έναν ολόκληρο γύρο αναμονής, μέσα στον οποίο
+// οι μέρες θα έμεναν πιασμένες.
+{
+  const ev = parseICal(ICS(
+    'BEGIN:VEVENT\r\nDTSTART:20260701\r\nDTEND:20260705\r\nUID:a\r\nSTATUS:CONFIRMED\r\nEND:VEVENT\r\n' +
+    'BEGIN:VEVENT\r\nDTSTART:20260710\r\nDTEND:20260714\r\nUID:b\r\nSTATUS:CANCELLED\r\nEND:VEVENT\r\n' +
+    'BEGIN:VEVENT\r\nDTSTART:20260720\r\nDTEND:20260724\r\nUID:c\r\nEND:VEVENT'))
+  eq('και τα τρία γεγονότα διαβάζονται', ev.length, 3)
+  ok('το επιβεβαιωμένο δεν είναι ακυρωμένο', ev[0].cancelled === false)
+  ok('το ακυρωμένο σημαίνεται', ev[1].cancelled === true)
+  // Χωρίς `STATUS` δεν σημαίνει «ακυρωμένο». Το αντίθετο θα έσβηνε ΟΛΕΣ τις
+  // κρατήσεις του Airbnb, που δεν στέλνει ποτέ τη γραμμή αυτή.
+  ok('η απουσία STATUS δεν είναι ακύρωση', ev[2].cancelled === false)
+
+  const lower = parseICal(ICS('BEGIN:VEVENT\r\nDTSTART:20260801\r\nDTEND:20260803\r\nUID:d\r\nSTATUS:cancelled\r\nEND:VEVENT'))
+  ok('πεζά ή κεφαλαία, το ίδιο', lower[0].cancelled === true)
+}
+
 console.log(fail === 0 ? `✓ ical: ${pass} έλεγχοι πέρασαν` : `✗ ical: ${fail} απέτυχαν από ${pass + fail}`)
 if (fail > 0) process.exit(1)

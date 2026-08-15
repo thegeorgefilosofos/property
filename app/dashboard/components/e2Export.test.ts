@@ -55,7 +55,7 @@ function clientWith(data: Record<string, unknown[]>) {
     from(table: string) {
       const rows = data[table] ?? []
       const chain: Record<string, unknown> = {}
-      for (const m of ['select', 'eq', 'in', 'order', 'not', 'limit', 'gte', 'lte']) chain[m] = () => chain
+      for (const m of ['select', 'eq', 'in', 'is', 'order', 'not', 'limit', 'gte', 'lte']) chain[m] = () => chain
       ;(chain as { then: unknown }).then = (res: (v: unknown) => void) => res({ data: rows, error: null })
       return chain
     },

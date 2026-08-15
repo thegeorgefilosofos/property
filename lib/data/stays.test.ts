@@ -36,13 +36,13 @@ ok('η λογιστική προσθέτει τη σήμανση δήλωσης'
 }
 
 // ── Ψεύτικη βάση ──────────────────────────────────────────────────────────
-interface Call { columns: string; eq: [string, unknown][]; gte?: string; lte?: string; order?: string; ins?: unknown[]; patch?: unknown; del?: boolean }
+interface Call { columns: string; eq: [string, unknown][]; is?: [string, unknown][]; gte?: string; lte?: string; order?: string; ins?: unknown[]; patch?: unknown; del?: boolean }
 function fakeDb(rows: Record<string, unknown>[] = [], failAt = -1) {
   const calls: Call[] = [];
   let n = 0;
   const db = {
     from() {
-      const call: Call = { columns: '', eq: [] };
+      const call: Call = { columns: '', eq: [], is: [] };
       calls.push(call);
       const idx = n++;
       const res = Promise.resolve(idx === failAt ? { data: null, error: { message: 'σκάσε' } } : { data: rows, error: null });
@@ -50,6 +50,7 @@ function fakeDb(rows: Record<string, unknown>[] = [], failAt = -1) {
         select(columns: string) { call.columns = columns; return q },
         eq(c: string, v: unknown) { call.eq.push([c, v]); return q },
         in(c: string, v: unknown[]) { call.eq.push([c, v]); return q },
+        is(c: string, v: unknown) { call.is!.push([c, v]); return q },
         gte(_c: string, v: string) { call.gte = v; return q },
         lte(_c: string, v: string) { call.lte = v; return q },
         order(c: string) { call.order = c; return res },
@@ -72,6 +73,7 @@ async function asyncChecks() {
     ok('το διάστημα κόβει στην ΑΦΙΞΗ', calls[0].gte === '2026-01-01' && calls[0].lte === '2026-12-31');
     // Ο πίνακας κρατά το ακίνητο ως κείμενο, όχι uuid: το cast γίνεται εδώ.
     ok('το ακίνητο περνά ως κείμενο', typeof calls[0].eq[0][1] === 'string');
+    ok('η ακυρωμένη κράτηση δεν επιστρέφεται', calls[0].is!.some(([c, v]) => c === 'cancelled_at' && v === null));
   }
   {
     const { db, calls } = fakeDb();

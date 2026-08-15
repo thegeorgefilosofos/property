@@ -17,11 +17,23 @@
 /** Τιμή στήλης `jsonb`: υπάρχει, αλλά το σχήμα της δεν ζει στη βάση. */
 export type Json = unknown;
 
+export interface AccountDeletionIncidentsRow {
+  id: string | null;
+  subject_id: string;
+  occurred_at: string;
+  sqlstate: string | null;
+  message: string | null;
+  objects_gone: number;
+  objects_left: number | null;
+  buckets: string[];
+}
+
 export interface AccountantClientsRow {
   accountant_id: string;
   owner_id: string;
   linked_at: string;
   active: boolean;
+  claimed_token: string | null;
 }
 
 export interface AccountantDossierRow {
@@ -206,6 +218,7 @@ export interface BillsRow {
   paid_by: string | null;
   share_percent: number | null;
   share_note: string | null;
+  updated_at: string | null;
 }
 
 export interface BillsHistoryRow {
@@ -357,8 +370,8 @@ export interface ClientStaysRow {
   amount_basis: string | null;
   declared_at: string | null;
   damage_item_id: string | null;
-  /** Το UID του γεγονότος iCal, με πρόθεμα το κανάλι. Κενό στις χειροκίνητες. */
   source_uid: string | null;
+  cancelled_at: string | null;
 }
 
 export interface ClientsRow {
@@ -537,6 +550,7 @@ export interface ExpensesRow {
   supplier_country: string | null;
   supply: string | null;
   supplier_afm: string | null;
+  dedup_hash: string | null;
 }
 
 export interface FeedbackCampaignWinnersRow {
@@ -631,12 +645,6 @@ export interface InventoryItemsRow {
   created_at: string | null;
   updated_at: string | null;
   energy_class: string | null;
-  // ── Κατανάλωση: τρεις τρόποι, γιατί η ενεργειακή ετικέτα της ΕΕ δηλώνει
-  //    διαφορετικό μέγεθος ανά είδος συσκευής. Δες lib/property/energy.ts.
-  energy_mode: string | null;
-  kwh_per_100_cycles: number | null;
-  cycles_per_month: number | null;
-  annual_kwh: number | null;
   power_watts: number | null;
   daily_hours_use: number | null;
   standby_watts: number | null;
@@ -653,6 +661,10 @@ export interface InventoryItemsRow {
   receipt_number: string | null;
   receipt_doc_url: string | null;
   receipt_doc_name: string | null;
+  energy_mode: string | null;
+  kwh_per_100_cycles: number | null;
+  cycles_per_month: number | null;
+  annual_kwh: number | null;
 }
 
 export interface InventoryMaintenanceRow {
@@ -1151,10 +1163,6 @@ export interface TenantsRow {
   lease_start: string | null;
   lease_end: string | null;
   monthly_rent: number | null;
-  /** Αναπροσαρμογή με μελλοντική ισχύ. ΔΕΝ είναι το τρέχον μίσθωμα. */
-  pending_rent: number | null;
-  /** Η ημερομηνία που το `pending_rent` γίνεται `monthly_rent`. */
-  pending_rent_from: string | null;
   deposit: number | null;
   payment_day: number | null;
   contract_type: string | null;
@@ -1239,6 +1247,8 @@ export interface TenantsRow {
   furnishing: string | null;
   rent_iban: string | null;
   created_at: string | null;
+  pending_rent: number | null;
+  pending_rent_from: string | null;
 }
 
 export interface UserFeedbackRow {
@@ -1292,6 +1302,7 @@ export interface UserPropertiesRow {
 
 /** Όνομα πίνακα → τύπος γραμμής, για γενικούς βοηθούς. */
 export interface Tables {
+  account_deletion_incidents: AccountDeletionIncidentsRow;
   accountant_clients: AccountantClientsRow;
   accountant_dossier: AccountantDossierRow;
   accountant_links: AccountantLinksRow;

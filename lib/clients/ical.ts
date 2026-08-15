@@ -11,6 +11,15 @@ export interface ICalEvent {
   start: string;   // YYYY-MM-DD (check-in)
   end: string;     // YYYY-MM-DD (check-out, exclusive όπως το δίνει το Airbnb)
   summary: string;
+  /**
+   * `true` όταν το γεγονός φέρει `STATUS:CANCELLED` (RFC 5545 §3.8.1.11).
+   *
+   * ΔΕΝ ΕΙΝΑΙ Ο ΣΥΝΗΘΗΣ ΤΡΟΠΟΣ. Airbnb και Booking απλώς ΣΒΗΝΟΥΝ το γεγονός από
+   * τη ροή, και αυτό το πιάνει η αντιπαραβολή του συγχρονισμού. Το πεδίο υπάρχει
+   * για όσα ημερολόγια το στέλνουν σωστά (Google, iCloud, ξενοδοχειακά PMS): εκεί
+   * η ακύρωση φαίνεται αμέσως, χωρίς να χρειαστεί να λείψει από τον επόμενο γύρο.
+   */
+  cancelled: boolean;
 }
 
 // Ξεδίπλωμα διπλωμένων γραμμών (RFC 5545: συνέχεια με κενό/tab στην αρχή).
@@ -37,7 +46,7 @@ export function parseICal(text: string): ICalEvent[] {
     if (t === 'BEGIN:VEVENT') { cur = {}; continue; }
     if (t === 'END:VEVENT') {
       if (cur && cur.start && cur.end && cur.end > cur.start) {
-        events.push({ uid: (cur.uid || `${cur.start}_${cur.end}`).trim(), start: cur.start, end: cur.end, summary: (cur.summary || '').trim() });
+        events.push({ uid: (cur.uid || `${cur.start}_${cur.end}`).trim(), start: cur.start, end: cur.end, summary: (cur.summary || '').trim(), cancelled: cur.cancelled === true });
       }
       cur = null; continue;
     }
@@ -50,6 +59,7 @@ export function parseICal(text: string): ICalEvent[] {
     else if (key.startsWith('DTEND')) cur.end = toIsoDate(val);
     else if (key === 'SUMMARY') cur.summary = val.replace(/\\,/g, ',').replace(/\\n/gi, ' ').replace(/\\/g, '');
     else if (key === 'UID') cur.uid = val;
+    else if (key === 'STATUS') cur.cancelled = val.trim().toUpperCase() === 'CANCELLED';
   }
   return events;
 }

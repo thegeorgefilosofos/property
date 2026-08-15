@@ -49,6 +49,22 @@ export type StayPatch = { [K in keyof ClientStaysRow]?: ClientStaysRow[K] | null
 // ── ΑΝΑΓΝΩΣΗ ───────────────────────────────────────────────────────────────
 
 /**
+ * Η ΑΚΥΡΩΜΕΝΗ ΚΡΑΤΗΣΗ ΔΕΝ ΕΙΝΑΙ ΚΡΑΤΗΣΗ, ΚΑΙ ΤΟ ΦΙΛΤΡΟ ΜΠΑΙΝΕΙ ΜΙΑ ΦΟΡΑ.
+ *
+ * Οταν ο επισκέπτης ακυρώνει, το κανάλι σβήνει το γεγονός από τη ροή iCal και ο
+ * συγχρονισμός σημειώνει τη γραμμή με `cancelled_at`. Αν το φίλτρο ζούσε στις
+ * οθόνες, θα έπρεπε να γραφτεί σε καθεμία — και η πρώτη που θα το ξεχνούσε θα
+ * κρατούσε τις μέρες πιασμένες στο ημερολόγιο ή θα μετρούσε το ποσό ως έσοδο.
+ * Εδώ είναι ιδιότητα του ΠΙΝΑΚΑ: κανείς δεν χρειάζεται να τη θυμάται.
+ *
+ * ΑΝ Η ΣΤΗΛΗ ΔΕΝ ΥΠΑΡΧΕΙ ΑΚΟΜΗ (βάση χωρίς τη μετανάστευση 20260815170000), το
+ * PostgREST απορρίπτει ΟΛΟ το ερώτημα με 42703. Γι' αυτό το φίλτρο γράφεται ως
+ * `is('cancelled_at', null)` και όχι μέσα στο `select`: το σφάλμα γίνεται ορατό
+ * αμέσως αντί να επιστραφούν σιωπηλά όλες οι γραμμές, ακυρωμένες μαζί.
+ */
+const active = <Q extends { is: (c: string, v: null) => Q }>(q: Q): Q => q.is('cancelled_at', null);
+
+/**
  * Οι διαμονές ενός ακινήτου.
  *
  * Το `from`/`to` κόβουν στην ΑΦΙΞΗ: μια διαμονή ανήκει στο έτος που ξεκίνησε,
@@ -58,7 +74,7 @@ export async function ofProperty<T = Partial<ClientStaysRow>>(
   db: Db, propertyId: string, columns: string, userId?: string,
   opts: { from?: string; to?: string } = {},
 ): Promise<T[]> {
-  let q = db.from(TABLE).select(columns).eq('property_id', String(propertyId));
+  let q = active(db.from(TABLE).select(columns).eq('property_id', String(propertyId)));
   if (userId) q = q.eq('user_id', userId);
   if (opts.from) q = q.gte('check_in', opts.from);
   if (opts.to) q = q.lte('check_in', opts.to);
@@ -71,8 +87,8 @@ export async function ofProperties<T = Partial<ClientStaysRow>>(
   db: Db, propertyIds: string[], columns: string, userId: string,
 ): Promise<T[]> {
   if (!propertyIds.length) return [];
-  const { data } = await db.from(TABLE).select(columns)
-    .in('property_id', propertyIds.map(String)).eq('user_id', userId);
+  const { data } = await active(db.from(TABLE).select(columns)
+    .in('property_id', propertyIds.map(String)).eq('user_id', userId));
   return (data || []) as T[];
 }
 
@@ -80,7 +96,7 @@ export async function ofProperties<T = Partial<ClientStaysRow>>(
 export async function ofUser<T = Partial<ClientStaysRow>>(
   db: Db, userId: string, columns: string,
 ): Promise<T[]> {
-  const { data } = await db.from(TABLE).select(columns).eq('user_id', userId);
+  const { data } = await active(db.from(TABLE).select(columns).eq('user_id', userId));
   return (data || []) as T[];
 }
 
@@ -93,7 +109,7 @@ export async function ofUser<T = Partial<ClientStaysRow>>(
 export async function withClientName<T = Partial<ClientStaysRow>>(
   db: Db, propertyId: string, columns: string, userId?: string,
 ): Promise<T[]> {
-  let q = db.from(TABLE).select(`${columns},clients(full_name)`).eq('property_id', String(propertyId));
+  let q = active(db.from(TABLE).select(`${columns},clients(full_name)`).eq('property_id', String(propertyId)));
   if (userId) q = q.eq('user_id', userId);
   const { data } = await q.order('check_in', { ascending: false });
   return (data || []) as T[];

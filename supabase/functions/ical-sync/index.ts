@@ -46,7 +46,10 @@ function toIsoDate(val: string): string {
   const m = val.match(/(\d{4})(\d{2})(\d{2})/)
   return m ? `${m[1]}-${m[2]}-${m[3]}` : ''
 }
-interface ICalEvent { uid: string; start: string; end: string; summary: string }
+// ΑΝΤΙΓΡΑΦΟ ΤΟΥ lib/clients/ical.ts, ΚΑΙ ΟΧΙ ΑΠΟ ΕΠΙΛΟΓΗ: το Deno δεν φορτώνει τα
+// modules της εφαρμογής. Οποια αλλαγή γίνεται εδώ, γίνεται ΚΑΙ εκεί — το
+// `cancelled` προστέθηκε και στα δύο μαζί.
+interface ICalEvent { uid: string; start: string; end: string; summary: string; cancelled: boolean }
 function parseICal(text: string): ICalEvent[] {
   const events: ICalEvent[] = []
   let cur: Partial<ICalEvent> | null = null
@@ -55,7 +58,7 @@ function parseICal(text: string): ICalEvent[] {
     if (t === 'BEGIN:VEVENT') { cur = {}; continue }
     if (t === 'END:VEVENT') {
       if (cur && cur.start && cur.end && cur.end > cur.start) {
-        events.push({ uid: (cur.uid || `${cur.start}_${cur.end}`).trim(), start: cur.start, end: cur.end, summary: (cur.summary || '').trim() })
+        events.push({ uid: (cur.uid || `${cur.start}_${cur.end}`).trim(), start: cur.start, end: cur.end, summary: (cur.summary || '').trim(), cancelled: cur.cancelled === true })
       }
       cur = null; continue
     }
@@ -68,6 +71,9 @@ function parseICal(text: string): ICalEvent[] {
     else if (key.startsWith('DTEND')) cur.end = toIsoDate(val)
     else if (key === 'SUMMARY') cur.summary = val.replace(/\\,/g, ',').replace(/\\n/gi, ' ').replace(/\\/g, '')
     else if (key === 'UID') cur.uid = val
+    // RFC 5545 §3.8.1.11. Airbnb και Booking απλώς σβήνουν το γεγονός, αλλά όσα
+    // ημερολόγια το στέλνουν σωστά μας γλιτώνουν έναν γύρο αναμονής.
+    else if (key === 'STATUS') cur.cancelled = val.trim().toUpperCase() === 'CANCELLED'
   }
   return events
 }
@@ -254,10 +260,15 @@ async function syncFeed(feed: Feed): Promise<Record<string, unknown>> {
   try {
     const text = await fetchIcal(feed.url)
     const events = parseICal(text)
+    // ΕΙΝΑΙ ΟΝΤΩΣ ΗΜΕΡΟΛΟΓΙΟ ΑΥΤΟ ΠΟΥ ΓΥΡΙΣΕ; Απάντηση χωρίς `BEGIN:VCALENDAR`
+    // —σελίδα σφάλματος, ανακατεύθυνση σε είσοδο, ληγμένος σύνδεσμος— δίνει μηδέν
+    // γεγονότα, που είναι ΑΓΝΩΣΤΟ, όχι «καμία κράτηση». Χωρίς αυτόν τον έλεγχο η
+    // αντιπαραβελή παρακάτω θα ακύρωνε ΟΛΟ το καλοκαίρι επειδή έπεσε ένας διακομιστής.
+    const looksLikeCalendar = /BEGIN:VCALENDAR/i.test(text)
     const drafts = events
-      .map(e => ({ start: e.start, end: e.end, nights: nightsBetween(e.start, e.end), blocked: isBlocked(e.summary), uid: e.uid }))
+      .map(e => ({ start: e.start, end: e.end, nights: nightsBetween(e.start, e.end), blocked: isBlocked(e.summary), uid: e.uid, cancelled: e.cancelled }))
       .filter(d => d.nights > 0)
-    const toImport = drafts.filter(d => feed.include_blocked || !d.blocked)
+    const toImport = drafts.filter(d => !d.cancelled && (feed.include_blocked || !d.blocked))
 
     // ── Η ΤΑΥΤΟΤΗΤΑ ΤΗΣ ΚΡΑΤΗΣΗΣ ΕΙΝΑΙ ΤΟ UID, ΟΧΙ ΟΙ ΗΜΕΡΟΜΗΝΙΕΣ ──────────
     // Το κλειδί (ακίνητο, άφιξη, αναχώρηση) έσπαγε μόλις ο επισκέπτης άλλαζε
@@ -284,6 +295,10 @@ async function syncFeed(feed: Feed): Promise<Record<string, unknown>> {
         user_id: feed.user_id, client_id: clientId, property_id: feed.property_id,
         check_in: d.start, check_out: d.end, nights: d.nights, channel: feed.channel,
         source_uid: uidOf(d.uid),
+        // Η ΑΚΥΡΩΣΗ ΑΝΑΙΡΕΙΤΑΙ. Κράτηση που ξαναφαίνεται στη ροή —ο επισκέπτης
+        // την επανέφερε, ή ο προηγούμενος γύρος έπεσε σε στιγμιαίο κενό— καθαρίζει
+        // τη σήμανσή της εδώ. Με διαγραφή αντί για σήμανση, αυτό θα ήταν αδύνατο.
+        cancelled_at: null,
         notes: 'Εισαγωγή iCal',
       }))
       for (let i = 0; i < rows.length; i += 100) {
@@ -296,9 +311,53 @@ async function syncFeed(feed: Feed): Promise<Record<string, unknown>> {
         inserted += rows.slice(i, i + 100).length
       }
     }
-    const status = `ok: ${inserted} νέες, ${toImport.length - fresh.length} υπήρχαν`
+    // ── ΟΤΙ ΕΦΥΓΕ ΑΠΟ ΤΗ ΡΟΗ ΕΙΝΑΙ ΑΚΥΡΩΜΕΝΟ ────────────────────────────────
+    //
+    // Ο συγχρονισμός κοιτούσε μόνο τι ΗΡΘΕ. Οταν ο επισκέπτης ακυρώνει, το κανάλι
+    // σβήνει το γεγονός από τη ροή — αυτός είναι ο μόνος τρόπος που ανακοινώνεται
+    // η ακύρωση — και η γραμμή έμενε για πάντα: το ημερολόγιο κρατούσε τις μέρες
+    // πιασμένες και ο ιδιοκτήτης δεν τις ξαναδιέθετε, η πληρότητα έβγαινε
+    // ψηλότερη, και το ποσό μετριόταν ως έσοδο.
+    //
+    // ΤΡΕΙΣ ΦΡΟΥΡΕΣ, ΚΑΙ ΚΑΜΙΑ ΔΕΝ ΕΙΝΑΙ ΠΡΟΑΙΡΕΤΙΚΗ:
+    //
+    //   1. ΜΟΝΟ ΑΝ Η ΑΠΑΝΤΗΣΗ ΕΙΝΑΙ ΗΜΕΡΟΛΟΓΙΟ. Αλλιώς μια πεσμένη υπηρεσία
+    //      ακυρώνει ολόκληρη τη σεζόν.
+    //   2. ΜΟΝΟ ΜΕΛΛΟΝΤΙΚΕΣ ΑΦΙΞΕΙΣ. Το Airbnb δημοσιεύει κυλιόμενο παράθυρο: οι
+    //      περασμένες κρατήσεις φεύγουν από τη ροή ΕΠΕΙΔΗ ΕΓΙΝΑΝ. Ακυρώνοντάς τες
+    //      θα σβήναμε το ιστορικό εσόδων της περασμένης χρονιάς.
+    //   3. ΜΟΝΟ ΔΙΚΕΣ ΤΟΥ ΓΡΑΜΜΕΣ. Το πρόθεμα του καναλιού κρατά έξω τις
+    //      χειροκίνητες (χωρίς `source_uid`) και τις γραμμές άλλης ροής.
+    //
+    // Τα UID βγαίνουν από ΟΛΑ τα γεγονότα της ροής, όχι από το `toImport`: αν
+    // έβγαιναν από εκεί, η απενεργοποίηση του «συμπερίληψη μπλοκαρισμένων» θα
+    // ακύρωνε αληθινές γραμμές που στέκουν ακόμη στο κανάλι.
+    let cancelled = 0
+    if (looksLikeCalendar) {
+      const live = new Set(events.filter(e => !e.cancelled).map(e => uidOf(e.uid)))
+      const today = new Date().toISOString().slice(0, 10)
+      const { data: mine } = await admin.from('client_stays')
+        .select('id,source_uid')
+        .eq('user_id', feed.user_id).eq('property_id', feed.property_id)
+        .like('source_uid', `${feed.channel}:%`)
+        .gte('check_in', today)
+        .is('cancelled_at', null)
+      const gone = (mine || [])
+        .filter((r: { source_uid: string | null }) => r.source_uid && !live.has(r.source_uid))
+        .map((r: { id: string }) => r.id)
+      if (gone.length) {
+        const { error } = await admin.from('client_stays')
+          .update({ cancelled_at: new Date().toISOString() }).in('id', gone)
+        if (error) throw new Error(error.message)
+        cancelled = gone.length
+      }
+    }
+
+    const status = looksLikeCalendar
+      ? `ok: ${inserted} νέες, ${toImport.length - fresh.length} υπήρχαν, ${cancelled} ακυρώθηκαν`
+      : `ok: ${inserted} νέες, ${toImport.length - fresh.length} υπήρχαν (η απάντηση δεν ήταν ημερολόγιο· καμία ακύρωση)`
     await admin.from('ical_feeds').update({ last_synced_at: new Date().toISOString(), last_status: status }).eq('id', feed.id)
-    return { feedId: feed.id, ok: true, inserted, skipped: toImport.length - fresh.length, bookings: drafts.filter(d => !d.blocked).length }
+    return { feedId: feed.id, ok: true, inserted, cancelled, skipped: toImport.length - fresh.length, bookings: drafts.filter(d => !d.blocked && !d.cancelled).length }
   } catch (err) {
     await admin.from('ical_feeds').update({ last_synced_at: new Date().toISOString(), last_status: `error: ${String(err).slice(0, 200)}` }).eq('id', feed.id)
     return { feedId: feed.id, ok: false, error: String(err) }
