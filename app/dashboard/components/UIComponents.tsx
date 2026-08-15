@@ -936,12 +936,51 @@ interface ToggleProps {
   size?: 'sm' | 'md';
 }
 
+/**
+ * ΜΟΝΟ Η ΟΨΗ ΤΟΥ ΔΙΑΚΟΠΤΗ, ΧΩΡΙΣ ΚΟΥΜΠΙ.
+ *
+ * ΓΙΑΤΙ ΞΕΧΩΡΙΣΤΑ. Το `BillsBudget` έχει ρυθμίσεις όπου ΟΛΟΚΛΗΡΗ η κάρτα είναι
+ * ο διακόπτης: το `<button>` υπάρχει ήδη, και `<button>` μέσα σε `<button>` δεν
+ * είναι έγκυρο HTML. Το σχόλιο εκεί το είχε εντοπίσει σωστά, και η απάντηση
+ * ήταν να ξαναζωγραφιστεί το ελατήριο στο χέρι — δηλαδή δεύτερη εμφάνιση για το
+ * ίδιο πράγμα, που αποκλίνει στην πρώτη αλλαγή. Ηδη είχε αποκλίνει: `borderRadius: 20`
+ * αντί για το ύψος, και δικό της `transition`.
+ *
+ * Τώρα η όψη ζει ΜΙΑ φορά, εδώ, και τη χρησιμοποιούν και οι δύο: το `Toggle`
+ * τυλίγοντάς τη σε κουμπί, και η κάρτα-διακόπτης σκέτη.
+ */
+export function ToggleTrack({ on, size = 'md' }: { on: boolean; size?: 'sm' | 'md' }) {
+  const w = size === 'sm' ? 36 : 52;
+  const h = size === 'sm' ? 20 : 32;
+  const thumb = on ? (size === 'sm' ? 16 : 24) : (size === 'sm' ? 12 : 16);
+  return (
+    <span style={{
+      display: 'block',
+      width: w, height: h, borderRadius: h,
+      background: on ? 'var(--accent)' : 'transparent',
+      border: `2px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`,
+      position: 'relative', boxSizing: 'border-box', flexShrink: 0,
+      transition: 'background 0.2s, border-color 0.2s',
+    }}>
+      <span style={{
+        display: 'block',
+        width: thumb, height: thumb,
+        borderRadius: '50%',
+        background: on ? 'var(--accent-text)' : 'var(--text-secondary)',
+        position: 'absolute',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        left: on ? `calc(100% - ${thumb}px - 2px)` : '2px',
+        transition: 'background-color 0.2s cubic-bezier(0.2,0,0,1), border-color 0.2s cubic-bezier(0.2,0,0,1), color 0.2s cubic-bezier(0.2,0,0,1), box-shadow 0.2s cubic-bezier(0.2,0,0,1), transform 0.2s cubic-bezier(0.2,0,0,1), opacity 0.2s cubic-bezier(0.2,0,0,1)',
+        boxShadow: 'var(--elev-1)',
+      }}/>
+    </span>
+  );
+}
+
 export function Toggle({ on, onChange, label, ariaLabel, size = 'md' }: ToggleProps) {
   const w = size === 'sm' ? 36 : 52;
   const h = size === 'sm' ? 20 : 32;
-  const thumbOff = size === 'sm' ? 12 : 16;
-  const thumbOn  = size === 'sm' ? 16 : 24;
-
   // ═══ Ο ΣΤΟΧΟΣ ΑΦΗΣ ΕΙΝΑΙ 44, Η ΟΨΗ ΜΕΝΕΙ ΟΠΩΣ ΗΤΑΝ ══════════════════════
   //
   // Το κουμπί ΗΤΑΝ το ίδιο το ορατό ελατήριο: 52×32 στο κανονικό μέγεθος και
@@ -974,28 +1013,7 @@ export function Toggle({ on, onChange, label, ariaLabel, size = 'md' }: TogglePr
           flexShrink: 0, cursor: 'pointer',
         }}
       >
-        <span style={{
-          display: 'block',
-          width: w, height: h, borderRadius: h,
-          background: on ? 'var(--accent)' : 'transparent',
-          border: `2px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`,
-          position: 'relative', boxSizing: 'border-box',
-          transition: 'background 0.2s, border-color 0.2s',
-        }}>
-          <span style={{
-            display: 'block',
-            width: on ? thumbOn : thumbOff,
-            height: on ? thumbOn : thumbOff,
-            borderRadius: '50%',
-            background: on ? 'var(--accent-text)' : 'var(--text-secondary)',
-            position: 'absolute',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            left: on ? `calc(100% - ${on ? thumbOn : thumbOff}px - 2px)` : '2px',
-            transition: 'background-color 0.2s cubic-bezier(0.2,0,0,1), border-color 0.2s cubic-bezier(0.2,0,0,1), color 0.2s cubic-bezier(0.2,0,0,1), box-shadow 0.2s cubic-bezier(0.2,0,0,1), transform 0.2s cubic-bezier(0.2,0,0,1), opacity 0.2s cubic-bezier(0.2,0,0,1)',
-            boxShadow: 'var(--elev-1)',
-          }}/>
-        </span>
+        <ToggleTrack on={on} size={size} />
       </button>
       {/* ΤΟ ΑΝΟΙΧΤΟ ΔΕΝ ΕΙΝΑΙ ΠΡΑΣΙΝΟ. Το ίδιο το primitive έβαφε το «Ναι» με το
           σημασιολογικό πράσινο — μέσα στο κοινό component, δηλαδή σε κάθε

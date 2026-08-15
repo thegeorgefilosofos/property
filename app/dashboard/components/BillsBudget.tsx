@@ -12,7 +12,7 @@ import * as billStore from '@/lib/data/bills';
 import * as tenantStore from '@/lib/data/tenants';
 import * as expenses from '@/lib/data/expenses'
 import * as calendar from '@/lib/data/calendar'
-import { TextInput } from './UIComponents';
+import { TextInput, ToggleTrack } from './UIComponents';
 import { T, TT, fe, feAuto, fp, fn, fixedCols, Skeleton, SkeletonKPIs, pressable } from '@/components/Theme';
 import { waterMonthly } from '@/lib/energy/tariff';
 import { monthAcc, monthGen, monthYearLabel } from '@/lib/core/months';
@@ -1066,13 +1066,17 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   // έλεγε ποτέ αν είναι ανοιχτές. Ο δείκτης βαφόταν με ωμό #fff και η σκιά με
   // ωμό rgba — δύο παραβάσεις της παλέτας μέσα σε τρεις γραμμές. Δεν γίνεται
   // κοινό `Toggle`: το `Toggle` είναι <button>, και <button> μέσα σε <button>
-  // είναι άκυρο HTML. Ευθυγραμμίστηκε αντ' αυτού με το `Toggle size="sm"`.
+  // είναι άκυρο HTML.
+  //
+  // Η ΑΠΑΝΤΗΣΗ ΗΤΑΝ ΝΑ ΞΑΝΑΖΩΓΡΑΦΙΣΤΕΙ ΤΟ ΕΛΑΤΗΡΙΟ ΣΤΟ ΧΕΡΙ, δηλαδή δεύτερη
+  // εμφάνιση για το ίδιο πράγμα — και είχε ήδη αποκλίνει: `borderRadius: 20`
+  // αντί για το ύψος, και δικό της `transition`. Τώρα η όψη έρχεται από το
+  // `ToggleTrack`, που τη μοιράζεται με το κοινό `Toggle`: μία εμφάνιση, δύο
+  // περιτυλίγματα, κανένα ένθετο κουμπί.
   const settingToggle = (settingKey: string, on: boolean, title: string, desc: string) => (
     <button type="button" role="switch" aria-checked={on} onClick={() => updateBudget(settingKey, on ? 'false' : 'true')}
       style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'var(--bg-elevated)', border: `1px solid ${on ? 'var(--border-accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, cursor: 'pointer', textAlign: 'left', fontFamily: T.font.sans }}>
-      <span style={{ position: 'relative', width: 36, height: 20, borderRadius: 20, background: on ? 'var(--accent)' : 'transparent', border: `2px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, flexShrink: 0, transition: 'background 0.2s, border-color 0.2s' }}>
-        <span style={{ display: 'block', width: on ? 16 : 12, height: on ? 16 : 12, borderRadius: '50%', background: on ? 'var(--accent-text)' : 'var(--text-secondary)', position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: on ? 'calc(100% - 16px - 2px)' : 2, transition: `all 0.2s ${T.ease.standard}`, boxShadow: 'var(--elev-1)' }}/>
-      </span>
+      <ToggleTrack on={on} size="sm" />
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{title}</span>
         <span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{desc}</span>
