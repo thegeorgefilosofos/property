@@ -48,7 +48,7 @@ import {
   type AssistantPrefs, type Memory, type AssistantAction, DEFAULT_PREFS, ADDRESS_OPTIONS,
   NAV_MAP, buildSystemBlocks, parseAction, cleanForSpeech, loadPrefs, savePrefs,
   loadHistory, saveHistory, clearHistory,
-  loadMemories, addMemory, removeMemory, clearMemories,
+  loadMemories, addMemory, removeMemory, clearMemories, actionReachable,
 } from './assistantPersona';
 import {
   ASSISTANT_NAME, ASSISTANT_INITIAL, tagline, askCta, askPlaceholder, openAria,
@@ -1116,6 +1116,14 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         // του πακέτου ενώ ο μετρητής έδινε το δοκιμαστικό. Το `planBrief`
         // φτιάχνεται από το `planBriefing`, που ξέρει και τα δύο.
         plan: planBrief,
+        // ΤΙ ΔΕΝ ΒΛΕΠΕΙ, ΑΠΟ ΤΗΝ ΙΔΙΑ ΠΗΓΗ ΠΟΥ ΤΟ ΑΠΟΦΑΣΙΖΕΙ Η ΜΠΑΡΑ. Το κουμπί
+        // της ενέργειας κρύβεται ήδη αν η καρτέλα είναι κλειστή, αλλά αυτό είναι
+        // φράχτης στο τέλος: η γραμμή ΠΡΙΝ έχει ήδη γραφτεί στη βάση και ο
+        // χρήστης έχει ήδη διαβάσει «τον καταχώρησα». Ο βοηθός πρέπει να μην το
+        // προτείνει καθόλου, και το ξέρει μόνο αν του το πούμε.
+        lockedTabs: canNavigate
+          ? NAV_MAP.filter(n => !canNavigate(n.id)).map(n => `«${navLabel(n.id)}»`).join(', ') || undefined
+          : undefined,
         // ΩΡΑ ΕΛΛΑΔΑΣ, ΟΧΙ ΤΗΣ ΣΥΣΚΕΥΗΣ. Το toLocaleDateString χωρίς timeZone
         // ακολουθεί το ρολόι του browser: ο ιδιοκτήτης που ταξιδεύει θα έπαιρνε
         // λάθος μέρα, και μαζί λάθος απάντηση σε κάθε «προλαβαίνω;».
@@ -1464,10 +1472,12 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                     <div style={{ maxWidth: '90%', padding: '11px 14px', borderRadius: 14, fontFamily: T.font.sans, fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap',
                       background: m.role === 'user' ? 'var(--accent)' : 'var(--bg-elevated)', color: m.role === 'user' ? 'var(--accent-text)' : 'var(--text-primary)',
                       border: 'none', borderBottomRightRadius: m.role === 'user' ? 4 : 14, borderBottomLeftRadius: m.role === 'user' ? 14 : 4 }}>{m.text}</div>
-                    {/* Καμία υπόσχεση που δεν μπορεί να τηρηθεί: αν η καρτέλα δεν
-                        είναι προσβάσιμη για αυτό το ακίνητο, το κουμπί «Πήγαινε»
-                        δεν γράφεται καθόλου — αντί να γκριζάρει χωρίς να πάει. */}
-                    {m.action && !(m.action.type === 'go' && canNavigate && !canNavigate(m.action.tab)) && (m.action.type === 'reach' ? (() => {
+                    {/* Καμία υπόσχεση που δεν μπορεί να τηρηθεί: αν η καρτέλα όπου
+                        προσγειώνεται η ενέργεια δεν είναι προσβάσιμη για αυτό το
+                        ακίνητο ή αυτό το πακέτο, το κουμπί δεν γράφεται καθόλου —
+                        αντί να γκριζάρει, ή χειρότερα, να γράψει τα δεδομένα σε
+                        οθόνη που ο χρήστης δεν πρόκειται να δει. */}
+                    {m.action && actionReachable(m.action, canNavigate) && (m.action.type === 'reach' ? (() => {
                       // Κουμπί/σύνδεσμος επικοινωνίας: ανοίγει το μέσο ΜΟΝΟ με το άγγιγμα
                       // του χρήστη (ποτέ αυτόματα). Για tel:/mailto: ρεαλιστικό <a>, για
                       // WhatsApp/Viber άνοιγμα σε νέα καρτέλα.

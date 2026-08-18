@@ -24,6 +24,7 @@ import {
   DEFAULT_PREFS, type AssistantPrefs, type AssistantAction,
   loadMemories, addMemory, removeMemory, clearMemories,
   normalizeBookTime, resolveBookDate, KNOWLEDGE_PACKS, packsFor,
+  ACTION_TAB, actionReachable, planBriefing,
 } from './assistantPersona';
 import { PLANS, TRIAL_DAYS } from '@/lib/billing/plans';
 import { monthlyQuestionBudget, TRIAL_LIMITS } from '@/lib/billing/aiLimits';
@@ -658,6 +659,70 @@ ok('κενό → undefined', normalizeBookTime('') === undefined);
   ok('«τιμολόγιο» φορτώνει τη φορολογία', packsFor('ανέβασα ένα τιμολόγιο').includes('tax'));
 }
 
+
+// ── ΚΑΜΙΑ ΕΝΕΡΓΕΙΑ ΣΕ ΟΘΟΝΗ ΠΟΥ Ο ΧΡΗΣΤΗΣ ΔΕΝ ΒΛΕΠΕΙ ──────────────────────
+// Ο έλεγχος υπήρχε ΜΟΝΟ για το [[go:]]. Ολες οι άλλες ενέργειες γράφουν κι
+// αυτές σε μια καρτέλα: ιδιοκτήτης με πακέτο «Ιδιοκτήτης» έλεγε «κράτα τον
+// Γιάννη» και τα στοιχεία του Γιάννη έμπαιναν στους «Πελάτες», οθόνη που για
+// έναν ιδιώτη δεν ξεκλειδώνει με κανένα πακέτο.
+{
+  const ALL: AssistantAction[] = [
+    { type: 'go', tab: 'clients' },
+    { type: 'scan' },
+    { type: 'book', title: 'X', date: '2026-09-01' },
+    { type: 'client', name: 'Γιάννης' },
+    { type: 'checkin', who: 'Γιάννης' },
+    { type: 'expense', description: 'Υδραυλικός', amount: 80 },
+    { type: 'contact', name: 'Νίκος' },
+    { type: 'task', description: 'ΕΝΦΙΑ' },
+    { type: 'paid', description: 'ΔΕΗ' },
+    { type: 'inventory', name: 'Ψυγείο' },
+    { type: 'reach', name: 'Νίκος', channel: 'whatsapp' },
+    { type: 'commit-doc', label: 'ΔΕΗ' },
+    { type: 'feedback' },
+  ];
+  // Ο χάρτης καλύπτει ΚΑΘΕ είδος ενέργειας: αν αύριο προστεθεί ένα ακόμη, ο
+  // μεταγλωττιστής το απαιτεί (Record<AssistantAction['type'], …>) και εδώ
+  // φαίνεται ότι δοκιμάστηκε.
+  ok('ο χάρτης προορισμών καλύπτει κάθε ενέργεια',
+     ALL.every(a => a.type in ACTION_TAB) && Object.keys(ACTION_TAB).length === ALL.length);
+  ok('κάθε προορισμός είναι υπαρκτή καρτέλα ή κανένας',
+     Object.values(ACTION_TAB).every(t => t === null || NAV_IDS.includes(t)));
+
+  // Χωρίς canNavigate τίποτα δεν εμποδίζεται.
+  ok('χωρίς κριτή, όλα περνούν', ALL.every(a => actionReachable(a)));
+
+  // Ολα κλειδωμένα: περνούν μόνο όσα δεν προσγειώνονται σε καρτέλα.
+  const none = () => false;
+  const passing = ALL.filter(a => actionReachable(a, none)).map(a => a.type).sort();
+  ok('με όλες τις καρτέλες κλειστές περνούν μόνο η σάρωση και η αξιολόγηση',
+     passing.join(',') === 'feedback,scan');
+
+  // Το ΣΥΓΚΕΚΡΙΜΕΝΟ σενάριο: κλειδωμένο μόνο το «Πελατολόγιο».
+  const noClients = (t: string) => t !== 'clients';
+  ok('κλειστό Πελατολόγιο → δεν καταχωρείται πελάτης',
+     !actionReachable({ type: 'client', name: 'Γιάννης' }, noClients));
+  ok('κλειστό Πελατολόγιο → δεν φτιάχνεται σύνδεσμος check-in',
+     !actionReachable({ type: 'checkin', who: 'Γιάννης' }, noClients));
+  ok('κλειστό Πελατολόγιο → η δαπάνη ΣΥΝΕΧΙΖΕΙ να περνά',
+     actionReachable({ type: 'expense', description: 'Υδραυλικός', amount: 80 }, noClients));
+  ok('κλειστό Πελατολόγιο → και η πλοήγηση εκεί κόβεται',
+     !actionReachable({ type: 'go', tab: 'clients' }, noClients));
+}
+
+// ── Το πακέτο και τα όριά του ταξιδεύουν μαζί ─────────────────────────────
+{
+  const trial = planBriefing('owner', 'free', 9);
+  ok('η δοκιμή λέει το ΔΙΚΟ της νούμερο', trial.includes(`${TRIAL_LIMITS.perMonth} τον μήνα`));
+  ok('η δοκιμή ΔΕΝ λέει το νούμερο του επιπέδου', !trial.includes(`${monthlyQuestionBudget('owner')} τον μήνα`));
+  ok('η δοκιμή λέει πόσο της μένει', /απομένουν 9 ημέρες/.test(trial));
+  ok('συνδρομητής → το πλήρες πακέτο του',
+     planBriefing('owner', 'owner').includes(`${monthlyQuestionBudget('owner')} τον μήνα`));
+  ok('«Χωρίς συνδρομή» δεν λέγεται δύο φορές',
+     !/Χωρίς συνδρομή» χωρίς/.test(planBriefing('free', 'free')));
+  ok('τελευταία ημέρα δοκιμής δεν γράφει «0 ημέρες»',
+     /τελευταία ημέρα/.test(planBriefing('owner', null, 0)));
+}
 
 console.log(`\nassistantPersona.ts, ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`);
 if (failed) { console.log('FAILED:\n' + fails.map(f => '  ✗ ' + f).join('\n')); process.exit(1); }
