@@ -43,6 +43,33 @@ type ProfileType = 'individual' | 'professional';
 // πλέον στον οδηγό ακινήτου).
 type S = Record<string, unknown>;
 
+/**
+ * ΤΙ ΕΙΝΑΙ ΡΥΘΜΙΣΗ ΚΑΙ ΤΙ ΕΙΝΑΙ ΥΔΡΑΥΛΙΚΑ ΤΗΣ ΒΑΣΗΣ.
+ *
+ * Ο πίνακας έχει και `id`, `user_id`, `property_id`: κλειδιά που δεν λένε
+ * τίποτα σε κανέναν έξω από τη βάση και δεν έχουν λόγο να ταξιδεύουν σε φύλλο
+ * που ανοίγει άνθρωπος. Η σειρά εδώ είναι η σειρά που θα τα έγραφε κάποιος σε
+ * χαρτί: ποιος είναι ο ιδιοκτήτης, ποιοι οι πάροχοι, ποιος διαχειρίζεται, τι
+ * ασφάλεια υπάρχει.
+ */
+const SETTINGS_FIELDS: readonly (readonly [string, string])[] = [
+  ['owner_name', 'Ονομα ιδιοκτήτη'],
+  ['owner_afm', 'ΑΦΜ ιδιοκτήτη'],
+  ['owner_phone', 'Τηλέφωνο ιδιοκτήτη'],
+  ['owner_email', 'Ηλεκτρονικό ταχυδρομείο ιδιοκτήτη'],
+  ['electricity_provider', 'Πάροχος ρεύματος'],
+  ['water_provider', 'Πάροχος νερού'],
+  ['internet_provider', 'Πάροχος internet'],
+  ['internet_plan', 'Πρόγραμμα internet'],
+  ['kwh_price', 'Τιμή κιλοβατώρας'],
+  ['property_manager', 'Διαχειριστής'],
+  ['property_manager_phone', 'Τηλέφωνο διαχειριστή'],
+  ['insurance_company', 'Ασφαλιστική εταιρεία'],
+  ['insurance_policy', 'Αριθμός συμβολαίου'],
+  ['insurance_expiry', 'Λήξη ασφάλειας'],
+  ['notes', 'Σημειώσεις'],
+];
+
 // ── Κοινά δομικά κομμάτια της σελίδας ─────────────────────────────────────
 // Οι γραμμές ρύθμισης (τίτλος, εξήγηση, διακόπτης, «ετικέτα … τιμή») ζουν στο
 // SettingsKit — εδώ γράφονταν ξεχωριστά, με άλλα περιθώρια από τις υπόλοιπες
@@ -394,6 +421,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   // τη μέση της σύγκρισης έστελνε τον χρήστη πίσω σε ό,τι μόλις διάβαζε.
   const billingRef = useRef<HTMLDivElement | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [sheetNote, setSheetNote] = useState('');
   const [exportErr, setExportErr] = useState('');
   const [exportOk, setExportOk] = useState('');
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -509,14 +537,28 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   const proEligible = planAtLeast(effPlan, 'agency');
   const tier: 'owner' | 'agency' | 'partner' = partner ? 'partner' : profileType === 'professional' ? 'agency' : 'owner';
 
-  // ΤΟ ΚΟΥΜΠΙ ΕΛΕΓΕ «CSV» ΚΑΙ ΚΑΤΕΒΑΖΕ EXCEL. Η συνάρτηση είναι
-  // `downloadTableXlsx` και το αρχείο που φτάνει στις λήψεις τελειώνει σε
-  // `.xlsx` — δηλαδή η οθόνη ονόμαζε λάθος αυτό που έκανε. Το όνομα ακολουθεί
-  // το αρχείο, όχι το αντίστροφο.
+  // ── Η ΕΞΑΓΩΓΗ ΡΥΘΜΙΣΕΩΝ ΗΤΑΝ ΧΩΜΑΤΕΡΗ ΤΗΣ ΒΑΣΗΣ ────────────────────────
+  // Εγραφε `Object.entries` της γραμμής, δηλαδή έστελνε στον χρήστη ελληνικού
+  // προϊόντος ένα φύλλο με στήλη «Πεδίο» γεμάτη `owner_afm`, `internet_plan`,
+  // `user_id`, `created_at`. Και όταν το ακίνητο δεν είχε ακόμη γραμμή
+  // ρυθμίσεων, κατέβαινε φύλλο με ΜΟΝΟ τις επικεφαλίδες: ο χρήστης πατά
+  // «Εξαγωγή», ανοίγει το αρχείο, και βρίσκει δύο άδειες στήλες. Δεν μπορεί να
+  // ξεχωρίσει αν δεν έχει δεδομένα ή αν η εξαγωγή χάλασε.
+  //
+  // Τώρα φεύγουν μόνο τα πεδία που σημαίνουν κάτι για άνθρωπο, με ελληνικό
+  // όνομα και στη σειρά που τα σκέφτεται· τα κλειδιά της βάσης δεν είναι
+  // ρύθμιση. Και όταν δεν υπάρχει τίποτα, δεν κατεβαίνει αρχείο: το λέει.
   const exportSettingsSheet = () => {
-    const rows = Object.entries(s as Record<string, unknown>).map(([k, v]) => [k, v == null ? '' : String(v)]);
+    const rows = SETTINGS_FIELDS
+      .map(([key, label]) => [label, String((s as Record<string, unknown>)[key] ?? '').trim()])
+      .filter(([, value]) => value !== '');
+    if (rows.length === 0) {
+      setSheetNote('Δεν υπάρχει καμία καταχωρημένη ρύθμιση σε αυτό το ακίνητο.');
+      return;
+    }
+    setSheetNote('');
     downloadTableXlsx(`Ρυθμίσεις ακινήτου ${athensToday()}`, {
-      title: 'Ρυθμίσεις ακινήτου', headers: ['Πεδίο', 'Τιμή'], rows,
+      title: 'Ρυθμίσεις ακινήτου', headers: ['Ρύθμιση', 'Τιμή'], rows,
     });
   };
 
@@ -815,13 +857,15 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
 
       <CollapsibleSection title="Δεδομένα και απόρρητο" hint="Εξαγωγή, λογιστής, διαγραφή" delay="260ms">
         <SetList>
-          <SetRow title="Εξαγωγή όλων των δεδομένων" desc="Κάθε εγγραφή που σε αφορά, σε ένα αρχείο JSON: ακίνητα, μισθώσεις, δαπάνες, λογαριασμοί, πελάτες, έγγραφα και ό,τι άλλο έχει καταχωριστεί. Δικαίωμα φορητότητας δεδομένων."
+          <SetRow title="Εξαγωγή όλων των δεδομένων" desc="Κάθε εγγραφή που σε αφορά, σε ένα αρχείο JSON, για μεταφορά σε άλλη υπηρεσία ή για δικό σου αντίγραφο. Είναι μορφή για μηχανές: το δικαίωμα φορητότητας τη ζητά έτσι. Για να διαβάσεις δεδομένα, κάθε καρτέλα έχει τη δική της εξαγωγή σε Excel."
             control={<Btn variant="secondary" onClick={exportAll} disabled={exporting}>{exporting ? 'Εξαγωγή…' : 'Εξαγωγή όλων'}</Btn>}>
             {exportErr && <div style={{ ...TT.bodySm, color: 'var(--negative)' }}>{exportErr}</div>}
             {exportOk && <div style={{ ...TT.bodySm }}>{exportOk}</div>}
           </SetRow>
-          <SetRow title="Εξαγωγή ρυθμίσεων ακινήτου" desc="Μόνο τις ρυθμίσεις αυτού του ακινήτου, σε φύλλο Excel για γρήγορη ματιά. Για αναλυτικά δεδομένα ανά κατηγορία, κάθε καρτέλα έχει και τη δική της εξαγωγή."
-            control={<Btn variant="secondary" onClick={exportSettingsSheet}>Εξαγωγή Excel</Btn>} />
+          <SetRow title="Εξαγωγή ρυθμίσεων ακινήτου" desc="Ιδιοκτήτης, πάροχοι, διαχειριστής και ασφάλεια αυτού του ακινήτου, σε φύλλο Excel."
+            control={<Btn variant="secondary" onClick={exportSettingsSheet}>Εξαγωγή Excel</Btn>}>
+            {sheetNote && <div style={{ ...TT.bodySm }}>{sheetNote}</div>}
+          </SetRow>
           <AccountantLink userId={userId} />
           <MarketDataSharing userId={userId} />
           {/* Η εμπιστοσύνη δεν είναι μόνο για τη σελίδα πωλήσεων: ο υπάρχων χρήστης
