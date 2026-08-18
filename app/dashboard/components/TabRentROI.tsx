@@ -90,6 +90,23 @@ const toolNote: React.CSSProperties = { fontSize: 11, color: 'var(--text-tertiar
 // ── Επεξήγηση όρου (διακριτικό εικονίδιο· επαγγελματικός ορισμός) ─────────────
 // Προσβάσιμο: πραγματικό κουμπί (πληκτρολόγιο + αφή), ανοίγει σε hover, εστίαση ή άγγιγμα,
 // κλείνει σε Escape/έξοδο. Portal-based popover ώστε να μην «κόβεται» από scroll containers.
+// ═══════════════════════════════════════════════════════════════════════════
+// Η ΕΤΙΚΕΤΑ ΤΟΥ ΠΛΑΚΙΔΙΟΥ, ΜΙΑ ΦΟΡΑ
+// ─────────────────────────────────────────────────────────────────────────
+// Ηταν γραμμένη δύο φορές, στο `KPI` και στο `MetricTile`, με μία διαφορά που
+// δεν είχε αποφασίσει κανείς (`fontWeight: 500` στο ένα, τίποτα στο άλλο).
+//
+// ΤΟ ΥΨΟΣ ΓΡΑΜΜΗΣ ΕΙΝΑΙ 16 ΓΙΑΤΙ 16 ΕΙΝΑΙ ΚΑΙ ΤΟ ΕΙΚΟΝΙΔΙΟ. Με στοίχιση στο
+// κέντρο, μια ετικέτα δύο γραμμών έβαζε το «i» στη ΜΕΣΗ των δύο γραμμών, να
+// αιωρείται ανάμεσά τους. Με στοίχιση στην κορυφή και ίδιο ύψος, κάθεται
+// ακριβώς πάνω στην πρώτη γραμμή — σε ετικέτα μιας γραμμής και σε δύο.
+// ═══════════════════════════════════════════════════════════════════════════
+const KPI_LABEL: React.CSSProperties = {
+  fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)',
+  textTransform: 'uppercase', letterSpacing: '0.4px', margin: 0, fontFamily: SANS,
+  display: 'flex', alignItems: 'flex-start', lineHeight: '16px',
+};
+
 function TermInfo({ text }: { text: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLButtonElement>(null);
@@ -165,10 +182,15 @@ function KPI({ label, value, sub, accent, info }: { label: string; value: string
   const [hot, setHot] = useState(false);
   return (
     <div onMouseEnter={() => setHot(true)} onMouseLeave={() => setHot(false)}
-      style={{ background: 'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border: `1px solid ${hot ? 'var(--border-accent)' : 'var(--border-subtle)'}`, borderRadius: 14, padding: '15px 16px', boxShadow: hot ? 'var(--elev-2)' : 'var(--elev-1)', transform: hot ? 'translateY(-3px)' : 'none', transition: 'transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease' }}>
-      <p style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.4px', margin: 0, fontFamily: SANS, display: 'flex', alignItems: 'center' }}>{label}{info && <TermInfo text={info} />}</p>
-      <p style={{ fontSize: 24, fontWeight: 700, color: accent && hot ? 'var(--accent)' : 'var(--text-primary)', margin: '6px 0 0', fontVariantNumeric: 'tabular-nums', fontFamily: SANS, lineHeight: 1, transition: 'color 0.16s ease' }}>{value}</p>
-      {sub && <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '4px 0 0', fontFamily: SANS }}>{sub}</p>}
+      style={{ display: 'flex', flexDirection: 'column', background: 'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border: `1px solid ${hot ? 'var(--border-accent)' : 'var(--border-subtle)'}`, borderRadius: 14, padding: '15px 16px', boxShadow: hot ? 'var(--elev-2)' : 'var(--elev-1)', transform: hot ? 'translateY(-3px)' : 'none', transition: 'transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease' }}>
+      <p style={KPI_LABEL}>{label}{info && <TermInfo text={info} />}</p>
+      {/* ΤΟ ΝΟΥΜΕΡΟ ΚΟΛΛΑΕΙ ΚΑΤΩ. Χωρίς αυτό, μια ετικέτα δύο γραμμών κατεβάζει
+          το δικό της νούμερο και η σειρά χάνει τη γραμμή βάσης της — τέσσερα
+          ποσοστά δίπλα-δίπλα σε τέσσερα διαφορετικά ύψη. */}
+      <div style={{ marginTop: 'auto', paddingTop: 6 }}>
+        <p style={{ fontSize: 24, fontWeight: 700, color: accent && hot ? 'var(--accent)' : 'var(--text-primary)', margin: 0, fontVariantNumeric: 'tabular-nums', fontFamily: SANS, lineHeight: 1, transition: 'color 0.16s ease' }}>{value}</p>
+        {sub && <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '4px 0 0', fontFamily: SANS }}>{sub}</p>}
+      </div>
     </div>
   );
 }
@@ -409,9 +431,9 @@ function LeverCard({ lever }: { lever: YieldLever }) {
 // και αυτό διακριτικά μόνο όταν ο δείκτης/δάχτυλο ακουμπά το πλακίδιο.
 function MetricTile({ label, value, info, tone }: { label: string; value: string; info?: string; tone?: 'neg' }) {
   return (
-    <div className="po-fig-card" tabIndex={0} style={{ padding: '12px 14px', borderRadius: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
-      <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.4px', fontFamily: SANS, display: 'flex', alignItems: 'center' }}>{label}{info && <TermInfo text={info} />}</p>
-      <p className="po-fig" data-tone={tone === 'neg' ? 'negative' : undefined} style={{ fontSize: 20, fontWeight: 700, margin: '4px 0 0', fontFamily: SANS, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{value}</p>
+    <div className="po-fig-card" tabIndex={0} style={{ display: 'flex', flexDirection: 'column', padding: '12px 14px', borderRadius: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+      <p style={KPI_LABEL}>{label}{info && <TermInfo text={info} />}</p>
+      <p className="po-fig" data-tone={tone === 'neg' ? 'negative' : undefined} style={{ fontSize: 20, fontWeight: 700, margin: 0, marginTop: 'auto', paddingTop: 4, fontFamily: SANS, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{value}</p>
     </div>
   );
 }
@@ -420,8 +442,29 @@ function MetricTile({ label, value, info, tone }: { label: string; value: string
 // κάτω μόνο του, και μισή κάρτα άδεια δεξιά. Τα τέσσερα στοιχεία είναι ΕΝΑ
 // ερώτημα — τι αξίζει, τι αποδίδει, τι κοστίζει, πού είναι — και διαβάζονται
 // σε μία ευθεία.
-/** Οι σειρές των τεσσάρων: πεδία εισόδου και πλακίδια KPI, πάντα τέσσερα. */
+/**
+ * Οι σειρές των τεσσάρων. ΔΥΟ, ΟΧΙ ΜΙΑ.
+ *
+ * Το ίδιο `g4` σέρβιρε και τα πεδία εισόδου και τα πλακίδια KPI, και η
+ * στοίχιση που θέλει το ένα είναι λάθος για το άλλο:
+ *
+ *   ΠΕΔΙΟ έχει ετικέτα ΠΑΝΩ από το κουτί του. Στοίχιση στο κάτω άκρο, ώστε μια
+ *   ετικέτα δύο γραμμών να μη σπρώχνει το πεδίο της πιο χαμηλά από τα διπλανά.
+ *
+ *   ΚΑΡΤΑ ΕΙΝΑΙ η ίδια το κουτί, με περίγραμμα και σκιά. Στοίχιση στο κάτω
+ *   άκρο σημαίνει ότι η ψηλότερη κάρτα προεξέχει προς τα ΠΑΝΩ: τέσσερα κουτιά
+ *   που αρχίζουν σε τρία διαφορετικά ύψη διαβάζονται ως λάθος, γιατί είναι.
+ *   Ο «Τυπική βραχυχρόνια απόδοση» τυλιγόταν σε δύο γραμμές και η κάρτα του
+ *   ξεχώριζε από τις άλλες τρεις.
+ *
+ * Η στοίχιση διορθώνει το σύμπτωμα ΚΑΙ ΟΤΑΝ η ετικέτα τυλιχτεί έτσι κι αλλιώς
+ * — με τη ρύθμιση «μεγαλύτερο κείμενο», σε στενή οθόνη, σε μεγάλο zoom. Την
+ * αιτία τη διόρθωσε η ίδια η ετικέτα: η λέξη «απόδοση» υπήρχε και στις
+ * τέσσερις κάρτες μιας σειράς που ΟΛΗ μιλά για αποδόσεις, δηλαδή λεγόταν
+ * τέσσερις φορές χωρίς να προσθέτει τίποτα την τέταρτη.
+ */
 const g4 = fixedCols(4, 12);
+const g4box = fixedCols(4, 12, 'stretch');
 
 // ── Διακόπτης παραδοχής (ναι/όχι), με το κείμενο του κανόνα από κάτω ─────────
 // ═══ ΔΕΥΤΕΡΟΣ ΔΙΑΚΟΠΤΗΣ ΓΙΑ ΤΗΝ ΙΔΙΑ ΔΟΥΛΕΙΑ ═══════════════════════════════
@@ -1221,7 +1264,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
 
       {!empty && (<>
         {/* KPIs */}
-        <div {...g4}>
+        <div {...g4box}>
           <KPI label="Μεικτή απόδοση" value={fp(y.grossYield)} sub={`${fe(y.annualRent)} έσοδα τον χρόνο`} info={G.gross_yield} />
           <KPI label="Καθαρή απόδοση" value={fp(y.netYield)} sub="μετά τα έξοδα" info={G.net_yield} />
           <KPI label="Απόδοση μετά τον φόρο" value={fp(y.netYieldAfterTax)}
@@ -1230,7 +1273,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           {canInvest
             ? <KPI label="Απόδοση ιδίων κεφαλαίων" value={fp(lev.cashOnCash)} sub={lev.cashOnCash >= 0 ? 'θετική μόχλευση' : (lev.positiveCarry ? 'θετική μόχλευση, αρνητική ροή' : 'αρνητική μόχλευση')} info={G.cash_on_cash} />
             : term === 'short'
-              ? <KPI label="Τυπική βραχυχρόνια απόδοση" value={fp(stRef.grossYield)} sub={reg?.region || 'Ελλάδα'} info={G.region_short_ref} />
+              ? <KPI label="Τυπική βραχυχρόνια" value={fp(stRef.grossYield)} sub={reg?.region || 'Ελλάδα'} info={G.region_short_ref} />
               : <KPI label="Μέσος όρος περιοχής" value={fp(reg?.grossYield || GREECE_AVG_GROSS_YIELD)} sub={reg?.region || 'Ελλάδα'} info={G.region_ref} />}
         </div>
 
