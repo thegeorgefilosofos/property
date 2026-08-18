@@ -737,8 +737,7 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
   color: var(--text-secondary);
 }
 
-/* ΑΦΑΙΡΕΘΗΚΕ: .status-dot — αχρησιμοποίητη· η μόνη ζωντανή τελεία κατάστασης
-   είναι η .prop-item-dot παρακάτω.
+/* ΑΦΑΙΡΕΘΗΚΕ: .status-dot — αχρησιμοποίητη.
    ΑΦΑΙΡΕΘΗΚΕ: όλος ο πίνακας .data-table (th/td/tr) και το .td-muted.
    ΓΙΑΤΙ: κανένας πίνακας του app δεν τα φορούσε — οι πίνακες στήνονται με inline
    styles από τα tokens. Έμενε μόνο ως τρίτη, ψεύτικη «πηγή αλήθειας».
@@ -959,8 +958,6 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
 
 /* ── Η ΓΡΑΜΜΗ. Ενα σχήμα για ακίνητο, καρτέλα, προσθήκη και χρήστη. ─────── */
 .sidebar-item,
-.prop-item,
-.rail-add,
 .user-row {
   display: flex;
   align-items: center;
@@ -978,13 +975,9 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
   transition: background 0.15s ease;
 }
 .sidebar-item:hover:not(.active),
-.prop-item:hover:not(.active),
-.rail-add:hover,
 .user-row:hover { background: var(--bg-hover); }
 
 .sidebar-item-icon,
-.prop-item-dot,
-.rail-add-icon,
 .user-avatar {
   width: 18px;
   flex-shrink: 0;
@@ -993,9 +986,7 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
 .sidebar-item-icon { color: var(--text-secondary); }
 .sidebar-item-icon svg { width: 18px; height: 18px; }
 
-.sidebar-item-label,
-.prop-item-name,
-.rail-add-label {
+.sidebar-item-label {
   flex: 1;
   min-width: 0;
   font-size: 14px;
@@ -1006,44 +997,16 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.prop-item-name { color: var(--text-primary); }
 
-/* ΤΟ ΕΝΕΡΓΟ, ΜΕ ΕΝΑ ΣΗΜΑ — ΚΑΙ ΜΟΝΟ ΕΝΑ ΕΝΕΡΓΟ ΜΕ ACCENT.
-   Η μπάρα έχει ΔΥΟ επιλεγμένες γραμμές ταυτόχρονα, και δεν λένε το ίδιο:
-   το ακίνητο είναι ΠΑΝΩ ΣΕ ΤΙ δουλεύεις, η καρτέλα είναι ΠΟΥ ΕΙΣΑΙ. Με το
-   ίδιο γαλάζιο γέμισμα και στα δύο, η μπάρα έδειχνε δύο «είσαι εδώ».
-   Το accent φυλάγεται για την τοποθεσία· το ακίνητο ξεχωρίζει με ουδέτερη
-   ανασηκωμένη επιφάνεια. Το βάρος του κειμένου είναι κοινό: επιλεγμένο. */
-/* ΤΟ ΠΕΡΙΓΡΑΜΜΑ ΔΕΝ ΕΙΝΑΙ ΔΙΑΚΟΣΜΗΣΗ ΕΔΩ, ΕΙΝΑΙ Η ΜΟΝΗ ΕΓΓΥΗΣΗ.
-   Στο φωτεινό θέμα η μπάρα είναι λευκή, το `--bg-elevated` είναι #f1f3f4 και
-   το `--bg-hover` βγαίνει πιο σκούρο από αυτό: το ΕΝΕΡΓΟ ακίνητο θα φαινόταν
-   ανοιχτότερο από ένα απλό πέρασμα του ποντικιού πάνω από τα διπλανά. Ενα
-   περίγραμμα διαβάζεται ως «επιλεγμένο» ανεξάρτητα από το πόσο διαφέρουν οι
-   δύο αποχρώσεις, σε κάθε θέμα. */
-.prop-item.active {
-  background: var(--bg-elevated);
-  box-shadow: inset 0 0 0 1px var(--border-subtle);
-}
+/* ΤΟ ΕΝΕΡΓΟ, ΜΕ ΕΝΑ ΣΗΜΑ. */
 .sidebar-item.active { background: var(--accent-dim); }
 .sidebar-item.active .sidebar-item-icon { color: var(--accent); }
-.sidebar-item.active .sidebar-item-label,
-.prop-item.active .prop-item-name { color: var(--text-primary); font-weight: 600; }
+.sidebar-item.active .sidebar-item-label { color: var(--text-primary); font-weight: 600; }
 
-/* Το «πάνω σε τι δουλεύω» και το «πού πάω» είναι δύο ερωτήσεις. Μια λεπτή
-   γραμμή τις χωρίζει, χωρίς να χρειάζεται δεύτερη επικεφαλίδα. */
-.sidebar-context { border-bottom: 1px solid var(--sidebar-border); padding-bottom: 8px; }
-
-/* Η τελεία κατάστασης του ακινήτου ζει μέσα στη θέση του εικονιδίου, ώστε το
-   όνομα να ξεκινά στην ίδια στήλη με τις ετικέτες των καρτελών. */
-.prop-item-dot::before {
-  content: '';
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: currentColor;
-}
-.rail-add { color: var(--accent); }
-.rail-add-label { color: var(--accent); }
-.rail-add-icon svg { width: 16px; height: 16px; }
+/* ΑΦΑΙΡΕΘΗΚΑΝ: .prop-item, .prop-item-dot, .prop-item-name, .rail-add και
+   .sidebar-context — η λίστα ακινήτων της μπάρας. Μετακόμισε στην πάνω μπάρα
+   ως επιλογέας (components/PropertySwitcher.tsx), γιατί το ύψος του μενού δεν
+   επιτρέπεται να εξαρτάται από το πόσα ακίνητα πληρώνει κανείς. */
 
 .sidebar-nav { display: flex; flex-direction: column; }
 
@@ -1129,11 +1092,6 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
 }
 .mode-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
 
-/* ΤΑ .prop-item ΕΦΥΓΑΝ ΑΠΟ ΕΔΩ. Ηταν δεύτερος ορισμός της ίδιας γραμμής,
-   τετρακόσιες γραμμές μακριά από τον πρώτο και με άλλα νούμερα (ύψος 40 αντί
-   44, ακτίνα 18 αντί 10, βάρος 700 στο ενεργό αντί 600). Η γραμμή του
-   ακινήτου και η γραμμή της καρτέλας ΕΙΝΑΙ το ίδιο σχήμα και ορίζονται μία
-   φορά, μαζί, στην ενότητα της πλαϊνής μπάρας. */
 
 /* ΑΦΑΙΡΕΘΗΚΕ: .prop-item-del — το «×» διαγραφής σε κάθε γραμμή ακινήτου. Ήταν
    δεύτερο σημείο για ενέργεια που ζει στο μενού κατάστασης, και καθόταν δίπλα

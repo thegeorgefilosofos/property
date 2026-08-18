@@ -56,6 +56,7 @@ import { FileText } from 'lucide-react';
 import { confirmDialog } from '@/components/ConfirmDialog';
 import { notifyError } from '@/components/Toast';
 import PropertyAssistant from './components/PropertyAssistant';
+import PropertySwitcher from './components/PropertySwitcher';
 import MonthlyFeedbackNudge from './components/MonthlyFeedbackNudge';
 import { resolveRent, resolveValue, computeYields, propertyDetailsComplete } from '@/lib/billing/propertyFacts';
 import { printPropertyStatement } from './components/statement';
@@ -1235,6 +1236,10 @@ export default function Dashboard() {
   const [statusDropdown, setStatusDropdown] = useState(false);
   const [editProperty, setEditProperty] = useState<Property | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);  // συρόμενο μενού σε κινητό/tablet
+  // Η ΑΛΛΑΓΗ ΑΚΙΝΗΤΟΥ ΑΛΛΑΖΕΙ ΟΛΗ ΤΗΝ ΟΘΟΝΗ ΚΑΙ ΔΕΝ ΑΝΑΚΟΙΝΩΝΟΤΑΝ. Οποιος
+  // διαβάζει με αναγνώστη οθόνης άκουγε σιωπή: τα δεδομένα κάτω από τα δάχτυλά
+  // του γίνονταν άλλου ακινήτου χωρίς καμία ένδειξη. Μία ήσυχη ζώνη το λέει.
+  const [announce, setAnnounce] = useState('');
   const [cmdkOpen, setCmdkOpen] = useState(false);        // command palette (⌘K)
   // Ανοιχτή από την πρώτη απόδοση όταν το ζήτησε η συντόμευση του εικονιδίου. Το
   // παράθυρο ούτως ή άλλως περιμένει χρήστη και ακίνητο, που φορτώνονται μετά,
@@ -1740,7 +1745,11 @@ export default function Dashboard() {
   //
   // Τώρα: η καρτέλα κρατιέται όταν στέκει, και πέφτει στην Επισκόπηση μόνο όταν
   // πραγματικά δεν αφορά το νέο ακίνητο.
-  const switchProperty = (p: Property) => { setSelected(p); setSidebarOpen(false); };
+  const switchProperty = (p: Property) => {
+    setSelected(p);
+    setSidebarOpen(false);
+    setAnnounce(`Ενεργό ακίνητο: ${p.name}`);
+  };
 
   // Εντολές command palette: μετάβαση σε tab, εναλλαγή ακινήτου, γρήγορες ενέργειες
   const cmdItems: CommandItem[] = [
@@ -1765,6 +1774,11 @@ export default function Dashboard() {
 
   return (
     <div className="app-shell">
+      {/* Η ζώνη που ανακοινώνει την αλλαγή ενεργού ακινήτου. Κενή στην πρώτη
+          απόδοση: μια ήσυχη ζώνη με περιεχόμενο από την αρχή διαβάζεται μαζί με
+          τη σελίδα και χάνει τον λόγο ύπαρξής της. */}
+      <p role="status" aria-live="polite" className="sr-only">{announce}</p>
+
       {/* Σκίαση πίσω από το συρόμενο μενού (μόνο κινητό/tablet).
           `aria-hidden`: είναι πέπλο, όχι χειριστήριο — δεν πρέπει να εστιάζεται
           ούτε να ανακοινώνεται. Ο δρόμος του πληκτρολογίου είναι το Escape, που
@@ -1800,38 +1814,14 @@ export default function Dashboard() {
           <span className="quick-add-label">Σάρωσε έγγραφο</span>
         </button>
 
-        <div className="sidebar-section sidebar-context">
-          <div className="sidebar-section-label">{effProfileType==='professional' ? 'Χαρτοφυλάκιό μου' : 'Ακίνητά μου'}</div>
-          {properties.map(p => (
-            <div key={p.id} role="button" tabIndex={0} aria-pressed={selected?.id===p.id} className={`prop-item ${selected?.id===p.id?'active':''}`} onClick={()=>switchProperty(p)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();switchProperty(p);}}}>
-              {/* Η κατάσταση λεγόταν ΜΟΝΟ με απόχρωση σε τελεία 8 εικονοστοιχείων:
-                  «ενοικιασμένο», «κενό», «ανακαίνιση» και «προς πώληση» ήταν
-                  τέσσερα χρώματα και τίποτα άλλο. Το `title` τη δείχνει στο
-                  ποντίκι, το κρυφό κείμενο τη λέει στον αναγνώστη οθόνης. */}
-              <div className="prop-item-dot" title={statusLabelOf(p)} style={{color:STATUS_COLORS[readStatus(p)]}}/>
-              <span className="sr-only">{statusLabelOf(p)}</span>
-              <span className="prop-item-name">{p.name}</span>
-              {/* ΤΟ «×» ΤΗΣ ΔΙΑΓΡΑΦΗΣ ΕΦΥΓΕ ΑΠΟ ΕΔΩ.
-                  Ήταν στόχος 14 εικονοστοιχείων, πάνω σε κάθε γραμμή ακινήτου,
-                  δίπλα ακριβώς στο σημείο που πατά κανείς για να αλλάξει
-                  ακίνητο — δηλαδή η πιο συχνή κίνηση της μπάρας και μια μη
-                  αναστρέψιμη διαγραφή δεκαοκτώ πινάκων, σε απόσταση λίγων
-                  εικονοστοιχείων. Και ήταν το ΔΕΥΤΕΡΟ σημείο: η ίδια ενέργεια
-                  ζει ήδη στο μενού κατάστασης, μαζί με τις υπόλοιπες ενέργειες
-                  του ακινήτου, όπου και ανήκει. */}
-            </div>
-          ))}
-          {/* ΤΡΙΤΟ ΙΔΙΩΜΑ ΓΡΑΜΜΗΣ ΣΤΗΝ ΙΔΙΑ ΜΠΑΡΑ. Ηταν γραμμένο με δεκατέσσερα
-              inline styles και δικό του hover σε JavaScript — άλλο ύψος, άλλη
-              ακτίνα, άλλο padding από τις γραμμές ακριβώς από πάνω του. Πλέον
-              είναι η ίδια γραμμή με τις άλλες, με accent αντί για ουδέτερο. */}
-          <button onClick={()=>tryAddProperty()} className="rail-add">
-            <span className="rail-add-icon" aria-hidden>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
-            </span>
-            <span className="rail-add-label">Προσθήκη ακινήτου</span>
-          </button>
-        </div>
+        {/* Η ΛΙΣΤΑ ΑΚΙΝΗΤΩΝ ΕΦΥΓΕ ΑΠΟ ΕΔΩ, ΣΤΗΝ ΠΑΝΩ ΜΠΑΡΑ.
+            Απέδιδε ΚΑΘΕ ακίνητο ως γραμμή 46 εικονοστοιχείων. Με το πακέτο
+            «Επαγγελματίας» (15 ακίνητα) αυτό είναι 908 εικονοστοιχεία ΠΑΝΩ από
+            την πρώτη γραμμή πλοήγησης: σε οθόνη 900 ο χρήστης κυλούσε για να
+            βρει τις «Δαπάνες», σε 768 δεν έβλεπε καμία καρτέλα χωρίς κύλιση.
+            Δηλαδή όσο πιο πολλά πλήρωνε, τόσο χειρότερα δούλευε η εφαρμογή.
+            Το ύψος του μενού δεν εξαρτάται πια από το πλήθος των ακινήτων.
+            Βλ. components/PropertySwitcher.tsx. */}
         <div className="sidebar-nav" style={{flex:1}}>
           {NAV_GROUPS.map((group,gi) => {
             // Χωρίς διπλότυπα: τα εργαλεία (Απογραφή/Αρχείο/Εκκρεμότητες) είναι δωρεάν
@@ -1937,7 +1927,17 @@ export default function Dashboard() {
             <>
               <div style={{flex:1}}>
                 <div style={{display:'flex',alignItems:'center',gap:10}}>
-                  <span style={{fontFamily: T.font.sans,fontSize:16,fontWeight:600,letterSpacing:'-0.01em',color:'var(--text-primary)'}}>{selected.name}</span>
+                  {/* Ο ΤΙΤΛΟΣ ΗΤΑΝ ΝΕΚΡΟ <span>. Δίπλα του καθόταν ήδη ένα κουμπί
+                      που ανοίγει μενού, και 250 εικονοστοιχεία αριστερότερα η
+                      πλαϊνή μπάρα ξανάλεγε το ίδιο όνομα με άλλη τελεία και άλλο
+                      μέγεθος. Δύο σπίτια για ένα αντικείμενο· τώρα ένα, και
+                      κάνει και τη δουλειά. Δύο κουμπιά, δύο ερωτήσεις που δεν
+                      μπερδεύονται: «ποιο ακίνητο» και «σε τι κατάσταση είναι». */}
+                  <PropertySwitcher
+                    items={properties.map(p => ({ id: p.id, name: p.name, status: statusLabelOf(p), address: p.address }))}
+                    activeId={selected.id}
+                    onSelect={(id)=>{ const p = properties.find(x=>x.id===id); if (p) switchProperty(p); }}
+                    onAdd={()=>tryAddProperty()} />
                   {/* Ένα κουμπί: κατάσταση ακινήτου + εργαλεία (επεξεργασία, διαγραφή) στο ίδιο μενού. */}
                   <div style={{position:'relative'}}>
                     <button onClick={()=>setStatusDropdown(v=>!v)} title="Κατάσταση ακινήτου και εργαλεία (επεξεργασία, διαγραφή)" aria-haspopup="menu" aria-expanded={statusDropdown} style={{display:'flex',alignItems:'center',gap:7,height:T.h.sm,padding:'0 10px 0 12px',borderRadius:8,border:'1px solid var(--border-default)',background:statusDropdown?'var(--bg-hover)':'transparent',cursor:'pointer',fontFamily: T.font.sans,fontSize:12,fontWeight:500,color:'var(--text-primary)',transition:'background 0.15s'}} onMouseEnter={e=>{if(!statusDropdown)e.currentTarget.style.background='var(--bg-hover)'}} onMouseLeave={e=>{if(!statusDropdown)e.currentTarget.style.background='transparent'}}>
