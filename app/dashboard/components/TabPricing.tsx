@@ -640,6 +640,29 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                                 μάτι το διαβάζει ως σφάλμα. Η αιχμή ξεχωρίζει από
                                 το περίγραμμα και το βάρος του αριθμού. */}
                             {!d.booked && !past && <span style={{ position: 'absolute', inset: 0, background: 'var(--accent)', opacity: fillOpacity(t) }} />}
+                            {/* ══ Η ΛΕΞΗ ΔΕΝ ΧΩΡΑΕΙ, ΚΑΙ ΔΕΝ ΕΙΝΑΙ ΘΕΜΑ ΓΡΑΜΜΑΤΟΣΕΙΡΑΣ ══
+                                Το κελί είναι ΤΕΤΡΑΓΩΝΟ (aspectRatio: 1) σε πλέγμα
+                                εφτά στηλών: με δύο μήνες δίπλα-δίπλα βγαίνει ~33
+                                εικονοστοιχεία πλάτος. Η λέξη «πιασμένη» στα 9px
+                                θέλει ~37. Με `overflow: hidden` το αποτέλεσμα ήταν
+                                «πιασμέν» και «ιασμένι» — κομμένο ΚΑΙ ΑΠΟ ΤΙΣ ΔΥΟ
+                                μεριές, γιατί είναι κεντραρισμένο. Μικρότερα
+                                γράμματα δεν το λύνουν· το μετακινούν στην επόμενη
+                                στενή οθόνη.
+                                Η διαγώνιος διαβάζεται σε κάθε πλάτος, δεν έχει
+                                γλώσσα, και είναι το σήμα που χρησιμοποιεί κάθε
+                                ημερολόγιο κρατήσεων. Το υπόμνημα από κάτω τη λέει
+                                με λέξεις μία φορά, αντί για τριάντα.
+
+                                ΥΦΗ ΚΑΙ ΟΧΙ ΜΙΑ ΔΙΑΓΩΝΙΟΣ: μία γραμμή γωνία προς
+                                γωνία περνά ΑΚΡΙΒΩΣ πάνω από τον αριθμό της ημέρας
+                                και τον κάνει δυσανάγνωστο (δοκιμάστηκε και στα δύο
+                                θέματα). Η επαναλαμβανόμενη ράβδωση κάθεται πίσω
+                                από τον αριθμό χωρίς να τον κόβει, και έχει ένα
+                                ακόμη πλεονέκτημα: οι διαδοχικές κλεισμένες νύχτες
+                                σχηματίζουν ΕΝΙΑΙΑ ζώνη, δηλαδή η κράτηση φαίνεται
+                                ως κράτηση αντί για επτά ξεχωριστά τετράγωνα. */}
+                            {d.booked && <span aria-hidden style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(45deg, transparent 0 4px, var(--border-default) 4px 5px)', opacity: 0.75 }} />}
                             <span style={{ position: 'relative', fontSize: 10, fontWeight: 600, color: d.booked ? 'var(--text-tertiary)' : 'var(--text-tertiary)' }}>{dayNum}</span>
                             {/* Ακέραια ευρώ στο κελί, δύο δεκαδικά στην ανάλυση που
                                 ανοίγει με το πάτημα: το «45,00» είναι πέντε
@@ -651,12 +674,12 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                             {/* Κλεισμένη ημέρα: δεν έχει προτεινόμενη τιμή, και η
                                 παύλα που έμπαινε στη θέση της διαβαζόταν ως
                                 «λείπει τιμή» αντί για «είναι πιασμένη». */}
-                            <span style={{ position: 'relative', fontSize: d.booked ? 9 : 12, fontWeight: d.booked ? 600 : top ? 800 : 600, fontFamily: d.booked ? T.font.sans : T.font.num, fontVariantNumeric: 'tabular-nums', color: d.booked ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>
-                              {d.booked ? 'πιασμένη' : (<>
+                            {!d.booked && (
+                              <span style={{ position: 'relative', fontSize: 12, fontWeight: top ? 800 : 600, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>
                                 {fn(d.price)}
                                 <span style={{ fontSize: 9, fontWeight: 600, marginLeft: 1.5, opacity: 0.55 }}>€</span>
-                              </>)}
-                            </span>
+                              </span>
+                            )}
                             {d.isHoliday && !d.booked && <span style={{ position: 'absolute', top: 3, right: 3, width: 4, height: 4, borderRadius: '50%', background: 'var(--text-secondary)' }} />}
                           </button>
                         );
@@ -671,6 +694,14 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
               {/* «υψηλή ζήτηση» έφυγε: το σημάδι δηλώνει ΑΡΓΙΑ, που είναι
                   ημερολογιακό γεγονός. Δεδομένο ζήτησης δεν έχουμε. */}
               <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent)' }} />αργία</span>
+              {/* ΤΟ ΥΠΟΜΝΗΜΑ ΞΑΝΑΠΟΚΤΑ ΤΗΝ ΤΡΙΤΗ ΓΡΑΜΜΗ ΤΟΥ, ΤΩΡΑ ΜΕ ΛΟΓΟ. Ειχε
+                  αφαιρεθεί σωστά όταν εξηγούσε μια παύλα που δεν υπήρχε. Πλέον
+                  υπάρχει σήμα να εξηγηθεί, και το δείγμα δίπλα στη λέξη είναι το
+                  ΙΔΙΟ που βλέπει κανείς μέσα στο κελί. */}
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ width: 14, height: 14, borderRadius: 4, border: '1px solid var(--border-subtle)', backgroundImage: 'repeating-linear-gradient(45deg, transparent 0 4px, var(--border-default) 4px 5px)' }} />
+                κλεισμένη
+              </span>
               {/* ΤΟ ΥΠΟΜΝΗΜΑ ΕΞΗΓΟΥΣΕ ΣΥΜΒΟΛΟ ΠΟΥ ΔΕΝ ΥΠΑΡΧΕΙ: εξηγούσε μια παύλα ως
                   «ήδη κλεισμένη», ενώ το κελί της πιασμένης ημέρας γράφει από
                   καιρό τη λέξη «πιασμένη». Ένα υπόμνημα που εξηγεί κάτι που δεν
