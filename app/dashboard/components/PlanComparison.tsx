@@ -18,7 +18,7 @@ import { aiLimitsFor } from '@/lib/billing/aiLimits';
 import { ASSISTANT_NAME, ASSISTANT_ACC } from '@/lib/assistant/identity';
 import { FEATURE_LABEL, FEATURE_MIN_PLAN, planAtLeast, type Feature } from '@/lib/billing/entitlements';
 import { isPlanAllowedForProfile } from '@/lib/billing/entitlements';
-import { T, TT, Card, SecHdr, Btn, Chip, TierBadge, feAuto, fn, fixedCols } from '@/components/Theme';
+import { T, TT, Card, SecHdr, Btn, Chip, feAuto, fn, fixedCols } from '@/components/Theme';
 
 // ── Ποια πλάνα συγκρίνονται εδώ ─────────────────────────────────────────────
 // ΟΧΙ όλα. Το «Γραφείο» είναι πλάνο για χαρτοφυλάκια άνω των 40 ακινήτων και δεν
@@ -276,7 +276,6 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
                     πληροφορία· δύο στοιχεία το ένα πάνω στο άλλο δεν είναι. */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 22 }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                    {(id === 'owner' || id === 'agency') && <TierBadge tier={id} size={22} />}
                     <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
                   </span>
                   {locked && (

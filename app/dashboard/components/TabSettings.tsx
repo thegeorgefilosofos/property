@@ -14,7 +14,7 @@ import * as settings from '@/lib/data/settings';
 import * as billing from '@/lib/data/billing';
 import NotificationSettings from './NotificationSettings';
 import { CustomSelect, Toggle } from './UIComponents';
-import { T, TT, Card, SecHdr, Btn, TierBadge, InfoBanner, PageTitle, fdLong, fn, settingsField, ABSENT, pageShell } from '@/components/Theme';
+import { T, TT, Card, SecHdr, Btn, InfoBanner, PageTitle, fdLong, fn, settingsField, ABSENT, pageShell } from '@/components/Theme';
 import { SetList, SetRow, SaveNote, useAutosave } from './SettingsKit';
 import { AppPreferences, DEFAULT_PREFERENCES } from './useAppPreferences';
 import { downloadTableXlsx } from './exportCsv';
@@ -575,9 +575,9 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
             επιλογής τετρακόσια πιο κάτω. Χειρότερα, όποιος είχε πακέτο
             «Επαγγελματίας» με προφίλ «Ιδιώτη» διάβαζε «ΙΔΙΟΤΗΤΑ Ιδιώτης» πάνω από
             το «Πακέτο Επαγγελματίας» και δεν καταλάβαινε ποιο ισχύει.
-            Το μετάλλιο μένει ως σήμα, χωρίς λέξεις: οι λέξεις ζουν εκεί που
-            επιλέγονται. */}
-        <SecHdr label="Συνδρομή" right={<TierBadge tier={tier} size={32} />} />
+            Και το μετάλλιο έφυγε κι αυτό: το πακέτο γράφεται με το όνομά του
+            τρεις γραμμές πιο κάτω, οπότε το σήμα ήταν τέταρτη επανάληψη. */}
+        <SecHdr label="Συνδρομή" />
 
         {/* Τρέχον πλάνο */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>

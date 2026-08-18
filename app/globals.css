@@ -821,167 +821,154 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
   background: var(--bg-base);
 }
 
-/* ── Google Sidebar Elements ── */
+/* ══════════════════════════════════════════════════════════════════════════
+   Η ΠΛΑΪΝΗ ΜΠΑΡΑ
+   ─────────────────────────────────────────────────────────────────────────
+   ΤΙ ΜΕΤΡΗΘΗΚΕ ΠΡΙΝ. Σε πραγματικό περιηγητή, στην ίδια μπάρα:
+
+     αριστερή στοίχιση   8, 20, 20, 20, 21, 32, 32   → έξι διαφορετικές
+     ακτίνα γωνίας       8, 8, 12, 14, 18, 18, 18    → πέντε διαφορετικές
+     ύψος γραμμής        36, 40, 40, 48, 58          → τρεις κάτω από 44
+
+   Καμία από αυτές τις διαφορές δεν την είχε αποφασίσει κανείς. Ηταν το
+   άθροισμα εφτά ξεχωριστών στιγμών, η καθεμιά λογική μόνη της.
+
+   ΤΡΕΙΣ ΚΑΝΟΝΕΣ, ΚΑΙ ΤΙΠΟΤΑ ΕΞΩ ΑΠΟ ΑΥΤΟΥΣ.
+
+   1. ΜΙΑ ΚΑΘΕΤΗ ΓΡΑΜΜΗ. Κάθε εικονίδιο, τελεία, αρχικό και ετικέτα ενότητας
+      ξεκινά στο ΙΔΙΟ x. Δεν είναι τυπικότητα: το μάτι διαβάζει κάθετη λίστα
+      ακολουθώντας μια ευθεία, και έξι ευθείες σημαίνουν έξι σαρώσεις.
+      Παράγεται από δύο μεταβλητές, όχι από επτά χειροκίνητα padding.
+
+   2. ΕΝΑ ΣΧΗΜΑ ΓΡΑΜΜΗΣ. Ιδιο ύψος (44, δηλαδή στόχος αφής), ίδια ακτίνα,
+      ίδιο padding — ακίνητο, καρτέλα, κεφαλίδα ομάδας, χρήστης, προσθήκη.
+      Η ιεραρχία λέγεται με ΒΑΡΟΣ ΚΑΙ ΧΡΩΜΑ, όχι με άλλο σχήμα ανά είδος.
+
+   3. ΕΝΑ ΣΗΜΑ ΓΙΑ ΤΟ ΕΝΕΡΓΟ. Είχε πέντε ταυτόχρονα: μπάρα accent στο
+      περιθώριο, γέμισμα, περίγραμμα inset, λάμψη inset, και μπλε έντονο
+      κείμενο. Πέντε σήματα για ένα μήνυμα δεν είναι έμφαση, είναι θόρυβος —
+      και το ενεργό φώναζε πιο δυνατά από το κύριο κουμπί της εφαρμογής.
+      Μένει το γέμισμα, με το κείμενο σε πλήρη ένταση και το εικονίδιο σε
+      accent. Το «είσαι εδώ» δεν χρειάζεται περισσότερα.
+   ══════════════════════════════════════════════════════════════════════════ */
+.app-sidebar {
+  /* Η ΜΙΑ ΓΡΑΜΜΗ. `gutter` = απόσταση της γραμμής από την άκρη της μπάρας,
+     `pad` = εσωτερικό της. Το άθροισμα είναι το x κάθε εικονιδίου. */
+  --rail-gutter: 12px;
+  --rail-pad: 12px;
+  --rail-x: calc(var(--rail-gutter) + var(--rail-pad));
+  --rail-h: 44px;            /* στόχος αφής, όχι αισθητική επιλογή */
+  --rail-radius: 10px;
+}
+
+/* ── Κεφαλίδα: το σήμα και το όνομα ─────────────────────────────────────── */
 .sidebar-logo {
-  padding: 16px 20px;
+  padding: 0 var(--rail-x);
   display: flex;
   align-items: center;
   gap: 12px;
-  height: 64px;
+  height: 64px;              /* ίδιο με την πάνω μπάρα, ώστε να συνεχίζεται η γραμμή */
+  flex-shrink: 0;
   border-bottom: 1px solid var(--sidebar-border);
   cursor: pointer;
   user-select: none;
   transition: background 0.16s ease;
 }
 .sidebar-logo:hover { background: var(--bg-hover); }
-.sidebar-logo:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
-  border-radius: 6px;
-}
+.sidebar-logo:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .sidebar-logo-mark {
-  width: 32px; height: 32px;
+  width: 28px; height: 28px;
   border-radius: 8px;
-  /* Διακριτική βάθος-διαβάθμιση αντί για επίπεδο χρώμα, δίνει «φτιαγμένο» σήμα */
-  background: linear-gradient(140deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 78%, #ffffff) 100%);
-  color: var(--logo-mark-text);
+  background: var(--accent);
+  color: var(--accent-text);
   display: flex; align-items: center; justify-content: center;
   font-family: 'Inter', sans-serif;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   flex-shrink: 0;
-  box-shadow: 0 1px 2px rgba(16,24,40,.18), inset 0 1px 0 rgba(255,255,255,.22);
-  transition: transform 0.16s cubic-bezier(.2,0,0,1), box-shadow 0.2s;
 }
-.sidebar-logo:hover .sidebar-logo-mark {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px -3px rgba(26,115,232,.5), inset 0 1px 0 rgba(255,255,255,.28);
-}
-.sidebar-logo:active .sidebar-logo-mark { transform: translateY(0) scale(.96); }
 .sidebar-logo-text {
   font-family: 'Inter', sans-serif;
-  font-size: 18px;
-  font-weight: 400;           /* Google uses 400 for product names */
+  font-size: 15px;
+  font-weight: 600;
   color: var(--text-primary);
-  letter-spacing: 0;
+  letter-spacing: -0.01em;
 }
-.sidebar-logo-badge {
-  font-family: 'Inter', sans-serif;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--accent);
-  background: var(--accent-dim);
-  padding: 2px 8px;
-  border-radius: 6px;
-  margin-left: auto;
-}
+/* ΑΦΑΙΡΕΘΗΚΕ: .sidebar-logo-badge («Beta»).
+   Καθόταν μόνιμα δίπλα στο όνομα του προϊόντος, σε μια εφαρμογή που ζητά από
+   τον χρήστη το ΑΦΜ του, τα ενοίκιά του και τα παραστατικά του λογιστή του.
+   Δεν του έδινε καμία πληροφορία που να μπορεί να χρησιμοποιήσει· του έδινε
+   μια αμφιβολία, κάθε φορά που κοιτούσε τη μπάρα. */
 
-/* ── Κεντρικό κουμπί «Πρόσθεσε λογαριασμό» (μια φωτογραφία → παντού) ── */
+/* ── Το κύριο κουμπί: μια φωτογραφία, καταχώρηση παντού ─────────────────── */
 .quick-add-btn {
-  position: relative;
-  overflow: hidden;
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: 16px 12px 12px;
-  min-height: 58px;                 /* min-height, όχι height: ποτέ δεν «κλείνει» το περιεχόμενο */
-  padding: 0 14px 0 8px;
-  border: 1px solid transparent;
-  border-radius: 14px;
-  /* ΑΛΕΞΙΣΦΑΙΡΟ: αδιαφανές χρώμα βάφεται ΠΑΝΤΑ πρώτο· η διαβάθμιση βάθους μπαίνει
-     ως background-IMAGE από πάνω. Αν αστοχήσει η εικόνα, το αδιαφανές --accent
-     γεμίζει το κουμπί, οπότε το λευκό label ΔΕΝ μένει ποτέ λευκό-σε-λευκό.
-     Καμία color-mix στη διαδρομή βαφής — χρησιμοποιεί το πραγματικό --accent-hover. */
-  background-color: var(--accent);
-  background-image: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+  margin: 12px var(--rail-gutter);
+  min-height: var(--rail-h);
+  padding: 0 var(--rail-pad);
+  border: none;
+  border-radius: var(--rail-radius);
+  background: var(--accent);
   color: var(--accent-text);
   cursor: pointer;
   font-family: 'Inter', sans-serif;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   letter-spacing: -0.01em;
   text-align: left;
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.28),
-    0 1px 2px rgba(16,24,40,.14),
-    0 12px 26px -12px rgba(26,115,232,.45);
-  transition: box-shadow 0.22s cubic-bezier(0.2,0,0,1), transform 0.12s cubic-bezier(0.2,0,0,1);
+  transition: background 0.16s ease;
 }
-/* Γυάλινη γυαλάδα στο πάνω μέρος, βάθος χωρίς «gamer» λάμψη */
-.quick-add-btn::before {
-  content: '';
-  position: absolute; inset: 0;
-  background: linear-gradient(180deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 46%);
-  pointer-events: none;
-}
-.quick-add-btn > * { position: relative; z-index: 1; }
-.quick-add-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.34),
-    0 2px 4px rgba(16,24,40,.16),
-    0 18px 34px -14px rgba(26,115,232,.52);
-}
-.quick-add-btn:active:not(:disabled) { transform: translateY(0) scale(.99); }
+/* ΤΙ ΕΦΥΓΕ ΑΠΟ ΕΔΩ, ΚΑΙ ΓΙΑΤΙ. Το κουμπί είχε: διαβάθμιση 135°, τρεις σκιές
+   (μία inset λάμψη, μία σκιά, μία γαλάζια αύρα 26 εικονοστοιχείων), ένα
+   ψευδοστοιχείο ::before με γυάλινη γυαλάδα, ανασήκωμα στο hover, και το
+   εικονίδιο μέσα σε ΔΙΚΟ ΤΟΥ γυάλινο πλαίσιο 42×42 με άλλη ακτίνα και τρεις
+   δικές του inset σκιές. Δηλαδή δεκατρία διακοσμητικά στρώματα.
+   Ενα συμπαγές κουμπί accent μέσα σε ουδέτερη μπάρα είναι ήδη το πιο δυνατό
+   πράγμα στην οθόνη· η αύρα δεν πρόσθετε έμφαση, πρόσθετε θόρυβο. */
+.quick-add-btn:hover:not(:disabled) { background: var(--accent-hover); }
 .quick-add-btn:disabled {
-  background-color: var(--bg-elevated);
-  background-image: none;
-  color: var(--text-secondary);
-  border-color: var(--border-default);
-  box-shadow: none;
+  background: var(--bg-elevated);
+  color: var(--text-tertiary);
   cursor: not-allowed;
 }
-.quick-add-btn:disabled .quick-add-icon { background: var(--bg-hover); box-shadow: none; }
-/* Το εικονίδιο σε δικό του γυάλινο «chip» — αίσθηση φτιαγμένου, ακριβού control */
-.quick-add-icon {
-  display: flex; align-items: center; justify-content: center;
-  width: 42px; height: 42px; flex-shrink: 0;
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(255,255,255,.26) 0%, rgba(255,255,255,.14) 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.42),
-    inset 0 0 0 1px rgba(255,255,255,.12),
-    0 1px 2px rgba(16,24,40,.16);
-}
+.quick-add-icon { display: flex; align-items: center; justify-content: center; width: 18px; flex-shrink: 0; }
 .quick-add-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.sidebar-section { padding: 8px 8px 4px; }
-.sidebar-section-label {
+/* ── Ετικέτες και κεφαλίδες ενοτήτων ────────────────────────────────────── */
+.sidebar-section { padding: 4px 0; }
+.sidebar-section-label,
+.sidebar-section-header {
   font-family: 'Inter', sans-serif;
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-tertiary);
-  padding: 8px 12px 4px;
 }
-/* Collapsible group header (accordion) */
+.sidebar-section-label { padding: 10px var(--rail-x) 4px; }
 .sidebar-section-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 100%;
-  background: none;
+  width: calc(100% - var(--rail-gutter) * 2);
+  margin: 0 var(--rail-gutter);
+  min-height: var(--rail-h);
+  padding: 0 var(--rail-pad);
   border: none;
+  border-radius: var(--rail-radius);
+  background: none;
   cursor: pointer;
-  font-family: 'Inter', sans-serif;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-  padding: 9px 12px;
-  border-radius: 8px;
+  text-align: left;
   transition: background 0.12s ease, color 0.12s ease;
 }
 .sidebar-section-header:hover { background: var(--bg-hover); color: var(--text-secondary); }
-.sidebar-section-header.open { color: var(--text-secondary); }
-.sidebar-section-chevron { margin-left: auto; font-size: 10px; opacity: 0.7; }
-.sidebar-section-header.open .sidebar-section-chevron { opacity: 1; }
+.sidebar-section-chevron { margin-left: auto; display: inline-flex; opacity: 0.8; }
 .sidebar-section-badge {
   margin-left: auto;
   min-width: 18px; height: 18px;
-  border-radius: 8px;
+  border-radius: 9px;
   background: var(--negative);
   /* Ο μετρητής εκκρεμοτήτων είναι ΠΛΗΡΟΦΟΡΙΑ, όχι διακοσμητικό: πρέπει να
      διαβάζεται. Με καρφωτό #fff έβγαινε 2,50:1 στο σκούρο θέμα. */
@@ -992,105 +979,146 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
 }
 .sidebar-section-header .sidebar-section-badge + .sidebar-section-chevron { margin-left: 6px; }
 
-/* Google Navigation Drawer items */
-.sidebar-item {
+/* ── Η ΓΡΑΜΜΗ. Ενα σχήμα για ακίνητο, καρτέλα, προσθήκη και χρήστη. ─────── */
+.sidebar-item,
+.prop-item,
+.rail-add,
+.user-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0 16px;
-  height: 40px;              /* Google: 40px nav item height */
-  border-radius: 18px;       /* Google: full rounded for active rail */
-  cursor: pointer;
-  transition: background 0.2s cubic-bezier(0.2,0,0,1);
-  margin: 2px 8px;
+  width: calc(100% - var(--rail-gutter) * 2);
+  margin: 1px var(--rail-gutter);
+  min-height: var(--rail-h);
+  padding: 0 var(--rail-pad);
   border: none;
+  border-radius: var(--rail-radius);
   background: none;
-  width: calc(100% - 16px);
+  cursor: pointer;
   text-align: left;
   font-family: 'Inter', sans-serif;
-  position: relative;
+  transition: background 0.15s ease;
 }
-/* Δείκτης accent στο περιθώριο που «μεγαλώνει» στο ενεργό (Linear-style) */
-.sidebar-item::before {
-  content: '';
-  position: absolute;
-  left: -4px; top: 50%;
-  width: 3px; height: 0;
-  border-radius: 0 3px 3px 0;
-  background: var(--accent);
-  transform: translateY(-50%);
-  transition: height 0.2s cubic-bezier(0.2,0,0,1);
-}
-.sidebar-item.active::before { height: 22px; }
-.sidebar-item:hover:not(.active) { background: var(--bg-hover); }
-.sidebar-item.active {
-  background: var(--accent-dim);
-  background:
-    linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,0)),
-    var(--accent-soft);
-  box-shadow:
-    inset 0 0 0 1px var(--accent-border),
-    inset 0 1px 0 rgba(255,255,255,.20);
-}
+.sidebar-item:hover:not(.active),
+.prop-item:hover:not(.active),
+.rail-add:hover,
+.user-row:hover { background: var(--bg-hover); }
 
-.sidebar-item-icon {
-  font-size: 18px;
+.sidebar-item-icon,
+.prop-item-dot,
+.rail-add-icon,
+.user-avatar {
   width: 18px;
   flex-shrink: 0;
-  color: var(--text-secondary);
   display: flex; align-items: center; justify-content: center;
 }
+.sidebar-item-icon { color: var(--text-secondary); }
 .sidebar-item-icon svg { width: 18px; height: 18px; }
-.sidebar-nav { display: flex; flex-direction: column; }
-.sidebar-nav .sidebar-section { padding-top: 4px; padding-bottom: 4px; }
-.sidebar-nav .sidebar-section + .sidebar-section { margin-top: 2px; }
-.sidebar-item.active .sidebar-item-icon { color: var(--accent); }
 
-.sidebar-item-label {
+.sidebar-item-label,
+.prop-item-name,
+.rail-add-label {
+  flex: 1;
+  min-width: 0;
   font-size: 14px;
   font-weight: 400;
   color: var(--text-secondary);
-  letter-spacing: 0.1px;
+  letter-spacing: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.sidebar-item.active .sidebar-item-label {
-  color: var(--accent);
-  font-weight: 600;
+.prop-item-name { color: var(--text-primary); }
+
+/* ΤΟ ΕΝΕΡΓΟ, ΜΕ ΕΝΑ ΣΗΜΑ — ΚΑΙ ΜΟΝΟ ΕΝΑ ΕΝΕΡΓΟ ΜΕ ACCENT.
+   Η μπάρα έχει ΔΥΟ επιλεγμένες γραμμές ταυτόχρονα, και δεν λένε το ίδιο:
+   το ακίνητο είναι ΠΑΝΩ ΣΕ ΤΙ δουλεύεις, η καρτέλα είναι ΠΟΥ ΕΙΣΑΙ. Με το
+   ίδιο γαλάζιο γέμισμα και στα δύο, η μπάρα έδειχνε δύο «είσαι εδώ».
+   Το accent φυλάγεται για την τοποθεσία· το ακίνητο ξεχωρίζει με ουδέτερη
+   ανασηκωμένη επιφάνεια. Το βάρος του κειμένου είναι κοινό: επιλεγμένο. */
+/* ΤΟ ΠΕΡΙΓΡΑΜΜΑ ΔΕΝ ΕΙΝΑΙ ΔΙΑΚΟΣΜΗΣΗ ΕΔΩ, ΕΙΝΑΙ Η ΜΟΝΗ ΕΓΓΥΗΣΗ.
+   Στο φωτεινό θέμα η μπάρα είναι λευκή, το `--bg-elevated` είναι #f1f3f4 και
+   το `--bg-hover` βγαίνει πιο σκούρο από αυτό: το ΕΝΕΡΓΟ ακίνητο θα φαινόταν
+   ανοιχτότερο από ένα απλό πέρασμα του ποντικιού πάνω από τα διπλανά. Ενα
+   περίγραμμα διαβάζεται ως «επιλεγμένο» ανεξάρτητα από το πόσο διαφέρουν οι
+   δύο αποχρώσεις, σε κάθε θέμα. */
+.prop-item.active {
+  background: var(--bg-elevated);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
 }
+.sidebar-item.active { background: var(--accent-dim); }
+.sidebar-item.active .sidebar-item-icon { color: var(--accent); }
+.sidebar-item.active .sidebar-item-label,
+.prop-item.active .prop-item-name { color: var(--text-primary); font-weight: 600; }
 
-/* ΑΦΑΙΡΕΘΗΚΕ: .sidebar-item-badge — καμία χρήση. Ο μετρητής στο πλαϊνό μενού
-   μπαίνει στην κεφαλίδα της ομάδας (.sidebar-section-badge), όχι στο κάθε item. */
+/* Το «πάνω σε τι δουλεύω» και το «πού πάω» είναι δύο ερωτήσεις. Μια λεπτή
+   γραμμή τις χωρίζει, χωρίς να χρειάζεται δεύτερη επικεφαλίδα. */
+.sidebar-context { border-bottom: 1px solid var(--sidebar-border); padding-bottom: 8px; }
 
+/* Η τελεία κατάστασης του ακινήτου ζει μέσα στη θέση του εικονιδίου, ώστε το
+   όνομα να ξεκινά στην ίδια στήλη με τις ετικέτες των καρτελών. */
+.prop-item-dot::before {
+  content: '';
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.rail-add { color: var(--accent); }
+.rail-add-label { color: var(--accent); }
+.rail-add-icon svg { width: 16px; height: 16px; }
+
+.sidebar-nav { display: flex; flex-direction: column; }
+
+/* ── Υποσέλιδο ──────────────────────────────────────────────────────────── */
 .sidebar-footer {
   margin-top: auto;
-  padding: 8px;
+  padding: 8px 0;
   border-top: 1px solid var(--sidebar-border);
+  display: flex;
+  align-items: center;
 }
-
-/* User row */
-.user-row {
-  display: flex; align-items: center; gap: 12px;
-  padding: 8px 12px;
-  border-radius: 18px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.user-row:hover { background: var(--bg-hover); }
+.user-row { flex: 1; min-width: 0; margin-right: 0; }
 .user-avatar {
-  width: 32px; height: 32px;
+  width: 26px; height: 26px;
   border-radius: 50%;
-  background: var(--accent);
-  /* Ήταν καρφωτό #fff: στο σκούρο θέμα το accent είναι ανοιχτό παστέλ, οπότε
-     τα λευκά αρχικά έβγαιναν 2,11:1 — μουτζούρα, όχι διακριτικότητα. Ο κανόνας
-     υπάρχει από πάνω και είναι ρητός: ΠΟΤΕ #fff πάνω σε κορεσμένο γέμισμα. */
-  color: var(--on-tone);
-  display: flex; align-items: center; justify-content: center;
-  font-family: 'Inter', sans-serif;
-  font-size: 13px;
+  background: var(--bg-elevated);
+  /* Ήταν καρφωτό #fff πάνω σε γεμάτο accent: στο σκούρο θέμα το accent είναι
+     ανοιχτό παστέλ, οπότε τα λευκά αρχικά έβγαιναν 2,11:1 — μουτζούρα. Πλέον
+     ουδέτερη επιφάνεια με το κανονικό μελάνι: το accent της μπάρας φυλάγεται
+     για το ενεργό και για το κύριο κουμπί. */
+  color: var(--text-secondary);
+  font-size: 11px;
   font-weight: 700;
-  flex-shrink: 0;
+  letter-spacing: 0.02em;
 }
-.user-name  { font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; color: var(--text-primary); }
-.user-email { font-family: 'Inter', system-ui, sans-serif; font-size: 12px; color: var(--text-secondary); letter-spacing: 0.4px; }
+.user-name {
+  flex: 1; min-width: 0;
+  font-size: 13px; font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* ΤΟ ΥΠΟΣΕΛΙΔΟ ΗΤΑΝ ΝΑΡΚΗ.
+   Ολόκληρη η γραμμή του χρήστη —avatar, όνομα, δεύτερη γραμμή— ήταν ΕΝΑ
+   κουμπί αποσύνδεσης. Μοιάζει με «ο λογαριασμός μου» σε κάθε εφαρμογή που
+   έχει δει ποτέ ο χρήστης· εδώ τον πετούσε έξω. Και η μόνη ένδειξη ήταν η
+   λέξη «Αποσύνδεση» γραμμένη ως υπότιτλος, στη θέση όπου όλοι περιμένουν το
+   email τους — δηλαδή διαβαζόταν ως στοιχείο, όχι ως ενέργεια.
+   Τώρα η γραμμή πάει στον Λογαριασμό, όπου και ανήκει, και η αποσύνδεση έχει
+   δικό της κουμπί με δικό της όνομα. */
+.sign-out-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: var(--rail-h); height: var(--rail-h);
+  margin-right: var(--rail-gutter);
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--rail-radius);
+  background: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.sign-out-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.sign-out-btn svg { width: 17px; height: 17px; }
 
 /* ── Google Theme Switcher (Light/Dark only) ── */
 .theme-switcher {
@@ -1123,38 +1151,12 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
 }
 .mode-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
 
-/* Property items */
-.prop-item {
-  display: flex; align-items: center; gap: 12px;
-  padding: 0 16px;
-  height: 40px;
-  border-radius: 18px;
-  cursor: pointer;
-  transition: background 0.2s;
-  margin: 2px 8px;
-}
-.prop-item:hover { background: var(--bg-hover); }
-.prop-item.active { background: var(--bg-active); }
+/* ΤΑ .prop-item ΕΦΥΓΑΝ ΑΠΟ ΕΔΩ. Ηταν δεύτερος ορισμός της ίδιας γραμμής,
+   τετρακόσιες γραμμές μακριά από τον πρώτο και με άλλα νούμερα (ύψος 40 αντί
+   44, ακτίνα 18 αντί 10, βάρος 700 στο ενεργό αντί 600). Η γραμμή του
+   ακινήτου και η γραμμή της καρτέλας ΕΙΝΑΙ το ίδιο σχήμα και ορίζονται μία
+   φορά, μαζί, στην ενότητα της πλαϊνής μπάρας. */
 
-.prop-item-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.prop-item-name {
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  font-weight: 400;
-  color: var(--text-primary);
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.prop-item.active .prop-item-name {
-  font-weight: 700;
-  color: var(--text-primary);
-}
 /* ΑΦΑΙΡΕΘΗΚΕ: .prop-item-del — το «×» διαγραφής σε κάθε γραμμή ακινήτου. Ήταν
    δεύτερο σημείο για ενέργεια που ζει στο μενού κατάστασης, και καθόταν δίπλα
    στην πιο συχνή κίνηση της μπάρας. Βλ. σχόλιο στο page.tsx. */
@@ -1753,15 +1755,8 @@ a.lp-link:hover { color: var(--accent) !important; filter: brightness(1.12); }
 @media (prefers-reduced-motion: reduce) { .auth-cta:hover:not(:disabled) { transform: none; } }
 
 /* Λάμψη «κατόπτρου» που διατρέχει το μετάλλιο Συνεργάτη στο hover (διακριτικά). */
-.tier-sheen { opacity: 0; }
-@keyframes tier-sheen {
-  0%   { transform: translateX(-140%) skewX(-18deg); opacity: 0; }
-  16%  { opacity: 1; }
-  84%  { opacity: 1; }
-  100% { transform: translateX(240%) skewX(-18deg); opacity: 0; }
-}
-.tier-medallion:hover .tier-sheen { animation: tier-sheen 0.9s cubic-bezier(0.4, 0, 0.2, 1); }
-@media (prefers-reduced-motion: reduce) { .tier-medallion:hover .tier-sheen { animation: none; } }
+/* ΑΦΑΙΡΕΘΗΚΕ: .tier-sheen / .tier-medallion — το μετάλλιο ιδιότητας έφυγε
+   ολόκληρο (βλ. components/Theme.tsx). */
 
 /* ═══ «Λογαριασμός» — διακριτικό βάθος & ζωντάνια (χειρουργικά, minimal) ═══ */
 /* Είσοδος ενοτήτων: απαλή ανύψωση+εμφάνιση, μία φορά, με stagger μέσω delay. */

@@ -477,74 +477,21 @@ export function Chip({ children, tone = 'neutral', title }: { children: ReactNod
   );
 }
 
-// ═══ TierBadge, εμβλήματα ιδιότητας (Ιδιώτης / Επαγγελματίας / Συνεργάτης) ══
-// Premium, minimal, μονοχρωματικά (accent + ουδέτερα): η διαφοροποίηση γίνεται
-// με σχήμα, βάρος, elevation και —μόνο για τον Συνεργάτη— διακριτικό gradient
-// & λάμψη. Καθαρά, χωρίς color noise, στο ίδιο design system με το app.
-export function TierBadge({ tier, size = 40 }: { tier: 'owner' | 'agency' | 'partner'; size?: number }) {
-  const cfg = {
-    owner:   { ring: 'var(--border-default)', ic: 'var(--text-secondary)' },
-    agency:  { ring: 'var(--accent-border)',  ic: 'var(--accent)' },
-    partner: { ring: 'var(--accent)',         ic: 'var(--accent-text)' },
-  }[tier];
-  const isPartner = tier === 'partner';
-  // Χτυπημένο «νόμισμα/σφραγίδα»: βάση με λεπτή εσωτερική στεφάνη + top sheen.
-  // Χτυπημένο νόμισμα και για τα τρία: ακτινικό «μεταλλικό» σώμα + ανάγλυφο (φως
-  // πάνω / σκιά κάτω) + στεφάνη. Κοινή οικογένεια, αυξανόμενος πλούτος ως τον Συνεργάτη.
-  const bg =
-    tier === 'partner' ? 'radial-gradient(120% 90% at 50% -8%, rgba(255,255,255,.34), transparent 55%), radial-gradient(130% 130% at 32% 22%, color-mix(in srgb, var(--accent) 92%, #ffffff) 0%, var(--accent) 46%, color-mix(in srgb, var(--accent) 52%, #0c1f3a) 100%)'
-    : tier === 'agency' ? 'radial-gradient(115% 85% at 50% -10%, rgba(255,255,255,.22), transparent 55%), radial-gradient(130% 130% at 34% 24%, color-mix(in srgb, var(--accent-dim) 60%, #ffffff) 0%, var(--accent-dim) 54%, color-mix(in srgb, var(--accent) 22%, var(--accent-dim)) 100%)'
-    : 'radial-gradient(115% 85% at 50% -12%, rgba(255,255,255,.5), transparent 52%), radial-gradient(130% 130% at 34% 24%, color-mix(in srgb, var(--border-raised) 72%, #ffffff) 0%, var(--border-raised) 54%, color-mix(in srgb, var(--border-raised) 82%, #0c1f3a) 100%)';
-  const shadow =
-    tier === 'partner' ? 'inset 0 0 0 1.5px color-mix(in srgb, var(--accent-text) 32%, transparent), inset 0 2px 5px color-mix(in srgb, #ffffff 26%, transparent), inset 0 -3px 6px color-mix(in srgb, #0c1f3a 22%, transparent), 0 10px 26px -8px color-mix(in srgb, var(--accent) 62%, transparent)'
-    : tier === 'agency' ? 'inset 0 0 0 1px color-mix(in srgb, var(--accent) 26%, transparent), inset 0 2px 3px rgba(255,255,255,.22), inset 0 -3px 6px color-mix(in srgb, var(--accent) 20%, transparent), 0 5px 12px -6px color-mix(in srgb, var(--accent) 44%, transparent)'
-    : 'inset 0 0 0 1px rgba(255,255,255,.5), inset 0 2px 3px rgba(255,255,255,.42), inset 0 -3px 5px rgba(16,24,40,.12), 0 3px 8px -4px rgba(16,24,40,.24)';
-  const groove =
-    tier === 'partner' ? 'color-mix(in srgb, var(--accent-text) 24%, transparent)'
-    : tier === 'agency' ? 'color-mix(in srgb, var(--accent) 22%, transparent)'
-    : 'color-mix(in srgb, var(--text-tertiary) 22%, transparent)';
-  const gl = size * (isPartner ? 0.58 : 0.5);
-  const glyphs: Record<string, string> = {
-    owner:  'M4 11 12 4l8 7|M6 9.5V20h12V9.5|M10 20v-5h4v5',
-    agency: 'M4 21V7l7-4 7 4v14|M3 21h18|M8.5 11h1m-1 4h1m5-4h1m-1 4h1',
-  };
-  const medallion = (
-    <span className="tier-medallion" style={{
-      position: 'relative', width: size, height: size, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-      background: bg, border: `1.5px solid ${cfg.ring}`, boxShadow: shadow,
-    }}>
-      <span aria-hidden style={{ position: 'absolute', inset: Math.max(3, Math.round(size * 0.15)), borderRadius: '50%', border: `1px solid ${groove}`, pointerEvents: 'none' }} />
-      {isPartner && (
-        <span aria-hidden style={{ position: 'absolute', inset: 0, borderRadius: '50%', overflow: 'hidden', pointerEvents: 'none' }}>
-          <span className="tier-sheen" style={{ position: 'absolute', top: '-20%', bottom: '-20%', left: 0, width: '38%', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent)' }} />
-        </span>
-      )}
-      {isPartner ? (
-        <svg width={gl} height={gl} viewBox="0 0 24 24" fill="none" style={{ filter: 'drop-shadow(0 1px 1px color-mix(in srgb, #0c1f3a 34%, transparent))' }}>
-          {/* διακριτικές ακτίνες μεταλλίου */}
-          <g stroke="var(--accent-text)" strokeWidth="1" strokeLinecap="round" opacity="0.32">
-            {Array.from({ length: 12 }).map((_, i) => {
-              const a = (i * 30 * Math.PI) / 180;
-              return <line key={i} x1={12 + 9.4 * Math.cos(a)} y1={12 + 9.4 * Math.sin(a)} x2={12 + 10.6 * Math.cos(a)} y2={12 + 10.6 * Math.sin(a)} />;
-            })}
-          </g>
-          <path d="M12 4l2.16 4.38 4.84.7-3.5 3.42.83 4.82L12 19.02 7.67 17.3l.83-4.82L5 9.06l4.84-.7z" fill="var(--accent-text)" />
-          <circle cx="17.6" cy="6.4" r="0.95" fill="var(--accent-text)" opacity="0.92" />
-        </svg>
-      ) : (
-        <svg width={gl} height={gl} viewBox="0 0 24 24" fill="none" stroke={cfg.ic} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 1px 0.5px rgba(255,255,255,.45))' }}>
-          {glyphs[tier].split('|').map((d, i) => <path key={i} d={d} />)}
-        </svg>
-      )}
-    </span>
-  );
-  // ΤΟ ΜΕΤΑΛΛΙΟ ΕΙΝΑΙ ΣΗΜΑ, ΟΧΙ ΕΤΙΚΕΤΑ. Υπήρχε και δεύτερο σκέλος που τύπωνε
-  // «ΙΔΙΟΤΗΤΑ · Επαγγελματίας» δίπλα του. Και οι τέσσερις οθόνες που το
-  // χρησιμοποιούν γράφουν ήδη μόνες τους τι είναι ο χρήστης — η τελευταία, οι
-  // Ρυθμίσεις, το έλεγε ΤΡΕΙΣ φορές στην ίδια κάρτα. Έμεινε κώδικας που δεν
-  // καλείται από πουθενά, μαζί με δύο πεδία χρώματος που κανείς δεν διαβάζει.
-  return medallion;
-}
+// ═══ ΤΟ TierBadge ΕΦΥΓΕ ═══════════════════════════════════════════════════
+// Ηταν ένα «χτυπημένο νόμισμα» — ακτινική μεταλλική διαβάθμιση, ανάγλυφη
+// στεφάνη, εσωτερικό αυλάκι, γυαλάδα που έτρεχε στο hover — με ένα σπιτάκι
+// μέσα, για να πει στον χρήστη ότι είναι ιδιώτης. Κάτι που ήδη ξέρει.
+//
+// Δεν πατιόταν, δεν άλλαζε, δεν προειδοποιούσε, και καθόταν στην πιο ακριβή
+// θέση της εφαρμογής: δίπλα στο όνομα του ακινήτου, στην κορυφή κάθε οθόνης.
+// Στις άλλες τρεις θέσεις του ήταν επανάληψη — το πακέτο γράφεται δίπλα του με
+// το όνομά του. Ο ίδιος του ο κώδικας το είχε ήδη παραδεχτεί μία φορά, όταν
+// αφαιρέθηκε το κείμενο «ΙΔΙΟΤΗΤΑ · Επαγγελματίας» που το συνόδευε.
+//
+// Και το σκεύωμα δεν ταίριαζε πουθενά: η υπόλοιπη διεπαφή είναι επίπεδη και
+// ήσυχη, με μία σκιά ανά επίπεδο. Ενα μετάλλιο με τέσσερις inset σκιές είναι
+// άλλη γλώσσα.
+// ═══════════════════════════════════════════════════════════════════════════
 
 // ═══ InfoBanner, η γραμμή ειδοποίησης με την τελεία (dot) των Bills ═══════
 export function InfoBanner({ children, tone = 'info' }: { children: ReactNode; tone?: Tone }) {

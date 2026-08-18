@@ -51,7 +51,7 @@ import StartPanel from './components/StartPanel';
 import DemoPreview from './components/DemoPreview';
 import { useAppPreferences } from './components/useAppPreferences';
 import { CommandPalette, type CommandItem } from './components/CommandPalette';
-import { T, Modal, SkeletonKPIs, Skeleton, Spinner, EmptyState, TierBadge, KPIGrid, SecHdr, fp, feOr, fd, type KPIItem } from '@/components/Theme';
+import { T, Modal, SkeletonKPIs, Skeleton, Spinner, EmptyState, KPIGrid, SecHdr, fp, feOr, fd, type KPIItem } from '@/components/Theme';
 import { FileText } from 'lucide-react';
 import { confirmDialog } from '@/components/ConfirmDialog';
 import { notifyError } from '@/components/Toast';
@@ -1751,21 +1751,21 @@ export default function Dashboard() {
           onClick={()=>{ setNav('overview'); setSidebarOpen(false); }}
           onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); setNav('overview'); setSidebarOpen(false); } }}
           title="Αρχική, Επισκόπηση">
-          <div className="sidebar-logo-mark">P</div>
+          <div className="sidebar-logo-mark" aria-hidden>P</div>
           <span className="sidebar-logo-text">Property OS</span>
-          <span className="sidebar-logo-badge">Beta</span>
         </div>
 
         {/* Κεντρικό κουμπί: μια φωτογραφία → αυτόματη καταχώρηση παντού.
-            Η ορατότητα είναι εγγυημένη από το .quick-add-btn (αδιαφανές
-            background-color που βάφεται πάντα, ανεξάρτητα από τη διαβάθμιση). */}
+            Το εικονίδιο ήταν 20 μέσα σε δικό του γυάλινο πλαίσιο 42×42, με άλλη
+            ακτίνα και τρεις δικές του εσωτερικές σκιές — κουτί μέσα σε κουτί.
+            Πλέον είναι 18, στη ΙΔΙΑ στήλη με κάθε άλλο εικονίδιο της μπάρας. */}
         <button
           onClick={()=>{ setQuickAddOpen(true); setSidebarOpen(false); }}
           className="quick-add-btn"
           disabled={!selected}
           title={selected ? 'Φωτογράφισε ή ανέβασε λογαριασμό, πληρωμή, μισθωτήριο, ασφάλεια, έγγραφο, οτιδήποτε' : 'Πρόσθεσε πρώτα ένα ακίνητο'}>
           <span className="quick-add-icon" aria-hidden>
-            <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
               <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
               <circle cx="12" cy="13" r="4"/>
             </svg>
@@ -1773,7 +1773,7 @@ export default function Dashboard() {
           <span className="quick-add-label">Σάρωσε έγγραφο</span>
         </button>
 
-        <div className="sidebar-section">
+        <div className="sidebar-section sidebar-context">
           <div className="sidebar-section-label">{effProfileType==='professional' ? 'Χαρτοφυλάκιό μου' : 'Ακίνητά μου'}</div>
           {properties.map(p => (
             <div key={p.id} role="button" tabIndex={0} aria-pressed={selected?.id===p.id} className={`prop-item ${selected?.id===p.id?'active':''}`} onClick={()=>switchProperty(p)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();switchProperty(p);}}}>
@@ -1781,7 +1781,7 @@ export default function Dashboard() {
                   «ενοικιασμένο», «κενό», «ανακαίνιση» και «προς πώληση» ήταν
                   τέσσερα χρώματα και τίποτα άλλο. Το `title` τη δείχνει στο
                   ποντίκι, το κρυφό κείμενο τη λέει στον αναγνώστη οθόνης. */}
-              <div className="prop-item-dot" title={statusLabelOf(p)} style={{background:STATUS_COLORS[readStatus(p)]}}/>
+              <div className="prop-item-dot" title={statusLabelOf(p)} style={{color:STATUS_COLORS[readStatus(p)]}}/>
               <span className="sr-only">{statusLabelOf(p)}</span>
               <span className="prop-item-name">{p.name}</span>
               {/* ΤΟ «×» ΤΗΣ ΔΙΑΓΡΑΦΗΣ ΕΦΥΓΕ ΑΠΟ ΕΔΩ.
@@ -1794,11 +1794,15 @@ export default function Dashboard() {
                   του ακινήτου, όπου και ανήκει. */}
             </div>
           ))}
-          <button onClick={()=>tryAddProperty()}
-            style={{display:'flex',alignItems:'center',gap:12,padding:'0 16px',height:T.h.lg,borderRadius:18,border:'none',background:'transparent',cursor:'pointer',width:'calc(100% - 16px)',margin:'2px 8px',fontFamily: T.font.sans,fontSize:14,color:'var(--accent)',textAlign:'left'}}
-            onMouseEnter={e=>e.currentTarget.style.background='var(--accent-dim)'}
-            onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-            <span style={{fontSize:18,lineHeight:1}}>+</span> Προσθήκη ακινήτου
+          {/* ΤΡΙΤΟ ΙΔΙΩΜΑ ΓΡΑΜΜΗΣ ΣΤΗΝ ΙΔΙΑ ΜΠΑΡΑ. Ηταν γραμμένο με δεκατέσσερα
+              inline styles και δικό του hover σε JavaScript — άλλο ύψος, άλλη
+              ακτίνα, άλλο padding από τις γραμμές ακριβώς από πάνω του. Πλέον
+              είναι η ίδια γραμμή με τις άλλες, με accent αντί για ουδέτερο. */}
+          <button onClick={()=>tryAddProperty()} className="rail-add">
+            <span className="rail-add-icon" aria-hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </span>
+            <span className="rail-add-label">Προσθήκη ακινήτου</span>
           </button>
         </div>
         <div className="sidebar-nav" style={{flex:1}}>
@@ -1886,14 +1890,20 @@ export default function Dashboard() {
             );
           })()}
         </div>
+        {/* ΤΟ ΥΠΟΣΕΛΙΔΟ ΗΤΑΝ ΝΑΡΚΗ. Ολόκληρη η γραμμή του χρήστη ήταν ΕΝΑ κουμπί
+            αποσύνδεσης, και η μόνη ένδειξη ήταν η λέξη «Αποσύνδεση» γραμμένη
+            ως υπότιτλος — δηλαδή ακριβώς εκεί όπου κάθε εφαρμογή γράφει το
+            email σου. Οποιος πατούσε νομίζοντας «ο λογαριασμός μου» έβγαινε
+            έξω. Η γραμμή πάει τώρα στον Λογαριασμό· η αποσύνδεση έχει δικό της
+            κουμπί, με δικό της όνομα και δικό της στόχο αφής. */}
         <div className="sidebar-footer">
-          <div className="user-row" role="button" tabIndex={0} aria-label="Αποσύνδεση" onClick={signOut} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();signOut();}}} title="Αποσύνδεση">
-            <div className="user-avatar">{userInitials}</div>
-            <div style={{flex:1,minWidth:0}}>
-              <div className="user-name" style={{whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{user?.email?.split('@')[0]}</div>
-              <div className="user-email">Αποσύνδεση</div>
-            </div>
-          </div>
+          <button className="user-row" onClick={()=>{setNav('settings');setSidebarOpen(false);}} title="Λογαριασμός και ρυθμίσεις">
+            <span className="user-avatar" aria-hidden>{userInitials}</span>
+            <span className="user-name">{user?.email?.split('@')[0]}</span>
+          </button>
+          <button className="sign-out-btn" onClick={signOut} aria-label="Αποσύνδεση" title="Αποσύνδεση">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+          </button>
         </div>
       </aside>
 
@@ -1959,15 +1969,13 @@ export default function Dashboard() {
                   μπάρα του ακινήτου — chrome που ανήκει σε ΟΛΗ την εφαρμογή —
                   και εμφανιζόταν για μία μόνο καρτέλα. Ζει τώρα στο μενού της
                   ίδιας της απογραφής, μαζί με τις άλλες της ενέργειες. */}
-              {/* ΤΟ ΕΜΒΛΗΜΑ ΕΙΝΑΙ ΕΝΔΕΙΞΗ, ΟΧΙ ΚΟΥΜΠΙ. Ήταν δεύτερο σημείο εισόδου
-                  στο ίδιο πρόγραμμα, με τρίτη διατύπωση του ονόματός του — και
-                  διαβάζεται ως κατάσταση, όχι ως πλοήγηση: κανείς δεν πατά ένα
-                  σήμα ιδιότητας περιμένοντας να αλλάξει σελίδα. Ο δρόμος είναι
-                  το μενού, με ένα όνομα. */}
-              <span title={isPartner?'Είσαι Συνεργάτης Property OS':`Ιδιότητα: ${effProfileType==='professional'?'Επαγγελματίας':'Ιδιώτης'}`}
-                style={{display:'flex',alignItems:'center',height:T.h.md,marginRight:8}}>
-                <TierBadge tier={isPartner?'partner':(effProfileType==='professional'?'agency':'owner')} size={30} />
-              </span>
+              {/* ΤΟ ΜΕΤΑΛΛΙΟ ΙΔΙΟΤΗΤΑΣ ΕΦΥΓΕ ΑΠΟ ΕΔΩ, ΚΑΙ ΑΠΟ ΠΑΝΤΟΥ.
+                  Ηταν ένα χτυπημένο «νόμισμα» με ανάγλυφη στεφάνη, ακτινική
+                  διαβάθμιση και σπιτάκι μέσα, στην πιο ακριβή θέση της
+                  εφαρμογής. Δεν έλεγε τίποτα που ο χρήστης να μη ξέρει: ότι
+                  είναι ιδιώτης. Δεν πατιόταν, δεν άλλαζε, δεν προειδοποιούσε.
+                  Και το σκεύωμα του μεταλλίου —γυαλάδες, στεφάνες, σκιές— ήταν
+                  ξένο σώμα σε μια επίπεδη, ήσυχη διεπαφή. */}
               <button onClick={()=>setCmdkOpen(true)} title={`Αναζήτηση και γρήγορες ενέργειες (${kbdHint})`} aria-label="Αναζήτηση" style={{display:'flex',alignItems:'center',gap:8,height:T.h.md,padding:'0 10px 0 12px',borderRadius:18,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',cursor:'pointer',marginRight:4}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                 <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
                 <span className="desktop-only" style={{fontSize:11,fontFamily: T.font.mono,color:'var(--text-tertiary)',border:'1px solid var(--border-subtle)',borderRadius:6,padding:'1px 5px'}}>{kbdHint}</span>

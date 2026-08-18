@@ -5,7 +5,7 @@ import { SITE } from '@/lib/core/site';
 import { downloadTableXlsx, csvDate } from './exportCsv';
 import { saved } from '@/components/dbWrite';
 import { drawQrToCanvas } from '@/lib/qr';
-import { T, TT, Badge, TierBadge, PageTitle, ExportButton, EmptyState, Modal, SkeletonKPIs, fn, fixedCols, pageShell } from '@/components/Theme';
+import { T, TT, Badge, PageTitle, ExportButton, EmptyState, Modal, SkeletonKPIs, fn, fixedCols, pageShell } from '@/components/Theme';
 import { PLANS, type PlanId } from '@/lib/billing/plans';
 import { UserPlus } from 'lucide-react';
 import {
@@ -556,7 +556,6 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
           <div className="ref-hover-accent" style={{ ...card, padding: PAD, marginBottom: T.sp.xl, ...(partner ? { borderColor: 'var(--accent-border)', background: 'linear-gradient(180deg, var(--accent-soft), transparent 140%)' } : {}) }}>
             {partner ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
-                <TierBadge tier="partner" size={56} />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <span style={{ ...TT.h2, color: 'var(--accent)' }}>Είσαι Συνεργάτης Property OS</span>
                   <span style={{ ...TT.bodySm }}>Ενεργή ιδιότητα. Να τι απολαμβάνεις:</span>
