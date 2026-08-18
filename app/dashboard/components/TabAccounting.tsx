@@ -347,7 +347,8 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // «μακροχρόνια», τα μεικτά έσοδα διαβάζονταν από τις δόσεις ενοικίου (που δεν
   // υπάρχουν στη βραχυχρόνια) και το αποτέλεσμα ήταν ΜΗΔΕΝ έσοδα, μηδέν φόρος,
   // μηδέν πρόβλεψη — σε PDF με αριθμό εγγράφου και κωδικό QR επαλήθευσης.
-  const regime:TaxRegime = readStatus(prop as StatusRow) === 'rent_short' ? 'individual_shortterm' : 'individual_longterm'
+  const isShort = readStatus(prop as StatusRow) === 'rent_short'
+  const regime:TaxRegime = isShort ? 'individual_shortterm' : 'individual_longterm'
   const propCount = Math.max(1, allProps.length)
   // ΕΝΦΙΑ: προτεραιότητα στο καταχωρημένο ποσό· αλλιώς αυτόματη εκτίμηση από
   // αξία, τετραγωνικά, έτος κατασκευής και όροφο.
@@ -1127,9 +1128,21 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
       </div>
       </>)}
 
-      {/* Συμφωνία ενοικίων + Βιβλίο/κινήσεις */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap:16 }}>
-        <div style={card}>
+      {/* ══ Η ΣΥΜΦΩΝΙΑ ΕΝΟΙΚΙΩΝ ΔΕΝ ΑΦΟΡΑ ΤΗ ΒΡΑΧΥΧΡΟΝΙΑ ══════════════════════
+          Η κάρτα αποδιδόταν ΠΑΝΤΑ. Σε βραχυχρόνιο ακίνητο δεν υπάρχουν «ενοίκια
+          του μήνα» να συμφωνήσουν με τίποτα — υπάρχουν κρατήσεις, και αυτές τις
+          δείχνει η διπλανή στήλη. Το αποτέλεσμα ήταν μια κάρτα με ΜΙΑ πρόταση
+          μέσα («Δεν υπάρχουν καταχωρημένα ενοίκια για το 2026»), τεντωμένη στο
+          ύψος της διπλανής λίστας: ~700 εικονοστοιχεία κενού, στη μισή οθόνη,
+          για ένα πράγμα που δεν πρόκειται ποτέ να γεμίσει.
+
+          ΚΑΙ ΤΟ ΤΕΝΤΩΜΑ ΦΕΥΓΕΙ ΚΑΙ ΓΙΑ ΤΗ ΜΑΚΡΟΧΡΟΝΙΑ. Οι δύο κάρτες δεν είναι
+          ισότιμα πλακίδια σειράς — είναι δύο ανεξάρτητα πάνελ, το ένα σύνοψη και
+          το άλλο λίστα. Το `alignItems: 'start'` αφήνει την καθεμιά στο ύψος του
+          περιεχομένου της. (Ο κανόνας «ίδιο ύψος» ισχύει για ΣΕΙΡΑ ομοειδών
+          καρτών, όχι για δύο διαφορετικά πράγματα δίπλα-δίπλα.) */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap:16, alignItems:'start' }}>
+        {!isShort && <div style={card}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
             <p style={{ ...cardTitle, margin:0 }}>Συμφωνία ενοικίων</p>
             <span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily: T.font.sans }}>Εισπράχθηκαν <strong style={{ color:'var(--text-primary)' }}>{eur(rs.collectedTotal)}</strong> / {eur(rs.expectedTotal)}</span>
@@ -1154,7 +1167,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               <button onClick={officialRentCertificate} disabled={genOfficialCert} title="Επίσημο true-PDF βεβαίωσης ενοικίου με αριθμό εγγράφου και QR επαλήθευσης· κατάλληλο για τράπεζες, ΔΟΥ και φορείς" style={{ display:'inline-flex', alignItems:'center', gap:6, height:T.h.sm, padding:'0 12px', borderRadius:T.radius.pill, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:13, fontWeight:500, cursor:genOfficialCert?'wait':'pointer', opacity:genOfficialCert?0.6:1, fontFamily: T.font.sans }} onMouseEnter={e=>{if(!genOfficialCert){e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}><ShieldCheck size={14}/>{genOfficialCert?'Δημιουργία…':'Επίσημο PDF'}</button>
             </div>
           )}
-        </div>
+        </div>}
 
         <div style={card}>
           <div style={{ marginBottom:12 }}>
