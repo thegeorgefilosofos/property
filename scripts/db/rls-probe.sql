@@ -603,3 +603,85 @@ begin
   delete from public.tenants where id in (t_future, t_due, t_expired);
   raise notice 'probe: η αναπροσαρμογή πέφτει στην ημερομηνία της, μία φορά';
 end $probe$;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Η ΑΝΑΚΛΗΣΗ ΤΟΥ ΛΟΓΙΣΤΗ ΕΙΝΑΙ ΠΡΑΓΜΑΤΙΚΗ
+-- ─────────────────────────────────────────────────────────────────────────
+-- Το κουμπί λεγόταν «Ανάκληση», περιέστρεφε τον σύνδεσμο, η οθόνη έγραφε
+-- «ανακλήθηκε» — και ο λογιστής που είχε ήδη μπει στον χώρο εργασίας συνέχιζε
+-- να βλέπει τα πάντα. Ο έλεγχος εδώ κάνει ακριβώς τη διαδρομή του χρήστη:
+-- σύνδεσμος → αξίωση → βλέπει → περιστροφή → ΔΕΝ βλέπει.
+-- ═══════════════════════════════════════════════════════════════════════════
+reset role;
+set session "probe.uid" = '';
+
+do $probe$
+declare
+  own uuid := 'cccccccc-0000-0000-0000-000000000001';   -- ο ιδιοκτήτης
+  acc uuid := 'dddddddd-0000-0000-0000-000000000001';   -- ο λογιστής
+  tok1 text := 'probe-token-protos';
+  tok2 text := 'probe-token-deuteros';
+  res json;
+  live boolean;
+begin
+  insert into auth.users(id, email) values (own, 'own@probe.test'), (acc, 'acc@probe.test');
+  insert into public.user_properties(id, user_id, name)
+    values ('cccccccc-0000-0000-0000-0000000000f1', own, 'Το σπίτι του ιδιοκτήτη');
+
+  -- Ο ιδιοκτήτης βγάζει σύνδεσμο.
+  insert into public.accountant_links(user_id, token, active) values (own, tok1, true);
+
+  -- Ο λογιστής τον αξιώνει.
+  perform set_config('probe.uid', acc::text, true);
+  res := public.accountant_claim(tok1);
+  if (res->>'ok')::boolean is not true then
+    raise exception 'Η αξίωση του συνδέσμου απέτυχε: %', res;
+  end if;
+
+  if not public.accountant_link_live(acc, own) then
+    raise exception 'Ο λογιστής δεν βλέπει τον πελάτη του αμέσως μετά την αξίωση';
+  end if;
+  if json_array_length(public.accountant_clients_overview(2026)) <> 1 then
+    raise exception 'Ο χώρος εργασίας δεν δείχνει τον πελάτη μετά την αξίωση';
+  end if;
+  if (public.accountant_request_item(own, 'Ε9') ->> 'ok')::boolean is not true then
+    raise exception 'Ο συνδεδεμένος λογιστής δεν μπορεί να ζητήσει έγγραφο';
+  end if;
+
+  -- Ο ιδιοκτήτης πατά «Ανάκληση»: ο σύνδεσμος περιστρέφεται.
+  perform set_config('probe.uid', own::text, true);
+  update public.accountant_links set token = tok2 where user_id = own;
+
+  -- ΤΟ ΚΡΙΣΙΜΟ: η παλιά αξίωση δεν στέκει πια σε τίποτα.
+  perform set_config('probe.uid', acc::text, true);
+  live := public.accountant_link_live(acc, own);
+  if live then
+    raise exception 'Η ΑΝΑΚΛΗΣΗ ΔΕΝ ΑΝΑΚΑΛΕΣΕ: ο λογιστής κρατά πρόσβαση μετά την περιστροφή';
+  end if;
+  if json_array_length(public.accountant_clients_overview(2026)) <> 0 then
+    raise exception 'Ο χώρος εργασίας δείχνει ακόμη τον πελάτη μετά την ανάκληση';
+  end if;
+  res := public.accountant_request_item(own, 'Ε2');
+  if (res->>'ok')::boolean is not false or res->>'reason' <> 'not_linked' then
+    raise exception 'Ανακληθείς λογιστής εξακολουθεί να στέλνει αιτήματα: %', res;
+  end if;
+
+  -- Και ο ΠΑΛΙΟΣ σύνδεσμος δεν ξανανοίγει την πόρτα.
+  res := public.accountant_claim(tok1);
+  if (res->>'ok')::boolean is not false then
+    raise exception 'Ο ανακληθείς σύνδεσμος ξανάδωσε πρόσβαση: %', res;
+  end if;
+
+  -- Ενώ ο ΝΕΟΣ σύνδεσμος, αν ο ιδιοκτήτης τον δώσει, δουλεύει κανονικά: η
+  -- ανάκληση δεν είναι μπλόκο στον άνθρωπο, είναι τερματισμός της πρόσβασης.
+  res := public.accountant_claim(tok2);
+  if (res->>'ok')::boolean is not true then
+    raise exception 'Ο νέος σύνδεσμος δεν δουλεύει μετά την ανάκληση: %', res;
+  end if;
+  if not public.accountant_link_live(acc, own) then
+    raise exception 'Ο λογιστής δεν ξαναβλέπει τον πελάτη με τον νέο σύνδεσμο';
+  end if;
+
+  perform set_config('probe.uid', '', true);
+  raise notice 'probe: η περιστροφή του συνδέσμου κόβει τον χώρο εργασίας, ο νέος τον ξανανοίγει';
+end $probe$;

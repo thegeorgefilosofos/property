@@ -769,6 +769,13 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
 
   // Ανάκληση: περιστρέφει το token, ώστε ο παλιός σύνδεσμος να πάψει αμέσως να
   // λειτουργεί (ασφάλεια) και να εμφανιστεί καινούριος για μοίρασμα.
+  //
+  // ΚΑΙ ΚΛΕΙΝΕΙ ΚΑΙ ΤΟΝ ΧΩΡΟ ΕΡΓΑΣΙΑΣ. Για καιρό δεν το έκανε: ο λογιστής που
+  // είχε ήδη αξιώσει τον σύνδεσμο κρατούσε πρόσβαση για πάντα, γιατί η αξίωση
+  // ζούσε στον πίνακα accountant_clients και δεν θυμόταν ΜΕ ΠΟΙΟΝ σύνδεσμο
+  // δόθηκε. Το κουμπί έλεγε «Ανάκληση» και ανακαλούσε τον μισό δρόμο.
+  // Η `accountant_link_live` στη βάση απαιτεί πλέον το token της αξίωσης να
+  // είναι ακόμη το ενεργό — άρα η περιστροφή είναι ανάκληση και στους δύο.
   async function revokeAccountantLink(){
     if(acctBusy) return
     setAcctBusy(true)
@@ -887,8 +894,8 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
                 διεύθυνση, ΑΤΑΚ και μίσθωμα. Το κουμπί όμως ζει μέσα στην καρτέλα
                 ΕΝΟΣ ακινήτου, οπότε η φυσική ανάγνωση ήταν «μοιράζομαι αυτό
                 εδώ». Η μόνη ένδειξη ήταν σε tooltip που δεν ανοίγει σε κινητό. */}
-            <span style={{ fontSize:11, color:acctRevoked?'var(--positive)':'var(--text-tertiary)', fontFamily: T.font.sans }}>{acctRevoked?'Ο παλιός σύνδεσμος ακυρώθηκε. Μοιράσου τον νέο.':'Δίνει πρόσβαση μόνο για ανάγνωση, σε ΟΛΑ τα ακίνητά σου, όχι μόνο σε αυτό. Ανακάλεσέ τον όποτε θες.'}</span>
-            <button onClick={revokeAccountantLink} disabled={acctBusy} title="Ακυρώνει τον τρέχοντα σύνδεσμο και δημιουργεί καινούριο· ο παλιός παύει αμέσως να λειτουργεί" style={{ marginLeft:'auto', background:'none', border:'none', padding:0, color:'var(--text-tertiary)', fontSize:11, fontWeight:700, cursor:acctBusy?'wait':'pointer', fontFamily: T.font.sans, whiteSpace:'nowrap' }} onMouseEnter={e=>{ if(!acctBusy) e.currentTarget.style.color='var(--negative)' }} onMouseLeave={e=>{ e.currentTarget.style.color='var(--text-tertiary)' }}>Ανάκληση</button>
+            <span style={{ fontSize:11, color:acctRevoked?'var(--positive)':'var(--text-tertiary)', fontFamily: T.font.sans }}>{acctRevoked?'Ο παλιός σύνδεσμος ακυρώθηκε και ο λογιστής βγήκε. Μοιράσου τον νέο.':'Δίνει πρόσβαση μόνο για ανάγνωση, σε ΟΛΑ τα ακίνητά σου, όχι μόνο σε αυτό. Ανακάλεσέ τον όποτε θες.'}</span>
+            <button onClick={revokeAccountantLink} disabled={acctBusy} title="Ακυρώνει τον τρέχοντα σύνδεσμο και δημιουργεί καινούριο· ο παλιός παύει αμέσως να λειτουργεί και όποιος λογιστής τον είχε ήδη ανοίξει χάνει την πρόσβαση" style={{ marginLeft:'auto', background:'none', border:'none', padding:0, color:'var(--text-tertiary)', fontSize:11, fontWeight:700, cursor:acctBusy?'wait':'pointer', fontFamily: T.font.sans, whiteSpace:'nowrap' }} onMouseEnter={e=>{ if(!acctBusy) e.currentTarget.style.color='var(--negative)' }} onMouseLeave={e=>{ e.currentTarget.style.color='var(--text-tertiary)' }}>Ανάκληση</button>
           </div>
         </div>
       )}
