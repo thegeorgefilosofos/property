@@ -899,7 +899,13 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
 .quick-add-btn {
   display: flex;
   align-items: center;
-  gap: 12px;
+  /* ΚΕΝΤΡΑΡΙΣΜΕΝΟ, ΚΑΙ ΟΧΙ ΚΑΤΑ ΛΑΘΟΣ. Οι γραμμές πλοήγησης στοιχίζονται
+     αριστερά σε μία κάθετη γραμμή γιατί είναι ΛΙΣΤΑ: το μάτι τις σαρώνει.
+     Αυτό δεν είναι λίστα, είναι Η ΜΙΑ ΕΝΕΡΓΕΙΑ — δεν σαρώνεται, στοχεύεται.
+     Το κεντραρισμένο περιεχόμενο το βγάζει από τη στήλη των προορισμών και
+     το κάνει αντικείμενο αντί για γραμμή. */
+  justify-content: center;
+  gap: 10px;
   margin: 12px var(--rail-gutter);
   /* ΤΟ ΚΥΡΙΟ ΚΟΥΜΠΙ ΕΙΝΑΙ ΤΟ ΜΟΝΟ ΠΟΥ ΣΠΑΕΙ ΤΟΝ ΡΥΘΜΟ ΤΩΝ 44, ΚΑΙ ΣΚΟΠΙΜΑ:
      είναι η μία ενέργεια της μπάρας ανάμεσα σε δεκατρείς προορισμούς. Οταν
@@ -907,7 +913,7 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
      ξεχώριζε μόνο από το χρώμα — δηλαδή διαβαζόταν ως «μια ακόμη γραμμή, μπλε».
      Τέσσερα εικονοστοιχεία ύψος και ένα μέγεθος γραμματοσειράς είναι όλη η
      διαφορά που χρειάζεται· δεν χρειάζεται σκιά, αύρα ούτε διαβάθμιση. */
-  min-height: 48px;
+  min-height: 52px;
   padding: 0 var(--rail-pad);
   border: none;
   border-radius: var(--rail-radius);
@@ -935,7 +941,7 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
   cursor: not-allowed;
 }
 .quick-add-icon { display: flex; align-items: center; justify-content: center; width: 20px; flex-shrink: 0; }
-.quick-add-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.quick-add-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ══════════════════════════════════════════════════════════════════════════
    Ο ΕΠΙΛΟΓΕΑΣ ΑΚΙΝΗΤΟΥ ΣΤΗΝ ΠΑΝΩ ΜΠΑΡΑ
@@ -1026,6 +1032,19 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
   border-top: 1px solid var(--sidebar-border);
   margin-top: 4px;
 }
+
+/* ΤΟ ΚΕΝΟ ΑΠΟΚΤΑ ΝΟΗΜΑ ΑΝΤΙ ΝΑ ΤΟ ΓΕΜΙΣΟΥΜΕ.
+   Με οκτώ καρτέλες σε οθόνη 900 έμεναν ~300 εικονοστοιχεία κενά — και το
+   «Πρόγραμμα Πρόσκλησης» κρεμόταν ΜΟΝΟ του από πάνω τους, κάτω από μια γραμμή
+   που υπόσχεται περιεχόμενο. Ενα ορφανό στοιχείο πάνω από ένα κενό διαβάζεται
+   ως «κάτι δεν φόρτωσε».
+   Το τελευταίο μπλοκ κατεβαίνει στον πάτο. Το κενό γίνεται τότε το ΔΙΑΣΤΗΜΑ
+   ανάμεσα στις οθόνες του ακινήτου και σε ό,τι αφορά τον λογαριασμό μου —
+   δηλαδή ακριβώς ο χωρισμός που ήδη λέει η δομή, μόνο που τώρα φαίνεται.
+   ΤΟ `:not(:first-of-type)` ΔΕΝ ΕΙΝΑΙ ΔΙΑΚΟΣΜΗΤΙΚΟ: όταν υπάρχει ΕΝΑ μόνο
+   μπλοκ (ιδιώτης χωρίς Χαρτοφυλάκιο και χωρίς Πρόγραμμα Πρόσκλησης τις πρώτες
+   επτά μέρες), χωρίς αυτό ολόκληρο το μενού θα κατέβαινε στον πάτο. */
+.sidebar-nav > .sidebar-section:not(:first-of-type):last-of-type { margin-top: auto; }
 
 /* ── Η ΓΡΑΜΜΗ. Ενα σχήμα για ακίνητο, καρτέλα, προσθήκη και χρήστη. ─────── */
 .sidebar-item,
