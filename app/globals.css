@@ -901,7 +901,13 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
   align-items: center;
   gap: 12px;
   margin: 12px var(--rail-gutter);
-  min-height: var(--rail-h);
+  /* ΤΟ ΚΥΡΙΟ ΚΟΥΜΠΙ ΕΙΝΑΙ ΤΟ ΜΟΝΟ ΠΟΥ ΣΠΑΕΙ ΤΟΝ ΡΥΘΜΟ ΤΩΝ 44, ΚΑΙ ΣΚΟΠΙΜΑ:
+     είναι η μία ενέργεια της μπάρας ανάμεσα σε δεκατρείς προορισμούς. Οταν
+     είχε το ίδιο ύψος και το ίδιο μέγεθος γραμμάτων με τις γραμμές πλοήγησης,
+     ξεχώριζε μόνο από το χρώμα — δηλαδή διαβαζόταν ως «μια ακόμη γραμμή, μπλε».
+     Τέσσερα εικονοστοιχεία ύψος και ένα μέγεθος γραμματοσειράς είναι όλη η
+     διαφορά που χρειάζεται· δεν χρειάζεται σκιά, αύρα ούτε διαβάθμιση. */
+  min-height: 48px;
   padding: 0 var(--rail-pad);
   border: none;
   border-radius: var(--rail-radius);
@@ -909,7 +915,7 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
   color: var(--accent-text);
   cursor: pointer;
   font-family: 'Inter', sans-serif;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   letter-spacing: -0.01em;
   text-align: left;
@@ -928,7 +934,7 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
   color: var(--text-tertiary);
   cursor: not-allowed;
 }
-.quick-add-icon { display: flex; align-items: center; justify-content: center; width: 18px; flex-shrink: 0; }
+.quick-add-icon { display: flex; align-items: center; justify-content: center; width: 20px; flex-shrink: 0; }
 .quick-add-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ── Ετικέτες ενοτήτων ──────────────────────────────────────────────────── */

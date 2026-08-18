@@ -321,7 +321,12 @@ export default function TabDocuments({
 
   // Σάρωση → επιβεβαίωση → καταχώρηση. Καμία χειροκίνητη φόρμα, κανένας διακόπτης.
   const [showUpload, setShowUpload] = useState(false);
-  const [uploadMin, setUploadMin] = useState(false);   // ελαχιστοποιημένη (collapsed) κάρτα
+  // ΤΟ `uploadMin` ΕΦΥΓΕ. Ηταν ΤΡΙΤΗ κατάσταση της ίδιας κάρτας —ανοιχτή,
+  // ελαχιστοποιημένη, κλειστή— και το «×» οδηγούσε στη μεσαία: ο χρήστης
+  // πατούσε το σύμβολο που παντού σημαίνει «κλείσε» και έμενε με μια κεφαλίδα
+  // πάνω από ένα άδειο κουτί, χωρίς κείμενο, χωρίς περιεχόμενο, να πιάνει
+  // ύψος και να μη λέει τίποτα. Δύο καταστάσεις αρκούν, και το «×» κάνει αυτό
+  // που δηλώνει.
   const [busy, setBusy] = useState(false);             // σάρωση ή καταχώρηση σε εξέλιξη
   const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -470,7 +475,7 @@ export default function TabDocuments({
   const handleFiles = async (fileList: FileList | File[]) => {
     const files = Array.from(fileList);
     if (!files.length || !propertyId || busy) return;
-    setMsg(null); setShowUpload(true); setUploadMin(false); setBusy(true);
+    setMsg(null); setShowUpload(true); setBusy(true);
     const fresh: Draft[] = files.map((f, i) => ({
       id: `${Date.now()}_${i}_${f.name}`, file: f, status: 'pending',
       kind: 'document', category: 'Άλλο Έγγραφο', open: false,
@@ -734,12 +739,12 @@ export default function TabDocuments({
       {showUpload && (
         <div className="card" style={{ marginBottom: 20 }}>
           <SecHdr label="Καταχώρηση αρχείων"
-            sub={uploadMin ? undefined : 'Λογαριασμός, απόδειξη, μισθωτήριο, ασφαλιστήριο, ΕΝΦΙΑ ή φωτογραφία χώρου. Αναγνωρίζεται, παρουσιάζεται προς έλεγχο, και καταχωρείται όπου ανήκει.'}
-            right={<button onClick={() => setUploadMin(m => !m)} title={uploadMin ? 'Ανάπτυξη' : 'Ελαχιστοποίηση'} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 2 }}>
-              {uploadMin ? <svg {...S} width={16} height={16}><path d="m6 9 6 6 6-6"/></svg> : <IconX/>}
+            sub='Λογαριασμός, απόδειξη, μισθωτήριο, ασφαλιστήριο, ΕΝΦΙΑ ή φωτογραφία χώρου. Αναγνωρίζεται, παρουσιάζεται προς έλεγχο, και καταχωρείται όπου ανήκει.'
+            right={<button onClick={() => setShowUpload(false)} aria-label="Κλείσιμο" title="Κλείσιμο" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, margin: -10, background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer' }}>
+              <IconX/>
             </button>}/>
 
-          {!uploadMin && (<>
+          {(<>
           {drafts.length === 0 && (
             <>
               <div

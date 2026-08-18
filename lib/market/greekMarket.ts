@@ -13,8 +13,13 @@
 
 import { MYAADE } from '../tax/aade'
 
+// ΟΙ ΠΗΓΕΣ ΟΝΟΜΑΖΟΝΤΑΝ ΔΥΟ ΦΟΡΕΣ, ΤΗ ΜΙΑ ΑΚΡΙΒΩΣ ΠΑΝΩ ΑΠΟ ΤΗΝ ΑΛΛΗ: μέσα σε
+// αυτή την παρένθεση, και αμέσως από κάτω ως σύνδεσμοι. Η επανάληψη δεν ήταν
+// μόνο περιττή — μακραίνοντας τις ετικέτες των συνδέσμων τούς έσπρωχνε σε
+// δεύτερη γραμμή. Τα ονόματα ζουν πλέον ΜΟΝΟ στους συνδέσμους, όπου και
+// πατιούνται· η δήλωση λέει αυτό που της αναλογεί, δηλαδή τι ΔΕΝ είναι.
 export const MARKET_DISCLAIMER =
-  'Ενδεικτικά στοιχεία αγοράς για σύγκριση, από δημόσιες πηγές (Τράπεζα της Ελλάδος, ΕΛΣΤΑΤ, Global Property Guide, AirDNA/AirROI). Οι τιμές διαφέρουν σημαντικά ανά ακίνητο, όροφο, κατάσταση και ακριβή θέση. Παρελθούσες αποδόσεις δεν εγγυώνται μελλοντικές. Δεν αποτελεί επενδυτική συμβουλή.'
+  'Ενδεικτικά στοιχεία αγοράς για σύγκριση, από δημόσιες πηγές. Οι τιμές διαφέρουν σημαντικά ανά ακίνητο, όροφο, κατάσταση και ακριβή θέση. Παρελθούσες αποδόσεις δεν εγγυώνται μελλοντικές. Δεν αποτελεί επενδυτική συμβουλή.'
 
 export const MARKET_DATA_ASOF = 'Ιούλιος 2026'
 
@@ -227,11 +232,16 @@ export const SEASONALITY_ISLAND = [10, 12, 20, 45, 70, 90, 100, 100, 80, 50, 18,
 export const SEASONALITY_CITY = [45, 48, 65, 80, 85, 70, 60, 55, 85, 90, 55, 50]
 
 // ── Πηγές (για εμφάνιση/διαφάνεια) ──────────────────────────────────────────
+// ΤΟ ΟΝΟΜΑ ΤΗΣ ΠΗΓΗΣ, ΟΧΙ Η ΠΕΡΙΓΡΑΦΗ ΤΗΣ. Οι ετικέτες κουβαλούσαν και το τι
+// δημοσιεύει η καθεμιά («· Δείκτες τιμών ακινήτων», «— Greece rental yields»),
+// δηλαδή 148 χαρακτήρες σε μια σειρά συνδέσμων υποσημείωσης — που έσπαγε σε δύο
+// γραμμές. Οποιος πατά τον σύνδεσμο το βλέπει· όποιος δεν τον πατά δεν το
+// χρειάζεται. Μένει η απόδοση, που είναι και ο λόγος που υπάρχουν εδώ.
 export const MARKET_SOURCES: { label: string; href: string }[] = [
-  { label: 'Τράπεζα της Ελλάδος · Δείκτες τιμών ακινήτων', href: 'https://www.bankofgreece.gr/en/statistics/real-estate-market' },
-  { label: 'ΕΛΣΤΑΤ · Δείκτης Τιμών Καταναλωτή (ενοίκια)', href: 'https://www.statistics.gr/en/statistics/-/publication/DKT87/-' },
-  { label: 'Global Property Guide — Greece rental yields', href: 'https://www.globalpropertyguide.com/europe/greece/rental-yields' },
-  { label: 'AirDNA / AirROI · βραχυχρόνια Ελλάδας', href: 'https://www.airroi.com/airbnb-data/greece' },
+  { label: 'Τράπεζα της Ελλάδος', href: 'https://www.bankofgreece.gr/en/statistics/real-estate-market' },
+  { label: 'ΕΛΣΤΑΤ', href: 'https://www.statistics.gr/en/statistics/-/publication/DKT87/-' },
+  { label: 'Global Property Guide', href: 'https://www.globalpropertyguide.com/europe/greece/rental-yields' },
+  { label: 'AirDNA', href: 'https://www.airroi.com/airbnb-data/greece' },
 ]
 
 // ── Βοηθητικά ───────────────────────────────────────────────────────────────
