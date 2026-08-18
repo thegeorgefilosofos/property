@@ -937,6 +937,71 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
 .quick-add-icon { display: flex; align-items: center; justify-content: center; width: 20px; flex-shrink: 0; }
 .quick-add-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   Ο ΕΠΙΛΟΓΕΑΣ ΑΚΙΝΗΤΟΥ ΣΤΗΝ ΠΑΝΩ ΜΠΑΡΑ
+   ─────────────────────────────────────────────────────────────────────────
+   Ο ΣΤΟΧΟΣ ΑΦΗΣ ΕΣΠΡΩΞΕ ΤΟΝ ΥΠΟΤΙΤΛΟ ΠΑΝΩ ΣΤΟ ΠΕΡΙΓΡΑΜΜΑ. Μετρημένο σε
+   περιηγητή, μέσα σε μπάρα ύψους 64:
+
+     πριν   τίτλος 13→31, υπότιτλος 40→58, κάτω περιθώριο 6px
+     μετά   τίτλος 13→31, υπότιτλος 46→64, κάτω περιθώριο ΜΗΔΕΝ
+
+   Ο υπότιτλος ακουμπούσε τη γραμμή της μπάρας. Το `min-height: 44` του κουμπιού
+   δεν μεγάλωσε τον τίτλο — μεγάλωσε το ΚΟΥΤΙ του, και το κουτί έσπρωξε ό,τι
+   ήταν από κάτω. Το ίδιο ακριβώς λάθος που έχει ήδη λυθεί στον διακόπτη
+   (`Toggle`), με την ίδια λύση: το ΚΟΥΜΠΙ κρατά τον στόχο αφής με padding και
+   αρνητικό περιθώριο που τον ακυρώνει, και η ΟΨΗ ζει σε δικό της στοιχείο που
+   αγκαλιάζει το κείμενο. Ο στόχος μένει 44· η διάταξη δεν το μαθαίνει ποτέ.
+
+   ΚΑΙ Η ΕΠΙΣΗΜΑΝΣΗ ΤΟΥ ΠΟΝΤΙΚΙΟΥ ΖΕΙ ΕΔΩ, ΟΧΙ ΣΕ JAVASCRIPT. Ηταν δύο
+   χειριστές `onMouseEnter`/`onMouseLeave` που έγραφαν style με το χέρι —
+   δηλαδή το ίδιο πράγμα που κάνει ένα `:hover`, με τρεις γραμμές κώδικα και
+   χωρίς να δουλεύει με πληκτρολόγιο.
+   ══════════════════════════════════════════════════════════════════════════ */
+.topbar-switch {
+  display: flex;
+  align-items: center;
+  /* Στόχος αφής 44 (18 κείμενο + 13 πάνω + 13 κάτω), ακυρωμένος στη διάταξη. */
+  padding: 13px 10px;
+  margin: -13px -10px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  min-width: 0;
+  max-width: 46vw;
+}
+.topbar-switch-face {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 4px 8px;
+  margin: -4px -8px;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+.topbar-switch:hover .topbar-switch-face,
+.topbar-switch:focus-visible .topbar-switch-face,
+.topbar-switch[aria-expanded="true"] .topbar-switch-face { background: var(--bg-hover); }
+.topbar-switch:focus-visible { outline: none; }
+.topbar-switch:focus-visible .topbar-switch-face { outline: 2px solid var(--accent); outline-offset: 1px; }
+.topbar-switch-name {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.topbar-switch-caret {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  transition: transform 0.18s ease;
+}
+.topbar-switch[aria-expanded="true"] .topbar-switch-caret { transform: rotate(180deg); }
+
 /* ── Ετικέτες ενοτήτων ──────────────────────────────────────────────────── */
 .sidebar-section { padding: 4px 0; }
 .sidebar-section-label {

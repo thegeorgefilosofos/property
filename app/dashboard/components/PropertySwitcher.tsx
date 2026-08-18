@@ -144,28 +144,30 @@ export default function PropertySwitcher({ items, activeId, onSelect, onAdd, can
 
   return (
     <div ref={rootRef} style={{ position: 'relative' }}>
-      <button ref={btnRef} type="button"
+      {/* ΜΕ ΕΝΑ ΑΚΙΝΗΤΟ ΚΑΙ ΓΕΜΑΤΟ ΠΑΚΕΤΟ ΔΕΝ ΕΙΝΑΙ ΚΟΥΜΠΙ, ΕΙΝΑΙ ΤΙΤΛΟΣ.
+          Ο συνδρομητής «Ιδιοκτήτης» έχει όριο ένα ακίνητο: δεν υπάρχει τίποτα
+          να εναλλάξει και τίποτα να προσθέσει. Ενα βελάκι που ανοίγει μενού με
+          μία γραμμή —τη γραμμή στην οποία ήδη βρίσκεσαι— είναι τελετουργία.
+          Σε κάθε άλλη περίπτωση το βελάκι ΜΕΝΕΙ ορατό: η αφή δεν έχει
+          «πέρασμα από πάνω», οπότε ένα σήμα που εμφανίζεται μόνο στο hover δεν
+          εμφανίζεται ΠΟΤΕ σε κινητό — ακριβώς εκεί που δεν υπάρχει πλαϊνή
+          μπάρα και η εναλλαγή γίνεται μόνο από εδώ. */}
+      {items.length <= 1 && !canAdd ? (
+        <span className="topbar-switch-name" style={{ display: 'block' }}>{active?.name || 'Κανένα ακίνητο ακόμη'}</span>
+      ) : (
+      <button ref={btnRef} type="button" className="topbar-switch"
         onClick={() => (open ? closePanel(false) : openPanel())}
         aria-haspopup="listbox" aria-expanded={open}
-        title={items.length > 1 ? 'Αλλαγή ακινήτου' : undefined}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 8, minHeight: 44,
-          margin: '0 -10px', padding: '0 10px', borderRadius: 10,
-          border: 'none', background: open ? 'var(--bg-hover)' : 'transparent',
-          cursor: 'pointer', maxWidth: '46vw',
-        }}
-        onMouseEnter={e => { if (!open) e.currentTarget.style.background = 'var(--bg-hover)'; }}
-        onMouseLeave={e => { if (!open) e.currentTarget.style.background = 'transparent'; }}>
-        <span style={{
-          fontFamily: T.font.sans, fontSize: 16, fontWeight: 600, letterSpacing: '-0.01em',
-          color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>{active?.name || 'Κανένα ακίνητο ακόμη'}</span>
-        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"
-          strokeLinecap="round" strokeLinejoin="round" aria-hidden
-          style={{ color: 'var(--text-tertiary)', flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.18s' }}>
-          <path d="m6 9 6 6 6-6" />
-        </svg>
+        title={items.length > 1 ? 'Αλλαγή ακινήτου' : 'Ακίνητα'}>
+        <span className="topbar-switch-face">
+          <span className="topbar-switch-name">{active?.name || 'Κανένα ακίνητο ακόμη'}</span>
+          <svg className="topbar-switch-caret" width={14} height={14} viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </span>
       </button>
+      )}
 
       {open && (
         <div style={panel} onKeyDown={onKeyDown}>
