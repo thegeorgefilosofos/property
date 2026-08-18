@@ -30,7 +30,17 @@
 # ═══════════════════════════════════════════════════════════════════════════
 set -euo pipefail
 
-PORT="${DB_REPLAY_PORT:-5433}"
+# ── ΚΑΘΕ ΤΡΕΞΙΜΟ ΕΧΕΙ ΔΙΚΗ ΤΟΥ ΠΟΡΤΑ ΚΑΙ ΔΙΚΗ ΤΟΥ ΠΡΙΖΑ ────────────────────
+# Η πόρτα ήταν καρφωμένη στο 5433 και η πρίζα του Unix στο /tmp — δηλαδή δύο
+# σταθερά ονόματα, κοινά για όλα τα τρεξίματα. Ενα τρέξιμο που σκοτώθηκε
+# απότομα (Ctrl-C, timeout, kill) άφηνε πίσω του ζωντανό διακομιστή· το επόμενο
+# έβρισκε την πόρτα πιασμένη, έγραφε «could not start server» και σταματούσε.
+# Ο φύλακας που δεν ξεκινά διαβάζεται ως φύλακας που δεν έχει τίποτα να πει.
+#
+# Η πρίζα ζει πλέον ΜΕΣΑ στον προσωρινό φάκελο του τρεξίματος, που σβήνει με το
+# trap, και το TCP κλείνει τελείως (`listen_addresses=''`): δεν υπάρχει πια
+# κοινός πόρος για να συγκρουστεί κανείς. Δύο αντίγραφα του σεναρίου τρέχουν
+# ταυτόχρονα χωρίς να ξέρουν το ένα για το άλλο.
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BIN="$(ls -d /usr/lib/postgresql/*/bin 2>/dev/null | sort -V | tail -1)"
 [ -n "$BIN" ] || { echo "✗ Δεν βρέθηκε PostgreSQL. Εγκατέστησε postgresql-16."; exit 1; }
@@ -52,10 +62,10 @@ fi
 run_pg() { if [ -n "$AS" ]; then $AS "PATH=$BIN:\$PATH $1"; else bash -c "$1"; fi; }
 
 run_pg "$BIN/initdb -D $PGDATA -U postgres --auth=trust" 
-run_pg "$BIN/pg_ctl -D $PGDATA -o '-p $PORT -k /tmp' -l $PGDATA/log start" 
-for _ in $(seq 1 20); do psql -h /tmp -p "$PORT" -U postgres -c 'select 1' >/dev/null 2>&1 && break; sleep 1; done
+run_pg "$BIN/pg_ctl -D $PGDATA -o \"-k $WORK -c listen_addresses=''\" -l $PGDATA/log start" 
+for _ in $(seq 1 20); do psql -h "$WORK" -U postgres -c 'select 1' >/dev/null 2>&1 && break; sleep 1; done
 
-PSQL="psql -h /tmp -p $PORT -U postgres -v ON_ERROR_STOP=1 -q"
+PSQL="psql -h $WORK -U postgres -v ON_ERROR_STOP=1 -q"
 $PSQL -c 'create database posdb' >/dev/null
 $PSQL -d posdb -f "$ROOT/scripts/db/platform-stub.sql" >/dev/null
 
@@ -119,7 +129,7 @@ fi
 # αποκλίνει μία φορά — η οθόνη υποσχόταν έναν μήνα και η βάση έδινε δύο.
 TS_VOL=$(grep -oE 'INDIV_VOLUME_TARGET = [0-9]+' "$ROOT/lib/referral/referral.ts" | grep -oE '[0-9]+')
 TS_PRO=$(grep -oE 'PRO_PAID_TARGET = [0-9]+'     "$ROOT/lib/referral/referral.ts" | grep -oE '[0-9]+')
-SRC=$(psql -h /tmp -p "$PORT" -U postgres -d posdb -X -A -t \
+SRC=$(psql -h "$WORK" -U postgres -d posdb -X -A -t \
   -c "select prosrc from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='claim_referral_bonus'" \
   | grep -vE "^\s*--")
 DB_VOL=$(echo "$SRC" | grep -oE "'indiv_volume' then v_target := [0-9]+" | grep -oE '[0-9]+$' || true)

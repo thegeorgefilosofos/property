@@ -685,3 +685,60 @@ begin
   perform set_config('probe.uid', '', true);
   raise notice 'probe: η περιστροφή του συνδέσμου κόβει τον χώρο εργασίας, ο νέος τον ξανανοίγει';
 end $probe$;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Η ΔΙΑΓΡΑΦΗ ΛΟΓΑΡΙΑΣΜΟΥ ΦΤΑΝΕΙ ΚΑΙ ΣΤΟΥΣ ΠΙΝΑΚΕΣ ΧΩΡΙΣ `user_id`
+-- ─────────────────────────────────────────────────────────────────────────
+-- Η `delete_my_account` σβήνει «κάθε πίνακα με στήλη user_id». Η ουρά των
+-- email κλειδώνεται στη ΔΙΕΥΘΥΝΣΗ, όχι στον χρήστη: ο λογαριασμός έφευγε και
+-- το `email_outbox` κρατούσε διεύθυνση, όνομα και περιεχόμενο — και ένα
+-- προγραμματισμένο μήνυμα μπορούσε ακόμη να σταλεί σε κάποιον που είχε
+-- ζητήσει διαγραφή.
+-- ═══════════════════════════════════════════════════════════════════════════
+reset role;
+set session "probe.uid" = '';
+
+do $probe$
+declare
+  v_uid  uuid := 'eeeeeeee-0000-0000-0000-000000000001';
+  v_mail text := 'diagrafi-probe@example.gr';
+  res json;
+  n int;
+begin
+  insert into auth.users (id, email) values (v_uid, v_mail);
+  insert into public.user_properties (user_id, name) values (v_uid, 'Το σπίτι που φεύγει');
+  -- Η ουρά κρατά τη ΔΙΕΥΘΥΝΣΗ. Κεφαλαία και κενά επίτηδες: το ταίριασμα δεν
+  -- επιτρέπεται να χάνει τη γραμμή επειδή κάποιος την έγραψε αλλιώς.
+  insert into public.email_outbox (copy_id, to_email, to_name, params, category)
+    values ('welcome', '  Diagrafi-Probe@Example.GR ', 'Ο χρήστης', '{}'::jsonb, 'lifecycle');
+  insert into public.app_admins (email) values (v_mail);
+
+  -- ΠΡΩΤΑ ΒΕΒΑΙΩΣΟΥ ΟΤΙ ΥΠΑΡΧΟΥΝ: αλλιώς το μηδέν στο τέλος δεν αποδεικνύει τίποτα.
+  select (select count(*) from public.email_outbox where lower(btrim(to_email)) = v_mail)
+       + (select count(*) from public.app_admins   where lower(btrim(email))    = v_mail)
+    into n;
+  if n <> 2 then
+    raise exception 'Ο έλεγχος είναι κενός: περίμενα δύο γραμμές πριν τη διαγραφή, βρήκα %', n;
+  end if;
+
+  perform set_config('probe.uid', v_uid::text, true);
+  res := public.delete_my_account();
+  perform set_config('probe.uid', '', true);
+
+  select (select count(*) from public.email_outbox where lower(btrim(to_email)) = v_mail)
+       + (select count(*) from public.app_admins   where lower(btrim(email))    = v_mail)
+    into n;
+  if n <> 0 then
+    raise exception 'Η διαγραφή λογαριασμού άφησε % γραμμές με τη διεύθυνση του χρήστη', n;
+  end if;
+
+  -- Και ο ίδιος ο χρήστης έφυγε, μαζί με ό,τι κρέμεται από πάνω του.
+  if exists (select 1 from auth.users where id = v_uid) then
+    raise exception 'Ο χρήστης επέζησε της διαγραφής του: %', res;
+  end if;
+  if exists (select 1 from public.user_properties where user_id = v_uid) then
+    raise exception 'Το ακίνητο επέζησε της διαγραφής του λογαριασμού';
+  end if;
+
+  raise notice 'probe: η διαγραφή λογαριασμού αδειάζει και την ουρά των email';
+end $probe$;
