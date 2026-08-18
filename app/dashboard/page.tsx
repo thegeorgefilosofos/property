@@ -230,54 +230,59 @@ const NAV_ICON: Record<string,string> = {
 // και οι Ρυθμίσεις μένουν αυτόνομες. Καμία ομάδα «Το ακίνητο»/«Σύστημα».
 // Δομή πλοήγησης (ίδια για ιδιώτη/επαγγελματία· αλλάζει μόνο η κεφαλίδα «Ακίνητά
 // μου» / «Χαρτοφυλάκιό μου» και το πότε ενεργοποιείται η «Σύγκριση ακινήτων»).
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΟ ΜΕΝΟΥ ΕΙΝΑΙ ΜΙΑ ΛΙΣΤΑ. ΟΙ ΟΜΑΔΕΣ ΕΦΥΓΑΝ.
+// ─────────────────────────────────────────────────────────────────────────
+// ΗΤΑΝ ΟΚΤΩ ΟΜΑΔΕΣ ΚΑΙ ΔΥΟ ΟΝΟΜΑΤΑ. Εξι είχαν label: '' — δηλαδή δεν ήταν
+// ομάδες, ήταν γραμμές. Δύο είχαν όνομα και πτύσσονταν. Ο χρήστης έβλεπε έξι
+// ενότητες που μένουν πάντα ανοιχτές και δύο που παίζουν ακορντεόν μεταξύ
+// τους, χωρίς να του έχει εξηγήσει κανείς τη διαφορά.
+//
+// ΚΑΙ ΟΙ ΟΜΑΔΕΣ ΔΕΝ ΜΠΟΡΟΥΣΑΝ ΝΑ ΓΕΜΙΣΟΥΝ. Το lib/property/visibility.ts τις
+// αδειάζει εξ ορισμού: το `tenant` θέλει μακροχρόνια, τα `pricing`/`clients`
+// βραχυχρόνια — αμοιβαία αποκλειόμενες. Η «Μίσθωση» έχει ΠΑΝΤΑ μία γραμμή,
+// το πολύ δύο. Το `roi` και το `plan` δεν συνυπάρχουν ΠΟΤΕ (το λέει ήδη το
+// παλιό σχόλιο: «ποτέ μαζί»). Μία ομάδα μπορούσε να φτάσει τρεις γραμμές.
+//
+// ΤΡΙΑ ΜΕΤΡΗΜΕΝΑ ΕΛΑΤΤΩΜΑΤΑ ΤΟΥ ΠΤΥΣΣΟΜΕΝΟΥ, ΚΑΙ ΤΑ ΤΡΙΑ ΣΙΩΠΗΛΑ:
+//   1. Το έμβλημα της κλειστής ομάδας ήταν ΜΟΝΙΜΑ ΜΗΔΕΝ. Η `getBadge` απαντά
+//      μόνο για `inventory` και `checklist`, και κανένα από τα δύο δεν υπήρχε
+//      ποτέ στα NAV_GROUPS. Η μοναδική αντιστάθμιση του «τι κρύβω» δεν
+//      εμφανιζόταν ΠΟΤΕ.
+//   2. Το ακορντεόν έκρυβε και την ΕΝΕΡΓΗ καρτέλα. Το φίλτρο κρατούσε ρητά το
+//      `id===nav`, αλλά η απόδοση γινόταν μέσα σε `{open && items.map(...)}`:
+//      με ανοιχτά τα «Οικονομικά» και τον χρήστη στον «Ενοικιαστή», η μπάρα
+//      σταματούσε να δείχνει πού βρίσκεται.
+//   3. Η αρχική τιμή ήταν 'Οικονομικά'. Δηλαδή την ΠΡΩΤΗ μέρα η μπάρα έκρυβε
+//      τον «Ενοικιαστή» — τη μία γραμμή που δικαιολογεί τη συνδρομή.
+//
+// Το κέρδος χώρου ήταν 46px στην καλύτερη περίπτωση, με μόνιμο κόστος 88px
+// κεφαλίδων και δύο επιπλέον στόχους αφής. Ο χώρος δεν τρωγόταν από τις
+// καρτέλες· τρωγόταν από τη λίστα ακινήτων, που έφυγε στην πάνω μπάρα.
+//
+// ΤΑ ΤΡΙΑ ΜΠΛΟΚ. Το μόνο ερώτημα που ο χρήστης απαντά χωρίς να του το εξηγήσει
+// κανείς είναι «αφορά το ακίνητο που γράφει η κεφαλίδα, ή τον λογαριασμό μου;».
+// Πάνω ό,τι βλέπει ΟΛΑ τα ακίνητα, στη μέση οι οθόνες ΑΥΤΟΥ του ακινήτου, κάτω
+// ό,τι είναι δικό μου. Χωρίζονται με μία γραμμή του ενός εικονοστοιχείου, όχι
+// με κεφαλίδα των 44. Η ταξινόμηση κατά θέμα («Οικονομικά», «Μίσθωση») είναι
+// ερώτηση βιβλιοθηκονόμου: κανείς δεν σκέφτεται «πάω στα Οικονομικά και μετά
+// στις Δαπάνες» — σκέφτεται «Δαπάνες».
+//
+// Η «Επισκόπηση» ΑΠΟΚΤΑ ΓΡΑΜΜΗ, πρώτη. Είναι βασική καρτέλα, είναι ο
+// προορισμός του «πίσω» και το καταφύγιο του `navSafe`, και σε desktop ο μόνος
+// της δρόμος ήταν το λογότυπο — κουμπί χωρίς καμία ένδειξη ότι είσαι εκεί.
+// ═══════════════════════════════════════════════════════════════════════════
 const NAV_GROUPS: { label: string; ids: string[] }[] = [
-  // Το Χαρτοφυλάκιο ΕΛΕΙΠΕ εντελώς από το μενού. Αποδιδόταν μόνο όταν
-  // nav==='portfolio', και κανένα κουμπί δεν έθετε ποτέ αυτή την τιμή: ο μόνος
-  // δρόμος ήταν το ⌘K. Δηλαδή σε tablet ή κινητό ήταν απρόσιτο — ενώ το
-  // PROFESSIONAL_CORE_TABS το δηλώνει βασική καρτέλα του επαγγελματία, μαζί με
-  // τους Πελάτες που ΕΙΝΑΙ στο μενού. Η μεγάλη εικόνα του χαρτοφυλακίου μπαίνει
-  // πρώτη, πριν από το Ημερολόγιο. Ο ιδιώτης δεν το βλέπει: δεν είναι βασικό
-  // για το προφίλ του και δεν είναι καν αγοράσιμο, άρα τα φίλτρα το κόβουν.
-  { label: '',                    ids: ['portfolio'] },
-  { label: '',                    ids: ['calendar'] },
-  { label: 'Οικονομικά',          ids: ['finances','accounting','loan'] },
-  // Η βραχυχρόνια ΕΙΧΕ χωθεί μέσα στην καρτέλα «Πελάτης», που απαιτεί πλάνο
-  // Επαγγελματία. Αποτέλεσμα: ο ιδιώτης με ακίνητο σε Airbnb δεν έφτανε ΠΟΤΕ στη
-  // δυναμική τιμή ούτε στο «τι μου μένει» — τα δύο εργαλεία που τον αφορούν
-  // περισσότερο από κάθε άλλο. Το πελατολόγιο μένει επαγγελματικό εργαλείο· η
-  // βραχυχρόνια μίσθωση δεν είναι, και στέκει μόνη της.
-  { label: 'Μίσθωση',             ids: ['tenant','pricing','clients'] },
-  // ΟΙ ΕΚΚΡΕΜΟΤΗΤΕΣ ΕΦΥΓΑΝ ΑΠΟ ΕΔΩ. Είναι προθεσμίες, και οι προθεσμίες ζουν
-  // στο Ημερολόγιο — εκεί τις ψάχνει ο ιδιοκτήτης, όχι στα «Εργαλεία» δίπλα στην
-  // απογραφή επίπλων. Η πλαϊνή μπάρα γλιτώνει μια γραμμή, η καρτέλα δεν χάθηκε:
-  // ανοίγει από το ίδιο το Ημερολόγιο, με τον αριθμό των ανοιχτών δίπλα της.
-  // ΤΑ «ΕΡΓΑΛΕΙΑ» ΕΓΙΝΑΝ ΜΙΑ ΚΑΡΤΕΛΑ. Η ομάδα κρατούσε δύο πράγματα που δεν
-  // έμοιαζαν μεταξύ τους — το Αρχείο και τα Έπιπλα — κάτω από ένα όνομα που δεν
-  // λέει τίποτα για κανένα από τα δύο. Ο εξοπλισμός ζει τώρα εκεί που τον
-  // ψάχνει κανείς: στο Αρχείο του ακινήτου, κάτω από τις επαφές του, μαζί με τα
-  // χαρτιά και τους ανθρώπους που τον αφορούν. Μια γραμμή λιγότερη στην μπάρα.
-  { label: '',                    ids: ['documents'] },
-  // Η Απόδοση απαντά στο «αξίζει;» όταν το ακίνητο αποδίδει. Η Αξιοποίηση
-  // απαντά στο «τι να το κάνω;» όταν δεν αποδίδει. Ίδια θέση, γιατί είναι η ίδια
-  // στιγμή στο μυαλό του ιδιοκτήτη — και ποτέ μαζί, γιατί οι καταστάσεις τους
-  // δεν τέμνονται.
-  { label: '',                    ids: ['roi','plan'] },
-  { label: '',                    ids: ['referral'] },
-  // ΤΟ «ΛΟΓΑΡΙΑΣΜΟΣ» ΕΦΥΓΕ ΑΠΟ ΕΔΩ. Ηταν δεύτερη πόρτα στον ίδιο ακριβώς
-  // προορισμό με τη γραμμή του χρήστη στο υποσέλιδο — δύο κουμπιά, ένα
-  // `setNav('settings')`, δύο εκατοστά απόσταση, στην ίδια μπάρα.
-  //
-  // ΕΦΥΓΕ ΑΥΤΟ ΚΑΙ ΟΧΙ ΤΟ ΑΛΛΟ, γιατί οι δύο δεν είναι ισοδύναμα: η γραμμή του
-  // υποσέλιδου ΛΕΕΙ ΚΑΤΙ ΠΟΥ ΚΑΜΙΑ ΑΛΛΗ ΔΕΝ ΛΕΕΙ — με ποιον λογαριασμό είσαι
-  // συνδεδεμένος. Η γραμμή του μενού δεν πρόσθετε καμία πληροφορία, μόνο έναν
-  // δεύτερο δρόμο. Οταν δύο στοιχεία κάνουν το ίδιο, φεύγει αυτό που δεν
-  // κουβαλά τίποτα δικό του.
-  //
-  // Ο προορισμός δεν χάθηκε από πουθενά αλλού: το `settings` μένει στα
-  // CORE_TABS, το `tabDecision` το κρατά ορατό, ο βοηθός το φτάνει με
-  // [[go:settings]] μέσω του NAV_MAP, το ⌘K το βρίσκει, και τα πέντε
-  // `setNav('settings')` της εφαρμογής δουλεύουν ακριβώς όπως πριν.
+  // Η μεγάλη εικόνα: όλα τα ακίνητα μαζί. Μόνο ο επαγγελματίας τη φτάνει.
+  { label: '', ids: ['portfolio'] },
+  // Οι οθόνες ΑΥΤΟΥ του ακινήτου, με τη σειρά που τις χρειάζεται κανείς.
+  { label: '', ids: ['overview','calendar','finances','accounting','loan',
+                     'tenant','pricing','clients','documents','roi','plan'] },
+  // Ο,τι είναι δικό μου και όχι του ακινήτου. Ο «Λογαριασμός» ΔΕΝ είναι εδώ:
+  // η γραμμή του χρήστη στο υποσέλιδο είναι η μία του πόρτα.
+  { label: '', ids: ['referral'] },
 ];
+
 
 // Καρτέλες που ΔΕΝ περνούν από τη σταδιακή αποκάλυψη (lib/nav/disclosure.ts).
 // Ο κανόνας τους είναι η ίδια η κατάσταση του ακινήτου, και η μηχανή ορατότητας τον
@@ -1194,17 +1199,11 @@ export default function Dashboard() {
 
   // Deep-link καρτέλα ενοικιαστή → Απογραφή/Παράδοση με προ-συμπληρωμένα στοιχεία.
   const [handoverIntent, setHandoverIntent] = useState<{tenantName?:string;tenantPhone?:string;type?:'check_in'|'check_out'}|null>(null);
-  // Ομαδοποιημένη πλοήγηση (accordion): ανοιχτή μένει η ομάδα του ενεργού tab.
-  const [openGroup, setOpenGroup] = useState('Οικονομικά');
-  // Η ομάδα ανοίγει στην ίδια απόδοση με την αλλαγή καρτέλας, όχι σε effect μετά
-  // από αυτήν: αλλιώς η μπάρα ζωγραφιζόταν μία φορά με την παλιά ομάδα ανοιχτή
-  // και αμέσως μετά με τη νέα, δηλαδή ένα ορατό τίναγμα σε κάθε πλοήγηση.
-  const [lastNav, setLastNav] = useState(nav);
-  if (nav !== lastNav) {
-    setLastNav(nav);
-    const g = NAV_GROUPS.find(gr => gr.ids.includes(nav));
-    if (g?.label) setOpenGroup(g.label);
-  }
+  // ΤΟ ΑΚΟΡΝΤΕΟΝ ΕΦΥΓΕ ΜΑΖΙ ΜΕ ΤΙΣ ΟΜΑΔΕΣ. Εδώ ζούσαν δύο states —`openGroup` με
+  // αρχική τιμή 'Οικονομικά' και ένας καθρέφτης `lastNav` που τα συγχρόνιζε
+  // μέσα στην ίδια απόδοση για να μην τινάζεται η μπάρα. Δύο states, ένας
+  // συγχρονισμός και ένα σχόλιο τεσσάρων γραμμών, για να ανοιγοκλείνουν δύο
+  // ομάδες που δεν μπορούσαν να έχουν πάνω από τρεις γραμμές.
   // Σταδιακή αποκάλυψη: ποιες καρτέλες έχει ήδη ανοίξει ο χρήστης και αν ζήτησε
   // να τις βλέπει όλες. Φορτώνονται από τη βάση ώστε να τον ακολουθούν παντού.
   const [revealedTabs, setRevealedTabs] = useState<string[]>([]);
@@ -1306,10 +1305,18 @@ export default function Dashboard() {
     } catch { /* ignore */ }
   }, []);
 
-  // Καθολικό ⌘K / Ctrl+K για άνοιγμα του command palette
+  // Καθολικό ⌘K / Ctrl+K για άνοιγμα του command palette.
+  //
+  // ΚΑΙ ΤΟ ESCAPE, ΠΟΥ ΕΛΕΙΠΕ ΕΝΤΕΛΩΣ. Το συρόμενο μενού και το μενού
+  // κατάστασης άνοιγαν με πληκτρολόγιο και ΔΕΝ έκλειναν με πληκτρολόγιο: ο
+  // μόνος τρόπος ήταν κλικ πάνω σε ένα πέπλο που δεν εστιάζεται. Οποιος
+  // πλοηγείται με Tab έμενε κλειδωμένος μέσα σε ένα μενού που είχε ανοίξει
+  // μόνος του. Η μία συνδρομή στο πληκτρολόγιο κλείνει και τα δύο: το Escape
+  // σημαίνει «πίσω», και δεν υπάρχει λόγος να το γράψει καθένα ξεχωριστά.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); setCmdkOpen(v => !v); }
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); setCmdkOpen(v => !v); return; }
+      if (e.key === 'Escape') { setSidebarOpen(false); setStatusDropdown(false); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -1660,7 +1667,8 @@ export default function Dashboard() {
   const userInitials = user?.email?.substring(0,2).toUpperCase() || 'GF';
   const statusColor = selected ? STATUS_COLORS[readStatus(selected)] : 'var(--text-secondary)';
   const statusLabel = selected ? statusLabelOf(selected) : '';
-  const getBadge = (id: string) => { if (id==='inventory'&&inventoryAlerts>0) return inventoryAlerts; if (id==='checklist'&&checklistAlerts>0) return checklistAlerts; return 0; };
+  // Η `getBadge` έφυγε: απαντούσε μόνο για `inventory` και `checklist`, που δεν
+  // είναι καρτέλες του μενού. Τα δύο πλήθη τα διαβάζει απευθείας η κάτω μπάρα.
 
   // ── ΜΙΑ ΑΠΟΦΑΣΗ ΟΡΑΤΟΤΗΤΑΣ, ΕΝΑ ΣΗΜΕΙΟ ───────────────────────────────────
   //
@@ -1757,13 +1765,19 @@ export default function Dashboard() {
 
   return (
     <div className="app-shell">
-      {/* Σκίαση πίσω από το συρόμενο μενού (μόνο κινητό/tablet) */}
-      <div className={`app-scrim ${sidebarOpen?'open':''}`} onClick={()=>setSidebarOpen(false)}/>
+      {/* Σκίαση πίσω από το συρόμενο μενού (μόνο κινητό/tablet).
+          `aria-hidden`: είναι πέπλο, όχι χειριστήριο — δεν πρέπει να εστιάζεται
+          ούτε να ανακοινώνεται. Ο δρόμος του πληκτρολογίου είναι το Escape, που
+          μέχρι τώρα δεν υπήρχε καθόλου. */}
+      <div aria-hidden className={`app-scrim ${sidebarOpen?'open':''}`} onClick={()=>setSidebarOpen(false)}/>
       <aside className={`app-sidebar ${sidebarOpen?'open':''}`}>
-        <div className="sidebar-logo" role="button" tabIndex={0}
-          onClick={()=>{ setNav('overview'); setSidebarOpen(false); }}
-          onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); setNav('overview'); setSidebarOpen(false); } }}
-          title="Αρχική, Επισκόπηση">
+        {/* ΤΟ ΛΟΓΟΤΥΠΟ ΕΠΑΨΕ ΝΑ ΕΙΝΑΙ ΚΟΥΜΠΙ. Ηταν ο μόνος δρόμος προς την
+            «Επισκόπηση» σε desktop — ένα div role="button" ύψους 64px, χωρίς
+            καμία ένδειξη ότι βρίσκεσαι ήδη εκεί, δηλαδή πλοήγηση που δεν
+            μπορούσε να πει «είσαι εδώ». Η Επισκόπηση έχει πλέον δική της
+            γραμμή, πρώτη, με aria-current όπως κάθε άλλη. Ενα σήμα δεν
+            χρειάζεται να είναι και πόρτα. */}
+        <div className="sidebar-logo">
           <div className="sidebar-logo-mark" aria-hidden>P</div>
           <span className="sidebar-logo-text">Property OS</span>
         </div>
@@ -1838,31 +1852,25 @@ export default function Dashboard() {
               .map(id => ({ id, d: decide(id) }))
               .filter(x => x.d.visible || (showAllTabsPref && x.d.applies));
             if (items.length === 0) return null;
-            const hasHeader = !!group.label;
-            const open = !hasHeader || openGroup===group.label;
-            // Μόνο οι σχετικές μετρούν στο έμβλημα της κλειστής ομάδας: η αχνή καρτέλα
-            // δεν εμφανίζει έμβλημα, άρα δεν πρέπει να υπόσχεται και ειδοποιήσεις.
-            const groupBadge = items.reduce((s,x)=>s+(x.d.visible?getBadge(x.id):0),0);
             return (
             <div className="sidebar-section" key={gi}>
-              {hasHeader && (
-                <button type="button" className={`sidebar-section-header ${open?'open':''}`} aria-expanded={open}
-                  onClick={()=>setOpenGroup(cur=>cur===group.label?'':group.label)}>
-                  <span>{group.label}</span>
-                  {!open && groupBadge>0 && <span className="sidebar-section-badge">{groupBadge>9?'9+':groupBadge}</span>}
-                  <span className="sidebar-section-chevron" aria-hidden style={{display:'inline-flex',transform:open?'rotate(90deg)':'none',transition:'transform .15s'}}><svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
-                </button>
-              )}
-              {open && items.map(({ id, d }) => { const badge=getBadge(id); const locked=!isTabAllowed(ent, id); return (
+              {items.map(({ id, d }) => { const locked=!isTabAllowed(ent, id); return (
                 // Η μη-σχετική καρτέλα (ορατή μόνο με «δείξε τα όλα») είναι αχνή και
                 // λέει γιατί. Χωρίς λουκέτο και χωρίς έμβλημα: δεν της ζητάμε τίποτα,
                 // την αφήνουμε στη θέση της για όποιον θέλει να ξέρει ότι υπάρχει.
+                //
+                // ΤΟ ΕΜΒΛΗΜΑ ΕΦΥΓΕ ΑΠΟ ΕΔΩ. Ηταν κόκκινος μετρητής που δεν
+                // εμφανίστηκε ΠΟΤΕ: η `getBadge` απαντούσε μόνο για `inventory` και
+                // `checklist`, και κανένα από τα δύο δεν είναι καρτέλα του μενού.
+                // Κώδικας που παραβίαζε και τον κανόνα του κόκκινου, για μια
+                // περίπτωση που δεν υπήρχε.
                 <button key={id} className={`sidebar-item ${nav===id?'active':''}`} onClick={()=>{setNav(id);setSidebarOpen(false);}} disabled={!selected}
+                  aria-current={nav===id ? 'page' : undefined}
                   style={d.visible ? undefined : { opacity: 0.45 }}
                   title={d.visible ? (locked ? 'Διαθέσιμο σε ανώτερο πακέτο' : undefined) : d.reason}>
                   <span className="sidebar-item-icon" aria-hidden>{ic(NAV_ICON[id]||'')}</span>
                   <span className="sidebar-item-label">{id==='referral' && effProfileType==='professional' ? 'Πρόγραμμα Συνεργατών' : NAV_LABEL[id]}</span>
-                  {!d.visible ? null : locked ? <LockBadge/> : (badge>0&&<span style={{marginLeft:'auto',minWidth:20,height:20,borderRadius:10,background:'var(--negative)',color:'var(--text-inverse)',fontFamily: T.font.sans,fontSize:11,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',padding:'0 6px'}}>{badge>9?'9+':badge}</span>)}
+                  {d.visible && locked && <LockBadge/>}
                 </button>
               );})}
             </div>
@@ -1938,8 +1946,10 @@ export default function Dashboard() {
                     </button>
                     {statusDropdown && (
                       <>
-                      {/* Κλείσιμο με κλικ οπουδήποτε αλλού */}
-                      <div onClick={()=>setStatusDropdown(false)} style={{position:'fixed',inset:0,zIndex:99}}/>
+                      {/* Κλείσιμο με κλικ οπουδήποτε αλλού. Πέπλο, όχι κουμπί:
+                          `aria-hidden` ώστε να μη μπει στη σειρά του Tab. Με
+                          πληκτρολόγιο κλείνει με Escape. */}
+                      <div aria-hidden onClick={()=>setStatusDropdown(false)} style={{position:'fixed',inset:0,zIndex:99}}/>
                       <div role="menu" style={{position:'absolute',top:'calc(100% + 8px)',left:0,maxHeight:'min(440px, calc(100vh - 96px))',overflowY:'auto',overscrollBehavior:'contain',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'6px 0',zIndex:100,minWidth:224,boxShadow:'var(--shadow-lg)'}}>
                         <div style={{fontFamily: T.font.sans,fontSize:11,fontWeight:600,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--text-tertiary)',padding:'6px 16px 4px'}}>Κατάσταση</div>
                         {STATUSES.map(({ key: k, label: v, hint }) => {

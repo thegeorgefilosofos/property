@@ -870,12 +870,8 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
   height: 64px;              /* ίδιο με την πάνω μπάρα, ώστε να συνεχίζεται η γραμμή */
   flex-shrink: 0;
   border-bottom: 1px solid var(--sidebar-border);
-  cursor: pointer;
   user-select: none;
-  transition: background 0.16s ease;
 }
-.sidebar-logo:hover { background: var(--bg-hover); }
-.sidebar-logo:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .sidebar-logo-mark {
   width: 28px; height: 28px;
   border-radius: 8px;
@@ -936,48 +932,30 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
 .quick-add-icon { display: flex; align-items: center; justify-content: center; width: 18px; flex-shrink: 0; }
 .quick-add-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* ── Ετικέτες και κεφαλίδες ενοτήτων ────────────────────────────────────── */
+/* ── Ετικέτες ενοτήτων ──────────────────────────────────────────────────── */
 .sidebar-section { padding: 4px 0; }
-.sidebar-section-label,
-.sidebar-section-header {
+.sidebar-section-label {
   font-family: 'Inter', sans-serif;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-tertiary);
+  padding: 10px var(--rail-x) 4px;
 }
-.sidebar-section-label { padding: 10px var(--rail-x) 4px; }
-.sidebar-section-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: calc(100% - var(--rail-gutter) * 2);
-  margin: 0 var(--rail-gutter);
-  min-height: var(--rail-h);
-  padding: 0 var(--rail-pad);
-  border: none;
-  border-radius: var(--rail-radius);
-  background: none;
-  cursor: pointer;
-  text-align: left;
-  transition: background 0.12s ease, color 0.12s ease;
+/* ΑΦΑΙΡΕΘΗΚΑΝ: .sidebar-section-header, .sidebar-section-chevron και
+   .sidebar-section-badge — οι πτυσσόμενες ομάδες. Ο λόγος είναι γραμμένος στο
+   NAV_GROUPS του page.tsx και είναι μετρημένος: το έμβλημα δεν εμφανίστηκε
+   ΠΟΤΕ (η getBadge απαντούσε μόνο για δύο κωδικούς που δεν ήταν στο μενού), το
+   ακορντεόν έκρυβε και την ΕΝΕΡΓΗ καρτέλα, και η αρχική του τιμή έκρυβε τον
+   «Ενοικιαστή» την πρώτη μέρα. */
+
+/* Τα τρία μπλοκ χωρίζονται με μία γραμμή του ενός εικονοστοιχείου, όχι με
+   κεφαλίδα των σαράντα τεσσάρων. */
+.sidebar-nav .sidebar-section + .sidebar-section {
+  border-top: 1px solid var(--sidebar-border);
+  margin-top: 4px;
 }
-.sidebar-section-header:hover { background: var(--bg-hover); color: var(--text-secondary); }
-.sidebar-section-chevron { margin-left: auto; display: inline-flex; opacity: 0.8; }
-.sidebar-section-badge {
-  margin-left: auto;
-  min-width: 18px; height: 18px;
-  border-radius: 9px;
-  background: var(--negative);
-  /* Ο μετρητής εκκρεμοτήτων είναι ΠΛΗΡΟΦΟΡΙΑ, όχι διακοσμητικό: πρέπει να
-     διαβάζεται. Με καρφωτό #fff έβγαινε 2,50:1 στο σκούρο θέμα. */
-  color: var(--on-tone);
-  font-size: 10px; font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
-  padding: 0 5px;
-}
-.sidebar-section-header .sidebar-section-badge + .sidebar-section-chevron { margin-left: 6px; }
 
 /* ── Η ΓΡΑΜΜΗ. Ενα σχήμα για ακίνητο, καρτέλα, προσθήκη και χρήστη. ─────── */
 .sidebar-item,

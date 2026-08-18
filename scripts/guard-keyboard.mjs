@@ -29,14 +29,34 @@
 import { readFileSync } from 'node:fs'
 import { findSources } from './lib/find-tests.mjs'
 
+/** Το άνοιγμα της ετικέτας και μόνο αυτό, όσες γραμμές κι αν πιάνει. */
+function closingOfTag(text) {
+  let depth = 0
+  for (let k = 0; k < text.length; k++) {
+    const c = text[k]
+    if (c === '{') depth++
+    else if (c === '}') depth--
+    else if (c === '>' && depth === 0) return text.slice(0, k + 1)
+  }
+  return text
+}
+
 const findings = []
 for (const file of findSources()) {
   if (!file.endsWith('.tsx') || file.includes('.test.')) continue
   const lines = readFileSync(file, 'utf8').split('\n')
   lines.forEach((line, i) => {
     if (!/<div[^>]*onClick/.test(line)) return
-    // Το άνοιγμα της ετικέτας μπορεί να σπάει σε γραμμές· κοίτα και τις δύο επόμενες.
-    const tag = lines.slice(i, i + 3).join(' ')
+    // ΤΟ ΠΑΡΑΘΥΡΟ ΤΩΝ ΤΡΙΩΝ ΓΡΑΜΜΩΝ ΔΑΝΕΙΖΟΤΑΝ ΙΔΙΟΤΗΤΕΣ ΑΠΟ ΤΟ ΔΙΠΛΑΝΟ ΣΤΟΙΧΕΙΟ.
+    // Ο έλεγχος έπαιρνε `lines.slice(i, i + 3)` ωμά: αν το ΕΠΟΜΕΝΟ στοιχείο —
+    // άσχετο, άλλη ετικέτα — είχε `role=`, το `<div onClick>` περνούσε καθαρό.
+    // Ετσι το πέπλο του συρόμενου μενού ήταν χρόνια απρόσιτο και ο φύλακας
+    // σιωπούσε, επειδή από κάτω του τύχαινε να κάθεται ένα role="button".
+    // Φάνηκε τη μέρα που το διπλανό στοιχείο έπαψε να είναι κουμπί.
+    //
+    // Η ετικέτα τελειώνει στο πρώτο `>` που βρίσκεται ΕΞΩ από αγκύλες: μέσα σε
+    // `onClick={()=>...}` το `>` ανήκει στο βέλος, όχι στην ετικέτα.
+    const tag = closingOfTag(lines.slice(i, i + 3).join(' '))
 
     // Ήδη δηλωμένο ως χειριστήριο, ή ρητά διακοσμητικό.
     if (/\brole=/.test(tag) || /\baria-hidden\b/.test(tag)) return
