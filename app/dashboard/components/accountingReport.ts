@@ -167,7 +167,9 @@ export async function downloadOfficialAccountingReport(c: AccountingReportCtx, o
 
   const issued = await issueDocument(o.supabase, {
     userId: o.userId, docType: 'Λογιστική αναφορά',
-    subject: [c.propName, c.address].filter(Boolean).join(' · '),
+    // Ιδιος λόγος με το rentCertificate: το «αντικείμενο» είναι δημόσιο μέσω
+    // της σελίδας επαλήθευσης, οπότε δεν κουβαλά τη διεύθυνση του ακινήτου.
+    subject: c.propName,
     period: `Χρήση ${c.year}`,
     summary: { grossIncome: s.grossIncome, incomeTax: s.incomeTax, netProfit: s.netProfit, monthlyProvision: p.monthly, collected: c.collectedTotal, expected: c.expectedTotal },
   })

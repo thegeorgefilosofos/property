@@ -2254,6 +2254,7 @@ export default function Dashboard() {
           // έχει κρίνει ότι δεν τον αφορά.
           onNavigate={(tab)=>{ if (navVisible(tab)) setNav(tab); }}
           canNavigate={navVisible}
+          planLabel={PLANS[effPlan].name}
           onScan={()=>setQuickAddOpen(true)}
         />
       )}

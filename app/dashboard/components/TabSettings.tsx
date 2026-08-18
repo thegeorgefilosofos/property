@@ -718,8 +718,12 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 3 }}>Πρόωρη πρόσβαση</div>
           <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>
             {planAtLeast(effPlan, FEATURE_MIN_PLAN.early_access)
-              ? `Το πακέτο σου παίρνει την εφαρμογή κινητού, στο App Store και στο Google Play, ${EARLY_ACCESS_DAYS} ημέρες νωρίτερα από τα υπόλοιπα. Κάθε νέα δυνατότητα και βελτίωση ενσωματώνεται πρώτα εδώ.`
-              : `Με το πακέτο «${PLANS.owner.name}» και πάνω, η εφαρμογή κινητού έρχεται ${EARLY_ACCESS_DAYS} ημέρες νωρίτερα, και κάθε νέα δυνατότητα ενσωματώνεται πρώτα εκεί.`}
+              /* ΜΕΛΛΟΝΤΑΣ, ΟΧΙ ΕΝΕΣΤΩΤΑΣ. Εγραφε «Το πακέτο σου ΠΑΙΡΝΕΙ την εφαρμογή
+                 κινητού, στο App Store και στο Google Play» — για προϊόν που δεν
+                 υπάρχει και δεν έχει ημερομηνία. Ο συνδρομητής διάβαζε ότι κάτι
+                 του ανήκει ήδη και έψαχνε πού να το κατεβάσει. */
+              ? `Οταν βγει η εφαρμογή κινητού, το πακέτο σου θα την έχει ${EARLY_ACCESS_DAYS} ημέρες νωρίτερα. Δεν έχει ημερομηνία ακόμη. Κάθε νέα δυνατότητα και βελτίωση ενσωματώνεται πρώτα εδώ.`
+              : `Με το πακέτο «${PLANS.owner.name}» και πάνω, κάθε νέα δυνατότητα ενσωματώνεται πρώτα εκεί· και η εφαρμογή κινητού, όταν βγει, θα έρχεται ${EARLY_ACCESS_DAYS} ημέρες νωρίτερα.`}
           </div>
         </div>
 

@@ -78,6 +78,14 @@ interface Props {
    * Τώρα η υπόσχεση δεν γράφεται καν όταν δεν μπορεί να τηρηθεί.
    */
   canNavigate?: (tab: string) => boolean;
+  /**
+   * Το όνομα του πακέτου που ΙΣΧΥΕΙ τώρα (δοκιμή, προσφορά ή συνδρομή μαζί).
+   *
+   * Το prompt δηλώνει «Ξέρεις ακριβώς τι καλύπτει το πλάνο του χρήστη» και δεν
+   * του δινόταν ποτέ. Το υπολογίζει ήδη η σελίδα με το `effectivePlan`· εδώ
+   * απλώς ταξιδεύει μαζί με τα υπόλοιπα συμφραζόμενα.
+   */
+  planLabel?: string;
 }
 type Action = AssistantAction;
 interface Msg { role: 'user' | 'assistant'; text: string; action?: Action; }
@@ -120,7 +128,7 @@ const reachLabel = (ch: 'whatsapp' | 'viber' | 'email' | 'call', name: string) =
 const CH_HUMAN: Record<'whatsapp' | 'viber' | 'email' | 'call', string> = { whatsapp: 'WhatsApp', viber: 'Viber', email: 'email', call: 'κλήση' };
 
 
-export default function PropertyAssistant({ propertyId, userId, propContext, allProperties = [], onNavigate, onScan, canNavigate }: Props) {
+export default function PropertyAssistant({ propertyId, userId, propContext, allProperties = [], onNavigate, onScan, canNavigate, planLabel }: Props) {
   const supabase = createClient();
   const [open, setOpen] = useState(false);
   const [fabPos, setFabPos] = useState<{ x: number; y: number } | null>(null);
@@ -1099,6 +1107,11 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         contactsPro: techStr || undefined,
         pricing: pricingStr || undefined,
         memories: prefs.memory ? memories.map(m => m.text) : undefined,
+        // ΤΟ ΠΑΚΕΤΟ, ΠΟΥ ΤΟ PROMPT ΥΠΟΘΕΤΕ ΟΤΙ ΞΕΡΕΙ. Χωρίς αυτό, η Νόα
+        // επινοούσε: μιλούσε για οθόνες που ο χρήστης δεν έχει και έλεγε όριο
+        // ερωτήσεων άλλου πακέτου. Το `planLabel` έρχεται από τη σελίδα, που
+        // έχει ήδη υπολογίσει το `effectivePlan` (δοκιμή, προσφορά, συνδρομή).
+        plan: planLabel,
         // ΩΡΑ ΕΛΛΑΔΑΣ, ΟΧΙ ΤΗΣ ΣΥΣΚΕΥΗΣ. Το toLocaleDateString χωρίς timeZone
         // ακολουθεί το ρολόι του browser: ο ιδιοκτήτης που ταξιδεύει θα έπαιρνε
         // λάθος μέρα, και μαζί λάθος απάντηση σε κάθε «προλαβαίνω;».
