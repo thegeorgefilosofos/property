@@ -21,10 +21,9 @@
 // κάθε πελάτη, γραμμένος μία φορά και δοκιμασμένος χωριστά.
 // ═══════════════════════════════════════════════════════════════════════════
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import BrandMark from '@/components/BrandMark';
 import { createClient } from '@/lib/supabase/client';
 import { T, Card } from '@/components/Theme';
-import { CustomSelect } from '@/app/dashboard/components/UIComponents';
+import { PortalBar, PortalTitle, portalWrap } from '../Chrome';
 import { claim, clients, request, gapsOf, readinessOf, type ClientCounts } from '@/lib/data/accountant';
 
 /** Το τελευταίο κλεισμένο έτος: εκεί δουλεύει ο λογιστής τον περισσότερο χρόνο. */
@@ -87,7 +86,7 @@ export default function AccountantWorkspace() {
     }
   };
 
-  const wrap: React.CSSProperties = { maxWidth: 960, margin: '0 auto', padding: '0 clamp(16px,5vw,24px)' };
+  const wrap = portalWrap;
   const label: React.CSSProperties = {
     fontSize: 10, letterSpacing: '0.5px', textTransform: 'uppercase',
     color: 'var(--text-tertiary)', fontFamily: T.font.sans, margin: 0,
@@ -97,40 +96,32 @@ export default function AccountantWorkspace() {
 
   if (email === null) {
     return (
-      <main style={{ ...wrap, paddingTop: 72 }}>
-        <BrandMark />
-        <h1 style={{ fontSize: 24, fontWeight: 700, margin: '28px 0 8px', fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
-          Ο χώρος του λογιστή
-        </h1>
-        <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--text-secondary)', margin: 0, fontFamily: T.font.sans, maxWidth: 560 }}>
-          Συνδέσου με τον λογαριασμό σου για να δεις όλους τους ιδιοκτήτες που σε εξουσιοδότησαν, μαζί, και τι λείπει από τον καθένα.
-        </p>
-        <a href="/login?next=/accountant/workspace" style={{
-          display: 'inline-flex', alignItems: 'center', height: T.h.lg, padding: '0 18px', marginTop: 22,
-          borderRadius: 10, background: 'var(--accent)', color: 'var(--accent-text)',
-          fontSize: 13, fontWeight: 600, textDecoration: 'none', fontFamily: T.font.sans,
-        }}>Σύνδεση</a>
-      </main>
+      <div style={{ background: 'var(--bg-base)', minHeight: '100vh' }}>
+        <PortalBar />
+        <main style={{ ...wrap, paddingTop: 44 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, fontFamily: T.font.sans, color: 'var(--text-primary)', letterSpacing: '-0.4px' }}>
+            Ολοι οι πελάτες σου σε μία λίστα
+          </h1>
+          <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--text-secondary)', margin: '10px 0 0', fontFamily: T.font.sans, maxWidth: 560 }}>
+            Με λογαριασμό βλέπεις μαζί κάθε ιδιοκτήτη που σε εξουσιοδότησε και τι λείπει από τον καθένα, χωρίς να κρατάς έναν σύνδεσμο ανά πελάτη.
+          </p>
+          <a href="/login?next=/accountant/workspace" style={{
+            display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 18px', marginTop: 22,
+            borderRadius: T.radius.btn, background: 'var(--accent)', color: 'var(--accent-text)',
+            fontSize: 13, fontWeight: 700, textDecoration: 'none', fontFamily: T.font.sans,
+          }}>Σύνδεση</a>
+        </main>
+      </div>
     );
   }
 
-  const years = Array.from({ length: 5 }, (_, i) => String(new Date().getFullYear() - i));
-
   return (
-    <main style={{ ...wrap, paddingTop: 40, paddingBottom: 72 }}>
-      <BrandMark />
-
-      <header style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap', margin: '26px 0 0' }}>
-        <div>
-          <p style={label}>Χώρος λογιστή</p>
-          <h1 style={{ fontSize: 24, fontWeight: 700, margin: '6px 0 0', fontFamily: T.font.sans, color: 'var(--text-primary)', letterSpacing: '-0.4px' }}>
-            Οι πελάτες σου
-          </h1>
-        </div>
-        <div style={{ minWidth: 132 }}>
-          <CustomSelect value={String(year)} onChange={v => setYear(Number(v))} options={years.map(y => ({ value: y, label: `Χρήση ${y}` }))} />
-        </div>
-      </header>
+    <div style={{ background: 'var(--bg-base)', minHeight: '100vh', paddingBottom: 72 }}>
+      <PortalBar year={year} onYear={setYear} />
+      <main style={wrap}>
+        <PortalTitle over={`${rows?.length ?? 0} ${(rows?.length ?? 0) === 1 ? 'πελάτης' : 'πελάτες'}`}
+          title="Οι πελάτες σου"
+          meta={`Χρήση 01/01/${year} έως 31/12/${year}`} />
 
       {/* Η ΠΡΟΣΘΗΚΗ ΚΑΘΕΤΑΙ ΠΑΝΩ, ΓΙΑΤΙ ΕΙΝΑΙ Η ΠΡΩΤΗ ΚΙΝΗΣΗ ΠΟΥ ΚΑΝΕΙΣ ΕΔΩ.
           Όταν η λίστα γεμίσει, παύει να είναι η πρώτη — αλλά ούτε ενοχλεί, γιατί
@@ -240,8 +231,9 @@ export default function AccountantWorkspace() {
       )}
 
       <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '26px 0 0', lineHeight: 1.7, fontFamily: T.font.sans }}>
-        Βλέπεις μόνο όσους σε εξουσιοδότησαν, και μόνο όσο κρατά ο σύνδεσμός τους. Ο ιδιοκτήτης μπορεί να τον ανακαλέσει οποτεδήποτε.
-      </p>
-    </main>
+          Βλέπεις μόνο όσους σε εξουσιοδότησαν, και μόνο όσο κρατά ο σύνδεσμός τους. Ο ιδιοκτήτης μπορεί να τον ανακαλέσει οποτεδήποτε.
+        </p>
+      </main>
+    </div>
   );
 }

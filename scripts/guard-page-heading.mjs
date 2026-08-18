@@ -22,7 +22,7 @@
 import { readFileSync, globSync, existsSync } from 'node:fs'
 
 /** Κελύφη που παρέχουν `h1` για λογαριασμό του καλούντος. */
-const SHELLS = ['<PageTitle', '<LegalShell', '<LegalLayout', '<AlreadySignedIn']
+const SHELLS = ['<PageTitle', '<LegalShell', '<LegalLayout', '<AlreadySignedIn', '<PortalTitle']
 
 /**
  * Οθόνες που ΔΕΝ είναι σελίδες με δικό τους όνομα, και ο λόγος τους.
@@ -30,7 +30,6 @@ const SHELLS = ['<PageTitle', '<LegalShell', '<LegalLayout', '<AlreadySignedIn']
  */
 const EXEMPT = {
   'app/dashboard/page.tsx': 'κέλυφος του πίνακα· την επικεφαλίδα τη δίνει η ενεργή καρτέλα',
-  'app/accountant/workspace/page.tsx': 'γράφει η ίδια δύο h1 σε αποκλειόμενους κλάδους',
   'app/dashboard/components/TabBoundary.tsx': 'όριο σφάλματος γύρω από την καρτέλα· δεν είναι οθόνη',
 }
 
