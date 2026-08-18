@@ -77,7 +77,7 @@ ok('η υπέρβαση γυρίζει 429', /allowed === false[\s\S]{0,700}?\},
 //   perMinute        = PER_MINUTE                     = 20
 //   perDayByRank     = [15, 30, 60, 120]   (free 15 · owner 30 · agency 60 · office 120)
 //   perMonthByRank   = [60, 120, 300, 600] (free 60 · owner 120 · agency 300 · office 600)
-//   freePoolPerMonth = FREE_POOL_PER_MONTH = 340  →  340 × 0,052 $ = 17,68 $ ≤ 18 $
+//   freePoolPerMonth = FREE_TESTERS_PER_MONTH × TRIAL_LIMITS.perMonth = 50 × 20
 // Η σύγκριση γίνεται με την ΠΗΓΗ, όχι με αυτά τα νούμερα: αν αύριο αλλάξει το
 // πλάνο, το τεστ πρέπει να απαιτήσει την αλλαγή και εδώ — όχι να την επαναλάβει.
 const num = (field: string): number | null => {

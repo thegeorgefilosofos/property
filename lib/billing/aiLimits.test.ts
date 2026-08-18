@@ -13,7 +13,7 @@
 import {
   aiLimitsFor, remainingLine, dailyExhaustedMessage, monthlyExhaustedMessage,
   poolExhaustedMessage, COST_PER_REQUEST_USD, COST_PER_REQUEST_EUR, FREE_BUDGET_USD,
-  FREE_POOL_PER_MONTH, dailyLimitsByRank, monthlyLimitsByRank, PLAN_RANK_ORDER,
+  FREE_POOL_PER_MONTH, FREE_TESTERS_PER_MONTH, dailyLimitsByRank, monthlyLimitsByRank, PLAN_RANK_ORDER,
   MAX_PER_MINUTE, AI_SHARE, monthlyQuestionBudget, TRIAL_LIMITS, effectiveAiLimits,
 } from './aiLimits'
 import { PLANS, PLAN_ORDER, type PlanId } from './plans'
@@ -25,25 +25,33 @@ const FREE_USERS_TARGET = 10
 const EUR_TO_USD = 1.08
 
 // ── Ο ΣΚΛΗΡΟΣ οικονομικός έλεγχος: η κοινή δεξαμενή ────────────────────────
-// Τα ατομικά όρια ΔΕΝ αρκούν: δέκα δωρεάν χρήστες στο μέγιστο αθροίζουν
-// 10 × 60 × 0,052 $ = 31,20 $, πάνω από τον στόχο. Αυτό που κάνει την εγγύηση
-// σκληρή είναι η δεξαμενή — και αυτό ακριβώς ελέγχουμε εδώ.
+// Τα ατομικά όρια ΔΕΝ αρκούν: δεσμεύουν έναν χρήστη, δεν δεσμεύουν το άθροισμα.
+// Αυτό που κάνει την εγγύηση σκληρή είναι η δεξαμενή.
+//
+// ΚΑΙ Η ΔΕΞΑΜΕΝΗ ΜΕΤΡΙΕΤΑΙ ΣΕ ΑΝΘΡΩΠΟΥΣ. Ηταν γραμμένη ως ποσό («18 $») και το
+// πόσοι δοκιμαστές χωρούσαν προέκυπτε κατά λάθος: 25 τον μήνα, νούμερο που δεν
+// είχε αποφασίσει και δεν ήξερε κανείς. Τα τεστ εδώ κλειδώνουν τη ΣΧΕΣΗ, όχι
+// τα νούμερα — αλλιώς θα ξαναγίνονταν σχόλιο που γερνά.
 {
   const poolCost = FREE_POOL_PER_MONTH * COST_PER_REQUEST_USD
-  ok('η δεξαμενή χωράει στον προϋπολογισμό', poolCost <= FREE_BUDGET_USD)
-  ok('ο προϋπολογισμός μένει στον στόχο 16-20 $', FREE_BUDGET_USD >= 16 && FREE_BUDGET_USD <= 20)
-  ok('η δεξαμενή αξιοποιεί τον προϋπολογισμό (>85%), δεν τον αφήνει αχρησιμοποίητο',
-    poolCost / FREE_BUDGET_USD > 0.85)
+  ok('η δεξαμενή είναι ΑΚΡΙΒΩΣ όσοι δοκιμαστές θέλουμε επί το πακέτο τους',
+    FREE_POOL_PER_MONTH === FREE_TESTERS_PER_MONTH * TRIAL_LIMITS.perMonth)
+  ok('ο προϋπολογισμός καλύπτει τη δεξαμενή', poolCost <= FREE_BUDGET_USD)
+  ok('και δεν την υπερκαλύπτει με αέρα (ένα δολάριο περιθώριο, όχι δέκα)',
+    FREE_BUDGET_USD - poolCost < 1)
+
+  // Ο στόχος είναι απόφαση, αλλά όχι οποιαδήποτε: κάτω από δέκα δοκιμαστές τον
+  // μήνα η δοκιμή δεν είναι προϊόν, και πάνω από διακόσιους δεν είναι δοκιμή.
+  ok('ο στόχος δοκιμαστών είναι μέσα σε λογικά όρια',
+    FREE_TESTERS_PER_MONTH >= 10 && FREE_TESTERS_PER_MONTH <= 200)
 
   // Η δεξαμενή πρέπει να ΔΕΣΜΕΥΕΙ: αν δεν έπιανε ποτέ, η εγγύηση θα ήταν
-  // διακοσμητική. Με το πακέτο αναμονής στα 10, δεσμεύει στους 52 λογαριασμούς
-  // χωρίς συνδρομή — και αυτούς τους πληρώνουμε από την ίδια τσέπη.
+  // διακοσμητική. Ο λογαριασμός χωρίς συνδρομή τρώει κι αυτός από εδώ.
   const free = aiLimitsFor('free')
   ok('η δεξαμενή δεσμεύει σε ρεαλιστικό πλήθος λογαριασμών',
-    FREE_POOL_PER_MONTH / free.perMonth < 100)
+    FREE_POOL_PER_MONTH / free.perMonth <= FREE_TESTERS_PER_MONTH * 2)
 
-  // …αλλά ούτε τόσο σφιχτή ώστε να κόβει έναν μοναχικό χρήστη. Πέντε ενεργοί
-  // δωρεάν χρήστες στο πλήρες μηνιαίο τους πρέπει να χωρούν άνετα.
+  // …αλλά ούτε τόσο σφιχτή ώστε να κόβει έναν μοναχικό χρήστη.
   ok('πέντε δωρεάν χρήστες στο πλήρες μηνιαίο τους χωρούν',
     FREE_POOL_PER_MONTH >= free.perMonth * 5)
 }
