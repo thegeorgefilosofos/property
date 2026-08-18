@@ -176,7 +176,7 @@ function DeleteAccount() {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    window.location.href = '/login';
+    window.location.assign('/login');
   };
 
   const del = async () => {

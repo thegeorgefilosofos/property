@@ -14,7 +14,7 @@ import {
   aiLimitsFor, WARN_AT, dailyExhaustedMessage, monthlyExhaustedMessage,
   poolExhaustedMessage, COST_PER_REQUEST_USD, COST_PER_REQUEST_EUR, FREE_BUDGET_USD,
   FREE_POOL_PER_MONTH, dailyLimitsByRank, monthlyLimitsByRank, PLAN_RANK_ORDER,
-  MAX_PER_MINUTE, AI_SHARE, monthlyQuestionBudget, TRIAL_LIMITS,
+  MAX_PER_MINUTE, AI_SHARE, monthlyQuestionBudget, TRIAL_LIMITS, effectiveAiLimits,
 } from './aiLimits'
 import { PLANS, PLAN_ORDER, type PlanId } from './plans'
 
@@ -198,6 +198,36 @@ const EUR_TO_USD = 1.08
   ok('και το πιάνει με τεράστια διαφορά (>100×)', oldWorstMonthly > FREE_BUDGET_USD * 100)
   // Και ότι ο χωρισμός του prompt όντως έφερε την τάξη μεγέθους που ισχυριζόμαστε.
   ok('το caching μείωσε το κόστος τουλάχιστον 2×', OLD_COST / COST_PER_REQUEST_USD >= 2)
+}
+
+// ── ΤΟ ΠΑΚΕΤΟ ΠΟΥ ΛΕΕΙ Ο ΒΟΗΘΟΣ ΕΙΝΑΙ ΤΟ ΠΑΚΕΤΟ ΠΟΥ ΕΠΙΒΑΛΕΙ Ο ΜΕΤΡΗΤΗΣ ───
+// Ο κανόνας ζει δύο φορές: στη `bump_ai_usage` ως `least(όριο, δοκιμαστικό)`
+// και εδώ ως `Math.min`. Δεν γίνεται αλλιώς — ο περιηγητής δεν τρέχει SQL. Αν
+// αποκλίνουν, η Νόα υπόσχεται νούμερο που η βάση δεν δίνει, και ο χρήστης
+// χτυπάει τοίχο έχοντας ακούσει το αντίθετο από τον ίδιο τον βοηθό.
+{
+  for (const id of PLAN_ORDER) {
+    const paid = effectiveAiLimits(id, true)
+    const free = effectiveAiLimits(id, false)
+    ok(`${id}: ο πληρώνων παίρνει ακέραιο το πακέτο του`,
+       paid.perMonth === aiLimitsFor(id).perMonth && paid.perDay === aiLimitsFor(id).perDay)
+    ok(`${id}: ο μη πληρώνων είναι το least των δύο (όπως η SQL)`,
+       free.perMonth === Math.min(aiLimitsFor(id).perMonth, TRIAL_LIMITS.perMonth)
+       && free.perDay === Math.min(aiLimitsFor(id).perDay, TRIAL_LIMITS.perDay))
+    ok(`${id}: κανένας μη πληρώνων δεν ξεπερνά το δοκιμαστικό πακέτο`,
+       free.perMonth <= TRIAL_LIMITS.perMonth && free.perDay <= TRIAL_LIMITS.perDay)
+    ok(`${id}: το ανυψωμένο επίπεδο δεν δίνει ΠΟΤΕ περισσότερα χωρίς πληρωμή`,
+       free.perMonth <= paid.perMonth && free.perDay <= paid.perDay)
+  }
+  // Το συγκεκριμένο σφάλμα που γέννησε τη συνάρτηση: η δοκιμή τρέχει σε
+  // επίπεδο «Ιδιοκτήτης+» και ο βοηθός διάβαζε το πακέτο ΕΚΕΙΝΟΥ του πλάνου.
+  ok('η δοκιμή ΔΕΝ παίρνει το πακέτο του «Ιδιοκτήτης+»',
+     effectiveAiLimits('owner', false).perMonth < aiLimitsFor('owner').perMonth)
+  ok('και η απόκλιση ήταν πραγματικά μεγάλη (>2×)',
+     aiLimitsFor('owner').perMonth / effectiveAiLimits('owner', false).perMonth > 2)
+  // Ο δωρεάν λογαριασμός είναι ΗΔΗ κάτω από το δοκιμαστικό: το least δεν τον αγγίζει.
+  ok('ο λογαριασμός χωρίς συνδρομή μένει στο δικό του, μικρότερο πακέτο',
+     effectiveAiLimits('free', false).perMonth === aiLimitsFor('free').perMonth)
 }
 
 console.log(`aiLimits.test.ts: ${passed} passed, ${failed} failed`)

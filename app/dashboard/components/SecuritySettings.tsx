@@ -225,7 +225,7 @@ export default function SecuritySettings() {
     // Καταγραφή ΠΡΙΝ την καθολική αποσύνδεση (μετά χάνεται η συνεδρία).
     await logActivity(supabase, 'signed_out_all', 'security');
     await supabase.auth.signOut({ scope: 'global' });
-    window.location.href = '/login';
+    window.location.assign('/login');
   }
 
   const lastSignInText = lastSignIn

@@ -249,6 +249,20 @@ export function normalizePlan(id: string | null | undefined): PlanId {
   return id === 'solo' || id === 'owner' || id === 'agency' || id === 'office' ? id : 'free';
 }
 
+/**
+ * Χρεώνεται πραγματικά αυτό το πακέτο;
+ *
+ * ΔΕΝ ΤΑΥΤΙΖΕΤΑΙ ΜΕ ΤΟ «ΕΝΕΡΓΟ ΕΠΙΠΕΔΟ». Η δοκιμή, οι δωρεάν μήνες και η
+ * ιδιότητα Συνεργάτη ανεβάζουν το επίπεδο χωρίς να μπαίνει ευρώ στο ταμείο.
+ * Ελέγχεται η ΤΙΜΗ και όχι μια γραμμένη με το χέρι λίστα ονομάτων, ώστε ένα
+ * νέο πακέτο να μη χρειάζεται να θυμηθεί κανείς να το προσθέσει εδώ.
+ *
+ * Ιδιο σύνολο με τη λίστα της `bump_ai_usage` στη βάση.
+ */
+export function isPayingPlan(id: string | null | undefined): boolean {
+  return PLANS[normalizePlan(id)].priceMonthly > 0;
+}
+
 export function planLimit(id: string | null | undefined): number {
   return PLANS[normalizePlan(id)].maxProperties;
 }

@@ -26,6 +26,7 @@ import {
   normalizeBookTime, resolveBookDate, KNOWLEDGE_PACKS, packsFor,
 } from './assistantPersona';
 import { PLANS, TRIAL_DAYS } from '@/lib/billing/plans';
+import { monthlyQuestionBudget, TRIAL_LIMITS } from '@/lib/billing/aiLimits';
 import { EARLY_ACCESS_DAYS } from '@/lib/billing/entitlements';
 import { ASSISTANT_NAME } from '@/lib/assistant/identity';
 
@@ -564,7 +565,16 @@ ok('κενό → undefined', normalizeBookTime('') === undefined);
 
   // Κάθε σκαλί ανοίγει ΑΛΛΟ πρόβλημα, όχι απλώς περισσότερα ακίνητα.
   ok('gating: σύγκριση → Ιδιοκτήτης+', new RegExp(`Ο «${PLANS.owner.name.replace('+', '\\+')}».*«Σύγκριση ακινήτων»`).test(p));
-  ok('gating: πακέτο ερωτήσεων → Ιδιοκτήτης+', new RegExp(`Ο «${PLANS.owner.name.replace('+', '\\+')}».*διπλάσιο πακέτο ερωτήσεων`, 'i').test(p));
+  // ΤΟ ΠΑΚΕΤΟ ΕΡΩΤΗΣΕΩΝ ΛΕΓΕΤΑΙ ΜΕ ΝΟΥΜΕΡΑ, ΟΧΙ ΜΕ ΕΠΙΘΕΤΟ. Εγραφε «διπλάσιο
+  // πακέτο ερωτήσεων» και «το μεγαλύτερο πακέτο»: ισχυρισμοί χωρίς πηγή, που
+  // κανένα τεστ δεν μπορούσε να διαψεύσει (η πραγματική σχέση ήταν 2,56 φορές).
+  ok('gating: τα νούμερα των ερωτήσεων βγαίνουν από τον προϋπολογισμό',
+     [PLANS.solo, PLANS.owner, PLANS.agency, PLANS.office].every(pl =>
+       new RegExp(`ΠΑΚΕΤΟ ΕΡΩΤΗΣΕΩΝ ΣΕ ΕΜΕΝΑ.*${pl.name.replace('+', '\\+')} ${monthlyQuestionBudget(pl.id)}`).test(p)));
+  ok('gating: κανένα επίθετο στη θέση νουμέρου', !/διπλάσιο πακέτο|μεγαλύτερο πακέτο ερωτήσεων/i.test(p));
+  ok('gating: η δοκιμή λέει ΤΟ ΔΙΚΟ ΤΗΣ νούμερο, όχι του επιπέδου',
+     new RegExp(`ανυψωμένο αλλά ΜΗ πληρωμένο επίπεδο[^.]*${TRIAL_LIMITS.perMonth} τον μήνα`).test(p)
+     && TRIAL_LIMITS.perMonth < monthlyQuestionBudget('owner'));
   ok('gating: τράπεζα → Επαγγελματίας', new RegExp(`Ο «${PLANS.agency.name}».*κινήσεων τράπεζας`).test(p));
   ok('gating: χαρτοφυλάκιο → Επαγγελματίας', new RegExp(`Ο «${PLANS.agency.name}».*«Χαρτοφυλάκιο»`).test(p));
   ok('gating: CRM → Επαγγελματίας', new RegExp(`Ο «${PLANS.agency.name}».*«Πελατολόγιο»/CRM`).test(p));

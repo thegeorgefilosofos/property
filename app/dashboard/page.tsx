@@ -64,7 +64,7 @@ import { computeInsights } from '@/lib/insights/engine';
 import { annuityMonthly } from '@/lib/loans/recommend';
 import { LOAN_COLUMNS, toLoanViews, type LoanView } from '@/lib/loans/shape';
 import { stayTotal } from '@/lib/clients/clients';
-import { clearHistory as clearAssistantHistory } from './components/assistantPersona';
+import { clearHistory as clearAssistantHistory, planBriefing } from './components/assistantPersona';
 import { clearLocalPersonalData } from '@/lib/localPrivacy';
 import { consolidateRentTax, taxShareOf, consolidationSummary, CONSOLIDATION_NOTE } from '@/lib/billing/consolidate';
 import UpgradeModal from './components/UpgradeModal';
@@ -1426,7 +1426,7 @@ export default function Dashboard() {
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { window.location.href = '/login'; return; }
+      if (!user) { window.location.assign('/login'); return; }
       setUser(user);
       // Καταγραφή παραπομπής (referral) στην πρώτη σύνδεση, idempotent. Η RPC
       // αναλύει τον κωδικό στον κάτοχο, μπλοκάρει την αυτο-παραπομπή και γράφει
@@ -1614,7 +1614,11 @@ export default function Dashboard() {
     }
     clearLocalPersonalData();
     try { navigator.serviceWorker?.controller?.postMessage('pos-clear-caches'); } catch { /* ignore */ }
-    window.location.href = '/login';
+    // ΠΛΗΡΗΣ ΦΟΡΤΩΣΗ, ΟΧΙ ΠΛΟΗΓΗΣΗ ΤΟΥ ROUTER: μετά την αποσύνδεση θέλουμε να
+    // πεθάνει ΟΛΗ η μνήμη της εφαρμογής, όχι να μείνει ζωντανή με άδειο χρήστη.
+    // Ως `assign` και όχι ως ανάθεση στο `href`: ίδια ακριβώς συμπεριφορά, αλλά
+    // ο μεταγλωττιστής του React δεν το διαβάζει ως μεταβολή εξωτερικής τιμής.
+    window.location.assign('/login');
   };
 
   // Ο χειροποίητος κύκλος είχε ΔΙΚΟ ΤΟΥ inline <style> με @keyframes spin — ακριβές
@@ -2254,7 +2258,7 @@ export default function Dashboard() {
           // έχει κρίνει ότι δεν τον αφορά.
           onNavigate={(tab)=>{ if (navVisible(tab)) setNav(tab); }}
           canNavigate={navVisible}
-          planLabel={PLANS[effPlan].name}
+          planBrief={planBriefing(effPlan, plan, trial.active ? trial.daysLeft : undefined)}
           onScan={()=>setQuickAddOpen(true)}
         />
       )}
