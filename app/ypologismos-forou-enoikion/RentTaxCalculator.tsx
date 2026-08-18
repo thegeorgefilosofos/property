@@ -21,10 +21,10 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useMemo, useId } from 'react';
 import Link from 'next/link';
-import { T, feAuto, fp, fixedCols } from '@/components/tokens';
+import { T, TT, feAuto, fp, fixedCols } from '@/components/tokens';
 import {
   rentalIncomeTax, marginalRate, effectiveRentalRate,
-  RENTAL_TAX_ROWS_2026, RENTAL_TAX_BRACKETS_2026,
+  rentalBracketsForYear, FIRST_YEAR_NEW_BRACKETS,
 } from '@/lib/billing/greekTax';
 import { parseAmount } from '@/lib/core/greek';
 import { presumptiveDeductionRate } from '@/lib/billing/consolidate';
@@ -53,7 +53,14 @@ import { useToolState, ToolActions } from '@/app/ToolShare';
 // ═══════════════════════════════════════════════════════════════════════════
 
 /** Τα πεδία όπως ταξιδεύουν στη διεύθυνση, με τις προεπιλογές τους. */
-const SPEC = { enoikio: '600', mines: '12', trapeza: '1' } as const;
+// ΤΟ ΕΤΟΣ ΕΙΝΑΙ ΠΕΔΙΟ, ΚΑΙ ΗΤΑΝ ΤΟ ΣΟΒΑΡΟΤΕΡΟ ΠΟΥ ΕΛΕΙΠΕ.
+// Η σελίδα εφάρμοζε ΠΑΝΤΑ την κλίμακα του 2026 (15/25/35/45). Η δήλωση όμως
+// που υποβάλλεται σήμερα αφορά εισοδήματα 2025, όπου δεν υπάρχει το ενδιάμεσο
+// 25%: για 20.000 € ενοίκια ο σωστός φόρος είναι 4.250 € και η σελίδα έδειχνε
+// 3.850 €. Υποεκτίμηση 400 €, στην ΠΡΩΤΗ επαφή του επισκέπτη με το προϊόν, και
+// προς την πλευρά που τον εφησυχάζει. Ο πυρήνας ήξερε ήδη τη διάκριση
+// (`rentalBracketsForYear`)· η δημόσια σελίδα δεν τον ρωτούσε ποτέ.
+const SPEC = { enoikio: '600', mines: '12', trapeza: '1', etos: '2025' } as const;
 const PATH = '/ypologismos-forou-enoikion';
 
 // Η ανάγνωση ποσού έρχεται από το lib/core/greek.ts, που ξέρει και τις δύο
@@ -66,6 +73,13 @@ const amount = (s: string): number => Math.max(0, parseAmount(s) ?? 0);
 export function RentTaxCalculator() {
   const [v, set] = useToolState(SPEC, PATH);
   const monthly = v.enoikio, months = v.mines, viaBank = v.trapeza !== '0';
+  const year = v.etos === '2026' ? 2026 : 2025;
+  const brackets = rentalBracketsForYear(year);
+  // Η ΠΡΟΫΠΟΘΕΣΗ ΤΗΣ ΤΡΑΠΕΖΑΣ ΓΕΝΝΗΘΗΚΕ ΤΟ 2026. Για εισοδήματα 2025 η τεκμαρτή
+  // έκπτωση 5% δίνεται ανεξάρτητα από τον τρόπο είσπραξης, οπότε η ερώτηση δεν
+  // έχει νόημα εκεί και δεν εμφανίζεται: μια ερώτηση που δεν αλλάζει τίποτα
+  // διδάσκει τον χρήστη ότι οι ερωτήσεις μας δεν αλλάζουν τίποτα.
+  const bankMatters = year >= FIRST_YEAR_NEW_BRACKETS;
   const monthlyId = useId(), monthsId = useId();
 
   const r = useMemo(() => {
@@ -76,23 +90,23 @@ export function RentTaxCalculator() {
     // ρεαλιστικό ελάχιστο για κάθε ιδιοκτήτη — και ο φόρος υπολογίζεται πάνω σε
     // αυτό, όχι στο μεικτό. Από 1/1/2026 όμως προϋποθέτει τραπεζική είσπραξη,
     // και ο συντελεστής γίνεται μηδέν όταν ο χρήστης πει «μετρητά».
-    const rate = presumptiveDeductionRate(viaBank);
+    const rate = presumptiveDeductionRate(bankMatters ? viaBank : true);
     const taxable = gross * (1 - rate);
-    const tax = rentalIncomeTax(taxable);
+    const tax = rentalIncomeTax(taxable, brackets);
     return {
       gross, taxable, tax,
       deduction: gross - taxable,
       net: gross - tax,
-      marginal: marginalRate(taxable),
-      effective: effectiveRentalRate(taxable),
+      marginal: marginalRate(taxable, brackets),
+      effective: taxable > 0 ? rentalIncomeTax(taxable, brackets) / taxable : 0,
       monthlyNet: n > 0 ? (gross - tax) / n : 0,
       // ΤΙ ΚΟΣΤΙΖΟΥΝ ΤΑ ΜΕΤΡΗΤΑ, ΣΕ ΕΥΡΩ. Η διαφορά των δύο φόρων, όχι το 5%
       // του ενοικίου: η έκπτωση μειώνει τη ΒΑΣΗ, οπότε το κόστος εξαρτάται από
       // το κλιμάκιο. Στα 7.200 € είναι 54,00 € (15%), στα 48.000 € είναι 108,00 €
       // (45%) — ένα ποσοστό στη θέση αυτού του αριθμού θα ήταν λάθος.
-      cashCost: rentalIncomeTax(gross) - rentalIncomeTax(gross * (1 - PRESUMPTIVE_DEDUCTION_RATE)),
+      cashCost: rentalIncomeTax(gross, brackets) - rentalIncomeTax(gross * (1 - PRESUMPTIVE_DEDUCTION_RATE), brackets),
     };
-  }, [monthly, months, viaBank]);
+  }, [monthly, months, viaBank, brackets, bankMatters]);
 
   const field: React.CSSProperties = {
     width: '100%', height: T.h.lg, padding: '0 14px', borderRadius: T.radius.btn,
@@ -137,7 +151,37 @@ export function RentTaxCalculator() {
              ΠΟΣΑ που πληκτρολογείς, αυτό είναι ΓΕΓΟΝΟΣ που δηλώνεις. Μια
              ολόκληρη σειρά με την εξήγηση δίπλα του λέει και τι ρωτάμε και
              γιατί ρωτάμε, χωρίς να στριμωχτεί κάτω από ετικέτα δύο λέξεων. */}
-      <div style={{
+      {/* ── ΠΟΙΑΣ ΧΡΟΝΙΑΣ ΕΙΣΟΔΗΜΑ ─────────────────────────────────────────
+          Δύο κουμπιά, όχι μενού: οι επιλογές είναι δύο και θα μείνουν δύο ώσπου
+          να αλλάξει ο νόμος. Η προεπιλογή είναι το 2025, γιατί αυτή είναι η
+          δήλωση που υποβάλλει κάποιος σήμερα — και επειδή η προηγούμενη εκδοχή
+          εφάρμοζε σιωπηλά το 2026 σε ανθρώπους που ρωτούσαν για το 2025. */}
+      <div style={{ marginTop: 16 }}>
+        <div style={{ ...TT.label, marginBottom: 8 }}>Εισόδημα ποιας χρονιάς</div>
+        <div style={{ display: 'flex', gap: 3, padding: 3, background: 'var(--bg-elevated)',
+          border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
+          {([['2025', '2025', 'δηλώνεται τώρα'], ['2026', '2026', 'δηλώνεται το 2027']] as const).map(([val, lab, sub]) => {
+            const on = v.etos === val;
+            return (
+              <button key={val} type="button" onClick={() => set('etos', val)} aria-pressed={on}
+                style={{ flex: 1, minHeight: 44, borderRadius: T.radius.inner, border: 'none', cursor: 'pointer',
+                  background: on ? 'var(--accent)' : 'transparent',
+                  color: on ? 'var(--accent-text)' : 'var(--text-secondary)',
+                  fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, lineHeight: 1.25 }}>
+                {lab}
+                <span style={{ display: 'block', fontSize: 11, fontWeight: 400, opacity: on ? 0.85 : 1 }}>{sub}</span>
+              </button>
+            );
+          })}
+        </div>
+        <p style={{ margin: '8px 0 0', fontSize: 12.5, lineHeight: 1.55, color: 'var(--text-tertiary)' }}>
+          {year >= FIRST_YEAR_NEW_BRACKETS
+            ? 'Κλίμακα 15 / 25 / 35 / 45% (ν.5246/2025), για εισοδήματα από 1/1/2026.'
+            : 'Κλίμακα 15 / 35 / 45%, χωρίς το ενδιάμεσο κλιμάκιο. Ισχύει για τα εισοδήματα του 2025.'}
+        </p>
+      </div>
+
+      {bankMatters && <div style={{
         marginTop: 14, padding: '12px 14px', borderRadius: T.radius.inner,
         border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -158,7 +202,7 @@ export function RentTaxCalculator() {
         </div>
         <Toggle on={viaBank} onChange={on => set('trapeza', on ? '1' : '0')}
           ariaLabel="Εισπράττω μέσω τραπέζης"/>
-      </div>
+      </div>}
 
       {/* ── Το αποτέλεσμα ──────────────────────────────────────────────── */}
       <div style={{
@@ -234,7 +278,7 @@ export function RentTaxCalculator() {
             <caption style={{ captionSide: 'top', textAlign: 'left', fontSize: 11, fontWeight: 700,
               letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)',
               paddingBottom: 10 }}>
-              Η κλίμακα του 2026
+              Η κλίμακα του {year}
             </caption>
             <thead>
               <tr>
@@ -252,17 +296,28 @@ export function RentTaxCalculator() {
                   κελιά — χωρίς σφάλμα, χωρίς ίχνος. Ο αριθμητικός συντελεστής
                   υπάρχει ήδη στο RENTAL_TAX_BRACKETS_2026, στην ίδια σειρά, και
                   το test του greekTax επιβεβαιώνει ότι τα όρια ταυτίζονται. */}
-              {RENTAL_TAX_ROWS_2026.map((row, i) => {
-                const slice = Math.max(0, Math.min(r.taxable, row.to) - row.from);
+              {/* ΟΙ ΓΡΑΜΜΕΣ ΒΓΑΙΝΟΥΝ ΑΠΟ ΤΗΝ ΙΔΙΑ ΤΗΝ ΚΛΙΜΑΚΑ. Πριν υπήρχε δεύτερος
+                  πίνακας μόνο για εμφάνιση (`RENTAL_TAX_ROWS_2026`), δηλαδή τα
+                  όρια γραμμένα δύο φορές — και ο πίνακας ήταν καρφωμένος στο
+                  2026 ακόμη κι αν ο υπολογισμός άλλαζε. Μία πηγή: αν αλλάξει ο
+                  νόμος, αλλάζει σε ένα σημείο και ο πίνακας τον ακολουθεί. */}
+              {brackets.map(b => {
+                const slice = Math.max(0, Math.min(r.taxable, b.to) - b.from);
                 const active = slice > 0;
+                // Τα όρια είναι ποσά, άρα περνούν από τον μορφοποιητή όπως κάθε
+                // άλλο ποσό της εφαρμογής: ο φύλακας euro-space το ζήτησε και έχει
+                // δίκιο — μια στήλη με «12.000 €» δίπλα σε «1.800,00 €» δεν στοιχίζεται.
+                const range = b.to === Infinity
+                  ? `Πάνω από ${feAuto(b.from)}`
+                  : `${feAuto(b.from === 0 ? 0 : b.from + 1)} – ${feAuto(b.to)}`;
                 return (
-                  <tr key={row.range} style={{ background: active ? 'var(--accent-soft)' : 'transparent' }}>
-                    <td style={{ ...td, fontWeight: active ? 650 : 400, color: active ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{row.range}</td>
-                    <td style={{ ...td, textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{row.rate}</td>
+                  <tr key={b.from} style={{ background: active ? 'var(--accent-soft)' : 'transparent' }}>
+                    <td style={{ ...td, fontWeight: active ? 650 : 400, color: active ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{range}</td>
+                    <td style={{ ...td, textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{Math.round(b.rate * 100)}%</td>
                     <td style={{ ...td, textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums',
                       fontWeight: active ? 650 : 400,
                       color: active ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
-                      {feAuto(slice * RENTAL_TAX_BRACKETS_2026[i].rate)}
+                      {feAuto(slice * b.rate)}
                     </td>
                   </tr>
                 );
