@@ -470,11 +470,25 @@ export default async function Landing() {
         .lp-rotor > span:nth-child(2) { animation-delay: 2.8s; }
         .lp-rotor > span:nth-child(3) { animation-delay: 5.6s; }
         .lp-rotor > span:nth-child(4) { animation-delay: 8.4s; }
+        /* ═══ Ο ΤΙΤΛΟΣ ΕΜΕΝΕ ΚΕΝΟΣ ΤΟ 10% ΤΟΥ ΧΡΟΝΟΥ ═══════════════════════
+           Τέσσερις λέξεις, κύκλος 11,2 δευτ., καθυστέρηση 2,8 δευτ. η καθεμία —
+           δηλαδή η επόμενη ξεκινά στο 25% του κύκλου της προηγούμενης. Η
+           προηγούμενη όμως έσβηνε στο 26% και η επόμενη έφτανε σε πλήρη ένταση
+           στο 30%: ανάμεσά τους έμενε ΤΡΥΠΑ. Μετρημένο σε πραγματικό περιηγητή,
+           δειγματοληψία ανά 100ms για 16 δευτερόλεπτα: το άθροισμα των
+           διαφανειών έπεφτε στο 0,01 και ο επισκέπτης διάβαζε «Φωτογραφίζεις …
+           Το Property OS κάνει τα υπόλοιπα» — μισή πρόταση, στην πρώτη οθόνη
+           που βλέπει.
+
+           Τώρα το σβήσιμο ΑΡΧΙΖΕΙ στο 25%, δηλαδή ακριβώς όταν αρχίζει το
+           άναμμα της επόμενης, και τα δύο μοιράζονται το ίδιο παράθυρο: η μία
+           φεύγει προς τα πάνω όσο η άλλη έρχεται από κάτω. Διασταύρωση, όχι
+           κενό. */
         @keyframes lpRotor {
           0%   { opacity: 0; transform: translateY(.34em) scale(.97); filter: blur(6px); }
-          5%   { opacity: 1; transform: none; filter: blur(0); }
-          21%  { opacity: 1; transform: none; filter: blur(0); }
-          26%  { opacity: 0; transform: translateY(-.28em) scale(.99); filter: blur(5px); }
+          6%   { opacity: 1; transform: none; filter: blur(0); }
+          25%  { opacity: 1; transform: none; filter: blur(0); }
+          31%  { opacity: 0; transform: translateY(-.28em) scale(.99); filter: blur(5px); }
           100% { opacity: 0; }
         }
         /* Η γραμμή ανήκει στην ΚΑΘΕ ΛΕΞΗ, όχι στο κοινό κελί: αλλιώς είχε πάντα
