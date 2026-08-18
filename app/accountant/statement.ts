@@ -109,7 +109,12 @@ export function statementGaps(lines: readonly PropertyLine[]): Gap[] {
   const silent = lines.filter(l => l.income === 0).map(l => l.p.name);
   const noExpenses = lines.filter(l => l.expenses === 0).map(l => l.p.name);
   const noAtak = lines.filter(l => !l.p.atak).map(l => l.p.name);
-  const noSqm = lines.filter(l => !(Number(l.p.sqm) > 0)).map(l => l.p.name);
+  // ΤΟ «ΔΕΝ ΤΟ ΣΤΕΛΝΕΙ Η ΒΑΣΗ» ΔΕΝ ΕΙΝΑΙ «ΔΕΝ ΤΟ ΕΧΕΙ Ο ΙΔΙΟΚΤΗΤΗΣ».
+  // Το εμβαδόν μπήκε στη `get_accountant_data` με τη μετανάστευση 20260818110000.
+  // Οσο εκείνη δεν έχει τρέξει, το πεδίο λείπει από ΟΛΑ τα ακίνητα — και μια
+  // οθόνη που γράφει τότε «Χωρίς εμβαδόν: όλα» κατηγορεί τον ιδιοκτήτη για κάτι
+  // που έχει καταχωρήσει. Απουσία πεδίου: σιωπή. Πεδίο με μηδέν: εκκρεμότητα.
+  const noSqm = lines.filter(l => l.p.sqm !== undefined && !(Number(l.p.sqm) > 0)).map(l => l.p.name);
   const out: Gap[] = [];
   if (silent.length) out.push({
     key: 'income', blocking: true,

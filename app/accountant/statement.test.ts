@@ -57,6 +57,14 @@ const prop = (over: Partial<PortalProperty> = {}): PortalProperty => ({
   ok('το εμβαδόν που λείπει εμποδίζει τη γραμμή του Ε2', g?.blocking === true);
   ok('όσα ακίνητα έχουν ΑΤΑΚ δεν παράγουν εκκρεμότητα', !statementGaps(lines).some(x => x.key === 'atak'));
 }
+{
+  // Παλιά `get_accountant_data`, χωρίς εμβαδόν στην απάντηση: η οθόνη δεν
+  // επιτρέπεται να κατηγορήσει τον ιδιοκτήτη για κάτι που έχει καταχωρήσει.
+  const old = { ...prop({ rent_collected: 1200, rent_months: 3 }) } as unknown as Record<string, unknown>;
+  delete old.sqm;
+  const lines = propertyLines([old as unknown as PortalProperty]);
+  ok('πεδίο που δεν στέλνει η βάση δεν γίνεται εκκρεμότητα', !statementGaps(lines).some(x => x.key === 'sqm'));
+}
 
 // ── ΤΟ ΩΜΟ TOTAL ΔΕΝ ΑΘΡΟΙΖΕΤΑΙ ───────────────────────────────────────────
 {
