@@ -11,7 +11,7 @@
 // από έναν δωρεάν χρήστη χωρίς να το πάρει κανείς είδηση.
 
 import {
-  aiLimitsFor, WARN_AT, dailyExhaustedMessage, monthlyExhaustedMessage,
+  aiLimitsFor, remainingLine, dailyExhaustedMessage, monthlyExhaustedMessage,
   poolExhaustedMessage, COST_PER_REQUEST_USD, COST_PER_REQUEST_EUR, FREE_BUDGET_USD,
   FREE_POOL_PER_MONTH, dailyLimitsByRank, monthlyLimitsByRank, PLAN_RANK_ORDER,
   MAX_PER_MINUTE, AI_SHARE, monthlyQuestionBudget, TRIAL_LIMITS, effectiveAiLimits,
@@ -148,14 +148,39 @@ const EUR_TO_USD = 1.08
     d.every((v, i) => i === 0 || v > d[i - 1]) && m.every((v, i) => i === 0 || v > m[i - 1]))
 }
 
-// ── Η προειδοποίηση φτάνει ΠΡΙΝ τον τοίχο ─────────────────────────────────
+// ── Η γραμμή του υπολοίπου λέει ΤΟ ΟΡΙΟ ΠΟΥ ΔΕΣΜΕΥΕΙ ──────────────────────
+// Το σφάλμα που γέννησε τη συνάρτηση: η γραμμή έδειχνε μόνο τον μήνα, και ο
+// συνδρομητής «Ιδιοκτήτης» χτυπούσε το ημερήσιο στην 8η ερώτηση διαβάζοντας
+// «Απομένουν 15 από 23». Σωστό νούμερο, εντελώς άσχετο με το τι θα συμβεί.
 {
-  ok('προειδοποιούμε στο 80%, όχι στο 100%', WARN_AT > 0.5 && WARN_AT < 1)
-  // Μετριέται στο φθηνότερο ΠΛΗΡΩΜΕΝΟ πακέτο: εκεί το περιθώριο είναι πιο
-  // στενό, άρα εκεί κρίνεται αν η προειδοποίηση φτάνει έγκαιρα.
   const solo = aiLimitsFor('solo')
-  const warnAt = Math.floor(solo.perMonth * WARN_AT)
-  ok('μένουν πραγματικές ερωτήσεις μετά την προειδοποίηση', solo.perMonth - warnAt >= 4)
+  const afternoon = remainingLine({ month: 7, monthLimit: solo.perMonth, day: 7, dayLimit: solo.perDay })
+  ok('δείχνει την ΗΜΕΡΑ όταν το ημερήσιο είναι πιο κοντά',
+     afternoon === `Απομένουν 1 από ${solo.perDay} ερωτήσεις σήμερα`)
+  ok('και ΔΕΝ δείχνει το άσχετο υπόλοιπο του μήνα', !/τον μήνα/.test(afternoon))
+
+  ok('δείχνει τον ΜΗΝΑ όταν ο μήνας είναι πιο κοντά',
+     /αυτόν τον μήνα/.test(remainingLine({ month: solo.perMonth - 1, monthLimit: solo.perMonth, day: 0, dayLimit: solo.perDay })))
+
+  ok('εξαντλημένη ημέρα → μεσάνυχτα',
+     /μεσάνυχτα/.test(remainingLine({ month: 3, monthLimit: 23, day: 8, dayLimit: 8 })))
+  ok('εξαντλημένος μήνας → 1η του μήνα, ακόμη κι αν η ημέρα έχει περιθώριο',
+     /την 1η/.test(remainingLine({ month: 23, monthLimit: 23, day: 1, dayLimit: 8 })))
+  ok('χωρίς μετρητές → καμία γραμμή', remainingLine(null) === '' && remainingLine({ month: 0, monthLimit: 0, day: 0, dayLimit: 0 }) === '')
+
+  // ΣΕ ΚΑΘΕ ΠΑΚΕΤΟ, ΣΕ ΚΑΘΕ ΣΤΙΓΜΗ: το νούμερο που διαβάζει ο χρήστης δεν
+  // επιτρέπεται να είναι μεγαλύτερο από τις ερωτήσεις που όντως θα περάσουν.
+  for (const id of PLAN_ORDER) {
+    const l = aiLimitsFor(id)
+    for (let day = 0; day < l.perDay; day++) {
+      for (const month of [0, Math.floor(l.perMonth / 2), l.perMonth - 1]) {
+        const line = remainingLine({ month, monthLimit: l.perMonth, day, dayLimit: l.perDay })
+        const shown = Number((line.match(/Απομένουν (\d+)/) || [])[1])
+        const real = Math.min(l.perDay - day, l.perMonth - month)
+        if (Number.isFinite(shown)) ok(`${id} d${day} m${month}: η γραμμή δεν υπόσχεται παραπάνω`, shown <= real)
+      }
+    }
+  }
 }
 
 // ── Τα μηνύματα: ποτέ αδιέξοδο, πάντα διέξοδος ────────────────────────────

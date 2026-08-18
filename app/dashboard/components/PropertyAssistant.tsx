@@ -107,6 +107,7 @@ import { suggestedOpeners, greeting as buildGreeting, type OpenerContext } from 
 import { modelFor } from '@/lib/assistant/model';
 import { scanFile, commitScannedDoc, RECONCILE_NONE_LABEL, RECONCILE_NONE_HINT, type ReconcileQuestion } from './scanDoc';
 import { DOC_TYPE_LABELS, type ScannedDoc } from '@/lib/billing/documents';
+import { remainingLine, type QuotaSnapshot } from '@/lib/billing/aiLimits';
 import { athensToday, athensNowLabel, daysUntil, isoMonth } from '@/lib/core/time';
 import { MONTHS_SHORT } from '@/lib/core/months';
 
@@ -164,7 +165,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
    * και ένα νούμερο που μαντεύεται είναι χειρότερο από κανένα. Η γραμμή
    * εμφανίζεται μόλις υπάρχει πραγματική απάντηση της βάσης.
    */
-  const [quota, setQuota] = useState<{ used: number; limit: number } | null>(null);
+  const [quota, setQuota] = useState<QuotaSnapshot | null>(null);
   const [ctxStr, setCtxStr] = useState('');
   const [insightsStr, setInsightsStr] = useState('');
   const [marketStr, setMarketStr] = useState('');
@@ -1082,9 +1083,12 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
    * γραμμή απλώς δεν εμφανίζεται.
    */
   const readQuota = (res: Response) => {
-    const used = Number(res.headers.get('x-ai-month'));
-    const limit = Number(res.headers.get('x-ai-month-limit'));
-    if (Number.isFinite(used) && Number.isFinite(limit) && limit > 0) setQuota({ used, limit });
+    // ΚΑΙ ΤΑ ΔΥΟ ΟΡΙΑ, ΟΧΙ ΜΟΝΟ ΤΟΥ ΜΗΝΑ. Μέσα σε ένα απόγευμα δεσμεύει σχεδόν
+    // πάντα το ημερήσιο: ο συνδρομητής «Ιδιοκτήτης» σταματούσε στην 8η ερώτηση
+    // ενώ η γραμμή μπροστά του έγραφε ότι του απομένουν 15 του μήνα.
+    const n = (h: string) => Number(res.headers.get(h));
+    const q = { month: n('x-ai-month'), monthLimit: n('x-ai-month-limit'), day: n('x-ai-day'), dayLimit: n('x-ai-day-limit') };
+    if (Object.values(q).every(Number.isFinite) && q.monthLimit > 0) setQuota(q);
   };
 
   const ask = async (question: string, viaVoice = false) => {
@@ -1558,11 +1562,9 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                   που θέλει να ξέρει, κοιτάζει· ο χρήστης που δεν θέλει, δεν το
                   προσέχει. Εμφανίζεται μόνο αφού απαντήσει η βάση: πριν από την
                   πρώτη ερώτηση το υπόλοιπο θα ήταν μαντεψιά. */}
-              {quota && (
+              {remainingLine(quota) && (
                 <div style={{ ...TT.caption, color: 'var(--text-tertiary)', textAlign: 'center', marginTop: 8 }}>
-                  {quota.limit - quota.used <= 0
-                    ? 'Εξάντλησες τις ερωτήσεις του μήνα. Ανανεώνονται την 1η.'
-                    : `Απομένουν ${quota.limit - quota.used} από ${quota.limit} ερωτήσεις αυτόν τον μήνα`}
+                  {remainingLine(quota)}
                 </div>
               )}
             </>
