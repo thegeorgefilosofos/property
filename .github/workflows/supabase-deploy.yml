@@ -105,8 +105,30 @@ jobs:
 
       # Applies every migration not yet recorded in the remote history table.
       # All our migrations are idempotent, so a re-applied one is a safe no-op.
+      #
+      # ΓΙΑΤΙ --include-all. Το `db push` αρνείται να εφαρμόσει τοπική
+      # μετανάστευση που ΤΑΞΙΝΟΜΕΙΤΑΙ ΠΡΙΝ την τελευταία που έχει η βάση:
+      #
+      #   Found local migration files to be inserted before the last migration
+      #   on remote database. Rerun the command with --include-all flag.
+      #
+      # Συμβαίνει όποτε δύο κλάδοι γράφουν μεταναστεύσεις παράλληλα, ή όταν μια
+      # εκτέλεση σταματήσει στη μέση: η βάση κρατά κεφαλή 20260815, ένα αρχείο
+      # 20260814 δεν εφαρμόστηκε ποτέ, και ο αγωγός κοκκινίζει για πάντα χωρίς
+      # να λείπει τίποτα πραγματικά. Ακριβώς αυτό βρήκε το staging στις
+      # 19/08/2026 με το 20260814110000_ical_stay_identity.sql.
+      #
+      # Ο ΕΛΕΓΧΟΣ ΤΗΣ ΣΕΙΡΑΣ ΔΕΝ ΜΑΣ ΠΡΟΣΤΑΤΕΥΕΙ ΕΔΩ, γιατί οι μεταναστεύσεις
+      # αυτού του repo είναι γραμμένες ιδιοδύναμα (`create or replace`,
+      # `if not exists`, `on conflict do nothing`) και δεν εξαρτώνται από το
+      # ποια εφαρμόστηκε πρώτη. Οποια ΔΕΝ είναι, είναι σφάλμα της ίδιας της
+      # μετανάστευσης και θα έσκαγε ούτως ή άλλως στην πρώτη εφαρμογή.
+      #
+      # Η ΕΝΑΛΛΑΚΤΙΚΗ ΗΤΑΝ ΧΕΙΡΟΤΕΡΗ: χειροκίνητο `migration repair` από
+      # άνθρωπο, δηλαδή ακριβώς η επέμβαση που όλος αυτός ο αγωγός υπάρχει για
+      # να μη χρειάζεται ποτέ.
       - name: Apply database migrations
-        run: supabase db push
+        run: supabase db push --include-all
 
       # Deploy every edge function in one pass. Each function's verify_jwt is
       # declared explicitly in supabase/config.toml (cron/token/service = false,
