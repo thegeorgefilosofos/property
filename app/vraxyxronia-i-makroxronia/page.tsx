@@ -21,6 +21,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { T } from '@/components/tokens';
 import { siteUrl } from '@/lib/core/site';
+import { athensToday } from '@/lib/core/time';
 import { PublicHeader, PublicFooter, SectionHead, WRAP, WRAP_PAD } from '../PublicChrome';
 import { BackLink } from '../BackLink';
 import { ShortVsLongCalculator } from './ShortVsLongCalculator';
@@ -150,8 +151,8 @@ export default function Page() {
         {/* Ίδια δομή με τους δύο αδελφούς υπολογιστές: η υπόσχεση κλείνει με την
             άνω τελεία της, η εγγύηση απορρήτου πιάνει δική της σειρά, και η
             υποσημείωση ακολουθεί με αστερίσκο στο τέλος της. */}
-        <p style={{ fontSize: 'clamp(15px,2vw,17px)', lineHeight: 1.6, color: 'var(--text-secondary)',
-          margin: '0 0 clamp(26px,3.5vw,36px)', maxWidth: 1044, textWrap: 'pretty' }}>
+        <p className="po-tool-lede" style={{ fontSize: 'clamp(15px,2vw,17px)', lineHeight: 1.6,
+          color: 'var(--text-secondary)', margin: '0 0 clamp(26px,3.5vw,36px)', textWrap: 'pretty' }}>
           <span style={{ display: 'block' }}>Με το τέλος ανθεκτικότητας, την προμήθεια, τα λειτουργικά και τον φόρο του 2026. Χωρίς εγγραφή και χωρίς email:</span>
           ο υπολογισμός γίνεται στη συσκευή σου και μένει εκεί.
           <span style={{ fontSize: 12, color: 'var(--text-tertiary)', marginLeft: 14 }}>
@@ -163,10 +164,10 @@ export default function Page() {
             αυτό, ολόκληρη η σελίδα θα έβγαινε από τη στατική απόδοση και θα
             έχανε το SEO για το οποίο υπάρχει. */}
         <Suspense fallback={<div style={{ minHeight: 480 }} aria-hidden/>}>
-          <ShortVsLongCalculator/>
+          <ShortVsLongCalculator today={athensToday()}/>
         </Suspense>
 
-        <section style={{ marginTop: 'clamp(44px,6vw,72px)' }}>
+        <section className="po-tool-more" style={{ marginTop: 'clamp(44px,6vw,72px)' }}>
           <SectionHead over="Συχνές ερωτήσεις" title="Ό,τι ρωτούν πριν αποφασίσουν" />
           <div style={{ borderBottom: '1px solid var(--border-subtle)' }}>
             {FAQ.map(f => (
@@ -188,9 +189,9 @@ export default function Page() {
         {/* ΤΑ ΤΡΙΑ ΕΡΓΑΛΕΙΑ ΕΙΝΑΙ ΜΙΑ ΑΛΥΣΙΔΑ, ΟΧΙ ΤΡΕΙΣ ΣΕΛΙΔΕΣ. Όποιος
             αποφάσισε τρόπο εκμετάλλευσης έχει αμέσως δύο ακόμη ερωτήσεις, και
             τις απαντούν οι διπλανές σελίδες. */}
-        <section style={{ marginTop: 'clamp(40px,5vw,60px)' }}>
+        <section className="po-tool-more" style={{ marginTop: 'clamp(40px,5vw,60px)' }}>
           <SectionHead over="Και μετά" title="Ο φόρος και ο ΕΝΦΙΑ υπολογίζονται χωριστά" />
-          <p style={{ fontSize: 15, lineHeight: 1.7, color: 'var(--text-secondary)', margin: 0, maxWidth: 720 }}>
+          <p style={{ fontSize: 15, lineHeight: 1.7, color: 'var(--text-secondary)', margin: 0, textWrap: 'pretty' }}>
             Η σύγκριση δείχνει τι σου αφήνει κάθε επιλογή. Για τον ίδιο τον φόρο των ενοικίων δες τον{' '}
             <Link href="/ypologismos-forou-enoikion" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
               υπολογισμό φόρου ενοικίων

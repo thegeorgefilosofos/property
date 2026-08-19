@@ -17,7 +17,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { T } from '@/components/tokens';
 import { siteUrl } from '@/lib/core/site';
-import { athensParts } from '@/lib/core/time';
+import { athensParts, athensToday } from '@/lib/core/time';
 import { PublicHeader, PublicFooter, SectionHead, WRAP, WRAP_PAD } from '../PublicChrome';
 import { BackLink } from '../BackLink';
 import { EnfiaCalculator } from './EnfiaCalculator';
@@ -60,9 +60,9 @@ const FAQ: { q: string; a: string }[] = [
   {
     q: 'Πώς υπολογίζεται ο ΕΝΦΙΑ;',
     a: 'Ο κύριος φόρος κτίσματος προκύπτει από τα τετραγωνικά επί τον βασικό φόρο της ζώνης, '
-     + 'πολλαπλασιασμένο με τον συντελεστή ορόφου και τον συντελεστή παλαιότητας, και επί το '
-     + 'ποσοστό ιδιοκτησίας σου. Πάνω σε αυτό εφαρμόζονται μειώσεις ανάλογα με τη συνολική αξία '
-     + 'της ακίνητης περιουσίας, και προσαύξηση αν αυτή ξεπερνά τις 500.000 €.',
+     + 'επί τον συντελεστή ορόφου, επί τον συντελεστή παλαιότητας και επί το ποσοστό ιδιοκτησίας '
+     + 'σου. Πάνω σε αυτό εφαρμόζονται μειώσεις ανάλογα με τη συνολική αξία της ακίνητης '
+     + 'περιουσίας, και προσαύξηση αν αυτή ξεπερνά τις 500.000 €.',
   },
   {
     q: 'Πού βρίσκω την τιμή ζώνης;',
@@ -70,7 +70,7 @@ const FAQ: { q: string; a: string }[] = [
      + 'Είναι η τιμή σε ευρώ ανά τετραγωνικό μέτρο για την περιοχή του ακινήτου.',
   },
   {
-    q: 'Γιατί τα νεότερα κτίρια πληρώνουν περισσότερο;',
+    q: 'Γιατί τα νεότερα κτίρια επιβαρύνονται περισσότερο;',
     a: 'Ο συντελεστής παλαιότητας μειώνεται όσο περνούν τα χρόνια: κτίσμα έως 4 ετών έχει '
      + 'συντελεστή 1,25 ενώ κτίσμα 26 ετών και άνω έχει 1,00. Ένα καινούργιο διαμέρισμα '
      + 'πληρώνει έτσι έως 25% περισσότερο από ένα παλιό ίδιων τετραγωνικών και ζώνης.',
@@ -134,8 +134,8 @@ export default function Page() {
             δική της σειρά, και η υποσημείωση ακολουθεί με αστερίσκο στο τέλος
             της. Δύο υπολογιστές με την ίδια δουλειά δεν επιτρέπεται να έχουν
             δύο διατάξεις. */}
-        <p style={{ fontSize: 'clamp(15px,2vw,17px)', lineHeight: 1.6, color: 'var(--text-secondary)',
-          margin: '0 0 clamp(26px,3.5vw,36px)', maxWidth: 1044, textWrap: 'pretty' }}>
+        <p className="po-tool-lede" style={{ fontSize: 'clamp(15px,2vw,17px)', lineHeight: 1.6,
+          color: 'var(--text-secondary)', margin: '0 0 clamp(26px,3.5vw,36px)', textWrap: 'pretty' }}>
           <span style={{ display: 'block' }}>Καθορίζεται από τα τετραγωνικά, την τιμή ζώνης, τον όροφο και την παλαιότητα. Χωρίς εγγραφή και χωρίς email:</span>
           ο υπολογισμός γίνεται στη συσκευή σου και μένει εκεί.
           <span style={{ fontSize: 12, color: 'var(--text-tertiary)', marginLeft: 14 }}>
@@ -152,7 +152,7 @@ export default function Page() {
             Η εφεδρεία έχει το ΙΔΙΟ ύψος με τη φόρμα, ώστε το κείμενο από κάτω
             να μην αναπηδήσει μόλις φορτώσει. */}
         <Suspense fallback={<div style={{ minHeight: 420 }} aria-hidden/>}>
-          <EnfiaCalculator year={year}/>
+          <EnfiaCalculator year={year} today={athensToday()}/>
         </Suspense>
 
         {/* ── Συχνές ερωτήσεις ──────────────────────────────────────────────
@@ -160,7 +160,7 @@ export default function Page() {
                αδελφός υπολογιστής δίπλα λύνει το ίδιο πρόβλημα με λεπτές γραμμές
                και έναν σταυρό που γυρίζει. Δύο εργαλεία της ίδιας σελίδας δεν
                επιτρέπεται να έχουν δύο διαφορετικά σχήματα για την ίδια λίστα. */}
-        <section style={{ marginTop: 'clamp(44px,6vw,72px)' }}>
+        <section className="po-tool-more" style={{ marginTop: 'clamp(44px,6vw,72px)' }}>
           <SectionHead over="Συχνές ερωτήσεις" title="Ό,τι ρωτούν πριν υπολογίσουν" />
           <div style={{ borderBottom: '1px solid var(--border-subtle)' }}>
             {FAQ.map(f => (
@@ -182,15 +182,15 @@ export default function Page() {
         {/* Ο ΔΕΥΤΕΡΟΣ ΥΠΟΛΟΓΙΣΤΗΣ ΕΙΝΑΙ ΤΟ ΕΠΟΜΕΝΟ ΒΗΜΑ, ΟΧΙ ΥΠΟΣΗΜΕΙΩΣΗ. Ο
             ιδιοκτήτης που μόλις βρήκε τον ΕΝΦΙΑ του και νοικιάζει το ακίνητο
             έχει ακριβώς μία ακόμη ερώτηση. */}
-        <section style={{ marginTop: 'clamp(40px,5vw,60px)' }}>
+        <section className="po-tool-more" style={{ marginTop: 'clamp(40px,5vw,60px)' }}>
           <SectionHead over="Και μετά" title="Ο φόρος των ενοικίων υπολογίζεται χωριστά" />
-          <p style={{ fontSize: 15, lineHeight: 1.7, color: 'var(--text-secondary)', margin: 0, maxWidth: 720 }}>
+          <p style={{ fontSize: 15, lineHeight: 1.7, color: 'var(--text-secondary)', margin: 0, textWrap: 'pretty' }}>
             Ο ΕΝΦΙΑ είναι φόρος <strong style={{ color: 'var(--text-primary)' }}>κατοχής</strong> και δεν
-            αφαιρείται από το εισόδημα των ενοικίων: τα δύο ποσά αθροίζονται, δεν αλληλοεξουδετερώνονται. Αν
+            αφαιρείται από το εισόδημα των ενοικίων: τα δύο ποσά αθροίζονται, δεν συμψηφίζονται. Αν
             νοικιάζεις το ακίνητο, δες και τον{' '}
             <Link href="/ypologismos-forou-enoikion" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
               υπολογισμό φόρου ενοικίων
-            </Link>· και αν σκέφτεσαι να το βγάλεις σε βραχυχρόνια, τη{' '}
+            </Link>· και αν σκέφτεσαι τη βραχυχρόνια μίσθωση, τη{' '}
             <Link href="/vraxyxronia-i-makroxronia" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
               σύγκριση βραχυχρόνιας και μακροχρόνιας
             </Link>.

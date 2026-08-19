@@ -23,6 +23,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { T } from '@/components/tokens';
 import { siteUrl } from '@/lib/core/site';
+import { athensToday } from '@/lib/core/time';
 import { PublicHeader, PublicFooter, SectionHead, WRAP, WRAP_PAD } from '../PublicChrome';
 import { BackLink } from '../BackLink';
 import { RentTaxCalculator } from './RentTaxCalculator';
@@ -148,8 +149,8 @@ export default function Page() {
             οθόνη 360 εικονοστοιχείων, όπου θα ξεχείλιζε οριζόντια ολόκληρη τη
             σελίδα. Το κείμενο κόπηκε αντ' αυτού: σε επιφάνεια εργασίας τελειώνει
             άνετα μέσα στη σειρά, σε κινητό αναδιπλώνεται καθαρά. */}
-        <p style={{ fontSize: 'clamp(15px,2vw,17px)', lineHeight: 1.6, color: 'var(--text-secondary)',
-          margin: '0 0 clamp(26px,3.5vw,36px)', maxWidth: 1044, textWrap: 'pretty' }}>
+        <p className="po-tool-lede" style={{ fontSize: 'clamp(15px,2vw,17px)', lineHeight: 1.6,
+          color: 'var(--text-secondary)', margin: '0 0 clamp(26px,3.5vw,36px)', textWrap: 'pretty' }}>
           {/* ΤΟ ΕΤΟΣ ΔΕΝ ΓΡΑΦΕΤΑΙ ΕΔΩ. Ο υπολογιστής ρωτά πλέον ποιας χρονιάς είναι
               το εισόδημα και εφαρμόζει την αντίστοιχη κλίμακα· ένας υπότιτλος που
               λέει «κλίμακα του 2026» θα διέψευδε τον ίδιο του τον επιλογέα, που
@@ -170,7 +171,7 @@ export default function Page() {
             Η εφεδρεία έχει το ΙΔΙΟ ύψος με τη φόρμα, ώστε το κείμενο από κάτω
             να μην αναπηδήσει μόλις φορτώσει. */}
         <Suspense fallback={<div style={{ minHeight: 420 }} aria-hidden/>}>
-          <RentTaxCalculator/>
+          <RentTaxCalculator today={athensToday()}/>
         </Suspense>
 
         {/* ── Συχνές ερωτήσεις ──────────────────────────────────────────────
@@ -179,7 +180,7 @@ export default function Page() {
                σταυρό που γυρίζει: πέντε πλαίσια το ένα κάτω από το άλλο
                διαβάζονται ως πέντε αντικείμενα, ενώ είναι μία λίστα. Ίδιο
                σχήμα, ίδια συμπεριφορά, ίδιο περιθώριο. */}
-        <section style={{ marginTop: 'clamp(44px,6vw,72px)' }}>
+        <section className="po-tool-more" style={{ marginTop: 'clamp(44px,6vw,72px)' }}>
           <SectionHead over="Συχνές ερωτήσεις" title="Ό,τι ρωτούν πριν υπολογίσουν" />
           <div style={{ borderBottom: '1px solid var(--border-subtle)' }}>
             {FAQ.map(f => (
@@ -201,9 +202,9 @@ export default function Page() {
         {/* Ο ΕΠΙΣΚΕΠΤΗΣ ΠΟΥ ΒΡΗΚΕ ΤΟΝ ΦΟΡΟ ΤΟΥ ΕΧΕΙ ΔΥΟ ΑΚΟΜΗ ΕΡΩΤΗΣΕΙΣ, ΚΑΙ ΤΙΣ
             ΑΠΑΝΤΟΥΝ ΟΙ ΔΙΠΛΑΝΕΣ ΣΕΛΙΔΕΣ. Τα τρία εργαλεία είναι μια αλυσίδα, όχι
             τρεις άσχετες σελίδες που τυχαίνει να ζουν στο ίδιο domain. */}
-        <section style={{ marginTop: 'clamp(40px,5vw,60px)' }}>
+        <section className="po-tool-more" style={{ marginTop: 'clamp(40px,5vw,60px)' }}>
           <SectionHead over="Και μετά" title="Ο φόρος δεν είναι το μόνο που πληρώνεις" />
-          <p style={{ fontSize: 15, lineHeight: 1.7, color: 'var(--text-secondary)', margin: 0, maxWidth: 720 }}>
+          <p style={{ fontSize: 15, lineHeight: 1.7, color: 'var(--text-secondary)', margin: 0, textWrap: 'pretty' }}>
             Ο ΕΝΦΙΑ είναι φόρος <strong style={{ color: 'var(--text-primary)' }}>κατοχής</strong> και
             υπολογίζεται χωριστά: δες τον{' '}
             <Link href="/ypologismos-enfia" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>

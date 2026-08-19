@@ -24,11 +24,11 @@ import { OBJECTIVE_VALUES } from '@/lib/tax/aade';
 // ═══════════════════════════════════════════════════════════════════════════
 import { useMemo, useId } from 'react';
 import { T, feAuto, fixedCols } from '@/components/tokens';
-import { fn, feRate } from '@/lib/core/format';
+import { fn, fp, feRate } from '@/lib/core/format';
 import { parseAmount } from '@/lib/core/greek';
 import { estimateENFIA, zoneKeyFromPricePerSqm, enfiaFloorCoef, enfiaAgeCoef, ENFIA_ZONE_TAX, ENFIA_FLOOR_COEF, ENFIA_AGE_BANDS } from '@/lib/billing/enfia';
 import { enfiaInstalments, ENFIA_INSTALMENTS } from '@/lib/tools/enfiaSchedule';
-import { useToolState, ToolActions } from '@/app/ToolShare';
+import { useToolState, ToolActions, ToolPaper, ToolPaperFoot } from '@/app/ToolShare';
 import { ToolCta } from '@/app/PublicChrome';
 
 const amount = (s: string): number => Math.max(0, parseAmount(s) ?? 0);
@@ -53,7 +53,7 @@ const FLOORS: { key: keyof typeof ENFIA_FLOOR_COEF | string; label: string }[] =
 // ίδιο κλειδί — και καμία δεν είχε το κλιμάκιο 15-19 ετών.
 const AGES = ENFIA_AGE_BANDS;
 
-export function EnfiaCalculator({ year }: { year: number }) {
+export function EnfiaCalculator({ year, today }: { year: number; today: string }) {
   const [v, set] = useToolState(SPEC, PATH);
   const sqm = v.tm, zonePrice = v.zoni, floor = v.orofos, age = v.palaiotita, ownership = v.pososto;
   const ids = { sqm: useId(), zone: useId(), floor: useId(), age: useId(), own: useId() };
@@ -103,7 +103,7 @@ export function EnfiaCalculator({ year }: { year: number }) {
           πεδίο άλλαζε θέση χωρίς να αλλάξει τίποτα στην οθόνη. Δύο στήλες, και
           το ποσοστό ιδιοκτησίας μόνο του στην τρίτη σειρά: είναι το μόνο που
           σπάνια αλλάζει, οπότε ανήκει τελευταίο. */}
-      <div {...fixedCols(2, 14, 'start')}>
+      <div {...fixedCols(2, 14, 'start', 'po-tool-controls')}>
         <div>
           <label htmlFor={ids.sqm} style={label}>Τετραγωνικά</label>
           <input id={ids.sqm} inputMode="decimal" value={sqm} onChange={e => set('tm', e.target.value)} style={numField}/>
@@ -142,14 +142,23 @@ export function EnfiaCalculator({ year }: { year: number }) {
         </div>
       </div>
 
-      <p style={{ margin: '10px 0 0', fontSize: 12, lineHeight: 1.6, color: 'var(--text-tertiary)' }}>
+      <p className="po-tool-controls" style={{ margin: '10px 0 0', fontSize: 12, lineHeight: 1.6, color: 'var(--text-tertiary)' }}>
         Την τιμή ζώνης τη βρίσκεις στο συμβόλαιο, στο Ε9 ή στον{' '}
         <a href={OBJECTIVE_VALUES} target="_blank" rel="noopener noreferrer"
           style={{ color: 'var(--accent)' }}>χάρτη αντικειμενικών αξιών (valuemaps.gov.gr)</a>.
       </p>
 
+      {/* ── Η κεφαλίδα του χαρτιού, πάνω από το αποτέλεσμα ─────────────── */}
+      {r && <ToolPaper title={`Εκτίμηση ΕΝΦΙΑ ${year}`} on={today} inputs={[
+        { k: 'Τετραγωνικά', v: fn(amount(sqm), 2) },
+        { k: 'Τιμή ζώνης', v: `${feAuto(amount(zonePrice))}/τ.μ.` },
+        { k: 'Οροφος', v: FLOORS.find(f => f.key === floor)?.label ?? floor },
+        { k: 'Παλαιότητα', v: AGES.find(a => a.key === age)?.label ?? age },
+        { k: 'Ποσοστό ιδιοκτησίας', v: fp(Math.min(100, Math.max(1, amount(ownership) || 100))) },
+      ]}/>}
+
       {/* ── Το αποτέλεσμα ──────────────────────────────────────────────── */}
-      <div style={{
+      <div className="po-tool-result" style={{
         marginTop: 20, padding: 'clamp(18px, 4vw, 26px)', borderRadius: T.radius.card,
         background: 'var(--surface-raised)', border: '1px solid var(--border-raised)',
         boxShadow: 'var(--well-inset)',
@@ -205,7 +214,7 @@ export function EnfiaCalculator({ year }: { year: number }) {
               <Row k="Κύριος φόρος κτίσματος" v={feAuto(r.basic)}/>
               {r.extra > 0 && <Row k="Πρόσθετος φόρος (αξία πάνω από 400.000 €)" v={feAuto(r.extra)}/>}
               {r.supplementary > 0 && <Row k="Προσαύξηση (περιουσία πάνω από 500.000 €)" v={feAuto(r.supplementary)}/>}
-              {r.reductionPct > 0 && <Row k={`Μείωση ${r.reductionPct}%`} v={`− ${feAuto(r.reductionAmount)}`}/>}
+              {r.reductionPct > 0 && <Row k={`Μείωση ${fp(r.reductionPct)}`} v={`− ${feAuto(r.reductionAmount)}`}/>}
             </dl>
           </>
         )}
@@ -216,13 +225,13 @@ export function EnfiaCalculator({ year }: { year: number }) {
       <ToolActions path={PATH} spec={SPEC} values={v}/>
 
       {/* ── Τι ΔΕΝ περιλαμβάνει ──────────────────────────────────────────── */}
-      <div style={{
+      <div className="po-tool-note" style={{
         marginTop: 22, padding: '14px 16px', borderRadius: T.radius.inner,
         background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
       }}>
         <p style={{ margin: 0, fontSize: 13, lineHeight: 1.65, color: 'var(--text-secondary)' }}>
           <strong style={{ color: 'var(--text-primary)' }}>Τι δεν περιλαμβάνει.</strong>{' '}
-          Η εκτίμηση αφορά <strong>ένα κτίσμα</strong> και υπολογίζει τη συνολική σου
+          Η εκτίμηση αφορά <strong>ένα κτίσμα</strong> και θεωρεί τη συνολική σου
           ακίνητη περιουσία <strong>ίση με αυτό</strong>. Αν έχεις κι άλλα ακίνητα, οικόπεδα
           ή αποθήκες, η μείωση και η προσαύξηση αλλάζουν, οπότε το ποσό στο εκκαθαριστικό
           θα διαφέρει. Δεν περιλαμβάνει απαλλαγές με εισοδηματικά κριτήρια (χαμηλό
@@ -232,8 +241,10 @@ export function EnfiaCalculator({ year }: { year: number }) {
         </p>
       </div>
 
+      <ToolPaperFoot path={PATH} spec={SPEC} values={v}/>
+
       <ToolCta
-        title="Έχεις παραπάνω από ένα ακίνητο;"
+        title="Έχεις περισσότερα από ένα ακίνητα;"
         body="Το Property OS υπολογίζει τον ΕΝΦΙΑ για όλο το χαρτοφυλάκιο μαζί, με τη σωστή μείωση, και σου θυμίζει κάθε δόση πριν λήξει."
       />
     </div>
@@ -312,7 +323,7 @@ function Figure({ label, value, big }: { label: string; value: string; big?: boo
     <div>
       <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
         color: 'var(--text-tertiary)', marginBottom: 6 }}>{label}</div>
-      <div style={{
+      <div className="po-fig" style={{
         fontFamily: T.font.num, fontSize: big ? 'clamp(22px, 4.4vw, 30px)' : 'clamp(18px, 3.4vw, 22px)',
         fontWeight: 700, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', lineHeight: 1.15,
         color: 'var(--text-primary)',

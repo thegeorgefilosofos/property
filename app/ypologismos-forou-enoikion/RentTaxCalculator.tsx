@@ -21,7 +21,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useMemo, useId } from 'react';
 import Link from 'next/link';
-import { T, TT, feAuto, fp, fixedCols } from '@/components/tokens';
+import { T, TT, feAuto, fn, fp, fixedCols } from '@/components/tokens';
 import {
   rentalIncomeTax, marginalRate, effectiveRentalRate,
   rentalBracketsForYear, FIRST_YEAR_NEW_BRACKETS,
@@ -31,7 +31,7 @@ import { presumptiveDeductionRate } from '@/lib/billing/consolidate';
 import { PRESUMPTIVE_DEDUCTION_RATE } from '@/lib/accounting/statement';
 import { Toggle } from '@/app/dashboard/components/UIComponents';
 import { ToolCta } from '@/app/PublicChrome';
-import { useToolState, ToolActions } from '@/app/ToolShare';
+import { useToolState, ToolActions, ToolPaper, ToolPaperFoot } from '@/app/ToolShare';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ΤΟ 5% ΔΕΝ ΕΙΝΑΙ ΔΕΔΟΜΕΝΟ ΑΠΟ ΤΟ 2026, ΚΑΙ Η ΣΕΛΙΔΑ ΤΟ ΕΛΕΓΕ ΣΑΝ ΝΑ ΕΙΝΑΙ
@@ -70,7 +70,7 @@ const PATH = '/ypologismos-forou-enoikion';
 // άλλοτε ως 1,234 και άλλοτε ως 1234, ανάλογα με την οθόνη.
 const amount = (s: string): number => Math.max(0, parseAmount(s) ?? 0);
 
-export function RentTaxCalculator() {
+export function RentTaxCalculator({ today }: { today: string }) {
   const [v, set] = useToolState(SPEC, PATH);
   const monthly = v.enoikio, months = v.mines, viaBank = v.trapeza !== '0';
   const year = v.etos === '2026' ? 2026 : 2025;
@@ -94,7 +94,7 @@ export function RentTaxCalculator() {
     const taxable = gross * (1 - rate);
     const tax = rentalIncomeTax(taxable, brackets);
     return {
-      gross, taxable, tax,
+      gross, taxable, tax, months: n,
       deduction: gross - taxable,
       net: gross - tax,
       marginal: marginalRate(taxable, brackets),
@@ -127,7 +127,7 @@ export function RentTaxCalculator() {
           σωστή απάντηση. */}
       {/* ΔΥΟ ΓΝΩΣΤΑ ΠΕΔΙΑ, ΡΗΤΑ ΔΥΟ ΣΤΗΛΕΣ. Το auto-fit έβγαζε άλλοτε δύο και
           άλλοτε ένα ανάλογα με το zoom του περιηγητή, στην ίδια οθόνη. */}
-      <div {...fixedCols(2, 14, 'start')}>
+      <div {...fixedCols(2, 14, 'start', 'po-tool-controls')}>
         <div>
           <label htmlFor={monthlyId} style={label}>Μηνιαίο ενοίκιο</label>
           <div style={{ position: 'relative' }}>
@@ -156,7 +156,7 @@ export function RentTaxCalculator() {
           να αλλάξει ο νόμος. Η προεπιλογή είναι το 2025, γιατί αυτή είναι η
           δήλωση που υποβάλλει κάποιος σήμερα — και επειδή η προηγούμενη εκδοχή
           εφάρμοζε σιωπηλά το 2026 σε ανθρώπους που ρωτούσαν για το 2025. */}
-      <div style={{ marginTop: 16 }}>
+      <div className="po-tool-controls" style={{ marginTop: 16 }}>
         <div style={{ ...TT.label, marginBottom: 8 }}>Εισόδημα ποιας χρονιάς</div>
         <div style={{ display: 'flex', gap: 3, padding: 3, background: 'var(--bg-elevated)',
           border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
@@ -181,7 +181,7 @@ export function RentTaxCalculator() {
         </p>
       </div>
 
-      {bankMatters && <div style={{
+      {bankMatters && <div className="po-tool-controls" style={{
         marginTop: 14, padding: '12px 14px', borderRadius: T.radius.inner,
         border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -204,8 +204,19 @@ export function RentTaxCalculator() {
           ariaLabel="Εισπράττω μέσω τραπέζης"/>
       </div>}
 
+      {/* ── Η κεφαλίδα του χαρτιού, πάνω από το αποτέλεσμα ─────────────── */}
+      {/* Ο τρόπος είσπραξης μπαίνει στο χαρτί ΜΟΝΟ όταν αλλάζει το ποσό: για
+          εισοδήματα 2025 η έκπτωση δίνεται ανεξάρτητα, και μια γραμμή που δεν
+          επηρεάζει τίποτα διαβάζεται ως προϋπόθεση που δεν υπάρχει. */}
+      <ToolPaper title={`Εκτίμηση φόρου ενοικίων ${year}`} on={today} inputs={[
+        { k: 'Μηνιαίο ενοίκιο', v: feAuto(amount(monthly)) },
+        { k: 'Μήνες', v: fn(r.months) },
+        { k: 'Ετήσιο ενοίκιο', v: feAuto(r.gross) },
+        ...(bankMatters ? [{ k: 'Είσπραξη', v: viaBank ? 'μέσω τραπέζης' : 'με μετρητά' }] : []),
+      ]}/>
+
       {/* ── Το αποτέλεσμα ──────────────────────────────────────────────── */}
-      <div style={{
+      <div className="po-tool-result" style={{
         marginTop: 20, padding: 'clamp(18px, 4vw, 26px)', borderRadius: T.radius.card,
         background: 'var(--surface-raised)', border: '1px solid var(--border-raised)',
         boxShadow: 'var(--well-inset)',
@@ -313,7 +324,11 @@ export function RentTaxCalculator() {
                 return (
                   <tr key={b.from} style={{ background: active ? 'var(--accent-soft)' : 'transparent' }}>
                     <td style={{ ...td, fontWeight: active ? 650 : 400, color: active ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{range}</td>
-                    <td style={{ ...td, textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{Math.round(b.rate * 100)}%</td>
+                    {/* ΤΡΙΤΗ ΓΡΑΦΗ ΓΙΑ ΤΟ ΙΔΙΟ ΕΙΔΟΣ ΝΟΥΜΕΡΟΥ. Η στήλη έγραφε «15%»
+                        ενώ δύο εκατοστά πιο πάνω ο πραγματικός συντελεστής γράφει
+                        «15,00%»: ο αναγνώστης ψάχνει τη διαφορά που υπονοούν τα
+                        δεκαδικά και δεν υπάρχει. Ενας μορφοποιητής ποσοστού. */}
+                    <td style={{ ...td, textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fp(b.rate * 100)}</td>
                     <td style={{ ...td, textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums',
                       fontWeight: active ? 650 : 400,
                       color: active ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
@@ -338,7 +353,7 @@ export function RentTaxCalculator() {
           διαβαζόταν ως «κάτι πάει στραβά» και ο επισκέπτης το προσπερνούσε
           ακριβώς όπως προσπερνά κάθε κίτρινο πλαίσιο. Ουδέτερη επιφάνεια, και
           το βάρος του το δίνει η θέση του: ακριβώς κάτω από τον αριθμό. */}
-      <div style={{
+      <div className="po-tool-note" style={{
         marginTop: 22, padding: 'clamp(14px,2.6vw,18px)', borderRadius: T.radius.inner,
         background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
       }}>
@@ -352,6 +367,8 @@ export function RentTaxCalculator() {
           την τάξη μεγέθους, όχι φορολογική συμβουλή.
         </p>
       </div>
+
+      <ToolPaperFoot path={PATH} spec={SPEC} values={v}/>
 
       <ToolCta
         title="Θέλεις να μη χρειάζεται να το ξαναϋπολογίσεις;"

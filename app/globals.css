@@ -2134,14 +2134,55 @@ details.lp-faq-more[open] > div > details.lp-faq:first-child { border-top: none;
   .po-noprint { display: none !important; }
   .po-printonly { display: block; }
 
+  /* ── ΤΟ ΧΑΡΤΙ ΚΡΑΤΑΕΙ ΤΟ ΑΠΟΤΕΛΕΣΜΑ, ΟΧΙ ΤΗ ΣΕΛΙΔΑ ─────────────────────
+     Οσα φεύγουν, φεύγουν επειδή δεν λένε τίποτα σε χαρτί: η πλοήγηση δεν
+     πατιέται, ο διαφημιστικός τίτλος δεν υπολογίζει, τα πεδία της φόρμας
+     τυπώνονται ως άδεια πλαίσια πάνω από τις ίδιες τιμές που ήδη γράφει η
+     κεφαλίδα, και οι συχνές ερωτήσεις είναι τρεις σελίδες κειμένου που ο
+     αναγνώστης δεν ζήτησε. Μένει ό,τι θα κοιτάξει ξανά. */
   .po-tool-page > header,
   .po-tool-page > footer,
   .po-tool-page .lg-back,
-  .po-tool-page .lp-eyebrow { display: none !important; }
+  .po-tool-page .lp-eyebrow,
+  .po-tool-page h1,
+  .po-tool-page .po-tool-lede,
+  .po-tool-page .po-tool-controls,
+  .po-tool-page .po-tool-more { display: none !important; }
 
-  /* Ο τίτλος και η ανάλυση δεν κόβονται στη μέση από αλλαγή σελίδας. */
-  .po-tool-page h1 { break-after: avoid; font-size: 22px; }
-  .po-tool-page table { break-inside: avoid; }
+  /* ── Η κεφαλίδα του χαρτιού ─────────────────────────────────────────── */
+  .po-paper { margin: 0 0 16px; }
+  .po-paper-top {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 16px;
+    font-size: 9.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+    color: #555;
+  }
+  .po-paper-title {
+    margin: 9px 0 0; font-size: 19px; font-weight: 700; letter-spacing: -0.02em;
+    line-height: 1.2; break-after: avoid;
+  }
+  .po-paper-inputs {
+    margin: 7px 0 0; padding-bottom: 11px; border-bottom: 1px solid #000;
+    font-size: 11px; line-height: 1.75; color: #000;
+  }
+  .po-paper-k { color: #555; }
+  .po-paper-sep { color: #b9b9b9; }
+  .po-paper-foot {
+    margin: 14px 0 0; padding-top: 9px; border-top: 1px solid #d5d5d5;
+    font-size: 9.5px; letter-spacing: 0.03em; color: #555;
+  }
+
+  /* ── Πυκνότητα: το ίδιο περιεχόμενο, μισό χαρτί ─────────────────────── */
+  .po-tool-page .po-tool-result {
+    padding: 14px 16px !important; border-radius: 8px !important;
+    box-shadow: none !important; break-inside: avoid;
+  }
+  .po-tool-page .po-fig { font-size: 22px !important; }
+  .po-tool-page .po-tool-note {
+    margin-top: 14px !important; padding: 10px 12px !important;
+    border-radius: 8px !important; font-size: 10.5px !important;
+  }
+  .po-tool-page table { break-inside: avoid; font-size: 11px; }
+  .po-tool-page th, .po-tool-page td { padding: 5px 8px !important; }
   .po-tool-page dl { break-inside: avoid; }
 
   /* Το χαρτί έχει δικά του περιθώρια· η σελίδα δεν χρειάζεται τα δικά της. */

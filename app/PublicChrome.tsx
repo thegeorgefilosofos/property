@@ -88,8 +88,13 @@ function FootCol({ label, links }: { label: string; links: [string, string][] })
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>{label}</span>
+      {/* ΤΟ `nowrap` ΕΣΠΡΩΧΝΕ ΤΗ ΣΕΛΙΔΑ ΔΕΞΙΑ. Στα 390 εικονοστοιχεία η στήλη
+          πιάνει 163 και το «Βραχυχρόνια ή μακροχρόνια» θέλει 193: ο σύνδεσμος
+          δεν έσπαγε, οπότε ολόκληρη η σελίδα αποκτούσε οριζόντια κύλιση δέκα
+          εικονοστοιχείων, μετρημένη σε Chromium και στους τρεις υπολογιστές.
+          Ο σύνδεσμος σπάει σε δύο γραμμές· η σελίδα δεν κουνιέται. */}
       {links.map(([href, text]) => (
-        <Link key={href} href={href} className="lp-link" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: 14, lineHeight: 1.3, whiteSpace: 'nowrap' }}>{text}</Link>
+        <Link key={href} href={href} className="lp-link" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: 14, lineHeight: 1.3, textWrap: 'pretty' }}>{text}</Link>
       ))}
     </div>
   );

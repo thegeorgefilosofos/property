@@ -274,8 +274,8 @@ export const formGrid = (min = 200, max = 280) => ({
  * ΑΠΟ ΚΑΤΩ, το κάτω άκρο είναι η σημείωση και το κουτί ανεβαίνει: εκεί περνάς
  * `'start'`.
  */
-export const fixedCols = (n: number, gap = 12, align: 'end' | 'start' | 'stretch' = 'end') => ({
-  className: 'fixed-cols',
+export const fixedCols = (n: number, gap = 12, align: 'end' | 'start' | 'stretch' = 'end', cls = '') => ({
+  className: cls ? `fixed-cols ${cls}` : 'fixed-cols',
   // Οι μεταβλητές CSS δεν υπάρχουν στον τύπο του React· ο ισχυρισμός γίνεται
   // εδώ, μία φορά, αντί σε κάθε κλήση.
   //

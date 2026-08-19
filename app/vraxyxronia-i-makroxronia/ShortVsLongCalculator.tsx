@@ -27,7 +27,7 @@ import { compareShortVsLong, netByOccupancy, NIGHTS_PER_YEAR, HIGH_SEASON_NIGHTS
 import { climateLevyRates } from '@/lib/billing/greekTax';
 import { REGULATORY_UPDATES_2026 } from '@/lib/accounting/updates2026';
 import { CustomSelect } from '@/app/dashboard/components/UIComponents';
-import { useToolState, ToolActions } from '@/app/ToolShare';
+import { useToolState, ToolActions, ToolPaper, ToolPaperFoot } from '@/app/ToolShare';
 import { ToolCta } from '@/app/PublicChrome';
 
 const amount = (s: string): number => Math.max(0, parseAmount(s) ?? 0);
@@ -50,7 +50,7 @@ const TYPES = [
   { value: 'house', label: 'Μονοκατοικία' },
 ];
 
-export function ShortVsLongCalculator() {
+export function ShortVsLongCalculator({ today }: { today: string }) {
   const [v, set] = useToolState(SPEC, PATH);
   const ids = {
     rent: useId(), price: useId(), occ: useId(), sqm: useId(),
@@ -120,7 +120,7 @@ export function ShortVsLongCalculator() {
              είναι τα ΛΙΓΟΤΕΡΑ που δίνουν τίμια απάντηση: χωρίς προμήθεια και
              λειτουργικά, η σύγκριση γέρνει ψευδώς προς τη βραχυχρόνια, που
              είναι ακριβώς το λάθος για το οποίο υπάρχει η σελίδα. */}
-      <div {...fixedCols(2, 14, 'start')}>
+      <div {...fixedCols(2, 14, 'start', 'po-tool-controls')}>
         {num(ids.rent, 'enoikio', 'Μηνιαίο ενοίκιο', '€')}
         {num(ids.price, 'timi', 'Τιμή ανά διανυκτέρευση', '€')}
         {num(ids.occ, 'plirotita', 'Πληρότητα', '%')}
@@ -142,7 +142,7 @@ export function ShortVsLongCalculator() {
           πολλαπλασιασμένη επί τριακόσιες εξήντα πέντε. Το εργαλείο ζητά ρητά τον
           μέσο όρο, γιατί αλλιώς παράγει το ίδιο ακριβώς λάθος που υπάρχει για
           να διορθώσει. */}
-      <p style={{ margin: '10px 0 0', fontSize: 12, lineHeight: 1.6, color: 'var(--text-tertiary)' }}>
+      <p className="po-tool-controls" style={{ margin: '10px 0 0', fontSize: 12, lineHeight: 1.6, color: 'var(--text-tertiary)' }}>
         Η τιμή είναι η δική σου ανά διανυκτέρευση· ο επισκέπτης πληρώνει επιπλέον το τέλος
         ανθεκτικότητας, που εσύ το αποδίδεις. Στη βραχυχρόνια η τιμή αλλάζει με την εποχή και τη
         ζήτηση: βάλε τον μέσο όρο που πιάνεις, όχι την τιμή της αιχμής. Τα πάγια είναι ρεύμα, νερό
@@ -160,7 +160,7 @@ export function ShortVsLongCalculator() {
           ΔΕΝ ΕΙΝΑΙ ΠΕΔΙΟ ΤΟΥ ΠΛΕΓΜΑΤΟΣ, ΓΙΑΤΙ ΔΕΝ ΕΙΝΑΙ ΠΟΣΟ. Τα οκτώ από πάνω
           είναι μεγέθη που πληκτρολογείς· αυτό είναι παραδοχή του μοντέλου, και
           χρειάζεται τη δική του σειρά για να εξηγηθεί. */}
-      <div style={{
+      <div className="po-tool-controls" style={{
         marginTop: 14, padding: '12px 14px', borderRadius: T.radius.inner,
         border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -183,8 +183,20 @@ export function ShortVsLongCalculator() {
         </div>
       </div>
 
+      {/* ── Η κεφαλίδα του χαρτιού, πάνω από το αποτέλεσμα ─────────────── */}
+      <ToolPaper title="Σύγκριση βραχυχρόνιας και μακροχρόνιας" on={today} inputs={[
+        { k: 'Μηνιαίο ενοίκιο', v: feAuto(amount(v.enoikio)) },
+        { k: 'Τιμή διανυκτέρευσης', v: feAuto(amount(v.timi)) },
+        { k: 'Πληρότητα', v: fp(amount(v.plirotita)) },
+        { k: 'Ακίνητο', v: `${TYPES.find(t => t.value === v.typos)?.label ?? v.typos}, ${fn(amount(v.tm), 2)} τ.μ.` },
+        { k: 'Προμήθεια', v: fp(amount(v.promitheia)) },
+        { k: 'Καθαριότητα', v: `${feAuto(amount(v.kostos))} τη διανυκτέρευση` },
+        { k: 'Πάγια', v: `${feAuto(amount(v.pagia))} τον μήνα` },
+        { k: 'Πότε γεμίζει', v: input.season === 'high' ? 'κυρίως το καλοκαίρι' : 'όλο τον χρόνο' },
+      ]}/>
+
       {/* ── Το αποτέλεσμα ──────────────────────────────────────────────── */}
-      <div style={{
+      <div className="po-tool-result" style={{
         marginTop: 20, padding: 'clamp(18px, 4vw, 26px)', borderRadius: T.radius.card,
         background: 'var(--surface-raised)', border: '1px solid var(--border-raised)',
         boxShadow: 'var(--well-inset)',
@@ -313,7 +325,7 @@ export function ShortVsLongCalculator() {
       <ToolActions path={PATH} spec={SPEC} values={v}/>
 
       {/* ── Τι ΔΕΝ περιλαμβάνει ──────────────────────────────────────────── */}
-      <div style={{
+      <div className="po-tool-note" style={{
         marginTop: 22, padding: 'clamp(14px,2.6vw,18px)', borderRadius: T.radius.inner,
         background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
       }}>
@@ -364,6 +376,8 @@ export function ShortVsLongCalculator() {
           </p>
         </div>
       )}
+
+      <ToolPaperFoot path={PATH} spec={SPEC} values={v}/>
 
       <ToolCta
         title="Η απόφαση παίρνεται μία φορά, η διαχείριση κάθε μέρα."
