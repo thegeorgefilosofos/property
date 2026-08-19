@@ -28,6 +28,7 @@ import SecuritySettings from './SecuritySettings';
 import ActivityLog from './ActivityLog';
 import OrgTeam from './OrgTeam';
 import { exportAllData } from '@/lib/dataExport';
+import * as accountantLink from '@/lib/data/accountantLink';
 import { PLANS, PLAN_ORDER, normalizePlan, type PlanId } from '@/lib/billing/plans';
 
 /** Τα πακέτα που αγοράζονται. Το «χωρίς συνδρομή» είναι κατάσταση, όχι πακέτο. */
@@ -35,6 +36,7 @@ const PAID_PLAN_ORDER = PLAN_ORDER.filter(id => PLANS[id].priceMonthly > 0) as P
 import { effectivePlan, activeComp, planAtLeast, propertyLimit, trialState, isOpenEnded, EARLY_ACCESS_DAYS, FEATURE_MIN_PLAN } from '@/lib/billing/entitlements';
 import { athensToday } from '@/lib/core/time';
 import { savedData } from '@/components/dbWrite';
+import { notifyError } from '@/components/Toast';
 import { failed } from '@/lib/core/dbError';
 
 type ProfileType = 'individual' | 'professional';
@@ -103,28 +105,60 @@ function CollapsibleSection({ title, hint, defaultOpen = false, delay, children 
   );
 }
 
-// ── Σύνδεσμος λογιστή (read-only, ανά χρήστη), bare block ──────────────────
-function AccountantLink({ userId }: { userId: string }) {
+// ═══════════════════════════════════════════════════════════════════════════
+// ΠΡΟΣΒΑΣΗ ΛΟΓΙΣΤΗ: ΕΔΩ ΕΛΕΓΧΕΤΑΙ, ΔΕΝ ΔΙΝΕΤΑΙ
+// ─────────────────────────────────────────────────────────────────────────
+// ΤΙ ΥΠΗΡΧΕ. Το ΙΔΙΟ κουμπί «δημιουργία συνδέσμου» με τη Λογιστική, γραμμένο
+// δεύτερη φορά και ήδη αποκλίνον: το upsert εδώ δεν έγραφε `expires_at`, και η
+// προεπιλογή της βάσης ισχύει ΜΟΝΟ σε insert. Δηλαδή μετά τις 180 ημέρες αυτό
+// το κουμπί έλεγε «Αντιγράφηκε» και παρέδιδε ληγμένο σύνδεσμο· ο ιδιοκτήτης τον
+// έστελνε, ο λογιστής έβλεπε «δεν είναι έγκυρος», και κανείς δεν ήξερε γιατί.
+//
+// ΤΙ ΚΑΝΕΙ ΤΩΡΑ, ΚΑΙ ΓΙΑΤΙ ΑΥΤΟ. Η ΠΑΡΑΧΩΡΗΣΗ ζει στη Λογιστική, μέσα στη ροή
+// όπου ετοιμάζεις τη χρήση και θέλεις να τη στείλεις. Οι Ρυθμίσεις απαντούν
+// άλλη ερώτηση, τη μόνη που φέρνει κάποιον στα «Δεδομένα και απόρρητο»: ποιος
+// βλέπει τα δεδομένα μου αυτή τη στιγμή, και πώς του το κόβω. Ενα κουμπί ανά
+// ερώτηση, καμία διπλή υλοποίηση.
+//
+// ΚΑΙ ΤΟ ΣΒΗΣΙΜΟ ΔΕΝ ΥΠΗΡΧΕ ΠΟΥΘΕΝΑ. Η «Ανάκληση» της Λογιστικής ΠΕΡΙΣΤΡΕΦΕΙ το
+// κλειδί: σκοτώνει τον παλιό σύνδεσμο και γεννά αμέσως καινούριο, ζωντανό.
+// Σωστό όταν αλλάζεις λογιστή· δεν είναι ανάκληση όταν θέλεις απλώς να πάψει
+// να βλέπει κανείς. Μέχρι σήμερα η πύλη δεν έκλεινε ποτέ, μόνο άλλαζε κλειδαριά.
+// ═══════════════════════════════════════════════════════════════════════════
+function AccountantAccess({ userId }: { userId: string }) {
   const supabase = createClient();
-  const [url, setUrl] = useState('');
-  const [copied, setCopied] = useState(false);
+  const [link, setLink] = useState<accountantLink.AccountantLink | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
-    supabase.from('accountant_links').select('token').eq('user_id', userId).maybeSingle().then(({ data }) => { if (data?.token) setUrl(`${window.location.origin}/accountant/${data.token}`); });
+    accountantLink.current(supabase, userId).then(l => { setLink(l); setLoaded(true); });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
-  const gen = async () => {
+
+  const cut = async () => {
     setBusy(true);
-    const data = await savedData<{ token?: string }>('Ο σύνδεσμος για τον λογιστή δεν δημιουργήθηκε',
-      supabase.from('accountant_links').upsert({ user_id: userId, active: true }, { onConflict: 'user_id' }).select('token').maybeSingle());
+    const ok = await accountantLink.revoke(supabase, userId);
     setBusy(false);
-    if (data?.token) { const u = `${window.location.origin}/accountant/${data.token}`; setUrl(u); try { await navigator.clipboard.writeText(u); setCopied(true); setTimeout(() => setCopied(false), 2600); } catch { /* ignore */ } }
+    if (ok) setLink(l => (l ? { ...l, live: false } : l));
+    else notifyError('Η πρόσβαση δεν ανακλήθηκε');
   };
+
+  // Η κατάσταση λέγεται με πρόταση, όχι με χρώμα: το πράσινο και το κόκκινο δεν
+  // φέρουν νόημα σε αυτό το προϊόν, και μια λέξη διαβάζεται και χωρίς αυτά.
+  const state = !loaded ? ''
+    : link?.live ? `Ενεργή ${accountantLink.expiryLabel(link)}.`.replace(' .', '.')
+    : link ? 'Καμία ενεργή πρόσβαση. Ο παλιός σύνδεσμος δεν απαντά πλέον.'
+    : 'Καμία πρόσβαση δεν έχει δοθεί.';
+
   return (
-    <SetRow title="Σύνδεσμος για τον λογιστή σου"
-      desc="Ασφαλής σύνδεσμος μόνο ανάγνωσης με την εικόνα εσόδων και δαπανών των ακινήτων σου ανά έτος. Ο λογιστής δεν βλέπει πελατολόγιο ούτε στοιχεία τρίτων.">
-      {url && <div style={{ ...TT.mono, fontSize: 12, color: 'var(--accent)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '9px 12px', marginBottom: 10, wordBreak: 'break-all' }}>{url}</div>}
-      <Btn variant="secondary" onClick={gen} disabled={busy}>{busy ? 'Δημιουργία…' : copied ? 'Αντιγράφηκε' : url ? 'Αντιγραφή συνδέσμου' : 'Δημιουργία συνδέσμου'}</Btn>
+    <SetRow title="Πρόσβαση λογιστή"
+      desc="Ενας σύνδεσμος μόνο ανάγνωσης δίνει στον λογιστή σου την εικόνα εσόδων και δαπανών ανά χρήση. Χωρίς πελατολόγιο και χωρίς στοιχεία τρίτων."
+      control={link?.live ? <Btn variant="secondary" onClick={cut} disabled={busy}>{busy ? 'Ανάκληση…' : 'Ανάκληση πρόσβασης'}</Btn> : undefined}>
+      {state && (
+        <div style={{ ...TT.bodySm, color: 'var(--text-secondary)' }}>
+          {state}{!link?.live && ' Ο σύνδεσμος βγαίνει από τη Λογιστική, στον φάκελο για τον λογιστή.'}
+        </div>
+      )}
     </SetRow>
   );
 }
@@ -866,7 +900,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
             control={<Btn variant="secondary" onClick={exportSettingsSheet}>Εξαγωγή Excel</Btn>}>
             {sheetNote && <div style={{ ...TT.bodySm }}>{sheetNote}</div>}
           </SetRow>
-          <AccountantLink userId={userId} />
+          <AccountantAccess userId={userId} />
           <MarketDataSharing userId={userId} />
           {/* Η εμπιστοσύνη δεν είναι μόνο για τη σελίδα πωλήσεων: ο υπάρχων χρήστης
               πρέπει να βρίσκει με ένα κλικ πού ζουν τα δεδομένα του και ποιοι είμαστε. */}

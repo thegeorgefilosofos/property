@@ -19,6 +19,7 @@ import { businessFormOf } from '@/lib/accounting/taxProfile'
 import type { ClientStaysRow, ExpensesRow, InventoryItemsRow, RentPaymentsRow, UserPropertiesRow } from '@/lib/supabase/tables'
 // Η απογραφή έχει ένα σπίτι: lib/data/inventory.
 import * as inventoryStore from '@/lib/data/inventory';
+import * as accountantLink from '@/lib/data/accountantLink';
 import type { LoanView } from '@/lib/loans/shape'
 import type { TaxStay } from '@/lib/tax/shortTermTax'
 import { saved, savedData } from '@/components/dbWrite'
@@ -92,12 +93,6 @@ const STATUS_META:Record<ReconStatus,{label:string;color:string;strong:boolean}>
 
 // Οι ίδιοι τόνοι για το τυπωμένο χαρτί, όπου δεν υπάρχουν μεταβλητές θέματος.
 // Ήταν τέσσερα ωμά χρώματα, γραμμένα ΔΥΟ φορές μέσα στο αρχείο.
-// Πόσο ζει ο σύνδεσμος του λογιστή. Ίδια διάρκεια με την προεπιλογή της βάσης
-// (180 ημέρες), γραμμένη εδώ γιατί η ανανέωση γίνεται από τον πελάτη.
-const ACCOUNTANT_LINK_DAYS = 180
-const accountantLinkExpiry = () =>
-  new Date(Date.now() + ACCOUNTANT_LINK_DAYS * 86400000).toISOString()
-
 const STATUS_PRINT:Record<ReconStatus,string> = {
   paid:'#5f6368', partial:'#202124', unpaid:'#5f6368', overdue:'#202124',
 }
@@ -274,6 +269,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const [acctBusy,setAcctBusy] = useState(false)
   const [acctLink,setAcctLink] = useState<string|null>(null)
   const [acctRevoked,setAcctRevoked] = useState(false)
+  const [acctUntil,setAcctUntil] = useState('')
   useEffect(()=>{ try{
     const v=localStorage.getItem('acc_age'); if(v) setAge(Number(v)||'')
     const e=localStorage.getItem('acc_ekfa'); if(e) setEkfa(Number(e)||'')
@@ -754,17 +750,14 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     if(acctBusy) return
     setAcctBusy(true)
     try{
-      const data = await savedData<{ token?:string }>('Ο σύνδεσμος για τον λογιστή δεν δημιουργήθηκε',
-        // Η ΛΗΞΗ ΑΝΑΝΕΩΝΕΤΑΙ ΡΗΤΑ. Το `expires_at` έχει προεπιλογή στη βάση, και
-        // οι προεπιλογές ισχύουν ΜΟΝΟ σε insert: ένας σύνδεσμος που ξαναμοιράζεται
-        // μετά τις εκατόν ογδόντα ημέρες θα απαντούσε «δεν βρέθηκε», χωρίς εξήγηση.
-        supabase.from('accountant_links').upsert({ user_id:userId, active:true, expires_at:accountantLinkExpiry() }, { onConflict:'user_id' }).select('token').maybeSingle())
-      const token = data?.token
-      if(token){
-        const url = `${window.location.origin}/accountant/${token}`
-        setAcctLink(url)
-        try{ await navigator.clipboard.writeText(url); setAcctCopied(true); setTimeout(()=>setAcctCopied(false),2600) }catch{ /* ο σύνδεσμος φαίνεται πλέον στο πλαίσιο, ο χρήστης τον αντιγράφει χειροκίνητα */ }
-      }
+      // Η δημιουργία, η ανανέωση της λήξης και η περιστροφή ζουν σε ένα σημείο:
+      // lib/data/accountantLink.ts. Εδώ ήταν γραμμένες δεύτερη φορά, και η
+      // εκδοχή των Ρυθμίσεων είχε ήδη αποκλίνει.
+      const link = await accountantLink.issue(supabase, userId)
+      if(!link){ notifyError('Ο σύνδεσμος για τον λογιστή δεν δημιουργήθηκε'); return }
+      setAcctLink(link.url)
+      setAcctUntil(accountantLink.expiryLabel(link))
+      try{ await navigator.clipboard.writeText(link.url); setAcctCopied(true); setTimeout(()=>setAcctCopied(false),2600) }catch{ /* ο σύνδεσμος φαίνεται πλέον στο πλαίσιο, ο χρήστης τον αντιγράφει χειροκίνητα */ }
     } finally { setAcctBusy(false) }
   }
 
@@ -781,19 +774,12 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     if(acctBusy) return
     setAcctBusy(true)
     try{
-      // ΤΟ ΕΝΑΛΛΑΚΤΙΚΟ ΗΤΑΝ `Date.now()` ΚΑΙ `Math.random()`. Το token αυτό
-      // είναι διαπιστευτήριο για ΟΛΟ το χαρτοφυλάκιο — όνομα, ΑΤΑΚ, διεύθυνση,
-      // ενοίκια, δαπάνες. Η `Math.random` δεν είναι κρυπτογραφική: από δύο
-      // διαδοχικές εξόδους προβλέπεται όλη η ακολουθία, και η ώρα είναι γνωστή.
-      // Στην πράξη το `crypto.randomUUID` υπάρχει πάντα σε HTTPS, οπότε το
-      // εναλλακτικό δεν έτρεχε σχεδόν ποτέ — αλλά η υποβάθμιση ήταν ΣΙΩΠΗΛΗ.
-      // Καλύτερα να μη γίνει η ανάκληση παρά να γίνει με προβλέψιμο κλειδί.
-      const fresh = globalThis.crypto?.randomUUID?.()
-      if(!fresh){ setAcctBusy(false); notifyError('Ο περιηγητής δεν μπορεί να παραγάγει ασφαλή σύνδεσμο. Δοκίμασε από ασφαλή σύνδεση (https).'); return }
-      const data = await savedData<{ token?:string }>('Ο σύνδεσμος δεν ανακλήθηκε',
-        supabase.from('accountant_links').upsert({ user_id:userId, token:fresh, active:true, expires_at:accountantLinkExpiry() }, { onConflict:'user_id' }).select('token').maybeSingle())
-      const token = data?.token
-      if(token){ setAcctLink(`${window.location.origin}/accountant/${token}`); setAcctCopied(false); setAcctRevoked(true); setTimeout(()=>setAcctRevoked(false),2600) }
+      const link = await accountantLink.rotate(supabase, userId)
+      if(link === 'insecure'){ notifyError('Ο περιηγητής δεν μπορεί να παραγάγει ασφαλή σύνδεσμο. Δοκίμασε από ασφαλή σύνδεση (https).'); return }
+      if(!link){ notifyError('Ο σύνδεσμος δεν ανακλήθηκε'); return }
+      setAcctLink(link.url)
+      setAcctUntil(accountantLink.expiryLabel(link))
+      setAcctCopied(false); setAcctRevoked(true); setTimeout(()=>setAcctRevoked(false),2600)
     } finally { setAcctBusy(false) }
   }
 
@@ -895,7 +881,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
                 διεύθυνση, ΑΤΑΚ και μίσθωμα. Το κουμπί όμως ζει μέσα στην καρτέλα
                 ΕΝΟΣ ακινήτου, οπότε η φυσική ανάγνωση ήταν «μοιράζομαι αυτό
                 εδώ». Η μόνη ένδειξη ήταν σε tooltip που δεν ανοίγει σε κινητό. */}
-            <span style={{ fontSize:11, color:acctRevoked?'var(--positive)':'var(--text-tertiary)', fontFamily: T.font.sans }}>{acctRevoked?'Ο παλιός σύνδεσμος ακυρώθηκε και ο λογιστής βγήκε. Μοιράσου τον νέο.':'Δίνει πρόσβαση μόνο για ανάγνωση, σε ΟΛΑ τα ακίνητά σου, όχι μόνο σε αυτό. Ανακάλεσέ τον όποτε θες.'}</span>
+            <span style={{ fontSize:11, color:acctRevoked?'var(--positive)':'var(--text-tertiary)', fontFamily: T.font.sans }}>{acctRevoked?'Ο παλιός σύνδεσμος ακυρώθηκε και ο λογιστής βγήκε.':`Πρόσβαση μόνο για ανάγνωση, σε ΟΛΑ τα ακίνητά σου, όχι μόνο σε αυτό.${acctUntil?` Ισχύει ${acctUntil}.`:''}`}</span>
             <button onClick={revokeAccountantLink} disabled={acctBusy} title="Ακυρώνει τον τρέχοντα σύνδεσμο και δημιουργεί καινούριο· ο παλιός παύει αμέσως να λειτουργεί και όποιος λογιστής τον είχε ήδη ανοίξει χάνει την πρόσβαση" style={{ marginLeft:'auto', background:'none', border:'none', padding:0, color:'var(--text-tertiary)', fontSize:11, fontWeight:700, cursor:acctBusy?'wait':'pointer', fontFamily: T.font.sans, whiteSpace:'nowrap' }} onMouseEnter={e=>{ if(!acctBusy) e.currentTarget.style.color='var(--negative)' }} onMouseLeave={e=>{ e.currentTarget.style.color='var(--text-tertiary)' }}>Ανάκληση</button>
           </div>
         </div>
