@@ -115,17 +115,36 @@ export function collectedIn<T extends BookableRent>(rows: readonly T[], year: nu
 
 // ── ΑΝΑΓΝΩΣΗ ───────────────────────────────────────────────────────────────
 
+function ofPropertyQuery(db: Db, propertyId: string, columns: string, userId?: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  opts: { year?: number; paid?: boolean } = {}): any {
+  let q = db.from(TABLE).select(columns).eq('property_id', propertyId);
+  if (userId) q = q.eq('user_id', userId);
+  if (opts.year !== undefined) q = q.eq('period_year', opts.year);
+  if (opts.paid !== undefined) q = q.eq('paid', opts.paid);
+  return newestFirst(q);
+}
+
 /** Οι δόσεις ενός ακινήτου, νεότερη περίοδος πρώτη. */
 export async function ofProperty<T = Partial<RentPaymentsRow>>(
   db: Db, propertyId: string, columns: string, userId?: string,
   opts: { year?: number; paid?: boolean } = {},
 ): Promise<T[]> {
-  let q = db.from(TABLE).select(columns).eq('property_id', propertyId);
-  if (userId) q = q.eq('user_id', userId);
-  if (opts.year !== undefined) q = q.eq('period_year', opts.year);
-  if (opts.paid !== undefined) q = q.eq('paid', opts.paid);
-  const { data } = await newestFirst(q);
+  const { data } = await ofPropertyQuery(db, propertyId, columns, userId, opts);
   return (data || []) as T[];
+}
+
+/**
+ * Οι ίδιες δόσεις, με το σφάλμα ορατό. Το χρειάζεται η Λογιστική: εκεί μια
+ * αποτυχημένη ανάγνωση δεν δίνει «καμία είσπραξη», δίνει μηδενικό εισόδημα σε
+ * Ε2 και σε βεβαίωση ενοικίου.
+ */
+export async function ofPropertyWithError<T = Partial<RentPaymentsRow>>(
+  db: Db, propertyId: string, columns: string, userId?: string,
+  opts: { year?: number; paid?: boolean } = {},
+): Promise<{ rows: T[]; error: { message?: string; code?: string } | null }> {
+  const { data, error } = await ofPropertyQuery(db, propertyId, columns, userId, opts);
+  return { rows: (data || []) as T[], error: error ?? null };
 }
 
 /** Οι δόσεις ενός ακινήτου με την ΠΑΛΑΙΟΤΕΡΗ πρώτη: χρονοσειρά, όχι λίστα. */

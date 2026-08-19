@@ -70,16 +70,34 @@ const active = <Q extends { is: (c: string, v: null) => Q }>(q: Q): Q => q.is('c
  * Το `from`/`to` κόβουν στην ΑΦΙΞΗ: μια διαμονή ανήκει στο έτος που ξεκίνησε,
  * όπως τη μετρά και ο υπολογισμός φόρου.
  */
-export async function ofProperty<T = Partial<ClientStaysRow>>(
-  db: Db, propertyId: string, columns: string, userId?: string,
-  opts: { from?: string; to?: string } = {},
-): Promise<T[]> {
+function ofPropertyQuery(db: Db, propertyId: string, columns: string, userId?: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  opts: { from?: string; to?: string } = {}): any {
   let q = active(db.from(TABLE).select(columns).eq('property_id', String(propertyId)));
   if (userId) q = q.eq('user_id', userId);
   if (opts.from) q = q.gte('check_in', opts.from);
   if (opts.to) q = q.lte('check_in', opts.to);
-  const { data } = await q;
+  return q;
+}
+
+export async function ofProperty<T = Partial<ClientStaysRow>>(
+  db: Db, propertyId: string, columns: string, userId?: string,
+  opts: { from?: string; to?: string } = {},
+): Promise<T[]> {
+  const { data } = await ofPropertyQuery(db, propertyId, columns, userId, opts);
   return (data || []) as T[];
+}
+
+/**
+ * Οι ίδιες διαμονές, με το σφάλμα ορατό. Στη βραχυχρόνια μίσθωση ΑΥΤΕΣ είναι το
+ * εισόδημα: μια αποτυχημένη ανάγνωση εδώ δίνει μηδέν έσοδα και μηδέν φόρο.
+ */
+export async function ofPropertyWithError<T = Partial<ClientStaysRow>>(
+  db: Db, propertyId: string, columns: string, userId?: string,
+  opts: { from?: string; to?: string } = {},
+): Promise<{ rows: T[]; error: { message?: string; code?: string } | null }> {
+  const { data, error } = await ofPropertyQuery(db, propertyId, columns, userId, opts);
+  return { rows: (data || []) as T[], error: error ?? null };
 }
 
 /** Οι διαμονές πολλών ακινήτων μαζί. Το κείμενο του κλειδιού γίνεται εδώ. */

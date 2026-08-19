@@ -150,19 +150,18 @@ function scoped(db: Db, columns: string): any {
   return db.from(TABLE).select(columns);
 }
 
-/** Το καθολικό ενός ακινήτου, με τις στήλες που χρειάζονται όλες οι οθόνες. */
-export async function ledger<T = LedgerRow>(
-  db: Db, propertyId: string,
-  opts: {
-    from?: string; to?: string; columns?: string; userId?: string;
-    excludeCategory?: string;
-    /** Φίλτρο «ή» του PostgREST — η μόνη περίπτωση που το χρειάζεται μια οθόνη:
-     *  οι δαπάνες μιας επαφής, από το `contact_id` ή, για τις παλιές, το όνομα. */
-    or?: string;
-    order?: { column: string; ascending: boolean };
-    limit?: number;
-  } = {},
-): Promise<T[]> {
+export interface LedgerOpts {
+  from?: string; to?: string; columns?: string; userId?: string;
+  excludeCategory?: string;
+  /** Φίλτρο «ή» του PostgREST — η μόνη περίπτωση που το χρειάζεται μια οθόνη:
+   *  οι δαπάνες μιας επαφής, από το `contact_id` ή, για τις παλιές, το όνομα. */
+  or?: string;
+  order?: { column: string; ascending: boolean };
+  limit?: number;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function ledgerQuery(db: Db, propertyId: string, opts: LedgerOpts): any {
   let q = scoped(db, opts.columns ?? LEDGER_COLUMNS).eq('property_id', propertyId);
   if (opts.userId) q = q.eq('user_id', opts.userId);
   if (opts.from) q = q.gte('date', opts.from);
@@ -171,8 +170,36 @@ export async function ledger<T = LedgerRow>(
   if (opts.or) q = q.or(opts.or);
   if (opts.order) q = q.order(opts.order.column, { ascending: opts.order.ascending });
   if (opts.limit) q = q.limit(opts.limit);
-  const { data } = await q;
+  return q;
+}
+
+/** Το καθολικό ενός ακινήτου, με τις στήλες που χρειάζονται όλες οι οθόνες. */
+export async function ledger<T = LedgerRow>(
+  db: Db, propertyId: string, opts: LedgerOpts = {},
+): Promise<T[]> {
+  const { data } = await ledgerQuery(db, propertyId, opts);
   return (data || []) as T[];
+}
+
+/**
+ * ΤΟ ΙΔΙΟ ΚΑΘΟΛΙΚΟ, ΜΕ ΤΟ ΣΦΑΛΜΑ ΟΡΑΤΟ. Για την ΜΙΑ οθόνη όπου η διαφορά
+ * κρίνει: τη Λογιστική.
+ *
+ * Η `ledger` γυρίζει `[]` και όταν δεν υπάρχουν δαπάνες και όταν η ανάγνωση
+ * απέτυχε. Στις υπόλοιπες οθόνες τα δύο μοιάζουν αρκετά ώστε να μη χαλά τίποτα:
+ * μια άδεια λίστα δαπανών είναι άδεια λίστα δαπανών. Στη Λογιστική όμως το ίδιο
+ * κενό γίνεται «μηδέν δαπάνες», δηλαδή μεγαλύτερο φορολογητέο εισόδημα και
+ * μεγαλύτερος φόρος — σε οθόνη που παράγει Ε2, βεβαίωση ενοικίου και φάκελο
+ * λογιστή, με αριθμό εγγράφου και κωδικό επαλήθευσης.
+ *
+ * Ενα PDF με μηδενικά που φαίνεται πλήρες είναι χειρότερο από ένα PDF που δεν
+ * βγήκε.
+ */
+export async function ledgerWithError<T = LedgerRow>(
+  db: Db, propertyId: string, opts: LedgerOpts = {},
+): Promise<{ rows: T[]; error: { message?: string; code?: string } | null }> {
+  const { data, error } = await ledgerQuery(db, propertyId, opts);
+  return { rows: (data || []) as T[], error: error ?? null };
 }
 
 /** Το καθολικό πολλών ακινήτων του ίδιου χρήστη — σύγκριση, χαρτοφυλάκιο. */

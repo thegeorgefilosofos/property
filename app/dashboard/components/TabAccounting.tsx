@@ -165,6 +165,13 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const [genOfficial, setGenOfficial] = useState(false)
   const [genOfficialCert, setGenOfficialCert] = useState(false)
   const [loading,setLoading] = useState(true)
+  // ΤΟ ΜΗΔΕΝ ΠΟΥ ΔΕΝ ΕΙΝΑΙ ΜΗΔΕΝ. Οι τρεις αναγνώσεις που χτίζουν τη
+  // φορολογική εικόνα γύριζαν άδεια λίστα και όταν δεν υπάρχουν δεδομένα και
+  // όταν η ανάγνωση απέτυχε. Στη Λογιστική τα δύο δεν είναι το ίδιο: το πρώτο
+  // είναι «δεν έχεις καταχωρήσει», το δεύτερο είναι «δεν ξέρω τι έχεις» — και
+  // από εδώ βγαίνουν Ε2, βεβαίωση ενοικίου και φάκελος λογιστή, με αριθμό
+  // εγγράφου και κωδικό επαλήθευσης.
+  const [readFailed,setReadFailed] = useState(false)
   const [year,setYear] = useState(athensYear())
   // Η καρτέλα ακολουθεί το προφίλ (Ρυθμίσεις): ο ιδιώτης βλέπει απλή εικόνα, ο
   // επαγγελματίας τη διάκριση Φυσικό πρόσωπο / Επιχείρηση (ΕΛΠ). Χωρίς περιττό toggle.
@@ -338,12 +345,12 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   useEffect(()=>{ let alive = true; (async()=>{
     setLoading(true)
     try{
-      const [ex, rp, st, ln, pr, aps, arp, ast, inv, tn] = await Promise.all([
-        expenseStore.ledger<ExpenseRow>(supabase,propertyId,{ columns:'date,amount,category,expense_group,description,supplier_country,supply,supplier_afm' }),
+      const [exR, rpR, stR, ln, pr, aps, arp, ast, inv, tn] = await Promise.all([
+        expenseStore.ledgerWithError<ExpenseRow>(supabase,propertyId,{ columns:'date,amount,category,expense_group,description,supplier_country,supply,supplier_afm' }),
         // Ο ΤΡΟΠΟΣ ΠΛΗΡΩΜΗΣ ΕΙΝΑΙ ΦΟΡΟΛΟΓΙΚΟ ΣΤΟΙΧΕΙΟ, ΟΧΙ ΔΙΑΚΟΣΜΗΤΙΚΟ: από
         // αυτόν κρίνεται η τεκμαρτή έκπτωση 5%. Μία στήλη παραπάνω στο ίδιο ερώτημα.
-        rentStore.ofProperty<RentRow>(supabase,propertyId,`${rentStore.LEDGER_COLUMNS},method`,userId),
-        stayStore.ofProperty<StayRow>(supabase,propertyId,`id,${stayStore.ACCOUNTING_COLUMNS}`,userId),
+        rentStore.ofPropertyWithError<RentRow>(supabase,propertyId,`${rentStore.LEDGER_COLUMNS},method`,userId),
+        stayStore.ofPropertyWithError<StayRow>(supabase,propertyId,`id,${stayStore.ACCOUNTING_COLUMNS}`,userId),
         loanStore.ofProperty(supabase,propertyId,userId),
         properties.one<PropRow>(supabase, propertyId, 'id,name,address,rental_mode,enfia,sqm,value,year_built,floor,purchase_price,purchase_date,prop_type', userId),
         properties.list<PropListRow>(supabase, userId, { columns: 'id,name,rental_mode,status_detail,enfia,sqm' }),
@@ -354,12 +361,13 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         tenantStore.current<{ e_payment?: boolean|null }>(supabase, propertyId, 'e_payment', userId),
       ])
       if(!alive) return
-      setExpenses(ex); setRent(rp); setLeaseViaBank(tn ? (tn.e_payment !== false) : null)
-      setStays(st); setLoans(ln)
+      setReadFailed(!!(exR.error || rpR.error || stR.error))
+      setExpenses(exR.rows); setRent(rpR.rows); setLeaseViaBank(tn ? (tn.e_payment !== false) : null)
+      setStays(stR.rows); setLoans(ln)
       setProp(pr); setAllProps(aps)
       setAllRent(arp); setAllStays(ast)
       setInventory(inv)
-    }catch(_){ /* διατηρούμε ό,τι ήδη έχει φορτωθεί· το UI δεν κολλάει */ }
+    }catch(_){ if(alive) setReadFailed(true) /* διατηρούμε ό,τι ήδη έχει φορτωθεί· το UI δεν κολλάει */ }
     finally{ if(alive) setLoading(false) }
   })(); return ()=>{ alive = false } },[propertyId,userId,refreshKey])
 
@@ -922,6 +930,34 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         </div>
       )}
     </>
+  )
+
+  // ══ ΟΤΑΝ Η ΑΝΑΓΝΩΣΗ ΑΠΕΤΥΧΕ, Η ΟΘΟΝΗ ΔΕΝ ΠΑΡΙΣΤΑΝΕΙ ΤΗΝ ΠΛΗΡΗ ═══════════
+  // Το προηγούμενο σφάλμα αυτής της οθόνης, γραμμένο στα σχόλιά της, ήταν
+  // «μηδέν έσοδα, μηδέν φόρος, μηδέν πρόβλεψη — σε PDF με αριθμό εγγράφου και
+  // κωδικό QR επαλήθευσης». Ο δρόμος προς εκείνο το PDF περνούσε από τρεις
+  // αναγνώσεις που γυρίζουν άδεια λίστα και όταν αποτύχουν.
+  //
+  // Δεν κρύβεται η οθόνη: ο ιδιοκτήτης μπορεί να θέλει να δει ό,τι φόρτωσε.
+  // Λέγεται όμως, πάνω από όλα, ότι η εικόνα ΔΕΝ είναι πλήρης — πριν πατήσει
+  // «Φάκελος λογιστή».
+  if(readFailed) return (
+    <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+      <div role="alert" style={{ padding:'14px 16px', borderRadius:T.radius.card, background:'var(--bg-elevated)', border:'1px solid var(--border-default)' }}>
+        <p style={{ fontSize:14, fontWeight:650, color:'var(--text-primary)', fontFamily:T.font.sans, margin:0 }}>
+          Τα οικονομικά δεδομένα δεν διαβάστηκαν
+        </p>
+        <p style={{ fontSize:13, lineHeight:1.6, color:'var(--text-secondary)', fontFamily:T.font.sans, margin:'6px 0 0' }}>
+          Η σύνδεση με τη βάση απέτυχε, οπότε τα έσοδα, οι δαπάνες και οι διαμονές
+          λείπουν. Τα ποσά που θα έβλεπες εδώ θα ήταν μηδενικά χωρίς να είναι, και
+          από αυτή την οθόνη βγαίνουν το Ε2, η βεβαίωση ενοικίου και ο φάκελος του
+          λογιστή. Δοκίμασε ξανά· τα δεδομένα σου δεν έχουν χαθεί.
+        </p>
+        <button onClick={()=>setRefreshKey(k=>k+1)} style={{ marginTop:12, height:T.h.md, padding:'0 16px', borderRadius:T.radius.btn, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:T.font.sans }}>
+          Δοκίμασε ξανά
+        </button>
+      </div>
+    </div>
   )
 
   return (
