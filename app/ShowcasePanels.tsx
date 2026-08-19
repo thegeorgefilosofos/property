@@ -125,52 +125,46 @@ export function PanelDashboard() {
 }
 
 // ── Πάνελ: Σάρωση ────────────────────────────────────────────────────────────
-//
-// ΤΟ ΣΧΗΜΑ ΗΤΑΝ ΜΙΑ ΜΙΚΡΗ ΚΑΡΤΑ ΣΕ ΑΔΕΙΟ ΠΑΡΑΘΥΡΟ. Μετρημένο στη ζωντανή σελίδα:
-// το mockup είναι 960 εικονοστοιχεία και το περιεχόμενο έπιανε 441 — γέμισμα
-// 45,8%, με δύο κενά λουριά 260 εικονοστοιχείων δεξιά κι αριστερά. Ενα
-// παράθυρο περιηγητή που είναι κατά το ήμισυ άδειο δεν διαβάζεται ως προϊόν,
-// διαβάζεται ως σελίδα που δεν φόρτωσε.
-//
-// ΚΑΙ ΤΟ ΣΧΟΛΙΟ ΕΛΕΓΕ ΨΕΜΑΤΑ. Εγραφε ότι «τα τέσσερα σήματα πιάνουν 410 από τα
-// 440 και κάθονται σε μία ευθεία»· στη ζωντανή σελίδα το τέταρτο έπεφτε σε
-// δεύτερη σειρά, ακριβώς η αναδίπλωση τρία-πάνω-ένα-κάτω που το σχόλιο
-// υποστήριζε ότι είχε λυθεί.
-//
-// ΤΙ ΑΛΛΑΖΕΙ. Η σκηνή γίνεται αυτό που λέει: αριστερά το χαρτί που σάρωσες,
-// δεξιά οι θέσεις όπου κατέληξε. Το σχήμα αφηγείται τη μεταφορά αντί να την
-// περιγράφει, γεμίζει το πλάτος, και τα σήματα δεν έχουν πια λόγο να σπάσουν —
-// είναι στοίβα, όχι σειρά. Σε στενή οθόνη η στοίβα πέφτει κάτω από την κάρτα
-// και όλα διαβάζονται με τη σειρά που συμβαίνουν.
 export function PanelScan() {
   const filed = ['Λογαριασμοί', 'Δαπάνες', 'Ημερολόγιο', navLabel('documents')];
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'flex-start', gap: 'clamp(16px, 2.4vw, 28px)', textAlign: 'left' }}>
-      <div className="lp-live" style={{ flex: '1 1 290px', maxWidth: 440, minWidth: 0, position: 'relative', overflow: 'hidden', background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '18px 18px 16px' }}>
+    <div style={{ maxWidth: 500, margin: '0 auto', textAlign: 'left' }}>
+      <div className="lp-live" style={{ position: 'relative', overflow: 'hidden', background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '18px 18px 16px' }}>
         <div className="lp-scanline" style={{ position: 'absolute', left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, var(--accent), transparent)', boxShadow: '0 0 12px color-mix(in srgb, var(--accent) 60%, transparent)' }} />
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, marginBottom: 14 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
           <div style={{ fontSize: 13, fontWeight: 700 }}>Ρεύμα</div>
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>Μηνιαίος λογαριασμός</div>
+          <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>Μηνιαίος λογαριασμός</div>
         </div>
-        {[['Περίοδος', 'Ιούν 2026'], ['Κατανάλωση', '312 kWh'], ['Ημερομηνία λήξης', '10/08/2026']].map(([l, v], i) => (
-          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '5px 0', fontSize: 12, color: 'var(--text-secondary)' }}><span>{l}</span><span style={{ color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{v}</span></div>
+        {[['Περίοδος', 'Ιούν 2026'], ['Κατανάλωση', '312 kWh'], ['Ημερομηνία λήξης', '10/08/2026']].map(([l, v], i) => (
+          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: 12, color: 'var(--text-secondary)' }}><span>{l}</span><span style={{ color: 'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric: 'tabular-nums' }}>{v}</span></div>
         ))}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border-subtle)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border-subtle)' }}>
           <span style={{ fontSize: 12, fontWeight: 700 }}>Πληρωτέο</span>
-          <span style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>88,50&nbsp;€</span>
+          <span style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>88,50&nbsp;€</span>
         </div>
       </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '14px 0 10px', fontSize: 12, color: 'var(--text-secondary)' }}>
+        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7z" /></svg>
+        Μπήκε μόνος του σε:
+      </div>
+      {/* ═══ ΤΑ ΤΕΣΣΕΡΑ ΣΕ ΜΙΑ ΕΥΘΕΙΑ ════════════════════════════════════════
+          ΤΙ ΔΕΝ ΧΩΡΟΥΣΕ. Κάθε σήμα κουβαλούσε ένα «✓». Τέσσερα εικονίδια επί 20
+          εικονοστοιχεία (εικονίδιο και κενό) είναι ογδόντα, και ακριβώς αυτά τα
+          ογδόντα έσπρωχναν το τέταρτο σήμα σε δεύτερη σειρά: τρία πάνω, ένα
+          κάτω, δηλαδή η χειρότερη δυνατή αναδίπλωση.
 
-      {/* ΟΙ ΘΕΣΕΙΣ ΟΠΟΥ ΚΑΤΕΛΗΞΕ, ΩΣ ΣΤΟΙΒΑ. Στοιβαγμένα, τα σήματα δεν
-          ανταγωνίζονται για πλάτος: κάθε όνομα οθόνης μένει ακέραιο σε κάθε
-          μέγεθος, και η κλιμακωτή εμφάνισή τους διαβάζεται ως διαδοχή. */}
-      <div style={{ flex: '1 1 190px', maxWidth: 240, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2, fontSize: 12, color: 'var(--text-secondary)' }}>
-          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M12 3l1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7z" /></svg>
-          Μπήκε μόνος του σε:
-        </div>
+          ΓΙΑΤΙ ΕΦΥΓΕ ΤΟ ΕΙΚΟΝΙΔΙΟ ΚΑΙ ΟΧΙ ΤΟ ΚΕΙΜΕΝΟ. Η σειρά από πάνω λέει ήδη
+          «Μπήκε μόνος του σε:». Το «✓» δεν πρόσθετε πληροφορία — την
+          επαναλάμβανε τέσσερις φορές. Χωρίς αυτό, τα τέσσερα σήματα πιάνουν 410
+          από τα 440 εικονοστοιχεία του πάνελ και κάθονται σε μία ευθεία, με τα
+          ονόματα των οθονών να μένουν ακέραια όπως τα λέει η εφαρμογή.
+
+          Η αναδίπλωση μένει ως δίχτυ για πολύ στενές οθόνες: εκεί καμία
+          γραμματοσειρά δεν χωράει δεκαέξι γράμματα, και μια σπασμένη σειρά είναι
+          προτιμότερη από κείμενο που ξεχειλίζει. */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
         {filed.map((t, i) => (
-          <span key={i} className="lp-pop lp-live" style={{ animationDelay: `${0.18 * i + 0.3}s`, display: 'inline-flex', alignItems: 'center', maxWidth: '100%', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 100, padding: '7px 14px', whiteSpace: 'nowrap' }}>{t}</span>
+          <span key={i} className="lp-pop lp-live" style={{ animationDelay: `${0.18 * i + 0.3}s`, display: 'inline-flex', alignItems: 'center', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 100, padding: '6px 12px', whiteSpace: 'nowrap' }}>{t}</span>
         ))}
       </div>
     </div>

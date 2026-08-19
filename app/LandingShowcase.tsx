@@ -49,7 +49,7 @@ export default function LandingShowcase() {
   const resetTilt = () => { if (tiltRef.current) tiltRef.current.style.transform = 'perspective(1400px) rotateX(0deg) rotateY(0deg)'; };
 
   return (
-    <div style={{ position: 'relative', maxWidth: 780, margin: 'clamp(40px, 6vw, 72px) auto 0' }}>
+    <div style={{ position: 'relative', maxWidth: 660, margin: 'clamp(40px, 6vw, 72px) auto 0' }}>
       <PanelFX />
       <style>{`
         /* Βάση = σκούρο, όπως και το :root στο globals.css. Το φωτεινό είναι η

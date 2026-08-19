@@ -116,11 +116,9 @@ export default function AgendaPanel({ items, total, onNavigate }: {
 
       {/* Το υπόλοιπο της λίστας ΔΕΝ ξαναγράφεται εδώ: ζει στις «Εκκρεμότητες»,
           που είναι η καρτέλα του. Η αρχική δείχνει τα πρώτα και λέει πόσα μένουν. */}
-      {total > items.length && (
-        <button type="button" className="agenda-more" onClick={() => onNavigate('checklist')}>
-          Δες και τα υπόλοιπα {total - items.length}
-        </button>
-      )}
+      <button type="button" className="agenda-more" onClick={() => onNavigate('checklist')}>
+        {total > items.length ? `Δες και τα υπόλοιπα ${total - items.length}` : 'Ολες οι εκκρεμότητες'}
+      </button>
 
       <style jsx>{`
         .agenda {

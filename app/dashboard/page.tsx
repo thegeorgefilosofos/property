@@ -711,10 +711,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { pro
   // ο πίνακας ήταν τρίτη, αόρατη μηχανή που πλήρωνε ερωτήματα χωρίς αποδέκτη.
   // Μένουν μόνο τα μεγέθη που εμφανίζονται πραγματικά στα πλακίδια.
   const daysUntil = (d: string | null | undefined) => d ? athensDaysUntil(d) ?? 0 : null;
-  const chkOverdue  = chk.filter(c => { const x = daysUntil(c.due_date); return x != null && x < 0; });
-  const chkCritical = chk.filter(c => c.priority === 'critical' && c.status === 'pending');
   const openChk = chk.length;
-  const chkAttention = new Set([...chkOverdue, ...chkCritical]).size;
 
   // ── ΦΟΡΟΣ: ΕΝΑΣ ΦΟΡΟΛΟΓΟΥΜΕΝΟΣ, ΟΧΙ ΤΡΕΙΣ ────────────────────────────────
   // Πριν: rentalIncomeTax(annualRent) ανά ακίνητο. Ο ιδιοκτήτης τριών
@@ -1164,44 +1161,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { pro
       {readStatus(prop) === 'rent_long' && <PortalShare propertyId={prop.id} userId={userId} />}
       <OccupancyPanel propertyId={prop.id} userId={userId} />
 
-      {/* Εργαλεία ακινήτου: ελαφριά πλακίδια-σύνοψη που ανοίγουν την εστιασμένη
-          προβολή. Στο προφίλ «Ιδιώτης» ζουν ΕΔΩ (κάτω από Είσπραξη & Πληρωμές)·
-          στο «Επαγγελματίας» ζουν στην πλαϊνή μπάρα (ομάδα «Εργαλεία»). Έτσι δεν
-          υπάρχουν διπλότυπα — σε κάθε προφίλ εμφανίζονται σε ένα μόνο σημείο. */}
-      {/* ΤΟ «ΑΡΧΕΙΟ» ΕΛΕΓΟΤΑΝ ΔΥΟ ΦΟΡΕΣ, ΤΡΙΑΝΤΑ ΕΙΚΟΝΟΣΤΟΙΧΕΙΑ ΜΑΚΡΙΑ.
-          Το σχόλιο εδώ υποσχόταν «σε κάθε προφίλ εμφανίζονται σε ένα μόνο
-          σημείο», αλλά το Αρχείο στέκει στην πλαϊνή μπάρα χωρίς κανένα φίλτρο
-          προφίλ: μόλις ο ιδιώτης ανέβαζε το πρώτο έγγραφο, άναβε και η γραμμή
-          του μενού. Δύο δρόμοι για την ίδια οθόνη, με τρίτο υπότιτλο που δεν
-          συμφωνούσε ούτε με τον τίτλο της ίδιας της οθόνης. Μένει η μπάρα.
-
-          ΟΙ ΕΚΚΡΕΜΟΤΗΤΕΣ ΗΤΑΝ ΤΟ ΑΝΤΙΘΕΤΟ ΠΡΟΒΛΗΜΑ. Το πλακίδιο έδειχνε μόνο
-          στον ιδιώτη, με το σκεπτικό ότι ο επαγγελματίας τις βρίσκει στην
-          ομάδα «Εργαλεία» της μπάρας — ομάδα που δεν υπάρχει (βλ. NAV_GROUPS).
-          Δηλαδή ο επαγγελματίας δεν είχε κανέναν δρόμο εκτός του Ημερολογίου.
-          Το πλακίδιο δείχνει τώρα και στα δύο προφίλ. */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 12 }}>
-        <ToolTile title={navLabel('checklist')} metric={openChk ? `${openChk} ανοιχτές` : 'Καμία εκκρεμότητα'} sub="Εργασίες, προθεσμίες, παραδόσεις" badge={chkAttention} onOpen={() => onNavigate('checklist')} />
-      </div>
     </div>
-  );
-}
-
-// Πλακίδιο-σύνοψη εργαλείου στην Επισκόπηση: ζωντανός αριθμός + ένα κλικ ανοίγει
-// την πλήρη, εστιασμένη καρτέλα (αντί να φορτώνει βαρύ περιεχόμενο εδώ).
-function ToolTile({ title, metric, sub, badge, onOpen }: { title: string; metric: string; sub: string; badge?: number; onOpen: () => void }) {
-  return (
-    <button onClick={onOpen} className="card tool-card" style={{ textAlign: 'left', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', width: '100%' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <span style={{ fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>{title}</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {badge ? <span style={{ minWidth: 18, height: 18, borderRadius: 8, background: 'var(--negative)', color: 'var(--text-inverse)', fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px' }}>{badge > 9 ? '9+' : badge}</span> : null}
-          <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-        </div>
-      </div>
-      <span style={{ fontFamily: T.font.sans, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{metric}</span>
-      <span style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)' }}>{sub}</span>
-    </button>
   );
 }
 
