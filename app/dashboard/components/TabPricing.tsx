@@ -712,12 +712,29 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                             {/* Κλεισμένη ημέρα: δεν έχει προτεινόμενη τιμή, και η
                                 παύλα που έμπαινε στη θέση της διαβαζόταν ως
                                 «λείπει τιμή» αντί για «είναι πιασμένη». */}
-                            {!d.booked && (
-                              <span style={{ position: 'relative', fontSize: 12, fontWeight: top ? 800 : 600, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>
-                                {fn(d.price)}
-                                <span style={{ fontSize: 9, fontWeight: 600, marginLeft: 1.5, opacity: 0.55 }}>€</span>
-                              </span>
-                            )}
+                            {!d.booked && (() => {
+                              /* ══ ΤΕΤΡΑΨΗΦΙΑ ΤΙΜΗ ΚΟΒΟΤΑΝ ΚΑΙ ΑΠΟ ΤΙΣ ΔΥΟ ΜΕΡΙΕΣ ══
+                                 Ιδιο σφάλμα με τη λέξη «πιασμένη», ίδιο κελί: το
+                                 τετράγωνο βγαίνει 34,8 εικονοστοιχεία σε στενή
+                                 κάρτα (33 ωφέλιμα), και το «1.250 €» στα 12px
+                                 θέλει 37. Επειδή είναι κεντραρισμένο, χανόταν το
+                                 πρώτο ψηφίο ΚΑΙ το σύμβολο: το 1.250 διαβαζόταν
+                                 «.25». Σε οθόνη που ο ιδιοκτήτης χρησιμοποιεί για
+                                 να ορίσει τιμή, αυτό δεν είναι θέμα τυπογραφίας.
+                                 Το μέγεθος βγαίνει από το ΜΗΚΟΣ, μετρημένο σε
+                                 Chromium στο στενότερο δυνατό κελί:
+                                   ως 3 ψηφία   12px → 27 / 33
+                                   ως 5 χαρακτ. 10px → 31 / 33
+                                   πάνω από     9px → 33 / 33 */
+                              const txt = fn(d.price);
+                              const [fs, es] = txt.length <= 3 ? [12, 9] : txt.length <= 5 ? [10, 8] : [9, 7];
+                              return (
+                                <span style={{ position: 'relative', fontSize: fs, fontWeight: top ? 800 : 600, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                                  {txt}
+                                  <span style={{ fontSize: es, fontWeight: 600, marginLeft: 1.5, opacity: 0.55 }}>€</span>
+                                </span>
+                              );
+                            })()}
                             {d.isHoliday && !d.booked && <span style={{ position: 'absolute', top: 3, right: 3, width: 4, height: 4, borderRadius: '50%', background: 'var(--text-secondary)' }} />}
                           </button>
                         );

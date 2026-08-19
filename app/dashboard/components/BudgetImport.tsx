@@ -132,7 +132,7 @@ export default function BudgetImport({ propertyId, userId = '', cats, onImported
                   <div style={{ width: 168, flexShrink: 0 }}>
                     <CustomSelect value={r.catKey} onChange={v => setRows(rs => rs!.map(x => x.id === r.id ? { ...x, catKey: v } : x))} options={catOptions} />
                   </div>
-                  <span style={{ width: 66, textAlign: 'right', flexShrink: 0, fontSize: 12, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>{feAuto(r.amount)}</span>
+                  <span style={{ minWidth: 66, textAlign: 'right', flexShrink: 0, fontSize: 12, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>{feAuto(r.amount)}</span>
                 </div>
               ))}
             </div>

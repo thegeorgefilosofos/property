@@ -109,7 +109,10 @@ const cardTitle:React.CSSProperties = { fontSize:13, fontWeight:700, color:'var(
 // πίνακα με μετατοπισμένα σύνολα — που δεν σκάει πουθενά, απλώς είναι λάθος.
 // Η πρώτη στήλη χωρά την επικεφαλίδα της. Ήταν 72px με «Κωδικός», στένεψε σε
 // 64px ενώ η επικεφαλίδα μεγάλωνε σε «Κωδικός ΕΛΠ», και έσπαγε σε δύο γραμμές.
-const TRIAL_COLS = '86px minmax(0,1fr) 92px 92px 100px'
+const TRIAL_COLS = '86px minmax(120px,1fr) 92px 92px 100px'
+// Το άθροισμα των στηλών, των πέντε κενών και του padding. Κάτω από αυτό ο
+// πίνακας κυλά· δεν συμπιέζεται, γιατί συμπίεση εδώ σημαίνει στήλη που χάνεται.
+const TRIAL_MIN = 86 + 120 + 92 + 92 + 100 + 8 * 4 + 28
 
 // Χρώμα μόνο στη γραμμή αποτελέσματος, αλλού ουδέτερο (χωρίς θόρυβο).
 // Ήπια, ουδέτερη ένδειξη τόνου για τη συμβουλευτική (χωρίς έντονα χρώματα/λίστες).
@@ -1528,7 +1531,8 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           {trial.length===0?(
             <p style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily: T.font.sans, padding:'2px 0' }}>Δεν υπάρχουν εισπράξεις ή πληρωμές για το {year} ώστε να σχηματιστεί ισοζύγιο.</p>
           ):(
-            <div style={{ borderRadius:12, border:'1px solid var(--border-subtle)', overflow:'hidden' }}>
+            <div style={{ borderRadius:12, border:'1px solid var(--border-subtle)', overflowX:'auto', WebkitOverflowScrolling:'touch' }}>
+              <div style={{ minWidth:TRIAL_MIN }}>
               <div style={{ display:'grid', gridTemplateColumns:TRIAL_COLS, gap:8, padding:'9px 14px', background:'var(--bg-elevated)', borderBottom:'1px solid var(--border-subtle)' }}>
                 {[['Κωδικός ΕΛΠ','left'],['Λογαριασμός','left'],['Χρέωση','right'],['Πίστωση','right'],['Υπόλοιπο','right']].map(([h,a])=>(
                   <span key={h} style={{ fontSize:10, fontWeight:700, letterSpacing:'0.05em', textTransform:'uppercase', color:'var(--text-tertiary)', fontFamily: T.font.sans, textAlign:a as 'left'|'right' }}>{h}</span>
@@ -1551,6 +1555,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
                 <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'flex-end', gap:5, fontSize:11, fontWeight:600, color:jTotals.balanced?'var(--text-tertiary)':'var(--negative)', fontFamily: T.font.sans, whiteSpace:'nowrap' }}>
                   {jTotals.balanced?<><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="var(--positive)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}><path d="M20 6 9 17l-5-5"/></svg>Ισοσκελισμένο</>:<>Διαφορά {eur(jTotals.debit-jTotals.credit)}</>}
                 </span>
+              </div>
               </div>
             </div>
             )}

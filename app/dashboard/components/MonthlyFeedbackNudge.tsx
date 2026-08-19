@@ -41,7 +41,7 @@ export default function MonthlyFeedbackNudge() {
       role="dialog"
       aria-label="Μηνιαία γνώμη"
       style={{
-        position: 'fixed', left: 20, bottom: 20, zIndex: 60, width: 'min(340px, calc(100vw - 40px))',
+        position: 'fixed', left: 20, bottom: 'var(--float-bottom)', zIndex: 'var(--float-z)', width: 'min(340px, calc(100vw - 40px))',
         background: 'var(--bg-elevated)', border: '1px solid var(--border-default)',
         borderRadius: 14, boxShadow: 'var(--shadow-xl)', padding: '16px 16px 14px',
         fontFamily: T.font.sans, animation: 'posNudgeIn .28s ease both',
