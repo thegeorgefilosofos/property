@@ -55,7 +55,7 @@ import * as stayStore from '@/lib/data/stays';
 import { T, fe, fp, Skeleton, pressable } from '@/components/Theme';
 import { readStatus, type StatusRow } from '@/lib/property/status';
 import { occupancyFromMonths, type ReportStay } from '@/lib/clients/reports';
-import { shortTermYearSummary, shortTermNetLines, shortTermNet } from '@/lib/tax/shortTermTax';
+import { shortTermYearSummary } from '@/lib/tax/shortTermTax';
 import { MONTHS_SHORT } from '@/lib/core/months';
 
 interface StayRow extends ReportStay { declared_at?: string | null }
@@ -103,9 +103,6 @@ export default function OccupancyPanel({ propertyId, userId }: {
   // πίνακα μηνών που παράγει το τέλος και τον φόρο, ώστε να μην μπορεί να
   // υπάρξει «0 νύχτες» δίπλα σε «τέλος για πέντε».
   const occ = useMemo(() => occupancyFromMonths(tax.nightsByMonth, year), [tax.nightsByMonth, year]);
-
-  const lines = useMemo(() => shortTermNetLines(tax), [tax]);
-  const net = shortTermNet(lines);
 
   if (!loading && !isShort) return null;
 
@@ -212,61 +209,47 @@ export default function OccupancyPanel({ propertyId, userId }: {
                 </>
               )}
 
-              {/* ═══ Η ΔΕΥΤΕΡΗ ΕΡΩΤΗΣΗ: ΠΟΣΑ ΜΕΝΟΥΝ ══════════════════════════
-                  Κάθετη κατάσταση, όχι πλακίδια. Κάθε γραμμή είναι βήμα, και το
-                  υπόλοιπο είναι το άθροισμα όσων φαίνονται από πάνω του. */}
-              {(tax.grossRevenue > 0 || tax.levy > 0 || tax.platformFees > 0) && (
-                <div style={{ marginTop: 22, paddingTop: 16, borderTop: '1px solid var(--border-subtle)' }}>
-                  <div style={label}>Τι μένει από τη βραχυχρόνια, {year}</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', marginTop: 10 }}>
-                    {lines.map(l => (
-                      <div key={l.key} style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, padding: '8px 0' }}>
-                        <span style={{ fontFamily: T.font.sans, fontSize: 12.5, color: 'var(--text-secondary)', paddingLeft: l.out ? 14 : 0, minWidth: 0 }}>{l.label}</span>
-                        <span style={{ ...num, fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                          {l.out ? '−' : ''}{fe(l.amount)}
-                        </span>
-                      </div>
-                    ))}
-                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, paddingTop: 12, marginTop: 6, borderTop: '1px solid var(--border-default)' }}>
-                      <span style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Μένει καθαρά</span>
-                      <span style={{ ...num, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
-                        {net < 0 ? '−' : ''}{fe(Math.abs(net))}
-                      </span>
-                    </div>
-                  </div>
+              {/* ═══ ΟΙ ΥΠΟΧΡΕΩΣΕΙΣ ΤΗΣ ΧΡΗΣΗΣ ══════════════════════════════
+                  ΕΔΩ ΗΤΑΝ ΔΕΥΤΕΡΗ ΚΑΤΑΣΤΑΣΗ «ΤΙ ΜΟΥ ΜΕΝΕΙ», ΚΑΙ ΕΒΓΑΖΕ ΑΛΛΟ
+                  ΝΟΥΜΕΡΟ ΑΠΟ ΤΗΝ ΤΙΜΟΛΟΓΗΣΗ. Οι δύο διέφεραν ακριβώς κατά τα
+                  ΛΕΙΤΟΥΡΓΙΚΑ ΕΞΟΔΑ: η Τιμολόγηση τα αφαιρεί, εδώ δεν υπήρχαν
+                  καθόλου, οπότε η Επισκόπηση έβγαζε ΠΑΝΤΑ μεγαλύτερο ποσό — με
+                  σχεδόν ίδιες γραμμές από πάνω και σχεδόν ίδιο τίτλο. Ο ίδιος
+                  ιδιοκτήτης, το ίδιο ακίνητο, την ίδια μέρα, δύο απαντήσεις στην
+                  ίδια ερώτηση: αυτό δεν είναι διπλοτυπία ύφους, είναι ψέμα.
 
-                  {/* ΤΟ ΤΕΛΟΣ ΠΟΥ ΠΛΗΡΩΣΑΝ ΟΙ ΕΠΙΣΚΕΠΤΕΣ ΕΙΝΑΙ ΣΥΜΦΡΑΖΟΜΕΝΟ, ΟΧΙ
-                      ΑΦΑΙΡΕΣΗ. Οσο καθόταν στη στήλη των αφαιρέσεων, η στήλη δεν
-                      έβγαινε· εδώ λέει ό,τι έλεγε, χωρίς να χαλά την πρόσθεση. */}
+                  Η κατάσταση ζει πλέον ΜΟΝΟ στην Τιμολόγηση, όπου είναι πλήρης.
+                  Εδώ μένει ό,τι ΔΕΝ φαίνεται πουθενά αλλού: τι οφείλεται στην
+                  ΑΑΔΕ για τις νύχτες αυτής της χρήσης. Δεν είναι ταμειακό
+                  υπόλοιπο, είναι υποχρέωση — και γι' αυτό δεν αθροίζεται με
+                  τίποτα. */}
+              {(tax.levy > 0 || (tax.grossRevenue === 0 && tax.totalNights > 0)) && (
+                <div style={{ marginTop: 22, paddingTop: 16, borderTop: '1px solid var(--border-subtle)' }}>
+                  <div style={label}>Τι οφείλεται για τη χρήση {year}</div>
                   {tax.levy > 0 && (
-                    <div style={{ ...note, marginTop: 12 }}>
-                      Το τέλος ανθεκτικότητας της χρήσης είναι {fe(tax.levy)} και το εισπράττεις για λογαριασμό του Δημοσίου.
-                      {tax.levyShortfall > 0
-                        ? ` Από τους επισκέπτες καταγράφηκαν ${fe(tax.collectedLevy)}, οπότε τα υπόλοιπα ${fe(tax.levyShortfall)} τα πληρώνεις εσύ.`
-                        : ' Καλύφθηκε ολόκληρο από τους επισκέπτες, άρα δεν είναι δικό σου κόστος.'}
-                    </div>
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, marginTop: 12 }}>
+                        <span style={{ fontFamily: T.font.sans, fontSize: 13, color: 'var(--text-secondary)' }}>Τέλος ανθεκτικότητας</span>
+                        <span style={{ ...num, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{fe(tax.levy)}</span>
+                      </div>
+                      <div style={{ ...note, marginTop: 8 }}>
+                        Το εισπράττεις από τον επισκέπτη και το αποδίδεις στο Δημόσιο, ανά διανυκτέρευση.
+                        {tax.levyShortfall > 0
+                          ? ` Καταγράφηκαν ${fe(tax.collectedLevy)} από επισκέπτες, οπότε τα υπόλοιπα ${fe(tax.levyShortfall)} τα πληρώνεις εσύ.`
+                          : ' Καλύφθηκε ολόκληρο από τους επισκέπτες, άρα δεν είναι δικό σου κόστος.'}
+                      </div>
+                    </>
                   )}
                   {tax.grossRevenue === 0 && tax.totalNights > 0 && (
-                    <div style={{ ...note, marginTop: 12 }}>
-                      Οι {tax.totalNights} νύχτες της χρήσης δεν έχουν καταγεγραμμένο ποσό, οπότε τα ακαθάριστα βγαίνουν μηδέν.
-                      Τα ποσά συμπληρώνονται ανά κράτηση στους «Επισκέπτες»: η εισαγωγή iCal φέρνει ημερομηνίες, όχι εισπράξεις.
+                    <div style={{ ...note, marginTop: tax.levy > 0 ? 8 : 12 }}>
+                      Οι {tax.totalNights} νύχτες της χρήσης δεν έχουν καταγεγραμμένο ποσό. Τα ποσά συμπληρώνονται ανά
+                      κράτηση στους «Επισκέπτες»: η εισαγωγή iCal φέρνει ημερομηνίες, όχι εισπράξεις.
                     </div>
                   )}
-                  {tax.platformFees === 0 && tax.stayCount > 0 && (
-                    <div style={{ ...note, marginTop: 6 }}>
-                      Καμία από τις {tax.stayCount} {tax.stayCount === 1 ? 'διαμονή' : 'διαμονές'} δεν έχει καταγεγραμμένη προμήθεια πλατφόρμας.
-                      Αν υπήρξε, το υπόλοιπο που μένει είναι μικρότερο από το παραπάνω.
-                    </div>
-                  )}
-                  {net < 0 && (
-                    <div style={{ ...note, marginTop: 6 }}>
-                      Οι υποχρεώσεις της χρήσης ξεπερνούν τα καταγεγραμμένα έσοδα: το υπόλοιπο είναι αρνητικό, δηλαδή
-                      ποσό που βάζεις εσύ.
-                    </div>
-                  )}
-                  <div style={{ ...note, marginTop: 6 }}>
-                    Ο φόρος υπολογίζεται στα ακαθάριστα με την κλίμακα ενοικίων και την τεκμαρτή έκπτωση 5%. Η προμήθεια
-                    της πλατφόρμας φεύγει από την τσέπη αλλά δεν μειώνει το δηλωτέο έσοδο. Ενδεικτικά ποσά, όχι εκκαθάριση.
+                  {/* Η ΜΟΝΗ ΑΝΑΦΟΡΑ ΣΕ ΧΡΗΜΑΤΑ ΕΔΩ ΕΙΝΑΙ ΜΙΑ ΠΑΡΑΠΟΜΠΗ. Οχι
+                      δεύτερο σύνολο, όχι δεύτερος τίτλος: ένα σημείο. */}
+                  <div style={{ ...note, marginTop: 10 }}>
+                    Τι μένει τελικά από τη βραχυχρόνια, μετά από έξοδα, τέλη και φόρο, το δείχνει η Τιμολόγηση.
                   </div>
                 </div>
               )}

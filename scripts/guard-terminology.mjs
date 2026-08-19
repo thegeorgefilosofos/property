@@ -23,13 +23,13 @@
 // ΤΙ ΕΛΕΓΧΕΤΑΙ: οι απαγορευμένοι τύποι, οπουδήποτε — και στα σχόλια, γιατί από
 // εκεί τους αντιγράφει ο επόμενος.
 // ═══════════════════════════════════════════════════════════════════════════
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 
 const files = execSync(
   "git ls-files 'app/**/*.ts' 'app/**/*.tsx' 'lib/**/*.ts' 'lib/**/*.tsx' 'components/**/*.ts' 'components/**/*.tsx' 'supabase/**/*.sql' 'supabase/**/*.ts' 'docs/**/*.md'",
   { encoding: 'utf8' },
-).split('\n').filter(Boolean);
+).split('\n').filter(Boolean).filter(existsSync);
 
 /**
  * Κάθε γραμμή: ο τύπος που ΔΕΝ γράφεται, ο τύπος που γράφεται, και ο λόγος.
