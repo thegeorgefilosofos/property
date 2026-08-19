@@ -165,6 +165,20 @@ grant execute on function public.accountant_request_item(uuid, text, text) to au
 -- Καμία νέα αξίωση χωρίς το token που τη γέννησε. Χωρίς αυτό, μια μελλοντική
 -- διαδρομή που ξεχνά να γράψει το `claimed_token` θα ξανάφτιαχνε αθάνατη
 -- πρόσβαση — και πάλι σιωπηλά.
-alter table public.accountant_clients
-  add constraint accountant_clients_claimed_token_present
-  check (not active or claimed_token is not null) not valid;
+--
+-- ΚΑΙ ΤΟ ΙΔΙΟ ΤΟ ΠΕΡΙΟΡΙΣΜΑ ΜΠΑΙΝΕΙ ΙΔΙΟΔΥΝΑΜΑ. Γραφόταν ως σκέτο
+-- `alter table … add constraint`, που η PostgreSQL ΔΕΝ δέχεται με
+-- `if not exists`: η δεύτερη εφαρμογή σκάει με 42710 «already exists».
+-- Ολόκληρος ο αγωγός στηρίζεται στο ότι μια μετανάστευση μπορεί να ξανατρέξει
+-- ακίνδυνα — και αυτή η μία γραμμή το έσπαγε. Στις 19/08/2026 σταμάτησε το
+-- staging στη δέκατη από δεκαέξι μεταναστεύσεις, και οι έξι επόμενες δεν
+-- έτρεξαν ποτέ. Το ιδίωμα με το `pg_constraint` το χρησιμοποιούν ήδη δώδεκα
+-- άλλα περιορίσματα του repo· αυτό εδώ ήταν η εξαίρεση.
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'accountant_clients_claimed_token_present') then
+    alter table public.accountant_clients
+      add constraint accountant_clients_claimed_token_present
+      check (not active or claimed_token is not null) not valid;
+  end if;
+end $$;
