@@ -1162,7 +1162,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { pro
           Και η κεφαλίδα ενότητας έφυγε μαζί: με ένα στοιχείο κάθε φορά, ένας
           τίτλος «Διαχείριση και εργαλεία» ονομάτιζε ομάδα που δεν υπάρχει. */}
       {readStatus(prop) === 'rent_long' && <PortalShare propertyId={prop.id} userId={userId} />}
-      <OccupancyPanel propertyId={prop.id} userId={userId} longTermMonthly={rent} />
+      <OccupancyPanel propertyId={prop.id} userId={userId} />
 
       {/* Εργαλεία ακινήτου: ελαφριά πλακίδια-σύνοψη που ανοίγουν την εστιασμένη
           προβολή. Στο προφίλ «Ιδιώτης» ζουν ΕΔΩ (κάτω από Είσπραξη & Πληρωμές)·

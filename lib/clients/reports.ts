@@ -122,7 +122,13 @@ export interface YearOccupancy {
   openToMonth: number | null;
   /** ΔΙΑΘΕΣΙΜΕΣ ημέρες — ο παρονομαστής. 0 όταν δεν υπάρχει καμία κράτηση. */
   availableDays: number;
+  /** Κομμένη στο 100 για τις οθόνες που τη ζωγραφίζουν ως μπάρα. */
   pct: number;
+  /** Η ΑΚΑΤΕΡΓΑΣΤΗ αναλογία. Ξεπερνά το 100 μόνο με επικαλυπτόμενες ή
+   *  διπλοκαταχωρημένες κρατήσεις — που είναι πρόβλημα δεδομένων, όχι επιτυχία. */
+  rawPct: number;
+  /** Οι νύχτες ξεπερνούν τις διαθέσιμες ημέρες: κάπου υπάρχει διπλή κράτηση. */
+  overbooked: boolean;
   /** Πληρότητα υψηλής περιόδου (τρεις καλύτεροι συνεχόμενοι μήνες). */
   peak: PeakOccupancy | null;
   nightsByMonth: number[];
@@ -138,11 +144,24 @@ export interface YearOccupancy {
  * Έξω από αυτό το παράθυρο δεν ξέρουμε τίποτα και δεν προσποιούμαστε ότι ξέρουμε.
  */
 export function yearOccupancy(stays: ReportStay[], year: number): YearOccupancy {
-  const nbm = nightsByMonth(stays, year);
+  return occupancyFromMonths(nightsByMonth(stays, year), year);
+}
+
+/**
+ * Η ίδια πληρότητα, από ΕΤΟΙΜΟ πίνακα νυχτών ανά μήνα.
+ *
+ * ΓΙΑΤΙ ΥΠΑΡΧΕΙ. Το ίδιο πάνελ μετρούσε τις νύχτες με δύο κανόνες: εδώ μέσω
+ * `nightsInRange`, που θέλει ΚΑΙ check_out, και στη φορολογική σύνοψη μέσω
+ * `nightsByMonthForYear`, που πέφτει πίσω στο `s.nights`. Μια διαμονή χωρίς
+ * καταχωρημένη αναχώρηση έβγαζε «0 νύχτες» στη λωρίδα και ταυτόχρονα τέλος
+ * ανθεκτικότητας για πέντε — δύο αριθμοί δίπλα δίπλα που αναιρούν ο ένας τον
+ * άλλον. Οποιος θέλει έναν μετρητή για όλη την οθόνη, περνά τον δικό του εδώ.
+ */
+export function occupancyFromMonths(nbm: number[], year: number): YearOccupancy {
   const booked = nbm.reduce((a, b) => a + b, 0);
   const months = nbm.map((v, i) => (v > 0 ? i : -1)).filter(i => i >= 0);
   if (months.length === 0) {
-    return { bookedNights: 0, openFromMonth: null, openToMonth: null, availableDays: 0, pct: 0, peak: null, nightsByMonth: nbm };
+    return { bookedNights: 0, openFromMonth: null, openToMonth: null, availableDays: 0, pct: 0, rawPct: 0, overbooked: false, peak: null, nightsByMonth: nbm };
   }
   const from = months[0], to = months[months.length - 1];
   let availableDays = 0;
@@ -160,7 +179,9 @@ export function yearOccupancy(stays: ReportStay[], year: number): YearOccupancy 
     const p = days > 0 ? Math.round((nights / days) * 1000) / 10 : 0;
     if (!best || nights > best.bookedNights) best = { fromMonth: start, toMonth: start + win - 1, days, bookedNights: nights, pct: p };
   }
-  return { bookedNights: booked, openFromMonth: from, openToMonth: to, availableDays, pct: Math.min(100, pct), peak: best, nightsByMonth: nbm };
+  return { bookedNights: booked, openFromMonth: from, openToMonth: to, availableDays,
+           pct: Math.min(100, pct), rawPct: pct, overbooked: booked > availableDays,
+           peak: best, nightsByMonth: nbm };
 }
 
 export interface StayTotals {

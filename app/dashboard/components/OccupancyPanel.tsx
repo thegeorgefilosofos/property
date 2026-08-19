@@ -1,125 +1,147 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ΠΛΗΡΟΤΗΤΑ & ΒΡΑΧΥΧΡΟΝΙΑ — από τα πραγματικά δεδομένα, όχι από πληκτρολόγηση.
+// ΠΛΗΡΟΤΗΤΑ & ΒΡΑΧΥΧΡΟΝΙΑ — ΔΥΟ ΕΡΩΤΗΣΕΙΣ, ΔΥΟ ΑΠΑΝΤΗΣΕΙΣ
+// ─────────────────────────────────────────────────────────────────────────
+// Ο ιδιοκτήτης ρωτά δύο πράγματα: πόσο γεμάτο ήταν, και πόσα του μένουν. Η
+// κάρτα είχε οκτώ ισοβαρή πλακίδια σε πλέγμα 5+3, με δύο κενά κελιά στο τέλος,
+// και το μοναδικό ποσό που τον ενδιαφέρει διαβαζόταν τελευταίο.
 //
-// ΤΙ ΕΦΥΓΕ ΑΠΟ ΕΔΩ, ΚΑΙ ΓΙΑΤΙ
+// ── ΤΕΣΣΕΡΑ ΣΦΑΛΜΑΤΑ ΟΡΘΟΤΗΤΑΣ, ΜΕΤΡΗΜΕΝΑ ─────────────────────────────────
 //
-// 1. Ο ΤΡΙΤΟΣ ΑΝΕΞΑΡΤΗΤΟΣ ΔΙΑΚΟΠΤΗΣ «Βραχυχρόνια μίσθωση». Το `readStatus`
-//    (lib/property/status.ts) ήδη ήξερε ότι το ακίνητο είναι `rent_short` — ο
-//    διακόπτης ήταν τέταρτη πηγή αλήθειας που μπορούσε να διαφωνήσει με τις
-//    άλλες τρεις. Τώρα το πάνελ ΡΩΤΑΕΙ το readStatus.
+// 1. Η ΣΤΗΛΗ ΤΩΝ ΑΦΑΙΡΕΣΕΩΝ ΔΕΝ ΕΒΓΑΖΕ ΤΟ ΣΥΝΟΛΟ. Το πλακίδιο του τέλους
+//    έδειχνε το ΟΦΕΙΛΟΜΕΝΟ (`tax.levy`), ενώ από τα καθαρά αφαιρείται μόνο το
+//    ΑΚΑΛΥΠΤΟ (`tax.levyShortfall`). Ο χρήστης πρόσθετε 5.600 − 256 − 600 − 798
+//    = 3.946 και διάβαζε «Μένει καθαρά 4.010». Η εξήγηση υπήρχε μόνο σε
+//    `title=`, δηλαδή πουθενά για όποιον είναι σε κινητό.
 //
-// 2. Ο ΑΜΑ ΩΣ ΕΛΕΥΘΕΡΟ ΚΕΙΜΕΝΟ σε `bills_settings`, μέσα σε κλειστό accordion,
-//    πίσω από εκείνον τον διακόπτη. Ήταν το πιο ακριβό λάθος του προϊόντος:
-//    12.145 καταχωρήσεις στάλθηκαν για απενεργοποίηση το 2025 λόγω ΑΜΑ που
-//    έλειπε ή ήταν άκυρος. Ο ΑΜΑ είναι πλέον πεδίο ΤΟΥ ΑΚΙΝΗΤΟΥ και ζητείται
-//    αυτόματα, στην κορυφή των «Επισκέπτες» και «Τιμολόγηση» (AmaStrip).
+// 2. ΔΥΟ ΔΙΑΦΟΡΕΤΙΚΑ ΑΚΑΘΑΡΙΣΤΑ ΣΤΗΝ ΙΔΙΑ ΚΑΡΤΑ. Το πλακίδιο έπαιρνε το
+//    `totals()` (ολόκληρο το ποσό, φιλτραρισμένο με check_in) ενώ ο φόρος και
+//    τα καθαρά χτίζονταν στο `tax.grossRevenue` (αναλογία νυχτών ανά έτος). Για
+//    μία διαμονή 28/12/2025 → 5/1/2026 των 800 €: η κάρτα του 2026 έγραφε
+//    «Δηλωτέα ακαθάριστα 0,00 €» και «Μένει καθαρά 336,14 €» — χρήματα από το
+//    πουθενά. Και του 2025 έγραφε 784,00 € ενώ φορολογούσε 392,00 €.
 //
-// 3. ΔΩΔΕΚΑ ΠΕΔΙΑ ΧΕΙΡΟΚΙΝΗΤΗΣ ΚΑΤΑΧΩΡΗΣΗΣ «νύχτες ανά μήνα», τη στιγμή που το
-//    `client_stays` έχει ΚΑΘΕ κράτηση με ημερομηνίες — από iCal ή από email.
-//    Ο χρήστης πληκτρολογούσε δεδομένα που το app ήδη είχε, και τα δύο σύνολα
-//    μπορούσαν να διαφωνήσουν.
+// 3. ΟΙ ΠΡΟΜΗΘΕΙΕΣ ΔΕΝ ΑΚΟΛΟΥΘΟΥΣΑΝ ΤΟΝ ΙΔΙΟ ΚΑΝΟΝΑ ΜΕ ΤΟ ΕΣΟΔΟ ΤΟΥΣ. Το ίδιο
+//    έξοδο κατανεμόταν 100/0 στα δύο έτη ενώ το έσοδό του κατανεμόταν 50/50.
 //
-// 4. ΤΡΕΙΣ ΕΠΙΝΟΗΜΕΝΕΣ ΠΡΟΕΠΙΛΟΓΕΣ: προμήθεια «15%», καθαρισμός «40 €», μέσες
-//    νύχτες ανά κράτηση «3». Καμία πηγή, καμία σχέση με το συγκεκριμένο ακίνητο,
-//    και τροφοδοτούσαν «Καθαρά έσοδα» που ο χρήστης διάβαζε ως μέτρηση. Η
-//    προμήθεια πλέον έρχεται από τις ΚΑΤΑΓΕΓΡΑΜΜΕΝΕΣ διαμονές ή δεν εμφανίζεται.
+// 4. ΟΙ ΝΥΧΤΕΣ ΜΕΤΡΙΟΝΤΑΝ ΜΕ ΔΥΟ ΚΑΝΟΝΕΣ. Η λωρίδα ζητούσε check_out· η
+//    φορολογική σύνοψη έπεφτε πίσω στο `s.nights`. Διαμονή χωρίς καταχωρημένη
+//    αναχώρηση έγραφε «0 νύχτες» δίπλα σε «τέλος για 5 νύχτες».
 //
-// 5. Η ΠΛΗΡΟΤΗΤΑ ΔΙΑ 365. Το εποχιακό εξοχικό έβγαινε στο «16%». Παρονομαστής
-//    είναι πλέον οι διαθέσιμες ημέρες (lib/clients/reports.ts, yearOccupancy).
+// ΤΟ ΣΦΑΛΜΑ ΔΕΝ ΔΙΟΡΘΩΝΕΤΑΙ ΜΕ ΑΛΛΑΓΗ ΝΟΥΜΕΡΟΥ, ΑΛΛΑ ΜΕ ΑΛΛΑΓΗ ΣΧΗΜΑΤΟΣ. Οι
+// αφαιρέσεις είναι πλέον ΔΕΔΟΜΕΝΑ (`shortTermNetLines`) και το σύνολο
+// ΠΑΡΑΓΕΤΑΙ από το άθροισμά τους (`shortTermNet`), δίπλα στους αριθμούς και όχι
+// μέσα στην οθόνη. Καμία γραμμή δεν μπορεί να φαίνεται χωρίς να μετράει, και
+// καμία να μετράει χωρίς να φαίνεται· ένας έλεγχος το κρατά έτσι.
+//
+// ── ΤΙ ΕΦΥΓΕ ──────────────────────────────────────────────────────────────
+// · «Διαφορά vs μακροχρόνια». Συνέκρινε το ΠΡΑΓΜΑΤΙΚΟ, συχνά τετράμηνο έτος
+//   βραχυχρόνιας μετά από φόρο, τέλη και προμήθειες, με δώδεκα μήνες
+//   υποθετικού ενοικίου χωρίς καμία δαπάνη και καμία κενή περίοδο — και το
+//   ενοίκιο ήταν συχνά ο ΣΤΟΧΟΣ (`target_rent`), δηλαδή επιθυμία, όχι γεγονός.
+//   Πάνω σε αυτό το νούμερο ο ιδιοκτήτης αποφασίζει αν θα φύγει από το Airbnb.
+// · Τα πλακίδια «Πληρότητα» και «Νύχτες / έτος»: το πρώτο επαναλάμβανε το σήμα
+//   της κεφαλίδας, το δεύτερο το «Σύνολο» της λωρίδας.
+// · Οι επτά μήνες με «0». Η ίδια κάρτα υποστηρίζει ότι παρονομαστής είναι οι
+//   ΔΙΑΘΕΣΙΜΕΣ ημέρες, και μετά ζωγράφιζε δώδεκα κουτάκια σαν να ήταν όλος ο
+//   χρόνος διαθέσιμος. Εκτός παραθύρου δεν υπάρχει μηδέν, υπάρχει άγνωστο.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
 import * as stayStore from '@/lib/data/stays';
-import { T, fe, Skeleton, Btn, pressable } from '@/components/Theme';
+import { T, fe, fp, Skeleton, Btn, pressable } from '@/components/Theme';
 import { readStatus, type StatusRow } from '@/lib/property/status';
-import { yearOccupancy, totals, type ReportStay } from '@/lib/clients/reports';
-import { shortTermYearSummary } from '@/lib/tax/shortTermTax';
-import { rentalIncomeTax, rentalBracketsForYear } from '@/lib/billing/greekTax';
+import { occupancyFromMonths, totals, type ReportStay } from '@/lib/clients/reports';
+import { shortTermYearSummary, shortTermNetLines, shortTermNet } from '@/lib/tax/shortTermTax';
 import { MONTHS_SHORT } from '@/lib/core/months';
-
 
 interface StayRow extends ReportStay { declared_at?: string | null }
 interface PropInfo extends StatusRow { prop_type?: string | null; sqm?: number | null }
 
-export default function OccupancyPanel({ propertyId, userId, longTermMonthly, onOpenClients }: {
-  propertyId: string; userId: string; longTermMonthly: number; onOpenClients?: () => void;
+export default function OccupancyPanel({ propertyId, userId, onOpenClients }: {
+  propertyId: string; userId: string; onOpenClients?: () => void;
 }) {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const [prop, setProp] = useState<PropInfo | null>(null);
   const [stays, setStays] = useState<StayRow[]>([]);
+  // ΤΟ ΤΕΛΟΣ ΠΑΡΕΠΙΔΗΜΟΥΝΤΩΝ ΕΞΑΡΤΑΤΑΙ ΑΠΟ ΤΟ ΠΛΗΘΟΣ ΤΩΝ ΑΚΙΝΗΤΩΝ. Χωρίς αυτό,
+  // το `shortTermYearSummary` έπαιρνε την προεπιλογή «φυσικό πρόσωπο, ένα
+  // ακίνητο» και έβγαζε πάντα μηδέν — δηλαδή ο ιδιοκτήτης με τρία ακίνητα
+  // έβλεπε σιωπηλά 0 αντί για 0,5% επί των ακαθαρίστων.
+  const [propertyCount, setPropertyCount] = useState<number | null>(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const year = new Date().getFullYear();
 
   const load = useCallback(async () => {
     try {
-      const [p, s] = await Promise.all([
+      const [p, s, n] = await Promise.all([
         properties.one(supabase, propertyId, 'status_detail,rental_mode,prop_type,sqm'),
         stayStore.ofProperty<StayRow>(supabase, propertyId, stayStore.ACCOUNTING_COLUMNS, userId),
+        properties.count(supabase, userId),
       ]);
       setProp((p || null) as PropInfo | null);
       setStays(s);
+      setPropertyCount(n);
     } finally { setLoading(false); }
-  }, [propertyId, userId]);
+  }, [supabase, propertyId, userId]);
   useEffect(() => { load(); }, [load]);
 
   // Η ΚΑΤΑΣΤΑΣΗ ΑΠΟΦΑΣΙΖΕΙ, ΟΧΙ ΔΙΑΚΟΠΤΗΣ. Ίδια πηγή με τις καρτέλες.
   const isShort = readStatus(prop) === 'rent_short';
+
+  const isHouse = ['house', 'villa'].includes(String(prop?.prop_type || '').toLowerCase());
+  const tax = useMemo(() => shortTermYearSummary(stays, year, {
+    sqm: prop?.sqm ?? null, isHouse, propertyCount: propertyCount ?? 1, individual: true,
+  }), [stays, year, prop?.sqm, isHouse, propertyCount]);
+
+  // ΕΝΑΣ ΜΕΤΡΗΤΗΣ ΝΥΧΤΩΝ ΓΙΑ ΟΛΗ ΤΗΝ ΚΑΡΤΑ. Η πληρότητα τρέφεται από τον ΙΔΙΟ
+  // πίνακα μηνών που παράγει το τέλος και τον φόρο, ώστε να μην μπορεί να
+  // υπάρξει «0 νύχτες» δίπλα σε «τέλος για πέντε».
+  const occ = useMemo(() => occupancyFromMonths(tax.nightsByMonth, year), [tax.nightsByMonth, year]);
+
+  // Πλήθη διαμονών: εδώ το `totals` είναι σωστό, γιατί μετρά ΓΕΓΟΝΟΤΑ (πόσες
+  // διαμονές, πόσες αδήλωτες) και μια διαμονή δηλώνεται μία φορά, στο έτος της.
+  const counts = useMemo(
+    () => totals(stays.filter(s => (s.check_in || '').slice(0, 4) === String(year))),
+    [stays, year]);
+
+  const lines = useMemo(() => shortTermNetLines(tax), [tax]);
+  const net = shortTermNet(lines);
+
   if (!loading && !isShort) return null;
 
-  const occ = yearOccupancy(stays, year);
-  const tot = totals(stays.filter(s => (s.check_in || '').slice(0, 4) === String(year)));
-  const isHouse = ['house', 'villa'].includes(String(prop?.prop_type || '').toLowerCase());
-  const tax = shortTermYearSummary(stays, year, { sqm: prop?.sqm ?? null, isHouse });
-  const ltRevenue = longTermMonthly * 12;
+  const label: React.CSSProperties = {
+    fontFamily: T.font.sans, fontSize: 10, fontWeight: 700,
+    textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)',
+  };
+  const note: React.CSSProperties = {
+    fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.65,
+  };
+  const num: React.CSSProperties = { fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' };
 
-  // ΤΟ «ΚΑΘΑΡΑ» ΔΕΝ ΕΒΓΑΖΕ ΤΙΣ ΠΡΟΜΗΘΕΙΕΣ. Δύο πλακίδια πιο πάνω η ίδια οθόνη
-  // έδειχνε «Προμήθειες πλατφορμών − X», και μετά έλεγε «Μένει καθαρά» ένα ποσό
-  // που τις είχε ακόμη μέσα: ο ιδιοκτήτης διάβαζε ως υπόλοιπο τσέπης κάτι
-  // μεγαλύτερο από αυτό που θα δει στον λογαριασμό του, ακριβώς κατά την
-  // προμήθεια. Η προμήθεια δεν μειώνει το ΔΗΛΩΤΕΟ έσοδο (γι' αυτό μένει έξω από
-  // το `tax.net` και από το Ε2) — φεύγει όμως πραγματικά, και δεν εκπίπτει
-  // παραπάνω: στο εισόδημα από ακίνητα η μόνη έκπτωση είναι η τεκμαρτή 5%.
-  const stNet = tax.net - tot.platformFees;
-
-  // ΣΥΓΚΡΙΝΟΝΤΑΝ ΑΝΟΜΟΙΑ ΜΕΓΕΘΗ. Η «Διαφορά vs μακροχρόνια» αφαιρούσε το
-  // ΑΚΑΘΑΡΙΣΤΟ ετήσιο ενοίκιο (προ φόρου) από το ΚΑΘΑΡΟ της βραχυχρόνιας (μετά
-  // φόρου) και έβαφε το αποτέλεσμα πράσινο ή κόκκινο σαν ετυμηγορία. Ο φόρος της
-  // μακροχρόνιας δεν αφαιρούνταν ποτέ, οπότε η μακροχρόνια έβγαινε συστηματικά
-  // πιο κερδοφόρα απ' ό,τι είναι — σε ένα ενοίκιο 800 €/μήνα η φαινομενική
-  // διαφορά ήταν ~1.400 € υπέρ της μακροχρόνιας που δεν υπήρχε. Πάνω σε αυτό το
-  // νούμερο ο ιδιοκτήτης αποφασίζει αν θα βγάλει το ακίνητο από το Airbnb.
-  // Τώρα και τα δύο σκέλη περνούν από την ΙΔΙΑ κλίμακα (rentalIncomeTax) με την
-  // ίδια τεκμαρτή έκπτωση 5% (άρθρο 39 παρ.4 ΚΦΕ) και συγκρίνονται μετά φόρου.
-  // …και με την κλίμακα ΤΟΥ ΙΔΙΟΥ ΕΤΟΥΣ: το βραχυχρόνιο σκέλος περνά από το
-  // `shortTermYearSummary(stays, year)`, οπότε αν εδώ έμενε η προεπιλογή, η
-  // σύγκριση των δύο θα ήταν πάλι ανόμοια — απλώς λιγότερο ορατά.
-  const ltTax = rentalIncomeTax(ltRevenue * 0.95, rentalBracketsForYear(year));
-  const ltNet = ltRevenue - ltTax;
-  const diff = stNet - ltNet;
-
-  const kpi = (label: string, value: string, tone = 'var(--text-primary)', title?: string) => (
-    <div title={title} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '12px 14px' }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, fontFamily: T.font.sans }}>{label}</div>
-      <div style={{ fontSize: 18, fontWeight: 700, color: tone, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{value}</div>
-    </div>
-  );
+  // Οι μήνες που ΖΩΓΡΑΦΙΖΟΝΤΑΙ είναι το παράθυρο λειτουργίας, όχι ο χρόνος.
+  const from = occ.openFromMonth, to = occ.openToMonth;
+  const months = from == null || to == null ? [] : Array.from({ length: to - from + 1 }, (_, i) => from + i);
+  const peakNights = months.reduce((m, i) => Math.max(m, occ.nightsByMonth[i]), 0);
 
   return (
     <div className="card" style={{ marginBottom: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, cursor: 'pointer' }} {...pressable(() => setOpen(o => !o), open ? 'Σύμπτυξη πληρότητας' : 'Ανάπτυξη πληρότητας', open)}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}><span title="Ποσοστό κρατημένων νυχτών προς τις διαθέσιμες (occupancy)">Πληρότητα</span> & Βραχυχρόνια</div>
-            <div style={{ fontFamily: T.font.sans, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>Από τις καταγεγραμμένες κρατήσεις σου, όχι από πληκτρολόγηση</div>
-          </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, cursor: 'pointer', minHeight: 44 }}
+        {...pressable(() => setOpen(o => !o), open ? 'Σύμπτυξη πληρότητας' : 'Ανάπτυξη πληρότητας', open)}>
+        <div style={{ minWidth: 0 }}>
+          <div style={label}>Πληρότητα & Βραχυχρόνια</div>
+          <div style={{ ...note, marginTop: 1 }}>Από τις καταγεγραμμένες κρατήσεις σου, όχι από πληκτρολόγηση</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-          {!loading && occ.availableDays > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono }}>{occ.pct}%</span>}
+          {/* Η ΠΛΗΡΟΤΗΤΑ ΛΕΓΕΤΑΙ ΜΙΑ ΦΟΡΑ, ΕΔΩ. Ηταν και σήμα και πλακίδιο, δύο
+              εκατοστά μακριά το ένα από το άλλο. */}
+          {!loading && occ.availableDays > 0 && (
+            <span style={{ ...num, fontSize: 12, fontWeight: 700, color: 'var(--accent)' }}>{fp(occ.pct)}</span>
+          )}
           <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="m6 9 6 6 6-6" /></svg>
         </div>
       </div>
@@ -132,84 +154,137 @@ export default function OccupancyPanel({ propertyId, userId, longTermMonthly, on
               <Skeleton w={260} h={13} r={6} />
             </div>
           ) : stays.length === 0 ? (
-            // Οι κενές οθόνες διδάσκουν. Το πάνελ δεν ζητά πλέον να πληκτρολογήσεις
+            // Οι κενές οθόνες διδάσκουν. Το πάνελ δεν ζητά να πληκτρολογήσεις
             // δεδομένα που το app μπορεί να φέρει μόνο του — λέει πώς να τα φέρεις.
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7, fontFamily: T.font.sans }}>
               Δεν υπάρχουν καταγεγραμμένες κρατήσεις για αυτό το ακίνητο, οπότε δεν υπάρχει πληρότητα να μετρηθεί.
-              Σύνδεσε το ημερολόγιο Airbnb ή Booking (εισαγωγή iCal) στους «Επισκέπτες» και οι κρατήσεις θα έρχονται μόνες τους,
-              με ημερομηνίες και ποσά.
+              Με σύνδεση του ημερολογίου Airbnb ή Booking (εισαγωγή iCal) στους «Επισκέπτες», οι κρατήσεις έρχονται
+              μόνες τους, με ημερομηνίες και ποσά.
               {onOpenClients && <div style={{ marginTop: 12 }}><Btn variant="secondary" onClick={onOpenClients}>Άνοιγμα «Επισκέπτες»</Btn></div>}
             </div>
           ) : (
             <>
-              {/* Νύχτες ανά μήνα — ΑΠΟ ΤΙΣ ΚΡΑΤΗΣΕΙΣ, χωρίς κανένα πεδίο εισόδου. */}
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>Νύχτες με κράτηση ανά μήνα ({year})</span>
-                <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-                  Σύνολο <strong style={{ color: 'var(--text-secondary)', fontFamily: T.font.num }}>{occ.bookedNights}</strong> / {occ.availableDays} διαθέσιμες ημέρες
-                </span>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: 6, marginBottom: 18 }}>
-                {MONTHS_SHORT.map((m, i) => {
-                  const n = occ.nightsByMonth[i];
-                  const inWindow = occ.openFromMonth != null && i >= occ.openFromMonth && i <= (occ.openToMonth ?? 11);
-                  return (
-                    <div key={m} style={{ textAlign: 'center', minWidth: 0 }}>
-                      <div style={{ fontSize: 10, fontWeight: 600, color: n > 0 ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 4 }}>{m}</div>
-                      <div style={{
-                        background: 'var(--bg-surface)', border: `1px solid ${n > 0 ? 'var(--accent-border)' : 'var(--border-default)'}`,
-                        borderRadius: 6, padding: '9px 2px', fontSize: 13, fontWeight: 600,
-                        color: n > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)',
-                        fontFamily: T.font.mono, opacity: inWindow || n > 0 ? 1 : 0.45,
-                      }}>{n}</div>
+              {/* ═══ Η ΠΡΩΤΗ ΕΡΩΤΗΣΗ: ΠΟΣΟ ΓΕΜΑΤΟ ΗΤΑΝ ═══════════════════════ */}
+              {occ.availableDays === 0 ? (
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7, fontFamily: T.font.sans }}>
+                  Οι κρατήσεις του {year} δεν έχουν ημερομηνίες που να ορίζουν περίοδο λειτουργίας, οπότε η πληρότητα
+                  δεν μετριέται. Με άφιξη και αναχώρηση σε κάθε διαμονή, εμφανίζεται εδώ.
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                    <div style={{ ...num, fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>{fp(occ.rawPct)}</div>
+                    {/* Ο ΠΑΡΟΝΟΜΑΣΤΗΣ ΗΤΑΝ ΚΡΥΜΜΕΝΟΣ ΣΕ TOOLTIP. Ενα ποσοστό
+                        χωρίς το κλάσμα του δεν ελέγχεται από κανέναν, και σε
+                        κινητό το tooltip δεν ανοίγει ποτέ. */}
+                    <div style={note}>
+                      {occ.bookedNights} {occ.bookedNights === 1 ? 'νύχτα' : 'νύχτες'} σε {occ.availableDays} διαθέσιμες ημέρες
+                      {from != null && to != null && `, ${MONTHS_SHORT[from]} έως ${MONTHS_SHORT[to]}`}. Οχι σε 365: το ακίνητο δεν ήταν στην αγορά όλο τον χρόνο.
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 148px), 1fr))', gap: 10, marginBottom: 14 }}>
-                {kpi('Πληρότητα', `${occ.pct}%`, 'var(--accent)',
-                  occ.openFromMonth != null ? `${occ.bookedNights} νύχτες σε ${occ.availableDays} διαθέσιμες ημέρες (${MONTHS_SHORT[occ.openFromMonth]}–${MONTHS_SHORT[occ.openToMonth!]}). Όχι σε 365: το ακίνητο δεν ήταν στην αγορά όλο τον χρόνο.` : undefined)}
-                {occ.peak && kpi('Υψηλή περίοδος', `${occ.peak.pct}%`, 'var(--text-primary)',
-                  `${MONTHS_SHORT[occ.peak.fromMonth]}–${MONTHS_SHORT[occ.peak.toMonth]}: ${occ.peak.bookedNights} νύχτες σε ${occ.peak.days} ημέρες. Η περίοδος βγαίνει από τα δικά σου δεδομένα.`)}
-                {kpi('Νύχτες / έτος', String(occ.bookedNights))}
-                {kpi('Δηλωτέα ακαθάριστα', fe(tot.revenue), 'var(--text-primary)', 'Τι πλήρωσαν οι επισκέπτες μείον το τέλος ανθεκτικότητας. Η προμήθεια ΔΕΝ αφαιρείται· είναι δαπάνη.')}
-                {/* ΤΟ ΤΕΛΟΣ ΠΟΥ ΟΦΕΙΛΕΤΑΙ ΕΜΦΑΝΙΖΕΤΑΙ ΠΑΝΤΑ, ΚΙ ΑΣ ΜΗΝ ΕΙΣΠΡΑΧΘΗΚΕ.
-                    Το πλακίδιο έδειχνε μόνο το ΕΙΣΠΡΑΓΜΕΝΟ (`tot.climateLevy`) και
-                    εξαφανιζόταν στο μηδέν. Ο οικοδεσπότης που δεν χρέωσε το ΤΑΚΚ
-                    στους επισκέπτες —η πιο συνηθισμένη περίπτωση στα ιστορικά
-                    δεδομένα— δεν το έβλεπε πουθενά, ενώ το οφείλει στην ΑΑΔΕ και
-                    το πληρώνει ο ίδιος. Τώρα φαίνεται το οφειλόμενο, με το
-                    ακάλυπτο μέρος ονομασμένο. */}
-                {tax.levy > 0 && kpi('Τέλος ανθεκτικότητας', `− ${fe(tax.levy)}`,
-                  tax.levyShortfall > 0 ? 'var(--warning)' : 'var(--text-secondary)',
-                  tax.levyShortfall > 0
-                    ? `Οφείλεται ${fe(tax.levy)} στην ΑΑΔΕ για ${occ.bookedNights} νύχτες. Καταγράφηκε είσπραξη ${fe(tot.climateLevy)} από επισκέπτες, άρα ${fe(tax.levyShortfall)} το πληρώνεις εσύ και αφαιρείται από τα καθαρά. Συμπλήρωσε το τέλος ανά κράτηση στους «Επισκέπτες» αν το χρέωσες.`
-                    : `Οφείλεται ${fe(tax.levy)} και εισπράχθηκε ολόκληρο από τους επισκέπτες για λογαριασμό του κράτους. Δεν είναι έσοδό σου, ούτε δικό σου κόστος.`)}
-                {tot.platformFees > 0 && kpi('Προμήθειες πλατφορμών', `− ${fe(tot.platformFees)}`, 'var(--text-secondary)', 'Δαπάνη που εκπίπτει.')}
-                {kpi('Εκτιμώμενος φόρος', `− ${fe(tax.incomeTax)}`, 'var(--text-secondary)', 'Κλίμακα εισοδήματος από ακίνητα, επί του 95% των ακαθαρίστων (τεκμαρτή έκπτωση 5%). Ενδεικτικό· επιβεβαίωσε με τον λογιστή.')}
-                {kpi('Μένει καθαρά', fe(stNet), 'var(--text-primary)',
-                  `${fe(tax.grossRevenue)} ακαθάριστα − ${fe(tax.incomeTax)} φόρος${tax.municipalTax > 0 ? ` − ${fe(tax.municipalTax)} τέλος παρεπιδημούντων` : ''}${tax.levyShortfall > 0 ? ` − ${fe(tax.levyShortfall)} ακάλυπτο τέλος ανθεκτικότητας` : ''}${tot.platformFees > 0 ? ` − ${fe(tot.platformFees)} προμήθειες πλατφορμών` : ''}. Η προμήθεια δεν μειώνει το δηλωτέο έσοδο, φεύγει όμως από την τσέπη σου.${tot.platformFees > 0 ? '' : ' Δεν υπάρχει καταγεγραμμένη προμήθεια σε αυτές τις κρατήσεις· αν υπήρξε, το πραγματικό υπόλοιπο είναι μικρότερο.'}`)}
-                {longTermMonthly > 0 && kpi('Διαφορά vs μακροχρόνια (μετά φόρου)', `${diff >= 0 ? '+' : '−'} ${fe(Math.abs(diff))}`, 'var(--text-primary)',
-                  `Και τα δύο μετά φόρου, ώστε να συγκρίνονται: βραχυχρόνια ${fe(stNet)} έναντι ${fe(ltNet)} από μακροχρόνια (${fe(ltRevenue)} ενοίκιο − ${fe(ltTax)} φόρος). Ίδια κλίμακα και στα δύο, με τεκμαρτή έκπτωση 5%. Ο φόρος υπολογίζεται μόνο για αυτό το ακίνητο· με περισσότερα ακίνητα η κλίμακα ανεβαίνει και στις δύο πλευρές. Ενδεικτικό· επιβεβαίωσε με τον λογιστή.`)}
-              </div>
+                  {/* ΤΟ ΣΧΗΜΑ ΤΗΣ ΧΡΟΝΙΑΣ, ΟΧΙ ΔΩΔΕΚΑ ΚΟΥΤΑΚΙΑ ΜΕ ΑΡΙΘΜΟΥΣ. Τα
+                      παλιά κουτάκια είχαν περίγραμμα και σταθερό ύψος: ήταν
+                      οπτικά πεδία εισόδου, ακριβώς αυτά που η κάρτα κατάργησε. */}
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, marginTop: 16, height: 56 }}>
+                    {months.map(i => {
+                      const n = occ.nightsByMonth[i];
+                      const h = peakNights > 0 ? Math.max(3, Math.round((n / peakNights) * 40)) : 3;
+                      return (
+                        <div key={i} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                          <span style={{ ...num, fontSize: 10, color: n > 0 ? 'var(--text-secondary)' : 'var(--text-tertiary)' }}>{n}</span>
+                          <div style={{ width: '100%', maxWidth: 34, height: h, borderRadius: 3, background: n > 0 ? 'var(--accent)' : 'var(--border-default)', opacity: n > 0 ? 1 : 0.5 }} />
+                          <span style={{ fontFamily: T.font.sans, fontSize: 9, color: 'var(--text-tertiary)' }}>{MONTHS_SHORT[i]}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
 
-              {tot.unresolved > 0 && (
-                <div style={{ background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: T.radius.inner, padding: '10px 14px', marginBottom: 12, fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                  {tot.unresolved} από τις {tot.count} διαμονές του {year} έχουν <strong>απροσδιόριστο ποσό</strong>: καταγράφηκαν πριν το app ξεχωρίσει τα ακαθάριστα από το payout. Τα παραπάνω ποσά είναι εκτίμηση όσο δεν συμπληρωθεί «τι πλήρωσε ο επισκέπτης» στους «Επισκέπτες».
-                </div>
-              )}
-              {tot.undeclared > 0 && (
-                <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.inner, padding: '10px 14px', marginBottom: 12, fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                  <strong style={{ color: 'var(--negative)' }}>{tot.undeclared} αδήλωτες διαμονές.</strong> Η Δήλωση Βραχυχρόνιας Διαμονής υποβάλλεται στο myAADE <strong>μία ανά κράτηση</strong>. Σημείωσέ τες στους «Επισκέπτες» καθώς τις υποβάλλεις.
-                </div>
+                  {occ.peak && occ.peak.days < occ.availableDays && (
+                    <div style={{ ...note, marginTop: 10 }}>
+                      Υψηλή περίοδος {MONTHS_SHORT[occ.peak.fromMonth]} έως {MONTHS_SHORT[occ.peak.toMonth]}: {fp(occ.peak.pct)}, {occ.peak.bookedNights} νύχτες σε {occ.peak.days} ημέρες.
+                    </div>
+                  )}
+
+                  {/* ΤΟ ΟΡΙΟ ΣΤΟ 100 ΕΚΡΥΒΕ ΠΡΟΒΛΗΜΑ ΔΕΔΟΜΕΝΩΝ ΑΝΤΙ ΝΑ ΤΟ ΠΕΙ. */}
+                  {occ.overbooked && (
+                    <div style={{ ...note, marginTop: 10, color: 'var(--text-secondary)' }}>
+                      Οι καταγεγραμμένες νύχτες ξεπερνούν τις διαθέσιμες ημέρες: κάπου υπάρχουν επικαλυπτόμενες ή
+                      διπλοκαταχωρημένες κρατήσεις. Ο έλεγχος γίνεται στους «Επισκέπτες».
+                    </div>
+                  )}
+                </>
               )}
 
-              <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 14px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--border-strong)', marginTop: 6, flexShrink: 0 }} />
-                <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.6 }}>
-                  Για νόμιμη βραχυχρόνια μίσθωση απαιτείται εγγραφή στο <strong>Μητρώο Ακινήτων Βραχυχρόνιας Διαμονής</strong> της <span title="Ανεξάρτητη Αρχή Δημοσίων Εσόδων">ΑΑΔΕ</span> και αναγραφή του <strong title="Αριθμός μητρώου ακινήτου (βραχυχρόνια μίσθωση)">ΑΜΑ</strong> σε κάθε ανάρτηση (Airbnb/Booking)· ο έλεγχος βρίσκεται στην κορυφή των «Επισκέπτες» και της «Τιμολόγησης». Τα έσοδα δηλώνονται στο <span title="Έντυπο δήλωσης εισοδήματος από ακίνητα (ενοίκια)">Ε2</span> <strong>ακαθάριστα</strong>: η προμήθεια της πλατφόρμας είναι δαπάνη, όχι μείωση εσόδου. Το <strong>Τέλος Ανθεκτικότητας στην Κλιματική Κρίση</strong> δεν είναι έσοδό σου: το εισπράττεις από τον επισκέπτη και το αποδίδεις. Δεν είναι ενιαίο: εξαρτάται από τον τύπο του ακινήτου και την περίοδο. Τα ακριβή ποσά ορίζονται από την ΑΑΔΕ, επιβεβαίωσέ τα εκεί ή με τον λογιστή σου.
+              {/* ═══ Η ΔΕΥΤΕΡΗ ΕΡΩΤΗΣΗ: ΠΟΣΑ ΜΕΝΟΥΝ ══════════════════════════
+                  Κάθετη κατάσταση, όχι πλακίδια. Κάθε γραμμή είναι βήμα, και το
+                  υπόλοιπο είναι το άθροισμα όσων φαίνονται από πάνω του. */}
+              {tax.grossRevenue > 0 && (
+                <div style={{ marginTop: 22, paddingTop: 16, borderTop: '1px solid var(--border-subtle)' }}>
+                  <div style={label}>Τι μένει από τη βραχυχρόνια, {year}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', marginTop: 10 }}>
+                    {lines.map(l => (
+                      <div key={l.key} style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, padding: '8px 0' }}>
+                        <span style={{ fontFamily: T.font.sans, fontSize: 12.5, color: 'var(--text-secondary)', paddingLeft: l.out ? 14 : 0, minWidth: 0 }}>{l.label}</span>
+                        <span style={{ ...num, fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                          {l.out ? '−' : ''}{fe(l.amount)}
+                        </span>
+                      </div>
+                    ))}
+                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, paddingTop: 12, marginTop: 6, borderTop: '1px solid var(--border-default)' }}>
+                      <span style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Μένει καθαρά</span>
+                      <span style={{ ...num, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                        {net < 0 ? '−' : ''}{fe(Math.abs(net))}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* ΤΟ ΤΕΛΟΣ ΠΟΥ ΠΛΗΡΩΣΑΝ ΟΙ ΕΠΙΣΚΕΠΤΕΣ ΕΙΝΑΙ ΣΥΜΦΡΑΖΟΜΕΝΟ, ΟΧΙ
+                      ΑΦΑΙΡΕΣΗ. Οσο καθόταν στη στήλη των αφαιρέσεων, η στήλη δεν
+                      έβγαινε· εδώ λέει ό,τι έλεγε, χωρίς να χαλά την πρόσθεση. */}
+                  {tax.levy > 0 && (
+                    <div style={{ ...note, marginTop: 12 }}>
+                      Το τέλος ανθεκτικότητας της χρήσης είναι {fe(tax.levy)} και το εισπράττεις για λογαριασμό του Δημοσίου.
+                      {tax.levyShortfall > 0
+                        ? ` Από τους επισκέπτες καταγράφηκαν ${fe(tax.collectedLevy)}, οπότε τα υπόλοιπα ${fe(tax.levyShortfall)} τα πληρώνεις εσύ.`
+                        : ' Καλύφθηκε ολόκληρο από τους επισκέπτες, άρα δεν είναι δικό σου κόστος.'}
+                    </div>
+                  )}
+                  <div style={{ ...note, marginTop: 6 }}>
+                    Ο φόρος υπολογίζεται στα ακαθάριστα με την κλίμακα ενοικίων και την τεκμαρτή έκπτωση 5%. Η προμήθεια
+                    της πλατφόρμας φεύγει από την τσέπη αλλά δεν μειώνει το δηλωτέο έσοδο. Ενδεικτικά ποσά, όχι εκκαθάριση.
+                  </div>
                 </div>
+              )}
+
+              {/* ═══ ΕΚΚΡΕΜΟΤΗΤΕΣ ════════════════════════════════════════════
+                  Χωρίς σημασιολογικό κόκκινο: η ιεραρχία βγαίνει από τη θέση και
+                  το βάρος, όπως παντού αλλού στο προϊόν. */}
+              {(counts.unresolved > 0 || counts.undeclared > 0) && (
+                <div style={{ marginTop: 18, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {counts.undeclared > 0 && (
+                    <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                      <strong style={{ color: 'var(--text-primary)' }}>{counts.undeclared} {counts.undeclared === 1 ? 'αδήλωτη διαμονή' : 'αδήλωτες διαμονές'}.</strong>{' '}
+                      Η Δήλωση Βραχυχρόνιας Διαμονής υποβάλλεται στο myAADE μία ανά κράτηση, και σημειώνεται στους «Επισκέπτες».
+                    </div>
+                  )}
+                  {counts.unresolved > 0 && (
+                    <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                      <strong style={{ color: 'var(--text-primary)' }}>{counts.unresolved} από {counts.count} {counts.count === 1 ? 'διαμονή' : 'διαμονές'} χωρίς ανάλυση ποσού.</strong>{' '}
+                      Καταγράφηκαν πριν το app ξεχωρίσει τα ακαθάριστα από την καθαρή είσπραξη, οπότε τα παραπάνω ποσά
+                      είναι εκτίμηση ως τότε.
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ΤΟ ΝΟΜΙΚΟ ΥΠΟΜΝΗΜΑ ΗΤΑΝ ΕΞΙ ΣΕΙΡΕΣ ΜΕ ΠΕΝΤΕ ΕΝΤΟΝΑ, ΚΑΙ ΤΑ ΜΙΣΑ
+                  ΤΑ ΕΛΕΓΕ ΗΔΗ Η ΚΑΤΑΣΤΑΣΗ ΑΠΟ ΠΑΝΩ (ότι η προμήθεια είναι δαπάνη,
+                  ότι το τέλος ανήκει στο Δημόσιο). Μένει μόνο η υποχρέωση που δεν
+                  φαίνεται πουθενά αλλού στην οθόνη: το μητρώο και ο ΑΜΑ. */}
+              <div style={{ ...note, marginTop: 16 }}>
+                Η νόμιμη βραχυχρόνια μίσθωση απαιτεί εγγραφή στο Μητρώο Ακινήτων Βραχυχρόνιας Διαμονής της ΑΑΔΕ και
+                αναγραφή του ΑΜΑ σε κάθε ανάρτηση· ο έλεγχος βρίσκεται στην κορυφή των «Επισκέπτες» και της «Τιμολόγησης».
               </div>
             </>
           )}
