@@ -1,19 +1,18 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import * as properties from '@/lib/data/properties';
 // Οι ρυθμίσεις ανά ενότητα έχουν ένα σπίτι: lib/data/settings.
 import * as settings from '@/lib/data/settings';
 import * as calendar from '@/lib/data/calendar'
 import { NumberInput, CustomSelect, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
+import { usePropertyHeating } from './usePropertyHeating';
+import { usesGas } from '@/lib/property/heating';
 import { T, fe, feRate, Spinner, fixedCols } from '@/components/Theme';
 import { RAAEY_COMPARE } from '@/lib/energy/freshness';
-import { notifyError } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
 import { athensToday } from '@/lib/core/time';
-import { failed } from '@/lib/core/dbError';
 
 /**
  * Η ΤΙΜΗ ΤΗΣ ΚΙΛΟΒΑΤΩΡΑΣ ΑΕΡΙΟΥ, ΜΕ ΤΑ ΔΕΚΑΔΙΚΑ ΠΟΥ ΤΗΝ ΞΕΧΩΡΙΖΟΥΝ.
@@ -216,13 +215,15 @@ interface Props { propertyId: string; userId?: string; }
 const DEFAULTS = {
   gasProvider: 'nrg', gasTariffId: '', gasMonthly: '', gasKwhMonthly: '',
   networkOperator: 'eda_attikis', gasContractStart: '', gasContractMonths: '',
-  hasGasConnection: true, heatingType: 'autonomous_gas',
+  hasGasConnection: true,
   ttfPrice: String(DEFAULT_TTF_EUR_MWH), // €/MWh, ο χρήστης το ενημερώνει από ΕΕΧ
 };
 
 export default function BillsGas({ propertyId, userId = '' }: Props) {
   const supabase = createClient();
   const [s, su, loading] = useBillsSettings(propertyId, userId, 'gas', DEFAULTS);
+  // Διαβάζεται, δεν ρωτιέται ξανά: απαντήθηκε στη Θέρμανση, μία φορά.
+  const [heatingType] = usePropertyHeating(propertyId, userId);
   const [segmentFilter, setSegmentFilter] = useState<'residential' | 'business'>('residential');
   const [elecProvider, setElecProvider]   = useState<string>('');
   const [calendarSynced, setCalendarSynced] = useState(false);
@@ -270,19 +271,12 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
   const isHeatingSeason = [10, 11, 12, 1, 2, 3].includes(Number(athensToday().slice(5, 7)));
   const noGasDataYet = effective === 0 && kwh === 0;
 
-  // ── Sync-back: properties.heating ────────────────────────────────────────────
-  const propertyHeatingSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    if (!propertyId || !s.heatingType) return;
-    if (propertyHeatingSyncTimer.current) clearTimeout(propertyHeatingSyncTimer.current);
-    propertyHeatingSyncTimer.current = setTimeout(() => {
-      // Ανύπαρκτος πίνακας + `.then(() => {})` που καταπίνει το σφάλμα: ο τύπος
-      // θέρμανσης δεν αποθηκευόταν ΠΟΤΕ στο ακίνητο, σιωπηλά.
-      Promise.resolve(properties.update(supabase, propertyId, { heating: s.heatingType }, userId))
-        .then(({ error }) => { if (error) notifyError(failed('Ο τύπος θέρμανσης δεν αποθηκεύτηκε', error)); });
-    }, 1200);
-    return () => { if (propertyHeatingSyncTimer.current) clearTimeout(propertyHeatingSyncTimer.current); };
-  }, [propertyId, s.heatingType]);
+  // Ο ΣΥΓΧΡΟΝΙΣΜΟΣ ΠΡΟΣ ΤΟ ΑΚΙΝΗΤΟ ΕΦΥΓΕ, ΜΑΖΙ ΜΕ ΤΟ ΜΕΝΟΥ ΠΟΥ ΤΟΝ ΤΡΟΦΟΔΟΤΟΥΣΕ.
+  // Αυτή η οθόνη αντέγραφε το δικό της τρίτιμο λεξιλόγιο στο
+  // `user_properties.heating`: όποιος διάλεγε «Συνδυαστικό» έγραφε `combi` σε
+  // στήλη που κανένας κατάλογος ετικετών δεν γνωρίζει, και η καρτέλα του
+  // ακινήτου τύπωνε «Θέρμανση: combi». Τώρα η πηγή είναι μία και η ροή
+  // μονόδρομη: το ακίνητο απαντά, οι καρτέλες διαβάζουν.
 
   // ── Auto-sync λήξης σύμβασης → calendar_events ───────────────────────────────
   useEffect(() => {
@@ -404,12 +398,6 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div {...fixedCols(4, 14, 'start')}>
           <CustomSelect label="Διαχειριστής δικτύου" value={s.networkOperator} onChange={v => upd({ networkOperator: v })} options={networkOptions} />
-          <CustomSelect label="Τύπος θέρμανσης" value={s.heatingType} onChange={v => upd({ heatingType: v })}
-            options={[
-              { value: 'autonomous_gas', label: 'Αυτόνομη θέρμανση αερίου' },
-              { value: 'central_gas',    label: 'Κεντρική θέρμανση, κοινόχρηστη' },
-              { value: 'combi',          label: 'Συνδυαστικό, αέριο και άλλη πηγή' },
-            ]}/>
           <CustomSelect label="Πάροχος" value={s.gasProvider}
             onChange={v => upd({ gasProvider: v, gasTariffId: GAS_PROVIDERS.find(p => p.value === v)?.tariffs[0]?.id || '' })}
             options={providerOptions}/>
@@ -540,13 +528,13 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
         if (dualFuelTariff) {
           hints.push({ text: `Το τρέχον τιμολόγιο έχει Dual Fuel έκπτωση −${fk(dualFuelTariff)}/kWh λόγω κοινού παρόχου με το ρεύμα.`, severity: 'info' });
         }
-        if (isHeatingSeason && noGasDataYet && s.heatingType === 'autonomous_gas') {
+        if (isHeatingSeason && noGasDataYet && usesGas(heatingType)) {
           hints.push({ text: 'Είμαστε σε περίοδο θέρμανσης και δεν έχεις καταχωρήσει ακόμη κατανάλωση ή κόστος αερίου. Συμπλήρωσε τα στοιχεία για ακριβή παρακολούθηση.', severity: 'warning' });
         }
         if (tariff?.type === 'variable' && kwh > 800) {
           hints.push({ text: `Με ${kwh} kWh/μήνα, ένα σταθερό τιμολόγιο θα σε προστάτευε από διακυμάνσεις TTF τον χειμώνα, τότε οι τιμές συνήθως ανεβαίνουν.`, severity: 'tip' });
         }
-        if (s.heatingType === 'central_gas') {
+        if (heatingType === 'central_gas') {
           hints.push({ text: 'Με κεντρική θέρμανση, το κόστος αερίου μοιράζεται στους ενοίκους/ιδιοκτήτες βάσει χιλιοστών. Έλεγξε τον κανονισμό κοινοχρήστων.', severity: 'info' });
         }
 

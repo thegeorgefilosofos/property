@@ -3,6 +3,8 @@
 import { daysUntil } from '@/lib/core/time';
 import { NumberInput, CustomSelect, TextInput, Toggle, ToggleField, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
+import { usePropertyHeating } from './usePropertyHeating';
+import { HEATING_TYPES, isCentralHeating } from '@/lib/property/heating';
 import { T, fe, feRate, fieldRow, fixedCols, fp, Spinner, pressable } from '@/components/Theme';
 import { waterMonthly, waterMonthlyText } from '@/lib/energy/tariff';
 
@@ -200,25 +202,6 @@ const WATER_PROVIDERS = [
   { value: 'local', label: 'Τοπική ΔΕΥΑ',             url: '',                       color: '#38bdf8' },
 ];
 
-const GAS_PROVIDERS = [
-  { value: 'eda_attikis', label: 'ΕΔΑ Αττικής',   url: 'https://www.edaattikis.gr', color: '#f97316' },
-  { value: 'eda_thess',   label: 'ΕΔΑ Θεσσαλίας', url: 'https://www.edathess.gr',   color: '#fb923c' },
-  { value: 'heron',       label: 'Ήρων',           url: 'https://www.heron.gr',      color: '#e85d04' },
-  { value: 'protergia',   label: 'Protergia',       url: 'https://www.protergia.gr', color: '#7c3aed' },
-];
-
-const HEATING_TYPES = [
-  { value: 'autonomous_gas',       label: 'Αυτόνομη Φυσικού Αερίου' },
-  { value: 'autonomous_oil',       label: 'Αυτόνομη Πετρελαίου'     },
-  { value: 'autonomous_heat_pump', label: 'Αντλία Θερμότητας'        },
-  { value: 'autonomous_ac',        label: 'Κλιματιστικό'              },
-  { value: 'autonomous_pellet',    label: 'Pellet'                    },
-  { value: 'autonomous_wood',      label: 'Ξύλα / Τζάκι'             },
-  { value: 'central_gas',          label: 'Κεντρική Φυσικού Αερίου'  },
-  { value: 'central_oil',          label: 'Κεντρική Πετρελαίου'      },
-  { value: 'district',             label: 'Τηλεθέρμανση'              },
-];
-
 const SECURITY_COMPANIES = [
   { value: 'eltrak',    label: 'Eltrak',    url: 'https://www.eltrak.gr',        color: '#dc2626' },
   { value: 'g4s',       label: 'G4S',       url: 'https://www.g4s.com/gr-gr',    color: '#166534' },
@@ -232,7 +215,6 @@ const BENCHMARKS = {
   internet: { avg: 22.50, label: 'Μέσος Όρος Ελλάδας'              },
   water:    { avg: 12.00, label: 'Μέσος Όρος Αττικής, ~24 € / 2 μήνες' },
   heating:  { avg: 70.00, label: 'Μέσος Όρος χειμώνα'               },
-  gas:      { avg: 40.00, label: 'Μέσος Όρος οικιακό'               },
   security: { avg: 18.00, label: 'Μέσος Όρος αγοράς'                },
 };
 
@@ -244,11 +226,10 @@ const DEFAULTS = {
   // FIX: "Συνδρομητική τηλεόραση" label
   hasTV: false, tvProvider: 'cosmote', tvPlanId: '', tvPlan: '', tvPrice: '', tvHasSports: false,
   waterProvider: 'eydap', waterBiMonthly: '', waterMonthly: '', waterPersons: '2', waterPeriodMonths: '2',
-  heatingType: 'autonomous_gas', heatingMonthly: '',
+  heatingMonthly: '',
   heatingLitersPerYear: '', heatingOilPricePerLiter: '1.20',
   heatingKgPellet: '', heatingPelletPrice: '0.38',
   heatingCentralShare: '',
-  gasProvider: 'eda_attikis', gasPlan: '', gasMonthly: '',
   securityCompany: 'other', securityPlan: '', securityMonthly: '',
   securityHasRemote: false, securityHasCamera: false, securityHasDoor: false,
   dimotika: '4.8', dimotikaCalcCons: '', dimotikaCalcAmount: '',
@@ -267,6 +248,8 @@ interface Props { propertyId: string; userId?: string; only?: ProviderScope; }
 export default function BillsProviders({ propertyId, userId = '', only }: Props) {
   const show = (k: ProviderScope) => !only || only === k;
   const [s, upd, loading] = useBillsSettings(propertyId, userId, 'providers', DEFAULTS);
+  // Ο τύπος θέρμανσης είναι ιδιότητα του κτιρίου, όχι ρύθμιση αυτής της καρτέλας.
+  const [heatingType, setHeatingType] = usePropertyHeating(propertyId, userId);
 
   const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 };
   // ΤΡΕΙΣ ΡΥΘΜΙΣΕΙΣ ΠΛΕΓΜΑΤΟΣ ΣΤΟΝ ΙΔΙΟ ΚΑΤΑΛΟΓΟ ΕΔΙΝΑΝ ΤΡΕΙΣ ΔΕΞΙΕΣ ΑΚΡΕΣ.
@@ -277,21 +260,17 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
   // ενότητα. Το ελάχιστο κρατά τα στενά πεδία αναγνώσιμα.
   const g2: React.CSSProperties   = { ...fieldRow(200), marginBottom: 14 };
   const g3: React.CSSProperties   = { ...fieldRow(190), marginBottom: 14 };
-  const g4: React.CSSProperties   = { ...fieldRow(160), marginBottom: 14 };
 
   const internetCost = parseFloat(s.internetPrice) || 0;
-  const tvCost       = s.hasTV ? (parseFloat(s.tvPrice) || 0) : 0;
   const waterM       = waterMonthly(s);
   const heatingM     = (() => {
-    if (s.heatingType === 'autonomous_oil' && s.heatingLitersPerYear)
+    if (heatingType === 'autonomous_oil' && s.heatingLitersPerYear)
       return (parseFloat(s.heatingLitersPerYear) * parseFloat(s.heatingOilPricePerLiter)) / 12;
-    if (s.heatingType === 'autonomous_pellet' && s.heatingKgPellet)
+    if (heatingType === 'pellet' && s.heatingKgPellet)
       return (parseFloat(s.heatingKgPellet) * parseFloat(s.heatingPelletPrice)) / 12;
     return parseFloat(s.heatingMonthly) || 0;
   })();
-  const gasM      = parseFloat(s.gasMonthly)      || 0;
   const securityM = parseFloat(s.securityMonthly) || 0;
-  const totalM    = internetCost + tvCost + waterM + heatingM + gasM + securityM;
 
   const provData     = INTERNET_PROVIDERS.find(p => p.value === s.internetProvider);
   // ΣΚΕΤΟ ΤΟ ΟΝΟΜΑ ΤΟΥ ΠΑΚΕΤΟΥ. Η τιμή γραφόταν και εδώ και στο διπλανό πεδίο
@@ -312,7 +291,6 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
   const selectedPlan = (INTERNET_PLANS[s.internetProvider] || []).find(p => p.id === s.internetPlanId);
   const secData      = SECURITY_COMPANIES.find(c => c.value === s.securityCompany);
   const waterData    = WATER_PROVIDERS.find(p => p.value === s.waterProvider);
-  const gasData      = GAS_PROVIDERS.find(p => p.value === s.gasProvider);
 
   // ── ΤΟ ΟΝΟΜΑ ΤΟΥ ΠΕΔΙΟΥ ΓΡΑΦΕΤΑΙ ΜΙΑ ΦΟΡΑ, ΚΑΙ ΕΛΕΓΧΕΤΑΙ ──────────────────
   // Οι διακόπτες του σταθερού τηλεφώνου ενημερώνονταν με υπολογισμένο κλειδί,
@@ -619,17 +597,22 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
         <div style={card}>
           {secHdr('Θέρμανση')}
           <div style={g3}>
-            <CustomSelect label="Τύπος θέρμανσης" value={s.heatingType} onChange={v => upd({ heatingType: v })} options={HEATING_TYPES}/>
-            {['autonomous_gas','central_gas','district','autonomous_heat_pump','autonomous_ac','autonomous_wood'].includes(s.heatingType) && (
+            {/* ΤΟ ΜΕΝΟΥ ΓΡΑΦΕΙ ΣΤΟ ΑΚΙΝΗΤΟ. Πριν έγραφε στις ρυθμίσεις ΑΥΤΗΣ της
+                καρτέλας, ενώ η καρτέλα του αερίου είχε δικό της μενού με δικό
+                του λεξιλόγιο: δύο απαντήσεις για ένα κτίριο. */}
+            <CustomSelect label="Τύπος θέρμανσης" value={heatingType} onChange={setHeatingType} options={[...HEATING_TYPES]}/>
+            {/* Το μηνιαίο κόστος δεν έχει νόημα όπου το κόστος βγαίνει από
+                λίτρα ή κιλά, ούτε όπου δεν υπάρχει θέρμανση. */}
+            {!['autonomous_oil', 'pellet', 'none', ''].includes(heatingType) && (
               <NumberInput label="Μέσο μηνιαίο κόστος" value={s.heatingMonthly} onChange={v => upd({ heatingMonthly: v })} suffix="€" step={5}/>
             )}
-            {s.heatingType === 'autonomous_oil' && (
+            {heatingType === 'autonomous_oil' && (
               <><NumberInput label="Λίτρα τον χρόνο"     value={s.heatingLitersPerYear}    onChange={v => upd({ heatingLitersPerYear: v })}    suffix="L"   step={50}/><NumberInput label="Τιμή ανά λίτρο" value={s.heatingOilPricePerLiter} onChange={v => upd({ heatingOilPricePerLiter: v })} suffix="€" step={0.01}/></>
             )}
-            {s.heatingType === 'autonomous_pellet' && (
+            {heatingType === 'pellet' && (
               <><NumberInput label="Kg / έτος"     value={s.heatingKgPellet}    onChange={v => upd({ heatingKgPellet: v })}    suffix="kg" step={50}/><NumberInput label="Τιμή ανά κιλό" value={s.heatingPelletPrice} onChange={v => upd({ heatingPelletPrice: v })} suffix="€" step={0.01}/></>
             )}
-            {['central_oil','central_gas'].includes(s.heatingType) && (
+            {isCentralHeating(heatingType) && (
               <NumberInput label="Μερίδιο ιδιοκτησίας" value={s.heatingCentralShare} onChange={v => upd({ heatingCentralShare: v })} suffix="%" step={1}/>
             )}
           </div>

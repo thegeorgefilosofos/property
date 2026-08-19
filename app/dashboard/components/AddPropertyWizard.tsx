@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useId, cloneElement, isValidElement } from 'react';
+import { HEATING_TYPES, heatingLabel, normalizeHeating } from '@/lib/property/heating';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
 // Το προφίλ χρέωσης έχει ένα σπίτι: lib/data/billing.
@@ -15,11 +16,6 @@ import { failed } from '@/lib/core/dbError';
 
 // Ενεργειακή κλάση (ΠΕΑ) & τύποι θέρμανσης — κοινά για wizard και Ρυθμίσεις.
 const PEA_CLASSES = ['A+', 'A', 'B+', 'B', 'Γ', 'Δ', 'Ε', 'Ζ', 'Η'];
-const HEATING_OPTS: [string, string][] = [
-  ['central_gas', 'Κεντρική (αέριο)'], ['autonomous_gas', 'Αυτόνομη (αέριο)'], ['oil', 'Πετρέλαιο'],
-  ['heat_pump', 'Αντλία θερμότητας'], ['electric', 'Ηλεκτρική'], ['pellet', 'Pellet / Ξύλο'],
-  ['ac_only', 'Κλιματιστικά'], ['none', 'Χωρίς θέρμανση'], ['other', 'Άλλο'],
-];
 
 // ── Domain constants (kept in sync με το dashboard/page.tsx) ────────────────
 const STATUS_COLORS: Record<string, string> = {
@@ -236,7 +232,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
   };
   const setCoOwnerAt = (i: number, val: string) => setCoOwners(prev => prev.map((v, idx) => idx === i ? val : v));
   const [peaClass, setPeaClass] = useState(existing?.pea_class || '');
-  const [heating, setHeating] = useState(existing?.heating || '');
+  const [heating, setHeating] = useState(normalizeHeating(existing?.heating));
   const [parking, setParking] = useState(s(existing?.parking_spaces));
   const [storageSqm, setStorageSqm] = useState(s(existing?.storage_sqm));
   const [bedrooms, setBedrooms] = useState(s(existing?.bedrooms));
@@ -583,7 +579,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                 </Field>
                 <Field label="Τύπος θέρμανσης">
                   <CustomSelect value={heating} onChange={setHeating} placeholder="Επίλεξε"
-                    options={HEATING_OPTS.map(([v, l]) => ({ value: v, label: l }))} />
+                    options={[...HEATING_TYPES]} />
                 </Field>
                 <Field label="Θέσεις στάθμευσης">
                   <input style={monoInputStyle} type="number" min={0} value={parking} onChange={e => setParking(e.target.value)} onFocus={onFocus} onBlur={onBlur} />
@@ -776,7 +772,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
               isLandLike ? null : ['Όροφος', floor.trim() || ABSENT],
               isLandLike ? null : ['Έτος Κατασκευής', yearBuilt.trim() || ABSENT],
               isLandLike ? null : (peaClass ? ['Ενεργειακή Κλάση', peaClass] : null),
-              isLandLike ? null : (heating ? ['Θέρμανση', HEATING_OPTS.find(h => h[0] === heating)?.[1] || heating] : null),
+              isLandLike ? null : (heating ? ['Θέρμανση', heatingLabel(heating)] : null),
               isLandLike ? null : (parking.trim() ? ['Θέσεις Στάθμευσης', parking.trim()] : null),
               isLandLike ? null : (num(storageSqm) != null ? ['Αποθήκη', `${fn(num(storageSqm)!)} τ.μ.`] : null),
               ['Εμπορική Αξία', valueN != null ? fe(valueN) : fe(0)],
