@@ -561,24 +561,33 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
         );
       })()}
 
-      {/* ── Χρήσιμες πληροφορίες ── */}
+      {/* ══ ΤΡΙΑ ΙΔΙΑ ΓΚΡΙΖΑ ΚΟΥΤΙΑ ΔΙΑΒΑΖΟΝΤΑΙ ΩΣ ΤΟΙΧΟΣ ══════════════════
+          Τρεις παράγραφοι με πανομοιότυπο πλαίσιο, φόντο και μέγεθος: τίποτα δεν
+          έλεγε στο μάτι ποια αφορά ΕΣΕΝΑ τώρα. Και οι τρεις πληροφορίες είναι
+          χρήσιμες, οπότε δεν σβήνονται· αποκτούν όμως κεφαλή που σαρώνεται σε
+          ένα δευτερόλεπτο, και το πλαίσιο φεύγει υπέρ μιας λεπτής γραμμής.
+          Το ίδιο ιδίωμα με τις υπόλοιπες λίστες της εφαρμογής. ══ */}
       <div style={card}>
-        {secHdr('Χρήσιμες πληροφορίες')}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-            Το δίκτυο διανομής ανήκει στον τοπικό διαχειριστή (ΕΔΑ Αττικής, ΕΔΑ ΘΕΣΣ ή ΔΕΔΑ), δεν αλλάζει όποιον πάροχο κι αν επιλέξεις. Η αλλαγή παρόχου είναι καθαρά εμπορική, δεν γίνεται καμία επέμβαση στον αγωγό ή τον λέβητα, και ολοκληρώνεται σε περίπου 3 εβδομάδες χωρίς χρέωση.
-          </div>
-          <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-            Πρόσεχε την «έκπτωση συνέπειας»: πολλά τιμολόγια διαφημίζουν χαμηλή τιμή που ισχύει μόνο με εμπρόθεσμη εξόφληση, αν αργήσεις μία πληρωμή, χρεώνεσαι τη βασική (υψηλότερη) τιμή. Σύγκρινε πάντα και την «καθαρή» τιμή χωρίς έκπτωση.
-          </div>
-          <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-            Τα κίτρινα/κυμαινόμενα τιμολόγια ακολουθούν τον δείκτη TTF (ευρωπαϊκή χονδρεμπορική αγορά). Οι τιμές ανεβαίνουν συνήθως τον χειμώνα λόγω ζήτησης θέρμανσης, αν θες σιγουριά, κλείδωσε σταθερό πριν την ψυχρή περίοδο.
-          </div>
-          <a href={RAAEY_COMPARE} target="_blank" rel="noopener noreferrer"
-            style={{ alignSelf: 'flex-start', fontSize: 11, fontWeight: 600, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.pill, padding: '8px 18px', textDecoration: 'none' }}>
-            Επίσημη σύγκριση τιμών <span title="Ρυθμιστική Αρχή Αποβλήτων, Ενέργειας και Υδάτων">ΡΑΑΕΥ</span> στο gov.gr
-          </a>
+        {secHdr('Πριν αλλάξεις τιμολόγιο')}
+        <div>
+          {[
+            { t: 'Η αλλαγή παρόχου δεν αγγίζει το δίκτυο',
+              b: 'Το δίκτυο διανομής ανήκει στον τοπικό διαχειριστή (ΕΔΑ Αττικής, ΕΔΑ ΘΕΣΣ ή ΔΕΔΑ) και δεν αλλάζει όποιον πάροχο κι αν επιλέξεις. Η αλλαγή είναι καθαρά εμπορική: καμία επέμβαση στον αγωγό ή στον λέβητα, περίπου τρεις εβδομάδες, χωρίς χρέωση.' },
+            { t: 'Η «έκπτωση συνέπειας» χάνεται με μία καθυστέρηση',
+              b: 'Πολλά τιμολόγια διαφημίζουν τιμή που ισχύει μόνο με εμπρόθεσμη εξόφληση. Αν αργήσεις μία πληρωμή, χρεώνεσαι τη βασική, υψηλότερη τιμή. Σύγκρινε και την καθαρή τιμή, χωρίς την έκπτωση.' },
+            { t: 'Τα κυμαινόμενα ακολουθούν τον δείκτη TTF',
+              b: 'Ο TTF είναι η ευρωπαϊκή χονδρεμπορική αγορά αερίου και ανεβαίνει συνήθως τον χειμώνα, με τη ζήτηση θέρμανσης. Αν θέλεις σιγουριά, κλείδωσε σταθερό πριν την ψυχρή περίοδο.' },
+          ].map((x, i, arr) => (
+            <div key={x.t} style={{ padding: '12px 0', borderBottom: i === arr.length - 1 ? 'none' : '1px solid var(--border-subtle)' }}>
+              <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', fontFamily: T.font.sans, lineHeight: 1.45 }}>{x.t}</p>
+              <p style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 3 }}>{x.b}</p>
+            </div>
+          ))}
         </div>
+        <a href={RAAEY_COMPARE} target="_blank" rel="noopener noreferrer"
+          style={{ display: 'inline-block', marginTop: 14, fontSize: 11, fontWeight: 600, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.pill, padding: '8px 18px', textDecoration: 'none' }}>
+          Επίσημη σύγκριση τιμών <span title="Ρυθμιστική Αρχή Αποβλήτων, Ενέργειας και Υδάτων">ΡΑΑΕΥ</span> στο gov.gr
+        </a>
       </div>
     </div>
   );

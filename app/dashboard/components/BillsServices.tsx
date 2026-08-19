@@ -1,11 +1,15 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import * as expenseStore from '@/lib/data/expenses';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker, addBtn } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
 import { T, fe, fieldRow, fp, Spinner, histInputStyle } from '@/components/Theme';
 import { estimateENFIA, enfiaInUse, enfiaLastYearAnnual } from '@/lib/billing/enfia';
 import { MONTHS_SHORT } from '@/lib/core/months';
+import { averageMonthly, feeOriginNote, feeShare, monthlyFees, TYPICAL_SHARE, type FeeSourceRow } from '@/lib/expenses/municipalFees';
+import { athensParts } from '@/lib/core/time';
 
 
 
@@ -70,6 +74,26 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
   const svcSection: React.CSSProperties = { borderTop: '1px solid var(--border-subtle)', paddingTop: 14, marginTop: 14 };
 
   const [hoveredMonth, setHoveredMonth] = useState<number | null>(null);
+
+  // ΤΑ ΔΕΔΟΜΕΝΑ ΥΠΑΡΧΟΥΝ ΗΔΗ, ΑΠΛΩΣ ΔΕΝ ΤΑ ΡΩΤΟΥΣΕ ΚΑΝΕΙΣ. Κάθε λογαριασμός
+  // ρεύματος είναι καταχωρημένη δαπάνη με ημερομηνία και ποσό· τα δημοτικά τέλη
+  // ταξιδεύουν μέσα του. Η οθόνη ζητούσε δώδεκα χειρόγραφα ποσά για κάτι που
+  // βγαίνει από αυτά συν ένα ποσοστό μετρημένο μία φορά.
+  const feeYear = athensParts().year;
+  const [elecRows, setElecRows] = useState<FeeSourceRow[]>([]);
+  useEffect(() => {
+    let stop = false;
+    (async () => {
+      if (!propertyId) { if (!stop) setElecRows([]); return; }
+      const rows = await expenseStore.ledger<FeeSourceRow>(createClient(), propertyId, {
+        columns: 'date,amount,category', userId: userId || undefined,
+        from: `${feeYear}-01-01`, to: `${feeYear}-12-31`,
+      });
+      if (!stop) setElecRows(rows);
+    })();
+    return () => { stop = true; };
+  }, [propertyId, userId, feeYear]);
+
   const [newName, setNewName]       = useState('');
   const [newContact, setNewContact] = useState('');
   const [newPhone, setNewPhone]     = useState('');
@@ -94,10 +118,16 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
   const enfia = enfiaInUse(s.enfiaAnnual, s.enfiaMonthly, enfiaResult?.final,
     enfiaLastYearAnnual({ annual: s.enfiaLastAnnual, instalment: s.enfiaLastInstalment, instalments: s.enfiaLastCount }));
   const enfiaM = enfia.monthly;
-  const dimotikaAvg = (s.dimotikaHistory || []).filter((v: string) => v).length > 0
-    ? (s.dimotikaHistory || []).reduce((sum: number, v: string) => sum + (parseFloat(v) || 0), 0) / (s.dimotikaHistory || []).filter((v: string) => v).length : 0;
-  const dimotikaPct = s.lastBillTotal && s.lastBillDimotika && parseFloat(s.lastBillTotal) > 0
-    ? (parseFloat(s.lastBillDimotika) / parseFloat(s.lastBillTotal)) * 100 : 0;
+  // ══ ΤΑ ΔΗΜΟΤΙΚΑ ΤΕΛΗ ΒΓΑΙΝΟΥΝ ΑΠΟ ΤΟΥΣ ΛΟΓΑΡΙΑΣΜΟΥΣ ΠΟΥ ΥΠΑΡΧΟΥΝ ══════
+  // Ο κανόνας και οι έλεγχοι ζουν στο lib/expenses/municipalFees.ts. Εδώ μένει
+  // μόνο η ανάγνωση: οι δαπάνες ρεύματος του έτους, μία φορά.
+  const share = feeShare(parseFloat(s.lastBillTotal), parseFloat(s.lastBillDimotika));
+  const dimotikaMonths = useMemo(
+    () => monthlyFees(elecRows, feeYear, share, s.dimotikaHistory || []),
+    [elecRows, feeYear, share.pct, share.implausible, s.dimotikaHistory],
+  );
+  const dimotikaAvg = averageMonthly(dimotikaMonths) ?? 0;
+  const originNote = feeOriginNote(dimotikaMonths);
 
   const cleaningM = s.hasCleaning ? toMonthly(s.cleaningCostPerVisit, s.cleaningFreq) : 0;
   const gardenM   = s.hasGarden   ? toMonthly(s.gardenCost, s.gardenFreq)             : 0;
@@ -110,7 +140,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
 
   const today        = new Date();
   const currentMonth = today.getMonth();
-  const maxH         = Math.max(...(s.dimotikaHistory || []).map((v: string) => parseFloat(v) || 0), 1);
+  const maxH         = Math.max(...dimotikaMonths.map(x => x.amount ?? 0), 1);
 
   const addOther = () => {
     if (!newName || !newCost) return;
@@ -160,23 +190,45 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
 
 
 
-      {/* ── KPIs ─────────────────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 10, marginBottom: 16 }}>
-        {[
-          { label: 'Υπηρεσίες / μήνα',     value: fe(totalServices)                        },
-          { label: 'Υπηρεσίες / έτος',     value: fe(totalServices * 12)                   },
-          // Ένα ποσό φόρου χωρίς σήμανση διαβάζεται ως βεβαιότητα. Η ετικέτα λέει
-          // αν είναι το ποσό του εκκαθαριστικού ή νούμερο του υπολογιστή.
-          { label: enfia.source === 'estimate' ? 'ΕΝΦΙΑ / μήνα (εκτίμηση)' : 'ΕΝΦΙΑ / μήνα',
-            value: enfiaM > 0 ? fe(enfiaM) : fe(0) },
-          { label: 'Δημοτικά Τέλη (μέσος όρος) / μήνα', value: dimotikaAvg > 0 ? fe(dimotikaAvg) : fe(0) },
-        ].map((k, i) => (
-          <div key={i} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
-            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{k.label}</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.value}</div>
+      {/* ══ ΤΕΣΣΕΡΑ ΠΛΑΚΙΔΙΑ, ΤΡΙΑ ΝΟΥΜΕΡΑ, ΚΑΙ ΤΕΣΣΕΡΑ ΜΗΔΕΝΙΚΑ ═══════════
+          ΤΟ «ΥΠΗΡΕΣΙΕΣ / ΕΤΟΣ» ΗΤΑΝ ΤΟ «ΥΠΗΡΕΣΙΕΣ / ΜΗΝΑ» ΕΠΙ ΔΩΔΕΚΑ, σε δικό
+          του πλακίδιο ίδιου μεγέθους: δύο πλακίδια για μία πληροφορία. Το ετήσιο
+          κατεβαίνει σε ήσυχη υποσημείωση κάτω από το μηνιαίο, όπου ανήκει.
+
+          ΚΑΙ ΤΑ ΜΗΔΕΝΙΚΑ ΕΦΥΓΑΝ. Πριν συμπληρωθεί τίποτα, η οθόνη άνοιγε με
+          τέσσερα «0,00 €» στη σειρά. Το μηδέν σημαίνει «δεν πληρώνω», ενώ η
+          αλήθεια είναι «δεν έχει καταχωρηθεί ακόμη» — ο ίδιος κανόνας που ισχύει
+          στις κάρτες συμβολαίων και στα δημοτικά τέλη από κάτω. ══ */}
+      {(() => {
+        const kpis = [
+          totalServices > 0 && {
+            label: 'Υπηρεσίες τον μήνα', value: fe(totalServices),
+            sub: `${fe(totalServices * 12)} τον χρόνο`,
+          },
+          enfiaM > 0 && {
+            // Ενα ποσό φόρου χωρίς σήμανση διαβάζεται ως βεβαιότητα. Η ετικέτα
+            // λέει αν είναι το ποσό του εκκαθαριστικού ή νούμερο του υπολογιστή.
+            label: 'ΕΝΦΙΑ τον μήνα', value: fe(enfiaM),
+            sub: enfia.source === 'estimate' ? 'εκτίμηση' : 'από το εκκαθαριστικό',
+          },
+          dimotikaAvg > 0 && {
+            label: 'Δημοτικά τέλη τον μήνα', value: fe(dimotikaAvg),
+            sub: 'μέσος όρος των γνωστών μηνών',
+          },
+        ].filter(Boolean) as { label: string; value: string; sub: string }[];
+        if (!kpis.length) return null;
+        return (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap: 10, marginBottom: 16 }}>
+            {kpis.map(k => (
+              <div key={k.label} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{k.label}</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.value}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 6 }}>{k.sub}</div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        );
+      })()}
 
       {/* Ο ΥΠΟΛΟΓΙΣΜΟΣ ΕΝΦΙΑ ΕΦΥΓΕ ΑΠΟ ΕΔΩ, ΚΑΙ ΜΕ ΑΥΤΟΝ ΤΡΙΑ ΣΦΑΛΜΑΤΑ.
 
@@ -195,66 +247,89 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           συμπληρώνεται, όχι το πού μετράει. */}
 
 
-      {/* ── Δημοτικά Τέλη ────────────────────────────────────────────────── */}
+      {/* ══ ΔΗΜΟΤΙΚΑ ΤΕΛΗ: ΔΩΔΕΚΑ ΚΟΥΤΑΚΙΑ ΓΙΝΟΝΤΑΙ ΔΥΟ ΑΡΙΘΜΟΙ ═════════════
+          Η οθόνη ζητούσε δώδεκα χειρόγραφα ποσά, ένα ανά μήνα, από δώδεκα
+          λογαριασμούς ρεύματος. Οι λογαριασμοί όμως είναι ήδη καταχωρημένοι ως
+          δαπάνες, και τα δημοτικά τέλη ταξιδεύουν ΜΕΣΑ τους ως σταθερό ποσοστό.
+          Ο χρήστης το μετρά ΜΙΑ φορά και κάθε μήνας βγαίνει μόνος του.
+
+          Το χειρόγραφο δεν καταργείται: υπερισχύει. Ενας πραγματικός
+          λογαριασμός είναι ισχυρότερος από κάθε εκτίμηση, και ένας μήνας που δεν
+          έχει καταχωρημένο ρεύμα συμπληρώνεται όπως πριν.
+
+          ΚΑΙ Ο ΜΗΝΑΣ ΧΩΡΙΣ ΛΟΓΑΡΙΑΣΜΟ ΔΕΝ ΓΡΑΦΕΤΑΙ ΜΗΔΕΝ. Το «0,00 €» σημαίνει
+          «δεν πλήρωσα δημοτικά τέλη», ενώ η αλήθεια είναι «δεν έχει καταχωρηθεί
+          λογαριασμός». Ο μέσος όρος μετρά μόνο τους γνωστούς. ══ */}
       <div style={card}>
-        {secHdr('Δημοτικά Τέλη')}
+        {secHdr('Δημοτικά τέλη', originNote || undefined)}
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
-          <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 10, fontFamily: T.font.sans }}>Υπολογισμός ποσοστού από τελευταίο λογαριασμό ρεύματος</div>
-          {/* Το αποτέλεσμα ΑΝΗΚΕΙ ΣΤΗ ΣΕΙΡΑ, δεν κρέμεται από κάτω: είναι ό,τι
-              βγάζουν τα δύο πεδία δίπλα του, και όσο διαβαζόταν μια γραμμή
-              χαμηλότερα, η σύνδεση έπρεπε να ξαναβρεθεί με το μάτι κάθε φορά. */}
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 10, fontFamily: T.font.sans, lineHeight: 1.5 }}>
+            Πάρε έναν λογαριασμό ρεύματος και γράψε δύο ποσά. Από εκεί και πέρα κάθε μήνας υπολογίζεται μόνος του.
+          </div>
           <div style={fieldRow(190, 12)}>
             <NumberInput label="Σύνολο λογαριασμού"       value={s.lastBillTotal}    onChange={v => upd({ lastBillTotal: v })}    suffix="€" step={1}/>
             <NumberInput label="Δημοτικά τέλη στον λογαριασμό" value={s.lastBillDimotika} onChange={v => upd({ lastBillDimotika: v })} suffix="€" step={0.5}/>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: dimotikaPct > 0 ? 'var(--accent-soft)' : 'var(--bg-base)', border: `1px solid ${dimotikaPct > 0 ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '8px 14px' }}>
-              <span style={{ fontSize: 18, fontWeight: 700, color: dimotikaPct > 0 ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
-                {dimotikaPct > 0 ? `${fp(dimotikaPct)}` : fp(0)}
+            {/* Το αποτέλεσμα ανήκει στη σειρά: είναι ό,τι βγάζουν τα δύο πεδία δίπλα του. */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: share.pct != null ? 'var(--accent-soft)' : 'var(--bg-base)', border: `1px solid ${share.pct != null ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '8px 14px' }}>
+              <span style={{ fontSize: 18, fontWeight: 700, color: share.pct != null ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+                {share.pct != null ? fp(share.pct) : fp(0)}
               </span>
               <div>
                 <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>Ποσοστό δημοτικών τελών</div>
-                <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Συνήθως από 3% έως 6% του λογαριασμού</div>
+                {/* Η προειδοποίηση αντικαθιστά τη γενική πληροφορία μόλις χρειαστεί:
+                    ένα «συνήθως 3% έως 6%» δίπλα σε ένα 40% δεν βοηθά κανέναν. */}
+                <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+                  {share.implausible ? 'Ελεγξε τα δύο ποσά, φαίνονται αντεστραμμένα'
+                    : share.pct != null && !share.typical ? `Ασυνήθιστο, τυπικά ${fp(TYPICAL_SHARE.min)} έως ${fp(TYPICAL_SHARE.max)}`
+                    : `Συνήθως ${fp(TYPICAL_SHARE.min)} έως ${fp(TYPICAL_SHARE.max)} του λογαριασμού`}
+                </div>
               </div>
             </div>
           </div>
         </div>
         <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>
-          Ιστορικό ανά μήνα{dimotikaAvg > 0 ? `, μέσος όρος ${fe(dimotikaAvg)}` : ''}
+          Ο χρόνος σε μήνες{dimotikaAvg > 0 ? `, μέσος όρος ${fe(dimotikaAvg)}` : ''}
         </div>
-        {/* Ίδιο πλέγμα με τα πεδία από κάτω: η στήλη κάθε μήνα πρέπει να πέφτει
-            ΑΚΡΙΒΩΣ πάνω από το πεδίο του. Με flex και άλλο κενό οι δύο σειρές
-            ξέφευγαν λίγα εικονοστοιχεία η μία από την άλλη — αρκετά για να
-            φαίνεται πρόχειρο. */}
+        {/* Ίδιο πλέγμα με τα πεδία από κάτω: η στήλη κάθε μήνα πέφτει ακριβώς
+            πάνω από το πεδίο του. */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 62px), 1fr))', gap: 5, alignItems: 'flex-end', height: 56, marginBottom: 4, padding: '4px 0 0' }}>
-          {MONTHS_SHORT.map((m, i) => {
-            const val   = parseFloat((s.dimotikaHistory || [])[i]) || 0;
-            const pct   = val / maxH;
+          {MONTHS_SHORT.map((mo, i) => {
+            const val   = dimotikaMonths[i].amount;
+            const pct   = val != null ? val / maxH : 0;
             const isCur = i === currentMonth;
             const isHov = hoveredMonth === i;
-            const isHigh = dimotikaAvg > 0 && val > dimotikaAvg * 1.2;
+            const isHigh = dimotikaAvg > 0 && val != null && val > dimotikaAvg * 1.2;
             return (
-              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 1, cursor: 'pointer' }}
+              <div key={i} title={`${mo}: ${val == null ? 'χωρίς καταχωρημένο λογαριασμό' : dimotikaMonths[i].origin === 'measured' ? `${fe(val)}, γραμμένο με το χέρι` : `${fe(val)}, υπολογισμένο από τον λογαριασμό ρεύματος`}`}
+                style={{ flex: 1, display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 1, cursor: 'default' }}
                 onMouseEnter={() => setHoveredMonth(i)} onMouseLeave={() => setHoveredMonth(null)}>
                 <div style={{ fontSize: 9, color: isHigh ? 'var(--negative)' : isCur ? 'var(--accent)' : isHov ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', height: 12, display: 'flex', alignItems: 'flex-end' }}>
-                  {val > 0 ? Math.round(val) : ''}
+                  {val != null && val > 0 ? Math.round(val) : ''}
                 </div>
-                <div style={{ width: '100%', height: `${Math.max(pct * 42, 2)}px`, background: isCur ? 'var(--accent)' : isHigh ? 'var(--negative)' : isHov ? 'color-mix(in srgb, var(--accent) 70%, transparent)' : 'color-mix(in srgb, var(--accent) 45%, transparent)', borderRadius: '3px 3px 0 0', transition: 'background 0.15s' }}/>
+                {/* Ο άγνωστος μήνας δεν παίρνει στήλη δύο εικονοστοιχείων: μια
+                    κοντή στήλη διαβάζεται ως «λίγα», όχι ως «δεν ξέρω». */}
+                <div style={{ width: '100%', height: val == null ? 2 : `${Math.max(pct * 42, 3)}px`,
+                  background: val == null ? 'var(--border-subtle)'
+                    : isCur ? 'var(--accent)' : isHigh ? 'var(--negative)' : isHov ? 'color-mix(in srgb, var(--accent) 70%, transparent)' : 'color-mix(in srgb, var(--accent) 45%, transparent)',
+                  borderRadius: '3px 3px 0 0', transition: 'background 0.15s' }}/>
               </div>
             );
           })}
         </div>
-        {/* Ο μήνας γραφόταν δύο φορές: μια σειρά ετικετών κάτω από τις στήλες
-            και άλλη μια πάνω από κάθε πεδίο, τέσσερα εικονοστοιχεία πιο κάτω.
-            Έμεινε η ετικέτα του πεδίου — αυτή έχει και λειτουργία. */}
-        {/* Δώδεκα μήνες είναι ΕΝΑ έτος. Με σταθερό μέγιστο στήλης έσπαγαν σε
-            δέκα και δύο, δηλαδή το έτος διαβαζόταν σε δύο κομμάτια. */}
+        {/* Δώδεκα μήνες είναι ΕΝΑ έτος: με σταθερό μέγιστο στήλης έσπαγαν σε δέκα
+            και δύο, δηλαδή το έτος διαβαζόταν σε δύο κομμάτια. */}
         <div style={{ ...fieldRow(70, 5), borderTop: '1px solid var(--border-subtle)', paddingTop: 10 }}>
-          {MONTHS_SHORT.map((m, i) => (
+          {MONTHS_SHORT.map((mo, i) => (
             <div key={i}>
-              {/* Ίδιος λόγος με το BillsCommon: η ετικέτα περιτυλίγει το πεδίο
-                  ώστε να ακούγεται ο μήνας, και μεγαλώνει από 8 σε 10. */}
               <label style={{ fontSize: 10, color: i === currentMonth ? 'var(--accent)' : 'var(--text-secondary)', display: 'block', marginBottom: 4, textAlign: 'center' as const, fontFamily: T.font.sans, transition: 'color 0.15s' }}>
-                <span style={{ display: 'block', marginBottom: 4 }}>{m}</span>
-                <input aria-label={`${m}, ποσό σε ευρώ`} type="number" min={0} value={(s.dimotikaHistory || [])[i] || ''} onChange={e => updHistory(i, e.target.value)} placeholder="€"
+                <span style={{ display: 'block', marginBottom: 4 }}>{mo}</span>
+                {/* Ο υπολογισμένος μήνας μπαίνει ως placeholder, όχι ως τιμή: ο
+                    χρήστης βλέπει τι ξέρει η εφαρμογή, και το πεδίο μένει άδειο
+                    ώστε ό,τι πληκτρολογήσει να είναι ρητά δικό του. */}
+                <input aria-label={`${mo}, ποσό σε ευρώ`} type="number" min={0}
+                  value={(s.dimotikaHistory || [])[i] || ''}
+                  onChange={e => updHistory(i, e.target.value)}
+                  placeholder={dimotikaMonths[i].origin === 'derived' && dimotikaMonths[i].amount != null ? String(Math.round(dimotikaMonths[i].amount as number)) : '€'}
                   onMouseEnter={() => setHoveredMonth(i)} onMouseLeave={() => setHoveredMonth(null)}
                   onFocus={() => setHoveredMonth(i)} onBlur={() => setHoveredMonth(null)}
                   style={histInputStyle(i === currentMonth, hoveredMonth === i)}/>
