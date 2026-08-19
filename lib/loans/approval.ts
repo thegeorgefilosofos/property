@@ -37,7 +37,10 @@ export interface ApprovalInput {
   ratePct: number                  // ενδεικτικό επιτόκιο (%)
   propertyValue: number            // αξία/τιμή ακινήτου (€)
   age: number                      // ηλικία δανειολήπτη (έτη)
-  firstHome: boolean               // πρώτη κατοικία
+  /** Δανείζεσαι για πρώτη φορά; Ορίζει και τα δύο όρια της ΤτΕ. ΔΕΝ είναι
+   *  το ίδιο με «πρώτη κατοικία»: όποιος έχει ήδη ακίνητο ή προηγούμενο
+   *  στεγαστικό μετρά στα αυστηρότερα όρια. */
+  firstTimeBuyer: boolean
   employment: EmploymentType
   yearsEmployed?: number           // έτη στην τρέχουσα εργασία/δραστηριότητα
   credit?: CreditHistory           // εγγραφές Τειρεσία
@@ -97,14 +100,14 @@ export function assessApproval(input: ApprovalInput): ApprovalResult {
   const rate = Math.max(0, input.ratePct)
   const pv = Math.max(0, input.propertyValue)
   const age = Math.max(0, input.age)
-  const maxLtv = input.maxLtv ?? (input.firstHome ? 90 : 80)
+  const maxLtv = input.maxLtv ?? (input.firstTimeBuyer ? 90 : 80)
   const maxAgeAtEnd = input.maxAgeAtEnd ?? 75
   const credit: CreditHistory = input.credit ?? 'clean'
   const employment = input.employment
   const yearsEmployed = input.yearsEmployed ?? 0
   const hasGuarantor = !!input.hasGuarantor
 
-  const limit = input.firstHome ? DSTI_LIMIT.firstHome : DSTI_LIMIT.other
+  const limit = input.firstTimeBuyer ? DSTI_LIMIT.firstTimeBuyer : DSTI_LIMIT.other
   // Η ΔΟΣΗ ΔΕΝ ΣΤΡΟΓΓΥΛΟΠΟΙΕΙΤΑΙ ΕΔΩ. Ήταν `Math.round(...)`, οπότε η ίδια οθόνη
   // έδειχνε «750,94 €» στον δείκτη και «751,00 €» εδώ, για το ίδιο δάνειο. Η
   // στρογγυλοποίηση είναι απόφαση εμφάνισης, όχι υπολογισμού — και ο δείκτης
@@ -137,7 +140,7 @@ export function assessApproval(input: ApprovalInput): ApprovalResult {
   }
   // Πρόταση: μείωση ποσού / επιμήκυνση διάρκειας ώστε να πέσει ο δείκτης.
   if (income > 0 && dsti > limit) {
-    const maxMonthly = maxMonthlyPayment(income, input.firstHome, existing)
+    const maxMonthly = maxMonthlyPayment(income, input.firstTimeBuyer, existing)
     const targetLoan = principalForPayment(maxMonthly, rate, years)
     if (targetLoan > 0 && targetLoan < amount) {
       suggestions.push(`Μείωσε το ποσό κατά ${eur(amount - targetLoan)} (σε ${eur(targetLoan)}) ώστε ο δείκτης δόσης να πέσει στο ${pct(limitPct)}.`)

@@ -33,10 +33,10 @@ function defaultEmployment(b?: BorrowerType): EmploymentType {
 
 
 export default function ApprovalPanel({
-  amount, years, ratePct, propertyValue, incomeMonthly, borrowerType, firstHomeDefault, fmtEur,
+  amount, years, ratePct, propertyValue, incomeMonthly, borrowerType, firstTimeBuyerDefault, fmtEur,
 }:{
   amount:number; years:number; ratePct:number; propertyValue:number;
-  incomeMonthly?:number; borrowerType?:BorrowerType; firstHomeDefault?:boolean;
+  incomeMonthly?:number; borrowerType?:BorrowerType; firstTimeBuyerDefault?:boolean;
   fmtEur:(n:number)=>string;
 }) {
   const [hm,setHm] = useState<number|null>(null)
@@ -65,11 +65,11 @@ export default function ApprovalPanel({
   const [employment,setEmployment] = useState<EmploymentType>(defaultEmployment(borrowerType))
   const [credit,setCredit] = useState<CreditHistory>('clean')
   const [guarantor,setGuarantor] = useState<boolean>(false)
-  const [firstHome,setFirstHome] = useState<boolean>(firstHomeDefault ?? true)
+  const [firstTimeBuyer,setFirstTimeBuyer] = useState<boolean>(firstTimeBuyerDefault ?? true)
 
   const res = assessApproval({
     incomeMonthly:Number(income)||0, existingMonthlyDebt:Number(existing)||0, amount, years, ratePct,
-    propertyValue, age:Number(age)||0, firstHome, employment, credit, hasGuarantor:guarantor,
+    propertyValue, age:Number(age)||0, firstTimeBuyer, employment, credit, hasGuarantor:guarantor,
   })
 
   // ΤΟ ΠΑΝΕΛ ΕΙΧΕ ΔΙΚΟ ΤΟΥ ΜΟΡΦΟΠΟΙΗΤΗ ΠΟΣΟΣΤΟΥ («37,6%», «75%»), δίπλα στον
@@ -95,7 +95,12 @@ export default function ApprovalPanel({
         <CustomSelect label="Πιστοληπτικό ιστορικό" value={credit} onChange={v=>setCredit(v as CreditHistory)} options={CREDIT_OPTIONS}/>
       </div>
       <div style={{display:'flex',gap:20,flexWrap:'wrap'}}>
-        <Toggle on={firstHome} onChange={setFirstHome} label="Πρώτη κατοικία"/>
+        {/* ΤΟ ΜΕΝΟΥ ΕΛΕΓΕ «ΠΡΩΤΗ ΚΑΤΟΙΚΙΑ» ΚΑΙ ΕΚΡΙΝΕ ΑΛΛΟ. Τα όρια της ΤτΕ
+            (δόση 50%, δάνειο προς αξία 90%) τα δίνει ο ΠΡΩΤΟΑΓΟΡΑΣΤΗΣ. Οποιος
+            αγοράζει την κύρια κατοικία του έχοντας ήδη ένα εξοχικό ή ένα παλιό
+            εξοφλημένο στεγαστικό παίρνει 40% και 80% — και το πάνελ του έλεγε
+            «περνάς». */}
+        <Toggle on={firstTimeBuyer} onChange={setFirstTimeBuyer} label="Δανείζομαι για πρώτη φορά"/>
         <Toggle on={guarantor} onChange={setGuarantor} label="Υπάρχει εγγυητής ή συνοφειλέτης"/>
       </div>
 

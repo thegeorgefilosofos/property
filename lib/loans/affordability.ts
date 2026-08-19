@@ -9,7 +9,17 @@
 import { annuityMonthly } from './recommend'
 import { fe, fp } from '../core/format'
 
-export const DSTI_LIMIT = { firstHome: 0.5, other: 0.4 } as const
+/**
+ * ΤΟ ΟΝΟΜΑ ΗΤΑΝ ΤΟ ΣΦΑΛΜΑ. Λεγόταν `firstHome`, δηλαδή «πρώτη κατοικία», και
+ * το μενού της οθόνης έλεγε το ίδιο. Ο κανόνας όμως της ΠΕΕ 227/1/08.03.2024
+ * δεν μιλά για πρώτη κατοικία: μιλά για όσους δανείζονται για ΠΡΩΤΗ ΦΟΡΑ.
+ *
+ * Η διαφορά αλλάζει το αποτέλεσμα, δεν είναι διατύπωση: όποιος αγοράζει την
+ * κύρια κατοικία του έχοντας ήδη ένα εξοχικό, ή έχοντας ξεπληρώσει παλιό
+ * στεγαστικό, δικαιούται 40% και 80% — και η εφαρμογή του υποσχόταν 50% και
+ * 90%. Δηλαδή έλεγε «περνάς» σε κάποιον που δεν περνά.
+ */
+export const DSTI_LIMIT = { firstTimeBuyer: 0.5, other: 0.4 } as const
 
 /** Στρογγυλοποίηση σε ακέραιο, με φύλαξη για μη πεπερασμένα. */
 function r0(n: number): number { return Number.isFinite(n) ? Math.round(n) : 0 }
@@ -20,9 +30,9 @@ function r0(n: number): number { return Number.isFinite(n) ? Math.round(n) : 0 }
  * μηνιαίες δόσεις που μετρούν στον δείκτη.
  */
 export function maxMonthlyPayment(
-  incomeMonthly: number, firstHome: boolean, existingMonthlyDebt = 0
+  incomeMonthly: number, firstTimeBuyer: boolean, existingMonthlyDebt = 0
 ): number {
-  const limit = firstHome ? DSTI_LIMIT.firstHome : DSTI_LIMIT.other
+  const limit = firstTimeBuyer ? DSTI_LIMIT.firstTimeBuyer : DSTI_LIMIT.other
   return Math.max(0, incomeMonthly * limit - Math.max(0, existingMonthlyDebt))
 }
 
@@ -51,16 +61,16 @@ export interface AffordabilityResult {
 /** Ολοκληρωμένη ανάλυση δανειοληπτικής ικανότητας για ένα επιθυμητό ποσό. */
 export function affordability(opts: {
   incomeMonthly: number
-  firstHome: boolean
+  firstTimeBuyer: boolean
   desiredAmount: number
   ratePct: number
   years: number
   existingMonthlyDebt?: number
 }): AffordabilityResult {
-  const { incomeMonthly, firstHome, desiredAmount, ratePct, years } = opts
+  const { incomeMonthly, firstTimeBuyer, desiredAmount, ratePct, years } = opts
   const existing = Math.max(0, opts.existingMonthlyDebt ?? 0)
-  const limitPct = firstHome ? DSTI_LIMIT.firstHome : DSTI_LIMIT.other
-  const maxMonthly = maxMonthlyPayment(incomeMonthly, firstHome, existing)
+  const limitPct = firstTimeBuyer ? DSTI_LIMIT.firstTimeBuyer : DSTI_LIMIT.other
+  const maxMonthly = maxMonthlyPayment(incomeMonthly, firstTimeBuyer, existing)
   const maxLoan = principalForPayment(maxMonthly, ratePct, years)
   const requestedMonthly = r0(annuityMonthly(Math.max(0, desiredAmount), ratePct, years))
   const dstiUsedPct = incomeMonthly > 0 ? ((requestedMonthly + existing) / incomeMonthly) * 100 : 0

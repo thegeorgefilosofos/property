@@ -1227,7 +1227,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
               <ApprovalPanel
                 amount={LA} years={Y} ratePct={cs.effectiveRate} propertyValue={cs.propertyValue}
                 incomeMonthly={calcState.incomeMonthly} borrowerType={advBorr}
-                firstHomeDefault={advType==='first_home'} fmtEur={fmtEur}
+                firstTimeBuyerDefault={advType==='first_home'} fmtEur={fmtEur}
               />
             </MiniSection>
 
@@ -1297,7 +1297,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                 {
                   l:'Πράσινο δάνειο', el: advType==='energy'||advType==='renovation',
                   reason: advType==='energy'||advType==='renovation'
-                    ? `Εκπτωση επιτοκίου ${fp(0.15)} έως ${fp(0.25)} για ενεργειακά αποδοτικό ακίνητο`
+                    ? `Εκπτωση περιθωρίου ${fp(0.15)} έως ${fp(0.80)} για κλάση Α+, Α ή Β+, ανάλογα με την τράπεζα`
                     : 'Για ενεργειακή αναβάθμιση ή ανακαίνιση',
                   badge:`~${fmtEur(cs.loanAmount*0.002*cs.years)}`,
                 },

@@ -1255,15 +1255,19 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
 
       {lens==='capacity' && (<>
       {(()=>{
-        // Δανειοληπτική ικανότητα με τα πραγματικά όρια ΤτΕ (50% πρώτη κατοικία / 40% λοιποί).
-        const firstHome = loanType==='first_home'
-        const aff = affordability({ incomeMonthly:INC, firstHome, desiredAmount:LA, ratePct:effRate, years:Y })
+        // ΤΑ ΟΡΙΑ ΤΗΣ ΤτΕ ΚΡΙΝΟΝΤΑΙ ΑΠΟ ΤΟΝ ΠΡΩΤΟΑΓΟΡΑΣΤΗ, ΟΧΙ ΑΠΟ ΤΗΝ ΠΡΩΤΗ
+        // ΚΑΤΟΙΚΙΑ (ΠΕΕ 227/1/2024). Ο υπολογιστής δεν ρωτά αν δανείζεσαι για
+        // πρώτη φορά — θα ήταν έβδομο πεδίο σε οθόνη που ζητά ήδη έξι — οπότε το
+        // εικάζει από τον σκοπό και ΤΟ ΓΡΑΦΕΙ. Η ακριβής ερώτηση γίνεται στην
+        // «Πιθανότητα έγκρισης», που έχει ούτως ή άλλως τη φόρμα της.
+        const firstTimeBuyer = loanType==='first_home'
+        const aff = affordability({ incomeMonthly:INC, firstTimeBuyer, desiredAmount:LA, ratePct:effRate, years:Y })
         return (
       <Section title="Δανειοληπτική ικανότητα" sub="Μέγιστο δάνειο βάσει εισοδήματος και ορίων Τράπεζας Ελλάδος" defaultOpen>
         <div style={{marginBottom:16}}><NumberInput label="Μηνιαίο καθαρό εισόδημα" value={income} onChange={setIncome} suffix="€"/></div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:12,marginBottom:16}}>
           {[
-            {k:'Μέγιστη δόση τον μήνα',v:fmtEur(aff.maxMonthly),s:`${Math.round(aff.limitPct*100)}% του εισοδήματος${firstHome?', πρώτη κατοικία':''}`,accent:false,neg:false},
+            {k:'Μέγιστη δόση τον μήνα',v:fmtEur(aff.maxMonthly),s:`${fp(aff.limitPct*100)} του εισοδήματος${firstTimeBuyer?', ως πρωτοαγοραστής':''}`,accent:false,neg:false},
             {k:'Μέγιστο δάνειο',v:fmtEur(aff.maxLoan),s:`με ${fmtPct(effRate)} · ${Y} έτη`,accent:false,neg:aff.maxLoan<LA},
             {k:'Δείκτης δόσης προς εισόδημα',v:INC>0?fmtPct1(aff.dstiUsedPct):fp(0),s:`όριο ${Math.round(aff.limitPct*100)}%`,accent:false,neg:aff.dstiUsedPct/100>aff.limitPct},
           ].map((t,i)=>{

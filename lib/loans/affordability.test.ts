@@ -13,7 +13,7 @@ near('50% first home', maxMonthlyPayment(2000, true), 1000, 0.001)
 near('40% other', maxMonthlyPayment(2000, false), 800, 0.001)
 near('existing debt reduces', maxMonthlyPayment(2000, true, 300), 700, 0.001)
 ok('never negative', maxMonthlyPayment(1000, false, 900) === 0)
-ok('limits exported', DSTI_LIMIT.firstHome === 0.5 && DSTI_LIMIT.other === 0.4)
+ok('limits exported', DSTI_LIMIT.firstTimeBuyer === 0.5 && DSTI_LIMIT.other === 0.4)
 
 // ── principalForPayment is inverse of annuityMonthly ──
 {
@@ -26,13 +26,13 @@ ok('limits exported', DSTI_LIMIT.firstHome === 0.5 && DSTI_LIMIT.other === 0.4)
 
 // ── affordability ──
 {
-  const a = affordability({ incomeMonthly: 2000, firstHome: true, desiredAmount: 150000, ratePct: 3.5, years: 25 })
+  const a = affordability({ incomeMonthly: 2000, firstTimeBuyer: true, desiredAmount: 150000, ratePct: 3.5, years: 25 })
   ok('maxMonthly 1000', Math.abs(a.maxMonthly - 1000) < 0.5)
   ok('requested < max → affordable', a.affordable === true)
   ok('maxLoan positive & >= desired here', a.maxLoan >= 150000)
   ok('dsti used computed', a.dstiUsedPct > 0 && a.dstiUsedPct < 50)
 
-  const b = affordability({ incomeMonthly: 1200, firstHome: false, desiredAmount: 200000, ratePct: 4, years: 20 })
+  const b = affordability({ incomeMonthly: 1200, firstTimeBuyer: false, desiredAmount: 200000, ratePct: 4, years: 20 })
   ok('over-limit not affordable', b.affordable === false)
   ok('gap positive when over', b.gapMonthly > 0)
   ok('limitPct reflects non-first-home', b.limitPct === 0.4)

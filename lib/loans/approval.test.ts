@@ -6,7 +6,7 @@ function ok(name: string, cond: boolean) { cond ? passed++ : (failed++, console.
 
 const base: ApprovalInput = {
   incomeMonthly: 2500, existingMonthlyDebt: 0, amount: 150000, years: 25, ratePct: 3.5,
-  propertyValue: 200000, age: 35, firstHome: true, employment: 'employee_permanent', credit: 'clean',
+  propertyValue: 200000, age: 35, firstTimeBuyer: true, employment: 'employee_permanent', credit: 'clean',
 }
 
 // ── Ισχυρό προφίλ → υψηλή πιθανότητα ──
@@ -22,7 +22,7 @@ const base: ApprovalInput = {
 
 // ── Υπερβολική δόση για το εισόδημα → πρόταση μείωσης ποσού ──
 {
-  const r = assessApproval({ ...base, incomeMonthly: 1200, amount: 200000, years: 20, firstHome: false })
+  const r = assessApproval({ ...base, incomeMonthly: 1200, amount: 200000, years: 20, firstTimeBuyer: false })
   ok('low income high amount → not high', r.verdict !== 'high')
   ok('dsti over limit flagged', r.dstiPct > r.dstiLimitPct)
   ok('suggests amount reduction', r.suggestions.some(s => s.includes('Μείωσε το ποσό')))
@@ -45,7 +45,7 @@ const base: ApprovalInput = {
 
 // ── LTV πάνω από όριο → πρόταση προκαταβολής ──
 {
-  const r = assessApproval({ ...base, amount: 190000, propertyValue: 200000, firstHome: false, maxLtv: 80 })
+  const r = assessApproval({ ...base, amount: 190000, propertyValue: 200000, firstTimeBuyer: false, maxLtv: 80 })
   ok('ltv over limit computed', r.ltvPct > r.maxLtv)
   ok('suggests down payment', r.suggestions.some(s => s.includes('προκαταβολή') || s.includes('μείωσε το ποσό')))
 }
