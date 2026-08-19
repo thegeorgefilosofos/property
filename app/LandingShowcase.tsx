@@ -49,7 +49,7 @@ export default function LandingShowcase() {
   const resetTilt = () => { if (tiltRef.current) tiltRef.current.style.transform = 'perspective(1400px) rotateX(0deg) rotateY(0deg)'; };
 
   return (
-    <div style={{ position: 'relative', maxWidth: 960, margin: 'clamp(40px, 6vw, 72px) auto 0' }}>
+    <div style={{ position: 'relative', maxWidth: 780, margin: 'clamp(40px, 6vw, 72px) auto 0' }}>
       <PanelFX />
       <style>{`
         /* Βάση = σκούρο, όπως και το :root στο globals.css. Το φωτεινό είναι η
@@ -84,8 +84,8 @@ export default function LandingShowcase() {
           </div>
 
           {/* Η σκηνή: μία πράξη, αυτή που υπόσχεται ο τίτλος από πάνω. */}
-          <div style={{ position: 'relative', minHeight: 372 }}>
-            <div style={{ padding: 'clamp(14px, 2.4vw, 22px)' }}>
+          <div style={{ position: 'relative' }}>
+            <div style={{ padding: 'clamp(18px, 2.6vw, 30px)' }}>
               <PanelScan />
             </div>
           </div>
