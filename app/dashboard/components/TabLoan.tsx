@@ -113,6 +113,36 @@ function MiniSection({title,badges,meta,defaultOpen,order,flat,open:openProp,onT
   )
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ΜΙΑ ΓΡΑΜΜΗ ΕΥΡΗΜΑΤΟΣ, ΚΑΙ ΤΟ ΤΕΤΑΡΤΟ ΠΛΑΙΣΙΟ ΦΕΥΓΕΙ
+// ─────────────────────────────────────────────────────────────────────────
+// Τέσσερις λίστες αυτής της καρτέλας έλεγαν το ίδιο πράγμα με τέσσερα σχήματα:
+// «Στρατηγική ανά προφίλ», «Τι βλέπω στο σενάριό σου», «Επιλεξιμότητα κρατικών
+// προγραμμάτων» και «Τι μπορείς να βελτιώσεις». Καθεμιά έφτιαχνε ΔΙΚΟ ΤΗΣ κουτί
+// μέσα στο κουτί της ενότητας, που ζει μέσα στο κουτί του φακού: τρία
+// περιγράμματα για να διαβαστεί μία πρόταση.
+//
+// ΚΑΙ ΤΟ 3px ΑΡΙΣΤΕΡΟ ΠΕΡΙΘΩΡΙΟ ΔΕΝ ΣΗΜΑΙΝΕ ΤΙΠΟΤΑ. Ηταν στο ΙΔΙΟ χρώμα με το
+// υπόλοιπο περίγραμμα, δηλαδή μια αριστερή ακμή λίγο πιο χοντρή — και μπήκε σε
+// δύο από τις τέσσερις σειρές της ίδιας λίστας, όχι στις άλλες δύο. Οταν ένα
+// στοιχείο ύφους εμφανίζεται άλλοτε ναι και άλλοτε όχι μέσα στην ίδια λίστα,
+// δεν είναι έμφαση: είναι απροσεξία, και τη βλέπει ο χρήστης.
+//
+// Μένει λεπτή γραμμή ανάμεσα, το ίδιο ιδίωμα με τα υπόλοιπα εργαλεία.
+// ═══════════════════════════════════════════════════════════════════════════
+function FindingRow({lead,title,body,right,last}:{lead?:React.ReactNode;title:React.ReactNode;body?:React.ReactNode;right?:React.ReactNode;last?:boolean}) {
+  return (
+    <div style={{display:'flex',alignItems:'flex-start',gap:12,padding:'12px 0',borderBottom:last?'none':'1px solid var(--border-subtle)'}}>
+      {lead}
+      <div style={{flex:1,minWidth:0}}>
+        <p style={{fontSize:13,fontWeight:500,fontFamily: T.font.sans,color:'var(--text-primary)',lineHeight:1.45}}>{title}</p>
+        {body&&<p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.55,fontFamily: T.font.sans,marginTop:3}}>{body}</p>}
+      </div>
+      {right}
+    </div>
+  )
+}
+
 // Ατομικά πτυσσόμενη σειρά — κλειστή δείχνει μόνο τον τίτλο με βέλος δεξιά·
 // με κλικ αποκαλύπτεται η περιγραφή και ο σύνδεσμος. Ήσυχη, ομοιόμορφη,
 // χωρίς γαλάζια διακόσμηση (το βέλος περιστρέφεται 180° στο άνοιγμα).
@@ -1011,7 +1041,6 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
         const stressMonthly2 = calcMonthly(cs.loanAmount,cs.effectiveRate+2,cs.years)
         // «Σπίτι μου ΙΙ»: 50% άτοκο + 50% με το επιτόκιο του δανειολήπτη (δύο σκέλη).
         const spitiMonthly = calcMonthly(cs.loanAmount*0.5,0,cs.years)+calcMonthly(cs.loanAmount*0.5,cs.effectiveRate,cs.years)
-        const spitiSaving = (cs.monthly-spitiMonthly)*cs.years*12
         const shortMonthly20 = cs.years>20?calcMonthly(cs.loanAmount,cs.effectiveRate,20):0
         const savedByShortening = cs.years>20?(cs.monthly*cs.years*12)-(shortMonthly20*20*12):0
         const extraPay100Saving = (()=>{
@@ -1054,6 +1083,19 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
         return (
           <div style={{display:'flex',flexDirection:'column',gap:12}}>
 
+            {/* ══════════════════════════════════════════════════════════════
+                Η ΣΕΙΡΑ: ΠΡΩΤΑ ΤΟ ΔΙΚΟ ΣΟΥ, ΜΕΤΑ ΤΟ ΓΕΝΙΚΟ
+                ─────────────────────────────────────────────────────────────
+                Το προσωπικό και το γενικό εναλλάσσονταν: στρατηγική (γενική),
+                ανάλυση (δική σου), οδηγός (γενικός), τι βλέπω (δικό σου),
+                επιλεξιμότητα (δική σου). Ο αναγνώστης άλλαζε ύψος πτήσης πέντε
+                φορές σε μία οθόνη.
+
+                Η σειρά τώρα ακολουθεί τις ερωτήσεις με τη σειρά που γίνονται:
+                είναι καλό αυτό το δάνειο (βαθμολογία, ανάγνωση, τι να αλλάξεις),
+                θα εγκριθώ, υπάρχει κάτι καλύτερο (Σπίτι μου ΙΙ, προγράμματα,
+                τράπεζες), και τέλος τι πρέπει να ξέρω (οδηγός, στρατηγική).
+            ══════════════════════════════════════════════════════════════ */}
             {/* ── Insight της ημέρας ── */}
             {insight&&(
               <div style={{display:'flex',alignItems:'flex-start',gap:11,padding:'12px 16px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderLeft:'3px solid var(--border-default)',borderRadius:12}}>
@@ -1061,6 +1103,125 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                 <p style={{fontSize:13,color:'var(--text-primary)',lineHeight:1.55,fontFamily: T.font.sans}}>{insight}</p>
               </div>
             )}
+
+            {(()=>{
+              const c = score>=80?'var(--accent)':'var(--text-primary)'
+              const factors = issues.map(k=>FACTOR[k]).filter(Boolean)
+              return (
+              <MiniSection title="Ανάλυση δανείου" meta={<span style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans,fontWeight:600,whiteSpace:'nowrap' as const}}>{scoreLabel}</span>}>
+                <div style={{display:'flex',alignItems:'center',gap:22,flexWrap:'wrap'}}>
+                  <div onMouseEnter={()=>setScoreHover(true)} onMouseLeave={()=>setScoreHover(false)}
+                    onTouchStart={()=>setScoreHover(true)} onTouchEnd={()=>setScoreHover(false)}
+                    style={{display:'flex',alignItems:'baseline',gap:5,flexShrink:0,cursor:'default'}}>
+                    <span style={{fontSize:28,fontWeight:700,color:scoreHover?'var(--accent)':'var(--text-primary)',fontFamily: T.font.sans,letterSpacing:'-0.04em',fontVariantNumeric:'tabular-nums',lineHeight:1,transition:'color 0.15s'}}>{score}</span>
+                    <span style={{fontSize:15,color:'var(--text-tertiary)',fontFamily: T.font.sans,fontWeight:600}}>/ 100</span>
+                  </div>
+                  <div style={{flex:1,minWidth:220}}>
+                    <div style={{position:'relative',height:10,borderRadius:6,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',overflow:'hidden'}}>
+                      <div style={{width:`${score}%`,height:'100%',borderRadius:6,background:c,transition:'width 0.4s ease'}}/>
+                      <div style={{position:'absolute',left:'60%',top:0,bottom:0,width:0,borderLeft:'1px dashed var(--text-tertiary)',opacity:0.5}}/>
+                      <div style={{position:'absolute',left:'80%',top:0,bottom:0,width:0,borderLeft:'1px dashed var(--text-tertiary)',opacity:0.5}}/>
+                    </div>
+                    <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:7,fontFamily: T.font.sans}}>Όρια: αποδεκτό 60 · υγιές 80. Βάσει {fmtEur(cs.loanAmount)} · {cs.years} έτη · {fmtPct(cs.effectiveRate)} {cs.rateType==='variable'?'κυμαινόμενο':'σταθερό'}.</p>
+                  </div>
+                </div>
+                {factors.length>0 ? (
+                  <div style={{marginTop:16}}>
+                    <p style={{...labelStyle,marginBottom:9}}>Τι μειώνει τη βαθμολογία</p>
+                    <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                      {factors.map(f=>(
+                        <span key={f.label} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'7px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans}}>
+                          {f.label}<span style={{fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:'var(--text-secondary)',fontWeight:700}}>−{f.d}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                {/* ΤΟ «ΑΡΙΣΤΟ ΠΡΟΦΙΛ ΔΑΝΕΙΟΥ» ΕΦΥΓΕ. Η ίδια ετυμηγορία γραφόταν
+                    τρεις φορές μέσα σε δεκαπέντε εικονοστοιχεία: το σήμα δεξιά
+                    έλεγε «Υγιές δάνειο», ο αριθμός έλεγε «100 / 100» με γεμάτη
+                    μπάρα, και από κάτω μια πρόταση το ξανάλεγε με τρίτη
+                    διατύπωση. Η απουσία επισημάνσεων ΕΙΝΑΙ το μήνυμα. */}
+              </MiniSection>
+              )
+            })()}
+
+            {/* ── ΤΙ ΒΛΕΠΩ ΣΤΟ ΣΕΝΑΡΙΟ ΣΟΥ ──────────────────────────────────
+                ΤΑ ΤΡΙΑ ΕΙΚΟΝΙΔΙΑ ΕΦΥΓΑΝ. Ηταν πλακίδια 36×36 με σπιτάκι, γράφημα
+                και ρολόι: τρία γενικά σχήματα που δεν πρόσθεταν τίποτα στο «Δάνειο
+                προς αξία», στο «Επιτόκιο» και στους «Συνολικούς τόκους». Ο τίτλος
+                κάθε γραμμής λέει ήδη τι είναι.
+
+                Ο ΥΠΟΤΙΤΛΟΣ ΤΟΥ ΕΠΙΤΟΚΙΟΥ ΕΛΕΓΕ ΤΟ ΙΔΙΟ ΜΕ ΤΟΝ ΤΙΤΛΟ. Οταν καμία
+                τράπεζα δεν έδινε φθηνότερο σταθερό, ο τίτλος έγραφε «Επιτόκιο
+                2,40%, σταθερό» και ο υπότιτλος από κάτω «Σταθερό 2,40%,
+                προστατευμένος». Δύο γραμμές, μία πληροφορία. Τώρα ο υπότιτλος λέει
+                ΤΙ ΣΗΜΑΙΝΕΙ: ότι κανένα σταθερό του πίνακα δεν είναι φθηνότερο.
+
+                ΚΑΙ ΤΟ «ΣΠΙΤΙ ΜΟΥ ΙΙ» ΕΦΥΓΕ ΑΠΟ ΕΔΩ. Το ίδιο πρόγραμμα εμφανιζόταν
+                τρεις φορές στην ίδια οθόνη: πλήρες πάνελ ψηλά, γραμμή εδώ, γραμμή
+                στην επιλεξιμότητα. Το πάνελ το λέει αναλυτικά, η επιλεξιμότητα το
+                λέει με προθεσμία και ποσό. Η τρίτη φορά δεν πρόσθετε τίποτα. */}
+            <MiniSection title="Τι βλέπω στο σενάριό σου" defaultOpen>
+              <div>
+                <FindingRow
+                  title={`Δάνειο προς αξία ${fp(ltv)}: ${ltv>85?'υψηλό, απαιτεί προσοχή':ltv>70?'μέτριο, αποδεκτό':'καλό, εντός ορίων'}`}
+                  body={ltv>85
+                    ?`Χρηματοδοτείς το ${fp(ltv)} της αξίας. Οι τράπεζες είναι επιφυλακτικές πάνω από 80%.`
+                    :`Ιδια κεφάλαια ${fmtEur(cs.propertyValue-cs.loanAmount)}, δηλαδή ${fp(100-ltv)} της αξίας. ${ltv>70?'Εντός αποδεκτών ορίων.':'Ενισχύει τη διαπραγματευτική σου θέση.'}`}
+                />
+
+                <FindingRow
+                  title={<>Επιτόκιο {fmtPct(cs.effectiveRate)}, {cs.rateType==='variable'?'κυμαινόμενο':'σταθερό'}
+                    {cs.rateType==='variable'&&<span title="Διατραπεζικό επιτόκιο ευρώ, βάση κυμαινόμενων δανείων" style={{fontSize:11,color:'var(--text-tertiary)',marginLeft:8,fontWeight:400}}>εκτεθειμένο σε Euribor</span>}</>}
+                  body={cs.rateType==='variable'
+                    ?`Τρέχον Euribor τριμήνου ${fmtPct(market.euribor_3m)}. Αν ανέβει δύο μονάδες, η δόση γίνεται ${fmtEur(stressMonthly2)}, δηλαδή ${fmtEur(stressMonthly2-cs.monthly)} παραπάνω τον μήνα.`
+                    :bestBank&&savingVsBestBank>0
+                    ?`Καλύτερο σταθερό της αγοράς: ${fmtPct(bestBank.fixed_min)} από ${bestBank.name}, δόση ${fmtEur(bestBankMonthly)}. Θα γλίτωνες ${fmtEur(savingVsBestBank)} στη διάρκεια.`
+                    :bestBank
+                    ?`Καμία τράπεζα του πίνακα δεν δίνει φθηνότερο σταθερό. Euribor τριμήνου ${fmtPct(market.euribor_3m)}, από το οποίο είσαι προστατευμένος.`
+                    :`Σταθερή δόση για όλη τη διάρκεια. Euribor τριμήνου ${fmtPct(market.euribor_3m)}, από το οποίο είσαι προστατευμένος.`}
+                />
+
+                <FindingRow last
+                  title={`Συνολικοί τόκοι ${fmtEur(cs.totalInterest)}, ${fp(interestRatio*100)} επί του κεφαλαίου`}
+                  body={<>Για {fmtEur(cs.loanAmount)} θα αποπληρώσεις συνολικά {fmtEur(totalCost)}.
+                    {cs.years>20&&savedByShortening>0
+                      ?` Σε 20 χρόνια η δόση γίνεται ${fmtEur(shortMonthly20)}, δηλαδή ${fmtEur(shortMonthly20-cs.monthly)} παραπάνω, και γλιτώνεις ${fmtEur(savedByShortening)} τόκους.`
+                      :` Εκτακτη πληρωμή 100 € τον μήνα κόβει ${extraPay100Saving.toFixed(1).replace('.',',')} χρόνια από τη διάρκεια.`}</>}
+                />
+              </div>
+            </MiniSection>
+
+            {(()=>{
+              // ΤΕΣΣΕΡΑ ΚΟΥΤΙΑ ΜΕ ΜΙΑ ΛΕΞΗ ΑΡΙΣΤΕΡΑ. Η λέξη («Αξία», «Επιτόκιο»,
+              // «Κίνδυνος», «Χρόνια») ήταν ετικέτα κατηγορίας, ενώ η πρόταση από
+              // δίπλα ξεκινούσε πάλι με τίτλο σε έντονα. Δύο τίτλοι για μία
+              // συμβουλή. Μένει ο ένας, αυτός που λέει τι να κάνεις.
+              const tips = ([
+                issues.includes('LTV') && { t:'Αύξησε την προκαταβολή', b:'Δάνειο προς αξία κάτω από 80% δίνει καλύτερο επιτόκιο και ευκολότερη αποδοχή.' },
+                issues.includes('Επιτόκιο') && { t:'Διαπραγματεύσου το επιτόκιο', b:`Γραπτές προσφορές από τρεις τράπεζες. Μειώσεις ${fp(0.10)} έως ${fp(0.25)} είναι συνηθισμένες.` },
+                issues.includes('Κυμαινόμενο') && { t:'Σκέψου σταθερό επιτόκιο', b:`Με το Euribor δύο μονάδες ψηλότερα η δόση γίνεται ${fmtEur(stressMonthly2)}, δηλαδή ${fmtEur(stressMonthly2-cs.monthly)} παραπάνω τον μήνα.` },
+                issues.includes('Διάρκεια') && cs.years>20 && { t:'Μείωσε τη διάρκεια', b:`Στα 20 χρόνια η δόση γίνεται ${fmtEur(shortMonthly20)} και γλιτώνεις ${fmtEur(savedByShortening)} σε τόκους.` },
+              ].filter(Boolean)) as {t:string;b:string}[]
+              if(!tips.length) return null
+              return (
+                <MiniSection title="Τι μπορείς να βελτιώσεις" defaultOpen
+                  meta={<span style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans,fontWeight:600,whiteSpace:'nowrap' as const}}>{tips.length===1?'μία κίνηση':`${tips.length} κινήσεις`}</span>}>
+                  <div>
+                    {tips.map((t,i)=>(<FindingRow key={t.t} title={t.t} body={t.b} last={i===tips.length-1}/>))}
+                  </div>
+                </MiniSection>
+              )
+            })()}
+            {/* ── Θα εγκριθώ; — διαδραστική εκτίμηση πιθανότητας έγκρισης ── */}
+            <MiniSection title="Πιθανότητα έγκρισης" defaultOpen badges={<span style={{fontSize:10,padding:'2px 8px',borderRadius:8,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontWeight:600,fontFamily: T.font.sans}}>Νέο</span>} meta={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily: T.font.sans,whiteSpace:'nowrap' as const}}>Δανειοληπτικό προφίλ</span>}>
+              <ApprovalPanel
+                amount={LA} years={Y} ratePct={cs.effectiveRate} propertyValue={cs.propertyValue}
+                incomeMonthly={calcState.incomeMonthly} borrowerType={advBorr}
+                firstHomeDefault={advType==='first_home'} fmtEur={fmtEur}
+              />
+            </MiniSection>
 
             {/* ── Σπίτι μου ΙΙ, για σένα — όταν αφορά (πρώτη κατοικία ή νέος/οικογένεια) ── */}
             {spitiPanelShown && (
@@ -1074,25 +1235,99 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
               </MiniSection>
             )}
 
-            {/* ── Θα εγκριθώ; — διαδραστική εκτίμηση πιθανότητας έγκρισης ── */}
-            <MiniSection title="Πιθανότητα έγκρισης" defaultOpen badges={<span style={{fontSize:10,padding:'2px 8px',borderRadius:8,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontWeight:600,fontFamily: T.font.sans}}>Νέο</span>} meta={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily: T.font.sans,whiteSpace:'nowrap' as const}}>Δανειοληπτικό προφίλ</span>}>
-              <ApprovalPanel
-                amount={LA} years={Y} ratePct={cs.effectiveRate} propertyValue={cs.propertyValue}
-                incomeMonthly={calcState.incomeMonthly} borrowerType={advBorr}
-                firstHomeDefault={advType==='first_home'} fmtEur={fmtEur}
-              />
-            </MiniSection>
+            {/* ═══ Η ΕΠΙΛΕΞΙΜΟΤΗΤΑ ΒΓΑΙΝΕΙ ΑΠΟ ΤΗ ΜΗΧΑΝΗ, ΟΧΙ ΑΠΟ ΔΥΟ ΜΕΝΟΥ ═══
+                ΤΟ ΣΦΑΛΜΑ. Η λίστα έκρινε το «Σπίτι μου ΙΙ» επιλέξιμο όταν ο
+                χρήστης είχε διαλέξει «Πρώτη κατοικία» και τύπο δανειολήπτη «νέος»
+                ή «οικογένεια» — και τίποτε άλλο. Τριάντα γραμμές πιο πάνω, στο
+                ΙΔΙΟ σκοπευτικό πεδίο, καθόταν το `spiti` της `spitiMouEligibility`,
+                που ελέγχει ηλικία, εισόδημα, αξία, εμβαδόν, έτος κατασκευής ΚΑΙ τις
+                δύο προθεσμίες. Η οθόνη το αγνοούσε.
 
-            {/* ── Ανάλυση προσφοράς ESIS — τεχνικό εργαλείο, μόνο σε λειτουργία επαγγελματία ── */}
-            {profile==='business' && (
-            <MiniSection title="Ανάλυση προσφοράς ESIS" badges={<span style={{fontSize:10,padding:'2px 8px',borderRadius:8,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontWeight:600,fontFamily: T.font.sans}}>Νέο</span>} meta={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily: T.font.sans,whiteSpace:'nowrap' as const}}>Πραγματικό κόστος, ΣΕΠΠΕ</span>}>
-              <EsisScanPanel
-                defaultAmount={LA} defaultYears={Y}
-                benchmarkAprc={topRec?Math.round((topRec.effectiveRatePct+0.3)*100)/100:undefined}
-                fmtEur={fmtEur}
-              />
-            </MiniSection>
-            )}
+                Στις 19/08/2026 αυτό σήμαινε: «Πληροίς τα κριτήρια, δόση από …»
+                για πρόγραμμα του οποίου οι αιτήσεις έκλεισαν στις 31/05/2026. Ο
+                χρήστης διάβαζε ότι προλαβαίνει· δεν προλάβαινε.
+
+                ΚΑΙ ΟΙ ΠΡΟΘΕΣΜΙΕΣ ΗΤΑΝ ΓΡΑΜΜΕΝΕΣ ΜΕ ΤΟ ΧΕΡΙ μέσα στις ετικέτες
+                («προθεσμία 31/08/2026», δύο φορές), ενώ ζουν στα δεδομένα του
+                προγράμματος. Το lib/loans/programStatus.ts γράφτηκε ακριβώς για να
+                μην ξανασυμβεί αυτό, και εδώ είχε ξανασυμβεί.
+
+                ΤΩΡΑ: η κατάσταση κάθε προγράμματος έρχεται από την ημερομηνία, το
+                «Σπίτι μου ΙΙ» ρωτά τη μηχανή, και όσα ισχύουν ανεβαίνουν πάνω. ═══ */}
+            {(()=>{
+              const prog = (id:string) => PROGRAMS.find(p=>p.id===id)
+              const spitiProg = prog('spiti_mou_2')
+              const anavProg  = prog('anavathmizo')
+              const spitiState = spitiProg ? stateOf(spitiProg) : null
+              const anavState  = anavProg  ? stateOf(anavProg)  : null
+              // Κλειστό πρόγραμμα δεν είναι επιλέξιμο, όσα κριτήρια κι αν πληροί
+              // ο χρήστης. Οταν δεν έχουμε ημερομηνίες, δεν υποθέτουμε κλειστό.
+              const spitiOpen = spitiState ? spitiState.acceptsApplications : true
+              const anavOpen  = anavState  ? anavState.acceptsApplications  : true
+              const dl = (p?:ComparisonProgram) => p?.deadline ? `, προθεσμία ${grDate(p.deadline)}` : ''
+              // Ο πρώτος ουσιαστικός λόγος της μηχανής, όχι όλη η λίστα.
+              const spitiWhy = spiti.reasons.find(r=>/έκλεισ|κλείσ|εκτός|Απαιτείται|>|</.test(r))
+              const rows = [
+                {
+                  l:`Σπίτι μου ΙΙ${dl(spitiProg)}`,
+                  el: spitiOpen && spiti.eligible && advType==='first_home',
+                  reason: !spitiOpen
+                    ? (spitiState?.note || 'Οι αιτήσεις έκλεισαν')
+                    : advType!=='first_home' ? 'Αφορά πρώτη και κύρια κατοικία'
+                    : spiti.eligible ? `Πληροίς τα κριτήρια. Δόση από ${fmtEur(spitiMonthly)} τον μήνα`
+                    : (spitiWhy || 'Δεν πληρούνται τα κριτήρια'),
+                  badge:`−${fmtEur(cs.monthly-spitiMonthly)} τον μήνα`,
+                },
+                {
+                  l:`Αναβαθμίζω το Σπίτι μου${dl(anavProg)}`,
+                  el: anavOpen && advType==='energy',
+                  reason: !anavOpen ? (anavState?.note || 'Οι αιτήσεις έκλεισαν')
+                    : advType==='energy' ? `Κατάλληλο. Δάνειο έως ${fmtEur(anavProg?.maxAmount ?? 25000)} με επιδοτούμενο επιτόκιο`
+                    : 'Επίλεξε «Ενεργειακή αναβάθμιση» στον Υπολογιστή',
+                  badge:'Επιδοτούμενο επιτόκιο',
+                },
+                {
+                  l:'Πράσινο δάνειο', el: advType==='energy'||advType==='renovation',
+                  reason: advType==='energy'||advType==='renovation'
+                    ? `Εκπτωση επιτοκίου ${fp(0.15)} έως ${fp(0.25)} για ενεργειακά αποδοτικό ακίνητο`
+                    : 'Για ενεργειακή αναβάθμιση ή ανακαίνιση',
+                  badge:`~${fmtEur(cs.loanAmount*0.002*cs.years)}`,
+                },
+                {
+                  l:'Ενοπλες Δυνάμεις, ΤΑΠ-ΟΙΚ', el: advBorr==='military',
+                  reason: advBorr==='military' ? 'Δικαιούσαι επιδοτούμενο δάνειο μέσω του Ταμείου' : 'Μόνο για εν ενεργεία μέλη',
+                  badge:'Χαμηλότερο επιτόκιο',
+                },
+                {
+                  l:'Γέφυρα 3, επιδότηση δόσης', el: cs.rateType==='variable',
+                  reason: cs.rateType==='variable' ? 'Το επιτόκιό σου είναι κυμαινόμενο. Ελεγξε τα εισοδηματικά κριτήρια' : 'Αφορά μόνο κυμαινόμενα επιτόκια',
+                  badge:'Επιδότηση αύξησης',
+                },
+              ]
+              // Οσα ισχύουν, πρώτα. Μια λίστα που ξεκινά με πέντε «όχι» διαβάζεται
+              // ως άρνηση· η ίδια λίστα ταξινομημένη διαβάζεται ως ευκαιρία.
+              const sorted = [...rows].sort((a,b)=>Number(b.el)-Number(a.el))
+              const yes = sorted.filter(r=>r.el).length
+              return (
+              <MiniSection title="Επιλεξιμότητα κρατικών προγραμμάτων" defaultOpen
+                meta={<span style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans,fontWeight:600,whiteSpace:'nowrap' as const}}>{yes>0?`${yes} από ${sorted.length}`:'κανένα αυτή τη στιγμή'}</span>}>
+                <div>
+                  {sorted.map((item,i)=>(
+                    <FindingRow key={item.l} last={i===sorted.length-1}
+                      lead={<span style={{width:20,height:20,marginTop:1,borderRadius:'50%',background:item.el?'var(--accent-dim)':'var(--bg-elevated)',border:item.el?'none':'1px solid var(--border-subtle)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                        {item.el
+                          ?<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                          :<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2.5" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>}
+                      </span>}
+                      title={<span style={{color:item.el?'var(--text-primary)':'var(--text-secondary)',fontWeight:item.el?500:400}}>{item.l}</span>}
+                      body={<span style={{color:'var(--text-tertiary)'}}>{item.reason}</span>}
+                      right={item.el?<span style={{fontSize:11,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:'var(--accent)',background:'var(--accent-dim)',padding:'4px 10px',borderRadius:8,border:'1px solid var(--border-accent)',whiteSpace:'nowrap' as const,fontWeight:600,flexShrink:0,marginTop:1}}>{item.badge}</span>:undefined}
+                    />
+                  ))}
+                </div>
+              </MiniSection>
+              )
+            })()}
 
             {/* ── Σύσταση καλύτερου δανείου — premium, πτυσσόμενη ── */}
             <MiniSection title="Σύσταση καλύτερου δανείου" defaultOpen meta={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily: T.font.sans,whiteSpace:'nowrap' as const}}>{fmtEur(LA)} / {Y} έτη</span>}>
@@ -1167,89 +1402,16 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
               <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:12,lineHeight:1.6,fontFamily: T.font.sans}}>{RATES_DISCLAIMER}</p>
             </MiniSection>
 
-            {/* ── Στρατηγική ανά προφίλ: φυσικό vs νομικό πρόσωπο ── */}
-            {(()=>{
-              const isLegal = profile==='business'
-              const isCompany = advBorr==='company'
-              const kindLabel = !isLegal ? 'Ιδιώτης' : isCompany ? 'Νομικό πρόσωπο' : 'Επαγγελματίας'
-              // Ασπίδα φόρου: οι τόκοι επιχειρηματικού δανείου εκπίπτουν. Για νομικό
-              // πρόσωπο ο συντελεστής είναι 22% (σταθερός) — δίνουμε πραγματικό νούμερο.
-              const taxShieldCompany = Math.round(cs.totalInterest * 0.22)
-              const intro = isLegal
-                ? (isCompany
-                    ? 'Ως νομικό πρόσωπο το δάνειο αξιολογείται με βάση τους ισολογισμούς και την ταμειακή ροή, όχι το προσωπικό εισόδημα. Η βασική διαφορά είναι φορολογική: οι τόκοι εκπίπτουν.'
-                    : 'Ως επαγγελματίας κρίνεσαι με τον μέσο όρο των φορολογικών δηλώσεων της τελευταίας διετίας. Οι τόκοι δανείου επαγγελματικού σκοπού εκπίπτουν από τα ακαθάριστα έσοδα.')
-                : 'Ως φυσικό πρόσωπο η έγκριση βασίζεται στο εισόδημα και στον Τειρεσία. Στόχος: χαμηλότερο κόστος, σταθερότητα δόσης και αξιοποίηση κρατικών προγραμμάτων για πρώτη κατοικία και αναβάθμιση.'
-              const rows = isLegal ? [
-                {t:'Φορολογική ασπίδα των τόκων', b: isCompany
-                  ? `Οι τόκοι εκπίπτουν πλήρως. Με συντελεστή 22% το έμμεσο όφελος στη διάρκεια εκτιμάται περίπου ${fmtEur(taxShieldCompany)}, δηλαδή το πραγματικό κόστος δανεισμού είναι χαμηλότερο από το ονομαστικό επιτόκιο.`
-                  : 'Οι τόκοι δανείου επαγγελματικού σκοπού εκπίπτουν από τα ακαθάριστα έσοδα. Το όφελος εξαρτάται από τον οριακό σου συντελεστή· επιβεβαίωσέ το με τον λογιστή σου.'},
-                {t:'Απόσβεση κτιρίου', b:'Το κτηριακό μέρος (όχι το οικόπεδο) αποσβένεται και μειώνει το φορολογητέο αποτέλεσμα κάθε χρόνο. Συνδυασμένο με τους τόκους, βελτιώνει ουσιαστικά την καθαρή απόδοση.'},
-                {t:'Χρηματοδότηση και εξασφαλίσεις', b:'Τυπικό δάνειο προς αξία 60–70%. Ζητούνται ισολογισμοί τριετίας, απόφαση διοίκησης και συνήθως προσωπική εγγύηση. Προετοίμασε ενημερότητες ΑΑΔΕ και ΕΦΚΑ έγκαιρα.'},
-                {t:'Ανάπτυξη χαρτοφυλακίου με μόχλευση', b:'Η μόχλευση επιταχύνει την ανάπτυξη μόνο όταν η καθαρή απόδοση του ακινήτου υπερβαίνει το κόστος δανεισμού. Κράτα απόθεμα ρευστότητας για κενές περιόδους και συντήρηση.'},
-              ] : [
-                {t:'Αξιοποίηση κρατικών προγραμμάτων', b:'Για πρώτη κατοικία, το «Σπίτι μου ΙΙ» μειώνει δραστικά το κόστος (50% άτοκο). Έλεγξε την επιλεξιμότητα πριν επιλέξεις τράπεζα· δεν επιτρέπονται ταυτόχρονες αιτήσεις.'},
-                {t:'Πειθαρχία στον δείκτη δόσης', b:'Τα όρια της Τράπεζας Ελλάδος: δόση έως 50% του εισοδήματος για πρώτη κατοικία, 40% για τους υπόλοιπους. Χαμηλότερος δείκτης σημαίνει καλύτερο επιτόκιο και ευκολότερη έγκριση.'},
-                {t:'Αύξηση αξίας με ενεργειακή αναβάθμιση', b:'Προγράμματα όπως «Εξοικονομώ» και «Αναβαθμίζω» ανεβάζουν την ενεργειακή κλάση, την αξία και το ενοίκιο, με επιδοτούμενο επιτόκιο και επιχορήγηση.'},
-                {t:'Σταθερότητα δόσης', b:`Το σταθερό επιτόκιο προστατεύει από αυξήσεις. Στο τρέχον σενάριο, αύξηση Euribor +2% θα ανέβαζε τη δόση κατά ${fmtEur(calcMonthly(cs.loanAmount,cs.effectiveRate+2,cs.years)-cs.monthly)} τον μήνα.`},
-              ]
-              return (
-                <MiniSection title="Στρατηγική ανά προφίλ" meta={<span style={{fontSize:11,padding:'2px 10px',borderRadius:8,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontWeight:600,fontFamily: T.font.sans}}>{kindLabel}</span>}>
-                  <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.65,fontFamily: T.font.sans,marginBottom:14}}>{intro}</p>
-                  <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                    {rows.map(r=>(
-                      <div key={r.t} style={{display:'flex',gap:12,padding:'12px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderLeft:'3px solid var(--border-subtle)',borderRadius:8}}>
-                        <div style={{width:6,height:6,borderRadius:'50%',background:'var(--border-default)',flexShrink:0,marginTop:6}}/>
-                        <div>
-                          <p style={{fontSize:13,fontWeight:500,fontFamily: T.font.sans,color:'var(--text-primary)',marginBottom:3}}>{r.t}</p>
-                          <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.55,fontFamily: T.font.sans}}>{r.b}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:12,lineHeight:1.6,fontFamily: T.font.sans}}>Ρύθμισε τον τύπο δανειολήπτη στον Υπολογιστή για να προσαρμοστεί η στρατηγική. Ενημερωτικές πληροφορίες, όχι φορολογική ή νομική συμβουλή.</p>
-                </MiniSection>
-              )
-            })()}
-
-            {(()=>{
-              const c = score>=80?'var(--accent)':'var(--text-primary)'
-              const factors = issues.map(k=>FACTOR[k]).filter(Boolean)
-              return (
-              <MiniSection title="Ανάλυση δανείου" meta={<span style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans,fontWeight:600,whiteSpace:'nowrap' as const}}>{scoreLabel}</span>}>
-                <div style={{display:'flex',alignItems:'center',gap:22,flexWrap:'wrap'}}>
-                  <div onMouseEnter={()=>setScoreHover(true)} onMouseLeave={()=>setScoreHover(false)}
-                    onTouchStart={()=>setScoreHover(true)} onTouchEnd={()=>setScoreHover(false)}
-                    style={{display:'flex',alignItems:'baseline',gap:5,flexShrink:0,cursor:'default'}}>
-                    <span style={{fontSize:28,fontWeight:700,color:scoreHover?'var(--accent)':'var(--text-primary)',fontFamily: T.font.sans,letterSpacing:'-0.04em',fontVariantNumeric:'tabular-nums',lineHeight:1,transition:'color 0.15s'}}>{score}</span>
-                    <span style={{fontSize:15,color:'var(--text-tertiary)',fontFamily: T.font.sans,fontWeight:600}}>/ 100</span>
-                  </div>
-                  <div style={{flex:1,minWidth:220}}>
-                    <div style={{position:'relative',height:10,borderRadius:6,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',overflow:'hidden'}}>
-                      <div style={{width:`${score}%`,height:'100%',borderRadius:6,background:c,transition:'width 0.4s ease'}}/>
-                      <div style={{position:'absolute',left:'60%',top:0,bottom:0,width:0,borderLeft:'1px dashed var(--text-tertiary)',opacity:0.5}}/>
-                      <div style={{position:'absolute',left:'80%',top:0,bottom:0,width:0,borderLeft:'1px dashed var(--text-tertiary)',opacity:0.5}}/>
-                    </div>
-                    <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:7,fontFamily: T.font.sans}}>Όρια: αποδεκτό 60 · υγιές 80. Βάσει {fmtEur(cs.loanAmount)} · {cs.years} έτη · {fmtPct(cs.effectiveRate)} {cs.rateType==='variable'?'κυμαινόμενο':'σταθερό'}.</p>
-                  </div>
-                </div>
-                {factors.length>0 ? (
-                  <div style={{marginTop:16}}>
-                    <p style={{...labelStyle,marginBottom:9}}>Τι μειώνει τη βαθμολογία</p>
-                    <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-                      {factors.map(f=>(
-                        <span key={f.label} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'7px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans}}>
-                          {f.label}<span style={{fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:'var(--text-secondary)',fontWeight:700}}>−{f.d}</span>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <p style={{marginTop:14,fontSize:13,color:'var(--text-secondary)',fontFamily: T.font.sans,lineHeight:1.5}}>Δεν εντοπίστηκε καμία επισήμανση· άριστο προφίλ δανείου.</p>
-                )}
-              </MiniSection>
-              )
-            })()}
+            {/* ── Ανάλυση προσφοράς ESIS — τεχνικό εργαλείο, μόνο σε λειτουργία επαγγελματία ── */}
+            {profile==='business' && (
+            <MiniSection title="Ανάλυση προσφοράς ESIS" badges={<span style={{fontSize:10,padding:'2px 8px',borderRadius:8,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontWeight:600,fontFamily: T.font.sans}}>Νέο</span>} meta={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily: T.font.sans,whiteSpace:'nowrap' as const}}>Πραγματικό κόστος, ΣΕΠΠΕ</span>}>
+              <EsisScanPanel
+                defaultAmount={LA} defaultYears={Y}
+                benchmarkAprc={topRec?Math.round((topRec.effectiveRatePct+0.3)*100)/100:undefined}
+                fmtEur={fmtEur}
+              />
+            </MiniSection>
+            )}
 
             {/* ═══ Ο ΟΔΗΓΟΣ ΤΟΥ ΤΥΠΟΥ ΔΑΝΕΙΟΥ ═══════════════════════════════
                 ΤΡΙΑ ΙΔΙΑ ΚΟΥΤΙΑ ΓΙΑ ΤΡΕΙΣ ΔΙΑΦΟΡΕΤΙΚΕΣ ΔΟΥΛΕΙΕΣ. Δύο αριθμοί
@@ -1290,140 +1452,43 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
               </MiniSection>
             ); })()}
 
-            <MiniSection title="Τι βλέπω στο σενάριό σου">
-              <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                {/* LTV */}
-                <div style={{display:'flex',gap:12,padding:'12px 14px',background:'var(--bg-surface)',borderLeft:'3px solid var(--border-subtle)',borderRadius:8,border:'1px solid var(--border-subtle)'}}>
-                  <div style={{width:36,height:36,borderRadius:8,background:'var(--bg-elevated)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
-                  </div>
+            {/* ── Στρατηγική ανά προφίλ: φυσικό vs νομικό πρόσωπο ── */}
+            {(()=>{
+              const isLegal = profile==='business'
+              const isCompany = advBorr==='company'
+              const kindLabel = !isLegal ? 'Ιδιώτης' : isCompany ? 'Νομικό πρόσωπο' : 'Επαγγελματίας'
+              // Ασπίδα φόρου: οι τόκοι επιχειρηματικού δανείου εκπίπτουν. Για νομικό
+              // πρόσωπο ο συντελεστής είναι 22% (σταθερός) — δίνουμε πραγματικό νούμερο.
+              const taxShieldCompany = Math.round(cs.totalInterest * 0.22)
+              const intro = isLegal
+                ? (isCompany
+                    ? 'Ως νομικό πρόσωπο το δάνειο αξιολογείται με βάση τους ισολογισμούς και την ταμειακή ροή, όχι το προσωπικό εισόδημα. Η βασική διαφορά είναι φορολογική: οι τόκοι εκπίπτουν.'
+                    : 'Ως επαγγελματίας κρίνεσαι με τον μέσο όρο των φορολογικών δηλώσεων της τελευταίας διετίας. Οι τόκοι δανείου επαγγελματικού σκοπού εκπίπτουν από τα ακαθάριστα έσοδα.')
+                : 'Ως φυσικό πρόσωπο η έγκριση βασίζεται στο εισόδημα και στον Τειρεσία. Στόχος: χαμηλότερο κόστος, σταθερότητα δόσης και αξιοποίηση κρατικών προγραμμάτων για πρώτη κατοικία και αναβάθμιση.'
+              const rows = isLegal ? [
+                {t:'Φορολογική ασπίδα των τόκων', b: isCompany
+                  ? `Οι τόκοι εκπίπτουν πλήρως. Με συντελεστή 22% το έμμεσο όφελος στη διάρκεια εκτιμάται περίπου ${fmtEur(taxShieldCompany)}, δηλαδή το πραγματικό κόστος δανεισμού είναι χαμηλότερο από το ονομαστικό επιτόκιο.`
+                  : 'Οι τόκοι δανείου επαγγελματικού σκοπού εκπίπτουν από τα ακαθάριστα έσοδα. Το όφελος εξαρτάται από τον οριακό σου συντελεστή· επιβεβαίωσέ το με τον λογιστή σου.'},
+                {t:'Απόσβεση κτιρίου', b:'Το κτηριακό μέρος (όχι το οικόπεδο) αποσβένεται και μειώνει το φορολογητέο αποτέλεσμα κάθε χρόνο. Συνδυασμένο με τους τόκους, βελτιώνει ουσιαστικά την καθαρή απόδοση.'},
+                {t:'Χρηματοδότηση και εξασφαλίσεις', b:'Τυπικό δάνειο προς αξία 60–70%. Ζητούνται ισολογισμοί τριετίας, απόφαση διοίκησης και συνήθως προσωπική εγγύηση. Προετοίμασε ενημερότητες ΑΑΔΕ και ΕΦΚΑ έγκαιρα.'},
+                {t:'Ανάπτυξη χαρτοφυλακίου με μόχλευση', b:'Η μόχλευση επιταχύνει την ανάπτυξη μόνο όταν η καθαρή απόδοση του ακινήτου υπερβαίνει το κόστος δανεισμού. Κράτα απόθεμα ρευστότητας για κενές περιόδους και συντήρηση.'},
+              ] : [
+                {t:'Αξιοποίηση κρατικών προγραμμάτων', b:'Για πρώτη κατοικία, το «Σπίτι μου ΙΙ» μειώνει δραστικά το κόστος (50% άτοκο). Έλεγξε την επιλεξιμότητα πριν επιλέξεις τράπεζα· δεν επιτρέπονται ταυτόχρονες αιτήσεις.'},
+                {t:'Πειθαρχία στον δείκτη δόσης', b:'Τα όρια της Τράπεζας Ελλάδος: δόση έως 50% του εισοδήματος για πρώτη κατοικία, 40% για τους υπόλοιπους. Χαμηλότερος δείκτης σημαίνει καλύτερο επιτόκιο και ευκολότερη έγκριση.'},
+                {t:'Αύξηση αξίας με ενεργειακή αναβάθμιση', b:'Προγράμματα όπως «Εξοικονομώ» και «Αναβαθμίζω» ανεβάζουν την ενεργειακή κλάση, την αξία και το ενοίκιο, με επιδοτούμενο επιτόκιο και επιχορήγηση.'},
+                {t:'Σταθερότητα δόσης', b:`Το σταθερό επιτόκιο προστατεύει από αυξήσεις. Στο τρέχον σενάριο, αύξηση Euribor +2% θα ανέβαζε τη δόση κατά ${fmtEur(calcMonthly(cs.loanAmount,cs.effectiveRate+2,cs.years)-cs.monthly)} τον μήνα.`},
+              ]
+              return (
+                <MiniSection title="Στρατηγική ανά προφίλ" meta={<span style={{fontSize:11,padding:'2px 10px',borderRadius:8,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontWeight:600,fontFamily: T.font.sans}}>{kindLabel}</span>}>
+                  <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.65,fontFamily: T.font.sans,marginBottom:14}}>{intro}</p>
                   <div>
-                    <p style={{fontSize:13,fontWeight:500,fontFamily: T.font.sans,color:'var(--text-primary)',marginBottom:3}}>
-                      Δάνειο προς αξία: {fp(ltv)}. {ltv>85?'Υψηλό, απαιτείται προσοχή':ltv>70?'Μέτριο, αποδεκτό':'Καλό, εντός ορίων'}
-                    </p>
-                    <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily: T.font.sans}}>
-                      {ltv>85
-                        ?`Χρηματοδοτείς το ${fp(ltv)} της αξίας, οι τράπεζες είναι επιφυλακτικές άνω του 80%.`
-                        :ltv>70
-                        ?`Ίδια κεφάλαια ${fmtEur(cs.propertyValue-cs.loanAmount)} (${fp((100-ltv))} της αξίας). Εντός αποδεκτών ορίων.`
-                        :`Άριστη αναλογία, ίδια κεφάλαια ${fmtEur(cs.propertyValue-cs.loanAmount)} (${fp((100-ltv))}). Ενισχύει τη διαπραγματευτική σου θέση.`
-                      }
-                    </p>
+                    {rows.map((r,i)=>(<FindingRow key={r.t} title={r.t} body={r.b} last={i===rows.length-1}/>))}
                   </div>
-                </div>
+                  <p style={{fontSize:10,color:'var(--text-tertiary)',marginTop:12,lineHeight:1.6,fontFamily: T.font.sans}}>Ρύθμισε τον τύπο δανειολήπτη στον Υπολογιστή για να προσαρμοστεί η στρατηγική. Ενημερωτικές πληροφορίες, όχι φορολογική ή νομική συμβουλή.</p>
+                </MiniSection>
+              )
+            })()}
 
-                <div style={{display:'flex',gap:12,padding:'12px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8}}>
-                  <div style={{width:36,height:36,borderRadius:8,background:'var(--bg-elevated)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-                  </div>
-                  <div>
-                    <p style={{fontSize:13,fontWeight:500,fontFamily: T.font.sans,color:'var(--text-primary)',marginBottom:3}}>
-                      Επιτόκιο {fmtPct(cs.effectiveRate)}, {cs.rateType==='variable'?'κυμαινόμενο':'σταθερό'}
-                      {cs.rateType==='variable'&&<span title="Διατραπεζικό επιτόκιο ευρώ, βάση κυμαινόμενων δανείων" style={{fontSize:11,color:'var(--text-tertiary)',marginLeft:8,fontWeight:400}}>Εκτεθειμένο σε Euribor</span>}
-                    </p>
-                    <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily: T.font.sans}}>
-                      {cs.rateType==='variable'
-                        ?`Τρέχον Euribor ${fmtPct(market.euribor_3m)}. Αν ανέβει +2%, η δόση γίνεται ${fmtEur(stressMonthly2)}, αύξηση ${fmtEur(stressMonthly2-cs.monthly)} τον μήνα.`
-                        :bestBank&&savingVsBestBank>0
-                        ?`Σταθερό, ασφάλεια. Καλύτερο σταθερό αγοράς: ${fmtPct(bestBank.fixed_min)} (${bestBank.name}), δόση ${fmtEur(bestBankMonthly)}, εξοικονόμηση ${fmtEur(savingVsBestBank)}.`
-                        :`Σταθερό ${fmtPct(cs.effectiveRate)}, προστατευμένος. Euribor τριμήνου: ${fmtPct(market.euribor_3m)}.`
-                      }
-                    </p>
-                  </div>
-                </div>
-
-                <div style={{display:'flex',gap:12,padding:'12px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8}}>
-                  <div style={{width:36,height:36,borderRadius:8,background:'var(--bg-elevated)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-                  </div>
-                  <div>
-                    <p style={{fontSize:13,fontWeight:500,fontFamily: T.font.sans,color:'var(--text-primary)',marginBottom:3}}>
-                      Συνολικοί τόκοι {fmtEur(cs.totalInterest)}, {fp((interestRatio*100))} επί κεφαλαίου
-                    </p>
-                    <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily: T.font.sans}}>
-                      Για {fmtEur(cs.loanAmount)} θα αποπληρώσεις συνολικά {fmtEur(totalCost)}.
-                      {cs.years>20&&savedByShortening>0
-                        ?` Σε 20 χρόνια: δόση ${fmtEur(shortMonthly20)} τον μήνα (+${fmtEur(shortMonthly20-cs.monthly)}), εξοικονόμηση ${fmtEur(savedByShortening)} τόκοι.`
-                        :` Έκτακτη πληρωμή 100 € τον μήνα: μείον ${extraPay100Saving.toFixed(1).replace('.',',')} χρόνια διάρκεια.`
-                      }
-                    </p>
-                  </div>
-                </div>
-
-                {advType==='first_home'&&spiti.eligible&&spitiSaving>5000&&(
-                  <div style={{display:'flex',gap:12,padding:'12px 14px',background:'var(--bg-surface)',borderLeft:'3px solid var(--border-subtle)',borderRadius:8,border:'1px solid var(--border-subtle)'}}>
-                    <div style={{width:36,height:36,borderRadius:8,background:'var(--bg-elevated)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                    </div>
-                    <div>
-                      <p style={{fontSize:13,fontWeight:500,fontFamily: T.font.sans,color:'var(--text-primary)',marginBottom:3}}>
-                        Σπίτι μου ΙΙ: εξοικονομείς {fmtEur(spitiSaving)}, προθεσμία συμβολαίων 31/08/2026
-                      </p>
-                      <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily: T.font.sans}}>
-                        Δόση {fmtEur(spitiMonthly)} τον μήνα αντί {fmtEur(cs.monthly)}, διαφορά {fmtEur(cs.monthly-spitiMonthly)} τον μήνα.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </MiniSection>
-
-            <MiniSection title="Επιλεξιμότητα κρατικών προγραμμάτων">
-              <div style={{display:'flex',flexDirection:'column',gap:7}}>
-                {[
-                  {l:'Σπίτι μου ΙΙ, προθεσμία 31/08/2026',el:(advBorr==='young'||advBorr==='family')&&advType==='first_home',reason:(advBorr==='young'||advBorr==='family')&&advType==='first_home'?`Πληροίς τα κριτήρια. Δόση από ${fmtEur(spitiMonthly)} τον μήνα`:advType!=='first_home'?'Άλλαξε σε «Πρώτη κατοικία»':'Ηλικία 25–50',badge:`-${fmtEur(cs.monthly-spitiMonthly)} τον μήνα`},
-                  {l:'Αναβαθμίζω, προθεσμία 31/08/2026',el:advType==='energy',reason:advType==='energy'?'Κατάλληλο. Δάνειο έως 25.000 € με επιδοτούμενο επιτόκιο':'Επίλεξε «Ενεργειακή αναβάθμιση»',badge:'Επιδοτούμενο επιτόκιο'},
-                  {l:'Πράσινο δάνειο (-0,15% έως -0,25%)',el:advType==='energy'||advType==='renovation',reason:advType==='energy'||advType==='renovation'?`Εξοικονόμηση ~${fmtEur(cs.loanAmount*0.002*cs.years)} τόκων`:'Για ενεργειακή αναβάθμιση ή ανακαίνιση',badge:`~${fmtEur(cs.loanAmount*0.002*cs.years)}`},
-                  {l:'Ένοπλες Δυνάμεις, ΤΑΠ-ΟΙΚ',el:advBorr==='military',reason:advBorr==='military'?'Δικαιούσαι επιδοτούμενο δάνειο μέσω ΤΑΠ':'Μόνο για εν ενεργεία μέλη',badge:'Χαμηλότερο επιτόκιο'},
-                  {l:'Γέφυρα 3, Επιδότηση δόσης',el:cs.rateType==='variable',reason:cs.rateType==='variable'?'Κυμαινόμενο επιτόκιο, έλεγξε εισοδηματικά κριτήρια':'Εφαρμόζεται μόνο σε κυμαινόμενα',badge:'50% αύξησης δόσης'},
-                ].map(item=>(
-                  <div key={item.l} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderLeft:'3px solid var(--border-subtle)',borderRadius:8}}>
-                    <div style={{width:22,height:22,borderRadius:'50%',background:item.el?'var(--accent-dim)':'var(--bg-elevated)',border:item.el?'none':'1px solid var(--border-subtle)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                      {item.el
-                        ?<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                        :<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                      }
-                    </div>
-                    <div style={{flex:1}}>
-                      <p style={{fontSize:13,color:item.el?'var(--text-primary)':'var(--text-secondary)',fontWeight:item.el?500:400,fontFamily: T.font.sans}}>{item.l}</p>
-                      <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:2,fontFamily: T.font.sans}}>{item.reason}</p>
-                    </div>
-                    {item.el&&<span style={{fontSize:11,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:'var(--accent)',background:'var(--accent-dim)',padding:'4px 10px',borderRadius:8,border:'1px solid var(--border-accent)',whiteSpace:'nowrap' as const,fontWeight:600}}>{item.badge}</span>}
-                  </div>
-                ))}
-              </div>
-            </MiniSection>
-
-            {issues.length>0&&(
-              <MiniSection title="Τι μπορείς να βελτιώσεις">
-                <div style={{display:'flex',flexDirection:'column',gap:7}}>
-                  {issues.includes('LTV')&&(
-                    <div style={{display:'flex',gap:10,padding:'10px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8}}>
-                      <span style={{color:'var(--text-secondary)',fontWeight:700,flexShrink:0,fontFamily: T.font.sans}}>Αξία</span>
-                      <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily: T.font.sans}}><strong>Αύξησε την προκαταβολή:</strong> δάνειο προς αξία κάτω από 80%: καλύτερο επιτόκιο και αποδοχή.</p>
-                    </div>
-                  )}
-                  {issues.includes('Επιτόκιο')&&(
-                    <div style={{display:'flex',gap:10,padding:'10px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8}}>
-                      <span style={{color:'var(--text-secondary)',fontWeight:700,flexShrink:0,fontFamily: T.font.sans}}>Επιτόκιο</span>
-                      <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily: T.font.sans}}><strong>Διαπραγματεύσου:</strong> Γραπτές προσφορές από 3 τράπεζες, μειώσεις 0,10–0,25% είναι συνηθισμένες.</p>
-                    </div>
-                  )}
-                  {issues.includes('Κυμαινόμενο')&&(
-                    <div style={{display:'flex',gap:10,padding:'10px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8}}>
-                      <span style={{color:'var(--text-secondary)',fontWeight:700,flexShrink:0,fontFamily: T.font.sans}}>Κίνδυνος</span>
-                      <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily: T.font.sans}}><strong>Σκέψου σταθερό:</strong> με το Euribor δύο μονάδες ψηλότερα, η δόση γίνεται {fmtEur(stressMonthly2)}, δηλαδή {fmtEur(stressMonthly2-cs.monthly)} παραπάνω τον μήνα.</p>
-                    </div>
-                  )}
-                  {issues.includes('Διάρκεια')&&cs.years>20&&(
-                    <div style={{display:'flex',gap:10,padding:'10px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:8}}>
-                      <span style={{color:'var(--text-secondary)',fontWeight:700,flexShrink:0,fontFamily: T.font.sans}}>Χρόνια</span>
-                      <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,fontFamily: T.font.sans}}><strong>Μείωσε τη διάρκεια:</strong> στα 20 χρόνια η δόση γίνεται {fmtEur(shortMonthly20)} και γλιτώνεις {fmtEur(savedByShortening)} σε τόκους.</p>
-                    </div>
-                  )}
-                </div>
-              </MiniSection>
-            )}
           </div>
         )
       })()}
@@ -1435,14 +1500,12 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
               συνεχιζόταν στον άλλο. Τώρα είναι η δεύτερη μισή της ίδιας
               σελίδας: πρώτα τι ισχύει για ΕΣΕΝΑ, μετά τι ισχύει γενικά. */}
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
-          {/* Προσαρμοζόμενος τόνος ανά προφίλ — καθοδήγηση για ιδιώτες, ανάλυση για επαγγελματίες */}
-          <div style={{padding:'13px 16px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:12}}>
-            <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6,fontFamily: T.font.sans}}>
-              {profile==='business'
-                ? 'Τεχνική ανάλυση αγοράς, κριτηρίων και εργαλείων για επαγγελματίες και επιχειρήσεις. Ξεκίνα από το ιστορικό Euribor και τις ειδικές κατηγορίες. Για κάθε δεσμευτική απόφαση, διασταύρωσε με τράπεζα, λογιστή ή δικηγόρο.'
-                : 'Απλός οδηγός βήμα-βήμα για την πρώτη σου κατοικία ή επένδυση. Δες πρώτα «Πώς λειτουργεί» και «Γιατί απορρίπτεται μια αίτηση». Για πιο εξειδικευμένη ανάλυση, άλλαξε σε προφίλ «Επαγγελματίας» από τις Ρυθμίσεις.'}
-            </p>
-          </div>
+          {/* Ο ΠΑΡΑΓΡΑΦΟΣ ΠΟΥ ΕΔΕΙΧΝΕ ΤΟ ΑΜΕΣΩΣ ΑΠΟ ΚΑΤΩ ΕΦΥΓΕ. Ελεγε «Δες πρώτα
+              "Πώς λειτουργεί" και "Γιατί απορρίπτεται μια αίτηση"» — δύο τίτλους
+              που ο αναγνώστης είχε ήδη μπροστά του, στη σειρά που τους ανέφερε.
+              Και η επιφύλαξη «όχι νομική συμβουλή» γραφόταν ήδη στο τέλος της
+              Στρατηγικής. Οδηγίες ανάγνωσης για μια λίστα δέκα σειρών είναι
+              θόρυβος· η σειρά των τίτλων είναι η οδηγία. */}
           <MiniSection title="Πώς λειτουργεί ένα στεγαστικό δάνειο στην Ελλάδα" defaultOpen={profile!=='business'}>
             {[
               {step:1,title:'Προεπιλογή και προετοιμασία',time:'1 έως 2 εβδομάδες',desc:'Έλεγξε επιλεξιμότητα στο gov.gr με Taxisnet. Για Σπίτι μου ΙΙ η προεπιλογή είναι αυτόματη.',tip:'Κάνε πρώτα τον έλεγχο επιλεξιμότητας στο gov.gr, αν αποτύχει μάθε νωρίς γιατί.',warning:'Χρέη σε ΔΟΥ, ΕΦΚΑ ή εκτελεστοί τίτλοι μπλοκάρουν άμεσα. Τακτοποίησε πρώτα.',url:null},
