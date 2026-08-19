@@ -414,7 +414,7 @@ export function LegalTaxView({ tenant, propertyCount }:{ tenant:Tenant; property
 
         {/* Νομικές υποχρεώσεις */}
         <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
-          <SectionTitle>Υποχρεώσεις & Πλαίσιο</SectionTitle>
+          <SectionTitle>Υποχρεώσεις και πλαίσιο</SectionTitle>
           <InfoBlock title="ΑΑΔΕ, Δήλωση Πληροφοριακών Στοιχείων Μίσθωσης" tone="var(--warning)">
             Κάθε νέα μίσθωση, καθώς και κάθε τροποποίηση ή λύση, δηλώνεται ηλεκτρονικά στην ΑΑΔΕ έως το τέλος του επόμενου μήνα από την έναρξη ή τη μεταβολή.{tenant.lease_start?` Για έναρξη ${fmtD(tenant.lease_start)}, προθεσμία δήλωσης έως ${lastDayNextMonth(tenant.lease_start)}.`:''} Χωρίς τη δήλωση δεν αναγνωρίζεται φορολογικά η μίσθωση. Μετά την υποβολή, ο μισθωτής (και τυχόν συνιδιοκτήτες) ειδοποιείται μέσω myAADE/email και έχει 30 ημέρες να την αποδεχθεί ή να την απορρίψει — αλλιώς θεωρείται σιωπηρά αποδεκτή (ισχύς από 2/6/2025)· ενημέρωσέ τον εγκαίρως. Επιβεβαίωσε την ακριβή προθεσμία στην ΑΑΔΕ (σύνδεσμος πιο κάτω).
           </InfoBlock>
@@ -510,7 +510,7 @@ export function DamagesView({ tenant, propertyId, userId, damages, onRefresh }:{
       )}
       <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16, gap:12, flexWrap:'wrap' as const }}>
-          <SectionTitle>Φθορές & Επισκευές</SectionTitle>
+          <SectionTitle>Φθορές και επισκευές</SectionTitle>
           <button style={s.btnSm} onClick={()=>addOpen?setAddOpen(false):openNew()}>{addOpen?'Κλείσιμο':'+ Νέα καταγραφή'}</button>
         </div>
 

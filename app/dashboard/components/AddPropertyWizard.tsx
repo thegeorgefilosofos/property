@@ -716,9 +716,9 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
             </div>
           </div>
 
-          {/* Διαχείριση & Ασφάλεια */}
+          {/* Διαχείριση και ασφάλεια */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={sectionLabelStyle}>Διαχείριση & Ασφάλεια</div>
+            <div style={sectionLabelStyle}>Διαχείριση και ασφάλεια</div>
             <div style={grid2}>
               <Field label="Διαχειριστής">
                 <input style={inputStyle} value={settings.property_manager} onChange={setSf('property_manager')} onFocus={onFocus} onBlur={onBlur} />

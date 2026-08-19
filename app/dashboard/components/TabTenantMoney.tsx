@@ -932,7 +932,7 @@ export function DepositView({ tenant, payments, damages, onReturned }:{ tenant:T
       </div>
 
       <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
-        <SectionTitle>Πότε & Υπό Ποιους Όρους Επιστρέφεται</SectionTitle>
+        <SectionTitle>Πότε και υπό ποιους όρους επιστρέφεται</SectionTitle>
         <div style={{ fontSize:13, color:'var(--text-secondary)', fontFamily:T.font.sans, lineHeight:1.8, marginBottom:14 }}>
           Η εγγύηση επιστρέφεται στη λήξη της μίσθωσης {dueDate?<>(<strong style={{ color:'var(--text-primary)' }}>{fmtD(dueDate)}</strong>){tenant.move_out_date?', βάσει της ημερομηνίας αποχώρησης':''}</>:'(δεν έχει οριστεί ημερομηνία λήξης/αποχώρησης)'}, μετά από <strong style={{ color:'var(--text-primary)' }}>έλεγχο για φθορές</strong> και <strong style={{ color:'var(--text-primary)' }}>εξόφληση τυχόν εκκρεμών οφειλών</strong>.
         </div>

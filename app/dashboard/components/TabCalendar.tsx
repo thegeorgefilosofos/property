@@ -994,7 +994,7 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
       {hasTax&&(
         <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap', marginTop:12, fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>
           <Info size={13} style={{ color:'var(--accent)' }}/>
-          Οι φορολογικές προθεσμίες βασίζονται στο πλαίσιο της ΑΑΔΕ (έκδοση, 1η & τελευταία δόση). Διπλός έλεγχος:
+          Οι φορολογικές προθεσμίες βασίζονται στο πλαίσιο της ΑΑΔΕ (έκδοση, πρώτη και τελευταία δόση). Διπλός έλεγχος:
           <a href={AADE_CALENDAR_URL} target="_blank" rel="noreferrer" style={{ color:'var(--accent)', textDecoration:'none' }}>myAADE</a>·
           <a href={TAXHEAVEN_CALENDAR_URL} target="_blank" rel="noreferrer" style={{ color:'var(--accent)', textDecoration:'none' }}>taxheaven</a>
         </div>
@@ -1150,7 +1150,7 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
         {amt>0&&!editing&&(
           <label style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', padding:'10px 12px', borderRadius:10, background:form.add_expense?'var(--accent-soft)':'var(--bg-surface)', border:'1px solid '+(form.add_expense?'var(--accent-border)':'var(--border-subtle)'), transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' }}>
             <input type="checkbox" checked={form.add_expense} onChange={e=>setForm(f=>({...f,add_expense:e.target.checked}))} style={{ width:16, height:16, accentColor:'var(--accent)', cursor:'pointer' }}/>
-            <span style={{ fontSize:13, color:'var(--text-primary)', fontFamily: T.font.sans }}>Καταχώρησέ το και στις <strong>Δαπάνες</strong> & τον <strong>Προϋπολογισμό</strong> ({fe(amt)})</span>
+            <span style={{ fontSize:13, color:'var(--text-primary)', fontFamily: T.font.sans }}>Καταχώρησέ το και στις <strong>Δαπάνες</strong> και στον <strong>Προϋπολογισμό</strong> ({fe(amt)})</span>
           </label>
         )}
         {/* Επικοινωνία */}

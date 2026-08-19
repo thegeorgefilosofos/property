@@ -38,18 +38,44 @@ const TERMS = ['sale & lease-back']
 
 const GREEK = /[Α-Ωα-ωΆ-Ώά-ώ]/
 const STRING = /(?:"([^"\n]{3,160})"|'([^'\n]{3,160})')/g
+/**
+ * ΚΑΙ ΤΟ ΚΕΙΜΕΝΟ ΠΟΥ ΔΕΝ ΕΙΝΑΙ ΣΕ ΕΙΣΑΓΩΓΙΚΑ.
+ *
+ * Ο φύλακας κοίταζε μόνο συμβολοσειρές, οπότε ένας τίτλος γραμμένος κατευθείαν
+ * μέσα σε JSX —`<div>Πληρότητα & Βραχυχρόνια</div>`— περνούσε αθόρυβα. Ηταν το
+ * πρώτο πράγμα που διάβαζε ο χρήστης σε εκείνη την κάρτα, και ο φύλακας που
+ * υπάρχει ακριβώς γι' αυτό δεν το έβλεπε.
+ *
+ * Ζητά ΚΕΝΟ γύρω από το «&», ώστε να μην πιάνει το `&&` των εκφράσεων ούτε τις
+ * οντότητες τύπου `&nbsp;`.
+ */
+const JSX_TEXT = /(?:^|>)([^<>{}\n]{3,160}?)(?:<|$)/g
 
 const findings = []
 for (const f of findSources().filter(x => !x.includes('.test.'))) {
-  readFileSync(f, 'utf8').split('\n').forEach((line, i) => {
-    const t = line.trim()
-    if (t.startsWith('//') || t.startsWith('*')) return
-    for (const m of line.matchAll(STRING)) {
-      let v = m[1] ?? m[2]
-      if (!v.includes(' & ') || !GREEK.test(v)) continue
+  let inBlock = false
+  readFileSync(f, 'utf8').split('\n').forEach((raw, i) => {
+    const t = raw.trim()
+    const opens = raw.lastIndexOf('/*'), closes = raw.lastIndexOf('*/')
+    const wasInBlock = inBlock
+    if (opens > closes) inBlock = true
+    else if (closes > opens) inBlock = false
+    if (wasInBlock || t.startsWith('//') || t.startsWith('*') || t.startsWith('/*')) return
+    // Σχόλιο στο τέλος της γραμμής: κόβεται, δεν είναι κείμενο που διαβάζει χρήστης.
+    const line = raw.split('//')[0]
+    const seen = new Set()
+    const check = (raw) => {
+      let v = raw
+      if (!v.includes(' & ') || !GREEK.test(v)) return
       for (const s of [...STORED, ...TERMS]) v = v.split(s).join('')
-      if (v.includes(' & ')) findings.push(`${f}:${i + 1}  «${(m[1] ?? m[2]).slice(0, 70)}»`)
+      if (!v.includes(' & ')) return
+      const key = `${i}:${raw}`
+      if (seen.has(key)) return
+      seen.add(key)
+      findings.push(`${f}:${i + 1}  «${raw.trim().slice(0, 70)}»`)
     }
+    for (const m of line.matchAll(STRING)) check(m[1] ?? m[2])
+    if (/\.tsx$/.test(f)) for (const m of line.matchAll(JSX_TEXT)) check(m[1])
   })
 }
 
