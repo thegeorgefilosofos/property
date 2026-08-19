@@ -64,7 +64,7 @@ interface Row {
   staysUnresolved: number;
   /** Δεδουλευμένα μισθώματα ως σήμερα, από τις καταχωρημένες δόσεις (0 αν δεν υπάρχουν). */
   rentExpected: number;
-  occupancy: number | null; nights: number; pending: number;
+  occupancy: number | null; overbooked: boolean; nights: number; pending: number;
   /** Ο ΠΑΡΟΝΟΜΑΣΤΗΣ της πληρότητας, ώστε το ποσοστό να μπορεί να εξηγηθεί. */
   availableDays: number;
   /** Πόσα ΕΥΡΩ οφείλονται — το πλήθος μόνο του δεν λέει αν χρωστάς 60 € ή 1.800 €. */
@@ -282,6 +282,8 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
       const occ = yearOccupancy(propStays, year);
       const nights = occ.bookedNights;
       const occupancy = mode === 'short' ? occ.pct : null;
+      // Πάνω απο 100 σημαίνει επικαλυπτόμενες κρατήσεις, όχι γεμάτο σπίτι.
+      const overbooked = mode === 'short' && occ.overbooked;
       // ΤΟ ΠΛΗΘΟΣ ΔΕΝ ΦΤΑΝΕΙ: «3 εκκρεμή» δεν λέει αν χρωστάς 60 € ή 1.800 €.
       const owedEntries = ledgerUnpaid(ofYear);
       const unpaid = owedEntries.length;
@@ -310,7 +312,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
       return {
         id: p.id, name: p.name, typeLabel: PROP_LABEL[p.prop_type || ''] || p.prop_type || 'Ακίνητο', mode, statusLabel: declaredStatus,
         revenue, expenses, net: revenue - expenses, revenueEstimated, staysUnresolved, rentExpected,
-        occupancy, nights, availableDays: occ.availableDays, pending: unpaid + chkAtt, owed,
+        occupancy, overbooked, nights, availableDays: occ.availableDays, pending: unpaid + chkAtt, owed,
         value: p.value || 0, annualRevenue, annualExpenses,
       };
     });
@@ -360,7 +362,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
 
   const occupancyTitle = (r: Row): string | undefined =>
     r.occupancy == null ? undefined
-      : `${r.nights} νύχτες σε ${r.availableDays} διαθέσιμες ημέρες· ο ίδιος υπολογισμός με την «Πληρότητα» της Επισκόπησης. Διαθέσιμες = οι μήνες από την πρώτη ως την τελευταία κράτηση του έτους.`;
+      : `${r.nights} νύχτες σε ${r.availableDays} διαθέσιμες ημέρες· ο ίδιος υπολογισμός με την «Πληρότητα» της Επισκόπησης. Διαθέσιμες = οι μήνες από την πρώτη ως την τελευταία κράτηση του έτους.${r.overbooked ? ' Οι νύχτες ξεπερνούν τις διαθέσιμες ημέρες: κάπου δύο κρατήσεις πέφτουν στην ίδια νύχτα.' : ''}`;
 
   // ── Μαζική επιλογή ──────────────────────────────────────────────────────
   const allSelected = rows.length > 0 && selected.size === rows.length;

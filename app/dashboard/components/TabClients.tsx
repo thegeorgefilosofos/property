@@ -48,7 +48,7 @@ import * as properties from '@/lib/data/properties';
 import * as stayStore from '@/lib/data/stays';
 // Η απογραφή έχει ένα σπίτι: lib/data/inventory.
 import * as inventory from '@/lib/data/inventory';
-import { T, PageTitle, KPIGrid, Badge, InfoBanner, Btn, ExportButton, EmptyState, Skeleton, SkeletonKPIs, SecHdr, Modal, SideSheet, fe, fd, ABSENT_DATE, formGrid } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, Badge, InfoBanner, Btn, ExportButton, EmptyState, Skeleton, SkeletonKPIs, SecHdr, Modal, SideSheet, fe, fd, fp, ABSENT_DATE, formGrid } from '@/components/Theme';
 import { confirmDialog } from '@/components/confirmBus';
 import { NumberInput, TextInput, CustomSelect, DatePicker, Textarea, Toggle } from './UIComponents';
 import { downloadTableXlsx } from './exportCsv';
@@ -1129,14 +1129,20 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               {statTile('Δηλωτέα ακαθάριστα', fe(tot.revenue))}
               {statTile('Τέλος ανθεκτικότητας', tot.climateLevy > 0 ? fe(tot.climateLevy) : fe(0), { title: 'Εισπράχθηκε από τους επισκέπτες για λογαριασμό του κράτους. Δεν είναι έσοδό σου.' })}
               {statTile('Προμήθειες πλατφορμών', tot.platformFees > 0 ? fe(tot.platformFees) : fe(0), { title: 'Δαπάνη που εκπίπτει. ΔΕΝ μειώνει το δηλωτέο έσοδο.' })}
+              {/* ΤΟ ΠΟΣΟΣΤΟ ΠΕΡΝΑ ΑΠΟ ΤΟΝ ΜΟΡΦΟΠΟΙΗΤΗ. Γραφόταν `${occ.pct}%`,
+                  δηλαδή ο ωμός αριθμός με τελεία: «87.5%» ακριβώς δίπλα σε
+                  «1.234,56 €» της ίδιας γραμμής — δύο συστήματα αρίθμησης σε
+                  ένα πλαίσιο, και στα ελληνικά η τελεία χωρίζει χιλιάδες. */}
               {statTile(
                 'Πληρότητα',
-                occ.availableDays > 0 ? `${occ.pct}%` : 'Χωρίς κρατήσεις',
-                { title: occ.openFromMonth != null ? `${occ.bookedNights} νύχτες σε ${occ.availableDays} διαθέσιμες ημέρες (${MONTHS_SHORT[occ.openFromMonth]}–${MONTHS_SHORT[occ.openToMonth!]} ${reportYear}), όχι σε 365` : 'Χωρίς κρατήσεις' },
+                occ.availableDays > 0 ? fp(occ.pct) : 'Χωρίς κρατήσεις',
+                { title: occ.openFromMonth != null
+                    ? `${occ.bookedNights} νύχτες σε ${occ.availableDays} διαθέσιμες ημέρες (${MONTHS_SHORT[occ.openFromMonth]}–${MONTHS_SHORT[occ.openToMonth!]} ${reportYear}), όχι σε 365${occ.overbooked ? '. Οι νύχτες ξεπερνούν τις διαθέσιμες ημέρες: κάπου δύο κρατήσεις πέφτουν στην ίδια νύχτα.' : ''}`
+                    : 'Χωρίς κρατήσεις' },
               )}
               {occ.peak && statTile(
                 'Πληρότητα υψηλής περιόδου',
-                `${occ.peak.pct}%`,
+                fp(occ.peak.pct),
                 { title: `${MONTHS_SHORT[occ.peak.fromMonth]}–${MONTHS_SHORT[occ.peak.toMonth]}: ${occ.peak.bookedNights} νύχτες σε ${occ.peak.days} ημέρες. Η περίοδος βγαίνει από ΤΑ ΔΙΚΑ ΣΟΥ δεδομένα, δεν την αποφασίσαμε εμείς.` },
               )}
             </div>

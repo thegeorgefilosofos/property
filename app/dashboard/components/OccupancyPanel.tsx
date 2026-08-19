@@ -124,7 +124,7 @@ export default function OccupancyPanel({ propertyId, userId }: {
     <div className="card" style={{ marginBottom: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, cursor: 'pointer', minHeight: 44 }}
         {...pressable(() => setOpen(o => !o),
-          `Πληρότητα και βραχυχρόνια${occ.availableDays > 0 ? `, ${fp(occ.rawPct)}` : ''}`, open)}>
+          `Πληρότητα και βραχυχρόνια${occ.availableDays > 0 ? `, ${fp(occ.pct)}` : ''}`, open)}>
         <div style={{ minWidth: 0 }}>
           <div style={label}>Πληρότητα και βραχυχρόνια</div>
           <div style={{ ...note, marginTop: 1 }}>Από τις καταγεγραμμένες κρατήσεις σου, όχι από πληκτρολόγηση</div>
@@ -133,7 +133,7 @@ export default function OccupancyPanel({ propertyId, userId }: {
           {/* Η ΠΛΗΡΟΤΗΤΑ ΛΕΓΕΤΑΙ ΜΙΑ ΦΟΡΑ, ΕΔΩ. Ηταν και σήμα και πλακίδιο, δύο
               εκατοστά μακριά το ένα από το άλλο. */}
           {!open && !loading && occ.availableDays > 0 && (
-            <span style={{ ...num, fontSize: 12, fontWeight: 700, color: 'var(--accent)' }}>{fp(occ.rawPct)}</span>
+            <span style={{ ...num, fontSize: 12, fontWeight: 700, color: 'var(--accent)' }}>{fp(occ.pct)}</span>
           )}
           <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="m6 9 6 6 6-6" /></svg>
         </div>
@@ -166,7 +166,7 @@ export default function OccupancyPanel({ propertyId, userId }: {
               ) : (
                 <>
                   <div style={{ maxWidth: 560 }}>
-                    <div style={{ ...num, fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>{fp(occ.rawPct)}</div>
+                    <div style={{ ...num, fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>{fp(occ.pct)}</div>
                     {/* Ο ΠΑΡΟΝΟΜΑΣΤΗΣ ΗΤΑΝ ΚΡΥΜΜΕΝΟΣ ΣΕ TOOLTIP. Ενα ποσοστό
                         χωρίς το κλάσμα του δεν ελέγχεται από κανέναν, και σε
                         κινητό το tooltip δεν ανοίγει ποτέ. */}

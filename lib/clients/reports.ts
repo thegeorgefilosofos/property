@@ -122,11 +122,27 @@ export interface YearOccupancy {
   openToMonth: number | null;
   /** ΔΙΑΘΕΣΙΜΕΣ ημέρες — ο παρονομαστής. 0 όταν δεν υπάρχει καμία κράτηση. */
   availableDays: number;
-  /** Κομμένη στο 100 για τις οθόνες που τη ζωγραφίζουν ως μπάρα. */
+  // ═══════════════════════════════════════════════════════════════════════
+  // ΕΝΑ ΠΟΣΟΣΤΟ, ΚΑΙ ΕΙΝΑΙ Η ΑΛΗΘΕΙΑ.
+  // ─────────────────────────────────────────────────────────────────────
+  // Εδώ ζούσαν ΔΥΟ: το `pct`, κομμένο στο 100 «για τις οθόνες που το
+  // ζωγραφίζουν ως μπάρα», και το `rawPct` με την πραγματική αναλογία.
+  // Καμία οθόνη δεν ζωγράφιζε μπάρα από αυτό — το ψάξαμε: οι τρεις μόνοι
+  // αναγνώστες του (κάρτα Πελατών, χαρτοφυλάκιο, εξαγωγή τιμολόγησης) το
+  // τύπωναν ως ΑΡΙΘΜΟ. Δηλαδή το ταβάνι δεν εξυπηρετούσε κανέναν· έκανε
+  // μόνο τα τρία σημεία να λένε «100%» εκεί που η αλήθεια ήταν «112%».
+  //
+  // Και το 112% δεν είναι επιτυχία που πρέπει να στρογγυλέψει: σημαίνει ότι
+  // οι νύχτες ξεπερνούν τις διαθέσιμες ημέρες, δηλαδή κάπου υπάρχουν δύο
+  // κρατήσεις στην ίδια νύχτα. Το ταβάνι έκρυβε ακριβώς το πρόβλημα που ο
+  // ιδιοκτήτης πρέπει να δει σήμερα, όχι όταν φτάσουν οι δύο επισκέπτες.
+  //
+  // Μένει ένα πεδίο με την αλήθεια — ίδιο όνομα και ίδια σημασία με το
+  // `PeakOccupancy.pct`, που ήταν ήδη ακατέργαστο — και δίπλα του η σημαία
+  // που εξηγεί το γιατί. Οποια οθόνη θελήσει μπάρα, κόβει στο σημείο που
+  // ζωγραφίζει: το πλάτος είναι θέμα σχεδίασης, όχι θέμα μέτρησης.
+  // ═══════════════════════════════════════════════════════════════════════
   pct: number;
-  /** Η ΑΚΑΤΕΡΓΑΣΤΗ αναλογία. Ξεπερνά το 100 μόνο με επικαλυπτόμενες ή
-   *  διπλοκαταχωρημένες κρατήσεις — που είναι πρόβλημα δεδομένων, όχι επιτυχία. */
-  rawPct: number;
   /** Οι νύχτες ξεπερνούν τις διαθέσιμες ημέρες: κάπου υπάρχει διπλή κράτηση. */
   overbooked: boolean;
   /** Πληρότητα υψηλής περιόδου (τρεις καλύτεροι συνεχόμενοι μήνες). */
@@ -161,7 +177,7 @@ export function occupancyFromMonths(nbm: number[], year: number): YearOccupancy 
   const booked = nbm.reduce((a, b) => a + b, 0);
   const months = nbm.map((v, i) => (v > 0 ? i : -1)).filter(i => i >= 0);
   if (months.length === 0) {
-    return { bookedNights: 0, openFromMonth: null, openToMonth: null, availableDays: 0, pct: 0, rawPct: 0, overbooked: false, peak: null, nightsByMonth: nbm };
+    return { bookedNights: 0, openFromMonth: null, openToMonth: null, availableDays: 0, pct: 0, overbooked: false, peak: null, nightsByMonth: nbm };
   }
   const from = months[0], to = months[months.length - 1];
   let availableDays = 0;
@@ -180,7 +196,7 @@ export function occupancyFromMonths(nbm: number[], year: number): YearOccupancy 
     if (!best || nights > best.bookedNights) best = { fromMonth: start, toMonth: start + win - 1, days, bookedNights: nights, pct: p };
   }
   return { bookedNights: booked, openFromMonth: from, openToMonth: to, availableDays,
-           pct: Math.min(100, pct), rawPct: pct, overbooked: booked > availableDays,
+           pct, overbooked: booked > availableDays,
            peak: best, nightsByMonth: nbm };
 }
 
