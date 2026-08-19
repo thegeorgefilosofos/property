@@ -353,8 +353,30 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
   // για το κράτος) και η προμήθεια είναι ΔΑΠΑΝΗ που δεν μειώνει το δηλωτέο έσοδο.
   // Τίποτα εδώ δεν είναι επινοημένο: το τέλος από τους συντελεστές της ΑΑΔΕ, η
   // προμήθεια ΜΟΝΟ από το πραγματικό ιστορικό του — αλλιώς λέμε ότι δεν την ξέρουμε.
-  const priceLine = (date: string, price: number) => {
+  // ── ΠΟΤΕ ΑΛΛΑΖΕΙ ΤΟ ΤΕΛΟΣ ΜΕΣΑ ΣΕ ΕΝΑ ΔΙΑΣΤΗΜΑ ────────────────────────────
+  // Το ΤΑΚΚ έχει δύο συντελεστές, με σύνορο την 1η Απριλίου και την 1η
+  // Νοεμβρίου. Η γραμμή του κενού υπολόγιζε το τέλος ΜΟΝΟ από την ημερομηνία
+  // έναρξης και το τύπωνε σαν να ισχύει για όλο το διάστημα: ένα κενό «24 Σεπ
+  // έως 31 Δεκ» έγραφε 8,00 € για ενενήντα εννέα νύχτες, ενώ οι εξήντα ένα από
+  // αυτές πληρώνουν 2,00 €. Το «μένει σε εσένα» της γραμμής ήταν αντίστοιχα
+  // λάθος προς τα κάτω. Οταν το διάστημα περνά το σύνορο, το λέμε και δίνουμε
+  // την ημερομηνία — δεν διαλέγουμε σιωπηλά τη μία από τις δύο τιμές.
+  const levyChange = (start: string, end?: string) => {
+    if (!end) return null;
+    const y0 = Number(start.slice(0, 4)), m0 = Number(start.slice(5, 7)) - 1;
+    const y1 = Number(end.slice(0, 4)), m1 = Number(end.slice(5, 7)) - 1;
+    const high = (m: number) => m >= 3 && m <= 9;
+    const from = high(m0);
+    for (let y = y0, m = m0; y < y1 || (y === y1 && m <= m1); m === 11 ? (m = 0, y++) : m++) {
+      if (high(m) !== from) return { date: `${String(y)}-${String(m + 1).padStart(2, '0')}-01`, toHigh: !from };
+    }
+    return null;
+  };
+
+  const priceLine = (date: string, price: number, end?: string) => {
     const b = guestPriceBreakdown(date, price, { sqm: propertySqm ?? null, isHouse, platformFeeRate: feeRate });
+    const change = levyChange(date, end);
+    const after = change ? guestPriceBreakdown(change.date, price, { sqm: propertySqm ?? null, isHouse, platformFeeRate: feeRate }) : null;
     return (
       <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border-subtle)', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
         {/* Ήταν μία γραμμή με τρεις παρενθέσεις, δύο παύλες, ένα βέλος και έξι
@@ -365,15 +387,30 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
         {' · '}δηλωτέο ακαθάριστο <strong style={{ fontFamily: T.font.num, color: 'var(--text-primary)' }}>{fe(b.declarableGross)}</strong>
         {b.platformFee != null && <>{' · '}προμήθεια <strong style={{ fontFamily: T.font.num }}>{fe(b.platformFee)}</strong></>}
         {b.payout != null && <>{' · '}μένει σε εσένα <strong style={{ fontFamily: T.font.num }}>{fe(b.payout)}</strong></>}
-        <div style={{ marginTop: 5, color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
-          Το τέλος ανθεκτικότητας ({b.highSeason ? 'υψηλή' : 'χαμηλή'} περίοδος) εισπράττεται για το κράτος και δεν είναι έσοδό σου.{' '}
-          {b.platformFee != null
-            ? `Η προμήθεια (${Math.round((b.platformFeeRate || 0) * 100)}%, από τις δικές σου καταγεγραμμένες διαμονές) είναι δαπάνη και δεν μειώνει το δηλωτέο έσοδο.`
-            : 'Την προμήθεια δεν την ξέρουμε. Κατέγραψέ τη σε μια διαμονή και θα εμφανιστεί εδώ.'}
-        </div>
+        {change && after && (
+          <div style={{ marginTop: 4, color: 'var(--text-tertiary)' }}>
+            Από {fd(change.date)} το τέλος γίνεται <strong style={{ fontFamily: T.font.num }}>{fe(after.climateLevy)}</strong>
+            {after.payout != null && <> και μένουν <strong style={{ fontFamily: T.font.num }}>{fe(after.payout)}</strong></>}.
+          </div>
+        )}
       </div>
     );
   };
+
+  // ── Η ΑΝΑΤΟΜΙΑ ΤΗΣ ΤΙΜΗΣ ΕΞΗΓΕΙΤΑΙ ΜΙΑ ΦΟΡΑ ─────────────────────────────
+  // Η ίδια εξήγηση καθόταν ΜΕΣΑ σε κάθε γραμμή κενού. Με οκτώ κενά, ο χρήστης
+  // διάβαζε οκτώ φορές τις ίδιες δύο προτάσεις — και στην ένατη, στη λεπτομέρεια
+  // ημέρας, άλλη μία. Δεν είναι πληροφορία που αλλάζει ανά γραμμή: το ότι το
+  // τέλος ανήκει στο κράτος και ότι η προμήθεια είναι δαπάνη ισχύει για όλη την
+  // καρτέλα. Λέγεται μία φορά, εκεί που πρωτοεμφανίζεται η ανάλυση.
+  const priceAnatomy = (
+    <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.65, fontFamily: T.font.sans }}>
+      Το τέλος ανθεκτικότητας εισπράττεται για το κράτος και δεν είναι έσοδό σου.{' '}
+      {feeRate != null && feeRate > 0
+        ? `Η προμήθεια (${fp(feeRate * 100)}, από τις δικές σου καταγεγραμμένες διαμονές) είναι δαπάνη και δεν μειώνει το δηλωτέο έσοδο.`
+        : 'Η προμήθεια της πλατφόρμας δεν φαίνεται σε καμία καταγεγραμμένη διαμονή, οπότε δεν μπαίνει στον υπολογισμό.'}
+    </div>
+  );
 
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
@@ -594,10 +631,11 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                     </div>
                     {/* Και εδώ, όχι μόνο στη λεπτομέρεια ημέρας: η τιμή προσφοράς
                         είναι ακριβώς η στιγμή που ο χρήστης υπολογίζει «τι βγάζω». */}
-                    {priceLine(g.start, g.fillPrice)}
+                    {priceLine(g.start, g.fillPrice, g.end)}
                   </div>
                 ))}
               </div>
+              {priceAnatomy}
             </div>
           )}
 
@@ -744,6 +782,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                 </div>
               </div>
               {priceLine(sel.date, sel.price)}
+              {gaps.length === 0 && priceAnatomy}
             </div>
           )}
         </>
