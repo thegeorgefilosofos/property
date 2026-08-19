@@ -18,7 +18,7 @@ import { issueDocument } from '@/lib/documents/issue'
 import { ShieldCheck } from 'lucide-react'
 import { notify, notifyOk, notifyError } from '@/components/Toast';
 import {
-  BANKS, LOAN_TYPES, BORROWER_PROFILES,
+  BANKS, LOAN_TYPES, BORROWER_PROFILES, rateRange,
   calcMonthly, calcAmortization, calcFmaExemption, calcRentalTax, taxableRental,
   fmtEur, fmtPct, fmtPct1, BANKS_VERIFIED,
   LoanType, RateType, BorrowerType, LoanScenario, MarketRates, SavedLoan
@@ -439,7 +439,7 @@ function calcNotaryFees(propValue:number):{notary:number;landReg:number;agent:nu
   return{notary:notaryFee+mortgageDeed,landReg,agent:0,legal,other:mortgageTax,total,breakdown}
 }
 
-const LOAN_TYPE_OPTIONS = Object.entries(LOAN_TYPES).map(([k,v])=>({value:k,label:v.label,description:`${v.typical_rate} · Δάνειο προς αξία έως ${v.typical_ltv}%`}))
+const LOAN_TYPE_OPTIONS = Object.entries(LOAN_TYPES).map(([k,v])=>({value:k,label:v.label,description:`${rateRange(v)} · Δάνειο προς αξία έως ${fp(v.typical_ltv)}`}))
 const BORROWER_OPTIONS  = Object.entries(BORROWER_PROFILES).map(([k,v])=>({value:k,label:v.label,description:v.notes}))
 const BANK_OPTIONS      = [...BANKS.map(b=>({value:b.id,label:b.name,description:`${b.note} · ${b.fees}`})),{value:'custom',label:'Άλλη τράπεζα',description:'Καταχώρησε το όνομά της'}]
 const RATE_TYPE_OPTIONS = [{value:'fixed',label:'Σταθερό',description:'Σταθερό για την επιλεγμένη περίοδο'},{value:'variable',label:'Κυμαινόμενο',description:'Euribor συν περιθώριο τράπεζας'},{value:'mixed',label:'Μεικτό',description:'Σταθερό αρχικά, μετά κυμαινόμενο'}]
@@ -531,12 +531,17 @@ interface Props {
   // Τιμές που «εφαρμόζονται» εξωτερικά (π.χ. από σάρωση εγγράφου δανειολήπτη).
   // Το πεδίο v είναι σφραγίδα έκδοσης ώστε η εφαρμογή να ενεργοποιείται μόνο σε νέα σάρωση.
   applied?:{v:number;loanAmount?:number;propValue?:number;rate?:number;years?:number;rateType?:RateType;loanType?:string;income?:number;marital?:'single'|'married';children?:number}
+  // Ο ΦΑΚΟΣ ΖΕΙ ΣΤΟΝ ΓΟΝΕΑ. Ο «Οδηγός» της Συμβουλευτικής στέλνει τον χρήστη
+  // στα «Απαραίτητα έγγραφα», που είναι ένας από τους φακούς εδώ. Αν ο φακός
+  // κρατιόταν εσωτερικά, ο γονέας δεν θα είχε τρόπο να τον ανοίξει — και η
+  // παραπομπή θα έμενε νεκρό κείμενο («βρίσκονται στον Υπολογιστή…»).
+  lens:string; onLens:(v:string)=>void; lensRef?:React.Ref<HTMLDivElement>
 }
 
 const NATURAL_BORROWERS:BorrowerType[] = ['individual','young','family','senior','military','abroad']
 const BUSINESS_BORROWERS:BorrowerType[] = ['professional','company']
 
-export default function TabLoanCalculator({propertyId,userId,market,initial,applied,onSaveLoan,onSaveToCalendar,onSaveToExpenses,onStateChange,profile='individual'}:Props) {
+export default function TabLoanCalculator({propertyId,userId,market,initial,applied,onSaveLoan,onSaveToCalendar,onSaveToExpenses,onStateChange,profile='individual',lens,onLens,lensRef}:Props) {
   const supabase = createClient()
   const branding = useReportBranding(userId)
   const [genOfficial, setGenOfficial] = useState(false)
@@ -555,7 +560,6 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
   const [bankId,      setBankId]      = useState('')
   const [customBank,  setCustomBank]  = useState('')
   const [extraPay,    setExtraPay]    = useState('0')
-  const [lens,        setLens]        = useState('amort')
   const [income,      setIncome]      = useState('2000')
   // ΕΝΟΙΚΙΟ: ΠΡΑΓΜΑΤΙΚΟ, ΑΛΛΙΩΣ ΤΕΚΜΗΡΙΩΜΕΝΟ — ΠΟΤΕ «4% ΤΗΣ ΑΞΙΑΣ».
   // Ήταν δύο φορές επινοημένο στο ίδιο αρχείο: εδώ (PV×0,04/12, για την σύγκριση
@@ -1131,7 +1135,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
       )}
 
       {/* ── Lens switcher: ένα δυναμικό πάνελ επί τόπου (όχι στοίβαγμα) ── */}
-      <LensBar value={lens} onChange={setLens} items={[
+      <LensBar barRef={lensRef} value={lens} onChange={onLens} items={[
         {id:'amort',label:'Απόσβεση'},
         {id:'rate',label:'Επιτόκιο'},
         {id:'capacity',label:'Ικανότητα'},

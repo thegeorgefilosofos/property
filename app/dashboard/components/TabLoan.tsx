@@ -21,7 +21,7 @@ import { Gift } from 'lucide-react'
 import { downloadXlsx } from './exportXlsx'
 import TabLoanCalculator, { type LoanCalcState } from './TabLoanCalculator'
 import { useMarketRates, useBankRates, useLoanPrograms, useIsAdmin } from '../../hooks/useMarketData'
-import { BANKS_NORM, PROGRAMS_NORM, normBank, normProgram, BANKS_VERIFIED, RATES_DISCLAIMER, type ComparisonBank, type ComparisonProgram, LOAN_TYPES, GLOSSARY, EURIBOR_HISTORY, SERVICERS_GUIDE, calcMonthly, fmtEur, fmtPct, LoanType, RateType, SavedLoan, MARKET_FALLBACK } from './TabLoanData'
+import { BANKS_NORM, PROGRAMS_NORM, normBank, normProgram, BANKS_VERIFIED, RATES_DISCLAIMER, type ComparisonBank, type ComparisonProgram, LOAN_TYPES, rateRange, GLOSSARY, EURIBOR_HISTORY, SERVICERS_GUIDE, calcMonthly, fmtEur, fmtPct, LoanType, RateType, SavedLoan, MARKET_FALLBACK } from './TabLoanData'
 import { rankLoans, spitiMouEligibility, type UserLoanNeeds } from '@/lib/loans/recommend'
 import { euriborInsight } from '@/lib/loans/affordability'
 import LoanDocScan, { type AppliedLoan } from './LoanDocScan'
@@ -263,6 +263,15 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
   // και το scroll «πηδούσε» προς τα πάνω κατά το άνοιγμα μιας ενότητας.
   const calcRef = useRef<HTMLDivElement>(null)
   const scrollToCalc = ()=>calcRef.current?.scrollIntoView({behavior:'smooth',block:'start'})
+  // Ο φακός του Υπολογιστή. Ζει εδώ και όχι μέσα του, γιατί ο «Οδηγός» της
+  // Συμβουλευτικής παραπέμπει στα «Απαραίτητα έγγραφα» — και μια παραπομπή που
+  // δεν μπορεί να ανοίξει τον προορισμό της είναι κείμενο, όχι διαδρομή.
+  const [calcLens,setCalcLens] = useState('amort')
+  const lensRef = useRef<HTMLDivElement>(null)
+  const openCalcDocs = ()=>{
+    setCalcLens('table')
+    requestAnimationFrame(()=>lensRef.current?.scrollIntoView({behavior:'smooth',block:'start'}))
+  }
   // Εφαρμογή επιτοκίου τράπεζας στον Υπολογιστή (μέσω του καναλιού «applied»· η
   // σφραγίδα έκδοσης εξασφαλίζει ότι εφαρμόζεται ακόμη κι αν ξαναπατηθεί η ίδια τιμή).
   // Προσοχή: για ΚΥΜΑΙΝΟΜΕΝΟ, ο Υπολογιστής περιμένει το ΠΕΡΙΘΩΡΙΟ (spread), όχι το
@@ -708,6 +717,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
           onSaveToCalendar={handleSaveCal}
           onSaveToExpenses={handleSaveExp}
           onStateChange={setCalcState}
+          lens={calcLens} onLens={setCalcLens} lensRef={lensRef}
         />
       </div>
 
@@ -1214,22 +1224,42 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
               )
             })()}
 
-            {(()=>{ const info=LOAN_TYPES[advType]; return (
-              <MiniSection title={`Οδηγός, ${info.label}`}>
-                <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6,fontFamily: T.font.sans,margin:'0 0 14px'}}>{info.desc}. {info.notes}.</p>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%,150px),1fr))',gap:10,marginBottom:14}}>
-                  {[['Τυπικό επιτόκιο',info.typical_rate],['Τυπικό δάνειο προς αξία',`έως ${info.typical_ltv}%`]].map(([k,v])=>(
-                    <div key={k as string} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'11px 13px'}}>
-                      <div style={{fontSize:10,fontWeight:600,letterSpacing:'0.05em',textTransform:'uppercase',color:'var(--text-tertiary)',fontFamily: T.font.sans,marginBottom:5}}>{k}</div>
-                      <div style={{fontSize:16,fontWeight:700,color:'var(--text-primary)',fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',letterSpacing:'-0.01em'}}>{v}</div>
+            {/* ═══ Ο ΟΔΗΓΟΣ ΤΟΥ ΤΥΠΟΥ ΔΑΝΕΙΟΥ ═══════════════════════════════
+                ΤΡΙΑ ΙΔΙΑ ΚΟΥΤΙΑ ΓΙΑ ΤΡΕΙΣ ΔΙΑΦΟΡΕΤΙΚΕΣ ΔΟΥΛΕΙΕΣ. Δύο αριθμοί
+                και μια νομική σημείωση φορούσαν το ίδιο ακριβώς πλαίσιο, το
+                ίδιο φόντο και την ίδια ακτίνα: η κάρτα διαβαζόταν ως τρία
+                όμοια πράγματα, ενώ είναι μια αγορά, ένα όριο και ένας φόρος.
+                Τώρα είναι ΜΙΑ κατάσταση στοιχείων — ετικέτα πάνω, τιμή κάτω,
+                λεπτή γραμμή ανάμεσα. Το πλαίσιο φεύγει, η ιεραρχία μένει.
+
+                ΚΑΙ Η ΠΑΡΑΠΟΜΠΗ ΗΤΑΝ ΚΕΙΜΕΝΟ. Η τελευταία γραμμή έλεγε πού
+                βρίσκονται τα δικαιολογητικά· δεν πήγαινε εκεί. Τώρα ανοίγει
+                τον φακό «Πίνακας και έγγραφα» του Υπολογιστή και κυλά ως εκεί,
+                και ο τίτλος του κουμπιού είναι το όνομα του προορισμού. ═══ */}
+            {(()=>{ const info=LOAN_TYPES[advType]; const facts=[
+              {k:'Τυπικό επιτόκιο αγοράς',v:rateRange(info)},
+              {k:'Δάνειο προς αξία έως',  v:fp(info.typical_ltv)},
+            ]; return (
+              <MiniSection title={`Οδηγός, ${info.label}`} meta={<span style={{fontSize:12,color:'var(--text-tertiary)',fontFamily: T.font.sans,whiteSpace:'nowrap' as const}}>{info.docs.length} δικαιολογητικά</span>}>
+                <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6,fontFamily: T.font.sans,margin:'0 0 4px'}}>{info.desc}. {info.notes}.</p>
+                {/* Ευέλικτη ροή, όχι πλέγμα auto-fit: σε φαρδιά κάρτα το auto-fit
+                    θα άνοιγε τρίτη κενή στήλη και η γραμμή θα σταματούσε στη μέση. */}
+                <div style={{display:'flex',flexWrap:'wrap'}}>
+                  {facts.map(f=>(
+                    <div key={f.k} style={{flex:'1 1 190px',minWidth:0,padding:'13px 22px 13px 0',borderTop:'1px solid var(--border-subtle)'}}>
+                      <div style={{...labelStyle,marginBottom:6}}>{f.k}</div>
+                      <div style={{fontSize:18,fontWeight:600,color:'var(--text-primary)',fontFamily: T.font.num,fontVariantNumeric:'tabular-nums',letterSpacing:'-0.02em'}}>{f.v}</div>
                     </div>
                   ))}
+                  <div style={{flex:'1 1 100%',padding:'13px 0 15px',borderTop:'1px solid var(--border-subtle)'}}>
+                    <div style={{...labelStyle,marginBottom:6}}>Φορολογικά και νομικά</div>
+                    <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.55,fontFamily: T.font.sans}}>{info.tax_note}</p>
+                  </div>
                 </div>
-                <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'11px 13px',marginBottom:14}}>
-                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-secondary)',fontFamily: T.font.sans,marginBottom:4}}>Φορολογικά και νομικά</div>
-                  <div style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.55,fontFamily: T.font.sans}}>{info.tax_note}</div>
-                </div>
-                <p style={{fontSize:12,color:'var(--text-tertiary)',lineHeight:1.55,fontFamily: T.font.sans,margin:0}}>Τα απαραίτητα δικαιολογητικά και η πρόοδός τους βρίσκονται στον Υπολογιστή, ενότητα «Πίνακας και έγγραφα».</p>
+                <button type="button" onClick={openCalcDocs} style={{display:'inline-flex',alignItems:'center',gap:9,height:T.h.md,padding:'0 16px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:T.radius.btn,cursor:'pointer',color:'var(--text-primary)',fontSize:13,fontWeight:500,fontFamily: T.font.sans}}>
+                  Απαραίτητα έγγραφα
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </button>
               </MiniSection>
             ); })()}
 

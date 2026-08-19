@@ -78,9 +78,9 @@ export function KPI({label,value,emphasis,sub,title}:{label:string;value:string;
 }
 
 // Cockpit: εναλλαγή φακών επί τόπου (segmented control, ένα πάνελ τη φορά).
-export function LensBar({value,onChange,items}:{value:string;onChange:(v:string)=>void;items:{id:string;label:string}[]}) {
+export function LensBar({value,onChange,items,barRef}:{value:string;onChange:(v:string)=>void;items:{id:string;label:string}[];barRef?:React.Ref<HTMLDivElement>}) {
   return (
-    <div style={{display:'flex',gap:3,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:T.radius.card,padding:4,overflowX:'auto'}}>
+    <div ref={barRef} style={{display:'flex',gap:3,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:T.radius.card,padding:4,overflowX:'auto'}}>
       {items.map(it=>{const on=value===it.id;return(
         <button key={it.id} onClick={()=>onChange(it.id)} aria-pressed={on} style={{flex:'1 0 auto',minWidth:92,borderRadius:T.radius.inner,padding:'9px 14px',cursor:'pointer',fontFamily: T.font.sans,fontSize:13,fontWeight:on?600:500,whiteSpace:'nowrap' as const,border:'none',
           color:on?'var(--accent)':'var(--text-tertiary)',background:on?'var(--bg-elevated)':'transparent',
