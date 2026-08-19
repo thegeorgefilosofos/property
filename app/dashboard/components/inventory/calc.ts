@@ -10,7 +10,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { depreciate } from '@/lib/inventory/depreciation'
 import { monthlyKwh, monthlyEnergyCost } from '@/lib/property/energy'
-import { fd, ABSENT_DATE } from '@/components/Theme'
+import { fd, ABSENT_DATE } from '@/components/tokens'
 import { athensToday, daysUntil as athensDaysUntil } from '@/lib/core/time'
 import { addMonths as addCalendarMonths } from '@/lib/loans/progress'
 import type { InventoryItem } from './model'

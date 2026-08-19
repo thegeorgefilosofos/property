@@ -10,6 +10,7 @@
 import { vocative } from '../greekName';
 import { fp, fe } from '../core/format';
 import { navLabel } from '../nav/labels';
+import { athensParts } from '../core/time';
 
 export type InsightKind = 'urgent' | 'attention' | 'opportunity' | 'positive';
 
@@ -178,7 +179,11 @@ export function computeInsights(input: InsightInput): Insight[] {
   // ψεύτικο. Οι δαπάνες μπαίνουν ως μηνιαίος μέσος όρος του τρέχοντος έτους,
   // και το λέει η ίδια η πρόταση.
   if (loanPayment > 0 && rent > 0) {
-    const monthsSoFar = new Date(now).getMonth() + 1;
+    // ΕΛΛΗΝΙΚΟΣ ΜΗΝΑΣ, ΟΧΙ ΜΗΝΑΣ ΤΟΥ ΠΕΡΙΗΓΗΤΗ. Το `getMonth()` απαντά σε ΤΟΠΙΚΗ
+    // ώρα: ιδιοκτήτης που ανοίγει την εφαρμογή από την Αμερική την 1η Ιανουαρίου
+    // θα έπαιρνε Δεκέμβριο, άρα διαιρέτη 12 αντί για 1 — και ο «μηνιαίος μέσος
+    // όρος δαπανών» θα έβγαινε δωδέκατο του πραγματικού.
+    const monthsSoFar = athensParts(new Date(now)).month;
     const monthlyExpenses = expensesYTD > 0 ? expensesYTD / monthsSoFar : 0;
     const cash = rent - loanPayment - monthlyExpenses;
     if (cash < 0) out.push({

@@ -10,7 +10,7 @@
 // κείμενο· αν το γράψιμο και το διάβασμα ζούσαν σε δύο σημεία, η πρώτη αλλαγή
 // σχήματος θα έσπαγε το ένα από τα δύο σιωπηλά.
 // ═══════════════════════════════════════════════════════════════════════════
-import { fd } from '@/components/Theme'
+import { fd } from '@/components/tokens'
 import { daysUntil as athensDaysUntil } from '@/lib/core/time'
 import { addMonths as addCalendarMonths } from '@/lib/loans/progress'
 import type { ChecklistItemsRow } from '@/lib/supabase/tables'

@@ -9,6 +9,8 @@ import { feAuto, T, ABSENT_DATE, EmptyState, Modal, Spinner } from '@/components
 import { athensToday } from '@/lib/core/time';
 import { MONTHS_NOM } from '@/lib/core/months';
 import type { RentPaymentsRow, BankTransactionsRow } from '@/lib/supabase/tables';
+import { notifyError } from '@/components/Toast';
+import { failed } from '@/lib/core/dbError';
 
 // ΤΟ ΑΠΟΤΥΠΩΜΑ ΕΦΥΓΕ ΣΤΗ ΜΗΧΑΝΗ, ΔΙΠΛΑ ΣΤΗΝ ΑΝΑΓΝΩΣΗ ΤΟΥ ΑΡΧΕΙΟΥ. Ηταν εδώ
 // `${date}|${amount}|${description}`: δύο αναλήψεις 50,00 από το ίδιο ΑΤΜ την
@@ -48,7 +50,12 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
     // το πολύ μία γραμμή ανά παλιό κλειδί, οπότε από δύο πανομοιότυπες γραμμές
     // του αρχείου η πρώτη μετρά ως ήδη εισαγμένη και η δεύτερη, που παλιότερα
     // χανόταν, περνά. Χωρίς την κατανάλωση θα έμενε χαμένη για πάντα.
-    const { data: existing } = await supabase.from('bank_transactions').select('dedup_hash').eq('user_id',userId)
+    // ΤΟ ΣΦΑΛΜΑ ΔΕΝ ΕΠΙΤΡΕΠΕΤΑΙ ΝΑ ΠΕΡΑΣΕΙ ΣΙΩΠΗΛΑ. Το `error` αγνοούνταν: μια
+    // αποτυχία του ερωτήματος έδινε `existing = null`, άρα ΚΕΝΟ σύνολο
+    // αποτυπωμάτων, άρα κάθε γραμμή του αρχείου περνούσε ως καινούρια. Ο
+    // χρήστης δεν έβλεπε λάθος — έβλεπε διπλές κινήσεις στα βιβλία του.
+    const { data: existing, error: dedupErr } = await supabase.from('bank_transactions').select('dedup_hash').eq('user_id',userId)
+    if (dedupErr) { notifyError(failed('Ο έλεγχος για διπλές κινήσεις δεν ολοκληρώθηκε', dedupErr)); return }
     const seen = new Set((existing||[]).map(r=>r.dedup_hash))
     const fresh = txns.filter(t=>!(seen.has(t.key) || seen.delete(legacyKeyOf(t))))
     setSkipped(txns.length - fresh.length)
