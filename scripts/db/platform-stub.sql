@@ -4,11 +4,19 @@ create schema if not exists storage;
 create schema if not exists extensions;
 create extension if not exists pgcrypto;
 create extension if not exists "uuid-ossp";
+-- ΤΟ ΟΜΟΙΩΜΑ ΠΡΕΠΕΙ ΝΑ ΕΧΕΙ ΚΑΘΕ ΣΤΗΛΗ ΠΟΥ ΑΓΓΙΖΕΙ ΜΕΤΑΝΑΣΤΕΥΣΗ.
+-- Το `deleted_at` έλειπε, ενώ τέσσερις μεταναστεύσεις το διαβάζουν. Δεν
+-- φαινόταν, γιατί και οι τέσσερις το είχαν μέσα σε ΣΩΜΑ ΣΥΝΑΡΤΗΣΗΣ: η
+-- PostgreSQL δεν επιλύει ονόματα σε plpgsql κατά τη δημιουργία, μόνο στην
+-- κλήση. Η πρώτη μετανάστευση με σκέτο `insert … select` πάνω στη στήλη το
+-- αποκάλυψε αμέσως. Δηλαδή το ομοίωμα ήταν ήδη αναληθές· απλώς κανείς δεν το
+-- είχε ρωτήσει με τρόπο που να απαντά.
 create table if not exists auth.users (
   id uuid primary key default gen_random_uuid(),
   email text, raw_user_meta_data jsonb default '{}'::jsonb,
   email_confirmed_at timestamptz, created_at timestamptz default now(),
-  last_sign_in_at timestamptz, phone text, confirmed_at timestamptz
+  last_sign_in_at timestamptz, phone text, confirmed_at timestamptz,
+  deleted_at timestamptz
 );
 create or replace function auth.uid() returns uuid language sql stable as $$ select null::uuid $$;
 create or replace function auth.role() returns text language sql stable as $$ select 'authenticated'::text $$;
