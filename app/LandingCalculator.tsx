@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
-import { rentalIncomeTax } from '@/lib/billing/greekTax'
+import { rentalIncomeTax, RENTAL_TAX_BRACKETS_2026, taxRateLabel } from '@/lib/billing/greekTax'
 import { fe, fp } from '@/lib/core/format'
 import { PRESUMPTIVE_DEDUCTION_RATE } from '@/lib/accounting/statement'
 
@@ -27,14 +27,25 @@ import { PRESUMPTIVE_DEDUCTION_RATE } from '@/lib/accounting/statement'
 // Το `fp` δέχεται ποσοστιαία μονάδα, όχι κλάσμα: 0,043 γίνεται fp(4,3).
 const pct = (n: number) => fp(n * 100)
 
-// Πλάτος κλιμακίου φόρου, για την οπτική «πού πέφτεις» στην κλίμακα.
-const BANDS = [
-  { to: 12000, rate: '15%' },
-  { to: 24000, rate: '25%' },
-  { to: 35000, rate: '35%' },
-  { to: 45000, rate: '45%' },
-]
+// ═══════════════════════════════════════════════════════════════════════════
+// Η ΚΛΙΜΑΚΑ ΔΕΝ ΞΑΝΑΓΡΑΦΕΤΑΙ ΕΔΩ.
+// ─────────────────────────────────────────────────────────────────────────
+// Ηταν χειρόγραφος πίνακας με τα ίδια όρια (12.000 / 24.000 / 35.000) και τα
+// ίδια ποσοστά ('15%'…'45%') που ζουν στο lib/billing/greekTax.ts. Δηλαδή η
+// ΠΡΩΤΗ οθόνη που βλέπει ο επισκέπτης κρατούσε δικό της αντίγραφο του νόμου,
+// δίπλα στον υπολογισμό που έρχεται απο τη μία πηγή: με την πρώτη αλλαγή
+// κλίμακας, ο αριθμός θα άλλαζε και η ζωγραφισμένη κλίμακα από κάτω του όχι.
+//
+// ΤΟ ΤΑΒΑΝΙ ΕΙΝΑΙ ΣΧΕΔΙΑΣΤΙΚΟ, ΚΑΙ ΤΟ ΛΕΕΙ. Το τελευταίο κλιμάκιο πάει ώς το
+// άπειρο· μια μπάρα δεν ζωγραφίζεται ώς το άπειρο. Το `SCALE_MAX` δίνει στο
+// ανώτατο κλιμάκιο ΟΡΑΤΟ πλάτος και δεν είναι φορολογικό όριο — γι' αυτό
+// γράφεται χωριστά, με όνομα που το λέει, αντί να κρύβεται ως «to: 45000».
+// ═══════════════════════════════════════════════════════════════════════════
 const SCALE_MAX = 45000
+const BANDS = RENTAL_TAX_BRACKETS_2026.map(b => ({
+  to: Number.isFinite(b.to) ? b.to : SCALE_MAX,
+  rate: taxRateLabel(b.rate),
+}))
 
 function Control({ label, hint, value, set, min, max, step, format }: {
   label: string; hint: string; value: number; set: (n: number) => void; min: number; max: number; step: number; format: (n: number) => string

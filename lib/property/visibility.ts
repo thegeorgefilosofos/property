@@ -30,9 +30,27 @@
 
 import { readStatus, type PropertyStatus, type StatusRow } from './status';
 import { NAV_LABELS } from '../nav/labels';
+import { HAS_BUSINESS, type LegalForm } from '../accounting/dossier';
 
-/** Φυσικό ή νομικό πρόσωπο. Ρωτιέται ΜΙΑ φορά, στην εγγραφή. */
-export type LegalForm = 'individual' | 'company';
+// ═══════════════════════════════════════════════════════════════════════════
+// ΕΝΑΣ ΤΥΠΟΣ ΝΟΜΙΚΗΣ ΜΟΡΦΗΣ ΣΕ ΟΛΗ ΤΗΝ ΕΦΑΡΜΟΓΗ.
+// ─────────────────────────────────────────────────────────────────────────
+// Εδώ ζούσε δεύτερος τύπος με το ΙΔΙΟ όνομα `LegalForm`, με δύο τιμές αντί για
+// τέσσερις. Η σύγκρουση φαινόταν γυμνή στο app/dashboard/page.tsx, που έπρεπε
+// να εισάγει και τους δύο και να μετονομάσει τον έναν:
+//
+//     import { type LegalForm } from '@/lib/property/visibility';
+//     import { type LegalForm as DossierLegalForm } from '@/lib/accounting/dossier';
+//
+// Και κόστιζε ΔΥΟ states γεμισμένα απο την ΙΔΙΑ τιμή της βάσης — δύο εντολές
+// που μπορούσαν να ξεσυγχρονιστούν, για μια πληροφορία που είναι μία.
+//
+// Η δυαδική περίληψη δεν ήταν λάθος ιδέα· ήταν λάθος ΟΝΟΜΑ. Η ορατότητα δεν
+// ρωτά «είναι εταιρεία;» — ρωτά «ασκεί επιχειρηματική δραστηριότητα;», και η
+// απάντηση για ατομική επιχείρηση είναι ναι. Η ερώτηση απαντιέται πλέον απο το
+// `HAS_BUSINESS`, εκεί όπου ορίζονται οι μορφές.
+// ═══════════════════════════════════════════════════════════════════════════
+export type { LegalForm } from '../accounting/dossier';
 
 export interface PropertyLike extends StatusRow {
   id: string;
@@ -392,7 +410,9 @@ export function accountingSections(ctx: OwnerContext): AccountingSection[] {
     return s === 'rent_long' || s === 'rent_short';
   });
   const anyShort = ctx.properties.some(p => readStatus(p) === 'rent_short');
-  const isCompany = ctx.legalForm === 'company';
+  // «Επιχειρηματική δραστηριότητα», όχι «εταιρεία»: η ατομική επιχείρηση
+  // έχει κι αυτή βιβλία. Η λίστα ζει στο dossier, με τις μορφές.
+  const isCompany = HAS_BUSINESS.has(ctx.legalForm);
 
   const out: AccountingSection[] = ['expenses', 'enfia'];
   if (anyLet) out.push('rental_income');

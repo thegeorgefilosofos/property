@@ -1,8 +1,9 @@
 // Αυστηρά τεστ για την κλίμακα φόρου ενοικίων 2026 (greekTax.ts).
 // Τρέξε: npx tsx lib/billing/greekTax.test.ts
+import { fp } from '@/lib/core/format';
 import {
   rentalIncomeTax, marginalRate, effectiveRentalRate,
-  RENTAL_TAX_BRACKETS_2026, RENTAL_TAX_ROWS_2026,
+  RENTAL_TAX_BRACKETS_2026, RENTAL_TAX_ROWS_2026, taxRateLabel,
   climateLevyForNights, isHighSeasonMonth, shortTermNet, CLIMATE_LEVY_PER_NIGHT_2025,
 } from './greekTax';
 
@@ -64,7 +65,15 @@ for (let x = 0; x <= 60000; x += 1000) {
 // ── Οι γραμμές UI είναι συνεπείς με τα κλιμάκια ──────────────────────────────
 ok('rows count == brackets', RENTAL_TAX_ROWS_2026.length === RENTAL_TAX_BRACKETS_2026.length);
 ok('rows boundaries match', RENTAL_TAX_ROWS_2026.every((r, i) => r.from === RENTAL_TAX_BRACKETS_2026[i].from && r.to === RENTAL_TAX_BRACKETS_2026[i].to));
-ok('rows include 25% band', RENTAL_TAX_ROWS_2026.some(r => r.rate === '25%' && r.from === 12000 && r.to === 24000));
+ok('rows include 25% band', RENTAL_TAX_ROWS_2026.some(r => r.rate === '25,00%' && r.from === 12000 && r.to === 24000));
+// Η ΕΤΙΚΕΤΑ ΒΓΑΙΝΕΙ ΑΠΟ ΤΟΝ ΑΡΙΘΜΟ ΠΟΥ ΧΡΕΩΝΕΙ. Οι ετικέτες ήταν χειρόγραφες
+// («rate: '15%'») δίπλα στα κλιμάκια που κάνουν τον υπολογισμό: ένα ορθογραφικό
+// θα έδειχνε άλλο ποσοστό απο αυτό που εφαρμόζεται, και ο παλιός έλεγχος
+// επιβεβαίωνε μόνο τα ΟΡΙΑ, όχι τους συντελεστές.
+ok('κάθε ετικέτα συμφωνεί με τον συντελεστή της',
+  RENTAL_TAX_ROWS_2026.every((r, i) => r.rate === taxRateLabel(RENTAL_TAX_BRACKETS_2026[i].rate)));
+ok('η ετικέτα περνά από τον έναν μορφοποιητή', taxRateLabel(0.15) === fp(15));
+ok('δεκαδικό ποσοστό παίρνει κόμμα', taxRateLabel(0.155) === '15,50%');
 
 // ── Τέλος ανθεκτικότητας (ΤΑΚΚ) βραχυχρόνιας ─────────────────────────────────
 ok('high season Απρ–Οκτ', [3,4,5,6,7,8,9].every(isHighSeasonMonth) && ![0,1,2,10,11].some(isHighSeasonMonth));

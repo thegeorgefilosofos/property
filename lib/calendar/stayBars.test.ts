@@ -20,9 +20,9 @@ ok('end<start → κανονικοποίηση', toStaySpan({ id: 'd', check_in:
 
 // ── staysOnDay ───────────────────────────────────────────────────────────────
 const stays: StaySpan[] = [
-  { id: 'x', guest: 'X', start: '2026-08-01', end: '2026-08-05' },
-  { id: 'y', guest: 'Y', start: '2026-08-04', end: '2026-08-04' },
-  { id: 'z', guest: 'Z', start: '2026-08-10', end: '2026-08-12' },
+  { id: 'x', guest: 'X', start: '2026-08-01', end: '2026-08-05', endKnown: true },
+  { id: 'y', guest: 'Y', start: '2026-08-04', end: '2026-08-04', endKnown: true },
+  { id: 'z', guest: 'Z', start: '2026-08-10', end: '2026-08-12', endKnown: true },
 ]
 ok('μέρα εντός εύρους', staysOnDay(stays, '2026-08-03').map(s => s.id).join() === 'x')
 ok('άκρη άφιξης', staysOnDay(stays, '2026-08-01').map(s => s.id).join() === 'x')
@@ -39,7 +39,7 @@ const W = ['2026-08-03','2026-08-04','2026-08-05','2026-08-06','2026-08-07','202
 // ένα χάπι με κομμένο όνομα, τρία κενά κελιά και μια γραμμούλα στο τέλος.
 // Τώρα είναι ΜΙΑ λωρίδα με πλάτος πέντε στηλών.
 {
-  const st: StaySpan[] = [{ id: 'a', guest: 'Elena P.', start: '2026-08-03', end: '2026-08-07' }]
+  const st: StaySpan[] = [{ id: 'a', guest: 'Elena P.', start: '2026-08-03', end: '2026-08-07', endKnown: true }]
   const { segments, lanes } = weekSegments(st, W)
   ok('μία κράτηση → μία λωρίδα', segments.length === 1)
   ok('μία σειρά', lanes === 1)
@@ -52,7 +52,7 @@ const W = ['2026-08-03','2026-08-04','2026-08-05','2026-08-06','2026-08-07','202
 
 // Κράτηση που έρχεται από την προηγούμενη εβδομάδα και φεύγει στην επόμενη.
 {
-  const st: StaySpan[] = [{ id: 'b', guest: 'B', start: '2026-07-30', end: '2026-08-15' }]
+  const st: StaySpan[] = [{ id: 'b', guest: 'B', start: '2026-07-30', end: '2026-08-15', endKnown: true }]
   const { segments } = weekSegments(st, W)
   ok('περνά ολόκληρη → 7 στήλες', segments[0].span === 7 && segments[0].startCol === 0)
   ok('ανοιχτή αριστερά', segments[0].openLeft)
@@ -63,16 +63,16 @@ const W = ['2026-08-03','2026-08-04','2026-08-05','2026-08-06','2026-08-07','202
 // μία σειρά, γιατί χωράνε δίπλα δίπλα.
 {
   const overlap: StaySpan[] = [
-    { id: 'a', guest: 'A', start: '2026-08-03', end: '2026-08-06' },
-    { id: 'b', guest: 'B', start: '2026-08-05', end: '2026-08-09' },
+    { id: 'a', guest: 'A', start: '2026-08-03', end: '2026-08-06', endKnown: true },
+    { id: 'b', guest: 'B', start: '2026-08-05', end: '2026-08-09', endKnown: true },
   ]
   const r1 = weekSegments(overlap, W)
   ok('επικάλυψη → δύο σειρές', r1.lanes === 2)
   ok('η παλαιότερη άφιξη πάνω', r1.segments.find(s => s.stay.id === 'a')!.lane === 0)
 
   const apart: StaySpan[] = [
-    { id: 'a', guest: 'A', start: '2026-08-03', end: '2026-08-04' },
-    { id: 'b', guest: 'B', start: '2026-08-06', end: '2026-08-08' },
+    { id: 'a', guest: 'A', start: '2026-08-03', end: '2026-08-04', endKnown: true },
+    { id: 'b', guest: 'B', start: '2026-08-06', end: '2026-08-08', endKnown: true },
   ]
   const r2 = weekSegments(apart, W)
   ok('χωρίς επικάλυψη → μία σειρά', r2.lanes === 1)
@@ -82,7 +82,7 @@ const W = ['2026-08-03','2026-08-04','2026-08-05','2026-08-06','2026-08-07','202
 // Κενές θέσεις (κελιά άλλου μήνα) δεν σπάνε τη λωρίδα.
 {
   const padded = [null, null, '2026-08-01', '2026-08-02', null, null, null] as (string | null)[]
-  const st: StaySpan[] = [{ id: 'c', guest: 'C', start: '2026-07-28', end: '2026-08-02' }]
+  const st: StaySpan[] = [{ id: 'c', guest: 'C', start: '2026-07-28', end: '2026-08-02', endKnown: true }]
   const { segments } = weekSegments(st, padded)
   ok('κενά κελιά: ξεκινά στην πρώτη πραγματική', segments[0].startCol === 2)
   ok('κενά κελιά: δύο στήλες', segments[0].span === 2)
@@ -91,13 +91,24 @@ const W = ['2026-08-03','2026-08-04','2026-08-05','2026-08-06','2026-08-07','202
 
 // Καμία κράτηση, ή εβδομάδα εκτός εύρους → τίποτα.
 ok('χωρίς κρατήσεις', weekSegments([], W).segments.length === 0)
-ok('εκτός εύρους', weekSegments([{ id: 'z', guest: 'Z', start: '2026-09-01', end: '2026-09-03' }], W).segments.length === 0)
-ok('όλα κενά κελιά', weekSegments([{ id: 'z', guest: 'Z', start: '2026-08-03', end: '2026-08-04' }], [null,null,null,null,null,null,null]).segments.length === 0)
+ok('εκτός εύρους', weekSegments([{ id: 'z', guest: 'Z', start: '2026-09-01', end: '2026-09-03', endKnown: true }], W).segments.length === 0)
+ok('όλα κενά κελιά', weekSegments([{ id: 'z', guest: 'Z', start: '2026-08-03', end: '2026-08-04', endKnown: true }], [null,null,null,null,null,null,null]).segments.length === 0)
 
 // ── stayNights ───────────────────────────────────────────────────────────────
-ok('ίδια ημέρα → 1 νύχτα', stayNights({ id: 'q', guest: 'Q', start: '2026-08-03', end: '2026-08-03' }) === 1)
-ok('τέσσερις νύχτες', stayNights({ id: 'q', guest: 'Q', start: '2026-08-03', end: '2026-08-07' }) === 4)
-ok('πάνω από αλλαγή θερινής ώρας', stayNights({ id: 'q', guest: 'Q', start: '2026-03-27', end: '2026-03-31' }) === 4)
+// ΕΝΑΣ ΟΡΙΣΜΟΣ ΝΥΧΤΑΣ ΣΕ ΟΛΗ ΤΗΝ ΕΦΑΡΜΟΓΗ. Εδώ έλεγε «ίδια ημέρα → 1 νύχτα»,
+// ενώ το lib/clients/clients.ts (η δηλωμένη πηγή) λέει 0 για το ίδιο ζεύγος.
+// Δύο τεστ κλείδωναν δύο απαντήσεις για το ίδιο ερώτημα.
+ok('τέσσερις νύχτες', stayNights({ id: 'q', guest: 'Q', start: '2026-08-03', end: '2026-08-07', endKnown: true }) === 4)
+ok('πάνω από αλλαγή θερινής ώρας', stayNights({ id: 'q', guest: 'Q', start: '2026-03-27', end: '2026-03-31', endKnown: true }) === 4)
+ok('αυθημερόν → 0, όπως και η πηγή', stayNights({ id: 'q', guest: 'Q', start: '2026-08-03', end: '2026-08-03', endKnown: true }) === 0)
+// ΤΟ ΑΓΝΩΣΤΟ ΔΗΛΩΝΕΤΑΙ, ΔΕΝ ΜΑΝΤΕΥΕΤΑΙ. Χωρίς καταχωρημένη αναχώρηση δεν
+// υπάρχει αριθμός νυχτών· το ταβάνι `Math.max(1, …)` τύπωνε «1 νύχτα» για
+// διαμονή που κανείς δεν μέτρησε.
+ok('χωρίς αναχώρηση → null', stayNights({ id: 'q', guest: 'Q', start: '2026-08-03', end: '2026-08-03', endKnown: false }) === null)
+// Και η μετατροπή σημαίνει σωστά το γέμισμα.
+ok('toStaySpan: με αναχώρηση → endKnown', toStaySpan({ id: 'e', check_in: '2026-08-01', check_out: '2026-08-04' })!.endKnown === true)
+ok('toStaySpan: χωρίς αναχώρηση → !endKnown', toStaySpan({ id: 'f', check_in: '2026-08-01' })!.endKnown === false)
+ok('toStaySpan: ανάποδη αναχώρηση → !endKnown', toStaySpan({ id: 'g', check_in: '2026-08-10', check_out: '2026-08-01' })!.endKnown === false)
 
 // ── channelColor ─────────────────────────────────────────────────────────────
 ok('airbnb χρώμα', channelColor('airbnb').solid === 'var(--ch-airbnb)')

@@ -4,12 +4,15 @@
 // ημέρα με σωστή στρογγύλεψη στα άκρα — φαίνεται σαν μία ενιαία μπάρα.
 // Καθαρές συναρτήσεις (χωρίς DOM) ώστε να δοκιμάζονται ντετερμινιστικά.
 import { guestLabel, channelLabel } from './bookingEvents'
+import { nightsBetween } from '@/lib/core/greek'
 
 export interface StaySpan {
   id: string
   guest: string
   start: string          // YYYY-MM-DD (check-in)
-  end: string            // YYYY-MM-DD (check-out ή = start)
+  end: string            // YYYY-MM-DD (check-out ή = start, όταν λείπει)
+  /** Καταχωρημένη αναχώρηση. false ⇒ το `end` είναι ΓΕΜΙΣΜΑ, όχι δεδομένο. */
+  endKnown: boolean
   channel?: string | null
   total?: number | null
 }
@@ -20,12 +23,18 @@ export function toStaySpan(row: {
   channel?: string | null; guest_name?: string | null
 }): StaySpan | null {
   if (!row || !/^\d{4}-\d{2}-\d{2}$/.test(row.check_in)) return null
-  const end = row.check_out && /^\d{4}-\d{2}-\d{2}$/.test(row.check_out) ? row.check_out : row.check_in
+  // ΤΟ ΓΕΜΙΣΜΑ ΔΗΛΩΝΕΤΑΙ. Οταν λείπει η αναχώρηση, το `end` γίνεται ίσο με την
+  // άφιξη ΓΙΑ ΝΑ ΖΩΓΡΑΦΙΣΤΕΙ ΚΑΤΙ — δεν σημαίνει «αυθημερόν». Χωρίς αυτή τη
+  // σημαία, τα δύο σενάρια είναι δυσδιάκριτα κατάντη, και η μπάρα κατέληγε να
+  // γράφει «1 νύχτα» για διαμονή που κανείς δεν ξέρει πόσο κράτησε.
+  const hasOut = !!row.check_out && /^\d{4}-\d{2}-\d{2}$/.test(row.check_out)
+  const end = hasOut ? (row.check_out as string) : row.check_in
   return {
     id: row.id,
     guest: guestLabel({ id: row.id, check_in: row.check_in, channel: row.channel, guest_name: row.guest_name }),
     start: row.check_in,
     end: end < row.check_in ? row.check_in : end,
+    endKnown: hasOut && end >= row.check_in,
     channel: row.channel ?? null,
     total: row.total ?? null,
   }
@@ -81,15 +90,33 @@ export interface WeekSegment {
   /** Συνεχίζεται μετά από αυτή την εβδομάδα (ίσιο άκρο δεξιά). */
   openRight: boolean
   /** Νύχτες ΟΛΗΣ της κράτησης, όχι του τμήματος: η ετικέτα λέει την κράτηση. */
-  nights: number
+  /** Νύχτες, ή `null` όταν δεν έχει καταχωρηθεί αναχώρηση (δες `stayNights`). */
+  nights: number | null
 }
 
 const dayNum = (iso: string): number =>
   Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)) / 86400000
 
-/** Νύχτες μεταξύ άφιξης και αναχώρησης. Ίδια ημέρα = 1, ώστε να μη γράφει «0 ν.». */
-export function stayNights(stay: StaySpan): number {
-  return Math.max(1, Math.round(dayNum(stay.end) - dayNum(stay.start)))
+/**
+ * Νύχτες της διαμονής, ή `null` όταν δεν έχει καταχωρηθεί αναχώρηση.
+ *
+ * ΗΤΑΝ ΔΕΥΤΕΡΟΣ ΟΡΙΣΜΟΣ ΜΕ ΤΟ ΙΔΙΟ ΟΝΟΜΑ. Υπάρχει ήδη `stayNights` στο
+ * lib/clients/clients.ts (= `nightsBetween`, η δηλωμένη πηγή του
+ * guard-single-source), και εκείνος επιστρέφει 0 όπου αυτός επέστρεφε 1.
+ * Δύο συναρτήσεις με ένα όνομα και διαφορετική απάντηση είναι το ακριβώς
+ * χειρότερο: ο αναγνώστης δεν έχει λόγο να υποψιαστεί ποια καλεί.
+ *
+ * ΚΑΙ ΤΟ `Math.max(1, …)` ΔΕΝ ΗΤΑΝ ΣΤΡΟΓΓΥΛΕΨΗ, ΗΤΑΝ ΚΑΛΥΨΗ. Το `end`
+ * ισούται με το `start` σε ΔΥΟ περιπτώσεις: αυθημερόν αναχώρηση, και
+ * αναχώρηση που δεν καταχωρήθηκε ποτέ. Η δεύτερη είναι η συνηθισμένη, και το
+ * ταβάνι την τύπωνε ως «1 νύχτα» — νούμερο που κανείς δεν μέτρησε.
+ *
+ * Το ΠΛΑΤΟΣ της μπάρας δεν εξαρτάται από εδώ: το `span` έχει το δικό του
+ * `Math.max(1, …)`, γιατί μια μπάρα οφείλει να πιάνει τουλάχιστον ένα κελί.
+ * Αυτό εδώ είναι μόνο η ΕΤΙΚΕΤΑ, και η ετικέτα λέει την αλήθεια.
+ */
+export function stayNights(stay: StaySpan): number | null {
+  return stay.endKnown ? nightsBetween(stay.start, stay.end) : null
 }
 
 /**

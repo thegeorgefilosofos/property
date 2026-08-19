@@ -60,6 +60,51 @@ for (const [file, s] of src) {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΟ ΤΥΦΛΟ ΣΗΜΕΙΟ: ΤΟ ΤΕΣΤ ΜΕΤΡΟΥΣΕ ΩΣ ΚΑΤΑΝΑΛΩΤΗΣ
+// ─────────────────────────────────────────────────────────────────────────
+// Το glob παραπάνω πιάνει και τα `*.test.ts`. Αρα μια εξαγωγή που την καλεί
+// ΜΟΝΟ το δικό της τεστ μετρούσε ως «χρησιμοποιείται» — και ο φύλακας έλεγε
+// πράσινο. Το τεστ όμως δεν είναι χρήση: είναι απόδειξη ότι κάτι δουλεύει, όχι
+// ότι κάποιος το χρειάζεται. Η μέτρηση βρήκε 81 τέτοιες, με πυκνότερα σημεία
+// τη μηχανή τιμολόγησης (τέσσερις) που δεν εκδίδει κανένα παραστατικό.
+//
+// ΓΙΑΤΙ ΚΑΣΤΑΝΙΑ ΚΑΙ ΟΧΙ ΑΠΑΓΟΡΕΥΣΗ. Οι 81 ΔΕΝ είναι 81 νεκρές: πολλές είναι
+// καθαρές συναρτήσεις σπασμένες σκόπιμα σε δοκιμάσιμα κομμάτια, και η διαγραφή
+// τους μαζικά θα έσπαγε λογική για χάρη ενός αριθμού. Ο κανόνας που έχει νόημα
+// είναι «ούτε μία παραπάνω»: κάθε νέα εξαγωγή αποκτά είτε καταναλωτή είτε
+// λόγο ύπαρξης. Οταν καθαρίζεις, κατέβασε το `maxTestOnly`.
+// ═══════════════════════════════════════════════════════════════════════════
+const BASELINE = JSON.parse(readFileSync('scripts/dead-exports-baseline.json', 'utf8'));
+const isTest = f => f.includes('.test.');
+const testOnly = [];
+for (const [file, s] of src) {
+  if (isTest(file)) continue;
+  for (const m of s.matchAll(/^export (?:async )?function (\w+)|^export const (\w+)\s*[:=]/gm)) {
+    const name = m[1] || m[2];
+    if (FRAMEWORK.has(name) || KEPT.has(name)) continue;
+    const re = new RegExp(`\\b${name}\\b`, 'g');
+    let inProd = 0, inTest = 0;
+    for (const [other, t] of src) {
+      if (other === file) continue;
+      const n = (t.match(re) || []).length;
+      if (isTest(other)) inTest += n; else inProd += n;
+    }
+    if (inProd === 0 && inTest > 0 && (s.match(re) || []).length - 1 === 0) {
+      testOnly.push(`${file}  ${name}`);
+    }
+  }
+}
+if (testOnly.length > BASELINE.maxTestOnly) {
+  console.error(`✗ ${testOnly.length} εξαγωγές που τις καλεί ΜΟΝΟ το τεστ τους, πάνω από το όριο ${BASELINE.maxTestOnly}:\n`);
+  for (const x of testOnly) console.error('   ' + x);
+  console.error('\n   Το τεστ δεν είναι χρήση. Δώσε στην εξαγωγή καταναλωτή, ή σβήσ’ την.\n');
+  process.exit(1);
+}
+if (testOnly.length < BASELINE.maxTestOnly) {
+  console.log(`   (${testOnly.length} εξαγωγές μόνο με τεστ, όριο ${BASELINE.maxTestOnly} — κατέβασέ το στο scripts/dead-exports-baseline.json)`);
+}
+
 if (dead.length) {
   console.error(`✗ ${dead.length} εξαγόμενες τιμές που δεν τις χρησιμοποιεί κανείς.\n`);
   console.error('   Σβήσ’ τες, ή χρησιμοποίησέ τες. Μια τιμή που κάθεται εξαγόμενη και');

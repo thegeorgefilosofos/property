@@ -698,10 +698,17 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
                   const L=g.openLeft?0:BAR_INSET, R=g.openRight?0:BAR_INSET
                   return (
                     <div key={g.stay.id} style={{ position:'absolute', top:g.lane*(BAR_H+BAR_GAP), left:`calc(${(g.startCol/7)*100}% + ${L}px)`, width:`calc(${(g.span/7)*100}% - ${L+R}px)`, height:BAR_H, pointerEvents:'auto' }}>
-                      <Tooltip fill text={`${g.stay.guest} · ${cc.label}\n${g.stay.start} έως ${g.stay.end} · ${g.nights} ${g.nights===1?'νύχτα':'νύχτες'}${g.stay.total?`\n${fe(g.stay.total)}`:''}`}>
+                      {/* ΤΟ ΑΓΝΩΣΤΟ ΓΡΑΦΕΤΑΙ ΩΣ ΑΓΝΩΣΤΟ. Οταν λείπει η αναχώρηση, το
+                          `end` της μπάρας είναι γέμισμα και το «έως» θα έδειχνε την
+                          ημέρα άφιξης· μαζί με το παλιό ταβάνι, η υπόδειξη έλεγε
+                          «1 Αυγ έως 1 Αυγ · 1 νύχτα» για κράτηση που δεν ξέρουμε
+                          πόσο κράτησε. Τώρα λέει τι λείπει και ποιος το συμπληρώνει. */}
+                      <Tooltip fill text={g.nights === null
+                        ? `${g.stay.guest} · ${cc.label}\nΑφιξη ${g.stay.start} · χωρίς καταχωρημένη αναχώρηση${g.stay.total?`\n${fe(g.stay.total)}`:''}`
+                        : `${g.stay.guest} · ${cc.label}\n${g.stay.start} έως ${g.stay.end} · ${g.nights} ${g.nights===1?'νύχτα':'νύχτες'}${g.stay.total?`\n${fe(g.stay.total)}`:''}`}>
                         <div onClick={e=>e.stopPropagation()} style={{ width:'100%', height:BAR_H, boxSizing:'border-box', display:'flex', alignItems:'center', gap:4, padding:`0 ${g.openRight?4:8}px 0 ${g.openLeft?4:9}px`, background:cc.solid, color:'var(--on-tone)', fontSize:11, fontWeight:600, fontFamily: T.font.sans, letterSpacing:'0.1px', borderTopLeftRadius:g.openLeft?2:BAR_H/2, borderBottomLeftRadius:g.openLeft?2:BAR_H/2, borderTopRightRadius:g.openRight?2:BAR_H/2, borderBottomRightRadius:g.openRight?2:BAR_H/2, overflow:'hidden', whiteSpace:'nowrap', cursor:'default' }}>
                           {!g.openLeft&&<User size={10} style={{ flexShrink:0, opacity:0.9 }}/>}
-                          <span style={{ minWidth:0, overflow:'hidden', textOverflow:'ellipsis' }}>{g.stay.guest}{!g.openLeft&&g.nights>1?` · ${g.nights} ν.`:''}</span>
+                          <span style={{ minWidth:0, overflow:'hidden', textOverflow:'ellipsis' }}>{g.stay.guest}{!g.openLeft&&g.nights!==null&&g.nights>1?` · ${g.nights} ν.`:''}</span>
                         </div>
                       </Tooltip>
                     </div>

@@ -20,8 +20,8 @@ import type { User } from '@supabase/supabase-js';
 import TabFinances  from './components/TabFinances';
 import TabBoundary  from './components/TabBoundary';
 import { STATUSES, readStatus, writeStatus, statusLabel as statusLabelOf, isShortTerm, isLet, type PropertyStatus } from '@/lib/property/status';
-import { tabDecision, canCompare, type OwnerContext, type LegalForm } from '@/lib/property/visibility';
-import { HAS_BUSINESS, LEGAL_FORMS, type LegalForm as DossierLegalForm } from '@/lib/accounting/dossier';
+import { tabDecision, canCompare, type OwnerContext } from '@/lib/property/visibility';
+import { LEGAL_FORMS, type LegalForm } from '@/lib/accounting/dossier';
 import AmaStrip from './components/AmaStrip';
 import TabCalendar  from './components/TabCalendar';
 import TabRentROI   from './components/TabRentROI';
@@ -1271,12 +1271,12 @@ export default function Dashboard() {
   // βιβλία (`bookkeeping`), γιατί μια Ο.Ε. μπορεί να είναι απλογραφικά.
   // Αν λείπει ή είναι άγνωστη η τιμή, μένει το ασφαλές 'individual': κρύβει τα
   // εταιρικά αντί να τα εφευρίσκει σε κάποιον που δεν έχει επιχείρηση.
-  const [legalForm, setLegalForm] = useState<LegalForm>('individual');
-  // Η ΑΡΧΙΚΗ ΝΟΜΙΚΗ ΜΟΡΦΗ, ΟΧΙ Η ΔΥΑΔΙΚΗ ΤΗΣ ΠΕΡΙΛΗΨΗ. Το `legalForm` παραπάνω
-  // συμπτύσσει τέσσερις μορφές σε δύο, γιατί αυτό χρειάζεται η ορατότητα
-  // καρτελών. Η Λογιστική όμως θέλει τη διάκριση ατομική / νομικό πρόσωπο, και
-  // επειδή δεν την έπαιρνε, τη ρωτούσε ξανά με δικό της διακόπτη.
-  const [taxForm, setTaxForm] = useState<DossierLegalForm>('individual');
+  // ΜΙΑ ΤΙΜΗ, ΜΙΑ ΚΑΤΑΣΤΑΣΗ. Εδώ κρατιόνταν ΔΥΟ states γεμισμένα απο την ίδια
+  // στήλη της βάσης: το `taxForm` με τις τέσσερις μορφές, και το `legalForm` με
+  // τη δυαδική περίληψή του. Δύο εντολές ενημέρωσης για μια πληροφορία που
+  // είναι μία — και δύο πράγματα που μπορούν να ξεσυγχρονιστούν. Η ορατότητα
+  // παίρνει πλέον την πραγματική μορφή και κάνει τη σύμπτυξη μέσα της.
+  const [taxForm, setTaxForm] = useState<LegalForm>('individual');
   const [isPartner, setIsPartner] = useState(false);      // ιδιότητα Συνεργάτη (referral_partners)
   const [showUpgrade, setShowUpgrade] = useState(false);  // modal ορίου ακινήτων
   // Η ΕΝΔΕΙΞΗ ΣΥΝΤΟΜΕΥΣΗΣ ΔΕΝ ΕΙΝΑΙ ΚΑΤΑΣΤΑΣΗ, ΕΙΝΑΙ ΙΔΙΟΤΗΤΑ ΤΗΣ ΣΥΣΚΕΥΗΣ.
@@ -1353,7 +1353,7 @@ export default function Dashboard() {
   // Τα τρία κριτήρια, μαζεμένα σε ένα αντικείμενο: νομική μορφή και ΟΛΑ τα ακίνητα
   // (η κατάσταση του επιλεγμένου δίνεται χωριστά, ανά απόφαση). Καμία μαντεψιά εδώ —
   // η λογική ζει στο lib/property/visibility.ts.
-  const ownerCtx: OwnerContext = useMemo(() => ({ legalForm, properties }), [legalForm, properties]);
+  const ownerCtx: OwnerContext = useMemo(() => ({ legalForm: taxForm, properties }), [taxForm, properties]);
 
   // «Δείξε μου τα πάντα»: ρητή επιλογή του χρήστη. Fail-open: αν οι προτιμήσεις δεν
   // διαβάστηκαν (σφάλμα δικτύου), δείχνουμε τα πάντα. Καλύτερα ένα γεμάτο μενού παρά
@@ -1451,8 +1451,7 @@ export default function Dashboard() {
       supabase.from('referral_partners').select('user_id').eq('user_id', user.id).maybeSingle().then(({ data }) => setIsPartner(!!data));
       // Τρέχον πλάνο (για το όριο ακινήτων). Αν δεν υπάρχει προφίλ, δωρεάν.
       billing.profile<{ plan?: string|null; profile_type?: string|null; comp_plan?: string|null; comp_until?: string|null; legal_form?: string|null }>(supabase, user.id, 'plan, profile_type, comp_plan, comp_until, legal_form').then((data) => { setPlan(data?.plan || 'free'); setProfileType(data?.profile_type === 'professional' ? 'professional' : 'individual'); setCompPlan((data as { comp_plan?: string|null } | null)?.comp_plan ?? null); setCompUntil((data as { comp_until?: string|null } | null)?.comp_until ?? null); const raw = (data as { legal_form?: string|null } | null)?.legal_form ?? '';
-        setLegalForm(HAS_BUSINESS.has(raw) ? 'company' : 'individual');
-        setTaxForm(LEGAL_FORMS.includes(raw as DossierLegalForm) ? raw as DossierLegalForm : 'individual'); });
+        setTaxForm(LEGAL_FORMS.includes(raw as LegalForm) ? raw as LegalForm : 'individual'); });
       // Μετατροπή κερδισμένων μηνών referral σε ενεργή δωρεάν πρόσβαση (server-verified,
       // idempotent). Εφαρμόζεται για την επόμενη φόρτωση· δεν είναι gameable από τον client.
       supabase.rpc('sync_comp_from_referrals').then(() => {});
