@@ -833,3 +833,102 @@ begin
   if n <> 0 then raise exception 'Το αναγνωριστικό του παρόχου επέζησε της διαγραφής της σύνδεσης'; end if;
   raise notice 'probe: το αναγνωριστικό του παρόχου φεύγει μαζί με τη σύνδεση';
 end $probe$;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- ΤΟ «ΠΟΤΕ ΑΛΛΑΞΕ» ΑΛΛΑΖΕΙ ΟΤΑΝ ΑΛΛΑΖΕΙ Η ΓΡΑΜΜΗ
+-- ─────────────────────────────────────────────────────────────────────────
+-- Είκοσι πίνακες είχαν στήλη `updated_at` και καμία σκανδάλη να τη γράφει: η
+-- τιμή έμενε αυτή της εισαγωγής για πάντα, και τρία σημεία του κώδικα τη
+-- συμπλήρωναν από το ρολόι του ΠΕΡΙΗΓΗΤΗ — που μπορεί να είναι λάθος ώρες.
+--
+-- Ο έλεγχος δεν ρωτά «υπάρχει σκανδάλη;»: την ΚΑΛΕΙ. Μια σκανδάλη γραμμένη με
+-- λάθος χρόνο (AFTER αντί για BEFORE) υπάρχει και δεν κάνει τίποτα.
+-- ═══════════════════════════════════════════════════════════════════════════
+reset role;
+set session "probe.uid" = '';
+
+do $probe$
+declare
+  v_uid uuid := '9d9d9d9d-0000-0000-0000-000000000001';
+  v_pid uuid;
+  t0 timestamptz;
+  t1 timestamptz;
+  n int;
+begin
+  insert into auth.users (id, email) values (v_uid, 'updatedat-probe@example.gr');
+  insert into public.user_properties (user_id, name) values (v_uid, 'Το σπίτι του χρόνου')
+    returning id into v_pid;
+
+  insert into public.tenants (user_id, property_id, full_name)
+    values (v_uid, v_pid, 'Πρώτο όνομα');
+  select updated_at into t0 from public.tenants where user_id = v_uid;
+  if t0 is null then raise exception 'Το updated_at δεν πήρε τιμή στην εισαγωγή'; end if;
+
+  -- ΔΕΝ ΣΥΓΚΡΙΝΟΥΜΕ ΧΡΟΝΟΥΣ, ΚΑΙ ΓΙ' ΑΥΤΟ Ο ΕΛΕΓΧΟΣ ΔΕΝ ΕΙΝΑΙ ΚΕΝΟΣ. Η
+  -- συνάρτηση γράφει `now()`, που μέσα στην ίδια συναλλαγή είναι ΣΤΑΘΕΡΟ: δύο
+  -- διαδοχικές ενημερώσεις δίνουν την ίδια σφραγίδα και η σύγκριση «άλλαξε;»
+  -- αποτυγχάνει ακόμη κι όταν η σκανδάλη δουλεύει.
+  --
+  -- Ελέγχεται αυτό που μετράει πραγματικά: ότι ο ΠΕΛΑΤΗΣ δεν μπορεί να γράψει
+  -- δική του σφραγίδα. Ο κώδικας το έκανε σε τρία σημεία, με το ρολόι του
+  -- περιηγητή, που μπορεί να είναι λάθος ώρες ή μέρες.
+  update public.tenants
+     set full_name = 'Δεύτερο όνομα', updated_at = timestamptz '2000-01-01 00:00:00+00'
+   where user_id = v_uid;
+  select updated_at into t1 from public.tenants where user_id = v_uid;
+  if t1 = timestamptz '2000-01-01 00:00:00+00' then
+    raise exception 'Το updated_at του tenants δέχτηκε σφραγίδα πελάτη: η σκανδάλη δεν έτρεξε';
+  end if;
+  if t1 < t0 then
+    raise exception 'Το updated_at του tenants πήγε πίσω: % → %', t0, t1;
+  end if;
+
+  -- Και δεν μένει πίνακας με τη στήλη και χωρίς σκανδάλη που να τη γράφει.
+  select count(*) into n
+    from information_schema.columns c
+   where c.table_schema = 'public' and c.column_name = 'updated_at'
+     and not exists (
+       select 1 from pg_trigger tg join pg_proc p on p.oid = tg.tgfoid
+        where tg.tgrelid = (quote_ident(c.table_name))::regclass
+          and not tg.tgisinternal and p.proname = 'update_updated_at_column');
+  if n > 0 then
+    raise exception '% πίνακες έχουν updated_at χωρίς σκανδάλη που να τη γράφει', n;
+  end if;
+
+  raise notice 'probe: το updated_at ανανεώνεται από τη βάση, σε κάθε πίνακα που το δηλώνει';
+end $probe$;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- ΚΑΘΕ ΞΕΝΟ ΚΛΕΙΔΙ ΕΧΕΙ ΕΥΡΕΤΗΡΙΟ, ΚΑΙ ΚΑΘΕ user_id ΔΕΙΧΝΕΙ ΣΕ ΧΡΗΣΤΗ
+-- ─────────────────────────────────────────────────────────────────────────
+-- Το Postgres ευρετηριάζει το πρωτεύον κλειδί, όχι το ξένο: χωρίς ευρετήριο,
+-- η διαγραφή μιας γονικής γραμμής σαρώνει ολόκληρο τον πίνακα-παιδί. Και η RLS
+-- φιλτράρει σε κάθε ερώτημα με `user_id = auth.uid()`, οπότε ένα `user_id`
+-- χωρίς ευρετήριο κάνει ΚΑΘΕ ανάγνωση σειριακή σάρωση.
+-- ═══════════════════════════════════════════════════════════════════════════
+do $probe$
+declare bad text;
+begin
+  select string_agg(format('%s.%s', tbl, col), ', ') into bad from (
+    select con.conrelid::regclass::text as tbl, a.attname as col
+      from pg_constraint con
+      join pg_attribute a on a.attrelid = con.conrelid and a.attnum = con.conkey[1]
+     where con.contype = 'f' and array_length(con.conkey, 1) = 1
+       and con.connamespace = 'public'::regnamespace
+       and not exists (select 1 from pg_index i
+                        where i.indrelid = con.conrelid and i.indkey[0] = con.conkey[1])
+  ) q;
+  if bad is not null then raise exception 'Ξένα κλειδιά χωρίς ευρετήριο: %', bad; end if;
+
+  select string_agg(c.table_name, ', ') into bad
+    from information_schema.columns c
+   where c.table_schema = 'public' and c.column_name = 'user_id'
+     and not exists (
+       select 1 from pg_constraint con
+        join pg_attribute a on a.attrelid = con.conrelid and a.attnum = any(con.conkey)
+       where con.contype = 'f' and con.conrelid = (quote_ident(c.table_name))::regclass
+         and a.attname = 'user_id');
+  if bad is not null then raise exception 'Στήλες user_id χωρίς ξένο κλειδί: %', bad; end if;
+
+  raise notice 'probe: κάθε ξένο κλειδί έχει ευρετήριο και κάθε user_id δείχνει σε χρήστη';
+end $probe$;

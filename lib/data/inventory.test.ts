@@ -82,13 +82,16 @@ async function asyncChecks() {
       (await add(fakeDb().db, 'p1', 'u1', [])).error === null);
   }
 
-  // ── Η ΣΦΡΑΓΙΔΑ ΧΡΟΝΟΥ ΜΠΑΙΝΕΙ ΠΑΝΤΑ ────────────────────────────────────
+  // ── Η ΣΦΡΑΓΙΔΑ ΧΡΟΝΟΥ ΑΝΗΚΕΙ ΣΤΗ ΒΑΣΗ ──────────────────────────────────
+  // Την έγραφε εδώ, με `new Date()`: το ρολόι του περιηγητή, που μπορεί να
+  // είναι λάθος ώρες ή μέρες. Τη γράφει πλέον η σκανδάλη
+  // `inventory_items_updated_at` (μετανάστευση 20260819170000).
   {
     const { db, calls } = fakeDb();
     update(db, 'i1', { condition: 'Κακή' });
     updateMany(db, ['i1', 'i2'], { room: 'Κουζίνα' });
-    ok('η μονή ενημέρωση σφραγίζεται', typeof calls[0].patch?.updated_at === 'string');
-    ok('και η μαζική επίσης', typeof calls[1].patch?.updated_at === 'string');
+    ok('η μονή ενημέρωση δεν στέλνει σφραγίδα', !('updated_at' in (calls[0].patch ?? {})));
+    ok('ούτε η μαζική', !('updated_at' in (calls[1].patch ?? {})));
     ok('η ενημέρωση δείχνει σε μία γραμμή', calls[0].eq[0][0] === 'id');
     ok('η μαζική δείχνει σε λίστα γραμμών', Array.isArray(calls[1].eq[0][1]));
   }
