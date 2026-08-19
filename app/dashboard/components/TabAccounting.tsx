@@ -256,6 +256,12 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // `bank_import`. Σήμερα δεν φαίνεται γιατί όλα ξεκλειδώνουν στο ίδιο σκαλί —
   // την ημέρα όμως που η εισαγωγή κινήσεων κατέβει ένα πακέτο, θα κατέβαινε
   // μαζί της και η σύνθεση αναφοράς, χωρίς να το ζητήσει κανείς.
+  // Η ΠΥΛΗ ΛΟΓΙΣΤΗ ΕΙΝΑΙ Η ΕΞΑΓΩΓΗ Ε2 ΜΕ ΑΛΛΗ ΠΟΡΤΑ, άρα ΙΔΙΟ χαρακτηριστικό.
+  // Δεύτερο όνομα εδώ θα σήμαινε δύο κατώφλια για ένα παραδοτέο, που θα
+  // απέκλιναν στην πρώτη αλλαγή τιμολόγησης. Η πραγματική κλειδαριά ζει στη
+  // βάση (get_accountant_data, 20260819120000)· εδώ είναι η ΕΞΗΓΗΣΗ, ώστε ο
+  // ιδιοκτήτης να μη μοιράσει σύνδεσμο που δεν θα ανοίξει.
+  const canAccountantPortal = hasFeature({ plan }, 'e2_export')
   const canBankImport = hasFeature({ plan }, 'bank_import')
   // Η σύνθεση αναφοράς κατεβάζει τη σύγκριση ΟΛΟΚΛΗΡΟΥ του χαρτοφυλακίου: είναι
   // η ίδια δυνατότητα με την καρτέλα «Χαρτοφυλάκιο», από άλλη πόρτα.
@@ -751,6 +757,9 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // βλέπει live εικόνα εσόδων/εξόδων ανά ακίνητο, read-only, χωρίς login ή email.
   async function shareWithAccountant(){
     if(acctBusy) return
+    // Χωρίς πακέτο, ο σύνδεσμος θα εκδιδόταν κανονικά και θα έδειχνε «δεν
+    // βρέθηκε» στον λογιστή — δηλαδή ο ιδιοκτήτης θα το μάθαινε από εκείνον.
+    if(!canAccountantPortal){ onNavigate?.('settings'); return }
     setAcctBusy(true)
     try{
       // Η δημιουργία, η ανανέωση της λήξης και η περιστροφή ζουν σε ένα σημείο:
@@ -857,10 +866,13 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}>
           <Download size={13}/>Μόνο το Excel
         </button>
-        <button onClick={shareWithAccountant} disabled={acctBusy} title="Ζωντανός σύνδεσμος για τον λογιστή σου, χωρίς σύνδεση και χωρίς email. Καλύπτει ΟΛΑ τα ακίνητά σου, όχι μόνο αυτό: διεύθυνση, ΑΤΑΚ, μίσθωμα, έσοδα και δαπάνες της χρονιάς."
+        <button onClick={shareWithAccountant} disabled={acctBusy} title={canAccountantPortal ? "Ζωντανός σύνδεσμος για τον λογιστή σου, χωρίς σύνδεση και χωρίς email. Καλύπτει ΟΛΑ τα ακίνητά σου, όχι μόνο αυτό: διεύθυνση, ΑΤΑΚ, μίσθωμα, έσοδα και δαπάνες της χρονιάς." : "Η ζωντανή πύλη λογιστή περιλαμβάνεται από το πακέτο «Ενα ακίνητο» και πάνω, όπως και η εξαγωγή Ε2."}
           style={{ ...pillBtn, borderColor:acctLink?'var(--accent)':'var(--border-default)', color:acctLink?'var(--accent)':'var(--text-secondary)', cursor:acctBusy?'wait':'pointer', transition:'color 0.15s, border-color 0.15s' }}
           onMouseEnter={e=>{ if(!acctLink){ e.currentTarget.style.borderColor='var(--accent)'; e.currentTarget.style.color='var(--accent)' } }} onMouseLeave={e=>{ if(!acctLink){ e.currentTarget.style.borderColor='var(--border-default)'; e.currentTarget.style.color='var(--text-secondary)' } }}>
-          <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M16 6l-4-4-4 4M12 2v13"/></svg>{acctBusy?'Δημιουργία…':acctLink?'Πύλη λογιστή έτοιμη':'Ζωντανή πύλη λογιστή'}
+          {canAccountantPortal
+            ? <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M16 6l-4-4-4 4M12 2v13"/></svg>
+            : <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}
+          {acctBusy?'Δημιουργία…':acctLink?'Πύλη λογιστή έτοιμη':'Ζωντανή πύλη λογιστή'}
         </button>
         {canJournal && doubleEntry && (
         <button onClick={()=>setJournalOpen(true)} title="Πλήρες ημερολόγιο άρθρων και εξαγωγή CSV (SoftOne/Epsilon/QuickBooks/Xero)" style={pillBtn}

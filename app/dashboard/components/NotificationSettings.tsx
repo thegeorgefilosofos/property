@@ -39,8 +39,14 @@ interface NotifPrefs {
   legal_updates: boolean
 }
 
+// Η ΟΘΟΝΗ ΕΛΕΓΕ ΨΕΜΑΤΑ ΟΣΟ Η ΓΡΑΜΜΗ ΔΕΝ ΥΠΗΡΧΕ. Το `email_enabled` ήταν `false`
+// εδώ, ενώ ο ΠΙΝΑΚΑΣ δηλώνει `DEFAULT true` (baseline.sql:2474). Ο χρήστης
+// χωρίς γραμμή έβλεπε τον διακόπτη κλειστό και συμπέραινε ότι δεν λαμβάνει —
+// σωστό συμπέρασμα για λάθος λόγο, αφού δεν λάμβανε επειδή ΔΕΝ ΥΠΗΡΧΕ ΓΡΑΜΜΗ.
+// Τώρα η γραμμή γεννιέται με τον λογαριασμό (20260819140000) και η οθόνη
+// δείχνει την προεπιλογή που όντως ισχύει.
 const DEFAULT: NotifPrefs = {
-  email_enabled: false,
+  email_enabled: true,
   reminder_7days: true,
   reminder_3days: true,
   reminder_1day: true,
