@@ -148,6 +148,19 @@ export function daysUntil(isoDate: string, now: Date = new Date()): number | nul
   return Math.round((target - today) / 86_400_000)
 }
 
+/**
+ * Η ίδια μέτρηση, με την πολιτική που θέλουν οι οθόνες: `null` όταν ΔΕΝ υπάρχει
+ * ημερομηνία, `0` όταν υπάρχει αλλά είναι δυσανάγνωστη.
+ *
+ * Ηταν γραμμένη τρεις φορές, πανομοιότυπα, σε τρία αρχεία — checklist/calc.ts,
+ * TabContacts.tsx και dashboard/page.tsx. Τρία αντίγραφα μιας γραμμής δεν
+ * κοστίζουν σε απόδοση· κοστίζουν την επόμενη φορά που κάποιος θα αλλάξει το
+ * ένα. Η τέταρτη παραλλαγή (inventory/calc.ts) γυρίζει `Infinity` ΣΚΟΠΙΜΑ:
+ * εκεί το κενό σημαίνει «χωρίς λήξη», και το λέει το σχόλιό της.
+ */
+export const daysUntilOrNull = (d: string | null | undefined, now?: Date): number | null =>
+  d ? daysUntil(d, now) ?? 0 : null
+
 export const isToday    = (iso: string, now?: Date) => daysUntil(iso, now) === 0
 export const isPast     = (iso: string, now?: Date) => { const d = daysUntil(iso, now); return d != null && d < 0 }
 export const isFuture   = (iso: string, now?: Date) => { const d = daysUntil(iso, now); return d != null && d > 0 }

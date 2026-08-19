@@ -2,7 +2,7 @@
 import { navLabel } from '@/lib/nav/labels';
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { isoDate, athensToday } from '@/lib/core/time'
+import { isoDate, athensToday, daysUntil as athensDaysUntil } from '@/lib/core/time'
 import { addMonths } from '@/lib/loans/progress'
 import { createClient } from '@/lib/supabase/client'
 import * as properties from '@/lib/data/properties';
@@ -190,13 +190,30 @@ function fmt(date: string) { if (!date) return ''; const [y,m,d]=date.split('-')
 function fmtShort(date: string) { if (!date) return ''; const [y,m,d]=date.split('-'); return `${d} ${MONTHS_SHORT[parseInt(m)-1]}` }
 // Τρέχουσα στιγμή σε ώρα Ελλάδας (Europe/Athens), ανεξάρτητα από τη ζώνη της
 // συσκευής — ώστε «σήμερα», η γραμμή «τώρα» και οι υπενθυμίσεις να είναι σωστές.
-function athensNow(): Date { return new Date(new Date().toLocaleString('en-US',{ timeZone:'Europe/Athens' })) }
-function daysUntil(dateStr: string) { const t=athensNow(); t.setHours(0,0,0,0); const [y,m,d]=dateStr.split('-').map(Number); const g=new Date(y,(m||1)-1,d||1); g.setHours(0,0,0,0); return Math.round((g.getTime()-t.getTime())/86400000) }
+// ═══════════════════════════════════════════════════════════════════════════
+// Η ΑΘΗΝΑ ΔΕΝ ΒΓΑΙΝΕΙ ΜΕ ΣΤΡΟΓΓΥΛΟΠΟΙΗΣΗ ΜΕΣΩ ΚΕΙΜΕΝΟΥ.
+// ─────────────────────────────────────────────────────────────────────────
+// Εδώ ζούσε δεύτερη υλοποίηση ημέρας: `new Date(new Date().toLocaleString(
+// 'en-US', {timeZone:'Europe/Athens'}))`. Το ιδίωμα μορφοποιεί σε κείμενο και
+// το ΞΑΝΑΔΙΑΒΑΖΕΙ ως τοπική ώρα — δηλαδή στηρίζεται στο ότι ο αναλυτής του
+// περιηγητή θα καταλάβει τη μορφή που παρήγαγε ο μορφοποιητής, κάτι που καμία
+// προδιαγραφή δεν εγγυάται και που χάνει τα χιλιοστά.
+//
+// Και η μέτρηση ημερών απο πάνω του έφτιαχνε ΤΡΙΤΟ ζεύγος μεσάνυχτων με
+// `setHours(0,0,0,0)` σε δύο διαφορετικές ζώνες. Το `lib/core/time` το κάνει
+// σωστά, με `Intl.DateTimeFormat` και σύγκριση ημερολογιακών ημερών.
+//
+// ΤΟ `athensNow` ΜΕΝΕΙ, γιατί τρία σημεία θέλουν ΑΝΤΙΚΕΙΜΕΝΟ ημερομηνίας για
+// τον μήνα που δείχνει το ημερολόγιο — αλλά χτίζεται πλέον απο το
+// `athensToday()`, δηλαδή απο την ίδια πηγή, χωρίς γύρισμα απο κείμενο.
+// ═══════════════════════════════════════════════════════════════════════════
+function athensNow(): Date { const t=athensToday(); return new Date(`${t}T00:00:00`) }
+function daysUntil(dateStr: string) { return athensDaysUntil(dateStr) ?? 0 }
 function isOverdue(e: CalEvent)  { return e.status==='pending'&&daysUntil(e.event_date)<0 }
 function isThisWeek(e: CalEvent) { const d=daysUntil(e.event_date); return e.status==='pending'&&d>=0&&d<=7 }
 function isThisMonth(e: CalEvent){ const d=daysUntil(e.event_date); return e.status==='pending'&&d>7&&d<=30 }
 function isExpiring(e: CalEvent) { const d=daysUntil(e.event_date); return e.category==='contract'&&e.status==='pending'&&d>=0&&d<=60 }
-function todayStr() { const d=athensNow(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` }
+function todayStr() { return athensToday() }
 function addDaysStr(date:string, days:number) { const [y,m,d]=date.split('-').map(Number); const dt=new Date(Date.UTC(y,m-1,d+days)); return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth()+1).padStart(2,'0')}-${String(dt.getUTCDate()).padStart(2,'0')}` }
 
 // Google-style tooltip — portal ώστε να ΜΗΝ κόβεται από overflow (π.χ. στα κελιά του μήνα).

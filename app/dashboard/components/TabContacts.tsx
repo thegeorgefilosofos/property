@@ -23,7 +23,7 @@ import { useReportBranding, type ReportBranding } from '@/lib/reportBranding'
 import { reportHead, reportHeader, reportSection, reportKpi, reportDisclaimer, openReport, rEsc } from './reportPdf'
 import { uploadUserScoped } from '@/lib/storage/scopedUpload';
 import { formFields, CONTACT_FIELDS, type FieldContext, type FieldDecision } from '@/lib/property/fields';
-import { athensToday, isoDate, daysUntil as athensDaysUntil } from '@/lib/core/time';
+import { athensToday, isoDate, daysUntilOrNull } from '@/lib/core/time';
 import { INK, INK_FAINT, INK_MUTED, PAPER_ALT, RULE } from '@/lib/print/ink';
 import { downloadFile } from '@/lib/core/download';
 import { failed } from '@/lib/core/dbError';
@@ -295,7 +295,8 @@ function fmtDate(d: string) {
   if (!d) return ''
   try { return localDay(d).toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' }) } catch { return d }
 }
-function daysUntil(d: string) { if (!d) return null; return athensDaysUntil(d) ?? 0 }
+// Η πολιτική «null όταν λείπει, 0 όταν είναι άκυρη» ζει στο lib/core/time.
+const daysUntil = daysUntilOrNull
 function isOverdue(d: string) { const n = daysUntil(d); return n !== null && n < 0 }
 // HTML-escape any dynamic value interpolated into printable/PDF HTML written via document.write.
 

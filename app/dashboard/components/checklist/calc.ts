@@ -11,7 +11,6 @@
 // σχήματος θα έσπαγε το ένα από τα δύο σιωπηλά.
 // ═══════════════════════════════════════════════════════════════════════════
 import { fd } from '@/components/tokens'
-import { daysUntil as athensDaysUntil } from '@/lib/core/time'
 import { addMonths as addCalendarMonths } from '@/lib/loans/progress'
 import type { ChecklistItemsRow } from '@/lib/supabase/tables'
 import {
@@ -25,7 +24,7 @@ export function isOverdue(due: string | null, status: string) {
   if (!due || status === 'done' || status === 'skipped') return false
   return new Date(due) < new Date()
 }
-export function daysUntil(d: string | null) { if (!d) return null; return athensDaysUntil(d) ?? 0 }
+export { daysUntilOrNull as daysUntil } from '@/lib/core/time'
 // ΟΙ ΠΡΟΕΠΙΛΟΓΕΣ ΜΕ ΤΟ ΟΝΟΜΑ ΤΟΥΣ, ΟΧΙ ΜΕ ΤΗ ΘΕΣΗ ΤΟΥΣ.
 // Ήταν `PRIORITIES[2]` και `STATUSES[0]`. Τώρα που η σειρά έρχεται από κοινό
 // αρχείο, μια αναδιάταξη εκεί θα άλλαζε σιωπηλά την προεπιλογή εδώ — άγνωστη

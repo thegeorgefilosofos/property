@@ -85,7 +85,7 @@ import { taxProfileOf } from '@/lib/tax/greekTaxCalendar';
 import PortalShare from './components/PortalShare';
 import OccupancyPanel from './components/OccupancyPanel';
 import BillingNudge from './components/BillingNudge';
-import { athensToday, daysUntil as athensDaysUntil, isoYear, isoMonth } from '@/lib/core/time';
+import { athensToday, daysUntilOrNull, isoYear, isoMonth } from '@/lib/core/time';
 // Το Αρχείο έχει ένα σπίτι: lib/data/documents.
 import * as documents from '@/lib/data/documents';
 import { saved, savedData } from '@/components/dbWrite';
@@ -710,7 +710,8 @@ function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { pro
   // την κάνει το InsightsBoard (computeInsights) και το ObligationsPanel· αυτός
   // ο πίνακας ήταν τρίτη, αόρατη μηχανή που πλήρωνε ερωτήματα χωρίς αποδέκτη.
   // Μένουν μόνο τα μεγέθη που εμφανίζονται πραγματικά στα πλακίδια.
-  const daysUntil = (d: string | null | undefined) => d ? athensDaysUntil(d) ?? 0 : null;
+  // Ιδια πολιτική με τις άλλες οθόνες, γραμμένη μία φορά (lib/core/time).
+  const daysUntil = daysUntilOrNull;
   const openChk = chk.length;
 
   // ── ΦΟΡΟΣ: ΕΝΑΣ ΦΟΡΟΛΟΓΟΥΜΕΝΟΣ, ΟΧΙ ΤΡΕΙΣ ────────────────────────────────
