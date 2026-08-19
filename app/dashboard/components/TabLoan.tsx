@@ -85,8 +85,14 @@ function LensPanel({title,subtitle,right,children}:{title:string;subtitle?:strin
 
 // Πτυσσόμενη υπο-ενότητα — premium, διακριτική· ο τίτλος και προαιρετικά
 // badges/meta μένουν ορατά, οι λεπτομέρειες ανοίγουν με κλικ (όχι ατέρμονες λίστες).
-function MiniSection({title,badges,meta,defaultOpen,order,flat,children}:{title:string;badges?:React.ReactNode;meta?:React.ReactNode;defaultOpen?:boolean;order?:number;flat?:boolean;children:React.ReactNode}) {
-  const [open,setOpen] = useState(!!defaultOpen)
+// ΕΛΕΓΧΟΜΕΝΗ Η ΑΥΤΟΝΟΜΗ. Οι περισσότερες ενότητες κρατούν μόνες τους το άνοιγμά
+// τους· μία όμως πρέπει να ανοίγει και απο ΑΛΛΟΥ (ο «Οδηγός» στέλνει στα
+// «Απαραίτητα έγγραφα», που ζουν μέσα στον Υπολογιστή). Οταν δίνεται `open`,
+// η κατάσταση ανήκει στον γονέα — ίδιο ιδίωμα με το Foldable του ΕΝΦΙΑ.
+function MiniSection({title,badges,meta,defaultOpen,order,flat,open:openProp,onToggle,children}:{title:string;badges?:React.ReactNode;meta?:React.ReactNode;defaultOpen?:boolean;order?:number;flat?:boolean;open?:boolean;onToggle?:(v:boolean)=>void;children:React.ReactNode}) {
+  const [openOwn,setOpenOwn] = useState(!!defaultOpen)
+  const open = openProp ?? openOwn
+  const setOpen = (fn:(o:boolean)=>boolean) => { const next = fn(open); onToggle ? onToggle(next) : setOpenOwn(next) }
   // flat: χωρίς περίγραμμα/φόντο — για ένθετες ενότητες, ώστε να μη διπλασιάζεται το πλαίσιο.
   return (
     <div style={flat
@@ -268,7 +274,12 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
   // δεν μπορεί να ανοίξει τον προορισμό της είναι κείμενο, όχι διαδρομή.
   const [calcLens,setCalcLens] = useState('amort')
   const lensRef = useRef<HTMLDivElement>(null)
+  // Ανοιχτός εξ ορισμού· κλείνει μόνο όταν φορτωθεί αποθηκευμένο δάνειο (πιο κάτω).
+  const [calcOpen,setCalcOpen] = useState(true)
   const openCalcDocs = ()=>{
+    // Ο Οδηγός μπορεί να στείλει εδώ ενώ ο Υπολογιστής είναι διπλωμένος: πρώτα
+    // ανοίγει η ενότητα, αλλιώς ο φακός δεν έχει πού να εμφανιστεί.
+    setCalcOpen(true)
     setCalcLens('table')
     requestAnimationFrame(()=>lensRef.current?.scrollIntoView({behavior:'smooth',block:'start'}))
   }
@@ -324,7 +335,13 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
 
   async function loadSaved(){
     try{
-      setSaved(await loanStore.ofProperty(supabase,propertyId,userId) as SavedLoan[])
+      const rows = await loanStore.ofProperty(supabase,propertyId,userId) as SavedLoan[]
+      setSaved(rows)
+      // ΟΠΟΙΟΣ ΕΧΕΙ ΔΑΝΕΙΟ ΔΕΝ ΨΑΧΝΕΙ ΔΑΝΕΙΟ. Ο υπολογιστής αγοράς κλείνει —
+      // δεν φεύγει. Γίνεται εδώ και όχι με αρχική τιμή του `useState`, γιατί το
+      // αν υπάρχει δάνειο το μαθαίνουμε ΜΕΤΑ τη φόρτωση· ένα `useState(!rows)`
+      // θα ήταν πάντα ανοιχτό στο πρώτο render και θα «πηδούσε» κλείνοντας.
+      if(rows.length > 0) setCalcOpen(false)
     } finally { setLoadingSaved(false) }
   }
   async function handleSaveLoan(loan:Partial<SavedLoan>){
@@ -702,8 +719,17 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
         <div style={{display:'flex',flexDirection:'column',gap:12}}>{savedContent}</div>
       )}
 
-      {/* ═══ ΥΠΟΛΟΓΙΣΤΗΣ ═══ */}
+      {/* ═══ ΥΠΟΛΟΓΙΣΤΗΣ ═══
+          ΔΙΠΛΩΝΕΙ ΟΤΑΝ ΥΠΑΡΧΕΙ ΗΔΗ ΔΑΝΕΙΟ. Το σχόλιο απο πάνω το έγραφε ήδη —
+          «ο υπολογιστής είναι για όποιον ψάχνει, χρήσιμος αλλά δεύτερος» — και
+          η προηγούμενη διόρθωση άλλαξε μόνο τη ΣΕΙΡΑ. Ομως 1.596 γραμμές
+          υπολογιστή αγοράς, ανοιχτές κάτω απο το δικό σου δάνειο, δεν είναι
+          δεύτερες: είναι η μισή οθόνη. Μένει ένα πάτημα μακριά, δεν φεύγει.
+          Οποιος ΔΕΝ έχει δάνειο τη βρίσκει ανοιχτή, όπως πάντα. */}
       <div ref={calcRef}>
+        <MiniSection title="Υπολογιστής νέου δανείου"
+          meta={<span style={{fontSize:12,color:'var(--text-tertiary)',fontFamily: T.font.sans,whiteSpace:'nowrap' as const}}>δόση, επιτόκια, δικαιολογητικά</span>}
+          open={calcOpen} onToggle={setCalcOpen}>
         <TabLoanCalculator
           propertyId={propertyId} userId={userId}
           profile={profile}
@@ -719,6 +745,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
           onStateChange={setCalcState}
           lens={calcLens} onLens={setCalcLens} lensRef={lensRef}
         />
+        </MiniSection>
       </div>
 
       {/* ═══ COCKPIT: εναλλαγή φακών επί τόπου — ένα πάνελ τη φορά ═══ */}

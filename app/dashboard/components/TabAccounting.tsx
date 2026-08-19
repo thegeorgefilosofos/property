@@ -6,6 +6,7 @@ import * as loanStore from '@/lib/data/loans';
 import * as stayStore from '@/lib/data/stays';
 import * as rentStore from '@/lib/data/rent';
 import * as tenantStore from '@/lib/data/tenants';
+import { rentCollectionMode, collectionModeReason } from '@/lib/tax/rentCollectionMode';
 import * as expenseStore from '@/lib/data/expenses';
 import { T, TT, Skeleton, SkeletonKPIs, fe, fp, fixedCols } from '@/components/Theme'
 import { ActionMenu } from '@/components/ActionMenu'
@@ -199,8 +200,20 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const [firstYears,setFirstYears] = useState(false)
   const [distribution,setDistribution] = useState<number|''>('')
   const [claimedUncollected,setClaimedUncollected] = useState(false)
-  // Είσπραξη ενοικίων μέσω τραπέζης (default ναι). Από 1/1/2026 προϋπόθεση για την 5%.
-  const [rentsBank,setRentsBank] = useState(true)
+  // ═══════════════════════════════════════════════════════════════════════
+  // Η ΤΡΑΠΕΖΙΚΗ ΕΙΣΠΡΑΞΗ ΠΑΡΑΓΕΤΑΙ, ΔΕΝ ΠΡΟΕΠΙΛΕΓΕΤΑΙ.
+  // ─────────────────────────────────────────────────────────────────────
+  // Ηταν `useState(true)`: η οθόνη που βγάζει τον φόρο προεπέλεγε την εκδοχή
+  // που δίνει την έκπτωση 5%, δηλαδή τον ΜΙΚΡΟΤΕΡΟ φόρο, για ερώτημα που η
+  // εφαρμογή ήδη ξέρει — απο τον τρόπο κάθε είσπραξης και απο τον διακόπτη
+  // της μίσθωσης. Η «Φροντίδα μισθωτή» χρησιμοποιούσε ήδη τον δεύτερο σωστά.
+  //
+  // Ο κανόνας ζει στο lib/tax/rentCollectionMode.ts. Εδώ μένει μόνο η
+  // ΠΑΡΑΚΑΜΨΗ: ο χρήστης μπορεί να διαφωνήσει με ό,τι παρήγαγε η εφαρμογή,
+  // και τότε μετράει η δική του απάντηση.
+  // ═══════════════════════════════════════════════════════════════════════
+  const [leaseViaBank,setLeaseViaBank] = useState<boolean|null>(null)
+  const [rentsBankOverride,setRentsBankOverride] = useState<boolean|null>(null)
   // Υπολογιστής κόστους μεταβίβασης (αγορά/πώληση), τοπικός.
   const [xferSide,setXferSide] = useState<'buy'|'sell'>('buy')
   const [xferPrice,setXferPrice] = useState<number|''>('')
@@ -293,7 +306,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // που δεν ζητήθηκε δεν μπορεί να διαβαστεί κατά λάθος παρακάτω — σφάλμα που
   // με `any[]` έβγαινε ως `undefined` και κατέληγε σε μηδενικό ποσό στην οθόνη.
   type ExpenseRow  = Pick<ExpensesRow, 'date'|'amount'|'category'|'expense_group'|'description'|'supplier_country'|'supply'|'supplier_afm'>
-  type RentRow     = Pick<RentPaymentsRow, 'period_year'|'period_month'|'amount'|'paid'|'paid_date'|'due_date'>
+  type RentRow     = Pick<RentPaymentsRow, 'period_year'|'period_month'|'amount'|'paid'|'paid_date'|'due_date'|'method'>
   type PortfolioRentRow = RentRow & Pick<RentPaymentsRow, 'property_id'>
   type StayRow     = TaxStay & Pick<ClientStaysRow, 'id'|'channel'|'declared_at'>
   type PortfolioStayRow = StayRow & Pick<ClientStaysRow, 'property_id'>
@@ -325,9 +338,11 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   useEffect(()=>{ let alive = true; (async()=>{
     setLoading(true)
     try{
-      const [ex, rp, st, ln, pr, aps, arp, ast, inv] = await Promise.all([
+      const [ex, rp, st, ln, pr, aps, arp, ast, inv, tn] = await Promise.all([
         expenseStore.ledger<ExpenseRow>(supabase,propertyId,{ columns:'date,amount,category,expense_group,description,supplier_country,supply,supplier_afm' }),
-        rentStore.ofProperty<RentRow>(supabase,propertyId,rentStore.LEDGER_COLUMNS,userId),
+        // Ο ΤΡΟΠΟΣ ΠΛΗΡΩΜΗΣ ΕΙΝΑΙ ΦΟΡΟΛΟΓΙΚΟ ΣΤΟΙΧΕΙΟ, ΟΧΙ ΔΙΑΚΟΣΜΗΤΙΚΟ: από
+        // αυτόν κρίνεται η τεκμαρτή έκπτωση 5%. Μία στήλη παραπάνω στο ίδιο ερώτημα.
+        rentStore.ofProperty<RentRow>(supabase,propertyId,`${rentStore.LEDGER_COLUMNS},method`,userId),
         stayStore.ofProperty<StayRow>(supabase,propertyId,`id,${stayStore.ACCOUNTING_COLUMNS}`,userId),
         loanStore.ofProperty(supabase,propertyId,userId),
         properties.one<PropRow>(supabase, propertyId, 'id,name,address,rental_mode,enfia,sqm,value,year_built,floor,purchase_price,purchase_date,prop_type', userId),
@@ -335,9 +350,11 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         rentStore.ofUser<PortfolioRentRow>(supabase,userId,`property_id,${rentStore.LEDGER_COLUMNS}`),
         stayStore.ofUser<PortfolioStayRow>(supabase,userId,`property_id,${stayStore.ACCOUNTING_COLUMNS}`),
         inventoryStore.ofProperty<InventoryRow>(supabase,propertyId,'name,purchase_value,category,purchase_date',userId),
+        // Η ΠΡΟΘΕΣΗ ΤΗΣ ΜΙΣΘΩΣΗΣ, όταν δεν υπάρχει απόδειξη απο τις εισπράξεις.
+        tenantStore.current<{ e_payment?: boolean|null }>(supabase, propertyId, 'e_payment', userId),
       ])
       if(!alive) return
-      setExpenses(ex); setRent(rp)
+      setExpenses(ex); setRent(rp); setLeaseViaBank(tn ? (tn.e_payment !== false) : null)
       setStays(st); setLoans(ln)
       setProp(pr); setAllProps(aps)
       setAllRent(arp); setAllStays(ast)
@@ -470,6 +487,9 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     Math.round(assets.filter(a=>a.elp===EQUIPMENT_ACCOUNT).reduce((s,a)=>s+chargeForYear(a,year),0)),[assets,year])
   const grossIncome = regime==='individual_shortterm' ? shortSummary.grossRevenue : rentAccruedYear
   const uncollectedRent = regime==='individual_shortterm' ? 0 : Math.max(0, rentAccruedYear - rentCollectedYear)
+  // Τι λένε τα δεδομένα, και τι ισχύει τελικά (η παράκαμψη του χρήστη νικά).
+  const collection = useMemo(() => rentCollectionMode(rent, year, leaseViaBank), [rent, year, leaseViaBank])
+  const rentsBank = rentsBankOverride ?? collection.viaBank
 
   // Ενοποίηση χαρτοφυλακίου (φυσικό πρόσωπο): ο φόρος είναι προοδευτικός στο ΣΥΝΟΛΟ
   // των ενοικίων (Ε1), όχι ανά ακίνητο. Υπολογίζεται ΠΑΝΤΑ, ώστε ο φόρος του τρέχοντος
@@ -1068,9 +1088,16 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               {regime==='individual_longterm' && (
                 <div>
                   <div style={{ display:'flex', alignItems:'center', gap:7, flexWrap:'wrap' }}>
-                    <Check checked={rentsBank} onChange={setRentsBank} label={<span style={{ fontSize:12, color:'var(--text-secondary)' }}>Τα ενοίκια εισπράττονται <strong style={{ color:'var(--text-primary)' }}>μέσω τραπέζης</strong>.</span>}/>
+                    <Check checked={rentsBank} onChange={v=>setRentsBankOverride(v===collection.viaBank?null:v)} label={<span style={{ fontSize:12, color:'var(--text-secondary)' }}>Τα ενοίκια εισπράττονται <strong style={{ color:'var(--text-primary)' }}>μέσω τραπέζης</strong>.</span>}/>
                     <InfoHint>Από 1/1/2026 (ν.5246/2025) τα μισθώματα κατοικίας πρέπει να εισπράττονται με τραπεζικό ή ηλεκτρονικό μέσο (κατάθεση, IRIS, έμβασμα). Με μετρητά χάνεται η τεκμαρτή έκπτωση 5% και φορολογείσαι στο 100% του ενοικίου.</InfoHint>
                   </div>
+                  {/* ΑΠΟ ΠΟΥ ΤΟ ΞΕΡΕΙ. Χωρίς αυτή τη γραμμή, ο χρήστης βλέπει ένα
+                      τσεκαρισμένο κουτάκι και δεν έχει λόγο να το ελέγξει — που
+                      είναι ακριβώς πώς περνά απαρατήρητος ένας μικρότερος φόρος. */}
+                  <p style={{ margin:'4px 0 0', paddingLeft:26, fontSize:11, color:'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight:1.5 }}>
+                    {collectionModeReason(collection)}
+                    {rentsBankOverride !== null && ' Το άλλαξες εσύ· μετράει η δική σου απάντηση.'}
+                  </p>
                   {!rentsBank && <p style={{ margin:'4px 0 0', paddingLeft:26, fontSize:12, color:'var(--negative)', fontFamily: T.font.sans }}>Χωρίς τραπεζική είσπραξη ο φόρος υπολογίζεται στο 100% των ενοικίων.</p>}
                 </div>
               )}
