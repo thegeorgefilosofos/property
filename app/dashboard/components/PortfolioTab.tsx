@@ -553,7 +553,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
               έτους» το σημαίνει ήδη γραμμή-γραμμή, και η σύνοψη δεν επιτρέπεται
               να το κρύψει πίσω από ένα δεκαδικό. */}
           <SecHdr label="Απόδοση χαρτοφυλακίου" sub={`Σε ετήσια βάση (εκτίμηση ρυθμού) · ${agg.valuedCount} από ${agg.count} ${agg.count === 1 ? 'ακίνητο' : 'ακίνητα'} με καταχωρημένη αξία${estimatedValued > 0 ? ` · ${estimatedValued} με εκτιμώμενα έσοδα` : ''}`} />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 16, marginTop: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 170px), 1fr))', gap: 16, marginTop: 14 }}>
             <PStat label="Αξία χαρτοφυλακίου" value={eur(agg.totalValue)} />
             <PStat label="Ετήσια έσοδα" value={eur(agg.totalRevenue)} />
             <PStat label="Μεικτή απόδοση" value={`${fn(agg.grossYield, 1)}%`} />

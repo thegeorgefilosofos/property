@@ -129,7 +129,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
     const [exp, bil, count] = await Promise.all([
       expenses.ledger(supabase, propertyId, { userId }),
       billStore.ofProperty(supabase, propertyId, billStore.LEDGER_COLUMNS, userId),
-      properties.count(supabase, userId),
+      properties.countShortTerm(supabase, userId),
     ]);
     // ΚΑΘΕ ΕΥΡΩ ΜΙΑ ΦΟΡΑ. Ο πληρωμένος λογαριασμός και η δαπάνη του είναι το ΙΔΙΟ
     // γεγονός: αθροίζοντας και τα δύο, τα λειτουργικά έξοδα θα έβγαιναν διπλά και

@@ -40,7 +40,7 @@ const joinedFullName = (v: unknown): string | null => {
   return typeof one.full_name === 'string' ? one.full_name : null
 }
 import { savedData } from '@/components/dbWrite'
-import { T, Modal, Spinner, Skeleton, EmptyState, Chip, feAuto, fe, localDay, pressable } from '@/components/Theme'
+import { T, Modal, Spinner, Skeleton, EmptyState, Chip, feAuto, fe, fn, localDay, pressable } from '@/components/Theme'
 import { downloadXlsx, type XlsxSheet, type XlsxCol } from './exportXlsx'
 import {
   AlertTriangle, Plus, X, ChevronLeft, ChevronRight,
@@ -655,7 +655,31 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
                         ))}
                         {dayEvents.length>3&&<span style={{ fontSize:10, color:'var(--text-tertiary)', paddingLeft:3, fontFamily: T.font.sans }}>+{dayEvents.length-3} ακόμη</span>}
                       </div>
-                      {dayAmt>0&&<div style={{ marginTop:2 }}><span style={{ fontSize:10, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', color:'var(--accent)', opacity:0.8 }}>{fe(dayAmt)}</span></div>}
+                      {/* ══ ΤΟ ΠΟΣΟ ΤΗΣ ΗΜΕΡΑΣ ΓΡΑΦΟΤΑΝ ΠΑΝΩ ΣΤΗΝ ΕΠΟΜΕΝΗ ══
+                          Μετρημένο σε 360: το κελί δίνει 36,28 εικονοστοιχεία
+                          ωφέλιμα και το «751,00 €» θέλει 44,47 — κάθε ενοίκιο,
+                          δόση, λογαριασμός και ΕΝΦΙΑ έβγαινε από το κελί του.
+                          Οταν είχαν ποσό δύο διαδοχικές ημέρες, τα ψηφία
+                          επικαλύπτονταν και τα δύο ποσά διαβάζονταν ως ένας
+                          ανύπαρκτος αριθμός· την Κυριακή το ποσό ψαλιδιζόταν
+                          από το overflow της κάρτας χωρίς κανένα σημάδι.
+
+                          Ιδιο ιδίωμα με το κελί του ημερολογίου τιμών: ακέραια
+                          ευρώ εδώ, πλήρες ποσό στην ημέρα που ανοίγει με το
+                          πάτημα. Το μέγεθος βγαίνει από το μήκος, και το
+                          δοχείο κόβει ως έσχατο δίχτυ ώστε τίποτα να μη
+                          μπορεί ποτέ να πέσει στο διπλανό κελί. */}
+                      {dayAmt>0&&(()=>{
+                        const txt=fn(dayAmt)
+                        const [fs,es]=txt.length<=3?[10,8]:txt.length<=5?[9,7]:[8,7]
+                        return (
+                          <div style={{ marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                            <span style={{ fontSize:fs, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', color:'var(--accent)', opacity:0.8 }}>
+                              {txt}<span style={{ fontSize:es, marginLeft:1.5, opacity:0.7 }}>€</span>
+                            </span>
+                          </div>
+                        )
+                      })()}
                     </>
                   )}
                 </div>
