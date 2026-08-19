@@ -8,6 +8,7 @@ import * as billing from '@/lib/data/billing';
 import { T, fe, fn, fp, fd, ABSENT, Modal, TT } from '@/components/Theme';
 import { CustomSelect, DatePicker } from './UIComponents';
 import { cleanAma, isValidAmaFormat, amaLengthLooksUnusual } from '@/lib/property/ama';
+import { ATAK_SOURCE, atakDigits } from '@/lib/property/atak';
 import { STATUSES, BY_KEY, readStatus, writeStatus, type PropertyStatus } from '@/lib/property/status';
 import { fillOnlyEmpty, firstFilled } from '@/lib/core/prefill';
 import { failed } from '@/lib/core/dbError';
@@ -551,8 +552,11 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
               <input style={inputStyle} value={postalCode} onChange={e => setPostalCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 5))} inputMode="numeric" placeholder="16232" onFocus={onFocus} onBlur={onBlur} />
             </Field>
           </div>
+          {/* Η οδηγία ΔΕΝ ζει σε placeholder: το placeholder σβήνει με το πρώτο
+              ψηφίο, δηλαδή τη στιγμή ακριβώς που ο χρήστης το χρειάζεται. */}
           <Field label="ΑΤΑΚ (Αριθμός Ταυτότητας Ακινήτου)">
-            <input style={monoInputStyle} value={atak} onChange={e => setAtak(e.target.value.replace(/[^0-9]/g, '').slice(0, 11))} inputMode="numeric" placeholder="11 ψηφία, από το Ε9 ή το περιουσιολόγιο" onFocus={onFocus} onBlur={onBlur} />
+            <input style={monoInputStyle} value={atak} onChange={e => setAtak(atakDigits(e.target.value))} inputMode="numeric" onFocus={onFocus} onBlur={onBlur} />
+            <p style={{ ...TT.caption, marginTop: 6 }}>{ATAK_SOURCE}</p>
           </Field>
           {isLandLike ? (
             <Field label={sqmLabel}>

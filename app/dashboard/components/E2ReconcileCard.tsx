@@ -36,6 +36,9 @@ import type { PlanId } from '@/lib/billing/plans';
 import { FeatureBtn } from './FeatureLock';
 import type { E2Row } from '@/lib/billing/e2';
 import { readStatus } from '@/lib/property/status';
+import { ATAK_SOURCE, ATAK_DIGITS, atakDigits, isAtak } from '@/lib/property/atak';
+import * as propertyStore from '@/lib/data/properties';
+import { failed } from '@/lib/core/dbError';
 import { shortTermYearSummary } from '@/lib/tax/shortTermTax';
 
 // Χρώμα ΜΟΝΟ όπου υπάρχει κάτι να γίνει. Η συμφωνία δεν είναι επίτευγμα που
@@ -65,6 +68,14 @@ export default function E2ReconcileCard({ userId, year, plan = 'free', onUpgrade
   /** Τι έγραψε ο χρήστης από το έντυπο, ανά ΑΤΑΚ. Κενό = δεν το έχει δει ακόμη. */
   const [declared, setDeclared] = useState<Record<string, string>>({});
   const [exporting, setExporting] = useState(false);
+  // ΤΑ ΑΝΑΓΝΩΡΙΣΤΙΚΑ, ΓΙΑ ΝΑ ΜΠΟΡΕΙ Ο ΑΤΑΚ ΝΑ ΓΡΑΦΤΕΙ ΕΔΩ.
+  // Το `E2Row` είναι γραμμή ΕΝΤΥΠΟΥ και δεν κουβαλά κλειδί βάσης — σωστά. Οι
+  // γραμμές όμως βγαίνουν απο `properties.map(...)` μέσα στο `loadE2Rows`,
+  // άρα είναι ένα προς ένα και στην ίδια σειρά· κρατάμε τα αναγνωριστικά
+  // παράλληλα, απο την ΙΔΙΑ φόρτωση, και ταιριάζουν κατά θέση.
+  const [propIds, setPropIds] = useState<string[]>([]);
+  const [atakDraft, setAtakDraft] = useState<Record<string, string>>({});
+  const [savingAtak, setSavingAtak] = useState('');
 
   // ── ΤΟ ΑΡΧΕΙΟ ΠΟΥ ΠΟΥΛΙΕΤΑΙ ────────────────────────────────────────────
   // Η συνάρτηση που φτιάχνει το βιβλίο υπήρχε και δούλευε χωρίς να την καλεί
@@ -94,6 +105,7 @@ export default function E2ReconcileCard({ userId, year, plan = 'free', onUpgrade
           await loadE2Rows(supabase, userId, year);
         if (!alive) return;
         setRows(r);
+        setPropIds(properties.map(p => p.id));
         // ── ΤΕΣΣΕΡΑ ΜΕΓΕΘΗ ΠΟΥ ΥΠΗΡΧΑΝ ΚΑΙ ΔΕΝ ΠΕΡΝΟΥΣΑΝ ────────────────────
         //
         // Η μηχανή συμφωνίας ξέρει επτά λόγους διαφοράς. Εδώ της δίνονταν
@@ -136,6 +148,28 @@ export default function E2ReconcileCard({ userId, year, plan = 'free', onUpgrade
     })();
     return () => { alive = false; };
   }, [supabase, userId, year]);
+
+  // ── Ο ΑΤΑΚ ΓΡΑΦΕΤΑΙ ΕΔΩ, ΟΧΙ ΑΛΛΟΥ ────────────────────────────────────────
+  // Εδώ καθόταν μια πρόταση: «Χωρίς ΑΤΑΚ δεν γίνεται σύγκριση.» Σωστή, και
+  // αδιέξοδη: το πεδίο ζούσε στο δεύτερο βήμα του οδηγού ακινήτου, δηλαδή
+  // τέσσερα πατήματα και μία εικασία μακριά απο την οθόνη που το ζητούσε.
+  // Τώρα ζητείται όπου λείπει, με το ίδιο σχήμα εισόδου που έχει και το
+  // νούμερο του εντύπου δίπλα του — ένα πεδίο ανά γραμμή, αυτό που χρειάζεται.
+  const saveAtak = async (i: number) => {
+    const id = propIds[i];
+    const value = atakDigits(atakDraft[id]);
+    if (!id || !isAtak(value)) return;
+    setSavingAtak(id);
+    const { error } = await propertyStore.update(supabase, id, { atak: value }, userId);
+    setSavingAtak('');
+    if (error) { notifyError(failed('Ο ΑΤΑΚ δεν αποθηκεύτηκε', error)); return; }
+    notify('Ο ΑΤΑΚ καταχωρήθηκε');
+    // Οι γραμμές και τα στοιχεία βγαίνουν και τα δύο απο `properties.map(...)`,
+    // άρα η θέση `i` δείχνει το ίδιο ακίνητο και στα δύο.
+    setRows(rs => rs.map((row, j) => (j === i ? { ...row, atak: value } : row)));
+    setEvidence(ev => ev.map((e, j) => (j === i ? { ...e, atak: value } : e)));
+    setAtakDraft(d => { const n = { ...d }; delete n[id]; return n; });
+  };
 
   const declaredRows: DeclaredRow[] = useMemo(() =>
     Object.entries(declared)
@@ -231,22 +265,46 @@ export default function E2ReconcileCard({ userId, year, plan = 'free', onUpgrade
                   </div>
                   {/* Ο ΑΤΑΚ είναι το μόνο κλειδί ταύτισης. Χωρίς αυτόν δεν συγκρίνουμε. */}
                   {!r.atak && (
-                    <div style={{ ...TT.caption, marginTop: 4, color: 'var(--warning)' }}>
-                      Χωρίς ΑΤΑΚ δεν γίνεται σύγκριση.
+                    <div style={{ ...TT.caption, marginTop: 4 }}>
+                      Χωρίς ΑΤΑΚ δεν γίνεται σύγκριση. {ATAK_SOURCE}
                     </div>
                   )}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <label style={{ ...TT.caption, whiteSpace: 'nowrap' }} htmlFor={`e2-${i}`}>
-                    Το έντυπο λέει
-                  </label>
-                  <input
-                    id={`e2-${i}`} type="number" min={0} inputMode="decimal" style={inp}
-                    placeholder="" disabled={!r.atak}
-                    value={declared[r.atak] ?? ''}
-                    onChange={e => setDeclared(d => ({ ...d, [r.atak]: e.target.value }))}
-                  />
-                </div>
+                {/* ΕΝΑ ΠΕΔΙΟ ΑΝΑ ΓΡΑΜΜΗ: αυτό που λείπει τώρα. Οσο δεν υπάρχει
+                    ΑΤΑΚ, το νούμερο του εντύπου δεν έχει πού να ταιριάξει. */}
+                {r.atak ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <label style={{ ...TT.caption, whiteSpace: 'nowrap' }} htmlFor={`e2-${i}`}>
+                      Το έντυπο λέει
+                    </label>
+                    <input
+                      id={`e2-${i}`} type="number" min={0} inputMode="decimal" style={inp}
+                      placeholder=""
+                      value={declared[r.atak] ?? ''}
+                      onChange={e => setDeclared(d => ({ ...d, [r.atak]: e.target.value }))}
+                    />
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <label style={{ ...TT.caption, whiteSpace: 'nowrap' }} htmlFor={`atak-${i}`}>
+                      ΑΤΑΚ
+                    </label>
+                    <input
+                      id={`atak-${i}`} inputMode="numeric" autoComplete="off"
+                      style={{ ...inp, width: 150, textAlign: 'left' }}
+                      placeholder={`${ATAK_DIGITS} ψηφία`}
+                      value={atakDraft[propIds[i]] ?? ''}
+                      onChange={e => setAtakDraft(d => ({ ...d, [propIds[i]]: atakDigits(e.target.value) }))}
+                      onKeyDown={e => { if (e.key === 'Enter') saveAtak(i); }}
+                    />
+                    <Btn
+                      onClick={() => saveAtak(i)}
+                      disabled={!isAtak(atakDraft[propIds[i]]) || savingAtak === propIds[i]}
+                    >
+                      {savingAtak === propIds[i] ? 'Καταχώρηση…' : 'Καταχώρηση'}
+                    </Btn>
+                  </div>
+                )}
               </div>
 
               {hasNumber && line && tone && (

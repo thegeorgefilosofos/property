@@ -16,6 +16,7 @@
 import { EXPENSE_MAP, categorizeTransaction, derivePeriod, digitsOnly, isValidAfm } from './parse';
 import { navLabel } from '../nav/labels';
 import { fe } from '../core/format';
+import { atakDigits, isAtak } from '../property/atak';
 import type { EventDraft } from '../data/calendar';
 import { billingPeriod, nextRenewal, reminderDate, providerCountry, docSupply, PERIOD_LABEL, REMINDER_DAYS_BEFORE } from './invoiceIntel';
 
@@ -622,7 +623,7 @@ export function planDocSave(doc: ScannedDoc, today: string): SavePlan {
     if (doc.purchase_price) property.purchase_price = doc.purchase_price;
     if (doc.year_built) property.year_built = doc.year_built;
     if (doc.sqm) property.sqm = doc.sqm;
-    if ((doc.atak || '').trim()) property.atak = (doc.atak || '').trim();
+    if (isAtak(doc.atak)) property.atak = atakDigits(doc.atak);
     if (doc.obj_value) property.obj_value = doc.obj_value;
     if (iso(doc.purchase_date)) property.purchase_date = iso(doc.purchase_date);
     const extras = [
@@ -637,6 +638,13 @@ export function planDocSave(doc: ScannedDoc, today: string): SavePlan {
   if (t === 'tax') {
     // Δεν υπάρχει στήλη ΕΝΦΙΑ στο ακίνητο: το ποσό γίνεται έξοδο + υπενθύμιση.
     const plan: SavePlan = { targets: [FOLDER], archive: { ...archive, note: baseNote || undefined } };
+    // ΚΑΙ Ο ΑΤΑΚ ΤΟΥ Ε9 ΠΑΕΙ ΣΤΗ ΣΤΗΛΗ ΤΟΥ.
+    // Ο ΑΤΑΚ γραφόταν μόνο απο τίτλο ιδιοκτησίας. Ομως το έγγραφο όπου ο
+    // ιδιοκτήτης τον βλέπει — και το μόνο που έχει πρόχειρο κάθε χρόνο — είναι
+    // το Ε9· και το Ε9 κατατάσσεται εδώ, στα φορολογικά. Δηλαδή η μηχανή τον
+    // ΔΙΑΒΑΖΕ και τον πετούσε, και μετά η καρτέλα Ε2 ζητούσε απο τον χρήστη να
+    // τον πληκτρολογήσει. Το `fillOnlyEmpty` προστατεύει ό,τι έγραψε ο ίδιος.
+    if (isAtak(doc.atak)) { plan.property = { atak: atakDigits(doc.atak) }; plan.targets.unshift('Στοιχεία ακινήτου'); }
     if (doc.amount) {
       const map = EXPENSE_MAP.taxes;
       plan.expense = {

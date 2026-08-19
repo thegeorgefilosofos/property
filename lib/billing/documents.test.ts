@@ -163,6 +163,23 @@ eq('validate payment: amount blocking', validateDoc(doc({ doc_type: 'payment' })
   const p = planDocSave(doc({ doc_type: 'deed', atak: '   ' }), TODAY);
   check('deed: κενός ΑΤΑΚ δεν γράφει τίποτα', p.property === undefined);
 }
+// ΜΙΣΟΔΙΑΒΑΣΜΕΝΟΣ ΑΤΑΚ ΔΕΝ ΓΡΑΦΕΤΑΙ. Γραφόταν ό,τι δεν ήταν κενό: ένας ΑΤΑΚ
+// που η σάρωση διάβασε μισό περνούσε στη στήλη, και μετά η καρτέλα Ε2 δεν
+// ταίριαζε καμία γραμμή — χωρίς να φαίνεται γιατί, αφού «ΑΤΑΚ υπάρχει».
+{
+  const p = planDocSave(doc({ doc_type: 'deed', atak: '111222' }), TODAY);
+  check('deed: μισός ΑΤΑΚ δεν γράφεται', p.property?.atak === undefined);
+}
+// ΤΟ Ε9 ΕΙΝΑΙ ΤΟ ΕΓΓΡΑΦΟ ΤΟΥ ΑΤΑΚ, ΚΑΙ ΚΑΤΑΤΑΣΣΕΤΑΙ ΣΤΑ ΦΟΡΟΛΟΓΙΚΑ.
+{
+  const p = planDocSave(doc({ doc_type: 'tax', title: 'Ε9', atak: '  111-222-333 44 ' }), TODAY);
+  eq('tax: ο ΑΤΑΚ του Ε9 γράφεται στη στήλη του', p.property!.atak, '11122233344');
+  check('tax: targets include Στοιχεία ακινήτου', p.targets.includes('Στοιχεία ακινήτου'));
+}
+{
+  const p = planDocSave(doc({ doc_type: 'tax', title: 'ΕΝΦΙΑ', amount: 320 }), TODAY);
+  check('tax χωρίς ΑΤΑΚ: καμία εγγραφή στο ακίνητο', p.property === undefined);
+}
 // Ο κανόνας «συμπληρώνουμε κενά» ελέγχεται στο lib/core/prefill.test.ts.
 // deed with no structured fields → archive only
 {

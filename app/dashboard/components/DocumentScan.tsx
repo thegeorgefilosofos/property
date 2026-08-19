@@ -106,6 +106,9 @@ const TYPE_FIELDS: Record<DocType, FieldDef[]> = {
   ],
   tax: [
     { key: 'provider', label: 'Φορέας (π.χ. ΑΑΔΕ)' },
+    // Το Ε9 φέρνει τον ΑΤΑΚ. Χωρίς πεδίο εδώ, ο χρήστης δεν μπορούσε ούτε να
+    // τον δει ούτε να διορθώσει λάθος ανάγνωση πριν γραφτεί στο ακίνητο.
+    { key: 'atak', label: 'ΑΤΑΚ' },
     { key: 'amount', label: 'Ποσό (€)', type: 'number' },
     { key: 'tax_year', label: 'Έτος', type: 'number' },
     { key: 'due_date', label: 'Ημερομηνία λήξης πληρωμής', type: 'date' },
