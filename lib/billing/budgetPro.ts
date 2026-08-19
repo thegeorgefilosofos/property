@@ -1,4 +1,5 @@
 import { cents } from '@/lib/core/money'
+import { presumptiveDeductionRate } from './consolidate'
 // lib/billing/budgetPro.ts
 // Καθαρές, ελεγχόμενες συναρτήσεις προϋπολογισμού. Χωρίς I/O — η UI τροφοδοτεί
 // πραγματικά ποσά.
@@ -36,10 +37,16 @@ export interface StrWaterfall {
 }
 /**
  * Το μέρος του ακαθάριστου που φορολογείται: τεκμαρτή έκπτωση 5% (άρθρο 39 §4).
- * Ίδια παραδοχή με το lib/tax/shortTermTax.ts, ώστε οι δύο οθόνες να μη
- * διαφωνούν — εκεί ζει και η εξαίρεση για είσπραξη με μετρητά.
+ *
+ * ΗΤΑΝ ΚΥΡΙΟΛΕΚΤΙΚΟ `0.95`, με σχόλιο που παραδεχόταν την εξάρτηση: «ίδια
+ * παραδοχή με το lib/tax/shortTermTax.ts, ώστε οι δύο οθόνες να μη διαφωνούν».
+ * Μια παραδοχή που γράφεται δύο φορές ΔΕΝ κρατά δύο οθόνες σε συμφωνία — τους
+ * δίνει δύο ευκαιρίες να διαφωνήσουν. Βγαίνει πλέον απο τη μία πηγή.
+ *
+ * Χωρίς όρισμα: εδώ δεν υπάρχει είσοδος τρόπου είσπραξης, οπότε κρατιέται η
+ * ευνοϊκή παραδοχή (τραπεζική είσπραξη), όπως και πριν.
  */
-const TAXABLE_SHARE_OF_GROSS = 0.95
+const TAXABLE_SHARE_OF_GROSS = 1 - presumptiveDeductionRate()
 
 export function strWaterfall(i: StrWaterfallInput): StrWaterfall {
   const gross = Math.max(0, i.gross || 0)

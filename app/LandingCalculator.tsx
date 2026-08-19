@@ -3,6 +3,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { rentalIncomeTax } from '@/lib/billing/greekTax'
 import { fe, fp } from '@/lib/core/format'
+import { PRESUMPTIVE_DEDUCTION_RATE } from '@/lib/accounting/statement'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Ζωντανό εργαλείο απόδοσης μέσα στο landing. Τρέχει την ΙΔΙΑ ακριβή φορολογική
@@ -72,7 +73,11 @@ export default function LandingCalculator() {
   const [costs, setCosts] = useState(1200)
 
   const annual = rent * 12
-  const taxable = annual * 0.95            // τεκμαρτή έκπτωση 5% για συντήρηση/επισκευές
+  // Η ΕΚΠΤΩΣΗ ΒΓΑΙΝΕΙ ΑΠΟ ΤΗ ΜΙΑ ΠΗΓΗ. Ηταν κυριολεκτικό `0.95` — τρίτο
+  // αντίγραφο του ίδιου φορολογικού κανόνα, στην πρώτη οθόνη που βλέπει ο
+  // επισκέπτης. Ο υπολογιστής εδώ δεν ρωτά τρόπο είσπραξης, οπότε κρατά την
+  // ευνοϊκή παραδοχή· η υποσημείωση το λέει ρητά, αντί να το αποσιωπά.
+  const taxable = annual * (1 - PRESUMPTIVE_DEDUCTION_RATE)
   const tax = rentalIncomeTax(taxable)
   const net = annual - tax - costs
   const grossYield = value > 0 ? annual / value : 0
@@ -126,7 +131,7 @@ export default function LandingCalculator() {
         </div>
         <div style={{ flex: 1 }} />
         <p style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.6, margin: 0 }}>
-          Ενδεικτικός υπολογισμός με την κλίμακα ενοικίων 2026 και τεκμαρτή έκπτωση 5% για δαπάνες. Δεν υποκαθιστά τον λογιστή σου.
+          Ενδεικτικός υπολογισμός με την κλίμακα ενοικίων 2026 και τεκμαρτή έκπτωση {fp(PRESUMPTIVE_DEDUCTION_RATE * 100)} για δαπάνες, που από 1/1/2026 προϋποθέτει είσπραξη μέσω τραπέζης. Δεν υποκαθιστά τον λογιστή σου.
         </p>
         <Link href="/signup" className="lp-cta lp-primary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '13px', borderRadius: 100 }}>
           Δες τα δικά σου δεδομένα, αυτόματα

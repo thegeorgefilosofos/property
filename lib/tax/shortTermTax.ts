@@ -22,6 +22,7 @@ import {
 } from '@/lib/clients/stayAmounts';
 import { STAY_CHANNEL_LABELS, type StayChannel } from '@/lib/clients/clients';
 import { categoryLabel } from '@/lib/expenses/taxonomy';
+import { presumptiveDeductionRate } from '@/lib/billing/consolidate';
 import {
   climateLevyForNights, climateLevyRates, isHighSeasonMonth,
   rentalIncomeTax, rentalBracketsForYear, municipalAccommodationTax,
@@ -223,7 +224,12 @@ export function shortTermYearSummary(stays: TaxStay[], year: number, meta?: Prop
   // Βραχυχρόνια φυσικού προσώπου χωρίς υπηρεσίες = εισόδημα από ακίνητη περιουσία:
   // εφαρμόζεται η τεκμαρτή έκπτωση 5% (άρθρο 39 παρ.4 ΚΦΕ) → φορολογείται το 95%.
   // Προϋπόθεση (από 1/1/2026): είσπραξη μέσω τραπέζης· με μετρητά φορολογείται το 100%.
-  const taxableFactor = meta?.rentsPaidViaBank === false ? 1 : 0.95;
+  // Ο ΣΥΝΤΕΛΕΣΤΗΣ ΔΕΝ ΞΑΝΑΓΡΑΦΕΤΑΙ. Εδώ ήταν `? 1 : 0.95`, δηλαδή ΚΑΙ το
+  // ποσοστό ΚΑΙ ο κανόνας της τράπεζας, δεύτερη φορά. Ο νόμος αυτού ακριβώς
+  // του ποσοστού έχει ΗΔΗ αλλάξει μία φορά (ν.5246/2025 πρόσθεσε την
+  // προϋπόθεση τραπέζης)· την επόμενη φορά η Λογιστική θα ενημερωνόταν και η
+  // Πληρότητα όχι, με δύο φόρους για την ίδια χρονιά σε διπλανές οθόνες.
+  const taxableFactor = 1 - presumptiveDeductionRate(meta?.rentsPaidViaBank !== false);
   // Η ΚΛΙΜΑΚΑ ΤΟΥ ΕΤΟΥΣ, ΟΧΙ ΠΑΝΤΑ ΤΟΥ 2026. Η συνάρτηση δέχεται `year` από
   // την πρώτη μέρα και το χρησιμοποιούσε παντού ΕΚΤΟΣ από τον φόρο — που είναι
   // το νούμερο για το οποίο υπάρχει.
