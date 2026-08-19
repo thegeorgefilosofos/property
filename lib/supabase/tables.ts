@@ -119,6 +119,26 @@ export interface AppAdminsRow {
   created_at: string | null;
 }
 
+export interface BankConnectionRefsRow {
+  connection_id: string | null;
+  external_ref: string;
+  created_at: string;
+}
+
+export interface BankConnectionsRow {
+  id: string | null;
+  user_id: string;
+  provider: string;
+  institution_id: string;
+  institution_name: string;
+  status: string;
+  consent_expires_at: string | null;
+  last_sync_at: string | null;
+  last_error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface BankRatesRow {
   bank_id: string;
   bank_name: string;
@@ -156,6 +176,7 @@ export interface BankTransactionsRow {
   amount: number;
   dedup_hash: string;
   imported_at: string;
+  connection_id: string | null;
 }
 
 export interface BillingProfilesRow {
@@ -1312,6 +1333,8 @@ export interface Tables {
   ai_usage: AiUsageRow;
   airbnb_bookings: AirbnbBookingsRow;
   app_admins: AppAdminsRow;
+  bank_connection_refs: BankConnectionRefsRow;
+  bank_connections: BankConnectionsRow;
   bank_rates: BankRatesRow;
   bank_transactions: BankTransactionsRow;
   billing_profiles: BillingProfilesRow;

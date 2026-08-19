@@ -742,3 +742,94 @@ begin
 
   raise notice 'probe: η διαγραφή λογαριασμού αδειάζει και την ουρά των email';
 end $probe$;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Η ΤΡΑΠΕΖΙΚΗ ΣΥΝΔΕΣΗ: ΤΙ ΒΛΕΠΕΙ Ο ΧΡΗΣΤΗΣ ΚΑΙ ΤΙ ΔΕΝ ΒΛΕΠΕΙ ΠΟΤΕ
+-- ─────────────────────────────────────────────────────────────────────────
+-- Τρία πράγματα κρίνονται εδώ, και κανένα δεν φαίνεται από την οθόνη αν
+-- σπάσει: η απομόνωση μεταξύ ιδιοκτητών, το ότι το αναγνωριστικό του παρόχου
+-- μένει στον διακομιστή, και το ότι η διακοπή της σύνδεσης δεν σβήνει βιβλία.
+--
+-- ΠΡΟΣΟΧΗ ΣΤΟ ΤΙ ΑΠΟΔΕΙΚΝΥΕΙ ΤΟ ΔΕΥΤΕΡΟ. Η σκαλωσιά παραπάνω έδωσε ΡΗΤΑ
+-- δικαιώματα σε όλους τους πίνακες στον `authenticated`, άρα εδώ δοκιμάζεται
+-- ο ΔΕΥΤΕΡΟΣ μηχανισμός άρνησης — RLS ενεργό με μηδέν πολιτικές — και όχι η
+-- ανάκληση δικαιωμάτων. Ακριβώς αυτό θέλουμε: ότι η άρνηση κρατά ακόμη κι αν
+-- κάποιος δώσει κατά λάθος GRANT.
+-- ═══════════════════════════════════════════════════════════════════════════
+reset role;
+set session "probe.uid" = '';
+
+do $probe$
+declare
+  ca uuid := 'cccccccc-0000-0000-0000-00000000000a';
+  cb uuid := 'cccccccc-0000-0000-0000-00000000000b';
+begin
+  insert into public.bank_connections (id, user_id, provider, institution_id, institution_name, status)
+    values (ca, '11111111-1111-1111-1111-111111111111', 'gocardless', 'NBG_ETHNGRAA', 'Εθνική Τράπεζα', 'active'),
+           (cb, '22222222-2222-2222-2222-222222222222', 'gocardless', 'PIRAEUS_PIRBGRAA', 'Τράπεζα Πειραιώς', 'active');
+  insert into public.bank_connection_refs (connection_id, external_ref)
+    values (ca, 'req_tou_a'), (cb, 'req_tou_b');
+  insert into public.bank_transactions (user_id, connection_id, txn_date, description, amount, dedup_hash)
+    values ('11111111-1111-1111-1111-111111111111', ca, '2026-08-01', 'ΕΝΟΙΚΙΟ', 800, 'ob1|gocardless|' || ca || '|T1');
+  raise notice 'probe: δύο τραπεζικές συνδέσεις, μία ανά ιδιοκτήτη';
+end $probe$;
+
+set role authenticated;
+set session "probe.uid" = '11111111-1111-1111-1111-111111111111';
+
+do $probe$
+declare n int;
+begin
+  select count(*) into n from public.bank_connections;
+  if n <> 1 then raise exception 'ΔΙΑΡΡΟΗ: ο Α βλέπει % τραπεζικές συνδέσεις αντί για 1', n; end if;
+
+  -- ΤΟ ΑΝΑΓΝΩΡΙΣΤΙΚΟ ΤΟΥ ΠΑΡΟΧΟΥ ΔΕΝ ΦΤΑΝΕΙ ΟΥΤΕ ΣΤΟΝ ΙΔΙΟ ΤΟΝ ΙΔΙΟΚΤΗΤΗ.
+  -- Δεν το χρειάζεται· και μαζί με το κλειδί μας ανοίγει τις κινήσεις.
+  select count(*) into n from public.bank_connection_refs;
+  if n <> 0 then raise exception 'ΔΙΑΡΡΟΗ: το αναγνωριστικό του παρόχου έφτασε στον περιηγητή (% γραμμές)', n; end if;
+
+  -- Ούτε γράφεται από εκεί.
+  begin
+    insert into public.bank_connection_refs (connection_id, external_ref)
+      values ('cccccccc-0000-0000-0000-00000000000a', 'req_plastos');
+    raise exception 'ΔΙΑΡΡΟΗ: ο χρήστης έγραψε αναγνωριστικό παρόχου';
+  exception
+    when insufficient_privilege then null;
+    when others then if sqlerrm like 'ΔΙΑΡΡΟΗ%' then raise; end if;
+  end;
+
+  -- ΜΙΑ ΖΩΝΤΑΝΗ ΣΥΝΔΕΣΗ ΑΝΑ ΤΡΑΠΕΖΑ. Χωρίς αυτό, δεύτερη προσπάθεια σύνδεσης
+  -- θα άφηνε δεύτερη γραμμή — και το πρόσθετο χρεώνει ανά σύνδεση.
+  begin
+    insert into public.bank_connections (user_id, provider, institution_id, institution_name, status)
+      values ('11111111-1111-1111-1111-111111111111', 'gocardless', 'NBG_ETHNGRAA', 'Εθνική Τράπεζα', 'pending');
+    raise exception 'ΔΙΠΛΗ ΧΡΕΩΣΗ: δεύτερη ζωντανή σύνδεση στην ίδια τράπεζα πέρασε';
+  exception
+    when unique_violation then null;
+    when others then if sqlerrm like 'ΔΙΠΛΗ%' then raise; end if;
+  end;
+
+  -- Η ΔΙΑΚΟΠΗ ΤΗΣ ΣΥΝΔΕΣΗΣ ΔΕΝ ΣΒΗΝΕΙ ΒΙΒΛΙΑ. Ο χρήστης παύει να πληρώνει το
+  -- πρόσθετο· οι κινήσεις που έχουν ήδη συνδεθεί με ενοίκια μένουν.
+  delete from public.bank_connections where id = 'cccccccc-0000-0000-0000-00000000000a';
+  select count(*) into n from public.bank_transactions
+   where user_id = '11111111-1111-1111-1111-111111111111' and dedup_hash like 'ob1|%';
+  if n <> 1 then raise exception 'Η διακοπή της σύνδεσης έσβησε τις κινήσεις (% έμειναν)', n; end if;
+  select count(*) into n from public.bank_transactions
+   where dedup_hash like 'ob1|%' and connection_id is not null;
+  if n <> 0 then raise exception 'Η κίνηση δείχνει ακόμη σε σύνδεση που δεν υπάρχει'; end if;
+
+  raise notice 'probe: η τραπεζική σύνδεση μένει στον ιδιοκτήτη της, το αναγνωριστικό του παρόχου στον διακομιστή';
+end $probe$;
+
+reset role;
+set session "probe.uid" = '';
+
+do $probe$
+declare n int;
+begin
+  -- Και το αναγνωριστικό της σβησμένης σύνδεσης έφυγε μαζί της.
+  select count(*) into n from public.bank_connection_refs where external_ref = 'req_tou_a';
+  if n <> 0 then raise exception 'Το αναγνωριστικό του παρόχου επέζησε της διαγραφής της σύνδεσης'; end if;
+  raise notice 'probe: το αναγνωριστικό του παρόχου φεύγει μαζί με τη σύνδεση';
+end $probe$;
