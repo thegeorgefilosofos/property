@@ -240,12 +240,32 @@ function DeleteAccount() {
     window.location.assign('/login');
   };
 
+  /**
+   * Η ΔΙΑΓΡΑΦΗ ΠΕΡΝΑΕΙ ΑΠΟ ΤΟΝ ΔΙΑΚΟΜΙΣΤΗ, ΚΑΙ ΟΧΙ ΓΙΑ ΤΥΠΙΚΟΤΗΤΑ.
+   *
+   * Πριν, η οθόνη καλούσε κατευθείαν τη `delete_my_account`. Ο λογαριασμός
+   * έφευγε, το προφίλ χρέωσης με το αναγνωριστικό της συνδρομής έφευγε μαζί
+   * του, και η ΚΑΡΤΑ ΣΥΝΕΧΙΖΕ ΝΑ ΧΡΕΩΝΕΤΑΙ — χωρίς λογαριασμό απέναντι και
+   * χωρίς κουμπί για να σταματήσει. Η ακύρωση στον έμπορο θέλει το κλειδί
+   * API, δηλαδή διακομιστή· η διαδρομή κάνει πρώτα εκείνη και μετά αυτό.
+   */
   const del = async () => {
     if (!ready || busy) return;
     setBusy(true); setError(null);
-    const { data, error } = await supabase.rpc('delete_my_account');
-    if (error) { setError(failed('Ο λογαριασμός δεν διαγράφηκε', error)); setBusy(false); return; }
-    const report = (data ?? {}) as DeleteReport;
+    let payload: unknown = null;
+    try {
+      const res = await fetch('/api/account/delete', { method: 'POST' });
+      payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = (payload as { error?: string } | null)?.error;
+        setError(typeof msg === 'string' && msg ? msg : 'Ο λογαριασμός δεν διαγράφηκε. Δοκίμασε ξανά σε λίγο.');
+        setBusy(false); return;
+      }
+    } catch {
+      setError('Ο λογαριασμός δεν διαγράφηκε. Ελεγξε τη σύνδεσή σου και δοκίμασε ξανά.');
+      setBusy(false); return;
+    }
+    const report = (payload ?? {}) as DeleteReport;
     // Ο λογαριασμός έχει ήδη φύγει, οπότε η αποσύνδεση γίνεται ούτως ή άλλως:
     // εδώ κρίνεται μόνο αν ο χρήστης θα δει πρώτα τι δεν σβήστηκε.
     if (report.ok === false) { setLeftover(leftoverText(report.files_left)); setBusy(false); return; }

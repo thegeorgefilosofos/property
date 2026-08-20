@@ -34,7 +34,7 @@ export interface ApiResult {
 
 export interface ApiCall {
   path: string;
-  method?: 'GET' | 'POST' | 'PATCH';
+  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
   body?: unknown;
   apiKey: string;
   fetcher?: typeof fetch;

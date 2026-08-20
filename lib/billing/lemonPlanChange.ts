@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Η ΑΛΛΑΓΗ ΠΑΚΕΤΟΥ ΣΕ ΖΩΝΤΑΝΗ ΣΥΝΔΡΟΜΗ
+// ΟΣΑ ΓΙΝΟΝΤΑΙ ΣΕ ΜΙΑ ΣΥΝΔΡΟΜΗ ΠΟΥ ΗΔΗ ΤΡΕΧΕΙ: ΑΛΛΑΓΗ ΠΑΚΕΤΟΥ ΚΑΙ ΑΚΥΡΩΣΗ
 // ─────────────────────────────────────────────────────────────────────────
 // Δύο πράξεις με το ίδιο κουμπί και εντελώς διαφορετική οικονομία.
 //
@@ -156,6 +156,38 @@ export async function subscriptionState(
   subscriptionId: string, apiKey: string, fetcher?: typeof fetch,
 ): Promise<ChangeResult> {
   const { json, error } = await subscriptionOf(subscriptionId, apiKey, fetcher);
+  if (error) return { after: null, error };
+  return { after: readSubscriptionState(json), error: '' };
+}
+
+/**
+ * ΟΙ ΚΑΤΑΣΤΑΣΕΙΣ ΠΟΥ ΔΕΝ ΕΧΟΥΝ ΤΙΠΟΤΑ ΝΑ ΑΚΥΡΩΣΟΥΝ.
+ *
+ * Μια ήδη ακυρωμένη ή ληγμένη συνδρομή δεν ξαναακυρώνεται: ο έμπορος θα
+ * απαντούσε σφάλμα, και ο καλών θα το εκλάμβανε ως «η ακύρωση δεν έγινε» —
+ * μπλοκάροντας, για παράδειγμα, μια διαγραφή λογαριασμού που δεν είχε κανέναν
+ * λόγο να μπλοκαριστεί.
+ */
+const ALREADY_OVER: ReadonlySet<string> = new Set(['cancelled', 'expired']);
+
+export const needsCancelling = (status: string | null): boolean =>
+  !!status && !ALREADY_OVER.has(status);
+
+/**
+ * Ακυρώνει τη συνδρομή στον έμπορο.
+ *
+ * ΑΚΥΡΩΣΗ ΔΕΝ ΣΗΜΑΙΝΕΙ ΔΙΑΚΟΠΗ ΣΗΜΕΡΑ. Ο έμπορος σταματά τις ΜΕΛΛΟΝΤΙΚΕΣ
+ * χρεώσεις και αφήνει τη συνδρομή να τρέξει ώς το τέλος της περιόδου που έχει
+ * πληρωθεί — ακριβώς αυτό υπόσχονται οι Οροι. Καμία επιστροφή, καμία απώλεια.
+ */
+export async function cancelSubscription(
+  subscriptionId: string, apiKey: string, fetcher?: typeof fetch,
+): Promise<ChangeResult> {
+  const { json, error } = await lemonRequest({
+    path: `/v1/subscriptions/${encodeURIComponent(subscriptionId)}`,
+    method: 'DELETE',
+    apiKey, fetcher,
+  });
   if (error) return { after: null, error };
   return { after: readSubscriptionState(json), error: '' };
 }

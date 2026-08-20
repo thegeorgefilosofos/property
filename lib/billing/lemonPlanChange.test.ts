@@ -6,6 +6,7 @@
 // δωρεάν ώς την ανανέωση. Καμία από τις δύο δεν βγάζει σφάλμα πουθενά.
 import {
   classifyChange, planDrops, changePayload, readSubscriptionState, changePlan, subscriptionState,
+  cancelSubscription, needsCancelling,
 } from './lemonPlanChange'
 import type { PlanId, BillingCycle } from './plans'
 
@@ -78,6 +79,19 @@ ok('η αναβάθμιση δεν κρατά τίποτα', planDrops(at('solo'
   ok('υποβάθμιση σε δοκιμή, καμία αναλογία', attrs.disable_prorations === true)
 }
 
+// ── ΠΟΙΑ ΣΥΝΔΡΟΜΗ ΕΧΕΙ ΝΟΗΜΑ ΝΑ ΑΚΥΡΩΘΕΙ ────────────────────────────────
+// Οποια ΔΕΝ έχει τελειώσει. Μια ήδη ακυρωμένη θα έβγαζε σφάλμα από τον
+// έμπορο, και ο καλών θα το διάβαζε ως «η ακύρωση δεν έγινε»: θα μπλόκαρε
+// διαγραφή λογαριασμού που δεν είχε κανέναν λόγο να μπλοκαριστεί.
+ok('η δοκιμή ακυρώνεται', needsCancelling('on_trial') === true)
+ok('η ενεργή ακυρώνεται', needsCancelling('active') === true)
+ok('η ξαναδοκιμαζόμενη ακυρώνεται', needsCancelling('past_due') === true)
+ok('η παγωμένη ακυρώνεται', needsCancelling('paused') === true)
+ok('η απλήρωτη ακυρώνεται', needsCancelling('unpaid') === true)
+ok('η ήδη ακυρωμένη δεν ξαναακυρώνεται', needsCancelling('cancelled') === false)
+ok('η ληγμένη δεν ακυρώνεται', needsCancelling('expired') === false)
+ok('χωρίς κατάσταση, τίποτα να ακυρωθεί', needsCancelling(null) === false)
+
 // ── Η ΑΝΑΓΝΩΣΗ ΤΗΣ ΑΠΑΝΤΗΣΗΣ ─────────────────────────────────────────────
 {
   const s = readSubscriptionState({ data: { attributes: {
@@ -139,6 +153,25 @@ async function asyncChecks() {
     const fake = (async () => { throw new Error('δίκτυο') }) as unknown as typeof fetch
     const out = await changePlan({ subscriptionId: '99', variantId: '811225', kind: 'upgrade', onTrial: false }, 'κλειδί', fake)
     ok('το πεσμένο δίκτυο δεν πετάει έξω', out.after === null && out.error === 'δίκτυο')
+  }
+
+  // ── Η ΑΚΥΡΩΣΗ ────────────────────────────────────────────────────────
+  {
+    let seen: { url: string; method: string } | null = null
+    const fake = (async (url: string, init: RequestInit) => {
+      seen = { url, method: String(init.method) }
+      return new Response(JSON.stringify({ data: { attributes: { status: 'cancelled', variant_id: 1, renews_at: null, ends_at: 'X' } } }), { status: 200 })
+    }) as unknown as typeof fetch
+    const out = await cancelSubscription('99', 'κλειδί', fake)
+    const call = seen as unknown as { url: string; method: string } | null
+    ok('η ακύρωση είναι DELETE στη συνδρομή',
+      call?.method === 'DELETE' && call?.url === 'https://api.lemonsqueezy.com/v1/subscriptions/99')
+    ok('και διαβάζει την κατάσταση που γύρισε', out.error === '' && out.after?.status === 'cancelled')
+  }
+  {
+    const fake = (async () => new Response('{"errors":[{"detail":"not found"}]}', { status: 404 })) as unknown as typeof fetch
+    const out = await cancelSubscription('99', 'κλειδί', fake)
+    ok('η αποτυχία ακύρωσης λέγεται', out.after === null && out.error.includes('404'))
   }
 
   // ── Η ΑΝΑΓΝΩΣΗ ΠΡΙΝ ΤΗΝ ΑΛΛΑΓΗ ────────────────────────────────────────
