@@ -15,6 +15,7 @@
 // αν διαρρεύσει από τα εισερχόμενα.
 // ═══════════════════════════════════════════════════════════════════════════
 import BrandMark from '@/components/BrandMark';
+import { T } from '@/components/tokens';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -33,7 +34,7 @@ export default function ConfirmReminderEmail() {
   }, [token]);
 
   const wrap: React.CSSProperties = { minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: 'Inter, system-ui, Arial, sans-serif', color: 'var(--text-primary)' };
-  const card: React.CSSProperties = { width: '100%', maxWidth: 440, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '30px 28px', boxShadow: 'var(--elev-1)' };
+  const card: React.CSSProperties = { width: '100%', maxWidth: 440, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '30px 28px', boxShadow: 'var(--elev-1)' };
 
   return (
     <div style={wrap}>

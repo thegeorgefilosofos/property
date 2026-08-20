@@ -43,7 +43,7 @@ export default function MonthlyFeedbackNudge() {
       style={{
         position: 'fixed', left: 20, bottom: 'var(--float-bottom)', zIndex: 'var(--float-z)', width: 'min(340px, calc(100vw - 40px))',
         background: 'var(--bg-elevated)', border: '1px solid var(--border-default)',
-        borderRadius: 14, boxShadow: 'var(--shadow-xl)', padding: '16px 16px 14px',
+        borderRadius: T.radius.card, boxShadow: 'var(--shadow-xl)', padding: '16px 16px 14px',
         fontFamily: T.font.sans, animation: 'posNudgeIn .28s ease both',
       }}
     >
@@ -59,7 +59,7 @@ export default function MonthlyFeedbackNudge() {
         <button onClick={close} aria-label="Κλείσιμο" style={{ flex: 'none', width: 26, height: 26, borderRadius: 8, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>✕</button>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
-        <button onClick={give} style={{ background: 'var(--accent)', color: 'var(--on-tone)', border: 0, borderRadius: 100, padding: '8px 16px', fontSize: 13, fontWeight: 650, cursor: 'pointer', fontFamily: T.font.sans }}>Πες τη γνώμη σου</button>
+        <button onClick={give} style={{ background: 'var(--accent)', color: 'var(--on-tone)', border: 0, borderRadius: T.radius.pill, padding: '8px 16px', fontSize: 13, fontWeight: 650, cursor: 'pointer', fontFamily: T.font.sans }}>Πες τη γνώμη σου</button>
         <button onClick={close} style={{ background: 'none', border: 0, color: 'var(--text-tertiary)', fontSize: 12, cursor: 'pointer', fontFamily: T.font.sans }}>Άλλη φορά</button>
         <a href="/terms#klirosi" target="_blank" rel="noreferrer" style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-tertiary)', textDecoration: 'underline' }}>Όροι</a>
       </div>

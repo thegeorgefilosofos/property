@@ -676,8 +676,8 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
           ανακοινώσει. Το κόστος μένει: είναι άλλη πληροφορία, όχι επανάληψη. */}
       {stats.total > 0 && (
         <div style={{ marginBottom: 20 }}>
-          <div style={{ height: 4, borderRadius: 100, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: stats.pct + '%', background: 'var(--accent)', borderRadius: 100,
+          <div style={{ height: 4, borderRadius: T.radius.pill, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: stats.pct + '%', background: 'var(--accent)', borderRadius: T.radius.pill,
                           transition: `width .4s ${T.ease.standard}` }} />
           </div>
           {(stats.totalEstimated > 0 || stats.totalActual > 0) && (

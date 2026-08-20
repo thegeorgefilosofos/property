@@ -371,7 +371,7 @@ export default function TabComparison({ properties, userId }: Props) {
             const on = g.key === group.key;
             return (
               <button key={g.key} type="button" onClick={() => setGroupKey(g.key)} aria-pressed={on}
-                style={{ height: 28, padding: '0 12px', borderRadius: 100, cursor: 'pointer', fontFamily: T.font.sans, fontSize: 12, fontWeight: on ? 700 : 500,
+                style={{ height: 28, padding: '0 12px', borderRadius: T.radius.pill, cursor: 'pointer', fontFamily: T.font.sans, fontSize: 12, fontWeight: on ? 700 : 500,
                   border: `1px solid ${on ? 'var(--border-default)' : 'var(--border-subtle)'}`,
                   background: on ? 'var(--bg-hover)' : 'transparent',
                   color: on ? 'var(--text-primary)' : 'var(--text-secondary)' }}>

@@ -1168,7 +1168,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
 
               <div>
                 <div style={{ ...lbl, marginBottom: 8 }}>Ανά μήνα</div>
-                <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: '14px 14px 8px', boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
+                <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.card, padding: '14px 14px 8px', boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 120 }}>
                     {months.map((v, i) => (
                       <div key={i} title={`${MONTHS_NOM[i]}: ${fe(v)}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', height: '100%' }}>
@@ -1483,7 +1483,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                     const declared = isDeclared(s);
                     const dmgItem = s.damage_item_id ? inv.find(i => i.id === s.damage_item_id) : undefined;
                     return (
-                      <div key={s.id} style={{ background: 'var(--surface-raised)', border: `1px solid ${declared ? 'var(--border-raised)' : 'var(--negative-border)'}`, borderRadius: 14, padding: 12, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
+                      <div key={s.id} style={{ background: 'var(--surface-raised)', border: `1px solid ${declared ? 'var(--border-raised)' : 'var(--negative-border)'}`, borderRadius: T.radius.card, padding: 12, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', alignItems: 'flex-start' }}>
                           <div style={{ minWidth: 0 }}>
                             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -1554,7 +1554,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 const active = MSG_TEMPLATES.find(t => t.id === msgId) || MSG_TEMPLATES[0];
                 const text = buildMessage(active.id, msgCtx!);
                 return (
-                  <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: 16, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
+                  <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.card, padding: 16, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
                     <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>{text}</div>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
                       <a href={whatsappLink(dc.phone ? msgDigits(dc.phone) : '', text)} target="_blank" rel="noopener noreferrer" style={msgLink}>WhatsApp</a>
@@ -1584,7 +1584,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {docs.map(d => (
-                    <div key={d.id} style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: 12, boxShadow: 'var(--highlight-inset), var(--elev-1)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div key={d.id} style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.card, padding: 12, boxShadow: 'var(--highlight-inset), var(--elev-1)', display: 'flex', alignItems: 'center', gap: 12 }}>
                       <div style={{ width: 38, height: 38, borderRadius: 10, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', flexShrink: 0 }}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></svg>
                       </div>
@@ -1732,7 +1732,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
           {icalPropertyId && icalFeeds.filter(f => f.property_id === icalPropertyId).length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {icalFeeds.filter(f => f.property_id === icalPropertyId).map(f => (
-                <div key={f.id} style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: 14, padding: 12, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
+                <div key={f.id} style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.card, padding: 12, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                     <div style={{ minWidth: 0, flex: '1 1 220px' }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{f.channel === 'airbnb' ? 'Airbnb' : f.channel === 'booking' ? 'Booking' : 'Άλλο'}</div>

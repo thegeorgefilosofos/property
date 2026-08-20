@@ -74,7 +74,7 @@ export default function ResetPasswordPage() {
     textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans,
   }
   const btn: React.CSSProperties = {
-    width: '100%', padding: '12px', background: 'var(--accent)', border: 'none', borderRadius: 100,
+    width: '100%', padding: '12px', background: 'var(--accent)', border: 'none', borderRadius: T.radius.pill,
     color: 'var(--accent-text)', fontSize: 14, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
     opacity: loading ? 0.6 : 1, letterSpacing: '-0.01em', marginTop: 4, fontFamily: 'inherit',
   }

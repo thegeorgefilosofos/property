@@ -304,35 +304,39 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
         <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>
           Ο χρόνος σε μήνες{dimotikaAvg > 0 ? `, μέσος όρος ${fe(dimotikaAvg)}` : ''}
         </div>
-        {/* Ίδιο πλέγμα με τα πεδία από κάτω: η στήλη κάθε μήνα πέφτει ακριβώς
-            πάνω από το πεδίο του. */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 62px), 1fr))', gap: 5, alignItems: 'flex-end', height: 56, marginBottom: 4, padding: '4px 0 0' }}>
+        {/* ΙΔΙΑ ΚΛΑΣΗ ΜΕ ΤΑ ΠΕΔΙΑ ΑΠΟ ΚΑΤΩ, ώστε η στήλη κάθε μήνα να πέφτει
+            ακριβώς πάνω από το πεδίο του. Ηταν δύο ξεχωριστά πλέγματα με άλλο
+            ελάχιστο πλάτος το καθένα: μπορούσαν να διαφωνήσουν, και διαφωνούσαν. */}
+        <div className="po-year" style={{ alignItems: 'flex-end', height: 56, marginBottom: 4, padding: '4px 0 0' }}>
           {MONTHS_SHORT.map((mo, i) => {
             const val   = dimotikaMonths[i].amount;
             const pct   = val != null ? val / maxH : 0;
             const isCur = i === currentMonth;
             const isHov = hoveredMonth === i;
-            const isHigh = dimotikaAvg > 0 && val != null && val > dimotikaAvg * 1.2;
             return (
               <div key={i} title={`${mo}: ${val == null ? 'χωρίς καταχωρημένο λογαριασμό' : dimotikaMonths[i].origin === 'measured' ? `${fe(val)}, γραμμένο με το χέρι` : `${fe(val)}, υπολογισμένο από τον λογαριασμό ρεύματος`}`}
                 style={{ flex: 1, display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 1, cursor: 'default' }}
                 onMouseEnter={() => setHoveredMonth(i)} onMouseLeave={() => setHoveredMonth(null)}>
-                <div style={{ fontSize: 9, color: isHigh ? 'var(--negative)' : isCur ? 'var(--accent)' : isHov ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', height: 12, display: 'flex', alignItems: 'flex-end' }}>
+                {/* ΤΟ ΨΗΛΟ ΤΟ ΛΕΕΙ ΤΟ ΥΨΟΣ. Ο μήνας πάνω από τον μέσο όρο ήταν
+                    ΚΑΙ κόκκινος — η ίδια πληροφορία δεύτερη φορά, σε χρώμα που
+                    σημαίνει σφάλμα. Ενας ακριβός μήνας δεν είναι σφάλμα. */}
+                <div style={{ fontSize: 9, color: isCur ? 'var(--accent)' : isHov ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', height: 12, display: 'flex', alignItems: 'flex-end' }}>
                   {val != null && val > 0 ? Math.round(val) : ''}
                 </div>
                 {/* Ο άγνωστος μήνας δεν παίρνει στήλη δύο εικονοστοιχείων: μια
                     κοντή στήλη διαβάζεται ως «λίγα», όχι ως «δεν ξέρω». */}
                 <div style={{ width: '100%', height: val == null ? 2 : `${Math.max(pct * 42, 3)}px`,
                   background: val == null ? 'var(--border-subtle)'
-                    : isCur ? 'var(--accent)' : isHigh ? 'var(--negative)' : isHov ? 'color-mix(in srgb, var(--accent) 70%, transparent)' : 'color-mix(in srgb, var(--accent) 45%, transparent)',
+                    : isCur ? 'var(--accent)' : isHov ? 'color-mix(in srgb, var(--accent) 70%, transparent)' : 'color-mix(in srgb, var(--accent) 45%, transparent)',
                   borderRadius: '3px 3px 0 0', transition: 'background 0.15s' }}/>
               </div>
             );
           })}
         </div>
-        {/* Δώδεκα μήνες είναι ΕΝΑ έτος: με σταθερό μέγιστο στήλης έσπαγαν σε δέκα
-            και δύο, δηλαδή το έτος διαβαζόταν σε δύο κομμάτια. */}
-        <div style={{ ...fieldRow(70, 5), borderTop: '1px solid var(--border-subtle)', paddingTop: 10 }}>
+        {/* Δώδεκα μήνες είναι ΕΝΑ έτος, και μπαίνουν σε μία γραμμή. Με γέμισμα
+            κατά πλάτος έσπαγαν σε έντεκα και έναν: ο Δεκέμβριος μόνος του σε
+            δεύτερη σειρά, δηλαδή το έτος διαβαζόταν σε δύο κομμάτια. */}
+        <div className="po-year" style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 10 }}>
           {MONTHS_SHORT.map((mo, i) => (
             <div key={i}>
               <label style={{ fontSize: 10, color: i === currentMonth ? 'var(--accent)' : 'var(--text-secondary)', display: 'block', marginBottom: 4, textAlign: 'center' as const, fontFamily: T.font.sans, transition: 'color 0.15s' }}>

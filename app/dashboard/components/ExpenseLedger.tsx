@@ -236,6 +236,27 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
     () => [...duplicates, ...entries.filter(e => !resolveCategory(e.category))],
     [duplicates, entries]);
 
+  // ── ΔΙΑΓΡΑΦΗ ΜΙΑΣ ΓΡΑΜΜΗΣ ─────────────────────────────────────────────────
+  //
+  // Η ΕΡΩΤΗΣΗ ΟΝΟΜΑΖΕΙ ΤΟ ΠΟΣΟ ΚΑΙ ΤΗΝ ΗΜΕΡΟΜΗΝΙΑ. Ενα «Είσαι σίγουρος;» δεν
+  // βοηθά κανέναν: ο χρήστης δεν αμφιβάλλει για τη βούλησή του, αμφιβάλλει για
+  // το ΠΟΙΑ γραμμή πάτησε. Η επιβεβαίωση απαντά σε αυτό.
+  const removeExpense = async (e: LedgerEntry) => {
+    if (!e.expenseId) return;
+    if (!await confirmDialog({
+      title: `Διαγραφή δαπάνης ${fe(e.amount)};`,
+      message: `«${e.title || 'Χωρίς περιγραφή'}» της ${shortDate(e.date)}.\nΗ γραμμή φεύγει οριστικά από τον Προϋπολογισμό, τη Λογιστική και τον φάκελο του λογιστή. Δεν αναιρείται.`,
+      confirmLabel: 'Διαγραφή',
+      tone: 'negative',
+    })) return;
+    setBusy(e.key);
+    const ok = await saved('Η δαπάνη δεν διαγράφηκε', expenseStore.remove(supabase, e.expenseId));
+    setBusy('');
+    if (!ok) return;
+    await load();
+    notify('Η δαπάνη διαγράφηκε');
+  };
+
   const markPaid = async (e: LedgerEntry) => {
     setBusy(e.key);
     try {
@@ -334,8 +355,7 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
       }}>
         <Figure label="αυτόν τον μήνα" value={loading ? null : fe(monthTotal)} />
         <Figure label={unpaid.length === 1 ? 'απλήρωτο' : 'απλήρωτα'} value={loading ? null : fe(unpaidTotal)}
-          sub={unpaid.length ? `${unpaid.length} ${unpaid.length === 1 ? 'γραμμή' : 'γραμμές'}` : undefined}
-          tone={unpaid.length ? 'warn' : undefined} />
+          sub={unpaid.length ? `${unpaid.length} ${unpaid.length === 1 ? 'γραμμή' : 'γραμμές'}` : undefined} />
         <Figure label="φέτος" value={loading ? null : fe(ledgerTotal(entries.filter(e => e.date.startsWith(String(new Date().getFullYear())))))} />
       </div>
 
@@ -516,7 +536,8 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
               <div style={{ padding: '4px 0' }}>
                 {m.entries.map(e => (
                   <Row key={e.key} e={e} busy={busy === e.key} onPaid={() => markPaid(e)}
-                    onEdit={e.expenseId ? () => setEditingId(e.expenseId) : null} />
+                    onEdit={e.expenseId ? () => setEditingId(e.expenseId) : null}
+                    onDelete={e.expenseId ? () => removeExpense(e) : null} />
                 ))}
               </div>
             </div>
@@ -537,14 +558,22 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
  *
  * Η ΕΤΙΚΕΤΑ ΠΑΝΩ, ΤΟ ΝΟΥΜΕΡΟ ΚΑΤΩ. Ο χρήστης σαρώνει πρώτα «τι είναι αυτό» και
  * μετά διαβάζει το ποσό· ανάποδα, διαβάζει τρία ποσά χωρίς να ξέρει τι μετρούν
- * και επιστρέφει πάνω. Το μηδέν μένει ΟΥΔΕΤΕΡΟ: κόκκινο μηδέν στα «απλήρωτα»
- * θα σήμαινε πρόβλημα εκεί που δεν υπάρχει κανένα.
+ * και επιστρέφει πάνω.
+ *
+ * ΚΑΝΕΝΑ ΝΟΥΜΕΡΟ ΔΕΝ ΕΙΝΑΙ ΚΟΚΚΙΝΟ. Το «απλήρωτο» ήταν βαμμένο μόνιμα:
+ * κάθε δαπάνη που δεν έχει εξοφληθεί ακόμη — δηλαδή η ΚΑΝΟΝΙΚΗ κατάσταση ενός
+ * λογαριασμού που δεν έληξε — έβγαινε ως συναγερμός. Ενα κόκκινο που ανάβει
+ * δώδεκα μήνες τον χρόνο παύει να σημαίνει οτιδήποτε, και μαζί του χάνεται και
+ * η δυνατότητα να επισημανθεί κάτι που ΟΝΤΩΣ τρέχει.
+ *
+ * Η διάκριση που μετράει δεν είναι «πληρώθηκε ή όχι» — είναι «πέρασε η
+ * προθεσμία ή όχι», και τη λέει η ίδια η γραμμή με λέξεις, στη σειρά της.
  */
-function Figure({ label, value, sub, tone }: { label: string; value: string | null; sub?: string; tone?: 'warn' }) {
+function Figure({ label, value, sub }: { label: string; value: string | null; sub?: string }) {
   return (
     <div>
       <div style={{ ...TT.label, marginBottom: 8 }}>{label}</div>
-      <div style={{ ...TT.kpi, fontSize: 20, color: tone === 'warn' ? 'var(--negative)' : 'var(--text-primary)' }}>
+      <div style={{ ...TT.kpi, fontSize: 20, color: 'var(--text-primary)' }}>
         {value ?? <Skeleton w={78} h={18} />}
       </div>
       {sub && <div style={{ ...TT.caption, marginTop: 5 }}>{sub}</div>}
@@ -557,7 +586,7 @@ function Figure({ label, value, sub, tone }: { label: string; value: string | nu
 const bare = (s: string): string =>
   s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
 
-function Row({ e, busy, onPaid, onEdit }: { e: LedgerEntry; busy: boolean; onPaid: () => void; onEdit: (() => void) | null }) {
+function Row({ e, busy, onPaid, onEdit, onDelete }: { e: LedgerEntry; busy: boolean; onPaid: () => void; onEdit: (() => void) | null; onDelete: (() => void) | null }) {
   const cat = categoryLabel(e.category);
   const due = e.due ? dueText(e.due) : null;
   // «Δόση δανείου» με από κάτω «Δόση Δανείου» δεν είναι δεύτερη πληροφορία,
@@ -578,8 +607,11 @@ function Row({ e, busy, onPaid, onEdit }: { e: LedgerEntry; busy: boolean; onPai
         {(meta || due) && (
           <span style={{ ...TT.caption, display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
             {meta && <span>{meta}</span>}
+            {/* Η ΠΡΟΘΕΣΜΙΑ ΕΙΝΑΙ ΥΠΕΝΘΥΜΙΣΗ, ΟΧΙ ΣΦΑΛΜΑ. Το ληξιπρόθεσμο κρατά
+                τόνο επειδή είναι εξαίρεση και ζητά κίνηση· η επερχόμενη
+                προθεσμία δεν ζητά τίποτα ακόμη και μένει ουδέτερη. */}
             {due && (
-              <span style={{ color: due.late ? 'var(--negative)' : 'var(--warning)', fontWeight: 600 }}>
+              <span style={{ color: due.late ? 'var(--warning)' : 'var(--text-tertiary)', fontWeight: 600 }}>
                 {meta ? '· ' : ''}{due.text}
               </span>
             )}
@@ -603,7 +635,25 @@ function Row({ e, busy, onPaid, onEdit }: { e: LedgerEntry; busy: boolean; onPai
             </Btn>
           </span>
         )}
-        <span style={{ fontSize: 14, fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: e.paid ? 'var(--text-primary)' : 'var(--negative)', whiteSpace: 'nowrap' }}>
+        {/* ── Η ΔΙΑΓΡΑΦΗ ΣΤΗ ΓΡΑΜΜΗ, ΜΕ ΕΝΑ ΠΑΤΗΜΑ ────────────────────────
+            Ζούσε μέσα στο παράθυρο επεξεργασίας: για να σβήσει μια λάθος
+            καταχώρηση ο χρήστης έπρεπε πρώτα να ανοίξει φόρμα που δεν ήθελε να
+            συμπληρώσει. Δύο πατήματα και μια οθόνη, για την πιο κοινή
+            διόρθωση.
+
+            ΤΟ ΛΑΘΟΣ ΠΑΤΗΜΑ ΤΟ ΦΥΛΑΕΙ Η ΕΡΩΤΗΣΗ, ΟΧΙ Η ΑΠΟΣΤΑΣΗ. Η
+            επιβεβαίωση ονομάζει ποσό και ημερομηνία· η ενέργεια δεν χρειάζεται
+            να είναι θαμμένη για να είναι ασφαλής. Και στέκει ΤΕΛΕΥΤΑΙΑ,
+            τριτεύουσα, να εμφανίζεται μαζί με τις άλλες ενέργειες της γραμμής
+            (αιώρηση ή εστίαση· σε αφή είναι πάντα ορατές). */}
+        {onDelete && (
+          <span className="exp-act">
+            <Btn variant="ghost" onClick={onDelete}>Διαγραφή</Btn>
+          </span>
+        )}
+        {/* Το ποσό είναι ποσό, όχι κρίση. Ηταν κόκκινο σε ΚΑΘΕ ανεξόφλητη
+            γραμμή — δηλαδή στις περισσότερες, μόνιμα. */}
+        <span style={{ fontSize: 14, fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
           {fe(e.amount)}
         </span>
       </span>
@@ -716,55 +766,20 @@ function EditExpense({ row, onClose, onSaved }: {
     finally { setSaving(false); }
   };
 
-  // ── Η ΔΑΠΑΝΗ ΠΟΥ ΔΕΝ ΕΠΡΕΠΕ ΝΑ ΜΠΕΙ ───────────────────────────────────────
-  //
-  // ΔΕΝ ΥΠΗΡΧΕ ΤΡΟΠΟΣ ΝΑ ΣΒΗΣΤΕΙ. Η γραμμή είχε «Επεξεργασία» και «Πληρώθηκε»,
-  // το παράθυρο είχε «Ακύρωση» και «Αποθήκευση», και η `expenseStore.remove`
-  // υπήρχε στο στρώμα δεδομένων χωρίς κανέναν καταναλωτή. Μια λάθος
-  // καταχώρηση —διπλή, σε λάθος ακίνητο, με λάθος ποσό— έμενε για πάντα: μέσα
-  // στον Προϋπολογισμό, μέσα στη Λογιστική, και μέσα στο Ε2 του λογιστή.
-  //
-  // ΓΙΑΤΙ ΕΔΩ ΚΑΙ ΟΧΙ ΣΤΗ ΓΡΑΜΜΗ. Η διαγραφή είναι οριστική· ένα κουμπί δίπλα
-  // στο «Πληρώθηκε», σε λίστα που κυλά με το δάχτυλο, θα πατηθεί κατά λάθος.
-  // Μέσα στο παράθυρο ο χρήστης έχει ήδη δηλώσει ποια γραμμή εννοεί, βλέπει τι
-  // περιέχει, και η ερώτηση επιβεβαίωσης ονομάζει το ποσό.
-  //
-  // ΑΡΙΣΤΕΡΑ, ΜΑΚΡΙΑ ΑΠΟ ΤΗΝ ΑΠΟΘΗΚΕΥΣΗ. Η καταστροφική ενέργεια δεν στέκεται
-  // δίπλα στην κύρια: το δάχτυλο που αστοχεί δεν πρέπει να σβήνει.
-  const [deleting, setDeleting] = useState(false);
-  const del = async () => {
-    if (!await confirmDialog({
-      title: `Διαγραφή δαπάνης ${fe(Number(row.amount) || 0)};`,
-      message: `«${row.description || 'Χωρίς περιγραφή'}» της ${row.date}.\nΗ γραμμή φεύγει οριστικά από τον Προϋπολογισμό, τη Λογιστική και τον φάκελο του λογιστή. Δεν αναιρείται.`,
-      confirmLabel: 'Διαγραφή',
-      tone: 'negative',
-    })) return;
-    setDeleting(true);
-    if (!await saved('Η δαπάνη δεν διαγράφηκε', expenseStore.remove(supabase, row.id))) { setDeleting(false); return; }
-    setDeleting(false);
-    onClose();
-    await onSaved();
-    notify('Η δαπάνη διαγράφηκε');
-  };
-
-  const busy = saving || deleting;
-
   return (
+    // Η ΔΙΑΓΡΑΦΗ ΔΕΝ ΕΙΝΑΙ ΕΔΩ, ΚΑΙ ΕΙΝΑΙ ΑΠΟΦΑΣΗ. Ζει στη ΓΡΑΜΜΗ, όπου φτάνει
+    // με ένα πάτημα: η πιο κοινή διόρθωση δεν πρέπει να περνά από φόρμα που ο
+    // χρήστης δεν ήθελε να ανοίξει. Και δεν προσφέρεται και στα δύο σημεία —
+    // δύο δρόμοι για την ίδια οριστική ενέργεια είναι δύο ευκαιρίες να πατηθεί
+    // κατά λάθος.
     <Modal open onClose={onClose} title="Επεξεργασία δαπάνης" width={560}
-      footerInfo={
-        <Btn variant="ghost" onClick={busy ? undefined : del}>
-          {deleting ? 'Διαγραφή…' : 'Διαγραφή δαπάνης'}
-        </Btn>
-      }
+      footerInfo={missing ?? undefined}
       footer={<>
         <Btn variant="secondary" onClick={onClose}>Ακύρωση</Btn>
-        <Btn variant="primary" onClick={save} disabled={busy || !ready}>
+        <Btn variant="primary" onClick={save} disabled={saving || !ready}>
           {saving ? 'Γίνεται…' : 'Αποθήκευση'}
         </Btn>
       </>}>
-      {/* Ο,τι έλειπε από τη φόρμα λεγόταν στο υποσέλιδο· τώρα εκεί στέκει η
-          διαγραφή, οπότε η υπόδειξη μπαίνει στη ροή του περιεχομένου. */}
-      {missing && <div style={{ ...TT.caption, marginTop: -4 }}>{missing}</div>}
       <label style={{ display: 'block', minWidth: 0 }}>
         <span style={LAB}>Τι ήταν;</span>
         <input value={what} onChange={e => setWhat(e.target.value)} style={FIELD}

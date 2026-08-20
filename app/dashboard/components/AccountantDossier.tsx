@@ -158,7 +158,7 @@ export function useAccountantDossier(userId: string, year: number, seed?: Partia
 
 // ═══ Εικόνα ════════════════════════════════════════════════════════════════
 
-const card: React.CSSProperties = { position: 'relative', background: 'var(--surface-raised)', border: 'none', borderRadius: 14, padding: 18, boxShadow: 'var(--elev-1)' }
+const card: React.CSSProperties = { position: 'relative', background: 'var(--surface-raised)', border: 'none', borderRadius: T.radius.card, padding: 18, boxShadow: 'var(--elev-1)' }
 const eyebrow: React.CSSProperties = { fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans, margin: 0 }
 const num: React.CSSProperties = { fontVariantNumeric: 'tabular-nums', fontFamily: T.font.sans }
 

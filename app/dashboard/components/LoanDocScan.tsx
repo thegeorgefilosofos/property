@@ -308,7 +308,7 @@ export default function LoanDocScan({ banks, euribor, defaultPropertyValue, onAp
 
   const font = T.font.sans
   return (
-    <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '16px 20px', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 20px', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column', gap: 14 }}>
       <ScanUploadRow
         title="Εύρεση δανείου από τα στοιχεία του δανειολήπτη"
         description="Ανέβασε έγγραφο ή φωτογραφία με τις ανάγκες ενός υποψήφιου δανειολήπτη (ποσό, εισόδημα, ακίνητο, οικογενειακή κατάσταση) ή ένα υπάρχον δάνειο. Το εργαλείο εξάγει τα στοιχεία και κατατάσσει τις τράπεζες."
@@ -341,7 +341,7 @@ export default function LoanDocScan({ banks, euribor, defaultPropertyValue, onAp
           )}
 
           {best ? (
-            <div style={{ padding: '16px 18px', background: 'var(--accent-dim)', border: '1px solid var(--border-accent)', borderRadius: 14 }}>
+            <div style={{ padding: '16px 18px', background: 'var(--accent-dim)', border: '1px solid var(--border-accent)', borderRadius: T.radius.card }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                 <div style={{ minWidth: 0 }}>
                   <p style={{ ...TT.label, color: 'var(--accent)', marginBottom: 4 }}>Προτεινόμενο δάνειο</p>

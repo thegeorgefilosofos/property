@@ -167,7 +167,7 @@ export default function TenantPortal() {
   };
 
   const wrap: React.CSSProperties = { maxWidth: 560, margin: '0 auto', padding: '0 clamp(16px,5vw,24px)' };
-  const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: 'clamp(18px,4vw,24px)', marginBottom: 16 };
+  const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 'clamp(18px,4vw,24px)', marginBottom: 16 };
   const field: React.CSSProperties = { width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, fontFamily: 'inherit' };
   const label: React.CSSProperties = { fontSize: 10, color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' };
   const row = (k: string, v: string) => (
@@ -234,7 +234,7 @@ export default function TenantPortal() {
                 // σελίδα που ανοίγει σχεδόν πάντα σε κινητό, όπου το 44 είναι το ελάχιστο
                 // αξιόπιστο μέγεθος στόχου αφής. Το minHeight αφήνει το κουμπί να ψηλώσει
                 // αν το κείμενο τυλιχτεί σε δύο γραμμές, αντί να το κόψει.
-                style={{ minHeight: 44, borderRadius: 100, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: (pinChecking || !pin.trim()) ? 'not-allowed' : 'pointer', opacity: (pinChecking || !pin.trim()) ? 0.6 : 1, fontFamily: 'inherit' }}
+                style={{ minHeight: 44, borderRadius: T.radius.pill, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: (pinChecking || !pin.trim()) ? 'not-allowed' : 'pointer', opacity: (pinChecking || !pin.trim()) ? 0.6 : 1, fontFamily: 'inherit' }}
               >
                 {pinChecking ? 'Έλεγχος…' : 'Είσοδος'}
               </button>
@@ -268,7 +268,7 @@ export default function TenantPortal() {
                             <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>Λήξη προθεσμίας: {gdate(item.due_date)}</div>
                             <div style={{ marginTop: 12 }}>
                               {item.declared ? (
-                                <span style={{ display: 'inline-block', background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', color: 'var(--warning)', fontSize: 12, fontWeight: 600, borderRadius: 100, padding: '6px 12px' }}>
+                                <span style={{ display: 'inline-block', background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', color: 'var(--warning)', fontSize: 12, fontWeight: 600, borderRadius: T.radius.pill, padding: '6px 12px' }}>
                                   Δηλώθηκε, σε επιβεβαίωση από τον ιδιοκτήτη
                                 </span>
                               ) : (
@@ -303,7 +303,7 @@ export default function TenantPortal() {
                                   href={link as string}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 44, borderRadius: 100, background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, textDecoration: 'none', fontFamily: 'inherit' }}
+                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 44, borderRadius: T.radius.pill, background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, textDecoration: 'none', fontFamily: 'inherit' }}
                                 >
                                   Πληρωμή τώρα
                                 </a>
@@ -374,7 +374,7 @@ export default function TenantPortal() {
                               type="button"
                               aria-label="Αφαίρεση φωτογραφίας"
                               onClick={() => removePhoto(i)}
-                              style={{ position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: 100, border: 'none', background: 'var(--bg-base)', color: 'var(--text-primary)', fontSize: 13, lineHeight: 1, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit', boxShadow: 'var(--elev-1)' }}
+                              style={{ position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: T.radius.pill, border: 'none', background: 'var(--bg-base)', color: 'var(--text-primary)', fontSize: 13, lineHeight: 1, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit', boxShadow: 'var(--elev-1)' }}
                             >
                               ×
                             </button>
@@ -386,7 +386,7 @@ export default function TenantPortal() {
                   </div>
 
                   {err && <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: 'var(--negative)' }}>{err}</div>}
-                  <button type="submit" disabled={sending || !title.trim()} style={{ minHeight: 44, borderRadius: 100, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: (sending || !title.trim()) ? 'not-allowed' : 'pointer', opacity: (sending || !title.trim()) ? 0.6 : 1, fontFamily: 'inherit' }}>
+                  <button type="submit" disabled={sending || !title.trim()} style={{ minHeight: 44, borderRadius: T.radius.pill, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: (sending || !title.trim()) ? 'not-allowed' : 'pointer', opacity: (sending || !title.trim()) ? 0.6 : 1, fontFamily: 'inherit' }}>
                     {sending ? 'Αποστολή…' : 'Αποστολή αιτήματος'}
                   </button>
                 </form>

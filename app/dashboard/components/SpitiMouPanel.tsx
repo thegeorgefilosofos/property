@@ -5,6 +5,7 @@ import {
   SPITI_MOU, spitiMouEligibility, spitiMouPayment, spitiMouIncomeLimit,
   annuityMonthly, rankLoans, type UserLoanNeeds, type BankInput,
 } from '@/lib/loans/recommend'
+import { T } from '@/components/tokens'
 import { athensToday } from '@/lib/core/time'
 
 // ── «Σπίτι μου ΙΙ — για σένα» ────────────────────────────────────────────────
@@ -88,12 +89,12 @@ export default function SpitiMouPanel({
 
       {/* Hero: μπλεντ επιτόκιο + δόση + εξοικονόμηση */}
       <div onMouseEnter={() => setHi(true)} onMouseLeave={() => setHi(false)} onTouchStart={() => setHi(true)} onTouchEnd={() => setHi(false)}
-        style={{ position: 'relative', background: 'var(--bg-surface)', border: `1px solid ${hi ? 'var(--border-default)' : 'var(--border-subtle)'}`, borderLeft: '3px solid var(--accent)', borderRadius: 14, padding: '18px 20px', transition: 'border-color 0.15s, box-shadow 0.15s', boxShadow: hi ? 'var(--elev-2)' : 'var(--elev-1)' }}>
+        style={{ position: 'relative', background: 'var(--bg-surface)', border: `1px solid ${hi ? 'var(--border-default)' : 'var(--border-subtle)'}`, borderLeft: '3px solid var(--accent)', borderRadius: T.radius.card, padding: '18px 20px', transition: 'border-color 0.15s, box-shadow 0.15s', boxShadow: hi ? 'var(--elev-2)' : 'var(--elev-1)' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
           <div style={{ minWidth: 0 }}>
             {/* Όσο δεν δέχεται αιτήσεις, το «Πιθανώς επιλέξιμο» είναι υπόσχεση
                 που δεν μπορεί να τηρηθεί, όσο σωστά κι αν βγαίνουν τα κριτήρια. */}
-            <span style={{ fontSize: 10, padding: '3px 9px', borderRadius: 100, background: (hardFail || !status.acceptsApplications) ? 'var(--bg-elevated)' : 'var(--accent)', color: (hardFail || !status.acceptsApplications) ? 'var(--text-secondary)' : 'var(--accent-text)', fontWeight: 700, fontFamily: FONT }}>{!status.acceptsApplications ? status.badge : hardFail ? 'Δεν πληρούνται κριτήρια' : 'Πιθανώς επιλέξιμο'}</span>
+            <span style={{ fontSize: 10, padding: '3px 9px', borderRadius: T.radius.pill, background: (hardFail || !status.acceptsApplications) ? 'var(--bg-elevated)' : 'var(--accent)', color: (hardFail || !status.acceptsApplications) ? 'var(--text-secondary)' : 'var(--accent-text)', fontWeight: 700, fontFamily: FONT }}>{!status.acceptsApplications ? status.badge : hardFail ? 'Δεν πληρούνται κριτήρια' : 'Πιθανώς επιλέξιμο'}</span>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 8, lineHeight: 1.5, fontFamily: FONT }}>
               Το 50% του δανείου είναι <strong style={{ color: 'var(--text-primary)' }}>άτοκο</strong> (Ταμείο Ανάκαμψης) και το 50% με το επιτόκιο της τράπεζας{elig.rateSubsidyShare > 0 ? ', με επιπλέον 50% επιδότηση επιτοκίου για πολύτεκνους' : ''}.
             </p>
@@ -112,7 +113,7 @@ export default function SpitiMouPanel({
           { k: 'Κανονική δόση', v: fmtEur(normalMonthly), s: `με ${fmtPct(bankRatePct)}` },
           { k: 'Εξοικονόμηση τον μήνα', v: fmtEur(saveMonthly), s: `${fmtEur(saveTotal)} συνολικά` },
         ].map(t => (
-          <div key={t.k} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: 16 }}>
+          <div key={t.k} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16 }}>
             <p style={{ fontSize: 10, textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontWeight: 700, color: 'var(--text-tertiary)', fontFamily: FONT }}>{t.k}</p>
             <p style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1, marginTop: 7, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', fontFamily: FONT }}>{t.v}</p>
             <p style={{ fontSize: 11, marginTop: 5, color: 'var(--text-tertiary)', fontFamily: FONT }}>{t.s}</p>

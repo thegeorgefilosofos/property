@@ -80,11 +80,11 @@ export default function FeatureLock({ title, benefit, requiredPlan, currentPlanN
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)', maxWidth: 640 }}>
       <Card style={{ background: 'var(--surface-hero)', boxShadow: 'var(--highlight-inset), var(--elev-2)' }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 16, padding: '8px 4px' }}>
-          <div style={{ width: 48, height: 48, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>
+          <div style={{ width: 48, height: 48, borderRadius: T.radius.card, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>
             <LockIcon />
           </div>
           <div style={{ width: '100%' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', marginBottom: 10, border: '1px solid var(--border-subtle)', borderRadius: 100, padding: '4px 12px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', marginBottom: 10, border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, padding: '4px 12px' }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>Πακέτο {plan.name}</span>
             </div>
             <h2 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: '0 0 8px', lineHeight: 1.2 }}>{title}</h2>

@@ -80,7 +80,7 @@ const BENCH_SHORT: Record<string, string> = {
 };
 const benchShort = (key: string, fallback: string) => BENCH_SHORT[key] || fallback;
 const SANS = T.font.sans;
-const card: React.CSSProperties = { position: 'relative', background: 'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: '18px 20px', boxShadow: 'var(--highlight-inset), var(--elev-2)' };
+const card: React.CSSProperties = { position: 'relative', background: 'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '18px 20px', boxShadow: 'var(--highlight-inset), var(--elev-2)' };
 const titleStyle: React.CSSProperties = { fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', margin: 0, fontFamily: SANS, letterSpacing: '0.1px' };
 const subStyle: React.CSSProperties = { fontSize: 12, color: 'var(--text-tertiary)', margin: '2px 0 0', fontFamily: SANS };
 /** Οι δύο κάρτες των «Εργαλείων απόδοσης»: ίδιο κουτί, ίδια σημείωση, ίδιο ύψος. */
@@ -182,7 +182,7 @@ function KPI({ label, value, sub, accent, info }: { label: string; value: string
   const [hot, setHot] = useState(false);
   return (
     <div onMouseEnter={() => setHot(true)} onMouseLeave={() => setHot(false)}
-      style={{ display: 'flex', flexDirection: 'column', background: 'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border: `1px solid ${hot ? 'var(--border-accent)' : 'var(--border-subtle)'}`, borderRadius: 14, padding: '15px 16px', boxShadow: hot ? 'var(--elev-2)' : 'var(--elev-1)', transform: hot ? 'translateY(-3px)' : 'none', transition: 'transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease' }}>
+      style={{ display: 'flex', flexDirection: 'column', background: 'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border: `1px solid ${hot ? 'var(--border-accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.card, padding: '15px 16px', boxShadow: hot ? 'var(--elev-2)' : 'var(--elev-1)', transform: hot ? 'translateY(-3px)' : 'none', transition: 'transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease' }}>
       <p style={KPI_LABEL}>{label}{info && <TermInfo text={info} />}</p>
       {/* ΤΟ ΝΟΥΜΕΡΟ ΚΟΛΛΑΕΙ ΚΑΤΩ. Χωρίς αυτό, μια ετικέτα δύο γραμμών κατεβάζει
           το δικό της νούμερο και η σειρά χάνει τη γραμμή βάσης της — τέσσερα
@@ -201,7 +201,7 @@ function GradeCard({ grade, note }: { grade: YieldGrade; note: string }) {
   const strong = grade.grade === 'A' || grade.grade === 'B';
   return (
     <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 18 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 64, height: 64, borderRadius: 14, background: 'var(--bg-elevated)', border: `1px solid ${strong ? 'var(--border-accent)' : 'var(--border-subtle)'}`, flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 64, height: 64, borderRadius: T.radius.card, background: 'var(--bg-elevated)', border: `1px solid ${strong ? 'var(--border-accent)' : 'var(--border-subtle)'}`, flexShrink: 0 }}>
         <span style={{ fontSize: 28, fontWeight: 700, color: strong ? 'var(--accent)' : 'var(--text-primary)', fontFamily: SANS, lineHeight: 1 }}>{grade.grade}</span>
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>

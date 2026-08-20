@@ -114,8 +114,8 @@ function Bar({ pct, tone = 'var(--accent)' }: { pct: number; tone?: string }) {
   const [w, setW] = useState(0);
   useEffect(() => { if (reducedMotion()) { setW(pct); return; } const id = requestAnimationFrame(() => setW(pct)); return () => cancelAnimationFrame(id); }, [pct]);
   return (
-    <div style={{ height: 8, background: 'var(--ring-track)', borderRadius: 100, overflow: 'hidden' }}>
-      <div style={{ height: '100%', width: `${Math.max(0, Math.min(100, w))}%`, background: tone, borderRadius: 100, transition: `width 0.65s ${T.ease.emphasized}` }} />
+    <div style={{ height: 8, background: 'var(--ring-track)', borderRadius: T.radius.pill, overflow: 'hidden' }}>
+      <div style={{ height: '100%', width: `${Math.max(0, Math.min(100, w))}%`, background: tone, borderRadius: T.radius.pill, transition: `width 0.65s ${T.ease.emphasized}` }} />
     </div>
   );
 }

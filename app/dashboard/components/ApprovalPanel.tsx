@@ -111,7 +111,7 @@ export default function ApprovalPanel({
         const barColor = blocked?'var(--negative)':(vh?'var(--accent)':'var(--text-secondary)')
         return (
       <div onMouseEnter={()=>setVh(true)} onMouseLeave={()=>setVh(false)} onTouchStart={()=>setVh(true)} onTouchEnd={()=>setVh(false)}
-        style={{background:'var(--bg-surface)',border:`1px solid ${vh?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:14,padding:'16px',transition:'border-color 0.15s'}}>
+        style={{background:'var(--bg-surface)',border:`1px solid ${vh?'var(--border-default)':'var(--border-subtle)'}`,borderRadius: T.radius.card,padding:'16px',transition:'border-color 0.15s'}}>
         <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:14,flexWrap:'wrap',marginBottom:12}}>
           <p style={{fontSize:16,fontWeight:700,fontFamily: T.font.sans,color:verdictColor,letterSpacing:'-0.01em',transition:'color 0.15s'}}>{verdictLabel(res.verdict)}</p>
           <p style={{fontSize:13,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:'var(--text-tertiary)',fontWeight:600}}>{res.score}<span style={{fontSize:11,color:'var(--text-tertiary)'}}> / 100</span></p>

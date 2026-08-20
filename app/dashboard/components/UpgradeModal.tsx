@@ -49,16 +49,16 @@ export default function UpgradeModal({ currentCount, planId, profileType = 'indi
     return (
       <div onClick={e => { if (e.target === e.currentTarget) onClose(); }}
         className="md-scrim" style={{ fontFamily: T.font.sans }}>
-        <div style={{ background: 'var(--bg-surface)', borderRadius: 18, width: '100%', maxWidth: 520, boxShadow: 'var(--shadow-xl)', padding: 'clamp(24px, 3vw, 34px)' }}>
+        <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.modal, width: '100%', maxWidth: 520, boxShadow: 'var(--shadow-xl)', padding: 'clamp(24px, 3vw, 34px)' }}>
           <h2 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: '0 0 8px' }}>Διαχειρίζεσαι μεγάλο χαρτοφυλάκιο</h2>
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 20px', lineHeight: 1.6 }}>
             Το πακέτο Επαγγελματίας καλύπτει έως {PLANS.agency.maxProperties} ακίνητα και τα έχεις ήδη συμπληρώσει.
             Για περισσότερα, στήνουμε πακέτο στα μέτρα σου. Γράψε μας στο <strong style={{ color: 'var(--text-primary)' }}>support@propertyos.gr</strong> και απαντάμε την ίδια ημέρα.
           </p>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-            <button onClick={onClose} style={{ height: 44, padding: '0 20px', borderRadius: 100, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Κλείσιμο</button>
+            <button onClick={onClose} style={{ height: 44, padding: '0 20px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Κλείσιμο</button>
             <a href="mailto:support@propertyos.gr?subject=Χαρτοφυλάκιο%20άνω%20των%20ακινήτων%20του%20πακέτου"
-              style={{ height: 44, padding: '0 24px', borderRadius: 100, background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 14, fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>Επικοινώνησε μαζί μας</a>
+              style={{ height: 44, padding: '0 24px', borderRadius: T.radius.pill, background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 14, fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>Επικοινώνησε μαζί μας</a>
           </div>
         </div>
       </div>
@@ -68,7 +68,7 @@ export default function UpgradeModal({ currentCount, planId, profileType = 'indi
   return (
     <div onClick={e => { if (e.target === e.currentTarget) onClose(); }}
       className="md-scrim" style={{ fontFamily: T.font.sans }}>
-      <div style={{ background: 'var(--bg-surface)', borderRadius: 18, width: '100%', maxWidth: 720, maxHeight: 'calc(100vh - 48px)', overflow: 'auto', boxShadow: 'var(--shadow-xl)', padding: 'clamp(24px, 3vw, 34px)' }}>
+      <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.modal, width: '100%', maxWidth: 720, maxHeight: 'calc(100vh - 48px)', overflow: 'auto', boxShadow: 'var(--shadow-xl)', padding: 'clamp(24px, 3vw, 34px)' }}>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 8 }}>
           <div>
@@ -80,7 +80,7 @@ export default function UpgradeModal({ currentCount, planId, profileType = 'indi
                 : <>Για να προσθέσεις κι άλλο, διάλεξε ένα πακέτο που σου ταιριάζει. Χωρίς δέσμευση, ακυρώνεις όποτε θέλεις.</>}
             </p>
           </div>
-          <button onClick={onClose} aria-label="Κλείσιμο" style={{ width: T.h.md, height: T.h.md, borderRadius: 18, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>✕</button>
+          <button onClick={onClose} aria-label="Κλείσιμο" style={{ width: T.h.md, height: T.h.md, borderRadius: T.radius.modal, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>✕</button>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12, margin: '22px 0 20px' }}>
@@ -89,8 +89,8 @@ export default function UpgradeModal({ currentCount, planId, profileType = 'indi
             const isRec = id === recommended;
             const isCurrent = id === current;
             return (
-              <div key={id} style={{ background: 'var(--bg-elevated)', border: `1px solid ${isRec ? 'color-mix(in srgb, var(--accent) 55%, transparent)' : 'var(--border-subtle)'}`, borderRadius: 14, padding: 16, position: 'relative', display: 'flex', flexDirection: 'column' }}>
-                {isRec && <div style={{ position: 'absolute', top: -10, left: 16, background: 'var(--accent)', color: 'var(--accent-text)', borderRadius: 100, padding: '3px 10px', fontSize: 10, fontWeight: 700 }}>Προτεινόμενο</div>}
+              <div key={id} style={{ background: 'var(--bg-elevated)', border: `1px solid ${isRec ? 'color-mix(in srgb, var(--accent) 55%, transparent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.card, padding: 16, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+                {isRec && <div style={{ position: 'absolute', top: -10, left: 16, background: 'var(--accent)', color: 'var(--accent-text)', borderRadius: T.radius.pill, padding: '3px 10px', fontSize: 10, fontWeight: 700 }}>Προτεινόμενο</div>}
                 <div style={{ fontSize: 13, fontWeight: 700, color: isRec ? 'var(--accent)' : 'var(--text-primary)', marginBottom: 6 }}>{p.name}</div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 2 }}>
                   <span style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{feAuto(p.priceMonthly)}</span>
@@ -119,8 +119,8 @@ export default function UpgradeModal({ currentCount, planId, profileType = 'indi
         </div>
 
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-          <button onClick={onClose} style={{ height: 44, padding: '0 20px', borderRadius: 100, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Όχι τώρα</button>
-          <button onClick={onManage} style={{ height: 44, padding: '0 24px', borderRadius: 100, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Δες τα πακέτα και αναβάθμισε</button>
+          <button onClick={onClose} style={{ height: 44, padding: '0 20px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Όχι τώρα</button>
+          <button onClick={onManage} style={{ height: 44, padding: '0 24px', borderRadius: T.radius.pill, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Δες τα πακέτα και αναβάθμισε</button>
         </div>
       </div>
     </div>

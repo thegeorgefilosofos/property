@@ -662,7 +662,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
         {/* Τρέχον πλάνο */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
           <div style={{ minWidth: 0 }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, border: '1px solid var(--border-subtle)', borderRadius: 100, padding: '4px 12px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, padding: '4px 12px' }}>
               <span className={isProPlan ? 'acc-live-dot accent' : 'acc-live-dot'} style={{ width: 6, height: 6, background: isProPlan ? 'var(--accent)' : 'var(--positive)' }} />
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Πακέτο {planMeta.name}</span>
             </div>
@@ -708,8 +708,8 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric: 'tabular-nums' }}>{propertyCount} από {propLimitLabel}</span>
             </div>
             {propLimit !== Infinity && (
-              <div style={{ height: 6, borderRadius: 100, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
-                <div style={{ width: `${usagePct}%`, height: '100%', borderRadius: 100, background: atLimit ? 'var(--warning)' : 'var(--accent)', transition: 'width 0.4s cubic-bezier(0.2,0,0,1)' }} />
+              <div style={{ height: 6, borderRadius: T.radius.pill, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
+                <div style={{ width: `${usagePct}%`, height: '100%', borderRadius: T.radius.pill, background: atLimit ? 'var(--warning)' : 'var(--accent)', transition: 'width 0.4s cubic-bezier(0.2,0,0,1)' }} />
               </div>
             )}
             {(atLimit || nearLimit) && (
@@ -766,7 +766,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
               return (
                 <button key={o.v} onClick={() => setProfile(o.v)} className="acc-choice"
                   title={requiresUpgrade ? 'Απαιτεί το πακέτο Επαγγελματίας' : undefined}
-                  style={{ textAlign: 'left', cursor: 'pointer', borderRadius: 14, padding: '16px 16px 15px', border: `1.5px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent-soft)' : 'var(--bg-surface)', boxShadow: on ? '0 0 0 3px var(--accent-dim)' : 'none' }}>
+                  style={{ textAlign: 'left', cursor: 'pointer', borderRadius: T.radius.card, padding: '16px 16px 15px', border: `1.5px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent-soft)' : 'var(--bg-surface)', boxShadow: on ? '0 0 0 3px var(--accent-dim)' : 'none' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                     <span style={{ fontSize: 15, fontWeight: 700, color: on ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.sans }}>{o.title}</span>
                     {requiresUpgrade ? (

@@ -605,7 +605,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
                                         // Ποτέ κενή λίστα: κενό θα σήμαινε «όλα» και θα άνοιγε σιωπηλά την πρόσβαση.
                                         void setMemberScope(m.email, { property_scope: next.length ? next : [p.id] });
                                       }}
-                                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 28, padding: '0 12px', borderRadius: 14, cursor: busy ? 'default' : 'pointer', fontFamily: T.font.sans, fontSize: 12, fontWeight: 600, border: `1px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: 'var(--bg-surface)', color: on ? 'var(--accent)' : 'var(--text-secondary)' }}>
+                                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 28, padding: '0 12px', borderRadius: T.radius.card, cursor: busy ? 'default' : 'pointer', fontFamily: T.font.sans, fontSize: 12, fontWeight: 600, border: `1px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: 'var(--bg-surface)', color: on ? 'var(--accent)' : 'var(--text-secondary)' }}>
                                       {on && <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>}
                                       {p.name}
                                     </button>
