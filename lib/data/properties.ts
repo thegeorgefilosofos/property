@@ -24,6 +24,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { UserPropertiesRow } from '@/lib/supabase/tables';
+// ΤΟ `row` ΠΑΙΡΝΕΙ ΨΕΥΔΩΝΥΜΟ: το αρχείο έχει ήδη παραμέτρους με το όνομα `row`
+// στις εγγραφές (`add`, `addFull`).
+import { read, row as readRow } from './read';
 
 const TABLE = 'user_properties';
 
@@ -63,8 +66,7 @@ export async function one<T = Partial<UserPropertiesRow>>(
 ): Promise<T | null> {
   let q = db.from(TABLE).select(columns).eq('id', propertyId);
   if (userId) q = q.eq('user_id', userId);
-  const { data } = await q.maybeSingle();
-  return (data || null) as T | null;
+  return readRow<T>(q.maybeSingle());
 }
 
 /** Τα ακίνητα ενός χρήστη. */
@@ -72,10 +74,8 @@ export async function list<T = PropertyCard>(
   db: Db, userId: string,
   opts: { columns?: string; orderBy?: string; ascending?: boolean } = {},
 ): Promise<T[]> {
-  let q = db.from(TABLE).select(opts.columns ?? CARD_COLUMNS).eq('user_id', userId);
-  if (opts.orderBy) q = q.order(opts.orderBy, { ascending: opts.ascending !== false });
-  const { data } = await q;
-  return (data || []) as T[];
+  // ΕΝΑ ΜΟΝΟΠΑΤΙ: η απλή εκδοχή είναι η ίδια ανάγνωση, χωρίς το σφάλμα της.
+  return (await listWithError<T>(db, userId, opts)).rows;
 }
 
 /**
@@ -92,8 +92,11 @@ export async function listWithError<T = PropertyCard>(
 ): Promise<{ rows: T[]; error: { message?: string; code?: string } | null }> {
   let q = db.from(TABLE).select(opts.columns ?? CARD_COLUMNS).eq('user_id', userId);
   if (opts.orderBy) q = q.order(opts.orderBy, { ascending: opts.ascending !== false });
-  const { data, error } = await q;
-  return { rows: (data || []) as T[], error };
+  const { rows, error } = await read<T>(q);
+  // Το ίδιο αντικείμενο σφάλματος περνά ΩΣ ΕΧΕΙ· μόνο ο τύπος `DbError` είναι
+  // πλατύτερος (δέχεται `null` στα πεδία), γι' αυτό η στένωση εδώ — η δημόσια
+  // υπογραφή της συνάρτησης μένει απαράλλαχτη.
+  return { rows, error: error as { message?: string; code?: string } | null };
 }
 
 /**

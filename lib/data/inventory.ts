@@ -23,6 +23,8 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { InventoryItemsRow } from '@/lib/supabase/tables';
+// ΤΟ `rows` ΠΑΙΡΝΕΙ ΨΕΥΔΩΝΥΜΟ: η `add` έχει ήδη παράμετρο με το όνομα `rows`.
+import { rows as readRows } from './read';
 
 const TABLE = 'inventory_items';
 
@@ -41,16 +43,14 @@ export async function ofProperty<T = Partial<InventoryItemsRow>>(
 ): Promise<T[]> {
   let q = db.from(TABLE).select(columns).eq('property_id', String(propertyId));
   if (userId) q = q.eq('user_id', String(userId));
-  const { data } = await q.order('created_at', { ascending: false });
-  return (data || []) as T[];
+  return readRows<T>(q.order('created_at', { ascending: false }));
 }
 
 /** Όλη η απογραφή του χαρτοφυλακίου, αλφαβητικά: για τις χρεώσεις φθοράς. */
 export async function ofUser<T = Partial<InventoryItemsRow>>(
   db: Db, userId: string, columns: string,
 ): Promise<T[]> {
-  const { data } = await db.from(TABLE).select(columns).eq('user_id', String(userId)).order('name');
-  return (data || []) as T[];
+  return readRows<T>(db.from(TABLE).select(columns).eq('user_id', String(userId)).order('name'));
 }
 
 // ── ΕΓΓΡΑΦΗ ────────────────────────────────────────────────────────────────

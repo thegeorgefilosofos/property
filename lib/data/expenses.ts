@@ -31,6 +31,9 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ExpensesRow } from '@/lib/supabase/tables';
 import type { DbError } from '@/lib/supabase/writeResult';
 import { classifyExpense } from '@/lib/expenses/classify';
+// ΤΟ `rows` ΠΑΙΡΝΕΙ ΨΕΥΔΩΝΥΜΟ: το αρχείο έχει ήδη δικό του `row()` (χτίζει τη
+// γραμμή προς τη βάση) και παραμέτρους με το όνομα `rows` στις εγγραφές.
+import { read, rows as readRows } from './read';
 
 const TABLE = 'expenses';
 
@@ -177,8 +180,8 @@ function ledgerQuery(db: Db, propertyId: string, opts: LedgerOpts): any {
 export async function ledger<T = LedgerRow>(
   db: Db, propertyId: string, opts: LedgerOpts = {},
 ): Promise<T[]> {
-  const { data } = await ledgerQuery(db, propertyId, opts);
-  return (data || []) as T[];
+  // ΕΝΑ ΜΟΝΟΠΑΤΙ: η απλή εκδοχή είναι η ίδια ανάγνωση, χωρίς το σφάλμα της.
+  return (await ledgerWithError<T>(db, propertyId, opts)).rows;
 }
 
 /**
@@ -198,8 +201,11 @@ export async function ledger<T = LedgerRow>(
 export async function ledgerWithError<T = LedgerRow>(
   db: Db, propertyId: string, opts: LedgerOpts = {},
 ): Promise<{ rows: T[]; error: { message?: string; code?: string } | null }> {
-  const { data, error } = await ledgerQuery(db, propertyId, opts);
-  return { rows: (data || []) as T[], error: error ?? null };
+  const { rows, error } = await read<T>(ledgerQuery(db, propertyId, opts));
+  // Το ίδιο αντικείμενο σφάλματος περνά ΩΣ ΕΧΕΙ· μόνο ο τύπος `DbError` είναι
+  // πλατύτερος (δέχεται `null` στα πεδία), γι' αυτό η στένωση εδώ — η δημόσια
+  // υπογραφή της συνάρτησης μένει απαράλλαχτη.
+  return { rows, error: error as { message?: string; code?: string } | null };
 }
 
 /** Το καθολικό πολλών ακινήτων του ίδιου χρήστη — σύγκριση, χαρτοφυλάκιο. */
@@ -207,47 +213,42 @@ export async function ledgerOfProperties<T = LedgerRowWithProperty>(
   db: Db, propertyIds: string[], userId: string, from: string,
   columns = `${LEDGER_COLUMNS},property_id`,
 ): Promise<T[]> {
-  const { data } = await scoped(db, columns).in('property_id', propertyIds).eq('user_id', userId).gte('date', from);
-  return (data || []) as T[];
+  return readRows<T>(scoped(db, columns).in('property_id', propertyIds).eq('user_id', userId).gte('date', from));
 }
 
 /** Υπάρχει ήδη ίδια δαπάνη; Ο έλεγχος διπλοεγγραφής της σάρωσης. */
 export async function similar(
   db: Db, propertyId: string, category: string, amount: number, date: string, limit = 5,
 ): Promise<Partial<ExpensesRow>[]> {
-  const { data } = await scoped(db, 'id,description')
-    .eq('property_id', propertyId).eq('category', category).eq('amount', amount).eq('date', date).limit(limit);
-  return (data || []) as Partial<ExpensesRow>[];
+  return readRows<Partial<ExpensesRow>>(scoped(db, 'id,description')
+    .eq('property_id', propertyId).eq('category', category).eq('amount', amount).eq('date', date).limit(limit));
 }
 
 /** Το καθολικό ΟΛΩΝ των ακινήτων ενός χρήστη — για το χαρτοφυλάκιο. */
 export async function ledgerOfUser<T = LedgerRowWithProperty>(
   db: Db, userId: string, from: string, columns = `${LEDGER_COLUMNS},property_id`,
 ): Promise<T[]> {
-  const { data } = await scoped(db, columns).eq('user_id', userId).gte('date', from);
-  return (data || []) as T[];
+  return readRows<T>(scoped(db, columns).eq('user_id', userId).gte('date', from));
 }
 
 /** Δαπάνες πολλών ακινήτων μέσα σε διάστημα — αναφορές, ημερολόγιο λογιστή. */
 export async function inRange(
   db: Db, propertyIds: string[], from: string, to: string, columns = REPORT_COLUMNS,
 ): Promise<Partial<ExpensesRow>[]> {
-  const { data } = await scoped(db, columns).in('property_id', propertyIds).gte('date', from).lte('date', to);
-  return (data || []) as Partial<ExpensesRow>[];
+  return readRows<Partial<ExpensesRow>>(scoped(db, columns).in('property_id', propertyIds).gte('date', from).lte('date', to));
 }
 
 /** Οι δαπάνες ενός ακινήτου μέσα σε διάστημα. */
 export async function inRangeOfProperty(
   db: Db, propertyId: string, from: string, to: string, columns = 'amount,date',
 ): Promise<Partial<ExpensesRow>[]> {
-  const { data } = await scoped(db, columns).eq('property_id', propertyId).gte('date', from).lte('date', to);
-  return (data || []) as Partial<ExpensesRow>[];
+  return readRows<Partial<ExpensesRow>>(scoped(db, columns).eq('property_id', propertyId).gte('date', from).lte('date', to));
 }
 
 /** Υπάρχει ήδη δαπάνη δεμένη σε αυτόν τον λογαριασμό; */
 export async function existsForBill(db: Db, billId: string): Promise<boolean> {
-  const { data } = await scoped(db, 'id').eq('bill_id', billId).limit(1);
-  return !!(data && (data as unknown[]).length);
+  const found = await readRows<{ id: string }>(scoped(db, 'id').eq('bill_id', billId).limit(1));
+  return found.length > 0;
 }
 
 // ── ΓΡΑΨΙΜΟ ────────────────────────────────────────────────────────────────

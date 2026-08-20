@@ -52,7 +52,7 @@ import StartPanel from './components/StartPanel';
 import DemoPreview from './components/DemoPreview';
 import { useAppPreferences } from './components/useAppPreferences';
 import { CommandPalette, type CommandItem } from './components/CommandPalette';
-import { T, Modal, SkeletonKPIs, Skeleton, Spinner, EmptyState, KPIGrid, SecHdr, fp, feOr, fd, type KPIItem } from '@/components/Theme';
+import { T, Btn, Modal, SkeletonKPIs, Skeleton, Spinner, EmptyState, KPIGrid, SecHdr, fp, feOr, fd, type KPIItem } from '@/components/Theme';
 import { FileText } from 'lucide-react';
 import { confirmDialog } from '@/components/ConfirmDialog';
 import { notifyError } from '@/components/Toast';
@@ -2065,7 +2065,10 @@ export default function Dashboard() {
                   </div>
                 ))}
               </div>
-              <button className="btn btn-primary" onClick={()=>tryAddProperty()} style={{fontSize:14,height:44,padding:'0 28px'}}>+ Προσθήκη πρώτου ακινήτου</button>
+              {/* Η ΜΟΝΑΔΙΚΗ ΧΡΗΣΗ ΤΟΥ ΠΑΛΙΟΥ `.btn`. Είχε δικό της ύψος, ακτίνα και
+                  μέγεθος γραμματοσειράς, δηλαδή έμοιαζε με κουμπί άλλης
+                  εφαρμογής δίπλα σε κάθε άλλο κουμπί της ίδιας οθόνης. */}
+              <Btn variant="primary" onClick={() => tryAddProperty()}>Προσθήκη πρώτου ακινήτου</Btn>
             </div>
           </div>
         ) : (

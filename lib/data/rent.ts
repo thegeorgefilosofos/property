@@ -27,6 +27,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { RentPaymentsRow } from '@/lib/supabase/tables';
+// ΤΑ `rows`/`row` ΠΑΙΡΝΟΥΝ ΨΕΥΔΩΝΥΜΟ: το αρχείο έχει ήδη παραμέτρους με αυτά τα
+// ονόματα (`collectedIn(rows, …)`, `upsertPeriod(db, row, …)`).
+import { read, rows as readRows, row as readRow } from './read';
 
 const TABLE = 'rent_payments';
 
@@ -130,8 +133,8 @@ export async function ofProperty<T = Partial<RentPaymentsRow>>(
   db: Db, propertyId: string, columns: string, userId?: string,
   opts: { year?: number; paid?: boolean } = {},
 ): Promise<T[]> {
-  const { data } = await ofPropertyQuery(db, propertyId, columns, userId, opts);
-  return (data || []) as T[];
+  // ΕΝΑ ΜΟΝΟΠΑΤΙ: η απλή εκδοχή είναι η ίδια ανάγνωση, χωρίς το σφάλμα της.
+  return (await ofPropertyWithError<T>(db, propertyId, columns, userId, opts)).rows;
 }
 
 /**
@@ -143,18 +146,20 @@ export async function ofPropertyWithError<T = Partial<RentPaymentsRow>>(
   db: Db, propertyId: string, columns: string, userId?: string,
   opts: { year?: number; paid?: boolean } = {},
 ): Promise<{ rows: T[]; error: { message?: string; code?: string } | null }> {
-  const { data, error } = await ofPropertyQuery(db, propertyId, columns, userId, opts);
-  return { rows: (data || []) as T[], error: error ?? null };
+  const { rows, error } = await read<T>(ofPropertyQuery(db, propertyId, columns, userId, opts));
+  // Το ίδιο αντικείμενο σφάλματος περνά ΩΣ ΕΧΕΙ· μόνο ο τύπος `DbError` είναι
+  // πλατύτερος (δέχεται `null` στα πεδία), γι' αυτό η στένωση εδώ — η δημόσια
+  // υπογραφή της συνάρτησης μένει απαράλλαχτη.
+  return { rows, error: error as { message?: string; code?: string } | null };
 }
 
 /** Οι δόσεις ενός ακινήτου με την ΠΑΛΑΙΟΤΕΡΗ πρώτη: χρονοσειρά, όχι λίστα. */
 export async function chronological<T = Partial<RentPaymentsRow>>(
   db: Db, propertyId: string, columns: string, userId: string,
 ): Promise<T[]> {
-  const { data } = await db.from(TABLE).select(columns)
+  return readRows<T>(db.from(TABLE).select(columns)
     .eq('property_id', propertyId).eq('user_id', userId)
-    .order('period_year').order('period_month');
-  return (data || []) as T[];
+    .order('period_year').order('period_month'));
 }
 
 /** Οι δόσεις πολλών ακινήτων μαζί: αναφορές, ημερολόγιο λογιστή, Ε2. */
@@ -167,8 +172,7 @@ export async function ofProperties<T = Partial<RentPaymentsRow>>(
   if (opts.year !== undefined) q = q.eq('period_year', opts.year);
   if (opts.month !== undefined && opts.month > 0) q = q.eq('period_month', opts.month);
   if (opts.paid !== undefined) q = q.eq('paid', opts.paid);
-  const { data } = await q;
-  return (data || []) as T[];
+  return readRows<T>(q);
 }
 
 /** Οι δόσεις όλου του χαρτοφυλακίου ενός χρήστη. */
@@ -177,16 +181,15 @@ export async function ofUser<T = Partial<RentPaymentsRow>>(
 ): Promise<T[]> {
   let q = db.from(TABLE).select(columns).eq('user_id', userId);
   if (opts.year !== undefined) q = q.eq('period_year', opts.year);
-  const { data } = await q;
-  return (data || []) as T[];
+  return readRows<T>(q);
 }
 
 /** Το ποσό της τελευταίας καταχωρημένης δόσης. Για την αναπροσαρμογή ενοικίου. */
 export async function latestAmount(db: Db, propertyId: string, userId: string): Promise<number | null> {
-  const { data } = await newestFirst(
+  const found = await readRow<{ amount?: number | null }>(newestFirst(
     db.from(TABLE).select('amount').eq('property_id', propertyId).eq('user_id', userId),
-  ).limit(1).maybeSingle();
-  const amount = (data as { amount?: number | null } | null)?.amount;
+  ).limit(1).maybeSingle());
+  const amount = found?.amount;
   return amount == null ? null : Number(amount);
 }
 

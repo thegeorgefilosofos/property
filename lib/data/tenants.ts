@@ -30,6 +30,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { TenantsRow } from '@/lib/supabase/tables';
+// ΤΟ `rows` ΠΑΙΡΝΕΙ ΨΕΥΔΩΝΥΜΟ: το αρχείο έχει ήδη παραμέτρους και τοπικές
+// μεταβλητές με αυτό το όνομα (`sortCurrentFirst(rows)`, `const rows = …`).
+import { rows as readRows } from './read';
 
 const TABLE = 'tenants';
 
@@ -110,17 +113,15 @@ export async function ofProperty<T = Partial<TenantsRow>>(
 ): Promise<T[]> {
   let q = db.from(TABLE).select(columns).eq('property_id', propertyId);
   if (userId) q = q.eq('user_id', userId);
-  const { data } = await q.order('created_at', { ascending: false });
-  return (data || []) as T[];
+  return readRows<T>(q.order('created_at', { ascending: false }));
 }
 
 /** Οι μισθωτές όλου του χαρτοφυλακίου ενός χρήστη. */
 export async function ofUser<T = Partial<TenantsRow>>(
   db: Db, userId: string, columns: string,
 ): Promise<T[]> {
-  const { data } = await db.from(TABLE).select(columns).eq('user_id', userId)
-    .order('created_at', { ascending: false });
-  return (data || []) as T[];
+  return readRows<T>(db.from(TABLE).select(columns).eq('user_id', userId)
+    .order('created_at', { ascending: false }));
 }
 
 /**

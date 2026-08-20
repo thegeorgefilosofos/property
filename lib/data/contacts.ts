@@ -22,6 +22,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ContactsRow } from '@/lib/supabase/tables';
+import { rows as readRows } from './read';
 
 const TABLE = 'contacts';
 
@@ -61,8 +62,7 @@ export async function ofUser<T = Partial<ContactsRow>>(
   let q = db.from(TABLE).select(columns).eq('user_id', userId)
     .order(opts.orderBy ?? 'full_name', { ascending: opts.ascending ?? true });
   if (opts.limit) q = q.limit(opts.limit);
-  const { data } = await q;
-  return (data || []) as T[];
+  return readRows<T>(q);
 }
 
 /** Οι επαφές ενός ακινήτου, αλφαβητικά. */
@@ -71,8 +71,7 @@ export async function ofProperty<T = Partial<ContactsRow>>(
 ): Promise<T[]> {
   let q = db.from(TABLE).select(columns).eq('property_id', propertyId);
   if (userId) q = q.eq('user_id', userId);
-  const { data } = await q.order('full_name');
-  return (data || []) as T[];
+  return readRows<T>(q.order('full_name'));
 }
 
 /**
@@ -86,8 +85,9 @@ export async function withRole<T = Partial<ContactsRow>>(
 ): Promise<T | null> {
   let q = db.from(TABLE).select(columns).eq('property_id', propertyId).eq('role', role);
   if (userId) q = q.eq('user_id', userId);
-  const { data } = await q.limit(1);
-  return ((data || [])[0] as T | undefined) ?? null;
+  // ΟΧΙ `row()`: το ερώτημα ζητά λίστα με `limit(1)`, όχι `maybeSingle`. Η
+  // πρώτη γραμμή — ή `null` — μένει ακριβώς όπως ήταν.
+  return (await readRows<T>(q.limit(1)))[0] ?? null;
 }
 
 // ── ΕΓΓΡΑΦΗ ────────────────────────────────────────────────────────────────

@@ -27,6 +27,7 @@
 // Και οι τρεις γράφουν ρητά ό,τι πρέπει να γραφτεί. Καμία σιωπηλή προεπιλογή.
 // ═══════════════════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { row as readRow } from './read';
 
 const TABLE = 'accountant_links';
 
@@ -65,8 +66,9 @@ const shape = (row: Row | null | undefined): AccountantLink | null => {
 
 /** Ο σύνδεσμος όπως είναι τώρα, χωρίς να δημιουργηθεί κανένας. */
 export async function current(db: SupabaseClient, userId: string): Promise<AccountantLink | null> {
-  const { data } = await db.from(TABLE).select('token,active,expires_at').eq('user_id', userId).maybeSingle();
-  return shape(data as Row | null);
+  return shape(await readRow<Row>(
+    db.from(TABLE).select('token,active,expires_at').eq('user_id', userId).maybeSingle(),
+  ));
 }
 
 /**
@@ -76,10 +78,11 @@ export async function current(db: SupabaseClient, userId: string): Promise<Accou
  * update, και χωρίς αυτή τη γραμμή ένας παλιός σύνδεσμος ξαναμοιραζόταν ληγμένος.
  */
 export async function issue(db: SupabaseClient, userId: string): Promise<AccountantLink | null> {
-  const { data } = await db.from(TABLE)
-    .upsert({ user_id: userId, active: true, expires_at: expiry() }, { onConflict: 'user_id' })
-    .select('token,active,expires_at').maybeSingle();
-  return shape(data as Row | null);
+  return shape(await readRow<Row>(
+    db.from(TABLE)
+      .upsert({ user_id: userId, active: true, expires_at: expiry() }, { onConflict: 'user_id' })
+      .select('token,active,expires_at').maybeSingle(),
+  ));
 }
 
 /**
@@ -93,10 +96,11 @@ export async function issue(db: SupabaseClient, userId: string): Promise<Account
 export async function rotate(db: SupabaseClient, userId: string): Promise<AccountantLink | null | 'insecure'> {
   const fresh = globalThis.crypto?.randomUUID?.();
   if (!fresh) return 'insecure';
-  const { data } = await db.from(TABLE)
-    .upsert({ user_id: userId, token: fresh, active: true, expires_at: expiry() }, { onConflict: 'user_id' })
-    .select('token,active,expires_at').maybeSingle();
-  return shape(data as Row | null);
+  return shape(await readRow<Row>(
+    db.from(TABLE)
+      .upsert({ user_id: userId, token: fresh, active: true, expires_at: expiry() }, { onConflict: 'user_id' })
+      .select('token,active,expires_at').maybeSingle(),
+  ));
 }
 
 /**

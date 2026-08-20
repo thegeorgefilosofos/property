@@ -493,52 +493,38 @@ body {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   MD3 BUTTONS — Exact Google spec
+   ΤΟ ΚΟΥΜΠΙ, ΜΙΑ ΦΟΡΑ
+   ──────────────────────────────────────────────────────────────
+   ΤΙ ΕΦΥΓΕ ΑΠΟ ΕΔΩ: σαράντα τρεις γραμμές «MD3 buttons» με δικό τους ύψος
+   (40), δική τους ακτίνα (18, pill), δικό τους μέγεθος (14/500) και εφέ
+   κυματισμού με ψευδοστοιχείο. Ολα αυτά για ΜΙΑ χρήση σε ολόκληρη την
+   εφαρμογή, δίπλα σε ένα `Btn` που έκανε την ίδια δουλειά με άλλη γεωμετρία.
+   Δύο ιδιώματα για το ίδιο πράγμα, και το ένα τα είχε όλα διαφορετικά.
+
+   ΤΙ ΜΠΗΚΕ: η συμπεριφορά που ΕΛΕΙΠΕ από το `Btn`. Το component δήλωνε
+   `transition` για έξι ιδιότητες και δεν άλλαζε καμία — ούτε αιώρηση, ούτε
+   πάτημα, ούτε εστίαση. Η κατάσταση ζει σε CSS και όχι σε χειριστές
+   JavaScript, γιατί μόνο το CSS ξέρει τι είναι `:focus-visible`, τι είναι
+   `:disabled` και τι είναι συσκευή αφής.
 ══════════════════════════════════════════════════════════════ */
+.po-btn { -webkit-tap-highlight-color: transparent; border-color: transparent; }
 
-/* Filled button (primary CTA — Google's blue filled) */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: 0.1px;
-  line-height: 20px;
-  cursor: pointer;
-  border: none;
-  border-radius: 18px;            /* MD3: full rounded pill */
-  padding: 10px 24px;
-  height: 40px;
-  transition: box-shadow 0.2s cubic-bezier(0.2,0,0,1), background 0.2s;
-  white-space: nowrap;
-  position: relative;
-  overflow: hidden;
-  user-select: none;
-}
-.btn:disabled { opacity: 0.38; cursor: not-allowed; }
+/* Η ΟΨΗ ΑΝΑ ΡΟΛΟ. Ζούσε σε `style` μέσα στο component, δηλαδή νικούσε κάθε
+   κανόνα κλάσης — γι' αυτό η αιώρηση δεν ίσχυε ποτέ. */
+.po-btn[data-variant="primary"]   { background: var(--accent); color: var(--accent-text); }
+.po-btn[data-variant="secondary"] { background: transparent; border-color: var(--border-default); color: var(--text-secondary); }
+.po-btn[data-variant="ghost"]     { background: transparent; color: var(--text-secondary); }
 
-/* Ripple effect */
-.btn::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: currentColor;
-  opacity: 0;
-  transition: opacity 0.15s;
-  border-radius: inherit;
+/* Η ΑΙΩΡΗΣΗ ΜΟΝΟ ΟΠΟΥ ΥΠΑΡΧΕΙ ΔΕΙΚΤΗΣ. Σε οθόνη αφής το `:hover` κολλάει μετά
+   το πάτημα και το κουμπί μένει «αναμμένο» ώσπου να αγγίξει ο χρήστης αλλού. */
+@media (hover: hover) {
+  .po-btn[data-variant="primary"]:hover:not(:disabled)   { background: var(--accent-hover); }
+  .po-btn[data-variant="secondary"]:hover:not(:disabled) { background: var(--bg-hover); border-color: var(--border-strong); color: var(--text-primary); }
+  .po-btn[data-variant="ghost"]:hover:not(:disabled)     { background: var(--bg-hover); color: var(--text-primary); }
 }
-.btn:hover:not(:disabled)::after { opacity: 0.08; }
-.btn:active:not(:disabled)::after { opacity: 0.12; }
 
-.btn-primary {
-  background: var(--accent);
-  color: var(--accent-text);
-  box-shadow: var(--shadow-sm);
-}
-.btn-primary:hover:not(:disabled) { box-shadow: var(--shadow-md); }
+/* Το πάτημα φαίνεται σε κάθε συσκευή: είναι η επιβεβαίωση ότι καταγράφηκε. */
+.po-btn:active:not(:disabled) { transform: translateY(1px); }
 
 /* ══════════════════════════════════════════════════════════════
    MD3 CARDS — Google's exact elevation system

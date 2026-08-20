@@ -42,6 +42,10 @@ import type { DbError } from '@/lib/supabase/writeResult';
 // ΦΟΡΑ. Η αντίστροφη εισαγωγή εκεί είναι `import type`, δηλαδή σβήνεται στη
 // μεταγλώττιση: δεν σχηματίζεται κύκλος στην εκτέλεση.
 import { TAX_SOURCE_PREFIX } from '@/lib/tax/greekTaxCalendar';
+// Ο ΚΟΙΝΟΣ ΠΥΡΗΝΑΣ ΑΝΑΓΝΩΣΗΣ. Τα ψευδώνυμα δεν είναι καλαισθησία: το αρχείο
+// εξάγει ήδη δικό του `row()` — τον κατασκευαστή της γραμμής — και ονομάζει
+// `rows` τις παραμέτρους του γραψίματος.
+import { read, rows as readRows, row as readRow } from './read';
 
 const TABLE = 'calendar_events';
 
@@ -211,8 +215,7 @@ function scoped(db: Db, propertyId: string, columns: string): any {
 
 /** Όλα τα γεγονότα ενός ακινήτου, σε χρονική σειρά. */
 export async function all(db: Db, propertyId: string): Promise<CalendarEventsRow[]> {
-  const { data } = await scoped(db, propertyId, '*').order('event_date');
-  return (data || []) as CalendarEventsRow[];
+  return readRows<CalendarEventsRow>(scoped(db, propertyId, '*').order('event_date'));
 }
 
 /** Τα αναγνωριστικά όσων έγραψε μια πηγή — προαιρετικά μόνο μέσα σε εύρος ημερών. */
@@ -221,20 +224,19 @@ export async function ids(
 ): Promise<string[]> {
   let q = applyMatch(scoped(db, propertyId, 'id'), match);
   if (range) q = q.gte('event_date', range.from).lte('event_date', range.to);
-  const { data } = await q.order('event_date');
-  return ((data || []) as { id: string }[]).map(r => r.id);
+  return (await readRows<{ id: string }>(q.order('event_date'))).map(r => r.id);
 }
 
 /** Οι πηγές όσων γεγονότων ταιριάζουν — για να ξέρει η οθόνη τι υπάρχει ήδη. */
 export async function sources(db: Db, propertyId: string, match: EventMatch): Promise<string[]> {
-  const { data } = await applyMatch(scoped(db, propertyId, 'source'), match);
-  return ((data || []) as { source: string | null }[]).map(r => String(r.source || ''));
+  return (await readRows<{ source: string | null }>(applyMatch(scoped(db, propertyId, 'source'), match)))
+    .map(r => String(r.source || ''));
 }
 
 /** Οι τίτλοι όσων γεγονότων ταιριάζουν. */
 export async function titles(db: Db, propertyId: string, match: EventMatch): Promise<string[]> {
-  const { data } = await applyMatch(scoped(db, propertyId, 'title'), match);
-  return ((data || []) as { title: string }[]).map(r => r.title);
+  return (await readRows<{ title: string }>(applyMatch(scoped(db, propertyId, 'title'), match)))
+    .map(r => r.title);
 }
 
 /** Τα επόμενα γεγονότα από μια ημερομηνία και μετά. */
@@ -242,15 +244,13 @@ export async function upcoming(
   db: Db, scope: Scope, from: string, limit: number,
   columns = 'title,event_date,amount,status',
 ): Promise<Partial<CalendarEventsRow>[]> {
-  const { data } = await scoped(db, scope.propertyId, columns)
-    .eq('user_id', scope.userId).gte('event_date', from).order('event_date').limit(limit);
-  return (data || []) as Partial<CalendarEventsRow>[];
+  return readRows<Partial<CalendarEventsRow>>(scoped(db, scope.propertyId, columns)
+    .eq('user_id', scope.userId).gte('event_date', from).order('event_date').limit(limit));
 }
 
 /** Υπάρχει ήδη τέτοιο γεγονός; Ο έλεγχος διπλοεγγραφής, γραμμένος μία φορά. */
 export async function exists(db: Db, propertyId: string, match: EventMatch): Promise<boolean> {
-  const { data } = await applyMatch(scoped(db, propertyId, 'id'), match).limit(1);
-  return !!(data && (data as unknown[]).length);
+  return !!(await readRows<{ id: string }>(applyMatch(scoped(db, propertyId, 'id'), match).limit(1))).length;
 }
 
 /**
@@ -333,15 +333,20 @@ export async function replaceSource(
   db: Db, scope: Scope, match: EventMatch, drafts: EventDraft[],
 ): Promise<Outcome> {
   const sourceOf = match.source ?? match.prefix ?? (match.sources?.[0] ?? '');
-  const { data: old, error: readError } = await applyMatch(scoped(db, scope.propertyId, 'id'), match);
-  if (readError) return { data: null, error: readError };
+  const { rows: old, error: readError } = await read<{ id: string }>(
+    applyMatch(scoped(db, scope.propertyId, 'id'), match));
+  // Ο ΤΥΠΟΣ, ΟΧΙ ΤΟ ΑΝΤΙΚΕΙΜΕΝΟ. Το `read` δίνει `DbError`, όπου το `message`
+  // επιτρέπεται να είναι `null`· το `Outcome` — ό,τι δέχονται η `saved()` και η
+  // `must()` — θέλει τη στενότερη μορφή. Πριν περνούσε αθόρυβα επειδή το
+  // ερώτημα ήταν `any`. Το σφάλμα προωθείται αυτούσιο, όπως και πριν.
+  if (readError) return { data: null, error: readError as Outcome['error'] };
 
   if (drafts.length) {
     const { error } = await insert(db, drafts.map(d => row(scope, sourceOf, d)));
     if (error) return { data: null, error };
   }
 
-  const stale = ((old || []) as { id: string }[]).map(r => r.id);
+  const stale = old.map(r => r.id);
   for (let i = 0; i < stale.length; i += BATCH) {
     const { error } = await db.from(TABLE).delete().in('id', stale.slice(i, i + BATCH));
     if (error) return { data: null, error };
@@ -362,11 +367,13 @@ export async function upsertBySource(
   db: Db, scope: Scope, prefix: string, drafts: EventDraft[],
   opts: { refresh?: boolean; fields?: (keyof CalendarEventsRow)[] } = {},
 ): Promise<Outcome> {
-  const { data: existing, error: readError } = await scoped(db, scope.propertyId, 'id,source').like('source', `${prefix}%`);
-  if (readError) return { data: null, error: readError };
+  const { rows: existing, error: readError } = await read<{ id: string; source: string | null }>(
+    scoped(db, scope.propertyId, 'id,source').like('source', `${prefix}%`));
+  // Ίδια στένωση τύπου με το `replaceSource` παραπάνω.
+  if (readError) return { data: null, error: readError as Outcome['error'] };
 
   const idBySource = new Map<string, string>();
-  for (const r of ((existing || []) as { id: string; source: string | null }[])) {
+  for (const r of existing) {
     if (r.source) idBySource.set(r.source, r.id);
   }
 
@@ -395,8 +402,8 @@ export async function upsertBySource(
 export async function bySource(
   db: Db, propertyId: string, source: string, columns: string,
 ): Promise<Partial<CalendarEventsRow> | null> {
-  const { data } = await scoped(db, propertyId, columns).eq('source', source).maybeSingle();
-  return (data || null) as Partial<CalendarEventsRow> | null;
+  return readRow<Partial<CalendarEventsRow>>(
+    scoped(db, propertyId, columns).eq('source', source).maybeSingle());
 }
 
 /** Σβήνει ό,τι έγραψε μια πηγή, χωρίς να γράψει τίποτα στη θέση του. */

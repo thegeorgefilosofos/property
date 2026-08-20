@@ -25,6 +25,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { PropertyDocumentsRow } from '@/lib/supabase/tables';
+import { read, rows as readRows } from './read';
 
 const TABLE = 'property_documents';
 
@@ -71,8 +72,7 @@ export async function ofProperty<T = Partial<PropertyDocumentsRow>>(
 ): Promise<T[]> {
   let q = db.from(TABLE).select(columns).eq('property_id', propertyId);
   if (userId) q = q.eq('user_id', userId);
-  const { data } = await q.order('created_at', { ascending: false });
-  return (data || []) as T[];
+  return readRows<T>(q.order('created_at', { ascending: false }));
 }
 
 /**
@@ -86,8 +86,9 @@ export async function ofSupplierAfm<T = Partial<PropertyDocumentsRow>>(
 ): Promise<T[]> {
   let q = db.from(TABLE).select(columns).eq('property_id', propertyId).eq('provider_afm', afm);
   if (userId) q = q.eq('user_id', userId);
-  const { data, error } = await q.order('doc_date', { ascending: false }).limit(limit);
-  return error ? [] : ((data || []) as T[]);
+  // Η απόρριψη του σφάλματος μένει ρητή, όπως ήταν: αποτυχία σημαίνει «κανένα».
+  const { rows, error } = await read<T>(q.order('doc_date', { ascending: false }).limit(limit));
+  return error ? [] : rows;
 }
 
 /** Τα έγγραφα που έχουν δεθεί με έναν αντισυμβαλλόμενο (π.χ. `tenant:<id>`). */
@@ -96,8 +97,8 @@ export async function ofSupplier<T = Partial<PropertyDocumentsRow>>(
 ): Promise<T[]> {
   let q = db.from(TABLE).select(columns).eq('property_id', propertyId).eq('supplier', supplier);
   if (userId) q = q.eq('user_id', userId);
-  const { data, error } = await q;
-  return error ? [] : ((data || []) as T[]);
+  const { rows, error } = await read<T>(q);
+  return error ? [] : rows;
 }
 
 /** Πόσα έγγραφα έχει αυτό το ακίνητο. Χωρίς να κατεβεί καμία γραμμή. */

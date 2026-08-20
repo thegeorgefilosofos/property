@@ -25,6 +25,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { BillingProfilesRow } from '@/lib/supabase/tables';
+import { readOne } from './read';
 
 const TABLE = 'billing_profiles';
 
@@ -51,9 +52,10 @@ const SERVER_OWNED = [
 export async function profile<T = Partial<BillingProfilesRow>>(
   db: Db, userId: string, columns: string,
 ): Promise<T | null> {
+  // Ο έλεγχος μένει ΕΔΩ, πριν από κάθε ερώτημα: χωρίς χρήστη δεν ρωτάμε τη βάση.
   if (!userId) return null;
-  const { data } = await db.from(TABLE).select(columns).eq('user_id', userId).maybeSingle();
-  return (data as T | null) ?? null;
+  // ΕΝΑ ΜΟΝΟΠΑΤΙ: η απλή εκδοχή είναι η ίδια ανάγνωση, χωρίς το σφάλμα της.
+  return (await profileOutcome<T>(db, userId, columns)).data;
 }
 
 /**
@@ -67,8 +69,13 @@ export async function profile<T = Partial<BillingProfilesRow>>(
 export async function profileOutcome<T = Partial<BillingProfilesRow>>(
   db: Db, userId: string, columns: string,
 ): Promise<{ data: T | null; error: { message?: string } | null }> {
-  const { data, error } = await db.from(TABLE).select(columns).eq('user_id', userId).maybeSingle();
-  return { data: (data as T | null) ?? null, error };
+  const { row, error } = await readOne<T>(
+    db.from(TABLE).select(columns).eq('user_id', userId).maybeSingle(),
+  );
+  // Το ίδιο αντικείμενο σφάλματος περνά ΩΣ ΕΧΕΙ· μόνο ο τύπος `DbError` είναι
+  // πλατύτερος (δέχεται `null` στα πεδία), γι' αυτό η στένωση εδώ — η δημόσια
+  // υπογραφή της συνάρτησης μένει απαράλλαχτη.
+  return { data: row, error: error as { message?: string } | null };
 }
 
 // ── ΕΓΓΡΑΦΗ ────────────────────────────────────────────────────────────────

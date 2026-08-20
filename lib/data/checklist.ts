@@ -28,6 +28,10 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ChecklistItemsRow } from '@/lib/supabase/tables';
+// ΤΟ `rows` ΠΑΙΡΝΕΙ ΨΕΥΔΩΝΥΜΟ: το αρχείο ονομάζει ήδη `row`/`rows` τις
+// παραμέτρους των εγγραφών (`add`, `addMany`), και μια σκέτη εισαγωγή θα
+// σκιαζόταν μέσα τους.
+import { rows as readRows } from './read';
 
 const TABLE = 'checklist_items';
 
@@ -57,8 +61,7 @@ export async function open<T = Partial<ChecklistItemsRow>>(
 ): Promise<T[]> {
   let q = db.from(TABLE).select(columns).eq('property_id', propertyId);
   if (userId) q = q.eq('user_id', userId);
-  const { data } = await onlyOpen(q);
-  return (data || []) as T[];
+  return readRows<T>(onlyOpen(q));
 }
 
 /**
@@ -72,18 +75,16 @@ export async function open<T = Partial<ChecklistItemsRow>>(
 export async function upcoming<T = Partial<ChecklistItemsRow>>(
   db: Db, propertyId: string, columns: string, userId: string, limit = 60,
 ): Promise<T[]> {
-  const { data } = await onlyOpen(
+  return readRows<T>(onlyOpen(
     db.from(TABLE).select(columns).eq('property_id', propertyId).eq('user_id', userId),
-  ).order('due_date', { ascending: true, nullsFirst: false }).limit(limit);
-  return (data || []) as T[];
+  ).order('due_date', { ascending: true, nullsFirst: false }).limit(limit));
 }
 
 /** Οι ανοιχτές εκκρεμότητες όλου του χαρτοφυλακίου. */
 export async function openOfUser<T = Partial<ChecklistItemsRow>>(
   db: Db, userId: string, columns: string,
 ): Promise<T[]> {
-  const { data } = await onlyOpen(db.from(TABLE).select(columns).eq('user_id', userId));
-  return (data || []) as T[];
+  return readRows<T>(onlyOpen(db.from(TABLE).select(columns).eq('user_id', userId)));
 }
 
 /** Κάθε εργασία του ακινήτου, με τη σειρά που τη βλέπει ο χρήστης. */
@@ -92,8 +93,7 @@ export async function all<T = Partial<ChecklistItemsRow>>(
 ): Promise<T[]> {
   let q = db.from(TABLE).select(columns).eq('property_id', propertyId);
   if (userId) q = q.eq('user_id', userId);
-  const { data } = await q.order('sort_order').order('created_at');
-  return (data || []) as T[];
+  return readRows<T>(q.order('sort_order').order('created_at'));
 }
 
 /**
@@ -108,8 +108,7 @@ export async function matchingDescription<T = Partial<ChecklistItemsRow>>(
 ): Promise<T[]> {
   let q = db.from(TABLE).select(columns).eq('property_id', propertyId);
   if (userId) q = q.eq('user_id', userId);
-  const { data } = await q.ilike('description', pattern).limit(limit);
-  return (data || []) as T[];
+  return readRows<T>(q.ilike('description', pattern).limit(limit));
 }
 
 /** Ποια πρότυπα έχουν ήδη εφαρμοστεί εδώ. Για να μη διπλογραφτούν. */
@@ -119,8 +118,7 @@ export async function templateIds(
   let q = db.from(TABLE).select('template_id').eq('property_id', propertyId);
   if (userId) q = q.eq('user_id', userId);
   if (prefix) q = q.like('template_id', `${prefix}%`);
-  const { data } = await q;
-  return new Set(((data || []) as { template_id: string | null }[])
+  return new Set((await readRows<{ template_id: string | null }>(q))
     .map(r => r.template_id).filter((t): t is string => !!t));
 }
 

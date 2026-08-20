@@ -26,6 +26,7 @@
 //    έχει δηλώσει ποτέ τίποτε ο ιδιοκτήτης. Οι οκτώ ενότητες είναι πλέον τύπος.
 // ═══════════════════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { rows as readRows, row as readRow } from './read';
 
 const TABLE = 'bills_settings';
 
@@ -56,8 +57,8 @@ export async function section<T = SettingsData>(
   if (!propertyId) return null;
   let q = db.from(TABLE).select('data').eq('property_id', propertyId).eq('section', name);
   if (userId) q = q.eq('user_id', userId);
-  const { data } = await q.maybeSingle();
-  return (data?.data as T | undefined) ?? null;
+  const found = await readRow<{ data: T }>(q.maybeSingle());
+  return (found?.data as T | undefined) ?? null;
 }
 
 /**
@@ -72,9 +73,8 @@ export async function sections<T = SettingsData>(
   if (!propertyId || names.length === 0) return {};
   let q = db.from(TABLE).select('section,data').eq('property_id', propertyId).in('section', names as unknown as string[]);
   if (userId) q = q.eq('user_id', userId);
-  const { data } = await q;
   const out: Partial<Record<Section, T>> = {};
-  for (const row of (data || []) as { section: Section; data: T }[]) out[row.section] = row.data;
+  for (const row of await readRows<{ section: Section; data: T }>(q)) out[row.section] = row.data;
   return out;
 }
 
@@ -90,9 +90,8 @@ export async function acrossProperties<T = SettingsData>(
   if (propertyIds.length === 0) return {};
   let q = db.from(TABLE).select('property_id,data').in('property_id', propertyIds).eq('section', name);
   if (userId) q = q.eq('user_id', userId);
-  const { data } = await q;
   const out: Record<string, T> = {};
-  for (const row of (data || []) as { property_id: string | null; data: T }[]) {
+  for (const row of await readRows<{ property_id: string | null; data: T }>(q)) {
     if (row.property_id) out[row.property_id] = row.data;
   }
   return out;

@@ -21,6 +21,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { BillsRow } from '@/lib/supabase/tables';
+import { rows, row } from './read';
 
 const TABLE = 'bills';
 
@@ -52,8 +53,7 @@ export async function ofProperty<T = Partial<BillsRow>>(
   if (opts.paid !== undefined) q = q.eq('paid', opts.paid);
   if (opts.category) q = q.eq('category', opts.category);
   if (opts.since) q = q.gte('created_at', opts.since);
-  const { data } = await q;
-  return (data || []) as T[];
+  return rows<T>(q);
 }
 
 /** Οι λογαριασμοί πολλών ακινήτων μαζί. */
@@ -61,24 +61,21 @@ export async function ofProperties<T = Partial<BillsRow>>(
   db: Db, propertyIds: string[], columns: string, userId: string,
 ): Promise<T[]> {
   if (!propertyIds.length) return [];
-  const { data } = await db.from(TABLE).select(columns).in('property_id', propertyIds).eq('user_id', userId);
-  return (data || []) as T[];
+  return rows<T>(db.from(TABLE).select(columns).in('property_id', propertyIds).eq('user_id', userId));
 }
 
 /** Οι λογαριασμοί όλου του χαρτοφυλακίου. */
 export async function ofUser<T = Partial<BillsRow>>(
   db: Db, userId: string, columns: string,
 ): Promise<T[]> {
-  const { data } = await db.from(TABLE).select(columns).eq('user_id', userId);
-  return (data || []) as T[];
+  return rows<T>(db.from(TABLE).select(columns).eq('user_id', userId));
 }
 
 /** Ένας λογαριασμός, με τις στήλες που ζητά ο καλών. */
 export async function one<T = Partial<BillsRow>>(
   db: Db, id: string, columns: string,
 ): Promise<T | null> {
-  const { data } = await db.from(TABLE).select(columns).eq('id', id).maybeSingle();
-  return (data || null) as T | null;
+  return row<T>(db.from(TABLE).select(columns).eq('id', id).maybeSingle());
 }
 
 /**
@@ -92,8 +89,7 @@ export async function matchingText<T = Partial<BillsRow>>(
 ): Promise<T[]> {
   let q = db.from(TABLE).select(columns).eq('property_id', propertyId);
   if (userId) q = q.eq('user_id', userId);
-  const { data } = await q.or(orFilter).limit(limit);
-  return (data || []) as T[];
+  return rows<T>(q.or(orFilter).limit(limit));
 }
 
 /**
@@ -108,8 +104,7 @@ export async function kwhHistory<T = Partial<BillsRow>>(
 ): Promise<T[]> {
   let q = db.from(TABLE).select(columns).eq('property_id', propertyId).eq('category', 'electricity');
   if (userId) q = q.eq('user_id', userId);
-  const { data } = await q.not('kwh', 'is', null).order('created_at', { ascending: false }).limit(limit);
-  return (data || []) as T[];
+  return rows<T>(q.not('kwh', 'is', null).order('created_at', { ascending: false }).limit(limit));
 }
 
 // ── ΕΓΓΡΑΦΗ ────────────────────────────────────────────────────────────────

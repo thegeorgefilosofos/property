@@ -22,6 +22,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ClientStaysRow } from '@/lib/supabase/tables';
+// ΤΟ `rows` ΠΑΙΡΝΕΙ ΨΕΥΔΩΝΥΜΟ: οι εγγραφές του αρχείου (`add`, `addBatched`)
+// έχουν ήδη παράμετρο με το όνομα `rows`.
+import { read, rows as readRows } from './read';
 
 const TABLE = 'client_stays';
 
@@ -84,8 +87,8 @@ export async function ofProperty<T = Partial<ClientStaysRow>>(
   db: Db, propertyId: string, columns: string, userId?: string,
   opts: { from?: string; to?: string } = {},
 ): Promise<T[]> {
-  const { data } = await ofPropertyQuery(db, propertyId, columns, userId, opts);
-  return (data || []) as T[];
+  // ΕΝΑ ΜΟΝΟΠΑΤΙ: η απλή εκδοχή είναι η ίδια ανάγνωση, χωρίς το σφάλμα της.
+  return (await ofPropertyWithError<T>(db, propertyId, columns, userId, opts)).rows;
 }
 
 /**
@@ -96,8 +99,11 @@ export async function ofPropertyWithError<T = Partial<ClientStaysRow>>(
   db: Db, propertyId: string, columns: string, userId?: string,
   opts: { from?: string; to?: string } = {},
 ): Promise<{ rows: T[]; error: { message?: string; code?: string } | null }> {
-  const { data, error } = await ofPropertyQuery(db, propertyId, columns, userId, opts);
-  return { rows: (data || []) as T[], error: error ?? null };
+  const { rows, error } = await read<T>(ofPropertyQuery(db, propertyId, columns, userId, opts));
+  // Το ίδιο αντικείμενο σφάλματος περνά ΩΣ ΕΧΕΙ· μόνο ο τύπος `DbError` είναι
+  // πλατύτερος (δέχεται `null` στα πεδία), γι' αυτό η στένωση εδώ — η δημόσια
+  // υπογραφή της συνάρτησης μένει απαράλλαχτη.
+  return { rows, error: error as { message?: string; code?: string } | null };
 }
 
 /** Οι διαμονές πολλών ακινήτων μαζί. Το κείμενο του κλειδιού γίνεται εδώ. */
@@ -105,17 +111,15 @@ export async function ofProperties<T = Partial<ClientStaysRow>>(
   db: Db, propertyIds: string[], columns: string, userId: string,
 ): Promise<T[]> {
   if (!propertyIds.length) return [];
-  const { data } = await active(db.from(TABLE).select(columns)
-    .in('property_id', propertyIds.map(String)).eq('user_id', userId));
-  return (data || []) as T[];
+  return readRows<T>(active(db.from(TABLE).select(columns)
+    .in('property_id', propertyIds.map(String)).eq('user_id', userId)));
 }
 
 /** Οι διαμονές όλου του χαρτοφυλακίου. */
 export async function ofUser<T = Partial<ClientStaysRow>>(
   db: Db, userId: string, columns: string,
 ): Promise<T[]> {
-  const { data } = await active(db.from(TABLE).select(columns).eq('user_id', userId));
-  return (data || []) as T[];
+  return readRows<T>(active(db.from(TABLE).select(columns).eq('user_id', userId)));
 }
 
 /**
@@ -129,8 +133,7 @@ export async function withClientName<T = Partial<ClientStaysRow>>(
 ): Promise<T[]> {
   let q = active(db.from(TABLE).select(`${columns},clients(full_name)`).eq('property_id', String(propertyId)));
   if (userId) q = q.eq('user_id', userId);
-  const { data } = await q.order('check_in', { ascending: false });
-  return (data || []) as T[];
+  return readRows<T>(q.order('check_in', { ascending: false }));
 }
 
 // ── ΕΓΓΡΑΦΗ ────────────────────────────────────────────────────────────────

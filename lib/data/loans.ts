@@ -18,6 +18,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { LOAN_COLUMNS, toLoanViews, isActiveLoan, type LoanRow, type LoanView } from '@/lib/loans/shape';
 import { must } from '@/lib/supabase/must';
+// ΤΟ `rows` ΠΑΙΡΝΕΙ ΨΕΥΔΩΝΥΜΟ: μέσα στο `ofProperty` υπάρχει ήδη τοπική
+// μεταβλητή `rows` — οι ωμές γραμμές πριν τη μετατροπή σε `LoanView`.
+import { rows as readRows } from './read';
 
 const TABLE = 'loans';
 
@@ -48,16 +51,18 @@ export async function ofProperty(
   let q = db.from(TABLE).select(LOAN_COLUMNS).eq('property_id', propertyId);
   if (userId) q = q.eq('user_id', userId);
   const q2 = q.order('created_at', { ascending: false });
-  const rows = opts.strict ? await must(q2) : (await q2).data;
+  // ΤΟ ΙΔΙΟ ΕΡΩΤΗΜΑ, ΔΥΟ ΣΤΑΣΕΙΣ ΑΠΕΝΑΝΤΙ ΣΤΟ ΣΦΑΛΜΑ: το `must` το πετάει, το
+  // `readRows` το απορρίπτει ρητά. Η οθόνη δείχνει άδειο όπως και πριν — αλλά
+  // τώρα η απόρριψη έχει όνομα, αντί για ένα σκέτο `.data`.
+  const rows = opts.strict ? await must(q2) : await readRows<LoanRow>(q2);
   const views = toLoanViews(rows as LoanRow[] | null);
   return opts.activeOnly ? views.filter(isActiveLoan) : views;
 }
 
 /** Τα δάνεια όλου του χαρτοφυλακίου, για αναφορές και ημερολόγιο λογιστή. */
 export async function ofUser(db: Db, userId: string, columns = LOAN_COLUMNS): Promise<LoanView[]> {
-  const { data } = await db.from(TABLE).select(columns).eq('user_id', userId)
-    .order('created_at', { ascending: false });
-  return toLoanViews(data as LoanRow[] | null);
+  return toLoanViews(await readRows<LoanRow>(db.from(TABLE).select(columns).eq('user_id', userId)
+    .order('created_at', { ascending: false })));
 }
 
 /**

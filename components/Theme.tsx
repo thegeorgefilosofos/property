@@ -615,18 +615,57 @@ export function Btn({ children, onClick, variant = 'secondary', disabled, type }
     fontSize: 12, fontWeight: 700, fontFamily: T.font.sans,
     cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1,
     transition: 'background-color 0.15s cubic-bezier(0.2,0,0,1), border-color 0.15s cubic-bezier(0.2,0,0,1), color 0.15s cubic-bezier(0.2,0,0,1), box-shadow 0.15s cubic-bezier(0.2,0,0,1), transform 0.15s cubic-bezier(0.2,0,0,1), opacity 0.15s cubic-bezier(0.2,0,0,1)',
-    border: '1px solid transparent',
+    // ΠΑΧΟΣ ΚΑΙ ΕΙΔΟΣ ΕΙΝΑΙ ΓΕΩΜΕΤΡΙΑ: κρατούν το ύψος ίδιο και στις τρεις
+    // παραλλαγές, ώστε το περίγραμμα του δευτερεύοντος να μη μετακινεί τα
+    // διπλανά του. Το ΧΡΩΜΑ όμως είναι όψη και ζει στο CSS — το `border`
+    // ολόκληρο εδώ έγραφε `transparent` ενσωματωμένα και νικούσε την κλάση:
+    // μετρήθηκε ότι το δευτερεύον κουμπί ΔΕΝ είχε καθόλου ορατό περίγραμμα.
+    borderWidth: 1, borderStyle: 'solid',
   };
-  const variants: Record<string, CSSProperties> = {
-    primary:   { background: 'var(--accent)', color: 'var(--accent-text)' },
-    secondary: { background: 'transparent', border: '1px solid var(--border-default)', color: 'var(--text-secondary)' },
-    // Η ΤΡΙΤΕΥΟΥΣΑ ΕΝΕΡΓΕΙΑ ΗΤΑΝ ΤΟ ΠΙΟ ΚΟΡΕΣΜΕΝΟ ΜΠΛΕ ΤΗΣ ΟΘΟΝΗΣ. Το `--info`
-    // είναι διαφορετικό μπλε από το `--accent` της κύριας ενέργειας, και πιο
-    // βαθύ: το «Ακύρωση» τραβούσε το μάτι περισσότερο από το «Αποθήκευση» δίπλα
-    // του. Ο κανόνας του συστήματος είναι ένα μπλε, και μόνο στην κύρια ενέργεια.
-    ghost:     { background: 'transparent', color: 'var(--text-secondary)' },
-  };
-  return <button type={type ?? 'button'} onClick={disabled ? undefined : onClick} style={{ ...base, ...variants[variant] }}>{children}</button>;
+  // ── ΤΟ ΧΡΩΜΑ ΕΦΥΓΕ ΑΠΟ ΕΔΩ, ΚΑΙ ΑΥΤΟ ΕΙΝΑΙ ΟΛΟ ΤΟ ΝΟΗΜΑ ────────────────
+  //
+  // Οι τρεις παραλλαγές ζωγράφιζαν τον εαυτό τους σε `style`, δηλαδή ΜΕΣΑ στο
+  // στοιχείο. Το ενσωματωμένο style κερδίζει κάθε κανόνα κλάσης: όσο το χρώμα
+  // γραφόταν εδώ, κανένα `:hover` δεν μπορούσε ΠΟΤΕ να ισχύσει. Μετρήθηκε στον
+  // περιηγητή — και οι τρεις παραλλαγές έδιναν ακριβώς το ίδιο χρώμα πριν και
+  // μετά την αιώρηση.
+  //
+  // Εδώ μένει η ΓΕΩΜΕΤΡΙΑ (διάταξη, περιθώρια, ακτίνα, γραμματοσειρά). Η ΟΨΗ —
+  // φόντο, χρώμα κειμένου, περίγραμμα, και οι τρεις καταστάσεις τους — ζει στο
+  // `.po-btn[data-variant]` του globals.css, όπου το CSS ξέρει τι είναι
+  // αιώρηση, τι είναι πάτημα, τι είναι εστίαση με πληκτρολόγιο και τι είναι
+  // οθόνη αφής.
+  //
+  // Η ΤΡΙΤΕΥΟΥΣΑ ΕΝΕΡΓΕΙΑ ΔΕΝ ΕΙΝΑΙ ΜΠΛΕ. Το `--info` είναι διαφορετικό και πιο
+  // βαθύ μπλε από το `--accent` της κύριας: το «Ακύρωση» τραβούσε το μάτι
+  // περισσότερο από το «Αποθήκευση» δίπλα του. Ενα μπλε, και μόνο στην κύρια.
+  // ── ΤΟ ΚΥΡΙΟ ΚΟΥΜΠΙ ΤΗΣ ΕΦΑΡΜΟΓΗΣ ΔΕΝ ΕΙΧΕ ΑΙΩΡΗΣΗ ──────────────────────
+  //
+  // Το `transition` από πάνω απαριθμούσε έξι ιδιότητες — background, border,
+  // color, shadow, transform, opacity — και ΚΑΜΙΑ τους δεν άλλαζε ποτέ: δεν
+  // υπήρχε ούτε `:hover`, ούτε `:active`, ούτε κατάσταση εστίασης. Νεκρή
+  // δήλωση σε πεντακόσια σημεία, και ένα κουμπί που δεν απαντά στο ποντίκι.
+  //
+  // Η ΑΠΑΝΤΗΣΗ ΕΙΝΑΙ CSS, ΟΧΙ JAVASCRIPT. Η εφαρμογή έχει ήδη 310 χειροκίνητους
+  // χειριστές `onMouseEnter/onMouseLeave` που γράφουν `style.background` —
+  // δηλαδή αιώρηση που δεν ξέρει τι είναι `:focus-visible`, δεν ξέρει τι είναι
+  // αφή, και ξαναγράφεται σε κάθε στοιχείο από την αρχή. Εδώ μπαίνει ΜΙΑ κλάση
+  // (`po-btn` στο globals.css) και ο ρόλος δηλώνεται με `data-variant`.
+  //
+  // ΚΑΙ ΤΟ `disabled` ΓΙΝΕΤΑΙ ΑΛΗΘΙΝΟ. Το component δεχόταν `disabled` και
+  // απλώς δεν περνούσε το `onClick`: το κουμπί έμενε εστιάσιμο, ανακοινωνόταν
+  // ως ενεργό από τους αναγνώστες οθόνης, και το `:disabled` του CSS δεν
+  // ταίριαζε ποτέ. Τώρα δηλώνεται στο ίδιο το στοιχείο.
+  return (
+    <button
+      type={type ?? 'button'}
+      className="po-btn"
+      data-variant={variant}
+      disabled={disabled}
+      onClick={disabled ? undefined : onClick}
+      style={base}
+    >{children}</button>
+  );
 }
 
 // ═══ ExportButton, κοινό κουμπί εξαγωγής Excel (ίδιο σε όλα τα tabs) ═══════
