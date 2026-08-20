@@ -44,15 +44,13 @@ const CLAIMS = [
 ];
 
 /** Πάροχοι πληρωμών που ΔΕΝ είναι ο δικός μας. Ονομαστικά, γιατί συνέβη. */
-const WRONG_PROVIDER = /\b(Stripe|Paddle|Chargebee|FastSpring)\b/;
+const WRONG_PROVIDER = /\b(Lemon\s?Squeezy|Paddle|Chargebee|FastSpring|LemonSqueezy)\b/;
 
 /** Οπου το όνομα ξένου παρόχου είναι νόμιμο: παραδείγματα προς τον χρήστη. */
 const PROVIDER_ALLOW = new Set([
   // Ο ιδιοκτήτης επικολλά ΔΙΚΟ ΤΟΥ σύνδεσμο πληρωμής για τον ενοικιαστή· εκεί
   // τα ονόματα είναι παραδείγματα τρίτων υπηρεσιών, όχι δικός μας πάροχος.
   'app/dashboard/components/PortalShare.tsx',
-  // Αναφορές αισθητικής («ήσυχο, Stripe/Apple αίσθηση»), όχι πάροχος.
-  'app/dashboard/components/TabAccounting.tsx',
 ]);
 
 const problems = [];
@@ -67,10 +65,13 @@ for (const file of projectFiles("'app/**/*.ts' 'app/**/*.tsx' 'lib/**/*.ts' 'lib
     // Και τα δύο είδη σχολίου: η γραμμή `//` και η γραμμή `*` του μπλοκ.
     const t = line.trim();
     if (t.startsWith('*') || t.startsWith('/*')) return;
-    const code = line.replace(/\/\/.*$/, '');
+    // Κόβει το σχόλιο, ΟΧΙ τη διεύθυνση: η πρώτη διπλή κάθετος μιας γραμμής με
+    // `https://…` ανήκει στο πρωτόκολλο, και το αφελές κόψιμο έσβηνε τα πάντα.
+    const code = line.replace(/(^|[^:])\/\/.*$/, '$1');
 
-    // Ο ΕΛΕΓΧΟΣ ΟΝΟΜΑΤΟΣ ΔΕΝ ΠΕΡΙΜΕΝΕΙ ΣΥΜΦΡΑΖΟΜΕΝΟ. Το «Stripe» είναι λάθος
-    // όπου κι αν γραφτεί· ήταν κάτω από τη θύρα του θέματος και ξέφευγε.
+    // Ο ΕΛΕΓΧΟΣ ΟΝΟΜΑΤΟΣ ΔΕΝ ΠΕΡΙΜΕΝΕΙ ΣΥΜΦΡΑΖΟΜΕΝΟ. Το όνομα παρόχου που δεν
+    // επιλέχθηκε είναι λάθος όπου κι αν γραφτεί· ήταν κάτω από τη θύρα του
+    // θέματος και ξέφευγε.
     if (WRONG_PROVIDER.test(code) && !PROVIDER_ALLOW.has(file)) {
       problems.push(`${at}: ονομάζει άλλον πάροχο πληρωμών. Ο έμπορος ζει στο lib/legal/merchant.ts.`);
     }
@@ -90,7 +91,7 @@ for (const file of projectFiles("'app/**/*.ts' 'app/**/*.tsx' 'lib/**/*.ts' 'lib
 
 // Το μητρώο υπεργολάβων δεν γράφει καρφωτά την κατάσταση του παρόχου πληρωμών.
 const registry = readFileSync('lib/legal/subprocessors.ts', 'utf8');
-if (!registry.includes('checkoutIsLive')) {
+if (!registry.includes('billingIsLive')) {
   problems.push('lib/legal/subprocessors.ts: η κατάσταση του παρόχου πληρωμών δεν δένεται με το ταμείο.');
 }
 
@@ -99,7 +100,7 @@ if (problems.length) {
   problems.forEach(p => console.error('  ' + p));
   console.error(`
   Η κατάσταση της χρέωσης λέγεται από το ${WORDS}, που τη διαβάζει από την
-  ΙΔΙΑ συνθήκη με το κουμπί του ταμείου (\`checkoutIsLive\`). Ενα κείμενο που
+  ΙΔΙΑ συνθήκη με το κουμπί του ταμείου (\`billingIsLive\`). Ενα κείμενο που
   τη γράφει μόνο του θα μείνει πίσω την επόμενη φορά — και έμεινε.
   (Ο ίδιος ο φύλακας: ${GUARD})`);
   process.exit(1);

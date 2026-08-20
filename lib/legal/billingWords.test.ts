@@ -6,24 +6,25 @@
 // ενεργοποιηθεί». Ο έλεγχος δεν ρωτά «τι λέει η σελίδα» — ρωτά αν οι δύο
 // καταστάσεις είναι όντως δύο, και αν διαλέγονται από τη ΣΩΣΤΗ συνθήκη.
 import { billingWords } from './billingWords'
-import { checkoutIsLive } from '../billing/lemonCheckout'
+import { billingIsLive } from '../billing/stripe'
 import { subprocessors, activeSubprocessors, plannedSubprocessors } from './subprocessors'
 import { PAYMENTS_PROVIDER } from './merchant'
 
 let pass = 0, fail = 0
 const ok = (n: string, c: boolean) => { if (c) pass++; else { fail++; console.error('✗ ' + n) } }
 
-const LINK = 'https://propertyos.lemonsqueezy.com/buy/aaaa'
-const LIVE = { LEMON_CHECKOUT_LINKS: `solo:monthly=${LINK}` }
+const LIVE = { STRIPE_SECRET_KEY: 'sk_test_ΔΟΚΙΜΗ' }
 const DARK = {}
 
 // ── Η ΣΥΝΘΗΚΗ ─────────────────────────────────────────────────────────────
-ok('με σύνδεσμο αγοράς, το ταμείο είναι ζωντανό', checkoutIsLive(LIVE))
-ok('χωρίς σύνδεσμο, δεν είναι', !checkoutIsLive(DARK))
-// Χαλασμένη τιμή ΔΕΝ μετράει ως ζωντανή: το route γυρίζει `available:false`,
-// άρα ένα κείμενο που έλεγε «χρεώνουμε» θα ήταν ψέμα.
-ok('χαλασμένος χάρτης δεν μετράει ως ζωντανό ταμείο',
-  !checkoutIsLive({ LEMON_CHECKOUT_LINKS: 'solo:monthly=https://evil.example/buy/x' }))
+ok('με μυστικό κλειδί, η χρέωση είναι ζωντανή', billingIsLive(LIVE))
+ok('χωρίς κλειδί, δεν είναι', !billingIsLive(DARK))
+// ΤΟ ΔΗΜΟΣΙΟ ΚΛΕΙΔΙ ΔΕΝ ΕΙΝΑΙ ΜΥΣΤΙΚΟ. Η πιο συνηθισμένη αστοχία ρύθμισης
+// είναι το `pk_` στη θέση του `sk_`: κάθε αίτημα θα αποτύγχανε με σφάλμα
+// δικαιώματος, ενώ τα κείμενα θα έλεγαν «χρεώνουμε κανονικά».
+ok('δημόσιο κλειδί δεν μετράει ως ζωντανή χρέωση',
+  !billingIsLive({ STRIPE_SECRET_KEY: 'pk_live_ΛΑΘΟΣ' }))
+ok('κλειδί περιορισμένων δικαιωμάτων μετράει', billingIsLive({ STRIPE_SECRET_KEY: 'rk_live_ΟΚ' }))
 
 // ── ΟΙ ΔΥΟ ΚΑΤΑΣΤΑΣΕΙΣ ΕΙΝΑΙ ΟΝΤΩΣ ΔΥΟ ────────────────────────────────────
 {

@@ -3,19 +3,20 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // ΣΥΝΔΡΟΜΗ ΚΑΙ ΣΤΟΙΧΕΙΑ ΤΙΜΟΛΟΓΗΣΗΣ
 // ─────────────────────────────────────────────────────────────────────────
-// Ο ΕΜΠΟΡΟΣ ΔΕΝ ΕΙΝΑΙ Η STRIPE. Το σχόλιο εδώ έλεγε «όταν προστεθεί ο Stripe»
-// και οι στήλες της βάσης λέγονταν `stripe_*` — για πάροχο που δεν επιλέχθηκε
-// ποτέ. Ο έμπορος τύπου record είναι η Lemon Squeezy: εκείνη εκδίδει το
-// παραστατικό και αποδίδει τον ΦΠΑ κάθε χώρας, δηλαδή επιτρέπει πωλήσεις πριν
-// υπάρξει εταιρεία.
+// ΠΟΙΟΣ ΠΟΥΛΑΕΙ, ΔΕΝ ΓΡΑΦΕΤΑΙ ΕΔΩ. Η οθόνη έλεγε με το χέρι ότι ο πάροχος
+// «είναι ο έμπορος της συναλλαγής και αποδίδει τον ΦΠΑ». Δεν είναι: πωλητής
+// είναι ο φορέας λειτουργίας, που εκδίδει το παραστατικό και αποδίδει τον
+// ΦΠΑ, και ο πάροχος μόνο διεκπεραιώνει την πληρωμή. Η πρόταση έρχεται πλέον
+// από τον διακομιστή, ίδια με εκείνη των Ορων και της Πολιτικής απορρήτου.
 //
 // ΤΙ ΚΑΝΕΙ Η ΟΘΟΝΗ ΚΑΙ ΤΙ ΔΕΝ ΚΑΝΕΙ. Κρατά τα στοιχεία τιμολόγησης, δείχνει
-// την κατάσταση της συνδρομής όπως την ξέρει ο έμπορος, και ανοίγει το ταμείο
-// του. ΔΕΝ αγγίζει ποτέ το πακέτο: το `plan` γράφεται μόνο από τον webhook, με
-// ρόλο υπηρεσίας, αφού η πληρωμή έχει γίνει.
+// την κατάσταση της συνδρομής όπως την ξέρει ο πάροχος, και ανοίγει δύο πόρτες
+// του: το ταμείο για όποιον δεν έχει συνδρομή, και τη διαχείριση συνδρομής για
+// όποιον έχει. ΔΕΝ αγγίζει ποτέ το πακέτο: το `plan` γράφεται μόνο από τον
+// webhook, με ρόλο υπηρεσίας, αφού η πληρωμή έχει γίνει.
 //
-// ΚΑΙ ΔΕΝ ΥΠΟΣΧΕΤΑΙ ΚΟΥΜΠΙ ΠΟΥ ΔΕΝ ΥΠΑΡΧΕΙ. Οσο δεν έχουν οριστεί σύνδεσμοι
-// αγοράς, η κάρτα το λέει καθαρά αντί να δείχνει απενεργοποιημένο κουμπί.
+// ΚΑΙ ΔΕΝ ΥΠΟΣΧΕΤΑΙ ΚΟΥΜΠΙ ΠΟΥ ΔΕΝ ΥΠΑΡΧΕΙ. Οσο δεν έχει ρυθμιστεί ο πάροχος,
+// η κάρτα το λέει καθαρά αντί να δείχνει απενεργοποιημένο κουμπί.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useEffect, useState } from 'react';
@@ -26,10 +27,12 @@ import * as billing from '@/lib/data/billing';
 import { TextInput, CustomSelect } from './UIComponents';
 import { T, Btn, InfoBanner, Spinner, Card, SecHdr, fixedCols, fe, fd } from '@/components/Theme';
 import { PLANS, normalizePlan, annualPerMonth, type PlanId } from '@/lib/billing/plans';
+// Η ΦΑΣΗ ΤΗΣ ΣΥΝΔΡΟΜΗΣ ΔΕΝ ΚΡΙΝΕΤΑΙ ΕΔΩ. Οι καταστάσεις τις ονομάζει ο
+// πάροχος και τις γράφει ο webhook· η οθόνη τις διαβάζει από την ίδια πηγή.
+import { subPhase } from '@/lib/billing/stripePlans';
 import { ALLOWED_PLANS, type ProfileType } from '@/lib/billing/entitlements';
 import { SegmentControl } from './UIComponents';
 import { notifyError } from '@/components/Toast';
-import { PAYMENTS_PROVIDER } from '@/lib/legal/merchant';
 import { ALL_COUNTRIES, isEuCountry, isReverseCharge, missingInvoiceFields, type InvoiceProfile } from '@/lib/billing/invoiceProfile';
 import { determineVat, vatTreatmentLabel } from '@/lib/billing/invoicing';
 
@@ -39,13 +42,16 @@ interface BillingData {
   vat_number: string; phone: string; plan: string; billing_cycle: string;
   /** Ο τύπος προφίλ κρίνει ΠΟΙΟ πακέτο αγοράζεται. */
   profile_type: string;
-  /** Ο,τι ξέρει ο έμπορος για τη συνδρομή. Διαβάζεται, δεν γράφεται από εδώ. */
+  /** Ο,τι ξέρει ο πάροχος για τη συνδρομή. Διαβάζεται, δεν γράφεται από εδώ. */
   subscription_status: string; mor_renews_at: string; mor_ends_at: string;
+  /** Ο πελάτης στον πάροχο. Η ΥΠΑΡΞΗ του κρίνει αν υπάρχει πύλη διαχείρισης. */
+  mor_customer_id: string;
 }
 const INIT: BillingData = {
   doc_type: 'receipt', full_name: '', company_name: '', afm: '', doy: '', profession: '',
   address: '', city: '', postal_code: '', country: 'GR', vat_number: '', phone: '', plan: 'free', billing_cycle: 'monthly',
   profile_type: 'individual', subscription_status: '', mor_renews_at: '', mor_ends_at: '',
+  mor_customer_id: '',
 };
 
 export default function Billing({ userId, wantPlan = null }: {
@@ -179,10 +185,13 @@ export default function Billing({ userId, wantPlan = null }: {
 
 // ─── Η ΣΥΝΔΡΟΜΗ ─────────────────────────────────────────────────────────────
 //
-// ΜΙΑ ΚΑΡΤΑ, ΤΡΕΙΣ ΚΑΤΑΣΤΑΣΕΙΣ, ΚΑΜΙΑ ΨΕΥΤΙΚΗ. Ενεργή συνδρομή, ακυρωμένη που
-// τρέχει ώς την ημερομηνία της, ή καμία. Το κουμπί εμφανίζεται μόνο όταν
-// υπάρχει πραγματικός σύνδεσμος αγοράς — αυτό το ξέρει ο διακομιστής, όχι η
-// οθόνη, γιατί οι σύνδεσμοι ζουν σε μεταβλητές περιβάλλοντος.
+// ΜΙΑ ΚΑΡΤΑ, ΜΙΑ ΠΡΑΞΗ ΤΗ ΦΟΡΑ. Οποιος δεν έχει συνδρομή βλέπει το ταμείο·
+// όποιος έχει, βλέπει τη διαχείρισή της. ΠΟΤΕ ΚΑΙ ΤΑ ΔΥΟ: ένα ταμείο πάνω σε
+// ενεργή συνδρομή δεν την αλλάζει, φτιάχνει ΔΕΥΤΕΡΗ και ο πελάτης πληρώνει
+// δύο φορές το ίδιο πράγμα.
+//
+// Το ταμείο εμφανίζεται μόνο όταν ο πάροχος είναι ρυθμισμένος — αυτό το ξέρει
+// ο διακομιστής, όχι η οθόνη, γιατί το κλειδί ζει σε μεταβλητή περιβάλλοντος.
 function Subscription({ d, wantPlan = null }: { d: BillingData; wantPlan?: PlanId | null }) {
   const [cycle, setCycle] = useState<'monthly' | 'annual'>(d.billing_cycle === 'annual' ? 'annual' : 'monthly');
   const [busy, setBusy] = useState(false);
@@ -204,8 +213,20 @@ function Subscription({ d, wantPlan = null }: { d: BillingData; wantPlan?: PlanI
   const price = cycle === 'annual' ? annualPerMonth(target) : plan.priceMonthly;
 
   const status = (d.subscription_status || '').trim();
+  const phase = subPhase(status);
   const endsAt = (d.mor_ends_at || '').trim();
   const renewsAt = (d.mor_renews_at || '').trim();
+  /** Τρέχει συνδρομή αυτή τη στιγμή; Τότε το ταμείο θα έφτιαχνε δεύτερη. */
+  const running = phase === 'trial' || phase === 'active' || phase === 'retrying';
+  /**
+   * Υπάρχει πύλη διαχείρισης;
+   *
+   * ΚΡΙΝΕΤΑΙ ΑΠΟ ΔΕΔΟΜΕΝΟ ΠΟΥ ΕΧΟΥΜΕ ΗΔΗ, ΟΧΙ ΑΠΟ ΕΡΩΤΗΣΗ. Μια προκαταρκτική
+   * κλήση θα δημιουργούσε συνεδρία πύλης σε ΚΑΘΕ φόρτωση της οθόνης, ακόμη
+   * και για όποιον δεν πατήσει ποτέ το κουμπί. Ο πελάτης του παρόχου γράφεται
+   * από τον webhook· αν υπάρχει, υπάρχει και πύλη.
+   */
+  const hasCustomer = !!(d.mor_customer_id || '').trim();
 
   // ── ΤΟ ΚΟΥΜΠΙ ΡΩΤΑΕΙ ΠΡΙΝ ΕΜΦΑΝΙΣΤΕΙ ────────────────────────────────────
   // Οι σύνδεσμοι αγοράς ζουν σε μεταβλητή περιβάλλοντος, δηλαδή ο περιηγητής
@@ -224,7 +245,7 @@ function Subscription({ d, wantPlan = null }: { d: BillingData; wantPlan?: PlanI
     let alive = true;
     (async () => {
       try {
-        const res = await fetch(`/api/billing/checkout?plan=${target}&cycle=${cycle}`);
+        const res = await fetch(`/api/billing/checkout?plan=${target}&cycle=${cycle}&probe=1`);
         const body = await res.json() as { available?: boolean; note?: string };
         if (alive) { setLive(!!body.available); setNote(body.note || ''); }
       } catch { if (alive) setLive(false); }
@@ -232,34 +253,43 @@ function Subscription({ d, wantPlan = null }: { d: BillingData; wantPlan?: PlanI
     return () => { alive = false; };
   }, [target, cycle]);
 
-  const go = async () => {
+  // ΤΟ ΣΦΑΛΜΑ ΛΕΓΕΤΑΙ. Ενα κουμπί που δεν κάνει τίποτα όταν πατηθεί είναι
+  // χειρότερο από κουμπί που λείπει: ο χρήστης το ξαναπατά και θεωρεί ότι
+  // χρεώθηκε δύο φορές. Και οι δύο πόρτες του παρόχου ανοίγουν με τον ίδιο
+  // τρόπο — σύνδεσμος μιας χρήσης από τον διακομιστή — οπότε και η μία μόνο
+  // διαδικασία, με το όνομα της πόρτας μέσα στο μήνυμα.
+  const open = async (url: string, what: string) => {
     setBusy(true);
     try {
-      const res = await fetch(`/api/billing/checkout?plan=${target}&cycle=${cycle}`);
+      const res = await fetch(url);
       const body = await res.json() as { url?: string | null };
-      // ΤΟ ΣΦΑΛΜΑ ΛΕΓΕΤΑΙ. Ενα κουμπί που δεν κάνει τίποτα όταν πατηθεί είναι
-      // χειρότερο από κουμπί που λείπει: ο χρήστης το ξαναπατά και θεωρεί ότι
-      // χρεώθηκε δύο φορές.
-      if (!body.url) { notifyError('Το ταμείο δεν άνοιξε. Δοκίμασε ξανά σε λίγο.'); setBusy(false); return; }
+      if (!body.url) { notifyError(`${what} δεν άνοιξε. Δοκίμασε ξανά σε λίγο.`); setBusy(false); return; }
       window.location.href = body.url;
     } catch {
-      notifyError('Το ταμείο δεν άνοιξε. Ελεγξε τη σύνδεσή σου και δοκίμασε ξανά.');
+      notifyError(`${what} δεν άνοιξε. Ελεγξε τη σύνδεσή σου και δοκίμασε ξανά.`);
       setBusy(false);
     }
   };
+  const go = () => open(`/api/billing/checkout?plan=${target}&cycle=${cycle}`, 'Το ταμείο');
+  const manage = () => open('/api/billing/portal', 'Η διαχείριση συνδρομής');
 
   return (
     <Card>
       <SecHdr label="Συνδρομή" />
-      {status === 'cancelled' && endsAt ? (
+      {/* Η ΑΚΥΡΩΣΗ ΕΙΝΑΙ ΔΕΔΟΜΕΝΟ, ΟΧΙ ΚΑΤΑΣΤΑΣΗ. Οσο τρέχει η πληρωμένη περίοδος
+          η συνδρομή μένει ενεργή στον πάροχο· εκείνο που αλλάζει είναι ότι
+          υπάρχει ημερομηνία λήξης αντί για ημερομηνία ανανέωσης. */}
+      {endsAt ? (
         <InfoBanner tone="warning">Η συνδρομή έχει ακυρωθεί και ισχύει ώς τις <strong>{fd(endsAt)}</strong>. Μετά την ημερομηνία αυτή ο λογαριασμός επιστρέφει σε χωρίς συνδρομή.</InfoBanner>
-      ) : status === 'active' || status === 'on_trial' ? (
+      ) : phase === 'trial' || phase === 'active' ? (
         <InfoBanner tone="info">
-          {status === 'on_trial' ? 'Δοκιμαστική περίοδος σε εξέλιξη' : `Ενεργή συνδρομή, ${plan.name}`}
+          {phase === 'trial' ? 'Δοκιμαστική περίοδος σε εξέλιξη' : `Ενεργή συνδρομή, ${plan.name}`}
           {renewsAt ? `. Ανανέωση στις ${fd(renewsAt)}.` : '.'}
         </InfoBanner>
-      ) : status === 'past_due' ? (
-        <InfoBanner tone="warning">Η τελευταία χρέωση δεν ολοκληρώθηκε. Ο λογαριασμός παραμένει ανοιχτός όσο ο έμπορος ξαναδοκιμάζει την κάρτα.</InfoBanner>
+      ) : phase === 'retrying' ? (
+        <InfoBanner tone="warning">Η τελευταία χρέωση δεν ολοκληρώθηκε. Ο λογαριασμός παραμένει ανοιχτός όσο ο πάροχος ξαναδοκιμάζει την κάρτα. Ανανέωσε την κάρτα σου από τη διαχείριση συνδρομής.</InfoBanner>
+      ) : phase === 'pending' ? (
+        <InfoBanner tone="warning">Η πρώτη πληρωμή δεν ολοκληρώθηκε ακόμη. Ολοκλήρωσέ την από τη διαχείριση συνδρομής για να ενεργοποιηθεί το πακέτο.</InfoBanner>
       ) : null}
 
       {/* Ο ΔΙΑΚΟΠΤΗΣ ΠΑΝΩ ΑΠΟ ΤΗΝ ΤΙΜΗ: πρώτα η αιτία, μετά το αποτέλεσμα. Δίπλα
@@ -283,11 +313,24 @@ function Subscription({ d, wantPlan = null }: { d: BillingData; wantPlan?: PlanI
         </div>
       </div>
 
-      {live === true && (
-        <div style={{ marginTop: 18 }}>
-          <Btn variant="primary" onClick={go} disabled={busy}>{busy ? 'Ανοίγει…' : 'Πληρωμή με κάρτα'}</Btn>
+      {/* ΤΟ ΤΑΜΕΙΟ ΜΟΝΟ ΟΤΑΝ ΔΕΝ ΤΡΕΧΕΙ ΣΥΝΔΡΟΜΗ. Η αλλαγή πακέτου σε ενεργή
+          συνδρομή γίνεται από την πύλη, που την τροποποιεί· το ταμείο θα
+          έφτιαχνε δεύτερη συνδρομή δίπλα στην πρώτη. */}
+      {(live === true && !running) || hasCustomer ? (
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginTop: 18 }}>
+          {live === true && !running && (
+            <Btn variant="primary" onClick={go} disabled={busy}>{busy ? 'Ανοίγει…' : 'Πληρωμή με κάρτα'}</Btn>
+          )}
+          {/* ΟΙ ΤΡΕΙΣ ΥΠΟΣΧΕΣΕΙΣ ΤΩΝ ΟΡΩΝ ΕΧΟΥΝ ΚΟΥΜΠΙ: ακύρωση, παραστατικά,
+              αλλαγή κάρτας. Χωρίς αυτό, οι Οροι δέσμευαν σε κάτι που δεν
+              υπήρχε πουθενά στην εφαρμογή. */}
+          {hasCustomer && (
+            <Btn variant={running ? 'primary' : 'secondary'} onClick={manage} disabled={busy}>
+              {busy ? 'Ανοίγει…' : 'Διαχείριση συνδρομής'}
+            </Btn>
+          )}
         </div>
-      )}
+      ) : null}
       {/* ΟΤΑΝ ΔΕΝ ΥΠΑΡΧΕΙ ΤΑΜΕΙΟ, ΤΟ ΛΕΜΕ. Απενεργοποιημένο κουμπί θα ήταν
           υπόσχεση που δεν τηρείται με το πάτημα· η πρόταση λέει το ίδιο πράγμα
           με τους Ορους και την Πολιτική απορρήτου, από την ίδια πηγή. */}
@@ -297,12 +340,14 @@ function Subscription({ d, wantPlan = null }: { d: BillingData; wantPlan?: PlanI
         </div>
       )}
 
-      {/* ΠΟΙΟΣ ΧΡΕΩΝΕΙ, ΓΡΑΜΜΕΝΟ ΠΡΙΝ ΤΗ ΧΡΕΩΣΗ. Στην κίνηση της κάρτας θα
-          φανεί το όνομα του εμπόρου, όχι το δικό μας· ένας πελάτης που δεν το
-          περίμενε το καταγγέλλει ως απάτη. */}
-      {live === true && (
+      {/* ΠΟΙΟΣ ΧΡΕΩΝΕΙ, ΓΡΑΜΜΕΝΟ ΠΡΙΝ ΤΗ ΧΡΕΩΣΗ. Στην κίνηση της κάρτας φαίνεται
+          το όνομα του παρόχου· ένας πελάτης που δεν το περίμενε το καταγγέλλει
+          ως απάτη. Η ΔΙΑΤΥΠΩΣΗ ΕΡΧΕΤΑΙ ΑΠΟ ΤΟΝ ΔΙΑΚΟΜΙΣΤΗ, ίδια με των Ορων:
+          η προηγούμενη, γραμμένη εδώ με το χέρι, έλεγε ότι ο πάροχος αποδίδει
+          τον ΦΠΑ — και δεν τον αποδίδει αυτός. */}
+      {live === true && note && (
         <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 14 }}>
-          Η πληρωμή και το παραστατικό γίνονται από τη {PAYMENTS_PROVIDER}, που είναι ο έμπορος της συναλλαγής και αποδίδει τον ΦΠΑ. Σταματάς όποτε θες και η συνδρομή τρέχει ώς το τέλος της περιόδου που έχεις πληρώσει.
+          {note} Σταματάς όποτε θες και η συνδρομή τρέχει ώς το τέλος της περιόδου που έχεις πληρώσει.
         </div>
       )}
     </Card>
