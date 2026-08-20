@@ -454,6 +454,8 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   // κάθε CTA κατέληγε στην ΚΟΡΥΦΗ της ενότητας, και το κουμπί που πατιέται από
   // τη μέση της σύγκρισης έστελνε τον χρήστη πίσω σε ό,τι μόλις διάβαζε.
   const billingRef = useRef<HTMLDivElement | null>(null);
+  /** Το πακέτο που διάλεξε ο χρήστης στη σύγκριση, για να το αγοράσει από κάτω. */
+  const [wantPlan, setWantPlan] = useState<PlanId | null>(null);
   const [exporting, setExporting] = useState(false);
   const [sheetNote, setSheetNote] = useState('');
   const [exportErr, setExportErr] = useState('');
@@ -549,8 +551,13 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   // επόμενο βήμα σήμερα είναι η χρέωση από κάτω: στοιχεία τιμολόγησης, και το
   // πλαίσιο που λέει ειλικρινά πότε ενεργοποιείται η κάρτα. Εκεί οδηγεί, και
   // έτσι ονομάζεται.
-  const openBilling = () => {
+  const openBilling = (want?: PlanId) => {
     setShowManage(true);
+    // ΠΟΙΟ ΠΑΚΕΤΟ ΤΑΞΙΔΕΥΕΙ ΜΑΖΙ ΜΕ ΤΗΝ ΚΥΛΙΣΗ. Χωρίς αυτό, η κάρτα χρέωσης
+    // διάλεγε μόνη της — και η «λογική» προεπιλογή ήταν το ακριβότερο πακέτο
+    // που επιτρέπει το προφίλ. Ο χρήστης πατούσε «Ιδιοκτήτης» και έβλεπε τιμή
+    // «Ιδιοκτήτης+».
+    if (want) setWantPlan(want);
     setTimeout(() => billingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
   };
 
@@ -815,7 +822,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
       {showManage && (
         <div ref={manageRef} style={{ scrollMarginTop: 16 }}>
           <PlanComparison profileType={profileType} currentPlan={effPlan} onUpgrade={openBilling} />
-          <div ref={billingRef} style={{ scrollMarginTop: 16 }}><Billing userId={userId} /></div>
+          <div ref={billingRef} style={{ scrollMarginTop: 16 }}><Billing userId={userId} wantPlan={wantPlan} /></div>
         </div>
       )}
 

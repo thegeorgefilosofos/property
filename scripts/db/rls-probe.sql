@@ -932,3 +932,93 @@ begin
 
   raise notice 'probe: κάθε ξένο κλειδί έχει ευρετήριο και κάθε user_id δείχνει σε χρήστη';
 end $probe$;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Η ΣΥΝΔΡΟΜΗ ΔΕΝ ΓΡΑΦΕΤΑΙ ΑΠΟ ΤΗΝ ΚΟΝΣΟΛΑ ΤΟΥ ΠΕΡΙΗΓΗΤΗ
+-- ─────────────────────────────────────────────────────────────────────────
+-- Οι στήλες του εμπόρου μετονομάστηκαν από `stripe_*` σε `mor_*` και τέσσερις
+-- καινούριες μπήκαν δίπλα τους. Μια στήλη που ΔΕΝ μπήκε στη σκανδάλη είναι
+-- στήλη που γράφει ο καθένας: με το δημόσιο κλειδί, από την κονσόλα,
+--
+--     update billing_profiles set plan = 'office', subscription_status = 'active'
+--
+-- και η συνδρομή είναι δωρεάν.
+--
+-- Ο ΕΛΕΓΧΟΣ ΑΠΟΔΕΙΚΝΥΕΙ ΠΡΩΤΑ ΟΤΙ ΔΕΝ ΕΙΝΑΙ ΚΕΝΟΣ. Η πρώτη γραφή αυτού του
+-- ελέγχου χρησιμοποιούσε `request.jwt.claims`, που η σκαλωσιά εδώ ΔΕΝ διαβάζει:
+-- το `auth.uid()` έβγαινε null, η RLS έκοβε την ενημέρωση, καμία γραμμή δεν
+-- άλλαζε — και ο έλεγχος «περνούσε» ό,τι κι αν έλεγε η σκανδάλη. Γι` αυτό
+-- μετριέται το `row_count` και ελέγχεται ότι μια ΕΠΙΤΡΕΠΤΗ στήλη όντως άλλαξε.
+-- ═══════════════════════════════════════════════════════════════════════════
+do $probe$
+declare v_uid uuid := '7c7c7c7c-0000-4000-8000-00000000c0de';
+begin
+  insert into auth.users(id, email) values (v_uid, 'emporos@probe.test')
+    on conflict (id) do nothing;
+  -- Το προφίλ γεννιέται όπως θα το έγραφε ο webhook: με ρόλο υπηρεσίας.
+  insert into public.billing_profiles(user_id, full_name, plan, subscription_status,
+      mor_customer_id, mor_subscription_id, mor_variant_id, mor_renews_at, mor_ends_at, mor_event_at)
+    values (v_uid, 'Πριν', 'solo', 'on_trial', 'cus-1', 'sub-1', 'var-1',
+            timestamptz '2026-09-20', null, timestamptz '2026-08-20');
+end $probe$;
+
+set role authenticated;
+set session "probe.uid" = '7c7c7c7c-0000-4000-8000-00000000c0de';
+
+do $probe$
+declare n int;
+begin
+  update public.billing_profiles
+     set full_name = 'Μετά',
+         plan = 'office', subscription_status = 'active',
+         mor_customer_id = 'δικό-μου', mor_subscription_id = 'δικό-μου',
+         mor_variant_id = 'δικό-μου',
+         mor_renews_at = timestamptz '2099-01-01', mor_ends_at = timestamptz '2099-01-01',
+         mor_event_at = timestamptz '2099-01-01'
+   where user_id = '7c7c7c7c-0000-4000-8000-00000000c0de';
+  get diagnostics n = row_count;
+  if n <> 1 then
+    raise exception 'Ο έλεγχος θα ήταν κενός: η ενημέρωση άγγιξε % γραμμές αντί για 1', n;
+  end if;
+end $probe$;
+
+reset role;
+set session "probe.uid" = '';
+
+do $probe$
+declare r record;
+begin
+  select * into r from public.billing_profiles
+   where user_id = '7c7c7c7c-0000-4000-8000-00000000c0de';
+
+  -- Η απόδειξη ότι η γραμμή ΗΤΑΝ προσιτή: ό,τι επιτρέπεται άλλαξε.
+  if r.full_name <> 'Μετά' then
+    raise exception 'Ο έλεγχος είναι κενός: ούτε οι επιτρεπτές στήλες δεν γράφτηκαν';
+  end if;
+
+  if r.plan <> 'solo' then raise exception 'Ο χρήστης αναβάθμισε μόνος του το πακέτο: %', r.plan; end if;
+  -- Η δοκιμή ξεκινά ως «on_trial» και ο χρήστης γράφει «active»: αν περάσει,
+  -- η δοκιμαστική περίοδος δεν λήγει ποτέ.
+  if r.subscription_status <> 'on_trial' then raise exception 'Ο χρήστης έγραψε την κατάσταση συνδρομής: %', r.subscription_status; end if;
+  if r.mor_customer_id <> 'cus-1' then raise exception 'Ο χρήστης έγραψε τον πελάτη του εμπόρου'; end if;
+  if r.mor_subscription_id <> 'sub-1' then raise exception 'Ο χρήστης έγραψε τη συνδρομή του εμπόρου'; end if;
+  if r.mor_variant_id <> 'var-1' then raise exception 'Ο χρήστης έγραψε την παραλλαγή: θα διάλεγε πακέτο μόνος του'; end if;
+  if r.mor_renews_at <> timestamptz '2026-09-20' then raise exception 'Ο χρήστης έγραψε την ημερομηνία ανανέωσης'; end if;
+  if r.mor_ends_at is not null then raise exception 'Ο χρήστης έγραψε την ημερομηνία λήξης'; end if;
+  if r.mor_event_at <> timestamptz '2026-08-20' then raise exception 'Ο χρήστης έγραψε την ώρα γεγονότος: θα έκοβε κάθε επόμενο webhook ως παλιό'; end if;
+
+  -- ΚΑΙ ΚΑΜΙΑ ΣΤΗΛΗ `mor_` ΔΕΝ ΜΕΝΕΙ ΕΞΩ ΑΠΟ ΤΗ ΣΚΑΝΔΑΛΗ. Οι έλεγχοι από πάνω
+  -- πιάνουν τις σημερινές· αυτός πιάνει την επόμενη που θα προστεθεί χωρίς να
+  -- μπει στη λίστα.
+  if exists (
+    select 1 from information_schema.columns c
+     where c.table_schema = 'public' and c.table_name = 'billing_profiles'
+       and c.column_name like 'mor\_%'
+       and pg_get_functiondef('public.lock_billing_plan'::regproc)
+             not like '%old.' || c.column_name || '%'
+  ) then
+    raise exception 'Στήλη mor_ εκτός της lock_billing_plan: θα την έγραφε ο χρήστης';
+  end if;
+
+  raise notice 'probe: οι στήλες του εμπόρου γράφονται μόνο με ρόλο υπηρεσίας';
+end $probe$;

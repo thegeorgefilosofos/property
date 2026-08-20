@@ -9,7 +9,7 @@
 // προσφορές και τα αναγνωριστικά της πληρωμής ΔΕΝ είναι πεδία της φόρμας:
 // τα ορίζει ο πάροχος πληρωμών, μέσω webhook, με πελάτη υπηρεσίας. Η βάση
 // φυλάει ήδη το `plan` και τα `comp_*` με σκανδάλη (`lock_billing_plan`) —
-// αλλά ΟΧΙ το `billing_cycle` ούτε τα `stripe_*`. Η μία οθόνη που το ήξερε
+// αλλά ΟΧΙ το `billing_cycle` ούτε τα `mor_*`. Η μία οθόνη που το ήξερε
 // έγραφε `delete payload.plan; delete payload.billing_cycle;` δίπλα σε ένα
 // σχόλιο· οι άλλες πέντε δεν το ήξεραν καθόλου. Τώρα το ξέρει το στρώμα, και
 // το ξέρει για όλους.
@@ -42,7 +42,7 @@ export type BillingPatch = Partial<BillingProfilesRow> & Record<string, unknown>
 const SERVER_OWNED = [
   'plan', 'billing_cycle',
   'comp_plan', 'comp_until', 'comp_months_granted', 'comp_started_at',
-  'stripe_customer_id', 'stripe_subscription_id', 'subscription_status',
+  'mor_customer_id', 'mor_subscription_id', 'mor_variant_id', 'mor_renews_at', 'mor_ends_at', 'mor_event_at', 'subscription_status',
 ] as const;
 
 // ── ΑΝΑΓΝΩΣΗ ───────────────────────────────────────────────────────────────

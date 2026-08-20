@@ -1,9 +1,21 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Billing, συνδρομή & στοιχεία τιμολόγησης. ΟΛΑ τα πεδία είναι έτοιμα ώστε,
-// όταν προστεθεί ο Stripe, η πληρωμή να «κουμπώσει» χωρίς αλλαγή UI. Προς το
-// παρόν αποθηκεύουμε μόνο τα στοιχεία (billing_profiles), καμία χρέωση.
+// ΣΥΝΔΡΟΜΗ ΚΑΙ ΣΤΟΙΧΕΙΑ ΤΙΜΟΛΟΓΗΣΗΣ
+// ─────────────────────────────────────────────────────────────────────────
+// Ο ΕΜΠΟΡΟΣ ΔΕΝ ΕΙΝΑΙ Η STRIPE. Το σχόλιο εδώ έλεγε «όταν προστεθεί ο Stripe»
+// και οι στήλες της βάσης λέγονταν `stripe_*` — για πάροχο που δεν επιλέχθηκε
+// ποτέ. Ο έμπορος τύπου record είναι η Lemon Squeezy: εκείνη εκδίδει το
+// παραστατικό και αποδίδει τον ΦΠΑ κάθε χώρας, δηλαδή επιτρέπει πωλήσεις πριν
+// υπάρξει εταιρεία.
+//
+// ΤΙ ΚΑΝΕΙ Η ΟΘΟΝΗ ΚΑΙ ΤΙ ΔΕΝ ΚΑΝΕΙ. Κρατά τα στοιχεία τιμολόγησης, δείχνει
+// την κατάσταση της συνδρομής όπως την ξέρει ο έμπορος, και ανοίγει το ταμείο
+// του. ΔΕΝ αγγίζει ποτέ το πακέτο: το `plan` γράφεται μόνο από τον webhook, με
+// ρόλο υπηρεσίας, αφού η πληρωμή έχει γίνει.
+//
+// ΚΑΙ ΔΕΝ ΥΠΟΣΧΕΤΑΙ ΚΟΥΜΠΙ ΠΟΥ ΔΕΝ ΥΠΑΡΧΕΙ. Οσο δεν έχουν οριστεί σύνδεσμοι
+// αγοράς, η κάρτα το λέει καθαρά αντί να δείχνει απενεργοποιημένο κουμπί.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useEffect, useState } from 'react';
@@ -12,7 +24,11 @@ import * as properties from '@/lib/data/properties';
 // Το προφίλ χρέωσης έχει ένα σπίτι: lib/data/billing.
 import * as billing from '@/lib/data/billing';
 import { TextInput, CustomSelect } from './UIComponents';
-import { T, Btn, InfoBanner, Spinner, Card, SecHdr, fixedCols } from '@/components/Theme';
+import { T, Btn, InfoBanner, Spinner, Card, SecHdr, fixedCols, fe, fd } from '@/components/Theme';
+import { PLANS, normalizePlan, annualPerMonth, type PlanId } from '@/lib/billing/plans';
+import { ALLOWED_PLANS, type ProfileType } from '@/lib/billing/entitlements';
+import { SegmentControl } from './UIComponents';
+import { notifyError } from '@/components/Toast';
 import { ALL_COUNTRIES, isEuCountry, isReverseCharge, missingInvoiceFields, type InvoiceProfile } from '@/lib/billing/invoiceProfile';
 import { determineVat, vatTreatmentLabel } from '@/lib/billing/invoicing';
 
@@ -20,13 +36,22 @@ interface BillingData {
   doc_type: string; full_name: string; company_name: string; afm: string; doy: string;
   profession: string; address: string; city: string; postal_code: string; country: string;
   vat_number: string; phone: string; plan: string; billing_cycle: string;
+  /** Ο τύπος προφίλ κρίνει ΠΟΙΟ πακέτο αγοράζεται. */
+  profile_type: string;
+  /** Ο,τι ξέρει ο έμπορος για τη συνδρομή. Διαβάζεται, δεν γράφεται από εδώ. */
+  subscription_status: string; mor_renews_at: string; mor_ends_at: string;
 }
 const INIT: BillingData = {
   doc_type: 'receipt', full_name: '', company_name: '', afm: '', doy: '', profession: '',
   address: '', city: '', postal_code: '', country: 'GR', vat_number: '', phone: '', plan: 'free', billing_cycle: 'monthly',
+  profile_type: 'individual', subscription_status: '', mor_renews_at: '', mor_ends_at: '',
 };
 
-export default function Billing({ userId }: { userId: string }) {
+export default function Billing({ userId, wantPlan = null }: {
+  userId: string;
+  /** Το πακέτο που διάλεξε ο χρήστης στη σύγκριση από πάνω. */
+  wantPlan?: PlanId | null;
+}) {
   const supabase = createClient();
   const [d, setD] = useState<BillingData>(INIT);
   const [loading, setLoading] = useState(true);
@@ -146,16 +171,102 @@ export default function Billing({ userId }: { userId: string }) {
         </div>
       </Card>
 
-      {/* Πληρωμή (πριν το Stripe): τίμια, χωρίς απενεργοποιημένα «κουμπιά-φαντάσματα» */}
-      <Card>
-        <SecHdr label="Πληρωμή" />
-        <InfoBanner tone="info">
-          Ο λογαριασμός σου ξεκινά με <strong>τριάντα ημέρες δωρεάν δοκιμή</strong>, χωρίς καμία χρέωση όσο διαρκεί. Η πληρωμή με κάρτα ενεργοποιείται πολύ σύντομα· συμπλήρωσε από τώρα τα στοιχεία τιμολόγησης, ώστε η ενεργοποίηση να γίνει με ένα κλικ.
-        </InfoBanner>
-        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 14 }}>
-          Η ακύρωση θα είναι τόσο απλή όσο και η εγγραφή: αλλάζεις πακέτο ή σταματάς όποτε θες, με ένα κλικ και χωρίς ερωτήσεις.
-        </div>
-      </Card>
+      <Subscription d={d} wantPlan={wantPlan} />
     </div>
+  );
+}
+
+// ─── Η ΣΥΝΔΡΟΜΗ ─────────────────────────────────────────────────────────────
+//
+// ΜΙΑ ΚΑΡΤΑ, ΤΡΕΙΣ ΚΑΤΑΣΤΑΣΕΙΣ, ΚΑΜΙΑ ΨΕΥΤΙΚΗ. Ενεργή συνδρομή, ακυρωμένη που
+// τρέχει ώς την ημερομηνία της, ή καμία. Το κουμπί εμφανίζεται μόνο όταν
+// υπάρχει πραγματικός σύνδεσμος αγοράς — αυτό το ξέρει ο διακομιστής, όχι η
+// οθόνη, γιατί οι σύνδεσμοι ζουν σε μεταβλητές περιβάλλοντος.
+function Subscription({ d, wantPlan = null }: { d: BillingData; wantPlan?: PlanId | null }) {
+  const [cycle, setCycle] = useState<'monthly' | 'annual'>(d.billing_cycle === 'annual' ? 'annual' : 'monthly');
+  const [busy, setBusy] = useState(false);
+
+  const type: ProfileType = d.profile_type === 'professional' ? 'professional' : 'individual';
+  const current = normalizePlan(d.plan);
+  // ── ΠΟΙΟ ΠΑΚΕΤΟ ΔΕΙΧΝΕΙ Η ΚΑΡΤΑ ───────────────────────────────────────
+  // Πρώτα ό,τι διάλεξε ο ΙΔΙΟΣ στη σύγκριση από πάνω. Μετά ό,τι ήδη πληρώνει,
+  // δηλαδή η ανανέωσή του. Και μόνο αν δεν υπάρχει τίποτα από τα δύο, το
+  // ΦΘΗΝΟΤΕΡΟ πακέτο που επιτρέπει το προφίλ του.
+  //
+  // ΟΧΙ ΤΟ ΑΚΡΙΒΟΤΕΡΟ. Η πρώτη γραφή έδειχνε το ανώτατο επιτρεπτό: ένας ιδιώτης
+  // χωρίς συνδρομή έβλεπε «Ιδιοκτήτης+ · 9,90 €» ενώ η είσοδος είναι
+  // «Ιδιοκτήτης · 3,90 €». Μια προεπιλογή που τυχαίνει να είναι η κερδοφόρα δεν
+  // είναι προεπιλογή, είναι πώληση με το ζόρι.
+  const entry = ALLOWED_PLANS[type].find(p => PLANS[p].priceMonthly > 0) ?? ALLOWED_PLANS[type][0];
+  const target: PlanId = wantPlan ?? (current !== 'free' ? current : entry);
+  const plan = PLANS[target];
+  const price = cycle === 'annual' ? annualPerMonth(target) : plan.priceMonthly;
+
+  const status = (d.subscription_status || '').trim();
+  const endsAt = (d.mor_ends_at || '').trim();
+  const renewsAt = (d.mor_renews_at || '').trim();
+
+  const go = async () => {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/billing/checkout?plan=${target}&cycle=${cycle}`);
+      const body = await res.json() as { url?: string | null };
+      // ΤΟ ΣΦΑΛΜΑ ΛΕΓΕΤΑΙ. Ενα κουμπί που δεν κάνει τίποτα όταν πατηθεί είναι
+      // χειρότερο από κουμπί που λείπει: ο χρήστης το ξαναπατά και θεωρεί ότι
+      // χρεώθηκε δύο φορές.
+      if (!body.url) { notifyError('Το ταμείο δεν άνοιξε. Δοκίμασε ξανά σε λίγο.'); setBusy(false); return; }
+      window.location.href = body.url;
+    } catch {
+      notifyError('Το ταμείο δεν άνοιξε. Ελεγξε τη σύνδεσή σου και δοκίμασε ξανά.');
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card>
+      <SecHdr label="Συνδρομή" />
+      {status === 'cancelled' && endsAt ? (
+        <InfoBanner tone="warning">Η συνδρομή έχει ακυρωθεί και ισχύει ώς τις <strong>{fd(endsAt)}</strong>. Μετά την ημερομηνία αυτή ο λογαριασμός επιστρέφει σε χωρίς συνδρομή.</InfoBanner>
+      ) : status === 'active' || status === 'on_trial' ? (
+        <InfoBanner tone="info">
+          {status === 'on_trial' ? 'Δοκιμαστική περίοδος σε εξέλιξη' : `Ενεργή συνδρομή, ${plan.name}`}
+          {renewsAt ? `. Ανανέωση στις ${fd(renewsAt)}.` : '.'}
+        </InfoBanner>
+      ) : status === 'past_due' ? (
+        <InfoBanner tone="warning">Η τελευταία χρέωση δεν ολοκληρώθηκε. Ο λογαριασμός παραμένει ανοιχτός όσο ο έμπορος ξαναδοκιμάζει την κάρτα.</InfoBanner>
+      ) : null}
+
+      {/* Ο ΔΙΑΚΟΠΤΗΣ ΠΑΝΩ ΑΠΟ ΤΗΝ ΤΙΜΗ: πρώτα η αιτία, μετά το αποτέλεσμα. Δίπλα
+          στον μεγάλο αριθμό διαβαζόταν ως διακόσμηση, και δεν φαινόταν ότι είναι
+          αυτός που τον αλλάζει. */}
+      {/* Το πλάτος δένεται: ο διακόπτης απλώνεται στο 100% του γονέα και δύο
+          επιλογές έπιαναν ολόκληρη την κάρτα, βαραίνοντας περισσότερο από την
+          τιμή που ρυθμίζουν. */}
+      <div style={{ marginTop: 2, maxWidth: 260 }}>
+        <SegmentControl value={cycle} onChange={v => setCycle(v as 'monthly' | 'annual')}
+          options={[{ value: 'monthly', label: 'Μηνιαία' }, { value: 'annual', label: 'Ετήσια' }]} />
+      </div>
+
+      {/* Η ΤΙΜΗ ΛΕΕΙ ΤΗ ΜΟΝΑΔΑ ΤΗΣ. Το ετήσιο δείχνεται ανά μήνα, όπως και στη
+          σύγκριση πακέτων, ώστε τα δύο νούμερα να συγκρίνονται μεταξύ τους. */}
+      <div style={{ marginTop: 16 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{plan.name}</div>
+        <div style={{ fontFamily: T.font.num, fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', lineHeight: 1.1, marginTop: 4 }}>{fe(price)}</div>
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginTop: 2 }}>
+          τον μήνα{cycle === 'annual' ? `, με ετήσια χρέωση ${fe(plan.priceAnnual)}` : ''}
+        </div>
+      </div>
+
+      <div style={{ marginTop: 18 }}>
+        <Btn variant="primary" onClick={go} disabled={busy}>{busy ? 'Ανοίγει…' : 'Πληρωμή με κάρτα'}</Btn>
+      </div>
+
+      {/* ΠΟΙΟΣ ΧΡΕΩΝΕΙ, ΓΡΑΜΜΕΝΟ ΠΡΙΝ ΤΗ ΧΡΕΩΣΗ. Στην κίνηση της κάρτας θα
+          φανεί το όνομα του εμπόρου, όχι το δικό μας· ένας πελάτης που δεν το
+          περίμενε το καταγγέλλει ως απάτη. */}
+      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 14 }}>
+        Η πληρωμή και το παραστατικό γίνονται από τη Lemon Squeezy, που είναι ο έμπορος της συναλλαγής και αποδίδει τον ΦΠΑ. Η ακύρωση είναι τόσο απλή όσο και η εγγραφή: σταματάς όποτε θες και η συνδρομή τρέχει ώς το τέλος της περιόδου που έχεις πληρώσει.
+      </div>
+    </Card>
   );
 }

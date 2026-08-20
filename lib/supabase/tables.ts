@@ -194,8 +194,16 @@ export interface BillingProfilesRow {
   phone: string | null;
   plan: string | null;
   billing_cycle: string | null;
-  stripe_customer_id: string | null;
-  stripe_subscription_id: string | null;
+  /** Ο πελάτης και η συνδρομή στον έμπορο τύπου record. Μόνο ο webhook τα γράφει. */
+  mor_customer_id: string | null;
+  mor_subscription_id: string | null;
+  /** Η παραλλαγή που αγοράστηκε — από αυτήν προκύπτει το πακέτο. */
+  mor_variant_id: string | null;
+  mor_renews_at: string | null;
+  /** Πότε λήγει η πρόσβαση σε ακυρωμένη συνδρομή. */
+  mor_ends_at: string | null;
+  /** Η ώρα του τελευταίου γεγονότος που εφαρμόστηκε. Κόβει τα καθυστερημένα webhook. */
+  mor_event_at: string | null;
   subscription_status: string | null;
   updated_at: string | null;
   owner_name: string | null;
@@ -735,7 +743,7 @@ export interface InvoicesRow {
   vat_pct: number | null;
   vat_amount: number | null;
   gross: number | null;
-  stripe_ref: string | null;
+  mor_ref: string | null;
   issued_at: string;
 }
 

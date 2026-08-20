@@ -50,9 +50,6 @@ export interface Plan {
   /** Τιμή ανά επιπλέον ακίνητο τον μήνα. 0 = δεν προσφέρεται σε αυτό το πλάνο. */
   extraPropertyPrice: number;
   /** Προαιρετικά Stripe price IDs (μπαίνουν όταν στηθεί ο λογαριασμός Stripe). */
-  stripePriceMonthly?: string;
-  stripePriceAnnual?: string;
-  stripePriceExtraProperty?: string;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

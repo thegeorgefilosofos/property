@@ -5,7 +5,7 @@
 // `billing_cycle` ανήκουν στον πάροχο πληρωμών και τα έσβηνε από το ωφέλιμο
 // φορτίο με δύο `delete` και ένα σχόλιο· οι άλλες πέντε δεν το ήξεραν καθόλου.
 // Η βάση φυλάει με σκανδάλη το `plan` και τα `comp_*` — αλλά ΟΧΙ το
-// `billing_cycle` ούτε τα `stripe_*`.
+// `billing_cycle` ούτε τα `mor_*`.
 import { profile, profileOutcome, save, serverOwnedColumns } from './billing';
 
 let pass = 0, fail = 0;
@@ -68,7 +68,7 @@ async function asyncChecks() {
       full_name: 'Γιώργος', profile_type: 'professional',
       plan: 'agency', billing_cycle: 'yearly',
       comp_plan: 'owner', comp_until: '2099-01-01', comp_months_granted: 99, comp_started_at: '2020-01-01',
-      stripe_customer_id: 'cus_x', stripe_subscription_id: 'sub_x', subscription_status: 'active',
+      mor_customer_id: 'cus_x', mor_subscription_id: 'sub_x', subscription_status: 'active',
     });
     const row = calls[0].ups!;
     ok('ό,τι ανήκει στη φόρμα περνά',
