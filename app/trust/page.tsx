@@ -19,7 +19,8 @@
 
 import type { Metadata } from 'next';
 import { IDENTITY } from '@/lib/legal/identity';
-import { SUBPROCESSORS as SUBPROCESSORS_SOURCE } from '@/lib/legal/subprocessors';
+import { subprocessors } from '@/lib/legal/subprocessors';
+import { billingWords } from '@/lib/legal/billingWords';
 import { LegalLayout, type LegalBlock } from '../legal-shell';
 import { siteUrl } from '@/lib/core/site';
 
@@ -52,7 +53,7 @@ const IDENTITY_FIELDS: { label: string; value: string | null }[] = [
 // Ο κατάλογος ΔΕΝ γράφεται εδώ. Ζει στο lib/legal/subprocessors.ts και τον
 // διαβάζει και η Πολιτική απορρήτου: δύο νομικά κείμενα που απαριθμούν τους
 // ίδιους παρόχους δεν επιτρέπεται να διαφωνούν, και διαφωνούσαν.
-const SUBPROCESSORS = SUBPROCESSORS_SOURCE.map(s => ({
+const subprocessorRows = () => subprocessors().map(s => ({
   name: s.name, what: s.purpose, where: s.where, planned: !s.active,
 }));
 
@@ -105,6 +106,7 @@ function pendingSentence(rows: { label: string }[]): string {
 }
 
 export default function TrustPage() {
+  const words = billingWords();
   const known = IDENTITY_FIELDS.filter(f => f.value && f.value.trim());
   const pending = IDENTITY_FIELDS.filter(f => !f.value || !f.value.trim());
 
@@ -116,7 +118,7 @@ export default function TrustPage() {
           <div>{known.map(r => <Row key={r.label} label={r.label} value={r.value as string} />)}</div>
           {pending.length > 0 && (
             <p className="lg-note">
-              Η υπηρεσία βρίσκεται σε δοκιμαστική λειτουργία και δεν έχει ενεργοποιηθεί καμία χρέωση, ενώ τα όρια
+              {words.chargingToday} Τα όρια
               των πακέτων ισχύουν ήδη από τη λήξη της δοκιμής και μετά. {pendingSentence(pending)} δημοσιεύονται
               εδώ πριν εκδοθεί το πρώτο παραστατικό: δεν γράφουμε στοιχεία που δεν έχουν οριστικοποιηθεί.
             </p>
@@ -203,8 +205,8 @@ export default function TrustPage() {
       h: 'Τι δεν κάνουμε ποτέ',
       body: (
         <div style={STACK}>
-          <Never><strong style={{ color: 'var(--text-primary)' }}>Δεν πουλάμε τα δεδομένα σου.</strong> Ούτε τα νοικιάζουμε, ούτε τα δίνουμε σε διαφημιστικά δίκτυα. Το προϊόν πληρώνεται από τις συνδρομές, όχι από εσένα ως εμπόρευμα· προς το παρόν δεν πληρώνεται καθόλου, γιατί η χρέωση δεν έχει ενεργοποιηθεί.</Never>
-          <Never><strong style={{ color: 'var(--text-primary)' }}>Δεν αποθηκεύουμε στοιχεία κάρτας.</strong> Η χρέωση δεν έχει ενεργοποιηθεί ακόμη. Όταν ενεργοποιηθεί, τα στοιχεία της κάρτας τα χειρίζεται αποκλειστικά ο πάροχος πληρωμών και δεν περνούν ποτέ από τους δικούς μας διακομιστές.</Never>
+          <Never><strong style={{ color: 'var(--text-primary)' }}>Δεν πουλάμε τα δεδομένα σου.</strong> Ούτε τα νοικιάζουμε, ούτε τα δίνουμε σε διαφημιστικά δίκτυα. {words.howWeArePaid}</Never>
+          <Never><strong style={{ color: 'var(--text-primary)' }}>Δεν αποθηκεύουμε στοιχεία κάρτας.</strong> {words.cardData}</Never>
           <Never><strong style={{ color: 'var(--text-primary)' }}>Δεν διαβάζουμε τα αρχεία σου για πλάκα.</strong> Δεν υπάρχει εσωτερικό εργαλείο περιήγησης στα δεδομένα πελατών. Πρόσβαση γίνεται μόνο κατόπιν δικού σου αιτήματος υποστήριξης ή όπου το επιβάλλει ο νόμος.</Never>
           <Never><strong style={{ color: 'var(--text-primary)' }}>Δεν στέλνουμε στον βοηθό ολόκληρη τη βάση σου.</strong> Στέλνουμε όμως αρκετά, και προτιμούμε να το ξέρεις: περίληψη των ακινήτων σου, του ενοικιαστή, του πελατολογίου και των επαφών σου (ονόματα, τηλέφωνα, ΑΦΜ), καθώς και όποιο έγγραφο ή φωτογραφία ανεβάζεις για ανάγνωση. Αυτά είναι και δεδομένα τρίτων· αν δεν το θέλεις, μη χρησιμοποιείς τον βοηθό και τη σάρωση εγγράφων.</Never>
           <Never><strong style={{ color: 'var(--text-primary)' }}>Δεν σε κλειδώνουμε μέσα.</strong> Κατεβάζεις με ένα κουμπί όλες τις καταχωρήσεις σου σε ένα αρχείο JSON, τα ανεβασμένα αρχεία τα κατεβάζεις χωριστά από τον Φάκελο Ακινήτου, και διαγράφεις τον λογαριασμό σου χωρίς να χρειαστεί να μας γράψεις.</Never>
@@ -242,7 +244,7 @@ export default function TrustPage() {
             Ρήτρες· η υπογραφή τους ολοκληρώνεται πριν την εμπορική κυκλοφορία και το δηλώνουμε εδώ όταν γίνει.
           </p>
           <div style={{ marginTop: 16, border: '1px solid var(--border-subtle)', borderRadius: 12, overflow: 'hidden' }}>
-            {SUBPROCESSORS.map((s, i) => (
+            {subprocessorRows().map((s, i) => (
               <div key={s.name} style={{ display: 'grid', gridTemplateColumns: 'minmax(84px, 0.62fr) minmax(0, 1.7fr) minmax(96px, 0.72fr)', gap: 14, padding: '13px 16px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)', background: 'var(--bg-surface)' }}>
                 <span style={{ fontSize: 14, fontWeight: 650, color: s.planned ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>{s.name}</span>
                 <span style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{s.what}</span>

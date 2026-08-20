@@ -34,6 +34,8 @@ import ExpenseCompare from './ExpenseCompare';
 import type { Spend } from '@/lib/expenses/compare';
 import { T, TT, fe, Btn, Card, EmptyState, Modal, Skeleton, ABSENT_DATE } from '@/components/Theme';
 import { notify, notifyError } from '@/components/toastBus';
+import { confirmDialog } from '@/components/ConfirmDialog';
+import { saved } from '@/components/dbWrite';
 import {
   mergeLedger, ledgerTotal, groupByMonth,
   type LedgerEntry, type LedgerBill, type LedgerExpense,
@@ -714,15 +716,55 @@ function EditExpense({ row, onClose, onSaved }: {
     finally { setSaving(false); }
   };
 
+  // ── Η ΔΑΠΑΝΗ ΠΟΥ ΔΕΝ ΕΠΡΕΠΕ ΝΑ ΜΠΕΙ ───────────────────────────────────────
+  //
+  // ΔΕΝ ΥΠΗΡΧΕ ΤΡΟΠΟΣ ΝΑ ΣΒΗΣΤΕΙ. Η γραμμή είχε «Επεξεργασία» και «Πληρώθηκε»,
+  // το παράθυρο είχε «Ακύρωση» και «Αποθήκευση», και η `expenseStore.remove`
+  // υπήρχε στο στρώμα δεδομένων χωρίς κανέναν καταναλωτή. Μια λάθος
+  // καταχώρηση —διπλή, σε λάθος ακίνητο, με λάθος ποσό— έμενε για πάντα: μέσα
+  // στον Προϋπολογισμό, μέσα στη Λογιστική, και μέσα στο Ε2 του λογιστή.
+  //
+  // ΓΙΑΤΙ ΕΔΩ ΚΑΙ ΟΧΙ ΣΤΗ ΓΡΑΜΜΗ. Η διαγραφή είναι οριστική· ένα κουμπί δίπλα
+  // στο «Πληρώθηκε», σε λίστα που κυλά με το δάχτυλο, θα πατηθεί κατά λάθος.
+  // Μέσα στο παράθυρο ο χρήστης έχει ήδη δηλώσει ποια γραμμή εννοεί, βλέπει τι
+  // περιέχει, και η ερώτηση επιβεβαίωσης ονομάζει το ποσό.
+  //
+  // ΑΡΙΣΤΕΡΑ, ΜΑΚΡΙΑ ΑΠΟ ΤΗΝ ΑΠΟΘΗΚΕΥΣΗ. Η καταστροφική ενέργεια δεν στέκεται
+  // δίπλα στην κύρια: το δάχτυλο που αστοχεί δεν πρέπει να σβήνει.
+  const [deleting, setDeleting] = useState(false);
+  const del = async () => {
+    if (!await confirmDialog({
+      title: `Διαγραφή δαπάνης ${fe(Number(row.amount) || 0)};`,
+      message: `«${row.description || 'Χωρίς περιγραφή'}» της ${row.date}.\nΗ γραμμή φεύγει οριστικά από τον Προϋπολογισμό, τη Λογιστική και τον φάκελο του λογιστή. Δεν αναιρείται.`,
+      confirmLabel: 'Διαγραφή',
+      tone: 'negative',
+    })) return;
+    setDeleting(true);
+    if (!await saved('Η δαπάνη δεν διαγράφηκε', expenseStore.remove(supabase, row.id))) { setDeleting(false); return; }
+    setDeleting(false);
+    onClose();
+    await onSaved();
+    notify('Η δαπάνη διαγράφηκε');
+  };
+
+  const busy = saving || deleting;
+
   return (
     <Modal open onClose={onClose} title="Επεξεργασία δαπάνης" width={560}
-      footerInfo={missing ?? undefined}
+      footerInfo={
+        <Btn variant="ghost" onClick={busy ? undefined : del}>
+          {deleting ? 'Διαγραφή…' : 'Διαγραφή δαπάνης'}
+        </Btn>
+      }
       footer={<>
         <Btn variant="secondary" onClick={onClose}>Ακύρωση</Btn>
-        <Btn variant="primary" onClick={save} disabled={saving || !ready}>
+        <Btn variant="primary" onClick={save} disabled={busy || !ready}>
           {saving ? 'Γίνεται…' : 'Αποθήκευση'}
         </Btn>
       </>}>
+      {/* Ο,τι έλειπε από τη φόρμα λεγόταν στο υποσέλιδο· τώρα εκεί στέκει η
+          διαγραφή, οπότε η υπόδειξη μπαίνει στη ροή του περιεχομένου. */}
+      {missing && <div style={{ ...TT.caption, marginTop: -4 }}>{missing}</div>}
       <label style={{ display: 'block', minWidth: 0 }}>
         <span style={LAB}>Τι ήταν;</span>
         <input value={what} onChange={e => setWhat(e.target.value)} style={FIELD}

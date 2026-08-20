@@ -18,6 +18,7 @@ import { createClient } from '@/lib/supabase/server';
 import { PLANS, type PlanId } from '@/lib/billing/plans';
 import { isPlanAllowedForProfile, type ProfileType } from '@/lib/billing/entitlements';
 import { parseCheckoutLinks, checkoutUrl } from '@/lib/billing/lemonCheckout';
+import { billingWords } from '@/lib/legal/billingWords';
 import type { BillingCycle } from '@/lib/billing/lemon';
 import * as billing from '@/lib/data/billing';
 
@@ -37,7 +38,10 @@ export async function GET(request: NextRequest) {
     // ΤΟ «ΓΙΑΤΙ ΟΧΙ» ΤΑΞΙΔΕΥΕΙ ΜΟΝΟ ΠΡΟΣ ΤΑ ΜΕΣΑ. Στην οθόνη πάει σκέτο
     // «δεν είναι διαθέσιμο»: ονόματα μεταβλητών δεν εκτίθενται σε κανέναν.
     console.info('[lemon] σύνδεσμοι αγοράς:', error);
-    return NextResponse.json({ available: false, url: null });
+    // Η ΦΡΑΣΗ ΤΑΞΙΔΕΥΕΙ ΜΑΖΙ ΜΕ ΤΗΝ ΑΠΑΝΤΗΣΗ. Η οθόνη είναι component πελάτη:
+    // δεν διαβάζει μεταβλητές περιβάλλοντος, άρα δεν μπορεί να κρίνει μόνη της
+    // τι ισχύει. Ετσι λέει ΤΟ ΙΔΙΟ πράγμα με τους Ορους, από την ίδια πηγή.
+    return NextResponse.json({ available: false, url: null, note: billingWords().chargingToday });
   }
 
   const profile = await billing.profile<{ profile_type: string | null }>(supabase, user.id, 'profile_type');
@@ -47,5 +51,5 @@ export async function GET(request: NextRequest) {
   }
 
   const url = checkoutUrl(map, plan as PlanId, cycle as BillingCycle, { userId: user.id, email: user.email });
-  return NextResponse.json({ available: !!url, url });
+  return NextResponse.json({ available: !!url, url, note: billingWords().chargingToday });
 }

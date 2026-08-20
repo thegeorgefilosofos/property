@@ -29,6 +29,7 @@ import { PLANS, normalizePlan, annualPerMonth, type PlanId } from '@/lib/billing
 import { ALLOWED_PLANS, type ProfileType } from '@/lib/billing/entitlements';
 import { SegmentControl } from './UIComponents';
 import { notifyError } from '@/components/Toast';
+import { PAYMENTS_PROVIDER } from '@/lib/legal/merchant';
 import { ALL_COUNTRIES, isEuCountry, isReverseCharge, missingInvoiceFields, type InvoiceProfile } from '@/lib/billing/invoiceProfile';
 import { determineVat, vatTreatmentLabel } from '@/lib/billing/invoicing';
 
@@ -206,6 +207,31 @@ function Subscription({ d, wantPlan = null }: { d: BillingData; wantPlan?: PlanI
   const endsAt = (d.mor_ends_at || '').trim();
   const renewsAt = (d.mor_renews_at || '').trim();
 
+  // ── ΤΟ ΚΟΥΜΠΙ ΡΩΤΑΕΙ ΠΡΙΝ ΕΜΦΑΝΙΣΤΕΙ ────────────────────────────────────
+  // Οι σύνδεσμοι αγοράς ζουν σε μεταβλητή περιβάλλοντος, δηλαδή ο περιηγητής
+  // ΔΕΝ μπορεί να ξέρει αν υπάρχει ταμείο. Χωρίς αυτή την ερώτηση, το κουμπί
+  // εμφανιζόταν πάντα και απαντούσε «δοκίμασε ξανά σε λίγο» — μήνυμα που
+  // υπόσχεται ότι το πρόβλημα είναι προσωρινό ενώ δεν είναι.
+  //
+  // `null` = δεν ξέρουμε ακόμη. Ούτε κουμπί ούτε άρνηση: τα δύο ψέματα είναι
+  // συμμετρικά, και η απάντηση έρχεται σε ένα αίτημα.
+  //
+  // ΚΑΙ Η ΦΡΑΣΗ ΕΡΧΕΤΑΙ ΜΑΖΙ. Η οθόνη δεν κρίνει μόνη της τι ισχύει: παίρνει
+  // την ίδια διατύπωση που διαβάζουν οι Οροι και η Πολιτική απορρήτου.
+  const [live, setLive] = useState<boolean | null>(null);
+  const [note, setNote] = useState('');
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch(`/api/billing/checkout?plan=${target}&cycle=${cycle}`);
+        const body = await res.json() as { available?: boolean; note?: string };
+        if (alive) { setLive(!!body.available); setNote(body.note || ''); }
+      } catch { if (alive) setLive(false); }
+    })();
+    return () => { alive = false; };
+  }, [target, cycle]);
+
   const go = async () => {
     setBusy(true);
     try {
@@ -257,16 +283,28 @@ function Subscription({ d, wantPlan = null }: { d: BillingData; wantPlan?: PlanI
         </div>
       </div>
 
-      <div style={{ marginTop: 18 }}>
-        <Btn variant="primary" onClick={go} disabled={busy}>{busy ? 'Ανοίγει…' : 'Πληρωμή με κάρτα'}</Btn>
-      </div>
+      {live === true && (
+        <div style={{ marginTop: 18 }}>
+          <Btn variant="primary" onClick={go} disabled={busy}>{busy ? 'Ανοίγει…' : 'Πληρωμή με κάρτα'}</Btn>
+        </div>
+      )}
+      {/* ΟΤΑΝ ΔΕΝ ΥΠΑΡΧΕΙ ΤΑΜΕΙΟ, ΤΟ ΛΕΜΕ. Απενεργοποιημένο κουμπί θα ήταν
+          υπόσχεση που δεν τηρείται με το πάτημα· η πρόταση λέει το ίδιο πράγμα
+          με τους Ορους και την Πολιτική απορρήτου, από την ίδια πηγή. */}
+      {live === false && (
+        <div style={{ marginTop: 18 }}>
+          <InfoBanner tone="info">{note} Συμπλήρωσε από τώρα τα στοιχεία τιμολόγησης, ώστε η ενεργοποίηση να μη σου ζητήσει τίποτα άλλο.</InfoBanner>
+        </div>
+      )}
 
       {/* ΠΟΙΟΣ ΧΡΕΩΝΕΙ, ΓΡΑΜΜΕΝΟ ΠΡΙΝ ΤΗ ΧΡΕΩΣΗ. Στην κίνηση της κάρτας θα
           φανεί το όνομα του εμπόρου, όχι το δικό μας· ένας πελάτης που δεν το
           περίμενε το καταγγέλλει ως απάτη. */}
-      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 14 }}>
-        Η πληρωμή και το παραστατικό γίνονται από τη Lemon Squeezy, που είναι ο έμπορος της συναλλαγής και αποδίδει τον ΦΠΑ. Η ακύρωση είναι τόσο απλή όσο και η εγγραφή: σταματάς όποτε θες και η συνδρομή τρέχει ώς το τέλος της περιόδου που έχεις πληρώσει.
-      </div>
+      {live === true && (
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 14 }}>
+          Η πληρωμή και το παραστατικό γίνονται από τη {PAYMENTS_PROVIDER}, που είναι ο έμπορος της συναλλαγής και αποδίδει τον ΦΠΑ. Σταματάς όποτε θες και η συνδρομή τρέχει ώς το τέλος της περιόδου που έχεις πληρώσει.
+        </div>
+      )}
     </Card>
   );
 }

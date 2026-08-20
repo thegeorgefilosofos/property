@@ -19,6 +19,17 @@
 // ΤΙ ΣΗΜΑΙΝΕΙ `active: false`. Ότι ο πάροχος ΔΕΝ επεξεργάζεται δεδομένα σήμερα.
 // Μένει γραμμένος γιατί είναι σχεδιασμένος, και ο χρήστης έχει δικαίωμα να
 // ξέρει τι έρχεται πριν έρθει — όχι να το ανακαλύψει μετά.
+//
+// ── ΚΑΙ ΓΙΑΤΙ Ο ΠΑΡΟΧΟΣ ΠΛΗΡΩΜΩΝ ΔΕΝ ΓΡΑΦΕΤΑΙ ΜΕ ΤΟ ΧΕΡΙ ────────────────
+// Η γραμμή του Lemon Squeezy έλεγε καρφωτά `active: false` με το κείμενο
+// «σήμερα δεν γίνεται καμία επεξεργασία στοιχείων κάρτας». Την ίδια στιγμή ο
+// κώδικας απέκτησε ζωντανό κουμπί «Πληρωμή με κάρτα». Το μητρώο είναι
+// ΜΗΧΑΝΑΓΝΩΣΙΜΟ δημοσιευμένο έγγραφο του άρθρου 28 GDPR: ένα `false` εκεί δεν
+// είναι σχόλιο, είναι δήλωση προς το υποκείμενο.
+//
+// Η κατάστασή του βγαίνει τώρα από την ΙΔΙΑ συνθήκη που δείχνει το κουμπί, και
+// γι' αυτό ο κατάλογος είναι ΣΥΝΑΡΤΗΣΗ και όχι σταθερά: μια σταθερά θα έπρεπε
+// να θυμηθεί κάποιος να την αλλάξει.
 // ═══════════════════════════════════════════════════════════════════════════
 
 export interface Subprocessor {
@@ -32,7 +43,11 @@ export interface Subprocessor {
   active: boolean;
 }
 
-export const SUBPROCESSORS: readonly Subprocessor[] = [
+import { checkoutIsLive, type BillingEnv } from '@/lib/billing/lemonCheckout';
+import { PAYMENTS_PROVIDER } from './merchant';
+import { billingWords } from './billingWords';
+
+const BASE: readonly Subprocessor[] = [
   {
     name: 'Supabase',
     purpose: 'Η βάση δεδομένων, η ταυτοποίηση και τα αρχεία που ανεβάζεις. Το σύστημα καταγραφής της υπηρεσίας.',
@@ -87,9 +102,10 @@ export const SUBPROCESSORS: readonly Subprocessor[] = [
     // ΣΤΟ ΔΙΚΟ ΤΟΥ όνομα και αναλαμβάνει ΦΠΑ και παραστατικά. Ο κατάλογος
     // εκτελούντων την επεξεργασία είναι δημοσιευμένο έγγραφο· λάθος όνομα εδώ
     // δεν είναι αβλεψία, είναι ανακριβής ενημέρωση του υποκειμένου.
-    name: 'Lemon Squeezy',
-    purpose: 'Χρέωση συνδρομής ως merchant of record: πουλά τη συνδρομή στο δικό του όνομα, εκδίδει το παραστατικό και αποδίδει τον ΦΠΑ. Δεν έχει ενεργοποιηθεί: σήμερα δεν γίνεται καμία επεξεργασία στοιχείων κάρτας.',
+    name: PAYMENTS_PROVIDER,
+    purpose: 'Χρέωση συνδρομής ως merchant of record: πουλά τη συνδρομή στο δικό του όνομα, εκδίδει το παραστατικό και αποδίδει τον ΦΠΑ.',
     where: 'ΗΠΑ και Ευρωπαϊκή Ένωση',
+    // Συμπληρώνεται από το περιβάλλον, παρακάτω. Η τιμή εδώ δεν διαβάζεται ποτέ.
     active: false,
   },
   {
@@ -100,11 +116,27 @@ export const SUBPROCESSORS: readonly Subprocessor[] = [
   },
 ];
 
+/**
+ * Ο κατάλογος όπως ισχύει ΤΩΡΑ. Ο πάροχος πληρωμών παίρνει την κατάστασή του
+ * από την ίδια συνθήκη που δείχνει το κουμπί του ταμείου.
+ */
+export function subprocessors(env: BillingEnv = process.env): readonly Subprocessor[] {
+  const live = checkoutIsLive(env);
+  return BASE.map(s => s.name !== PAYMENTS_PROVIDER ? s : {
+    ...s,
+    active: live,
+    // Η ΔΙΑΤΥΠΩΣΗ ΔΑΝΕΙΖΕΤΑΙ, ΔΕΝ ΓΡΑΦΕΤΑΙ ΞΑΝΑ. Το ίδιο πράγμα λέει η Πολιτική
+    // απορρήτου και η σελίδα εμπιστοσύνης· τρεις χειρόγραφες εκδοχές του ίδιου
+    // γεγονότος είναι τρεις ευκαιρίες να αποκλίνουν.
+    purpose: `${s.purpose} ${billingWords(env).cardData}`,
+  });
+}
+
 /** Όσοι επεξεργάζονται δεδομένα σήμερα. */
-export const ACTIVE_SUBPROCESSORS = SUBPROCESSORS.filter(s => s.active);
+export const activeSubprocessors = (env?: BillingEnv) => subprocessors(env).filter(s => s.active);
 
 /** Όσοι είναι σχεδιασμένοι αλλά δεν έχουν ενεργοποιηθεί. */
-export const PLANNED_SUBPROCESSORS = SUBPROCESSORS.filter(s => !s.active);
+export const plannedSubprocessors = (env?: BillingEnv) => subprocessors(env).filter(s => !s.active);
 
 /** Μία γραμμή ανά πάροχο, για την Πολιτική απορρήτου. */
 export const subprocessorLine = (s: Subprocessor): string =>
