@@ -4,7 +4,7 @@ import {
   planAtLeast, effectivePlan, activeComp, hasFeature, isTabAllowed,
   requiredPlanForTab, requiredPlanForFeature, propertyLimit, canAddProperty,
   isPlanAllowedForProfile, paidPlanForProfile, isTabRelevant, isTabPurchasable,
-  trialState, isOpenEnded, planFromParam, cycleFromParam, profileForPlan,
+  trialState, isOpenEnded, planFromParam, cycleFromParam, profileForPlan, activeHold,
   type EntitlementInput,
 } from './entitlements';
 
@@ -237,6 +237,37 @@ for (const id of ['solo', 'owner', 'agency', 'office'] as const) {
   ok(chosen !== null
     && (isPlanAllowedForProfile('individual', chosen) || isPlanAllowedForProfile('professional', chosen)),
     `το ${id} αγοράζεται από κάποιο προφίλ`);
+}
+
+// ── Η ΥΠΟΒΑΘΜΙΣΗ ΠΟΥ ΠΕΡΙΜΕΝΕΙ ΤΗΝ ΑΝΑΝΕΩΣΗ ──────────────────────────────
+// Ο έμπορος αλλάζει την παραλλαγή τη στιγμή του αιτήματος: ο webhook γράφει
+// αμέσως το χαμηλό πακέτο, ενώ ο πελάτης έχει πληρώσει ολόκληρη την περίοδο
+// στο ψηλό. Ο ίδιος κανόνας ζει στη `public.user_plan_rank` και το db-replay
+// τον ελέγχει εκεί με βαθμούς.
+{
+  const now = NOW;
+  const held = { plan: 'solo', holdPlan: 'agency', holdUntil: daysFromNow(10), now };
+  ok(effectivePlan(held) === 'agency', 'η κράτηση δίνει το πληρωμένο πακέτο');
+  ok(activeHold(held)?.plan === 'agency', 'η κράτηση αναγνωρίζεται');
+  ok(propertyLimit(held) === propertyLimit({ plan: 'agency', now }), 'και το όριο ακινήτων είναι του πληρωμένου');
+
+  const expired = { plan: 'solo', holdPlan: 'agency', holdUntil: daysFromNow(-1), now };
+  ok(effectivePlan(expired) === 'solo', 'στην ανανέωση η κράτηση λήγει μόνη της');
+  ok(activeHold(expired) === null, 'ληγμένη κράτηση δεν είναι κράτηση');
+
+  // ΚΑΙ ΔΕΝ ΑΝΑΣΤΑΙΝΕΙ ΝΕΚΡΗ ΣΥΝΔΡΟΜΗ. Οταν οι πληρωμές σταματήσουν, ο webhook
+  // γράφει «free»: η κράτηση δεν επιτρέπεται να χαρίσει το ακριβό πακέτο.
+  const dead = { plan: 'free', holdPlan: 'office', holdUntil: daysFromNow(300), trialUsedAt: daysFromNow(-40), createdAt: daysFromNow(-60), now };
+  ok(activeHold(dead) === null, 'χωρίς συνδρομή, καμία κράτηση');
+  ok(effectivePlan(dead) === 'free', 'ΔΩΡΕΑΝ ΠΡΟΪΟΝ: η κράτηση κράτησε νεκρή συνδρομή');
+
+  // Η κράτηση ΑΝΕΒΑΖΕΙ, δεν κατεβάζει: αναβάθμιση μέσα σε κράτηση δεν χάνεται.
+  const upgraded = { plan: 'office', holdPlan: 'solo', holdUntil: daysFromNow(10), now };
+  ok(effectivePlan(upgraded) === 'office', 'η κράτηση δεν κατεβάζει ποτέ');
+
+  ok(activeHold({ plan: 'solo', holdPlan: 'agency', holdUntil: null, now }) === null, 'χωρίς ημερομηνία, καμία κράτηση');
+  ok(activeHold({ plan: 'solo', holdPlan: null, holdUntil: daysFromNow(10), now }) === null, 'χωρίς πακέτο, καμία κράτηση');
+  ok(activeHold({ plan: 'solo', holdPlan: 'agency', holdUntil: 'αύριο', now }) === null, 'ό,τι δεν είναι ημερομηνία δεν κρατά');
 }
 
 // ── ΤΟ `?cycle=` ΤΗΣ ΕΓΓΡΑΦΗΣ ──────────────────────────────────────────────

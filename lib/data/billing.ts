@@ -48,6 +48,9 @@ const SERVER_OWNED = [
   // Η χρήση της δοκιμής και η ιδιότητα δοκιμαστή δίνουν ΔΩΡΕΑΝ ΧΡΗΣΗ: αν τις
   // έγραφε ο πελάτης, η δοκιμή θα ξεκινούσε από την αρχή όποτε ήθελε.
   'trial_used_at', 'tester_since',
+  // Η κράτηση υποβάθμισης ΚΡΑΤΑ ΤΟ ΑΚΡΙΒΟΤΕΡΟ ΠΑΚΕΤΟ ώς μια ημερομηνία: αν την
+  // έγραφε ο πελάτης, θα κρατούσε το «Επαγγελματίας+» ώς το 2100.
+  'hold_plan', 'hold_until',
 ] as const;
 
 // ── ΑΝΑΓΝΩΣΗ ───────────────────────────────────────────────────────────────
@@ -106,19 +109,42 @@ export function save(db: Db, userId: string, patch: BillingPatch) {
 // σε τρία αρχεία — και το επόμενο θα ξεχνούσε μια στήλη ή θα έγραφε λάθος
 // όνομα, που το PostgREST δεν το λέει σφάλμα.
 
-/** Ο λογαριασμός δοκιμαστή, όπως τον χρειάζονται οι διαδρομές. */
-export interface TesterState {
+/**
+ * Ο,ΤΙ ΧΡΕΙΑΖΕΤΑΙ ΜΙΑ ΔΙΑΔΡΟΜΗ ΓΙΑ ΝΑ ΚΡΙΝΕΙ ΑΛΛΑΓΗ ΠΑΚΕΤΟΥ.
+ *
+ * Τέσσερα πεδία, μία ανάγνωση. Η εξαργύρωση του κωδικού δοκιμαστή κοιτά τα δύο
+ * πρώτα· η αλλαγή πακέτου και τα τέσσερα — χρειάζεται να ξέρει από ΠΟΥ ξεκινά,
+ * όταν ο χάρτης παραλλαγών δεν αναγνωρίζει αυτή που τρέχει στον έμπορο.
+ */
+export interface PlanContext {
   testerSince: string | null;
   subscriptionId: string | null;
+  plan: string | null;
+  cycle: string | null;
+  /** Κράτηση υποβάθμισης σε ισχύ: τι έχει ήδη πληρωθεί για την τρέχουσα περίοδο. */
+  holdPlan: string | null;
+  holdUntil: string | null;
 }
 
-/** Διαβάζει αν ο λογαριασμός είναι δοκιμαστής, με το σφάλμα ορατό. */
-export async function testerState(db: Db, userId: string): Promise<{ state: TesterState; error: DbError | null }> {
-  const { row, error } = await readOne<{ tester_since: string | null; mor_subscription_id: string | null }>(
-    db.from(TABLE).select('tester_since, mor_subscription_id').eq('user_id', userId).maybeSingle(),
+/** Διαβάζει τα τέσσερα, με το σφάλμα ορατό. */
+export async function planContext(db: Db, userId: string): Promise<{ state: PlanContext; error: DbError | null }> {
+  const { row, error } = await readOne<{
+    tester_since: string | null; mor_subscription_id: string | null;
+    plan: string | null; billing_cycle: string | null;
+    hold_plan: string | null; hold_until: string | null;
+  }>(
+    db.from(TABLE).select('tester_since, mor_subscription_id, plan, billing_cycle, hold_plan, hold_until')
+      .eq('user_id', userId).maybeSingle(),
   );
   return {
-    state: { testerSince: row?.tester_since ?? null, subscriptionId: row?.mor_subscription_id ?? null },
+    state: {
+      testerSince: row?.tester_since ?? null,
+      subscriptionId: row?.mor_subscription_id ?? null,
+      plan: row?.plan ?? null,
+      cycle: row?.billing_cycle ?? null,
+      holdPlan: row?.hold_plan ?? null,
+      holdUntil: row?.hold_until ?? null,
+    },
     error,
   };
 }
@@ -133,9 +159,31 @@ export function markTester(db: Db, userId: string, since: string) {
   return db.from(TABLE).upsert({ user_id: userId, tester_since: since }, { onConflict: 'user_id' });
 }
 
-/** Γράφει πακέτο και κύκλο. ΜΟΝΟ με ρόλο υπηρεσίας, αφού έχει κριθεί το δικαίωμα. */
-export function setPlan(db: Db, userId: string, plan: string, cycle: string) {
-  return db.from(TABLE).update({ plan, billing_cycle: cycle }).eq('user_id', userId);
+/**
+ * Η αλλαγή πακέτου, όπως καταλήγει στη γραμμή του λογαριασμού.
+ *
+ * ΓΡΑΦΕΙ ΚΑΙ ΤΗΝ ΚΡΑΤΗΣΗ, ΠΑΝΤΑ. Δύο ξεχωριστές γραφές —μία για το πακέτο και
+ * μία για την κράτηση— θα σήμαιναν ότι μια αναβάθμιση μπορεί να αφήσει πίσω
+ * της την κράτηση μιας παλιότερης υποβάθμισης: ο πελάτης θα πλήρωνε το ακριβό
+ * πακέτο και θα κρατούσε ένα ακόμη ακριβότερο ώς την ανανέωση. Οποιος καλεί,
+ * λέει και τα δύο.
+ *
+ * ΜΟΝΟ ΜΕ ΡΟΛΟ ΥΠΗΡΕΣΙΑΣ, αφού έχει κριθεί το δικαίωμα και έχει απαντήσει ο
+ * έμπορος: και οι τέσσερις στήλες είναι κλειδωμένες από τη `lock_billing_plan`.
+ */
+export interface PlanChangeWrite {
+  plan: string;
+  cycle: string;
+  /** Το πακέτο που κρατιέται ώς την ανανέωση, ή `null` όταν δεν κρατιέται τίποτα. */
+  holdPlan: string | null;
+  holdUntil: string | null;
+}
+
+export function applyPlanChange(db: Db, userId: string, w: PlanChangeWrite) {
+  return db.from(TABLE).update({
+    plan: w.plan, billing_cycle: w.cycle,
+    hold_plan: w.holdPlan, hold_until: w.holdUntil,
+  }).eq('user_id', userId);
 }
 
 /** Ό,τι θα αγνοηθεί από μια εγγραφή πελάτη. Δηλωμένο, για να ελέγχεται. */

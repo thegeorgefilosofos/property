@@ -142,14 +142,27 @@ DB_PRO=$(echo "$SRC" | grep -oE "'pro_paid'     then v_target := [0-9]+" | grep 
 TS_TRIAL=$(grep -oE 'TRIAL_DAYS = [0-9]+' "$ROOT/lib/billing/plans.ts" | grep -oE '[0-9]+')
 DB_TRIAL=$(psql -h "$WORK" -U postgres -d posdb -X -A -t -c "select public.trial_days()" | tr -d '[:space:]')
 
+# ΚΑΙ Η ΣΕΙΡΑ ΤΩΝ ΠΑΚΕΤΩΝ. Το `public.plan_rank` κρίνει τι βλέπει ο χρήστης μέσα
+# στη βάση (όρια ακινήτων, κλειδωμένες καρτέλες)· το `PLAN_ORDER` κρίνει τα ίδια
+# στην οθόνη. Ενα πακέτο που θα μπει αύριο σε ΕΝΑ από τα δύο —ή θα μπει σε άλλη
+# θέση— δεν βγάζει κανένα σφάλμα: βγάζει οθόνη που υπόσχεται και βάση που κόβει.
+TS_RANKS=$(grep -oE "PLAN_ORDER: PlanId\[\] = \[[^]]*\]" "$ROOT/lib/billing/plans.ts" \
+  | grep -oE "'[a-z]+'" | tr -d "'" | awk '{printf "%s:%d ", $0, NR-1}' | sed 's/ $//')
+TS_PLANS=$(grep -oE "PLAN_ORDER: PlanId\[\] = \[[^]]*\]" "$ROOT/lib/billing/plans.ts" \
+  | grep -oE "'[a-z]+'" | paste -sd, -)
+DB_RANKS=$(psql -h "$WORK" -U postgres -d posdb -X -A -t -c \
+  "select string_agg(p || ':' || public.plan_rank(p), ' ' order by i) from unnest(array[$TS_PLANS]) with ordinality t(p, i)" \
+  | sed 's/^ *//;s/ *$//')
+
 drift=0
 [ "$TS_VOL" = "$DB_VOL" ] || { echo "✗ στόχος όγκου: εφαρμογή $TS_VOL, βάση ${DB_VOL:-—}"; drift=1; }
 [ "$TS_PRO" = "$DB_PRO" ] || { echo "✗ στόχος συνδρομητών: εφαρμογή $TS_PRO, βάση ${DB_PRO:-—}"; drift=1; }
 [ "$TS_TRIAL" = "$DB_TRIAL" ] || { echo "✗ ημέρες δοκιμής: εφαρμογή $TS_TRIAL, βάση ${DB_TRIAL:-—}"; drift=1; }
+[ "$TS_RANKS" = "$DB_RANKS" ] || { echo "✗ σειρά πακέτων: εφαρμογή «$TS_RANKS», βάση «${DB_RANKS:-—}»"; drift=1; }
 [ "$drift" = "0" ] || { echo ""; echo "🔴 Η βάση δίνει άλλα από αυτά που γράφει η οθόνη."; exit 1; }
 
 echo "✅ $count μεταναστεύσεις τρέχουν σε πραγματικό Postgres, $probes έλεγχοι απομόνωσης"
 echo "   κρατούν, το σενάριο του staging γεμίζει λογαριασμό, και οι στόχοι του"
 echo "   Προγράμματος Πρόσκλησης συμφωνούν με το"
 echo "   lib/referral/referral.ts ($TS_VOL, $TS_PRO), και η δοκιμή είναι $TS_TRIAL"
-echo "   ημέρες και στα δύο."
+echo "   ημέρες και στα δύο, και η σειρά των πακέτων είναι «$TS_RANKS»."

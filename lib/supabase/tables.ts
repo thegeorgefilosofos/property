@@ -209,6 +209,10 @@ export interface BillingProfilesRow {
   trial_used_at: string | null;
   /** Πότε εξαργυρώθηκε ο κωδικός δοκιμαστή. Οσο υπάρχει, δεν υπάρχει χρέωση. */
   tester_since: string | null;
+  /** Το πακέτο που κρατιέται ώς την ανανέωση, μετά από υποβάθμιση. */
+  hold_plan: string | null;
+  /** Ώς πότε κρατιέται. Μετά από αυτήν, η πρόσβαση βγαίνει σκέτη από τη συνδρομή. */
+  hold_until: string | null;
   updated_at: string | null;
   owner_name: string | null;
   profile_type: string | null;

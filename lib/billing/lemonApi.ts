@@ -73,6 +73,25 @@ export async function lemonRequest(call: ApiCall): Promise<ApiResult> {
   }
 }
 
+/**
+ * Η συνδρομή, όπως τη βλέπει ΤΩΡΑ ο έμπορος.
+ *
+ * ΓΙΑΤΙ ΡΩΤΑΜΕ ΑΝΤΙ ΝΑ ΔΙΑΒΑΣΟΥΜΕ ΤΗ ΔΙΚΗ ΜΑΣ ΓΡΑΜΜΗ. Το προφίλ μας γράφεται
+ * από τον webhook, δηλαδή είναι όσο φρέσκο πρόλαβε να γίνει. Οταν πρόκειται να
+ * αλλάξουμε πακέτο —πράξη που χρεώνει κάρτα— η κατάσταση και η ημερομηνία
+ * ανανέωσης πρέπει να είναι του ΕΜΠΟΡΟΥ: ένα καθυστερημένο «δοκιμή» στη δική
+ * μας πλευρά θα στελνε αναβάθμιση χωρίς χρέωση σε κάποιον που ήδη πληρώνει.
+ *
+ * Η ΑΝΑΓΝΩΣΗ ΤΗΣ ΑΠΑΝΤΗΣΗΣ ΔΕΝ ΖΕΙ ΕΔΩ. Εδώ ζει μόνο η κλήση, γιατί τη
+ * μοιράζονται δύο πράγματα που διαβάζουν ΑΛΛΑ πεδία της ίδιας απάντησης: η
+ * πύλη διαχείρισης (σύνδεσμος) και η αλλαγή πακέτου (κατάσταση, ημερομηνίες).
+ */
+export const subscriptionOf = (
+  subscriptionId: string, apiKey: string, fetcher?: typeof fetch,
+): Promise<ApiResult> => lemonRequest({
+  path: `/v1/subscriptions/${encodeURIComponent(subscriptionId)}`, apiKey, fetcher,
+});
+
 /** Τι λείπει για να μιλήσουμε στον έμπορο. Κενό σημαίνει «τίποτα». */
 export function apiConfigError(env: BillingEnv = process.env): string {
   const missing: string[] = [];

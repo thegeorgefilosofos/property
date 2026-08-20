@@ -153,6 +153,15 @@ export interface EntitlementInput {
   compPlan?: string | null;
   /** Λήξη της δωρεάν πρόσβασης (ISO). */
   compUntil?: string | null;
+  /**
+   * ΚΡΑΤΗΣΗ ΥΠΟΒΑΘΜΙΣΗΣ: το πακέτο που ΕΧΕΙ ΠΛΗΡΩΘΕΙ και κρατιέται ώς την
+   * ανανέωση, αφού ο πελάτης ζήτησε να κατέβει. Ο έμπορος αλλάζει την
+   * παραλλαγή τη στιγμή του αιτήματος και δεν ξέρει να αναβάλλει· η αναβολή
+   * είναι δική μας. Ο ίδιος κανόνας ζει στη `public.user_plan_rank`.
+   */
+  holdPlan?: string | null;
+  /** Ώς πότε κρατιέται (ISO). */
+  holdUntil?: string | null;
   /** Ημερομηνία δημιουργίας λογαριασμού (ISO) — βάση για τη δωρεάν δοκιμή. */
   createdAt?: string | null;
   /** Επιπλέον ακίνητα που έχει αγοράσει (billing_profiles.extra_properties). */
@@ -168,6 +177,24 @@ export function activeComp(input: EntitlementInput): { plan: PlanId; until: stri
   const now = input.now ?? Date.now();
   if (!Number.isFinite(until) || until <= now) return null;
   return { plan: normalizePlan(input.compPlan), until: input.compUntil };
+}
+
+/**
+ * ΥΠΟΒΑΘΜΙΣΗ ΠΟΥ ΠΕΡΙΜΕΝΕΙ ΤΗΝ ΑΝΑΝΕΩΣΗ, ΣΕ ΙΣΧΥ ΑΥΤΗ ΤΗ ΣΤΙΓΜΗ;
+ *
+ * ΚΑΙ ΜΟΝΟ ΟΣΟ Η ΣΥΝΔΡΟΜΗ ΖΕΙ. Το `plan` γίνεται «free» μόλις η συνδρομή πάψει
+ * να ισχύει, και τότε δεν υπάρχει πληρωμένη περίοδος να κρατηθεί: χωρίς αυτόν
+ * τον όρο, όποιος υποβαθμίστηκε και μετά σταμάτησε να πληρώνει θα κρατούσε το
+ * ακριβό πακέτο ώς την ημερομηνία της κράτησης. Ο ίδιος όρος, με τα ίδια
+ * λόγια, ζει στη `public.user_plan_rank`.
+ */
+export function activeHold(input: EntitlementInput): { plan: PlanId; until: string } | null {
+  if (!input.holdUntil || !input.holdPlan) return null;
+  if (normalizePlan(input.plan) === 'free') return null;
+  const until = new Date(input.holdUntil).getTime();
+  const now = input.now ?? Date.now();
+  if (!Number.isFinite(until) || until <= now) return null;
+  return { plan: normalizePlan(input.holdPlan), until: input.holdUntil };
 }
 
 /** Κατάσταση δωρεάν δοκιμής.
@@ -235,6 +262,10 @@ export function effectivePlan(input: EntitlementInput): PlanId {
   if (trial.active && rank(TRIAL_PLAN) > rank(best)) best = TRIAL_PLAN;
   const comp = activeComp(input);
   if (comp && rank(comp.plan) > rank(best)) best = comp.plan;
+  // Η περίοδος που πληρώθηκε στο ακριβότερο πακέτο ανήκει στον πελάτη ώς το
+  // τέλος της, ακόμη κι αν ζήτησε υποβάθμιση την πρώτη ημέρα.
+  const hold = activeHold(input);
+  if (hold && rank(hold.plan) > rank(best)) best = hold.plan;
   if (input.partner && rank('agency') > rank(best)) best = 'agency';
   return best;
 }

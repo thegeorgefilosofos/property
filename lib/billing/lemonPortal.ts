@@ -15,7 +15,7 @@
 // κουμπί που πάει στο πουθενά.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { lemonRequest } from './lemonApi';
+import { subscriptionOf } from './lemonApi';
 
 export { API_KEY_ENV } from './lemonApi';
 
@@ -47,9 +47,7 @@ export function readPortalUrl(payload: unknown): string | null {
 export async function portalUrlOf(
   subscriptionId: string, apiKey: string, fetcher?: typeof fetch,
 ): Promise<PortalResult> {
-  const { json, error } = await lemonRequest({
-    path: `/v1/subscriptions/${encodeURIComponent(subscriptionId)}`, apiKey, fetcher,
-  });
+  const { json, error } = await subscriptionOf(subscriptionId, apiKey, fetcher);
   if (error) return { url: null, error };
   return { url: readPortalUrl(json), error: '' };
 }

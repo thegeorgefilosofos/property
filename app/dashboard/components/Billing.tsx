@@ -48,12 +48,14 @@ interface BillingData {
   mor_subscription_id: string;
   /** Ο λογαριασμός δοκιμαστή. Οσο υπάρχει, δεν υπάρχει τίποτα να αγοραστεί. */
   tester_since: string;
+  /** Υποβάθμιση που περιμένει την ανανέωση: τι κρατιέται, και ώς πότε. */
+  hold_plan: string; hold_until: string;
 }
 const INIT: BillingData = {
   doc_type: 'receipt', full_name: '', company_name: '', afm: '', doy: '', profession: '',
   address: '', city: '', postal_code: '', country: 'GR', vat_number: '', phone: '', plan: 'free', billing_cycle: 'monthly',
   profile_type: 'individual', subscription_status: '', mor_renews_at: '', mor_ends_at: '',
-  mor_subscription_id: '', tester_since: '',
+  mor_subscription_id: '', tester_since: '', hold_plan: '', hold_until: '',
 };
 
 export default function Billing({ userId, wantPlan = null }: {
@@ -251,7 +253,12 @@ function Subscription({ d, wantPlan = null, wishPlan = null, wishCycle = 'monthl
   // ιδιώτης που πάτησε από περιέργεια την κάρτα «Επαγγελματίας» θα έβλεπε
   // αλλιώς ένα πακέτο που το ταμείο του απαντά 403.
   const wished = wishPlan && ALLOWED_PLANS[type].includes(wishPlan) ? wishPlan : null;
-  const target: PlanId = wantPlan ?? (current !== 'free' ? current : (wished ?? entry));
+  // Η ΕΠΙΛΟΓΗ ΤΟΥ ΧΡΗΣΤΗ ΜΕΣΑ ΣΤΗΝ ΙΔΙΑ ΚΑΡΤΑ. Ο συνδρομητής έβλεπε τον
+  // διακόπτη κύκλου να αλλάζει την τιμή και κανένα κουμπί να την εφαρμόζει:
+  // ένα χειριστήριο που δεν κάνει τίποτα. Και το πακέτο δεν άλλαζε καθόλου
+  // από εδώ — έπρεπε να κατέβει στη σύγκριση, να διαλέξει, και να ανέβει πάλι.
+  const [pick, setPick] = useState<PlanId | null>(null);
+  const target: PlanId = pick ?? wantPlan ?? (current !== 'free' ? current : (wished ?? entry));
   const plan = PLANS[target];
   const price = cycle === 'annual' ? annualPerMonth(target) : plan.priceMonthly;
 
@@ -314,6 +321,20 @@ function Subscription({ d, wantPlan = null, wishPlan = null, wishCycle = 'monthl
   // χειρότερο μήνυμα που μπορεί να δει.
   const isTester = !!(d.tester_since || '').trim();
 
+  // ── Η ΥΠΟΒΑΘΜΙΣΗ ΠΟΥ ΠΕΡΙΜΕΝΕΙ ────────────────────────────────────────
+  // Ο,τι κρατιέται ώς την ανανέωση. Το `plan` δείχνει ήδη το ΝΕΟ πακέτο (ο
+  // webhook το έγραψε τη στιγμή της αλλαγής): χωρίς αυτή τη γραμμή, ο πελάτης
+  // θα διάβαζε ότι έχει ήδη κατέβει ενώ κρατά ακόμη ό,τι πλήρωσε.
+  const heldPlan = normalizePlan(d.hold_plan);
+  const heldUntil = (d.hold_until || '').trim();
+  const holding = heldPlan !== 'free' && !!heldUntil && current !== 'free';
+
+  /** Ο κύκλος που πληρώνεται τώρα, για να ξέρουμε αν η επιλογή τον αλλάζει. */
+  const paidCycle: BillingCycle = d.billing_cycle === 'annual' ? 'annual' : 'monthly';
+  /** Διαφέρει η επιλογή από ό,τι τρέχει; Μόνο τότε υπάρχει κάτι να πατηθεί. */
+  const moves = running && (target !== current || cycle !== paidCycle);
+  const goingDown = moves && PLAN_ORDER.indexOf(target) < PLAN_ORDER.indexOf(current);
+
   // ── Ο ΚΩΔΙΚΟΣ ΠΡΟΣΚΛΗΣΗΣ ─────────────────────────────────────────────
   const [codeOpen, setCodeOpen] = useState(false);
   const [code, setCode] = useState('');
@@ -347,7 +368,14 @@ function Subscription({ d, wantPlan = null, wishPlan = null, wishCycle = 'monthl
     setBusy(false);
   };
 
-  /** Ο δοκιμαστής αλλάζει πακέτο επιτόπου, χωρίς να περάσει από ταμείο. */
+  /**
+   * Η αλλαγή πακέτου. Ενα κουμπί, τρεις καταλήξεις, και ο διακομιστής ξέρει
+   * ποια ισχύει: ο δοκιμαστής γράφεται επιτόπου, ο συνδρομητής που ανεβαίνει
+   * χρεώνεται τη διαφορά, ο συνδρομητής που κατεβαίνει κρατά ώς την ανανέωση.
+   *
+   * ΤΟ ΜΗΝΥΜΑ ΛΕΕΙ ΤΙ ΕΓΙΝΕ ΠΡΑΓΜΑΤΙΚΑ, όχι τι ζητήθηκε: ένα «το πακέτο έγινε
+   * Ιδιοκτήτης» μετά από υποβάθμιση θα ήταν ψέμα ώς την ανανέωση.
+   */
   const switchPlan = async (id: PlanId) => {
     setBusy(true);
     try {
@@ -355,8 +383,19 @@ function Subscription({ d, wantPlan = null, wishPlan = null, wishCycle = 'monthl
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ plan: id, cycle }),
       });
-      if (!res.ok) { notifyError('Το πακέτο δεν άλλαξε. Δοκίμασε ξανά.'); setBusy(false); return; }
-      notifyOk(`Το πακέτο έγινε «${PLANS[id].name}»`);
+      const body = await res.json().catch(() => ({})) as {
+        kind?: string; holdPlan?: string | null; holdUntil?: string | null; error?: string;
+      };
+      if (!res.ok) {
+        notifyError(typeof body.error === 'string' && body.error ? body.error : 'Το πακέτο δεν άλλαξε. Δοκίμασε ξανά.');
+        setBusy(false); return;
+      }
+      if (body.kind === 'downgrade' && body.holdPlan && body.holdUntil) {
+        notifyOk(`Κρατάς το «${PLANS[normalizePlan(body.holdPlan)].name}» ώς τις ${fd(body.holdUntil)}`);
+      } else {
+        notifyOk(`Το πακέτο έγινε «${PLANS[id].name}»`);
+      }
+      setPick(null);
       onChanged();
     } catch {
       notifyError('Το πακέτο δεν άλλαξε. Ελεγξε τη σύνδεσή σου.');
@@ -404,6 +443,34 @@ function Subscription({ d, wantPlan = null, wishPlan = null, wishCycle = 'monthl
         <InfoBanner tone="warning">Η τελευταία χρέωση δεν ολοκληρώθηκε. Ο λογαριασμός παραμένει ανοιχτός όσο ο έμπορος ξαναδοκιμάζει την κάρτα. Ανανέωσε την κάρτα σου από τη διαχείριση συνδρομής.</InfoBanner>
       ) : null}
 
+      {/* ── Η ΥΠΟΒΑΘΜΙΣΗ ΠΟΥ ΠΕΡΙΜΕΝΕΙ, ΓΡΑΜΜΕΝΗ ────────────────────────────
+          Ο έμπορος έχει ήδη αλλάξει την παραλλαγή, οπότε το `plan` δείχνει το
+          ΝΕΟ πακέτο. Χωρίς αυτή τη γραμμή ο πελάτης θα διάβαζε ότι έχει ήδη
+          κατέβει, ενώ κρατά ώς την ανανέωση ό,τι πλήρωσε — και θα ρωτούσε
+          γιατί «δεν εφαρμόστηκε» κάτι που εφαρμόστηκε σωστά. */}
+      {holding && (
+        <InfoBanner tone="info">
+          Ζήτησες αλλαγή σε <strong>{plan.name}</strong>. Κρατάς το <strong>{PLANS[heldPlan].name}</strong> ώς τις <strong>{fd(heldUntil)}</strong>, γιατί το έχεις ήδη πληρώσει.
+        </InfoBanner>
+      )}
+
+      {/* ── ΤΟ ΠΑΚΕΤΟ ΑΛΛΑΖΕΙ ΑΠΟ ΕΔΩ ─────────────────────────────────────
+          Ο συνδρομητής δεν είχε κανέναν τρόπο να αλλάξει πακέτο μέσα σε αυτή
+          την κάρτα: έβλεπε την τιμή του δικού του και ένα κουμπί «Διαχείριση
+          συνδρομής» που ανοίγει την πύλη του εμπόρου — όπου η αλλαγή πακέτου
+          δεν υπάρχει καν. Οι επιλογές είναι όσες επιτρέπει ο τύπος προφίλ,
+          όπως και στο ταμείο: ένα κουμπί που απαντά 403 δεν είναι επιλογή. */}
+      {running && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4, marginBottom: 14 }}>
+          {ALLOWED_PLANS[type].filter(id => PLANS[id].priceMonthly > 0).map(id => (
+            <Btn key={id} variant={target === id ? 'primary' : 'secondary'}
+              onClick={() => setPick(id)} disabled={busy}>
+              {PLANS[id].name}
+            </Btn>
+          ))}
+        </div>
+      )}
+
       {/* Ο ΔΙΑΚΟΠΤΗΣ ΠΑΝΩ ΑΠΟ ΤΗΝ ΤΙΜΗ: πρώτα η αιτία, μετά το αποτέλεσμα. Δίπλα
           στον μεγάλο αριθμό διαβαζόταν ως διακόσμηση, και δεν φαινόταν ότι είναι
           αυτός που τον αλλάζει. */}
@@ -433,6 +500,17 @@ function Subscription({ d, wantPlan = null, wishPlan = null, wishCycle = 'monthl
           {live === true && !running && (
             <Btn variant="primary" onClick={go} disabled={busy}>{busy ? 'Ανοίγει…' : 'Πληρωμή με κάρτα'}</Btn>
           )}
+          {/* ΕΜΦΑΝΙΖΕΤΑΙ ΜΟΝΟ ΟΤΑΝ Η ΕΠΙΛΟΓΗ ΔΙΑΦΕΡΕΙ. Ενα μόνιμο «Αλλαγή
+              πακέτου» που δεν αλλάζει τίποτα όταν πατηθεί είναι χειρότερο από
+              κουμπί που λείπει. */}
+          {moves && live === true && (
+            <Btn variant="primary" onClick={() => switchPlan(target)} disabled={busy}>
+              {busy ? 'Αλλαγή…'
+                : target === current
+                  ? `Αλλαγή σε ${cycle === 'annual' ? 'ετήσια' : 'μηνιαία'} χρέωση`
+                  : `Αλλαγή σε ${plan.name}`}
+            </Btn>
+          )}
           {/* ΟΙ ΤΡΕΙΣ ΥΠΟΣΧΕΣΕΙΣ ΤΩΝ ΟΡΩΝ ΕΧΟΥΝ ΚΟΥΜΠΙ: ακύρωση, παραστατικά,
               αλλαγή κάρτας. Χωρίς αυτό, οι Οροι δέσμευαν σε κάτι που δεν
               υπήρχε πουθενά στην εφαρμογή. */}
@@ -443,6 +521,21 @@ function Subscription({ d, wantPlan = null, wishPlan = null, wishCycle = 'monthl
           )}
         </div>
       ) : null}
+      {/* ΤΙ ΘΑ ΓΙΝΕΙ ΜΕ ΤΑ ΧΡΗΜΑΤΑ, ΠΡΙΝ ΠΑΤΗΘΕΙ ΤΟ ΚΟΥΜΠΙ ──────────────────
+          Οι τρεις καταλήξεις είναι εντελώς διαφορετικές και καμία δεν είναι
+          προφανής: αναβάθμιση χρεώνει σήμερα, υποβάθμιση δεν επιστρέφει, και
+          μέσα στη δοκιμή δεν κινείται τίποτα. Οποιος πατά χωρίς να το ξέρει,
+          το μαθαίνει από την κίνηση της κάρτας του. */}
+      {moves && live === true && (
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 12 }}>
+          {phase === 'trial'
+            ? `Δεν χρεώνεσαι σήμερα. Η πρώτη χρέωση γίνεται ${renewsAt ? `στις ${fd(renewsAt)}` : 'στη λήξη της δοκιμής'}, στη νέα τιμή.`
+            : goingDown
+              ? `Δεν επιστρέφονται χρήματα. Κρατάς το «${PLANS[current].name}» ${renewsAt ? `ώς τις ${fd(renewsAt)}` : 'ώς την ανανέωση'}, και από εκεί χρεώνεσαι στη νέα τιμή.`
+              : 'Χρεώνεται σήμερα μόνο η διαφορά, για τις ημέρες που απομένουν ώς την ανανέωση.'}
+        </div>
+      )}
+
       {/* ΟΤΑΝ ΔΕΝ ΥΠΑΡΧΕΙ ΤΑΜΕΙΟ, ΤΟ ΛΕΜΕ. Απενεργοποιημένο κουμπί θα ήταν
           υπόσχεση που δεν τηρείται με το πάτημα· η πρόταση λέει το ίδιο πράγμα
           με τους Ορους και την Πολιτική απορρήτου, από την ίδια πηγή. */}

@@ -1064,7 +1064,10 @@ begin
          mor_event_at = timestamptz '2099-01-01',
          -- ΟΙ ΔΥΟ ΠΟΥ ΔΙΝΟΥΝ ΔΩΡΕΑΝ ΧΡΗΣΗ: σβήσιμο της χρήσης δοκιμής ξεκινά νέα
          -- δοκιμή 30 ημερών, και η ιδιότητα δοκιμαστή δίνει το προϊόν δωρεάν.
-         trial_used_at = null, tester_since = timestamptz '2026-01-01'
+         trial_used_at = null, tester_since = timestamptz '2026-01-01',
+         -- ΚΑΙ Η ΚΡΑΤΗΣΗ ΥΠΟΒΑΘΜΙΣΗΣ: μια γραμμή εδώ κρατά το ακριβότερο πακέτο
+         -- ώς το 2100, χωρίς καμία συνδρομή από πίσω.
+         hold_plan = 'office', hold_until = timestamptz '2099-01-01'
    where user_id = '7c7c7c7c-0000-4000-8000-00000000c0de';
   get diagnostics n = row_count;
   if n <> 1 then
@@ -1097,6 +1100,9 @@ begin
   -- δωρεάν, χωρίς συνδρομή. Και τα δύο με μια γραμμή στην κονσόλα του περιηγητή.
   if r.trial_used_at is null then raise exception 'Ο χρήστης έσβησε τη χρήση της δοκιμής: μπορεί να ξαναρχίσει δοκιμή όποτε θέλει'; end if;
   if r.tester_since is not null then raise exception 'Ο χρήστης έγραψε μόνος του ιδιότητα δοκιμαστή: δωρεάν προϊόν'; end if;
+  if r.hold_plan is not null or r.hold_until is not null then
+    raise exception 'Ο χρήστης έγραψε μόνος του κράτηση υποβάθμισης: θα κρατούσε το ακριβότερο πακέτο ώς το 2099';
+  end if;
   if r.mor_variant_id <> 'var-1' then raise exception 'Ο χρήστης έγραψε την παραλλαγή: θα διάλεγε πακέτο μόνος του'; end if;
   if r.mor_renews_at <> timestamptz '2026-09-20' then raise exception 'Ο χρήστης έγραψε την ημερομηνία ανανέωσης'; end if;
   if r.mor_ends_at is not null then raise exception 'Ο χρήστης έγραψε την ημερομηνία λήξης'; end if;
@@ -1108,12 +1114,72 @@ begin
   if exists (
     select 1 from information_schema.columns c
      where c.table_schema = 'public' and c.table_name = 'billing_profiles'
-       and c.column_name like 'mor\_%'
+       and (c.column_name like 'mor\_%' or c.column_name like 'hold\_%')
        and pg_get_functiondef('public.lock_billing_plan'::regproc)
              not like '%old.' || c.column_name || '%'
   ) then
-    raise exception 'Στήλη mor_ εκτός της lock_billing_plan: θα την έγραφε ο χρήστης';
+    raise exception 'Στήλη mor_ ή hold_ εκτός της lock_billing_plan: θα την έγραφε ο χρήστης';
   end if;
 
   raise notice 'probe: οι στήλες του εμπόρου γράφονται μόνο με ρόλο υπηρεσίας';
+end $probe$;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Η ΥΠΟΒΑΘΜΙΣΗ ΠΕΡΙΜΕΝΕΙ ΤΗΝ ΑΝΑΝΕΩΣΗ, ΚΑΙ ΔΕΝ ΑΝΑΣΤΑΙΝΕΙ ΝΕΚΡΗ ΣΥΝΔΡΟΜΗ
+-- ─────────────────────────────────────────────────────────────────────────
+-- Ο ΕΜΠΟΡΟΣ ΔΕΝ ΞΕΡΕΙ ΝΑ ΑΝΑΒΑΛΕΙ. Η παραλλαγή αλλάζει τη στιγμή του
+-- αιτήματος, άρα ο webhook γράφει αμέσως το χαμηλότερο πακέτο· ο πελάτης όμως
+-- έχει πληρώσει ολόκληρη την περίοδο στο ακριβότερο. Η αναβολή είναι δική μας,
+-- και ζει σε αυτές τις δύο στήλες.
+--
+-- ΚΑΙ ΕΧΕΙ ΜΙΑ ΠΛΕΥΡΑ ΠΟΥ ΔΙΝΕΙ ΔΩΡΕΑΝ ΠΡΟΪΟΝ ΑΝ ΞΕΧΑΣΤΕΙ. Χωρίς τον όρο «όσο
+-- η συνδρομή ζει», όποιος υποβαθμίστηκε και μετά σταμάτησε να πληρώνει θα
+-- κρατούσε το ακριβό πακέτο ώς την ημερομηνία της κράτησης — και η ημερομηνία
+-- τη γράφει ο webhook, δηλαδή θα μπορούσε να είναι έναν ολόκληρο χρόνο μακριά.
+do $probe$
+declare v_uid uuid := '9e9e9e9e-0000-4000-8000-00000000a1d0';
+declare v_rank int;
+begin
+  insert into auth.users(id, email) values (v_uid, 'ypovathmisi@probe.test')
+    on conflict (id) do nothing;
+
+  -- ΠΡΙΝ: πληρωμένο «Ιδιοκτήτης», σφραγισμένη δοκιμή, καμία κράτηση.
+  update public.billing_profiles
+     set plan = 'solo', trial_used_at = now() - interval '40 days',
+         hold_plan = null, hold_until = null
+   where user_id = v_uid;
+  v_rank := public.user_plan_rank(v_uid);
+  if v_rank <> 1 then
+    raise exception 'Ο έλεγχος θα ήταν κενός: πληρωμένο solo έδωσε βαθμό % αντί για 1', v_rank;
+  end if;
+
+  -- ΜΕΤΑ ΤΗΝ ΥΠΟΒΑΘΜΙΣΗ: ο webhook έγραψε ήδη το χαμηλό πακέτο, η κράτηση
+  -- κρατά το πληρωμένο ώς την ανανέωση.
+  update public.billing_profiles
+     set hold_plan = 'agency', hold_until = now() + interval '10 days'
+   where user_id = v_uid;
+  v_rank := public.user_plan_rank(v_uid);
+  if v_rank <> 3 then
+    raise exception 'Η ΥΠΟΒΑΘΜΙΣΗ ΕΓΙΝΕ ΑΜΕΣΩΣ: βαθμός % αντί για 3. Ο πελάτης πλήρωσε τον μήνα και έχασε το Πελατολόγιο την ίδια ώρα.', v_rank;
+  end if;
+
+  -- ΣΤΗΝ ΑΝΑΝΕΩΣΗ Η ΚΡΑΤΗΣΗ ΛΗΓΕΙ ΜΟΝΗ ΤΗΣ, χωρίς καμία δουλειά από κανέναν.
+  update public.billing_profiles
+     set hold_until = now() - interval '1 minute' where user_id = v_uid;
+  v_rank := public.user_plan_rank(v_uid);
+  if v_rank <> 1 then
+    raise exception 'Η κράτηση δεν έληξε στην ώρα της: βαθμός % αντί για 1. Ο πελάτης πληρώνει «Ιδιοκτήτη» και παίρνει «Επαγγελματία».', v_rank;
+  end if;
+
+  -- ΚΑΙ ΔΕΝ ΑΝΑΣΤΑΙΝΕΙ ΝΕΚΡΗ ΣΥΝΔΡΟΜΗ. Οταν οι πληρωμές σταματήσουν, ο webhook
+  -- γράφει `plan = 'free'`· η κράτηση δεν επιτρέπεται να το ακυρώσει.
+  update public.billing_profiles
+     set plan = 'free', hold_plan = 'office', hold_until = now() + interval '300 days'
+   where user_id = v_uid;
+  v_rank := public.user_plan_rank(v_uid);
+  if v_rank <> 0 then
+    raise exception 'ΔΩΡΕΑΝ ΠΡΟΪΟΝ: η κράτηση κράτησε ζωντανό λογαριασμό χωρίς συνδρομή, βαθμός %', v_rank;
+  end if;
+
+  raise notice 'probe: η υποβάθμιση περιμένει την ανανέωση, λήγει μόνη της, και δεν ανασταίνει νεκρή συνδρομή';
 end $probe$;

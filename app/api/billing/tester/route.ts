@@ -55,7 +55,7 @@ export async function POST(request: Request) {
   // ΚΑΙ Η ΑΝΑΓΝΩΣΗ ΔΕΝ ΣΙΩΠΑ: αν αποτύχει, η ημερομηνία θα ξαναγραφόταν σαν
   // να είναι πρώτη εξαργύρωση, μετακινώντας την προς τα εμπρός.
   const now = new Date().toISOString();
-  const { state, error: readError } = await billing.testerState(db, user.id);
+  const { state, error: readError } = await billing.planContext(db, user.id);
   if (readError) {
     console.info('[tester] το προφίλ δεν διαβάστηκε:', readError.message);
     return NextResponse.json({ error: 'Η εξαργύρωση δεν ολοκληρώθηκε.' }, { status: 502 });
