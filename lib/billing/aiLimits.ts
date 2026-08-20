@@ -37,7 +37,7 @@
 //             ακριβώς επειδή υπάρχει, το ατομικό όριο μπορεί να είναι γενναίο.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { PLAN_ORDER, PLANS, type PlanId } from './plans';
+import { PLAN_ORDER, PLANS, type PlanId, type BillingCycle } from './plans';
 import { BLENDED_COST_USD } from '../assistant/model';
 
 export interface AiLimits {
@@ -48,9 +48,6 @@ export interface AiLimits {
   /** Αιτήματα ανά μήνα. Αυτό είναι το «πακέτο» που αντιλαμβάνεται ο χρήστης. */
   perMonth: number;
 }
-
-/** Κύκλος χρέωσης. Ορίζει ΠΟΙΟ ποσοστό της συνδρομής πάει στον βοηθό. */
-export type BillingCycle = 'monthly' | 'annual';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ΤΟ ΠΑΚΕΤΟ ΕΡΩΤΗΣΕΩΝ ΔΕΝ ΕΠΙΛΕΓΕΤΑΙ, ΥΠΟΛΟΓΙΖΕΤΑΙ

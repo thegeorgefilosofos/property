@@ -26,13 +26,12 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { PLANS, type PlanId } from '@/lib/billing/plans';
+import { PLANS, type PlanId, type BillingCycle } from '@/lib/billing/plans';
 import { isPlanAllowedForProfile, type ProfileType } from '@/lib/billing/entitlements';
 import { checkoutIsLive, createCheckout, variantFor, storeId } from '@/lib/billing/lemonCheckout';
 import { API_KEY_ENV } from '@/lib/billing/lemonApi';
 import { billingWords } from '@/lib/legal/billingWords';
 import { SITE } from '@/lib/core/site';
-import type { BillingCycle } from '@/lib/billing/lemon';
 import * as billing from '@/lib/data/billing';
 
 /** Ο σύνδεσμος πληρωμής δεν ζει για πάντα σε ένα ιστορικό περιηγητή. */
@@ -71,8 +70,19 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ available: false, url: null, tester: true });
   }
 
-  const type: ProfileType = profile?.profile_type === 'professional' ? 'professional' : 'individual';
-  if (!isPlanAllowedForProfile(type, plan as PlanId)) {
+  // ── Ο ΤΥΠΟΣ ΠΡΟΦΙΛ ΚΡΙΝΕΙ ΜΟΝΟ ΟΤΑΝ ΕΧΕΙ ΔΗΛΩΘΕΙ ───────────────────────
+  // Ο έλεγχος υπάρχει ώστε να μην αγοράσει ιδιώτης πακέτο επαγγελματία
+  // γράφοντάς το στη διεύθυνση: θα πλήρωνε για καρτέλες που το προφίλ του δεν
+  // ανοίγει ποτέ. Ομως ο τύπος δηλώνεται στο καλωσόρισμα, δηλαδή ΜΕΤΑ την
+  // εγγραφή, και η παλιά γραμμή «ό,τι δεν είναι επαγγελματίας είναι ιδιώτης»
+  // έκανε τον έλεγχο να απαντά 403 σε ΚΑΘΕ νέο λογαριασμό που πάτησε
+  // «Επαγγελματία» στον τιμοκατάλογο: η ακριβότερη πώληση κοβόταν στην πόρτα.
+  //
+  // Οπου δεν υπάρχει δήλωση δεν υπάρχει και αντίφαση. Τον τύπο τον γράφει ο
+  // webhook, μόλις τον αποδείξει η ίδια η αγορά.
+  const declared = (profile?.profile_type || '').trim();
+  const isDeclared = (v: string): v is ProfileType => v === 'individual' || v === 'professional';
+  if (isDeclared(declared) && !isPlanAllowedForProfile(declared, plan as PlanId)) {
     return NextResponse.json({ error: 'Το πακέτο δεν αντιστοιχεί στον τύπο του λογαριασμού.' }, { status: 403 });
   }
 

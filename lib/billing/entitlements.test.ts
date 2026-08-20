@@ -4,7 +4,7 @@ import {
   planAtLeast, effectivePlan, activeComp, hasFeature, isTabAllowed,
   requiredPlanForTab, requiredPlanForFeature, propertyLimit, canAddProperty,
   isPlanAllowedForProfile, paidPlanForProfile, isTabRelevant, isTabPurchasable,
-  trialState, isOpenEnded, planFromParam,
+  trialState, isOpenEnded, planFromParam, cycleFromParam, profileForPlan,
   type EntitlementInput,
 } from './entitlements';
 
@@ -237,6 +237,31 @@ for (const id of ['solo', 'owner', 'agency', 'office'] as const) {
   ok(chosen !== null
     && (isPlanAllowedForProfile('individual', chosen) || isPlanAllowedForProfile('professional', chosen)),
     `το ${id} αγοράζεται από κάποιο προφίλ`);
+}
+
+// ── ΤΟ `?cycle=` ΤΗΣ ΕΓΓΡΑΦΗΣ ──────────────────────────────────────────────
+// «Κανένα πακέτο» είναι υπαρκτή κατάσταση· «κανένας κύκλος» δεν είναι. Οταν
+// λείπει ή δεν αναγνωρίζεται, ισχύει ο μηνιαίος — και η οθόνη τον γράφει.
+ok(cycleFromParam('monthly') === 'monthly', 'το monthly περνά');
+ok(cycleFromParam('annual') === 'annual', 'το annual περνά');
+ok(cycleFromParam('ANNUAL') === 'annual', 'τα κεφαλαία δεν χάνουν την επιλογή');
+ok(cycleFromParam(' annual ') === 'annual', 'τα κενά δεν χάνουν την επιλογή');
+ok(cycleFromParam('weekly') === 'monthly', 'άγνωστος κύκλος πέφτει στον μηνιαίο');
+ok(cycleFromParam(null) === 'monthly', 'χωρίς παράμετρο, μηνιαίος');
+ok(cycleFromParam('') === 'monthly', 'κενή παράμετρος, μηνιαίος');
+
+// ── Ο ΤΥΠΟΣ ΠΡΟΦΙΛ ΠΟΥ ΑΓΟΡΑΖΕΙ ΤΟ ΠΑΚΕΤΟ ────────────────────────────────
+// Το αντίστροφο του ALLOWED_PLANS. Υπάρχει για μία στιγμή: η αγορά γίνεται
+// ΠΡΙΝ δηλωθεί ο τύπος, και το πακέτο είναι η δήλωση.
+ok(profileForPlan('agency') === 'professional', 'το agency θέλει επαγγελματία');
+ok(profileForPlan('office') === 'professional', 'το office θέλει επαγγελματία');
+ok(profileForPlan('solo') === 'individual', 'το solo είναι ιδιώτη');
+ok(profileForPlan('owner') === 'individual', 'το owner είναι ιδιώτη');
+ok(profileForPlan('free') === 'individual', 'χωρίς συνδρομή, ιδιώτης');
+// Ο ΚΑΝΟΝΑΣ ΚΛΕΙΝΕΙ: ό,τι επιστρέφει πρέπει να ΜΠΟΡΕΙ να αγοράσει το πακέτο.
+// Αλλιώς ο webhook θα έγραφε τύπο που κλειδώνει αυτό που μόλις πληρώθηκε.
+for (const id of ['free', 'solo', 'owner', 'agency', 'office'] as const) {
+  ok(isPlanAllowedForProfile(profileForPlan(id), id), `ο τύπος του ${id} το αγοράζει`);
 }
 
 console.log(`\nbilling/entitlements.ts — ${p} passed, ${f} failed`);

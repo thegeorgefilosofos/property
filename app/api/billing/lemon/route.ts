@@ -31,6 +31,7 @@ import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { verifySignature, SIGNATURE_HEADER, SECRET_ENV } from '@/lib/billing/lemonSignature';
 import { readSubscriptionEvent, carriesSubscription, parseVariantMap, planOfVariant, isEntitled } from '@/lib/billing/lemon';
+import { profileForPlan } from '@/lib/billing/entitlements';
 
 /** Ο πίνακας που κρατά το πακέτο του κάθε λογαριασμού. */
 const TABLE = 'billing_profiles';
@@ -145,9 +146,24 @@ export async function POST(request: Request) {
   // ΚΑΙ ΓΡΑΦΕΤΑΙ ΜΙΑ ΦΟΡΑ. Χωρίς το `??`, κάθε επόμενο γεγονός θα μετακινούσε
   // την ημερομηνία προς τα εμπρός — και το `skip_trial` θα κρινόταν από τη
   // στιγμή της τελευταίας ανανέωσης αντί της πρώτης δοκιμής.
-  const seenTrial = (await db.from(TABLE).select('trial_used_at').eq('user_id', userId).maybeSingle())
-    .data as { trial_used_at?: string | null } | null;
-  const trialUsedAt = seenTrial?.trial_used_at ?? (sub.status === 'on_trial' ? eventAt : null);
+  const seen = (await db.from(TABLE).select('trial_used_at, profile_type').eq('user_id', userId).maybeSingle())
+    .data as { trial_used_at?: string | null; profile_type?: string | null } | null;
+  const trialUsedAt = seen?.trial_used_at ?? (sub.status === 'on_trial' ? eventAt : null);
+
+  // ── Ο ΤΥΠΟΣ ΠΡΟΦΙΛ ΓΡΑΦΕΤΑΙ ΟΤΑΝ ΤΟΝ ΑΠΟΔΕΙΚΝΥΕΙ Η ΑΓΟΡΑ ────────────────
+  // Ο τύπος ζητιέται στο καλωσόρισμα, δηλαδή ΜΕΤΑ την εγγραφή· όποιος πέρασε
+  // από τον τιμοκατάλογο κατευθείαν στο ταμείο έφτασε ως εδώ χωρίς αυτόν. Και
+  // χωρίς τύπο ο λογαριασμός λογίζεται «ιδιώτης», οπότε ο πελάτης που μόλις
+  // πλήρωσε «Επαγγελματία» θα έβλεπε κλειδωμένες ακριβώς τις καρτέλες που
+  // αγόρασε.
+  //
+  // ΓΙΑΤΙ ΕΔΩ ΚΑΙ ΟΧΙ ΣΤΟ ΤΑΜΕΙΟ: εκεί ξέρουμε μόνο τι ΑΝΟΙΞΕ κάποιος. Ενα
+  // ταμείο που εγκαταλείφθηκε θα χαρακτήριζε «επαγγελματία» όποιον απλώς
+  // κοίταξε την ακριβή κάρτα, και η οθόνη χρέωσης θα του πρότεινε στο εξής
+  // μόνο πακέτα των 24,90 €. Εδώ ξέρουμε τι ΑΓΟΡΑΣΕ.
+  //
+  // ΚΑΙ ΜΟΝΟ ΟΤΑΝ ΛΕΙΠΕΙ: δήλωση που έκανε ο ίδιος ο χρήστης δεν ξαναγράφεται.
+  const profileType = (seen?.profile_type || '').trim() ? null : profileForPlan(variant.plan);
 
   const { error } = await db.from(TABLE).upsert({
     user_id: userId,
@@ -161,6 +177,7 @@ export async function POST(request: Request) {
     mor_ends_at: sub.endsAt,
     mor_event_at: eventAt,
     ...(trialUsedAt ? { trial_used_at: trialUsedAt } : {}),
+    ...(profileType ? { profile_type: profileType } : {}),
     // ΖΩΝΗ ΚΑΙ ΤΙΡΑΝΤΕΣ: η σκανδάλη `ensure_billing_profile` γεννά τη γραμμή
     // μαζί με τον λογαριασμό, οπότε το `upsert` δεν θα χρειαστεί να εισαγάγει
     // ποτέ. Αν όμως χρειαστεί —παλιός λογαριασμός, χειροκίνητη διαγραφή— το
@@ -176,6 +193,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'write_failed' }, { status: 502 });
   }
 
-  log(`${read.event}: ${variant.plan}/${variant.cycle}, κατάσταση ${sub.status}, πρόσβαση ${entitled ? 'ναι' : 'όχι'}${trialUsedAt && !seenTrial?.trial_used_at ? ', η δοκιμή σφραγίστηκε' : ''}`);
+  log(`${read.event}: ${variant.plan}/${variant.cycle}, κατάσταση ${sub.status}, πρόσβαση ${entitled ? 'ναι' : 'όχι'}${trialUsedAt && !seen?.trial_used_at ? ', η δοκιμή σφραγίστηκε' : ''}${profileType ? `, τύπος προφίλ ${profileType}` : ''}`);
   return NextResponse.json({ ok: true });
 }

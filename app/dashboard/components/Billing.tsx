@@ -26,11 +26,11 @@ import * as properties from '@/lib/data/properties';
 import * as billing from '@/lib/data/billing';
 import { TextInput, CustomSelect } from './UIComponents';
 import { T, Btn, InfoBanner, Spinner, Card, SecHdr, fixedCols, fe, fd } from '@/components/Theme';
-import { PLANS, PLAN_ORDER, normalizePlan, annualPerMonth, type PlanId } from '@/lib/billing/plans';
+import { PLANS, PLAN_ORDER, normalizePlan, annualPerMonth, type PlanId, type BillingCycle } from '@/lib/billing/plans';
 // Η ΦΑΣΗ ΤΗΣ ΣΥΝΔΡΟΜΗΣ ΔΕΝ ΚΡΙΝΕΤΑΙ ΕΔΩ. Οι καταστάσεις τις ονομάζει ο
 // έμπορος και τις γράφει ο webhook· η οθόνη τις διαβάζει από την ίδια πηγή.
 import { subPhase } from '@/lib/billing/lemon';
-import { ALLOWED_PLANS, type ProfileType } from '@/lib/billing/entitlements';
+import { ALLOWED_PLANS, planFromParam, cycleFromParam, type ProfileType } from '@/lib/billing/entitlements';
 import { SegmentControl } from './UIComponents';
 import { notifyError, notifyOk } from '@/components/Toast';
 import { ALL_COUNTRIES, isEuCountry, isReverseCharge, missingInvoiceFields, type InvoiceProfile } from '@/lib/billing/invoiceProfile';
@@ -75,6 +75,15 @@ export default function Billing({ userId, wantPlan = null }: {
   const [reloads, setReloads] = useState(0);
   const reload = () => setReloads(n => n + 1);
 
+  // ── Η ΕΠΙΛΟΓΗ ΤΗΣ ΕΓΓΡΑΦΗΣ ΕΠΙΖΕΙ ΤΗΣ ΕΓΚΑΤΑΛΕΙΨΗΣ ΤΟΥ ΤΑΜΕΙΟΥ ────────
+  // Πακέτο και κύκλος διαλέγονται στον τιμοκατάλογο και γράφονται στο προφίλ
+  // με την εγγραφή. Οποιος όμως έκλεισε το ταμείο για να το ξανασκεφτεί
+  // έβρισκε εδώ το ΦΘΗΝΟΤΕΡΟ πακέτο, μηνιαίο: η κάρτα δεν θυμόταν τίποτα, και
+  // η επιλογή του έπρεπε να ξαναγίνει από την αρχή. Δείχνεται μόνο όσο δεν
+  // υπάρχει συνδρομή — ό,τι πληρώνεται ήδη είναι ισχυρότερο από μια επιθυμία.
+  const [wishPlan, setWishPlan] = useState<PlanId | null>(null);
+  const [wishCycle, setWishCycle] = useState<BillingCycle>('monthly');
+
   useEffect(() => {
     (async () => {
       const [data, { data: u }] = await Promise.all([
@@ -82,6 +91,8 @@ export default function Billing({ userId, wantPlan = null }: {
         supabase.auth.getUser(),
       ]);
       const meta = (u.user?.user_metadata as Record<string, string> | undefined) || {};
+      setWishPlan(planFromParam(meta.chosen_plan));
+      setWishCycle(cycleFromParam(meta.chosen_cycle));
       const base: BillingData = { ...INIT, ...(data || {}) };
 
       // Έξυπνη προσυμπλήρωση: αντλούμε ό,τι ήδη ξέρουμε από το ακίνητο και τις
@@ -185,7 +196,7 @@ export default function Billing({ userId, wantPlan = null }: {
         </div>
       </Card>
 
-      <Subscription d={d} wantPlan={wantPlan} onChanged={reload} />
+      <Subscription d={d} wantPlan={wantPlan} wishPlan={wishPlan} wishCycle={wishCycle} onChanged={reload} />
     </div>
   );
 }
@@ -199,8 +210,29 @@ export default function Billing({ userId, wantPlan = null }: {
 //
 // Το ταμείο εμφανίζεται μόνο όταν ο πάροχος είναι ρυθμισμένος — αυτό το ξέρει
 // ο διακομιστής, όχι η οθόνη, γιατί το κλειδί ζει σε μεταβλητή περιβάλλοντος.
-function Subscription({ d, wantPlan = null, onChanged }: { d: BillingData; wantPlan?: PlanId | null; onChanged: () => void }) {
-  const [cycle, setCycle] = useState<'monthly' | 'annual'>(d.billing_cycle === 'annual' ? 'annual' : 'monthly');
+function Subscription({ d, wantPlan = null, wishPlan = null, wishCycle = 'monthly', onChanged }: {
+  d: BillingData;
+  wantPlan?: PlanId | null;
+  /** Ο,τι διάλεξε στην εγγραφή, όσο δεν έχει συνδρομή. */
+  wishPlan?: PlanId | null;
+  wishCycle?: BillingCycle;
+  onChanged: () => void;
+}) {
+  /**
+   * Υπάρχει πύλη διαχείρισης;
+   *
+   * ΚΡΙΝΕΤΑΙ ΑΠΟ ΔΕΔΟΜΕΝΟ ΠΟΥ ΕΧΟΥΜΕ ΗΔΗ, ΟΧΙ ΑΠΟ ΕΡΩΤΗΣΗ. Μια προκαταρκτική
+   * κλήση θα ρωτούσε τον έμπορο σε ΚΑΘΕ φόρτωση της οθόνης, ακόμη και για
+   * όποιον δεν πατήσει ποτέ το κουμπί. Η συνδρομή γράφεται από τον webhook· αν
+   * υπάρχει, υπάρχει και πύλη.
+   */
+  const hasCustomer = !!(d.mor_subscription_id || '').trim();
+  // Ο κύκλος του επιλογέα: πρώτα εκείνος που ΠΛΗΡΩΝΕΤΑΙ ήδη, και μόνο όταν δεν
+  // υπάρχει συνδρομή, εκείνος που διάλεξε στην εγγραφή. Χωρίς τη δεύτερη
+  // γραμμή, όποιος πάτησε «ετήσια» στον τιμοκατάλογο έβρισκε εδώ «μηνιαία»,
+  // γιατί αυτή είναι η προεπιλογή της στήλης πριν γραφτεί καμία συνδρομή.
+  const [cycle, setCycle] = useState<BillingCycle>(
+    hasCustomer ? (d.billing_cycle === 'annual' ? 'annual' : 'monthly') : wishCycle);
   const [busy, setBusy] = useState(false);
 
   const type: ProfileType = d.profile_type === 'professional' ? 'professional' : 'individual';
@@ -215,7 +247,11 @@ function Subscription({ d, wantPlan = null, onChanged }: { d: BillingData; wantP
   // «Ιδιοκτήτης · 3,90 €». Μια προεπιλογή που τυχαίνει να είναι η κερδοφόρα δεν
   // είναι προεπιλογή, είναι πώληση με το ζόρι.
   const entry = ALLOWED_PLANS[type].find(p => PLANS[p].priceMonthly > 0) ?? ALLOWED_PLANS[type][0];
-  const target: PlanId = wantPlan ?? (current !== 'free' ? current : entry);
+  // Η επιθυμία της εγγραφής μπαίνει ΜΟΝΟ αν το προφίλ την αγοράζει. Ενας
+  // ιδιώτης που πάτησε από περιέργεια την κάρτα «Επαγγελματίας» θα έβλεπε
+  // αλλιώς ένα πακέτο που το ταμείο του απαντά 403.
+  const wished = wishPlan && ALLOWED_PLANS[type].includes(wishPlan) ? wishPlan : null;
+  const target: PlanId = wantPlan ?? (current !== 'free' ? current : (wished ?? entry));
   const plan = PLANS[target];
   const price = cycle === 'annual' ? annualPerMonth(target) : plan.priceMonthly;
 
@@ -225,15 +261,6 @@ function Subscription({ d, wantPlan = null, onChanged }: { d: BillingData; wantP
   const renewsAt = (d.mor_renews_at || '').trim();
   /** Τρέχει συνδρομή αυτή τη στιγμή; Τότε το ταμείο θα έφτιαχνε δεύτερη. */
   const running = phase === 'trial' || phase === 'active' || phase === 'retrying';
-  /**
-   * Υπάρχει πύλη διαχείρισης;
-   *
-   * ΚΡΙΝΕΤΑΙ ΑΠΟ ΔΕΔΟΜΕΝΟ ΠΟΥ ΕΧΟΥΜΕ ΗΔΗ, ΟΧΙ ΑΠΟ ΕΡΩΤΗΣΗ. Μια προκαταρκτική
-   * κλήση θα ρωτούσε τον έμπορο σε ΚΑΘΕ φόρτωση της οθόνης, ακόμη και για
-   * όποιον δεν πατήσει ποτέ το κουμπί. Η συνδρομή γράφεται από τον webhook· αν
-   * υπάρχει, υπάρχει και πύλη.
-   */
-  const hasCustomer = !!(d.mor_subscription_id || '').trim();
 
   // ── ΤΟ ΚΟΥΜΠΙ ΡΩΤΑΕΙ ΠΡΙΝ ΕΜΦΑΝΙΣΤΕΙ ────────────────────────────────────
   // Οι σύνδεσμοι αγοράς ζουν σε μεταβλητή περιβάλλοντος, δηλαδή ο περιηγητής
@@ -384,7 +411,7 @@ function Subscription({ d, wantPlan = null, onChanged }: { d: BillingData; wantP
           επιλογές έπιαναν ολόκληρη την κάρτα, βαραίνοντας περισσότερο από την
           τιμή που ρυθμίζουν. */}
       <div style={{ marginTop: 2, maxWidth: 260 }}>
-        <SegmentControl value={cycle} onChange={v => setCycle(v as 'monthly' | 'annual')}
+        <SegmentControl value={cycle} onChange={v => setCycle(v as BillingCycle)}
           options={[{ value: 'monthly', label: 'Μηνιαία' }, { value: 'annual', label: 'Ετήσια' }]} />
       </div>
 

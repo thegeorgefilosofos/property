@@ -15,6 +15,12 @@ import { failed } from '@/lib/core/dbError';
 // Δύο στήλες σε desktop· σε κινητό το marketing panel κρύβεται (auth-* classes).
 // ═══════════════════════════════════════════════════════════════════════════
 
+/** Η ανταλλαγή του διακριτικού απέτυχε και μας έστειλε εδώ. */
+const failedConfirm = () => {
+  try { return new URLSearchParams(window.location.search).get('confirm') === 'failed' }
+  catch { return false }
+}
+
 export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
@@ -33,7 +39,19 @@ export default function LoginPage() {
 
   useEffect(() => {
     const supabase = createClient()
-    supabase.auth.getUser().then(({ data }) => setSessionEmail(data.user?.email ?? null))
+    supabase.auth.getUser().then(({ data }) => {
+      setSessionEmail(data.user?.email ?? null)
+      // Ο ΣΥΝΔΕΣΜΟΣ ΕΠΙΒΕΒΑΙΩΣΗΣ ΠΟΥ ΔΕΝ ΔΟΥΛΕΨΕ ΛΕΓΕΤΑΙ ΜΕ ΛΕΞΕΙΣ. Η
+      // ανταλλαγή του διακριτικού (app/auth/callback) καταλήγει εδώ όταν
+      // αποτύχει· χωρίς αυτό, όποιος μόλις πάτησε «Επιβεβαίωση» στο email του
+      // έβλεπε γυμνή φόρμα εισόδου και κανένα ίχνος του τι πήγε στραβά.
+      //
+      // ΜΟΝΟ ΣΕ ΑΣΥΝΔΕΤΟ: αν η συνεδρία υπάρχει, ο σύνδεσμος έκανε τη δουλειά
+      // του και δεν υπάρχει τίποτα να διορθωθεί.
+      if (!data.user && failedConfirm()) {
+        setError('Ο σύνδεσμος επιβεβαίωσης δεν ισχύει πια. Συνδέσου με τον κωδικό σου, ή ζήτησε νέο σύνδεσμο από την εγγραφή.')
+      }
+    })
   }, [])
 
   async function signOut() {

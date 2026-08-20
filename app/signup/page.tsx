@@ -10,9 +10,10 @@ import { BackLink } from '../BackLink'
 import { checkPassword } from '@/lib/auth/password'
 import PasswordStrength from '@/components/PasswordStrength'
 import { failed } from '@/lib/core/dbError';
-import { PLANS, TRIAL_DAYS, type PlanId } from '@/lib/billing/plans';
+import { PLANS, TRIAL_DAYS, type PlanId, type BillingCycle } from '@/lib/billing/plans';
 // Καθαρή λογική, χωρίς React/Supabase: ασφαλής σε 'use client'.
-import { TRIAL_PLAN, planFromParam, isPlanAllowedForProfile } from '@/lib/billing/entitlements';
+import { planFromParam, cycleFromParam } from '@/lib/billing/entitlements';
+import { fe } from '@/lib/core/format';
 // Η μορφή του κωδικού πρόσκλησης ζει δίπλα στη γεννήτριά του, όχι εδώ.
 import { isReferralCode } from '@/lib/referral/referral';
 import { POLICY_VERSION as CONSENT_VERSION } from '@/lib/legal/identity'
@@ -27,6 +28,20 @@ import { POLICY_VERSION as CONSENT_VERSION } from '@/lib/legal/identity'
 // panel (AuthAside) με Σύνδεση/Επαναφορά. Google-first, με email ως δεύτερη οδό.
 // Ο έλεγχος ισχύος κωδικού είναι κοινός (lib/auth/password) με επαναφορά/ρυθμίσεις.
 // ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * ΠΟΥ ΠΡΟΣΓΕΙΩΝΕΤΑΙ Ο ΝΕΟΣ ΛΟΓΑΡΙΑΣΜΟΣ ΜΟΛΙΣ ΑΝΟΙΞΕΙ.
+ *
+ * Οποιος διάλεξε πακέτο πάει στο ταμείο, με το πακέτο και τον κύκλο του. Ολη
+ * η εγγραφή ξεκίνησε από ένα πάτημα σε κάρτα τιμοκαταλόγου: το να καταλήγει
+ * στον πίνακα, όπου η συνδρομή είναι κουμπί τρία κλικ μακριά μέσα στις
+ * Ρυθμίσεις, ακυρώνει τον λόγο που ήρθε.
+ *
+ * Οποιος ΔΕΝ διάλεξε —μπήκε κατευθείαν στην εγγραφή— πάει στον πίνακα: δεν
+ * υπάρχει τίποτα να αγοράσει, και η δοκιμή του τρέχει έτσι κι αλλιώς.
+ */
+const landing = (plan: PlanId | null, cycle: BillingCycle) =>
+  plan ? `/tameio?plan=${plan}&cycle=${cycle}` : '/dashboard'
 
 export default function SignupPage() {
   const [fullName, setFullName] = useState('')
@@ -46,6 +61,11 @@ export default function SignupPage() {
   // επιλέξει ποτέ τίποτα. Κρατιέται στο προφίλ, ώστε στη λήξη της δοκιμής να
   // ξέρουμε ΚΑΙ εμείς ΚΑΙ ο χρήστης ποιο πακέτο περιμένει.
   const [chosenPlan, setChosenPlan] = useState<PlanId | null>(null)
+  // ΚΑΙ Ο ΚΥΚΛΟΣ ΤΑΞΙΔΕΥΕΙ ΜΑΖΙ ΤΟΥ. Το πακέτο έφτανε μόνο του, οπότε η
+  // επιλογή «ετήσια, με δύο μήνες δωρεάν» —η ακριβώς μισή απόφαση, και η πιο
+  // ακριβή— χανόταν στη μετάβαση: ο χρήστης κατέληγε στο ταμείο με μηνιαία
+  // χρέωση, δηλαδή σε ΑΛΛΟ ποσό από εκείνο που πάτησε.
+  const [chosenCycle, setChosenCycle] = useState<BillingCycle>('monthly')
   const [sessionEmail, setSessionEmail] = useState<string | null>(null)
   /** Ηρθε από τη σύνδεση με Google και δεν έχει δεχτεί ποτέ τους Ορους. */
   const [needsConsent, setNeedsConsent] = useState<string | null>(null)
@@ -60,10 +80,6 @@ export default function SignupPage() {
   // μόλις ο χρήστης αλλάξει έστω έναν χαρακτήρα.
   const leaked = leakedPw !== null && leakedPw === password
   const pw = checkPassword(password)
-  // Πακέτο που ο Ιδιώτης δεν αγοράζει με κανένα σκαλί (ALLOWED_PLANS). Στην
-  // εγγραφή ο τύπος προφίλ δεν έχει δηλωθεί ακόμη, οπότε δεν μπορεί να κριθεί
-  // η επιλογή: λέγεται όμως ο όρος της, αντί να σιωπάται.
-  const proOnlyPlan = chosenPlan !== null && !isPlanAllowedForProfile('individual', chosenPlan)
   const trans = (m: string) =>
     /already registered|already exists/i.test(m) ? 'Υπάρχει ήδη λογαριασμός με αυτό το email.'
     : /weak|at least|6 char/i.test(m) ? 'Ο κωδικός είναι πολύ αδύναμος. Χρησιμοποίησε τουλάχιστον 8 χαρακτήρες.'
@@ -77,6 +93,7 @@ export default function SignupPage() {
       // Μόνο πακέτο επί πληρωμή: το «free» δεν επιλέγεται, είναι κατάσταση.
       // Ο κανόνας ζει στο planFromParam, όχι σε δύο αντίγραφα εδώ μέσα.
       setChosenPlan(planFromParam(q.get('plan')))
+      setChosenCycle(cycleFromParam(q.get('cycle')))
     } catch {}
   }, [])
   useEffect(() => {
@@ -119,9 +136,10 @@ export default function SignupPage() {
         }
         const r = q.get('ref'); if (r && !meta.referred_by) patch.referred_by = r
         const p = planFromParam(q.get('plan'))
-        if (p && !meta.chosen_plan) patch.chosen_plan = p
+        const c = cycleFromParam(q.get('cycle'))
+        if (p && !meta.chosen_plan) { patch.chosen_plan = p; patch.chosen_cycle = c }
         if (Object.keys(patch).length) { try { await supabase.auth.updateUser({ data: patch }) } catch {} }
-        window.location.replace('/dashboard')
+        window.location.replace(landing(p, c))
         return
       }
       setSessionEmail(u.email ?? null)
@@ -174,7 +192,7 @@ export default function SignupPage() {
     const supabase = createClient()
     const back = new URLSearchParams({ oauth: '1' })
     if (refCode) back.set('ref', refCode)
-    if (chosenPlan) back.set('plan', chosenPlan)
+    if (chosenPlan) { back.set('plan', chosenPlan); back.set('cycle', chosenCycle) }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/signup?${back.toString()}` },
@@ -210,13 +228,19 @@ export default function SignupPage() {
     const { error } = await supabase.auth.signUp({
       email, password,
       options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
+        // Ο ΣΥΝΔΕΣΜΟΣ ΤΟΥ EMAIL ΠΕΡΝΑΕΙ ΑΠΟ ΤΗΝ ΑΝΤΑΛΛΑΓΗ ΤΟΥ ΔΙΑΚΡΙΤΙΚΟΥ.
+        // Εδειχνε κατευθείαν στον πίνακα, ο οποίος ζητά συνεδρία — και συνεδρία
+        // δεν υπάρχει ακόμη τη στιγμή που πατιέται ο σύνδεσμος. Ο
+        // διαμεσολαβητής έστελνε τον νέο χρήστη στη φόρμα εισόδου, κρατώντας το
+        // διακριτικό στη διεύθυνση: ο λογαριασμός άνοιγε, αλλά ο άνθρωπος
+        // κατέληγε να κοιτά «Σύνδεση» αντί για την εφαρμογή του.
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(landing(chosenPlan, chosenCycle))}`,
         data: {
           full_name: fullName.trim(),
           consent_terms_accepted_at: new Date().toISOString(),
           consent_policy_version: CONSENT_VERSION,
           ...(refCode ? { referred_by: refCode } : {}),
-          ...(chosenPlan ? { chosen_plan: chosenPlan } : {}),
+          ...(chosenPlan ? { chosen_plan: chosenPlan, chosen_cycle: chosenCycle } : {}),
         },
       },
     })
@@ -293,7 +317,7 @@ export default function SignupPage() {
               </div>
               <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: '0 0 8px' }}>Άνοιξε το email σου</h1>
               <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 24px' }}>
-                Σου στείλαμε έναν σύνδεσμο επιβεβαίωσης στο <strong style={{ color: 'var(--text-primary)', overflowWrap: 'anywhere' }}>{email}</strong>. Πάτησέ τον για να μπεις στον λογαριασμό σου. Δες και τον φάκελο ανεπιθύμητων.
+                Σου στείλαμε έναν σύνδεσμο επιβεβαίωσης στο <strong style={{ color: 'var(--text-primary)', overflowWrap: 'anywhere' }}>{email}</strong>. Πάτησέ τον για να μπεις στον λογαριασμό σου{chosenPlan ? ' και να ολοκληρώσεις τη συνδρομή σου' : ''}. Δες και τον φάκελο ανεπιθύμητων.
               </p>
               <button onClick={resend} disabled={resent} style={{ display: 'inline-block', padding: '12px 24px', background: resent ? 'var(--bg-elevated)' : 'var(--accent)', border: resent ? '1px solid var(--border-default)' : 'none', borderRadius: T.radius.pill, color: resent ? 'var(--text-secondary)' : 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: resent ? 'default' : 'pointer', fontFamily: 'inherit' }}>
                 {resent ? 'Το ξαναστείλαμε ✓' : 'Ξαναστείλε το email'}
@@ -345,28 +369,31 @@ export default function SignupPage() {
                   μια συγκεκριμένη κάρτα· το να μην την ξαναδεί πουθενά τον
                   αφήνει να αναρωτιέται αν καταγράφηκε.
 
-                  ΓΙΑΤΙ ΔΕΝ ΓΡΑΦΕΙ «ΚΑΜΙΑ ΧΡΕΩΣΗ»: σήμερα δεν ζητείται κάρτα και
-                  χρέωση δεν υπάρχει, οπότε θα ήταν αληθές — αλλά γίνεται ψέμα
-                  την πρώτη μέρα που θα μπει η χρέωση, και τότε αυτή η γραμμή θα
-                  στέκει δίπλα σε πεδίο κάρτας λέγοντας το αντίθετο. Ό,τι γράφεται
-                  εδώ πρέπει να στέκει ΚΑΙ ΠΡΙΝ ΚΑΙ ΜΕΤΑ: η δοκιμή είναι δωρεάν
-                  και το πακέτο αλλάζει όποτε θέλει ο χρήστης.
+                  ΓΙΑΤΙ ΔΕΝ ΓΡΑΦΕΙ «ΚΑΜΙΑ ΧΡΕΩΣΗ». Το έγραφε όσο δεν ζητούσαμε
+                  κάρτα, και ήταν αληθές τότε. Σήμερα το επόμενο βήμα ΕΙΝΑΙ η
+                  κάρτα, οπότε η ίδια φράση θα στεκόταν δίπλα της λέγοντας το
+                  αντίθετο. Στη θέση της μπαίνει το μόνο που ισχύει και πριν και
+                  μετά: πόσο, πότε, και ότι αλλάζει όποτε θέλει ο χρήστης.
 
-                  ΚΑΙ ΓΙΑΤΙ ΔΕΝ ΓΡΑΦΕΙ ΠΙΑ «ΤΟ ΔΟΚΙΜΑΖΕΙΣ 30 ΗΜΕΡΕΣ». Το πακέτο
-                  δεν δοκιμάζεται: η δοκιμή τρέχει σε σταθερό επίπεδο
-                  (TRIAL_PLAN) για κάθε νέο λογαριασμό, έτσι το λέει και ο
-                  server (user_plan_rank, rank 2) και οι Όροι χρήσης. Ο μεσίτης
-                  που πάτησε την κάρτα «Επαγγελματίας» διάβαζε ότι δοκιμάζει
-                  15 ακίνητα, Πελατολόγιο, Χαρτοφυλάκιο και επώνυμες αναφορές,
-                  και μέσα στην εφαρμογή έβρισκε 3 ακίνητα και έξι κλειδωμένες
-                  δυνατότητες. Το επίπεδο ονομάζεται από το PLANS, ώστε μία
-                  μετονομασία πακέτου να μην αφήσει εδώ παλιό όνομα. */}
+                  ΚΑΙ ΤΟ ΠΟΣΟ ΓΡΑΦΕΤΑΙ ΟΛΟΚΛΗΡΟ, ΜΕ ΤΟΝ ΚΥΚΛΟ ΤΟΥ. Το επόμενο
+                  βήμα μετά την επιβεβαίωση του email είναι το ταμείο, δηλαδή
+                  μια κάρτα. Ο άνθρωπος που πάτησε «ετήσια, με δύο μήνες
+                  δωρεάν» πρέπει να δει ΕΔΩ τα 99,00 € που θα δει και εκεί: μια
+                  εγγραφή που δείχνει άλλο ποσό από την πληρωμή είναι ο πιο
+                  σίγουρος τρόπος να εγκαταλειφθεί το ταμείο.
+
+                  ΚΑΙ ΓΙΑΤΙ ΕΦΥΓΕ Ο ΟΡΟΣ ΓΙΑ ΤΟ ΠΑΚΕΤΟ ΕΠΑΓΓΕΛΜΑΤΙΑ. Ελεγε ότι
+                  «ισχύει εφόσον δηλώσεις τον αντίστοιχο τρόπο χρήσης», γιατί ο
+                  τύπος προφίλ δηλωνόταν στο καλωσόρισμα και το ταμείο απαντούσε
+                  403 σε όποιον δεν τον είχε ακόμη. Πλέον τον γράφει η ίδια η
+                  αγορά, στον webhook: ο όρος δεν υπάρχει, άρα δεν λέγεται. */}
               {chosenPlan && (
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', marginBottom: 24, borderRadius: 10, background: 'var(--accent-dim)', border: '1px solid var(--accent-border)' }}>
                   <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0, marginTop: 7 }} />
                   <span style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-                    Διάλεξες το <strong style={{ color: 'var(--text-primary)' }}>{PLANS[chosenPlan].name}</strong>. Οι πρώτες {TRIAL_DAYS} ημέρες τρέχουν δωρεάν στο επίπεδο «{PLANS[TRIAL_PLAN].name}», για κάθε νέο λογαριασμό. Η επιλογή σου μένει στον λογαριασμό για μετά τη δοκιμή, και την αλλάζεις όποτε θέλεις.
-                    {proOnlyPlan ? ' Είναι πακέτο επαγγελματία και ισχύει εφόσον δηλώσεις τον αντίστοιχο τρόπο χρήσης.' : null}
+                    Διάλεξες το <strong style={{ color: 'var(--text-primary)' }}>{PLANS[chosenPlan].name}</strong>, με {chosenCycle === 'annual'
+                      ? <>ετήσια χρέωση <strong style={{ color: 'var(--text-primary)' }}>{fe(PLANS[chosenPlan].priceAnnual)}</strong></>
+                      : <>μηνιαία χρέωση <strong style={{ color: 'var(--text-primary)' }}>{fe(PLANS[chosenPlan].priceMonthly)}</strong></>}. Οι πρώτες {TRIAL_DAYS} ημέρες είναι δωρεάν και η πρώτη χρέωση γίνεται την {TRIAL_DAYS + 1}η ημέρα. Το πακέτο το αλλάζεις όποτε θέλεις.
                   </span>
                 </div>
               )}

@@ -16,7 +16,7 @@
 // και να το μοιράζονται client (UI gating) και server (RLS/trigger έχει δικό του).
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { PLANS, propertyAllowance, PLAN_ORDER, TRIAL_DAYS, normalizePlan, type PlanId } from './plans';
+import { PLANS, propertyAllowance, PLAN_ORDER, TRIAL_DAYS, BILLING_CYCLES, normalizePlan, type PlanId, type BillingCycle } from './plans';
 
 export type ProfileType = 'individual' | 'professional';
 
@@ -318,6 +318,36 @@ export function isPlanAllowedForProfile(profile: ProfileType, plan: PlanId): boo
 export function planFromParam(id: string | null | undefined): PlanId | null {
   const plan = normalizePlan(id);
   return PLANS[plan].priceMonthly > 0 ? plan : null;
+}
+
+/**
+ * Ο ΚΥΚΛΟΣ ΠΟΥ ΗΡΘΕ ΩΣ `?cycle=`. Μηνιαία όταν δεν το λέει κανείς.
+ *
+ * ΓΙΑΤΙ ΔΕΝ ΕΠΙΣΤΡΕΦΕΙ `null` ΟΠΩΣ ΤΟ ΠΑΚΕΤΟ: «κανένα πακέτο» είναι υπαρκτή
+ * κατάσταση — ο επισκέπτης μπορεί να μπήκε κατευθείαν στην εγγραφή χωρίς να
+ * περάσει από τον τιμοκατάλογο. «Κανένας κύκλος» δεν είναι: μια συνδρομή
+ * χρεώνεται είτε τον μήνα είτε τον χρόνο. Οταν λείπει, ισχύει ο μηνιαίος,
+ * και η οθόνη τον ΓΡΑΦΕΙ μαζί με το ποσό — καμία σιωπηλή προεπιλογή.
+ */
+export function cycleFromParam(v: string | null | undefined): BillingCycle {
+  const raw = (v || '').trim().toLowerCase();
+  return BILLING_CYCLES.includes(raw as BillingCycle) ? (raw as BillingCycle) : 'monthly';
+}
+
+/**
+ * ΠΟΙΟΣ ΤΥΠΟΣ ΠΡΟΦΙΛ ΑΓΟΡΑΖΕΙ ΑΥΤΟ ΤΟ ΠΑΚΕΤΟ.
+ *
+ * Το αντίστροφο του ALLOWED_PLANS, και υπάρχει για μία στιγμή: ο νέος
+ * λογαριασμός φτάνει στο ταμείο ΠΡΙΝ δηλώσει τι είναι — ο τύπος ζητιέται στο
+ * καλωσόρισμα, που έρχεται αργότερα. Ο έλεγχος του ταμείου τον έκρινε τότε
+ * «ιδιώτη» και απαντούσε 403 στα δύο επαγγελματικά πακέτα, δηλαδή έκοβε την
+ * αγορά ακριβώς σε όποιον πάτησε την ακριβότερη κάρτα.
+ *
+ * Οταν ΔΕΝ υπάρχει δήλωση, το πακέτο ΕΙΝΑΙ η δήλωση: όποιος αγοράζει
+ * «Επαγγελματία» είναι επαγγελματίας. Οταν υπάρχει, δεν αγγίζεται.
+ */
+export function profileForPlan(plan: PlanId): ProfileType {
+  return ALLOWED_PLANS.professional.includes(plan) ? 'professional' : 'individual';
 }
 
 /** Το κορυφαίο (πληρωμένο) πλάνο του προφίλ — στόχος αναβάθμισης & δωρεάν μηνών. */

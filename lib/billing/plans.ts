@@ -8,6 +8,18 @@ import { fe } from '../core/format';
 
 export type PlanId = 'free' | 'solo' | 'owner' | 'agency' | 'office';
 
+/**
+ * Ο κύκλος χρέωσης: μηνιαία ή ετήσια.
+ *
+ * ΗΤΑΝ ΓΡΑΜΜΕΝΟΣ ΔΥΟ ΦΟΡΕΣ — μία στα όρια του βοηθού και μία στον έμπορο —
+ * με τις δύο δηλώσεις να μη γνωρίζουν η μία την άλλη. Ο κύκλος δεν ανήκει
+ * ούτε στον βοηθό ούτε στον έμπορο: ανήκει στη συνδρομή, δηλαδή εδώ.
+ */
+export type BillingCycle = 'monthly' | 'annual';
+
+/** Και οι δύο κύκλοι, με τη σειρά που εμφανίζονται σε κάθε επιλογέα. */
+export const BILLING_CYCLES: readonly BillingCycle[] = ['monthly', 'annual'];
+
 export interface Plan {
   id: PlanId;
   name: string;

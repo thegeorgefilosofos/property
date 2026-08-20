@@ -27,7 +27,7 @@
 //    λάθος λογαριασμό ή σε κανέναν.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { PLANS, normalizePlan, type PlanId } from './plans';
+import { PLANS, normalizePlan, BILLING_CYCLES, type PlanId, type BillingCycle } from './plans';
 
 /**
  * Οι καταστάσεις συνδρομής της Lemon Squeezy, όπως τις ορίζει η τεκμηρίωσή της.
@@ -41,9 +41,6 @@ export type LsStatus = (typeof LS_STATUSES)[number];
 
 export const isLsStatus = (v: unknown): v is LsStatus =>
   typeof v === 'string' && (LS_STATUSES as readonly string[]).includes(v);
-
-/** Ο κύκλος χρέωσης, όπως τον ξέρει ήδη η εφαρμογή. */
-export type BillingCycle = 'monthly' | 'annual';
 
 export interface VariantPlan { plan: PlanId; cycle: BillingCycle }
 
@@ -156,8 +153,6 @@ export interface VariantMapResult {
   error: string;
 }
 
-const CYCLES: readonly BillingCycle[] = ['monthly', 'annual'];
-
 export function parseVariantMap(raw: string | undefined | null): VariantMapResult {
   const map = new Map<string, VariantPlan>();
   const text = (raw || '').trim();
@@ -170,7 +165,7 @@ export function parseVariantMap(raw: string | undefined | null): VariantMapResul
     // ΟΧΙ normalizePlan ΕΔΩ: εκείνο επιστρέφει «free» για ό,τι δεν αναγνωρίζει,
     // δηλαδή θα δεχόταν τυπογραφικό και θα χάριζε πακέτο χωρίς να πει λέξη.
     if (!(planRaw in PLANS)) { bad.push(`«${entry}»: άγνωστο πακέτο «${planRaw}»`); continue; }
-    if (!CYCLES.includes(cycleRaw as BillingCycle)) { bad.push(`«${entry}»: άγνωστος κύκλος «${cycleRaw}»`); continue; }
+    if (!BILLING_CYCLES.includes(cycleRaw as BillingCycle)) { bad.push(`«${entry}»: άγνωστος κύκλος «${cycleRaw}»`); continue; }
     if (map.has(variantId)) { bad.push(`«${entry}»: η παραλλαγή ${variantId} ορίζεται δύο φορές`); continue; }
     map.set(variantId, { plan: normalizePlan(planRaw), cycle: cycleRaw as BillingCycle });
   }

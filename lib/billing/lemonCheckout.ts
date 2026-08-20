@@ -23,8 +23,7 @@
 // το αίτημα του περιηγητή — έρχεται από τη συνεδρία.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import type { PlanId } from './plans';
-import type { BillingCycle } from './lemon';
+import type { PlanId, BillingCycle } from './plans';
 import { apiConfigError, lemonRequest, storeId, type BillingEnv } from './lemonApi';
 
 export type { BillingEnv };

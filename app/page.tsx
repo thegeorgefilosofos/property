@@ -1169,7 +1169,6 @@ export default async function Landing() {
                 sub={plan.tagline}
                 price={fe(plan.priceMonthly)}
                 per="τον μήνα"
-                note={<>ή <strong style={{ color: TEXT }}>{fe(plan.priceAnnual)} τον χρόνο</strong></>}
                 // ΤΟ ΔΩΡΟ ΤΗΣ ΕΤΗΣΙΑΣ ΥΠΟΛΟΓΙΖΕΤΑΙ, ΔΕΝ ΓΡΑΦΕΤΑΙ. Ήταν σταθερό
                 // «12 μήνες στην τιμή των 10» σε κάθε κάρτα, ενώ το φθηνότερο
                 // πακέτο δίνει έναν μήνα. Μία τιμή που αλλάζει και μια ταμπέλα
@@ -1181,7 +1180,8 @@ export default async function Landing() {
                 // γράφουν το αποτέλεσμα: «2 μήνες δωρεάν». Ίδιο νούμερο,
                 // μηδέν νοητική εργασία, και είναι το ΜΟΝΟ δωρεάν που υπάρχει
                 // εδώ πέρα από τη δοκιμή και τις συστάσεις.
-                discount={freeMonths === 1 ? '1 μήνας δωρεάν' : `${freeMonths} μήνες δωρεάν`}
+                note={<>ή <strong style={{ color: TEXT }}>{fe(plan.priceAnnual)} τον χρόνο</strong></>}
+                annual={`Ετήσια, με ${freeMonths} ${freeMonths === 1 ? 'μήνα' : 'μήνες'} δωρεάν`}
                 inherits={prev ? `Όλα του «${prev.name}», και:` : 'Περιλαμβάνει:'}
                 planId={id}
                 ai={aiLimitsFor(id).perMonth}
@@ -1388,8 +1388,8 @@ function SectionHead({ over, title, sub }: { over: string; title: string; sub?: 
   );
 }
 
-function PlanCard({ planId, name, nameColor, sub, price, per, note, discount, inherits, ai, items, cta, ctaGhost, featured }: {
-  planId: string; name: string; nameColor: string; sub: string; price: string; per: string; note: React.ReactNode; discount?: string; inherits?: string; ai: number; items: string[]; cta: string; ctaGhost?: boolean; featured: boolean;
+function PlanCard({ planId, name, nameColor, sub, price, per, note, annual, inherits, ai, items, cta, ctaGhost, featured }: {
+  planId: string; name: string; nameColor: string; sub: string; price: string; per: string; note: React.ReactNode; annual: string; inherits?: string; ai: number; items: string[]; cta: string; ctaGhost?: boolean; featured: boolean;
 }) {
   return (
     <div className="lp-card" style={{ position: 'relative', background: PANEL, border: featured ? `1.5px solid color-mix(in srgb, var(--accent) 50%, transparent)` : `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(16px, 1.6vw, 20px)', boxShadow: featured ? '0 24px 60px -30px color-mix(in srgb, var(--accent) 60%, transparent)' : 'none' }}>
@@ -1409,19 +1409,6 @@ function PlanCard({ planId, name, nameColor, sub, price, per, note, discount, in
         <span style={{ fontSize: 13, color: MUTED }}>{per}</span>
       </div>
       <div style={{ fontSize: 12, color: FAINT, marginTop: 5 }}>{note}</div>
-      {/* ΤΟ ΔΩΡΟ ΣΕ ΔΙΚΟ ΤΟΥ ΠΛΑΙΣΙΟ. Ήταν κολλημένο στο τέλος της ίδιας μικρής,
-          ξεθωριασμένης γραμμής με την ετήσια τιμή, μετά από μια τελεία: το πιο
-          δυνατό επιχείρημα της ετήσιας συνδρομής, γραμμένο σαν υποσημείωση
-          υποσημείωσης. Το πλαίσιο είναι ΟΥΔΕΤΕΡΟ — περίγραμμα και φόντο από τα
-          tokens της επιφάνειας, όχι πράσινη κονκάρδα «έκπτωσης»: ξεχωρίζει με
-          σχήμα, όχι με χρώμα-ετυμηγορία. */}
-      <div style={{ marginTop: 8 }}>
-        {discount && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', borderRadius: 100,
-            border: `1px solid ${LINE}`, background: 'var(--bg-elevated)', padding: '3px 10px',
-            fontSize: 11, fontWeight: 700, color: TEXT, letterSpacing: '0.01em', whiteSpace: 'nowrap' }}>{discount}</span>
-        )}
-      </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, textAlign: 'left', margin: '14px 0 16px' }}>
         {inherits && <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent)', letterSpacing: '-0.01em', marginBottom: 1 }}>{inherits}</div>}
         {/* ΤΟ ΠΑΚΕΤΟ ΕΡΩΤΗΣΕΩΝ ΜΕ ΝΟΥΜΕΡΟ, ΟΧΙ ΜΕ ΕΠΙΘΕΤΟ. Οι λίστες έλεγαν
@@ -1439,12 +1426,29 @@ function PlanCard({ planId, name, nameColor, sub, price, per, note, discount, in
           <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 7 }}>{check}<span className="lp-even" style={{ fontSize: 12, color: TEXT, lineHeight: 1.4 }}>{t}</span></div>
         ))}
       </div>
-      {/* Η ΕΠΙΛΟΓΗ ΤΑΞΙΔΕΥΕΙ ΜΑΖΙ ΜΕ ΤΟ ΚΛΙΚ. Και οι τέσσερις κάρτες οδηγούσαν
-          στο ίδιο γυμνό «/signup», οπότε η επιλογή πακέτου —η μόνη απόφαση που
-          παίρνει ο επισκέπτης σε αυτή τη σελίδα— χανόταν στη μετάβαση: η
-          εγγραφή δεν ήξερε ποια κάρτα πάτησε και δεν μπορούσε να το θυμηθεί.
-          Με το `?plan=`, η εγγραφή το δείχνει και το κρατά στο προφίλ. */}
-      <Link href={`/signup?plan=${planId}`} className={ctaGhost ? 'lp-ghost' : 'lp-cta lp-primary'} style={{ display: 'block', textAlign: 'center', background: ctaGhost ? 'transparent' : undefined, color: ctaGhost ? TEXT : undefined, textDecoration: 'none', fontSize: 13, fontWeight: 700, padding: '10px', borderRadius: 100, border: ctaGhost ? `1px solid ${LINE}` : 'none' }}>{cta}</Link>
+      {/* ══ Η ΕΠΙΛΟΓΗ ΤΑΞΙΔΕΥΕΙ ΜΑΖΙ ΜΕ ΤΟ ΚΛΙΚ, ΚΑΙ ΟΙ ΕΠΙΛΟΓΕΣ ΕΙΝΑΙ ΔΥΟ ══
+          Και οι τέσσερις κάρτες οδηγούσαν στο ίδιο γυμνό «/signup», οπότε η
+          επιλογή πακέτου —η μόνη απόφαση που παίρνει ο επισκέπτης σε αυτή τη
+          σελίδα— χανόταν στη μετάβαση.
+
+          ΚΑΙ Ο ΚΥΚΛΟΣ ΤΑΞΙΔΕΥΕΙ ΤΩΡΑ ΜΑΖΙ ΤΟΥ. Το δώρο της ετήσιας ήταν μια
+          κονκάρδα που δεν πατιόταν: ο επισκέπτης που πείθεται από τους δύο
+          δωρεάν μήνες κατέληγε στην ίδια ΜΗΝΙΑΙΑ εγγραφή με όποιον δεν τους
+          πρόσεξε καν — και μετά την επιβεβαίωση του email πήγαινε κατευθείαν
+          στο ταμείο, όπου ο κύκλος δεν ξαναρωτιέται. Δηλαδή η μισή απόφαση,
+          και η ακριβότερη, χανόταν σε μια ταμπέλα. Τώρα είναι δρόμος.
+
+          ΓΙΑΤΙ ΔΕΥΤΕΡΟΣ ΣΥΝΔΕΣΜΟΣ ΚΑΙ ΟΧΙ ΔΙΑΚΟΠΤΗΣ ΣΤΗΝ ΚΟΡΥΦΗ: ο διακόπτης
+          θα έκρυβε τη μία από τις δύο τιμές, και η σύγκριση των τεσσάρων
+          πακέτων γίνεται με το μάτι, σε μία σάρωση. Εδώ φαίνονται και οι δύο.
+
+          ΚΑΙ ΓΙΑΤΙ Ο ΣΥΝΔΕΣΜΟΣ ΔΕΝ ΞΑΝΑΓΡΑΦΕΙ ΤΗΝ ΕΤΗΣΙΑ ΤΙΜΗ: τη λέει ήδη η
+          γραμμή κάτω από τη μηνιαία. Μετρημένο σε πραγματικό Chromium: με το
+          ποσό μέσα, το κείμενο έσπαγε σε δύο γραμμές από τις 1000 ως τις 1160
+          και μόνο σε τρεις από τις τέσσερις κάρτες — τέσσερα κουμπιά με άνισο
+          «πόδι». Χωρίς αυτό, μία γραμμή σε κάθε πλάτος και σε κάθε πακέτο. */}
+      <Link href={`/signup?plan=${planId}&cycle=monthly`} className={ctaGhost ? 'lp-ghost' : 'lp-cta lp-primary'} style={{ display: 'block', textAlign: 'center', background: ctaGhost ? 'transparent' : undefined, color: ctaGhost ? TEXT : undefined, textDecoration: 'none', fontSize: 13, fontWeight: 700, padding: '10px', borderRadius: 100, border: ctaGhost ? `1px solid ${LINE}` : 'none' }}>{cta}</Link>
+      <Link href={`/signup?plan=${planId}&cycle=annual`} className="lp-link" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minHeight: 44, marginTop: 2, color: MUTED, textDecoration: 'none', fontSize: 12, lineHeight: 1.35 }}>{annual}</Link>
     </div>
   );
 }

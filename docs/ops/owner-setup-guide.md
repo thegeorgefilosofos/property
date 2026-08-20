@@ -43,7 +43,9 @@ the substance of what push protection would enforce.
 
 **Supabase Dashboard → Authentication → URL Configuration / Policies:**
 - **Redirect URLs**: restrict to your app's URL(s) only (e.g. `https://propertyos.gr/**`
-  and your Vercel/preview URL) — remove any wildcard `*`.
+  and your Vercel/preview URL) — remove any wildcard `*`. The confirmation link
+  now returns to `/auth/callback`, which the `/**` suffix already covers; if you
+  list exact URLs instead, add `https://<your-domain>/auth/callback`.
 - **OTP / email link expiry**: set to **≤ 900 seconds** (15 min).
 - **Session timeout / refresh**: keep defaults or tighten; enable "reuse detection".
 - **Anonymous sign-ins**: off. **Email confirmation**: on. (Already set — verify.)
