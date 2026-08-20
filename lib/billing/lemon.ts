@@ -199,6 +199,38 @@ function idText(v: unknown): string {
 const dateText = (v: unknown): string | null =>
   typeof v === 'string' && v.trim() ? v.trim() : null;
 
+// ── ΠΟΙΑ ΓΕΓΟΝΟΤΑ ΚΟΥΒΑΛΟΥΝ ΟΝΤΩΣ ΣΥΝΔΡΟΜΗ ───────────────────────────────
+//
+// ΤΟ ΠΡΟΘΕΜΑ ΔΕΝ ΑΡΚΕΙ, ΚΑΙ ΤΟ ΛΑΘΟΣ ΘΑ ΕΒΓΑΙΝΕ ΜΟΝΟ ΣΤΗΝ ΠΑΡΑΓΩΓΗ. Τα
+// `subscription_payment_*` αρχίζουν κι εκείνα από «subscription_», αλλά στο
+// `data` δεν φέρνουν συνδρομή: φέρνουν ΠΑΡΑΣΤΑΤΙΚΟ, με `status` που παίρνει
+// τιμές «paid», «pending», «refunded». Καμία τους δεν είναι κατάσταση
+// συνδρομής.
+//
+// Ο χειριστής τα διάβαζε ως συνδρομές, αποτύγχανε στην ανάγνωση της
+// κατάστασης, και απαντούσε 422 — δηλαδή «ξαναστείλ' το». Ο έμπορος
+// ξαναδοκίμαζε, ο πίνακάς του γέμιζε κόκκινο, και ο ιδιοκτήτης του
+// καταστήματος έψαχνε βλάβη που δεν υπήρχε. Και θα συνέβαινε ΜΟΛΙΣ κάποιος
+// επέλεγε «όλα τα γεγονότα συνδρομής» στη ρύθμιση του webhook — δηλαδή την
+// πρώτη φορά.
+//
+// Η λίστα είναι ΘΕΤΙΚΗ και όχι εξαίρεση: ένα νέο `subscription_κάτι` που δεν
+// ξέρουμε αγνοείται ήσυχα, αντί να θεωρηθεί σφάλμα.
+const SUBSCRIPTION_EVENTS = new Set([
+  'subscription_created',
+  'subscription_updated',
+  'subscription_cancelled',
+  'subscription_resumed',
+  'subscription_expired',
+  'subscription_paused',
+  'subscription_unpaused',
+  'subscription_plan_changed',
+]);
+
+/** Κουβαλά το γεγονός αντικείμενο συνδρομής στο `data`; */
+export const carriesSubscription = (event: string): boolean =>
+  SUBSCRIPTION_EVENTS.has(event.trim());
+
 /**
  * Διαβάζει ένα γεγονός συνδρομής.
  *
@@ -216,7 +248,7 @@ export function readSubscriptionEvent(payload: unknown): ReadResult {
 
   const event = typeof meta?.event_name === 'string' ? meta.event_name.trim() : '';
   if (!event) return { ok: false, reason: 'Λείπει το meta.event_name.' };
-  if (!event.startsWith('subscription_')) return { ok: false, reason: `Το γεγονός «${event}» δεν αφορά συνδρομή.` };
+  if (!carriesSubscription(event)) return { ok: false, reason: `Το γεγονός «${event}» δεν κουβαλά συνδρομή.` };
 
   const id = idText(data?.id);
   if (!id) return { ok: false, reason: 'Λείπει το data.id της συνδρομής.' };

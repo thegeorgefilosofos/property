@@ -30,7 +30,7 @@
 import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { verifySignature, SIGNATURE_HEADER, SECRET_ENV } from '@/lib/billing/lemonSignature';
-import { readSubscriptionEvent, parseVariantMap, planOfVariant, isEntitled } from '@/lib/billing/lemon';
+import { readSubscriptionEvent, carriesSubscription, parseVariantMap, planOfVariant, isEntitled } from '@/lib/billing/lemon';
 
 /** Ο πίνακας που κρατά το πακέτο του κάθε λογαριασμού. */
 const TABLE = 'billing_profiles';
@@ -55,10 +55,16 @@ export async function POST(request: Request) {
 
   const read = readSubscriptionEvent(payload);
   if (!read.ok) {
-    // ΔΥΟ ΔΙΑΦΟΡΕΤΙΚΑ ΠΡΑΓΜΑΤΑ, ΔΥΟ ΑΠΑΝΤΗΣΕΙΣ. Γεγονός παραγγελίας δεν μας
-    // αφορά και είναι φυσιολογικό — 200. Γεγονός συνδρομής που δεν διαβάστηκε
-    // είναι πρόβλημα και πρέπει να φανεί στον πίνακα του εμπόρου.
-    const ours = String((payload as { meta?: { event_name?: unknown } })?.meta?.event_name || '').startsWith('subscription_');
+    // ΔΥΟ ΔΙΑΦΟΡΕΤΙΚΑ ΠΡΑΓΜΑΤΑ, ΔΥΟ ΑΠΑΝΤΗΣΕΙΣ. Γεγονός που δεν μας αφορά —
+    // παραγγελία, παραστατικό, γεγονός που δεν ξέρουμε — είναι φυσιολογικό και
+    // παίρνει 200. Γεγονός ΣΥΝΔΡΟΜΗΣ που δεν διαβάστηκε είναι πρόβλημα και
+    // πρέπει να φανεί στον πίνακα του εμπόρου.
+    //
+    // Η ΚΡΙΣΗ ΔΕΝ ΓΙΝΕΤΑΙ ΜΕ ΤΟ ΠΡΟΘΕΜΑ. Τα `subscription_payment_*` αρχίζουν
+    // κι εκείνα από «subscription_» και φέρνουν παραστατικό, όχι συνδρομή:
+    // απαντώντας τους 422 ζητούσαμε από τον έμπορο να τα ξαναστείλει, για
+    // πάντα.
+    const ours = carriesSubscription(String((payload as { meta?: { event_name?: unknown } })?.meta?.event_name || ''));
     log('γεγονός που δεν εφαρμόστηκε:', read.reason);
     return NextResponse.json({ ok: !ours }, { status: ours ? 422 : 200 });
   }

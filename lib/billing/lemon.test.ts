@@ -4,6 +4,7 @@
 // Ενα λάθος σε αυτό το αρχείο δεν χαλάει οθόνη: ή χαρίζει συνδρομή, ή κόβει
 // πρόσβαση σε πελάτη που πλήρωσε. Και τα δύο τα μαθαίνεις από παράπονο.
 import {
+  carriesSubscription,
   LS_STATUSES, isLsStatus, isEntitled, parseVariantMap, planOfVariant, readSubscriptionEvent,
 } from './lemon'
 import { parseCheckoutLinks, checkoutUrl, isCheckoutUrl } from './lemonCheckout'
@@ -169,6 +170,37 @@ ok('το γυμνό lemonsqueezy.com γίνεται δεκτό', isCheckoutUrl('
 }
 ok('κενή μεταβλητή συνδέσμων λέει ποια λείπει',
   parseCheckoutLinks(undefined).error.includes('LEMON_CHECKOUT_LINKS'))
+
+// ── ΤΑ ΠΑΡΑΣΤΑΤΙΚΑ ΔΕΝ ΕΙΝΑΙ ΣΥΝΔΡΟΜΕΣ ────────────────────────────────────
+// ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΘΕΡΑΠΕΥΕΤΑΙ: το `subscription_payment_success` αρχίζει από
+// «subscription_», αλλά στο `data` φέρνει ΠΑΡΑΣΤΑΤΙΚΟ με `status: "paid"`.
+// Ο χειριστής το διάβαζε ως συνδρομή, αποτύγχανε, και απαντούσε «ξαναστείλ'
+// το» — για πάντα. Θα συνέβαινε μόλις κάποιος επέλεγε «όλα τα γεγονότα
+// συνδρομής» στη ρύθμιση του webhook, δηλαδή την πρώτη φορά.
+for (const e of ['subscription_created', 'subscription_updated', 'subscription_cancelled',
+  'subscription_resumed', 'subscription_expired', 'subscription_paused',
+  'subscription_unpaused', 'subscription_plan_changed']) {
+  ok(`το «${e}» κουβαλά συνδρομή`, carriesSubscription(e))
+}
+for (const e of ['subscription_payment_success', 'subscription_payment_failed',
+  'subscription_payment_recovered', 'subscription_payment_refunded']) {
+  ok(`το «${e}» ΔΕΝ κουβαλά συνδρομή`, !carriesSubscription(e))
+}
+ok('τα γεγονότα παραγγελίας δεν κουβαλούν συνδρομή',
+  !carriesSubscription('order_created') && !carriesSubscription('order_refunded'))
+ok('άγνωστο γεγονός συνδρομής αγνοείται ήσυχα', !carriesSubscription('subscription_κάτι_νέο'))
+ok('το κενό δεν κουβαλά τίποτα', !carriesSubscription('') && !carriesSubscription('   '))
+{
+  // Το πραγματικό σχήμα ενός γεγονότος παραστατικού: `status: "paid"`.
+  const invoice = {
+    meta: { event_name: 'subscription_payment_success' },
+    data: { id: '9', attributes: { status: 'paid', subscription_id: 5, total: 390 } },
+  }
+  const r = readSubscriptionEvent(invoice)
+  ok('το παραστατικό δεν διαβάζεται ως συνδρομή', !r.ok)
+  ok('και ο λόγος λέει ότι δεν κουβαλά συνδρομή',
+    !r.ok && r.reason.includes('δεν κουβαλά συνδρομή'))
+}
 
 console.log(fail === 0 ? `✓ lemon: ${pass} έλεγχοι πέρασαν` : `✗ lemon: ${fail} απέτυχαν από ${pass + fail}`)
 if (fail > 0) process.exit(1)
