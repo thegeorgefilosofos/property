@@ -135,12 +135,21 @@ SRC=$(psql -h "$WORK" -U postgres -d posdb -X -A -t \
 DB_VOL=$(echo "$SRC" | grep -oE "'indiv_volume' then v_target := [0-9]+" | grep -oE '[0-9]+$' || true)
 DB_PRO=$(echo "$SRC" | grep -oE "'pro_paid'     then v_target := [0-9]+" | grep -oE '[0-9]+$' || true)
 
+# Το ίδιο για τις ημέρες της δοκιμής: ζούσαν χειρόγραφες ως `interval '30
+# days'` μέσα στο σώμα της `user_plan_rank`, όπου δεν τις βλέπει κανείς. Μια
+# απόκλιση εκεί σημαίνει ότι η οθόνη μετρά αλλιώς από τη βάση — και η βάση
+# είναι που κόβει το «Προσθήκη ακινήτου».
+TS_TRIAL=$(grep -oE 'TRIAL_DAYS = [0-9]+' "$ROOT/lib/billing/plans.ts" | grep -oE '[0-9]+')
+DB_TRIAL=$(psql -h "$WORK" -U postgres -d posdb -X -A -t -c "select public.trial_days()" | tr -d '[:space:]')
+
 drift=0
 [ "$TS_VOL" = "$DB_VOL" ] || { echo "✗ στόχος όγκου: εφαρμογή $TS_VOL, βάση ${DB_VOL:-—}"; drift=1; }
 [ "$TS_PRO" = "$DB_PRO" ] || { echo "✗ στόχος συνδρομητών: εφαρμογή $TS_PRO, βάση ${DB_PRO:-—}"; drift=1; }
-[ "$drift" = "0" ] || { echo ""; echo "🔴 Η βάση αποδίδει άλλες ανταμοιβές από αυτές που γράφει η οθόνη."; exit 1; }
+[ "$TS_TRIAL" = "$DB_TRIAL" ] || { echo "✗ ημέρες δοκιμής: εφαρμογή $TS_TRIAL, βάση ${DB_TRIAL:-—}"; drift=1; }
+[ "$drift" = "0" ] || { echo ""; echo "🔴 Η βάση δίνει άλλα από αυτά που γράφει η οθόνη."; exit 1; }
 
 echo "✅ $count μεταναστεύσεις τρέχουν σε πραγματικό Postgres, $probes έλεγχοι απομόνωσης"
 echo "   κρατούν, το σενάριο του staging γεμίζει λογαριασμό, και οι στόχοι του"
 echo "   Προγράμματος Πρόσκλησης συμφωνούν με το"
-echo "   lib/referral/referral.ts ($TS_VOL, $TS_PRO)."
+echo "   lib/referral/referral.ts ($TS_VOL, $TS_PRO), και η δοκιμή είναι $TS_TRIAL"
+echo "   ημέρες και στα δύο."

@@ -437,6 +437,8 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   const [partner, setPartner] = useState(false);
   const [compPlan, setCompPlan] = useState<string | null>(null);
   const [compUntil, setCompUntil] = useState<string | null>(null);
+  /** Η σφραγίδα της δοκιμής: μόλις μπει, η τοπική δοκιμή δεν ισχύει πια. */
+  const [trialUsedAt, setTrialUsedAt] = useState<string | null>(null);
   const [propertyCount, setPropertyCount] = useState<number | null>(null);
   const [inOrg, setInOrg] = useState(false);
 
@@ -471,9 +473,9 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   }, []);
 
   useEffect(() => {
-    billing.profile<{ plan: string | null; comp_plan: string | null; comp_until: string | null }>(
-      supabase, userId, 'plan, comp_plan, comp_until')
-      .then(data => { if (data) { setPlan(data.plan || 'free'); setCompPlan(data.comp_plan || null); setCompUntil(data.comp_until || null); } });
+    billing.profile<{ plan: string | null; comp_plan: string | null; comp_until: string | null; trial_used_at: string | null }>(
+      supabase, userId, 'plan, comp_plan, comp_until, trial_used_at')
+      .then(data => { if (data) { setPlan(data.plan || 'free'); setCompPlan(data.comp_plan || null); setCompUntil(data.comp_until || null); setTrialUsedAt(data.trial_used_at || null); } });
     supabase.from('referral_partners').select('user_id').eq('user_id', userId).maybeSingle()
       .then(({ data }) => setPartner(!!data));
     properties.count(supabase, userId).then(setPropertyCount);
@@ -558,7 +560,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
     setTimeout(() => billingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
   };
 
-  const ent = { plan, profileType, partner, compPlan, compUntil, createdAt: accountCreatedAt };
+  const ent = { plan, profileType, partner, compPlan, compUntil, trialUsedAt, createdAt: accountCreatedAt };
   const effPlan = effectivePlan(ent);
   const comp = activeComp(ent);
   // Η δωρεάν δοκιμή μετράει μόνο όσο δεν έχει ήδη πληρωμένο πλάνο (αλλιώς δεν

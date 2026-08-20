@@ -145,6 +145,11 @@ export interface EntitlementInput {
   /** Ιδιότητα συνεργάτη (referral_partners). */
   partner?: boolean;
   /** Δωρεάν πρόσβαση: επίπεδο πλάνου που χαρίστηκε (π.χ. από referral). */
+  /**
+   * Πότε δόθηκε η δωρεάν δοκιμή από τον έμπορο. Γεμάτο σημαίνει ότι η τοπική
+   * δοκιμή ΔΕΝ ισχύει πια — η πρόσβαση βγαίνει από τη συνδρομή.
+   */
+  trialUsedAt?: string | null;
   compPlan?: string | null;
   /** Λήξη της δωρεάν πρόσβασης (ISO). */
   compUntil?: string | null;
@@ -188,6 +193,16 @@ export const TRIAL_PLAN: PlanId = 'owner';
 
 export function trialState(input: EntitlementInput): TrialState {
   const off: TrialState = { active: false, daysLeft: 0, endsAt: null };
+  // ── Η ΔΟΚΙΜΗ ΕΙΝΑΙ ΜΙΑ ΑΝΑ ΛΟΓΑΡΙΑΣΜΟ ──────────────────────────────
+  // Μόλις ο webhook σφραγίσει το `trial_used_at`, η ΤΟΠΙΚΗ δοκιμή παύει: από
+  // εκεί και πέρα η πρόσβαση βγαίνει αποκλειστικά από τη συνδρομή.
+  //
+  // Χωρίς αυτή τη γραμμή, όποιος αγόραζε και ακύρωνε τη δεύτερη ημέρα
+  // κρατούσε επίπεδο «Ιδιοκτήτης+» για άλλες είκοσι οκτώ, επειδή ο
+  // λογαριασμός του ήταν ακόμη νεότερος των τριάντα ημερών. Δωρεάν προϊόν,
+  // χωρίς κανένα σφάλμα πουθενά. Ο ίδιος κανόνας ζει και στη
+  // `public.user_plan_rank`, και το db-replay επιβεβαιώνει ότι συμφωνούν.
+  if (input.trialUsedAt) return off;
   if (!input.createdAt) return off;
   const start = new Date(input.createdAt).getTime();
   if (!Number.isFinite(start)) return off;

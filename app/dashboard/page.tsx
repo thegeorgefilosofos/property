@@ -1284,6 +1284,9 @@ export default function Dashboard() {
   const [plan, setPlan] = useState<string>('free');       // τρέχον πακέτο συνδρομής (billing_profiles)
   const [compPlan, setCompPlan] = useState<string|null>(null);   // δωρεάν πρόσβαση: επίπεδο (π.χ. από referral)
   const [compUntil, setCompUntil] = useState<string|null>(null); // δωρεάν πρόσβαση: λήξη (ISO)
+  // Η σφραγίδα της δοκιμής. Οσο λείπει, ισχύει η τοπική δοκιμή των 30 ημερών·
+  // μόλις μπει, η πρόσβαση βγαίνει ΑΠΟΚΛΕΙΣΤΙΚΑ από τη συνδρομή.
+  const [trialUsedAt, setTrialUsedAt] = useState<string|null>(null);
   // ΤΟ ΟΝΟΜΑ ΙΔΙΟΚΤΗΤΗ ΕΙΧΕ ΔΥΟ ΣΤΗΛΕΣ ΚΑΙ ΚΑΝΕΝΑΝ ΑΝΑΓΝΩΣΤΗ ΕΔΩ.
   // Διαβαζόταν από το `billing_profiles.owner_name`, κρατιόταν σε κατάσταση, και
   // περνούσε στην Επισκόπηση μαζί με χειριστή αποθήκευσης — που δεν
@@ -1358,7 +1361,7 @@ export default function Dashboard() {
 
   // Δικαιώματα συνδρομής: το «ενεργό» πλάνο ορίζει τι βλέπεις (βασικό πλάνο,
   // ανυψωμένο από ενεργούς δωρεάν μήνες ή ιδιότητα Συνεργάτη).
-  const ent: EntitlementInput = { plan, profileType, partner: isPartner, compPlan, compUntil, createdAt: user?.created_at ?? null };
+  const ent: EntitlementInput = { plan, profileType, partner: isPartner, compPlan, compUntil, trialUsedAt, createdAt: user?.created_at ?? null };
   const effPlan = effectivePlan(ent);
 
   // ── ΤΟ ΠΕΡΙΕΧΟΜΕΝΟ ΤΟΥ ΠΙΝΑΚΑ ΥΠΟΔΟΧΗΣ ──────────────────────────────────
@@ -1487,7 +1490,7 @@ export default function Dashboard() {
       // Ιδιότητα συνεργάτη (για το έμβλημα στο header), αν έχει κερδηθεί.
       supabase.from('referral_partners').select('user_id').eq('user_id', user.id).maybeSingle().then(({ data }) => setIsPartner(!!data));
       // Τρέχον πλάνο (για το όριο ακινήτων). Αν δεν υπάρχει προφίλ, δωρεάν.
-      billing.profile<{ plan?: string|null; profile_type?: string|null; comp_plan?: string|null; comp_until?: string|null; legal_form?: string|null }>(supabase, user.id, 'plan, profile_type, comp_plan, comp_until, legal_form').then((data) => { setPlan(data?.plan || 'free'); setProfileType(data?.profile_type === 'professional' ? 'professional' : 'individual'); setCompPlan((data as { comp_plan?: string|null } | null)?.comp_plan ?? null); setCompUntil((data as { comp_until?: string|null } | null)?.comp_until ?? null); const raw = (data as { legal_form?: string|null } | null)?.legal_form ?? '';
+      billing.profile<{ plan?: string|null; profile_type?: string|null; comp_plan?: string|null; comp_until?: string|null; trial_used_at?: string|null; legal_form?: string|null }>(supabase, user.id, 'plan, profile_type, comp_plan, comp_until, trial_used_at, legal_form').then((data) => { setPlan(data?.plan || 'free'); setProfileType(data?.profile_type === 'professional' ? 'professional' : 'individual'); setCompPlan((data as { comp_plan?: string|null } | null)?.comp_plan ?? null); setCompUntil((data as { comp_until?: string|null } | null)?.comp_until ?? null); setTrialUsedAt((data as { trial_used_at?: string|null } | null)?.trial_used_at ?? null); const raw = (data as { legal_form?: string|null } | null)?.legal_form ?? '';
         setTaxForm(LEGAL_FORMS.includes(raw as LegalForm) ? raw as LegalForm : 'individual'); });
       // Μετατροπή κερδισμένων μηνών referral σε ενεργή δωρεάν πρόσβαση (server-verified,
       // idempotent). Εφαρμόζεται για την επόμενη φόρτωση· δεν είναι gameable από τον client.
