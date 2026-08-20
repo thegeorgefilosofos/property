@@ -205,6 +205,10 @@ export interface BillingProfilesRow {
   /** Η ώρα του τελευταίου γεγονότος που εφαρμόστηκε. Κόβει τα καθυστερημένα webhook. */
   mor_event_at: string | null;
   subscription_status: string | null;
+  /** Πότε δόθηκε η δωρεάν δοκιμή. Γεμάτο σημαίνει «καμία δεύτερη». */
+  trial_used_at: string | null;
+  /** Πότε εξαργυρώθηκε ο κωδικός δοκιμαστή. Οσο υπάρχει, δεν υπάρχει χρέωση. */
+  tester_since: string | null;
   updated_at: string | null;
   owner_name: string | null;
   profile_type: string | null;

@@ -24,7 +24,7 @@
     "app/dashboard/components/PortfolioTab.tsx": 1,
     "app/dashboard/components/PropertyPicker.tsx": 1,
     "app/dashboard/components/RentAdjustmentModal.tsx": 4,
-    "app/dashboard/components/ReportBranding.tsx": 2,
+    "app/dashboard/components/ReportBranding.tsx": 1,
     "app/dashboard/components/ReportBuilder.tsx": 1,
     "app/dashboard/components/ScanButton.tsx": 1,
     "app/dashboard/components/TabAccounting.tsx": 4,

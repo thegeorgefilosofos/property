@@ -26,6 +26,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { BillingProfilesRow } from '@/lib/supabase/tables';
 import { readOne } from './read';
+import type { DbError } from '@/lib/supabase/writeResult';
 
 const TABLE = 'billing_profiles';
 
@@ -92,6 +93,49 @@ export function save(db: Db, userId: string, patch: BillingPatch) {
   const clean: Record<string, unknown> = { ...patch };
   for (const key of SERVER_OWNED) delete clean[key];
   return db.from(TABLE).upsert({ ...clean, user_id: userId }, { onConflict: 'user_id' });
+}
+
+// ── ΟΙ ΓΡΑΨΙΜΑΤΑ ΤΟΥ ΔΙΑΚΟΜΙΣΤΗ ────────────────────────────────────────────
+//
+// ΤΑ ΤΡΙΑ ΠΑΡΑΚΑΤΩ ΠΑΡΑΚΑΜΠΤΟΥΝ ΣΚΟΠΙΜΑ ΤΟ `SERVER_OWNED`, ΚΑΙ ΓΙ' ΑΥΤΟ ΖΟΥΝ
+// ΕΔΩ ΜΕ ΟΝΟΜΑ. Γράφουν ακριβώς τις στήλες που η σκανδάλη `lock_billing_plan`
+// απαγορεύει στον πελάτη· καλούνται ΜΟΝΟ από διαδρομές που κρατούν ρόλο
+// υπηρεσίας, αφού έχουν πρώτα κρίνει οι ίδιες ποιος δικαιούται τι.
+//
+// Γραμμένα κατευθείαν μέσα στις διαδρομές, θα ήταν τρία `db.from(…)` σκόρπια
+// σε τρία αρχεία — και το επόμενο θα ξεχνούσε μια στήλη ή θα έγραφε λάθος
+// όνομα, που το PostgREST δεν το λέει σφάλμα.
+
+/** Ο λογαριασμός δοκιμαστή, όπως τον χρειάζονται οι διαδρομές. */
+export interface TesterState {
+  testerSince: string | null;
+  subscriptionId: string | null;
+}
+
+/** Διαβάζει αν ο λογαριασμός είναι δοκιμαστής, με το σφάλμα ορατό. */
+export async function testerState(db: Db, userId: string): Promise<{ state: TesterState; error: DbError | null }> {
+  const { row, error } = await readOne<{ tester_since: string | null; mor_subscription_id: string | null }>(
+    db.from(TABLE).select('tester_since, mor_subscription_id').eq('user_id', userId).maybeSingle(),
+  );
+  return {
+    state: { testerSince: row?.tester_since ?? null, subscriptionId: row?.mor_subscription_id ?? null },
+    error,
+  };
+}
+
+/**
+ * Δίνει την ιδιότητα δοκιμαστή.
+ *
+ * ΙΔΙΟΔΥΝΑΜΟ ΚΑΙ ΧΩΡΙΣ ΜΕΤΑΚΙΝΗΣΗ ΤΗΣ ΗΜΕΡΟΜΗΝΙΑΣ: δεύτερη εξαργύρωση από τον
+ * ίδιο δεν είναι σφάλμα, είναι κάποιος που ξαναπάτησε το κουμπί.
+ */
+export function markTester(db: Db, userId: string, since: string) {
+  return db.from(TABLE).upsert({ user_id: userId, tester_since: since }, { onConflict: 'user_id' });
+}
+
+/** Γράφει πακέτο και κύκλο. ΜΟΝΟ με ρόλο υπηρεσίας, αφού έχει κριθεί το δικαίωμα. */
+export function setPlan(db: Db, userId: string, plan: string, cycle: string) {
+  return db.from(TABLE).update({ plan, billing_cycle: cycle }).eq('user_id', userId);
 }
 
 /** Ό,τι θα αγνοηθεί από μια εγγραφή πελάτη. Δηλωμένο, για να ελέγχεται. */

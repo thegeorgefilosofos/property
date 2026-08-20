@@ -26,13 +26,13 @@ import * as properties from '@/lib/data/properties';
 import * as billing from '@/lib/data/billing';
 import { TextInput, CustomSelect } from './UIComponents';
 import { T, Btn, InfoBanner, Spinner, Card, SecHdr, fixedCols, fe, fd } from '@/components/Theme';
-import { PLANS, normalizePlan, annualPerMonth, type PlanId } from '@/lib/billing/plans';
+import { PLANS, PLAN_ORDER, normalizePlan, annualPerMonth, type PlanId } from '@/lib/billing/plans';
 // Η ΦΑΣΗ ΤΗΣ ΣΥΝΔΡΟΜΗΣ ΔΕΝ ΚΡΙΝΕΤΑΙ ΕΔΩ. Οι καταστάσεις τις ονομάζει ο
 // έμπορος και τις γράφει ο webhook· η οθόνη τις διαβάζει από την ίδια πηγή.
 import { subPhase } from '@/lib/billing/lemon';
 import { ALLOWED_PLANS, type ProfileType } from '@/lib/billing/entitlements';
 import { SegmentControl } from './UIComponents';
-import { notifyError } from '@/components/Toast';
+import { notifyError, notifyOk } from '@/components/Toast';
 import { ALL_COUNTRIES, isEuCountry, isReverseCharge, missingInvoiceFields, type InvoiceProfile } from '@/lib/billing/invoiceProfile';
 import { determineVat, vatTreatmentLabel } from '@/lib/billing/invoicing';
 
@@ -46,12 +46,14 @@ interface BillingData {
   subscription_status: string; mor_renews_at: string; mor_ends_at: string;
   /** Η συνδρομή στον έμπορο. Η ΥΠΑΡΞΗ της κρίνει αν υπάρχει πύλη διαχείρισης. */
   mor_subscription_id: string;
+  /** Ο λογαριασμός δοκιμαστή. Οσο υπάρχει, δεν υπάρχει τίποτα να αγοραστεί. */
+  tester_since: string;
 }
 const INIT: BillingData = {
   doc_type: 'receipt', full_name: '', company_name: '', afm: '', doy: '', profession: '',
   address: '', city: '', postal_code: '', country: 'GR', vat_number: '', phone: '', plan: 'free', billing_cycle: 'monthly',
   profile_type: 'individual', subscription_status: '', mor_renews_at: '', mor_ends_at: '',
-  mor_subscription_id: '',
+  mor_subscription_id: '', tester_since: '',
 };
 
 export default function Billing({ userId, wantPlan = null }: {
@@ -67,6 +69,11 @@ export default function Billing({ userId, wantPlan = null }: {
   const [saveErr, setSaveErr] = useState(false);
   const [prefilled, setPrefilled] = useState(false);
   const set = (k: keyof BillingData, v: string) => setD(p => ({ ...p, [k]: v }));
+  // Η κάρτα ξαναδιαβάζει το προφίλ όταν κάτι το άλλαξε στον διακομιστή — η
+  // αλλαγή πακέτου δοκιμαστή γράφεται με ρόλο υπηρεσίας, οπότε η οθόνη δεν
+  // μπορεί να τη μαντέψει.
+  const [reloads, setReloads] = useState(0);
+  const reload = () => setReloads(n => n + 1);
 
   useEffect(() => {
     (async () => {
@@ -107,7 +114,7 @@ export default function Billing({ userId, wantPlan = null }: {
       setLoading(false);
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
+  }, [userId, reloads]);
 
   const save = async () => {
     setSaving(true); setSaved(false); setSaveErr(false);
@@ -178,7 +185,7 @@ export default function Billing({ userId, wantPlan = null }: {
         </div>
       </Card>
 
-      <Subscription d={d} wantPlan={wantPlan} />
+      <Subscription d={d} wantPlan={wantPlan} onChanged={reload} />
     </div>
   );
 }
@@ -192,7 +199,7 @@ export default function Billing({ userId, wantPlan = null }: {
 //
 // Το ταμείο εμφανίζεται μόνο όταν ο πάροχος είναι ρυθμισμένος — αυτό το ξέρει
 // ο διακομιστής, όχι η οθόνη, γιατί το κλειδί ζει σε μεταβλητή περιβάλλοντος.
-function Subscription({ d, wantPlan = null }: { d: BillingData; wantPlan?: PlanId | null }) {
+function Subscription({ d, wantPlan = null, onChanged }: { d: BillingData; wantPlan?: PlanId | null; onChanged: () => void }) {
   const [cycle, setCycle] = useState<'monthly' | 'annual'>(d.billing_cycle === 'annual' ? 'annual' : 'monthly');
   const [busy, setBusy] = useState(false);
 
@@ -273,6 +280,86 @@ function Subscription({ d, wantPlan = null }: { d: BillingData; wantPlan?: PlanI
   const go = () => open(`/api/billing/checkout?plan=${target}&cycle=${cycle}`, 'Το ταμείο');
   const manage = () => open('/api/billing/portal', 'Η διαχείριση συνδρομής');
 
+  // ── Ο ΔΟΚΙΜΑΣΤΗΣ ΔΕΝ ΕΧΕΙ ΣΥΝΔΡΟΜΗ ────────────────────────────────────
+  // Δεν πληρώνει, δεν έχει πελάτη στον έμπορο, δεν υπάρχει πύλη διαχείρισης.
+  // Ολα τα κουμπιά της κάρτας αφορούν κάτι που δεν τον αφορά — και ένα κουμπί
+  // «Πληρωμή με κάρτα» σε άνθρωπο που του υποσχεθήκαμε δωρεάν χρήση είναι το
+  // χειρότερο μήνυμα που μπορεί να δει.
+  const isTester = !!(d.tester_since || '').trim();
+
+  // ── Ο ΚΩΔΙΚΟΣ ΠΡΟΣΚΛΗΣΗΣ ─────────────────────────────────────────────
+  const [codeOpen, setCodeOpen] = useState(false);
+  const [code, setCode] = useState('');
+  const linkish: React.CSSProperties = {
+    background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+    fontSize: 13, fontFamily: T.font.sans, color: 'var(--text-secondary)',
+    textDecoration: 'underline', textUnderlineOffset: 3,
+  };
+
+  /**
+   * Η εξαργύρωση.
+   *
+   * ΤΟ ΙΔΙΟ ΜΗΝΥΜΑ ΓΙΑ ΚΑΘΕ ΑΠΟΤΥΧΙΑ, όπως και στον διακομιστή: η διαφορά
+   * ανάμεσα σε «λάθος κωδικός» και «δεν υπάρχει πρόγραμμα» θα άξιζε τον κόπο
+   * να δοκιμάσει κανείς δεύτερο.
+   */
+  const redeem = async () => {
+    setBusy(true);
+    try {
+      const res = await fetch('/api/billing/tester', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      if (!res.ok) { notifyError('Ο κωδικός δεν αναγνωρίζεται.'); setBusy(false); return; }
+      notifyOk('Ο κωδικός εξαργυρώθηκε');
+      setCode(''); setCodeOpen(false);
+      onChanged();
+    } catch {
+      notifyError('Η εξαργύρωση δεν ολοκληρώθηκε. Ελεγξε τη σύνδεσή σου.');
+    }
+    setBusy(false);
+  };
+
+  /** Ο δοκιμαστής αλλάζει πακέτο επιτόπου, χωρίς να περάσει από ταμείο. */
+  const switchPlan = async (id: PlanId) => {
+    setBusy(true);
+    try {
+      const res = await fetch('/api/billing/plan', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: id, cycle }),
+      });
+      if (!res.ok) { notifyError('Το πακέτο δεν άλλαξε. Δοκίμασε ξανά.'); setBusy(false); return; }
+      notifyOk(`Το πακέτο έγινε «${PLANS[id].name}»`);
+      onChanged();
+    } catch {
+      notifyError('Το πακέτο δεν άλλαξε. Ελεγξε τη σύνδεσή σου.');
+    }
+    setBusy(false);
+  };
+
+  if (isTester) return (
+    <Card>
+      <SecHdr label="Συνδρομή" />
+      <InfoBanner tone="info">
+        Λογαριασμός δοκιμαστή. Ολα τα πακέτα είναι ανοιχτά, χωρίς χρέωση και χωρίς κάρτα, και αλλάζεις όποτε θέλεις.
+      </InfoBanner>
+      {/* ΟΛΑ ΤΑ ΠΑΚΕΤΑ, ΧΩΡΙΣ ΦΡΑΓΜΟ ΤΥΠΟΥ ΠΡΟΦΙΛ. Ο δοκιμαστής δεν αγοράζει:
+          δοκιμάζει. Το να του κλείσουμε τα μισά θα ακύρωνε τον λόγο που του
+          δώσαμε τον κωδικό. */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
+        {PLAN_ORDER.filter(id => PLANS[id].priceMonthly > 0).map(id => (
+          <Btn key={id} variant={current === id ? 'primary' : 'secondary'}
+            onClick={() => switchPlan(id)} disabled={busy || current === id}>
+            {PLANS[id].name}
+          </Btn>
+        ))}
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 14 }}>
+        Η ιδιότητα δόθηκε στις {fd(d.tester_since)}. Οταν τελειώσει η δοκιμαστική φάση θα σου το πούμε πριν αλλάξει οτιδήποτε.
+      </div>
+    </Card>
+  );
+
   return (
     <Card>
       <SecHdr label="Συνδρομή" />
@@ -348,6 +435,27 @@ function Subscription({ d, wantPlan = null }: { d: BillingData; wantPlan?: PlanI
           {note} Σταματάς όποτε θες και η συνδρομή τρέχει ώς το τέλος της περιόδου που έχεις πληρώσει.
         </div>
       )}
+
+      {/* ── Ο ΚΩΔΙΚΟΣ ΠΡΟΣΚΛΗΣΗΣ ─────────────────────────────────────────
+          ΚΛΕΙΣΤΟΣ ΩΣΠΟΥ ΝΑ ΖΗΤΗΘΕΙ. Ενα ορθάνοιχτο πεδίο «κωδικός» δίπλα στην
+          τιμή λέει σε κάθε επισκέπτη ότι κάπου υπάρχει έκπτωση που δεν του
+          δόθηκε, και τον στέλνει να τη ψάξει αντί να πληρώσει. Οποιος έχει
+          κωδικό ξέρει ότι τον έχει. */}
+      <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border-subtle)' }}>
+        {!codeOpen ? (
+          <button type="button" onClick={() => setCodeOpen(true)} style={linkish}>Εχω κωδικό πρόσκλησης</button>
+        ) : (
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+            {/* ΤΟ `placeholder` ΔΕΝ ΟΝΟΜΑΖΕΙ: σβήνεται με τον πρώτο χαρακτήρα και
+                το πεδίο ξαναμένει ανώνυμο για τον αναγνώστη οθόνης. */}
+            <input value={code} onChange={e => setCode(e.target.value)} placeholder="Κωδικός"
+              aria-label="Κωδικός πρόσκλησης"
+              autoComplete="off" spellCheck={false} onKeyDown={e => { if (e.key === 'Enter') redeem(); }}
+              style={{ height: T.h.md, padding: '0 12px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', minWidth: 180 }} />
+            <Btn variant="secondary" onClick={redeem} disabled={busy || !code.trim()}>Εξαργύρωση</Btn>
+          </div>
+        )}
+      </div>
     </Card>
   );
 }
