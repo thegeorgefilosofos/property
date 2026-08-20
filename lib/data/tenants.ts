@@ -32,7 +32,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { TenantsRow } from '@/lib/supabase/tables';
 // ΤΟ `rows` ΠΑΙΡΝΕΙ ΨΕΥΔΩΝΥΜΟ: το αρχείο έχει ήδη παραμέτρους και τοπικές
 // μεταβλητές με αυτό το όνομα (`sortCurrentFirst(rows)`, `const rows = …`).
-import { rows as readRows } from './read';
+import { read, rows as readRows } from './read';
+import type { DbError } from '@/lib/supabase/writeResult';
 
 const TABLE = 'tenants';
 
@@ -97,6 +98,23 @@ export async function current<T = Partial<TenantsRow>>(
 ): Promise<T | null> {
   const rows = await currentAll<T>(db, propertyId, columns, userId);
   return rows[0] ?? null;
+}
+
+/**
+ * Ο τρέχων μισθωτής, με το σφάλμα ορατό.
+ *
+ * ΤΟ ΧΡΕΙΑΖΕΤΑΙ Η ΛΟΓΙΣΤΙΚΗ: από το `e_payment` του μισθωτή κρίνεται η τεκμαρτή
+ * έκπτωση 5%. Αποτυχία εδώ διαβαζόταν ως «δεν υπάρχει μισθωτής», και η οθόνη
+ * επέλεγε μόνη της ποιο καθεστώς να εφαρμόσει σε φόρο που θα δηλωθεί.
+ */
+export async function currentWithError<T = Partial<TenantsRow>>(
+  db: Db, propertyId: string, columns: string, userId?: string,
+): Promise<{ row: T | null; error: DbError | null }> {
+  let q = db.from(TABLE).select(withStatus(columns)).eq('property_id', propertyId);
+  if (userId) q = q.eq('user_id', userId);
+  const { rows, error } = await read<T>(q.order('created_at', { ascending: false }));
+  const sorted = sortCurrentFirst(rows as (T & TenantStatus & { lease_start?: string | null; created_at?: string | null })[]) as T[];
+  return { row: sorted[0] ?? null, error };
 }
 
 /** Όλοι όσοι μένουν τώρα (συγκατοίκηση), νεότερη μίσθωση πρώτη. */

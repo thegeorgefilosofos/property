@@ -24,7 +24,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { InventoryItemsRow } from '@/lib/supabase/tables';
 // ΤΟ `rows` ΠΑΙΡΝΕΙ ΨΕΥΔΩΝΥΜΟ: η `add` έχει ήδη παράμετρο με το όνομα `rows`.
-import { rows as readRows } from './read';
+import { read, rows as readRows, type ReadResult } from './read';
 
 const TABLE = 'inventory_items';
 
@@ -44,6 +44,21 @@ export async function ofProperty<T = Partial<InventoryItemsRow>>(
   let q = db.from(TABLE).select(columns).eq('property_id', String(propertyId));
   if (userId) q = q.eq('user_id', String(userId));
   return readRows<T>(q.order('created_at', { ascending: false }));
+}
+
+/**
+ * Η ίδια απογραφή, με το σφάλμα ορατό.
+ *
+ * ΤΟ ΧΡΕΙΑΖΕΤΑΙ Η ΛΟΓΙΣΤΙΚΗ: από την απογραφή βγαίνουν οι αποσβέσεις
+ * εξοπλισμού, που ΕΚΠΙΠΤΟΥΝ. Αποτυχία εδώ σημαίνει μηδενικές αποσβέσεις,
+ * δηλαδή μεγαλύτερο φόρο από τον πραγματικό, χωρίς καμία ένδειξη.
+ */
+export async function ofPropertyWithError<T = Partial<InventoryItemsRow>>(
+  db: Db, propertyId: string, columns: string, userId?: string,
+): Promise<ReadResult<T>> {
+  let q = db.from(TABLE).select(columns).eq('property_id', String(propertyId));
+  if (userId) q = q.eq('user_id', String(userId));
+  return read<T>(q.order('created_at', { ascending: false }));
 }
 
 /** Όλη η απογραφή του χαρτοφυλακίου, αλφαβητικά: για τις χρεώσεις φθοράς. */

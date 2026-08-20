@@ -33,7 +33,7 @@ import type { DbError } from '@/lib/supabase/writeResult';
 import { classifyExpense } from '@/lib/expenses/classify';
 // ΤΟ `rows` ΠΑΙΡΝΕΙ ΨΕΥΔΩΝΥΜΟ: το αρχείο έχει ήδη δικό του `row()` (χτίζει τη
 // γραμμή προς τη βάση) και παραμέτρους με το όνομα `rows` στις εγγραφές.
-import { read, rows as readRows } from './read';
+import { read, rows as readRows, type ReadResult, type ReadOneResult } from './read';
 
 const TABLE = 'expenses';
 
@@ -200,12 +200,8 @@ export async function ledger<T = LedgerRow>(
  */
 export async function ledgerWithError<T = LedgerRow>(
   db: Db, propertyId: string, opts: LedgerOpts = {},
-): Promise<{ rows: T[]; error: { message?: string; code?: string } | null }> {
-  const { rows, error } = await read<T>(ledgerQuery(db, propertyId, opts));
-  // Το ίδιο αντικείμενο σφάλματος περνά ΩΣ ΕΧΕΙ· μόνο ο τύπος `DbError` είναι
-  // πλατύτερος (δέχεται `null` στα πεδία), γι' αυτό η στένωση εδώ — η δημόσια
-  // υπογραφή της συνάρτησης μένει απαράλλαχτη.
-  return { rows, error: error as { message?: string; code?: string } | null };
+): Promise<ReadResult<T>> {
+  return read<T>(ledgerQuery(db, propertyId, opts));
 }
 
 /** Το καθολικό πολλών ακινήτων του ίδιου χρήστη — σύγκριση, χαρτοφυλάκιο. */

@@ -3,7 +3,9 @@
 import { fp } from '@/lib/core/format';
 import {
   rentalIncomeTax, marginalRate, effectiveRentalRate,
-  RENTAL_TAX_BRACKETS_2026, RENTAL_TAX_ROWS_2026, taxRateLabel,
+  RENTAL_TAX_BRACKETS_2026, RENTAL_TAX_BRACKETS_2025, rentalRowsForYear,
+  bracketRows, BUSINESS_INCOME_ROWS_2026, BUSINESS_INCOME_BRACKETS_2026, taxRateLabel,
+  selfEmployedMinNetIncome, SELF_EMPLOYED_MIN_NET_INCOME, LAST_KNOWN_MIN_INCOME_YEAR,
   climateLevyForNights, isHighSeasonMonth, shortTermNet, CLIMATE_LEVY_PER_NIGHT_2025,
 } from './greekTax';
 
@@ -62,18 +64,73 @@ for (let x = 0; x <= 60000; x += 1000) {
   ok(`manual==fn ${x}`, near(manual, rentalIncomeTax(x)));
 }
 
-// ── Οι γραμμές UI είναι συνεπείς με τα κλιμάκια ──────────────────────────────
-ok('rows count == brackets', RENTAL_TAX_ROWS_2026.length === RENTAL_TAX_BRACKETS_2026.length);
-ok('rows boundaries match', RENTAL_TAX_ROWS_2026.every((r, i) => r.from === RENTAL_TAX_BRACKETS_2026[i].from && r.to === RENTAL_TAX_BRACKETS_2026[i].to));
-ok('rows include 25% band', RENTAL_TAX_ROWS_2026.some(r => r.rate === '25,00%' && r.from === 12000 && r.to === 24000));
-// Η ΕΤΙΚΕΤΑ ΒΓΑΙΝΕΙ ΑΠΟ ΤΟΝ ΑΡΙΘΜΟ ΠΟΥ ΧΡΕΩΝΕΙ. Οι ετικέτες ήταν χειρόγραφες
-// («rate: '15%'») δίπλα στα κλιμάκια που κάνουν τον υπολογισμό: ένα ορθογραφικό
-// θα έδειχνε άλλο ποσοστό απο αυτό που εφαρμόζεται, και ο παλιός έλεγχος
-// επιβεβαίωνε μόνο τα ΟΡΙΑ, όχι τους συντελεστές.
-ok('κάθε ετικέτα συμφωνεί με τον συντελεστή της',
-  RENTAL_TAX_ROWS_2026.every((r, i) => r.rate === taxRateLabel(RENTAL_TAX_BRACKETS_2026[i].rate)));
+// ── Οι γραμμές UI ΒΓΑΙΝΟΥΝ από τα κλιμάκια, δεν γράφονται δίπλα τους ────────
+{
+  const rows = rentalRowsForYear(2026);
+  ok('rows count == brackets', rows.length === RENTAL_TAX_BRACKETS_2026.length);
+  ok('rows boundaries match', rows.every((r, i) => r.from === RENTAL_TAX_BRACKETS_2026[i].from && r.to === RENTAL_TAX_BRACKETS_2026[i].to));
+  ok('rows include 25% band', rows.some(r => r.rate === '25,00%' && r.from === 12000 && r.to === 24000));
+  // Η ΕΤΙΚΕΤΑ ΒΓΑΙΝΕΙ ΑΠΟ ΤΟΝ ΑΡΙΘΜΟ ΠΟΥ ΧΡΕΩΝΕΙ. Οι ετικέτες ήταν χειρόγραφες
+  // («rate: '15%'») δίπλα στα κλιμάκια που κάνουν τον υπολογισμό: ένα ορθογραφικό
+  // θα έδειχνε άλλο ποσοστό απο αυτό που εφαρμόζεται, και ο παλιός έλεγχος
+  // επιβεβαίωνε μόνο τα ΟΡΙΑ, όχι τους συντελεστές.
+  ok('κάθε ετικέτα συμφωνεί με τον συντελεστή της',
+    rows.every((r, i) => r.rate === taxRateLabel(RENTAL_TAX_BRACKETS_2026[i].rate)));
+  // ΤΑ ΟΡΙΑ ΓΡΑΦΟΝΤΑΙ ΟΠΩΣ ΤΑ ΔΙΑΒΑΖΕΙ ΦΟΡΟΛΟΓΟΥΜΕΝΟΣ: το ίδιο ευρώ δεν
+  // μπορεί να φαίνεται σε δύο γραμμές, οπότε η επόμενη ξεκινά +1.
+  // Δύο δεκαδικά ΚΑΙ στα όρια, με το σύμβολο μία φορά στο τέλος: ο φύλακας
+  // `guard-euro-space` κόβει κάθε ποσό που δεν πέρασε από μορφοποιητή, και οι
+  // παλιές χειρόγραφες συμβολοσειρές τον γλίτωναν επειδή δεν περνούσαν καθόλου.
+  const NB = '\u00A0';
+  ok('η πρώτη γραμμή ξεκινά στο μηδέν', rows[0].range === `0,00 – 12.000,00${NB}€`);
+  ok('η επόμενη ξεκινά ένα ευρώ πιο πάνω', rows[1].range === `12.001,00 – 24.000,00${NB}€`);
+  ok('η τελευταία δεν έχει οροφή', rows[3].range === `Πάνω από 35.000,00${NB}€`);
+}
+// ── ΚΑΙ Ο ΠΙΝΑΚΑΣ ΑΚΟΛΟΥΘΕΙ ΤΟ ΕΤΟΣ ────────────────────────────────────────
+// ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΘΕΡΑΠΕΥΕΤΑΙ: με επιλεγμένο το 2025 η Λογιστική έγραφε «κλίμακα
+// έως 2025 (15/35/45)» και τύπωνε από κάτω τέσσερις γραμμές με το ενδιάμεσο
+// 25%. Ο υπολογισμός ήταν σωστός· η εξήγησή του ψεύτικη.
+{
+  const old = rentalRowsForYear(2025);
+  ok('το 2025 δείχνει τρία κλιμάκια', old.length === 3 && old.length === RENTAL_TAX_BRACKETS_2025.length);
+  ok('το 2025 ΔΕΝ έχει το ενδιάμεσο 25%', !old.some(r => r.rate === '25,00%'));
+  ok('το 2026 έχει τέσσερα', rentalRowsForYear(2026).length === 4);
+  ok('χωρίς έτος ισχύει η σημερινή κλίμακα', rentalRowsForYear(null).length === 4);
+  ok('παλαιότερο έτος παίρνει την παλιά', rentalRowsForYear(2024).length === 3);
+}
+// Η επιχειρηματική κλίμακα είχε τους συντελεστές γραμμένους ΔΕΥΤΕΡΗ φορά, και
+// με τρίτη μορφή («9%» αντί «9,00%»).
+ok('και η επιχειρηματική κλίμακα βγαίνει από τα κλιμάκια της',
+  BUSINESS_INCOME_ROWS_2026.every((r, i) =>
+    r.rate === taxRateLabel(BUSINESS_INCOME_BRACKETS_2026[i].rate)
+    && r.from === BUSINESS_INCOME_BRACKETS_2026[i].from));
+ok('κάθε ποσοστό περνά από τον έναν μορφοποιητή',
+  BUSINESS_INCOME_ROWS_2026.every(r => /^\d{1,2},\d{2}%$/.test(r.rate)));
+ok('ο κατασκευαστής δεν εφευρίσκει γραμμές', bracketRows([]).length === 0);
 ok('η ετικέτα περνά από τον έναν μορφοποιητή', taxRateLabel(0.15) === fp(15));
 ok('δεκαδικό ποσοστό παίρνει κόμμα', taxRateLabel(0.155) === '15,50%');
+
+// ── Το τεκμαρτό ελάχιστο ακολουθεί το ΕΤΟΣ, όχι μια σταθερά ────────────────
+// ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΘΕΡΑΠΕΥΕΤΑΙ: το ποσό ζούσε ως σταθερά ονομασμένη `_2026` ενώ
+// το σχόλιό της έγραφε ότι αφορά εισοδήματα 2025, και η Λογιστική την
+// περνούσε στον υπολογισμό ό,τι έτος κι αν είχε διαλέξει ο χρήστης. Στη χρήση
+// 2024 αυτό είναι 700 € φανταστικό εισόδημα, με φόρο πάνω του.
+ok('η χρήση 2024 παίρνει το ποσό του 2024', selfEmployedMinNetIncome(2024).amount === 11620);
+ok('η χρήση 2025 παίρνει το ποσό του 2025', selfEmployedMinNetIncome(2025).amount === 12320);
+ok('τα δύο ποσά όντως διαφέρουν', SELF_EMPLOYED_MIN_NET_INCOME[2024] !== SELF_EMPLOYED_MIN_NET_INCOME[2025]);
+// ΓΙΑ ΕΤΟΣ ΠΟΥ ΔΕΝ ΞΕΡΟΥΜΕ ΔΕΝ ΕΦΕΥΡΙΣΚΟΥΜΕ ΠΟΣΟ: ισχύει το τελευταίο γνωστό,
+// ΚΑΙ λέγεται από ποια χρονιά ήρθε, ώστε η οθόνη να μην το περάσει για βεβαιότητα.
+{
+  const future = selfEmployedMinNetIncome(2030);
+  ok('άγνωστο έτος κρατά το τελευταίο γνωστό ποσό', future.amount === SELF_EMPLOYED_MIN_NET_INCOME[LAST_KNOWN_MIN_INCOME_YEAR]);
+  ok('και ομολογεί από ποια χρονιά ήρθε', future.sourceYear === LAST_KNOWN_MIN_INCOME_YEAR && future.sourceYear !== 2030);
+  ok('γνωστό έτος δεν χρειάζεται ομολογία', selfEmployedMinNetIncome(2025).sourceYear === 2025);
+}
+ok('χωρίς έτος ισχύει το τελευταίο γνωστό',
+  selfEmployedMinNetIncome(null).sourceYear === LAST_KNOWN_MIN_INCOME_YEAR
+  && selfEmployedMinNetIncome(undefined).amount === SELF_EMPLOYED_MIN_NET_INCOME[LAST_KNOWN_MIN_INCOME_YEAR]);
+// Ετος πριν από κάθε τεκμηριωμένο: το παλαιότερο που ξέρουμε, όχι σφάλμα ούτε μηδέν.
+ok('έτος πριν από τα τεκμηριωμένα παίρνει το παλαιότερο', selfEmployedMinNetIncome(2020).amount === 11620);
 
 // ── Τέλος ανθεκτικότητας (ΤΑΚΚ) βραχυχρόνιας ─────────────────────────────────
 ok('high season Απρ–Οκτ', [3,4,5,6,7,8,9].every(isHighSeasonMonth) && ![0,1,2,10,11].some(isHighSeasonMonth));

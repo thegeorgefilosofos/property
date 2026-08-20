@@ -44,7 +44,7 @@ import { resolveEnfia } from '@/lib/billing/propertyFacts'
 import { estimateENFIAFromFacts, enfiaTypeBlock, ENFIA_TYPE_BLOCK_NOTE } from '@/lib/billing/enfia'
 import { annuityMonthly, interestForYear } from '@/lib/loans/recommend'
 import { isGroupDeductible } from '@/lib/expenses/groups'
-import { RENTAL_TAX_ROWS_2026, BUSINESS_INCOME_ROWS_2026, BUILDING_DEPRECIATION_RATE, EQUIPMENT_DEPRECIATION_RATE, BUILDING_VALUE_FRACTION, SELF_EMPLOYED_MIN_NET_INCOME_2026 , rentalBracketsForYear, bracketsLabelForYear } from '@/lib/billing/greekTax'
+import { rentalRowsForYear, BUSINESS_INCOME_ROWS_2026, BUILDING_DEPRECIATION_RATE, EQUIPMENT_DEPRECIATION_RATE, BUILDING_VALUE_FRACTION, selfEmployedMinNetIncome, rentalBracketsForYear, bracketsLabelForYear } from '@/lib/billing/greekTax'
 import { useReportBranding } from '@/lib/reportBranding'
 import { hasFeature, planAtLeast } from '@/lib/billing/entitlements'
 import type { VatDeduction } from '@/lib/tax/myData'
@@ -345,28 +345,41 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   useEffect(()=>{ let alive = true; (async()=>{
     setLoading(true)
     try{
-      const [exR, rpR, stR, ln, pr, aps, arp, ast, inv, tn] = await Promise.all([
+      // ── ΚΑΘΕ ΜΙΑ ΑΠΟ ΤΙΣ ΔΕΚΑ ΑΝΑΓΝΩΣΕΙΣ ΛΕΕΙ ΑΝ ΠΕΤΥΧΕ ─────────────────
+      // ΤΟ ΣΦΑΛΜΑ: ο δείκτης αποτυχίας κοιτούσε ΤΡΕΙΣ από τις δέκα. Οι άλλες
+      // επτά επέστρεφαν άδεια λίστα σε κάθε αποτυχία, και η οθόνη τη διάβαζε
+      // ως δεδομένο. Δεν είναι το ίδιο πράγμα, και εδώ βγαίνει ΦΟΡΟΣ:
+      //
+      //   δάνεια που δεν διαβάστηκαν  → μηδενικοί τόκοι  → ΜΕΓΑΛΥΤΕΡΟΣ φόρος
+      //   απογραφή που δεν διαβάστηκε → μηδέν αποσβέσεις → ΜΕΓΑΛΥΤΕΡΟΣ φόρος
+      //   ακίνητο που δεν διαβάστηκε  → η εκτίμηση ΕΝΦΙΑ πέφτει σε προεπιλογές
+      //   χαρτοφυλάκιο που δεν διαβάστηκε → λάθος μερίδιο φόρου στο Ε1
+      //   μισθωτής που δεν διαβάστηκε → η οθόνη διαλέγει μόνη της αν ισχύει
+      //                                 η τεκμαρτή έκπτωση 5%
+      //
+      // Ολα αυτά παρουσιάζονταν ως υπολογισμός, με κουμπί εξαγωγής από κάτω.
+      const [exR, rpR, stR, lnR, prR, apsR, arpR, astR, invR, tnR] = await Promise.all([
         expenseStore.ledgerWithError<ExpenseRow>(supabase,propertyId,{ columns:'date,amount,category,expense_group,description,supplier_country,supply,supplier_afm' }),
         // Ο ΤΡΟΠΟΣ ΠΛΗΡΩΜΗΣ ΕΙΝΑΙ ΦΟΡΟΛΟΓΙΚΟ ΣΤΟΙΧΕΙΟ, ΟΧΙ ΔΙΑΚΟΣΜΗΤΙΚΟ: από
         // αυτόν κρίνεται η τεκμαρτή έκπτωση 5%. Μία στήλη παραπάνω στο ίδιο ερώτημα.
         rentStore.ofPropertyWithError<RentRow>(supabase,propertyId,`${rentStore.LEDGER_COLUMNS},method`,userId),
         stayStore.ofPropertyWithError<StayRow>(supabase,propertyId,`id,${stayStore.ACCOUNTING_COLUMNS}`,userId),
-        loanStore.ofProperty(supabase,propertyId,userId),
-        properties.one<PropRow>(supabase, propertyId, 'id,name,address,rental_mode,enfia,sqm,value,year_built,floor,purchase_price,purchase_date,prop_type', userId),
-        properties.list<PropListRow>(supabase, userId, { columns: 'id,name,rental_mode,status_detail,enfia,sqm' }),
-        rentStore.ofUser<PortfolioRentRow>(supabase,userId,`property_id,${rentStore.LEDGER_COLUMNS}`),
-        stayStore.ofUser<PortfolioStayRow>(supabase,userId,`property_id,${stayStore.ACCOUNTING_COLUMNS}`),
-        inventoryStore.ofProperty<InventoryRow>(supabase,propertyId,'name,purchase_value,category,purchase_date',userId),
+        loanStore.ofPropertyWithError(supabase,propertyId,userId),
+        properties.oneWithError<PropRow>(supabase, propertyId, 'id,name,address,rental_mode,enfia,sqm,value,year_built,floor,purchase_price,purchase_date,prop_type', userId),
+        properties.listWithError<PropListRow>(supabase, userId, { columns: 'id,name,rental_mode,status_detail,enfia,sqm' }),
+        rentStore.ofUserWithError<PortfolioRentRow>(supabase,userId,`property_id,${rentStore.LEDGER_COLUMNS}`),
+        stayStore.ofUserWithError<PortfolioStayRow>(supabase,userId,`property_id,${stayStore.ACCOUNTING_COLUMNS}`),
+        inventoryStore.ofPropertyWithError<InventoryRow>(supabase,propertyId,'name,purchase_value,category,purchase_date',userId),
         // Η ΠΡΟΘΕΣΗ ΤΗΣ ΜΙΣΘΩΣΗΣ, όταν δεν υπάρχει απόδειξη απο τις εισπράξεις.
-        tenantStore.current<{ e_payment?: boolean|null }>(supabase, propertyId, 'e_payment', userId),
+        tenantStore.currentWithError<{ e_payment?: boolean|null }>(supabase, propertyId, 'e_payment', userId),
       ])
       if(!alive) return
-      setReadFailed(!!(exR.error || rpR.error || stR.error))
-      setExpenses(exR.rows); setRent(rpR.rows); setLeaseViaBank(tn ? (tn.e_payment !== false) : null)
-      setStays(stR.rows); setLoans(ln)
-      setProp(pr); setAllProps(aps)
-      setAllRent(arp); setAllStays(ast)
-      setInventory(inv)
+      setReadFailed([exR,rpR,stR,lnR,prR,apsR,arpR,astR,invR,tnR].some(r=>!!r.error))
+      setExpenses(exR.rows); setRent(rpR.rows); setLeaseViaBank(tnR.row ? (tnR.row.e_payment !== false) : null)
+      setStays(stR.rows); setLoans(lnR.views)
+      setProp(prR.row); setAllProps(apsR.rows)
+      setAllRent(arpR.rows); setAllStays(astR.rows)
+      setInventory(invR.rows)
     }catch(_){ if(alive) setReadFailed(true) /* διατηρούμε ό,τι ήδη έχει φορτωθεί· το UI δεν κολλάει */ }
     finally{ if(alive) setLoading(false) }
   })(); return ()=>{ alive = false } },[propertyId,userId,refreshKey])
@@ -519,6 +532,15 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const myTaxShare = useMemo(()=>consolidation?.con.perProperty.find(p=>p.id===propertyId)?.taxShare,[consolidation,propertyId])
   const portfolio = (mode==='professional' && elp==='personal') ? consolidation : null
 
+  // Το τεκμαρτό ελάχιστο του ΕΤΟΥΣ, μαζί με τη χρονιά από την οποία προέρχεται
+  // το ποσό: για χρήση που δεν έχει ακόμη ανακοινωθεί κατώτατος μισθός, ισχύει
+  // το τελευταίο γνωστό και η οθόνη το λέει αντί να το περνά για βεβαιότητα.
+  const minNetIncome = useMemo(()=>selfEmployedMinNetIncome(year), [year]);
+
+  // Η ΚΛΙΜΑΚΑ ΠΟΥ ΔΕΙΧΝΕΙ Η ΟΘΟΝΗ ΕΙΝΑΙ Η ΚΛΙΜΑΚΑ ΠΟΥ ΥΠΟΛΟΓΙΖΕΙ. Το ίδιο
+  // `year` που τροφοδοτεί τα κλιμάκια του υπολογισμού τροφοδοτεί και τον πίνακα.
+  const taxRows = useMemo(()=>businessMode ? BUSINESS_INCOME_ROWS_2026 : rentalRowsForYear(year), [businessMode, year]);
+
   const statement:IncomeStatement = useMemo(()=>incomeStatement(
     businessMode
       ? { regime:'business', grossIncome, businessForm:elpForm, taxpayerAge: age||undefined,
@@ -526,7 +548,10 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           // Για επιχείρηση ο ΕΝΦΙΑ ΕΚΠΙΠΤΕΙ → τον περνάμε στα εκπιπτόμενα, όχι ως μη-εκπεστέο τέλος.
           itemizedExpenses:deductibleTotal+enfia, depreciation:inventoryDepr, buildingDepreciation:buildingDepr, loanInterest:loanInterestYear,
           ekfaContributions: elpForm==='sole'&&ekfa!=='' ? Number(ekfa) : 0,
-          presumptiveMinIncome: elpForm==='sole'&&grossIncome>0 ? Math.round(SELF_EMPLOYED_MIN_NET_INCOME_2026*(firstYears?0.5:1)) : undefined, enfia:0,
+          // ΤΟ ΤΕΚΜΑΡΤΟ ΕΛΑΧΙΣΤΟ ΕΙΝΑΙ ΠΟΣΟ ΤΟΥ ΕΤΟΥΣ: ακολουθεί τον κατώτατο
+          // μισθό. Περνιόταν καρφωμένο στο ποσό του 2025 ό,τι έτος κι αν είχε
+          // διαλέξει ο χρήστης — 700 € φανταστικό εισόδημα στη χρήση 2024.
+          presumptiveMinIncome: elpForm==='sole'&&grossIncome>0 ? Math.round(minNetIncome.amount*(firstYears?0.5:1)) : undefined, enfia:0,
           climateLevy: regime==='individual_shortterm'?shortSummary.levyShortfall:0, municipalTax: regime==='individual_shortterm'?shortSummary.municipalTax:0,
           otherCashExpenses: Math.max(0,expensesTotal-deductibleTotal), loanPrincipal: Math.max(0,loanAnnual-loanInterestYear), uncollectedIncome:uncollectedRent, brackets: rentalBracketsForYear(year) }
       : { regime, grossIncome, enfia, overrideIncomeTax: myTaxShare, rentsPaidViaBank: rentsBank,
@@ -1175,7 +1200,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             Εκτιμήσεις. Επιβεβαίωση με τον λογιστή σου ή στο <a href={AADE_CALENDAR_URL} target="_blank" rel="noreferrer" style={{ color:'var(--accent)', textDecoration:'none' }}>myAADE</a>.
             <InfoHint>
               {businessMode
-                ? (elpForm==='company' ? 'Νομικό πρόσωπο: 22% επί των καθαρών κερδών (μετά από εκπιπτόμενα έξοδα, αποσβέσεις κτιρίου και εξοπλισμού, καθώς και τόκους), συν προκαταβολή φόρου 80% και 5% φόρος στη διανομή μερίσματος.' : 'Ατομική επιχείρηση: κλίμακα άρθρου 15 (9-44%) επί των καθαρών κερδών, μετά από εκπιπτόμενα έξοδα, ΕΦΚΑ, αποσβέσεις και τόκους, με τεκμαρτό ελάχιστο καθαρό εισόδημα και προκαταβολή φόρου 55%.')
+                ? (elpForm==='company' ? 'Νομικό πρόσωπο: 22% επί των καθαρών κερδών (μετά από εκπιπτόμενα έξοδα, αποσβέσεις κτιρίου και εξοπλισμού, καθώς και τόκους), συν προκαταβολή φόρου 80% και 5% φόρος στη διανομή μερίσματος.' : `Ατομική επιχείρηση: κλίμακα άρθρου 15 (9-44%) επί των καθαρών κερδών, μετά από εκπιπτόμενα έξοδα, ΕΦΚΑ, αποσβέσεις και τόκους, με τεκμαρτό ελάχιστο καθαρό εισόδημα ${eur(minNetIncome.amount)}${minNetIncome.sourceYear!==year?` (ποσό ${minNetIncome.sourceYear}: για το ${year} δεν έχει ανακοινωθεί κατώτατος μισθός)`:''} και προκαταβολή φόρου 55%.`)
                 : (regime==='individual_longterm' ? 'Μακροχρόνια μίσθωση φυσικού προσώπου: το εισόδημα φορολογείται κατά το άρθρο 40, με τεκμαρτή έκπτωση 5% για επισκευές και συντήρηση. Οι λοιπές δαπάνες, ο ΕΝΦΙΑ και οι τόκοι δανείου δεν εκπίπτουν.' : 'Βραχυχρόνια μίσθωση φυσικού προσώπου: εισόδημα ακινήτων στα μεικτά, χωρίς έκπτωση δαπανών, συν τέλος ανθεκτικότητας ανά διανυκτέρευση και τέλος παρεπιδημούντων όπου ισχύει.')}
               {/* Η πρόταση απαριθμούσε ΔΥΟ στοιχεία («αξία και τ.μ.»)
                   ενώ η εκτίμηση διαβάζει πλέον ΤΕΣΣΕΡΑ. Ο ιδιοκτήτης που
@@ -1315,8 +1340,12 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
                 επιχειρηματική, τέσσερα για τα ενοίκια — και τα κουτιά στενεύουν
                 αντί να τυλίγονται. Βλ. `fixedCols`: στα στενά σπάει σε τρία και
                 δύο, όπου η μία σειρά δεν χωρά ούτως ή άλλως. */}
-            <div {...fixedCols((businessMode ? BUSINESS_INCOME_ROWS_2026 : RENTAL_TAX_ROWS_2026).length, 10, 'stretch')}>
-              {(businessMode ? BUSINESS_INCOME_ROWS_2026 : RENTAL_TAX_ROWS_2026).map((r,i)=>{ const active=statement.taxableIncome>r.from&&statement.taxableIncome<=r.to; const hot=hoverBracket===i; return (
+            {/* Ο ΠΙΝΑΚΑΣ ΑΚΟΛΟΥΘΕΙ ΤΟΝ ΕΠΙΛΟΓΕΑ ΕΤΟΥΣ, ΟΠΩΣ Ο ΥΠΟΛΟΓΙΣΜΟΣ. Με
+                επιλεγμένο το 2025 η ίδια οθόνη έγραφε από πάνω «κλίμακα έως
+                2025 (15/35/45)» και τύπωνε από κάτω τέσσερα κλιμάκια με το
+                ενδιάμεσο 25%: το νούμερο σωστό, η εξήγησή του ψεύτικη. */}
+            <div {...fixedCols(taxRows.length, 10, 'stretch')}>
+              {taxRows.map((r,i)=>{ const active=statement.taxableIncome>r.from&&statement.taxableIncome<=r.to; const hot=hoverBracket===i; return (
                 <div key={r.range} onMouseEnter={()=>setHoverBracket(i)} onMouseLeave={()=>setHoverBracket(null)}
                   style={{ padding:'10px 12px', borderRadius:12, minWidth:0, border:`1px solid ${hot?'var(--accent)':active?'var(--border-default)':'var(--border-subtle)'}`, background:active?'var(--bg-elevated)':'var(--bg-surface)', transition:'border-color 0.15s, background 0.15s', cursor:'default' }}>
                   <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:0, fontFamily: T.font.sans }}>{r.range}</p>

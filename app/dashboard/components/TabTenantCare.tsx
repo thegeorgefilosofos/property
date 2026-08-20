@@ -50,7 +50,8 @@ import {
 import { saved } from '@/components/dbWrite';
 import { confirmDialog } from '@/components/ConfirmDialog';
 import { roleLabel } from '@/lib/contacts/roles';
-import { rentalIncomeTax, RENTAL_TAX_ROWS_2026, RENTAL_TAX_BRACKETS_2026 } from '@/lib/billing/greekTax';
+import { rentalIncomeTax, rentalRowsForYear, rentalBracketsForYear } from '@/lib/billing/greekTax';
+import { athensParts } from '@/lib/core/time';
 import { PRESUMPTIVE_DEDUCTION_RATE } from '@/lib/accounting/statement';
 import {
   TENANT_FIELDS,
@@ -353,12 +354,12 @@ export function LegalTaxView({ tenant, propertyCount }:{ tenant:Tenant; property
   const viaBank=tenant.e_payment!==false;
   const deductionRate=viaBank?PRESUMPTIVE_DEDUCTION_RATE:0;
   const taxable=annualRent*(1-deductionRate);
-  // Η ΚΛΙΜΑΚΑ ΠΟΥ ΔΕΙΧΝΕΙ Η ΟΘΟΝΗ ΕΙΝΑΙ Η ΚΛΙΜΑΚΑ ΠΟΥ ΥΠΟΛΟΓΙΖΕΙ. Πιο κάτω
-  // τυπώνεται ο πίνακας `RENTAL_TAX_ROWS_2026`· εδώ γράφεται ρητά η ίδια χρονιά
-  // αντί να βασιζόμαστε στην προεπιλογή. Η προβολή αφορά το τρέχον μίσθωμα, όχι
-  // περασμένη χρήση — όταν αλλάξουν οι συντελεστές, πίνακας και υπολογισμός
-  // αλλάζουν μαζί ή δεν αλλάζει κανένας.
-  const tax=taxable>0?rentalIncomeTax(taxable,RENTAL_TAX_BRACKETS_2026):0;
+  // Η ΚΛΙΜΑΚΑ ΠΟΥ ΔΕΙΧΝΕΙ Η ΟΘΟΝΗ ΕΙΝΑΙ Η ΚΛΙΜΑΚΑ ΠΟΥ ΥΠΟΛΟΓΙΖΕΙ, ΚΑΙ Η ΧΡΟΝΙΑ
+  // ΓΡΑΦΕΤΑΙ ΜΙΑ ΦΟΡΑ. Η προβολή αφορά το ΤΡΕΧΟΝ μίσθωμα, όχι περασμένη χρήση,
+  // οπότε η χρονιά είναι η σημερινή — και όχι ένα «2026» καρφωμένο σε τρία
+  // σημεία, που θα έμενε στην οθόνη ολόκληρο το 2027.
+  const taxYear=athensParts().year;
+  const tax=taxable>0?rentalIncomeTax(taxable,rentalBracketsForYear(taxYear)):0;
   const effRate=annualRent>0?tax/annualRent:0;
   const isCommercial=tenant.lease_category==='commercial';
   const stampDuty=isCommercial?annualRent*COMMERCIAL_STAMP_DUTY:0;   // 3,6% επί του μισθώματος
@@ -392,12 +393,12 @@ export function LegalTaxView({ tenant, propertyCount }:{ tenant:Tenant; property
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap:16, marginTop:16 }}>
         {/* Φόρος εισοδήματος από ενοίκια */}
         <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:24 }}>
-          <SectionTitle>Φόρος εισοδήματος από ενοίκια (2026)</SectionTitle>
+          <SectionTitle>Φόρος εισοδήματος από ενοίκια ({taxYear})</SectionTitle>
           <div className="table-wrap">
           <table style={{ width:'100%', borderCollapse:'collapse' }}>
             <thead><tr>{['Κλιμάκιο Εισοδήματος','Συντελεστής'].map((h,i)=><th key={i} style={{ ...s.th, textAlign:i?'right' as const:'left' as const }}>{h}</th>)}</tr></thead>
             <tbody>
-              {RENTAL_TAX_ROWS_2026.map((r,i)=>{
+              {rentalRowsForYear(taxYear).map((r,i)=>{
                 const active=taxable>r.from&&(r.to===Infinity||taxable<=r.to);
                 return (
                   <tr key={i} style={{ background:active?'var(--accent-soft)':'transparent' }}>

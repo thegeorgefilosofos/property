@@ -26,7 +26,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { UserPropertiesRow } from '@/lib/supabase/tables';
 // ΤΟ `row` ΠΑΙΡΝΕΙ ΨΕΥΔΩΝΥΜΟ: το αρχείο έχει ήδη παραμέτρους με το όνομα `row`
 // στις εγγραφές (`add`, `addFull`).
-import { read, row as readRow } from './read';
+import { read, readOne, row as readRow, type ReadResult, type ReadOneResult } from './read';
 
 const TABLE = 'user_properties';
 
@@ -69,6 +69,19 @@ export async function one<T = Partial<UserPropertiesRow>>(
   return readRow<T>(q.maybeSingle());
 }
 
+/**
+ * Το ένα ακίνητο ΜΑΖΙ με το σφάλμα. Το χρειάζεται η Λογιστική: χωρίς την
+ * καρτέλα του ακινήτου η εκτίμηση ΕΝΦΙΑ και οι αποσβέσεις πέφτουν σε
+ * προεπιλογές, και το αποτέλεσμα εμφανίζεται ως υπολογισμός.
+ */
+export async function oneWithError<T = Partial<UserPropertiesRow>>(
+  db: Db, propertyId: string, columns: string, userId?: string,
+): Promise<ReadOneResult<T>> {
+  let q = db.from(TABLE).select(columns).eq('id', propertyId);
+  if (userId) q = q.eq('user_id', userId);
+  return readOne<T>(q.maybeSingle());
+}
+
 /** Τα ακίνητα ενός χρήστη. */
 export async function list<T = PropertyCard>(
   db: Db, userId: string,
@@ -89,14 +102,10 @@ export async function list<T = PropertyCard>(
 export async function listWithError<T = PropertyCard>(
   db: Db, userId: string,
   opts: { columns?: string; orderBy?: string; ascending?: boolean } = {},
-): Promise<{ rows: T[]; error: { message?: string; code?: string } | null }> {
+): Promise<ReadResult<T>> {
   let q = db.from(TABLE).select(opts.columns ?? CARD_COLUMNS).eq('user_id', userId);
   if (opts.orderBy) q = q.order(opts.orderBy, { ascending: opts.ascending !== false });
-  const { rows, error } = await read<T>(q);
-  // Το ίδιο αντικείμενο σφάλματος περνά ΩΣ ΕΧΕΙ· μόνο ο τύπος `DbError` είναι
-  // πλατύτερος (δέχεται `null` στα πεδία), γι' αυτό η στένωση εδώ — η δημόσια
-  // υπογραφή της συνάρτησης μένει απαράλλαχτη.
-  return { rows, error: error as { message?: string; code?: string } | null };
+  return read<T>(q);
 }
 
 /**

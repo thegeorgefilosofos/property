@@ -20,7 +20,8 @@ import { LOAN_COLUMNS, toLoanViews, isActiveLoan, type LoanRow, type LoanView } 
 import { must } from '@/lib/supabase/must';
 // ΤΟ `rows` ΠΑΙΡΝΕΙ ΨΕΥΔΩΝΥΜΟ: μέσα στο `ofProperty` υπάρχει ήδη τοπική
 // μεταβλητή `rows` — οι ωμές γραμμές πριν τη μετατροπή σε `LoanView`.
-import { rows as readRows } from './read';
+import { read, rows as readRows } from './read';
+import type { DbError } from '@/lib/supabase/writeResult';
 
 const TABLE = 'loans';
 
@@ -57,6 +58,25 @@ export async function ofProperty(
   const rows = opts.strict ? await must(q2) : await readRows<LoanRow>(q2);
   const views = toLoanViews(rows as LoanRow[] | null);
   return opts.activeOnly ? views.filter(isActiveLoan) : views;
+}
+
+/**
+ * Τα ίδια δάνεια, με το σφάλμα ορατό.
+ *
+ * ΤΟ ΧΡΕΙΑΖΕΤΑΙ Η ΛΟΓΙΣΤΙΚΗ. Οι τόκοι δανείου ΕΚΠΙΠΤΟΥΝ στο καθεστώς
+ * επιχείρησης: μια αποτυχημένη ανάγνωση εδώ δεν δίνει «δεν έχεις δάνειο»,
+ * δίνει μηδενικούς τόκους, δηλαδή ΑΥΞΗΜΕΝΟ φορολογητέο εισόδημα και αυξημένο
+ * φόρο, παρουσιασμένα ως υπολογισμός.
+ */
+export async function ofPropertyWithError(
+  db: Db, propertyId: string, userId?: string,
+  opts: { activeOnly?: boolean } = {},
+): Promise<{ views: LoanView[]; error: DbError | null }> {
+  let q = db.from(TABLE).select(LOAN_COLUMNS).eq('property_id', propertyId);
+  if (userId) q = q.eq('user_id', userId);
+  const { rows, error } = await read<LoanRow>(q.order('created_at', { ascending: false }));
+  const views = toLoanViews(rows);
+  return { views: opts.activeOnly ? views.filter(isActiveLoan) : views, error };
 }
 
 /** Τα δάνεια όλου του χαρτοφυλακίου, για αναφορές και ημερολόγιο λογιστή. */

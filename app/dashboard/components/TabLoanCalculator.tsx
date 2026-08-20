@@ -23,7 +23,8 @@ import {
   fmtEur, fmtPct, fmtPct1, BANKS_VERIFIED,
   LoanType, RateType, BorrowerType, LoanScenario, MarketRates, SavedLoan
 } from './TabLoanData'
-import { RENTAL_TAX_ROWS_2026 } from '@/lib/billing/greekTax'
+import { rentalRowsForYear } from '@/lib/billing/greekTax'
+import { athensParts } from '@/lib/core/time'
 import { PRESUMPTIVE_RULE_2026 } from '@/lib/billing/consolidate'
 import { regionByKey, GREECE_AVG_GROSS_YIELD, MARKET_DATA_ASOF } from '@/lib/market/greekMarket'
 import { athensToday } from '@/lib/core/time';
@@ -1382,8 +1383,11 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
                   ίδια που κάνει τον υπολογισμό λίγες γραμμές παρακάτω. Πριν, ο
                   πίνακας διάβαζε ένα τοπικό αντίγραφο: μετά την πρώτη αλλαγή του
                   νόμου θα έδειχνε παλιά κλιμάκια πάνω από νέο ποσό. */}
-              <p style={{...labelStyle,marginBottom:12}}>Κλίμακα ενοικίων 2026</p>
-              {RENTAL_TAX_ROWS_2026.map((b,i)=>(
+              {/* Η ΧΡΟΝΙΑ ΔΕΝ ΓΡΑΦΕΤΑΙ ΜΕ ΤΟ ΧΕΡΙ. Ενα καρφωμένο «2026» στην
+                  επικεφαλίδα θα έμενε εκεί ολόκληρο το 2027, πάνω από πίνακα
+                  που θα είχε ήδη αλλάξει. */}
+              <p style={{...labelStyle,marginBottom:12}}>Κλίμακα ενοικίων {athensParts().year}</p>
+              {rentalRowsForYear(athensParts().year).map((b,i)=>(
                 <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'9px 14px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:10,marginBottom:5}}>
                   <span style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans}}>{b.range}</span>
                   <span style={{fontSize:14,fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:700}}>{b.rate}</span>

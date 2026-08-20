@@ -29,7 +29,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { RentPaymentsRow } from '@/lib/supabase/tables';
 // ΤΑ `rows`/`row` ΠΑΙΡΝΟΥΝ ΨΕΥΔΩΝΥΜΟ: το αρχείο έχει ήδη παραμέτρους με αυτά τα
 // ονόματα (`collectedIn(rows, …)`, `upsertPeriod(db, row, …)`).
-import { read, rows as readRows, row as readRow } from './read';
+import { read, rows as readRows, row as readRow, type ReadResult, type ReadOneResult } from './read';
 
 const TABLE = 'rent_payments';
 
@@ -145,12 +145,8 @@ export async function ofProperty<T = Partial<RentPaymentsRow>>(
 export async function ofPropertyWithError<T = Partial<RentPaymentsRow>>(
   db: Db, propertyId: string, columns: string, userId?: string,
   opts: { year?: number; paid?: boolean } = {},
-): Promise<{ rows: T[]; error: { message?: string; code?: string } | null }> {
-  const { rows, error } = await read<T>(ofPropertyQuery(db, propertyId, columns, userId, opts));
-  // Το ίδιο αντικείμενο σφάλματος περνά ΩΣ ΕΧΕΙ· μόνο ο τύπος `DbError` είναι
-  // πλατύτερος (δέχεται `null` στα πεδία), γι' αυτό η στένωση εδώ — η δημόσια
-  // υπογραφή της συνάρτησης μένει απαράλλαχτη.
-  return { rows, error: error as { message?: string; code?: string } | null };
+): Promise<ReadResult<T>> {
+  return read<T>(ofPropertyQuery(db, propertyId, columns, userId, opts));
 }
 
 /** Οι δόσεις ενός ακινήτου με την ΠΑΛΑΙΟΤΕΡΗ πρώτη: χρονοσειρά, όχι λίστα. */
@@ -182,6 +178,19 @@ export async function ofUser<T = Partial<RentPaymentsRow>>(
   let q = db.from(TABLE).select(columns).eq('user_id', userId);
   if (opts.year !== undefined) q = q.eq('period_year', opts.year);
   return readRows<T>(q);
+}
+
+/**
+ * Οι ίδιες δόσεις ΟΛΟΥ του χαρτοφυλακίου, με το σφάλμα ορατό. Από αυτές
+ * βγαίνει η ενοποίηση του Ε1: μια αποτυχία εδώ δεν δίνει «ένα ακίνητο», δίνει
+ * λάθος μερίδιο φόρου στα υπόλοιπα.
+ */
+export async function ofUserWithError<T = Partial<RentPaymentsRow>>(
+  db: Db, userId: string, columns: string, opts: { year?: number } = {},
+): Promise<ReadResult<T>> {
+  let q = db.from(TABLE).select(columns).eq('user_id', userId);
+  if (opts.year !== undefined) q = q.eq('period_year', opts.year);
+  return read<T>(q);
 }
 
 /** Το ποσό της τελευταίας καταχωρημένης δόσης. Για την αναπροσαρμογή ενοικίου. */

@@ -24,7 +24,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ClientStaysRow } from '@/lib/supabase/tables';
 // ΤΟ `rows` ΠΑΙΡΝΕΙ ΨΕΥΔΩΝΥΜΟ: οι εγγραφές του αρχείου (`add`, `addBatched`)
 // έχουν ήδη παράμετρο με το όνομα `rows`.
-import { read, rows as readRows } from './read';
+import { read, rows as readRows, type ReadResult, type ReadOneResult } from './read';
 
 const TABLE = 'client_stays';
 
@@ -98,12 +98,8 @@ export async function ofProperty<T = Partial<ClientStaysRow>>(
 export async function ofPropertyWithError<T = Partial<ClientStaysRow>>(
   db: Db, propertyId: string, columns: string, userId?: string,
   opts: { from?: string; to?: string } = {},
-): Promise<{ rows: T[]; error: { message?: string; code?: string } | null }> {
-  const { rows, error } = await read<T>(ofPropertyQuery(db, propertyId, columns, userId, opts));
-  // Το ίδιο αντικείμενο σφάλματος περνά ΩΣ ΕΧΕΙ· μόνο ο τύπος `DbError` είναι
-  // πλατύτερος (δέχεται `null` στα πεδία), γι' αυτό η στένωση εδώ — η δημόσια
-  // υπογραφή της συνάρτησης μένει απαράλλαχτη.
-  return { rows, error: error as { message?: string; code?: string } | null };
+): Promise<ReadResult<T>> {
+  return read<T>(ofPropertyQuery(db, propertyId, columns, userId, opts));
 }
 
 /** Οι διαμονές πολλών ακινήτων μαζί. Το κείμενο του κλειδιού γίνεται εδώ. */
@@ -120,6 +116,13 @@ export async function ofUser<T = Partial<ClientStaysRow>>(
   db: Db, userId: string, columns: string,
 ): Promise<T[]> {
   return readRows<T>(active(db.from(TABLE).select(columns).eq('user_id', userId)));
+}
+
+/** Οι διαμονές ΟΛΟΥ του χαρτοφυλακίου, με το σφάλμα ορατό. */
+export async function ofUserWithError<T = Partial<ClientStaysRow>>(
+  db: Db, userId: string, columns: string,
+): Promise<ReadResult<T>> {
+  return read<T>(active(db.from(TABLE).select(columns).eq('user_id', userId)));
 }
 
 /**
