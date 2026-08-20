@@ -25,12 +25,10 @@
 //      από `grUpper()` (lib/core/format.ts).
 // ═══════════════════════════════════════════════════════════════════════════
 import { readFileSync } from 'node:fs';
+import { projectFiles } from './lib/git-files.mjs'
 import { execSync } from 'node:child_process';
 
-const files = execSync(
-  "git ls-files 'app/**/*.tsx' 'app/**/*.ts' 'components/**/*.tsx' 'components/**/*.ts' 'lib/**/*.ts'",
-  { encoding: 'utf8' },
-).split('\n').filter(Boolean);
+const files = projectFiles("'app/**/*.tsx' 'app/**/*.ts' 'components/**/*.tsx' 'components/**/*.ts' 'lib/**/*.ts'");
 
 // Κεφαλαία ελληνικά με τόνο. Τα διαλυτικά (Ϊ Ϋ) ΔΕΝ είναι τόνος.
 const ACCENTED = /[ΆΈΉΊΌΎΏ]/;

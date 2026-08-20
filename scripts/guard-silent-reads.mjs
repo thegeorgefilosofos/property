@@ -27,12 +27,12 @@
 // και το όριο κατεβαίνει όποτε μια παλιά μετατρέπεται.
 // ═══════════════════════════════════════════════════════════════════════════
 import { readFileSync } from 'node:fs'
+import { projectFiles } from './lib/git-files.mjs'
 import { execSync } from 'node:child_process'
 
 const BASELINE = JSON.parse(readFileSync('scripts/silent-reads-baseline.json', 'utf8'))
 
-const files = execSync("git ls-files 'app/**/*.ts' 'app/**/*.tsx' 'lib/**/*.ts' 'lib/**/*.tsx'", { encoding: 'utf8' })
-  .split('\n').filter(Boolean).filter(f => !f.includes('.test.'))
+const files = projectFiles("'app/**/*.ts' 'app/**/*.tsx' 'lib/**/*.ts' 'lib/**/*.tsx'").filter(f => !f.includes('.test.'))
 
 /** `const { data } = await …` — η απάντηση διαβάζεται χωρίς το σφάλμα της. */
 const SILENT = /const\s*\{\s*data(?:\s*:\s*\w+)?\s*\}\s*=\s*await\b/

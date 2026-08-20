@@ -24,12 +24,10 @@
 // εκεί το «250000€» μπορεί να είναι ΕΙΣΟΔΟΣ που ελέγχουμε ότι διαβάζεται σωστά.
 // ═══════════════════════════════════════════════════════════════════════════
 import { readFileSync } from 'node:fs';
+import { projectFiles } from './lib/git-files.mjs'
 import { execSync } from 'node:child_process';
 
-const files = execSync(
-  "git ls-files 'app/**/*.ts' 'app/**/*.tsx' 'lib/**/*.ts' 'lib/**/*.tsx' 'components/**/*.ts' 'components/**/*.tsx'",
-  { encoding: 'utf8' },
-).split('\n').filter(Boolean);
+const files = projectFiles("'app/**/*.ts' 'app/**/*.tsx' 'lib/**/*.ts' 'lib/**/*.tsx' 'components/**/*.ts' 'components/**/*.tsx'");
 
 /** Ψηφίο κολλητά στο ευρώ. Το ` ` γράφεται και ως escape στον κώδικα. */
 const GLUED = /(?<!\\u00A)(\d)€/g;

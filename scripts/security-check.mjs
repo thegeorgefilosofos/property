@@ -7,6 +7,7 @@
 // and fails the build (exit 1) on any hit. Add allow-listed exceptions sparingly.
 
 import { execSync } from 'node:child_process'
+import { projectFiles } from './lib/git-files.mjs'
 import { readFileSync } from 'node:fs'
 
 // Files we never scan for secrets (docs describe patterns; examples are templates).
@@ -75,7 +76,7 @@ const EGRESS_SKIP = [
 ]
 
 function trackedFiles() {
-  return execSync('git ls-files', { encoding: 'utf8' }).split('\n').filter(Boolean)
+  return projectFiles()
 }
 
 const files = trackedFiles()
@@ -116,4 +117,4 @@ if (findings.length) {
   console.error('\nRotate any real secret immediately and purge it from git history.')
   process.exit(1)
 }
-console.log(`✅ Security check passed — scanned ${files.length} tracked files, no secrets found.`)
+console.log(`✅ Security check passed — scanned ${files.length} files (tracked and new), no secrets found.`)

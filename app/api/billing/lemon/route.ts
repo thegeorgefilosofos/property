@@ -111,7 +111,14 @@ export async function POST(request: Request) {
   const attrs = (payload as { data?: { attributes?: Record<string, unknown> } })?.data?.attributes ?? {};
   const eventAt = typeof attrs.updated_at === 'string' && attrs.updated_at.trim() ? attrs.updated_at.trim() : null;
   if (eventAt) {
-    const { data } = await db.from(TABLE).select('mor_event_at').eq('user_id', userId).maybeSingle();
+    // ΚΑΙ ΑΥΤΗ Η ΑΝΑΓΝΩΣΗ ΚΟΙΤΑ ΤΟ ΣΦΑΛΜΑ ΤΗΣ. Αν αποτύχει, το `data` έρχεται
+    // κενό — δηλαδή «καμία προηγούμενη ώρα», δηλαδή «εφάρμοσε το γεγονός».
+    // Η κατεύθυνση είναι η ασφαλής, αλλά η αποτυχία δεν επιτρέπεται να είναι
+    // αόρατη: αν το φίλτρο σειράς σταματήσει να δουλεύει, θέλουμε να το ξέρουμε
+    // πριν γράψει ένα καθυστερημένο «ακυρώθηκε» πάνω από ένα «ανανεώθηκε».
+    const { data, error: readError } = await db.from(TABLE)
+      .select('mor_event_at').eq('user_id', userId).maybeSingle();
+    if (readError) log('η ώρα του τελευταίου γεγονότος δεν διαβάστηκε:', readError.message);
     const seen = (data as { mor_event_at?: string | null } | null)?.mor_event_at;
     if (seen && new Date(eventAt) < new Date(seen)) {
       log(`γεγονός ${read.event} παλαιότερο από το καταγεγραμμένο· αγνοήθηκε`);

@@ -34,14 +34,12 @@
 // ΝΕΟ όχι. Όταν καθαρίζεις, κατέβασε τα όρια στο scripts/surface-baseline.json.
 // ═══════════════════════════════════════════════════════════════════════════
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
+import { projectFiles } from './lib/git-files.mjs'
 import { execSync } from 'node:child_process';
 
 const BASELINE = 'scripts/surface-baseline.json';
 
-const files = execSync(
-  "git ls-files 'app/**/*.tsx' 'app/**/*.ts' 'components/**/*.tsx' 'components/**/*.ts'",
-  { encoding: 'utf8' },
-).split('\n').filter(Boolean);
+const files = projectFiles("'app/**/*.tsx' 'app/**/*.ts' 'components/**/*.tsx' 'components/**/*.ts'");
 
 /** Ύψος γραμμένο ως αριθμός, στη ζώνη των χειριστηρίων (28 ώς 48). */
 const RAW_HEIGHT = /\bheight:\s*(2[89]|3\d|4[0-8])\b/g;

@@ -24,12 +24,10 @@
 // εκεί τους αντιγράφει ο επόμενος.
 // ═══════════════════════════════════════════════════════════════════════════
 import { readFileSync, existsSync } from 'node:fs';
+import { projectFiles } from './lib/git-files.mjs'
 import { execSync } from 'node:child_process';
 
-const files = execSync(
-  "git ls-files 'app/**/*.ts' 'app/**/*.tsx' 'lib/**/*.ts' 'lib/**/*.tsx' 'components/**/*.ts' 'components/**/*.tsx' 'supabase/**/*.sql' 'supabase/**/*.ts' 'docs/**/*.md'",
-  { encoding: 'utf8' },
-).split('\n').filter(Boolean).filter(existsSync);
+const files = projectFiles("'app/**/*.ts' 'app/**/*.tsx' 'lib/**/*.ts' 'lib/**/*.tsx' 'components/**/*.ts' 'components/**/*.tsx' 'supabase/**/*.sql' 'supabase/**/*.ts' 'docs/**/*.md'").filter(existsSync);
 
 /**
  * Κάθε γραμμή: ο τύπος που ΔΕΝ γράφεται, ο τύπος που γράφεται, και ο λόγος.

@@ -29,12 +29,10 @@
 // φράσεις που υπόσχονται ΕΞΟΔΟ.
 // ═══════════════════════════════════════════════════════════════════════════
 import { readFileSync } from 'node:fs';
+import { projectFiles } from './lib/git-files.mjs'
 import { execSync } from 'node:child_process';
 
-const files = execSync(
-  "git ls-files 'app/**/*.tsx' 'app/**/*.ts' 'components/**/*.tsx' 'components/**/*.ts'",
-  { encoding: 'utf8' },
-).split('\n').filter(Boolean);
+const files = projectFiles("'app/**/*.tsx' 'app/**/*.ts' 'components/**/*.tsx' 'components/**/*.ts'");
 
 /**
  * Φράσεις που υπόσχονται ΕΞΟΔΟ σε CSV.
