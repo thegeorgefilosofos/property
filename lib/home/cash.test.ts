@@ -12,7 +12,7 @@ const ok = (n: string, c: boolean) => { if (c) pass++; else { fail++; console.er
 
 const TODAY = '2026-08-05'
 const rent = (o: Partial<RentPeriod> = {}): RentPeriod =>
-  ({ amount: 700, due_date: '2026-07-05', paid: false, period_year: 2026, period_month: 7, ...o })
+  ({ id: 'rp-1', amount: 700, due_date: '2026-07-05', paid: false, period_year: 2026, period_month: 7, ...o })
 const pay = (o: Partial<Payable> = {}): Payable =>
   ({ amount: 120, due: '2026-08-20', paid: false, label: 'ΔΕΗ', ...o })
 
@@ -70,6 +70,29 @@ ok('πέρασμα θερινής ώρας: 28/3 → 30/3 = 2 ημέρες', day
 {
   const r = cashPosition({ ...empty, rent: [rent({ period_month: 13 })] })
   ok('άκυρος μήνας δεν βγάζει σκουπίδια', r.owedToMe.lines[0].label === 'Ενοίκιο')
+}
+
+// ── Η ΓΡΑΜΜΗ ΞΕΡΕΙ ΠΟΙΑ ΔΟΣΗ ΕΙΝΑΙ ────────────────────────────────────────
+// Χωρίς αυτό, το «Μπήκε το ενοίκιο» της κάρτας δεν έχει τι να ενημερώσει: ο
+// ιδιοκτήτης βλέπει το ποσό και στέλνεται αλλού να ψάξει τη δόση που η ίδια η
+// γραμμή μόλις μέτρησε.
+{
+  const r = cashPosition({ ...empty, rent: [rent({ id: 'rp-7', period_month: 7, period_year: 2026 })] })
+  const ref = r.owedToMe.lines[0].rent
+  ok('η γραμμή κουβαλά το αναγνωριστικό της δόσης', ref?.id === 'rp-7')
+  ok('και την περίοδό της, για την υπενθύμιση του ημερολογίου', ref?.year === 2026 && ref?.month === 7)
+}
+{
+  // Δόση χωρίς αναγνωριστικό ΜΕΤΡΑΕΙ κανονικά — απλώς δεν εισπράττεται από εδώ.
+  // Το ψεύτικο κουμπί που αποτυγχάνει σιωπηλά είναι χειρότερο από την απουσία του.
+  const r = cashPosition({ ...empty, rent: [rent({ id: null })] })
+  ok('χωρίς αναγνωριστικό η γραμμή μετράει αλλά δεν προσφέρει ενέργεια',
+    r.owedToMe.total === 700 && r.owedToMe.lines[0].rent === null)
+}
+{
+  // Οι οφειλές δεν εισπράττονται από την κάρτα: δύο πίνακες, δύο σημάνσεις.
+  const r = cashPosition({ ...empty, payables: [pay()] })
+  ok('η πλευρά «Χρωστάω» δεν παριστάνει δόση ενοικίου', r.owedByMe.lines[0].rent === null)
 }
 
 // ── ΧΡΩΣΤΑΩ: κάθε απλήρωτο, με ξεχωριστό το ληξιπρόθεσμο ──────────────────

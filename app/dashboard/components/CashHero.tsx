@@ -20,22 +20,31 @@
 // δεν είναι «στο μηδέν» — έχει δύο ανοιχτά μέτωπα.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { T, fe } from '@/components/Theme';
+import type { ReactNode } from 'react';
+import { T, fe, Btn } from '@/components/Theme';
 import { cashSideNote, type CashPosition, type CashSide } from '@/lib/home/cash';
 
-function Side({ label, side, kind, onOpen, actionLabel }: {
+function Side({ label, side, kind, onOpen, actionLabel, action }: {
   label: string; side: CashSide; kind: 'in' | 'out';
   onOpen: () => void; actionLabel: string;
+  /**
+   * Η ΕΝΕΡΓΕΙΑ ΕΙΝΑΙ ΑΔΕΛΦΟΣ ΤΟΥ ΑΡΙΘΜΟΥ, ΟΧΙ ΠΑΙΔΙ ΤΟΥ. Ολόκληρη η πλευρά
+   * ήταν ένα κουμπί που πλοηγούσε· ένα δεύτερο κουμπί μέσα του δεν είναι
+   * έγκυρο HTML και δίνει δύο ενέργειες στο ίδιο πάτημα. Ο αριθμός κρατά τη
+   * δική του επιφάνεια, η ενέργεια παίρνει τη δική της από κάτω.
+   */
+  action?: ReactNode;
 }) {
   const note = cashSideNote(side, kind);
   return (
+    <div style={{ display: 'flex', flexDirection: 'column', flex: '1 1 220px', minWidth: 0 }}>
     <button
       type="button"
       onClick={onOpen}
       title={actionLabel}
       style={{
         display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start',
-        flex: '1 1 220px', minWidth: 0, padding: '18px 20px',
+        width: '100%', minWidth: 0, padding: action ? '18px 20px 12px' : '18px 20px',
         background: 'transparent', border: 'none', borderRadius: T.radius.inner,
         textAlign: 'left', cursor: 'pointer', transition: 'background 0.15s',
       }}
@@ -57,10 +66,12 @@ function Side({ label, side, kind, onOpen, actionLabel }: {
         fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.45,
       }}>{note}</span>
     </button>
+    {action && <div style={{ padding: '0 20px 18px' }}>{action}</div>}
+    </div>
   );
 }
 
-export default function CashHero({ cash, showIncome, onNavigate }: {
+export default function CashHero({ cash, showIncome, onNavigate, onRecordRent }: {
   cash: CashPosition;
   /**
    * Εκμισθώνεται το ακίνητο; ΣΕ ΚΕΝΟ Ή ΙΔΙΟΧΡΗΣΙΑ ΔΕΝ ΥΠΑΡΧΕΙ «ΜΟΥ ΧΡΩΣΤΑΝΕ».
@@ -71,6 +82,14 @@ export default function CashHero({ cash, showIncome, onNavigate }: {
    */
   showIncome: boolean;
   onNavigate: (tab: string) => void;
+  /**
+   * Η ΕΙΣΠΡΑΞΗ ΓΙΝΕΤΑΙ ΕΔΩ, ΟΧΙ ΤΡΕΙΣ ΟΘΟΝΕΣ ΠΙΟ ΠΕΡΑ. Η κάρτα ήξερε ήδη ποια
+   * δόση χρωστιέται και το έλεγε με ποσό και ημέρες· η μόνη ενέργεια που
+   * πρόσφερε ήταν να στείλει τον ιδιοκτήτη να την ξαναβρεί μόνος του.
+   * `null` όταν καμία ληξιπρόθεσμη γραμμή δεν αντιστοιχεί σε δόση: κουμπί που
+   * δεν έχει τι να γράψει δεν εμφανίζεται.
+   */
+  onRecordRent: (() => void) | null;
 }) {
   return (
     <div className="card cash-hero" style={{ padding: 0, marginBottom: 20 }}>
@@ -78,7 +97,8 @@ export default function CashHero({ cash, showIncome, onNavigate }: {
         {showIncome && (
           <>
             <Side label="Μου χρωστάνε" side={cash.owedToMe} kind="in"
-                  actionLabel="Άνοιγμα στον Ενοικιαστή" onOpen={() => onNavigate('tenant')} />
+                  actionLabel="Άνοιγμα στον Ενοικιαστή" onOpen={() => onNavigate('tenant')}
+                  action={onRecordRent && <Btn onClick={onRecordRent}>Μπήκε το ενοίκιο</Btn>} />
             {/* Ο διαχωριστής είναι η δήλωση ότι τα δύο ΔΕΝ αθροίζονται. */}
             <div aria-hidden style={{ width: 1, background: 'var(--border-subtle)', alignSelf: 'stretch', margin: '14px 0' }} />
           </>

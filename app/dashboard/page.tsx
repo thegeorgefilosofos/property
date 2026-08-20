@@ -76,6 +76,7 @@ import { effectivePlan, isTabAllowed, isTabPurchasable, canAddProperty, planAtLe
 import { isTabVisible, hiddenTabCount, reveal, sanitizeRevealed, coreTabs, CORE_TABS, type DisclosureSignals } from '@/lib/nav/disclosure';
 import AthensNow from './components/AthensNow';
 import CashHero from './components/CashHero';
+import RentReceived, { receivableLines } from './components/RentReceived';
 import AgendaPanel from './components/AgendaPanel';
 import AssistantStrip, { askAssistant } from './components/AssistantStrip';
 import { cashPosition } from '@/lib/home/cash';
@@ -476,7 +477,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { pro
   // Το ΤΑΜΕΙΟ: περίοδοι ενοικίου και συντηρήσεις εξοπλισμού. Διαβάζονται ΕΔΩ και
   // όχι σε δικό τους panel, γιατί τροφοδοτούν την ΕΝΙΑΙΑ λίστα «τι χρειάζεται
   // τώρα» — αν κάθε κάρτα διάβαζε τα δικά της, θα ξαναγεννιόνταν τα διπλότυπα.
-  const [rentPeriods, setRentPeriods] = useState<{ amount:number|null; due_date:string|null; paid:boolean|null; period_year:number|null; period_month:number|null }[]>([]);
+  const [rentPeriods, setRentPeriods] = useState<{ id:string|null; amount:number|null; due_date:string|null; paid:boolean|null; period_year:number|null; period_month:number|null }[]>([]);
   const [maint, setMaint] = useState<OblMaint[]>([]);
   /** Πότε καταγράφηκε η υποβολή της δήλωσης μίσθωσης· κλείνει την υποχρέωση. */
   const [leaseDeclaredAt, setLeaseDeclaredAt] = useState<string|null>(null);
@@ -490,6 +491,8 @@ function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { pro
   // Επισκόπηση δεν το ρωτούσε καν — έδινε πάντα την έκπτωση.
   const [portfolioRents, setPortfolioRents] = useState<{ property_id:string; monthly:number; viaBank:boolean }[]>([]);
   const [loading, setLoading] = useState(true);
+  /** Ανοιχτό παράθυρο είσπραξης ενοικίου από την κάρτα του Ταμείου. */
+  const [receivingRent, setReceivingRent] = useState(false);
 
   const propIds = useMemo(() => properties.map(p => p.id), [properties]);
 
@@ -517,7 +520,9 @@ function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { pro
       supabase.from('rent_config').select('property_id,actual_rent,target_rent').in('property_id',propIds).eq('user_id',userId),
       // ΤΟ ΤΑΜΕΙΟ. Μόνο οι ΑΠΛΗΡΩΤΕΣ περίοδοι — οι πληρωμένες είναι ιστορικό και
       // ζουν στον Ενοικιαστή. Ό,τι δεν εμφανίζεται, δεν κατεβαίνει.
-      rentStore.ofProperty<{ amount:number|null; due_date:string|null; paid:boolean|null; period_year:number|null; period_month:number|null }>(supabase,prop.id,'amount,due_date,paid,period_year,period_month',userId,{ paid:false }),
+      // ΚΑΙ ΤΟ `id`: με αυτό η κάρτα του Ταμείου εισπράττει επιτόπου, αντί να
+      // στέλνει τον ιδιοκτήτη να ξαναβρεί τη δόση που μόλις του έδειξε.
+      rentStore.ofProperty<{ id:string|null; amount:number|null; due_date:string|null; paid:boolean|null; period_year:number|null; period_month:number|null }>(supabase,prop.id,'id,amount,due_date,paid,period_year,period_month',userId,{ paid:false }),
       supabase.from('inventory_maintenance').select('task,item_name,next_due,est_cost').eq('property_id',prop.id),
       // ΠΟΤΕ ΚΑΤΑΓΡΑΦΗΚΕ Η ΔΗΛΩΣΗ ΜΙΣΘΩΣΗΣ. Η υποχρέωση εμφανιζόταν για ενενήντα
       // μέρες γύρω από την προθεσμία ασχέτως υποβολής, ενώ υποβάλλεται μία φορά.
@@ -759,6 +764,11 @@ function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { pro
     today: todayIso,
   }), [rentPeriods, ledger, todayIso]);
 
+  // Ποιες ληξιπρόθεσμες γραμμές ξέρουν τη δόση τους — δηλαδή ποιες εισπράττονται
+  // από την ίδια την κάρτα. Χωρίς καμία τέτοια, το κουμπί δεν εμφανίζεται:
+  // ενέργεια που δεν έχει τι να γράψει είναι ψεύτικη υπόσχεση.
+  const receivableRent = useMemo(() => receivableLines(cash.owedToMe.lines), [cash]);
+
   // ── ΤΑ ΝΟΥΜΕΡΑ ΠΟΥ ΔΙΝΟΥΜΕ ΣΤΗ ΝΟΑ ───────────────────────────────────────
   // Ίδια δομή με αυτήν που φτιάχνει ο ίδιος ο βοηθός (PropertyAssistant), γιατί
   // την παράγει η ίδια μηχανή (lib/assistant/openers.ts) και ο κανόνας της είναι
@@ -976,7 +986,24 @@ function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { pro
           για ένα μόνιμο μηδέν με νεκρό κουμπί. Στη βραχυχρόνια το «Χρωστάω»
           παίρνει όλο το πλάτος, που είναι και η αλήθεια: η είσπραξη γίνεται
           από την πλατφόρμα. */}
-      <CashHero cash={cash} showIncome={readStatus(prop) === 'rent_long'} onNavigate={onNavigate} />
+      <CashHero cash={cash} showIncome={readStatus(prop) === 'rent_long'} onNavigate={onNavigate}
+                onRecordRent={receivableRent.length ? () => setReceivingRent(true) : null} />
+
+      {/* ΤΟ ΠΑΡΑΘΥΡΟ ΠΡΟΣΑΡΤΑΤΑΙ ΟΤΑΝ ΑΝΟΙΓΕΙ. Έτσι η ημερομηνία είσπραξης και ο
+          τρόπος ξαναπαίρνουν τις προεπιλογές τους κάθε φορά, αντί να κουβαλούν
+          την προηγούμενη επιλογή σε δόση άλλου μήνα. */}
+      {receivingRent && (
+        <RentReceived
+          onClose={() => setReceivingRent(false)}
+          lines={receivableRent}
+          supabase={supabase}
+          propertyId={prop.id}
+          tenantId={tenantFull?.id ?? null}
+          leaseViaBank={rentViaBank}
+          today={todayIso}
+          onSaved={() => { void load(); }}
+        />
+      )}
 
       {/* Μία λίστα «τι χρειάζεται τώρα», στη θέση των τεσσάρων που έλεγαν εν
           μέρει τα ίδια πράγματα. Η συγχώνευση γίνεται στο lib/home/agenda.ts. */}

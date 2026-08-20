@@ -129,7 +129,8 @@
     "uses": [
       "lib/accounting/statement.ts",
       "lib/billing/greekTax.ts",
-      "lib/accounting/advisory.ts"
+      "lib/accounting/advisory.ts",
+      "app/dashboard/components/RentReceived.tsx"
     ],
     "watch": "",
     "checkedAt": "2026-08-12",

@@ -22,11 +22,31 @@ import { MONTHS_NOM } from '../core/months';
 
 /** Περίοδος ενοικίου από το `rent_payments`. Το `paid` είναι η πηγή αλήθειας. */
 export interface RentPeriod {
+  /** Η γραμμή στη βάση. Χωρίς αυτό η κάρτα μετράει, αλλά δεν μπορεί να γράψει. */
+  id: string | null;
   amount: number | null;
   due_date: string | null;
   paid: boolean | null;
   period_year: number | null;
   period_month: number | null;
+}
+
+/**
+ * Η δόση ενοικίου πίσω από μια γραμμή του ταμείου.
+ *
+ * ΓΙΑΤΙ ΤΑΞΙΔΕΥΕΙ ΜΕΧΡΙ ΤΗΝ ΚΑΡΤΑ. Το «Μου χρωστάνε» έλεγε το ποσό και μετά
+ * παρέπεμπε: ο ιδιοκτήτης που είδε το έμβασμα στο κινητό του έπρεπε να ανοίξει
+ * τον Ενοικιαστή, να βρει την καρτέλα των χρημάτων, να εντοπίσει τη δόση και
+ * μετά να την επιβεβαιώσει. Τέσσερα βήματα πριν φτάσει στην ενέργεια που ήθελε.
+ * Η γραμμή ξέρει ήδη ποια δόση είναι — το μόνο που έλειπε ήταν να το πει.
+ *
+ * Ο μήνας και η χρήση δεν είναι διακόσμηση: κλείνουν και την αντίστοιχη
+ * υπενθύμιση του ημερολογίου, ώστε να μη θυμίζει ενοίκιο που εισπράχθηκε.
+ */
+export interface RentRef {
+  id: string;
+  year: number | null;
+  month: number | null;
 }
 
 /** Λογαριασμός ή δαπάνη — ό,τι φεύγει από την τσέπη του ιδιοκτήτη. */
@@ -45,6 +65,8 @@ export interface CashLine {
   due: string | null;
   /** Αρνητικό = ληξιπρόθεσμο κατά τόσες ημέρες. */
   daysLeft: number | null;
+  /** Η δόση ενοικίου πίσω από τη γραμμή, όταν υπάρχει. `null` στις οφειλές. */
+  rent: RentRef | null;
 }
 
 export interface CashSide {
@@ -142,7 +164,10 @@ export function cashPosition(input: {
     const label = my && my >= 1 && my <= 12
       ? `Ενοίκιο ${MONTHS_NOM[my - 1]}${r.period_year ? ` ${r.period_year}` : ''}`
       : 'Ενοίκιο';
-    rentLines.push({ label, amount, due: r.due_date, daysLeft });
+    rentLines.push({
+      label, amount, due: r.due_date, daysLeft,
+      rent: r.id ? { id: r.id, year: r.period_year, month: r.period_month } : null,
+    });
   }
 
   // ── ΧΡΩΣΤΑΩ ──────────────────────────────────────────────────────────────
@@ -153,7 +178,10 @@ export function cashPosition(input: {
     if (p.paid !== false) continue;           // null/undefined = δεν το ξέρουμε, δεν το χρεώνουμε
     const amount = num(p.amount);
     if (amount <= 0) continue;
-    payLines.push({ label: p.label, amount, due: p.due, daysLeft: daysFromToday(p.due, today) });
+    // ΚΑΜΙΑ ΑΝΑΦΟΡΑ ΣΕ ΔΟΣΗ: η πλευρά «Χρωστάω» συγκεντρώνει λογαριασμούς και
+    // δαπάνες από δύο πίνακες με διαφορετική σήμανση πληρωμής. Η εξόφλησή τους
+    // ζει στις Δαπάνες, και δεν γίνεται με ένα πάτημα από εδώ.
+    payLines.push({ label: p.label, amount, due: p.due, daysLeft: daysFromToday(p.due, today), rent: null });
   }
 
   return { owedToMe: side(rentLines), owedByMe: side(payLines) };
