@@ -1183,3 +1183,99 @@ begin
 
   raise notice 'probe: η υποβάθμιση περιμένει την ανανέωση, λήγει μόνη της, και δεν ανασταίνει νεκρή συνδρομή';
 end $probe$;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- ΚΑΜΙΑ ΧΡΕΩΣΗ ΧΩΡΙΣ ΠΡΟΕΙΔΟΠΟΙΗΣΗ, ΚΑΙ ΚΑΜΙΑ ΠΡΟΕΙΔΟΠΟΙΗΣΗ ΓΙΑ ΧΡΕΩΣΗ ΠΟΥ
+-- ΔΕΝ ΘΑ ΓΙΝΕΙ
+-- ─────────────────────────────────────────────────────────────────────────
+-- Οι Οροι δεσμεύονται σε ειδοποίηση πριν από κάθε ανανέωση. Η συνάρτηση που
+-- τη στέλνει ζει στη βάση, δεν την πιάνει καμία σουίτα TypeScript, και έχει
+-- τέσσερις τρόπους να είναι σιωπηλά λάθος: να μη στείλει, να στείλει δύο
+-- φορές, να στείλει λάθος ποσό, ή να στείλει σε ακυρωμένη συνδρομή.
+do $probe$
+declare v_uid uuid := 'c4c4c4c4-0000-4000-8000-00000000e1f0';
+declare n int; v_amount numeric; v_trial text;
+begin
+  insert into auth.users(id, email, email_confirmed_at)
+       values (v_uid, 'chreosi@probe.test', now())
+    on conflict (id) do update set email_confirmed_at = excluded.email_confirmed_at;
+
+  -- Μηνιαία συνδρομή σε δοκιμή, με πρώτη χρέωση σε τρεις ημέρες.
+  update public.billing_profiles
+     set plan = 'owner', billing_cycle = 'monthly',
+         mor_subscription_id = 'sub-probe', mor_ends_at = null,
+         mor_renews_at = now() + interval '3 days',
+         subscription_status = 'on_trial'
+   where user_id = v_uid;
+
+  delete from public.email_outbox where to_email = 'chreosi@probe.test';
+  perform public.charge_upcoming_enqueue();
+
+  select count(*) into n from public.email_outbox
+   where to_email = 'chreosi@probe.test' and copy_id = 'charge_upcoming';
+  if n <> 1 then
+    raise exception 'ΧΡΕΩΣΗ ΧΩΡΙΣ ΠΡΟΕΙΔΟΠΟΙΗΣΗ: % μηνύματα αντί για 1. Οι Οροι υπόσχονται ειδοποίηση πριν από κάθε ανανέωση.', n;
+  end if;
+
+  select (params->>'amount')::numeric, params->>'trialDaysLeft' into v_amount, v_trial
+    from public.email_outbox where to_email = 'chreosi@probe.test' limit 1;
+  if v_amount <> 9.90 then
+    raise exception 'Λάθος ποσό στην προαναγγελία: % αντί για 9.90', v_amount;
+  end if;
+  if v_trial is null then
+    raise exception 'Η πρώτη χρέωση μετά τη δοκιμή δεν αναγνωρίστηκε ως τέλος δοκιμής';
+  end if;
+
+  -- ΔΕΥΤΕΡΗ ΕΚΤΕΛΕΣΗ ΤΗΝ ΕΠΟΜΕΝΗ ΗΜΕΡΑ: ούτε ένα διπλό.
+  perform public.charge_upcoming_enqueue();
+  select count(*) into n from public.email_outbox
+   where to_email = 'chreosi@probe.test' and copy_id = 'charge_upcoming';
+  if n <> 1 then
+    raise exception 'Διπλή προαναγγελία για την ίδια ανανέωση: % μηνύματα', n;
+  end if;
+
+  -- ΑΛΛΗ ΑΝΑΝΕΩΣΗ, ΑΛΛΟ ΜΗΝΥΜΑ. Το κλειδί κρατά την ημερομηνία μέσα του: όταν
+  -- η ανανέωση μετακινηθεί (αναβάθμιση που μετέθεσε τον κύκλο) ή όταν έρθει η
+  -- επόμενη περίοδος, ο πελάτης ΠΡΕΠΕΙ να ειδοποιηθεί ξανά. Χωρίς την
+  -- ημερομηνία στο κλειδί, το πρώτο μήνυμα θα ήταν και το τελευταίο της ζωής
+  -- του λογαριασμού: μία ειδοποίηση, και μετά χρόνια σιωπηλών χρεώσεων.
+  update public.billing_profiles
+     set mor_renews_at = now() + interval '2 days' where user_id = v_uid;
+  perform public.charge_upcoming_enqueue();
+  select count(*) into n from public.email_outbox
+   where to_email = 'chreosi@probe.test' and copy_id = 'charge_upcoming';
+  if n <> 2 then
+    raise exception 'Η ΕΠΟΜΕΝΗ ΑΝΑΝΕΩΣΗ ΔΕΝ ΠΡΟΑΝΑΓΓΕΛΘΗΚΕ: % μηνύματα αντί για 2. Το κλειδί δεν κρατά την ημερομηνία, άρα κάθε λογαριασμός ειδοποιείται μία μόνο φορά στη ζωή του.', n;
+  end if;
+
+  -- ΕΤΗΣΙΑ: τρεις ημέρες πριν είναι ΠΟΛΥ ΑΡΓΑ, το παράθυρό της είναι στις 30.
+  delete from public.email_outbox where to_email = 'chreosi@probe.test';
+  update public.billing_profiles set billing_cycle = 'annual' where user_id = v_uid;
+  perform public.charge_upcoming_enqueue();
+  select count(*) into n from public.email_outbox where to_email = 'chreosi@probe.test';
+  if n <> 0 then
+    raise exception 'Η ετήσια ειδοποιήθηκε τρεις ημέρες πριν, ενώ οι Οροι λένε τριάντα';
+  end if;
+
+  update public.billing_profiles
+     set mor_renews_at = now() + interval '29 days' where user_id = v_uid;
+  perform public.charge_upcoming_enqueue();
+  select (params->>'amount')::numeric into v_amount
+    from public.email_outbox where to_email = 'chreosi@probe.test' limit 1;
+  if v_amount is null or v_amount <> 99.00 then
+    raise exception 'Η ετήσια δεν ειδοποιήθηκε στις είκοσι εννέα ημέρες, ή με λάθος ποσό: %', v_amount;
+  end if;
+
+  -- ΑΚΥΡΩΜΕΝΗ ΣΥΝΔΡΟΜΗ: δεν πρόκειται να χρεώσει, άρα δεν προαναγγέλλει.
+  delete from public.email_outbox where to_email = 'chreosi@probe.test';
+  update public.billing_profiles
+     set mor_ends_at = now() + interval '29 days' where user_id = v_uid;
+  perform public.charge_upcoming_enqueue();
+  select count(*) into n from public.email_outbox where to_email = 'chreosi@probe.test';
+  if n <> 0 then
+    raise exception 'ΤΡΟΜΑΚΤΙΚΟ ΚΑΙ ΨΕΥΔΕΣ: ακυρωμένη συνδρομή πήρε υπενθύμιση ανανέωσης';
+  end if;
+
+  delete from public.email_outbox where to_email = 'chreosi@probe.test';
+  raise notice 'probe: κάθε χρέωση προαναγγέλλεται μία φορά, με το σωστό ποσό, και καμία ακυρωμένη';
+end $probe$;

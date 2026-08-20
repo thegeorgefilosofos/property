@@ -154,15 +154,32 @@ DB_RANKS=$(psql -h "$WORK" -U postgres -d posdb -X -A -t -c \
   "select string_agg(p || ':' || public.plan_rank(p), ' ' order by i) from unnest(array[$TS_PLANS]) with ordinality t(p, i)" \
   | sed 's/^ *//;s/ *$//')
 
+# ΚΑΙ ΟΙ ΤΙΜΕΣ. Το `charge_upcoming` ανακοινώνει ΠΟΣΟ θα φύγει από την κάρτα, και
+# το ποσό το γράφει η βάση: το κείμενο του email τρέχει σε συνάρτηση άκρης, που
+# δεν βλέπει το lib/billing/plans.ts. Μια αύξηση τιμής σε ΕΝΑ από τα δύο σημεία
+# δεν βγάζει κανένα σφάλμα — βγάζει email που ανακοινώνει λάθος χρέωση.
+TS_PRICES=$(node -e "
+const s = require('fs').readFileSync('$ROOT/lib/billing/plans.ts', 'utf8');
+const out = [];
+for (const m of s.matchAll(/id: '([a-z]+)',.*?priceMonthly: ([0-9.]+), priceAnnual: ([0-9.]+)/g))
+  out.push(m[1] + ':' + Number(m[2]).toFixed(2) + ':' + Number(m[3]).toFixed(2));
+console.log(out.join(' '));
+")
+DB_PRICES=$(psql -h "$WORK" -U postgres -d posdb -X -A -t -c \
+  "select string_agg(p || ':' || to_char(public.plan_price(p, 'monthly'), 'FM990.00') || ':' || to_char(public.plan_price(p, 'annual'), 'FM990.00'), ' ' order by i) from unnest(array[$TS_PLANS]) with ordinality t(p, i)" \
+  | sed 's/^ *//;s/ *$//')
+
 drift=0
 [ "$TS_VOL" = "$DB_VOL" ] || { echo "✗ στόχος όγκου: εφαρμογή $TS_VOL, βάση ${DB_VOL:-—}"; drift=1; }
 [ "$TS_PRO" = "$DB_PRO" ] || { echo "✗ στόχος συνδρομητών: εφαρμογή $TS_PRO, βάση ${DB_PRO:-—}"; drift=1; }
 [ "$TS_TRIAL" = "$DB_TRIAL" ] || { echo "✗ ημέρες δοκιμής: εφαρμογή $TS_TRIAL, βάση ${DB_TRIAL:-—}"; drift=1; }
 [ "$TS_RANKS" = "$DB_RANKS" ] || { echo "✗ σειρά πακέτων: εφαρμογή «$TS_RANKS», βάση «${DB_RANKS:-—}»"; drift=1; }
+[ "$TS_PRICES" = "$DB_PRICES" ] || { echo "✗ τιμές πακέτων: εφαρμογή «$TS_PRICES», βάση «${DB_PRICES:-—}»"; drift=1; }
 [ "$drift" = "0" ] || { echo ""; echo "🔴 Η βάση δίνει άλλα από αυτά που γράφει η οθόνη."; exit 1; }
 
 echo "✅ $count μεταναστεύσεις τρέχουν σε πραγματικό Postgres, $probes έλεγχοι απομόνωσης"
 echo "   κρατούν, το σενάριο του staging γεμίζει λογαριασμό, και οι στόχοι του"
 echo "   Προγράμματος Πρόσκλησης συμφωνούν με το"
 echo "   lib/referral/referral.ts ($TS_VOL, $TS_PRO), και η δοκιμή είναι $TS_TRIAL"
-echo "   ημέρες και στα δύο, και η σειρά των πακέτων είναι «$TS_RANKS»."
+echo "   ημέρες και στα δύο, η σειρά των πακέτων είναι «$TS_RANKS»,"
+echo "   και οι τιμές συμφωνούν: «$TS_PRICES»."
