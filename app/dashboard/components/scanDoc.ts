@@ -22,6 +22,8 @@ import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
 import * as billStore from '@/lib/data/bills';
 import * as tenantStore from '@/lib/data/tenants';
+import { syncInstalments } from './rentInstalments';
+import type { Tenant } from './TabTenantTypes';
 import * as expenses from '@/lib/data/expenses';
 import * as calendar from '@/lib/data/calendar';
 // Οι ρυθμίσεις ανά ενότητα έχουν ένα σπίτι: lib/data/settings.
@@ -591,10 +593,20 @@ export async function commitScannedDoc(input: CommitInput): Promise<CommitResult
         supabase, propertyId, tenantStore.NAME_COLUMNS, userId);
       const cur = existing && existing.length ? existing[0] : null;
       const sameTenant = cur && nrm(cur.full_name as string) === nrm(plan.tenant.full_name as string);
-      const { error: tErr } = await (sameTenant
-        ? tenantStore.update(supabase, cur!.id, stripEmpty(plan.tenant))
-        : tenantStore.add(supabase, propertyId, userId, stripEmpty(plan.tenant)));
-      if (!tErr) add('Ενοικιαστής');
+      // Η ΓΡΑΜΜΗ ΕΠΙΣΤΡΕΦΕΙ, ΓΙΑΤΙ ΑΠΟ ΑΥΤΗΝ ΓΕΝΝΙΟΥΝΤΑΙ ΤΑ ΧΡΗΜΑΤΑ. Ενα σαρωμένο
+      // μισθωτήριο με έναρξη και ενοίκιο περιέχει όλα όσα χρειάζονται οι δόσεις·
+      // χωρίς αυτές, η σάρωση έλεγε «Ενοικιαστής ✓» και η ταμειακή θέση έμενε
+      // στο μηδέν μέχρι να ανοίξει κάποιος την καρτέλα των εισπράξεων.
+      const { data: tRow, error: tErr } = await (sameTenant
+        ? tenantStore.updateReturning(supabase, cur!.id, stripEmpty(plan.tenant))
+        : tenantStore.addReturning(supabase, propertyId, userId, stripEmpty(plan.tenant)));
+      if (!tErr) {
+        add('Ενοικιαστής');
+        if (tRow) {
+          const { requested } = await syncInstalments(supabase, tRow as unknown as Tenant, propertyId, userId);
+          if (requested) add('Δόσεις ενοικίου');
+        }
+      }
     }
 
     // ── 5) Στοιχεία ακινήτου → user_properties (ΜΟΝΟ ασφαλείς στήλες).

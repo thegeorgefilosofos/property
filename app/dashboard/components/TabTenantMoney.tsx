@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
 import * as tenantStore from '@/lib/data/tenants';
 import * as rentStore from '@/lib/data/rent';
+import { rowsForPeriods } from './rentInstalments';
 import {
   s,
   fmt,
@@ -386,16 +387,11 @@ export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, 
 
   const genForRows=useCallback(async(rows:InstalmentPeriod[])=>{
     if(!rows.length) return;
-    // Ανάλυση δόσης: βασικό ενοίκιο + χρέωση υπηρεσιών (streaming/καθαρισμός/στάθμευση,
-    // σύμφωνα με τον τύπο επίπλωσης). Το «amount» είναι το συνολικό μηνιαίο ποσό.
-    // ΤΟ ΠΟΣΟ ΑΚΟΛΟΥΘΕΙ ΤΗ ΣΥΧΝΟΤΗΤΑ. Μια τριμηνιαία δόση ΕΙΝΑΙ τρία μηνιαία
-    // μισθώματα. Αν άλλαζε μόνο το βήμα των ημερομηνιών, ο ιδιοκτήτης θα
-    // εισέπραττε το ένα τρίτο του ετήσιου ενοικίου — και το ίδιο θα δήλωνε
-    // στο Ε2. Ο πολλαπλασιαστής και το βήμα βγαίνουν από την ΙΔΙΑ συνάρτηση,
-    // ώστε να μην μπορούν να αποκλίνουν.
-    const base=tenantBaseRent(tenant);
-    const services=tenantServicesCharge(tenant);
-    const payload=rows.map(r=>({tenant_id:tenant.id,property_id:propertyId,user_id:userId,period_year:r.year,period_month:r.month,amount:r2(( base+services)*r.months),base_rent:r2(base*r.months),services_charge:r2(services*r.months),paid:false,due_date:r.due_date}));
+    // Η ΣΥΝΤΑΓΗ ΤΗΣ ΔΟΣΗΣ ΔΕΝ ΓΡΑΦΕΤΑΙ ΕΔΩ. Ζει στο `rentInstalments.ts`, γιατί
+    // τις ίδιες γραμμές φτιάχνει πλέον και η αποθήκευση της μίσθωσης: δύο
+    // αντίγραφα του τύπου «(ενοίκιο + υπηρεσίες) × μήνες» σημαίνει δύο
+    // διαφορετικά ποσά για την ίδια μίσθωση, ανάλογα με το ποιος το έγραψε.
+    const payload=rowsForPeriods(rows,tenant,propertyId,userId);
     // UNIQUE(tenant_id,period_year,period_month) προστατεύει· αγνόησε διπλότυπα.
     const{error}=await rentStore.upsertPeriods(supabase,payload,{ignoreDuplicates:true});
     // ΤΟ /* swallow */ ΕΚΡΥΒΕ ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΑΔΕΙΑΖΕ ΤΟ ΛΟΓΙΣΤΗΡΙΟ.

@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
 import * as tenantStore from '@/lib/data/tenants';
 import * as rentStore from '@/lib/data/rent';
+import { syncInstalments } from './rentInstalments';
 import {
   s,
   fmt,
@@ -55,6 +56,7 @@ import {
 import {
   notify,
   notifyOk,
+  notifyError,
 } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
 import { confirmDialog } from '@/components/ConfirmDialog';
@@ -414,6 +416,19 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
         documents.update(supabase,formDocs.map(d=>d.id),{supplier:'tenant:'+savedTenant.id}));
     }
     if(savedTenant?.id) await syncTenantSchedule(supabase,savedTenant,propertyId,userId,'save',{rentDueDay:dueDay});
+    // ── ΚΑΙ ΟΙ ΔΟΣΕΙΣ, ΠΟΥ ΔΕΝ ΕΙΝΑΙ ΤΟ ΙΔΙΟ ΠΡΑΓΜΑ ─────────────────────
+    // Το `syncTenantSchedule` από πάνω γεμίζει ΗΜΕΡΟΛΟΓΙΟ και εκκρεμότητες.
+    // Οι ίδιες οι δόσεις — ο πίνακας από τον οποίο βγαίνει η ταμειακή θέση, η
+    // οφειλή, η Πύλη ενοικιαστή και το Ε2 — γεννιούνταν ΜΟΝΟ μέσα στην οθόνη
+    // των εισπράξεων. Οποιος καταχωρούσε ενοικιαστή και γύριζε στην Επισκόπηση
+    // έβλεπε μηδέν, χωρίς κανένα σφάλμα να το εξηγεί.
+    if(savedRow){
+      const { error:instErr } = await syncInstalments(supabase, savedRow as unknown as Tenant, propertyId, userId);
+      // ΤΟ ΣΦΑΛΜΑ ΛΕΓΕΤΑΙ, ΑΛΛΑ ΔΕΝ ΑΚΥΡΩΝΕΙ ΤΗΝ ΑΠΟΘΗΚΕΥΣΗ: ο ενοικιαστής
+      // έχει ήδη γραφτεί, και μια σιωπηλή αποτυχία εδώ είναι ακριβώς το
+      // μηδενικό που δεν εξηγείται.
+      if(instErr) notifyError(`Ο ενοικιαστής αποθηκεύτηκε, αλλά οι δόσεις ενοικίου δεν δημιουργήθηκαν. ${instErr}`);
+    }
     setSaving(false);setIsForm(false);
     notifyOk(editId?'Αποθηκεύτηκε':'Ενοικιαστής προστέθηκε');
     await fetch_();

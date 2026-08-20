@@ -14,10 +14,13 @@ import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import * as properties from '@/lib/data/properties';
 import * as tenantStore from '@/lib/data/tenants';
+// ΟΙ ΔΟΣΕΙΣ ΓΕΝΝΙΟΥΝΤΑΙ ΜΕ ΤΗ ΜΙΣΘΩΣΗ, ΟΧΙ ΟΤΑΝ ΤΙΣ ΚΟΙΤΑΞΕΙ ΚΑΝΕΙΣ.
+import { syncInstalments } from './rentInstalments';
+import type { Tenant } from './TabTenantTypes';
 import { T, TT, Btn, Spinner, EmptyState, Modal, fp, fixedCols } from '@/components/Theme';
 import { Building2 } from 'lucide-react';
 import { InfoHint } from './InfoHint';
-import { saved } from '@/components/dbWrite';
+import { saved, savedData } from '@/components/dbWrite';
 
 import { CustomSelect as Select, DatePicker } from './UIComponents';
 import ScanButton from './ScanButton';
@@ -186,9 +189,15 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
       const cur = await tenantStore.current<{ id: string }>(supabase, prop.id, 'id', userId);
       // Το try/catch από πάνω δεν καλύπτει αυτό: το Supabase δεν πετά. Χωρίς τον
       // έλεγχο, το συμφωνητικό αρχειοθετούνταν και ο ενοικιαστής δεν υπήρχε πουθενά.
-      await saved('Ο ενοικιαστής δεν ενημερώθηκε από το συμφωνητικό', cur?.id
-        ? tenantStore.update(supabase, cur.id, payload)
-        : tenantStore.add(supabase, prop.id, userId, payload));
+      //
+      // Η ΓΡΑΜΜΗ ΕΠΙΣΤΡΕΦΕΙ, ΓΙΑΤΙ ΑΠΟ ΑΥΤΗΝ ΓΕΝΝΙΟΥΝΤΑΙ ΤΑ ΧΡΗΜΑΤΑ. Χωρίς
+      // αυτήν δεν ξέρουμε ούτε το αναγνωριστικό του νέου ενοικιαστή ούτε τη
+      // συχνότητα πληρωμής, δηλαδή δεν μπορούν να δημιουργηθούν οι δόσεις — και
+      // ένα υπογεγραμμένο μισθωτήριο θα άφηνε την ταμειακή θέση στο μηδέν.
+      const row = await savedData('Ο ενοικιαστής δεν ενημερώθηκε από το συμφωνητικό', cur?.id
+        ? tenantStore.updateReturning(supabase, cur.id, payload)
+        : tenantStore.addReturning(supabase, prop.id, userId, payload));
+      if (row) await syncInstalments(supabase, row as unknown as Tenant, prop.id, userId);
 
       setArchived(true);
       setTimeout(onClose, 1400);
