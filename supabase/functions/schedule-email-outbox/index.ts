@@ -18,6 +18,7 @@
 // then schedule it a couple of minutes before the drain (see the migration).
 // ─────────────────────────────────────────────────────────────────────────
 import { createClient } from 'npm:@supabase/supabase-js@2.110.8'
+import { APP_URL } from '../_shared/site.ts'
 import { scheduleBatch, policyFor, type OutboxRow } from '../_shared/emailPolicy.ts'
 import { CATALOG, DIGESTS } from '../_shared/emailCopy.ts'
 import { authorizeCron } from '../_shared/auth.ts'
@@ -30,7 +31,7 @@ const TZ = 'Europe/Athens'
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY)
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json' } })
 const titleOf = (copyId: string): string => {
-  try { return ({ ...CATALOG, ...DIGESTS })[copyId]?.({ appUrl: 'https://propertyos.gr' })?.subject || copyId } catch { return copyId }
+  try { return ({ ...CATALOG, ...DIGESTS })[copyId]?.({ appUrl: APP_URL })?.subject || copyId } catch { return copyId }
 }
 
 async function authorized(req: Request): Promise<boolean> {

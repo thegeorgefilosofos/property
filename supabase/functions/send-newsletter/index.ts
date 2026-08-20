@@ -8,17 +8,17 @@
 // Ενεργοποίηση: κανένα χειροκίνητο μυστικό δεν χρειάζεται — το pg_cron καλεί τη
 // function με το service-role key (Authorization: Bearer, από το vault) και η
 // authorized() το δέχεται. Προαιρετικά: RESEND_FROM (branded αποστολέας μετά την
-// επαλήθευση domain) & APP_URL (default: https://propertyos.gr).
+// επαλήθευση domain) & APP_URL (μία πηγή: _shared/site.ts).
 // ─────────────────────────────────────────────────────────────────────────
 import { createClient } from 'npm:@supabase/supabase-js@2.110.8'
 import { authorizeCron } from '../_shared/auth.ts'
+import { APP_URL } from '../_shared/site.ts'
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 const SUPABASE_URL   = Deno.env.get('SUPABASE_URL')!
 const SERVICE_KEY    = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const CRON_SECRET    = Deno.env.get('NEWSLETTER_CRON_SECRET') || ''
 const FROM_EMAIL     = Deno.env.get('RESEND_FROM') || 'Property OS <onboarding@resend.dev>'
-const APP_URL        = Deno.env.get('APP_URL') || 'https://propertyos.gr'
 
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY)
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json' } })

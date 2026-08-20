@@ -14,6 +14,7 @@
 // (verify_jwt=false). Χρειάζεται RESEND_API_KEY + RESEND_FROM (branded αποστολέας).
 // ─────────────────────────────────────────────────────────────────────────
 import { createClient } from 'npm:@supabase/supabase-js@2.110.8'
+import { APP_URL } from '../_shared/site.ts'
 import {
   welcomeEmail, planUpgradedEmail, planDowngradedEmail, newPropertyEmail,
   feedbackRequestEmail, mobileLaunchEmail, referralInviteEmail, upsellEmail,
@@ -28,7 +29,6 @@ const SUPABASE_URL   = Deno.env.get('SUPABASE_URL')!
 const SERVICE_KEY    = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const CRON_SECRET    = Deno.env.get('LIFECYCLE_CRON_SECRET') || ''
 const FROM_EMAIL     = Deno.env.get('RESEND_FROM') || 'Property OS <onboarding@resend.dev>'
-const APP_URL        = Deno.env.get('APP_URL') || 'https://propertyos.gr'
 
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY)
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json' } })

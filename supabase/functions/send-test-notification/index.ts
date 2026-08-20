@@ -12,12 +12,12 @@
 // ─────────────────────────────────────────────────────────────────────────
 
 import { createClient } from 'npm:@supabase/supabase-js@2.110.8'
+import { APP_URL } from '../_shared/site.ts'
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 const SUPABASE_URL   = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_ANON  = Deno.env.get('SUPABASE_ANON_KEY')!
 const FROM_EMAIL     = Deno.env.get('RESEND_FROM') || 'Property OS <onboarding@resend.dev>'
-const APP_URL        = Deno.env.get('APP_URL') || 'https://propertyos.gr'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',

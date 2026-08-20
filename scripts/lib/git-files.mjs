@@ -21,6 +21,7 @@
 // μετά.
 // ═══════════════════════════════════════════════════════════════════════════
 import { execSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
 
 const run = (cmd) => execSync(cmd, { encoding: 'utf8' }).split('\n').filter(Boolean)
 
@@ -34,5 +35,9 @@ const run = (cmd) => execSync(cmd, { encoding: 'utf8' }).split('\n').filter(Bool
 export function projectFiles(patterns = '') {
   const tracked = run(`git ls-files ${patterns}`)
   const fresh = run(`git ls-files --others --exclude-standard ${patterns}`)
-  return [...new Set([...tracked, ...fresh])].sort()
+  // ΚΑΙ ΤΑ ΣΒΗΣΜΕΝΑ ΦΕΥΓΟΥΝ. Το `git ls-files` απαριθμεί το ΕΥΡΕΤΗΡΙΟ: ένα
+  // αρχείο που διαγράφηκε και δεν έχει γίνει ακόμη commit εξακολουθεί να
+  // εμφανίζεται. Κάθε φύλακας που το άνοιγε έσκαγε με ENOENT — δηλαδή μια
+  // απλή διαγραφή αρχείου γκρέμιζε επτά ελέγχους μαζί.
+  return [...new Set([...tracked, ...fresh])].filter(existsSync).sort()
 }

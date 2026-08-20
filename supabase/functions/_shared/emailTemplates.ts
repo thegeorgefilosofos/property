@@ -13,13 +13,14 @@
 // (send-client-email) υποστηρίζονται και tokens {{name}} που γεμίζει η function.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { APP_URL } from './site.ts';
 export type Plan = 'free' | 'individual' | 'professional';
 
 const ACCENT = '#1a73e8';
 const INK = '#111111';
 const MUTE = '#5f6368';
 const FAINT = '#80868b';
-const DEFAULT_APP = 'https://propertyos.gr';
+const DEFAULT_APP = APP_URL;
 
 // Η φωνή του προϊόντος: το tagline της landing, υπογραφή σε ΚΑΘΕ email (ομοιομορφία + brand awareness).
 export const BRAND_TAGLINE = 'Το ακίνητό σου, υπό έλεγχο.';

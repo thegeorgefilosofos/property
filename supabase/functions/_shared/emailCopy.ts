@@ -17,9 +17,10 @@
 // 14) Σχέσεις 15) Αξία & Εξοικονόμηση 16) Επικαιρότητα. Στρατηγική: docs/marketing/email-strategy.md.
 // ═══════════════════════════════════════════════════════════════════════════
 import { emailShell, eyebrow, h, p, bullets, button, greeting, note, heroStat, gv, PLAN_LABEL, type Personal } from './emailTemplates.ts'
+import { APP_URL } from './site.ts'
 import { eur } from './format.ts'
 
-const app = (c: Personal) => c.appUrl || 'https://propertyos.gr'
+const app = (c: Personal) => c.appUrl || APP_URL
 const dash = (c: Personal) => `${app(c)}/dashboard`
 const esc = (v: unknown) => String(v ?? '').replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch] || ch))
 const has = (n: unknown): n is number => typeof n === 'number' && isFinite(n) && n > 0
