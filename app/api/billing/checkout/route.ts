@@ -22,10 +22,10 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { PLANS, TRIAL_DAYS, type PlanId } from '@/lib/billing/plans';
+import { PLANS, type PlanId } from '@/lib/billing/plans';
 import { isPlanAllowedForProfile, type ProfileType } from '@/lib/billing/entitlements';
 import { stripeClient, stripeConfigError, taxIsActive } from '@/lib/billing/stripe';
-import { catalogue, priceFor, catalogueGaps, CYCLES, type BillingCycle } from '@/lib/billing/stripePlans';
+import { catalogue, priceFor, catalogueGaps, trialEndFor, CYCLES, type BillingCycle } from '@/lib/billing/stripePlans';
 import { billingWords } from '@/lib/legal/billingWords';
 import { SITE } from '@/lib/core/site';
 import * as billing from '@/lib/data/billing';
@@ -75,6 +75,7 @@ export async function GET(request: NextRequest) {
     }
     if (probe) return NextResponse.json({ available: true, url: null, note: billingWords().chargingToday });
 
+    const trialEnd = trialEndFor(user.created_at, Date.now());
     const taxOn = await taxIsActive(stripe);
     if (!taxOn) console.info('[stripe] το Stripe Tax δεν είναι ενεργό· η συνεδρία ανοίγει χωρίς αυτόματο υπολογισμό ΦΠΑ');
 
@@ -87,7 +88,9 @@ export async function GET(request: NextRequest) {
       client_reference_id: user.id,
       customer_email: user.email ?? undefined,
       subscription_data: {
-        trial_period_days: TRIAL_DAYS,
+        // Η ΔΟΚΙΜΗ ΔΕΝ ΞΕΚΙΝΑ ΕΔΩ, ΣΥΝΕΧΙΖΕΤΑΙ. Μετριέται από την εγγραφή· το
+        // ταμείο μόνο τη σέβεται όσο της απομένει. Κενό σημαίνει άμεση χρέωση.
+        ...(trialEnd ? { trial_end: trialEnd } : {}),
         metadata: { user_id: user.id, plan_id: plan, cycle },
       },
       metadata: { user_id: user.id, plan_id: plan, cycle },

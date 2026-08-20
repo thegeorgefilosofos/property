@@ -7,9 +7,9 @@
 import {
   SUB_STATUSES, isSubStatus, isEntitled, subPhase, isoFrom,
   catalogue, priceFor, planOfPrice, catalogueGaps, readSubscription,
-  CYCLES, type SubStatus,
+  trialEndFor, MIN_TRIAL_MS, CYCLES, type SubStatus,
 } from './stripePlans'
-import { PLANS, type PlanId } from './plans'
+import { PLANS, TRIAL_DAYS, type PlanId } from './plans'
 
 let pass = 0, fail = 0
 const ok = (n: string, c: boolean) => { if (c) pass++; else { fail++; console.error('✗ ' + n) } }
@@ -77,6 +77,33 @@ const price = (id: string, plan: string, cycle: string, active = true) =>
   const full = catalogue(paid.flatMap(p => CYCLES.map(c => price(`price_${p}_${c}`, p, c))))
   ok('πλήρες κατάστημα δεν έχει κενά', catalogueGaps(full) === '')
   ok('πλήρες κατάστημα έχει δύο τιμές ανά πακέτο', full.length === paid.length * 2)
+}
+
+// ── Η ΔΟΚΙΜΗ ΔΙΝΕΤΑΙ ΜΙΑ ΦΟΡΑ ─────────────────────────────────────────────
+{
+  const DAY = 24 * 60 * 60 * 1000
+  const NOW = Date.UTC(2026, 7, 20, 12, 0, 0)
+  const born = (daysAgo: number) => new Date(NOW - daysAgo * DAY).toISOString()
+
+  // Ο ΚΑΝΟΝΑΣ: η δοκιμή μετριέται από την ΕΓΓΡΑΦΗ, όχι από την αγορά.
+  ok('αγορά την πρώτη ημέρα κρατά όλη τη δοκιμή',
+    trialEndFor(born(0), NOW) === Math.floor((NOW + TRIAL_DAYS * DAY) / 1000))
+  ok('αγορά στη μέση κρατά ΜΟΝΟ ό,τι απομένει',
+    trialEndFor(born(10), NOW) === Math.floor((NOW + (TRIAL_DAYS - 10) * DAY) / 1000))
+  // ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΘΕΡΑΠΕΥΕΤΑΙ: όποιος αγοράζει ΜΕΤΑ τη δοκιμή πλήρωνε μηδέν
+  // για άλλες τριάντα ημέρες, ενώ οι Οροι έλεγαν ότι πληρώνει.
+  ok('αγορά μετά τη λήξη χρεώνει αμέσως', trialEndFor(born(TRIAL_DAYS + 1), NOW) === null)
+  ok('αγορά την ίδια την ημέρα λήξης χρεώνει αμέσως', trialEndFor(born(TRIAL_DAYS), NOW) === null)
+  // Το όριο των 48 ωρών είναι του παρόχου: κάτω από αυτό η συνεδρία θα
+  // απορριπτόταν ολόκληρη, δηλαδή ο πελάτης δεν θα μπορούσε να αγοράσει.
+  ok('κάτω από το όριο του παρόχου δεν ζητείται δοκιμή',
+    trialEndFor(born(TRIAL_DAYS - 1), NOW) === null)
+  ok('ακριβώς πάνω από το όριο ζητείται',
+    trialEndFor(new Date(NOW + MIN_TRIAL_MS + 1000 - TRIAL_DAYS * DAY).toISOString(), NOW) !== null)
+  // Η ΑΓΝΩΣΤΗ ΗΜΕΡΟΜΗΝΙΑ ΔΕΝ ΧΑΡΙΖΕΙ ΜΗΝΑ.
+  ok('χωρίς ημερομηνία εγγραφής, καμία δοκιμή',
+    trialEndFor(null, NOW) === null && trialEndFor('', NOW) === null
+    && trialEndFor('όχι ημερομηνία', NOW) === null && trialEndFor(12345, NOW) === null)
 }
 
 // ── Η ΑΝΑΓΝΩΣΗ ΤΗΣ ΣΥΝΔΡΟΜΗΣ ──────────────────────────────────────────────
