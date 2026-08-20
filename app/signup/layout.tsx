@@ -15,16 +15,21 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { siteUrl } from '@/lib/core/site';
 import { TRIAL_DAYS } from '@/lib/billing/plans';
+import { billingWords } from '@/lib/legal/billingWords';
 
-export const metadata: Metadata = {
-  title: 'Εγγραφή',
-  // ΤΟ «ΧΩΡΙΣ ΚΑΡΤΑ» ΕΦΥΓΕ ΓΙΑΤΙ ΕΠΑΨΕ ΝΑ ΙΣΧΥΕΙ. Μετά την επιβεβαίωση του
-  // email, ο νέος λογαριασμός προσγειώνεται στο ταμείο και δίνει κάρτα· η
-  // χρέωση αρχίζει την 31η ημέρα. Η περιγραφή αυτή είναι ό,τι διαβάζει ο
-  // κόσμος στα αποτελέσματα αναζήτησης, δηλαδή η υπόσχεση ΠΡΙΝ από κάθε άλλη.
-  description: `Δημιούργησε λογαριασμό και δοκίμασε δωρεάν για ${TRIAL_DAYS} ημέρες. Η πρώτη χρέωση γίνεται την ${TRIAL_DAYS + 1}η ημέρα.`,
-  alternates: { canonical: siteUrl('/signup') },
-};
+// ΤΟ «ΧΩΡΙΣ ΚΑΡΤΑ» ΕΦΥΓΕ ΓΙΑΤΙ ΕΠΑΨΕ ΝΑ ΙΣΧΥΕΙ. Μετά την επιβεβαίωση του email
+// ο νέος λογαριασμός προσγειώνεται στο ταμείο και δίνει κάρτα. Η περιγραφή
+// αυτή είναι ό,τι διαβάζει ο κόσμος στα αποτελέσματα αναζήτησης, δηλαδή η
+// υπόσχεση ΠΡΙΝ από κάθε άλλη — και γι' αυτό δεν γράφεται με το χέρι: το
+// `generateMetadata` τρέχει στον διακομιστή, όπου η αλήθεια για τη χρέωση
+// είναι γνωστή. Στατικό `metadata` δεν θα μπορούσε να τη ρωτήσει.
+export function generateMetadata(): Metadata {
+  return {
+    title: 'Εγγραφή',
+    description: `Δημιούργησε λογαριασμό και δοκίμασε δωρεάν για ${TRIAL_DAYS} ημέρες. ${billingWords().firstCharge}`,
+    alternates: { canonical: siteUrl('/signup') },
+  };
+}
 
 export default function SignupLayout({ children }: { children: ReactNode }) {
   return children;

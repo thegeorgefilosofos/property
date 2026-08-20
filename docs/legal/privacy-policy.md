@@ -59,8 +59,9 @@
 ερωτήσεις). **Δεν αποστέλλονται ειδικές κατηγορίες** και **δεν χρησιμοποιούνται για
 εκπαίδευση μοντέλων**.
 
-**2.7 Δεδομένα χρέωσης (όταν ενεργοποιηθεί):** Στοιχεία επικοινωνίας χρέωσης και
-αναγνωριστικά συνδρομής. **Τα στοιχεία κάρτας τηρούνται αποκλειστικά από τη Stripe.**
+**2.7 Δεδομένα χρέωσης:** Στοιχεία επικοινωνίας χρέωσης και αναγνωριστικά συνδρομής.
+**Τα στοιχεία κάρτας τηρούνται αποκλειστικά από τη Lemon Squeezy**, που ενεργεί ως
+merchant of record· δεν περνούν ποτέ από τους δικούς μας διακομιστές.
 
 ---
 
@@ -100,7 +101,7 @@
 | **Resend, Inc.** | Email | ΗΠΑ | **SCCs** |
 | **Anthropic, PBC** | Βοηθός AI (χωρίς εκπαίδευση) | ΗΠΑ | **SCCs** |
 | **GitHub, Inc.** | Κώδικας/CI/κρυπτογραφημένα backups | ΗΠΑ | **SCCs** |
-| **Stripe, Inc.** *(όταν ενεργοποιηθεί)* | Χρέωση | ΗΠΑ/ΕΕ | **SCCs** |
+| **Lemon Squeezy, LLC** | Χρέωση συνδρομών (merchant of record) | ΗΠΑ/ΕΕ | **SCCs** |
 | Πάροχοι μηνυμάτων *(σχεδιαζόμενο)* | Ειδοποιήσεις | Διάφορες | **SCCs** πριν την ενεργοποίηση |
 
 Το **σύστημα καταγραφής παραμένει στην ΕΕ**. Οι υπεργολάβοι εκτός ΕΟΧ λειτουργούν βάσει
@@ -186,7 +187,7 @@ phone, ΑΦΜ. (2) Property/financial/tax: ΑΤΑΚ, objective value, ΕΝΦΙΑ
 bank imports, Ε2 figures, documents. (3) Tenant/guest (customer-entered): name, ΑΦΜ,
 phone, email, ID, lease terms, stay history — **customer is controller**. (4) Email/
 notifications. (5) Lifecycle/marketing. (6) AI context — no special-category data, not
-used for training. (7) Billing — card data held solely by Stripe.
+used for training. (7) Billing — card data held solely by Lemon Squeezy (merchant of record).
 
 **3. Legal bases (Art. 6).** Service **6(1)(b)**; security **6(1)(f)**; records
 **6(1)(b)**; tax **6(1)(c)**; transactional email **6(1)(b)**; marketing **6(1)(a)**/
@@ -196,7 +197,7 @@ used for training. (7) Billing — card data held solely by Stripe.
 (`docs/legal/dpa.md`).
 
 **5. Subprocessors/transfers.** Supabase (EU/Frankfurt), Resend/Anthropic/GitHub/
-Stripe (US/SCCs). System of record in the EU. We do not sell personal data.
+Lemon Squeezy (US/SCCs). System of record in the EU. We do not sell personal data.
 
 **6. Retention.** Account: life + 30-day grace. Tax: Greek statutory. Backups: 30-day
 encrypted. Deletion effective across the estate within 30 days.

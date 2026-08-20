@@ -726,14 +726,22 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
           </div>
         )}
 
-        {/* Δωρεάν δοκιμή: πόσο απομένει, χωρίς καμία χρέωση όσο διαρκεί.
-            Λέμε ΚΑΙ τι γίνεται μετά, ώστε να μην υπάρχει έκπληξη. */}
+        {/* ── Η ΤΟΠΙΚΗ ΔΟΚΙΜΗ, ΔΗΛΑΔΗ ΑΥΤΗ ΧΩΡΙΣ ΚΑΡΤΑ ──────────────────────
+            ΤΟ ΠΛΑΙΣΙΟ ΔΕΝ ΕΜΦΑΝΙΖΕΤΑΙ ΠΟΤΕ ΣΕ ΟΠΟΙΟΝ ΕΧΕΙ ΔΩΣΕΙ ΚΑΡΤΑ, και
+            αυτό είναι που κάνει τη διατύπωση αληθινή. Το `trialState` σβήνει
+            μόλις ο webhook σφραγίσει το `trial_used_at`, δηλαδή μόλις ο
+            έμπορος δώσει τη δική του δοκιμή· από εκεί και πέρα μιλά η κάρτα
+            της συνδρομής, που ξέρει την ημερομηνία της πρώτης χρέωσης.
+
+            Ο λόγος γράφεται ΜΕΣΑ στην πρόταση («δεν έχεις δηλώσει μέσο
+            πληρωμής»): έτσι, αν κάποτε σπάσει η σύζευξη, το κείμενο θα φαίνεται
+            ψεύτικο αντί να είναι σιωπηλά ψεύτικο. */}
         {trialShowing && (
           <div style={{ marginTop: 14, display: 'flex', alignItems: 'flex-start', gap: 10, background: 'var(--accent-dim)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, padding: '12px 14px' }}>
             <span className="acc-live-dot accent" style={{ width: 6, height: 6, background: 'var(--accent)', flexShrink: 0, marginTop: 6 }} />
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>
               Δοκιμάζεις δωρεάν το <strong style={{ color: 'var(--text-primary)' }}>{PLANS[effPlan].name}</strong> για {trial.daysLeft === 1 ? 'ακόμη μία ημέρα' : `ακόμη ${trial.daysLeft} ημέρες`}.
-              {' '}Δεν θα χρεωθείς: όταν λήξει, ο λογαριασμός σου συνεχίζει στο «{PLANS.free.name}», με το πρώτο σου ακίνητο και τα δεδομένα σου ανέπαφα.
+              {' '}Δεν έχεις δηλώσει μέσο πληρωμής, οπότε δεν πρόκειται να χρεωθείς: όταν λήξει, ο λογαριασμός σου συνεχίζει στο «{PLANS.free.name}», με το πρώτο σου ακίνητο και τα δεδομένα σου ανέπαφα.
             </div>
           </div>
         )}

@@ -9,6 +9,7 @@ import { billingWords } from './billingWords'
 import { checkoutIsLive } from '../billing/lemonCheckout'
 import { subprocessors, activeSubprocessors, plannedSubprocessors } from './subprocessors'
 import { PAYMENTS_PROVIDER } from './merchant'
+import { TRIAL_DAYS } from '../billing/plans'
 
 let pass = 0, fail = 0
 const ok = (n: string, c: boolean) => { if (c) pass++; else { fail++; console.error('✗ ' + n) } }
@@ -36,7 +37,7 @@ ok('χαλασμένο αναγνωριστικό καταστήματος δε�
 {
   const live = billingWords(LIVE), dark = billingWords(DARK)
   ok('η σημαία ακολουθεί το ταμείο', live.live === true && dark.live === false)
-  const keys = ['chargingToday', 'afterTrial', 'cardData', 'compMonths', 'howWeArePaid', 'paymentMethodAsked'] as const
+  const keys = ['chargingToday', 'afterTrial', 'cardData', 'compMonths', 'howWeArePaid', 'paymentMethodAsked', 'moneyBack', 'firstCharge'] as const
   // Αν μια φράση είναι ίδια και στις δύο καταστάσεις, τότε η μία από τις δύο
   // λέει ψέματα — και δεν θα το έπιανε κανείς, γιατί «υπάρχει διατύπωση».
   for (const k of keys) ok(`η «${k}» διαφέρει ανά κατάσταση`, live[k] !== dark[k])
@@ -48,6 +49,57 @@ ok('χαλασμένο αναγνωριστικό καταστήματος δε�
   // Καμία φράση δεν μένει κενή: μια κενή πρόταση σε νομικό κείμενο είναι
   // παράλειψη ενημέρωσης, όχι συντομία.
   for (const k of keys) ok(`καμία κενή φράση: ${k}`, live[k].length > 20 && dark[k].length > 20)
+}
+
+// ── ΤΟ ΜΟΝΤΕΛΟ ΤΩΝ ΧΡΗΜΑΤΩΝ, ΓΡΑΜΜΕΝΟ ΚΑΙ ΚΑΡΦΩΜΕΝΟ ─────────────────────
+// Καθε πρόταση εδώ αντιστοιχεί σε κάτι που ΚΑΝΕΙ ο κώδικας. Οταν άλλαξε το
+// μοντέλο, τα κείμενα έμειναν πίσω και έλεγαν το ακριβώς αντίθετο: «δεν
+// ζητείται μέσο πληρωμής» δίπλα σε μια διαδρομή που ζητά κάρτα την τρίτη
+// οθόνη. Οι έλεγχοι είναι λεξιλογικοί επίτηδες — ό,τι υπόσχεται ένα νομικό
+// κείμενο δεν επιτρέπεται να αλλάξει κατά λάθος.
+{
+  const live = billingWords(LIVE), dark = billingWords(DARK)
+
+  // Η ΚΑΡΤΑ ΔΗΛΩΝΕΤΑΙ ΣΤΗΝ ΑΡΧΗ, ΚΑΙ Η ΧΡΕΩΣΗ ΕΡΧΕΤΑΙ ΤΗΝ 31η ΗΜΕΡΑ.
+  ok('η ζωντανή διατύπωση λέει πότε δηλώνεται το μέσο πληρωμής',
+    live.afterTrial.includes('μέσο πληρωμής') && live.afterTrial.includes('ταμείο'))
+  ok('και ποια ημέρα φεύγει το πρώτο ευρώ',
+    live.afterTrial.includes(`${TRIAL_DAYS + 1}η ημέρα`))
+  ok('και ότι η ακύρωση μέσα στη δοκιμή δεν κοστίζει',
+    live.afterTrial.includes('δεν χρεώνεσαι καθόλου'))
+  // ΤΟ ΠΑΛΙΟ ΨΕΜΑ, ΟΝΟΜΑΣΤΙΚΑ. Η φράση αυτή ήταν αληθής επί μήνες και έγινε
+  // ψευδής μέσα σε ένα commit, χωρίς να το πει κανείς.
+  ok('και ΔΕΝ λέει πια ότι δεν ζητείται μέσο πληρωμής',
+    !live.afterTrial.includes('Δεν ζητείται μέσο πληρωμής'))
+  ok('το μέσο πληρωμής ζητείται μετά την επιβεβαίωση του email',
+    live.paymentMethodAsked.includes('επιβεβαίωση του email'))
+  // Η ΣΥΝΤΟΜΗ ΜΟΡΦΗ ΛΕΕΙ ΤΟ ΙΔΙΟ ΠΡΑΓΜΑ ΜΕ ΤΗ ΜΑΚΡΙΑ. Γράφεται για στενές
+  // επιφάνειες (ψιλά γράμματα, περιγραφή σελίδας) και είναι ακριβώς εκεί που
+  // κάποιος θα την ξανάγραφε με το χέρι.
+  ok('η σύντομη μορφή λέει την ημέρα της πρώτης χρέωσης',
+    live.firstCharge.includes(`${TRIAL_DAYS + 1}η ημέρα`))
+  ok('και χωρίς ταμείο δεν υπόσχεται καμία χρέωση',
+    dark.firstCharge.includes('δεν έχει ενεργοποιηθεί') && !dark.firstCharge.includes(`${TRIAL_DAYS + 1}η ημέρα`))
+
+  // Η ΕΓΓΥΗΣΗ ΤΩΝ 14 ΗΜΕΡΩΝ ΑΠΟ ΤΗΝ ΠΡΩΤΗ ΧΡΕΩΣΗ.
+  // Οι 14 ημέρες του νόμου μετρούν από τη σύναψη, δηλαδή λήγουν δεκαέξι
+  // ημέρες πριν φύγει το πρώτο ευρώ. Χωρίς αυτή τη δέσμευση, ο πελάτης
+  // πληρώνει την 31η ημέρα χωρίς κανένα δικαίωμα επιστροφής.
+  for (const [name, w] of [['ζωντανή', live.withdrawal], ['ανενεργή', dark.withdrawal]] as const) {
+    ok(`η ${name} υπαναχώρηση αναφέρει την εγγύηση από την πρώτη χρέωση`,
+      w.includes('14 ημέρες από την πρώτη χρέωση'))
+  }
+  ok('η ζωντανή εγγύηση επιστρέφει ολόκληρο το ποσό',
+    live.withdrawal.includes('επιστρέφουμε ολόκληρο το ποσό'))
+  // ΜΙΑ ΠΡΟΤΑΣΗ, ΔΥΟ ΘΕΣΕΙΣ. Ο τιμοκατάλογος τη δείχνει στα ψιλά γράμματα και
+  // οι Οροι μέσα στην υπαναχώρηση: γραμμένη δύο φορές, θα απέκλινε.
+  ok('η σύντομη εγγύηση ζει μέσα στην παράγραφο της υπαναχώρησης',
+    live.withdrawal.includes(live.moneyBack) && dark.withdrawal.includes(dark.moneyBack))
+  ok('και εξηγεί ΓΙΑΤΙ χρειάζεται', live.withdrawal.includes('αφού περάσουν οι 14 ημέρες'))
+
+  // Η ΑΝΕΝΕΡΓΗ ΚΑΤΑΣΤΑΣΗ ΜΕΝΕΙ ΑΝΕΝΕΡΓΗ, χωρίς να υπόσχεται χρεώσεις.
+  ok('χωρίς ταμείο, καμία υπόσχεση για χρέωση',
+    dark.afterTrial.includes('δεν έχει ενεργοποιηθεί'))
 }
 
 // ── ΤΟ ΜΗΤΡΩΟ ΥΠΕΡΓΟΛΑΒΩΝ ΑΚΟΛΟΥΘΕΙ ──────────────────────────────────────

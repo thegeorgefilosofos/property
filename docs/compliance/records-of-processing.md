@@ -20,7 +20,7 @@ buyer's due diligence expects this document to exist.
 | 4 | **Transactional email/notifications** | Users, tenants | Email/phone, message content | Deliver receipts, reminders, obligations | Contract 6(1)(b) | Outbox rows retained for audit; expired/stale purged |
 | 5 | **Lifecycle & marketing email** | Users | Email, engagement, plan/tenure, derived segments | Onboarding, product news, seasonal/value nudges | Consent 6(1)(a) / soft opt-in with easy unsubscribe = legitimate interest 6(1)(f) | Until unsubscribe; suppression list kept |
 | 6 | **AI assistant / suggestions** | Users | Prompt context (property data, questions) | In-product assistance | Contract 6(1)(b); processed by Anthropic under SCCs | Not retained for training (confirm in DPA) |
-| 7 | **Billing** (when live) | Users | Billing contact, subscription IDs (card at Stripe) | Take payment | Contract 6(1)(b); invoices = legal obligation 6(1)(c) | Statutory accounting period |
+| 7 | **Billing** | Users | Billing contact, subscription IDs (card at Lemon Squeezy) | Take payment | Contract 6(1)(b); invoices = legal obligation 6(1)(c) | Statutory accounting period |
 | 8 | **Backups & DR** | All of the above | Full logical dump | Disaster recovery | Legitimate interest 6(1)(f) | 30-day rolling; encrypted at rest when configured |
 
 ## Data subject rights — how they are served
@@ -31,7 +31,7 @@ buyer's due diligence expects this document to exist.
 - **Restriction**: account can be closed; data export before deletion.
 
 ## International transfers
-US subprocessors (Resend, Anthropic, GitHub, Stripe) under **SCCs**; system of
+US subprocessors (Resend, Anthropic, GitHub, Lemon Squeezy) under **SCCs**; system of
 record stays in the EU. See `subprocessors.md`.
 
 ## Security measures (summary)

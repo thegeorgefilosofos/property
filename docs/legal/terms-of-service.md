@@ -64,8 +64,11 @@
 βλάβη, μη παραιτητά δικαιώματα καταναλωτή).
 
 ## 10. Πληρωμές (όταν ενεργοποιηθεί)
-Συνδρομές/τιμές/κύκλοι κατά την εγγραφή· πληρωμές μέσω **Stripe**· μη επιστρεπτέα εκτός αν
-ο νόμος (δικαιώματα καταναλωτή) ορίζει άλλως. **[ΣΥΜΠΛΗΡΩΣΤΕ: τιμολόγηση/ΦΠΑ/ανανέωση/
+Συνδρομές/τιμές/κύκλοι κατά την εγγραφή· πληρωμές μέσω **Lemon Squeezy**, που ενεργεί ως
+**merchant of record** (πουλά στο δικό της όνομα, εκδίδει το παραστατικό, αποδίδει τον ΦΠΑ)·
+δοκιμή 30 ημερών με κάρτα από την αρχή και πρώτη χρέωση την 31η ημέρα· εγγύηση επιστροφής
+14 ημερών από την πρώτη χρέωση· πέραν αυτής μη επιστρεπτέα εκτός αν ο νόμος (δικαιώματα
+καταναλωτή) ορίζει άλλως. **[ΣΥΜΠΛΗΡΩΣΤΕ: τιμολόγηση/ΦΠΑ/ανανέωση/
 ακύρωση.]**
 
 ## 11. Αναστολή & καταγγελία
@@ -113,8 +116,9 @@ with a licensed professional first. Reliance is at your own risk.
 **8. Disclaimers.** "As is"/"as available", no warranties. **9. Liability.** No
 indirect/consequential damages or **tax/administrative penalties/fines**; aggregate
 cap = amounts paid in prior **12 months** **[COMPLETE: alt cap]**; limits don't apply
-where law forbids. **10. Payments** via Stripe (when live); non-refundable unless law
-requires. **11. Suspension/termination** for breach; you may close anytime; retention
+where law forbids. **10. Payments** via Lemon Squeezy as merchant of record; 30-day
+trial with card up front, first charge on day 31; 14-day money-back guarantee from the
+first charge; otherwise non-refundable unless law requires. **11. Suspension/termination** for breach; you may close anytime; retention
 rules apply (deletion within 30 days). **12. Changes** notified in advance. **13.
 Governing law:** Greek law; courts of **[COMPLETE: Athens]**, subject to consumer
 rules; EU ODR available. **14. Miscellaneous:** severability; no assignment by you; we

@@ -43,7 +43,7 @@ service-role **μόνο** server-side· εξουσιοδότηση κάθε πρ
 
 ## 8. Υπεργολαβία (28(2),(3)(δ),(4))
 **Γενική εξουσιοδότηση.** Τρέχοντες υπεργολάβοι: **Supabase** (ΕΕ/Frankfurt), **Resend,
-Anthropic** (χωρίς εκπαίδευση), **GitHub, Stripe** (ΗΠΑ/SCCs). **Προηγούμενη ειδοποίηση**
+Anthropic** (χωρίς εκπαίδευση), **GitHub, Lemon Squeezy** (ΗΠΑ/SCCs). **Προηγούμενη ειδοποίηση**
 για προσθήκη/αντικατάσταση, με **δικαίωμα εναντίωσης** εντός **[ΣΥΜΠΛΗΡΩΣΤΕ: 30] ημερών**·
 κάθε υπεργολάβος δεσμεύεται με **ισοδύναμες** υποχρεώσεις· παραμένουμε πλήρως υπεύθυνοι.
 
@@ -94,7 +94,7 @@ special categories. **5. Instructions (28(3)(a)):** documented only; we flag GDP
 breaching instructions. **6. Confidentiality (b).** **7. Security (c,32):** per-tenant
 RLS, pinned search_path, **expiring token-gated RPCs**, server-side-only service key,
 EU residency, encrypted backups, MFA, audited pentest. **8. Sub-processing:** general
-authorisation; Supabase (EU), Resend/Anthropic/GitHub/Stripe (US/SCCs); prior notice +
+authorisation; Supabase (EU), Resend/Anthropic/GitHub/Lemon Squeezy (US/SCCs); prior notice +
 right to object; equivalent obligations; we stay liable. **9. DSAR assistance (e):**
 export/delete/rectify tools; forward direct requests. **10. Breach (f,32–36):** notify
 without undue delay; **72h HDPA + subject notice = Customer's duty**, we assist. **11.
