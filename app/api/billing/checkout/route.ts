@@ -1,15 +1,26 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // Ο ΔΡΟΜΟΣ ΠΡΟΣ ΤΟ ΤΑΜΕΙΟ
 // ─────────────────────────────────────────────────────────────────────────
-// Ο σύνδεσμος αγοράς ΔΕΝ φτιάχνεται στον περιηγητή, και όχι από συνήθεια:
-// κουβαλά το `custom_data.user_id` που λέει στον έμπορο ποιος πληρώνει. Αν τον
-// έφτιαχνε ο πελάτης, οποιοσδήποτε θα μπορούσε να βάλει ξένο αναγνωριστικό και
-// να πληρώσει τη συνδρομή άλλου — ή, χειρότερα, να στείλει άλλον να πληρώσει τη
-// δική του. Εδώ το αναγνωριστικό έρχεται από τη ΣΥΝΕΔΡΙΑ, όχι από το αίτημα.
+// ΤΟ ΤΑΜΕΙΟ ΦΤΙΑΧΝΕΤΑΙ ΕΔΩ, ΚΑΙ ΟΧΙ ΑΠΟ ΣΥΝΗΘΕΙΑ. Κουβαλά ποιος πληρώνει, τι
+// αγοράζει, και — το κρισιμότερο — ΑΝ ΔΙΚΑΙΟΥΤΑΙ ΔΟΚΙΜΗ. Αν το έφτιαχνε ο
+// περιηγητής, οποιοσδήποτε θα έβαζε ξένο αναγνωριστικό, άλλη παραλλαγή, ή θα
+// ζητούσε δοκιμή που έχει ήδη ξοδέψει.
 //
-// ΚΑΙ ΤΟ ΠΑΚΕΤΟ ΕΛΕΓΧΕΤΑΙ. Ενας ιδιώτης δεν αγοράζει πακέτο επαγγελματία απλώς
-// γράφοντάς το στη διεύθυνση: θα πλήρωνε για καρτέλες που το προφίλ του δεν
-// ανοίγει, και το παράπονο θα ερχόταν μετά τη χρέωση.
+// ── ΤΕΣΣΕΡΙΣ ΕΛΕΓΧΟΙ ΠΡΙΝ ΑΝΟΙΞΕΙ ───────────────────────────────────────
+// ΤΑΥΤΟΤΗΤΑ: ο χρήστης έρχεται από τη ΣΥΝΕΔΡΙΑ, όχι από το αίτημα.
+// ΠΑΚΕΤΟ: ένας ιδιώτης δεν αγοράζει πακέτο επαγγελματία γράφοντάς το στη
+//   διεύθυνση — θα πλήρωνε για καρτέλες που το προφίλ του δεν ανοίγει.
+// ΔΟΚΙΜΑΣΤΗΣ: όποιος έχει την ιδιότητα ΔΕΝ πληρώνει ποτέ. Το ταμείο δεν
+//   ανοίγει καν γι' αυτόν — δεν υπάρχει τίποτα να αγοράσει.
+// ΔΟΚΙΜΗ: μία ανά ΛΟΓΑΡΙΑΣΜΟ. Δεύτερη συνδρομή στον ίδιο λογαριασμό ζητά
+//   `skip_trial`, αλλιώς η ακύρωση την τρίτη ημέρα και ένα νέο πάτημα δίνουν
+//   καθαρές 30 ημέρες, επ' άπειρον.
+//
+// ── ΚΑΙ Η ΕΡΩΤΗΣΗ ΔΕΝ ΕΙΝΑΙ ΑΓΟΡΑ ───────────────────────────────────────
+// Η οθόνη ρωτά «υπάρχει ταμείο;» σε κάθε φόρτωση, για να μη δείξει κουμπί που
+// δεν οδηγεί πουθενά. Με `probe=1` απαντάμε από τη ρύθμιση, ΧΩΡΙΣ να ζητήσουμε
+// ταμείο από τον έμπορο: αλλιώς κάθε άνοιγμα των Ρυθμίσεων θα άφηνε από μία
+// αχρησιμοποίητη συνεδρία πληρωμής στον πίνακά του.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { NextResponse } from 'next/server';
@@ -17,10 +28,18 @@ import type { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { PLANS, type PlanId } from '@/lib/billing/plans';
 import { isPlanAllowedForProfile, type ProfileType } from '@/lib/billing/entitlements';
-import { parseCheckoutLinks, checkoutUrl } from '@/lib/billing/lemonCheckout';
+import { checkoutIsLive, createCheckout, variantFor, storeId } from '@/lib/billing/lemonCheckout';
+import { API_KEY_ENV } from '@/lib/billing/lemonApi';
 import { billingWords } from '@/lib/legal/billingWords';
+import { SITE } from '@/lib/core/site';
 import type { BillingCycle } from '@/lib/billing/lemon';
 import * as billing from '@/lib/data/billing';
+
+/** Ο σύνδεσμος πληρωμής δεν ζει για πάντα σε ένα ιστορικό περιηγητή. */
+const LINK_MINUTES = 30;
+
+/** Η απάντηση όταν δεν υπάρχει ταμείο. Ιδια διατύπωση με τους Ορους. */
+const closed = () => NextResponse.json({ available: false, url: null, note: billingWords().chargingToday });
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
@@ -29,27 +48,57 @@ export async function GET(request: NextRequest) {
 
   const plan = (request.nextUrl.searchParams.get('plan') || '').trim();
   const cycle = (request.nextUrl.searchParams.get('cycle') || '').trim();
+  const probe = request.nextUrl.searchParams.get('probe') === '1';
   if (!(plan in PLANS) || (cycle !== 'monthly' && cycle !== 'annual')) {
     return NextResponse.json({ error: 'Αγνωστο πακέτο ή κύκλος.' }, { status: 400 });
   }
 
-  const { map, error } = parseCheckoutLinks(process.env.LEMON_CHECKOUT_LINKS);
-  if (error) {
-    // ΤΟ «ΓΙΑΤΙ ΟΧΙ» ΤΑΞΙΔΕΥΕΙ ΜΟΝΟ ΠΡΟΣ ΤΑ ΜΕΣΑ. Στην οθόνη πάει σκέτο
-    // «δεν είναι διαθέσιμο»: ονόματα μεταβλητών δεν εκτίθενται σε κανέναν.
-    console.info('[lemon] σύνδεσμοι αγοράς:', error);
-    // Η ΦΡΑΣΗ ΤΑΞΙΔΕΥΕΙ ΜΑΖΙ ΜΕ ΤΗΝ ΑΠΑΝΤΗΣΗ. Η οθόνη είναι component πελάτη:
-    // δεν διαβάζει μεταβλητές περιβάλλοντος, άρα δεν μπορεί να κρίνει μόνη της
-    // τι ισχύει. Ετσι λέει ΤΟ ΙΔΙΟ πράγμα με τους Ορους, από την ίδια πηγή.
-    return NextResponse.json({ available: false, url: null, note: billingWords().chargingToday });
+  if (!checkoutIsLive(process.env)) {
+    // ΤΟ «ΓΙΑΤΙ ΟΧΙ» ΤΑΞΙΔΕΥΕΙ ΜΟΝΟ ΠΡΟΣ ΤΑ ΜΕΣΑ. Ονόματα μεταβλητών δεν
+    // εκτίθενται σε δημόσια διεύθυνση.
+    console.info('[lemon] η χρέωση δεν είναι ρυθμισμένη');
+    return closed();
   }
 
-  const profile = await billing.profile<{ profile_type: string | null }>(supabase, user.id, 'profile_type');
+  const profile = await billing.profile<{
+    profile_type: string | null; trial_used_at: string | null;
+    tester_since: string | null; full_name: string | null;
+  }>(supabase, user.id, 'profile_type, trial_used_at, tester_since, full_name');
+
+  // Ο ΔΟΚΙΜΑΣΤΗΣ ΔΕΝ ΕΧΕΙ ΤΙ ΝΑ ΑΓΟΡΑΣΕΙ. Δεν είναι σφάλμα, είναι η κατάστασή
+  // του: το προϊόν του δίνεται ολόκληρο και χωρίς συνδρομή στον έμπορο.
+  if (profile?.tester_since) {
+    return NextResponse.json({ available: false, url: null, tester: true });
+  }
+
   const type: ProfileType = profile?.profile_type === 'professional' ? 'professional' : 'individual';
   if (!isPlanAllowedForProfile(type, plan as PlanId)) {
     return NextResponse.json({ error: 'Το πακέτο δεν αντιστοιχεί στον τύπο του λογαριασμού.' }, { status: 403 });
   }
 
-  const url = checkoutUrl(map, plan as PlanId, cycle as BillingCycle, { userId: user.id, email: user.email });
+  const variantId = variantFor(process.env, plan as PlanId, cycle as BillingCycle);
+  if (!variantId) {
+    console.info(`[lemon] καμία παραλλαγή για «${plan}:${cycle}»`);
+    return closed();
+  }
+
+  if (probe) return NextResponse.json({ available: true, url: null, note: billingWords().chargingToday });
+
+  const { url, error } = await createCheckout({
+    storeId: storeId(process.env),
+    variantId,
+    buyer: { userId: user.id, email: user.email, name: profile?.full_name },
+    redirectUrl: `${SITE}/dashboard?checkout=ok`,
+    // Η ΔΟΚΙΜΗ ΕΙΝΑΙ ΜΙΑ ΑΝΑ ΛΟΓΑΡΙΑΣΜΟ. Το πότε δόθηκε το γράφει ο webhook,
+    // όταν δει την πρώτη συνδρομή σε δοκιμή — όχι εδώ: ένα ταμείο που άνοιξε
+    // και εγκαταλείφθηκε δεν πρέπει να καίει τη δοκιμή κανενός.
+    skipTrial: !!profile?.trial_used_at,
+    expiresAt: new Date(Date.now() + LINK_MINUTES * 60_000).toISOString(),
+  }, (process.env[API_KEY_ENV] || '').trim());
+
+  if (error) {
+    console.info('[lemon] το ταμείο δεν άνοιξε:', error);
+    return NextResponse.json({ error: 'Το ταμείο δεν άνοιξε.' }, { status: 502 });
+  }
   return NextResponse.json({ available: !!url, url, note: billingWords().chargingToday });
 }

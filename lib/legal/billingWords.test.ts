@@ -13,17 +13,24 @@ import { PAYMENTS_PROVIDER } from './merchant'
 let pass = 0, fail = 0
 const ok = (n: string, c: boolean) => { if (c) pass++; else { fail++; console.error('✗ ' + n) } }
 
-const LINK = 'https://propertyos.lemonsqueezy.com/buy/aaaa'
-const LIVE = { LEMON_CHECKOUT_LINKS: `solo:monthly=${LINK}` }
+const LIVE = {
+  LEMON_SQUEEZY_API_KEY: 'κλειδί',
+  LEMON_STORE_ID: '12345',
+  LEMON_VARIANTS: '811223:solo:monthly',
+}
 const DARK = {}
 
 // ── Η ΣΥΝΘΗΚΗ ─────────────────────────────────────────────────────────────
-ok('με σύνδεσμο αγοράς, το ταμείο είναι ζωντανό', checkoutIsLive(LIVE))
-ok('χωρίς σύνδεσμο, δεν είναι', !checkoutIsLive(DARK))
-// Χαλασμένη τιμή ΔΕΝ μετράει ως ζωντανή: το route γυρίζει `available:false`,
-// άρα ένα κείμενο που έλεγε «χρεώνουμε» θα ήταν ψέμα.
-ok('χαλασμένος χάρτης δεν μετράει ως ζωντανό ταμείο',
-  !checkoutIsLive({ LEMON_CHECKOUT_LINKS: 'solo:monthly=https://evil.example/buy/x' }))
+ok('με τη ρύθμιση πλήρη, το ταμείο είναι ζωντανό', checkoutIsLive(LIVE))
+ok('χωρίς ρύθμιση, δεν είναι', !checkoutIsLive(DARK))
+// ΤΟ ΜΙΣΟ ΕΙΝΑΙ ΧΕΙΡΟΤΕΡΟ ΑΠΟ ΤΟ ΤΙΠΟΤΑ, και γι' αυτό μετράνε και οι τρεις:
+// με ζωντανό ταμείο και ξεχασμένο χάρτη παραλλαγών, ο πελάτης πληρώνει και ο
+// webhook απαντά σφάλμα σε κάθε γεγονός — χρεωμένος, χωρίς πακέτο.
+ok('χωρίς χάρτη παραλλαγών δεν μετράει ως ζωντανό ταμείο',
+  !checkoutIsLive({ ...LIVE, LEMON_VARIANTS: '' }))
+ok('χωρίς κλειδί API δεν μετράει', !checkoutIsLive({ ...LIVE, LEMON_SQUEEZY_API_KEY: '' }))
+ok('χαλασμένο αναγνωριστικό καταστήματος δεν μετράει',
+  !checkoutIsLive({ ...LIVE, LEMON_STORE_ID: 'PropertyOS' }))
 
 // ── ΟΙ ΔΥΟ ΚΑΤΑΣΤΑΣΕΙΣ ΕΙΝΑΙ ΟΝΤΩΣ ΔΥΟ ────────────────────────────────────
 {

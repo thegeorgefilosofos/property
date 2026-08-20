@@ -245,7 +245,7 @@ function Subscription({ d, wantPlan = null }: { d: BillingData; wantPlan?: PlanI
     let alive = true;
     (async () => {
       try {
-        const res = await fetch(`/api/billing/checkout?plan=${target}&cycle=${cycle}`);
+        const res = await fetch(`/api/billing/checkout?plan=${target}&cycle=${cycle}&probe=1`);
         const body = await res.json() as { available?: boolean; note?: string };
         if (alive) { setLive(!!body.available); setNote(body.note || ''); }
       } catch { if (alive) setLive(false); }

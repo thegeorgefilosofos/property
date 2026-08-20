@@ -1,72 +1,33 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Ο ΣΥΝΔΕΣΜΟΣ ΠΟΥ ΠΑΕΙ ΣΤΟ ΤΑΜΕΙΟ
+// ΤΟ ΤΑΜΕΙΟ ΦΤΙΑΧΝΕΤΑΙ ΑΝΑ ΠΑΤΗΜΑ, ΔΕΝ ΕΙΝΑΙ ΣΤΑΘΕΡΟΣ ΣΥΝΔΕΣΜΟΣ
 // ─────────────────────────────────────────────────────────────────────────
-// ΤΑ ΑΝΑΓΝΩΡΙΣΤΙΚΑ ΓΕΝΝΙΟΥΝΤΑΙ ΣΤΟ ΚΑΤΑΣΤΗΜΑ, ΟΧΙ ΕΔΩ. Ο σύνδεσμος αγοράς της
-// Lemon Squeezy έχει μορφή `https://<κατάστημα>.lemonsqueezy.com/buy/<uuid>`,
-// και το uuid το δίνει το κατάστημα όταν δημιουργηθεί το προϊόν. Δεν
-// υπολογίζεται, δεν μαντεύεται: έρχεται από μεταβλητή περιβάλλοντος.
+// ΓΙΑΤΙ ΑΛΛΑΞΕ. Ο στατικός σύνδεσμος αγοράς (`…/buy/<uuid>`) είναι ο ίδιος για
+// όλους, και ακριβώς εκεί είναι το πρόβλημα: η δωρεάν δοκιμή είναι ρύθμιση της
+// ΠΑΡΑΛΛΑΓΗΣ, οπότε ΚΑΘΕ αγορά μέσω του ίδιου συνδέσμου γεννά καθαρή δοκιμή 30
+// ημερών. Ακύρωση τη δεύτερη μέρα, ξαναπάτημα του ίδιου κουμπιού, νέα δοκιμή —
+// ίδιος λογαριασμός, ίδιο email, ίδια κάρτα, επ' άπειρον.
 //
-//     LEMON_CHECKOUT_LINKS="solo:monthly=https://…/buy/aaa,solo:annual=https://…/buy/bbb"
+// Το ταμείο που φτιάχνεται από τον διακομιστή δέχεται `skip_trial`. Η δοκιμή
+// γίνεται έτσι απόφαση ΔΙΚΗ ΜΑΣ, ανά λογαριασμό, αντί για ιδιότητα του
+// προϊόντος — και δεν χρειάζονται διπλάσιες παραλλαγές στο κατάστημα.
 //
-// ── ΓΙΑΤΙ ΕΛΕΓΧΕΤΑΙ ΤΟ ΟΝΟΜΑ ΧΩΡΟΥ ──────────────────────────────────────
-// Αυτή η τιμή γράφεται με το χέρι σε πεδίο ιστοσελίδας και μετά η εφαρμογή
-// στέλνει εκεί ΠΕΛΑΤΕΣ ΜΕ ΤΗΝ ΚΑΡΤΑ ΤΟΥΣ. Ενα τυπογραφικό στο όνομα χώρου δεν
-// βγάζει σφάλμα· βγάζει σελίδα άλλου. Δεκτά μόνο `https` και υποτομείς του
-// `lemonsqueezy.com`.
+// ── ΚΑΙ ΤΡΙΑ ΑΚΟΜΗ ΠΟΥ Ο ΣΤΑΤΙΚΟΣ ΣΥΝΔΕΣΜΟΣ ΔΕΝ ΕΔΙΝΕ ────────────────────
+// · Εκπτωτικός κωδικός από τον διακομιστή, δηλαδή ελεγχόμενος.
+// · Προσυμπληρωμένο όνομα, όχι μόνο email: ένα πεδίο λιγότερο στο ταμείο.
+// · Λήξη του συνδέσμου. Ενας σύνδεσμος πληρωμής που ζει για πάντα σε ένα
+//   ιστορικό περιηγητή είναι σύνδεσμος που κάποιος θα πατήσει κατά λάθος.
 //
 // ── ΤΙ ΤΑΞΙΔΕΥΕΙ ΜΑΖΙ ─────────────────────────────────────────────────────
-// Το `checkout[custom][user_id]` είναι ο ΜΟΝΟΣ σύνδεσμος της πληρωμής με τον
-// λογαριασμό — το webhook δεν έχει άλλον τρόπο να ξέρει ποιος πλήρωσε. Το
-// `checkout[email]` είναι μόνο προσυμπλήρωση, ώστε να μην ξαναγράφει ο πελάτης
-// αυτό που η εφαρμογή ήδη ξέρει.
+// Το `custom.user_id` είναι ο ΜΟΝΟΣ σύνδεσμος της πληρωμής με τον λογαριασμό:
+// το webhook δεν έχει άλλον τρόπο να ξέρει ποιος πλήρωσε. Δεν έρχεται ποτέ από
+// το αίτημα του περιηγητή — έρχεται από τη συνεδρία.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { PLANS, type PlanId } from './plans';
+import type { PlanId } from './plans';
 import type { BillingCycle } from './lemon';
+import { apiConfigError, lemonRequest, storeId, type BillingEnv } from './lemonApi';
 
-/** Το κλειδί ενός συνδέσμου: πακέτο και κύκλος, όπως και στον χάρτη παραλλαγών. */
-export const linkKey = (plan: PlanId, cycle: BillingCycle): string => `${plan}:${cycle}`;
-
-export interface CheckoutLinks {
-  map: Map<string, string>;
-  /** Κενό όταν όλα διαβάστηκαν. Αλλιώς τι ακριβώς δεν διαβάστηκε. */
-  error: string;
-}
-
-const CYCLES: readonly BillingCycle[] = ['monthly', 'annual'];
-
-/** Δεκτός σύνδεσμος αγοράς; Το «μοιάζει σωστό» δεν αρκεί όταν φεύγει πελάτης. */
-export function isCheckoutUrl(raw: string): boolean {
-  let u: URL;
-  try { u = new URL(raw); } catch { return false; }
-  if (u.protocol !== 'https:') return false;
-  return u.hostname === 'lemonsqueezy.com' || u.hostname.endsWith('.lemonsqueezy.com');
-}
-
-export function parseCheckoutLinks(raw: string | undefined | null): CheckoutLinks {
-  const map = new Map<string, string>();
-  const text = (raw || '').trim();
-  if (!text) return { map, error: 'Δεν έχουν οριστεί σύνδεσμοι αγοράς. Ορισε τη μεταβλητή LEMON_CHECKOUT_LINKS.' };
-
-  const bad: string[] = [];
-  for (const entry of text.split(',').map(e => e.trim()).filter(Boolean)) {
-    const eq = entry.indexOf('=');
-    if (eq < 0) { bad.push(`«${entry}»: περιμένει μορφή πακέτο:κύκλος=σύνδεσμος`); continue; }
-    const key = entry.slice(0, eq).trim();
-    const url = entry.slice(eq + 1).trim();
-    const [plan, cycle] = key.split(':').map(p => (p || '').trim());
-    if (!(plan in PLANS)) { bad.push(`«${key}»: άγνωστο πακέτο «${plan}»`); continue; }
-    if (!CYCLES.includes(cycle as BillingCycle)) { bad.push(`«${key}»: άγνωστος κύκλος «${cycle}»`); continue; }
-    if (!isCheckoutUrl(url)) { bad.push(`«${key}»: ο σύνδεσμος δεν είναι https σε lemonsqueezy.com`); continue; }
-    if (map.has(key)) { bad.push(`«${key}»: ορίζεται δύο φορές`); continue; }
-    map.set(key, url);
-  }
-
-  return { map, error: bad.length ? `Οι σύνδεσμοι αγοράς έχουν σφάλματα: ${bad.join(' · ')}` : '' };
-}
-
-/** Οσο από το περιβάλλον αφορά τη χρέωση. Ρητό, ώστε να μη διαβάζεται τίποτε άλλο. */
-export type BillingEnv = Record<string, string | undefined>;
+export type { BillingEnv };
 
 /**
  * ΕΙΝΑΙ ΖΩΝΤΑΝΗ Η ΧΡΕΩΣΗ; ΜΙΑ ΕΡΩΤΗΣΗ, ΜΙΑ ΑΠΑΝΤΗΣΗ.
@@ -78,38 +39,132 @@ export type BillingEnv = Record<string, string | undefined>;
  * ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΤΗΝ ΓΕΝΝΗΣΕ. Ο χειριστής πληρωμής γράφτηκε και μαζί του ένα
  * κουμπί «Πληρωμή με κάρτα». Πέντε επιφάνειες συνέχισαν να γράφουν «η χρέωση
  * δεν έχει ενεργοποιηθεί», και το μητρώο υπεργολάβων — δημοσιευμένο έγγραφο
- * του άρθρου 28 GDPR — δήλωνε μηχαναγνώσιμα `active: false` για τον πάροχο
- * πληρωμών. Δέκα δηλώσεις σε πέντε αρχεία, καμία δεμένη με τον κώδικα.
+ * του άρθρου 28 GDPR — δήλωνε μηχαναγνώσιμα `active: false` για τον πάροχο.
  *
- * Η απάντηση δεν είναι να ξαναγραφτούν τα κείμενα — θα ξανα-αποκλίνουν την
- * επόμενη φορά. Είναι να μη ΓΡΑΦΟΝΤΑΙ πουθενά αλλού: μία συνθήκη, ίδια για το
- * κουμπί και για τη λέξη.
+ * ΚΑΙ ΓΙΑΤΙ ΡΩΤΑΕΙ ΚΑΙ ΤΙΣ ΤΡΕΙΣ ΜΕΤΑΒΛΗΤΕΣ. Η προηγούμενη γραφή κοιτούσε μόνο
+ * τους συνδέσμους αγοράς: με ξεχασμένο τον χάρτη παραλλαγών, το κουμπί ήταν
+ * ζωντανό, τα κείμενα έλεγαν «χρεώνουμε», και ο webhook απαντούσε 500 σε κάθε
+ * γεγονός. Πληρωμένοι πελάτες χωρίς πακέτο, από την πρώτη εγγραφή.
  */
 export function checkoutIsLive(env: BillingEnv = process.env): boolean {
-  const { map, error } = parseCheckoutLinks(env.LEMON_CHECKOUT_LINKS);
-  return error === '' && map.size > 0;
+  if (apiConfigError(env) !== '') return false;
+  return parseVariantMapText(env.LEMON_VARIANTS).size > 0;
+}
+
+/** Το κλειδί μιας παραλλαγής: πακέτο και κύκλος. */
+export const variantKey = (plan: PlanId, cycle: BillingCycle): string => `${plan}:${cycle}`;
+
+/**
+ * Ο χάρτης «πακέτο:κύκλος → παραλλαγή», χωρίς κρίση για τα σφάλματα.
+ *
+ * Η ΑΥΣΤΗΡΗ ΑΝΑΓΝΩΣΗ ΖΕΙ ΣΤΟ `lemon.ts` (`parseVariantMap`), που καταγγέλλει
+ * ονομαστικά κάθε λάθος γραμμή. Εδώ χρειάζεται μόνο η ερώτηση «υπάρχει
+ * τουλάχιστον μία;», και μια δεύτερη αυστηρή υλοποίηση θα ήταν ακριβώς η
+ * δεύτερη πηγή που το αρχείο αυτό υπάρχει για να αποφύγει.
+ */
+function parseVariantMapText(raw: string | undefined | null): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const entry of (raw || '').split(',').map(e => e.trim()).filter(Boolean)) {
+    const [variantId, plan, cycle] = entry.split(':').map(p => (p || '').trim());
+    if (variantId && plan && (cycle === 'monthly' || cycle === 'annual')) {
+      map.set(`${plan}:${cycle}`, variantId);
+    }
+  }
+  return map;
+}
+
+/** Η παραλλαγή ενός πακέτου. Κενό όταν δεν έχει οριστεί. */
+export function variantFor(env: BillingEnv, plan: PlanId, cycle: BillingCycle): string {
+  return parseVariantMapText(env.LEMON_VARIANTS).get(variantKey(plan, cycle)) || '';
 }
 
 export interface Buyer {
   /** Ο λογαριασμός μας. Χωρίς αυτόν η πληρωμή δεν προσγειώνεται πουθενά. */
   userId: string;
   email?: string | null;
+  name?: string | null;
+}
+
+export interface CheckoutWish {
+  storeId: string;
+  variantId: string;
+  buyer: Buyer;
+  /** Πού γυρίζει ο πελάτης μετά την πληρωμή. */
+  redirectUrl: string;
+  /**
+   * ΠΑΡΑΛΕΙΨΗ ΤΗΣ ΔΟΚΙΜΗΣ. `true` για κάθε λογαριασμό που έχει ήδη πάρει τη
+   * δική του: η δοκιμή είναι μία ανά ΛΟΓΑΡΙΑΣΜΟ, όχι μία ανά συνδρομή.
+   */
+  skipTrial: boolean;
+  /** Εκπτωτικός κωδικός, όταν ο λογαριασμός δικαιούται. */
+  discountCode?: string;
+  /** Πότε λήγει ο σύνδεσμος, σε ISO. */
+  expiresAt?: string;
+  testMode?: boolean;
 }
 
 /**
- * Ο σύνδεσμος αγοράς για ένα πακέτο. `null` όταν δεν έχει οριστεί.
- *
- * ΕΠΙΣΤΡΕΦΕΙ `null` ΑΝΤΙ ΝΑ ΦΤΙΑΞΕΙ ΚΑΤΙ. Ενας σύνδεσμος που δείχνει σε
- * ανύπαρκτο προϊόν στέλνει τον πελάτη σε σελίδα σφάλματος της Lemon Squeezy,
- * με τη δική μας μάρκα στην πλάτη. Καλύτερα να μην εμφανιστεί το κουμπί.
+ * Το σώμα του αιτήματος. Καθαρή συνάρτηση, ώστε να ελέγχεται χωρίς δίκτυο:
+ * ένα λάθος πεδίο εδώ σημαίνει ταμείο που δεν ανοίγει, ή χειρότερα, ταμείο που
+ * ανοίγει με λάθος όρους.
  */
-export function checkoutUrl(links: Map<string, string>, plan: PlanId, cycle: BillingCycle, buyer: Buyer): string | null {
-  const base = links.get(linkKey(plan, cycle));
-  if (!base || !buyer.userId) return null;
+export function checkoutPayload(w: CheckoutWish): Record<string, unknown> {
+  const custom: Record<string, string> = { user_id: w.buyer.userId };
+  const data: Record<string, unknown> = { custom };
+  const email = (w.buyer.email || '').trim();
+  const name = (w.buyer.name || '').trim();
+  if (email) data.email = email;
+  if (name) data.name = name;
+  if (w.discountCode) data.discount_code = w.discountCode;
 
-  const u = new URL(base);
-  u.searchParams.set('checkout[custom][user_id]', buyer.userId);
-  const email = (buyer.email || '').trim();
-  if (email) u.searchParams.set('checkout[email]', email);
-  return u.toString();
+  return {
+    data: {
+      type: 'checkouts',
+      attributes: {
+        checkout_data: data,
+        checkout_options: { skip_trial: w.skipTrial, embed: false },
+        // ΜΟΝΟ Η ΠΑΡΑΛΛΑΓΗ ΠΟΥ ΔΙΑΛΕΧΤΗΚΕ. Χωρίς αυτό, το ταμείο δείχνει
+        // επιλογέα με ΟΛΕΣ τις παραλλαγές του προϊόντος: ο πελάτης που πάτησε
+        // «ετήσια» μπορεί να φύγει με μηνιαία, και η οθόνη μας θα λέει άλλα.
+        product_options: { enabled_variants: [w.variantId], redirect_url: w.redirectUrl },
+        ...(w.expiresAt ? { expires_at: w.expiresAt } : {}),
+        ...(w.testMode === undefined ? {} : { test_mode: w.testMode }),
+      },
+      relationships: {
+        store: { data: { type: 'stores', id: w.storeId } },
+        variant: { data: { type: 'variants', id: w.variantId } },
+      },
+    },
+  };
 }
+
+/**
+ * Η διεύθυνση του ταμείου μέσα σε μια απάντηση του εμπόρου.
+ *
+ * ΔΕΧΕΤΑΙ ΜΟΝΟ `https://`. Ο σύνδεσμος καταλήγει σε `window.location.href`·
+ * χωρίς τον έλεγχο, μια απάντηση που δεν είναι αυτή που περιμέναμε γίνεται
+ * ανοιχτή ανακατεύθυνση.
+ */
+export function readCheckoutUrl(payload: unknown): string | null {
+  const data = (payload as { data?: unknown } | null)?.data;
+  const attrs = (data as { attributes?: unknown } | null)?.attributes;
+  const raw = (attrs as { url?: unknown } | null)?.url;
+  if (typeof raw !== 'string') return null;
+  const url = raw.trim();
+  return /^https:\/\/[^/\s]+/.test(url) ? url : null;
+}
+
+export interface CheckoutResult { url: string | null; error: string }
+
+/** Ζητά από τον έμπορο ένα ταμείο και επιστρέφει τη διεύθυνσή του. */
+export async function createCheckout(
+  w: CheckoutWish, apiKey: string, fetcher?: typeof fetch,
+): Promise<CheckoutResult> {
+  const { json, error } = await lemonRequest({
+    path: '/v1/checkouts', method: 'POST', body: checkoutPayload(w), apiKey, fetcher,
+  });
+  if (error) return { url: null, error };
+  return { url: readCheckoutUrl(json), error: '' };
+}
+
+export { storeId };

@@ -989,9 +989,11 @@ begin
   -- ένα `insert` εδώ έσκαγε σε παραβίαση πρωτεύοντος κλειδιού, δηλαδή ο
   -- έλεγχος απομόνωσης θα σταματούσε πριν ελέγξει οτιδήποτε.
   insert into public.billing_profiles(user_id, full_name, plan, subscription_status,
-      mor_customer_id, mor_subscription_id, mor_variant_id, mor_renews_at, mor_ends_at, mor_event_at)
+      mor_customer_id, mor_subscription_id, mor_variant_id, mor_renews_at, mor_ends_at, mor_event_at,
+      trial_used_at, tester_since)
     values (v_uid, 'Πριν', 'solo', 'on_trial', 'cus-1', 'sub-1', 'var-1',
-            timestamptz '2026-09-20', null, timestamptz '2026-08-20')
+            timestamptz '2026-09-20', null, timestamptz '2026-08-20',
+            timestamptz '2026-08-01', null)
     on conflict (user_id) do update set
       full_name = excluded.full_name, plan = excluded.plan,
       subscription_status = excluded.subscription_status,
@@ -999,7 +1001,8 @@ begin
       mor_subscription_id = excluded.mor_subscription_id,
       mor_variant_id = excluded.mor_variant_id,
       mor_renews_at = excluded.mor_renews_at, mor_ends_at = excluded.mor_ends_at,
-      mor_event_at = excluded.mor_event_at;
+      mor_event_at = excluded.mor_event_at,
+      trial_used_at = excluded.trial_used_at, tester_since = excluded.tester_since;
 end $probe$;
 
 set role authenticated;
@@ -1014,7 +1017,10 @@ begin
          mor_customer_id = 'δικό-μου', mor_subscription_id = 'δικό-μου',
          mor_variant_id = 'δικό-μου',
          mor_renews_at = timestamptz '2099-01-01', mor_ends_at = timestamptz '2099-01-01',
-         mor_event_at = timestamptz '2099-01-01'
+         mor_event_at = timestamptz '2099-01-01',
+         -- ΟΙ ΔΥΟ ΠΟΥ ΔΙΝΟΥΝ ΔΩΡΕΑΝ ΧΡΗΣΗ: σβήσιμο της χρήσης δοκιμής ξεκινά νέα
+         -- δοκιμή 30 ημερών, και η ιδιότητα δοκιμαστή δίνει το προϊόν δωρεάν.
+         trial_used_at = null, tester_since = timestamptz '2026-01-01'
    where user_id = '7c7c7c7c-0000-4000-8000-00000000c0de';
   get diagnostics n = row_count;
   if n <> 1 then
@@ -1042,6 +1048,11 @@ begin
   if r.subscription_status <> 'on_trial' then raise exception 'Ο χρήστης έγραψε την κατάσταση συνδρομής: %', r.subscription_status; end if;
   if r.mor_customer_id <> 'cus-1' then raise exception 'Ο χρήστης έγραψε τον πελάτη του εμπόρου'; end if;
   if r.mor_subscription_id <> 'sub-1' then raise exception 'Ο χρήστης έγραψε τη συνδρομή του εμπόρου'; end if;
+  -- ΟΙ ΔΥΟ ΠΟΥ ΔΙΝΟΥΝ ΔΩΡΕΑΝ ΧΡΗΣΗ. Σβησμένη χρήση δοκιμής σημαίνει νέα δοκιμή
+  -- 30 ημερών σε κάθε πάτημα· ιδιότητα δοκιμαστή σημαίνει ολόκληρο το προϊόν
+  -- δωρεάν, χωρίς συνδρομή. Και τα δύο με μια γραμμή στην κονσόλα του περιηγητή.
+  if r.trial_used_at is null then raise exception 'Ο χρήστης έσβησε τη χρήση της δοκιμής: μπορεί να ξαναρχίσει δοκιμή όποτε θέλει'; end if;
+  if r.tester_since is not null then raise exception 'Ο χρήστης έγραψε μόνος του ιδιότητα δοκιμαστή: δωρεάν προϊόν'; end if;
   if r.mor_variant_id <> 'var-1' then raise exception 'Ο χρήστης έγραψε την παραλλαγή: θα διάλεγε πακέτο μόνος του'; end if;
   if r.mor_renews_at <> timestamptz '2026-09-20' then raise exception 'Ο χρήστης έγραψε την ημερομηνία ανανέωσης'; end if;
   if r.mor_ends_at is not null then raise exception 'Ο χρήστης έγραψε την ημερομηνία λήξης'; end if;

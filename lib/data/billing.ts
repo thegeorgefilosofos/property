@@ -44,6 +44,9 @@ const SERVER_OWNED = [
   'plan', 'billing_cycle',
   'comp_plan', 'comp_until', 'comp_months_granted', 'comp_started_at',
   'mor_customer_id', 'mor_subscription_id', 'mor_variant_id', 'mor_renews_at', 'mor_ends_at', 'mor_event_at', 'subscription_status',
+  // Η χρήση της δοκιμής και η ιδιότητα δοκιμαστή δίνουν ΔΩΡΕΑΝ ΧΡΗΣΗ: αν τις
+  // έγραφε ο πελάτης, η δοκιμή θα ξεκινούσε από την αρχή όποτε ήθελε.
+  'trial_used_at', 'tester_since',
 ] as const;
 
 // ── ΑΝΑΓΝΩΣΗ ───────────────────────────────────────────────────────────────

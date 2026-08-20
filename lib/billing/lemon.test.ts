@@ -7,7 +7,6 @@ import {
   carriesSubscription,
   LS_STATUSES, isLsStatus, isEntitled, parseVariantMap, planOfVariant, readSubscriptionEvent,
 } from './lemon'
-import { parseCheckoutLinks, checkoutUrl, isCheckoutUrl } from './lemonCheckout'
 import { verifySignature } from './lemonSignature'
 import { createHmac } from 'node:crypto'
 
@@ -138,38 +137,6 @@ ok('φορτίο χωρίς data απορρίπτεται', !readSubscriptionEve
   ok('μη δεκαεξαδική υπογραφή δεν ρίχνει εξαίρεση', !verifySignature(body, 'ζζζζ', secret))
 }
 
-
-// ── ΟΙ ΣΥΝΔΕΣΜΟΙ ΑΓΟΡΑΣ ───────────────────────────────────────────────────
-// Εδώ φεύγει ο πελάτης με την κάρτα του. Ενα τυπογραφικό στο όνομα χώρου δεν
-// βγάζει σφάλμα· βγάζει σελίδα άλλου.
-{
-  const good = 'https://propertyos.lemonsqueezy.com/buy/aaaa-bbbb'
-  const r = parseCheckoutLinks(`solo:monthly=${good},owner:annual=https://propertyos.lemonsqueezy.com/buy/cccc`)
-  ok('δύο σύνδεσμοι, καμία διαμαρτυρία', r.error === '' && r.map.size === 2)
-
-  const url = checkoutUrl(r.map, 'solo', 'monthly', { userId: 'u-1', email: 'a@b.gr' })
-  ok('ο σύνδεσμος κρατά τη διαδρομή αγοράς', !!url && url.startsWith(good + '?'))
-  ok('ο χρήστης ταξιδεύει ως custom data', !!url && url.includes('checkout%5Bcustom%5D%5Buser_id%5D=u-1'))
-  ok('το ταχυδρομείο προσυμπληρώνεται', !!url && url.includes('checkout%5Bemail%5D=a%40b.gr'))
-
-  const noMail = checkoutUrl(r.map, 'solo', 'monthly', { userId: 'u-1' })
-  ok('χωρίς ταχυδρομείο δεν μπαίνει κενή παράμετρος', !!noMail && !noMail.includes('checkout%5Bemail%5D'))
-  ok('πακέτο χωρίς σύνδεσμο δεν εφευρίσκει διεύθυνση',
-    checkoutUrl(r.map, 'office', 'monthly', { userId: 'u-1' }) === null)
-  ok('χωρίς χρήστη δεν βγαίνει σύνδεσμος: η πληρωμή δεν θα προσγειωνόταν πουθενά',
-    checkoutUrl(r.map, 'solo', 'monthly', { userId: '' }) === null)
-}
-ok('http απορρίπτεται', !isCheckoutUrl('http://propertyos.lemonsqueezy.com/buy/x'))
-ok('άλλο όνομα χώρου απορρίπτεται', !isCheckoutUrl('https://lemonsqueezy.com.evil.tld/buy/x'))
-ok('σκουπίδια απορρίπτονται χωρίς εξαίρεση', !isCheckoutUrl('όχι διεύθυνση'))
-ok('το γυμνό lemonsqueezy.com γίνεται δεκτό', isCheckoutUrl('https://lemonsqueezy.com/buy/x'))
-{
-  const r = parseCheckoutLinks('solo:monthly=https://evil.example/buy/x')
-  ok('ξένος σύνδεσμος καταγγέλλεται και δεν μπαίνει στον χάρτη',
-    r.error.includes('lemonsqueezy.com') && r.map.size === 0)
-}
-ok('κενή μεταβλητή συνδέσμων λέει ποια λείπει',
-  parseCheckoutLinks(undefined).error.includes('LEMON_CHECKOUT_LINKS'))
 
 // ── ΤΑ ΠΑΡΑΣΤΑΤΙΚΑ ΔΕΝ ΕΙΝΑΙ ΣΥΝΔΡΟΜΕΣ ────────────────────────────────────
 // ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΘΕΡΑΠΕΥΕΤΑΙ: το `subscription_payment_success` αρχίζει από
