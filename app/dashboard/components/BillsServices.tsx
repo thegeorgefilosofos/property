@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as expenseStore from '@/lib/data/expenses';
-import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker, addBtn } from './UIComponents';
+import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker, addBtn, FIELD_HEIGHT, FIELD_RADIUS, fieldLabelStyle } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
 import { T, fe, fieldRow, fp, Spinner, histInputStyle } from '@/components/Theme';
 import { estimateENFIA, enfiaInUse, enfiaLastYearAnnual } from '@/lib/billing/enfia';
@@ -269,22 +269,36 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           <div style={fieldRow(190, 12)}>
             <NumberInput label="Σύνολο λογαριασμού"       value={s.lastBillTotal}    onChange={v => upd({ lastBillTotal: v })}    suffix="€" step={1}/>
             <NumberInput label="Δημοτικά τέλη στον λογαριασμό" value={s.lastBillDimotika} onChange={v => upd({ lastBillDimotika: v })} suffix="€" step={0.5}/>
-            {/* Το αποτέλεσμα ανήκει στη σειρά: είναι ό,τι βγάζουν τα δύο πεδία δίπλα του. */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: share.pct != null ? 'var(--accent-soft)' : 'var(--bg-base)', border: `1px solid ${share.pct != null ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, padding: '8px 14px' }}>
-              <span style={{ fontSize: 18, fontWeight: 700, color: share.pct != null ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
-                {share.pct != null ? fp(share.pct) : fp(0)}
-              </span>
-              <div>
-                <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>Ποσοστό δημοτικών τελών</div>
-                {/* Η προειδοποίηση αντικαθιστά τη γενική πληροφορία μόλις χρειαστεί:
-                    ένα «συνήθως 3% έως 6%» δίπλα σε ένα 40% δεν βοηθά κανέναν. */}
-                <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-                  {share.implausible ? 'Ελεγξε τα δύο ποσά, φαίνονται αντεστραμμένα'
-                    : share.pct != null && !share.typical ? `Ασυνήθιστο, τυπικά ${fp(TYPICAL_SHARE.min)} έως ${fp(TYPICAL_SHARE.max)}`
-                    : `Συνήθως ${fp(TYPICAL_SHARE.min)} έως ${fp(TYPICAL_SHARE.max)} του λογαριασμού`}
-                </div>
+            {/* ΤΟ ΑΠΟΤΕΛΕΣΜΑ ΕΧΕΙ ΤΟ ΣΧΗΜΑ ΤΩΝ ΔΥΟ ΠΕΔΙΩΝ ΠΟΥ ΤΟ ΓΕΝΝΟΥΝ.
+                Ηταν άλλο κουτί: ετικέτα μέσα και όχι από πάνω, άλλο ύψος, άλλη
+                ακτίνα, άλλο περίγραμμα — τρία στοιχεία στην ίδια σειρά και μόνο
+                τα δύο έμοιαζαν μεταξύ τους. Τώρα δανείζεται τις ΙΔΙΕΣ σταθερές
+                με το NumberInput, οπότε δεν μπορεί να αποκλίνει ξανά. */}
+            <div>
+              <div style={fieldLabelStyle}>Ποσοστό δημοτικών τελών</div>
+              <div style={{
+                height: FIELD_HEIGHT, borderRadius: FIELD_RADIUS, boxSizing: 'border-box',
+                display: 'flex', alignItems: 'center', padding: '0 14px',
+                background: share.pct != null ? 'var(--accent-soft)' : 'var(--bg-surface)',
+                border: `1px solid ${share.pct != null ? 'var(--accent)' : 'var(--border-default)'}`,
+              }}>
+                <span style={{
+                  fontFamily: T.font.num, fontSize: 14, fontWeight: 700,
+                  fontVariantNumeric: 'tabular-nums',
+                  color: share.pct != null ? 'var(--accent)' : 'var(--text-tertiary)',
+                }}>{share.pct != null ? fp(share.pct) : fp(0)}</span>
               </div>
             </div>
+          </div>
+          {/* Η ΕΞΗΓΗΣΗ ΠΑΙΡΝΕΙ ΟΛΟ ΤΟ ΠΛΑΤΟΣ, ΚΑΙ ΓΙ' ΑΥΤΟ ΧΩΡΑΕΙ ΣΕ ΜΙΑ ΓΡΑΜΜΗ.
+              Στριμωγμένη μέσα στο τρίτο κουτί έσπαγε στα τρία σε μια πρόταση
+              δώδεκα λέξεων. Η προειδοποίηση αντικαθιστά τη γενική πληροφορία
+              μόλις χρειαστεί: ένα «συνήθως 3% έως 6%» δίπλα σε ένα 40% δεν
+              βοηθά κανέναν. */}
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 10, lineHeight: 1.45 }}>
+            {share.implausible ? 'Ελεγξε τα δύο ποσά, φαίνονται αντεστραμμένα'
+              : share.pct != null && !share.typical ? `Ασυνήθιστο ποσοστό, τυπικά ${fp(TYPICAL_SHARE.min)} έως ${fp(TYPICAL_SHARE.max)} του λογαριασμού`
+              : `Συνήθως ${fp(TYPICAL_SHARE.min)} έως ${fp(TYPICAL_SHARE.max)} του λογαριασμού`}
           </div>
         </div>
         <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>
