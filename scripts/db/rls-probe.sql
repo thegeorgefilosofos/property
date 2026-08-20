@@ -950,16 +950,56 @@ end $probe$;
 -- άλλαζε — και ο έλεγχος «περνούσε» ό,τι κι αν έλεγε η σκανδάλη. Γι` αυτό
 -- μετριέται το `row_count` και ελέγχεται ότι μια ΕΠΙΤΡΕΠΤΗ στήλη όντως άλλαξε.
 -- ═══════════════════════════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Η ΓΡΑΜΜΗ ΧΡΕΩΣΗΣ ΓΕΝΝΙΕΤΑΙ ΜΑΖΙ ΜΕ ΤΟΝ ΛΟΓΑΡΙΑΣΜΟ
+-- ─────────────────────────────────────────────────────────────────────────
+-- ΓΙΑΤΙ ΕΛΕΓΧΕΤΑΙ ΕΔΩ ΚΑΙ ΟΧΙ ΣΕ ΣΟΥΙΤΑ TypeScript. Ο χειριστής πληρωμών κάνει
+-- `update … where user_id = …`. Οταν η γραμμή λείπει, το PostgREST ΔΕΝ βγάζει
+-- σφάλμα: ταιριάζουν μηδέν γραμμές, ο χειριστής απαντά 200, και ο έμπορος δεν
+-- ξαναστέλνει ποτέ το γεγονός. Πελάτης χρεωμένος, χωρίς πακέτο, χωρίς ίχνος.
+-- Κανένας έλεγχος με ψεύτικη βάση δεν πιάνει αυτό — μόνο η ίδια η σκανδάλη.
+do $probe$
+declare v_uid uuid := '5b5b5b5b-0000-4000-8000-00000000b111';
+declare n int;
+begin
+  insert into auth.users(id, email) values (v_uid, 'neos@probe.test')
+    on conflict (id) do nothing;
+  select count(*) into n from public.billing_profiles where user_id = v_uid;
+  if n <> 1 then
+    raise exception 'Ο ΛΟΓΑΡΙΑΣΜΟΣ ΓΕΝΝΗΘΗΚΕ ΧΩΡΙΣ ΓΡΑΜΜΗ ΧΡΕΩΣΗΣ: % αντί για 1. Ο webhook θα ενημερώσει μηδέν γραμμές και θα απαντήσει επιτυχία.', n;
+  end if;
+  -- ΚΑΙ ΜΕ ΤΙΜΕΣ ΠΟΥ ΥΠΑΡΧΟΥΝ. Η προεπιλογή έλεγε 'trial' — πακέτο που δεν
+  -- υπάρχει πουθενά στον κώδικα — και 'trialing', όνομα παρόχου που δεν
+  -- επιλέχθηκε ποτέ. Σε ερώτημα SQL διαβάζονταν ως «σε δοκιμή».
+  select count(*) into n from public.billing_profiles
+   where user_id = v_uid and plan = 'free' and subscription_status is null;
+  if n <> 1 then
+    raise exception 'Η νέα γραμμή χρέωσης δεν γεννήθηκε ως «χωρίς πακέτο, χωρίς συνδρομή»';
+  end if;
+end $probe$;
+
 do $probe$
 declare v_uid uuid := '7c7c7c7c-0000-4000-8000-00000000c0de';
 begin
   insert into auth.users(id, email) values (v_uid, 'emporos@probe.test')
     on conflict (id) do nothing;
-  -- Το προφίλ γεννιέται όπως θα το έγραφε ο webhook: με ρόλο υπηρεσίας.
+  -- Το προφίλ ΥΠΑΡΧΕΙ ΗΔΗ: η σκανδάλη `ensure_billing_profile` το γεννά μαζί
+  -- με τον λογαριασμό. Ο έλεγχος το γεμίζει όπως θα το έγραφε ο webhook, με
+  -- ρόλο υπηρεσίας — γι' αυτό `on conflict do update` και όχι σκέτο insert:
+  -- ένα `insert` εδώ έσκαγε σε παραβίαση πρωτεύοντος κλειδιού, δηλαδή ο
+  -- έλεγχος απομόνωσης θα σταματούσε πριν ελέγξει οτιδήποτε.
   insert into public.billing_profiles(user_id, full_name, plan, subscription_status,
       mor_customer_id, mor_subscription_id, mor_variant_id, mor_renews_at, mor_ends_at, mor_event_at)
     values (v_uid, 'Πριν', 'solo', 'on_trial', 'cus-1', 'sub-1', 'var-1',
-            timestamptz '2026-09-20', null, timestamptz '2026-08-20');
+            timestamptz '2026-09-20', null, timestamptz '2026-08-20')
+    on conflict (user_id) do update set
+      full_name = excluded.full_name, plan = excluded.plan,
+      subscription_status = excluded.subscription_status,
+      mor_customer_id = excluded.mor_customer_id,
+      mor_subscription_id = excluded.mor_subscription_id,
+      mor_variant_id = excluded.mor_variant_id,
+      mor_renews_at = excluded.mor_renews_at, mor_ends_at = excluded.mor_ends_at,
+      mor_event_at = excluded.mor_event_at;
 end $probe$;
 
 set role authenticated;
