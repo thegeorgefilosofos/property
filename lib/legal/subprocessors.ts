@@ -21,7 +21,7 @@
 // ξέρει τι έρχεται πριν έρθει — όχι να το ανακαλύψει μετά.
 //
 // ── ΚΑΙ ΓΙΑΤΙ Ο ΠΑΡΟΧΟΣ ΠΛΗΡΩΜΩΝ ΔΕΝ ΓΡΑΦΕΤΑΙ ΜΕ ΤΟ ΧΕΡΙ ────────────────
-// Η γραμμή του παρόχου πληρωμών έλεγε καρφωτά `active: false` με το κείμενο
+// Η γραμμή του Lemon Squeezy έλεγε καρφωτά `active: false` με το κείμενο
 // «σήμερα δεν γίνεται καμία επεξεργασία στοιχείων κάρτας». Την ίδια στιγμή ο
 // κώδικας απέκτησε ζωντανό κουμπί «Πληρωμή με κάρτα». Το μητρώο είναι
 // ΜΗΧΑΝΑΓΝΩΣΙΜΟ δημοσιευμένο έγγραφο του άρθρου 28 GDPR: ένα `false` εκεί δεν
@@ -43,7 +43,7 @@ export interface Subprocessor {
   active: boolean;
 }
 
-import { billingIsLive, type StripeEnv } from '@/lib/billing/stripe';
+import { checkoutIsLive, type BillingEnv } from '@/lib/billing/lemonCheckout';
 import { PAYMENTS_PROVIDER } from './merchant';
 import { billingWords } from './billingWords';
 
@@ -97,12 +97,13 @@ const BASE: readonly Subprocessor[] = [
     active: false,
   },
   {
-    // ΤΟ ΟΝΟΜΑ ΔΕΝ ΓΡΑΦΕΤΑΙ ΕΔΩ. Ο κατάλογος εκτελούντων την επεξεργασία είναι
-    // δημοσιευμένο έγγραφο του άρθρου 28 GDPR· λάθος όνομα δεν είναι αβλεψία,
-    // είναι ανακριβής ενημέρωση του υποκειμένου. Και έγινε ήδη μία φορά, όταν
-    // ο πάροχος άλλαξε και το μητρώο έμεινε πίσω.
+    // ΟΧΙ STRIPE. Ο πάροχος είναι το Lemon Squeezy, και η διαφορά δεν είναι
+    // ονόματος: το Lemon Squeezy είναι «merchant of record», δηλαδή πουλά αυτό
+    // ΣΤΟ ΔΙΚΟ ΤΟΥ όνομα και αναλαμβάνει ΦΠΑ και παραστατικά. Ο κατάλογος
+    // εκτελούντων την επεξεργασία είναι δημοσιευμένο έγγραφο· λάθος όνομα εδώ
+    // δεν είναι αβλεψία, είναι ανακριβής ενημέρωση του υποκειμένου.
     name: PAYMENTS_PROVIDER,
-    purpose: 'Επεξεργασία πληρωμών με κάρτα και διαχείριση συνδρομών. Δέχεται τα στοιχεία της κάρτας στο δικό της περιβάλλον και μας επιστρέφει μόνο την επιβεβαίωση, μαζί με τη διεύθυνση χρέωσης και το ΑΦΜ που δηλώνει ο πελάτης για το παραστατικό.',
+    purpose: 'Χρέωση συνδρομής ως merchant of record: πουλά τη συνδρομή στο δικό του όνομα, εκδίδει το παραστατικό και αποδίδει τον ΦΠΑ.',
     where: 'ΗΠΑ και Ευρωπαϊκή Ένωση',
     // Συμπληρώνεται από το περιβάλλον, παρακάτω. Η τιμή εδώ δεν διαβάζεται ποτέ.
     active: false,
@@ -123,8 +124,8 @@ const BASE: readonly Subprocessor[] = [
  * Ο κατάλογος όπως ισχύει ΤΩΡΑ. Ο πάροχος πληρωμών παίρνει την κατάστασή του
  * από την ίδια συνθήκη που δείχνει το κουμπί του ταμείου.
  */
-export function subprocessors(env: StripeEnv = process.env): readonly Subprocessor[] {
-  const live = billingIsLive(env);
+export function subprocessors(env: BillingEnv = process.env): readonly Subprocessor[] {
+  const live = checkoutIsLive(env);
   return BASE.map(s => s.name !== PAYMENTS_PROVIDER ? s : {
     ...s,
     active: live,
@@ -136,10 +137,10 @@ export function subprocessors(env: StripeEnv = process.env): readonly Subprocess
 }
 
 /** Όσοι επεξεργάζονται δεδομένα σήμερα. */
-export const activeSubprocessors = (env?: StripeEnv) => subprocessors(env).filter(s => s.active);
+export const activeSubprocessors = (env?: BillingEnv) => subprocessors(env).filter(s => s.active);
 
 /** Όσοι είναι σχεδιασμένοι αλλά δεν έχουν ενεργοποιηθεί. */
-export const plannedSubprocessors = (env?: StripeEnv) => subprocessors(env).filter(s => !s.active);
+export const plannedSubprocessors = (env?: BillingEnv) => subprocessors(env).filter(s => !s.active);
 
 /** Μία γραμμή ανά πάροχο, για την Πολιτική απορρήτου. */
 export const subprocessorLine = (s: Subprocessor): string =>

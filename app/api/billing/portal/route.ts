@@ -7,19 +7,23 @@
 //   «το παραστατικό θα το βρίσκεις στον Λογαριασμό σου» — καμία λίστα.
 //   αλλαγή κάρτας                                   — κανένας τρόπος.
 //
-// Η πύλη της Stripe τα κάνει και τα τρία, στο δικό της περιβάλλον, χωρίς να
-// περάσει ποτέ αριθμός κάρτας από τους δικούς μας διακομιστές. Ενας σύνδεσμος
-// μιας χρήσης, που λήγει.
+// Η πύλη του εμπόρου τα κάνει και τα τρία, στο δικό του περιβάλλον, χωρίς να
+// περάσει ποτέ αριθμός κάρτας από τους δικούς μας διακομιστές.
 //
-// ΔΕΝ ΔΕΧΕΤΑΙ ΑΝΑΓΝΩΡΙΣΤΙΚΟ ΠΕΛΑΤΗ ΑΠΟ ΤΟ ΑΙΤΗΜΑ. Θα ήταν εντολή «άνοιξέ μου
-// τη χρέωση εκείνου»: η πύλη δείχνει παραστατικά, διεύθυνση και κάρτα. Ο
-// πελάτης βρίσκεται από τη ΣΥΝΕΔΡΙΑ και μόνο.
+// ── Ο ΣΥΝΔΕΣΜΟΣ ΖΗΤΕΙΤΑΙ ΤΗ ΣΤΙΓΜΗ ΤΟΥ ΠΑΤΗΜΑΤΟΣ, ΔΕΝ ΑΠΟΘΗΚΕΥΕΤΑΙ ────────
+// Οι σύνδεσμοι της πύλης είναι ΥΠΟΓΕΓΡΑΜΜΕΝΟΙ ΚΑΙ ΛΗΓΟΥΝ. Κρατημένος στη βάση
+// από το τελευταίο γεγονός του webhook, ένας τέτοιος σύνδεσμος θα ήταν
+// άχρηστος ακριβώς τη μέρα που ο πελάτης θέλει να ακυρώσει — δηλαδή θα έσπαγε
+// στη χειρότερη δυνατή στιγμή, και σιωπηλά. Ζητείται φρέσκος, κάθε φορά.
+//
+// ΔΕΝ ΔΕΧΕΤΑΙ ΑΝΑΓΝΩΡΙΣΤΙΚΟ ΣΥΝΔΡΟΜΗΣ ΑΠΟ ΤΟ ΑΙΤΗΜΑ. Θα ήταν εντολή «άνοιξέ
+// μου τη χρέωση εκείνου»: η πύλη δείχνει παραστατικά, διεύθυνση και κάρτα. Η
+// συνδρομή βρίσκεται από τη ΣΥΝΕΔΡΙΑ και μόνο.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { stripeClient, stripeConfigError } from '@/lib/billing/stripe';
-import { SITE } from '@/lib/core/site';
+import { API_KEY_ENV, portalUrlOf } from '@/lib/billing/lemonPortal';
 import * as billing from '@/lib/data/billing';
 
 export async function GET() {
@@ -27,28 +31,22 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Απαιτείται σύνδεση.' }, { status: 401 });
 
-  const reason = stripeConfigError(process.env);
-  if (reason) {
-    console.info('[stripe] η πύλη δεν είναι ρυθμισμένη:', reason);
+  const key = (process.env[API_KEY_ENV] || '').trim();
+  if (!key) {
+    console.info('[lemon] η πύλη δεν είναι ρυθμισμένη: λείπει η', API_KEY_ENV);
     return NextResponse.json({ available: false, url: null });
   }
 
-  const profile = await billing.profile<{ mor_customer_id: string | null }>(supabase, user.id, 'mor_customer_id');
-  const customer = (profile?.mor_customer_id || '').trim();
+  const profile = await billing.profile<{ mor_subscription_id: string | null }>(supabase, user.id, 'mor_subscription_id');
+  const subscriptionId = (profile?.mor_subscription_id || '').trim();
   // ΧΩΡΙΣ ΣΥΝΔΡΟΜΗ ΔΕΝ ΥΠΑΡΧΕΙ ΠΥΛΗ, και αυτό ΔΕΝ είναι σφάλμα: είναι η
   // κατάσταση του λογαριασμού. Η οθόνη δεν δείχνει κουμπί που δεν οδηγεί.
-  if (!customer) return NextResponse.json({ available: false, url: null });
+  if (!subscriptionId) return NextResponse.json({ available: false, url: null });
 
-  try {
-    const stripe = stripeClient();
-    const session = await stripe.billingPortal.sessions.create({
-      customer,
-      locale: 'el',
-      return_url: `${SITE}/dashboard`,
-    });
-    return NextResponse.json({ available: true, url: session.url });
-  } catch (e) {
-    console.info('[stripe] η πύλη δεν άνοιξε:', e instanceof Error ? e.message : e);
+  const { url, error } = await portalUrlOf(subscriptionId, key);
+  if (error) {
+    console.info('[lemon] η πύλη δεν άνοιξε:', error);
     return NextResponse.json({ error: 'Η διαχείριση συνδρομής δεν άνοιξε.' }, { status: 502 });
   }
+  return NextResponse.json({ available: !!url, url });
 }

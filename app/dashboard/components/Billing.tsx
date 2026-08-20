@@ -28,8 +28,8 @@ import { TextInput, CustomSelect } from './UIComponents';
 import { T, Btn, InfoBanner, Spinner, Card, SecHdr, fixedCols, fe, fd } from '@/components/Theme';
 import { PLANS, normalizePlan, annualPerMonth, type PlanId } from '@/lib/billing/plans';
 // Η ΦΑΣΗ ΤΗΣ ΣΥΝΔΡΟΜΗΣ ΔΕΝ ΚΡΙΝΕΤΑΙ ΕΔΩ. Οι καταστάσεις τις ονομάζει ο
-// πάροχος και τις γράφει ο webhook· η οθόνη τις διαβάζει από την ίδια πηγή.
-import { subPhase } from '@/lib/billing/stripePlans';
+// έμπορος και τις γράφει ο webhook· η οθόνη τις διαβάζει από την ίδια πηγή.
+import { subPhase } from '@/lib/billing/lemon';
 import { ALLOWED_PLANS, type ProfileType } from '@/lib/billing/entitlements';
 import { SegmentControl } from './UIComponents';
 import { notifyError } from '@/components/Toast';
@@ -44,14 +44,14 @@ interface BillingData {
   profile_type: string;
   /** Ο,τι ξέρει ο πάροχος για τη συνδρομή. Διαβάζεται, δεν γράφεται από εδώ. */
   subscription_status: string; mor_renews_at: string; mor_ends_at: string;
-  /** Ο πελάτης στον πάροχο. Η ΥΠΑΡΞΗ του κρίνει αν υπάρχει πύλη διαχείρισης. */
-  mor_customer_id: string;
+  /** Η συνδρομή στον έμπορο. Η ΥΠΑΡΞΗ της κρίνει αν υπάρχει πύλη διαχείρισης. */
+  mor_subscription_id: string;
 }
 const INIT: BillingData = {
   doc_type: 'receipt', full_name: '', company_name: '', afm: '', doy: '', profession: '',
   address: '', city: '', postal_code: '', country: 'GR', vat_number: '', phone: '', plan: 'free', billing_cycle: 'monthly',
   profile_type: 'individual', subscription_status: '', mor_renews_at: '', mor_ends_at: '',
-  mor_customer_id: '',
+  mor_subscription_id: '',
 };
 
 export default function Billing({ userId, wantPlan = null }: {
@@ -222,11 +222,11 @@ function Subscription({ d, wantPlan = null }: { d: BillingData; wantPlan?: PlanI
    * Υπάρχει πύλη διαχείρισης;
    *
    * ΚΡΙΝΕΤΑΙ ΑΠΟ ΔΕΔΟΜΕΝΟ ΠΟΥ ΕΧΟΥΜΕ ΗΔΗ, ΟΧΙ ΑΠΟ ΕΡΩΤΗΣΗ. Μια προκαταρκτική
-   * κλήση θα δημιουργούσε συνεδρία πύλης σε ΚΑΘΕ φόρτωση της οθόνης, ακόμη
-   * και για όποιον δεν πατήσει ποτέ το κουμπί. Ο πελάτης του παρόχου γράφεται
-   * από τον webhook· αν υπάρχει, υπάρχει και πύλη.
+   * κλήση θα ρωτούσε τον έμπορο σε ΚΑΘΕ φόρτωση της οθόνης, ακόμη και για
+   * όποιον δεν πατήσει ποτέ το κουμπί. Η συνδρομή γράφεται από τον webhook· αν
+   * υπάρχει, υπάρχει και πύλη.
    */
-  const hasCustomer = !!(d.mor_customer_id || '').trim();
+  const hasCustomer = !!(d.mor_subscription_id || '').trim();
 
   // ── ΤΟ ΚΟΥΜΠΙ ΡΩΤΑΕΙ ΠΡΙΝ ΕΜΦΑΝΙΣΤΕΙ ────────────────────────────────────
   // Οι σύνδεσμοι αγοράς ζουν σε μεταβλητή περιβάλλοντος, δηλαδή ο περιηγητής
@@ -245,7 +245,7 @@ function Subscription({ d, wantPlan = null }: { d: BillingData; wantPlan?: PlanI
     let alive = true;
     (async () => {
       try {
-        const res = await fetch(`/api/billing/checkout?plan=${target}&cycle=${cycle}&probe=1`);
+        const res = await fetch(`/api/billing/checkout?plan=${target}&cycle=${cycle}`);
         const body = await res.json() as { available?: boolean; note?: string };
         if (alive) { setLive(!!body.available); setNote(body.note || ''); }
       } catch { if (alive) setLive(false); }
@@ -287,9 +287,7 @@ function Subscription({ d, wantPlan = null }: { d: BillingData; wantPlan?: PlanI
           {renewsAt ? `. Ανανέωση στις ${fd(renewsAt)}.` : '.'}
         </InfoBanner>
       ) : phase === 'retrying' ? (
-        <InfoBanner tone="warning">Η τελευταία χρέωση δεν ολοκληρώθηκε. Ο λογαριασμός παραμένει ανοιχτός όσο ο πάροχος ξαναδοκιμάζει την κάρτα. Ανανέωσε την κάρτα σου από τη διαχείριση συνδρομής.</InfoBanner>
-      ) : phase === 'pending' ? (
-        <InfoBanner tone="warning">Η πρώτη πληρωμή δεν ολοκληρώθηκε ακόμη. Ολοκλήρωσέ την από τη διαχείριση συνδρομής για να ενεργοποιηθεί το πακέτο.</InfoBanner>
+        <InfoBanner tone="warning">Η τελευταία χρέωση δεν ολοκληρώθηκε. Ο λογαριασμός παραμένει ανοιχτός όσο ο έμπορος ξαναδοκιμάζει την κάρτα. Ανανέωσε την κάρτα σου από τη διαχείριση συνδρομής.</InfoBanner>
       ) : null}
 
       {/* Ο ΔΙΑΚΟΠΤΗΣ ΠΑΝΩ ΑΠΟ ΤΗΝ ΤΙΜΗ: πρώτα η αιτία, μετά το αποτέλεσμα. Δίπλα
