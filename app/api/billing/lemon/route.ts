@@ -137,7 +137,20 @@ export async function POST(request: Request) {
   // στο «χωρίς συνδρομή» και όχι σε κάτι ενδιάμεσο που δεν πλήρωσε κανείς.
   const entitled = isEntitled(sub, new Date().toISOString());
 
-  const { error } = await db.from(TABLE).update({
+  // ── Η ΔΟΚΙΜΗ ΣΦΡΑΓΙΖΕΤΑΙ ΟΤΑΝ ΟΝΤΩΣ ΔΟΘΗΚΕ ────────────────────────────
+  // ΟΧΙ ΟΤΑΝ ΑΝΟΙΞΕ ΤΟ ΤΑΜΕΙΟ: ένα ταμείο που άνοιξε και εγκαταλείφθηκε δεν
+  // πρέπει να καίει τη δοκιμή κανενός. Εδώ ξέρουμε ότι δόθηκε, γιατί ο ίδιος ο
+  // έμπορος λέει `on_trial`.
+  //
+  // ΚΑΙ ΓΡΑΦΕΤΑΙ ΜΙΑ ΦΟΡΑ. Χωρίς το `??`, κάθε επόμενο γεγονός θα μετακινούσε
+  // την ημερομηνία προς τα εμπρός — και το `skip_trial` θα κρινόταν από τη
+  // στιγμή της τελευταίας ανανέωσης αντί της πρώτης δοκιμής.
+  const seenTrial = (await db.from(TABLE).select('trial_used_at').eq('user_id', userId).maybeSingle())
+    .data as { trial_used_at?: string | null } | null;
+  const trialUsedAt = seenTrial?.trial_used_at ?? (sub.status === 'on_trial' ? eventAt : null);
+
+  const { error } = await db.from(TABLE).upsert({
+    user_id: userId,
     plan: entitled ? variant.plan : 'free',
     billing_cycle: variant.cycle === 'annual' ? 'annual' : 'monthly',
     subscription_status: sub.status,
@@ -147,7 +160,13 @@ export async function POST(request: Request) {
     mor_renews_at: sub.renewsAt,
     mor_ends_at: sub.endsAt,
     mor_event_at: eventAt,
-  }).eq('user_id', userId);
+    ...(trialUsedAt ? { trial_used_at: trialUsedAt } : {}),
+    // ΖΩΝΗ ΚΑΙ ΤΙΡΑΝΤΕΣ: η σκανδάλη `ensure_billing_profile` γεννά τη γραμμή
+    // μαζί με τον λογαριασμό, οπότε το `upsert` δεν θα χρειαστεί να εισαγάγει
+    // ποτέ. Αν όμως χρειαστεί —παλιός λογαριασμός, χειροκίνητη διαγραφή— το
+    // `update` θα ταίριαζε ΜΗΔΕΝ γραμμές και το PostgREST δεν το λέει σφάλμα:
+    // πληρωμένος πελάτης χωρίς πακέτο, με 200 στον πίνακα του εμπόρου.
+  }, { onConflict: 'user_id' });
 
   if (error) {
     // 502 ΚΑΙ ΟΧΙ 200: η Lemon Squeezy ξαναδοκιμάζει τα αποτυχημένα. Ενα
@@ -157,6 +176,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'write_failed' }, { status: 502 });
   }
 
-  log(`${read.event}: ${variant.plan}/${variant.cycle}, κατάσταση ${sub.status}, πρόσβαση ${entitled ? 'ναι' : 'όχι'}`);
+  log(`${read.event}: ${variant.plan}/${variant.cycle}, κατάσταση ${sub.status}, πρόσβαση ${entitled ? 'ναι' : 'όχι'}${trialUsedAt && !seenTrial?.trial_used_at ? ', η δοκιμή σφραγίστηκε' : ''}`);
   return NextResponse.json({ ok: true });
 }
