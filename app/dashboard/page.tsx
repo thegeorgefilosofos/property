@@ -18,36 +18,39 @@ import * as inventory from '@/lib/data/inventory';
 // Το προφίλ χρέωσης έχει ένα σπίτι: lib/data/billing.
 import * as billing from '@/lib/data/billing';
 import type { User } from '@supabase/supabase-js';
-import TabFinances  from './components/TabFinances';
 import TabBoundary  from './components/TabBoundary';
+// ΟΙ ΚΑΡΤΕΛΕΣ ΚΑΤΕΒΑΙΝΟΥΝ ΟΤΑΝ ΑΝΟΙΞΟΥΝ. Το «γιατί», μετρημένο, στο lazyTabs.tsx.
+import {
+  TabFinances,
+  TabCalendar,
+  TabRentROI,
+  TabPricing,
+  TabSettings,
+  TabReferral,
+  TabTenant,
+  TabLoan,
+  TabAccounting,
+  TabInventory,
+  TabContacts,
+  TabChecklist,
+  TabDocuments,
+  TabComparison,
+  TabPlan,
+  TabClients,
+  PortfolioTab,
+  AddPropertyWizard,
+  DocumentScan,
+  WelcomeOnboarding,
+} from './components/lazyTabs';
 import { STATUSES, readStatus, writeStatus, statusLabel as statusLabelOf, isShortTerm, isLet, type PropertyStatus } from '@/lib/property/status';
 import { tabDecision, canCompare, type OwnerContext } from '@/lib/property/visibility';
 import { LEGAL_FORMS, type LegalForm } from '@/lib/accounting/dossier';
 import AmaStrip from './components/AmaStrip';
-import TabCalendar  from './components/TabCalendar';
-import TabRentROI   from './components/TabRentROI';
-import TabPricing   from './components/TabPricing';
-import TabSettings  from './components/TabSettings';
-import TabReferral  from './components/TabReferral';
-import TabTenant    from './components/TabTenant';
-import TabLoan      from './components/TabLoan';
-import TabAccounting from './components/TabAccounting';
-import TabInventory from './components/TabInventory';
 import { ASSISTANT_NAME } from '@/lib/assistant/identity';
 import type { OpenerContext } from '@/lib/assistant/openers';
 import { NAV_LABELS, navLabel } from '@/lib/nav/labels';
 import { readLaunchShortcut } from '@/lib/nav/history';
 import { mergeLedger, ledgerTotal } from '@/lib/expenses/ledger';
-import TabContacts  from './components/TabContacts';
-import TabChecklist from './components/TabChecklist';
-import TabDocuments from './components/TabDocuments';
-import TabComparison from './components/TabComparison';
-import TabPlan from './components/TabPlan';
-import TabClients from './components/TabClients';
-import PortfolioTab from './components/PortfolioTab';
-import AddPropertyWizard from './components/AddPropertyWizard';
-import DocumentScan from './components/DocumentScan';
-import WelcomeOnboarding from './components/WelcomeOnboarding';
 import StartPanel from './components/StartPanel';
 import DemoPreview from './components/DemoPreview';
 import { useAppPreferences } from './components/useAppPreferences';
