@@ -46,7 +46,6 @@ ok('δηλαδή 3 ακίνητα στη δοκιμή', DB_MAX_PROPERTIES[DB_RAN
 ok('υπάρχει', !!PLANS.solo)
 ok('κοστίζει 3,90 €', PLANS.solo.priceMonthly === 3.9)
 ok('ένα ακίνητο', PLANS.solo.maxProperties === 1)
-ok('χωρίς επιπλέον ακίνητα — αλλιώς δεν θα ήταν «ένα»', PLANS.solo.extraPropertyPrice === 0)
 ok('έχει δοκιμή', PLANS.solo.trialDays > 0)
 ok('φθηνότερο από τον Ιδιοκτήτη', PLANS.solo.priceMonthly < PLANS.owner.priceMonthly)
 ok('ακριβότερο από το δωρεάν', PLANS.solo.priceMonthly > PLANS.free.priceMonthly)

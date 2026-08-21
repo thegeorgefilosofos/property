@@ -24,28 +24,16 @@ const ok = (n: string, c: boolean) => { if (c) pass++; else { fail++; console.er
   ok('και είναι φθηνότερη από δώδεκα μήνες', PLANS.owner.priceAnnual < PLANS.owner.priceMonthly * 12);
 }
 
-// ── ΕΠΙΠΛΕΟΝ ΑΚΙΝΗΤΑ ──────────────────────────────────────────────────────
+// ── ΤΑ ΕΠΙΠΛΕΟΝ ΑΚΙΝΗΤΑ ΕΦΥΓΑΝ, ΚΑΙ ΜΑΖΙ ΤΟΥΣ ΟΙ ΕΛΕΓΧΟΙ ΤΟΥΣ ────────────
+// Εννιά έλεγχοι μετρούσαν τη γραμμή «Επιπλέον ακίνητα» στο τιμολόγιο: πλήθος,
+// τιμή μονάδας, πολλαπλασιασμό επί δώδεκα στην ετήσια. Η πρόταση δεν
+// αγοραζόταν από πουθενά και βγήκε από κάθε κείμενο· οι έλεγχοί της δεν
+// μένουν να φυλάνε κώδικα που δεν υπάρχει. Ο επόμενος έλεγχος κρατά αυτό που
+// ΠΡΕΠΕΙ να ισχύει: το τιμολόγιο έχει μία γραμμή για τη συνδρομή.
 {
-  const l = checkoutLines({ plan: 'owner', extraProperties: 3 });
-  ok('δεύτερη γραμμή για τα επιπλέον ακίνητα', l.length === 2);
-  ok('πλήθος τρία', l[1].qty === 3);
-  ok('τιμή μονάδας η τιμή του πακέτου', l[1].unitPrice === PLANS.owner.extraPropertyPrice);
-  ok('σύνολο γραμμής = τιμή επί πλήθος', l[1].total === PLANS.owner.extraPropertyPrice * 3);
-  ok('το γενικό σύνολο αθροίζει',
-     checkoutTotal(l) === PLANS.owner.priceMonthly + PLANS.owner.extraPropertyPrice * 3);
-  ok('η γραμμή εξηγείται', (l[1].note || '').length > 10);
-
-  const y = checkoutLines({ plan: 'owner', annual: true, extraProperties: 2 });
-  ok('στην ετήσια, το επιπλέον ακίνητο επί δώδεκα',
-     y[1].unitPrice === PLANS.owner.extraPropertyPrice * 12);
-}
-{
-  const l = checkoutLines({ plan: 'solo', extraProperties: 4 });
-  ok('πακέτο χωρίς επιπλέον ακίνητα δεν χρεώνει γραμμή', l.length === 1);
-}
-{
-  const l = checkoutLines({ plan: 'owner', extraProperties: -2 });
-  ok('αρνητικό πλήθος δεν γίνεται ποτέ έκπτωση', l.length === 1);
+  const l = checkoutLines({ plan: 'owner' });
+  ok('μία γραμμή, η συνδρομή', l.length === 1 && l[0].key === 'plan');
+  ok('και το σύνολο είναι η τιμή του πακέτου', checkoutTotal(l) === PLANS.owner.priceMonthly);
 }
 
 // ── Η ΣΥΝΔΕΣΗ ΜΕ ΤΗΝ ΤΡΑΠΕΖΑ ──────────────────────────────────────────────
@@ -76,7 +64,7 @@ const ok = (n: string, c: boolean) => { if (c) pass++; else { fail++; console.er
 
 // ── ΚΑΝΟΝΕΣ ΠΟΥ ΙΣΧΥΟΥΝ ΓΙΑ ΚΑΘΕ ΓΡΑΜΜΗ ──────────────────────────────────
 {
-  const l = checkoutLines({ plan: 'agency', extraProperties: 7, bankAccounts: 2 });
+  const l = checkoutLines({ plan: 'agency', bankAccounts: 2 });
   ok('η πρώτη γραμμή είναι πάντα η συνδρομή', l[0].key === 'plan');
   ok('κάθε γραμμή έχει θετικό πλήθος', l.every(x => x.qty > 0));
   ok('κάθε ποσό σε ακέραια λεπτά',

@@ -164,8 +164,6 @@ export interface EntitlementInput {
   holdUntil?: string | null;
   /** Ημερομηνία δημιουργίας λογαριασμού (ISO) — βάση για τη δωρεάν δοκιμή. */
   createdAt?: string | null;
-  /** Επιπλέον ακίνητα που έχει αγοράσει (billing_profiles.extra_properties). */
-  extraProperties?: number | null;
   /** Χρόνος αναφοράς σε ms (default Date.now()), για ελεγξιμότητα. */
   now?: number;
 }
@@ -320,7 +318,11 @@ export function requiredPlanForFeature(f: Feature): PlanId {
  * ή, χειρότερα, βλέπει «όριο» ενώ έχει πληρώσει για παραπάνω.
  */
 export function propertyLimit(input: EntitlementInput): number {
-  return propertyAllowance(effectivePlan(input), input.extraProperties ?? 0);
+  // ΤΑ ΕΠΙΠΛΕΟΝ ΑΚΙΝΗΤΑ ΔΕΝ ΠΕΡΝΟΥΝ ΠΙΑ ΕΔΩ. Η στήλη `extra_properties` μένει
+  // στη βάση και μένει μηδέν — κανείς δεν μπορούσε ποτέ να την αυξήσει, γιατί
+  // διαδρομή αγοράς δεν υπήρξε. Το `enforce_property_limit` της βάσης
+  // εξακολουθεί να την προσθέτει, οπότε τα δύο όρια συμφωνούν όσο είναι μηδέν.
+  return propertyAllowance(effectivePlan(input));
 }
 
 export function canAddProperty(input: EntitlementInput, currentCount: number): boolean {

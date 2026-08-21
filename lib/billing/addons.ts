@@ -65,8 +65,6 @@ export interface CheckoutInput {
   plan: PlanId;
   /** Ετήσια χρέωση; Τα πρόσθετα μένουν μηνιαία, γι' αυτό πολλαπλασιάζονται. */
   annual?: boolean;
-  /** Ακίνητα πέρα από όσα περιλαμβάνει το πακέτο. */
-  extraProperties?: number;
   /** Τραπεζικοί λογαριασμοί που θα μείνουν συνδεδεμένοι. */
   bankAccounts?: number;
 }
@@ -94,17 +92,6 @@ export function checkoutLines(input: CheckoutInput): CheckoutLine[] {
     label: `Πακέτο ${plan.name}${input.annual ? ', ετήσια' : ''}`,
     qty: 1, unitPrice: cents(planPrice), total: cents(planPrice),
   });
-
-  const extras = count(input.extraProperties);
-  if (extras > 0 && plan.extraPropertyPrice > 0) {
-    const unit = cents(plan.extraPropertyPrice * months);
-    lines.push({
-      key: 'extra_properties',
-      label: 'Επιπλέον ακίνητα',
-      qty: extras, unitPrice: unit, total: cents(unit * extras),
-      note: `Πέρα από τα ${plan.maxProperties} που περιλαμβάνει το πακέτο.`,
-    });
-  }
 
   const accounts = count(input.bankAccounts);
   const bank = ADDONS.bank_link;

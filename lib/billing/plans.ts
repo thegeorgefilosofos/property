@@ -59,34 +59,27 @@ export interface Plan {
   features: string[];
   /** Ημέρες δωρεάν δοκιμής του πλάνου (0 = χωρίς δοκιμή). */
   trialDays: number;
-  /** Τιμή ανά επιπλέον ακίνητο τον μήνα. 0 = δεν προσφέρεται σε αυτό το πλάνο. */
-  extraPropertyPrice: number;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ΕΠΙΠΛΕΟΝ ΑΚΙΝΗΤΑ — γιατί υπάρχουν και γιατί σε αυτή την τιμή
+// ΤΑ ΕΠΙΠΛΕΟΝ ΑΚΙΝΗΤΑ ΤΩΝ 2,00 € ΒΓΗΚΑΝ, ΚΑΙ ΓΙ' ΑΥΤΟ ΔΕΝ ΥΠΑΡΧΕΙ ΤΙΠΟΤΑ ΕΔΩ
 // ─────────────────────────────────────────────────────────────────────────
-// ΤΟ ΠΡΟΒΛΗΜΑ ΠΟΥ ΛΥΝΟΥΝ: το άλμα από 3 σε 4 ακίνητα κόστιζε 9,90 € → 24,90 €,
-// δηλαδή +152% για ΕΝΑ ακίνητο. Ο χρήστης με 4 ακίνητα δεν αναβαθμίζει· φεύγει,
-// γιατί διεθνώς RentRedi/Stessa/TenantCloud δίνουν απεριόριστα στα ~12 $.
-// Με το επιπλέον ακίνητο, το ίδιο βήμα κοστίζει +2 € και ο γκρεμός εξαφανίζεται.
+// Η ΠΡΟΤΑΣΗ ΗΤΑΝ ΓΡΑΜΜΕΝΗ ΠΑΝΤΟΥ ΚΑΙ ΑΓΟΡΑΣΤΗ ΠΟΥΘΕΝΑ. Οι Οροι χρήσης, η
+// αρχική σελίδα, οι κάρτες δύο πακέτων και ο βοηθός έλεγαν ότι κάθε επιπλέον
+// ακίνητο κοστίζει 2,00 € τον μήνα. Στην πραγματικότητα δεν υπήρχε διαδρομή
+// αγοράς: η στήλη `billing_profiles.extra_properties` είναι server-owned, μένει
+// μηδέν, και ο χάρτης παραλλαγών του εμπόρου δεν έχει θέση για πρόσθετα.
 //
-// ΓΙΑΤΙ 2 €: ο μόνος άμεσος ανταγωνιστής στην Ελλάδα (Breek) χρεώνει 4,97 € + ΦΠΑ
-// ανά ακίνητο για 3+. Στα 2 € είμαστε στο ένα τρίτο. Διεθνώς, η χρέωση ανά μονάδα
-// είναι 1,00-2,00 $ (AppFolio ~1,40 $). Το οριακό κόστος εξυπηρέτησης ενός ακόμη
-// ακινήτου είναι πρακτικά μηδέν — τα όρια του AI είναι ανά ΧΡΗΣΤΗ, όχι ανά ακίνητο.
+// Δηλαδή τέσσερις επιφάνειες υπόσχονταν τιμή για κάτι που κανείς δεν μπορούσε
+// να πάρει — και η πρώτη φορά που θα φαινόταν ήταν όταν ένας πληρωμένος
+// πελάτης με τέσσερα ακίνητα ζητούσε το τέταρτο.
 //
-// ΓΙΑΤΙ ΣΤΡΟΓΓΥΛΟ 2 ΚΑΙ ΟΧΙ 1,90: ο χρήστης πρέπει να μπορεί να το υπολογίσει
-// στο κεφάλι του («τρία ακίνητα παραπάνω, έξι ευρώ»). Ένα 1,90 σε προσθήκη —
-// σε αντίθεση με την τιμή του πλάνου — διαβάζεται ως τέχνασμα, όχι ως τιμή.
-//
-// Ο ΚΑΝΟΝΑΣ ΠΟΥ ΔΕΝ ΠΡΕΠΕΙ ΝΑ ΣΠΑΣΕΙ: το μετρημένο ακίνητο είναι ΒΑΛΒΙΔΑ, όχι
-// διόδια. Αν ο χρήστης αρχίσει να καθυστερεί την προσθήκη ακινήτου για να μην
-// ανέβει ο λογαριασμός, χάνει αξία η εφαρμογή και φεύγει — τεκμηριωμένος τρόπος
-// αποτυχίας της χρέωσης ανά μονάδα. Γι' αυτό τα συμπεριλαμβανόμενα πρέπει να
-// καλύπτουν τη μεγάλη μάζα, και ο μετρητής να πιάνει μόνο την ουρά.
+// ΤΟ ΟΡΙΟ ΕΙΝΑΙ ΠΙΑ ΟΡΙΟ. Οποιος χρειάζεται περισσότερα ακίνητα αλλάζει
+// πακέτο, και ο σύμβουλος πακέτου τον οδηγεί στο φθηνότερο που χωρά. Αν
+// κάποτε φτιαχτεί η διαδρομή αγοράς, ξαναγράφεται εδώ μαζί με τον μηχανισμό —
+// όχι πριν.
 // ═══════════════════════════════════════════════════════════════════════════
-export const EXTRA_PROPERTY_PRICE = 2;
+
 
 /**
  * Ημέρες δωρεάν δοκιμής για κάθε νέο λογαριασμό.
@@ -126,7 +119,7 @@ export const PLANS: Record<PlanId, Plan> = {
   // διαλέξει ο χρήστης πακέτο, ώστε τα δεδομένα του να μη χαθούν.
   // ═══════════════════════════════════════════════════════════════════════
   free: {
-    id: 'free', name: 'Χωρίς συνδρομή', nameGen: 'χωρίς συνδρομή', priceMonthly: 0, priceAnnual: 0, maxProperties: 1, trialDays: 0, extraPropertyPrice: 0,
+    id: 'free', name: 'Χωρίς συνδρομή', nameGen: 'χωρίς συνδρομή', priceMonthly: 0, priceAnnual: 0, maxProperties: 1, trialDays: 0,
     tagline: 'Ώσπου να διαλέξεις πακέτο',
     features: ['Τα δεδομένα σου δεν χάνονται', 'Χωρίς τα φορολογικά εργαλεία'],
   },
@@ -168,7 +161,7 @@ export const PLANS: Record<PlanId, Plan> = {
   // αντέχει τη μεγαλύτερη έκπτωση της κλίμακας: 42,90 € είναι έντεκα μήνες,
   // ένας δώρο, και η προπληρωμή εξακολουθεί να συμφέρει.
   solo: {
-    id: 'solo', name: 'Ιδιοκτήτης', nameGen: 'Ιδιοκτήτη', priceMonthly: 3.9, priceAnnual: 42.9, maxProperties: 1, trialDays: TRIAL_DAYS, extraPropertyPrice: 0,
+    id: 'solo', name: 'Ιδιοκτήτης', nameGen: 'Ιδιοκτήτη', priceMonthly: 3.9, priceAnnual: 42.9, maxProperties: 1, trialDays: TRIAL_DAYS,
     tagline: 'Το ακίνητό σου σε τάξη',
     features: [
       'Ε2 έτοιμο για τον λογιστή',
@@ -184,11 +177,10 @@ export const PLANS: Record<PlanId, Plan> = {
   // συγκρίνεις· από το δεύτερο και πάνω, το «ποιο μου αποδίδει και ποιο με
   // τρώει» είναι η ερώτηση που δεν απαντά κανένα φύλλο Excel.
   owner: {
-    id: 'owner', name: 'Ιδιοκτήτης+', nameGen: 'Ιδιοκτήτη+', priceMonthly: 9.9, priceAnnual: 99, maxProperties: 3, trialDays: TRIAL_DAYS, extraPropertyPrice: EXTRA_PROPERTY_PRICE,
+    id: 'owner', name: 'Ιδιοκτήτης+', nameGen: 'Ιδιοκτήτη+', priceMonthly: 9.9, priceAnnual: 99, maxProperties: 3, trialDays: TRIAL_DAYS,
     tagline: 'Πολλά ακίνητα, μία εικόνα',
     features: [
       'Έως 3 ακίνητα',
-      `Επιπλέον ακίνητο: ${fe(EXTRA_PROPERTY_PRICE)} τον μήνα`,
       'Σύγκριση απόδοσης ανά ακίνητο',
       // Η ΓΡΑΜΜΗ «MOBILE APP 15 ΜΕΡΕΣ ΝΩΡΙΤΕΡΑ» ΕΦΥΓΕ. Πουλούσε πρόωρη πρόσβαση
       // σε προϊόν που δεν υπάρχει και δεν έχει ημερομηνία: στον κώδικα υπάρχει
@@ -201,11 +193,10 @@ export const PLANS: Record<PlanId, Plan> = {
   // Εδώ αλλάζει το ερώτημα: δεν είναι «τι πληρώνω», είναι «τι λέω στον πελάτη
   // μου». Πελατολόγιο, ομάδα, επώνυμες αναφορές και επενδυτική ανάλυση.
   agency: {
-    id: 'agency', name: 'Επαγγελματίας', nameGen: 'Επαγγελματία', priceMonthly: 24.9, priceAnnual: 249, maxProperties: 15, trialDays: TRIAL_DAYS, extraPropertyPrice: EXTRA_PROPERTY_PRICE,
+    id: 'agency', name: 'Επαγγελματίας', nameGen: 'Επαγγελματία', priceMonthly: 24.9, priceAnnual: 249, maxProperties: 15, trialDays: TRIAL_DAYS,
     tagline: 'Ομάδα, ρόλοι και λογοδοσία',
     features: [
       'Έως 15 ακίνητα',
-      `Επιπλέον ακίνητο: ${fe(EXTRA_PROPERTY_PRICE)} τον μήνα`,
       'Πελατολόγιο και χαρτοφυλάκιο',
       // ΤΟ «ΧΩΡΙΣ ΟΡΙΟ ΧΡΗΣΤΩΝ» ΗΤΑΝ ΓΡΑΜΜΕΝΟ ΣΤΟ ΑΚΡΙΒΟΤΕΡΟ ΠΑΚΕΤΟ, ΣΑΝ ΝΑ ΤΟ
       // ΠΡΟΣΘΕΤΕ. Δεν το προσθέτει: κανένα πακέτο δεν έχει όριο χρηστών, σε
@@ -222,7 +213,7 @@ export const PLANS: Record<PlanId, Plan> = {
   // Δεν αγοράζει δυνατότητες, αγοράζει να μη μετράει: ακίνητα, χρήστες και
   // ερωτήσεις χωρίς μετρητή, και άνθρωπο στο τηλέφωνο.
   office: {
-    id: 'office', name: 'Επαγγελματίας+', nameGen: 'Επαγγελματία+', priceMonthly: 79.9, priceAnnual: 799, maxProperties: Infinity, trialDays: TRIAL_DAYS, extraPropertyPrice: 0,
+    id: 'office', name: 'Επαγγελματίας+', nameGen: 'Επαγγελματία+', priceMonthly: 79.9, priceAnnual: 799, maxProperties: Infinity, trialDays: TRIAL_DAYS,
     tagline: 'Επαγγελματικό χαρτοφυλάκιο',
     // ΔΥΟ ΑΠΟ ΤΙΣ ΤΕΣΣΕΡΙΣ ΓΡΑΜΜΕΣ ΔΕΝ ΠΡΟΣΘΕΤΑΝ ΤΙΠΟΤΑ, ΚΑΙ Η ΚΑΡΤΑ ΛΕΕΙ ΑΠΟ
     // ΠΑΝΩ «ΟΛΑ ΤΟΥ ΕΠΑΓΓΕΛΜΑΤΙΑ, ΚΑΙ:». Το «Ομάδα χωρίς όριο χρηστών» ίσχυε ήδη
@@ -294,43 +285,34 @@ export function annualPerMonth(id: PlanId): number {
   return Math.round((PLANS[id].priceAnnual / 12) * 100) / 100;
 }
 
-// ── Επιπλέον ακίνητα: όριο και κόστος ──────────────────────────────────────
+// ── Το όριο ακινήτων ───────────────────────────────────────────────────────
 
-/** Πόσα ακίνητα επιτρέπει συνολικά το πλάνο ΜΑΖΙ με όσα έχει αγοράσει ο χρήστης. */
-export function propertyAllowance(planId: string | null | undefined, extraProperties = 0): number {
+/** Πόσα ακίνητα επιτρέπει το πακέτο. */
+export function propertyAllowance(planId: string | null | undefined): number {
   const plan = PLANS[normalizePlan(planId)];
-  if (!Number.isFinite(plan.maxProperties)) return Infinity;
-  // Άγνωστη/αρνητική τιμή δεν επιτρέπεται να ΜΕΓΑΛΩΣΕΙ το όριο κατά λάθος.
-  const extras = plan.extraPropertyPrice > 0 ? Math.max(0, Math.floor(extraProperties) || 0) : 0;
-  return plan.maxProperties + extras;
+  return Number.isFinite(plan.maxProperties) ? plan.maxProperties : Infinity;
 }
 
-/** Το συνολικό μηνιαίο κόστος: τιμή πλάνου + επιπλέον ακίνητα. */
-export function monthlyPrice(planId: string | null | undefined, extraProperties = 0): number {
-  const plan = PLANS[normalizePlan(planId)];
-  const extras = plan.extraPropertyPrice > 0 ? Math.max(0, Math.floor(extraProperties) || 0) : 0;
-  return Math.round((plan.priceMonthly + extras * plan.extraPropertyPrice) * 100) / 100;
+/** Το μηνιαίο κόστος του πακέτου. */
+export function monthlyPrice(planId: string | null | undefined): number {
+  return PLANS[normalizePlan(planId)].priceMonthly;
 }
 
-/** Πόσα επιπλέον χρειάζεται αυτό το πλάνο για να χωρέσει τόσα ακίνητα. */
-export function extrasNeeded(planId: PlanId, count: number): number {
-  const plan = PLANS[planId];
-  if (!Number.isFinite(plan.maxProperties)) return 0;
-  const missing = count - plan.maxProperties;
-  return missing <= 0 ? 0 : (plan.extraPropertyPrice > 0 ? missing : Number.POSITIVE_INFINITY);
-}
-
-/** Το φθηνότερο εφικτό συνδυασμό πλάνου + επιπλέον για τόσα ακίνητα. */
-export function cheapestFor(count: number): { plan: PlanId; extras: number; monthly: number } {
-  let best: { plan: PlanId; extras: number; monthly: number } | null = null;
+/**
+ * Το φθηνότερο πακέτο που χωρά τόσα ακίνητα.
+ *
+ * ΔΕΝ ΣΥΝΘΕΤΕΙ ΠΙΑ ΠΑΚΕΤΟ ΜΕ ΠΡΟΣΘΕΤΑ. Οσο υπήρχαν τα επιπλέον ακίνητα των
+ * 2,00 €, η απάντηση ήταν συνδυασμός («Ιδιοκτήτης+ με οκτώ επιπλέον»). Χωρίς
+ * αυτά η ερώτηση είναι απλή, και η απάντηση επίσης: το πρώτο πακέτο της
+ * σειράς που χωρά τόσα ακίνητα είναι και το φθηνότερο, γιατί η σειρά είναι
+ * αύξουσα και σε τιμή και σε όριο.
+ */
+export function cheapestFor(count: number): { plan: PlanId; monthly: number } {
   for (const id of PLAN_ORDER) {
     if (id === 'free' && count > PLANS.free.maxProperties) continue;
-    const extras = extrasNeeded(id, count);
-    if (!Number.isFinite(extras)) continue;   // το πλάνο δεν φτάνει ούτε με επιπλέον
-    const monthly = monthlyPrice(id, extras);
-    if (!best || monthly < best.monthly) best = { plan: id, extras, monthly };
+    if (count <= PLANS[id].maxProperties) return { plan: id, monthly: PLANS[id].priceMonthly };
   }
-  return best ?? { plan: 'office', extras: 0, monthly: PLANS.office.priceMonthly };
+  return { plan: 'office', monthly: PLANS.office.priceMonthly };
 }
 
 /**
@@ -351,12 +333,11 @@ export function cheapestFor(count: number): { plan: PlanId; extras: number; mont
 export function planAdvice(
   currentPlan: string | null | undefined,
   count: number,
-  extraProperties = 0,
-): { plan: PlanId; extras: number; monthly: number; saves: number } | null {
+): { plan: PlanId; monthly: number; saves: number } | null {
   const now = normalizePlan(currentPlan);
   // Το δωρεάν δεν «συμβουλεύεται» — ο χρήστης εκεί δεν πληρώνει τίποτα.
   if (now === 'free') return null;
-  const currentMonthly = monthlyPrice(now, extraProperties);
+  const currentMonthly = monthlyPrice(now);
   const best = cheapestFor(Math.max(count, 1));
   if (best.plan === now) return null;
   const saves = Math.round((currentMonthly - best.monthly) * 100) / 100;
@@ -370,8 +351,5 @@ export function propertyLimitLabel(planId: string | null | undefined): string {
   const plan = PLANS[normalizePlan(planId)];
   if (!Number.isFinite(plan.maxProperties)) return 'Απεριόριστα ακίνητα';
   const n = plan.maxProperties;
-  const base = n === 1 ? '1 ακίνητο' : `${n} ακίνητα`;
-  return plan.extraPropertyPrice > 0
-    ? `${base}, και όσα θέλεις παραπάνω με ${fe(plan.extraPropertyPrice)} το καθένα`
-    : base;
+  return n === 1 ? '1 ακίνητο' : `${n} ακίνητα`;
 }
