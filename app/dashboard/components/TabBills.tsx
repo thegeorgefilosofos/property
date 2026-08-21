@@ -35,6 +35,7 @@ import * as expenseStore from '@/lib/data/expenses'
 import * as billStore from '@/lib/data/bills'
 import { T, fe, Skeleton } from '@/components/Theme';
 import { mergeLedger, type LedgerEntry } from '@/lib/expenses/ledger';
+import { cadenceLabel } from '@/lib/expenses/expected';
 import { contractOverview, totalMonthly, CONTRACT_EMPTY_HINT, CONTRACT_LABEL, type ContractCard, type ContractKind } from '@/lib/contracts/overview';
 
 // ── Static imports, all components must be static for Next.js App Router ────
@@ -97,7 +98,12 @@ interface StripData {
 function ContractTile({ card, active, onOpen }: { card: ContractCard; active: boolean; onOpen: () => void }) {
   const [hover, setHover] = useState(false);
   const raised = hover || active;
-  const period = card.everyMonths === 2 ? 'ανά δίμηνο' : '';
+  // Ο ΚΥΚΛΟΣ ΛΕΓΕΤΑΙ ΟΤΑΝ ΔΕΝ ΕΙΝΑΙ Ο ΑΥΤΟΝΟΗΤΟΣ. Το ποσό της κάρτας είναι ΑΝΑ
+  // ΜΗΝΑ: ένα ασφάλιστρο 240 € τον χρόνο γράφεται 20,00 €. Χωρίς τον κύκλο
+  // δίπλα, ο ιδιοκτήτης θα έψαχνε χρέωση 20 € που δεν υπάρχει πουθενά. Το
+  // «κάθε μήνα» παραλείπεται γιατί δεν προσθέτει τίποτα σε νούμερο που είναι
+  // ήδη μηνιαίο. Η διατύπωση έρχεται από το lib/expenses/expected.ts, μία φορά.
+  const period = card.everyMonths === 1 ? '' : cadenceLabel(card.everyMonths);
   const meta = card.known
     ? [card.provider, period, `${card.occurrences} ${card.occurrences === 1 ? 'περίοδος' : 'περίοδοι'}`].filter(Boolean).join(' · ')
     : CONTRACT_EMPTY_HINT[card.kind];

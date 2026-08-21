@@ -41,7 +41,7 @@ import {
   type LedgerEntry, type LedgerBill, type LedgerExpense,
 } from '@/lib/expenses/ledger';
 import { categoryLabel, resolveCategory, searchCategories, BY_SLUG, CATEGORIES } from '@/lib/expenses/taxonomy';
-import { missingThisMonth } from '@/lib/expenses/expected';
+import { missingThisMonth, cadenceLabel } from '@/lib/expenses/expected';
 import { priceChanges } from '@/lib/expenses/priceChange';
 import { planBillPayment, type BillToPay } from '@/lib/expenses/pay';
 import { groupForCategory } from '@/lib/expenses/groups';
@@ -118,6 +118,8 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
   const [expenses, setExpenses] = useState<LedgerExpense[]>([]);
   const [q, setQ] = useState('');
   const [adding, setAdding] = useState(false);
+  // Ο σπόρος της φόρμας, όταν η καταχώρηση ξεκινά από γραμμή που «λείπει».
+  const [seed, setSeed] = useState<AddSeed | undefined>(undefined);
   const [busy, setBusy] = useState<string | null>(null);
   // Ποια δαπάνη είναι ανοιχτή για επεξεργασία. Κρατιέται το αναγνωριστικό και
   // όχι αντίγραφο της γραμμής: μετά την αποθήκευση η λίστα ξαναφορτώνεται, και
@@ -371,13 +373,33 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
           background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
         }}>
           <span style={{ flexShrink: 0, width: 5, height: 5, borderRadius: '50%', background: 'var(--text-tertiary)', marginTop: 8 }} />
-          <div style={{ minWidth: 0 }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ ...TT.bodySm, color: 'var(--text-primary)', fontWeight: 600 }}>
-              {missing.length === 1 ? 'Δεν έχει καταχωρηθεί ακόμη αυτόν τον μήνα' : `Δεν έχουν καταχωρηθεί ακόμη ${missing.length} πάγια αυτόν τον μήνα`}
+              {missing.length === 1 ? 'Ενα πάγιο δεν έχει καταχωρηθεί ακόμη' : `${missing.length} πάγια δεν έχουν καταχωρηθεί ακόμη`}
             </div>
-            <div style={{ ...TT.caption, marginTop: 3, lineHeight: 1.6 }}>
-              {missing.slice(0, 4).map(m => `${m.title}, συνήθως ${fe(m.typicalAmount)} γύρω στις ${m.typicalDay}`).join(' · ')}
-              {missing.length > 4 ? ` · και άλλα ${missing.length - 4}` : ''}
+            {/* ── ΜΙΑ ΓΡΑΜΜΗ ΑΝΑ ΠΑΓΙΟ, ΜΕ ΤΗΝ ΕΝΕΡΓΕΙΑ ΔΙΠΛΑ ────────────────
+                ΠΡΙΝ ήταν μία πρόταση με τελείες ανάμεσα: ο χρήστης διάβαζε ότι
+                λείπει η ΔΕΗ και μετά πήγαινε να τη γράψει από την αρχή, σαν να
+                μην το είχε πει κανείς. Η γνώση υπήρχε και δεν πήγαινε πουθενά.
+                ΤΩΡΑ το «Καταχώρηση» ανοίγει τη φόρμα με περιγραφή, κατηγορία και
+                ημερομηνία συμπληρωμένες. Το ποσό μένει κενό ΕΠΙΤΗΔΕΣ: είναι το
+                μόνο που δεν το ξέρουμε, και το λέμε δίπλα («συνήθως…») ώστε ο
+                χρήστης να ξέρει τι ψάχνει στον λογαριασμό. */}
+            <div style={{ display: 'grid', gap: 6, marginTop: 6 }}>
+              {missing.slice(0, 4).map(m => (
+                <div key={m.key} style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                  <span style={{ ...TT.caption, lineHeight: 1.6, minWidth: 0 }}>
+                    {m.title}, συνήθως {fe(m.typicalAmount)} {cadenceLabel(m.everyMonths)} · το περιμέναμε {shortDate(m.expectedDate)}
+                  </span>
+                  <Btn variant="ghost" onClick={() => {
+                    setSeed({ what: m.title, date: m.expectedDate, slug: resolveCategory(m.category) || '' });
+                    setAdding(true);
+                  }}>Καταχώρηση</Btn>
+                </div>
+              ))}
+              {missing.length > 4 && (
+                <span style={{ ...TT.caption }}>και άλλα {missing.length - 4}</span>
+              )}
             </div>
           </div>
         </div>
@@ -426,7 +448,7 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
           θα έψαχνε σε τίποτα. Όσο η φόρμα είναι ανοιχτή η γραμμή μένει, γιατί
           κρατά την «Ακύρωση». */}
       {(entries.length > 0 || adding) && <div style={{ display: 'flex', gap: T.sp.sm, flexWrap: 'wrap', alignItems: 'center', marginBottom: T.sp.lg }}>
-        <Btn variant="primary" onClick={() => setAdding(v => !v)}>{adding ? 'Ακύρωση' : 'Νέα δαπάνη'}</Btn>
+        <Btn variant="primary" onClick={() => { setSeed(undefined); setAdding(v => !v); }}>{adding ? 'Ακύρωση' : 'Νέα δαπάνη'}</Btn>
         <div style={{ flex: 1 }} />
         {/* Ίδιο ύψος και ίδιο σχήμα με τα κουμπιά δίπλα του. Πριν ήταν ψηλότερο
             και πιο στρογγυλό, και η σειρά έμοιαζε στοιχισμένη κατά λάθος. */}
@@ -473,8 +495,11 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
               </span>
             </button>
           )}
-          <QuickAdd propertyId={propertyId} userId={userId}
-            onDone={async () => { setAdding(false); await load(); }} />
+          {/* Το `key` ξαναχτίζει τη φόρμα όταν αλλάζει ο σπόρος: τα πεδία
+              αρχικοποιούνται μία φορά, και χωρίς αυτό η δεύτερη «Καταχώρηση»
+              θα άνοιγε τη φόρμα της πρώτης. */}
+          <QuickAdd key={seed?.what ?? 'κενή'} propertyId={propertyId} userId={userId} seed={seed}
+            onDone={async () => { setAdding(false); setSeed(undefined); await load(); }} />
         </>
       )}
 
@@ -817,14 +842,27 @@ function EditExpense({ row, onClose, onSaved }: {
   );
 }
 
-function QuickAdd({ propertyId, userId, onDone }: { propertyId: string; userId: string; onDone: () => void }) {
+/**
+ * Τι ξέρουμε ΗΔΗ για μια δαπάνη που περιμέναμε και δεν ήρθε.
+ *
+ * ΤΟ ΠΟΣΟ ΛΕΙΠΕΙ ΕΠΙΤΗΔΕΣ. Ολα τα άλλα τα ξέρει το ιστορικό με βεβαιότητα:
+ * ποιος στέλνει, τι κατηγορία είναι, πότε το περιμέναμε. Το ποσό ΟΧΙ — αλλάζει
+ * κάθε φορά. Προσυμπληρωμένο «70», ένα βιαστικό πάτημα θα έγραφε στα βιβλία
+ * νούμερο που δεν είδε ποτέ κανείς σε λογαριασμό. Το τυπικό ποσό λέγεται στη
+ * γραμμή από πάνω, ώστε ο χρήστης να ξέρει τι ψάχνει.
+ */
+interface AddSeed { what: string; date: string; slug: string }
+
+function QuickAdd({ propertyId, userId, seed, onDone }: { propertyId: string; userId: string; seed?: AddSeed; onDone: () => void }) {
   const supabase = createClient();
   const today = athensToday();
-  const [what, setWhat] = useState('');
+  const [what, setWhat] = useState(seed?.what ?? '');
   const [amount, setAmount] = useState('');
-  const [date, setDate] = useState(today);
-  const [picked, setPicked] = useState<string>('');
-  const [touched, setTouched] = useState(false);
+  const [date, setDate] = useState(seed?.date || today);
+  const [picked, setPicked] = useState<string>(seed?.slug ?? '');
+  // Η κατηγορία του σπόρου έρχεται από το ιστορικό της σειράς, όχι από μαντεψιά
+  // πάνω στην περιγραφή: δεν την ξαναγράφει ο αυτόματος χαρακτηρισμός.
+  const [touched, setTouched] = useState(!!seed?.slug);
   const [paid, setPaid] = useState(true);
   const [due, setDue] = useState('');
   // ── ΠΟΙΟΣ ΠΛΗΡΩΝΕΙ ────────────────────────────────────────────────────────
