@@ -142,6 +142,40 @@ if (!EMAIL || !PASSWORD) {
   const overflow = await m.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
   ok('χωρίς οριζόντια υπερχείλιση στα 390 εικονοστοιχεία', overflow <= 1)
 
+  // ── ΚΑΘΕ ΚΑΡΤΕΛΑ ΑΝΟΙΓΕΙ ΚΑΙ ΑΠΟΔΙΔΕΤΑΙ ──────────────────────────────────
+  // ΓΙΑΤΙ ΠΡΟΣΤΕΘΗΚΕ. Οι δεκαεπτά καρτέλες και τα τρία παράθυρα κατεβαίνουν
+  // πλέον με δυναμική εισαγωγή (`components/lazyTabs.tsx`), ώστε το πρώτο
+  // φόρτωμα να μη σέρνει 2,3 MB κώδικα που κανείς δεν άνοιξε. Το κέρδος είναι
+  // μετρημένο· ο κίνδυνος όμως είναι καινούριος και δεν τον πιάνει ΚΑΝΕΝΑ άλλο
+  // τεστ: ένα κομμάτι που δεν κατεβαίνει δεν σπάει τη μεταγλώττιση, δεν
+  // σπάει τον τυποελεγκτή, και φαίνεται ΜΟΝΟ ως καρτέλα που δεν ανοίγει.
+  //
+  // Τρία πράγματα ελέγχονται ανά καρτέλα, και τα τρία χρειάζονται:
+  //   · ότι το σχήμα αναμονής έφυγε — δηλαδή το κομμάτι έφτασε και αποδόθηκε
+  //   · ότι δεν πέταξε εξαίρεση στο άνοιγμα
+  //   · ότι κανένα αίτημα .js δεν απέτυχε (το ίδιο το κομμάτι που λείπει)
+  const failedChunks = []
+  p.on('requestfailed', r => { if (/\.js(\?|$)/.test(r.url())) failedChunks.push(r.url()) })
+
+  const tabs = await p.locator('[data-nav]').evaluateAll(
+    els => els.filter(e => !e.disabled).map(e => e.dataset.nav))
+  ok(`το μενού δίνει καρτέλες να ανοιχτούν (${tabs.length})`, tabs.length >= 8)
+
+  for (const id of tabs) {
+    const before = errors.length
+    await p.locator(`[data-nav="${id}"]`).click()
+    // Το σχήμα αναμονής φέρει `aria-busy`: όσο υπάρχει, το κομμάτι δεν έχει
+    // φτάσει. Η αναμονή είναι για ΤΗΝ ΕΞΑΦΑΝΙΣΗ του, όχι σταθερός χρόνος.
+    await p.locator('[aria-busy="true"]').first().waitFor({ state: 'detached', timeout: 15000 }).catch(() => {})
+    await p.waitForTimeout(400)
+    const text = (await p.locator('main').innerText().catch(() => '')) || await p.locator('body').innerText()
+    ok(`η καρτέλα «${id}» αποδίδεται`, text.trim().length > 40)
+    ok(`…χωρίς εξαίρεση`, errors.length === before)
+    ok(`…χωρίς NaN ή undefined`, !/NaN|undefined/.test(text))
+  }
+  ok('κανένα κομμάτι κώδικα δεν έλειψε', failedChunks.length === 0)
+  if (failedChunks.length) for (const u of failedChunks.slice(0, 3)) console.log('    ' + u)
+
   ok('καμία εξαίρεση στην κονσόλα', errors.length === 0)
   if (errors.length) for (const e of errors.slice(0, 3)) console.log('    ' + e.slice(0, 160))
 

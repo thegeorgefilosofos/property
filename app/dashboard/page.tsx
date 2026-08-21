@@ -1896,7 +1896,14 @@ export default function Dashboard() {
                 // `checklist`, και κανένα από τα δύο δεν είναι καρτέλα του μενού.
                 // Κώδικας που παραβίαζε και τον κανόνα του κόκκινου, για μια
                 // περίπτωση που δεν υπήρχε.
-                <button key={id} className={`sidebar-item ${nav===id?'active':''}`} onClick={()=>{setNav(id);setSidebarOpen(false);}} disabled={!selected}
+                // ΤΟ `data-nav` ΕΙΝΑΙ ΓΙΑ ΤΟΝ ΕΛΕΓΧΟ, ΚΑΙ ΓΙ' ΑΥΤΟ ΔΕΝ ΕΙΝΑΙ ΠΕΡΙΤΤΟ.
+                // Το σενάριο e2e ανοίγει ΚΑΘΕ καρτέλα και βεβαιώνεται ότι κατέβηκε
+                // και αποδόθηκε. Χωρίς σταθερή λαβή θα έπρεπε να πατά ελληνικές
+                // ετικέτες — που αλλάζουν με τον τύπο προφίλ («Πρόγραμμα
+                // Συνεργατών» αντί για «Προσκλήσεις») και με κάθε διόρθωση
+                // κειμένου, δηλαδή ο έλεγχος θα έσπαγε για λόγους άσχετους με
+                // αυτό που ελέγχει.
+                <button key={id} data-nav={id} className={`sidebar-item ${nav===id?'active':''}`} onClick={()=>{setNav(id);setSidebarOpen(false);}} disabled={!selected}
                   aria-current={nav===id ? 'page' : undefined}
                   style={d.visible ? undefined : { opacity: 0.45 }}
                   title={d.visible ? (locked ? 'Διαθέσιμο σε ανώτερο πακέτο' : undefined) : d.reason}>
