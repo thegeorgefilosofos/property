@@ -415,41 +415,47 @@ export default function SignupPage() {
                   τύπος προφίλ δηλωνόταν στο καλωσόρισμα και το ταμείο απαντούσε
                   403 σε όποιον δεν τον είχε ακόμη. Πλέον τον γράφει η ίδια η
                   αγορά, στον webhook: ο όρος δεν υπάρχει, άρα δεν λέγεται. */}
-              {/* ── Η ΕΠΙΛΟΓΗ ΤΟΥ, ΣΕ ΔΥΟ ΓΡΑΜΜΕΣ ΚΑΙ ΟΥΤΕ ΜΙΑ ΠΑΡΑΠΑΝΩ ──────────
-                  ΤΡΕΙΣ ΓΡΑΦΕΣ ΧΡΕΙΑΣΤΗΚΑΝ ΓΙΑ ΝΑ ΦΤΑΣΕΙ ΕΔΩ. Παράγραφος τριών
-                  προτάσεων γύρω από μια κουκκίδα, με το ποσό θαμμένο στη μέση.
-                  Μετά σωστή στοίχιση με άψυχο κείμενο. Μετά ετικέτα «ΤΟ ΠΑΚΕΤΟ
-                  ΣΟΥ» από πάνω, που έλεγε αυτό που ήδη φώναζε το ίδιο το κουτί.
+              {/* ── ΔΥΟ ΣΕΙΡΕΣ, ΔΥΟ ΣΤΗΛΕΣ, ΕΝΑΣ ΑΞΟΝΑΣ ────────────────────────────
+                  ΤΕΣΣΕΡΙΣ ΓΡΑΦΕΣ ΧΡΕΙΑΣΤΗΚΑΝ, ΚΑΙ ΟΛΕΣ ΟΙ ΠΡΟΗΓΟΥΜΕΝΕΣ ΕΠΕΣΑΝ
+                  ΣΤΟ ΙΔΙΟ: ΤΥΠΟΓΡΑΦΙΚΗ ΑΝΟΜΟΙΟΓΕΝΕΙΑ. Η τελευταία είχε τέσσερα
+                  μεγέθη σε δύο σειρές (16 για το όνομα, 15 για το ποσό, 15 σε
+                  άλλο βάρος για τον κύκλο, 12,5 για τους όρους) και ένα
+                  περιθώριο ανάμεσά τους. Κάθε στοιχείο ήταν σωστό μόνο του και
+                  κανένα δεν ζύγιζε με το διπλανό.
 
-                  Δύο γραμμές, με μοιρασμένες δουλειές. Η πρώτη είναι ΑΠΟΔΕΙΞΗ:
-                  όνομα αριστερά, ποσό δεξιά, ίδια γραμμή βάσης, ισοπλατή ψηφία,
-                  πέρα ως πέρα — ό,τι διάβασε στον τιμοκατάλογο, επιβεβαιωμένο
-                  χωρίς ρήμα. Η δεύτερη είναι ΟΡΟΙ: πότε φεύγουν χρήματα, και
-                  ότι η επιλογή δεν κλειδώνει.
+                  ΤΟ ΣΧΗΜΑ ΕΙΝΑΙ ΠΛΕΓΜΑ, ΟΧΙ ΔΥΟ ΠΑΡΑΓΡΑΦΟΙ. Δύο στήλες, δύο
+                  σειρές, ένας άξονας αριστερά και ένας δεξιά:
 
-                  ΤΟ ΜΗΚΟΣ ΤΗΣ ΔΕΥΤΕΡΗΣ ΕΙΝΑΙ ΠΕΡΙΟΡΙΣΜΟΣ, ΟΧΙ ΠΡΟΤΙΜΗΣΗ. Πρέπει
-                  να χωρά σε ΜΙΑ γραμμή στο πλάτος αυτής της στήλης· μετρήθηκε
-                  σε πραγματικό περιηγητή. Κάθε λέξη παραπάνω σπάει τη
-                  συμμετρία που κάνει την κάρτα να διαβάζεται με μια ματιά.
+                      Επαγγελματίας+            799,00 €
+                      Ετήσια χρέωση        30 ημέρες δωρεάν
+
+                  Αριστερά ΤΙ ΕΙΝΑΙ, δεξιά ΤΙ ΠΛΗΡΩΝΕΙΣ. Η πάνω σειρά κρατά την
+                  ταυτότητα, η κάτω τους όρους. Δύο μεγέθη συνολικά, δύο βάρη,
+                  δύο χρώματα — και τα δύο κελιά κάθε σειράς μοιράζονται
+                  γραμμή βάσης. Χωρίς περιθώριο ανάμεσα: τις χωρίζει μόνο το
+                  ύψος γραμμής, όπως δύο σειρές του ίδιου πίνακα.
 
                   Η ΗΜΕΡΟΜΗΝΙΑ ΤΗΣ ΠΡΩΤΗΣ ΧΡΕΩΣΗΣ ΔΕΝ ΓΡΑΦΕΤΑΙ ΕΔΩ, για τον λόγο
                   που εξηγείται παραπάνω: η οθόνη είναι πελάτης και δεν ξέρει αν
                   η χρέωση είναι ρυθμισμένη. */}
               {chosenPlan && (
-                <div style={{ padding: '14px 16px', marginBottom: 24, borderRadius: 10, background: 'var(--accent-dim)', border: '1px solid var(--accent-border)' }}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
-                    <span style={{ fontSize: 16, fontWeight: 680, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-                      {PLANS[chosenPlan].name}
-                    </span>
-                    <span style={{ fontSize: 15, fontWeight: 650, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                      {chosenCycle === 'annual'
-                        ? <>{fe(PLANS[chosenPlan].priceAnnual)} <span style={{ fontWeight: 500, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>τον χρόνο</span></>
-                        : <>{fe(PLANS[chosenPlan].priceMonthly)} <span style={{ fontWeight: 500, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>τον μήνα</span></>}
-                    </span>
-                  </div>
-                  <p style={{ margin: '7px 0 0', fontSize: 12.5, lineHeight: 1.5, color: 'var(--text-tertiary)' }}>
-                    {TRIAL_DAYS} ημέρες δωρεάν, και αλλάζεις πακέτο όποτε θέλεις.
-                  </p>
+                <div style={{
+                  display: 'grid', gridTemplateColumns: '1fr auto', columnGap: 16, rowGap: 2,
+                  alignItems: 'baseline', padding: '14px 16px', marginBottom: 24, borderRadius: 10,
+                  background: 'var(--accent-dim)', border: '1px solid var(--accent-border)',
+                }}>
+                  <span style={{ fontSize: 15, fontWeight: 650, lineHeight: 1.45, color: 'var(--text-primary)', letterSpacing: '-0.015em' }}>
+                    {PLANS[chosenPlan].name}
+                  </span>
+                  <span style={{ fontSize: 15, fontWeight: 650, lineHeight: 1.45, color: 'var(--text-primary)', textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                    {fe(chosenCycle === 'annual' ? PLANS[chosenPlan].priceAnnual : PLANS[chosenPlan].priceMonthly)}
+                  </span>
+                  <span style={{ fontSize: 12.5, fontWeight: 500, lineHeight: 1.45, color: 'var(--text-tertiary)' }}>
+                    {chosenCycle === 'annual' ? 'Ετήσια χρέωση' : 'Μηνιαία χρέωση'}
+                  </span>
+                  <span style={{ fontSize: 12.5, fontWeight: 500, lineHeight: 1.45, color: 'var(--text-tertiary)', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    {TRIAL_DAYS} ημέρες δωρεάν
+                  </span>
                 </div>
               )}
 
