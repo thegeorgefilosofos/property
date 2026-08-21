@@ -329,7 +329,18 @@ export default function SignupPage() {
           ) : sessionEmail ? (
             <AlreadySignedIn email={sessionEmail} onSignOut={signOut} signingOut={signingOut} mode="signup" />
           ) : done ? (
-            <div style={{ textAlign: 'center' }} role="status">
+            <div role="status">
+              {/* ΤΟ ΑΔΙΕΞΟΔΟ. Η οθόνη «Ανοιξε το email σου» είχε ΕΝΑ κουμπί, το
+                  «Ξαναστείλε», και τίποτα άλλο: ούτε αρχική, ούτε σύνδεση,
+                  ούτε τρόπο να διορθώσει τη διεύθυνση. Οποιος πληκτρολόγησε
+                  λάθος γράμμα —δηλαδή αυτός ακριβώς που κοιτάζει αυτή την
+                  οθόνη περιμένοντας email που δεν έρχεται— δεν είχε πού να
+                  πάει παρά μόνο πίσω με το βελάκι του περιηγητή.
+                  Ο δρόμος πίσω μπαίνει πάνω, όπως σε κάθε άλλη κατάσταση
+                  αυτής της σελίδας, και η διόρθωση της διεύθυνσης κάτω, δίπλα
+                  στην ενέργεια που κάποιος δοκιμάζει πρώτη. */}
+              <BackLink home />
+              <div style={{ textAlign: 'center' }}>
               <div style={{ width: 56, height: 56, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: 'var(--accent)' }}>
                 <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="M22 6 12 13 2 6" /></svg>
               </div>
@@ -340,6 +351,16 @@ export default function SignupPage() {
               <button onClick={resend} disabled={resent} style={{ display: 'inline-block', padding: '12px 24px', background: resent ? 'var(--bg-elevated)' : 'var(--accent)', border: resent ? '1px solid var(--border-default)' : 'none', borderRadius: T.radius.pill, color: resent ? 'var(--text-secondary)' : 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: resent ? 'default' : 'pointer', fontFamily: 'inherit' }}>
                 {resent ? 'Το ξαναστείλαμε ✓' : 'Ξαναστείλε το email'}
               </button>
+              <p style={{ margin: '18px 0 0', fontSize: 12.5, lineHeight: 1.6, color: 'var(--text-tertiary)' }}>
+                Λάθος διεύθυνση;{' '}
+                <button type="button" onClick={() => { setDone(false); setResent(false); }}
+                  style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent)', fontWeight: 600, fontSize: 12.5, fontFamily: 'inherit', textDecoration: 'underline' }}>
+                  Γράψε άλλη
+                </button>
+                {' · '}
+                <Link href="/login" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Σύνδεση</Link>
+              </p>
+              </div>
             </div>
           ) : (
             <>

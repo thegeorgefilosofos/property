@@ -176,6 +176,25 @@ if (!EMAIL || !PASSWORD) {
   ok('κανένα κομμάτι κώδικα δεν έλειψε', failedChunks.length === 0)
   if (failedChunks.length) for (const u of failedChunks.slice(0, 3)) console.log('    ' + u)
 
+  // ── ΤΟ ΤΑΜΕΙΟ ΧΩΡΙΣ ΠΑΚΕΤΟ ΡΩΤΑΕΙ, ΔΕΝ ΠΡΟΣΠΕΡΝΑ ────────────────────────
+  // Το κουμπί «Ξεκίνα τη δοκιμή» της αρχικής πάει στο /signup ΧΩΡΙΣ πακέτο.
+  // Μέχρι τη διόρθωση, όλοι αυτοί έφταναν στο ταμείο με άδεια διεύθυνση και
+  // ανακατευθύνονταν σιωπηλά στον πίνακα: κανείς δεν τους ρωτούσε ποτέ τι
+  // πακέτο θέλουν. Ο έλεγχος κρατά τη ρώτηση ζωντανή.
+  {
+    await p.goto(B + '/tameio', { waitUntil: 'networkidle' })
+    await p.waitForTimeout(1200)
+    const t = await p.locator('body').innerText()
+    const asks = /Διάλεξε πακέτο/.test(t)
+    const onDashboard = /\/dashboard/.test(p.url())
+    ok('το ταμείο χωρίς πακέτο ρωτάει αντί να προσπερνά', asks || !onDashboard)
+    if (asks) {
+      ok('…και δείχνει και τα τέσσερα πακέτα',
+         ['Ιδιοκτήτης', 'Ιδιοκτήτης+', 'Επαγγελματίας', 'Επαγγελματίας+'].every(n => t.includes(n)))
+      ok('…με τον κύκλο χρέωσης να αλλάζει', /Μηνιαία/.test(t) && /Ετήσια/.test(t))
+    }
+  }
+
   ok('καμία εξαίρεση στην κονσόλα', errors.length === 0)
   if (errors.length) for (const e of errors.slice(0, 3)) console.log('    ' + e.slice(0, 160))
 
