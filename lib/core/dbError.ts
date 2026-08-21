@@ -26,6 +26,7 @@
 //      προτροπή. Το πρωτότυπο κείμενο πάει στην κονσόλα, για όποιον το ψάχνει.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { PASSWORD_MIN_LABEL } from '@/lib/auth/password'
 /** Ο,τι επιστρέφει ο πελάτης Supabase ως σφάλμα, ή σκέτο Error. */
 interface DbLike { code?: string | null; message?: string | null; details?: string | null }
 
@@ -74,7 +75,7 @@ const BY_TEXT: [RegExp, string][] = [
   [/email not confirmed/i, 'Δεν έχεις επιβεβαιώσει ακόμη το ηλεκτρονικό ταχυδρομείο σου.'],
   [/token has expired|otp_expired|expired/i, 'Ο σύνδεσμος έληξε. Ζήτησε καινούριο.'],
   [/at least|password.*(weak|short)|6 char/i,
-    'Ο κωδικός είναι πολύ αδύναμος. Χρειάζεται τουλάχιστον 8 χαρακτήρες.'],
+    `Ο κωδικός είναι πολύ αδύναμος. Χρειάζεται ${PASSWORD_MIN_LABEL.toLowerCase()}.`],
   [/row-level security|violates row.level/i, 'Δεν έχεις δικαίωμα σε αυτή την εγγραφή.'],
   [/jwt|not authenticated|session.*(missing|expired)/i, 'Η σύνδεσή σου έληξε. Μπες ξανά.'],
   [/aborted|timeout|timed out/i, 'Η ενέργεια άργησε πολύ. Δοκίμασε ξανά.'],

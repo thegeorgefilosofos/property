@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import AuthAside from '../AuthAside'
-import { checkPassword } from '@/lib/auth/password'
+import { checkPassword, PASSWORD_MIN_LABEL } from '@/lib/auth/password'
 import PasswordStrength from '@/components/PasswordStrength'
 import { failed } from '@/lib/core/dbError';
 
@@ -151,12 +151,12 @@ export default function ResetPasswordPage() {
           {mode === 'update' && (
             <>
               <h1 style={h2s}>Όρισε νέο κωδικό</h1>
-              <p style={subs}>Διάλεξε έναν ισχυρό κωδικό, τουλάχιστον 8 χαρακτήρες.</p>
+              <p style={subs}>{`Διάλεξε έναν ισχυρό κωδικό, ${PASSWORD_MIN_LABEL.toLowerCase()}.`}</p>
               <form onSubmit={updatePassword} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
                   <label htmlFor="rp-password" style={label}>Νέος κωδικός</label>
                   <div style={{ position: 'relative' }}>
-                    <input id="rp-password" name="new-password" autoComplete="new-password" type={show ? 'text' : 'password'} required value={password} onChange={e => setPassword(e.target.value)} placeholder="Τουλάχιστον 8 χαρακτήρες" aria-describedby="rp-pw-req" style={{ ...field, paddingRight: 48 }}
+                    <input id="rp-password" name="new-password" autoComplete="new-password" type={show ? 'text' : 'password'} required value={password} onChange={e => setPassword(e.target.value)} placeholder={PASSWORD_MIN_LABEL} aria-describedby="rp-pw-req" style={{ ...field, paddingRight: 48 }}
                       onFocus={e => e.currentTarget.style.borderColor = 'var(--accent)'} onBlur={e => e.currentTarget.style.borderColor = 'var(--border-default)'} />
                     {eye}
                   </div>

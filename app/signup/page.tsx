@@ -7,7 +7,7 @@ import AlreadySignedIn from '../AlreadySignedIn'
 import AuthAside from '../AuthAside'
 import GoogleG from '../GoogleG'
 import { BackLink } from '../BackLink'
-import { checkPassword } from '@/lib/auth/password'
+import { checkPassword, PASSWORD_MIN_LABEL, PASSWORD_MIN_LENGTH } from '@/lib/auth/password'
 import PasswordStrength from '@/components/PasswordStrength'
 import { failed } from '@/lib/core/dbError';
 import { PLANS, TRIAL_DAYS, type PlanId, type BillingCycle } from '@/lib/billing/plans';
@@ -82,7 +82,7 @@ export default function SignupPage() {
   const pw = checkPassword(password)
   const trans = (m: string) =>
     /already registered|already exists/i.test(m) ? 'Υπάρχει ήδη λογαριασμός με αυτό το email.'
-    : /weak|at least|6 char/i.test(m) ? 'Ο κωδικός είναι πολύ αδύναμος. Χρησιμοποίησε τουλάχιστον 8 χαρακτήρες.'
+    : /weak|at least|6 char/i.test(m) ? `Ο κωδικός είναι πολύ αδύναμος. Χρησιμοποίησε ${PASSWORD_MIN_LABEL.toLowerCase()}.`
     : /rate limit|too many/i.test(m) ? 'Πολλές προσπάθειες. Δοκίμασε ξανά σε λίγο.'
     : /valid email/i.test(m) ? 'Το email δεν φαίνεται έγκυρο.'
     : m
@@ -148,7 +148,16 @@ export default function SignupPage() {
 
   /** Γράφει την απόδειξη συγκατάθεσης ΜΟΝΟ αφού δοθεί, και μετά ανοίγει τον πίνακα. */
   async function acceptOauthConsent() {
-    if (!consent) { setConsentTouched(true); return }
+    // ΤΟ ΤΕΤΡΑΓΩΝΟ ΕΙΝΑΙ ΠΙΑ ΠΙΟ ΚΑΤΩ ΑΠΟ ΤΟ ΚΟΥΜΠΙ, ΑΡΑ ΔΕΙΧΝΕΤΑΙ. Χωρίς
+    // αυτό, όποιος πατούσε «Συνέχισε με Google» χωρίς αποδοχή έβλεπε το κουμπί
+    // να μην κάνει τίποτα: το μήνυμα υπήρχε, αλλά εκτός οθόνης.
+    if (!consent) {
+      setConsentTouched(true)
+      const box = document.getElementById('su-consent')
+      box?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      box?.focus()
+      return
+    }
     const supabase = createClient()
     try {
       await supabase.auth.updateUser({ data: {
@@ -187,7 +196,16 @@ export default function SignupPage() {
   // στη διεύθυνση επιστροφής, και γράφεται μόλις υπάρξει συνεδρία.
   // ═══════════════════════════════════════════════════════════════════════
   async function signInWithGoogle() {
-    if (!consent) { setConsentTouched(true); return }
+    // ΤΟ ΤΕΤΡΑΓΩΝΟ ΕΙΝΑΙ ΠΙΑ ΠΙΟ ΚΑΤΩ ΑΠΟ ΤΟ ΚΟΥΜΠΙ, ΑΡΑ ΔΕΙΧΝΕΤΑΙ. Χωρίς
+    // αυτό, όποιος πατούσε «Συνέχισε με Google» χωρίς αποδοχή έβλεπε το κουμπί
+    // να μην κάνει τίποτα: το μήνυμα υπήρχε, αλλά εκτός οθόνης.
+    if (!consent) {
+      setConsentTouched(true)
+      const box = document.getElementById('su-consent')
+      box?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      box?.focus()
+      return
+    }
     setError('')
     const supabase = createClient()
     const back = new URLSearchParams({ oauth: '1' })
@@ -408,29 +426,6 @@ export default function SignupPage() {
                 </div>
               )}
 
-              {/* Η ΑΠΟΔΟΧΗ ΚΑΘΟΤΑΝ ΜΕΣΑ ΣΤΗ ΦΟΡΜΑ EMAIL, ΔΗΛΑΔΗ ΚΑΤΩ ΑΠΟ ΤΗΝ GOOGLE.
-                  Όποιος πατούσε το πάνω κουμπί δεν την είχε δει ποτέ. Μία
-                  αποδοχή, πάνω από τις δύο πόρτες, και ισχύει και για τις δύο.
-                  Ο έλεγχος δεν τυλίγει τους συνδέσμους (χωρίς ένθετα
-                  διαδραστικά): περιγράφεται με aria-label και οι σύνδεσμοι
-                  είναι διπλανό κείμενο. */}
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 16 }}>
-                <input id="su-consent" type="checkbox" checked={consent}
-                  onChange={e => { setConsent(e.target.checked); if (e.target.checked) setConsentTouched(false) }}
-                  required aria-label="Αποδοχή των Όρων Χρήσης και της Πολιτικής απορρήτου"
-                  style={{ marginTop: 2, width: 16, height: 16, accentColor: 'var(--accent)', flexShrink: 0, cursor: 'pointer' }} />
-                <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  Αποδέχομαι τους{' '}
-                  <Link href="/terms" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Όρους χρήσης</Link>{' '}και την{' '}
-                  <Link href="/privacy" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Πολιτική απορρήτου</Link>.
-                </span>
-              </div>
-              {consentTouched && !consent && (
-                <p role="alert" style={{ fontSize: 12, color: 'var(--negative-on-container)', margin: '0 0 12px', lineHeight: 1.5 }}>
-                  Χρειάζεται να αποδεχθείς τους Όρους και την Πολιτική απορρήτου για να συνεχίσεις.
-                </p>
-              )}
-
               <button type="button" onClick={signInWithGoogle} className="auth-hov"
                 style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '12px', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, color: 'var(--text-primary)', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                 <GoogleG />Συνέχισε με Google
@@ -453,7 +448,7 @@ export default function SignupPage() {
                 <div>
                   <label htmlFor="su-password" style={label}>Κωδικός</label>
                   <div style={{ position: 'relative' }}>
-                    <input id="su-password" name="new-password" autoComplete="new-password" type={show ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Τουλάχιστον 8 χαρακτήρες" required minLength={8} aria-describedby="su-pw-req" style={{ ...field, paddingRight: 48 }} onFocus={focus} onBlur={e => { blur(e); setPwTouched(true) }} />
+                    <input id="su-password" name="new-password" autoComplete="new-password" type={show ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder={PASSWORD_MIN_LABEL} required minLength={PASSWORD_MIN_LENGTH} aria-describedby="su-pw-req" style={{ ...field, paddingRight: 48 }} onFocus={focus} onBlur={e => { blur(e); setPwTouched(true) }} />
                     <button type="button" onClick={() => setShow(s => !s)} aria-label={show ? 'Απόκρυψη κωδικού' : 'Εμφάνιση κωδικού'} aria-pressed={show}
                       style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', width: 44, height: 44, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {show
@@ -471,6 +466,34 @@ export default function SignupPage() {
                   <div role="alert" style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '12px 14px', fontSize: 13, color: 'var(--negative)' }}>
                     {trans(error)}
                   </div>
+                )}
+
+                {/* ── Η ΑΠΟΔΟΧΗ, ΑΚΡΙΒΩΣ ΠΑΝΩ ΑΠΟ ΤΟ ΚΟΥΜΠΙ ΠΟΥ ΤΗ ΧΡΕΙΑΖΕΤΑΙ ──────
+                    Καθόταν πάνω από τις δύο πόρτες, πρώτο πράγμα κάτω από τον
+                    τίτλο. Εκεί όμως ο επισκέπτης δεν έχει ακόμη αποφασίσει να
+                    εγγραφεί: του ζητούσαμε να δεσμευτεί σε όρους πριν καν δει
+                    τι ζητάμε από αυτόν. Και το πρώτο που έβλεπε στη σελίδα
+                    «Δημιουργία λογαριασμού» ήταν ένα άδειο τετράγωνο.
+                    Μπαίνει εκεί που τη διαβάζει κανείς πράγματι: τελευταία
+                    γραμμή πριν το κουμπί, με τα στοιχεία ήδη συμπληρωμένα.
+                    Η πόρτα της Google την εξακολουθεί να ΑΠΑΙΤΕΙ — το
+                    `signInWithGoogle` δεν προχωρά χωρίς αυτήν και φέρνει το
+                    βλέμμα εδώ κάτω. */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <input id="su-consent" type="checkbox" checked={consent}
+                    onChange={e => { setConsent(e.target.checked); if (e.target.checked) setConsentTouched(false) }}
+                    required aria-label="Αποδοχή των Όρων Χρήσης και της Πολιτικής απορρήτου"
+                    style={{ marginTop: 2, width: 16, height: 16, accentColor: 'var(--accent)', flexShrink: 0, cursor: 'pointer' }} />
+                  <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                    Αποδέχομαι τους{' '}
+                    <Link href="/terms" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Όρους χρήσης</Link>{' '}και την{' '}
+                    <Link href="/privacy" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Πολιτική απορρήτου</Link>.
+                  </span>
+                </div>
+                {consentTouched && !consent && (
+                  <p role="alert" style={{ fontSize: 12, color: 'var(--negative-on-container)', margin: 0, lineHeight: 1.5 }}>
+                    Χρειάζεται να αποδεχθείς τους Όρους και την Πολιτική απορρήτου για να συνεχίσεις.
+                  </p>
                 )}
 
                 <button type="submit" disabled={loading || !consent || !pw.ok || leaked} className="auth-cta" style={{ width: '100%', padding: '12px', background: 'var(--accent)', border: 'none', borderRadius: T.radius.pill, color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: (loading || !consent || !pw.ok || leaked) ? 'not-allowed' : 'pointer', opacity: (loading || !consent || !pw.ok || leaked) ? 0.6 : 1, letterSpacing: '-0.01em', marginTop: 4, fontFamily: 'inherit' }}>

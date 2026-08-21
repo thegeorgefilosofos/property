@@ -193,7 +193,10 @@ export default function Page() {
             </Link>· και αν σκέφτεσαι τη βραχυχρόνια μίσθωση, τη{' '}
             <Link href="/vraxyxronia-i-makroxronia" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
               σύγκριση βραχυχρόνιας και μακροχρόνιας
-            </Link>.
+            </Link>. Και αν η ερώτηση είναι αν το ακίνητο αξίζει όσα σου κοστίζει, η{' '}
+            <Link href="/kathari-apodosi" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
+              καθαρή απόδοση
+            </Link>{' '}βάζει τον φόρο, τον ΕΝΦΙΑ και τις δαπάνες στην ίδια σελίδα.
           </p>
         </section>
       </main>

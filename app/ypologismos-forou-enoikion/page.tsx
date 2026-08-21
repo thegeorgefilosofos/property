@@ -212,7 +212,11 @@ export default function Page() {
             </Link>. Και αν σκέφτεσαι να βγάλεις το ακίνητο σε βραχυχρόνια, η{' '}
             <Link href="/vraxyxronia-i-makroxronia" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
               σύγκριση βραχυχρόνιας και μακροχρόνιας
-            </Link>{' '}δείχνει από ποια πληρότητα και πάνω συμφέρει.
+            </Link>{' '}δείχνει από ποια πληρότητα και πάνω συμφέρει. Και τα τρία μαζί,
+            ως ποσοστό της αξίας του ακινήτου, τα βγάζει η{' '}
+            <Link href="/kathari-apodosi" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
+              καθαρή απόδοση
+            </Link>.
           </p>
         </section>
       </main>

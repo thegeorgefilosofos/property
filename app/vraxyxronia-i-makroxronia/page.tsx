@@ -198,6 +198,9 @@ export default function Page() {
             </Link>, και για τον φόρο κατοχής, που τον πληρώνεις όποιον τρόπο κι αν διαλέξεις, τον{' '}
             <Link href="/ypologismos-enfia" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
               υπολογισμό ΕΝΦΙΑ
+            </Link>. Και για το τι μένει στο τέλος ως ποσοστό της αξίας του ακινήτου, την{' '}
+            <Link href="/kathari-apodosi" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
+              καθαρή απόδοση
             </Link>.
           </p>
         </section>

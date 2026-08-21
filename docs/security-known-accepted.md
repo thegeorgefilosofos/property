@@ -86,7 +86,7 @@ via HaveIBeenPwned.org is available on Pro Plans and up.
 ```
 
 **Αντισταθμιστικοί έλεγχοι που ΙΣΧΥΟΥΝ (δωρεάν):**
-- Ελάχιστο μήκος κωδικού: 8 χαρακτήρες.
+- Ελάχιστο μήκος κωδικού: 10 χαρακτήρες (`PASSWORD_MIN_LENGTH` στο `lib/auth/password.ts`, ρυθμισμένο και στον Supabase Auth).
 - Απαίτηση πολυπλοκότητας: πεζά + κεφαλαία + ψηφία + σύμβολα.
 - «Require current password when updating»: ON.
 - «Confirm email»: ON.

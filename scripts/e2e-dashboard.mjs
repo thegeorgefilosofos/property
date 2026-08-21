@@ -63,6 +63,7 @@ const PRIVATE = ['/dashboard']
 const PUBLIC = [
   '/', '/login', '/signup', '/privacy', '/terms', '/trust',
   '/ypologismos-forou-enoikion', '/ypologismos-enfia', '/vraxyxronia-i-makroxronia',
+  '/kathari-apodosi',
 ]
 // Ο ΧΩΡΟΣ ΤΟΥ ΛΟΓΙΣΤΗ ΦΥΛΑΕΙ ΤΟΝ ΕΑΥΤΟ ΤΟΥ, ΚΑΙ ΓΙ' ΑΥΤΟ ΣΕΡΒΙΡΕΤΑΙ. Δεν
 // ανακατευθύνεται από τον διαμεσολαβητή επειδή, όταν λείπει η σύνδεση, δείχνει
