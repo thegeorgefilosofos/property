@@ -46,8 +46,22 @@ const num = t => Number(String(t).replace(/[^\d,.-]/g,'').replace(/\./g,'').repl
   }
   ok('αρχική κατάσταση δείχνει 1.026 € (600×12)', await read() === 1026)
 
+  // ── Η ΧΡΟΝΙΑ ΤΟΥ ΕΙΣΟΔΗΜΑΤΟΣ ΑΛΛΑΖΕΙ ΤΗΝ ΚΛΙΜΑΚΑ, ΚΑΙ Ο ΕΛΕΓΧΟΣ ΤΟ ΞΕΧΝΟΥΣΕ
+  // Οι δύο επόμενοι έλεγχοι περίμεναν τα νούμερα του 2026 (15/25/35/45) ενώ η
+  // σελίδα ξεκινά στο 2025 (15/35/45) — από τότε που προστέθηκε ο επιλογέας
+  // χρονιάς. Δεν ήταν σφάλμα της σελίδας: ήταν έλεγχος που είχε μείνει πίσω και
+  // κατηγορούσε σωστό κώδικα. Τώρα διαλέγει ΡΗΤΑ χρονιά και ελέγχει ΚΑΙ ΤΙΣ ΔΥΟ
+  // κλίμακες, που είναι και το πιο επικίνδυνο σημείο του υπολογιστή.
+  const year = async y => { await p.getByRole('button', { name: new RegExp('^' + y) }).click(); await p.waitForTimeout(250) }
+
   await inputs.nth(0).fill('1200'); await p.waitForTimeout(250)
-  ok('1.200 €/μήνα → 2.220 € (δύο κλιμάκια)', await read() === 2220)
+  // 1.200 × 12 = 14.400 · φορολογητέο 13.680
+  //   2025: 12.000×15% + 1.680×35% = 1.800 + 588 = 2.388
+  //   2026: 12.000×15% + 1.680×25% = 1.800 + 420 = 2.220
+  ok('1.200 €/μήνα με την κλίμακα 2025 → 2.388 €', await read() === 2388)
+  await year(2026)
+  ok('…και με την κλίμακα 2026 → 2.220 € (το ενδιάμεσο 25%)', await read() === 2220)
+  await year(2025)
 
   await inputs.nth(1).fill('6'); await p.waitForTimeout(250)
   ok('…και για 6 μήνες → 1.026 € (ίδιο ετήσιο)', await read() === 1026)
@@ -63,9 +77,12 @@ const num = t => Number(String(t).replace(/[^\d,.-]/g,'').replace(/\./g,'').repl
   // Ρητά ΚΑΙ τα δύο πεδία: το πεδίο μηνών είχε μείνει στο 6 από το προηγούμενο
   // βήμα και η πρώτη εκδοχή αυτού του ελέγχου απέτυχε γι' αυτόν τον λόγο.
   // 1.250,50 × 12 = 15.006 · φορολογητέο 14.255,70
-  // φόρος = 12.000×15% + 2.255,70×25% = 1.800 + 563,93 = 2.363,93
+  //   2025: 12.000×15% + 2.255,70×35% = 1.800 + 789,50 = 2.589,50
+  //   2026: 12.000×15% + 2.255,70×25% = 1.800 + 563,93 = 2.363,93
   await inputs.nth(0).fill('1.250,50'); await inputs.nth(1).fill('12'); await p.waitForTimeout(300)
-  ok('ελληνική γραφή «1.250,50» → 2.363,93 €', Math.abs((await read()) - 2363.93) < 0.02)
+  ok('ελληνική γραφή «1.250,50» → 2.589,50 € (κλίμακα 2025)', Math.abs((await read()) - 2589.50) < 0.02)
+  await year(2026)
+  ok('…και 2.363,93 € με την κλίμακα 2026', Math.abs((await read()) - 2363.93) < 0.02)
 
   ok('υπάρχει σύνδεσμος εγγραφής', await p.locator('a[href="/signup"]').count() > 0)
   await ctx.close()
@@ -114,8 +131,61 @@ const num = t => Number(String(t).replace(/[^\d,.-]/g,'').replace(/\./g,'').repl
   await ctx.close()
 }
 
+// ── ΚΑΘΑΡΗ ΑΠΟΔΟΣΗ, σαν χρήστης ───────────────────────────────────────────
+// Ο τέταρτος υπολογιστής είναι ο μόνος που βγάζει ΠΟΣΟΣΤΟ, και το ποσοστό
+// είναι το πιο εύκολο νούμερο να βγει λάθος χωρίς να φανεί: ένα 3,60% και ένα
+// 4,20% μοιάζουν και τα δύο εύλογα. Ελέγχονται και τα δύο, από τον browser.
+{
+  const ctx = await b.newContext({ viewport:{width:1280,height:1100}, locale:'el-GR' })
+  const p = await page(ctx,'/kathari-apodosi')
+  const pct = async label => {
+    const txt = await p.locator('body').innerText()
+    const m = txt.match(new RegExp(label + '\\s*\\n\\s*([\\d.,]+)\\s*%'))
+    return m ? num(m[1]) : null
+  }
+  const eur = async label => {
+    const txt = await p.locator('body').innerText()
+    const m = txt.match(new RegExp(label + '\\s+([\\d.,]+)\\s*€'))
+    return m ? num(m[1]) : null
+  }
+
+  // Προεπιλογές: αξία 200.000, ενοίκιο 700, 12 μήνες, χωρίς ΕΝΦΙΑ και δαπάνες.
+  // ακαθάριστο 8.400 · φορολογητέο 7.980 · φόρος 1.197 · καθαρά 7.203
+  // μεικτή 4,20% · καθαρή 3,6015%
+  ok('η μεικτή απόδοση ξεκινά στο 4,20%', Math.abs((await pct('ΜΕΙΚΤΗ ΑΠΟΔΟΣΗ')) - 4.20) < 0.01)
+  ok('η καθαρή ξεκινά στο 3,60%', Math.abs((await pct('ΚΑΘΑΡΗ ΑΠΟΔΟΣΗ')) - 3.60) < 0.01)
+  ok('και ο φόρος είναι 1.197,00 €', Math.abs((await eur('Φόρος εισοδήματος')) - 1197) < 0.02)
+
+  // ── ΤΟ ΣΗΜΕΙΟ ΠΟΥ ΚΑΝΕΝΑΣ ΑΛΛΟΣ ΔΕΝ ΚΑΝΕΙ ΣΩΣΤΑ ────────────────────────
+  // Με άλλα 20.000 € ενοίκια, ο φόρος ΤΟΥ ΑΚΙΝΗΤΟΥ ανεβαίνει σε 2.293 €:
+  // 26.980 φορολογητέο συνολικά μείον 19.000 χωρίς αυτό.
+  const inputs = p.locator('input')
+  await inputs.nth(5).fill('20000'); await p.waitForTimeout(300)
+  ok('τα άλλα ενοίκια ανεβάζουν τον φόρο στα 2.293,00 €', Math.abs((await eur('Φόρος εισοδήματος')) - 2293) < 0.02)
+  // καθαρά 8.400 − 2.293 = 6.107 · 6.107 / 200.000 = 3,0535%
+  ok('και η καθαρή απόδοση πέφτει από 3,60% σε 3,05%', Math.abs((await pct('ΚΑΘΑΡΗ ΑΠΟΔΟΣΗ')) - 3.05) < 0.01)
+  ok('η μεικτή δεν αλλάζει, γιατί δεν ξέρει τίποτα', Math.abs((await pct('ΜΕΙΚΤΗ ΑΠΟΔΟΣΗ')) - 4.20) < 0.01)
+  await inputs.nth(5).fill('0'); await p.waitForTimeout(250)
+
+  // ── ΧΩΡΙΣ ΑΞΙΑ ΔΕΝ ΓΡΑΦΕΤΑΙ ΠΟΣΟΣΤΟ ────────────────────────────────────
+  await inputs.nth(0).fill('0'); await p.waitForTimeout(300)
+  const body0 = await p.locator('body').innerText()
+  ok('χωρίς αξία δεν εμφανίζεται απόδοση', !body0.includes('ΚΑΘΑΡΗ ΑΠΟΔΟΣΗ'))
+  ok('…και δεν εμφανίζεται Infinity ή NaN', !/Infinity|NaN/.test(body0))
+  await inputs.nth(0).fill('200000'); await p.waitForTimeout(250)
+
+  // ── ΣΚΟΥΠΙΔΙΑ ΣΤΟ ΠΕΔΙΟ ────────────────────────────────────────────────
+  await inputs.nth(1).fill('δεν ξέρω'); await p.waitForTimeout(300)
+  const bodyJunk = await p.locator('body').innerText()
+  ok('σκουπίδια δεν σπάνε τη σελίδα', !/Infinity|NaN/.test(bodyJunk))
+  ok('και το ακίνητο που δεν αποδίδει δεν βγάζει αρνητικά χρόνια', bodyJunk.includes('Δεν επιστρέφει'))
+
+  ok('υπάρχει σύνδεσμος εγγραφής', await p.locator('a[href="/signup"]').count() > 0)
+  await ctx.close()
+}
+
 // ── Προσβασιμότητα & responsive και στα δύο ───────────────────────────────
-for (const path of ['/ypologismos-forou-enoikion','/ypologismos-enfia']) {
+for (const path of ['/ypologismos-forou-enoikion','/ypologismos-enfia','/kathari-apodosi','/vraxyxronia-i-makroxronia']) {
   for (const w of [360, 390, 768, 1440]) {
     const ctx = await b.newContext({ viewport:{width:w,height:900}, locale:'el-GR', isMobile:w<700 })
     const p = await page(ctx, path)
@@ -138,7 +208,7 @@ for (const path of ['/ypologismos-forou-enoikion','/ypologismos-enfia']) {
 }
 
 // ── Το middleware δεν ζητά σύνδεση ────────────────────────────────────────
-for (const path of ['/ypologismos-forou-enoikion','/ypologismos-enfia']) {
+for (const path of ['/ypologismos-forou-enoikion','/ypologismos-enfia','/kathari-apodosi','/vraxyxronia-i-makroxronia']) {
   const res = await fetch(B+path, { redirect:'manual' })
   ok(`${path}: δημόσιο (HTTP ${res.status})`, res.status === 200)
 }
