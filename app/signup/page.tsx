@@ -415,14 +415,35 @@ export default function SignupPage() {
                   τύπος προφίλ δηλωνόταν στο καλωσόρισμα και το ταμείο απαντούσε
                   403 σε όποιον δεν τον είχε ακόμη. Πλέον τον γράφει η ίδια η
                   αγορά, στον webhook: ο όρος δεν υπάρχει, άρα δεν λέγεται. */}
+              {/* ── ΤΙ ΔΙΑΛΕΞΕ, ΣΕ ΔΥΟ ΓΡΑΜΜΕΣ ΑΝΤΙ ΓΙΑ ΠΑΡΑΓΡΑΦΟ ────────────────────
+                  ΗΤΑΝ ΤΡΕΙΣ ΠΡΟΤΑΣΕΙΣ ΓΥΡΩ ΑΠΟ ΜΙΑ ΚΟΥΚΚΙΔΑ, ΚΑΙ ΤΟ ΠΟΣΟ
+                  ΘΑΒΟΤΑΝ ΣΤΗ ΜΕΣΗ ΤΗΣ ΠΡΩΤΗΣ. «Διάλεξες το Ιδιοκτήτης+, με
+                  μηνιαία χρέωση 9,90 €. Οι πρώτες 30 ημέρες…»: ο αναγνώστης
+                  διάβαζε τέσσερις σειρές για να μάθει δύο πράγματα που ήδη
+                  ήξερε — τι διάλεξε και πόσο κάνει.
+                  Είναι απόδειξη επιλογής, όχι κείμενο: πακέτο αριστερά, ποσό
+                  δεξιά, στην ίδια γραμμή βάσης, πέρα ώς πέρα. Το «Διάλεξες»
+                  φεύγει· το ότι το διάλεξε ο ίδιος δεν χρειάζεται να ειπωθεί.
+                  Και η δεύτερη γραμμή κρατά ΜΟΝΟ ό,τι δεν φαίνεται αλλού: πόσο
+                  κρατά η δοκιμή, και ότι η επιλογή δεν είναι δεσμευτική.
+                  Η ΗΜΕΡΟΜΗΝΙΑ ΤΗΣ ΠΡΩΤΗΣ ΧΡΕΩΣΗΣ ΕΞΑΚΟΛΟΥΘΕΙ ΝΑ ΜΗ ΓΡΑΦΕΤΑΙ
+                  ΕΔΩ, για τον λόγο που εξηγείται παραπάνω: η οθόνη είναι
+                  πελάτης και δεν ξέρει αν η χρέωση είναι ρυθμισμένη. */}
               {chosenPlan && (
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', marginBottom: 24, borderRadius: 10, background: 'var(--accent-dim)', border: '1px solid var(--accent-border)' }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0, marginTop: 7 }} />
-                  <span style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-                    Διάλεξες το <strong style={{ color: 'var(--text-primary)' }}>{PLANS[chosenPlan].name}</strong>, με {chosenCycle === 'annual'
-                      ? <>ετήσια χρέωση <strong style={{ color: 'var(--text-primary)' }}>{fe(PLANS[chosenPlan].priceAnnual)}</strong></>
-                      : <>μηνιαία χρέωση <strong style={{ color: 'var(--text-primary)' }}>{fe(PLANS[chosenPlan].priceMonthly)}</strong></>}. Οι πρώτες {TRIAL_DAYS} ημέρες είναι δωρεάν, και μόλις επιβεβαιώσεις το email σου συνεχίζεις στην ολοκλήρωση της συνδρομής. Το πακέτο το αλλάζεις όποτε θέλεις.
-                  </span>
+                <div style={{ padding: '13px 16px', marginBottom: 24, borderRadius: 10, background: 'var(--accent-dim)', border: '1px solid var(--accent-border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
+                    <span style={{ fontSize: 15, fontWeight: 650, color: 'var(--text-primary)', letterSpacing: '-0.015em' }}>
+                      {PLANS[chosenPlan].name}
+                    </span>
+                    <span style={{ fontSize: 15, fontWeight: 650, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                      {chosenCycle === 'annual'
+                        ? <>{fe(PLANS[chosenPlan].priceAnnual)} <span style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>τον χρόνο</span></>
+                        : <>{fe(PLANS[chosenPlan].priceMonthly)} <span style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>τον μήνα</span></>}
+                    </span>
+                  </div>
+                  <p style={{ margin: '6px 0 0', fontSize: 12.5, lineHeight: 1.5, color: 'var(--text-tertiary)' }}>
+                    Δοκιμή {TRIAL_DAYS} ημερών, και αλλάζεις πακέτο όποτε θέλεις.
+                  </p>
                 </div>
               )}
 
