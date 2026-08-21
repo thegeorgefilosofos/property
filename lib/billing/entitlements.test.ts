@@ -151,6 +151,39 @@ ok(canAddProperty(owner, 2) === true, 'owner μπορεί το 3ο');
 ok(canAddProperty(owner, 3) === false, 'owner φράζει στα 3');
 ok(canAddProperty(agency, 14) === true, 'agency μπορεί το 15ο');
 ok(canAddProperty(agency, 15) === false, 'agency φράζει στα 15');
+// ── ΟΙ ΘΕΣΕΙΣ ΑΠΟ ΣΥΣΤΑΣΕΙΣ ────────────────────────────────────────────────
+// Η βάση τις μετρά στο `enforce_property_limit` από τον Αύγουστο. Η εφαρμογή
+// δεν τις διάβαζε ποτέ: ο χρήστης που έφερνε φίλο έβλεπε «3 από 3» και κλειστό
+// κουμπί, ενώ η βάση θα δεχόταν το τέταρτο ακίνητο. Ο ίδιος κανόνας και στις
+// δύο πλευρές, ΜΑΖΙ με τη λήξη — μια θέση χωρίς ημερομηνία δεν μετρά.
+{
+  const NOW = Date.parse('2026-08-21T10:00:00Z');
+  const bonus = (n: number | null, until: string | null) =>
+    ({ ...owner, bonusProperties: n, bonusUntil: until, now: NOW });
+
+  ok(propertyLimit(bonus(1, '2026-09-21T10:00:00Z')) === 4, 'μία θέση σε ισχύ ανεβάζει το όριο στα 4');
+  ok(propertyLimit(bonus(3, '2026-09-21T10:00:00Z')) === 6, 'τρεις θέσεις, έξι ακίνητα');
+  ok(canAddProperty(bonus(1, '2026-09-21T10:00:00Z'), 3) === true, 'και το κουμπί ανοίγει για το τέταρτο');
+
+  // ── Η ΛΗΞΗ ────────────────────────────────────────────────────────────
+  ok(propertyLimit(bonus(1, '2026-08-20T10:00:00Z')) === 3, 'ληγμένη θέση δεν μετρά');
+  ok(propertyLimit(bonus(1, '2026-08-21T10:00:00Z')) === 3, 'ούτε αυτή που λήγει ΑΚΡΙΒΩΣ τώρα');
+  ok(propertyLimit(bonus(1, null)) === 3, 'θέση χωρίς ημερομηνία λήξης δεν μετρά');
+  ok(propertyLimit(bonus(1, '   ')) === 3, 'ούτε με κενή ημερομηνία');
+  ok(propertyLimit(bonus(1, 'όχι ημερομηνία')) === 3, 'ούτε με ημερομηνία που δεν διαβάζεται');
+
+  // ── ΤΑ ΣΚΟΥΠΙΔΙΑ ΔΕΝ ΜΕΓΑΛΩΝΟΥΝ ΤΟ ΟΡΙΟ ───────────────────────────────
+  ok(propertyLimit(bonus(0, '2026-09-21T10:00:00Z')) === 3, 'μηδέν θέσεις, μηδέν αλλαγή');
+  ok(propertyLimit(bonus(-4, '2026-09-21T10:00:00Z')) === 3, 'αρνητικές θέσεις δεν μικραίνουν το όριο');
+  ok(propertyLimit(bonus(null, '2026-09-21T10:00:00Z')) === 3, 'κενό πλήθος δεν είναι θέση');
+  ok(propertyLimit({ ...owner, bonusProperties: 2.7, bonusUntil: '2026-09-21T10:00:00Z', now: NOW }) === 5,
+     'τα δεκαδικά στρογγυλοποιούνται προς τα κάτω');
+
+  // ── ΤΟ ΑΠΕΡΙΟΡΙΣΤΟ ΜΕΝΕΙ ΑΠΕΡΙΟΡΙΣΤΟ ──────────────────────────────────
+  ok(propertyLimit({ plan: 'office', bonusProperties: 5, bonusUntil: '2026-09-21T10:00:00Z', now: NOW }) === Infinity,
+     'το απεριόριστο δεν γίνεται αριθμός επειδή κερδήθηκε θέση');
+}
+
 ok(canAddProperty(compOwner, 2) === true, 'comp owner μπορεί έως 3');
 ok(canAddProperty(compOwner, 3) === false, 'comp owner σταματά στα 3');
 

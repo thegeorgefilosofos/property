@@ -164,6 +164,10 @@ export interface EntitlementInput {
   holdUntil?: string | null;
   /** Ημερομηνία δημιουργίας λογαριασμού (ISO) — βάση για τη δωρεάν δοκιμή. */
   createdAt?: string | null;
+  /** Θέσεις ακινήτου κερδισμένες από συστάσεις (billing_profiles.bonus_properties). */
+  bonusProperties?: number | null;
+  /** Ώς πότε ισχύουν οι κερδισμένες θέσεις (ISO). Χωρίς αυτό δεν μετρούν. */
+  bonusUntil?: string | null;
   /** Χρόνος αναφοράς σε ms (default Date.now()), για ελεγξιμότητα. */
   now?: number;
 }
@@ -311,18 +315,46 @@ export function requiredPlanForFeature(f: Feature): PlanId {
 }
 
 /**
- * Όριο ακινήτων: όσα περιλαμβάνει το ενεργό πλάνο ΣΥΝ όσα έχει αγοράσει.
+ * Πόσες θέσεις ακινήτου δίνει η σύσταση αυτή τη στιγμή.
+ *
+ * ΤΟ ΔΩΡΟ ΤΗΣ ΠΡΟΣΚΛΗΣΗΣ ΛΗΓΕΙ, ΚΑΙ ΓΙ' ΑΥΤΟ ΔΕΝ ΜΕΤΡΑ ΧΩΡΙΣ ΗΜΕΡΟΜΗΝΙΑ. Ο
+ * ίδιος κανόνας με τη βάση: `bonus_properties_until is not null and > now()`.
+ * Δίχως τον έλεγχο λήξης, μια θέση κερδισμένη πέρσι θα κρατούσε για πάντα.
+ */
+function activeBonusSlots(input: EntitlementInput): number {
+  const until = (input.bonusUntil || '').trim();
+  if (!until) return 0;
+  const now = input.now ?? Date.now();
+  const ends = Date.parse(until);
+  if (!Number.isFinite(ends) || ends <= now) return 0;
+  const n = Math.floor(Number(input.bonusProperties) || 0);
+  return n > 0 ? n : 0;
+}
+
+/**
+ * Όριο ακινήτων: όσα περιλαμβάνει το ενεργό πλάνο ΣΥΝ τις θέσεις που κέρδισε.
  *
  * ΠΡΕΠΕΙ να συμφωνεί με το `enforce_property_limit` της βάσης. Αν αποκλίνουν, ο
  * χρήστης βλέπει «μπορείς να προσθέσεις» και τρώει σφάλμα βάσης στο πάτημα —
- * ή, χειρότερα, βλέπει «όριο» ενώ έχει πληρώσει για παραπάνω.
+ * ή, χειρότερα, βλέπει «όριο» ενώ δικαιούται παραπάνω.
+ *
+ * ΚΑΙ ΑΚΡΙΒΩΣ ΑΥΤΟ ΣΥΝΕΒΑΙΝΕ ΜΕ ΤΟ ΔΩΡΟ ΤΗΣ ΠΡΟΣΚΛΗΣΗΣ. Η βάση το μετρούσε από
+ * τον Αύγουστο (`enforce_property_limit`, migration 20260811090000), η
+ * εφαρμογή ποτέ: το `bonus_properties` δεν διαβαζόταν από καμία οθόνη. Ο
+ * χρήστης που έφερνε φίλο έπαιρνε τη θέση στη βάση, έβλεπε «3 από 3» στις
+ * Ρυθμίσεις, και το κουμπί «Προσθήκη ακινήτου» έμενε κλειστό. Δηλαδή η
+ * ανταμοιβή που υπόσχονται οι Όροι δινόταν και δεν χρησιμοποιούνταν ποτέ.
+ *
+ * ΤΟ ΑΠΕΡΙΟΡΙΣΤΟ ΜΕΝΕΙ ΑΠΕΡΙΟΡΙΣΤΟ. Το `Infinity + n` είναι `Infinity`, οπότε
+ * δεν χρειάζεται ειδική περίπτωση εδώ — σε αντίθεση με τη βάση, όπου το
+ * «απεριόριστο» είναι ακέραιος και θα ξεχείλιζε.
  */
 export function propertyLimit(input: EntitlementInput): number {
-  // ΤΑ ΕΠΙΠΛΕΟΝ ΑΚΙΝΗΤΑ ΔΕΝ ΠΕΡΝΟΥΝ ΠΙΑ ΕΔΩ. Η στήλη `extra_properties` μένει
-  // στη βάση και μένει μηδέν — κανείς δεν μπορούσε ποτέ να την αυξήσει, γιατί
-  // διαδρομή αγοράς δεν υπήρξε. Το `enforce_property_limit` της βάσης
-  // εξακολουθεί να την προσθέτει, οπότε τα δύο όρια συμφωνούν όσο είναι μηδέν.
-  return propertyAllowance(effectivePlan(input));
+  // ΤΑ ΑΓΟΡΑΣΜΕΝΑ ΕΠΙΠΛΕΟΝ (`extra_properties`) ΔΕΝ ΠΕΡΝΟΥΝ ΕΔΩ. Η στήλη μένει
+  // στη βάση και μένει μηδέν — διαδρομή αγοράς δεν υπήρξε ποτέ και η πρόταση
+  // αποσύρθηκε. Το `enforce_property_limit` εξακολουθεί να την προσθέτει,
+  // οπότε τα δύο όρια συμφωνούν όσο είναι μηδέν.
+  return propertyAllowance(effectivePlan(input)) + activeBonusSlots(input);
 }
 
 export function canAddProperty(input: EntitlementInput, currentCount: number): boolean {

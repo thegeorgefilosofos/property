@@ -460,6 +460,9 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   /** Η σφραγίδα της δοκιμής: μόλις μπει, η τοπική δοκιμή δεν ισχύει πια. */
   const [trialUsedAt, setTrialUsedAt] = useState<string | null>(null);
   const [holdPlan, setHoldPlan] = useState<string | null>(null);
+  // Οι θέσεις από συστάσεις μπαίνουν στο όριο, όπως ακριβώς στη βάση.
+  const [bonusProps, setBonusProps] = useState<number | null>(null);
+  const [bonusUntil, setBonusUntil] = useState<string | null>(null);
   const [holdUntil, setHoldUntil] = useState<string | null>(null);
   const [propertyCount, setPropertyCount] = useState<number | null>(null);
   const [inOrg, setInOrg] = useState(false);
@@ -495,9 +498,9 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   }, []);
 
   useEffect(() => {
-    billing.profile<{ plan: string | null; comp_plan: string | null; comp_until: string | null; trial_used_at: string | null; hold_plan: string | null; hold_until: string | null }>(
+    billing.profile<{ plan: string | null; comp_plan: string | null; comp_until: string | null; trial_used_at: string | null; hold_plan: string | null; hold_until: string | null; bonus_properties: number | null; bonus_properties_until: string | null }>(
       supabase, userId, 'plan, comp_plan, comp_until, trial_used_at, hold_plan, hold_until')
-      .then(data => { if (data) { setPlan(data.plan || 'free'); setCompPlan(data.comp_plan || null); setCompUntil(data.comp_until || null); setTrialUsedAt(data.trial_used_at || null); setHoldPlan(data.hold_plan || null); setHoldUntil(data.hold_until || null); } });
+      .then(data => { if (data) { setPlan(data.plan || 'free'); setCompPlan(data.comp_plan || null); setCompUntil(data.comp_until || null); setTrialUsedAt(data.trial_used_at || null); setHoldPlan(data.hold_plan || null); setHoldUntil(data.hold_until || null); setBonusProps(data.bonus_properties ?? null); setBonusUntil(data.bonus_properties_until || null); } });
     supabase.from('referral_partners').select('user_id').eq('user_id', userId).maybeSingle()
       .then(({ data }) => setPartner(!!data));
     properties.count(supabase, userId).then(setPropertyCount);
@@ -582,7 +585,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
     setTimeout(() => billingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
   };
 
-  const ent = { plan, profileType, partner, compPlan, compUntil, trialUsedAt, holdPlan, holdUntil, createdAt: accountCreatedAt };
+  const ent = { plan, profileType, partner, compPlan, compUntil, trialUsedAt, holdPlan, holdUntil, bonusProperties: bonusProps, bonusUntil, createdAt: accountCreatedAt };
   const effPlan = effectivePlan(ent);
   const comp = activeComp(ent);
   // Η δωρεάν δοκιμή μετράει μόνο όσο δεν έχει ήδη πληρωμένο πλάνο (αλλιώς δεν
