@@ -25,6 +25,7 @@ import SettingsRoadmap from './SettingsRoadmap';
 import Feedback from './Feedback';
 import PlanComparison from './PlanComparison';
 import SecuritySettings from './SecuritySettings';
+import InboundAddress from './InboundAddress';
 import ActivityLog from './ActivityLog';
 import OrgTeam from './OrgTeam';
 import { exportAllData } from '@/lib/dataExport';
@@ -928,8 +929,12 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
         <ActivityLog />
       </CollapsibleSection>
 
-      <CollapsibleSection title="Δεδομένα και απόρρητο" hint="Εξαγωγή, λογιστής, διαγραφή" delay="260ms">
+      <CollapsibleSection title="Δεδομένα και απόρρητο" hint="Εισαγωγή, εξαγωγή, λογιστής, διαγραφή" delay="260ms">
         <SetList>
+          {/* Η ΕΙΣΑΓΩΓΗ ΠΡΩΤΗ. Ολα τα υπόλοιπα εδώ βγάζουν δεδομένα προς τα έξω
+              ή τα κλείνουν· αυτό είναι το μόνο που τα φέρνει μέσα, και είναι το
+              πρώτο που θα ψάξει όποιος διάβασε γι' αυτό. */}
+          <InboundAddress userId={userId} />
           <SetRow title="Εξαγωγή όλων των δεδομένων" desc="Κάθε εγγραφή που σε αφορά, σε ένα αρχείο JSON, για μεταφορά σε άλλη υπηρεσία ή για δικό σου αντίγραφο. Είναι μορφή για μηχανές: το δικαίωμα φορητότητας τη ζητά έτσι. Για να διαβάσεις δεδομένα, κάθε καρτέλα έχει τη δική της εξαγωγή σε Excel."
             control={<Btn variant="secondary" onClick={exportAll} disabled={exporting}>{exporting ? 'Εξαγωγή…' : 'Εξαγωγή όλων'}</Btn>}>
             {exportErr && <div style={{ ...TT.bodySm, color: 'var(--negative)' }}>{exportErr}</div>}

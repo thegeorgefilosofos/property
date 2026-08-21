@@ -40,6 +40,8 @@ const OWNED = {
   billing_profiles: 'lib/data/billing.ts',
   property_documents: 'lib/data/documents.ts',
   bills_settings: 'lib/data/settings.ts',
+  inbound_messages: 'lib/data/inbound.ts',
+  inbound_mailboxes: 'lib/data/inbound.ts',
 }
 
 const findings = []

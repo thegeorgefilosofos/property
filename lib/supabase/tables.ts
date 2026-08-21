@@ -194,25 +194,7 @@ export interface BillingProfilesRow {
   phone: string | null;
   plan: string | null;
   billing_cycle: string | null;
-  /** Ο πελάτης και η συνδρομή στον έμπορο τύπου record. Μόνο ο webhook τα γράφει. */
-  mor_customer_id: string | null;
-  mor_subscription_id: string | null;
-  /** Η παραλλαγή που αγοράστηκε — από αυτήν προκύπτει το πακέτο. */
-  mor_variant_id: string | null;
-  mor_renews_at: string | null;
-  /** Πότε λήγει η πρόσβαση σε ακυρωμένη συνδρομή. */
-  mor_ends_at: string | null;
-  /** Η ώρα του τελευταίου γεγονότος που εφαρμόστηκε. Κόβει τα καθυστερημένα webhook. */
-  mor_event_at: string | null;
   subscription_status: string | null;
-  /** Πότε δόθηκε η δωρεάν δοκιμή. Γεμάτο σημαίνει «καμία δεύτερη». */
-  trial_used_at: string | null;
-  /** Πότε εξαργυρώθηκε ο κωδικός δοκιμαστή. Οσο υπάρχει, δεν υπάρχει χρέωση. */
-  tester_since: string | null;
-  /** Το πακέτο που κρατιέται ώς την ανανέωση, μετά από υποβάθμιση. */
-  hold_plan: string | null;
-  /** Ώς πότε κρατιέται. Μετά από αυτήν, η πρόσβαση βγαίνει σκέτη από τη συνδρομή. */
-  hold_until: string | null;
   updated_at: string | null;
   owner_name: string | null;
   profile_type: string | null;
@@ -230,6 +212,16 @@ export interface BillingProfilesRow {
   bookkeeping: string | null;
   bonus_properties: number | null;
   bonus_properties_until: string | null;
+  mor_customer_id: string | null;
+  mor_subscription_id: string | null;
+  mor_variant_id: string | null;
+  mor_renews_at: string | null;
+  mor_ends_at: string | null;
+  mor_event_at: string | null;
+  trial_used_at: string | null;
+  tester_since: string | null;
+  hold_plan: string | null;
+  hold_until: string | null;
 }
 
 export interface BillsRow {
@@ -629,6 +621,32 @@ export interface IcalFeedsRow {
   created_at: string;
 }
 
+export interface InboundMailboxesRow {
+  user_id: string;
+  token: string;
+  active: boolean;
+  created_at: string;
+  rotated_at: string | null;
+}
+
+export interface InboundMessagesRow {
+  id: string;
+  user_id: string;
+  provider_id: string;
+  received_at: string;
+  from_address: string | null;
+  subject: string | null;
+  vendor: string | null;
+  amount: number | null;
+  due_date: string | null;
+  issue_date: string | null;
+  category: string | null;
+  expense_group: string | null;
+  attachments: number;
+  status: string;
+  expense_id: string | null;
+}
+
 export interface InventoryRow {
   id: string;
   property_id: string | null;
@@ -751,8 +769,8 @@ export interface InvoicesRow {
   vat_pct: number | null;
   vat_amount: number | null;
   gross: number | null;
-  mor_ref: string | null;
   issued_at: string;
+  mor_ref: string | null;
 }
 
 export interface IssuedDocumentsRow {
@@ -1377,6 +1395,8 @@ export interface Tables {
   feedback_campaign_winners: FeedbackCampaignWinnersRow;
   guest_checkins: GuestCheckinsRow;
   ical_feeds: IcalFeedsRow;
+  inbound_mailboxes: InboundMailboxesRow;
+  inbound_messages: InboundMessagesRow;
   inventory: InventoryRow;
   inventory_handovers: InventoryHandoversRow;
   inventory_items: InventoryItemsRow;

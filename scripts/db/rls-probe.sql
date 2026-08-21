@@ -1279,3 +1279,128 @@ begin
   delete from public.email_outbox where to_email = 'chreosi@probe.test';
   raise notice 'probe: κάθε χρέωση προαναγγέλλεται μία φορά, με το σωστό ποσό, και καμία ακυρωμένη';
 end $probe$;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+--  Η ΙΔΙΩΤΙΚΗ ΔΙΕΥΘΥΝΣΗ: ΤΟ ΚΟΥΠΟΝΙ ΔΕΝ ΔΙΑΒΑΖΕΤΑΙ ΚΑΙ ΔΕΝ ΓΡΑΦΕΤΑΙ ΑΠΟ ΞΕΝΟ
+-- ─────────────────────────────────────────────────────────────────────────
+--  ΤΙ ΘΑ ΣΗΜΑΙΝΕ ΔΙΑΡΡΟΗ ΕΔΩ. Οποιος ξέρει το κουπόνι κάποιου μπορεί να του
+--  στέλνει «λογαριασμούς»: να γεμίσει την ουρά του με σκουπίδια, ή να του
+--  υποβάλει παραστατικό που δεν υπάρχει. Και όποιος μπορεί να ΓΡΑΨΕΙ κουπόνι
+--  μπορεί να βάλει το ΔΙΚΟ ΤΟΥ στη γραμμή ενός άλλου και να παραλαμβάνει την
+--  αλληλογραφία του. Γι' αυτό ο πίνακας δεν έχει καμία πολιτική εγγραφής.
+-- ═══════════════════════════════════════════════════════════════════════════
+
+reset role;
+set session "probe.uid" = '';
+
+do $probe$
+declare
+  a uuid := '11111111-1111-1111-1111-111111111111';
+  b uuid := '22222222-2222-2222-2222-222222222222';
+  ta text; tb text;
+begin
+  -- ΤΟ ΚΟΥΠΟΝΙ ΓΕΝΝΗΘΗΚΕ ΜΑΖΙ ΜΕ ΤΟΝ ΛΟΓΑΡΙΑΣΜΟ. Κανείς δεν το ζήτησε: οι δύο
+  -- χρήστες φτιάχτηκαν στην αρχή αυτού του σεναρίου, πριν υπάρξει η έννοια.
+  select token into ta from public.inbound_mailboxes where user_id = a;
+  select token into tb from public.inbound_mailboxes where user_id = b;
+  if ta is null or tb is null then
+    raise exception 'Ο λογαριασμός γεννήθηκε ΧΩΡΙΣ ιδιωτική διεύθυνση: κάθε μήνυμα προς αυτόν θα χανόταν σιωπηλά';
+  end if;
+  if ta !~ '^[0-9a-f]{16}$' then
+    raise exception 'Το κουπόνι δεν έχει τη μορφή που περιμένει η εφαρμογή: %', ta;
+  end if;
+  if ta = tb then
+    raise exception 'ΔΥΟ ΛΟΓΑΡΙΑΣΜΟΙ ΜΕ ΤΟ ΙΔΙΟ ΚΟΥΠΟΝΙ: τα μηνύματα του ενός θα πήγαιναν στον άλλον';
+  end if;
+
+  -- Δύο εισερχόμενα, ένα σε καθέναν, γραμμένα με τα δικαιώματα του διακομιστή.
+  insert into public.inbound_messages (user_id, provider_id, subject, vendor, amount, due_date, category)
+  values (a, 'prov_a_1', 'Λογαριασμός ρεύματος', 'ΔΕΗ', 87.45, date '2026-09-05', 'Ρεύμα'),
+         (b, 'prov_b_1', 'Λογαριασμός νερού', 'ΕΥΔΑΠ', 34.20, date '2026-08-20', 'Νερό');
+  raise notice 'probe: κάθε λογαριασμός γεννιέται με δική του ιδιωτική διεύθυνση';
+end $probe$;
+
+set role authenticated;
+set session "probe.uid" = '11111111-1111-1111-1111-111111111111';
+
+do $probe$
+declare n int; t text;
+begin
+  select count(*) into n from public.inbound_mailboxes;
+  if n <> 1 then raise exception 'ΔΙΑΡΡΟΗ: ο Α βλέπει % κουπόνια αντί για το δικό του', n; end if;
+
+  select count(*) into n from public.inbound_messages;
+  if n <> 1 then raise exception 'ΔΙΑΡΡΟΗ: ο Α βλέπει % εισερχόμενα αντί για 1', n; end if;
+  select count(*) into n from public.inbound_messages where vendor = 'ΕΥΔΑΠ';
+  if n <> 0 then raise exception 'ΔΙΑΡΡΟΗ: ο Α βλέπει τον λογαριασμό του Β'; end if;
+
+  -- ΤΟ ΚΟΥΠΟΝΙ ΔΕΝ ΓΡΑΦΕΤΑΙ ΟΥΤΕ ΣΤΟΝ ΕΑΥΤΟ ΣΟΥ. Δεν υπάρχει πολιτική
+  -- εγγραφής· ό,τι κι αν στείλει η οθόνη, το Postgres το κόβει.
+  begin
+    update public.inbound_mailboxes set token = 'ffffffffffffffff'
+     where user_id = '11111111-1111-1111-1111-111111111111';
+    get diagnostics n = row_count;
+    if n <> 0 then raise exception 'ΔΙΑΡΡΟΗ: ο χρήστης άλλαξε μόνος του το κουπόνι του, χωρίς περιστροφή'; end if;
+  exception
+    when insufficient_privilege then null;
+    when others then if sqlerrm like 'ΔΙΑΡΡΟΗ%' then raise; end if;
+  end;
+
+  begin
+    insert into public.inbound_mailboxes (user_id, token)
+      values ('22222222-2222-2222-2222-222222222222', 'aaaaaaaaaaaaaaaa');
+    raise exception 'ΔΙΑΡΡΟΗ: ο Α έγραψε κουπόνι στο όνομα του Β και θα παρελάμβανε τα μηνύματά του';
+  exception
+    when insufficient_privilege or unique_violation then null;
+    when others then if sqlerrm like 'ΔΙΑΡΡΟΗ%' then raise; end if;
+  end;
+
+  -- ΚΑΝΕΙΣ ΔΕΝ ΦΥΤΕΥΕΙ ΕΙΣΕΡΧΟΜΕΝΟ. Γράφει μόνο ο διακομιστής, αφού ελέγξει
+  -- την υπογραφή του παρόχου· αλλιώς «ήρθε λογαριασμός» θα σήμαινε «το είπα».
+  begin
+    insert into public.inbound_messages (user_id, provider_id, subject, amount)
+      values ('11111111-1111-1111-1111-111111111111', 'plasto_1', 'Δήθεν', 999);
+    raise exception 'ΔΙΑΡΡΟΗ: ο χρήστης φύτεψε δικό του «εισερχόμενο»';
+  exception
+    when insufficient_privilege then null;
+    when others then if sqlerrm like 'ΔΙΑΡΡΟΗ%' then raise; end if;
+  end;
+
+  -- Ο ΙΔΙΟΣ ΟΜΩΣ ΑΠΟΦΑΣΙΖΕΙ: η κατάσταση αλλάζει, γιατί αυτή είναι η δουλειά του.
+  update public.inbound_messages set status = 'dismissed' where provider_id = 'prov_a_1';
+  get diagnostics n = row_count;
+  if n <> 1 then raise exception 'Ο ιδιοκτήτης δεν μπόρεσε να απορρίψει το δικό του εισερχόμενο'; end if;
+
+  -- ΤΟ ΤΙ ΕΓΡΑΦΕ ΤΟ ΜΗΝΥΜΑ ΕΙΝΑΙ ΙΣΤΟΡΙΚΟ ΚΑΙ ΔΕΝ ΞΑΝΑΓΡΑΦΕΤΑΙ.
+  begin
+    update public.inbound_messages set amount = 1 where provider_id = 'prov_a_1';
+    raise exception 'ΔΙΑΡΡΟΗ: το ποσό που έγραφε το μήνυμα ξαναγράφτηκε από την οθόνη';
+  exception
+    when check_violation then null;
+    when others then if sqlerrm like 'ΔΙΑΡΡΟΗ%' then raise; end if;
+  end;
+
+  update public.inbound_messages set status = 'filed' where provider_id = 'prov_b_1';
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'ΔΙΑΡΡΟΗ: ο Α άλλαξε % εισερχόμενα του Β', n; end if;
+
+  -- Η ΠΕΡΙΣΤΡΟΦΗ ΕΙΝΑΙ ΔΙΚΑΙΩΜΑ ΤΟΥ ΙΔΙΟΚΤΗΤΗ, και αγγίζει ΜΟΝΟ τον ίδιο.
+  select public.rotate_inbound_mailbox() into t;
+  if t !~ '^[0-9a-f]{16}$' then raise exception 'Η περιστροφή δεν έδωσε κουπόνι: %', t; end if;
+  select count(*) into n from public.inbound_mailboxes where token = t;
+  if n <> 1 then raise exception 'Το νέο κουπόνι δεν γράφτηκε'; end if;
+  raise notice 'probe: το κουπόνι διαβάζεται μόνο από τον κάτοχο, δεν γράφεται από κανέναν, και αλλάζει με μία κλήση';
+end $probe$;
+
+reset role;
+set session "probe.uid" = '';
+
+do $probe$
+declare tb text; n int;
+begin
+  select token into tb from public.inbound_mailboxes where user_id = '22222222-2222-2222-2222-222222222222';
+  if tb is null then raise exception 'Η περιστροφή του Α έσβησε το κουπόνι του Β'; end if;
+  select count(*) into n from public.inbound_messages where user_id = '22222222-2222-2222-2222-222222222222' and status = 'pending';
+  if n <> 1 then raise exception 'Το εισερχόμενο του Β άλλαξε κατάσταση από ξένο χέρι'; end if;
+  raise notice 'probe: η περιστροφή του ενός δεν αγγίζει τον άλλον';
+end $probe$;

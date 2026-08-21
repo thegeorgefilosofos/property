@@ -2151,7 +2151,7 @@ export default function Dashboard() {
                   component που δεν υπάρχει πια, και η React το αγνοεί. Το ίδιο
                   ισχύει για κάθε καρτέλα που φορτώνει δικά της δεδομένα. */}
               {navSafe==='overview'  && <OverviewTab key={selected.id} prop={selected} properties={properties} userId={user.id} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : t==='edit' ? setEditProperty(selected) : setNav(t)} tabVisible={navVisible}/>}
-              {nav==='finances'  && <TabFinances propertyId={selected.id} userId={user.id} profileType={effProfileType} legalForm={taxForm} onScan={()=>setQuickAddOpen(true)}/>}
+              {nav==='finances'  && <TabFinances propertyId={selected.id} userId={user.id} propertyName={selected.name} profileType={effProfileType} legalForm={taxForm} onScan={()=>setQuickAddOpen(true)}/>}
               {nav==='calendar'  && <TabCalendar key={selected.id} propertyId={selected.id} userId={user.id} openTasks={checklistAlerts} onOpenTasks={()=>setNav('checklist')}/>}
               {/* ═══ Η ΒΡΑΧΥΧΡΟΝΙΑ ΣΤΕΚΕΤΑΙ ΜΟΝΗ ΤΗΣ ═══════════════════════════
                   Ζούσε μέσα στην καρτέλα «Πελάτης», που απαιτεί πακέτο

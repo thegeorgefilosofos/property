@@ -26,6 +26,7 @@ import { navLabel } from '@/lib/nav/labels';
 import { useState } from 'react';
 import { T } from '@/components/Theme';
 import ExpenseLedger from './ExpenseLedger';
+import InboundInbox from './InboundInbox';
 import { BankLinkRow } from './BankLink';
 import TabBills from './TabBills';
 import { type LegalForm } from '@/lib/accounting/dossier';
@@ -33,6 +34,8 @@ import BillsBudget from './BillsBudget';
 
 interface Props {
   propertyId: string; userId: string;
+  /** Το όνομα του ακινήτου, για να λέει η ουρά των εισερχομένων πού γράφει. */
+  propertyName?: string;
   profileType?: 'individual' | 'professional';
   /**
    * Η νομική μορφή, όπως δηλώθηκε στην υποδοχή. Ταξιδεύει ως εδώ για ΕΝΑ πράγμα:
@@ -52,11 +55,15 @@ interface Props {
 type View = 'expenses' | 'budget';
 
 export default function TabFinances({
-  propertyId, userId,
+  propertyId, userId, propertyName,
   profileType = 'individual', legalForm = 'individual', onScan,
 }: Props) {
   const [view, setView] = useState<View>('expenses');
   const [contracts, setContracts] = useState(false);
+  // ΤΟ ΚΑΘΟΛΙΚΟ ΞΑΝΑΔΙΑΒΑΖΕΙ ΟΤΑΝ ΜΠΕΙ ΓΡΑΜΜΗ ΑΠΟ ΤΑ ΕΙΣΕΡΧΟΜΕΝΑ. Χωρίς αυτό,
+  // ο ιδιοκτήτης πατά «Καταχώρηση», η δαπάνη γράφεται, και η λίστα από κάτω
+  // συνεχίζει να μην τη δείχνει — δηλαδή μοιάζει να μην έγινε τίποτα.
+  const [ledgerKey, setLedgerKey] = useState(0);
 
   const segs: { k: View; label: string }[] = [
     { k: 'expenses', label: 'Δαπάνες' },
@@ -126,7 +133,12 @@ export default function TabFinances({
           // κοιτάζει τι έχει καταχωρήσει και σκέφτεται «πρέπει να τα περνάω ένα
           // ένα;». Μία γραμμή, όχι κάρτα: η κάρτα θα έπαιρνε τη θέση αυτού που
           // ήρθε να δει.
-          ? <><BankLinkRow /><ExpenseLedger propertyId={propertyId} userId={userId} onScan={onScan} /></>
+          ? <>
+              <InboundInbox propertyId={propertyId} userId={userId} propertyName={propertyName}
+                onFiled={() => setLedgerKey(k => k + 1)} />
+              <BankLinkRow />
+              <ExpenseLedger key={ledgerKey} propertyId={propertyId} userId={userId} onScan={onScan} />
+            </>
           : <BillsBudget propertyId={propertyId} userId={userId} profileType={profileType} />}
     </div>
   );
