@@ -164,7 +164,7 @@ export function PanelScan() {
           προτιμότερη από κείμενο που ξεχειλίζει. */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
         {filed.map((t, i) => (
-          <span key={i} className="lp-pop lp-live" style={{ animationDelay: `${0.18 * i + 0.3}s`, display: 'inline-flex', alignItems: 'center', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 100, padding: '6px 12px', whiteSpace: 'nowrap' }}>{t}</span>
+          <span key={i} className="lp-pop lp-live" style={{ animationDelay: `${0.18 * i + 0.3}s`, display: 'inline-flex', alignItems: 'center', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, padding: '6px 12px', whiteSpace: 'nowrap' }}>{t}</span>
         ))}
       </div>
     </div>
@@ -187,12 +187,12 @@ export function PanelAssistant() {
         <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)' }} />
       </div>
       <div style={{ padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <div className="lp-pop lp-live" style={{ animationDelay: '.1s', alignSelf: 'flex-end', maxWidth: '82%', padding: '10px 14px', borderRadius: 14, borderBottomRightRadius: 4, background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 13, lineHeight: 1.5 }}>Νόα, πόσα ξόδεψα σε ρεύμα φέτος;</div>
-        <div className="lp-pop lp-live" style={{ animationDelay: '.5s', alignSelf: 'flex-start', maxWidth: '90%', padding: '10px 14px', borderRadius: 14, borderBottomLeftRadius: 4, background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', fontSize: 13, lineHeight: 1.55, color: 'var(--text-primary)' }}>
+        <div className="lp-pop lp-live" style={{ animationDelay: '.1s', alignSelf: 'flex-end', maxWidth: '82%', padding: '10px 14px', borderRadius: T.radius.card, borderBottomRightRadius: 4, background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 13, lineHeight: 1.5 }}>Νόα, πόσα ξόδεψα σε ρεύμα φέτος;</div>
+        <div className="lp-pop lp-live" style={{ animationDelay: '.5s', alignSelf: 'flex-start', maxWidth: '90%', padding: '10px 14px', borderRadius: T.radius.card, borderBottomLeftRadius: 4, background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', fontSize: 13, lineHeight: 1.55, color: 'var(--text-primary)' }}>
           Φέτος ξόδεψες <strong>1.240,00&nbsp;€</strong> σε ρεύμα, 18% περισσότερα από πέρσι, ενώ η κατανάλωση έμεινε σχεδόν σταθερή. Θέλεις να σου προτείνω οικονομικότερο πρόγραμμα ή πάροχο για το ακίνητό σου;
         </div>
         <div className="lp-pop" style={{ animationDelay: '.9s', alignSelf: 'flex-start' }}>
-          <span className="lp-live" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--accent) 26%, transparent)', borderRadius: 100, padding: '6px 12px' }}>
+          <span className="lp-live" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--accent) 26%, transparent)', borderRadius: T.radius.pill, padding: '6px 12px' }}>
             Μετάβαση: Σύγκριση ρεύματος
             <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
           </span>

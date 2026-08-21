@@ -55,7 +55,7 @@ export default function CookieConsent() {
 
   return (
     <div role="dialog" aria-label="Ενημέρωση για cookies" className="po-noprint" style={{ position: 'fixed', left: 12, right: 12, bottom: 12, zIndex: 2000, maxWidth: 720, margin: '0 auto',
-      background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 14, boxShadow: 'var(--shadow-lg)',
+      background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: T.radius.card, boxShadow: 'var(--shadow-lg)',
       padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', fontFamily: T.font.sans }}>
       {/* ΓΙΑΤΙ ΤΟΣΟ ΣΥΝΤΟΜΟ: το κείμενο ήταν τέσσερις σειρές σε desktop και έξι σε
           κινητό, οπότε το πλαίσιο σκέπαζε το προϊόν ακριβώς στην πρώτη οθόνη —
@@ -68,7 +68,7 @@ export default function CookieConsent() {
         Μόνο <strong style={{ color: 'var(--text-primary)' }}>απαραίτητα cookies</strong>. Καμία παρακολούθηση, καμία διαφήμιση.{' '}
         <Link href="/privacy" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Απόρρητο</Link>
       </div>
-      <button onClick={acknowledge} style={{ flexShrink: 0, height: T.h.md, padding: '0 22px', borderRadius: 100, border: 'none',
+      <button onClick={acknowledge} style={{ flexShrink: 0, height: T.h.md, padding: '0 22px', borderRadius: T.radius.pill, border: 'none',
         background: 'var(--accent)', color: 'var(--accent-text)', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
         Το κατάλαβα
       </button>

@@ -798,7 +798,7 @@ export default async function Landing() {
             <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>Property OS</span>
           </div>
           {loggedIn ? (
-            <Link href="/dashboard" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 14, fontWeight: 700, padding: '9px 18px', borderRadius: 100 }}>Ο πίνακάς σου</Link>
+            <Link href="/dashboard" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 14, fontWeight: 700, padding: '9px 18px', borderRadius: T.radius.pill }}>Ο πίνακάς σου</Link>
           ) : (<>
             {/* ΧΩΡΙΣ lp-hide-xs: κάτω από 520px το «Σύνδεση» εξαφανιζόταν εντελώς και
                 ο επιστρέφων χρήστης έβλεπε ΜΟΝΟ «Ξεκίνα τη δοκιμή», δηλαδή του
@@ -811,7 +811,7 @@ export default async function Landing() {
                 390px και ΚΑΙ η μάρκα ΚΑΙ το κουμπί έσπαγαν σε δύο γραμμές. Στις πολύ
                 στενές οθόνες το κουμπί λέει σκέτο «Δωρεάν» — η υπόσχεση μένει ίδια,
                 χάνεται μόνο η λέξη που ο χρήστης έχει ήδη διαβάσει στον τίτλο. */}
-            <Link href="/signup" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 14, fontWeight: 700, padding: '9px 16px', borderRadius: 100, whiteSpace: 'nowrap' }}>
+            <Link href="/signup" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 14, fontWeight: 700, padding: '9px 16px', borderRadius: T.radius.pill, whiteSpace: 'nowrap' }}>
               <span className="lp-hide-xs">Ξεκίνα τη δοκιμή</span><span className="lp-only-xs">Δοκιμή</span>
             </Link>
           </>)}
@@ -888,10 +888,10 @@ export default async function Landing() {
           </p>
           <div className="lp-rise-3" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             {loggedIn ? (
-              <Link href="/dashboard" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 28px', borderRadius: 100 }}>Άνοιξε τον πίνακά σου</Link>
+              <Link href="/dashboard" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 28px', borderRadius: T.radius.pill }}>Άνοιξε τον πίνακά σου</Link>
             ) : (<>
-              <Link href="/signup" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 28px', borderRadius: 100 }}>Ξεκίνα τη δοκιμή</Link>
-              <Link href="/login" style={{ background: 'transparent', color: 'var(--text-primary)', textDecoration: 'none', fontSize: 15, fontWeight: 600, padding: '14px 28px', borderRadius: 100, border: '1px solid var(--border-strong)', transition: 'border-color .15s, background .15s' }}>Έχω λογαριασμό</Link>
+              <Link href="/signup" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 28px', borderRadius: T.radius.pill }}>Ξεκίνα τη δοκιμή</Link>
+              <Link href="/login" style={{ background: 'transparent', color: 'var(--text-primary)', textDecoration: 'none', fontSize: 15, fontWeight: 600, padding: '14px 28px', borderRadius: T.radius.pill, border: '1px solid var(--border-strong)', transition: 'border-color .15s, background .15s' }}>Έχω λογαριασμό</Link>
             </>)}
           </div>
           <div className="lp-rise-4" style={{ marginTop: 18, fontSize: 13, color: 'var(--text-tertiary)' }}>{TRIAL_DAYS} ημέρες δωρεάν δοκιμή · Διαλέγεις πακέτο από την αρχή · Ακυρώνεις όποτε θέλεις</div>
@@ -907,7 +907,7 @@ export default async function Landing() {
             χωρούσε ΠΕΝΤΕ κολόνες για τέσσερα στοιχεία, οπότε η ζώνη τελείωνε με
             ένα άδειο κελί που έδειχνε μόνο το χρώμα του πλέγματος. Οι μετρήσεις
             είναι τέσσερις εξ ορισμού· το πλέγμα οφείλει να το ξέρει. */}
-        <div className="lp-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 1, background: LINE, border: `1px solid ${LINE}`, borderRadius: 14, overflow: 'hidden' }}>
+        <div className="lp-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 1, background: LINE, border: `1px solid ${LINE}`, borderRadius: T.radius.card, overflow: 'hidden' }}>
           {STATS.map((s, i) => (
             <div key={i} style={{ padding: 'clamp(20px, 3vw, 26px) 22px', background: PANEL }}>
               {/* Το νούμερο και η μονάδα του σε κοινή βάση. Ένας αριθμός χωρίς
@@ -946,7 +946,7 @@ export default async function Landing() {
             3×2 και η ενότητα διαβάζεται ως ένα σχήμα, όχι ως λίστα που ξέμεινε. */}
         <div className="lp-feat" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
           {FEATURES.map((f, i) => (
-            <div key={i} className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(20px, 2.2vw, 24px)' }}>
+            <div key={i} className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: T.radius.card, padding: 'clamp(20px, 2.2vw, 24px)' }}>
               <div style={{ width: 38, height: 38, borderRadius: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 15 }}>{ic(f.i)}</div>
               <h3 style={{ fontSize: 16, fontWeight: 680, margin: '0 0 7px', letterSpacing: '-0.02em' }}>{f.t}</h3>
               <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.6, margin: 0 }}>{f.d}</p>
@@ -991,7 +991,7 @@ export default async function Landing() {
             γραμμένη κάθετα. Και το `center` κρατούσε τον τίτλο στο μέσο ύψος,
             οπότε καμία από τις δύο πλευρές δεν ξεκινούσε από την ίδια γραμμή.
             Πλατύτερη στήλη, στοίχιση στην κορυφή. */}
-        <div className="lp-split" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(24px, 3vw, 38px)', display: 'grid', gridTemplateColumns: 'minmax(0, 0.9fr) minmax(0, 1.1fr)', gap: 'clamp(24px, 3vw, 44px)', alignItems: 'start' }}>
+        <div className="lp-split" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: T.radius.card, padding: 'clamp(24px, 3vw, 38px)', display: 'grid', gridTemplateColumns: 'minmax(0, 0.9fr) minmax(0, 1.1fr)', gap: 'clamp(24px, 3vw, 44px)', alignItems: 'start' }}>
           <div>
             <div className="lp-eyebrow">Ασφάλεια</div>
             <h2 style={{ fontSize: 'clamp(22px, 3vw, 30px)', fontWeight: 680, letterSpacing: '-0.03em', lineHeight: 1.1, margin: '0 0 12px', textWrap: 'balance' }}>Τα δεδομένα σού ανήκουν</h2>
@@ -1130,7 +1130,7 @@ export default async function Landing() {
         <SectionHead over="Σε ποιον απευθύνεται" title="Τέσσερα πακέτα, τέσσερις διαφορετικές ανάγκες" sub="Ίδια βάση δεδομένων για όλους. Αλλάζουν τα εργαλεία, ανάλογα με τις προκλήσεις που καλείσαι να αντιμετωπίσεις." />
         <div className="lp-aud">
           {AUDIENCE.map((a, i) => (
-            <div key={i} className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(22px, 2.6vw, 28px)' }}>
+            <div key={i} className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: T.radius.card, padding: 'clamp(22px, 2.6vw, 28px)' }}>
               <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: ACCENT, marginBottom: 12 }}>{a.tag}</span>
               <h3 style={{ fontSize: 16, fontWeight: 680, margin: '0 0 8px', letterSpacing: '-0.02em' }}>{a.t}</h3>
               {/* Το κατώφλι ύψους έφυγε: τη στοίχιση την κάνει πλέον το subgrid
@@ -1230,7 +1230,7 @@ export default async function Landing() {
         <SectionHead over="Σύσταση" title="Κάθε σύσταση ανταμείβει και τους δύο" sub="Ο φίλος σου παίρνει δώρο, εσύ ανταμείβεσαι. Ένας στόχος, καθαρός, και για τους δύο." />
         <div className="lp-duo" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16 }}>
           {REFERRAL.map((r, i) => (
-            <div key={i} className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(22px, 2.6vw, 30px)' }}>
+            <div key={i} className="lp-card" style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: T.radius.card, padding: 'clamp(22px, 2.6vw, 30px)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
                 <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{ic(r.i)}</div>
                 <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: ACCENT }}>{r.tag}</span>
@@ -1300,7 +1300,7 @@ export default async function Landing() {
         <div style={{ ...wrap, position: 'relative', zIndex: 1, textAlign: 'center', paddingTop: GAP_ACT, paddingBottom: GAP_ACT }}>
           <h2 style={{ fontSize: 'clamp(28px, 4.6vw, 46px)', fontWeight: 680, letterSpacing: '-0.035em', lineHeight: 1.1, margin: '0 auto 16px', maxWidth: 720, color: 'var(--text-primary)', textWrap: 'balance' }}>Το ακίνητό σου, υπό έλεγχο.</h2>
           <p style={{ fontSize: 'clamp(14px, 1.8vw, 17px)', color: 'var(--text-secondary)', lineHeight: 1.6, maxWidth: 620, margin: '0 auto 30px' }}>Φωτογράφισε το πρώτο σου έγγραφο. {TRIAL_DAYS} ημέρες δωρεάν.</p>
-          <Link href={loggedIn ? '/dashboard' : '/signup'} className="lp-cta lp-primary" style={{ display: 'inline-block', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 30px', borderRadius: 100 }}>{loggedIn ? 'Άνοιξε τον πίνακά σου' : 'Ξεκίνα τη δοκιμή'}</Link>
+          <Link href={loggedIn ? '/dashboard' : '/signup'} className="lp-cta lp-primary" style={{ display: 'inline-block', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 30px', borderRadius: T.radius.pill }}>{loggedIn ? 'Άνοιξε τον πίνακά σου' : 'Ξεκίνα τη δοκιμή'}</Link>
         </div>
       </section>
 
@@ -1414,8 +1414,8 @@ function PlanCard({ planId, name, nameColor, sub, price, per, note, annual, inhe
   planId: string; name: string; nameColor: string; sub: string; price: string; per: string; note: React.ReactNode; annual: string; inherits?: string; ai: number; items: string[]; cta: string; ctaGhost?: boolean; featured: boolean;
 }) {
   return (
-    <div className="lp-card" style={{ position: 'relative', background: PANEL, border: featured ? `1.5px solid color-mix(in srgb, var(--accent) 50%, transparent)` : `1px solid ${LINE}`, borderRadius: 14, padding: 'clamp(16px, 1.6vw, 20px)', boxShadow: featured ? '0 24px 60px -30px color-mix(in srgb, var(--accent) 60%, transparent)' : 'none' }}>
-      {featured && <span style={{ position: 'absolute', top: -9, left: 16, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)', background: PANEL, border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)', borderRadius: 100, padding: '2px 9px', whiteSpace: 'nowrap' }}>Προτεινόμενο</span>}
+    <div className="lp-card" style={{ position: 'relative', background: PANEL, border: featured ? `1.5px solid color-mix(in srgb, var(--accent) 50%, transparent)` : `1px solid ${LINE}`, borderRadius: T.radius.card, padding: 'clamp(16px, 1.6vw, 20px)', boxShadow: featured ? '0 24px 60px -30px color-mix(in srgb, var(--accent) 60%, transparent)' : 'none' }}>
+      {featured && <span style={{ position: 'absolute', top: -9, left: 16, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)', background: PANEL, border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)', borderRadius: T.radius.pill, padding: '2px 9px', whiteSpace: 'nowrap' }}>Προτεινόμενο</span>}
       <div style={{ fontSize: 14, fontWeight: 700, color: nameColor, marginBottom: 3 }}>{name}</div>
       <div style={{ fontSize: 12, color: FAINT, marginBottom: 14, lineHeight: 1.35 }}>{sub}</div>
       {/* ΤΟ ΠΟΣΟ ΚΑΙ Η ΠΕΡΙΟΔΟΣ ΕΙΝΑΙ ΕΝΑ ΠΡΑΓΜΑ: «3,90 € τον μήνα» διαβάζεται
@@ -1469,7 +1469,7 @@ function PlanCard({ planId, name, nameColor, sub, price, per, note, annual, inhe
           ποσό μέσα, το κείμενο έσπαγε σε δύο γραμμές από τις 1000 ως τις 1160
           και μόνο σε τρεις από τις τέσσερις κάρτες — τέσσερα κουμπιά με άνισο
           «πόδι». Χωρίς αυτό, μία γραμμή σε κάθε πλάτος και σε κάθε πακέτο. */}
-      <Link href={`/signup?plan=${planId}&cycle=monthly`} className={ctaGhost ? 'lp-ghost' : 'lp-cta lp-primary'} style={{ display: 'block', textAlign: 'center', background: ctaGhost ? 'transparent' : undefined, color: ctaGhost ? TEXT : undefined, textDecoration: 'none', fontSize: 13, fontWeight: 700, padding: '10px', borderRadius: 100, border: ctaGhost ? `1px solid ${LINE}` : 'none' }}>{cta}</Link>
+      <Link href={`/signup?plan=${planId}&cycle=monthly`} className={ctaGhost ? 'lp-ghost' : 'lp-cta lp-primary'} style={{ display: 'block', textAlign: 'center', background: ctaGhost ? 'transparent' : undefined, color: ctaGhost ? TEXT : undefined, textDecoration: 'none', fontSize: 13, fontWeight: 700, padding: '10px', borderRadius: T.radius.pill, border: ctaGhost ? `1px solid ${LINE}` : 'none' }}>{cta}</Link>
       <Link href={`/signup?plan=${planId}&cycle=annual`} className="lp-link" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minHeight: 44, marginTop: 2, color: MUTED, textDecoration: 'none', fontSize: 12, lineHeight: 1.35 }}>{annual}</Link>
     </div>
   );

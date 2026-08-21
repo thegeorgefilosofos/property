@@ -103,8 +103,8 @@ export default function PwaProvider() {
           Ανοίγει σαν εφαρμογή, χωρίς μπάρα διεύθυνσης. Χρήσιμο όταν φωτογραφίζεις έναν λογαριασμό εν κινήσει.
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={install} style={{ height: T.h.md, padding: '0 16px', borderRadius: 100, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Εγκατάσταση</button>
-          <button onClick={dismiss} style={{ height: T.h.md, padding: '0 14px', borderRadius: 100, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Όχι τώρα</button>
+          <button onClick={install} style={{ height: T.h.md, padding: '0 16px', borderRadius: T.radius.pill, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Εγκατάσταση</button>
+          <button onClick={dismiss} style={{ height: T.h.md, padding: '0 14px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Όχι τώρα</button>
         </div>
       </div>
     </div>
