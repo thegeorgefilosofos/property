@@ -269,7 +269,7 @@ export default function SignupPage() {
   const field: React.CSSProperties = {
     width: '100%', boxSizing: 'border-box',
     background: 'var(--bg-surface)', border: '1px solid var(--border-default)',
-    borderRadius: 6, padding: '10px 16px', color: 'var(--text-primary)',
+    borderRadius: T.radius.btn, padding: '10px 16px', minHeight: T.h.lg, color: 'var(--text-primary)',
     fontSize: 14, fontFamily: 'inherit', transition: 'border-color .15s',
   }
   const label: React.CSSProperties = {
@@ -534,10 +534,23 @@ export default function SignupPage() {
                     `signInWithGoogle` δεν προχωρά χωρίς αυτήν και φέρνει το
                     βλέμμα εδώ κάτω. */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                  <input id="su-consent" type="checkbox" checked={consent}
-                    onChange={e => { setConsent(e.target.checked); if (e.target.checked) setConsentTouched(false) }}
-                    required aria-label="Αποδοχή των Όρων Χρήσης και της Πολιτικής απορρήτου"
-                    style={{ marginTop: 2, width: 16, height: 16, accentColor: 'var(--accent)', flexShrink: 0, cursor: 'pointer' }} />
+                  {/* ΤΟ ΤΕΤΡΑΓΩΝΟ ΗΤΑΝ 16 × 16, ΚΑΙ ΕΙΝΑΙ ΥΠΟΧΡΕΩΤΙΚΟ ΓΙΑ ΝΑ ΓΙΝΕΙ
+                      ΕΓΓΡΑΦΗ: χωρίς αυτό το κουμπί μένει κλειστό. Δεκαέξι
+                      εικονοστοιχεία είναι ο μισός στόχος από όσο ζητά ένα δάχτυλο,
+                      και ο πενηντάρης ιδιοκτήτης της στρατηγικής μας το αστοχεί.
+                      Μεγαλώνει η ΠΕΡΙΟΧΗ ΑΦΗΣ, όχι το σχήμα: μια ετικέτα 44 × 44
+                      γύρω από το τετράγωνο, με αρνητικό περιθώριο που επιστρέφει
+                      ακριβώς τον χώρο που πήρε. Οπτικά τίποτα δεν κουνιέται.
+                      ΓΙΑΤΙ ΕΤΙΚΕΤΑ ΚΑΙ ΟΧΙ onClick ΣΕ ΠΛΑΙΣΙΟ: η ετικέτα ενεργοποιεί
+                      το πεδίο από μόνη της, χωρίς JavaScript, και δεν τυλίγει τους
+                      δύο συνδέσμους — ένα `<a>` μέσα σε `<label>` δίνει στοιχείο που
+                      και ακολουθεί σύνδεσμο και τσεκάρει κουτί με το ίδιο πάτημα. */}
+                  <label htmlFor="su-consent" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, margin: -14, flexShrink: 0, cursor: 'pointer' }}>
+                    <input id="su-consent" type="checkbox" checked={consent}
+                      onChange={e => { setConsent(e.target.checked); if (e.target.checked) setConsentTouched(false) }}
+                      required aria-label="Αποδοχή των Όρων Χρήσης και της Πολιτικής απορρήτου"
+                      style={{ width: 16, height: 16, accentColor: 'var(--accent)', cursor: 'pointer' }} />
+                  </label>
                   <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                     Αποδέχομαι τους{' '}
                     <Link href="/terms" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Όρους χρήσης</Link>{' '}και την{' '}

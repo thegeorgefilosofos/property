@@ -61,7 +61,7 @@ export function PublicHeader() {
   return (
     <header style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-surface)' }}>
       <div style={{ ...WRAP, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-        <Link href="/" className="lp-link" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'var(--text-primary)' }}>
+        <Link href="/" className="lp-link lp-brand" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'var(--text-primary)' }}>
           <BrandMark />
           <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.02em' }}>Property OS</span>
         </Link>
@@ -71,7 +71,7 @@ export function PublicHeader() {
               επισκέπτης που έφτανε από τον υπολογιστή ΕΝΦΙΑ ή από τους Όρους
               έπρεπε να μαντέψει ότι πρέπει να γυρίσει στην αρχική και να
               κυλήσει. Η πιο συχνή ερώτηση πριν την εγγραφή είναι η τιμή. */}
-          <Link href="/#pricing" className="lp-link" style={{ textDecoration: 'none', fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+          <Link href="/#pricing" className="lp-link lp-nav-link" style={{ textDecoration: 'none', fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
             Τιμές
           </Link>
           <Link href="/signup" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 14, fontWeight: 700, padding: '9px 16px', borderRadius: 100, whiteSpace: 'nowrap' }}>
@@ -86,7 +86,7 @@ export function PublicHeader() {
 /** Μία στήλη συνδέσμων. Ίδια γεωμετρία σε κάθε δημόσια σελίδα. */
 function FootCol({ label, links }: { label: string; links: [string, string][] }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div className="lp-footcol" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>{label}</span>
       {/* ΤΟ `nowrap` ΕΣΠΡΩΧΝΕ ΤΗ ΣΕΛΙΔΑ ΔΕΞΙΑ. Στα 390 εικονοστοιχεία η στήλη
           πιάνει 163 και το «Βραχυχρόνια ή μακροχρόνια» θέλει 193: ο σύνδεσμος
@@ -106,7 +106,7 @@ export function PublicFooter() {
       <div style={{ ...WRAP, padding: `clamp(36px,5vw,56px) ${WRAP_PAD} clamp(24px,3vw,32px)` }}>
         <div className="lp-foot">
           <div>
-            <Link href="/" className="lp-link" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, textDecoration: 'none', color: 'var(--text-primary)', width: 'fit-content' }}>
+            <Link href="/" className="lp-link lp-brand" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, textDecoration: 'none', color: 'var(--text-primary)', width: 'fit-content' }}>
               <BrandMark size={26} />
               <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em' }}>Property OS</span>
             </Link>

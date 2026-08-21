@@ -804,7 +804,7 @@ export default async function Landing() {
                 ο επιστρέφων χρήστης έβλεπε ΜΟΝΟ «Ξεκίνα τη δοκιμή», δηλαδή του
                 προτείναμε να φτιάξει δεύτερο λογαριασμό. Στο κινητό το κείμενο
                 κονταίνει σε «Είσοδος», δεν σβήνει. */}
-            <Link href="/login" className="lp-link" style={{ color: MUTED, textDecoration: 'none', fontSize: 14, fontWeight: 600, padding: '8px 10px', whiteSpace: 'nowrap' }}>
+            <Link href="/login" className="lp-link lp-nav-link" style={{ color: MUTED, textDecoration: 'none', fontSize: 14, fontWeight: 600, padding: '8px 10px', whiteSpace: 'nowrap' }}>
               <span className="lp-hide-xs">Σύνδεση</span><span className="lp-only-xs">Είσοδος</span>
             </Link>
             {/* Μόλις μπήκε το «Είσοδος» στο κινητό, τα τρία στοιχεία δεν χωρούσαν σε
