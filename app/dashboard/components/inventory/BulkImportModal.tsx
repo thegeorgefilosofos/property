@@ -8,7 +8,7 @@ import { T, Modal, Btn, fe, ABSENT } from '@/components/Theme'
 import { notifyError } from '@/components/Toast'
 import { readSheetAsCsv, SheetError } from '@/lib/core/readSheet'
 import { csvTable } from '@/lib/core/csv'
-import { XLSX, S, ROW, setCell, autoWidths, downloadWorkbook } from '../xlsxStyle'
+import { S, ROW } from '../sheetFormat';
 import type { InventoryItem } from './model'
 import { INVENTORY_CATEGORIES, CONDITIONS, CONDITION_COLOR } from './model'
 import { Badge } from './Bits'
@@ -40,7 +40,11 @@ export function BulkImportModal({propertyId,userId,onImported,onClose}:{property
   // Ένα .xlsx δεν έχει διαχωριστικό. Ανοίγει το ίδιο σε κάθε υπολογιστή.
   const TEMPLATE_HEAD = ['Ονομασία','Κατηγορία','Δωμάτιο','Μάρκα','Μοντέλο','Σειριακός','Κατάσταση','Αξία Αγοράς','Ημερομηνία Αγοράς','Λήξη Εγγύησης','Ενεργειακή Κλάση','Ισχύς (W)','Ώρες ανά Ημέρα','Κόστος Αντικατάστασης']
   const TEMPLATE_ROW = ['Πλυντήριο','Ηλεκτρικές Συσκευές','Κουζίνα','Bosch','WAU28','SN123','Καλή','650','2021-03-15','2026-03-15','A+','2100','1','700']
-  const downloadTemplate = () => {
+  // Η ΒΙΒΛΙΟΘΗΚΗ ΤΟΥ EXCEL ΦΟΡΤΩΝΕΤΑΙ ΜΕ ΤΟ ΠΑΤΗΜΑ. Το υπόδειγμα είναι δεκατέσσερις
+  // στήλες και δύο γραμμές· η στατική εισαγωγή του γεννήτορα έφερνε 2,5 MB μέσα
+  // στον πίνακα, για ένα κουμπί που πατιέται μία φορά στη ζωή ενός λογαριασμού.
+  const downloadTemplate = async () => {
+    const { XLSX, setCell, autoWidths, downloadWorkbook } = await import('../xlsxStyle')
     const wb = XLSX.utils.book_new()
     const ws = XLSX.utils.aoa_to_sheet([TEMPLATE_HEAD, TEMPLATE_ROW])
     ws['!rows'] = []; ws['!rows'][0] = { hpt: ROW.head }

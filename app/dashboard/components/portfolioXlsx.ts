@@ -5,7 +5,8 @@
 // & εισπραγμένα ενοίκια, ανείσπρακτα, δαπάνες, καθαρό και ποσοστό είσπραξης — με
 // ζωντανά σύνολα (SUM), μορφή €/%, φίλτρα και το ενιαίο λογιστικό στυλ (xlsxStyle).
 // ═══════════════════════════════════════════════════════════════════════════
-import { XLSX, FMT, S, setCell, downloadWorkbook, printTitles, MARGINS, type Cell } from './xlsxStyle';
+import { XLSX, setCell, downloadWorkbook, printTitles } from './xlsxStyle';
+import { FMT, S, MARGINS, type Cell } from './sheetFormat';
 
 export interface PortfolioRow {
   name: string;

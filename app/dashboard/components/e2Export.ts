@@ -4,7 +4,8 @@ import * as propertyStore from '@/lib/data/properties';
 import * as stayStore from '@/lib/data/stays';
 import * as rentStore from '@/lib/data/rent';
 import * as tenantStore from '@/lib/data/tenants';
-import { XLSX, FMT, S, setCell, downloadWorkbook, type Cell } from './xlsxStyle';
+import { XLSX, setCell, downloadWorkbook } from './xlsxStyle';
+import { FMT, S, type Cell } from './sheetFormat';
 import { E2_OFFICIAL_HEADERS, E2_NUM_COLS, buildE2OfficialCells, buildE2Row, buildE1Summary, type E2Stay, E1_HEADERS, E2_INSTRUCTIONS, type E2Property, type E2Tenant, type E2Payment, type E2Row } from '@/lib/billing/e2';
 
 const NCOLS = E2_OFFICIAL_HEADERS.length; // 19

@@ -30,7 +30,9 @@ import {
   type LegalForm, type BookKeeping, type Requirement, type Who,
 } from '@/lib/accounting/dossier'
 import type { PropertyStatus } from '@/lib/property/status'
-import { exportAccountantDossier, type AccountantStatementLine, type AccountantMovement, type DossierAttachment } from './accountantExport'
+import type { DossierAttachment } from './accountantExport';
+import type { AccountantStatementLine, AccountantMovement } from './accountantTypes';
+import { exportAccountantDossier } from './sheets';
 import type { FixedAsset } from '@/lib/accounting/fixedAssets'
 import type { VatDeduction } from '@/lib/tax/myData'
 import { failed } from '@/lib/core/dbError';

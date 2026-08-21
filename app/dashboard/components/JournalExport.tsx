@@ -25,7 +25,7 @@ import {
   buildJournal, journalTotals, trialBalance, journalToCsv, auditJournal,
   type JournalFormat, type IncomeRec, type ExpenseRec, type JournalAudit, type LoanPaymentRec,
 } from '@/lib/accounting/journal';
-import { downloadJournalWorkbook } from './journalXlsx';
+import { downloadJournalWorkbook } from './sheets';
 import { annuityMonthly } from '@/lib/loans/recommend';
 import { askCta } from '@/lib/assistant/identity';
 import { askAssistant } from './AssistantStrip';

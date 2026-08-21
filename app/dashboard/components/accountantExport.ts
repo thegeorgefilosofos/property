@@ -16,10 +16,11 @@
 // Πραγματικά κελιά, ημερομηνίες ως ημερομηνίες, ποσά ως νόμισμα (2 δεκαδικά),
 // σωστή στοίχιση/πλαίσια — σαν να το ετοίμασε λογιστής. Ασπρόμαυρο, καθαρό.
 // ═══════════════════════════════════════════════════════════════════════════
-import {
-  XLSX, FMT, S, ROW, setCell, autoWidths, wrapColumns, bannerRow, downloadWorkbook, printTitles,
-  MARGINS, sheetFinish, workbookBytes, money, moneySigned, sectionSheet, moveSheetFirst, type Cell,
-} from './xlsxStyle';
+import type {
+  AccountantStatementLine, AccountantMovement,
+} from './accountantTypes';
+import { XLSX, setCell, autoWidths, wrapColumns, bannerRow, downloadWorkbook, printTitles, sheetFinish, workbookBytes, sectionSheet, moveSheetFirst } from './xlsxStyle';
+import { FMT, S, ROW, MARGINS, money, moneySigned, type Cell } from './sheetFormat';
 import { supplyLabel, reverseChargeVat, reverseCharge, VAT_STANDARD, type Supply } from '@/lib/tax/placeOfSupply';
 import {
   myDataHint, myDataCell, pendingGroups, EXPENSE_CLASS_LABEL, INVOICE_TYPE_LABEL,
@@ -46,38 +47,6 @@ import {
 } from '@/lib/accounting/dossier';
 import { downloadFile } from '@/lib/core/download';
 import { grDate } from '@/lib/core/format';
-
-export interface AccountantStatementLine { label: string; amount: number; kind: string; negative?: boolean }
-export interface AccountantMovement {
-  date: string; type: 'income' | 'expense'; category: string; description: string; amount: number;
-  /** Χώρα εκδότη (ISO alpha-2) και τόπος παροχής. Κενά στα έσοδα και σε ό,τι δεν ρωτήθηκε. */
-  supplier_country?: string | null;
-  supply?: string | null;
-  /**
-   * ΑΦΜ εκδότη, εννέα ψηφία. Ο λογιστής δεν καταχωρεί δαπάνη χωρίς
-   * αντισυμβαλλόμενο: κενό εδώ σημαίνει ένα τηλεφώνημα στον ιδιοκτήτη.
-   */
-  supplier_afm?: string | null;
-}
-/**
- * ΜΙΑ ΜΕΤΑΤΡΟΠΗ ΚΑΘΟΛΙΚΟΥ ΣΕ ΚΙΝΗΣΗ, ΓΙΑ ΟΛΑ ΤΑ ΚΟΥΜΠΙΑ.
- *
- * Η εφαρμογή χτίζει το ίδιο βιβλίο σε ΔΥΟ σημεία: στον φάκελο του λογιστή και
- * στο κουμπί «Excel» της Λογιστικής. Ήταν γραμμένα δύο φορές, πεδίο προς πεδίο,
- * και όταν προστέθηκαν η χώρα και ο τόπος παροχής μπήκαν μόνο στο ένα: το ένα
- * αρχείο έβγαινε σωστό και το άλλο με κενές στήλες, χωρίς κανένα σφάλμα και
- * χωρίς καμία ένδειξη. Μία συνάρτηση, και το επόμενο πεδίο μπαίνει μία φορά.
- */
-export function toMovement(e: {
-  date: string; type: 'income' | 'expense'; category: string; description: string; amount: number;
-  supplier_country?: string | null; supply?: string | null; supplier_afm?: string | null;
-}): AccountantMovement {
-  return {
-    date: e.date, type: e.type, category: e.category, description: e.description, amount: e.amount,
-    supplier_country: e.supplier_country ?? null, supply: e.supply ?? null,
-    supplier_afm: e.supplier_afm ?? null,
-  };
-}
 
 export interface AccountantBundleInput {
   year: number;

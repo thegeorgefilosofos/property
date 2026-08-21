@@ -43,7 +43,7 @@ import { notify, notifyOk, notifyError } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
 import { Tag } from 'lucide-react';
 import { NumberInput } from './UIComponents';
-import { exportPricingWorkbook } from './pricingExport';
+import { exportPricingWorkbook } from './sheets';
 import {
   recommendPrices, summarize, suggestBase, suggestGuardrails, bookedDatesFromStays,
   realizedAdr, findGaps, estimateSeasonalOccupancy, MIN_NIGHTS_FOR_OCCUPANCY, SEASON_LABELS,

@@ -9,7 +9,8 @@
 // Ίδιο «λογιστικό» στυλ με τις άλλες εξαγωγές (xlsxStyle): ασπρόμαυρο, στοιχισμένο,
 // δύο δεκαδικά, ημερομηνίες ως ημερομηνίες, ζωντανά σύνολα όπου έχει νόημα.
 // ═══════════════════════════════════════════════════════════════════════════
-import { XLSX, FMT, S, setCell, downloadWorkbook, money, percent, intGr, type Cell } from './xlsxStyle';
+import { XLSX, setCell, downloadWorkbook } from './xlsxStyle';
+import { FMT, S, money, percent, intGr, type Cell } from './sheetFormat';
 import { SEASON_LABELS, type Season } from '@/lib/pricing/dynamicPricing';
 import { MONTHS_NOM } from '@/lib/core/months';
 

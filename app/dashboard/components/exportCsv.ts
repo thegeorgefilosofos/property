@@ -18,7 +18,8 @@
 // υπότιτλος για ποιο ακίνητο και ποια περίοδο, και η σφραγίδα του εργαλείου
 // μπαίνει στο τέλος του υπότιτλου, όπου ανήκει.
 // ═══════════════════════════════════════════════════════════════════════════
-import { downloadXlsx, type XlsxCol, type XlsxKind } from './exportXlsx';
+import type { XlsxCol, XlsxKind } from './exportXlsx';
+import { downloadXlsx } from './sheets';
 
 /** Ημερομηνία ΗΗ/ΜΜ/ΕΕΕΕ. */
 export const csvDate = (d: string | Date | null | undefined): string => {
@@ -65,7 +66,7 @@ function stamp(subject?: string): string {
  * Κατεβάζει προσεγμένο .xlsx με ζωντανά αριθμητικά κελιά και γραμμή ΣΥΝΟΛΟ στις
  * στήλες ποσών. Το `filename` δίνεται ΧΩΡΙΣ κατάληξη.
  */
-export function downloadTableXlsx(filename: string, t: TableExport): void {
+export async function downloadTableXlsx(filename: string, t: TableExport): Promise<void> {
   const columns: XlsxCol[] = t.headers.map(h => ({ header: h, kind: kindFromHeader(h) }));
   const rows = t.rows.map(r => t.headers.map((_, i) => { const v = r[i]; return v == null ? '' : v; }));
   // Άθροισμα μόνο εκεί που η στήλη ΕΧΕΙ αριθμούς: μια στήλη ποσών γεμάτη κείμενο
@@ -74,7 +75,7 @@ export function downloadTableXlsx(filename: string, t: TableExport): void {
     .map((c, i) => (c.kind === 'eur' && rows.some(r => typeof r[i] === 'number') ? i : -1))
     .filter(i => i >= 0);
 
-  downloadXlsx(filename.replace(/\.(csv|xlsx)$/i, ''), [{
+  await downloadXlsx(filename.replace(/\.(csv|xlsx)$/i, ''), [{
     name: t.title, title: t.title, subtitle: stamp(t.subject),
     columns, rows, totalCols, notes: t.notes,
   }]);

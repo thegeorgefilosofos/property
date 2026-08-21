@@ -4,7 +4,7 @@ import { CustomSelect, NumberInput, TextInput, DatePicker, InfoDot , ToggleField
 import { KPI, LensBar, cardStyle, panelStyle } from './LoanShared'
 import { downloadTableXlsx } from './exportCsv'
 import { fp, fe } from '@/lib/core/format'
-import { money as csvEur } from './xlsxStyle'
+import { money as csvEur } from './sheetFormat';
 import DocChecklist from './DocChecklist'
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rPct, rEsc } from './reportPdf'
 import { T, Badge, ABSENT, TT, formGrid, fieldRow , fixedCols} from '@/components/Theme'

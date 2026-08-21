@@ -28,7 +28,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { T, TT, EmptyState, Btn, fe } from '@/components/Theme';
-import { loadE2Rows, runE2Export } from './e2Export';
+import { loadE2Rows, runE2Export } from './sheets';
 import { notify, notifyError } from '@/components/Toast';
 import { reconcileE2, type DeclaredRow, type OurEvidence, type Line } from '@/lib/billing/e2Reconcile';
 import { hasFeature } from '@/lib/billing/entitlements';

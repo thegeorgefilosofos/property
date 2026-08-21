@@ -12,7 +12,7 @@ import { Building2 } from 'lucide-react';
 import { comparableGroups } from '@/lib/property/visibility';
 import { statusLabel, type StatusRow } from '@/lib/property/status';
 import { downloadTableXlsx } from './exportCsv';
-import { money } from './xlsxStyle';
+import { money } from './sheetFormat';
 import { consolidateRentTax, taxShareOf, CONSOLIDATION_NOTE } from '@/lib/billing/consolidate';
 import { resolveValue } from '@/lib/billing/propertyFacts';
 import { mergeLedger, ledgerTotal, recurringMonthly } from '@/lib/expenses/ledger';

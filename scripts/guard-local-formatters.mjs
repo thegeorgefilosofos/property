@@ -35,7 +35,10 @@ import { findSources } from './lib/find-tests.mjs'
 /** Αρχεία με δικό τους, τεκμηριωμένο λόγο ύπαρξης μορφοποιητή. */
 const ALLOWED = [
   'lib/core/format.ts',                              // το ΕΝΑ σημείο
-  'app/dashboard/components/xlsxStyle.ts',           // Excel: το διαβάζει πρόγραμμα
+  // ΤΟ ΣΤΥΛ ΤΩΝ ΕΞΑΓΩΓΩΝ ΜΕΤΑΚΟΜΙΣΕ, ΓΙΑΤΙ Η ΒΙΒΛΙΟΘΗΚΗ ΗΤΑΝ 2,5 MB. Οι
+  // μορφοποιητές είναι οι ίδιοι και ο λόγος ο ίδιος: γράφουν κελιά που τα
+  // διαβάζει το Excel, όχι κείμενο που διαβάζει άνθρωπος στην οθόνη.
+  'app/dashboard/components/sheetFormat.ts',         // Excel: το διαβάζει πρόγραμμα
   'app/dashboard/components/accountantExport.ts',    // αρχείο για τον λογιστή
   'app/dashboard/components/JournalExport.tsx',      // λογιστικό ημερολόγιο
 ]

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef, type ElementType } from 'react'
 import { useCoarsePointer } from '@/components/useCoarsePointer'
-import { downloadWorkbook } from './xlsxStyle'
+import { downloadWorkbook } from './sheets';
 import { qrDataUrl } from '@/lib/qr';
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import * as expenseStore from '@/lib/data/expenses'

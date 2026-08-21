@@ -13,7 +13,7 @@ import { confirmDialog } from '@/components/ConfirmDialog';
 import { CustomSelect, TextInput, DatePicker, Textarea, NumberInput } from './UIComponents';
 import { downloadTableXlsx } from './exportCsv';
 import { saved } from '@/components/dbWrite';
-import { money } from './xlsxStyle';
+import { money } from './sheetFormat';
 import { useAppPreferences } from './useAppPreferences';
 // Τα σχήματα των τριών πινάκων που διαβάζει το Αρχείο δίπλα στα δικά του αρχεία.
 // Και οι τρεις ερωτήσεις κάνουν `select('*')`, άρα η γραμμή επιστρέφεται ολόκληρη.

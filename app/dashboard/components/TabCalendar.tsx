@@ -41,7 +41,8 @@ const joinedFullName = (v: unknown): string | null => {
 }
 import { savedData } from '@/components/dbWrite'
 import { T, Modal, Spinner, Skeleton, EmptyState, Chip, feAuto, fe, fn, localDay, pressable } from '@/components/Theme'
-import { downloadXlsx, type XlsxSheet, type XlsxCol } from './exportXlsx'
+import type { XlsxSheet, XlsxCol } from './exportXlsx';
+import { downloadXlsx } from './sheets';
 import {
   AlertTriangle, Plus, X, ChevronLeft, ChevronRight,
   Calendar, List, Check, FileText,

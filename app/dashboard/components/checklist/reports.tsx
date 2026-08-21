@@ -6,7 +6,7 @@
 // παράδοσης που υπογράφεται. Τρεις αναγνώστες, τρεις εντελώς διαφορετικές
 // ερωτήσεις — γι' αυτό δεν είναι η ίδια λίστα σε τρεις μορφές.
 // ═══════════════════════════════════════════════════════════════════════════
-import { downloadWorkbook } from '../xlsxStyle'
+import { downloadWorkbook } from '../sheets';
 import { fdLong, ABSENT, ABSENT_DATE, ABSENT_SHORT } from '@/components/Theme'
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rSigned, rPct, rEsc, rDate } from '../reportPdf'
 import { reportAccent, brandRootVars, brandLogoImg, brandName, escHtml as esc, type ReportBranding } from '@/lib/reportBranding'

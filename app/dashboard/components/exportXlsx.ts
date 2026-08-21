@@ -34,9 +34,8 @@
 // φόντο, πλαίσια, στοίχιση ανά τύπο, γραμμή ΣΥΝΟΛΟ με ζωντανό SUM, AutoFilter,
 // περιθώρια εκτύπωσης και επανάληψη επικεφαλίδων σε κάθε σελίδα.
 // ═══════════════════════════════════════════════════════════════════════════
-import {
-  XLSX, FMT, S, setCell, sheetName, downloadWorkbook, printTitles, MARGINS, type Cell,
-} from './xlsxStyle';
+import { XLSX, setCell, downloadWorkbook, printTitles } from './xlsxStyle';
+import { FMT, S, sheetName, MARGINS, type Cell } from './sheetFormat';
 
 export type XlsxKind = 'text' | 'date' | 'eur' | 'int' | 'year' | 'pct' | 'num';
 export type XlsxCol = { header: string; width?: number; kind?: XlsxKind };

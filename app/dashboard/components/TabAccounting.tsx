@@ -49,7 +49,8 @@ import { useReportBranding } from '@/lib/reportBranding'
 import { hasFeature, planAtLeast } from '@/lib/billing/entitlements'
 import type { VatDeduction } from '@/lib/tax/myData'
 import type { PlanId } from '@/lib/billing/plans'
-import { exportAccountantBundle, toMovement } from './accountantExport'
+import { toMovement } from './accountantTypes';
+import { exportAccountantBundle } from './sheets';
 import { buildRegister, chargeForYear, RENTED_PROPERTY_ACCOUNT, EQUIPMENT_ACCOUNT } from '@/lib/accounting/fixedAssets'
 import { declarableGrossOrTotal } from '@/lib/clients/stayAmounts'
 import { CAPITALISABLE } from '@/lib/tax/elpAccounts'

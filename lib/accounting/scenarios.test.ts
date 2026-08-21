@@ -24,8 +24,10 @@
 import { buildJournal, journalTotals, trialBalance, auditJournal, expenseAccount, ACCOUNTS } from './journal';
 import { incomeStatement } from './statement';
 import { buildRegister, chargeForYear, EQUIPMENT_ACCOUNT, RENTED_PROPERTY_ACCOUNT } from './fixedAssets';
-import { buildWorkbook, toMovement } from '@/app/dashboard/components/accountantExport';
-import { XLSX, type Cell } from '@/app/dashboard/components/xlsxStyle';
+import { buildWorkbook } from '@/app/dashboard/components/accountantExport';
+import { toMovement } from '@/app/dashboard/components/accountantTypes';
+import { XLSX } from '@/app/dashboard/components/xlsxStyle';
+import { type Cell } from '@/app/dashboard/components/sheetFormat';
 import { ELP_ALL } from '@/lib/tax/elpAccounts';
 import { CATEGORIES } from '@/lib/expenses/taxonomy';
 import {

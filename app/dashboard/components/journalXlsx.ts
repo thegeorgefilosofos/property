@@ -8,7 +8,8 @@
 // ισοζυγίου ως φόρμουλα), Ισοζύγιο, Έλεγχος (audit). Το σχέδιο λογαριασμών
 // είναι των ΕΛΠ (ν. 4308/2014), όπως και σε κάθε άλλο έγγραφο της εφαρμογής.
 // ═══════════════════════════════════════════════════════════════════════════
-import { XLSX, FMT, S, setCell, sheetFinish, downloadWorkbook, type Cell } from './xlsxStyle';
+import { XLSX, setCell, sheetFinish, downloadWorkbook } from './xlsxStyle';
+import { FMT, S, type Cell } from './sheetFormat';
 import {
   trialBalance, journalTotals, auditJournal,
   type JournalLine,

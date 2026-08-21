@@ -35,7 +35,10 @@ import { createClient } from '@/lib/supabase/client';
 import { rentalIncomeTax, rentalBracketsForYear, bracketsLabelForYear } from '@/lib/billing/greekTax';
 import { presumptiveDeductionRate, PRESUMPTIVE_RULE_2026 } from '@/lib/billing/consolidate';
 import { T, feAuto, Card } from '@/components/Theme';
-import { downloadXlsx } from '@/app/dashboard/components/exportXlsx';
+// Η ΠΥΛΗ ΤΟΥ ΛΟΓΙΣΤΗ ΕΙΝΑΙ ΔΙΚΗ ΤΗΣ ΔΙΑΔΡΟΜΗ, ΚΑΙ ΚΟΥΒΑΛΟΥΣΕ ΚΙ ΕΚΕΙΝΗ ΤΑ
+// 2,5 MB: ο λογιστής ανοίγει έναν σύνδεσμο, κοιτάζει, και συνήθως δεν κατεβάζει
+// τίποτα. Η πρόσοψη φορτώνει τη βιβλιοθήκη με το πάτημα.
+import { downloadXlsx } from '@/app/dashboard/components/sheets';
 import { PortalBar, PortalTitle, portalWrap } from '../Chrome';
 import {
   propertyLines, statementTotals, statementGaps, statementSheets, type PortalData,

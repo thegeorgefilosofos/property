@@ -20,10 +20,12 @@
 //   · ότι τα σύνολα κάθονται κάτω από τη σωστή στήλη
 //   · ότι το άθροισμα είναι το άθροισμα, όχι κάτι κοντινό
 // ═══════════════════════════════════════════════════════════════════════════
-import { buildWorkbook, dossierFiles, type AccountantMovement, type DossierAttachment } from './accountantExport';
+import { buildWorkbook, dossierFiles, type DossierAttachment } from './accountantExport';
+import { type AccountantMovement } from './accountantTypes';
 import { filePapers } from '@/lib/accounting/dossier';
 import { buildRegister } from '@/lib/accounting/fixedAssets';
-import { XLSX, workbookBytes, type Cell } from './xlsxStyle';
+import { XLSX, workbookBytes } from './xlsxStyle';
+import { type Cell } from './sheetFormat';
 import { unzipSync, strFromU8 } from 'fflate';
 import { supplyLabel } from '@/lib/tax/placeOfSupply';
 
