@@ -58,58 +58,77 @@ const dateGr = (iso: string): string => {
   return `${d} ${MONTHS_GEN[m - 1]} ${y}`;
 };
 
-/** Πόσο γεμάτος είναι ο δακτύλιος: όσο πλησιάζει η προθεσμία, τόσο κλείνει. */
-const ringDash = (days: number): string => {
-  const share = Math.max(0.06, Math.min(1, 1 - days / 90));
-  const c = 2 * Math.PI * 196;
-  return `${(c * share).toFixed(0)} ${(c * (1 - share) + 4).toFixed(0)}`;
-};
-
 function card(o: TaxObligation, days: number): string {
   const c = countdown(days);
   const numeric = /^\d+$/.test(c.big);
+  // Η ΜΠΑΡΑ ΕΙΝΑΙ Ο ΜΕΤΡΗΤΗΣ, και είναι ο τρόπος που η ίδια η εφαρμογή δείχνει
+  // πρόοδο. Γεμίζει όσο πλησιάζει η προθεσμία, μέσα στον ορίζοντα των 45 ημερών.
+  const fill = Math.max(4, Math.min(100, Math.round((1 - days / MAX_DAYS) * 100)));
   return `<!doctype html><html lang="el"><head><meta charset="utf-8">
 <style>
   @font-face{font-family:Inter;src:url("${FONT_DIR}/inter-greek.woff2") format("woff2");font-weight:100 900;font-display:block}
+  @font-face{font-family:Inter;src:url("${FONT_DIR}/inter-latin.woff2") format("woff2");font-weight:100 900;font-display:block}
   @font-face{font-family:"Roboto Mono";src:url("${FONT_DIR}/robotomono-greek.woff2") format("woff2");font-weight:100 700;font-display:block}
-  :root { --paper:#F1F0EC; --ink:#1A1720; --muted:#6B6472; --accent:#4B2E83; --rule:rgba(26,23,32,0.10); }
+  @font-face{font-family:"Roboto Mono";src:url("${FONT_DIR}/robotomono-latin.woff2") format("woff2");font-weight:100 700;font-display:block}
+
+  /* Τα ΙΔΙΑ tokens με το app/globals.css, φωτεινό θέμα. Καμία δεύτερη παλέτα. */
+  :root{
+    --bg-base:#f8f9fa; --bg-surface:#ffffff; --bg-elevated:#f1f3f4;
+    --accent:#1560d4; --on-tone:#ffffff;
+    --text-primary:#202124; --text-secondary:#5f6368; --text-tertiary:#63686d;
+    --border-subtle:#e8eaed; --border-default:#dadce0;
+  }
   *{box-sizing:border-box;margin:0}
-  body{width:${W}px;height:${H}px;background:var(--paper);color:var(--ink);
-       font-family:Inter,system-ui,sans-serif;
-       padding:88px 84px;display:flex;flex-direction:column}
-  .main{flex:1;display:flex;flex-direction:column;justify-content:center}
-  .eyebrow{font-family:"Roboto Mono",monospace;font-size:24px;letter-spacing:0.18em;color:var(--muted)}
-  .count{display:flex;align-items:baseline;gap:22px;margin-top:56px}
-  .count .n{font-family:"Roboto Mono",monospace;font-weight:500;
-            font-size:${numeric ? '300px' : '150px'};line-height:0.86;letter-spacing:-0.04em;color:var(--accent)}
-  .count .u{font-family:Inter,sans-serif;font-size:46px;color:var(--muted);padding-bottom:22px}
-  h1{font-family:Inter,sans-serif;font-weight:700;font-size:74px;line-height:1.1;
-     letter-spacing:-0.01em;margin-top:44px;text-wrap:balance}
-  .when{font-size:38px;color:var(--muted);margin-top:22px}
-  .foot{display:flex;align-items:center;justify-content:space-between;gap:30px;
-        border-top:3px solid var(--ink);padding-top:30px}
-  .src{font-family:"Roboto Mono",monospace;font-size:19px;line-height:1.5;color:var(--muted);max-width:640px;word-break:break-all}
-  svg{width:118px;height:118px;flex:none}
+  body{width:${W}px;height:${H}px;background:var(--bg-base);color:var(--text-primary);
+       font-family:Inter,system-ui,sans-serif;padding:64px;display:flex}
+
+  /* Η κάρτα: ίδια γωνία (14) και ίδιο περίγραμμα με κάθε κάρτα της εφαρμογής,
+     σε κλίμακα ώστε να διαβάζεται σε τηλέφωνο. */
+  .card{flex:1;background:var(--bg-surface);border:2px solid var(--border-subtle);
+        border-radius:42px;padding:76px 72px;display:flex;flex-direction:column}
+
+  .brand{display:flex;align-items:center;gap:20px}
+  .brand .tile{width:64px;height:64px;border-radius:19px;background:var(--accent);
+       color:var(--on-tone);display:flex;align-items:center;justify-content:center;
+       font-size:33px;font-weight:800;line-height:1;letter-spacing:-0.02em}
+  .brand .name{font-size:30px;font-weight:600;color:var(--text-secondary);letter-spacing:-0.01em}
+
+  .mid{flex:1;display:flex;flex-direction:column;justify-content:center;gap:26px}
+  .eyebrow{font-family:"Roboto Mono",monospace;font-size:23px;letter-spacing:0.14em;
+           color:var(--text-tertiary)}
+  .count{display:flex;align-items:baseline;gap:20px}
+  .count .n{font-size:${numeric ? '250px' : '120px'};font-weight:800;line-height:0.84;
+            letter-spacing:-0.05em;color:var(--accent);font-variant-numeric:tabular-nums}
+  .count .u{font-size:40px;font-weight:500;color:var(--text-secondary);padding-bottom:16px}
+
+  /* Ο μετρητής ως μπάρα: το ιδίωμα προόδου της εφαρμογής. */
+  .bar{height:14px;border-radius:100px;background:var(--border-subtle);overflow:hidden}
+  .bar i{display:block;height:100%;width:${fill}%;background:var(--accent);border-radius:100px}
+
+  h1{font-size:62px;font-weight:700;line-height:1.14;letter-spacing:-0.02em;text-wrap:balance}
+  .when{font-size:34px;color:var(--text-secondary)}
+
+  .foot{display:flex;align-items:flex-end;justify-content:space-between;gap:28px;
+        border-top:2px solid var(--border-subtle);padding-top:30px}
+  .src{font-family:"Roboto Mono",monospace;font-size:19px;line-height:1.5;
+       color:var(--text-tertiary);max-width:640px;word-break:break-all}
+  .noa{width:72px;height:72px;border-radius:21px;background:var(--accent);color:var(--on-tone);
+       display:flex;align-items:center;justify-content:center;font-size:37px;font-weight:800;
+       line-height:1;letter-spacing:-0.02em;flex:none}
 </style></head><body>
-  <div class="main">
-    <div class="eyebrow">ΠΡΟΘΕΣΜΙΑ ΓΙΑ ΙΔΙΟΚΤΗΤΕΣ</div>
-    <div class="count"><span class="n">${c.big}</span><span class="u">${numeric ? c.small : ''}</span></div>
-    <h1>${o.title}</h1>
-    <div class="when">${dateGr(o.date)}${o.confidence === 'announced' ? ' (αναμένεται)' : ''}</div>
-  </div>
-  <div class="foot">
-    <div class="src">${o.official_url}</div>
-    <svg viewBox="0 0 512 512">
-      <defs><clipPath id="nc"><circle cx="256" cy="256" r="256"/></clipPath></defs>
-      <g clip-path="url(#nc)">
-        <rect width="512" height="512" fill="#FFFFFF"/>
-        <circle cx="256" cy="256" r="196" fill="none" stroke="var(--rule)" stroke-width="20"/>
-        <circle cx="256" cy="256" r="196" fill="none" stroke="var(--accent)" stroke-width="20"
-                stroke-linecap="round" stroke-dasharray="${ringDash(days)}" transform="rotate(-90 256 256)"/>
-        <text x="256" y="262" text-anchor="middle" dominant-baseline="central"
-              font-family="Inter, sans-serif" font-size="230" font-weight="700" fill="var(--ink)">Ν</text>
-      </g>
-    </svg>
+  <div class="card">
+    <div class="brand"><div class="tile">P</div><div class="name">Property OS</div></div>
+    <div class="mid">
+      <div class="eyebrow">ΠΡΟΘΕΣΜΙΑ ΓΙΑ ΙΔΙΟΚΤΗΤΕΣ</div>
+      <div class="count"><span class="n">${c.big}</span><span class="u">${numeric ? c.small : ''}</span></div>
+      <div class="bar"><i></i></div>
+      <h1>${o.title}</h1>
+      <div class="when">${dateGr(o.date)}${o.confidence === 'announced' ? ' (αναμένεται)' : ''}</div>
+    </div>
+    <div class="foot">
+      <div class="src">${o.official_url}</div>
+      <div class="noa">Ν</div>
+    </div>
   </div>
 </body></html>`;
 }
