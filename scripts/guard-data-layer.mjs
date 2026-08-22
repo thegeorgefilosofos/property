@@ -41,6 +41,7 @@ const OWNED = {
   property_documents: 'lib/data/documents.ts',
   bills_settings: 'lib/data/settings.ts',
   inbound_messages: 'lib/data/inbound.ts',
+  portal_links: 'lib/data/portal.ts',
   inbound_mailboxes: 'lib/data/inbound.ts',
 }
 

@@ -11,6 +11,7 @@ import { createClient } from '@/lib/supabase/client';
 import * as expenses from '@/lib/data/expenses';
 import * as calendar from '@/lib/data/calendar'
 import * as tenantStore from '@/lib/data/tenants';
+import * as portalStore from '@/lib/data/portal';
 import { T, fd, fe, EmptyState, Skeleton, pressable } from '@/components/Theme';
 import { notify, notifyOk, notifyError } from '@/components/Toast';
 import { athensToday } from '@/lib/core/time';
@@ -61,11 +62,11 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
   const [signedPhotos, setSignedPhotos] = useState<Record<string, string[]>>({});
 
   const load = useCallback(async () => {
-    const { data: link } = await supabase.from('portal_links').select('token, payment_link, pin_hash, tenant_id').eq('property_id', propertyId).eq('user_id', userId).maybeSingle();
-    setToken(link?.token || null);
-    setPayLink(link?.payment_link || '');
-    setPinSet(!!link?.pin_hash);
-    setLinkTenant(link?.tenant_id || null);
+    const { row } = await portalStore.link(supabase, propertyId, userId);
+    setToken(row?.token || null);
+    setPayLink(row?.payment_link || '');
+    setPinSet(!!row?.pin_hash);
+    setLinkTenant(row?.tenant_id || null);
     // «Ο τρέχων μισθωτής» έρχεται από το στρώμα, που τον ορίζει μία φορά για
     // όλη την εφαρμογή: όποιος δεν έχει φύγει, με τη νεότερη μίσθωση πρώτη. Εδώ
     // έλεγε «ο πιο πρόσφατα δημιουργημένος», που είναι άλλος άνθρωπος όταν ο
@@ -81,7 +82,7 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
     setBusy(true);
     const v = payLink.trim();
     const ok = await saved('Ο σύνδεσμος πληρωμής δεν αποθηκεύτηκε',
-      supabase.from('portal_links').update({ payment_link: v || null }).eq('property_id', propertyId).eq('user_id', userId));
+      portalStore.savePaymentLink(supabase, propertyId, userId, v));
     setBusy(false);
     if (ok) notifyOk('Ο σύνδεσμος πληρωμής αποθηκεύτηκε');
   };
@@ -131,7 +132,7 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
     // Το tenant_id μπαίνει ΤΩΡΑ, στη γέννηση του συνδέσμου. Αν το ακίνητο δεν
     // έχει ακόμη ενοικιαστή μένει null — δεν υπάρχει κάτι να διαρρεύσει — και ο
     // ιδιοκτήτης θα δει το κουμπί δεσίματος μόλις καταχωρήσει τον πρώτο.
-    const { data, error } = await supabase.from('portal_links').insert({ property_id: propertyId, user_id: userId, tenant_id: tenant?.id ?? null }).select('token, tenant_id').single();
+    const { data, error } = await portalStore.create(supabase, propertyId, userId, tenant?.id ?? null);
     setBusy(false);
     if (!error && data) { setToken(data.token); setLinkTenant(data.tenant_id || null); }
     else if (error) notifyError(failed('Η ρύθμιση της πύλης δεν αποθηκεύτηκε', error));
@@ -143,7 +144,7 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
   const bind = async () => {
     if (!tenant) return;
     setBusy(true);
-    const { error } = await supabase.from('portal_links').update({ tenant_id: tenant.id }).eq('property_id', propertyId).eq('user_id', userId);
+    const { error } = await portalStore.bindTenant(supabase, propertyId, userId, tenant.id);
     setBusy(false);
     if (error) { notifyError(failed('Η ρύθμιση της πύλης δεν αποθηκεύτηκε', error)); return; }
     setLinkTenant(tenant.id);
@@ -157,7 +158,7 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
     if (!tenant) return;
     setBusy(true);
     const t = newToken();
-    const { error } = await supabase.from('portal_links').update({ token: t, tenant_id: tenant.id }).eq('property_id', propertyId).eq('user_id', userId);
+    const { error } = await portalStore.reissue(supabase, propertyId, userId, tenant.id, t);
     setBusy(false);
     if (error) { notifyError(failed('Η ρύθμιση της πύλης δεν αποθηκεύτηκε', error)); return; }
     setToken(t); setLinkTenant(tenant.id); setCopied(false);
@@ -169,7 +170,11 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
   const staleLink = !!token && !!tenant && !!linkTenant && linkTenant !== tenant.id;
   const unboundLink = !!token && !!tenant && !linkTenant;
 
-  const url = token && typeof window !== 'undefined' ? `${window.location.origin}/portal/${token}` : '';
+  // Η ΔΙΕΥΘΥΝΣΗ ΕΡΧΕΤΑΙ ΑΠΟ ΤΟ ΠΕΡΙΒΑΛΛΟΝ, ΟΧΙ ΑΠΟ ΤΟΝ ΠΕΡΙΗΓΗΤΗ. Αυτός ο
+  // σύνδεσμος φεύγει σε άλλον άνθρωπο: γραμμένος από το `location.origin`, ο
+  // ιδιοκτήτης που δούλευε σε διεύθυνση προεπισκόπησης θα έστελνε στον μισθωτή
+  // του διεύθυνση που αύριο δεν απαντά.
+  const url = portalStore.portalUrl(token);
   const copy = () => { if (url) { navigator.clipboard?.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); } };
   const setStatus = async (id: string, status: string) => {
     if (await saved('Η κατάσταση του αιτήματος δεν άλλαξε',

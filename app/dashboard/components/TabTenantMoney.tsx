@@ -7,6 +7,8 @@ import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
 import * as tenantStore from '@/lib/data/tenants';
 import * as rentStore from '@/lib/data/rent';
+import * as portalStore from '@/lib/data/portal';
+import { rentReminder, rentRequest, rentReceipt, rentStage, rentSubject, requestSubject } from '@/lib/tenant/rentMessage';
 import { rowsForPeriods } from './rentInstalments';
 import {
   s,
@@ -32,6 +34,7 @@ import {
   EmptyState,
   Modal,
   fe,
+  fdLong,
   fn,
   fp,
   Spinner,
@@ -56,9 +59,9 @@ import { classifyDocType, type ScannedDoc } from '@/lib/billing/documents';
 import { hasFeature } from '@/lib/billing/entitlements';
 import type { PlanId } from '@/lib/billing/plans';
 import {
-  daysUntil,
+  daysUntil, isoYear, isoMonth, localDay,
 } from '@/lib/core/time';
-import { MONTHS_NOM, MONTHS_SHORT, monthNom } from '@/lib/core/months';
+import { MONTHS_NOM, MONTHS_SHORT, monthNom, monthGen } from '@/lib/core/months';
 import { INK, INK_MUTED, RULE } from '@/lib/print/ink';
 import { AadeLinks } from '@/components/AadeLink';
 import { failed } from '@/lib/core/dbError';
@@ -380,6 +383,19 @@ export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, 
   // ενοικίου ούτε στα μηνύματα υπενθύμισης — χωρίς κανένα σφάλμα στην οθόνη.
   useEffect(()=>{ properties.one<{name:string;address:string|null}>(supabase, propertyId, 'name,address').then(setProp); },[propertyId]);
 
+  // ── Η ΠΥΛΗ ΤΟΥ ΜΙΣΘΩΤΗ, ΓΙΑ ΝΑ ΤΑΞΙΔΕΨΕΙ ΜΕ ΤΟ ΜΗΝΥΜΑ ────────────────────
+  // Η πύλη υπήρχε και ΚΑΝΕΝΑ μήνυμα δεν την έστελνε: ο σύνδεσμος αντιγραφόταν
+  // με το χέρι από άλλη οθόνη, ή δεν έφτανε ποτέ. Χωρίς αυτόν, ο μισθωτής δεν
+  // έχει πού να δει τι πληρώνει και τι έχει πληρώσει — και ρωτά τον ιδιοκτήτη.
+  const [portalToken,setPortalToken]=useState<string|null>(null);
+  useEffect(()=>{
+    let live=true;
+    portalStore.link(supabase, propertyId, userId).then(({ row })=>{ if(live) setPortalToken(row?.token||null); });
+    return ()=>{ live=false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[propertyId,userId]);
+  const portalUrl=portalStore.portalUrl(portalToken);
+
   const periodMonths=monthsPerInstalment(tenant.payment_frequency);
   const expected=useMemo(()=>expectedPeriods(tenant,rentDueDay),[tenant,rentDueDay]);
   const existingKeys=useMemo(()=>new Set(payments.map(p=>`${p.period_year}-${p.period_month}`)),[payments]);
@@ -529,8 +545,39 @@ export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, 
   // στην καρτέλα από πάνω έγραφε «450,00 €». Είναι το κείμενο που φεύγει σε
   // WhatsApp και SMS — εκεί η ασυνέπεια δεν φαίνεται ως στιλ, φαίνεται ως λάθος
   // ποσό.
-  const reminderText=(p:RentPayment)=>`Υπενθύμιση ενοικίου, ${propLabel()||'ακίνητο'}: μίσθωμα ${fe(p.amount)} για ${monthLabel(p)}${p.due_date?`, λήξη ${new Date(p.due_date+'T00:00:00').toLocaleDateString('el-GR')}`:''}. Ευχαριστώ.`;
-  const receiptText=(p:RentPayment)=>`Εξοφλήθη το ενοίκιο ${monthLabel(p)} (${fe(p.amount)})${p.method?`, ${p.method}`:''}. Ευχαριστώ.`;
+  // ΤΑ ΤΡΙΑ ΜΗΝΥΜΑΤΑ ΖΟΥΝ ΣΤΟ lib/tenant/rentMessage.ts, ΔΟΚΙΜΑΣΜΕΝΑ. Ηταν
+  // πρότυπες συμβολοσειρές εδώ μέσα, χωρίς έναν έλεγχο — και είναι το μόνο
+  // κείμενο της εφαρμογής που το διαβάζει άνθρωπος που δεν είναι πελάτης μας.
+  // Εδώ μένει μόνο η μετάφραση της γραμμής σε ό,τι περιμένει το πρότυπο.
+  // Η ΧΡΟΝΙΑ ΛΕΓΕΤΑΙ ΜΙΑ ΦΟΡΑ. Η περίοδος γράφει ήδη «Σεπτεμβρίου 2026»· μια
+  // πλήρης ημερομηνία λήξης θα την έλεγε δεύτερη φορά στην ίδια πρόταση. Οταν
+  // η λήξη πέφτει σε ΑΛΛΗ χρονιά από την περίοδο, η χρονιά μένει — εκεί δεν
+  // είναι επανάληψη, είναι η πληροφορία.
+  const dueLabelOf=(p:RentPayment):string|null=>{
+    if(!p.due_date) return null;
+    const y=isoYear(p.due_date), m=isoMonth(p.due_date);
+    if(y===null||m===null) return null;
+    if(y!==p.period_year) return fdLong(p.due_date);
+    return `${localDay(p.due_date).getDate()} ${monthGen(m-1)}`;
+  };
+
+  const msgOf=(p:RentPayment)=>({
+    property: propLabel(),
+    // ΓΕΝΙΚΗ, ΟΧΙ ΟΝΟΜΑΣΤΙΚΗ. Η οθόνη γράφει «Σεπτέμβριος 2026» σε στήλη πίνακα,
+    // όπου η ονομαστική είναι σωστή. Μέσα σε πρόταση —«Ενοίκιο Σεπτεμβρίου
+    // 2026»— η ίδια λέξη θέλει γενική, αλλιώς το μήνυμα προς τον μισθωτή
+    // διαβάζεται σαν μεταφρασμένο από μηχανή.
+    period: periodLabel(p.period_year,p.period_month,periodMonths,monthGen),
+    amount: p.amount,
+    baseRent: p.base_rent,
+    services: p.services_charge,
+    dueLabel: dueLabelOf(p),
+    stage: rentStage(p.due_date?daysUntil(p.due_date):null),
+    portalUrl,
+    method: p.method,
+  });
+  const reminderText=(p:RentPayment)=>rentReminder(msgOf(p));
+  const receiptText=(p:RentPayment)=>rentReceipt(msgOf(p));
 
   // ── Αίτημα πληρωμής (IBAN / QR / κοινοποίηση) ──
   const landlordName=branding?.companyName?brandName(branding):'Ιδιοκτήτης';
@@ -541,11 +588,7 @@ export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, 
   // QR τοπικά: το IBAN και το ποσό της πληρωμής δεν φεύγουν σε εξωτερική υπηρεσία.
   const qrSrc=(data:string)=>qrDataUrl(data,{ size:240 });
   const reqRef=(p:RentPayment)=>`Ενοίκιο ${monthLabel(p)}${tenant.full_name?` · ${tenant.full_name}`:''}`;
-  const paymentRequestText=(p:RentPayment)=>{
-    const br=(p.services_charge&&p.services_charge>0)?` (ενοίκιο ${fe(p.base_rent||0)} + υπηρεσίες ${fe(p.services_charge||0)})`:'';
-    const ibanPart=tenant.rent_iban?` Πληρωμή σε IBAN ${tenant.rent_iban} (${landlordName}).`:'';
-    return `Αίτημα πληρωμής, ${propLabel()||'ακίνητο'}: ${fe(p.amount)} για ${monthLabel(p)}${br}.${ibanPart}${p.due_date?` Λήξη ${new Date(p.due_date+'T00:00:00').toLocaleDateString('el-GR')}.`:''}`;
-  };
+  const paymentRequestText=(p:RentPayment)=>rentRequest({ ...msgOf(p), iban: tenant.rent_iban, landlord: landlordName });
 
   // ── Μηνιαία κατάσταση προς τον μισθωτή: «Τι περιλαμβάνει / τι χρεώνεται» ──
   const printStatement=(p:RentPayment)=>{
@@ -770,6 +813,11 @@ export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, 
                       {p.paid&&<button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} onClick={()=>printReceipt(p)}>Απόδειξη</button>}
                       {tenant.phone&&(p.paid||canCollect)&&<a href={p.paid?whatsappLink(msgDigits(tenant.phone),receiptText(p)):whatsappLink(msgDigits(tenant.phone),reminderText(p))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>WhatsApp</a>}
                       {tenant.phone&&(p.paid||canCollect)&&<a href={viberLink(p.paid?receiptText(p):reminderText(p))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>Viber</a>}
+                      {/* ΤΟ ΤΑΧΥΔΡΟΜΕΙΟ ΕΛΕΙΠΕ, ΚΑΙ ΜΕ ΑΥΤΟ ΟΛΟΚΛΗΡΗ Η ΥΠΕΝΘΥΜΙΣΗ.
+                          Η γραμμή έδινε WhatsApp και Viber, και τα δύο δεμένα στο
+                          ΤΗΛΕΦΩΝΟ. Οποιος ιδιοκτήτης είχε μόνο το email του μισθωτή
+                          του δεν είχε ΚΑΝΕΝΑΝ τρόπο να στείλει υπενθύμιση από εδώ. */}
+                      {tenant.email&&(p.paid||canCollect)&&<a href={`mailto:${tenant.email}?subject=${encodeURIComponent(rentSubject(monthLabel(p)))}&body=${encodeURIComponent(p.paid?receiptText(p):reminderText(p))}`} style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>Ηλεκτρονικό ταχυδρομείο</a>}
                       <button style={s.btnDng} onClick={async()=>{if(!(await confirmDialog('Διαγραφή πληρωμής;',{tone:'negative'})))return;if(await saved('Η πληρωμή δεν διαγράφηκε',rentStore.remove(supabase,p.id)))onRefresh();}}>Διαγραφή</button>
                     </div>
                   </td>
@@ -833,7 +881,7 @@ export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, 
             <div style={{ display:'flex', gap:8, flexWrap:'wrap' as const }}>
               {tenant.phone&&<a href={whatsappLink(msgDigits(tenant.phone),paymentRequestText(req))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, textDecoration:'none' }}>WhatsApp</a>}
               {tenant.phone&&<a href={viberLink(paymentRequestText(req))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, textDecoration:'none' }}>Viber</a>}
-              {tenant.email&&<a href={`mailto:${tenant.email}?subject=${encodeURIComponent('Αίτημα πληρωμής ενοικίου '+monthLabel(req))}&body=${encodeURIComponent(paymentRequestText(req))}`} style={{ ...s.btnGhost, textDecoration:'none' }}>Ηλεκτρονικό ταχυδρομείο</a>}
+              {tenant.email&&<a href={`mailto:${tenant.email}?subject=${encodeURIComponent(requestSubject(monthLabel(req)))}&body=${encodeURIComponent(paymentRequestText(req))}`} style={{ ...s.btnGhost, textDecoration:'none' }}>Ηλεκτρονικό ταχυδρομείο</a>}
               {/* Το catch ήταν κενό: αν η αντιγραφή αποτύγχανε (άρνηση δικαιώματος, μη ασφαλές
                   context), ο χρήστης νόμιζε ότι το κείμενο ήταν στο πρόχειρο και το επικολλούσε στο κενό. */}
               <button style={s.btnGhost} onClick={()=>{ try{ navigator.clipboard.writeText(paymentRequestText(req)); notifyOk('Το κείμενο αντιγράφηκε'); }catch{ notifyError('Δεν έγινε η αντιγραφή. Επίλεξε και αντίγραψε το κείμενο χειροκίνητα.'); } }}>Αντιγραφή κειμένου</button>
