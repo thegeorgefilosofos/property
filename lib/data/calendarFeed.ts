@@ -10,17 +10,32 @@
 // ακριβώς το ζητούμενο.
 // ═══════════════════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { CalendarFeedsRow } from '@/lib/supabase/tables';
+import type { CalendarFeedTokensRow } from '@/lib/supabase/tables';
 import type { DbError } from '@/lib/supabase/writeResult';
 import { readOne, type ReadOneResult } from './read';
 import { siteUrl } from '@/lib/core/site';
 
-const TABLE = 'calendar_feeds';
+// Ο ΠΙΝΑΚΑΣ ΥΠΗΡΧΕ ΗΔΗ, ΚΑΙ ΤΟΝ ΧΡΗΣΙΜΟΠΟΙΕΙ Η «ΖΩΝΤΑΝΗ ΣΥΝΔΡΟΜΗ» ΤΟΥ
+// ΗΜΕΡΟΛΟΓΙΟΥ. Δεύτερος πίνακας για το ίδιο μυστικό θα σήμαινε δύο διευθύνσεις
+// ανά χρήστη και μία από τις δύο να μένει ζωντανή όταν ακυρωθεί η άλλη.
+const TABLE = 'calendar_feed_tokens';
 
 export type Db = SupabaseClient;
 
-export type FeedRow = Pick<CalendarFeedsRow, 'token' | 'active'>;
-export type FeedOwner = Pick<CalendarFeedsRow, 'user_id' | 'active'>;
+export type FeedRow = Pick<CalendarFeedTokensRow, 'token'>;
+export type FeedOwner = Pick<CalendarFeedTokensRow, 'user_id' | 'expires_at'>;
+
+/**
+ * Εχει λήξει το κουπόνι;
+ *
+ * ΤΟ `expires_at` ΜΠΗΚΕ ΜΕ ΤΟΝ ΕΛΕΓΧΟ ΔΙΕΙΣΔΥΣΗΣ (20260723100000) ΚΑΙ ΕΧΕΙ
+ * ΝΟΗΜΑ ΜΟΝΟ ΑΝ ΤΟ ΚΟΙΤΑΞΕΙ ΚΑΠΟΙΟΣ. Δύο χρόνια ζωής ανά διεύθυνση: ένα
+ * κουπόνι που διέρρευσε σταματά μόνο του, ακόμη κι αν ο ιδιοκτήτης δεν το
+ * ακύρωσε ποτέ. Οι παλιές γραμμές με `null` δεν λήγουν, όπως το όρισε εκείνη η
+ * μετανάστευση.
+ */
+export const feedExpired = (row: FeedOwner | null, now = Date.now()): boolean =>
+  !!row?.expires_at && Date.parse(row.expires_at) <= now;
 
 /**
  * Η διεύθυνση που προστίθεται στο ημερολόγιο του χρήστη.
@@ -38,12 +53,12 @@ export const feedSubscribeUrl = (token: string | null | undefined): string =>
 
 /** Η συνδρομή του συνδεδεμένου, ή τίποτα όταν δεν έχει γεννηθεί. */
 export async function feed(db: Db, userId: string): Promise<ReadOneResult<FeedRow>> {
-  return readOne<FeedRow>(db.from(TABLE).select('token,active').eq('user_id', userId).maybeSingle());
+  return readOne<FeedRow>(db.from(TABLE).select('token').eq('user_id', userId).maybeSingle());
 }
 
 /** Σε ποιον ανήκει ένα κουπόνι. ΜΟΝΟ για τον διακομιστή. */
 export async function ownerOfToken(db: Db, token: string): Promise<ReadOneResult<FeedOwner>> {
-  return readOne<FeedOwner>(db.from(TABLE).select('user_id,active').eq('token', token).maybeSingle());
+  return readOne<FeedOwner>(db.from(TABLE).select('user_id,expires_at').eq('token', token).maybeSingle());
 }
 
 /** Νέα διεύθυνση, όταν η παλιά έφυγε σε συσκευή που δεν ελέγχουμε πια. */

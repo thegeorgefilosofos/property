@@ -1423,12 +1423,12 @@ declare
   b uuid := '22222222-2222-2222-2222-222222222222';
   ca text; cb text; ia text;
 begin
-  select token into ca from public.calendar_feeds where user_id = a;
-  select token into cb from public.calendar_feeds where user_id = b;
+  select token into ca from public.calendar_feed_tokens where user_id = a;
+  select token into cb from public.calendar_feed_tokens where user_id = b;
   if ca is null or cb is null then
     raise exception 'Ο λογαριασμός γεννήθηκε ΧΩΡΙΣ συνδρομή ημερολογίου';
   end if;
-  if ca !~ '^[0-9a-f]{16}$' then
+  if ca !~ '^[0-9a-f]{16,64}$' then
     raise exception 'Το κουπόνι ημερολογίου δεν έχει τη μορφή που περιμένει η διαδρομή: %', ca;
   end if;
   if ca = cb then
@@ -1445,17 +1445,24 @@ begin
   raise notice 'probe: κάθε λογαριασμός έχει δική του συνδρομή ημερολογίου, ξένη προς το ταχυδρομείο του';
 end $probe$;
 
+-- ΤΟ ΚΟΥΠΟΝΙ ΤΟΥ Α ΓΕΡΝΑΕΙ ΤΕΧΝΗΤΑ, ΜΕ ΤΑ ΔΙΚΑΙΩΜΑΤΑ ΤΟΥ ΔΙΑΚΟΜΙΣΤΗ. Ο ίδιος
+-- ο χρήστης ΔΕΝ έχει πολιτική update — γι' αυτό υπάρχει η συνάρτηση
+-- περιστροφής — οπότε μια τέτοια γραμμή μέσα στο μπλοκ του χρήστη θα άγγιζε
+-- μηδέν γραμμές και ο έλεγχος από κάτω θα ήταν κενός.
+update public.calendar_feed_tokens set expires_at = now() - interval '1 day'
+ where user_id = '11111111-1111-1111-1111-111111111111';
+
 set role authenticated;
 set session "probe.uid" = '11111111-1111-1111-1111-111111111111';
 
 do $probe$
 declare n int; t text;
 begin
-  select count(*) into n from public.calendar_feeds;
+  select count(*) into n from public.calendar_feed_tokens;
   if n <> 1 then raise exception 'ΔΙΑΡΡΟΗ: ο Α βλέπει % συνδρομές αντί για τη δική του', n; end if;
 
   begin
-    update public.calendar_feeds set token = 'ffffffffffffffff'
+    update public.calendar_feed_tokens set token = 'ffffffffffffffff'
      where user_id = '11111111-1111-1111-1111-111111111111';
     get diagnostics n = row_count;
     if n <> 0 then raise exception 'ΔΙΑΡΡΟΗ: ο χρήστης άλλαξε μόνος του το κουπόνι ημερολογίου χωρίς περιστροφή'; end if;
@@ -1464,8 +1471,10 @@ begin
     when others then if sqlerrm like 'ΔΙΑΡΡΟΗ%' then raise; end if;
   end;
 
+  -- Ο πίνακας ΕΧΕΙ πολιτική insert (από το baseline), αλλά με `with check` στον
+  -- ίδιο τον χρήστη: γραμμή στο όνομα άλλου δεν περνά.
   begin
-    insert into public.calendar_feeds (user_id, token)
+    insert into public.calendar_feed_tokens (user_id, token)
       values ('22222222-2222-2222-2222-222222222222', 'bbbbbbbbbbbbbbbb');
     raise exception 'ΔΙΑΡΡΟΗ: ο Α έγραψε κουπόνι ημερολογίου στο όνομα του Β';
   exception
@@ -1474,9 +1483,12 @@ begin
   end;
 
   select public.rotate_calendar_feed() into t;
-  if t !~ '^[0-9a-f]{16}$' then raise exception 'Η περιστροφή ημερολογίου δεν έδωσε κουπόνι: %', t; end if;
-  select count(*) into n from public.calendar_feeds where token = t;
+  if t !~ '^[0-9a-f]{16,64}$' then raise exception 'Η περιστροφή ημερολογίου δεν έδωσε κουπόνι: %', t; end if;
+  select count(*) into n from public.calendar_feed_tokens where token = t;
   if n <> 1 then raise exception 'Το νέο κουπόνι ημερολογίου δεν γράφτηκε'; end if;
+  select count(*) into n from public.calendar_feed_tokens
+   where token = t and expires_at > now() + interval '700 days';
+  if n <> 1 then raise exception 'Η ΝΕΑ ΔΙΕΥΘΥΝΣΗ ΚΛΗΡΟΝΟΜΗΣΕ ΤΗ ΛΗΞΗ ΤΗΣ ΠΑΛΙΑΣ'; end if;
   raise notice 'probe: η συνδρομή διαβάζεται μόνο από τον κάτοχο και αλλάζει με μία κλήση';
 end $probe$;
 

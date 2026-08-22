@@ -130,7 +130,6 @@ Cron authenticates to functions with a shared secret from `cron_secrets`
 | `market-data-updater` | Daily macro-rate + tariff refresh |
 | `bank-rates-updater` | Monthly mortgage-rate refresh |
 | `ical-sync` | Server-side external iCal import (bypasses browser CORS) |
-| `calendar-feed` | Live `.ics`/webcal feed (token-authed) |
 | `bookings-feed` | Exports a property's busy `.ics` for two-way sync |
 | `smart-suggestions` | In-app smart suggestions |
 | `_shared` | Shared email templates/copy, CORS, cadence policy (not deployable) |

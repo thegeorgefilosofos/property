@@ -31,7 +31,7 @@ export default function CalendarFeedRow({ userId }: { userId: string }) {
     let live = true;
     feedStore.feed(supabase, userId).then(({ row }) => {
       if (!live) return;
-      setToken(row?.active ? row.token : null);
+      setToken(row?.token || null);
       setLoaded(true);
     });
     return () => { live = false; };
@@ -47,11 +47,11 @@ export default function CalendarFeedRow({ userId }: { userId: string }) {
   return (
     <SecretAddressRow
       title="Ημερολόγιο προθεσμιών"
-      desc="Οι λογαριασμοί που λήγουν, οι δόσεις ενοικίου, οι εκκρεμότητες και τα γεγονότα του ημερολογίου, μέσα στο ημερολόγιο του κινητού ή του υπολογιστή σου. Μπαίνει μία φορά και ενημερώνεται μόνο του."
+      desc="Οι λογαριασμοί που λήγουν, οι δόσεις ενοικίου, οι εκκρεμότητες και τα γεγονότα του ημερολογίου, μέσα στο ημερολόγιο του κινητού ή του υπολογιστή σου. Μπαίνει μία φορά και ενημερώνεται μόνο του. Είναι η ίδια διεύθυνση με τη «Ζωντανή συνδρομή» του Ημερολογίου."
       value={feedStore.feedUrl(token)}
       loaded={loaded}
       unavailable="Ο λογαριασμός σου δεν έχει ακόμη διεύθυνση ημερολογίου."
-      hint="Οποιος έχει τη διεύθυνση διαβάζει τις προθεσμίες σου. Δεν μπορεί να αλλάξει τίποτα, και την ακυρώνεις εδώ όποτε θέλεις."
+      hint="Οποιος έχει τη διεύθυνση διαβάζει τις προθεσμίες σου. Δεν μπορεί να αλλάξει τίποτα, και την ακυρώνεις εδώ όποτε θέλεις. Λήγει μόνη της μετά από δύο χρόνια."
       rotateHint="Η τωρινή διεύθυνση παύει να απαντά αμέσως, σε κάθε συσκευή όπου προστέθηκε."
       actions={token ? (
         <a href={feedStore.feedSubscribeUrl(token)} style={{ textDecoration: 'none' }}>

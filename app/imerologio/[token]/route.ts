@@ -52,7 +52,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
   // Η διεύθυνση τελειώνει σε `.ics` ώστε οι πελάτες ημερολογίου να την
   // αναγνωρίζουν ως αρχείο. Το κουπόνι είναι ό,τι μένει.
   const raw = (await params).token.replace(/\.ics$/i, '').toLowerCase();
-  if (!/^[0-9a-f]{16}$/.test(raw)) return notFound();
+  // ΔΥΟ ΜΗΚΗ, ΜΙΑ ΜΟΡΦΗ. Τα κουπόνια του πίνακα είναι 64 δεκαεξαδικά ψηφία (δύο
+  // uuid); ο έλεγχος δέχεται και μικρότερα ώστε να μη σπάσει αν αλλάξει η
+  // προεπιλογή, αλλά ΤΙΠΟΤΑ που δεν είναι δεκαεξαδικό δεν φτάνει στη βάση.
+  if (!/^[0-9a-f]{16,64}$/.test(raw)) return notFound();
 
   const missing = serviceClientError(process.env);
   if (missing) {
@@ -70,7 +73,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
       status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
     });
   }
-  if (!owner || !owner.active) return notFound();
+  // ΤΟ ΛΗΓΜΕΝΟ ΚΟΥΠΟΝΙ ΕΙΝΑΙ ΑΓΝΩΣΤΟ ΚΟΥΠΟΝΙ, ΚΑΙ ΑΠΑΝΤΑ ΤΟ ΙΔΙΟ. Μια
+  // ξεχωριστή απάντηση «έληξε» θα έλεγε σε όποιον το βρήκε ότι κάποτε ίσχυε.
+  if (!owner || feedStore.feedExpired(owner)) return notFound();
 
   const today = athensToday();
   const from = athensDatePlus(-DAYS_BACK);

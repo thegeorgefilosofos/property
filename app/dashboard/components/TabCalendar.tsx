@@ -14,6 +14,7 @@ import * as expenses from '@/lib/data/expenses'
 import { must } from '@/lib/supabase/must'
 // Ο πίνακας των γεγονότων έχει ένα σπίτι: lib/data/calendar.
 import * as calendar from '@/lib/data/calendar'
+import { feedUrl } from '@/lib/data/calendarFeed'
 // Ο πίνακας των δανείων έχει ένα σπίτι: lib/data/loans.
 import * as loanStore from '@/lib/data/loans'
 import type { BillsRow, CalendarEventsRow, ClientStaysRow, MaintenanceTasksRow } from '@/lib/supabase/tables'
@@ -1402,11 +1403,23 @@ function ScopeModal({ title, hint, danger, onPick, onClose }: { title:string; hi
 }
 
 // Ζωντανή συνδρομή: το εξωτερικό ημερολόγιο διαβάζει το feed και ενημερώνεται μόνο του.
+// ── ΜΙΑ ΣΥΝΔΡΟΜΗ, ΟΧΙ ΔΥΟ ────────────────────────────────────────────────────
+// Ο σύνδεσμος έδειχνε σε συνάρτηση άκρου (`/functions/v1/calendar-feed`) που
+// έγραφε ΔΙΚΟ ΤΗΣ .ics: τρίτο αντίγραφο της διαφυγής του προτύπου, και
+// αναδίπλωση γραμμής μετρημένη σε ΧΑΡΑΚΤΗΡΕΣ αντί για οκτάδες — δηλαδή κάθε
+// ελληνικός τίτλος πάνω από 37 γράμματα έσπαγε εκτός προτύπου. Εδειχνε επίσης
+// ΜΟΝΟ τα γεγονότα του ημερολογίου: ούτε λογαριασμός που λήγει, ούτε δόση
+// ενοικίου, ούτε εκκρεμότητα με προθεσμία.
+//
+// Δείχνει πλέον στη διαδρομή της εφαρμογής (`/imerologio/<κουπόνι>.ics`), που
+// είναι δοκιμασμένη, τυλίγει σωστά και κουβαλά και τις τέσσερις πηγές. Το
+// κουπόνι είναι ΤΟ ΙΔΙΟ — ίδιος πίνακας, ίδια γραμμή — οπότε καμία υπάρχουσα
+// συνδρομή δεν χάνεται· αλλάζει μόνο η διεύθυνση που προτείνουμε.
 function SubscribeModal({ token, propertyId, onClose }: { token:string|null; propertyId:string; onClose:()=>void }) {
   const [copied,setCopied]=useState(false)
   const [copiedBusy,setCopiedBusy]=useState(false)
   const base=(process.env.NEXT_PUBLIC_SUPABASE_URL||'').replace(/\/$/,'')
-  const httpsUrl=token?`${base}/functions/v1/calendar-feed?token=${token}&property=${propertyId}`:''
+  const httpsUrl=feedUrl(token)
   const busyUrl=token?`${base}/functions/v1/bookings-feed?token=${token}&property=${propertyId}`:''
   const copyBusy=async()=>{ try{ await navigator.clipboard.writeText(busyUrl); setCopiedBusy(true); setTimeout(()=>setCopiedBusy(false),1800) }catch{} }
   const webcalUrl=httpsUrl.replace(/^https?:\/\//,'webcal://')
@@ -1416,7 +1429,7 @@ function SubscribeModal({ token, propertyId, onClose }: { token:string|null; pro
   return (
     <Modal open onClose={onClose} width={500} icon={<CalendarPlus size={19}/>}
       title="Ζωντανή συνδρομή"
-      subtitle="Σύνδεσε μία φορά, το ημερολόγιό σου ενημερώνεται αυτόματα σε Google, Apple ή Outlook.">
+      subtitle="Σύνδεσε μία φορά και το ημερολόγιό σου ενημερώνεται μόνο του, σε Google, Apple ή Outlook. Κουβαλά όλα σου τα ακίνητα: γεγονότα, λογαριασμούς που λήγουν, δόσεις ενοικίου και εκκρεμότητες με προθεσμία.">
       {!token?(
         <Spinner size={20} label="Δημιουργία συνδέσμου…" />
       ):(<>

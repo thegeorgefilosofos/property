@@ -39,10 +39,6 @@ verify_jwt = false
 enabled = true
 verify_jwt = false
 
-[functions.calendar-feed]
-enabled = true
-verify_jwt = false
-
 [functions.bookings-feed]
 enabled = true
 verify_jwt = false
