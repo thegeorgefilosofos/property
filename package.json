@@ -28,7 +28,7 @@
     "test": "node scripts/test.mjs",
     "e2e": "node scripts/e2e-public-tools.mjs",
     "e2e:dashboard": "node scripts/e2e-dashboard.mjs",
-    "e2e:inbound": "node scripts/e2e-inbound.mjs",
+    "e2e:perimeter": "node scripts/e2e-perimeter.mjs",
     "public-routes": "node scripts/guard-public-routes.mjs",
     "style-tags": "node scripts/guard-style-tags.mjs",
     "greek-numbers": "node scripts/guard-greek-numbers.mjs",

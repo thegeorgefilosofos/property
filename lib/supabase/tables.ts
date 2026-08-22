@@ -314,6 +314,14 @@ export interface CalendarFeedTokensRow {
   expires_at: string | null;
 }
 
+export interface CalendarFeedsRow {
+  user_id: string;
+  token: string;
+  active: boolean;
+  created_at: string;
+  rotated_at: string | null;
+}
+
 export interface CheckinLinksRow {
   id: string;
   token: string;
@@ -1378,6 +1386,7 @@ export interface Tables {
   book_closings: BookClosingsRow;
   calendar_events: CalendarEventsRow;
   calendar_feed_tokens: CalendarFeedTokensRow;
+  calendar_feeds: CalendarFeedsRow;
   checkin_links: CheckinLinksRow;
   checklist_items: ChecklistItemsRow;
   client_documents: ClientDocumentsRow;

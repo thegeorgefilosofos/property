@@ -8,6 +8,8 @@
 // γίνονται με ακέραιους (όχι Date arithmetic) για να μην υπάρχουν σφάλματα ζώνης ώρας.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { escapeIcsText, icsBody } from './ics'
+
 export interface CalendarEventInput {
   title: string
   date: string            // 'YYYY-MM-DD'
@@ -131,9 +133,11 @@ export function yahooCalendarUrl(e: CalendarEventInput): string {
 }
 
 // ── Apple Calendar / universal .ics ──────────────────────────────────────────
-function escapeICS(v: string): string {
-  return v.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n')
-}
+// Η ΔΙΑΦΥΓΗ ΚΑΙ ΤΟ ΤΥΛΙΓΜΑ ΖΟΥΝ ΣΤΟ `ics.ts`, ΜΙΑ ΦΟΡΑ. Εδώ υπήρχε ιδιωτικό
+// αντίγραφο της διαφυγής και ΚΑΝΕΝΑ τύλιγμα: ένας ελληνικός τίτλος 40
+// χαρακτήρων είναι ήδη 80 οκτάδες, δηλαδή γραμμή εκτός προτύπου. Οι αναγνώστες
+// που είναι αυστηροί την απορρίπτουν ολόκληρη.
+
 // Απλό, ντετερμινιστικό uid (χωρίς Math.random ώστε να είναι ελέγξιμο).
 function uid(e: CalendarEventInput): string {
   const base = `${e.date}-${e.time || 'allday'}-${e.title}`
@@ -152,11 +156,11 @@ export function buildICS(e: CalendarEventInput): string {
   } else {
     lines.push(`DTSTART:${r.startCompact}`, `DTEND:${r.endCompact}`)
   }
-  lines.push(`SUMMARY:${escapeICS(r.title)}`)
-  if (r.details) lines.push(`DESCRIPTION:${escapeICS(r.details)}`)
-  if (r.location) lines.push(`LOCATION:${escapeICS(r.location)}`)
+  lines.push(`SUMMARY:${escapeIcsText(r.title)}`)
+  if (r.details) lines.push(`DESCRIPTION:${escapeIcsText(r.details)}`)
+  if (r.location) lines.push(`LOCATION:${escapeIcsText(r.location)}`)
   lines.push('END:VEVENT', 'END:VCALENDAR')
-  return lines.join('\r\n')
+  return icsBody(lines)
 }
 // data: URI για κατέβασμα .ics (Apple/κινητό/laptop)
 export function icsDataUri(e: CalendarEventInput): string {

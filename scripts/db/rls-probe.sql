@@ -1404,3 +1404,81 @@ begin
   if n <> 1 then raise exception 'Το εισερχόμενο του Β άλλαξε κατάσταση από ξένο χέρι'; end if;
   raise notice 'probe: η περιστροφή του ενός δεν αγγίζει τον άλλον';
 end $probe$;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+--  Η ΣΥΝΔΡΟΜΗ ΗΜΕΡΟΛΟΓΙΟΥ: ΔΙΚΟ ΚΟΥΠΟΝΙ, ΔΙΚΗ ΚΛΕΙΔΑΡΙΑ
+-- ─────────────────────────────────────────────────────────────────────────
+--  ΤΙ ΘΑ ΣΗΜΑΙΝΕ ΔΙΑΡΡΟΗ ΕΔΩ. Οποιος διαβάσει το κουπόνι κάποιου βλέπει κάθε
+--  προθεσμία, κάθε ποσό και κάθε ημερομηνία πληρωμής του. Και όποιος μπορεί να
+--  ΓΡΑΨΕΙ κουπόνι, βάζει το δικό του στη γραμμή ενός άλλου και διαβάζει το
+--  ημερολόγιό του για πάντα.
+-- ═══════════════════════════════════════════════════════════════════════════
+
+reset role;
+set session "probe.uid" = '';
+
+do $probe$
+declare
+  a uuid := '11111111-1111-1111-1111-111111111111';
+  b uuid := '22222222-2222-2222-2222-222222222222';
+  ca text; cb text; ia text;
+begin
+  select token into ca from public.calendar_feeds where user_id = a;
+  select token into cb from public.calendar_feeds where user_id = b;
+  if ca is null or cb is null then
+    raise exception 'Ο λογαριασμός γεννήθηκε ΧΩΡΙΣ συνδρομή ημερολογίου';
+  end if;
+  if ca !~ '^[0-9a-f]{16}$' then
+    raise exception 'Το κουπόνι ημερολογίου δεν έχει τη μορφή που περιμένει η διαδρομή: %', ca;
+  end if;
+  if ca = cb then
+    raise exception 'ΔΥΟ ΛΟΓΑΡΙΑΣΜΟΙ ΜΕ ΤΟ ΙΔΙΟ ΚΟΥΠΟΝΙ ΗΜΕΡΟΛΟΓΙΟΥ';
+  end if;
+
+  -- ΤΟ ΚΟΥΠΟΝΙ ΤΟΥ ΗΜΕΡΟΛΟΓΙΟΥ ΔΕΝ ΕΙΝΑΙ ΤΟ ΚΟΥΠΟΝΙ ΤΟΥ EMAIL. Αν ήταν, η
+  -- διεύθυνση που κάθεται στις ρυθμίσεις κάθε τηλεφώνου θα άνοιγε και την πόρτα
+  -- που δέχεται λογαριασμούς.
+  select token into ia from public.inbound_mailboxes where user_id = a;
+  if ia = ca then
+    raise exception 'ΤΟ ΙΔΙΟ ΚΟΥΠΟΝΙ ΓΙΑ ΗΜΕΡΟΛΟΓΙΟ ΚΑΙ ΓΙΑ ΕΙΣΕΡΧΟΜΕΝΑ: δύο ρίσκα σε ένα μυστικό';
+  end if;
+  raise notice 'probe: κάθε λογαριασμός έχει δική του συνδρομή ημερολογίου, ξένη προς το ταχυδρομείο του';
+end $probe$;
+
+set role authenticated;
+set session "probe.uid" = '11111111-1111-1111-1111-111111111111';
+
+do $probe$
+declare n int; t text;
+begin
+  select count(*) into n from public.calendar_feeds;
+  if n <> 1 then raise exception 'ΔΙΑΡΡΟΗ: ο Α βλέπει % συνδρομές αντί για τη δική του', n; end if;
+
+  begin
+    update public.calendar_feeds set token = 'ffffffffffffffff'
+     where user_id = '11111111-1111-1111-1111-111111111111';
+    get diagnostics n = row_count;
+    if n <> 0 then raise exception 'ΔΙΑΡΡΟΗ: ο χρήστης άλλαξε μόνος του το κουπόνι ημερολογίου χωρίς περιστροφή'; end if;
+  exception
+    when insufficient_privilege then null;
+    when others then if sqlerrm like 'ΔΙΑΡΡΟΗ%' then raise; end if;
+  end;
+
+  begin
+    insert into public.calendar_feeds (user_id, token)
+      values ('22222222-2222-2222-2222-222222222222', 'bbbbbbbbbbbbbbbb');
+    raise exception 'ΔΙΑΡΡΟΗ: ο Α έγραψε κουπόνι ημερολογίου στο όνομα του Β';
+  exception
+    when insufficient_privilege or unique_violation then null;
+    when others then if sqlerrm like 'ΔΙΑΡΡΟΗ%' then raise; end if;
+  end;
+
+  select public.rotate_calendar_feed() into t;
+  if t !~ '^[0-9a-f]{16}$' then raise exception 'Η περιστροφή ημερολογίου δεν έδωσε κουπόνι: %', t; end if;
+  select count(*) into n from public.calendar_feeds where token = t;
+  if n <> 1 then raise exception 'Το νέο κουπόνι ημερολογίου δεν γράφτηκε'; end if;
+  raise notice 'probe: η συνδρομή διαβάζεται μόνο από τον κάτοχο και αλλάζει με μία κλήση';
+end $probe$;
+
+reset role;
+set session "probe.uid" = '';

@@ -26,6 +26,7 @@ import Feedback from './Feedback';
 import PlanComparison from './PlanComparison';
 import SecuritySettings from './SecuritySettings';
 import InboundAddress from './InboundAddress';
+import CalendarFeedRow from './CalendarFeedRow';
 import ActivityLog from './ActivityLog';
 import OrgTeam from './OrgTeam';
 import { exportAllData } from '@/lib/dataExport';
@@ -935,6 +936,10 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
               ή τα κλείνουν· αυτό είναι το μόνο που τα φέρνει μέσα, και είναι το
               πρώτο που θα ψάξει όποιος διάβασε γι' αυτό. */}
           <InboundAddress userId={userId} />
+          {/* Η ίδια ιδέα προς την άλλη κατεύθυνση: το email φέρνει δεδομένα
+              ΜΕΣΑ, το ημερολόγιο βγάζει τις προθεσμίες ΕΞΩ, εκεί που ο
+              ιδιοκτήτης κοιτάζει ήδη κάθε μέρα. */}
+          <CalendarFeedRow userId={userId} />
           <SetRow title="Εξαγωγή όλων των δεδομένων" desc="Κάθε εγγραφή που σε αφορά, σε ένα αρχείο JSON, για μεταφορά σε άλλη υπηρεσία ή για δικό σου αντίγραφο. Είναι μορφή για μηχανές: το δικαίωμα φορητότητας τη ζητά έτσι. Για να διαβάσεις δεδομένα, κάθε καρτέλα έχει τη δική της εξαγωγή σε Excel."
             control={<Btn variant="secondary" onClick={exportAll} disabled={exporting}>{exporting ? 'Εξαγωγή…' : 'Εξαγωγή όλων'}</Btn>}>
             {exportErr && <div style={{ ...TT.bodySm, color: 'var(--negative)' }}>{exportErr}</div>}

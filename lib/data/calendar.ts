@@ -218,6 +218,23 @@ export async function all(db: Db, propertyId: string): Promise<CalendarEventsRow
   return readRows<CalendarEventsRow>(scoped(db, propertyId, '*').order('event_date'));
 }
 
+/**
+ * Τα γεγονότα ΟΛΩΝ των ακινήτων ενός λογαριασμού, μέσα σε εύρος ημερών.
+ *
+ * ΓΙΑΤΙ ΑΝΑ ΧΡΗΣΤΗ ΚΑΙ ΟΧΙ ΑΝΑ ΑΚΙΝΗΤΟ. Ολες οι υπόλοιπες αναγνώσεις εδώ
+ * ανήκουν σε οθόνη που κοιτάζει ΕΝΑ ακίνητο. Η συνδρομή ημερολογίου δεν είναι
+ * οθόνη: είναι μία διεύθυνση για τον άνθρωπο, και ο άνθρωπος έχει όλα του τα
+ * ακίνητα σε ένα ημερολόγιο. Με ερώτημα ανά ακίνητο, ένας ιδιοκτήτης με δέκα
+ * ακίνητα θα πλήρωνε δέκα ταξίδια στη βάση σε κάθε ανανέωση.
+ */
+export async function ofUserInRange<T = CalendarEventsRow>(
+  db: Db, userId: string, from: string, to: string, columns = '*',
+): Promise<T[]> {
+  return readRows<T>(db.from(TABLE).select(columns)
+    .eq('user_id', userId).gte('event_date', from).lte('event_date', to)
+    .order('event_date'));
+}
+
 /** Τα αναγνωριστικά όσων έγραψε μια πηγή — προαιρετικά μόνο μέσα σε εύρος ημερών. */
 export async function ids(
   db: Db, propertyId: string, match: EventMatch, range?: { from: string; to: string },

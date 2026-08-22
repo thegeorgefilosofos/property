@@ -25,7 +25,9 @@ const noContact: InviteInput = { title: 'Μόνο γεγονός', date: '2026-0
 // ── buildInviteICS: σκελετός ─────────────────────────────────────────────────
 const ics = buildInviteICS(timed)
 ok('ics begins VCALENDAR', ics.startsWith('BEGIN:VCALENDAR\r\n'))
-ok('ics ends VCALENDAR', ics.endsWith('END:VCALENDAR'))
+// Το αρχείο περνά πλέον από το κοινό `icsBody`, που τερματίζει κάθε γραμμή —
+// και την τελευταία — με CRLF, όπως ορίζει το πρότυπο.
+ok('ics ends VCALENDAR', ics.endsWith('END:VCALENDAR\r\n'))
 ok('ics has vevent', ics.includes('BEGIN:VEVENT') && ics.includes('END:VEVENT'))
 ok('ics has METHOD:REQUEST', ics.includes('\r\nMETHOD:REQUEST\r\n'))
 ok('ics method before vevent', ics.indexOf('METHOD:REQUEST') < ics.indexOf('BEGIN:VEVENT'))

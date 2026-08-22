@@ -17,6 +17,7 @@ import {
   viberShareUrl,
   type CalendarEventInput,
 } from './externalLinks'
+import { icsBody } from './ics'
 
 export interface InviteInput {
   title: string
@@ -70,27 +71,9 @@ function paramValue(v: string): string {
   return /[,;:]/.test(clean) ? `"${clean}"` : clean
 }
 
-// Αναδίπλωση γραμμής στα 75 octets (RFC 5545 §3.1). Οι γραμμές συνέχειας
-// ξεκινούν με κενό, το οποίο μετράει στο όριο. Δεν σπάμε πολυ-byte χαρακτήρα.
-function foldLine(line: string): string {
-  if (Buffer.byteLength(line, 'utf8') <= 75) return line
-  const out: string[] = []
-  let cur = ''
-  let curBytes = 0
-  for (const ch of Array.from(line)) {
-    const b = Buffer.byteLength(ch, 'utf8')
-    const limit = out.length === 0 ? 75 : 74   // η γραμμή συνέχειας κρατά 1 octet για το κενό
-    if (curBytes + b > limit) {
-      out.push(cur)
-      cur = ''
-      curBytes = 0
-    }
-    cur += ch
-    curBytes += b
-  }
-  out.push(cur)
-  return out.join('\r\n ')
-}
+// Η ΑΝΑΔΙΠΛΩΣΗ ΖΕΙ ΣΤΟ `ics.ts`, ΜΙΑ ΦΟΡΑ. Υπήρχε εδώ ολόκληρη, και δεύτερη
+// φορά ήθελε να γραφτεί για τη ροή συνδρομής. Τρία αντίγραφα του ίδιου κανόνα
+// του προτύπου είναι τρεις ευκαιρίες να αποκλίνει το ένα σιωπηλά.
 
 function toEvent(input: InviteInput): CalendarEventInput {
   return {
@@ -142,7 +125,9 @@ export function buildInviteICS(input: InviteInput): string {
       if (att) out.push(att)
     }
   }
-  return out.map(foldLine).join('\r\n')
+  // Η κενή γραμμή που αφήνει το τελικό CRLF του `buildICS` δεν είναι γραμμή
+  // περιεχομένου και δεν ξαναγράφεται.
+  return icsBody(out.filter(Boolean))
 }
 
 // data: URI της πρόσκλησης (.ics) — για επισύναψη/σύνδεσμο.

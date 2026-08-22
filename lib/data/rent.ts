@@ -173,10 +173,16 @@ export async function ofProperties<T = Partial<RentPaymentsRow>>(
 
 /** Οι δόσεις όλου του χαρτοφυλακίου ενός χρήστη. */
 export async function ofUser<T = Partial<RentPaymentsRow>>(
-  db: Db, userId: string, columns: string, opts: { year?: number } = {},
+  db: Db, userId: string, columns: string,
+  // Το `dueFrom`/`dueTo` το ζητά η συνδρομή ημερολογίου, που κοιτάζει παράθυρο
+  // και όχι χρονιά: μια δόση του Δεκεμβρίου λήγει μέσα στο επόμενο έτος.
+  opts: { year?: number; paid?: boolean; dueFrom?: string; dueTo?: string } = {},
 ): Promise<T[]> {
   let q = db.from(TABLE).select(columns).eq('user_id', userId);
   if (opts.year !== undefined) q = q.eq('period_year', opts.year);
+  if (opts.paid !== undefined) q = q.eq('paid', opts.paid);
+  if (opts.dueFrom) q = q.gte('due_date', opts.dueFrom);
+  if (opts.dueTo) q = q.lte('due_date', opts.dueTo);
   return readRows<T>(q);
 }
 
