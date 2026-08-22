@@ -40,10 +40,14 @@ import { generateReportPdf, pEur, pSigned, type PdfReportModel, type PdfSection 
 import { ShieldCheck, Building2 } from 'lucide-react';
 import { notifyOk, notifyError } from '@/components/Toast';
 import { failed, MSG } from '@/lib/core/dbError';
+import RentReceived from './RentReceived';
+import { collectableLines, allViaBank, type CollectableRent } from '@/lib/rent/collect';
 
 interface PropLite { id: string; name: string; prop_type: string | null; address: string | null; target_rent: number | null; value: number | null; }
 /** Δόση ενοικίου όπως την καταχωρεί ο ιδιοκτήτης — `paid` = εισπράχθηκε. */
 type RentPay = Pick<RentPaymentsRow, 'property_id' | 'amount' | 'paid' | 'period_month'>;
+/** Η μίσθωση, όσο χρειάζεται για να ξέρουμε τι συμφωνήθηκε ως τρόπος είσπραξης. */
+type LeasePay = { id: string; e_payment: boolean | null };
 interface Props { properties: PropLite[]; userId: string; onSelectProperty: (id: string) => void; }
 
 const eur = fe;
@@ -117,6 +121,13 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   // που ενημερώθηκε τελευταίος, που δεν είναι ο ίδιος με αυτόν που μένει εκεί.
   const [rentByTenant, setRentByTenant] = useState<Map<string, TenantRow>>(new Map());
   const [rentPays, setRentPays] = useState<RentPay[]>([]);
+  // ΟΙ ΔΟΣΕΙΣ ΠΟΥ ΜΠΟΡΟΥΝ ΝΑ ΚΑΤΑΧΩΡΗΘΟΥΝ ΣΗΜΕΡΑ, ΣΕ ΟΛΑ ΤΑ ΑΚΙΝΗΤΑ. Χωριστή
+  // ανάγνωση από τις δόσεις της χρήσης: εκείνες είναι για το έσοδο του έτους,
+  // αυτές για την ερώτηση «τι μπορώ να καταχωρήσω τώρα» — και δεν έχουν φίλτρο
+  // έτους, γιατί η δόση του περασμένου Δεκεμβρίου εισπράττεται τον Ιανουάριο.
+  const [collectRows, setCollectRows] = useState<CollectableRent[]>([]);
+  const [leases, setLeases] = useState<LeasePay[]>([]);
+  const [collecting, setCollecting] = useState(false);
   const [chk, setChk] = useState<ChkRow[]>([]);
   const [propOwners, setPropOwners] = useState<PropOwnerRow[]>([]);
   const [clients, setClients] = useState<ClientRow[]>([]);
@@ -143,9 +154,19 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   const [stmtOwner, setStmtOwner] = useState('');
   const [genOfficial, setGenOfficial] = useState(false);
 
+  // Οι δόσεις που μπορούν να καταχωρηθούν σήμερα, με το όνομα του ακινήτου τους.
+  const propertyName = useCallback(
+    (id: string) => properties.find(p => p.id === id)?.name || 'Ακίνητο', [properties]);
+  const collectable = useMemo(
+    () => collectableLines(collectRows, propertyName, athensToday()),
+    [collectRows, propertyName]);
+  const collectViaBank = useMemo(
+    () => allViaBank(collectable, id => leases.find(l => l.id === id)?.e_payment === true),
+    [collectable, leases]);
+
   const load = useCallback(async () => {
     setLoading(true);
-    const [st, bl, ex, tn, ci, po, { data: cl }, rp] = await Promise.all([
+    const [st, bl, ex, tn, ci, po, { data: cl }, rp, cr, lp] = await Promise.all([
       // Τα πεδία ανάλυσης ποσού ΔΕΝ είναι προαιρετικά εδώ: χωρίς αυτά το
       // declarableGrossOrTotal δεν έχει τι να διαβάσει και υποχωρεί στο ωμό
       // `total` για ΚΑΘΕ γραμμή — δηλαδή σιωπηλά ξαναγυρίζει το payout.
@@ -159,8 +180,12 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
       // Οι ΚΑΤΑΓΕΓΡΑΜΜΕΝΕΣ δόσεις ενοικίου της χρήσης — από εδώ βγαίνει το έσοδο
       // της μακροχρόνιας, ίδια πηγή με ReportBuilder/OwnerSplit/Λογιστική.
       rentStore.ofUser<RentPay>(supabase, userId, 'property_id,amount,paid,period_month', { year }),
+      rentStore.ofUser<CollectableRent>(supabase, userId,
+        'id,property_id,tenant_id,amount,due_date,paid,period_year,period_month',
+        { unpaid: true, dueTo: athensToday() }),
+      tenantStore.ofUser<LeasePay>(supabase, userId, 'id,e_payment'),
     ]);
-    setStays(st); setBills(bl); setExp((ex || []) as ExpRow[]); setRentByTenant(tn); setChk((ci || []) as ChkRow[]); setPropOwners((po || []) as PropOwnerRow[]); setClients((cl || []) as ClientRow[]); setRentPays(rp); setLoading(false);
+    setStays(st); setBills(bl); setExp((ex || []) as ExpRow[]); setRentByTenant(tn); setChk((ci || []) as ChkRow[]); setPropOwners((po || []) as PropOwnerRow[]); setClients((cl || []) as ClientRow[]); setRentPays(rp); setCollectRows(cr); setLeases(lp); setLoading(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, year]);
 
@@ -525,9 +550,34 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
     <div>
       <PageTitle title="Χαρτοφυλάκιο" sub={`${properties.length} ${properties.length === 1 ? 'ακίνητο' : 'ακίνητα'} · έσοδα και εκκρεμότητες ${year}`}
         right={<>
+          {/* ΤΟ ΚΟΥΜΠΙ ΥΠΑΡΧΕΙ ΜΟΝΟ ΟΤΑΝ ΕΧΕΙ ΤΙ ΝΑ ΓΡΑΨΕΙ. Χωρίς δόση που να
+              μπορεί να καταχωρηθεί σήμερα, θα ήταν ψεύτικη υπόσχεση — και το
+              πλήθος λέγεται πάνω του, ώστε να ξέρει ο ιδιοκτήτης τι θα δει
+              πριν το πατήσει. */}
+          {collectable.length > 0 && (
+            <Btn variant="primary" onClick={() => setCollecting(true)}>
+              Είσπραξη ενοικίων · {collectable.length}
+            </Btn>
+          )}
           <Btn variant="ghost" onClick={openStatements}>Καταστάσεις ιδιοκτήτη</Btn>
           <ExportButton onClick={exportCsv} />
         </>} />
+
+      {/* ΤΟ ΠΑΡΑΘΥΡΟ ΠΡΟΣΑΡΤΑΤΑΙ ΟΤΑΝ ΑΝΟΙΓΕΙ, ώστε η ημερομηνία και ο τρόπος
+          είσπραξης να ξαναπαίρνουν τις προεπιλογές τους κάθε φορά. Το ακίνητο
+          και η μίσθωση δεν δίνονται από εδώ: κάθε δόση κουβαλά τα δικά της. */}
+      {collecting && (
+        <RentReceived
+          onClose={() => setCollecting(false)}
+          lines={collectable}
+          supabase={supabase}
+          propertyId={null}
+          tenantId={null}
+          leaseViaBank={collectViaBank}
+          today={athensToday()}
+          onSaved={() => { void load(); }}
+        />
+      )}
 
       {/* ═══ ΤΕΣΣΕΡΑ ΧΡΩΜΑΤΑ ΣΕ ΠΕΝΤΕ ΠΛΑΚΙΔΙΑ ══════════════════════════════
           Τα έσοδα ήταν πράσινα ακόμη και στο μηδέν, το καθαρό κόκκινο, οι

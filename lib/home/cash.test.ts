@@ -61,7 +61,7 @@ ok('πέρασμα θερινής ώρας: 28/3 → 30/3 = 2 ημέρες', day
 // Η ετικέτα λέει ΠΟΙΟΝ μήνα — αλλιώς τρία «Ενοίκιο» στη σειρά δεν ξεχωρίζουν.
 {
   const r = cashPosition({ ...empty, rent: [rent({ period_month: 7, period_year: 2026 })] })
-  ok('η γραμμή ονομάζει τον μήνα', r.owedToMe.lines[0].label === 'Ενοίκιο Ιούλιος 2026')
+  ok('η γραμμή ονομάζει τον μήνα στη ΓΕΝΙΚΗ: το ενοίκιο είναι ΤΟΥ Ιουλίου', r.owedToMe.lines[0].label === 'Ενοίκιο Ιουλίου 2026')
 }
 {
   const r = cashPosition({ ...empty, rent: [rent({ period_month: null, period_year: null })] })

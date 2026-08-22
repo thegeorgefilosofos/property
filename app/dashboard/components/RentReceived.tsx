@@ -15,6 +15,15 @@
 // επιλεγμένη, η ημερομηνία είναι σήμερα και ο τρόπος έρχεται από τη μίσθωση.
 // Στη συνηθισμένη περίπτωση μένουν δύο πατήματα: άνοιγμα και καταχώρηση.
 //
+// ΚΑΙ ΟΤΑΝ ΗΡΘΑΝ ΟΛΕΣ ΜΑΖΙ, ΓΡΑΦΟΝΤΑΙ ΟΛΕΣ ΜΑΖΙ. Ο μισθωτής που καθυστέρησε
+// δύο μήνες δεν πληρώνει δύο φορές: κάνει ΜΙΑ κατάθεση. Το «Ολες» τις επιλέγει
+// με ένα πάτημα και το κουμπί λέει τι θα γράψει — «Καταχώρηση 3 δόσεων ·
+// 1.350,00 €» — γιατί το άθροισμα είναι αυτό που θα εμφανιστεί στα βιβλία.
+//
+// Η ΠΡΟΕΠΙΛΟΓΗ ΟΜΩΣ ΔΕΝ ΕΓΙΝΕ «ΟΛΕΣ», ΚΑΙ ΕΙΝΑΙ Η ΠΙΟ ΣΗΜΑΝΤΙΚΗ ΑΠΟΦΑΣΗ ΕΔΩ.
+// Θα έκανε το συνηθισμένο πάτημα να γράφει ως εισπραγμένα ενοίκια που ΔΕΝ
+// ήρθαν· ο ιδιοκτήτης θα σταματούσε να τα ζητά και θα το ανακάλυπτε μήνες μετά.
+//
 // ── ΤΡΙΑ ΠΡΑΓΜΑΤΑ ΠΟΥ ΔΕΝ ΣΥΝΤΟΜΕΥΟΥΝ ────────────────────────────────────
 //
 // Ο ΤΡΟΠΟΣ ΕΙΣΠΡΑΞΗΣ ΡΩΤΙΕΤΑΙ, ΓΙΑΤΙ ΑΛΛΑΖΕΙ ΤΟΝ ΦΟΡΟ. Από 1/1/2026
@@ -43,8 +52,9 @@ import { PAY_METHODS, type PayMethod } from './TabTenantTypes';
 import { setRentDueOccurrencePaid } from './TabTenantHelpers';
 import * as rentStore from '@/lib/data/rent';
 import { saved } from '@/components/dbWrite';
-import { notifyOk } from '@/components/Toast';
+import { notifyOk, notifyError } from '@/components/Toast';
 import type { CashLine } from '@/lib/home/cash';
+import { pickedLines, recordLabel, receiptNote } from '@/lib/home/rentReceipt';
 
 /** Οι γραμμές που μπορούν να εισπραχθούν από εδώ: όσες ξέρουν τη δόση τους. */
 export function receivableLines(lines: readonly CashLine[]): CashLine[] {
@@ -58,7 +68,8 @@ export default function RentReceived({
   /** Οι ληξιπρόθεσμες γραμμές ενοικίου, ήδη σε σειρά πίεσης (αρχαιότερη πρώτη). */
   lines: CashLine[];
   supabase: SupabaseClient;
-  propertyId: string;
+  /** Το ακίνητο της οθόνης. `null` όταν οι δόσεις έρχονται από πολλά και το λέει η καθεμιά. */
+  propertyId: string | null;
   /** Η τρέχουσα μίσθωση· κλείνει και την υπενθύμιση του ημερολογίου. */
   tenantId: string | null;
   /** `tenants.e_payment`: τι συμφωνήθηκε. Δίνει την προεπιλογή, όχι την απάντηση. */
@@ -68,36 +79,67 @@ export default function RentReceived({
   onSaved: () => void;
 }) {
   const openLines = receivableLines(lines);
-  const [pickedId, setPickedId] = useState<string | null>(null);
+  // ΤΟ ΣΥΝΟΛΟ ΕΙΝΑΙ ΑΔΕΙΟ ΚΑΙ ΣΗΜΑΙΝΕΙ «Η ΑΡΧΑΙΟΤΕΡΗ». Η επιλογή δεν γεννιέται
+  // σε useEffect: όσο δεν έχει αγγίξει τίποτα ο χρήστης, ισχύει η αρχαιότερη —
+  // και αν αυτή εισπραχθεί, η επόμενη παίρνει τη θέση της μόνη της. Ενα
+  // useEffect εδώ θα κρατούσε επιλεγμένη μια δόση που δεν υπάρχει.
+  const [touched, setTouched] = useState<Set<string> | null>(null);
   const [paidDate, setPaidDate] = useState(today);
   const [method, setMethod] = useState<PayMethod>(leaseViaBank ? 'Τραπεζική κατάθεση' : 'Μετρητά');
   const [busy, setBusy] = useState(false);
 
-  // Η επιλογή δεν κρατιέται σε useEffect: όσο δεν έχει αγγίξει τίποτα ο χρήστης,
-  // ισχύει η αρχαιότερη — και αν αυτή εισπραχθεί, η επόμενη παίρνει τη θέση της
-  // μόνη της. Ένα useEffect εδώ θα κρατούσε επιλεγμένη μια δόση που δεν υπάρχει.
-  const picked = openLines.find(l => l.rent?.id === pickedId) ?? openLines[0];
+  const ids = new Set(openLines.map(l => l.rent?.id ?? ''));
+  const chosen = touched
+    ? new Set([...touched].filter(id => ids.has(id)))
+    : new Set(openLines[0]?.rent?.id ? [openLines[0].rent.id] : []);
 
   // Χωρίς εισπράξιμη γραμμή δεν υπάρχει παράθυρο. Ο καλών δεν το προσαρτά ποτέ
   // άδειο· ο φρουρός είναι εδώ ώστε ο τύπος να το εγγυάται και όχι η σύμβαση.
-  if (!picked?.rent) return null;
+  if (!openLines[0]?.rent) return null;
+
+  const selected = pickedLines(
+    openLines.map(l => ({ id: l.rent?.id ?? '', amount: l.amount, line: l })), chosen,
+  ).map(x => x.line);
+  const allOn = chosen.size === openLines.length && openLines.length > 1;
+
+  const toggle = (id: string) => setTouched(prev => {
+    const next = new Set(prev ?? chosen);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
 
   const record = async () => {
-    const ref = picked.rent;
-    if (!ref) return;
+    if (!selected.length) return;
     setBusy(true);
-    const ok = await saved('Η είσπραξη δεν καταχωρήθηκε',
-      rentStore.markPaid(supabase, ref.id, picked.due, paidDate, method));
-    if (!ok) { setBusy(false); return; }
-    // Η υπενθύμιση του ημερολογίου κλείνει μαζί — αλλιώς το app θυμίζει ενοίκιο
-    // που μόλις εισπράχθηκε. Best-effort: δεν μπλοκάρει την καταχώρηση.
-    if (tenantId && ref.year && ref.month) {
-      await setRentDueOccurrencePaid(supabase, tenantId, propertyId, ref.year, ref.month, true);
+    // ΜΙΑ ΑΠΟΤΥΧΙΑ ΔΕΝ ΑΚΥΡΩΝΕΙ ΤΙΣ ΥΠΟΛΟΙΠΕΣ, ΚΑΙ ΔΕΝ ΚΡΥΒΕΤΑΙ. Ο βρόχος
+    // προχωρά ώς το τέλος και ο απολογισμός λέει πόσες μπήκαν: μια πρόωρη έξοδος
+    // θα άφηνε τον ιδιοκτήτη να νομίζει ότι δεν μπήκε καμία, ενώ οι μισές μπήκαν.
+    let done = 0;
+    for (const l of selected) {
+      const ref = l.rent;
+      if (!ref) continue;
+      const ok = await saved('Η είσπραξη δεν καταχωρήθηκε',
+        rentStore.markPaid(supabase, ref.id, l.due, paidDate, method));
+      if (!ok) continue;
+      done++;
+      // Η υπενθύμιση του ημερολογίου κλείνει μαζί — αλλιώς το app θυμίζει ενοίκιο
+      // που μόλις εισπράχθηκε. Best-effort: δεν μπλοκάρει την καταχώρηση.
+      //
+      // Η ΓΡΑΜΜΗ ΕΧΕΙ ΤΟΝ ΛΟΓΟ ΓΙΑ ΤΟ ΠΟΥ ΑΝΗΚΕΙ. Οταν έρχεται από ΕΝΑ ακίνητο,
+      // δεν κουβαλά τίποτα και ισχύουν τα δεδομένα της οθόνης· από το
+      // Χαρτοφυλάκιο, κάθε δόση ξέρει το δικό της ακίνητο και τη δική της μίσθωση.
+      const forProperty = ref.propertyId ?? propertyId;
+      const forTenant = ref.tenantId ?? tenantId;
+      if (forTenant && forProperty && ref.year && ref.month) {
+        await setRentDueOccurrencePaid(supabase, forTenant, forProperty, ref.year, ref.month, true);
+      }
     }
     setBusy(false);
+    const note = receiptNote(done, selected.length);
+    if (done === 0) { notifyError(note); return; }
     onClose();
     onSaved();
-    notifyOk('Η είσπραξη καταχωρήθηκε');
+    if (done === selected.length) notifyOk(note); else notifyError(note);
   };
 
   const lateNote = (l: CashLine) =>
@@ -106,11 +148,14 @@ export default function RentReceived({
       : '';
 
   return (
-    <Modal open onClose={() => { if (!busy) onClose(); }} width={480} title="Είσπραξη ενοικίου"
+    <Modal open onClose={() => { if (!busy) onClose(); }} width={480}
+      title={openLines.length === 1 ? 'Είσπραξη ενοικίου' : 'Είσπραξη ενοικίων'}
       footerInfo="Για μερική πληρωμή ή διαφορετικό ποσό, από τον Ενοικιαστή."
       footer={<>
         <Btn variant="ghost" onClick={busy ? undefined : onClose}>Ακύρωση</Btn>
-        <Btn variant="primary" onClick={record} disabled={busy}>{busy ? 'Καταχώρηση…' : 'Καταχώρηση'}</Btn>
+        <Btn variant="primary" onClick={record} disabled={busy || !selected.length}>
+          {busy ? 'Καταχώρηση…' : recordLabel(selected.map(l => ({ id: l.rent?.id ?? '', amount: l.amount })))}
+        </Btn>
       </>}>
 
       {/* ΜΙΑ ΔΟΣΗ: ΤΙΠΟΤΑ ΝΑ ΔΙΑΛΕΞΕΙ. Η λίστα με ένα στοιχείο ζητά επιλογή που
@@ -118,20 +163,31 @@ export default function RentReceived({
       {openLines.length === 1 ? (
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: T.sp.md, flexWrap: 'wrap' }}>
           <div>
-            <div style={{ ...TT.body, fontWeight: 700 }}>{picked.label}</div>
+            <div style={{ ...TT.body, fontWeight: 700 }}>{openLines[0].label}</div>
             <div style={{ ...TT.caption, marginTop: 2 }}>
-              {[picked.due ? `Προθεσμία ${fd(picked.due)}` : '', lateNote(picked)].filter(Boolean).join(' · ')}
+              {[openLines[0].due ? `Προθεσμία ${fd(openLines[0].due)}` : '', lateNote(openLines[0])].filter(Boolean).join(' · ')}
             </div>
           </div>
-          <div style={{ ...TT.kpi }}>{fe(picked.amount)}</div>
+          <div style={{ ...TT.kpi }}>{fe(openLines[0].amount)}</div>
         </div>
       ) : (
-        <div role="radiogroup" aria-label="Δόση προς είσπραξη" style={{ display: 'flex', flexDirection: 'column', gap: T.sp.sm }}>
+        <>
+        {/* «ΟΛΑ ΗΡΘΑΝ, ΟΠΩΣ ΚΑΘΕ ΜΗΝΑ» — ΕΝΑ ΠΑΤΗΜΑ. Ο μισθωτής που καθυστέρησε
+            δύο μήνες κάνει ΜΙΑ κατάθεση, και ώς τώρα η οθόνη ζητούσε άνοιγμα,
+            καταχώρηση, ξανά άνοιγμα, ξανά καταχώρηση. Η προεπιλογή όμως ΔΕΝ
+            άλλαξε: «όλες» σημαίνει «πληρώθηκα», και μια σιωπηλή προεπιλογή θα
+            έγραφε ως εισπραγμένα ενοίκια που δεν ήρθαν. */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <Btn variant="ghost" onClick={() => setTouched(allOn ? new Set() : new Set(openLines.map(l => l.rent?.id ?? '')))}>
+            {allOn ? 'Καμία' : 'Ολες'}
+          </Btn>
+        </div>
+        <div role="group" aria-label="Δόσεις προς είσπραξη" style={{ display: 'flex', flexDirection: 'column', gap: T.sp.sm }}>
           {openLines.map(l => {
-            const on = l.rent?.id === picked.rent?.id;
+            const on = chosen.has(l.rent?.id ?? '');
             return (
-              <button key={l.rent?.id} type="button" role="radio" aria-checked={on}
-                onClick={() => setPickedId(l.rent?.id ?? null)}
+              <button key={l.rent?.id} type="button" role="checkbox" aria-checked={on}
+                onClick={() => toggle(l.rent?.id ?? '')}
                 style={{
                   display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: T.sp.md,
                   minHeight: T.h.lg, padding: '10px 14px', textAlign: 'left',
@@ -151,6 +207,7 @@ export default function RentReceived({
             );
           })}
         </div>
+        </>
       )}
 
       {/* ΤΑ ΔΥΟ ΠΕΔΙΑ ΜΟΙΡΑΖΟΝΤΑΙ ΤΟ ΠΛΑΤΟΣ, δεν κόβονται σε σταθερή στήλη. Με

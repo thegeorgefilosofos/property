@@ -18,7 +18,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { fe } from '../core/format';
-import { MONTHS_NOM } from '../core/months';
+import { MONTHS_GEN } from '../core/months';
 
 /** Περίοδος ενοικίου από το `rent_payments`. Το `paid` είναι η πηγή αλήθειας. */
 export interface RentPeriod {
@@ -47,6 +47,16 @@ export interface RentRef {
   id: string;
   year: number | null;
   month: number | null;
+  /**
+   * Σε ΠΟΙΟ ακίνητο και ΠΟΙΑ μίσθωση ανήκει η δόση.
+   *
+   * ΚΕΝΑ ΟΤΑΝ Η ΟΘΟΝΗ ΞΕΡΕΙ ΗΔΗ. Η κάρτα της Επισκόπησης μιλά για ΕΝΑ ακίνητο:
+   * να τα κουβαλά σε κάθε γραμμή θα ήταν η ίδια πληροφορία γραμμένη δεκαπέντε
+   * φορές. Τα γεμίζει το Χαρτοφυλάκιο, όπου οι δόσεις έρχονται από πολλά
+   * ακίνητα και η καταχώρηση πρέπει να ξέρει πού να γράψει.
+   */
+  propertyId?: string | null;
+  tenantId?: string | null;
 }
 
 /** Λογαριασμός ή δαπάνη — ό,τι φεύγει από την τσέπη του ιδιοκτήτη. */
@@ -161,8 +171,12 @@ export function cashPosition(input: {
     const daysLeft = daysFromToday(r.due_date, today);
     if (daysLeft == null || daysLeft >= 0) continue;
     const my = r.period_month;
+    // ΓΕΝΙΚΗ ΠΤΩΣΗ, ΚΑΙ ΔΕΝ ΕΙΝΑΙ ΛΕΠΤΟΜΕΡΕΙΑ. Η γραμμή έλεγε «Ενοίκιο
+    // Σεπτέμβριος 2026»· στα ελληνικά το ενοίκιο είναι ΤΟΥ Σεπτεμβρίου. Η λάθος
+    // πτώση είναι από τα πιο ορατά λάθη σε ελληνικό προϊόν, και αυτή τη γραμμή
+    // τη βλέπει ο ιδιοκτήτης στην πρώτη κάρτα κάθε μήνα.
     const label = my && my >= 1 && my <= 12
-      ? `Ενοίκιο ${MONTHS_NOM[my - 1]}${r.period_year ? ` ${r.period_year}` : ''}`
+      ? `Ενοίκιο ${MONTHS_GEN[my - 1]}${r.period_year ? ` ${r.period_year}` : ''}`
       : 'Ενοίκιο';
     rentLines.push({
       label, amount, due: r.due_date, daysLeft,

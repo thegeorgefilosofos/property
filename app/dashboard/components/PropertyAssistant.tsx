@@ -109,7 +109,7 @@ import { scanFile, commitScannedDoc, RECONCILE_NONE_LABEL, RECONCILE_NONE_HINT, 
 import { DOC_TYPE_LABELS, type ScannedDoc } from '@/lib/billing/documents';
 import { remainingLine, type QuotaSnapshot } from '@/lib/billing/aiLimits';
 import { athensToday, athensNowLabel, daysUntil, isoMonth } from '@/lib/core/time';
-import { MONTHS_SHORT } from '@/lib/core/months';
+import { MONTHS_SHORT, MONTHS_GEN } from '@/lib/core/months';
 
 // Ο άγνωστος αριθμός γράφεται 0,00 €, όχι παύλα: η παύλα δεν στοιχίζεται με
 // τίποτα και σε στήλη ποσών διαβάζεται ως σφάλμα (lib/core/format.ts).
@@ -384,12 +384,11 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const unpaid = billRows.filter(b => !b.paid);
     openBillsRef.current = unpaid.map(b => ({ id: b.id, name: b.name || 'λογαριασμός', category: b.category || '', amount: b.amount || 0 }));
     // Ανεξόφλητες δόσεις ενοικίου (για σήμανση «πληρωμένο» από τη συνομιλία)
-    const MON_GR = ['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου'];
     // ΟΛΕΣ ΟΙ ΔΟΣΕΙΣ, ΟΧΙ ΜΟΝΟ ΟΙ ΑΠΛΗΡΩΤΕΣ. Το φίλτρο `paid=false` σήμαινε ότι ο
     // βοηθός δεν είχε καμία εικόνα συνέπειας πληρωμών, και ότι τα δεδουλευμένα
     // έσοδα της χρονιάς έπρεπε να μαντευτούν από το ενοίκιο επί δώδεκα.
     const rentAll = await rentStore.chronological<RentPaymentsRow>(supabase, propertyId, `id,due_date,${rentStore.PERIOD_COLUMNS}`, userId);
-    openRentRef.current = rentAll.filter(r => !r.paid).map(r => ({ id: r.id, label: `Ενοίκιο ${MON_GR[(r.period_month || 1) - 1]} ${r.period_year}`, amount: r.amount || 0, due: r.due_date }));
+    openRentRef.current = rentAll.filter(r => !r.paid).map(r => ({ id: r.id, label: `Ενοίκιο ${MONTHS_GEN[(r.period_month || 1) - 1]} ${r.period_year}`, amount: r.amount || 0, due: r.due_date }));
     const t = ten?.[0];
     const rent = resolveRent({ tenantRent: t?.monthly_rent, targetRent: propContext.targetRent }).value;
     const value = resolveValue(propContext.value).value;
@@ -790,10 +789,9 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const today = athensToday();
     // Έγκυρη ISO ημερομηνία (καθορίζει τον ΜΗΝΑ στον προϋπολογισμό)· αλλιώς σήμερα.
     const useDate = date && !isNaN(new Date(date).getTime()) ? date : today;
-    const MON_GR = ['Ιανουαρίου','Φεβρουαρίου','Μαρτίου','Απριλίου','Μαΐου','Ιουνίου','Ιουλίου','Αυγούστου','Σεπτεμβρίου','Οκτωβρίου','Νοεμβρίου','Δεκεμβρίου'];
     // Ο μήνας από το κείμενο της ημερομηνίας. Με `new Date(...).getMonth()` η
     // δαπάνη της 1ης Ιανουαρίου ονομαζόταν «Δεκεμβρίου» σε αρνητική ζώνη ώρας.
-    const monthLbl = useDate !== today ? ` (${MON_GR[(isoMonth(useDate) ?? 1) - 1]})` : '';
+    const monthLbl = useDate !== today ? ` (${MONTHS_GEN[(isoMonth(useDate) ?? 1) - 1]})` : '';
     try {
       // ΤΟ «ΜΕΤΡΗΤΑ» ΔΕΝ ΤΟ ΕΙΠΕ ΚΑΝΕΙΣ. Ο τρόπος πληρωμής έχει φορολογική
       // σημασία στην εφαρμογή (τα ενοίκια κατοικίας θέλουν τράπεζα για την
