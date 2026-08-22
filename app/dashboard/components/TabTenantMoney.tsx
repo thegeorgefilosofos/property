@@ -561,13 +561,16 @@ export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, 
     return `${localDay(p.due_date).getDate()} ${monthGen(m-1)}`;
   };
 
+  // ΓΕΝΙΚΗ, ΟΧΙ ΟΝΟΜΑΣΤΙΚΗ, ΣΕ ΚΑΘΕ ΠΡΟΤΑΣΗ. Η οθόνη γράφει «Σεπτέμβριος 2026»
+  // σε στήλη πίνακα, όπου η ονομαστική είναι σωστή. Μέσα σε πρόταση —«Ενοίκιο
+  // Σεπτεμβρίου 2026»— η ίδια λέξη θέλει γενική. Ισχύει για το σώμα ΚΑΙ για το
+  // θέμα του μηνύματος ΚΑΙ για την αιτιολογία της τραπεζικής μεταφοράς: όλα
+  // αυτά τα διαβάζει ο μισθωτής, όχι εμείς.
+  const periodGen=(p:RentPayment)=>periodLabel(p.period_year,p.period_month,periodMonths,monthGen);
+
   const msgOf=(p:RentPayment)=>({
     property: propLabel(),
-    // ΓΕΝΙΚΗ, ΟΧΙ ΟΝΟΜΑΣΤΙΚΗ. Η οθόνη γράφει «Σεπτέμβριος 2026» σε στήλη πίνακα,
-    // όπου η ονομαστική είναι σωστή. Μέσα σε πρόταση —«Ενοίκιο Σεπτεμβρίου
-    // 2026»— η ίδια λέξη θέλει γενική, αλλιώς το μήνυμα προς τον μισθωτή
-    // διαβάζεται σαν μεταφρασμένο από μηχανή.
-    period: periodLabel(p.period_year,p.period_month,periodMonths,monthGen),
+    period: periodGen(p),
     amount: p.amount,
     baseRent: p.base_rent,
     services: p.services_charge,
@@ -587,7 +590,7 @@ export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, 
     `BCD\n002\n1\nSCT\n\n${name.slice(0,70)}\n${iban.replace(/\s/g,'').toUpperCase()}\nEUR${amount.toFixed(2)}\n\n\n${ref.slice(0,140)}`;
   // QR τοπικά: το IBAN και το ποσό της πληρωμής δεν φεύγουν σε εξωτερική υπηρεσία.
   const qrSrc=(data:string)=>qrDataUrl(data,{ size:240 });
-  const reqRef=(p:RentPayment)=>`Ενοίκιο ${monthLabel(p)}${tenant.full_name?` · ${tenant.full_name}`:''}`;
+  const reqRef=(p:RentPayment)=>`Ενοίκιο ${periodGen(p)}${tenant.full_name?` · ${tenant.full_name}`:''}`;
   const paymentRequestText=(p:RentPayment)=>rentRequest({ ...msgOf(p), iban: tenant.rent_iban, landlord: landlordName });
 
   // ── Μηνιαία κατάσταση προς τον μισθωτή: «Τι περιλαμβάνει / τι χρεώνεται» ──
@@ -817,7 +820,7 @@ export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, 
                           Η γραμμή έδινε WhatsApp και Viber, και τα δύο δεμένα στο
                           ΤΗΛΕΦΩΝΟ. Οποιος ιδιοκτήτης είχε μόνο το email του μισθωτή
                           του δεν είχε ΚΑΝΕΝΑΝ τρόπο να στείλει υπενθύμιση από εδώ. */}
-                      {tenant.email&&(p.paid||canCollect)&&<a href={`mailto:${tenant.email}?subject=${encodeURIComponent(rentSubject(monthLabel(p)))}&body=${encodeURIComponent(p.paid?receiptText(p):reminderText(p))}`} style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>Ηλεκτρονικό ταχυδρομείο</a>}
+                      {tenant.email&&(p.paid||canCollect)&&<a href={`mailto:${tenant.email}?subject=${encodeURIComponent(rentSubject(periodGen(p)))}&body=${encodeURIComponent(p.paid?receiptText(p):reminderText(p))}`} style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>Ηλεκτρονικό ταχυδρομείο</a>}
                       <button style={s.btnDng} onClick={async()=>{if(!(await confirmDialog('Διαγραφή πληρωμής;',{tone:'negative'})))return;if(await saved('Η πληρωμή δεν διαγράφηκε',rentStore.remove(supabase,p.id)))onRefresh();}}>Διαγραφή</button>
                     </div>
                   </td>
@@ -881,7 +884,7 @@ export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, 
             <div style={{ display:'flex', gap:8, flexWrap:'wrap' as const }}>
               {tenant.phone&&<a href={whatsappLink(msgDigits(tenant.phone),paymentRequestText(req))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, textDecoration:'none' }}>WhatsApp</a>}
               {tenant.phone&&<a href={viberLink(paymentRequestText(req))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, textDecoration:'none' }}>Viber</a>}
-              {tenant.email&&<a href={`mailto:${tenant.email}?subject=${encodeURIComponent(requestSubject(monthLabel(req)))}&body=${encodeURIComponent(paymentRequestText(req))}`} style={{ ...s.btnGhost, textDecoration:'none' }}>Ηλεκτρονικό ταχυδρομείο</a>}
+              {tenant.email&&<a href={`mailto:${tenant.email}?subject=${encodeURIComponent(requestSubject(periodGen(req)))}&body=${encodeURIComponent(paymentRequestText(req))}`} style={{ ...s.btnGhost, textDecoration:'none' }}>Ηλεκτρονικό ταχυδρομείο</a>}
               {/* Το catch ήταν κενό: αν η αντιγραφή αποτύγχανε (άρνηση δικαιώματος, μη ασφαλές
                   context), ο χρήστης νόμιζε ότι το κείμενο ήταν στο πρόχειρο και το επικολλούσε στο κενό. */}
               <button style={s.btnGhost} onClick={()=>{ try{ navigator.clipboard.writeText(paymentRequestText(req)); notifyOk('Το κείμενο αντιγράφηκε'); }catch{ notifyError('Δεν έγινε η αντιγραφή. Επίλεξε και αντίγραψε το κείμενο χειροκίνητα.'); } }}>Αντιγραφή κειμένου</button>

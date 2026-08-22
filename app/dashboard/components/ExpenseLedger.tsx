@@ -392,7 +392,7 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
                     {m.title}, συνήθως {fe(m.typicalAmount)} {cadenceLabel(m.everyMonths)} · το περιμέναμε {shortDate(m.expectedDate)}
                   </span>
                   <Btn variant="ghost" onClick={() => {
-                    setSeed({ what: m.title, date: m.expectedDate, slug: resolveCategory(m.category) || '' });
+                    setSeed({ id: m.key, what: m.title, date: m.expectedDate, slug: resolveCategory(m.category) || '' });
                     setAdding(true);
                   }}>Καταχώρηση</Btn>
                 </div>
@@ -497,8 +497,10 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
           )}
           {/* Το `key` ξαναχτίζει τη φόρμα όταν αλλάζει ο σπόρος: τα πεδία
               αρχικοποιούνται μία φορά, και χωρίς αυτό η δεύτερη «Καταχώρηση»
-              θα άνοιγε τη φόρμα της πρώτης. */}
-          <QuickAdd key={seed?.what ?? 'κενή'} propertyId={propertyId} userId={userId} seed={seed}
+              θα άνοιγε τη φόρμα της πρώτης. Το κλειδί είναι το αναγνωριστικό
+              ΤΗΣ ΣΕΙΡΑΣ και όχι ο τίτλος: δύο λογαριασμοί ρεύματος από
+              διαφορετικούς παρόχους έχουν τον ίδιο τίτλο και άλλη ημερομηνία. */}
+          <QuickAdd key={seed?.id ?? 'κενή'} propertyId={propertyId} userId={userId} seed={seed}
             onDone={async () => { setAdding(false); setSeed(undefined); await load(); }} />
         </>
       )}
@@ -851,7 +853,13 @@ function EditExpense({ row, onClose, onSaved }: {
  * νούμερο που δεν είδε ποτέ κανείς σε λογαριασμό. Το τυπικό ποσό λέγεται στη
  * γραμμή από πάνω, ώστε ο χρήστης να ξέρει τι ψάχνει.
  */
-interface AddSeed { what: string; date: string; slug: string }
+interface AddSeed {
+  /** Ποια σειρά το γέννησε. Κάνει τη φόρμα να ξαναχτίζεται σε ΚΑΘΕ αλλαγή. */
+  id: string;
+  what: string;
+  date: string;
+  slug: string;
+}
 
 function QuickAdd({ propertyId, userId, seed, onDone }: { propertyId: string; userId: string; seed?: AddSeed; onDone: () => void }) {
   const supabase = createClient();

@@ -71,10 +71,13 @@ export async function ofUser<T = Partial<BillsRow>>(
   // ζητά μόνο όσα λήγουν μέσα σε ένα παράθυρο· χωρίς αυτά τα δύο ορίσματα θα
   // κατέβαζε ΚΑΘΕ λογαριασμό της ζωής του λογαριασμού σε κάθε ανανέωση, για να
   // πετάξει τους περισσότερους.
-  opts: { paid?: boolean; dueFrom?: string; dueTo?: string } = {},
+  opts: { unpaid?: boolean; dueFrom?: string; dueTo?: string } = {},
 ): Promise<T[]> {
   let q = db.from(TABLE).select(columns).eq('user_id', userId);
-  if (opts.paid !== undefined) q = q.eq('paid', opts.paid);
+  // Ιδιος κανόνας με τις δόσεις ενοικίου: «απλήρωτο» σημαίνει «όχι πληρωμένο»,
+  // και ένα NULL είναι όχι πληρωμένο. Εδώ η στήλη ΕΧΕΙ προεπιλογή `false`, αλλά
+  // ο κανόνας πρέπει να διαβάζεται ίδιος και στα δύο σημεία.
+  if (opts.unpaid) q = q.not('paid', 'is', true);
   if (opts.dueFrom) q = q.gte('due_date', opts.dueFrom);
   if (opts.dueTo) q = q.lte('due_date', opts.dueTo);
   return rows<T>(q);

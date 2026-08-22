@@ -81,10 +81,21 @@ export function textFromHtml(html: string | null | undefined): string {
     .trim();
 }
 
+/**
+ * Οσο κείμενο διαβάζεται. Ενας λογαριασμός δεν ξεπερνά τα λίγα χιλιάδες
+ * γράμματα· ό,τι πάει παραπάνω είναι υπογραφές, όροι και ιστορικό αλληλογραφίας.
+ *
+ * ΤΟ ΟΡΙΟ ΕΙΝΑΙ ΚΑΙ ΑΣΦΑΛΕΙΑ. Το σώμα το στέλνει ΑΓΝΩΣΤΟΣ: χωρίς όριο, ένα
+ * μήνυμα δεκάδων megabyte θα περνούσε ολόκληρο από πέντε κανονικές εκφράσεις
+ * σε κάθε παραλαβή. Το ποσό και η λήξη ενός λογαριασμού είναι πάντα στην αρχή.
+ */
+export const MAX_BODY_CHARS = 200_000;
+
 /** Το σώμα, από όπου υπάρχει. Το απλό κείμενο προηγείται· είναι ήδη κείμενο. */
 export function bodyOf(src: InboundSource): string {
   const plain = (src.text || '').trim();
-  return plain || textFromHtml(src.html);
+  const body = plain || textFromHtml((src.html || '').slice(0, MAX_BODY_CHARS * 4));
+  return body.slice(0, MAX_BODY_CHARS);
 }
 
 /**

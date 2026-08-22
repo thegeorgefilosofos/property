@@ -33,11 +33,11 @@ import * as bills from '@/lib/data/bills';
 import * as rent from '@/lib/data/rent';
 import { deadlineItems, type DeadlineProperty, type DeadlineEvent, type DeadlineTask, type DeadlineBill, type DeadlineRent } from '@/lib/calendar/deadlines';
 import { buildCalendarFeed } from '@/lib/calendar/feed';
-import { athensToday, athensDatePlus } from '@/lib/core/time';
+import { athensDatePlus } from '@/lib/core/time';
 
 /** Πόσο πίσω και πόσο μπροστά κοιτά η συνδρομή. */
-export const DAYS_BACK = 30;
-export const DAYS_AHEAD = 365;
+const DAYS_BACK = 30;
+const DAYS_AHEAD = 365;
 
 /** Το όνομα που θα δει ο χρήστης στη λίστα των ημερολογίων του. */
 const CALENDAR_NAME = 'Property OS · Προθεσμίες';
@@ -77,7 +77,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
   // ξεχωριστή απάντηση «έληξε» θα έλεγε σε όποιον το βρήκε ότι κάποτε ίσχυε.
   if (!owner || feedStore.feedExpired(owner)) return notFound();
 
-  const today = athensToday();
   const from = athensDatePlus(-DAYS_BACK);
   const to = athensDatePlus(DAYS_AHEAD);
   const userId = owner.user_id;
@@ -90,9 +89,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
     // ξαναελέγχει τα ίδια — και σωστά, γιατί είναι καθαρή συνάρτηση και δεν
     // ξέρει ποιος τη φώναξε — αλλά το ταξίδι των γραμμών γίνεται μία φορά.
     bills.ofUser<DeadlineBill>(db, userId, 'id,property_id,name,type,amount,due_date,paid',
-      { paid: false, dueFrom: from, dueTo: to }),
+      { unpaid: true, dueFrom: from, dueTo: to }),
     rent.ofUser<DeadlineRent>(db, userId, 'id,property_id,amount,due_date,paid,period_year,period_month',
-      { paid: false, dueFrom: from, dueTo: to }),
+      { unpaid: true, dueFrom: from, dueTo: to }),
   ]);
 
   const items = deadlineItems({
@@ -100,7 +99,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
   });
 
   const ics = buildCalendarFeed(items, { name: CALENDAR_NAME, now: new Date() });
-  log(`${items.length} προθεσμίες, ${from} ώς ${to}, σήμερα ${today}`);
+  log(`${items.length} προθεσμίες, ${from} ώς ${to}`);
 
   return new Response(ics, {
     status: 200,

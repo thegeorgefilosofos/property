@@ -1,7 +1,8 @@
 // npx tsx lib/inbound/parse.test.ts
 import {
   parseInbound, textFromHtml, bodyOf, flatten, senderName, forwardedFrom,
-  amountIn, dateIn, expenseTitle, DUE_LABELS, ISSUE_LABELS, AMOUNT_LABELS, type InboundSource,
+  amountIn, dateIn, expenseTitle, MAX_BODY_CHARS,
+  DUE_LABELS, ISSUE_LABELS, AMOUNT_LABELS, type InboundSource,
 } from './parse';
 
 let p = 0, f = 0;
@@ -24,6 +25,13 @@ eq(amountIn(flatten(textFromHtml('<style>.a{font-size:12px}</style><p>Πληρω
 eq(bodyOf(src({ text: 'σκέτο', html: '<p>άλλο</p>' })), 'σκέτο', 'το απλό κείμενο προηγείται');
 eq(bodyOf(src({ text: '  ', html: '<p>άλλο</p>' })), 'άλλο', 'κενό κείμενο δεν είναι κείμενο');
 eq(bodyOf(src({})), '', 'χωρίς σώμα, κενό');
+// ΤΟ ΣΩΜΑ ΤΟ ΣΤΕΛΝΕΙ ΑΓΝΩΣΤΟΣ, ΚΑΙ ΔΕΝ ΔΙΑΒΑΖΕΤΑΙ ΑΤΕΡΜΟΝΑ.
+eq(bodyOf(src({ text: 'α'.repeat(MAX_BODY_CHARS + 5000) })).length, MAX_BODY_CHARS,
+  'υπερμεγέθες κείμενο κόβεται στο όριο');
+eq(bodyOf(src({ html: '<p>' + 'β'.repeat(MAX_BODY_CHARS * 6) + '</p>' })).length, MAX_BODY_CHARS,
+  'το ίδιο και όταν έρχεται ως HTML');
+eq(amountIn(flatten(bodyOf(src({ text: 'Πληρωτέο ποσό 87,45 € ' + 'γ'.repeat(MAX_BODY_CHARS) })))), 87.45,
+  'και το ποσό στην αρχή του μηνύματος διαβάζεται κανονικά');
 
 // ── Η κανονική μορφή ───────────────────────────────────────────────────────
 eq(flatten('ΠΛΗΡΩΤΕΟ  ΠΟΣΟ:\n87,45 €'), 'πληρωτεο ποσο: 87,45 €', 'κεφαλαία, κενά και γραμμές μαζεύονται');
