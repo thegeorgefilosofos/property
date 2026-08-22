@@ -54,3 +54,4 @@ supabase/.temp/
 __gen*.ts
 *.tmp.ts
 *.tmp.cjs
+.e2e-money/
