@@ -95,9 +95,14 @@ domain, αλλιώς ο έλεγχος υγείας συνεχίζει να πα
 
 ## 6. Προαιρετικά κανάλια (μόνο αν τα θέλεις)
 
-`WHATSAPP_TOKEN` + `WHATSAPP_PHONE_ID`, `VIBER_TOKEN`, `IMESSAGE_API_URL` + `IMESSAGE_TOKEN`,
-`FCM_SERVER_KEY` (push σε κινητό). Όλα προαιρετικά: χωρίς αυτά η εφαρμογή πέφτει σε κοινοποίηση
-μέσω του λειτουργικού (share sheet), που δουλεύει και δεν κοστίζει τίποτα.
+`WHATSAPP_TOKEN` + `WHATSAPP_PHONE_ID`, `VIBER_TOKEN`, `IMESSAGE_API_URL` + `IMESSAGE_TOKEN`.
+Όλα προαιρετικά: χωρίς αυτά η εφαρμογή πέφτει σε κοινοποίηση μέσω του λειτουργικού
+(share sheet), που δουλεύει και δεν κοστίζει τίποτα.
+
+Οι **ειδοποιήσεις στη συσκευή** δεν είναι σε αυτή τη λίστα και δεν θέλουν πάροχο: δουλεύουν
+με το πρότυπο Web Push και κλειδιά που παράγεις μόνος σου. Τα τέσσερα βήματα είναι στο
+`docs/ops/push-notifications.md` (`NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`,
+`VAPID_SUBJECT`, `CRON_SECRET`).
 
 ---
 

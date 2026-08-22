@@ -83,20 +83,17 @@ caps and digests already applied — the channel is just the last hop.
   approval. Add `VIBER_TOKEN`.
 - **WhatsApp** — a Meta WhatsApp Business API number and **pre-approved templates**
   for each MSG key. Add `WHATSAPP_TOKEN` + `WHATSAPP_PHONE_ID`.
-- **Push** — a web/mobile push provider (e.g. FCM) + stored device tokens. The DB
-  already has a `wants_mobile` flag (referral/entitlements migration); add per-
-  channel opt-in columns (`wants_push`, `wants_viber`, `wants_whatsapp`) and a
-  device-token table.
+- **Push** — nothing to add here: web push ships in the app itself, not through
+  this dispatcher. See `docs/ops/push-notifications.md`.
 ## What is now built
 
-- **`messaging_prefs`** (per-user opt-in: email/push/viber/whatsapp + `phone_e164`)
-  and **`push_devices`** tables, RLS-owned by the user — migration
-  `20260722100000_messaging_channels.sql`. Email on by default; the rest opt-in,
-  so a user with no row is email-only.
+- **`messaging_prefs`** (per-user opt-in: viber/whatsapp/imessage + `phone_e164`),
+  RLS-owned by the user — migration `20260722100000_messaging_channels.sql`. Email
+  on by default; the rest opt-in, so a user with no row is email-only.
 - **`dispatch-message`** edge function — the single seam: reads a delivery, looks
   up the recipient's opt-ins, calls `pickChannel`, and routes to email
-  (send-lifecycle-email), Viber, WhatsApp (template payload) or push (FCM). If a
-  provider key or the phone/device is missing, it falls back to email — never a
+  (send-lifecycle-email), Viber, WhatsApp (template payload) or iMessage. If a
+  provider key or the phone is missing, it falls back to email — never a
   double-send, never a lost message.
 - The scheduler is single-flight (advisory lock) so overlapping cron runs can't
   double-plan.
@@ -105,11 +102,19 @@ caps and digests already applied — the channel is just the last hop.
 
 - Set `VIBER_TOKEN`, `WHATSAPP_TOKEN` + `WHATSAPP_PHONE_ID` (with Meta-approved
   templates named `po_<copyId>`), `IMESSAGE_API_URL` + `IMESSAGE_TOKEN` (Apple
-  Messages for Business, via an MSP such as Sunshine Conversations), and a push key
-  (`FCM_SERVER_KEY`). Each is independent — any absent channel simply falls back to
-  email, never a double-send.
+  Messages for Business, via an MSP such as Sunshine Conversations). Each is
+  independent — any absent channel simply falls back to email, never a double-send.
 - Point the drain at `dispatch-message` instead of `send-lifecycle-email` so every
   delivery passes through the one channel seam.
-- Collect opt-ins + phone/device tokens in-app (write to `messaging_prefs`, incl.
-  `wants_imessage` from migration `20260722140000_imessage_channel.sql`, and
-  `push_devices`). Until then everything is email, exactly as today.
+- Collect opt-ins + phone in-app (write to `messaging_prefs`, incl. `wants_imessage`
+  from migration `20260722140000_imessage_channel.sql`). Until then everything is
+  email, exactly as today.
+
+## What was removed, and why
+
+`push_devices` and `messaging_prefs.wants_push` are gone (migration
+`20260822090000`). They fed one call to `fcm.googleapis.com/fcm/send` — the legacy
+FCM endpoint Google **shut down on 20 June 2024** — and no screen, script or
+function ever wrote a row into that table. Device notifications now run on the W3C
+Web Push standard from the app itself: `lib/push/*`, `app/api/push/route.ts`,
+`public/sw.js`, table `push_subscriptions`. No Google account, no provider key.

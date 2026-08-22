@@ -120,8 +120,8 @@ quality rating · 30/90-day retention by archetype · continuous A/B graduating 
   longer dropped).
 
 ## Backlog to 10/10 (prioritized — needs live DB / providers / domain)
-**High** · point the drain at `dispatch-message` (multichannel live) · FCM HTTP v1
-migration · engagement-based throttling + sunset + per-user send-time · lease-declaration
+**High** · point the drain at `dispatch-message` (multichannel live) ·
+engagement-based throttling + sunset + per-user send-time · lease-declaration
 tenant-acceptance/termination sub-flow · preference center (per-category opt-out) ·
 delivery-receipt failover + provider idempotency.
 **Medium** · cross-channel dunning escalation with paid-event cancel · behavioural

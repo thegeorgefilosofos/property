@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// messaging — channel-agnostic short messages for Viber / WhatsApp / iMessage / push.
+// messaging — channel-agnostic short messages for Viber / WhatsApp / iMessage.
 //
 // Email says everything; a phone message says the one thing that matters, now. The
 // message must earn its buzz: same warm, human Property OS voice as the email, only
@@ -7,20 +7,20 @@
 // per-channel adapters (length + format), and — crucially for the no-spam promise —
 // channel SELECTION: one delivery goes out on exactly ONE channel, and the daily
 // caps in emailPolicy span every channel together. We never send the same thing on
-// email AND push AND Viber.
+// email AND Viber AND WhatsApp.
 //
 // Messaging covers only the urgent/glanceable events (receipts, obligations, check-
 // ins, security, compliance deadlines, digests). Rich value/marketing stays on
 // email, where it reads properly. Gender-aware where a third person (a tenant) is
 // mentioned, with a safe neutral fallback; never an amount or a private name on the
 // lock screen. Pure and testable (verify-messaging.ts). Sending needs Business API
-// keys (Viber/WhatsApp/iMessage) or a push provider — see docs/marketing/multichannel.md.
+// keys (Viber/WhatsApp/iMessage) — see docs/marketing/multichannel.md.
 // ─────────────────────────────────────────────────────────────────────────────
 import { policyFor } from './emailPolicy.ts';
 import { gv } from './emailTemplates.ts';
 import type { Personal } from './emailTemplates.ts';
 
-export type Channel = 'email' | 'push' | 'viber' | 'whatsapp' | 'imessage';
+export type Channel = 'email' | 'viber' | 'whatsapp' | 'imessage';
 export interface ChannelMessage { title: string; body: string; cta?: string; }
 
 // Third-person tenant reference, correctly gendered (owner-facing dunning etc.).
@@ -85,12 +85,10 @@ export const MSG: Record<string, (c: Personal) => ChannelMessage> = {
 };
 
 // ── Per-channel adapters ─────────────────────────────────────────────────────
-// Push is the tightest; Viber / iMessage / WhatsApp allow a title + body + a link.
+// Viber / iMessage / WhatsApp all allow a title + body + a link.
+// (Web push has its own renderer in lib/push/message.ts: it is sent by the app,
+// not by this dispatcher.)
 const clip = (s: string, n: number) => (s.length <= n ? s : s.slice(0, n - 1).trimEnd() + '…');
-
-export function renderPush(m: ChannelMessage): { title: string; body: string } {
-  return { title: clip(m.title, 48), body: clip(m.body, 140) };
-}
 
 // Viber rich message: title + body on two lines, plus a link button (CTA).
 export function renderViber(m: ChannelMessage, url?: string): { text: string; action?: { text: string; url: string } } {
@@ -131,10 +129,10 @@ export function renderWhatsApp(m: ChannelMessage, copyId: string, url?: string):
 // the user opted into; everything richer stays on email. If the user has no
 // messaging opt-in, or we have no short variant, it is email. The caps in
 // emailPolicy count a message the same as an email, so channels can never stack.
-// Tie-break order when a user opted into several: Viber, WhatsApp, iMessage, push
+// Tie-break order when a user opted into several: Viber, WhatsApp, iMessage
 // (the messaging apps dominant in Greece first). Any single delivery still goes to
 // exactly one of them.
-export interface ChannelPrefs { push?: boolean; viber?: boolean; whatsapp?: boolean; imessage?: boolean; }
+export interface ChannelPrefs { viber?: boolean; whatsapp?: boolean; imessage?: boolean; }
 
 export function pickChannel(copyId: string, prefs: ChannelPrefs = {}): Channel {
   if (!MSG[copyId]) return 'email';                       // no short variant → email
@@ -144,6 +142,5 @@ export function pickChannel(copyId: string, prefs: ChannelPrefs = {}): Channel {
   if (prefs.viber) return 'viber';
   if (prefs.whatsapp) return 'whatsapp';
   if (prefs.imessage) return 'imessage';
-  if (prefs.push) return 'push';
   return 'email';
 }

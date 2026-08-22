@@ -23,6 +23,7 @@ import { Send } from 'lucide-react'
 import { T, TT, Btn, settingsField } from '@/components/Theme'
 import { Toggle } from './UIComponents'
 import { SetList, SetRow, SetGroup, SaveNote, useAutosave } from './SettingsKit'
+import DeviceNotifications from './DeviceNotifications'
 
 interface NotifPrefs {
   email_enabled: boolean
@@ -264,6 +265,13 @@ export default function NotificationSettings({ userId }: { userId: string }) {
       <SetRow title="Αλλαγές νομοθεσίας"
         desc="Μόνο όσες αφορούν τα ακίνητά σου και ζητούν κίνηση, με τη νομική βάση και σύνδεσμο στην επίσημη πηγή. Εμφανίζονται και ως εκκρεμότητες στο ακίνητο που αφορούν."
         control={<Toggle on={prefs.legal_updates} onChange={v => update({ legal_updates: v })} size="sm" />} />
+
+      {/* ΤΟ ΔΕΥΤΕΡΟ ΚΑΝΑΛΙ, ΚΑΙ ΤΟ ΜΟΝΟ ΠΟΥ ΦΤΑΝΕΙ ΧΩΡΙΣ ΝΑ ΑΝΟΙΞΕΙ ΤΙΠΟΤΑ.
+          Δεν κρέμεται από το `email_enabled`: είναι άλλος δρόμος, όχι ρύθμιση
+          του email. Αποθηκεύεται μόνο του, γι' αυτό στέκει κάτω από την ένδειξη
+          αποθήκευσης των υπολοίπων και όχι μέσα της. */}
+      <SetGroup>Στη συσκευή</SetGroup>
+      <DeviceNotifications userId={userId} />
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', minHeight: 18 }}>
         <SaveNote state={saveState} />

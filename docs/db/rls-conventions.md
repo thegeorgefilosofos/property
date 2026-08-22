@@ -56,7 +56,7 @@ Same access declared 2–4 times over. Worst offenders:
   `notification_log` — 2 → 1
 
 Kept untouched (already canonical): `own_*`-only tables (accountant_links, calendar_feed_tokens,
-book_closings, messaging_prefs, push_devices, referral_*, …), the reference tables,
+book_closings, messaging_prefs, push_subscriptions, referral_*, …), the reference tables,
 and the `organizations` / `organization_members` multi-tenant core.
 
 ## Net result

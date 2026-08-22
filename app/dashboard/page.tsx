@@ -17,6 +17,8 @@ import * as expenseStore from '@/lib/data/expenses'
 import * as inventory from '@/lib/data/inventory';
 // Το προφίλ χρέωσης έχει ένα σπίτι: lib/data/billing.
 import * as billing from '@/lib/data/billing';
+import * as pushDevices from '@/lib/data/pushSubscriptions';
+import { unsubscribeDevice, setDeviceNotify } from '@/lib/push/client';
 import type { User } from '@supabase/supabase-js';
 import TabBoundary  from './components/TabBoundary';
 // ΟΙ ΚΑΡΤΕΛΕΣ ΚΑΤΕΒΑΙΝΟΥΝ ΟΤΑΝ ΑΝΟΙΞΟΥΝ. Το «γιατί», μετρημένο, στο lazyTabs.tsx.
@@ -1671,6 +1673,18 @@ export default function Dashboard() {
     // συνδεδεμένος — και θα ήταν παράλογο να έχει ήδη χάσει τις συνομιλίες του
     // για μια αποσύνδεση που δεν έγινε. Το supabase-js επιστρέφει το σφάλμα ως
     // τιμή, δεν το πετά, οπότε το ελέγχουμε ρητά.
+    // ΟΙ ΕΙΔΟΠΟΙΗΣΕΙΣ ΦΕΥΓΟΥΝ ΠΡΙΝ ΑΠΟ ΤΗ ΣΥΝΕΔΡΙΑ, ΚΑΙ ΕΙΝΑΙ Η ΣΩΣΤΗ ΣΕΙΡΑ.
+    // Η συνδρομή push ανήκει στη ΣΥΣΚΕΥΗ, όχι στη συνεδρία: χωρίς αυτό το βήμα,
+    // ο αποσυνδεδεμένος υπολογιστής θα συνέχιζε να δείχνει κάθε πρωί τις
+    // προθεσμίες του προηγούμενου χρήστη — και σε κοινή συσκευή αυτό είναι
+    // διαρροή, όχι ενόχληση. Το σβήσιμο της γραμμής ΘΕΛΕΙ τη συνεδρία που
+    // πρόκειται να λήξει: μετά την αποσύνδεση, η RLS δεν θα το επέτρεπε ποτέ.
+    try {
+      const gone = await unsubscribeDevice();
+      if (gone) await pushDevices.remove(supabase, gone);
+      setDeviceNotify(false);
+    } catch { /* η αποσύνδεση δεν σταματά για μια συνδρομή */ }
+
     const { error } = await supabase.auth.signOut();
     if (error) {
       // duration 0 = μένει ώσπου να το κλείσει ο χρήστης, ίδιο βάρος με το alert που

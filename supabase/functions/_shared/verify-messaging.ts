@@ -1,5 +1,5 @@
 // Tests for the multichannel messaging layer. Run: npx tsx verify-messaging.ts
-import { MSG, renderPush, renderViber, renderIMessage, renderWhatsApp, pickChannel } from './messaging.ts';
+import { MSG, renderViber, renderIMessage, renderWhatsApp, pickChannel } from './messaging.ts';
 import type { Personal } from './emailTemplates.ts';
 
 let failed = 0;
@@ -26,8 +26,6 @@ ok(failed === 0, `all ${Object.keys(MSG).length} messages render clean in both c
 console.log('\n2) Adapters respect channel limits');
 {
   const m = MSG.digest_obligations(rich);
-  const push = renderPush({ title: 'x'.repeat(80), body: 'y'.repeat(300), cta: 'ok' });
-  ok(push.title.length <= 48 && push.body.length <= 140, 'push truncates title ≤48 and body ≤140');
   const v = renderViber(m, 'https://propertyos.gr/dashboard');
   ok(v.text.includes('\n') && v.action?.url === 'https://propertyos.gr/dashboard', 'viber carries title+body and a link action');
   const im = renderIMessage(m, 'https://propertyos.gr/dashboard');
@@ -73,9 +71,8 @@ console.log('\n3) Channel selection never stacks — one delivery, one channel')
 {
   ok(pickChannel('subscription_receipt', {}) === 'email', 'no opt-in → email even for urgent');
   ok(pickChannel('subscription_receipt', { viber: true }) === 'viber', 'urgent + viber opt-in → viber');
-  ok(pickChannel('dunning_final', { push: true }) === 'push', 'obligation + push opt-in → push');
   ok(pickChannel('str_stay_tax', { imessage: true }) === 'imessage', 'compliance obligation + imessage opt-in → imessage');
-  ok(pickChannel('lease_declaration_reminder', { imessage: true, push: true }) === 'imessage', 'imessage wins over push when both opted in');
+  ok(pickChannel('lease_declaration_reminder', { imessage: true, whatsapp: true }) === 'whatsapp', 'whatsapp wins over imessage when both opted in');
   ok(pickChannel('checkin_today', { viber: true, imessage: true }) === 'viber', 'viber wins the tie-break over imessage');
   ok(pickChannel('monthly_statement', { viber: true }) === 'email', 'lifecycle stays on email even with opt-in');
   ok(pickChannel('rate_alert', { viber: true }) === 'email', 'opportunity stays on email');

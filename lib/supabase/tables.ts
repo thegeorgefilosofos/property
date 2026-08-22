@@ -890,7 +890,6 @@ export interface MarketRatesRow {
 export interface MessagingPrefsRow {
   user_id: string;
   wants_email: boolean;
-  wants_push: boolean;
   wants_viber: boolean;
   wants_whatsapp: boolean;
   wants_imessage: boolean;
@@ -1062,12 +1061,16 @@ export interface PropertySettingsRow {
   kwh_price: number | null;
 }
 
-export interface PushDevicesRow {
-  id: number;
+export interface PushSubscriptionsRow {
+  id: string;
   user_id: string;
-  token: string;
-  platform: string | null;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  user_agent: string | null;
   created_at: string;
+  last_sent_at: string | null;
+  failures: number;
 }
 
 export interface ReferralCodesRow {
@@ -1433,7 +1436,7 @@ export interface Tables {
   property_data: PropertyDataRow;
   property_documents: PropertyDocumentsRow;
   property_settings: PropertySettingsRow;
-  push_devices: PushDevicesRow;
+  push_subscriptions: PushSubscriptionsRow;
   referral_codes: ReferralCodesRow;
   referral_partners: ReferralPartnersRow;
   referral_rewards: ReferralRewardsRow;

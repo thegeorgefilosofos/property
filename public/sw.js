@@ -168,3 +168,54 @@ self.addEventListener('message', (event) => {
       .then((cache) => Promise.allSettled(SHELL_ASSETS.map((u) => cache.add(u))))
   );
 });
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * ΟΙ ΕΙΔΟΠΟΙΗΣΕΙΣ ΦΤΑΝΟΥΝ ΚΑΙ ΜΕ ΤΗΝ ΕΦΑΡΜΟΓΗ ΚΛΕΙΣΤΗ
+ * ─────────────────────────────────────────────────────────────────────────
+ * Ο διακομιστής στέλνει ΚΡΥΠΤΟΓΡΑΦΗΜΕΝΟ φάκελο· η υπηρεσία push (Google,
+ * Apple, Mozilla) τον μεταφέρει χωρίς να τον διαβάζει και τον ανοίγει ΕΔΩ, με
+ * τα κλειδιά που παρήγαγε ο ίδιος ο περιηγητής.
+ *
+ * ΜΙΑ ΕΙΔΟΠΟΙΗΣΗ ΤΗ ΦΟΡΑ, ΜΕ ΤΟ ΙΔΙΟ `tag`. Ενα τηλέφωνο που δεν άνοιξε για
+ * τρεις ημέρες δεν πρέπει να δείξει τρεις σωρούς: η νέα αντικαθιστά την παλιά,
+ * γιατί η παλιά μιλούσε για προθεσμίες που ίσως πέρασαν.
+ *
+ * ΤΟ ΠΑΤΗΜΑ ΔΕΝ ΑΝΟΙΓΕΙ ΔΕΥΤΕΡΟ ΠΑΡΑΘΥΡΟ. Αν η εφαρμογή είναι ήδη ανοιχτή,
+ * έρχεται μπροστά· αλλιώς ανοίγει ένα.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+const NOTIFY_TAG = 'pos-daily';
+
+self.addEventListener('push', (event) => {
+  // ΧΩΡΙΣ ΠΕΡΙΕΧΟΜΕΝΟ, ΤΙΠΟΤΑ. Μια ειδοποίηση «Property OS» χωρίς να λέει τι,
+  // ξοδεύει την προσοχή που θα χρειαστεί η επόμενη.
+  let msg = null;
+  try { msg = event.data ? event.data.json() : null; } catch { msg = null; }
+  if (!msg || !msg.title || !msg.body) return;
+
+  event.waitUntil(self.registration.showNotification(msg.title, {
+    body: msg.body,
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    tag: NOTIFY_TAG,
+    renotify: true,
+    data: { url: typeof msg.url === 'string' ? msg.url : '/dashboard' },
+  }));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = new URL((event.notification.data && event.notification.data.url) || '/dashboard', self.location.origin);
+  // Μόνο δική μας διεύθυνση ανοίγει: το περιεχόμενο έρχεται από τον διακομιστή
+  // μας, αλλά ένα `url` που δείχνει αλλού δεν έχει καμία δουλειά εδώ.
+  if (target.origin !== self.location.origin) return;
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((wins) => {
+      for (const w of wins) {
+        if (new URL(w.url).origin === self.location.origin) return w.focus().then(() => w.navigate ? w.navigate(target.href) : w);
+      }
+      return self.clients.openWindow(target.href);
+    })
+  );
+});

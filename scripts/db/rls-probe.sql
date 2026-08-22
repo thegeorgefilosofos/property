@@ -1494,3 +1494,63 @@ end $probe$;
 
 reset role;
 set session "probe.uid" = '';
+
+-- ═══════════════════════════════════════════════════════════════════════════
+--  ΟΙ ΣΥΝΔΡΟΜΕΣ ΕΙΔΟΠΟΙΗΣΕΩΝ: ΔΙΚΗ ΣΟΥ ΣΥΣΚΕΥΗ, ΔΙΚΕΣ ΣΟΥ ΕΙΔΟΠΟΙΗΣΕΙΣ
+-- ─────────────────────────────────────────────────────────────────────────
+--  ΤΙ ΘΑ ΣΗΜΑΙΝΕ ΔΙΑΡΡΟΗ ΕΔΩ. Οποιος διαβάσει τη γραμμή ενός άλλου παίρνει τη
+--  διεύθυνση push της συσκευής του ΚΑΙ τα κλειδιά κρυπτογράφησης — δηλαδή
+--  μπορεί να στείλει ό,τι θέλει στο κλειδωμένο κινητό του, με το όνομά μας.
+-- ═══════════════════════════════════════════════════════════════════════════
+
+reset role;
+set session "probe.uid" = '';
+
+insert into public.push_subscriptions (user_id, endpoint, p256dh, auth)
+values ('11111111-1111-1111-1111-111111111111', 'https://push.example/A', 'kA', 'aA'),
+       ('22222222-2222-2222-2222-222222222222', 'https://push.example/B', 'kB', 'aB');
+update public.push_subscriptions set failures = 3, last_sent_at = now()
+ where endpoint = 'https://push.example/A';
+
+set role authenticated;
+set session "probe.uid" = '11111111-1111-1111-1111-111111111111';
+
+do $probe$
+declare n int; f int;
+begin
+  select count(*) into n from public.push_subscriptions;
+  if n <> 1 then raise exception 'ΔΙΑΡΡΟΗ: ο Α βλέπει % συνδρομές συσκευών αντί για τη δική του', n; end if;
+
+  select count(*) into n from public.push_subscriptions where endpoint = 'https://push.example/B';
+  if n <> 0 then raise exception 'ΔΙΑΡΡΟΗ: ο Α βλέπει τα κλειδιά της συσκευής του Β'; end if;
+
+  -- Η ΔΙΚΗ ΤΟΥ ΣΥΣΚΕΥΗ ΞΑΝΑΓΡΑΦΕΤΑΙ: ο περιηγητής ανανεώνει κλειδιά.
+  update public.push_subscriptions set p256dh = 'kA2' where endpoint = 'https://push.example/A';
+  get diagnostics n = row_count;
+  if n <> 1 then raise exception 'Ο χρήστης δεν μπόρεσε να ανανεώσει τα κλειδιά της συσκευής του'; end if;
+
+  -- ΤΟ ΙΣΤΟΡΙΚΟ ΑΠΟΣΤΟΛΗΣ ΟΜΩΣ ΔΕΝ ΕΙΝΑΙ ΔΙΚΟ ΤΟΥ. Κρίνει πότε σβήνεται μια
+  -- νεκρή συνδρομή· αν το έγραφε ο πελάτης, δεν θα έσβηνε ποτέ.
+  update public.push_subscriptions set failures = 0, last_sent_at = null
+   where endpoint = 'https://push.example/A';
+  select failures into f from public.push_subscriptions where endpoint = 'https://push.example/A';
+  if f <> 3 then raise exception 'ΔΙΑΡΡΟΗ: ο χρήστης μηδένισε μόνος του τις αποτυχίες (%)', f; end if;
+
+  begin
+    insert into public.push_subscriptions (user_id, endpoint, p256dh, auth)
+      values ('22222222-2222-2222-2222-222222222222', 'https://push.example/C', 'kC', 'aC');
+    raise exception 'ΔΙΑΡΡΟΗ: ο Α έγραψε συνδρομή στο όνομα του Β';
+  exception
+    when insufficient_privilege then null;
+    when others then if sqlerrm like 'ΔΙΑΡΡΟΗ%' then raise; end if;
+  end;
+
+  delete from public.push_subscriptions where endpoint = 'https://push.example/B';
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'ΔΙΑΡΡΟΗ: ο Α έσβησε τη συσκευή του Β'; end if;
+
+  raise notice 'probe: κάθε συσκευή ανήκει σε έναν, και το ιστορικό αποστολής το γράφει ο διακομιστής';
+end $probe$;
+
+reset role;
+set session "probe.uid" = '';

@@ -3,7 +3,7 @@
 //
 // The cadence plan already decided WHAT and WHEN (one delivery per event, caps
 // applied). This decides the medium: pickChannel(copyId, prefs) returns exactly
-// one of email/push/viber/whatsapp based on the user's opt-ins. Email goes to
+// one of email/viber/whatsapp/imessage based on the user's opt-ins. Email goes to
 // send-lifecycle-email; messaging goes to the provider adapter. If a provider key
 // is missing, it falls back to email — so nothing is ever double-sent and nothing
 // is lost. This is the seam the drain calls instead of send-lifecycle directly,
@@ -11,13 +11,20 @@
 //
 // Env (optional, per channel): VIBER_TOKEN, WHATSAPP_TOKEN + WHATSAPP_PHONE_ID,
 // IMESSAGE_API_URL + IMESSAGE_TOKEN (Apple Messages for Business via an MSP such as
-// Sunshine Conversations), and a push provider (e.g. FCM_SERVER_KEY). Absent → that
-// channel falls back to email. Deploy: supabase functions deploy dispatch-message
-// (verify_jwt=false).
+// Sunshine Conversations). Absent → that channel falls back to email. Deploy:
+// supabase functions deploy dispatch-message (verify_jwt=false).
+//
+// NO PUSH BRANCH HERE, AND THAT IS DELIBERATE. This function used to POST device
+// tokens to fcm.googleapis.com/fcm/send — an endpoint Google decommissioned on
+// 20 June 2024, fed by a `push_devices` table that no code ever wrote a row to.
+// Web push now lives in the app itself (app/api/push/route.ts + lib/push/*), on
+// the W3C standard with VAPID keys and no Google account: the browser gives the
+// keys, the daily job encrypts and sends. `push` is therefore not a channel this
+// dispatcher offers; a delivery that would have taken it takes email.
 // ─────────────────────────────────────────────────────────────────────────────
 import { createClient } from 'npm:@supabase/supabase-js@2.110.8'
 import { APP_URL } from '../_shared/site.ts'
-import { MSG, pickChannel, renderPush, renderViber, renderIMessage, renderWhatsApp, type ChannelPrefs } from '../_shared/messaging.ts'
+import { MSG, pickChannel, renderViber, renderIMessage, renderWhatsApp, type ChannelPrefs } from '../_shared/messaging.ts'
 import type { Personal } from '../_shared/emailTemplates.ts'
 import { authorizeCron } from '../_shared/auth.ts'
 
@@ -30,7 +37,6 @@ const WHATSAPP_TOKEN = Deno.env.get('WHATSAPP_TOKEN') || ''
 const WHATSAPP_PHONE = Deno.env.get('WHATSAPP_PHONE_ID') || ''
 const IMESSAGE_URL   = Deno.env.get('IMESSAGE_API_URL') || ''
 const IMESSAGE_TOKEN = Deno.env.get('IMESSAGE_TOKEN') || ''
-const FCM_KEY        = Deno.env.get('FCM_SERVER_KEY') || ''
 
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY)
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json' } })
@@ -64,8 +70,8 @@ Deno.serve(async (req) => {
   let phone = ''
   if (userId) {
     const { data } = await supabase.from('messaging_prefs')
-      .select('wants_push,wants_viber,wants_whatsapp,wants_imessage,phone_e164').eq('user_id', userId).maybeSingle()
-    if (data) { prefs = { push: data.wants_push, viber: data.wants_viber, whatsapp: data.wants_whatsapp, imessage: data.wants_imessage }; phone = data.phone_e164 || '' }
+      .select('wants_viber,wants_whatsapp,wants_imessage,phone_e164').eq('user_id', userId).maybeSingle()
+    if (data) { prefs = { viber: data.wants_viber, whatsapp: data.wants_whatsapp, imessage: data.wants_imessage }; phone = data.phone_e164 || '' }
   }
 
   const channel = pickChannel(copyId, prefs)
@@ -108,21 +114,6 @@ Deno.serve(async (req) => {
       })
       return json({ channel: 'imessage' })
     }
-    if (channel === 'push' && FCM_KEY && userId) {
-      const { data: devices } = await supabase.from('push_devices').select('token').eq('user_id', userId)
-      if (devices && devices.length) {
-        const p = renderPush(msg)
-        for (const d of devices) {
-          await fetch('https://fcm.googleapis.com/fcm/send', {
-            method: 'POST', headers: { Authorization: `key=${FCM_KEY}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ to: d.token, notification: { title: p.title, body: p.body }, data: { url } }),
-          })
-        }
-        return json({ channel: 'push', devices: devices.length })
-      }
-      // No registered device → fall through to the email fallback below (never a lost message).
-    }
-
     // Chosen channel not configured (missing key/phone/device) → email fallback.
     await sendEmail(copyId, email, name, params)
     return json({ channel: 'email', fallbackFrom: channel })

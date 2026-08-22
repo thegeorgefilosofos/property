@@ -3,6 +3,7 @@ import { navLabel } from '@/lib/nav/labels';
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { isoDate, athensToday, daysUntil as athensDaysUntil } from '@/lib/core/time'
+import { deviceNotifyOn, NOTIFY_EVENT } from '@/lib/push/client'
 import { addMonths } from '@/lib/loans/progress'
 import { createClient } from '@/lib/supabase/client'
 import * as properties from '@/lib/data/properties';
@@ -14,6 +15,7 @@ import * as expenses from '@/lib/data/expenses'
 import { must } from '@/lib/supabase/must'
 // Ο πίνακας των γεγονότων έχει ένα σπίτι: lib/data/calendar.
 import * as calendar from '@/lib/data/calendar'
+import * as feedStore from '@/lib/data/calendarFeed'
 import { feedUrl } from '@/lib/data/calendarFeed'
 // Ο πίνακας των δανείων έχει ένα σπίτι: lib/data/loans.
 import * as loanStore from '@/lib/data/loans'
@@ -1525,28 +1527,30 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
       notifyOk(`Εισήχθησαν ${rows.length} γεγονότα.`)
     }catch{ notifyError('Το αρχείο δεν διαβάστηκε.') }
   }
+  // Η ΓΡΑΜΜΗ ΓΕΝΝΙΕΤΑΙ ΠΛΕΟΝ ΜΕ ΤΟΝ ΛΟΓΑΡΙΑΣΜΟ (20260821160000), ΟΠΟΤΕ ΕΔΩ
+  // ΜΕΝΕΙ ΜΟΝΟ ΑΝΑΓΝΩΣΗ. Πριν, το κουπόνι δημιουργούνταν ΤΕΜΠΕΛΙΚΑ την πρώτη
+  // φορά που άνοιγε αυτό το παράθυρο: όποιος δεν περνούσε από εδώ δεν είχε
+  // διεύθυνση ημερολογίου, και οι Ρυθμίσεις δεν είχαν τι να του δείξουν.
   async function openSubscribe(){
     setShowMenu(false)
-    let token=feedToken
-    if(!token){
-      const{data}=await supabase.from('calendar_feed_tokens').select('token').eq('user_id',userId).maybeSingle()
-      token=data?.token||null
-      if(!token){
-        const ins=await savedData<{token?:string}>('Ο σύνδεσμος συνδρομής δεν δημιουργήθηκε',
-          supabase.from('calendar_feed_tokens').insert({user_id:userId}).select('token').single())
-        token=ins?.token||null
-      }
-      setFeedToken(token)
+    if(!feedToken){
+      const { row } = await feedStore.feed(supabase, userId)
+      setFeedToken(row?.token || null)
     }
     setShowSubscribe(true)
   }
   useEffect(()=>{ if(!showMenu)return; positionMenu(); const h=(ev:MouseEvent)=>{ const t=ev.target as Node; if((menuRef.current?.contains(t))||(menuPopRef.current?.contains(t)))return; setShowMenu(false) }; const rp=()=>positionMenu(); document.addEventListener('mousedown',h); window.addEventListener('scroll',rp,true); window.addEventListener('resize',rp); return ()=>{document.removeEventListener('mousedown',h); window.removeEventListener('scroll',rp,true); window.removeEventListener('resize',rp)} },[showMenu])
 
-  // Ειδοποιήσεις συσκευής: αναβοσβήνουν όσο η εφαρμογή είναι ανοιχτή, ~10' πριν από
-  // κάθε ραντεβού. Το email υπενθυμίσεων (pg_cron) καλύπτει το background κανάλι.
+  // ΟΙ ΕΙΔΟΠΟΙΗΣΕΙΣ ΣΥΣΚΕΥΗΣ ΕΧΟΥΝ ΕΝΑΝ ΔΙΑΚΟΠΤΗ, ΚΑΙ ΔΕΝ ΕΙΝΑΙ ΕΔΩ. Ζει στις
+  // Ρυθμίσεις → Ειδοποιήσεις (DeviceNotifications.tsx) και ανάβει ΚΑΙ την πρωινή
+  // ειδοποίηση με την εφαρμογή κλειστή ΚΑΙ αυτή εδώ την τοπική, ~10' πριν από
+  // κάθε ραντεβού, όσο η εφαρμογή είναι ανοιχτή. Το ημερολόγιο ΑΚΟΥΕΙ: όποιος
+  // αλλάξει τον διακόπτη σε άλλη καρτέλα δεν χρειάζεται να ανανεώσει σελίδα.
   useEffect(()=>{
-    if(typeof window==='undefined'||typeof Notification==='undefined')return
-    if(localStorage.getItem('cal_notify')==='1'&&Notification.permission==='granted')setNotifyOn(true)
+    if(deviceNotifyOn())setNotifyOn(true)
+    const h=()=>setNotifyOn(deviceNotifyOn())
+    window.addEventListener(NOTIFY_EVENT,h)
+    return ()=>window.removeEventListener(NOTIFY_EVENT,h)
   },[])
   useEffect(()=>{
     if(!notifyOn||typeof Notification==='undefined')return
@@ -1562,16 +1566,6 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
     const iv=setInterval(tick,60000)
     return ()=>clearInterval(iv)
   },[notifyOn,events])
-  async function toggleNotify(){
-    setShowMenu(false)
-    if(typeof Notification==='undefined'){ notify('Ο περιηγητής δεν υποστηρίζει ειδοποιήσεις.',{tone:'warning'}); return }
-    if(notifyOn){ setNotifyOn(false); localStorage.removeItem('cal_notify'); notify('Οι ειδοποιήσεις συσκευής απενεργοποιήθηκαν.'); return }
-    let perm=Notification.permission
-    if(perm==='default')perm=await Notification.requestPermission()
-    if(perm==='granted'){ setNotifyOn(true); localStorage.setItem('cal_notify','1'); notifyOk('Ενεργές ειδοποιήσεις: θα σε προειδοποιούμε ~10΄ πριν.') }
-    else{ notify('Χρειάζεται άδεια ειδοποιήσεων από τον περιηγητή.',{tone:'warning'}) }
-  }
-
   useEffect(()=>{
     load()
     // Ζωντανό: κάθε αλλαγή στα γεγονότα (π.χ. συμφωνία πληρωμής, sync υποχρεώσεων
@@ -1991,7 +1985,6 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
                 {label: bulkMode?'Τέλος επιλογής':'Επιλογή για μαζικές ενέργειες', icon:<CheckSquare size={15}/>, on:()=>{setBulkMode(b=>!b);setSelectedIds(new Set());setShowMenu(false)}},
                 {label: showFilters?'Απόκρυψη φίλτρων':'Φίλτρα', icon:<Filter size={15}/>, on:()=>{setShowFilters(f=>!f);setShowMenu(false)}},
                 {label:'Συγχρονισμός δεδομένων', icon:<RefreshCw size={15}/>, on:()=>{setShowAutoPull(f=>!f);setShowMenu(false)}},
-                {label: notifyOn?'Ειδοποιήσεις συσκευής: ενεργές':'Ειδοποιήσεις στη συσκευή', icon:<Bell size={15}/>, on:toggleNotify},
                 {label:'Συνδρομή σε ζωντανό ημερολόγιο', icon:<CalendarPlus size={15}/>, on:openSubscribe},
                 {label:'Λήψη αρχείου .ics', icon:<Download size={15}/>, on:()=>{exportICal();setShowMenu(false)}},
                 {label:'Εισαγωγή από .ics', icon:<CalendarDays size={15}/>, on:()=>{importRef.current?.click()}},

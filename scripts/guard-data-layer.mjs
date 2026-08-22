@@ -42,7 +42,8 @@ const OWNED = {
   bills_settings: 'lib/data/settings.ts',
   inbound_messages: 'lib/data/inbound.ts',
   portal_links: 'lib/data/portal.ts',
-  calendar_feeds: 'lib/data/calendarFeed.ts',
+  push_subscriptions: 'lib/data/pushSubscriptions.ts',
+  calendar_feed_tokens: 'lib/data/calendarFeed.ts',
   inbound_mailboxes: 'lib/data/inbound.ts',
 }
 

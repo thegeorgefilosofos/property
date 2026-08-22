@@ -29,6 +29,7 @@
     "e2e": "node scripts/e2e-public-tools.mjs",
     "e2e:dashboard": "node scripts/e2e-dashboard.mjs",
     "e2e:perimeter": "node scripts/e2e-perimeter.mjs",
+    "e2e:push": "node scripts/e2e-push.mjs",
     "public-routes": "node scripts/guard-public-routes.mjs",
     "style-tags": "node scripts/guard-style-tags.mjs",
     "greek-numbers": "node scripts/guard-greek-numbers.mjs",
@@ -90,6 +91,7 @@
     "qrcode-generator": "^2.0.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "web-push": "^3.6.7",
     "xlsx-js-style": "^1.2.0"
   },
   "devDependencies": {
@@ -97,6 +99,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/web-push": "^3.6.4",
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
     "playwright-core": "^1.62.1",
