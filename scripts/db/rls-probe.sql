@@ -1554,3 +1554,61 @@ end $probe$;
 
 reset role;
 set session "probe.uid" = '';
+
+-- ═══════════════════════════════════════════════════════════════════════════
+--  ΟΙ ΚΑΝΟΝΕΣ ΚΑΤΗΓΟΡΙΩΝ: Η ΛΟΓΙΣΤΙΚΗ ΕΠΙΛΟΓΗ ΤΟΥ ΕΝΟΣ ΔΕΝ ΠΑΕΙ ΣΤΟΝ ΑΛΛΟΝ
+-- ─────────────────────────────────────────────────────────────────────────
+--  ΤΙ ΘΑ ΣΗΜΑΙΝΕ ΔΙΑΡΡΟΗ ΕΔΩ. Η κατηγορία κρίνει την ΕΚΠΕΣΙΜΟΤΗΤΑ, δηλαδή
+--  φόρο. Ενας κανόνας που περνά από τα βιβλία του ενός στα βιβλία του άλλου
+--  αλλάζει τη φορολογική του δήλωση χωρίς να το ξέρει, και ο κατάλογος των
+--  παρόχων του είναι από μόνος του εικόνα της περιουσίας του.
+-- ═══════════════════════════════════════════════════════════════════════════
+
+reset role;
+set session "probe.uid" = '';
+
+insert into public.category_hints (user_id, vendor_key, category)
+values ('11111111-1111-1111-1111-111111111111', 'zacharopoulos', 'Υδραυλικός'),
+       ('22222222-2222-2222-2222-222222222222', 'papadopoulos', 'Ηλεκτρολόγος');
+
+set role authenticated;
+set session "probe.uid" = '11111111-1111-1111-1111-111111111111';
+
+do $probe$
+declare n int; c text;
+begin
+  select count(*) into n from public.category_hints;
+  if n <> 1 then raise exception 'ΔΙΑΡΡΟΗ: ο Α βλέπει % κανόνες αντί για τον δικό του', n; end if;
+
+  select count(*) into n from public.category_hints where vendor_key = 'papadopoulos';
+  if n <> 0 then raise exception 'ΔΙΑΡΡΟΗ: ο Α βλέπει τους παρόχους του Β'; end if;
+
+  -- Ο ΔΙΚΟΣ ΤΟΥ ΚΑΝΟΝΑΣ ΑΛΛΑΖΕΙ: δεύτερη διόρθωση για τον ίδιο πάροχο.
+  update public.category_hints set category = 'Επισκευή' where vendor_key = 'zacharopoulos';
+  select category into c from public.category_hints where vendor_key = 'zacharopoulos';
+  if c <> 'Επισκευή' then raise exception 'Ο χρήστης δεν μπόρεσε να διορθώσει τον κανόνα του (%)', c; end if;
+
+  -- ΚΑΙ ΣΒΗΝΕΤΑΙ: όταν ξαναδιαλέξει ό,τι λέει η ταξινομία, ο κανόνας φεύγει.
+  delete from public.category_hints where vendor_key = 'zacharopoulos';
+  get diagnostics n = row_count;
+  if n <> 1 then raise exception 'Ο χρήστης δεν μπόρεσε να ακυρώσει τον κανόνα του'; end if;
+
+  begin
+    insert into public.category_hints (user_id, vendor_key, category)
+      values ('22222222-2222-2222-2222-222222222222', 'nea', 'Κήπος');
+    raise exception 'ΔΙΑΡΡΟΗ: ο Α έγραψε κανόνα στα βιβλία του Β';
+  exception
+    when insufficient_privilege then null;
+    when others then if sqlerrm like 'ΔΙΑΡΡΟΗ%' then raise; end if;
+  end;
+
+  delete from public.category_hints where vendor_key = 'papadopoulos';
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'ΔΙΑΡΡΟΗ: ο Α έσβησε τον κανόνα του Β';
+  end if;
+
+  raise notice 'probe: οι κανόνες κατηγοριών μένουν στα βιβλία εκείνου που τους έγραψε';
+end $probe$;
+
+reset role;
+set session "probe.uid" = '';

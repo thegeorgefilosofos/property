@@ -20,9 +20,13 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as inbound from '@/lib/data/inbound';
-import { T, TT, Card, SecHdr, Btn, fe, fd, formGrid } from '@/components/Theme';
-import { NumberInput, DatePicker } from './UIComponents';
+import { T, TT, Card, SecHdr, Btn, fe, fd, fieldRow } from '@/components/Theme';
+import { NumberInput, DatePicker, CustomSelect } from './UIComponents';
 import { expenseTitle } from '@/lib/inbound/parse';
+import { CATEGORIES, BY_SLUG, resolveCategory } from '@/lib/expenses/taxonomy';
+import { groupForCategory } from '@/lib/expenses/groups';
+import { hintAction, hintFor, type Hint } from '@/lib/expenses/hints';
+import * as hintStore from '@/lib/data/categoryHints';
 import { notifyError } from '@/components/Toast';
 import { athensToday } from '@/lib/core/time';
 
@@ -36,13 +40,14 @@ interface Props {
 }
 
 /** Η γραμμή όπως τη διορθώνει ο άνθρωπος πριν την καταχωρήσει. */
-interface Draft { amount: string; date: string }
+interface Draft { amount: string; date: string; slug: string }
 
 export default function InboundInbox({ propertyId, userId, propertyName, onFiled }: Props) {
   const supabase = createClient();
   const [rows, setRows] = useState<inbound.MessageRow[]>([]);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [busy, setBusy] = useState<string | null>(null);
+  const [hints, setHints] = useState<Hint[]>([]);
 
   // Η ΑΝΑΓΝΩΣΗ ΕΙΝΑΙ ΣΥΝΔΡΟΜΗ ΣΕ ΕΞΩΤΕΡΙΚΟ ΣΥΣΤΗΜΑ, ΟΧΙ ΥΠΟΛΟΓΙΣΜΟΣ: η
   // κατάσταση γράφεται μέσα στην απάντηση, και ο διακόπτης `live` σταματά τη
@@ -55,7 +60,15 @@ export default function InboundInbox({ propertyId, userId, propertyName, onFiled
       setDrafts(Object.fromEntries(found.map(r => [r.id, {
         amount: r.amount === null ? '' : String(r.amount),
         date: r.due_date || r.issue_date || athensToday(),
+        slug: resolveCategory(r.category) || '',
       }])));
+    });
+    // ΟΙ ΚΑΝΟΝΕΣ ΤΟΥ ΙΔΙΟΚΤΗΤΗ ΔΙΑΒΑΖΟΝΤΑΙ ΓΙΑ ΔΥΟ ΛΟΓΟΥΣ: για να ξέρει η οθόνη
+    // ΓΙΑΤΙ μια κατηγορία ήρθε έτσι, και για να μη γραφτεί ξανά κανόνας που
+    // υπάρχει ήδη. Η αποτυχία δεν έχει μήνυμα: τα εισερχόμενα δουλεύουν και
+    // χωρίς αυτούς, όπως δούλευαν πάντα.
+    hintStore.forUser(supabase, userId).then(({ rows: found }) => {
+      if (live) setHints(hintStore.asHints(found));
     });
     return () => { live = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -70,16 +83,27 @@ export default function InboundInbox({ propertyId, userId, propertyName, onFiled
     const draft = drafts[r.id];
     const amount = parseFloat((draft?.amount || '').replace(',', '.'));
     if (!Number.isFinite(amount) || amount <= 0 || !draft?.date) return;
+    // Η ΚΑΤΗΓΟΡΙΑ ΤΗΣ ΟΘΟΝΗΣ ΕΙΝΑΙ Η ΚΑΤΗΓΟΡΙΑ ΠΟΥ ΓΡΑΦΕΤΑΙ. Πριν, ό,τι κι αν
+    // έδειχνε η γραμμή, καταχωρούνταν η πρόταση της βάσης.
+    const cat = draft.slug ? BY_SLUG[draft.slug] : null;
+    const label = cat ? cat.label : (r.category || 'Άλλο');
     setBusy(r.id);
     const res = await inbound.fileAsExpense(supabase, r.id, {
       propertyId, userId,
-      description: expenseTitle(r.vendor, r.subject || '', r.category || 'Άλλο'),
+      description: expenseTitle(r.vendor, r.subject || '', label),
       amount,
       date: draft.date,
-      category: r.category || 'Άλλο',
-      ...(r.expense_group ? { expenseGroup: r.expense_group } : {}),
+      category: label,
+      expenseGroup: cat ? groupForCategory(cat) : (r.expense_group || undefined),
       vendor: r.vendor,
     });
+    // Η ΔΙΟΡΘΩΣΗ ΜΑΘΑΙΝΕΤΑΙ ΜΟΝΟ ΟΤΑΝ ΕΓΙΝΕ. Οποιος δέχτηκε την πρόταση δεν
+    // δίδαξε τίποτα, και δεν πρέπει να γραφτεί κανόνας στο όνομά του.
+    if (cat && draft.slug !== (resolveCategory(r.category) || '')) {
+      const action = hintAction(r.vendor, r.subject || '', cat.label);
+      if (action && 'forget' in action) await hintStore.forget(supabase, userId, action.key);
+      else if (action) await hintStore.learn(supabase, userId, action.key, action.category);
+    }
     setBusy(null);
     if (!res.expenseId) { notifyError('Η δαπάνη δεν καταχωρήθηκε'); return; }
     // Η ΔΑΠΑΝΗ ΥΠΑΡΧΕΙ ΚΑΙ ΤΟ ΛΕΜΕ, ακόμη κι όταν το σημάδι δεν γράφτηκε. Η
@@ -103,10 +127,11 @@ export default function InboundInbox({ propertyId, userId, propertyName, onFiled
         sub={propertyName ? `Η καταχώρηση γράφεται στο ακίνητο «${propertyName}»` : 'Η καταχώρηση γράφεται στο ακίνητο που βλέπεις'} />
       <div style={{ display: 'grid', gap: 10 }}>
         {rows.map(r => {
-          const draft = drafts[r.id] || { amount: '', date: '' };
+          const draft = drafts[r.id] || { amount: '', date: '', slug: '' };
           const amount = parseFloat((draft.amount || '').replace(',', '.'));
           const ready = Number.isFinite(amount) && amount > 0 && !!draft.date;
           const known = r.amount !== null;
+          const learned = hintFor(hints, r.vendor) === r.category;
           const stamp = r.due_date || r.issue_date;
           const knownDate = !!stamp;
           return (
@@ -131,21 +156,37 @@ export default function InboundInbox({ propertyId, userId, propertyName, onFiled
                 {r.subject || 'Χωρίς θέμα'}
               </div>
 
+              {/* Η ΚΑΤΗΓΟΡΙΑ ΕΦΥΓΕ ΑΠΟ ΕΔΩ ΚΑΙ ΕΓΙΝΕ ΕΠΙΛΟΓΗ. Γραμμένη ως κείμενο,
+                  ήταν πρόταση που για να διορθωθεί ήθελε καταχώρηση, άνοιγμα του
+                  καθολικού και δεύτερη φόρμα. Τώρα διορθώνεται εκεί που
+                  φαίνεται, και η διόρθωση κρατιέται για την επόμενη φορά. */}
               <div style={{ ...TT.bodySm, color: 'var(--text-tertiary)' }}>
-                {r.category || 'Άλλο'}
-                {stamp && ` · ${r.due_date ? 'Λήξη' : 'Εκδόθηκε'} ${fd(stamp)}`}
+                {stamp ? `${r.due_date ? 'Λήξη' : 'Εκδόθηκε'} ${fd(stamp)}` : 'Χωρίς ημερομηνία στο μήνυμα'}
                 {r.attachments > 0 && ` · ${r.attachments === 1 ? 'Ενα συνημμένο' : `${r.attachments} συνημμένα`}`}
               </div>
 
-              {(!known || !knownDate) && (
-                <div style={formGrid(180, 240)}>
-                  {!known && (
-                    <NumberInput label="Ποσό" value={draft.amount} suffix="€"
-                      onChange={v => patch(r.id, { amount: v })} placeholder="" step={0.01} />
-                  )}
-                  {!knownDate && (
-                    <DatePicker label="Ημερομηνία" value={draft.date} onChange={v => patch(r.id, { date: v })} />
-                  )}
+              <div style={fieldRow(180)}>
+                <div style={{ minWidth: 0 }}>
+                  <span style={{ ...TT.bodySm, display: 'block', marginBottom: 6, color: 'var(--text-secondary)' }}>Κατηγορία</span>
+                  <CustomSelect value={draft.slug} onChange={v => patch(r.id, { slug: v })}
+                    ariaLabel="Κατηγορία δαπάνης" placeholder="Χωρίς κατηγορία"
+                    options={CATEGORIES.map(c => ({ value: c.slug, label: c.label }))} />
+                </div>
+                {!known && (
+                  <NumberInput label="Ποσό" value={draft.amount} suffix="€"
+                    onChange={v => patch(r.id, { amount: v })} placeholder="" step={0.01} />
+                )}
+                {!knownDate && (
+                  <DatePicker label="Ημερομηνία" value={draft.date} onChange={v => patch(r.id, { date: v })} />
+                )}
+              </div>
+
+              {/* ΤΟ ΓΙΑΤΙ, ΟΤΑΝ Η ΚΑΤΗΓΟΡΙΑ ΔΕΝ ΒΓΗΚΕ ΑΠΟ ΤΟ ΚΕΙΜΕΝΟ. Μια
+                  κατηγορία που εμφανίζεται χωρίς εξήγηση είναι μαντεψιά· αυτή
+                  εδώ την έγραψε ο ίδιος ο ιδιοκτήτης, και το λέμε μία φορά. */}
+              {learned && draft.slug === (resolveCategory(r.category) || '') && (
+                <div style={{ ...TT.bodySm, color: 'var(--text-tertiary)' }}>
+                  Η κατηγορία ήρθε από προηγούμενη διόρθωσή σου για αυτόν τον πάροχο.
                 </div>
               )}
 

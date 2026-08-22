@@ -45,6 +45,8 @@ import { missingThisMonth, cadenceLabel } from '@/lib/expenses/expected';
 import { priceChanges } from '@/lib/expenses/priceChange';
 import { planBillPayment, type BillToPay } from '@/lib/expenses/pay';
 import { groupForCategory } from '@/lib/expenses/groups';
+import { hintAction } from '@/lib/expenses/hints';
+import * as hintStore from '@/lib/data/categoryHints';
 import { PAID_BY_OPTIONS, SHARED_SCOPES, DEFAULT_SHARE_PERCENT } from '@/lib/expenses/sharing';
 import { CustomSelect, DatePicker, Toggle } from './UIComponents';
 import { athensToday, athensMonth } from '@/lib/core/time';
@@ -573,7 +575,7 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
       )}
 
       {editingRow && (
-        <EditExpense row={editingRow} onClose={() => setEditingId(null)} onSaved={load} />
+        <EditExpense row={editingRow} userId={userId} onClose={() => setEditingId(null)} onSaved={load} />
       )}
     </div>
   );
@@ -747,8 +749,8 @@ const AFM_NOTE = 'Προαιρετικό. Χωρίς αυτό, ο λογιστή
  * «ΕΝΦΙΑ» με ομάδα «fixed», δηλαδή μη εκπεστέα δαπάνη δηλωμένη ως εκπεστέα. Η
  * ομάδα ξαναπαράγεται εδώ από την ταξινομία, όπως και στην καταχώρηση.
  */
-function EditExpense({ row, onClose, onSaved }: {
-  row: LedgerExpense; onClose: () => void; onSaved: () => Promise<void>;
+function EditExpense({ row, userId, onClose, onSaved }: {
+  row: LedgerExpense; userId: string; onClose: () => void; onSaved: () => Promise<void>;
 }) {
   const supabase = useMemo(() => createClient(), []);
   const [what, setWhat] = useState((row.description || '').trim());
@@ -759,6 +761,10 @@ function EditExpense({ row, onClose, onSaved }: {
   // ματιά» και για τις οποίες ανοίγει η οθόνη. Προεπιλογή «Άλλο» θα έδειχνε
   // κατηγορία που κανείς δεν διάλεξε, και ένα αφηρημένο πάτημα θα την έγραφε.
   const [slug, setSlug] = useState(resolveCategory(row.category) || '');
+  // Η ΑΡΧΙΚΗ ΕΠΙΛΟΓΗ ΚΡΑΤΙΕΤΑΙ ΓΙΑ ΝΑ ΞΕΡΟΥΜΕ ΑΝ ΕΓΙΝΕ ΔΙΟΡΘΩΣΗ. Οποιος
+  // ανοίγει τη φόρμα για να αλλάξει ποσό δεν διδάσκει τίποτα για τις
+  // κατηγορίες, και δεν πρέπει να γράφεται κανόνας στο όνομά του.
+  const initialSlug = useMemo(() => resolveCategory(row.category) || '', [row.category]);
   const [afm, setAfm] = useState(row.supplier_afm || '');
   const [saving, setSaving] = useState(false);
 
@@ -786,6 +792,16 @@ function EditExpense({ row, onClose, onSaved }: {
         supplier_afm: afm.trim() ? afmDigits(afm) : null,
       });
       if (error) throw error;
+      // Η ΔΙΟΡΘΩΣΗ ΤΗΣ ΚΑΤΗΓΟΡΙΑΣ ΔΕΝ ΧΑΝΕΤΑΙ. Οταν ο ιδιοκτήτης αλλάζει την
+      // κατηγορία ενός παρόχου, ο κανόνας γράφεται στο ΟΝΟΜΑ του παρόχου και
+      // ισχύει από την επόμενη φορά: δώδεκα ίδιες διορθώσεις τον χρόνο γίνονται
+      // μία. Η αποτυχία της εγγραφής ΔΕΝ ακυρώνει την αποθήκευση της δαπάνης
+      // και δεν εμφανίζεται: η δαπάνη είναι το ζητούμενο, ο κανόνας το επιπλέον.
+      if (slug !== initialSlug && cat) {
+        const action = hintAction(row.store_vendor, what, cat.label);
+        if (action && 'forget' in action) await hintStore.forget(supabase, userId, action.key);
+        else if (action) await hintStore.learn(supabase, userId, action.key, action.category);
+      }
       notify('Αποθηκεύτηκε');
       onClose();
       await onSaved();

@@ -333,6 +333,12 @@ export interface CheckinLinksRow {
   expires_at: string | null;
 }
 
+export interface CategoryHintsRow {
+  user_id: string;
+  vendor_key: string;
+  category: string;
+}
+
 export interface ChecklistItemsRow {
   id: string;
   property_id: string | null;
@@ -1391,6 +1397,7 @@ export interface Tables {
   calendar_feed_tokens: CalendarFeedTokensRow;
   calendar_feeds: CalendarFeedsRow;
   checkin_links: CheckinLinksRow;
+  category_hints: CategoryHintsRow;
   checklist_items: ChecklistItemsRow;
   client_documents: ClientDocumentsRow;
   client_notes: ClientNotesRow;

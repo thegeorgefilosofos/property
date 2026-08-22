@@ -43,6 +43,7 @@ const OWNED = {
   inbound_messages: 'lib/data/inbound.ts',
   portal_links: 'lib/data/portal.ts',
   push_subscriptions: 'lib/data/pushSubscriptions.ts',
+  category_hints: 'lib/data/categoryHints.ts',
   calendar_feed_tokens: 'lib/data/calendarFeed.ts',
   inbound_mailboxes: 'lib/data/inbound.ts',
 }

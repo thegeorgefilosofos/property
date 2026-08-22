@@ -34,6 +34,9 @@ import { tokenFromRecipients, INBOUND_DOMAIN, DOMAIN_ENV } from '@/lib/inbound/a
 import { fetchBody, KEY_ENV } from '@/lib/inbound/fetchBody';
 import { parseInbound } from '@/lib/inbound/parse';
 import * as inbound from '@/lib/data/inbound';
+import * as hintStore from '@/lib/data/categoryHints';
+import { categoryWithHints } from '@/lib/expenses/hints';
+import { classifyExpense } from '@/lib/expenses/classify';
 
 const log = (...parts: unknown[]) => console.info('[inbound]', ...parts);
 
@@ -108,6 +111,20 @@ export async function POST(request: Request) {
     text: body.body.text, html: body.body.html,
   });
 
+  // Ο ΚΑΝΟΝΑΣ ΤΟΥ ΙΔΙΟΚΤΗΤΗ ΝΙΚΑ ΤΗΝ ΤΑΞΙΝΟΜΙΑ. Οποιος διόρθωσε μία φορά την
+  // κατηγορία αυτού του παρόχου δεν τη διορθώνει ξανά: το λεξικό είναι καλό και
+  // δεν μπορεί να ξέρει ότι ο «Ζαχαρόπουλος» είναι υδραυλικός.
+  //
+  // Η ΑΠΟΤΥΧΙΑ ΤΗΣ ΑΝΑΓΝΩΣΗΣ ΔΕΝ ΡΙΧΝΕΙ ΤΟ ΜΗΝΥΜΑ. Χωρίς κανόνες μένει η
+  // πρόταση της ταξινομίας, που είναι ό,τι ίσχυε ούτως ή άλλως πριν.
+  const { rows: hints, error: hintError } = await hintStore.forUser(db, box.user_id);
+  if (hintError) log('οι κανόνες κατηγοριών δεν διαβάστηκαν:', hintError.message);
+  const chosen = categoryWithHints(hintStore.asHints(hints), parsed.vendor, parsed.category);
+  // ΟΜΑΔΑ ΚΑΙ ΕΚΠΕΣΙΜΟΤΗΤΑ ΑΚΟΛΟΥΘΟΥΝ ΤΗΝ ΚΑΤΗΓΟΡΙΑ, ΠΑΝΤΑ. Μια κατηγορία που
+  // αλλάζει χωρίς την ομάδα της δίνει δαπάνη που φαίνεται εκπεστέα σε μία οθόνη
+  // και μη εκπεστέα στην άλλη.
+  const cls = chosen.learned ? classifyExpense(chosen.category) : parsed;
+
   const { error } = await inbound.record(db, {
     userId: box.user_id,
     providerId: event.emailId,
@@ -117,8 +134,8 @@ export async function POST(request: Request) {
     amount: parsed.amount,
     dueDate: parsed.dueDate,
     issueDate: parsed.issueDate,
-    category: parsed.category,
-    expenseGroup: parsed.group,
+    category: cls.category,
+    expenseGroup: cls.group,
     attachments: event.attachments,
   });
 
@@ -133,6 +150,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'write_failed' }, { status: 502 });
   }
 
-  log(`νέα πρόταση δαπάνης: ${parsed.category}${parsed.amount === null ? ', χωρίς ποσό' : ''}${parsed.missing.length ? `, λείπουν ${parsed.missing.join(' και ')}` : ''}`);
+  log(`νέα πρόταση δαπάνης: ${cls.category}${chosen.learned ? ' (κανόνας του ιδιοκτήτη)' : ''}${parsed.amount === null ? ', χωρίς ποσό' : ''}${parsed.missing.length ? `, λείπουν ${parsed.missing.join(' και ')}` : ''}`);
   return NextResponse.json({ ok: true, stored: true });
 }
