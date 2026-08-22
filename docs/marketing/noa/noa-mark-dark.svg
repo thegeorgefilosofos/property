@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs><clipPath id="c"><circle cx="256" cy="256" r="256"/></clipPath></defs>
+  <g clip-path="url(#c)">
+    <rect width="512" height="512" fill="#14111A"/>
+    <circle cx="256" cy="256" r="196" fill="none" stroke="rgba(237,234,242,0.12)" stroke-width="18"/>
+    <circle cx="256" cy="256" r="196" fill="none" stroke="#B39DF0" stroke-width="18"
+            stroke-linecap="round" stroke-dasharray="1000 1232" transform="rotate(-90 256 256)"/>
+    <text x="256" y="256" text-anchor="middle" dominant-baseline="central"
+          font-family="Inter, system-ui, sans-serif" font-size="230" font-weight="700"
+          fill="#EDEAF2" letter-spacing="-4">Ν</text>
+  </g>
+</svg>
