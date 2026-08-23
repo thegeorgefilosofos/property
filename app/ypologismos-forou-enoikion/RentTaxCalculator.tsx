@@ -291,7 +291,7 @@ export function RentTaxCalculator({ today }: { today: string }) {
           Είναι λεζάντα του πίνακα, οπότε γράφεται ως λεζάντα: ίδια τυπογραφία
           με τις άλλες ετικέτες αυτής της κάρτας, και σωστή σημασιολογία. */}
       <div style={{ marginTop: 26 }}>
-        <div style={{ overflowX: 'auto' }}>
+        <div className="po-scroll-x" style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 300 }}>
             <caption style={{ captionSide: 'top', textAlign: 'left', fontSize: 11, fontWeight: 700,
               letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)',

@@ -1,3 +1,4 @@
+import type React from 'react';
 // ═══════════════════════════════════════════════════════════════════════════
 // Ο ΠΑΓΚΟΣ ΚΙΝΗΤΟΥ — ΤΑ ΙΔΙΑ COMPONENTS, ΜΕΣΑ ΣΤΟ ΠΡΑΓΜΑΤΙΚΟ ΚΕΛΥΦΟΣ
 // ─────────────────────────────────────────────────────────────────────────
@@ -20,6 +21,8 @@ import CashHero from '@/app/dashboard/components/CashHero';
 import RentReceived from '@/app/dashboard/components/RentReceived';
 import InboundInbox from '@/app/dashboard/components/InboundInbox';
 import { CustomSelect } from '@/app/dashboard/components/UIComponents';
+import ExpenseLedger from '@/app/dashboard/components/ExpenseLedger';
+import TabChecklist from '@/app/dashboard/components/TabChecklist';
 import { Modal, Btn, PageTitle, InfoBanner, fieldRow } from '@/components/Theme';
 import { createClient } from '@/lib/supabase/client';
 import type { CashLine, CashPosition } from '@/lib/home/cash';
@@ -33,11 +36,40 @@ const n = Number(params.get('n') || 200);
 const which = params.get('c') || 'portfolio';
 const bench = portfolio(n);
 
+// Τα εισερχόμενα δεν βγαίνουν από το `portfolio()`: το InboundInbox διαβάζει
+// τον δικό του πίνακα, και χωρίς γραμμές δεν αποδίδει τίποτα (by design).
+const inboundRows = Array.from({ length: 6 }, (_, i) => ({
+  id: `m${i}`, from_address: `logariasmoi${i}@deh.gr`,
+  subject: `Λογαριασμός ρεύματος Ιανουαρίου ${2026} · παροχή 1234567890`,
+  vendor: 'ΔΕΗ', amount: i === 2 ? null : 84.5 + i * 13,
+  due_date: '2026-09-10', issue_date: '2026-08-20',
+  category: 'electricity', expense_group: 'utilities', attachments: 1,
+}));
+
+// ΤΑ ΦΙΛΤΡΑ ΤΗΡΟΥΝΤΑΙ. Ο διπλός του perf-bench επιστρέφει ΟΛΕΣ τις γραμμές του
+// πίνακα, ό,τι κι αν ζήτησε η οθόνη — σωστό για το Χαρτοφυλάκιο, που όντως
+// διαβάζει όλα τα ακίνητα, αλλά ψεύτικο για κάθε οθόνη ΕΝΟΣ ακινήτου: το
+// Καθολικό Δαπανών θα έπαιρνε 2.000 λογαριασμούς αντί για 10, και η μέτρηση
+// ύψους θα μετρούσε τον διπλό, όχι την εφαρμογή.
+const applyEq = (rows: unknown[], filters: Array<[string, string, unknown]>) => {
+  let out = rows;
+  for (const [m, col, val] of filters) {
+    if (m !== 'eq') continue;
+    out = out.filter(r => {
+      const v = (r as Record<string, unknown>)[col];
+      return v === undefined || String(v) === String(val);
+    });
+  }
+  return out;
+};
+
 const respond: Responder = (call) => {
   if (call.op !== 'select') return { data: null, error: null };
+  if (call.table === 'inbound_messages') return { data: inboundRows, error: null };
   const rows = bench.rows[call.table];
   if (!rows) return { data: call.single ? null : [], error: null };
-  return { data: call.single ? (rows[0] ?? null) : rows, error: null };
+  const kept = which === 'portfolio' ? rows : applyEq(rows, call.filters);
+  return { data: call.single ? (kept[0] ?? null) : kept, error: null };
 };
 window.__respond = respond;
 window.__t = {};
@@ -70,7 +102,7 @@ function ModalDemo() {
         footer={<><Btn variant="ghost" onClick={() => setOpen(false)}>Άκυρο</Btn><Btn variant="primary" onClick={() => {}}>Έκδοση</Btn></>}
         footerInfo="Η κατάσταση εκδίδεται σε PDF">
         <InfoBanner tone="warning">Ένα μήνυμα που εξηγεί τι θα γίνει, αρκετά μακρύ ώστε να τυλιχτεί σε στενή οθόνη κινητού.</InfoBanner>
-        <div style={fieldRow(2)}>
+        <div style={fieldRow(170)}>
           <CustomSelect label="Κατηγορία" value={v} onChange={setV} options={OPTS} />
           <CustomSelect label="Δεύτερη κατηγορία" value={v} onChange={setV} options={OPTS} />
         </div>
@@ -90,7 +122,7 @@ function SelectDemo() {
     <div>
       <PageTitle title="Επιλογείς" sub="CustomSelect στα 375" />
       <div className="card">
-        <div style={fieldRow(3)}>
+        <div style={fieldRow(160)}>
           <CustomSelect label="Κατηγορία" value={v} onChange={setV} options={OPTS} />
           <CustomSelect label="Ακίνητο" value={v} onChange={setV} options={OPTS} />
           <CustomSelect label="Τρόπος" value={v} onChange={setV} options={OPTS} />
@@ -102,11 +134,13 @@ function SelectDemo() {
 
 const supabase = createClient();
 
-const VIEWS: Record<string, () => JSX.Element> = {
+const VIEWS: Record<string, () => React.ReactElement> = {
   portfolio: () => <PortfolioTab properties={bench.properties} userId="u1" onSelectProperty={() => {}} />,
   cash: () => <CashHero cash={cash} showIncome onNavigate={() => {}} onRecordRent={() => {}} />,
   rent: () => <RentReceived onClose={() => {}} lines={lines} supabase={supabase} propertyId={null} tenantId={null} leaseViaBank today="2026-08-23" onSaved={() => {}} />,
   inbox: () => <InboundInbox propertyId="p0" userId="u1" propertyName="Ακίνητο 1" onFiled={() => {}} />,
+  ledger: () => <ExpenseLedger propertyId="p0" userId="u1" />,
+  checklist: () => <TabChecklist propertyId="p0" userId="u1" />,
   modal: () => <ModalDemo />,
   select: () => <SelectDemo />,
 };

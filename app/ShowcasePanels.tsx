@@ -14,8 +14,31 @@ import { navLabel } from '@/lib/nav/labels';
 // φωνής, ανάπτυξη ράβδων, και οι ζωντανές αντιδράσεις στο πέρασμα του κέρσορα.
 export const PanelFX = () => (
   <style>{`
-    @keyframes lpScan { 0% { top: 6%; opacity: 0; } 12% { opacity: 1; } 88% { opacity: 1; } 100% { top: 92%; opacity: 0; } }
-    .lp-scanline { animation: lpScan 2.6s cubic-bezier(.4, 0, .2, 1) infinite; }
+    /* ═══ Η ΓΡΑΜΜΗ ΣΑΡΩΣΗΣ ΚΙΝΕΙΤΑΙ ΜΕ transform, ΟΧΙ ΜΕ top ═══════════════════
+       ΤΟ «top» ΕΙΝΑΙ ΙΔΙΟΤΗΤΑ ΔΙΑΤΑΞΗΣ. Κινούμενο κάθε 2,6 δευτερόλεπτα, επ'
+       άπειρον, ανάγκαζε τον περιηγητή σε αδιάκοπη ροή layout shifts: μετρήθηκαν
+       πάνω από 45 διαδοχικές μετατοπίσεις από το 1,6ο ώς το 7,8ο δευτερόλεπτο,
+       και το CLS δεν σταματούσε ποτέ να μεγαλώνει. Το ίδιο οπτικό αποτέλεσμα με
+       «transform: translateY()» μένει στον compositor: μηδέν διάταξη, μηδέν
+       βάψιμο, μηδέν μετατόπιση. */
+    /* Η ΔΙΑΔΡΟΜΗ ΒΓΑΙΝΕΙ ΑΠΟ ΤΟΝ ΓΟΝΕΑ. Το «translateY» σε ποσοστό μετριέται
+       πάνω στο ΙΔΙΟ το στοιχείο, που εδώ έχει ύψος 2 pixel: θα έκανε ένα βήμα
+       δύο εικονοστοιχείων. Το container query δίνει το ύψος του πάνελ, οπότε η
+       γραμμή διανύει το 86% του, όσο και πριν με το «top». */
+    .lp-scan-host { container-type: size; }
+    @keyframes lpScan { 0% { transform: translateY(0); opacity: 0; } 12% { opacity: 1; } 88% { opacity: 1; } 100% { transform: translateY(86cqh); opacity: 0; } }
+    .lp-scanline { top: 6%; will-change: transform; animation: lpScan 2.6s cubic-bezier(.4, 0, .2, 1) infinite; }
+    /* Η κίνηση σταματά στην αφή: μια γραμμή που σαρώνει επ' άπειρον κοστίζει
+       επανασύνθεση σε κάθε καρέ, και σε τηλέφωνο δεν την κοιτάζει κανείς. */
+    /* ΣΤΗΝ ΑΦΗ ΣΤΑΜΑΤΑΝΕ ΟΛΕΣ ΟΙ ΑΤΕΡΜΟΝΕΣ ΚΙΝΗΣΕΙΣ ΤΩΝ ΜΑΚΕΤΩΝ.
+       Οκτώ ράβδοι που τεντώνονται κάθε δευτερόλεπτο και μια γραμμή που σαρώνει
+       κάθε 2,6: εννέα επίπεδα σε αδιάκοπη επανασύνθεση, για διακόσμηση που
+       κανείς δεν κοιτάζει κρατώντας τηλέφωνο. Οι ράβδοι μένουν στο ύψος τους,
+       η γραμμή μένει στη θέση της· η εικόνα είναι ίδια, ακίνητη. */
+    @media (hover: none) {
+      .lp-scanline { animation: none; opacity: .5; }
+      .lp-bar { animation: none; transform: scaleY(.8); }
+    }
     @keyframes lpPop { 0% { opacity: 0; transform: translateY(6px) scale(.96); } 100% { opacity: 1; transform: none; } }
     .lp-pop { animation: lpPop .5s cubic-bezier(.2, 0, 0, 1) both; }
     @keyframes lpWave { 0%, 100% { transform: scaleY(.4); } 50% { transform: scaleY(1); } }
@@ -129,7 +152,7 @@ export function PanelScan() {
   const filed = ['Λογαριασμοί', 'Δαπάνες', 'Ημερολόγιο', navLabel('documents')];
   return (
     <div style={{ maxWidth: 500, margin: '0 auto', textAlign: 'left' }}>
-      <div className="lp-live" style={{ position: 'relative', overflow: 'hidden', background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '18px 18px 16px' }}>
+      <div className="lp-live lp-scan-host" style={{ position: 'relative', overflow: 'hidden', background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '18px 18px 16px' }}>
         <div className="lp-scanline" style={{ position: 'absolute', left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, var(--accent), transparent)', boxShadow: '0 0 12px color-mix(in srgb, var(--accent) 60%, transparent)' }} />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
           <div style={{ fontSize: 13, fontWeight: 700 }}>Ρεύμα</div>

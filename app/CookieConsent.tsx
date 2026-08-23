@@ -54,12 +54,18 @@ export default function CookieConsent() {
   };
 
   return (
+    // ΤΟ ΑΣΦΑΛΕΣ ΠΕΡΙΘΩΡΙΟ ΔΕΝ ΕΙΝΑΙ ΠΡΟΑΙΡΕΤΙΚΟ ΟΤΑΝ ΥΠΑΡΧΕΙ viewport-fit=cover.
+    // Το layout.tsx δηλώνει `viewportFit: cover`, δηλαδή η σελίδα απλώνεται κάτω
+    // από τη γραμμή του συστήματος. Με σκέτο `bottom: 12` τα κάτω 22 pixel του
+    // πλαισίου κάθονταν μέσα στη ζώνη του home indicator του iPhone. Το
+    // PwaProvider το έκανε ήδη σωστά· εδώ απλώς δεν είχε ακολουθήσει.
+    //
     // ΔΕΝ ΕΙΝΑΙ ΔΙΑΛΟΓΟΣ ΠΟΥ ΔΕΣΜΕΥΕΙ. Δηλωνόταν `role="dialog"` χωρίς να
     // μετακινεί την εστίαση μέσα του και χωρίς να εμποδίζει τίποτα πίσω του —
     // δηλαδή υποσχόταν συμπεριφορά που δεν είχε, και ο αναγνώστης οθόνης
     // ανακοίνωνε «διάλογος» για κάτι που ο χρήστης μπορεί απλώς να προσπεράσει.
     // Ενημερωτική περιοχή με όνομα: ούτε λιγότερο, ούτε ψέματα.
-    <div role="region" aria-label="Ενημέρωση για cookies" className="po-noprint" style={{ position: 'fixed', left: 12, right: 12, bottom: 12, zIndex: 2000, maxWidth: 720, margin: '0 auto',
+    <div role="region" aria-label="Ενημέρωση για cookies" className="po-noprint" style={{ position: 'fixed', left: 12, right: 12, bottom: 'calc(12px + env(safe-area-inset-bottom))', zIndex: 2000, maxWidth: 720, margin: '0 auto',
       background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: T.radius.card, boxShadow: 'var(--shadow-lg)',
       padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', fontFamily: T.font.sans }}>
       {/* ΓΙΑΤΙ ΤΟΣΟ ΣΥΝΤΟΜΟ: το κείμενο ήταν τέσσερις σειρές σε desktop και έξι σε

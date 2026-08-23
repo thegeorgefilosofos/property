@@ -270,7 +270,7 @@ export function ShortVsLongCalculator({ today }: { today: string }) {
              τέσσερα δίνουν ακριβώς τα καθαρά. Ένας πίνακας που δεν κλείνει
              μπροστά στον αναγνώστη είναι χειρότερος από κανέναν πίνακα. */}
       <div style={{ marginTop: 26 }}>
-        <div style={{ overflowX: 'auto' }}>
+        <div className="po-scroll-x" style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 340 }}>
             <caption style={{ captionSide: 'top', textAlign: 'left', fontSize: 11, fontWeight: 700,
               letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)',
@@ -305,7 +305,7 @@ export function ShortVsLongCalculator({ today }: { today: string }) {
           Η γραμμή που περνά το κατώφλι σημειώνεται με την ίδια απαλή επιφάνεια
           που χρησιμοποιεί ο υπολογιστής φόρου για το ενεργό κλιμάκιο. */}
       <div style={{ marginTop: 26 }}>
-        <div style={{ overflowX: 'auto' }}>
+        <div className="po-scroll-x" style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 340 }}>
             <caption style={{ captionSide: 'top', textAlign: 'left', fontSize: 11, fontWeight: 700,
               letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)',

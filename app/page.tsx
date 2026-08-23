@@ -445,26 +445,82 @@ export default async function Landing() {
           content: ''; position: absolute; inset: -50%;
           background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
           opacity: .05; mix-blend-mode: overlay;
-          animation: lpGrain 8s steps(1) infinite;
         }
         /* Ο κόκκος «ζει»: μετατοπίζεται σε οκτώ θέσεις. Ακίνητος κόκκος φαίνεται
            σαν λερωμένη οθόνη· κόκκος που αναπνέει φαίνεται σαν φιλμ. */
-        @keyframes lpGrain {
-          0%,100% { transform: translate(0,0); }      12.5% { transform: translate(-4%,-3%); }
-          25% { transform: translate(3%,-5%); }        37.5% { transform: translate(-2%,4%); }
-          50% { transform: translate(4%,2%); }         62.5% { transform: translate(-5%,1%); }
-          75% { transform: translate(2%,-4%); }        87.5% { transform: translate(-3%,3%); }
-        }
+                }
         /* 2. Οι αύρες. Τρεις, σε τρεις αποχρώσεις της ΙΔΙΑΣ οικογένειας (γαλάζιο,
               μία απόχρωση, το accent): το βάθος βγαίνει από μέγεθος, θολούρα και
               διαφάνεια — όχι από δεύτερο και τρίτο χρώμα εκτός παλέτας. */
         .lp-aurora { position: absolute; inset: -14% -18% auto; height: 118%; z-index: 0; pointer-events: none; }
         .lp-aurora::before, .lp-aurora::after,
         .lp-atmos .lp-orb { content: ''; position: absolute; border-radius: 50%; will-change: transform; }
-        .lp-aurora::before { content: ''; width: min(56vw, 720px); aspect-ratio: 1; top: -8%; left: -8%; opacity: .15; filter: blur(100px); background: radial-gradient(circle, var(--accent), transparent 64%); animation: lpDrift 34s ease-in-out infinite alternate; }
-        .lp-aurora::after  { content: ''; width: min(44vw, 560px); aspect-ratio: 1; top: 12%; right: -8%; opacity: .11; filter: blur(80px);  background: radial-gradient(circle, var(--accent), transparent 66%); animation: lpDrift 46s ease-in-out -12s infinite alternate-reverse; }
-        .lp-atmos .lp-orb { width: min(70vw, 900px); aspect-ratio: 1; left: 50%; top: 34%; margin-left: -35vw; opacity: .085; filter: blur(130px); background: radial-gradient(circle, var(--accent), transparent 62%); animation: lpDrift 62s ease-in-out -25s infinite alternate; }
-        @keyframes lpDrift { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(5vw, 4vh, 0) scale(1.16); } }
+        .lp-aurora::before { content: ''; width: min(56vw, 720px); aspect-ratio: 1; top: -8%; left: -8%; opacity: .15; filter: blur(100px); background: radial-gradient(circle, var(--accent), transparent 64%); }
+        .lp-aurora::after  { content: ''; width: min(44vw, 560px); aspect-ratio: 1; top: 12%; right: -8%; opacity: .11; filter: blur(80px);  background: radial-gradient(circle, var(--accent), transparent 66%); }
+        .lp-atmos .lp-orb { width: min(70vw, 900px); aspect-ratio: 1; left: 50%; top: 34%; margin-left: -35vw; opacity: .085; filter: blur(130px); background: radial-gradient(circle, var(--accent), transparent 62%); }
+        /* ═══ Η ΜΕΤΑΚΙΝΗΣΗ ΚΡΑΤΗΘΗΚΕ, Η ΚΛΙΜΑΚΑ ΕΦΥΓΕ ══════════════════════════
+           ΤΟ «scale» ΕΙΝΑΙ ΠΟΥ ΚΟΣΤΙΖΕΙ, ΟΧΙ Η ΚΙΝΗΣΗ. Μια θολωμένη επιφάνεια
+           που απλώς μετακινείται είναι έτοιμη υφή: ο compositor τη σπρώχνει,
+           χωρίς να ξαναθολώσει τίποτα. Μόλις αλλάξει κλίμακα, η υφή δεν ισχύει
+           πια και το θόλωμα 80 ώς 130 pixel ξαναϋπολογίζεται σε κάθε καρέ, σε
+           επιφάνεια ώς 900×900.
+
+           Μετρημένο σε επιτραπέζιο με επιβράδυνση ×4: 3,4 fps με κλίμακα. Η
+           αργή μετατόπιση των 34 ώς 62 δευτερολέπτων μένει ολόκληρη· αυτό που
+           χάνεται είναι μια διαστολή 16% που κανείς δεν μπορεί να δει σε τόσο
+           αργό ρυθμό. */
+        @keyframes lpDrift { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(5vw, 4vh, 0); } }
+
+        /* ═══ Η ΑΤΜΟΣΦΑΙΡΑ ΚΙΝΕΙΤΑΙ ΜΟΝΟ ΕΚΕΙ ΠΟΥ ΤΟ ΑΝΤΕΧΕΙ Η ΣΥΣΚΕΥΗ ═══════
+           ΜΕΤΡΗΜΕΝΟ, ΣΕ ΠΡΑΓΜΑΤΙΚΟ ΠΕΡΙΗΓΗΤΗ ΜΕ ΕΠΙΒΡΑΔΥΝΣΗ ×4 (μεσαίο Android):
+           η σελίδα έτρεχε στα 11,5 fps σε ηρεμία, με 57 από 58 καρέ χαμένα και
+           μεγαλύτερο κενό 172ms — ΧΩΡΙΣ ο χρήστης να αγγίζει τίποτα. Με
+           «prefers-reduced-motion: reduce» το ίδιο μηχάνημα έδινε 60,4 fps.
+           Δηλαδή όλο το κόστος ήταν η διακόσμηση.
+
+           Η αιτία δεν είναι το πλήθος των animation αλλά ΤΙ κινούν: τρεις αύρες
+           με «filter: blur()» 80 ώς 130 pixel, σε επιφάνειες ώς 900 pixel, που
+           αλλάζουν κλίμακα. Κάθε καρέ, η GPU ξαναφτιάχνει θολωμένη υφή 900×900.
+           Σε επιτραπέζιο περνά απαρατήρητο· σε τηλέφωνο τρώει τη μισή διάρκεια
+           καρέ πριν σχεδιαστεί μία λέξη.
+
+           ΟΙ ΑΥΡΕΣ ΔΕΝ ΦΕΥΓΟΥΝ, ΣΤΑΜΑΤΑΝΕ. Το χρώμα, το βάθος και η σύνθεση
+           μένουν ακριβώς ίδια σε κάθε συσκευή: αυτό που λείπει στο κινητό είναι
+           η αργή μετακίνηση, που έτσι κι αλλιώς διαρκεί 34 ώς 62 δευτερόλεπτα
+           και κανείς δεν την παρακολουθεί κρατώντας το τηλέφωνο.
+
+           Ο επιλογέας είναι «hover: hover», όχι πλάτος οθόνης: κρίνει τη
+           ΣΥΣΚΕΥΗ, όχι το παράθυρο. Ενα στενό παράθυρο σε επιτραπέζιο κρατά την
+           κίνηση, ένα iPad 1180 pixel δεν την παίρνει. */
+        /* Η ΘΟΛΟΥΡΑ ΤΗΣ ΚΕΦΑΛΙΔΑΣ ΚΟΣΤΙΖΕΙ ΣΕ ΚΑΘΕ ΚΑΡΕ ΚΥΛΙΣΗΣ. Το
+           «backdrop-filter» αναγκάζει τον περιηγητή να ξαναδιαβάσει και να
+           θολώσει ό,τι περνά από κάτω, όσο ο χρήστης σέρνει το δάχτυλο. Στην
+           αφή μένει το ημιδιαφανές φόντο, που δίνει την ίδια αίσθηση βάθους
+           χωρίς κόστος ανά καρέ. */
+        @media (hover: hover) {
+          .lp-head { backdrop-filter: saturate(180%) blur(14px); -webkit-backdrop-filter: saturate(180%) blur(14px); }
+        }
+        @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+          .lp-aurora::before { animation: lpDrift 34s ease-in-out infinite alternate; }
+          .lp-aurora::after  { animation: lpDrift 46s ease-in-out -12s infinite alternate-reverse; }
+          .lp-atmos .lp-orb  { animation: lpDrift 62s ease-in-out -25s infinite alternate; }
+          /* Ο ΚΟΚΚΟΣ ΜΕΝΕΙ, Η ΑΝΑΠΝΟΗ ΤΟΥ ΦΕΥΓΕΙ. Το επίπεδο έχει
+             «mix-blend-mode: overlay» και απλώνεται σε «inset: -50%», δηλαδή
+             κάθε βήμα της κίνησης αναγκάζει τον περιηγητή να ξαναναμείξει
+             ολόκληρη τη σελίδα με ό,τι έχει από κάτω, μαζί με τις τρεις
+             θολωμένες αύρες. Οκτώ βήματα σε οκτώ δευτερόλεπτα, για πάντα.
+             Ακίνητος, ο κόκκος κοστίζει μία φορά και φαίνεται ολόιδιος. */
+        }
+
+        /* Και η θολούρα μικραίνει στην αφή. Το κόστος του blur μεγαλώνει με την
+           ακτίνα: στα 130 pixel μια ακίνητη αύρα εξακολουθεί να κοστίζει σε κάθε
+           επανασύνθεση κύλισης. Στα 56 η εικόνα είναι πρακτικά η ίδια. */
+        @media (hover: none) {
+          .lp-aurora::before { filter: blur(44px); }
+          .lp-aurora::after  { filter: blur(36px); }
+          .lp-atmos .lp-orb  { filter: blur(56px); }
+          .lp-atmos::after   { mix-blend-mode: normal; opacity: .035; }
+        }
 
         /* ═══ Η ΕΝΑΛΛΑΣΣΟΜΕΝΗ ΛΕΞΗ ════════════════════════════════════════════
            ΓΙΑΤΙ ΑΛΛΑΞΕ: η εναλλαγή περνούσε απαρατήρητη. Η κίνηση ήταν 16px και
@@ -805,7 +861,7 @@ export default async function Landing() {
       <div className="lp-atmos" aria-hidden="true"><div className="lp-orb" /></div>
 
       {/* ── Nav ── */}
-      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'color-mix(in srgb, var(--bg-base) 78%, transparent)', backdropFilter: 'saturate(180%) blur(14px)', WebkitBackdropFilter: 'saturate(180%) blur(14px)', borderBottom: `1px solid ${LINE}` }}>
+      <header className="lp-head" style={{ position: 'sticky', top: 0, zIndex: 50, background: 'color-mix(in srgb, var(--bg-base) 78%, transparent)', borderBottom: `1px solid ${LINE}` }}>
         <nav style={{ ...wrap, height: 64, display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
             <BrandMark />

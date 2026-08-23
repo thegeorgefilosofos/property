@@ -301,7 +301,7 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
     <div>
       <style>{`
         .exp-row {
-          display: grid; grid-template-columns: 54px 1fr auto; gap: 14px; align-items: center;
+          display: grid; grid-template-columns: 54px 1fr auto auto; gap: 14px; align-items: center;
           padding: 13px 14px; border-radius: ${T.radius.inner}px;
           border: 1px solid transparent; background: transparent;
           transition: background .15s, border-color .15s, transform .15s;
@@ -328,9 +328,57 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
           background: var(--bg-surface); border-bottom: 1px solid var(--border-subtle);
         }
         .exp-month:first-child { margin-top: 0; }
+        /* ΣΕ ΣΤΕΝΗ ΟΘΟΝΗ: ΗΜΕΡΟΜΗΝΙΑ, ΤΙΤΛΟΣ ΚΑΙ ΠΟΣΟ ΣΤΗΝ ΠΡΩΤΗ ΣΕΙΡΑ.
+           Τα κουμπιά κατεβαίνουν ολόκληρα από κάτω και τυλίγονται: τρία κουμπιά
+           με «white-space: nowrap» δεν χωρούν ποτέ δίπλα σε ποσό σε 375 pixel,
+           και η προσπάθεια να χωρέσουν έσπρωχνε τα λεφτά εκτός οθόνης. */
         @media (max-width: 560px) {
-          .exp-row { grid-template-columns: 46px 1fr; row-gap: 6px; }
-          .exp-row > :last-child { grid-column: 2; justify-self: start; }
+          /* Η ΣΤΗΛΗ ΤΗΣ ΗΜΕΡΟΜΗΝΙΑΣ ΠΑΙΡΝΕΙ ΤΟ ΠΛΑΤΟΣ ΤΗΣ ΑΠΟ ΤΟ ΠΕΡΙΕΧΟΜΕΝΟ.
+             Καρφωμένη στα 46 pixel, το «Χωρίς ημερομηνία» των γραμμών χωρίς
+             ημέρα ξεχείλιζε πάνω στον τίτλο και τα δύο κείμενα τυπώνονταν το
+             ένα πάνω στο άλλο. Με «auto», μια κανονική ημερομηνία μένει στενή
+             και μόνο η εξαίρεση παίρνει τον χώρο που χρειάζεται. */
+          .exp-row { grid-template-columns: auto minmax(0, 1fr) auto; row-gap: 8px; column-gap: 10px; align-items: start; }
+          .exp-row > :first-child { line-height: 1.35; }
+          .exp-amount { grid-column: 3; grid-row: 1; justify-self: end; }
+          /* ── ΤΡΕΙΣ ΕΝΕΡΓΕΙΕΣ, ΕΝΑ ΒΑΡΟΣ, ΜΙΑ ΣΕΙΡΑ ────────────────────────────
+             ΤΟ ΠΡΟΒΛΗΜΑ ΗΤΑΝ ΔΙΠΛΟ. Πρώτον, τα τρία κουμπιά είχαν ΤΡΙΑ
+             διαφορετικά βάρη στην ίδια σειρά: το «Πληρώθηκε» με περίγραμμα, τα
+             άλλα δύο χωρίς, δηλαδή τρεις προτάσεις για το πόσο σημαντικό είναι
+             το καθένα, δίπλα δίπλα. Δεύτερον, με αυτά τα περιθώρια δεν χωρούσαν
+             σε μία σειρά και το τρίτο έπεφτε μόνο του από κάτω.
+
+             ΣΕ ΣΤΕΝΗ ΟΘΟΝΗ ΓΙΝΟΝΤΑΙ ΕΝΑ ΙΔΙΩΜΑ: ίδιο ύψος, ίδιο περίγραμμα
+             (κανένα), ίδια απόσταση, μοιρασμένα ίσα σε όλο το πλάτος. Η
+             σημασία δηλώνεται με ΧΡΩΜΑ, όχι με κουτί: η κύρια ενέργεια παίρνει
+             τον τόνο, οι άλλες δύο μένουν ουδέτερες. Ο στόχος αφής παραμένει
+             44 pixel, γιατί το ύψος έρχεται από την κοινή κλίμακα. */
+          .exp-actions {
+            grid-column: 1 / -1; grid-row: 2;
+            /* ΜΟΙΡΑΣΜΑ ΜΕ FLEX, ΟΧΙ ΜΕ auto-fit. Το «repeat(auto-fit, minmax(0,1fr))»
+               δεν έχει οριστικό ελάχιστο, οπότε ο περιηγητής δεν μπορεί να
+               υπολογίσει πλήθος στηλών και τα κουμπιά έβγαιναν πάλι 31 pixel
+               έξω. Το flex με «flex: 1 1 0» δεν χρειάζεται να ξέρει πόσα είναι:
+               μοιράζει ίσα ό,τι υπάρχει, δύο ή τρία. */
+            display: flex; gap: 4px; margin-top: 2px;
+            border-top: 1px solid var(--border-subtle); padding-top: 6px;
+          }
+          .exp-actions > .exp-act { flex: 1 1 0; min-width: 0; }
+          /* ΤΟ inline STYLE ΤΟΥ COMPONENT ΝΙΚΑΕΙ ΤΟ ΦΥΛΛΟ ΣΤΥΛ. Το Btn γράφει
+             «padding: 9px 18px» inline, οπότε χωρίς «!important» τα 18 pixel
+             έμεναν και τα τρία κουμπιά ξαναξεχείλιζαν κατά 31 pixel. */
+          .exp-actions .po-btn {
+            width: 100%; min-width: 0;
+            padding-left: 6px !important; padding-right: 6px !important;
+            border-color: transparent !important; background: transparent !important;
+            font-weight: 600;
+          }
+          /* Η ΙΕΡΑΡΧΙΑ ΜΕΝΕΙ, ΑΛΛΑΞΕ ΜΟΝΟ ΠΩΣ ΛΕΓΕΤΑΙ. Το «Πληρώθηκε» είναι η
+             ενέργεια της γραμμής, τα άλλα δύο είναι συντήρηση. Στο πλάτος του
+             τηλεφώνου το κουτί γύρω του έσπρωχνε τα άλλα δύο σε δεύτερη σειρά
+             και έδινε τρία διαφορετικά βάρη στην ίδια σειρά· ο τόνος λέει το
+             ίδιο πράγμα χωρίς να πάρει ούτε ένα pixel. */
+          .exp-actions .po-btn[data-variant="secondary"] { color: var(--accent) !important; }
         }
       `}</style>
 
@@ -647,7 +695,7 @@ function Row({ e, busy, onPaid, onEdit, onDelete }: { e: LedgerEntry; busy: bool
           </span>
         )}
       </span>
-      <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <span className="exp-actions" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         {/* ΜΟΝΟ ΟΠΟΥ ΥΠΑΡΧΕΙ ΚΑΤΙ ΝΑ ΑΛΛΑΞΕΙ. Η γραμμή του απλήρωτου
             λογαριασμού δεν είναι δαπάνη ακόμη: ζει σε άλλον πίνακα, με άλλα
             πεδία. Κουμπί που θα άνοιγε φόρμα δαπάνης πάνω της θα υποσχόταν
@@ -680,11 +728,28 @@ function Row({ e, busy, onPaid, onEdit, onDelete }: { e: LedgerEntry; busy: bool
             <Btn variant="ghost" onClick={onDelete}>Διαγραφή</Btn>
           </span>
         )}
-        {/* Το ποσό είναι ποσό, όχι κρίση. Ηταν κόκκινο σε ΚΑΘΕ ανεξόφλητη
-            γραμμή — δηλαδή στις περισσότερες, μόνιμα. */}
-        <span style={{ fontSize: 14, fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
-          {fe(e.amount)}
-        </span>
+      </span>
+      {/* ── ΤΟ ΠΟΣΟ ΕΙΝΑΙ ΔΙΚΟ ΤΟΥ ΚΕΛΙ, ΟΧΙ ΟΥΡΑ ΤΩΝ ΚΟΥΜΠΙΩΝ ────────────────
+          ΤΟ ΜΕΤΡΗΜΕΝΟ ΣΦΑΛΜΑ. Ζούσε ΜΕΣΑ στο ίδιο span με τα τρία κουμπιά, και
+          σε στενή οθόνη όλο αυτό το μπλοκ έπεφτε σε δεύτερη σειρά με
+          `justify-self: start`. Το ελάχιστο πλάτος του ήταν 407 pixel σταθερά,
+          σε γραμμή 317: στα 375 το ποσό έβγαινε **136 pixel εκτός οθόνης** και
+          το «Διαγραφή» κοβόταν στη μέση. Στα 320 το ποσό έφευγε 189 pixel.
+
+          Και δεν φαινόταν σε κανέναν έλεγχο: το `.app-content` έχει
+          `overflow-y: auto`, άρα το `overflow-x` γίνεται σιωπηλά `auto` και
+          κρύβει τη ροή. Το `documentElement.scrollWidth` έμενε 375 σε κάθε
+          πλάτος, δηλαδή ένας έλεγχος «ξεχειλίζει η σελίδα;» έλεγε όχι ενώ τα
+          λεφτά ήταν αόρατα.
+
+          Τώρα το ποσό κρατά τη ΔΙΚΗ του θέση στην πρώτη σειρά, δίπλα στην
+          ημερομηνία και τον τίτλο, και τα κουμπιά κατεβαίνουν από κάτω. Ο,τι
+          κι αν γίνει με το πλάτος, το ποσό φαίνεται πρώτο.
+
+          Το ποσό είναι ποσό, όχι κρίση: ήταν κόκκινο σε ΚΑΘΕ ανεξόφλητη γραμμή,
+          δηλαδή στις περισσότερες, μόνιμα. */}
+      <span className="exp-amount" style={{ fontSize: 14, fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+        {fe(e.amount)}
       </span>
     </div>
   );

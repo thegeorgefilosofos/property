@@ -17,6 +17,7 @@ const eslintConfig = defineConfig([
     // του lint δεν επιτρέπεται να μετράει γραμμές που δεν γράφτηκαν με το χέρι.
     ".e2e-money/**",
     ".perf-bench/**",
+    ".perf-form/**",
   ]),
 ]);
 

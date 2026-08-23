@@ -1616,8 +1616,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   /* Στόχοι αφής ≥44px για κύρια κουμπιά */
   .btn { min-height: 44px; }
 
-  /* Inputs 16px για να ΜΗΝ κάνει zoom το iOS στο focus */
-  input, select, textarea { font-size: 16px !important; }
 
   /* Εναλλαγή ορατότητας ανά συσκευή */
   .desktop-only { display: none !important; }
@@ -1858,13 +1856,13 @@ summary::marker { content: ""; }
 
 /* ── Ενιαίο hover συνδέσμων (landing και auth): ήπια μετάβαση προς το accent ── */
 a.lp-link { transition: color 0.15s ease, filter 0.15s ease; }
-a.lp-link:hover { color: var(--accent) !important; filter: brightness(1.12); }
+
 
 /* ── Ενιαία hover κουμπιών στις οθόνες auth: ghost προς accent, primary πιο φωτεινό ── */
 .auth-hov { transition: border-color 0.15s ease, background 0.15s ease; }
-.auth-hov:hover { border-color: color-mix(in srgb, var(--accent) 40%, transparent) !important; background: color-mix(in srgb, var(--accent) 5%, transparent) !important; }
+
 .auth-cta { transition: filter 0.15s ease, transform 0.15s ease; }
-.auth-cta:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-1px); }
+
 @media (prefers-reduced-motion: reduce) { .auth-cta:hover:not(:disabled) { transform: none; } }
 
 /* Λάμψη «κατόπτρου» που διατρέχει το μετάλλιο Συνεργάτη στο hover (διακριτικά). */
@@ -1962,16 +1960,12 @@ html.a11y-large-text { zoom: 1.08; }
 
 /* Κουμπί: ανύψωση και λάμψη, ίδια σε κάθε δημόσια σελίδα. */
 .lp-cta { transition: transform .15s, filter .15s; }
-.lp-cta:hover { transform: translateY(-1px); filter: brightness(1.05); }
+
 /* ΕΝΑ ΜΠΛΕ, ΕΝΑ ΝΟΗΜΑ: η κύρια ενέργεια. Η ιεραρχία βγαίνει από γεμάτο
    εναντίον περιγράμματος (.lp-ghost), όχι από δεύτερη απόχρωση. */
 .lp-primary { background: var(--accent); color: var(--accent-text); }
 .lp-ghost { transition: border-color .15s, background .15s, color .15s; }
-.lp-ghost:hover {
-  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
-  background: color-mix(in srgb, var(--accent) 5%, transparent);
-  color: var(--accent);
-}
+
 
 /* Ετικέτα ενότητας με κουκκίδα. Block-level και όχι inline-flex: τα κάθετα
    περιθώρια ενός inline κουτιού δεν μετακινούν τη γραμμή από κάτω, οπότε το
@@ -2028,7 +2022,7 @@ html.a11y-large-text { zoom: 1.08; }
    ανοιχτού έβαφε μπλε και τις έξι από κάτω, χωρίς να έχει πατηθεί καμία. */
 details.lp-faq { border-top: 1px solid var(--border-subtle); }
 details.lp-faq > summary { transition: color .18s; }
-details.lp-faq > summary:hover { color: var(--accent); }
+
 details.lp-faq[open] > summary { color: var(--accent); }
 details.lp-faq > summary::-webkit-details-marker { display: none; }
 details.lp-faq[open] > summary .lp-plus { transform: rotate(45deg); }
@@ -2036,7 +2030,7 @@ details.lp-faq[open] > summary .lp-plus { transform: rotate(45deg); }
    για τη συμπεριφορά, αλλά δεν παίρνει γραμμή από πάνω: αν την έπαιρνε, θα
    διαβαζόταν ως δωδέκατη ερώτηση με παράξενο τίτλο. */
 details.lp-faq-more { border-top: none; }
-details.lp-faq-more > summary:hover { opacity: .8; }
+
 /* ΚΑΙ ΦΕΥΓΕΙ ΜΟΛΙΣ ΚΑΝΕΙ ΤΗ ΔΟΥΛΕΙΑ ΤΟΥ. Ο ρόλος του είναι να φέρει τις
    υπόλοιπες ερωτήσεις· αφού τις φέρει, μένοντας στη μέση κόβει τη λίστα στα
    δύο και η ενότητα διαβάζεται ως δύο ξεχωριστά πράγματα. Το κλείσιμο δεν
@@ -2066,9 +2060,9 @@ details.lp-faq-more[open] > div > details.lp-faq:first-child { border-top: none;
   font-size: 13.5px; font-weight: 600; text-decoration: none;
   color: var(--text-tertiary); transition: color .15s;
 }
-.lg-back:hover { color: var(--accent); }
+
 .lg-back svg { transition: transform .15s; }
-.lg-back:hover svg { transform: translateX(-2px); }
+
 
 .lg-lede {
   display: grid; grid-template-columns: minmax(0, 1fr) 250px;
@@ -2104,7 +2098,7 @@ details.lp-faq-more[open] > div > details.lp-faq:first-child { border-top: none;
   color: var(--text-secondary); text-decoration: none;
   transition: color .15s;
 }
-.lg-toc-link:hover { color: var(--accent); }
+
 /* Τα μέρη μέσα στο ευρετήριο: ίδια ετικέτα με τις ενότητες της αρχικής. */
 .lg-toc-part {
   display: block; margin: 18px 0 7px;
@@ -2276,4 +2270,74 @@ details.lp-faq-more[open] > div > details.lp-faq:first-child { border-top: none;
   .po-tool-page main { padding: 0 !important; max-width: none !important; }
 
   @page { margin: 16mm; }
+}
+
+/* ═══ ΟΙ ΚΑΝΟΝΕΣ HOVER ΤΩΝ ΔΗΜΟΣΙΩΝ ΣΕΛΙΔΩΝ, ΦΥΛΑΓΜΕΝΟΙ ══════════════════════
+   ΤΟ ΜΕΤΡΗΜΕΝΟ ΠΡΟΒΛΗΜΑ. Σε οθόνη αφής το `:hover` δεν φεύγει μετά το πάτημα:
+   μένει κολλημένο ώσπου ο χρήστης αγγίξει κάπου αλλού. Ενας σύνδεσμος που
+   πατήθηκε έμενε χρωματισμένος, ένα κουμπί έμενε ανασηκωμένο, και ο χρήστης
+   νόμιζε ότι κάτι είναι επιλεγμένο ή κολλημένο.
+
+   Ο κανόνας υπήρχε ήδη γραμμένος στο αρχείο, στο μπλοκ του `.po-btn` — αλλά
+   κάλυπτε μόνο τον πίνακα ελέγχου. Μετρήθηκε σε πραγματικό Chromium στα 375
+   pixel: 14 αφύλακτοι κανόνες ταίριαζαν σε στοιχεία δημόσιων σελίδων, και
+   ΜΗΔΕΝ φυλαγμένοι. Δηλαδή ο κανόνας ίσχυε ακριβώς εκεί που δεν χρειαζόταν.
+
+   Εδώ μαζεύονται όλοι, μία φορά. Στην αφή δεν εφαρμόζεται κανένας· η ανάδραση
+   του πατήματος έρχεται από το `:active` και από το δαχτυλίδι εστίασης. */
+@media (hover: hover) {
+  a.lp-link:hover { color: var(--accent) !important; filter: brightness(1.12); }
+  .lp-cta:hover { transform: translateY(-1px); filter: brightness(1.05); }
+  details.lp-faq > summary:hover { color: var(--accent); }
+  details.lp-faq-more > summary:hover { opacity: .8; }
+  .auth-hov:hover { border-color: color-mix(in srgb, var(--accent) 40%, transparent) !important; background: color-mix(in srgb, var(--accent) 5%, transparent) !important; }
+  .auth-cta:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-1px); }
+  .lg-back:hover { color: var(--accent); }
+  .lg-back:hover svg { transform: translateX(-2px); }
+  .lg-toc-link:hover { color: var(--accent); }
+  .lp-ghost:hover {
+    border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+    background: color-mix(in srgb, var(--accent) 5%, transparent);
+    color: var(--accent);
+  }
+}
+
+/* Η ανάδραση της αφής: σύντομη, χωρίς μετατόπιση διάταξης, και δική μας — όχι
+   το γαλάζιο rgba(51,181,229,.4) που βάζει ο περιηγητής και δεν υπάρχει σε
+   κανένα θέμα της εφαρμογής. */
+@media (hover: none) {
+  a.lp-link:active, .lg-back:active, .lg-toc-link:active,
+  details.lp-faq > summary:active { color: var(--accent); }
+  .lp-cta:active, .lp-ghost:active, .auth-cta:active:not(:disabled) { filter: brightness(.94); }
+}
+
+/* ═══ Η ΟΡΙΖΟΝΤΙΑ ΚΥΛΙΣΗ ΔΕΝ ΚΛΕΒΕΙ ΤΗ ΧΕΙΡΟΝΟΜΙΑ «ΠΙΣΩ» ══════════════════════
+   ΜΕΤΡΗΜΕΝΟ: έξι οριζόντιοι κυλιόμενοι στις δημόσιες σελίδες, με 20 ώς 72% του
+   περιεχομένου κρυμμένο στα 375 pixel, και ΟΛΟΙ με `overscroll-behavior: auto`.
+   Στο iOS Safari, μια σάρωση που φτάνει στο τέρμα του πίνακα συνεχίζει ως
+   χειρονομία «πίσω» του περιηγητή: ο χρήστης έσερνε τον πίνακα του φόρου και
+   έχανε τη σελίδα με τα νούμερα που μόλις πληκτρολόγησε.
+
+   Το `contain` σταματά τη σάρωση στο τέρμα του στοιχείου. Δεν αλλάζει τίποτα
+   άλλο: η κύλιση μέσα στον πίνακα δουλεύει ακριβώς όπως πριν. */
+.po-scroll-x, .lp-plans, .lp-aud, .lp-duo {
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ═══ ΤΑ ΠΕΔΙΑ ΣΤΑ 16px ΣΕ ΚΑΘΕ ΣΥΣΚΕΥΗ ΑΦΗΣ, ΟΧΙ ΜΟΝΟ ΣΕ ΣΤΕΝΗ ΟΘΟΝΗ ═══════
+   Ο κανόνας ζούσε μέσα σε `@media (max-width: 640px)`, δηλαδή έκρινε το ΠΛΑΤΟΣ
+   του παραθύρου. Το iPad σε κάθετη θέση είναι 820 pixel: πέρναγε έξω από το
+   όριο, τα πεδία έμεναν στα 14 και 15 pixel, και το Safari του iPad ζουμάρει
+   στο focus ακριβώς όπως του iPhone. Μετρημένο σε 820×1180: πέντε σελίδες με
+   πεδία κάτω από 16px, ανάμεσά τους η σύνδεση και η εγγραφή.
+
+   Το `pointer: coarse` κρίνει τη ΣΥΣΚΕΥΗ. Ενα στενό παράθυρο σε επιτραπέζιο
+   δεν χρειάζεται τον κανόνα και δεν τον παίρνει· κάθε ταμπλέτα τον παίρνει, σε
+   όποια θέση κι αν κρατιέται.
+
+   Το `input[type=range]` εξαιρείται: δεν έχει κείμενο, δεν ζουμάρει τίποτα, και
+   το μέγεθος γραμματοσειράς του καθορίζει το πάχος του δρομέα. */
+@media (pointer: coarse) {
+  input:not([type="range"]), select, textarea { font-size: 16px !important; }
 }

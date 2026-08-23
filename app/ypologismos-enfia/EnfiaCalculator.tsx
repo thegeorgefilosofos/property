@@ -278,7 +278,7 @@ function Instalments({ annual, year }: { annual: number; year: number }) {
 
   return (
     <div style={{ marginTop: 26 }}>
-      <div style={{ overflowX: 'auto' }}>
+      <div className="po-scroll-x" style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 300 }}>
           {/* Ίδια τυπογραφία λεζάντας με τον πίνακα κλιμακίων του αδελφού
               υπολογιστή: οι δύο σελίδες διαβάζονται ως ένα εργαλείο. */}
