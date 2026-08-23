@@ -1457,7 +1457,7 @@ export default async function Landing() {
           <FaqList list={FAQ.slice(0, FAQ_VISIBLE)} />
         </div>
         <details className="lp-faq lp-faq-more">
-          {/* ΤΟ `display` ΕΦΥΓΕ ΑΠΟ ΤΟ ΕΝΣΩΜΑΤΟ ΣΤΥΛ, ΚΑΙ ΑΥΤΟ ΗΤΑΝ ΟΛΟ ΤΟ ΣΦΑΛΜΑ.
+          {/* ΤΟ «display» ΕΦΥΓΕ ΑΠΟ ΤΟ ΕΝΣΩΜΑΤΟ ΣΤΥΛ, ΚΑΙ ΑΥΤΟ ΗΤΑΝ ΟΛΟ ΤΟ ΣΦΑΛΜΑ.
               Το globals.css έκρυβε ήδη το «Περισσότερες ερωτήσεις» μόλις άνοιγε
               («details.lp-faq-more[open] > summary»), αλλά το ενσώματο
               «display: inline-flex» υπερισχύει κάθε φύλλου στυλ: ο κανόνας δεν
@@ -1466,9 +1466,13 @@ export default async function Landing() {
               να τη σπάει στα δύο. Το ίδιο ίσχυε και για το γέμισμα των 18
               εικονοστοιχείων: ακόμη κι όταν το ύψος μηδένιζε, το ενσώματο
               γέμισμα κρατούσε 36 εικονοστοιχεία αέρα στη μέση της λίστας.
-              Και τα δύο πήγαν στο φύλλο στυλ, δίπλα στον κανόνα που τα σβήνει. */}
+              Και τα δύο πήγαν στο φύλλο στυλ, δίπλα στον κανόνα που το μετακινεί
+              κάτω από τη λίστα μόλις ανοίξει. Το λεκτικό είναι δύο λέξεις και
+              φαίνεται η μία: το ίδιο το <details> ξέρει σε ποια κατάσταση
+              βρίσκεται, δεν χρειάζεται να του το πει React. */}
           <summary style={{ cursor: 'pointer', listStyle: 'none', fontSize: 14, fontWeight: 600, color: ACCENT, alignItems: 'center', gap: 8 }}>
-            Περισσότερες ερωτήσεις
+            <span className="lp-more-open">Περισσότερες ερωτήσεις</span>
+            <span className="lp-more-shut">Λιγότερες ερωτήσεις</span>
             <span className="lp-plus" style={{ fontSize: 18, fontWeight: 450, lineHeight: 1, transition: 'transform .2s' }}>+</span>
           </summary>
           <div style={{ borderBottom: `1px solid ${LINE}` }}>

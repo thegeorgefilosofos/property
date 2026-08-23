@@ -25,9 +25,26 @@ export const PanelFX = () => (
        πάνω στο ΙΔΙΟ το στοιχείο, που εδώ έχει ύψος 2 pixel: θα έκανε ένα βήμα
        δύο εικονοστοιχείων. Το container query δίνει το ύψος του πάνελ, οπότε η
        γραμμή διανύει το 86% του, όσο και πριν με το «top». */
-    .lp-scan-host { container-type: size; }
-    @keyframes lpScan { 0% { transform: translateY(0); opacity: 0; } 12% { opacity: 1; } 88% { opacity: 1; } 100% { transform: translateY(86cqh); opacity: 0; } }
-    .lp-scanline { top: 6%; will-change: transform; animation: lpScan 2.6s cubic-bezier(.4, 0, .2, 1) infinite; }
+    /* ═══ Η ΣΑΡΩΣΗ ΚΙΝΕΙΤΑΙ ΜΕ ΤΟ ΥΨΟΣ ΤΗΣ ΚΑΡΤΑΣ, ΧΩΡΙΣ ΝΑ ΤΟ ΑΚΥΡΩΝΕΙ ══════
+       ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΔΙΟΡΘΩΝΕΤΑΙ: για να μετρηθεί η κίνηση σε «cqh» έπρεπε η
+       κάρτα να γίνει δοχείο μεγέθους. Το «container-type: size» όμως περιορίζει
+       ΚΑΙ ΤΟΥΣ ΔΥΟ άξονες: το ύψος παύει να βγαίνει από το περιεχόμενο. Η κάρτα
+       κατέρρευσε στο γέμισμά της και το «overflow: hidden» έκοψε τα πάντα κάτω
+       από την πρώτη σειρά. Έμενε ορατός ο τίτλος «Ρεύμα» και τίποτε άλλο: ούτε
+       περίοδος, ούτε κατανάλωση, ούτε το πληρωτέο. Δηλαδή το πάνελ που δείχνει
+       τι κάνει η σάρωση δεν έδειχνε τη σάρωση.
+
+       Η ΛΥΣΗ ΧΩΡΙΣ ΔΟΧΕΙΟ. Η γραμμή μπαίνει μέσα σε έναν σαρωτή που καλύπτει
+       ολόκληρη την κάρτα («inset: 0»), και κινείται Ο ΣΑΡΩΤΗΣ, όχι η γραμμή.
+       Το ποσοστό σε «translateY» μετριέται πάνω στο ύψος ΤΟΥ ΙΔΙΟΥ του
+       στοιχείου: του σαρωτή είναι το ύψος της κάρτας, της γραμμής θα ήταν δύο
+       εικονοστοιχεία. Άρα «translateY(100%)» σημαίνει ακριβώς «μια κάρτα κάτω»,
+       χωρίς καμία δήλωση δοχείου και χωρίς να πειραχθεί η ροή.
+
+       Παραμένει μόνο μετασχηματισμός, δηλαδή δουλειά της κάρτας γραφικών και
+       όχι νέα διάταξη σε κάθε καρέ. */
+    @keyframes lpScan { 0% { transform: translateY(0); opacity: 0; } 12% { opacity: 1; } 88% { opacity: 1; } 100% { transform: translateY(100%); opacity: 0; } }
+    .lp-scan-sweep { position: absolute; inset: 0; pointer-events: none; will-change: transform; animation: lpScan 2.6s cubic-bezier(.4, 0, .2, 1) infinite; }
     /* Η κίνηση σταματά στην αφή: μια γραμμή που σαρώνει επ' άπειρον κοστίζει
        επανασύνθεση σε κάθε καρέ, και σε τηλέφωνο δεν την κοιτάζει κανείς. */
     /* ΣΤΗΝ ΑΦΗ ΣΤΑΜΑΤΑΝΕ ΟΛΕΣ ΟΙ ΑΤΕΡΜΟΝΕΣ ΚΙΝΗΣΕΙΣ ΤΩΝ ΜΑΚΕΤΩΝ.
@@ -36,7 +53,7 @@ export const PanelFX = () => (
        κανείς δεν κοιτάζει κρατώντας τηλέφωνο. Οι ράβδοι μένουν στο ύψος τους,
        η γραμμή μένει στη θέση της· η εικόνα είναι ίδια, ακίνητη. */
     @media (hover: none) {
-      .lp-scanline { animation: none; opacity: .5; }
+      .lp-scan-sweep { animation: none; opacity: .5; }
       .lp-bar { animation: none; transform: scaleY(.8); }
     }
     @keyframes lpPop { 0% { opacity: 0; transform: translateY(6px) scale(.96); } 100% { opacity: 1; transform: none; } }
@@ -51,7 +68,7 @@ export const PanelFX = () => (
     .lp-vbar:hover { filter: brightness(1.4) saturate(1.15); }
     @media (max-width: 760px) { .lp-rail { display: none; } }
     @media (prefers-reduced-motion: reduce) {
-      .lp-scanline, .lp-bar, .lp-pop, .lp-grow { animation: none !important; }
+      .lp-scan-sweep, .lp-bar, .lp-pop, .lp-grow { animation: none !important; }
       .lp-live, .lp-vbar { transition: none; }
       .lp-live:hover { transform: none; }
     }
@@ -152,8 +169,10 @@ export function PanelScan() {
   const filed = ['Λογαριασμοί', 'Δαπάνες', 'Ημερολόγιο', navLabel('documents')];
   return (
     <div style={{ maxWidth: 500, margin: '0 auto', textAlign: 'left' }}>
-      <div className="lp-live lp-scan-host" style={{ position: 'relative', overflow: 'hidden', background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '18px 18px 16px' }}>
-        <div className="lp-scanline" style={{ position: 'absolute', left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, var(--accent), transparent)', boxShadow: '0 0 12px color-mix(in srgb, var(--accent) 60%, transparent)' }} />
+      <div className="lp-live" style={{ position: 'relative', overflow: 'hidden', background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '18px 18px 16px' }}>
+        <div className="lp-scan-sweep" aria-hidden="true">
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, var(--accent), transparent)', boxShadow: '0 0 12px color-mix(in srgb, var(--accent) 60%, transparent)' }} />
+        </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
           <div style={{ fontSize: 13, fontWeight: 700 }}>Ρεύμα</div>
           <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>Μηνιαίος λογαριασμός</div>
