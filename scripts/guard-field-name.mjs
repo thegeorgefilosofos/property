@@ -117,10 +117,37 @@ function wrappedBy(src, at, tag) {
 // Ο οδηγός ακινήτου δίνει το id από το `useId` του <Field>, με cloneElement:
 // στο κείμενο του <input> δεν φαίνεται τίποτα, στην οθόνη υπάρχει και id και
 // htmlFor. Η εξαίρεση ισχύει ΟΣΟ αποδεικνύεται· αν το <Field> ξαναγίνει το
-// παλιό «ετικέτα δίπλα στο πεδίο», λείπουν τα δύο σημάδια και τα 31 πεδία
+// παλιό «ετικέτα δίπλα στο πεδίο», λείπουν τα σημάδια και τα 31 πεδία
 // ξαναμετρώνται από την επόμενη εκτέλεση.
-const WRAPPERS = { 'app/dashboard/components/AddPropertyWizard.tsx': 'Field' }
-const PROOF = [/cloneElement/, /htmlFor=/]
+//
+// ── ΚΑΙ ΤΟ ΤΥΛΙΓΜΑ ΔΕΝ ΕΙΝΑΙ ΠΑΝΤΑ ΕΤΙΚΕΤΑ JSX ──────────────────────────
+// Ο οδηγός πέρασε στο μητρώο πεδίων: τα χειριστήρια δεν γράφονται πια μέσα σε
+// «<Field>» αλλά δίνονται ως όρισμα στη `row(...)`, και το <Field> μπαίνει μία
+// φορά, μέσα στο <StepBody>. Ο έλεγχος «υπάρχει ανοιχτό <Field πριν;»
+// κοκκίνισε για ΤΡΙΑΝΤΑ ΕΝΑ πεδία που στην οθόνη έχουν κανονικότατο όνομα.
+//
+// Το τύλιγμα αναγνωρίζεται πλέον και ως ΚΛΗΣΗ με ανοιχτή παρένθεση, και η
+// απόδειξη μεγάλωσε ανάλογα: το <StepBody> πρέπει να τυλίγει κάθε γραμμή σε
+// «<Field label=». Αν κάποιος το βγάλει από εκεί, η εξαίρεση πέφτει ολόκληρη.
+const WRAPPERS = { 'app/dashboard/components/AddPropertyWizard.tsx': ['Field', 'row'] }
+const PROOF = [/cloneElement/, /htmlFor=/, /<Field label=\{r\.label/]
+
+/**
+ * Είναι το σημείο `at` ΜΕΣΑ στην παρένθεση μιας κλήσης `name(`;
+ *
+ * Ισορροπία παρενθέσεων από την τελευταία κλήση πριν από το σημείο: αν η
+ * παρένθεση δεν έχει κλείσει ώς εκεί, το χειριστήριο είναι όρισμά της.
+ */
+function insideCall(src, at, name) {
+  const open = src.lastIndexOf(name + '(', at)
+  if (open < 0) return false
+  let depth = 0
+  for (let i = open + name.length; i < at; i++) {
+    if (src[i] === '(') depth++
+    else if (src[i] === ')') { depth--; if (depth === 0) return false }
+  }
+  return depth > 0
+}
 
 const findings = []
 const native = {}
@@ -139,7 +166,7 @@ for (const f of findSources()) {
     for (const { tag, line, at } of tagsOf(src, el)) {
       if (NO_NAME_NEEDED.test(tag) || NATIVE_NAMED(tag)) continue
       if (wrappedBy(src, at, 'label')) continue
-      if (wrapper && wrappedBy(src, at, wrapper)) continue
+      if (wrapper && wrapper.some(w => wrappedBy(src, at, w) || insideCall(src, at, w))) continue
       ;(native[f] ??= []).push(`${f}:${line}  ${tag.replace(/\s+/g, ' ').slice(0, 92)}`)
     }
   }

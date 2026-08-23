@@ -5,6 +5,7 @@
 import {
   TENANT_FIELDS, CLIENT_FIELDS, INVENTORY_FIELDS, CONTACT_FIELDS, ACCOUNTING_FIELDS, ALL_FIELDS,
   fieldPlacement, fieldDecision, formFields, missingCritical, hiddenFieldCount,
+  PROPERTY_FIELDS,
   type FieldContext,
 } from './fields';
 
@@ -34,7 +35,7 @@ const ctx = (o: Partial<FieldContext> = {}): FieldContext => ({
   ok('κανένα κρίσιμο πεδίο δεν είναι αυτονόητο',
      ALL_FIELDS.every(f => !(f.critical && f.selfEvident)));
   ok('κάθε πεδίο έχει ετικέτα', ALL_FIELDS.every(f => f.label.trim().length > 0));
-  ok('το id δηλώνει τη φόρμα του', ALL_FIELDS.every(f => /^(tenant|client|inv|contact|acc)\./.test(f.id)));
+  ok('το id δηλώνει τη φόρμα του', ALL_FIELDS.every(f => /^(tenant|client|inv|contact|acc|prop)\./.test(f.id)));
   // Κανένα «γιατί» δεν επιτρέπεται να είναι ταυτολογία του label.
   ok('το γιατί δεν επαναλαμβάνει την ετικέτα', ALL_FIELDS.every(f => f.why.toLowerCase() !== f.label.toLowerCase()));
 }
@@ -184,7 +185,34 @@ const ctx = (o: Partial<FieldContext> = {}): FieldContext => ({
   // Ο 25χρονος με κενό ακίνητο πρέπει να γλιτώνει τη ΣΥΝΤΡΙΠΤΙΚΗ πλειονότητα.
   const c = ctx({ status: 'vacant', propertyCount: 1 });
   const hidden = hiddenFieldCount(ALL_FIELDS, c);
-  ok(`κενό ακίνητο: κρύβονται ${hidden} από ${ALL_FIELDS.length} πεδία`, hidden / ALL_FIELDS.length > 0.6);
+  // ΜΕΤΡΙΕΤΑΙ ΑΝΑ ΜΗΤΡΩΟ, ΚΑΙ ΟΧΙ ΣΤΟ ΣΥΝΟΛΟ. Η αναλογία στο σύνολο έλεγε
+  // κάτι για τη ΣΥΝΘΕΣΗ του μητρώου, όχι για τη μηχανή: μόλις μπήκε η φόρμα
+  // ακινήτου, της οποίας τα πεδία ισχύουν για όλους, το ποσοστό έπεσε από
+  // μόνο του κάτω από το όριο χωρίς να αλλάξει ούτε ένας κανόνας. Ενας
+  // έλεγχος που κοκκινίζει επειδή προστέθηκε δουλειά αλλού δεν μετρά αυτό
+  // που νομίζει.
+  //
+  // Το ερώτημα είναι συγκεκριμένο: ο ιδιοκτήτης με ΚΕΝΟ ακίνητο δεν έχει
+  // ενοικιαστή, δεν έχει επισκέπτες και δεν έχει εξοπλισμό να παραδώσει.
+  // Αυτές οι τρεις φόρμες πρέπει να εξαφανίζονται σχεδόν ολόκληρες.
+  ok(`κενό ακίνητο: κρύβονται συνολικά ${hidden} από ${ALL_FIELDS.length} πεδία`, hidden > 0);
+  for (const [name, reg, floor] of [
+    ['ενοικιαστή', TENANT_FIELDS, 0.9],
+    ['επισκεπτών', CLIENT_FIELDS, 0.9],
+    ['απογραφής', INVENTORY_FIELDS, 0.9],
+  ] as const) {
+    const h = hiddenFieldCount(reg, c);
+    ok(`κενό ακίνητο: η φόρμα ${name} κρύβεται κατά ${Math.round(100 * h / reg.length)}%`,
+      h / reg.length >= floor);
+  }
+  // ΚΑΙ Η ΦΟΡΜΑ ΤΟΥ ΑΚΙΝΗΤΟΥ ΔΕΝ ΚΡΥΒΕΤΑΙ, ΜΑΖΕΥΕΤΑΙ. Τα πεδία του ακινήτου
+  // ισχύουν για κάθε ιδιοκτήτη: το ζητούμενο δεν είναι να λείπουν, αλλά να
+  // μη στέκονται όλα μπροστά την πρώτη μέρα.
+  {
+    const pf = formFields(PROPERTY_FIELDS, c);
+    ok(`κενό ακίνητο: ο οδηγός δείχνει ${pf.core.length} πεδία και κρατά ${pf.more.length} στα «Περισσότερα»`,
+      pf.core.length <= 8 && pf.more.length >= 12);
+  }
 
   // Ο επαγγελματίας με διπλογραφικά και πέντε ακίνητα βλέπει τα περισσότερα.
   const pro = ctx({ status: 'rent_long', business: true, doubleEntry: true, propertyCount: 5, furnished: true, hasLoan: true });

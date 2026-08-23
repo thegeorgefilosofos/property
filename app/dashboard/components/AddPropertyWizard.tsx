@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useId, cloneElement, isValidElement } from 'react';
+import { useState, useEffect, useId, cloneElement, isValidElement, Children, Fragment } from 'react';
 import { HEATING_TYPES, heatingLabel, normalizeHeating } from '@/lib/property/heating';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
@@ -12,6 +12,7 @@ import { cleanAma, isValidAmaFormat, amaLengthLooksUnusual } from '@/lib/propert
 import { ATAK_SOURCE, atakDigits } from '@/lib/property/atak';
 import { STATUSES, BY_KEY, readStatus, writeStatus, type PropertyStatus } from '@/lib/property/status';
 import { fillOnlyEmpty, firstFilled } from '@/lib/core/prefill';
+import { fieldPlacement, PROPERTY_FIELDS, type FieldContext, type Placement } from '@/lib/property/fields';
 import { failed } from '@/lib/core/dbError';
 
 // Ενεργειακή κλάση (ΠΕΑ) & τύποι θέρμανσης — κοινά για wizard και Ρυθμίσεις.
@@ -63,6 +64,12 @@ const monthlyRentToNightly = (monthly: number) =>
   Math.round(((monthly * 12) / (365 * OCCUPANCY)) * 100) / 100;
 
 const STEPS = ['Τύπος', 'Βασικά', 'Οικονομικά', 'Ρυθμίσεις', 'Σύνοψη'];
+
+/** Μια γραμμή φόρμας: ποιο πεδίο είναι, πόσο πλάτος πιάνει, και το χειριστήριό του. */
+interface FormRow { id: string; span: 'auto' | 'full'; node: React.ReactNode; label?: string }
+
+/** Η ετικέτα όπως τη γράφει το μητρώο. Αγνωστο id → το ίδιο το id, ώστε να φαίνεται. */
+const labelOf = (id: string) => PROPERTY_FIELDS.find(f => f.id === id)?.label ?? id;
 
 // ── property_settings (χωριστός πίνακας, keyed by property_id) ───────────────
 // Ίδια πεδία/ετικέτες με την καρτέλα «Ρυθμίσεις» (TabSettings).
@@ -143,17 +150,62 @@ const onBlur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { 
 // το κλικ στην ετικέτα εστιάζει πλέον στο πεδίο, όπως παντού αλλού· στα σύνθετα
 // γίνεται ariaLabel, που και τα δύο το δέχονται ήδη. Τα 36 σημεία κλήσης δεν
 // άλλαξαν ούτε κατά μία λέξη.
+/**
+ * Βάζει όνομα στο ΠΡΩΤΟ χειριστήριο ενός πεδίου, όπου κι αν βρίσκεται.
+ *
+ * Επιστρέφει και το αν βρέθηκε ντόπιο στοιχείο, γιατί μόνο τότε έχει νόημα το
+ * `htmlFor`: ένα CustomSelect παίρνει `ariaLabel` και δεν έχει id να δείξει.
+ */
+function nameControl(node: React.ReactNode, id: string, label: string): { node: React.ReactNode; native: boolean } {
+  let done = false;
+  let native = false;
+  const walk = (n: React.ReactNode): React.ReactNode => {
+    if (done || !isValidElement(n)) return n;
+    const el = n as React.ReactElement<{ children?: React.ReactNode }>;
+    if (typeof el.type === 'string') {
+      // Πλαίσιο ή ομάδα: κατέβα μέσα του, μη το ονομάσεις.
+      if (el.type === 'div' || el.type === 'span') {
+        return cloneElement(el, undefined, Children.map(el.props.children, walk));
+      }
+      done = true; native = true;
+      return cloneElement(el as React.ReactElement<Record<string, unknown>>, { id });
+    }
+    if (el.type === Fragment) {
+      return cloneElement(el, undefined, Children.map(el.props.children, walk));
+    }
+    done = true;
+    return cloneElement(el as React.ReactElement<Record<string, unknown>>, { ariaLabel: label });
+  };
+  const out = Children.map(node, walk);
+  return { node: out, native };
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   const id = useId();
-  const el = isValidElement(children) ? children : null;
-  // Ντόπιο στοιχείο σημαίνει τύπος-συμβολοσειρά («input», «textarea»). Τα
-  // σύνθετα (CustomSelect, DatePicker) έχουν συνάρτηση για τύπο.
-  const isNative = !!el && typeof el.type === 'string';
-  const child = el
-    ? cloneElement(el as React.ReactElement<Record<string, unknown>>,
-        isNative ? { id } : { ariaLabel: label })
-    : children;
-  return <div><label htmlFor={isNative ? id : undefined} style={labelStyle}>{label}</label>{child}</div>;
+  // ══════════════════════════════════════════════════════════════════════════
+  // ΤΟ ΧΕΙΡΙΣΤΗΡΙΟ ΔΕΝ ΕΙΝΑΙ ΠΑΝΤΑ ΤΟ ΜΟΝΟ ΠΑΙΔΙ
+  //
+  // Η πρώτη γραφή κοίταζε μόνο το `isValidElement(children)`. Ισχυε όσο κάθε
+  // πεδίο ήταν ένα σκέτο <input>. Μόλις τρία πεδία απέκτησαν και δεύτερο
+  // κομμάτι —η υποσημείωση του ΑΤΑΚ, η λίστα συνιδιοκτητών, η γραμμή «ήρθαν
+  // από το προφίλ σου»— τα παιδιά έγιναν ΠΙΝΑΚΑΣ, το `isValidElement` γύρισε
+  // ψευδές, και τα τρία πεδία έμειναν ΧΩΡΙΣ ΟΝΟΜΑ: η ετικέτα από πάνω δεν
+  // έδειχνε πουθενά, ο αναγνώστης οθόνης διάβαζε «πλαίσιο κειμένου».
+  //
+  // Τώρα ψάχνεται το ΠΡΩΤΟ ντόπιο στοιχείο σε όποια μορφή κι αν έρθουν τα
+  // παιδιά. Ντόπιο σημαίνει τύπος-συμβολοσειρά («input», «textarea»)· τα
+  // σύνθετα (CustomSelect, DatePicker) έχουν συνάρτηση για τύπο και παίρνουν
+  // `ariaLabel` αντί για id.
+  // ══════════════════════════════════════════════════════════════════════════
+  // ΚΑΙ ΤΟ ΚΑΤΕΒΑΙΝΕΙ ΜΕΣΑ ΣΤΟ FRAGMENT. Το `Children.toArray` σε ένα «<>…</>»
+  // επιστρέφει ΕΝΑ παιδί, το ίδιο το fragment, του οποίου ο τύπος είναι
+  // Symbol και όχι συμβολοσειρά — δηλαδή ένα σκέτο «βρες το πρώτο έγκυρο»
+  // θα κολλούσε στο περιτύλιγμα και θα ονόμαζε αυτό. Η αναδρομή σταματά στο
+  // πρώτο ντόπιο στοιχείο και δεν κοιτάζει βαθύτερα: όταν ένα πεδίο κρύβει
+  // τρία <input> μέσα σε <div>, καθένα έχει τη ΔΙΚΗ του ετικέτα και δεν
+  // επιτρέπεται να δανειστεί αυτή του γονέα.
+  const named = nameControl(children, id, label);
+  return <div><label htmlFor={named.native ? id : undefined} style={labelStyle}>{label}</label>{named.node}</div>;
 }
 
 // Επικεφαλίδα υποενότητας (ίδιο accent uppercase look με το panel απόδοσης)
@@ -173,6 +225,78 @@ interface ExistingProperty {
   co_owners?: string[] | null; ama?: string | null;
 }
 const s = (v: number | string | null | undefined) => (v == null ? '' : String(v));
+
+// ── Layout helpers ──────────────────────────────────────────────────────────
+const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 16 };
+const grid3: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 16 };
+
+/**
+ * Μια γραμμή της φόρμας: ταυτότητα πεδίου, πλάτος, και το ίδιο το χειριστήριο.
+ *
+ * Η ΕΤΙΚΕΤΑ ΕΡΧΕΤΑΙ ΑΠΟ ΤΟ ΜΗΤΡΩΟ, εκτός αν το πεδίο αλλάζει όνομα ανάλογα με
+ * την περίπτωση: το «Εμβαδόν» γίνεται «Εμβαδόν Οικοπέδου» και το «Στόχος
+ * Ενοικίου» γίνεται «Τιμή ανά διανυκτέρευση». Σε αυτές τις περιπτώσεις η οθόνη
+ * περνά τη δική της, γιατί το μητρώο κρατά τον ΛΟΓΟ του πεδίου και όχι τη
+ * διατύπωση της στιγμής.
+ */
+const row = (id: string, span: 'auto' | 'full', node: React.ReactNode, label?: string): FormRow =>
+  ({ id, span, node, label });
+
+/**
+ * Το σώμα ενός βήματος: ό,τι χρειάζεται τώρα, και από κάτω ένα κουμπί για ό,τι
+ * χρειάζεται κάποτε.
+ *
+ * ΤΟ JSX ΔΕΝ ΑΠΟΦΑΣΙΖΕΙ ΤΙΠΟΤΑ. Η σειρά των γραμμών είναι η σειρά που τις
+ * γράφει η οθόνη· το ΠΟΥ πάει η καθεμία το λέει το μητρώο. Ετσι ένας κανόνας
+ * που αλλάζει (π.χ. τα υπνοδωμάτια γίνονται βασικά και στη μακροχρόνια)
+ * αλλάζει σε ΕΝΑ σημείο και όχι σε τρία βήματα φόρμας.
+ *
+ * ΚΑΙ ΖΕΙ ΣΤΟ ΕΠΙΠΕΔΟ ΤΟΥ ΑΡΧΕΙΟΥ, ΟΧΙ ΜΕΣΑ ΣΤΟΝ ΟΔΗΓΟ. Γραμμένο μέσα στο
+ * component, ο τύπος του θα ήταν ΝΕΟΣ σε κάθε απόδοση: η React θα το θεωρούσε
+ * άλλο στοιχείο, θα ξήλωνε το προηγούμενο και θα προσάρτιζε καινούριο. Δηλαδή
+ * το «Περισσότερα» θα έκλεινε μόνο του σε κάθε πληκτρολόγηση, και ο χρήστης θα
+ * έχανε το κουτί που έγραφε. Το `react-hooks/static-components` το είπε, και
+ * είχε δίκιο.
+ */
+function StepBody({ rows, place, after }: {
+  rows: FormRow[];
+  place: (id: string) => Placement;
+  after?: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const core = rows.filter(r => place(r.id) === 'core');
+  const more = rows.filter(r => place(r.id) === 'more');
+  const cell = (r: FormRow) => (
+    <div key={r.id} style={r.span === 'full' ? { gridColumn: '1 / -1' } : undefined}>
+      <Field label={r.label ?? labelOf(r.id)}>{r.node}</Field>
+    </div>
+  );
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {core.length > 0 && <div style={grid2}>{core.map(cell)}</div>}
+      {after}
+      {more.length > 0 && (
+        <>
+          <button
+            type="button"
+            data-more
+            onClick={() => setOpen(o => !o)}
+            aria-expanded={open}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', minHeight: T.h.md, padding: '11px 14px', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', cursor: 'pointer', fontFamily: T.font.sans }}
+          >
+            <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-tertiary)', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}><path d="m9 18 6-6-6-6" /></svg>
+            {/* Η ΚΛΕΙΣΤΗ ΚΕΦΑΛΙΔΑ ΛΕΕΙ ΤΙ ΚΡΥΒΕΙ. Το σκέτο «Περισσότερα»
+                υποχρεώνει σε άνοιγμα για να μάθει ο χρήστης αν τον αφορά. */}
+            <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>
+              {open ? 'Λιγότερα' : `Περισσότερα: ${more.slice(0, 3).map(r => (r.label ?? labelOf(r.id)).toLowerCase()).join(', ')}${more.length > 3 ? ` και ${more.length - 3} ακόμη` : ''}`}
+            </span>
+          </button>
+          {open && <div style={grid2}>{more.map(cell)}</div>}
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function AddPropertyWizard({ userId, onClose, onSaved, existing }: { userId: string; onClose: () => void; onSaved: () => void; existing?: ExistingProperty | null }) {
   const supabase = createClient();
@@ -381,9 +505,31 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
     onSaved();
   };
 
-  // ── Layout helpers ────────────────────────────────────────────────────────
-  const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 16 };
-  const grid3: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 16 };
+  // ══════════════════════════════════════════════════════════════════════════
+  // ΤΟ ΣΥΜΦΡΑΖΟΜΕΝΟ ΠΟΥ ΚΡΙΝΕΙ ΤΙ ΦΑΙΝΕΤΑΙ
+  //
+  // Καμία είσοδος εδώ δεν είναι συμπέρασμα: και οι τέσσερις είναι πράγματα που
+  // ο ΙΔΙΟΣ ο χρήστης δήλωσε λίγα δευτερόλεπτα νωρίτερα, στο πρώτο βήμα ή στο
+  // ποσοστό ιδιοκτησίας. Ενα συμπέρασμα που πέφτει έξω κρύβει πεδίο που κάποιος
+  // χρειάζεται, και δεν του δίνει κανέναν τρόπο να το βρει.
+  //
+  // Τα `business` και `doubleEntry` μένουν ψευδή: κανένα πεδίο ΤΟΥ ΑΚΙΝΗΤΟΥ δεν
+  // κρέμεται από τη νομική μορφή — αυτά κρίνουν τη φόρμα των λογιστικών, που
+  // ζει αλλού.
+  // ══════════════════════════════════════════════════════════════════════════
+  const fieldCtx: FieldContext = {
+    status: statusKey,
+    business: false,
+    doubleEntry: false,
+    // ΕΝΑ, ΚΑΙ ΟΧΙ ΑΠΟ ΑΓΝΟΙΑ. Το πλήθος ακινήτων κρίνει ΜΟΝΟ την ενοποίηση
+    // χαρτοφυλακίου, που ζει στη φόρμα των λογιστικών. Κανένα πεδίο του
+    // ακινήτου δεν το ρωτά, οπότε ένα prop που θα έπρεπε να ταξιδέψει από τρεις
+    // οθόνες ώς εδώ δεν θα άλλαζε ούτε ένα κουτί.
+    propertyCount: 1,
+    land: isLandLike,
+    shared: isShared,
+  };
+  const place = (id: string) => fieldPlacement(id, fieldCtx);
 
   // ── ΔΕΝ ΚΛΕΙΝΕΙ ΟΣΟ ΑΠΟΘΗΚΕΥΕΙ ────────────────────────────────────────────
   // Το χειρόγραφο κέλυφος έκλεινε μόνο με κλικ στο φόντο ή στο «✕». Το Modal
@@ -412,6 +558,30 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
         <button onClick={() => (step === 0 ? requestClose() : setStep(s => s - 1))} style={{ height: T.h.lg, padding: '0 20px', borderRadius: T.radius.pill, border: 'none', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 14, fontWeight: 500, cursor: 'pointer' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-overlay)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
           {step === 0 ? 'Ακύρωση' : 'Πίσω'}
         </button>
+
+        {/* ══════════════════════════════════════════════════════════════
+            Η ΕΞΟΔΟΣ ΥΠΑΡΧΕΙ ΑΠΟ ΤΗ ΣΤΙΓΜΗ ΠΟΥ ΤΟ ΑΚΙΝΗΤΟ ΣΤΕΚΕΤΑΙ
+
+            Ο οδηγός απαιτούσε και τα πέντε βήματα για να αποθηκεύσει, ενώ το
+            ΜΟΝΟ υποχρεωτικό πεδίο είναι το όνομα — και το λέει το ίδιο το
+            `canNext` δύο γραμμές πιο πάνω. Ενας άνθρωπος που μόλις έφτιαξε
+            λογαριασμό έπρεπε να περάσει από τρεις οθόνες με εβδομήντα δύο
+            κουτιά για να δει το πρώτο του ακίνητο στη λίστα.
+
+            Τώρα η αποθήκευση στέκει δίπλα στη «Συνέχεια» από το δεύτερο βήμα
+            και μετά. Δεν αντικαθιστά τη «Συνέχεια»: όποιος έχει τα χαρτιά
+            μπροστά του συνεχίζει, όποιος δεν τα έχει τελειώνει. Και τα δύο
+            γράφουν το ίδιο ακίνητο με την ίδια `save()`, οπότε δεν υπάρχει
+            «μισό» ακίνητο — υπάρχει ακίνητο με λιγότερα συμπληρωμένα.
+            ══════════════════════════════════════════════════════════════ */}
+        {step > 0 && step < STEPS.length - 1 && (
+          <button onClick={save} disabled={saving || !name.trim()} style={{
+            height: T.h.lg, padding: '0 20px', borderRadius: T.radius.pill,
+            border: '1px solid var(--border-default)', background: 'transparent',
+            color: saving || !name.trim() ? 'var(--text-tertiary)' : 'var(--text-primary)',
+            fontFamily: T.font.sans, fontSize: 14, fontWeight: 500, cursor: saving || !name.trim() ? 'not-allowed' : 'pointer',
+          }}>{saving ? 'Αποθήκευση…' : isEdit ? 'Αποθήκευση' : 'Αποθήκευση τώρα'}</button>
+        )}
 
         {step < STEPS.length - 1 ? (
           <button onClick={() => canNext && setStep(s => s + 1)} disabled={!canNext} style={{
@@ -535,124 +705,94 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
       )}
 
       {/* STEP 2, Βασικά Στοιχεία */}
+      {/* ══════════════════════════════════════════════════════════════════
+          ΤΑ ΤΡΙΑ ΒΗΜΑΤΑ ΠΕΡΑΣΑΝ ΑΠΟ ΤΟ ΜΗΤΡΩΟ ΠΕΔΙΩΝ
+
+          Κάθε πεδίο ρωτά πρώτα το `lib/property/fields.ts` αν έχει νόημα για
+          ΑΥΤΟΝ τον χρήστη, και αν ναι, αν το χρειάζεται τώρα ή αργότερα. Ο
+          κανόνας ζει εκεί μαζί με τον γραπτό λόγο ύπαρξης του πεδίου· εδώ
+          μένει μόνο η τοποθέτηση. Τρία επίπεδα, το ίδιο με τη φόρμα
+          ενοικιαστή, την απογραφή και τις επαφές:
+
+            ορατό          → το χρειάζεται από την πρώτη μέρα
+            «Περισσότερα»  → υπάρχει, με ένα πάτημα, όποτε βρεθούν τα χαρτιά
+            δεν υπάρχει    → δεν έχει νόημα εδώ (όροφος σε οικόπεδο)
+
+          Ο ΛΟΓΟΣ, ΜΕΤΡΗΜΕΝΟΣ. Τα τρία βήματα έδειχναν 72 χειριστήρια, από τα
+          οποία ΔΥΟ είναι υποχρεωτικά. Τώρα ένα κενό διαμέρισμα δείχνει έξι
+          και μια μακροχρόνια μίσθωση επτά. Κανένα πεδίο δεν σβήστηκε: ο
+          οδηγός είναι ο ΜΟΝΟΣ επεξεργαστής των ρυθμίσεων ακινήτου, οπότε ό,τι
+          φύγει από εδώ δεν υπάρχει πουθενά αλλού.
+          ══════════════════════════════════════════════════════════════════ */}
+
       {step === 1 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <Field label="Ονομασία ακινήτου *">
-            <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="Παράδειγμα: Αράββου 45" onFocus={onFocus} onBlur={onBlur} autoFocus />
-          </Field>
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
-            <Field label="Διεύθυνση">
-              <input style={inputStyle} value={address} onChange={e => setAddress(e.target.value)} placeholder="Παράδειγμα: Αράββου 45, Βύρωνας" onFocus={onFocus} onBlur={onBlur} />
-            </Field>
-            <Field label="Ταχ. Κώδικας">
-              <input style={inputStyle} value={postalCode} onChange={e => setPostalCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 5))} inputMode="numeric" placeholder="16232" onFocus={onFocus} onBlur={onBlur} />
-            </Field>
-          </div>
-          {/* Η οδηγία ΔΕΝ ζει σε placeholder: το placeholder σβήνει με το πρώτο
-              ψηφίο, δηλαδή τη στιγμή ακριβώς που ο χρήστης το χρειάζεται. */}
-          <Field label="ΑΤΑΚ (Αριθμός Ταυτότητας Ακινήτου)">
-            <input style={monoInputStyle} value={atak} onChange={e => setAtak(atakDigits(e.target.value))} inputMode="numeric" onFocus={onFocus} onBlur={onBlur} />
-            <p style={{ ...TT.caption, marginTop: 6 }}>{ATAK_SOURCE}</p>
-          </Field>
-          {isLandLike ? (
-            <Field label={sqmLabel}>
-              <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={sqm} onChange={e => setSqm(e.target.value)} onFocus={onFocus} onBlur={onBlur} />
-            </Field>
-          ) : (
-            <>
-              <div style={grid3}>
-                <Field label={sqmLabel}>
-                  <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={sqm} onChange={e => setSqm(e.target.value)} onFocus={onFocus} onBlur={onBlur} />
-                </Field>
-                <Field label="Όροφος">
-                  <CustomSelect value={floor} onChange={setFloor} placeholder="Επίλεξε"
-                    options={FLOOR_OPTS.map(f => ({ value: f, label: f }))} />
-                </Field>
-                <Field label="Έτος κατασκευής">
-                  <input style={monoInputStyle} type="number" min={0} value={yearBuilt} onChange={e => setYearBuilt(e.target.value)} onFocus={onFocus} onBlur={onBlur} />
-                </Field>
-              </div>
-              <div style={grid3}>
-                <Field label="Ενεργειακή κλάση (ΠΕΑ)">
-                  <CustomSelect value={peaClass} onChange={setPeaClass} placeholder="Επίλεξε"
-                    options={PEA_CLASSES.map(c => ({ value: c, label: c }))} />
-                </Field>
-                <Field label="Τύπος θέρμανσης">
-                  <CustomSelect value={heating} onChange={setHeating} placeholder="Επίλεξε"
-                    options={[...HEATING_TYPES]} />
-                </Field>
-                <Field label="Θέσεις στάθμευσης">
-                  <input style={monoInputStyle} type="number" min={0} value={parking} onChange={e => setParking(e.target.value)} onFocus={onFocus} onBlur={onBlur} />
-                </Field>
-              </div>
-              <div style={grid2}>
-                <Field label="Υπνοδωμάτια">
-                  <input style={monoInputStyle} type="number" min={0} value={bedrooms} onChange={e => setBedrooms(e.target.value)} onFocus={onFocus} onBlur={onBlur} />
-                </Field>
-                <Field label="Αποθήκη (τ.μ.)">
-                  <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={storageSqm} onChange={e => setStorageSqm(e.target.value)} onFocus={onFocus} onBlur={onBlur} />
-                </Field>
-              </div>
-            </>
-          )}
-        </div>
+        <StepBody
+          place={place}
+          rows={[
+            row('prop.name', 'full',
+              <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="Παράδειγμα: Αράββου 45" onFocus={onFocus} onBlur={onBlur} autoFocus />),
+            row('prop.address', 'full',
+              <input style={inputStyle} value={address} onChange={e => setAddress(e.target.value)} placeholder="Παράδειγμα: Αράββου 45, Βύρωνας" onFocus={onFocus} onBlur={onBlur} />),
+            row('prop.sqm', 'auto',
+              <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={sqm} onChange={e => setSqm(e.target.value)} onFocus={onFocus} onBlur={onBlur} />, sqmLabel),
+            /* Η οδηγία ΔΕΝ ζει σε placeholder: το placeholder σβήνει με το πρώτο
+               ψηφίο, δηλαδή τη στιγμή ακριβώς που ο χρήστης το χρειάζεται. */
+            row('prop.atak', 'full', <>
+              <input style={monoInputStyle} value={atak} onChange={e => setAtak(atakDigits(e.target.value))} inputMode="numeric" onFocus={onFocus} onBlur={onBlur} />
+              <p style={{ ...TT.caption, marginTop: 6 }}>{ATAK_SOURCE}</p>
+            </>, 'ΑΤΑΚ (Αριθμός Ταυτότητας Ακινήτου)'),
+            row('prop.pea', 'auto',
+              <CustomSelect value={peaClass} onChange={setPeaClass} placeholder="Επίλεξε" options={PEA_CLASSES.map(c => ({ value: c, label: c }))} />, 'Ενεργειακή κλάση (ΠΕΑ)'),
+            row('prop.bedrooms', 'auto',
+              <input style={monoInputStyle} type="number" min={0} value={bedrooms} onChange={e => setBedrooms(e.target.value)} onFocus={onFocus} onBlur={onBlur} />),
+            row('prop.postal_code', 'auto',
+              <input style={inputStyle} value={postalCode} onChange={e => setPostalCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 5))} inputMode="numeric" placeholder="16232" onFocus={onFocus} onBlur={onBlur} />, 'Ταχ. Κώδικας'),
+            row('prop.floor', 'auto',
+              <CustomSelect value={floor} onChange={setFloor} placeholder="Επίλεξε" options={FLOOR_OPTS.map(f => ({ value: f, label: f }))} />),
+            row('prop.year_built', 'auto',
+              <input style={monoInputStyle} type="number" min={0} value={yearBuilt} onChange={e => setYearBuilt(e.target.value)} onFocus={onFocus} onBlur={onBlur} />),
+            row('prop.heating', 'auto',
+              <CustomSelect value={heating} onChange={setHeating} placeholder="Επίλεξε" options={[...HEATING_TYPES]} />),
+            row('prop.parking', 'auto',
+              <input style={monoInputStyle} type="number" min={0} value={parking} onChange={e => setParking(e.target.value)} onFocus={onFocus} onBlur={onBlur} />),
+            row('prop.storage_sqm', 'auto',
+              <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={storageSqm} onChange={e => setStorageSqm(e.target.value)} onFocus={onFocus} onBlur={onBlur} />, 'Αποθήκη (τ.μ.)'),
+          ]}
+        />
       )}
 
       {/* STEP 3, Οικονομικά */}
       {step === 2 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={grid2}>
-            <Field label="Εμπορική αξία (€)">
-              <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={value} onChange={e => setValue(e.target.value)} onFocus={onFocus} onBlur={onBlur} />
-            </Field>
-            <Field label="Αντικειμενική αξία (€)">
-              <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={objValue} onChange={e => setObjValue(e.target.value)} onFocus={onFocus} onBlur={onBlur} />
-            </Field>
-          </div>
-          <div style={grid2}>
-            <Field label="Τιμή αγοράς (€)">
-              <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={purchasePrice} onChange={e => setPurchasePrice(e.target.value)} onFocus={onFocus} onBlur={onBlur} />
-            </Field>
-            <Field label="Ημερομηνία αγοράς">
-              <DatePicker value={purchaseDate} onChange={setPurchaseDate} />
-            </Field>
-
-          </div>
-          <div style={grid2}>
-            <Field label="Εκτιμώμενος ΕΝΦΙΑ (€/έτος)">
-              <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={enfia} onChange={e => setEnfia(e.target.value)} onFocus={onFocus} onBlur={onBlur} />
-            </Field>
-            <Field label={rentLabel}>
-              <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={rent} onChange={e => setRent(e.target.value)} placeholder={airbnb ? '75' : '820'} onFocus={onFocus} onBlur={onBlur} />
-            </Field>
-          </div>
-          <div style={grid2}>
-            <Field label="Ποσοστό ιδιοκτησίας (%)">
-              <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={ownership} onChange={e => setOwnership(e.target.value)} max={100} onFocus={onFocus} onBlur={onBlur} />
-            </Field>
-            {isShared && (
-              <Field label="Αριθμός συνιδιοκτητών">
-                <input style={monoInputStyle} type="number" inputMode="numeric" min={1} max={99} value={coOwners.length}
-                  onChange={e => setCoOwnerCount(parseInt(e.target.value, 10))} onFocus={onFocus} onBlur={onBlur} />
-              </Field>
-            )}
-          </div>
-          {isShared && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>
-                {coOwners.length === 1 ? 'Συνιδιοκτήτης' : 'Συνιδιοκτήτες'}
-              </div>
-              <div style={grid2}>
+        <StepBody
+          place={place}
+          rows={[
+            row('prop.obj_value', 'auto',
+              <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={objValue} onChange={e => setObjValue(e.target.value)} onFocus={onFocus} onBlur={onBlur} />, 'Αντικειμενική αξία (€)'),
+            row('prop.rent', 'auto',
+              <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={rent} onChange={e => setRent(e.target.value)} placeholder={airbnb ? '75' : '820'} onFocus={onFocus} onBlur={onBlur} />, rentLabel),
+            row('prop.co_owners', 'full', <>
+              <input style={monoInputStyle} type="number" inputMode="numeric" min={1} max={99} value={coOwners.length}
+                onChange={e => setCoOwnerCount(parseInt(e.target.value, 10))} onFocus={onFocus} onBlur={onBlur} />
+              <div style={{ ...grid2, marginTop: 12 }}>
                 {coOwners.map((nm, i) => (
                   <Field key={i} label={coOwners.length === 1 ? 'Όνομα συνιδιοκτήτη' : `Όνομα συνιδιοκτήτη ${i + 1}`}>
                     <input style={inputStyle} type="text" value={nm} onChange={e => setCoOwnerAt(i, e.target.value)} placeholder="Ονοματεπώνυμο" onFocus={onFocus} onBlur={onBlur} />
                   </Field>
                 ))}
               </div>
-            </div>
-          )}
-
-          {grossYield != null && (
+            </>, 'Αριθμός συνιδιοκτητών'),
+            row('prop.value', 'auto',
+              <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={value} onChange={e => setValue(e.target.value)} onFocus={onFocus} onBlur={onBlur} />, 'Εμπορική αξία (€)'),
+            row('prop.purchase_price', 'auto',
+              <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={purchasePrice} onChange={e => setPurchasePrice(e.target.value)} onFocus={onFocus} onBlur={onBlur} />, 'Τιμή αγοράς (€)'),
+            row('prop.purchase_date', 'auto',
+              <DatePicker value={purchaseDate} onChange={setPurchaseDate} />),
+            row('prop.enfia', 'auto',
+              <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={enfia} onChange={e => setEnfia(e.target.value)} onFocus={onFocus} onBlur={onBlur} />, 'Εκτιμώμενος ΕΝΦΙΑ (€/έτος)'),
+            row('prop.ownership', 'auto',
+              <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={ownership} onChange={e => setOwnership(e.target.value)} max={100} onFocus={onFocus} onBlur={onBlur} />, 'Ποσοστό ιδιοκτησίας (%)'),
+          ]}
+          after={grossYield != null && (
             <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.card, padding: 16 }}>
               <div style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', marginBottom: 6 }}>Εκτιμώμενη μεικτή απόδοση</div>
               <div style={{ fontFamily: T.font.mono, fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fp(grossYield)}</div>
@@ -663,89 +803,60 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
               </div>
             </div>
           )}
-        </div>
+        />
       )}
 
-      {/* STEP 4, Ρυθμίσεις (property_settings) */}
+      {/* STEP 4, Ρυθμίσεις (property_settings)
+
+          ΟΛΟΚΛΗΡΟ ΤΟ ΒΗΜΑ ΕΙΝΑΙ «ΠΕΡΙΣΣΟΤΕΡΑ». Κανένα από αυτά δεν χρειάζεται
+          για να υπάρξει το ακίνητο: τα στοιχεία του ιδιοκτήτη έρχονται ήδη
+          συμπληρωμένα από το προφίλ, και οι πάροχοι γράφονται μόνοι τους με την
+          πρώτη σάρωση λογαριασμού. Το βήμα μένει επειδή ο οδηγός είναι ο μόνος
+          τους επεξεργαστής, όχι επειδή ζητά κάτι από την πρώτη μέρα. */}
       {step === 3 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          {/* Ιδιοκτήτης */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={sectionLabelStyle}>Ιδιοκτήτης</div>
-            {/* Λέμε από πού ήρθαν τα στοιχεία. Προσυμπληρωμένο ΑΦΜ που δεν
-                ελέγχθηκε είναι χειρότερο από κενό: φαίνεται επιβεβαιωμένο. */}
-            {!existing?.id && (settings.owner_name || settings.owner_afm) && (
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: -6 }}>
-                Συμπληρώθηκαν από το προφίλ σου. Έλεγξέ τα και άλλαξε ό,τι χρειάζεται.
-              </div>
-            )}
-            <Field label="Ονοματεπώνυμο">
+        <StepBody
+          place={place}
+          rows={[
+            row('prop.owner_name', 'full', <>
+              {/* Λέμε από πού ήρθαν τα στοιχεία. Προσυμπληρωμένο ΑΦΜ που δεν
+                  ελέγχθηκε είναι χειρότερο από κενό: φαίνεται επιβεβαιωμένο. */}
+              {!existing?.id && (settings.owner_name || settings.owner_afm) && (
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 6 }}>
+                  Συμπληρώθηκαν από το προφίλ σου. Έλεγξέ τα και άλλαξε ό,τι χρειάζεται.
+                </div>
+              )}
               <input style={inputStyle} value={settings.owner_name} onChange={setSf('owner_name')} onFocus={onFocus} onBlur={onBlur} />
-            </Field>
-            <div style={grid2}>
-              <Field label="ΑΦΜ">
-                <input style={monoInputStyle} value={settings.owner_afm} onChange={setSf('owner_afm')} inputMode="numeric" onFocus={onFocus} onBlur={onBlur} />
-              </Field>
-              <Field label="Τηλέφωνο">
-                <input style={inputStyle} value={settings.owner_phone} onChange={setSf('owner_phone')} inputMode="tel" onFocus={onFocus} onBlur={onBlur} />
-              </Field>
-            </div>
-            <Field label="Ηλεκτρονικό ταχυδρομείο">
-              <input type="email" style={inputStyle} value={settings.owner_email} onChange={setSf('owner_email')} onFocus={onFocus} onBlur={onBlur} />
-            </Field>
-          </div>
-
-          {/* Πάροχοι */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* ΤΟ «ΠΡΟΓΡΑΜΜΑ» ΕΦΥΓΕ. Ζητούσε το εμπορικό όνομα του πακέτου
-                internet — κάτι που ούτε ο ίδιος ο συνδρομητής θυμάται, δεν
-                χρησιμοποιείται πουθενά στην εφαρμογή, και δεν αλλάζει καμία
-                απόφαση. Μια φόρμα καταχώρησης δεν έχει δικαίωμα να ρωτά κάτι
-                που δεν πρόκειται να χρησιμοποιήσει. */}
-            <div style={sectionLabelStyle}>Πάροχοι</div>
-            <div style={grid2}>
-              <Field label="Ρεύμα">
-                <input style={inputStyle} value={settings.electricity_provider} onChange={setSf('electricity_provider')} onFocus={onFocus} onBlur={onBlur} />
-              </Field>
-              <Field label="Νερό">
-                <input style={inputStyle} value={settings.water_provider} onChange={setSf('water_provider')} onFocus={onFocus} onBlur={onBlur} />
-              </Field>
-              <Field label="Internet">
-                <input style={inputStyle} value={settings.internet_provider} onChange={setSf('internet_provider')} onFocus={onFocus} onBlur={onBlur} />
-              </Field>
-            </div>
-          </div>
-
-          {/* Διαχείριση και ασφάλεια */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={sectionLabelStyle}>Διαχείριση και ασφάλεια</div>
-            <div style={grid2}>
-              <Field label="Διαχειριστής">
-                <input style={inputStyle} value={settings.property_manager} onChange={setSf('property_manager')} onFocus={onFocus} onBlur={onBlur} />
-              </Field>
-              <Field label="Τηλέφωνο διαχειριστή">
-                <input style={inputStyle} value={settings.property_manager_phone} onChange={setSf('property_manager_phone')} inputMode="tel" onFocus={onFocus} onBlur={onBlur} />
-              </Field>
-              <Field label="Ασφαλιστική">
-                <input style={inputStyle} value={settings.insurance_company} onChange={setSf('insurance_company')} onFocus={onFocus} onBlur={onBlur} />
-              </Field>
-              <Field label="Αριθμός ασφαλιστηρίου">
-                <input style={inputStyle} value={settings.insurance_policy} onChange={setSf('insurance_policy')} onFocus={onFocus} onBlur={onBlur} />
-              </Field>
-            </div>
-            <Field label="Λήξη ασφάλισης">
-              <DatePicker value={settings.insurance_expiry} onChange={v => setSettings(p => ({ ...p, insurance_expiry: v }))} />
-            </Field>
-          </div>
-
-          {/* Σημειώσεις */}
-          <Field label="Σημειώσεις">
-            <textarea value={settings.notes} onChange={setSf('notes')} rows={4}
-              style={{ ...inputStyle, height: 'auto', resize: 'none' }} />
-          </Field>
-        </div>
+            </>, 'Ονοματεπώνυμο'),
+            row('prop.owner_afm', 'auto',
+              <input style={monoInputStyle} value={settings.owner_afm} onChange={setSf('owner_afm')} inputMode="numeric" onFocus={onFocus} onBlur={onBlur} />, 'ΑΦΜ'),
+            row('prop.owner_phone', 'auto',
+              <input style={inputStyle} value={settings.owner_phone} onChange={setSf('owner_phone')} inputMode="tel" onFocus={onFocus} onBlur={onBlur} />, 'Τηλέφωνο'),
+            row('prop.owner_email', 'full',
+              <input type="email" style={inputStyle} value={settings.owner_email} onChange={setSf('owner_email')} onFocus={onFocus} onBlur={onBlur} />, 'Ηλεκτρονικό ταχυδρομείο'),
+            /* ΤΟ «ΠΡΟΓΡΑΜΜΑ» ΕΦΥΓΕ. Ζητούσε το εμπορικό όνομα του πακέτου
+               internet — κάτι που ούτε ο ίδιος ο συνδρομητής θυμάται, δεν
+               χρησιμοποιείται πουθενά στην εφαρμογή, και δεν αλλάζει καμία
+               απόφαση. Μια φόρμα καταχώρησης δεν έχει δικαίωμα να ρωτά κάτι
+               που δεν πρόκειται να χρησιμοποιήσει. */
+            row('prop.providers', 'full', <div style={grid3}>
+              <Field label="Ρεύμα"><input style={inputStyle} value={settings.electricity_provider} onChange={setSf('electricity_provider')} onFocus={onFocus} onBlur={onBlur} /></Field>
+              <Field label="Νερό"><input style={inputStyle} value={settings.water_provider} onChange={setSf('water_provider')} onFocus={onFocus} onBlur={onBlur} /></Field>
+              <Field label="Internet"><input style={inputStyle} value={settings.internet_provider} onChange={setSf('internet_provider')} onFocus={onFocus} onBlur={onBlur} /></Field>
+            </div>),
+            row('prop.manager', 'full', <div style={grid2}>
+              <Field label="Ονοματεπώνυμο"><input style={inputStyle} value={settings.property_manager} onChange={setSf('property_manager')} onFocus={onFocus} onBlur={onBlur} /></Field>
+              <Field label="Τηλέφωνο"><input style={inputStyle} value={settings.property_manager_phone} onChange={setSf('property_manager_phone')} inputMode="tel" onFocus={onFocus} onBlur={onBlur} /></Field>
+            </div>),
+            row('prop.insurance', 'full', <div style={grid3}>
+              <Field label="Ασφαλιστική"><input style={inputStyle} value={settings.insurance_company} onChange={setSf('insurance_company')} onFocus={onFocus} onBlur={onBlur} /></Field>
+              <Field label="Αριθμός ασφαλιστηρίου"><input style={inputStyle} value={settings.insurance_policy} onChange={setSf('insurance_policy')} onFocus={onFocus} onBlur={onBlur} /></Field>
+              <Field label="Λήξη"><DatePicker value={settings.insurance_expiry} onChange={v => setSettings(p => ({ ...p, insurance_expiry: v }))} /></Field>
+            </div>),
+            row('prop.notes', 'full',
+              <textarea value={settings.notes} onChange={setSf('notes')} rows={4} style={{ ...inputStyle, height: 'auto', resize: 'none' }} />, 'Σημειώσεις'),
+          ]}
+        />
       )}
-
       {/* STEP 5, Σύνοψη */}
       {step === 4 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

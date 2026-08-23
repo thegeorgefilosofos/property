@@ -28,7 +28,7 @@
     "app/dashboard/components/ReportBuilder.tsx": 1,
     "app/dashboard/components/ScanButton.tsx": 1,
     "app/dashboard/components/TabAccounting.tsx": 4,
-    "app/dashboard/components/TabCalendar.tsx": 3,
+    "app/dashboard/components/TabCalendar.tsx": 1,
     "app/dashboard/components/TabChecklist.tsx": 1,
     "app/dashboard/components/TabClients.tsx": 1,
     "app/dashboard/components/TabContacts.tsx": 5,

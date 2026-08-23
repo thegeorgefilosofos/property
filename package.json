@@ -89,7 +89,8 @@
     "surface-scale": "node scripts/guard-surface-scale.mjs",
     "e2e:landing": "node scripts/e2e-landing.mjs",
     "guards:verify": "node scripts/verify-guards.mjs",
-    "e2e:keyboard": "node scripts/e2e-keyboard/build.mjs && node scripts/e2e-keyboard.mjs"
+    "e2e:keyboard": "node scripts/e2e-keyboard/build.mjs && node scripts/e2e-keyboard.mjs",
+    "e2e:simple": "node scripts/e2e-simple.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
