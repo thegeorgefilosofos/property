@@ -798,7 +798,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
             row('prop.purchase_date', 'auto',
               <DatePicker value={purchaseDate} onChange={setPurchaseDate} />),
             row('prop.enfia', 'auto',
-              <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={enfia} onChange={e => setEnfia(e.target.value)} onFocus={onFocus} onBlur={onBlur} />, 'Εκτιμώμενος ΕΝΦΙΑ (€/έτος)'),
+              <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={enfia} onChange={e => setEnfia(e.target.value)} onFocus={onFocus} onBlur={onBlur} />, 'ΕΝΦΙΑ που πληρώνεις (€/έτος)'),
             row('prop.ownership', 'auto',
               <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={ownership} onChange={e => setOwnership(e.target.value)} max={100} onFocus={onFocus} onBlur={onBlur} />, 'Ποσοστό ιδιοκτησίας (%)'),
           ]}
@@ -896,7 +896,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
               isLandLike ? null : (num(storageSqm) != null ? ['Αποθήκη', `${fn(num(storageSqm)!)} τ.μ.`] : null),
               ['Εμπορική Αξία', valueN != null ? fe(valueN) : fe(0)],
               num(objValue) != null ? ['Αντικειμενική Αξία', fe(num(objValue)!)] : null,
-              num(enfia) != null ? ['Εκτιμώμενος ΕΝΦΙΑ', `${fe(num(enfia)!)} / έτος`] : null,
+              num(enfia) != null ? ['ΕΝΦΙΑ που πληρώνεις', `${fe(num(enfia)!)} / έτος`] : null,
               ['Τιμή Αγοράς', num(purchasePrice) != null ? fe(num(purchasePrice)!) : fe(0)],
               purchaseDate ? ['Ημερομηνία Αγοράς', fd(purchaseDate)] : null,
               [airbnb ? 'Μέσο μηνιαίο έσοδο' : 'Στόχος Ενοικίου', `${fe(rentN ?? 0)} / μήνα`],
@@ -904,7 +904,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
               ['Εκτιμώμενη μεικτή απόδοση', grossYield != null ? `${fp(grossYield)}` : fp(0)],
             ].filter(Boolean) as [string, string][]).map(([k, v], i) => (
               <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
-                <span title={k === 'ΑΤΑΚ' ? 'Αριθμός Ταυτότητας Ακινήτου (από το Ε9)' : k === 'Εκτιμώμενος ΕΝΦΙΑ' ? 'Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων (ετήσιος)' : undefined} style={{ fontFamily: T.font.sans, fontSize: 13, color: 'var(--text-secondary)', letterSpacing: '0.25px' }}>{k}</span>
+                <span title={k === 'ΑΤΑΚ' ? 'Αριθμός Ταυτότητας Ακινήτου (από το Ε9)' : k === 'ΕΝΦΙΑ που πληρώνεις' ? 'Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων, ετήσιος. Σε συνιδιοκτησία, το δικό σου μερίδιο.' : undefined} style={{ fontFamily: T.font.sans, fontSize: 13, color: 'var(--text-secondary)', letterSpacing: '0.25px' }}>{k}</span>
                 <span style={{ fontFamily: k === 'Τύπος' || k === 'Κατάσταση' || k === 'Διεύθυνση' || k === 'Βραχυχρόνια μίσθωση' || k === 'Θέρμανση' || k === 'Ενεργειακή Κλάση' || k === 'Ημερομηνία Αγοράς' ? "'Inter', sans-serif" : "'Roboto Mono', monospace", fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{v}</span>
               </div>
             ))}

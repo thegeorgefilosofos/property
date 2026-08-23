@@ -308,6 +308,35 @@ ok('μηδέν έτη → νεόδμητο (κανονική περίπτωση)
   ok('μηνιαία αναγωγή περσινού', enfiaInUse('', '', null, 480).monthly === 40)
 }
 
+// ── ΤΟ ΜΕΡΙΔΙΟ ΤΟΥ ΣΥΝΙΔΙΟΚΤΗΤΗ ΠΕΡΝΑ ΑΠΟ ΤΑ ΚΛΙΜΑΚΙΑ ────────────────────
+// Ο καλών διαιρούσε το ετήσιο ποσό στο τέλος. Η διαίρεση είναι γραμμική· ο
+// ΕΝΦΙΑ δεν είναι: πρόσθετος φόρος στις 400.000 €, προσαύξηση στις 500.000 €,
+// κλιμακωτή μείωση καθώς ανεβαίνει η περιουσία. Ο συνιδιοκτήτης χρεωνόταν
+// κλάσμα φόρων που δεν οφείλει καθόλου.
+{
+  const whole = estimateENFIAFromFacts({ value: 900000, sqm: 200, propType: 'apartment' })!
+  const third = estimateENFIAFromFacts({ value: 900000, sqm: 200, propType: 'apartment', ownershipPct: 33.3333 })!
+  ok('ολόκληρο: υπάρχει πρόσθετος φόρος και προσαύξηση', whole.extra > 0 && whole.supplementary > 0)
+  ok('στο ένα τρίτο δεν οφείλεται πρόσθετος φόρος', third.extra === 0)
+  ok('ούτε προσαύξηση', third.supplementary === 0)
+  ok('και το ποσό ΔΕΝ είναι το ένα τρίτο του ολόκληρου',
+    Math.abs(third.annual - whole.annual / 3) > 900)
+  ok('είναι πολύ χαμηλότερο', third.annual < whole.annual / 2)
+  // ΧΩΡΙΣ ΠΟΣΟΣΤΟ ΤΙΠΟΤΑ ΔΕΝ ΑΛΛΑΖΕΙ: 100% είναι η προεπιλογή.
+  ok('χωρίς ποσοστό, ίδιο με 100%',
+    estimateENFIAFromFacts({ value: 180000, sqm: 90, ownershipPct: 100 })!.annual
+    === estimateENFIAFromFacts({ value: 180000, sqm: 90 })!.annual)
+  // ΟΥΤΕ ΚΑΤΩ ΑΠΟ ΤΑ ΚΑΤΩΦΛΙΑ ΕΙΝΑΙ ΓΡΑΜΜΙΚΟ, ΚΑΙ ΕΙΝΑΙ ΣΩΣΤΟ. Ο κύριος
+  // φόρος όντως μισός (333,00 → 166,50), αλλά η αυτόματη μείωση ανά συνολική
+  // περιουσία ανεβαίνει από 20% σε 30% όταν η περιουσία πέφτει στο μισό. Ο
+  // συνιδιοκτήτης πληρώνει ΛΙΓΟΤΕΡΑ από το μισό, και αυτό λέει ο νόμος.
+  const small = estimateENFIAFromFacts({ value: 180000, sqm: 90 })!
+  const half = estimateENFIAFromFacts({ value: 180000, sqm: 90, ownershipPct: 50 })!
+  ok('ο κύριος φόρος είναι ακριβώς ο μισός', Math.abs(half.basic - small.basic / 2) < 0.02)
+  ok('η μείωση περιουσίας μεγαλώνει', half.reductionPct > small.reductionPct)
+  ok('άρα το ετήσιο είναι λιγότερο από το μισό', half.annual < small.annual / 2)
+}
+
 console.log(`enfia.ts — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`)
 if (failed > 0) { process.exit(1) }
 console.log('όλα πέρασαν')

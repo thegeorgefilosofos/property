@@ -429,20 +429,26 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // ΕΝΦΙΑ: προτεραιότητα στο καταχωρημένο ποσό· αλλιώς αυτόματη εκτίμηση από
   // αξία, τετραγωνικά, έτος κατασκευής και όροφο.
   const enfia = useMemo(()=>{
-    // Ο ΕΝΦΙΑ ΒΑΡΥΝΕΙ ΤΟΝ ΚΑΘΕ ΣΥΝΙΔΙΟΚΤΗΤΗ ΚΑΤΑ ΤΟ ΜΕΡΙΔΙΟ ΤΟΥ. Η
-    // `estimateENFIAFromFacts` δεν δέχεται καν ποσοστό (lib/billing/enfia.ts),
-    // οπότε έβγαζε πάντα τον φόρο ολόκληρου του ακινήτου: 229,55 € αντί για
-    // 76,51 € σε ακίνητο κατεχόμενο κατά το ένα τρίτο.
+    // ΤΟ ΚΑΤΑΧΩΡΗΜΕΝΟ ΠΟΣΟ ΕΙΝΑΙ ΗΔΗ ΔΙΚΟ ΤΟΥ. Το πεδίο ζητά «ΕΝΦΙΑ που
+    // πληρώνεις», δηλαδή το νούμερο του εκκαθαριστικού του, που έρχεται από την
+    // ΑΑΔΕ ήδη περασμένο από το ποσοστό. Το να ξαναδιαιρεθεί εδώ θα το έκοβε
+    // δεύτερη φορά: 76,51 € αντί για 229,55 € σε μερίδιο ενός τρίτου.
     const stored = resolveEnfia({ propertyEnfia: prop?.enfia }).annual
-    if(stored>0) return mine(stored)
+    if(stored>0) return stored
+    // Η ΕΚΤΙΜΗΣΗ ΠΑΙΡΝΕΙ ΤΟ ΜΕΡΙΔΙΟ ΜΕΣΑ ΤΗΣ, ΟΧΙ ΑΠ' ΕΞΩ. Ο ΕΝΦΙΑ έχει
+    // κατώφλια (πρόσθετος φόρος στις 400.000 €, προσαύξηση στις 500.000 €,
+    // κλιμακωτή μείωση), οπότε η διαίρεση του ετήσιου ποσού στο τέλος χρεώνει
+    // τον συνιδιοκτήτη με κλάσμα φόρων που δεν οφείλει καθόλου.
+    //
     // Έτος κατασκευής και όροφος περνούν όπως είναι αποθηκευμένα· η enfia.ts τα
     // μεταφράζει σε κλιμάκιο και σε κλειδί ορόφου. Όποιο λείπει → ουδέτερο 1,00.
-    return mine(estimateENFIAFromFacts({
+    return estimateENFIAFromFacts({
       value: prop?.value, sqm: prop?.sqm,
       yearBuilt: prop?.year_built, floor: prop?.floor,
       taxYear: year, propType: prop?.prop_type,
-    })?.annual ?? 0)
-  },[prop,year,mine])
+      ownershipPct: prop?.ownership == null ? null : Number(prop.ownership),
+    })?.annual ?? 0
+  },[prop,year])
   const enfiaEstimated = useMemo(()=>!(resolveEnfia({ propertyEnfia: prop?.enfia }).annual>0) && enfia>0,[prop,enfia])
   // Οικόπεδο ή βοηθητικός χώρος χωρίς καταχωρημένο ποσό: ο ΕΝΦΙΑ λείπει από τα
   // βιβλία και η οθόνη το λέει, αντί να δείχνει εκτίμηση κατοικίας.

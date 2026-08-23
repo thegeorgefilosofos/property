@@ -396,6 +396,21 @@ export function estimateENFIAFromFacts(facts: {
   floor?: string | number | null
   taxYear?: number | null
   propType?: string | null
+  // ══════════════════════════════════════════════════════════════════════════
+  // ΤΟ ΜΕΡΙΔΙΟ ΜΠΑΙΝΕΙ ΜΕΣΑ ΣΤΑ ΚΛΙΜΑΚΙΑ, ΟΧΙ ΠΑΝΩ ΣΤΟ ΑΠΟΤΕΛΕΣΜΑ.
+  //
+  // Η συνάρτηση δεν δεχόταν ποσοστό, οπότε ο καλών διαιρούσε το ετήσιο ποσό
+  // στο τέλος. Η διαίρεση είναι γραμμική· ο ΕΝΦΙΑ δεν είναι. Ο πρόσθετος
+  // φόρος (Ενότητα Γ) ξεκινά στις 400.000 €, η προσαύξηση (Ενότητα Ε) στις
+  // 500.000 €, και η αυτόματη μείωση πέφτει καθώς ανεβαίνει η περιουσία.
+  //
+  // Μετρημένο σε ακίνητο 900.000 € και 200 τ.μ. με μερίδιο ένα τρίτο:
+  //   ολόκληρο ÷ 3   →  1.617,67 €
+  //   υπολογισμένο   →    629,03 €
+  // Δηλαδή δυόμισι φορές πάνω, επειδή ο συνιδιοκτήτης χρεωνόταν το ένα τρίτο
+  // ενός πρόσθετου φόρου και μιας προσαύξησης που ΔΕΝ οφείλει καθόλου: η δική
+  // του περιουσία είναι 300.000 € και δεν φτάνει σε κανένα από τα δύο όρια.
+  ownershipPct?: number | null
 }): ENFIAResult | null {
   // Πρώτα ο τύπος: αν ο πίνακας των κτισμάτων δεν ισχύει, δεν υπάρχει εκτίμηση.
   if (enfiaTypeBlock(facts.propType)) return null
@@ -407,9 +422,17 @@ export function estimateENFIAFromFacts(facts: {
   // Άγνωστο πεδίο → `undefined`, που η estimateENFIA το διαβάζει ως 1,00.
   const age = enfiaAgeKeyFromYearBuilt(facts.yearBuilt, facts.taxYear) ?? undefined
   const floor = enfiaFloorKeyFromValue(facts.floor) ?? undefined
-  // Το ίδιο ακίνητο είναι εδώ και η συνολική περιουσία (μονο-ακίνητη εκτίμηση):
-  // propertyValue = totalValue = value, ώστε να εφαρμοστεί σωστά η Ενότητα Γ.
-  return estimateENFIA({ sqm, zone, floor, age, totalValue: value, propertyValue: value, reductions: [] })
+  const raw = Number(facts.ownershipPct)
+  const pct = Number.isFinite(raw) && raw > 0 ? Math.min(100, raw) : 100
+  // Η ΑΞΙΑ ΤΟΥ ΑΚΙΝΗΤΟΥ ΕΙΝΑΙ ΟΛΟΚΛΗΡΗ, Η ΠΕΡΙΟΥΣΙΑ ΤΟΥ ΦΟΡΟΛΟΓΟΥΜΕΝΟΥ ΟΧΙ.
+  // Η Ενότητα Γ κοιτά την αξία ΤΟΥ ΑΚΙΝΗΤΟΥ και μετά απομειώνει με το ποσοστό
+  // (το κάνει η enfiaExtraPropertyTax). Η μείωση και η προσαύξηση κοιτούν τη
+  // ΣΥΝΟΛΙΚΗ ΠΕΡΙΟΥΣΙΑ του ανθρώπου, που είναι το μερίδιό του. Μονο-ακίνητη
+  // εκτίμηση: άλλο ακίνητο δεν ξέρουμε.
+  return estimateENFIA({
+    sqm, zone, floor, age, ownership: pct,
+    totalValue: value * pct / 100, propertyValue: value, reductions: [],
+  })
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
