@@ -104,12 +104,31 @@ const prop = (over: Partial<PortalProperty> = {}): PortalProperty => ({
   eq('το σύνολο του αρχείου ισούται με το σύνολο της οθόνης', fromFile, t.income);
   eq('και είναι το σωστό σύνολο', t.income, 4800 + 370);
 }
+// ── ΤΟ ΠΟΣΟΣΤΟ ΙΣΧΥΕΙ ΚΑΙ ΣΤΙΣ ΔΥΟ ΠΛΕΥΡΕΣ ───────────────────────────────
+// Η στήλη των εσόδων περνούσε από το ποσοστό συνιδιοκτησίας· η στήλη των
+// δαπανών όχι. Δίπλα δίπλα, ο λογιστής διάβαζε έσοδα στο 50% και δαπάνες στο
+// 100% για το ίδιο ακίνητο, χωρίς τίποτα να το λέει.
 {
-  const lines = propertyLines([prop({ ownership: 50, rent_collected: 4800, rent_months: 12 })]);
+  const lines = propertyLines([prop({
+    ownership: 50, rent_collected: 4800, rent_months: 12,
+    expenses: [{ category: 'ΔΕΗ', amount: 1200, date: '2025-02-01' }],
+  })]);
   const sheets = statementSheets({ owner: 'Ιδιοκτήτης', year: 2025, issued: '18/08/2026', lines });
   const cols = sheets[0].columns.map(c => c.header);
-  eq('η αναλογία ακολουθεί το ποσοστό συνιδιοκτησίας',
-     sheets[0].rows[0][cols.indexOf('Αναλογία ιδιοκτήτη')], 2400);
+  const cell = (h: string) => sheets[0].rows[0][cols.indexOf(h)];
+  eq('η αναλογία εσόδων ακολουθεί το ποσοστό συνιδιοκτησίας', cell('Αναλογία εσόδων ιδιοκτήτη'), 2400);
+  eq('και οι δαπάνες με το ΙΔΙΟ ποσοστό', cell('Αναλογία δαπανών ιδιοκτήτη'), 600);
+  eq('ενώ η ολόκληρη δαπάνη μένει ορατή', cell('Δαπάνες χρήσης'), 1200);
+  ok('και το φύλλο εξηγεί τι δείχνουν οι δύο στήλες',
+    (sheets[0].notes || []).some(n => n.includes('στα έσοδα ΚΑΙ στις δαπάνες')));
+}
+
+// Χωρίς συνιδιοκτησία δεν λέγεται τίποτα: η σημείωση θα ήταν θόρυβος.
+{
+  const sheets = statementSheets({ owner: 'Ι', year: 2025, issued: '18/08/2026',
+    lines: propertyLines([prop({ rent_collected: 1000, rent_months: 12 })]) });
+  ok('χωρίς συνιδιοκτησία καμία σημείωση αναλογίας',
+    !(sheets[0].notes || []).some(n => n.includes('στα έσοδα ΚΑΙ στις δαπάνες')));
 }
 
 // ── ΚΑΝΕΝΑ ΑΔΕΙΟ ΦΥΛΛΟ ────────────────────────────────────────────────────
