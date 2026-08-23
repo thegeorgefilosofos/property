@@ -208,6 +208,8 @@ function Row({ r, checked, onToggle, interactive }: { r: Requirement; checked: b
 
 export interface DossierExportSource {
   propName: string
+  /** Ο άνθρωπος, όχι το ακίνητο: το πεδίο «Φορολογούμενος» του φακέλου. */
+  ownerName?: string
   ownerAfm?: string
   statementLines: AccountantStatementLine[]
   provisionMonthly: number
@@ -295,6 +297,7 @@ export default function AccountantDossier({
     exportAccountantDossier({
       year,
       propName: exportSource.propName,
+      ownerName: exportSource.ownerName,
       ownerAfm: exportSource.ownerAfm,
       statementLines: exportSource.statementLines,
       provisionMonthly: exportSource.provisionMonthly,

@@ -51,6 +51,20 @@ import { grDate } from '@/lib/core/format';
 export interface AccountantBundleInput {
   year: number;
   propName: string;
+  // ══════════════════════════════════════════════════════════════════════════
+  // ΤΟ ΑΚΙΝΗΤΟ ΔΕΝ ΕΙΝΑΙ Ο ΦΟΡΟΛΟΓΟΥΜΕΝΟΣ
+  //
+  // Η «ΤΑΥΤΟΤΗΤΑ» του φακέλου έγραφε στο πεδίο «Φορολογούμενος» το ΟΝΟΜΑ ΤΟΥ
+  // ΑΚΙΝΗΤΟΥ, όπως το έχει βαφτίσει ο ιδιοκτήτης: «Διαμέρισμα Αθήνα»,
+  // «Εξοχικό», «Το σπίτι της μαμάς». Το ίδιο και η κεφαλίδα κάθε φύλλου. Ο
+  // λογιστής άνοιγε ένα βιβλίο που δήλωνε φορολογούμενο έναν τοίχο.
+  //
+  // Το ΑΦΜ υπήρχε ως πεδίο εισόδου αλλά καμία οθόνη δεν το περνούσε ποτέ, άρα
+  // η γραμμή δεν είχε καν ΑΦΜ να σώσει την εντύπωση. Τώρα ο φορολογούμενος
+  // έρχεται από τις ρυθμίσεις του ακινήτου (owner_name, owner_afm) και το
+  // ακίνητο έχει δική του γραμμή. Ο,τι λείπει λέγεται ότι λείπει: κανένα πεδίο
+  // δεν δανείζεται την τιμή του διπλανού.
+  ownerName?: string;
   ownerAfm?: string;
   statementLines: AccountantStatementLine[];
   provisionMonthly: number;
@@ -244,7 +258,9 @@ const lettered = <T extends { title?: string }>(blocks: readonly T[]): T[] => {
  * τα αρχεία ΕΙΝΑΙ δίπλα, οπότε η στήλη δείχνει σε κάτι υπαρκτό.
  */
 export function buildWorkbook(inp: AccountantBundleInput, papers: readonly FiledPaper[] = []) {
-  const { year, propName, ownerAfm, statementLines, provisionMonthly, book } = inp;
+  const { year, propName, ownerName, ownerAfm, statementLines, provisionMonthly, book } = inp;
+  // Ο φορολογούμενος με μία γραφή, ίδια στην κεφαλίδα και στην ταυτότητα.
+  const taxpayer = [ownerName?.trim(), ownerAfm?.trim() ? `ΑΦΜ ${ownerAfm.trim()}` : ''].filter(Boolean).join(' · ');
   const assets = inp.assets ?? [];
   const buildingFraction = inp.buildingFraction ?? 1;
   const wb = XLSX.utils.book_new();
@@ -253,7 +269,7 @@ export function buildWorkbook(inp: AccountantBundleInput, papers: readonly Filed
   // «12/8/2026»: σε αρχείο που δίπλα του έχει «11/03/2026» φαίνεται λάθος, και
   // είναι η μόνη ημερομηνία του βιβλίου με άλλη μορφή από τις υπόλοιπες.
   const issued = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const idLine = `Property OS · ${propName}${ownerAfm ? ` · ΑΦΜ ${ownerAfm}` : ''} · Περίοδος 01/01/${year}–31/12/${year} · Ημερομηνία έκδοσης ${issued}`;
+  const idLine = `Property OS · ${taxpayer || propName} · Περίοδος 01/01/${year}–31/12/${year} · Ημερομηνία έκδοσης ${issued}`;
 
   // ── Φύλλο 1: Κατάσταση Αποτελεσμάτων ───────────────────────────────────────
   {
@@ -1148,7 +1164,8 @@ export function buildWorkbook(inp: AccountantBundleInput, papers: readonly Filed
             head: ['Πεδίο', 'Τιμή'],
             rows: [
               ['Χρήση', `01/01/${year} έως 31/12/${year}`],
-              ['Φορολογούμενος', `${propName}${ownerAfm ? ` · ΑΦΜ ${ownerAfm}` : ''}`],
+              ['Φορολογούμενος', taxpayer || 'Δεν έχει συμπληρωθεί (Ρυθμίσεις ακινήτου: όνομα και ΑΦΜ ιδιοκτήτη)'],
+              ['Ακίνητο', propName],
               ['Νομική μορφή', d.formLabel],
               ['Βιβλία', d.booksLabel],
             ],

@@ -334,6 +334,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const [loans,setLoans] = useState<LoanView[]>([])
   const [inventory,setInventory] = useState<InventoryRow[]>([])
   const [prop,setProp] = useState<PropRow|null>(null)
+  const [owner,setOwner] = useState<{ owner_name: string|null; owner_afm: string|null }|null>(null)
   const [allProps,setAllProps] = useState<PropListRow[]>([])
   const [allRent,setAllRent] = useState<PortfolioRentRow[]>([])
   const [allStays,setAllStays] = useState<PortfolioStayRow[]>([])
@@ -360,7 +361,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
       //                                 η τεκμαρτή έκπτωση 5%
       //
       // Ολα αυτά παρουσιάζονταν ως υπολογισμός, με κουμπί εξαγωγής από κάτω.
-      const [exR, rpR, stR, lnR, prR, apsR, arpR, astR, invR, tnR] = await Promise.all([
+      const [exR, rpR, stR, lnR, prR, apsR, arpR, astR, invR, tnR, ownR] = await Promise.all([
         expenseStore.ledgerWithError<ExpenseRow>(supabase,propertyId,{ columns:'date,amount,category,expense_group,description,supplier_country,supply,supplier_afm,paid_by,share_percent' }),
         // Ο ΤΡΟΠΟΣ ΠΛΗΡΩΜΗΣ ΕΙΝΑΙ ΦΟΡΟΛΟΓΙΚΟ ΣΤΟΙΧΕΙΟ, ΟΧΙ ΔΙΑΚΟΣΜΗΤΙΚΟ: από
         // αυτόν κρίνεται η τεκμαρτή έκπτωση 5%. Μία στήλη παραπάνω στο ίδιο ερώτημα.
@@ -374,12 +375,17 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         inventoryStore.ofPropertyWithError<InventoryRow>(supabase,propertyId,'name,purchase_value,category,purchase_date',userId),
         // Η ΠΡΟΘΕΣΗ ΤΗΣ ΜΙΣΘΩΣΗΣ, όταν δεν υπάρχει απόδειξη απο τις εισπράξεις.
         tenantStore.currentWithError<{ e_payment?: boolean|null }>(supabase, propertyId, 'e_payment', userId),
+        // ΠΟΙΟΣ ΕΙΝΑΙ Ο ΦΟΡΟΛΟΓΟΥΜΕΝΟΣ. Ο φάκελος του λογιστή έγραφε στο πεδίο
+        // «Φορολογούμενος» το ΟΝΟΜΑ ΤΟΥ ΑΚΙΝΗΤΟΥ, επειδή τίποτα δεν του έλεγε
+        // ποιος είναι ο άνθρωπος. Το ΑΦΜ ήταν πεδίο εισόδου που καμία οθόνη
+        // δεν συμπλήρωνε ποτέ.
+        properties.ownerOf(supabase, propertyId, userId),
       ])
       if(!alive) return
       setReadFailed([exR,rpR,stR,lnR,prR,apsR,arpR,astR,invR,tnR].some(r=>!!r.error))
       setExpenses(exR.rows); setRent(rpR.rows); setLeaseViaBank(tnR.row ? (tnR.row.e_payment !== false) : null)
       setStays(stR.rows); setLoans(lnR.views)
-      setProp(prR.row); setAllProps(apsR.rows)
+      setProp(prR.row); setAllProps(apsR.rows); setOwner(ownR)
       setAllRent(arpR.rows); setAllStays(astR.rows)
       setInventory(invR.rows)
     }catch(_){ if(alive) setReadFailed(true) /* διατηρούμε ό,τι ήδη έχει φορτωθεί· το UI δεν κολλάει */ }
@@ -769,6 +775,8 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
 
   const dossierExport = useMemo(()=>({
     propName: prop?.name || 'Ακίνητο',
+    ownerName: owner?.owner_name || undefined,
+    ownerAfm: owner?.owner_afm || undefined,
     statementLines: statement.lines.map(l=>({ label:l.label, amount:l.amount, kind:l.kind, negative:l.negative })),
     provisionMonthly: provision.monthly,
     book: book.map(toMovement),
@@ -781,7 +789,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     // ΤΑ ΧΑΡΤΙΑ ΚΑΤΕΒΑΙΝΟΥΝ ΟΤΑΝ ΠΑΤΗΘΕΙ ΤΟ ΚΟΥΜΠΙ, ΟΧΙ ΟΤΑΝ ΑΝΟΙΞΕΙ Η ΟΘΟΝΗ.
     // Είναι μεγαβάιτ· κανείς δεν τα θέλει επειδή κοίταξε τη Λογιστική.
     attachments: ()=>fetchDossierPapers(supabase, propertyId, userId, year),
-  }),[prop,statement,provision,book,dossierGaps,myDataExport,assets,businessMode,supabase,propertyId,userId,year])
+  }),[prop,owner,statement,provision,book,dossierGaps,myDataExport,assets,businessMode,supabase,propertyId,userId,year])
 
   // ── Κλείσιμο χρήσης (period lock) ──────────────────────────────────────────
   // Το στιγμιότυπο της κλεισμένης χρήσης: ό,τι γράφεται στο `snapshot`, και
@@ -906,6 +914,8 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     // κινήσεις (Έσοδα/Έξοδα) με σωστές ημερομηνίες/ποσά, σαν να το ετοίμασε λογιστής.
     exportAccountantBundle({
       year, propName: prop?.name || 'Ακίνητο',
+      ownerName: owner?.owner_name || undefined,
+      ownerAfm: owner?.owner_afm || undefined,
       statementLines: statement.lines.map(l => ({ label: l.label, amount: l.amount, kind: l.kind, negative: l.negative })),
       provisionMonthly: provision.monthly,
       book: book.map(toMovement),

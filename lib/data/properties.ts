@@ -82,6 +82,22 @@ export async function oneWithError<T = Partial<UserPropertiesRow>>(
   return readOne<T>(q.maybeSingle());
 }
 
+/**
+ * Ο ΙΔΙΟΚΤΗΤΗΣ ΤΟΥ ΑΚΙΝΗΤΟΥ: ΟΝΟΜΑ ΚΑΙ ΑΦΜ.
+ *
+ * Ζει σε άλλο πίνακα (`property_settings`) και τον διάβαζαν τέσσερα αρχεία, το
+ * καθένα με δικό του `from('property_settings').select(...)`. Ενα από αυτά δεν
+ * τον διάβαζε καθόλου: ο φάκελος του λογιστή έγραφε στο πεδίο
+ * «Φορολογούμενος» το ΟΝΟΜΑ ΤΟΥ ΑΚΙΝΗΤΟΥ.
+ */
+export async function ownerOf(
+  db: Db, propertyId: string, userId?: string,
+): Promise<{ owner_name: string | null; owner_afm: string | null } | null> {
+  let q = db.from('property_settings').select('owner_name,owner_afm').eq('property_id', propertyId);
+  if (userId) q = q.eq('user_id', userId);
+  return readRow<{ owner_name: string | null; owner_afm: string | null }>(q.maybeSingle());
+}
+
 /** Τα ακίνητα ενός χρήστη. */
 export async function list<T = PropertyCard>(
   db: Db, userId: string,

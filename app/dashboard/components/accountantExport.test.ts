@@ -837,6 +837,60 @@ eq('τα πλάτη στηλών είναι όσα και οι στήλες', (w
   eq('κανένα φύλλο χωρίς εξήγηση στη Σύνοψη', blank.join(', '), '');
 }
 
+// ── Ο ΦΟΡΟΛΟΓΟΥΜΕΝΟΣ ΕΙΝΑΙ ΑΝΘΡΩΠΟΣ, ΤΟ ΑΚΙΝΗΤΟ ΕΙΝΑΙ ΑΚΙΝΗΤΟ ─────────────
+// Η «ΤΑΥΤΟΤΗΤΑ» του φακέλου έγραφε στο πεδίο «Φορολογούμενος» το ΟΝΟΜΑ ΤΟΥ
+// ΑΚΙΝΗΤΟΥ, όπως το έχει βαφτίσει ο ιδιοκτήτης: «Διαμέρισμα Αθήνα», «Εξοχικό».
+// Το ίδιο και η κεφαλίδα κάθε φύλλου. Το ΑΦΜ υπήρχε ως πεδίο εισόδου αλλά καμία
+// οθόνη δεν το περνούσε ποτέ, οπότε ούτε αυτό έσωζε την εντύπωση.
+{
+  const dossier = {
+    requirements: [], haveIds: [], gaps: [], readinessMessage: 'Έτοιμο',
+    formLabel: 'Φυσικό πρόσωπο', booksLabel: 'Απλογραφικά',
+    properties: [{ name: 'Διαμέρισμα Αθήνα', status: 'Εκμισθωμένο' }],
+  };
+  /** Η τιμή δίπλα σε ένα πεδίο της «ΤΑΥΤΟΤΗΤΑΣ». */
+  const idValue = (sheet: ReturnType<typeof buildWorkbook>['Sheets'][string], field: string): string => {
+    const range = XLSX.utils.decode_range(sheet['!ref'] as string);
+    for (let r = range.s.r; r <= range.e.r; r++) {
+      const c = sheet[XLSX.utils.encode_cell({ r, c: 0 })] as Cell | undefined;
+      if (String(c?.v ?? '') === field) {
+        return String((sheet[XLSX.utils.encode_cell({ r, c: 1 })] as Cell | undefined)?.v ?? '');
+      }
+    }
+    return '';
+  };
+
+  const named = buildWorkbook({
+    year: 2026, propName: 'Διαμέρισμα Αθήνα', ownerName: 'Ελένη Παπαδοπούλου', ownerAfm: '094014201',
+    statementLines: [], provisionMonthly: 0, book: BOOK, dossier,
+  }).Sheets['Σύνοψη'];
+  eq('ο φορολογούμενος είναι ο ιδιοκτήτης με το ΑΦΜ του',
+    idValue(named, 'Φορολογούμενος'), 'Ελένη Παπαδοπούλου · ΑΦΜ 094014201');
+  eq('και το ακίνητο έχει δική του γραμμή',
+    idValue(named, 'Ακίνητο'), 'Διαμέρισμα Αθήνα');
+
+  // ΧΩΡΙΣ ΙΔΙΟΚΤΗΤΗ ΔΕΝ ΔΑΝΕΙΖΕΤΑΙ ΤΟ ΟΝΟΜΑ ΤΟΥ ΑΚΙΝΗΤΟΥ. Λέει ότι λείπει, και
+  // πού συμπληρώνεται.
+  const bare = buildWorkbook({
+    year: 2026, propName: 'Διαμέρισμα Αθήνα',
+    statementLines: [], provisionMonthly: 0, book: BOOK, dossier,
+  }).Sheets['Σύνοψη'];
+  ok('χωρίς ιδιοκτήτη το πεδίο ΔΕΝ γράφει το ακίνητο',
+    !idValue(bare, 'Φορολογούμενος').includes('Διαμέρισμα Αθήνα'));
+  ok('και λέει πού συμπληρώνεται',
+    idValue(bare, 'Φορολογούμενος').includes('Ρυθμίσεις ακινήτου'));
+  eq('ενώ η γραμμή του ακινήτου μένει σωστή',
+    idValue(bare, 'Ακίνητο'), 'Διαμέρισμα Αθήνα');
+
+  // ΚΑΙ Η ΚΕΦΑΛΙΔΑ ΚΑΘΕ ΦΥΛΛΟΥ, ΠΟΥ ΕΙΝΑΙ Η ΙΔΙΑ ΓΡΑΜΜΗ ΠΑΝΤΟΥ.
+  const head = String((buildWorkbook({
+    year: 2026, propName: 'Διαμέρισμα Αθήνα', ownerName: 'Ελένη Παπαδοπούλου', ownerAfm: '094014201',
+    statementLines: [], provisionMonthly: 0, book: BOOK,
+  }).Sheets['Κινήσεις 2026'][XLSX.utils.encode_cell({ r: 1, c: 0 })] as Cell | undefined)?.v ?? '');
+  ok('η κεφαλίδα ονομάζει τον άνθρωπο', head.includes('Ελένη Παπαδοπούλου · ΑΦΜ 094014201'));
+  ok('και δεν ονομάζει το ακίνητο φορολογούμενο', !head.includes('Διαμέρισμα Αθήνα'));
+}
+
 console.log(`\naccountantExport.ts — ${passed} passed, ${failed} failed`);
 if (failed) { console.log('FAILED:\n' + fails.map(f => '  ✗ ' + f).join('\n')); process.exit(1); }
 console.log('✓ όλα πέρασαν');
