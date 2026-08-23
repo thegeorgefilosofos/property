@@ -118,7 +118,6 @@ Cron authenticates to functions with a shared secret from `cron_secrets`
 |---|---|
 | `send-lifecycle-email` | Renders a branded lifecycle email from shared templates → Resend (single source; drain target) |
 | `schedule-email-outbox` | Cron pre-pass: stamps `send_window` on due outbox rows per policy |
-| `dispatch-message` | One notification per event across email/push/Viber/WhatsApp/iMessage per the cadence plan |
 | `send-client-email` | Owner→clients broadcast (batch ≤100), personalization, reply-to = owner |
 | `send-newsletter` | Weekly product newsletter with GDPR unsubscribe link |
 | `send-market-digest` | Weekly market/rate digest to opted-in users |

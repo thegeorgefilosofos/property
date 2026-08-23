@@ -893,16 +893,6 @@ export interface MarketRatesRow {
   updated_at: string;
 }
 
-export interface MessagingPrefsRow {
-  user_id: string;
-  wants_email: boolean;
-  wants_viber: boolean;
-  wants_whatsapp: boolean;
-  wants_imessage: boolean;
-  phone_e164: string | null;
-  updated_at: string;
-}
-
 export interface MobileWaitlistRow {
   user_id: string;
   email: string | null;
@@ -1429,7 +1419,6 @@ export interface Tables {
   maintenance_requests: MaintenanceRequestsRow;
   maintenance_tasks: MaintenanceTasksRow;
   market_rates: MarketRatesRow;
-  messaging_prefs: MessagingPrefsRow;
   mobile_waitlist: MobileWaitlistRow;
   notification_log: NotificationLogRow;
   notification_preferences: NotificationPreferencesRow;

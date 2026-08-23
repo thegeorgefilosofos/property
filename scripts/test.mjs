@@ -18,7 +18,6 @@ import { findTests } from './lib/find-tests.mjs'
 // Domain verifiers that aren't named *.test.ts but are part of the suite.
 const EXTRA = [
   'supabase/functions/_shared/verify-policy.ts',
-  'supabase/functions/_shared/verify-messaging.ts',
   'supabase/functions/_shared/verify-gender.ts',
 ]
 

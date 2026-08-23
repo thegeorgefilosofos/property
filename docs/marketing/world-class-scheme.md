@@ -116,12 +116,15 @@ quality rating · 30/90-day retention by archetype · continuous A/B graduating 
   auth), `maintenance_requested`, `takk_seasonal_rate_switch`, `password_reset`; improved
   gender-safe `deposit_reminder`; ΕΝΦΙΑ / maintenance / ΤΑΚΚ phone variants.
 - Notification-scheme fixes: **quiet-hours clamped in code** + test; **wake-worthy vs
-  night-holdable** transactional classification; **Viber open-url button** (action no
-  longer dropped).
+  night-holdable** transactional classification.
+
+> Το στρώμα πολλαπλών καναλιών (Viber, WhatsApp, iMessage) διαγράφηκε στις 23
+> Αυγούστου 2026. Καμία γραμμή δεν το καλούσε, ο πίνακας προτιμήσεών του ήταν
+> πάντα κενός, και κάθε κανάλι απαιτεί εμπορική σύμβαση με πάροχο. Ό,τι
+> ακολουθεί και το αναφέρει είναι ιστορικό.
 
 ## Backlog to 10/10 (prioritized — needs live DB / providers / domain)
-**High** · point the drain at `dispatch-message` (multichannel live) ·
-engagement-based throttling + sunset + per-user send-time · lease-declaration
+**High** · engagement-based throttling + sunset + per-user send-time · lease-declaration
 tenant-acceptance/termination sub-flow · preference center (per-category opt-out) ·
 delivery-receipt failover + provider idempotency.
 **Medium** · cross-channel dunning escalation with paid-event cancel · behavioural
