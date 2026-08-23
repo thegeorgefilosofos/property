@@ -34,6 +34,16 @@ const CHAINED = [
   'order', 'limit', 'range', 'contains', 'overlaps', 'filter', 'match', 'or',
 ];
 
+/** Διπλός καναλιού με αλυσιδωτό `on`, όπως ο πραγματικός πελάτης. */
+function channelDouble() {
+  const ch = {
+    on: () => ch,
+    subscribe: () => ch,
+    unsubscribe: async () => 'ok' as const,
+  };
+  return ch;
+}
+
 export function makeFakeDb(respond: Responder = () => undefined) {
   const calls: DbCall[] = [];
 
@@ -76,7 +86,11 @@ export function makeFakeDb(respond: Responder = () => undefined) {
     db: {
       from,
       auth: { getUser: async () => ({ data: { user: { id: 'u1', email: 'dokimi@example.com' } }, error: null }) },
-      channel: () => ({ on: () => ({ subscribe: () => ({}) }), subscribe: () => ({}) }),
+      // ΤΟ `on` ΕΠΙΣΤΡΕΦΕΙ ΤΟ ΙΔΙΟ ΤΟ ΚΑΝΑΛΙ, γιατί έτσι κάνει το Supabase και
+      // έτσι το γράφει ο κώδικας: το PortfolioTab αλυσιδώνει πέντε `.on()`.
+      // Η πρώτη εκδοχή επέστρεφε `{subscribe}`, οπότε το δεύτερο `.on()` έσκαγε
+      // — σε component που καμία δοκιμή δεν είχε προσαρτήσει ποτέ.
+      channel: () => channelDouble(),
       removeChannel: () => {},
       functions: { invoke: async () => ({ data: null, error: null }) },
     },

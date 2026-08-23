@@ -33,6 +33,8 @@
     "e2e:money": "node scripts/e2e-money.mjs",
     "posts": "tsx scripts/marketing/posts.ts",
     "reel": "tsx scripts/marketing/reel.ts",
+    "perf:budget": "node scripts/perf-budget.mjs",
+    "perf:bench": "node scripts/perf-bench/build.mjs && node scripts/perf-bench.mjs",
     "public-routes": "node scripts/guard-public-routes.mjs",
     "style-tags": "node scripts/guard-style-tags.mjs",
     "greek-numbers": "node scripts/guard-greek-numbers.mjs",
