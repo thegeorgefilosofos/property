@@ -831,8 +831,19 @@ export function DatePicker({ label, labelInfo, ariaLabel, value, onChange, disab
           <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
         </svg>
       </div>
+      {/* ═══ Ο ΡΟΛΟΣ ΠΟΥ ΕΛΕΙΠΕ, ΚΑΙ ΤΟΝ ΥΠΟΣΧΟΤΑΝ ΤΟ ΙΔΙΟ ΤΟ ΚΟΥΜΠΙ ══════════
+          Το χειριστήριο από πάνω δηλώνει «aria-haspopup="dialog"», δηλαδή
+          υπόσχεται στον αναγνώστη οθόνης ότι θα ανοίξει διάλογος. Το αναδυόμενο
+          όμως ήταν ΓΥΜΝΟ <div> σε portal: χωρίς ρόλο, χωρίς όνομα. Ο χρήστης
+          πατούσε Enter, η οθόνη άλλαζε, και δεν ακουγόταν τίποτα — ούτε ότι
+          άνοιξε κάτι, ούτε τι είναι.
+
+          `aria-modal="false"` επίτηδες: το ημερολόγιο ΔΕΝ παγιδεύει την εστίαση
+          και δεν σκεπάζει τη σελίδα. Δηλώνοντας το αντίθετο θα λέγαμε στον
+          αναγνώστη οθόνης να κρύψει ό,τι υπάρχει απ' έξω, ενώ το Tab
+          εξακολουθεί να βγαίνει: ψέμα προς την τεχνολογία υποβοήθησης. */}
       {open && createPortal(
-        <div ref={popupRef} style={{
+        <div ref={popupRef} role="dialog" aria-modal="false" aria-label={`Ημερολόγιο${naming ? ': ' + naming : ''}`} style={{
           position: 'fixed',
           top: coords.top,
           left: coords.left,
@@ -1278,9 +1289,22 @@ export const FREQ_OPTIONS = [
 // ─── Segment Control, Google Tabs style ─────────────────────────────────────
 interface SegmentOption { value: string; label: string; }
 
-export function SegmentControl({ options, value, onChange }: { options: SegmentOption[]; value: string; onChange: (v: string) => void }) {
+/**
+ * ═══ Ο ΤΜΗΜΑΤΙΚΟΣ ΕΠΙΛΟΓΕΑΣ ΛΕΕΙ ΠΟΙΟ ΤΜΗΜΑ ΕΙΝΑΙ ΕΝΕΡΓΟ ═══════════════════
+ * ΤΙ ΕΛΕΙΠΕ. Η επιλεγμένη κατάσταση φαινόταν ΜΟΝΟ με χρώμα: κανένα
+ * `aria-pressed`, κανένα `aria-selected`, κανένας ρόλος ομάδας. Ο χρήστης
+ * αναγνώστη οθόνης άκουγε δύο κουμπιά, «Μήνας» και «Έτος», και δεν είχε κανέναν
+ * τρόπο να μάθει ποιο από τα δύο ισχύει — ούτε καν ότι είναι εναλλακτικά.
+ *
+ * ΓΙΑΤΙ `aria-pressed` ΚΑΙ ΟΧΙ `role="radio"`. Το radiogroup φέρνει μαζί του
+ * σύμβαση πλοήγησης με βέλη και ΜΙΑ στάση Tab για όλη την ομάδα· τα δύο άλλα
+ * τμηματικά χειριστήρια του προϊόντος (εποχικότητα, κύκλος χρέωσης) είναι ήδη
+ * κουμπιά με `aria-pressed`, και μία διεπαφή με δύο συμβάσεις για το ίδιο
+ * σχήμα είναι χειρότερη από μία ατελή. Ένα ιδίωμα ανά στοιχείο.
+ */
+export function SegmentControl({ options, value, onChange, ariaLabel }: { options: SegmentOption[]; value: string; onChange: (v: string) => void; ariaLabel?: string }) {
   return (
-    <div style={{
+    <div role="group" aria-label={ariaLabel} style={{
       display: 'flex',
       background: 'var(--bg-elevated)',
       border: '1px solid var(--border-subtle)',
@@ -1291,6 +1315,8 @@ export function SegmentControl({ options, value, onChange }: { options: SegmentO
       {options.map(o => (
         <button
           key={o.value}
+          type="button"
+          aria-pressed={o.value === value}
           onClick={() => onChange(o.value)}
           style={{
             flex: 1,

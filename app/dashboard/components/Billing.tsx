@@ -478,7 +478,7 @@ function Subscription({ d, wantPlan = null, wishPlan = null, wishCycle = 'monthl
           επιλογές έπιαναν ολόκληρη την κάρτα, βαραίνοντας περισσότερο από την
           τιμή που ρυθμίζουν. */}
       <div style={{ marginTop: 2, maxWidth: 260 }}>
-        <SegmentControl value={cycle} onChange={v => setCycle(v as BillingCycle)}
+        <SegmentControl value={cycle} onChange={v => setCycle(v as BillingCycle)} ariaLabel="Κύκλος χρέωσης"
           options={[{ value: 'monthly', label: 'Μηνιαία' }, { value: 'annual', label: 'Ετήσια' }]} />
       </div>
 
