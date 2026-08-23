@@ -246,6 +246,36 @@ console.log('\nΔιαδρομές που κοστίζουν χρήματα\n');
   await s.close();
 }
 
+// ── 11 ───────────────────────────────────────────────────────────────────
+// ΟΙ ΡΥΘΜΙΣΕΙΣ ΕΝΟΣ ΑΚΙΝΗΤΟΥ ΔΕΝ ΓΡΑΦΟΝΤΑΙ ΠΑΝΩ ΣΕ ΑΛΛΟ.
+//
+// Ο χρονομετρητής αποθήκευσης (800ms) κρατούσε τον ΠΡΟΟΡΙΣΜΟ αλλά διάβαζε τα
+// ΔΕΔΟΜΕΝΑ όταν χτυπούσε — και ώς τότε η φόρτωση του νέου ακινήτου τα είχε ήδη
+// αντικαταστήσει. Επειδή η `settings.put` κάνει upsert ΟΛΟΚΛΗΡΟΥ του jsonb, το
+// πρώτο ακίνητο έχανε πάροχο, τιμολόγιο και καταναλώσεις, σιωπηλά, και η ίδια η
+// διόρθωση του χρήστη δεν γραφόταν πουθενά.
+//
+// Δεν ήταν σπάνιο race: χτυπούσε κάθε φορά που η ανάγνωση του νέου ακινήτου
+// τελείωνε πριν λήξει το υπόλοιπο του debounce.
+{
+  const s = await open('settings-switch');
+  await s.page.waitForFunction(() => document.querySelector('[data-prop]')?.getAttribute('data-kwh') === '320', null, { timeout: 5000 });
+
+  // Ο χρήστης διορθώνει το Α, και μέσα στο παράθυρο του debounce αλλάζει ακίνητο.
+  await s.page.evaluate(() => window.__edit(400));
+  await s.page.waitForTimeout(200);
+  await s.page.evaluate(() => window.__switch('p2'));
+  await s.page.waitForTimeout(1400);
+
+  const w = await s.writes('bills_settings');
+  eq('11. γράφτηκε μία φορά', w.length, 1);
+  eq('11. στο ακίνητο που διορθώθηκε', w[0]?.payload?.property_id, 'p1');
+  eq('11. με τη διόρθωση του χρήστη', w[0]?.payload?.data?.kwhMonthly, 400);
+  eq('11. χωρίς να χαθεί ο πάροχός του', w[0]?.payload?.data?.elecProvider, 'dei');
+  ok('11. καμία εξαίρεση στην οθόνη', s.errors.length === 0, s.errors[0]);
+  await s.close();
+}
+
 await browser.close();
 console.log(`\nΔιαδρομές χρημάτων — ${pass} πέρασαν, ${fail} απέτυχαν`);
 if (fail) process.exit(1);

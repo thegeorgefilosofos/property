@@ -75,8 +75,23 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
   }, [propId]);
 
   // Άντληση εσόδων/εξόδων περιόδου για το ακίνητο.
+  //
+  // ── ΣΗΜΑΙΑ ΑΚΥΡΩΣΗΣ, ΓΙΑΤΙ ΕΔΩ ΒΓΑΙΝΕΙ ΕΠΙΣΗΜΟ ΧΑΡΤΙ ──────────────────────
+  // ΧΩΡΙΣ ΑΥΤΗΝ, το αργό ερώτημα του ΠΡΟΗΓΟΥΜΕΝΟΥ ακινήτου απαντούσε τελευταίο
+  // και έγραφε πάνω από το γρήγορο του τρέχοντος. Ο διαχειριστής διάλεγε
+  // «Αλεξάνδρας 12» (πολλές δόσεις, αργό), άλλαζε σε «Πατησίων 5» (γρήγορο),
+  // και η οθόνη κρατούσε τα ποσά του πρώτου κάτω από το όνομα του δεύτερου.
+  //
+  // Δεν είναι οπτικό λάθος: το `exportPdf` καλεί ΠΡΩΤΑ την `issueDocument` με
+  // `subject: prop.name` και τα ποσά του state, άρα η λάθος κατανομή
+  // καταχωρείται στο μητρώο εγγράφων με αριθμό και QR επαλήθευσης, και ο
+  // συνιδιοκτήτης παίρνει χαρτί που του δίνει τετραπλάσιο μερίδιο.
+  //
+  // Το πρώτο effect του ίδιου αρχείου έχει ήδη `let alive = true`· αυτό εδώ,
+  // που είναι το μόνο που παράγει ΠΟΣΑ, δεν το είχε πάρει ποτέ.
   useEffect(() => {
     if (!open || !propId) { setFigures(null); return; }
+    let alive = true;
     (async () => {
       const from = `${year}-${String(month || 1).padStart(2, '0')}-01`;
       const to = month > 0 ? monthEndIso(year, month) : `${year}-12-31`;
@@ -89,9 +104,13 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
       // αυτό δηλώνεται. Το `any` έκρυβε ότι ένα λάθος όνομα στήλης θα έδινε μηδέν.
       const sumAmount = (rows: { amount: number | string | null }[] | null) =>
         (rows || []).reduce((s, x) => s + num(x.amount), 0);
+      if (!alive) return;
       setFigures({ gross: sumAmount(r), expenses: sumAmount(e as { amount: number | null }[]) });
     })();
-  }, [open, propId, year, month, supabase]);
+    return () => { alive = false; };
+  // Το `userId` χρησιμοποιείται μέσα στο ερώτημα και λείπει από τις εξαρτήσεις:
+  // μπαίνει, ώστε αλλαγή χρήστη να ξαναφέρνει δεδομένα αντί να κρατά τα παλιά.
+  }, [open, propId, year, month, userId, supabase]);
 
   const owners: OwnerShare[] = useMemo(() => rows.filter(r => r.name.trim()).map(r => ({ name: r.name.trim(), pct: num(r.pct), afm: r.afm.trim() || undefined })), [rows]);
   const result = useMemo(() => computeSplit({ grossIncome: figures?.gross || 0, expenses: figures?.expenses || 0, owners, managementFeePct: num(feePct), managerName }), [figures, owners, feePct, managerName]);

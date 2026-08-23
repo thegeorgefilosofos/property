@@ -31,8 +31,29 @@ export function useBillsSettings<T extends Record<string, unknown>>(
   // `as`, ακριβώς εκεί που κρίνεται ΠΟΙΑ γραμμή θα γραφτεί.
   const bound = useRef<{ propertyId: string; section: settings.Section }>({ propertyId, section });
 
+  // ── Η ΕΚΚΡΕΜΗΣ ΕΓΓΡΑΦΗ ΚΡΑΤΑ ΚΑΙ ΤΑ ΔΕΔΟΜΕΝΑ ΤΗΣ ───────────────────────────
+  // ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΕΚΛΕΙΣΕ ΕΔΩ. Ο προορισμός («σε ποιο ακίνητο») παγωνόταν σωστά,
+  // αλλά τα ΔΕΔΟΜΕΝΑ διαβάζονταν από το `latest.current` τη στιγμή που χτυπούσε
+  // ο χρονομετρητής — και ώς τότε το effect φόρτωσης το είχε ήδη αντικαταστήσει
+  // με τα δεδομένα του ΝΕΟΥ ακινήτου. Δηλαδή: γράφεις 400 kWh στο Α, αλλάζεις
+  // ακίνητο μέσα σε 800ms, και στο Α γράφονται οι ρυθμίσεις του Β. Η
+  // `settings.put` κάνει upsert ΟΛΟΚΛΗΡΟΥ του jsonb, οπότε δεν σώζεται τίποτα:
+  // ο πάροχος, το τιμολόγιο και οι kWh του Α χάνονται σιωπηλά, και η ίδια η
+  // διόρθωση δεν γράφεται πουθενά.
+  //
+  // Δεν ήταν σπάνιο race: χτυπούσε κάθε φορά που η ανάγνωση του νέου ακινήτου
+  // τελείωνε πριν λήξει το υπόλοιπο του debounce, δηλαδή σχεδόν πάντα.
+  //
+  // Το ζεύγος «τι» και «πού» ταξιδεύει πλέον μαζί, και δεν το αγγίζει τίποτα
+  // μετά τον προγραμματισμό του.
+  const pending = useRef<{ snapshot: T; target: { propertyId: string; section: settings.Section } } | null>(null);
+
   // ── Load ─────────────────────────────────────────────────────────────────
   useEffect(() => {
+    // Η ΑΛΛΑΓΗ ΑΚΙΝΗΤΟΥ ΞΕΠΛΕΝΕΙ ΤΗΝ ΕΚΚΡΕΜΟΤΗΤΑ, ΔΕΝ ΤΗΝ ΠΕΤΑΕΙ. Ο χρήστης
+    // διόρθωσε κάτι και άλλαξε οθόνη μέσα στα 800ms: η διόρθωση ανήκει στο
+    // ΠΡΟΗΓΟΥΜΕΝΟ ακίνητο και γράφεται εκεί, τώρα.
+    flushRef.current?.();
     bound.current = { propertyId, section };
 
     if (!propertyId) {
@@ -71,14 +92,7 @@ export function useBillsSettings<T extends Record<string, unknown>>(
 
   // Καθαρισμός χρονομέτρου στην αποπροσάρτηση: ό,τι εκκρεμεί γράφεται, δεν πετιέται
   useEffect(() => {
-    return () => {
-      if (timer.current) {
-        clearTimeout(timer.current);
-        // Τελευταία προσπάθεια εγγραφής: μια αποθήκευση προγραμματισμένη λίγο πριν
-        // (π.χ. αλλαγή καρτέλας) να μη χάνεται σιωπηλά.
-        doSaveRef.current?.(latest.current, bound.current);
-      }
-    };
+    return () => { flushRef.current?.(); };
   }, []);
 
   // ── Save ─────────────────────────────────────────────────────────────────
@@ -93,22 +107,37 @@ export function useBillsSettings<T extends Record<string, unknown>>(
       settings.put(supabase, target.propertyId, userId, target.section, snapshot));
   }, [userId]);
 
-  // Κρατά αναφορά στην τελευταία doSave, ώστε το effect της αποπροσάρτησης (που
-  // runs once) always calls the current version, not a stale closure.
-  const doSaveRef = useRef<typeof doSave | null>(null);
-  useEffect(() => { doSaveRef.current = doSave; }, [doSave]);
+  /**
+   * Γράφει ό,τι εκκρεμεί, στον προορισμό του, και το σβήνει από την ουρά.
+   *
+   * Ασφαλής να κληθεί πολλές φορές: χωρίς εκκρεμότητα δεν κάνει τίποτα.
+   */
+  const flush = useCallback(async () => {
+    if (timer.current) { clearTimeout(timer.current); timer.current = null; }
+    const p = pending.current;
+    if (!p) return;
+    pending.current = null;
+    await doSave(p.snapshot, p.target);
+  }, [doSave]);
+
+  // Κρατά αναφορά στην τελευταία flush, ώστε τα effects που τρέχουν μία φορά
+  // (αποπροσάρτηση) ή με άλλες εξαρτήσεις (φόρτωση) να καλούν την τρέχουσα
+  // έκδοση, όχι ένα παγωμένο αντίγραφο.
+  const flushRef = useRef<typeof flush | null>(null);
+  useEffect(() => { flushRef.current = flush; }, [flush]);
 
   // ── Update ────────────────────────────────────────────────────────────────
   const update = useCallback((patch: Partial<T>) => {
-    const targetAtCallTime = bound.current; // FIX C continued: capture target before any switch can happen
-    setData(prev => {
-      const next = { ...prev, ...patch } as T;
-      latest.current = next;
-      if (timer.current) clearTimeout(timer.current);
-      timer.current = setTimeout(() => doSave(latest.current, targetAtCallTime), 800);
-      return next;
-    });
-  }, [doSave]);
+    // Ο ΠΡΟΓΡΑΜΜΑΤΙΣΜΟΣ ΔΕΝ ΓΙΝΕΤΑΙ ΜΕΣΑ ΣΤΟΝ ΕΝΗΜΕΡΩΤΗ ΤΟΥ setState. Η React
+    // επιτρέπεται να τον καλέσει δύο φορές, οπότε ένας χρονομετρητής έμενε
+    // ορφανός — και κάθε παρενέργεια εκεί μέσα εκτελείται δύο φορές.
+    const next = { ...latest.current, ...patch } as T;
+    latest.current = next;
+    pending.current = { snapshot: next, target: bound.current };
+    setData(next);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => { void flush(); }, 800);
+  }, [flush]);
 
   return [data, update, loading];
 }

@@ -56,12 +56,18 @@ function Side({ label, side, kind, onOpen, actionLabel, action }: {
         textTransform: 'uppercase', color: 'var(--text-tertiary)',
       }}>{label}</span>
       {/* Ο αριθμός κλιμακώνεται με το πλάτος του ΠΛΑΙΣΙΟΥ (container query), ώστε
-          σε στενή οθόνη να μη σπάει σε δεύτερη γραμμή ούτε να ξεχειλίζει. */}
+          σε στενή οθόνη να μη σπάει σε δεύτερη γραμμή ούτε να ξεχειλίζει.
+
+          ΧΩΡΙΣ Math.round. Είχε μείνει από τότε που τα ακέραια ποσά γράφονταν
+          χωρίς υποδιαστολή. Από τη στιγμή που το `fe` βάζει πάντα δύο δεκαδικά,
+          το στρογγυλεμένο ποσό τυπωνόταν σαν να ήταν ακριβές: 97,45 € γινόταν
+          «97,00 €», ενώ η γραμμή ακριβώς από κάτω έλεγε «84,55 € ληξιπρόθεσμα».
+          Δύο ασυμβίβαστα νούμερα, στο ΠΡΩΤΟ πράγμα που βλέπει ο ιδιοκτήτης. */}
       <span className="cash-figure" style={{
         fontFamily: T.font.num, fontWeight: 700, color: 'var(--text-primary)',
         fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', lineHeight: 1.05,
         maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis',
-      }}>{fe(Math.round(side.total))}</span>
+      }}>{fe(side.total)}</span>
       <span style={{
         fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.45,
       }}>{note}</span>

@@ -1312,7 +1312,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                       title="Ό,τι μπήκε στο ταμείο από διαμονές αυτόν τον μήνα. Το δηλωτέο ποσό είναι μεγαλύτερο: το βλέπεις στη Λογιστική ως «Μεικτά έσοδα»." />
                     <KPI label="Από την αρχή έτους" value={feAuto(incomeYtd)} title="Εισπράξεις από διαμονές, από 1η Ιανουαρίου." />
                     <KPI label="Διανυκτερεύσεις" value={String(strNights)} />
-                    <KPI label="Μέση τιμή ανά βραδιά" value={strNights > 0 ? feAuto(Math.round(income / strNights)) : fe(0)} />
+                    <KPI label="Μέση τιμή ανά βραδιά" value={strNights > 0 ? feAuto(income / strNights) : fe(0)} />
                   </>
                 ) : (
                   <>

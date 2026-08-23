@@ -561,7 +561,12 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       },
       tenant: t ? { monthly_rent: t.monthly_rent, lease_end: t.lease_end } : null,
       rent, propValue: value, grossYield: grossY, netYield: netY, expensesYTD: total,
-      expenses: expenses.map(e => ({ category: e.category, amount: e.amount || 0, date: e.date, paid: e.paid !== false, payment_method: e.payment_method })),
+      expenses: expenses.map(e => ({ category: e.category, amount: e.amount || 0, date: e.date, // ΤΟ NULL ΔΕΝ ΕΙΝΑΙ «ΝΑΙ». Εδώ γραφόταν `e.paid !== false`, που περνά το
+        // άγνωστο ως εξοφλημένο — ακριβώς το σφάλμα που το lib/expenses/ledger.ts
+        // περιγράφει ως διορθωμένο και κρίνει με `paid === true`. Ο βοηθός
+        // έλεγε στον ιδιοκτήτη ότι δεν χρωστά τίποτα, ενώ η κάρτα «Χρωστάω»
+        // δίπλα του μετρούσε τις ίδιες δαπάνες ως ανοιχτές.
+        paid: e.paid === true, payment_method: e.payment_method })),
       bills: billRows.map(b => ({ type: b.category ?? undefined, amount: b.amount, paid: b.paid, due_date: b.due_date })),
       tasks: [], inventory: [],
       checklist: openTasks.map(i => ({ due_date: i.due_date, status: i.status ?? undefined, priority: i.priority ?? undefined })),

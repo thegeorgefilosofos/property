@@ -144,7 +144,7 @@ export function PanelScan() {
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '14px 0 10px', fontSize: 12, color: 'var(--text-secondary)' }}>
-        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7z" /></svg>
+        <svg aria-hidden="true" width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7z" /></svg>
         Μπήκε μόνος του σε:
       </div>
       {/* ═══ ΤΑ ΤΕΣΣΕΡΑ ΣΕ ΜΙΑ ΕΥΘΕΙΑ ════════════════════════════════════════
