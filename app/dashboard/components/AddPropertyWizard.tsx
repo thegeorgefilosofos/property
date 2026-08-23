@@ -900,7 +900,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
               ['Τιμή Αγοράς', num(purchasePrice) != null ? fe(num(purchasePrice)!) : fe(0)],
               purchaseDate ? ['Ημερομηνία Αγοράς', fd(purchaseDate)] : null,
               [airbnb ? 'Τιμή ανά διανυκτέρευση' : 'Στόχος Ενοικίου', rentN != null ? (airbnb ? fe(rentN) : `${fe(rentN)} / μήνα`) : fe(0)],
-              ['Ποσοστό Ιδιοκτησίας', `${fn(num(ownership) ?? 100)}%`],
+              ['Ποσοστό Ιδιοκτησίας', `${fn(num(ownership) ?? 100, 2)}%`],
               ['Εκτιμώμενη μεικτή απόδοση', grossYield != null ? `${fp(grossYield)}` : fp(0)],
             ].filter(Boolean) as [string, string][]).map(([k, v], i) => (
               <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>

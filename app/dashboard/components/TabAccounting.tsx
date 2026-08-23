@@ -7,8 +7,9 @@ import * as stayStore from '@/lib/data/stays';
 import * as rentStore from '@/lib/data/rent';
 import * as tenantStore from '@/lib/data/tenants';
 import { rentCollectionMode, collectionModeReason } from '@/lib/tax/rentCollectionMode';
-import * as expenseStore from '@/lib/data/expenses';
-import { T, TT, Skeleton, SkeletonKPIs, fe, fp, fixedCols } from '@/components/Theme'
+import * as expenseStore from '@/lib/data/expenses'
+import { ownerShareOf, ownerShareOfAmount } from '@/lib/expenses/sharing';
+import { T, TT, Skeleton, SkeletonKPIs, fe, fp, fn, fixedCols } from '@/components/Theme'
 import { ActionMenu } from '@/components/ActionMenu'
 import { ChevronLeft, ChevronRight, Download, Layers, Lightbulb, ArrowUpRight } from 'lucide-react'
 import { buildAdvisory, referLabel, type AdvisoryTone } from '@/lib/accounting/advisory'
@@ -313,7 +314,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // κόβονται με `Pick` στις στήλες που ΟΝΤΩΣ ζητά το `select`. Έτσι μια στήλη
   // που δεν ζητήθηκε δεν μπορεί να διαβαστεί κατά λάθος παρακάτω — σφάλμα που
   // με `any[]` έβγαινε ως `undefined` και κατέληγε σε μηδενικό ποσό στην οθόνη.
-  type ExpenseRow  = Pick<ExpensesRow, 'date'|'amount'|'category'|'expense_group'|'description'|'supplier_country'|'supply'|'supplier_afm'>
+  type ExpenseRow  = Pick<ExpensesRow, 'date'|'amount'|'category'|'expense_group'|'description'|'supplier_country'|'supply'|'supplier_afm'|'paid_by'|'share_percent'>
   type RentRow     = Pick<RentPaymentsRow, 'period_year'|'period_month'|'amount'|'paid'|'paid_date'|'due_date'|'method'>
   type PortfolioRentRow = RentRow & Pick<RentPaymentsRow, 'property_id'>
   type StayRow     = TaxStay & Pick<ClientStaysRow, 'id'|'channel'|'declared_at'>
@@ -323,8 +324,8 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // (2ος όροφος, 10-20 ετών) και έβγαινε 16,15% ψηλότερα από την ουδέτερη βάση.
   // Και ο `prop_type`: χωρίς αυτόν η εκτίμηση χρέωνε αποθήκη 20 τ.μ. με τον
   // πίνακα των κατοικιών (39,20 € τον χρόνο) και οικόπεδο 400 τ.μ. με 600,00 €.
-  type PropRow     = Pick<UserPropertiesRow, 'id'|'name'|'address'|'rental_mode'|'enfia'|'sqm'|'value'|'year_built'|'floor'|'purchase_price'|'purchase_date'|'prop_type'>
-  type PropListRow = Pick<UserPropertiesRow, 'id'|'name'|'rental_mode'|'status_detail'|'enfia'|'sqm'>
+  type PropRow     = Pick<UserPropertiesRow, 'id'|'name'|'address'|'rental_mode'|'enfia'|'sqm'|'value'|'year_built'|'floor'|'purchase_price'|'purchase_date'|'prop_type'|'ownership'>
+  type PropListRow = Pick<UserPropertiesRow, 'id'|'name'|'rental_mode'|'status_detail'|'enfia'|'sqm'|'ownership'>
   type InventoryRow = Pick<InventoryItemsRow, 'name'|'purchase_value'|'category'|'purchase_date'>
 
   const [expenses,setExpenses] = useState<ExpenseRow[]>([])
@@ -360,14 +361,14 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
       //
       // Ολα αυτά παρουσιάζονταν ως υπολογισμός, με κουμπί εξαγωγής από κάτω.
       const [exR, rpR, stR, lnR, prR, apsR, arpR, astR, invR, tnR] = await Promise.all([
-        expenseStore.ledgerWithError<ExpenseRow>(supabase,propertyId,{ columns:'date,amount,category,expense_group,description,supplier_country,supply,supplier_afm' }),
+        expenseStore.ledgerWithError<ExpenseRow>(supabase,propertyId,{ columns:'date,amount,category,expense_group,description,supplier_country,supply,supplier_afm,paid_by,share_percent' }),
         // Ο ΤΡΟΠΟΣ ΠΛΗΡΩΜΗΣ ΕΙΝΑΙ ΦΟΡΟΛΟΓΙΚΟ ΣΤΟΙΧΕΙΟ, ΟΧΙ ΔΙΑΚΟΣΜΗΤΙΚΟ: από
         // αυτόν κρίνεται η τεκμαρτή έκπτωση 5%. Μία στήλη παραπάνω στο ίδιο ερώτημα.
         rentStore.ofPropertyWithError<RentRow>(supabase,propertyId,`${rentStore.LEDGER_COLUMNS},method`,userId),
         stayStore.ofPropertyWithError<StayRow>(supabase,propertyId,`id,${stayStore.ACCOUNTING_COLUMNS}`,userId),
         loanStore.ofPropertyWithError(supabase,propertyId,userId),
-        properties.oneWithError<PropRow>(supabase, propertyId, 'id,name,address,rental_mode,enfia,sqm,value,year_built,floor,purchase_price,purchase_date,prop_type', userId),
-        properties.listWithError<PropListRow>(supabase, userId, { columns: 'id,name,rental_mode,status_detail,enfia,sqm' }),
+        properties.oneWithError<PropRow>(supabase, propertyId, 'id,name,address,rental_mode,enfia,sqm,value,year_built,floor,purchase_price,purchase_date,prop_type,ownership', userId),
+        properties.listWithError<PropListRow>(supabase, userId, { columns: 'id,name,rental_mode,status_detail,enfia,sqm,ownership' }),
         rentStore.ofUserWithError<PortfolioRentRow>(supabase,userId,`property_id,${rentStore.LEDGER_COLUMNS}`),
         stayStore.ofUserWithError<PortfolioStayRow>(supabase,userId,`property_id,${stayStore.ACCOUNTING_COLUMNS}`),
         inventoryStore.ofPropertyWithError<InventoryRow>(supabase,propertyId,'name,purchase_value,category,purchase_date',userId),
@@ -394,19 +395,48 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const isShort = readStatus(prop as StatusRow) === 'rent_short'
   const regime:TaxRegime = isShort ? 'individual_shortterm' : 'individual_longterm'
   const propCount = Math.max(1, allProps.length)
+  // ══════════════════════════════════════════════════════════════════════════
+  // ΤΟ ΜΕΡΙΔΙΟ ΤΟΥ ΣΥΝΙΔΙΟΚΤΗΤΗ, ΠΟΥ Η ΚΑΡΤΕΛΑ ΔΕΝ ΡΩΤΟΥΣΕ ΚΑΝ
+  //
+  // Το ερώτημα προς τη βάση δεν ζητούσε τη στήλη `ownership`. Ο ιδιοκτήτης με
+  // 33,33% σε τρία κληρονομημένα διαμερίσματα έβλεπε τα ακαθάριστα, τις
+  // δαπάνες, τον φόρο και το «βάλε στην άκρη» ΟΛΟΚΛΗΡΟΥ του ακινήτου, χωρίς
+  // καμία γραμμή να το λέει. Μετρημένο: φόρος 8.803 € αντί για 3.835 €, και
+  // μηνιαία πρόβλεψη 733,58 € αντί για 319,57 €.
+  //
+  // Το Ε2 της ΙΔΙΑΣ εφαρμογής έκοβε σωστά στο μερίδιο (lib/billing/e2.ts:144),
+  // οπότε οι δύο οθόνες έδιναν διαφορετική απάντηση στην ίδια ερώτηση.
+  //
+  // Η προτεραιότητα ανάμεσα σε αυτό και στη ρητή δήλωση κάθε δαπάνης
+  // («το πλήρωσε ο ενοικιαστής», «μοιρασμένο 50/50») ζει στο
+  // lib/expenses/sharing.ts, μία φορά, με τους ελέγχους της.
+  // ══════════════════════════════════════════════════════════════════════════
+  const ownPct = useMemo(()=>{ const v = Number(prop?.ownership); return Number.isFinite(v) && v > 0 ? v : 100 },[prop])
+  const isCoOwned = ownPct < 100
+  /** Το μερίδιό μου σε ποσό που ανήκει ΟΛΟΚΛΗΡΟ στο ακίνητο. */
+  const mine = useCallback((amount:number)=>ownerShareOfAmount(amount, ownPct),[ownPct])
+  /** Το ποσοστό ΑΛΛΟΥ ακινήτου του χαρτοφυλακίου, για την ενοποίηση. */
+  const pctOf = useCallback((pid:string|null|undefined)=>{
+    const v = Number(allProps.find(x=>x.id===pid)?.ownership)
+    return Number.isFinite(v) && v > 0 ? v : 100
+  },[allProps])
   // ΕΝΦΙΑ: προτεραιότητα στο καταχωρημένο ποσό· αλλιώς αυτόματη εκτίμηση από
   // αξία, τετραγωνικά, έτος κατασκευής και όροφο.
   const enfia = useMemo(()=>{
+    // Ο ΕΝΦΙΑ ΒΑΡΥΝΕΙ ΤΟΝ ΚΑΘΕ ΣΥΝΙΔΙΟΚΤΗΤΗ ΚΑΤΑ ΤΟ ΜΕΡΙΔΙΟ ΤΟΥ. Η
+    // `estimateENFIAFromFacts` δεν δέχεται καν ποσοστό (lib/billing/enfia.ts),
+    // οπότε έβγαζε πάντα τον φόρο ολόκληρου του ακινήτου: 229,55 € αντί για
+    // 76,51 € σε ακίνητο κατεχόμενο κατά το ένα τρίτο.
     const stored = resolveEnfia({ propertyEnfia: prop?.enfia }).annual
-    if(stored>0) return stored
+    if(stored>0) return mine(stored)
     // Έτος κατασκευής και όροφος περνούν όπως είναι αποθηκευμένα· η enfia.ts τα
     // μεταφράζει σε κλιμάκιο και σε κλειδί ορόφου. Όποιο λείπει → ουδέτερο 1,00.
-    return estimateENFIAFromFacts({
+    return mine(estimateENFIAFromFacts({
       value: prop?.value, sqm: prop?.sqm,
       yearBuilt: prop?.year_built, floor: prop?.floor,
       taxYear: year, propType: prop?.prop_type,
-    })?.annual ?? 0
-  },[prop,year])
+    })?.annual ?? 0)
+  },[prop,year,mine])
   const enfiaEstimated = useMemo(()=>!(resolveEnfia({ propertyEnfia: prop?.enfia }).annual>0) && enfia>0,[prop,enfia])
   // Οικόπεδο ή βοηθητικός χώρος χωρίς καταχωρημένο ποσό: ο ΕΝΦΙΑ λείπει από τα
   // βιβλία και η οθόνη το λέει, αντί να δείχνει εκτίμηση κατοικίας.
@@ -426,8 +456,8 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // Ετήσια στοιχεία τρέχοντος ακινήτου. Φόρος επί ΔΕΔΟΥΛΕΥΜΕΝΟΥ (accrued) ενοικίου
   //, φορολογείται ό,τι οφείλεται, ανεξάρτητα είσπραξης· τα ανείσπρακτα μειώνουν
   // μόνο το ταμείο. (Μακροχρόνια.)
-  const rentAccruedYear = useMemo(()=>rent.filter(p=>p.period_year===year).reduce((s,p)=>s+(p.amount||0),0),[rent,year])
-  const rentCollectedYear = useMemo(()=>rent.filter(p=>p.paid&&p.period_year===year).reduce((s,p)=>s+(p.amount||0),0),[rent,year])
+  const rentAccruedYear = useMemo(()=>mine(rent.filter(p=>p.period_year===year).reduce((s,p)=>s+(p.amount||0),0)),[rent,year,mine])
+  const rentCollectedYear = useMemo(()=>mine(rent.filter(p=>p.paid&&p.period_year===year).reduce((s,p)=>s+(p.amount||0),0)),[rent,year,mine])
   const shortSummary = useMemo(()=>shortTermYearSummary(stays, year, { sqm: prop?.sqm, isHouse:false, propertyCount:propCount, individual:true }),[stays,year,prop,propCount])
   const expensesYear = useMemo(()=>expenses.filter(e=>(e.date||'').slice(0,4)===String(year)&&(e.amount||0)>0),[expenses,year])
   // ── Η ΠΡΟΜΗΘΕΙΑ ΤΗΣ ΠΛΑΤΦΟΡΜΑΣ ΕΙΝΑΙ ΔΑΠΑΝΗ, ΚΑΙ ΜΠΑΙΝΕΙ ΣΤΑ ΒΙΒΛΙΑ ──────
@@ -459,8 +489,8 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const platformFeeRows = useMemo(()=>platformFeeExpenses(stays,year).filter(r=>!ownFeeMonths.has(r.date.slice(0,7))),[ownFeeMonths,stays,year])
   const platformFeesYear = useMemo(()=>platformFeeRows.reduce((s,r)=>s+r.amount,0),[platformFeeRows])
   // Εξαιρούμε τον ΕΝΦΙΑ ως δαπάνη, τον μετράμε ξεχωριστά (αποφυγή διπλομέτρησης).
-  const expensesTotal = useMemo(()=>expensesYear.filter(e=>e.category!=='ΕΝΦΙΑ').reduce((s,e)=>s+(e.amount||0),0)+platformFeesYear,[expensesYear,platformFeesYear])
-  const deductibleTotal = useMemo(()=>expensesYear.filter(e=>isGroupDeductible(e.expense_group)&&e.category!=='ΕΝΦΙΑ').reduce((s,e)=>s+(e.amount||0),0)+platformFeesYear,[expensesYear,platformFeesYear])
+  const expensesTotal = useMemo(()=>expensesYear.filter(e=>e.category!=='ΕΝΦΙΑ').reduce((s,e)=>s+ownerShareOf(e,ownPct),0)+mine(platformFeesYear),[expensesYear,platformFeesYear,ownPct,mine])
+  const deductibleTotal = useMemo(()=>expensesYear.filter(e=>isGroupDeductible(e.expense_group)&&e.category!=='ΕΝΦΙΑ').reduce((s,e)=>s+ownerShareOf(e,ownPct),0)+mine(platformFeesYear),[expensesYear,platformFeesYear,ownPct,mine])
   // Δόσεις δανείων ΜΟΝΟ όσο το δάνειο είναι ενεργό στη χρήση (όχι φαντάσματα).
   const loanAnnual = useMemo(()=>loans.reduce((s,l)=>{ if(!loanActiveInYear(l))return s; const m=annuityMonthly(Number(l.amount)||0,Number(l.rate)||0,Number(l.years)||0); return s+m*12 },0),[loans,year,loanActiveInYear])
   const loanInterestYear = useMemo(()=>loans.reduce((s,l)=>{ const amount=Number(l.amount)||0, rate=Number(l.rate)||0, yrs=Number(l.years)||0; const startY=l.start_date?Number(String(l.start_date).slice(0,4)):year; const idx=year-startY+1; return s+interestForYear(amount,rate,yrs,idx) },0),[loans,year])
@@ -523,7 +553,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // ερώτημα είναι «πόσο αξίζει σήμερα», που δεν το απαντά ο φορολογικός πίνακας.
   const inventoryDepr = useMemo(()=>
     Math.round(assets.filter(a=>a.elp===EQUIPMENT_ACCOUNT).reduce((s,a)=>s+chargeForYear(a,year),0)),[assets,year])
-  const grossIncome = regime==='individual_shortterm' ? shortSummary.grossRevenue : rentAccruedYear
+  const grossIncome = regime==='individual_shortterm' ? mine(shortSummary.grossRevenue) : rentAccruedYear
   const uncollectedRent = regime==='individual_shortterm' ? 0 : Math.max(0, rentAccruedYear - rentCollectedYear)
   // Τι λένε τα δεδομένα, και τι ισχύει τελικά (η παράκαμψη του χρήστη νικά).
   const collection = useMemo(() => rentCollectionMode(rent, year, leaseViaBank), [rent, year, leaseViaBank])
@@ -538,14 +568,17 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
       const pRentAccrued = allRent.filter(r=>r.property_id===p.id&&r.period_year===year).reduce((s,r)=>s+(r.amount||0),0)
       const pStays = allStays.filter(s=>s.property_id===p.id)
       const pShort = shortTermYearSummary(pStays, year, { sqm:p.sqm??null, isHouse:false, propertyCount:propCount, individual:true })
-      const gross = rmode==='individual_shortterm' ? pShort.grossRevenue : pRentAccrued
-      const input:StatementInput = { regime:rmode, grossIncome:gross, enfia: resolveEnfia({ propertyEnfia:p.enfia }).annual, rentsPaidViaBank: rentsBank,
+      // Κάθε ακίνητο με ΤΟ ΔΙΚΟ ΤΟΥ ποσοστό: ένα χαρτοφυλάκιο μπορεί να έχει
+      // δύο κληρονομιές στο ένα τρίτο και ένα διαμέρισμα ολόκληρο.
+      const pPct = pctOf(p.id)
+      const gross = ownerShareOfAmount(rmode==='individual_shortterm' ? pShort.grossRevenue : pRentAccrued, pPct)
+      const input:StatementInput = { regime:rmode, grossIncome:gross, enfia: ownerShareOfAmount(resolveEnfia({ propertyEnfia:p.enfia }).annual, pPct), rentsPaidViaBank: rentsBank,
         climateLevy: rmode==='individual_shortterm'?pShort.levyShortfall:0, municipalTax: rmode==='individual_shortterm'?pShort.municipalTax:0 }
       return { id:p.id, name:p.name||'Ακίνητο', input }
     }).filter(x=>x.input.grossIncome>0)
     if(items.length===0) return null
     return { con: consolidateIndividual(items.map(i=>({id:i.id,input:i.input})), rentalBracketsForYear(year)), names:Object.fromEntries(items.map(i=>[i.id,i.name])), count:items.length }
-  },[allProps,allRent,allStays,year,propCount,prop,propertyId,rentsBank])
+  },[allProps,allRent,allStays,year,propCount,prop,propertyId,rentsBank,pctOf])
   const myTaxShare = useMemo(()=>consolidation?.con.perProperty.find(p=>p.id===propertyId)?.taxShare,[consolidation,propertyId])
   const portfolio = (mode==='professional' && elp==='personal') ? consolidation : null
 
@@ -1016,6 +1049,21 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               βάρος, ίδια απόσταση — αλλάζει μόνο τι ακούει ο αναγνώστης οθόνης. */}
           <h1 style={{ fontFamily: T.font.sans, fontSize:20, fontWeight:700, color:'var(--text-primary)', margin:0, letterSpacing:'0.1px' }}>Λογιστική</h1>
           <p style={{ fontSize:13, color:'var(--text-secondary)', margin:'4px 0 0', fontFamily: T.font.sans }}>{regimeLabel} · έσοδα, φόρος και καθαρό αποτέλεσμα, με βάση τα πραγματικά σου δεδομένα.</p>
+          {/* ══════════════════════════════════════════════════════════════
+              Ο ΣΥΝΙΔΙΟΚΤΗΤΗΣ ΠΡΕΠΕΙ ΝΑ ΞΕΡΕΙ ΤΙ ΚΟΙΤΑΖΕΙ
+
+              Τα ποσά κόβονται πλέον στο μερίδιό του — αλλά ένας αριθμός που
+              άλλαξε σιωπηλά είναι δεύτερη έκπληξη μετά την πρώτη. Η γραμμή
+              λέει ΤΙ βλέπει και ΓΙΑΤΙ, ώστε να μπορεί να το διασταυρώσει με
+              το μισθωτήριο και με τα αδέρφια του.
+
+              Δεν εμφανίζεται σε πλήρη ιδιοκτησία: εκεί δεν λέει τίποτα.
+              ══════════════════════════════════════════════════════════════ */}
+          {isCoOwned && (
+            <p style={{ fontSize:13, color:'var(--text-secondary)', margin:'6px 0 0', fontFamily: T.font.sans }}>
+              Συνιδιοκτησία {fn(ownPct, 2)}%: κάθε ποσό εδώ είναι το ΔΙΚΟ σου μερίδιο, όχι το σύνολο του ακινήτου. Οι δαπάνες που δήλωσες μοιρασμένες κρατούν το δικό τους ποσοστό.
+            </p>
+          )}
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
           {/* ΜΙΑ ΕΡΩΤΗΣΗ, ΟΧΙ ΔΥΟ. Δίπλα σε αυτή ζούσε δεύτερη, «Ατομική ή
