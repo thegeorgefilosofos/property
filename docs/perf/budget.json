@@ -1,46 +1,54 @@
 {
-  "note": "Μετρημένο με scripts/perf-budget.mjs σε παραγωγικό build. Το όριο μόνο κατεβαίνει.",
+  "note": "Bytes ΚΑΛΩΔΙΟΥ (gzip), scripts/perf-budget.mjs σε παραγωγικό build. Το όριο μόνο κατεβαίνει.",
   "slack": 0.08,
   "routes": {
     "/": {
-      "js": 543392,
-      "total": 1004912,
+      "initial": 165761,
+      "js": 166046,
+      "total": 308445,
       "what": "αρχική, η πρώτη οθόνη κάθε επισκέπτη"
     },
     "/ypologismos-forou-enoikion": {
-      "js": 564754,
-      "total": 749942,
+      "initial": 172848,
+      "js": 173150,
+      "total": 268785,
       "what": "φόρος ενοικίων, το βαρύτερο δημόσιο εργαλείο"
     },
     "/ypologismos-enfia": {
-      "js": 589680,
-      "total": 781782,
+      "initial": 180612,
+      "js": 180915,
+      "total": 275739,
       "what": "ΕΝΦΙΑ"
     },
     "/vraxyxronia-i-makroxronia": {
-      "js": 586263,
-      "total": 804124,
+      "initial": 179642,
+      "js": 179945,
+      "total": 277921,
       "what": "βραχυχρόνια ή μακροχρόνια"
     },
     "/kathari-apodosi": {
-      "js": 536997,
-      "total": 729734,
+      "initial": 165583,
+      "js": 165868,
+      "total": 263553,
       "what": "καθαρή απόδοση"
     },
-    "/tameio": {
-      "js": 773102,
-      "total": 915329,
-      "what": "ταμείο"
-    },
     "/login": {
-      "js": 773102,
-      "total": 911046,
+      "initial": 159686,
+      "js": 226234,
+      "total": 313415,
       "what": "σύνδεση"
     },
     "/signup": {
-      "js": 796402,
-      "total": 942118,
+      "initial": 166558,
+      "js": 233106,
+      "total": 321275,
       "what": "εγγραφή"
+    },
+    "/privacy": {
+      "initial": 153139,
+      "js": 153388,
+      "total": 263467,
+      "what": "πολιτική απορρήτου"
     }
   }
 }

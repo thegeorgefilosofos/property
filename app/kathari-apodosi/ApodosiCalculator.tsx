@@ -30,6 +30,7 @@ import { FIRST_YEAR_NEW_BRACKETS } from '@/lib/billing/greekTax';
 import { useToolState, ToolActions, ToolPaper, ToolPaperFoot } from '@/app/ToolShare';
 import { ToolCta } from '@/app/PublicChrome';
 
+import LiveResult from '@/components/LiveResult';
 /** Τα πεδία όπως ταξιδεύουν στη διεύθυνση, με τις προεπιλογές τους. */
 const SPEC = {
   axia: '200000', enoikio: '700', mines: '12',
@@ -47,7 +48,12 @@ const FIELD: React.CSSProperties = {
   width: '100%', height: T.h.lg, padding: '0 14px', borderRadius: T.radius.btn,
   border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
   color: 'var(--text-primary)', fontSize: 16, fontFamily: T.font.num,
-  fontVariantNumeric: 'tabular-nums', outline: 'none', boxSizing: 'border-box',
+    // ΚΑΜΙΑ ΑΠΕΝΕΡΓΟΠΟΙΗΣΗ ΤΟΥ ΔΑΧΤΥΛΙΔΙΟΥ ΕΣΤΙΑΣΗΣ. Το `outline: 'none'` εδώ
+    // ήταν inline, άρα νικούσε το :focus-visible του globals.css — και δεν
+    // έμπαινε τίποτα στη θέση του. Μετρημένο σε πραγματικό περιηγητή: με το
+    // πεδίο εστιασμένο, outlineWidth 0px, boxShadow none, εικόνα ΤΑΥΤΟΣΗΜΗ με
+    // την ανεστίαστη. Ο χρήστης πληκτρολογίου δεν έβλεπε πού βρίσκεται.
+  fontVariantNumeric: 'tabular-nums', boxSizing: 'border-box',
 };
 const UNIT: React.CSSProperties = {
   position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
@@ -196,6 +202,7 @@ export function ApodosiCalculator({ year, today }: { year: number; today: string
           <div {...fixedCols(2, 24, 'start')}>
             <Figure label="Καθαρή απόδοση" value={fp((r.netYield ?? 0) * 100)}/>
             <Figure label="Μεικτή απόδοση" value={fp((r.grossYield ?? 0) * 100)}/>
+            <LiveResult say={`Καθαρή απόδοση ${fp((r.netYield ?? 0) * 100)}. Μεικτή ${fp((r.grossYield ?? 0) * 100)}.`} />
           </div>
         ) : (
           <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6, color: 'var(--text-secondary)' }}>

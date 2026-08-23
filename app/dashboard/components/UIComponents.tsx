@@ -85,7 +85,12 @@ const mdInputBase: React.CSSProperties = {
   fontSize: 14,
   fontFamily: T.font.sans,
   letterSpacing: 0,
-  outline: 'none',
+  // ΤΟ ΔΑΧΤΥΛΙΔΙ ΕΣΤΙΑΣΗΣ ΜΕΝΕΙ. Ηταν `outline: 'none'` — inline, άρα νικούσε
+  // τον κανόνα :focus-visible του globals.css σε ΚΑΘΕ πεδίο που χτίζεται πάνω
+  // σε αυτή τη βάση. Οσα components ζωγραφίζουν και δικό τους σημάδι εστίασης
+  // (CustomSelect) κρατούν και τα δύο: το δικό τους δηλώνει κατάσταση, το
+  // δαχτυλίδι δηλώνει «εδώ είναι ο δείκτης του πληκτρολογίου», και μόνο το
+  // δεύτερο είναι εγγύηση προσβασιμότητας.
   boxSizing: 'border-box' as const,
   height: FIELD_HEIGHT,
   transition: 'border-color 0.15s, box-shadow 0.15s',

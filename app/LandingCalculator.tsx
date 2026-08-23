@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { rentalIncomeTax, RENTAL_TAX_BRACKETS_2026, taxRateLabel } from '@/lib/billing/greekTax'
 import { fe, fp } from '@/lib/core/format'
 import { PRESUMPTIVE_DEDUCTION_RATE } from '@/lib/accounting/statement'
+import LiveResult from '@/components/LiveResult'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Ζωντανό εργαλείο απόδοσης μέσα στο landing. Τρέχει την ΙΔΙΑ ακριβή φορολογική
@@ -134,6 +135,7 @@ export default function LandingCalculator() {
       {/* Δεξιά: το αποτέλεσμα, ζωντανά */}
       <div className="calc-panel" style={{ display: 'flex', flexDirection: 'column', gap: 22, background: 'var(--bg-elevated)' }}>
         <Stat label="Καθαρή απόδοση, μετά τον φόρο" value={pct(netYield)} big />
+        <LiveResult say={`Καθαρή απόδοση μετά τον φόρο ${pct(netYield)}. Καθαρά τον μήνα ${fe(monthlyNet)}.`} />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, paddingTop: 4, borderTop: '1px solid var(--border-subtle)' }}>
           <Stat label="Καθαρά τον μήνα" value={fe(monthlyNet)} />
           <Stat label="Ακαθάριστη απόδοση" value={pct(grossYield)} />

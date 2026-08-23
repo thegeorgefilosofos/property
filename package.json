@@ -31,6 +31,7 @@
     "e2e:perimeter": "node scripts/e2e-perimeter.mjs",
     "e2e:push": "node scripts/e2e-push.mjs",
     "e2e:money": "node scripts/e2e-money.mjs",
+    "e2e:a11y": "node scripts/e2e-a11y.mjs",
     "posts": "tsx scripts/marketing/posts.ts",
     "reel": "tsx scripts/marketing/reel.ts",
     "perf:budget": "node scripts/perf-budget.mjs",

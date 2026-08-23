@@ -30,6 +30,7 @@ import { CustomSelect } from '@/app/dashboard/components/UIComponents';
 import { useToolState, ToolActions, ToolPaper, ToolPaperFoot } from '@/app/ToolShare';
 import { ToolCta } from '@/app/PublicChrome';
 
+import LiveResult from '@/components/LiveResult';
 const amount = (s: string): number => Math.max(0, parseAmount(s) ?? 0);
 
 /** Τα πεδία όπως ταξιδεύουν στη διεύθυνση, με τις προεπιλογές τους. */
@@ -79,7 +80,12 @@ export function ShortVsLongCalculator({ today }: { today: string }) {
     width: '100%', height: T.h.lg, padding: '0 12px', borderRadius: T.radius.btn,
     border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
     color: 'var(--text-primary)', fontSize: 15, fontFamily: T.font.num,
-    fontVariantNumeric: 'tabular-nums', outline: 'none', boxSizing: 'border-box',
+    // ΚΑΜΙΑ ΑΠΕΝΕΡΓΟΠΟΙΗΣΗ ΤΟΥ ΔΑΧΤΥΛΙΔΙΟΥ ΕΣΤΙΑΣΗΣ. Το `outline: 'none'` εδώ
+    // ήταν inline, άρα νικούσε το :focus-visible του globals.css — και δεν
+    // έμπαινε τίποτα στη θέση του. Μετρημένο σε πραγματικό περιηγητή: με το
+    // πεδίο εστιασμένο, outlineWidth 0px, boxShadow none, εικόνα ΤΑΥΤΟΣΗΜΗ με
+    // την ανεστίαστη. Ο χρήστης πληκτρολογίου δεν έβλεπε πού βρίσκεται.
+    fontVariantNumeric: 'tabular-nums', boxSizing: 'border-box',
   };
   const label: React.CSSProperties = {
     display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
@@ -217,6 +223,7 @@ export function ShortVsLongCalculator({ today }: { today: string }) {
         <div {...fixedCols(2, 24, 'start')}>
           <Figure label="Μακροχρόνια, καθαρά" value={feAuto(r.long.net)} />
           <Figure label="Βραχυχρόνια, καθαρά" value={feAuto(r.short.net)} />
+          <LiveResult say={`Μακροχρόνια ${feAuto(r.long.net)} καθαρά. Βραχυχρόνια ${feAuto(r.short.net)} καθαρά.`} />
         </div>
 
         <div style={{ height: 1, background: 'var(--border-subtle)', margin: '20px 0 16px' }}/>

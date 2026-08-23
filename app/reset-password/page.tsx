@@ -2,7 +2,7 @@
 import { T } from '@/components/Theme'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { authClient } from '@/lib/supabase/lazy';
 import Link from 'next/link'
 import AuthAside from '../AuthAside'
 import { checkPassword, PASSWORD_MIN_LABEL } from '@/lib/auth/password'
@@ -29,18 +29,28 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const supabase = createClient()
-    // Αν ο χρήστης ήρθε από τον σύνδεσμο email, το Supabase εκπέμπει PASSWORD_RECOVERY.
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') setMode('update')
-    })
+    // Ο ΚΑΘΑΡΙΣΜΟΣ ΠΡΕΠΕΙ ΝΑ ΕΠΙΒΙΩΣΕΙ ΤΗΣ ΑΝΑΒΟΛΗΣ. Με τον πελάτη να φορτώνεται
+    // ασύγχρονα, η οθόνη μπορεί να αποπροσαρτηθεί ΠΡΙΝ γραφτεί η συνδρομή. Χωρίς
+    // τη σημαία, θα γραφόταν συνδρομή σε οθόνη που δεν υπάρχει και δεν θα την
+    // έσβηνε ποτέ κανείς.
+    let sub: { unsubscribe: () => void } | null = null
+    let gone = false
+    void (async () => {
+      const supabase = await authClient()
+      if (gone) return
+      // Αν ο χρήστης ήρθε από τον σύνδεσμο email, το Supabase εκπέμπει PASSWORD_RECOVERY.
+      const { data } = supabase.auth.onAuthStateChange((event) => {
+        if (event === 'PASSWORD_RECOVERY') setMode('update')
+      })
+      sub = data.subscription
+    })()
     if (typeof window !== 'undefined' && window.location.hash.includes('type=recovery')) setMode('update')
-    return () => sub.subscription.unsubscribe()
+    return () => { gone = true; sub?.unsubscribe() }
   }, [])
 
   async function sendReset(e: React.FormEvent) {
     e.preventDefault(); setError(''); setLoading(true)
-    const supabase = createClient()
+    const supabase = await authClient()
     const redirectTo = `${window.location.origin}/reset-password`
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo })
     setLoading(false)
@@ -59,7 +69,7 @@ export default function ResetPasswordPage() {
     if (!pwOk) { setError(leakedPw === password ? 'Αυτός ο κωδικός βρίσκεται σε γνωστή διαρροή δεδομένων. Διάλεξε άλλον.' : 'Ο κωδικός δεν πληροί όλες τις προϋποθέσεις ασφαλείας.'); return }
     if (password !== confirm) { setError('Οι κωδικοί δεν ταιριάζουν.'); return }
     setLoading(true)
-    const supabase = createClient()
+    const supabase = await authClient()
     const { error } = await supabase.auth.updateUser({ password })
     setLoading(false)
     if (error) setError(failed('Ο κωδικός δεν άλλαξε', error)); else setMode('done')

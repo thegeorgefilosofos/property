@@ -25,7 +25,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import BrandMark from '@/components/BrandMark';
 import { T } from '@/components/tokens';
-import { createClient } from '@/lib/supabase/client';
+import { authClient } from '@/lib/supabase/lazy';
 import { PLANS, PLAN_ORDER, TRIAL_DAYS, type PlanId, type BillingCycle } from '@/lib/billing/plans';
 import { planFromParam, cycleFromParam } from '@/lib/billing/entitlements';
 import { fe } from '@/lib/core/format';
@@ -74,7 +74,7 @@ export default function CheckoutLanding() {
 
       // Η ΣΥΝΕΔΡΙΑ ΠΡΩΤΑ. Χωρίς αυτήν το ταμείο θα απαντούσε 401 και η οθόνη
       // θα έλεγε «δεν άνοιξε» για κάτι που απλώς δεν ρωτήθηκε ποτέ σωστά.
-      const { data, error } = await createClient().auth.getUser();
+      const { data, error } = await (await authClient()).auth.getUser();
       if (!alive) return;
       // Σφάλμα ανάγνωσης δεν είναι «συνδεδεμένος». Αν δεν μπορούμε να
       // αποδείξουμε τη συνεδρία, το ταμείο θα απαντούσε 401 και η οθόνη θα

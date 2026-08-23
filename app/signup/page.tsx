@@ -1,7 +1,7 @@
 'use client'
 import { T } from '@/components/Theme'
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { authClient } from '@/lib/supabase/lazy';
 import Link from 'next/link'
 import AlreadySignedIn from '../AlreadySignedIn'
 import AuthAside from '../AuthAside'
@@ -97,7 +97,9 @@ export default function SignupPage() {
     } catch {}
   }, [])
   useEffect(() => {
-    const supabase = createClient()
+    // Ασύγχρονο ξετύλιγμα: το effect δεν επιστρέφει ποτέ υπόσχεση.
+    void (async () => {
+    const supabase = await authClient()
     supabase.auth.getUser().then(async ({ data }) => {
       const u = data.user
       if (!u) { setSessionEmail(null); return }
@@ -144,6 +146,7 @@ export default function SignupPage() {
       }
       setSessionEmail(u.email ?? null)
     })
+    })()
   }, [])
 
   /** Γράφει την απόδειξη συγκατάθεσης ΜΟΝΟ αφού δοθεί, και μετά ανοίγει τον πίνακα. */
@@ -158,7 +161,7 @@ export default function SignupPage() {
       box?.focus()
       return
     }
-    const supabase = createClient()
+    const supabase = await authClient()
     try {
       await supabase.auth.updateUser({ data: {
         consent_terms_accepted_at: new Date().toISOString(),
@@ -170,7 +173,7 @@ export default function SignupPage() {
 
   async function signOut() {
     setSigningOut(true)
-    const supabase = createClient()
+    const supabase = await authClient()
     await supabase.auth.signOut()
     setSessionEmail(null); setSigningOut(false)
   }
@@ -207,7 +210,7 @@ export default function SignupPage() {
       return
     }
     setError('')
-    const supabase = createClient()
+    const supabase = await authClient()
     const back = new URLSearchParams({ oauth: '1' })
     if (refCode) back.set('ref', refCode)
     if (chosenPlan) { back.set('plan', chosenPlan); back.set('cycle', chosenCycle) }
@@ -219,7 +222,7 @@ export default function SignupPage() {
   }
 
   async function resend() {
-    const supabase = createClient()
+    const supabase = await authClient()
     await supabase.auth.resend({ type: 'signup', email })
     setResent(true)
   }
@@ -239,7 +242,7 @@ export default function SignupPage() {
       return
     }
     setError(''); setLoading(true)
-    const supabase = createClient()
+    const supabase = await authClient()
     // Αποδεικτικό συγκατάθεσης (GDPR, αρχή λογοδοσίας): καταγράφουμε στο προφίλ
     // του χρήστη ΠΟΤΕ αποδέχθηκε τους Όρους και την Πολιτική και ΠΟΙΑ έκδοσή τους,
     // ώστε η αποδοχή να είναι αποδείξιμη και να ζητηθεί εκ νέου αν αλλάξουν ουσιωδώς.

@@ -2,7 +2,7 @@
 import { T } from '@/components/Theme'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { authClient } from '@/lib/supabase/lazy';
 import Link from 'next/link'
 import AlreadySignedIn from '../AlreadySignedIn'
 import AuthAside from '../AuthAside'
@@ -38,7 +38,11 @@ export default function LoginPage() {
     : m
 
   useEffect(() => {
-    const supabase = createClient()
+    // Ο πελάτης φορτώνεται μετά το πρώτο σχεδίασμα, οπότε το effect ξετυλίγεται
+    // μέσα σε ασύγχρονη συνάρτηση: το ίδιο το effect ΔΕΝ επιτρέπεται να
+    // επιστρέψει υπόσχεση, γιατί η React διαβάζει την επιστροφή ως καθαρισμό.
+    void (async () => {
+    const supabase = await authClient()
     supabase.auth.getUser().then(({ data }) => {
       setSessionEmail(data.user?.email ?? null)
       // Ο ΣΥΝΔΕΣΜΟΣ ΕΠΙΒΕΒΑΙΩΣΗΣ ΠΟΥ ΔΕΝ ΔΟΥΛΕΨΕ ΛΕΓΕΤΑΙ ΜΕ ΛΕΞΕΙΣ. Η
@@ -52,11 +56,12 @@ export default function LoginPage() {
         setError('Ο σύνδεσμος επιβεβαίωσης δεν ισχύει πια. Συνδέσου με τον κωδικό σου, ή ζήτησε νέο σύνδεσμο από την εγγραφή.')
       }
     })
+    })()
   }, [])
 
   async function signOut() {
     setSigningOut(true)
-    const supabase = createClient()
+    const supabase = await authClient()
     await supabase.auth.signOut()
     setSessionEmail(null); setSigningOut(false)
   }
@@ -65,7 +70,7 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
-    const supabase = createClient()
+    const supabase = await authClient()
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) { setError(failed('Η σύνδεση δεν έγινε', error)); setLoading(false) }
     else router.push('/dashboard')
@@ -81,7 +86,7 @@ export default function LoginPage() {
   // Αν δεν υπάρχει, σταματά και ρωτά. Δεν συμπληρώνεται ποτέ εδώ: μια απόδειξη
   // που γράφτηκε χωρίς να δοθεί είναι χειρότερη από απόδειξη που λείπει.
   async function signInWithGoogle() {
-    const supabase = createClient()
+    const supabase = await authClient()
     await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}/signup?oauth=login` } })
   }
 

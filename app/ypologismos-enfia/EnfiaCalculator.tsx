@@ -31,6 +31,7 @@ import { enfiaInstalments, ENFIA_INSTALMENTS } from '@/lib/tools/enfiaSchedule';
 import { useToolState, ToolActions, ToolPaper, ToolPaperFoot } from '@/app/ToolShare';
 import { ToolCta } from '@/app/PublicChrome';
 
+import LiveResult from '@/components/LiveResult';
 const amount = (s: string): number => Math.max(0, parseAmount(s) ?? 0);
 
 /** Τα πεδία όπως ταξιδεύουν στη διεύθυνση, με τις προεπιλογές τους. */
@@ -79,7 +80,12 @@ export function EnfiaCalculator({ year, today }: { year: number; today: string }
     width: '100%', height: T.h.lg, padding: '0 12px', borderRadius: T.radius.btn,
     border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
     color: 'var(--text-primary)', fontSize: 15, fontFamily: T.font.sans,
-    outline: 'none', boxSizing: 'border-box',
+    // ΚΑΜΙΑ ΑΠΕΝΕΡΓΟΠΟΙΗΣΗ ΤΟΥ ΔΑΧΤΥΛΙΔΙΟΥ ΕΣΤΙΑΣΗΣ. Το `outline: 'none'` εδώ
+    // ήταν inline, άρα νικούσε το :focus-visible του globals.css — και δεν
+    // έμπαινε τίποτα στη θέση του. Μετρημένο σε πραγματικό περιηγητή: με το
+    // πεδίο εστιασμένο, outlineWidth 0px, boxShadow none, εικόνα ΤΑΥΤΟΣΗΜΗ με
+    // την ανεστίαστη. Ο χρήστης πληκτρολογίου δεν έβλεπε πού βρίσκεται.
+    boxSizing: 'border-box',
   };
   const numField: React.CSSProperties = { ...field, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' };
   const label: React.CSSProperties = {
@@ -185,6 +191,7 @@ export function EnfiaCalculator({ year, today }: { year: number; today: string }
                   πίνακας των δόσεων από κάτω, με ημερομηνίες. */}
               <Figure label="Ανά μήνα" value={feAuto(r.annual / ENFIA_INSTALMENTS)} big />
             </div>
+              <LiveResult say={`ΕΝΦΙΑ ${feAuto(r.annual)} τον χρόνο, ${feAuto(r.annual / ENFIA_INSTALMENTS)} τον μήνα.`} />
 
             <div style={{ height: 1, background: 'var(--border-subtle)', margin: '20px 0 16px' }}/>
 

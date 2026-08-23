@@ -33,6 +33,7 @@ import { Toggle } from '@/app/dashboard/components/UIComponents';
 import { ToolCta } from '@/app/PublicChrome';
 import { useToolState, ToolActions, ToolPaper, ToolPaperFoot } from '@/app/ToolShare';
 
+import LiveResult from '@/components/LiveResult';
 // ═══════════════════════════════════════════════════════════════════════════
 // ΤΟ 5% ΔΕΝ ΕΙΝΑΙ ΔΕΔΟΜΕΝΟ ΑΠΟ ΤΟ 2026, ΚΑΙ Η ΣΕΛΙΔΑ ΤΟ ΕΛΕΓΕ ΣΑΝ ΝΑ ΕΙΝΑΙ
 // ─────────────────────────────────────────────────────────────────────────
@@ -112,7 +113,12 @@ export function RentTaxCalculator({ today }: { today: string }) {
     width: '100%', height: T.h.lg, padding: '0 14px', borderRadius: T.radius.btn,
     border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
     color: 'var(--text-primary)', fontSize: 16, fontFamily: T.font.num,
-    fontVariantNumeric: 'tabular-nums', outline: 'none', boxSizing: 'border-box',
+    // ΚΑΜΙΑ ΑΠΕΝΕΡΓΟΠΟΙΗΣΗ ΤΟΥ ΔΑΧΤΥΛΙΔΙΟΥ ΕΣΤΙΑΣΗΣ. Το `outline: 'none'` εδώ
+    // ήταν inline, άρα νικούσε το :focus-visible του globals.css — και δεν
+    // έμπαινε τίποτα στη θέση του. Μετρημένο σε πραγματικό περιηγητή: με το
+    // πεδίο εστιασμένο, outlineWidth 0px, boxShadow none, εικόνα ΤΑΥΤΟΣΗΜΗ με
+    // την ανεστίαστη. Ο χρήστης πληκτρολογίου δεν έβλεπε πού βρίσκεται.
+    fontVariantNumeric: 'tabular-nums', boxSizing: 'border-box',
   };
   const label: React.CSSProperties = {
     display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
@@ -246,6 +252,7 @@ export function RentTaxCalculator({ today }: { today: string }) {
           <Figure label="Σου μένουν" value={feAuto(r.net)} big />
           <Figure label="Φόρος" value={feAuto(r.tax)} big />
         </div>
+        <LiveResult say={`Φόρος ${feAuto(r.tax)}. Σου μένουν ${feAuto(r.net)}.`} />
 
         <div style={{ height: 1, background: 'var(--border-subtle)', margin: '20px 0 16px' }}/>
 
