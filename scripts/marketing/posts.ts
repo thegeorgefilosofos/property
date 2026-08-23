@@ -32,8 +32,8 @@ import { MYAADE, AADE_HOME } from '../../lib/tax/aade';
 import { athensToday, daysUntil } from '../../lib/core/time';
 import { MONTHS_GEN } from '../../lib/core/months';
 import { fe } from '../../lib/core/format';
-import { askCta } from '../../lib/assistant/identity';
-import { page, clip, sentenceClip, caps, W, H } from './shell';
+import { askCta, ASSISTANT_NAME } from '../../lib/assistant/identity';
+import { page, clip, sentenceClip, caps, sourceName, W, H } from './shell';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright-core');
@@ -61,39 +61,48 @@ const dateGr = (iso: string): string => {
 
 interface Post { file: string; html: string; note: string; source: string }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// ΜΟΡΦΗ 1 · Ο ΜΕΤΡΗΤΗΣ
-// ═══════════════════════════════════════════════════════════════════════════
-
-function countdownWords(days: number): { big: string; small: string } {
-  if (days === 0) return { big: 'ΣΗΜΕΡΑ', small: '' };
-  if (days === 1) return { big: 'ΑΥΡΙΟ', small: '' };
-  return { big: String(days), small: 'ημέρες έμειναν' };
+/**
+ * Το ποσό σε μέγεθος αφίσας: το σύμβολο υποχωρεί, το νούμερο μένει.
+ *
+ * Στα 300px το «€» στο ίδιο μέγεθος με τα ψηφία τραβά το βλέμμα σε λάθος
+ * σημείο — το βλέμμα πρέπει να πέσει στο ΠΟΣΟ. Το σύμβολο μένει, γιατί χωρίς
+ * αυτό ο αριθμός δεν σημαίνει τίποτα· απλώς παίρνει τη θέση που του αναλογεί.
+ */
+function bigEuro(n: number): string {
+  const t = fe(n);
+  const i = t.lastIndexOf(' ');
+  return `${t.slice(0, i)}<small>${t.slice(i)}</small>`;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ΜΟΡΦΗ 1 · Ο ΜΕΤΡΗΤΗΣ
+// ─────────────────────────────────────────────────────────────────────────
+// ΣΤΑΣΗ: ο αριθμός πάνω, η υποχρέωση κάτω, και ανάμεσά τους αέρας. Ο αριθμός
+// δεν εξηγείται· φαίνεται. Οποιος τον δει και δεν ξέρει τι είναι, θα διαβάσει
+// το κάτω μέρος — και αυτή ακριβώς η κίνηση του βλέμματος είναι η ανάρτηση.
+// ═══════════════════════════════════════════════════════════════════════════
+
 function countdownPost(o: TaxObligation, days: number): Post {
-  const c = countdownWords(days);
-  const numeric = /^\d+$/.test(c.big);
-  // Η ΜΠΑΡΑ ΕΙΝΑΙ Ο ΜΕΤΡΗΤΗΣ, και είναι ο τρόπος που η ίδια η εφαρμογή δείχνει
-  // πρόοδο. Γεμίζει όσο πλησιάζει η προθεσμία, μέσα στον ορίζοντα.
-  const fill = Math.max(4, Math.min(100, Math.round((1 - days / MAX_DAYS) * 100)));
+  // ΜΗΔΕΝ ΚΑΙ ΕΝΑ ΔΕΝ ΓΡΑΦΟΝΤΑΙ ΜΕ ΨΗΦΙΟ. «ΣΗΜΕΡΑ» χτυπά πιο δυνατά από ένα
+  // «0», και το «1 ημέρα» διαβάζεται ως λάθος πληκτρολόγησης.
+  const word = days === 0 ? 'ΣΗΜΕΡΑ' : days === 1 ? 'ΑΥΡΙΟ' : null;
   const css = `
-    .count{display:flex;align-items:baseline;gap:20px}
-    .count .n{font-size:${numeric ? '250px' : '120px'};font-weight:800;line-height:0.84;
-              letter-spacing:-0.05em;color:var(--accent);font-variant-numeric:tabular-nums}
-    .count .u{font-size:40px;font-weight:500;color:var(--text-secondary);padding-bottom:16px}
-    .bar{height:14px;border-radius:100px;background:var(--border-subtle);overflow:hidden}
-    .bar i{display:block;height:100%;width:${fill}%;background:var(--accent);border-radius:100px}
-    .when{font-size:34px;color:var(--text-secondary)}`;
-  const body = `
-    <div class="eyebrow">${caps('Προθεσμία για ιδιοκτήτες')}</div>
-    <div class="count"><span class="n">${c.big}</span><span class="u">${c.small}</span></div>
-    <div class="bar"><i></i></div>
+    .n{font-size:${word ? 190 : 400}px;${word ? 'letter-spacing:-0.03em;' : ''}}
+    .unit{font-family:"Roboto Mono",monospace;font-size:26px;font-weight:500;
+          letter-spacing:0.22em;color:var(--muted);margin-top:34px}
+    h1{font-size:62px;margin-top:auto}
+    .when{font-family:"Roboto Mono",monospace;font-size:28px;font-weight:500;
+          letter-spacing:0.06em;color:var(--accent);margin:26px 0 44px}`;
+  const soon = o.confidence === 'announced' ? 'αναμένεται' : '';
+  const when = word ? soon : [dateGr(o.date), soon].filter(Boolean).join(' · ');
+  const stage = `
+    <div class="huge n">${word || days}</div>
+    <div class="unit">${word ? caps(dateGr(o.date)) : 'ΗΜΕΡΕΣ ΕΜΕΙΝΑΝ'}</div>
     <h1>${o.title}</h1>
-    <div class="when">${dateGr(o.date)}${o.confidence === 'announced' ? ' (αναμένεται)' : ''}</div>`;
+    ${when ? `<div class="when">${when}</div>` : ''}`;
   return {
     file: `metritis-${o.id}.png`,
-    html: page(body, o.official_url, css),
+    html: page(caps('Προθεσμία'), stage, sourceName(o.official_url), css),
     note: `${o.title} · ${dateGr(o.date)} · σε ${days} ημέρες · ${o.confidence === 'statutory' ? 'θεσμοθετημένη' : 'αναμένεται'}`,
     source: o.official_url,
   };
@@ -102,9 +111,13 @@ function countdownPost(o: TaxObligation, days: number): Post {
 // ═══════════════════════════════════════════════════════════════════════════
 // ΜΟΡΦΗ 2 · ΤΟ ΛΑΘΟΣ ΠΟΥ ΚΟΣΤΙΖΕΙ
 // ─────────────────────────────────────────────────────────────────────────
-// Η αριθμητική γίνεται ΜΠΡΟΣΤΑ ΣΤΑ ΜΑΤΙΑ ΤΟΥ ΘΕΑΤΗ, και υπολογίζεται από την
-// ίδια συνάρτηση που υπολογίζει τον φόρο μέσα στην εφαρμογή. Καμία στρογγυλή
-// «περίπου» εκτίμηση: ή ξέρουμε το νούμερο ή δεν κάνουμε την ανάρτηση.
+// ΣΤΑΣΗ: η απάντηση πρώτη, η απόδειξη δεύτερη. Η πρώτη εκδοχή ξεκινούσε με
+// «Παίρνεις το ενοίκιο σε μετρητά» και κατέληγε στο ποσό — δηλαδή ζητούσε
+// από τον θεατή να διαβάσει τρεις γραμμές πριν πάρει τον λόγο να μείνει.
+// Στο χρονολόγιο δεν τον παίρνει: φεύγει στη δεύτερη.
+//
+// Η αριθμητική μένει ΟΛΟΚΛΗΡΗ από κάτω, γιατί χωρίς αυτήν το ποσό είναι
+// ισχυρισμός· και υπολογίζεται από τη μηχανή φόρου του ίδιου του προϊόντος.
 // ═══════════════════════════════════════════════════════════════════════════
 
 /** Ετήσια ενοίκια που καλύπτουν τυπικά ελληνικά χαρτοφυλάκια, ένα ανά κλιμάκιο. */
@@ -113,36 +126,41 @@ const RENT_CASES = [9_600, 14_400, 30_000, 48_000];
 function cashRentPost(annualRent: number): Post {
   // Με τράπεζα φορολογείσαι στο 95%, με μετρητά στο 100% (ν.5246/2025). Ο ΙΔΙΟΣ
   // ΚΑΝΟΝΑΣ ΠΟΥ ΤΟ ΚΡΙΝΕΙ ΜΕΣΑ ΣΤΗΝ ΕΦΑΡΜΟΓΗ ΤΟ ΚΡΙΝΕΙ ΚΑΙ ΕΔΩ: το «0,95»
-  // γραμμένο με το χέρι θα ζούσε στο μάρκετινγκ και μετά την επόμενη αλλαγή του
-  // νόμου, λέγοντας κάτι που η εφαρμογή δεν λέει πια.
+  // γραμμένο με το χέρι θα ζούσε στο μάρκετινγκ και μετά την επόμενη αλλαγή
+  // του νόμου, λέγοντας κάτι που η εφαρμογή δεν λέει πια.
   const taxable = (viaBank: boolean): number => annualRent * (1 - presumptiveDeductionRate(viaBank));
   const bank = rentalIncomeTax(taxable(true), RENTAL_TAX_BRACKETS_2026);
   const cash = rentalIncomeTax(taxable(false), RENTAL_TAX_BRACKETS_2026);
   const diff = Math.round((cash - bank) * 100) / 100;
   const rate = Math.round(marginalRate(annualRent, RENTAL_TAX_BRACKETS_2026) * 100);
   const css = `
-    .rows{display:flex;flex-direction:column;gap:0}
-    .r{display:flex;align-items:baseline;justify-content:space-between;gap:24px;
-       padding:22px 0;border-bottom:2px solid var(--border-subtle)}
-    .r:last-child{border-bottom:0}
-    .r .k{font-size:32px;color:var(--text-secondary)}
-    .r .v{font-size:38px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-0.02em}
-    .r.big{padding-top:30px}
-    .r.big .k{font-size:34px;color:var(--text-primary);font-weight:600}
-    .r.big .v{font-size:76px;font-weight:800;color:var(--accent);letter-spacing:-0.04em}`;
-  const body = `
-    <div class="eyebrow">${caps('Το λάθος που κοστίζει')}</div>
-    <h1>Παίρνεις το ενοίκιο σε μετρητά</h1>
-    <div class="say">Σε ετήσιο ενοίκιο <b>${fe(annualRent)}</b>, με οριακό συντελεστή ${rate}%.</div>
-    <div class="rows">
-      <div class="r"><span class="k">Φόρος με κατάθεση</span><span class="v">${fe(bank)}</span></div>
-      <div class="r"><span class="k">Φόρος με μετρητά</span><span class="v">${fe(cash)}</span></div>
-      <div class="r big"><span class="k">Σου κοστίζει τον χρόνο</span><span class="v">${fe(diff)}</span></div>
-    </div>
-    <div class="chip">ν.5246/2025 · από 1/1/2026</div>`;
+    .n{font-size:${diff >= 1000 ? 205 : 245}px}
+    .unit{font-family:"Roboto Mono",monospace;font-size:26px;font-weight:500;
+          letter-spacing:0.22em;color:var(--muted);margin-top:34px}
+    .tail{margin-top:auto;margin-bottom:52px}
+    h1{font-size:54px;max-width:900px}
+    .proof{margin-top:44px;display:flex;flex-direction:column}
+    .p{display:flex;align-items:baseline;justify-content:space-between;gap:24px;padding:22px 0}
+    .p + .p{border-top:2px solid var(--rule)}
+    .p .k{font-size:31px;color:var(--muted)}
+    .p .v{font-family:"Roboto Mono",monospace;font-size:33px;font-weight:500;
+          font-variant-numeric:tabular-nums;letter-spacing:-0.01em}
+    .cite{font-family:"Roboto Mono",monospace;font-size:21px;font-weight:500;
+          letter-spacing:0.06em;color:var(--muted);margin-top:18px}`;
+  const stage = `
+    <div class="huge n">${bigEuro(diff)}</div>
+    <div class="unit">${caps('Τον χρόνο')}</div>
+    <div class="tail">
+      <h1>Ενοίκιο ${fe(annualRent)} που εισπράττεται σε μετρητά</h1>
+      <div class="proof">
+        <div class="p"><span class="k">Φόρος με κατάθεση</span><span class="v">${fe(bank)}</span></div>
+        <div class="p"><span class="k">Φόρος με μετρητά</span><span class="v">${fe(cash)}</span></div>
+      </div>
+      <div class="cite">ν.5246/2025 · από 1/1/2026 · οριακός συντελεστής ${rate}%</div>
+    </div>`;
   return {
     file: `lathos-metrita-${annualRent}.png`,
-    html: page(body, MYAADE, css),
+    html: page(caps('Το λάθος που κοστίζει'), stage, sourceName(MYAADE), css),
     note: `Ενοίκιο ${fe(annualRent)}: μετρητά αντί κατάθεσης κοστίζουν ${fe(diff)} τον χρόνο (οριακός ${rate}%)`,
     source: MYAADE,
   };
@@ -151,27 +169,53 @@ function cashRentPost(annualRent: number): Post {
 // ═══════════════════════════════════════════════════════════════════════════
 // ΜΟΡΦΗ 3 · ΤΟ ΛΕΕΙ Ο ΝΟΜΟΣ, ΟΧΙ ΕΓΩ
 // ─────────────────────────────────────────────────────────────────────────
-// Η νομική βάση είναι ΜΕΓΑΛΗ στην οθόνη, όχι ψιλά γράμματα. Αυτή η μορφή
-// υπάρχει ακριβώς για να αντέχει τη διαφωνία στα σχόλια: όποιος διαφωνεί,
-// διαφωνεί με το ΦΕΚ.
+// ΣΤΑΣΗ: ετυμηγορία. Ο τίτλος μεγάλος, ΜΙΑ πρόταση από κάτω, και η νομική
+// βάση κάτω κάτω με τον τόνο πάνω της. Η πρώτη εκδοχή έβαζε 330 χαρακτήρες
+// περίληψης — εννιά σειρές, που στο χρονολόγιο κανείς δεν διαβάζει.
+//
+// Η μία πρόταση δεν είναι σύνοψη της σύνοψης: είναι η ΠΡΩΤΗ πρόταση της
+// πηγής, δηλαδή ο κανόνας ο ίδιος. Ο,τι ακολουθεί είναι εξαιρέσεις, και οι
+// εξαιρέσεις ανήκουν στη λεζάντα και στα σχόλια, όχι στην εικόνα.
 // ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * ΤΟ MONO ΕΙΝΑΙ ΓΙΑ ΤΟΝ ΑΡΙΘΜΟ ΤΟΥ ΝΟΜΟΥ, ΟΧΙ ΓΙΑ ΤΗ ΦΡΑΣΗ ΔΙΠΛΑ ΤΟΥ.
+ *
+ * Το «ν.5073/2023» κερδίζει από τα σταθερά πλάτη — είναι κωδικός, και θέλει να
+ * διαβάζεται ψηφίο ψηφίο. Το «και εφαρμοστικές αποφάσεις» στο ίδιο μέγεθος
+ * mono τυλίγεται σε δεύτερη σειρά και μοιάζει με σπασμένο στοιχείο. Χωρίζονται:
+ * ο κωδικός μπροστά, η φράση από κάτω και μικρότερη.
+ */
+function citation(basis: string): { code: string; rest: string } {
+  const m = basis.match(/^((?:[νΝ]\.|ΠΔ\s*|ΚΥΑ\s*)[\d./]+)\s*(.*)$/);
+  return m ? { code: m[1], rest: m[2].trim() } : { code: '', rest: basis };
+}
 
 function lawPost(u: RegulatoryUpdate): Post {
   const title = clip(u.title, 90);
-  const say = sentenceClip(u.summary, 330);
+  const say = sentenceClip(u.summary, 230);
+  const cite = citation(u.legalBasis);
   const css = `
-    h1{font-size:${title.length > 46 ? 50 : 60}px}
-    .say{font-size:${say.length > 240 ? 30 : 34}px}
-    .basis{font-size:30px;line-height:1.4;color:var(--text-primary);font-weight:600;
-           border-left:8px solid var(--accent);padding-left:26px}`;
-  const body = `
-    <div class="eyebrow">${caps('Το λέει ο νόμος')}</div>
+    h1{font-size:${title.length > 46 ? 66 : 76}px}
+    .say{font-size:${say.length > 150 ? 32 : 36}px;line-height:1.44;color:var(--muted);
+         margin-top:38px;max-width:900px}
+    .basis{margin-top:auto;margin-bottom:44px}
+    .basis .law{font-family:"Roboto Mono",monospace;font-size:46px;font-weight:500;
+                letter-spacing:-0.01em;color:var(--accent);line-height:1.2}
+    .basis .of{font-size:30px;color:var(--ink);margin-top:10px}
+    .basis .from{font-family:"Roboto Mono",monospace;font-size:26px;font-weight:500;
+                 letter-spacing:0.06em;color:var(--muted);margin-top:16px}`;
+  const stage = `
     <h1>${title}</h1>
     <div class="say">${say}</div>
-    <div class="basis">${u.legalBasis}<br>Ισχύς: ${spanGr(u.effective)}</div>`;
+    <div class="basis">
+      ${cite.code ? `<div class="law">${cite.code}</div>` : ''}
+      ${cite.rest ? `<div class="of">${cite.code ? cite.rest : caps(cite.rest)}</div>` : ''}
+      <div class="from">Ισχύς: ${spanGr(u.effective)}</div>
+    </div>`;
   return {
     file: `nomos-${u.id}.png`,
-    html: page(body, u.sourceHref || AADE_HOME, css),
+    html: page(caps('Το λέει ο νόμος'), stage, sourceName(u.sourceHref || AADE_HOME), css),
     note: `${u.title} · ${u.legalBasis} · ισχύς ${u.effective}`,
     source: u.sourceHref || AADE_HOME,
   };
@@ -180,9 +224,12 @@ function lawPost(u: RegulatoryUpdate): Post {
 // ═══════════════════════════════════════════════════════════════════════════
 // ΜΟΡΦΗ 4 · ΡΩΤΑ ΤΗ ΝΟΑ
 // ─────────────────────────────────────────────────────────────────────────
-// Η ερώτηση έρχεται από ΠΡΑΓΜΑΤΙΚΟ σχόλιο και μπαίνει σε αυτό το αρχείο με το
-// χέρι. Δεν εφευρίσκεται: μια ψεύτικη ερώτηση διαβάζεται αμέσως ως ψεύτικη, και
-// σκοτώνει τη μόνη μορφή που έχει μηδενικό κόστος παραγωγής.
+// ΣΤΑΣΗ: διάλογος. Η ερώτηση στο πλήρες πλάτος, η απάντηση σε εσοχή. Η
+// ασυμμετρία ΕΙΝΑΙ το νόημα: δύο φωνές, όχι μία με υπότιτλο.
+//
+// Η ερώτηση έρχεται από ΠΡΑΓΜΑΤΙΚΟ σχόλιο και μπαίνει εδώ με το χέρι. Δεν
+// εφευρίσκεται: μια ψεύτικη ερώτηση διαβάζεται αμέσως ως ψεύτικη, και σκοτώνει
+// τη μόνη μορφή που έχει μηδενικό κόστος παραγωγής.
 // ═══════════════════════════════════════════════════════════════════════════
 
 interface Ask { id: string; question: string; answer: string; basis: string; source: string }
@@ -205,19 +252,28 @@ const ASKS: Ask[] = [
 ];
 
 function askPost(a: Ask): Post {
+  const q = clip(a.question, 130);
   const css = `
-    .q{font-size:40px;line-height:1.32;font-weight:600;color:var(--text-primary);
-       background:var(--bg-elevated);border-radius:28px;padding:34px 38px}
-    .a{font-size:36px;line-height:1.4;color:var(--text-secondary)}
-    .a b{color:var(--text-primary);font-weight:700}`;
-  const body = `
-    <div class="eyebrow">${caps(askCta())}</div>
-    <div class="q">${clip(a.question, 130)}</div>
-    <div class="a">${clip(a.answer, 240)}</div>
-    <div class="chip words">${a.basis}</div>`;
+    .who{font-family:"Roboto Mono",monospace;font-size:24px;font-weight:500;
+         letter-spacing:0.2em;color:var(--muted);margin-bottom:26px}
+    .who.noa{color:var(--accent)}
+    .q{font-size:${q.length > 72 ? 56 : 64}px;font-weight:800;letter-spacing:-0.028em;
+       line-height:1.14;text-wrap:balance}
+    .answer{margin-top:auto}
+    .a{font-size:34px;line-height:1.46;color:var(--muted)}
+    .answer{margin-bottom:44px}
+    .basis{margin-top:30px;font-size:24px;color:var(--muted)}`;
+  const stage = `
+    <div class="who">${caps('Ερώτηση')}</div>
+    <div class="q">${q}</div>
+    <div class="answer spine">
+      <div class="who noa">${caps(ASSISTANT_NAME)}</div>
+      <div class="a">${clip(a.answer, 240)}</div>
+      <div class="basis">${a.basis}</div>
+    </div>`;
   return {
     file: `noa-${a.id}.png`,
-    html: page(body, a.source, css),
+    html: page(caps(askCta()), stage, sourceName(a.source), css),
     note: `Ερώτηση: ${a.question}`,
     source: a.source,
   };
