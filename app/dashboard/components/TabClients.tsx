@@ -70,7 +70,7 @@ import { climateLevyRates, isHighSeasonMonth } from '@/lib/billing/greekTax';
 import { parseICal, guessChannel, icalToStayDrafts, stayKey, type ICalEvent } from '@/lib/clients/ical';
 import { athensToday, isoYear } from '@/lib/core/time';
 import { MONTHS_NOM } from '@/lib/core/months';
-import { MONTHS_SHORT } from '@/lib/core/months';
+import { MONTHS_ACC } from '@/lib/core/months';
 
 // ── Τύποι εγγραφών (καθρέφτης πινάκων Supabase) ─────────────────────────────
 // Τα πεδία CRM (rating/tags/do_not_rent/vip/address/id_number/nationality/source)
@@ -1137,13 +1137,13 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 'Πληρότητα',
                 occ.availableDays > 0 ? fp(occ.pct) : 'Χωρίς κρατήσεις',
                 { title: occ.openFromMonth != null
-                    ? `${occ.bookedNights} νύχτες σε ${occ.availableDays} διαθέσιμες ημέρες (${MONTHS_SHORT[occ.openFromMonth]}–${MONTHS_SHORT[occ.openToMonth!]} ${reportYear}), όχι σε 365${occ.overbooked ? '. Οι νύχτες ξεπερνούν τις διαθέσιμες ημέρες: κάπου δύο κρατήσεις πέφτουν στην ίδια νύχτα.' : ''}`
+                    ? `${occ.bookedNights} νύχτες σε ${occ.availableDays} διαθέσιμες ημέρες, από ${MONTHS_ACC[occ.openFromMonth]} έως ${MONTHS_ACC[occ.openToMonth!]} ${reportYear}, όχι σε 365${occ.overbooked ? '. Οι νύχτες ξεπερνούν τις διαθέσιμες ημέρες: κάπου δύο κρατήσεις πέφτουν στην ίδια νύχτα.' : ''}`
                     : 'Χωρίς κρατήσεις' },
               )}
               {occ.peak && statTile(
                 'Πληρότητα υψηλής περιόδου',
                 fp(occ.peak.pct),
-                { title: `${MONTHS_SHORT[occ.peak.fromMonth]}–${MONTHS_SHORT[occ.peak.toMonth]}: ${occ.peak.bookedNights} νύχτες σε ${occ.peak.days} ημέρες. Η περίοδος βγαίνει από ΤΑ ΔΙΚΑ ΣΟΥ δεδομένα, δεν την αποφασίσαμε εμείς.` },
+                { title: `Από ${MONTHS_ACC[occ.peak.fromMonth]} έως ${MONTHS_ACC[occ.peak.toMonth]}: ${occ.peak.bookedNights} νύχτες σε ${occ.peak.days} ημέρες. Η περίοδος βγαίνει από ΤΑ ΔΙΚΑ ΣΟΥ δεδομένα, δεν την αποφασίσαμε εμείς.` },
               )}
             </div>
 

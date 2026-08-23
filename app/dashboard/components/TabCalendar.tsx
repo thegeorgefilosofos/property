@@ -828,13 +828,22 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
     return['leases','bookings','tax','loans','bills','maintenance']
   },[mode])
 
-  const META:Record<SyncKey,{label:string;icon:React.ReactNode;unit:(n:number)=>string}>={
-    leases:     {label:'Ενοίκιο και μισθώσεις', icon:<Euro size={15}/>,     unit:n=>n===1?'1 ενοικιαστής':`${n} ενοικιαστές`},
-    bookings:   {label:'Κρατήσεις',            icon:<User size={15}/>,     unit:n=>n===1?'1 κράτηση':`${n} κρατήσεις`},
-    tax:        {label:'Φορολογικά (ΑΑΔΕ)',    icon:<FileText size={15}/>, unit:n=>n===1?'1 προθεσμία':`${n} προθεσμίες`},
-    loans:      {label:'Δόσεις δανείου',        icon:<TrendingUp size={15}/>,unit:n=>n===1?'1 δάνειο':`${n} δάνεια`},
-    bills:      {label:'Λογαριασμοί',          icon:<Zap size={15}/>,      unit:n=>n===1?'1 λογαριασμός':`${n} λογαριασμοί`},
-    maintenance:{label:'Συντήρηση',            icon:<Wrench size={15}/>,   unit:n=>n===1?'1 εργασία':`${n} εργασίες`},
+  // ══ ΤΟ «ΤΙΠΟΤΑ ΑΚΟΜΗ» ΔΙΑΒΑΖΟΤΑΝ ΩΣ ΒΛΑΒΗ ══════════════════════════════════
+  // Τρία πλακίδια θαμπά, με την ίδια τρίλεξη φράση κάτω από τρεις διαφορετικές
+  // ετικέτες: ο χρήστης δεν μπορούσε να ξεχωρίσει «ο συγχρονισμός χάλασε» από
+  // «δεν υπάρχει τίποτα να τραβηχτεί». Και τα δύο δείχνουν ίδια, μόνο που το
+  // πρώτο θέλει διόρθωση και το δεύτερο δεν θέλει τίποτα.
+  //
+  // Κάθε πηγή λέει τώρα ΤΙ ΤΗΣ ΛΕΙΠΕΙ, με το όνομα του πράγματος. «Δεν έχεις
+  // καταχωρήσει δάνειο» δεν είναι σφάλμα, είναι κατάσταση, και ο χρήστης ξέρει
+  // αμέσως ότι η αιτία είναι στα δικά του δεδομένα και όχι στη σύνδεση.
+  const META:Record<SyncKey,{label:string;icon:React.ReactNode;unit:(n:number)=>string;empty:string}>={
+    leases:     {label:'Ενοίκιο και μισθώσεις', icon:<Euro size={15}/>,     unit:n=>n===1?'1 ενοικιαστής':`${n} ενοικιαστές`, empty:'Κανένας ενοικιαστής ακόμη'},
+    bookings:   {label:'Κρατήσεις',            icon:<User size={15}/>,     unit:n=>n===1?'1 κράτηση':`${n} κρατήσεις`,       empty:'Καμία κράτηση ακόμη'},
+    tax:        {label:'Φορολογικά (ΑΑΔΕ)',    icon:<FileText size={15}/>, unit:n=>n===1?'1 προθεσμία':`${n} προθεσμίες`,    empty:'Καμία προθεσμία στο επόμενο διάστημα'},
+    loans:      {label:'Δόσεις δανείου',        icon:<TrendingUp size={15}/>,unit:n=>n===1?'1 δάνειο':`${n} δάνεια`,          empty:'Δεν έχεις καταχωρήσει δάνειο'},
+    bills:      {label:'Λογαριασμοί',          icon:<Zap size={15}/>,      unit:n=>n===1?'1 λογαριασμός':`${n} λογαριασμοί`, empty:'Δεν έχεις καταχωρήσει λογαριασμό'},
+    maintenance:{label:'Συντήρηση',            icon:<Wrench size={15}/>,   unit:n=>n===1?'1 εργασία':`${n} εργασίες`,        empty:'Καμία εργασία συντήρησης'},
   }
 
   // Συγχρονισμός ΜΙΑΣ πηγής — το ίδιο το κουτάκι είναι το κουμπί. Χωρίς on/off,
@@ -1037,13 +1046,21 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
               <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius:10, flexShrink:0, background:isBusy?'linear-gradient(135deg, var(--accent), var(--accent-hover))':'var(--bg-elevated)', color:isBusy?'var(--accent-text)':'var(--text-tertiary)', border:isBusy?'none':'1px solid var(--border-subtle)', boxShadow:isBusy?'0 4px 12px -6px var(--accent)':'none' }}>{isBusy?<RefreshCw size={16} style={{ animation:'spin 1s linear infinite' }}/>:meta.icon}</span>
               <div style={{ flex:1, minWidth:0 }}>
                 <p style={{ fontSize:14, fontFamily: T.font.sans, fontWeight:600, color:isBusy?'var(--accent)':'var(--text-primary)' }}>{meta.label}</p>
-                <p style={{ fontSize:12, color:d?'var(--positive)':'var(--text-tertiary)', fontFamily: T.font.sans, marginTop:1 }}>{isBusy?'Συγχρονισμός…':d?`Ενημερώθηκε · ${d.n}`:counts===null?'…':has?meta.unit(c!):'Τίποτα ακόμη'}</p>
+                <p style={{ fontSize:12, color:d?'var(--positive)':'var(--text-tertiary)', fontFamily: T.font.sans, marginTop:1 }}>{isBusy?'Συγχρονισμός…':d?`Ενημερώθηκε · ${d.n}`:counts===null?'…':has?meta.unit(c!):meta.empty}</p>
               </div>
               {has&&!isBusy&&(d?<Check size={17} style={{ color:'var(--positive)', flexShrink:0 }}/>:<RefreshCw size={15} style={{ color:'var(--text-tertiary)', flexShrink:0 }}/>)}
             </button>
           )
         })}
       </div>
+      {/* ΜΙΑ ΓΡΑΜΜΗ ΠΟΥ ΑΠΑΝΤΑ ΣΤΗΝ ΕΡΩΤΗΣΗ ΠΡΙΝ ΓΙΝΕΙ. Το θαμπό πλακίδιο είναι
+          σύμβαση διεπαφής («δεν πατιέται»), όχι εξήγηση. Χωρίς αυτήν τη γραμμή ο
+          χρήστης βλέπει τρία σβηστά κουτιά και συμπεραίνει ότι κάτι έσπασε. */}
+      {counts!==null&&visible.some(k=>(counts[k]||0)===0)&&(
+        <p style={{ marginTop:12, fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight:1.5 }}>
+          Οι θαμπές πηγές δεν έχουν ακόμη δεδομένα να τραβήξουν. Μόλις καταχωρήσεις την πρώτη εγγραφή, ανάβουν μόνες τους.
+        </p>
+      )}
       {hasTax&&(
         <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap', marginTop:12, fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>
           <Info size={13} style={{ color:'var(--accent)' }}/>
@@ -1408,6 +1425,36 @@ function ScopeModal({ title, hint, danger, onPick, onClose }: { title:string; hi
   )
 }
 
+// ══ ΕΝΑ ΙΔΙΩΜΑ ΓΙΑ ΤΟΝ ΣΥΝΔΕΣΜΟ, ΚΑΙ ΦΑΙΝΕΤΑΙ ΟΛΟΚΛΗΡΟΣ ══════════════════════
+// ΤΙ ΔΕΝ ΠΗΓΑΙΝΕ. Οι δύο σύνδεσμοι ζούσαν μέσα σε <input readOnly> πλάτους 280
+// εικονοστοιχείων. Ο πρώτος έχει 62 χαρακτήρες και ο δεύτερος 118: φαινόταν
+// περίπου το ένα τρίτο του καθενός, κομμένο στη μέση μιας λέξης. Ένα πεδίο
+// εισόδου υπόσχεται ότι γράφεις μέσα του, εδώ όμως δεν γράφεις ποτέ — αντιγράφεις
+// και επικολλάς αλλού. Και για να ΕΠΙΒΕΒΑΙΩΣΕΙΣ ότι αντέγραψες το σωστό (ο ένας
+// σύνδεσμος φέρνει ονόματα επισκεπτών, ο άλλος όχι) πρέπει να τον δεις ολόκληρο.
+//
+// Τώρα είναι μπλοκ που αναδιπλώνεται: όλος ο σύνδεσμος ορατός, σε γραμματοσειρά
+// σταθερού πλάτους όπως κάθε άλλο τεχνικό στοιχείο της εφαρμογής, με το κουμπί
+// αντιγραφής στη γραμμή της ετικέτας αντί για κολλητά δεξιά. Το ίδιο στοιχείο
+// και στις δύο θέσεις, ώστε οι δύο ενότητες να διαβάζονται ως ζευγάρι.
+function FeedLink({ label, hint, url, onCopy, copied }: {
+  label:string; hint:string; url:string; onCopy:()=>void; copied:boolean
+}) {
+  return (
+    <div>
+      <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:12, marginBottom:6 }}>
+        <span style={{ fontSize:11, fontWeight:600, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.06em', fontFamily: T.font.sans }}>{label}</span>
+        <button onClick={onCopy} style={{ flexShrink:0, height:T.h.sm, padding:'0 12px', borderRadius:T.radius.btn, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:12, fontWeight:600, cursor:'pointer', whiteSpace:'nowrap', fontFamily: T.font.sans }}>{copied?'Αντιγράφηκε':'Αντιγραφή'}</button>
+      </div>
+      <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'0 0 8px', lineHeight:1.5, fontFamily: T.font.sans }}>{hint}</p>
+      {/* ΤΟ ΚΕΙΜΕΝΟ ΕΠΙΛΕΓΕΤΑΙ ΜΕ ΤΟ ΧΕΡΙ ΟΠΩΣ ΠΡΙΝ. Το `user-select: all` δίνει
+          ολόκληρο τον σύνδεσμο με ένα κλικ, για όποιον δεν εμπιστεύεται το
+          πρόχειρο ή δουλεύει σε περιηγητή που το αρνείται. */}
+      <code style={{ display:'block', padding:'10px 12px', borderRadius:T.radius.btn, border:'1px solid var(--border-subtle)', background:'var(--bg-base)', color:'var(--text-secondary)', fontSize:12, lineHeight:1.6, fontFamily: T.font.num, wordBreak:'break-all', userSelect:'all' }}>{url}</code>
+    </div>
+  )
+}
+
 // Ζωντανή συνδρομή: το εξωτερικό ημερολόγιο διαβάζει το feed και ενημερώνεται μόνο του.
 // ── ΜΙΑ ΣΥΝΔΡΟΜΗ, ΟΧΙ ΔΥΟ ────────────────────────────────────────────────────
 // Ο σύνδεσμος έδειχνε σε συνάρτηση άκρου (`/functions/v1/calendar-feed`) που
@@ -1439,33 +1486,26 @@ function SubscribeModal({ token, propertyId, onClose }: { token:string|null; pro
       {!token?(
         <Spinner size={20} label="Δημιουργία συνδέσμου…" />
       ):(<>
-        <div>
-          <label style={{ display:'block', fontSize:11, fontWeight:600, color:'var(--text-secondary)', marginBottom:7, textTransform:'uppercase', letterSpacing:'0.06em', fontFamily: T.font.sans }}>Σύνδεσμος συνδρομής</label>
-          <div style={{ display:'flex', gap:8 }}>
-            <input readOnly value={httpsUrl} onFocus={e=>e.currentTarget.select()} style={{ flex:1, minWidth:0, height:T.h.lg, padding:'0 12px', borderRadius:T.radius.btn, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:13, fontFamily: T.font.sans }}/>
-            {/* Η ΚΥΡΙΑ ΕΝΕΡΓΕΙΑ ΑΛΛΑΖΕ ΧΡΩΜΑ ΣΤΗ ΜΕΣΗ ΤΗΣ ΧΕΙΡΟΝΟΜΙΑΣ. Το μπλε
-                γινόταν πράσινο για δύο δευτερόλεπτα, δηλαδή το χρώμα της κύριας
-                ενέργειας εγκατέλειπε το κουμπί της κύριας ενέργειας. Η λέξη
-                «Αντιγράφηκε» λέει ήδη ό,τι έχει να ειπωθεί. */}
-            <button onClick={copy} style={{ height:T.h.lg, padding:'0 16px', borderRadius:T.radius.btn, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:13, fontWeight:600, cursor:'pointer', whiteSpace:'nowrap', fontFamily: T.font.sans }}>{copied?'Αντιγράφηκε':'Αντιγραφή'}</button>
-          </div>
-        </div>
+        <FeedLink label="Σύνδεσμος συνδρομής" url={httpsUrl} onCopy={copy} copied={copied}
+          hint="Προσωπικός σύνδεσμος: δείχνει όλα τα ακίνητά σου, με τα ονόματα των γεγονότων. Μην τον μοιράζεσαι." />
+        {/* Τα δύο κουμπιά κάνουν τη δουλειά χωρίς αντιγραφή: το πρώτο ανοίγει
+            κατευθείαν την οθόνη προσθήκης του Google, το δεύτερο παραδίδει τον
+            σύνδεσμο στην εφαρμογή ημερολογίου του λειτουργικού. */}
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
           <a href={googleUrl} target="_blank" rel="noreferrer" style={linkBtn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}><Calendar size={16}/>Google Calendar</a>
           <a href={webcalUrl} style={linkBtn} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border-default)'}><CalendarDays size={16}/>Apple / Outlook</a>
         </div>
+        {/* Η ΠΡΟΕΙΔΟΠΟΙΗΣΗ ΓΙΑ ΤΟΝ ΠΡΟΣΩΠΙΚΟ ΣΥΝΔΕΣΜΟ ΕΦΥΓΕ ΑΠΟ ΕΔΩ: λέγεται
+            πλέον δίπλα στον ίδιο τον σύνδεσμο, όπου την αφορά. Εδώ μένουν μόνο
+            οι οδηγίες για όποιον προτιμά τη χειροκίνητη διαδρομή. */}
         <div style={{ display:'flex', gap:8, padding:'10px 12px', background:'var(--accent-soft)', border:'1px solid var(--accent-border)', borderRadius:T.radius.inner }}>
           <Info size={15} color="var(--accent)" style={{ flexShrink:0, marginTop:1 }}/>
-          <p style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.5, margin:0, fontFamily: T.font.sans }}>Στο Google Calendar: «Άλλα ημερολόγια», μετά «Από URL»: επικόλλησε τον σύνδεσμο. Ο σύνδεσμος είναι προσωπικός, μην τον μοιράζεσαι.</p>
+          <p style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.5, margin:0, fontFamily: T.font.sans }}>Με το χέρι στο Google Calendar: «Άλλα ημερολόγια», μετά «Από URL», και επικόλλησε τον σύνδεσμο.</p>
         </div>
         {/* Αμφίδρομος συγχρονισμός καναλιών (Airbnb/Booking auto-block) */}
         <div style={{ paddingTop:16, borderTop:'1px solid var(--border-subtle)' }}>
-          <label style={{ display:'block', fontSize:11, fontWeight:600, color:'var(--text-secondary)', marginBottom:4, textTransform:'uppercase', letterSpacing:'0.06em', fontFamily: T.font.sans }}>Μπλοκάρισμα σε Airbnb / Booking</label>
-          <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'0 0 8px', lineHeight:1.5, fontFamily: T.font.sans }}>Επικόλλησε αυτόν τον σύνδεσμο στο «Import calendar» κάθε καναλιού, κάθε κράτηση μπλοκάρει αυτόματα τις ημερομηνίες παντού (χωρίς όνομα επισκέπτη).</p>
-          <div style={{ display:'flex', gap:8 }}>
-            <input readOnly value={busyUrl} onFocus={e=>e.currentTarget.select()} style={{ flex:1, minWidth:0, height:T.h.lg, padding:'0 12px', borderRadius:T.radius.btn, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:13, fontFamily: T.font.sans }}/>
-            <button onClick={copyBusy} style={{ height:T.h.lg, padding:'0 16px', borderRadius:T.radius.btn, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:13, fontWeight:600, cursor:'pointer', whiteSpace:'nowrap', fontFamily: T.font.sans }}>{copiedBusy?'Αντιγράφηκε':'Αντιγραφή'}</button>
-          </div>
+          <FeedLink label="Μπλοκάρισμα σε Airbnb ή Booking" url={busyUrl} onCopy={copyBusy} copied={copiedBusy}
+            hint="Επικόλλησέ τον στο «Import calendar» κάθε καναλιού. Κάθε κράτηση μπλοκάρει τις ημερομηνίες παντού, χωρίς να ταξιδεύει το όνομα του επισκέπτη." />
         </div>
       </>)}
     </Modal>

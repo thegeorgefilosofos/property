@@ -56,7 +56,7 @@ import { T, fe, fp, Skeleton, pressable } from '@/components/Theme';
 import { readStatus, type StatusRow } from '@/lib/property/status';
 import { occupancyFromMonths, type ReportStay } from '@/lib/clients/reports';
 import { shortTermYearSummary } from '@/lib/tax/shortTermTax';
-import { MONTHS_SHORT } from '@/lib/core/months';
+import { MONTHS_SHORT, MONTHS_ACC } from '@/lib/core/months';
 
 interface StayRow extends ReportStay { declared_at?: string | null }
 interface PropInfo extends StatusRow { prop_type?: string | null; sqm?: number | null }
@@ -165,14 +165,25 @@ export default function OccupancyPanel({ propertyId, userId }: {
                 </div>
               ) : (
                 <>
-                  <div style={{ maxWidth: 560 }}>
+                  {/* ΤΟ ΚΕΙΜΕΝΟ ΠΙΑΝΕΙ ΟΛΟ ΤΟ ΠΛΑΤΟΣ ΤΗΣ ΚΑΡΤΑΣ. Το όριο των 560
+                      εικονοστοιχείων έσπαγε μια πρόταση δύο σειρών στη μέση μιας
+                      κάρτας 1.400: μισή γραμμή γραμμένη και μισή άδεια, με το
+                      «χρόνο.» μόνο του από κάτω. Το όριο μέτρου έχει νόημα σε
+                      παράγραφο, όχι σε λεζάντα δύο σειρών. */}
+                  <div>
                     <div style={{ ...num, fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>{fp(occ.pct)}</div>
                     {/* Ο ΠΑΡΟΝΟΜΑΣΤΗΣ ΗΤΑΝ ΚΡΥΜΜΕΝΟΣ ΣΕ TOOLTIP. Ενα ποσοστό
                         χωρίς το κλάσμα του δεν ελέγχεται από κανέναν, και σε
                         κινητό το tooltip δεν ανοίγει ποτέ. */}
+                    {/* ΟΛΟΚΛΗΡΑ ΟΝΟΜΑΤΑ ΜΗΝΩΝ ΜΕΣΑ ΣΕ ΠΡΟΤΑΣΗ, ΚΑΙ ΣΕ ΑΙΤΙΑΤΙΚΗ.
+                        Το «Μαΐ έως Σεπ» είναι γραφή άξονα γραφήματος, όπου
+                        παλεύεις για δώδεκα ετικέτες σε στενή στήλη· μέσα σε
+                        πρόταση διαβάζεται ως συντομογραφία εγγράφου. Και η
+                        πρόθεση «από» ζητά αιτιατική: «από Μάιο», όχι «από
+                        Μάιος». Ο κατάλογος MONTHS_ACC υπάρχει ακριβώς γι' αυτό. */}
                     <div style={{ ...note, marginTop: 6 }}>
                       {occ.bookedNights} {occ.bookedNights === 1 ? 'νύχτα' : 'νύχτες'} σε {occ.availableDays} διαθέσιμες ημέρες
-                      {from != null && to != null && `, ${MONTHS_SHORT[from]} έως ${MONTHS_SHORT[to]}`}. Οχι σε 365: το ακίνητο δεν ήταν στην αγορά όλο τον χρόνο.
+                      {from != null && to != null && `, από ${MONTHS_ACC[from]} έως ${MONTHS_ACC[to]}`}. Όχι σε 365: το ακίνητο δεν ήταν στην αγορά όλο τον χρόνο.
                     </div>
                   </div>
 
@@ -195,7 +206,7 @@ export default function OccupancyPanel({ propertyId, userId }: {
 
                   {occ.peak && occ.peak.days < occ.availableDays && (
                     <div style={{ ...note, marginTop: 10 }}>
-                      Υψηλή περίοδος {MONTHS_SHORT[occ.peak.fromMonth]} έως {MONTHS_SHORT[occ.peak.toMonth]}: {fp(occ.peak.pct)}, {occ.peak.bookedNights} {occ.peak.bookedNights === 1 ? 'νύχτα' : 'νύχτες'} σε {occ.peak.days} ημέρες.
+                      Υψηλή περίοδος από {MONTHS_ACC[occ.peak.fromMonth]} έως {MONTHS_ACC[occ.peak.toMonth]}: {fp(occ.peak.pct)}, {occ.peak.bookedNights} {occ.peak.bookedNights === 1 ? 'νύχτα' : 'νύχτες'} σε {occ.peak.days} ημέρες.
                     </div>
                   )}
 

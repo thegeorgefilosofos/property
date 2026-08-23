@@ -884,6 +884,9 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
 }
 
 /* ── Κεφαλίδα: το σήμα και το όνομα ─────────────────────────────────────── */
+/* Το σήμα είναι κουμπί: παίρνει τις δηλώσεις που μηδενίζουν το εργοστασιακό
+   στυλ του <button> (πλαίσιο, φόντο, στοίχιση κειμένου, μέγεθος γράμματος) ώστε
+   να δείχνει ακριβώς όπως πριν, και τον δείκτη που λέει ότι πατιέται. */
 .sidebar-logo {
   padding: 0 var(--rail-x);
   display: flex;
@@ -891,8 +894,19 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
   gap: 12px;
   height: 64px;              /* ίδιο με την πάνω μπάρα, ώστε να συνεχίζεται η γραμμή */
   flex-shrink: 0;
+  border: none;
   border-bottom: 1px solid var(--sidebar-border);
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
   user-select: none;
+}
+.sidebar-logo:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 .sidebar-logo-mark {
   width: 28px; height: 28px;
