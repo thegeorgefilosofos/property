@@ -79,7 +79,7 @@ export default function EsisScanPanel({
   const [rateType,setRateType] = useState<string>('fixed')
   const [bank,setBank] = useState<string>('')
 
-  const { scanning, error, scanFile } = useDocScan<EsisExtract>({
+  const { scanning, error, errorText, scanFile } = useDocScan<EsisExtract>({
     system: SYSTEM_PROMPT,
     ask: 'Εξήγαγε τα στοιχεία της προσφοράς και επίστρεψε μόνο το JSON.',
     onStart: () => setScanned(false),
@@ -126,7 +126,7 @@ export default function EsisScanPanel({
         icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h4"/></svg>}
       />
 
-      <ScanErrorNote error={error} hint="Μπορείς να πληκτρολογήσεις τα νούμερα παρακάτω." />
+      <ScanErrorNote error={error} text={errorText} hint="Μπορείς να πληκτρολογήσεις τα νούμερα παρακάτω." />
 
       {scanned && !scanning && !error && (
         <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:font}}>Τα πεδία συμπληρώθηκαν από την προσφορά. Έλεγξε και διόρθωσε αν χρειάζεται.</p>

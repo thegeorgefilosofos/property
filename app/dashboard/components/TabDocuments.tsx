@@ -183,6 +183,8 @@ interface Draft {
   category: string;                 // ράφι Αρχείου, προσυμπληρωμένο & διορθώσιμο
   photoTitle?: string;              // kind === 'photo'
   scanError?: ScanError;
+  /** Το κείμενο που έγραψε ο διακομιστής για το σφάλμα, όταν ξέρει περισσότερα. */
+  scanErrorText?: string;
   /** Ερώτηση συμφωνίας: ποιον εκκρεμή λογαριασμό εξοφλεί αυτή η απόδειξη. */
   ask?: ReconcileQuestion;
   /** Τι ενημερώθηκε πραγματικά (ειλικρινής αναφορά, όχι υπόσχεση). */
@@ -500,7 +502,7 @@ export default function TabDocuments({
         // αμέσως τι δεν διαβάστηκε, χωρίς να ψάξει.
         patch(d.id, { status: 'ready', kind: 'document', doc: r.doc, category: cat, open: v.blocking.length + v.invalid.length + v.recommended.length > 0 });
       } else {
-        patch(d.id, { status: 'failed', scanError: r.error || 'unreadable' });
+        patch(d.id, { status: 'failed', scanError: r.error || 'unreadable', scanErrorText: r.errorText });
       }
     }
     setBusy(false);
@@ -1187,6 +1189,9 @@ const SCAN_ERROR_TEXT: Record<ScanError, string> = {
   service: 'Η υπηρεσία ανάγνωσης δεν απάντησε. Δοκίμασε ξανά σε λίγο.',
   unreadable: 'Δεν διάβασα καθαρά το έγγραφο. Τράβα τη φωτογραφία με καλό φως, ίσια, να χωράει όλο το χαρτί, ή ανέβασε το PDF του παρόχου.',
   key_missing: 'Η αυτόματη ανάγνωση δεν είναι ενεργή ακόμη σε αυτόν τον λογαριασμό.',
+  // Εφεδρεία: κανονικά το κείμενο έρχεται από τον διακομιστή, που ξέρει ποιο
+  // όριο χτύπησε και ποιο πακέτο έχει ο χρήστης (scanDoc.ts).
+  quota: 'Εξαντλήθηκαν οι ερωτήσεις του πακέτου σου και ανανεώνονται αυτόματα.',
 };
 
 // Ποια πεδία δείχνει η κάρτα ανά τύπο. Τα πέντε του ταιριάσματος εμφανίζονται
@@ -1250,7 +1255,7 @@ function DraftCard({ d, onToggle, onPatch, onPatchDoc, onCommit, onRemove }: {
 
       {/* Δεν διαβάστηκε: λέμε γιατί και τι να κάνει. */}
       {d.status === 'failed' && d.scanError && (
-        <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5, marginTop: 8 }}>{SCAN_ERROR_TEXT[d.scanError]}</div>
+        <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5, marginTop: 8 }}>{d.scanErrorText || SCAN_ERROR_TEXT[d.scanError]}</div>
       )}
       {d.status === 'error' && d.errorText && (
         <div style={{ fontSize: 11, color: 'var(--warning)', marginTop: 8 }}>{d.errorText}</div>

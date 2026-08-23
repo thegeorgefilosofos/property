@@ -46,7 +46,7 @@ import { athensToday } from '@/lib/core/time';
  * ομώνυμοι τύποι στον ίδιο φάκελο διαλέγονται λάθος από το αυτόματο import και
  * το λάθος φαίνεται μόνο όταν λείψει ένα κλειδί από πίνακα κειμένων.
  */
-export type DocScanError = '' | 'key' | 'service' | 'unreadable' | 'type' | 'big'
+export type DocScanError = '' | 'key' | 'service' | 'unreadable' | 'type' | 'big' | 'quota'
 
 const SCAN_ERROR_TEXT: Record<Exclude<DocScanError, ''>, string> = {
   key: 'Η υπηρεσία ανάλυσης δεν είναι διαθέσιμη αυτή τη στιγμή.',
@@ -54,6 +54,9 @@ const SCAN_ERROR_TEXT: Record<Exclude<DocScanError, ''>, string> = {
   unreadable: 'Δεν διαβάστηκε καθαρά το αρχείο. Δοκίμασε πιο ευκρινή φωτογραφία ή αρχείο PDF.',
   type: 'Δεκτά είναι μόνο αρχεία εικόνας ή αρχεία PDF.',
   big: `Το αρχείο ξεπερνά το όριο των ${MAX_SCAN_MB} MB.`,
+  // Οριο πακέτου, όχι βλάβη: η επανάληψη δεν πρόκειται να δουλέψει. Εφεδρεία,
+  // γιατί κανονικά το κείμενο έρχεται από τον διακομιστή. Βλ. scanDoc.ts.
+  quota: 'Εξαντλήθηκαν οι ερωτήσεις του πακέτου σου και ανανεώνονται αυτόματα.',
 }
 
 /**
@@ -67,12 +70,12 @@ export const scanNum = (v: unknown): number | undefined => {
 }
 
 /** Το κουτί σφάλματος σάρωσης. Το `hint` λέει τι μπορεί να κάνει ο χρήστης αντ' αυτού. */
-export function ScanErrorNote({ error, hint }: { error: DocScanError; hint?: string }) {
+export function ScanErrorNote({ error, text, hint }: { error: DocScanError; text?: string; hint?: string }) {
   if (!error) return null
   return (
     <div style={{ padding: '11px 14px', background: 'var(--negative-dim)', border: '1px solid var(--negative-border)', borderRadius: 10 }}>
       <p style={{ fontSize: 13, color: 'var(--negative)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
-        {SCAN_ERROR_TEXT[error]}{hint ? ` ${hint}` : ''}
+        {text || SCAN_ERROR_TEXT[error]}{hint ? ` ${hint}` : ''}
       </p>
     </div>
   )
@@ -125,6 +128,8 @@ export function useDocScan<T>(opts: {
 }) {
   const [scanning, setScanning] = useState(false)
   const [error, setError] = useState<DocScanError>('')
+  // Το μήνυμα του διακομιστή, όταν ξέρει περισσότερα από τον πίνακα παραπάνω.
+  const [errorText, setErrorText] = useState<string>()
 
   // Ο χειριστής ΔΕΝ απομνημονεύεται και δεν κρατά ref με τις επιλογές: φτιάχνεται
   // ξανά σε κάθε απόδοση, οπότε βλέπει πάντα τα τρέχοντα `system`/`onResult`
@@ -134,7 +139,7 @@ export function useDocScan<T>(opts: {
     const mime = file.type
     if (!mime.startsWith('image/') && mime !== 'application/pdf') { setError('type'); return }
     if (file.size > MAX_SCAN_MB * 1024 * 1024) { setError('big'); return }
-    setError(''); setScanning(true); opts.onStart?.()
+    setError(''); setErrorText(undefined); setScanning(true); opts.onStart?.()
     const reader = new FileReader()
     reader.onerror = () => { setError('unreadable'); setScanning(false) }
     reader.onload = async () => {
@@ -151,6 +156,11 @@ export function useDocScan<T>(opts: {
           }),
         })
         const data = await res.json()
+        if (res.status === 429) {
+          setError('quota')
+          if (typeof data?.error === 'string') setErrorText(data.error)
+          return
+        }
         if (!res.ok || data?.error) { setError(String(data?.error || '').includes('API_KEY') ? 'key' : 'service'); return }
         const text = (data.content || []).find((c: { type: string }) => c.type === 'text')?.text || '{}'
         opts.onResult(JSON.parse(text.replace(/```json?|```/g, '').trim()) as T)
@@ -160,7 +170,7 @@ export function useDocScan<T>(opts: {
     reader.readAsDataURL(file)
   }
 
-  return { scanning, error, scanFile }
+  return { scanning, error, errorText, scanFile }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -219,7 +229,7 @@ export default function LoanDocScan({ banks, euribor, defaultPropertyValue, onAp
   const [ex, setEx] = useState<Extracted | null>(null)
   const [saving, setSaving] = useState(false)
 
-  const { scanning, error, scanFile } = useDocScan<Extracted>({
+  const { scanning, error, errorText, scanFile } = useDocScan<Extracted>({
     system: SYSTEM_PROMPT,
     ask: 'Εξήγαγε τα στοιχεία δανείου με ακρίβεια και επίστρεψε μόνο το JSON.',
     onStart: () => setEx(null),
@@ -318,7 +328,7 @@ export default function LoanDocScan({ banks, euribor, defaultPropertyValue, onAp
         icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>}
       />
 
-      <ScanErrorNote error={error} />
+      <ScanErrorNote error={error} text={errorText} />
 
       {scanning && <Spinner size={18} label="Ανάγνωση και ανάλυση εγγράφου…" />}
 

@@ -158,11 +158,36 @@ function readFile(file: File): Promise<{ base64: string; mime: string }> {
   });
 }
 
-export type ScanError = 'big' | 'service' | 'unreadable' | 'key_missing';
+// ══════════════════════════════════════════════════════════════════════════
+// ΤΟ ΟΡΙΟ ΕΡΩΤΗΣΕΩΝ ΔΕΝ ΕΙΝΑΙ ΒΛΑΒΗ, ΚΑΙ ΔΕΝ ΕΠΙΤΡΕΠΕΤΑΙ ΝΑ ΛΕΓΕΤΑΙ ΕΤΣΙ
+//
+// Το /api/anthropic απαντά 429 με προσεγμένο ελληνικό μήνυμα («Εφτασες τις 7
+// ερωτήσεις για σήμερα, το όριο ανανεώνεται τα μεσάνυχτα»). Η σάρωση όμως
+// έλεγχε ΜΟΝΟ το 413 και έριχνε όλα τα υπόλοιπα στο 'service':
+//
+//     «Η υπηρεσία ανάγνωσης δεν απάντησε. Δοκίμασε ξανά σε λίγο.»
+//
+// Ο χρήστης δοκίμαζε ξανά, και ξανά, και δεν επρόκειτο να δουλέψει μέχρι τα
+// μεσάνυχτα. Δεν μάθαινε ποτέ ότι υπάρχει όριο, ούτε ότι η αναβάθμιση το
+// λύνει. Και συνέβαινε εύκολα: στη δοκιμή το πακέτο είναι επτά ερωτήσεις την
+// ημέρα, και μια θολή φωτογραφία κοστίζει ΔΥΟ (η δεύτερη είναι η επανάληψη
+// με άλλη υπόδειξη) — τέσσερις θολές φωτογραφίες εξαντλούν τη μέρα.
+//
+// Την ίδια στιγμή ο βοηθός, οι υπενθυμίσεις και το πελατολόγιο περνούσαν
+// σωστά το μήνυμα του διακομιστή. Η ασυνέπεια ήταν μέσα στην ίδια εφαρμογή.
+//
+// ΚΑΙ ΤΟ ΚΕΙΜΕΝΟ ΕΡΧΕΤΑΙ ΑΠΟ ΤΟΝ ΔΙΑΚΟΜΙΣΤΗ, ΔΕΝ ΞΑΝΑΓΡΑΦΕΤΑΙ ΕΔΩ. Το
+// aiLimits.ts ξέρει ποιο από τα τρία όρια χτύπησε (ημέρα, μήνας, κοινή
+// δεξαμενή), ποιο πακέτο έχει ο χρήστης, και ότι σε agency και office η
+// πρόταση αναβάθμισης είναι κοροϊδία. Ενα σταθερό κείμενο εδώ θα έλεγε σε
+// πληρωμένο λογαριασμό «αναβάθμισε» χωρίς να υπάρχει πού.
+export type ScanError = 'big' | 'service' | 'unreadable' | 'key_missing' | 'quota';
+/** Ο τύπος του σφάλματος, και το κείμενο του διακομιστή όταν υπάρχει. */
+export interface ScanFailure { error?: ScanError; errorText?: string }
 
 // Κλήση του vision endpoint με χρονικό όριο, ώστε μια κολλημένη απόκριση να μη
 // παγώνει την ουρά ανεβάσματος.
-async function ask(body: unknown, timeoutMs = 45000): Promise<{ data?: { content?: { type: string; text?: string }[] }; error?: ScanError }> {
+async function ask(body: unknown, timeoutMs = 45000): Promise<ScanFailure & { data?: { content?: { type: string; text?: string }[] } }> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
@@ -175,6 +200,10 @@ async function ask(body: unknown, timeoutMs = 45000): Promise<{ data?: { content
       // Το 413 έχει δική του, χρήσιμη απάντηση: «μίκρυνε το αρχείο», όχι
       // «χάλασε η υπηρεσία». Ο τύπος `big` υπήρχε ήδη και δεν τον έφτανε τίποτα.
       if (res.status === 413) return { error: 'big' };
+      // 429: εξαντλημένο πακέτο ερωτήσεων. Δεν λύνεται με επανάληψη.
+      if (res.status === 429) {
+        return { error: 'quota', errorText: typeof data?.error === 'string' ? data.error : undefined };
+      }
       return { error: String(data?.error || '').includes('ANTHROPIC_API_KEY') ? 'key_missing' : 'service' };
     }
     return { data };
@@ -192,18 +221,18 @@ const contentPartOf = (base64: string, mime: string) => mime === 'application/pd
   : { type: 'image', source: { type: 'base64', media_type: mime, data: base64 } };
 
 /** Σκανάρει ένα αρχείο ως ΕΓΓΡΑΦΟ και επιστρέφει το δομημένο παραστατικό. */
-export async function scanDocument(file: File): Promise<{ doc?: ScannedDoc; error?: ScanError }> {
+export async function scanDocument(file: File): Promise<ScanFailure & { doc?: ScannedDoc }> {
   if (file.size > MAX_SCAN_MB * 1024 * 1024) return { error: 'big' };
   let base64 = '', mime = 'image/jpeg';
   try { ({ base64, mime } = await readFile(file)); } catch { return { error: 'unreadable' }; }
   const part = contentPartOf(base64, mime);
 
-  const attempt = async (hint: string): Promise<{ doc?: ScannedDoc; error?: ScanError }> => {
+  const attempt = async (hint: string): Promise<ScanFailure & { doc?: ScannedDoc }> => {
     const r = await ask({
       model: 'claude-sonnet-5', max_tokens: 1500, system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: [part, { type: 'text', text: `Αναγνώρισε και ανάλυσε αυτό το έγγραφο. ${hint}` }] }],
     });
-    if (r.error) return { error: r.error };
+    if (r.error) return { error: r.error, errorText: r.errorText };
     const doc = parseJson<ScannedDoc>(r.data);
     if (!doc || typeof doc !== 'object') return { error: 'unreadable' };
     return { doc };
@@ -214,7 +243,7 @@ export async function scanDocument(file: File): Promise<{ doc?: ScannedDoc; erro
   if (r.error === 'unreadable') {
     r = await attempt('ΠΡΟΣΟΧΗ: η εικόνα ίσως είναι θαμπή ή στραβή. Κοίτα ξανά προσεκτικά και εντόπισε οπωσδήποτε τον τύπο του εγγράφου και τα βασικά στοιχεία.');
   }
-  if (r.error || !r.doc) return { error: r.error || 'unreadable' };
+  if (r.error || !r.doc) return { error: r.error || 'unreadable', errorText: r.errorText };
 
   const doc = r.doc;
   // Ντετερμινιστική εξομάλυνση: το AI μπορεί να δώσει αριθμούς ως strings.
@@ -250,7 +279,7 @@ export async function scanDocument(file: File): Promise<{ doc?: ScannedDoc; erro
 }
 
 /** Ταξινόμηση φωτογραφίας ακινήτου (χώρος/θέμα + κατηγορία). */
-export async function scanPhoto(file: File): Promise<{ photo?: { category: string; title: string | null }; error?: ScanError }> {
+export async function scanPhoto(file: File): Promise<ScanFailure & { photo?: { category: string; title: string | null } }> {
   if (file.size > MAX_SCAN_MB * 1024 * 1024) return { error: 'big' };
   if (!file.type.startsWith('image/')) return { error: 'unreadable' };
   let base64 = '', mime = 'image/jpeg';
@@ -259,7 +288,7 @@ export async function scanPhoto(file: File): Promise<{ photo?: { category: strin
     model: 'claude-sonnet-5', max_tokens: 200, system: PHOTO_SYSTEM_PROMPT,
     messages: [{ role: 'user', content: [contentPartOf(base64, mime), { type: 'text', text: 'Κατηγοριοποίησε αυτή τη φωτογραφία ακινήτου.' }] }],
   });
-  if (r.error) return { error: r.error };
+  if (r.error) return { error: r.error, errorText: r.errorText };
   const parsed = parseJson<{ category?: string; title?: string }>(r.data);
   if (!parsed) return { error: 'unreadable' };
   return {
@@ -271,11 +300,10 @@ export async function scanPhoto(file: File): Promise<{ photo?: { category: strin
 }
 
 // ── Έγγραφο ή φωτογραφία; Το αποφασίζει το AI, όχι διακόπτης ────────────────
-export interface ScanFileResult {
+export interface ScanFileResult extends ScanFailure {
   kind: 'document' | 'photo';
   doc?: ScannedDoc;                                  // kind === 'document'
   photo?: { category: string; title: string | null }; // kind === 'photo'
-  error?: ScanError;
 }
 
 /**
@@ -296,12 +324,14 @@ export async function scanFile(file: File): Promise<ScanFileResult> {
       || d.tenant_name || d.monthly_rent || d.premium || d.policy_number || d.atak || d.purchase_price);
     if (documentary || !isImage) return { kind: 'document', doc: d };
   } else if (!isImage) {
-    return { kind: 'document', error: r.error };
+    return { kind: 'document', error: r.error, errorText: r.errorText };
   }
   const p = await scanPhoto(file);
   if (p.photo) return { kind: 'photo', photo: p.photo };
   // Η φωτογραφία δεν ταξινομήθηκε: επιστρέφουμε ό,τι ξέρουμε, χωρίς να χαθεί τίποτα.
-  return r.doc ? { kind: 'document', doc: r.doc } : { kind: 'photo', error: p.error || r.error };
+  return r.doc
+    ? { kind: 'document', doc: r.doc }
+    : { kind: 'photo', error: p.error || r.error, errorText: p.errorText || r.errorText };
 }
 
 // ── Αρχειοθέτηση: ανέβασμα + εγγραφή στο property_documents ─────────────────
