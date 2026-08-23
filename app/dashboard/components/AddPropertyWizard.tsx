@@ -43,25 +43,25 @@ const PROP_TYPES = ['apartment', 'house', 'studio', 'maisonette', 'office', 'sho
 
 // Τύποι χωρίς όροφο / έτος κατασκευής (γη & βοηθητικοί χώροι)
 const LAND_LIKE = new Set(['land', 'parking', 'storage', 'warehouse']);
-// Airbnb εκτίμηση πληρότητας
-const OCCUPANCY = 0.6;
-
-// ── ΤΙΜΗ ΑΝΑ ΔΙΑΝΥΚΤΕΡΕΥΣΗ ⇄ ΑΠΟΘΗΚΕΥΜΕΝΟ ΜΗΝΙΑΙΟ ΙΣΟΔΥΝΑΜΟ ────────────────
+// ── ΤΟ ΕΣΟΔΟ ΤΗΣ ΒΡΑΧΥΧΡΟΝΙΑΣ ΤΟ ΛΕΕΙ Ο ΙΔΙΟΚΤΗΤΗΣ, ΔΕΝ ΤΟ ΜΑΝΤΕΥΕΙ Η ΟΘΟΝΗ ──
 //
-// Το `target_rent` είναι ΠΑΝΤΟΥ μηνιαίο: το resolveRent το δίνει ως μηνιαίο και
-// το computeYields το πολλαπλασιάζει ×12 (Σύγκριση, Αποδόσεις, Χαρτοφυλάκιο,
-// δανειακή ικανότητα). Ο οδηγός όμως έδειχνε τα ετήσια έσοδα με πληρότητα 60%
-// και αποθήκευε τιμή/νύχτα × 30 — δηλαδή 100% πληρότητα, 30 νύχτες τον μήνα.
-// Για 100 € τη νύχτα ο χρήστης διάβαζε «21.900 με εκτιμώμενη πληρότητα 60%»
-// και μετά έβλεπε 36.000 στη Σύγκριση: 64% πάνω από αυτό που του υποσχέθηκε
-// η ίδια οθόνη, πάνω σε αριθμό που κρίνει αν αγοράζει ή πουλάει.
+// Εδώ ζούσε `const OCCUPANCY = 0.6`: ο οδηγός ζητούσε τιμή ανά διανυκτέρευση
+// και έγραφε στο `target_rent` το `τιμή × 365 × 0,6 / 12`. Το εξήντα τοις εκατό
+// δεν βγήκε από πουθενά — δεν είναι μέτρηση, δεν είναι πηγή, δεν είναι δική του
+// υπόθεση. Και το `target_rent` δεν μένει στον οδηγό: το `computeYields` το
+// πολλαπλασιάζει ×12 στη Σύγκριση, στις Αποδόσεις, στο Χαρτοφυλάκιο και στη
+// δανειακή ικανότητα, και το `buildE2Row` το χρησιμοποιεί ως ακαθάριστο σε
+// ΦΟΡΟΛΟΓΙΚΟ ΕΝΤΥΠΟ όταν λείπουν καταγεγραμμένες διαμονές. Για 70 € τη νύχτα
+// ήταν 15.330 € τον χρόνο, ενώ ο ίδιος άνθρωπος είχε εισπράξει 6.300 €.
 //
-// Δύο κατευθύνσεις, μία σταθερά πληρότητας: αυτό που δείχνει η προεπισκόπηση
-// είναι αυτό που γράφεται, και το άνοιγμα-για-επεξεργασία ξαναβγάζει την ίδια
-// τιμή/νύχτα αντί να την ανεβάζει σε κάθε αποθήκευση.
-const nightlyToMonthlyRent = (nightly: number) => (nightly * 365 * OCCUPANCY) / 12;
-const monthlyRentToNightly = (monthly: number) =>
-  Math.round(((monthly * 12) / (365 * OCCUPANCY)) * 100) / 100;
+// Ο ίδιος ο δημόσιος υπολογιστής (ShortVsLongCalculator) το κάνει ήδη σωστά:
+// ΖΗΤΑΕΙ την πληρότητα, δείχνει πίνακα ευαισθησίας και γράφει ρητά ότι τα ποσά
+// απαντούν για την πληρότητα που μάντεψε ο χρήστης. Ο οδηγός ήταν η μοναδική
+// οθόνη που μάντευε μόνη της.
+//
+// Τώρα ρωτά κατευθείαν το μέσο μηνιαίο έσοδο — αριθμό που ο ιδιοκτήτης βλέπει
+// στις πληρωμές του. Ενα πεδίο αντί για δύο, καμία σταθερά, και το άνοιγμα για
+// επεξεργασία ξαναδείχνει ακριβώς ό,τι γράφτηκε.
 
 const STEPS = ['Τύπος', 'Βασικά', 'Οικονομικά', 'Ρυθμίσεις', 'Σύνοψη'];
 
@@ -347,7 +347,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
   // διανυκτέρευση», με την προεπισκόπηση να λέει 657.000 € ετήσια έσοδα. Κάθε
   // αποθήκευση πολλαπλασίαζε ξανά το νούμερο.
   const [rent, setRent] = useState(() =>
-    airbnb && existing?.target_rent != null ? String(monthlyRentToNightly(existing.target_rent)) : s(existing?.target_rent)
+    s(existing?.target_rent)
   );
   const [ownership, setOwnership] = useState(s(existing?.ownership) || '100');
   // Συνιδιοκτήτες: όταν το ποσοστό < 100%, ζητάμε πλήθος (1–99) και ονόματα.
@@ -433,13 +433,10 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
   // (καθρέφτης του resolveValue: εμπορική > αντικειμενική).
   const effValueN = valueN ?? num(objValue);
   const rentN = num(rent);
-  // Μηνιαίο ισοδύναμο: ΕΝΑΣ αριθμός που τροφοδοτεί ΚΑΙ την προεπισκόπηση ΚΑΙ το
-  // `target_rent` που αποθηκεύεται — δεν μπορούν πια να αποκλίνουν.
-  const monthlyRentN = rentN != null ? (airbnb ? nightlyToMonthlyRent(rentN) : rentN) : null;
-  const annualRent = monthlyRentN != null ? monthlyRentN * 12 : null;
+  const annualRent = rentN != null ? rentN * 12 : null;
   const grossYield = (annualRent != null && effValueN != null && effValueN > 0) ? (annualRent / effValueN) * 100 : null;
 
-  const rentLabel = airbnb ? 'Τιμή ανά διανυκτέρευση (€)' : 'Στόχος Ενοικίου (€/μήνα)';
+  const rentLabel = airbnb ? 'Μέσο μηνιαίο έσοδο (€)' : 'Στόχος Ενοικίου (€/μήνα)';
   const sqmLabel = propType === 'land' ? 'Εμβαδόν Οικοπέδου (τ.μ.)' : 'Εμβαδόν (τ.μ.)';
 
   const canNext = step === 0 ? !!propType : step === 1 ? !!name.trim() : true;
@@ -447,8 +444,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
   const save = async () => {
     if (!name.trim()) { setStep(1); return; }
     setSaving(true); setError('');
-    // Ό,τι ακριβώς δείχνει η προεπισκόπηση απόδοσης — ίδιο μηνιαίο ισοδύναμο.
-    const storedRent = monthlyRentN;
+
     const payload = {
       name: name.trim(),
       prop_type: propType,
@@ -458,7 +454,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
       sqm: num(sqm),
       value: valueN,
       purchase_price: num(purchasePrice),
-      target_rent: storedRent,
+      target_rent: rentN,
       floor: isLandLike ? null : (floor.trim() || null),
       year_built: isLandLike ? null : (yearBuilt ? parseInt(yearBuilt) : null),
       ownership: num(ownership) ?? 100,
@@ -776,8 +772,14 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
           rows={[
             row('prop.obj_value', 'auto',
               <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={objValue} onChange={e => setObjValue(e.target.value)} onFocus={onFocus} onBlur={onBlur} />, 'Αντικειμενική αξία (€)'),
-            row('prop.rent', 'auto',
-              <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={rent} onChange={e => setRent(e.target.value)} placeholder={airbnb ? '75' : '820'} onFocus={onFocus} onBlur={onBlur} />, rentLabel),
+            row('prop.rent', airbnb ? 'full' : 'auto', <>
+              <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={rent} onChange={e => setRent(e.target.value)} placeholder={airbnb ? '1400' : '820'} onFocus={onFocus} onBlur={onBlur} />
+              {airbnb && (
+                <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.6 }}>
+                  Η τιμή ανά νύχτα επί τις νύχτες που νοικιάζεται τον μήνα, κατά μέσο όρο μέσα στη χρονιά. Οι καταγεγραμμένες διαμονές αντικαθιστούν αυτή την εκτίμηση παντού όπου υπάρχουν.
+                </div>
+              )}
+            </>, rentLabel),
             row('prop.co_owners', 'full', <>
               <input style={monoInputStyle} type="number" inputMode="numeric" min={1} max={99} value={coOwners.length}
                 onChange={e => setCoOwnerCount(parseInt(e.target.value, 10))} onFocus={onFocus} onBlur={onBlur} />
@@ -805,9 +807,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
               <div style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', marginBottom: 6 }}>Εκτιμώμενη μεικτή απόδοση</div>
               <div style={{ fontFamily: T.font.mono, fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fp(grossYield)}</div>
               <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
-                {airbnb
-                  ? `Ετήσια έσοδα ${fe(annualRent!)} με εκτιμώμενη πληρότητα 60%`
-                  : `Ετήσια έσοδα ${fe(annualRent!)} επί ${valueN != null ? 'εμπορικής' : 'αντικειμενικής'} αξίας ${fe(effValueN!)}`}
+                {`Ετήσια έσοδα ${fe(annualRent!)} επί ${valueN != null ? 'εμπορικής' : 'αντικειμενικής'} αξίας ${fe(effValueN!)}`}
               </div>
             </div>
           )}
@@ -899,7 +899,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
               num(enfia) != null ? ['Εκτιμώμενος ΕΝΦΙΑ', `${fe(num(enfia)!)} / έτος`] : null,
               ['Τιμή Αγοράς', num(purchasePrice) != null ? fe(num(purchasePrice)!) : fe(0)],
               purchaseDate ? ['Ημερομηνία Αγοράς', fd(purchaseDate)] : null,
-              [airbnb ? 'Τιμή ανά διανυκτέρευση' : 'Στόχος Ενοικίου', rentN != null ? (airbnb ? fe(rentN) : `${fe(rentN)} / μήνα`) : fe(0)],
+              [airbnb ? 'Μέσο μηνιαίο έσοδο' : 'Στόχος Ενοικίου', `${fe(rentN ?? 0)} / μήνα`],
               ['Ποσοστό Ιδιοκτησίας', `${fn(num(ownership) ?? 100, 2)}%`],
               ['Εκτιμώμενη μεικτή απόδοση', grossYield != null ? `${fp(grossYield)}` : fp(0)],
             ].filter(Boolean) as [string, string][]).map(([k, v], i) => (
