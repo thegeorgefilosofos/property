@@ -42,7 +42,31 @@ if (!proxy.includes(EXEMPTION)) {
   problems.push(`${PROXY}: το /api/** ξαναμπήκε στον έλεγχο συνεδρίας. Το webhook του εμπόρου θα παίρνει 307 αντί για 200.`);
 }
 
-const routes = globSync('app/api/**/route.ts').sort();
+// ══════════════════════════════════════════════════════════════════════════
+// ΚΑΘΕ ΚΑΤΑΛΗΞΗ, ΚΑΙ ΤΟ ΠΛΗΘΟΣ ΕΠΑΛΗΘΕΥΕΤΑΙ
+//
+// Το πρότυπο ήταν `route.ts` σκέτο. Υπάρχουν ΕΝΤΕΚΑ αρχεία διαδρομής και ο
+// φύλακας τύπωνε «και οι 10 διαδρομές ζητούν ταυτότητα». Το ενδέκατο ήταν το
+// `app/api/anthropic/route.tsx` — η ΑΚΡΙΒΟΤΕΡΗ διαδρομή της εφαρμογής, αυτή
+// που κρατά το κλειδί του παρόχου AI.
+//
+// Σήμερα η διαδρομή ΕΧΕΙ έλεγχο συνεδρίας, οπότε δεν έμεινε πόρτα ανοιχτή.
+// Ομως ο διαμεσολαβητής εξαιρεί ρητά ολόκληρο το `/api/**` (proxy.ts), άρα
+// ο μόνος έλεγχος είναι αυτός εδώ — και ο επόμενος που θα γράψει `route.tsx`
+// θα δημοσίευε ανέλεγκτη διαδρομή με πράσινο φύλακα από πάνω.
+//
+// Το πλήθος συγκρίνεται ρητά με ό,τι υπάρχει στον δίσκο: ένας φύλακας που
+// μετρά λάθος πλήθος δεν είναι φύλακας, είναι καθησυχασμός.
+const routes = globSync('app/api/**/route.{ts,tsx,js,mjs}').sort();
+const everyRouteFile = globSync('app/api/**/route.*').sort();
+if (routes.length !== everyRouteFile.length) {
+  const missed = everyRouteFile.filter(f => !routes.includes(f));
+  console.error('✗ ΔΙΑΔΡΟΜΕΣ ΕΚΤΟΣ ΕΛΕΓΧΟΥ');
+  console.error(`  Ο φύλακας βλέπει ${routes.length} από ${everyRouteFile.length} αρχεία διαδρομής.`);
+  for (const f of missed) console.error(`  · ${f}`);
+  console.error('  Πρόσθεσε την κατάληξη στο glob παραπάνω.');
+  process.exit(1);
+}
 if (!routes.length) problems.push('δεν βρέθηκε καμία διαδρομή κάτω από app/api — ο έλεγχος δεν κοιτά τίποτα.');
 
 for (const file of routes) {
