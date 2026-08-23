@@ -422,8 +422,13 @@ begin
     values (pa, a, 750.00, 800.00);
   insert into public.expenses (user_id, property_id, amount, description, category, date)
     values (a, pa, 42.00, 'Κοινόχρηστα', 'other', current_date);
+  -- Η ΕΙΣΠΡΑΞΗ. Ο rent_payments είχε ΜΙΑ επιτρεπτική πολιτική, την own_*, και
+  -- καμία org_read_*: το μέλος με δικαίωμα οικονομικών έβλεπε μηδέν εισπράξεις
+  -- ενώ η οθόνη της ομάδας υπόσχεται ρητά «Ενοίκια».
+  insert into public.rent_payments (user_id, property_id, amount, payment_date, status)
+    values (a, pa, 450.00, current_date, 'paid');
 
-  raise notice 'probe: οργανισμός με δύο μέλη, μίσθωμα 750,00 € και IBAN';
+  raise notice 'probe: οργανισμός με δύο μέλη, μίσθωμα 750,00 €, IBAN και είσπραξη 450,00 €';
 end $probe$;
 
 -- ── Το μέλος ΧΩΡΙΣ δικαίωμα ────────────────────────────────────────────────
@@ -462,6 +467,11 @@ begin
     raise exception 'ΔΙΑΡΡΟΗ: μέλος χωρίς οικονομικά βλέπει % δαπάνες', n;
   end if;
 
+  select count(*) into n from public.rent_payments where property_id = pa;
+  if n <> 0 then
+    raise exception 'ΔΙΑΡΡΟΗ: μέλος χωρίς οικονομικά βλέπει % εισπράξεις', n;
+  end if;
+
   -- Ούτε γράφει: χωρίς αυτό, το μέλος θα μπορούσε να αλλάξει το IBAN
   -- είσπραξης χωρίς να το βλέπει, που είναι χειρότερο από τη διαρροή.
   update public.tenants set rent_iban = 'GR0000000000000000000000000' where property_id = pa;
@@ -497,7 +507,25 @@ begin
     raise exception 'Η διόρθωση έκρυψε τις δαπάνες από μέλος ΜΕ δικαίωμα';
   end if;
 
-  raise notice 'probe: μέλος με δικαίωμα διαβάζει μίσθωμα 750,00 € και δαπάνες';
+  -- ΚΑΙ ΟΙ ΕΙΣΠΡΑΞΕΙΣ, ΠΟΥ ΕΙΝΑΙ ΤΟ ΠΡΩΤΟ ΠΡΑΓΜΑ ΠΟΥ ΥΠΟΣΧΕΤΑΙ Η ΟΘΟΝΗ.
+  select count(*) into n from public.rent_payments where property_id = pa;
+  if n <> 1 then
+    raise exception 'Το μέλος ΜΕ δικαίωμα βλέπει % εισπράξεις αντί για 1', n;
+  end if;
+
+  select amount into v from public.rent_payments where property_id = pa;
+  if v is distinct from 450.00 then
+    raise exception 'Το μέλος με δικαίωμα διαβάζει είσπραξη % αντί για 450,00', v;
+  end if;
+
+  -- ΚΑΙ ΜΟΝΟ ΔΙΑΒΑΖΕΙ: η νέα πολιτική είναι FOR SELECT και τίποτα άλλο.
+  update public.rent_payments set amount = 1.00 where property_id = pa;
+  get diagnostics n = row_count;
+  if n <> 0 then
+    raise exception 'ΔΙΑΡΡΟΗ: μέλος άλλαξε % εισπράξεις', n;
+  end if;
+
+  raise notice 'probe: μέλος με δικαίωμα διαβάζει μίσθωμα 750,00 €, δαπάνες και είσπραξη 450,00 €';
 end $probe$;
 
 set session "probe.uid" = '11111111-1111-1111-1111-111111111111';
@@ -519,6 +547,17 @@ begin
   select count(*) into n from public.rent_config where property_id = pa;
   if n <> 1 then
     raise exception 'Ο ΙΔΙΟΚΤΗΤΗΣ έχασε το ενοίκιο του ακινήτου του';
+  end if;
+
+  select count(*) into n from public.rent_payments where property_id = pa;
+  if n <> 1 then
+    raise exception 'Ο ΙΔΙΟΚΤΗΤΗΣ έχασε την είσπραξή του: % γραμμές', n;
+  end if;
+
+  update public.rent_payments set notes = 'σημείωση ιδιοκτήτη' where property_id = pa;
+  get diagnostics n = row_count;
+  if n <> 1 then
+    raise exception 'Ο ΙΔΙΟΚΤΗΤΗΣ δεν μπορεί πια να ενημερώσει την είσπραξή του';
   end if;
 
   update public.tenants set full_name = 'Μισθωτής, μετονομασμένος' where property_id = pa;
