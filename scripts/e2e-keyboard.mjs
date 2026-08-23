@@ -49,6 +49,24 @@ const p = await browser.newPage({ viewport: { width: 1280, height: 900 } })
 await p.goto(PAGE, { waitUntil: 'networkidle' })
 await p.waitForTimeout(400)
 
+/**
+ * Περιμένει ώσπου να ισχύσει η συνθήκη, με όριο. Επιστρέφει αν ίσχυσε.
+ *
+ * ΓΙΑΤΙ ΟΧΙ ΣΤΑΘΕΡΗ ΑΝΑΜΟΝΗ. Το `waitForTimeout(200)` είναι στοίχημα: σε
+ * φορτωμένο μηχάνημα η React δεν έχει προλάβει και ο έλεγχος κοκκινίζει για
+ * λόγο άσχετο με τον κώδικα· σε άδειο μηχάνημα περιμένει άδικα. Μετρήθηκε:
+ * το ίδιο ακριβώς build έδινε 45 πράσινα και 42 πράσινα σε δύο διαδοχικά
+ * τρεξίματα. Ένας έλεγχος που τρεμοπαίζει διδάσκει να τον ξαναπατάς.
+ */
+const until = async (fn, ms = 2000) => {
+  const t0 = Date.now()
+  for (;;) {
+    if (await fn()) return true
+    if (Date.now() - t0 > ms) return false
+    await p.waitForTimeout(25)
+  }
+}
+
 /** Ποιο στοιχείο έχει την εστίαση, σε μορφή που διαβάζεται σε μήνυμα. */
 const focused = () => p.evaluate(() => {
   const a = document.activeElement
@@ -66,32 +84,43 @@ const inDialog = () => p.evaluate(() => {
 /**
  * Αλλάζει οπτικά το στοιχείο όταν το εστιάζει το ΠΛΗΚΤΡΟΛΟΓΙΟ;
  *
- * ΓΙΑΤΙ ΟΧΙ `el.focus()` ΑΠΟ ΚΩΔΙΚΑ. Η ψευδοκλάση `:focus-visible` δεν είναι
- * «έχει εστίαση»: είναι «έχει εστίαση ΚΑΙ ο περιηγητής κρίνει ότι πρέπει να
- * φανεί», και η κρίση εξαρτάται από το ΠΩΣ ήρθε η εστίαση. Εστίαση από κώδικα
- * συχνά δεν την ενεργοποιεί, οπότε ο έλεγχος θα κατηγορούσε σωστό στυλ. Εδώ
- * πατιέται αληθινό Tab μέχρι να φτάσει στο ζητούμενο στοιχείο.
+ * ΤΡΕΙΣ ΓΡΑΦΕΣ ΧΡΕΙΑΣΤΗΚΑΝ, ΚΑΙ ΟΙ ΔΥΟ ΠΡΩΤΕΣ ΗΤΑΝ ΛΑΘΟΣ.
+ *
+ * Η πρώτη καλούσε `el.focus()` από κώδικα. Η ψευδοκλάση `:focus-visible` δεν
+ * σημαίνει «έχει εστίαση» αλλά «έχει εστίαση ΚΑΙ ο περιηγητής κρίνει ότι
+ * πρέπει να φανεί», και η κρίση εξαρτάται από το ΠΩΣ ήρθε: με εστίαση από
+ * κώδικα, χωρίς προηγούμενη χρήση πληκτρολογίου, δεν ανάβει. Ο έλεγχος
+ * κατηγορούσε σωστό στυλ.
+ *
+ * Η δεύτερη πατούσε Tab ώσπου να φτάσει στο στοιχείο. Η αφετηρία όμως της
+ * διαδοχικής πλοήγησης ΔΕΝ μηδενίζεται με `blur()`: ο περιηγητής συνεχίζει από
+ * εκεί που ήταν, οπότε το πλήθος των Tab που χρειάζονται αλλάζει με την
+ * προηγούμενη κατάσταση. Μετρήθηκε: το ίδιο build έδινε 45, 45, 43 και 44
+ * πράσινα σε τέσσερα διαδοχικά τρεξίματα, και σε κάθε αποτυχία η εστίαση είχε
+ * μείνει σε άλλο στοιχείο, μολύνοντας και τα επόμενα βήματα.
+ *
+ * Η τρίτη είναι ντετερμινιστική: ΕΝΑ Tab βάζει τον περιηγητή σε λειτουργία
+ * πληκτρολογίου, και από εκεί και πέρα η εστίαση από κώδικα ανάβει κανονικά το
+ * `:focus-visible`. Ελέγχεται και η ψευδοκλάση ΚΑΙ η πραγματική αλλαγή στυλ:
+ * η πρώτη λέει ότι ο περιηγητής θέλει να δείξει κάτι, η δεύτερη ότι το φύλλο
+ * στυλ όντως δείχνει.
  */
-const focusVisibleByTab = async (selector) => {
-  await p.evaluate(() => { const a = document.activeElement; if (a && a !== document.body) a.blur() })
-  const before = await p.evaluate((sel) => {
-    const el = document.querySelector(sel); if (!el) return null
-    const cs = getComputedStyle(el)
-    return [cs.outlineStyle, cs.outlineWidth, cs.outlineColor, cs.boxShadow, cs.borderColor].join('|')
+const focusRingOf = async (selector) => {
+  await p.keyboard.press('Tab')                      // λειτουργία πληκτρολογίου
+  const r = await p.evaluate((sel) => {
+    const el = document.querySelector(sel)
+    if (!el) return null
+    const snap = (n) => { const cs = getComputedStyle(n); return [cs.outlineStyle, cs.outlineWidth, cs.outlineColor, cs.boxShadow, cs.borderColor].join('|') }
+    const before = snap(el)
+    const beforeUp = el.parentElement ? snap(el.parentElement) : ''
+    el.focus()
+    const after = snap(el)
+    const afterUp = el.parentElement ? snap(el.parentElement) : ''
+    let visible = false
+    try { visible = el.matches(':focus-visible') } catch { visible = false }
+    return { changed: before !== after || beforeUp !== afterUp, visible, a: before, b: after }
   }, selector)
-  if (before === null) return null
-  for (let i = 0; i < 40; i++) {
-    await p.keyboard.press('Tab')
-    const hit = await p.evaluate((sel) => document.activeElement === document.querySelector(sel), selector)
-    if (hit) {
-      const after = await p.evaluate((sel) => {
-        const cs = getComputedStyle(document.querySelector(sel))
-        return [cs.outlineStyle, cs.outlineWidth, cs.outlineColor, cs.boxShadow, cs.borderColor].join('|')
-      }, selector)
-      return { changed: before !== after, a: before, b: after, reached: true }
-    }
-  }
-  return { changed: false, reached: false }
+  return r
 }
 
 // ══ 1. ΠΑΡΑΘΥΡΟ ═══════════════════════════════════════════════════════════
@@ -142,31 +171,45 @@ ok('το Escape το κλείνει', await p.locator('[role="dialog"]').count()
 ok('η εστίαση γυρίζει', (await focused()).includes('sheet-open'), await focused())
 
 // ══ 3. ΕΠΙΛΟΓΕΑΣ ══════════════════════════════════════════════════════════
+// ΚΑΘΕ ΒΗΜΑ ΣΤΗΝΕΙ ΜΟΝΟ ΤΟΥ ΤΙΣ ΠΡΟΫΠΟΘΕΣΕΙΣ ΤΟΥ. Η πρώτη γραφή στηριζόταν στο
+// ότι η εστίαση είχε μείνει εκεί που την άφησε το προηγούμενο βήμα — και ο
+// έλεγχος της ορατότητας πατά δεκάδες Tab. Ένα βήμα που κληρονομεί κατάσταση
+// αποτυγχάνει για λόγο άσχετο με αυτό που ελέγχει, και τότε διδάσκει να το
+// ξαναπατάς ώσπου να περάσει.
 console.log('\n── Επιλογέας')
-// ΤΟ ΜΕΝΟΥ ΖΕΙ ΣΕ PORTAL, ΟΧΙ ΜΕΣΑ ΣΤΟ ΤΜΗΜΑ. Ζωγραφίζεται στο <body> ώστε να
-// μην το κόβει κανένα κυλιόμενο δοχείο· άρα ο έλεγχος το ψάχνει καθολικά.
 const selTrigger = '[data-k="select"] [role="combobox"]'
-await p.locator(selTrigger).first().focus()
-ok('ο επιλογέας φτάνει με εστίαση', (await focused()).includes('select'), await focused())
-const fvSel = await focusVisibleByTab(selTrigger)
-ok('η εστίαση φαίνεται πάνω του', fvSel?.changed === true, fvSel?.reached === false ? 'δεν τον έφτασε το Tab' : `πριν ${fvSel?.a} · μετά ${fvSel?.b}`)
-await p.keyboard.press('Enter')
-await p.waitForTimeout(200)
+// Το μενού ζωγραφίζεται σε portal στο <body>, όχι μέσα στο τμήμα.
 const listOpen = async () => await p.locator('[role="listbox"]').count() > 0
-ok('το Enter ανοίγει τη λίστα', await listOpen())
+
+await p.locator(selTrigger).focus()
+ok('ο επιλογέας φτάνει με εστίαση', (await focused()).includes('select'), await focused())
+
+const fvSel = await focusRingOf(selTrigger)
+ok('η εστίαση φαίνεται πάνω του', fvSel?.changed === true && fvSel?.visible === true, `αλλαγή ${fvSel?.changed}, focus-visible ${fvSel?.visible}`)
+
+await p.locator(selTrigger).focus()
+await until(async () => (await focused()).includes('select'))
+await p.keyboard.press('Enter')
+ok('το Enter ανοίγει τη λίστα', await until(listOpen))
+
 await p.keyboard.press('ArrowDown')
-await p.waitForTimeout(120)
-const active1 = await p.evaluate(() => document.querySelector('[data-k="select"] [role="combobox"]')?.getAttribute('aria-activedescendant') || null)
-ok('το κάτω βέλος μετακινεί την ενεργή επιλογή', !!active1, 'aria-activedescendant: ' + active1)
+const moved = await until(async () => !!(await p.evaluate((sel) => document.querySelector(sel)?.getAttribute('aria-activedescendant'), selTrigger)))
+ok('το κάτω βέλος μετακινεί την ενεργή επιλογή', moved,
+   'aria-activedescendant: ' + await p.evaluate((sel) => document.querySelector(sel)?.getAttribute('aria-activedescendant'), selTrigger))
+
+const before = await p.evaluate((sel) => document.querySelector(sel).textContent.trim(), selTrigger)
 await p.keyboard.press('Enter')
-await p.waitForTimeout(200)
-ok('το Enter επιλέγει και κλείνει', !(await listOpen()))
+ok('το Enter επιλέγει και κλείνει', await until(async () => !(await listOpen())))
+ok('και η επιλογή άλλαξε',
+   await until(async () => (await p.evaluate((sel) => document.querySelector(sel).textContent.trim(), selTrigger)) !== before),
+   `έμεινε «${before}»`)
 ok('η εστίαση μένει στον επιλογέα', (await focused()).includes('select'), await focused())
+
+await p.locator(selTrigger).focus()
 await p.keyboard.press('Enter')
-await p.waitForTimeout(150)
+await until(listOpen)
 await p.keyboard.press('Escape')
-await p.waitForTimeout(200)
-ok('το Escape κλείνει χωρίς επιλογή', !(await listOpen()))
+ok('το Escape κλείνει χωρίς επιλογή', await until(async () => !(await listOpen())))
 
 // ══ 4. ΗΜΕΡΟΛΟΓΙΟ ═════════════════════════════════════════════════════════
 console.log('\n── Ημερολόγιο')
@@ -198,8 +241,8 @@ ok('το Space τον αλλάζει', s0 !== s1, `${s0} → ${s1}`)
 await p.keyboard.press('Enter')
 await p.waitForTimeout(150)
 ok('και το Enter τον αλλάζει', (await state()) !== s1, `${s1} → ${await state()}`)
-const fvTog = await focusVisibleByTab('[data-k="toggle"] [role="switch"]')
-ok('η εστίαση φαίνεται πάνω του', fvTog?.changed === true, fvTog?.reached === false ? 'δεν τον έφτασε το Tab' : `πριν ${fvTog?.a} · μετά ${fvTog?.b}`)
+const fvTog = await focusRingOf('[data-k="toggle"] [role="switch"]')
+ok('η εστίαση φαίνεται πάνω του', fvTog?.changed === true && fvTog?.visible === true, `αλλαγή ${fvTog?.changed}, focus-visible ${fvTog?.visible}`)
 
 // ══ 6. ΤΜΗΜΑΤΙΚΟΣ ΕΠΙΛΟΓΕΑΣ ══════════════════════════════════════════════
 console.log('\n── Τμηματικός επιλογέας')
@@ -239,7 +282,44 @@ await p.waitForTimeout(300)
 ok('το Escape ακυρώνει', await p.locator('[role="dialog"], [role="alertdialog"]').count() === 0)
 ok('η εστίαση γυρίζει', (await focused()).includes('confirm'), await focused())
 
-// ══ 9. ΚΑΘΕ ΧΕΙΡΙΣΤΗΡΙΟ ΔΕΙΧΝΕΙ ΠΟΥ ΕΙΝΑΙ Η ΕΣΤΙΑΣΗ ══════════════════════
+// ══ 9. ΤΟ ΠΕΔΙΟ ΠΟΣΟΥ: ΑΚΟΛΟΥΘΕΙ ΤΟΝ ΓΟΝΕΑ, ΚΡΑΤΑ Ο,ΤΙ ΓΡΑΦΕΙΣ ═════════════
+// Το πιο πολυχρησιμοποιημένο πεδίο της εφαρμογής, και το μόνο που κρατούσε
+// ΑΝΤΙΓΡΑΦΟ της τιμής του γονέα σε δική του κατάσταση. Το αντίγραφο έφυγε και
+// η τιμή υπολογίζεται πλέον κατά την απόδοση· εδώ ελέγχεται ότι οι τέσσερις
+// συμπεριφορές που το δικαιολογούσαν κρατούν όλες.
+console.log('\n── Πεδίο ποσού')
+const numInput = '[data-k="num"] input'
+const shown = () => p.evaluate((s) => document.querySelector(s).value, numInput)
+const parentValue = () => p.evaluate(() => document.querySelector('[data-k="num-value"]').textContent)
+
+await p.locator('[data-k="num-set"]').click()
+await p.waitForTimeout(150)
+ok('ακολουθεί τον γονέα όταν η τιμή αλλάζει απ έξω', (await shown()) === '250,00', `δείχνει «${await shown()}»`)
+
+await p.locator(numInput).click()
+await p.waitForTimeout(120)
+ok('με την εστίαση δείχνει τον γυμνό αριθμό', (await shown()) === '250', `δείχνει «${await shown()}»`)
+
+await p.keyboard.press('Control+a')
+await p.keyboard.type('12')
+await p.waitForTimeout(120)
+ok('κρατά ό,τι πληκτρολογείς', (await shown()) === '12', `δείχνει «${await shown()}»`)
+ok('και το στέλνει στον γονέα', (await parentValue()) === '12', `ο γονέας έχει «${await parentValue()}»`)
+
+// Ενδιάμεση κατάσταση: το «12,» δεν είναι αριθμός, αλλά πρέπει να γράφεται.
+await p.keyboard.type(',')
+await p.waitForTimeout(120)
+ok('δέχεται ενδιάμεση υποδιαστολή χωρίς να σβήσει', (await shown()) === '12,', `δείχνει «${await shown()}»`)
+await p.keyboard.type('5')
+await p.waitForTimeout(120)
+ok('και το δεκαδικό μετά από αυτήν', (await shown()) === '12,5', `δείχνει «${await shown()}»`)
+
+await p.keyboard.press('Tab')
+await p.waitForTimeout(200)
+ok('στο φύγε μορφοποιείται ως ποσό', (await shown()) === '12,50', `δείχνει «${await shown()}»`)
+ok('και ο γονέας κρατά την αριθμητική τιμή', (await parentValue()) === '12.5', `ο γονέας έχει «${await parentValue()}»`)
+
+// ══ 10. ΚΑΘΕ ΧΕΙΡΙΣΤΗΡΙΟ ΔΕΙΧΝΕΙ ΠΟΥ ΕΙΝΑΙ Η ΕΣΤΙΑΣΗ ═════════════════════
 console.log('\n── Ορατότητα εστίασης')
 // Πραγματικό Tab σε ΟΛΗ τη σελίδα, με σύγκριση πριν και μετά ανά στοιχείο.
 const invisible = []
@@ -249,7 +329,11 @@ const invisible = []
     const out = {}
     document.querySelectorAll('button, input, select, textarea, [role="switch"], [role="combobox"], [role="button"], [tabindex="0"]').forEach((el, i) => {
       el.setAttribute('data-kbi', String(i))
-      out[i] = { css: snap(getComputedStyle(el)), name: `${el.tagName.toLowerCase()}:${(el.getAttribute('aria-label') || el.textContent || '').trim().slice(0, 22)}` }
+      out[i] = {
+        css: snap(getComputedStyle(el)),
+        up: el.parentElement ? snap(getComputedStyle(el.parentElement)) : '',
+        name: `${el.tagName.toLowerCase()}:${(el.getAttribute('aria-label') || el.id || el.textContent || '').trim().slice(0, 22)}`,
+      }
     })
     return out
   })
@@ -262,15 +346,29 @@ const invisible = []
   const seen = new Set()
   for (let i = 0; i < 60; i++) {
     await p.keyboard.press('Tab')
+    // ΜΙΚΡΗ ΑΝΑΜΟΝΗ, ΓΙΑΤΙ ΤΟ ΔΑΧΤΥΛΙΔΙ ΜΕΡΙΚΩΝ ΠΕΔΙΩΝ ΕΡΧΕΤΑΙ ΑΠΟ REACT.
+    // Το πεδίο ποσού ζωγραφίζει τη σκιά εστίασης από κατάσταση (`onFocus` →
+    // `setFocused`), δηλαδή σε ΕΠΟΜΕΝΗ απόδοση: διαβάζοντας το στυλ αμέσως
+    // μετά το Tab, ο έλεγχος έβλεπε ακόμη το αφώτιστο και κατηγορούσε σωστό
+    // στοιχείο. Δύο καρέ αρκούν και δεν κρύβουν πραγματικό εύρημα: ένα πεδίο
+    // που δεν ανάβει ΠΟΤΕ, δεν θα ανάψει ούτε σε τριάντα χιλιοστά.
+    await p.waitForTimeout(30)
     const r = await p.evaluate(() => {
       const a = document.activeElement
       if (!a || a === document.body || !a.hasAttribute('data-kbi')) return null
       const snap = (cs) => [cs.outlineStyle, cs.outlineWidth, cs.outlineColor, cs.boxShadow, cs.borderColor, cs.backgroundColor].join('|')
-      return { id: a.getAttribute('data-kbi'), css: snap(getComputedStyle(a)) }
+      // ΤΟ ΠΕΔΙΟ ΔΕΝ ΕΙΝΑΙ ΠΑΝΤΑ ΑΥΤΟ ΠΟΥ ΑΝΑΒΕΙ. Τα πεδία της εφαρμογής είναι
+      // <input> ΧΩΡΙΣ περίγραμμα μέσα σε πλαίσιο που κρατά το ορατό σχήμα: το
+      // δαχτυλίδι εστίασης ζωγραφίζεται στο ΠΛΑΙΣΙΟ, όχι στο ίδιο το <input>.
+      // Κοιτάζοντας μόνο το εστιασμένο στοιχείο, ο έλεγχος κατηγορούσε σωστό
+      // σχέδιο. Μετριέται λοιπόν το στοιχείο ΚΑΙ ο γονέας του — και μόνο αυτοί
+      // οι δύο: πιο ψηλά θα συγχωρούσαμε αλλαγή που δεν δείχνει το πεδίο.
+      return { id: a.getAttribute('data-kbi'), css: snap(getComputedStyle(a)),
+               up: a.parentElement ? snap(getComputedStyle(a.parentElement)) : '' }
     })
     if (!r || seen.has(r.id)) continue
     seen.add(r.id)
-    if (rest[r.id] && rest[r.id].css === r.css) invisible.push(rest[r.id].name)
+    if (rest[r.id] && rest[r.id].css === r.css && rest[r.id].up === r.up) invisible.push(rest[r.id].name)
   }
 }
 ok(`κάθε χειριστήριο αλλάζει όψη στην εστίαση${invisible.length ? ' — ' + invisible.join(', ') : ''}`, invisible.length === 0)

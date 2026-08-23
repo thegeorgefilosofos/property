@@ -75,6 +75,15 @@ function Bench() {
         ]} />
       </section>
 
+      {/* Το πεδίο ποσού έξω από παράθυρο, με κουμπί που αλλάζει την τιμή από
+          ΕΞΩ: έτσι ελέγχεται ότι το πεδίο ακολουθεί τον γονέα του όταν δεν
+          γράφει κανείς, και ότι κρατά ό,τι πληκτρολογείς όσο γράφεις. */}
+      <section data-k="num">
+        <NumberInput label="Ποσό ελέγχου" value={num} onChange={setNum} suffix="€" />
+        <button data-k="num-set" onClick={() => setNum('250')}>Βάλε 250</button>
+        <span data-k="num-value">{num}</span>
+      </section>
+
       <section data-k="confirm">
         <button data-k="confirm-open" onClick={async () => {
           const r = await confirmDialog({ title: 'Σίγουρα;', message: 'Δοκιμή επιβεβαίωσης.' });

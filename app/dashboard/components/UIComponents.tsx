@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useId, ReactNode, Fragment, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { T, TT, localDay } from '@/components/Theme';
-import { acceptNumeric } from '@/lib/core/numInput';
+import { acceptNumeric, forDisplay } from '@/lib/core/numInput';
 import { athensToday, isoYear, isoMonth } from '@/lib/core/time';
 import { MONTHS_SHORT } from '@/lib/core/months';
 import { fn } from '@/lib/core/format';
@@ -261,13 +261,26 @@ export function NumberInput({
   min = 0, max, step = 1, disabled, className,
 }: NumberInputProps) {
   const [focused, setFocused] = useState(false);
-  const [local, setLocal] = useState(String(value ?? ''));
+  // ═══ ΤΟ ΠΡΟΧΕΙΡΟ ΥΠΑΡΧΕΙ ΜΟΝΟ ΟΣΟ ΓΡΑΦΕΙ Ο ΧΡΗΣΤΗΣ ══════════════════════
+  // ΤΙ ΗΤΑΝ: μια δεύτερη κατάσταση που κρατούσε αντίγραφο της τιμής του γονέα,
+  // και ένα effect που τα ξανασυγχρόνιζε μετά από κάθε απόδοση. Δηλαδή σε ΚΑΘΕ
+  // αλλαγή της τιμής, το πεδίο αποδιδόταν, το effect έτρεχε, έγραφε κατάσταση,
+  // και το πεδίο αποδιδόταν ΞΑΝΑ: δύο περάσματα για μία αλλαγή, στο πιο
+  // πολυχρησιμοποιημένο πεδίο ολόκληρης της εφαρμογής.
+  //
+  // ΤΩΡΑ ΥΠΟΛΟΓΙΖΕΤΑΙ ΚΑΤΑ ΤΗΝ ΑΠΟΔΟΣΗ. Το πρόχειρο είναι `null` όσο δεν
+  // πληκτρολογεί κανείς, οπότε δείχνεται η τιμή του γονέα χωρίς αντιγραφή· με
+  // το πρώτο πλήκτρο γεννιέται και ζει ώσπου να φύγει η εστίαση. Καμία διπλή
+  // απόδοση, και καμία στιγμή όπου το αντίγραφο διαφωνεί με το πρωτότυπο.
+  //
+  // ΓΙΑΤΙ ΔΕΝ ΑΡΚΕΙ ΤΟ `focused`: ανάμεσα στο πάτημα και στο πρώτο πλήκτρο, το
+  // πεδίο πρέπει να δείχνει την τιμή που ήδη υπάρχει. Το `null` λέει ακριβώς
+  // «δεν έχει γραφτεί τίποτα ακόμη», που το σκέτο `focused` δεν το ξέρει.
+  const [draft, setDraft] = useState<string | null>(null);
+  const local = draft ?? String(value ?? '');
+  const setLocal = setDraft;
   const autoId = useId();
   const inputId = id ?? autoId;
-
-  useEffect(() => {
-    if (!focused) setLocal(String(value ?? ''));
-  }, [value, focused]);
 
   const handleChange = (raw: string) => {
     // Ο ΓΡΑΜΜΑΤΙΚΟΣ ΕΛΕΓΧΟΣ ΖΕΙ ΣΕ ΕΝΑ ΣΗΜΕΙΟ. Ήταν γραμμένος εδώ και ΠΟΥΘΕΝΑ
@@ -277,7 +290,8 @@ export function NumberInput({
     // διόρθωση εδώ φτάνει παντού.
     const normalized = acceptNumeric(raw, max);
     if (normalized === null) return;
-    if (normalized === '' || normalized === '.') { setLocal(normalized); return; }
+    // Η οθόνη παίρνει κόμμα, ο γονέας τελεία: μία τιμή, δύο αναγνώστες.
+    if (normalized === '' || normalized === '.') { setLocal(forDisplay(normalized)); return; }
     const n = parseFloat(normalized);
     // ΤΟ ΚΑΤΩΤΑΤΟ ΟΡΙΟ ΔΕΝ ΚΡΙΝΕΤΑΙ ΣΤΟ ΚΑΘΕ ΠΛΗΚΤΡΟ. Όποιος γράφει «2026» περνά
     // πρώτα από το «2», το «20» και το «202» — και τα τρία είναι μικρότερα από το
@@ -286,7 +300,7 @@ export function NumberInput({
     // διορθωθεί, και στη διάρκεια δανείου (min 3) δεν γράφονταν τα 10, 15, 20, 25.
     // Το `min` ζει στο `handleBlur`, που κάνει clamp μία φορά, στο τέλος. Το
     // αρνητικό δεν χρειάζεται όριο: δεν είναι καν έγκυρος χαρακτήρας πια.
-    setLocal(normalized);
+    setLocal(forDisplay(normalized));
     if (!isNaN(n)) onChange(normalized);
   };
 
@@ -299,12 +313,16 @@ export function NumberInput({
   const handleBlur = () => {
     setFocused(false);
     const n = parseFloat(local.replace(',', '.'));
+    // Το πρόχειρο ΣΒΗΝΕΙ και στις δύο διαδρομές: η τιμή που μένει είναι αυτή
+    // που μόλις στάλθηκε στον γονέα, και από εκεί θα ξαναδιαβαστεί. Αν έμενε,
+    // το πεδίο θα κρατούσε τη δική του εκδοχή ακόμη κι όταν ο γονέας άλλαζε
+    // την τιμή από αλλού (φόρτωση, επαναφορά, άλλο ακίνητο).
     if (isNaN(n) || local === '' || local === '.') {
       const fallback = String(min ?? 0);
-      setLocal(fallback); onChange(fallback);
+      setDraft(null); onChange(fallback);
     } else {
       const clamped = min !== undefined && n < min ? min : max !== undefined && n > max ? max : n;
-      setLocal(String(clamped)); onChange(String(clamped));
+      setDraft(null); onChange(String(clamped));
     }
   };
 
@@ -319,7 +337,9 @@ export function NumberInput({
   // αλλιώς θα πάλευε με κόμματα και τελείες που βάζει άλλος. Και μόνο στα ευρώ:
   // το «Έτος 2026» δεν είναι ποσό και δεν γίνεται «2.026,00».
   const euro = suffix === '€';
-  const parsed = parseFloat(local);
+  // Ο,τι κρατά το πρόχειρο είναι γραμμένο για την οθόνη (με κόμμα): για να
+  // διαβαστεί ως αριθμός περνά πρώτα στην κανονική μορφή.
+  const parsed = parseFloat(local.replace(',', '.'));
   const shown = !focused && euro && local !== '' && !isNaN(parsed) ? fn(parsed, 2) : local;
 
   // FIX: calculate suffix padding based on string length
