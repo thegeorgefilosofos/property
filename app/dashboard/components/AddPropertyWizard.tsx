@@ -265,7 +265,15 @@ function StepBody({ rows, place, after }: {
 }) {
   const [open, setOpen] = useState(false);
   const core = rows.filter(r => place(r.id) === 'core');
-  const more = rows.filter(r => place(r.id) === 'more');
+  // Η ΣΕΙΡΑ ΤΩΝ ΚΡΥΜΜΕΝΩΝ ΒΓΑΙΝΕΙ ΑΠΟ ΤΟ ΜΗΤΡΩΟ. Το JSX γράφει πρώτα όσα
+  // ΣΥΝΗΘΩΣ φαίνονται και μετά τα σπάνια· όταν ένας κανόνας στέλνει κάποιο από
+  // τα πρώτα στα «Περισσότερα» (τα υπνοδωμάτια σε μακροχρόνια μίσθωση), εκείνο
+  // εμφανιζόταν ΠΡΩΤΟ στη λίστα, πριν από τον ταχυδρομικό κώδικα. Δύο
+  // διαφορετικές σειρές για την ίδια φόρμα, ανάλογα με την κατάσταση του
+  // ακινήτου, κάνουν τον χρήστη να ψάχνει.
+  const order = new Map(PROPERTY_FIELDS.map((f, i) => [f.id, i]));
+  const more = rows.filter(r => place(r.id) === 'more')
+    .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
   const cell = (r: FormRow) => (
     <div key={r.id} style={r.span === 'full' ? { gridColumn: '1 / -1' } : undefined}>
       <Field label={r.label ?? labelOf(r.id)}>{r.node}</Field>
@@ -733,14 +741,14 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
               <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="Παράδειγμα: Αράββου 45" onFocus={onFocus} onBlur={onBlur} autoFocus />),
             row('prop.address', 'full',
               <input style={inputStyle} value={address} onChange={e => setAddress(e.target.value)} placeholder="Παράδειγμα: Αράββου 45, Βύρωνας" onFocus={onFocus} onBlur={onBlur} />),
-            row('prop.sqm', 'auto',
-              <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={sqm} onChange={e => setSqm(e.target.value)} onFocus={onFocus} onBlur={onBlur} />, sqmLabel),
             /* Η οδηγία ΔΕΝ ζει σε placeholder: το placeholder σβήνει με το πρώτο
                ψηφίο, δηλαδή τη στιγμή ακριβώς που ο χρήστης το χρειάζεται. */
             row('prop.atak', 'full', <>
               <input style={monoInputStyle} value={atak} onChange={e => setAtak(atakDigits(e.target.value))} inputMode="numeric" onFocus={onFocus} onBlur={onBlur} />
               <p style={{ ...TT.caption, marginTop: 6 }}>{ATAK_SOURCE}</p>
             </>, 'ΑΤΑΚ (Αριθμός Ταυτότητας Ακινήτου)'),
+            row('prop.sqm', 'auto',
+              <input style={monoInputStyle} type="number" min={0} inputMode="decimal" value={sqm} onChange={e => setSqm(e.target.value)} onFocus={onFocus} onBlur={onBlur} />, sqmLabel),
             row('prop.pea', 'auto',
               <CustomSelect value={peaClass} onChange={setPeaClass} placeholder="Επίλεξε" options={PEA_CLASSES.map(c => ({ value: c, label: c }))} />, 'Ενεργειακή κλάση (ΠΕΑ)'),
             row('prop.bedrooms', 'auto',

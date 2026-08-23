@@ -222,6 +222,7 @@ export interface BillingProfilesRow {
   tester_since: string | null;
   hold_plan: string | null;
   hold_until: string | null;
+  lapsed_at: string | null;
 }
 
 export interface BillsRow {
@@ -314,12 +315,10 @@ export interface CalendarFeedTokensRow {
   expires_at: string | null;
 }
 
-export interface CalendarFeedsRow {
+export interface CategoryHintsRow {
   user_id: string;
-  token: string;
-  active: boolean;
-  created_at: string;
-  rotated_at: string | null;
+  vendor_key: string;
+  category: string;
 }
 
 export interface CheckinLinksRow {
@@ -331,12 +330,6 @@ export interface CheckinLinksRow {
   active: boolean | null;
   created_at: string | null;
   expires_at: string | null;
-}
-
-export interface CategoryHintsRow {
-  user_id: string;
-  vendor_key: string;
-  category: string;
 }
 
 export interface ChecklistItemsRow {
@@ -903,7 +896,7 @@ export interface MobileWaitlistRow {
 export interface NotificationLogRow {
   id: string;
   user_id: string;
-  event_id: string;
+  event_id: string | null;
   reminder_type: string;
   sent_at: string | null;
   created_at: string | null;
@@ -1141,7 +1134,7 @@ export interface RentPaymentsRow {
   id: string;
   property_id: string | null;
   user_id: string | null;
-  payment_date: string;
+  payment_date: string | null;
   amount: number;
   period: string | null;
   status: string | null;
@@ -1385,9 +1378,8 @@ export interface Tables {
   book_closings: BookClosingsRow;
   calendar_events: CalendarEventsRow;
   calendar_feed_tokens: CalendarFeedTokensRow;
-  calendar_feeds: CalendarFeedsRow;
-  checkin_links: CheckinLinksRow;
   category_hints: CategoryHintsRow;
+  checkin_links: CheckinLinksRow;
   checklist_items: ChecklistItemsRow;
   client_documents: ClientDocumentsRow;
   client_notes: ClientNotesRow;
