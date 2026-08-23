@@ -142,6 +142,13 @@ DB_PRO=$(echo "$SRC" | grep -oE "'pro_paid'     then v_target := [0-9]+" | grep 
 TS_TRIAL=$(grep -oE 'TRIAL_DAYS = [0-9]+' "$ROOT/lib/billing/plans.ts" | grep -oE '[0-9]+')
 DB_TRIAL=$(psql -h "$WORK" -U postgres -d posdb -X -A -t -c "select public.trial_days()" | tr -d '[:space:]')
 
+# ΚΑΙ ΟΙ ΗΜΕΡΕΣ ΧΑΡΙΤΟΣ, ΠΟΥ ΤΕΛΕΙΩΝΟΥΝ ΣΕ ΔΙΑΓΡΑΦΗ. Εδώ η απόκλιση δεν κόβει
+# ένα κουμπί: σβήνει λογαριασμό. Αν η σελίδα υπόσχεται τριάντα ημέρες και ο
+# σαρωτής μετρά δεκαπέντε, ο άνθρωπος χάνει τα δεδομένα του δεκαπέντε ημέρες
+# πριν από την ημερομηνία που του γράψαμε.
+TS_GRACE=$(grep -oE 'ACCOUNT_GRACE_DAYS = [0-9]+' "$ROOT/lib/billing/plans.ts" | grep -oE '[0-9]+')
+DB_GRACE=$(psql -h "$WORK" -U postgres -d posdb -X -A -t -c "select public.account_grace_days()" | tr -d '[:space:]')
+
 # ΚΑΙ Η ΣΕΙΡΑ ΤΩΝ ΠΑΚΕΤΩΝ. Το `public.plan_rank` κρίνει τι βλέπει ο χρήστης μέσα
 # στη βάση (όρια ακινήτων, κλειδωμένες καρτέλες)· το `PLAN_ORDER` κρίνει τα ίδια
 # στην οθόνη. Ενα πακέτο που θα μπει αύριο σε ΕΝΑ από τα δύο —ή θα μπει σε άλλη
@@ -173,6 +180,7 @@ drift=0
 [ "$TS_VOL" = "$DB_VOL" ] || { echo "✗ στόχος όγκου: εφαρμογή $TS_VOL, βάση ${DB_VOL:-—}"; drift=1; }
 [ "$TS_PRO" = "$DB_PRO" ] || { echo "✗ στόχος συνδρομητών: εφαρμογή $TS_PRO, βάση ${DB_PRO:-—}"; drift=1; }
 [ "$TS_TRIAL" = "$DB_TRIAL" ] || { echo "✗ ημέρες δοκιμής: εφαρμογή $TS_TRIAL, βάση ${DB_TRIAL:-—}"; drift=1; }
+[ "$TS_GRACE" = "$DB_GRACE" ] || { echo "✗ ημέρες χάριτος: εφαρμογή $TS_GRACE, βάση ${DB_GRACE:-—}"; drift=1; }
 [ "$TS_RANKS" = "$DB_RANKS" ] || { echo "✗ σειρά πακέτων: εφαρμογή «$TS_RANKS», βάση «${DB_RANKS:-—}»"; drift=1; }
 [ "$TS_PRICES" = "$DB_PRICES" ] || { echo "✗ τιμές πακέτων: εφαρμογή «$TS_PRICES», βάση «${DB_PRICES:-—}»"; drift=1; }
 [ "$drift" = "0" ] || { echo ""; echo "🔴 Η βάση δίνει άλλα από αυτά που γράφει η οθόνη."; exit 1; }

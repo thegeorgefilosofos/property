@@ -9,7 +9,7 @@ import { billingWords } from './billingWords'
 import { checkoutIsLive } from '../billing/lemonCheckout'
 import { subprocessors, activeSubprocessors, plannedSubprocessors } from './subprocessors'
 import { PAYMENTS_PROVIDER } from './merchant'
-import { TRIAL_DAYS } from '../billing/plans'
+import { TRIAL_DAYS, ACCOUNT_GRACE_DAYS } from '../billing/plans'
 
 let pass = 0, fail = 0
 const ok = (n: string, c: boolean) => { if (c) pass++; else { fail++; console.error('✗ ' + n) } }
@@ -37,7 +37,7 @@ ok('χαλασμένο αναγνωριστικό καταστήματος δε�
 {
   const live = billingWords(LIVE), dark = billingWords(DARK)
   ok('η σημαία ακολουθεί το ταμείο', live.live === true && dark.live === false)
-  const keys = ['chargingToday', 'afterTrial', 'cardData', 'compMonths', 'howWeArePaid', 'paymentMethodAsked', 'moneyBack', 'firstCharge'] as const
+  const keys = ['chargingToday', 'afterTrial', 'afterTrialShort', 'cardData', 'compMonths', 'howWeArePaid', 'paymentMethodAsked', 'moneyBack', 'firstCharge'] as const
   // Αν μια φράση είναι ίδια και στις δύο καταστάσεις, τότε η μία από τις δύο
   // λέει ψέματα — και δεν θα το έπιανε κανείς, γιατί «υπάρχει διατύπωση».
   for (const k of keys) ok(`η «${k}» διαφέρει ανά κατάσταση`, live[k] !== dark[k])
@@ -100,6 +100,30 @@ ok('χαλασμένο αναγνωριστικό καταστήματος δε�
   // Η ΑΝΕΝΕΡΓΗ ΚΑΤΑΣΤΑΣΗ ΜΕΝΕΙ ΑΝΕΝΕΡΓΗ, χωρίς να υπόσχεται χρεώσεις.
   ok('χωρίς ταμείο, καμία υπόσχεση για χρέωση',
     dark.afterTrial.includes('δεν έχει ενεργοποιηθεί'))
+
+  // ── Ο ΛΟΓΑΡΙΑΣΜΟΣ ΧΩΡΙΣ ΣΥΝΔΡΟΜΗ ΔΕΝ ΜΕΝΕΙ ΓΙΑ ΠΑΝΤΑ ─────────────────
+  // Η πολιτική σβήνει δεδομένα, άρα η ενημέρωση δεν είναι διακοσμητική: το
+  // άρθρο 13§2 στοιχείο α΄ GDPR ζητά να λέγεται ΤΟ ΔΙΑΣΤΗΜΑ, όχι ότι
+  // «κάποτε διαγράφονται». Και τα δύο κείμενα, το μακρύ και το σύντομο, το
+  // λένε με τον ίδιο αριθμό: γραμμένος δύο φορές, θα απέκλινε.
+  for (const [name, w] of [['μακρύ', live.afterTrial], ['σύντομο', live.afterTrialShort]] as const) {
+    ok(`το ${name} κείμενο λέει πόσο κρατά ο λογαριασμός χωρίς συνδρομή`,
+      w.includes(`${ACCOUNT_GRACE_DAYS} ημέρες`))
+    ok(`και ότι μετά διαγράφεται`, /διαγράφ/.test(w))
+  }
+  ok('και ότι προηγούνται ειδοποιήσεις', live.afterTrial.includes('δύο ειδοποιήσεις'))
+  // ΚΑΙ ΟΤΑΝ ΔΕΝ ΥΠΑΡΧΕΙ ΤΑΜΕΙΟ, ΔΕΝ ΑΠΕΙΛΕΙΤΑΙ ΚΑΝΕΙΣ. Το «δεν πλήρωσες»
+  // όταν δεν υπάρχει τρόπος να πληρώσεις είναι δικό μας κενό: ο σαρωτής δεν
+  // τρέχει (φρένο στη βάση), και το κείμενο δεν επιτρέπεται να λέει άλλα.
+  ok('χωρίς ταμείο, καμία απειλή διαγραφής',
+    !/διαγράφ|διαγραφή/.test(dark.afterTrialShort))
+
+  // Η ΣΥΝΤΟΜΗ ΜΟΡΦΗ ΓΡΑΦΤΗΚΕ ΓΙΑ ΤΟ ΜΕΤΡΟ ΤΩΝ ΣΥΧΝΩΝ ΕΡΩΤΗΣΕΩΝ: δύο γραμμές
+  // στα 1044px, δηλαδή ώς περίπου 280 χαρακτήρες. Πάνω από αυτό ξαναγίνεται
+  // η παράγραφος που ήρθε να αντικαταστήσει.
+  for (const [name, w] of [['ζωντανή', live.afterTrialShort], ['ανενεργή', dark.afterTrialShort]] as const) {
+    ok(`η ${name} σύντομη μορφή μένει στο μέτρο της απάντησης (${w.length})`, w.length <= 300)
+  }
 }
 
 // ── ΤΟ ΜΗΤΡΩΟ ΥΠΕΡΓΟΛΑΒΩΝ ΑΚΟΛΟΥΘΕΙ ──────────────────────────────────────

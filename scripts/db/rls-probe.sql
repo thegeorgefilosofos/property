@@ -1612,3 +1612,177 @@ end $probe$;
 
 reset role;
 set session "probe.uid" = '';
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Ο ΛΟΓΑΡΙΑΣΜΟΣ ΧΩΡΙΣ ΣΥΝΔΡΟΜΗ: ΤΑ ΤΡΙΑ ΦΡΕΝΑ, ΔΟΚΙΜΑΣΜΕΝΑ ΕΝΑ ΕΝΑ
+-- ─────────────────────────────────────────────────────────────────────────
+-- Αυτός ο μηχανισμός ΣΒΗΝΕΙ ΔΕΔΟΜΕΝΑ. Δεν αρκεί «τρέχει η μετανάστευση»: το
+-- ερώτημα είναι αν αρνείται να σβήσει σε καθεμία από τις καταστάσεις όπου η
+-- διαγραφή θα ήταν λάθος. Επτά καταστάσεις, μία μία, με πραγματικό ρολόι.
+-- ═══════════════════════════════════════════════════════════════════════════
+reset role;
+set session "probe.uid" = '';
+
+do $probe$
+declare
+  v_uid  uuid := 'eeeeeeee-0000-0000-0000-000000000002';
+  v_mail text := 'lapse-probe@example.gr';
+  v_when timestamptz;
+  res    json;
+  n      int;
+begin
+  insert into auth.users (id, email) values (v_uid, v_mail);
+  insert into public.billing_profiles (user_id) values (v_uid) on conflict (user_id) do nothing;
+  update public.billing_profiles set plan = 'free', comp_until = null, trial_used_at = now()
+   where user_id = v_uid;
+  insert into public.user_properties (user_id, name) values (v_uid, 'Το σπίτι που λήγει');
+
+  -- ΠΡΟΫΠΟΘΕΣΗ: ο λογαριασμός ΟΝΤΩΣ μετριέται μηδέν. Χωρίς αυτό, όσα
+  -- ακολουθούν θα περνούσαν επειδή δεν υπάρχει τίποτα να σβηστεί.
+  if public.user_plan_rank(v_uid) <> 0 then
+    raise exception 'Ο έλεγχος είναι κενός: ο λογαριασμός μετρήθηκε επίπεδο %', public.user_plan_rank(v_uid);
+  end if;
+
+  -- ── ΦΡΕΝΟ 1: χωρίς ενεργή χρέωση, το ρολόι δεν ξεκινά καν ──────────────
+  perform public.sweep_lapsed_accounts(false);
+  select lapsed_at into v_when from public.billing_profiles where user_id = v_uid;
+  if v_when is not null then
+    raise exception 'ΦΡΕΝΟ 1 ΣΠΑΣΕ: ξεκίνησε ρολόι διαγραφής ενώ η χρέωση δεν είναι ενεργή';
+  end if;
+
+  -- ── Με ενεργή χρέωση, το ρολόι ξεκινά ΤΩΡΑ (ΦΡΕΝΟ 3) ──────────────────
+  perform public.sweep_lapsed_accounts(true);
+  select lapsed_at into v_when from public.billing_profiles where user_id = v_uid;
+  if v_when is null then
+    raise exception 'Ο σαρωτής δεν ξεκίνησε ρολόι σε λογαριασμό χωρίς συνδρομή';
+  end if;
+  if v_when < now() - interval '1 minute' then
+    raise exception 'ΦΡΕΝΟ 3 ΣΠΑΣΕ: το ρολόι ξεκίνησε αναδρομικά, στις %', v_when;
+  end if;
+
+  -- ── Πριν την προθεσμία δεν σβήνει τίποτα ───────────────────────────────
+  res := public.purge_lapsed_account(v_uid, true);
+  if res->>'skipped' <> 'not_due' then
+    raise exception 'Σβήστηκε λογαριασμός πριν τη λήξη της προθεσμίας: %', res;
+  end if;
+
+  -- Από εδώ και κάτω η προθεσμία έχει περάσει: το ρολόι πάει πίσω όσο η χάρη.
+  update public.billing_profiles
+     set lapsed_at = now() - ((public.account_grace_days() + 1) || ' days')::interval
+   where user_id = v_uid;
+
+  -- ── ΦΡΕΝΟ 1, ΚΑΙ ΣΤΗΝ ΙΔΙΑ ΤΗ ΔΙΑΓΡΑΦΗ ────────────────────────────────
+  res := public.purge_lapsed_account(v_uid, false);
+  if res->>'skipped' <> 'billing_not_live' then
+    raise exception 'ΦΡΕΝΟ 1 ΣΠΑΣΕ: η διαγραφή προχώρησε με τη χρέωση ανενεργή: %', res;
+  end if;
+
+  -- ── ΦΡΕΝΟ 2: πλήρωσε ανάμεσα στη σάρωση και στην πράξη ─────────────────
+  update public.billing_profiles set plan = 'solo' where user_id = v_uid;
+  res := public.purge_lapsed_account(v_uid, true);
+  if res->>'skipped' <> 'has_plan' then
+    raise exception 'ΦΡΕΝΟ 2 ΣΠΑΣΕ: σβήστηκε λογαριασμός που είχε αποκτήσει πακέτο: %', res;
+  end if;
+  -- …και ο σαρωτής μηδενίζει το ρολόι του, αντί να το αφήνει να τρέχει.
+  perform public.sweep_lapsed_accounts(true);
+  select lapsed_at into v_when from public.billing_profiles where user_id = v_uid;
+  if v_when is not null then
+    raise exception 'Ο σαρωτής άφησε ρολόι διαγραφής σε συνδρομητή';
+  end if;
+
+  -- ── Ο ΔΙΑΧΕΙΡΙΣΤΗΣ ΔΕΝ ΧΡΟΝΟΜΕΤΡΕΙΤΑΙ ΠΟΤΕ ───────────────────────────
+  update public.billing_profiles set plan = 'free' where user_id = v_uid;
+  insert into public.app_admins (email) values (v_mail);
+  perform public.sweep_lapsed_accounts(true);
+  select lapsed_at into v_when from public.billing_profiles where user_id = v_uid;
+  if v_when is not null then
+    raise exception 'Ξεκίνησε ρολόι διαγραφής σε λογαριασμό διαχειριστή';
+  end if;
+
+  -- ── ΚΑΙ ΟΤΑΝ ΙΣΧΥΟΥΝ ΟΛΑ, ΣΒΗΝΕΙ ΠΡΑΓΜΑΤΙΚΑ ──────────────────────────
+  -- Αλλιώς τα έξι παραπάνω θα αποδείκνυαν απλώς έναν μηχανισμό που δεν κάνει
+  -- τίποτα ποτέ, και θα περνούσαν όλα πράσινα.
+  delete from public.app_admins where lower(btrim(email)) = v_mail;
+  perform public.sweep_lapsed_accounts(true);
+  update public.billing_profiles
+     set lapsed_at = now() - ((public.account_grace_days() + 1) || ' days')::interval
+   where user_id = v_uid;
+  res := public.purge_lapsed_account(v_uid, true);
+  if res->>'skipped' is not null then
+    raise exception 'Ο λογαριασμός δεν σβήστηκε ενώ ίσχυαν όλα: %', res;
+  end if;
+  if exists (select 1 from auth.users where id = v_uid) then
+    raise exception 'Ο λογαριασμός χωρίς συνδρομή επέζησε της προθεσμίας του';
+  end if;
+  select count(*) into n from public.user_properties where user_id = v_uid;
+  if n <> 0 then
+    raise exception 'Τα ακίνητα επέζησαν της αυτόματης διαγραφής';
+  end if;
+
+  raise notice 'probe: ο λογαριασμός χωρίς συνδρομή σβήνει στην ώρα του, και μόνο τότε';
+end $probe$;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- ΚΑΙ ΤΟ ΗΜΕΡΗΣΙΟ ΠΕΡΑΣΜΑ, ΜΕ ΤΙΣ ΠΡΟΕΠΙΛΟΓΕΣ ΤΟΥ
+-- ─────────────────────────────────────────────────────────────────────────
+-- Ο προηγούμενος έλεγχος περνούσε το φρένο ΡΗΤΑ ως όρισμα. Το χρονόμετρο
+-- όμως δεν περνά τίποτα: καλεί `sweep_and_purge_lapsed()` σκέτο και το φρένο
+-- βγαίνει μόνο του από τη `billing_is_live()`. Αν αυτή η προεπιλογή είναι
+-- λάθος, όλα τα παραπάνω περνούν πράσινα και το χρονόμετρο σβήνει τους
+-- πάντες την πρώτη νύχτα. Εδώ δοκιμάζεται ΑΚΡΙΒΩΣ η διαδρομή του cron.
+-- ═══════════════════════════════════════════════════════════════════════════
+do $probe$
+declare
+  v_uid   uuid := 'eeeeeeee-0000-0000-0000-000000000003';
+  v_payer uuid := 'eeeeeeee-0000-0000-0000-000000000004';
+  out     json;
+begin
+  insert into auth.users (id, email) values (v_uid, 'krono-probe@example.gr');
+  insert into public.billing_profiles (user_id) values (v_uid) on conflict (user_id) do nothing;
+  update public.billing_profiles
+     set plan = 'free', comp_until = null, trial_used_at = now(),
+         lapsed_at = now() - ((public.account_grace_days() + 1) || ' days')::interval
+   where user_id = v_uid;
+
+  -- ΚΑΝΕΝΑΣ ΔΕΝ ΠΛΗΡΩΣΕ ΠΟΤΕ. Προηγούμενοι έλεγχοι αυτού του αρχείου
+  -- (ο χειριστής του εμπόρου) αφήνουν πίσω τους συνδρομές, οπότε η κατάσταση
+  -- «πριν ανοίξει το ταμείο» στήνεται ρητά. Η βάση είναι μιας χρήσης.
+  update public.billing_profiles set mor_subscription_id = null
+   where mor_subscription_id is not null;
+  if public.billing_is_live() then
+    raise exception 'Ο έλεγχος είναι κενός: η βάση θεωρεί ήδη ενεργή τη χρέωση';
+  end if;
+  out := public.sweep_and_purge_lapsed();
+  if (out->>'live')::boolean then
+    raise exception 'Το ημερήσιο πέρασμα θεώρησε ενεργή τη χρέωση χωρίς καμία συνδρομή: %', out;
+  end if;
+  if (out->>'erased')::int <> 0 or not exists (select 1 from auth.users where id = v_uid) then
+    raise exception 'ΦΡΕΝΟ 1 ΣΠΑΣΕ ΣΤΟ ΧΡΟΝΟΜΕΤΡΟ: σβήστηκε λογαριασμός πριν ανοίξει το ταμείο: %', out;
+  end if;
+
+  -- Ανοίγει το ταμείο: ένας συνδρομητής, αληθινός, με αναγνωριστικό εμπόρου.
+  insert into auth.users (id, email) values (v_payer, 'syndromitis-probe@example.gr');
+  insert into public.billing_profiles (user_id) values (v_payer) on conflict (user_id) do nothing;
+  update public.billing_profiles set mor_subscription_id = 'sub_probe_1' where user_id = v_payer;
+  if not public.billing_is_live() then
+    raise exception 'Η βάση δεν αναγνώρισε ενεργή χρέωση ενώ υπάρχει συνδρομή εμπόρου';
+  end if;
+
+  -- Το ρολόι είχε μηδενιστεί από το προηγούμενο πέρασμα· ξαναγυρίζει πίσω.
+  update public.billing_profiles
+     set lapsed_at = now() - ((public.account_grace_days() + 1) || ' days')::interval
+   where user_id = v_uid;
+  out := public.sweep_and_purge_lapsed();
+  if (out->>'erased')::int <> 1 then
+    raise exception 'Το ημερήσιο πέρασμα δεν έσβησε τον ληγμένο λογαριασμό: %', out;
+  end if;
+  if exists (select 1 from auth.users where id = v_uid) then
+    raise exception 'Ο ληγμένος λογαριασμός επέζησε του ημερήσιου περάσματος';
+  end if;
+  -- Και ο συνδρομητής δεν ακουμπήθηκε.
+  if not exists (select 1 from auth.users where id = v_payer) then
+    raise exception 'ΤΟ ΠΕΡΑΣΜΑ ΕΣΒΗΣΕ ΣΥΝΔΡΟΜΗΤΗ';
+  end if;
+
+  raise notice 'probe: το ημερήσιο πέρασμα δεν αγγίζει τίποτα πριν ανοίξει το ταμείο';
+end $probe$;

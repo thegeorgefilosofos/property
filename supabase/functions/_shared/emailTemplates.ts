@@ -114,6 +114,7 @@ export interface Personal extends Ctx {
   // Upsell / εποχικά / lifecycle
   discountPct?: number;      // ποσοστό έκπτωσης
   trialDaysLeft?: number;    // μέρες που απομένουν στη δοκιμή
+  daysLeft?: number;         // μέρες που απομένουν σε προθεσμία (π.χ. πριν τη διαγραφή λογαριασμού)
   invoiceAmount?: number;    // ποσό παραστατικού, σε EUR
   invoiceNumber?: string;    // αριθμός παραστατικού
   referralCode?: string;     // κωδικός σύστασης
