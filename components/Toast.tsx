@@ -96,7 +96,7 @@ export function ToastHost() {
             pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 10,
             background: 'var(--bg-elevated)', border: '1px solid var(--border-default)',
             borderRadius: T.radius.inner + 2, padding: '12px 18px',
-            boxShadow: '0 10px 28px rgba(0,0,0,0.16)',
+            boxShadow: 'var(--elev-2)',
             fontFamily: T.font.sans, fontSize: 13, lineHeight: 1.45,
             color: 'var(--text-primary)', animation: 'po-toast-in 180ms ease-out',
           }}

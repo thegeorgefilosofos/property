@@ -32,6 +32,7 @@
 
 import { useEffect, useRef } from 'react';
 import { PanelFX, PanelScan } from './ShowcasePanels';
+import { T } from '@/components/tokens';
 
 export default function LandingShowcase() {
   // Διακριτικό 3D: το πλαίσιο γέρνει ελάχιστα προς τον κέρσορα (έως 3,5°) και
@@ -71,7 +72,7 @@ export default function LandingShowcase() {
         .lp-hero .ls-mockup { box-shadow: 0 1px 2px rgba(2,6,18,.5), 0 24px 48px -12px rgba(2,6,18,.6), 0 0 140px -16px color-mix(in srgb, var(--accent) 45%, transparent) !important; border-color: rgba(255,255,255,.14); }
       `}</style>
       <div ref={tiltRef} onMouseMove={onTilt} onMouseLeave={resetTilt} style={{ transition: 'transform 0.35s cubic-bezier(0.2, 0, 0, 1)', willChange: 'transform' }}>
-        <div className="ls-mockup" style={{ position: 'relative', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 14, overflow: 'hidden' }}>
+        <div className="ls-mockup" style={{ position: 'relative', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: T.radius.card, overflow: 'hidden' }}>
           {/* chrome */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '13px 16px', borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)' }}>
             <span style={{ width: 11, height: 11, borderRadius: '50%', background: 'var(--border-strong)' }} />

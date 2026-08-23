@@ -39,7 +39,7 @@ export default function PwaProvider() {
   // με token, ζητώντας από τρίτους να εγκαταστήσουν εφαρμογή που δεν τους αφορά.
   const inApp = !!pathname && pathname.startsWith('/dashboard');
 
-  // Καταχώριση του service worker. Μόνο σε production: στο dev ο SW κρύβει
+  // Καταχώρηση του service worker. Μόνο σε production: στο dev ο SW κρύβει
   // αλλαγές πίσω από cache και τρελαίνει το hot reload.
   useEffect(() => {
     if (process.env.NODE_ENV !== 'production') return;

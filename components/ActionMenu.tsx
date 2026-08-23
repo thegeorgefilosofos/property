@@ -66,14 +66,13 @@ export function ActionMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen(o => !o)}
+        className="po-hov-accent"
         style={{
-          display: 'inline-flex', alignItems: 'center', gap: 7, minHeight: T.h.sm, padding: '0 13px', borderRadius: 18,
+          display: 'inline-flex', alignItems: 'center', gap: 7, minHeight: T.h.sm, padding: '0 13px', borderRadius: T.radius.modal,
           border: `1px solid ${open ? 'var(--accent)' : 'var(--border-default)'}`, background: 'var(--bg-surface)',
           color: open ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 13, fontWeight: 500, cursor: 'pointer',
           fontFamily: T.font.sans, transition: 'background-color 0.13s, border-color 0.13s, color 0.13s, box-shadow 0.13s, transform 0.13s, opacity 0.13s', whiteSpace: 'nowrap',
         }}
-        onMouseEnter={e => { if (!open) { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; } }}
-        onMouseLeave={e => { if (!open) { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.color = 'var(--text-secondary)'; } }}
       >
         {icon}
         {label}
@@ -86,7 +85,7 @@ export function ActionMenu({
           style={{
             position: 'absolute', top: 'calc(100% + 6px)', ...(align === 'left' ? { left: 0 } : { right: 0 }),
             minWidth: 258, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 12,
-            boxShadow: '0 12px 34px rgba(0,0,0,0.16), 0 2px 8px rgba(0,0,0,0.07)', padding: 6, zIndex: 200,
+            boxShadow: 'var(--elev-3)', padding: 6, zIndex: 200,
             opacity: shown ? 1 : 0, transform: shown ? 'translateY(0)' : 'translateY(-4px)',
             transition: 'opacity 0.14s ease, transform 0.14s ease',
           }}
@@ -100,13 +99,12 @@ export function ActionMenu({
                 role="menuitem"
                 disabled={inert}
                 onClick={() => { if (inert) return; setOpen(false); it.onClick(); }}
+                className="po-hov-row"
                 style={{
                   display: 'flex', alignItems: 'center', gap: 11, width: '100%', textAlign: 'left', padding: '9px 10px',
                   borderRadius: 8, border: 'none', background: 'transparent', cursor: inert ? 'default' : 'pointer',
                   opacity: it.disabled ? 0.5 : 1, fontFamily: T.font.sans, transition: 'background 0.12s',
                 }}
-                onMouseEnter={e => { if (!inert) e.currentTarget.style.background = 'var(--bg-elevated)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
               >
                 {it.icon && (
                   <span style={{

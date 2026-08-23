@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
+import { T } from '@/components/tokens'
 import { rentalIncomeTax, RENTAL_TAX_BRACKETS_2026, taxRateLabel } from '@/lib/billing/greekTax'
 import { fe, fp } from '@/lib/core/format'
 import { PRESUMPTIVE_DEDUCTION_RATE } from '@/lib/accounting/statement'
@@ -146,7 +147,7 @@ export default function LandingCalculator() {
         <p style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.6, margin: 0 }}>
           Ενδεικτικός υπολογισμός με την κλίμακα ενοικίων 2026 και τεκμαρτή έκπτωση {fp(PRESUMPTIVE_DEDUCTION_RATE * 100)} για δαπάνες, που από 1/1/2026 προϋποθέτει είσπραξη μέσω τραπέζης. Δεν υποκαθιστά τον λογιστή σου.
         </p>
-        <Link href="/signup" className="lp-cta lp-primary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '13px', borderRadius: 100 }}>
+        <Link href="/signup" className="lp-cta lp-primary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '13px', borderRadius: T.radius.pill }}>
           Δες τα δικά σου δεδομένα, αυτόματα
         </Link>
       </div>

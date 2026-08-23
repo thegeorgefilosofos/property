@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react';
 import { captureError } from '@/lib/observability/report';
 import { recoverFromStaleBuild, alreadyRecovered } from '@/lib/recovery';
+import { T } from '@/components/tokens';
 
 /**
  * Οι δύο παλέτες της σελίδας σφάλματος.
@@ -86,11 +87,11 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
             {!busy && (
               <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
                 <button onClick={reset}
-                  style={{ height: 44, padding: '0 24px', borderRadius: 100, border: 'none', background: 'var(--ge-accent)', color: 'var(--ge-on-accent)', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  style={{ height: 44, padding: '0 24px', borderRadius: T.radius.pill, border: 'none', background: 'var(--ge-accent)', color: 'var(--ge-on-accent)', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
                   Επαναφόρτωση
                 </button>
                 <button onClick={() => { setBusy(true); void recoverFromStaleBuild(true); }}
-                  style={{ height: 44, padding: '0 24px', borderRadius: 100, border: '1px solid var(--ge-border)', background: 'transparent', color: 'var(--ge-text)', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  style={{ height: 44, padding: '0 24px', borderRadius: T.radius.pill, border: '1px solid var(--ge-border)', background: 'transparent', color: 'var(--ge-text)', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                   Καθαρισμός και επαναφόρτωση
                 </button>
               </div>

@@ -28,11 +28,27 @@ const BASELINE = JSON.parse(readFileSync('scripts/js-hover-baseline.json', 'utf8
 
 const HANDLER = /onMouse(?:Enter|Leave|Over|Out)=/g;
 
+// ΤΟ ΠΑΡΑΚΟΛΟΥΘΗΜΑ ΔΕΙΚΤΗ ΔΕΝ ΕΙΝΑΙ ΑΙΩΡΗΣΗ, ΚΑΙ ΤΟ CSS ΔΕΝ ΜΠΟΡΕΙ ΝΑ ΤΟ ΚΑΝΕΙ.
+// Μια κάρτα που γέρνει ακολουθώντας το ποντίκι χρειάζεται τις ΣΥΝΤΕΤΑΓΜΕΝΕΣ του:
+// καμία ψευδοκλάση δεν τις δίνει. Το `onMouseLeave` δίπλα σε `onMouseMove` είναι
+// ο μηδενισμός αυτής της κίνησης, δηλαδή το ΤΕΛΟΣ της παρακολούθησης, όχι στυλ
+// αιώρησης γραμμένο στο λάθος μέρος. Ο φύλακας θα ζητούσε κάτι αδύνατο.
+//
+// Η εξαίρεση είναι στενή επίτηδες: μετριέται ΑΝΑ ΓΡΑΜΜΗ, και ισχύει μόνο όταν
+// το `onMouseMove` βρίσκεται στην ίδια γραμμή. Ένα `onMouseLeave` δέκα γραμμές
+// πιο κάτω, σε άλλο στοιχείο, εξακολουθεί να μετριέται.
+const TRACKS_POINTER = /onMouseMove=/;
+
 const hits = [];
 for (const file of projectFiles("'app/**/*.tsx' 'components/**/*.tsx'")) {
   const src = readFileSync(file, 'utf8');
-  const found = src.match(HANDLER);
-  if (found) hits.push({ file, count: found.length });
+  let count = 0;
+  for (const line of src.split('\n')) {
+    const found = line.match(HANDLER);
+    if (!found) continue;
+    count += TRACKS_POINTER.test(line) ? Math.max(0, found.length - 1) : found.length;
+  }
+  if (count) hits.push({ file, count });
 }
 const total = hits.reduce((n, h) => n + h.count, 0);
 

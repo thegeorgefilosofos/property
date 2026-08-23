@@ -25,6 +25,7 @@
 import BrandMark from '@/components/BrandMark';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { T } from '@/components/tokens';
 import { TRIAL_DAYS } from '@/lib/billing/plans';
 import { IDENTITY } from '@/lib/legal/identity';
 
@@ -74,7 +75,7 @@ export function PublicHeader() {
           <Link href="/#pricing" className="lp-link lp-nav-link" style={{ textDecoration: 'none', fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
             Τιμές
           </Link>
-          <Link href="/signup" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 14, fontWeight: 700, padding: '9px 16px', borderRadius: 100, whiteSpace: 'nowrap' }}>
+          <Link href="/signup" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 14, fontWeight: 700, padding: '9px 16px', borderRadius: T.radius.pill, whiteSpace: 'nowrap' }}>
             Ξεκίνα τη δοκιμή
           </Link>
         </div>
@@ -177,7 +178,7 @@ export const TRIAL_LINE = `${TRIAL_DAYS} ημέρες δωρεάν δοκιμή,
 export function ToolCta({ title, body }: { title: string; body: ReactNode }) {
   return (
     <div className="po-noprint" style={{
-      marginTop: 20, padding: 'clamp(16px, 4vw, 22px)', borderRadius: 14,
+      marginTop: 20, padding: 'clamp(16px, 4vw, 22px)', borderRadius: T.radius.card,
       border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)',
       display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14,
     }}>
@@ -194,7 +195,7 @@ export function ToolCta({ title, body }: { title: string; body: ReactNode }) {
       </div>
       <Link href="/signup" className="lp-cta lp-primary" style={{
         display: 'inline-flex', alignItems: 'center', height: 44, padding: '0 24px',
-        borderRadius: 100, fontSize: 14, fontWeight: 700,
+        borderRadius: T.radius.pill, fontSize: 14, fontWeight: 700,
         textDecoration: 'none', whiteSpace: 'nowrap',
       }}>
         Ξεκίνα τη δοκιμή

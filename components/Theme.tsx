@@ -686,9 +686,8 @@ export function ExportButton({ onClick, label = 'Εξαγωγή Excel', disabled
   const base: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 8, height: T.h.md, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1, whiteSpace: 'nowrap' };
   return (
     <button onClick={disabled ? undefined : onClick} title="Εξαγωγή σε Excel (.xlsx)" disabled={disabled}
-      style={{ ...base, padding: '0 14px', borderRadius: T.radius.pill }}
-      onMouseEnter={e => { if (!disabled) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; } }}
-      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}>
+      className="po-hov-row"
+      style={{ ...base, padding: '0 14px', borderRadius: T.radius.pill }}>
       {icon}{label}
     </button>
   );

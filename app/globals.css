@@ -530,6 +530,29 @@ body {
    κουμπιά: σε οθόνη αφής το `:hover` κολλάει μετά το πάτημα και η σειρά
    μένει αναμμένη ώσπου να αγγίξει ο χρήστης αλλού. */
 .po-choice { transition: background .12s, border-color .12s; }
+
+/* ═══ ΔΥΟ ΑΙΩΡΗΣΕΙΣ ΠΟΥ ΓΡΑΦΟΝΤΑΝ ΜΕ ΤΟ ΧΕΡΙ ΣΕ ΚΑΘΕ ΣΗΜΕΙΟ ════════════════
+   ΓΙΑΤΙ ΤΩΡΑ. Τα αρχεία που τις είχαν έμεναν ΕΞΩ από τον φύλακα της αιώρησης
+   επί μήνες: το pathspec «components/**\/*.tsx» του git δεν περιλαμβάνει τη
+   ρίζα του φακέλου, οπότε και τα δεκαεπτά αρχεία του `components/` ήταν
+   αόρατα. Μόλις φάνηκαν, φάνηκαν και οι χειροκίνητοι χειριστές τους.
+
+   ΤΙ ΔΙΝΕΙ Η ΚΛΑΣΗ ΠΟΥ ΔΕΝ ΕΔΙΝΕ Ο ΧΕΙΡΙΣΤΗΣ: εστίαση πληκτρολογίου (ο
+   χειριστής ποντικιού δεν πυροδοτείται ποτέ από Tab), σωστή συμπεριφορά σε
+   οθόνη αφής (όπου το «hover» κολλάει μετά το πάτημα), και καμία εγγραφή στο
+   DOM πίσω από την πλάτη της React.
+
+   `.po-hov-accent`  περίγραμμα και κείμενο γίνονται τονισμός: για χειριστήρια
+                     που ανοίγουν κάτι (κουμπί μενού, ενέργεια κεφαλίδας).
+   `.po-hov-row`     η γραμμή ανάβει: για επιλογές μέσα σε λίστα ή μενού. */
+@media (hover: hover) {
+  .po-hov-accent:hover:not(:disabled):not([aria-expanded="true"]) {
+    border-color: var(--accent); color: var(--accent);
+  }
+  .po-hov-row:hover:not(:disabled) { background: var(--bg-elevated); }
+}
+.po-hov-accent:focus-visible:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.po-hov-row:focus-visible:not(:disabled) { background: var(--bg-elevated); }
 @media (hover: hover) {
   .po-choice:hover { background: var(--bg-hover); border-color: var(--border-strong); }
 }

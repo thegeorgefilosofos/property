@@ -32,9 +32,30 @@ const run = (cmd) => execSync(cmd, { encoding: 'utf8' }).split('\n').filter(Bool
  *        Κενό σημαίνει ολόκληρο το αποθετήριο.
  * @returns {string[]} μοναδικές διαδρομές, ταξινομημένες
  */
+/**
+ * ΤΟ «dir/**\/*.ext» ΤΟΥ GIT ΔΕΝ ΠΕΡΙΛΑΜΒΑΝΕΙ ΤΗ ΡΙΖΑ ΤΟΥ ΦΑΚΕΛΟΥ.
+ *
+ * Το pathspec του git δεν είναι glob κελύφους: το «**\/» απαιτεί ΤΟΥΛΑΧΙΣΤΟΝ
+ * μία κάθετο, οπότε ταιριάζει μόνο σε υποφακέλους. Μετρημένο:
+ *
+ *     git ls-files 'components/**\/*.tsx'   →   0 αρχεία
+ *     git ls-files 'components/*.tsx'       →  10 αρχεία
+ *
+ * Δέκα φύλακες έγραφαν το πρώτο. Δηλαδή ΚΑΝΕΝΑ από τα δεκαεπτά αρχεία του
+ * `components/` δεν ελέγχθηκε ποτέ, και μαζί τους έμεναν έξω είκοσι αρχεία
+ * της ρίζας του `app/` — ανάμεσά τους η ίδια η αρχική σελίδα, το layout και το
+ * δημόσιο πλαίσιο. Οι φύλακες τύπωναν πράσινο επειδή δεν κοίταζαν.
+ *
+ * Η διόρθωση μπαίνει ΕΔΩ και όχι στα δέκα σημεία: όποιος γράψει τον επόμενο
+ * φύλακα θα γράψει πάλι «**\/», γιατί έτσι δουλεύει παντού αλλού.
+ */
+const withRoot = (patterns) => patterns.replace(/'([^']*)'/g, (whole, pat) =>
+  pat.includes('/**/') ? `'${pat}' '${pat.replace('/**/', '/')}'` : whole)
+
 export function projectFiles(patterns = '') {
-  const tracked = run(`git ls-files ${patterns}`)
-  const fresh = run(`git ls-files --others --exclude-standard ${patterns}`)
+  const wide = withRoot(patterns)
+  const tracked = run(`git ls-files ${wide}`)
+  const fresh = run(`git ls-files --others --exclude-standard ${wide}`)
   // ΚΑΙ ΤΑ ΣΒΗΣΜΕΝΑ ΦΕΥΓΟΥΝ. Το `git ls-files` απαριθμεί το ΕΥΡΕΤΗΡΙΟ: ένα
   // αρχείο που διαγράφηκε και δεν έχει γίνει ακόμη commit εξακολουθεί να
   // εμφανίζεται. Κάθε φύλακας που το άνοιγε έσκαγε με ENOENT — δηλαδή μια

@@ -14,6 +14,7 @@
 import { useEffect, useState } from 'react';
 import { captureError } from '@/lib/observability/report';
 import { recoverFromStaleBuild, alreadyRecovered } from '@/lib/recovery';
+import { T } from '@/components/tokens';
 
 export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   // Παράγεται κατά την απόδοση και όχι σε effect: αν η επαναφορά δεν έχει γίνει
@@ -59,11 +60,11 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
         {!busy && (
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
             <button onClick={reset}
-              style={{ height: 44, padding: '0 24px', borderRadius: 100, border: 'none', background: 'var(--accent, #1a73e8)', color: 'var(--accent-text, #fff)', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+              style={{ height: 44, padding: '0 24px', borderRadius: T.radius.pill, border: 'none', background: 'var(--accent, #1a73e8)', color: 'var(--accent-text, #fff)', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
               Δοκίμασε ξανά
             </button>
             <button onClick={() => { setBusy(true); void recoverFromStaleBuild(true); }}
-              style={{ height: 44, padding: '0 24px', borderRadius: 100, border: '1px solid var(--border-default, #dadce0)', background: 'transparent', color: 'var(--text-primary, #202124)', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+              style={{ height: 44, padding: '0 24px', borderRadius: T.radius.pill, border: '1px solid var(--border-default, #dadce0)', background: 'transparent', color: 'var(--text-primary, #202124)', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
               Καθαρισμός και επαναφόρτωση
             </button>
           </div>
