@@ -7,7 +7,8 @@
 // Το ακαθάριστο είναι δεδουλευμένο (ανεξαρτήτως είσπραξης).
 // ═══════════════════════════════════════════════════════════════════════════
 import { shortTermYearSummary, type TaxStay } from '@/lib/tax/shortTermTax';
-import { readStatus } from '@/lib/property/status';
+import { readStatus, BY_KEY } from '@/lib/property/status';
+import { fe } from '@/lib/core/format';
 
 // Το `rental_mode` ΔΕΝ υπήρχε εδώ, και γι' αυτό το έντυπο δεν μπορούσε να
 // ξεχωρίσει βραχυχρόνια από μακροχρόνια όταν η κατάσταση ήταν «rented».
@@ -66,7 +67,32 @@ export function monthsRentedInYear(leaseStart: string | null, leaseEnd: string |
   return { months: Math.max(0, Math.min(12, m)), estimated: false };
 }
 
-export interface E2Row { atak: string; address: string; ownerAfm: string; ownershipPct: number; leaseKind: string; months: number; incomeCategory: string; grossIncome: number; flags: string[]; }
+/**
+ * Από πού ήρθε το ακαθάριστο. Κρίνει σε ΠΟΙΑ στήλη του επίσημου εντύπου
+ * γράφεται, και αποφασίζεται ΜΑΖΙ με το ποσό — όχι δεύτερη φορά, αλλού.
+ *
+ * ═══ ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΤΟ ΓΕΝΝΗΣΕ, ΚΑΙ ΗΤΑΝ ΨΕΥΔΗΣ ΦΟΡΟΛΟΓΙΚΗ ΔΗΛΩΣΗ ═══════
+ * Το ποσό υπολογιζόταν με την ΚΟΙΝΗ ανάγνωση κατάστασης (`readStatus`) και από
+ * ΠΡΑΓΜΑΤΙΚΕΣ πληρωμές. Η στήλη όμως επιλεγόταν από το ωμό `status_detail`:
+ *
+ *     const rentLike = p.status_detail === 'rented' || p.status_detail === 'seasonal';
+ *     const ownUse   = p.status_detail === 'own_use';
+ *
+ * Οι καταστάσεις «Κενό», «Ανακαίνιση», «Προς πώληση» και «Αμφισβητούμενο» δεν
+ * είναι καμία από τις δύο. Το ποσό δεν έμπαινε σε ΚΑΜΙΑ στήλη.
+ *
+ * Το σενάριο δεν είναι ακραίο, είναι το πιο συνηθισμένο του χρόνου: διαμέρισμα
+ * νοικιασμένο Ιανουάριο ώς Ιούνιο, ο μισθωτής φεύγει, ο ιδιοκτήτης βάζει
+ * «Κενό». Μετρημένο με τον πραγματικό κώδικα: γραμμή με ακαθάριστο 4.200 €,
+ * και στις τέσσερις στήλες ποσού κενό. Το φύλλο «Σύνοψη Ε1» του ΙΔΙΟΥ αρχείου,
+ * που χτίζεται από το `buildE2Row`, έγραφε κανονικά 4.200 €.
+ *
+ * Δηλαδή ο ιδιοκτήτης παρέδιδε στον λογιστή ένα βιβλίο εργασίας που
+ * αυτοαναιρείται, και το επίσημο έντυπο έλεγε μηδέν.
+ */
+export type E2IncomeSource = 'rent' | 'own_use' | 'none';
+
+export interface E2Row { atak: string; address: string; ownerAfm: string; ownershipPct: number; leaseKind: string; months: number; incomeCategory: string; grossIncome: number; incomeSource: E2IncomeSource; flags: string[]; }
 /**
  * Μία γραμμή Ε2. Το `stays` είναι οι διαμονές ΑΥΤΟΥ του ακινήτου (όπως το
  * `payments`, ομαδοποιημένες από τον καλούντα)· χρησιμοποιείται μόνο στη
@@ -142,11 +168,31 @@ export function buildE2Row(p: E2Property, tenant: E2Tenant | null, payments: E2P
       : 'Ακαθάριστο εισόδημα: εκτίμηση (μηνιαίο × μήνες)');
   }
   const grossIncome = Math.round(grossFull * ownershipPct / 100); // μερίδιο συνιδιοκτήτη
+  // ΤΟ ΧΡΗΜΑ ΠΟΥ ΕΙΣΠΡΑΧΘΗΚΕ ΕΙΝΑΙ ΠΑΝΤΑ ΜΙΣΘΩΜΑ, ΟΠΟΙΑ ΚΙ ΑΝ ΕΙΝΑΙ Η
+  // ΣΗΜΕΡΙΝΗ ΚΑΤΑΣΤΑΣΗ. Η κατάσταση περιγράφει το ΣΗΜΕΡΑ· το έντυπο ρωτά τι
+  // έγινε ΜΕΣΑ ΣΤΗ ΧΡΟΝΙΑ. Μόνο μια εκτίμηση πάνω σε ιδιοχρησία, χωρίς καμία
+  // είσπραξη, είναι ιδιοχρησιμοποίηση.
+  const earned = yearRows.length > 0 || (stayYear?.grossRevenue ?? 0) > 0;
+  const incomeSource: E2IncomeSource =
+    grossIncome <= 0 ? 'none'
+      : (status === 'own_use' && !earned) ? 'own_use'
+      : 'rent';
+  // ΚΑΙ Η ΑΝΤΙΦΑΣΗ ΛΕΓΕΤΑΙ, ΑΝΤΙ ΝΑ ΤΑΞΙΔΕΨΕΙ ΣΙΩΠΗΛΑ. Ενα ακίνητο δηλωμένο
+  // «Κενό» με εισπράξεις μέσα στη χρονιά παράγει γραμμή που λέει ταυτόχρονα
+  // «39 Κενό (μη μισθωμένο)» και ένα ποσό. Ο κωδικός 39 είναι υπαρκτός, οπότε
+  // ο έλεγχος «λείπει είδος μίσθωσης» δεν πυροδοτούσε ποτέ.
+  if (incomeSource === 'rent' && !(status === 'rent_long' || status === 'rent_short')) {
+    // Η ΕΤΙΚΕΤΑ ΒΓΑΙΝΕΙ ΑΠΟ ΤΟ ΜΗΤΡΩΟ ΚΑΤΑΣΤΑΣΕΩΝ. Το `kind.label` είναι κενό
+    // για «ανακαίνιση», «προς πώληση» και «αμφισβητούμενο», οπότε το μήνυμα
+    // τύπωνε το ωμό κλειδί της βάσης («renovation») σε κείμενο που διαβάζει
+    // λογιστής.
+    flags.push(`Η κατάσταση λέει «${BY_KEY[status].label}» αλλά υπάρχει εισόδημα ${fe(grossIncome)}: το έντυπο το δηλώνει ως εκμίσθωση (στ. 13). Διόρθωσε την κατάσταση ή το είδος μίσθωσης.`);
+  }
   const address = [p.address, p.postal_code].filter(Boolean).join(', ');
   if (!p.atak) flags.push('Λείπει ΑΤΑΚ');
   if (!ownerAfm) flags.push('Λείπει ΑΦΜ ιδιοκτήτη');
   if (ownershipPct < 100) flags.push('Συνιδιοκτησία < 100%: πρόσθεσε ΑΦΜ λοιπών συνιδιοκτητών');
-  return { atak: p.atak || '', address, ownerAfm: ownerAfm || '', ownershipPct, leaseKind: kind.code ? `${kind.code} ${kind.label}` : '', months: mm.months, incomeCategory: e2IncomeCategory(p.prop_type, p.status_detail), grossIncome, flags };
+  return { atak: p.atak || '', address, ownerAfm: ownerAfm || '', ownershipPct, leaseKind: kind.code ? `${kind.code} ${kind.label}` : '', months: mm.months, incomeCategory: e2IncomeCategory(p.prop_type, p.status_detail), grossIncome, incomeSource, flags };
 }
 
 export function e2RowToCells(r: E2Row, index: number): (string | number)[] {
@@ -250,8 +296,10 @@ export function buildE2OfficialCells(p: E2Property, tenant: E2Tenant | null, pay
   const win = leaseWindowInYear(tenant?.lease_start ?? null, tenant?.lease_end ?? null, year, p.status_detail);
   const kind = e2LeaseKind(p.status_detail, p.rental_mode);
   const monthly = tenant?.monthly_rent ?? p.target_rent ?? 0;
-  const rentLike = p.status_detail === 'rented' || p.status_detail === 'seasonal';
-  const ownUse = p.status_detail === 'own_use';
+  // Η ΣΤΗΛΗ ΒΓΑΙΝΕΙ ΑΠΟ ΤΗ ΓΡΑΜΜΗ, ΟΧΙ ΑΠΟ ΔΕΥΤΕΡΗ ΑΝΑΓΝΩΣΗ ΤΗΣ ΚΑΤΑΣΤΑΣΗΣ.
+  // Βλ. το σχόλιο του `E2IncomeSource`: εδώ γεννήθηκε το κενό έντυπο.
+  const rentLike = base.incomeSource === 'rent';
+  const ownUse = base.incomeSource === 'own_use';
   const g = base.grossIncome;
   const loc = [p.address, p.postal_code].filter(Boolean).join(', ');
   return [

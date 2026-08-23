@@ -16,7 +16,7 @@ function ok(name: string, cond: boolean) { if (cond) pass++; else { fail++; cons
 const row = (o: Partial<E2Row> = {}): E2Row => ({
   atak: '11111111111', address: 'Οδός 1, 11111', ownerAfm: '123456789',
   ownershipPct: 100, leaseKind: 'Εκμίσθωση', months: 12,
-  incomeCategory: 'Κατοικία', grossIncome: 7200, flags: [], ...o,
+  incomeCategory: 'Κατοικία', grossIncome: 7200, incomeSource: 'rent', flags: [], ...o,
 });
 const dec = (o: Partial<DeclaredRow> = {}): DeclaredRow => ({ atak: '11111111111', gross: 7200, ...o });
 const ev = (o: Partial<OurEvidence> = {}): OurEvidence => ({ atak: '11111111111', ...o });
