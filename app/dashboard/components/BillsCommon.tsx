@@ -80,25 +80,47 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
   const [transferring, setTransferring] = useState<number | null>(null);
   const [hoveredMonth, setHoveredMonth] = useState<number | null>(null);
 
+  // ── ΚΑΘΕ ΑΚΙΝΗΤΟ ΞΕΚΙΝΑ ΑΠΟ ΤΟ ΜΗΔΕΝ ──────────────────────────────────────
+  // ΤΟ ΣΦΑΛΜΑ. Κάθε πεδίο γραφόταν μόνο ΑΝ υπήρχε στην απάντηση («if (d.catData)»),
+  // και όταν το νέο ακίνητο δεν είχε καθόλου γραμμή δεν γραφόταν τίποτα. Το
+  // component δεν επαναπροσαρτάται στην αλλαγή ακινήτου (δεν έχει `key`, σε
+  // αντίθεση με το ExpenseLedger δίπλα του), οπότε η οθόνη κρατούσε ΟΛΑ τα
+  // δεδομένα του προηγούμενου: χιλιοστά, υπόλοιπο ταμείου, δωδεκάμηνο ιστορικό,
+  // κατηγορίες κτιρίου, λίστα εκτάκτων. Και μόλις ο χρήστης άγγιζε ΕΝΑ πεδίο,
+  // το `upd()` στέλνει ΟΛΟ το state — δηλαδή τα έγραφε στο νέο ακίνητο.
+  //
+  // ΤΟ ΑΚΡΙΒΟΤΕΡΟ ΕΠΑΚΟΛΟΥΘΟ ΔΕΝ ΗΤΑΝ ΤΑ ΡΥΘΜΙΣΤΙΚΑ. Μια κληρονομημένη έκτακτη
+  // δαπάνη («Αντικατάσταση ασανσέρ 1.800 €») εμφανιζόταν με ενεργό το κουμπί
+  // μεταφοράς, και η `transferToExpenses` γράφει με το ΤΡΕΧΟΝ propertyId: 1.800 €
+  // καταχωρημένα σε λάθος ακίνητο, άρα λάθος Ε2 και λάθος απόδοση, και για τα δύο.
+  //
+  // Τώρα κάθε πεδίο γράφεται ΠΑΝΤΑ, με την προεπιλογή του όταν λείπει. Καμία
+  // τιμή δεν επιβιώνει από ακίνητο σε ακίνητο.
   useEffect(() => {
     if (!propertyId) return;
+    let alive = true;
     (async () => {
       const d = await settings.section(supabase, propertyId, 'common', userId);
-      if (d) {
-        if (d.mgmtType)                  setMgmtType(d.mgmtType as string);
-        if (d.mgmtCost !== undefined)    setMgmtCost(String(d.mgmtCost ?? ''));
-        if (d.mgmtDueDay)                setMgmtDueDay(d.mgmtDueDay as string);
-        if (d.fundBalance !== undefined) setFundBalance(String(d.fundBalance ?? ''));
-        if (d.fundMyPct !== undefined)   setFundMyPct(String(d.fundMyPct ?? ''));
-        if (d.fundMonthly !== undefined) setFundMonthly(String(d.fundMonthly ?? ''));
-        if (d.fundLastDate)              setFundLastDate(d.fundLastDate as string);
-        if (d.extras)                    setExtras(d.extras as typeof extras);
-        if (d.history)                   setHistory(d.history as string[]);
-        if (d.millesimi !== undefined)   setMillesimi(String(d.millesimi ?? ''));
-        if (d.catData)                   setCatData(d.catData as Record<string, string>);
-      }
+      if (!alive) return;
+      const str = (v: unknown, fallback = '') => (v === undefined || v === null ? fallback : String(v));
+      setMgmtType(str(d?.mgmtType, 'traditional'));
+      setMgmtCost(str(d?.mgmtCost));
+      setMgmtDueDay(str(d?.mgmtDueDay, '25'));
+      setFundBalance(str(d?.fundBalance));
+      setFundMyPct(str(d?.fundMyPct));
+      setFundMonthly(str(d?.fundMonthly));
+      setFundLastDate(str(d?.fundLastDate));
+      setExtras((d?.extras as typeof extras) ?? []);
+      setHistory((d?.history as string[]) ?? Array(12).fill(''));
+      setMillesimi(str(d?.millesimi));
+      setCatData((d?.catData as Record<string, string>) ?? {});
+      // Και τα πεδία της φόρμας νέας έκτακτης: μισογραμμένη εγγραφή του ενός
+      // ακινήτου δεν έχει καμία δουλειά να περιμένει στο επόμενο.
+      setExtraReason(''); setExtraAmount(''); setExtraDate('');
     })();
-  }, [propertyId]);
+    return () => { alive = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [propertyId, userId]);
 
   useEffect(() => () => { if (saveTimer.current) clearTimeout(saveTimer.current); }, []);
 

@@ -67,14 +67,30 @@ export function computeSplit(input: SplitInput): SplitResult {
   // περνούσε — το λάθος ήταν αόρατο ακριβώς επειδή το σύνολο φαινόταν σωστό.
   // Όταν τα ποσοστά είναι άκυρα, τα μερίδια μένουν αναλογικά προς το ποσοστό
   // του καθενός· η ασυμφωνία τη δείχνει το `valid`, δεν τη σκεπάζει ο πρώτος.
+  //
+  // ── ΙΣΟΣΚΕΛΙΖΟΝΤΑΙ ΟΛΕΣ ΟΙ ΣΤΗΛΕΣ, ΟΧΙ ΜΟΝΟ ΤΟ ΚΑΘΑΡΟ ──────────────────────
+  // Η διόρθωση εφαρμοζόταν μόνο στο `net`, ενώ το ίδιο PDF τυπώνει και τις
+  // στήλες Εσόδων, Δαπανών και Αμοιβής μαζί με τα ολικά τους. Σε μεικτό
+  // 1.234,55 € με 50/50, η στήλη Εσόδων έβγαζε 617,28 + 617,28 = 1.234,56 €
+  // απέναντι σε σύνολο 1.234,55 €. Ενα λεπτό — αλλά σε χαρτί που παραδίδεται σε
+  // λογιστή με αριθμό εγγράφου και QR επαλήθευσης, η στήλη που δεν κλείνει
+  // είναι η πρώτη ένσταση, και μετά από αυτήν αμφισβητούνται και οι υπόλοιπες.
   if (valid && results.length) {
-    const sumNet = r2(results.reduce((s, r) => s + r.net, 0));
-    const diff = r2(distributable - sumNet);
-    if (Math.abs(diff) >= 0.01) {
-      let idx = 0;
-      for (let i = 1; i < results.length; i++) if (results[i].pct > results[idx].pct) idx = i;
-      results[idx].net = r2(results[idx].net + diff);
-    }
+    // Ο ιδιοκτήτης με το μεγαλύτερο ποσοστό σηκώνει το υπόλοιπο: το λεπτό
+    // βαραίνει αναλογικά λιγότερο εκεί, και η επιλογή είναι ίδια για κάθε στήλη
+    // ώστε δύο στήλες να μη διορθώνονται σε διαφορετικό πρόσωπο.
+    let idx = 0;
+    for (let i = 1; i < results.length; i++) if (results[i].pct > results[idx].pct) idx = i;
+
+    const balance = (key: 'incomeShare' | 'expenseShare' | 'feeShare' | 'net', total: number) => {
+      const sum = r2(results.reduce((s, r) => s + r[key], 0));
+      const diff = r2(total - sum);
+      if (Math.abs(diff) >= 0.01) results[idx][key] = r2(results[idx][key] + diff);
+    };
+    balance('incomeShare', gross);
+    balance('expenseShare', expenses);
+    balance('feeShare', managementFee);
+    balance('net', distributable);
   }
 
   return {

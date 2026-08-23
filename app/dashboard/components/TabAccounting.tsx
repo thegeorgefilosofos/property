@@ -435,12 +435,28 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // εκπίπτει», και δεν έφτανε ΠΟΤΕ στο ημερολόγιο, στο ισοζύγιο ή στον φάκελο
   // του λογιστή. Ο κανόνας και η αιτιολογία ζουν στο lib/tax/shortTermTax.ts.
   //
-  // ΔΕΝ ΔΙΠΛΟΓΡΑΦΕΤΑΙ. Όταν ο χρήστης έχει ήδη καταχωρήσει προμήθεια ως δαπάνη
-  // — γιατί η πλατφόρμα του έστειλε τιμολόγιο και το πέρασε — η δική του
-  // καταχώρηση υπερισχύει και δεν παράγεται τίποτα: το παραστατικό είναι πιο
+  // ΔΕΝ ΔΙΠΛΟΓΡΑΦΕΤΑΙ, ΑΛΛΑ ΔΕΝ ΣΒΗΝΕΙ ΚΑΙ ΟΛΗ ΤΗ ΧΡΟΝΙΑ. Όταν ο χρήστης έχει
+  // καταχωρήσει προμήθεια ως δαπάνη — γιατί η πλατφόρμα του έστειλε τιμολόγιο
+  // και το πέρασε — η δική του καταχώρηση υπερισχύει: το παραστατικό είναι πιο
   // βαρύ από τον υπολογισμό μας.
-  const ownPlatformFees = useMemo(()=>expensesYear.some(e=>resolveCategory(e.category)==='platform_fee'),[expensesYear])
-  const platformFeeRows = useMemo(()=>ownPlatformFees?[]:platformFeeExpenses(stays,year),[ownPlatformFees,stays,year])
+  //
+  // ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΕΚΛΕΙΣΕ ΕΔΩ. Ο κανόνας εφαρμοζόταν «όλα ή τίποτα» για ΟΛΗ τη
+  // χρήση: ΜΙΑ απόδειξη 24 € μηδένιζε τις υπολογισμένες προμήθειες και των
+  // υπόλοιπων έντεκα κρατήσεων. Μετρημένο σε χαρτοφυλάκιο δώδεκα κρατήσεων
+  // Airbnb: εκπεστέες δαπάνες 24,00 € αντί για 288,00 €, δηλαδή 264,00 € χαμένη
+  // έκπτωση και 39,60 € επιπλέον φόρος με τον χαμηλότερο συντελεστή. Και ήταν
+  // αόρατο: ο χρήστης έκανε το σωστό, πέρασε το τιμολόγιο, και τιμωρήθηκε.
+  //
+  // Το τιμολόγιο πλατφόρμας καλύπτει ΠΕΡΙΟΔΟ, τυπικά μήνα, όχι μία κράτηση —
+  // και μια αντιστοίχιση ανά κράτηση δεν είναι δυνατή με τα δεδομένα που έχουμε.
+  // Ο κανόνας εφαρμόζεται λοιπόν ανά ΜΗΝΑ: όποιος μήνας έχει δική του απόδειξη
+  // δεν παράγει τίποτα, οι υπόλοιποι μένουν ακέραιοι.
+  const ownFeeMonths = useMemo(()=>{
+    const m=new Set<string>()
+    for(const e of expensesYear) if(resolveCategory(e.category)==='platform_fee'&&e.date) m.add(String(e.date).slice(0,7))
+    return m
+  },[expensesYear])
+  const platformFeeRows = useMemo(()=>platformFeeExpenses(stays,year).filter(r=>!ownFeeMonths.has(r.date.slice(0,7))),[ownFeeMonths,stays,year])
   const platformFeesYear = useMemo(()=>platformFeeRows.reduce((s,r)=>s+r.amount,0),[platformFeeRows])
   // Εξαιρούμε τον ΕΝΦΙΑ ως δαπάνη, τον μετράμε ξεχωριστά (αποφυγή διπλομέτρησης).
   const expensesTotal = useMemo(()=>expensesYear.filter(e=>e.category!=='ΕΝΦΙΑ').reduce((s,e)=>s+(e.amount||0),0)+platformFeesYear,[expensesYear,platformFeesYear])
@@ -690,7 +706,10 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     // προμήθεια· όταν λείπει, λείπει δαπάνη από τα βιβλία και το λέμε.
     const noFee = staysMissingPlatformFee(stays, year)
     if(noFee>0) g.push(`${noFee} κρατήσεις από πλατφόρμα χωρίς καταγεγραμμένη προμήθεια: λείπει δαπάνη που εκπίπτει.`)
-    if(ownPlatformFees) g.push('Οι προμήθειες πλατφορμών λαμβάνονται από τις καταχωρημένες δαπάνες, όχι από τις κρατήσεις.')
+    // Η σημείωση λέει πλέον ΠΟΣΟΥΣ μήνες αφορά, γιατί ο κανόνας δεν είναι πια
+    // ετήσιος: ο λογιστής πρέπει να ξέρει ποια κομμάτια της χρήσης βγαίνουν από
+    // παραστατικό και ποια από υπολογισμό.
+    if(ownFeeMonths.size>0) g.push(`Οι προμήθειες πλατφορμών ${ownFeeMonths.size===1?'ενός μήνα λαμβάνονται':`${ownFeeMonths.size} μηνών λαμβάνονται`} από τις καταχωρημένες δαπάνες, όχι από τις κρατήσεις.`)
     if(expensesYear.length===0) g.push(`Καμία καταχωρημένη δαπάνη για το ${year}.`)
     if(uncollectedRent>0) g.push(`Ανείσπρακτα μισθώματα ${eur(uncollectedRent)}: χρειάζεται τεκμηρίωση της νομικής διεκδίκησης.`)
     if(regime==='individual_longterm' && !tenant?.afm) g.push('Δεν έχει καταχωρηθεί ΑΦΜ μισθωτή.')
@@ -699,7 +718,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     const noCat = expensesYear.filter(e=>!e.category).length
     if(noCat>0) g.push(`${noCat} δαπάνες χωρίς κατηγορία.`)
     return g
-  },[rent,stays,expensesYear,year,regime,uncollectedRent,tenant,enfiaEstimated,enfiaBlock,ownPlatformFees])
+  },[rent,stays,expensesYear,year,regime,uncollectedRent,tenant,enfiaEstimated,enfiaBlock,ownFeeMonths])
 
   // ── ΠΟΙΟΣ ΚΑΝΕΙ myDATA, ΚΑΙ ΜΕ ΠΟΙΟ ΔΙΚΑΙΩΜΑ ΕΚΠΤΩΣΗΣ ────────────────────
   // Ο ιδιοκτήτης που εκμισθώνει ως φυσικό πρόσωπο δεν χαρακτηρίζει έξοδα: δεν
