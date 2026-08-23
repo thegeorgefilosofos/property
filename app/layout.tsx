@@ -127,10 +127,16 @@ export default async function RootLayout({
       <body>
         <ThemeProvider>
           <ErrorListener />
+          {/* ── ΤΟ ΠΛΑΙΣΙΟ COOKIES ΜΠΡΟΣΤΑ ΑΠΟ ΤΟ ΠΕΡΙΕΧΟΜΕΝΟ, ΣΤΗ ΣΕΙΡΑ TAB ──
+              Είναι `position: fixed`, οπότε η σειρά στο DOM δεν αλλάζει τίποτα
+              οπτικά — αλλάζει ΜΟΝΟ πού το συναντά το πληκτρολόγιο. Οσο ερχόταν
+              τελευταίο, το «Το κατάλαβα» ήταν η στάση 35 από 36 στον υπολογιστή
+              ΕΝΦΙΑ και 11 από 12 στη σύνδεση: για να κλείσεις ένα πλαίσιο που
+              σου σκεπάζει την οθόνη έπρεπε πρώτα να διασχίσεις όλη τη σελίδα. */}
+          <CookieConsent />
           {children}
           <ToastHost />
           <ConfirmHost />
-          <CookieConsent />
           <PwaProvider />
         </ThemeProvider>
       </body>

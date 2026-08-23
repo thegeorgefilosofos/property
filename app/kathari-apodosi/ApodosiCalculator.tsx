@@ -164,7 +164,11 @@ export function ApodosiCalculator({ year, today }: { year: number; today: string
                 πάτημα, και ο χρήστης το αλλάζει. */}
             <p style={HINT}>
               Συντήρηση, ασφάλιση, κοινόχρηστα δικά σου. Ο νόμος τεκμαίρει{' '}
+              {/* ΤΟ ΠΡΟΣΒΑΣΙΜΟ ΟΝΟΜΑ ΗΤΑΝ ΣΚΕΤΟ ΤΟ ΠΟΣΟ. Στη λίστα κουμπιών ενός
+                  αναγνώστη οθόνης ακουγόταν «420,00 €» και τίποτε άλλο: ούτε
+                  ότι είναι κουμπί συμπλήρωσης, ούτε ποιο πεδίο γεμίζει. */}
               <button type="button" onClick={() => set('dapanes', presumed.toFixed(2))}
+                aria-label={`Συμπλήρωση ${feAuto(presumed)} στις δαπάνες τον χρόνο`}
                 style={{
                   border: 'none', background: 'none', padding: 0, cursor: 'pointer',
                   color: 'var(--accent)', fontWeight: 600, fontSize: 12.5,

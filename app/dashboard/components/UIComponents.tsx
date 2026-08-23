@@ -574,7 +574,10 @@ export function CustomSelect({
         tabIndex={disabled ? -1 : 0}
         aria-haspopup="listbox"
         aria-expanded={open}
-        aria-controls={listId}
+        // Η ΑΝΑΦΟΡΑ ΑΚΟΛΟΥΘΕΙ ΤΗΝ ΥΠΑΡΞΗ ΤΟΥ ΣΤΟΧΟΥ. Η λίστα αποδίδεται σε
+        // portal μόνο όταν είναι ανοιχτή· όσο ήταν κλειστή, το aria-controls
+        // έδειχνε σε id που δεν υπήρχε πουθενά στη σελίδα.
+        aria-controls={open ? listId : undefined}
         aria-disabled={disabled || undefined}
         aria-labelledby={label ? labelId : undefined}
         aria-label={label ? undefined : (ariaLabel || selected?.label || placeholder)}

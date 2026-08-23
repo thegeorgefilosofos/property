@@ -1,0 +1,124 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// Ο ΠΑΓΚΟΣ ΚΙΝΗΤΟΥ — ΤΑ ΙΔΙΑ COMPONENTS, ΜΕΣΑ ΣΤΟ ΠΡΑΓΜΑΤΙΚΟ ΚΕΛΥΦΟΣ
+// ─────────────────────────────────────────────────────────────────────────
+// Διαφορές από το harness.tsx (και γιατί):
+//  1. Φορτώνει ΟΛΟΚΛΗΡΟ το app/globals.css, όχι μόνο τις μεταβλητές του :root.
+//     Χωρίς αυτό δεν υπάρχουν .card, .app-content, .kpi-row, ούτε κανένα
+//     media query — δηλαδή η διάταξη που μετριέται δεν είναι η διάταξη που
+//     βλέπει ο χρήστης.
+//  2. Στήνει .app-shell > .app-main > .app-content, όπως το app/dashboard/page.tsx.
+//  3. Δηλώνει `window.__respond`, όχι `window.__fake`. Το harness.tsx έγραφε
+//     το δεύτερο, αλλά ο διπλός που πράγματι χρησιμοποιεί ο κώδικας φτιάχνεται
+//     μέσα στο fakeClient.ts και ρωτά ΜΟΝΟ το `window.__respond`.
+// ═══════════════════════════════════════════════════════════════════════════
+import { useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import type { Responder } from '../e2e-money/fakeDb';
+import { portfolio } from './data';
+import PortfolioTab from '@/app/dashboard/components/PortfolioTab';
+import CashHero from '@/app/dashboard/components/CashHero';
+import RentReceived from '@/app/dashboard/components/RentReceived';
+import InboundInbox from '@/app/dashboard/components/InboundInbox';
+import { CustomSelect } from '@/app/dashboard/components/UIComponents';
+import { Modal, Btn, PageTitle, InfoBanner, fieldRow } from '@/components/Theme';
+import { createClient } from '@/lib/supabase/client';
+import type { CashLine, CashPosition } from '@/lib/home/cash';
+
+declare global {
+  interface Window { __t: Record<string, number>; __rows: () => number }
+}
+
+const params = new URLSearchParams(location.search);
+const n = Number(params.get('n') || 200);
+const which = params.get('c') || 'portfolio';
+const bench = portfolio(n);
+
+const respond: Responder = (call) => {
+  if (call.op !== 'select') return { data: null, error: null };
+  const rows = bench.rows[call.table];
+  if (!rows) return { data: call.single ? null : [], error: null };
+  return { data: call.single ? (rows[0] ?? null) : rows, error: null };
+};
+window.__respond = respond;
+window.__t = {};
+window.__rows = () => document.querySelectorAll('tbody tr').length;
+
+const line = (i: number): CashLine => ({
+  label: `Ακίνητο ${i + 1} · Ενοίκιο Ιανουαρίου 2026`,
+  amount: 400 + i * 50,
+  due: '2026-01-05',
+  daysLeft: -20 - i,
+  rent: { id: `r${i}`, year: 2026, month: 1, propertyId: `p${i}`, tenantId: `t${i}` },
+});
+const lines = Array.from({ length: 6 }, (_, i) => line(i));
+
+const cash: CashPosition = {
+  owedToMe: { total: 4350, count: 6, overdue: 4350, overdueCount: 6, lines },
+  owedByMe: { total: 1287.4, count: 4, overdue: 620, overdueCount: 2, lines: lines.slice(0, 4).map(l => ({ ...l, rent: null, label: 'ΕΝΦΙΑ δόση Ιανουαρίου' })) },
+};
+
+const OPTS = Array.from({ length: 14 }, (_, i) => ({ value: `v${i}`, label: `Κατηγορία δαπάνης πολύ μακρύ όνομα ${i + 1}` }));
+
+function ModalDemo() {
+  const [open, setOpen] = useState(true);
+  const [v, setV] = useState('v0');
+  return (
+    <div>
+      <PageTitle title="Δοκιμή παραθύρου" sub="Modal στα 375" right={<Btn variant="primary" onClick={() => setOpen(true)}>Άνοιγμα</Btn>} />
+      <Modal open={open} onClose={() => setOpen(false)} title="Καταστάσεις ιδιοκτήτη"
+        subtitle="Ανά ακίνητο, για την περίοδο που θα επιλέξεις"
+        footer={<><Btn variant="ghost" onClick={() => setOpen(false)}>Άκυρο</Btn><Btn variant="primary" onClick={() => {}}>Έκδοση</Btn></>}
+        footerInfo="Η κατάσταση εκδίδεται σε PDF">
+        <InfoBanner tone="warning">Ένα μήνυμα που εξηγεί τι θα γίνει, αρκετά μακρύ ώστε να τυλιχτεί σε στενή οθόνη κινητού.</InfoBanner>
+        <div style={fieldRow(2)}>
+          <CustomSelect label="Κατηγορία" value={v} onChange={setV} options={OPTS} />
+          <CustomSelect label="Δεύτερη κατηγορία" value={v} onChange={setV} options={OPTS} />
+        </div>
+        {Array.from({ length: 24 }, (_, i) => (
+          <p key={i} style={{ margin: 0, fontSize: 13, lineHeight: 1.6 }}>
+            Γραμμή {i + 1}: κείμενο γεμίσματος ώστε το περιεχόμενο του παραθύρου να ξεπερνά το ύψος της οθόνης και να φανεί ποιος κυλά.
+          </p>
+        ))}
+      </Modal>
+    </div>
+  );
+}
+
+function SelectDemo() {
+  const [v, setV] = useState('v0');
+  return (
+    <div>
+      <PageTitle title="Επιλογείς" sub="CustomSelect στα 375" />
+      <div className="card">
+        <div style={fieldRow(3)}>
+          <CustomSelect label="Κατηγορία" value={v} onChange={setV} options={OPTS} />
+          <CustomSelect label="Ακίνητο" value={v} onChange={setV} options={OPTS} />
+          <CustomSelect label="Τρόπος" value={v} onChange={setV} options={OPTS} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const supabase = createClient();
+
+const VIEWS: Record<string, () => JSX.Element> = {
+  portfolio: () => <PortfolioTab properties={bench.properties} userId="u1" onSelectProperty={() => {}} />,
+  cash: () => <CashHero cash={cash} showIncome onNavigate={() => {}} onRecordRent={() => {}} />,
+  rent: () => <RentReceived onClose={() => {}} lines={lines} supabase={supabase} propertyId={null} tenantId={null} leaseViaBank today="2026-08-23" onSaved={() => {}} />,
+  inbox: () => <InboundInbox propertyId="p0" userId="u1" propertyName="Ακίνητο 1" onFiled={() => {}} />,
+  modal: () => <ModalDemo />,
+  select: () => <SelectDemo />,
+};
+
+// Το κέλυφος, όπως ακριβώς το γράφει το app/dashboard/page.tsx.
+const shell = document.createElement('div');
+shell.className = 'app-shell';
+shell.innerHTML = '<main class="app-main"><div class="app-content"></div></main>';
+document.body.appendChild(shell);
+const host = shell.querySelector('.app-content') as HTMLElement;
+
+const View = VIEWS[which] || VIEWS.portfolio;
+window.__t.start = performance.now();
+createRoot(host).render(<View />);
+requestAnimationFrame(() => { window.__t.firstPaint = performance.now(); });
