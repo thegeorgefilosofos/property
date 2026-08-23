@@ -44,6 +44,7 @@ const joinedFullName = (v: unknown): string | null => {
 }
 import { savedData } from '@/components/dbWrite'
 import { T, Modal, Spinner, Skeleton, EmptyState, Chip, feAuto, fe, fn, localDay, pressable } from '@/components/Theme'
+import { fixedCols } from '@/components/tokens'
 import type { XlsxSheet, XlsxCol } from './exportXlsx';
 import { downloadXlsx } from './sheets';
 import {
@@ -55,7 +56,7 @@ import {
   Printer, CheckSquare, CalendarDays, ArrowRight,
   TrendingUp, Clock, Info, MoreHorizontal, Share2, CalendarPlus, Repeat,
 } from 'lucide-react'
-import { DatePicker, CustomSelect } from './UIComponents'
+import { DatePicker, CustomSelect, NumberInput } from './UIComponents'
 import { allCalendarLinks, buildICS } from '@/lib/calendar/externalLinks'
 import { holidayName, isWeekend } from '@/lib/calendar/greekHolidays'
 import { expandRecurring } from '@/lib/calendar/recurrence'
@@ -1179,23 +1180,26 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
       </button>
 
       {showDetails&&(<>
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+        {/* ── ΜΙΑ ΣΕΙΡΑ, ΟΧΙ ΔΥΟ, ΚΑΙ ΜΙΑ ΕΤΙΚΕΤΑ, ΟΧΙ ΔΥΟ ──────────────────────
+            Ηταν δύο πλέγματα των δύο στηλών, οπότε το «Ποσό» έπεφτε μόνο του σε
+            δεύτερη σειρά ενώ δίπλα του έμενε κενό. Και οι ετικέτες ήταν σε δύο
+            ιδιώματα, κολλητά η μία στην άλλη: «Κατηγορία» πεζά από το
+            CustomSelect, «ΠΟΣΟ ΣΕ ΕΥΡΩ» κεφαλαία από τοπικό στιλ αυτού του
+            αρχείου. Το πεδίο ποσού είναι πλέον το κοινό NumberInput, με το «€»
+            μέσα του — άρα η ετικέτα δεν χρειάζεται να το πει.
+
+            Το πλέγμα είναι το κοινό `fixedCols` των tokens, όχι δικό μου
+            `minmax`: τρεις στήλες στο παράθυρο, μία σε κινητό, με τον ίδιο
+            κανόνα που ακολουθεί κάθε άλλη φόρμα της εφαρμογής. */}
+        <div {...fixedCols(3, 10)}>
           <CustomSelect label="Κατηγορία" value={form.category} onChange={v=>setForm(f=>({...f,category:v as EventCategory}))}
             options={Object.entries(CATEGORIES).map(([k,v])=>({ value:k, label:v.label }))}/>
           <CustomSelect label="Προτεραιότητα" value={form.priority} onChange={v=>setForm(f=>({...f,priority:v as EventPriority}))}
             options={Object.entries(PRIORITIES).map(([k,v])=>({ value:k, label:v.label }))}/>
-        </div>
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-          <div>
-            <label style={lbl}>Ποσό σε ευρώ</label>
-            <input type="number" min={0} style={fld} placeholder="" value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))} onFocus={focus} onBlur={blur}/>
-          </div>
+          <NumberInput label="Ποσό" value={form.amount} onChange={v=>setForm(f=>({...f,amount:v}))} suffix="€"/>
           {form.event_time&&(
-            <div>
-              <label style={lbl}>Διάρκεια</label>
-              <CustomSelect value={form.duration} onChange={v=>setForm(f=>({...f,duration:v}))} placeholder="Χωρίς διάρκεια"
-                options={[{value:'',label:'Χωρίς διάρκεια'},{value:'30',label:'30 λεπτά'},{value:'60',label:'1 ώρα'},{value:'90',label:'1 ώρα 30 λεπτά'},{value:'120',label:'2 ώρες'},{value:'180',label:'3 ώρες'}]}/>
-            </div>
+            <CustomSelect label="Διάρκεια" value={form.duration} onChange={v=>setForm(f=>({...f,duration:v}))} placeholder="Χωρίς διάρκεια"
+              options={[{value:'',label:'Χωρίς διάρκεια'},{value:'30',label:'30 λεπτά'},{value:'60',label:'1 ώρα'},{value:'90',label:'1 ώρα 30 λεπτά'},{value:'120',label:'2 ώρες'},{value:'180',label:'3 ώρες'}]}/>
           )}
         </div>
         {/* Κύκλωμα: κόστος → δαπάνη */}
@@ -1982,7 +1986,7 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
           {showMenu&&createPortal(
             <div ref={menuPopRef} role="menu" style={{ position:'fixed', top:menuCoords.top, left:menuCoords.left, transform:menuCoords.up?'translateY(-100%)':'none', width:248, maxHeight:'min(392px, 80vh)', overflowY:'auto', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:12, boxShadow:'var(--elev-3)', padding:6, zIndex:3000 }}>
               {([
-                {label: bulkMode?'Τέλος επιλογής':'Επιλογή για μαζικές ενέργειες', icon:<CheckSquare size={15}/>, on:()=>{setBulkMode(b=>!b);setSelectedIds(new Set());setShowMenu(false)}},
+                {label: bulkMode?'Τέλος επιλογής':'Μαζική επιλογή', icon:<CheckSquare size={15}/>, on:()=>{setBulkMode(b=>!b);setSelectedIds(new Set());setShowMenu(false)}},
                 {label: showFilters?'Απόκρυψη φίλτρων':'Φίλτρα', icon:<Filter size={15}/>, on:()=>{setShowFilters(f=>!f);setShowMenu(false)}},
                 {label:'Συγχρονισμός δεδομένων', icon:<RefreshCw size={15}/>, on:()=>{setShowAutoPull(f=>!f);setShowMenu(false)}},
                 {label:'Συνδρομή σε ζωντανό ημερολόγιο', icon:<CalendarPlus size={15}/>, on:openSubscribe},

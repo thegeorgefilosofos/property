@@ -14,6 +14,7 @@ import { BarChart3 } from 'lucide-react';
 import { daysLeft } from './TabTenantHelpers';
 import { MONTHS_SHORT } from '@/lib/core/months';
 import { fieldDecision, type FieldContext, type FieldDecision } from '@/lib/property/fields';
+import { InfoDot, fieldLabelStyle } from './UIComponents';
 import type { RentPayment, Tenant } from './TabTenantTypes';
 
 // ─── Micro components ─────────────────────────────────────────────────────────
@@ -32,13 +33,46 @@ export const InfoBlock = ({ title, children, tone }: { title: string; children: 
   </div>
 );
 
-export function SectionTitle({ children }: { children: React.ReactNode }) {
+export function SectionTitle({ children, info }: { children: React.ReactNode; info?: string }) {
   return (
-    <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16 }}>
+    <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16 }}>
       <span style={{ fontSize:'10px', letterSpacing:'0.06em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, fontWeight:700 }}>{children}</span>
+      {info&&<InfoDot text={info}/>}
     </div>
   );
 }
+
+/**
+ * Σειρά επιλογών με ετικέτα πεδίου, όπως κάθε άλλο πεδίο της φόρμας.
+ *
+ * ΓΙΑΤΙ ΥΠΑΡΧΕΙ. Οι σειρές από κουμπάκια (διάρκεια, κατηγορία, επίπλωση) ήταν
+ * τα ΜΟΝΑ χειριστήρια της φόρμας χωρίς ετικέτα: ο χρήστης έβλεπε επτά κουμπιά
+ * και μάντευε τι διαλέγει, ενώ κάθε διπλανό πεδίο είχε ετικέτα από πάνω. Δύο
+ * ιδιώματα για το ίδιο πράγμα, στην ίδια οθόνη.
+ */
+export function ChipRow({ label, info, children }: { label:string; info?:string; children:React.ReactNode }) {
+  return (
+    <div style={{ marginBottom:14 }}>
+      <div style={fieldLabelStyle}>{label}{info&&<InfoDot text={info}/>}</div>
+      <div style={{ display:'flex', gap:6, flexWrap:'wrap' as const }}>{children}</div>
+    </div>
+  );
+}
+
+/**
+ * Το «γιατί το ζητάμε» του μητρώου, ΩΣ ΚΕΙΜΕΝΟ, για να μπει πίσω από κουκκίδα.
+ *
+ * ΗΤΑΝ COMPONENT ΚΑΙ ΤΥΠΩΝΕ ΠΑΡΑΓΡΑΦΟ ΚΑΤΩ ΑΠΟ ΚΑΘΕ ΠΕΔΙΟ. Είκοσι φορές στην
+ * ίδια φόρμα: κάθε πεδίο κουβαλούσε δύο σειρές εξήγησης, και ο υπότιτλος του
+ * παραθύρου το διαφήμιζε («κάθε πεδίο λέει γιατί»). Το αποτέλεσμα ήταν φόρμα
+ * που διαβάζεται σαν εγχειρίδιο, με τα ΧΕΙΡΙΣΤΗΡΙΑ να χάνονται μέσα στο κείμενο.
+ *
+ * Το ίδιο το UIComponents το έχει ήδη γραμμένο: «Κείμενο σημαίνει επεξήγηση,
+ * και η επεξήγηση ζει πίσω από την κουκκίδα». Η φόρμα ακολουθεί πλέον τον
+ * κανόνα του σπιτιού της. Καμία πληροφορία δεν χάθηκε: άλλαξε μόνο από
+ * μονίμως ορατή σε ένα άγγιγμα μακριά.
+ */
+export const whyOf = (id:string):string|undefined => fieldDecision(id, tenantFieldCtx(true,1)).why || undefined;
 
 // ΤΙ ΕΦΥΓΕ: το `SvcSection` (πέντε πτυσσόμενες ενότητες υπηρεσιών) και το
 // `SplitBar` (συρόμενη κατανομή κόστους 0–100 ανά μηχάνημα). Υπήρχαν για να
@@ -131,13 +165,6 @@ export function leaseAlerts(payments:RentPayment[], tenant:Tenant|null):{text:st
 export const tenantFieldCtx = (furnished:boolean, propertyCount:number):FieldContext => ({
   status:'rent_long', business:false, doubleEntry:false, propertyCount, furnished,
 });
-
-/** Το «γιατί το ζητάμε» του μητρώου, κάτω από το πεδίο. Χωρίς αυτό δεν συμπληρώνεται. */
-export function Why({ id }:{ id:string }) {
-  const why=fieldDecision(id, tenantFieldCtx(true,1)).why;
-  if(!why) return null;
-  return <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, lineHeight:1.5, marginTop:6 }}>{why}</div>;
-}
 
 /** Γραμμή συμμόρφωσης: τι λείπει για να κλείσει η δήλωση, με το γιατί. */
 export function MissingCriticalBar({ missing }:{ missing:FieldDecision[] }) {

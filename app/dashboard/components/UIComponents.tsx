@@ -695,6 +695,14 @@ export function CustomSelect({
 const DAYS_GR = ['Δε','Τρ','Τε','Πε','Πα','Σά','Κυ'];
 
 interface DatePickerProps {
+  /**
+   * Η επεξήγηση, πίσω από την κουκκίδα της ετικέτας.
+   *
+   * ΥΠΗΡΧΕ ΜΟΝΟ ΣΕ ΔΥΟ ΑΠΟ ΤΑ ΠΕΝΤΕ ΠΕΔΙΑ, και το αποτέλεσμα φαινόταν στις
+   * φόρμες: όποιο πεδίο δεν μπορούσε να κρύψει την εξήγησή του, την τύπωνε ως
+   * μόνιμη παράγραφο από κάτω. Δύο ιδιώματα για το ίδιο πράγμα, δίπλα δίπλα.
+   */
+  labelInfo?: ReactNode;
   label?: string;
   /**
    * Χωρίς ετικέτα, το ημερολόγιο ονομαζόταν από την τιμή του, και όσο η τιμή
@@ -709,7 +717,7 @@ interface DatePickerProps {
   placeholder?: string;
 }
 
-export function DatePicker({ label, ariaLabel, value, onChange, disabled, placeholder = 'Επιλογή ημερομηνίας' }: DatePickerProps) {
+export function DatePicker({ label, labelInfo, ariaLabel, value, onChange, disabled, placeholder = 'Επιλογή ημερομηνίας' }: DatePickerProps) {
   const [open, setOpen] = useState(false);
   const [focused, setFocused] = useState(false);
   // ΤΟ ΗΜΕΡΟΛΟΓΙΟ ΑΝΟΙΓΕ ΣΕ ΛΑΘΟΣ ΜΗΝΑ. Εδώ γραφόταν `new Date(value).getMonth()`:
@@ -785,7 +793,7 @@ export function DatePicker({ label, ariaLabel, value, onChange, disabled, placeh
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      {label && <label style={fieldLabelStyle}>{label}</label>}
+      {label && <label style={fieldLabelStyle}>{label}{infoNode(labelInfo)}</label>}
       <div
         role="button"
         tabIndex={disabled ? -1 : 0}
@@ -1099,6 +1107,14 @@ export function Toggle({ on, onChange, label, ariaLabel, size = 'md' }: TogglePr
 
 // ─── Text Input ───────────────────────────────────────────────────────────────
 interface TextInputProps {
+  /**
+   * Η επεξήγηση, πίσω από την κουκκίδα της ετικέτας.
+   *
+   * ΥΠΗΡΧΕ ΜΟΝΟ ΣΕ ΔΥΟ ΑΠΟ ΤΑ ΠΕΝΤΕ ΠΕΔΙΑ, και το αποτέλεσμα φαινόταν στις
+   * φόρμες: όποιο πεδίο δεν μπορούσε να κρύψει την εξήγησή του, την τύπωνε ως
+   * μόνιμη παράγραφο από κάτω. Δύο ιδιώματα για το ίδιο πράγμα, δίπλα δίπλα.
+   */
+  labelInfo?: ReactNode;
   label?: string;
   // Όπως στο NumberInput: `ariaLabel` όταν δεν υπάρχει ορατή ετικέτα, `id`
   // όταν την ετικέτα τη γράφει ο γονιός και θέλει να συνδεθεί με `htmlFor`.
@@ -1114,13 +1130,13 @@ interface TextInputProps {
   onKeyDown?: (e: KeyboardEvent<HTMLInputElement>) => void;
 }
 
-export function TextInput({ label, ariaLabel, id, value, onChange, placeholder, type='text', disabled, prefix, suffix, onKeyDown }: TextInputProps) {
+export function TextInput({ label, labelInfo, ariaLabel, id, value, onChange, placeholder, type='text', disabled, prefix, suffix, onKeyDown }: TextInputProps) {
   const [focused, setFocused] = useState(false);
   const autoId = useId();
   const inputId = id ?? autoId;
   return (
     <div>
-      {label && <label htmlFor={inputId} style={fieldLabelStyle}>{label}</label>}
+      {label && <label htmlFor={inputId} style={fieldLabelStyle}>{label}{infoNode(labelInfo)}</label>}
       <div style={{
         display: 'flex', alignItems: 'center',
         background: 'var(--bg-surface)',
@@ -1173,15 +1189,15 @@ export function TextInput({ label, ariaLabel, id, value, onChange, placeholder, 
 
 // ─── Textarea ─────────────────────────────────────────────────────────────────
 export function Textarea({
-  label, value, onChange, placeholder, rows = 3,
+  label, labelInfo, value, onChange, placeholder, rows = 3,
 }: {
-  label?: string; value: string; onChange: (v: string) => void; placeholder?: string; rows?: number;
+  label?: string; labelInfo?: ReactNode; value: string; onChange: (v: string) => void; placeholder?: string; rows?: number;
 }) {
   const [focused, setFocused] = useState(false);
   const inputId = useId();
   return (
     <div>
-      {label && <label htmlFor={inputId} style={fieldLabelStyle}>{label}</label>}
+      {label && <label htmlFor={inputId} style={fieldLabelStyle}>{label}{infoNode(labelInfo)}</label>}
       <textarea
         id={inputId}
         value={value}

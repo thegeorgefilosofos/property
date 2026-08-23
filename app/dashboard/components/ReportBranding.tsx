@@ -193,12 +193,18 @@ export default function ReportBranding({ userId, plan, onUpgrade }: { userId: st
             </div>
           </div>
         </div>
-      </Card>
 
-      {error && <div style={{ marginBottom: 12 }}><InfoBanner tone="warning">{error}</InfoBanner></div>}
-      <div style={{ marginTop: 20 }}>
-        <Btn variant="primary" onClick={save} disabled={saving}>{saving ? 'Αποθήκευση…' : saved ? 'Αποθηκεύτηκε' : 'Αποθήκευση επωνυμίας'}</Btn>
-      </div>
+        {/* ── ΤΟ ΣΦΑΛΜΑ ΚΑΙ ΤΟ ΚΟΥΜΠΙ ΜΕΣΑ ΣΤΗΝ ΚΑΡΤΑ ΤΟΥΣ ────────────────────
+            Ηταν έξω από την Card, δηλαδή ένα κουμπί που αιωρούνταν ανάμεσα σε
+            δύο ενότητες: από πάνω το τέλος της μιας κάρτας, από κάτω η κεφαλίδα
+            της επόμενης, και το κουμπί κολλητά πάνω της. Καμία άλλη ενότητα των
+            Ρυθμίσεων δεν κάνει κάτι τέτοιο — οι ενέργειες κάθε ενότητας ζουν
+            ΜΕΣΑ στην κάρτα της, και η κάρτα κρατά τον ρυθμό των αποστάσεων. */}
+        {error && <div style={{ marginTop: 16 }}><InfoBanner tone="warning">{error}</InfoBanner></div>}
+        <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end' }}>
+          <Btn variant="primary" onClick={save} disabled={saving}>{saving ? 'Αποθήκευση…' : saved ? 'Αποθηκεύτηκε' : 'Αποθήκευση επωνυμίας'}</Btn>
+        </div>
+      </Card>
     </div>
   );
 }
