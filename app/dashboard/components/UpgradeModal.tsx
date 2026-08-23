@@ -76,7 +76,7 @@ export default function UpgradeModal({ currentCount, planId, profileType = 'indi
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.55 }}>
               Το πακέτο σου ({PLANS[current].name}) καλύπτει {PLANS[current].maxProperties === Infinity ? 'απεριόριστα' : PLANS[current].maxProperties} {PLANS[current].maxProperties === 1 ? 'ακίνητο' : 'ακίνητα'}.{' '}
               {needsProfileSwitch
-                ? <>Με περισσότερα από {PLANS.owner.maxProperties} ακίνητα η διαχείριση γίνεται επαγγελματική δουλειά. Στις Ρυθμίσεις άλλαξε τον τρόπο χρήσης σε «Επαγγελματίας» — περνά αμέσως, χωρίς προϋπόθεση — και ξεκλειδώνει η αγορά του πακέτου Επαγγελματίας: έως {PLANS.agency.maxProperties} ακίνητα, χαρτοφυλάκιο και ομάδα.</>
+                ? <>Με περισσότερα από {PLANS.owner.maxProperties} ακίνητα η διαχείριση γίνεται επαγγελματική δουλειά. Στις Ρυθμίσεις άλλαξε τον τρόπο χρήσης σε «Επαγγελματίας» (περνά αμέσως, χωρίς προϋπόθεση) και ξεκλειδώνει η αγορά του πακέτου Επαγγελματίας: έως {PLANS.agency.maxProperties} ακίνητα, χαρτοφυλάκιο και ομάδα.</>
                 : <>Για να προσθέσεις κι άλλο, διάλεξε ένα πακέτο που σου ταιριάζει. Χωρίς δέσμευση, ακυρώνεις όποτε θέλεις.</>}
             </p>
           </div>

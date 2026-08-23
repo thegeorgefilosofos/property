@@ -6,7 +6,10 @@
 import type { Metadata } from 'next';
 import { T } from '@/components/tokens';
 
-export const metadata: Metadata = { title: 'Χωρίς σύνδεση · Property OS' };
+// ΤΟ ΟΝΟΜΑ ΤΟ ΒΑΖΕΙ ΤΟ ΠΡΟΤΥΠΟ, ΟΧΙ Η ΣΕΛΙΔΑ. Το app/layout.tsx ορίζει
+// «template: '%s · Property OS'», οπότε γράφοντας το όνομα και εδώ η καρτέλα
+// του περιηγητή έλεγε «Χωρίς σύνδεση · Property OS · Property OS».
+export const metadata: Metadata = { title: 'Χωρίς σύνδεση' };
 
 export default function OfflinePage() {
   return (
@@ -19,7 +22,7 @@ export default function OfflinePage() {
         </div>
         <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 10px' }}>Δεν υπάρχει σύνδεση</h1>
         <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7, margin: '0 0 22px' }}>
-          Η συσκευή σου δεν βλέπει το δίκτυο αυτή τη στιγμή. Τα δεδομένα σου είναι ασφαλή —
+          Η συσκευή σου δεν βλέπει το δίκτυο αυτή τη στιγμή. Τα δεδομένα σου είναι ασφαλή·
           μόλις επανέλθει η σύνδεση, όλα εμφανίζονται κανονικά.
         </p>
         <a href="/dashboard" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 44, padding: '0 22px', borderRadius: T.radius.pill, background: 'var(--accent)', color: 'var(--accent-text)', textDecoration: 'none', fontSize: 14, fontWeight: 700 }}>

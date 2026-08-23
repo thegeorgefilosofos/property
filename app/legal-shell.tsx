@@ -142,7 +142,7 @@ export function LegalLayout({ eyebrow, title, intro, meta, blocks, closing }: {
 
             <div style={{ marginTop: 'clamp(32px,4vw,48px)', paddingTop: 20, borderTop: '1px solid var(--border-subtle)', display: 'flex', gap: 24, flexWrap: 'wrap' }}>
               {TRUST_PAGES.map(([href, label]) => (
-                <Link key={href} href={href} className="lp-link" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: 14, fontWeight: 600 }}>{label}</Link>
+                <Link key={href} href={href} className="lp-link po-tap" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: 14, fontWeight: 600 }}>{label}</Link>
               ))}
             </div>
           </div>

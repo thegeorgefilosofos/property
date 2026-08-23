@@ -92,6 +92,9 @@ export function ShortVsLongCalculator({ today }: { today: string }) {
     textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 7,
   };
   // Ίδιο σχήμα με τους επιλογείς της εφαρμογής: ενεργό γεμάτο, ανενεργό διάφανο.
+  // Τα δύο κουμπιά της σεζόν είναι αυτοτελή χειριστήρια, όχι λέξεις σε πρόταση:
+  // παίρνουν το κοινό ιδίωμα των 44 εικονοστοιχείων σε συσκευή αφής. Στα 40 που
+  // είχαν, δύο κουμπιά κολλητά σε τηλέφωνο αστοχούν το ένα στο άλλο.
   const segStyle = (on: boolean): React.CSSProperties => ({
     height: T.h.sm, padding: '0 14px', borderRadius: T.radius.inner, border: 'none',
     background: on ? 'var(--accent)' : 'transparent',
@@ -194,8 +197,8 @@ export function ShortVsLongCalculator({ today }: { today: string }) {
                τα δύο να μην μπορούν να ξεφύγουν το ένα από το άλλο. */}
         <div style={{ display: 'flex', gap: 3, padding: 3, background: 'var(--bg-surface)',
           border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
-          <button type="button" onClick={() => set('sezon', 'even')} aria-pressed={input.season === 'even'} style={segStyle(input.season === 'even')}>Όλο τον χρόνο</button>
-          <button type="button" onClick={() => set('sezon', 'high')} aria-pressed={input.season === 'high'} style={segStyle(input.season === 'high')}>Κυρίως το καλοκαίρι</button>
+          <button type="button" onClick={() => set('sezon', 'even')} aria-pressed={input.season === 'even'} className="po-tap" style={segStyle(input.season === 'even')}>Όλο τον χρόνο</button>
+          <button type="button" onClick={() => set('sezon', 'high')} aria-pressed={input.season === 'high'} className="po-tap" style={segStyle(input.season === 'high')}>Κυρίως το καλοκαίρι</button>
         </div>
       </div>
 

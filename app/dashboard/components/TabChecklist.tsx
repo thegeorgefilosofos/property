@@ -761,7 +761,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
           icon={<ClipboardCheck size={20} />}
           title="Όλα καθαρά εδώ"
           hint={pendingObligations.length > 0
-            ? `Δεν έχεις καμία εργασία, αλλά ο νόμος έχει ${pendingObligations.length} υποχρεώσεις για αυτό το ακίνητο${nextObligation ? ` — πρώτη: ${nextObligation.description}, ${fmtDate(nextObligation.due_date)}` : ''}.`
+            ? `Δεν έχεις καμία εργασία, αλλά ο νόμος έχει ${pendingObligations.length} υποχρεώσεις για αυτό το ακίνητο.${nextObligation ? ` Πρώτη: ${nextObligation.description}, ${fmtDate(nextObligation.due_date)}.` : ''}`
             : 'Ξεκίνα με ένα έτοιμο πρότυπο ή πρόσθεσε τη δική σου εκκρεμότητα.'}
           action={
             <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
