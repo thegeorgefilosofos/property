@@ -11,6 +11,7 @@ import type { DbCall, Responder } from './fakeDb';
 import { theFake } from './fakeClient';
 import RentReceived from '@/app/dashboard/components/RentReceived';
 import InboundInbox from '@/app/dashboard/components/InboundInbox';
+import TabComparison from '@/app/dashboard/components/TabComparison';
 import { useState, useEffect } from 'react';
 import { useBillsSettings } from '@/app/dashboard/components/BillsSettings';
 import { subscribeToasts } from '@/components/toastBus';
@@ -40,6 +41,11 @@ const respond: Responder = (call) => {
   }
   if (call.op === 'select' && call.table === 'inbound_messages') {
     return { data: (window as unknown as { __inbound?: unknown[] }).__inbound ?? [], error: null };
+  }
+  // Η Σύγκριση διαβάζει καθολικό και μισθωτές· τα σενάρια τα δίνουν από εδώ.
+  if (call.op === 'select' && (call.table === 'expenses' || call.table === 'tenants')) {
+    const seed = (window as unknown as { __seed?: Record<string, unknown[]> }).__seed;
+    if (seed && seed[call.table]) return { data: seed[call.table], error: null };
   }
   // Κάθε ακίνητο έχει ΔΙΚΕΣ ΤΟΥ ρυθμίσεις: αν απαντούσαν ίδια, το σφάλμα της
   // εγγραφής σε λάθος ακίνητο θα ήταν αόρατο.
@@ -76,6 +82,39 @@ window.__toasts = [];
 // αν προσαρτούσαμε και τον κανονικό host, ο ένας από τους δύο θα έχανε κάθε
 // μήνυμα, και η δοκιμή θα έλεγε «καμία ειδοποίηση» για λάθος λόγο.
 subscribeToasts(t => { window.__toasts.push(`${t.tone || 'neutral'}: ${t.text}`); });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Η ΣΥΓΚΡΙΣΗ: ΔΥΟ ΑΚΙΝΗΤΑ ΠΟΥ Ο ΠΙΝΑΚΑΣ ΕΛΕΓΕ ΙΣΟΠΑΛΑ
+// ─────────────────────────────────────────────────────────────────────────
+// Ιδιο ενοίκιο, ίδια αξία, ΙΔΙΟ ΣΥΝΟΛΟ δαπανών μέσα στη χρονιά. Η μόνη
+// διαφορά είναι το εύρος: το πρώτο τα ξόδεψε σε τρεις μήνες, το δεύτερο σε
+// δώδεκα. Με «δαπάνες έτους ÷ 12» έβγαιναν και τα δύο 625 €/μήνα, δηλαδή ο
+// πίνακας δεν ξεχώριζε ακίνητο που κοστίζει τετραπλάσιο τον μήνα.
+//
+// Η χρονιά είναι η ΤΡΕΧΟΥΣΑ επειδή η οθόνη κοιτά το τρέχον έτος· καρφωμένο
+// έτος θα έκανε τη δοκιμή να περάσει σήμερα και να αδειάσει την Πρωτοχρονιά.
+const CMP_YEAR = new Date().getFullYear();
+const cmpExpense = (pid: string, month: number, amount: number) => ({
+  id: `${pid}-${month}`, bill_id: null, amount, date: `${CMP_YEAR}-${String(month).padStart(2, '0')}-10`,
+  description: 'Κοινόχρηστα', category: 'Κοινόχρηστα', paid: true,
+  expense_group: 'fixed', is_recurring: true, store_vendor: null, supplier_afm: null, property_id: pid,
+});
+const CMP_SEED = {
+  expenses: [
+    // p1: 900 € σε τρεις μήνες → 300 €/μήνα
+    cmpExpense('p1', 1, 300), cmpExpense('p1', 2, 300), cmpExpense('p1', 3, 300),
+    // p2: 900 € σε δώδεκα μήνες → 75 €/μήνα
+    ...Array.from({ length: 12 }, (_, i) => cmpExpense('p2', i + 1, 75)),
+  ],
+  tenants: [
+    { id: 't1', property_id: 'p1', monthly_rent: 700, status: 'active', lease_start: `${CMP_YEAR}-01-01`, lease_end: null, created_at: `${CMP_YEAR}-01-01` },
+    { id: 't2', property_id: 'p2', monthly_rent: 700, status: 'active', lease_start: `${CMP_YEAR}-01-01`, lease_end: null, created_at: `${CMP_YEAR}-01-01` },
+  ],
+};
+const CMP_PROPERTIES = [
+  { id: 'p1', name: 'Αλεξάνδρας 12', prop_type: 'apartment', address: null, sqm: 60, value: 200000, target_rent: 700, status_detail: 'rented', obj_value: null, year_built: 2000, postal_code: '11473', rental_mode: 'long_term' },
+  { id: 'p2', name: 'Πατησίων 5', prop_type: 'apartment', address: null, sqm: 60, value: 200000, target_rent: 700, status_detail: 'rented', obj_value: null, year_built: 2000, postal_code: '11473', rental_mode: 'long_term' },
+];
 
 const line = (id: string, label: string, amount: number, due: string, daysLeft: number, tenantId = 't1', propertyId = 'p1'): CashLine => ({
   label, amount, due, daysLeft,
@@ -119,6 +158,12 @@ const views: Record<string, () => React.ReactElement> = {
   // ── Εισερχόμενα ─────────────────────────────────────────────────────────
   'inbox-no-amount': () => { (window as unknown as { __inbound: unknown[] }).__inbound = INBOX; return <InboundInbox propertyId="p1" userId="u1" propertyName="Αλεξάνδρας 12" />; },
   'inbox-amount': () => { (window as unknown as { __inbound: unknown[] }).__inbound = INBOX_WITH_AMOUNT; return <InboundInbox propertyId="p1" userId="u1" propertyName="Αλεξάνδρας 12" />; },
+
+  // ── Σύγκριση ────────────────────────────────────────────────────────────
+  'comparison': () => {
+    (window as unknown as { __seed: unknown }).__seed = CMP_SEED;
+    return <TabComparison properties={CMP_PROPERTIES as never} userId="u1" />;
+  },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

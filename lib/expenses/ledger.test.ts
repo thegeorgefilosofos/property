@@ -1,5 +1,5 @@
 // npx tsx lib/expenses/ledger.test.ts
-import { mergeLedger, ledgerTotal, ledgerUnpaid, groupByMonth, recurringMonthly, type LedgerBill, type LedgerExpense } from './ledger';
+import { mergeLedger, ledgerTotal, ledgerUnpaid, groupByMonth, recurringMonthly, monthlyAverage, type LedgerBill, type LedgerExpense } from './ledger';
 
 let pass = 0, fail = 0;
 function eq(name: string, got: unknown, want: unknown) {
@@ -258,6 +258,26 @@ const exp = (o: Partial<LedgerExpense> & { id: string }): LedgerExpense => o;
   }
 
   eq('χωρίς πάγια: τίποτα', recurringMonthly([]).perMonth, null);
+
+  // ═══ Ο ΙΔΙΟΣ ΚΑΝΟΝΑΣ ΓΙΑ ΟΛΕΣ ΤΙΣ ΔΑΠΑΝΕΣ, ΟΧΙ ΜΟΝΟ ΓΙΑ ΤΑ ΠΑΓΙΑ ═══════
+  // Η Σύγκριση έγραφε «δαπάνες έτους ÷ 12» για το «Καθαρό ανά μήνα». Τον
+  // Μάρτιο αυτό μοιράζει τρεις μήνες σε δώδεκα, και το ακίνητο δείχνει
+  // τέσσερις φορές φθηνότερο — στη στήλη που φοράει το στεφάνι «καλύτερο».
+  {
+    const oneOff = exp({ id: 'y', description: 'Υδραυλικός', category: 'Συντήρηση',
+      amount: 600, date: '2026-02-04', expense_group: 'maintenance' });
+    const r = mergeLedger([], [mk(1, 100, 'a1'), mk(2, 100, 'a2'), mk(3, 100, 'a3'), oneOff]);
+    const a = monthlyAverage(r.entries);
+    eq('ο μέσος μήνας μετρά ΚΑΙ τα έκτακτα', a.total, 900);
+    eq('τρεις μήνες, όχι δώδεκα', a.months, 3);
+    eq('300 €/μήνα, όχι 75', a.perMonth, 300);
+    eq('τα πάγια μόνα τους μένουν 100', recurringMonthly(r.entries).perMonth, 100);
+  }
+  {
+    const a = monthlyAverage(mergeLedger([], [mk(7, 100, 'z1')]).entries);
+    eq('ένας μήνας δαπανών: κανένας μέσος όρος', a.perMonth, null);
+  }
+  eq('χωρίς δαπάνες: τίποτα', monthlyAverage([]).perMonth, null);
 }
 
 

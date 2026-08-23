@@ -15,7 +15,7 @@ import { downloadTableXlsx } from './exportCsv';
 import { money } from './sheetFormat';
 import { consolidateRentTax, taxShareOf, CONSOLIDATION_NOTE } from '@/lib/billing/consolidate';
 import { resolveValue } from '@/lib/billing/propertyFacts';
-import { mergeLedger, ledgerTotal, recurringMonthly } from '@/lib/expenses/ledger';
+import { mergeLedger, ledgerTotal, recurringMonthly, monthlyAverage } from '@/lib/expenses/ledger';
 import { athensToday } from '@/lib/core/time';
 import type { ExpensesRow, BillsRow, TenantsRow } from '@/lib/supabase/tables';
 
@@ -36,6 +36,8 @@ interface Props { properties: Property[]; userId: string; }
 interface Agg {
   /** Δαπάνες του έτους, κάθε ευρώ ΜΙΑ φορά (από τον κοινό πυρήνα). */
   expensesYTD: number;
+  /** Ο μέσος μήνας ΟΛΩΝ των δαπανών, ή `null` όταν το ιστορικό δεν φτάνει. */
+  expensesMonthly: number | null;
   /** Ο μέσος μήνας σε πάγια, διαιρεμένος με το ΕΥΡΟΣ του ιστορικού (όχι με 12). */
   recurringMonthly: number;
   monthlyRent: number;
@@ -148,6 +150,8 @@ export default function TabComparison({ properties, userId }: Props) {
       const ofYear = entries.filter(e => e.date >= `${year}-01-01` && e.date <= `${year}-12-31`);
       m[id] = {
         expensesYTD: ledgerTotal(ofYear),
+        // Ο ΙΔΙΟΣ ΠΑΡΟΝΟΜΑΣΤΗΣ ΜΕ ΤΑ ΠΑΓΙΑ, ΓΙΑ ΤΟΝ ΙΔΙΟ ΛΟΓΟ (βλ. από κάτω).
+        expensesMonthly: monthlyAverage(ofYear).perMonth,
         // ΜΕΤΡΗΜΕΝΟ, ΟΧΙ ΔΗΛΩΜΕΝΟ: ο μέσος μήνας σε πάγια, από ό,τι ΟΝΤΩΣ έτρεξε.
         // Η διαίρεση γίνεται με το ΕΥΡΟΣ του ιστορικού, όχι με σταθερό 12: όποιος
         // ξεκίνησε τον Οκτώβριο θα έβλεπε τα πάγιά του τέσσερις φορές μικρότερα.
@@ -207,7 +211,7 @@ export default function TabComparison({ properties, userId }: Props) {
 
   // Μετρικές ανά ακίνητο (μόνο της ομάδας που κοιτάζει ο χρήστης)
   const rowsData = inGroup.map(p => {
-    const a = agg[p.id] || { expensesYTD: 0, recurringMonthly: 0, monthlyRent: 0, budgetMonthly: 0 };
+    const a = agg[p.id] || { expensesYTD: 0, expensesMonthly: null, recurringMonthly: 0, monthlyRent: 0, budgetMonthly: 0 };
     // ΙΔΙΑ ΠΗΓΗ ΑΛΗΘΕΙΑΣ ΜΕ ΤΗΝ ΕΠΙΣΚΟΨΗ. Πριν ήταν `p.value || 0`: ο
     // ιδιοκτήτης που είχε συμπληρώσει μόνο αντικειμενική αξία (η συνηθέστερη
     // περίπτωση — τη βρίσκει στο Ε9) έβλεπε «4,2%» στην Επισκόπηση και «0,0%» εδώ.
@@ -219,8 +223,26 @@ export default function TabComparison({ properties, userId }: Props) {
     // ΜΟΝΟ ΜΙΑ ΑΦΑΙΡΕΣΗ. Οι πάγιοι λογαριασμοί είναι ΗΔΗ μέσα στις δαπάνες του
     // έτους — ο πυρήνας τους μέτρησε μία φορά. Η παλιά γραμμή αφαιρούσε και τα
     // δύο, και το ακίνητο έδειχνε διπλάσιο κόστος απ' όσο έχει.
-    const netMonthly = rent > 0 ? rent - a.expensesYTD / 12 : null;
+    //
+    // ── ΔΥΟ ΛΑΘΗ ΠΟΥ ΣΤΕΦΑΝΩΝΑΝ ΤΟ ΛΑΘΟΣ ΑΚΙΝΗΤΟ ──────────────────────────
+    // Πρώτο: ο παρονομαστής ήταν σταθερό δώδεκα πάνω σε δαπάνες ΤΡΕΧΟΝΤΟΣ
+    // έτους. Τον Μάρτιο, τρεις μήνες δαπανών μοιράζονταν σε δώδεκα και το
+    // ακίνητο έδειχνε τέσσερις φορές φθηνότερο· τον Δεκέμβριο, σωστό. Δηλαδή
+    // η ίδια περιουσία άλλαζε κατάταξη ανάλογα με τον μήνα που την κοίταζες.
+    // Το ledger.ts γράφει ρητά, δύο συναρτήσεις πιο πάνω, γιατί ο παρονομαστής
+    // είναι το εύρος του ιστορικού· η οθόνη το αγνοούσε.
+    //
+    // Δεύτερο: ο φόρος. Η ΙΔΙΑ οθόνη τον υπολογίζει ενοποιημένα και τον
+    // δείχνει στη διπλανή γραμμή, αλλά το «Καθαρό» τον προσπερνούσε — και το
+    // «Καθαρό» είναι η στήλη με το στεφάνι. Δύο ακίνητα με ίδιο ενοίκιο και
+    // ίδιες δαπάνες φορολογούνται διαφορετικά όταν το ένα είναι βραχυχρόνιο.
+    //
+    // Χωρίς αρκετό ιστορικό δεν βγαίνει μέσος μήνας, άρα δεν βγαίνει «Καθαρό»:
+    // η γραμμή σωπαίνει αντί να επαινέσει ακίνητο για δαπάνες που δεν μετρήθηκαν.
     const taxShare = taxShareOf(portfolioTax, p.id);
+    const netMonthly = rent > 0 && a.expensesMonthly != null
+      ? rent - a.expensesMonthly - taxShare / 12
+      : null;
     return {
       p, sqm, expensesYTD: a.expensesYTD, recurringMonthly: a.recurringMonthly, budgetMonthly: a.budgetMonthly,
       value: value > 0 ? value : null,
@@ -274,10 +296,10 @@ export default function TabComparison({ properties, userId }: Props) {
       tip: 'Κάθε ευρώ μία φορά: ο πληρωμένος λογαριασμός και η δαπάνη του είναι το ίδιο γεγονός. Ίδιος υπολογισμός με τις Δαπάνες και τον Προϋπολογισμό.' },
     { label: 'Πάγια ανά μήνα', get: r => r.recurringMonthly, fmt: n => fe(n), dir: 'none',
       tip: 'Ο μέσος μήνας σε επαναλαμβανόμενες δαπάνες, από ό,τι όντως καταχωρήθηκε φέτος. Είναι υποσύνολο των δαπανών του έτους, γι\u2019 αυτό δεν αφαιρείται ξεχωριστά.' },
-    { label: 'Μερίδιο φόρου', get: r => r.taxShare, fmt: n => fe(n), dir: 'none',
+    { label: 'Μερίδιο φόρου (έτος)', get: r => r.taxShare, fmt: n => fe(n), dir: 'none',
       tip: 'Ο φόρος ενοικίων είναι προοδευτικός στο ΣΥΝΟΛΟ των ακινήτων σου (Ε1), όχι ανά ακίνητο. Εδώ φαίνεται το μερίδιο κάθε ακινήτου από τον ένα φόρο.' },
     { label: 'Καθαρό ανά μήνα (εκτίμηση)', get: r => r.netMonthly, fmt: n => fe(n), dir: 'high',
-      tip: 'Εκτίμηση: ενοίκιο − (δαπάνες έτους ÷ 12). Δεν περιλαμβάνει δόσεις δανείου, φόρους ή έκτακτα.' },
+      tip: 'Εκτίμηση: ενοίκιο μείον ο μέσος μήνας δαπανών μείον το μηνιαίο μερίδιο φόρου. Ο μέσος μήνας βγαίνει από το εύρος του ιστορικού, όχι από σταθερό δωδεκάμηνο, γι\u2019 αυτό δεν εμφανίζεται πριν υπάρχουν δύο μήνες δαπανών. Δεν περιλαμβάνει δόσεις δανείου ούτε έκτακτα.' },
     // ── ΟΙ ΤΡΕΙΣ ΓΡΑΜΜΕΣ ΠΟΥ ΔΕΝ ΕΞΑΡΤΩΝΤΑΙ ΑΠΟ ΜΕΓΕΘΟΣ ───────────────────
     { label: 'Ενοίκιο ανά τετραγωνικό', get: r => perSqmOf(r.rent, r.sqm), fmt: n => fe(n), dir: 'high',
       tip: 'Μηνιαίο ενοίκιο διά το εμβαδόν. Η μόνη δίκαιη σύγκριση ανάμεσα σε ακίνητα διαφορετικού μεγέθους: ένα μεγαλύτερο ακίνητο βγάζει περισσότερα ούτως ή άλλως.' },

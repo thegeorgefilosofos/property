@@ -284,11 +284,26 @@ export interface RecurringMonthly {
  * δείχνει τότε το σκέτο σύνολο, με την ετικέτα που του αντιστοιχεί.
  */
 export function recurringMonthly(entries: LedgerEntry[], minMonths = 2): RecurringMonthly {
-  const rec = entries.filter(e => e.recurring && e.date);
-  const total = ledgerTotal(rec);
-  if (!rec.length) return { perMonth: null, months: 0, total: 0 };
+  return monthlyAverage(entries.filter(e => e.recurring), minMonths);
+}
 
-  const months = rec.map(e => e.date.slice(0, 7)).sort();
+/**
+ * Ο ΜΕΣΟΣ ΜΗΝΑΣ ΜΙΑΣ ΛΙΣΤΑΣ, ΜΕ ΤΟΝ ΙΔΙΟ ΚΑΝΟΝΑ ΓΙΑ ΟΛΟΥΣ.
+ *
+ * Ο κανόνας από πάνω γράφτηκε για τα πάγια, αλλά δεν έχει τίποτα δικό τους: ο
+ * παρονομαστής είναι το εύρος του ιστορικού και όχι το δώδεκα, σε ΚΑΘΕ λίστα
+ * δαπανών. Η Σύγκριση όμως έγραφε «δαπάνες έτους ÷ 12» για το «Καθαρό ανά
+ * μήνα», δηλαδή ακριβώς το σφάλμα που αυτό το αρχείο περιγράφει δύο
+ * παραγράφους πιο πάνω: τον Μάρτιο, τρεις μήνες δαπανών μοιράζονταν σε δώδεκα
+ * και το ακίνητο έδειχνε τέσσερις φορές φθηνότερο απ' ό,τι είναι. Και ήταν η
+ * στήλη με το στεφάνι «καλύτερο», δηλαδή η στήλη που κρίνει τι κρατάς.
+ */
+export function monthlyAverage(entries: LedgerEntry[], minMonths = 2): RecurringMonthly {
+  const dated = entries.filter(e => e.date);
+  const total = ledgerTotal(dated);
+  if (!dated.length) return { perMonth: null, months: 0, total: 0 };
+
+  const months = dated.map(e => e.date.slice(0, 7)).sort();
   const first = months[0], last = months[months.length - 1];
   const span = (+last.slice(0, 4) - +first.slice(0, 4)) * 12
              + (+last.slice(5, 7) - +first.slice(5, 7)) + 1;
