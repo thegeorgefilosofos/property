@@ -105,6 +105,84 @@ for (const pg of PAGES) {
   await ctx.close()
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ΟΙ ΣΕΛΙΔΕΣ ΣΥΝΔΕΣΗΣ ΚΑΙ ΕΓΓΡΑΦΗΣ
+// ─────────────────────────────────────────────────────────────────────────
+// Μετρημένες αστοχίες, Αύγουστος 2026: καμία περιοχή <main>, κανένας σύνδεσμος
+// παράκαμψης, και —η χειρότερη— το κουμπί «Ξεκίνα τη δοκιμή» ήταν `disabled`,
+// δηλαδή ΕΞΩ από τη σειρά Tab. Ο χρήστης πληκτρολογίου διέσχιζε όλη τη φόρμα
+// και έβγαινε χωρίς να το συναντήσει· πατώντας Enter δεν γινόταν τίποτα και
+// δεν λεγόταν τίποτα. Η εγγραφή έμοιαζε χαλασμένη.
+// ═══════════════════════════════════════════════════════════════════════════
+for (const path of ['/login', '/signup']) {
+  const ctx = await b.newContext({ viewport: { width: 1280, height: 1200 }, locale: 'el-GR' })
+  const p = await ctx.newPage()
+  await p.addInitScript(() => { try { localStorage.setItem('pos-cookie-consent', JSON.stringify({ v: '2026-08', ts: 'x' })) } catch { /* κενό */ } })
+  await p.goto(B + path, { waitUntil: 'networkidle' })
+  const land = await p.evaluate(() => ({
+    mains: document.querySelectorAll('main').length,
+    skips: document.querySelectorAll('a[href^="#"]').length,
+  }))
+  ok(`${path}: μία περιοχή <main>`, land.mains === 1)
+  ok(`${path}: σύνδεσμος παράκαμψης`, land.skips >= 1)
+  await ctx.close()
+}
+
+{
+  const ctx = await b.newContext({ viewport: { width: 1280, height: 1200 }, locale: 'el-GR' })
+  const p = await ctx.newPage()
+  await p.addInitScript(() => { try { localStorage.setItem('pos-cookie-consent', JSON.stringify({ v: '2026-08', ts: 'x' })) } catch { /* κενό */ } })
+  await p.goto(B + '/signup', { waitUntil: 'networkidle' })
+  const cta = p.locator('button.auth-cta')
+
+  // ΤΟ ΚΟΥΜΠΙ ΕΙΝΑΙ ΚΑΝΟΝΙΚΟ. Ούτε `disabled` (βγαίνει από το Tab) ούτε
+  // `aria-disabled` (ο αναγνώστης το λέει «μη διαθέσιμο» και δεν το πατά).
+  ok('εγγραφή: το κουμπί δεν είναι ανενεργό', await cta.getAttribute('disabled') === null && await cta.getAttribute('aria-disabled') === null)
+
+  await p.locator('body').click({ position: { x: 5, y: 5 } })
+  let reached = false
+  for (let i = 0; i < 40 && !reached; i++) {
+    await p.keyboard.press('Tab')
+    reached = await p.evaluate(() => document.activeElement?.classList.contains('auth-cta') === true)
+  }
+  ok('εγγραφή: το Tab φτάνει στο κουμπί', reached)
+
+  const why = ((await p.locator('#su-cta-why').textContent()) || '').trim()
+  ok('εγγραφή: ο λόγος λέγεται πριν το πάτημα', why.length > 0)
+  ok('εγγραφή: το κουμπί δείχνει στον λόγο', await cta.getAttribute('aria-describedby') === 'su-cta-why')
+
+  // ΤΟ ΠΕΔΙΟ ΚΩΔΙΚΟΥ ΔΕΝ ΔΕΙΧΝΕΙ ΣΕ ΑΝΥΠΑΡΚΤΟ ΣΤΟΧΟ. Η σπασμένη αναφορά δεν
+  // αγνοείται: καταπίνει και το placeholder, οπότε πριν την πληκτρολόγηση δεν
+  // ακουγόταν ΚΑΝΕΝΑΣ κανόνας κωδικού.
+  // ΣΕ ΚΑΘΑΡΗ ΣΕΛΙΔΑ. Η πλοήγηση με Tab παραπάνω περνά ΜΕΣΑ από το πεδίο
+  // κωδικού, οπότε το `pwTouched` έχει ήδη ανάψει: ο έλεγχος «πριν αγγίξει
+  // κανείς το πεδίο» πρέπει να γίνει σε σελίδα που δεν την άγγιξε κανείς.
+  {
+    const fresh = await ctx.newPage()
+    await fresh.goto(B + '/signup', { waitUntil: 'networkidle' })
+    ok('εγγραφή: καμία περιγραφή πριν υπάρξει ο στόχος',
+      await fresh.locator('#su-password').getAttribute('aria-describedby') === null)
+    await fresh.close()
+  }
+
+  const pwField = p.locator('#su-password')
+  await pwField.fill('Ab1!')
+  await p.waitForTimeout(300)
+  ok('εγγραφή: η περιγραφή δείχνει σε υπαρκτό στόχο',
+    await pwField.getAttribute('aria-describedby') === 'su-pw-req' && await p.locator('#su-pw-req').count() === 1)
+
+  // ΥΠΟΒΟΛΗ ΧΩΡΙΣ ΣΥΓΚΑΤΑΘΕΣΗ: ΕΞΗΓΕΙΤΑΙ, ΜΙΑ ΦΟΡΑ, ΣΤΑ ΕΛΛΗΝΙΚΑ.
+  await p.locator('#su-email').fill('dokimi@example.com')
+  await pwField.fill('Dokimastiko2026!x')
+  await p.waitForTimeout(400)
+  await cta.click()
+  await p.waitForTimeout(700)
+  const said = (await p.locator('[role="alert"]').allInnerTexts()).map(t => t.trim()).filter(Boolean)
+  ok('εγγραφή: η υποβολή χωρίς όρους εξηγείται', said.some(t => /αποδεχθείς|αποδοχή/i.test(t)))
+  ok(`εγγραφή: εξηγείται ΜΙΑ φορά${said.length > 1 ? ' — ειπώθηκε ' + said.length : ''}`, said.length === 1)
+  await ctx.close()
+}
+
 await b.close()
-console.log(`\nΠροσβασιμότητα δημόσιων εργαλείων — ${pass} πέρασαν, ${fail} απέτυχαν`)
+console.log(`\nΠροσβασιμότητα δημόσιων σελίδων — ${pass} πέρασαν, ${fail} απέτυχαν`)
 process.exit(fail ? 1 : 0)

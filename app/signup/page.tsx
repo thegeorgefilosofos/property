@@ -229,6 +229,19 @@ export default function SignupPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (loading) return
+    // Η ΣΥΓΚΑΤΑΘΕΣΗ ΕΛΕΓΧΕΤΑΙ ΠΡΩΤΗ, γιατί είναι το ΜΟΝΟ εμπόδιο που ο χρήστης
+    // δεν βλέπει πάνω στο πεδίο που φταίει: ο κωδικός έχει τη λίστα του από
+    // κάτω, το κουτί των όρων δεν έχει τίποτα ώσπου να το αγγίξεις.
+    if (!consent) {
+      // ΜΟΝΟ Η ΣΗΜΑΙΑ, ΟΧΙ ΚΑΙ ΜΗΝΥΜΑ. Το κείμενο υπάρχει ήδη ακριβώς δίπλα
+      // στο κουτί που φταίει· ένα δεύτερο αντίγραφο στο γενικό πλαίσιο
+      // σφάλματος το έλεγε δύο φορές, και ο αναγνώστης οθόνης το διάβαζε
+      // δύο φορές.
+      setConsentTouched(true)
+      setError('')
+      return
+    }
     if (leaked) {
       setPwTouched(true)
       setError('Αυτός ο κωδικός βρίσκεται σε γνωστή διαρροή δεδομένων. Διάλεξε άλλον.')
@@ -282,8 +295,25 @@ export default function SignupPage() {
   const focus = (e: React.FocusEvent<HTMLInputElement>) => { e.currentTarget.style.borderColor = 'var(--accent)' }
   const blur = (e: React.FocusEvent<HTMLInputElement>) => { e.currentTarget.style.borderColor = 'var(--border-default)' }
 
+  /** Οσο ισχύει, η υποβολή δεν προχωρά — αλλά ΕΞΗΓΕΙΤΑΙ, δεν αγνοείται. */
+  const blocked = loading || !consent || !pw.ok || leaked
+
+  /**
+   * Τι λείπει, σε μία φράση. Κενό όταν η φόρμα είναι έτοιμη.
+   *
+   * ΕΝΑΣ ΛΟΓΟΣ ΤΗ ΦΟΡΑ, με τη σειρά που θα τον συναντήσει ο χρήστης: μια λίστα
+   * με τρία «λείπει» δεν λέει από πού να αρχίσει.
+   */
+  const why = loading ? ''
+    : leaked ? 'Ο κωδικός βρίσκεται σε γνωστή διαρροή. Διάλεξε άλλον.'
+    : !pw.ok ? 'Ο κωδικός δεν πληροί ακόμη τις προϋποθέσεις.'
+    : !consent ? 'Χρειάζεται αποδοχή των Όρων και της Πολιτικής απορρήτου.'
+    : ''
+
   return (
     <div className="auth-split" style={{ minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', fontFamily: T.font.sans }}>
+
+      <a href="#main" className="skip-link">Μετάβαση στη φόρμα</a>
 
       {/* LEFT, κοινό marketing panel (AuthAside) */}
       <AuthAside
@@ -293,7 +323,9 @@ export default function SignupPage() {
       />
 
       {/* RIGHT, form */}
-      <div className="auth-main" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 40px' }}>
+      {/* ── ΤΟ ΠΕΡΙΕΧΟΜΕΝΟ ΕΙΝΑΙ <main>, ΚΑΙ ΛΕΓΕΤΑΙ ─────────────────────────
+          Μετρημένο: καμία περιοχή στο προσβάσιμο δέντρο, ούτε ένα <main>. */}
+      <main id="main" className="auth-main" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 40px' }}>
         <div style={{ width: '100%', maxWidth: 400 }}>
           {needsConsent ? (
             /* Ηρθε από τη σύνδεση με Google, ο λογαριασμός δημιουργήθηκε, και οι
@@ -505,7 +537,7 @@ export default function SignupPage() {
                 <div>
                   <label htmlFor="su-password" style={label}>Κωδικός</label>
                   <div style={{ position: 'relative' }}>
-                    <input id="su-password" name="new-password" autoComplete="new-password" type={show ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder={PASSWORD_MIN_LABEL} required minLength={PASSWORD_MIN_LENGTH} aria-describedby="su-pw-req" style={{ ...field, paddingRight: 48 }} onFocus={focus} onBlur={e => { blur(e); setPwTouched(true) }} />
+                    <input id="su-password" name="new-password" autoComplete="new-password" type={show ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder={PASSWORD_MIN_LABEL} required minLength={PASSWORD_MIN_LENGTH} aria-describedby={(password || pwTouched) ? "su-pw-req" : undefined} style={{ ...field, paddingRight: 48 }} onFocus={focus} onBlur={e => { blur(e); setPwTouched(true) }} />
                     <button type="button" onClick={() => setShow(s => !s)} aria-label={show ? 'Απόκρυψη κωδικού' : 'Εμφάνιση κωδικού'} aria-pressed={show}
                       style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', width: 44, height: 44, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {show
@@ -515,7 +547,15 @@ export default function SignupPage() {
                   </div>
 
                   {/* Μετρητής ισχύος + λίστα προϋποθέσεων (κοινό component) —
-                      εμφανίζεται μόλις ο χρήστης αρχίσει να πληκτρολογεί. */}
+                      εμφανίζεται μόλις ο χρήστης αρχίσει να πληκτρολογεί.
+
+                      Η ΑΝΑΦΟΡΑ ΤΟΥ ΠΕΔΙΟΥ ΑΚΟΛΟΥΘΕΙ ΤΗΝ ΥΠΑΡΞΗ ΤΟΥ ΣΤΟΧΟΥ. Το
+                      `aria-describedby="su-pw-req"` δηλωνόταν ΠΑΝΤΑ, ενώ ο
+                      στόχος αποδίδεται υπό συνθήκη. Μια σπασμένη αναφορά δεν
+                      αγνοείται απλώς: καταπίνει και το placeholder, οπότε ο
+                      χρήστης αναγνώστη οθόνης εστίαζε το άδειο πεδίο και δεν
+                      άκουγε ΚΑΝΕΝΑΝ κανόνα κωδικού. Μετρημένο με
+                      Accessibility.getPartialAXTree: description=undefined. */}
                   {(password || pwTouched) && <PasswordStrength password={password} id="su-pw-req" onLeaked={setLeakedPw} />}
                 </div>
 
@@ -549,9 +589,19 @@ export default function SignupPage() {
                       δύο συνδέσμους — ένα `<a>` μέσα σε `<label>` δίνει στοιχείο που
                       και ακολουθεί σύνδεσμο και τσεκάρει κουτί με το ίδιο πάτημα. */}
                   <label htmlFor="su-consent" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, margin: -14, flexShrink: 0, cursor: 'pointer' }}>
+                    {/* ── ΥΠΟΧΡΕΩΤΙΚΟ, ΑΛΛΑ ΟΧΙ ΜΕ ΤΟ ΕΓΓΕΝΕΣ `required` ─────────
+                        Το `required` έκοβε την υποβολή ΠΡΙΝ τρέξει ο δικός μας
+                        handleSubmit, οπότε η ελληνική εξήγηση δεν εμφανιζόταν
+                        ποτέ και το μήνυμα ερχόταν από το φυλλομετρητή, στη
+                        δική ΤΟΥ γλώσσα. Ολη η υπόλοιπη φόρμα επικυρώνεται στον
+                        κώδικα, με ελληνικά μηνύματα και role="alert": ένα
+                        πεδίο που κάνει αλλιώς είναι δεύτερο ιδίωμα.
+
+                        Το `aria-required` κρατά τη σημασιολογία — ο αναγνώστης
+                        οθόνης εξακολουθεί να λέει «υποχρεωτικό». */}
                     <input id="su-consent" type="checkbox" checked={consent}
                       onChange={e => { setConsent(e.target.checked); if (e.target.checked) setConsentTouched(false) }}
-                      required aria-label="Αποδοχή των Όρων Χρήσης και της Πολιτικής απορρήτου"
+                      aria-required="true" aria-label="Αποδοχή των Όρων Χρήσης και της Πολιτικής απορρήτου"
                       style={{ width: 16, height: 16, accentColor: 'var(--accent)', cursor: 'pointer' }} />
                   </label>
                   <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
@@ -566,14 +616,36 @@ export default function SignupPage() {
                   </p>
                 )}
 
-                <button type="submit" disabled={loading || !consent || !pw.ok || leaked} className="auth-cta" style={{ width: '100%', padding: '12px', background: 'var(--accent)', border: 'none', borderRadius: T.radius.pill, color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: (loading || !consent || !pw.ok || leaked) ? 'not-allowed' : 'pointer', opacity: (loading || !consent || !pw.ok || leaked) ? 0.6 : 1, letterSpacing: '-0.01em', marginTop: 4, fontFamily: 'inherit' }}>
+                {/* ── ΤΟ ΑΝΕΝΕΡΓΟ ΚΟΥΜΠΙ ΠΟΥ ΔΕΝ ΕΛΕΓΕ ΓΙΑΤΙ ───────────────────
+                    Ηταν `disabled`, δηλαδή ΕΞΩ από τη σειρά Tab. Ο χρήστης
+                    πληκτρολογίου περνούσε ονοματεπώνυμο, email, κωδικό, κουτί
+                    όρων, δύο συνδέσμους — και έβγαινε από τη φόρμα χωρίς να
+                    συναντήσει ποτέ το κουμπί. Πατώντας Enter μέσα σε πεδίο,
+                    τίποτα: καμία υποβολή, καμία εξήγηση, κενό `role=alert`.
+                    Δηλαδή η εγγραφή έμοιαζε χαλασμένη.
+
+                    Δοκιμάστηκε πρώτα `aria-disabled`: το κουμπί μένει
+                    εστιάσιμο, αλλά ο αναγνώστης οθόνης το ανακοινώνει ως
+                    «μη διαθέσιμο», οπότε ο χρήστης δεν το πατά — και πάλι δεν
+                    μαθαίνει γιατί. Το ίδιο έκανε και ο αυτοματισμός δοκιμών,
+                    που αρνήθηκε να το πατήσει.
+
+                    Μένει λοιπόν ΚΑΝΟΝΙΚΟ κουμπί. Η εμφάνιση παραμένει σβησμένη
+                    ως ένδειξη, ο λόγος λέγεται με λέξεις μέσω aria-describedby
+                    πριν το πάτημα, και η υποβολή φτάνει στον handleSubmit που
+                    τον επαναλαμβάνει. Κανείς δεν μένει με κουμπί που σωπαίνει. */}
+                {/* Ο λόγος, σε λέξεις, ΠΡΙΝ το πάτημα. Ο βλέπων χρήστης βλέπει το
+                    κουμπί σβησμένο και μαντεύει· ο χρήστης αναγνώστη οθόνης δεν
+                    έχει ούτε αυτό. */}
+                <p id="su-cta-why" className="sr-only">{why}</p>
+                <button type="submit" aria-describedby={why ? 'su-cta-why' : undefined} className="auth-cta" style={{ width: '100%', padding: '12px', background: 'var(--accent)', border: 'none', borderRadius: T.radius.pill, color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: blocked ? 'not-allowed' : 'pointer', opacity: blocked ? 0.6 : 1, letterSpacing: '-0.01em', marginTop: 4, fontFamily: 'inherit' }}>
                   {loading ? 'Δημιουργία…' : 'Ξεκίνα τη δοκιμή'}
                 </button>
               </form>
             </>
           )}
         </div>
-      </div>
+      </main>
     </div>
   )
 }

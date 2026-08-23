@@ -182,10 +182,20 @@ export function ShortVsLongCalculator({ today }: { today: string }) {
               : `Οι κρατήσεις μοιράζονται ισομερώς στους δώδεκα μήνες. Το τέλος είναι ${feAuto(levyRates.high)} τη διανυκτέρευση από Απρίλιο ώς Οκτώβριο και ${feAuto(levyRates.low)} τους υπόλοιπους.`}
           </p>
         </div>
+        {/* ── Η ΕΝΕΡΓΗ ΕΠΙΛΟΓΗ ΔΕΝ ΛΕΓΕΤΑΙ ΜΟΝΟ ΜΕ ΧΡΩΜΑ ─────────────────────
+               Τα δύο κουμπιά δήλωναν ποιο είναι πατημένο αποκλειστικά με το
+               φόντο που δίνει το segStyle. Μετρημένο σε πραγματικό Chromium,
+               aria-pressed, aria-selected και aria-current ήταν και τα τρία
+               κενά: ο αναγνώστης οθόνης άκουγε δύο ίδια κουμπιά και καμία
+               κατάσταση, δηλαδή η παραδοχή που αλλάζει το τέλος ανθεκτικότητας
+               ήταν αόρατη για όποιον δεν βλέπει το χρώμα.
+               Ίδιο ιδίωμα με τον επιλογέα έτους στον φόρο ενοικίων: aria-pressed
+               πάνω στο κουμπί, με την ΙΔΙΑ συνθήκη που δίνει και το χρώμα, ώστε
+               τα δύο να μην μπορούν να ξεφύγουν το ένα από το άλλο. */}
         <div style={{ display: 'flex', gap: 3, padding: 3, background: 'var(--bg-surface)',
           border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
-          <button type="button" onClick={() => set('sezon', 'even')} style={segStyle(input.season === 'even')}>Όλο τον χρόνο</button>
-          <button type="button" onClick={() => set('sezon', 'high')} style={segStyle(input.season === 'high')}>Κυρίως το καλοκαίρι</button>
+          <button type="button" onClick={() => set('sezon', 'even')} aria-pressed={input.season === 'even'} style={segStyle(input.season === 'even')}>Όλο τον χρόνο</button>
+          <button type="button" onClick={() => set('sezon', 'high')} aria-pressed={input.season === 'high'} style={segStyle(input.season === 'high')}>Κυρίως το καλοκαίρι</button>
         </div>
       </div>
 

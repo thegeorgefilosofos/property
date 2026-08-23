@@ -106,11 +106,18 @@ export default function LoginPage() {
   return (
     <div className="auth-split" style={{ minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', fontFamily: T.font.sans }}>
 
+      <a href="#main" className="skip-link">Μετάβαση στη φόρμα</a>
+
       {/* LEFT, κοινό marketing panel (AuthAside) */}
       <AuthAside />
 
+      {/* ── ΤΟ ΠΕΡΙΕΧΟΜΕΝΟ ΕΙΝΑΙ <main>, ΚΑΙ ΛΕΓΕΤΑΙ ─────────────────────────
+          Μετρημένο: `document.querySelectorAll('main').length === 0` και καμία
+          περιοχή στο προσβάσιμο δέντρο. Ο χρήστης αναγνώστη οθόνης δεν είχε
+          τρόπο να πηδήξει στο κύριο μέρος — έπρεπε να διασχίσει ολόκληρη τη
+          στήλη παρουσίασης κάθε φορά. */}
       {/* RIGHT, form */}
-      <div className="auth-main" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 40px' }}>
+      <main id="main" className="auth-main" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 40px' }}>
         <div style={{ width: '100%', maxWidth: 400 }}>
           {sessionEmail ? (
             <AlreadySignedIn email={sessionEmail} onSignOut={signOut} signingOut={signingOut} mode="login" />
@@ -178,7 +185,7 @@ export default function LoginPage() {
           </p>
           </>)}
         </div>
-      </div>
+      </main>
     </div>
   )
 }

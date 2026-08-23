@@ -1324,7 +1324,7 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
   /* Τρία που έπεφταν έξω για ένα ή δύο εικονοστοιχεία. Δεν είναι «σχεδόν
      σωστά»: το όριο είναι όριο, και ο έλεγχος που το μετρά δεν κάνει
      εκπτώσεις. */
-  .auth-cta, .lp-ghost, .lp-skip { min-height: 44px; }
+  .auth-cta, .lp-ghost, .skip-link { min-height: 44px; }
 
   /* Ο ΟΛΙΣΘΗΤΗΡΑΣ ΕΧΕΙ ΔΙΑΔΡΟΜΟ 16 ΕΙΚΟΝΟΣΤΟΙΧΕΙΩΝ, ΚΑΙ ΤΟΝ ΣΕΡΝΕΙ ΔΑΧΤΥΛΟ.
      Το ύψος μπαίνει ως διάφανο περιθώριο γύρω από τον διάδρομο: η γραμμή
@@ -1337,6 +1337,23 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+
+/* ── ΣΥΝΔΕΣΜΟΣ ΠΑΡΑΚΑΜΨΗΣ ────────────────────────────────────────────────
+   Ζούσε μέσα σε <style> της αρχικής σελίδας, με πρόθεμα `lp-`, άρα ήταν
+   αδύνατο να χρησιμοποιηθεί αλλού — και δεν χρησιμοποιήθηκε: σε επτά από τις
+   οκτώ δημόσιες σελίδες ο χρήστης πληκτρολογίου διέσχιζε ολόκληρη την
+   κεφαλίδα πριν φτάσει στο πρώτο πεδίο. Ενα ιδίωμα, μία δήλωση, παντού.
+
+   Κρύβεται εκτός οθόνης αντί για `display:none`, γιατί το δεύτερο θα το
+   έκρυβε και από τον αναγνώστη — και τότε δεν θα παρέκαμπτε τίποτα. */
+.skip-link {
+  position: absolute; left: -9999px; top: 10px; z-index: 100;
+  padding: 10px 16px; border-radius: 12px;
+  background: var(--bg-surface); color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  font-size: 14px; font-weight: 600; text-decoration: none;
+}
+.skip-link:focus { left: 12px; outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ── ΚΕΙΜΕΝΟ ΜΟΝΟ ΓΙΑ ΑΝΑΓΝΩΣΤΗ ΟΘΟΝΗΣ ────────────────────────────────────
    Όπου η οθόνη λέει κάτι με σχήμα ή χρώμα — μια τελεία κατάστασης, ένα σήμα

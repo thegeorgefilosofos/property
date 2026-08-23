@@ -310,8 +310,24 @@ const GAP = 'clamp(30px, 4.2vw, 56px)';
 const GAP_ACT = 'clamp(48px, 6.5vw, 88px)';
 
 const wrap: React.CSSProperties = { maxWidth: 1140, margin: '0 auto', padding: '0 clamp(20px, 5vw, 48px)' };
-const ic = (d: string) => <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{d.split('M').filter(Boolean).map((p, i) => <path key={i} d={'M' + p} />)}</svg>;
-const check = <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={FAINT} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M20 6 9 17l-5-5" /></svg>;
+// ═══ ΤΑ ΕΙΚΟΝΙΔΙΑ ΤΗΣ ΑΡΧΙΚΗΣ ΔΕΝ ΕΧΟΥΝ ΦΩΝΗ, ΓΙΑΤΙ ΔΕΝ ΕΧΟΥΝ ΝΟΗΜΑ ════════
+// ΤΙ ΜΕΤΡΗΘΗΚΕ, ΜΕ ΠΡΑΓΜΑΤΙΚΟ CHROMIUM ΚΑΙ Accessibility.getFullAXTree: η
+// αρχική παρήγαγε 39 ΑΝΩΝΥΜΟΥΣ κόμβους role=image. Δηλαδή ο αναγνώστης οθόνης
+// έλεγε «γραφικό» τριάντα εννέα φορές και δεν έλεγε ΠΟΤΕ τι είναι, ενώ τα ίδια
+// τα εικονίδια δεν είχαν τίποτα να προσθέσουν: το τικ κάθεται δίπλα στο «Έως 3
+// ακίνητα», το συννεφάκι δίπλα στο «23 ερωτήσεις τον μήνα», η κλειδαριά δίπλα
+// στην «Κρυπτογραφημένη σύνδεση». Το κείμενο λέει ήδη ολόκληρη την πληροφορία.
+//
+// ΓΙΑΤΙ aria-hidden ΚΑΙ ΟΧΙ ΟΝΟΜΑ. Όνομα σε αυτά τα εικονίδια θα ήταν η ίδια
+// πρόταση δύο φορές στη σειρά: «τικ, Έως 3 ακίνητα». Η επανάληψη κοστίζει
+// περισσότερο από τη σιωπή. Όνομα παίρνει μόνο εικονίδιο που είναι η ΜΟΝΗ πηγή
+// μιας πληροφορίας, και σε αυτή τη σελίδα δεν υπάρχει κανένα τέτοιο: κάθε ένα
+// στέκεται δίπλα σε κείμενο που το λέει.
+//
+// Ίδιο ιδίωμα με τα τικ του ScrollStory και με τις τέσσερις σελίδες εργαλείων,
+// όπου οι ανώνυμοι κόμβοι role=image είναι ήδη μηδέν.
+const ic = (d: string) => <svg width={21} height={21} viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{d.split('M').filter(Boolean).map((p, i) => <path key={i} d={'M' + p} />)}</svg>;
+const check = <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={FAINT} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0, marginTop: 1 }}><path d="M20 6 9 17l-5-5" /></svg>;
 
 export default async function Landing() {
   // Η συνεδρία χρησιμοποιείται ΜΟΝΟ για να γράφει το κουμπί «Πίνακας» αντί για
@@ -363,8 +379,6 @@ export default async function Landing() {
           background-attachment: fixed;
           background-repeat: no-repeat;
         }
-        .lp-skip { position: absolute; left: -9999px; top: 10px; z-index: 100; padding: 10px 16px; border-radius: 12px; background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-subtle); font-size: 14px; font-weight: 600; text-decoration: none; }
-        .lp-skip:focus { left: 12px; outline: 2px solid var(--accent); outline-offset: 2px; }
         .lp-card { position: relative; transition: transform .22s cubic-bezier(.2,0,0,1), box-shadow .22s cubic-bezier(.2,0,0,1), border-color .22s; }
         .lp-card:hover { transform: translateY(-3px); box-shadow: 0 20px 44px -20px rgba(0,0,0,.6); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
 
@@ -781,7 +795,7 @@ export default async function Landing() {
         }
       `}</style>
 
-      <a href="#main" className="lp-skip">Μετάβαση στο περιεχόμενο</a>
+      <a href="#main" className="skip-link">Μετάβαση στο περιεχόμενο</a>
 
       <div className="lp-readbar" aria-hidden="true" />
 
@@ -1020,7 +1034,7 @@ export default async function Landing() {
             {SECURITY.map((s, i) => (
               <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                 <div style={{ width: 34, height: 34, borderRadius: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{s.i.split('M').filter(Boolean).map((p, j) => <path key={j} d={'M' + p} />)}</svg>
+                  <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{s.i.split('M').filter(Boolean).map((p, j) => <path key={j} d={'M' + p} />)}</svg>
                 </div>
                 <div>
                   <div className="lp-even" style={{ fontSize: 15, fontWeight: 680, color: TEXT, marginBottom: 3, letterSpacing: '-0.01em' }}>{s.t}</div>
@@ -1172,7 +1186,7 @@ export default async function Landing() {
             από τη σκάλα, γιατί αφορά ΟΛΗ τη σκάλα. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '13px 16px', marginBottom: 14, borderRadius: 12, background: PANEL, border: `1px solid ${LINE}` }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 9, background: 'var(--accent-dim)', color: ACCENT, flexShrink: 0 }}>
-            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a8 8 0 0 1-8 8H8l-5 3 1.4-4.2A8 8 0 1 1 21 12" /><path d="M8.5 12h.01M12 12h.01M15.5 12h.01" /></svg>
+            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-8 8H8l-5 3 1.4-4.2A8 8 0 1 1 21 12" /><path d="M8.5 12h.01M12 12h.01M15.5 12h.01" /></svg>
           </span>
           <span style={{ fontSize: 14, fontWeight: 680, color: TEXT }}>Ο βοηθός περιλαμβάνεται σε κάθε πακέτο</span>
           <span style={{ fontSize: 14, color: MUTED }}>Αλλάζει μόνο πόσες ερωτήσεις έχει το καθένα τον μήνα.</span>
@@ -1441,7 +1455,10 @@ function PlanCard({ planId, name, nameColor, sub, price, per, note, annual, inhe
             Διαφορετικό εικονίδιο επίτηδες — είναι η μία γραμμή που έχουν ΟΛΑ τα
             πακέτα, και το μάτι πρέπει να τη βρίσκει στην ίδια θέση σε κάθε κάρτα. */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7 }}>
-          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M21 12a8 8 0 0 1-8 8H8l-5 3 1.4-4.2A8 8 0 1 1 21 12" /></svg>
+          {/* Το ΞΕΧΩΡΙΣΤΟ εικονίδιο εξυπηρετεί το μάτι, που το βρίσκει στην ίδια
+              θέση σε κάθε κάρτα. Δεν κουβαλά όμως πληροφορία που δεν λέει η
+              διπλανή γραμμή, γι’ αυτό μένει έξω από το προσβάσιμο δέντρο. */}
+          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0, marginTop: 1 }}><path d="M21 12a8 8 0 0 1-8 8H8l-5 3 1.4-4.2A8 8 0 1 1 21 12" /></svg>
           <span className="lp-even" style={{ fontSize: 12, color: TEXT, lineHeight: 1.4 }}>{ai} ερωτήσεις τον μήνα</span>
         </div>
         {items.map((t, i) => (
