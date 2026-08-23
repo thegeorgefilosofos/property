@@ -87,7 +87,8 @@
     "terminology": "node scripts/guard-terminology.mjs",
     "cpi-freshness": "node scripts/guard-cpi-freshness.mjs",
     "surface-scale": "node scripts/guard-surface-scale.mjs",
-    "e2e:landing": "node scripts/e2e-landing.mjs"
+    "e2e:landing": "node scripts/e2e-landing.mjs",
+    "guards:verify": "node scripts/verify-guards.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

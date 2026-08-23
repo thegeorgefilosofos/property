@@ -22,6 +22,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { execSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
+import { isFixture } from './find-tests.mjs'
 
 const run = (cmd) => execSync(cmd, { encoding: 'utf8' }).split('\n').filter(Boolean)
 
@@ -60,5 +61,5 @@ export function projectFiles(patterns = '') {
   // αρχείο που διαγράφηκε και δεν έχει γίνει ακόμη commit εξακολουθεί να
   // εμφανίζεται. Κάθε φύλακας που το άνοιγε έσκαγε με ENOENT — δηλαδή μια
   // απλή διαγραφή αρχείου γκρέμιζε επτά ελέγχους μαζί.
-  return [...new Set([...tracked, ...fresh])].filter(existsSync).sort()
+  return [...new Set([...tracked, ...fresh])].filter(f => existsSync(f) && !isFixture(f)).sort()
 }

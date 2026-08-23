@@ -46,9 +46,12 @@ const SELF = ['components/tokens.ts']
 const OWN_FORMATTERS = /const (?:eur|pct|money|nf|fmtE?)\s*=\s*\([^)]*\)\s*=>[^\n]*toLocaleString\('el-GR'/
 
 const problems = []
-// Καστάνια: μόνο προς τα κάτω.
+// Καστάνια: μόνο προς τα κάτω. Στις 23/08/2026 από 1 σε 0 — δηλαδή απαγόρευση,
+// όχι πια ανοχή. Η καστάνια είχε μείνει έναν πάνω από τη μέτρηση, οπότε ένα νέο
+// ποσό χωρίς δύο δεκαδικά θα περνούσε αθόρυβα· τζόγος σε καστάνια σημαίνει ότι
+// δεν πιάνει την ΕΠΟΜΕΝΗ οπισθοδρόμηση, που είναι όλος ο λόγος ύπαρξής της.
 const decimals = []
-const DECIMALS_LIMIT = 1
+const DECIMALS_LIMIT = 0
 
 for (const file of files) {
   const rel = file.split('\\').join('/')

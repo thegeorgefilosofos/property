@@ -29,6 +29,19 @@ import { join } from 'node:path'
 const SKIP = new Set(['node_modules', '.next', '.git', '.vscode', 'public', 'coverage'])
 
 /**
+ * ΤΑ ΠΡΟΠΛΑΣΜΑΤΑ ΔΕΝ ΕΙΝΑΙ ΚΩΔΙΚΑΣ ΤΟΥ ΠΡΟΪΟΝΤΟΣ, ΚΑΙ ΕΙΝΑΙ ΓΕΜΑΤΑ ΣΦΑΛΜΑΤΑ.
+ *
+ * Ο κατάλογος μεταλλάξεων (`scripts/lib/mutations.mjs`) περιέχει, εξ ορισμού,
+ * μία παράβαση για κάθε φύλακα: αυτός είναι ο σκοπός του. Χωρίς εξαίρεση, ο
+ * πρώτος φύλακας που σαρώνει το `scripts/` κοκκινίζει πάνω στο ίδιο το αρχείο
+ * που αποδεικνύει ότι δουλεύει, και ο πάγκος δεν μπορεί καν να ξεκινήσει.
+ *
+ * Το κριτήριο ζει ΕΔΩ και όχι σε οκτώ φύλακες: όποιο πρόπλασμα προστεθεί
+ * αύριο, θα εξαιρεθεί από όλους μαζί.
+ */
+export const isFixture = (path) => /(^|\/)mutations\.mjs$/.test(path)
+
+/**
  * Κάθε `*.test.ts` του αποθετηρίου, ταξινομημένο.
  * @param {string} root ρίζα σάρωσης (προεπιλογή: ο τρέχων φάκελος)
  */
@@ -55,6 +68,7 @@ function walk(dir, out, keep = e => e.endsWith('.test.ts')) {
   for (const entry of readdirSync(dir)) {
     if (SKIP.has(entry)) continue
     const full = join(dir, entry)
+    if (isFixture(full)) continue
     let st
     try { st = statSync(full) } catch { continue }   // σύνδεσμος που δείχνει στο πουθενά
     if (st.isDirectory()) walk(full, out, keep)

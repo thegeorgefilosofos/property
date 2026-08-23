@@ -39,7 +39,7 @@
 import { readdirSync, readFileSync, writeFileSync, existsSync, unlinkSync, mkdirSync, rmSync } from 'node:fs'
 import { execFileSync, execSync } from 'node:child_process'
 import { dirname } from 'node:path'
-import { MUTATIONS } from './guard-mutations.mjs'
+import { MUTATIONS } from './lib/mutations.mjs'
 
 const only = process.argv.slice(2).filter(a => !a.startsWith('-'))
 const guards = readdirSync('scripts')
@@ -58,6 +58,16 @@ const run = (name) => {
 
 /** Εφαρμόζει μία μετάλλαξη και επιστρέφει τη συνάρτηση επαναφοράς. */
 function apply(m) {
+  // ΜΕΡΙΚΑ ΣΦΑΛΜΑΤΑ ΘΕΛΟΥΝ ΔΥΟ ΚΙΝΗΣΕΙΣ ΓΙΑ ΝΑ ΥΠΑΡΞΟΥΝ. Μια μεταβλητή θέματος
+  // που λείπει από το σκοτεινό δεν είναι σφάλμα ώσπου κάποιος να τη ΖΗΤΗΣΕΙ:
+  // χρειάζεται και η δήλωση στο φωτεινό και η χρήση σε στοιχείο. Το `steps`
+  // τις εφαρμόζει μαζί και τις ξηλώνει με την αντίστροφη σειρά.
+  if (m.steps) {
+    const undos = []
+    try { for (const step of m.steps) undos.push(apply(step)) }
+    catch (e) { for (const u of undos.reverse()) u(); throw e }
+    return () => { for (const u of undos.reverse()) u() }
+  }
   if (m.add) {
     const dir = dirname(m.add)
     const dirExisted = existsSync(dir)
@@ -82,7 +92,7 @@ const problems = []
 
 for (const name of guards) {
   const entry = MUTATIONS[name]
-  if (!entry) { problems.push([name, 'ΧΩΡΙΣ ΜΕΤΑΛΛΑΞΗ. Γράψε μία στο scripts/guard-mutations.mjs.']); continue }
+  if (!entry) { problems.push([name, 'ΧΩΡΙΣ ΜΕΤΑΛΛΑΞΗ. Γράψε μία στο scripts/lib/mutations.mjs.']); continue }
 
   if (!run(name)) { problems.push([name, 'κόκκινος ΠΡΙΝ τη μετάλλαξη. Η δοκιμή δεν λέει τίποτα ώσπου να πρασινίσει.']); continue }
 

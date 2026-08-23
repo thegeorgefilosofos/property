@@ -48,9 +48,14 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { readFileSync } from 'node:fs'
 import { globSync } from 'node:fs'
+import { isFixture } from './lib/find-tests.mjs'
 
+// Είναι ο ΜΟΝΟΣ φύλακας που σαρώνει και το `scripts/`, οπότε ο μόνος που
+// συναντά τον κατάλογο μεταλλάξεων. Το κριτήριο του προπλάσματος ζει στο
+// κοινό αρθρωμα, ώστε να ισχύει το ίδιο για όλους.
 const FILES = globSync(['app/**/*.ts', 'app/**/*.tsx', 'components/**/*.ts', 'components/**/*.tsx',
   'lib/**/*.ts', 'lib/**/*.tsx', 'scripts/**/*.mjs', 'supabase/functions/**/*.ts'])
+  .filter(f => !isFixture(f))
 
 // Κυριολεκτικό regex ή κατασκευή RegExp με συμβολοσειρά.
 const LITERAL = /\/(?![/*])(?:\\.|\[(?:\\.|[^\]])*\]|[^/\n\\])+\/[gimsuyvd]*/g
