@@ -95,15 +95,32 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
     (async () => {
       const from = `${year}-${String(month || 1).padStart(2, '0')}-01`;
       const to = month > 0 ? monthEndIso(year, month) : `${year}-12-31`;
-      const [r, e] = await Promise.all([
-        rentStore.ofProperties<{ amount: number | null; paid: boolean | null; period_year: number; period_month: number }>(
-          supabase, [propId], rentStore.PERIOD_COLUMNS, userId, { year, month, paid: true }),
+      // ── ΤΑΜΕΙΑΚΗ ΒΑΣΗ, ΓΙΑΤΙ Η ΚΑΤΑΝΟΜΗ ΜΟΙΡΑΖΕΙ ΜΕΤΡΗΤΑ ─────────────────────
+      // Το ερώτημα φιλτράριζε με `period_year/period_month`, δηλαδή μετρούσε τα
+      // μισθώματα ΠΟΥ ΑΦΟΡΟΥΝ τον μήνα, όχι αυτά που ΜΠΗΚΑΝ μέσα στον μήνα. Μια
+      // δόση Δεκεμβρίου που εισπράχθηκε στις 8 Ιανουαρίου πιστωνόταν στον
+      // Δεκέμβριο: ο συνιδιοκτήτης έπαιρνε χαρτί που του αναλογούσε μερίδιο από
+      // χρήματα που δεν είχαν μπει ακόμη στον λογαριασμό. Και η ίδια δόση
+      // ξαναφαινόταν στο ταμειακό ημερολόγιο του Ιανουαρίου.
+      //
+      // Ο κανόνας είναι γραμμένος μία φορά, στο lib/data/rent.ts: «το βιβλίο
+      // είναι ΤΑΜΕΙΑΚΟ, μια δόση ανήκει στη χρήση που εισπράχθηκε». Η κατανομή
+      // μοιράζει μετρητά, άρα ακολουθεί τον ίδιο κανόνα — και η ετικέτα
+      // «Εισπράχθηκαν» λέει επιτέλους την αλήθεια.
+      //
+      // Το ερώτημα δεν φιλτράρει πια περίοδο: μια δόση που εισπράχθηκε φέτος
+      // μπορεί να ανήκει σε περσινό μήνα, και θα έλειπε. Το φιλτράρισμα το
+      // κάνει η `collectedIn` πάνω στην ημερομηνία βιβλίου.
+      const [rAll, e] = await Promise.all([
+        rentStore.ofProperties<rentStore.BookableRent>(
+          supabase, [propId], rentStore.LEDGER_COLUMNS, userId, { paid: true }),
         expenses.inRangeOfProperty(supabase, propId, from, to),
       ]);
+      const r = rentStore.collectedIn((rAll || []) as rentStore.BookableRent[], year, month);
       // Και τα δύο ερωτήματα ζητούν `amount`: αυτό είναι ό,τι χρειάζεται εδώ, και
       // αυτό δηλώνεται. Το `any` έκρυβε ότι ένα λάθος όνομα στήλης θα έδινε μηδέν.
-      const sumAmount = (rows: { amount: number | string | null }[] | null) =>
-        (rows || []).reduce((s, x) => s + num(x.amount), 0);
+      const sumAmount = (rows: { amount?: number | string | null }[] | null) =>
+        (rows || []).reduce((s, x) => s + num(x.amount ?? 0), 0);
       if (!alive) return;
       setFigures({ gross: sumAmount(r), expenses: sumAmount(e as { amount: number | null }[]) });
     })();

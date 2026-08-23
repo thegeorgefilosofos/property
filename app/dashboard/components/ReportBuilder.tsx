@@ -124,6 +124,22 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
       const exps = expData as unknown as ExpRow[];
 
       // ── Συγκεντρωτικά ─────────────────────────────────────────────────────
+      // ── ΔΕΔΟΥΛΕΥΜΕΝΗ ΒΑΣΗ, ΚΑΙ ΤΟ ΛΕΜΕ ────────────────────────────────────
+      // Αυτή η αναφορά είναι ΚΑΤΑΣΤΑΣΗ ΠΕΡΙΟΔΟΥ: «από τα δώδεκα μισθώματα του
+      // 2025, τα έντεκα εξοφλήθηκαν, το ένα εκκρεμεί». Η ταυτότητα
+      // αναμενόμενα − εξοφλημένα = ανείσπρακτα στέκει ΜΟΝΟ σε δεδουλευμένη
+      // βάση, οπότε ο υπολογισμός μένει όπως είναι.
+      //
+      // Η ΕΤΙΚΕΤΑ ΟΜΩΣ ΕΛΕΓΕ ΨΕΜΑΤΑ. Εγραφε «Εισπράχθηκαν» για δόσεις που ίσως
+      // μπήκαν στον λογαριασμό τον επόμενο χρόνο: δόση Δεκεμβρίου 2025 που
+      // εισπράχθηκε στις 8 Ιανουαρίου 2026 μετρούσε ως «εισπραχθείσα το 2025»
+      // εδώ, ενώ το ταμειακό ημερολόγιο τη βιβλιάζει σωστά στο 2026. Δύο
+      // επίσημα PDF από την ίδια εφαρμογή διαφωνούσαν κατά ένα ολόκληρο
+      // μίσθωμα, και κανένα από τα δύο δεν έλεγε σε ποια βάση μιλά.
+      //
+      // Λέει πλέον «Εξοφλήθηκαν», που είναι ακριβώς αυτό που μετριέται, και η
+      // βάση γράφεται πάνω στο χαρτί ώστε ο λογιστής να ξέρει γιατί τα δύο
+      // έγγραφα δίνουν άλλο νούμερο.
       const expected = rents.reduce((s, r) => s + num(r.amount), 0);
       const collected = rents.reduce((s, r) => s + (r.paid ? num(r.amount) : 0), 0);
       const outstanding = Math.max(0, expected - collected);
@@ -133,9 +149,9 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
       const built: PdfSection[] = [];
 
       if (sections.has('summary')) {
-        built.push({ type: 'kpis', title: 'Σύνοψη', items: [
+        built.push({ type: 'kpis', title: 'Σύνοψη · δεδουλευμένη βάση, ανά περίοδο μισθώματος', items: [
           { label: 'Αναμενόμενα ενοίκια', value: pEur(expected) },
-          { label: 'Εισπράχθηκαν', value: pEur(collected) },
+          { label: 'Εξοφλήθηκαν', value: pEur(collected) },
           { label: 'Δαπάνες', value: pEur(expTotal) },
           { label: 'Καθαρό αποτέλεσμα', value: pSigned(net) },
         ] });
@@ -181,7 +197,7 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
           const status = exp === 0 ? 'Χωρίς δόση' : col >= exp ? 'Πλήρης' : col > 0 ? 'Μερική' : 'Εκκρεμεί';
           return [MONTHS_NOM[m - 1], `${pEur(col)} / ${pEur(exp)}`, status];
         }).filter(r => r[1] !== `${pEur(0)} / ${pEur(0)}`);
-        built.push({ type: 'table', title: 'Συμφωνία ενοικίων', head: ['Περίοδος', 'Εισπράχθηκε / Αναμενόμενο', 'Κατάσταση'], align: ['l', 'r', 'r'],
+        built.push({ type: 'table', title: 'Συμφωνία ενοικίων · δεδουλευμένη βάση', head: ['Περίοδος', 'Εξοφλήθηκε / Αναμενόμενο', 'Κατάσταση'], align: ['l', 'r', 'r'],
           rows: rows.length ? rows : [['Καμία περίοδος', `${pEur(0)} / ${pEur(0)}`, 'Χωρίς δόση']],
           result: ['Σύνολο', `${pEur(collected)} / ${pEur(expected)}`, outstanding > 0 ? `Ανείσπρακτα ${pEur(outstanding)}` : 'Πλήρης'] });
       }
