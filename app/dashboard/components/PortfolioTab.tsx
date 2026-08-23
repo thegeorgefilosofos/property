@@ -614,16 +614,34 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
         </div>
       )}
 
-      {/* Πίνακας ανά ακίνητο, με οριζόντια κύλιση σε στενή οθόνη */}
+      {/* ═══ ΠΙΝΑΚΑΣ ΑΝΑ ΑΚΙΝΗΤΟ: ΤΟ ΟΝΟΜΑ ΜΕΝΕΙ, ΟΙ ΑΡΙΘΜΟΙ ΚΥΛΟΥΝ ══════════
+          ΤΙ ΔΕΝ ΠΗΓΑΙΝΕ. Ο πίνακας έχει ελάχιστο πλάτος 720 και κυλά οριζόντια.
+          Στα 375 εικονοστοιχεία φαίνονται τέσσερις από τις εννέα στήλες: μόλις
+          ο ιδιοκτήτης σύρει δεξιά για να δει «Καθαρό» ή «Πληρότητα», το όνομα
+          του ακινήτου βγαίνει από την οθόνη. Μένει με μια στήλη αριθμών χωρίς
+          να ξέρει ποιανού είναι — και ο πίνακας υπάρχει ακριβώς για να συγκρίνει
+          ακίνητα μεταξύ τους.
+
+          ΓΙΑΤΙ ΟΧΙ ΚΑΡΤΕΣ ΣΤΟ ΚΙΝΗΤΟ, ΟΠΩΣ ΑΛΛΟΥ. Στις Δαπάνες η κάρτα ανά
+          γραμμή δουλεύει, γιατί εκεί διαβάζεις ΜΙΑ εγγραφή τη φορά. Εδώ η
+          δουλειά είναι σύγκριση: πέντε κάρτες η μία κάτω από την άλλη δεν
+          απαντούν «ποιο αποδίδει καλύτερα», που είναι όλος ο λόγος της οθόνης.
+
+          Η ΑΠΑΝΤΗΣΗ ΕΙΝΑΙ ΚΑΡΦΩΜΕΝΗ ΣΤΗΛΗ. Το πλαίσιο επιλογής και το όνομα
+          μένουν ακίνητα στα αριστερά και οι αριθμοί κυλούν από κάτω τους. Το
+          φόντο των καρφωμένων κελιών ΚΛΗΡΟΝΟΜΕΙΤΑΙ από τη γραμμή, ώστε η
+          επιλεγμένη γραμμή να μένει επιλεγμένη και κάτω από το καρφωμένο μέρος·
+          γι' αυτό η γραμμή δηλώνει πάντα φόντο, ακόμη κι όταν δεν είναι
+          επιλεγμένη — αλλιώς το κείμενο που κυλά θα φαινόταν από κάτω. */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
+          <table className="pf-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                <th style={{ width: 42, padding: '11px 0 11px 16px' }}>
+              <tr style={{ borderBottom: '1px solid var(--border-subtle)', ['--pf-row-bg' as string]: 'var(--bg-surface)' } as CSSProperties}>
+                <th className="pf-pin-1" style={{ width: 42, padding: '11px 0 11px 16px' }}>
                   <SelectBox checked={allSelected} indeterminate={selected.size > 0 && !allSelected} onChange={toggleAll} label="Επιλογή όλων" />
                 </th>
-                <Th label="Ακίνητο" k="name" sort={sort} asc={asc} onSort={toggleSort} align="left" />
+                <Th label="Ακίνητο" k="name" sort={sort} asc={asc} onSort={toggleSort} align="left" pin />
                 <Th label="Κατάσταση" align="left" />
                 <Th label="Έσοδα" k="revenue" sort={sort} asc={asc} onSort={toggleSort} />
                 <Th label="Δαπάνες" align="right" />
@@ -636,11 +654,13 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
             <tbody>
               {sorted.map(r => (
                 <tr key={r.id} onClick={() => onSelectProperty(r.id)} className="portfolio-row"
-                  style={{ borderBottom: '1px solid var(--border-subtle)', cursor: 'pointer', background: selected.has(r.id) ? 'var(--accent-soft)' : undefined }}>
-                  <td style={{ padding: '13px 0 13px 16px' }} onClick={e => e.stopPropagation()}>
+                  style={{ borderBottom: '1px solid var(--border-subtle)', cursor: 'pointer',
+                    background: selected.has(r.id) ? 'var(--accent-soft)' : undefined,
+                    ['--pf-row-bg' as string]: selected.has(r.id) ? 'var(--accent-soft)' : 'var(--bg-surface)' } as CSSProperties}>
+                  <td className="pf-pin-1" style={{ padding: '13px 0 13px 16px' }} onClick={e => e.stopPropagation()}>
                     <SelectBox checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} label={`Επιλογή ${r.name}`} />
                   </td>
-                  <td style={{ padding: '13px 14px' }}>
+                  <td className="pf-pin-2" style={{ padding: '13px 14px' }}>
                     <div style={{ fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{r.name}</div>
                     <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)' }}>{r.typeLabel}</div>
                   </td>
@@ -822,10 +842,10 @@ function SelectBox({ checked, indeterminate, onChange, label }: { checked: boole
   );
 }
 
-function Th({ label, k, sort, asc, onSort, align = 'right' }: { label: string; k?: SortKey; sort?: SortKey; asc?: boolean; onSort?: (k: SortKey) => void; align?: 'left' | 'right' }) {
+function Th({ label, k, sort, asc, onSort, align = 'right', pin }: { label: string; k?: SortKey; sort?: SortKey; asc?: boolean; onSort?: (k: SortKey) => void; align?: 'left' | 'right'; pin?: boolean }) {
   const active = k && sort === k;
   return (
-    <th onClick={k && onSort ? () => onSort(k) : undefined}
+    <th onClick={k && onSort ? () => onSort(k) : undefined} className={pin ? 'pf-pin-2' : undefined}
       style={{ padding: '11px 14px', textAlign: align, fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: active ? 'var(--accent)' : 'var(--text-tertiary)', cursor: k ? 'pointer' : 'default', whiteSpace: 'nowrap', userSelect: 'none' }}>
       {/* Ο ΔΕΙΚΤΗΣ ΤΑΞΙΝΟΜΗΣΗΣ ΕΙΝΑΙ ΣΧΗΜΑ, ΟΧΙ ΧΑΡΑΚΤΗΡΑΣ. Ήταν «↑» και «↓»
           μέσα στο κείμενο της επικεφαλίδας: άλλαζε το πλάτος της στήλης όταν
