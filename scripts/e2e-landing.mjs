@@ -177,15 +177,36 @@ for (const [w, h, label] of [[1440, 900, 'υπολογιστής 1440'], [820, 1
   await p.waitForTimeout(700) // ολοκλήρωση του smooth scroll
   const afterShut = await p.evaluate(() => {
     const r = document.getElementById('faq').getBoundingClientRect()
-    return { scrollY: window.scrollY, faqTop: Math.round(r.top) }
+    return {
+      scrollY: window.scrollY, faqTop: Math.round(r.top),
+      // Πόσο ΜΠΟΡΕΙ να κυλήσει η σελίδα συνολικά: χωρίς αυτό, ο έλεγχος δεν
+      // ξεχωρίζει το «δεν πήγε» από το «δεν γίνεται να πάει άλλο».
+      max: Math.round(document.documentElement.scrollHeight - window.innerHeight),
+    }
   })
   // ΤΟ ΜΕΤΡΟ ΕΙΝΑΙ Η ΚΟΡΥΦΗ ΤΗΣ ΕΝΟΤΗΤΑΣ, ΟΧΙ Η ΚΑΤΕΥΘΥΝΣΗ ΤΟΥ scrollY. Σε
   // στενότερες οθόνες η τελευταία ερώτηση δεν κάθεται πάντα στον πάτο του
   // παραθύρου όταν είναι ανοιχτή, οπότε το «πάει προς τα πάνω» δεν είναι
   // εγγυημένο — το «καταλήγει ΑΚΡΙΒΩΣ στην κορυφή της ενότητας» είναι.
+  // ΟΤΑΝ Η ΣΕΛΙΔΑ ΤΕΛΕΙΩΝΕΙ, Η ΚΥΛΙΣΗ ΣΤΑΜΑΤΑ ΟΠΟΥ ΤΕΛΕΙΩΝΕΙ. Μετρημένο στα
+  // 820 × 1180: μόλις κλείσουν οι έξι ερωτήσεις, κάτω από την ενότητα μένουν
+  // 1172 εικονοστοιχεία, δηλαδή λιγότερα από ένα παράθυρο. Ο περιηγητής
+  // κατεβάζει τη σελίδα ώς τον πάτο της (scrollY 8721 = max 8721) και η κορυφή
+  // της ενότητας σταματά στα 8. Δεν είναι αστοχία της κύλισης: είναι το τέλος
+  // του εγγράφου, και καμία υλοποίηση δεν μπορεί να πάει παρακάτω.
+  //
+  // Ο παλιός ισχυρισμός ζητούσε |faqTop| <= 4 πάντα, δηλαδή κάτι ανέφικτο σε
+  // αυτό το παράθυρο, και κοκκίνιζε μόνιμα σε σωστό κώδικα. Τώρα λέει αυτό που
+  // πραγματικά εννοεί: η ενότητα ανεβαίνει στην κορυφή — ή, αν η σελίδα έχει
+  // τελειώσει, όσο ψηλά την αφήνει το τέλος της, και πάντα ορατή.
+  const atBottom = afterShut.scrollY >= afterShut.max - 1
+  const landed = atBottom
+    ? afterShut.faqTop >= 0 && afterShut.faqTop <= 40
+    : Math.abs(afterShut.faqTop) <= 4
   ok(`το κλείσιμο ξαναδείχνει την κορυφή της ενότητας (${label})`,
-     Math.abs(afterShut.faqTop) <= 4 && Math.abs(beforeShut.faqTop) > 40,
-     `πριν κορυφή FAQ σε ${beforeShut.faqTop}px (scrollY ${beforeShut.scrollY}), μετά σε ${afterShut.faqTop}px (scrollY ${afterShut.scrollY})`)
+     landed && Math.abs(beforeShut.faqTop) > 40,
+     `πριν κορυφή FAQ σε ${beforeShut.faqTop}px (scrollY ${beforeShut.scrollY}), μετά σε ${afterShut.faqTop}px ` +
+     `(scrollY ${afterShut.scrollY}${atBottom ? ` = πάτος ${afterShut.max}` : `, από ${afterShut.max}`})`)
   // Επαναφορά, ώστε ο έλεγχος που ακολουθεί να ξεκινά ανοιχτό.
   await more.click()
   await p.waitForTimeout(200)
