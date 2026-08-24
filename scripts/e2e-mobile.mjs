@@ -72,6 +72,41 @@ for (const d of DEVICES) {
           out.push({ sel: el.className || el.tagName, by: el.scrollWidth - el.clientWidth })
         }
       }
+
+      // ── ΤΟ scrollWidth ΔΕΝ ΤΑ ΒΛΕΠΕΙ ΟΛΑ, ΚΑΙ ΑΥΤΟ ΜΕΤΡΗΘΗΚΕ ────────────────
+      // Στα 320 η κεφαλίδα ζητούσε 363 εικονοστοιχεία: το κύριο κουμπί έκλεινε
+      // στα 327, δηλαδή επτά έξω από την οθόνη, σε οκτώ δημόσιες σελίδες. Ο
+      // έλεγχος από πάνω πέρασε ΚΑΘΑΡΟΣ, γιατί το documentElement.scrollWidth
+      // έμεινε ακριβώς 320 — μετρημένο, με το ελάττωμα μέσα, και με
+      // overflow-x: visible σε html και body. Η περιοχή κύλισης δεν επεκτάθηκε,
+      // άρα η υπερχείλιση ήταν αόρατη για όποιον ρωτά μόνο πλάτη.
+      //
+      // Το ορθογώνιο του στοιχείου δεν κρύβει τίποτα: ρωτιέται ΠΟΥ κλείνει
+      // πραγματικά το καθένα. Οσα ζουν μέσα σε οριζόντιο κυλιόμενο δοχείο
+      // εξαιρούνται, γιατί εκεί το ξεπέρασμα είναι η πρόθεση.
+      const inScrollerX = (el) => {
+        for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
+          const c = getComputedStyle(a)
+          if (c.overflowX === 'auto' || c.overflowX === 'scroll') return true
+        }
+        return false
+      }
+      const seen = new Set()
+      for (const el of document.querySelectorAll('body *')) {
+        if (!el.checkVisibility || !el.checkVisibility({ checkVisibilityCSS: true, contentVisibilityAuto: true })) continue
+        const cs = getComputedStyle(el)
+        if (cs.position === 'fixed') continue
+        // Ο σύνδεσμος παράκαμψης ζει επίτηδες στο left: -9999px.
+        if (el.classList.contains('skip-link')) continue
+        const r = el.getBoundingClientRect()
+        if (r.width === 0 || r.height === 0) continue
+        if (r.right <= innerWidth + 1 && r.left >= -1) continue
+        if (inScrollerX(el)) continue
+        const sel = (typeof el.className === 'string' && el.className.split(/\s+/)[0]) || el.tagName
+        if (seen.has(sel)) continue
+        seen.add(sel)
+        out.push({ sel, by: Math.round(Math.max(r.right - innerWidth, -r.left)) })
+      }
       return out
     })
     ok(`${d.name} ${path}: καμία οριζόντια υπερχείλιση${over.length ? ' — ' + over.map(o => `${o.sel} +${o.by}px`).join(', ') : ''}`, over.length === 0)
