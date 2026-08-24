@@ -66,3 +66,4 @@ docs/marketing/posts/*
 # μεγαμπάιτ, και γερνούν τη στιγμή που αλλάζει η σελίδα που δείχνουν.
 docs/marketing/reels/*
 !docs/marketing/reels/.gitkeep
+.e2e-signup/
