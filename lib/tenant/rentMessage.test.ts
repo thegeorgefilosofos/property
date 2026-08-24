@@ -79,7 +79,7 @@ for (const text of [rentReminder({ ...base, portalUrl: URL_ }), rentRequest({ ..
 ok(rentRequest({ ...base, portalUrl: URL_ }).includes(URL_), 'και στο αίτημα πληρωμής');
 ok(rentReceipt({ ...base, portalUrl: URL_ }).includes(URL_), 'και στη λήψη');
 ok(!rentReceipt({ ...base, portalUrl: URL_ }).includes('οφείλεται'),
-  'ΜΕΤΑ ΤΗΝ ΠΛΗΡΩΜΗ ΔΕΝ ΟΦΕΙΛΕΤΑΙ ΤΙΠΟΤΑ, και το μήνυμα δεν το ζητά δεύτερη φορά');
+  'ΜΕΤΑ ΤΗΝ ΠΛΗΡΩΜΗ ΔΕΝ ΟΦΕΙΛΕΤΑΙ ΤΙΠΟΤΑ και το μήνυμα δεν το ζητά δεύτερη φορά');
 ok(rentReceipt({ ...base, portalUrl: URL_ }).includes('Η πύλη σου:'), 'η λήψη δείχνει την πύλη χωρίς οφειλή');
 
 // ── Το αίτημα πληρωμής ─────────────────────────────────────────────────────

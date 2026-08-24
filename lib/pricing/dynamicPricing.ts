@@ -189,7 +189,7 @@ export function priceForDate(date: string, opts: PricingOptions): DayPrice {
   else if (dow === 0 || dow === 1) dowMult = 0.95;
   if (dowMult !== 1) factors.push({
     label: isWeekend ? 'Σαββατοκύριακο' : 'Καθημερινή', mult: dowMult,
-    source: isWeekend ? 'ημερολόγιο, και το premium που όρισες εσύ στις ρυθμίσεις' : 'ημερολόγιο (Κυριακή/Δευτέρα)',
+    source: isWeekend ? 'ημερολόγιο και το premium που όρισες εσύ στις ρυθμίσεις' : 'ημερολόγιο (Κυριακή/Δευτέρα)',
   });
 
   // 3) Αργία (μεγαλύτερο premium στην αιχμή: μια αργία τον Αύγουστο αξίζει

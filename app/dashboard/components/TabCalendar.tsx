@@ -1500,7 +1500,7 @@ function SubscribeModal({ token, propertyId, onClose }: { token:string|null; pro
             οι οδηγίες για όποιον προτιμά τη χειροκίνητη διαδρομή. */}
         <div style={{ display:'flex', gap:8, padding:'10px 12px', background:'var(--accent-soft)', border:'1px solid var(--accent-border)', borderRadius:T.radius.inner }}>
           <Info size={15} color="var(--accent)" style={{ flexShrink:0, marginTop:1 }}/>
-          <p style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.5, margin:0, fontFamily: T.font.sans }}>Με το χέρι στο Google Calendar: «Άλλα ημερολόγια», μετά «Από URL», και επικόλλησε τον σύνδεσμο.</p>
+          <p style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.5, margin:0, fontFamily: T.font.sans }}>Με το χέρι στο Google Calendar: «Άλλα ημερολόγια», μετά «Από URL» και επικόλλησε τον σύνδεσμο.</p>
         </div>
         {/* Αμφίδρομος συγχρονισμός καναλιών (Airbnb/Booking auto-block) */}
         <div style={{ paddingTop:16, borderTop:'1px solid var(--border-subtle)' }}>

@@ -278,7 +278,7 @@ export default function EnfiaPanel({ propertyId, userId }: { propertyId: string;
                 τρία διαφορετικά νούμερα σε τρία σημεία. Οι ημερομηνίες ζουν στο
                 φορολογικό ημερολόγιο, όπου φέρουν και την επιφύλαξή τους. */}
             <div style={{ ...TT.caption, marginTop: 8, maxWidth: 720 }}>
-              Το πόσες δόσεις ορίζονται και πότε λήγει η καθεμία αλλάζει ανά έτος, και το κρατά το Ημερολόγιο.
+              Το πόσες δόσεις ορίζονται και πότε λήγει η καθεμία αλλάζει ανά έτος και το κρατά το Ημερολόγιο.
             </div>
           </>
         )}
@@ -336,7 +336,7 @@ export default function EnfiaPanel({ propertyId, userId }: { propertyId: string;
         </div>
         <div style={{ ...g2, marginTop: 14 }}>
           <NumberInput label="Συνολική αξία όλων των ακινήτων" value={s.enfiaTotalVal} onChange={v => upd({ enfiaTotalVal: v })} suffix="€"
-            labelInfo="Από αυτήν εξαρτάται η αυτόματη μείωση, και η προσαύξηση πάνω από τις 500.000 €."/>
+            labelInfo="Από αυτήν εξαρτάται η αυτόματη μείωση και η προσαύξηση πάνω από τις 500.000 €."/>
           <NumberInput label="Αντικειμενική αξία αυτού του ακινήτου" value={s.enfiaPropVal} onChange={v => upd({ enfiaPropVal: v })} suffix="€"
             labelInfo="Πρόσθετος φόρος επιβάλλεται όταν η αξία του ενός ακινήτου ξεπερνά τις 400.000 €."/>
         </div>

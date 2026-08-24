@@ -273,7 +273,7 @@ export default function OccupancyPanel({ propertyId, userId }: {
                   {tax.undeclaredCount > 0 && (
                     <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                       <strong style={{ color: 'var(--text-primary)' }}>{tax.undeclaredCount} {tax.undeclaredCount === 1 ? 'αδήλωτη διαμονή' : 'αδήλωτες διαμονές'}.</strong>{' '}
-                      Η Δήλωση Βραχυχρόνιας Διαμονής υποβάλλεται στο myAADE μία ανά κράτηση, και σημειώνεται στους «Επισκέπτες».
+                      Η Δήλωση Βραχυχρόνιας Διαμονής υποβάλλεται στο myAADE μία ανά κράτηση και σημειώνεται στους «Επισκέπτες».
                     </div>
                   )}
                   {tax.unresolvedCount > 0 && (

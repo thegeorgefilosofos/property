@@ -547,7 +547,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       (cal || []).length ? `Επόμενα στο ημερολόγιο: ${(cal || []).map(c => `${c.event_date} ${c.title}${c.amount ? ` ${eur(c.amount)}` : ''}`).join('; ')}` : '',
       checklistLine,
       `Σήμερα είναι ${new Date(todayStr).toLocaleDateString('el-GR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}${isWeekend(todayStr) ? ' (Σαββατοκύριακο)' : ''}${holidayName(todayStr) ? `, αργία: ${holidayName(todayStr)}` : ''}.`,
-      `Επόμενες επίσημες αργίες Ελλάδας: ${upcomingHolidays(todayStr, 5).map(h => `${h.name} (${new Date(h.date).toLocaleDateString('el-GR', { day: 'numeric', month: 'short' })})`).join(', ')}. Όταν προτείνεις ημερομηνία/ώρα ραντεβού, απόφυγε Σαββατοκύριακα και αργίες εκτός αν το ζητήσει ο χρήστης, και ανάφερέ το αν η ημέρα που διαλέγει πέφτει σε αργία/Σαββατοκύριακο.`,
+      `Επόμενες επίσημες αργίες Ελλάδας: ${upcomingHolidays(todayStr, 5).map(h => `${h.name} (${new Date(h.date).toLocaleDateString('el-GR', { day: 'numeric', month: 'short' })})`).join(', ')}. Όταν προτείνεις ημερομηνία/ώρα ραντεβού, απόφυγε Σαββατοκύριακα και αργίες εκτός αν το ζητήσει ο χρήστης και ανάφερέ το αν η ημέρα που διαλέγει πέφτει σε αργία/Σαββατοκύριακο.`,
     ].filter(Boolean);
     setCtxStr(lines.join('\n'));
 
@@ -1223,7 +1223,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         const d = scan.doc;
         const bits = [d.provider, d.amount != null ? eur(d.amount) : null, d.period || d.issue_date].filter(Boolean).join(' · ');
         setMsgs(m => [...m, { role: 'assistant',
-          text: `Διάβασα ${DOC_TYPE_LABELS[d.doc_type] || 'παραστατικό'}${bits ? `: ${bits}` : ''}. Να το καταχωρήσω; Θα ελέγξω πρώτα αν εξοφλεί κάτι που ήδη περιμένει, και θα κρατήσω το πρωτότυπο στο Αρχείο.`,
+          text: `Διάβασα ${DOC_TYPE_LABELS[d.doc_type] || 'παραστατικό'}${bits ? `: ${bits}` : ''}. Να το καταχωρήσω; Θα ελέγξω πρώτα αν εξοφλεί κάτι που ήδη περιμένει και θα κρατήσω το πρωτότυπο στο Αρχείο.`,
           action: { type: 'commit-doc', label: d.title || d.provider || 'παραστατικό' } }]);
         setBusy(false); return;
       }

@@ -1478,7 +1478,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
                 {insEditCovers && (
                   <p style={{ ...TT.caption, color: 'var(--text-tertiary)', margin: '10px 0 0', lineHeight: 1.55 }}>
                     Οι καλύψεις είναι δικές σου, όχι του καταλόγου. Πάτησε ό,τι
-                    καλύπτει πραγματικά το συμβόλαιό σου, και διόρθωσε το ασφάλιστρο
+                    καλύπτει πραγματικά το συμβόλαιό σου και διόρθωσε το ασφάλιστρο
                     από πάνω αν διαφέρει από την τιμή του προγράμματος.
                   </p>
                 )}
@@ -1725,7 +1725,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
               <p style={{ ...TT.bodySm, color: 'var(--text-secondary)', margin: '0 0 12px', lineHeight: 1.6 }}>
                 {needCountry.length === 1 ? 'Μία συνδρομή δεν έχει' : `${needCountry.length} συνδρομές δεν έχουν`} δηλωμένη
                 χώρα παρόχου: {needCountry.map(c => c.label).join(', ')}. Η χώρα γράφεται στο παραστατικό, δίπλα στα
-                στοιχεία της εταιρείας, και κρίνει αν η λήψη είναι ενδοκοινοτική ή από τρίτη χώρα.
+                στοιχεία της εταιρείας και κρίνει αν η λήψη είναι ενδοκοινοτική ή από τρίτη χώρα.
               </p>
             )}
 

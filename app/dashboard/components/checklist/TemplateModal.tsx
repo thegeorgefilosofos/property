@@ -39,7 +39,7 @@ export function TemplateModal({ onSelect, onLoadObligations, onClose, ctx, pendi
   return (
     <Modal open onClose={onClose} width={620}
       title="Έτοιμα πρότυπα"
-      subtitle="Έτοιμες λίστες εργασιών, και οι υποχρεώσεις που προκύπτουν από τον νόμο για αυτό το ακίνητο.">
+      subtitle="Έτοιμες λίστες εργασιών και οι υποχρεώσεις που προκύπτουν από τον νόμο για αυτό το ακίνητο.">
       {visibleSmart.length > 0 && (
         <div>
           <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 10 }}>Προτεινόμενα για εσένα</div>

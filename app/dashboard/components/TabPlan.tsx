@@ -568,7 +568,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
       <Panel
         label="Η σειρά"
         sub={hasGroups ? undefined : isDispute
-          ? 'Δεν είναι λίστα. Είναι ακολουθία, και η αντιστροφή δύο βημάτων κοστίζει χρήματα.'
+          ? 'Δεν είναι λίστα. Είναι ακολουθία και η αντιστροφή δύο βημάτων κοστίζει χρήματα.'
           : 'Από πάνω προς κάτω. Ό,τι είναι πιο πάνω, εμποδίζει ό,τι είναι πιο κάτω.'}
         right={
           /* Η ΠΡΟΟΔΟΣ ΖΕΙ ΣΤΗΝ ΕΠΙΚΕΦΑΛΙΔΑ ΤΟΥ ΠΡΑΓΜΑΤΟΣ ΠΟΥ ΜΕΤΡΑΕΙ. Ήταν δικό
@@ -755,7 +755,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
           <span style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
             <span style={{ ...TT.label, fontSize: 11, color: 'var(--text-secondary)' }}>Αναφορά</span>
             <span style={{ ...TT.caption, color: 'var(--text-tertiary)' }}>
-              Κανόνες που κοστίζουν χρήματα, και όσα αλλάζουν από χρονιά σε χρονιά.
+              Κανόνες που κοστίζουν χρήματα και όσα αλλάζουν από χρονιά σε χρονιά.
             </span>
           </span>
         </RowToggle>

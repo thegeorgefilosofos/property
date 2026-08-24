@@ -202,7 +202,7 @@ export const CLIENT_FIELDS: readonly FieldRule[] = [
   { id: 'client.platform_fee', label: 'Προμήθεια πλατφόρμας', why: 'Είναι δαπάνη σου, όχι μείωση του εσόδου. Μπαίνει χωριστά.', when: isShort, critical: true },
   { id: 'client.climate_levy', label: 'Τέλος ανθεκτικότητας', why: 'Το πληρώνει ο επισκέπτης και το αποδίδεις. ΔΕΝ είναι έσοδό σου.', when: isShort, critical: true },
   { id: 'client.declared_at', label: 'Δηλώθηκε', why: 'Μία δήλωση ανά κράτηση. Εδώ βλέπεις ποιες λείπουν.', when: isShort, critical: true },
-  { id: 'client.damages', label: 'Φθορές', why: 'Δαπάνη με παραστατικό, και συνδέεται με το αντικείμενο που έσπασε.', when: isShort, rare: true },
+  { id: 'client.damages', label: 'Φθορές', why: 'Δαπάνη με παραστατικό και συνδέεται με το αντικείμενο που έσπασε.', when: isShort, rare: true },
   { id: 'client.notes', label: 'Σημείωση', why: 'Ό,τι θέλεις να θυμάσαι. Ιδιωτική.', when: isShort, rare: true },
 ];
 

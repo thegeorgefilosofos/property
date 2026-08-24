@@ -957,7 +957,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
                 {moreOpen&&(
                   <div style={{ marginTop:16 }}>
                     <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, lineHeight:1.6, marginBottom:16 }}>
-                      Τίποτα εδώ δεν είναι υποχρεωτικό για τη δήλωση. Είναι όσα χρειάζονται σπάνια, και γι&apos; αυτό δεν στέκονται μπροστά σου.
+                      Τίποτα εδώ δεν είναι υποχρεωτικό για τη δήλωση. Είναι όσα χρειάζονται σπάνια και γι&apos; αυτό δεν στέκονται μπροστά σου.
                     </div>
 
                     {more('tenant.email')&&(

@@ -25,7 +25,7 @@ const unknown = aisConfigError({ [PROVIDER_ENV]: 'ilios_bank' });
 ok('άγνωστος πάροχος αναφέρεται με το όνομά του', unknown.includes('ilios_bank'));
 
 const noSecret = aisConfigError({ [PROVIDER_ENV]: 'enablebanking', AIS_CLIENT_ID: 'id' });
-ok('λείπει το μυστικό, και λέγεται ποιο', noSecret.includes('AIS_CLIENT_SECRET'));
+ok('λείπει το μυστικό και λέγεται ποιο', noSecret.includes('AIS_CLIENT_SECRET'));
 ok('δεν κατηγορείται το κλειδί που υπάρχει', !noSecret.includes('AIS_CLIENT_ID'));
 
 const noneAtAll = aisConfigError({ [PROVIDER_ENV]: 'tink' });

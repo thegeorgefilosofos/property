@@ -138,7 +138,7 @@ export default function ClientCompose({ open, onClose, clients, supabase }: {
         // «έχει γίνει deploy η function send-client-email» και αν «υπάρχει το
         // RESEND_API_KEY» — δύο πράγματα που ούτε μπορεί ούτε πρέπει να δει.
         // Και ονομάτιζε δημόσια ένα μυστικό της υποδομής.
-        throw new Error(detail || 'Η αποστολή δεν έγινε. Δοκίμασε ξανά σε λίγο, και αν επιμείνει γράψε μας.');
+        throw new Error(detail || 'Η αποστολή δεν έγινε. Δοκίμασε ξανά σε λίγο και αν επιμείνει γράψε μας.');
       }
       const campaignId = data?.campaignId as string | undefined;
       setSummary({ sent: Number(data?.sent) || 0, failed: Number(data?.failed) || 0 });

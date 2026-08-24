@@ -172,7 +172,7 @@ export default function CheckoutLanding() {
             </div>
 
             <p style={{ margin: '14px 0 0', fontSize: 12.5, lineHeight: 1.55, color: 'var(--text-tertiary)' }}>
-              Οι πρώτες {TRIAL_DAYS} ημέρες είναι δωρεάν, και το πακέτο το αλλάζεις όποτε θέλεις από τις Ρυθμίσεις.
+              Οι πρώτες {TRIAL_DAYS} ημέρες είναι δωρεάν και το πακέτο το αλλάζεις όποτε θέλεις από τις Ρυθμίσεις.
             </p>
           </div>
         )}
@@ -184,7 +184,7 @@ export default function CheckoutLanding() {
         {stage === 'closed' && (
           <>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '14px 0 0' }}>
-              Η πληρωμή δεν άνοιξε αυτή τη στιγμή. {note || 'Η δοκιμή σου τρέχει κανονικά, και τη συνδρομή την ολοκληρώνεις όποτε θέλεις από τις Ρυθμίσεις.'}
+              Η πληρωμή δεν άνοιξε αυτή τη στιγμή. {note || 'Η δοκιμή σου τρέχει κανονικά και τη συνδρομή την ολοκληρώνεις όποτε θέλεις από τις Ρυθμίσεις.'}
             </p>
             <Link href="/dashboard" style={action}>Συνέχεια στην εφαρμογή</Link>
           </>

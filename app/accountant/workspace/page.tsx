@@ -159,7 +159,7 @@ export default function AccountantWorkspace() {
       {rows === null ? null : rows.length === 0 ? (
         <Card style={{ marginTop: 16 }}>
           <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.7, fontFamily: T.font.sans }}>
-            Κανένας πελάτης ακόμη. Ο ιδιοκτήτης βγάζει τον σύνδεσμο από τη Λογιστική του, στον φάκελο για τον λογιστή, και σου τον στέλνει.
+            Κανένας πελάτης ακόμη. Ο ιδιοκτήτης βγάζει τον σύνδεσμο από τη Λογιστική του, στον φάκελο για τον λογιστή και σου τον στέλνει.
           </p>
         </Card>
       ) : (
@@ -231,7 +231,7 @@ export default function AccountantWorkspace() {
       )}
 
       <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '26px 0 0', lineHeight: 1.7, fontFamily: T.font.sans }}>
-          Βλέπεις μόνο όσους σε εξουσιοδότησαν, και μόνο όσο κρατά ο σύνδεσμός τους. Ο ιδιοκτήτης μπορεί να τον ανακαλέσει οποτεδήποτε.
+          Βλέπεις μόνο όσους σε εξουσιοδότησαν και μόνο όσο κρατά ο σύνδεσμός τους. Ο ιδιοκτήτης μπορεί να τον ανακαλέσει οποτεδήποτε.
         </p>
       </main>
     </div>

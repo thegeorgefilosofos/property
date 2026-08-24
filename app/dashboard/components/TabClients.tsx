@@ -953,7 +953,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
       </div>
 
       {clients.length === 0 ? (
-        <EmptyState icon={<Users size={20} />} title="Κανένας επισκέπτης ακόμη" hint="Σύνδεσε το ημερολόγιο Airbnb ή Booking με τη «Σύνδεση ημερολογίου», ή επικόλλησε ένα email κράτησης με την «Εισαγωγή από email», και οι διαμονές θα έρθουν μόνες τους, με τα ποσά χωριστά." action={<Btn variant="primary" onClick={openNew}>Νέος επισκέπτης</Btn>} />
+        <EmptyState icon={<Users size={20} />} title="Κανένας επισκέπτης ακόμη" hint="Σύνδεσε το ημερολόγιο Airbnb ή Booking με τη «Σύνδεση ημερολογίου», ή επικόλλησε ένα email κράτησης με την «Εισαγωγή από email» και οι διαμονές θα έρθουν μόνες τους, με τα ποσά χωριστά." action={<Btn variant="primary" onClick={openNew}>Νέος επισκέπτης</Btn>} />
       ) : filtered.length === 0 ? (
         // Ο έλεγχος από πάνω κοιτούσε τα `clients`, αλλά το πλέγμα αποδίδει τα
         // `filtered`: με αναζήτηση ή φίλτρο που δεν ταιριάζει σε κανέναν, ο χρήστης
@@ -1118,7 +1118,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
 
             {tot.unresolved > 0 && (
               <InfoBanner tone="warning">
-                {tot.unresolved} από τις {tot.count} διαμονές του {reportYear} έχουν <strong>απροσδιόριστο ποσό</strong> ({fe(tot.unresolvedAmount)}): καταγράφηκαν πριν η εφαρμογή ξεχωρίσει τα ακαθάριστα από την καθαρή είσπραξη, και δεν μαντεύουμε ποιο από τα δύο είναι. Άνοιξε τη διαμονή και συμπλήρωσε τι πλήρωσε ο επισκέπτης. Χωρίς αυτό, τα ακαθάριστα εδώ είναι εκτίμηση.
+                {tot.unresolved} από τις {tot.count} διαμονές του {reportYear} έχουν <strong>απροσδιόριστο ποσό</strong> ({fe(tot.unresolvedAmount)}): καταγράφηκαν πριν η εφαρμογή ξεχωρίσει τα ακαθάριστα από την καθαρή είσπραξη και δεν μαντεύουμε ποιο από τα δύο είναι. Άνοιξε τη διαμονή και συμπλήρωσε τι πλήρωσε ο επισκέπτης. Χωρίς αυτό, τα ακαθάριστα εδώ είναι εκτίμηση.
               </InfoBanner>
             )}
 

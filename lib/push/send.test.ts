@@ -23,9 +23,9 @@ const missing = (e: PushEnv) => (vapidKeys(e) as { missing?: string }).missing;
 // ── ΤΟ ΜΙΣΟ ΡΥΘΜΙΣΜΕΝΟ ΕΙΝΑΙ ΑΡΥΘΜΙΣΤΟ, ΚΑΙ ΛΕΓΕΤΑΙ ΟΝΟΜΑΣΤΙΚΑ ────────────
 // Χωρίς το όνομα αυτού που λείπει, το 503 της διαδρομής θα ήταν γρίφος: τρεις
 // μεταβλητές, καμία ένδειξη ποια.
-eq(missing(without(VAPID_PUBLIC_ENV)), VAPID_PUBLIC_ENV, 'λείπει το δημόσιο, και το λέει');
-eq(missing(without(VAPID_PRIVATE_ENV)), VAPID_PRIVATE_ENV, 'λείπει το ιδιωτικό, και το λέει');
-eq(missing(without(VAPID_SUBJECT_ENV)), VAPID_SUBJECT_ENV, 'λείπει το θέμα, και το λέει');
+eq(missing(without(VAPID_PUBLIC_ENV)), VAPID_PUBLIC_ENV, 'λείπει το δημόσιο και το λέει');
+eq(missing(without(VAPID_PRIVATE_ENV)), VAPID_PRIVATE_ENV, 'λείπει το ιδιωτικό και το λέει');
+eq(missing(without(VAPID_SUBJECT_ENV)), VAPID_SUBJECT_ENV, 'λείπει το θέμα και το λέει');
 eq(missing({}), VAPID_PUBLIC_ENV, 'με άδειο περιβάλλον αναφέρεται το πρώτο που λείπει');
 eq(missing({ ...full, [VAPID_PRIVATE_ENV]: '   ' }), VAPID_PRIVATE_ENV, 'κλειδί από κενά είναι κλειδί που λείπει');
 
