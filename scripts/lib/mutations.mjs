@@ -96,6 +96,8 @@ export const MUTATIONS = {
   // πλακίδιο μέσα στην εφαρμογή, το ίδιο μέσα σε επιστολή, και η διαδρομή SVG
   // αντιγραμμένη σε σενάριο κατασκευής. Με απλό πίνακα, οι δύο τελευταίοι
   // κανόνες δεν δοκιμάζονταν ποτέ.
+  // Ακριβώς η μορφή που εξαφάνισε τη μπάρα διεύθυνσης και τη γραμμή του οφέλους.
+  'hidden-on-small': { add: 'components/__mut__.tsx', content: tsx('    <div className="lp-hide-xs">Το κείμενο που χάνεται</div>') },
   'brand-mark': { every: [
     { add: 'components/__mut__.tsx', content: tsx("    <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--accent)' }}>P</div>") },
     { add: 'supabase/functions/_shared/__mut__.ts', content: 'export const head = () => `<div style="width:34px"><span>P</span></div>`\n' },

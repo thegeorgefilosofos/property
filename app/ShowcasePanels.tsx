@@ -151,7 +151,15 @@ export function PanelDashboard() {
             ))}
           </div>
         </div>
-        <div className="lp-hide-xs lp-live" style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'color-mix(in srgb, var(--accent) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--accent) 22%, transparent)', borderRadius: 12, padding: '12px 14px' }}>
+        {/* ΤΟ ΣΥΜΠΕΡΑΣΜΑ ΕΦΕΥΓΕ ΑΚΡΙΒΩΣ ΕΚΕΙ ΠΟΥ ΜΕΤΡΑΕΙ. Φορούσε `lp-hide-xs`,
+            δηλαδή κάτω από 520 εικονοστοιχεία εξαφανιζόταν. Μέναν οι μπάρες
+            χωρίς την πρόταση που τις εξηγεί, και η σκηνή «Πίνακας» έδειχνε
+            γράφημα αντί για όφελος. Ο επισκέπτης από κινητό είναι ο πιο πιθανός
+            μας χρήστης· η γραμμή που λέει «γλιτώνεις 184,00 €» είναι το ΜΟΝΟ
+            νούμερο εκεί μέσα με νόημα για αυτόν, και ήταν το πρώτο που κόβαμε.
+            Το κουτί είναι μία σειρά με εικονίδιο και κείμενο: αναδιπλώνεται
+            μόνο του, δεν χρειάζεται απόκρυψη. */}
+        <div className="lp-live" style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'color-mix(in srgb, var(--accent) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--accent) 22%, transparent)', borderRadius: 12, padding: '12px 14px' }}>
           <div style={{ width: 26, height: 26, borderRadius: 8, background: 'var(--accent)', color: 'var(--accent-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <svg width={14} height={14} viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7z" /></svg>
           </div>

@@ -74,13 +74,27 @@ export default function LandingShowcase() {
       <div ref={tiltRef} onMouseMove={onTilt} onMouseLeave={resetTilt} style={{ transition: 'transform 0.35s cubic-bezier(0.2, 0, 0, 1)', willChange: 'transform' }}>
         <div className="ls-mockup" style={{ position: 'relative', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: T.radius.card, overflow: 'hidden' }}>
           {/* chrome */}
+          {/* ═══ Η ΜΠΑΡΑ ΔΙΕΥΘΥΝΣΗΣ ΕΜΕΝΕ ΑΔΕΙΑ ΣΤΟ ΚΙΝΗΤΟ ═══════════════════
+              Το πλαίσιο φορούσε `lp-hide-xs`, δηλαδή κάτω από 520 εικονοστοιχεία
+              γινόταν `display: none`. Απέμεναν τρεις κουκκίδες σε μια κενή
+              γκρίζα λωρίδα: όχι πλαίσιο περιηγητή, αλλά κάτι που μοιάζει να μη
+              φόρτωσε. Ακριβώς στην πρώτη οθόνη, όπου κρίνεται αν το προϊόν
+              δείχνει προσεγμένο.
+
+              ΚΑΙ ΔΕΝ ΧΡΕΙΑΖΟΤΑΝ ΚΑΝ. Μετρημένο στα 390: το πλαίσιο έχει 313
+              εικονοστοιχεία εσωτερικά, οι κουκκίδες πιάνουν 57 και το πλαίσιο
+              διεύθυνσης 146. Χωρούσε με 110 περίσσευμα. Η απόκρυψη ήταν
+              αμυντική υπόθεση, όχι μέτρηση.
+
+              Οι κουκκίδες δηλώνουν `flex-shrink: 0` και το πλαίσιο κόβει με
+              αποσιωπητικά: σε οποιοδήποτε πλάτος, η μπάρα μένει μπάρα. */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '13px 16px', borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)' }}>
-            <span style={{ width: 11, height: 11, borderRadius: '50%', background: 'var(--border-strong)' }} />
-            <span style={{ width: 11, height: 11, borderRadius: '50%', background: 'var(--border-strong)' }} />
-            <span style={{ width: 11, height: 11, borderRadius: '50%', background: 'var(--border-strong)' }} />
-            <div className="lp-hide-xs" style={{ margin: '0 auto', display: 'flex', alignItems: 'center', gap: 7, background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '5px 14px', fontSize: 13, color: 'var(--text-tertiary)' }}>
-              <svg aria-hidden="true" width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
-              properwise.gr/scan
+            <span style={{ width: 11, height: 11, borderRadius: '50%', background: 'var(--border-strong)', flexShrink: 0 }} />
+            <span style={{ width: 11, height: 11, borderRadius: '50%', background: 'var(--border-strong)', flexShrink: 0 }} />
+            <span style={{ width: 11, height: 11, borderRadius: '50%', background: 'var(--border-strong)', flexShrink: 0 }} />
+            <div style={{ margin: '0 auto', minWidth: 0, display: 'flex', alignItems: 'center', gap: 7, background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '5px 14px', fontSize: 13, color: 'var(--text-tertiary)' }}>
+              <svg aria-hidden="true" width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>properwise.gr/scan</span>
             </div>
           </div>
 
