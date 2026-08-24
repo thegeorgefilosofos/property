@@ -25,7 +25,9 @@ export function FL({ children }: { children: React.ReactNode }) {
 }
 // Το `min` περνά μέχρι το πεδίο: χωρίς αυτό, τα ποσά και οι εκτιμήσεις κόστους
 // δέχονταν αρνητικούς αριθμούς — δαπάνη μείον διακοσίων ευρώ δεν υπάρχει.
-export function Inp({ value, onChange, placeholder, type = 'text', min }: { value: string; onChange: (v: string) => void; placeholder?: string; type?: string; min?: number }) {
+// Ο τύπος ΔΕΝ δέχεται 'date': το ημερολόγιο του περιηγητή γράφει αγγλικά και
+// αντιστρέφει ημέρα με μήνα. Οι ημερομηνίες περνούν από τον DatePicker.
+export function Inp({ value, onChange, placeholder, type = 'text', min }: { value: string; onChange: (v: string) => void; placeholder?: string; type?: 'text' | 'email' | 'tel' | 'url' | 'search' | 'number' | 'password'; min?: number }) {
   return <input type={type} min={min} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={iStyle} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-default)')} />
 }
 // Ένα σημείο για όλα τα πεδία επιλογής της οθόνης. Ήταν ντόπιο <select>, δηλαδή

@@ -14,7 +14,7 @@ import { createClient } from '@/lib/supabase/client';
 import * as contacts from '@/lib/data/contacts';
 import { BankLinkTile } from './BankLink';
 import { T, fe, formGrid } from '@/components/Theme';
-import { CustomSelect } from './UIComponents';
+import { CustomSelect, DatePicker } from './UIComponents';
 import {
   validateDoc, docSummaryLine,
   DOC_TYPES, DOC_FIELD_LABELS, type ScannedDoc, type DocType,
@@ -139,14 +139,33 @@ const Field = ({ label, value, onChange, type = 'text', invalid = false, bad = f
       <label style={{ fontSize: 9, fontWeight: 700, color: tone || 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', display: 'block', marginBottom: 4, fontFamily: T.font.sans }}>
         {label}{bad ? ' • δεν είναι έγκυρο' : invalid ? ' • λείπει' : ''}
       </label>
-      <input
-        type={type}
-        value={String(value ?? '')}
-        onChange={e => onChange(e.target.value)}
-        style={{ width: '100%', background: 'var(--bg-base)', border: `1px solid ${tone || 'var(--border-default)'}`, borderRadius: 6, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, fontFamily: type === 'number' ? T.font.mono : T.font.sans, outline: 'none', boxSizing: 'border-box' as const, transition: 'border-color 0.15s' }}
-        onFocus={e => (e.target.style.borderColor = 'var(--accent)')}
-        onBlur={e => (e.target.style.borderColor = tone || 'var(--border-default)')}
-      />
+      {/* ══════════════════════════════════════════════════════════════════════
+          ΜΙΑ ΗΜΕΡΟΜΗΝΙΑ ΔΕΝ ΓΡΑΦΕΤΑΙ ΜΕ NATIVE INPUT
+
+          Το `type` είναι ΜΕΤΑΒΛΗΤΗ και για δεκατέσσερα πεδία αυτού του αρχείου
+          είναι 'date'. Ενα native `<input type="date">` δείχνει τη σειρά της
+          γλώσσας του ΠΕΡΙΗΓΗΤΗ, όχι της σελίδας: σε browser στα αγγλικά ο
+          Ελληνας ιδιοκτήτης βλέπει mm/dd/yyyy και γράφει 5 Δεκεμβρίου εκεί που
+          εννοούσε 12 Μαΐου. Σε λήξη μισθωτηρίου, σε λήξη ασφαλιστηρίου και σε
+          ημερομηνία αγοράς, η σιωπηλή αντιστροφή ημέρας και μήνα δεν φαίνεται
+          πουθενά μέχρι να χρειαστεί.
+
+          Ο DatePicker του έργου γράφει πάντα ελληνική σειρά, ανοίγει στον σωστό
+          μήνα και τον πατά και το πληκτρολόγιο. Είναι το ιδίωμα κάθε άλλης
+          οθόνης· εδώ έλειπε.
+          ══════════════════════════════════════════════════════════════════════ */}
+      {type === 'date' ? (
+        <DatePicker ariaLabel={label} value={String(value ?? '')} onChange={onChange} />
+      ) : (
+        <input
+          type={type}
+          value={String(value ?? '')}
+          onChange={e => onChange(e.target.value)}
+          style={{ width: '100%', background: 'var(--bg-base)', border: `1px solid ${tone || 'var(--border-default)'}`, borderRadius: 6, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, fontFamily: type === 'number' ? T.font.mono : T.font.sans, outline: 'none', boxSizing: 'border-box' as const, transition: 'border-color 0.15s' }}
+          onFocus={e => (e.target.style.borderColor = 'var(--accent)')}
+          onBlur={e => (e.target.style.borderColor = tone || 'var(--border-default)')}
+        />
+      )}
       {hint && <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 3, fontFamily: T.font.sans }}>{hint}</div>}
     </div>
   );

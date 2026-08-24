@@ -42,7 +42,17 @@ export const MUTATIONS = {
 
   // ── Φόρμες και οθόνες ──────────────────────────────────────────────────
   'field-name': { add: 'components/__mut__.tsx', content: tsx('    <input type="text" placeholder="Ποσό" />') },
-  'native-fields': { add: 'components/__mut__.tsx', content: tsx('    <select><option>Ενοίκιο</option></select>') },
+  // Η ΜΕΤΑΛΛΑΞΗ ΧΤΥΠΑΕΙ ΤΟΝ ΔΥΣΚΟΛΟ ΚΛΑΔΟ, ΟΧΙ ΤΟΝ ΕΥΚΟΛΟ. Το ντόπιο
+  // `<select>` και το κυριολεκτικό `type="date"` είναι δύο regex· ο μεταβλητός
+  // `type={type}` απαιτεί ανάγνωση ΟΛΟΚΛΗΡΗΣ της ετικέτας (το DocumentScan.tsx
+  // το γράφει τρεις γραμμές κάτω από το `<input`), αποτίμηση των σκελών μιας
+  // τριαδικής, και ανάγνωση του δηλωμένου τύπου της ιδιότητας. Εκεί ξέφυγαν
+  // δεκατέσσερα ντόπια ημερολόγια με τον φύλακα πράσινο, άρα εκεί δοκιμάζεται.
+  'native-fields': {
+    add: 'components/__mut__.tsx',
+    content: 'export function MutationProbe({ value, type = \'text\' }: { value: string; type?: string }) {\n'
+      + '  return (\n    <input\n      type={type}\n      value={value}\n      readOnly\n    />\n  )\n}\n',
+  },
   'number-fields': { add: 'components/__mut__.tsx', content: tsx('    <input type="number" placeholder="1500" />') },
   'empty-states': { add: 'components/__mut__.tsx', content: tsx('    <EmptyState title="Καμιά καταχώρηση / εγγραφή" />') },
   'month-end': { add: 'lib/core/__mut__.ts', content: 'export const d = (y: number) => `${y}-02-31`\n' },

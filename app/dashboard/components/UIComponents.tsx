@@ -1154,7 +1154,18 @@ interface TextInputProps {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
-  type?: string;
+  /**
+   * Ο τύπος του πεδίου, ΧΩΡΙΣ 'date'.
+   *
+   * Ηταν `string`. Ενα `type="date"` που θα περνούσε από εδώ θα απέδιδε το
+   * ημερολόγιο του ΠΕΡΙΗΓΗΤΗ: αγγλικά ονόματα ημερών και, το σοβαρό, σειρά
+   * ημέρας και μήνα που ορίζει η γλώσσα του και όχι η εφαρμογή. Η γραμμή
+   * «08/09/2026» δεν λέει καν αν εννοεί 8 Σεπτεμβρίου ή 9 Αυγούστου.
+   *
+   * Ο τύπος το κάνει ΑΔΥΝΑΤΟ, αντί να το απαγορεύει φύλακας εκ των υστέρων. Οι
+   * ημερομηνίες περνούν από τον DatePicker αυτού του αρχείου.
+   */
+  type?: 'text' | 'email' | 'tel' | 'url' | 'search' | 'number' | 'password';
   disabled?: boolean;
   prefix?: ReactNode;
   suffix?: ReactNode;

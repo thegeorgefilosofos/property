@@ -303,7 +303,9 @@ function isOverdue(d: string) { const n = daysUntil(d); return n !== null && n <
 // ─── Input primitives ─────────────────────────────────────────────────────────
 // Το `min` περνά μέχρι το πεδίο: ποσό αμοιβής συνεργείου μείον πενήντα ευρώ
 // δεν υπάρχει, και το πεδίο δεν έχει λόγο να το δέχεται.
-function Inp({ value, onChange, placeholder, type = 'text', min }: { value: string; onChange: (v: string) => void; placeholder?: string; type?: string; min?: number }) {
+// Ο τύπος ΔΕΝ δέχεται 'date': οι ημερομηνίες αυτής της οθόνης περνούν από τον
+// DatePicker, που τον χρησιμοποιεί ήδη τρεις φορές.
+function Inp({ value, onChange, placeholder, type = 'text', min }: { value: string; onChange: (v: string) => void; placeholder?: string; type?: 'text' | 'email' | 'tel' | 'url' | 'search' | 'number' | 'password'; min?: number }) {
   return <input type={type} min={min} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={iStyle} onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)' }} onBlur={e => { e.target.style.borderColor = 'var(--border-default)'; e.target.style.boxShadow = 'none' }} />
 }
 function Txt({ value, onChange, placeholder, rows = 4 }: { value: string; onChange: (v: string) => void; placeholder?: string; rows?: number }) {
