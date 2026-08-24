@@ -34,6 +34,7 @@ import {
 import { isValidAfm } from '@/lib/billing/parse';
 import { navLabel } from '@/lib/nav/labels';
 import { applyFilters, facetOptions, toggleValue, clearAll, groupByMonth, sumValues, isSelectionEmpty, FACET_KEYS, FACET_LABEL, type Selection, type TimeGroup } from '@/lib/archive/facets';
+import { SAY } from '@/lib/core/dbError';
 
 /* ════════════════════════════════════════════════════════════════════════
    ΑΡΧΕΙΟ — μία επίπεδη λίστα με όψεις, ΧΩΡΙΣ φακέλους.
@@ -1189,7 +1190,7 @@ const SCAN_ERROR_TEXT: Record<ScanError, string> = {
   key_missing: 'Η αυτόματη ανάγνωση δεν είναι ενεργή ακόμη σε αυτόν τον λογαριασμό.',
   // Εφεδρεία: κανονικά το κείμενο έρχεται από τον διακομιστή, που ξέρει ποιο
   // όριο χτύπησε και ποιο πακέτο έχει ο χρήστης (scanDoc.ts).
-  quota: 'Εξαντλήθηκαν οι ερωτήσεις του πακέτου σου και ανανεώνονται αυτόματα.',
+  quota: SAY.aiQuotaSpent,
 };
 
 // Ποια πεδία δείχνει η κάρτα ανά τύπο. Τα πέντε του ταιριάσματος εμφανίζονται

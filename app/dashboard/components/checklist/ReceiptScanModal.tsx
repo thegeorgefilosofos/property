@@ -12,7 +12,7 @@ import { T, Modal, Btn, Skeleton, fe, formGrid } from '@/components/Theme'
 import { DatePicker } from '../UIComponents'
 import { FL, Inp } from './Bits'
 import { saved, savedData } from '@/components/dbWrite'
-import { failed } from '@/lib/core/dbError'
+import { MSG, failed } from '@/lib/core/dbError'
 import * as expenses from '@/lib/data/expenses'
 import * as documents from '@/lib/data/documents'
 import * as calendar from '@/lib/data/calendar'
@@ -154,7 +154,7 @@ export function ReceiptScanModal({ item, propertyId, userId, onClose, onSaved }:
       }),
     }).eq('id', item.id))) { setStage('confirm'); return }
 
-    if (item.calendar_event_id) await saved('Το γεγονός ημερολογίου δεν ενημερώθηκε',
+    if (item.calendar_event_id) await saved(MSG.calendarEvent,
       calendar.update(supabase, item.calendar_event_id, { status: 'paid', amount: amountNum }))
     // Το αρχείο ανέβηκε ΠΑΝΤΑ (χωρίς αυτό δεν φτάναμε ως εδώ). Αν δεν γράφτηκε η
     // γραμμή του Αρχείου, το λέμε: το παραστατικό υπάρχει αλλά δεν θα φαίνεται

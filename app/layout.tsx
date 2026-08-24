@@ -7,10 +7,10 @@ import PwaProvider from "./PwaProvider";
 import { ToastHost } from "@/components/Toast";
 import ErrorListener from "@/components/ErrorListener";
 import { ConfirmHost } from "@/components/ConfirmDialog";
-import { SITE } from "@/lib/core/site";
+import { SITE, PRODUCT_NAME, PRODUCT_TAGLINE } from "@/lib/core/site";
 
-const TITLE = "PROPERWISE";
-const DESCRIPTION = "Έσοδα, δαπάνες, ενοικιαστές, φόρος και προθεσμίες για τα ακίνητά σου, σε ένα σημείο.";
+const TITLE = PRODUCT_NAME;
+const DESCRIPTION = PRODUCT_TAGLINE;
 
 export const metadata: Metadata = {
   // ═══════════════════════════════════════════════════════════════════════

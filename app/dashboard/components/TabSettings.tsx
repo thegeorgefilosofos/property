@@ -40,7 +40,7 @@ import { effectivePlan, activeComp, planAtLeast, propertyLimit, trialState, isOp
 import { athensToday } from '@/lib/core/time';
 import { savedData } from '@/components/dbWrite';
 import { notifyError } from '@/components/Toast';
-import { failed } from '@/lib/core/dbError';
+import { SAY, failed } from '@/lib/core/dbError';
 
 type ProfileType = 'individual' | 'professional';
 
@@ -250,7 +250,7 @@ function DeleteAccount() {
       payload = await res.json().catch(() => ({}));
       if (!res.ok) {
         const msg = (payload as { error?: string } | null)?.error;
-        setError(typeof msg === 'string' && msg ? msg : 'Ο λογαριασμός δεν διαγράφηκε. Δοκίμασε ξανά σε λίγο.');
+        setError(typeof msg === 'string' && msg ? msg : SAY.accountNotDeleted);
         setBusy(false); return;
       }
     } catch {
@@ -409,7 +409,7 @@ function ProfileCard({ userId, email }: { userId: string; email: string }) {
   const saveEmail = async (v: string) => {
     const { error } = await supabase.auth.updateUser({ email: v });
     return error
-      ? { ok: false, text: 'Δεν ήταν δυνατή η αλλαγή. Δοκίμασε ξανά.' }
+      ? { ok: false, text: SAY.changeFailed }
       : { ok: true, text: 'Σου στείλαμε σύνδεσμο επιβεβαίωσης στη νέα διεύθυνση.' };
   };
   const saveName = async (v: string) => {

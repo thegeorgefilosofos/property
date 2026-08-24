@@ -21,7 +21,7 @@ import { athensToday } from '@/lib/core/time'
 import { CONDITIONS, CONDITION_COLOR, type InventoryItem, type InventoryHandover, type HandoverIntent } from './model'
 import { fmtDate } from './calc'
 import { Badge, SectionLabel, labelStyle } from './Bits'
-import { failed, MSG } from '@/lib/core/dbError'
+import { MSG, SAY, failed } from '@/lib/core/dbError'
 
 const supabase = createSupabaseClient()
 
@@ -84,7 +84,7 @@ export function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{it
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[seed?.n])
   const handleSave = async() => {
-    if(!tenantName.trim()){notifyError('Το ονοματεπώνυμο είναι υποχρεωτικό.');return}
+    if(!tenantName.trim()){notifyError(SAY.nameRequired);return}
     setSaving(true)
     const nowIso=new Date().toISOString()
     const snap = items.map(i=>({item_id:i.id,name:i.name,category:i.category,condition_at_handover:itemConds[i.id]?.condition||i.condition,condition_notes:itemConds[i.id]?.notes||'',photo_url:i.photo_url||'',condition_photo:itemConds[i.id]?.photo||'',captured_at:itemConds[i.id]?.photo?nowIso:''}))

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { authClient } from '@/lib/supabase/lazy';
 import Link from 'next/link'
 import AuthAside from '../AuthAside'
-import { checkPassword, PASSWORD_MIN_LABEL } from '@/lib/auth/password'
+import { checkPassword, PASSWORD_MIN_LABEL, PASSWORD_MSG } from '@/lib/auth/password'
 import PasswordStrength from '@/components/PasswordStrength'
 import { failed } from '@/lib/core/dbError';
 
@@ -66,7 +66,7 @@ export default function ResetPasswordPage() {
 
   async function updatePassword(e: React.FormEvent) {
     e.preventDefault(); setError('')
-    if (!pwOk) { setError(leakedPw === password ? 'Αυτός ο κωδικός βρίσκεται σε γνωστή διαρροή δεδομένων. Διάλεξε άλλον.' : 'Ο κωδικός δεν πληροί όλες τις προϋποθέσεις ασφαλείας.'); return }
+    if (!pwOk) { setError(leakedPw === password ? PASSWORD_MSG.leaked : PASSWORD_MSG.weak); return }
     if (password !== confirm) { setError('Οι κωδικοί δεν ταιριάζουν.'); return }
     setLoading(true)
     const supabase = await authClient()

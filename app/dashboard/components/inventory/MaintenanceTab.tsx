@@ -45,7 +45,7 @@ export function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{item
   // ο χρήστης βασίζεται σε υπενθύμιση που δεν υπάρχει.
   const makeCalEvent=async(task:string,item_name:string,due:string,est:number):Promise<string|undefined>=>{
     const {data,error}=await calendar.add(supabase,{propertyId,userId},'inventory-maint',{title:taskTitle(task,item_name),category:'maintenance',event_date:due,amount:est||0,notes:est>0?`Αυτόματο από Συντήρηση Απογραφής · εκτιμώμενο κόστος ${fe(est)}`:'Αυτόματο από Συντήρηση Απογραφής'})
-    if(error){notifyError(failed('Η υπενθύμιση δεν μπήκε στο ημερολόγιο',error));return undefined}
+    if(error){notifyError(failed(MSG.reminder,error));return undefined}
     return data?.id
   }
   const makePlannedExpense=async(task:string,item_name:string,due:string,est:number):Promise<string|undefined>=>{

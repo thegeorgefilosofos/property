@@ -44,6 +44,7 @@ import {
   matchPaymentToBills, providerFromBillName,
   type MatchCandidate, type MatchResult,
 } from '@/lib/billing/parse';
+import { MSG } from '@/lib/core/dbError';
 
 // ── Το prompt αναγνώρισης (ΕΝΑ, κοινό) ─────────────────────────────────────
 // Ζητά ΡΗΤΑ τα πέντε πεδία ταιριάσματος: πάροχο, ΑΦΜ παρόχου, ποσό, ημερομηνία
@@ -568,7 +569,7 @@ export async function commitScannedDoc(input: CommitInput): Promise<CommitResult
         billStore.markPaid(supabase, payOff));
       const updExp = await savedData<{ id: string }[]>('Η συνδεδεμένη δαπάνη δεν σημειώθηκε πληρωμένη',
         expenses.markBillPaid(supabase, payOff));
-      await saved('Το γεγονός ημερολογίου δεν ενημερώθηκε',
+      await saved(MSG.calendarEvent,
         calendar.updateByBill(supabase, payOff, { status: 'paid' }));
       // Αν ο εξοφλημένος λογαριασμός δεν είχε συνδεδεμένο έξοδο, δημιούργησέ το
       // τώρα ώστε η πληρωμή να φαίνεται στις Δαπάνες.

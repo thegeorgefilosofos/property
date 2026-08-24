@@ -7,9 +7,9 @@ import AlreadySignedIn from '../AlreadySignedIn'
 import AuthAside from '../AuthAside'
 import GoogleG from '../GoogleG'
 import { BackLink } from '../BackLink'
-import { checkPassword, PASSWORD_MIN_LABEL, PASSWORD_MIN_LENGTH } from '@/lib/auth/password'
+import { checkPassword, PASSWORD_MIN_LABEL, PASSWORD_MIN_LENGTH, PASSWORD_MSG } from '@/lib/auth/password'
 import PasswordStrength from '@/components/PasswordStrength'
-import { failed } from '@/lib/core/dbError';
+import { SAY, failed } from '@/lib/core/dbError';
 import { PLANS, TRIAL_DAYS, type PlanId, type BillingCycle } from '@/lib/billing/plans';
 // Καθαρή λογική, χωρίς React/Supabase: ασφαλής σε 'use client'.
 import { planFromParam, cycleFromParam } from '@/lib/billing/entitlements';
@@ -100,7 +100,7 @@ export default function SignupPage() {
   const trans = (m: string) =>
     /already registered|already exists/i.test(m) ? 'Υπάρχει ήδη λογαριασμός με αυτό το email.'
     : /weak|at least|6 char/i.test(m) ? `Ο κωδικός είναι πολύ αδύναμος. Χρησιμοποίησε ${PASSWORD_MIN_LABEL.toLowerCase()}.`
-    : /rate limit|too many/i.test(m) ? 'Πολλές προσπάθειες. Δοκίμασε ξανά σε λίγο.'
+    : /rate limit|too many/i.test(m) ? SAY.tooManyTries
     : /valid email/i.test(m) ? 'Το email δεν φαίνεται έγκυρο.'
     : m
   useEffect(() => {
@@ -261,14 +261,14 @@ export default function SignupPage() {
     }
     if (leaked) {
       setPwTouched(true)
-      setError('Αυτός ο κωδικός βρίσκεται σε γνωστή διαρροή δεδομένων. Διάλεξε άλλον.')
+      setError(PASSWORD_MSG.leaked)
       return
     }
     if (!pw.ok) {
       setPwTouched(true)
       setError(pw.common
         ? 'Ο κωδικός είναι πολύ κοινός. Διάλεξε κάτι πιο δύσκολο να μαντέψει κανείς.'
-        : 'Ο κωδικός δεν πληροί όλες τις προϋποθέσεις ασφαλείας.')
+        : PASSWORD_MSG.weak)
       return
     }
     setError(''); setLoading(true)

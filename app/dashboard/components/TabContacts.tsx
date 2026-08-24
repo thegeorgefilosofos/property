@@ -26,7 +26,7 @@ import { formFields, CONTACT_FIELDS, type FieldContext, type FieldDecision } fro
 import { athensToday, isoDate, daysUntilOrNull } from '@/lib/core/time';
 import { INK, INK_FAINT, INK_MUTED, PAPER_ALT, RULE } from '@/lib/print/ink';
 import { downloadFile } from '@/lib/core/download';
-import { failed } from '@/lib/core/dbError';
+import { MSG, SAY, failed } from '@/lib/core/dbError';
 // Το Αρχείο έχει ένα σπίτι: lib/data/documents.
 import * as documents from '@/lib/data/documents';
 
@@ -1521,7 +1521,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
     // ΜΟΝΟ το ραντεβού. Η «Υπενθύμιση επικοινωνίας» υποσχόταν ρυθμό (κάθε 30
     // ημέρες) και έγραφε μία παγωμένη ημερομηνία, υπολογισμένη μία φορά στο κλικ.
     const date = form.extra.next_appointment || ''
-    await saved('Η υπενθύμιση δεν μπήκε στο ημερολόγιο', calendar.replaceSource(supabase, { propertyId, userId }, { source: src },
+    await saved(MSG.reminder, calendar.replaceSource(supabase, { propertyId, userId }, { source: src },
       date ? [{ title: `Επικοινωνία: ${name}`, category: 'reminder', event_date: date, notes: form.extra.specialty || null }] : []))
   }
 
@@ -1552,7 +1552,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
   }
 
   const handleSave = async () => {
-    if (!form.full_name.trim()) { setError('Το ονοματεπώνυμο είναι υποχρεωτικό.'); return }
+    if (!form.full_name.trim()) { setError(SAY.nameRequired); return }
     if (!editContact) { const d = findDuplicate(); if (d) { setDup(d); return } }
     await persist(editContact ? 'update' : 'insert')
   }

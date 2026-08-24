@@ -26,7 +26,7 @@ import { generateReportPdf, reportPdfBlob, pEur, pPct, type PdfReportModel } fro
 import type { ReportBranding } from '@/lib/reportBranding';
 import { MYAADE } from '@/lib/tax/aade';
 import { aadeTitle } from '@/components/AadeLink';
-import { failed } from '@/lib/core/dbError';
+import { SAY, failed } from '@/lib/core/dbError';
 import { acceptNumeric, PCT_MAX } from '@/lib/core/numInput';
 import { rentIndexFor, rentAdjustmentPct, indexMonthLabel, indexPeriodLabel, CPI_SOURCE_URL, cpiConfirmedDate } from '@/lib/market/cpi';
 
@@ -226,7 +226,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
       });
       setArchived(true);
       setTimeout(onClose, 1200);
-    } catch { setErr('Η αρχειοθέτηση απέτυχε. Το PDF έχει ήδη κατέβει.'); }
+    } catch { setErr(SAY.archiveFailed); }
     finally { setArchiving(false); }
   };
 
@@ -314,7 +314,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
   const footerInfo = pending ? (
     <span style={{ display: 'inline-block', minWidth: 220 }}>
       <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-        {archived ? 'Αποθηκεύτηκε στα έγγραφα του ακινήτου.' : 'Να αποθηκευτεί στα έγγραφα του ακινήτου;'}
+        {archived ? 'Αποθηκεύτηκε στα έγγραφα του ακινήτου.' : SAY.archiveAsk}
       </span>
       {/* Η ΣΙΩΠΗΛΗ ΕΓΓΡΑΦΗ ΣΕ ΧΡΗΜΑΤΙΚΟ ΠΕΔΙΟ ΛΕΓΕΤΑΙ. Η γραμμή βγαίνει μόνο
           όταν το γράψιμο πέτυχε: χωρίς καρτέλα μισθωτή, ή με αποτυχία που την

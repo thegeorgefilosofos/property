@@ -8,7 +8,7 @@ import AlreadySignedIn from '../AlreadySignedIn'
 import AuthAside from '../AuthAside'
 import GoogleG from '../GoogleG'
 import { BackLink } from '../BackLink'
-import { failed } from '@/lib/core/dbError';
+import { SAY, failed } from '@/lib/core/dbError';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Σύνδεση, στα χρώματα του app (design tokens, theme-aware light/dark).
@@ -34,7 +34,7 @@ export default function LoginPage() {
   const trans = (m: string) =>
     /invalid login/i.test(m) ? 'Λάθος email ή κωδικός.'
     : /email not confirmed/i.test(m) ? 'Επιβεβαίωσε πρώτα το email σου από τον σύνδεσμο που σου στείλαμε.'
-    : /rate limit|too many/i.test(m) ? 'Πολλές προσπάθειες. Δοκίμασε ξανά σε λίγο.'
+    : /rate limit|too many/i.test(m) ? SAY.tooManyTries
     : m
 
   useEffect(() => {

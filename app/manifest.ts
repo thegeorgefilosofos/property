@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next';
+import { PRODUCT_NAME, PRODUCT_TAGLINE } from '@/lib/core/site';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Web App Manifest — κάνει το PROPERWISE εγκαταστάσιμο σαν εφαρμογή.
@@ -16,9 +17,9 @@ import type { MetadataRoute } from 'next';
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: '/dashboard',
-    name: 'PROPERWISE · Διαχείριση Ακινήτων',
-    short_name: 'PROPERWISE',
-    description: 'Έσοδα, δαπάνες, ενοικιαστές, φόρος και προθεσμίες για τα ακίνητά σου, σε ένα σημείο.',
+    name: `${PRODUCT_NAME} · Διαχείριση Ακινήτων`,
+    short_name: PRODUCT_NAME,
+    description: PRODUCT_TAGLINE,
     start_url: '/dashboard',
     scope: '/',
     display: 'standalone',

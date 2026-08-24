@@ -32,7 +32,7 @@ import { generateReportPdf, reportPdfBlob, pEur, type PdfReportModel } from '@/l
 import type { ReportBranding } from '@/lib/reportBranding';
 import { MYAADE } from '@/lib/tax/aade';
 import { aadeTitle } from '@/components/AadeLink';
-import { failed } from '@/lib/core/dbError';
+import { SAY, failed } from '@/lib/core/dbError';
 import { acceptNumeric, PCT_MAX } from '@/lib/core/numInput';
 
 interface Prop { id: string; name: string; address: string | null; sqm?: number | null; atak?: string | null }
@@ -201,7 +201,7 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
 
       setArchived(true);
       setTimeout(onClose, 1400);
-    } catch { setErr('Η αρχειοθέτηση απέτυχε. Το PDF έχει ήδη κατέβει.'); }
+    } catch { setErr(SAY.archiveFailed); }
     finally { setArchiving(false); }
   };
 
@@ -265,7 +265,7 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
   const footerInfo = pending ? (
     <span style={{ display: 'inline-block', minWidth: 220 }}>
       <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-        {archived ? 'Αποθηκεύτηκε και ενημερώθηκε ο ενοικιαστής.' : 'Να αποθηκευτεί στα έγγραφα του ακινήτου;'}
+        {archived ? 'Αποθηκεύτηκε και ενημερώθηκε ο ενοικιαστής.' : SAY.archiveAsk}
       </span>
       {!archived && <span style={{ display: 'block', fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>Αρχειοθετείται με ημερομηνία έναρξης {grDate(res.start)} και ενημερώνει την καρτέλα ενοικιαστή.</span>}
     </span>

@@ -27,6 +27,7 @@ import { API_KEY_ENV } from '@/lib/billing/lemonApi';
 import { subscriptionState, cancelSubscription, needsCancelling } from '@/lib/billing/lemonPlanChange';
 import * as billing from '@/lib/data/billing';
 import { sweepOwnFiles } from '@/lib/storage/accountSweep';
+import { SAY } from '@/lib/core/dbError';
 
 export async function POST() {
   const supabase = await createClient();
@@ -80,7 +81,7 @@ export async function POST() {
   const { data, error } = await supabase.rpc('delete_my_account');
   if (error) {
     console.info('[delete] η διαγραφή δεν ολοκληρώθηκε:', error.message);
-    return NextResponse.json({ error: 'Ο λογαριασμός δεν διαγράφηκε. Δοκίμασε ξανά σε λίγο.' }, { status: 502 });
+    return NextResponse.json({ error: SAY.accountNotDeleted }, { status: 502 });
   }
 
   // Ο απολογισμός της βάσης λέει τι ΕΜΕΙΝΕ, γιατί μόνο εκείνη μπορεί να το

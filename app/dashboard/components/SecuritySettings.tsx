@@ -14,9 +14,9 @@ import { createClient } from '@/lib/supabase/client';
 import { T, TT, Btn, settingsField, Spinner, ABSENT, ABSENT_DATE, fixedCols } from '@/components/Theme';
 import { SetList, SetRow, SetFact } from './SettingsKit';
 import { logActivity } from '@/lib/activity';
-import { checkPassword } from '@/lib/auth/password';
+import { checkPassword, PASSWORD_MSG } from '@/lib/auth/password';
 import PasswordStrength from '@/components/PasswordStrength';
-import { failed } from '@/lib/core/dbError';
+import { SAY, failed } from '@/lib/core/dbError';
 
 // Η γεωμετρία της γραμμής (περιθώρια, περιγράμματα) έρχεται από το SettingsKit
 // και το `.po-settings`. Εδώ μένουν μόνο τα δύο που είναι ειδικά της ασφάλειας.
@@ -195,11 +195,11 @@ export default function SecuritySettings() {
 
   async function savePassword() {
     if (leaked) {
-      setPwMsg({ ok: false, text: 'Αυτός ο κωδικός βρίσκεται σε γνωστή διαρροή δεδομένων. Διάλεξε άλλον.' });
+      setPwMsg({ ok: false, text: PASSWORD_MSG.leaked });
       return;
     }
     if (!checkPassword(newPass).ok) {
-      setPwMsg({ ok: false, text: 'Ο κωδικός δεν πληροί όλες τις προϋποθέσεις ασφαλείας.' });
+      setPwMsg({ ok: false, text: PASSWORD_MSG.weak });
       return;
     }
     if (newPass !== confirm) {
@@ -211,7 +211,7 @@ export default function SecuritySettings() {
     const { error } = await supabase.auth.updateUser({ password: newPass });
     setPwBusy(false);
     if (error) {
-      setPwMsg({ ok: false, text: 'Δεν ήταν δυνατή η αλλαγή. Δοκίμασε ξανά.' });
+      setPwMsg({ ok: false, text: SAY.changeFailed });
       return;
     }
     setNewPass('');

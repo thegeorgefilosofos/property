@@ -18,6 +18,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { ImageResponse } from 'next/og';
 import { BRAND_PATHS, BRAND_VIEWBOX, BRAND_MARK_ON_DARK } from '@/components/BrandMark';
+import { PRODUCT_NAME, PRODUCT_TAGLINE } from '@/lib/core/site';
 
 export const alt = 'PROPERWISE';
 export const size = { width: 1200, height: 630 };
@@ -44,10 +45,10 @@ export default function Image() {
           >
             {BRAND_PATHS.shape.map((d: string) => <path key={d} d={d} />)}
           </svg>
-          <div style={{ fontSize: 76, fontWeight: 800, letterSpacing: '0.01em' }}>PROPERWISE</div>
+          <div style={{ fontSize: 76, fontWeight: 800, letterSpacing: '0.01em' }}>{PRODUCT_NAME}</div>
         </div>
         <div style={{ marginTop: 40, fontSize: 34, lineHeight: 1.45, color: '#9aa0a6', maxWidth: 900 }}>
-          Έσοδα, δαπάνες, ενοικιαστές, φόρος και προθεσμίες για τα ακίνητά σου, σε ένα σημείο.
+          {PRODUCT_TAGLINE}
         </div>
       </div>
     ),
