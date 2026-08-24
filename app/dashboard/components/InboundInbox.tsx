@@ -20,7 +20,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as inbound from '@/lib/data/inbound';
-import { T, TT, Card, SecHdr, Btn, fe, fd, fieldRow } from '@/components/Theme';
+import { T, TT, Card, SecHdr, Btn, fe, fieldRow } from '@/components/Theme';
 import { NumberInput, DatePicker, CustomSelect } from './UIComponents';
 import { expenseTitle } from '@/lib/inbound/parse';
 import { CATEGORIES, BY_SLUG, resolveCategory } from '@/lib/expenses/taxonomy';
@@ -133,7 +133,17 @@ export default function InboundInbox({ propertyId, userId, propertyName, onFiled
           const known = r.amount !== null;
           const learned = hintFor(hints, r.vendor) === r.category;
           const stamp = r.due_date || r.issue_date;
-          const knownDate = !!stamp;
+          // Η ΕΤΙΚΕΤΑ ΚΟΥΒΑΛΑΕΙ ΤΗΝ ΠΡΟΕΛΕΥΣΗ. «Ημερομηνία λήξης» και
+          // «Ημερομηνία έκδοσης» δεν είναι το ίδιο πράγμα για τα βιβλία, και
+          // πριν η διάκριση ζούσε σε ξεχωριστή γραμμή κειμένου.
+          const dateLabel = r.due_date ? 'Ημερομηνία λήξης'
+            : r.issue_date ? 'Ημερομηνία έκδοσης'
+            : 'Ημερομηνία';
+          // ΤΙ ΔΙΑΒΑΣΤΗΚΕ, ΟΤΑΝ Ο ΑΝΘΡΩΠΟΣ ΤΟ ΑΛΛΑΞΕ. Χωρίς αυτό, η διόρθωση
+          // σβήνει το μόνο ίχνος του τι έλεγε το μήνυμα.
+          const readAmount = r.amount === null ? null : Number(r.amount);
+          const amountChanged = readAmount != null && Number.isFinite(amount)
+            && Math.abs(amount - readAmount) > 0.005;
           return (
             <div key={r.id} style={{
               display: 'grid', gap: 10, padding: '12px 14px',
@@ -144,12 +154,6 @@ export default function InboundInbox({ propertyId, userId, propertyName, onFiled
                 <span style={{ ...TT.body, fontWeight: 650, color: 'var(--text-primary)' }}>
                   {r.vendor || r.from_address || 'Άγνωστος αποστολέας'}
                 </span>
-                {known && (
-                  <span style={{
-                    fontFamily: T.font.num, fontSize: 15, fontWeight: 650,
-                    fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)', whiteSpace: 'nowrap',
-                  }}>{fe(Number(r.amount))}</span>
-                )}
               </div>
 
               <div style={{ ...TT.bodySm, color: 'var(--text-secondary)' }}>
@@ -160,10 +164,18 @@ export default function InboundInbox({ propertyId, userId, propertyName, onFiled
                   ήταν πρόταση που για να διορθωθεί ήθελε καταχώρηση, άνοιγμα του
                   καθολικού και δεύτερη φόρμα. Τώρα διορθώνεται εκεί που
                   φαίνεται, και η διόρθωση κρατιέται για την επόμενη φορά. */}
-              <div style={{ ...TT.bodySm, color: 'var(--text-tertiary)' }}>
-                {stamp ? `${r.due_date ? 'Λήξη' : 'Εκδόθηκε'} ${fd(stamp)}` : 'Χωρίς ημερομηνία στο μήνυμα'}
-                {r.attachments > 0 && ` · ${r.attachments === 1 ? 'Ενα συνημμένο' : `${r.attachments} συνημμένα`}`}
-              </div>
+              {/* Η ΗΜΕΡΟΜΗΝΙΑ ΕΦΥΓΕ ΑΠΟ ΕΔΩ ΚΑΙ ΜΠΗΚΕ ΣΤΗΝ ΕΤΙΚΕΤΑ ΤΟΥ ΠΕΔΙΟΥ.
+                  Γραμμένη και στις δύο θέσεις, το ίδιο νούμερο λεγόταν δύο
+                  φορές· η ετικέτα λέει ΤΙ διάβασε το μήνυμα («λήξης» ή
+                  «έκδοσης») και το πεδίο ΤΙ θα γραφτεί. */}
+              {(!stamp || r.attachments > 0) && (
+                <div style={{ ...TT.bodySm, color: 'var(--text-tertiary)' }}>
+                  {[
+                    stamp ? '' : 'Χωρίς ημερομηνία στο μήνυμα',
+                    r.attachments > 0 ? (r.attachments === 1 ? 'Ενα συνημμένο' : `${r.attachments} συνημμένα`) : '',
+                  ].filter(Boolean).join(' · ')}
+                </div>
+              )}
 
               <div style={fieldRow(180)}>
                 <div style={{ minWidth: 0 }}>
@@ -172,13 +184,23 @@ export default function InboundInbox({ propertyId, userId, propertyName, onFiled
                     ariaLabel="Κατηγορία δαπάνης" placeholder="Χωρίς κατηγορία"
                     options={CATEGORIES.map(c => ({ value: c.slug, label: c.label }))} />
                 </div>
-                {!known && (
-                  <NumberInput label="Ποσό" value={draft.amount} suffix="€"
-                    onChange={v => patch(r.id, { amount: v })} placeholder="" step={0.01} />
-                )}
-                {!knownDate && (
-                  <DatePicker label="Ημερομηνία" value={draft.date} onChange={v => patch(r.id, { date: v })} />
-                )}
+                {/* ══════════════════════════════════════════════════════════
+                    ΤΟ ΔΙΑΒΑΣΜΕΝΟ ΠΟΣΟ ΔΕΝ ΕΙΝΑΙ ΟΡΙΣΤΙΚΟ
+
+                    Οταν ο αναγνώστης έβγαζε ποσό, το πεδίο ΔΕΝ αποδιδόταν
+                    καθόλου: το νούμερο τυπωνόταν ως κείμενο στην κεφαλίδα και
+                    δεν υπήρχε τρόπος να διορθωθεί. Ο ιδιοκτήτης που έβλεπε
+                    λάθος ποσό είχε ΜΟΝΟ μία έξοδο, το «Δεν είναι δαπάνη», και
+                    μετά χειροκίνητη καταχώρηση από την αρχή.
+
+                    Και το λάθος ποσό είναι υπαρκτό, όχι θεωρητικό: το ίδιο
+                    αρχείο του αναγνώστη κρατά τέσσερα σχήματα λογαριασμού που
+                    έβγαζαν ημερομηνία, χιλιάδες ή αριθμό λογαριασμού στη θέση
+                    του ποσού. Ο,τι διαβάζει μηχανή, ο άνθρωπος το διορθώνει.
+                    ══════════════════════════════════════════════════════════ */}
+                <NumberInput label="Ποσό" value={draft.amount} suffix="€"
+                  onChange={v => patch(r.id, { amount: v })} placeholder="" step={0.01} />
+                <DatePicker label={dateLabel} value={draft.date} onChange={v => patch(r.id, { date: v })} />
               </div>
 
               {/* ΤΟ ΓΙΑΤΙ, ΟΤΑΝ Η ΚΑΤΗΓΟΡΙΑ ΔΕΝ ΒΓΗΚΕ ΑΠΟ ΤΟ ΚΕΙΜΕΝΟ. Μια
@@ -192,7 +214,13 @@ export default function InboundInbox({ propertyId, userId, propertyName, onFiled
 
               {!known && (
                 <div style={{ ...TT.bodySm, color: 'var(--text-tertiary)' }}>
-                  Το ποσό δεν διαβάστηκε από το μήνυμα. Συμπλήρωσέ το από τον λογαριασμό.
+                  Το ποσό δεν διαβάστηκε από το μήνυμα. Συμπληρώνεται από τον λογαριασμό.
+                </div>
+              )}
+
+              {amountChanged && (
+                <div style={{ ...TT.bodySm, color: 'var(--text-tertiary)' }}>
+                  Από το μήνυμα διαβάστηκε {fe(readAmount!)}. Καταχωρείται ό,τι γράφει το πεδίο.
                 </div>
               )}
 
