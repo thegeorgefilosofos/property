@@ -1,0 +1,6 @@
+Το θέμα (subject) που συνοδεύει κάθε πρότυπο στο Supabase.
+Παράγονται από το scripts/build-auth-templates.ts. Μην τα γράψεις με το χέρι.
+
+confirm-signup.html    Επιβεβαίωσε τη διεύθυνσή σου
+reset-password.html    Επαναφορά κωδικού
+change-email.html      Επιβεβαίωσε τη νέα σου διεύθυνση

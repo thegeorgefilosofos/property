@@ -74,6 +74,15 @@ export const MUTATIONS = {
   // πραγματικός, είναι χρονόμετρο που καλεί συνάρτηση κλειδωμένη με JWT: εκεί
   // όλα φαίνονται σωστά και τίποτα δεν τρέχει ποτέ.
   'cron-reachable': { add: 'supabase/migrations/29990101000000_mut.sql', content: "do $$ begin\n  perform cron.schedule('mut-probe', '0 4 * * *', $cron$\n    select net.http_post(url := 'https://x/functions/v1/smart-suggestions');\n  $cron$);\nend $$;\n" },
+  // Η ΜΕΤΑΛΛΑΞΗ ΧΤΥΠΑΕΙ ΤΟ ΚΕΛΥΦΟΣ, ΟΧΙ ΤΟ ΠΑΡΑΓΟΜΕΝΟ. Μια αλλαγή στο
+  // παραγόμενο αρχείο είναι το προφανές· η αλλαγή που ΞΕΦΕΥΓΕΙ στην πράξη
+  // είναι μια αλλαγή χρώματος στο κοινό κέλυφος, που αφήνει τα τρία πρότυπα
+  // να λένε το παλιό χωρίς να το δει κανείς.
+  'auth-templates': {
+    file: 'supabase/functions/_shared/emailTemplates.ts',
+    from: "const ACCENT = '#1a73e8'",
+    to: "const ACCENT = '#0b57d0'",
+  },
   'http-bridge': { add: 'supabase/migrations/29990101000000_mut.sql', content: 'create or replace function public.mut_probe_call() returns void language sql as $$ select net.http_post(url => \'https://x\') $$;\ngrant execute on function public.mut_probe_call() to authenticated;\n' },
   'sql-types': { add: 'supabase/migrations/29990101000000_mut.sql', content: 'create or replace function public.mut_probe() returns void language plpgsql as $$\ndeclare v_row record;\nbegin\n  for v_row in select * from public.bills loop\n    if v_row.property_id = some_text then null; end if;\n  end loop;\nend $$;\n' },
   'service-role': { add: 'components/__mut__.ts', content: "export const key = process.env.SUPABASE_SERVICE_ROLE_KEY\n" },
