@@ -10,7 +10,7 @@ import { useBillsSettings } from './BillsSettings';
 import { usePropertyHeating } from './usePropertyHeating';
 import { usesGas } from '@/lib/property/heating';
 import { T, fe, feRate, Spinner, fixedCols } from '@/components/Theme';
-import { RAAEY_COMPARE } from '@/lib/energy/freshness';
+import { RAAEY_COMPARE, RAAEY_NAME } from '@/lib/energy/freshness';
 import { saved } from '@/components/dbWrite';
 import { athensToday } from '@/lib/core/time';
 
@@ -586,7 +586,7 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
         </div>
         <a href={RAAEY_COMPARE} target="_blank" rel="noopener noreferrer"
           style={{ display: 'inline-block', marginTop: 14, fontSize: 11, fontWeight: 600, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.pill, padding: '8px 18px', textDecoration: 'none' }}>
-          Επίσημη σύγκριση τιμών <span title="Ρυθμιστική Αρχή Αποβλήτων, Ενέργειας και Υδάτων">ΡΑΑΕΥ</span> στο gov.gr
+          Επίσημη σύγκριση τιμών <span title={RAAEY_NAME}>ΡΑΑΕΥ</span> στο gov.gr
         </a>
       </div>
     </div>

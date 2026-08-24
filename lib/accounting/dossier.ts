@@ -29,6 +29,7 @@
 
 import { readStatus, type PropertyStatus, type StatusRow } from '@/lib/property/status';
 import { type AadeAction } from '@/lib/tax/aade';
+import { LEASE_DECLARATION_NAME } from '@/lib/tax/leaseDeclaration';
 
 /** Ποιος φέρνει το κάθε πράγμα. Το σημαντικότερο πεδίο του αρχείου. */
 export type Who =
@@ -196,7 +197,7 @@ const BY_STATUS: Record<PropertyStatus, Requirement[]> = {
     {
       id: 'lease_declaration',
       aade: 'lease',
-      title: 'Δήλωση Πληροφοριακών Στοιχείων Μίσθωσης',
+      title: LEASE_DECLARATION_NAME,
       why: 'Πρέπει να έχει υποβληθεί όταν έγινε η μίσθωση, όχι τώρα.',
       who: 'owner',
       source: 'myAADE',

@@ -22,7 +22,7 @@ import type { Metadata } from 'next';
 import { T } from '@/components/tokens';
 import { siteUrl } from '@/lib/core/site';
 import { athensToday } from '@/lib/core/time';
-import { PublicHeader, PublicFooter, SectionHead, WRAP, WRAP_PAD } from '../PublicChrome';
+import { PublicHeader, PublicFooter, SectionHead, ToolLede, WRAP, WRAP_PAD } from '../PublicChrome';
 import { BackLink } from '../BackLink';
 import { ShortVsLongCalculator } from './ShortVsLongCalculator';
 
@@ -151,19 +151,7 @@ export default function Page() {
         {/* Ίδια δομή με τους δύο αδελφούς υπολογιστές: η υπόσχεση κλείνει με την
             άνω τελεία της, η εγγύηση απορρήτου πιάνει δική της σειρά, και η
             υποσημείωση ακολουθεί με αστερίσκο, σε δική της σειρά. */}
-        <p className="po-tool-lede" style={{ fontSize: 'clamp(15px,2vw,17px)', lineHeight: 1.6,
-          color: 'var(--text-secondary)', margin: '0 0 clamp(26px,3.5vw,36px)', textWrap: 'pretty' }}>
-          <span style={{ display: 'block' }}>Με το τέλος ανθεκτικότητας, την προμήθεια, τα λειτουργικά και τον φόρο του 2026. Χωρίς εγγραφή και χωρίς email:</span>
-          ο υπολογισμός γίνεται στη συσκευή σου και μένει εκεί.
-          {/* Η ΥΠΟΣΗΜΕΙΩΣΗ ΠΑΙΡΝΕΙ ΔΙΚΗ ΤΗΣ ΣΕΙΡΑ. Ενσωματωμένη στο τέλος της
-              παραγράφου χωρούσε μόνο στα 1280: μετρημένο σε 768 και σε 390,
-              έσπαγε σε δύο κομμάτια και άφηνε το «το PROPERWISE.» ορφανό στην
-              αριστερή άκρη μιας δικής του γραμμής. Ως μπλοκ διαβάζεται ίδια σε
-              κάθε πλάτος, και το κενό των 14 που κρεμόταν στη μέση φεύγει. */}
-          <span style={{ display: 'block', marginTop: 8, fontSize: 12, color: 'var(--text-tertiary)' }}>
-            *Οι ίδιοι υπολογισμοί που τρέχει το PROPERWISE.
-          </span>
-        </p>
+        <ToolLede>Με το τέλος ανθεκτικότητας, την προμήθεια, τα λειτουργικά και τον φόρο του 2026.</ToolLede>
 
         {/* Ο υπολογιστής διαβάζει τη διεύθυνση, άρα θέλει όριο αναμονής: χωρίς
             αυτό, ολόκληρη η σελίδα θα έβγαινε από τη στατική απόδοση και θα

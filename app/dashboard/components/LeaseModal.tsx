@@ -10,6 +10,7 @@
 // Η νομική λογική (διάρκεια, λήξη, ελάχιστη τριετία, προθεσμία δήλωσης, όροι)
 // ζει καθαρή και δοκιμασμένη στο lib/documents/lease.ts.
 // ═══════════════════════════════════════════════════════════════════════════
+import { LEASE_DECLARATION_NAME } from '@/lib/tax/leaseDeclaration';
 import { useEffect, useMemo, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import * as properties from '@/lib/data/properties';
@@ -365,7 +366,7 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '11px 13px', borderRadius: T.radius.inner, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
                 <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55, fontFamily: T.font.sans }}>
-                  Μετά την υπογραφή, υπόβαλε τη <strong style={{ color: 'var(--text-primary)' }}>Δήλωση Πληροφοριακών Στοιχείων Μίσθωσης</strong> στο <a href={MYAADE} target="_blank" rel="noreferrer" title={aadeTitle('lease')} style={{ color: 'var(--accent)', textDecoration: 'none' }}>myAADE</a>, έως {grDate(res.declarationDeadline)}.
+                  Μετά την υπογραφή, υπόβαλε τη <strong style={{ color: 'var(--text-primary)' }}>{LEASE_DECLARATION_NAME}</strong> στο <a href={MYAADE} target="_blank" rel="noreferrer" title={aadeTitle('lease')} style={{ color: 'var(--accent)', textDecoration: 'none' }}>myAADE</a>, έως {grDate(res.declarationDeadline)}.
                 </div>
               </div>
 

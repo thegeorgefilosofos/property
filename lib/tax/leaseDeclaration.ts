@@ -230,7 +230,16 @@ export function buildLeaseDeclaration(input: LeaseDeclarationInput): LeaseDeclar
 }
 
 /** Κείμενο για αντιγραφή/εκτύπωση, στη σειρά της φόρμας του myAADE. */
-export function declarationSheet(d: LeaseDeclaration, title = 'Δήλωση Πληροφοριακών Στοιχείων Μίσθωσης'): string {
+/**
+ * ΤΟ ΕΠΙΣΗΜΟ ΟΝΟΜΑ ΤΟΥ ΕΝΤΥΠΟΥ, ΟΠΩΣ ΤΟ ΛΕΕΙ Η ΑΑΔΕ.
+ *
+ * Γραμμένο τρεις φορές: στην προθεσμία που δείχνει το μισθωτήριο, στον τίτλο
+ * του φύλλου, και στο ευρετήριο του φακέλου για τον λογιστή. Το ίδιο έντυπο
+ * πρέπει να λέγεται το ίδιο και στα τρία, γιατί ο λογιστής τα διαβάζει μαζί.
+ */
+export const LEASE_DECLARATION_NAME = 'Δήλωση Πληροφοριακών Στοιχείων Μίσθωσης';
+
+export function declarationSheet(d: LeaseDeclaration, title = LEASE_DECLARATION_NAME): string {
   const w = Math.max(...d.fields.map(f => f.label.length));
   const lines = d.fields
     .filter(f => f.value)
