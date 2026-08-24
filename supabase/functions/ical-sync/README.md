@@ -25,8 +25,8 @@ supabase secrets set ICAL_CRON_SECRET="<τυχαίο-μακρύ-μυστικό>"
 supabase functions deploy ical-sync --no-verify-jwt
 ```
 
-Το πίνακα `ical_feeds` τον δημιουργεί το `SETUP_ALL.sql` (ή το migration
-`20260708180000_ical_feeds.sql`).
+Το πίνακα `ical_feeds` τον δημιουργεί το migration
+`20260708180000_ical_feeds.sql`.
 
 ## Προαιρετικό: αυτόματος καθημερινός συγχρονισμός (pg_cron + pg_net)
 

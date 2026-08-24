@@ -290,7 +290,7 @@ Deno.serve(async (req) => {
     //
     // CADENCE + CAP GUARANTEE: at most `dunning_max` notices per instalment, spaced
     // ≥ `dunning_every_days` days, escalating tone; disabled when dunning_enabled=false.
-    // Το notification_log ΔΕΝ ορίζεται στο SETUP_ALL.sql/migrations και χρησιμοποιείται
+    // Το notification_log ΔΕΝ ορίζεται σε καμία μετανάστευση και χρησιμοποιείται
     // πολυμορφικά (π.χ. ο market-data-updater γράφει rows χωρίς event_id), άρα το event_id
     // είναι απλό nullable uuid ΧΩΡΙΣ foreign key προς calendar_events. Επομένως αποθηκεύουμε
     // το rent_payment id στο event_id με reminder_type='rent_overdue' και κάνουμε escalation

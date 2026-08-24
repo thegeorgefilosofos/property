@@ -179,7 +179,6 @@ body {
   --negative-on-container: color-mix(in srgb, var(--negative) 90%, #000000);
   --warning-on-container:  color-mix(in srgb, var(--warning)  90%, #000000);
   --info:          #2f58cc;   /* indigo-blue, στην οικογένεια του accent */
-  --info-dim:      color-mix(in srgb, var(--info) 12%, transparent);
 
   /* ΟΙ ΣΗΜΑΣΙΟΛΟΓΙΚΟΙ ΤΟΝΟΙ ΜΕΤΑΚΟΜΙΣΑΝ ΣΤΟ ΜΠΛΟΚ ΒΑΣΗΣ (πιο κάτω).
      Ήταν ΕΔΩ, δηλαδή μόνο μέσα στο `:root[data-mode="light"]` — και το σκούρο
@@ -335,7 +334,6 @@ body {
   --warning-dim:   color-mix(in srgb, var(--warning) 15%, transparent);
   /* Βλ. σχόλιο στο φωτεινό: εδώ το μελάνι του σήματος ανοίγει αντί να βαθαίνει. */
   --info:          #97abf5;   /* soft indigo */
-  --info-dim:      color-mix(in srgb, var(--info) 15%, transparent);
   /* Βλ. σχόλιο στο φωτεινό: ίδιες αποχρώσεις, στην κλίμακα του σκούρου θέματος. */
   --ch-airbnb:  #e59a95;
   --ch-booking: #8fc0e8;
@@ -598,12 +596,6 @@ body {
 }
 .card:hover { box-shadow: var(--highlight-inset-strong), var(--elev-2); border-color: var(--border-default); }
 
-/* Πτυσσόμενες κάρτες εργαλείων στην Επισκόπηση: διακριτικό 3D lift ΜΟΝΟ όταν
-   είναι κλειστές (χωρίς υπερβολές· ανοιχτές μένουν σταθερές για ανάγνωση). */
-.tool-card { transition: box-shadow .18s ease, transform .18s ease, border-color .18s ease; }
-.tool-card:not(.tool-card--open):hover { transform: translateY(-2px); box-shadow: var(--highlight-inset-strong), var(--elev-3); border-color: var(--border-default); }
-@media (prefers-reduced-motion: reduce) { .tool-card:hover { transform: none; } }
-
 /* Κάρτα πελάτη (Πελατολόγιο) — ανυψωμένη, κλικαρίσιμη επιφάνεια με βάθος 3D.
    Ίδια αισθητική/tokens με τη γενική .card· hover/focus ανεβάζουν το επίπεδο και
    αποκαλύπτουν τις ενέργειες (.client-card-act). Δουλεύει σε light + dark. */
@@ -628,8 +620,10 @@ body {
 .client-card:has(.client-card-act button:focus-visible) .client-card-act { opacity: 1; }
 /* ΧΩΡΙΣ hover ΔΕΝ ΥΠΑΡΧΕΙ «ΑΠΟΚΑΛΥΨΗ», ΥΠΑΡΧΕΙ ΜΟΝΟ ΑΠΟΥΣΙΑ. Στο δάχτυλο ούτε
    το :hover ούτε το :focus-visible πυροδοτούνται από ένα απλό πάτημα, οπότε οι
-   ενέργειες της κάρτας πελάτη ήταν αόρατες σε κάθε χρήστη κινητού. Το ίδιο
-   αρχείο ήξερε ήδη τη λύση: βλ. .po-onbstep-chev πιο κάτω. */
+   ενέργειες της κάρτας πελάτη ήταν αόρατες σε κάθε χρήστη κινητού. Η λύση
+   είναι η ίδια που έλυνε και το βελάκι των βημάτων onboarding, πριν εκείνο
+   αφαιρεθεί ως νεκρός κανόνας: σε συσκευή χωρίς hover, ό,τι αποκαλύπτεται
+   είναι εξαρχής ορατό. */
 @media (hover: none) { .client-card-act { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .client-card:hover { transform: none; } }
 
@@ -762,18 +756,6 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
 .po-fig-card:focus, .kpi-card:focus { outline: none; }
 .po-fig-card:focus-visible, .kpi-card:focus-visible { outline: 2px solid var(--border-accent); outline-offset: 2px; border-radius: 12px; }
 
-/* Βήματα onboarding: ζωντανές, 3D κάρτες. Το βελάκι είναι ουδέτερο και εμφανίζεται
-   με κίνηση μόνο όταν ο κέρσορας/δάχτυλο πλησιάσει (hover/focus) — «αντιδρά». */
-.po-onbstep { box-shadow: 0 1px 2px color-mix(in srgb, var(--text-primary) 6%, transparent); transition: transform 0.16s cubic-bezier(0.2,0,0,1), box-shadow 0.16s cubic-bezier(0.2,0,0,1), border-color 0.16s; }
-.po-onbstep[data-done="false"]:hover, .po-onbstep[data-done="false"]:focus-visible { transform: translateY(-2px); box-shadow: 0 10px 22px -12px color-mix(in srgb, var(--text-primary) 45%, transparent); border-color: var(--border-default); }
-.po-onbstep[data-done="false"]:active { transform: translateY(0) scale(0.995); }
-.po-onbstep-chev { color: var(--text-tertiary); opacity: 0; transform: translateX(-5px); transition: opacity 0.16s cubic-bezier(0.2,0,0,1), transform 0.16s cubic-bezier(0.2,0,0,1); }
-.po-onbstep:hover .po-onbstep-chev, .po-onbstep:focus-visible .po-onbstep-chev { opacity: 1; transform: translateX(0); }
-@media (hover: none) { .po-onbstep-chev { opacity: 0.5; transform: none; } }
-
-/* 3D, «ζωντανό» κουτί: ανασηκώνεται και βαθαίνει στο hover/focus — αντιδρά. */
-.po-lift { transition: transform 0.16s cubic-bezier(0.2,0,0,1), box-shadow 0.16s cubic-bezier(0.2,0,0,1); }
-.po-lift:hover, .po-lift:focus-visible { transform: translateY(-2px); box-shadow: var(--highlight-inset), 0 14px 28px -16px color-mix(in srgb, var(--text-primary) 55%, transparent); }
 .kpi-label {
   font-family: 'Inter', sans-serif;
   font-size: 10px;
@@ -1070,15 +1052,6 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
 
 /* ── Ετικέτες ενοτήτων ──────────────────────────────────────────────────── */
 .sidebar-section { padding: 4px 0; }
-.sidebar-section-label {
-  font-family: 'Inter', sans-serif;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-  padding: 10px var(--rail-x) 4px;
-}
 /* ΑΦΑΙΡΕΘΗΚΑΝ: .sidebar-section-header, .sidebar-section-chevron και
    .sidebar-section-badge — οι πτυσσόμενες ομάδες. Ο λόγος είναι γραμμένος στο
    NAV_GROUPS του page.tsx και είναι μετρημένος: το έμβλημα δεν εμφανίστηκε
@@ -1211,24 +1184,6 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
 .sign-out-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
 .sign-out-btn svg { width: 17px; height: 17px; }
 
-/* ── Google Theme Switcher (Light/Dark only) ── */
-.theme-switcher {
-  display: flex; align-items: center; gap: 4px;
-  padding: 4px;
-  background: var(--bg-elevated);
-  border-radius: 18px;
-  border: 1px solid var(--border-default);
-}
-.theme-dot {
-  width: 20px; height: 20px;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s, opacity 0.2s;
-  border: 2px solid transparent;
-  position: relative;
-}
-.theme-dot.active { border-color: var(--accent); transform: scale(1.2); }
-/* Only 1 dot needed for Google — just light/dark toggle */
 .mode-btn {
   width: 40px; height: 40px;
   border-radius: 18px;
@@ -1494,67 +1449,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
    Ρυθμίσεις, από ένα σημείο.
 ══════════════════════════════════════════════════════════════ */
 
-/* ══════════════════════════════════════════════════════════════
-   PROPERTY OS — Semantic tokens aligned with Google palette
-   Used for status indicators throughout the app
-══════════════════════════════════════════════════════════════ */
-:root[data-mode="light"] {
-  /* Status colors — Google-aligned */
-  --status-rented:       #188038;   /* Google green — occupied/earning */
-  --status-rented-bg:    #ceead6;
-  --status-vacant:       #e37400;   /* Google amber — needs action */
-  --status-vacant-bg:    #fef0cd;
-  --status-renovation:   #1967D2;   /* Google blue — in progress */
-  --status-renovation-bg:#d2e3fc;
-  --status-for-sale:     #c5221f;   /* Google red — alert */
-  --status-for-sale-bg:  #fce8e6;
-  --status-own-use:      #5f6368;   /* Google grey — neutral */
-  --status-own-use-bg:   #e8eaed;
-
-  /* Priority colors — Google-aligned */
-  --priority-critical:   #c5221f;
-  --priority-critical-bg:#fce8e6;
-  --priority-high:       #e37400;
-  --priority-high-bg:    #fef0cd;
-  --priority-normal:     #1967D2;
-  --priority-normal-bg:  #d2e3fc;
-  --priority-low:        #5f6368;
-  --priority-low-bg:     #e8eaed;
-
-  /* Financial — Google green for positive, red for negative */
-  --fin-positive:        #188038;
-  --fin-positive-bg:     #ceead6;
-  --fin-negative:        #c5221f;
-  --fin-negative-bg:     #fce8e6;
-  --fin-neutral:         #5f6368;
-}
-
-:root,
-[data-mode="dark"] {
-  --status-rented:       #81c995;
-  --status-rented-bg:    rgba(129,201,149,0.15);
-  --status-vacant:       #fdd663;
-  --status-vacant-bg:    rgba(253,214,99,0.15);
-  --status-renovation:   #aecbfa;
-  --status-renovation-bg:rgba(174,203,250,0.15);
-  --status-for-sale:     #f28b82;
-  --status-for-sale-bg:  rgba(242,139,130,0.15);
-  --status-own-use:      #9aa0a6;
-  --status-own-use-bg:   rgba(154,160,166,0.12);
-  --priority-critical:   #f28b82;
-  --priority-critical-bg:rgba(242,139,130,0.15);
-  --priority-high:       #fdd663;
-  --priority-high-bg:    rgba(253,214,99,0.15);
-  --priority-normal:     #aecbfa;
-  --priority-normal-bg:  rgba(174,203,250,0.15);
-  --priority-low:        #9aa0a6;
-  --priority-low-bg:     rgba(154,160,166,0.12);
-  --fin-positive:        #81c995;
-  --fin-positive-bg:     rgba(129,201,149,0.15);
-  --fin-negative:        #f28b82;
-  --fin-negative-bg:     rgba(242,139,130,0.15);
-  --fin-neutral:         #9aa0a6;
-}
 /* ══════════════════════════════════════════════════════════════════════════
    RESPONSIVE / MOBILE — Το app γίνεται πλήρως εύχρηστο σε κινητό & tablet.
    Στρατηγική:

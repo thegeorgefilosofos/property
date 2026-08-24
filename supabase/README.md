@@ -2,7 +2,7 @@
 
 PropertyOS runs on **Supabase**: PostgreSQL with Row-Level Security, Auth, Storage,
 and Deno Edge Functions, plus `pg_cron` + `pg_net` for scheduled work. The schema is
-**≈70 tables** (all in `public`), each with RLS enabled, owned by Supabase
+**82 tables** (all in `public`), each with RLS enabled, owned by Supabase
 `auth.users`.
 
 This document is the map. The authority is the SQL:
@@ -10,16 +10,21 @@ This document is the map. The authority is the SQL:
 - **`migrations/`** — schema as code, one migration per change, applied by CI
   (`.github/workflows/supabase-deploy.yml`). This is the source of truth for change
   management.
-- **`SETUP_ALL.sql`** — the same schema as a single **idempotent** script (safe to
-  run any number of times). It is the one-shot bootstrap for a brand-new project via
-  the SQL editor; every statement is `… if not exists` / `drop policy if exists`.
 - **`functions/`** — edge functions (Deno) and the `_shared` domain modules they import.
 
 > Reproducibility note: a fresh environment rebuilds **entirely from `migrations/`** —
 > the history is squashed into a production-schema baseline (`00000000000000_baseline.sql`
 > + storage/scheduling companions) and validated from scratch on the staging project on
-> every feature-branch push. `SETUP_ALL.sql` is a legacy convenience snapshot and is **not**
-> the source of truth (see `../docs/infra/acquisition-readiness.md`).
+> every feature-branch push (see `../docs/infra/acquisition-readiness.md`).
+>
+> There used to be a second path documented here: `SETUP_ALL.sql`, described in this
+> file as "the one-shot bootstrap for a brand-new project via the SQL editor". The file
+> itself opened with a DEPRECATED banner saying the opposite — do not run this by hand,
+> it will diverge from the migration history — and it carried 44 of the 82 tables, so
+> following this README would have produced a half-built database. It is deleted, along
+> with `PENDING_MIGRATIONS.sql`: 696 lines warning that four migrations were unapplied
+> when all four had already shipped, with copy-paste instructions that would have
+> desynced production. Two files gone, one instruction left: `supabase db push`.
 
 ## Entity overview (ERD)
 

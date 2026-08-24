@@ -97,7 +97,3 @@ export function makeFakeDb(respond: Responder = () => undefined) {
     calls,
   };
 }
-
-/** Ο,τι γράφτηκε σε έναν πίνακα, με τη σειρά που ζητήθηκε. */
-export const writesTo = (calls: readonly DbCall[], table: string) =>
-  calls.filter(c => c.table === table && c.op !== 'select');

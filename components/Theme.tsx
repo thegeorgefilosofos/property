@@ -8,7 +8,7 @@
 // Αποδόσεις, Δάνειο, Απογραφή, Checklist, Επαφές) να τα εισάγουν από εδώ.
 //
 // Χρήση σε οποιοδήποτε tab:
-//   import { T, fe, Card, SecHdr, KPIGrid, Badge, InfoBanner, StatRow } from '@/components/Theme';
+//   import { T, fe, Card, SecHdr, KPIGrid, Badge, InfoBanner } from '@/components/Theme';
 //
 // Πηγή αλήθειας για τα tokens (χρώματα/κενά/ακτίνες) είναι το app/globals.css
 // (Google Material Design 3). Εδώ δεν ορίζουμε χρώματα, μόνο τα καταναλώνουμε
@@ -500,38 +500,6 @@ export function InfoBanner({ children, tone = 'info' }: { children: ReactNode; t
     <div style={{ background: tv.bg, border: `1px solid ${tv.border}`, borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 10, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
       <div style={{ width: 6, height: 6, borderRadius: '50%', background: tv.color, flexShrink: 0, marginTop: 6 }}/>
       <div style={{ flex: 1, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.6 }}>{children}</div>
-    </div>
-  );
-}
-
-// ═══ StatRow, γραμμή «ετικέτα ... ποσό» με μπάρα αναλογίας (σύνοψη) ═══════
-export function StatRow({ label, amount, total, annual }: { label: string; amount: number; total: number; annual?: boolean }) {
-  const pct = total > 0 ? (amount / total) * 100 : 0;
-  return (
-    <div style={{ marginBottom: 12 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-        <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{label}</span>
-        <div>
-          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(amount)} / μήνα</span>
-          {annual !== false && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 12, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(amount * 12)} / έτος</span>}
-        </div>
-      </div>
-      <div style={{ height: 4, background: 'var(--bg-overlay)', borderRadius: 3, overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${Math.min(pct, 100)}%`, background: 'var(--accent)', borderRadius: 3, transition: 'width 0.25s cubic-bezier(0.2,0,0,1)' }}/>
-      </div>
-    </div>
-  );
-}
-
-// ═══ TotalRow, η τελική γραμμή συνόλου με τη διπλή διαχωριστική ═══════════
-export function TotalRow({ label, monthly }: { label: string; monthly: number }) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderTop: '2px solid var(--border-subtle)', marginTop: 8 }}>
-      <span style={{ fontSize: 13, fontWeight: 700, fontFamily: T.font.sans, color: 'var(--text-primary)' }}>{label}</span>
-      <div style={{ textAlign: 'right' as const }}>
-        <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(monthly)} / μήνα</div>
-        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(monthly * 12)} / έτος</div>
-      </div>
     </div>
   );
 }
