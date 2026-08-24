@@ -26,6 +26,7 @@ import { checkoutIsLive } from '@/lib/billing/lemonCheckout';
 import { API_KEY_ENV } from '@/lib/billing/lemonApi';
 import { subscriptionState, cancelSubscription, needsCancelling } from '@/lib/billing/lemonPlanChange';
 import * as billing from '@/lib/data/billing';
+import { sweepOwnFiles } from '@/lib/storage/accountSweep';
 
 export async function POST() {
   const supabase = await createClient();
@@ -59,6 +60,18 @@ export async function POST() {
     }
   }
 
+  // ── ΜΕΤΑ ΤΑ ΑΡΧΕΙΑ, ΟΣΟ Ο ΧΡΗΣΤΗΣ ΕΧΕΙ ΑΚΟΜΗ ΔΙΚΑΙΩΜΑ ΣΕ ΑΥΤΑ ────────
+  // Η βάση ΔΕΝ μπορεί να τα σβήσει: η Supabase απαγορεύει τη διαγραφή
+  // κατευθείαν από τους πίνακες αποθήκευσης (42501) και η προσπάθεια άφηνε
+  // ΚΑΘΕ αρχείο πίσω. Και η σειρά είναι υποχρεωτική: οι πολιτικές των κάδων
+  // `inventory-docs` και `maintenance-photos` ρωτούν τα `user_properties` και
+  // τα `portal_links`, που η διαγραφή παρακάτω αδειάζει.
+  //
+  // Μια αποτυχία εδώ ΔΕΝ σταματά τη διαγραφή: απέναντι στέκει το δικαίωμα
+  // διαγραφής. Οσα μείνουν τα μετρά η `delete_my_account` και τα λέει η οθόνη.
+  const sweep = await sweepOwnFiles(supabase);
+  if (sweep.error) console.info(`[delete] ${sweep.failed} αρχεία δεν σβήστηκαν:`, sweep.error);
+
   // ── ΚΑΙ ΜΕΤΑ Ο ΛΟΓΑΡΙΑΣΜΟΣ ────────────────────────────────────────────
   // Με τη ΣΥΝΕΔΡΙΑ του χρήστη και όχι με ρόλο υπηρεσίας: η `delete_my_account`
   // διαβάζει το `auth.uid()` και σβήνει ΜΟΝΟ τον εαυτό του. Ο ρόλος υπηρεσίας
@@ -70,7 +83,7 @@ export async function POST() {
     return NextResponse.json({ error: 'Ο λογαριασμός δεν διαγράφηκε. Δοκίμασε ξανά σε λίγο.' }, { status: 502 });
   }
 
-  // Ο απολογισμός περνά αυτούσιος: η οθόνη λέει τι έμεινε πίσω στον
-  // αποθηκευτικό χώρο, και αυτό το ξέρει μόνο η συνάρτηση της βάσης.
-  return NextResponse.json(data ?? { ok: true });
+  // Ο απολογισμός της βάσης λέει τι ΕΜΕΙΝΕ, γιατί μόνο εκείνη μπορεί να το
+  // μετρήσει· το πόσα έφυγαν το ξέρει μόνο ο σαρωτής εδώ.
+  return NextResponse.json({ ...(data ?? { ok: true }), files_deleted: sweep.deleted });
 }

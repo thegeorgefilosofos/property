@@ -1,39 +1,41 @@
 // Ο απολογισμός της διαγραφής λογαριασμού: πότε σταματά ο χρήστης και τι διαβάζει.
 import { strict as assert } from 'node:assert'
-import { shouldStop, somethingLeft, leftoverText } from './deletionReport'
+import { shouldStop, queued, leftoverText } from './deletionReport'
 
 const fn = (n: number) => String(n)
 
 // ── ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΓΕΝΝΗΣΕ ΤΟ ΑΡΧΕΙΟ ───────────────────────────────────────
-// Λογαριασμός χωρίς κανένα αρχείο. Η διαγραφή του αποθηκευτικού χώρου σήκωσε
-// εξαίρεση, άρα `ok:false`, αλλά πίσω δεν έμεινε τίποτα. Η οθόνη σταματούσε
-// τον χρήστη με «Δεν διαγράφηκαν 0 αρχεία».
-assert.equal(shouldStop({ ok: false, files_left: 0 }), false, 'μηδέν αρχεία δεν σταματούν κανέναν')
-assert.equal(somethingLeft({ ok: false, files_left: 0 }), false)
+// Καθαρή διαγραφή: η διαδρομή έσβησε ό,τι υπήρχε, τίποτα δεν μπήκε στην ουρά.
+// Η οθόνη σταματούσε τον χρήστη με «Δεν διαγράφηκαν 0 αρχεία».
+assert.equal(shouldStop({ ok: true, files_queued: 0, files_deleted: 4 }), false, 'μηδέν στην ουρά δεν σταματά κανέναν')
+assert.equal(shouldStop({ ok: true, files_queued: 0 }), false)
+assert.equal(queued({ ok: true, files_queued: 0 }), false)
 
-// Εμεινε πραγματικά κάτι πίσω: εκεί ΠΡΕΠΕΙ να σταματήσει.
-assert.equal(shouldStop({ ok: false, files_left: 1 }), true)
-assert.equal(shouldStop({ ok: false, files_left: 12 }), true)
+// Λογαριασμός χωρίς κανένα αρχείο.
+assert.equal(shouldStop({ ok: true, files_queued: 0, files_deleted: 0 }), false)
 
-// Δεν μετρήθηκε καν. «Δεν ξέρω» δεν είναι «όχι».
-assert.equal(shouldStop({ ok: false, files_left: null }), true)
-assert.equal(shouldStop({ ok: false }), true)
+// ── ΟΤΑΝ ΚΑΤΙ ΜΠΗΚΕ ΣΤΗΝ ΟΥΡΑ, ΤΟ ΛΕΕΙ ────────────────────────────────────
+assert.equal(shouldStop({ ok: true, files_queued: 1 }), true)
+assert.equal(shouldStop({ ok: true, files_queued: 12 }), true)
 
-// Καθαρή διαγραφή: καμία στάση, ό,τι κι αν λέει η μέτρηση.
-assert.equal(shouldStop({ ok: true, files_left: 0 }), false)
-assert.equal(shouldStop({ ok: true }), false)
+// ── ΟΤΑΝ Η ΒΑΣΗ ΔΕΝ ΕΙΔΕ ΚΑΝ ΤΑ ΑΡΧΕΙΑ ────────────────────────────────────
+// «Δεν ξέρω» δεν είναι «όχι»: εδώ ο άνθρωπος πρέπει να το μάθει.
+assert.equal(shouldStop({ ok: false, files_queued: 0 }), true)
+assert.equal(shouldStop({ files_queued: null }), true)
+assert.equal(shouldStop({}), true, 'απολογισμός χωρίς μέτρηση δεν περνά για καθαρός')
 
 // ── ΤΑ ΛΕΚΤΙΚΑ ─────────────────────────────────────────────────────────────
 assert.equal(
-  leftoverText(1, fn),
-  'Ο λογαριασμός και τα δεδομένα σου διαγράφηκαν. Δεν διαγράφηκαν 1 αρχείο από τον αποθηκευτικό χώρο. Το περιστατικό καταγράφηκε.',
+  leftoverText({ ok: true, files_queued: 1 }, fn),
+  'Ο λογαριασμός και τα δεδομένα σου διαγράφηκαν. 1 αρχείο σβήνονται μέσα στα επόμενα λεπτά.',
 )
-assert.match(leftoverText(4, fn), /Δεν διαγράφηκαν 4 αρχεία/)
-assert.match(leftoverText(null, fn), /δεν επιβεβαιώθηκε/)
+assert.match(leftoverText({ ok: true, files_queued: 4 }, fn), /4 αρχεία σβήνονται/)
+assert.match(leftoverText({ ok: false }, fn), /δεν επιβεβαιώθηκε/)
+assert.match(leftoverText({ files_queued: null }, fn), /δεν μετρήθηκε/)
 
 // Καμία διαδρομή δεν επιτρέπεται να ανακοινώσει μηδενικό πλήθος: το «0 αρχεία»
 // είναι η ίδια η παρανόηση που διορθώθηκε.
-for (const r of [{ ok: false, files_left: 0 }, { ok: true, files_left: 0 }])
+for (const r of [{ ok: true, files_queued: 0 }, { ok: true, files_queued: 0, files_deleted: 9 }])
   assert.equal(shouldStop(r), false, 'κανένα κείμενο με μηδενικό πλήθος δεν φτάνει στην οθόνη')
 
 console.log('✓ ο απολογισμός διαγραφής σταματά τον χρήστη μόνο όταν τον αφορά')
