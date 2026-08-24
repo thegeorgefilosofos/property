@@ -29,7 +29,12 @@ export const MUTATIONS = {
   'uppercase-tonos': { add: 'components/__mut__.tsx', content: tsx('    <div>ΈΣΟΔΑ ΑΚΙΝΗΤΟΥ</div>') },
   'greek-case': { add: 'components/__mut__.tsx', content: tsx('    <h2>Καθαρή Απόδοση Ακινήτου</h2>') },
   'decimal-comma': { add: 'components/__mut__.tsx', content: tsx('    <div>Πληρωτέο 1234.50 €</div>') },
-  'euro-space': { add: 'components/__mut__.tsx', content: tsx('    <div>Σύνολο 1.234,50€ τον μήνα</div>') },
+  // Δύο κανόνες, δύο αποδείξεις: το ευρώ κολλητά, και το ευρώ με απλό κενό που
+  // πέφτει μόνο του στην επόμενη γραμμή σε στενή στήλη.
+  'euro-space': { every: [
+    { add: 'components/__mut__.tsx', content: tsx('    <div>Σύνολο 1.234,50€ τον μήνα</div>') },
+    { add: 'components/__mut__.tsx', content: tsx('    <div>Σύνολο 1.234,50 € τον μήνα</div>') },
+  ] },
 
   // ── Κώδικας που μοιάζει σωστός και δεν είναι ──────────────────────────
   'ascii-boundary': { add: 'lib/core/__mut__.ts', content: "export const RE = /\\bακόμα\\b/\n" },

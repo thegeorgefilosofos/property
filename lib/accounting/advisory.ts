@@ -85,7 +85,7 @@ export function buildAdvisory(input: AdvisoryInput, limit = 6): AdvisoryItem[] {
   // 1) Μειωμένη κλίμακα νέων (μόνο επιχειρηματική δραστηριότητα, όχι παθητικά ενοίκια).
   if (age != null && age <= 30) {
     if (business) {
-      const rate = age <= 25 ? '0% έως 20.000 €' : '9% έως 20.000 €'
+      const rate = age <= 25 ? '0% έως 20.000 €' : '9% έως 20.000 €'
       items.push({
         id: 'youth-business', tone: 'opportunity',
         title: `Μειωμένη κλίμακα νέων, ${age <= 25 ? 'έως 25' : '26–30'} ετών`,

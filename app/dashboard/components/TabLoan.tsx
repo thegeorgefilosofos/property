@@ -1196,7 +1196,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                   body={<>Για {fmtEur(cs.loanAmount)} θα αποπληρώσεις συνολικά {fmtEur(totalCost)}.
                     {cs.years>20&&savedByShortening>0
                       ?` Σε 20 χρόνια η δόση γίνεται ${fmtEur(shortMonthly20)}, δηλαδή ${fmtEur(shortMonthly20-cs.monthly)} παραπάνω, και γλιτώνεις ${fmtEur(savedByShortening)} τόκους.`
-                      :` Εκτακτη πληρωμή 100 € τον μήνα κόβει ${extraPay100Saving.toFixed(1).replace('.',',')} χρόνια από τη διάρκεια.`}</>}
+                      :` Εκτακτη πληρωμή 100 € τον μήνα κόβει ${extraPay100Saving.toFixed(1).replace('.',',')} χρόνια από τη διάρκεια.`}</>}
                 />
               </div>
             </MiniSection>
@@ -1569,7 +1569,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
               {[
                 {title:'Ένοπλες Δυνάμεις',desc:'Στεγαστική υποστήριξη σε εν ενεργεία στελέχη δίνουν ο Αυτόνομος Οικοδομικός Οργανισμός Αξιωματικών (ΑΟΟΑ) και το Ταμείο Παρακαταθηκών και Δανείων, με δικούς τους όρους. Το σταθερό εισόδημα βοηθά και στην τραπεζική αξιολόγηση.',url:'https://www.aooa.gr'},
                 {title:'Κάτοικοι εξωτερικού',desc:'Δάνειο έως 55% ή 70% της αξίας. Επίσημες μεταφράσεις, αποδεικτικό κατοικίας, εισοδήματα ξένης χώρας.',url:'https://www.nbg.gr/el/idiwtes/daneia/stegastika-daneia'},
-                {title:'Νέοι 25 έως 50 ετών',desc:'Σπίτι μου ΙΙ: το μισό δάνειο άτοκο. Εισόδημα έως 25.000,00 € για άγαμο και 35.000,00 € για έγγαμους, συν 5.000,00 € ανά τέκνο. Ακίνητο έως 150 τ.μ.',url:'https://greece20.gov.gr/home-loans/'},
+                {title:'Νέοι 25 έως 50 ετών',desc:'Σπίτι μου ΙΙ: το μισό δάνειο άτοκο. Εισόδημα έως 25.000,00 € για άγαμο και 35.000,00 € για έγγαμους, συν 5.000,00 € ανά τέκνο. Ακίνητο έως 150 τ.μ.',url:'https://greece20.gov.gr/home-loans/'},
                 {title:'Ελεύθεροι επαγγελματίες',desc:'Μέσος όρος εισοδήματος διετίας. Δάνειο έως 65–70% της αξίας. Συνέπεια στις δηλώσεις.',url:AADE_HOME},
                 {title:'Πολύτεκνοι και τρίτεκνοι',desc:'+50% επιδότηση επιτοκίου στο Σπίτι μου ΙΙ. Εισόδημα έως 45.000 € (2 παιδιά) ή 50.000 € (3+).',url:'https://greece20.gov.gr/home-loans/'},
                 {title:'Εταιρείες και επαγγελματικά',desc:'Ισολογισμοί 3 ετών, απόφαση διοίκησης, προσωπική εγγύηση. Πλήρης έκπτωση τόκων.',url:'https://www.nbg.gr/el/epixeiriseis'},

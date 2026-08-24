@@ -165,8 +165,8 @@ const INTERNET_PLANS: Record<string, {
     // σκέτο Vodafone TV Start. Γράφονται με την τιμή εκκίνησης που δηλώνει η
     // ίδια η σελίδα («Από»), και με το τέλος ενεργοποίησης στη σημείωση: είναι
     // εφάπαξ, δεν μπαίνει στο μηνιαίο.
-    { id:'v_f100_tv',  name: 'Fiber 100 με Vodafone TV',     speed: '100 Mbps', price: 33.90, hasPhone: true, hasTV: true, note: 'Τιμή εκκίνησης. Εγγυημένη ταχύτητα 93 Mbps, απεριόριστα σταθερά και 360 λεπτά κινητά. HBO Max και Viaplay. Τέλος ενεργοποίησης 6,00 € εφάπαξ.', networkType: 'Fiber' },
-    { id:'v_ff300p_tv', name: 'Full Fiber 300 Plus με Vodafone TV Plus', speed: '300 Mbps', price: 37.00, hasPhone: true, hasTV: true, note: 'Τιμή εκκίνησης. Εγγυημένη ταχύτητα 100%, router Wi-Fi 6, απεριόριστα σταθερά και κινητά. HBO Max, Disney+ και Viaplay. Τέλος ενεργοποίησης 6,00 € εφάπαξ.', networkType: 'Fiber' },
+    { id:'v_f100_tv',  name: 'Fiber 100 με Vodafone TV',     speed: '100 Mbps', price: 33.90, hasPhone: true, hasTV: true, note: 'Τιμή εκκίνησης. Εγγυημένη ταχύτητα 93 Mbps, απεριόριστα σταθερά και 360 λεπτά κινητά. HBO Max και Viaplay. Τέλος ενεργοποίησης 6,00 € εφάπαξ.', networkType: 'Fiber' },
+    { id:'v_ff300p_tv', name: 'Full Fiber 300 Plus με Vodafone TV Plus', speed: '300 Mbps', price: 37.00, hasPhone: true, hasTV: true, note: 'Τιμή εκκίνησης. Εγγυημένη ταχύτητα 100%, router Wi-Fi 6, απεριόριστα σταθερά και κινητά. HBO Max, Disney+ και Viaplay. Τέλος ενεργοποίησης 6,00 € εφάπαξ.', networkType: 'Fiber' },
     { id:'v_ff300_tv', name: 'Full Fiber 300 + Vodafone TV', speed: '300 Mbps', price: 44.00, hasPhone: true, hasTV: true, note: 'FTTH + Vodafone TV (45 κανάλια, HBO).', networkType: 'Fiber', contract: '24 μήνες' },
     { id:'v_ff500_tv', name: 'Full Fiber 500 + Vodafone TV', speed: '500 Mbps', price: 51.00, hasPhone: true, hasTV: true, note: 'FTTH + Vodafone TV + αποκωδικοποιητής +2,50 €.', networkType: 'Fiber', contract: '24 μήνες' },
     { id:'v_ff1g_tv',  name: 'Full Fiber 1 Gbps + TV',       speed: '1 Gbps',   price: 58.00, hasPhone: true, hasTV: true, note: 'FTTH + Vodafone TV + αποκωδικοποιητής +2,50 €.', networkType: 'Fiber', contract: '24 μήνες' },
@@ -213,7 +213,7 @@ const SECURITY_COMPANIES = [
 
 const BENCHMARKS = {
   internet: { avg: 22.50, label: 'Μέσος Όρος Ελλάδας'              },
-  water:    { avg: 12.00, label: 'Μέσος Όρος Αττικής, ~24 € / 2 μήνες' },
+  water:    { avg: 12.00, label: 'Μέσος Όρος Αττικής, ~24 € / 2 μήνες' },
   heating:  { avg: 70.00, label: 'Μέσος Όρος χειμώνα'               },
   security: { avg: 18.00, label: 'Μέσος Όρος αγοράς'                },
 };
@@ -340,7 +340,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
           <div style={{ height: '100%', width: `${pct}%`, background: 'var(--series-in)', borderRadius: 3 }}/>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-          <span>0 €</span><span style={{ color: 'var(--text-secondary)' }}>μέσος όρος {avg} €</span><span>{fe((avg * 2))}</span>
+          <span>0 €</span><span style={{ color: 'var(--text-secondary)' }}>μέσος όρος {avg} €</span><span>{fe((avg * 2))}</span>
         </div>
       </div>
     );

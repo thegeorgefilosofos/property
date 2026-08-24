@@ -195,7 +195,7 @@ const INSURANCE_COMPANIES: InsuranceCompany[] = [
     ] },
   { value: 'cosmote_ins',   label: 'Magenta Insurance',         url: 'https://www.magentainsurance.gr/home', agent_label: 'Online, Magenta',
     propertyTypes: ['Κύρια Κατοικία','Εξοχική Κατοικία'],
-    note: 'Πρώην COSMOTE Insurance. Σύγκριση και online ασφάλιση κατοικίας από 90 €/έτος, με δυνατότητα έκπτωσης έως 20% στον ΕΝΦΙΑ υπό προϋποθέσεις.',
+    note: 'Πρώην COSMOTE Insurance. Σύγκριση και online ασφάλιση κατοικίας από 90 €/έτος, με δυνατότητα έκπτωσης έως 20% στον ΕΝΦΙΑ υπό προϋποθέσεις.',
     plans: [
       { id: 'ci_basic',   name: 'Magenta Home Βασικό',       monthly: 8.00,  annual: 96,  covers: ['Πυρκαγιά','Θραύση Σωληνώσεων','Φυσικά Φαινόμενα','Βραχυκύκλωμα','Αστική Ευθύνη'], earthquake: false, flood: false, natural: false },
       { id: 'ci_plus',    name: 'Magenta Home Πλήρες',       monthly: 14.50, annual: 139, covers: ['Πυρκαγιά','Κλοπή','Πλημμύρα','Φυσικά Φαινόμενα','Αστική Ευθύνη'], earthquake: false, flood: true,  natural: true  },

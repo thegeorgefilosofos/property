@@ -1612,7 +1612,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               <span style={{ color:'var(--text-tertiary)' }}>€</span>
             </label>
             {xferSide==='buy'&&(
-              <Check checked={xferFirstHome} onChange={setXferFirstHome} label="Πρώτη κατοικία" hint="Απαλλαγή φόρου μεταβίβασης έως το όριο αξίας (200.000 € άγαμος / 250.000 € έγγαμος)." />
+              <Check checked={xferFirstHome} onChange={setXferFirstHome} label="Πρώτη κατοικία" hint="Απαλλαγή φόρου μεταβίβασης έως το όριο αξίας (200.000 € άγαμος / 250.000 € έγγαμος)." />
             )}
             <Check checked={xferAgent} onChange={setXferAgent} label="Μεσίτης" hint="Μεσιτική αμοιβή ~2% + ΦΠΑ." />
           </div>

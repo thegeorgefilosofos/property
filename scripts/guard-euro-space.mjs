@@ -45,16 +45,56 @@ const UNFORMATTED = /\$\{(?!\s*(?:fe|feAuto|feRate|feSigned|feCompact|pEur|fmtEu
 /** Δύο κενά πριν το ευρώ: συμβαίνει όταν κάποιος «διορθώσει» ήδη σωστό κείμενο. */
 const DOUBLE = /[\s ]{2}€/g;
 
+/**
+ * ΑΠΛΟ ΚΕΝΟ ΠΡΙΝ ΤΟ ΕΥΡΩ, ΔΗΛΑΔΗ ΕΥΡΩ ΠΟΥ ΜΠΟΡΕΙ ΝΑ ΠΕΣΕΙ ΜΟΝΟ ΤΟΥ.
+ *
+ * Ο έλεγχος ζητούσε μόνο «να μην κολλάει». Ενα απλό κενό όμως δεν κολλάει ΚΑΙ
+ * σπάει: σε στενή στήλη ή σε τηλέφωνο το «€» πέφτει στην επόμενη γραμμή και το
+ * ποσό διαβάζεται ως γυμνός αριθμός. Ο μορφοποιητής fe() γράφει ΠΑΝΤΑ U+00A0·
+ * τα χειρόγραφα ποσά μέσα σε προτάσεις έγραφαν άλλοτε το ένα και άλλοτε το
+ * άλλο. Μετρήθηκαν 98 σε 19 αρχεία, ανάμεσά τους ο τιμοκατάλογος ρεύματος, η
+ * κλίμακα φόρου και ο χάρτης της αγοράς.
+ */
+const BREAKABLE = /\d\u0020€/g;
+
+/**
+ * ΣΒΗΝΕΙ ΤΑ ΣΧΟΛΙΑ ΚΡΑΤΩΝΤΑΣ ΤΙΣ ΘΕΣΕΙΣ. Κάθε χαρακτήρας σχολίου γίνεται κενό
+ * και οι αλλαγές γραμμής μένουν, ώστε οι αριθμοί γραμμής να παραμένουν σωστοί.
+ *
+ * ΓΙΑΤΙ ΔΕΝ ΑΡΚΕΙ «η γραμμή ξεκινά με //». Τα σχόλια αυτού του έργου είναι
+ * μπλοκ δέκα και είκοσι γραμμών, και οι γραμμές τους ΔΕΝ ξεκινούν με σύμβολο
+ * σχολίου: εξηγούν υπολογισμούς γράφοντας «97,45 €» μέσα στην πρόταση. Ενας
+ * έλεγχος που τις μετράει βγάζει 531 ευρήματα αντί για 32.
+ */
+const blankComments = (src) => {
+  let out = '', i = 0, mode = 0;   // 0 κώδικας, 1 γραμμή, 2 μπλοκ
+  while (i < src.length) {
+    const c = src[i], d = src[i + 1];
+    if (mode === 0 && c === '/' && d === '/') { mode = 1; out += '  '; i += 2; continue; }
+    if (mode === 0 && c === '/' && d === '*') { mode = 2; out += '  '; i += 2; continue; }
+    if (mode === 1 && c === '\n') { mode = 0; out += c; i++; continue; }
+    if (mode === 2 && c === '*' && d === '/') { mode = 0; out += '  '; i += 2; continue; }
+    out += mode === 0 ? c : (c === '\n' ? c : ' ');
+    i++;
+  }
+  return out;
+};
+
 const glued = [];
 const doubled = [];
+const breakable = [];
 const unformatted = [];
 
 for (const file of files) {
   if (/\.test\.tsx?$/.test(file)) continue;
   const src = readFileSync(file, 'utf8');
+  const bare = blankComments(src).split('\n');
   src.split('\n').forEach((line, i) => {
     for (const m of line.matchAll(GLUED)) glued.push(`${file}:${i + 1}  «${m[0]}»`);
     for (const m of line.matchAll(DOUBLE)) { void m; doubled.push(`${file}:${i + 1}`); }
+    // ΜΟΝΟ ΣΕ ΚΕΙΜΕΝΟ ΓΙΑ ΑΝΘΡΩΠΟΥΣ: τα σχόλια γράφουν «50 €» για να εξηγήσουν
+    // έναν υπολογισμό, και κανείς δεν τα διαβάζει σε στενή στήλη.
+    for (const m of (bare[i] || '').matchAll(BREAKABLE)) breakable.push(`${file}:${i + 1}  «${m[0]}»`);
     for (const m of line.matchAll(UNFORMATTED)) unformatted.push(`${file}:${i + 1}  «${m[0].slice(0, 46)}»`);
   });
 }
@@ -77,6 +117,15 @@ if (doubled.length) {
   for (const d of doubled.slice(0, 20)) console.log('  ' + d);
 }
 
+if (breakable.length) {
+  bad = true;
+  console.log(red(`\n✗ ${breakable.length} ποσά με ΑΠΛΟ κενό πριν το ευρώ:\n`));
+  for (const b of breakable.slice(0, 25)) console.log('  ' + b);
+  if (breakable.length > 25) console.log(`  … και άλλα ${breakable.length - 25}`);
+  console.log('\n  Το απλό κενό σπάει: σε στενή στήλη το «€» πέφτει μόνο του στην επόμενη');
+  console.log('  γραμμή. Χρησιμοποίησε αδιάσπαστο κενό (U+00A0), όπως κάνει το fe().');
+}
+
 if (unformatted.length) {
   bad = true;
   console.log(red(`\n✗ ${unformatted.length} ποσά που δεν πέρασαν από μορφοποιητή:\n`));
@@ -87,4 +136,4 @@ if (unformatted.length) {
 }
 
 if (bad) process.exit(1);
-console.log(`✓ κάθε ευρώ έχει το κενό του σε ${files.length} αρχεία`);
+console.log(`✓ κάθε ευρώ έχει αδιάσπαστο κενό σε ${files.length} αρχεία`);

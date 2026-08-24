@@ -214,7 +214,7 @@ export function PanelDashboard() {
             <svg width={14} height={14} viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7z" /></svg>
           </div>
           <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-            <strong style={{ color: 'var(--text-primary)' }}>Πρόταση:</strong> αλλάζοντας πάροχο ρεύματος, γλιτώνεις 184,00 € τον χρόνο.
+            <strong style={{ color: 'var(--text-primary)' }}>Πρόταση:</strong> αλλάζοντας πάροχο ρεύματος, γλιτώνεις 184,00 € τον χρόνο.
           </div>
         </div>
       </div>

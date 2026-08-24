@@ -219,8 +219,8 @@ export function EnfiaCalculator({ year, today }: { year: number; today: string }
               <Row k="Συντελεστής ορόφου" v={fn(enfiaFloorCoef(floor), 2)}/>
               <Row k="Συντελεστής παλαιότητας" v={fn(enfiaAgeCoef(age), 2)}/>
               <Row k="Κύριος φόρος κτίσματος" v={feAuto(r.basic)}/>
-              {r.extra > 0 && <Row k="Πρόσθετος φόρος (αξία πάνω από 400.000 €)" v={feAuto(r.extra)}/>}
-              {r.supplementary > 0 && <Row k="Προσαύξηση (περιουσία πάνω από 500.000 €)" v={feAuto(r.supplementary)}/>}
+              {r.extra > 0 && <Row k="Πρόσθετος φόρος (αξία πάνω από 400.000 €)" v={feAuto(r.extra)}/>}
+              {r.supplementary > 0 && <Row k="Προσαύξηση (περιουσία πάνω από 500.000 €)" v={feAuto(r.supplementary)}/>}
               {r.reductionPct > 0 && <Row k={`Μείωση ${fp(r.reductionPct)}`} v={`− ${feAuto(r.reductionAmount)}`}/>}
             </dl>
           </>
