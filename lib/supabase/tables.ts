@@ -351,8 +351,6 @@ export interface ChecklistItemsRow {
   actual_cost: number | null;
   status: string | null;
   template_id: string | null;
-  linked_expense_id: string | null;
-  linked_event_id: string | null;
   sort_order: number | null;
   start_date: string | null;
   budget: number | null;

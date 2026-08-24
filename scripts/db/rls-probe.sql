@@ -1909,3 +1909,87 @@ begin
 
   raise notice 'probe: ο ιδιοκτήτης βλέπει ΠΟΙΟΣ έσβησε το ακίνητό του, και το ίχνος επέζησε';
 end $probe$;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+--  Η ΔΙΑΓΡΑΦΗ ΜΙΣΘΩΤΗ ΔΕΝ ΑΦΗΝΕΙ ΑΠΟΔΕΙΞΕΙΣ ΠΟΥ ΔΕΙΧΝΟΥΝ ΣΤΟ ΠΟΥΘΕΝΑ
+-- ─────────────────────────────────────────────────────────────────────────
+--  Πριν το 20260824100000, δεκαπέντε στήλες `uuid` έδειχναν σε δικό μας πίνακα
+--  ΧΩΡΙΣ ξένο κλειδί. Σβήνοντας μισθωτή, η απόδειξη είσπραξης κρατούσε
+--  `tenant_id` που δεν αντιστοιχούσε σε τίποτα: η οθόνη έδειχνε είσπραξη χωρίς
+--  όνομα και το ημερολόγιο επικοινωνίας κρατούσε συνομιλίες με άνθρωπο που δεν
+--  υπάρχει.
+--
+--  Ο έλεγχος απαιτεί ΔΥΟ ΔΙΑΦΟΡΕΤΙΚΕΣ συμπεριφορές, γιατί δεν είναι όλες
+--  CASCADE: η είσπραξη ΕΠΙΖΕΙ με κενό μισθωτή (το ποσό μπήκε στο ταμείο), το
+--  ημερολόγιο επικοινωνίας ΦΕΥΓΕΙ (δεν έχει νόημα χωρίς τον μισθωτή του).
+-- ═══════════════════════════════════════════════════════════════════════════
+set role postgres;
+set session "probe.uid" = '';
+
+do $probe$
+declare
+  b   uuid := '22222222-2222-2222-2222-222222222222';
+  pb  uuid := 'bbbbbbbb-0000-0000-0000-000000000001';
+  t   uuid := 'cccccccc-0000-0000-0000-000000000009';
+  n   int;
+  v   numeric;
+begin
+  insert into public.tenants (id, property_id, user_id, full_name, monthly_rent)
+       values (t, pb, b, 'Μισθωτής προς διαγραφή', 500.00);
+  insert into public.rent_payments (user_id, property_id, tenant_id, amount, payment_date, status)
+       values (b, pb, t, 500.00, current_date, 'paid');
+  insert into public.tenant_comm_log (user_id, property_id, tenant_id, type, summary, date)
+       values (b, pb, t, 'email', 'Υπενθύμιση ενοικίου', current_date);
+
+  delete from public.tenants where id = t;
+
+  -- Η ΕΙΣΠΡΑΞΗ ΕΠΙΖΕΙ, ΜΕ ΚΕΝΟ ΜΙΣΘΩΤΗ. Το ποσό μπήκε στο ταμείο και στα
+  -- βιβλία· δεν σβήνεται επειδή έφυγε ο άνθρωπος.
+  select count(*) into n from public.rent_payments where property_id = pb;
+  if n <> 1 then
+    raise exception 'Η είσπραξη χάθηκε μαζί με τον μισθωτή: % γραμμές', n;
+  end if;
+  select amount into v from public.rent_payments where property_id = pb;
+  if v is distinct from 500.00 then
+    raise exception 'Το ποσό της είσπραξης άλλαξε: %', v;
+  end if;
+  select count(*) into n from public.rent_payments where property_id = pb and tenant_id is not null;
+  if n <> 0 then
+    raise exception 'ΟΡΦΑΝΗ ΑΝΑΦΟΡΑ: η είσπραξη δείχνει ακόμη σε σβησμένο μισθωτή';
+  end if;
+
+  -- ΤΟ ΗΜΕΡΟΛΟΓΙΟ ΕΠΙΚΟΙΝΩΝΙΑΣ ΦΕΥΓΕΙ: είναι επικοινωνία ΜΕ ΑΥΤΟΝ.
+  select count(*) into n from public.tenant_comm_log where property_id = pb;
+  if n <> 0 then
+    raise exception 'Το ημερολόγιο επικοινωνίας επέζησε του μισθωτή: % γραμμές', n;
+  end if;
+
+  raise notice 'probe: η είσπραξη επιζεί χωρίς μισθωτή, η επικοινωνία φεύγει μαζί του';
+end $probe$;
+
+-- ── ΚΑΙ Η ΔΑΠΑΝΗ ΕΠΙΖΕΙ ΤΗΣ ΔΙΑΓΡΑΦΗΣ ΤΟΥ ΠΡΟΜΗΘΕΥΤΗ ─────────────────────
+do $probe$
+declare
+  b  uuid := '22222222-2222-2222-2222-222222222222';
+  pb uuid := 'bbbbbbbb-0000-0000-0000-000000000001';
+  k  uuid := 'dddddddd-0000-0000-0000-000000000009';
+  n  int;
+begin
+  insert into public.contacts (id, user_id, property_id, role, full_name)
+       values (k, b, pb, 'plumber', 'Υδραυλικός');
+  insert into public.expenses (user_id, property_id, contact_id, amount, description, category, date)
+       values (b, pb, k, 120.00, 'Επισκευή', 'other', current_date);
+
+  delete from public.contacts where id = k;
+
+  select count(*) into n from public.expenses where property_id = pb and amount = 120.00;
+  if n <> 1 then
+    raise exception 'Η δαπάνη χάθηκε μαζί με τον προμηθευτή: % γραμμές', n;
+  end if;
+  select count(*) into n from public.expenses where property_id = pb and contact_id is not null;
+  if n <> 0 then
+    raise exception 'ΟΡΦΑΝΗ ΑΝΑΦΟΡΑ: η δαπάνη δείχνει ακόμη σε σβησμένη επαφή';
+  end if;
+
+  raise notice 'probe: η δαπάνη επιζεί του προμηθευτή της, χωρίς ορφανή αναφορά';
+end $probe$;
