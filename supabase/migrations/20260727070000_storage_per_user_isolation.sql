@@ -38,15 +38,18 @@ drop policy if exists "Auth upload inventory photos" on storage.objects;
 drop policy if exists "Auth delete inventory photos" on storage.objects;
 drop policy if exists "inventory_photos_auth_update" on storage.objects;
 
+drop policy if exists "inventory_photos_insert_own" on storage.objects;
 create policy "inventory_photos_insert_own" on storage.objects
   for insert to authenticated
   with check (bucket_id = 'inventory-photos' and (storage.foldername(name))[1] = ((select auth.uid()))::text);
 
+drop policy if exists "inventory_photos_update_own" on storage.objects;
 create policy "inventory_photos_update_own" on storage.objects
   for update to authenticated
   using       (bucket_id = 'inventory-photos' and (storage.foldername(name))[1] = ((select auth.uid()))::text)
   with check  (bucket_id = 'inventory-photos' and (storage.foldername(name))[1] = ((select auth.uid()))::text);
 
+drop policy if exists "inventory_photos_delete_own" on storage.objects;
 create policy "inventory_photos_delete_own" on storage.objects
   for delete to authenticated
   using (bucket_id = 'inventory-photos' and (storage.foldername(name))[1] = ((select auth.uid()))::text);

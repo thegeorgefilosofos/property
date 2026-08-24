@@ -91,6 +91,68 @@ if [ "$fails" -gt 0 ]; then
   exit 1
 fi
 
+# ── ΚΑΙ ΑΝΤΕΧΕΙ Η ΚΑΘΕΜΙΑ ΔΕΥΤΕΡΗ ΕΚΤΕΛΕΣΗ; ─────────────────────────────────
+# ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΤΟ ΓΕΝΝΗΣΕ. Στις 19/08/2026 το deploy σταμάτησε στη δέκατη από
+# δεκαέξι μεταναστεύσεις, σε ένα `add constraint` χωρίς φύλαξη· οι έξι επόμενες
+# δεν έτρεξαν ποτέ. Ο φύλακας scripts/guard-idempotent-migrations.mjs διαβάζει
+# από τότε το SQL και πιάνει ΑΥΤΟ το ένα ιδίωμα. Δεν πιάνει τα άλλα δέκα:
+# πολιτική που ξαναδημιουργείται, συνάρτηση που αλλάζει τύπο επιστροφής, στήλη
+# που μετονομάζεται. Αυτά τα βλέπει μόνο η ίδια η PostgreSQL.
+#
+# ΤΙ ΚΑΝΕΙ. Η posdb είναι τώρα στην τελική της κατάσταση. Για κάθε μετανάστευση
+# φτιάχνει κλώνο της και ξανατρέχει ΜΟΝΟ αυτήν. Για μια νέα μετανάστευση, που
+# είναι και η τελευταία, αυτό είναι ακριβώς «τρέξε την δύο φορές στη σειρά».
+#
+# ΚΑΣΤΑΝΙΑ, ΟΧΙ ΜΠΑΛΩΜΑ. Δέκα ιστορικές μεταναστεύσεις σκάνε και ΠΡΕΠΕΙ να
+# σκάνε· ο λόγος καθεμιάς είναι γραμμένος στο baseline. Ο έλεγχος κοιτά και τις
+# δύο κατευθύνσεις: νέα που σκάει είναι χρέος, παλιά που σταμάτησε να σκάει
+# σημαίνει ότι το baseline πρέπει να κατέβει.
+IDEM="$ROOT/scripts/db/idempotency-baseline.txt"
+[ -f "$IDEM" ] || { echo "✗ Λείπει το $IDEM"; exit 1; }
+KNOWN="$(grep -vE '^[[:space:]]*(#|$)' "$IDEM" | tr -d '\r')"
+
+newdebt=0; healed=0; rechecked=0
+for f in $(ls "$MIG"/*.sql | sort); do
+  n="$(basename "$f")"
+  listed=0; echo "$KNOWN" | grep -qxF "$n" && listed=1
+  $PSQL -c "drop database if exists probe" >/dev/null
+  $PSQL -c "create database probe template posdb" >/dev/null
+  if out=$($PSQL -d probe -f "$f" 2>&1); then again=ok; else again=fail; fi
+  rechecked=$((rechecked + 1))
+  if [ "$again" = "fail" ] && [ "$listed" = "0" ]; then
+    newdebt=$((newdebt + 1))
+    echo "✗ $n δεν αντέχει δεύτερη εκτέλεση"
+    echo "$out" | grep -m1 'ERROR' | sed 's/^psql[^ ]* //;s/^/    /'
+  elif [ "$again" = "ok" ] && [ "$listed" = "1" ]; then
+    healed=$((healed + 1))
+    echo "✓ $n αντέχει πλέον δεύτερη εκτέλεση"
+  fi
+done
+$PSQL -c "drop database if exists probe" >/dev/null
+
+if [ "$newdebt" -gt 0 ]; then
+  echo ""
+  if [ "$newdebt" = "1" ]; then
+    echo "🔴 Μία μετανάστευση σπάει αν ξανατρέξει. Ένα «db push --include-all», ένα"
+  else
+    echo "🔴 $newdebt μεταναστεύσεις σπάνε αν ξανατρέξουν. Ένα «db push --include-all», ένα"
+  fi
+  echo "   staging που ξαναχτίζεται ή μια εκτέλεση που κόπηκε στη μέση τις ξαναπερνά,"
+  echo "   και ο αγωγός σταματά εκεί: όσες ακολουθούν δεν τρέχουν ποτέ. Φύλαξε τις"
+  echo "   εντολές (drop … if exists, create or replace, if not exists)."
+  exit 1
+fi
+if [ "$healed" -gt 0 ]; then
+  echo ""
+  if [ "$healed" = "1" ]; then
+    echo "🔴 Μία μετανάστευση του scripts/db/idempotency-baseline.txt δεν σκάει πια."
+  else
+    echo "🔴 $healed μεταναστεύσεις του scripts/db/idempotency-baseline.txt δεν σκάνε πια."
+  fi
+  echo "   Σβήσε τες από εκεί, μαζί με τον λόγο τους. Η καστάνια μόνο σφίγγει."
+  exit 1
+fi
+
 # ── ΒΛΕΠΕΙ Ο Α ΤΑ ΔΕΔΟΜΕΝΑ ΤΟΥ Β; ───────────────────────────────────────────
 # Ο μόνος έλεγχος του αποθετηρίου που ρωτά το ίδιο το Postgres. Κάθε αποτυχία
 # μέσα στο αρχείο σηκώνει exception, οπότε το ON_ERROR_STOP το κάνει κόκκινο.
@@ -186,7 +248,8 @@ drift=0
 [ "$drift" = "0" ] || { echo ""; echo "🔴 Η βάση δίνει άλλα από αυτά που γράφει η οθόνη."; exit 1; }
 
 echo "✅ $count μεταναστεύσεις τρέχουν σε πραγματικό Postgres, $probes έλεγχοι απομόνωσης"
-echo "   κρατούν, το σενάριο του staging γεμίζει λογαριασμό, και οι στόχοι του"
+echo "   κρατούν, οι $rechecked αντέχουν δεύτερη εκτέλεση όσο υπόσχεται το baseline,"
+echo "   το σενάριο του staging γεμίζει λογαριασμό, και οι στόχοι του"
 echo "   Προγράμματος Πρόσκλησης συμφωνούν με το"
 echo "   lib/referral/referral.ts ($TS_VOL, $TS_PRO), και η δοκιμή είναι $TS_TRIAL"
 echo "   ημέρες και στα δύο, η σειρά των πακέτων είναι «$TS_RANKS»,"
