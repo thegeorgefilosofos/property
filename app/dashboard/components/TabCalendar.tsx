@@ -1842,6 +1842,11 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
       const d=e.event_date.replace(/-/g,''); const cat=CATEGORIES[e.category]
       const descParts=[e.notes||'', e.amount?`Ποσό: ${fe(e.amount)}`:''].filter(Boolean)
       lines.push('BEGIN:VEVENT',
+        // ΤΟ ΕΠΙΘΕΜΑ ΤΟΥ UID ΕΙΝΑΙ ΑΝΑΓΝΩΡΙΣΤΙΚΟ, ΟΧΙ ΕΠΩΝΥΜΙΑ, ΚΑΙ ΜΕΝΕΙ.
+        // Το Google και το Apple ταυτίζουν τα γεγονότα του ημερολογίου με το
+        // UID. Αν αλλάξει, κάθε ήδη κατεβασμένο γεγονός γίνεται ΞΕΝΟ: μένει ως
+        // φάντασμα και δίπλα του εμφανίζεται διπλότυπο. Η μετονομασία δεν
+        // επιτρέπεται να διπλασιάσει τις προθεσμίες κανενός.
         `UID:${e.id}@property-os`,
         `DTSTAMP:${stamp}`,
         `DTSTART;VALUE=DATE:${d}`,
@@ -1855,7 +1860,7 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
         'END:VEVENT')
     })
     lines.push('END:VCALENDAR')
-    downloadFile(lines.filter(Boolean).join('\r\n'), 'property-os.ics', 'text/calendar;charset=utf-8')
+    downloadFile(lines.filter(Boolean).join('\r\n'), 'properwise.ics', 'text/calendar;charset=utf-8')
   }
 
   // ΕΚΤΥΠΩΣΗ ΕΠΕΡΧΟΜΕΝΩΝ. Ήταν χειρόγραφο έγγραφο δίπλα σε επτά που περνούν από

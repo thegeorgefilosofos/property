@@ -1,0 +1,11 @@
+Οι εικόνες προϊόντος για το Lemon Squeezy.
+Παράγονται από το scripts/build-plan-images.mjs. Μην τις φτιάξεις με το χέρι:
+το σχήμα έρχεται από το components/BrandMark.tsx και τα ονόματα από το
+lib/billing/plans.ts, ώστε να μην μπορούν να αποκλίνουν από την εφαρμογή.
+
+Ανέβασμα: Lemon Squeezy -> Products -> κάθε προϊόν -> Media -> αντικατάσταση.
+
+docs/marketing/plan-images/solo.png  Ιδιοκτήτης — Το ακίνητό σου σε τάξη
+docs/marketing/plan-images/owner.png  Ιδιοκτήτης+ — Πολλά ακίνητα, μία εικόνα
+docs/marketing/plan-images/agency.png  Επαγγελματίας — Ομάδα, ρόλοι και λογοδοσία
+docs/marketing/plan-images/office.png  Επαγγελματίας+ — Επαγγελματικό χαρτοφυλάκιο

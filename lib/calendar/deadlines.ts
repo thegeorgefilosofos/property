@@ -107,6 +107,10 @@ export function deadlineItems(s: DeadlineSources): FeedItem[] {
 
   for (const e of s.events) {
     if (DONE_EVENT.has(String(e.status || '').toLowerCase())) continue;
+  // ΤΑ ΕΠΙΘΕΜΑΤΑ ΤΩΝ UID ΜΕΝΟΥΝ ΜΕ ΤΟ ΠΑΛΙΟ ΟΝΟΜΑ, ΚΑΙ ΕΙΝΑΙ ΣΩΣΤΟ.
+  // Το UID ταυτίζει το γεγονός στο ημερολόγιο του χρήστη. Μια αλλαγή εδώ δεν
+  // μετονομάζει τίποτα: δημιουργεί διπλότυπα σε κάθε συνδρομητή, γιατί το
+  // πρόγραμμα ημερολογίου βλέπει καινούρια γεγονότα και κρατά και τα παλιά.
     push(`event-${e.id}@propertyos`, day(e.event_date),
       text(e.title) + at(e.property_id),
       [money(e.amount), text(e.notes)].filter(Boolean).join(' · '));

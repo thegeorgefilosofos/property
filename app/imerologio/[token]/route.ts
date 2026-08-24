@@ -105,7 +105,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
     status: 200,
     headers: {
       'Content-Type': 'text/calendar; charset=utf-8',
-      'Content-Disposition': 'inline; filename="propertyos.ics"',
+      'Content-Disposition': 'inline; filename="properwise.ics"',
       // Μία ώρα: αρκετά ώστε να μη ρωτούν συνέχεια, αρκετά λίγο ώστε μια
       // προθεσμία που μόλις μπήκε να φανεί την ίδια μέρα.
       'Cache-Control': 'private, max-age=3600',

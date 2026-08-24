@@ -28,8 +28,9 @@ const LONE_P = />\s*P\s*</g
 const OWNER = 'components/BrandMark.tsx'
 
 const hits = []
-for (const file of projectFiles("'app/**' 'components/**' 'lib/**'")) {
+for (const file of projectFiles("'app/**' 'components/**' 'lib/**' 'supabase/functions/**'")) {
   if (file === OWNER || !/\.(tsx?|css)$/.test(file)) continue
+  if (file.includes('.test.')) continue
   let src
   try { src = readFileSync(file, 'utf8') } catch { continue }
   for (const m of src.matchAll(LONE_P)) {

@@ -67,7 +67,7 @@ export async function exportAllData(): Promise<ExportResult> {
     const rows = Object.values(tablesObj).reduce<number>(
       (sum, list) => sum + (Array.isArray(list) ? list.length : 0), 0);
 
-    downloadFile(JSON.stringify(data, null, 2), `propertyos-data-${athensToday()}.json`, 'application/json');
+    downloadFile(JSON.stringify(data, null, 2), `properwise-data-${athensToday()}.json`, 'application/json');
     return { ok: true, tables, rows };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Η εξαγωγή απέτυχε.' };

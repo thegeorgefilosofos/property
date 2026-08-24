@@ -65,6 +65,37 @@ export const greeting = (name?: string): string => {
   return p(`Γεια σου${f ? ` <b>${esc(f)}</b>` : ''},`);
 };
 
+/**
+ * Η ΚΕΦΑΛΙΔΑ ΤΟΥ ΜΗΝΥΜΑΤΟΣ, ΜΙΑ ΦΟΡΑ.
+ *
+ * Ηταν γραμμένη δέκα φορές: εδώ και σε εννέα συναρτήσεις άκρης που φτιάχνουν
+ * δικό τους HTML αντί να καλέσουν το κέλυφος. Και τα δέκα αντίγραφα είχαν
+ * ξεφύγει μεταξύ τους σε μέγεθος πλακιδίου (34 ή 36), σε χρώμα κειμένου (#111
+ * ή #202124) και στον τρόπο που άφηναν το κενό (gap ή margin-left).
+ *
+ * Στη μετονομασία σε PROPERWISE φάνηκε τι κοστίζει: το παλιό σήμα έμεινε και
+ * στα δέκα, δηλαδή κάθε email έφευγε με το προηγούμενο λογότυπο δίπλα στο
+ * καινούριο όνομα, και χρειάστηκε να βρεθούν ένα ένα.
+ */
+export const emailHeader = (): string =>
+  `<div style="margin-bottom:22px;">`
+  + `<span style="font-size:18px;font-weight:800;letter-spacing:0.07em;color:${INK};">PROPERWISE</span>`
+  + `</div>`;
+
+// ── ΤΟ ΣΗΜΑ ΣΤΟ EMAIL ΕΙΝΑΙ Η ΛΕΞΗ, ΚΑΙ ΟΧΙ ΑΠΟ ΤΕΜΠΕΛΙΑ ────────────────────
+// Το κέλυφος ζωγράφιζε το παλιό πλακίδιο με το «P» σε κάθε ένα από τα 118
+// μηνύματα. Στη μετονομασία σε PROPERWISE έμεινε, δηλαδή κάθε email έφευγε με
+// το προηγούμενο σήμα δίπλα στο καινούριο όνομα.
+//
+// Το νέο σήμα είναι έντεκα μονοπάτια SVG. Το Gmail ΑΦΑΙΡΕΙ τα ενσωματωμένα SVG
+// από το σώμα του μηνύματος: το σήμα θα εξαφανιζόταν στο ένα από τα δύο
+// μεγαλύτερα προγράμματα αλληλογραφίας, και μόνο εκεί, δηλαδή θα το βλέπαμε
+// τελευταίοι. Και εικόνα δεν γίνεται να σταλεί: το `<img>` θέλει διεύθυνση που
+// απαντά, και τομέας δεν έχει αγοραστεί ακόμη.
+//
+// Μένει η λέξη, με το βάρος και το αραίωμά της. Φτάνει παντού, και είναι το
+// ίδιο brand. Οταν υπάρξει τομέας, μπαίνει `<img>` με το icon-192.png και το
+// σήμα επιστρέφει και εδώ.
 // ── Το ΜΟΝΑΔΙΚΟ branded κέλυφος ──────────────────────────────────────────────
 export function emailShell(opts: {
   bodyHtml: string; preheader?: string; unsubUrl?: string; footerNote?: string; hero?: string;
@@ -78,10 +109,7 @@ export function emailShell(opts: {
   return `<!DOCTYPE html><html lang="el"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
   <body style="margin:0;padding:0;background:#f1f3f4;font-family:-apple-system,'Inter',Arial,sans-serif;">${pre}
   <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
-    <div style="display:flex;align-items:center;margin-bottom:22px;">
-      <div style="width:34px;height:34px;background:${ACCENT};border-radius:8px;display:inline-flex;align-items:center;justify-content:center;"><span style="color:#fff;font-weight:800;font-size:17px;">P</span></div>
-      <span style="font-size:16px;font-weight:700;color:${INK};margin-left:10px;">PROPERWISE</span>
-    </div>
+    ${emailHeader()}
     <div style="background:#fff;border:1px solid #e8eaed;border-top:3px solid ${ACCENT};border-radius:14px;padding:26px 26px 28px;">${opts.hero || ''}${opts.bodyHtml}</div>
     <p style="text-align:center;font-size:12px;color:${ACCENT};font-weight:600;letter-spacing:.2px;margin:18px 0 5px;">${BRAND_TAGLINE}</p>
     <p style="text-align:center;font-size:11px;color:${FAINT};margin:0 0 4px;line-height:1.6;">${foot}</p>
