@@ -1396,7 +1396,7 @@ export default async function Landing() {
             συμπέρασμα από την αλήθεια: ότι δεν τον έχει. Λέγεται μία φορά, πάνω
             από τη σκάλα, γιατί αφορά ΟΛΗ τη σκάλα. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '13px 16px', marginBottom: 14, borderRadius: 12, background: PANEL, border: `1px solid ${LINE}` }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 9, background: 'var(--accent-dim)', color: ACCENT, flexShrink: 0 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: T.radius.inner, background: 'var(--accent-dim)', color: ACCENT, flexShrink: 0 }}>
             <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-8 8H8l-5 3 1.4-4.2A8 8 0 1 1 21 12" /><path d="M8.5 12h.01M12 12h.01M15.5 12h.01" /></svg>
           </span>
           <span style={{ fontSize: 14, fontWeight: 680, color: TEXT }}>Ο βοηθός περιλαμβάνεται σε κάθε πακέτο</span>

@@ -1055,10 +1055,48 @@ export function BulkActionBar({ count, countLabel, actions, onClear, minWidth = 
  * Τώρα η όψη ζει ΜΙΑ φορά, εδώ, και τη χρησιμοποιούν και οι δύο: το `Toggle`
  * τυλίγοντάς τη σε κουμπί, και η κάρτα-διακόπτης σκέτη.
  */
+/**
+ * ΟΙ ΔΙΑΣΤΑΣΕΙΣ ΤΟΥ ΔΙΑΚΟΠΤΗ, ΜΙΑ ΦΟΡΑ.
+ *
+ * Τις χρειάζονται τρία σημεία — η όψη (`ToggleTrack`), ο στόχος αφής
+ * (`toggleHitBox`) και το αρνητικό περιθώριο που κρατά το κουτί διάταξης στο
+ * παλιό του μέγεθος. Γραμμένες τρεις φορές ως ternary, η πρώτη αλλαγή θα
+ * συμφωνούσε με τις άλλες δύο μόνο κατά τύχη.
+ */
+const TOGGLE_BOX = {
+  sm: { w: 36, h: 20, thumbOn: 16, thumbOff: 12 },
+  md: { w: 52, h: 32, thumbOn: 24, thumbOff: 16 },
+} as const;
+
+/** Το ελάχιστο αξιόπιστο άγγιγμα με δάχτυλο. */
+const HIT = 44;
+
+/**
+ * ΤΟ ΚΟΥΜΠΙ ΓΥΡΩ ΑΠΟ ΤΟ ΕΛΑΤΗΡΙΟ: 44×44, ΜΕ ΤΗΝ ΕΙΚΟΝΑ ΑΜΕΤΑΒΛΗΤΗ.
+ *
+ * Το ίδιο στυλ το θέλουν δύο κουμπιά που ΔΕΝ μπορούν να είναι το ίδιο
+ * component: το κοινό `Toggle` εδώ, και ο διακόπτης «μετρά στον προϋπολογισμό»
+ * στο `BillsBudget`, που χρειάζεται δική του `aria-label` χωρίς ορατό κείμενο
+ * δίπλα σε κάθε γραμμή. Το κοινό είναι η ΟΨΗ και ο ΣΤΟΧΟΣ ΑΦΗΣ, όχι το κουμπί.
+ *
+ * Το αρνητικό περιθώριο επαναφέρει το κουτί ΔΙΑΤΑΞΗΣ στις διαστάσεις του
+ * ελατηρίου, ώστε καμία σειρά να μη μετακινηθεί ούτε κατά ένα εικονοστοιχείο.
+ */
+export const toggleHitBox = (size: 'sm' | 'md' = 'md'): React.CSSProperties => {
+  const { w, h } = TOGGLE_BOX[size];
+  const boxW = Math.max(w, HIT);
+  return {
+    width: boxW, height: HIT,
+    margin: `${(h - HIT) / 2}px ${(w - boxW) / 2}px`,
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    background: 'transparent', border: 'none', padding: 0,
+    flexShrink: 0, cursor: 'pointer',
+  };
+};
+
 export function ToggleTrack({ on, size = 'md' }: { on: boolean; size?: 'sm' | 'md' }) {
-  const w = size === 'sm' ? 36 : 52;
-  const h = size === 'sm' ? 20 : 32;
-  const thumb = on ? (size === 'sm' ? 16 : 24) : (size === 'sm' ? 12 : 16);
+  const { w, h, thumbOn, thumbOff } = TOGGLE_BOX[size];
+  const thumb = on ? thumbOn : thumbOff;
   return (
     <span style={{
       display: 'block',
@@ -1085,8 +1123,6 @@ export function ToggleTrack({ on, size = 'md' }: { on: boolean; size?: 'sm' | 'm
 }
 
 export function Toggle({ on, onChange, label, ariaLabel, size = 'md' }: ToggleProps) {
-  const w = size === 'sm' ? 36 : 52;
-  const h = size === 'sm' ? 20 : 32;
   // ═══ Ο ΣΤΟΧΟΣ ΑΦΗΣ ΕΙΝΑΙ 44, Η ΟΨΗ ΜΕΝΕΙ ΟΠΩΣ ΗΤΑΝ ══════════════════════
   //
   // Το κουμπί ΗΤΑΝ το ίδιο το ορατό ελατήριο: 52×32 στο κανονικό μέγεθος και
@@ -1095,13 +1131,8 @@ export function Toggle({ on, onChange, label, ariaLabel, size = 'md' }: TogglePr
   // εκεί που πονάει: στη στήλη των ειδοποιήσεων, όπου δέκα διακόπτες στοιβάζονται
   // ο ένας κάτω από τον άλλο και η αστοχία πατά τον διπλανό.
   //
-  // ΤΩΡΑ ΤΟ ΚΟΥΜΠΙ ΕΙΝΑΙ 44×44 ΚΑΙ ΤΟ ΕΛΑΤΗΡΙΟ ΖΩΓΡΑΦΙΖΕΤΑΙ ΜΕΣΑ ΤΟΥ. Το
-  // αρνητικό περιθώριο επαναφέρει το κουτί ΔΙΑΤΑΞΗΣ στις παλιές διαστάσεις, ώστε
-  // καμία σειρά να μη μετακινηθεί ούτε κατά ένα εικονοστοιχείο: η περιοχή που
-  // δέχεται το δάχτυλο μεγαλώνει, η εικόνα όχι.
-  const hit = 44;
-  const boxW = Math.max(w, hit);
-
+  // ΤΩΡΑ ΤΟ ΚΟΥΜΠΙ ΕΙΝΑΙ 44×44 ΚΑΙ ΤΟ ΕΛΑΤΗΡΙΟ ΖΩΓΡΑΦΙΖΕΤΑΙ ΜΕΣΑ ΤΟΥ — βλ.
+  // `toggleHitBox`, που το μοιράζεται με τον διακόπτη του `BillsBudget`.
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12, userSelect: 'none' }}>
       <button
@@ -1111,13 +1142,7 @@ export function Toggle({ on, onChange, label, ariaLabel, size = 'md' }: TogglePr
         aria-label={label || ariaLabel || 'Εναλλαγή'}
         onClick={() => onChange(!on)}
         onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onChange(!on); } }}
-        style={{
-          width: boxW, height: hit,
-          margin: `${(h - hit) / 2}px ${(w - boxW) / 2}px`,
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          background: 'transparent', border: 'none', padding: 0,
-          flexShrink: 0, cursor: 'pointer',
-        }}
+        style={toggleHitBox(size)}
       >
         <ToggleTrack on={on} size={size} />
       </button>

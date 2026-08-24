@@ -579,7 +579,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
              12» δεν δείχνει πρόοδο, δείχνει ότι δεν υπάρχει. */
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
             {plan.progress.done > 0 && (
-              <div style={{ width: 88, height: 3, borderRadius: 2, background: 'var(--border-subtle)', overflow: 'hidden' }}>
+              <div style={{ width: 88, height: 3, borderRadius: T.radius.pill, background: 'var(--border-subtle)', overflow: 'hidden' }}>
                 <div style={{
                   width: `${plan.progress.pct}%`, height: '100%',
                   background: 'var(--text-primary)', transition: `width .3s ${T.ease.standard}`,
