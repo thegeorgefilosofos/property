@@ -103,6 +103,11 @@ export const MUTATIONS = {
 
   // ── Καστάνιες: η μετάλλαξη πρέπει να περάσει το όριο, όχι απλώς να υπάρξει ──
   'radius-scale': { add: 'components/__mut__.tsx', content: tsx("    <div style={{ borderRadius: 7 }}>Α</div>\n    <div style={{ borderRadius: 11 }}>Β</div>") },
+  // Οι τρεις καστάνιες τυποποίησης. Καθεμιά μετρά ΠΛΗΘΟΣ, οπότε η μετάλλαξη
+  // είναι μία παράβαση παραπάνω από το όριο: το ελάχιστο που πρέπει να πιάσει.
+  'space-scale': { add: 'components/__mut__.tsx', content: tsx("    <div style={{ padding: 3, gap: 9 }}>Α</div>") },
+  'z-layers': { add: 'components/__mut__.tsx', content: tsx("    <div style={{ zIndex: 12345 }}>Α</div>") },
+  'hand-buttons': { add: 'components/__mut__.tsx', content: tsx("    <button style={{ padding: 4 }}>Α</button>") },
   'surface-scale': { add: 'components/__mut__.tsx', content: tsx("    <div style={{ height: 33, boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>Α</div>") },
   'js-hover': { add: 'components/__mut__.tsx', content: 'export function P() {\n  return <div onMouseEnter={() => {}} onMouseLeave={() => {}}>Α</div>\n}\n' },
   'type-scale': { add: 'components/__mut__.tsx', content: tsx("    <div style={{ fontSize: 17 }}>Κείμενο εκτός κλίμακας</div>") },
