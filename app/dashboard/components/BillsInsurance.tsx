@@ -1275,7 +1275,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
 
   const secHdr = (label: string) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
-      <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>{label}</span>
+      <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>{label}</span>
     </div>
   );
 
@@ -1299,7 +1299,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
             <span style={{ fontWeight: 700, color: checklistRenewal.daysLeft <= 7 ? 'var(--negative)' : 'var(--warning)' }}>Ανανέωση ασφαλιστηρίου </span>
             <span style={{ color: 'var(--text-secondary)' }}>{checklistRenewal.daysLeft <= 0 ? 'έχει λήξει' : `σε ${checklistRenewal.daysLeft} ημέρες`}</span>
           </div>
-          <span style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>Checklist</span>
+          <span style={{ fontSize: 11, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>Checklist</span>
         </div>
       )}
 
@@ -1414,13 +1414,13 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
             {insPlan && (
               <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, border: '1px solid var(--border-subtle)', marginTop: 4, containerType: 'inline-size' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                  <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>Καλύψεις προγράμματος</div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>Καλύψεις προγράμματος</div>
                   {/* ΤΟ «ΕΠΕΞΕΡΓΑΣΙΑ» ΕΦΥΓΕ, ΤΟ «ΕΠΑΝΑΦΟΡΑ» ΕΜΕΙΝΕ. Δεν χρειάζεται
                       άδεια για να πατήσεις μια κάλυψη· χρειάζεται όμως δρόμος
                       πίσω, όταν τα άλλαξες και θέλεις ό,τι λέει ο κατάλογος. */}
                   {insEditCovers && (
                     <button type="button" onClick={() => u({ insEditCovers: false })}
-                      style={{ fontSize: 10, color: 'var(--text-secondary)', background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, padding: '5px 12px', cursor: 'pointer', fontFamily: T.font.sans, fontWeight: 600 }}>
+                      style={{ fontSize: 11, color: 'var(--text-secondary)', background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, padding: '5px 12px', cursor: 'pointer', fontFamily: T.font.sans, fontWeight: 600 }}>
                       Επαναφορά προγράμματος
                     </button>
                   )}
@@ -1500,11 +1500,11 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
               όχι στο από πάνω, γιατί εκείνο ζει μέσα σε συνθήκη: όταν δεν
               εμφανίζεται, το περιθώριό του θα έλειπε μαζί του. */}
           <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, marginTop: 14, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
-            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>
               Στοιχεία Ακινήτου, για Συγκριτική Εκτίμηση Ασφαλίστρων
             </div>
             {crossProperty.sqm && !insSqm && (
-              <div style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 8 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 8 }}>
                 ✓ Τα στοιχεία συμπληρώθηκαν αυτόματα από {crossProperty.sqmFrom === 'property' ? 'την καρτέλα του ακινήτου' : 'τη Λογιστική (ΕΝΦΙΑ)'}, μπορείς να τα επεξεργαστείς
               </div>
             )}
@@ -1533,19 +1533,19 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
                       η αλήθεια: πραγματική τιμή ασφάλισης κατοικίας δεν υπάρχει
                       δημοσιευμένη, παράγεται από τα στοιχεία του συγκεκριμένου
                       ακινήτου και προσώπου και τη δίνει μόνο η ασφαλιστική. */}
-                  <span style={{ fontSize: 9, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>
+                  <span style={{ fontSize: 11, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>
                     Ενδεικτικές τιμές, όχι προσφορές
                   </span>
                 </div>
                 <div style={{ display: 'flex', gap: 6 }}>
                   {QUOTE_FILTERS.map(f => (
                     <button key={f.key} onClick={() => setQuotesFilter(f.key)}
-                      style={{ fontSize: 9, padding: '4px 10px', borderRadius: T.radius.pill, border: `1px solid ${quotesFilter === f.key ? 'var(--accent)' : 'var(--border-subtle)'}`, background: quotesFilter === f.key ? 'var(--accent-soft)' : 'transparent', color: quotesFilter === f.key ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans, fontWeight: quotesFilter === f.key ? 700 : 400 }}>
+                      style={{ fontSize: 11, padding: '4px 10px', borderRadius: T.radius.pill, border: `1px solid ${quotesFilter === f.key ? 'var(--accent)' : 'var(--border-subtle)'}`, background: quotesFilter === f.key ? 'var(--accent-soft)' : 'transparent', color: quotesFilter === f.key ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans, fontWeight: quotesFilter === f.key ? 700 : 400 }}>
                       {f.label}
                     </button>
                   ))}
                   <button onClick={() => setShowQuotes(v => !v)}
-                    style={{ fontSize: 9, padding: '4px 10px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans }}>
+                    style={{ fontSize: 11, padding: '4px 10px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: T.font.sans }}>
                     {showQuotes ? '▲ Σύμπτυξη' : '▼ Ανάπτυξη'}
                   </button>
                 </div>
@@ -1558,14 +1558,14 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
                   είναι ελέγξιμο. Ένα σκορ χωρίς αιτιολογία δεν είναι. */}
               {!quotesLoading && needs.length > 0 && (
                 <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '12px 14px', marginBottom: 10 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans, marginBottom: 8 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans, marginBottom: 8 }}>
                     Τι χρειάζεται αυτό το ακίνητο
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
                     {needs.filter(n => n.weight === 'required' || n.weight === 'important').map(n => (
                       <div key={n.need} style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 11, fontFamily: T.font.sans, lineHeight: 1.5 }}>
                         <span style={{
-                          flexShrink: 0, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em',
+                          flexShrink: 0, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em',
                           padding: '2px 7px', borderRadius: T.radius.pill,
                           color: n.weight === 'required' ? 'var(--accent-text)' : 'var(--text-secondary)',
                           background: n.weight === 'required' ? 'var(--accent)' : 'var(--bg-surface)',
@@ -1585,14 +1585,14 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
               {!quotesLoading && recommended && (
                 <div {...pressable(() => u({ insProvider: recommended.q.company, insPlanId: recommended.q.plan, insEditCovers: false }))}
                   style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, padding: '10px 14px', marginBottom: 10, cursor: 'pointer' }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--accent-text)', background: 'var(--accent)', padding: '3px 8px', borderRadius: T.radius.pill, fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, letterSpacing: '0.04em' }}>ΠΡΟΤΕΙΝΟΜΕΝΟ ΓΙΑ ΕΣΕΝΑ</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-text)', background: 'var(--accent)', padding: '3px 8px', borderRadius: T.radius.pill, fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, letterSpacing: '0.04em' }}>ΠΡΟΤΕΙΝΟΜΕΝΟ ΓΙΑ ΕΣΕΝΑ</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{recommended.q.companyLabel}, {recommended.q.planLabel}</div>
-                    <div style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{recommended.reason}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{recommended.reason}</div>
                   </div>
                   <div style={{ textAlign: 'right' as const, flexShrink: 0 }}>
                     <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(recommended.q.monthlyEstimate)}</div>
-                    <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>εκτίμηση / μήνα</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>εκτίμηση / μήνα</div>
                   </div>
                 </div>
               )}
@@ -1609,25 +1609,25 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
                         {/* ΟΧΙ «ΚΑΛΥΤΕΡΗ ΤΙΜΗ». Η πρώτη θέση ανήκει στο πιο
                             ΚΑΤΑΛΛΗΛΟ, που συχνά δεν είναι το φθηνότερο. Η παλιά
                             ετικέτα έλεγε ψέματα για το ίδιο το κριτήριο. */}
-                        {isBest && !isCurrent && <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 9, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '2px 6px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>ΚΑΤΑΛΛΗΛΟΤΕΡΟ</div>}
-                        {isCurrent && <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 9, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '2px 6px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>ΤΡΕΧΟΝ</div>}
+                        {isBest && !isCurrent && <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 11, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '2px 6px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>ΚΑΤΑΛΛΗΛΟΤΕΡΟ</div>}
+                        {isCurrent && <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 11, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '2px 6px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>ΤΡΕΧΟΝ</div>}
                         <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 2 }}>{q.companyLabel}</div>
-                        <div style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 8 }}>{q.planLabel}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginBottom: 8 }}>{q.planLabel}</div>
                         <div style={{ fontSize: 18, fontWeight: 700, color: isCurrent ? 'var(--accent)' : isBest ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(q.monthlyEstimate)}</div>
-                        <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2 }}>εκτίμηση / μήνα</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2 }}>εκτίμηση / μήνα</div>
                         {q.savings !== undefined && q.savings > 0 && (
-                          <div style={{ fontSize: 9, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginTop: 4, fontWeight: 700 }}>Εξοικονόμηση {fe(q.savings)} τον μήνα</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginTop: 4, fontWeight: 700 }}>Εξοικονόμηση {fe(q.savings)} τον μήνα</div>
                         )}
                         <div style={{ display: 'flex', gap: 4, marginTop: 8, flexWrap: 'wrap' as const }}>
-                          {q.earthquake && <span style={{ fontSize: 9, color: 'var(--text-secondary)', background: 'var(--bg-base)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>Σεισμός</span>}
-                          {q.flood     && <span style={{ fontSize: 9, color: 'var(--text-secondary)', background: 'var(--bg-base)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>Πλημμύρα</span>}
-                          {q.natural   && <span style={{ fontSize: 9, color: 'var(--text-secondary)', background: 'var(--bg-base)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>Φυσικές καταστροφές</span>}
+                          {q.earthquake && <span style={{ fontSize: 11, color: 'var(--text-secondary)', background: 'var(--bg-base)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>Σεισμός</span>}
+                          {q.flood     && <span style={{ fontSize: 11, color: 'var(--text-secondary)', background: 'var(--bg-base)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>Πλημμύρα</span>}
+                          {q.natural   && <span style={{ fontSize: 11, color: 'var(--text-secondary)', background: 'var(--bg-base)', padding: '1px 6px', borderRadius: 3, fontFamily: T.font.sans }}>Φυσικές καταστροφές</span>}
                         </div>
                         {/* ΤΙ ΤΟΥ ΛΕΙΠΕΙ, ΓΡΑΜΜΕΝΟ ΠΑΝΩ ΣΤΗΝ ΚΑΡΤΑ. Ένα φθηνό
                             πρόγραμμα χωρίς σεισμό δεν κρύβεται, αλλά ούτε
                             παρουσιάζεται σαν ισοδύναμο. */}
                         {(matchOf.get(q.plan)?.missingRequired.length ?? 0) > 0 && (
-                          <div style={{ fontSize: 9, color: 'var(--negative)', fontFamily: T.font.sans, marginTop: 6, lineHeight: 1.4, fontWeight: 600 }}>
+                          <div style={{ fontSize: 11, color: 'var(--negative)', fontFamily: T.font.sans, marginTop: 6, lineHeight: 1.4, fontWeight: 600 }}>
                             Δεν καλύπτει {matchOf.get(q.plan)!.missingRequired.map(n => NEED_LABEL[n].toLowerCase()).join(', ')}
                           </div>
                         )}
@@ -1639,10 +1639,10 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
 
               {showQuotes && !quotesLoading && filteredQuotes.length > 0 && (
                 <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10, minWidth: 700 }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, minWidth: 700 }}>
                     <thead>
                       <tr>{['Εταιρεία','Πρόγραμμα','Σεισμός','Πλημμύρα','Φυσικές καταστροφές','Εκτιμώμενο Μηνιαίο','Εκτιμώμενο Ετήσιο','Εξοικονόμηση/μήνα'].map((h, i) => (
-                        <th key={i} style={{ fontSize: 9, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-secondary)', padding: '6px 8px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 600, fontFamily: T.font.sans, background: 'var(--bg-elevated)', whiteSpace: 'nowrap' as const }}>{h}</th>
+                        <th key={i} style={{ fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-secondary)', padding: '6px 8px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 600, fontFamily: T.font.sans, background: 'var(--bg-elevated)', whiteSpace: 'nowrap' as const }}>{h}</th>
                       ))}</tr>
                     </thead>
                     <tbody>
@@ -1652,12 +1652,12 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
                           <tr key={q.plan} onClick={() => { u({ insProvider: q.company, insPlanId: q.plan, insEditCovers: false }); }}
                             style={{ cursor: 'pointer', background: isCur ? 'var(--accent-soft)' : 'transparent', transition: 'background 0.15s' }}>
                             <td style={{ padding: '6px 8px', fontWeight: isCur ? 700 : 400, color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.sans }}>{q.companyLabel}{isCur ? ' ✓' : ''}</td>
-                            <td style={{ padding: '6px 8px', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 9 }}>{q.planLabel}</td>
+                            <td style={{ padding: '6px 8px', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 11 }}>{q.planLabel}</td>
                             <td style={{ padding: '6px 8px', color: q.earthquake ? 'var(--text-primary)' : 'var(--text-tertiary)', textAlign: 'center' as const, fontWeight: 700 }}>{q.earthquake ? 'Ναι' : 'Όχι'}</td>
                             <td style={{ padding: '6px 8px', color: q.flood     ? 'var(--text-primary)' : 'var(--text-tertiary)', textAlign: 'center' as const, fontWeight: 700 }}>{q.flood     ? 'Ναι' : 'Όχι'}</td>
                             <td style={{ padding: '6px 8px', color: q.natural   ? 'var(--text-primary)' : 'var(--text-tertiary)', textAlign: 'center' as const, fontWeight: 700 }}>{q.natural   ? 'Ναι' : 'Όχι'}</td>
                             <td style={{ padding: '6px 8px', fontWeight: 600, color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const }}>{fe(q.monthlyEstimate)}</td>
-                            <td style={{ padding: '6px 8px', color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 9, whiteSpace: 'nowrap' as const }}>{fe(q.annualEstimate)}</td>
+                            <td style={{ padding: '6px 8px', color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 11, whiteSpace: 'nowrap' as const }}>{fe(q.annualEstimate)}</td>
                             <td style={{ padding: '6px 8px', fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const, color: 'var(--text-secondary)' }}>
                               {q.savings !== undefined && q.savings !== 0 ? `${q.savings > 0 ? '+' : ''}${fe(q.savings)}` : fe(0)}
                             </td>
@@ -1666,7 +1666,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
                       })}
                     </tbody>
                   </table>
-                  <div style={{ marginTop: 8, fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans, background: 'var(--bg-elevated)', padding: '6px 12px', borderRadius: T.radius.badge }}>
+                  <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, background: 'var(--bg-elevated)', padding: '6px 12px', borderRadius: T.radius.badge }}>
                     * Εκτιμώμενες τιμές βάσει στοιχείων ακινήτου, Χρησιμοποίησε <a href="https://www.insurancemarket.gr/katoikia/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>insurancemarket.gr</a> για ακριβή προσφορά · Πάτα γραμμή για επιλογή
                   </div>
                 </div>
@@ -1793,7 +1793,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
                 <div>
                   <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{s.name}</span>
-                  {s.renewalDate && <span style={{ fontSize: 10, color: daysLeft !== null && daysLeft <= 7 ? 'var(--warning)' : 'var(--text-tertiary)', marginLeft: 12, fontFamily: T.font.sans }}>{localDay(s.renewalDate).toLocaleDateString('el-GR')}{daysLeft !== null && daysLeft <= 7 ? `, σε ${daysLeft} ημέρες` : ''}</span>}
+                  {s.renewalDate && <span style={{ fontSize: 11, color: daysLeft !== null && daysLeft <= 7 ? 'var(--warning)' : 'var(--text-tertiary)', marginLeft: 12, fontFamily: T.font.sans }}>{localDay(s.renewalDate).toLocaleDateString('el-GR')}{daysLeft !== null && daysLeft <= 7 ? `, σε ${daysLeft} ημέρες` : ''}</span>}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(parseFloat(s.price))} / μήνα</span>
@@ -1811,7 +1811,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
                     από κάτω έγραφε ήδη ποια ακριβώς αθροίζονται. Δύο απαντήσεις
                     στην ίδια ερώτηση, και η μία λάθος. */}
                 <div style={{ ...TT.bodySm, color: 'var(--text-secondary)' }}>Σύνολο ανά μήνα</div>
-                <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2 }}>
                   {[
                     insCost > 0 && `Ασφάλεια ${fe(insCost)}`,
                     ...subGroups.filter(g => g.cost > 0).map(g => `${g.short} ${fe(g.cost)}`),

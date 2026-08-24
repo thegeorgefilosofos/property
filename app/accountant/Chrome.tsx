@@ -68,7 +68,7 @@ export function PortalTitle({ over, title, meta, right }: {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap', margin: '28px 0 22px' }}>
       <div style={{ minWidth: 0 }}>
-        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', margin: 0, fontFamily: T.font.sans }}>
+        <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', margin: 0, fontFamily: T.font.sans }}>
           {over}
         </p>
         <h1 style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.4px', margin: '6px 0 0', color: 'var(--text-primary)', fontFamily: T.font.sans }}>

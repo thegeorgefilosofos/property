@@ -657,7 +657,7 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
                           και στα κελιά χωρίς αργία, ώστε ο διάδρομος από κάτω να
                           ξεκινά στο ίδιο ύψος σε όλη την εβδομάδα. */}
                       {weekHasHoliday&&(
-                        <div title={hol||undefined} style={{ height:weekHolH, fontSize:10, lineHeight:'14px', color:'var(--accent)', fontWeight:600, overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', textWrap:'balance', wordBreak:'break-word', fontFamily: T.font.sans }}>{hol||''}</div>
+                        <div title={hol||undefined} style={{ height:weekHolH, fontSize: 11, lineHeight:'14px', color:'var(--accent)', fontWeight:600, overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', textWrap:'balance', wordBreak:'break-word', fontFamily: T.font.sans }}>{hol||''}</div>
                       )}
                       {/* Ο ΔΙΑΔΡΟΜΟΣ ΤΩΝ ΚΡΑΤΗΣΕΩΝ. Το κελί δεν ζωγραφίζει πια
                           κομμάτια μπάρας — κρατά μόνο το ύψος τους, ώστε ό,τι
@@ -665,7 +665,7 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
                           ζωγραφίζονται ΜΙΑ φορά, πάνω από ολόκληρη την εβδομάδα. */}
                       {railH>0&&<div aria-hidden style={{ height:railH, marginBottom:3 }}/>}
                       {(()=>{ const extra=staysOnDay(stays,dateStr).length-shownLanes; return extra>0
-                        ? <div style={{ fontSize:10, color:'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom:2 }}>+{extra} {extra===1?'κράτηση':'κρατήσεις'}</div>
+                        ? <div style={{ fontSize: 11, color:'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom:2 }}>+{extra} {extra===1?'κράτηση':'κρατήσεις'}</div>
                         : null })()}
                       <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
                         {dayEvents.slice(0,3).map(ev=>(
@@ -675,7 +675,7 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
                             </div>
                           </Tooltip>
                         ))}
-                        {dayEvents.length>3&&<span style={{ fontSize:10, color:'var(--text-tertiary)', paddingLeft:3, fontFamily: T.font.sans }}>+{dayEvents.length-3} ακόμη</span>}
+                        {dayEvents.length>3&&<span style={{ fontSize: 11, color:'var(--text-tertiary)', paddingLeft:3, fontFamily: T.font.sans }}>+{dayEvents.length-3} ακόμη</span>}
                       </div>
                       {/* ══ ΤΟ ΠΟΣΟ ΤΗΣ ΗΜΕΡΑΣ ΓΡΑΦΟΤΑΝ ΠΑΝΩ ΣΤΗΝ ΕΠΟΜΕΝΗ ══
                           Μετρημένο σε 360: το κελί δίνει 36,28 εικονοστοιχεία
@@ -1031,7 +1031,7 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
         <div style={{ minWidth:0 }}>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
             <p style={{ fontSize:16, fontFamily: T.font.sans, fontWeight:700, color:'var(--text-primary)', letterSpacing:'0.1px' }}>Έξυπνος συγχρονισμός</p>
-            {mode&&<span style={{ fontSize:10, fontWeight:700, letterSpacing:'0.05em', textTransform:'uppercase', color:'var(--accent)', background:'var(--accent-soft)', border:'1px solid var(--accent-border)', borderRadius: T.radius.modal, padding:'2px 9px', fontFamily: T.font.sans }}>{mode==='short_term'?'Βραχυχρόνια':'Μακροχρόνια'}</span>}
+            {mode&&<span style={{ fontSize: 11, fontWeight:700, letterSpacing:'0.05em', textTransform:'uppercase', color:'var(--accent)', background:'var(--accent-soft)', border:'1px solid var(--accent-border)', borderRadius: T.radius.modal, padding:'2px 9px', fontFamily: T.font.sans }}>{mode==='short_term'?'Βραχυχρόνια':'Μακροχρόνια'}</span>}
           </div>
           <p style={{ fontSize:13, color:'var(--text-secondary)', fontFamily: T.font.sans, marginTop:4, lineHeight:1.45 }}>{modeHint} Πάτησε μια πηγή για να την τραβήξεις.</p>
           {lastSync&&<p style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans, marginTop:4 }}>Τελευταίος συγχρονισμός: {lastSync}</p>}

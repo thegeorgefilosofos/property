@@ -756,7 +756,7 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
 
 .kpi-label {
   font-family: 'Inter', sans-serif;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1196,7 +1196,7 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
    ενοτήτων να δείχνουν ΙΔΙΕΣ σε όλα τα tabs (τελεία + uppercase + λεπτή γραμμή). */
 .section-label {
   font-family: 'Inter', sans-serif;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
   color: var(--text-secondary);
@@ -1282,6 +1282,11 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
   .lp-brand,
   .lg-back { min-height: 44px; display: inline-flex; align-items: center; }
   .lp-cta { justify-content: center; }
+  /* ΤΟ ΥΨΟΣ ΔΕΝ ΑΡΚΕΙ, Ο ΚΑΝΟΝΑΣ ΕΙΝΑΙ ΤΕΤΡΑΓΩΝΟΣ. Το «Τιμές» μετρήθηκε
+     38 × 44 σε κάθε δημόσια σελίδα: σωστό ύψος, πλάτος έξι εικονοστοιχεία κάτω
+     από το όριο. Το `min-width` το φέρνει στα 44 χωρίς να αγγίξει το κείμενο,
+     και πλέον χωρά: το λεκτικό του κουμπιού κονταίνει κάτω από τα 520. */
+  .lp-nav-link { min-width: 44px; justify-content: center; }
 
   /* Το υποσέλιδο: κάθε σύνδεσμος γίνεται σειρά 44, και το κενό της στήλης
      μηδενίζεται ώστε το συνολικό ύψος να μείνει σχεδόν ίδιο. */
@@ -1697,7 +1702,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .bottom-nav-item {
   flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
   padding: 6px 2px; border: none; background: none; cursor: pointer;
-  color: var(--text-tertiary); font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 500;
+  color: var(--text-tertiary); font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500;
   min-height: 48px; border-radius: 12px; transition: color 0.15s;
 }
 .bottom-nav-item.active { color: var(--accent); }
@@ -1752,7 +1757,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .kpi-value   { font-size: 19px; }
   .card        { padding: 14px; }
   .cmdk-input  { font-size: 15px; }
-  .bottom-nav-item { font-size: 9px; }
+  .bottom-nav-item { font-size: 11px; }
 }
 
 /* Foldables πολύ στενά (≤280px — Galaxy Fold κλειστό) — τελευταίο δίχτυ ασφαλείας */
@@ -1956,6 +1961,21 @@ html.a11y-large-text { zoom: 1.08; }
   .lp-foot { grid-template-columns: 1fr; }
 }
 
+/* ═══ ΤΟ ΚΟΝΤΟ ΚΕΙΜΕΝΟ ΤΗΣ ΣΤΕΝΗΣ ΟΘΟΝΗΣ, ΣΕ ΚΑΘΕ ΣΕΛΙΔΑ ══════════════════
+   Ζούσαν μέσα στο <style> του app/page.tsx, άρα υπήρχαν ΜΟΝΟ στην αρχική. Η
+   κεφαλίδα κάθε άλλης δημόσιας σελίδας έγραφε ολόκληρο το «Ξεκίνα τη δοκιμή»
+   και στα 390 ξεχείλιζε: μετρημένο σε Chromium, δεξιά άκρη στο 392 σε παράθυρο
+   390. Δύο εικονοστοιχεία, αλλά αρκετά για οριζόντια κύλιση σε κάθε νομική
+   σελίδα και σε κάθε δωρεάν εργαλείο.
+
+   Ο κανόνας του guard-hidden-on-small ισχύει και εδώ: το ένα κρύβεται μόνο
+   επειδή το άλλο παίρνει τη θέση του. */
+.lp-only-xs { display: none; }
+@media (max-width: 520px) {
+  .lp-hide-xs { display: none !important; }
+  .lp-only-xs { display: inline !important; }
+}
+
 /* Συχνές ερωτήσεις: λεπτή γραμμή αντί για κουτί, και σταυρός που γίνεται
    «χ» όταν ανοίγει. Το προεπιλεγμένο βελάκι του περιηγητή φεύγει.
 
@@ -2070,7 +2090,7 @@ details.lp-faq-more[open] > div > details.lp-faq:first-child { border-top: none;
 /* Τα μέρη μέσα στο ευρετήριο: ίδια ετικέτα με τις ενότητες της αρχικής. */
 .lg-toc-part {
   display: block; margin: 18px 0 7px;
-  font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.14em;
   text-transform: uppercase; color: var(--text-tertiary);
 }
 .lg-toc-list > li:first-child .lg-toc-part { margin-top: 0; }

@@ -87,7 +87,7 @@ function MonthBars({ data, activeYm }: { data: { ym: string; label: string; valu
               )}
               <div style={{ width: '100%', height: Math.max(h, 3), borderRadius: '6px 6px 2px 2px', background: d.value > 0 ? `linear-gradient(180deg, color-mix(in srgb, var(--accent) ${top}%, transparent), color-mix(in srgb, var(--accent) ${bot}%, transparent))` : 'color-mix(in srgb, var(--text-primary) 8%, transparent)', transition: 'height 0.5s cubic-bezier(0.22,1,0.36,1), background 0.18s ease' }} />
             </div>
-            <span style={{ fontSize: 9, color: on || active ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight: on || active ? 700 : 500, transition: 'color 0.15s' }}>{d.label}</span>
+            <span style={{ fontSize: 11, color: on || active ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight: on || active ? 700 : 500, transition: 'color 0.15s' }}>{d.label}</span>
           </div>
         );
       })}
@@ -139,9 +139,9 @@ function Donut({ slices }: { slices: { label: string; value: number }[] }) {
             return el;
           })}
         </g>
-        <text x="76" y="70" textAnchor="middle" style={{ fontSize: 9, fill: 'var(--text-tertiary)', fontFamily: T.font.sans, letterSpacing: '0.04em', transition: 'fill 0.15s' }}>{active ? active.label.slice(0, 16).toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '') : 'ΣΥΝΟΛΟ'}</text>
+        <text x="76" y="70" textAnchor="middle" style={{ fontSize: 11, fill: 'var(--text-tertiary)', fontFamily: T.font.sans, letterSpacing: '0.04em', transition: 'fill 0.15s' }}>{active ? active.label.slice(0, 16).toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '') : 'ΣΥΝΟΛΟ'}</text>
         <text x="76" y="87" textAnchor="middle" style={{ fontSize: 16, fontWeight: 700, fill: active ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.num, transition: 'fill 0.15s' }}>{feAuto(active ? active.value : total)}</text>
-        {active && <text x="76" y="101" textAnchor="middle" style={{ fontSize: 9, fill: 'var(--text-tertiary)', fontFamily: T.font.num }}>{Math.round((active.value / total) * 100)}%</text>}
+        {active && <text x="76" y="101" textAnchor="middle" style={{ fontSize: 11, fill: 'var(--text-tertiary)', fontFamily: T.font.num }}>{Math.round((active.value / total) * 100)}%</text>}
       </svg>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1, minWidth: 150 }}>
         {segs.map((s, i) => {
@@ -1047,7 +1047,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCollapse(key!); } } : undefined}
         role={clickable ? 'button' : undefined} tabIndex={clickable ? 0 : undefined} aria-expanded={clickable ? !shut : undefined}
         style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: shut ? 0 : 12, paddingBottom: shut ? 0 : 10, borderBottom: shut ? 'none' : '1px solid var(--border-subtle)', cursor: clickable ? 'pointer' : 'default', userSelect: 'none' }}>
-        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>{label}</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>{label}</span>
         {info && <span onClick={e => e.stopPropagation()} style={{ display: 'inline-flex' }}>{info}</span>}
         <span style={{ flex: 1 }}/>
         {right}
@@ -1108,7 +1108,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
               style={{ display: 'flex', border: 'none', background: 'transparent', cursor: canGoNewer ? 'pointer' : 'default', color: canGoNewer ? 'var(--text-secondary)' : 'var(--border-default)', padding: 2, margin: '0 -2px' }}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
-            {!isCurMonth && <button onClick={() => setMonthOffset(0)} style={{ marginLeft: 4, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--accent)', cursor: 'pointer', fontSize: 10, fontWeight: 600, borderRadius: T.radius.pill, padding: '2px 9px', fontFamily: T.font.sans }}>Τρέχων</button>}
+            {!isCurMonth && <button onClick={() => setMonthOffset(0)} style={{ marginLeft: 4, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--accent)', cursor: 'pointer', fontSize: 11, fontWeight: 600, borderRadius: T.radius.pill, padding: '2px 9px', fontFamily: T.font.sans }}>Τρέχων</button>}
             <span style={{ marginLeft: 8, color: 'var(--text-tertiary)' }}>· {isPro ? 'Επιχείρηση' : 'Ιδιώτης'}</span>
             {saving && <span style={{ marginLeft: 10, color: 'var(--text-tertiary)', fontSize: 11 }}>· Αποθήκευση…</span>}
           </div>
@@ -1188,7 +1188,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
               <div className="po-fig-card" tabIndex={0}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>{hasIncome ? (isPro ? 'Διαθέσιμη ταμειακή ροή' : 'Ασφαλές διαθέσιμο') : 'Μηνιαίο κόστος ακινήτου'}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>{hasIncome ? (isPro ? 'Διαθέσιμη ταμειακή ροή' : 'Ασφαλές διαθέσιμο') : 'Μηνιαίο κόστος ακινήτου'}</span>
                   <InfoDot text={hasIncome ? (isPro ? 'Έσοδα μείον τους δεσμευμένους λογαριασμούς, τη δόση του δανείου και τις εισφορές των αποθεματικών. Δηλαδή η ελεύθερη ταμειακή ροή της δραστηριότητας κάθε μήνα.' : 'Έσοδα μείον τους δεσμευμένους λογαριασμούς, τη δόση του δανείου και τις μηνιαίες εισφορές των αποθεματικών. Το ποσό που μπορείς με ασφάλεια να αποσύρεις ή να διαθέσεις κάθε μήνα.') : 'Το άθροισμα των πάγιων λογαριασμών του μήνα και της δόσης του δανείου. Δηλαδή τι σου κοστίζει το ακίνητο κάθε μήνα.'} />
                 </div>
                 <div className="po-fig" data-tone={hasIncome ? (safeRaw < 0 ? 'negative' : 'accent') : undefined} style={{ fontSize: 28, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1, letterSpacing: '-0.02em', transition: 'color 0.15s' }}>{feAuto(val)}</div>
@@ -1254,7 +1254,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                           κύριο νούμερο): τα πλακίδια στηρίζουν το σύνολο, δεν
                           ανταγωνίζονται μαζί του. */}
                       <div style={{ ...TT.kpi, fontSize: 18, marginTop: 4 }}>{feAuto(t.v)}</div>
-                      <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 3,
+                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 3,
                         lineHeight: 1.4 }}>{t.sub}</div>
                     </div>
                   ))}
@@ -1342,9 +1342,9 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         return (
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>Από μεικτό σε καθαρό</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>Από μεικτό σε καθαρό</span>
               <InfoDot text="Ανάλυση του εσόδου βραχυχρόνιας μίσθωσης του μήνα: αφαιρούνται η προμήθεια της πλατφόρμας, το τέλος ανθεκτικότητας (ανά διανυκτέρευση), η τυχόν διαχείριση και η εκτιμώμενη κράτηση φόρου, για να δεις τι μένει πραγματικά. Πρόκειται για εκτίμηση· μπορείς να προσαρμόσεις τις παραδοχές στην επεξεργασία." />
-              <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text-tertiary)' }}>{strNights} διαν.</span>
+              <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-tertiary)' }}>{strNights} διαν.</span>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -1383,7 +1383,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                 <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{cat.label}</span>
                 <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>υπέρβαση</span>
                 <span className="po-fig" data-tone="negative" style={{ fontSize: 12, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>+{feAuto(actual - budget)}</span>
-                <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>({feAuto(actual)} έναντι {feAuto(budget)})</span>
+                <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>({feAuto(actual)} έναντι {feAuto(budget)})</span>
               </div>
             );
           })}
@@ -1455,7 +1455,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       {isPro && invReturns && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12, paddingBottom: 9, borderBottom: '1px solid var(--border-subtle)' }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>Απόδοση επένδυσης</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>Απόδοση επένδυσης</span>
             <InfoDot text="NOI = καθαρά λειτουργικά έσοδα (χωρίς δόση δανείου). Ταμειακή ροή = NOI μείον δόση. Cap rate = NOI / τιμή αγοράς. Cash-on-cash = ταμειακή ροή / ίδια κεφάλαια. Ετησιοποιημένες εκτιμήσεις." />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 128px), 1fr))', gap: 8 }}>
@@ -1472,7 +1472,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         <div className="budget-rise" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-accent)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>
-            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>Προτάσεις</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>Προτάσεις</span>
             <InfoDot text="Προτάσεις που προκύπτουν από το πραγματικό μοτίβο των δαπανών σου. Εφαρμόζεις με ένα άγγιγμα (με δυνατότητα αναίρεσης) ή τις απορρίπτεις για να μην ξαναεμφανιστούν." />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1500,7 +1500,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         <div className="budget-rise" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2Z"/></svg>
-            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>Παρατηρήσεις</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>Παρατηρήσεις</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
             {insights.map((t, i) => (
@@ -1535,7 +1535,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
                   <span className="po-fig" data-tone={annual.onTrack ? undefined : 'negative'} style={{ fontSize: 24, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1, letterSpacing: '-0.02em' }}>{feAuto(annual.projectedYearEnd)}</span>
                   <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>προβολή τέλους έτους · στόχος <span style={{ fontFamily: T.font.num }}>{feAuto(annual.annualBudget)}</span></span>
-                  <span style={{ marginLeft: 'auto', fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: T.radius.pill, fontFamily: T.font.sans, color: annual.onTrack ? 'var(--text-secondary)' : 'var(--negative)', background: annual.onTrack ? 'var(--bg-elevated)' : 'var(--negative-dim)', border: `1px solid ${annual.onTrack ? 'var(--border-subtle)' : 'var(--negative-border)'}` }}>{annual.onTrack ? 'Εντός στόχου' : 'Εκτός στόχου'}</span>
+                  <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: T.radius.pill, fontFamily: T.font.sans, color: annual.onTrack ? 'var(--text-secondary)' : 'var(--negative)', background: annual.onTrack ? 'var(--bg-elevated)' : 'var(--negative-dim)', border: `1px solid ${annual.onTrack ? 'var(--border-subtle)' : 'var(--negative-border)'}` }}>{annual.onTrack ? 'Εντός στόχου' : 'Εκτός στόχου'}</span>
                 </div>
                 {/* YTD — από την αρχή του έτους */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 7, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>
@@ -1558,7 +1558,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                 </div>
                 {/* Ετήσιο εργαλείο: ράβδοι εξόδων ανά μήνα (με ήπια κατάσταση όταν δεν υπάρχει ιστορικό) */}
                 <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>Έξοδα ανά μήνα</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>Έξοδα ανά μήνα</div>
                   {yearBars.some(b => b.value > 0)
                     ? <MonthBars data={yearBars} activeYm={_curYm} />
                     : <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, padding: '14px 0' }}>Μόλις καταγραφούν έξοδα, θα δεις εδώ την πορεία ανά μήνα.</div>}
@@ -1566,7 +1566,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                 {/* Ετήσιο εργαλείο: κατανομή δαπανών ανά κατηγορία */}
                 {catYtd.length > 0 && (
                   <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>Κατανομή ανά κατηγορία</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12, fontFamily: T.font.sans }}>Κατανομή ανά κατηγορία</div>
                     <Donut slices={catYtd} />
                   </div>
                 )}
@@ -1603,7 +1603,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       {/* Επιχειρηματικές υποχρεώσεις — ΜΟΝΟ επαγγελματίας (δεν αφορούν ιδιώτες) */}
       {isPro && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '12px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>Επιχειρηματικές υποχρεώσεις</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>Επιχειρηματικές υποχρεώσεις</span>
           <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>
             Εκτός από τον φόρο εισοδήματος, ως επιχείρηση βαρύνεσαι με τις μηνιαίες εισφορές <strong style={{ color: 'var(--text-secondary)' }}>ΕΦΚΑ</strong>, την <strong style={{ color: 'var(--text-secondary)' }}>προκαταβολή φόρου</strong> για την επόμενη χρήση και, εφόσον παρέχεις υπηρεσίες, τον <strong style={{ color: 'var(--text-secondary)' }}>ΦΠΑ</strong>. Τα ακριβή ποσά υπολογίζονται στη Λογιστική.
           </span>
@@ -1630,11 +1630,11 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                       <div style={{ width: 3, height: 26, borderRadius: 3, background: 'color-mix(in srgb, var(--text-primary) 26%, transparent)', flexShrink: 0 }} />
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', fontFamily: T.font.sans, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.label}</div>
-                        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 1 }}>{cadLabel(r.cadence)} · επόμενη {parseLocalDate(r.nextExpected).toLocaleDateString('el-GR', { day: 'numeric', month: 'short' })}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 1 }}>{cadLabel(r.cadence)} · επόμενη {parseLocalDate(r.nextExpected).toLocaleDateString('el-GR', { day: 'numeric', month: 'short' })}</div>
                       </div>
                       <div style={{ textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: hov ? 'var(--accent)' : 'var(--text-primary)', transition: 'color 0.15s' }}>{feAuto(r.monthlyEquivalent)}<span style={{ fontSize: 9, fontWeight: 500, color: 'var(--text-tertiary)' }}>/μήνα</span></div>
-                        <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{feAuto(r.annualCost)}/έτος</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: hov ? 'var(--accent)' : 'var(--text-primary)', transition: 'color 0.15s' }}>{feAuto(r.monthlyEquivalent)}<span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)' }}>/μήνα</span></div>
+                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{feAuto(r.annualCost)}/έτος</div>
                       </div>
                     </div>
                   );
@@ -1681,7 +1681,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                   <span onClick={e => e.stopPropagation()} style={{ display: 'inline-flex' }}><InlineText value={cat.label} onCommit={v => renameCategory(cat.key, v)} ariaLabel={`Μετονομασία «${cat.label}»`} /></span>
                   {<span title="Τάση 12 μηνών"><Sparkline values={catSpark(cat.key)} activeIndex={_sparkYms.indexOf(viewYm)} /></span>}
                   {isCurMonth && tr.avgPrior > 0 && tr.direction !== 'flat' && (
-                    <span title={`Μέσος όρος τριμήνου: ${feAuto(tr.avgPrior)}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 10, fontWeight: 700, fontFamily: T.font.num, color: 'var(--text-tertiary)' }}>
+                    <span title={`Μέσος όρος τριμήνου: ${feAuto(tr.avgPrior)}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 11, fontWeight: 700, fontFamily: T.font.num, color: 'var(--text-tertiary)' }}>
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: tr.direction === 'down' ? 'scaleY(-1)' : 'none' }}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
                       {tr.deltaPct > 0 ? '+' : ''}{tr.deltaPct}%
                     </span>
@@ -1696,10 +1696,10 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                         από το χρώμα και το βάρος. */}
                     <span style={{ fontSize: 14, fontWeight: actual > 0 ? 700 : 500, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: actual > 0 ? (hov ? 'var(--accent)' : 'var(--text-primary)') : 'var(--text-tertiary)', transition: 'color 0.15s' }}>{feAuto(actual > 0 ? actual : 0)}</span>
                     {/* Στόχος — κλικ για επιτόπου αλλαγή */}
-                    <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>/ <InlineNumber raw={budgets[cat.key] ?? String(cat.default)} display={feAuto(budget)} onCommit={v => updateBudget(cat.key, v)} width={58} ariaLabel={`Στόχος «${cat.label}»`} /></span>
-                    {isOver && <span className="po-fig" data-tone="negative" title="Υπέρβαση του στόχου" style={{ fontSize: 10, fontWeight: 600, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>+{feAuto(actual - budget)}</span>}
-                    {projOver && <span title="Με τον τρέχοντα ρυθμό θα ξεπεράσει τον στόχο" style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>προβλεπόμενη υπέρβαση</span>}
-                    {isWarn && <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fp(pct)}</span>}
+                    <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>/ <InlineNumber raw={budgets[cat.key] ?? String(cat.default)} display={feAuto(budget)} onCommit={v => updateBudget(cat.key, v)} width={58} ariaLabel={`Στόχος «${cat.label}»`} /></span>
+                    {isOver && <span className="po-fig" data-tone="negative" title="Υπέρβαση του στόχου" style={{ fontSize: 11, fontWeight: 600, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>+{feAuto(actual - budget)}</span>}
+                    {projOver && <span title="Με τον τρέχοντα ρυθμό θα ξεπεράσει τον στόχο" style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>προβλεπόμενη υπέρβαση</span>}
+                    {isWarn && <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fp(pct)}</span>}
                   </div>
                   {/* Αφαίρεση κατηγορίας — εμφανίζεται στο πέρασμα του κέρσορα */}
                   <button type="button" title="Αφαίρεση κατηγορίας" aria-label={`Αφαίρεση «${cat.label}»`}
@@ -1728,7 +1728,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                       <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 8px', margin: '0 -8px', borderRadius: T.radius.inner }}>
                         <span style={{ width: 4, height: 4, borderRadius: '50%', background: it.paid ? 'color-mix(in srgb, var(--text-primary) 40%, transparent)' : 'var(--border-default)', flexShrink: 0 }} />
                         <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.label}</span>
-                        {!it.paid && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>εκκρεμεί</span>}
+                        {!it.paid && <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>εκκρεμεί</span>}
                         {it.date && <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{parseLocalDate(it.date).toLocaleDateString('el-GR', { day: 'numeric', month: 'short' })}</span>}
                         <span style={{ minWidth: 58, textAlign: 'right', flexShrink: 0, fontSize: 12, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>{feAuto(it.amount)}</span>
                       </div>
@@ -1824,7 +1824,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                       {/* Ποσό: συνολικό· όταν εξαιρείται μερικώς, δείχνουμε διακριτικά πόσο μετρά */}
                       <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.2 }}>
                         <span style={{ fontSize: 13, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: isEx ? 'var(--text-tertiary)' : 'var(--text-primary)', textDecoration: isEx && !partial ? 'line-through' : 'none', textDecorationColor: 'var(--border-default)' }}>{feAuto(full)}</span>
-                        {partial && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>μετρά {feAuto(cnt)}</span>}
+                        {partial && <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>μετρά {feAuto(cnt)}</span>}
                       </span>
                       {/* Διακόπτης «μετρά στον προϋπολογισμό» — off = εξαιρέθηκε.
                           ΓΙΑΤΙ ΜΕΝΕΙ ΧΕΙΡΟΓΡΑΦΟΣ. Το κοινό `Toggle` δένει την

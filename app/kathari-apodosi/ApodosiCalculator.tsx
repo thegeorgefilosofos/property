@@ -169,8 +169,14 @@ export function ApodosiCalculator({ year, today }: { year: number; today: string
                   ότι είναι κουμπί συμπλήρωσης, ούτε ποιο πεδίο γεμίζει. */}
               <button type="button" onClick={() => set('dapanes', presumed.toFixed(2))}
                 aria-label={`Συμπλήρωση ${feAuto(presumed)} στις δαπάνες τον χρόνο`}
+                /* ΤΟ ΔΑΧΤΥΛΟ ΕΙΧΕ ΔΕΚΑΠΕΝΤΕ ΕΙΚΟΝΟΣΤΟΙΧΕΙΑ ΝΑ ΠΙΑΣΕΙ. Μετρημένο
+                   στα 390: 56 × 15. Ο κανόνας των 44 εξαιρεί ρητά τους στόχους
+                   μέσα σε τρεχούμενο κείμενο, γιατί εκεί το ύψος το ορίζει η
+                   γραμμή· δεν εξαιρεί όμως και την άνεση. Το κάθετο γέμισμα σε
+                   στοιχείο ροής ΔΕΝ αλλάζει το ύψος της γραμμής, οπότε η
+                   περιοχή αφής διπλασιάζεται και η σελίδα μένει ακριβώς ίδια. */
                 style={{
-                  border: 'none', background: 'none', padding: 0, cursor: 'pointer',
+                  border: 'none', background: 'none', padding: '8px 3px', margin: '0 -3px', cursor: 'pointer',
                   color: 'var(--accent)', fontWeight: 600, fontSize: 12.5,
                   fontFamily: T.font.num, textDecoration: 'underline',
                 }}>{feAuto(presumed)}</button>.

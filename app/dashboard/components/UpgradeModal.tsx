@@ -91,7 +91,7 @@ export default function UpgradeModal({ currentCount, planId, profileType = 'indi
             const isCurrent = id === current;
             return (
               <div key={id} style={{ background: 'var(--bg-elevated)', border: `1px solid ${isRec ? 'color-mix(in srgb, var(--accent) 55%, transparent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.card, padding: 16, position: 'relative', display: 'flex', flexDirection: 'column' }}>
-                {isRec && <div style={{ position: 'absolute', top: -10, left: 16, background: 'var(--accent)', color: 'var(--accent-text)', borderRadius: T.radius.pill, padding: '3px 10px', fontSize: 10, fontWeight: 700 }}>Προτεινόμενο</div>}
+                {isRec && <div style={{ position: 'absolute', top: -10, left: 16, background: 'var(--accent)', color: 'var(--accent-text)', borderRadius: T.radius.pill, padding: '3px 10px', fontSize: 11, fontWeight: 700 }}>Προτεινόμενο</div>}
                 <div style={{ fontSize: 13, fontWeight: 700, color: isRec ? 'var(--accent)' : 'var(--text-primary)', marginBottom: 6 }}>{p.name}</div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 2 }}>
                   <span style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{feAuto(p.priceMonthly)}</span>

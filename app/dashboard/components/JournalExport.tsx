@@ -327,7 +327,7 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
               </button>
               {showBalance && (<>
               <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 12, overflow: 'hidden' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px', gap: 12, padding: '10px 16px', background: 'var(--bg-elevated)', fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-tertiary)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px', gap: 12, padding: '10px 16px', background: 'var(--bg-elevated)', fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-tertiary)' }}>
                   <span>ΛΟΓΑΡΙΑΣΜΟΣ</span><span style={{ textAlign: 'right' }}>ΧΡΕΩΣΗ</span><span style={{ textAlign: 'right' }}>ΠΙΣΤΩΣΗ</span>
                 </div>
                 {preview.map(r => (

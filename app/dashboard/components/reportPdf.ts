@@ -83,13 +83,13 @@ export const REPORT_CSS = `
   .mark{width:34px;height:34px;border-radius:8px;color:${BRAND_MARK_INK};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px}
   .bname{font-size:15px;font-weight:700;color:${INK}}
   .muted{color:${INK_MUTED}}
-  .asof-l{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:${INK_FAINT};font-weight:600}
+  .asof-l{font-size: 11px;letter-spacing:.06em;text-transform:uppercase;color:${INK_FAINT};font-weight:600}
   h1{font-size:22px;font-weight:700;letter-spacing:-.01em;margin:22px 0 3px}
   .sub{color:${INK_MUTED};font-size:12px;margin-bottom:6px}
   .sec{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:${INK};margin:26px 0 10px;padding-bottom:6px;border-bottom:1px solid ${INK};break-after:avoid}
   .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
   .kpi{border:1px solid ${RULE};border-radius:10px;padding:13px 15px;display:flex;flex-direction:column}
-  .kl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:${INK_FAINT};font-weight:700;line-height:1.3;min-height:2.7em;margin-bottom:6px}
+  .kl{font-size: 11px;text-transform:uppercase;letter-spacing:.06em;color:${INK_FAINT};font-weight:700;line-height:1.3;min-height:2.7em;margin-bottom:6px}
   .kv{font-size:18px;font-weight:700;color:${INK};font-variant-numeric:tabular-nums;letter-spacing:-.01em;margin-top:auto}
   table{width:100%;border-collapse:collapse;break-inside:avoid}
   td{padding:8px 4px;text-align:left;font-size:13px;color:${INK_MUTED}}
@@ -98,13 +98,13 @@ export const REPORT_CSS = `
   td.np{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;color:${INK_FAINT};font-size:12px;padding-left:18px;width:80px}
   tr.sub td{font-weight:700;color:${INK};background:${PAPER_ALT}}
   tr.result td{font-weight:700;color:${INK};border-top:2px solid ${INK};border-bottom:none;padding-top:10px}
-  th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:${INK_FAINT};font-weight:600;border-bottom:1px solid ${RULE};text-align:left;padding:0 4px 6px}
+  th{font-size: 11px;text-transform:uppercase;letter-spacing:.05em;color:${INK_FAINT};font-weight:600;border-bottom:1px solid ${RULE};text-align:left;padding:0 4px 6px}
   th.n{text-align:right}th.np{text-align:right;padding-left:18px}
   td.empty{color:${INK_FAINT};font-size:12px;padding:12px 0}
   .note{margin-top:9px;font-size:12px;color:${INK_MUTED};line-height:1.55}
   .tnum{font-variant-numeric:tabular-nums}
-  .disc{margin-top:32px;padding-top:12px;border-top:1px solid ${RULE};color:${INK_FAINT};font-size:10px;line-height:1.6}
-  .colo{margin-top:10px;font-size:10px;letter-spacing:.02em;color:${INK_FAINT}}
+  .disc{margin-top:32px;padding-top:12px;border-top:1px solid ${RULE};color:${INK_FAINT};font-size: 11px;line-height:1.6}
+  .colo{margin-top:10px;font-size: 11px;letter-spacing:.02em;color:${INK_FAINT}}
   .colo b{font-weight:700;color:${INK_MUTED}}
 `;
 
@@ -136,12 +136,12 @@ export function reportHeader(branding: ReportBranding | null | undefined, report
     <div class="brand">${mark}<div>
       <div class="bname">${brandName(branding)}</div>
       <div class="muted" style="font-size:11px">${rEsc(reportType)}</div>
-      ${contact ? `<div class="muted" style="font-size:10px;margin-top:2px">${contact}</div>` : ''}
+      ${contact ? `<div class="muted" style="font-size: 11px;margin-top:2px">${contact}</div>` : ''}
     </div></div>
     <div style="text-align:right">
       <div class="asof-l">${rEsc(rl)}</div>
       <div style="font-size:13px;font-weight:600;margin-top:2px">${rEsc(rv)}</div>
-      ${opts.rightNote ? `<div class="muted" style="font-size:10px;margin-top:3px">${rEsc(opts.rightNote)}</div>` : ''}
+      ${opts.rightNote ? `<div class="muted" style="font-size: 11px;margin-top:3px">${rEsc(opts.rightNote)}</div>` : ''}
     </div>
   </div>`;
 }

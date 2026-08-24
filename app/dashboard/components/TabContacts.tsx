@@ -45,7 +45,7 @@ const DossierRow = ({ icon: Ic, children, onCopy }: { icon: React.ComponentType<
 )
 const DossierSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '15px 16px', boxShadow: 'var(--elev-1)' }}>
-    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>{title}</div>
+    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>{title}</div>
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{children}</div>
   </div>
 )
@@ -367,7 +367,7 @@ function QuickAct({ as, href, target, rel, onClick, title, label, children }: {
   const base: React.CSSProperties = {
     width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
     textDecoration: 'none', border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)',
-    color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 10, fontWeight: 800, flexShrink: 0,
+    color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 11, fontWeight: 800, flexShrink: 0,
     transition: 'border-color 0.15s, color 0.15s, background 0.15s', boxShadow: 'var(--elev-1)',
   }
   const enter = (e: React.MouseEvent<HTMLElement>) => { const s = e.currentTarget.style; s.borderColor = 'var(--accent-border)'; s.color = 'var(--accent)'; s.background = 'var(--accent-soft)' }
@@ -578,7 +578,7 @@ const CONTACT_CARD_CSS = `
   .crow{display:flex;gap:8px;align-items:flex-start;margin:6px 0;font-size:13px;color:${INK}}
   .clabel{min-width:88px;color:${INK_FAINT};font-size:11px;text-transform:uppercase;padding-top:1px;flex-shrink:0}
   .ctag{display:inline-block;padding:2px 9px;border-radius:20px;background:${PAPER_ALT};border:1px solid ${RULE};font-size:11px;color:${INK_MUTED};margin-right:4px}
-  .cbadge{font-size:10px;font-weight:700;color:${INK_MUTED};margin-left:6px;letter-spacing:.04em}
+  .cbadge{font-size: 11px;font-weight:700;color:${INK_MUTED};margin-left:6px;letter-spacing:.04em}
 `
 
 function printContactCard(contact: Contact, branding?: ReportBranding | null) {
@@ -797,7 +797,7 @@ function exportContactsPDF(contacts: Contact[], branding?: ReportBranding | null
 
   // Διακριτικοί, ΑΣΠΡΟΜΑΥΡΟΙ δείκτες (WA/VB/IRIS): κείμενο, χωρίς χρώμα.
   const mark = (on: boolean | undefined, text: string) =>
-    on ? ` <span class="muted" style="font-size:9px;font-weight:600">${rEsc(text)}</span>` : ''
+    on ? ` <span class="muted" style="font-size: 11px;font-weight:600">${rEsc(text)}</span>` : ''
 
   const kpis = `<div class="kpis" style="grid-template-columns:repeat(3,1fr)">`
     + reportKpi('Σύνολο επαφών', String(contacts.length))
@@ -815,7 +815,7 @@ function exportContactsPDF(contacts: Contact[], branding?: ReportBranding | null
           const role = ROLE_META[c.role]?.label || c.role
           return `<tr>`
             + `<td><div style="font-weight:600;color:${INK}">${rEsc(c.full_name)}</div>`
-            +   `<div class="muted" style="font-size:10px">${rEsc(role)}</div></td>`
+            +   `<div class="muted" style="font-size: 11px">${rEsc(role)}</div></td>`
             + `<td class="tnum">${c.phone ? rEsc(c.phone) : ABSENT_SHORT}</td>`
             + `<td>${rEsc(c.email || ABSENT)}</td>`
             + `</tr>`
@@ -830,7 +830,7 @@ function exportContactsPDF(contacts: Contact[], branding?: ReportBranding | null
       const iban = ex.iban ? `···${rEsc(ex.iban.slice(-4))}${mark(ex.iris, 'IRIS')}` : ABSENT_SHORT
       return `<tr>`
         + `<td><div style="font-weight:600;color:${INK}">${rEsc(c.full_name)}</div>`
-        +   `<div class="muted" style="font-size:10px">${rEsc(role)}</div></td>`
+        +   `<div class="muted" style="font-size: 11px">${rEsc(role)}</div></td>`
         + `<td class="tnum">${c.phone ? rEsc(c.phone) : ABSENT_SHORT}${mark(ex.whatsapp, 'WA')}${mark(ex.viber, 'VB')}</td>`
         + `<td>${rEsc(c.email || ABSENT)}</td>`
         + `<td class="tnum">${ex.afm ? rEsc(ex.afm) : ABSENT_SHORT}</td>`
@@ -934,7 +934,7 @@ function ContactCard({ contact, onOpen, onEdit, onDelete, onQuickExpense, onQuic
       style={{ background: selected ? 'color-mix(in srgb, var(--accent) 6%, var(--bg-surface))' : 'var(--bg-surface)', border: '1.5px solid ' + (selected ? 'var(--accent)' : hov ? 'var(--accent-border)' : overdue ? 'var(--negative-border)' : 'var(--border-subtle)'), borderRadius: T.radius.card, padding: bulkMode ? '18px 18px 16px 46px' : '18px 18px 16px', position: 'relative', boxShadow: selected ? '0 0 0 3px var(--accent-soft)' : hov ? 'var(--elev-2)' : 'none', transition: 'border-color 0.2s, box-shadow 0.2s, background 0.2s', cursor: bulkMode ? 'pointer' : 'default' }}>
       <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: overdue ? 'var(--negative)' : 'var(--border-subtle)', borderRadius: '16px 0 0 16px', opacity: bulkMode ? 0 : 1 }} />
       {bulkMode && <div style={{ position: 'absolute', top: 17, left: 15, zIndex: 2 }}><SelectBox checked={!!selected} onToggle={onSelect} /></div>}
-      {overdue && <div style={{ position: 'absolute', top: 0, right: 0, background: 'var(--negative)', color: 'var(--text-inverse)', fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: '0 16px 0 8px', letterSpacing: '0.07em' }}>ΛΗΞΗ ΡΑΝΤΕΒΟΥ</div>}
+      {overdue && <div style={{ position: 'absolute', top: 0, right: 0, background: 'var(--negative)', color: 'var(--text-inverse)', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: '0 16px 0 8px', letterSpacing: '0.07em' }}>ΛΗΞΗ ΡΑΝΤΕΒΟΥ</div>}
       {(hov || showActions || coarse) && !bulkMode && (
         <div ref={actionsRef} style={{ position: 'absolute', top: 12, right: 12, zIndex: 20 }}>
           {/* Ορατές μόνο οι πιο συχνές ενέργειες — όλες οι υπόλοιπες μπαίνουν στο «···» */}
@@ -984,16 +984,16 @@ function ContactCard({ contact, onOpen, onEdit, onDelete, onQuickExpense, onQuic
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-          {extra.preferred && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', fontWeight: 700 }}>Προτιμώμενη</span>}
+          {extra.preferred && <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', fontWeight: 700 }}>Προτιμώμενη</span>}
           {scopeLabel && (
-            <span title={scopePortfolio ? 'Ισχύει για όλο το χαρτοφυλάκιο' : 'Ανήκει σε συγκεκριμένο ακίνητο'} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: scopePortfolio ? 'var(--accent-soft)' : 'var(--bg-elevated)', border: '1px solid ' + (scopePortfolio ? 'var(--accent-border)' : 'var(--border-subtle)'), color: scopePortfolio ? 'var(--accent)' : 'var(--text-secondary)', fontWeight: 500, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <span title={scopePortfolio ? 'Ισχύει για όλο το χαρτοφυλάκιο' : 'Ανήκει σε συγκεκριμένο ακίνητο'} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, padding: '2px 8px', borderRadius: T.radius.pill, background: scopePortfolio ? 'var(--accent-soft)' : 'var(--bg-elevated)', border: '1px solid ' + (scopePortfolio ? 'var(--accent-border)' : 'var(--border-subtle)'), color: scopePortfolio ? 'var(--accent)' : 'var(--text-secondary)', fontWeight: 500, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {scopePortfolio ? <Globe size={10} style={{ flexShrink: 0 }} /> : <Building2 size={10} style={{ flexShrink: 0 }} />}{scopeLabel}
             </span>
           )}
         </div>
         {(extra.tags || []).length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
-            {(extra.tags || []).map(t => <span key={t} style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)' }}>{t}</span>)}
+            {(extra.tags || []).map(t => <span key={t} style={{ fontSize: 11, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)' }}>{t}</span>)}
           </div>
         )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 10 }}>
@@ -1001,21 +1001,21 @@ function ContactCard({ contact, onOpen, onEdit, onDelete, onQuickExpense, onQuic
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Phone size={12} color="var(--text-tertiary)" style={{ flexShrink: 0 }} />
               <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{contact.phone}</span>
-              {extra.whatsapp && <a href={'https://wa.me/' + contact.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', fontSize: 9, color: 'var(--accent)', fontWeight: 800, background: 'var(--accent-soft)', padding: '1px 5px', borderRadius: 6 }}>WA</a>}
-              {extra.viber && <a href={'viber://chat?number=' + contact.phone.replace(/\D/g, '')} style={{ textDecoration: 'none', fontSize: 9, color: 'var(--accent)', fontWeight: 800, background: 'var(--accent-soft)', padding: '1px 5px', borderRadius: 6 }}>VB</a>}
+              {extra.whatsapp && <a href={'https://wa.me/' + contact.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', fontSize: 11, color: 'var(--accent)', fontWeight: 800, background: 'var(--accent-soft)', padding: '1px 5px', borderRadius: 6 }}>WA</a>}
+              {extra.viber && <a href={'viber://chat?number=' + contact.phone.replace(/\D/g, '')} style={{ textDecoration: 'none', fontSize: 11, color: 'var(--accent)', fontWeight: 800, background: 'var(--accent-soft)', padding: '1px 5px', borderRadius: 6 }}>VB</a>}
             </div>
           )}
-          {extra.phone2 && <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Phone size={12} color="var(--text-tertiary)" style={{ flexShrink: 0 }} /><span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{extra.phone2}</span><span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>2ο</span></div>}
+          {extra.phone2 && <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Phone size={12} color="var(--text-tertiary)" style={{ flexShrink: 0 }} /><span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{extra.phone2}</span><span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>2ο</span></div>}
           {contact.email && <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden' }}><Mail size={12} color="var(--text-tertiary)" style={{ flexShrink: 0 }} /><span style={{ fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{contact.email}</span></div>}
           {extra.website && <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Globe size={12} color="var(--text-tertiary)" style={{ flexShrink: 0 }} /><span style={{ fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{extra.website}</span></div>}
           {extra.office_address && <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><MapPin size={12} color="var(--text-tertiary)" style={{ flexShrink: 0 }} /><span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{extra.office_address}</span></div>}
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 12 }}>
-          {extra.afm && <span title="Αριθμός Φορολογικού Μητρώου" style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontFamily: T.font.mono }}>ΑΦΜ {extra.afm}</span>}
-          {extra.iban && <span title="Διεθνής Αριθμός Τραπεζικού Λογαριασμού (IBAN)" style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontFamily: T.font.mono }}>IBAN ···{extra.iban.slice(-4)}{extra.iris && <span title="Σύστημα άμεσων πληρωμών σε πραγματικό χρόνο (IRIS)" style={{ color: 'var(--text-secondary)', fontWeight: 700, marginLeft: 4 }}>IRIS</span>}</span>}
-          {extra.next_appointment && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: overdue ? 'var(--negative-soft)' : 'var(--accent-soft)', border: '1px solid ' + (overdue ? 'var(--negative-border)' : 'var(--accent-border)'), color: overdue ? 'var(--negative)' : 'var(--accent)' }}>{overdue ? `Ραντεβού ${Math.abs(dueDays || 0)} ημέρες πριν` : `Ραντεβού ${fmtDate(extra.next_appointment)}`}</span>}
-          {(extra.notes_log || []).length > 0 && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)' }}>{(extra.notes_log || []).length} σημειώσεις</span>}
-          {(extra.files || []).length > 0 && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>{(extra.files || []).length} αρχεία</span>}
+          {extra.afm && <span title="Αριθμός Φορολογικού Μητρώου" style={{ fontSize: 11, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontFamily: T.font.mono }}>ΑΦΜ {extra.afm}</span>}
+          {extra.iban && <span title="Διεθνής Αριθμός Τραπεζικού Λογαριασμού (IBAN)" style={{ fontSize: 11, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontFamily: T.font.mono }}>IBAN ···{extra.iban.slice(-4)}{extra.iris && <span title="Σύστημα άμεσων πληρωμών σε πραγματικό χρόνο (IRIS)" style={{ color: 'var(--text-secondary)', fontWeight: 700, marginLeft: 4 }}>IRIS</span>}</span>}
+          {extra.next_appointment && <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: T.radius.pill, background: overdue ? 'var(--negative-soft)' : 'var(--accent-soft)', border: '1px solid ' + (overdue ? 'var(--negative-border)' : 'var(--accent-border)'), color: overdue ? 'var(--negative)' : 'var(--accent)' }}>{overdue ? `Ραντεβού ${Math.abs(dueDays || 0)} ημέρες πριν` : `Ραντεβού ${fmtDate(extra.next_appointment)}`}</span>}
+          {(extra.notes_log || []).length > 0 && <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)' }}>{(extra.notes_log || []).length} σημειώσεις</span>}
+          {(extra.files || []).length > 0 && <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>{(extra.files || []).length} αρχεία</span>}
         </div>
         {contact._freeNotes && <div style={{ fontSize: 12, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', borderRadius: T.radius.badge, padding: '7px 11px', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{contact._freeNotes}</div>}
       </div>
@@ -1158,7 +1158,7 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
             <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em', lineHeight: 1.15 }}>{contact.full_name}</div>
             <div style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 }}><GroupIcon size={13} />{meta.label || contact.role}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-              {extra.preferred && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', fontWeight: 700 }}>Προτιμώμενη</span>}
+              {extra.preferred && <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)', fontWeight: 700 }}>Προτιμώμενη</span>}
             </div>
           </div>
         </div>
@@ -1177,7 +1177,7 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
       {(exp.count > 0 || exp.docs > 0) && (
         <button type="button" onClick={onShowHistory} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '14px 16px', cursor: 'pointer', textAlign: 'left', boxShadow: 'var(--elev-1)', fontFamily: T.font.sans }}>
           <div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Πληρωμές</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Πληρωμές</div>
             <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginTop: 4 }}>{fe(exp.total)}</div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 1 }}>{exp.count} {exp.count === 1 ? 'καταχώρηση' : 'καταχωρήσεις'}{exp.docs > 0 ? ` · ${exp.docs} ${exp.docs === 1 ? 'παραστατικό' : 'παραστατικά'} με το ΑΦΜ του` : ''}</div>
           </div>
@@ -1209,7 +1209,7 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
       {(extra.afm || extra.iban) && (
         <DossierSection title="Επαγγελματικά και πληρωμές">
           {extra.afm && <DossierRow icon={FileText} onCopy={() => copy(extra.afm!, 'Το ΑΦΜ')}><span title="Αριθμός Φορολογικού Μητρώου">ΑΦΜ</span> <span style={{ fontFamily: T.font.mono }}>{extra.afm}</span></DossierRow>}
-          {extra.iban && <DossierRow icon={Landmark} onCopy={() => copy(extra.iban!, 'Το IBAN')}><span style={{ fontFamily: T.font.mono, fontSize: 12 }}>{extra.iban}</span>{extra.iris && <span title="Σύστημα άμεσων πληρωμών σε πραγματικό χρόνο (IRIS)" style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: 'var(--accent)' }}>IRIS</span>}</DossierRow>}
+          {extra.iban && <DossierRow icon={Landmark} onCopy={() => copy(extra.iban!, 'Το IBAN')}><span style={{ fontFamily: T.font.mono, fontSize: 12 }}>{extra.iban}</span>{extra.iris && <span title="Σύστημα άμεσων πληρωμών σε πραγματικό χρόνο (IRIS)" style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, color: 'var(--accent)' }}>IRIS</span>}</DossierRow>}
         </DossierSection>
       )}
 
@@ -1233,7 +1233,7 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
           {(extra.notes_log || []).map(n => (
             <div key={n.id} style={{ borderLeft: '2px solid var(--border-default)', paddingLeft: 12 }}>
               <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{n.text}</div>
-              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>{fmtDate(n.ts)}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{fmtDate(n.ts)}</div>
             </div>
           ))}
         </DossierSection>
@@ -1310,14 +1310,14 @@ function CompactRow({ contact, onOpen, onEdit, onDelete, selected, onSelect, bul
           της· επαφή με δύο ετικέτες την έσπρωχνε δεξιά. Η ίδια στήλη άλλαζε
           θέση σε κάθε γραμμή. Σταθερό πλάτος, ίδιο με την κεφαλίδα. */}
       <div title={(extra.tags || []).join(', ') || undefined} style={{ display: 'flex', alignItems: 'center', gap: 4, width: 120, flexShrink: 0, overflow: 'hidden', whiteSpace: 'nowrap' }}>
-        {(extra.tags || []).slice(0, 1).map(t => <span key={t} style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 10, padding: '2px 7px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>{t}</span>)}
-        {(extra.tags || []).length > 1 && <span style={{ flexShrink: 0, fontSize: 10, color: 'var(--text-tertiary)' }}>+{(extra.tags || []).length - 1}</span>}
+        {(extra.tags || []).slice(0, 1).map(t => <span key={t} style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 11, padding: '2px 7px', borderRadius: T.radius.pill, background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>{t}</span>)}
+        {(extra.tags || []).length > 1 && <span style={{ flexShrink: 0, fontSize: 11, color: 'var(--text-tertiary)' }}>+{(extra.tags || []).length - 1}</span>}
       </div>
       <div style={{ width: 120, minWidth: 90, flexShrink: 1, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{extra.afm ? 'ΑΦΜ ' + extra.afm : ''}</div>
       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', width: CONTACT_ACTIONS_W, opacity: bulkMode ? 0 : (hov || coarse) ? 1 : 0, pointerEvents: bulkMode || !(hov || coarse) ? 'none' : undefined, transition: 'opacity 0.15s', flexShrink: 0 }}>
         {contact.phone && <a href={'tel:' + contact.phone} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', padding: 4, color: 'var(--text-secondary)' }}><Phone size={14} /></a>}
-        {extra.whatsapp && contact.phone && <a href={'https://wa.me/' + contact.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', padding: '4px 6px', fontSize: 10, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', borderRadius: 6 }}>WA</a>}
-        {extra.viber && contact.phone && <a href={'viber://chat?number=' + contact.phone.replace(/\D/g, '')} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', padding: '4px 6px', fontSize: 10, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', borderRadius: 6 }}>VB</a>}
+        {extra.whatsapp && contact.phone && <a href={'https://wa.me/' + contact.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', padding: '4px 6px', fontSize: 11, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', borderRadius: 6 }}>WA</a>}
+        {extra.viber && contact.phone && <a href={'viber://chat?number=' + contact.phone.replace(/\D/g, '')} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', padding: '4px 6px', fontSize: 11, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', borderRadius: 6 }}>VB</a>}
         {contact.email && <a href={'mailto:' + contact.email} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', padding: 4, color: 'var(--text-secondary)' }}><Mail size={14} /></a>}
         <button type="button" onClick={onEdit} style={{ fontSize: 12, padding: '4px 10px', borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer' }}>Επεξεργασία</button>
         <button type="button" onClick={onDelete} style={{ fontSize: 12, padding: '4px 10px', borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer' }}>Διαγραφή</button>
@@ -1823,8 +1823,8 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
                   </div>
                   <div style={{ display: 'flex', gap: 4, marginLeft: 4, flexShrink: 0 }}>
                     {c.phone && <a href={'tel:' + c.phone} onClick={e => e.stopPropagation()} style={{ textDecoration: 'none', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', padding: 3 }}><Phone size={13} /></a>}
-                    {c._extra?.whatsapp && c.phone && <a href={'https://wa.me/' + c.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: 'none', fontSize: 9, fontWeight: 800, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '2px 5px', borderRadius: 6 }}>WA</a>}
-                    {c._extra?.viber && c.phone && <a href={'viber://chat?number=' + c.phone.replace(/\D/g, '')} onClick={e => e.stopPropagation()} style={{ textDecoration: 'none', fontSize: 9, fontWeight: 800, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '2px 5px', borderRadius: 6 }}>VB</a>}
+                    {c._extra?.whatsapp && c.phone && <a href={'https://wa.me/' + c.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: 'none', fontSize: 11, fontWeight: 800, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '2px 5px', borderRadius: 6 }}>WA</a>}
+                    {c._extra?.viber && c.phone && <a href={'viber://chat?number=' + c.phone.replace(/\D/g, '')} onClick={e => e.stopPropagation()} style={{ textDecoration: 'none', fontSize: 11, fontWeight: 800, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '2px 5px', borderRadius: 6 }}>VB</a>}
                   </div>
                 </div>
               )
@@ -1908,7 +1908,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
             const count = contacts.filter(c => ROLE_META[c.role]?.groupId === g.id).length; const active = filterGroup === g.id; const GroupIcon = g.Icon
             return (
               <button key={g.id} type="button" onClick={() => setFilterGroup(active ? 'all' : g.id)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 13px', borderRadius: T.radius.pill, border: '1px solid ' + (active ? 'var(--border-default)' : 'var(--border-subtle)'), background: active ? 'var(--bg-elevated)' : 'transparent', cursor: 'pointer', fontSize: 12, color: active ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: active ? 600 : 400, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' }}>
-                <GroupIcon size={12} />{g.label}<span style={{ background: active ? 'var(--border-raised)' : 'var(--bg-elevated)', color: active ? 'var(--text-primary)' : 'var(--text-secondary)', borderRadius: T.radius.pill, padding: '1px 7px', fontSize: 10, fontWeight: 700 }}>{count}</span>
+                <GroupIcon size={12} />{g.label}<span style={{ background: active ? 'var(--border-raised)' : 'var(--bg-elevated)', color: active ? 'var(--text-primary)' : 'var(--text-secondary)', borderRadius: T.radius.pill, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>{count}</span>
               </button>
             )
           })}
@@ -1968,11 +1968,11 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
           <div style={{ display: 'flex', gap: 12, padding: '10px 16px', borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)' }}>
             {bulkMode && <div style={{ width: 18, flexShrink: 0 }} />}
             <div style={{ width: 8, flexShrink: 0 }} />
-            <div style={{ width: 200, minWidth: 120, flexShrink: 1, fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Όνομα</div>
-            <div style={{ width: 140, minWidth: 100, flexShrink: 1, fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Τηλέφωνο</div>
-            <div style={{ flex: 1, minWidth: 160, fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Ηλεκτρονικό ταχυδρομείο</div>
-            <div style={{ width: 120, flexShrink: 0, fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Ετικέτες</div>
-            <div style={{ width: 120, minWidth: 90, flexShrink: 1, fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>ΑΦΜ</div>
+            <div style={{ width: 200, minWidth: 120, flexShrink: 1, fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Όνομα</div>
+            <div style={{ width: 140, minWidth: 100, flexShrink: 1, fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Τηλέφωνο</div>
+            <div style={{ flex: 1, minWidth: 160, fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Ηλεκτρονικό ταχυδρομείο</div>
+            <div style={{ width: 120, flexShrink: 0, fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Ετικέτες</div>
+            <div style={{ width: 120, minWidth: 90, flexShrink: 1, fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>ΑΦΜ</div>
             {/* Η στήλη των ενεργειών υπάρχει και στην κεφαλίδα, αλλιώς όλες οι
                 από πάνω της στέκονται 306 εικονοστοιχεία αριστερότερα από τα
                 δεδομένα τους. Κενή, γιατί οι ενέργειες δεν έχουν όνομα. */}

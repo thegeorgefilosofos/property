@@ -629,7 +629,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
                         { l:'Ληξιπρόθεσμη οφειλή', v:fmt(od?od.amount:0), neg:!!od },
                       ] as {l:string;v:string;strong?:boolean;neg?:boolean}[]).map((m,i)=>(
                         <div key={i} style={{ flex:1, minWidth:0, paddingLeft:i?12:0, borderLeft:i?'1px solid var(--border-subtle)':'none' }}>
-                          <div style={{ fontSize:10, fontWeight:600, textTransform:'uppercase' as const, letterSpacing:'0.05em', color:'var(--text-tertiary)', marginBottom:4, whiteSpace:'nowrap' as const, overflow:'hidden', textOverflow:'ellipsis' }}>{m.l}</div>
+                          <div style={{ fontSize: 11, fontWeight:600, textTransform:'uppercase' as const, letterSpacing:'0.05em', color:'var(--text-tertiary)', marginBottom:4, whiteSpace:'nowrap' as const, overflow:'hidden', textOverflow:'ellipsis' }}>{m.l}</div>
                           <div style={{ fontSize:13, fontWeight:700, fontFamily:T.font.num, fontVariantNumeric:'tabular-nums', color:m.neg?'var(--negative)':m.strong?'var(--text-primary)':'var(--text-secondary)' }}>{m.v}</div>
                         </div>
                       ))}
@@ -724,7 +724,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
               {DTABS.map(tb=>(
                 <button key={tb.id} onClick={()=>setDossierTab(tb.id)} style={{ ...s.tabBtn(dossierTab===tb.id), display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
                   {tb.label}
-                  {(tb.badge??0)>0&&<span style={{ minWidth:18, height:18, borderRadius:8, background:'var(--negative)', color:'var(--text-inverse)', fontSize:9, fontWeight:700, display:'inline-flex', alignItems:'center', justifyContent:'center', padding:'0 4px' }}>{tb.badge}</span>}
+                  {(tb.badge??0)>0&&<span style={{ minWidth:18, height:18, borderRadius:8, background:'var(--negative)', color:'var(--text-inverse)', fontSize: 11, fontWeight:700, display:'inline-flex', alignItems:'center', justifyContent:'center', padding:'0 4px' }}>{tb.badge}</span>}
                 </button>
               ))}
             </div>

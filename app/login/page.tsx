@@ -98,7 +98,7 @@ export default function LoginPage() {
     fontFamily: 'inherit', transition: 'border-color .15s',
   }
   const label: React.CSSProperties = {
-    fontSize: 10, color: 'var(--text-secondary)', fontWeight: 700,
+    fontSize: 11, color: 'var(--text-secondary)', fontWeight: 700,
     display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em',
     fontFamily: T.font.sans,
   }

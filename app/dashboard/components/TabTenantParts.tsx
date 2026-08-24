@@ -219,7 +219,7 @@ export function PaymentBars({ payments }:{payments:RentPayment[]}) {
       </div>
       <div style={{ display:'flex', gap:5 }}>
         {last12.map((p,i)=>(
-          <div key={i} style={{ flex:1, fontSize:9, color:'var(--text-tertiary)', textAlign:'center' as const, fontFamily:T.font.sans }}>
+          <div key={i} style={{ flex:1, fontSize: 11, color:'var(--text-tertiary)', textAlign:'center' as const, fontFamily:T.font.sans }}>
             {MONTHS_SHORT[p.period_month-1]}
           </div>
         ))}
@@ -228,7 +228,7 @@ export function PaymentBars({ payments }:{payments:RentPayment[]}) {
         {[['var(--positive)','Εμπρόθεσμη'],['var(--info)','Μικρή καθυστέρηση'],['var(--warning)','Μεγάλη καθυστέρηση'],['var(--negative)','Εκκρεμεί']].map(([c,l])=>(
           <div key={l} style={{ display:'flex', alignItems:'center', gap:5 }}>
             <div style={{ width:8, height:8, borderRadius:3, background:c, flexShrink:0 }}/>
-            <span style={{ fontSize:10, color:'var(--text-secondary)', fontFamily:T.font.sans }}>{l}</span>
+            <span style={{ fontSize: 11, color:'var(--text-secondary)', fontFamily:T.font.sans }}>{l}</span>
           </div>
         ))}
       </div>

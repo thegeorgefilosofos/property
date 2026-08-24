@@ -106,7 +106,7 @@ export function BulkPicker({label,icon,options,onPick,accent}:{label:string;icon
 }
 
 export const Badge = ({label,color}:{label:string;color:string}) => (
-  <span style={{display:'inline-flex',alignItems:'center',padding:'2px 8px',borderRadius:T.radius.pill,fontSize:10,fontWeight:500,fontFamily:T.font.sans,color,background:`color-mix(in srgb, ${color} 10%, transparent)`,border:`1px solid color-mix(in srgb, ${color} 26%, transparent)`,whiteSpace:'nowrap'}}>{label}</span>
+  <span style={{display:'inline-flex',alignItems:'center',padding:'2px 8px',borderRadius:T.radius.pill,fontSize: 11,fontWeight:500,fontFamily:T.font.sans,color,background:`color-mix(in srgb, ${color} 10%, transparent)`,border:`1px solid color-mix(in srgb, ${color} 26%, transparent)`,whiteSpace:'nowrap'}}>{label}</span>
 )
 
 export const EnergyBadge = ({cls}:{cls:string}) => { if(!cls) return null; const tone=ENERGY_TONE[cls]
@@ -114,7 +114,7 @@ export const EnergyBadge = ({cls}:{cls:string}) => { if(!cls) return null; const
   const bg = tone?`var(--${tone}-soft)`:'var(--bg-elevated)'
   const bd = tone?`var(--${tone}-border)`:'var(--border-subtle)'
   return (
-  <span title={`Ενεργειακή κλάση ${cls}`} style={{display:'inline-flex',alignItems:'center',padding:'2px 8px',borderRadius:6,fontSize:10,fontWeight:700,color:fg,background:bg,border:`1px solid ${bd}`,letterSpacing:'0.5px',fontFamily:T.font.sans}}>{cls}</span>
+  <span title={`Ενεργειακή κλάση ${cls}`} style={{display:'inline-flex',alignItems:'center',padding:'2px 8px',borderRadius:6,fontSize: 11,fontWeight:700,color:fg,background:bg,border:`1px solid ${bd}`,letterSpacing:'0.5px',fontFamily:T.font.sans}}>{cls}</span>
 ) }
 
 // Η μπάρα δείχνει ΤΙ ΜΕΝΕΙ, όχι «Απόσβεση»: το ίδιο νούμερο, με το όνομα που δεν
@@ -132,10 +132,10 @@ export const DepBar = ({pct,left}:{pct:number;left:number}) => {
         <div style={{height:'100%',width:`${remaining}%`,background:c,borderRadius:3,transition:'width 0.4s'}}/>
       </div>
       <div style={{display:'flex',justifyContent:'space-between',marginTop:3}}>
-        <span style={{fontSize:9,color:'var(--text-tertiary)',fontFamily:T.font.num,fontVariantNumeric:'tabular-nums'}}>Εκτιμώμενη υπολειπόμενη αξία {remaining}%</span>
+        <span style={{fontSize: 11,color:'var(--text-tertiary)',fontFamily:T.font.num,fontVariantNumeric:'tabular-nums'}}>Εκτιμώμενη υπολειπόμενη αξία {remaining}%</span>
         {left>0
-          ?<span style={{fontSize:9,color:'var(--text-tertiary)',fontFamily:T.font.num,fontVariantNumeric:'tabular-nums'}}>περίπου {left} χρόνια</span>
-          :<span style={{fontSize:9,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Τέλος ωφέλιμης ζωής</span>
+          ?<span style={{fontSize: 11,color:'var(--text-tertiary)',fontFamily:T.font.num,fontVariantNumeric:'tabular-nums'}}>περίπου {left} χρόνια</span>
+          :<span style={{fontSize: 11,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Τέλος ωφέλιμης ζωής</span>
         }
       </div>
     </div>
@@ -192,7 +192,7 @@ export function InlineConditionEdit({item,onUpdate}:{item:InventoryItem;onUpdate
   },[open,place])
   return (
     <div style={{display:'inline-block'}}>
-      <button ref={btnRef} onClick={e=>{e.stopPropagation();setOpen(v=>!v)}} style={{display:'inline-flex',alignItems:'center',gap:4,padding:'3px 10px',borderRadius:T.radius.pill,fontSize:10,fontWeight:500,fontFamily:T.font.sans,color:CONDITION_COLOR[item.condition],background:CONDITION_COLOR[item.condition]+'18',border:`1px solid ${CONDITION_COLOR[item.condition]}40`,cursor:'pointer'}}>
+      <button ref={btnRef} onClick={e=>{e.stopPropagation();setOpen(v=>!v)}} style={{display:'inline-flex',alignItems:'center',gap:4,padding:'3px 10px',borderRadius:T.radius.pill,fontSize: 11,fontWeight:500,fontFamily:T.font.sans,color:CONDITION_COLOR[item.condition],background:CONDITION_COLOR[item.condition]+'18',border:`1px solid ${CONDITION_COLOR[item.condition]}40`,cursor:'pointer'}}>
         {item.condition}
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" style={{transform:open?'rotate(180deg)':'none',transition:'transform 0.15s'}}><path d="M2 4l3 3 3-3"/></svg>
       </button>

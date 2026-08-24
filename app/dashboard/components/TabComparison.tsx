@@ -404,7 +404,7 @@ export default function TabComparison({ properties, userId }: Props) {
   // σε πίνακα έξι γραμμών, έξι πράσινα κελιά — δηλαδή χρώμα σε κάθε δεύτερη
   // ματιά, που έπαυε να ξεχωρίζει οτιδήποτε. Η ανάδειξη γίνεται με ΒΑΡΟΣ και
   // ένταση κειμένου, όπως σε κάθε άλλον πίνακα της εφαρμογής.
-  const th: React.CSSProperties = { fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', padding: '9px 14px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 700, fontFamily: T.font.sans, whiteSpace: 'nowrap' };
+  const th: React.CSSProperties = { fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', padding: '9px 14px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 700, fontFamily: T.font.sans, whiteSpace: 'nowrap' };
   const td: React.CSSProperties = { padding: '9px 14px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 13, whiteSpace: 'nowrap', textAlign: 'right' };
 
   return (
@@ -460,7 +460,7 @@ export default function TabComparison({ properties, userId }: Props) {
                         είναι γραμμές του πίνακα. Ό,τι λείπει, απλώς λείπει —
                         δεν γράφεται παύλα για κάθε πεδίο χωριστά. */}
                     <div title={r.p.value ? 'Εμπορική αξία' : 'Αντικειμενική αξία (Ε9), επειδή δεν έχει καταχωρηθεί εμπορική'}
-                      style={{ fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginTop: 3, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>
+                      style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginTop: 3, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>
                       {[statusLabel(r.p as StatusRow) || null, r.sqm > 0 ? `${fn(r.sqm)} τ.μ.` : null, r.value != null ? fe(r.value) : null, r.perSqm != null ? `${fe(r.perSqm)} ανά τετραγωνικό` : null].filter(Boolean).join(' · ') || ABSENT}
                     </div>
                   </th>

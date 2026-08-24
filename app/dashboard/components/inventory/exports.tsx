@@ -30,11 +30,11 @@ const INSURANCE_CSS = `
   .c{border:1px solid ${RULE};border-radius:10px;overflow:hidden;display:flex;break-inside:avoid}
   .ph{width:120px;flex-shrink:0;background:${PAPER_ALT}}
   .ph img{width:120px;height:100%;min-height:120px;object-fit:cover;display:block}
-  .noph{width:120px;height:120px;display:flex;align-items:center;justify-content:center;color:${INK_FAINT};font-size:10px;text-align:center}
+  .noph{width:120px;height:120px;display:flex;align-items:center;justify-content:center;color:${INK_FAINT};font-size: 11px;text-align:center}
   .cb{padding:10px 12px;flex:1;min-width:0}
   .nm{font-size:13px;font-weight:600;color:${INK};margin-bottom:2px}
-  .mt{font-size:10px;color:${INK_MUTED};margin-bottom:6px}
-  .sn{font-size:9px;color:${INK_MUTED};font-family:'Roboto Mono',monospace;margin-bottom:6px}
+  .mt{font-size: 11px;color:${INK_MUTED};margin-bottom:6px}
+  .sn{font-size: 11px;color:${INK_MUTED};font-family:'Roboto Mono',monospace;margin-bottom:6px}
   .crow{display:flex;justify-content:space-between;font-size:11px;padding:2px 0;border-top:1px solid ${RULE};color:${INK_MUTED}}
   .crow span:last-child{font-variant-numeric:tabular-nums;font-weight:600;color:${INK}}
 `

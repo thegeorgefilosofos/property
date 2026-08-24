@@ -97,6 +97,9 @@ export const MUTATIONS = {
   // αντιγραμμένη σε σενάριο κατασκευής. Με απλό πίνακα, οι δύο τελευταίοι
   // κανόνες δεν δοκιμάζονταν ποτέ.
   // Ακριβώς η μορφή που εξαφάνισε τη μπάρα διεύθυνσης και τη γραμμή του οφέλους.
+  // Το ακριβές μέγεθος που έβγαλε τον φύλακα: ετικέτα δείκτη που σμίκρυνε
+  // ώσπου να χωρέσει, αντί να αλλάξει η διάταξη.
+  'type-floor': { add: 'components/__mut__.tsx', content: tsx("    <div style={{ fontSize: 9 }}>Πολύ μικρό για τηλέφωνο</div>") },
   'hidden-on-small': { add: 'components/__mut__.tsx', content: tsx('    <div className="lp-hide-xs">Το κείμενο που χάνεται</div>') },
   'brand-mark': { every: [
     { add: 'components/__mut__.tsx', content: tsx("    <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--accent)' }}>P</div>") },

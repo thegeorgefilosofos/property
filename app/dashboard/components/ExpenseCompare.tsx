@@ -49,7 +49,7 @@ function Eur({ value, sign = false }: { value: number; sign?: boolean }) {
 }
 
 const LABEL: React.CSSProperties = {
-  fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
+  fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
   textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: T.font.sans,
 };
 
@@ -114,8 +114,8 @@ function Drivers({ c }: { c: Comparison }) {
             </span>
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right' }}>
               <Eur value={d.diff} sign />
-              {d.isNew && <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight: 400 }}>νέο</span>}
-              {d.vanished && <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight: 400 }}>σταμάτησε</span>}
+              {d.isNew && <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight: 400 }}>νέο</span>}
+              {d.vanished && <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight: 400 }}>σταμάτησε</span>}
             </span>
           </div>
         );
@@ -197,7 +197,7 @@ function HistoryBars({ points, currentKey }: { points: MonthPoint[]; currentKey:
                 }} />
               </span>
               <span style={{
-                marginTop: 6, textAlign: 'center', fontSize: 10, fontFamily: T.font.sans,
+                marginTop: 6, textAlign: 'center', fontSize: 11, fontFamily: T.font.sans,
                 fontWeight: isSel ? 700 : 400,
                 color: isSel ? 'var(--text-secondary)' : 'var(--text-tertiary)',
               }}>{MONTHS_SHORT[m]}</span>

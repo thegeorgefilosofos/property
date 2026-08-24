@@ -92,7 +92,7 @@ export default function AccountantPortal() {
 
   // ── Κοινά σχήματα της σελίδας ────────────────────────────────────────────
   const meta: React.CSSProperties = { fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.7, fontFamily: T.font.sans };
-  const over: React.CSSProperties = { fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', margin: 0, fontFamily: T.font.sans };
+  const over: React.CSSProperties = { fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', margin: 0, fontFamily: T.font.sans };
 
   const row = (k: string, v: string, strong?: boolean) => (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 16, padding: '9px 0', borderBottom: '1px solid var(--border-subtle)' }}>

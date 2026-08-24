@@ -40,6 +40,23 @@ import { POLICY_VERSION as CONSENT_VERSION } from '@/lib/legal/identity'
  * Οποιος ΔΕΝ διάλεξε —μπήκε κατευθείαν στην εγγραφή— πάει στον πίνακα: δεν
  * υπάρχει τίποτα να αγοράσει, και η δοκιμή του τρέχει έτσι κι αλλιώς.
  */
+// ═══════════════════════════════════════════════════════════════════════════
+// ΜΙΑ ΠΕΡΙΟΧΗ ΑΦΗΣ ΓΙΑ ΤΑ ΔΥΟ ΠΛΑΙΣΙΑ ΑΠΟΔΟΧΗΣ
+// ─────────────────────────────────────────────────────────────────────────
+// Η σελίδα έχει ΔΥΟ δρόμους προς την ίδια αποδοχή όρων: τη φόρμα με το
+// ηλεκτρονικό ταχυδρομείο και την επιστροφή από τον πάροχο ταυτότητας. Το
+// τετράγωνο είναι 16 εικονοστοιχεία και στους δύο, δηλαδή κάτω από τον μισό
+// κανόνα των 44, και η λύση ήταν γραμμένη μόνο στον πρώτο.
+//
+// Μεγαλώνει η ΠΕΡΙΟΧΗ, όχι το σχήμα: ετικέτα 44 × 44 γύρω από το τετράγωνο, με
+// αρνητικό περιθώριο που επιστρέφει τον χώρο. Οπτικά τίποτα δεν κουνιέται.
+// Γραμμένη μία φορά, ώστε ο δεύτερος δρόμος να μη μείνει ξανά πίσω.
+// ═══════════════════════════════════════════════════════════════════════════
+const TAP: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  width: 44, height: 44, flexShrink: 0, cursor: 'pointer',
+};
+
 const landing = (plan: PlanId | null, cycle: BillingCycle) =>
   plan ? `/tameio?plan=${plan}&cycle=${cycle}` : '/dashboard'
 
@@ -342,11 +359,17 @@ export default function SignupPage() {
               <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 20px' }}>
                 Ο λογαριασμός <strong style={{ color: 'var(--text-primary)', overflowWrap: 'anywhere' }}>{needsConsent}</strong> είναι καινούργιος. Πριν ανοίξει, χρειάζεται η αποδοχή σου.
               </p>
+              {/* ΤΟ ΙΔΙΟ ΠΛΑΙΣΙΟ, ΜΕ ΤΟ ΙΔΙΟ ΙΔΙΩΜΑ. Εδώ το τετράγωνο ήταν γυμνό
+                  16 × 16, ενώ το αδελφό του παρακάτω έχει ετικέτα 44 × 44 γύρω
+                  του με αρνητικό περιθώριο. Δύο δρόμοι για την ΙΔΙΑ αποδοχή
+                  όρων, ο ένας με στόχο αφής μισό του κανόνα. */}
               <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 12 }}>
-                <input id="su-consent-oauth" type="checkbox" checked={consent}
-                  onChange={e => { setConsent(e.target.checked); if (e.target.checked) setConsentTouched(false) }}
-                  aria-label="Αποδοχή των Όρων Χρήσης και της Πολιτικής απορρήτου"
-                  style={{ marginTop: 2, width: 16, height: 16, accentColor: 'var(--accent)', flexShrink: 0, cursor: 'pointer' }} />
+                <label htmlFor="su-consent-oauth" style={{ ...TAP, margin: '-12px -14px -14px -14px' }}>
+                  <input id="su-consent-oauth" type="checkbox" checked={consent}
+                    onChange={e => { setConsent(e.target.checked); if (e.target.checked) setConsentTouched(false) }}
+                    aria-label="Αποδοχή των Όρων Χρήσης και της Πολιτικής απορρήτου"
+                    style={{ width: 16, height: 16, accentColor: 'var(--accent)', cursor: 'pointer' }} />
+                </label>
                 <label htmlFor="su-consent-oauth" style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, cursor: 'pointer' }}>
                   Αποδέχομαι τους{' '}
                   <Link href="/terms" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Όρους χρήσης</Link>{' '}και την{' '}
@@ -594,7 +617,7 @@ export default function SignupPage() {
                       το πεδίο από μόνη της, χωρίς JavaScript, και δεν τυλίγει τους
                       δύο συνδέσμους — ένα `<a>` μέσα σε `<label>` δίνει στοιχείο που
                       και ακολουθεί σύνδεσμο και τσεκάρει κουτί με το ίδιο πάτημα. */}
-                  <label htmlFor="su-consent" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, margin: -14, flexShrink: 0, cursor: 'pointer' }}>
+                  <label htmlFor="su-consent" style={{ ...TAP, margin: -14 }}>
                     {/* ── ΥΠΟΧΡΕΩΤΙΚΟ, ΑΛΛΑ ΟΧΙ ΜΕ ΤΟ ΕΓΓΕΝΕΣ `required` ─────────
                         Το `required` έκοβε την υποβολή ΠΡΙΝ τρέξει ο δικός μας
                         handleSubmit, οπότε η ελληνική εξήγηση δεν εμφανιζόταν

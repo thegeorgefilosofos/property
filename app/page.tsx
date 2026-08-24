@@ -585,6 +585,18 @@ export default async function Landing() {
         @media (hover: hover) {
           .lp-head { backdrop-filter: saturate(180%) blur(14px); -webkit-backdrop-filter: saturate(180%) blur(14px); }
         }
+        /* ΚΑΙ ΤΟ ΗΜΙΔΙΑΦΑΝΕΣ ΦΟΝΤΟ ΦΕΥΓΕΙ ΜΑΖΙ ΜΕ ΤΟ ΘΟΛΩΜΑ.
+           Το φόντο είναι 78% αδιαφανές. Στον υπολογιστή το υπόλοιπο 22% το
+           κρύβει η θολούρα. Στην αφή δεν υπάρχει θολούρα, οπότε το περιεχόμενο
+           περνούσε από πίσω ΚΑΘΑΡΟ: πιάστηκε σε ταμπλέτα, με τα γράμματα των
+           καρτών τιμολόγησης να διαβάζονται πίσω από το «PROPERWISE». Δεν είναι
+           αίσθηση βάθους, είναι δύο κείμενα το ένα πάνω στο άλλο.
+
+           Χωρίς θολούρα, η κεφαλίδα γίνεται συμπαγής. Μηδέν κόστος ανά καρέ,
+           και το περιεχόμενο περνά από κάτω αντί να διαβάζεται μέσα από αυτήν. */
+        @media (hover: none) {
+          .lp-head { background: var(--bg-base) !important; }
+        }
         @media (hover: hover) and (prefers-reduced-motion: no-preference) {
           .lp-aurora::before { animation: lpDrift 34s ease-in-out infinite alternate; }
           .lp-aurora::after  { animation: lpDrift 46s ease-in-out -12s infinite alternate-reverse; }
@@ -1015,8 +1027,10 @@ export default async function Landing() {
           .lp-works { grid-template-columns: repeat(2, 1fr); }
         }
 
-        .lp-only-xs { display: none; }
-        @media (max-width: 520px) { .lp-hide-xs { display: none !important; } .lp-only-xs { display: inline !important; } }
+        /* Οι .lp-hide-xs και .lp-only-xs ΕΦΥΓΑΝ ΣΤΟ globals.css. Ζούσαν εδώ,
+           δηλαδή υπήρχαν μόνο στην αρχική: η κεφαλίδα κάθε άλλης δημόσιας
+           σελίδας δεν μπορούσε να τις χρησιμοποιήσει, και το «Ξεκίνα τη δοκιμή»
+           ξεχείλιζε δύο εικονοστοιχεία έξω από την οθόνη των 390. */
         @media (prefers-reduced-motion: reduce) {
           .lp-rise, .lp-rise-2, .lp-rise-3, .lp-rise-4, .lp-reveal { animation: none !important; }
           .lp-aurora::before, .lp-aurora::after, .lp-atmos .lp-orb { animation: none !important; }
@@ -1667,7 +1681,7 @@ function PlanCard({ planId, name, nameColor, sub, price, per, note, annual, inhe
 }) {
   return (
     <div className="lp-card" style={{ position: 'relative', background: PANEL, border: featured ? `1.5px solid color-mix(in srgb, var(--accent) 50%, transparent)` : `1px solid ${LINE}`, borderRadius: T.radius.card, padding: 'clamp(16px, 1.6vw, 20px)', boxShadow: featured ? '0 24px 60px -30px color-mix(in srgb, var(--accent) 60%, transparent)' : 'none' }}>
-      {featured && <span style={{ position: 'absolute', top: -9, left: 16, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)', background: PANEL, border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)', borderRadius: T.radius.pill, padding: '2px 9px', whiteSpace: 'nowrap' }}>Προτεινόμενο</span>}
+      {featured && <span style={{ position: 'absolute', top: -9, left: 16, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)', background: PANEL, border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)', borderRadius: T.radius.pill, padding: '2px 9px', whiteSpace: 'nowrap' }}>Προτεινόμενο</span>}
       <div style={{ fontSize: 14, fontWeight: 700, color: nameColor, marginBottom: 3 }}>{name}</div>
       <div style={{ fontSize: 12, color: FAINT, marginBottom: 14, lineHeight: 1.35 }}>{sub}</div>
       {/* ΤΟ ΠΟΣΟ ΚΑΙ Η ΠΕΡΙΟΔΟΣ ΕΙΝΑΙ ΕΝΑ ΠΡΑΓΜΑ: «3,90 € τον μήνα» διαβάζεται

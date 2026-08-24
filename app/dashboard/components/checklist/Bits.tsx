@@ -142,7 +142,7 @@ export function CommentsEditor({ comments, onChange }: { comments: Comment[]; on
         {comments.length === 0 && <EmptyState icon={<MessageSquare size={20} />} title="Κανένα σχόλιο ακόμη" hint="Γράψε σημείωση για να κρατήσεις το ιστορικό της εκκρεμότητας." />}
         {comments.map(c => (
           <div key={c.id} style={{ background: 'var(--bg-surface)', borderRadius: T.radius.inner, padding: '10px 14px', border: '1px solid var(--border-subtle)', position: 'relative' }}>
-            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginBottom: 4, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{new Date(c.ts).toLocaleString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 4, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{new Date(c.ts).toLocaleString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
             <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.5, paddingRight: 20 }}>{c.text}</div>
             <button type="button" onClick={() => onChange(comments.filter(x => x.id !== c.id))} style={{ position: 'absolute', top: 8, right: 10, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: 16 }}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
           </div>

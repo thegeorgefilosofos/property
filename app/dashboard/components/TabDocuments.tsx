@@ -724,9 +724,9 @@ export default function TabDocuments({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 160px), 1fr))', gap: 10 }}>
             {paperTotals.years.map(([y, e]) => (
               <div key={y} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 12px' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', letterSpacing: '0.06em' }}>{y}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', letterSpacing: '0.06em' }}>{y}</div>
                 <div style={{ fontSize: 16, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)', marginTop: 2 }}>{fe(e.sum)}</div>
-                <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
                   {fn(e.withAmount)} {e.withAmount === 1 ? 'παραστατικό' : 'παραστατικά'}{e.missing ? ` · ${fn(e.missing)} χωρίς ποσό` : ''}
                 </div>
               </div>
@@ -882,7 +882,7 @@ export default function TabDocuments({
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
           {facets.map(({ key, options }) => (
             <div key={key} style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
                 fontFamily: T.font.sans, color: 'var(--text-tertiary)', width: 78, flexShrink: 0 }}>
                 {FACET_LABEL[key]}
               </span>
@@ -1038,8 +1038,8 @@ function FileList({ items, groups, empty, a }: { items: Item[]; groups?: TimeGro
           <div key={m} className="card" style={{ margin: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)' }}/>
-              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.06em' }}>{label}</span>
-              <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{its.length} {its.length === 1 ? 'αρχείο' : 'αρχεία'}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.06em' }}>{label}</span>
+              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{its.length} {its.length === 1 ? 'αρχείο' : 'αρχεία'}</span>
             </div>
             <FileInner items={its} a={a}/>
           </div>
@@ -1085,7 +1085,7 @@ function FileCard({ i, a }: { i: Item; a: FileActions }) {
         {i.isImage && i.url
           ? <img src={i.url} alt={i.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
           : <span style={{ color: 'var(--accent)' }}><svg {...S} width={30} height={30}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>}
-        {isPdfItem(i) && <span style={{ position: 'absolute', bottom: 6, left: 6, fontSize: 9, fontWeight: 800, letterSpacing: '0.05em', color: 'var(--on-media)', background: T.scrim, padding: '2px 6px', borderRadius: 6 }}>PDF</span>}
+        {isPdfItem(i) && <span style={{ position: 'absolute', bottom: 6, left: 6, fontSize: 11, fontWeight: 800, letterSpacing: '0.05em', color: 'var(--on-media)', background: T.scrim, padding: '2px 6px', borderRadius: 6 }}>PDF</span>}
         {selectable && (shown || sel) && <div style={{ position: 'absolute', top: 6, left: 6 }} onClick={e => e.stopPropagation()}><SelectBox checked={sel} onToggle={() => a.onToggleSel(i.id)}/></div>}
         {shown && i.raw && (
           <div style={{ position: 'absolute', top: 6, right: 6, display: 'flex', gap: 5 }}>
@@ -1099,10 +1099,10 @@ function FileCard({ i, a }: { i: Item; a: FileActions }) {
         <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{i.title}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 5, flexWrap: 'wrap' }}>
           <OriginTag i={i}/>
-          {i.value != null && <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{fe(i.value)}</span>}
-          <span style={{ fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.mono, marginLeft: 'auto' }}>{i.date ? fd(i.date) : ABSENT_DATE}</span>
+          {i.value != null && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{fe(i.value)}</span>}
+          <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.mono, marginLeft: 'auto' }}>{i.date ? fd(i.date) : ABSENT_DATE}</span>
         </div>
-        {i.url && <a href={i.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 10, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none' }}>Άνοιγμα</a>}
+        {i.url && <a href={i.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 11, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none' }}>Άνοιγμα</a>}
       </div>
     </div>
   );
@@ -1134,9 +1134,9 @@ function FileRow({ i, a }: { i: Item; a: FileActions }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 300 }}>{i.title}</span>
           <OriginTag i={i}/>
-          {a.showFolder && <span style={{ fontSize: 9, color: 'var(--accent)', fontWeight: 600 }}>{FOLDER_LABEL[i.folder]}</span>}
+          {a.showFolder && <span style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 600 }}>{FOLDER_LABEL[i.folder]}</span>}
         </div>
-        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>
+        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
           {[i.date ? fd(i.date) : null, i.sizeBytes ? fmtBytes(i.sizeBytes) : null, i.note].filter(Boolean).join(' · ')}
         </div>
       </div>
@@ -1148,7 +1148,7 @@ function FileRow({ i, a }: { i: Item; a: FileActions }) {
         </>
       )}
       {i.url && <a href={i.url} target="_blank" rel="noopener noreferrer"
-        style={{ fontSize: 10, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', padding: '6px 12px', border: '1px solid var(--accent-border)', borderRadius: T.radius.badge, whiteSpace: 'nowrap' }}>Άνοιγμα</a>}
+        style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', padding: '6px 12px', border: '1px solid var(--accent-border)', borderRadius: T.radius.badge, whiteSpace: 'nowrap' }}>Άνοιγμα</a>}
       {i.raw && <RowBtn title="Διαγραφή" onClick={() => a.onDelete(i)}><IconX/></RowBtn>}
     </div>
   );
@@ -1229,17 +1229,17 @@ function DraftCard({ d, onToggle, onPatch, onPatchDoc, onCommit, onRemove }: {
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.file.name}</div>
-          <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
             {STAGE_TEXT[d.status] || (d.kind === 'photo'
               ? `Φωτογραφία χώρου · ${d.category}`
               : `${DOC_TYPE_LABELS[doc?.doc_type || 'other']} · ${d.category} · ${folder}`)}
           </div>
         </div>
         {d.status === 'saved' && (d.saved || []).map(t => (
-          <span key={t} style={{ fontSize: 10, fontWeight: 700, color: 'var(--positive)', background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', borderRadius: T.radius.pill, padding: '2px 8px', whiteSpace: 'nowrap' }}>{t}</span>
+          <span key={t} style={{ fontSize: 11, fontWeight: 700, color: 'var(--positive)', background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', borderRadius: T.radius.pill, padding: '2px 8px', whiteSpace: 'nowrap' }}>{t}</span>
         ))}
         {d.status === 'ready' && (v.blocking.length > 0 || v.invalid.length > 0) && (
-          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--warning)', background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: T.radius.pill, padding: '2px 8px', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--warning)', background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: T.radius.pill, padding: '2px 8px', whiteSpace: 'nowrap' }}>
             {v.blocking.length ? 'Χρειάζεται συμπλήρωση' : 'Έλεγξε τα στοιχεία'}
           </span>
         )}
@@ -1270,13 +1270,13 @@ function DraftCard({ d, onToggle, onPatch, onPatchDoc, onCommit, onRemove }: {
               <button key={o.id} onClick={() => onCommit(o.id)}
                 style={{ textAlign: 'left', background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: T.radius.badge, padding: '8px 11px', cursor: 'pointer', fontFamily: T.font.sans }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{o.label}</div>
-                {o.reasons.length > 0 && <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>{o.reasons.join(' · ')}</div>}
+                {o.reasons.length > 0 && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{o.reasons.join(' · ')}</div>}
               </button>
             ))}
             <button onClick={() => onCommit(null)}
               style={{ textAlign: 'left', background: 'transparent', border: '1px dashed var(--border-default)', borderRadius: T.radius.badge, padding: '8px 11px', cursor: 'pointer', fontFamily: T.font.sans }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>{RECONCILE_NONE_LABEL}</div>
-              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>{RECONCILE_NONE_HINT}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{RECONCILE_NONE_HINT}</div>
             </button>
           </div>
         </div>

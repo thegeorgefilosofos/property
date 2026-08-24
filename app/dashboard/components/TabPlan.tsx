@@ -115,7 +115,7 @@ const ROW_BLEED: CSSProperties = { margin: '0 -12px', padding: '0 12px' };
 function Meta({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 104px) minmax(0, 1fr)', gap: '0 10px', marginTop: 7, alignItems: 'baseline' }}>
-      <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)' }}>{label}</span>
+      <span style={{ ...TT.label, fontSize: 11, color: 'var(--text-tertiary)' }}>{label}</span>
       <span style={{ ...TT.caption, color: 'var(--text-secondary)' }}>{children}</span>
     </div>
   );
@@ -131,7 +131,7 @@ function Meta({ label, children }: { label: string; children: ReactNode }) {
  * στυλ μαζί με το ερώτημα μέσων που τα καταργεί σε κινητό.
  */
 const Tag = ({ children }: { children: ReactNode }) => (
-  <span className="plan-tag" style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)', lineHeight: 1.3 }}>
+  <span className="plan-tag" style={{ ...TT.label, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.3 }}>
     {children}
   </span>
 );
@@ -246,7 +246,7 @@ function MoneyField({ label, hint, value, onChange }: {
 }) {
   return (
     <label style={{ display: 'block' }}>
-      <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)' }}>{label}</span>
+      <span style={{ ...TT.label, fontSize: 11, color: 'var(--text-tertiary)' }}>{label}</span>
       <span style={{ position: 'relative', display: 'block', marginTop: 6 }}>
         {/* ΤΟ placeholder ΗΤΑΝ «0» ΚΑΙ ΤΑ ΠΕΔΙΑ ΔΙΑΒΑΖΟΝΤΑΝ ΩΣ ΜΗΔΕΝΙΚΑ. Το ίδιο
             σφάλμα είχε ήδη βρεθεί στο ιστορικό κατανάλωσης του ρεύματος: κενή
@@ -432,7 +432,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
             {/* Η λέξη μπαίνει ΠΑΝΩ από τον τίτλο και όχι δίπλα του: δίπλα θα
                 διεκδικούσε τη στήλη της ιδιότητας, που είναι η μόνη άλλη στήλη
                 της γραμμής και έχει ήδη δουλειά. */}
-            {isNext && !on && <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-secondary)', display: 'block', marginBottom: 3 }}>Το επόμενο</span>}
+            {isNext && !on && <span style={{ ...TT.label, fontSize: 11, color: 'var(--text-secondary)', display: 'block', marginBottom: 3 }}>Το επόμενο</span>}
             <span style={{
               fontFamily: T.font.sans, fontSize: 14, fontWeight: 600, lineHeight: 1.35,
               color: 'var(--text-primary)', textDecoration: on ? 'line-through' : 'none',
@@ -479,7 +479,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
             { k: 'Χρόνος', v: o.speed },
           ].map(x => (
             <span key={x.k} style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6 }}>
-              <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)' }}>{x.k}</span>
+              <span style={{ ...TT.label, fontSize: 11, color: 'var(--text-tertiary)' }}>{x.k}</span>
               <span style={{ fontWeight: 600 }}>{x.v}</span>
             </span>
           ))}
@@ -612,7 +612,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
                     textAlign: 'left', paddingTop: 6, paddingBottom: 8, cursor: 'pointer', background: 'none',
                     border: 'none', opacity: finished ? 0.5 : 1, transition: 'opacity .15s',
                   }}>
-                  <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)', flex: 1, minWidth: 0 }}>{g.group}</span>
+                  <span style={{ ...TT.label, fontSize: 11, color: 'var(--text-tertiary)', flex: 1, minWidth: 0 }}>{g.group}</span>
                   <span style={{ ...TT.caption, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
                     {doneHere} από {g.items.length}
                   </span>
@@ -753,7 +753,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
       <Card pad="lg" gap={false} style={{ marginBottom: T.sp.lg }}>
         <RowToggle open={refOpen} label="Αναφορά" onClick={() => setRefOpen(o => !o)}>
           <span style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-            <span style={{ ...TT.label, fontSize: 10, color: 'var(--text-secondary)' }}>Αναφορά</span>
+            <span style={{ ...TT.label, fontSize: 11, color: 'var(--text-secondary)' }}>Αναφορά</span>
             <span style={{ ...TT.caption, color: 'var(--text-tertiary)' }}>
               Κανόνες που κοστίζουν χρήματα, και όσα αλλάζουν από χρονιά σε χρονιά.
             </span>
@@ -772,7 +772,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
              υπάρχει· ανοιχτή, η μία που ρώτησες λέει τα πάντα. Οκτακόσιες λέξεις
              ανοιχτές ταυτόχρονα δεν είναι πληρότητα, είναι θόρυβος. */
           <div className="budget-rise" style={{ paddingTop: T.sp.md, marginTop: 2, borderTop: '1px solid var(--border-subtle)' }}>
-            <div style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)', paddingBottom: 6, marginBottom: 2, borderBottom: '1px solid var(--border-subtle)' }}>
+            <div style={{ ...TT.label, fontSize: 11, color: 'var(--text-tertiary)', paddingBottom: 6, marginBottom: 2, borderBottom: '1px solid var(--border-subtle)' }}>
               Οι κανόνες που κοστίζουν χρήματα
             </div>
             {plan.rules.map(r => {
@@ -790,7 +790,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
             {/* ΤΟ ΠΟΡΤΟΚΑΛΙ ΣΗΜΑ ΜΕ ΤΟ «3» ΕΦΥΓΕ. Ένα γυμνό «3» δεν λέει καν
                 τρία τι, και ήταν γραμμένο στο χρώμα που η εφαρμογή κρατά για
                 εκκρεμότητες — σε ενότητα που ρητά δεν ζητά καμία ενέργεια. */}
-            <div style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)', paddingBottom: 6, marginTop: T.sp.lg, marginBottom: 2, borderBottom: '1px solid var(--border-subtle)' }}>
+            <div style={{ ...TT.label, fontSize: 11, color: 'var(--text-tertiary)', paddingBottom: 6, marginTop: T.sp.lg, marginBottom: 2, borderBottom: '1px solid var(--border-subtle)' }}>
               Προς επιβεβαίωση
             </div>
             {plan.verify.map(v => {

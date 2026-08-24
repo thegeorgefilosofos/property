@@ -352,8 +352,8 @@ export function SecHdr({ label, sub, right }: { label: string; sub?: string; rig
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ ...TT.label, fontSize: 10 }}>{label}</div>
-        {sub && <div style={{ ...TT.caption, fontSize: 10, marginTop: 2 }}>{sub}</div>}
+        <div style={{ ...TT.label, fontSize: 11 }}>{label}</div>
+        {sub && <div style={{ ...TT.caption, fontSize: 11, marginTop: 2 }}>{sub}</div>}
       </div>
       {right}
     </div>
@@ -440,7 +440,7 @@ export function KPIGrid({ items, columns }: { items: KPIItem[]; columns?: number
           {/* Ουδέτερο by default· ο σημασιολογικός τόνος αποκαλύπτεται στο hover ή
               στο άγγιγμα (data-tone + globals.css), για χαμηλού θορύβου look. */}
           <div className="kpi-value" style={{ marginBottom: 0 }} data-tone={toned ? k.tone : undefined}>{k.value}</div>
-          {k.sub && <div style={{ fontSize: 10, lineHeight: 1.4, fontWeight: k.subTone ? 600 : 400, color: (k.subTone && TONE_COLOR[k.subTone]) || 'var(--text-tertiary)', fontFamily: T.font.sans }}>{k.sub}</div>}
+          {k.sub && <div style={{ fontSize: 11, lineHeight: 1.4, fontWeight: k.subTone ? 600 : 400, color: (k.subTone && TONE_COLOR[k.subTone]) || 'var(--text-tertiary)', fontFamily: T.font.sans }}>{k.sub}</div>}
         </div>
         );
       })}

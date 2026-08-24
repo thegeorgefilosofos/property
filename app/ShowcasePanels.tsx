@@ -47,13 +47,21 @@ export const PanelFX = () => (
     .lp-scan-sweep { position: absolute; inset: 0; pointer-events: none; will-change: transform; animation: lpScan 2.6s cubic-bezier(.4, 0, .2, 1) infinite; }
     /* Η κίνηση σταματά στην αφή: μια γραμμή που σαρώνει επ' άπειρον κοστίζει
        επανασύνθεση σε κάθε καρέ, και σε τηλέφωνο δεν την κοιτάζει κανείς. */
-    /* ΣΤΗΝ ΑΦΗ ΣΤΑΜΑΤΑΝΕ ΟΛΕΣ ΟΙ ΑΤΕΡΜΟΝΕΣ ΚΙΝΗΣΕΙΣ ΤΩΝ ΜΑΚΕΤΩΝ.
-       Οκτώ ράβδοι που τεντώνονται κάθε δευτερόλεπτο και μια γραμμή που σαρώνει
-       κάθε 2,6: εννέα επίπεδα σε αδιάκοπη επανασύνθεση, για διακόσμηση που
-       κανείς δεν κοιτάζει κρατώντας τηλέφωνο. Οι ράβδοι μένουν στο ύψος τους,
-       η γραμμή μένει στη θέση της· η εικόνα είναι ίδια, ακίνητη. */
+    /* ═══ Η ΓΡΑΜΜΗ ΣΑΡΩΣΗΣ ΚΙΝΕΙΤΑΙ ΚΑΙ ΣΤΗΝ ΑΦΗ ══════════════════════════
+       Εδώ έγραφε «.lp-scan-sweep { animation: none; opacity: .5 }» μαζί με τις
+       ράβδους, με σκεπτικό το κόστος ανά καρέ. Το αποτέλεσμα όμως δεν ήταν
+       ακινησία, ήταν ΣΦΑΛΜΑ: η γραμμή πάγωνε στην κορυφή της κάρτας, μισοσβηστή,
+       και διαβαζόταν ως γραφικό που κόλλησε. Πιάστηκε από τον χρήστη σε κινητό
+       και σε ταμπλέτα, στην πρώτη οθόνη, πάνω στη μοναδική κίνηση που ΕΞΗΓΕΙ
+       τι κάνει το προϊόν: σαρώνει έναν λογαριασμό.
+
+       Και το κόστος δεν ήταν αυτό που υπολογίζαμε. Η σάρωση είναι ΕΝΑ επίπεδο
+       με μεταφορά, δηλαδή σύνθεση στην κάρτα γραφικών χωρίς επανασχεδίαση.
+       Οι οκτώ ράβδοι είναι το ακριβό κομμάτι, και μένουν παγωμένες.
+
+       Η προτίμηση μειωμένης κίνησης παρακάτω τη σταματά ούτως ή άλλως: όποιος
+       δεν θέλει κίνηση δεν την παίρνει, από ρύθμιση και όχι από συσκευή. */
     @media (hover: none) {
-      .lp-scan-sweep { animation: none; opacity: .5; }
       .lp-bar { animation: none; transform: scaleY(.8); }
     }
     @keyframes lpPop { 0% { opacity: 0; transform: translateY(6px) scale(.96); } 100% { opacity: 1; transform: none; } }
@@ -66,6 +74,41 @@ export const PanelFX = () => (
     .lp-live:hover { filter: brightness(1.13); transform: translateY(-1.5px); box-shadow: 0 4px 14px -6px rgba(16,24,40,.22); }
     .lp-vbar { transition: filter .18s ease; }
     .lp-vbar:hover { filter: brightness(1.4) saturate(1.15); }
+    /* ═══ ΔΥΟ ΚΑΝΟΝΕΣ ΠΟΥ ΕΚΡΥΒΑΝ ΤΗΝ ΠΛΑΪΝΗ ΣΤΗΛΗ, ΚΑΙ ΚΑΝΕΝΑΣ ΔΕΝ ΙΣΧΥΕ ══
+       Η στήλη έγραφε «display: flex» ΠΑΝΩ ΣΤΟ ΣΤΟΙΧΕΙΟ. Ενα ενσωματωμένο στυλ
+       κερδίζει κάθε κανόνα φύλλου, οπότε και το «max-width: 760px» εδώ και το
+       «@container (max-width: 470px)» του ScrollStory ήταν γραμμένα, διαβάζονταν
+       ως λυμένο πρόβλημα, και δεν έκαναν τίποτα.
+
+       ΤΙ ΚΟΣΤΙΣΕ, ΜΕΤΡΗΜΕΝΟ ΣΕ CHROMIUM ΣΤΑ 390. Η μακέτα του πίνακα κρατούσε
+       πλαϊνή στήλη 150 εικονοστοιχείων μέσα σε πλαίσιο 312: στο περιεχόμενο
+       έμεναν 146, δηλαδή τρία πλακίδια των 42 με δώδεκα εικονοστοιχεία ωφέλιμου
+       πλάτους το καθένα. Ολα κόβονταν με αποσιωπητικά, και το «clamp» της
+       ετικέτας κατέβαζε τα γράμματα στα ΟΚΤΩ προσπαθώντας να τα χωρέσει.
+
+       Το «display» φεύγει από το στοιχείο και μπαίνει στην κλάση, οπότε οι δύο
+       κανόνες αποκρύψεως αποκτούν ισχύ. Στο κινητό η μακέτα δείχνει το
+       περιεχόμενο σε ολόκληρο το πλάτος· η ψεύτικη πλοήγηση ήταν σκηνικό. */
+    /* ═══ ΤΡΕΙΣ ΔΕΙΚΤΕΣ ΔΙΠΛΑ ΔΙΠΛΑ ΔΕΝ ΧΩΡΑΝ ΣΕ ΤΗΛΕΦΩΝΟ ══════════════════
+       ΜΕΤΡΗΜΕΝΟ ΣΤΑ 390: το πλακίδιο πιάνει 97 εικονοστοιχεία και του μένουν 67
+       ωφέλιμα. Οι ετικέτες θέλουν 61, 84 και 75 στα ένδεκα κεφαλαία. Δηλαδή οι
+       δύο από τις τρεις δεν χωρούν ΜΕ ΚΑΝΕΝΑ γέμισμα: ακόμη και μηδενικό αφήνει
+       79. Γι' αυτό υπήρχε το «clamp» που κατέβαινε στα οκτώ, και γι' αυτό δεν
+       ήταν λύση: έκρυβε το πρόβλημα σμικρύνοντας το κείμενο.
+
+       Η ΑΠΑΝΤΗΣΗ ΕΙΝΑΙ Η ΔΙΑΤΑΞΗ, ΟΧΙ ΤΟ ΜΕΓΕΘΟΣ. Σε στενό πλαίσιο οι τρεις
+       δείκτες γίνονται τρεις σειρές: ετικέτα αριστερά, αριθμός δεξιά. Κάθε
+       ετικέτα παίρνει ολόκληρο το πλάτος, τίποτα δεν κόβεται, και οι τρεις
+       αριθμοί στοιχίζονται σε μία κατακόρυφη ευθεία στη δεξιά άκρη.
+
+       Το ερώτημα είναι το ΠΛΑΙΣΙΟ και όχι η οθόνη: στα 768 το ίδιο πλαίσιο έχει
+       534 εικονοστοιχεία και τα τρία πλακίδια στέκουν άνετα. */
+    @container (max-width: 470px) {
+      .lp-kpis { grid-template-columns: 1fr !important; gap: 8px !important; }
+      .lp-kpis > * { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; text-align: left !important; padding: 11px 14px !important; }
+      .lp-kpis > * > div:first-child { margin-bottom: 0 !important; }
+    }
+    .lp-rail { display: flex; }
     @media (max-width: 760px) { .lp-rail { display: none; } }
     @media (prefers-reduced-motion: reduce) {
       .lp-scan-sweep, .lp-bar, .lp-pop, .lp-grow { animation: none !important; }
@@ -85,7 +128,7 @@ export function PanelDashboard() {
   const kpis = [['Απόδοση', '4,80%'], ['Έσοδα/μήνα', '1.250,00 €'], ['Πληρότητα', '92%']];
   return (
     <div style={{ display: 'flex', gap: 16, textAlign: 'left' }}>
-      <div className="lp-rail" style={{ width: 150, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div className="lp-rail" style={{ width: 150, flexShrink: 0, flexDirection: 'column', gap: 6 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px 12px' }}>
           <BrandMark size={22} />
           <div style={{ fontSize: 13, fontWeight: 700 }}>PROPERWISE</div>
@@ -122,16 +165,23 @@ export function PanelDashboard() {
             κενό έπεφτε πάντα δεξιά και σε άλλο μέγεθος σε καθένα: τρία κουτιά
             ίδιου σχήματος με τρία διαφορετικά βάρη. Στο κέντρο, το κενό
             μοιράζεται και στις δύο πλευρές και η σειρά ισορροπεί. */}
-        <div style={{ containerType: 'inline-size', display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
+        <div className="lp-kpis" style={{ containerType: 'inline-size', display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
           {kpis.map(([l, v], i) => (
             <div key={i} className="lp-live" style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '13px 14px', minWidth: 0, overflow: 'hidden', textAlign: 'center' }}>
-              {/* Η ΕΤΙΚΕΤΑ ΚΟΒΟΤΑΝ ΜΕ ΑΠΟΣΙΩΠΗΤΙΚΑ: «ΚΑΘΑΡΗ…», «ΜΗΝΙΑΙ…»,
-                  «ΠΛΗΡΟΤ…». Πρώτα διορθώθηκαν τα ΟΝΟΜΑΤΑ, μία λέξη το καθένα.
-                  Το «ΕΣΟΔΑ/ΜΗΝΑ» όμως είναι ακόμη δέκα κεφαλαία με αραίωση και
-                  ξεχειλίζει από το ίδιο πλακίδιο λίγο μετά τον αριθμό, οπότε
-                  παίρνει την ίδια μονάδα με αυτόν: διορθωμένο μόνο το ένα από
-                  τα δύο θα άφηνε το άλλο να σπάσει στο επόμενο στένεμα. */}
-              <div style={{ fontSize: 'clamp(8px, 2.8cqi, 10px)', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, lineHeight: 1.3, whiteSpace: 'nowrap' }}>{l}</div>
+              {/* ═══ ΤΟ ΜΕΓΕΘΟΣ ΔΕΝ ΕΙΝΑΙ ΤΟ ΕΡΓΑΛΕΙΟ ΓΙΑ ΝΑ ΧΩΡΕΣΕΙ ΜΙΑ ΛΕΞΗ ══
+                  Η ετικέτα κοβόταν με αποσιωπητικά όταν τα ονόματα ήταν δύο
+                  λέξεις («ΚΑΘΑΡΗ ΑΠΟΔΟΣΗ», «ΕΣΟΔΑ/ΜΗΝΑ»), και η απάντηση τότε
+                  ήταν «clamp(8px, 2.8cqi, 10px)»: το κείμενο σμίκρυνε όσο
+                  στένευε το πλακίδιο. Τα ονόματα όμως έγιναν μονολεκτικά, και
+                  το clamp έμεινε. Αποτέλεσμα στο κινητό: ΟΚΤΩ εικονοστοιχεία,
+                  μετρημένα σε Chromium στα 390. Κεφαλαία, με αραίωση, σε
+                  τριτεύον γκρι. Δηλαδή διακόσμηση, όχι κείμενο.
+
+                  Στα 390 το πλακίδιο έχει 82 εικονοστοιχεία εσωτερικά και η
+                  μακρύτερη ετικέτα θέλει 61 στα 11. Χωράει με άνεση, οπότε το
+                  μέγεθος γίνεται σταθερό: όποιος διαβάζει από τηλέφωνο βλέπει
+                  το ίδιο κείμενο με όποιον διαβάζει από υπολογιστή. */}
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, lineHeight: 1.3, whiteSpace: 'nowrap' }}>{l}</div>
               <div style={{ fontFamily: T.font.sans, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.025em', fontSize: 'clamp(11px, 4.2cqi, 19px)', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.1, whiteSpace: 'nowrap' }}>{v}</div>
             </div>
           ))}
@@ -183,7 +233,7 @@ export function PanelScan() {
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
           <div style={{ fontSize: 13, fontWeight: 700 }}>Ρεύμα</div>
-          <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>Μηνιαίος λογαριασμός</div>
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Μηνιαίος λογαριασμός</div>
         </div>
         {[['Περίοδος', 'Ιούν 2026'], ['Κατανάλωση', '312 kWh'], ['Ημερομηνία λήξης', '10/08/2026']].map(([l, v], i) => (
           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: 12, color: 'var(--text-secondary)' }}><span>{l}</span><span style={{ color: 'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric: 'tabular-nums' }}>{v}</span></div>

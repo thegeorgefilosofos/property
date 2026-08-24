@@ -107,7 +107,7 @@ export default function OccupancyPanel({ propertyId, userId }: {
   if (!loading && !isShort) return null;
 
   const label: React.CSSProperties = {
-    fontFamily: T.font.sans, fontSize: 10, fontWeight: 700,
+    fontFamily: T.font.sans, fontSize: 11, fontWeight: 700,
     textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)',
   };
   const note: React.CSSProperties = {
@@ -196,9 +196,9 @@ export default function OccupancyPanel({ propertyId, userId }: {
                       const h = peakNights > 0 ? Math.max(3, Math.round((n / peakNights) * 40)) : 3;
                       return (
                         <div key={i} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                          <span style={{ ...num, fontSize: 10, color: n > 0 ? 'var(--text-secondary)' : 'var(--text-tertiary)' }}>{n}</span>
+                          <span style={{ ...num, fontSize: 11, color: n > 0 ? 'var(--text-secondary)' : 'var(--text-tertiary)' }}>{n}</span>
                           <div style={{ width: '100%', maxWidth: 48, height: h, borderRadius: 3, background: n > 0 ? 'var(--accent)' : 'var(--border-default)', opacity: n > 0 ? 1 : 0.5 }} />
-                          <span style={{ fontFamily: T.font.sans, fontSize: 10, color: 'var(--text-tertiary)' }}>{MONTHS_SHORT[i]}</span>
+                          <span style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)' }}>{MONTHS_SHORT[i]}</span>
                         </div>
                       );
                     })}

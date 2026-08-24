@@ -104,6 +104,16 @@ export default function LandingCalculator() {
       <style>{`
         @media (max-width: 820px) { .calc-grid { grid-template-columns: 1fr !important; } }
         .calc-panel { background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: 18px; padding: clamp(22px, 3vw, 32px); }
+        /* ΤΟ ΚΟΨΙΜΟ ΑΝΗΚΕΙ ΣΤΙΣ ΖΩΝΕΣ, ΟΧΙ ΣΤΟΝ ΔΕΙΚΤΗ.
+           Ο δείκτης ζούσε ΜΕΣΑ στο .calc-band, που έχει «overflow: hidden» για
+           να στρογγυλεύει τις χρωματιστές ζώνες στα άκρα του. Ετσι κοβόταν και
+           αυτός: ύψος 16 μέσα σε κουτί 8, δηλαδή έχανε τέσσερα εικονοστοιχεία
+           από πάνω και τέσσερα από κάτω, ακριβώς το κομμάτι που τον κάνει
+           δείκτη αντί για κουκκίδα. Μετρημένο σε Chromium στα 390.
+
+           Η διαδρομή κρατά τη θέση, η ταινία κρατά το κόψιμο, ο δείκτης
+           κάθεται πάνω από τα δύο. */
+        .calc-track { position: relative; }
         .calc-band { position: relative; height: 8px; border-radius: 100px; overflow: hidden; display: flex; }
         .calc-marker { position: absolute; top: -4px; width: 2px; height: 16px; background: var(--text-primary); border-radius: 2px; transition: left .25s cubic-bezier(.2,0,0,1); }
         input[type=range]::-webkit-slider-thumb { cursor: pointer; }
@@ -121,10 +131,12 @@ export default function LandingCalculator() {
             <span>Κλίμακα ενοικίων 2026</span>
             <span style={{ fontVariantNumeric: 'tabular-nums' }}>φορολογητέο {fe(taxable)}</span>
           </div>
-          <div className="calc-band">
-            {BANDS.map((b, i) => (
-              <div key={i} style={{ flex: (b.to - (BANDS[i - 1]?.to ?? 0)), background: `color-mix(in srgb, var(--accent) ${18 + i * 22}%, transparent)`, borderRight: i < BANDS.length - 1 ? '1px solid var(--bg-surface)' : 'none' }} />
-            ))}
+          <div className="calc-track">
+            <div className="calc-band">
+              {BANDS.map((b, i) => (
+                <div key={i} style={{ flex: (b.to - (BANDS[i - 1]?.to ?? 0)), background: `color-mix(in srgb, var(--accent) ${18 + i * 22}%, transparent)`, borderRight: i < BANDS.length - 1 ? '1px solid var(--bg-surface)' : 'none' }} />
+              ))}
+            </div>
             <div className="calc-marker" style={{ left: `${markerPct}%` }} />
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>

@@ -266,7 +266,7 @@ export default function EnfiaPanel({ propertyId, userId }: { propertyId: string;
                 <div style={{ ...TT.display }}>{fe(inUse.monthly)}</div>
                 <div style={{ ...TT.caption, marginTop: 4 }}>τον μήνα</div>
               </div>
-              <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, padding: '4px 12px' }}>
+              <span style={{ ...TT.label, fontSize: 11, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, padding: '4px 12px' }}>
                 {SOURCE_LABEL[inUse.source]}
               </span>
             </div>

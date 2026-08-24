@@ -171,7 +171,7 @@ function AnalysisCards({items,repairs,kwhPrice,kwhControl}:{items:InventoryItem[
         {byCategory.sort((a,b)=>b.val-a.val).map(({cat,count,val})=>(
           <div key={cat}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:10,marginBottom:5}}>
-              <span style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cat} <span style={{color:'var(--text-tertiary)',fontSize:10}}>({count})</span></span>
+              <span style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cat} <span style={{color:'var(--text-tertiary)',fontSize: 11}}>({count})</span></span>
               <span style={{fontSize:12,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:600,flexShrink:0}}>{fe(val)}</span>
             </div>
             <div style={{height:4,background:'var(--border-subtle)',borderRadius:3}}><div style={{height:4,borderRadius:3,background:'var(--accent)',width:`${(val/maxVal)*100}%`,transition:'width 0.5s'}}/></div>
@@ -328,7 +328,7 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
           <button title={sortDir==='asc'?'Αύξουσα':'Φθίνουσα'} aria-label="Κατεύθυνση ταξινόμησης" onClick={()=>setSortDir(d=>d==='asc'?'desc':'asc')} style={{width:T.h.md,height:T.h.md,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',color:'var(--text-secondary)',cursor:'pointer',fontFamily:T.font.sans,fontSize:14,flexShrink:0,display:'inline-flex',alignItems:'center',justifyContent:'center'}}><svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">{sortDir==='asc'?<path d="M12 19V5M5 12l7-7 7 7"/>:<path d="M12 5v14M19 12l-7 7-7-7"/>}</svg></button>
         </div>
         {actionCount>0&&<button onClick={()=>setShowNeedsAction(v=>!v)} title="Προβολή μόνο όσων χρειάζονται προσοχή" style={{padding:'0 12px',height:T.h.md,borderRadius:T.radius.pill,fontSize:12,cursor:'pointer',fontFamily:T.font.sans,fontWeight:500,border:`1px solid ${showNeedsAction?'var(--warning-border)':'var(--border-subtle)'}`,background:showNeedsAction?'var(--warning-soft)':'var(--bg-elevated)',color:showNeedsAction?'var(--warning)':'var(--text-secondary)',display:'flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>
-          Προσοχή <span style={{background:showNeedsAction?'var(--warning)':'var(--text-tertiary)',color:'var(--text-inverse)',borderRadius:T.radius.inner,padding:'0 6px',fontSize:10,fontWeight:700}}>{actionCount}</span>
+          Προσοχή <span style={{background:showNeedsAction?'var(--warning)':'var(--text-tertiary)',color:'var(--text-inverse)',borderRadius:T.radius.inner,padding:'0 6px',fontSize: 11,fontWeight:700}}>{actionCount}</span>
         </button>}
         <button onClick={()=>selectMode?exitSelect():setSelectMode(true)} title="Επιλογή πολλών αντικειμένων" style={{padding:'0 12px',height:T.h.md,borderRadius:T.radius.pill,fontSize:12,cursor:'pointer',fontFamily:T.font.sans,fontWeight:500,border:`1px solid ${selectMode?'var(--accent-border)':'var(--border-subtle)'}`,background:selectMode?'var(--accent-soft)':'var(--bg-elevated)',color:selectMode?'var(--accent)':'var(--text-secondary)',display:'flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
@@ -398,7 +398,7 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
                     </>}
                   {(item.energy_class||photos.length>1)&&<div style={{position:'absolute',bottom:8,left:8,display:'flex',gap:4,alignItems:'center'}}>
                     {item.energy_class&&<EnergyBadge cls={item.energy_class}/>}
-                    {photos.length>1&&<span style={{padding:'2px 6px',borderRadius:6,background:'rgba(0,0,0,0.6)',color:'var(--on-media)',fontSize:9,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums'}}>+{photos.length-1}</span>}
+                    {photos.length>1&&<span style={{padding:'2px 6px',borderRadius:6,background:'rgba(0,0,0,0.6)',color:'var(--on-media)',fontSize: 11,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums'}}>+{photos.length-1}</span>}
                   </div>}
                 </div>
                 <div style={{padding:'12px 14px',display:'flex',flexDirection:'column',gap:8,flex:1}}>
@@ -409,7 +409,7 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
                     </div>
                     <div style={{textAlign:'right',flexShrink:0}}>
                       <p style={{fontSize:14,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:700,color:'var(--text-primary)',lineHeight:1.2}}>{fe(curVal)}</p>
-                      <p style={{fontSize:9,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.5px',fontFamily:T.font.sans}}>Τρέχουσα αξία</p>
+                      <p style={{fontSize: 11,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.5px',fontFamily:T.font.sans}}>Τρέχουσα αξία</p>
                     </div>
                   </div>
                   <DepBar pct={depPct} left={left}/>
@@ -417,9 +417,9 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
                     <div style={{minWidth:0,overflow:'hidden'}}>
                       {repl.suggested
                         ?<ReplacementHint item={item} compact/>
-                        :ws&&<span style={{fontSize:10,color:ws.color,fontFamily:T.font.sans,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>Εγγύηση {ws.label}</span>}
+                        :ws&&<span style={{fontSize: 11,color:ws.color,fontFamily:T.font.sans,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>Εγγύηση {ws.label}</span>}
                     </div>
-                    {mc>0&&<span title="Εκτιμώμενο κόστος ρεύματος ανά μήνα" style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:T.font.num,fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap',flexShrink:0}}>{fe(mc)}/μήνα</span>}
+                    {mc>0&&<span title="Εκτιμώμενο κόστος ρεύματος ανά μήνα" style={{fontSize: 11,color:'var(--text-tertiary)',fontFamily:T.font.num,fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap',flexShrink:0}}>{fe(mc)}/μήνα</span>}
                   </div>
                 </div>
               </div>
@@ -431,7 +431,7 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
         <div style={{display:'flex',flexDirection:'column',gap:1,background:'var(--bg-surface)',borderRadius:T.radius.card,border:'1px solid var(--border-subtle)',overflow:'hidden',minWidth:560}}>
           <div style={{display:'grid',gridTemplateColumns:`${selectMode?'32px ':''}minmax(0,2fr) 130px 96px 90px 44px`,gap:10,padding:'10px 16px',borderBottom:'2px solid var(--border-subtle)',background:'var(--bg-elevated)'}}>
             {selectMode&&<div/>}
-            {['Αντικείμενο','Κατάσταση','Αξία','Ρεύμα/μήνα',''].map(h=><p key={h} style={{fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:T.font.sans}}>{h}</p>)}
+            {['Αντικείμενο','Κατάσταση','Αξία','Ρεύμα/μήνα',''].map(h=><p key={h} style={{fontSize: 11,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:T.font.sans}}>{h}</p>)}
           </div>
           {filtered.map(item=>{
             const curVal=calcCurrentValue(item); const mc=calcMonthlyCost(item,kwhPrice); const age=calcAgeDisplay(item.purchase_date)
@@ -447,7 +447,7 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
                     <p style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</p>
                     {item.energy_class&&<EnergyBadge cls={item.energy_class}/>}
                   </div>
-                  <p style={{fontSize:10,color:'var(--text-tertiary)',fontFamily:T.font.sans,margin:'2px 0 4px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.category}{item.room?` · ${item.room}`:''}{age?` · ${age}`:''}</p>
+                  <p style={{fontSize: 11,color:'var(--text-tertiary)',fontFamily:T.font.sans,margin:'2px 0 4px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.category}{item.room?` · ${item.room}`:''}{age?` · ${age}`:''}</p>
                   <DepBar pct={calcDepreciationPct(item)} left={calcYearsLeft(item)}/>
                   {replacementSuggestion(item).suggested&&<div style={{marginTop:4}}><ReplacementHint item={item} compact/></div>}
                 </div>
@@ -684,7 +684,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   // Ο έλεγχος τιμής kWh ζει εκεί που έχει νόημα — στην ενότητα κατανάλωσης ρεύματος, όχι στο header.
   const kwhControl=(
     <div title="kWh = κιλοβατώρα· τιμή ρεύματος σε € ανά kWh, για τον υπολογισμό κόστους" style={{display:'inline-flex',alignItems:'center',height:28,background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.pill,overflow:'hidden'}}>
-      <span style={{padding:'0 8px',fontSize:9,color:'var(--text-tertiary)',borderRight:'1px solid var(--border-subtle)',alignSelf:'stretch',display:'flex',alignItems:'center',whiteSpace:'nowrap',letterSpacing:'0.5px',textTransform:'uppercase',fontFamily:T.font.sans}}>€/kWh</span>
+      <span style={{padding:'0 8px',fontSize: 11,color:'var(--text-tertiary)',borderRight:'1px solid var(--border-subtle)',alignSelf:'stretch',display:'flex',alignItems:'center',whiteSpace:'nowrap',letterSpacing:'0.5px',textTransform:'uppercase',fontFamily:T.font.sans}}>€/kWh</span>
       <input type="text" inputMode="decimal" value={kwInput} placeholder="" aria-label="Τιμή ρεύματος σε ευρώ ανά kWh, από τον λογαριασμό σου"
         onChange={e=>{const raw=e.target.value.replace(',','.');setKwInput(raw);if(/^\d*\.?\d*$/.test(raw)&&raw!=='')setKwhPrice(parseFloat(raw)||0)}}
         onFocus={e=>{e.target.select()}}

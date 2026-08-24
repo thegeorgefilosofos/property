@@ -312,10 +312,10 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
 
   const secHdr = (label: string, link?: { url: string; text: string }) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
-      <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans, flex: 1 }}>{label}</span>
+      <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans, flex: 1 }}>{label}</span>
       {link?.url && (
         <a href={link.url} target="_blank" rel="noopener noreferrer"
-          style={{ fontSize: 10, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.pill, padding: '3px 10px', whiteSpace: 'nowrap' as const }}>
+          style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.pill, padding: '3px 10px', whiteSpace: 'nowrap' as const }}>
           {link.text}
         </a>
       )}
@@ -329,7 +329,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
     const isLow  = current < avg * 0.85;
     return (
       <div style={{ marginTop: 10, background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '10px 14px', border: '1px solid var(--border-subtle)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 10, fontFamily: T.font.sans }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 11, fontFamily: T.font.sans }}>
           <span style={{ color: 'var(--text-secondary)' }}>{label}</span>
           <span style={{ fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>
             {isHigh ? `+${fp(((current / avg - 1) * 100))} πάνω από τον μέσο όρο` : isLow ? `-${fp(((1 - current / avg) * 100))} κάτω από τον μέσο όρο` : 'Στο μέσο όρο'}
@@ -339,7 +339,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
           <div style={{ position: 'absolute', left: '50%', top: -3, width: 2, height: 12, background: 'var(--text-tertiary)', borderRadius: 3 }}/>
           <div style={{ height: '100%', width: `${pct}%`, background: 'var(--series-in)', borderRadius: 3 }}/>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 9, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
           <span>0 €</span><span style={{ color: 'var(--text-secondary)' }}>μέσος όρος {avg} €</span><span>{fe((avg * 2))}</span>
         </div>
       </div>
@@ -399,7 +399,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
               <span style={{ color: 'var(--text-secondary)', flex: 1 }}>{selectedPlan.note} · {selectedPlan.hasPhone ? 'Περιλαμβάνει σταθερό τηλέφωνο' : 'Χωρίς σταθερό τηλέφωνο'}</span>
               {provData?.url && (
                 <a href={provData.url} target="_blank" rel="noopener noreferrer"
-                  style={{ fontSize: 10, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
+                  style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
                   Επίσημη σελίδα {provData.label}
                 </a>
               )}
@@ -423,12 +423,12 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
                 return (
                   <div style={{ background: good ? 'color-mix(in srgb, var(--positive) 7%, transparent)' : 'color-mix(in srgb, var(--warning) 7%, transparent)', border: `1px solid ${good ? 'color-mix(in srgb, var(--positive) 25%, transparent)' : 'color-mix(in srgb, var(--warning) 25%, transparent)'}`, borderRadius: T.radius.inner, padding: '10px 14px' }}>
                     <div style={{ fontSize: 18, fontWeight: 700, color: good ? 'var(--positive)' : 'var(--warning)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{pct}%</div>
-                    <div style={{ fontSize: 9, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>{good ? 'Καλή απόδοση' : 'Μειωμένη ταχύτητα'}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>{good ? 'Καλή απόδοση' : 'Μειωμένη ταχύτητα'}</div>
                   </div>
                 );
               })()}
               {(!s.internetSpeedReal || !s.internetSpeed) && (
-                <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
                   Μέτρησε στο{' '}<a href="https://www.speedtest.net" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>speedtest.net</a>
                 </div>
               )}
@@ -456,7 +456,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
 
           {s.internetPhone && (
             <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 14, marginBottom: 12, border: '1px solid var(--border-subtle)' }}>
-              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Τι περιλαμβάνει το σταθερό τηλέφωνο</div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Τι περιλαμβάνει το σταθερό τηλέφωνο</div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const, marginBottom: 10 }}>
                 {phoneFeatures.map(f => (
                   <div key={f.key} {...pressable(f.toggle)} title={f.tip}
@@ -472,12 +472,12 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
 
           {(INTERNET_PLANS[s.internetProvider] || []).length > 0 && (
             <div>
-              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Διαθέσιμα Προγράμματα {provData?.label}</div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Διαθέσιμα Προγράμματα {provData?.label}</div>
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, minWidth: 500 }}>
                   <thead>
                     <tr>{['Πρόγραμμα','Ταχύτητα','Σταθερό Τηλέφωνο','Δέσμευση','Μηνιαίο','Ετήσιο'].map((h, i) => (
-                      <th key={i} style={{ fontSize: 9, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-secondary)', padding: '6px 10px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 600, fontFamily: T.font.sans, background: 'var(--bg-elevated)', whiteSpace: 'nowrap' as const }}>{h}</th>
+                      <th key={i} style={{ fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-secondary)', padding: '6px 10px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 600, fontFamily: T.font.sans, background: 'var(--bg-elevated)', whiteSpace: 'nowrap' as const }}>{h}</th>
                     ))}</tr>
                   </thead>
                   <tbody>
@@ -488,11 +488,11 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
                           onClick={() => upd({ internetPlanId: plan.id, internetPlan: plan.name, internetSpeed: plan.speed, internetPrice: String(plan.price), internetPhone: plan.hasPhone })}
                           style={{ cursor: 'pointer', background: isCur ? 'var(--accent-soft)' : 'transparent', transition: 'background 0.15s' }}>
                           <td style={{ padding: '7px 10px', fontWeight: isCur ? 700 : 400, color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.sans }}>{plan.name}{isCur ? ' ✓' : ''}</td>
-                          <td style={{ padding: '7px 10px', color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 10 }}>{plan.speed}</td>
+                          <td style={{ padding: '7px 10px', color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 11 }}>{plan.speed}</td>
                           <td style={{ padding: '7px 10px', color: plan.hasPhone ? 'var(--text-primary)' : 'var(--text-tertiary)', fontWeight: 700, textAlign: 'center' as const }}>{plan.hasPhone ? 'Ναι' : 'Όχι'}</td>
-                          <td style={{ padding: '7px 10px', color: 'var(--text-tertiary)', fontSize: 10, fontFamily: T.font.sans }}>{plan.contract || 'Χωρίς δέσμευση'}</td>
+                          <td style={{ padding: '7px 10px', color: 'var(--text-tertiary)', fontSize: 11, fontFamily: T.font.sans }}>{plan.contract || 'Χωρίς δέσμευση'}</td>
                           <td style={{ padding: '7px 10px', fontWeight: 600, color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const }}>{fe(plan.price)}</td>
-                          <td style={{ padding: '7px 10px', color: 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 10, whiteSpace: 'nowrap' as const }}>{fe(plan.price * 12)}</td>
+                          <td style={{ padding: '7px 10px', color: 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 11, whiteSpace: 'nowrap' as const }}>{fe(plan.price * 12)}</td>
                         </tr>
                       );
                     })}
@@ -506,7 +506,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
           {/* FIX: "Συνδρομητική τηλεόραση" (was "PAY TV") */}
           <div style={{ marginTop: 16, borderTop: '1px solid var(--border-subtle)', paddingTop: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-              <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.06em', color: 'var(--text-secondary)', fontFamily: T.font.sans, flex: 1 }}>Συνδρομητική τηλεόραση</span>
+              <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.06em', color: 'var(--text-secondary)', fontFamily: T.font.sans, flex: 1 }}>Συνδρομητική τηλεόραση</span>
               <Toggle on={s.hasTV} onChange={v => upd({ hasTV: v })} ariaLabel="Συνδρομητική τηλεόραση"/>
             </div>
             {/* ΤΑ ΑΘΛΗΤΙΚΑ ΕΙΝΑΙ ΙΔΙΟΤΗΤΑ ΤΟΥ ΠΑΚΕΤΟΥ, ΟΧΙ ΞΕΧΩΡΙΣΤΗ ΕΡΩΤΗΣΗ.
@@ -584,7 +584,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
               {s.waterPersons && parseInt(s.waterPersons) > 0 && (
                 <span style={{ marginLeft: 14 }}>Ανά άτομο: <strong style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(waterM / parseInt(s.waterPersons))}</strong> / μήνα</span>
               )}
-              {waterData?.url && <a href={waterData.url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 14, fontSize: 10, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Επίσημη σελίδα {waterData.label}</a>}
+              {waterData?.url && <a href={waterData.url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 14, fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Επίσημη σελίδα {waterData.label}</a>}
             </div>
           )}
           {benchmarkBar(waterM * 2, 24, BENCHMARKS.water.label)}
@@ -621,12 +621,12 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
               <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' as const, marginBottom: 6 }}>
                 {[{ label: 'Μέσο Μηνιαίο', value: fe(heatingM) },{ label: 'Εκτιμώμενο Ετήσιο', value: fe(heatingM * 12) }].map((k, i) => (
                   <div key={i}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, marginBottom: 4, fontFamily: T.font.sans }}>{k.label}</div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, marginBottom: 4, fontFamily: T.font.sans }}>{k.label}</div>
                     <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{k.value}</div>
                   </div>
                 ))}
               </div>
-              <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 8, fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+              <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 8, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
                 Τυπικό κόστος ενέργειας 2026, ανά <span title="Κιλοβατώρα, μονάδα ενέργειας">κιλοβατώρα</span>: φυσικό αέριο περίπου {feRate(0.08)} · πετρέλαιο περίπου {feRate(0.10)} · αντλία θερμότητας περίπου {feRate(0.06)}
               </div>
             </div>
@@ -651,7 +651,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
             <Toggle on={s.securityHasDoor}   onChange={v => upd({ securityHasDoor: v })}   label="Αυτόματη πόρτα"/>
           </div>
           {securityM > 0 && secData?.url && (
-            <a href={secData.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 10, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans }}>
+            <a href={secData.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans }}>
               Επίσημη σελίδα {secData.label}
             </a>
           )}

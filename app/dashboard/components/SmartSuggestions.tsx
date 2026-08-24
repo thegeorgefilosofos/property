@@ -327,7 +327,7 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
                   </div>
                   <p style={{ ...TT.caption, marginTop: 3 }}>{s.reason}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
-                    <span style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)' }}>{label}</span>
+                    <span style={{ ...TT.label, fontSize: 11, color: 'var(--text-tertiary)' }}>{label}</span>
                     {s.recurring && (
                       <span style={{ ...TT.caption, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                         {/* Χωρίς αναγνωρίσιμη συχνότητα λέμε μόνο ότι επαναλαμβάνεται.

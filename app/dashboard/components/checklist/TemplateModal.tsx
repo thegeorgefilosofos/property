@@ -42,7 +42,7 @@ export function TemplateModal({ onSelect, onLoadObligations, onClose, ctx, pendi
       subtitle="Έτοιμες λίστες εργασιών, και οι υποχρεώσεις που προκύπτουν από τον νόμο για αυτό το ακίνητο.">
       {visibleSmart.length > 0 && (
         <div>
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 10 }}>Προτεινόμενα για εσένα</div>
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 10 }}>Προτεινόμενα για εσένα</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {visibleSmart.map(s => {
               const t = TEMPLATES[s.templateKey]
@@ -66,7 +66,7 @@ export function TemplateModal({ onSelect, onLoadObligations, onClose, ctx, pendi
         </div>
       )}
       <div>
-        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 10 }}>Υποχρεώσεις &amp; νομοθεσία</div>
+        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 10 }}>Υποχρεώσεις &amp; νομοθεσία</div>
         {/* ΟΧΙ «Ημερολόγιο ΑΑΔΕ 2026» με δέκα σταθερές ημερομηνίες 1ης του
             μήνα. Οι υποχρεώσεις υπολογίζονται για ΑΥΤΟ το ακίνητο, από το ένα
             φορολογικό ημερολόγιο και από τις αλλαγές νομοθεσίας που το
@@ -95,7 +95,7 @@ export function TemplateModal({ onSelect, onLoadObligations, onClose, ctx, pendi
         </button>
       </div>
       <div>
-        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 10 }}>Λίστες εργασιών</div>
+        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 10 }}>Λίστες εργασιών</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 230px), 1fr))', gap: 10 }}>
           {entries.map(([key, t]) => {
             const icons: Record<string, string> = {

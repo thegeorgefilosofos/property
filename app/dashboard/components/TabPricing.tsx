@@ -475,8 +475,8 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
           <div className="card" style={{ marginBottom: 18 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, cursor: 'pointer' }} {...pressable(() => setCompsOpen(o => !o))}>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>Βαθμονόμηση από τον ανταγωνισμό</div>
-                <div style={{ fontFamily: T.font.sans, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>Βάλε τιμές/νύχτα παρόμοιων ακινήτων της περιοχής και δες μια προτεινόμενη βάση</div>
+                <div style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>Βαθμονόμηση από τον ανταγωνισμό</div>
+                <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>Βάλε τιμές/νύχτα παρόμοιων ακινήτων της περιοχής και δες μια προτεινόμενη βάση</div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
                 {median > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.num }}>διάμεση {fe(median)}</span>}
@@ -619,8 +619,8 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                           {fd(g.start)} - {fd(g.end)}
-                          {g.hard && <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, padding: '1px 6px' }}>δύσκολο κενό</span>}
-                          {g.soon && <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, padding: '1px 6px' }}>άμεσα</span>}
+                          {g.hard && <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, padding: '1px 6px' }}>δύσκολο κενό</span>}
+                          {g.soon && <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, padding: '1px 6px' }}>άμεσα</span>}
                         </div>
                         <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>{g.nights} {g.nights === 1 ? 'νύχτα' : 'νύχτες'} · εποχή {SEASON_LABELS[g.season]} · πρόταση πλήρωσης <strong className="po-fig" data-tone="accent" style={{ fontFamily: T.font.num }}>{fe(g.fillPrice)}</strong>/νύχτα</div>
                       </div>
@@ -654,7 +654,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                   <div key={key} style={{ flex: '1 1 300px', minWidth: 280, background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.card, padding: 16, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
                     <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>{MONTHS_NOM[mm - 1]} {yy}</div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
-                      {WEEKDAYS.map(w => <div key={w} style={{ textAlign: 'center', fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', paddingBottom: 4 }}>{w}</div>)}
+                      {WEEKDAYS.map(w => <div key={w} style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', paddingBottom: 4 }}>{w}</div>)}
                       {Array.from({ length: lead }).map((_, i) => <div key={'b' + i} />)}
                       {Array.from({ length: daysInMonth }).map((_, i) => {
                         const dayNum = i + 1;
@@ -701,7 +701,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                                 σχηματίζουν ΕΝΙΑΙΑ ζώνη, δηλαδή η κράτηση φαίνεται
                                 ως κράτηση αντί για επτά ξεχωριστά τετράγωνα. */}
                             {d.booked && <span aria-hidden style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(45deg, transparent 0 4px, var(--border-default) 4px 5px)', opacity: 0.75 }} />}
-                            <span style={{ position: 'relative', fontSize: 10, fontWeight: 600, color: d.booked ? 'var(--text-tertiary)' : 'var(--text-tertiary)' }}>{dayNum}</span>
+                            <span style={{ position: 'relative', fontSize: 11, fontWeight: 600, color: d.booked ? 'var(--text-tertiary)' : 'var(--text-tertiary)' }}>{dayNum}</span>
                             {/* Ακέραια ευρώ στο κελί, δύο δεκαδικά στην ανάλυση που
                                 ανοίγει με το πάτημα: το «45,00» είναι πέντε
                                 χαρακτήρες για να πει αυτό που λένε δύο.
@@ -788,7 +788,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 12, color: 'var(--text-secondary)' }}>
                       <span style={{ minWidth: 0 }}>
                         {f.label}
-                        <span style={{ display: 'block', fontSize: 10, color: 'var(--text-tertiary)', lineHeight: 1.5, marginTop: 1 }}>από: {f.source}</span>
+                        <span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, marginTop: 1 }}>από: {f.source}</span>
                       </span>
                       <span className="po-fig" data-tone={pct > 0 ? 'positive' : pct < 0 ? 'negative' : undefined} style={{ fontFamily: T.font.num, flexShrink: 0 }}>{pct > 0 ? '+' : ''}{pct}%</span>
                     </div>

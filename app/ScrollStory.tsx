@@ -113,7 +113,12 @@ export default function ScrollStory() {
         .story-panel.on { opacity: 1; transform: none; pointer-events: auto; }
         .story-panel > * { width: 100%; max-width: 480px; }
         .story-rail { display: flex; gap: 8px; margin-top: 18px; }
-        .story-dot { flex: 1; height: 38px; border-radius: 10px; border: 1px solid var(--border-subtle); background: transparent; color: var(--text-tertiary); font-family: inherit; font-size: 12px; font-weight: 700; letter-spacing: .06em; cursor: pointer; transition: color .3s, border-color .3s, background .3s; }
+        /* ΤΑ ΤΡΙΑ ΚΟΥΜΠΙΑ ΤΗΣ ΙΣΤΟΡΙΑΣ ΗΤΑΝ 38 ΨΗΛΑ, ΣΕ ΚΑΘΕ ΠΛΑΤΟΣ. Είναι ο μόνος
+           τρόπος να πηδήξεις σε πράξη χωρίς να κυλήσεις, δηλαδή πραγματικός
+           στόχος και όχι διακόσμηση, και έμεναν έξι εικονοστοιχεία κάτω από τον
+           κανόνα των 44. Το ύψος ανεβαίνει παντού: στον υπολογιστή ένα κουμπί
+           λίγο ψηλότερο δεν χαλά τίποτα, στο τηλέφωνο το κάνει χτυπητό. */
+        .story-dot { flex: 1; min-height: 44px; border-radius: 10px; border: 1px solid var(--border-subtle); background: transparent; color: var(--text-tertiary); font-family: inherit; font-size: 12px; font-weight: 700; letter-spacing: .06em; cursor: pointer; transition: color .3s, border-color .3s, background .3s; }
         .story-dot.on { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
         .story-dot:hover { color: var(--text-primary); }
         .story-steps { display: flex; flex-direction: column; }

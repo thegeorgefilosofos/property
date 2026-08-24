@@ -960,7 +960,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
     // Ανάλυση ευαισθησίας (επαγγελματικό προφίλ).
     const sensBlock = canInvest ? reportSection('Ανάλυση ευαισθησίας') + `<table>
         <thead><tr><th>Σενάριο</th><th class="n">Συνολική απόδοση</th><th class="n">Απόδοση ιδίων</th><th class="n">Ταμειακή ροή</th></tr></thead>
-        <tbody>${scenarios.map(sc => `<tr><td>${rEsc(sc.label)} <span class="muted" style="font-size:10px">${rEsc(sc.note)}</span></td><td class="n">${rEsc(rPct(sc.totalReturn))}</td><td class="n">${rEsc(rPct(sc.roe))}</td><td class="n">${rEsc(rEur(sc.cashFlow))}</td></tr>`).join('')}</tbody>
+        <tbody>${scenarios.map(sc => `<tr><td>${rEsc(sc.label)} <span class="muted" style="font-size: 11px">${rEsc(sc.note)}</span></td><td class="n">${rEsc(rPct(sc.totalReturn))}</td><td class="n">${rEsc(rPct(sc.roe))}</td><td class="n">${rEsc(rEur(sc.cashFlow))}</td></tr>`).join('')}</tbody>
       </table>` : '';
 
     // Νεκρό σημείο πληρότητας (βραχυχρόνια).
@@ -1005,7 +1005,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         + `<table><tbody>${compare.map(c => R(c.label, `${rEur(c.futureValue)} · ${rPct(c.annualReturnPct)} ετησίως`)).join('')}</tbody></table>`
       + reportSection('Παραδοχές και μεθοδολογία')
         + `<ul style="margin:4px 0 0;padding-left:18px;font-size:12px;color:${INK_MUTED};line-height:1.7">${asmpItems}</ul>`
-        + `<div class="note" style="font-size:10px;color:${INK_FAINT};margin-top:10px">Πηγές: ${MARKET_SOURCES.map(s => rEsc(s.label)).join(' · ')}</div>`
+        + `<div class="note" style="font-size: 11px;color:${INK_FAINT};margin-top:10px">Πηγές: ${MARKET_SOURCES.map(s => rEsc(s.label)).join(' · ')}</div>`
       + reportDisclaimer(disclaimer, branding)
       + `</div></body></html>`;
     openReport(html);
@@ -1356,8 +1356,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
               <label htmlFor={apprId} style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: SANS }}>Ετήσια ανατίμηση ακινήτου</label>
               <div style={{ width: 90 }}><NumberInput id={apprId} value={apprShown} onChange={v => { setAppreciation(v); setApprTouched(true); }} suffix="%" step={0.5} max={20} /></div>
               {apprTouched
-                ? <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: SANS, border: '1px solid var(--border-default)', borderRadius: 8, padding: '3px 7px' }}>δική σου υπόθεση</span>
-                : <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: SANS, border: '1px solid var(--border-default)', borderRadius: 8, padding: '3px 7px' }}>δείκτης ΤτΕ</span>}
+                ? <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: SANS, border: '1px solid var(--border-default)', borderRadius: 8, padding: '3px 7px' }}>δική σου υπόθεση</span>
+                : <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: SANS, border: '1px solid var(--border-default)', borderRadius: 8, padding: '3px 7px' }}>δείκτης ΤτΕ</span>}
               {apprTouched && (
                 <button type="button" onClick={() => { setAppreciation(''); setApprTouched(false); }} className="acc-toggle"
                   style={{ height: 26, padding: '0 10px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, fontFamily: SANS, fontWeight: 600, cursor: 'pointer' }}>

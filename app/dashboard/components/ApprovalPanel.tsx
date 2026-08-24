@@ -122,7 +122,7 @@ export default function ApprovalPanel({
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))',gap:10,marginTop:14}}>
           {metrics.map((m,i)=>(
             <div key={m.l} onMouseEnter={()=>setHm(i)} onMouseLeave={()=>setHm(null)} onTouchStart={()=>setHm(i)} onTouchEnd={()=>setHm(null)}>
-              <p style={{fontSize:10,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.06em',fontWeight:700,fontFamily: T.font.sans,marginBottom:4}}>{m.l}</p>
+              <p style={{fontSize: 11,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.06em',fontWeight:700,fontFamily: T.font.sans,marginBottom:4}}>{m.l}</p>
               <p style={{fontSize:16,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',fontWeight:700,lineHeight:1,color:m.over?'var(--negative)':hm===i?'var(--accent)':'var(--text-primary)',transition:'color 0.15s'}}>{m.v}</p>
               <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:4,fontFamily: T.font.sans}}>{m.sub}</p>
             </div>

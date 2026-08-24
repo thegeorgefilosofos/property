@@ -175,7 +175,7 @@ export default function AgendaPanel({ items, total, onNavigate }: {
         }
         .is-late .agenda-num { font-weight: 700; color: var(--text-primary); }
         .agenda-unit, .agenda-word {
-          font-family: ${T.font.sans}; font-size: 10px; line-height: 1.3;
+          font-family: ${T.font.sans}; font-size: 11px; line-height: 1.3;
           color: var(--text-tertiary); margin-top: 2px;
         }
         .agenda-word { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-top: 0; }

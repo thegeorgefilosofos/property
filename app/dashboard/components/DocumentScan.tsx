@@ -136,7 +136,7 @@ const Field = ({ label, value, onChange, type = 'text', invalid = false, bad = f
   const tone = bad ? 'var(--negative)' : invalid ? 'var(--warning)' : '';
   return (
     <div>
-      <label style={{ fontSize: 9, fontWeight: 700, color: tone || 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', display: 'block', marginBottom: 4, fontFamily: T.font.sans }}>
+      <label style={{ fontSize: 11, fontWeight: 700, color: tone || 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', display: 'block', marginBottom: 4, fontFamily: T.font.sans }}>
         {label}{bad ? ' • δεν είναι έγκυρο' : invalid ? ' • λείπει' : ''}
       </label>
       {/* ══════════════════════════════════════════════════════════════════════
@@ -166,7 +166,7 @@ const Field = ({ label, value, onChange, type = 'text', invalid = false, bad = f
           onBlur={e => (e.target.style.borderColor = tone || 'var(--border-default)')}
         />
       )}
-      {hint && <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 3, fontFamily: T.font.sans }}>{hint}</div>}
+      {hint && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3, fontFamily: T.font.sans }}>{hint}</div>}
     </div>
   );
 };
@@ -372,12 +372,12 @@ export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyC
               </div>
               <div style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 12px', marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Όνομα</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Όνομα</span>
                   <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 600, textAlign: 'right', wordBreak: 'break-word' }}>{supplierName}</span>
                 </div>
                 {afm && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>ΑΦΜ</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>ΑΦΜ</span>
                     <span style={{ fontSize: 13, color: 'var(--text-primary)', fontFamily: T.font.mono }}>{afm}</span>
                   </div>
                 )}
@@ -508,7 +508,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyC
           <div>
             {/* Τύπος εγγράφου, chips για διόρθωση */}
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Τύπος εγγράφου {edited.confidence ? `· ${edited.confidence}% βεβαιότητα` : ''}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Τύπος εγγράφου {edited.confidence ? `· ${edited.confidence}% βεβαιότητα` : ''}</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {DOC_TYPES.map(dt => {
                   const active = edited.doc_type === dt.id;

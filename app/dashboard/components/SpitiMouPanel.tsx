@@ -94,7 +94,7 @@ export default function SpitiMouPanel({
           <div style={{ minWidth: 0 }}>
             {/* Όσο δεν δέχεται αιτήσεις, το «Πιθανώς επιλέξιμο» είναι υπόσχεση
                 που δεν μπορεί να τηρηθεί, όσο σωστά κι αν βγαίνουν τα κριτήρια. */}
-            <span style={{ fontSize: 10, padding: '3px 9px', borderRadius: T.radius.pill, background: (hardFail || !status.acceptsApplications) ? 'var(--bg-elevated)' : 'var(--accent)', color: (hardFail || !status.acceptsApplications) ? 'var(--text-secondary)' : 'var(--accent-text)', fontWeight: 700, fontFamily: FONT }}>{!status.acceptsApplications ? status.badge : hardFail ? 'Δεν πληρούνται κριτήρια' : 'Πιθανώς επιλέξιμο'}</span>
+            <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: T.radius.pill, background: (hardFail || !status.acceptsApplications) ? 'var(--bg-elevated)' : 'var(--accent)', color: (hardFail || !status.acceptsApplications) ? 'var(--text-secondary)' : 'var(--accent-text)', fontWeight: 700, fontFamily: FONT }}>{!status.acceptsApplications ? status.badge : hardFail ? 'Δεν πληρούνται κριτήρια' : 'Πιθανώς επιλέξιμο'}</span>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 8, lineHeight: 1.5, fontFamily: FONT }}>
               Το 50% του δανείου είναι <strong style={{ color: 'var(--text-primary)' }}>άτοκο</strong> (Ταμείο Ανάκαμψης) και το 50% με το επιτόκιο της τράπεζας{elig.rateSubsidyShare > 0 ? ', με επιπλέον 50% επιδότηση επιτοκίου για πολύτεκνους' : ''}.
             </p>
@@ -114,7 +114,7 @@ export default function SpitiMouPanel({
           { k: 'Εξοικονόμηση τον μήνα', v: fmtEur(saveMonthly), s: `${fmtEur(saveTotal)} συνολικά` },
         ].map(t => (
           <div key={t.k} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16 }}>
-            <p style={{ fontSize: 10, textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontWeight: 700, color: 'var(--text-tertiary)', fontFamily: FONT }}>{t.k}</p>
+            <p style={{ fontSize: 11, textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontWeight: 700, color: 'var(--text-tertiary)', fontFamily: FONT }}>{t.k}</p>
             <p style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1, marginTop: 7, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', fontFamily: FONT }}>{t.v}</p>
             <p style={{ fontSize: 11, marginTop: 5, color: 'var(--text-tertiary)', fontFamily: FONT }}>{t.s}</p>
           </div>
@@ -135,7 +135,7 @@ export default function SpitiMouPanel({
 
       {/* Κριτήρια ένα-ένα */}
       <div>
-        <p style={{ fontSize: 10, textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontWeight: 700, color: 'var(--text-secondary)', fontFamily: FONT, marginBottom: 9 }}>Κριτήρια ένταξης</p>
+        <p style={{ fontSize: 11, textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontWeight: 700, color: 'var(--text-secondary)', fontFamily: FONT, marginBottom: 9 }}>Κριτήρια ένταξης</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 7 }}>
           {crit.map(c => (
             <div key={c.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10 }}>
@@ -158,7 +158,7 @@ export default function SpitiMouPanel({
       {/* Συμμετέχουσες τράπεζες */}
       {ranked.length > 0 && (
         <div>
-          <p style={{ fontSize: 10, textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontWeight: 700, color: 'var(--text-secondary)', fontFamily: FONT, marginBottom: 9 }}>Συμμετέχουσες τράπεζες, κατά συνολικό κόστος</p>
+          <p style={{ fontSize: 11, textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontWeight: 700, color: 'var(--text-secondary)', fontFamily: FONT, marginBottom: 9 }}>Συμμετέχουσες τράπεζες, κατά συνολικό κόστος</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
             {ranked.map((r, i) => (
               <div key={r.bankId} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', background: 'var(--bg-surface)', border: `1px solid ${i === 0 ? 'var(--border-accent)' : 'var(--border-subtle)'}`, borderRadius: 10 }}>

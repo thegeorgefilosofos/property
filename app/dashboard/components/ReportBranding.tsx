@@ -128,7 +128,7 @@ export default function ReportBranding({ userId, plan, onUpgrade }: { userId: st
   // κάρτας — δηλαδή διαβαζόταν ως μέρος της, ενώ αποθηκεύει ΟΛΗ την οθόνη.
   // ═══════════════════════════════════════════════════════════════════════
   const line: React.CSSProperties = { height: 1, background: 'var(--border-subtle)', margin: '18px 0' };
-  const rowLabel: React.CSSProperties = { ...TT.label, fontSize: 10, marginBottom: 10 };
+  const rowLabel: React.CSSProperties = { ...TT.label, fontSize: 11, marginBottom: 10 };
 
   return (
     <div>
@@ -189,7 +189,7 @@ export default function ReportBranding({ userId, plan, onUpgrade }: { userId: st
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 16, fontWeight: 700, color: INK, fontFamily: T.font.sans }}>{previewName}</div>
               <div style={{ fontSize: 11, color: INK_MUTED, fontFamily: T.font.sans }}>Αναφορά ακινήτου</div>
-              {contact && <div style={{ fontSize: 10, color: INK_MUTED, fontFamily: T.font.sans, marginTop: 2 }}>{contact}</div>}
+              {contact && <div style={{ fontSize: 11, color: INK_MUTED, fontFamily: T.font.sans, marginTop: 2 }}>{contact}</div>}
             </div>
           </div>
         </div>

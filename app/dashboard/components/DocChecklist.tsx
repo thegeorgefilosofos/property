@@ -27,7 +27,7 @@ export default function DocChecklist({ docs, storageKey, title = 'Δικαιολ
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: compact ? 10 : 12 }}>
-        <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', fontFamily: font, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{title}</p>
+        <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', fontFamily: font, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{title}</p>
         <span style={{ fontSize: 11, fontWeight: 500, color: complete ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: font, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{count}/{total} έτοιμα</span>
       </div>
       <div style={{ height: 4, borderRadius: 3, background: 'var(--bg-surface)', overflow: 'hidden', marginBottom: compact ? 10 : 12 }}>

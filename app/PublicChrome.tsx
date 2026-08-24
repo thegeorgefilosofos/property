@@ -74,8 +74,14 @@ export function PublicHeader() {
           <Link href="/#pricing" className="lp-link lp-nav-link" style={{ textDecoration: 'none', fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
             Τιμές
           </Link>
+          {/* ΟΛΟΚΛΗΡΟ ΤΟ ΛΕΚΤΙΚΟ ΕΒΓΑΖΕ ΤΗ ΣΕΛΙΔΑ ΕΞΩ ΑΠΟ ΤΗΝ ΟΘΟΝΗ. Μετρημένο
+              σε Chromium στα 390: η ομάδα δεξιά πιάνει 185 ώς 392, δηλαδή δύο
+              εικονοστοιχεία έξω, και μαζί της αποκτούσε οριζόντια κύλιση κάθε
+              νομική σελίδα και κάθε δωρεάν εργαλείο. Η αρχική το είχε ήδη
+              λύσει με κοντό λεκτικό· εδώ έλειπαν οι κλάσεις, που ζούσαν μέσα
+              στο <style> της. Τώρα είναι καθολικές. */}
           <Link href="/signup" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 14, fontWeight: 700, padding: '9px 16px', borderRadius: T.radius.pill, whiteSpace: 'nowrap' }}>
-            Ξεκίνα τη δοκιμή
+            <span className="lp-hide-xs">Ξεκίνα τη δοκιμή</span><span className="lp-only-xs">Δοκιμή</span>
           </Link>
         </div>
       </div>

@@ -29,7 +29,7 @@ const numStyle = { fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' as
 function Figure({ label, value, note }: { label: string; value: string; note: string }) {
   return (
     <div style={{ minWidth: 0 }}>
-      <div style={{ ...TT.label, fontSize: 10 }}>{label}</div>
+      <div style={{ ...TT.label, fontSize: 11 }}>{label}</div>
       <div style={{ ...TT.kpi, marginTop: 6 }}>{value}</div>
       <div style={{ ...TT.caption, marginTop: 4 }}>{note}</div>
     </div>
@@ -73,7 +73,7 @@ export default function DemoPreview({ open, onClose, onAddProperty }: {
 
       {/* ── Η ΚΑΤΑΣΤΑΣΗ ──────────────────────────────────────────────────── */}
       <div>
-        <div style={{ ...TT.label, fontSize: 10, marginBottom: 10 }}>ΑΠΟ ΤΟ ΕΝΟΙΚΙΟ ΣΤΟ ΤΑΜΕΙΟ</div>
+        <div style={{ ...TT.label, fontSize: 11, marginBottom: 10 }}>ΑΠΟ ΤΟ ΕΝΟΙΚΙΟ ΣΤΟ ΤΑΜΕΙΟ</div>
         <div style={{ border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, overflow: 'hidden' }}>
           {lines.map((l, i) => {
             const strong = l.kind === 'subtotal' || l.kind === 'result';
@@ -106,7 +106,7 @@ export default function DemoPreview({ open, onClose, onAddProperty }: {
 
       {/* ── ΤΟ ΙΣΟΖΥΓΙΟ ──────────────────────────────────────────────────── */}
       <div>
-        <div style={{ ...TT.label, fontSize: 10, marginBottom: 10 }}>ΟΙ ΔΑΠΑΝΕΣ ΚΑΙ Ο ΛΟΓΑΡΙΑΣΜΟΣ ΤΟΥΣ</div>
+        <div style={{ ...TT.label, fontSize: 11, marginBottom: 10 }}>ΟΙ ΔΑΠΑΝΕΣ ΚΑΙ Ο ΛΟΓΑΡΙΑΣΜΟΣ ΤΟΥΣ</div>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {ledger.map((r, i) => (
             <div key={r.category} style={{

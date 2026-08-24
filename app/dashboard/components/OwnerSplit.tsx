@@ -202,7 +202,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
   const requestClose = () => { if (!busy) onClose(); };
   const miniStat = (label: string, value: string, strong = false): React.ReactNode => (
     <div>
-      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{label}</div>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{label}</div>
       <div style={{ fontSize: strong ? 16 : 14, fontWeight: strong ? 700 : 600, color: strong ? 'var(--text-primary)' : 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums', marginTop: 3, fontFamily: T.font.sans }}>{value}</div>
     </div>
   );
@@ -308,10 +308,10 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
               </span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: 12, padding: '8px 16px', borderTop: '1px solid var(--border-subtle)' }}>
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Ιδιοκτήτης</span>
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans, textAlign: 'right' }}>Ποσοστό</span>
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans, textAlign: 'right' }}>Παρακράτηση</span>
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans, textAlign: 'right', minWidth: 84 }}>Καθαρό</span>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Ιδιοκτήτης</span>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans, textAlign: 'right' }}>Ποσοστό</span>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans, textAlign: 'right' }}>Παρακράτηση</span>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans, textAlign: 'right', minWidth: 84 }}>Καθαρό</span>
             </div>
             {result.owners.map((o, i) => (
               <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: 12, padding: '9px 16px', borderTop: '1px solid var(--border-subtle)', fontSize: 13, alignItems: 'center' }}>

@@ -198,7 +198,7 @@ export function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string
           {[{label:'Νομική Βάση',value:'Αρ. 288 ΑΚ'},{label:'Συχνότητα',value:'Μία φορά/έτος'},{label:'Τελευταίος δείκτης',value:String(CPI_LATEST_YEAR)}].map((item,i)=>(
             <div key={i} style={{ background:'var(--bg-elevated)', borderRadius:T.radius.inner, padding:'12px 14px', textAlign:'center' as const }}>
               <div style={{ fontSize:14, fontWeight:700, color:'var(--accent)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', marginBottom:4 }}>{item.value}</div>
-              <div style={{ fontSize:9, color:'var(--text-secondary)', textTransform:'uppercase' as const, letterSpacing:'0.1em', fontFamily:T.font.sans }}>{item.label}</div>
+              <div style={{ fontSize: 11, color:'var(--text-secondary)', textTransform:'uppercase' as const, letterSpacing:'0.1em', fontFamily:T.font.sans }}>{item.label}</div>
             </div>
           ))}
         </div>
@@ -220,7 +220,7 @@ export function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string
           <SectionTitle>Υπολογιστής αναπροσαρμογής</SectionTitle>
 
           <div style={{ background:'var(--bg-elevated)', borderRadius:T.radius.inner, padding:'16px 18px', marginBottom:18 }}>
-            <div style={{ fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:6 }}>Τρέχον μηνιαίο μίσθωμα</div>
+            <div style={{ fontSize: 11, letterSpacing:'0.12em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:6 }}>Τρέχον μηνιαίο μίσθωμα</div>
             <div style={{ fontSize:28, fontWeight:700, color:'var(--text-primary)', fontFamily:T.font.num, fontVariantNumeric:'tabular-nums', lineHeight:1 }}>{fmtE(rent)}</div>
             {tenant.lease_end&&<div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, marginTop:4 }}>Λήξη: {fmtDate(tenant.lease_end)}</div>}
           </div>
@@ -265,8 +265,8 @@ export function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string
               return (
                 <div key={year} {...pressable(()=>{setYr(year);setUseCustom(false);})}
                   style={{ background:active?'var(--accent-dim)':'var(--bg-elevated)', border:`1px solid ${active?'var(--accent)':'var(--border-subtle)'}`, borderRadius:T.radius.badge, padding:'7px 4px', textAlign:'center' as const, cursor:'pointer', transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' }}>
-                  <div style={{ fontSize:10, fontWeight:700, color:active?'var(--accent)':'var(--text-secondary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{rate>=0?'+':''}{fp(rate)}</div>
-                  <div style={{ fontSize:9, color:'var(--text-tertiary)', fontFamily:T.font.sans, marginTop:2 }}>{year}</div>
+                  <div style={{ fontSize: 11, fontWeight:700, color:active?'var(--accent)':'var(--text-secondary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{rate>=0?'+':''}{fp(rate)}</div>
+                  <div style={{ fontSize: 11, color:'var(--text-tertiary)', fontFamily:T.font.sans, marginTop:2 }}>{year}</div>
                 </div>
               );
             })}
@@ -278,11 +278,11 @@ export function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string
             <>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap:10, marginBottom:14 }}>
                 <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:'18px 16px' }}>
-                  <div style={{ fontSize:10, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:6 }}>Τρέχον μίσθωμα</div>
+                  <div style={{ fontSize: 11, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:6 }}>Τρέχον μίσθωμα</div>
                   <div style={{ fontSize:18, fontWeight:700, color:'var(--text-primary)', fontFamily:T.font.num, fontVariantNumeric:'tabular-nums' }}>{fmtE(rent)}</div>
                 </div>
                 <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:'18px 16px' }}>
-                  <div style={{ fontSize:10, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:6 }}>Νέο μίσθωμα</div>
+                  <div style={{ fontSize: 11, color:'var(--text-secondary)', fontFamily:T.font.sans, marginBottom:6 }}>Νέο μίσθωμα</div>
                   <div style={{ fontSize:18, fontWeight:700, color:'var(--accent)', fontFamily:T.font.num, fontVariantNumeric:'tabular-nums' }}>{fmtE(newRent)}</div>
                 </div>
               </div>
@@ -800,27 +800,27 @@ export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, 
                 <tr key={p.id}>
                   <td style={s.td}><strong style={{ fontFamily:T.font.sans }}>{MONTHS_SHORT[p.period_month-1]}</strong> <span style={{ color:'var(--text-tertiary)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums' }}>{p.period_year}</span></td>
                   <td style={{ ...s.td, fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontWeight:600 }}>{fmt(p.amount)}
-                    {p.services_charge&&p.services_charge>0?<span style={{ display:'block', fontSize:10, fontWeight:400, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>ενοίκιο {fmt(p.base_rent)} + υπηρεσίες {fmt(p.services_charge)}</span>:null}
+                    {p.services_charge&&p.services_charge>0?<span style={{ display:'block', fontSize: 11, fontWeight:400, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>ενοίκιο {fmt(p.base_rent)} + υπηρεσίες {fmt(p.services_charge)}</span>:null}
                   </td>
-                  <td style={s.td}><StatusPill p={p}/>{p.tenant_declared&&!p.paid?<span style={{ display:'block', marginTop:4, fontSize:10, color:'var(--warning)', fontFamily:T.font.sans, fontWeight:600 }}>Δηλώθηκε από μισθωτή</span>:null}</td>
+                  <td style={s.td}><StatusPill p={p}/>{p.tenant_declared&&!p.paid?<span style={{ display:'block', marginTop:4, fontSize: 11, color:'var(--warning)', fontFamily:T.font.sans, fontWeight:600 }}>Δηλώθηκε από μισθωτή</span>:null}</td>
                   <td style={s.tdM}>{p.method||ABSENT}</td>
                   <td style={s.tdM}>{fmtD(p.paid_date)}</td>
-                  <td style={s.tdM}>{fmtD(p.due_date)}{p.days_late&&p.days_late>0?<span style={{ display:'block', fontSize:10, color:p.days_late>14?'var(--negative)':'var(--warning)' }}>+{p.days_late} ημ.</span>:null}</td>
+                  <td style={s.tdM}>{fmtD(p.due_date)}{p.days_late&&p.days_late>0?<span style={{ display:'block', fontSize: 11, color:p.days_late>14?'var(--negative)':'var(--warning)' }}>+{p.days_late} ημ.</span>:null}</td>
                   <td style={s.td}>
                     <div style={{ display:'flex', gap:6, flexWrap:'wrap' as const }}>
                       {!p.paid
                         ?<button style={s.btnSm} onClick={()=>setMark({p,method:'Τραπεζική κατάθεση',receipt:''})}>Πληρωμένο</button>
-                        :<button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} onClick={()=>doUnpay(p)}>Αναίρεση</button>}
-                      {!p.paid&&canCollect&&<button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} onClick={()=>{setCopied(false);setReq(p);}}>Αίτημα πληρωμής</button>}
-                      <button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} onClick={()=>printStatement(p)}>Κατάσταση</button>
-                      {p.paid&&<button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} onClick={()=>printReceipt(p)}>Απόδειξη</button>}
-                      {tenant.phone&&(p.paid||canCollect)&&<a href={p.paid?whatsappLink(msgDigits(tenant.phone),receiptText(p)):whatsappLink(msgDigits(tenant.phone),reminderText(p))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>WhatsApp</a>}
-                      {tenant.phone&&(p.paid||canCollect)&&<a href={viberLink(p.paid?receiptText(p):reminderText(p))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>Viber</a>}
+                        :<button style={{ ...s.btnGhost, padding:'6px 10px', fontSize: 11 }} onClick={()=>doUnpay(p)}>Αναίρεση</button>}
+                      {!p.paid&&canCollect&&<button style={{ ...s.btnGhost, padding:'6px 10px', fontSize: 11 }} onClick={()=>{setCopied(false);setReq(p);}}>Αίτημα πληρωμής</button>}
+                      <button style={{ ...s.btnGhost, padding:'6px 10px', fontSize: 11 }} onClick={()=>printStatement(p)}>Κατάσταση</button>
+                      {p.paid&&<button style={{ ...s.btnGhost, padding:'6px 10px', fontSize: 11 }} onClick={()=>printReceipt(p)}>Απόδειξη</button>}
+                      {tenant.phone&&(p.paid||canCollect)&&<a href={p.paid?whatsappLink(msgDigits(tenant.phone),receiptText(p)):whatsappLink(msgDigits(tenant.phone),reminderText(p))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, padding:'6px 10px', fontSize: 11, textDecoration:'none' }}>WhatsApp</a>}
+                      {tenant.phone&&(p.paid||canCollect)&&<a href={viberLink(p.paid?receiptText(p):reminderText(p))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, padding:'6px 10px', fontSize: 11, textDecoration:'none' }}>Viber</a>}
                       {/* ΤΟ ΤΑΧΥΔΡΟΜΕΙΟ ΕΛΕΙΠΕ, ΚΑΙ ΜΕ ΑΥΤΟ ΟΛΟΚΛΗΡΗ Η ΥΠΕΝΘΥΜΙΣΗ.
                           Η γραμμή έδινε WhatsApp και Viber, και τα δύο δεμένα στο
                           ΤΗΛΕΦΩΝΟ. Οποιος ιδιοκτήτης είχε μόνο το email του μισθωτή
                           του δεν είχε ΚΑΝΕΝΑΝ τρόπο να στείλει υπενθύμιση από εδώ. */}
-                      {tenant.email&&(p.paid||canCollect)&&<a href={`mailto:${tenant.email}?subject=${encodeURIComponent(rentSubject(periodGen(p)))}&body=${encodeURIComponent(p.paid?receiptText(p):reminderText(p))}`} style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>Ηλεκτρονικό ταχυδρομείο</a>}
+                      {tenant.email&&(p.paid||canCollect)&&<a href={`mailto:${tenant.email}?subject=${encodeURIComponent(rentSubject(periodGen(p)))}&body=${encodeURIComponent(p.paid?receiptText(p):reminderText(p))}`} style={{ ...s.btnGhost, padding:'6px 10px', fontSize: 11, textDecoration:'none' }}>Ηλεκτρονικό ταχυδρομείο</a>}
                       <button style={s.btnDng} onClick={async()=>{if(!(await confirmDialog('Διαγραφή πληρωμής;',{tone:'negative'})))return;if(await saved('Η πληρωμή δεν διαγράφηκε',rentStore.remove(supabase,p.id)))onRefresh();}}>Διαγραφή</button>
                     </div>
                   </td>

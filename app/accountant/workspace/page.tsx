@@ -88,7 +88,7 @@ export default function AccountantWorkspace() {
 
   const wrap = portalWrap;
   const label: React.CSSProperties = {
-    fontSize: 10, letterSpacing: '0.5px', textTransform: 'uppercase',
+    fontSize: 11, letterSpacing: '0.5px', textTransform: 'uppercase',
     color: 'var(--text-tertiary)', fontFamily: T.font.sans, margin: 0,
   };
 

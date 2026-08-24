@@ -72,7 +72,7 @@ export function KPI({label,value,emphasis,sub,title}:{label:string;value:string;
           κάθε στενή στήλη. Κλιμακώνεται με το πλάτος της κάρτας όπως παντού,
           απλώς με χαμηλότερο ταβάνι. */}
       <p className="kpi-value" style={{fontSize:'clamp(15px, 12cqi, 18px)',marginBottom:0,fontWeight:emphasis?700:600}}>{value}</p>
-      {sub&&<p style={{fontSize:10,color:'var(--text-tertiary)',fontFamily: T.font.sans,lineHeight:1.4}}>{sub}</p>}
+      {sub&&<p style={{fontSize: 11,color:'var(--text-tertiary)',fontFamily: T.font.sans,lineHeight:1.4}}>{sub}</p>}
     </div>
   )
 }

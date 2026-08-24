@@ -52,7 +52,7 @@ export function AadeLink({ action, emphasis = false }: { action: AadeAction; emp
       style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', marginBottom: 8, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderLeft: `3px solid ${emphasis ? 'var(--border-strong)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, textDecoration: 'none' }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 2 }}>{d.label}</div>
-        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
           {aadePath(action)}{d.login ? ` · ${LOGIN_NOTE}` : ''}
         </div>
       </div>

@@ -127,7 +127,7 @@ export default function BankRatesAdmin({ onSaved }:{
                   <button onClick={()=>pick(b)} style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'9px 12px',background:'transparent',border:'none',cursor:'pointer',textAlign:'left' as const}}>
                     <span style={{flex:1,fontSize:13,fontWeight:600,color:'var(--text-primary)',fontFamily: T.font.sans}}>{b.bank_name}</span>
                     <span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums'}}>από {String(b.fixed_min).replace('.',',')}%</span>
-                    <span style={{fontSize:10,color:'var(--text-tertiary)',fontFamily: T.font.sans}}>{b.verified_at}</span>
+                    <span style={{fontSize: 11,color:'var(--text-tertiary)',fontFamily: T.font.sans}}>{b.verified_at}</span>
                   </button>
 
                   {on && edit && (

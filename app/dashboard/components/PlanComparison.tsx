@@ -266,7 +266,7 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
                     ορίζεται ως «ούτε τρέχον ούτε κλειδωμένο»), οπότε μοιράζονται
                     την ίδια κορδέλα και η σειρά του τίτλου μένει στο όνομα. */}
                 {(popular || isCurrent) && (
-                  <span style={{ position: 'absolute', top: -9, left: '50%', transform: 'translateX(-50%)', display: 'inline-flex', alignItems: 'center', gap: 6, background: isCurrent ? 'var(--bg-surface)' : 'var(--accent)', color: isCurrent ? 'var(--accent)' : 'var(--accent-text)', border: isCurrent ? '1px solid var(--accent-border)' : 'none', borderRadius: T.radius.pill, padding: '2px 10px', fontSize: 9, fontWeight: 700, fontFamily: T.font.sans, letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>
+                  <span style={{ position: 'absolute', top: -9, left: '50%', transform: 'translateX(-50%)', display: 'inline-flex', alignItems: 'center', gap: 6, background: isCurrent ? 'var(--bg-surface)' : 'var(--accent)', color: isCurrent ? 'var(--accent)' : 'var(--accent-text)', border: isCurrent ? '1px solid var(--accent-border)' : 'none', borderRadius: T.radius.pill, padding: '2px 10px', fontSize: 11, fontWeight: 700, fontFamily: T.font.sans, letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>
                     {isCurrent && <span className="acc-live-dot accent" style={{ width: 6, height: 6, background: 'var(--accent)' }} />}
                     {isCurrent ? 'Το πακέτο σου' : 'Πιο δημοφιλές'}
                   </span>

@@ -85,7 +85,7 @@ const fieldStyle: CSSProperties = settingsField;
 const subLabel: CSSProperties = { fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans };
 const descStyle: CSSProperties = { fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, fontFamily: T.font.sans, marginTop: 3 };
 const errStyle: CSSProperties = { fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, marginTop: 8 };
-const microLabel: CSSProperties = { fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans };
+const microLabel: CSSProperties = { fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans };
 
 // Πλέγμα σειράς μητρώου (κοινό σε κεφαλίδα & γραμμές, για τέλεια ευθυγράμμιση).
 const ROW_COLS = 'minmax(180px, 1fr) 104px 116px 250px 232px';

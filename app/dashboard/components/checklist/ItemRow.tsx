@@ -119,7 +119,7 @@ export function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCal
             λογιστή. «Το κάνει ο λογιστής» πάνω σε μια γραμμή είναι η διαφορά
             μεταξύ μιας λίστας που αγχώνει και μιας που καθησυχάζει. */}
         {item._who && item._who !== 'owner' && (
-          <span title={WHO_LABEL[item._who]} style={{ flexShrink: 0, padding: '1px 8px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
+          <span title={WHO_LABEL[item._who]} style={{ flexShrink: 0, padding: '1px 8px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
             {WHO_LABEL[item._who]}
           </span>
         )}

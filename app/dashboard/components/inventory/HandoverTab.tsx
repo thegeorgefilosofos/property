@@ -30,10 +30,10 @@ const supabase = createSupabaseClient()
 // έντυπο που συμπληρώνεται και υπογράφεται, όχι λογιστική κατάσταση.
 const HANDOVER_CSS = `
   table.grid{margin-top:18px}
-  table.grid th{background:${PAPER_ALT};padding:8px;border:1px solid ${RULE};font-size:9px}
+  table.grid th{background:${PAPER_ALT};padding:8px;border:1px solid ${RULE};font-size: 11px}
   table.grid td{padding:8px;border:1px solid ${RULE};color:${INK_MUTED};font-size:12px}
   .shot{width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid ${RULE}}
-  .shot-at{font-size:9px;color:${INK_FAINT}}
+  .shot-at{font-size: 11px;color:${INK_FAINT}}
   .sig{margin-top:48px;display:flex;gap:60px;break-inside:avoid}
   .sig-box{flex:1;border-top:2px solid ${INK};padding-top:8px;font-size:11px;color:${INK_MUTED}}
 `
@@ -138,7 +138,7 @@ export function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{it
         {hA&&hB&&(
           <div style={{display:'flex',flexDirection:'column',gap:6}}>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:0,padding:'8px 14px',borderBottom:'2px solid var(--border-subtle)'}}>
-              {['Αντικείμενο',`${hA.handover_type==='check_in'?'Είσοδος':'Έξοδος'} · ${hA.tenant_name}`,`${hB.handover_type==='check_in'?'Είσοδος':'Έξοδος'} · ${hB.tenant_name}`].map(h=><p key={h} style={{fontSize:10,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:T.font.sans}}>{h}</p>)}
+              {['Αντικείμενο',`${hA.handover_type==='check_in'?'Είσοδος':'Έξοδος'} · ${hA.tenant_name}`,`${hB.handover_type==='check_in'?'Είσοδος':'Έξοδος'} · ${hB.tenant_name}`].map(h=><p key={h} style={{fontSize: 11,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:T.font.sans}}>{h}</p>)}
             </div>
             {allNames.map(name=>{
               const sA=hA.items_snapshot?.find(s=>s.name===name); const sB=hB.items_snapshot?.find(s=>s.name===name)

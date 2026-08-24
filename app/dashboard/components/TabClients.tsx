@@ -197,7 +197,7 @@ const statTile = (label: string, value: React.ReactNode, opts?: { neg?: boolean;
     borderRadius: 12, padding: '10px 12px', minWidth: 0,
     boxShadow: 'var(--highlight-inset), var(--elev-1)',
   }}>
-    <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: T.font.sans }}>{label}</div>
+    <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: T.font.sans }}>{label}</div>
     <div style={{ fontSize: 16, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: opts?.neg ? 'var(--negative)' : 'var(--text-primary)' }}>{value}</div>
   </div>
 );
@@ -882,7 +882,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   // ετικέτα ύψους 10. Παντού αλλού μένει 18, γιατί εκεί χωρίζει δύο ενότητες.
   const secHead = (t: string, top = 18) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: `${top}px 0 10px` }}>
-      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>{t}</span>
+      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>{t}</span>
       <span style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
     </div>
   );
@@ -1010,7 +1010,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                       { l: 'Μέση νύχτα', v: fe(st.adr), t: 'Δηλωτέο ακαθάριστο διά τις νύχτες' },
                     ] as { l: string; v: string; strong?: boolean; t?: string }[]).map((m, i) => (
                       <div key={i} title={m.t} style={{ flex: 1, minWidth: 0, paddingLeft: i ? 12 : 0, borderLeft: i ? '1px solid var(--border-subtle)' : 'none' }}>
-                        <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.l}</div>
+                        <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.l}</div>
                         <div style={{ fontSize: 13, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: m.strong ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{m.v}</div>
                       </div>
                     ))}
@@ -1160,7 +1160,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                       <div style={{ height: 8, borderRadius: 6, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
                         <div style={{ width: `${Math.max(2, (r.revenue / maxCh) * 100)}%`, height: '100%', background: 'var(--series-in)', borderRadius: 6 }} />
                       </div>
-                      {r.unresolved > 0 && <div style={{ fontSize: 10, color: 'var(--warning)', marginTop: 3 }}>{r.unresolved} με απροσδιόριστο ποσό</div>}
+                      {r.unresolved > 0 && <div style={{ fontSize: 11, color: 'var(--warning)', marginTop: 3 }}>{r.unresolved} με απροσδιόριστο ποσό</div>}
                     </div>
                   ))}
                 </div>
@@ -1179,7 +1179,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   <div style={{ height: 1, background: 'var(--border-subtle)', margin: '2px 0 6px' }} />
                   <div style={{ display: 'flex', gap: 6 }}>
                     {monthInitials.map((m, i) => (
-                      <div key={i} style={{ flex: 1, textAlign: 'center', fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{m}</div>
+                      <div key={i} style={{ flex: 1, textAlign: 'center', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{m}</div>
                     ))}
                   </div>
                 </div>
@@ -1240,7 +1240,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   ['Ηλεκτρονικό ταχυδρομείο', dc.email ? <a href={`mailto:${dc.email}`} style={{ color: 'var(--accent)', textDecoration: 'none' }}>{dc.email}</a> : null],
                 ] as [string, React.ReactNode][]).filter(([, v]) => v != null).map(([k, v], i) => (
                   <div key={i}>
-                    <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 3 }}>{k}</div>
+                    <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 3 }}>{k}</div>
                     <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>{v}</div>
                   </div>
                 ))}
@@ -1504,7 +1504,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                           </div>
                           <div style={{ textAlign: 'right' }}>
                             <div style={{ fontSize: 14, fontWeight: 700, fontFamily: T.font.num }}>{fe(gross ?? stayTotal(s))}</div>
-                            <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{gross != null ? 'δηλωτέο ακαθάριστο' : 'ποσό απροσδιόριστο'}</div>
+                            <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{gross != null ? 'δηλωτέο ακαθάριστο' : 'ποσό απροσδιόριστο'}</div>
                             {pay != null && pay !== gross && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num }}>{fe(pay)} σε εσένα</div>}
                           </div>
                         </div>

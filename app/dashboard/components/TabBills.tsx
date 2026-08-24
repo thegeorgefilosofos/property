@@ -123,7 +123,7 @@ function ContractTile({ card, active, onOpen }: { card: ContractCard; active: bo
         transform: hover && !active ? 'translateY(-1px)' : 'none',
       }}>
       <span style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
-        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
           {card.label}
         </span>
         {/* Η ΙΕΡΑΡΧΙΑ ΒΓΑΙΝΕΙ ΑΠΟ ΜΕΓΕΘΟΣ ΚΑΙ ΒΑΡΟΣ, ΟΧΙ ΑΠΟ ΧΡΩΜΑ. Το ποσό
@@ -215,7 +215,7 @@ export default function TabBills({
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
         <div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 3, fontFamily: T.font.sans }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 3, fontFamily: T.font.sans }}>
             Λογαριασμοί και πάγιες δαπάνες
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>

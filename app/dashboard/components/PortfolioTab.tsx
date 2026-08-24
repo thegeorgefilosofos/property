@@ -846,7 +846,7 @@ function Th({ label, k, sort, asc, onSort, align = 'right', pin }: { label: stri
   const active = k && sort === k;
   return (
     <th onClick={k && onSort ? () => onSort(k) : undefined} className={pin ? 'pf-pin-2' : undefined}
-      style={{ padding: '11px 14px', textAlign: align, fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: active ? 'var(--accent)' : 'var(--text-tertiary)', cursor: k ? 'pointer' : 'default', whiteSpace: 'nowrap', userSelect: 'none' }}>
+      style={{ padding: '11px 14px', textAlign: align, fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: active ? 'var(--accent)' : 'var(--text-tertiary)', cursor: k ? 'pointer' : 'default', whiteSpace: 'nowrap', userSelect: 'none' }}>
       {/* Ο ΔΕΙΚΤΗΣ ΤΑΞΙΝΟΜΗΣΗΣ ΕΙΝΑΙ ΣΧΗΜΑ, ΟΧΙ ΧΑΡΑΚΤΗΡΑΣ. Ήταν «↑» και «↓»
           μέσα στο κείμενο της επικεφαλίδας: άλλαζε το πλάτος της στήλης όταν
           εμφανιζόταν, δεν κληρονομούσε το βάρος της γραμματοσειράς, και σε
@@ -866,7 +866,7 @@ function Th({ label, k, sort, asc, onSort, align = 'right', pin }: { label: stri
 function PStat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div style={{ fontFamily: T.font.sans, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>{label}</div>
+      <div style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>{label}</div>
       <div style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', marginTop: 4 }}>{value}</div>
     </div>
   );
@@ -880,7 +880,7 @@ function Num({ v, muted, bold, tone, mark, title }: { v: string; muted?: boolean
     <td title={title} style={{ padding: '13px 14px', textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 13, fontWeight: bold ? 700 : 400, color: tone || (muted ? 'var(--text-secondary)' : 'var(--text-primary)') }}>
       {v}
       {/* Η σήμανση της εκτίμησης μπαίνει ΔΙΠΛΑ ΣΤΟ ΠΟΣΟ: σε υποσημείωση δεν τη διαβάζει κανείς. */}
-      {mark && <span style={{ marginLeft: 5, fontFamily: T.font.sans, fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)' }}>{mark}</span>}
+      {mark && <span style={{ marginLeft: 5, fontFamily: T.font.sans, fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)' }}>{mark}</span>}
     </td>
   );
 }

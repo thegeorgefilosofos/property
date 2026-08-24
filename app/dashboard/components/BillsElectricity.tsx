@@ -372,8 +372,8 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
   const secHdr = (label: string, sub?: string) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
       <div>
-        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{label}</div>
-        {sub && <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1, fontFamily: T.font.sans }}>{sub}</div>}
+        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{label}</div>
+        {sub && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1, fontFamily: T.font.sans }}>{sub}</div>}
       </div>
     </div>
   );
@@ -468,13 +468,13 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' as const }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{tariff.name}</span>
-              <span style={{ fontSize: 9, fontWeight: 800, color: tariffBc.color, background: tariffBc.border, padding: '2px 10px', borderRadius: T.radius.pill, textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>{tariff.badge}</span>
+              <span style={{ fontSize: 11, fontWeight: 800, color: tariffBc.color, background: tariffBc.border, padding: '2px 10px', borderRadius: T.radius.pill, textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>{tariff.badge}</span>
               {tariff.contract_months ? (
-                <span style={{ fontSize: 9, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', fontFamily: T.font.sans }}>
+                <span style={{ fontSize: 11, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', fontFamily: T.font.sans }}>
                   {tariff.contract_months} μήνες
                 </span>
               ) : (
-                <span style={{ fontSize: 9, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', fontFamily: T.font.sans }}>
+                <span style={{ fontSize: 11, color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', fontFamily: T.font.sans }}>
                   Χωρίς δέσμευση
                 </span>
               )}
@@ -488,18 +488,18 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                   ημερομηνία και τις ίδιες ημέρες, στο ίδιο χρώμα. Και ο
                   πληθυντικός δεν κρατά στο ένα: «σε 1 ημέρες». */}
               {contractExpiry && !contractExpiry.expired && contractExpiry.daysLeft > 60 && (
-                <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', fontFamily: T.font.sans }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', fontFamily: T.font.sans }}>
                   Λήγει {contractExpiry.date}, σε {contractExpiry.daysLeft} ημέρες
                 </span>
               )}
-              {tariff.no_fixed && <span style={{ fontSize: 9, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>Χωρίς πάγιο</span>}
-              {tariff.smart_meter && <span style={{ fontSize: 9, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>Έξυπνος μετρητής</span>}
+              {tariff.no_fixed && <span style={{ fontSize: 11, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>Χωρίς πάγιο</span>}
+              {tariff.smart_meter && <span style={{ fontSize: 11, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>Έξυπνος μετρητής</span>}
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5, fontFamily: T.font.sans }}>{tariff.desc}</div>
             {tariff.desc.includes('ΜΔΚΑ') && (
               <div style={{ marginTop: 6, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, padding: '6px 12px', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                 <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-                <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
+                <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
                   <strong>ΜΔΚΑ</strong> = Μέσο Μηνιαίο Κόστος Κύκλου Αγοράς. Πρόσθετη χρέωση σε κυμαινόμενα τιμολόγια («κίτρινα») που αντανακλά τη διακύμανση της τιμής χονδρικής ηλεκτρισμού στην αγορά ενέργειας, αντικαθιστά παλαιότερες ρήτρες αναπροσαρμογής. Ανακοινώνεται κάθε 1η του μήνα από τον πάροχο. <a href="https://www.raaey.gr" target="_blank" title="Ρυθμιστική Αρχή Αποβλήτων, Ενέργειας και Υδάτων" style={{ color: "var(--accent)", fontWeight: 600 }}>ΡΑΑΕΥ</a>
                 </span>
               </div>
@@ -508,7 +508,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
             {tariff.type === 'fixed_monthly' && tariff.flat_annual_kwh != null && tariff.flat_overage_rate != null && (
               <div style={{ marginTop: 6, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, padding: '6px 12px', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                 <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-                <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
+                <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
                   Σταθερό μηνιαίο ποσό για {tariff.contract_months || 12} μήνες (προμήθεια + ρυθμιζόμενες χρεώσεις, όχι υπέρ τρίτων). Ανοχή υπέρβασης 5% χωρίς χρέωση· πάνω από αυτό, {fk(tariff.flat_overage_rate)}/kWh. Ετήσια εκκαθάριση.
                 </span>
               </div>
@@ -553,7 +553,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
             )}
           </div>
           <a href={providerObj.url} target="_blank" rel="noopener noreferrer"
-            style={{ fontSize: 10, color: 'var(--accent)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, padding: '4px 12px', textDecoration: 'none', whiteSpace: 'nowrap' as const, fontFamily: T.font.sans, fontWeight: 600 }}>
+            style={{ fontSize: 11, color: 'var(--accent)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, padding: '4px 12px', textDecoration: 'none', whiteSpace: 'nowrap' as const, fontFamily: T.font.sans, fontWeight: 600 }}>
             Ιστοσελίδα
           </a>
         </div>
@@ -606,7 +606,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
               { label: 'Διαφορά από το καλύτερο', value: canRank ? (savings > 0.5 ? `+${fe(savings)}` : fn(0)) : ABSENT_SHORT, color: 'var(--text-primary)' },
             ].map((k, i) => (
               <div key={i} style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '12px 14px', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 8, fontFamily: T.font.sans }}>{k.label}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 8, fontFamily: T.font.sans }}>{k.label}</div>
                 <div style={{ fontSize: i === 0 ? 20 : 14, fontWeight: 700, color: k.color, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.value}</div>
               </div>
             ))}
@@ -615,12 +615,12 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
 
         {/* kWh history */}
         <div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 8, fontFamily: T.font.sans }}>Ιστορικό κατανάλωσης, <span title="κιλοβατώρα, μονάδα μέτρησης κατανάλωσης ηλεκτρικής ενέργειας">kWh</span> ανά μήνα</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 8, fontFamily: T.font.sans }}>Ιστορικό κατανάλωσης, <span title="κιλοβατώρα, μονάδα μέτρησης κατανάλωσης ηλεκτρικής ενέργειας">kWh</span> ανά μήνα</div>
           <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', margin: '0 -4px', padding: '0 4px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(44px, 1fr))', gap: 4, minWidth: 44 * 12 + 4 * 11 }}>
             {MONTHS_SHORT.map((m, i) => (
               <div key={i} style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 9, color: i === currentMonth ? 'var(--accent)' : 'var(--text-tertiary)', marginBottom: 4, fontWeight: i === currentMonth ? 700 : 400, fontFamily: T.font.sans }}>{m}</div>
+                <div style={{ fontSize: 11, color: i === currentMonth ? 'var(--accent)' : 'var(--text-tertiary)', marginBottom: 4, fontWeight: i === currentMonth ? 700 : 400, fontFamily: T.font.sans }}>{m}</div>
                 {/* ΤΟ placeholder ΗΤΑΝ «0» ΚΑΙ ΤΑ ΔΩΔΕΚΑ ΚΟΥΤΙΑ ΔΙΑΒΑΖΟΝΤΑΝ ΩΣ
                     ΜΗΔΕΝΙΚΑ. Ένα άδειο ιστορικό έδειχνε «μηδέν κιλοβατώρες κάθε
                     μήνα», δηλαδή ακίνητο που δεν καίει ρεύμα — αντί για «δεν
@@ -738,7 +738,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
               return (
                 <div key={t.id}>
                   {gap && (
-                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.sans, padding: '10px 14px 6px' }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, padding: '10px 14px 6px' }}>
                       Ακολουθεί το δικό σου τιμολόγιο, στη {rank}η θέση
                     </div>
                   )}
@@ -765,13 +765,13 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                         </a>
                         <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>{' '}{t.name}</span>
                         {isCur && (
-                          <span style={{ fontSize: 9, color: 'var(--accent)', marginLeft: 8, fontWeight: 800, letterSpacing: '0.06em' }}>ΤΡΕΧΟΝ</span>
+                          <span style={{ fontSize: 11, color: 'var(--accent)', marginLeft: 8, fontWeight: 800, letterSpacing: '0.06em' }}>ΤΡΕΧΟΝ</span>
                         )}
                         {canRank && !isCur && isBest && (
-                          <span style={{ fontSize: 9, color: 'var(--text-primary)', marginLeft: 8, fontWeight: 800, letterSpacing: '0.06em' }}>ΚΑΛΥΤΕΡΟ</span>
+                          <span style={{ fontSize: 11, color: 'var(--text-primary)', marginLeft: 8, fontWeight: 800, letterSpacing: '0.06em' }}>ΚΑΛΥΤΕΡΟ</span>
                         )}
                       </div>
-                      <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 3, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>
                         <span title={BADGE_MEANING[t.badge]} style={{ color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em' }}>{t.badge}</span>
                         {' · '}{facts.join(' · ')}
                       </div>
@@ -785,7 +785,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                       }}>
                         {fe(t.monthly)}
                       </div>
-                      <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 3, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const }}>
                         {relative}
                       </div>
                     </div>
@@ -931,7 +931,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                   {h.action && h.tab && (
                     <button
                       onClick={() => onNavigateTab?.(h.tab!)}
-                      style={{ fontSize: 10, fontWeight: 700, color: s.text, background: 'transparent', border: `1px solid ${s.border}`, borderRadius: T.radius.pill, padding: '4px 12px', cursor: 'pointer', whiteSpace: 'nowrap' as const, fontFamily: T.font.sans }}>
+                      style={{ fontSize: 11, fontWeight: 700, color: s.text, background: 'transparent', border: `1px solid ${s.border}`, borderRadius: T.radius.pill, padding: '4px 12px', cursor: 'pointer', whiteSpace: 'nowrap' as const, fontFamily: T.font.sans }}>
                       {h.action}
                     </button>
                   )}

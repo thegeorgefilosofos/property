@@ -98,7 +98,7 @@ export default function AmaStrip({ userId, propertyId }: { userId: string; prope
   const tone = AMA_COPY[worst].tone;
 
   const lbl: React.CSSProperties = {
-    fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
+    fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
     color: 'var(--text-tertiary)', fontFamily: T.font.sans,
   };
 

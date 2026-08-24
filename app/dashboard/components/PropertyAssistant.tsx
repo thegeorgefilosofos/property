@@ -1455,7 +1455,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                     <p style={{ ...TT.body, fontSize: 14, lineHeight: 1.6, margin: 0, maxWidth: '36ch' }}>{greeting}</p>
                     <div>
-                      <div style={{ ...TT.label, fontSize: 9, color: 'var(--text-tertiary)', marginBottom: 6 }}>Ρώτα κάτι δικό σου</div>
+                      <div style={{ ...TT.label, fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6 }}>Ρώτα κάτι δικό σου</div>
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
                         {suggestedOpeners(openerCtx).map((s, i) => (
                           <button key={s} onClick={() => ask(s)}
@@ -1703,7 +1703,7 @@ function AssistantSettings({ draft, onSave, onCancel, onClearMemory, hasMemory, 
       </div>
 
       <div>
-        <div style={{ ...TT.label, fontSize: 9, marginBottom: 4 }}>Πώς θέλεις να σου μιλάει;</div>
+        <div style={{ ...TT.label, fontSize: 11, marginBottom: 4 }}>Πώς θέλεις να σου μιλάει;</div>
         <div style={{ ...TT.caption, marginBottom: 8 }}>Στον ενικό για πιο φιλική κουβέντα ή στον πληθυντικό για πιο επίσημο ύφος.</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
           {ADDRESS_OPTIONS.map(a => {
@@ -1711,7 +1711,7 @@ function AssistantSettings({ draft, onSave, onCancel, onClearMemory, hasMemory, 
             return (
               <button key={String(a.value)} onClick={() => setFormal(a.value)}
                 style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6, fontFamily: T.font.sans, fontSize: 12, fontWeight: active ? 700 : 500, padding: '8px 14px', borderRadius: T.radius.pill, cursor: 'pointer', border: `1px solid ${active ? 'var(--accent)' : 'var(--border-default)'}`, background: active ? 'var(--accent)' : 'transparent', color: active ? 'var(--accent-text)' : 'var(--text-secondary)' }}>
-                {a.label}<span style={{ fontSize: 10, fontWeight: 500, opacity: 0.8 }}>{a.hint}</span>
+                {a.label}<span style={{ fontSize: 11, fontWeight: 500, opacity: 0.8 }}>{a.hint}</span>
               </button>
             );
           })}

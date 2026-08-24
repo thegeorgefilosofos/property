@@ -161,7 +161,7 @@ export function useAccountantDossier(userId: string, year: number, seed?: Partia
 // ═══ Εικόνα ════════════════════════════════════════════════════════════════
 
 const card: React.CSSProperties = { position: 'relative', background: 'var(--surface-raised)', border: 'none', borderRadius: T.radius.card, padding: 18, boxShadow: 'var(--elev-1)' }
-const eyebrow: React.CSSProperties = { fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans, margin: 0 }
+const eyebrow: React.CSSProperties = { fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans, margin: 0 }
 const num: React.CSSProperties = { fontVariantNumeric: 'tabular-nums', fontFamily: T.font.sans }
 
 /** Το τετραγωνάκι «το έχω». Μικρό, ήσυχο, με ένα μόνο χρώμα όταν είναι γεμάτο. */
@@ -354,7 +354,7 @@ export default function AccountantDossier({
             if (c.total === 0) return null
             return (
               <div key={w}>
-                <p style={{ ...eyebrow, fontSize: 10 }}>{WHO_LABEL[w]}</p>
+                <p style={{ ...eyebrow, fontSize: 11 }}>{WHO_LABEL[w]}</p>
                 <p style={{ ...num, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', margin: '5px 0 0', lineHeight: 1 }}>
                   {c.done}<span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-tertiary)' }}> / {c.total}</span>
                 </p>
@@ -572,7 +572,7 @@ function AccountantAsks() {
 
   return (
     <div style={{ margin: '16px 0 0', paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
-      <p style={{ fontSize: 10, letterSpacing: '0.5px', textTransform: 'uppercase', color: 'var(--text-tertiary)', margin: 0, fontFamily: T.font.sans }}>
+      <p style={{ fontSize: 11, letterSpacing: '0.5px', textTransform: 'uppercase', color: 'var(--text-tertiary)', margin: 0, fontFamily: T.font.sans }}>
         {asks.length === 1 ? 'Ο λογιστής σου ζήτησε' : `Ο λογιστής σου ζήτησε ${asks.length} πράγματα`}
       </p>
       <ul style={{ listStyle: 'none', padding: 0, margin: '10px 0 0', display: 'grid', gap: 1 }}>

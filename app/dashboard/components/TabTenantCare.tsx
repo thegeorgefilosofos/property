@@ -246,25 +246,25 @@ export function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propert
           {tenant.phone&&(
             <a href={`tel:${tenant.phone}`} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8, padding:'16px 12px', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, textDecoration:'none', color:'var(--text-primary)', transition:'border-color 0.15s' }}>
               <div style={{ width:36, height:36, borderRadius: T.radius.modal, background:'var(--bg-overlay)', border:'1px solid var(--border-subtle)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}></div>
-              <div style={{ textAlign:'center' as const }}><div style={{ fontSize:12, fontWeight:600, fontFamily:T.font.sans, color:'var(--text-primary)' }}>Κλήση</div><div style={{ fontSize:10, color:'var(--text-secondary)', fontFamily:T.font.sans, marginTop:2 }}>{tenant.phone}</div></div>
+              <div style={{ textAlign:'center' as const }}><div style={{ fontSize:12, fontWeight:600, fontFamily:T.font.sans, color:'var(--text-primary)' }}>Κλήση</div><div style={{ fontSize: 11, color:'var(--text-secondary)', fontFamily:T.font.sans, marginTop:2 }}>{tenant.phone}</div></div>
             </a>
           )}
           {tenant.email&&(
             <a href={`mailto:${tenant.email}`} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8, padding:'16px 12px', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, textDecoration:'none', color:'var(--text-primary)' }}>
               <div style={{ width:36, height:36, borderRadius: T.radius.modal, background:'var(--bg-overlay)', border:'1px solid var(--border-subtle)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}></div>
-              <div style={{ textAlign:'center' as const }}><div style={{ fontSize:12, fontWeight:600, fontFamily:T.font.sans }}>Ηλεκτρονικό ταχυδρομείο</div><div style={{ fontSize:10, color:'var(--text-secondary)', fontFamily:T.font.sans, marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' as const, maxWidth:120 }}>{tenant.email}</div></div>
+              <div style={{ textAlign:'center' as const }}><div style={{ fontSize:12, fontWeight:600, fontFamily:T.font.sans }}>Ηλεκτρονικό ταχυδρομείο</div><div style={{ fontSize: 11, color:'var(--text-secondary)', fontFamily:T.font.sans, marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' as const, maxWidth:120 }}>{tenant.email}</div></div>
             </a>
           )}
           {tenant.phone&&(
             <a href={whatsappLink(msgDigits(tenant.phone),'')} target="_blank" rel="noopener noreferrer" style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8, padding:'16px 12px', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, textDecoration:'none', color:'var(--text-primary)' }}>
               <div style={{ width:36, height:36, borderRadius: T.radius.modal, background:'var(--bg-overlay)', border:'1px solid var(--border-subtle)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}></div>
-              <div style={{ textAlign:'center' as const }}><div style={{ fontSize:12, fontWeight:600, fontFamily:T.font.sans }}>WhatsApp</div><div style={{ fontSize:10, color:'var(--text-secondary)', fontFamily:T.font.sans, marginTop:2 }}>{tenant.phone}</div></div>
+              <div style={{ textAlign:'center' as const }}><div style={{ fontSize:12, fontWeight:600, fontFamily:T.font.sans }}>WhatsApp</div><div style={{ fontSize: 11, color:'var(--text-secondary)', fontFamily:T.font.sans, marginTop:2 }}>{tenant.phone}</div></div>
             </a>
           )}
           {tenant.phone&&(
             <a href={viberLink('')} target="_blank" rel="noopener noreferrer" style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8, padding:'16px 12px', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, textDecoration:'none', color:'var(--text-primary)' }}>
               <div style={{ width:36, height:36, borderRadius: T.radius.modal, background:'var(--bg-overlay)', border:'1px solid var(--border-subtle)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}></div>
-              <div style={{ textAlign:'center' as const }}><div style={{ fontSize:12, fontWeight:600, fontFamily:T.font.sans }}>Viber</div><div style={{ fontSize:10, color:'var(--text-secondary)', fontFamily:T.font.sans, marginTop:2 }}>{tenant.phone}</div></div>
+              <div style={{ textAlign:'center' as const }}><div style={{ fontSize:12, fontWeight:600, fontFamily:T.font.sans }}>Viber</div><div style={{ fontSize: 11, color:'var(--text-secondary)', fontFamily:T.font.sans, marginTop:2 }}>{tenant.phone}</div></div>
             </a>
           )}
         </div>
@@ -703,7 +703,7 @@ export function MaintenanceView({ tenant, propertyId, userId, requests, others, 
                       </div>
                       {savedContacts.length>0&&(
                         <div style={{ marginBottom:10 }}>
-                          <div style={{ fontSize:10, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase' as const, color:'var(--text-tertiary)', fontFamily:T.font.sans, marginBottom:6 }}>Από τις επαφές σου</div>
+                          <div style={{ fontSize: 11, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase' as const, color:'var(--text-tertiary)', fontFamily:T.font.sans, marginBottom:6 }}>Από τις επαφές σου</div>
                           <div style={{ display:'flex', gap:6, flexWrap:'wrap' as const }}>
                             {savedContacts.slice(0,8).map(c=>(
                               <button key={c.id} onClick={()=>setAf({ name:c.full_name||'', contact:c.phone||c.email||'' })}
@@ -736,13 +736,13 @@ export function MaintenanceView({ tenant, propertyId, userId, requests, others, 
                     </div>
                   )}
                   <div style={{ display:'flex', gap:6, flexWrap:'wrap' as const }}>
-                    {m.status!=='new'&&<button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} disabled={busy} onClick={()=>setStatus(m,'new')}>Νέο</button>}
-                    {m.status!=='in_progress'&&<button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} disabled={busy} onClick={()=>setStatus(m,'in_progress')}>Σε εξέλιξη</button>}
+                    {m.status!=='new'&&<button style={{ ...s.btnGhost, padding:'6px 10px', fontSize: 11 }} disabled={busy} onClick={()=>setStatus(m,'new')}>Νέο</button>}
+                    {m.status!=='in_progress'&&<button style={{ ...s.btnGhost, padding:'6px 10px', fontSize: 11 }} disabled={busy} onClick={()=>setStatus(m,'in_progress')}>Σε εξέλιξη</button>}
                     {m.status!=='done'&&<button style={s.btnSm} disabled={busy} onClick={()=>{ setDoneFor(m.id); setDoneCost(''); }}>Ολοκληρώθηκε</button>}
-                    <button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} disabled={busy} onClick={()=>openAssign(m)}>{(m.assignee_name||m.assignee_contact)?'Ανάθεση':'Ανάθεση σε συνεργείο'}</button>
-                    {m.assignee_contact&&normalizePhone(m.assignee_contact).length>=10&&<a href={whatsappLink(msgDigits(m.assignee_contact),contractorText(m))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>WhatsApp συνεργείου</a>}
-                    {m.assignee_contact&&m.assignee_contact.includes('@')&&<a href={`mailto:${m.assignee_contact}?subject=${encodeURIComponent('Εργασία: '+m.title)}&body=${encodeURIComponent(contractorText(m))}`} style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10, textDecoration:'none' }}>Μήνυμα στο συνεργείο</a>}
-                    <button style={{ ...s.btnGhost, padding:'6px 10px', fontSize:10 }} disabled={busy} onClick={()=>toDamage(m)}>Καταγραφή ως φθορά</button>
+                    <button style={{ ...s.btnGhost, padding:'6px 10px', fontSize: 11 }} disabled={busy} onClick={()=>openAssign(m)}>{(m.assignee_name||m.assignee_contact)?'Ανάθεση':'Ανάθεση σε συνεργείο'}</button>
+                    {m.assignee_contact&&normalizePhone(m.assignee_contact).length>=10&&<a href={whatsappLink(msgDigits(m.assignee_contact),contractorText(m))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, padding:'6px 10px', fontSize: 11, textDecoration:'none' }}>WhatsApp συνεργείου</a>}
+                    {m.assignee_contact&&m.assignee_contact.includes('@')&&<a href={`mailto:${m.assignee_contact}?subject=${encodeURIComponent('Εργασία: '+m.title)}&body=${encodeURIComponent(contractorText(m))}`} style={{ ...s.btnGhost, padding:'6px 10px', fontSize: 11, textDecoration:'none' }}>Μήνυμα στο συνεργείο</a>}
+                    <button style={{ ...s.btnGhost, padding:'6px 10px', fontSize: 11 }} disabled={busy} onClick={()=>toDamage(m)}>Καταγραφή ως φθορά</button>
                     <button style={s.btnDng} disabled={busy} onClick={()=>del(m)}>Διαγραφή</button>
                   </div>
                 </div>

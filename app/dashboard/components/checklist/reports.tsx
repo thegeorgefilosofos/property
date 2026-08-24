@@ -202,9 +202,9 @@ export function exportChecklistPDF(items: ChecklistItem[], branding?: ReportBran
       const od = isOverdue(item.due_date, item.status)
       const isDone = item.status === 'done'
       const contact = item.assigned_contact_name
-        ? `<div style="font-size:10px;color:${INK_FAINT};margin-top:2px">${rEsc(item.assigned_contact_name)}</div>` : ''
+        ? `<div style="font-size: 11px;color:${INK_FAINT};margin-top:2px">${rEsc(item.assigned_contact_name)}</div>` : ''
       const tags = (item._tags || []).length > 0
-        ? `<div style="margin-top:3px">${(item._tags || []).map(t => `<span style="display:inline-block;padding:1px 6px;border:1px solid ${RULE};border-radius:3px;font-size:9px;color:${INK_MUTED};margin-right:3px">${rEsc(t)}</span>`).join('')}</div>` : ''
+        ? `<div style="margin-top:3px">${(item._tags || []).map(t => `<span style="display:inline-block;padding:1px 6px;border:1px solid ${RULE};border-radius:3px;font-size: 11px;color:${INK_MUTED};margin-right:3px">${rEsc(t)}</span>`).join('')}</div>` : ''
       return `<tr>
         <td>
           <div style="font-size:12px;${isDone ? `text-decoration:line-through;color:${INK_FAINT}` : `color:${INK}`}">${rEsc(item.description)}</div>
@@ -212,9 +212,9 @@ export function exportChecklistPDF(items: ChecklistItem[], branding?: ReportBran
         </td>
         <td>${rEsc(pri.label)}</td>
         <td>${rEsc(sm.label)}</td>
-        <td class="np">${item.due_date ? rEsc(fmtDate(item.due_date)) : rEsc(ABSENT_DATE)}${od ? `<div style="font-size:9px;color:${INK_FAINT}">Εκπρόθεσμο</div>` : ''}</td>
+        <td class="np">${item.due_date ? rEsc(fmtDate(item.due_date)) : rEsc(ABSENT_DATE)}${od ? `<div style="font-size: 11px;color:${INK_FAINT}">Εκπρόθεσμο</div>` : ''}</td>
         <td class="n">${rEsc(rEur(item.estimated_cost))}</td>
-        <td class="n">${rEsc(rEur(item.actual_cost))}${item._receipt ? `<div style="font-size:9px;color:${INK_FAINT}">${rEsc(item._receipt.name)}</div>` : ''}</td>
+        <td class="n">${rEsc(rEur(item.actual_cost))}${item._receipt ? `<div style="font-size: 11px;color:${INK_FAINT}">${rEsc(item._receipt.name)}</div>` : ''}</td>
       </tr>`
     }).join('')
     return reportSection(cat.label)
@@ -313,11 +313,11 @@ body{font-family:'Inter',sans-serif;background:${PAPER};color:${INK};font-size:1
 /* Header */
 .hdr{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:14px;margin-bottom:24px;border-bottom:2px solid ${INK}}
 .logo{font-family:'Inter',sans-serif;font-size:20px;font-weight:700;color:${INK}}.logo span{color:${INK}}
-.logo-sub{font-size:10px;color:${INK_MUTED};margin-top:2px}
+.logo-sub{font-size: 11px;color:${INK_MUTED};margin-top:2px}
 .hdr-right{text-align:right}
 .hdr-title{font-family:'Inter',sans-serif;font-size:16px;font-weight:500;color:${INK}}
-.hdr-meta{font-size:10px;color:${INK_MUTED};margin-top:4px}
-.hdr-type{display:inline-block;padding:4px 14px;border-radius:20px;font-size:10px;font-weight:600;font-family:'Inter',sans-serif;margin-top:6px;background:${PAPER_ALT};border:1px solid ${RULE};color:${INK}}
+.hdr-meta{font-size: 11px;color:${INK_MUTED};margin-top:4px}
+.hdr-type{display:inline-block;padding:4px 14px;border-radius:20px;font-size: 11px;font-weight:600;font-family:'Inter',sans-serif;margin-top:6px;background:${PAPER_ALT};border:1px solid ${RULE};color:${INK}}
 
 /* Sections */
 .sec{margin-bottom:20px;border:1px solid ${RULE};border-radius:10px;overflow:hidden;break-inside:avoid}
@@ -330,7 +330,7 @@ body{font-family:'Inter',sans-serif;background:${PAPER};color:${INK};font-size:1
 .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
 .field-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px}
 .field-row{display:flex;flex-direction:column;gap:4px}
-.field-label{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:${INK_MUTED};font-family:'Inter',sans-serif}
+.field-label{font-size: 11px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:${INK_MUTED};font-family:'Inter',sans-serif}
 .field-val{min-height:30px;border-bottom:2px solid ${RULE};padding:4px 0 3px;font-size:12px;color:${INK};font-family:'Inter', sans-serif;letter-spacing:0.02em}
 .field-val.prefilled{color:${INK};font-weight:600;border-bottom-color:${INK}}
 .field-area{min-height:56px;border:1px solid ${RULE};border-radius:6px;padding:8px;margin-top:4px;background:${PAPER_ALT}}
@@ -344,31 +344,31 @@ body{font-family:'Inter',sans-serif;background:${PAPER};color:${INK};font-size:1
 
 /* Room table */
 .room-table{width:100%;border-collapse:collapse;font-size:11px}
-.room-table th{background:${PAPER_ALT};padding:7px 10px;border:1px solid ${RULE};text-align:left;font-family:'Inter',sans-serif;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:${INK_MUTED}}
+.room-table th{background:${PAPER_ALT};padding:7px 10px;border:1px solid ${RULE};text-align:left;font-family:'Inter',sans-serif;font-size: 11px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:${INK_MUTED}}
 .room-table td{padding:7px 10px;border:1px solid ${RULE};vertical-align:middle}
 .room-name{font-weight:500;color:${INK};width:140px}
 .room-cell{min-width:220px}
 .room-notes{min-height:28px;min-width:160px}
 .rating-row{display:flex;gap:10px}
-.rating-opt{font-size:10px;color:${INK_MUTED};cursor:default}
+.rating-opt{font-size: 11px;color:${INK_MUTED};cursor:default}
 
 /* Meter grid */
 .meter-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .meter-card{border:1px solid ${RULE};border-radius:8px;padding:12px;background:${PAPER_ALT}}
-.meter-title{font-family:'Inter',sans-serif;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:${INK_MUTED};margin-bottom:8px}
+.meter-title{font-family:'Inter',sans-serif;font-size: 11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:${INK_MUTED};margin-bottom:8px}
 .meter-val{font-size:22px;font-weight:700;color:${INK};border-bottom:3px solid ${INK};padding-bottom:6px;margin-bottom:6px;font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;min-height:36px;letter-spacing:-0.5px}
-.meter-unit{font-size:9px;color:${INK_FAINT};font-family:'Inter',sans-serif}
-.meter-serial{font-size:10px;color:${INK_MUTED};margin-top:8px;border-top:1px solid ${RULE};padding-top:6px}
+.meter-unit{font-size: 11px;color:${INK_FAINT};font-family:'Inter',sans-serif}
+.meter-serial{font-size: 11px;color:${INK_MUTED};margin-top:8px;border-top:1px solid ${RULE};padding-top:6px}
 
 /* Key tracking */
 .key-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .key-card{border:1px solid ${RULE};border-radius:8px;padding:10px;text-align:center}
 .key-num{font-size:26px;font-weight:700;color:${INK};font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;min-height:38px;border-bottom:2px solid ${INK};margin-bottom:8px;letter-spacing:-1px}
-.key-label{font-size:10px;color:${INK_MUTED};font-family:'Inter',sans-serif}
+.key-label{font-size: 11px;color:${INK_MUTED};font-family:'Inter',sans-serif}
 
 /* Appliance table */
 .app-table{width:100%;border-collapse:collapse;font-size:11px}
-.app-table th{background:${PAPER_ALT};padding:6px 10px;border:1px solid ${RULE};font-family:'Inter',sans-serif;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:${INK_MUTED};text-align:left}
+.app-table th{background:${PAPER_ALT};padding:6px 10px;border:1px solid ${RULE};font-family:'Inter',sans-serif;font-size: 11px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:${INK_MUTED};text-align:left}
 .app-table td{padding:6px 10px;border:1px solid ${RULE}}
 .app-cb{width:14px;height:14px;border:1.5px solid ${RULE};border-radius:2px;display:inline-block}
 .app-include{text-align:center}
@@ -380,19 +380,19 @@ body{font-family:'Inter',sans-serif;background:${PAPER};color:${INK};font-size:1
 .task-cb{width:16px;height:16px;border:1.5px solid ${RULE};border-radius:3px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center}
 .task-cb-done{background:${INK};border-color:${INK}}
 .task-label{flex:1;font-size:12px;color:${INK_MUTED}}
-.task-contact{font-size:10px;color:${INK_MUTED};background:${PAPER_ALT};padding:1px 7px;border-radius:20px;white-space:nowrap}
+.task-contact{font-size: 11px;color:${INK_MUTED};background:${PAPER_ALT};padding:1px 7px;border-radius:20px;white-space:nowrap}
 
 /* Damage */
 .damage-box{border:1px solid ${RULE};border-radius:8px;min-height:100px;padding:12px;background:${PAPER_ALT}}
 .photo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
-.photo-box{border:1px dashed ${RULE};border-radius:6px;height:80px;display:flex;align-items:center;justify-content:center;font-size:10px;color:${INK_FAINT};background:${PAPER_ALT}}
+.photo-box{border:1px dashed ${RULE};border-radius:6px;height:80px;display:flex;align-items:center;justify-content:center;font-size: 11px;color:${INK_FAINT};background:${PAPER_ALT}}
 
 /* Signatures */
 .sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:12px}
 .sig-block{border-top:2px solid ${INK};padding-top:10px}
 .sig-role{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:${INK_MUTED};font-family:'Inter',sans-serif;margin-bottom:18px}
 .sig-line{border-bottom:2px solid ${INK};margin-bottom:10px;height:48px}
-.sig-detail{font-size:10px;color:${INK_MUTED};margin-bottom:4px}
+.sig-detail{font-size: 11px;color:${INK_MUTED};margin-bottom:4px}
 
 /* Commons */
 .commons-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -403,8 +403,8 @@ body{font-family:'Inter',sans-serif;background:${PAPER};color:${INK};font-size:1
 .commons-val{font-size:11px;border-bottom:1px solid ${RULE};min-width:80px;padding-bottom:2px;font-family:'Inter', sans-serif}
 
 /* Footer */
-.footer{margin-top:28px;padding-top:10px;border-top:1px solid ${RULE};display:flex;justify-content:space-between;align-items:center;font-size:9px;color:${INK_FAINT}}
-.notice{background:${PAPER_ALT};border:1px solid ${RULE};border-radius:8px;padding:10px 16px;font-size:10px;color:${INK_MUTED};margin-bottom:20px;display:flex;align-items:flex-start;gap:8px}
+.footer{margin-top:28px;padding-top:10px;border-top:1px solid ${RULE};display:flex;justify-content:space-between;align-items:center;font-size: 11px;color:${INK_FAINT}}
+.notice{background:${PAPER_ALT};border:1px solid ${RULE};border-radius:8px;padding:10px 16px;font-size: 11px;color:${INK_MUTED};margin-bottom:20px;display:flex;align-items:flex-start;gap:8px}
 
 @media print{.sec{break-inside:avoid}.page{padding:18px 24px}}
 </style></head><body>
@@ -434,7 +434,7 @@ ${sectionHtml(1, 'Στοιχεία Ακινήτου και Συμβαλλομέ�
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px">
     <div style="background:${PAPER_ALT};border:1px solid ${RULE};border-radius:8px;padding:12px">
-      <div style="font-family:'Inter',sans-serif;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:${INK_MUTED};margin-bottom:8px">Ιδιοκτήτης</div>
+      <div style="font-family:'Inter',sans-serif;font-size: 11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:${INK_MUTED};margin-bottom:8px">Ιδιοκτήτης</div>
       <div class="field-row" style="margin-bottom:8px">${fieldRow('Ονοματεπώνυμο', '')}</div>
       <div class="field-grid">
         ${fieldRow('ΑΦΜ', '')}
@@ -442,7 +442,7 @@ ${sectionHtml(1, 'Στοιχεία Ακινήτου και Συμβαλλομέ�
       </div>
     </div>
     <div style="background:${PAPER_ALT};border:1px solid ${RULE};border-radius:8px;padding:12px">
-      <div style="font-family:'Inter',sans-serif;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:${INK_MUTED};margin-bottom:8px">Ενοικιαστής</div>
+      <div style="font-family:'Inter',sans-serif;font-size: 11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:${INK_MUTED};margin-bottom:8px">Ενοικιαστής</div>
       <div class="field-row" style="margin-bottom:8px">${fieldRow('Ονοματεπώνυμο', `<span class="${tenantName !== '______________________________' ? 'prefilled' : ''}">${esc(tenantName)}</span>`)}</div>
       <div class="field-grid">
         ${fieldRow('ΑΦΜ', `<span class="${tenantAfm !== '______________________________' ? 'prefilled' : ''}">${esc(tenantAfm)}</span>`)}
