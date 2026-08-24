@@ -70,6 +70,10 @@ export const MUTATIONS = {
   'rls-parent-scope': { add: 'supabase/migrations/29990101000000_mut.sql', content: 'create table if not exists public.mut_probe (\n  id bigint generated always as identity primary key,\n  property_id uuid not null references public.properties(id) on delete cascade\n);\nalter table public.mut_probe enable row level security;\ncreate policy mut_probe_own on public.mut_probe using (true);\n' },
   'idempotent-migrations': { add: 'supabase/migrations/29990101000000_mut.sql', content: 'alter table public.properties add constraint mut_probe_chk check (id is not null);\n' },
   'storage-delete': { add: 'supabase/migrations/29990101000000_mut.sql', content: "create or replace function public.mut_probe() returns void language plpgsql as $$\nbegin\n  delete from storage.objects where owner is null;\nend $$;\n" },
+  // Ο ΕΥΚΟΛΟΣ ΚΛΑΔΟΣ ΘΑ ΗΤΑΝ ΝΕΟΣ ΦΑΚΕΛΟΣ ΧΩΡΙΣ ΔΗΛΩΣΗ. Ο δύσκολος, και ο
+  // πραγματικός, είναι χρονόμετρο που καλεί συνάρτηση κλειδωμένη με JWT: εκεί
+  // όλα φαίνονται σωστά και τίποτα δεν τρέχει ποτέ.
+  'cron-reachable': { add: 'supabase/migrations/29990101000000_mut.sql', content: "do $$ begin\n  perform cron.schedule('mut-probe', '0 4 * * *', $cron$\n    select net.http_post(url := 'https://x/functions/v1/smart-suggestions');\n  $cron$);\nend $$;\n" },
   'http-bridge': { add: 'supabase/migrations/29990101000000_mut.sql', content: 'create or replace function public.mut_probe_call() returns void language sql as $$ select net.http_post(url => \'https://x\') $$;\ngrant execute on function public.mut_probe_call() to authenticated;\n' },
   'sql-types': { add: 'supabase/migrations/29990101000000_mut.sql', content: 'create or replace function public.mut_probe() returns void language plpgsql as $$\ndeclare v_row record;\nbegin\n  for v_row in select * from public.bills loop\n    if v_row.property_id = some_text then null; end if;\n  end loop;\nend $$;\n' },
   'service-role': { add: 'components/__mut__.ts', content: "export const key = process.env.SUPABASE_SERVICE_ROLE_KEY\n" },
