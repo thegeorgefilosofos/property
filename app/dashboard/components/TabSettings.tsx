@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useRef, useId, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { shouldStop, leftoverText, type DeleteReport } from './deletionReport';
 import * as properties from '@/lib/data/properties';
 // Οι ρυθμίσεις ανά ενότητα έχουν ένα σπίτι: lib/data/settings.
 import * as settings from '@/lib/data/settings';
@@ -217,17 +218,6 @@ function MarketDataSharing({ userId }: { userId: string }) {
  * Από το 20260815120000 η συνάρτηση επιστρέφει μετρημένο απολογισμό. Οταν
  * μένει έστω ένα αρχείο πίσω, η οθόνη το λέει αντί να ανακατευθύνει σιωπηλά.
  */
-type DeleteReport = { ok?: boolean; files_left?: number | null };
-
-/** Τι έμεινε πίσω, με λέξεις. Κενό `left` σημαίνει «δεν μετρήθηκε καν». */
-function leftoverText(left: number | null | undefined): string {
-  const base = 'Ο λογαριασμός και τα δεδομένα σου διαγράφηκαν.';
-  if (left === null || left === undefined)
-    return `${base} Η διαγραφή των αρχείων σου από τον αποθηκευτικό χώρο δεν επιβεβαιώθηκε. Το περιστατικό καταγράφηκε.`;
-  const files = left === 1 ? '1 αρχείο' : `${fn(left)} αρχεία`;
-  return `${base} Δεν διαγράφηκαν ${files} από τον αποθηκευτικό χώρο. Το περιστατικό καταγράφηκε.`;
-}
-
 function DeleteAccount() {
   const supabase = createClient();
   const [open, setOpen] = useState(false);
@@ -270,7 +260,7 @@ function DeleteAccount() {
     const report = (payload ?? {}) as DeleteReport;
     // Ο λογαριασμός έχει ήδη φύγει, οπότε η αποσύνδεση γίνεται ούτως ή άλλως:
     // εδώ κρίνεται μόνο αν ο χρήστης θα δει πρώτα τι δεν σβήστηκε.
-    if (report.ok === false) { setLeftover(leftoverText(report.files_left)); setBusy(false); return; }
+    if (shouldStop(report)) { setLeftover(leftoverText(report.files_left, fn)); setBusy(false); return; }
     await signOut();
   };
 
