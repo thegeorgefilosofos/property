@@ -51,7 +51,7 @@ export default function CalendarFeedRow({ userId }: { userId: string }) {
       value={feedStore.feedUrl(token)}
       loaded={loaded}
       unavailable="Ο λογαριασμός σου δεν έχει ακόμη διεύθυνση ημερολογίου."
-      hint="Οποιος έχει τη διεύθυνση διαβάζει τις προθεσμίες σου. Δεν μπορεί να αλλάξει τίποτα, και την ακυρώνεις εδώ όποτε θέλεις. Λήγει μόνη της μετά από δύο χρόνια."
+      hint="Όποιος έχει τη διεύθυνση διαβάζει τις προθεσμίες σου. Δεν μπορεί να αλλάξει τίποτα, και την ακυρώνεις εδώ όποτε θέλεις. Λήγει μόνη της μετά από δύο χρόνια."
       rotateHint="Η τωρινή διεύθυνση παύει να απαντά αμέσως, σε κάθε συσκευή όπου προστέθηκε."
       actions={token ? (
         <a href={feedStore.feedSubscribeUrl(token)} style={{ textDecoration: 'none' }}>

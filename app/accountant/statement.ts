@@ -279,8 +279,8 @@ export function statementSheets(inp: StatementFileInput): XlsxSheet[] {
       { header: 'Εμποδίζει το κλείσιμο', kind: 'text' },
     ],
     rows: gaps.length
-      ? gaps.map(g => [g.text, g.blocking ? 'Ναι' : 'Οχι'])
-      : [['Καμία εκκρεμότητα από όσα βλέπει αυτός ο σύνδεσμος.', 'Οχι']],
+      ? gaps.map(g => [g.text, g.blocking ? 'Ναι' : 'Όχι'])
+      : [['Καμία εκκρεμότητα από όσα βλέπει αυτός ο σύνδεσμος.', 'Όχι']],
     notes: ['Σημαίνει ότι δεν καταχωρήθηκε, όχι ότι δεν υπάρχει.'],
   };
 

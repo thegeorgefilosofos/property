@@ -407,7 +407,7 @@ function Subscription({ d, wantPlan = null, wishPlan = null, wishCycle = 'monthl
     <Card>
       <SecHdr label="Συνδρομή" />
       <InfoBanner tone="info">
-        Λογαριασμός δοκιμαστή. Ολα τα πακέτα είναι ανοιχτά, χωρίς καμία χρέωση και χωρίς συνδρομή στον έμπορο, και αλλάζεις όποτε θέλεις.
+        Λογαριασμός δοκιμαστή. Όλα τα πακέτα είναι ανοιχτά, χωρίς καμία χρέωση και χωρίς συνδρομή στον έμπορο, και αλλάζεις όποτε θέλεις.
       </InfoBanner>
       {/* ΟΛΑ ΤΑ ΠΑΚΕΤΑ, ΧΩΡΙΣ ΦΡΑΓΜΟ ΤΥΠΟΥ ΠΡΟΦΙΛ. Ο δοκιμαστής δεν αγοράζει:
           δοκιμάζει. Το να του κλείσουμε τα μισά θα ακύρωνε τον λόγο που του
@@ -421,7 +421,7 @@ function Subscription({ d, wantPlan = null, wishPlan = null, wishCycle = 'monthl
         ))}
       </div>
       <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 14 }}>
-        Η ιδιότητα δόθηκε στις {fd(d.tester_since)}. Οταν τελειώσει η δοκιμαστική φάση θα σου το πούμε πριν αλλάξει οτιδήποτε.
+        Η ιδιότητα δόθηκε στις {fd(d.tester_since)}. Όταν τελειώσει η δοκιμαστική φάση θα σου το πούμε πριν αλλάξει οτιδήποτε.
       </div>
     </Card>
   );
@@ -563,7 +563,7 @@ function Subscription({ d, wantPlan = null, wishPlan = null, wishCycle = 'monthl
           κωδικό ξέρει ότι τον έχει. */}
       <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border-subtle)' }}>
         {!codeOpen ? (
-          <button type="button" onClick={() => setCodeOpen(true)} style={linkish}>Εχω κωδικό πρόσκλησης</button>
+          <button type="button" onClick={() => setCodeOpen(true)} style={linkish}>Έχω κωδικό πρόσκλησης</button>
         ) : (
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
             {/* ΤΟ `placeholder` ΔΕΝ ΟΝΟΜΑΖΕΙ: σβήνεται με τον πρώτο χαρακτήρα και

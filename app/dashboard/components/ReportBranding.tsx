@@ -179,7 +179,7 @@ export default function ReportBranding({ userId, plan, onUpgrade }: { userId: st
 
         <div style={line} />
 
-        <div style={rowLabel}>Ετσι θα φαίνεται</div>
+        <div style={rowLabel}>Έτσι θα φαίνεται</div>
         <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 10, overflow: 'hidden', background: PAPER }}>
           <div style={{ height: 4, background: sanitizeAccent(accent) }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 18px', borderBottom: `2px solid ${sanitizeAccent(accent)}` }}>

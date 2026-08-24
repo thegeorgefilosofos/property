@@ -179,7 +179,7 @@ export default function RentReceived({
             έγραφε ως εισπραγμένα ενοίκια που δεν ήρθαν. */}
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <Btn variant="ghost" onClick={() => setTouched(allOn ? new Set() : new Set(openLines.map(l => l.rent?.id ?? '')))}>
-            {allOn ? 'Καμία' : 'Ολες'}
+            {allOn ? 'Καμία' : 'Όλες'}
           </Btn>
         </div>
         <div role="group" aria-label="Δόσεις προς είσπραξη" style={{ display: 'flex', flexDirection: 'column', gap: T.sp.sm }}>

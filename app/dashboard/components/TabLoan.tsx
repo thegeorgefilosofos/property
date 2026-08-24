@@ -1176,7 +1176,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                   title={`Δάνειο προς αξία ${fp(ltv)}: ${ltv>85?'υψηλό, απαιτεί προσοχή':ltv>70?'μέτριο, αποδεκτό':'καλό, εντός ορίων'}`}
                   body={ltv>85
                     ?`Χρηματοδοτείς το ${fp(ltv)} της αξίας. Οι τράπεζες είναι επιφυλακτικές πάνω από 80%.`
-                    :`Ιδια κεφάλαια ${fmtEur(cs.propertyValue-cs.loanAmount)}, δηλαδή ${fp(100-ltv)} της αξίας. ${ltv>70?'Εντός αποδεκτών ορίων.':'Ενισχύει τη διαπραγματευτική σου θέση.'}`}
+                    :`Ίδια κεφάλαια ${fmtEur(cs.propertyValue-cs.loanAmount)}, δηλαδή ${fp(100-ltv)} της αξίας. ${ltv>70?'Εντός αποδεκτών ορίων.':'Ενισχύει τη διαπραγματευτική σου θέση.'}`}
                 />
 
                 <FindingRow

@@ -125,7 +125,7 @@ export default function AccountantPortal() {
           <Card style={{ marginTop: 32, textAlign: 'center' }}>
             <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>Ο σύνδεσμος δεν είναι έγκυρος</div>
             <div style={{ fontSize: 13, color: 'var(--text-tertiary)', lineHeight: 1.7, maxWidth: 460, margin: '0 auto' }}>
-              Εχει ανακληθεί ή έχει λήξει. Ενας ενημερωμένος σύνδεσμος βγαίνει από τη Λογιστική του ιδιοκτήτη.
+              Έχει ανακληθεί ή έχει λήξει. Ένας ενημερωμένος σύνδεσμος βγαίνει από τη Λογιστική του ιδιοκτήτη.
             </div>
           </Card>
         )}
@@ -180,7 +180,7 @@ export default function AccountantPortal() {
               <p style={over}>Σύνοψη χρήσης {year}</p>
               {totals.hasEntries ? (
                 <div style={{ marginTop: 10 }}>
-                  {row('Εσοδα από ενοίκια και βραχυχρόνια', feAuto(totals.income))}
+                  {row('Έσοδα από ενοίκια και βραχυχρόνια', feAuto(totals.income))}
                   {row('Καταγεγραμμένες δαπάνες', feAuto(totals.expenses))}
                   {/* Ο ΕΝΔΕΙΚΤΙΚΟΣ ΦΟΡΟΣ ΔΕΝ ΕΙΝΑΙ ΜΕΤΡΗΜΕΝΟ ΜΕΓΕΘΟΣ, ΑΡΑ ΔΕΝ
                       ΚΑΘΕΤΑΙ ΣΤΗΝ ΙΔΙΑ ΤΑΞΗ ΜΕ ΤΑ ΔΥΟ ΑΠΟ ΠΑΝΩ. */}
@@ -293,7 +293,7 @@ export default function AccountantPortal() {
                 εβδομήντα εννιά. Και μαθαίνει ΚΑΙ ότι θέλει λογαριασμό, γιατί
                 αλλιώς το κλικ τον βγάζει σε τοίχο σύνδεσης χωρίς εξήγηση. */}
             <div className="portal-noprint" style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-secondary)', marginTop: 26, lineHeight: 1.8 }}>
-              Εχεις κι άλλους πελάτες με PROPERWISE;{' '}
+              Έχεις κι άλλους πελάτες με PROPERWISE;{' '}
               <Link href="/accountant/workspace" style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Δες τους όλους μαζί</Link>, με ό,τι λείπει από τον καθένα.
               <div style={{ ...meta, marginTop: 4 }}>Χρειάζεται δικός σου λογαριασμός, μία φορά.</div>
             </div>

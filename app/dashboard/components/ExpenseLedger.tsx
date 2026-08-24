@@ -425,7 +425,7 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
           <span style={{ flexShrink: 0, width: 5, height: 5, borderRadius: '50%', background: 'var(--text-tertiary)', marginTop: 8 }} />
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ ...TT.bodySm, color: 'var(--text-primary)', fontWeight: 600 }}>
-              {missing.length === 1 ? 'Ενα πάγιο δεν έχει καταχωρηθεί ακόμη' : `${missing.length} πάγια δεν έχουν καταχωρηθεί ακόμη`}
+              {missing.length === 1 ? 'Ένα πάγιο δεν έχει καταχωρηθεί ακόμη' : `${missing.length} πάγια δεν έχουν καταχωρηθεί ακόμη`}
             </div>
             {/* ── ΜΙΑ ΓΡΑΜΜΗ ΑΝΑ ΠΑΓΙΟ, ΜΕ ΤΗΝ ΕΝΕΡΓΕΙΑ ΔΙΠΛΑ ────────────────
                 ΠΡΙΝ ήταν μία πρόταση με τελείες ανάμεσα: ο χρήστης διάβαζε ότι

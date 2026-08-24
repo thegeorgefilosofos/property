@@ -104,6 +104,9 @@ export const MUTATIONS = {
   // Ακριβώς η μορφή που εξαφάνισε τη μπάρα διεύθυνσης και τη γραμμή του οφέλους.
   // Το ακριβές μέγεθος που έβγαλε τον φύλακα: ετικέτα δείκτη που σμίκρυνε
   // ώσπου να χωρέσει, αντί να αλλάξει η διάταξη.
+  // Ακριβώς η μορφή που βρέθηκε 31 φορές: ο τόνος βγαλμένος και από το αρχικό
+  // κεφαλαίο, επειδή ο διπλανός κανόνας τον βγάζει από τα ΟΛΟΚΛΗΡΑ κεφαλαία.
+  'tonos-initial': { add: 'components/__mut__.tsx', content: tsx('    <div>Ενα συνημμένο</div>') },
   'type-floor': { add: 'components/__mut__.tsx', content: tsx("    <div style={{ fontSize: 9 }}>Πολύ μικρό για τηλέφωνο</div>") },
   'hidden-on-small': { add: 'components/__mut__.tsx', content: tsx('    <div className="lp-hide-xs">Το κείμενο που χάνεται</div>') },
   'brand-mark': { every: [

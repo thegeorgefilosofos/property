@@ -172,7 +172,7 @@ export default function InboundInbox({ propertyId, userId, propertyName, onFiled
                 <div style={{ ...TT.bodySm, color: 'var(--text-tertiary)' }}>
                   {[
                     stamp ? '' : 'Χωρίς ημερομηνία στο μήνυμα',
-                    r.attachments > 0 ? (r.attachments === 1 ? 'Ενα συνημμένο' : `${r.attachments} συνημμένα`) : '',
+                    r.attachments > 0 ? (r.attachments === 1 ? 'Ένα συνημμένο' : `${r.attachments} συνημμένα`) : '',
                   ].filter(Boolean).join(' · ')}
                 </div>
               )}

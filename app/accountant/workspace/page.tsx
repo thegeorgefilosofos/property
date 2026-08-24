@@ -100,7 +100,7 @@ export default function AccountantWorkspace() {
         <PortalBar />
         <main style={{ ...wrap, paddingTop: 44 }}>
           <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, fontFamily: T.font.sans, color: 'var(--text-primary)', letterSpacing: '-0.4px' }}>
-            Ολοι οι πελάτες σου σε μία λίστα
+            Όλοι οι πελάτες σου σε μία λίστα
           </h1>
           <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--text-secondary)', margin: '10px 0 0', fontFamily: T.font.sans, maxWidth: 560 }}>
             Με λογαριασμό βλέπεις μαζί κάθε ιδιοκτήτη που σε εξουσιοδότησε και τι λείπει από τον καθένα, χωρίς να κρατάς έναν σύνδεσμο ανά πελάτη.

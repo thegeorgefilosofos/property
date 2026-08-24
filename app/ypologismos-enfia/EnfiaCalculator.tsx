@@ -158,7 +158,7 @@ export function EnfiaCalculator({ year, today }: { year: number; today: string }
       {r && <ToolPaper title={`Εκτίμηση ΕΝΦΙΑ ${year}`} on={today} inputs={[
         { k: 'Τετραγωνικά', v: fn(amount(sqm), 2) },
         { k: 'Τιμή ζώνης', v: `${feAuto(amount(zonePrice))}/τ.μ.` },
-        { k: 'Οροφος', v: FLOORS.find(f => f.key === floor)?.label ?? floor },
+        { k: 'Όροφος', v: FLOORS.find(f => f.key === floor)?.label ?? floor },
         { k: 'Παλαιότητα', v: AGES.find(a => a.key === age)?.label ?? age },
         { k: 'Ποσοστό ιδιοκτησίας', v: fp(Math.min(100, Math.max(1, amount(ownership) || 100))) },
       ]}/>}

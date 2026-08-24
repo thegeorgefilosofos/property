@@ -355,7 +355,7 @@ export default function SignupPage() {
                Οροι δεν έχουν γίνει ποτέ δεκτοί. Δεν προχωρά χωρίς ρητή αποδοχή,
                και δεν γράφεται τίποτα στο προφίλ πριν από αυτήν. */
             <div>
-              <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: '0 0 8px' }}>Ενα βήμα ακόμη</h1>
+              <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: '0 0 8px' }}>Ένα βήμα ακόμη</h1>
               <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 20px' }}>
                 Ο λογαριασμός <strong style={{ color: 'var(--text-primary)', overflowWrap: 'anywhere' }}>{needsConsent}</strong> είναι καινούργιος. Πριν ανοίξει, χρειάζεται η αποδοχή σου.
               </p>

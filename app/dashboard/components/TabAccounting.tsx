@@ -988,7 +988,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}>
           <Download size={13}/>Μόνο το Excel
         </button>
-        <button onClick={shareWithAccountant} disabled={acctBusy} title={canAccountantPortal ? "Ζωντανός σύνδεσμος για τον λογιστή σου, χωρίς σύνδεση και χωρίς email. Καλύπτει ΟΛΑ τα ακίνητά σου, όχι μόνο αυτό: διεύθυνση, ΑΤΑΚ, μίσθωμα, έσοδα και δαπάνες της χρονιάς." : "Η ζωντανή πύλη λογιστή περιλαμβάνεται από το πακέτο «Ενα ακίνητο» και πάνω, όπως και η εξαγωγή Ε2."}
+        <button onClick={shareWithAccountant} disabled={acctBusy} title={canAccountantPortal ? "Ζωντανός σύνδεσμος για τον λογιστή σου, χωρίς σύνδεση και χωρίς email. Καλύπτει ΟΛΑ τα ακίνητά σου, όχι μόνο αυτό: διεύθυνση, ΑΤΑΚ, μίσθωμα, έσοδα και δαπάνες της χρονιάς." : "Η ζωντανή πύλη λογιστή περιλαμβάνεται από το πακέτο «Ένα ακίνητο» και πάνω, όπως και η εξαγωγή Ε2."}
           style={{ ...pillBtn, borderColor:acctLink?'var(--accent)':'var(--border-default)', color:acctLink?'var(--accent)':'var(--text-secondary)', cursor:acctBusy?'wait':'pointer', transition:'color 0.15s, border-color 0.15s' }}
           onMouseEnter={e=>{ if(!acctLink){ e.currentTarget.style.borderColor='var(--accent)'; e.currentTarget.style.color='var(--accent)' } }} onMouseLeave={e=>{ if(!acctLink){ e.currentTarget.style.borderColor='var(--border-default)'; e.currentTarget.style.color='var(--text-secondary)' } }}>
           {canAccountantPortal
