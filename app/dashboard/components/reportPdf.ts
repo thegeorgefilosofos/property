@@ -7,6 +7,7 @@
 // βάζει τα δικά του διακριτικά). Χρήματα «1.234,56 €», αρνητικά σφιχτό «−»,
 // ποσοστά «18,00%». XSS-ασφαλές (rEsc σε κάθε δυναμικό κείμενο).
 // ═══════════════════════════════════════════════════════════════════════════
+import { brandMarkSvg } from '@/components/BrandMark';
 import { BRAND_MARK_INK } from '@/components/BrandMark';
 import { reportAccent, brandLogoImg, brandName, brandContactLine, type ReportBranding } from '@/lib/reportBranding';
 import { printFontFaces } from '@/lib/print/fonts';
@@ -126,7 +127,8 @@ export function reportHead(title: string, extraCss = ''): string {
 /** Επικεφαλίδα εγγράφου: σήμα brand (μόνο αυτό έγχρωμο) + δεξιά ημ. έκδοσης. */
 export function reportHeader(branding: ReportBranding | null | undefined, reportType: string, opts: { rightLabel?: string; rightValue?: string; rightNote?: string } = {}): string {
   const accent = reportAccent(branding);
-  const mark = brandLogoImg(branding, 34) || `<div class="mark" style="background:${accent}">P</div>`;
+  const mark = brandLogoImg(branding, 34)
+    || `<div class="mark" style="background:${accent};color:#fff">${brandMarkSvg(22, '#ffffff')}</div>`;
   const contact = brandContactLine(branding);
   const rl = opts.rightLabel ?? 'Ημερομηνία έκδοσης';
   const rv = opts.rightValue ?? rDate();

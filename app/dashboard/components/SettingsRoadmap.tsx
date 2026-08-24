@@ -7,6 +7,7 @@
 // ψεύτικα «σύνδεσε». Μπαίνει μέσα σε υπάρχουσα Card, οπότε ξεκινά με διαχωριστικό.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import BrandMark from '@/components/BrandMark'
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 // Το προφίλ χρέωσης έχει ένα σπίτι: lib/data/billing.
@@ -151,7 +152,7 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
               boxShadow: 'var(--highlight-inset), var(--elev-1)',
             }}
           >
-            <span style={{ fontFamily: T.font.sans, fontWeight: 800, fontSize: 24, lineHeight: 1, letterSpacing: '-0.02em' }}>P</span>
+            <BrandMark size={26} />
           </div>
 
           <div style={{ flex: 1, minWidth: 0 }}>

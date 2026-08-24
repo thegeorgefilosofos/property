@@ -134,6 +134,20 @@ export function BrandLogo({ size = 26, variant = 'full', className, style }: {
  * βάρος και αραίωμα φτάνει παντού, και είναι το ίδιο brand.
  */
 export const BRAND_MARK_INK = '#0b1b33';
+
+/**
+ * Το σήμα ως ΣΥΜΒΟΛΟΣΕΙΡΑ SVG, για τα εκτυπώσιμα.
+ *
+ * ΓΙΑΤΙ ΕΔΩ ΕΠΙΤΡΕΠΕΤΑΙ SVG ΚΑΙ ΣΤΟ EMAIL ΟΧΙ. Οι αναφορές αποδίδονται από
+ * περιηγητή για να γίνουν PDF, δηλαδή από μηχανή που ξέρει SVG. Το email
+ * αποδίδεται από πρόγραμμα αλληλογραφίας, και το Gmail αφαιρεί τα ενσωματωμένα
+ * SVG. Δύο περιβάλλοντα, δύο απαντήσεις, ένα σχήμα.
+ */
+export const brandMarkSvg = (px = 34, color = BRAND_MARK_INK) =>
+  `<svg width="${px}" height="${px}" viewBox="${BRAND_VIEWBOX}" fill="${color}" fill-rule="nonzero" xmlns="http://www.w3.org/2000/svg">`
+  + SHAPE.map(d => `<path d="${d}"/>`).join('')
+  + '</svg>';
+
 /** Το λευκό του σήματος όπου δεν υπάρχει θέμα να το κρίνει: εικόνα, PDF. */
 export const BRAND_MARK_ON_DARK = '#ffffff';
 

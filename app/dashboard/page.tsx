@@ -1,5 +1,6 @@
 'use client';
 
+import { BrandLogo } from '@/components/BrandMark'
 import { useNavHistory } from './components/useNavHistory';
 import { heatingLabel } from '@/lib/property/heating';
 import { useEffect, useState, useCallback, useMemo, useRef, useSyncExternalStore } from 'react';
@@ -1882,8 +1883,7 @@ export default function Dashboard() {
             πληροφορεί κανέναν για το τι θα συμβεί. */}
         <button type="button" className="sidebar-logo" aria-label={`Πήγαινε στην ${navLabel('overview')}`}
           onClick={()=>{ setNav('overview'); setSidebarOpen(false); }}>
-          <span className="sidebar-logo-mark" aria-hidden>P</span>
-          <span className="sidebar-logo-text">PROPERWISE</span>
+          <BrandLogo size={22} />
         </button>
 
         {/* Κεντρικό κουμπί: μια φωτογραφία → αυτόματη καταχώρηση παντού.
