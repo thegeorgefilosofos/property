@@ -314,7 +314,7 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
   return (
     <div style={{display:'flex',flexDirection:'column',gap:14}}>
       <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
-        <div style={{flex:1,minWidth:180}}><TextInput ariaLabel="Αναζήτηση αντικειμένου" value={search} onChange={setSearch} placeholder="Αναζήτηση αντικειμένου, μάρκας…"/></div>
+        <div style={{flex:1,minWidth:180}}><TextInput ariaLabel="Αναζήτηση αντικειμένου" value={search} onChange={setSearch} placeholder="Αντικείμενο ή μάρκα" aria-label="Αναζήτηση απογραφής"/></div>
         {/* ΤΑ ΠΛΑΤΗ ΒΓΑΙΝΟΥΝ ΑΠΟ ΤΟ ΚΕΙΜΕΝΟ, ΚΑΙ ΤΟ ΚΕΙΜΕΝΟ ΕΙΝΑΙ ΕΛΛΗΝΙΚΟ.
             Το «Όλες οι κατηγορίες» και το «Όλα τα δωμάτια» είναι οι ΠΡΟΕΠΙΛΟΓΕΣ,
             δηλαδή αυτό που βλέπει ο χρήστης πριν αγγίξει τίποτα — και δεν

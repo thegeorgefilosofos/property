@@ -2016,7 +2016,7 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
         )}
 
         <div style={{ flex:1, minWidth:100, position:'relative' }}>
-          <input className="po-field" aria-label="Αναζήτηση γεγονότος" placeholder="Αναζήτηση γεγονότος…" value={searchQ} onChange={e=>setSearchQ(e.target.value)}
+          <input className="po-field" aria-label="Αναζήτηση γεγονότος" placeholder="Τίτλος γεγονότος" value={searchQ} onChange={e=>setSearchQ(e.target.value)}
             style={{ width:'100%', height:T.h.md, background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius: T.radius.modal, padding:'0 16px', color:'var(--text-primary)', fontSize:14, fontFamily: T.font.sans, outline:'none' }}
             onFocus={e=>e.currentTarget.style.borderColor='var(--accent)'} onBlur={e=>e.currentTarget.style.borderColor='var(--border-subtle)'}/>
         </div>

@@ -174,7 +174,7 @@ export default function PropertySwitcher({ items, activeId, onSelect, onAdd, can
           {searchable && (
             <div style={{ padding: 8, borderBottom: '1px solid var(--border-subtle)' }}>
               <input ref={inputRef} value={q} onChange={e => { setQ(e.target.value); setCursor(0); }}
-                placeholder="Αναζήτηση ακινήτου"
+                placeholder="Όνομα ή διεύθυνση"
                 aria-label="Αναζήτηση ακινήτου"
                 aria-controls={listId} aria-activedescendant={activeOptionId}
                 style={{

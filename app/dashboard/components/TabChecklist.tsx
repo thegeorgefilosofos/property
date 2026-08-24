@@ -698,8 +698,13 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       )}
 
       {items.length > 0 && <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-        <div style={{ flex: 1, minWidth: 180, position: 'relative' }}>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Αναζήτηση εργασίας, ετικέτας, επαφής…" style={iStyle} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-default)')} />
+        {/* ΤΟ ΕΛΑΧΙΣΤΟ ΠΛΑΤΟΣ ΒΓΑΙΝΕΙ ΑΠΟ ΤΗΝ ΥΠΟΔΕΙΞΗ, ΟΧΙ ΑΠΟ ΣΤΡΟΓΓΥΛΟ ΑΡΙΘΜΟ.
+            Στα 180 το πεδίο χωρούσε δίπλα στα φίλτρα σε ορισμένα πλάτη και η
+            υπόδειξη κοβόταν στη μέση: μετρημένο στα 430, ήθελε 209 και είχε 176.
+            Με ελάχιστο 240 είτε χωρά ολόκληρη, είτε το πεδίο πέφτει σε δική του
+            σειρά και παίρνει όλο το πλάτος. */}
+        <div style={{ flex: 1, minWidth: 240, position: 'relative' }}>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Εργασία, ετικέτα ή επαφή" aria-label="Αναζήτηση εκκρεμοτήτων" style={iStyle} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-default)')} />
           {search && <button type="button" onClick={() => setSearch('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18 }}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>}
         </div>
         <FilterSelect value={filterStatus} onChange={v => setFilterStatus(v as FilterStatus)} minWidth={172}

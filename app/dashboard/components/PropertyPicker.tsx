@@ -63,7 +63,7 @@ export default function PropertyPicker({ items, selected, onChange, loading, pla
         <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 60, background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 12, boxShadow: 'var(--elev-3)', overflow: 'hidden' }}>
           {items.length > 6 && (
             <div style={{ padding: 8, borderBottom: '1px solid var(--border-subtle)' }}>
-              <input autoFocus value={q} onChange={e => setQ(e.target.value)} placeholder="Αναζήτηση ακινήτου…"
+              <input autoFocus value={q} onChange={e => setQ(e.target.value)} placeholder="Όνομα ή διεύθυνση" aria-label="Αναζήτηση ακινήτου"
                 style={{ width: '100%', height: T.h.sm, padding: '0 11px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 13, outline: 'none' }} />
             </div>
           )}

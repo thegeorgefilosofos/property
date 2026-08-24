@@ -509,7 +509,15 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
           placeholder="Περιγραφή, κατηγορία ή πάροχος"
           className="po-field" aria-label="Αναζήτηση δαπανών"
           style={{
-            width: 190, height: T.h.md, padding: '0 14px', boxSizing: 'border-box',
+            /* ΤΟ ΣΤΑΘΕΡΟ ΠΛΑΤΟΣ ΕΚΟΒΕ ΤΗΝ ΥΠΟΔΕΙΞΗ ΣΤΟ ΚΙΝΗΤΟ. Στα 190 χωρούσαν
+               είκοσι χαρακτήρες και η υπόδειξη έχει τριάντα: ο χρήστης διάβαζε
+               «Περιγραφή, κατηγορ…» και δεν μάθαινε ποτέ ότι ψάχνει και πάροχο.
+               Με βάση 300 και δυνατότητα ανάπτυξης, το πεδίο πέφτει μόνο του σε
+               δεύτερη σειρά όταν δεν χωρά δίπλα στο κουμπί, και εκεί παίρνει
+               ολόκληρο το πλάτος. Στον υπολογιστή τίποτα δεν αλλάζει: εκεί
+               χωρούσε ήδη, και ο διαχωριστής το σπρώχνει δεξιά όπως πριν. */
+            flex: '1 1 300px', maxWidth: 320,
+            height: T.h.md, padding: '0 14px', boxSizing: 'border-box',
             borderRadius: T.radius.btn, border: '1px solid var(--border-default)',
             background: 'var(--bg-surface)', color: 'var(--text-primary)',
             fontSize: 13, fontFamily: T.font.sans, outline: 'none',

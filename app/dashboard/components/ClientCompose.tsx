@@ -255,7 +255,7 @@ export default function ClientCompose({ open, onClose, clients, supabase }: {
 
                       <button style={chip(false)} onClick={() => setMany([])}>Καθαρισμός</button>
                     </div>
-                    <input value={q} onChange={e => setQ(e.target.value)} placeholder="Αναζήτηση ονόματος ή email…" style={{ ...field, marginBottom: 8 }} />
+                    <input value={q} onChange={e => setQ(e.target.value)} placeholder="Όνομα ή email" aria-label="Αναζήτηση πελατών" style={{ ...field, marginBottom: 8 }} />
                     <div style={{ maxHeight: 208, overflowY: 'auto', border: '1px solid var(--border-subtle)', borderRadius: 12 }}>
                       {visible.map((c, i) => {
                         const on = selected.has(c.id);
