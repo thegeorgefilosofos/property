@@ -559,7 +559,10 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
               Είσπραξη ενοικίων · {collectable.length}
             </Btn>
           )}
-          <Btn variant="ghost" onClick={openStatements}>Καταστάσεις ιδιοκτήτη</Btn>
+          {/* Ισότιμη ενέργεια με την Εξαγωγή δίπλα της, όχι απορριπτική: χωρίς
+              περίγραμμα διαβαζόταν ως τίτλος και όχι ως κουμπί. Το «ghost»
+              μένει για τα «Ακύρωση» και «Άλλη φορά». */}
+          <Btn variant="secondary" onClick={openStatements}>Καταστάσεις ιδιοκτήτη</Btn>
           <ExportButton onClick={exportCsv} />
         </>} />
 
@@ -608,8 +611,13 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 170px), 1fr))', gap: 16, marginTop: 14 }}>
             <PStat label="Αξία χαρτοφυλακίου" value={eur(agg.totalValue)} />
             <PStat label="Ετήσια έσοδα" value={eur(agg.totalRevenue)} />
-            <PStat label="Μεικτή απόδοση" value={`${fn(agg.grossYield, 1)}%`} />
-            <PStat label="Καθαρή απόδοση" value={`${fn(agg.netYield, 1)}%`} />
+            {/* ΔΥΟ ΔΕΚΑΔΙΚΑ, ΟΠΩΣ ΠΑΝΤΟΥ. Εγραφαν «6,7%» με ένα δεκαδικό, ενώ
+                τρία πλακίδια πιο πάνω η μέση πληρότητα γράφει «19,50%» από τον
+                κοινό μορφοποιητή. Στην ίδια οθόνη, δύο ακρίβειες για το ίδιο
+                είδος μεγέθους: ο αναγνώστης δεν ξέρει ποια από τις δύο είναι
+                στρογγυλεμένη. Το fp() δίνει πάντα δύο. */}
+            <PStat label="Μεικτή απόδοση" value={fp(agg.grossYield)} />
+            <PStat label="Καθαρή απόδοση" value={fp(agg.netYield)} />
           </div>
         </div>
       )}

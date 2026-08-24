@@ -640,7 +640,13 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
             + ` · ${fn(stats.done)} από ${fn(stats.total)} ολοκληρωμένες`}
         right={loading || items.length === 0 ? undefined : (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <Btn variant="ghost" onClick={() => setShowTemplates(true)}>Πρότυπα</Btn>
+            {/* ΤΟ «ghost» ΕΙΝΑΙ ΓΙΑ ΤΙΣ ΑΠΟΡΡΙΠΤΙΚΕΣ ΕΝΕΡΓΕΙΕΣ, ΚΑΙ ΜΟΝΟ.
+                Το φοράνε το «Ακύρωση», το «Άλλη φορά», το «Διαγραφή»: πράγματα
+                που ο χρήστης πατά για να ΜΗΝ κάνει κάτι. Εδώ όμως τα «Πρότυπα»
+                είναι ισότιμη ενέργεια με την Εξαγωγή που κάθεται δίπλα τους, και
+                χωρίς περίγραμμα διαβάζονταν ως κείμενο και όχι ως κουμπί. Η ίδια
+                ενέργεια στην άδεια κατάσταση ήταν ήδη «secondary». */}
+            <Btn variant="secondary" onClick={() => setShowTemplates(true)}>Πρότυπα</Btn>
             <ExportMenu
               onExcel={() => exportChecklistExcel(items)}
               onPdf={() => exportChecklistPDF(items, branding)}
