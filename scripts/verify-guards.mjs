@@ -50,6 +50,46 @@ const guards = readdirSync('scripts')
 
 const treeBefore = execSync('git status --porcelain', { encoding: 'utf8' })
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ΔΙΠΛΟ ΚΛΕΙΔΙ ΣΒΗΝΕΙ ΜΙΑ ΑΠΟΔΕΙΞΗ ΧΩΡΙΣ ΝΑ ΤΟ ΠΕΙ ΚΑΝΕΙΣ
+// ─────────────────────────────────────────────────────────────────────────
+// ΤΟ ΣΦΑΛΜΑ, ΠΙΑΣΜΕΝΟ. Ο χάρτης είχε δύο φορές το κλειδί «security-txt». Στη
+// JavaScript η δεύτερη εγγραφή σκεπάζει σιωπηλά την πρώτη: καμία προειδοποίηση
+// από τη γλώσσα, καμία από το ESLint (μετρήθηκε, δεν το πιάνει σε .mjs). Η
+// εγγραφή που επιβίωσε χάλαγε πεδίο που ο φύλακας δεν κοίταζε, οπότε ο πάγκος
+// τον έβγαζε «αποδεδειγμένο» ενώ έμενε πράσινος με το σφάλμα μέσα του.
+//
+// Ο ΕΛΕΓΧΟΣ ΓΙΝΕΤΑΙ ΣΤΟ ΚΕΙΜΕΝΟ, ΟΧΙ ΣΤΟ ΑΝΤΙΚΕΙΜΕΝΟ. Οταν φτάσει εδώ ως
+// αντικείμενο, το διπλό κλειδί έχει ήδη χαθεί. Η μόνη στιγμή που φαίνεται
+// είναι όσο ο χάρτης είναι ακόμη πηγαίο κείμενο.
+// ═══════════════════════════════════════════════════════════════════════════
+{
+  const src = readFileSync('scripts/lib/mutations.mjs', 'utf8')
+  const keys = [...src.matchAll(/^ {2}'([^']+)':/gm)].map(m => m[1])
+
+  // ΚΑΙ ΤΟ ΑΝΑΠΟΔΟ: ΜΕΤΑΛΛΑΞΗ ΠΟΥ ΔΕΝ ΔΕΙΧΝΕΙ ΣΕ ΦΥΛΑΚΑ. Το κλειδί
+  // «brand-mark-edge» καθόταν εδώ χωρίς αντίστοιχο guard-brand-mark-edge.mjs,
+  // δηλαδή έγραφε ένα σφάλμα που δεν το δοκίμαζε ποτέ κανείς. Διαβάζεται ως
+  // κάλυψη, δεν είναι.
+  const known = readdirSync('scripts').filter(f => /^guard-.+\.mjs$/.test(f))
+    .map(f => f.replace(/^guard-|\.mjs$/g, ''))
+  const orphanKeys = keys.filter(k => !known.includes(k))
+  if (orphanKeys.length) {
+    console.error(`✗ ${orphanKeys.length} μεταλλάξεις χωρίς φύλακα:\n`)
+    for (const k of orphanKeys) console.error(`  «${k}» δεν έχει scripts/guard-${k}.mjs`)
+    console.error('\n  Είτε λείπει ο φύλακας, είτε η μετάλλαξη ανήκει σε άλλο κλειδί.\n')
+    process.exit(1)
+  }
+
+  const dupes = [...new Set(keys.filter((k, i) => keys.indexOf(k) !== i))]
+  if (dupes.length) {
+    console.error(`✗ ${dupes.length} διπλά κλειδιά στο scripts/lib/mutations.mjs:\n`)
+    for (const d of dupes) console.error(`  «${d}» γράφεται δύο φορές· η δεύτερη σβήνει την πρώτη σιωπηλά`)
+    console.error('\n  Κράτα ένα κλειδί ανά φύλακα. Ενας φύλακας με σβησμένη μετάλλαξη\n  δοκιμάζεται με ΑΛΛΟ σφάλμα από αυτό που νομίζεις.\n')
+    process.exit(1)
+  }
+}
+
 /** Τρέχει τον φύλακα και επιστρέφει μόνο αν πέρασε. Η έξοδός του δεν μας νοιάζει. */
 const run = (name) => {
   try { execFileSync('node', [`scripts/guard-${name}.mjs`], { stdio: 'pipe' }); return true }
@@ -96,15 +136,24 @@ for (const name of guards) {
 
   if (!run(name)) { problems.push([name, 'κόκκινος ΠΡΙΝ τη μετάλλαξη. Η δοκιμή δεν λέει τίποτα ώσπου να πρασινίσει.']); continue }
 
-  const list = Array.isArray(entry) ? entry : [entry]
-  let caught = false, err = null
+  // ΔΥΟ ΣΗΜΑΣΙΕΣ, ΚΑΙ ΔΙΑΦΕΡΟΥΝ. Ενας ΠΙΝΑΚΑΣ είναι εφεδρική αλυσίδα: αρκεί μία
+  // μετάλλαξη να πιαστεί, γιατί οι υπόλοιπες μπορεί να μην εφαρμόζονται σε αυτό
+  // το αποθετήριο. Το `every` είναι το αντίθετο: ο φύλακας έχει ΠΟΛΛΟΥΣ κανόνες
+  // και κάθε κανόνας θέλει τη δική του απόδειξη. Χωρίς αυτό, ένας φύλακας με
+  // τρεις κανόνες περνούσε τον πάγκο αποδεικνύοντας μόνο τον πρώτο.
+  const all = !Array.isArray(entry) && Array.isArray(entry.every)
+  const list = all ? entry.every : Array.isArray(entry) ? entry : [entry]
+  let caught = all, err = null
   for (const m of list) {
-    let undo = null
-    try { undo = apply(m); caught = !run(name) }
+    let undo = null, hit = false
+    try { undo = apply(m); hit = !run(name) }
     catch (e) { err = e.message }
     finally { if (undo) undo() }
-    if (caught || err) break
+    if (err) break
+    if (all) { if (!hit) { caught = false; err = null; problems.push([name, `ΕΜΕΙΝΕ ΠΡΑΣΙΝΟΣ σε έναν από τους ${list.length} κανόνες του: ${m.add || m.file}`]); break } }
+    else if (hit) { caught = true; break }
   }
+  if (all && !caught) continue
 
   if (err) problems.push([name, `η μετάλλαξη δεν εφαρμόστηκε: ${err}`])
   else if (!caught) problems.push([name, 'ΕΜΕΙΝΕ ΠΡΑΣΙΝΟΣ με το σφάλμα του μέσα. Δεν ελέγχει αυτό που νομίζει.'])

@@ -19,6 +19,7 @@
 
 import type { Metadata } from 'next';
 import { IDENTITY } from '@/lib/legal/identity';
+import { DISCLOSURE } from '@/lib/legal/disclosure';
 import { subprocessors } from '@/lib/legal/subprocessors';
 import { billingWords } from '@/lib/legal/billingWords';
 import { LegalLayout, type LegalBlock } from '../legal-shell';
@@ -274,8 +275,10 @@ export default function TrustPage() {
               κείμενο. Και δεν την είχε ανάγκη κανείς: ο ερευνητής πάει
               κατευθείαν στη διαδρομή, δεν τη διαβάζει από παράγραφο. */}
           <p className="lg-note">
-            Βρήκες κενό ασφαλείας; Γράψε μας πριν το δημοσιοποιήσεις. Επιβεβαιώνουμε την παραλαβή σε 3 εργάσιμες
-            ημέρες, απαντάμε με αξιολόγηση σε 10, και σε αναφέρουμε ονομαστικά όταν διορθωθεί, αν το θέλεις.
+            Βρήκες κενό ασφαλείας; Γράψε μας και δώσε μας {DISCLOSURE.embargoDays} ημέρες πριν το δημοσιοποιήσεις.
+            Επιβεβαιώνουμε την παραλαβή σε {DISCLOSURE.ackBusinessDays} εργάσιμες ημέρες, απαντάμε με αξιολόγηση σε{' '}
+            {DISCLOSURE.triageBusinessDays}, σε κρατάμε ενήμερο κάθε {DISCLOSURE.updateEveryDays} ημέρες όσο είναι
+            ανοιχτό, και σε αναφέρουμε ονομαστικά όταν διορθωθεί, αν το θέλεις.
             Δεσμευόμαστε να μη στραφούμε νομικά εναντίον ερευνητή που ενεργεί καλόπιστα και δεν αποκτά πρόσβαση σε
             δεδομένα τρίτων. Οι πλήρεις όροι, μαζί με το τι είναι εντός και εκτός εμβέλειας, βρίσκονται στην{' '}
             <a href="/.well-known/security.txt" className="lp-link" style={{ color: 'var(--accent)', textDecoration: 'none' }}>πολιτική γνωστοποίησης ευπαθειών</a>.

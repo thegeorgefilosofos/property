@@ -18,6 +18,18 @@
 // αποτύπωμα: ένα στοιχείο του οποίου ΟΛΟ το περιεχόμενο είναι το γράμμα «P».
 // Στο υπόλοιπο αποθετήριο δεν υπάρχει καμία άλλη τέτοια περίπτωση, οπότε ο
 // κανόνας είναι ακριβής χωρίς να χρειάζεται να μαντέψει προθέσεις.
+//
+// ── ΚΑΙ ΕΝΑ ΤΕΤΑΡΤΟ ΣΗΜΕΙΟ, ΕΞΩ ΑΠΟ ΤΗΝ ΕΦΑΡΜΟΓΗ ────────────────────────
+// Ο φύλακας σάρωνε app, components, lib και edge functions. Το `scripts/` δεν
+// το κοίταζε ΚΑΝΕΙΣ, και εκεί καθόταν το `make-store-images.mjs`: παραγωγός
+// εικόνων καταστήματος με το ΠΑΛΙΟ σήμα «P» γραμμένο ως ωμή διαδρομή SVG,
+// σπασμένος ώστε να μην τρέχει καν, και χωρίς καμία αναφορά πουθενά. Δηλαδή
+// ένα αρχείο που, αν κάποιος το διόρθωνε αντί να το διαβάσει, θα τύπωνε το
+// παλιό λογότυπο σε αποδείξεις πελατών. Σβήστηκε.
+//
+// Ο ΔΕΥΤΕΡΟΣ ΚΑΝΟΝΑΣ, ΓΙΑ ΤΑ ΣΕΝΑΡΙΑ: όποιο σενάριο ζωγραφίζει διαδρομή SVG
+// οφείλει να τη ΔΙΑΒΑΖΕΙ από το BrandMark.tsx. Δύο σενάρια το κάνουν ήδη, και
+// έτσι ένα αντιγραμμένο σχήμα δεν έχει πού να κρυφτεί.
 // ═══════════════════════════════════════════════════════════════════════════
 import { readFileSync } from 'node:fs'
 import { projectFiles } from './lib/git-files.mjs'
@@ -26,6 +38,9 @@ import { projectFiles } from './lib/git-files.mjs'
 const LONE_P = />\s*P\s*</g
 
 const OWNER = 'components/BrandMark.tsx'
+
+/** Διαδρομή SVG γραμμένη με το χέρι, μέσα σε σενάριο κατασκευής. */
+const RAW_PATH = /<path\s|d="M[\d\s.-]/g
 
 const hits = []
 for (const file of projectFiles("'app/**' 'components/**' 'lib/**' 'supabase/functions/**'")) {
@@ -39,9 +54,20 @@ for (const file of projectFiles("'app/**' 'components/**' 'lib/**' 'supabase/fun
   }
 }
 
-if (hits.length) {
-  console.error(`✗ ${hits.length} σημεία ζωγραφίζουν μόνα τους το σήμα:\n`)
+// Τα σενάρια κατασκευής: το σχήμα διαβάζεται, δεν αντιγράφεται.
+const orphans = []
+for (const file of projectFiles("'scripts/**'")) {
+  if (!/\.mjs$/.test(file) || file.startsWith('scripts/guard-')) continue
+  let src
+  try { src = readFileSync(file, 'utf8') } catch { continue }
+  if (RAW_PATH.test(src) && !src.includes(OWNER)) orphans.push(file)
+  RAW_PATH.lastIndex = 0
+}
+
+if (hits.length || orphans.length) {
+  console.error(`✗ ${hits.length + orphans.length} σημεία ζωγραφίζουν μόνα τους το σήμα:\n`)
   for (const h of hits) console.error('  ' + h)
+  for (const o of orphans) console.error(`  ${o}  διαδρομή SVG χωρίς ανάγνωση του ${OWNER}`)
   console.error(`
   Το σήμα ζει στο ${OWNER} και δίνεται με τέσσερις τρόπους:
 
@@ -55,4 +81,4 @@ if (hits.length) {
 `)
   process.exit(1)
 }
-console.log('✓ το σήμα το ζωγραφίζει μόνο το ' + OWNER)
+console.log('✓ το σήμα το ζωγραφίζει μόνο το ' + OWNER + ', και τα σενάρια το διαβάζουν από εκεί')

@@ -16,7 +16,7 @@ import type { MetadataRoute } from 'next';
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: '/dashboard',
-    name: 'PROPERWISE · Διαχείριση ακινήτων',
+    name: 'PROPERWISE · Διαχείριση Ακινήτων',
     short_name: 'PROPERWISE',
     description: 'Έσοδα, δαπάνες, ενοικιαστές, φόρος και προθεσμίες για τα ακίνητά σου, σε ένα σημείο.',
     start_url: '/dashboard',

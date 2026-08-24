@@ -92,9 +92,15 @@ export const MUTATIONS = {
   },
   // Το παλιό όνομα επιστρέφει όπως έφυγε: με μία επικόλληση σε ένα σημείο.
   'brand-name': { add: 'components/__mut__.tsx', content: tsx('    <div>Καλώς όρισες στο propertyos</div>') },
-  // Ακριβώς το χειρόγραφο πλακίδιο που έμεινε σε τρία σημεία μετά τη μετονομασία.
-  'brand-mark': { add: 'components/__mut__.tsx', content: tsx("    <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--accent)' }}>P</div>") },
-  'brand-mark-edge': { add: 'supabase/functions/_shared/__mut__.ts', content: 'export const head = () => `<div style="width:34px"><span>P</span></div>`\n' },
+  // Ο φύλακας έχει ΤΡΕΙΣ κανόνες, οπότε θέλει τρεις αποδείξεις: το χειρόγραφο
+  // πλακίδιο μέσα στην εφαρμογή, το ίδιο μέσα σε επιστολή, και η διαδρομή SVG
+  // αντιγραμμένη σε σενάριο κατασκευής. Με απλό πίνακα, οι δύο τελευταίοι
+  // κανόνες δεν δοκιμάζονταν ποτέ.
+  'brand-mark': { every: [
+    { add: 'components/__mut__.tsx', content: tsx("    <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--accent)' }}>P</div>") },
+    { add: 'supabase/functions/_shared/__mut__.ts', content: 'export const head = () => `<div style="width:34px"><span>P</span></div>`\n' },
+    { add: 'scripts/__mut__.mjs', content: 'export const mark = () => `<svg viewBox="0 0 50 50"><path d="M17 34V14h8.2c4.3 0 7.3 2.6 7.3 6.7z"/></svg>`\n' },
+  ] },
   'http-bridge': { add: 'supabase/migrations/29990101000000_mut.sql', content: 'create or replace function public.mut_probe_call() returns void language sql as $$ select net.http_post(url => \'https://x\') $$;\ngrant execute on function public.mut_probe_call() to authenticated;\n' },
   'sql-types': { add: 'supabase/migrations/29990101000000_mut.sql', content: 'create or replace function public.mut_probe() returns void language plpgsql as $$\ndeclare v_row record;\nbegin\n  for v_row in select * from public.bills loop\n    if v_row.property_id = some_text then null; end if;\n  end loop;\nend $$;\n' },
   'service-role': { add: 'components/__mut__.ts', content: "export const key = process.env.SUPABASE_SERVICE_ROLE_KEY\n" },
@@ -110,6 +116,12 @@ export const MUTATIONS = {
   'official-links': { add: 'components/__mut__.tsx', content: tsx('    <a href="https://www.aade.gr/polites">Ημερολόγιο</a>') },
   'site-url': { add: 'components/__mut__.ts', content: "export const url = 'https://properwise.gr/imerologio'\n" },
   'security-txt': { file: 'public/.well-known/security.txt', from: 'Expires:', to: 'X-Expires:' },
+  // Η κλασική απόκλιση: αλλάζει η προθεσμία στην πηγή, μένει η παλιά στα
+  // δημόσια κείμενα. Και οι δύο κατευθύνσεις δοκιμάζονται.
+  'disclosure-terms': { every: [
+    { file: 'lib/legal/disclosure.ts', from: 'ackBusinessDays: 3', to: 'ackBusinessDays: 5' },
+    { file: 'app/trust/page.tsx', from: '{DISCLOSURE.embargoDays} ημέρες', to: '90 ημέρες' },
+  ] },
   'tax-year': { add: 'lib/core/__mut__.ts', content: "import { rentalIncomeTax } from '@/lib/billing/greekTax'\nexport const t = (year: number, taxable: number) => { void year; return rentalIncomeTax(taxable) }\n" },
   'stale-flags': { add: 'lib/core/__mut__.ts', content: "export const CALL = { deadline: '2020-01-12', is_active: true }\n" },
 

@@ -18,6 +18,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { chromium } from 'playwright-core';
+import { assertFontApplied } from './lib/font-ready.mjs';
 
 const CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 const OUT = 'docs/marketing/plan-images';
@@ -77,6 +78,9 @@ for (const id of PAID) {
   const plan = read(id);
   const p = await browser.newPage({ viewport: { width: PX, height: PX } });
   await p.setContent(page(plan));
+  // Η σιωπηλή εφεδρική γραμματοσειρά είναι ακριβώς το σφάλμα που έβγαλε αυτές
+  // τις τέσσερις εικόνες εκτός ταυτότητας. Σκάει, δεν ζωγραφίζει.
+  await assertFontApplied(p, { family: 'Inter', weight: '800', where: `εικόνα «${id}»` });
   const file = `${OUT}/${id}.png`;
   await p.locator('div').first().screenshot({ path: file });
   await p.close();
