@@ -1993,3 +1993,38 @@ begin
 
   raise notice 'probe: η δαπάνη επιζεί του προμηθευτή της, χωρίς ορφανή αναφορά';
 end $probe$;
+
+-- ── Ο ΔΟΚΙΜΑΣΤΗΣ ΔΕΝ ΜΠΑΙΝΕΙ ΠΟΤΕ ΣΤΗ ΣΕΙΡΑ ΤΗΣ ΔΙΑΓΡΑΦΗΣ ────────────────
+-- Δεν πληρώνει συνδρομή εξ ορισμού, άρα το μηδενικό επίπεδο δεν σημαίνει
+-- εγκαταλειμμένος λογαριασμός. Οσο η `account_is_exempt` δεν τον ήξερε, ο
+-- σαρωτής του ξεκινούσε ρολόι και στις τριάντα ημέρες τον έσβηνε.
+do $probe$
+declare
+  t uuid := '33333333-3333-3333-3333-333333333331';
+begin
+  insert into auth.users (id, email) values (t, 'dokimastis@propertyos.gr');
+  -- Το `trial_used_at` σφραγίζεται, αλλιώς ισχύει η τοπική δοκιμή των πρώτων
+  -- ημερών και ο λογαριασμός θα είχε επίπεδο για λόγο άσχετο με τη δοκιμή εδώ.
+  insert into public.billing_profiles (user_id, plan, trial_used_at) values (t, 'free', now())
+    on conflict (user_id) do update set plan = 'free', tester_since = null, trial_used_at = now();
+
+  if public.user_plan_rank(t) <> 0 then
+    raise exception 'Η δοκιμή στήθηκε λάθος: ο λογαριασμός έχει ήδη επίπεδο';
+  end if;
+  if public.account_is_exempt(t) then
+    raise exception 'Λογαριασμός χωρίς συνδρομή και χωρίς ιδιότητα δοκιμαστή εξαιρείται';
+  end if;
+
+  update public.billing_profiles set tester_since = now() where user_id = t;
+  if not public.account_is_exempt(t) then
+    raise exception 'Ο ΔΟΚΙΜΑΣΤΗΣ ΜΠΑΙΝΕΙ ΣΤΗ ΣΕΙΡΑ ΤΗΣ ΔΙΑΓΡΑΦΗΣ';
+  end if;
+
+  -- Και ο σαρωτής δεν του ξεκινά ρολόι.
+  perform public.sweep_lapsed_accounts(true);
+  if exists (select 1 from public.billing_profiles where user_id = t and lapsed_at is not null) then
+    raise exception 'Ο σαρωτής ξεκίνησε ρολόι διαγραφής σε δοκιμαστή';
+  end if;
+
+  raise notice 'probe: ο δοκιμαστής δεν χρονομετρείται ποτέ για διαγραφή';
+end $probe$;
