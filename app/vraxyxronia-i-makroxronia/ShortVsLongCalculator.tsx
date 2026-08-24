@@ -195,7 +195,13 @@ export function ShortVsLongCalculator({ today }: { today: string }) {
                Ίδιο ιδίωμα με τον επιλογέα έτους στον φόρο ενοικίων: aria-pressed
                πάνω στο κουμπί, με την ΙΔΙΑ συνθήκη που δίνει και το χρώμα, ώστε
                τα δύο να μην μπορούν να ξεφύγουν το ένα από το άλλο. */}
-        <div style={{ display: 'flex', gap: 3, padding: 3, background: 'var(--bg-surface)',
+        {/* ΤΑ ΔΥΟ ΛΕΚΤΙΚΑ ΔΕΝ ΧΩΡΑΝΕ ΔΙΠΛΑ ΣΤΑ 320. Μετρημένο σε πραγματικό
+            Chromium: η σειρά πιάνει 286 μέσα σε κάρτα που της δίνει 250, και
+            βγαίνει και ένα εικονοστοιχείο έξω από την οθόνη. Ούτε το λεκτικό
+            κονταίνει ούτε το κουμπί σπάει σε δύο γραμμές: η σειρά αναδιπλώνεται,
+            και κάτω από τα 380 το κάθε κουμπί πιάνει ολόκληρη τη γραμμή του.
+            Πάνω από εκεί τα δύο χωράνε δίπλα και τίποτα δεν αλλάζει. */}
+        <div className="po-seg" style={{ display: 'flex', flexWrap: 'wrap', gap: 3, padding: 3, background: 'var(--bg-surface)',
           border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
           <button type="button" onClick={() => set('sezon', 'even')} aria-pressed={input.season === 'even'} className="po-tap" style={segStyle(input.season === 'even')}>Όλο τον χρόνο</button>
           <button type="button" onClick={() => set('sezon', 'high')} aria-pressed={input.season === 'high'} className="po-tap" style={segStyle(input.season === 'high')}>Κυρίως το καλοκαίρι</button>

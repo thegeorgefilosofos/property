@@ -107,8 +107,15 @@ export function BrandLogo({ size = 26, variant = 'full', className, style }: {
   style?: React.CSSProperties;
 }) {
   if (variant === 'icon') return <BrandMark size={size} style={style} />;
+  // Η ΛΕΞΗ ΔΕΝ ΦΕΥΓΕΙ ΑΠΟ ΤΟ ΣΤΕΝΟ ΚΙΝΗΤΟ, ΣΦΙΓΓΕΙ. Μετρημένο σε πραγματικό
+  // Chromium στα 320: το πλήρες λογότυπο πιάνει 166, και η σειρά της κεφαλίδας
+  // ζητά 363 από τα 320 που έχει — το κουμπί έβγαινε 22 έξω από την οθόνη σε
+  // οκτώ δημόσιες σελίδες. Το `po-brand-logo` δίνει στο φύλλο στυλ τη λαβή να
+  // το μικρύνει κάτω από τα 360, αντί να αφαιρεθεί η λέξη: το όνομα είναι το
+  // ίδιο το περιουσιακό στοιχείο, και το στενό κινητό δεν είναι λόγος να μη
+  // φαίνεται.
   return (
-    <span className={className} style={{ display: 'inline-flex', alignItems: 'center', gap: Math.round(size * 0.38), ...style }}>
+    <span className={['po-brand-logo', className].filter(Boolean).join(' ')} style={{ display: 'inline-flex', alignItems: 'center', gap: Math.round(size * 0.38), ...style }}>
       <BrandMark size={size} />
       <span style={{
         fontFamily: T.font.sans,

@@ -146,7 +146,12 @@ export default function Page() {
           color: 'var(--text-secondary)', margin: '0 0 clamp(26px,3.5vw,36px)', textWrap: 'pretty' }}>
           <span style={{ display: 'block' }}>Μεικτή και καθαρή απόδοση δίπλα δίπλα, με τον φόρο στο δικό σου κλιμάκιο. Χωρίς εγγραφή και χωρίς email:</span>
           ο υπολογισμός γίνεται στη συσκευή σου και μένει εκεί.
-          <span style={{ fontSize: 12, color: 'var(--text-tertiary)', marginLeft: 14 }}>
+          {/* Η ΥΠΟΣΗΜΕΙΩΣΗ ΠΑΙΡΝΕΙ ΔΙΚΗ ΤΗΣ ΣΕΙΡΑ. Ενσωματωμένη στο τέλος της
+              παραγράφου χωρούσε μόνο στα 1280: μετρημένο σε 768 και σε 390,
+              έσπαγε σε δύο κομμάτια και άφηνε το «το PROPERWISE.» ορφανό στην
+              αριστερή άκρη μιας δικής του γραμμής. Ως μπλοκ διαβάζεται ίδια σε
+              κάθε πλάτος, και το κενό των 14 που κρεμόταν στη μέση φεύγει. */}
+          <span style={{ display: 'block', marginTop: 8, fontSize: 12, color: 'var(--text-tertiary)' }}>
             *Οι ίδιοι υπολογισμοί που τρέχει το PROPERWISE.
           </span>
         </p>
