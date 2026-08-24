@@ -932,9 +932,9 @@ function ContactCard({ contact, onOpen, onEdit, onDelete, onQuickExpense, onQuic
     <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       onClick={bulkMode ? onSelect : undefined}
       style={{ background: selected ? 'color-mix(in srgb, var(--accent) 6%, var(--bg-surface))' : 'var(--bg-surface)', border: '1.5px solid ' + (selected ? 'var(--accent)' : hov ? 'var(--accent-border)' : overdue ? 'var(--negative-border)' : 'var(--border-subtle)'), borderRadius: T.radius.card, padding: bulkMode ? '18px 18px 16px 46px' : '18px 18px 16px', position: 'relative', boxShadow: selected ? '0 0 0 3px var(--accent-soft)' : hov ? 'var(--elev-2)' : 'none', transition: 'border-color 0.2s, box-shadow 0.2s, background 0.2s', cursor: bulkMode ? 'pointer' : 'default' }}>
-      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: overdue ? 'var(--negative)' : 'var(--border-subtle)', borderRadius: '16px 0 0 16px', opacity: bulkMode ? 0 : 1 }} />
+      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: overdue ? 'var(--negative)' : 'var(--border-subtle)', borderRadius: '14px 0 0 14px', opacity: bulkMode ? 0 : 1 }} />
       {bulkMode && <div style={{ position: 'absolute', top: 17, left: 15, zIndex: 2 }}><SelectBox checked={!!selected} onToggle={onSelect} /></div>}
-      {overdue && <div style={{ position: 'absolute', top: 0, right: 0, background: 'var(--negative)', color: 'var(--text-inverse)', fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: '0 16px 0 8px', letterSpacing: '0.07em' }}>ΛΗΞΗ ΡΑΝΤΕΒΟΥ</div>}
+      {overdue && <div style={{ position: 'absolute', top: 0, right: 0, background: 'var(--negative)', color: 'var(--text-inverse)', fontSize: 9, fontWeight: 700, padding: '3px 10px', borderRadius: '0 14px 0 8px', letterSpacing: '0.07em' }}>ΛΗΞΗ ΡΑΝΤΕΒΟΥ</div>}
       {(hov || showActions || coarse) && !bulkMode && (
         <div ref={actionsRef} style={{ position: 'absolute', top: 12, right: 12, zIndex: 20 }}>
           {/* Ορατές μόνο οι πιο συχνές ενέργειες — όλες οι υπόλοιπες μπαίνουν στο «···» */}
@@ -1371,7 +1371,7 @@ function AlphaRail({ entries, active, onPick }: {
               title={`${e.count} ${e.count === 1 ? 'επαφή' : 'επαφές'}`}
               style={{
                 minWidth: 26, height: 26, padding: '0 4px', border: 'none', cursor: 'pointer',
-                borderRadius: 7, background: on ? 'var(--accent)' : 'transparent',
+                borderRadius: T.radius.md, background: on ? 'var(--accent)' : 'transparent',
                 color: on ? 'var(--accent-text)' : 'var(--text-secondary)',
                 fontFamily: T.font.sans, fontSize: 12, fontWeight: on ? 700 : 500,
                 fontVariantNumeric: 'tabular-nums', transition: 'background .14s, color .14s',

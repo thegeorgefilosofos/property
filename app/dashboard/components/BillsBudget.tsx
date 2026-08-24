@@ -12,7 +12,7 @@ import * as billStore from '@/lib/data/bills';
 import * as tenantStore from '@/lib/data/tenants';
 import * as expenses from '@/lib/data/expenses'
 import * as calendar from '@/lib/data/calendar'
-import { TextInput, ToggleTrack } from './UIComponents';
+import { TextInput, ToggleTrack, toggleHitBox } from './UIComponents';
 import { T, TT, fe, feAuto, fp, fn, fixedCols, Skeleton, SkeletonKPIs, pressable } from '@/components/Theme';
 import { waterMonthly } from '@/lib/energy/tariff';
 import { monthAcc, monthGen, monthYearLabel } from '@/lib/core/months';
@@ -85,7 +85,7 @@ function MonthBars({ data, activeYm }: { data: { ym: string; label: string; valu
               {on && d.value > 0 && (
                 <div style={{ position: 'absolute', bottom: h + 8, left: '50%', transform: 'translateX(-50%)', background: 'var(--bg-overlay)', border: '1px solid var(--border-default)', borderRadius: 8, padding: '3px 8px', fontSize: 11, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', zIndex: 3 }}>{feAuto(d.value)}</div>
               )}
-              <div style={{ width: '100%', height: Math.max(h, 3), borderRadius: '6px 6px 2px 2px', background: d.value > 0 ? `linear-gradient(180deg, color-mix(in srgb, var(--accent) ${top}%, transparent), color-mix(in srgb, var(--accent) ${bot}%, transparent))` : 'color-mix(in srgb, var(--text-primary) 8%, transparent)', transition: 'height 0.5s cubic-bezier(0.22,1,0.36,1), background 0.18s ease' }} />
+              <div style={{ width: '100%', height: Math.max(h, 3), borderRadius: '3px 3px 0 0', background: d.value > 0 ? `linear-gradient(180deg, color-mix(in srgb, var(--accent) ${top}%, transparent), color-mix(in srgb, var(--accent) ${bot}%, transparent))` : 'color-mix(in srgb, var(--text-primary) 8%, transparent)', transition: 'height 0.5s cubic-bezier(0.22,1,0.36,1), background 0.18s ease' }} />
             </div>
             <span style={{ fontSize: 9, color: on || active ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight: on || active ? 700 : 500, transition: 'color 0.15s' }}>{d.label}</span>
           </div>
@@ -1827,21 +1827,33 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                         {partial && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>μετρά {feAuto(cnt)}</span>}
                       </span>
                       {/* Διακόπτης «μετρά στον προϋπολογισμό» — off = εξαιρέθηκε.
-                          ΓΙΑΤΙ ΜΕΝΕΙ ΧΕΙΡΟΓΡΑΦΟΣ. Το κοινό `Toggle` δένει την
-                          aria-label με το ΟΡΑΤΟ κείμενο: `aria-label={label}` και
-                          `{label && <span>{label}</span>}` στο ίδιο prop. Εδώ ο
+                          ΓΙΑΤΙ ΤΟ ΚΟΥΜΠΙ ΜΕΝΕΙ ΔΙΚΟ ΤΟΥ. Το κοινό `Toggle` δένει
+                          την aria-label με το ΟΡΑΤΟ κείμενο: `aria-label={label}`
+                          και `{label && <span>{label}</span>}` στο ίδιο prop. Εδώ ο
                           διακόπτης επαναλαμβάνεται μία φορά ανά εγγραφή του μήνα
                           (δεκάδες γραμμές), οπότε το κοινό component θα τύπωνε
                           «Μετρά στον προϋπολογισμό» δίπλα σε ΚΑΘΕ γραμμή για να
-                          κρατήσει την ετικέτα προσβασιμότητας. Η γεωμετρία και τα
-                          χρώματα ευθυγραμμίστηκαν με το `Toggle size="sm"`
-                          (36×20, δείκτης 12/16, περίγραμμα 2) ώστε να είναι
-                          οπτικά ο ΙΔΙΟΣ διακόπτης· έφευγε πριν με ωμό #fff στον
-                          δείκτη και ωμό rgba στη σκιά. */}
+                          κρατήσει την ετικέτα προσβασιμότητας.
+                          ΑΛΛΑ Η ΟΨΗ ΔΕΝ ΕΙΝΑΙ ΔΙΚΗ ΤΟΥ. Ηταν: το ελατήριο ήταν
+                          ξαναζωγραφισμένο εδώ, τέταρτη εμφάνιση του ίδιου
+                          διακόπτη, «ευθυγραμμισμένη με το χέρι» — και είχε ήδη
+                          αποκλίνει σε δύο σημεία που δεν αποφάσισε κανείς:
+                          `borderRadius: 20` αντί για το ύψος, και δικό της
+                          `transition: all` αντί για τη λίστα ιδιοτήτων. Η
+                          ευθυγράμμιση με το χέρι κρατά μέχρι την πρώτη αλλαγή.
+                          Τώρα η όψη έρχεται από το `ToggleTrack`, όπως και στις
+                          ρυθμίσεις πιο πάνω — ίδιο ελατήριο, ένα αντίγραφο.
+                          ΚΑΙ Ο ΣΤΟΧΟΣ ΑΦΗΣ ΓΙΝΕΤΑΙ 44. Ηταν 36×20, δηλαδή 20
+                          εικονοστοιχεία ύψος σε λίστα όπου οι διακόπτες
+                          στοιβάζονται ο ένας κάτω από τον άλλο και η αστοχία πατά
+                          τον διπλανό. Το αρνητικό περιθώριο επαναφέρει το κουτί
+                          ΔΙΑΤΑΞΗΣ στα 36×20, ώστε καμία γραμμή να μη μετακινηθεί:
+                          η περιοχή που δέχεται το δάχτυλο μεγαλώνει, η εικόνα όχι.
+                          Ιδιο μοτίβο με το `Toggle` στο `UIComponents`. */}
                       <button type="button" role="switch" aria-checked={!isEx} aria-label="Μετρά στον προϋπολογισμό"
                         onClick={() => { if (isEx) { unexcludeItem(it.id); setExclAmtDraft(d => { const n = { ...d }; delete n[it.id]; return n; }); } else { const snap = budgets.__excluded; excludeItem(it.id); notify(`Εξαιρέθηκε «${it.label}»`, { duration: UNDO_MS, action: { label: 'Αναίρεση', onClick: () => persistCats({ __excluded: snap ?? '{}' }) } }); } }}
-                        style={{ position: 'relative', width: 36, height: 20, borderRadius: 20, background: isEx ? 'transparent' : 'var(--accent)', border: `2px solid ${isEx ? 'var(--border-default)' : 'var(--accent)'}`, cursor: 'pointer', flexShrink: 0, padding: 0, transition: 'background 0.2s, border-color 0.2s' }}>
-                        <span style={{ display: 'block', width: isEx ? 12 : 16, height: isEx ? 12 : 16, borderRadius: '50%', background: isEx ? 'var(--text-secondary)' : 'var(--accent-text)', position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: isEx ? 2 : 'calc(100% - 16px - 2px)', transition: `all 0.2s ${T.ease.standard}`, boxShadow: 'var(--elev-1)' }} />
+                        style={toggleHitBox('sm')}>
+                        <ToggleTrack on={!isEx} size="sm" />
                       </button>
                     </div>
                     {isEx && (

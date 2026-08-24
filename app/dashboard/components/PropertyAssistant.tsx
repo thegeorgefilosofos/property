@@ -1474,7 +1474,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                   <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: m.role === 'user' ? 'flex-end' : 'flex-start', gap: 6 }}>
                     <div style={{ maxWidth: '90%', padding: '11px 14px', borderRadius: T.radius.card, fontFamily: T.font.sans, fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap',
                       background: m.role === 'user' ? 'var(--accent)' : 'var(--bg-elevated)', color: m.role === 'user' ? 'var(--accent-text)' : 'var(--text-primary)',
-                      border: 'none', borderBottomRightRadius: m.role === 'user' ? 4 : 14, borderBottomLeftRadius: m.role === 'user' ? 14 : 4 }}>{m.text}</div>
+                      border: 'none', borderBottomRightRadius: m.role === 'user' ? T.radius.xs : T.radius.card, borderBottomLeftRadius: m.role === 'user' ? T.radius.card : T.radius.xs }}>{m.text}</div>
                     {/* Καμία υπόσχεση που δεν μπορεί να τηρηθεί: αν η καρτέλα όπου
                         προσγειώνεται η ενέργεια δεν είναι προσβάσιμη για αυτό το
                         ακίνητο ή αυτό το πακέτο, το κουμπί δεν γράφεται καθόλου —

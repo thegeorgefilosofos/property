@@ -1664,11 +1664,11 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             <span style={{ width:104, flexShrink:0 }}/>
             <div style={{ flex:1, display:'flex', alignItems:'center', gap:10, minWidth:0 }}>
               <span style={{ flex:1, textAlign:'right', display:'inline-flex', alignItems:'center', justifyContent:'flex-end', gap:6, fontSize:11, fontWeight:600, letterSpacing:'0.05em', textTransform:'uppercase', color:'var(--text-tertiary)', fontFamily: T.font.sans }}>
-                <span style={{ width:8, height:8, borderRadius:2, background:'var(--series-out)' }}/>Έξοδα
+                <span style={{ width:8, height:8, borderRadius:T.radius.xs, background:'var(--series-out)' }}/>Έξοδα
               </span>
               <span style={{ width:1, flexShrink:0 }}/>
               <span style={{ flex:1, display:'inline-flex', alignItems:'center', gap:6, fontSize:11, fontWeight:600, letterSpacing:'0.05em', textTransform:'uppercase', color:'var(--text-tertiary)', fontFamily: T.font.sans }}>
-                <span style={{ width:8, height:8, borderRadius:2, background:'var(--series-in)' }}/>Έσοδα
+                <span style={{ width:8, height:8, borderRadius:T.radius.xs, background:'var(--series-in)' }}/>Έσοδα
               </span>
             </div>
             <span style={{ width:110, flexShrink:0, textAlign:'right', fontSize:11, fontWeight:600, letterSpacing:'0.05em', textTransform:'uppercase', color:'var(--text-tertiary)', fontFamily: T.font.sans }}>Καθαρή ροή</span>
@@ -1679,13 +1679,13 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
                 <span style={{ width:104, flexShrink:0, fontSize:12, color:empty?'var(--text-tertiary)':'var(--text-secondary)', fontFamily: T.font.sans }}>{MONTHS_NOM[i]}</span>
                 <div style={{ flex:1, display:'flex', alignItems:'center', gap:10, minWidth:0 }}>
                   <div style={{ flex:1, display:'flex', justifyContent:'flex-end', minWidth:0 }}>
-                    {c.expense>0&&<div title={`Έξοδα ${eur(c.expense)}`} style={{ height:11, borderRadius:'3px 1px 1px 3px', width:`${Math.max(1.5, c.expense/maxCash*100)}%`, background:'var(--series-out)' }}/>}
+                    {c.expense>0&&<div title={`Έξοδα ${eur(c.expense)}`} style={{ height:11, borderRadius:'3px 0 0 3px', width:`${Math.max(1.5, c.expense/maxCash*100)}%`, background:'var(--series-out)' }}/>}
                   </div>
                   {/* Ο άξονας του μηδενός: μία γραμμή, σε κάθε σειρά, ώστε οι
                       δώδεκα μήνες να μετριούνται από το ίδιο σημείο. */}
                   <span style={{ width:1, height:16, flexShrink:0, background:'var(--series-axis)' }}/>
                   <div style={{ flex:1, minWidth:0 }}>
-                    {c.income>0&&<div title={`Έσοδα ${eur(c.income)}`} style={{ height:11, borderRadius:'1px 3px 3px 1px', width:`${Math.max(1.5, c.income/maxCash*100)}%`, background:'var(--series-in)' }}/>}
+                    {c.income>0&&<div title={`Έσοδα ${eur(c.income)}`} style={{ height:11, borderRadius:'0 3px 3px 0', width:`${Math.max(1.5, c.income/maxCash*100)}%`, background:'var(--series-in)' }}/>}
                   </div>
                 </div>
                 <span style={{ width:110, flexShrink:0, textAlign:'right', fontSize:12, fontWeight:empty?400:600, color:empty?'var(--text-tertiary)':'var(--text-primary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{empty?'':eur(net)}</span>

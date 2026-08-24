@@ -106,7 +106,7 @@ function Drivers({ c }: { c: Comparison }) {
             <span style={{ position: 'relative', display: 'block', height: 8 }}>
               <span aria-hidden style={{ position: 'absolute', left: '50%', top: -2, width: 1, height: 12, background: 'var(--border-default)' }} />
               <span style={{
-                position: 'absolute', top: 0, height: 8, borderRadius: 2,
+                position: 'absolute', top: 0, height: 8, borderRadius: T.radius.pill,
                 width: `${ratio * 50}%`,
                 left: up ? '50%' : `${50 - ratio * 50}%`,
                 background: 'color-mix(in srgb, var(--text-primary) 30%, transparent)',
