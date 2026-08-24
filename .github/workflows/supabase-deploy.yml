@@ -28,6 +28,10 @@ on:
     paths:
       - 'supabase/migrations/**'
       - 'supabase/functions/**'
+      # ΤΟ config.toml ΕΛΕΙΠΕ, ΚΑΙ ΕΙΝΑΙ ΤΟ ΑΡΧΕΙΟ ΠΟΥ ΚΡΙΝΕΙ ΑΝ ΜΙΑ ΣΥΝΑΡΤΗΣΗ
+      # ΕΙΝΑΙ ΠΡΟΣΒΑΣΙΜΗ. Μια διόρθωση του verify_jwt εκεί δεν ενεργοποιούσε
+      # deploy, οπότε το αποθετήριο έλεγε ένα και η παραγωγή έκανε άλλο.
+      - 'supabase/config.toml'
       - '.github/workflows/supabase-deploy.yml'
   # Manual trigger: run from a feature branch → deploys to staging; from main → production.
   workflow_dispatch: {}
