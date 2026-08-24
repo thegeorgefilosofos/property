@@ -140,7 +140,7 @@ export function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCal
 
       {/* Μία διακριτική ενέργεια «···» — όλες οι λειτουργίες μαζεμένες, καθαρή σειρά. */}
       {!selecting && (
-        <button ref={menuBtnRef} type="button" onClick={openMenu} title="Ενέργειες" aria-label="Ενέργειες"
+        <button ref={menuBtnRef} type="button" className="po-box" onClick={openMenu} title="Ενέργειες" aria-label="Ενέργειες"
           style={{ width: 30, height: 30, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1px solid ' + (showMenu ? 'var(--border-default)' : 'transparent'), background: showMenu ? 'var(--bg-elevated)' : 'transparent', color: 'var(--text-secondary)', opacity: hov || showMenu ? 1 : 0, transition: 'opacity 0.15s, background 0.15s' }}
           onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)' }}
           onMouseLeave={e => { if (!showMenu) e.currentTarget.style.background = 'transparent' }}>

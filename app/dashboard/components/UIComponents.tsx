@@ -384,7 +384,15 @@ export function NumberInput({
             flexShrink: 0,
           }}>{prefix}</span>
         )}
+        {/* ΤΟ ΥΨΟΣ ΤΟ ΟΡΙΖΕΙ ΤΟ ΠΛΑΙΣΙΟ, ΟΧΙ ΤΟ ΠΕΔΙΟ. Το περίβλημα είναι ήδη
+            T.h.lg, δηλαδή 44 στο δάχτυλο, και κόβει το ξεχείλισμα ώστε το «€»
+            να κάθεται κολλητά στην άκρη. Οταν το δάπεδο αφής ανέβασε ΚΑΙ το
+            πεδίο στα 44, το πεδίο έγινε ψηλότερο από το κουτί που το κρατά:
+            μετρημένο κόψιμο ενός εικονοστοιχείου πάνω και κάτω, σε κάθε ποσό
+            της εφαρμογής. Η κλάση το εξαιρεί· ο στόχος αφής μένει 44 γιατί τον
+            δίνει το περίβλημα. */}
         <input
+          className="po-field-inner"
           id={inputId}
           aria-label={label ? undefined : ariaLabel}
           type="text"
@@ -397,10 +405,15 @@ export function NumberInput({
           disabled={disabled}
           style={{
             flex: 1,
+            // Το πεδίο ΓΕΜΙΖΕΙ το πλαίσιο κάθετα. Με «align-items: center» στο
+            // περίβλημα έμενε στο ύψος του κειμένου του, 39 εικονοστοιχεία μέσα
+            // σε κουτί 44: το δάχτυλο που πατούσε λίγο πιο πάνω ή πιο κάτω από
+            // τη μέση δεν έπιανε τίποτα, παρότι το πλαίσιο φαινόταν πατημένο.
+            alignSelf: 'stretch',
             background: 'transparent',
             border: 'none',
             outline: 'none',
-            padding: '10px 14px',
+            padding: '0 14px',
             color: 'var(--text-primary)',
             fontSize: 14,
             fontFamily: T.font.mono,

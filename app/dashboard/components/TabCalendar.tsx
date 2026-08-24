@@ -43,7 +43,7 @@ const joinedFullName = (v: unknown): string | null => {
   return typeof one.full_name === 'string' ? one.full_name : null
 }
 import { savedData } from '@/components/dbWrite'
-import { T, Modal, Spinner, Skeleton, EmptyState, Chip, feAuto, fe, fn, localDay, pressable } from '@/components/Theme'
+import { T, Modal, Spinner, Skeleton, EmptyState, Chip, feAuto, fe, fn, localDay, pressable, CloseButton } from '@/components/Theme'
 import { fixedCols } from '@/components/tokens'
 import type { XlsxSheet, XlsxCol } from './exportXlsx';
 import { downloadXlsx } from './sheets';
@@ -1025,7 +1025,7 @@ function AutoPullPanel({ propertyId, userId, onRefresh, onClose }: { propertyId:
   return (
     <div style={{ position:'relative', background:'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border:'1px solid var(--border-subtle)', borderRadius: T.radius.modal, padding:'20px 22px', boxShadow:'var(--highlight-inset), var(--elev-3)', overflow:'hidden' }}>
       <div style={{ position:'absolute', top:0, left:24, right:24, height:1, background:'linear-gradient(90deg, transparent, var(--accent-border), transparent)', opacity:0.7 }}/>
-      {onClose&&<button aria-label="Κλείσιμο" onClick={onClose} style={{ position:'absolute', top:14, right:14, width:T.h.sm, height:T.h.sm, borderRadius:10, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', color:'var(--text-secondary)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2, transition: 'background-color 0.13s, border-color 0.13s, color 0.13s, box-shadow 0.13s, transform 0.13s, opacity 0.13s' }} onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-primary)'}} onMouseLeave={e=>{e.currentTarget.style.background='var(--bg-surface)';e.currentTarget.style.borderColor='var(--border-subtle)';e.currentTarget.style.color='var(--text-secondary)'}}><X size={16}/></button>}
+      {onClose&&<CloseButton onClose={onClose} style={{ position:'absolute', top:14, right:14, border:'1px solid var(--border-subtle)', background:'var(--bg-surface)', zIndex:2 }} />}
       <div style={{ display:'flex', alignItems:'flex-start', gap:12, marginBottom:16, paddingRight:38 }}>
         <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:38, height:38, borderRadius:10, flexShrink:0, background:'linear-gradient(135deg, var(--accent), var(--accent-hover))', color:'var(--accent-text)', boxShadow:'0 6px 16px -6px var(--accent)' }}><RefreshCw size={17}/></span>
         <div style={{ minWidth:0 }}>

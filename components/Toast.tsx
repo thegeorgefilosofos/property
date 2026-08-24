@@ -9,6 +9,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { T, type Tone } from './tokens';
 import { subscribeToasts, type ToastItem } from './toastBus';
+import { CloseButton } from './Theme';
 
 // Ξανα-εξάγονται εδώ ώστε ένα component να χρειάζεται μία μόνο εισαγωγή.
 export { notify, notifyOk, notifyError, TOAST_MS } from './toastBus';
@@ -115,10 +116,7 @@ export function ToastHost() {
             >{t.action.label}</button>
           )}
           {(!t.duration || t.duration <= 0) && (
-            <button
-              type="button" aria-label="Κλείσιμο" onClick={() => dismiss(t.id)}
-              style={{ marginLeft: 4, background: 'none', border: 'none', color: 'var(--text-tertiary)', fontSize: 15, cursor: 'pointer', lineHeight: 1, flexShrink: 0 }}
-            >×</button>
+            <CloseButton onClose={() => dismiss(t.id)} style={{ marginLeft: 4, marginTop: -6, marginBottom: -6 }} />
           )}
         </div>
       ))}

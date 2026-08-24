@@ -6,7 +6,7 @@
 // «είδα/έκλεισα» μένει τοπικά ανά μήνα.
 
 import { useSyncExternalStore } from 'react';
-import { T } from '@/components/Theme';
+import { T, CloseButton } from '@/components/Theme';
 
 const monthKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 const KEY = 'pos_feedback_nudge';
@@ -56,7 +56,7 @@ export default function MonthlyFeedbackNudge() {
             Πες μας τη γνώμη σου για το PROPERWISE και μπες στην κλήρωση για <b style={{ color: 'var(--text-primary)' }}>έναν χρόνο δωρεάν Επαγγελματία</b>. Ένα λεπτό φτάνει.
           </p>
         </div>
-        <button onClick={close} aria-label="Κλείσιμο" style={{ flex: 'none', width: 26, height: 26, borderRadius: 8, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>✕</button>
+        <CloseButton onClose={close} style={{ border: '1px solid var(--border-default)' }} />
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
         <button onClick={give} style={{ background: 'var(--accent)', color: 'var(--on-tone)', border: 0, borderRadius: T.radius.pill, padding: '8px 16px', fontSize: 13, fontWeight: 650, cursor: 'pointer', fontFamily: T.font.sans }}>Πες τη γνώμη σου</button>

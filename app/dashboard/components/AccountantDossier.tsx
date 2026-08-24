@@ -167,7 +167,7 @@ const num: React.CSSProperties = { fontVariantNumeric: 'tabular-nums', fontFamil
 /** Το τετραγωνάκι «το έχω». Μικρό, ήσυχο, με ένα μόνο χρώμα όταν είναι γεμάτο. */
 function Mark({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) {
   return (
-    <button type="button" role="checkbox" aria-checked={checked} aria-label={label} onClick={onChange}
+    <button type="button" className="po-box" role="checkbox" aria-checked={checked} aria-label={label} onClick={onChange}
       style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, marginTop: 1, borderRadius: 6, flexShrink: 0, cursor: 'pointer', padding: 0,
         border: `1.5px solid ${checked ? 'var(--accent)' : 'var(--border-default)'}`, background: checked ? 'var(--accent)' : 'var(--bg-surface)', transition: 'border-color 0.14s, background 0.14s' }}>
       {checked && <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2.5 6.3l2.2 2.2L9.5 3.6" stroke="var(--accent-text)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg>}

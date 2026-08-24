@@ -833,7 +833,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
 function SelectBox({ checked, indeterminate, onChange, label }: { checked: boolean; indeterminate?: boolean; onChange: () => void; label: string }) {
   const on = checked || indeterminate;
   return (
-    <button type="button" aria-label={label} onClick={e => { e.stopPropagation(); onChange(); }}
+    <button type="button" className="po-box" aria-label={label} onClick={e => { e.stopPropagation(); onChange(); }}
       style={{ width: 18, height: 18, borderRadius: 6, border: '2px solid ' + (on ? 'var(--accent)' : 'var(--border-default)'), background: on ? 'var(--accent)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s', flexShrink: 0 }}>
       {checked
         ? <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="var(--accent-text)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>

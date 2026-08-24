@@ -9,7 +9,7 @@
 import { IDENTITY } from '@/lib/legal/identity';
 import { PLANS, PLAN_ORDER, normalizePlan, planForCount, annualPerMonth, type PlanId } from '@/lib/billing/plans';
 import { isPlanAllowedForProfile, paidPlanForProfile, type ProfileType } from '@/lib/billing/entitlements';
-import { T, feAuto } from '@/components/Theme';
+import { T, feAuto, CloseButton } from '@/components/Theme';
 
 export default function UpgradeModal({ currentCount, planId, profileType = 'individual', onClose, onManage }: {
   currentCount: number;
@@ -81,7 +81,7 @@ export default function UpgradeModal({ currentCount, planId, profileType = 'indi
                 : <>Για να προσθέσεις κι άλλο, διάλεξε ένα πακέτο που σου ταιριάζει. Χωρίς δέσμευση, ακυρώνεις όποτε θέλεις.</>}
             </p>
           </div>
-          <button onClick={onClose} aria-label="Κλείσιμο" style={{ width: T.h.md, height: T.h.md, borderRadius: T.radius.modal, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>✕</button>
+          <CloseButton onClose={onClose} />
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12, margin: '22px 0 20px' }}>

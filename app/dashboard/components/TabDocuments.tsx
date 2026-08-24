@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as expenses from '@/lib/data/expenses';
 import * as billStore from '@/lib/data/bills';
-import { T, fd, fe, fn, Modal, Skeleton, EmptyState, InfoBanner, PageTitle, SecHdr, Badge, Btn, ExportButton, ABSENT_DATE, pressable } from '@/components/Theme';
+import { T, fd, fe, fn, Modal, Skeleton, EmptyState, InfoBanner, PageTitle, SecHdr, Badge, Btn, ExportButton, ABSENT_DATE, pressable, CloseButton } from '@/components/Theme';
 import { useCoarsePointer } from '@/components/useCoarsePointer';
 import { showTool } from '@/lib/ui/thresholds';
 import { fmtBytes } from '@/lib/core/bytes';
@@ -742,9 +742,7 @@ export default function TabDocuments({
         <div className="card" style={{ marginBottom: 20 }}>
           <SecHdr label="Καταχώρηση αρχείων"
             sub='Λογαριασμός, απόδειξη, μισθωτήριο, ασφαλιστήριο, ΕΝΦΙΑ ή φωτογραφία χώρου. Αναγνωρίζεται, παρουσιάζεται προς έλεγχο, και καταχωρείται όπου ανήκει.'
-            right={<button onClick={() => setShowUpload(false)} aria-label="Κλείσιμο" title="Κλείσιμο" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, margin: -10, background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer' }}>
-              <IconX/>
-            </button>}/>
+            right={<CloseButton onClose={() => setShowUpload(false)} style={{ margin: -6 }} />}/>
 
           {(<>
           {drafts.length === 0 && (
@@ -974,7 +972,7 @@ export default function TabDocuments({
       {lightbox && lightbox.url && (
         <div {...pressable(() => setLightbox(null))}
           style={{ position: 'fixed', inset: 0, background: T.scrim, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: T.sp.xxl, flexDirection: 'column', gap: T.sp.md }}>
-          <button onClick={() => setLightbox(null)} title="Κλείσιμο" aria-label="Κλείσιμο" style={{ position: 'absolute', top: T.sp.lg, right: T.sp.lg, width: T.h.md, height: T.h.md, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.14)', color: 'var(--on-media)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><IconX size={16}/></button>
+          <CloseButton onClose={() => setLightbox(null)} tone="onMedia" style={{ position: 'absolute', top: T.sp.lg, right: T.sp.lg, borderRadius: '50%' }} />
           {/* Η ΑΚΤΙΝΑ ΜΕΝΕΙ T.radius.inner (10), ΟΧΙ T.radius.modal (18). Είχε γίνει
               «modal» στο πέρασμα των tokens, αλλά αυτό ακριβώς λέει το σχόλιο από
               πάνω ότι ΔΕΝ είναι: δεν υπάρχει επιφάνεια παραθύρου εδώ. Η ακτίνα δεν
@@ -1063,7 +1061,7 @@ function FileInner({ items, a }: { items: Item[]; a: FileActions }) {
 
 // Στρογγυλό κουμπί ενέργειας πάνω από thumbnail (grid) — σκουρόχρωμο για αντίθεση.
 const OverlayBtn = ({ title, onClick, children }: { title: string; onClick: (e: React.MouseEvent) => void; children: React.ReactNode }) => (
-  <button onClick={onClick} title={title}
+  <button onClick={onClick} title={title} className="po-box"
     style={{ width: 26, height: 26, borderRadius: '50%', border: 'none', background: T.scrim, color: 'var(--on-media)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(2px)' }}>{children}</button>
 );
 
@@ -1110,7 +1108,7 @@ function FileCard({ i, a }: { i: Item; a: FileActions }) {
 
 // Μικρό κουμπί ενέργειας σε γραμμή λίστας (εμφανίζεται στο hover).
 const RowBtn = ({ title, onClick, children }: { title: string; onClick: () => void; children: React.ReactNode }) => (
-  <button onClick={onClick} title={title}
+  <button onClick={onClick} title={title} className="po-box"
     style={{ width: 28, height: 28, borderRadius: T.radius.badge, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{children}</button>
 );
 

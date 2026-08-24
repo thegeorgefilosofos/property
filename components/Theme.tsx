@@ -258,6 +258,55 @@ function useOverlayShell(open: boolean, onClose: () => void) {
 // στήλη με πλήρες ύψος, που ανοίγει δίπλα στη λίστα και κρατά το πλαίσιο του
 // «πού είμαι». Ένα κεντραρισμένο παράθυρο θα έκρυβε τη λίστα από την οποία
 // ήρθε ο χρήστης. Ίδια συμπεριφορά (useOverlayShell), άλλη γεωμετρία.
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΟ ΚΛΕΙΣΙΜΟ, ΜΙΑ ΦΟΡΑ
+// ─────────────────────────────────────────────────────────────────────────
+// ΤΙ ΜΕΤΡΗΘΗΚΕ (24/08/2026). Εννέα κουμπιά «Κλείσιμο», σε ΕΞΙ γεωμετρίες και
+// ΤΕΣΣΕΡΑ διαφορετικά σύμβολα:
+//
+//     ×  (U+00D7)   το πλαϊνό φύλλο, το παράθυρο, η ειδοποίηση
+//     ✕  (U+2715)   η αναβάθμιση, το μηνιαίο μήνυμα
+//     IconX         τα έγγραφα, γραμμένο τοπικά μέσα στο ίδιο αρχείο
+//     X             το ημερολόγιο
+//
+// Και τα μεγέθη: 26 × 26, 40 × 44, T.h.sm, T.h.md, γεμίσματα των 11. Δηλαδή το
+// ίδιο κουμπί, στην ίδια θέση, με άλλη επιφάνεια σε κάθε οθόνη· δύο από αυτά
+// κάτω από τον κανόνα των 44 στο δάχτυλο, μετρημένα στον πάγκο κινητού.
+//
+// ΓΙΑΤΙ ΕΧΕΙ ΣΗΜΑΣΙΑ ΠΕΡΑ ΑΠΟ ΤΗΝ ΑΙΣΘΗΤΙΚΗ. Το κλείσιμο είναι το κουμπί που
+// πατά ο χρήστης όταν έχει ήδη αποφασίσει να φύγει. Αν αστοχήσει, δεν φεύγει:
+// πατά ό,τι υπάρχει από πίσω, δηλαδή κάνει κάτι που δεν ζήτησε.
+//
+// Το ύψος βγαίνει από το T.h.md, που στην αφή ανεβαίνει μόνο του στα 44.
+// ═══════════════════════════════════════════════════════════════════════════
+export function CloseButton({ onClose, tone = 'default', style, label = 'Κλείσιμο' }: {
+  onClose: () => void;
+  /** «onMedia» για πάνω σε φωτογραφία, όπου το τριτεύον γκρι χάνεται. */
+  tone?: 'default' | 'onMedia';
+  style?: CSSProperties;
+  label?: string;
+}) {
+  return (
+    <button type="button" onClick={onClose} aria-label={label} title={label}
+      style={{
+        width: T.h.md, height: T.h.md, flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        borderRadius: T.radius.badge, border: 'none', cursor: 'pointer',
+        background: tone === 'onMedia' ? 'rgba(255,255,255,0.14)' : 'transparent',
+        color: tone === 'onMedia' ? 'var(--on-media)' : 'var(--text-tertiary)',
+        transition: 'color 0.13s, background-color 0.13s',
+        ...style,
+      }}
+      onMouseEnter={e => { if (tone !== 'onMedia') e.currentTarget.style.color = 'var(--text-primary)'; }}
+      onMouseLeave={e => { if (tone !== 'onMedia') e.currentTarget.style.color = 'var(--text-tertiary)'; }}>
+      <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        strokeWidth={2} strokeLinecap="round" aria-hidden="true">
+        <path d="M18 6 6 18M6 6l12 12" />
+      </svg>
+    </button>
+  );
+}
+
 export function SideSheet({ open, onClose, ariaLabel, width = 640, header, footer, children }: {
   open: boolean; onClose: () => void;
   /** Υποχρεωτικό: ο αναγνώστης οθόνης δεν βλέπει την κεφαλίδα σου. */
@@ -280,8 +329,7 @@ export function SideSheet({ open, onClose, ariaLabel, width = 640, header, foote
 
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
           <div style={{ flex: 1, minWidth: 0 }}>{header}</div>
-          <button onClick={onClose} aria-label="Κλείσιμο"
-            style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: 11, margin: -7, fontFamily: T.font.sans, flexShrink: 0 }}>×</button>
+          <CloseButton onClose={onClose} style={{ margin: -6 }} />
         </div>
 
         <div style={{ flex: 1, padding: T.sp.xxl, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: T.sp.xl }}>
@@ -326,10 +374,7 @@ export function Modal({ open, onClose, title, ariaLabel, subtitle, icon, width =
             <div style={{ ...TT.h2 }}>{title}</div>
             {subtitle && <div style={{ ...TT.bodySm, marginTop: 1 }}>{subtitle}</div>}
           </div>
-          {/* Το padding ήταν 4, δηλαδή στόχος ~21×30: ένα «×» που αστοχεί στο
-              δάχτυλο κλείνει άλλο πράγμα από αυτό που ήθελε ο χρήστης. */}
-          <button onClick={onClose} aria-label="Κλείσιμο"
-            style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: 11, margin: -7, fontFamily: T.font.sans }}>×</button>
+          <CloseButton onClose={onClose} style={{ margin: -6 }} />
         </div>
 
         <div style={{ padding: T.sp.xxl, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: T.sp.xl }}>
