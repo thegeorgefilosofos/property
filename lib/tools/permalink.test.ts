@@ -88,13 +88,13 @@ const P = (s: string) => new URLSearchParams(s)
 {
   const path = '/ypologismos-forou-enoikion'
   ok('προεπιλογές: σκέτη η διεύθυνση της σελίδας, χωρίς ερωτηματικό',
-     toolLink('https://propertyos.gr', path, RENT, RENT) === 'https://propertyos.gr' + path)
+     toolLink('https://properwise.gr', path, RENT, RENT) === 'https://properwise.gr' + path)
   ok('με αλλαγή, η παράμετρος στο τέλος',
-     toolLink('https://propertyos.gr', path, RENT, { ...RENT, mines: '7' })
-     === 'https://propertyos.gr' + path + '?mines=7')
+     toolLink('https://properwise.gr', path, RENT, { ...RENT, mines: '7' })
+     === 'https://properwise.gr' + path + '?mines=7')
   // Το origin έρχεται από το window και μπορεί να έχει καταλήξει με κάθετο.
   ok('διπλή κάθετος δεν δημιουργείται ποτέ',
-     toolLink('https://propertyos.gr/', path, RENT, RENT) === 'https://propertyos.gr' + path)
+     toolLink('https://properwise.gr/', path, RENT, RENT) === 'https://properwise.gr' + path)
   ok('τοπική εκτέλεση με θύρα',
      toolLink('http://localhost:3000', path, RENT, { ...RENT, enoikio: '850' })
      === 'http://localhost:3000' + path + '?enoikio=850')

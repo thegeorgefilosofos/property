@@ -27,7 +27,7 @@ const BASE = (process.argv[2] || process.env.HEALTH_BASE_URL || '').trim().repla
 if (!BASE) {
   console.error('❌ Λείπει η βάση URL.');
   console.error('   Δώσε HEALTH_BASE_URL=https://… ή πέρασέ την ως πρώτο όρισμα:');
-  console.error('   node scripts/health-check.mjs https://propertyos-psi.vercel.app');
+  console.error('   node scripts/health-check.mjs https://property-tan-gamma.vercel.app');
   process.exit(1);
 }
 
@@ -87,7 +87,7 @@ async function probe(route) {
     // τυχόν cache του CDN) που παίρνει και ο κόσμος.
     res = await fetch(url, {
       redirect: 'follow',
-      headers: { 'user-agent': 'propertyos-health-check', accept: 'text/html' },
+      headers: { 'user-agent': 'properwise-health-check', accept: 'text/html' },
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
   } catch (err) {

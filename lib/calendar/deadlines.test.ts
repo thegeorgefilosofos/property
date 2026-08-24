@@ -23,7 +23,7 @@ const full: DeadlineSources = {
 };
 eq(deadlineItems(full).length, 4, 'και οι τέσσερις πηγές δίνουν γεγονός');
 eq(titles(full).join('|'), 'Ενοίκιο|ΔΕΗ|Αλλαγή κλειδαριάς|Συντήρηση καυστήρα', 'με σειρά ημερομηνίας');
-eq(uids(full).join('|'), 'rent-r1@propertyos|bill-b1@propertyos|task-t1@propertyos|event-e1@propertyos', 'κάθε πηγή έχει δικό της πρόθεμα');
+eq(uids(full).join('|'), 'rent-r1@properwise|bill-b1@properwise|task-t1@properwise|event-e1@properwise', 'κάθε πηγή έχει δικό της πρόθεμα');
 ok(deadlineItems(full)[1].note === '87,45 €', 'το ποσό μπαίνει ως σημείωση, με δύο δεκαδικά');
 
 // ── Ο,τι τελείωσε δεν ταξιδεύει ────────────────────────────────────────────
@@ -73,7 +73,7 @@ eq(deadlineItems({ ...two, properties: [{ id: 'p1', name: 'Αλεξάνδρας 
 
 // ── Το uid δεν κρέμεται από το περιεχόμενο ─────────────────────────────────
 const moved: DeadlineSources = { ...full, bills: [{ ...full.bills[0], amount: 99.99, due_date: '2026-09-12' }] };
-eq(deadlineItems(moved).find(i => i.uid.startsWith('bill-'))!.uid, 'bill-b1@propertyos',
+eq(deadlineItems(moved).find(i => i.uid.startsWith('bill-'))!.uid, 'bill-b1@properwise',
   'ΑΛΛΑΞΕ ΠΟΣΟ ΚΑΙ ΗΜΕΡΟΜΗΝΙΑ, ΤΟ UID ΕΜΕΙΝΕ: το ημερολόγιο μετακινεί, δεν διπλασιάζει');
 
 // ── Η σειρά είναι σταθερή ──────────────────────────────────────────────────

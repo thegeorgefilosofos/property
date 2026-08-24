@@ -111,26 +111,26 @@ export function deadlineItems(s: DeadlineSources): FeedItem[] {
   // Το UID ταυτίζει το γεγονός στο ημερολόγιο του χρήστη. Μια αλλαγή εδώ δεν
   // μετονομάζει τίποτα: δημιουργεί διπλότυπα σε κάθε συνδρομητή, γιατί το
   // πρόγραμμα ημερολογίου βλέπει καινούρια γεγονότα και κρατά και τα παλιά.
-    push(`event-${e.id}@propertyos`, day(e.event_date),
+    push(`event-${e.id}@properwise`, day(e.event_date),
       text(e.title) + at(e.property_id),
       [money(e.amount), text(e.notes)].filter(Boolean).join(' · '));
   }
 
   for (const t of s.tasks) {
-    push(`task-${t.id}@propertyos`, day(t.due_date),
+    push(`task-${t.id}@properwise`, day(t.due_date),
       text(t.description) + at(t.property_id), text(t.note));
   }
 
   for (const b of s.bills) {
     if (b.paid) continue;
     const what = text(b.name) || text(b.type);
-    push(`bill-${b.id}@propertyos`, day(b.due_date),
+    push(`bill-${b.id}@properwise`, day(b.due_date),
       what ? `${what}${at(b.property_id)}` : '', money(b.amount));
   }
 
   for (const r of s.rent) {
     if (r.paid) continue;
-    push(`rent-${r.id}@propertyos`, day(r.due_date),
+    push(`rent-${r.id}@properwise`, day(r.due_date),
       `Ενοίκιο${at(r.property_id)}`, money(r.amount));
   }
 

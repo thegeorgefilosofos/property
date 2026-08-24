@@ -96,14 +96,14 @@ ok('χωρίς email δεν μπαίνει κενή τιμή',
 
 // ── Η ΑΝΑΓΝΩΣΗ ΤΗΣ ΑΠΑΝΤΗΣΗΣ ──────────────────────────────────────────────
 const reply = (url: unknown) => ({ data: { attributes: { url } } })
-const URL_OK = 'https://propertyos.lemonsqueezy.com/checkout/custom/abc'
+const URL_OK = 'https://properwise.lemonsqueezy.com/checkout/custom/abc'
 ok('η διεύθυνση βγαίνει', readCheckoutUrl(reply(URL_OK)) === URL_OK)
 ok('χωρίς data, τίποτα', readCheckoutUrl({}) === null && readCheckoutUrl(null) === null)
 ok('χωρίς url, τίποτα', readCheckoutUrl(reply(undefined)) === null)
 // Ο σύνδεσμος καταλήγει σε `window.location.href`: χωρίς τον έλεγχο, μια
 // απάντηση που δεν είναι αυτή που περιμέναμε γίνεται ανοιχτή ανακατεύθυνση.
 ok('το javascript: δεν περνά', readCheckoutUrl(reply('javascript:alert(1)')) === null)
-ok('το http:// δεν περνά', readCheckoutUrl(reply('http://propertyos.lemonsqueezy.com/x')) === null)
+ok('το http:// δεν περνά', readCheckoutUrl(reply('http://properwise.lemonsqueezy.com/x')) === null)
 ok('η σχετική διαδρομή δεν περνά', readCheckoutUrl(reply('/checkout/x')) === null)
 
 async function asyncChecks() {

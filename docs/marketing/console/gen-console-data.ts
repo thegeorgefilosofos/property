@@ -12,7 +12,7 @@ const WINDOW_LABEL = (slot: string): string => {
 }
 
 const ctx: Personal = {
-  name: 'Μαρία Παπαδοπούλου', appUrl: 'https://propertyos.gr', unsubUrl: 'x',
+  name: 'Μαρία Παπαδοπούλου', appUrl: 'https://properwise.gr', unsubUrl: 'x',
   plan: 'professional', properties: 3, propertyName: 'Διαμέρισμα Κολωνάκι', period: 'Ιούλιος 2026',
   collected: 4200, expected: 5000, outstanding: 800, net: 3100, amount: 650, tenantName: 'Γιώργος',
   daysOverdue: 12, deadlineDate: '31/08', portfolioValue: 480000, occupancy: 82, days: 14,

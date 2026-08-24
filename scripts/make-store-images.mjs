@@ -103,7 +103,7 @@ for (const id of PLAN_ORDER) {
   const plan = PLANS[id]
   await page.setContent(html(plan), { waitUntil: 'load' })
   await page.evaluate(() => document.fonts.ready)
-  const file = `${OUT}/property-os-${id}.png`
+  const file = `${OUT}/properwise-${id}.png`
   await page.screenshot({ path: file })
   console.log(`✓ ${plan.name.padEnd(16)} → ${file}`)
 }

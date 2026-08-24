@@ -30,7 +30,7 @@ function veventLines(s: StayRow, stamp: string): string[] {
   const endYmd = isDate(s.check_out) && s.check_out > s.check_in ? String(s.check_out).replace(/-/g, '') : addDay(s.check_in, 1)
   const ch = (s.channel || '').toString()
   return [
-    'BEGIN:VEVENT', `UID:stay-${s.id}@propertyos`, `DTSTAMP:${stamp}`,
+    'BEGIN:VEVENT', `UID:stay-${s.id}@properwise`, `DTSTAMP:${stamp}`,
     `DTSTART;VALUE=DATE:${startYmd}`, `DTEND;VALUE=DATE:${endYmd}`,
     'SUMMARY:Μη διαθέσιμο',
     ...(ch ? [fold(`DESCRIPTION:${esc('Κανάλι: ' + ch)}`)] : []),

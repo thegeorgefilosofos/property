@@ -105,7 +105,7 @@ status θα ήταν πράσινος και τις 24 ώρες** — θα εί�
 
 ## Ρύθμιση της διεύθυνσης — `HEALTH_BASE_URL`
 
-Χωρίς ρύθμιση ελέγχεται το **default `https://propertyos-psi.vercel.app`**, και
+Χωρίς ρύθμιση ελέγχεται το **default `https://property-tan-gamma.vercel.app`**, και
 το workflow το **δηλώνει με `::warning::`** στο log. Αυτό είναι σκόπιμο: ο πιο
 ύπουλος τρόπος να αποτύχει ένα monitor είναι να ελέγχει σιωπηλά λάθος
 διεύθυνση και να μένει πράσινο ενώ το πραγματικό site είναι κάτω.
@@ -115,7 +115,7 @@ status θα ήταν πράσινος και τις 24 ώρες** — θα εί�
 1. GitHub → repo → **Settings** → *Secrets and variables* → **Actions** →
    *New repository secret*
 2. Name: `HEALTH_BASE_URL`
-3. Secret: η βάση URL **χωρίς κάθετο στο τέλος**, π.χ. `https://propertyos.gr`
+3. Secret: η βάση URL **χωρίς κάθετο στο τέλος**, π.χ. `https://properwise.gr`
 4. **Actions** → *Health* → **Run workflow**, και επιβεβαίωσε στο log ότι δεν
    εμφανίζεται πλέον το warning για το default.
 
@@ -126,7 +126,7 @@ status θα ήταν πράσινος και τις 24 ώρες** — θα εί�
 ## Τοπική εκτέλεση
 
 ```bash
-node scripts/health-check.mjs https://propertyos-psi.vercel.app
+node scripts/health-check.mjs https://property-tan-gamma.vercel.app
 # ή
 HEALTH_BASE_URL=http://localhost:3000 node scripts/health-check.mjs
 ```

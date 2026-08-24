@@ -15,7 +15,7 @@
 και **μόνο στη δική σου διεύθυνση**. Δηλαδή τίποτα δεν φτάνει σε πελάτη. Αυτή
 είναι η πραγματική εξάρτηση, όχι το κλειδί.
 
-Στο `resend.com/domains` → **Add Domain** → `propertyos.gr`. Το Resend δίνει
+Στο `resend.com/domains` → **Add Domain** → `properwise.gr`. Το Resend δίνει
 εγγραφές που μπαίνουν στον πάροχο του τομέα:
 
 | Τύπος | Ονομα | Τι κάνει |
@@ -27,7 +27,7 @@
 
 Η επαλήθευση παίρνει από λεπτά ώς μία ώρα. Το DMARC δεν το ζητά πάντα το
 Resend, αλλά **Gmail και Yahoo το απαιτούν** από το 2024 για μαζικούς
-αποστολείς. Ξεκίνα με `v=DMARC1; p=none; rua=mailto:dmarc@propertyos.gr` και
+αποστολείς. Ξεκίνα με `v=DMARC1; p=none; rua=mailto:dmarc@properwise.gr` και
 σφίξε το σε `p=quarantine` αφού δεις αναφορές για δύο εβδομάδες.
 
 ---
@@ -37,7 +37,7 @@ Resend, αλλά **Gmail και Yahoo το απαιτούν** από το 2024 �
 Supabase → Project Settings → **Edge Functions** → Secrets:
 
     RESEND_API_KEY = re_...              υποχρεωτικό
-    RESEND_FROM    = PROPERWISE <no-reply@propertyos.gr>    προαιρετικό
+    RESEND_FROM    = PROPERWISE <no-reply@properwise.gr>    προαιρετικό
 
 Το `RESEND_FROM` γράφεται **μετά** την επαλήθευση του τομέα. Χωρίς αυτό, όλες
 οι συναρτήσεις πέφτουν σε `PROPERWISE <onboarding@resend.dev>` — που δουλεύει

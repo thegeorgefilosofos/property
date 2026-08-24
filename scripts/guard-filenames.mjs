@@ -8,7 +8,7 @@
 //                 sygkrisi_akiniton_ · rythmiseis_akinitou_ · diamones_ ·
 //                 logistiki_ · dynamiki-timologisi_ · toxoxreolysio_ ·
 //                 fakelos_logisti_ · archeio.csv
-//     αγγλικά     checklist_ · E2_…_property-os · propertyos-referral-
+//     αγγλικά     checklist_ · E2_…_<επωνυμία> · properwise-referral-
 //     ελληνικά    Αποθηκευμένα_δάνεια_ · Ημερολόγιο_ · απογραφή.csv
 //
 // Ο φάκελος λήψεων ενός Έλληνα ιδιοκτήτη γέμιζε λέξεις που δεν είναι ούτε

@@ -43,8 +43,20 @@ const read = (id) => {
   return { id, name: m[1], tagline: m[2] };
 };
 
+// Η ΙΔΙΑ ΓΡΑΜΜΑΤΟΣΕΙΡΑ ΜΕ ΤΗΝ ΕΦΑΡΜΟΓΗ, ΑΠΟ ΤΟΝ ΔΙΣΚΟ
+// ─────────────────────────────────────────────────────────────────────────
+// Εδώ υπήρχε ένα `preconnect` προς το Google Fonts που ΔΕΝ φόρτωνε ποτέ φύλλο
+// στυλ: οι εικόνες των προϊόντων βγήκαν στην εφεδρική γραμματοσειρά του
+// συστήματος, δηλαδή σε άλλη γραμματοσειρά από την εφαρμογή που διαφημίζουν.
+// Τα ίδια αρχεία woff2 που σερβίρει η εφαρμογή μπαίνουν τώρα ενσωματωμένα:
+// ίδια όψη, καμία εξωτερική κλήση, και η κατασκευή δουλεύει χωρίς δίκτυο.
+const FONT_FACES = ['inter-latin', 'inter-latin-ext', 'inter-greek'].map(f =>
+  `@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;src:url(data:font/woff2;base64,${
+    readFileSync(new URL(`../public/fonts/${f}.woff2`, import.meta.url)).toString('base64')})format('woff2')}`
+).join('');
+
 const page = ({ name, tagline }) => `<!doctype html><meta charset="utf-8">
-<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>${FONT_FACES}</style>
 <body style="margin:0">
 <div style="width:${PX}px;height:${PX}px;background:${NAVY};display:flex;flex-direction:column;
             justify-content:center;align-items:center;gap:0;

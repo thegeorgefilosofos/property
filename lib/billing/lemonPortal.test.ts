@@ -10,7 +10,7 @@ import { readPortalUrl, portalUrlOf, API_KEY_ENV } from './lemonPortal'
 let pass = 0, fail = 0
 const ok = (n: string, c: boolean) => { if (c) pass++; else { fail++; console.error('✗ ' + n) } }
 
-const PORTAL = 'https://propertyos.lemonsqueezy.com/billing?expires=1&signature=abc'
+const PORTAL = 'https://properwise.lemonsqueezy.com/billing?expires=1&signature=abc'
 const reply = (url: unknown) => ({ data: { attributes: { urls: { customer_portal: url } } } })
 
 // ── Η ανάγνωση της απάντησης ──────────────────────────────────────────────
@@ -28,7 +28,7 @@ ok('το κενό και το άκυρο, τίποτα',
 // περιηγητή· χωρίς τον έλεγχο, μια απάντηση που δεν είναι αυτή που περιμέναμε
 // γίνεται ανοιχτή ανακατεύθυνση ή `javascript:`.
 ok('το javascript: δεν περνά', readPortalUrl(reply('javascript:alert(1)')) === null)
-ok('το http:// δεν περνά', readPortalUrl(reply('http://propertyos.lemonsqueezy.com/billing')) === null)
+ok('το http:// δεν περνά', readPortalUrl(reply('http://properwise.lemonsqueezy.com/billing')) === null)
 ok('η σχετική διαδρομή δεν περνά', readPortalUrl(reply('/billing')) === null)
 ok('το κενό κείμενο δεν περνά', readPortalUrl(reply('   ')) === null)
 

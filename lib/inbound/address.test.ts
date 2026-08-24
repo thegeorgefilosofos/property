@@ -8,7 +8,7 @@ let p = 0, f = 0;
 const ok = (c: boolean, m: string) => { if (c) p++; else { f++; console.error('✗', m); } };
 
 const TOKEN = 'a3f19c7d0b2e4681';
-const D = 'propertyos.gr';
+const D = 'properwise.gr';
 
 // ── Το κουπόνι ─────────────────────────────────────────────────────────────
 ok(TOKEN_LENGTH === 16, 'δεκαέξι ψηφία, δηλαδή 64 δυαδικά');
@@ -24,16 +24,16 @@ ok(normalizeToken('') === null, 'κενό δεν είναι κουπόνι');
 ok(normalizeToken(null) === null, 'απόν δεν είναι κουπόνι');
 
 // ── Ο τομέας ───────────────────────────────────────────────────────────────
-ok(inboundDomain('propertyos.gr') === D, 'ο τομέας περνά');
-ok(inboundDomain(' ProPeRtYoS.Gr ') === D, 'κενά και ανάκατα κεφαλαία καθαρίζονται');
-ok(inboundDomain('@propertyos.gr') === D, 'το παπάκι μπροστά αφαιρείται');
-ok(inboundDomain('in.propertyos.gr') === 'in.propertyos.gr', 'υποτομέας επιτρέπεται');
+ok(inboundDomain('properwise.gr') === D, 'ο τομέας περνά');
+ok(inboundDomain(' PrOpErWiSe.Gr ') === D, 'κενά και ανάκατα κεφαλαία καθαρίζονται');
+ok(inboundDomain('@properwise.gr') === D, 'το παπάκι μπροστά αφαιρείται');
+ok(inboundDomain('in.properwise.gr') === 'in.properwise.gr', 'υποτομέας επιτρέπεται');
 ok(inboundDomain('') === '', 'χωρίς ρύθμιση, κανένας τομέας');
 ok(inboundDomain(undefined) === '', 'απούσα ρύθμιση, κανένας τομέας');
-ok(inboundDomain('propertyos') === '', 'όνομα χωρίς κατάληξη δεν είναι τομέας');
-ok(inboundDomain('https://propertyos.gr') === '', 'διεύθυνση ιστού δεν είναι τομέας');
-ok(inboundDomain('propertyos.gr/inbox') === '', 'διαδρομή δεν είναι τομέας');
-ok(inboundDomain('-propertyos.gr') === '', 'τομέας δεν αρχίζει με παύλα');
+ok(inboundDomain('properwise') === '', 'όνομα χωρίς κατάληξη δεν είναι τομέας');
+ok(inboundDomain('https://properwise.gr') === '', 'διεύθυνση ιστού δεν είναι τομέας');
+ok(inboundDomain('properwise.gr/inbox') === '', 'διαδρομή δεν είναι τομέας');
+ok(inboundDomain('-properwise.gr') === '', 'τομέας δεν αρχίζει με παύλα');
 
 // ── Η διεύθυνση ────────────────────────────────────────────────────────────
 ok(inboundAddress(TOKEN, D) === `${TOKEN}@${D}`, 'κουπόνι και τομέας δίνουν διεύθυνση');

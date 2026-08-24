@@ -39,8 +39,8 @@ eq(icsStamp(NOW), '20260821T093000Z', 'η στιγμή έκδοσης σε UTC')
 
 // ── Το ημερολόγιο ──────────────────────────────────────────────────────────
 const items: FeedItem[] = [
-  { uid: 'bill-1@propertyos', date: '2026-09-05', title: 'ΔΕΗ, λογαριασμός', note: 'Ποσό 87,45 €' },
-  { uid: 'rent-1@propertyos', date: '2026-09-01', title: 'Ενοίκιο Σεπτεμβρίου' },
+  { uid: 'bill-1@properwise', date: '2026-09-05', title: 'ΔΕΗ, λογαριασμός', note: 'Ποσό 87,45 €' },
+  { uid: 'rent-1@properwise', date: '2026-09-01', title: 'Ενοίκιο Σεπτεμβρίου' },
 ];
 const ics = buildCalendarFeed(items, { name: 'PROPERWISE · Προθεσμίες', now: NOW });
 
@@ -55,7 +55,7 @@ eq((ics.match(/BEGIN:VEVENT/g) || []).length, 2, 'δύο γεγονότα');
 ok(ics.includes('DTSTART;VALUE=DATE:20260905'), 'ολοήμερο, με ημερομηνία και όχι ώρα');
 ok(ics.includes('DTEND;VALUE=DATE:20260906'), 'ΤΟ ΤΕΛΟΣ ΕΙΝΑΙ Η ΕΠΟΜΕΝΗ ΜΕΡΑ — αλλιώς το γεγονός δεν φαίνεται');
 ok(ics.includes('SUMMARY:ΔΕΗ\\, λογαριασμός'), 'ο τίτλος διαφεύγει μέσα στο ημερολόγιο');
-ok(ics.includes('UID:bill-1@propertyos'), 'το uid μένει ακέραιο');
+ok(ics.includes('UID:bill-1@properwise'), 'το uid μένει ακέραιο');
 ok(ics.includes(`DTSTAMP:${icsStamp(NOW)}`), 'η στιγμή έκδοσης');
 ok(ics.includes('DESCRIPTION:Ποσό 87\\,45'), 'η περιγραφή, με διαφυγή στο κόμμα του ποσού');
 ok(!ics.includes('DESCRIPTION:\r\n'), 'γεγονός χωρίς σημείωση δεν παίρνει κενή περιγραφή');
@@ -83,7 +83,7 @@ eq((empty.match(/BEGIN:VEVENT/g) || []).length, 0, 'χωρίς γεγονότα'
 
 // ── Κάθε γραμμή του παραγόμενου μένει στο όριο ─────────────────────────────
 const wordy = buildCalendarFeed([{
-  uid: 'long@propertyos', date: '2026-09-05',
+  uid: 'long@properwise', date: '2026-09-05',
   title: 'Ασφαλιστήριο κατοικίας με πολύ μεγάλο όνομα παρόχου και επιπλέον διευκρινίσεις',
   note: 'Σημείωση με πολλά ελληνικά γράμματα, όπου κάθε γράμμα πιάνει δύο οκτάδες και το όριο των εβδομήντα πέντε φτάνει γρήγορα.',
 }], { name: 'Δοκιμή', now: NOW });

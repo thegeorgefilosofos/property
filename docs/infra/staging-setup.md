@@ -18,7 +18,7 @@ them.
 ## Part A — what the account owner does (once)
 
 1. **Create the project.** Supabase Dashboard → *New project*.
-   - Name: `propertyos-staging`.
+   - Name: `properwise-staging`.
    - **Region: EU (Central EU / Frankfurt)** — same as production, keeps data in
      the EU.
    - Set a database password (save it in your password manager).

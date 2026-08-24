@@ -6,13 +6,13 @@
 --  τι γίνεται με δώδεκα κατηγορίες δαπανών αντί για δύο — δεν επαληθεύεται
 --  χωρίς δεδομένα. Αυτό το αρχείο φτιάχνει μια χρονιά που μοιάζει με αληθινή.
 --
---  ΠΟΥ ΤΡΕΧΕΙ. ΜΟΝΟ στο staging (propertyos-staging), από τον SQL Editor.
+--  ΠΟΥ ΤΡΕΧΕΙ. ΜΟΝΟ στο staging (properwise-staging), από τον SQL Editor.
 --  Σταματά μόνο του αν βρει παραγωγικά δεδομένα, ώστε ένα λάθος αντιγραφή
 --  επικόλληση σε λάθος καρτέλα να μη γράψει ποτέ σε πραγματικό λογαριασμό.
 --
 --  ΠΩΣ ΧΡΗΣΙΜΟΠΟΙΕΙΤΑΙ.
 --    1. Φτιάξε τον χρήστη ΑΠΟ ΤΟ PANEL: Authentication → Add user →
---       demo@propertyos.gr, με κωδικό της επιλογής σου, «Auto Confirm User».
+--       demo@properwise.gr, με κωδικό της επιλογής σου, «Auto Confirm User».
 --       Ο χρήστης ΔΕΝ φτιάχνεται εδώ: το auth.users θέλει κρυπτογράφηση
 --       κωδικού που ανήκει στην πλατφόρμα, και μισοφτιαγμένος χρήστης δεν
 --       συνδέεται ποτέ.
@@ -40,9 +40,9 @@ begin
     raise exception 'ΑΚΥΡΟ: η βάση έχει % χρήστες. Αυτό το αρχείο τρέχει μόνο στο staging.', users_total;
   end if;
 
-  select id into uid from auth.users where email = 'demo@propertyos.gr';
+  select id into uid from auth.users where email = 'demo@properwise.gr';
   if uid is null then
-    raise exception 'Δεν βρέθηκε ο demo@propertyos.gr. Φτιάξ'' τον πρώτα από Authentication → Add user, με Auto Confirm.';
+    raise exception 'Δεν βρέθηκε ο demo@properwise.gr. Φτιάξ'' τον πρώτα από Authentication → Add user, με Auto Confirm.';
   end if;
 
   -- Ξαναγράψιμο από την αρχή: το σενάριο πρέπει να δίνει το ΙΔΙΟ αποτέλεσμα

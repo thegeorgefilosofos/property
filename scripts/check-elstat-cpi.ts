@@ -51,7 +51,7 @@ function currentMonth(): string {
 }
 
 async function get(url: string): Promise<Response> {
-  const res = await fetch(url, { headers: { 'user-agent': 'PROPERWISE/1.0 (+https://property-os.gr)' } });
+  const res = await fetch(url, { headers: { 'user-agent': 'PROPERWISE/1.0 (+https://properwise.gr)' } });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText} στο ${url}`);
   return res;
 }

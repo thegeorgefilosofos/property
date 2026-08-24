@@ -42,7 +42,7 @@ await page.waitForSelector('#su-consent');
 const submit = () => page.locator('form button[type="submit"]');
 
 // ── Η ΦΟΡΜΑ ΣΥΜΠΛΗΡΩΝΕΤΑΙ ─────────────────────────────────────────────────
-await page.locator('#su-email').fill('dokimastis@propertyos.gr');
+await page.locator('#su-email').fill('dokimastis@properwise.gr');
 await page.locator('input[type="password"]').first().fill('Dokimastis2026!');
 await page.locator('#su-consent').check();
 
@@ -66,7 +66,7 @@ check('το κουμπί δεν μένει στο «Δημιουργία…» μ
 check('και δεν μένει σβησμένο', Number(dimmed) > 0.9, `opacity=${dimmed}`);
 
 // Και είναι πράγματι ξαναχρησιμοποιήσιμο: δεύτερη υποβολή περνά.
-await page.locator('#su-email').fill('allos@propertyos.gr');
+await page.locator('#su-email').fill('allos@properwise.gr');
 await submit().click();
 const back = await page.waitForSelector('text=Άνοιξε το email σου', { timeout: 4000 }).then(() => true).catch(() => false);
 check('η δεύτερη υποβολή προχωρά κανονικά', back);

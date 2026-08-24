@@ -143,7 +143,7 @@ function uid(e: CalendarEventInput): string {
   const base = `${e.date}-${e.time || 'allday'}-${e.title}`
   let h = 0
   for (let i = 0; i < base.length; i++) { h = (h * 31 + base.charCodeAt(i)) | 0 }
-  return `${(h >>> 0).toString(36)}@propertyos`
+  return `${(h >>> 0).toString(36)}@properwise`
 }
 export function buildICS(e: CalendarEventInput): string {
   const r = resolve(e)

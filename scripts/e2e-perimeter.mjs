@@ -47,7 +47,7 @@ const received = (over = {}) => JSON.stringify({
   data: {
     email_id: 'e2e-' + Math.random().toString(16).slice(2),
     from: 'ΔΕΗ <no-reply@example.com>',
-    to: ['a3f19c7d0b2e4681@propertyos.gr'],
+    to: ['a3f19c7d0b2e4681@properwise.gr'],
     cc: [], bcc: [], received_for: [],
     message_id: '<e2e@mail>', subject: 'Λογαριασμός ρεύματος', attachments: [],
     ...over,
@@ -108,7 +108,7 @@ if (!SECRET) {
     }
   }
   {
-    const body = received({ to: ['info@propertyos.gr'], received_for: [] })
+    const body = received({ to: ['info@properwise.gr'], received_for: [] })
     const r = await post(body, signed(body))
     ok('μήνυμα σε ανθρώπινη διεύθυνση δεν είναι σφάλμα', r.status === 200 || r.status === 500)
   }

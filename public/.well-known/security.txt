@@ -12,11 +12,11 @@
 #  να αλλάξει και η /trust: οι δύο σελίδες δεν επιτρέπεται να διαφωνούν.
 # ══════════════════════════════════════════════════════════════════════════
 
-Contact: mailto:security@propertyos.gr
+Contact: mailto:security@properwise.gr
 Expires: 2027-08-01T00:00:00.000Z
 Preferred-Languages: el, en
-Canonical: https://propertyos.gr/.well-known/security.txt
-Policy: https://propertyos.gr/trust
+Canonical: https://properwise.gr/.well-known/security.txt
+Policy: https://properwise.gr/trust
 
 # ── 1. Ασφαλής λιμένας ─────────────────────────────────────────────────────
 #
@@ -59,7 +59,7 @@ Policy: https://propertyos.gr/trust
 
 # ── 4. Εμβέλεια ────────────────────────────────────────────────────────────
 #
-#  ΕΝΤΟΣ: propertyos.gr και οι υποτομείς του, η εφαρμογή, οι δημόσιες πύλες
+#  ΕΝΤΟΣ: properwise.gr και οι υποτομείς του, η εφαρμογή, οι δημόσιες πύλες
 #  με σύνδεσμο (check-in επισκέπτη, λογιστή, ενοικιαστή), τα δημόσια API.
 #
 #  ΕΚΤΟΣ: υποδομή τρίτων παρόχων (Supabase, Vercel, GitHub, Resend,
@@ -80,7 +80,7 @@ Policy: https://propertyos.gr/trust
 #
 #  Safe harbour: we will not pursue legal action against research that
 #  follows section 2, and we will confirm in writing that it was authorised
-#  if a third party comes after you. Report to security@propertyos.gr, give
+#  if a third party comes after you. Report to security@properwise.gr, give
 #  us 90 days before publishing, take only the minimum proof, never touch
 #  third-party data, no DoS, no social engineering, test on your own account.
 #  We acknowledge within 3 business days, trial within 10, update you every

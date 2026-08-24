@@ -22,7 +22,7 @@
 1. **search.google.com/search-console** · «Προσθήκη ιδιοκτησίας».
    Διάλεξε **Domain** (όχι URL prefix) αν έχεις πρόσβαση στο DNS: καλύπτει
    `http`, `https`, `www` και υποτομείς με μία εγγραφή. Αλλιώς **URL prefix** με
-   `https://propertyos.gr`.
+   `https://properwise.gr`.
 
 2. **Επαλήθευση.**
    - *Domain*: το Google δίνει μια εγγραφή `TXT` για το DNS του τομέα. Είναι ο
@@ -40,7 +40,7 @@
    και οι σελίδες με token μένουν έξω, όπως και στο `app/robots.ts`.
 
 4. **Έλεγχος διεύθυνσης.** Στο «Έλεγχος URL» δώσε
-   `https://propertyos.gr/ypologismos-enfia` και ζήτησε ευρετηρίαση. Το ίδιο για
+   `https://properwise.gr/ypologismos-enfia` και ζήτησε ευρετηρίαση. Το ίδιο για
    τον δεύτερο υπολογιστή και την αρχική. Επιταχύνει την πρώτη σάρωση κατά μέρες.
 
 5. **Σύνδεση με Analytics, αν υπάρχει.** Δεν είναι απαραίτητο· η Search Console

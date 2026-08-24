@@ -91,7 +91,7 @@ export const MUTATIONS = {
     to: "  orfani_epistoli: (c) => ({ subject: 'Δοκιμή', html: '' }),\n  welcome_free: (",
   },
   // Το παλιό όνομα επιστρέφει όπως έφυγε: με μία επικόλληση σε ένα σημείο.
-  'brand-name': { add: 'components/__mut__.tsx', content: tsx('    <div>Καλώς όρισες στο Property OS</div>') },
+  'brand-name': { add: 'components/__mut__.tsx', content: tsx('    <div>Καλώς όρισες στο propertyos</div>') },
   // Ακριβώς το χειρόγραφο πλακίδιο που έμεινε σε τρία σημεία μετά τη μετονομασία.
   'brand-mark': { add: 'components/__mut__.tsx', content: tsx("    <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--accent)' }}>P</div>") },
   'brand-mark-edge': { add: 'supabase/functions/_shared/__mut__.ts', content: 'export const head = () => `<div style="width:34px"><span>P</span></div>`\n' },
@@ -108,7 +108,7 @@ export const MUTATIONS = {
   'silent-reads': { add: 'lib/core/__mut__.ts', content: "export async function load(sb: { from: (t: string) => { select: (c: string) => Promise<{ data: unknown[] | null }> } }) {\n  const { data } = await sb.from('bills').select('*')\n  return data\n}\n" },
   'download': { add: 'components/__mut__.ts', content: "export const save = (blob: Blob) => {\n  const a = document.createElement('a')\n  a.href = URL.createObjectURL(blob)\n  a.download = 'arxeio.csv'\n  a.click()\n}\n" },
   'official-links': { add: 'components/__mut__.tsx', content: tsx('    <a href="https://www.aade.gr/polites">Ημερολόγιο</a>') },
-  'site-url': { add: 'components/__mut__.ts', content: "export const url = 'https://propertyos.gr/imerologio'\n" },
+  'site-url': { add: 'components/__mut__.ts', content: "export const url = 'https://properwise.gr/imerologio'\n" },
   'security-txt': { file: 'public/.well-known/security.txt', from: 'Expires:', to: 'X-Expires:' },
   'tax-year': { add: 'lib/core/__mut__.ts', content: "import { rentalIncomeTax } from '@/lib/billing/greekTax'\nexport const t = (year: number, taxable: number) => { void year; return rentalIncomeTax(taxable) }\n" },
   'stale-flags': { add: 'lib/core/__mut__.ts', content: "export const CALL = { deadline: '2020-01-12', is_active: true }\n" },

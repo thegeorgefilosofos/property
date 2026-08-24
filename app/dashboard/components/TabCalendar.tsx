@@ -1847,7 +1847,7 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
         // UID. Αν αλλάξει, κάθε ήδη κατεβασμένο γεγονός γίνεται ΞΕΝΟ: μένει ως
         // φάντασμα και δίπλα του εμφανίζεται διπλότυπο. Η μετονομασία δεν
         // επιτρέπεται να διπλασιάσει τις προθεσμίες κανενός.
-        `UID:${e.id}@property-os`,
+        `UID:${e.id}@properwise`,
         `DTSTAMP:${stamp}`,
         `DTSTART;VALUE=DATE:${d}`,
         `DTEND;VALUE=DATE:${d}`,

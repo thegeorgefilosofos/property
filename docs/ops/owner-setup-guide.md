@@ -42,7 +42,7 @@ the substance of what push protection would enforce.
 ## 3. Harden Supabase Auth (no domain needed)
 
 **Supabase Dashboard → Authentication → URL Configuration / Policies:**
-- **Redirect URLs**: restrict to your app's URL(s) only (e.g. `https://propertyos.gr/**`
+- **Redirect URLs**: restrict to your app's URL(s) only (e.g. `https://properwise.gr/**`
   and your Vercel/preview URL) — remove any wildcard `*`. The confirmation link
   now returns to `/auth/callback`, which the `/**` suffix already covers; if you
   list exact URLs instead, add `https://<your-domain>/auth/callback`.

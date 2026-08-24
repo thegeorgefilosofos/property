@@ -2002,7 +2002,7 @@ do $probe$
 declare
   t uuid := '33333333-3333-3333-3333-333333333331';
 begin
-  insert into auth.users (id, email) values (t, 'dokimastis@propertyos.gr');
+  insert into auth.users (id, email) values (t, 'dokimastis@properwise.gr');
   -- Το `trial_used_at` σφραγίζεται, αλλιώς ισχύει η τοπική δοκιμή των πρώτων
   -- ημερών και ο λογαριασμός θα είχε επίπεδο για λόγο άσχετο με τη δοκιμή εδώ.
   insert into public.billing_profiles (user_id, plan, trial_used_at) values (t, 'free', now())
@@ -2042,28 +2042,28 @@ declare
   n int;
 begin
   insert into auth.users (id, email, email_confirmed_at, created_at, last_sign_in_at)
-       values (o, 'adranis@propertyos.gr', now(), now() - interval '90 days', now() - interval '35 days');
+       values (o, 'adranis@properwise.gr', now(), now() - interval '90 days', now() - interval '35 days');
   insert into public.billing_profiles (user_id, plan) values (o, 'free')
     on conflict (user_id) do update set plan = 'free';
   insert into public.user_properties (id, user_id, name, rental_mode)
        values (pr, o, 'Βραχυχρόνιο', 'short_term');
   insert into public.tenants (id, user_id, property_id, full_name, email, lease_start, monthly_rent)
-       values (te, o, pr, 'Νέος Ενοικιαστής', 'enoikiastis@propertyos.gr', current_date, 480.00);
+       values (te, o, pr, 'Νέος Ενοικιαστής', 'enoikiastis@properwise.gr', current_date, 480.00);
 
   perform public.lifecycle_enqueue();
 
   select count(*) into n from public.email_outbox
-   where copy_id = 'inactive_30' and to_email = 'adranis@propertyos.gr';
+   where copy_id = 'inactive_30' and to_email = 'adranis@properwise.gr';
   if n <> 1 then raise exception 'Η αδράνεια 30 ημερών δεν μπήκε στην ουρά: % γραμμές', n; end if;
 
   select count(*) into n from public.email_outbox
-   where copy_id = 'connect_calendar' and to_email = 'adranis@propertyos.gr';
+   where copy_id = 'connect_calendar' and to_email = 'adranis@properwise.gr';
   if n <> 1 then raise exception 'Η σύνδεση ημερολογίου δεν μπήκε στην ουρά: % γραμμές', n; end if;
 
   -- ΠΑΕΙ ΣΤΟΝ ΕΝΟΙΚΙΑΣΤΗ, ΚΑΙ ΕΙΝΑΙ ΛΕΙΤΟΥΡΓΙΚΟ. Αν έφευγε ως εμπορικό, θα
   -- ήταν μήνυμα μάρκετινγκ σε άνθρωπο που δεν έδωσε ποτέ συγκατάθεση.
   select count(*) into n from public.email_outbox
-   where copy_id = 'tenant_welcome' and to_email = 'enoikiastis@propertyos.gr'
+   where copy_id = 'tenant_welcome' and to_email = 'enoikiastis@properwise.gr'
      and category = 'operational';
   if n <> 1 then raise exception 'Το καλωσόρισμα ενοικιαστή δεν έφυγε σωστά: % γραμμές', n; end if;
 
@@ -2071,7 +2071,7 @@ begin
   perform public.lifecycle_enqueue();
   select count(*) into n from public.email_outbox
    where copy_id in ('inactive_30', 'connect_calendar', 'tenant_welcome')
-     and to_email in ('adranis@propertyos.gr', 'enoikiastis@propertyos.gr');
+     and to_email in ('adranis@properwise.gr', 'enoikiastis@properwise.gr');
   if n <> 3 then raise exception 'Δεύτερο πέρασμα ξαναέστειλε: % γραμμές αντί για 3', n; end if;
 
   raise notice 'probe: τα έξι κείμενα φεύγουν, και δεν ξαναφεύγουν στο δεύτερο πέρασμα';

@@ -22,7 +22,7 @@ ok(referralCode(uid) === referralCode(uid), 'κωδικός ντετερμινι
 ok(/^PO[0-9A-Z]{7}$/.test(referralCode(uid)), 'κωδικός σε μορφή (PO + 7, χωρίς απώλεια ψηφίων)');
 ok(referralCode(uid).length === 9, 'κωδικός σταθερού μήκους 9');
 ok(referralCode(uid) !== referralCode('other'), 'διαφορετικοί χρήστες → διαφορετικοί κωδικοί');
-ok(referralLink('https://propertyos.gr/', uid) === `https://propertyos.gr/signup?ref=${referralCode(uid)}`, 'σύνδεσμος καθαρός');
+ok(referralLink('https://properwise.gr/', uid) === `https://properwise.gr/signup?ref=${referralCode(uid)}`, 'σύνδεσμος καθαρός');
 
 // Ο έλεγχος μορφής φυλάει την οθόνη της εγγραφής: ό,τι δείχνεται ως «κωδικός
 // πρόσκλησης» έρχεται από τη διεύθυνση, άρα το γράφει ο καθένας.

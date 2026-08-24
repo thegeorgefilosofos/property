@@ -4,9 +4,9 @@
 // ─────────────────────────────────────────────────────────────────────────
 // ΤΡΕΙΣ ΔΙΕΥΘΥΝΣΕΙΣ ΣΥΝΥΠΗΡΧΑΝ, ΚΑΙ Η ΜΙΑ ΔΕΝ ΑΠΑΝΤΟΥΣΕ ΚΑΝ:
 //
-//   `https://propertyos.gr`             — domain που ΔΕΝ έχει αγοραστεί, σε
+//   `https://properwise.gr`             — domain που ΔΕΝ έχει αγοραστεί, σε
 //     canonical, sitemap, δομημένα δεδομένα και σε έξι συναρτήσεις email.
-//   `https://propertyos-psi.vercel.app` — άλλη διεύθυνση Vercel, σε τρεις.
+//   ένας παλιός host του Vercel — άλλη διεύθυνση, σε τρεις.
 //   και η πραγματική διεύθυνση παραγωγής, σε καμία.
 //
 // Ενας ιδιοκτήτης που πατούσε «Άνοιγμα PROPERWISE» σε υπενθύμιση κατέληγε
@@ -24,7 +24,7 @@ import { projectFiles } from './lib/git-files.mjs';
 const OWNERS = new Set(['lib/core/site.ts', 'supabase/functions/_shared/site.ts']);
 
 /** Διευθύνσεις που ανήκουν σε ΕΜΑΣ. Ξένες (aade.gr, resend.dev) δεν αφορούν. */
-const OURS = /https:\/\/(?:[a-z0-9-]+\.)*(?:propertyos\.gr|property-tan-gamma\.vercel\.app|propertyos-psi\.vercel\.app)/;
+const OURS = /https:\/\/(?:[a-z0-9-]+\.)*(?:properwise\.gr|property-tan-gamma\.vercel\.app)/;
 
 /**
  * Κόβει το σχόλιο, ΟΧΙ τη διεύθυνση.

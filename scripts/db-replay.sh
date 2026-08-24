@@ -178,7 +178,7 @@ probes=$((probes + $(echo "$sout" | grep -c 'probe:' || true)))
 # χρονιά. Γράφτηκε μία φορά και θα σάπιζε στην πρώτη μετονομασία στήλης — όπως
 # σάπισε ήδη ένα λεκτικό που υποσχόταν αρχεία που δεν υπήρχαν. Εδώ τρέχει σε
 # κάθε έλεγχο, οπότε δεν μπορεί να αποκλίνει από το σχήμα σιωπηλά.
-$PSQL -d posdb -c "insert into auth.users(id,email) values (gen_random_uuid(),'demo@propertyos.gr')" >/dev/null
+$PSQL -d posdb -c "insert into auth.users(id,email) values (gen_random_uuid(),'demo@properwise.gr')" >/dev/null
 if ! out=$($PSQL -d posdb -f "$ROOT/scripts/db/staging-demo.sql" 2>&1); then
   echo "🔴 Το σενάριο του staging δεν τρέχει πια πάνω στο σχήμα:"
   echo "$out" | grep -m3 -E 'ERROR|DETAIL' | sed 's/^/    /'

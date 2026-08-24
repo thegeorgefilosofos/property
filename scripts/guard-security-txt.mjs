@@ -1,82 +1,75 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-// ΤΟ security.txt ΔΕΝ ΕΠΙΤΡΕΠΕΤΑΙ ΝΑ ΛΗΞΕΙ ΣΙΩΠΗΛΑ
+// ΤΟ security.txt ΛΕΕΙ ΤΗΝ ΙΔΙΑ ΔΙΕΥΘΥΝΣΗ ΜΕ ΤΗΝ ΕΦΑΡΜΟΓΗ
 // ─────────────────────────────────────────────────────────────────────────
-// ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΒΡΕΘΗΚΕ. Το αρχείο δήλωνε ότι ακολουθεί το RFC 9116 και δεν
-// είχε το πεδίο `Expires`, που το RFC ορίζει ΥΠΟΧΡΕΩΤΙΚΟ (§2.5.5). Δηλαδή
-// έγραφε «είμαι έγκυρο κατά το πρότυπο» ενώ κάθε εργαλείο που το διαβάζει
-// μηχανικά το απορρίπτει. Μια πολιτική ασφαλείας που δεν περνά τον έλεγχο του
-// ίδιου προτύπου που επικαλείται είναι χειρότερη από το να μην υπάρχει.
+// ΤΙ ΕΙΝΑΙ ΤΟ ΑΡΧΕΙΟ. Δημόσιο, στο /.well-known/security.txt, και το διαβάζει
+// ερευνητής ασφαλείας που μόλις βρήκε ευπάθεια. Λέει πού να τη στείλει.
 //
-// ΓΙΑΤΙ ΦΥΛΑΚΑΣ ΚΑΙ ΟΧΙ ΑΠΛΩΣ ΔΙΟΡΘΩΣΗ. Το `Expires` είναι ημερομηνία γραμμένη
-// με το χέρι, το πολύ έναν χρόνο μπροστά. Δηλαδή είναι ΕΓΓΥΗΜΕΝΟ ότι κάποια
-// στιγμή θα λήξει, και τη μέρα που θα λήξει κανείς δεν θα το κοιτάζει: ο
-// ερευνητής που βρήκε κενό θα δει ληγμένη πολιτική και θα υποθέσει, εύλογα,
-// ότι δεν ισχύει η υπόσχεση περί ασφαλούς λιμένα. Ο φύλακας χτυπά ΠΡΙΝ λήξει,
-// όσο υπάρχει χρόνος να ανανεωθεί χωρίς βιασύνη.
+// ΓΙΑΤΙ ΧΡΕΙΑΖΕΤΑΙ ΦΥΛΑΚΑΣ. Είναι στατικό κείμενο: δεν εισάγει τίποτα, δεν
+// μεταγλωττίζεται, κανένας τύπος δεν το ελέγχει. Οταν αλλάξει η διεύθυνση
+// αλληλογραφίας στο lib/legal/identity.ts, αυτό μένει πίσω σιωπηλά, και η
+// αναφορά ευπάθειας φεύγει σε παλιά ή ξένη διεύθυνση. Το χειρότερο είδος
+// απόκλισης: φαίνεται μόνο τη στιγμή που κάποιος προσπαθεί να μας βοηθήσει.
 //
-// ΤΙ ΕΛΕΓΧΕΙ
-//   1. Υπάρχουν τα υποχρεωτικά πεδία `Contact` και `Expires`.
-//   2. Το `Expires` είναι έγκυρη ημερομηνία ISO 8601, στο μέλλον, και όχι
-//      πάνω από έναν χρόνο μπροστά (§2.5.5: «less than a year»).
-//   3. Απομένουν τουλάχιστον 60 ημέρες. Κάτω από αυτό το όριο η CI κοκκινίζει
-//      ως υπενθύμιση, όχι ως καταστροφή.
-//   4. Το `Policy` δείχνει στη σελίδα που όντως περιγράφει την πολιτική, και
-//      το `Canonical` στο ίδιο το αρχείο. Λάθος εδώ σημαίνει ότι ο ερευνητής
-//      καταλήγει σε 404 τη στιγμή που μας κάνει χάρη.
-//   5. Το `Preferred-Languages` γράφεται ΜΙΑ φορά (§2.5.8).
+// ΤΙ ΕΛΕΓΧΕΙ. Οτι το `Contact:` του αρχείου συμφωνεί με το `securityEmail` της
+// ταυτότητας, ότι κάθε άλλη διεύθυνση μέσα του είναι στον ίδιο τομέα, και ότι
+// το `Expires:` υπάρχει και δεν έχει περάσει.
+//
+// ΓΙΑΤΙ ΚΑΙ ΤΟ `Expires`. Το RFC 9116 το κάνει ΥΠΟΧΡΕΩΤΙΚΟ, και ορίζει ότι ένα
+// αρχείο με περασμένη ημερομηνία ΔΕΝ ισχύει: τα εργαλεία των ερευνητών το
+// απορρίπτουν ολόκληρο, μαζί με τον ασφαλή λιμένα που υπόσχεται. Δηλαδή ένα
+// πεδίο που κανείς δεν κοιτά ακυρώνει σιωπηλά ενενήντα γραμμές πολιτικής.
+// Ο έλεγχος κοκκινίζει ΜΟΝΟ όταν η ημερομηνία περάσει, όχι νωρίτερα· από τις
+// σαράντα πέντε ημέρες πριν τυπώνει προειδοποίηση, ώστε η ανανέωση να γίνει
+// με την ησυχία της και να μη βρει κλειστό δρόμο μια άσχετη αλλαγή.
 // ═══════════════════════════════════════════════════════════════════════════
 import { readFileSync } from 'node:fs'
 
 const FILE = 'public/.well-known/security.txt'
-const POLICY = 'https://propertyos.gr/trust'
-const CANONICAL = 'https://propertyos.gr/.well-known/security.txt'
-const MIN_DAYS = 60
-const DAY = 86_400_000
+const IDENT = 'lib/legal/identity.ts'
 
-const text = readFileSync(FILE, 'utf8')
-const fields = new Map()
-for (const raw of text.split('\n')) {
-  const line = raw.trim()
-  if (!line || line.startsWith('#')) continue
-  const i = line.indexOf(':')
-  if (i < 0) continue
-  const name = line.slice(0, i).trim()
-  const value = line.slice(i + 1).trim()
-  fields.set(name, [...(fields.get(name) || []), value])
-}
-
-const errors = []
-const push = (msg, fix) => errors.push({ msg, fix })
-
-for (const required of ['Contact', 'Expires']) {
-  if (!fields.has(required)) push(`Λείπει το υποχρεωτικό πεδίο «${required}» (RFC 9116).`, `Πρόσθεσέ το στο ${FILE}.`)
-}
-
-const expires = fields.get('Expires')?.[0]
-if (expires) {
-  if (fields.get('Expires').length > 1) push('Το «Expires» γράφεται μία μόνο φορά.', 'Κράτα την πιο μακρινή ημερομηνία.')
-  const when = Date.parse(expires)
-  if (Number.isNaN(when)) {
-    push(`Το «Expires» δεν είναι έγκυρη ημερομηνία: ${expires}`, 'Μορφή ISO 8601, π.χ. 2027-08-01T00:00:00.000Z')
-  } else {
-    const days = Math.floor((when - Date.now()) / DAY)
-    if (days < 0) push(`Το «Expires» έχει ΛΗΞΕΙ εδώ και ${-days} ημέρες.`, 'Ανανέωσέ το και επιβεβαίωσε ότι η πολιτική ισχύει ακόμη.')
-    else if (days < MIN_DAYS) push(`Το «Expires» λήγει σε ${days} ημέρες.`, `Ανανέωσέ το πριν πέσει κάτω από τις ${MIN_DAYS}.`)
-    if (days > 366) push(`Το «Expires» είναι ${days} ημέρες μπροστά.`, 'Το RFC 9116 ζητά λιγότερο από έναν χρόνο.')
-  }
-}
-
-if (fields.get('Policy')?.[0] !== POLICY) push(`Το «Policy» πρέπει να δείχνει στο ${POLICY}.`, 'Εκεί ζει η σελίδα «Ποιοι είμαστε».')
-if (fields.get('Canonical')?.[0] !== CANONICAL) push(`Το «Canonical» πρέπει να δείχνει στο ${CANONICAL}.`, 'Είναι η διεύθυνση του ίδιου του αρχείου.')
-if ((fields.get('Preferred-Languages') || []).length > 1) push('Το «Preferred-Languages» γράφεται μία μόνο φορά (RFC 9116 §2.5.8).', 'Ένωσέ τα σε μία γραμμή με κόμμα.')
-
-if (errors.length) {
-  console.error(`\n✗ ${errors.length} πρόβλημα(τα) στο ${FILE}:\n`)
-  for (const e of errors) console.error(`  ${e.msg}\n    → ${e.fix}`)
-  console.error('')
+const ident = readFileSync(IDENT, 'utf8')
+const domain = /export const MAIL_DOMAIN = '([^']+)'/.exec(ident)?.[1]
+if (!domain) {
+  console.error(`✗ Δεν βρέθηκε το MAIL_DOMAIN στο ${IDENT}`)
   process.exit(1)
 }
+const expected = `security@${domain}`
 
-const left = Math.floor((Date.parse(fields.get('Expires')[0]) - Date.now()) / DAY)
-console.log(`✅ security.txt: έγκυρο κατά RFC 9116, ισχύει για ${left} ημέρες ακόμη.`)
+const txt = readFileSync(FILE, 'utf8')
+const contact = /^Contact:\s*mailto:(\S+)/m.exec(txt)?.[1]
+
+const problems = []
+if (!contact) problems.push('λείπει γραμμή «Contact: mailto:…»')
+else if (contact !== expected)
+  problems.push(`το «Contact» λέει «${contact}», η ταυτότητα λέει «${expected}»`)
+
+// Η λήξη. Υποχρεωτικό πεδίο του RFC 9116 και το μόνο που ακυρώνει το αρχείο
+// χωρίς να το αγγίξει κανείς: περνά μόνο του, με τον χρόνο.
+const expires = /^Expires:\s*(\S+)/m.exec(txt)?.[1]
+const at = expires ? new Date(expires) : null
+const DAY = 86400000
+if (!expires) problems.push('λείπει γραμμή «Expires:» — υποχρεωτική κατά RFC 9116')
+else if (!at || Number.isNaN(at.getTime()))
+  problems.push(`το «Expires» δεν διαβάζεται ως ημερομηνία: «${expires}»`)
+else if (at.getTime() <= Date.now())
+  problems.push(`το «Expires» έληξε στις ${at.toISOString().slice(0, 10)}: το αρχείο δεν ισχύει πια`)
+else if (at.getTime() - Date.now() < 45 * DAY)
+  console.warn(`⚠ το security.txt λήγει σε ${Math.ceil((at.getTime() - Date.now()) / DAY)} ημέρες (${at.toISOString().slice(0, 10)}). Ανανέωσε το «Expires».`)
+
+// Καμία διεύθυνση σε ΑΛΛΟΝ τομέα: μια ξεχασμένη παλιά θα δεχόταν αναφορές που
+// δεν φτάνουν πουθενά.
+for (const m of txt.matchAll(/[a-zA-Z0-9._%+-]+@([a-zA-Z0-9.-]+\.[a-z]{2,})/g))
+  if (m[1] !== domain) problems.push(`διεύθυνση σε ξένο τομέα: «${m[0]}»`)
+
+if (problems.length) {
+  console.error(`✗ το ${FILE} δεν συμφωνεί με την ταυτότητα:\n`)
+  for (const p of problems) console.error('  ' + p)
+  console.error(`
+  Η διεύθυνση αλληλογραφίας ζει στο ${IDENT} (MAIL_DOMAIN). Το στατικό αρχείο
+  δεν την εισάγει, οπότε ενημερώνεται με το χέρι και ελέγχεται από εδώ. Το
+  «Expires» ανανεώνεται στο ίδιο αρχείο, με ορίζοντα κάτω του έτους.
+`)
+  process.exit(1)
+}
+console.log(`✓ το security.txt δείχνει στο ${expected} και ισχύει έως ${at.toISOString().slice(0, 10)}`)

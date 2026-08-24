@@ -67,7 +67,7 @@ eq(rentReminder({ ...base, baseRent: 450, services: 0 }),
   'ΧΩΡΙΣ ΥΠΗΡΕΣΙΕΣ ΔΕΝ ΛΕΓΕΤΑΙ ΤΟ ΙΔΙΟ ΠΟΣΟ ΔΥΟ ΦΟΡΕΣ');
 
 // ── Η πύλη ─────────────────────────────────────────────────────────────────
-const URL_ = 'https://propertyos.gr/portal/abc123';
+const URL_ = 'https://properwise.gr/portal/abc123';
 ok(rentReminder({ ...base, portalUrl: URL_ }).endsWith(`Τι οφείλεται και πώς πληρώνεται: ${URL_}`),
   'Η ΠΥΛΗ ΤΑΞΙΔΕΥΕΙ ΜΑΖΙ ΜΕ ΤΟ ΜΗΝΥΜΑ');
 ok(!rentReminder({ ...base, portalUrl: '' }).includes('πληρώνεται:'), 'χωρίς πύλη, καμία γραμμή πύλης');

@@ -28,8 +28,15 @@ const SUPABASE_KEY   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const LAUNCH_SECRET  = Deno.env.get('MOBILE_LAUNCH_SECRET') || ''
 const FROM_EMAIL     = Deno.env.get('RESEND_FROM') || 'PROPERWISE <onboarding@resend.dev>'
 const APP_URL        = `${SITE}/dashboard`
-const IOS_URL        = 'https://apps.apple.com/app/property-os'
-const ANDROID_URL    = 'https://play.google.com/store/apps/details?id=com.propertyos'
+// ΤΑ ΔΥΟ ΚΑΤΑΣΤΗΜΑΤΑ, ΑΠΟ ΤΟ ΠΕΡΙΒΑΛΛΟΝ ΚΑΙ ΟΧΙ ΚΑΡΦΩΤΑ.
+// Καμία από τις δύο καταχωρήσεις δεν υπάρχει ακόμη, άρα ΚΑΝΕΝΑ αναγνωριστικό
+// δεν είναι γνωστό: ούτε το «id» του Google Play ούτε το αριθμητικό του App
+// Store. Ενα μαντεμένο εδώ θα ταξίδευε μέσα σε email προς πελάτες και θα
+// άνοιγε σελίδα «δεν βρέθηκε». Οι προεπιλογές δείχνουν στην αναζήτηση του κάθε
+// καταστήματος, που ΑΠΑΝΤΑ πάντα, και οι πραγματικές μπαίνουν ως μεταβλητές
+// την ημέρα της δημοσίευσης.
+const IOS_URL        = Deno.env.get('IOS_APP_URL') || 'https://www.apple.com/app-store/'
+const ANDROID_URL    = Deno.env.get('ANDROID_APP_URL') || 'https://play.google.com/store/search?q=PROPERWISE&c=apps'
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
