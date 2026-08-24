@@ -22,8 +22,8 @@ import { saved } from '@/components/dbWrite';
 import { forecastMonthEnd, categoryStatus, annualSummary, periodTrend, detectRecurring, RecurringCharge } from '@/lib/billing/budget';
 import { rolloverNext, strWaterfall, investmentReturns } from '@/lib/billing/budgetPro';
 import { incomeStatement } from '@/lib/accounting/statement';
-import { annuityMonthly, interestForYear } from '@/lib/loans/recommend';
-import { isActiveLoan } from '@/lib/loans/shape';
+import { interestForYear } from '@/lib/loans/recommend';
+import { isActiveLoan, loansInstalmentTotal } from '@/lib/loans/shape';
 import { InfoDot } from './UIComponents';
 import { KPI } from './LoanShared';
 import BudgetImport from './BudgetImport';
@@ -432,8 +432,10 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       // γίνεται ΜΙΑ φορά εδώ και τη μοιράζονται και οι τρεις καταναλωτές
       // παρακάτω (δόση, τόκοι έτους, υπόλοιπο κεφαλαίου).
       const activeLoans = loansRes.filter(isActiveLoan);
-      const loanM = activeLoans
-        .reduce((s: number, l) => s + annuityMonthly(l.amount, l.rate, Number(l.years) || 0), 0);
+      // Η δόση βγαίνει από το lib/loans/shape.ts, όπως το ποσό και το επιτόκιο.
+      // Ηταν γραμμένη εδώ και η Σύγκριση δεν την είχε καθόλου· τώρα υπάρχει μία
+      // γραφή που δεν μπορεί να αποκλίνει από οθόνη σε οθόνη.
+      const loanM = loansInstalmentTotal(activeLoans);
       setLoanMonthly(Math.round(loanM));
 
       // Κλειδιά προσαρμοσμένων κατηγοριών (c_*): αν μια δαπάνη έχει αποθηκευτεί σε custom

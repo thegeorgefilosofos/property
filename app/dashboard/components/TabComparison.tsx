@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import * as expenses from '@/lib/data/expenses';
 import * as billStore from '@/lib/data/bills';
 import * as tenantStore from '@/lib/data/tenants';
+import * as loanStore from '@/lib/data/loans';
 // Οι ρυθμίσεις ανά ενότητα έχουν ένα σπίτι: lib/data/settings.
 import * as settings from '@/lib/data/settings';
 import { T, fe, fn, fp, ABSENT, ABSENT_SHORT, Skeleton, ExportButton, EmptyState, InfoBanner, PageTitle } from '@/components/Theme';
@@ -16,6 +17,7 @@ import { money } from './sheetFormat';
 import { consolidateRentTax, taxShareOf, CONSOLIDATION_NOTE } from '@/lib/billing/consolidate';
 import { resolveValue } from '@/lib/billing/propertyFacts';
 import { mergeLedger, ledgerTotal, recurringMonthly, monthlyAverage } from '@/lib/expenses/ledger';
+import { loanInstalment } from '@/lib/loans/shape';
 import { athensToday } from '@/lib/core/time';
 import type { ExpensesRow, BillsRow, TenantsRow } from '@/lib/supabase/tables';
 
@@ -40,6 +42,8 @@ interface Agg {
   expensesMonthly: number | null;
   /** Ο μέσος μήνας σε πάγια, διαιρεμένος με το ΕΥΡΟΣ του ιστορικού (όχι με 12). */
   recurringMonthly: number;
+  /** Η μηνιαία δόση των ΕΝΕΡΓΩΝ δανείων του ακινήτου. Μηδέν χωρίς δάνειο. */
+  loanMonthly: number;
   monthlyRent: number;
   budgetMonthly: number;
 }
@@ -103,7 +107,7 @@ export default function TabComparison({ properties, userId }: Props) {
     const year = new Date().getFullYear();
     // Τα πεδία είναι αυτά που ζητά ο κοινός πυρήνας (lib/expenses/ledger.ts): ο
     // λογαριασμός δίνει πρόγραμμα και προθεσμία, η δαπάνη το γεγονός και το ποσό.
-    const [exp, bil, currentTenants, bud] = await Promise.all([
+    const [exp, bil, currentTenants, bud, loans] = await Promise.all([
       expenses.ledgerOfProperties(supabase, ids, userId, `${year}-01-01`),
       billStore.ofProperties(supabase, ids, billStore.PORTFOLIO_COLUMNS, userId),
       // ΠΟΙΟΣ ΕΝΟΙΚΟΣ ΜΕΤΡΑ, ΟΤΑΝ ΕΙΝΑΙ ΠΕΡΙΣΣΟΤΕΡΟΙ ΑΠΟ ΕΝΑΣ.
@@ -115,6 +119,18 @@ export default function TabComparison({ properties, userId }: Props) {
       // κάθε άλλη οθόνη: όποιος δεν έχει φύγει, νεότερη μίσθωση πρώτη.
       tenantStore.currentByProperty<{ property_id: string; monthly_rent: number | null }>(supabase, userId, 'monthly_rent'),
       settings.acrossProperties(supabase, ids, 'budgets', userId),
+      // ══════════════════════════════════════════════════════════════════════
+      // Η ΔΟΣΗ ΔΑΝΕΙΟΥ, ΠΟΥ ΕΛΕΙΠΕ ΑΠΟ ΤΗ ΣΤΗΛΗ ΜΕ ΤΟ ΣΤΕΦΑΝΙ
+      //
+      // Η εξήγηση της γραμμής «Καθαρό ανά μήνα» έγραφε ρητά «δεν περιλαμβάνει
+      // δόσεις δανείου» — και η γραμμή φορούσε το έντονο του «καλύτερου». Η
+      // ειλικρίνεια της υποσημείωσης δεν διορθώνει τη σειρά της κατάταξης: δύο
+      // ακίνητα με ίδιο ενοίκιο και ίδιες δαπάνες, το ένα με δάνειο 700 €/μήνα
+      // και το άλλο ξεπληρωμένο, έβγαιναν ισόπαλα.
+      //
+      // Ενα ερώτημα για ΟΛΑ τα δάνεια του χρήστη, όχι ένα ανά ακίνητο: το
+      // στρώμα το δίνει έτοιμο, με τη μετάφραση ποσού και επιτοκίου μέσα.
+      loanStore.ofUser(supabase, userId),
     ]);
 
     // ΚΑΘΕ ΕΥΡΩ ΜΙΑ ΦΟΡΑ, ΑΝΑ ΑΚΙΝΗΤΟ.
@@ -150,6 +166,7 @@ export default function TabComparison({ properties, userId }: Props) {
       const ofYear = entries.filter(e => e.date >= `${year}-01-01` && e.date <= `${year}-12-31`);
       m[id] = {
         expensesYTD: ledgerTotal(ofYear),
+        loanMonthly: 0,
         // Ο ΙΔΙΟΣ ΠΑΡΟΝΟΜΑΣΤΗΣ ΜΕ ΤΑ ΠΑΓΙΑ, ΓΙΑ ΤΟΝ ΙΔΙΟ ΛΟΓΟ (βλ. από κάτω).
         expensesMonthly: monthlyAverage(ofYear).perMonth,
         // ΜΕΤΡΗΜΕΝΟ, ΟΧΙ ΔΗΛΩΜΕΝΟ: ο μέσος μήνας σε πάγια, από ό,τι ΟΝΤΩΣ έτρεξε.
@@ -170,6 +187,12 @@ export default function TabComparison({ properties, userId }: Props) {
     // Το `data` είναι jsonb: έρχεται απ' έξω, χωρίς σχήμα. Φύλακας πριν τη χρήση.
     for (const [id, d] of Object.entries(bud)) {
       if (m[id]) m[id].budgetMonthly = budgetTotalOf(isRecord(d) ? d : null);
+    }
+    // Το φίλτρο των ενεργών ζει στο `loanInstalment`: ξεπληρωμένο δάνειο δίνει
+    // μηδέν, ώστε να μη χρεωθεί το ακίνητο για κάτι που τελείωσε.
+    for (const l of loans) {
+      const pid = String(l.property_id || '');
+      if (m[pid]) m[pid].loanMonthly += loanInstalment(l);
     }
     setAgg(m);
     setLoading(false);
@@ -211,7 +234,7 @@ export default function TabComparison({ properties, userId }: Props) {
 
   // Μετρικές ανά ακίνητο (μόνο της ομάδας που κοιτάζει ο χρήστης)
   const rowsData = inGroup.map(p => {
-    const a = agg[p.id] || { expensesYTD: 0, expensesMonthly: null, recurringMonthly: 0, monthlyRent: 0, budgetMonthly: 0 };
+    const a = agg[p.id] || { expensesYTD: 0, expensesMonthly: null, recurringMonthly: 0, loanMonthly: 0, monthlyRent: 0, budgetMonthly: 0 };
     // ΙΔΙΑ ΠΗΓΗ ΑΛΗΘΕΙΑΣ ΜΕ ΤΗΝ ΕΠΙΣΚΟΨΗ. Πριν ήταν `p.value || 0`: ο
     // ιδιοκτήτης που είχε συμπληρώσει μόνο αντικειμενική αξία (η συνηθέστερη
     // περίπτωση — τη βρίσκει στο Ε9) έβλεπε «4,2%» στην Επισκόπηση και «0,0%» εδώ.
@@ -241,10 +264,11 @@ export default function TabComparison({ properties, userId }: Props) {
     // η γραμμή σωπαίνει αντί να επαινέσει ακίνητο για δαπάνες που δεν μετρήθηκαν.
     const taxShare = taxShareOf(portfolioTax, p.id);
     const netMonthly = rent > 0 && a.expensesMonthly != null
-      ? rent - a.expensesMonthly - taxShare / 12
+      ? rent - a.expensesMonthly - taxShare / 12 - a.loanMonthly
       : null;
     return {
       p, sqm, expensesYTD: a.expensesYTD, recurringMonthly: a.recurringMonthly, budgetMonthly: a.budgetMonthly,
+      loanMonthly: a.loanMonthly,
       value: value > 0 ? value : null,
       rent: rent > 0 ? rent : null,
       perSqm, grossYield, netMonthly, taxShare,
@@ -296,10 +320,16 @@ export default function TabComparison({ properties, userId }: Props) {
       tip: 'Κάθε ευρώ μία φορά: ο πληρωμένος λογαριασμός και η δαπάνη του είναι το ίδιο γεγονός. Ίδιος υπολογισμός με τις Δαπάνες και τον Προϋπολογισμό.' },
     { label: 'Πάγια ανά μήνα', get: r => r.recurringMonthly, fmt: n => fe(n), dir: 'none',
       tip: 'Ο μέσος μήνας σε επαναλαμβανόμενες δαπάνες, από ό,τι όντως καταχωρήθηκε φέτος. Είναι υποσύνολο των δαπανών του έτους, γι\u2019 αυτό δεν αφαιρείται ξεχωριστά.' },
+    // Η ΔΟΣΗ ΦΑΙΝΕΤΑΙ ΞΕΧΩΡΙΣΤΑ, ΓΙΑΤΙ ΔΕΝ ΕΙΝΑΙ ΔΑΠΑΝΗ ΤΟΥ ΑΚΙΝΗΤΟΥ.
+    // Το κεφάλαιο δεν εκπίπτει και δεν είναι κόστος λειτουργίας· είναι
+    // αποπληρωμή. Μπαίνει στο «Καθαρό» επειδή φεύγει από το ταμείο, αλλά ο
+    // ιδιοκτήτης οφείλει να βλέπει πόσο από το καθαρό το τρώει.
+    { label: 'Δόση δανείου (μήνας)', get: r => r.loanMonthly > 0 ? r.loanMonthly : null, fmt: n => fe(n), dir: 'none',
+      tip: 'Το τοκοχρεολύσιο των ενεργών δανείων του ακινήτου, από ποσό, επιτόκιο και διάρκεια. Ξεπληρωμένο δάνειο δεν μετράει.' },
     { label: 'Μερίδιο φόρου (έτος)', get: r => r.taxShare, fmt: n => fe(n), dir: 'none',
       tip: 'Ο φόρος ενοικίων είναι προοδευτικός στο ΣΥΝΟΛΟ των ακινήτων σου (Ε1), όχι ανά ακίνητο. Εδώ φαίνεται το μερίδιο κάθε ακινήτου από τον ένα φόρο.' },
     { label: 'Καθαρό ανά μήνα (εκτίμηση)', get: r => r.netMonthly, fmt: n => fe(n), dir: 'high',
-      tip: 'Εκτίμηση: ενοίκιο μείον ο μέσος μήνας δαπανών μείον το μηνιαίο μερίδιο φόρου. Ο μέσος μήνας βγαίνει από το εύρος του ιστορικού, όχι από σταθερό δωδεκάμηνο, γι\u2019 αυτό δεν εμφανίζεται πριν υπάρχουν δύο μήνες δαπανών. Δεν περιλαμβάνει δόσεις δανείου ούτε έκτακτα.' },
+      tip: 'Εκτίμηση: ενοίκιο μείον ο μέσος μήνας δαπανών, μείον το μηνιαίο μερίδιο φόρου, μείον η δόση των ενεργών δανείων. Ο μέσος μήνας βγαίνει από το εύρος του ιστορικού, όχι από σταθερό δωδεκάμηνο, γι\u2019 αυτό δεν εμφανίζεται πριν υπάρχουν δύο μήνες δαπανών. Δεν περιλαμβάνει έκτακτα.' },
     // ── ΟΙ ΤΡΕΙΣ ΓΡΑΜΜΕΣ ΠΟΥ ΔΕΝ ΕΞΑΡΤΩΝΤΑΙ ΑΠΟ ΜΕΓΕΘΟΣ ───────────────────
     { label: 'Ενοίκιο ανά τετραγωνικό', get: r => perSqmOf(r.rent, r.sqm), fmt: n => fe(n), dir: 'high',
       tip: 'Μηνιαίο ενοίκιο διά το εμβαδόν. Η μόνη δίκαιη σύγκριση ανάμεσα σε ακίνητα διαφορετικού μεγέθους: ένα μεγαλύτερο ακίνητο βγάζει περισσότερα ούτως ή άλλως.' },
@@ -335,7 +365,7 @@ export default function TabComparison({ properties, userId }: Props) {
     // δηλαδή δύο ασυμβίβαστοι αριθμοί στο ίδιο αρχείο, το οποίο φτάνει στον
     // λογιστή. Τώρα η στήλη είναι το ΜΕΡΙΔΙΟ κάθε ακινήτου από τον ΕΝΑ φόρο του
     // φορολογούμενου, άρα προσθέτεται σωστά.
-    const cols = ['Ακίνητο', 'Κατάσταση', 'Αξία (€)', 'Εμβαδόν (τ.μ.)', 'Τιμή/τ.μ. (€)', 'Μηνιαίο Ενοίκιο (€)', 'Ετήσιο Ενοίκιο (€)', 'Μεικτή Απόδοση (%)', 'Πάγια ανά μήνα (€)', 'Δαπάνες Έτους (€)', 'Καθαρό/μήνα εκτ. (€)', 'Καθαρό/έτος εκτ. (€)', 'Μερίδιο Φόρου Ενοικίου (€)'];
+    const cols = ['Ακίνητο', 'Κατάσταση', 'Αξία (€)', 'Εμβαδόν (τ.μ.)', 'Τιμή/τ.μ. (€)', 'Μηνιαίο Ενοίκιο (€)', 'Ετήσιο Ενοίκιο (€)', 'Μεικτή Απόδοση (%)', 'Πάγια ανά μήνα (€)', 'Δαπάνες Έτους (€)', 'Δόση Δανείου/μήνα (€)', 'Καθαρό/μήνα εκτ. (€)', 'Καθαρό/έτος εκτ. (€)', 'Μερίδιο Φόρου Ενοικίου (€)'];
     // Στο CSV το κενό μένει ΚΕΝΟ, όχι μηδέν: ένα υπολογιστικό φύλλο που δείχνει 0
     // εκεί που δεν ξέρουμε, παράγει λάθος μέσους όρους στα χέρια του λογιστή.
     //
@@ -348,7 +378,7 @@ export default function TabComparison({ properties, userId }: Props) {
     const rows: (string | number)[][] = rowsData.map(r => [
       r.p.name, statusLabel(r.p as StatusRow) || r.p.prop_type || '',
       c(r.value), r.sqm > 0 ? r.sqm : '', c(r.perSqm), c(r.rent), c(r.rent == null ? null : r.rent * 12),
-      r.grossYield ?? '', r.recurringMonthly, r.expensesYTD,
+      r.grossYield ?? '', r.recurringMonthly, r.expensesYTD, r.loanMonthly,
       c(r.netMonthly), c(r.netMonthly == null ? null : r.netMonthly * 12), r.taxShare,
     ]);
     // Η γραμμή ΣΥΝΟΛΟ δεν γράφεται εδώ: την προσθέτει ο κοινός exporter ως

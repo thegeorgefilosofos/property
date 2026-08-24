@@ -43,7 +43,7 @@ const respond: Responder = (call) => {
     return { data: (window as unknown as { __inbound?: unknown[] }).__inbound ?? [], error: null };
   }
   // Η Σύγκριση διαβάζει καθολικό και μισθωτές· τα σενάρια τα δίνουν από εδώ.
-  if (call.op === 'select' && (call.table === 'expenses' || call.table === 'tenants')) {
+  if (call.op === 'select' && (call.table === 'expenses' || call.table === 'tenants' || call.table === 'loans')) {
     const seed = (window as unknown as { __seed?: Record<string, unknown[]> }).__seed;
     if (seed && seed[call.table]) return { data: seed[call.table], error: null };
   }
@@ -99,21 +99,40 @@ const cmpExpense = (pid: string, month: number, amount: number) => ({
   description: 'Κοινόχρηστα', category: 'Κοινόχρηστα', paid: true,
   expense_group: 'fixed', is_recurring: true, store_vendor: null, supplier_afm: null, property_id: pid,
 });
+// ΤΟ ΔΑΝΕΙΟ ΤΟΥ ΤΡΙΤΟΥ ΑΚΙΝΗΤΟΥ. Ιδιο ενοίκιο και ίδιες δαπάνες με το p2,
+// αλλά με τοκοχρεολύσιο που φεύγει κάθε μήνα από το ταμείο. Πριν, η Σύγκριση
+// έλεγε τα δύο ΙΣΟΠΑΛΑ και έδινε το στεφάνι στο ένα από τα δύο στην τύχη της
+// σειράς — η στήλη το παραδεχόταν στην υποσημείωσή της και το έκανε έτσι κι
+// αλλιώς. Οι στήλες είναι ακριβώς οι LOAN_COLUMNS: το `amount` και το `rate`
+// ΔΕΝ είναι στήλες, τα φτιάχνει το lib/loans/shape.ts.
+const CMP_LOAN = {
+  id: 'l1', property_id: 'p3', user_id: 'u1', bank: 'Τράπεζα δοκιμής',
+  loan_amount: 100000, down_payment: 0, rate_type: 'fixed', fixed_rate: 3,
+  euribor: null, spread: null, years: 30, start_date: `${new Date().getFullYear()}-01-01`,
+  status: 'active', loan_type: 'mortgage', property_value: 200000, notes: null,
+  created_at: `${new Date().getFullYear()}-01-01`,
+};
+
 const CMP_SEED = {
   expenses: [
     // p1: 900 € σε τρεις μήνες → 300 €/μήνα
     cmpExpense('p1', 1, 300), cmpExpense('p1', 2, 300), cmpExpense('p1', 3, 300),
     // p2: 900 € σε δώδεκα μήνες → 75 €/μήνα
     ...Array.from({ length: 12 }, (_, i) => cmpExpense('p2', i + 1, 75)),
+    // p3: ΙΔΙΟ με το p2 — η μόνη διαφορά είναι η δόση δανείου.
+    ...Array.from({ length: 12 }, (_, i) => cmpExpense('p3', i + 1, 75)),
   ],
   tenants: [
     { id: 't1', property_id: 'p1', monthly_rent: 700, status: 'active', lease_start: `${CMP_YEAR}-01-01`, lease_end: null, created_at: `${CMP_YEAR}-01-01` },
     { id: 't2', property_id: 'p2', monthly_rent: 700, status: 'active', lease_start: `${CMP_YEAR}-01-01`, lease_end: null, created_at: `${CMP_YEAR}-01-01` },
+    { id: 't3', property_id: 'p3', monthly_rent: 700, status: 'active', lease_start: `${CMP_YEAR}-01-01`, lease_end: null, created_at: `${CMP_YEAR}-01-01` },
   ],
+  loans: [CMP_LOAN],
 };
 const CMP_PROPERTIES = [
   { id: 'p1', name: 'Αλεξάνδρας 12', prop_type: 'apartment', address: null, sqm: 60, value: 200000, target_rent: 700, status_detail: 'rented', obj_value: null, year_built: 2000, postal_code: '11473', rental_mode: 'long_term' },
   { id: 'p2', name: 'Πατησίων 5', prop_type: 'apartment', address: null, sqm: 60, value: 200000, target_rent: 700, status_detail: 'rented', obj_value: null, year_built: 2000, postal_code: '11473', rental_mode: 'long_term' },
+  { id: 'p3', name: 'Σόλωνος 9', prop_type: 'apartment', address: null, sqm: 60, value: 200000, target_rent: 700, status_detail: 'rented', obj_value: null, year_built: 2000, postal_code: '11473', rental_mode: 'long_term' },
 ];
 
 const line = (id: string, label: string, amount: number, due: string, daysLeft: number, tenantId = 't1', propertyId = 'p1'): CashLine => ({
