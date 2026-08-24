@@ -23,12 +23,26 @@ import { Users } from 'lucide-react';
 import { logActivity } from '@/lib/activity';
 import { CustomSelect } from './UIComponents';
 
-// Κοινές επιλογές ρόλου (ίδιο dropdown με το υπόλοιπο app: CustomSelect).
-const ROLE_OPTIONS = [{ value: 'admin', label: 'Διαχειριστής' }, { value: 'member', label: 'Μέλος' }];
+// ═══════════════════════════════════════════════════════════════════════════
+// Ο «ΔΙΑΧΕΙΡΙΣΤΗΣ» ΔΕΝ ΜΠΟΡΟΥΣΕ ΝΑ ΚΑΝΕΙ ΤΙΠΟΤΑ ΠΕΡΙΣΣΟΤΕΡΟ ΑΠΟ ΤΟ «ΜΕΛΟΣ»
+//
+// Εδώ ζούσε `ROLE_OPTIONS = [Διαχειριστής, Μέλος]`, σε δύο επιλογείς: έναν ανά
+// μέλος και έναν στην πρόσκληση. Μετρημένο στη βάση, η διάκριση admin↔member
+// ΔΕΝ κρίνει απολύτως τίποτα: καμία πολιτική RLS δεν διαβάζει τη στήλη `role`
+// για διαβάθμιση, και οι τρεις συναρτήσεις εξουσιοδότησης
+// (`is_org_owner`, `org_owner_ids`, `org_editor_owner_ids`) την αγνοούν.
+//
+// Η τιμή `owner` ΕΙΝΑΙ φέρουσα, σε τέσσερις φρουρούς «role <> 'owner'» που
+// εμποδίζουν τον ιδιοκτήτη να αφαιρεθεί ή να υποβαθμιστεί. Ο ρόλος μένει στη
+// βάση γι' αυτό. Ο,τι έφυγε είναι η ΕΠΙΛΟΓΗ ανάμεσα σε δύο τιμές που
+// συμπεριφέρονται ίδια, δίπλα σε στήλη «Πρόσβαση» που κρίνει αληθινά.
+//
+// Ο ιδιοκτήτης έβλεπε «Ρόλος: Διαχειριστής» και «Πρόσβαση: Ανάγνωση» στην ίδια
+// γραμμή, και δεν είχε τρόπο να ξέρει ποιο από τα δύο ισχύει. Ισχύει το δεύτερο.
+// ═══════════════════════════════════════════════════════════════════════════
 
 type Role = 'owner' | 'admin' | 'member';
 type Status = 'invited' | 'active' | 'revoked';
-type InviteRole = 'admin' | 'member';
 
 interface Org {
   id: string;
@@ -80,8 +94,9 @@ const ROW_MIN = 960;
 // Chips μητρώου: ουδέτερα (η ετικέτα λέει τα πάντα). Κρατάμε το χρώμα μόνο για
 // ό,τι είναι πραγματικά actionable (π.χ. εκκρεμές αίτημα), όχι για διακόσμηση.
 function RoleChip({ role }: { role: Role }) {
-  const label = role === 'owner' ? 'Ιδιοκτήτης' : role === 'admin' ? 'Διαχειριστής' : 'Μέλος';
-  return <Chip tone="neutral">{label}</Chip>;
+  // Δύο τιμές, όσες κρίνει και η βάση. Ο «Διαχειριστής» έδειχνε διαβάθμιση που
+  // δεν υπάρχει· ό,τι ξεχωρίζει τα μέλη είναι η στήλη «Πρόσβαση».
+  return <Chip tone="neutral">{role === 'owner' ? 'Ιδιοκτήτης' : 'Μέλος'}</Chip>;
 }
 
 function StatusChip({ status }: { status: Status }) {
@@ -140,7 +155,6 @@ export default function OrgTeam({ userId }: { userId: string }) {
 
   // Πρόσκληση μέλους
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<InviteRole>('member');
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteNote, setInviteNote] = useState<string | null>(null);
@@ -258,9 +272,9 @@ export default function OrgTeam({ userId }: { userId: string }) {
     const email = inviteEmail.trim().toLowerCase();
     if (!email || !email.includes('@')) { setInviteError('Δώσε ένα έγκυρο email.'); return; }
     setInviting(true); setInviteError(null); setInviteNote(null);
-    const { error } = await supabase.rpc('invite_org_member', { p_email: email, p_role: inviteRole });
+    const { error } = await supabase.rpc('invite_org_member', { p_email: email, p_role: 'member' });
     if (error) { setInviteError('Η πρόσκληση δεν στάλθηκε.'); setInviting(false); return; }
-    void logActivity(supabase, 'member_invited', 'organization', org.id, { email, role: inviteRole });
+    void logActivity(supabase, 'member_invited', 'organization', org.id, { email });
     // Πραγματικό email πρόσκλησης (best-effort): η εγγραφή στη βάση είναι η πηγή
     // αλήθειας· αν το email δεν σταλεί, το μέλος αποκτά πρόσβαση συνδεόμενο κανονικά.
     let mailed = false;
@@ -275,15 +289,6 @@ export default function OrgTeam({ userId }: { userId: string }) {
     await loadMembers(org.id);
     setInviting(false);
     setTimeout(() => setInviteNote(null), 6000);
-  };
-
-  const changeRole = async (email: string, role: InviteRole) => {
-    if (!org) return;
-    setRowBusy(email); setRowError(null);
-    const { error } = await supabase.rpc('set_org_member_role', { p_email: email, p_role: role });
-    if (error) setRowError('Η αλλαγή ρόλου δεν ολοκληρώθηκε.');
-    else { void logActivity(supabase, 'member_role_changed', 'organization', org.id, { email, role }); await loadMembers(org.id); }
-    setRowBusy(null);
   };
 
   const revoke = async (email: string) => {
@@ -543,14 +548,6 @@ export default function OrgTeam({ userId }: { userId: string }) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       {canAct && (
                         <>
-                          <div style={{ width: 140, opacity: busy ? 0.6 : 1 }}>
-                            <CustomSelect
-                              value={m.role === 'admin' ? 'admin' : 'member'}
-                              onChange={v => changeRole(m.email, v as InviteRole)}
-                              options={ROLE_OPTIONS}
-                              disabled={busy}
-                            />
-                          </div>
                           <Btn variant="secondary" onClick={() => revoke(m.email)} disabled={busy}>Αφαίρεση</Btn>
                         </>
                       )}
@@ -640,13 +637,6 @@ export default function OrgTeam({ userId }: { userId: string }) {
             placeholder="Ηλεκτρονικό ταχυδρομείο του μέλους"
             style={{ ...fieldStyle, flex: 1, minWidth: 220 }}
           />
-          <div style={{ width: 150 }}>
-            <CustomSelect
-              value={inviteRole}
-              onChange={v => setInviteRole(v as InviteRole)}
-              options={ROLE_OPTIONS}
-            />
-          </div>
           <Btn variant="primary" onClick={invite} disabled={inviting || !inviteEmail.trim()}>
             {inviting ? 'Πρόσκληση…' : 'Πρόσκληση'}
           </Btn>
@@ -664,7 +654,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
 
       {/* ── Επεξήγηση ρόλων (μία γραμμή) ─────────────────────────────── */}
       <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, fontFamily: T.font.sans, paddingTop: 2 }}>
-        Ο ιδιοκτήτης έχει την πλήρη διαχείριση. Τα μέλη βλέπουν το χαρτοφυλάκιο και το επεξεργάζονται μόνο μετά από δική σου έγκριση.
+Ο ιδιοκτήτης έχει την πλήρη διαχείριση. Κάθε μέλος κρίνεται από δύο πράγματα, και μόνο από αυτά: την «Πρόσβαση», που επιτρέπει την επεξεργασία και τη διαγραφή, και τα «Οικονομικά», που δείχνουν ενοίκια, δαπάνες, δάνεια και μισθωτές. Και τα δύο τα δίνεις εσύ.
       </div>
     </div>
   );

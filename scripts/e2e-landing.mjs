@@ -161,6 +161,35 @@ for (const [w, h, label] of [[1440, 900, 'υπολογιστής 1440'], [820, 1
   ok(`το κουμπί κατεβαίνει κάτω από τις ${faq.count} ερωτήσεις (${label})`, faq.belowAll && faq.visible)
   ok(`και λέει πώς γυρνάς πίσω (${label})`, faq.label === 'Λιγότερες ερωτήσεις', `λέει «${faq.label}»`)
 
+  // ── ΤΟ ΚΛΕΙΣΙΜΟ ΔΕΝ ΑΦΗΝΕΙ ΤΟΝ ΕΠΙΣΚΕΠΤΗ ΝΑ ΑΙΩΡΕΙΤΑΙ ───────────────────
+  // Οι έξι κρυμμένες ερωτήσεις πιάνουν πάνω από μία οθόνη. Πριν, το native
+  // <details> έκλεινε ΧΩΡΙΣ να κουνήσει το σκρολ: όποιος διάβαζε την
+  // τελευταία ερώτηση και πατούσε «Λιγότερες ερωτήσεις» έμενε κρεμασμένος στο
+  // κενό που άφησε το κείμενο που μόλις έφυγε, χωρίς σημείο αναφοράς στην
+  // οθόνη. Προσομοιώνουμε ακριβώς αυτό: σκρολάρουμε στην τελευταία ερώτηση
+  // πριν κλείσουμε.
+  await p.locator('#faq details.lp-faq:not(.lp-faq-more)').last().scrollIntoViewIfNeeded()
+  const beforeShut = await p.evaluate(() => {
+    const r = document.getElementById('faq').getBoundingClientRect()
+    return { scrollY: window.scrollY, faqTop: Math.round(r.top) }
+  })
+  await more.click()
+  await p.waitForTimeout(700) // ολοκλήρωση του smooth scroll
+  const afterShut = await p.evaluate(() => {
+    const r = document.getElementById('faq').getBoundingClientRect()
+    return { scrollY: window.scrollY, faqTop: Math.round(r.top) }
+  })
+  // ΤΟ ΜΕΤΡΟ ΕΙΝΑΙ Η ΚΟΡΥΦΗ ΤΗΣ ΕΝΟΤΗΤΑΣ, ΟΧΙ Η ΚΑΤΕΥΘΥΝΣΗ ΤΟΥ scrollY. Σε
+  // στενότερες οθόνες η τελευταία ερώτηση δεν κάθεται πάντα στον πάτο του
+  // παραθύρου όταν είναι ανοιχτή, οπότε το «πάει προς τα πάνω» δεν είναι
+  // εγγυημένο — το «καταλήγει ΑΚΡΙΒΩΣ στην κορυφή της ενότητας» είναι.
+  ok(`το κλείσιμο ξαναδείχνει την κορυφή της ενότητας (${label})`,
+     Math.abs(afterShut.faqTop) <= 4 && Math.abs(beforeShut.faqTop) > 40,
+     `πριν κορυφή FAQ σε ${beforeShut.faqTop}px (scrollY ${beforeShut.scrollY}), μετά σε ${afterShut.faqTop}px (scrollY ${afterShut.scrollY})`)
+  // Επαναφορά, ώστε ο έλεγχος που ακολουθεί να ξεκινά ανοιχτό.
+  await more.click()
+  await p.waitForTimeout(200)
+
   // Και κλείνει πραγματικά.
   await more.click()
   await p.waitForTimeout(200)

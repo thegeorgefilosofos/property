@@ -12,6 +12,7 @@ import LandingShowcase from './LandingShowcase';
 import ScrollStory from './ScrollStory';
 import LandingCalculator from './LandingCalculator';
 import Spotlight from './Spotlight';
+import FaqMore from './FaqMore';
 import { PublicFooter } from './PublicChrome';
 import { T } from '@/components/tokens';
 
@@ -1507,7 +1508,7 @@ export default async function Landing() {
         <div style={{ borderBottom: `1px solid ${LINE}` }}>
           <FaqList list={FAQ.slice(0, FAQ_VISIBLE)} />
         </div>
-        <details className="lp-faq lp-faq-more">
+        <FaqMore>
           {/* ΤΟ «display» ΕΦΥΓΕ ΑΠΟ ΤΟ ΕΝΣΩΜΑΤΟ ΣΤΥΛ, ΚΑΙ ΑΥΤΟ ΗΤΑΝ ΟΛΟ ΤΟ ΣΦΑΛΜΑ.
               Το globals.css έκρυβε ήδη το «Περισσότερες ερωτήσεις» μόλις άνοιγε
               («details.lp-faq-more[open] > summary»), αλλά το ενσώματο
@@ -1529,7 +1530,7 @@ export default async function Landing() {
           <div style={{ borderBottom: `1px solid ${LINE}` }}>
             <FaqList list={FAQ.slice(FAQ_VISIBLE)} />
           </div>
-        </details>
+        </FaqMore>
       </section>
 
       {/* ── Final CTA: σκοτεινό κλείσιμο, καθρέφτης του hero ── */}

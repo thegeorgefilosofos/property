@@ -1825,3 +1825,87 @@ begin
 
   raise notice 'probe: το ημερήσιο πέρασμα δεν αγγίζει τίποτα πριν ανοίξει το ταμείο';
 end $probe$;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+--  ΠΟΙΟΣ ΕΣΒΗΣΕ ΤΟ ΑΚΙΝΗΤΟ, ΚΑΙ ΣΕ ΠΟΙΟΥ ΤΟ ΗΜΕΡΟΛΟΓΙΟ ΓΡΑΦΕΤΑΙ
+-- ─────────────────────────────────────────────────────────────────────────
+--  Ενα μέλος με `can_edit` σβήνει ακίνητο του ιδιοκτήτη και καταρρέουν τριάντα
+--  ένα πίνακες. Η `log_activity` έγραφε `user_id = auth.uid()`, δηλαδή τον
+--  ΔΡΑΣΤΗ, και η `my_activity` επιστρέφει «user_id = auth.uid() or actor_id =
+--  auth.uid()». Αρα η γραμμή ελέγχου έμπαινε στο ημερολόγιο ΤΟΥ ΜΕΛΟΥΣ και ο
+--  ιδιοκτήτης δεν τη έβλεπε ποτέ.
+--
+--  Ο έλεγχος απαιτεί τρία: η γραμμή να φτάνει στον ΙΔΙΟΚΤΗΤΗ, να ονομάζει τον
+--  δράστη, και να ΕΠΙΖΕΙ της διαγραφής του ακινήτου.
+-- ═══════════════════════════════════════════════════════════════════════════
+set role postgres;
+set session "probe.uid" = '';
+
+do $probe$
+declare
+  a     uuid := '11111111-1111-1111-1111-111111111111';
+  pa    uuid := 'aaaaaaaa-0000-0000-0000-000000000001';
+  m_yes uuid := '66666666-6666-6666-6666-666666666666';
+  org   uuid := '77777777-7777-7777-7777-777777777777';
+begin
+  -- Το μέλος αποκτά και δικαίωμα επεξεργασίας, που είναι αυτό που δίνει DELETE.
+  update public.organization_members set can_edit = true
+   where org_id = org and user_id = m_yes;
+  if not exists (select 1 from public.user_properties where id = pa and user_id = a) then
+    raise exception 'Ο έλεγχος είναι κενός: λείπει το ακίνητο του οργανισμού';
+  end if;
+  raise notice 'probe: το μέλος πήρε can_edit στο ακίνητο του ιδιοκτήτη';
+end $probe$;
+
+-- Το ΜΕΛΟΣ σβήνει το ακίνητο του ιδιοκτήτη, αφού πρώτα γράψει τη γραμμή ελέγχου.
+set role authenticated;
+set session "probe.uid" = '66666666-6666-6666-6666-666666666666';
+
+do $probe$
+declare
+  pa uuid := 'aaaaaaaa-0000-0000-0000-000000000001';
+  n int;
+begin
+  perform public.log_activity('property_deleted', 'property', pa::text,
+                              jsonb_build_object('name', 'Του Α'));
+  delete from public.user_properties where id = pa;
+  get diagnostics n = row_count;
+  if n <> 1 then
+    raise exception 'Το μέλος με can_edit ΔΕΝ έσβησε το ακίνητο: % γραμμές', n;
+  end if;
+  raise notice 'probe: το μέλος έσβησε το ακίνητο, και έγραψε γραμμή ελέγχου';
+end $probe$;
+
+-- Ο ΙΔΙΟΚΤΗΤΗΣ ανοίγει το ημερολόγιό του.
+set session "probe.uid" = '11111111-1111-1111-1111-111111111111';
+
+do $probe$
+declare
+  pa uuid := 'aaaaaaaa-0000-0000-0000-000000000001';
+  r  record;
+  n  int;
+begin
+  select count(*) into n from public.my_activity(100)
+   where action = 'property_deleted' and entity_id = pa::text;
+  if n <> 1 then
+    raise exception 'Ο ΙΔΙΟΚΤΗΤΗΣ ΔΕΝ ΒΛΕΠΕΙ τη διαγραφή του ακινήτου του: % γραμμές', n;
+  end if;
+
+  select * into r from public.my_activity(100)
+   where action = 'property_deleted' and entity_id = pa::text;
+  if r.actor_email is distinct from 'me-oikonomika@probe.test' then
+    raise exception 'Η γραμμή δεν ονομάζει τον δράστη: %', r.actor_email;
+  end if;
+  if r.user_id <> '11111111-1111-1111-1111-111111111111'::uuid then
+    raise exception 'Η γραμμή γράφτηκε σε λάθος ημερολόγιο: %', r.user_id;
+  end if;
+  if r.metadata->>'name' is distinct from 'Του Α' then
+    raise exception 'Χάθηκε το όνομα του ακινήτου που σβήστηκε: %', r.metadata;
+  end if;
+  -- ΚΑΙ ΤΟ ΑΚΙΝΗΤΟ ΟΝΤΩΣ ΕΦΥΓΕ: η γραμμή ελέγχου επέζησε του γεγονότος.
+  if exists (select 1 from public.user_properties where id = pa) then
+    raise exception 'Ο έλεγχος είναι κενός: το ακίνητο δεν σβήστηκε';
+  end if;
+
+  raise notice 'probe: ο ιδιοκτήτης βλέπει ΠΟΙΟΣ έσβησε το ακίνητό του, και το ίχνος επέζησε';
+end $probe$;
