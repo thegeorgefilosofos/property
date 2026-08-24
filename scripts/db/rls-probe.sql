@@ -2028,3 +2028,51 @@ begin
 
   raise notice 'probe: ο δοκιμαστής δεν χρονομετρείται ποτέ για διαγραφή';
 end $probe$;
+
+-- ── ΤΑ ΕΞΙ ΚΕΙΜΕΝΑ ΦΕΥΓΟΥΝ ΠΡΑΓΜΑΤΙΚΑ ────────────────────────────────────
+-- Δεν αρκεί να υπάρχει το SQL: ελέγχεται ότι μετά την `lifecycle_enqueue()`
+-- υπάρχει γραμμή στην ουρά. Τα `year_end` και `quarterly_review` εξαρτώνται
+-- από τον μήνα και δεν δοκιμάζονται εδώ· δοκιμάζονται τα τρία που ισχύουν
+-- κάθε μέρα του χρόνου.
+do $probe$
+declare
+  o uuid := '44444444-4444-4444-4444-444444444441';
+  pr uuid := '44444444-0000-0000-0000-000000000001';
+  te uuid := '44444444-0000-0000-0000-000000000002';
+  n int;
+begin
+  insert into auth.users (id, email, email_confirmed_at, created_at, last_sign_in_at)
+       values (o, 'adranis@propertyos.gr', now(), now() - interval '90 days', now() - interval '35 days');
+  insert into public.billing_profiles (user_id, plan) values (o, 'free')
+    on conflict (user_id) do update set plan = 'free';
+  insert into public.user_properties (id, user_id, name, rental_mode)
+       values (pr, o, 'Βραχυχρόνιο', 'short_term');
+  insert into public.tenants (id, user_id, property_id, full_name, email, lease_start, monthly_rent)
+       values (te, o, pr, 'Νέος Ενοικιαστής', 'enoikiastis@propertyos.gr', current_date, 480.00);
+
+  perform public.lifecycle_enqueue();
+
+  select count(*) into n from public.email_outbox
+   where copy_id = 'inactive_30' and to_email = 'adranis@propertyos.gr';
+  if n <> 1 then raise exception 'Η αδράνεια 30 ημερών δεν μπήκε στην ουρά: % γραμμές', n; end if;
+
+  select count(*) into n from public.email_outbox
+   where copy_id = 'connect_calendar' and to_email = 'adranis@propertyos.gr';
+  if n <> 1 then raise exception 'Η σύνδεση ημερολογίου δεν μπήκε στην ουρά: % γραμμές', n; end if;
+
+  -- ΠΑΕΙ ΣΤΟΝ ΕΝΟΙΚΙΑΣΤΗ, ΚΑΙ ΕΙΝΑΙ ΛΕΙΤΟΥΡΓΙΚΟ. Αν έφευγε ως εμπορικό, θα
+  -- ήταν μήνυμα μάρκετινγκ σε άνθρωπο που δεν έδωσε ποτέ συγκατάθεση.
+  select count(*) into n from public.email_outbox
+   where copy_id = 'tenant_welcome' and to_email = 'enoikiastis@propertyos.gr'
+     and category = 'operational';
+  if n <> 1 then raise exception 'Το καλωσόρισμα ενοικιαστή δεν έφυγε σωστά: % γραμμές', n; end if;
+
+  -- ΚΑΙ ΔΕΥΤΕΡΗ ΕΚΤΕΛΕΣΗ ΔΕΝ ΞΑΝΑΣΤΕΛΝΕΙ ΤΙΠΟΤΑ.
+  perform public.lifecycle_enqueue();
+  select count(*) into n from public.email_outbox
+   where copy_id in ('inactive_30', 'connect_calendar', 'tenant_welcome')
+     and to_email in ('adranis@propertyos.gr', 'enoikiastis@propertyos.gr');
+  if n <> 3 then raise exception 'Δεύτερο πέρασμα ξαναέστειλε: % γραμμές αντί για 3', n; end if;
+
+  raise notice 'probe: τα έξι κείμενα φεύγουν, και δεν ξαναφεύγουν στο δεύτερο πέρασμα';
+end $probe$;
