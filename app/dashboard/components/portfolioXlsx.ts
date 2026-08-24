@@ -26,7 +26,7 @@ export function downloadPortfolioComparison(opts: {
   const { rows, periodLabel, entityName } = opts;
   const wb = XLSX.utils.book_new();
   const NC = 7, HR = 3;
-  const idLine = `${entityName || 'Property OS'} · Συγκριτική κατάσταση χαρτοφυλακίου · ${periodLabel}`;
+  const idLine = `${entityName || 'PROPERWISE'} · Συγκριτική κατάσταση χαρτοφυλακίου · ${periodLabel}`;
   const header = ['Ακίνητο', 'Αναμενόμενα', 'Εισπράχθηκαν', 'Ανείσπρακτα', 'Δαπάνες', 'Καθαρό', 'Είσπραξη %'];
 
   // Ταξινόμηση κατά καθαρό (φθίνουσα) — τα πιο αποδοτικά πρώτα.

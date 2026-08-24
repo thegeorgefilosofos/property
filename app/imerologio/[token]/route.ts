@@ -40,7 +40,7 @@ const DAYS_BACK = 30;
 const DAYS_AHEAD = 365;
 
 /** Το όνομα που θα δει ο χρήστης στη λίστα των ημερολογίων του. */
-const CALENDAR_NAME = 'Property OS · Προθεσμίες';
+const CALENDAR_NAME = 'PROPERWISE · Προθεσμίες';
 
 const log = (...parts: unknown[]) => console.info('[imerologio]', ...parts);
 

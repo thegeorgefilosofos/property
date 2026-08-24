@@ -1,4 +1,4 @@
-# Key & secret rotation policy — Property OS
+# Key & secret rotation policy — PROPERWISE
 
 Formalises the periodic rotation the readiness doc flagged (§9). All free — no
 tooling beyond the dashboards you already have.

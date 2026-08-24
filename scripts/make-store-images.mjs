@@ -82,7 +82,7 @@ body::after {
 <div class="wrap">
   <div class="lockup">
     <svg class="mark" viewBox="0 0 48 48" aria-hidden><rect width="48" height="48" rx="11" fill="#1a73e8"/><path d="${MARK}" fill="#fff"/></svg>
-    <span class="word">Property OS</span>
+    <span class="word">PROPERWISE</span>
   </div>
   <div>
     <div class="name">${plan.name}</div>

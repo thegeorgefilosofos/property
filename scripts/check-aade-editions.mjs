@@ -52,7 +52,7 @@ for (const [key, s] of watched) {
   let html;
   try {
     const res = await fetch(s.watch, {
-      headers: { 'user-agent': 'PropertyOS-edition-watch/1.0' },
+      headers: { 'user-agent': 'PROPERWISE-edition-watch/1.0' },
       signal: AbortSignal.timeout(30_000),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);

@@ -296,8 +296,8 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
   // έχει χώρο να ονομάσει και τα δύο.
   const friendGift = `${moAcc(REFEREE_OWNER_MONTHS)} συνδρομή δωρεάν`;
   const invite = isPro
-    ? `Για το ακίνητό σου, σου προτείνω το Property OS. Κρατάει τα οικονομικά σου σε τάξη και ετοιμάζει σωστά τα στοιχεία για τη φορολογική σου δήλωση, ώστε να μην τρέχεις εσύ. Με τον σύνδεσμό μου κερδίζεις ${friendGift}: ${link}`
-    : `Οργανώνω το ακίνητό μου με το Property OS και μου έλυσε τα χέρια: σαρώνω λογαριασμούς, βλέπω φόρους και αποδόσεις, όλα σε ένα. Ρίξε του μια ματιά. Με τον σύνδεσμό μου κερδίζεις ${friendGift}: ${link}`;
+    ? `Για το ακίνητό σου, σου προτείνω το PROPERWISE. Κρατάει τα οικονομικά σου σε τάξη και ετοιμάζει σωστά τα στοιχεία για τη φορολογική σου δήλωση, ώστε να μην τρέχεις εσύ. Με τον σύνδεσμό μου κερδίζεις ${friendGift}: ${link}`
+    : `Οργανώνω το ακίνητό μου με το PROPERWISE και μου έλυσε τα χέρια: σαρώνω λογαριασμούς, βλέπω φόρους και αποδόσεις, όλα σε ένα. Ρίξε του μια ματιά. Με τον σύνδεσμό μου κερδίζεις ${friendGift}: ${link}`;
 
   const copy = async () => { try { await navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 1800); } catch { /* ignore */ } };
   const copyMsg = async () => { try { await navigator.clipboard.writeText(invite); setMsgCopied(true); setTimeout(() => setMsgCopied(false), 1800); } catch { /* ignore */ } };
@@ -322,7 +322,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
     } catch { setClaim(c => ({ ...c, [kind]: 'error' })); }
   };
 
-  const emailSubject = isPro ? 'Πρόσκληση στο Property OS για τα ακίνητα των πελατών σου' : 'Σου προτείνω το Property OS για το ακίνητό σου';
+  const emailSubject = isPro ? 'Πρόσκληση στο PROPERWISE για τα ακίνητα των πελατών σου' : 'Σου προτείνω το PROPERWISE για το ακίνητό σου';
   const shares = [
     { label: 'WhatsApp', href: `https://wa.me/?text=${encodeURIComponent(invite)}`, d: 'M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-4-1L3 20l1-4.5a8.5 8.5 0 0 1-1-4A8.38 8.38 0 0 1 11.5 3 8.5 8.5 0 0 1 21 11.5z' },
     { label: 'Viber', href: `viber://forward?text=${encodeURIComponent(invite)}`, d: 'M12 3a9 9 0 0 0-9 9 8.7 8.7 0 0 0 2 5.6L4 21l3.6-1a9 9 0 1 0 4.4-17z|M9 8c1.5 3 3.5 5 6.5 6' },
@@ -341,12 +341,12 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
   const steps = isPro
     ? [
         { n: '1', t: 'Στέλνεις τον σύνδεσμο', d: 'Στους πελάτες-ιδιοκτήτες σου, όπου σε βολεύει.', d2: 'M22 2 11 13|M22 2 15 22l-4-9-9-4z' },
-        { n: '2', t: 'Ο νέος ιδιοκτήτης ξεκινά', d: 'Προσθέτει το πρώτο του ακίνητο και σαρώνει ένα έγγραφο στο Property OS.', d2: 'M22 11.08V12a10 10 0 1 1-5.93-9.14|M22 4 12 14.01l-3-3' },
+        { n: '2', t: 'Ο νέος ιδιοκτήτης ξεκινά', d: 'Προσθέτει το πρώτο του ακίνητο και σαρώνει ένα έγγραφο στο PROPERWISE.', d2: 'M22 11.08V12a10 10 0 1 1-5.93-9.14|M22 4 12 14.01l-3-3' },
         { n: '3', t: 'Παίρνεις πίσω τη συνδρομή σου', d: `Δωρεάν μήνες Επαγγελματία από τον πρώτο μήνα. Με ${PRO_PAID_TARGET} συνδρομητές για ${STREAK_TARGET_MONTHS} συνεχόμενους μήνες, κάθε επόμενος μήνας που πιάνεις τον στόχο είναι δωρεάν.`, d2: 'M23 6l-9.5 9.5-5-5L1 18|M17 6h6v6' },
       ]
     : [
         { n: '1', t: 'Στέλνεις τον σύνδεσμο', d: 'Σε έναν ιδιοκτήτη ακινήτου, όπου σε βολεύει.', d2: 'M22 2 11 13|M22 2 15 22l-4-9-9-4z' },
-        { n: '2', t: 'Ο νέος ιδιοκτήτης ξεκινά', d: 'Προσθέτει το πρώτο του ακίνητο και σαρώνει ένα έγγραφο στο Property OS.', d2: 'M22 11.08V12a10 10 0 1 1-5.93-9.14|M22 4 12 14.01l-3-3' },
+        { n: '2', t: 'Ο νέος ιδιοκτήτης ξεκινά', d: 'Προσθέτει το πρώτο του ακίνητο και σαρώνει ένα έγγραφο στο PROPERWISE.', d2: 'M22 11.08V12a10 10 0 1 1-5.93-9.14|M22 4 12 14.01l-3-3' },
         { n: '3', t: 'Παίρνετε τα δώρα σας', d: `Εκείνος παίρνει ${friendGift} κι εσύ ένα επιπλέον ακίνητο για ${moAcc(REFERRER_SLOT_MONTHS)}, στο πακέτο που ήδη έχεις.`, d2: 'M20 12v9H4v-9|M2 7h20v5H2z|M12 22V7|M12 7S9 2 6.5 4.5 12 7 12 7z|M12 7s3-5 5.5-2.5S12 7 12 7z' },
       ];
 
@@ -414,10 +414,10 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             (ετικέτα, τίτλος, παράγραφος), με δικά της περιθώρια και ΜΠΛΕ
             ετικέτα — ενώ κάθε άλλη ετικέτα κεφαλίδας στην εφαρμογή είναι
             ουδέτερη. Το μπλε είναι το χρώμα της ενέργειας, όχι της τοποθεσίας.
-            Και το όνομα γραφόταν «PropertyOS», σε έντεκα σημεία, ενώ σε άλλα
-            εκατόν ένα γράφεται «Property OS». */}
+            Και το όνομα γραφόταν «PROPERWISE», σε έντεκα σημεία, ενώ σε άλλα
+            εκατόν ένα γράφεται «PROPERWISE». */}
         <PageTitle
-          over={isPro ? 'Property OS · Πρόγραμμα Συνεργατών' : 'Property OS · Πρόγραμμα Πρόσκλησης'}
+          over={isPro ? 'PROPERWISE · Πρόγραμμα Συνεργατών' : 'PROPERWISE · Πρόγραμμα Πρόσκλησης'}
           title={isPro ? 'Προσκάλεσε τους πελάτες σου. Πάρε τον ίδιο φάκελο από όλους.' : 'Ξέρεις κι άλλον ιδιοκτήτη;'}
           lede={isPro
             ? 'Κάθε ιδιοκτήτης που προσκαλείς φτάνει σε εσένα με τον ίδιο φάκελο, στην ίδια δομή, με ονόματα αρχείων που δεν αλλάζουν από χρόνο σε χρόνο. Εσύ σταματάς να κυνηγάς έγγραφα τον Ιούνιο και κερδίζεις δωρεάν μήνες Επαγγελματία.'
@@ -557,13 +557,13 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             {partner ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <span style={{ ...TT.h2, color: 'var(--accent)' }}>Είσαι Συνεργάτης Property OS</span>
+                  <span style={{ ...TT.h2, color: 'var(--accent)' }}>Είσαι Συνεργάτης PROPERWISE</span>
                   <span style={{ ...TT.bodySm }}>Ενεργή ιδιότητα. Να τι απολαμβάνεις:</span>
                 </div>
               </div>
             ) : (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <span style={{ ...TT.h2 }}>Γίνε Συνεργάτης Property OS</span>
+              <span style={{ ...TT.h2 }}>Γίνε Συνεργάτης PROPERWISE</span>
               <span className="ref-kpi-hover" style={{ ...TT.kpi }}><Num value={streak} /><span style={{ ...TT.caption }}> / {STREAK_TARGET_MONTHS} μήνες</span></span>
             </div>
             )}
@@ -736,7 +736,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
       )}
 
       <p style={{ ...TT.caption, lineHeight: 1.6 }}>
-        Κάθε ανταμοιβή κατοχυρώνεται μόλις ο νέος ιδιοκτήτης σου προσθέσει {ACTIVATION_MIN_PROPERTIES === 1 ? 'ένα ακίνητο' : `${ACTIVATION_MIN_PROPERTIES} ακίνητα`} και σαρώσει {ACTIVATION_MIN_DOCUMENTS === 1 ? 'ένα έγγραφο' : `${ACTIVATION_MIN_DOCUMENTS} έγγραφα`} στο Property OS. Έτσι επιβραβεύουμε μόνο πραγματικές συστάσεις.
+        Κάθε ανταμοιβή κατοχυρώνεται μόλις ο νέος ιδιοκτήτης σου προσθέσει {ACTIVATION_MIN_PROPERTIES === 1 ? 'ένα ακίνητο' : `${ACTIVATION_MIN_PROPERTIES} ακίνητα`} και σαρώσει {ACTIVATION_MIN_DOCUMENTS === 1 ? 'ένα έγγραφο' : `${ACTIVATION_MIN_DOCUMENTS} έγγραφα`} στο PROPERWISE. Έτσι επιβραβεύουμε μόνο πραγματικές συστάσεις.
         {' '}Όλες οι ανταμοιβές είναι δωρεάν μήνες ή δωρεάν ακίνητα στη δική σου συνδρομή. Δεν διαχειριζόμαστε πληρωμές και δεν αποδίδουμε μετρητά.
       </p>
 

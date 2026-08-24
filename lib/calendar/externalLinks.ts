@@ -148,7 +148,7 @@ function uid(e: CalendarEventInput): string {
 export function buildICS(e: CalendarEventInput): string {
   const r = resolve(e)
   const lines = [
-    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Property OS//Calendar//EL', 'CALSCALE:GREGORIAN',
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//PROPERWISE//Calendar//EL', 'CALSCALE:GREGORIAN',
     'BEGIN:VEVENT', `UID:${uid(e)}`,
   ]
   if (r.allDay) {

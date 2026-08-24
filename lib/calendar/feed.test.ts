@@ -42,12 +42,12 @@ const items: FeedItem[] = [
   { uid: 'bill-1@propertyos', date: '2026-09-05', title: 'ΔΕΗ, λογαριασμός', note: 'Ποσό 87,45 €' },
   { uid: 'rent-1@propertyos', date: '2026-09-01', title: 'Ενοίκιο Σεπτεμβρίου' },
 ];
-const ics = buildCalendarFeed(items, { name: 'Property OS · Προθεσμίες', now: NOW });
+const ics = buildCalendarFeed(items, { name: 'PROPERWISE · Προθεσμίες', now: NOW });
 
 ok(ics.startsWith('BEGIN:VCALENDAR\r\n'), 'ξεκινά όπως ορίζει το πρότυπο');
 ok(ics.endsWith('END:VCALENDAR\r\n'), 'και κλείνει, με τελική αλλαγή γραμμής');
 ok(!/[^\r]\n/.test(ics), 'ΟΛΕΣ ΟΙ ΓΡΑΜΜΕΣ ΤΕΛΕΙΩΝΟΥΝ ΜΕ CRLF — σκέτο \\n το απορρίπτουν αναγνώστες');
-ok(ics.includes('X-WR-CALNAME:Property OS · Προθεσμίες'), 'το όνομα του ημερολογίου');
+ok(ics.includes('X-WR-CALNAME:PROPERWISE · Προθεσμίες'), 'το όνομα του ημερολογίου');
 ok(ics.includes('X-WR-TIMEZONE:Europe/Athens'), 'η ζώνη ώρας');
 ok(ics.includes(`REFRESH-INTERVAL;VALUE=DURATION:PT${DEFAULT_TTL_HOURS}H`), 'ο ρυθμός ανανέωσης του προτύπου');
 ok(ics.includes(`X-PUBLISHED-TTL:PT${DEFAULT_TTL_HOURS}H`), 'και εκείνος που διαβάζουν Google και Outlook');
@@ -61,7 +61,7 @@ ok(ics.includes('DESCRIPTION:Ποσό 87\\,45'), 'η περιγραφή, με δ
 ok(!ics.includes('DESCRIPTION:\r\n'), 'γεγονός χωρίς σημείωση δεν παίρνει κενή περιγραφή');
 
 // ── Το σταθερό uid ─────────────────────────────────────────────────────────
-const again = buildCalendarFeed(items, { name: 'Property OS · Προθεσμίες', now: new Date('2026-08-22T09:30:00Z') });
+const again = buildCalendarFeed(items, { name: 'PROPERWISE · Προθεσμίες', now: new Date('2026-08-22T09:30:00Z') });
 const uids = (s: string) => (s.match(/UID:[^\r]+/g) || []).join('|');
 eq(uids(again), uids(ics), 'ΤΟ UID ΔΕΝ ΑΛΛΑΖΕΙ ΜΕ ΤΗΝ ΑΝΑΝΕΩΣΗ — αλλιώς κάθε συγχρονισμός σβήνει και ξαναγράφει');
 

@@ -193,7 +193,7 @@ async function fetchIcal(url: string): Promise<string> {
   for (let hop = 0; hop < 5; hop++) {
     await assertResolvedSafe(new URL(current).hostname) // re-resolve & validate every hop
     res = await fetch(current, {
-      headers: { 'User-Agent': 'PropertyOS-iCal/1.0', 'Accept': 'text/calendar, text/plain, */*' },
+      headers: { 'User-Agent': 'PROPERWISE-iCal/1.0', 'Accept': 'text/calendar, text/plain, */*' },
       redirect: 'manual',
       signal: AbortSignal.timeout(ICAL_TIMEOUT_MS),
     })

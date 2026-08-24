@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Property OS · Κοινή βιβλιοθήκη email templates (lifecycle + marketing).
+// PROPERWISE · Κοινή βιβλιοθήκη email templates (lifecycle + marketing).
 //
 // ΜΙΑ πηγή αλήθειας για ΟΛΑ τα emails: ένα branded κέλυφος (P-logo header, λευκή
 // κάρτα, footer/απεγγραφή/colophon), τυποποιημένη τυπογραφία, καθαρό ασπρόμαυρο
@@ -73,14 +73,14 @@ export function emailShell(opts: {
     ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${esc(opts.preheader)}</div>`
     : '';
   const foot = opts.unsubUrl
-    ? `Λαμβάνεις αυτό το email ως χρήστης του Property OS.<br><a href="${esc(opts.unsubUrl)}" style="color:${FAINT};text-decoration:underline;">Απεγγραφή από τα ενημερωτικά</a> · Property OS`
-    : (opts.footerNote || 'Property OS · Έξυπνη διαχείριση ακινήτων');
+    ? `Λαμβάνεις αυτό το email ως χρήστης του PROPERWISE.<br><a href="${esc(opts.unsubUrl)}" style="color:${FAINT};text-decoration:underline;">Απεγγραφή από τα ενημερωτικά</a> · PROPERWISE`
+    : (opts.footerNote || 'PROPERWISE · Έξυπνη διαχείριση ακινήτων');
   return `<!DOCTYPE html><html lang="el"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
   <body style="margin:0;padding:0;background:#f1f3f4;font-family:-apple-system,'Inter',Arial,sans-serif;">${pre}
   <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
     <div style="display:flex;align-items:center;margin-bottom:22px;">
       <div style="width:34px;height:34px;background:${ACCENT};border-radius:8px;display:inline-flex;align-items:center;justify-content:center;"><span style="color:#fff;font-weight:800;font-size:17px;">P</span></div>
-      <span style="font-size:16px;font-weight:700;color:${INK};margin-left:10px;">Property OS</span>
+      <span style="font-size:16px;font-weight:700;color:${INK};margin-left:10px;">PROPERWISE</span>
     </div>
     <div style="background:#fff;border:1px solid #e8eaed;border-top:3px solid ${ACCENT};border-radius:14px;padding:26px 26px 28px;">${opts.hero || ''}${opts.bodyHtml}</div>
     <p style="text-align:center;font-size:12px;color:${ACCENT};font-weight:600;letter-spacing:.2px;margin:18px 0 5px;">${BRAND_TAGLINE}</p>
@@ -183,13 +183,13 @@ export function welcomeEmail(c: Ctx & { plan?: Plan }): Out {
     individual: ['Κατέγραψε ακίνητα, ενοικιαστές και εισπράξεις.', 'Βγάλε επίσημες καταστάσεις και βεβαιώσεις ενοικίου.', 'Άφησε τις υπενθυμίσεις να τρέχουν μόνες τους.'],
     professional: ['Διαχειρίσου χαρτοφυλάκιο πολλών ακινήτων.', 'Branded αναφορές και μαζική επικοινωνία πελατών.', 'Λογιστικά, φόροι και ροές εργασίας σε ένα σημείο.'],
   };
-  const body = eyebrow('Καλωσόρισες') + h('Ξεκίνα με το Property OS')
+  const body = eyebrow('Καλωσόρισες') + h('Ξεκίνα με το PROPERWISE')
     + greeting(c.name)
     + p(`Χαιρόμαστε που είσαι μαζί μας. Είσαι στο πλάνο <b>${PLAN_LABEL[plan]}</b> · να τα πρώτα βήματα για να πάρεις αξία από την πρώτη μέρα:`)
     + bullets(next[plan])
     + button('Άνοιξε τον πίνακα', `${app(c)}/dashboard`)
     + note('Είμαστε εδώ για ό,τι χρειαστείς. Απάντησε απευθείας σε αυτό το email.');
-  return { subject: 'Καλωσόρισες στο Property OS', html: emailShell({ bodyHtml: body, preheader: 'Τα πρώτα βήματα για να ξεκινήσεις.' }) };
+  return { subject: 'Καλωσόρισες στο PROPERWISE', html: emailShell({ bodyHtml: body, preheader: 'Τα πρώτα βήματα για να ξεκινήσεις.' }) };
 }
 
 /** Αναβάθμιση συνδρομής · ευχαριστία + τι ξεκλείδωσε. */
@@ -233,32 +233,32 @@ export function newPropertyEmail(c: Ctx & { propertyName: string }): Out {
 export function feedbackRequestEmail(c: Ctx): Out {
   const body = eyebrow('Η γνώμη σου μετράει') + h('Πώς πάει μέχρι τώρα;')
     + greeting(c.name)
-    + p('Πέρασε περίπου μία εβδομάδα με το Property OS. Θα εκτιμούσαμε πολύ 30 δευτερόλεπτα από τον χρόνο σου: τι σου άρεσε, τι σε δυσκόλεψε, τι λείπει;')
+    + p('Πέρασε περίπου μία εβδομάδα με το PROPERWISE. Θα εκτιμούσαμε πολύ 30 δευτερόλεπτα από τον χρόνο σου: τι σου άρεσε, τι σε δυσκόλεψε, τι λείπει;')
     + p('Διαβάζουμε <b>κάθε</b> απάντηση · και χτίζουμε το προϊόν με βάση αυτά που μας λες.')
     + button('Πες μας τη γνώμη σου', `${app(c)}/dashboard`)
     + note('Απλώς απάντησε σε αυτό το email · φτάνει κατευθείαν σε εμάς.');
-  return { subject: 'Πώς σου φαίνεται το Property OS;', html: emailShell({ bodyHtml: body, preheader: '30 δευτερόλεπτα που μας βοηθούν πολύ.' }) };
+  return { subject: 'Πώς σου φαίνεται το PROPERWISE;', html: emailShell({ bodyHtml: body, preheader: '30 δευτερόλεπτα που μας βοηθούν πολύ.' }) };
 }
 
 /** Ανακοίνωση mobile app. */
 export function mobileLaunchEmail(c: Ctx): Out {
-  const body = eyebrow('Έρχεται') + h('Το Property OS στο κινητό σου')
+  const body = eyebrow('Έρχεται') + h('Το PROPERWISE στο κινητό σου')
     + greeting(c.name)
     + p('Ετοιμάζουμε την εφαρμογή για κινητά · τα ακίνητά σου, οι εισπράξεις και οι ειδοποιήσεις στην τσέπη σου, όπου κι αν είσαι.')
     + bullets(['Ειδοποιήσεις σε πραγματικό χρόνο.', 'Γρήγορη καταχώρηση εσόδων/εξόδων.', 'Σάρωση εγγράφων με ένα tap.'])
     + button('Μπες στη λίστα αναμονής', `${app(c)}/dashboard`)
     + note('Θα είσαι από τους πρώτους που θα ειδοποιήσουμε μόλις είναι έτοιμη.');
-  return { subject: 'Το Property OS έρχεται στο κινητό', html: emailShell({ bodyHtml: body, preheader: 'Μπες νωρίς στη λίστα αναμονής.' }) };
+  return { subject: 'Το PROPERWISE έρχεται στο κινητό', html: emailShell({ bodyHtml: body, preheader: 'Μπες νωρίς στη λίστα αναμονής.' }) };
 }
 
 /** Πρόσκληση στο Referral program. */
 export function referralInviteEmail(c: Ctx): Out {
-  const body = eyebrow('Referral') + h('Κέρδισε προτείνοντας το Property OS')
+  const body = eyebrow('Referral') + h('Κέρδισε προτείνοντας το PROPERWISE')
     + greeting(c.name)
-    + p('Ξέρεις κάποιον με ακίνητα; Πρότεινέ του το Property OS και <b>κερδίζετε και οι δύο</b>.')
+    + p('Ξέρεις κάποιον με ακίνητα; Πρότεινέ του το PROPERWISE και <b>κερδίζετε και οι δύο</b>.')
     + bullets(['Μοναδικός σύνδεσμος πρόσκλησης, δικός σου.', 'Ανταμοιβή για κάθε ενεργό φίλο που φέρνεις.', 'Παρακολούθηση προσκλήσεων και ανταμοιβών live.'])
     + button('Δες το πρόγραμμα', `${app(c)}/dashboard`);
-  return { subject: 'Πρότεινε το Property OS και κέρδισε', html: emailShell({ bodyHtml: body, preheader: 'Κερδίζετε και οι δύο.' }) };
+  return { subject: 'Πρότεινε το PROPERWISE και κέρδισε', html: emailShell({ bodyHtml: body, preheader: 'Κερδίζετε και οι δύο.' }) };
 }
 
 /** Upsell δωρεάν → paid, με προαιρετική έκπτωση/εποχή. */
@@ -275,7 +275,7 @@ export function upsellEmail(c: Ctx & { toPlan?: Plan; discountPct?: number; seas
         : ['Απεριόριστες καταστάσεις και βεβαιώσεις.', 'Αυτόματες υπενθυμίσεις πληρωμών.', 'Επίσημες αναφορές PDF με QR επαλήθευσης.'])
     + button(disc ? `Κλείσε το ${disc}%` : 'Αναβάθμισε τώρα', `${app(c)}/dashboard`)
     + note(disc ? 'Η προσφορά ισχύει για περιορισμένο διάστημα.' : 'Ακύρωση όποτε θες · χωρίς δεσμεύσεις.');
-  const subj = disc ? `${disc}% έκπτωση${c.seasonLabel ? ` · ${c.seasonLabel}` : ''} στο Property OS` : `Αναβάθμισε στο πλάνο ${PLAN_LABEL[to]}`;
+  const subj = disc ? `${disc}% έκπτωση${c.seasonLabel ? ` · ${c.seasonLabel}` : ''} στο PROPERWISE` : `Αναβάθμισε στο πλάνο ${PLAN_LABEL[to]}`;
   return { subject: subj, html: emailShell({ bodyHtml: body, preheader: disc ? `Ξεκλείδωσε το ${PLAN_LABEL[to]} με έκπτωση.` : 'Περισσότερος χρόνος, λιγότερος κόπος.' }) };
 }
 
@@ -284,10 +284,10 @@ export function legislationUpdateEmail(c: Ctx & { headline: string; summaryHtml:
   const body = eyebrow('Νομοθεσία ακινήτων') + h(esc(c.headline))
     + greeting(c.name)
     + p(c.summaryHtml)
-    + p('Το Property OS ενημερώνεται συνεχώς ώστε τα ακίνητά σου να είναι <b>πάντα σε τάξη</b> · εύκολα, γρήγορα, σωστά. Τώρα είναι η καλύτερη στιγμή να το ελέγξεις.')
+    + p('Το PROPERWISE ενημερώνεται συνεχώς ώστε τα ακίνητά σου να είναι <b>πάντα σε τάξη</b> · εύκολα, γρήγορα, σωστά. Τώρα είναι η καλύτερη στιγμή να το ελέγξεις.')
     + button('Βάλε το ακίνητό σου σε τάξη', `${app(c)}/dashboard`)
     + note('Ενημερωτικό, με επίσημες πηγές. Για την τελική εφαρμογή, επιβεβαίωσε με τον λογιστή σου ή στο myAADE/gov.gr.');
-  return { subject: `Property OS · ${c.headline}`, html: emailShell({ bodyHtml: body, preheader: 'Τι αλλάζει και τι πρέπει να κάνεις.' }) };
+  return { subject: `PROPERWISE · ${c.headline}`, html: emailShell({ bodyHtml: body, preheader: 'Τι αλλάζει και τι πρέπει να κάνεις.' }) };
 }
 
 // ── ΕΠΟΧΙΚΕΣ ΚΑΜΠΑΝΙΕΣ ────────────────────────────────────────────────────────

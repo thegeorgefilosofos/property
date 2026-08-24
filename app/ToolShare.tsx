@@ -196,7 +196,7 @@ export function ToolPaper(
   return (
     <header className="po-printonly po-paper">
       <div className="po-paper-top">
-        <span>Property OS</span>
+        <span>PROPERWISE</span>
         <span>{fdLong(on)}</span>
       </div>
       <h2 className="po-paper-title">{title}</h2>

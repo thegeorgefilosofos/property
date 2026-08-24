@@ -22,7 +22,7 @@
 // σύνδεση, κατάσταση χρήστη και συμπεριφορά στο κύλισμα. Ένα κέλυφος που θα
 // κάλυπτε και τις πέντε θα ήταν παραμετροποιημένο σε βαθμό που δεν διαβάζεται.
 // ═══════════════════════════════════════════════════════════════════════════
-import BrandMark from '@/components/BrandMark';
+import { BrandLogo } from '@/components/BrandMark';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { T } from '@/components/tokens';
@@ -63,8 +63,7 @@ export function PublicHeader() {
     <header style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-surface)' }}>
       <div style={{ ...WRAP, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
         <Link href="/" className="lp-link lp-brand" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'var(--text-primary)' }}>
-          <BrandMark />
-          <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.02em' }}>Property OS</span>
+          <BrandLogo size={24} />
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
           {/* Ο ΤΙΜΟΚΑΤΑΛΟΓΟΣ ΔΕΝ ΕΙΧΕ ΔΡΟΜΟ. Η ενότητα υπάρχει, έχει άγκυρα
@@ -108,8 +107,7 @@ export function PublicFooter() {
         <div className="lp-foot">
           <div>
             <Link href="/" className="lp-link lp-brand" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, textDecoration: 'none', color: 'var(--text-primary)', width: 'fit-content' }}>
-              <BrandMark size={26} />
-              <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em' }}>Property OS</span>
+              <BrandLogo size={26} />
             </Link>
             {/* ΔΥΟ ΠΡΟΤΑΣΕΙΣ, ΔΥΟ ΓΡΑΜΜΕΣ, ΚΑΙ Η ΑΛΛΑΓΗ ΕΙΝΑΙ ΡΗΤΗ.
                 Ηταν μία συνεχόμενη φράση που άφηνε την αναδίπλωση στο πλάτος
@@ -137,7 +135,7 @@ export function PublicFooter() {
           <FootCol label="Εμπιστοσύνη" links={[['/trust', 'Ποιοι είμαστε'], ['/privacy', 'Απόρρητο'], ['/terms', 'Όροι χρήσης'], [`mailto:${IDENTITY.supportEmail}`, 'Επικοινωνία']]} />
         </div>
         <div style={{ marginTop: 'clamp(32px,4vw,48px)', paddingTop: 18, borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', fontSize: 12, color: 'var(--text-tertiary)' }}>
-          <span>© {new Date().getFullYear()} Property OS</span>
+          <span>© {new Date().getFullYear()} PROPERWISE</span>
           <span>Βάση δεδομένων στην ΕΕ · Σχεδιασμένο για GDPR</span>
         </div>
       </div>

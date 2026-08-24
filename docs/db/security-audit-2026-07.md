@@ -1,6 +1,6 @@
 # Security audit — July 2026
 
-A full, adversarial security review of the PropertyOS backend ahead of onboarding
+A full, adversarial security review of the PROPERWISE backend ahead of onboarding
 paying customers. Four independent passes, each on a distinct attack surface. Every
 finding was verified against the actual SQL/code before any change; only verified,
 exploitable issues are listed. Fixes shipped as migrations and edge-function changes

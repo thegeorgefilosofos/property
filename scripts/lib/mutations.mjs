@@ -90,6 +90,8 @@ export const MUTATIONS = {
     from: '  welcome_free: (',
     to: "  orfani_epistoli: (c) => ({ subject: 'Δοκιμή', html: '' }),\n  welcome_free: (",
   },
+  // Το παλιό όνομα επιστρέφει όπως έφυγε: με μία επικόλληση σε ένα σημείο.
+  'brand-name': { add: 'components/__mut__.tsx', content: tsx('    <div>Καλώς όρισες στο Property OS</div>') },
   'http-bridge': { add: 'supabase/migrations/29990101000000_mut.sql', content: 'create or replace function public.mut_probe_call() returns void language sql as $$ select net.http_post(url => \'https://x\') $$;\ngrant execute on function public.mut_probe_call() to authenticated;\n' },
   'sql-types': { add: 'supabase/migrations/29990101000000_mut.sql', content: 'create or replace function public.mut_probe() returns void language plpgsql as $$\ndeclare v_row record;\nbegin\n  for v_row in select * from public.bills loop\n    if v_row.property_id = some_text then null; end if;\n  end loop;\nend $$;\n' },
   'service-role': { add: 'components/__mut__.ts', content: "export const key = process.env.SUPABASE_SERVICE_ROLE_KEY\n" },

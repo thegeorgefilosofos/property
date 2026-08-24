@@ -145,7 +145,7 @@ export default function Feedback({ target = 'general', onDone, embedded }: {
         {/* ΜΕΣΑ ΣΕ ΠΑΡΑΘΥΡΟ, ΤΗΝ ΚΕΦΑΛΙΔΑ ΤΗ ΔΙΝΕΙ ΤΟ ΚΕΛΥΦΟΣ.
             Το παράθυρο του βοηθού γράφει ήδη τίτλο «Η γνώμη σου», και από κάτω
             ξεκινούσε αμέσως δεύτερη κεφαλίδα με δικό της εικονίδιο και δικό της
-            τίτλο, «Κάνε το Property OS καλύτερο». Δύο επικεφαλίδες στη σειρά,
+            τίτλο, «Κάνε το PROPERWISE καλύτερο». Δύο επικεφαλίδες στη σειρά,
             που λένε το ίδιο πράγμα με άλλα λόγια, πριν ο χρήστης δει έστω ένα
             πεδίο. Εκτός παραθύρου (κάρτα στην Επισκόπηση) η κεφαλίδα μένει:
             εκεί δεν υπάρχει τίποτα άλλο να ονομάσει την ενότητα. */}
@@ -159,7 +159,7 @@ export default function Feedback({ target = 'general', onDone, embedded }: {
             <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
           </span>
           <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, letterSpacing: '-0.01em' }}>
-            Κάνε το Property OS καλύτερο
+            Κάνε το PROPERWISE καλύτερο
           </span>
         </div>
         )}

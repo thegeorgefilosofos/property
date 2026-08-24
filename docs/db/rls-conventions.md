@@ -1,4 +1,4 @@
-# Property OS · Row-Level Security — audit & conventions
+# PROPERWISE · Row-Level Security — audit & conventions
 
 The RLS on `public` had accumulated **3–4 generations of overlapping policies** from
 different migrations/sessions. RLS policies are permissive (OR-combined), so stacking

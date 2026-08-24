@@ -88,7 +88,7 @@ export function PanelDashboard() {
       <div className="lp-rail" style={{ width: 150, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px 12px' }}>
           <BrandMark size={22} />
-          <div style={{ fontSize: 13, fontWeight: 700 }}>Property OS</div>
+          <div style={{ fontSize: 13, fontWeight: 700 }}>PROPERWISE</div>
         </div>
         {['Επισκόπηση', 'Ενοίκιο', 'Δαπάνες', 'Λογαριασμοί', 'Ημερολόγιο'].map((r, i) => (
           <div key={i} className="lp-live" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 10px', borderRadius: 8, background: i === 0 ? 'var(--bg-elevated)' : 'transparent', border: i === 0 ? '1px solid var(--border-subtle)' : '1px solid transparent', color: i === 0 ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontSize: 13, fontWeight: i === 0 ? 700 : 500 }}>

@@ -96,7 +96,7 @@ export const subscriptionOf = (
 export function apiConfigError(env: BillingEnv = process.env): string {
   const missing: string[] = [];
   if (!(env[API_KEY_ENV] || '').trim()) missing.push(API_KEY_ENV);
-  // ΤΟ ΚΑΤΑΣΤΗΜΑ ΕΙΝΑΙ ΑΡΙΘΜΟΣ. Ενα αντιγραμμένο όνομα («PropertyOS») περνά
+  // ΤΟ ΚΑΤΑΣΤΗΜΑ ΕΙΝΑΙ ΑΡΙΘΜΟΣ. Ενα αντιγραμμένο όνομα («PROPERWISE») περνά
   // αθόρυβα ως συμβολοσειρά και ο έμπορος απαντά 404 σε κάθε ταμείο.
   const store = (env[STORE_ENV] || '').trim();
   if (!store) missing.push(STORE_ENV);

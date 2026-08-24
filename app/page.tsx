@@ -1,4 +1,4 @@
-import BrandMark from '@/components/BrandMark';
+import { BrandLogo } from '@/components/BrandMark';
 import Link from 'next/link';
 import { PLANS, PLAN_ORDER, TRIAL_DAYS, ACCOUNT_GRACE_DAYS } from '@/lib/billing/plans';
 import { aiLimitsFor } from '@/lib/billing/aiLimits';
@@ -24,7 +24,7 @@ import { T } from '@/components/tokens';
 // Αισθητική: μονόχρωμη, ένα γαλάζιο, καθαρή· καμία διακοσμητική «κονκάρδα».
 // ═══════════════════════════════════════════════════════════════════════════
 
-const OG_TITLE = 'Property OS · Διαχείριση ακινήτων με μία φωτογραφία';
+const OG_TITLE = 'PROPERWISE · Διαχείριση ακινήτων με μία φωτογραφία';
 const OG_DESC = 'Σάρωσε λογαριασμό, μισθωτήριο ή ασφαλιστήριο και καταχωρείται αυτόματα εκεί που πρέπει. Ρώτα τον βοηθό με τη φωνή σου. Αποδόσεις, δαπάνες, φορολογία 2026 και σύγκριση παρόχων ενέργειας, σε μία οθόνη.';
 
 export const metadata = {
@@ -34,7 +34,7 @@ export const metadata = {
   title: { absolute: OG_TITLE },
   description: OG_DESC,
   alternates: { canonical: SITE },
-  openGraph: { title: OG_TITLE, description: OG_DESC, url: SITE, type: 'website', locale: 'el_GR', siteName: 'Property OS' },
+  openGraph: { title: OG_TITLE, description: OG_DESC, url: SITE, type: 'website', locale: 'el_GR', siteName: 'PROPERWISE' },
   twitter: { card: 'summary_large_image', title: OG_TITLE, description: OG_DESC },
 };
 
@@ -132,7 +132,7 @@ function FaqList({ list }: { list: { q: string; a: string }[] }) {
 // ακριβές μέγεθος. Αν αύριο αλλάξει μία ετήσια τιμή, η πρόταση αλλάζει μόνη
 // της· κανένας δεν χρειάζεται να θυμηθεί να ξαναγράψει τη σελίδα.
 //
-// ΚΑΙ ΔΕΝ ΛΕΓΕΤΑΙ «ΔΩΡΕΑΝ». Δωρεάν στο PropertyOS είναι μόνο η δοκιμή και το
+// ΚΑΙ ΔΕΝ ΛΕΓΕΤΑΙ «ΔΩΡΕΑΝ». Δωρεάν στο PROPERWISE είναι μόνο η δοκιμή και το
 // μπόνους συστάσεων. Η ετήσια συνδρομή δεν χαρίζει μήνες, χρεώνει λιγότερους:
 // αυτό ακριβώς λέει και η πρόταση.
 const monthsSaved = PLAN_ORDER
@@ -342,8 +342,8 @@ const SECURITY = [
   // ΤΕΣΣΕΡΙΣ ΕΓΓΥΗΣΕΙΣ ΔΥΟ ΚΑΙ ΔΥΟ, ΜΕ ΛΕΖΑΝΤΑ ΔΥΟ ΓΡΑΜΜΩΝ Η ΚΑΘΕΜΙΑ. Σε μισή
   // στήλη χωρούν περίπου εβδομήντα χαρακτήρες σε δύο γραμμές· ό,τι περνούσε
   // κατέβαινε τρίτη γραμμή μόνο του και ξεχάρβαλωνε το ζευγάρι δίπλα του.
-  // Το «με το Property OS» έφυγε από την πρώτη: η ενότητα μιλά ήδη για το
-  // Property OS και η μισή γραμμή που έτρωγε δεν πρόσθετε τίποτα.
+  // Το «με το PROPERWISE» έφυγε από την πρώτη: η ενότητα μιλά ήδη για το
+  // PROPERWISE και η μισή γραμμή που έτρωγε δεν πρόσθετε τίποτα.
   { t: 'Κρυπτογραφημένη σύνδεση', d: 'Η επικοινωνία γίνεται πάντα μέσω TLS, σε κάθε συσκευή και δίκτυο.', i: 'M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4' },
   { t: 'Απομόνωση ανά χρήστη', d: 'Βλέπεις μόνο τα δικά σου δεδομένα. Πρόσβαση έχουν όσοι επιλέγεις εσύ.', i: 'M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z' },
   { t: 'Καμία εκπαίδευση μοντέλων', d: 'Τα έγγραφα και τα δεδομένα σου δεν τροφοδοτούν κανένα μοντέλο.', i: 'M12 2v4M12 18v4M2 12h4M18 12h4M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z' },
@@ -633,7 +633,7 @@ export default async function Landing() {
            στο 30%: ανάμεσά τους έμενε ΤΡΥΠΑ. Μετρημένο σε πραγματικό περιηγητή,
            δειγματοληψία ανά 100ms για 16 δευτερόλεπτα: το άθροισμα των
            διαφανειών έπεφτε στο 0,01 και ο επισκέπτης διάβαζε «Φωτογραφίζεις …
-           Το Property OS κάνει τα υπόλοιπα» — μισή πρόταση, στην πρώτη οθόνη
+           Το PROPERWISE κάνει τα υπόλοιπα» — μισή πρόταση, στην πρώτη οθόνη
            που βλέπει.
 
            Τώρα το σβήσιμο ΑΡΧΙΖΕΙ στο 25%, δηλαδή ακριβώς όταν αρχίζει το
@@ -1025,8 +1025,7 @@ export default async function Landing() {
       <header className="lp-head" style={{ position: 'sticky', top: 0, zIndex: 50, background: 'color-mix(in srgb, var(--bg-base) 78%, transparent)', borderBottom: `1px solid ${LINE}` }}>
         <nav style={{ ...wrap, height: 64, display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
-            <BrandMark />
-            <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>Property OS</span>
+            <BrandLogo size={26} />
           </div>
           {loggedIn ? (
             <Link href="/dashboard" className="lp-cta lp-primary" style={{ textDecoration: 'none', fontSize: 14, fontWeight: 700, padding: '9px 18px', borderRadius: T.radius.pill }}>Ο πίνακάς σου</Link>
@@ -1083,7 +1082,7 @@ export default async function Landing() {
             {/* nowrap ώστε να μη μένει ποτέ το «υπόλοιπα.» μόνο του σε τρίτη γραμμή:
                 ένα ορφανό στο τέλος τίτλου διαβάζεται ως τυπογραφικό ατύχημα. Σε
                 στενές οθόνες το clamp ρίχνει το μέγεθος, οπότε χωράει ούτως ή άλλως. */}
-            <span style={{ whiteSpace: 'nowrap' }}>Το Property OS</span> κάνει τα υπόλοιπα.
+            <span style={{ whiteSpace: 'nowrap' }}>Το PROPERWISE</span> κάνει τα υπόλοιπα.
           </h1>
           {/* ── Ο ΥΠΟΤΙΤΛΟΣ: δύο προτάσεις, δύο δουλειές ──────────────────────────
               Η πρώτη λέει το ΕΥΡΟΣ. Τέσσερα ουσιαστικά χωρίς συνδέσμους (ασύνδετο
@@ -1324,7 +1323,7 @@ export default async function Landing() {
             μακροχρόνιου μισθώματος: καθένα με τη δική του προθεσμία και η ευθύνη πάντα πάνω σου.
           </p>
           <p>
-            Γι’ αυτό σχεδιάσαμε το Property OS. Τα πάντα για το ακίνητο σε ένα σημείο, φορολογικά,
+            Γι’ αυτό σχεδιάσαμε το PROPERWISE. Τα πάντα για το ακίνητο σε ένα σημείο, φορολογικά,
             νομικά, οικονομικά, πλήρως ενημερωμένα.
           </p>
           <p>
@@ -1335,7 +1334,7 @@ export default async function Landing() {
         </div>
         <p style={{ fontSize: 'clamp(17px, 1.9vw, 21px)', lineHeight: 1.45, color: 'var(--text-primary)', letterSpacing: '-0.015em',
           margin: 'clamp(26px, 3.2vw, 40px) 0 0', maxWidth: 1044, textWrap: 'balance' }}>
-          Εσύ κρατάς τις αποφάσεις· το Property OS κάνει τα υπόλοιπα.
+          Εσύ κρατάς τις αποφάσεις· το PROPERWISE κάνει τα υπόλοιπα.
         </p>
         <div style={{ marginTop: 14 }}>
           <Link href="/trust" className="lp-link po-tap" style={{ color: ACCENT, textDecoration: 'none', fontSize: 15, fontWeight: 600 }}>

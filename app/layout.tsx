@@ -9,7 +9,7 @@ import ErrorListener from "@/components/ErrorListener";
 import { ConfirmHost } from "@/components/ConfirmDialog";
 import { SITE } from "@/lib/core/site";
 
-const TITLE = "Property OS";
+const TITLE = "PROPERWISE";
 const DESCRIPTION = "Έσοδα, δαπάνες, ενοικιαστές, φόρος και προθεσμίες για τα ακίνητά σου, σε ένα σημείο.";
 
 export const metadata: Metadata = {
@@ -39,17 +39,24 @@ export const metadata: Metadata = {
     description: DESCRIPTION,
   },
   twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
-  applicationName: "Property OS",
+  applicationName: "PROPERWISE",
   // Εγκαταστάσιμη εφαρμογή: το manifest παράγεται από το app/manifest.ts.
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "Property OS",
+    title: "PROPERWISE",
     // Ημιδιαφανής μπάρα ώστε το περιεχόμενο να φτάνει μέχρι πάνω στο iOS.
     statusBarStyle: "black-translucent",
   },
+  // ΤΟ ΔΙΑΝΥΣΜΑΤΙΚΟ ΠΡΩΤΟ, ΚΑΙ ΑΥΤΟ ΕΧΕΙ ΣΗΜΑΣΙΑ. Ρητή δήλωση `icons` σημαίνει
+  // ότι ο Next ΔΕΝ κοιτά πια το app/icon.svg: όποιος περιηγητής προτιμά SVG θα
+  // έπαιρνε το PNG των 192 σμικρυμένο σε 16, δηλαδή θολό. Ο κατάλογος
+  // διαβάζεται με τη σειρά και το πρώτο υποστηριζόμενο κερδίζει.
   icons: {
-    icon: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
     apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
   // ═══════════════════════════════════════════════════════════════════════

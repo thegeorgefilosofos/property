@@ -17,7 +17,7 @@ import { APP_URL } from '../_shared/site.ts'
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 const SUPABASE_URL   = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_ANON  = Deno.env.get('SUPABASE_ANON_KEY')!
-const FROM_EMAIL     = Deno.env.get('RESEND_FROM') || 'Property OS <onboarding@resend.dev>'
+const FROM_EMAIL     = Deno.env.get('RESEND_FROM') || 'PROPERWISE <onboarding@resend.dev>'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -28,14 +28,14 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } })
 
 function testEmailHtml(): { subject: string; html: string } {
-  const subject = 'Δοκιμαστική ειδοποίηση από το Property OS'
+  const subject = 'Δοκιμαστική ειδοποίηση από το PROPERWISE'
   const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f1f3f4;font-family:-apple-system,'Inter',sans-serif;">
   <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
     <div style="display:flex;align-items:center;margin-bottom:24px;">
       <div style="width:36px;height:36px;background:#1a73e8;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;">
         <span style="color:#ffffff;font-weight:800;font-size:18px;">P</span>
       </div>
-      <span style="font-size:16px;font-weight:700;color:#202124;margin-left:10px;">Property OS</span>
+      <span style="font-size:16px;font-weight:700;color:#202124;margin-left:10px;">PROPERWISE</span>
     </div>
     <div style="background:#ffffff;border:1px solid #e8eaed;border-radius:14px;padding:28px 24px;">
       <p style="margin:0 0 6px;font-size:11px;color:#1a73e8;font-family:monospace;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">Δοκιμή</p>
@@ -44,7 +44,7 @@ function testEmailHtml(): { subject: string; html: string } {
         Αυτό είναι ένα δοκιμαστικό email. Αν το βλέπεις, η διεύθυνσή σου είναι σωστή και θα λαμβάνεις κανονικά τις υπενθυμίσεις για ενοίκια, λογαριασμούς και γεγονότα του ημερολογίου σου.
       </p>
     </div>
-    <p style="text-align:center;font-size:11px;color:#80868b;margin-top:20px;">Property OS · Δοκιμαστικό μήνυμα που ζήτησες από τις ρυθμίσεις.</p>
+    <p style="text-align:center;font-size:11px;color:#80868b;margin-top:20px;">PROPERWISE · Δοκιμαστικό μήνυμα που ζήτησες από τις ρυθμίσεις.</p>
   </div>
   </body></html>`
   return { subject, html }
@@ -59,19 +59,19 @@ function testEmailHtml(): { subject: string; html: string } {
  * χωρίς το πάτημα δεν στέλνεται ούτως ή άλλως τίποτα.
  */
 function confirmEmailHtml(link: string, owner: string): { subject: string; html: string } {
-  const subject = 'Επιβεβαίωση διεύθυνσης για υπενθυμίσεις Property OS'
+  const subject = 'Επιβεβαίωση διεύθυνσης για υπενθυμίσεις PROPERWISE'
   const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f1f3f4;font-family:-apple-system,'Inter',sans-serif;">
   <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
     <div style="display:flex;align-items:center;margin-bottom:24px;">
       <div style="width:36px;height:36px;background:#1a73e8;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;">
         <span style="color:#ffffff;font-weight:800;font-size:18px;">P</span>
       </div>
-      <span style="font-size:16px;font-weight:700;color:#202124;margin-left:10px;">Property OS</span>
+      <span style="font-size:16px;font-weight:700;color:#202124;margin-left:10px;">PROPERWISE</span>
     </div>
     <div style="background:#ffffff;border:1px solid #e8eaed;border-radius:14px;padding:28px 24px;">
       <h1 style="margin:0 0 12px;font-size:22px;color:#202124;font-weight:800;letter-spacing:-0.5px;">Να στέλνουμε τις υπενθυμίσεις εδώ;</h1>
       <p style="margin:0 0 16px;font-size:14px;color:#5f6368;line-height:1.6;">
-        Ο κάτοχος του λογαριασμού ${owner} όρισε αυτή τη διεύθυνση για τις υπενθυμίσεις του Property OS: λογαριασμοί, ενοίκια και γεγονότα ημερολογίου.
+        Ο κάτοχος του λογαριασμού ${owner} όρισε αυτή τη διεύθυνση για τις υπενθυμίσεις του PROPERWISE: λογαριασμοί, ενοίκια και γεγονότα ημερολογίου.
       </p>
       <p style="margin:0 0 22px;font-size:14px;color:#5f6368;line-height:1.6;">
         Αν το περιμένεις, επιβεβαίωσέ το. <strong style="color:#202124;">Αν όχι, αγνόησε αυτό το μήνυμα</strong>: χωρίς επιβεβαίωση δεν στέλνεται τίποτα άλλο σε αυτή τη διεύθυνση.
@@ -79,7 +79,7 @@ function confirmEmailHtml(link: string, owner: string): { subject: string; html:
       <a href="${link}" style="display:inline-block;background:#1a73e8;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:100px;font-weight:700;font-size:14px;">Επιβεβαίωση διεύθυνσης</a>
       <p style="margin:18px 0 0;font-size:12px;color:#80868b;line-height:1.6;">Ο σύνδεσμος λήγει σε 48 ώρες.</p>
     </div>
-    <p style="text-align:center;font-size:11px;color:#80868b;margin-top:20px;">Property OS · Το μήνυμα στάλθηκε επειδή ζητήθηκε επιβεβαίωση αυτής της διεύθυνσης.</p>
+    <p style="text-align:center;font-size:11px;color:#80868b;margin-top:20px;">PROPERWISE · Το μήνυμα στάλθηκε επειδή ζητήθηκε επιβεβαίωση αυτής της διεύθυνσης.</p>
   </div>
   </body></html>`
   return { subject, html }

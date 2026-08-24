@@ -1,4 +1,4 @@
-# Property OS · Database security & automation
+# PROPERWISE · Database security & automation
 
 This database holds customer data. The posture below is how an experienced team runs
 a production Supabase project: **every change is versioned code, applied automatically

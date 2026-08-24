@@ -269,7 +269,7 @@ export function buildWorkbook(inp: AccountantBundleInput, papers: readonly Filed
   // «12/8/2026»: σε αρχείο που δίπλα του έχει «11/03/2026» φαίνεται λάθος, και
   // είναι η μόνη ημερομηνία του βιβλίου με άλλη μορφή από τις υπόλοιπες.
   const issued = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const idLine = `Property OS · ${taxpayer || propName} · Περίοδος 01/01/${year}–31/12/${year} · Ημερομηνία έκδοσης ${issued}`;
+  const idLine = `PROPERWISE · ${taxpayer || propName} · Περίοδος 01/01/${year}–31/12/${year} · Ημερομηνία έκδοσης ${issued}`;
 
   // ── Φύλλο 1: Κατάσταση Αποτελεσμάτων ───────────────────────────────────────
   {
@@ -1199,7 +1199,7 @@ export function buildWorkbook(inp: AccountantBundleInput, papers: readonly Filed
             ],
           }] : []),
           {
-            notes: ['Τα ποσά προέρχονται από τις καταχωρήσεις του ιδιοκτήτη στο Property OS και δεν αποτελούν φορολογική δήλωση ούτε λογιστική συμβουλή.'],
+            notes: ['Τα ποσά προέρχονται από τις καταχωρήσεις του ιδιοκτήτη στο PROPERWISE και δεν αποτελούν φορολογική δήλωση ούτε λογιστική συμβουλή.'],
           },
         ],
       });

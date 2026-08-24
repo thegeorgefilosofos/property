@@ -57,8 +57,8 @@ export function brandLogoImg(b?: ReportBranding | null, px = 32): string {
   return logo ? `<img src="${logo}" alt="" style="height:${px}px;width:auto;max-width:${px * 5}px;object-fit:contain;display:block"/>` : '';
 }
 
-/** Επωνυμία (escaped) ή fallback (προεπιλογή «Property OS»). */
-export function brandName(b?: ReportBranding | null, fallback = 'Property OS'): string {
+/** Επωνυμία (escaped) ή fallback (προεπιλογή «PROPERWISE»). */
+export function brandName(b?: ReportBranding | null, fallback = 'PROPERWISE'): string {
   return escHtml(b?.companyName?.trim() || fallback);
 }
 

@@ -1483,7 +1483,7 @@ CREATE OR REPLACE FUNCTION "public"."verify_document"("p_id" "text") RETURNS TAB
     SET "search_path" TO 'public'
     AS $$
   select d.id, d.doc_type, d.subject, d.period, d.issued_at,
-         coalesce(nullif(btrim(b.company_name), ''), 'Property OS') as issuer
+         coalesce(nullif(btrim(b.company_name), ''), 'PROPERWISE') as issuer
   from public.issued_documents d
   left join public.report_branding b on b.user_id = d.user_id and b.enabled = true
   where d.id = p_id;

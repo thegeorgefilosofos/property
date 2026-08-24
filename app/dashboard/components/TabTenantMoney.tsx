@@ -151,7 +151,7 @@ export function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string
     if(!hasPct) return;   // δεν παράγεται έγγραφο χωρίς ποσοστό με προέλευση
     const today_str=rDate();
     const afmInline=tenant.afm?` · ΑΦΜ ${tenant.afm}`:'';
-    const brandTag=branding?.companyName?` · ${brandName(branding)}`:' · Property OS';
+    const brandTag=branding?.companyName?` · ${brandName(branding)}`:' · PROPERWISE';
     // ΤΟ ΚΡΙΣΙΜΟ: το έγγραφο λέει ΤΙ ΕΙΝΑΙ το ποσοστό. Επίσημος δείκτης με
     // ημερομηνία επιβεβαίωσης, ή ποσοστό που όρισε ο εκμισθωτής. Ποτέ το δεύτερο
     // ντυμένο ως το πρώτο — ο παραλήπτης είναι άλλος άνθρωπος και το κρατά.
@@ -512,7 +512,7 @@ export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, 
 
   const printReceipt=(p:RentPayment)=>{
     const paidDate=p.paid_date?rDate(p.paid_date):ABSENT_DATE;
-    const landlord=branding?.companyName?brandName(branding):'Property OS';
+    const landlord=branding?.companyName?brandName(branding):'PROPERWISE';
     const num=`${p.period_year}-${String(p.period_month).padStart(2,'0')}`;
     const tenantLine=`${p.tenant_id?(tenant.full_name||''):''}${tenant.afm?` · ΑΦΜ ${tenant.afm}`:''}`;
     const html=reportHead(`Απόδειξη Ενοικίου ${num}`)
@@ -595,7 +595,7 @@ export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, 
 
   // ── Μηνιαία κατάσταση προς τον μισθωτή: «Τι περιλαμβάνει / τι χρεώνεται» ──
   const printStatement=(p:RentPayment)=>{
-    const landlord=branding?.companyName?brandName(branding):'Property OS';
+    const landlord=branding?.companyName?brandName(branding):'PROPERWISE';
     const num=`${p.period_year}-${String(p.period_month).padStart(2,'0')}`;
     const base=p.base_rent!=null?p.base_rent:tenantBaseRent(tenant);
     const lines=tenantServiceLines(tenant);

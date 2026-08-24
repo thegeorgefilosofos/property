@@ -38,7 +38,7 @@
 1. `lemonsqueezy.com` → Sign up.
 2. **Settings → Payouts**: τραπεζικός λογαριασμός ή PayPal. Χωρίς αυτό
    πουλάς αλλά δεν εισπράττεις.
-3. **Settings → Stores**: όνομα καταστήματος `Property OS`, νόμισμα **EUR**.
+3. **Settings → Stores**: όνομα καταστήματος `PROPERWISE`, νόμισμα **EUR**.
 
 Το νόμισμα είναι απόφαση που δεν αλλάζει εύκολα αργότερα. Οι τιμές του
 προϊόντος είναι σε ευρώ σε κάθε οθόνη της εφαρμογής.
@@ -46,7 +46,7 @@
 ### Β2. Το προϊόν και οι οκτώ παραλλαγές
 
 **Ένα προϊόν, οκτώ παραλλαγές.** Products → New Product, τύπος
-**Subscription**. Όνομα: `Property OS`.
+**Subscription**. Όνομα: `PROPERWISE`.
 
 Μέσα σε αυτό φτιάχνεις οκτώ variants: τέσσερα πακέτα επί δύο κύκλους. Οι
 τιμές είναι αυτές που ήδη γράφουν ο τιμοκατάλογος, οι Όροι χρήσης και η βάση
@@ -86,7 +86,7 @@ Squeezy.** Το ταμείο μας στέλνει `skip_trial: true` για κ�
 payment was successful».
 
 **Confirmation modal**
-- Title: `Καλώς ήρθες στο Property OS`
+- Title: `Καλώς ήρθες στο PROPERWISE`
 - Message: `Η συνδρομή σου ενεργοποιήθηκε και η απόδειξη έρχεται στο email σου. Συνέχισε στον πίνακα ελέγχου.`
 - Button text: `Στον πίνακα ελέγχου`
 - Button link: `property-tan-gamma.vercel.app/dashboard`

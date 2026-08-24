@@ -31,7 +31,7 @@ ok('χωρίς χάρτη παραλλαγών δεν μετράει ως ζων
   !checkoutIsLive({ ...LIVE, LEMON_VARIANTS: '' }))
 ok('χωρίς κλειδί API δεν μετράει', !checkoutIsLive({ ...LIVE, LEMON_SQUEEZY_API_KEY: '' }))
 ok('χαλασμένο αναγνωριστικό καταστήματος δεν μετράει',
-  !checkoutIsLive({ ...LIVE, LEMON_STORE_ID: 'PropertyOS' }))
+  !checkoutIsLive({ ...LIVE, LEMON_STORE_ID: 'PROPERWISE' }))
 
 // ── ΟΙ ΔΥΟ ΚΑΤΑΣΤΑΣΕΙΣ ΕΙΝΑΙ ΟΝΤΩΣ ΔΥΟ ────────────────────────────────────
 {

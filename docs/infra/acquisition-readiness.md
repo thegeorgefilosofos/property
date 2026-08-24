@@ -1,4 +1,4 @@
-# Property OS · Infrastructure & data due-diligence readiness
+# PROPERWISE · Infrastructure & data due-diligence readiness
 
 What a technical buyer's due diligence checks, and where we stand. The goal: an
 acquirer opens the project and concludes **this was built by professionals** — secure,

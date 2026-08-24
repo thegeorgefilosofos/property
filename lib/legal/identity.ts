@@ -60,7 +60,7 @@ export interface LegalIdentity {
 
 export const IDENTITY: LegalIdentity = {
   legalName: null,
-  tradeName: 'Property OS',
+  tradeName: 'PROPERWISE',
   address: null,
   afm: null,
   doy: null,

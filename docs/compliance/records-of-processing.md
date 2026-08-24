@@ -1,12 +1,12 @@
-# Records of Processing Activities (RoPA) — Property OS
+# Records of Processing Activities (RoPA) — PROPERWISE
 
-GDPR Art. 30 record for Property OS as **data controller** for its customers'
+GDPR Art. 30 record for PROPERWISE as **data controller** for its customers'
 account data, and as **data processor** for the tenant/third-party personal data
 that customers enter about their properties. Keep current; a technical/legal
 buyer's due diligence expects this document to exist.
 
 ## Controller / contact
-- **Controller**: Property OS (operator of «Property OS»), Greece.
+- **Controller**: PROPERWISE (operator of «PROPERWISE»), Greece.
 - **Contact for data protection**: _(add the responsible person + email)_.
 - **EU establishment**: yes (Greece); primary data residency **EU — Frankfurt**.
 

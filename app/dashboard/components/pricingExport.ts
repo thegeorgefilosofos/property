@@ -41,7 +41,7 @@ export interface PricingExportInput {
 export function exportPricingWorkbook(inp: PricingExportInput): void {
   const { propName, year, settings, summary, occupancy, realizedAdr, rows } = inp;
   const wb = XLSX.utils.book_new();
-  const idLine = `Property OS · ${propName} · Έτος ${year} · Ημερομηνία έκδοσης ${new Date().toLocaleDateString('el-GR')}`;
+  const idLine = `PROPERWISE · ${propName} · Έτος ${year} · Ημερομηνία έκδοσης ${new Date().toLocaleDateString('el-GR')}`;
 
   // ── Φύλλο 1: Σύνοψη ─────────────────────────────────────────────────────────
   {

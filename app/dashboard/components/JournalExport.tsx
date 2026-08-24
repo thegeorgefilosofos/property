@@ -245,9 +245,9 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
       const lines = await gather();
       if (!lines.length) { setErr('Δεν υπάρχουν εγγραφές εσόδων/εξόδων για την περίοδο.'); setBusy(false); return; }
       if (format === 'excel') {
-        downloadJournalWorkbook({ lines, periodLabel, entityName: 'Property OS', year, month });
+        downloadJournalWorkbook({ lines, periodLabel, entityName: 'PROPERWISE', year, month });
       } else {
-        const csv = journalToCsv(lines, format, `Property OS · Ημερολόγιο ${periodLabel}`);
+        const csv = journalToCsv(lines, format, `PROPERWISE · Ημερολόγιο ${periodLabel}`);
         downloadCsv(csv, `Ημερολόγιο_${format}_${periodLabel}.csv`);
       }
       applyChecks(lines);

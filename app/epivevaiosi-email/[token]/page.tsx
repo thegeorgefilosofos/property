@@ -42,9 +42,9 @@ export default function ConfirmReminderEmail() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, paddingBottom: 18, borderBottom: '1px solid var(--border-subtle)' }}>
           <BrandMark size={34} />
           <div>
-            <div style={{ fontSize: 15, fontWeight: 700 }}>Property OS</div>
+            <div style={{ fontSize: 15, fontWeight: 700 }}>PROPERWISE</div>
             {/* Ο ΤΙΤΛΟΣ ΤΗΣ ΣΕΛΙΔΑΣ ΕΙΝΑΙ ΑΥΤΗ Η ΓΡΑΜΜΗ, ΟΧΙ ΤΟ ΟΝΟΜΑ ΤΗΣ
-                ΕΦΑΡΜΟΓΗΣ. Το «Property OS» από πάνω είναι σήμα, όχι επικεφαλίδα.
+                ΕΦΑΡΜΟΓΗΣ. Το «PROPERWISE» από πάνω είναι σήμα, όχι επικεφαλίδα.
                 Η σελίδα δεν είχε καμία: ο αναγνώστης οθόνης την ανακοίνωνε
                 χωρίς όνομα, σε δημόσιο σύνδεσμο που ανοίγει άνθρωπος ο οποίος
                 μπορεί να μη μας έχει ξανασυναντήσει. Ιδια γνωρίσματα, συν

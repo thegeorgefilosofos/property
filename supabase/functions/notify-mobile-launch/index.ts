@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────────────────────────────────
 // notify-mobile-launch — εφάπαξ αποστολή ενημερωτικού email στη λίστα αναμονής
-// του Property OS Mobile, ΤΗΝ ΗΜΕΡΑ ΚΥΚΛΟΦΟΡΙΑΣ. Διαβάζει όσους πάτησαν
+// του PROPERWISE Mobile, ΤΗΝ ΗΜΕΡΑ ΚΥΚΛΟΦΟΡΙΑΣ. Διαβάζει όσους πάτησαν
 // «Ειδοποίησέ με μόλις βγει» (mobile_waitlist, notified_at IS NULL), στέλνει το
 // email μέσω Resend και σημειώνει notified_at ώστε να μη σταλεί δεύτερη φορά.
 //
@@ -25,7 +25,7 @@ const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 const SUPABASE_URL   = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_KEY   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const LAUNCH_SECRET  = Deno.env.get('MOBILE_LAUNCH_SECRET') || ''
-const FROM_EMAIL     = Deno.env.get('RESEND_FROM') || 'Property OS <onboarding@resend.dev>'
+const FROM_EMAIL     = Deno.env.get('RESEND_FROM') || 'PROPERWISE <onboarding@resend.dev>'
 const APP_URL        = `${SITE}/dashboard`
 const IOS_URL        = 'https://apps.apple.com/app/property-os'
 const ANDROID_URL    = 'https://play.google.com/store/apps/details?id=com.propertyos'
@@ -33,18 +33,18 @@ const ANDROID_URL    = 'https://play.google.com/store/apps/details?id=com.proper
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
 function launchEmail(): { subject: string; html: string } {
-  const subject = 'Το Property OS Mobile κυκλοφόρησε'
+  const subject = 'Το PROPERWISE Mobile κυκλοφόρησε'
   const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f1f3f4;font-family:-apple-system,'Inter',sans-serif;">
   <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
     <div style="display:flex;align-items:center;margin-bottom:24px;">
       <div style="width:36px;height:36px;background:#1a73e8;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;">
         <span style="color:#ffffff;font-weight:800;font-size:18px;">P</span>
       </div>
-      <span style="font-size:16px;font-weight:700;color:#202124;margin-left:10px;">Property OS</span>
+      <span style="font-size:16px;font-weight:700;color:#202124;margin-left:10px;">PROPERWISE</span>
     </div>
     <div style="background:#ffffff;border:1px solid #e8eaed;border-radius:14px;padding:28px 24px;">
       <p style="margin:0 0 6px;font-size:11px;color:#1a73e8;font-family:monospace;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">Μόλις κυκλοφόρησε</p>
-      <h1 style="margin:0 0 12px;font-size:22px;color:#202124;font-weight:800;letter-spacing:-0.5px;">Το Property OS Mobile είναι εδώ</h1>
+      <h1 style="margin:0 0 12px;font-size:22px;color:#202124;font-weight:800;letter-spacing:-0.5px;">Το PROPERWISE Mobile είναι εδώ</h1>
       <p style="margin:0 0 20px;font-size:14px;color:#5f6368;line-height:1.6;">
         Ζήτησες να μάθεις πρώτος. Η εφαρμογή για κινητό είναι πλέον διαθέσιμη: όλη η διαχείριση των ακινήτων σου στο κινητό, με λίγα κλικ ή τη φωνή σου. Απλά και γρήγορα, όπου κι αν βρίσκεσαι.
       </p>
@@ -56,7 +56,7 @@ function launchEmail(): { subject: string; html: string } {
         <a href="${APP_URL}" style="font-size:13px;color:#1a73e8;text-decoration:none;font-weight:600;">ή συνέχισε από τον υπολογιστή</a>
       </div>
     </div>
-    <p style="text-align:center;font-size:11px;color:#80868b;margin-top:20px;">Property OS · Λαμβάνεις αυτό το email επειδή ζήτησες ειδοποίηση για την εφαρμογή.</p>
+    <p style="text-align:center;font-size:11px;color:#80868b;margin-top:20px;">PROPERWISE · Λαμβάνεις αυτό το email επειδή ζήτησες ειδοποίηση για την εφαρμογή.</p>
   </div>
   </body></html>`
   return { subject, html }

@@ -38,10 +38,10 @@ function wrapEmailHtml(bodyText: string): string {
   <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
     <div style="display:flex;align-items:center;margin-bottom:22px;">
       ${brandMarkHtml(34)}
-      <span style="font-size:16px;font-weight:700;color:${INK};margin-left:10px;">Property OS</span>
+      <span style="font-size:16px;font-weight:700;color:${INK};margin-left:10px;">PROPERWISE</span>
     </div>
     <div style="background:${PAPER};border:1px solid ${RULE};border-radius:14px;padding:26px 24px;">${paras || `<p style="margin:0;color:${INK_FAINT};">${ABSENT}</p>`}</div>
-    <p style="text-align:center;font-size:11px;color:${INK_FAINT};margin:18px 0 4px;line-height:1.6;">Στάλθηκε μέσω Property OS</p>
+    <p style="text-align:center;font-size:11px;color:${INK_FAINT};margin:18px 0 4px;line-height:1.6;">Στάλθηκε μέσω PROPERWISE</p>
   </div></body></html>`;
 }
 
@@ -100,7 +100,7 @@ export default function ClientCompose({ open, onClose, clients, supabase }: {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           max_tokens: 900,
-          system: 'Είσαι βοηθός σύνταξης επαγγελματικών email στα ελληνικά για διαχειριστή/ιδιοκτήτη ακινήτων που χρησιμοποιεί το Property OS. Γράψε ευγενικό, καθαρό, σύντομο και επαγγελματικό email προς πελάτες. Χρησιμοποίησε το {{name}} για την προσφώνηση (π.χ. «Αγαπητέ/ή {{name}},»). Μη βάζεις υπογραφή με ψεύτικα στοιχεία. Επίστρεψε ΑΥΣΤΗΡΑ ένα JSON αντικείμενο {"subject": "...", "body": "..."} χωρίς markdown ή σχόλια.',
+          system: 'Είσαι βοηθός σύνταξης επαγγελματικών email στα ελληνικά για διαχειριστή/ιδιοκτήτη ακινήτων που χρησιμοποιεί το PROPERWISE. Γράψε ευγενικό, καθαρό, σύντομο και επαγγελματικό email προς πελάτες. Χρησιμοποίησε το {{name}} για την προσφώνηση (π.χ. «Αγαπητέ/ή {{name}},»). Μη βάζεις υπογραφή με ψεύτικα στοιχεία. Επίστρεψε ΑΥΣΤΗΡΑ ένα JSON αντικείμενο {"subject": "...", "body": "..."} χωρίς markdown ή σχόλια.',
           messages: [{ role: 'user', content: `Σύνταξε email με βάση: ${aiBrief.trim()}` }],
         }),
       });

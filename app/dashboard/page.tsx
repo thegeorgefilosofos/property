@@ -1878,12 +1878,12 @@ export default function Dashboard() {
             λογότυπο γυρίζει στην αρχή, το πατά και γυρίζει.
 
             Το `aria-label` λέει τον προορισμό και όχι το όνομα του προϊόντος:
-            ένας αναγνώστης οθόνης που ανακοινώνει «Property OS, κουμπί» δεν
+            ένας αναγνώστης οθόνης που ανακοινώνει «PROPERWISE, κουμπί» δεν
             πληροφορεί κανέναν για το τι θα συμβεί. */}
         <button type="button" className="sidebar-logo" aria-label={`Πήγαινε στην ${navLabel('overview')}`}
           onClick={()=>{ setNav('overview'); setSidebarOpen(false); }}>
           <span className="sidebar-logo-mark" aria-hidden>P</span>
-          <span className="sidebar-logo-text">Property OS</span>
+          <span className="sidebar-logo-text">PROPERWISE</span>
         </button>
 
         {/* Κεντρικό κουμπί: μια φωτογραφία → αυτόματη καταχώρηση παντού.
@@ -2123,7 +2123,7 @@ export default function Dashboard() {
               <div style={{width:64,height:64,borderRadius: T.radius.modal,background:'var(--accent-dim)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px'}}>
                 <svg width={30} height={30} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
               </div>
-              <h1 style={{fontFamily: T.font.sans,fontSize:28,fontWeight:700,letterSpacing:'-0.02em',color:'var(--text-primary)',margin:'0 0 8px'}}>Καλωσήρθες στο Property OS</h1>
+              <h1 style={{fontFamily: T.font.sans,fontSize:28,fontWeight:700,letterSpacing:'-0.02em',color:'var(--text-primary)',margin:'0 0 8px'}}>Καλωσήρθες στο PROPERWISE</h1>
               <p style={{fontFamily: T.font.sans,fontSize:14,color:'var(--text-secondary)',lineHeight:1.6,margin:'0 auto 24px',maxWidth:420}}>Πρόσθεσε το πρώτο σου ακίνητο και ξεκλείδωσε αποδόσεις, δαπάνες, λογαριασμούς, φορολογία και διαχείριση ενοικιαστή, όλα σε ένα σημείο.</p>
               <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,150px),1fr))',gap:12,marginBottom:28,textAlign:'left'}}>
                 {[

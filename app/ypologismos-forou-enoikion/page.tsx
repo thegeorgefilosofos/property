@@ -43,7 +43,7 @@ export const metadata: Metadata = {
   alternates: { canonical: URL },
   openGraph: {
     title: TITLE, description: DESC, url: URL,
-    siteName: 'Property OS', locale: 'el_GR', type: 'website',
+    siteName: 'PROPERWISE', locale: 'el_GR', type: 'website',
   },
   twitter: { card: 'summary_large_image', title: TITLE, description: DESC },
 };
@@ -158,7 +158,7 @@ export default function Page() {
           <span style={{ display: 'block' }}>Με την κλίμακα της χρονιάς που θα διαλέξεις και την τεκμαρτή έκπτωση 5%. Χωρίς εγγραφή και χωρίς email:</span>
           ο υπολογισμός γίνεται στη συσκευή σου και μένει εκεί.
           <span style={{ fontSize: 12, color: 'var(--text-tertiary)', marginLeft: 14 }}>
-            *Οι ίδιοι υπολογισμοί που τρέχει το Property OS.
+            *Οι ίδιοι υπολογισμοί που τρέχει το PROPERWISE.
           </span>
         </p>
 

@@ -1,6 +1,6 @@
 # Database & backend — schema reference
 
-PropertyOS runs on **Supabase**: PostgreSQL with Row-Level Security, Auth, Storage,
+PROPERWISE runs on **Supabase**: PostgreSQL with Row-Level Security, Auth, Storage,
 and Deno Edge Functions, plus `pg_cron` + `pg_net` for scheduled work. The schema is
 **82 tables** (all in `public`), each with RLS enabled, owned by Supabase
 `auth.users`.

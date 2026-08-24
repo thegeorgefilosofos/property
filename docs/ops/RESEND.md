@@ -37,10 +37,10 @@ Resend, αλλά **Gmail και Yahoo το απαιτούν** από το 2024 �
 Supabase → Project Settings → **Edge Functions** → Secrets:
 
     RESEND_API_KEY = re_...              υποχρεωτικό
-    RESEND_FROM    = Property OS <no-reply@propertyos.gr>    προαιρετικό
+    RESEND_FROM    = PROPERWISE <no-reply@propertyos.gr>    προαιρετικό
 
 Το `RESEND_FROM` γράφεται **μετά** την επαλήθευση του τομέα. Χωρίς αυτό, όλες
-οι συναρτήσεις πέφτουν σε `Property OS <onboarding@resend.dev>` — που δουλεύει
+οι συναρτήσεις πέφτουν σε `PROPERWISE <onboarding@resend.dev>` — που δουλεύει
 για δοκιμή και για κανέναν άλλο.
 
 Το κλειδί φτιάχνεται στο `resend.com/api-keys` με δικαίωμα **Sending access**

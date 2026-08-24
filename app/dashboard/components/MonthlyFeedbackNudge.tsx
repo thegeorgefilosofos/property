@@ -53,7 +53,7 @@ export default function MonthlyFeedbackNudge() {
           <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--accent)' }}>Η γνώμη σου</div>
           <div style={{ fontSize: 14, fontWeight: 650, letterSpacing: '-.01em', color: 'var(--text-primary)', marginTop: 5 }}>Μια κουβέντα, μία φορά τον μήνα</div>
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5, margin: '6px 0 0' }}>
-            Πες μας τη γνώμη σου για το Property OS και μπες στην κλήρωση για <b style={{ color: 'var(--text-primary)' }}>έναν χρόνο δωρεάν Επαγγελματία</b>. Ένα λεπτό φτάνει.
+            Πες μας τη γνώμη σου για το PROPERWISE και μπες στην κλήρωση για <b style={{ color: 'var(--text-primary)' }}>έναν χρόνο δωρεάν Επαγγελματία</b>. Ένα λεπτό φτάνει.
           </p>
         </div>
         <button onClick={close} aria-label="Κλείσιμο" style={{ flex: 'none', width: 26, height: 26, borderRadius: 8, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>✕</button>

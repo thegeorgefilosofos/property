@@ -65,7 +65,7 @@ export const rDate = (d?: string | Date | null): string => {
 //     έγγραφο το τυπώνει λευκό πάνω στο χρώμα του brand. Το «P» ήταν αόρατο.
 //   • Οι κεφαλίδες πινάκων της δεν είχαν το `padding:0 4px 6px` — κάθονταν
 //     αλλιώς πάνω από τη γραμμή απ' ό,τι σε κάθε άλλη αναφορά.
-//   • Το κολοφώνιο έγραφε σκέτο «Property OS» αντί για τη φράση των υπολοίπων.
+//   • Το κολοφώνιο έγραφε σκέτο «PROPERWISE» αντί για τη φράση των υπολοίπων.
 //   • Η στήλη ποσοστού είχε `width:80px` στη μία και τίποτα στην άλλη.
 //   • Τρεις αποχρώσεις γραμμής (#eef0f2, #d0d5dd, RULE) για δύο ρόλους.
 //
@@ -155,7 +155,7 @@ export const reportKpi = (label: string, value: string): string =>
 
 export function reportDisclaimer(text: string, branding?: ReportBranding | null): string {
   return `<div class="disc">${branding?.companyName ? brandName(branding) + ' · ' : ''}${rEsc(text)}`
-    + `<div class="colo">Σχεδιάστηκε και δημιουργήθηκε από το <b>Property OS</b></div></div>`;
+    + `<div class="colo">Σχεδιάστηκε και δημιουργήθηκε από το <b>PROPERWISE</b></div></div>`;
 }
 
 /** Ανοίγει παράθυρο εκτύπωσης με το πλήρες HTML (auto-print). */

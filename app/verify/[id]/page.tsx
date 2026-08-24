@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // /verify/<id> — δημόσια σελίδα επαλήθευσης γνησιότητας εγγράφου (χωρίς login).
 // Ο αναγνώστης (τράπεζα, ΔΟΥ, φορέας) σκανάρει το QR του PDF και βλέπει ότι το
-// έγγραφο εκδόθηκε πραγματικά από το Property OS: τύπος, αντικείμενο, περίοδος,
+// έγγραφο εκδόθηκε πραγματικά από το PROPERWISE: τύπος, αντικείμενο, περίοδος,
 // ημ. έκδοσης, εκδότης. Καμία ευαίσθητη πληροφορία/ποσά.
 // ═══════════════════════════════════════════════════════════════════════════
 import { TriangleAlert, CircleCheckBig } from 'lucide-react';
@@ -52,9 +52,9 @@ export default function VerifyDocument() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, paddingBottom: 18, borderBottom: '1px solid var(--border-subtle)' }}>
           <BrandMark size={34} />
           <div>
-            <div style={{ fontSize: 15, fontWeight: 700 }}>Property OS</div>
+            <div style={{ fontSize: 15, fontWeight: 700 }}>PROPERWISE</div>
             {/* Ο ΤΙΤΛΟΣ ΤΗΣ ΣΕΛΙΔΑΣ ΕΙΝΑΙ ΑΥΤΗ Η ΓΡΑΜΜΗ, ΟΧΙ ΤΟ ΟΝΟΜΑ ΤΗΣ
-                ΕΦΑΡΜΟΓΗΣ. Το «Property OS» από πάνω είναι σήμα, όχι επικεφαλίδα.
+                ΕΦΑΡΜΟΓΗΣ. Το «PROPERWISE» από πάνω είναι σήμα, όχι επικεφαλίδα.
                 Η σελίδα δεν είχε καμία: ο αναγνώστης οθόνης την ανακοίνωνε
                 χωρίς όνομα, σε δημόσιο σύνδεσμο που ανοίγει άνθρωπος ο οποίος
                 μπορεί να μη μας έχει ξανασυναντήσει. Ιδια γνωρίσματα, συν
@@ -93,7 +93,7 @@ export default function VerifyDocument() {
               <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--warning)' }}>Δεν βρέθηκε έγγραφο με αυτόν τον κωδικό</span>
             </div>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginTop: 16 }}>
-              Ο κωδικός <strong style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', letterSpacing: '.02em' }}>{id || ABSENT}</strong> δεν αντιστοιχεί σε έγγραφο που εκδόθηκε από το Property OS.
+              Ο κωδικός <strong style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', letterSpacing: '.02em' }}>{id || ABSENT}</strong> δεν αντιστοιχεί σε έγγραφο που εκδόθηκε από το PROPERWISE.
               Ελέγξτε ότι σαρώσατε σωστά το QR ή ζητήστε νέο αντίγραφο από τον εκδότη.
             </p>
           </div>
@@ -106,7 +106,7 @@ export default function VerifyDocument() {
                   πάνω. Ένα «✓» ως χαρακτήρας κειμένου δίπλα σε ένα εικονίδιο
                   γραμμής δεν κάθεται στο ίδιο οπτικό ύψος και έχει άλλο βάρος. */}
               <CircleCheckBig size={18} strokeWidth={2.5} style={{ color: 'var(--positive)', flexShrink: 0 }} aria-hidden="true" />
-              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--positive)' }}>Γνήσιο έγγραφο, εκδόθηκε από το Property OS</span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--positive)' }}>Γνήσιο έγγραφο, εκδόθηκε από το PROPERWISE</span>
             </div>
 
             <div style={{ display: 'grid', gap: 16, marginTop: 22 }}>
@@ -119,7 +119,7 @@ export default function VerifyDocument() {
             </div>
 
             <p style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.6, marginTop: 24, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
-              Η σελίδα επιβεβαιώνει ότι το έγγραφο με τον παραπάνω κωδικό δημιουργήθηκε από την πλατφόρμα Property OS.
+              Η σελίδα επιβεβαιώνει ότι το έγγραφο με τον παραπάνω κωδικό δημιουργήθηκε από την πλατφόρμα PROPERWISE.
               Δεν εμφανίζονται ποσά ή ευαίσθητα στοιχεία. Το περιεχόμενο του εγγράφου παραμένει ευθύνη του εκδότη.
             </p>
           </div>

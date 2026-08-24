@@ -109,7 +109,7 @@ export default function SecuritySettings() {
           try { await supabase.auth.mfa.unenroll({ factorId: f.id }); } catch { /* αγνόησε */ }
         }
       }
-      const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Property OS' });
+      const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'PROPERWISE' });
       if (error) {
         const msg = (error.message || '').toLowerCase();
         if (msg.includes('disabled') || msg.includes('not enabled') || msg.includes('unsupported') || msg.includes('mfa')) {

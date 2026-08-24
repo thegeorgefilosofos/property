@@ -1,6 +1,6 @@
 # ══════════════════════════════════════════════════════════════════════════
-#  Property OS — Πολιτική γνωστοποίησης ευπαθειών
-#  Property OS — Vulnerability disclosure policy
+#  PROPERWISE — Πολιτική γνωστοποίησης ευπαθειών
+#  PROPERWISE — Vulnerability disclosure policy
 #
 #  Μορφή: RFC 9116. Τα πεδία παρακάτω τα διαβάζουν μηχανές· τα σχόλια, εσύ.
 #  Format: RFC 9116. The fields below are machine-readable; the comments

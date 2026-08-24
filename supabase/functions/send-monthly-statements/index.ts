@@ -21,7 +21,7 @@ const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 const SUPABASE_URL   = Deno.env.get('SUPABASE_URL')!
 const SERVICE_KEY    = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const CRON_SECRET    = Deno.env.get('MONTHLY_STATEMENTS_CRON_SECRET') || ''
-const FROM_EMAIL     = Deno.env.get('RESEND_FROM') || 'Property OS <onboarding@resend.dev>'
+const FROM_EMAIL     = Deno.env.get('RESEND_FROM') || 'PROPERWISE <onboarding@resend.dev>'
 
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY)
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json' } })
@@ -53,7 +53,7 @@ function statementHtml(ownerRows: { primary: string; secondary: string; expected
   <div style="max-width:600px;margin:0 auto;padding:32px 16px;">
     <div style="display:flex;align-items:center;margin-bottom:22px;">
       <div style="width:34px;height:34px;background:#1a73e8;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;"><span style="color:#fff;font-weight:800;font-size:17px;">P</span></div>
-      <span style="font-size:16px;font-weight:700;color:#111;margin-left:10px;">Property OS</span>
+      <span style="font-size:16px;font-weight:700;color:#111;margin-left:10px;">PROPERWISE</span>
     </div>
     <div style="background:#fff;border:1px solid #e8eaed;border-radius:14px;padding:26px 24px;">
       <p style="margin:0 0 4px;font-size:10.5px;color:#1a73e8;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">Μηνιαία κατάσταση</p>
@@ -65,11 +65,11 @@ function statementHtml(ownerRows: { primary: string; secondary: string; expected
         <tr><td style="padding:12px 0 0;font-size:13px;font-weight:700;color:#111;">Σύνολο</td><td style="padding:12px 0 0;text-align:right;font-size:13px;font-weight:700;color:#111;">${eur(collected)} / ${eur(expected)}</td><td></td></tr>
       </table>
       <div style="text-align:center;margin-top:22px;">
-        <a href="${APP_URL}/dashboard" style="display:inline-block;background:#1a73e8;color:#fff;text-decoration:none;padding:11px 24px;border-radius:100px;font-weight:700;font-size:13px;">Άνοιγμα στο Property OS</a>
+        <a href="${APP_URL}/dashboard" style="display:inline-block;background:#1a73e8;color:#fff;text-decoration:none;padding:11px 24px;border-radius:100px;font-weight:700;font-size:13px;">Άνοιγμα στο PROPERWISE</a>
       </div>
     </div>
     <p style="text-align:center;font-size:11px;color:#5f6368;margin:16px 0 0;line-height:1.6;">Ενημερωτική κατάσταση με βάση τα δεδομένα σου. Δεν αποτελεί επίσημο λογιστικό ή φορολογικό έγγραφο.</p>
-    <p style="text-align:center;font-size:11px;color:#80868b;margin:8px 0 4px;line-height:1.6;">Αυτόματη μηνιαία κατάσταση · Property OS</p>
+    <p style="text-align:center;font-size:11px;color:#80868b;margin:8px 0 4px;line-height:1.6;">Αυτόματη μηνιαία κατάσταση · PROPERWISE</p>
   </div></body></html>`
 }
 
@@ -130,7 +130,7 @@ Deno.serve(async (req) => {
     try {
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST', headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from: FROM_EMAIL, to: pref.reminder_email, subject: `Property OS · Μηνιαία κατάσταση ${periodLabel}`, html: statementHtml(rows, expected, collected, periodLabel) }),
+        body: JSON.stringify({ from: FROM_EMAIL, to: pref.reminder_email, subject: `PROPERWISE · Μηνιαία κατάσταση ${periodLabel}`, html: statementHtml(rows, expected, collected, periodLabel) }),
       })
       if (res.ok) {
         sent++

@@ -26,7 +26,7 @@ const ctx: Personal = {
   maintenanceDate: '28/07', contractorName: 'Τεχνική ΑΕ', billType: 'Ρεύμα', billDueDate: '20/07',
   guestName: 'John Smith', checkinDate: '22/07', checkoutDate: '26/07', cleaningDate: '26/07',
   gapNights: 3, gapFrom: '01/08', gapTo: '04/08', reviewsCount: 18, rating: 4.9,
-  featureName: 'Αυτόματη αντιστοίχιση τραπέζης', featureBenefit: 'Ανέβασε την κίνηση και το Property OS τη διαβάζει και την αντιστοιχίζει μόνη της.',
+  featureName: 'Αυτόματη αντιστοίχιση τραπέζης', featureBenefit: 'Ανέβασε την κίνηση και το PROPERWISE τη διαβάζει και την αντιστοιχίζει μόνη της.',
   assistantSkill: 'υπολογισμός απόδοσης ανά ακίνητο', anniversaryYears: 2, hoursSaved: 6,
   cardLast4: '4242', marketRent: 720, sharePct: 50,
 }

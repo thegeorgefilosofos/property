@@ -41,7 +41,7 @@ export async function exportChecklistExcel(items: ChecklistItem[]) {
 
   // ── Sheet 1: Σύνοψη ──────────────────────────────────────────────────────
   const summaryData: (string | number)[][] = [
-    ['Property OS, Εκκρεμότητες Ακινήτου', ''],
+    ['PROPERWISE, Εκκρεμότητες Ακινήτου', ''],
     ['Ημερομηνία εξαγωγής:', today],
     [''],
     ['ΓΕΝΙΚΗ ΣΥΝΟΨΗ', ''],
@@ -140,7 +140,7 @@ export async function exportChecklistExcel(items: ChecklistItem[]) {
     })
   const actionHeaders = ['Κατάσταση', 'Κατηγορία', 'Περιγραφή', 'Προτεραιότητα', 'Προθεσμία', 'Ημέρες', 'Ανατέθηκε σε', 'Ποιος το κάνει', 'Δική σου εκτίμηση €']
   const actionRows: (string | number)[][] = [
-    ['Property OS, Λίστα Εκκρεμών Ενεργειών', ''],
+    ['PROPERWISE, Λίστα Εκκρεμών Ενεργειών', ''],
     [`${actionItems.length} εκκρεμή tasks · ${overdue} ληγμένα`, today],
     [''],
     actionHeaders,
@@ -604,7 +604,7 @@ ${sectionHtml(12, 'Δηλώσεις και Υπογραφές', `
 `)}
 
 <div class="footer">
-  <div>${branding?.companyName ? brandName(branding) : 'Property OS'} · Πρωτόκολλο ${type === 'checkin' ? 'Παράδοσης' : 'Αποχώρησης'} · Αντίγραφο ___/2</div><div>Αρ. Αναφοράς: ${new Date().getTime().toString(36).toUpperCase().slice(-8)}</div>
+  <div>${branding?.companyName ? brandName(branding) : 'PROPERWISE'} · Πρωτόκολλο ${type === 'checkin' ? 'Παράδοσης' : 'Αποχώρησης'} · Αντίγραφο ___/2</div><div>Αρ. Αναφοράς: ${new Date().getTime().toString(36).toUpperCase().slice(-8)}</div>
   <div>${esc(today)}</div>
 </div>
 

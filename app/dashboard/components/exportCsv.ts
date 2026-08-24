@@ -12,7 +12,7 @@
 // Ίδια κλήση, ίδιο όνομα, άλλο αρχείο — και μόνο η γραμμή εισαγωγής το έλεγε.
 // Εδώ λέγεται πια `downloadTableXlsx`: ό,τι κάνει.
 //
-// ΚΑΙ Η ΤΑΥΤΟΤΗΤΑ ΤΟΥ ΑΡΧΕΙΟΥ. Κάθε εξαγωγή είχε τίτλο «Property OS» και φύλλο
+// ΚΑΙ Η ΤΑΥΤΟΤΗΤΑ ΤΟΥ ΑΡΧΕΙΟΥ. Κάθε εξαγωγή είχε τίτλο «PROPERWISE» και φύλλο
 // «Δεδομένα» — και οι δεκαοκτώ. Ο λογιστής άνοιγε το αρχείο και διάβαζε το όνομα
 // του ΠΡΟΜΗΘΕΥΤΗ, όχι τι κρατά στα χέρια του. Τώρα ο τίτλος λέει τι ΕΙΝΑΙ, ο
 // υπότιτλος για ποιο ακίνητο και ποια περίοδο, και η σφραγίδα του εργαλείου
@@ -59,7 +59,7 @@ export interface TableExport {
 /** Η σφραγίδα: ημερομηνία έκδοσης και το εργαλείο, διακριτικά, στο τέλος. */
 function stamp(subject?: string): string {
   const issued = new Date().toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  return [subject, `Έκδοση ${issued}`, 'Property OS'].filter(Boolean).join(' · ');
+  return [subject, `Έκδοση ${issued}`, 'PROPERWISE'].filter(Boolean).join(' · ');
 }
 
 /**

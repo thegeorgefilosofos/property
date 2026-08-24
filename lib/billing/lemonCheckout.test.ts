@@ -31,8 +31,8 @@ ok('χωρίς τίποτα, όχι', !checkoutIsLive({}))
 // ΤΟ ΚΑΤΑΣΤΗΜΑ ΕΙΝΑΙ ΑΡΙΘΜΟΣ. Ενα αντιγραμμένο όνομα περνά αθόρυβα ως
 // συμβολοσειρά και ο έμπορος απαντά 404 σε κάθε ταμείο.
 ok('όνομα καταστήματος αντί για αριθμό δεν περνά',
-  !checkoutIsLive({ ...LIVE, LEMON_STORE_ID: 'PropertyOS' }))
-ok('και λέγεται ονομαστικά', apiConfigError({ ...LIVE, LEMON_STORE_ID: 'PropertyOS' }).includes('αριθμός'))
+  !checkoutIsLive({ ...LIVE, LEMON_STORE_ID: 'PROPERWISE' }))
+ok('και λέγεται ονομαστικά', apiConfigError({ ...LIVE, LEMON_STORE_ID: 'PROPERWISE' }).includes('αριθμός'))
 ok('η λείπουσα μεταβλητή λέγεται με το όνομά της',
   apiConfigError({}).includes('LEMON_SQUEEZY_API_KEY') && apiConfigError({}).includes('LEMON_STORE_ID'))
 ok('το κατάστημα διαβάζεται καθαρό', storeId(LIVE) === '12345' && storeId({}) === '')

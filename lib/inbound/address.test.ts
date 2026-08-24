@@ -25,7 +25,7 @@ ok(normalizeToken(null) === null, 'απόν δεν είναι κουπόνι');
 
 // ── Ο τομέας ───────────────────────────────────────────────────────────────
 ok(inboundDomain('propertyos.gr') === D, 'ο τομέας περνά');
-ok(inboundDomain(' PropertyOS.GR ') === D, 'κενά και κεφαλαία καθαρίζονται');
+ok(inboundDomain(' ProPeRtYoS.Gr ') === D, 'κενά και ανάκατα κεφαλαία καθαρίζονται');
 ok(inboundDomain('@propertyos.gr') === D, 'το παπάκι μπροστά αφαιρείται');
 ok(inboundDomain('in.propertyos.gr') === 'in.propertyos.gr', 'υποτομέας επιτρέπεται');
 ok(inboundDomain('') === '', 'χωρίς ρύθμιση, κανένας τομέας');
@@ -43,7 +43,7 @@ ok(inboundAddress('όχι κουπόνι', D) === '', 'άκυρο κουπόνι
 
 // ── Ο παραλήπτης, όπως τον γράφει το ταχυδρομείο ───────────────────────────
 ok(tokenFromRecipient(`${TOKEN}@${D}`, D) === TOKEN, 'σκέτη διεύθυνση');
-ok(tokenFromRecipient(`Property OS <${TOKEN}@${D}>`, D) === TOKEN, 'με όνομα σε γωνιακές αγκύλες');
+ok(tokenFromRecipient(`PROPERWISE <${TOKEN}@${D}>`, D) === TOKEN, 'με όνομα σε γωνιακές αγκύλες');
 ok(tokenFromRecipient(`${TOKEN.toUpperCase()}@${D.toUpperCase()}`, D) === TOKEN, 'κεφαλαία και στα δύο μέρη');
 ok(tokenFromRecipient(`${TOKEN}+dei@${D}`, D) === TOKEN, 'η επέκταση με συν αγνοείται');
 ok(tokenFromRecipient(`${TOKEN}@allo.gr`, D) === null, 'άλλος τομέας δεν είναι δικός μας');

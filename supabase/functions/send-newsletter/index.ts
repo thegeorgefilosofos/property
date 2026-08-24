@@ -18,7 +18,7 @@ const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 const SUPABASE_URL   = Deno.env.get('SUPABASE_URL')!
 const SERVICE_KEY    = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const CRON_SECRET    = Deno.env.get('NEWSLETTER_CRON_SECRET') || ''
-const FROM_EMAIL     = Deno.env.get('RESEND_FROM') || 'Property OS <onboarding@resend.dev>'
+const FROM_EMAIL     = Deno.env.get('RESEND_FROM') || 'PROPERWISE <onboarding@resend.dev>'
 
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY)
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json' } })
@@ -40,15 +40,15 @@ function layout(inner: string, unsubUrl: string): string {
     <div style="display:flex;align-items:center;margin-bottom:22px;">
       <div style="width:34px;height:34px;background:#1a73e8;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;">
         <span style="color:#fff;font-weight:800;font-size:17px;">P</span></div>
-      <span style="font-size:16px;font-weight:700;color:#111;margin-left:10px;">Property OS</span>
+      <span style="font-size:16px;font-weight:700;color:#111;margin-left:10px;">PROPERWISE</span>
     </div>
     <div style="background:#fff;border:1px solid #e8eaed;border-radius:14px;padding:26px 24px;">
       <p style="margin:0 0 4px;font-size:10.5px;color:#1a73e8;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">Νέες δυνατότητες</p>
       ${inner}
     </div>
     <p style="text-align:center;font-size:11px;color:#80868b;margin:18px 0 4px;line-height:1.6;">
-      Λαμβάνεις αυτό το email ως χρήστης του Property OS.<br>
-      <a href="${unsubUrl}" style="color:#80868b;text-decoration:underline;">Απεγγραφή από τα ενημερωτικά</a> · Property OS
+      Λαμβάνεις αυτό το email ως χρήστης του PROPERWISE.<br>
+      <a href="${unsubUrl}" style="color:#80868b;text-decoration:underline;">Απεγγραφή από τα ενημερωτικά</a> · PROPERWISE
     </p>
   </div></body></html>`
 }
@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
   if (!recipients.length) return json({ message: 'no_subscribers' })
 
   const inner = (updates as Update[]).map(updateBlock).join('')
-  const subject = updates.length === 1 ? `Property OS — ${updates[0].title}` : `Property OS · ${updates.length} νέες δυνατότητες`
+  const subject = updates.length === 1 ? `PROPERWISE — ${updates[0].title}` : `PROPERWISE · ${updates.length} νέες δυνατότητες`
 
   let sent = 0, failed = 0
   for (let i = 0; i < recipients.length; i += 100) {

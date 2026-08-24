@@ -43,7 +43,7 @@ const LATIN_WORD = /[A-Za-z]{3,}/
  * Λατινικά που ΔΕΝ είναι greeklish: ονόματα προϊόντων και τεχνικοί όροι που
  * γράφονται έτσι και στα ελληνικά κείμενα της εφαρμογής.
  */
-const ALLOWED = /^(Property OS|xlsx|csv|pdf|ics|vcf|zip|json|kWh|myAADE|Excel|IBAN|QR)$/i
+const ALLOWED = /^(PROPERWISE|xlsx|csv|pdf|ics|vcf|zip|json|kWh|myAADE|Excel|IBAN|QR)$/i
 
 const findings = []
 for (const file of findSources()) {

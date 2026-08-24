@@ -10,7 +10,7 @@
 //
 // Ενεργοποίηση:
 //   supabase secrets set RESEND_API_KEY=re_...           (κλειδί Resend)
-//   supabase secrets set RESEND_FROM="Property OS <no-reply@to-domain-sou.gr>"
+//   supabase secrets set RESEND_FROM="PROPERWISE <no-reply@to-domain-sou.gr>"
 //   supabase functions deploy send-client-email
 // ─────────────────────────────────────────────────────────────────────────
 import { createClient } from 'npm:@supabase/supabase-js@2.110.8'
@@ -20,7 +20,7 @@ const SUPABASE_URL   = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_ANON  = Deno.env.get('SUPABASE_ANON_KEY')!
 // Env-driven αποστολέας: μόλις επαληθεύσεις domain στο Resend, όρισε το RESEND_FROM
 // και ΟΛΑ τα emails φεύγουν από τη δική σου διεύθυνση, χωρίς αλλαγή κώδικα.
-const FROM_EMAIL     = Deno.env.get('RESEND_FROM') || 'Property OS <onboarding@resend.dev>'
+const FROM_EMAIL     = Deno.env.get('RESEND_FROM') || 'PROPERWISE <onboarding@resend.dev>'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',

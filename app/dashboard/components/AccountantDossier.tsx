@@ -182,7 +182,7 @@ function Row({ r, checked, onToggle, interactive }: { r: Requirement; checked: b
       {interactive
         ? <Mark checked={checked} onChange={onToggle} label={r.title} />
         : (
-          <span title="Το ετοιμάζει το Property OS" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, marginTop: 1, borderRadius: 6, flexShrink: 0, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-tertiary)' }}>
+          <span title="Το ετοιμάζει το PROPERWISE" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, marginTop: 1, borderRadius: 6, flexShrink: 0, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-tertiary)' }}>
             <CheckIcon size={11} />
           </span>
         )}

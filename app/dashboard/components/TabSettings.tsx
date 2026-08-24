@@ -784,7 +784,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
         <div style={divider}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 3 }}>Τρόπος χρήσης</div>
           <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 14, lineHeight: 1.5 }}>
-            Προσαρμόζει το περιβάλλον στις ανάγκες σου. Μπορείς να το αλλάξεις όποτε θες.{partner ? ' Είσαι ενεργός Συνεργάτης Property OS.' : ''}
+            Προσαρμόζει το περιβάλλον στις ανάγκες σου. Μπορείς να το αλλάξεις όποτε θες.{partner ? ' Είσαι ενεργός Συνεργάτης PROPERWISE.' : ''}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 12 }}>
             {PROFILE_OPTS.map(o => {

@@ -1,6 +1,6 @@
 # Operations runbook
 
-How PropertyOS is operated day to day. The guiding principle: **every change is
+How PROPERWISE is operated day to day. The guiding principle: **every change is
 versioned code applied by CI; no one touches the production database or its secrets by
 hand.**
 

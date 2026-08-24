@@ -1,6 +1,6 @@
-# Subprocessor register — Property OS
+# Subprocessor register — PROPERWISE
 
-The third parties that may process personal data on behalf of Property OS, why,
+The third parties that may process personal data on behalf of PROPERWISE, why,
 and where. Maintained under GDPR Art. 28 (3)(d). Publish a summary of this list
 on the website and notify customers before adding a new subprocessor.
 

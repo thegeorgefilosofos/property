@@ -97,7 +97,7 @@ export interface PdfReportModel {
 /** Η βαριά γραμμή του αποτελέσματος: κύριο μελάνι, όχι διαχωριστικό. */
 const HEAVY_RULE = INK;
 
-const brandDisplayName = (b?: ReportBranding | null) => (b?.companyName?.trim() || 'Property OS');
+const brandDisplayName = (b?: ReportBranding | null) => (b?.companyName?.trim() || 'PROPERWISE');
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Node = any;
@@ -340,7 +340,7 @@ export function buildDocDefinition(model: PdfReportModel): Node {
   return {
     pageSize: 'A4',
     pageMargins: [40, 44, 40, 62],
-    info: { title: `${model.title} — ${name}`, author: name, creator: 'Property OS', subject: model.docType },
+    info: { title: `${model.title} — ${name}`, author: name, creator: 'PROPERWISE', subject: model.docType },
     content,
     defaultStyle: { font: 'Roboto', fontSize: 10.5, color: INK, lineHeight: 1.25 },
     footer: (currentPage: number, pageCount: number): Node => ({
@@ -349,7 +349,7 @@ export function buildDocDefinition(model: PdfReportModel): Node {
         { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: RULE }] },
         {
           columns: [
-            { text: `Property OS · Αρ. εγγράφου ${model.meta.id} · Εκδόθηκε ${issuedStr}`, fontSize: 7.5, color: INK_FAINT },
+            { text: `PROPERWISE · Αρ. εγγράφου ${model.meta.id} · Εκδόθηκε ${issuedStr}`, fontSize: 7.5, color: INK_FAINT },
             { text: `Σελίδα ${currentPage} / ${pageCount}`, alignment: 'right', fontSize: 7.5, color: INK_FAINT },
           ], margin: [0, 6, 0, 0],
         },

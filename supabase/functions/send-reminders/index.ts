@@ -14,7 +14,7 @@ const SUPABASE_KEY   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 // χρειάζεται πια το service-role key στην κλήση). Το function κρατά το δικό του
 // service key εσωτερικά για τα queries.
 const CRON_SECRET    = Deno.env.get('REMINDERS_CRON_SECRET') || ''
-const FROM_EMAIL     = Deno.env.get('RESEND_FROM') || 'Property OS <onboarding@resend.dev>'
+const FROM_EMAIL     = Deno.env.get('RESEND_FROM') || 'PROPERWISE <onboarding@resend.dev>'
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
@@ -78,8 +78,8 @@ function buildEmail(events: CalendarEventsRow[], reminderType: string) {
   }).join('')
 
   const subject = isUrgent
-    ? `Property OS · ${events.length} ${reminderType === 'overdue' ? 'εκπρόθεσμα γεγονότα' : 'γεγονότα ΣΗΜΕΡΑ'}`
-    : `Property OS · ${events.length} γεγονότα σε ${typeLabel[reminderType]}`
+    ? `PROPERWISE · ${events.length} ${reminderType === 'overdue' ? 'εκπρόθεσμα γεγονότα' : 'γεγονότα ΣΗΜΕΡΑ'}`
+    : `PROPERWISE · ${events.length} γεγονότα σε ${typeLabel[reminderType]}`
 
   const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f1f3f4;font-family:-apple-system,'Inter',sans-serif;">
   <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
@@ -87,7 +87,7 @@ function buildEmail(events: CalendarEventsRow[], reminderType: string) {
       <div style="width:36px;height:36px;background:#1a73e8;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;">
         <span style="color:#ffffff;font-weight:800;font-size:18px;">P</span>
       </div>
-      <span style="font-size:16px;font-weight:700;color:#202124;margin-left:10px;">Property OS</span>
+      <span style="font-size:16px;font-weight:700;color:#202124;margin-left:10px;">PROPERWISE</span>
     </div>
     <div style="background:#ffffff;border:1px solid #e8eaed;border-radius:14px;padding:24px;">
       <div style="background:${isUrgent ? 'rgba(217,48,37,0.08)' : 'rgba(26,115,232,0.08)'};border:1px solid ${isUrgent ? 'rgba(217,48,37,0.25)' : 'rgba(26,115,232,0.22)'};border-radius:10px;padding:16px 20px;margin-bottom:20px;">
@@ -97,10 +97,10 @@ function buildEmail(events: CalendarEventsRow[], reminderType: string) {
       </div>
       <table style="width:100%;border-collapse:collapse;">${eventRows}</table>
       <div style="text-align:center;margin-top:24px;">
-        <a href="${APP_URL}/dashboard" style="display:inline-block;background:#1a73e8;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:100px;font-weight:700;font-size:14px;">Άνοιγμα Property OS</a>
+        <a href="${APP_URL}/dashboard" style="display:inline-block;background:#1a73e8;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:100px;font-weight:700;font-size:14px;">Άνοιγμα PROPERWISE</a>
       </div>
     </div>
-    <p style="text-align:center;font-size:11px;color:#80868b;margin-top:20px;">Property OS · Αυτόματη ειδοποίηση ημερολογίου</p>
+    <p style="text-align:center;font-size:11px;color:#80868b;margin-top:20px;">PROPERWISE · Αυτόματη ειδοποίηση ημερολογίου</p>
   </div>
 </body></html>`
 
@@ -139,7 +139,7 @@ function buildDunningEmail(rows: RentPaymentsRow[], tenantMap: Record<string, Te
   }).join('')
 
   const n = rows.length
-  const subject = `Property OS · ${noticeLabel}: ληξιπρόθεσμο ενοίκιο (${n} ${n === 1 ? 'δόση' : 'δόσεις'})`
+  const subject = `PROPERWISE · ${noticeLabel}: ληξιπρόθεσμο ενοίκιο (${n} ${n === 1 ? 'δόση' : 'δόσεις'})`
 
   const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f1f3f4;font-family:-apple-system,'Inter',sans-serif;">
   <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
@@ -147,7 +147,7 @@ function buildDunningEmail(rows: RentPaymentsRow[], tenantMap: Record<string, Te
       <div style="width:36px;height:36px;background:#1a73e8;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;">
         <span style="color:#ffffff;font-weight:800;font-size:18px;">P</span>
       </div>
-      <span style="font-size:16px;font-weight:700;color:#202124;margin-left:10px;">Property OS</span>
+      <span style="font-size:16px;font-weight:700;color:#202124;margin-left:10px;">PROPERWISE</span>
     </div>
     <div style="background:#ffffff;border:1px solid #e8eaed;border-radius:14px;padding:24px;">
       <div style="background:rgba(217,48,37,0.08);border:1px solid rgba(217,48,37,0.25);border-radius:10px;padding:16px 20px;margin-bottom:20px;">
@@ -158,10 +158,10 @@ function buildDunningEmail(rows: RentPaymentsRow[], tenantMap: Record<string, Te
       </div>
       <table style="width:100%;border-collapse:collapse;">${rowsHtml}</table>
       <div style="text-align:center;margin-top:24px;">
-        <a href="${APP_URL}/dashboard" style="display:inline-block;background:#1a73e8;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:100px;font-weight:700;font-size:14px;">Άνοιγμα Property OS</a>
+        <a href="${APP_URL}/dashboard" style="display:inline-block;background:#1a73e8;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:100px;font-weight:700;font-size:14px;">Άνοιγμα PROPERWISE</a>
       </div>
     </div>
-    <p style="text-align:center;font-size:11px;color:#80868b;margin-top:20px;">Property OS · Αυτόματη ειδοποίηση ληξιπρόθεσμου ενοικίου</p>
+    <p style="text-align:center;font-size:11px;color:#80868b;margin-top:20px;">PROPERWISE · Αυτόματη ειδοποίηση ληξιπρόθεσμου ενοικίου</p>
   </div>
 </body></html>`
 
@@ -230,7 +230,7 @@ Deno.serve(async (req) => {
     //   4. Ενημέρωση απορρήτου και υπεργολάβων: ο μισθωτής γίνεται
     //      παραλήπτης, δεν είναι πια μόνο όνομα μέσα σε μήνυμα.
     //   5. Δικό του πρότυπο κειμένου. Το σημερινό dunning απευθύνεται στον
-    //      ιδιοκτήτη («Ανοιγμα Property OS»), δεν διαβάζεται από τρίτον.
+    //      ιδιοκτήτη («Ανοιγμα PROPERWISE»), δεν διαβάζεται από τρίτον.
 
     let totalSent = 0
 

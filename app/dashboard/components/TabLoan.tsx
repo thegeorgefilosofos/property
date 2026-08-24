@@ -509,7 +509,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
     downloadXlsx(`Αποθηκευμένα δάνεια ${athensToday()}`, [{
       name: 'Δάνεια',
       title: 'Αποθηκευμένα δάνεια',
-      subtitle: `${savedLoans.length} ${savedLoans.length===1?'δάνειο':'δάνεια'} · Έκδοση ${new Date().toLocaleDateString('el-GR')} · Property OS`,
+      subtitle: `${savedLoans.length} ${savedLoans.length===1?'δάνειο':'δάνεια'} · Έκδοση ${new Date().toLocaleDateString('el-GR')} · PROPERWISE`,
       columns: [
         { header:'Τράπεζα', kind:'text', width:20 },
         { header:'Τύπος δανείου', kind:'text', width:22 },

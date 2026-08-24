@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // SettingsRoadmap, «Τι έρχεται». Αντικαθιστά το παλιό block «Ενσωματώσεις»:
 // αντί να απαριθμεί τι ήδη δουλεύει, χτίζει προσδοκία για ό,τι έρχεται. Ναυαρχίδα
-// είναι το Property OS Mobile (iOS & Android). Καθαρό, premium, ζωντανό, χωρίς
+// είναι το PROPERWISE Mobile (iOS & Android). Καθαρό, premium, ζωντανό, χωρίς
 // ψεύτικα «σύνδεσε». Μπαίνει μέσα σε υπάρχουσα Card, οπότε ξεκινά με διαχωριστικό.
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -119,7 +119,7 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
         </div>
       </div>
 
-      {/* HERO, Property OS Mobile */}
+      {/* HERO, PROPERWISE Mobile */}
       <div
         className="acc-section"
         style={{
@@ -157,7 +157,7 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, letterSpacing: '-0.01em' }}>
-                Property OS Mobile
+                PROPERWISE Mobile
               </span>
               <Chip tone="accent">
                 <span className="acc-live-dot accent" aria-hidden style={{ width: 6, height: 6, background: 'var(--accent)', display: 'inline-block' }} />
@@ -170,7 +170,7 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
               καταχωρείται μόνο του, όπου κι αν βρίσκεσαι.
             </p>
 
-            {/* Μέχρι να βγει η αυτόνομη εφαρμογή, το Property OS εγκαθίσταται ήδη
+            {/* Μέχρι να βγει η αυτόνομη εφαρμογή, το PROPERWISE εγκαθίσταται ήδη
                 στην αρχική οθόνη. Το λέμε εδώ, δίπλα στην αναμονή, αντί να
                 αφήνουμε τον χρήστη να περιμένει κάτι που έχει ήδη σε άλλη μορφή. */}
             <div style={{ marginTop: 10, padding: '10px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>

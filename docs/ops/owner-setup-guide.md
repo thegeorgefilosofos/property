@@ -68,7 +68,7 @@ people who need dashboard access have it.
 
 ## Activating the email engine (later, after a verified domain)
 1. Verify a domain in **Resend** (add the SPF/DKIM/DMARC DNS records it gives you).
-2. Set the Edge Function secret `RESEND_FROM` = `Property OS <no-reply@yourdomain.gr>`.
+2. Set the Edge Function secret `RESEND_FROM` = `PROPERWISE <no-reply@yourdomain.gr>`.
 3. Flip the master switch **once**: `select public.set_emails_live(true);`
 Until step 3, only transactional email can send — the whole lifecycle catalog
 stays dormant. See `docs/marketing/world-class-scheme.md`.

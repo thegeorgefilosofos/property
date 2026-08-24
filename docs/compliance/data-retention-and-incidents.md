@@ -1,4 +1,4 @@
-# Data retention & incident response — Property OS
+# Data retention & incident response — PROPERWISE
 
 Two operational policies a buyer's due diligence expects: how long data is kept,
 and what happens if there's a breach. Free to maintain; no tooling required.

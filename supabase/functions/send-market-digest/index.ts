@@ -17,7 +17,7 @@ const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 const SUPABASE_URL   = Deno.env.get('SUPABASE_URL')!
 const SERVICE_KEY    = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const CRON_SECRET    = Deno.env.get('MARKET_DIGEST_CRON_SECRET') || ''
-const FROM_EMAIL     = Deno.env.get('RESEND_FROM') || 'Property OS <onboarding@resend.dev>'
+const FROM_EMAIL     = Deno.env.get('RESEND_FROM') || 'PROPERWISE <onboarding@resend.dev>'
 
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY)
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json' } })
@@ -58,16 +58,16 @@ function layout(inner: string, unsubUrl: string): string {
   <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
     <div style="display:flex;align-items:center;margin-bottom:22px;">
       <div style="width:34px;height:34px;background:#1a73e8;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;"><span style="color:#fff;font-weight:800;font-size:17px;">P</span></div>
-      <span style="font-size:16px;font-weight:700;color:#111;margin-left:10px;">Property OS</span>
+      <span style="font-size:16px;font-weight:700;color:#111;margin-left:10px;">PROPERWISE</span>
     </div>
     <div style="background:#fff;border:1px solid #e8eaed;border-radius:14px;padding:26px 24px;">
       <p style="margin:0 0 4px;font-size:10.5px;color:#1a73e8;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">Δεδομένα αγοράς</p>
       <h1 style="margin:0 0 14px;font-size:20px;color:#111;font-weight:700;">Εβδομαδιαία ενημέρωση επιτοκίων</h1>
       <table style="width:100%;border-collapse:collapse;">${inner}</table>
-      <p style="margin:16px 0 0;font-size:12px;color:#5f6368;line-height:1.6;">Χρήσιμο για την αξιολόγηση δανείων και αποδόσεων στο Property OS.</p>
+      <p style="margin:16px 0 0;font-size:12px;color:#5f6368;line-height:1.6;">Χρήσιμο για την αξιολόγηση δανείων και αποδόσεων στο PROPERWISE.</p>
     </div>
     <p style="text-align:center;font-size:11px;color:#80868b;margin:18px 0 4px;line-height:1.6;">
-      <a href="${unsubUrl}" style="color:#80868b;text-decoration:underline;">Απεγγραφή από τα δεδομένα αγοράς</a> · Property OS
+      <a href="${unsubUrl}" style="color:#80868b;text-decoration:underline;">Απεγγραφή από τα δεδομένα αγοράς</a> · PROPERWISE
     </p>
   </div></body></html>`
 }
@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
   if (!recipients.length) return json({ message: 'no_subscribers' })
 
   const inner = METRICS.map(m => rowHtml(m.label, cur[m.key], prev[m.key])).join('')
-  const subject = 'Property OS · Εβδομαδιαία ενημέρωση επιτοκίων'
+  const subject = 'PROPERWISE · Εβδομαδιαία ενημέρωση επιτοκίων'
 
   let sent = 0, failed = 0
   for (let i = 0; i < recipients.length; i += 100) {

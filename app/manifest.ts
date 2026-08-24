@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Web App Manifest — κάνει το Property OS εγκαταστάσιμο σαν εφαρμογή.
+// Web App Manifest — κάνει το PROPERWISE εγκαταστάσιμο σαν εφαρμογή.
 //
 // ΓΙΑΤΙ: ο Έλληνας ιδιοκτήτης δεν κάθεται σε γραφείο. Φωτογραφίζει έναν
 // λογαριασμό στην ουρά της ΔΕΗ και καταχωρεί μια δαπάνη από το αυτοκίνητο.
@@ -16,8 +16,8 @@ import type { MetadataRoute } from 'next';
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: '/dashboard',
-    name: 'Property OS · Διαχείριση ακινήτων',
-    short_name: 'Property OS',
+    name: 'PROPERWISE · Διαχείριση ακινήτων',
+    short_name: 'PROPERWISE',
     description: 'Έσοδα, δαπάνες, ενοικιαστές, φόρος και προθεσμίες για τα ακίνητά σου, σε ένα σημείο.',
     start_url: '/dashboard',
     scope: '/',

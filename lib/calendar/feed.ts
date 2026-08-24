@@ -65,7 +65,7 @@ export function buildCalendarFeed(items: readonly FeedItem[], o: FeedOptions): s
   const lines: string[] = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Property OS//Προθεσμίες//EL',
+    'PRODID:-//PROPERWISE//Προθεσμίες//EL',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     `X-WR-CALNAME:${escapeIcsText(o.name)}`,

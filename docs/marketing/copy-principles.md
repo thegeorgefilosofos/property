@@ -1,4 +1,4 @@
-# Property OS — Πρότυπο κειμένων email (Voice & Craft)
+# PROPERWISE — Πρότυπο κειμένων email (Voice & Craft)
 
 > Ο πήχης: κάθε email να διαβάζεται σαν να το έγραψε το καλύτερο τμήμα marketing
 > fintech/proptech στον κόσμο, στα ελληνικά. Αυτό το έγγραφο είναι ο κανόνας.

@@ -1,20 +1,20 @@
-# Σύμβαση Επεξεργασίας Δεδομένων (DPA) — Property OS · Data Processing Agreement
+# Σύμβαση Επεξεργασίας Δεδομένων (DPA) — PROPERWISE · Data Processing Agreement
 
 > **ΣΧΕΔΙΟ / DRAFT — v0.1 (2026-07-22). Δεν έχει τεθεί σε ισχύ. Απαιτεί υπογραφή
 > δικηγόρου.** **DRAFT — not in force; requires counsel sign-off.**
 
 Το παρόν DPA αποτελεί αναπόσπαστο μέρος των Όρων Χρήσης μεταξύ του **Πελάτη** (ο
-«**Υπεύθυνος Επεξεργασίας**») και της **[ΣΥΜΠΛΗΡΩΣΤΕ: νομική επωνυμία]** («**Property OS**»,
+«**Υπεύθυνος Επεξεργασίας**») και της **[ΣΥΜΠΛΗΡΩΣΤΕ: νομική επωνυμία]** («**PROPERWISE**»,
 ο «**Εκτελών την Επεξεργασία**») κατ' **άρθρο 28 ΓΚΠΔ**. Σε σύγκρουση ως προς την
 προστασία δεδομένων, υπερισχύει το παρόν.
 
 ## 1. Αντικείμενο & ρόλοι
-Η Property OS επεξεργάζεται δεδομένα **αποκλειστικά για λογαριασμό του Πελάτη**. Ο
+Η PROPERWISE επεξεργάζεται δεδομένα **αποκλειστικά για λογαριασμό του Πελάτη**. Ο
 **Πελάτης είναι υπεύθυνος επεξεργασίας** των δεδομένων ενοικιαστών/φιλοξενούμενων/τρίτων·
-η **Property OS είναι εκτελών την επεξεργασία**.
+η **PROPERWISE είναι εκτελών την επεξεργασία**.
 
 ## 2. Διάρκεια
-Για όσο η Property OS επεξεργάζεται για λογαριασμό του Πελάτη, και μέχρι την ολοκλήρωση
+Για όσο η PROPERWISE επεξεργάζεται για λογαριασμό του Πελάτη, και μέχρι την ολοκλήρωση
 των υποχρεώσεων διαγραφής/επιστροφής.
 
 ## 3. Φύση & σκοπός
@@ -77,7 +77,7 @@ Anthropic** (χωρίς εκπαίδευση), **GitHub, Lemon Squeezy** (ΗΠΑ
 **Παράρτημα Α** — §§3–4. **Παράρτημα Β** — §7 + `docs/db/security-audit-2026-07.md`.
 **Παράρτημα Γ** — §8 + `docs/compliance/subprocessors.md`.
 
-Για την Property OS: **[ΣΥΜΠΛΗΡΩΣΤΕ]** · Για τον Πελάτη: (κατά την αποδοχή)
+Για την PROPERWISE: **[ΣΥΜΠΛΗΡΩΣΤΕ]** · Για τον Πελάτη: (κατά την αποδοχή)
 
 ---
 
@@ -87,7 +87,7 @@ Anthropic** (χωρίς εκπαίδευση), **GitHub, Lemon Squeezy** (ΗΠΑ
 > protection.
 
 **1. Roles:** we process solely on the Customer's behalf; Customer = controller of
-tenant data, Property OS = processor. **2. Duration:** while processing + deletion
+tenant data, PROPERWISE = processor. **2. Duration:** while processing + deletion
 duties. **3. Nature/purpose:** platform per Customer instructions. **4. Subjects/data:**
 tenants/guests/leads; name, ΑΦΜ, phone, email, ID, lease terms, stay history; no
 special categories. **5. Instructions (28(3)(a)):** documented only; we flag GDPR-

@@ -7,8 +7,8 @@ import type { Metadata } from 'next';
 import { T } from '@/components/tokens';
 
 // ΤΟ ΟΝΟΜΑ ΤΟ ΒΑΖΕΙ ΤΟ ΠΡΟΤΥΠΟ, ΟΧΙ Η ΣΕΛΙΔΑ. Το app/layout.tsx ορίζει
-// «template: '%s · Property OS'», οπότε γράφοντας το όνομα και εδώ η καρτέλα
-// του περιηγητή έλεγε «Χωρίς σύνδεση · Property OS · Property OS».
+// «template: '%s · PROPERWISE'», οπότε γράφοντας το όνομα και εδώ η καρτέλα
+// του περιηγητή έλεγε «Χωρίς σύνδεση · PROPERWISE · PROPERWISE».
 export const metadata: Metadata = { title: 'Χωρίς σύνδεση' };
 
 export default function OfflinePage() {

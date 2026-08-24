@@ -1837,7 +1837,7 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
   function icsFold(line:string){ if(line.length<=75)return line; const out:string[]=[]; let s=line; while(s.length>75){ out.push(s.slice(0,75)); s=' '+s.slice(75) } out.push(s); return out.join('\r\n') }
   function exportICal(){
     const now=new Date(); const stamp=now.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')
-    const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Property OS//Calendar 1.0//EL','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:Property OS, Ημερολόγιο','X-WR-TIMEZONE:Europe/Athens']
+    const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//PROPERWISE//Calendar 1.0//EL','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:PROPERWISE, Ημερολόγιο','X-WR-TIMEZONE:Europe/Athens']
     filtered.forEach(e=>{
       const d=e.event_date.replace(/-/g,''); const cat=CATEGORIES[e.category]
       const descParts=[e.notes||'', e.amount?`Ποσό: ${fe(e.amount)}`:''].filter(Boolean)
@@ -1888,7 +1888,7 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
       <td style="font-size:11px">${rEsc(cat?.label||'')}</td>
       <td class="n" style="font-weight:${weight};font-size:12px;white-space:nowrap">${rEsc(whenText(d))}</td></tr>`}).join('')
       :`<tr><td colspan="4" class="empty" style="text-align:center">Καμία εκκρεμότητα.</td></tr>`
-    const html=reportHead('Ημερολόγιο, Property OS')
+    const html=reportHead('Ημερολόγιο, PROPERWISE')
       + `<body><div class="page">`
       + reportHeader(null, 'Επερχόμενα γεγονότα και προθεσμίες')
       + `
@@ -2061,7 +2061,7 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
                   // Πρώτο (προεπιλεγμένο) φύλλο: μόνο το τρέχον έτος. Ακολουθεί το πλήρες
                   // αρχείο και τα φύλλα εκπρόθεσμων/επερχόμενων.
                   const issued=athensNow().toLocaleDateString('el-GR')
-                  const subFor=(scope:string)=>`${scope} · Έκδοση ${issued} · Property OS`
+                  const subFor=(scope:string)=>`${scope} · Έκδοση ${issued} · PROPERWISE`
                   const TOT=[6] // στήλη «Ποσό» → γραμμή ΣΥΝΟΛΟ
                   const sheets:XlsxSheet[]=[{name:`Ατζέντα ${curYear}`,title:`ΑΤΖΕΝΤΑ ΥΠΟΧΡΕΩΣΕΩΝ ${curYear}`,subtitle:subFor(`Έτος ${curYear}`),columns:cols,rows:cur.map(toRow),totalCols:TOT}]
                   if(all.length>cur.length) sheets.push({name:'Όλα τα έτη',title:'ΑΤΖΕΝΤΑ ΥΠΟΧΡΕΩΣΕΩΝ · ΟΛΑ ΤΑ ΕΤΗ',subtitle:subFor('Όλα τα έτη'),columns:cols,rows:all.map(toRow),totalCols:TOT})

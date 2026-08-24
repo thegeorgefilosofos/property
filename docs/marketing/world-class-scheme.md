@@ -1,4 +1,4 @@
-# Property OS · World-class email & notification scheme
+# PROPERWISE · World-class email & notification scheme
 
 The playbook for the messaging system. **Internal — the customer never sees this;
 they only ever receive the email, message, push or offer.** Benchmarked against

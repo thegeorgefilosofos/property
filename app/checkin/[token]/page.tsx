@@ -72,7 +72,7 @@ export default function GuestCheckin() {
               σελίδα δεν είχε ΚΑΜΙΑ επικεφαλίδα: ο αναγνώστης οθόνης την
               ανακοίνωνε χωρίς όνομα, και η πλοήγηση ανά επικεφαλίδα δεν είχε
               πού να προσγειωθεί. Δημόσια σελίδα που ανοίγει από σύνδεσμο σε
-              μήνυμα, συχνά από άνθρωπο που δεν ξέρει τι είναι το Property OS.
+              μήνυμα, συχνά από άνθρωπο που δεν ξέρει τι είναι το PROPERWISE.
               Τα γνωρίσματα είναι αυτούσια αυτά του `span`, συν `margin:0` που
               ακυρώνει το προεπιλεγμένο περιθώριο του `h1`: η εμφάνιση δεν
               αλλάζει ούτε κατά ένα εικονοστοιχείο. */}
@@ -148,7 +148,7 @@ export default function GuestCheckin() {
                 </form>
               </div>
             )}
-            <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-tertiary)', marginTop: 8 }}>Powered by Property OS</div>
+            <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-tertiary)', marginTop: 8 }}>Powered by PROPERWISE</div>
           </>
         )}
       </div>

@@ -100,7 +100,7 @@ via HaveIBeenPwned.org is available on Pro Plans and up.
 τα αντίγραφα ασφαλείας / PITR).
 
 ### 4β. TOTP — η τιμή «Verify Enabled» ΣΠΑΕΙ τη λειτουργία του app
-Το PropertyOS έχει πλήρη ροή MFA στο `app/dashboard/components/SecuritySettings.tsx`
+Το PROPERWISE έχει πλήρη ροή MFA στο `app/dashboard/components/SecuritySettings.tsx`
 (`mfa.listFactors`, `mfa.enroll`, `mfa.challenge`, `mfa.verify`, `mfa.unenroll`).
 
 Η τιμή **«Verify Enabled»** επιτρέπει μόνο την επαλήθευση ΥΠΑΡΧΟΝΤΩΝ factors και

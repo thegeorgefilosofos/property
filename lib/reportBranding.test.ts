@@ -32,9 +32,9 @@ ok('reportAccent valid', reportAccent({ enabled: true, accentColor: '#000000', c
 ok('reportAccent bad → default', reportAccent({ enabled: true, accentColor: 'bad', companyName: '', logoUrl: '', phone: '', email: '' }) === DEFAULT_ACCENT);
 
 // ── brandName: escaped ή fallback ────────────────────────────────────────────
-ok('brandName null → Property OS', brandName(null) === 'Property OS');
+ok('brandName null → PROPERWISE', brandName(null) === 'PROPERWISE');
 ok('brandName escapes html', brandName({ enabled: true, companyName: 'Α&Β <Real> Estate', logoUrl: '', accentColor: '', phone: '', email: '' }) === 'Α&amp;Β &lt;Real&gt; Estate');
-ok('brandName trims empty → fallback', brandName({ enabled: true, companyName: '   ', logoUrl: '', accentColor: '', phone: '', email: '' }) === 'Property OS');
+ok('brandName trims empty → fallback', brandName({ enabled: true, companyName: '   ', logoUrl: '', accentColor: '', phone: '', email: '' }) === 'PROPERWISE');
 
 // ── report ───────────────────────────────────────────────────────────────────
 console.log(`\nreportBranding.ts — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`);

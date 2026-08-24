@@ -1,4 +1,4 @@
-# Όροι Χρήσης — Property OS · Terms of Service — Property OS
+# Όροι Χρήσης — PROPERWISE · Terms of Service — PROPERWISE
 
 > **ΣΧΕΔΙΟ / DRAFT — v0.1 (2026-07-22). Δεν έχει τεθεί σε ισχύ. Απαιτεί τελικό
 > έλεγχο/υπογραφή δικηγόρου.** Πεδία `[ΣΥΜΠΛΗΡΩΣΤΕ ...]` από την εταιρεία.
@@ -7,7 +7,7 @@
 ---
 
 ## 1. Ποιοι είμαστε / Αντικείμενο
-Οι παρόντες Όροι διέπουν τη χρήση της υπηρεσίας SaaS «**Property OS**» (η «**Υπηρεσία**»)
+Οι παρόντες Όροι διέπουν τη χρήση της υπηρεσίας SaaS «**PROPERWISE**» (η «**Υπηρεσία**»)
 που παρέχει η **[ΣΥΜΠΛΗΡΩΣΤΕ: νομική επωνυμία]**, ΑΦΜ **[ΣΥΜΠΛΗΡΩΣΤΕ]**, έδρα
 **[ΣΥΜΠΛΗΡΩΣΤΕ]**. Με τη δημιουργία λογαριασμού ή χρήση, αποδέχεστε τους Όρους.
 
@@ -92,11 +92,11 @@
 ---
 ---
 
-# Terms of Service — Property OS (English summary)
+# Terms of Service — PROPERWISE (English summary)
 
 > **DRAFT — not in force; requires counsel sign-off.**
 
-**1. Parties/scope.** SaaS "Property OS" by **[COMPLETE]**. Using it = acceptance.
+**1. Parties/scope.** SaaS "PROPERWISE" by **[COMPLETE]**. Using it = acceptance.
 **2. Service.** Property management, financial/tax organisation (ΕΝΦΙΑ, Ε2, ΕΦΚΑ),
 reminders, export, AI. "As is". **3. Accounts.** Accurate info; 18+; safeguard
 credentials (MFA); responsible for activity. **4. Acceptable use.** No unlawful use,

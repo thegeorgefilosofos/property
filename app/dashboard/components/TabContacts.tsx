@@ -683,7 +683,7 @@ async function exportContactsExcel(contacts: Contact[]) {
   const withAfm = contacts.filter(c => c._extra?.afm).length
 
   const summaryData: (string | number)[][] = [
-    ['Property OS, Κατάσταση Επαφών', ''],
+    ['PROPERWISE, Κατάσταση Επαφών', ''],
     ['Ημερομηνία εξαγωγής:', today],
     ['Σύνολο εγγραφών:', contacts.length],
     [''],

@@ -112,7 +112,7 @@ export default function StartPanel({ state, collapsed, onToggle, onNavigate, onP
         <button onClick={() => onToggle(true)} style={{ ...quiet, marginLeft: 'auto' }}>Σύμπτυξη</button>
       </div>
       <div style={{ ...TT.caption, marginTop: 10 }}>
-        Το παράδειγμα αποτελείται από ένα ακίνητο που χρησιμοποίησε το Property OS μια ολόκληρη χρονιά, ώστε να διαπιστώσεις εύκολα και γρήγορα τις δυνατότητές του.
+        Το παράδειγμα αποτελείται από ένα ακίνητο που χρησιμοποίησε το PROPERWISE μια ολόκληρη χρονιά, ώστε να διαπιστώσεις εύκολα και γρήγορα τις δυνατότητές του.
       </div>
     </div>
   );

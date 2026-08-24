@@ -293,13 +293,13 @@ export default function AccountantPortal() {
                 εβδομήντα εννιά. Και μαθαίνει ΚΑΙ ότι θέλει λογαριασμό, γιατί
                 αλλιώς το κλικ τον βγάζει σε τοίχο σύνδεσης χωρίς εξήγηση. */}
             <div className="portal-noprint" style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-secondary)', marginTop: 26, lineHeight: 1.8 }}>
-              Εχεις κι άλλους πελάτες με Property OS;{' '}
+              Εχεις κι άλλους πελάτες με PROPERWISE;{' '}
               <Link href="/accountant/workspace" style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Δες τους όλους μαζί</Link>, με ό,τι λείπει από τον καθένα.
               <div style={{ ...meta, marginTop: 4 }}>Χρειάζεται δικός σου λογαριασμός, μία φορά.</div>
             </div>
 
             <div style={{ ...meta, textAlign: 'center', marginTop: 16 }}>
-              Powered by Property OS · μόνο για ανάγνωση · <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-secondary)' }}>Απόρρητο</a>
+              Powered by PROPERWISE · μόνο για ανάγνωση · <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-secondary)' }}>Απόρρητο</a>
             </div>
           </>
         )}

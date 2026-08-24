@@ -106,7 +106,7 @@ export default function CheckoutLanding() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, paddingBottom: 18, borderBottom: '1px solid var(--border-subtle)' }}>
           <BrandMark size={34} />
           <div>
-            <div style={{ fontSize: 15, fontWeight: 700 }}>Property OS</div>
+            <div style={{ fontSize: 15, fontWeight: 700 }}>PROPERWISE</div>
             <h1 style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 400, margin: 0 }}>
               {stage === 'choose' ? 'Διάλεξε πακέτο' : 'Ολοκλήρωση συνδρομής'}
             </h1>

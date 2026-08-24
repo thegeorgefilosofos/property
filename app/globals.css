@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════
-   Property OS — Google Material Design 3
+   PROPERWISE — Google Material Design 3
    Exact Google ecosystem: colors, typography, elevation, motion
    Light (default) + Dark mode
 ═══════════════════════════════════════════════════════════════ */
@@ -90,7 +90,7 @@ body {
    :root του σκούρου που έρχεται αργότερα στο αρχείο. */
 :root[data-mode="light"] {
 
-  /* ── Map to Property OS vars (used by components) ── */
+  /* ── Map to PROPERWISE vars (used by components) ── */
   --bg-base:       #f8f9fa;
   --bg-surface:    #ffffff;
   --bg-elevated:   #f1f3f4;
@@ -259,7 +259,7 @@ body {
 
   /* Google dark surfaces — exactly like Google Calendar/Drive dark */
 
-  /* Map to Property OS vars */
+  /* Map to PROPERWISE vars */
   --bg-base:       #202124;
   --bg-surface:    #292a2d;
   --bg-elevated:   #35363a;

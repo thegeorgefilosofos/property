@@ -51,7 +51,7 @@ const ERROR_MARKER = 'Κάτι πήγε στραβά';
 // του CDN) θα περνούσε για υγιής. Το ζητάμε στην αρχική, που είναι και η σελίδα
 // με το μεγαλύτερο ρίσκο: είναι η μόνη δημόσια που αγγίζει Supabase στο SSR.
 const ROUTES = [
-  { path: '/', must: 'Property OS' },
+  { path: '/', must: 'PROPERWISE' },
   { path: '/login', must: null },
   { path: '/signup', must: null },
   { path: '/trust', must: null },

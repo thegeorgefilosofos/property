@@ -17,9 +17,9 @@
 // είναι ήδη η περιγραφή του ιστότοπου.
 // ═══════════════════════════════════════════════════════════════════════════
 import { ImageResponse } from 'next/og';
-import { BRAND_MARK_BG, BRAND_MARK_INK } from '@/components/BrandMark';
+import { BRAND_PATHS, BRAND_VIEWBOX, BRAND_MARK_ON_DARK } from '@/components/BrandMark';
 
-export const alt = 'Property OS';
+export const alt = 'PROPERWISE';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -35,15 +35,16 @@ export default function Image() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 26 }}>
-          <div
-            style={{
-              width: 104, height: 104, borderRadius: 30, display: 'flex',
-              alignItems: 'center', justifyContent: 'center',
-              background: BRAND_MARK_BG, color: BRAND_MARK_INK,
-              fontSize: 54, fontWeight: 800, letterSpacing: '-0.02em',
-            }}
-          >P</div>
-          <div style={{ fontSize: 76, fontWeight: 800, letterSpacing: '-0.03em' }}>Property OS</div>
+          {/* ΤΟ ΣΧΗΜΑ ΕΡΧΕΤΑΙ ΑΠΟ ΤΟ BrandMark, ΤΟ ΧΡΩΜΑ ΟΧΙ. Το Satori δεν
+              γνωρίζει `currentColor` ούτε μεταβλητές θέματος, και η εικόνα έχει
+              ΕΝΑ φόντο που το ξέρουμε: σκούρο. Αρα λευκό, ρητά. */}
+          <svg
+            width={104} height={104} viewBox={BRAND_VIEWBOX}
+            fill={BRAND_MARK_ON_DARK} fillRule="nonzero"
+          >
+            {BRAND_PATHS.shape.map((d: string) => <path key={d} d={d} />)}
+          </svg>
+          <div style={{ fontSize: 76, fontWeight: 800, letterSpacing: '0.01em' }}>PROPERWISE</div>
         </div>
         <div style={{ marginTop: 40, fontSize: 34, lineHeight: 1.45, color: '#9aa0a6', maxWidth: 900 }}>
           Έσοδα, δαπάνες, ενοικιαστές, φόρος και προθεσμίες για τα ακίνητά σου, σε ένα σημείο.

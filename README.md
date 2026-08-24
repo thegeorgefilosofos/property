@@ -1,9 +1,9 @@
-# PropertyOS
+# PROPERWISE
 
 **The operating system for Greek property owners and managers.**
 _Το ακίνητό σου, υπό έλεγχο._
 
-PropertyOS is a SaaS platform that turns the scattered, paperwork-heavy reality of
+PROPERWISE is a SaaS platform that turns the scattered, paperwork-heavy reality of
 owning and managing property in Greece — bills, tenants, taxes, loans, short-stay
 pricing, compliance — into a single, calm, real-time console. It is built for three
 audiences from one codebase: individual owners, professional property managers, and
@@ -179,4 +179,4 @@ credentials):
 
 ---
 
-© PropertyOS. All rights reserved. Proprietary and confidential.
+© PROPERWISE. All rights reserved. Proprietary and confidential.
