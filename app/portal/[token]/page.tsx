@@ -44,6 +44,8 @@ export default function TenantPortal() {
   const [contact, setContact] = useState('');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  /** Πόσες φωτογραφίες δεν έφτασαν. Μηδέν σημαίνει ότι έφτασαν όλες. */
+  const [lostPhotos, setLostPhotos] = useState(0);
   const [err, setErr] = useState('');
 
   const [declareBusyId, setDeclareBusyId] = useState<string | null>(null);
@@ -144,17 +146,43 @@ export default function TenantPortal() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setErr(''); setSending(true);
-    // Ανέβασμα φωτογραφιών, αποτυχία δεν μπλοκάρει την αποστολή του αιτήματος.
+    // ═════════════════════════════════════════════════════════════════════
+    // Η ΦΩΤΟΓΡΑΦΙΑ ΠΟΥ ΔΕΝ ΑΝΕΒΑΙΝΕΙ ΔΕΝ ΠΕΤΙΕΤΑΙ ΣΙΩΠΗΛΑ
+    // ─────────────────────────────────────────────────────────────────────
+    // ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΚΛΕΙΝΕΙ. Ηταν `if (upErr) continue`: ο ενοικιαστής
+    // φωτογράφιζε τη διαρροή, πατούσε αποστολή, έβλεπε «Το αίτημα στάλθηκε»
+    // και ο ιδιοκτήτης έπαιρνε αίτημα με λιγότερες φωτογραφίες ή με καμία.
+    // Κανείς από τους δύο δεν το μάθαινε ποτέ.
+    //
+    // ΣΕ ΑΥΤΗ ΤΗΝ ΟΘΟΝΗ Η ΦΩΤΟΓΡΑΦΙΑ ΕΙΝΑΙ ΤΟ ΤΕΚΜΗΡΙΟ. Απ' αυτήν κρίνεται
+    // ποιος πληρώνει τη ζημιά και τι επιστρέφεται από την εγγύηση. Και το
+    // κοινό αίτιο της αποτυχίας είναι το πιο προβλέψιμο που υπάρχει: κακό
+    // σήμα σε κινητό, μέσα σε ένα διαμέρισμα.
+    //
+    // ΔΥΟ ΠΡΟΣΠΑΘΕΙΕΣ, ΜΕΤΑ ΑΛΗΘΕΙΑ. Το αίτημα ΦΕΥΓΕΙ ούτως ή άλλως, γιατί
+    // αυτό είναι το σημαντικό· αλλά η επιβεβαίωση λέει πόσες φωτογραφίες
+    // δεν έφτασαν, ώστε ο ενοικιαστής να ξέρει ότι πρέπει να ξαναστείλει.
     const urls: string[] = [];
+    let lost = 0;
     for (let i = 0; i < photos.length; i++) {
       const f = photos[i].file;
       const safeName = f.name.replace(/[^\w.\-]+/g, '_');
       const path = `${token}/${Date.now()}_${i}_${safeName}`;
-      const { error: upErr } = await supabase.storage.from('maintenance-photos').upload(path, f, { contentType: f.type });
-      if (upErr) continue;
-      // Το bucket είναι ιδιωτικό: αποθηκεύουμε το PATH, όχι public URL. Ο
-      // ιδιοκτήτης το υπογράφει (signed URL) όταν το βλέπει.
-      urls.push(path);
+      const first = await supabase.storage.from('maintenance-photos').upload(path, f, { contentType: f.type });
+      if (!first.error) {
+        // Το bucket είναι ιδιωτικό: αποθηκεύουμε το PATH, όχι public URL. Ο
+        // ιδιοκτήτης το υπογράφει (signed URL) όταν το βλέπει.
+        urls.push(path);
+        continue;
+      }
+      // Δεύτερη προσπάθεια με ΝΕΑ διαδρομή: αν η πρώτη πρόλαβε να γράψει
+      // μερικώς, η ίδια διαδρομή θα έσκαγε ως «υπάρχει ήδη». Η διαδρομή
+      // υπολογίζεται ΜΙΑ φορά σε μεταβλητή: δύο κλήσεις `Date.now()` δίνουν
+      // δύο διαφορετικά ονόματα και θα αποθηκευόταν διαδρομή που δεν υπάρχει.
+      const retryPath = `${token}/${Date.now()}_${i}r_${safeName}`;
+      const again = await supabase.storage.from('maintenance-photos').upload(retryPath, f, { contentType: f.type });
+      if (again.error) { lost++; continue; }
+      urls.push(retryPath);
     }
     const { data: ok, error } = await supabase.rpc('submit_maintenance_request', {
       p_token: token, p_title: title.trim(), p_description: desc.trim(), p_contact: contact.trim(), p_photos: urls,
@@ -163,6 +191,7 @@ export default function TenantPortal() {
     if (error || !ok) { setErr('Δεν ήταν δυνατή η αποστολή. Δοκίμασε ξανά.'); return; }
     photos.forEach(p => URL.revokeObjectURL(p.url));
     setPhotos([]); setPhotoNote('');
+    setLostPhotos(lost);
     setSent(true); setTitle(''); setDesc(''); setContact('');
   };
 
@@ -351,6 +380,17 @@ export default function TenantPortal() {
               {sent ? (
                 <div style={{ background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', borderRadius: 10, padding: '14px 16px', color: 'var(--positive)', fontSize: 14, fontWeight: 600 }}>
                   Το αίτημα στάλθηκε. Ευχαριστούμε!
+                  {/* Η ΕΠΙΒΕΒΑΙΩΣΗ ΛΕΕΙ ΚΑΙ ΤΙ ΔΕΝ ΕΓΙΝΕ. Ενα «στάλθηκε» που
+                      κρύβει τις φωτογραφίες που χάθηκαν είναι χειρότερο από
+                      σφάλμα: ο ενοικιαστής φεύγει ήσυχος. */}
+                  {lostPhotos > 0 && (
+                    <div style={{ marginTop: 8, fontWeight: 500, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                      {lostPhotos === 1
+                        ? 'Μία φωτογραφία δεν ανέβηκε, μάλλον λόγω σύνδεσης.'
+                        : `${lostPhotos} φωτογραφίες δεν ανέβηκαν, μάλλον λόγω σύνδεσης.`}{' '}
+                      Στείλε δεύτερο αίτημα με τις φωτογραφίες όταν έχεις καλύτερο σήμα.
+                    </div>
+                  )}
                 </div>
               ) : (
                 <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

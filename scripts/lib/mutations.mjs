@@ -141,6 +141,12 @@ export const MUTATIONS = {
     { add: 'app/dashboard/components/__mut__.tsx', content: 'function SelectBox({ checked }: { checked: boolean }) {\n  return <span role="checkbox" aria-checked={checked} style={{ width: 18, height: 18 }} />\n}\nexport default function MutationProbe() {\n  return <SelectBox checked={false} />\n}\n' },
     { file: 'components/Theme.tsx', from: 'type="button" className="po-box" role="checkbox"', to: 'type="button" role="checkbox"' },
   ] },
+  // Δύο σιωπές, ένας κανόνας: η αποτυχία που καταλήγει σε σκέτο «continue»,
+  // ΚΑΙ το ανέβασμα του οποίου το αποτέλεσμα δεν το κρατά κανείς.
+  'upload-silence': { every: [
+    { add: 'app/dashboard/components/__mut__.ts', content: "export async function put(db: { storage: { from: (b: string) => { upload: (p: string, f: Blob) => Promise<{ error: unknown }> } } }, files: Blob[]) {\n  const out: string[] = []\n  for (const f of files) {\n    const { error: upErr } = await db.storage.from('b').upload('p', f)\n    if (upErr) continue\n    out.push('p')\n  }\n  return out\n}\n" },
+    { add: 'app/dashboard/components/__mut2__.ts', content: "export async function put(db: { storage: { from: (b: string) => { upload: (p: string, f: Blob) => Promise<{ error: unknown }> } } }, f: Blob) {\n  await db.storage.from('b').upload('p', f)\n  return 'p'\n}\n" },
+  ] },
   'http-bridge': { add: 'supabase/migrations/29990101000000_mut.sql', content: 'create or replace function public.mut_probe_call() returns void language sql as $$ select net.http_post(url => \'https://x\') $$;\ngrant execute on function public.mut_probe_call() to authenticated;\n' },
   'sql-types': { add: 'supabase/migrations/29990101000000_mut.sql', content: 'create or replace function public.mut_probe() returns void language plpgsql as $$\ndeclare v_row record;\nbegin\n  for v_row in select * from public.bills loop\n    if v_row.property_id = some_text then null; end if;\n  end loop;\nend $$;\n' },
   'service-role': { add: 'components/__mut__.ts', content: "export const key = process.env.SUPABASE_SERVICE_ROLE_KEY\n" },
