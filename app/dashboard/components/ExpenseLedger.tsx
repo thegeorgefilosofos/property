@@ -300,8 +300,17 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
   return (
     <div>
       <style>{`
+        /* ΤΟ 54 ΗΤΑΝ ΤΑΒΑΝΙ ΚΑΙ ΟΧΙ ΔΑΠΕΔΟ, ΚΑΙ ΚΟΒΕ ΤΗΝ ΕΞΑΙΡΕΣΗ. Οι γραμμές
+           χωρίς ημέρα γράφουν «Χωρίς ημερομηνία», που θέλει 65 εικονοστοιχεία:
+           μετρημένο σε πραγματικό Chromium, κοβόταν κατά 11 σε ΚΑΘΕ πλάτος
+           (768, 820, 1024, 1440). Ο κανόνας για στενή οθόνη από κάτω έλεγε ήδη
+           το σωστό — «μια κανονική ημερομηνία μένει στενή και μόνο η εξαίρεση
+           παίρνει τον χώρο που χρειάζεται» — αλλά ίσχυε μόνο κάτω από 560.
+           Με minmax οι δύο κανόνες λένε επιτέλους το ίδιο: οι δεκάδες γραμμές
+           με ημερομηνία μένουν στοιχισμένες στα 54 και μόνο η σπάνια εξαίρεση
+           ανοίγει όσο χρειάζεται. */
         .exp-row {
-          display: grid; grid-template-columns: 54px 1fr auto auto; gap: 14px; align-items: center;
+          display: grid; grid-template-columns: minmax(54px, auto) 1fr auto auto; gap: 14px; align-items: center;
           padding: 13px 14px; border-radius: ${T.radius.inner}px;
           border: 1px solid transparent; background: transparent;
           transition: background .15s, border-color .15s, transform .15s;
