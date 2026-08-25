@@ -246,7 +246,7 @@ export function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string
             <div style={{ marginBottom:16 }}>
               <div style={{ ...labelStyle, marginBottom:8 }}>Ποσοστό αναπροσαρμογής (%)</div>
               {/* ΤΟ ΠΕΔΙΟ ΔΕΧΟΤΑΝ ΑΡΝΗΤΙΚΟ ΠΟΣΟΣΤΟ. Το ποσοστό είναι αυτό που
-                  γράφει η σύμβαση, και σύμβαση δεν ορίζει αρνητική
+                  γράφει η σύμβαση και σύμβαση δεν ορίζει αρνητική
                   αναπροσαρμογή· ένα «-3» θα κατέβαζε σιωπηλά το ενοίκιο σε κάθε
                   υπολογισμό. Και η υπόδειξη έγραφε «3.5» με αγγλική υποδιαστολή,
                   μέσα σε εφαρμογή που γράφει παντού ελληνικό κόμμα. Το κενό
@@ -321,7 +321,7 @@ export function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string
             {/* ΤΕΣΣΕΡΑ ΛΑΘΗ ΣΕ ΤΡΕΙΣ ΓΡΑΜΜΕΣ, ΚΑΙ ΤΑ ΤΕΣΣΕΡΑ ΟΡΑΤΑ ΣΤΗΝ ΟΘΟΝΗ:
              *
              * 1. «ΑΑΑΔΕ» με τρία άλφα. Δύο φορές.
-             * 2. «Έως 30 Ιουνίου κάθε έτους» για το Ε2 — ΛΑΘΟΣ, και τρίτη
+             * 2. «Έως 30 Ιουνίου κάθε έτους» για το Ε2 — ΛΑΘΟΣ και τρίτη
              * ημερομηνία δίπλα στις δύο του `greekTaxCalendar.ts` (15
              * Απριλίου αυτόματη οριστικοποίηση, 15 Ιουλίου καταληκτική).
              * Καρφωμένη προθεσμία δίπλα σε σύνδεσμο είναι ακριβώς το
@@ -332,7 +332,7 @@ export function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string
              * ένα από τα δύο ήταν σίγουρα λάθος.
              *
              * Οι προορισμοί έρχονται πλέον από το `lib/tax/aade.ts`, όπου
-             * ζουν μία φορά, και μαζί τους η ΔΙΑΔΡΟΜΗ ΣΕ ΛΕΞΕΙΣ — που είναι
+             * ζουν μία φορά και μαζί τους η ΔΙΑΔΡΟΜΗ ΣΕ ΛΕΞΕΙΣ — που είναι
              * το πραγματικά χρήσιμο: η ΑΑΔΕ αλλάζει διευθύνσεις, τα ονόματα
              * των υπηρεσιών της όχι. Το «Πρότυπο Σύμβασης» έφυγε: η
              * εφαρμογή παράγει ήδη μισθωτήριο, δεν στέλνει τον χρήστη αλλού
@@ -351,13 +351,13 @@ export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, 
   tenant:Tenant; propertyId:string; userId:string; payments:RentPayment[]; onRefresh:()=>void; plan?:PlanId;
 }) {
   // ── Η ΕΙΣΠΡΑΞΗ ΕΙΝΑΙ ΧΡΕΩΣΙΜΗ. ΔΕΝ ΗΤΑΝ ΠΟΥΘΕΝΑ ΚΛΕΙΔΩΜΕΝΗ. ────────────
-  // Το `rent_collection` ξεκλειδώνει από το «Ένα ακίνητο» και πάνω, και είναι
+  // Το `rent_collection` ξεκλειδώνει από το «Ένα ακίνητο» και πάνω και είναι
   // ρητά «αιτήματα είσπραξης ΚΑΙ υπενθυμίσεις οφειλών». Η διατύπωση ορίζει και
   // το όριο: η ΑΠΟΔΕΙΞΗ σε πληρωμένο μίσθωμα δεν είναι είσπραξη, είναι
   // ευγένεια προς τον μισθωτή που πλήρωσε — μένει ανοιχτή σε όλους.
   //
   // Οι κλειδωμένες ενέργειες εδώ ΚΡΥΒΟΝΤΑΙ αντί να δείχνουν λουκέτο: το κελί
-  // «Ενέργειες» κρατά ήδη ώς επτά κουμπιά, και ένα λουκέτο ανάμεσά τους δεν
+  // «Ενέργειες» κρατά ήδη ώς επτά κουμπιά και ένα λουκέτο ανάμεσά τους δεν
   // διαβάζεται ως πρόσκληση, διαβάζεται ως θόρυβος. Η πρόσκληση ζει στη
   // σύγκριση πακέτων, όπου υπάρχει χώρος να ειπωθεί ολόκληρη.
   const canCollect = hasFeature({ plan }, 'rent_collection');
@@ -411,8 +411,8 @@ export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, 
     // UNIQUE(tenant_id,period_year,period_month) προστατεύει· αγνόησε διπλότυπα.
     const{error}=await rentStore.upsertPeriods(supabase,payload,{ignoreDuplicates:true});
     // ΤΟ /* swallow */ ΕΚΡΥΒΕ ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΑΔΕΙΑΖΕ ΤΟ ΛΟΓΙΣΤΗΡΙΟ.
-    // Το upsert αποτύγχανε ΠΑΝΤΑ (payment_date NOT NULL, και κανένα μοναδικό
-    // ευρετήριο για το onConflict), το σφάλμα καταπινόταν εδώ, και ένα
+    // Το upsert αποτύγχανε ΠΑΝΤΑ (payment_date NOT NULL και κανένα μοναδικό
+    // ευρετήριο για το onConflict), το σφάλμα καταπινόταν εδώ και ένα
     // notifyOk('Δημιουργήθηκαν N δόσεις') ακολουθούσε αμέσως μετά. Ο ιδιοκτήτης
     // δεν είχε κανέναν τρόπο να μάθει ότι ο πίνακας έμενε κενός — και μαζί του
     // η Πύλη ενοικιαστή, η οφειλή και το Ε2.
@@ -469,7 +469,7 @@ export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, 
 
   const doMarkPaid=async(p:RentPayment,method:PayMethod,receipt:string,paidDate:string,docId?:string|null)=>{
     // ΕΙΣΠΡΑΞΗ ΕΝΟΙΚΙΟΥ. Αν αυτό αποτύχει σιωπηλά, ο ιδιοκτήτης θεωρεί ότι
-    // πληρώθηκε, η δόση μένει ανοιχτή, και το ξαναβλέπει μήνες μετά στη δήλωση.
+    // πληρώθηκε, η δόση μένει ανοιχτή και το ξαναβλέπει μήνες μετά στη δήλωση.
     // Οι ημέρες καθυστέρησης υπολογίζονταν εδώ, με τον ίδιο τύπο γραμμένο και
     // δέκα γραμμές πιο κάτω. Ο τύπος ζει τώρα στο στρώμα, μία φορά.
     if(!await saved('Η πληρωμή δεν καταχωρήθηκε', rentStore.markPaid(supabase,p.id,p.due_date,paidDate,method,{receipt_url:receipt||null,receipt_doc_id:docId??p.receipt_doc_id??null}))) return;
@@ -507,7 +507,7 @@ export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, 
   // Η ΕΤΙΚΕΤΑ ΛΕΕΙ ΤΟ ΕΥΡΟΣ, ΟΧΙ ΤΟΝ ΠΡΩΤΟ ΜΗΝΑ. Με τριμηνιαία εξόφληση, το
   // «Ιανουάριος 2026» δίπλα σε ποσό τριών μισθωμάτων διαβάζεται ως τριπλάσιο
   // μηνιαίο ενοίκιο — από τον ίδιο τον ιδιοκτήτη, από τον ενοικιαστή στην
-  // απόδειξη, και από τον λογιστή στην εξαγωγή.
+  // απόδειξη και από τον λογιστή στην εξαγωγή.
   const monthLabel=(p:RentPayment)=>periodLabel(p.period_year,p.period_month,periodMonths,monthNom);
 
   const printReceipt=(p:RentPayment)=>{
@@ -632,7 +632,7 @@ export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, 
   // ── Scan → payment matching ──
   const runScan=async(file:File)=>{
     // ── ΤΟ ΠΑΡΑΘΥΡΟ ΕΚΛΕΙΝΕ ΜΟΝΟ ΜΕ ΕΠΑΝΑΦΟΡΤΩΣΗ ΣΕΛΙΔΑΣ ──────────────────
-    // Η κλήση δεν είχε χρονικό όριο, και το παράθυρο είναι επίτηδες σφραγισμένο
+    // Η κλήση δεν είχε χρονικό όριο και το παράθυρο είναι επίτηδες σφραγισμένο
     // όσο σαρώνει: το Escape δεν κάνει τίποτα, το «×» δεν κάνει τίποτα, το πέπλο
     // δεν κάνει τίποτα. Σε κακό δίκτυο κινητού, η αίτηση κρεμούσε και ο χρήστης
     // έμενε με τον σπίνερ «Ανάλυση εγγράφου…» για πάντα, χάνοντας ό,τι είχε
@@ -817,7 +817,7 @@ export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, 
                       {tenant.phone&&(p.paid||canCollect)&&<a href={p.paid?whatsappLink(msgDigits(tenant.phone),receiptText(p)):whatsappLink(msgDigits(tenant.phone),reminderText(p))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, padding:'6px 10px', fontSize: 11, textDecoration:'none' }}>WhatsApp</a>}
                       {tenant.phone&&(p.paid||canCollect)&&<a href={viberLink(p.paid?receiptText(p):reminderText(p))} target="_blank" rel="noopener noreferrer" style={{ ...s.btnGhost, padding:'6px 10px', fontSize: 11, textDecoration:'none' }}>Viber</a>}
                       {/* ΤΟ ΤΑΧΥΔΡΟΜΕΙΟ ΕΛΕΙΠΕ, ΚΑΙ ΜΕ ΑΥΤΟ ΟΛΟΚΛΗΡΗ Η ΥΠΕΝΘΥΜΙΣΗ.
-                          Η γραμμή έδινε WhatsApp και Viber, και τα δύο δεμένα στο
+                          Η γραμμή έδινε WhatsApp και Viber και τα δύο δεμένα στο
                           ΤΗΛΕΦΩΝΟ. Οποιος ιδιοκτήτης είχε μόνο το email του μισθωτή
                           του δεν είχε ΚΑΝΕΝΑΝ τρόπο να στείλει υπενθύμιση από εδώ. */}
                       {tenant.email&&(p.paid||canCollect)&&<a href={`mailto:${tenant.email}?subject=${encodeURIComponent(rentSubject(periodGen(p)))}&body=${encodeURIComponent(p.paid?receiptText(p):reminderText(p))}`} style={{ ...s.btnGhost, padding:'6px 10px', fontSize: 11, textDecoration:'none' }}>Ηλεκτρονικό ταχυδρομείο</a>}
@@ -834,7 +834,7 @@ export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, 
 
       {/* Σήμανση ως πληρωμένο — κοινό Modal.
           Ήταν χειρόγραφο παράθυρο: δικό του scrim, radius card αντί για modal,
-          τίτλος 15/600 αντί για την κοινή κεφαλίδα, και κανένα Escape, καμία
+          τίτλος 15/600 αντί για την κοινή κεφαλίδα και κανένα Escape, καμία
           επιστροφή εστίασης, κανένα κλείδωμα κύλισης του φόντου. */}
       {mark&&(
         <Modal open onClose={()=>setMark(null)} width={420}
@@ -941,14 +941,14 @@ export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, 
 }
 
 // ─── Εγγύηση (Deposit View) ───────────────────────────────────────────────────
-// Δείχνει ποσό, τρόπο και ημερομηνία καταβολής, και ΠΟΤΕ + ΥΠΟ ΠΟΙΟΥΣ ΟΡΟΥΣ
+// Δείχνει ποσό, τρόπο και ημερομηνία καταβολής και ΠΟΤΕ + ΥΠΟ ΠΟΙΟΥΣ ΟΡΟΥΣ
 // επιστρέφεται, υπολογισμένο από τα δεδομένα του ενοικιαστή.
 // ΤΙ ΕΦΥΓΕ ΑΠΟ ΕΔΩ: ο «Αναλυτής Απόδοσης Εγγύησης» με προεπιλογή 4%, ανατοκισμό
 // και «+X € Κέρδος» σε πράσινο — στην ίδια κάρτα με το «Καθαρό επιστρεπτέο». Μαζί
 // του τα πεδία «Απόδοση %/Έτος», «Τύπος Επένδυσης» (ETF, Δανεισμός P2P) και «Πού
 // Επενδύεται» με placeholder «π.χ. VWCE». Η εγγύηση είναι χρήματα άλλου ανθρώπου
 // που επιστρέφονται ακέραια· ένα εργαλείο που πουλάει ακρίβεια δεν προτείνει να
-// τα επενδύσεις, και σίγουρα όχι με απόδοση που το ίδιο επινόησε.
+// τα επενδύσεις και σίγουρα όχι με απόδοση που το ίδιο επινόησε.
 
 export function DepositView({ tenant, payments, damages, onReturned }:{ tenant:Tenant; payments:RentPayment[]; damages:TenantDamage[]; onReturned:()=>void }) {
   const supabase=createClient();
@@ -1001,10 +1001,10 @@ export function DepositView({ tenant, payments, damages, onReturned }:{ tenant:T
 // ΑΝΑΝΕΩΣΗ & ΑΝΑΠΡΟΣΑΡΜΟΓΗ
 //
 // ΤΟ ΛΑΘΟΣ ΠΟΥ ΔΙΟΡΘΩΘΗΚΕ: η πρόταση ήταν `Math.round(Σ(rent)/n)`, δηλαδή ο ΩΜΟΣ
-// μέσος όρος των ενοικίων των συγκρίσιμων, και έφευγε σε WhatsApp/Viber/email με
+// μέσος όρος των ενοικίων των συγκρίσιμων και έφευγε σε WhatsApp/Viber/email με
 // τη φράση «βάσει του μέσου ενοικίου της περιοχής». Τρία συγκρίσιμα 90 τ.μ. και
 // δικό σου 45 τ.μ. → πρότεινε διπλάσιο ενοίκιο σε άλλον άνθρωπο. Το `avgPerSqm`
-// υπολογιζόταν, εμφανιζόταν, και δεν χρησιμοποιούνταν πουθενά.
+// υπολογιζόταν, εμφανιζόταν και δεν χρησιμοποιούνταν πουθενά.
 //
 // ΤΩΡΑ: μέση τιμή ανά τ.μ. × τα τ.μ. ΤΟΥ ΔΙΚΟΥ ΣΟΥ ακινήτου. Χωρίς τ.μ. — δικά σου
 // ή των συγκρίσιμων — καμία πρόταση αγοράς: μένει μόνο η νομική βάση.

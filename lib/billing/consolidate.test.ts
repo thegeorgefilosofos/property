@@ -40,7 +40,7 @@ const src = (id: string, annualRent: number, over: Record<string, unknown> = {})
   ok('υποεκτίμηση 1.080 €', near(r.understatement, 1080));
   ok('η υποεκτίμηση είναι ~24% του σωστού φόρου', r.understatement / r.totalTax > 0.2);
 
-  // Ίσα εισοδήματα → ίσα μερίδια, και το άθροισμα των μεριδίων = ο ένας φόρος.
+  // Ίσα εισοδήματα → ίσα μερίδια και το άθροισμα των μεριδίων = ο ένας φόρος.
   ok('ίσα μερίδια 1.500 € έκαστο', r.perProperty.every(p => near(p.taxShare, 1500)));
   ok('άθροισμα μεριδίων = συνολικός φόρος',
     near(r.perProperty.reduce((s, p) => s + p.taxShare, 0), r.totalTax));

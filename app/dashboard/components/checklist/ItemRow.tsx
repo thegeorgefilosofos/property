@@ -167,7 +167,7 @@ export function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCal
             { label: 'Αντιγραφή', sub: 'Δημιουργία αντιγράφου', icon: 'M9 9h13v13H9z M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1', fn: () => { onDuplicate(); setShowMenu(false) } },
             // Η επίσημη πηγή της προθεσμίας. Ήταν γαλάζιος σύνδεσμος πάνω στη
             // σειρά, σε κάθε θεσμική υποχρέωση· εδώ είναι μία γραμμή σε μενού
-            // που ανοίγει όποιος τη θέλει, και η λίστα ξαναβρίσκει την ησυχία της.
+            // που ανοίγει όποιος τη θέλει και η λίστα ξαναβρίσκει την ησυχία της.
             ...(item._src ? [
               { label: 'Επίσημη πηγή', sub: 'Άνοιγμα σε νέα καρτέλα', icon: 'M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6 M15 3h6v6 M10 14L21 3', fn: () => { window.open(item._src!, '_blank', 'noopener,noreferrer'); setShowMenu(false) } },
             ] : []),

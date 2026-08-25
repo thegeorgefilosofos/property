@@ -40,7 +40,7 @@ export function timingSafeEqual(a: string, b: string): boolean {
 // τύπος περιγράψει τα τρία βήματα εκεί, ο μεταγλωττιστής πρέπει να συγκρίνει
 // τους πλήρεις γενικούς τύπους του PostgREST με αυτόν — και σκάει με
 // «Type instantiation is excessively deep» σε δέκα συναρτήσεις ακρου. Με
-// `unknown` η ανάθεση δεν κοστίζει τίποτε, και ο ισχυρισμός γίνεται ΜΙΑ φορά,
+// `unknown` η ανάθεση δεν κοστίζει τίποτε και ο ισχυρισμός γίνεται ΜΙΑ φορά,
 // εδώ, ακριβώς πάνω στις τρεις μεθόδους που πράγματι καλούνται.
 interface CronSecretFilter {
   eq: (column: string, value: string) => CronSecretFilter

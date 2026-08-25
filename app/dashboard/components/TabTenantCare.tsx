@@ -191,7 +191,7 @@ export function DashboardView({ tenant, payments, propertyCount }:{ tenant:Tenan
 
 // ─── Αναπροσαρμογή Ενοικίου (ΔΤΚ) ────────────────────────────────────────────
 // Ο πίνακας ΔΤΚ ζει στο TabTenantHelpers με πηγή και ημερομηνία επιβεβαίωσης.
-// Εδώ διαβάζεται μόνο, και ΠΟΤΕ με fallback: έτος χωρίς τιμή δεν έχει τιμή.
+// Εδώ διαβάζεται μόνο και ΠΟΤΕ με fallback: έτος χωρίς τιμή δεν έχει τιμή.
 
 export function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:string; userId:string }) {
   const supabase=createClient();
@@ -203,7 +203,7 @@ export function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propert
   // Κλειδωμένα στην ένωση `CommLog['type']` αντί για `Record<string,string>`.
   // Με ελεύθερο κλειδί οι δύο πίνακες μπορούσαν να αποκλίνουν από την ένωση και
   // προς τις ΔΥΟ κατευθύνσεις: κλειδί που ΛΕΙΠΕΙ έβγαζε `undefined` ενώ ο τύπος
-  // υποσχόταν `string` (το `TYPE_SHORT[log.type]` τύπωνε «undefined»), και
+  // υποσχόταν `string` (το `TYPE_SHORT[log.type]` τύπωνε «undefined») και
   // κλειδί ΠΑΡΑΠΑΝΩ γινόταν ορατή επιλογή που η βάση απορρίπτει — το
   // `tenant_comm_log_type_check` (baseline.sql:2788) δέχεται ΜΟΝΟ
   // call/email/sms/meeting/note, οπότε η καταχώρηση αποτύγχανε κάθε φορά.
@@ -336,7 +336,7 @@ export function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propert
 // πάντα μηνιαία, ενώ η καρτέλα ρωτούσε τον ιδιοκτήτη «Συχνότητα εξόφλησης» και
 // ο οδηγός πεδίων του υποσχόταν «με αυτόν τον ρυθμό δημιουργούνται οι δόσεις».
 // Όποιος επέλεγε «Τριμηνιαία» για εμπορικό μισθωτήριο έπαιρνε δώδεκα μηνιαίες
-// δόσεις, και ο ενοικιαστής έβγαινε ληξιπρόθεσμος δύο στους τρεις μήνες.
+// δόσεις και ο ενοικιαστής έβγαινε ληξιπρόθεσμος δύο στους τρεις μήνες.
 // Η μηχανή ζει στο lib/rent/frequency.ts, με τεστ που φυλάει την αναλλοίωτη:
 
 // ─── Payments View (Rent Ledger) ───────────────────────────────────────────────

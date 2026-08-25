@@ -21,7 +21,7 @@ import type { InventoryItem } from './model'
 let passed = 0, failed = 0
 function ok(name: string, cond: boolean) { if (cond) { passed++ } else { failed++; console.log('  ✗ ' + name) } }
 
-/** Ένα αντικείμενο με ό,τι χρειάζονται οι κρίσεις, και τίποτα άλλο. */
+/** Ένα αντικείμενο με ό,τι χρειάζονται οι κρίσεις και τίποτα άλλο. */
 const item = (o: Partial<InventoryItem> = {}): InventoryItem => ({
   id: 'x', property_id: 'p', user_id: 'u', name: 'Πλυντήριο', category: 'Ηλεκτρικές Συσκευές',
   room: '', brand: '', model: '', serial_number: '', purchase_value: 500, current_value: 0,
@@ -56,7 +56,7 @@ const inDays = (n: number) => {
 }
 
 // ── ΤΙ ΧΡΕΙΑΖΕΤΑΙ ΠΡΟΣΟΧΗ ─────────────────────────────────────────────────
-// Τέσσερις λόγοι, και ο καθένας αρκεί.
+// Τέσσερις λόγοι και ο καθένας αρκεί.
 {
   ok('καλή κατάσταση, χωρίς εγγύηση, ήσυχο', needsAction(item()) === false)
   ok('κακή κατάσταση', needsAction(item({ condition: 'Κακή' })) === true)

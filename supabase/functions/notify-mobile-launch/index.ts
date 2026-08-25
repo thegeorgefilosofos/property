@@ -33,7 +33,7 @@ const APP_URL        = `${SITE}/dashboard`
 // δεν είναι γνωστό: ούτε το «id» του Google Play ούτε το αριθμητικό του App
 // Store. Ενα μαντεμένο εδώ θα ταξίδευε μέσα σε email προς πελάτες και θα
 // άνοιγε σελίδα «δεν βρέθηκε». Οι προεπιλογές δείχνουν στην αναζήτηση του κάθε
-// καταστήματος, που ΑΠΑΝΤΑ πάντα, και οι πραγματικές μπαίνουν ως μεταβλητές
+// καταστήματος, που ΑΠΑΝΤΑ πάντα και οι πραγματικές μπαίνουν ως μεταβλητές
 // την ημέρα της δημοσίευσης.
 const IOS_URL        = Deno.env.get('IOS_APP_URL') || 'https://www.apple.com/app-store/'
 const ANDROID_URL    = Deno.env.get('ANDROID_APP_URL') || 'https://play.google.com/store/search?q=PROPERWISE&c=apps'

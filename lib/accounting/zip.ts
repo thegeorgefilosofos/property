@@ -68,7 +68,7 @@ class Buf {
   // κατασκευαστής του `Blob` δεν δέχεται μοιραζόμενη μνήμη. Ο καλών το έλυνε με
   // `as unknown as BlobPart`, δηλαδή έσβηνε τον έλεγχο αντί να τον ικανοποιήσει.
   // Εδώ η μνήμη ΕΙΝΑΙ πάντα απλή: το `new Uint8Array(n)` δεσμεύει `ArrayBuffer`.
-  // Ο τύπος το λέει, και το cast στον καλούντα φεύγει.
+  // Ο τύπος το λέει και το cast στον καλούντα φεύγει.
   merge(): Uint8Array<ArrayBuffer> {
     const out = new Uint8Array(this.len);
     let at = 0;
@@ -108,7 +108,7 @@ export function buildZip(files: readonly ZipFile[], now: Date = new Date()): Uin
     entries.push({ name, body: data, crc, offset, dir: isDir });
   };
 
-  // Ο φάκελος γράφεται ΑΚΡΙΒΩΣ με τη σειρά που δόθηκε, και κάθε υποφάκελος
+  // Ο φάκελος γράφεται ΑΚΡΙΒΩΣ με τη σειρά που δόθηκε και κάθε υποφάκελος
   // δηλώνεται λίγο πριν το πρώτο του αρχείο — ώστε ο κατάλογος να διαβάζεται
   // 00, 01, 02… από πάνω προς τα κάτω, όπως γράφτηκε.
   const seen = new Set<string>();

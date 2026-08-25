@@ -31,7 +31,7 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
   // δέσμευσαν ανεξόφλητο ενοίκιο έφταναν ως εδώ και πέθαιναν: καμία μεταβλητή,
   // κανένα JSX, κανένας μετρητής. Στο αντίγραφο που μετρήθηκε (μερική πληρωμή
   // 750,00, ενοίκιο ήδη σημειωμένο 800,00, εγγύηση 1.600,00) η matchTransactions
-  // γύριζε τρεις αταίριαστες κινήσεις, 3.150,00 ευρώ, και η οθόνη έγραφε «Δεν
+  // γύριζε τρεις αταίριαστες κινήσεις, 3.150,00 ευρώ και η οθόνη έγραφε «Δεν
   // βρέθηκαν νέες αντιστοιχίσεις» στέλνοντας τον χρήστη να ελέγξει την περίοδο
   // του αρχείου: το λάθος δεν ήταν έλλειψη πληροφορίας, ήταν λάθος πληροφορία.
   const [unmatched,setUnmatched] = useState<BankTxn[]>([])
@@ -63,7 +63,7 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
     const rp = await rentStore.ofProperty(supabase,propertyId,`id,${rentStore.LEDGER_COLUMNS}`,userId,{ year })
     // ΟΙ ΤΥΠΟΙ ΤΩΝ ΓΡΑΜΜΩΝ ΥΠΑΡΧΟΥΝ ΗΔΗ, ΠΑΡΑΓΟΜΕΝΟΙ ΑΠΟ ΤΑ MIGRATIONS. Ήταν
     // γραμμένο `(p:any)` τρεις φορές: ένα ορθογραφικό σε όνομα στήλης θα περνούσε
-    // μέχρι την οθόνη, και το `period_month` θα γινόταν σιωπηλά «undefined» μέσα
+    // μέχρι την οθόνη και το `period_month` θα γινόταν σιωπηλά «undefined» μέσα
     // στην ετικέτα του μήνα.
     type Row = Pick<RentPaymentsRow, 'id' | 'period_year' | 'period_month' | 'amount' | 'due_date' | 'paid'>
     const expected:ExpectedRent[] = ((rp||[]) as Row[]).filter(p=>!p.paid).map(p=>({ id:p.id, label:`${MONTHS_NOM[(p.period_month||1)-1]} ${p.period_year}`, amount:p.amount||0, dueDate:p.due_date||`${p.period_year}-${String(p.period_month).padStart(2,'0')}-01` }))
@@ -85,7 +85,7 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
       for(const m of rentMatches){ if(m.confirm){
         // Η ΕΙΣΠΡΑΞΗ ΠΕΡΝΑ ΑΠΟ ΤΟ ΣΤΡΩΜΑ, που γράφει ΚΑΙ τις ημέρες καθυστέρησης.
         // Εδώ γράφονταν τρεις στήλες από τις τέσσερις: μια δόση που εισπράχθηκε
-        // δύο μήνες αργότερα καταγραφόταν με μηδέν ημέρες καθυστέρησης, και ο
+        // δύο μήνες αργότερα καταγραφόταν με μηδέν ημέρες καθυστέρησης και ο
         // λογιστής διάβαζε συνεπή μισθωτή που δεν ήταν.
         const { error } = await rentStore.markPaid(supabase, m.rentId, m.due, m.txn.date || athensToday(), 'Τραπεζική κατάθεση')
         if(error) throw error
@@ -123,7 +123,7 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
   // σε ΤΡΕΙΣ πίνακες στη σειρά (rent_payments, expenses, bank_transactions) και
   // μόνο στο τέλος λέει τι πέρασε. Ένα Escape στη μέση κλείνει το παράθυρο ενώ
   // οι εγγραφές τρέχουν: ο χρήστης δεν μαθαίνει ούτε πόσα καταχωρήθηκαν ούτε αν
-  // κάτι απέτυχε, και ξαναδοκιμάζει στα τυφλά. Το κανονικό αυτόματο κλείσιμο
+  // κάτι απέτυχε και ξαναδοκιμάζει στα τυφλά. Το κανονικό αυτόματο κλείσιμο
   // μετά την επιτυχία περνά κατευθείαν από το `onClose`, οπότε δεν εμποδίζεται.
   const requestClose = () => { if (step !== 'saving') onClose() }
   // Το αρχείο ανοίγει από <label>: το ίδιο το <input type="file"> είναι κρυμμένο.
@@ -139,7 +139,7 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
     // (padding 6vh) και δική του κεφαλίδα, χωρίς Escape, χωρίς επιστροφή
     // εστίασης, χωρίς κλείδωμα κύλισης — το φόντο κυλούσε κάτω από το παράθυρο.
     // Οι ενέργειες κάθε βήματος πέρασαν στο υποσέλιδο: ίδια θέση και στα δύο
-    // βήματα, και δεν κυλούν μαζί με τη λίστα των κινήσεων.
+    // βήματα και δεν κυλούν μαζί με τη λίστα των κινήσεων.
     <Modal open onClose={requestClose} width={560}
       icon={<Landmark size={19}/>}
       title="Εισαγωγή τραπεζικής κίνησης"

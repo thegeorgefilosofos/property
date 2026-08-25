@@ -96,7 +96,7 @@ export interface TabTenantProps { propertyId:string; userId:string; onStartHando
 // ─── Τύπος επίπλωσης ───────────────────────────────────────────────────────────
 // Είναι η ΜΙΑ είσοδος που κρίνει αν υπάρχουν καθόλου παρεχόμενες υπηρεσίες. Το
 // `all_inclusive` έφυγε: ήταν δεύτερος διακόπτης για το ίδιο πράγμα με το
-// furnishing='turnkey', και οι δύο μπορούσαν να διαφωνήσουν.
+// furnishing='turnkey' και οι δύο μπορούσαν να διαφωνήσουν.
 export type Furnishing = 'empty' | 'furnished' | 'turnkey';
 export const FURNISHING_LABELS: Record<Furnishing,string> = {
   empty:'Κενό', furnished:'Επιπλωμένο', turnkey:'Turn Key (όλα μέσα)',

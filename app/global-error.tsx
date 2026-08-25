@@ -33,7 +33,7 @@ const PALETTE = `
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   // Το reset() ξαναχτίζει το ίδιο δέντρο από τα ίδια modules. Αν φταίνε αρχεία
   // παλιού build, το κουμπί δεν οδηγεί πουθενά. Μία αυτόματη απόπειρα
-  // καθαρισμού, και μετά και χειροκίνητα.
+  // καθαρισμού και μετά και χειροκίνητα.
   const [busy, setBusy] = useState(!alreadyRecovered());
 
   useEffect(() => {

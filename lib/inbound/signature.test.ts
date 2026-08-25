@@ -52,7 +52,7 @@ ok(verifySignature(BODY, good({ 'webhook-signature': sign(KEY, ID, TS, BODY) }),
 ok(verifySignature(BODY, good(), undefined, NOW) === false, 'ΧΩΡΙΣ ΡΥΘΜΙΣΗ, ΚΛΕΙΣΤΗ ΠΟΡΤΑ — όχι ανοιχτή');
 ok(verifySignature(BODY, good(), '', NOW) === false, 'κενό μυστικό δεν δέχεται κανέναν');
 // ΤΟ ΚΟΝΤΟ ΜΥΣΤΙΚΟ ΑΠΟΡΡΙΠΤΕΤΑΙ ΑΚΟΜΗ ΚΑΙ ΟΤΑΝ Η ΥΠΟΓΡΑΦΗ ΤΑΙΡΙΑΖΕΙ. Αλλιώς
-// ο έλεγχος θα έλεγε «όχι» μόνο επειδή υπογράψαμε με άλλο κλειδί, και το όριο
+// ο έλεγχος θα έλεγε «όχι» μόνο επειδή υπογράψαμε με άλλο κλειδί και το όριο
 // των 128 δυαδικών δεν θα κρινόταν ποτέ.
 const SHORT = Buffer.alloc(8, 1);
 ok(verifySignature(BODY, headers({

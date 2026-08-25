@@ -106,10 +106,10 @@ ok('η βραχυχρόνια βλέπει τη δήλωση διαμονής', 
 ok('η βραχυχρόνια βλέπει και τον ΕΝΦΙΑ', kinds.includes('enfia-first') || kinds.includes('enfia-issue') || kinds.includes('enfia-last'))
 ok('η μακροχρόνια ΔΕΝ βλέπει βραχυχρόνιες', !obls.some(o => (o.source || '').includes('str-')))
 
-// ── 6. Ποιος το κάνει, και πόσο σίγουρη είναι η ημερομηνία ────────────────
+// ── 6. Ποιος το κάνει και πόσο σίγουρη είναι η ημερομηνία ────────────────
 ok('κάθε υποχρέωση λέει ποιον αφορά', obls.every(o => !!WHO_LABEL[o.who]))
 ok('οι θεσμικές φέρουν confidence', taxObls.every(o => o.confidence === 'statutory' || o.confidence === 'announced'))
-// Όχι «περιέχει aade.gr» — αυτό ελέγχει τομέα, όχι προορισμό, και έσπασε μόλις
+// Όχι «περιέχει aade.gr» — αυτό ελέγχει τομέα, όχι προορισμό και έσπασε μόλις
 // η πύλη διορθώθηκε σε myaade.gov.gr. Ο προορισμός βγαίνει από το ΕΙΔΟΣ.
 ok('κάθε θεσμική δείχνει στον προορισμό του είδους της', taxObls.every(o => {
   const kind = taxKindOfEventSource(o.source)
@@ -155,7 +155,7 @@ ok('κάθε γραμμή έχει προτεραιότητα', obls.every((o: O
 // επιτρεπτή τοποθεσία είναι η μηχανή. Νέο αρχείο με δική του «1η Σεπτεμβρίου»
 // σπάει αυτό το τεστ.
 const ALLOWED = new Set<string>([
-  // Η ΜΙΑ πηγή, και τα τεστ της.
+  // Η ΜΙΑ πηγή και τα τεστ της.
   'lib/tax/greekTaxCalendar.ts',
   'lib/tax/greekTaxCalendar.test.ts',
   'app/dashboard/components/obligations.ts',

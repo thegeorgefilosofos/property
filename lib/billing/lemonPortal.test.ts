@@ -16,7 +16,7 @@ const reply = (url: unknown) => ({ data: { attributes: { urls: { customer_portal
 // ── Η ανάγνωση της απάντησης ──────────────────────────────────────────────
 ok('ο σύνδεσμος βγαίνει από τα τέσσερα επίπεδα', readPortalUrl(reply(PORTAL)) === PORTAL)
 ok('τα κενά κόβονται', readPortalUrl(reply('  ' + PORTAL + '  ')) === PORTAL)
-// ΚΑΘΕ ΕΠΙΠΕΔΟ ΜΠΟΡΕΙ ΝΑ ΛΕΙΠΕΙ, και ένα `undefined` που φτάνει στην οθόνη ως
+// ΚΑΘΕ ΕΠΙΠΕΔΟ ΜΠΟΡΕΙ ΝΑ ΛΕΙΠΕΙ και ένα `undefined` που φτάνει στην οθόνη ως
 // σύνδεσμος γίνεται κουμπί που πάει στο πουθενά.
 ok('χωρίς data, τίποτα', readPortalUrl({}) === null)
 ok('χωρίς attributes, τίποτα', readPortalUrl({ data: {} }) === null)

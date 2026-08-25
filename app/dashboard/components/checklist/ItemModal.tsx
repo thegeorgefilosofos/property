@@ -99,7 +99,7 @@ export function ItemModal({ item, contacts, onSave, onClose, onScan }: {
       </div>
       {/* ΟΙ ΔΥΟ EDITORS ΠΟΥ ΟΡΙΖΟΝΤΑΝ ΚΑΙ ΔΕΝ ΑΠΟΔΙΔΟΝΤΑΝ ΠΟΥΘΕΝΑ. Τα βήματα
           μετρούνταν στον Πίνακα («2/5 υπο-εργασίες») χωρίς κανέναν τρόπο να
-          δημιουργηθούν, και τα σχόλια δεν γράφονταν ποτέ. */}
+          δημιουργηθούν και τα σχόλια δεν γράφονταν ποτέ. */}
       <div><FL>Βήματα ({form.subtasks.filter(st => st.done).length}/{form.subtasks.length})</FL>
         <SubTaskEditor subtasks={form.subtasks} onChange={sub => setForm(f => ({ ...f, subtasks: sub }))} />
       </div>

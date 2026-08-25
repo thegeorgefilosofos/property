@@ -12,7 +12,7 @@ export interface StayInput {
   check_out?: string | null        // YYYY-MM-DD
   total?: number | null
   /** Η ανάλυση της πλατφόρμας, όταν υπάρχει. Χωρίς αυτήν το `total` είναι το
-   *  μόνο που ξέρουμε, και το `declarableGrossOrTotal` το επιστρέφει αυτούσιο. */
+   *  μόνο που ξέρουμε και το `declarableGrossOrTotal` το επιστρέφει αυτούσιο. */
   gross_guest_paid?: number | null
   platform_fee?: number | null
   climate_levy?: number | null
@@ -63,7 +63,7 @@ export function buildBookingEvents(stays: StayInput[]): EventDraft[] {
     rows.push({
       title: `Άφιξη, ${guest}`, category: 'tenant', event_date: s.check_in,
       // ΔΗΛΩΤΕΟ ΑΚΑΘΑΡΙΣΤΟ, ΟΧΙ ΩΜΟ `total`. Το γεγονός γράφεται με
-      // `status: 'pending'`, και το ημερολόγιο αθροίζει τα εκκρεμή ποσά του
+      // `status: 'pending'` και το ημερολόγιο αθροίζει τα εκκρεμή ποσά του
       // μήνα στην κεφαλίδα του. Με payout, η ίδια κράτηση έδειχνε εδώ ένα
       // νούμερο και στη Λογιστική άλλο, μικρότερο κατά την προμήθεια.
       amount: declarableGrossOrTotal(s) || null, priority: 'medium', status: 'pending',

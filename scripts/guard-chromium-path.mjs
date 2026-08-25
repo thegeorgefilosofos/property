@@ -14,7 +14,7 @@
 //      ίδιος ο εντοπιστής επιτρέπεται να ξέρει διαδρομές.
 //   2. Η έκδοση που εγκαθιστά το CI δένεται με το playwright-core του
 //      package.json. Αν αποκλίνουν, ο δρομέας κατεβάζει build που το
-//      playwright-core δεν ψάχνει, και είμαστε πάλι στο ίδιο σημείο.
+//      playwright-core δεν ψάχνει και είμαστε πάλι στο ίδιο σημείο.
 // ═══════════════════════════════════════════════════════════════════════════
 import { readFileSync } from 'node:fs';
 import { projectFiles } from './lib/git-files.mjs';
@@ -24,7 +24,7 @@ const CI = '.github/workflows/ci.yml';
 const problems = [];
 
 // ── 1. Καμία καρφωτή διαδρομή περιηγητή έξω από τον εντοπιστή ──
-// Ο ίδιος ο εντοπιστής, και ο ίδιος ο φύλακας, ΓΡΑΦΟΥΝ διαδρομές: ο πρώτος
+// Ο ίδιος ο εντοπιστής και ο ίδιος ο φύλακας, ΓΡΑΦΟΥΝ διαδρομές: ο πρώτος
 // γιατί είναι η δουλειά του, ο δεύτερος γιατί τις ψάχνει.
 const SELF = 'scripts/guard-chromium-path.mjs';
 const scripts = projectFiles("'scripts/**'")
@@ -57,4 +57,4 @@ if (problems.length) {
 `);
   process.exit(1);
 }
-console.log(`✓ ${scripts.length} σενάρια ρωτούν τον εντοπιστή, και το CI εγκαθιστά playwright@${want || '—'}`);
+console.log(`✓ ${scripts.length} σενάρια ρωτούν τον εντοπιστή και το CI εγκαθιστά playwright@${want || '—'}`);

@@ -14,7 +14,7 @@ const AMA = '12345678901';
 // Ήταν το δομικό λάθος: ο ΑΜΑ κρυβόταν πίσω από τρίτο ανεξάρτητο διακόπτη
 // «Βραχυχρόνια μίσθωση» στο OccupancyPanel, ενώ το readStatus ήδη ήξερε.
 // Εδώ ελέγχεται ότι ΚΑΘΕ τρόπος με τον οποίο η βάση λέει «βραχυχρόνια»
-// πυροδοτεί τον έλεγχο, και ότι κανένα πεδίο-διακόπτης δεν συμμετέχει.
+// πυροδοτεί τον έλεγχο και ότι κανένα πεδίο-διακόπτης δεν συμμετέχει.
 ok('rental_mode short_term → ζητείται ΑΜΑ', amaState({ rental_mode: 'short_term' }) === 'missing');
 ok('status_detail seasonal (παλιά δεδομένα) → ζητείται ΑΜΑ', amaState({ status_detail: 'seasonal' }) === 'missing');
 ok('writeStatus(rent_short) → ζητείται ΑΜΑ', amaState(writeStatus('rent_short')) === 'missing');

@@ -134,7 +134,7 @@ export function deadlineItems(s: DeadlineSources): FeedItem[] {
       `Ενοίκιο${at(r.property_id)}`, money(r.amount));
   }
 
-  // Σταθερή σειρά: ημερομηνία, και μετά uid ώστε δύο εκτελέσεις να δίνουν
+  // Σταθερή σειρά: ημερομηνία και μετά uid ώστε δύο εκτελέσεις να δίνουν
   // ΤΟ ΙΔΙΟ αρχείο — αλλιώς κάθε ανανέωση μοιάζει αλλαγμένη.
   return out.sort((a, b) => a.date.localeCompare(b.date) || a.uid.localeCompare(b.uid));
 }

@@ -30,7 +30,7 @@ interface Req { id: string; title: string; description: string | null; contact: 
 // κάνει τίποτα — αρκούσε να ξανανοίξει έναν σύνδεσμο που είχε ήδη.
 //
 // Εδώ κλείνει η πλευρά της εφαρμογής: κάθε νέος σύνδεσμος γεννιέται δεμένος
-// στον σημερινό ενοικιαστή, και όταν αλλάξει ενοικιαστής ο ιδιοκτήτης το βλέπει
+// στον σημερινό ενοικιαστή και όταν αλλάξει ενοικιαστής ο ιδιοκτήτης το βλέπει
 // και εκδίδει νέο. Το ίδιο σχήμα με τη βάση (uuid χωρίς παύλες).
 const newToken = () => crypto.randomUUID().replace(/-/g, '');
 
@@ -100,7 +100,7 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
     setBusy(true);
     const ok = await savedData<boolean>(what, supabase.rpc('set_portal_pin', { p_token: token, p_pin: pin }));
     setBusy(false);
-    // `null` σημαίνει σφάλμα, και ο χρήστης το έχει ήδη δει. `false` σημαίνει
+    // `null` σημαίνει σφάλμα και ο χρήστης το έχει ήδη δει. `false` σημαίνει
     // ότι η κλήση πέτυχε αλλά δεν βρέθηκε δική σου γραμμή με αυτό το token.
     if (ok === null) return false;
     if (!ok) { notifyError(failed(what)); return false; }

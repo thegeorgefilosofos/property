@@ -55,7 +55,7 @@ const PERIOD = 'Ιουλίου 2025 ώς Ιουνίου 2026'
   ok('…αλλά το μέτρο παραμένει γραμμένο', noPeriod.includes('δωδεκάμηνης μεταβολής'))
 
   // Οι άλλες δύο μέθοδοι δεν επικαλούνται ΠΟΤΕ την ΕΛΣΤΑΤ: το ποσοστό είναι
-  // συμβατικό ή συμφωνημένο, και η επίκληση κρατικής αρχής θα ήταν ψευδής.
+  // συμβατικό ή συμφωνημένο και η επίκληση κρατικής αρχής θα ήταν ψευδής.
   const pct = adjustmentNoticeText({ effectiveDate: '01/09/2026', method: 'percent', res: a, cpiPeriod: PERIOD, cpiShare75: true })
   ok('η μέθοδος ποσοστού δεν επικαλείται την ΕΛΣΤΑΤ', !pct.includes('ΕΛΣΤΑΤ'))
   const man = adjustmentNoticeText({ effectiveDate: '01/09/2026', method: 'manual', res: m, cpiPeriod: PERIOD, cpiShare75: true })

@@ -565,7 +565,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
   // ΕΝΟΙΚΙΟ: ΠΡΑΓΜΑΤΙΚΟ, ΑΛΛΙΩΣ ΤΕΚΜΗΡΙΩΜΕΝΟ — ΠΟΤΕ «4% ΤΗΣ ΑΞΙΑΣ».
   // Ήταν δύο φορές επινοημένο στο ίδιο αρχείο: εδώ (PV×0,04/12, για την σύγκριση
   // ενοικίασης-αγοράς) και στο renInc (PV×0,04, που τροφοδοτούσε τον «Εκτιμώμενο
-  // φόρο»). Το ενοίκιο του χρήστη υπάρχει στη βάση (rent_config.actual_rent), και
+  // φόρο»). Το ενοίκιο του χρήστη υπάρχει στη βάση (rent_config.actual_rent) και
   // όπου λείπει υπάρχουν τεκμηριωμένες αποδόσεις ανά περιοχή στο greekMarket.
   const [actualRent, setActualRent] = useState(0)         // πραγματικό μηνιαίο ενοίκιο, από τη βάση
   const [monthlyRent, setMonthlyRent] = useState('')      // κενό = ακολουθεί το ενοίκιο-αναφορά
@@ -619,7 +619,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
   )
   // ΤΟ ΕΠΙΤΡΕΠΤΟ ΔΕΝ ΑΠΟΘΗΚΕΥΕΤΑΙ, ΠΡΟΚΥΠΤΕΙ. Εδώ ένα effect διόρθωνε την
   // αποθηκευμένη επιλογή μετά την απόδοση: για μία απόδοση η οθόνη έδειχνε
-  // δανειολήπτη που δεν υπήρχε καν στη λίστα, και όλοι οι υπολογισμοί από κάτω
+  // δανειολήπτη που δεν υπήρχε καν στη λίστα και όλοι οι υπολογισμοί από κάτω
   // (όριο εισοδήματος, δικαιολογητικά, φορολογικά) έτρεχαν πάνω σε αυτόν.
   // Τώρα το ασύμβατο δεν φτάνει ποτέ στην οθόνη.
   const borrower = borrowerOptions.some(o=>o.value===borrowerChoice)
@@ -797,7 +797,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
   // ΤΟ ΟΝΟΜΑ ΤΗΣ ΤΡΑΠΕΖΑΣ ΑΠΟΘΗΚΕΥΕΤΑΙ ΚΕΝΟ ΟΤΑΝ ΕΙΝΑΙ ΚΕΝΟ. Έγραφε τη φράση
   // «Μη καθορισμένη» ΜΕΣΑ στη στήλη: το κείμενο που θα έδειχνε η οθόνη αν έλειπε
   // το όνομα, γινόταν το ίδιο δεδομένο. Από εκεί βγήκε στο ημερολόγιο ως «Δόση
-  // δανείου, Μη καθορισμένη» σε εξήντα δόσεις, και σε κάθε αναφορά από κάτω.
+  // δανείου, Μη καθορισμένη» σε εξήντα δόσεις και σε κάθε αναφορά από κάτω.
   // Η απουσία λέγεται στην οθόνη, με τη λέξη της οθόνης.
   async function handleSave(){setSaving(true);await onSaveLoan({bank:bankName.trim(),loan_type:loanType,amount:LA,property_value:PV,rate:effRate,rate_type:rateType,years:Y,start_date:startDate,status:'active',notes:`${propTypeLabel} ${SQM} τ.μ., ${areaLabel}`});setSaving(false);notifyOk('Το δάνειο αποθηκεύτηκε')}
 
@@ -1398,7 +1398,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
                 <p style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans,lineHeight:1.6,marginBottom:10}}>
                   Υποθετικό ετήσιο ενοίκιο: <strong style={{color:'var(--text-primary)'}}>{fmtEur(renInc)}</strong>. {rentAssumptionText}
                 </p>
-                {/* Η έκπτωση 5% ΔΕΝ είναι «αυτόματη» — είναι όρος, και ο όρος είναι
+                {/* Η έκπτωση 5% ΔΕΝ είναι «αυτόματη» — είναι όρος και ο όρος είναι
                     επιλογή του χρήστη με μετρήσιμη συνέπεια στον φόρο του. */}
                 <label style={{display:'inline-flex',alignItems:'center',gap:8,cursor:'pointer',fontSize:13,fontFamily: T.font.sans,color:'var(--text-primary)',fontWeight:600}}>
                   <input type="checkbox" checked={rentsBank} onChange={e=>setRentsBank(e.target.checked)} style={{width:15,height:15,accentColor:'var(--accent)',cursor:'pointer'}}/>

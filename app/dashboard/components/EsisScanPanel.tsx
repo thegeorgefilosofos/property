@@ -173,7 +173,7 @@ export default function EsisScanPanel({
         <div>
           <p style={{...TT.label,marginBottom:10}}>Τι να προσέξεις</p>
           {/* Όσες επισημάνσεις κι αν βγουν, σε μία σειρά. Το `auto-fit` τις
-              έβγαζε τρεις και μία, και η τέταρτη διαβαζόταν σαν υποσημείωση. */}
+              έβγαζε τρεις και μία και η τέταρτη διαβαζόταν σαν υποσημείωση. */}
           <div {...fixedCols(res.flags.length, 6, 'stretch')}>
             {res.flags.map((f,i)=>(
               <InfoChip key={i} label={f.label} detail={f.detail} tone={f.kind==='bad'?'negative':'default'}/>

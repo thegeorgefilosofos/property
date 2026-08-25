@@ -31,7 +31,7 @@ const ctx = (o: Partial<FieldContext> = {}): FieldContext => ({
   ok('και τα αυτονόητα έχουν γραμμένο λόγο',
      ALL_FIELDS.filter(f => f.selfEvident).every(f => f.why.trim().length > 12));
   // Ένα κρίσιμο πεδίο λέει συμμόρφωση — προθεσμία, δήλωση, φόρο. Αυτό δεν είναι
-  // ποτέ αυτονόητο από την ετικέτα, και η απόκρυψή του θα έκρυβε τη συνέπεια.
+  // ποτέ αυτονόητο από την ετικέτα και η απόκρυψή του θα έκρυβε τη συνέπεια.
   ok('κανένα κρίσιμο πεδίο δεν είναι αυτονόητο',
      ALL_FIELDS.every(f => !(f.critical && f.selfEvident)));
   ok('κάθε πεδίο έχει ετικέτα', ALL_FIELDS.every(f => f.label.trim().length > 0));

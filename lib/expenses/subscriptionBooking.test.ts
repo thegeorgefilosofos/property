@@ -97,7 +97,7 @@ ok(rows.every(r => r.paid === true), 'γράφονται ως πληρωμένε
 ok(rows.every(r => Math.round(r.amount * 100) === r.amount * 100), 'δύο δεκαδικά, χωρίς ουρές');
 
 // ΤΟ ΔΙΠΛΟ ΠΑΤΗΜΑ ΔΕΝ ΓΡΑΦΕΙ ΔΕΥΤΕΡΗ ΦΟΡΑ. Δύο σωστές γραμμές για τον ίδιο
-// μήνα δίνουν διπλάσιο κόστος, και καμία από τις δύο δεν φαίνεται λάθος.
+// μήνα δίνουν διπλάσιο κόστος και καμία από τις δύο δεν φαίνεται λάθος.
 const again = toExpenses(mixed, { month: '2026-08', recorded: new Set(['skroutz_plus', 'microsoft365', 'claude']) });
 eq('ό,τι έχει γραφτεί δεν ξαναγράφεται', again.length, 0);
 eq('όσα λείπουν γράφονται', toExpenses(mixed, { month: '2026-08', recorded: new Set(['claude']) }).length, 2);

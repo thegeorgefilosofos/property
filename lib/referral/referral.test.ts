@@ -59,7 +59,7 @@ const free2free = individualReferrerReward(false, 'free');
 ok(free2free.isSlot && free2free.months === REFERRER_SLOT_MONTHS && free2free.months === 1, 'δωρεάν συστήνων: +1 ακίνητο για 1 μήνα');
 const own2free = individualReferrerReward(true, 'free');
 ok(own2free.isSlot && own2free.months === 1, 'συνδρομητής συστήνων: ΤΟ ΙΔΙΟ, +1 ακίνητο για 1 μήνα');
-// Η μόνη εξαίρεση, και έχει λόγο: η σύσταση Επαγγελματία αξίζει πολύ
+// Η μόνη εξαίρεση και έχει λόγο: η σύσταση Επαγγελματία αξίζει πολύ
 // περισσότερο από μία θέση ακινήτου.
 const any2pro = individualReferrerReward(false, 'agency');
 ok(!any2pro.isSlot && any2pro.months === INDIV_PRO_BONUS_MONTHS && any2pro.months === 1, 'νέος γίνεται Επαγγελματίας → εσύ +1 μήνας Ιδιώτης');
@@ -69,7 +69,7 @@ ok(INDIV_VOLUME_TARGET === 3 && INDIV_VOLUME_BONUS_MONTHS === 1, '3 νέοι ι�
 // ── Πρόγραμμα Ιδιώτη: δώρο νέου χρήστη ανά επιλογή πλάνου ──
 // ΕΝΑΣ ΜΗΝΑΣ ΔΩΡΕΑΝ, ΣΤΟ ΠΛΑΝΟ ΠΟΥ ΔΙΑΛΕΓΕΙ. Ο νέος χρήστης δεν χρειάζεται να
 // καταλάβει τρία διαφορετικά δώρα πριν καν μπει: διαλέγει πλάνο ανάλογα με τα
-// ακίνητά του, και ο πρώτος μήνας είναι δώρο — όποιο κι αν είναι.
+// ακίνητά του και ο πρώτος μήνας είναι δώρο — όποιο κι αν είναι.
 const wFree = refereeWelcome('free');
 ok(wFree.isSlot && wFree.months === REFEREE_FREE_SLOT_MONTHS && wFree.months === 1, 'νέος δωρεάν: +1 ακίνητο για 1 μήνα');
 ok(refereeWelcome('owner').months === REFEREE_OWNER_MONTHS && refereeWelcome('owner').months === 1 && !refereeWelcome('owner').isSlot, 'νέος στο Ιδιώτης: 1 μήνας δωρεάν');
@@ -123,7 +123,7 @@ ok(PARTNER_MONTHLY_FREE_MONTHS === 1, 'κάθε επιτυχημένος μήν�
 
 // ── Ανταμοιβή Συνεργάτη: ΔΩΡΕΑΝ ΜΗΝΕΣ, ΟΧΙ ΜΕΤΡΗΤΑ ──
 // Η οθόνη υποσχόταν «20% προμήθεια κάθε μήνα» πάνω σε μηχανή που δέχεται μόνο
-// kind='months'|'slot': κανένα ledger, κανένα payout, και η στρατηγική αποκλείει
+// kind='months'|'slot': κανένα ledger, κανένα payout και η στρατηγική αποκλείει
 // ρητά τις πληρωμές. Ό,τι δεν μπορεί να πληρωθεί δεν υπάρχει στον κώδικα.
 ok(partnerFreeMonths([5, 5, 5]) === 3 * PARTNER_MONTHLY_FREE_MONTHS, 'Συνεργάτης: κάθε μήνας στόχου → ένας δωρεάν');
 ok(partnerFreeMonths([5, 5]) === 0, 'χωρίς την ιδιότητα Συνεργάτη → κανένας δωρεάν μήνας');

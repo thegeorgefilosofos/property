@@ -30,7 +30,7 @@ export function usePropertyHeating(propertyId: string, userId: string): [string,
 
   // Ολη η ενημέρωση κατάστασης γίνεται ΜΕΣΑ στην ασύγχρονη συνάρτηση, ποτέ
   // απευθείας στο σώμα του effect: αλλιώς κάθε αλλαγή ακινήτου προκαλεί
-  // αλυσιδωτή απόδοση, και ο κανόνας του ESLint το κόβει σωστά.
+  // αλυσιδωτή απόδοση και ο κανόνας του ESLint το κόβει σωστά.
   useEffect(() => {
     aborted.current = false;
     (async () => {

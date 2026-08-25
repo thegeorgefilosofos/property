@@ -80,7 +80,7 @@ window.__toasts = [];
 //
 // Η ΑΚΡΟΑΣΗ ΓΙΝΕΤΑΙ ΣΤΟΝ ΔΙΑΥΛΟ, ΟΧΙ ΣΤΟ DOM. Ο δίαυλος κρατά ΕΝΑΝ ακροατή:
 // αν προσαρτούσαμε και τον κανονικό host, ο ένας από τους δύο θα έχανε κάθε
-// μήνυμα, και η δοκιμή θα έλεγε «καμία ειδοποίηση» για λάθος λόγο.
+// μήνυμα και η δοκιμή θα έλεγε «καμία ειδοποίηση» για λάθος λόγο.
 subscribeToasts(t => { window.__toasts.push(`${t.tone || 'neutral'}: ${t.text}`); });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -204,7 +204,7 @@ function SettingsSwitch() {
   const [data, update] = useBillsSettings<Elec>(propertyId, 'u1', 'electricity', ELEC_DEFAULTS);
   // Τα χειριστήρια του σεναρίου εκτίθενται σε effect, όχι στην απόδοση: η
   // εγγραφή σε global μέσα στο σώμα του component είναι μεταβολή κατά την
-  // απόδοση, και ο μεταγλωττιστής της React τη ζητά έξω από εκεί.
+  // απόδοση και ο μεταγλωττιστής της React τη ζητά έξω από εκεί.
   useEffect(() => {
     (window as unknown as { __edit: (n: number) => void }).__edit = n => update({ kwhMonthly: n });
     (window as unknown as { __switch: (id: string) => void }).__switch = id => setPropertyId(id);

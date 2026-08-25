@@ -25,8 +25,8 @@ import * as calendar from '@/lib/data/calendar'
 //
 // Ο ΔΙΑΧΩΡΙΣΜΟΣ ΕΓΙΝΕ ΚΑΤΑ ΑΝΤΙΚΕΙΜΕΝΟ ΕΥΘΥΝΗΣ, ΟΧΙ ΚΑΤΑ ΜΕΓΕΘΟΣ: το μοντέλο
 // δεν εκτελεί τίποτα, οι υπολογισμοί δεν ξέρουν από οθόνη, τα μικρά στοιχεία
-// δεν ξέρουν από βάση, και κάθε παράθυρο στέκεται μόνο του. Εδώ μένει η σελίδα:
-// τι φορτώνεται, τι αποθηκεύεται, και ποια καρτέλα φαίνεται.
+// δεν ξέρουν από βάση και κάθε παράθυρο στέκεται μόνο του. Εδώ μένει η σελίδα:
+// τι φορτώνεται, τι αποθηκεύεται και ποια καρτέλα φαίνεται.
 import { INVENTORY_CATEGORIES, type InventoryItem, type InventoryRepair, type InventoryHandover, type MaintenanceSchedule, type HandoverIntent, type InventoryPropertyOption, type TabInventoryProps, ROOM_PRESETS, STARTER_PACK } from './inventory/model'
 import { calcCurrentValue, calcDepreciationPct, calcYearsLeft, calcAgeDisplay, calcMonthlyKwh, calcMonthlyCost, hasEnergy, fmtDate, daysUntil, warrantyStatus, needsAction } from './inventory/calc'
 import { DOCS_BUCKET } from './inventory/storage'
@@ -50,11 +50,11 @@ const supabase = createSupabaseClient()
 //    Η ασφαλιστέα αξία εξοπλισμού είναι κόστος ΑΝΤΙΚΑΤΑΣΤΑΣΗΣ ΜΕ ΚΑΙΝΟΥΡΓΙΟ, όχι
 //    αποσβεσμένη αξία +10%. Όποιος ασφαλιζόταν με βάση αυτό ήταν υπασφαλισμένος
 //    και θα το μάθαινε ΜΕΤΑ τη ζημιά. → Τώρα αθροίζονται μόνο τα ΔΗΛΩΜΕΝΑ κόστη
-//    αντικατάστασης, και λέγεται ρητά για πόσα αντικείμενα λείπει το νούμερο.
+//    αντικατάστασης και λέγεται ρητά για πόσα αντικείμενα λείπει το νούμερο.
 //
 // 2. «Αναβάθμιση N συσκευών → X €/χρόνο» σε πράσινο πλαίσιο. Τρία επινοημένα
 //    μαζί: σταθερά 0,5 (κάθε αντικατάσταση κόβει τη μισή κατανάλωση), η κλάση A
-//    μετρημένη στα «κακά», και τιμή ρεύματος 0,22 €/kWh που σωζόταν σιωπηλά ως
+//    μετρημένη στα «κακά» και τιμή ρεύματος 0,22 €/kWh που σωζόταν σιωπηλά ως
 //    δεδομένο σε κάθε άκυρη είσοδο — και χωρίς να αφαιρείται το κόστος αγοράς
 //    («θα κερδίσεις 180 €/χρόνο» για συσκευή 1.200 €). → Μένει μόνο η ΜΕΤΡΗΣΗ:
 //    τι κοστίζει η συσκευή τον μήνα, ΣΤΗΝ ΤΙΜΗ ΠΟΥ ΔΗΛΩΝΕΙ Ο ΛΟΓΑΡΙΑΣΜΟΣ ΣΟΥ.
@@ -62,7 +62,7 @@ const supabase = createSupabaseClient()
 //
 // 3. «Απόσβεση» ως τίτλος σε επαγγελματία. Ο επαγγελματίας έχει ΝΟΜΙΜΟΥΣ
 //    συντελεστές (ΚΦΕ άρθρο 24) που δεν είναι αυτοί. → Παντού «εκτιμώμενη
-//    υπολειπόμενη αξία», με ρητή σημείωση, και το μπλοκ «Χαρτοφυλακίου» έφυγε.
+//    υπολειπόμενη αξία», με ρητή σημείωση και το μπλοκ «Χαρτοφυλακίου» έφυγε.
 //
 // 4. «Εξοικονόμηση από εκπτώσεις» σε πράσινο: δεν είναι εξοικονόμηση, είναι η
 //    έκπτωση που πήρες κάποτε. Μαζί έφυγαν τα πέντε πεδία που το τροφοδοτούσαν.
@@ -82,7 +82,7 @@ const supabase = createSupabaseClient()
 // ─────────────────────────────────────────────────────────────────────────
 // Ήταν τρεις υποκαρτέλες: «Αντικείμενα», «Εγγυήσεις και Συντήρηση»,
 // «Επισκόπηση». Τρία κλικ για να δεις την κατάσταση ενός σπιτιού με δέκα
-// αντικείμενα, και η ίδια πληροφορία σε δύο από τις τρεις: η εγγύηση που λήγει
+// αντικείμενα και η ίδια πληροφορία σε δύο από τις τρεις: η εγγύηση που λήγει
 // ήταν και στο «Χρειάζονται προσοχή» της Επισκόπησης και σε δική της ενότητα
 // στη Φροντίδα· η κατάσταση του αντικειμένου ήταν και σήμα στην κάρτα του και
 // γραμμή στη λίστα προσοχής.
@@ -97,7 +97,7 @@ function AttentionCard({items,onEdit,onWarrantyReminder}:{items:InventoryItem[];
   // ΜΙΑ ΛΙΣΤΑ, ΤΑΞΙΝΟΜΗΜΕΝΗ ΚΑΤΑ ΣΟΒΑΡΟΤΗΤΑ, ΧΩΡΙΣ ΧΡΩΜΑ.
   // Η σοβαρότητα φαίνεται από τη ΣΕΙΡΑ: πρώτα ό,τι χάλασε, μετά ό,τι γερνά,
   // τελευταία η εγγύηση που τρέχει. Μια κόκκινη κουκκίδα δεν προσθέτει τίποτα
-  // που δεν λέει ήδη η θέση, και σε όποιον δεν ξεχωρίζει χρώματα δεν λέει τίποτα.
+  // που δεν λέει ήδη η θέση και σε όποιον δεν ξεχωρίζει χρώματα δεν λέει τίποτα.
   const attention = (() => {
     const out: {item:InventoryItem;label:string;kind:'cond'|'repl'|'warr'}[] = []
     const seen = new Set<string>()
@@ -137,7 +137,7 @@ function AttentionCard({items,onEdit,onWarrantyReminder}:{items:InventoryItem[];
             </div>
             {/* ΜΙΑ ΕΝΕΡΓΕΙΑ ΑΝΑ ΓΡΑΜΜΗ, ΕΚΕΙΝΗ ΠΟΥ ΛΥΝΕΙ ΤΟ ΣΥΓΚΕΚΡΙΜΕΝΟ.
                 Πριν, η γραμμή έδειχνε ένα σήμα κατάστασης, δηλαδή ξανάλεγε την
-                αιτία που μόλις διαβάστηκε δίπλα, και δεν πρόσφερε τίποτα να κάνεις. */}
+                αιτία που μόλις διαβάστηκε δίπλα και δεν πρόσφερε τίποτα να κάνεις. */}
             {kind==='warr'
               ? <button onClick={()=>{onWarrantyReminder(item);setPushed(p=>new Set(p).add(item.id))}} disabled={pushed.has(item.id)}
                   style={{flexShrink:0,padding:'0 12px',height:T.h.sm,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'var(--bg-surface)',color:pushed.has(item.id)?'var(--text-tertiary)':'var(--text-secondary)',fontSize:12,fontFamily:T.font.sans,fontWeight:500,cursor:pushed.has(item.id)?'default':'pointer',whiteSpace:'nowrap'}}>
@@ -155,7 +155,7 @@ function AttentionCard({items,onEdit,onWarrantyReminder}:{items:InventoryItem[];
   )
 }
 
-// Πού πάει η αξία και πού πάει το ρεύμα. Δύο κάρτες δίπλα δίπλα, και ΜΟΝΟ όταν
+// Πού πάει η αξία και πού πάει το ρεύμα. Δύο κάρτες δίπλα δίπλα και ΜΟΝΟ όταν
 // υπάρχει τι να δείξουν: χωρίς μετρημένη κατανάλωση δεν υπάρχει κάρτα ρεύματος.
 function AnalysisCards({items,repairs,kwhPrice,kwhControl}:{items:InventoryItem[];repairs:InventoryRepair[];kwhPrice:number;kwhControl?:React.ReactNode}) {
   const totalRepairs = repairs.reduce((s,r)=>s+(r.cost||0),0)
@@ -319,7 +319,7 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
             Το «Όλες οι κατηγορίες» και το «Όλα τα δωμάτια» είναι οι ΠΡΟΕΠΙΛΟΓΕΣ,
             δηλαδή αυτό που βλέπει ο χρήστης πριν αγγίξει τίποτα — και δεν
             χωρούσαν στα 150 και στα 140. Η ταξινόμηση έγραφε το πρόθεμα
-            «Ταξινόμηση:» μέσα σε κάθε επιλογή· το πρόθεμα είναι ετικέτα, και το
+            «Ταξινόμηση:» μέσα σε κάθε επιλογή· το πρόθεμα είναι ετικέτα και το
             CustomSelect έχει ήδη ετικέτα. */}
         <div style={{width:210}}><CustomSelect value={filterCat} onChange={setFilterCat} options={['Όλες',...[...INVENTORY_CATEGORIES].filter(c=>items.some(i=>i.category===c))].map(c=>({value:c,label:c==='Όλες'?'Όλες οι κατηγορίες':c}))}/></div>
         {allRooms.length>0&&<div style={{width:190}}><CustomSelect value={filterRoom} onChange={setFilterRoom} options={[{value:'Όλα',label:'Όλα τα δωμάτια'},...allRooms.map(r=>({value:r,label:r}))]}/></div>}
@@ -473,7 +473,7 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
 //   · «λήγει σύντομα» → μία γραμμή στο «Χρειάζονται προσοχή», με το κουμπί που
 //     βάζει την υπενθύμιση στο ημερολόγιο·
 //   · η απόδειξη → στο μενού του κάθε αντικειμένου, δίπλα στην επεξεργασία·
-//   · «σε ισχύ» → δεν είναι εργασία, είναι κατάσταση, και τη λέει η κάρτα.
+//   · «σε ισχύ» → δεν είναι εργασία, είναι κατάσταση και τη λέει η κάρτα.
 
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -526,7 +526,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
       // πηγή τιμής kWh ήταν πάντα κενή και ο χρήστης έβλεπε άδειο πεδίο ακόμη
       // κι όταν είχε καταχωρήσει τιμή στο μισθωτήριο. Η τιμή ζει στο tenants.
       //
-      // ΔΥΟ ΕΡΩΤΗΜΑΤΑ ΕΓΙΝΑΝ ΕΝΑ, και τα δύο έλεγαν `.limit(1)` χωρίς καμία σειρά
+      // ΔΥΟ ΕΡΩΤΗΜΑΤΑ ΕΓΙΝΑΝ ΕΝΑ και τα δύο έλεγαν `.limit(1)` χωρίς καμία σειρά
       // και χωρίς κανένα φίλτρο κατάστασης: έπαιρναν όποια γραμμή ερχόταν πρώτη,
       // ακόμη κι ενός μισθωτή που έφυγε πέρσι.
       tenantStore.currentAll<{ kwh_price?: number | null; furnishing?: string | null }>(supabase,propertyId,'kwh_price,furnishing',userId),
@@ -591,7 +591,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
     setItems(prev=>prev.map(i=>i.id===id?{...i,condition}:i))
     const {error}=await inventory.update(supabase,id,{condition})
     // Επαναφορά της οθόνης στην πραγματικότητα: αλλιώς ο χρήστης βλέπει «Κακή»,
-    // φεύγει, γυρίζει, και το αντικείμενο είναι πάλι «Καλή» χωρίς εξήγηση.
+    // φεύγει, γυρίζει και το αντικείμενο είναι πάλι «Καλή» χωρίς εξήγηση.
     if(error){setItems(prev=>prev.map(i=>i.id===id&&prevCondition?{...i,condition:prevCondition}:i));notifyError(failed('Η κατάσταση δεν αποθηκεύτηκε',error))}
   }
   const handleBulkDelete=async(ids:string[])=>{if(!ids.length)return;const its=items.filter(i=>ids.includes(i.id));const {error}=await inventory.removeMany(supabase,ids);if(error){notifyError(failed('Τα αντικείμενα δεν διαγράφηκαν',error));return}await cleanupDocs(its);fetchData()}
@@ -625,13 +625,13 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   }
   // ═══ ΜΙΑ ΥΠΕΝΘΥΜΙΣΗ ΕΓΓΥΗΣΗΣ, ΕΝΑ ΣΗΜΕΙΟ ═══════════════════════════════════
   // Η ΙΔΙΑ ενέργεια υπήρχε δύο φορές, γραμμένη δύο φορές: εδώ, ως «Υπενθύμιση
-  // εγγύησης» στο μενού του αντικειμένου, και μέσα στην ενότητα Εγγυήσεων ως
+  // εγγύησης» στο μενού του αντικειμένου και μέσα στην ενότητα Εγγυήσεων ως
   // κουμπί «Ημερολόγιο» με δικό της αντίγραφο του ίδιου insert. Ίδια εγγραφή,
   // διαφορετικά μηνύματα, καμία από τις δύο δεν ήξερε τι είχε κάνει η άλλη.
   //
   // Και καμία δεν κοίταζε αν η υπενθύμιση υπάρχει ήδη: δύο πατήματα, δύο εγγραφές
   // ημερολογίου για την ίδια εγγύηση, δύο email την ίδια μέρα. Τώρα η ενέργεια
-  // ζει εδώ, μία φορά, και ρωτάει πρώτα.
+  // ζει εδώ, μία φορά και ρωτάει πρώτα.
   const handleWarrantyReminder=async(item:InventoryItem):Promise<boolean>=>{
     if(!item.warranty_expiry){notifyError('Το αντικείμενο δεν έχει ημερομηνία λήξης εγγύησης.');return false}
     const title=`Εγγύηση: ${item.name}`
@@ -656,7 +656,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   // εμφανίζεται ΠΑΝΤΑ — δεν κρύβουμε ποτέ δεδομένα που ο χρήστης έχει καταχωρήσει.
   // ΤΟ CAST ΕΚΡΥΒΕ ΤΟ ΛΑΘΟΣ. Ήταν `(properties as StatusRow[]).find((p:any)=>…)`:
   // το StatusRow ΔΕΝ έχει `id`, οπότε το cast ήταν άκυρο και το `any` το έκρυβε.
-  // Ο σωστός τύπος λέει και τα δύο — ό,τι χρειάζεται η κατάσταση, και το κλειδί.
+  // Ο σωστός τύπος λέει και τα δύο — ό,τι χρειάζεται η κατάσταση και το κλειδί.
   const propRow = (properties as (StatusRow & { id: string })[]).find(p => p?.id === propertyId) || null
   const status = readStatus(propRow)
   const declaredFurnished = status==='rent_short' || furnishing==='furnished' || furnishing==='turnkey'
@@ -669,7 +669,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   const overdueCount=schedules.filter(s=>daysUntil(s.next_due)<0).length
   const warnCount=schedules.filter(s=>{const d=daysUntil(s.next_due);return d>=0&&d<=30}).length
   // ═══ ΤΑ ΤΕΣΣΕΡΑ ΝΟΥΜΕΡΑ ΤΗΣ ΑΠΟΓΡΑΦΗΣ ════════════════════════════════════
-  // Υπολογίζονται ΕΔΩ, μία φορά, και εμφανίζονται ΕΔΩ, μία φορά: η σειρά μετρικών
+  // Υπολογίζονται ΕΔΩ, μία φορά και εμφανίζονται ΕΔΩ, μία φορά: η σειρά μετρικών
   // στέκει πάνω από τις υποκαρτέλες και φαίνεται σε όλες τους. Καμία υποκαρτέλα
   // δεν έχει πια δικό της πλέγμα μετρικών.
   const invSummary=portfolioSummary(items)
@@ -732,7 +732,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
           icon={<Archive size={20}/>}
           /* Ο ΤΙΤΛΟΣ ΕΒΑΖΕ ΤΗΝ ΚΑΤΑΣΤΑΣΗ ΣΤΗ ΘΕΣΗ ΤΟΥ ΟΝΟΜΑΤΟΣ: «Δεν υπάρχει
              απογραφή εξοπλισμού σε ακίνητο «Κενό»» — σαν να λέγεται «Κενό» το
-             ακίνητο. Το «Κενό» είναι κατάσταση, και λέγεται ως κατάσταση, μέσα
+             ακίνητο. Το «Κενό» είναι κατάσταση και λέγεται ως κατάσταση, μέσα
              στην εξήγηση. Επίσης ήταν χειρόγραφη κενή κατάσταση, τυλιγμένη σε
              κάρτα: δύο παρεκκλίσεις από τις σαράντα πέντε άλλες της εφαρμογής,
              σε μία οθόνη. Τώρα είναι το κοινό EmptyState. */
@@ -756,14 +756,14 @@ export default function TabInventory({propertyId,userId,profileType='individual'
             </div>
             <p style={{fontSize:20,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',letterSpacing:'-0.01em',marginBottom:8}}>{handoverSeed?'Πρόσθεσε εξοπλισμό πρώτα':'Ξεκίνησε την καταγραφή'}</p>
             {/* ═══ ΔΥΟ ΔΡΟΜΟΙ, ΚΑΙ Ο ΔΕΥΤΕΡΟΣ ΕΙΝΑΙ ΤΟ ΧΕΡΙ ══════════════════════
-                ΤΙ ΕΛΕΙΠΕ. Το μόνο κύριο κουμπί έλεγε «Φωτογράφισε αντικείμενο»,
+                ΤΙ ΕΛΕΙΠΕ. Το μόνο κύριο κουμπί έλεγε «Φωτογράφισε αντικείμενο»
                 και όποιος δεν είχε τι να φωτογραφήσει —παλιό έπιπλο, καναπές,
                 τραπέζι— δεν έβλεπε πουθενά δρόμο. Η χειροκίνητη συμπλήρωση
                 υπήρχε, αλλά κρυμμένη ΜΕΣΑ στο παράθυρο της φωτογραφίας: για να
                 τη βρεις έπρεπε πρώτα να πατήσεις κάτι που δεν σε αφορούσε.
 
                 ΤΙ ΕΦΥΓΕ. Τρεις κάρτες που εξηγούσαν τι κάνει η απογραφή. Η
-                πρώτη επαναλάμβανε το κύριο κουμπί, και οι τρεις μαζί
+                πρώτη επαναλάμβανε το κύριο κουμπί και οι τρεις μαζί
                 επαναλάμβαναν λέξη προς λέξη τον υπότιτλο από πάνω τους: αξία,
                 εγγυήσεις, κατανάλωση. Μια οθόνη που λέει το ίδιο πράγμα τρεις
                 φορές δεν πείθει περισσότερο, κουράζει.

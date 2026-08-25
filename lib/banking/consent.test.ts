@@ -50,7 +50,7 @@ const errored = consentState(conn('error', inDays(40)), NOW);
 ok('σφάλμα δεν δίνει κινήσεις', !errored.usable);
 ok('σφάλμα ζητά ξανασύνδεση', errored.needsRenewal);
 
-// Καμία κατάσταση δεν μένει χωρίς εξήγηση, και καμία δεν λέει «-».
+// Καμία κατάσταση δεν μένει χωρίς εξήγηση και καμία δεν λέει «-».
 const ALL: ConnectionStatus[] = ['pending', 'active', 'expired', 'revoked', 'error'];
 ok('κάθε κατάσταση έχει μήνυμα', ALL.every(s => consentState(conn(s, inDays(3)), NOW).message.trim().length > 10));
 

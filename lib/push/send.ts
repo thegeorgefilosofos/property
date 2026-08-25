@@ -30,7 +30,7 @@ import type { DeviceSubscription } from './subscription';
 
 /** Το δημόσιο κλειδί. Το ΙΔΙΟ που βλέπει ο περιηγητής: γι' αυτό `NEXT_PUBLIC_`. */
 export const VAPID_PUBLIC_ENV = 'NEXT_PUBLIC_VAPID_PUBLIC_KEY';
-/** Το ιδιωτικό. Ζει μόνο στον διακομιστή, και μόνο ως μεταβλητή περιβάλλοντος. */
+/** Το ιδιωτικό. Ζει μόνο στον διακομιστή και μόνο ως μεταβλητή περιβάλλοντος. */
 export const VAPID_PRIVATE_ENV = 'VAPID_PRIVATE_KEY';
 /**
  * Η ταυτότητά μας προς την υπηρεσία push: «mailto:» ή διεύθυνση της σελίδας.
@@ -48,7 +48,7 @@ export type PushEnv = Record<string, string | undefined>;
  * Τα κλειδιά, ή το όνομα αυτού που λείπει.
  *
  * ΤΟ ΜΙΣΟ ΡΥΘΜΙΣΜΕΝΟ ΕΙΝΑΙ ΑΡΥΘΜΙΣΤΟ. Με δημόσιο κλειδί και χωρίς ιδιωτικό, ο
- * διακόπτης θα εμφανιζόταν, η συσκευή θα γραφόταν, και καμία ειδοποίηση δεν θα
+ * διακόπτης θα εμφανιζόταν, η συσκευή θα γραφόταν και καμία ειδοποίηση δεν θα
  * έφτανε ποτέ.
  */
 export function vapidKeys(env: PushEnv): VapidKeys | { missing: string } {

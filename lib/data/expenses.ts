@@ -328,7 +328,7 @@ export function remove(db: Db, id: string | string[]): PromiseLike<{ error: DbEr
 /**
  * Διαγραφή ΜΟΝΟ αν δεν έχει πληρωθεί.
  *
- * Η πληρωμένη δαπάνη έχει παραστατικό πίσω της: το χρήμα ξοδεύτηκε, και δεν
+ * Η πληρωμένη δαπάνη έχει παραστατικό πίσω της: το χρήμα ξοδεύτηκε και δεν
  * παύει να ξοδεύτηκε επειδή σβήστηκε η εργασία που τη γέννησε.
  */
 export function removeIfUnpaid(db: Db, id: string): PromiseLike<{ error: DbError | null }> {

@@ -173,7 +173,7 @@ export function priceForDate(date: string, opts: PricingOptions): DayPrice {
   const m = Number(date.slice(5, 7)) - 1;
   const factors: PriceFactor[] = [];
 
-  // 1) Εποχικότητα. ΠΑΡΑΔΟΧΗ ΜΑΣ, και το λέει: ένας πίνακας ανά μήνα, ο ίδιος
+  // 1) Εποχικότητα. ΠΑΡΑΔΟΧΗ ΜΑΣ και το λέει: ένας πίνακας ανά μήνα, ο ίδιος
   //    για Σαντορίνη και Ιωάννινα. Δεν έχουμε τοπικά δεδομένα εποχικότητας.
   const seasonMult = MONTH_MULT[m];
   factors.push({

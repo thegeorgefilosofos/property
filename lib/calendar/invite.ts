@@ -71,7 +71,7 @@ function paramValue(v: string): string {
   return /[,;:]/.test(clean) ? `"${clean}"` : clean
 }
 
-// Η ΑΝΑΔΙΠΛΩΣΗ ΖΕΙ ΣΤΟ `ics.ts`, ΜΙΑ ΦΟΡΑ. Υπήρχε εδώ ολόκληρη, και δεύτερη
+// Η ΑΝΑΔΙΠΛΩΣΗ ΖΕΙ ΣΤΟ `ics.ts`, ΜΙΑ ΦΟΡΑ. Υπήρχε εδώ ολόκληρη και δεύτερη
 // φορά ήθελε να γραφτεί για τη ροή συνδρομής. Τρία αντίγραφα του ίδιου κανόνα
 // του προτύπου είναι τρεις ευκαιρίες να αποκλίνει το ένα σιωπηλά.
 
@@ -106,7 +106,7 @@ function attendeeLine(input: InviteInput): string {
 }
 
 // Επεκτείνει την έξοδο του buildICS με METHOD:REQUEST (στο VCALENDAR) και
-// ORGANIZER/ATTENDEE (μέσα στο VEVENT), και αναδιπλώνει τις γραμμές στα 75 octets.
+// ORGANIZER/ATTENDEE (μέσα στο VEVENT) και αναδιπλώνει τις γραμμές στα 75 octets.
 export function buildInviteICS(input: InviteInput): string {
   const base = buildICS(toEvent(input))
   const src = base.split('\r\n')

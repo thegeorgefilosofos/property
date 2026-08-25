@@ -40,7 +40,7 @@ function ok(name: string, cond: boolean) { if (cond) { passed++ } else { failed+
   ok('περιλαμβάνει ελληνικό αρχείο Roboto Mono', css.includes('/fonts/robotomono-greek.woff2'))
 }
 
-// ── Και οι δύο οικογένειες, και τα τρία υποσύνολα ──────────────────────────
+// ── Και οι δύο οικογένειες και τα τρία υποσύνολα ──────────────────────────
 {
   const css = printFontFaces()
   for (const f of ['inter', 'robotomono']) {

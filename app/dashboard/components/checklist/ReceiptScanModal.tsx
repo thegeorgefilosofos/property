@@ -139,7 +139,7 @@ export function ReceiptScanModal({ item, propertyId, userId, onClose, onSaved }:
       expenses.addRow(supabase, { ...expenseRow, property_id: propertyId, user_id: userId }))
     const expenseId = expIns?.id || item.expense_id || null
 
-    // 3) Η ΕΚΚΡΕΜΟΤΗΤΑ ΚΛΕΙΝΕΙ ΜΕ ΠΡΑΓΜΑΤΙΚΟ ΚΟΣΤΟΣ, και το παραστατικό μένει
+    // 3) Η ΕΚΚΡΕΜΟΤΗΤΑ ΚΛΕΙΝΕΙ ΜΕ ΠΡΑΓΜΑΤΙΚΟ ΚΟΣΤΟΣ και το παραστατικό μένει
     //    κολλημένο πάνω της, ώστε το «πραγματικό κόστος» να έχει πάντα πηγή.
     const receipt: ItemReceipt = {
       path, name: file.name, docId, amount: amountNum, date,
@@ -158,7 +158,7 @@ export function ReceiptScanModal({ item, propertyId, userId, onClose, onSaved }:
       calendar.update(supabase, item.calendar_event_id, { status: 'paid', amount: amountNum }))
     // Το αρχείο ανέβηκε ΠΑΝΤΑ (χωρίς αυτό δεν φτάναμε ως εδώ). Αν δεν γράφτηκε η
     // γραμμή του Αρχείου, το λέμε: το παραστατικό υπάρχει αλλά δεν θα φαίνεται
-    // στην καρτέλα Αρχείο, και ο χρήστης πρέπει να το ξέρει, όχι να το ανακαλύψει.
+    // στην καρτέλα Αρχείο και ο χρήστης πρέπει να το ξέρει, όχι να το ανακαλύψει.
     onSaved(docId
       ? `Καταχωρήθηκε ${fe(amountNum)} με παραστατικό στο Αρχείο`
       : `Καταχωρήθηκε ${fe(amountNum)}. Το αρχείο αποθηκεύτηκε, αλλά δεν μπήκε στο Αρχείο.`)
@@ -197,7 +197,7 @@ export function ReceiptScanModal({ item, propertyId, userId, onClose, onSaved }:
             <span style={{ fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center', lineHeight: 1.5 }}>Διαβάζουμε ποσό, πάροχο και ημερομηνία. Τα ελέγχεις πριν αποθηκευτούν.</span>
           </button>
           {/* Το περιθώριο 12 έγινε 0: το σώμα του <Modal> έχει ήδη δικό του gap
-              ανάμεσα στα παιδιά, και τα δύο μαζί έδιναν διπλό κενό. */}
+              ανάμεσα στα παιδιά και τα δύο μαζί έδιναν διπλό κενό. */}
           <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, margin: 0, lineHeight: 1.5 }}>
             Το αρχείο μπαίνει στο Αρχείο του ακινήτου και η δαπάνη καταχωρείται πληρωμένη. Χωρίς αρχείο δεν γράφεται ποσό πουθενά.
           </p>

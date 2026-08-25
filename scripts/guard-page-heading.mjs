@@ -25,7 +25,7 @@ import { readFileSync, globSync, existsSync } from 'node:fs'
 const SHELLS = ['<PageTitle', '<LegalShell', '<LegalLayout', '<AlreadySignedIn', '<PortalTitle']
 
 /**
- * Οθόνες που ΔΕΝ είναι σελίδες με δικό τους όνομα, και ο λόγος τους.
+ * Οθόνες που ΔΕΝ είναι σελίδες με δικό τους όνομα και ο λόγος τους.
  * Κάθε εγγραφή είναι υπόσχεση ότι κοιτάχτηκε, όχι παραθυράκι.
  */
 const EXEMPT = {

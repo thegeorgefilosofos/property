@@ -4,7 +4,7 @@ import type { LoanDoc } from './TabLoanData'
 import { T } from '@/components/Theme'
 
 // Επαγγελματική, ελεγχόμενη λίστα δικαιολογητικών: τικάρεις ό,τι έχεις μαζέψει,
-// βλέπεις πρόοδο, και η κατάσταση διατηρείται (ανά ακίνητο/τύπο δανείου).
+// βλέπεις πρόοδο και η κατάσταση διατηρείται (ανά ακίνητο/τύπο δανείου).
 export default function DocChecklist({ docs, storageKey, title = 'Δικαιολογητικά που θα χρειαστείς', compact = false }: {
   docs: LoanDoc[]; storageKey?: string; title?: string; compact?: boolean
 }) {

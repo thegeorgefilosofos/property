@@ -21,7 +21,7 @@ const ITEMS: FacetableItem[] = [
   mk({ id: 'mis-1',  title: 'Μισθωτήριο 2025', provider: null,     date: '2025-01-02', value: null,  categoryLabel: 'Συμβόλαια' }),
   // Σκόπιμα ΧΩΡΙΣ τη λέξη «ΕΝΦΙΑ» δίπλα σε ημερομηνία: ο φύλακας στο
   // app/dashboard/components/obligations.test.ts απαγορεύει νέα ημερολόγια
-  // υποχρεώσεων εκτός της μίας πηγής, και είχε δίκιο να πιάσει το δείγμα μου.
+  // υποχρεώσεων εκτός της μίας πηγής και είχε δίκιο να πιάσει το δείγμα μου.
   mk({ id: 'tax-1',  title: 'Δήλωση ακινήτου',  provider: 'ΑΑΔΕ',   date: '2025-09-01', value: 340,   categoryLabel: 'Φορολογικά', sourceLabel: 'Λογαριασμοί' }),
   mk({ id: 'foto-1', title: 'Φωτογραφία σαλονιού', categoryLabel: 'Φωτογραφίες' }),   // χωρίς ημερομηνία
 ]

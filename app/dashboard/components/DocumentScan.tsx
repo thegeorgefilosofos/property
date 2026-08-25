@@ -180,7 +180,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyC
   // Το ref διαβάζεται ΜΕΣΑ σε useCallback, όχι στην απόδοση. Ο κανόνας
   // `react-hooks/refs` δεν μπορεί να ξέρει ότι το `pressable` απλώς αποθηκεύει
   // τη συνάρτηση — και έχει δίκιο να μην το υποθέτει. Αυτή είναι η καθιερωμένη
-  // μορφή, και διαβάζεται καλύτερα: δύο ονομασμένες ενέργειες αντί για δύο
+  // μορφή και διαβάζεται καλύτερα: δύο ονομασμένες ενέργειες αντί για δύο
   // ανώνυμα βέλη μέσα στο JSX.
   const openCamera = useCallback(() => cameraRef.current?.click(), []);
   const openFilePicker = useCallback(() => fileRef.current?.click(), []);
@@ -341,7 +341,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyC
         <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 26 }}>Ενημερώθηκαν αυτόματα οι σχετικές καρτέλες.</div>
 
         {/* Πρόταση αποθήκευσης εκδότη στις Επαφές (μόνο για λογαριασμό/απόδειξη με όνομα
-            προμηθευτή, και εφόσον ξέρουμε ποιος χρήστης — αλλιώς σιωπηλά παραλείπεται). */}
+            προμηθευτή και εφόσον ξέρουμε ποιος χρήστης — αλλιώς σιωπηλά παραλείπεται). */}
         {(() => {
           const supplierName = (edited.provider || '').trim();
           const isInvoiceLike = edited.doc_type === 'bill' || edited.doc_type === 'payment';
@@ -415,7 +415,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyC
           έγγραφο», κάτω από το «Σάρωση εγγράφου» του κελύφους — και έμενε
           ορατός ΚΑΙ πάνω από την οθόνη επιτυχίας «Καταχωρήθηκε», όπου δεν
           σαρώνει πια τίποτα. Η εξήγηση για το τι δέχεται μένει: είναι
-          πληροφορία, όχι επικεφαλίδα, και είναι χρήσιμη ακριβώς πριν το
+          πληροφορία, όχι επικεφαλίδα και είναι χρήσιμη ακριβώς πριν το
           πρώτο άγγιγμα. */}
       {step === 'upload' && (
         <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55, marginBottom: 20 }}>
@@ -527,7 +527,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyC
               )}
             </div>
 
-            {/* Τι δεν διάβασα και τι δεν βγάζει νόημα — ξεχωριστά, και τα δύο ειλικρινά. */}
+            {/* Τι δεν διάβασα και τι δεν βγάζει νόημα — ξεχωριστά και τα δύο ειλικρινά. */}
             {v.invalid.length > 0 && (
               <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.inner, padding: '10px 14px', marginBottom: 10 }}>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>

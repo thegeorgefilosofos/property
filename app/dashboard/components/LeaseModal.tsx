@@ -89,9 +89,9 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
     (async () => {
       // Η ΣΤΗΛΗ ΤΗΣ ΕΓΓΥΗΣΗΣ ΛΕΓΕΤΑΙ `deposit_amount`.
       // Ο πίνακας `tenants` έχει δύο: μια παλιά `deposit` που δεν διαβάζει
-      // κανείς, και τη `deposit_amount` που χρησιμοποιεί ΟΛΗ η υπόλοιπη
+      // κανείς και τη `deposit_amount` που χρησιμοποιεί ΟΛΗ η υπόλοιπη
       // εφαρμογή — η καρτέλα Ενοικιαστή, το πλακίδιο «Εγγύηση σε κατοχή», η
-      // εξαγωγή, η σάρωση μισθωτηρίου, και η πύλη του ενοικιαστή.
+      // εξαγωγή, η σάρωση μισθωτηρίου και η πύλη του ενοικιαστή.
       //
       // Αυτή η οθόνη ήταν η μόνη που χρησιμοποιούσε την παλιά, ΚΑΙ ΣΤΙΣ ΔΥΟ
       // ΚΑΤΕΥΘΥΝΣΕΙΣ. Άρα: το πεδίο «Εγγύηση» εμφανιζόταν πάντα κενό, παρότι ο
@@ -217,7 +217,7 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
   const onF = (e: React.FocusEvent<HTMLInputElement>) => { e.currentTarget.style.borderColor = 'var(--accent)'; };
   const onB = (e: React.FocusEvent<HTMLInputElement>) => { e.currentTarget.style.borderColor = 'var(--border-default)'; };
   const seg = (u: LeaseUse): React.CSSProperties => ({ flex: 1, fontSize: 13, fontWeight: 600, height: T.h.md, borderRadius: T.radius.inner, cursor: 'pointer', textAlign: 'center', border: 'none', background: use === u ? 'var(--accent)' : 'transparent', color: use === u ? 'var(--accent-text)' : 'var(--text-secondary)', fontFamily: T.font.sans, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' });
-  // ΤΟ ΦΙΛΤΡΟ ΔΕΝ ΕΙΝΑΙ ΚΑΛΛΩΠΙΣΜΟΣ. Το πεδίο δεχόταν «-500» και «12ε», και το
+  // ΤΟ ΦΙΛΤΡΟ ΔΕΝ ΕΙΝΑΙ ΚΑΛΛΩΠΙΣΜΟΣ. Το πεδίο δεχόταν «-500» και «12ε» και το
   // αποτέλεσμα έφτανε σε υπογεγραμμένο μισθωτήριο με QR επαλήθευσης: αρνητικό
   // μίσθωμα σε συμφωνητικό που υπογράφουν δύο μέρη. Όπου υπάρχει φυσικό
   // ανώτατο (ποσοστό 100, ημέρα μήνα 31) το λέμε ρητά (lib/core/numInput.ts).

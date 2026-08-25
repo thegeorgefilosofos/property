@@ -126,7 +126,7 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
   // ── Νομική μορφή ─────────────────────────────────────────────────────────
   // ΓΙΑΤΙ ΡΩΤΑΜΕ. Από αυτό κρίνεται αν ο χρήστης θα δει ποτέ ΕΦΚΑ, Ε3, απόσβεση
   // κτιρίου και τη λέξη «ισολογισμός». Δεν συμπεραίνεται από τον τύπο προφίλ: ένας
-  // επαγγελματίας διαχειριστής δεν είναι απαραίτητα επιχείρηση, και ένας «ιδιώτης»
+  // επαγγελματίας διαχειριστής δεν είναι απαραίτητα επιχείρηση και ένας «ιδιώτης»
   // μπορεί να έχει ατομική. Λάθος μαντεψιά είτε κρύβει υποχρεωτικές καταστάσεις
   // από μια ΙΚΕ, είτε τρομάζει κάποιον με ένα κληρονομικό διαμέρισμα.
   //
@@ -174,7 +174,7 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
   };
   const linkBtn: React.CSSProperties = {
     background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: T.font.sans,
-    // Πρώτη οθόνη κάθε νέου λογαριασμού, και τα δύο κουμπιά της ήταν 32ψηλά.
+    // Πρώτη οθόνη κάθε νέου λογαριασμού και τα δύο κουμπιά της ήταν 32ψηλά.
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: T.h.md,
     padding: '8px 12px', textAlign: 'center',
   };

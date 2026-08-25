@@ -7,7 +7,7 @@ const ok = (c: boolean, m: string) => { if (c) p++; else { f++; console.error('�
 const KEY = 're_test_key';
 const ID = 'a1b2c3d4-0000-4000-8000-000000000001';
 
-/** Ενας πάροχος που απαντά ό,τι του πούμε, και θυμάται πώς τον ρώτησαν. */
+/** Ενας πάροχος που απαντά ό,τι του πούμε και θυμάται πώς τον ρώτησαν. */
 function stub(answer: { status?: number; json?: unknown; throws?: boolean; bad?: boolean }) {
   const seen: { url?: string; auth?: string } = {};
   const fetcher = (async (url: string, init?: { headers?: Record<string, string> }) => {

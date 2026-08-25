@@ -13,11 +13,11 @@
 // και μια «διόρθωση» εκεί θα ήταν πενήντα εφτά αρχεία αλλαγμένα για το τίποτα.
 //
 // ΤΟ ΠΡΑΓΜΑΤΙΚΟ ΣΦΑΛΜΑ ΕΙΝΑΙ ΟΠΟΥ ΔΕΝ ΤΡΕΧΕΙ CSS. Στο PDF τα κεφαλαία τα
-// φτιάχνει η JavaScript, και το `String.prototype.toUpperCase()` ΚΡΑΤΑΕΙ τον
+// φτιάχνει η JavaScript και το `String.prototype.toUpperCase()` ΚΡΑΤΑΕΙ τον
 // τόνο — κάθε εκτυπωμένη αναφορά έγραφε «ΣΤΟΙΧΕΊΑ ΑΚΙΝΉΤΟΥ». Το ίδιο ισχύει
 // για ό,τι φτιάχνεται εκτός περιηγητή: Excel, email, εκτυπώσιμα.
 //
-// Ο φύλακας ελέγχει ακριβώς αυτά τα δύο, και τίποτα άλλο:
+// Ο φύλακας ελέγχει ακριβώς αυτά τα δύο και τίποτα άλλο:
 //
 //   1. Καμία συμβολοσειρά γραμμένη ΟΛΟΚΛΗΡΗ με ελληνικά κεφαλαία δεν κρατά
 //      τόνο — αυτό δεν το σώζει κανένας περιηγητής, γιατί είναι ήδη κεφαλαία.
@@ -81,9 +81,9 @@ if (rawUpper.length) {
   bad = true;
   console.log(red(`\n✗ ${rawUpper.length} toUpperCase() σε διαδρομή που παράγει αρχείο:\n`));
   for (const t of rawUpper) console.log('  ' + t);
-  console.log('\n  Εκεί δεν τρέχει CSS, και το toUpperCase() της JavaScript ΚΡΑΤΑΕΙ τον');
+  console.log('\n  Εκεί δεν τρέχει CSS και το toUpperCase() της JavaScript ΚΡΑΤΑΕΙ τον');
   console.log('  τόνο. Χρησιμοποίησε το grUpper() από το lib/core/format.ts.');
 }
 
 if (bad) process.exit(1);
-console.log(`✓ κανένα ελληνικό κεφαλαίο με τόνο σε ${files.length} αρχεία, και καμία ωμή toUpperCase() σε PDF/Excel`);
+console.log(`✓ κανένα ελληνικό κεφαλαίο με τόνο σε ${files.length} αρχεία και καμία ωμή toUpperCase() σε PDF/Excel`);

@@ -22,7 +22,7 @@
 // ΟΤΑΝ ΚΑΘΑΡΙΖΕΙΣ: κατέβασε το `max` στο scripts/percent-baseline.json.
 //
 // ΤΙ ΔΕΝ ΕΙΝΑΙ ΠΟΣΟΣΤΟ. Το `%` του SQL LIKE (`\`${prefix}%\``), το `%` ως
-// μονάδα μήκους σε CSS (`width`, `color-mix`), και οι ίδιοι οι μορφοποιητές.
+// μονάδα μήκους σε CSS (`width`, `color-mix`) και οι ίδιοι οι μορφοποιητές.
 // ═══════════════════════════════════════════════════════════════════════════
 import { readFileSync } from 'node:fs'
 import { findSources } from './lib/find-tests.mjs'

@@ -50,7 +50,7 @@ export interface ElpAssetAccount {
   gross: string;
   /** Σωρευμένες αποσβέσεις. `null` στη γη, που δεν αποσβένεται. */
   depreciation: string | null;
-  /** Σωρευμένες απομειώσεις. Υπάρχουν παντού, και στη γη. */
+  /** Σωρευμένες απομειώσεις. Υπάρχουν παντού και στη γη. */
   impairment: string;
   /** Ο λογαριασμός εξόδου της απόσβεσης (66.x), όπου υπάρχει απόσβεση. */
   expense: string | null;
@@ -132,7 +132,7 @@ export const depreciableBase = (a: FixedAsset): number =>
  *
  * Η απόσβεση αρχίζει από τον ΕΠΟΜΕΝΟ μήνα από αυτόν που το πάγιο τέθηκε σε
  * χρήση. Αγορά τον Ιανουάριο δίνει έντεκα μήνες, όχι δώδεκα· αγορά τον
- * Δεκέμβριο δίνει μηδέν, και η απόσβεση αρχίζει την επόμενη χρονιά.
+ * Δεκέμβριο δίνει μηδέν και η απόσβεση αρχίζει την επόμενη χρονιά.
  */
 export function monthsInFirstYear(acquired: string): number {
   const m = Number(String(acquired).slice(5, 7));
@@ -160,7 +160,7 @@ export function depreciationSchedule(a: FixedAsset, throughYear: number): Deprec
     if (opening <= 0) break;
     const months = year === start ? monthsInFirstYear(a.acquired) : 12;
     // Η τελευταία χρονιά κόβεται στο υπόλοιπο: ένα πάγιο δεν αποσβένεται κάτω
-    // από το μηδέν, και ένας συντελεστής που δεν διαιρεί ακριβώς το 100 θα
+    // από το μηδέν και ένας συντελεστής που δεν διαιρεί ακριβώς το 100 θα
     // άφηνε λεπτά να τρέχουν για πάντα.
     const charge = cents(Math.min(opening, base * rate * (months / 12)));
     accumulated = cents(accumulated + charge);
@@ -198,7 +198,7 @@ export function missingFor(a: FixedAsset): string {
  * Η ΣΕΙΡΑ ΤΟΥ ΜΗΤΡΩΟΥ: ΛΟΓΑΡΙΑΣΜΟΣ, ΜΕΤΑ ΧΡΟΝΟΣ.
  *
  * Ο λογιστής διαβάζει ανά λογαριασμό, γιατί έτσι τα καταχωρεί· μέσα στον
- * λογαριασμό, χρονολογικά, όπως και το βιβλίο. Τα αχρονολόγητα στο τέλος, και
+ * λογαριασμό, χρονολογικά, όπως και το βιβλίο. Τα αχρονολόγητα στο τέλος και
  * οι ισοπαλίες αλφαβητικά, ώστε δύο εξαγωγές να δίνουν το ίδιο αρχείο.
  */
 export function sortAssets(assets: readonly FixedAsset[]): FixedAsset[] {
@@ -255,7 +255,7 @@ export interface RegisterInput {
   expenses?: readonly {
     date: string; category?: string | null; description?: string | null; amount?: number | null;
   }[];
-  /** Ποιες κατηγορίες δαπανών είναι υποψήφιες, και σε ποιον λογαριασμό. */
+  /** Ποιες κατηγορίες δαπανών είναι υποψήφιες και σε ποιον λογαριασμό. */
   capitalisable: Readonly<Record<string, string>>;
   /**
    * Η χρήση του μητρώου. Κόβει ό,τι αποκτήθηκε ΜΕΤΑ το τέλος της.

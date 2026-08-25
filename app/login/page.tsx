@@ -123,7 +123,7 @@ export default function LoginPage() {
             <AlreadySignedIn email={sessionEmail} onSignOut={signOut} signingOut={signingOut} mode="login" />
           ) : (<>
           {/* ΣΕ ΚΙΝΗΤΟ ΔΕΝ ΥΠΗΡΧΕ ΚΑΝΕΝΑΣ ΔΡΟΜΟΣ ΠΙΣΩ. Το λογότυπο ζει στο
-              αριστερό πάνελ, που κρύβεται κάτω από τις 900, και δεν ήταν καν
+              αριστερό πάνελ, που κρύβεται κάτω από τις 900 και δεν ήταν καν
               σύνδεσμος. Όποιος άνοιγε τη Σύνδεση από την αρχική έμενε εκεί. */}
           <BackLink home />
           <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: '0 0 6px' }}>Καλώς όρισες ξανά</h1>

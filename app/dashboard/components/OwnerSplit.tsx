@@ -84,7 +84,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
   //
   // Δεν είναι οπτικό λάθος: το `exportPdf` καλεί ΠΡΩΤΑ την `issueDocument` με
   // `subject: prop.name` και τα ποσά του state, άρα η λάθος κατανομή
-  // καταχωρείται στο μητρώο εγγράφων με αριθμό και QR επαλήθευσης, και ο
+  // καταχωρείται στο μητρώο εγγράφων με αριθμό και QR επαλήθευσης και ο
   // συνιδιοκτήτης παίρνει χαρτί που του δίνει τετραπλάσιο μερίδιο.
   //
   // Το πρώτο effect του ίδιου αρχείου έχει ήδη `let alive = true`· αυτό εδώ,
@@ -109,7 +109,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
       // «Εισπράχθηκαν» λέει επιτέλους την αλήθεια.
       //
       // Το ερώτημα δεν φιλτράρει πια περίοδο: μια δόση που εισπράχθηκε φέτος
-      // μπορεί να ανήκει σε περσινό μήνα, και θα έλειπε. Το φιλτράρισμα το
+      // μπορεί να ανήκει σε περσινό μήνα και θα έλειπε. Το φιλτράρισμα το
       // κάνει η `collectedIn` πάνω στην ημερομηνία βιβλίου.
       const [rAll, e] = await Promise.all([
         rentStore.ofProperties<rentStore.BookableRent>(
@@ -117,7 +117,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
         expenses.inRangeOfProperty(supabase, propId, from, to),
       ]);
       const r = rentStore.collectedIn((rAll || []) as rentStore.BookableRent[], year, month);
-      // Και τα δύο ερωτήματα ζητούν `amount`: αυτό είναι ό,τι χρειάζεται εδώ, και
+      // Και τα δύο ερωτήματα ζητούν `amount`: αυτό είναι ό,τι χρειάζεται εδώ και
       // αυτό δηλώνεται. Το `any` έκρυβε ότι ένα λάθος όνομα στήλης θα έδινε μηδέν.
       const sumAmount = (rows: { amount?: number | string | null }[] | null) =>
         (rows || []).reduce((s, x) => s + num(x.amount ?? 0), 0);
@@ -197,7 +197,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
   // Το χειρόγραφο κέλυφος δεν άκουγε Escape· το Modal ακούει. Η `exportPdf`
   // πρώτα ΚΑΤΑΧΩΡΕΙ έγγραφο στη βάση (issueDocument: αριθμός εγγράφου, σύνδεσμος
   // επαλήθευσης) και ΜΕΤΑ φτιάχνει το PDF. Ένα Escape ανάμεσα στα δύο αφήνει
-  // εκδομένο έγγραφο χωρίς αρχείο στα χέρια του χρήστη, και το μήνυμα αποτυχίας
+  // εκδομένο έγγραφο χωρίς αρχείο στα χέρια του χρήστη και το μήνυμα αποτυχίας
   // δεν εμφανίζεται ποτέ. Όσο το κουμπί λέει «Δημιουργία…», το παράθυρο μένει.
   const requestClose = () => { if (!busy) onClose(); };
   const miniStat = (label: string, value: string, strong = false): React.ReactNode => (
@@ -248,7 +248,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {rows.map((r, i) => (
-              // Η αφαίρεση εμφανίζεται μόνο όταν υπάρχουν πολλοί ιδιοκτήτες, και
+              // Η αφαίρεση εμφανίζεται μόνο όταν υπάρχουν πολλοί ιδιοκτήτες και
               // μόνο όταν ο κέρσορας/δάχτυλο περνά πάνω από τη γραμμή (ήσυχο UI).
               <div key={i} onMouseEnter={() => setHoverRow(i)} onMouseLeave={() => setHoverRow(null)} onFocusCapture={() => setHoverRow(i)}
                 style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -256,7 +256,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
                 <input value={r.afm} onChange={e => setRow(i, 'afm', e.target.value.replace(/\D/g, '').slice(0, 9))} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="ΑΦΜ" style={{ ...field, flex: '1 1 100px' }} inputMode="numeric" />
                 <div style={{ position: 'relative', flex: '0 0 92px' }}>
                   {/* ΤΟ ΠΟΣΟΣΤΟ ΙΔΙΟΚΤΗΣΙΑΣ ΔΕΝ ΠΕΡΝΑΕΙ ΤΟ 100 ΚΑΙ ΔΕΝ ΓΙΝΕΤΑΙ
-                      ΑΡΝΗΤΙΚΟ. Το πεδίο δεχόταν «250» και «-40», και το ποσό
+                      ΑΡΝΗΤΙΚΟ. Το πεδίο δεχόταν «250» και «-40» και το ποσό
                       κάθε συνιδιοκτήτη έβγαινε από εκεί — σε κατάσταση που
                       κατεβαίνει ως PDF και πάει στον λογιστή. */}
                   <input value={r.pct} onChange={e => { const v = acceptNumeric(e.target.value, PCT_MAX); if (v !== null) setRow(i, 'pct', v); }} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="" style={{ ...field, width: '100%', paddingRight: 32, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} inputMode="decimal" />
@@ -301,7 +301,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
                   χρωματιστό. Και το «ΠΟΣΟΣΤΑ 0,00%» σκέτο δεν έλεγε ΤΙ ΠΕΡΙΜΕΝΕΙ:
                   ο χρήστης έβλεπε κίτρινο και μάντευε.
                   Τώρα το ίδιο το κείμενο λέει το ζητούμενο («0,00% από 100%»),
-                  η γραμμή από κάτω το μεταφράζει σε ευρώ, και το χρώμα μένει
+                  η γραμμή από κάτω το μεταφράζει σε ευρώ και το χρώμα μένει
                   ουδέτερο όπως σε κάθε άλλο σήμα της εφαρμογής. */}
               <span style={{ marginLeft: 'auto' }}>
                 <Badge>Ποσοστά {result.valid ? pPct(result.pctSum) : `${pPct(result.pctSum)} από ${pPct(100)}`}</Badge>
