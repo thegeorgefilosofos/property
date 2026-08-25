@@ -215,7 +215,7 @@ declare v_link record; v_ok int;
 begin
   select * into v_link from portal_links where token = p_token and active = true;
   if not found then return false; end if;
-  -- Μόνο δόσεις που ανήκουν στο ακίνητο της πύλης, και ΔΕΝ σημειώνεται «πληρωμένο»
+  -- Μόνο δόσεις που ανήκουν στο ακίνητο της πύλης και ΔΕΝ σημειώνεται «πληρωμένο»
   -- (αυτό το κάνει ο ιδιοκτήτης) — μόνο «δηλώθηκε από τον ενοικιαστή».
   update rent_payments
     set tenant_declared = true, tenant_declared_at = now(), tenant_note = left(coalesce(p_note,''), 500)

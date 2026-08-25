@@ -1,98 +1,107 @@
 #!/usr/bin/env node
 // ═══════════════════════════════════════════════════════════════════════════
-// ΚΑΝΕΝΑ ΚΟΜΜΑ ΠΡΙΝ ΑΠΟ ΤΟ «ΚΑΙ»
+// ΚΑΝΕΝΑ ΚΟΜΜΑ ΠΡΙΝ ΑΠΟ ΤΟ «ΚΑΙ», ΠΟΥΘΕΝΑ
 // ─────────────────────────────────────────────────────────────────────────
-// Ο κανόνας είναι ρητός και αφορά ό,τι διαβάζει ο χρήστης: γράφουμε «και»,
-// ποτέ « και». Το ίδιο ισχύει για το «κι».
+// Ο κανόνας είναι ρητός: γράφουμε «και», ποτέ « και». Το ίδιο για το «κι».
 //
-// ΤΙ ΜΕΤΡΗΘΗΚΕ. 207 λεκτικά σε 64 αρχεία και 61 από αυτά έφταναν στην οθόνη
-// σε δέκα δημόσιες σελίδες και οκτώ οθόνες του πίνακα. Τα υπόλοιπα ζούσαν σε
-// μηνύματα email, σε τίτλους PDF και σε κείμενα που εμφανίζονται υπό συνθήκη.
+// ΠΩΣ ΞΕΚΙΝΗΣΕ. Πρώτα μετρήθηκαν 207 λεκτικά σε 64 αρχεία, από τα οποία 61
+// έφταναν στην οθόνη σε δέκα δημόσιες σελίδες και οκτώ οθόνες του πίνακα.
 //
-// ΓΙΑΤΙ ΜΟΝΟ ΤΑ ΛΕΚΤΙΚΑ, ΚΑΙ ΟΧΙ ΤΑ ΣΧΟΛΙΑ. Στον κώδικα υπάρχουν πάνω από δύο
-// χιλιάδες εμφανίσεις και η συντριπτική πλειονότητα ζει σε σχόλια που κανείς
-// δεν βλέπει στην εφαρμογή. Ο κανόνας είναι για το κείμενο του προϊόντος, άρα
-// η απογραφή γίνεται από το AST: εκεί το σχόλιο δεν είναι συμβολοσειρά.
+// ΤΟ ΤΥΦΛΟ ΣΗΜΕΙΟ ΤΗΣ ΠΡΩΤΗΣ ΕΚΔΟΧΗΣ, ΜΕΤΡΗΜΕΝΟ. Η πρώτη εκδοχή διάβαζε το AST
+// και εξέταζε ΜΟΝΟ συμβολοσειρές και κείμενο JSX. Ετσι δεν έβλεπε:
 //
-// ΚΑΙ ΟΙ ΕΝΩΜΕΝΕΣ ΣΥΜΒΟΛΟΣΕΙΡΕΣ, ΓΙΑΤΙ ΕΚΕΙ ΚΡΥΦΤΗΚΕ Η ΤΕΛΕΥΤΑΙΑ. Στη σελίδα
-// του ΕΝΦΙΑ το κόμμα έκλεινε το ένα κομμάτι και το «και» άνοιγε το επόμενο:
+//   · τα σχόλια — τα δώδεκα στο proxy.ts, το ίδιο το επεξηγηματικό μπλοκ του
+//     app/error.tsx, τις επικεφαλίδες κάθε νέου αρχείου·
+//   · τη ρίζα του αποθετηρίου — το proxy.ts και το eslint.config.mjs δεν ήταν
+//     καν στα glob·
+//   · οτιδήποτε δεν ήταν .ts/.tsx/.mjs — 471 εμφανίσεις σε τεκμηρίωση,
+//     μεταναστεύσεις, ροές CI, ρυθμίσεις.
 //
-//     '… περιουσιακά όρια, '
-//   + 'και έκπτωση 20% …'
+// Τύπωνε «✓ κανένα κόμμα σε 870 αρχεία» με πάνω από πεντακόσια από κάτω.
 //
-// Κανένα λεκτικό μόνο του δεν περιείχε « και» και η οθόνη το έδειχνε
-// κανονικά. Οι ενώσεις με «+» εξετάζονται πλέον και ΕΝΩΜΕΝΕΣ.
+// Η ΛΥΣΗ ΕΙΝΑΙ ΑΠΛΟΥΣΤΕΡΗ ΑΠΟ ΤΟ ΠΡΟΒΛΗΜΑ. Το «και» είναι ελληνική λέξη: δεν
+// υπάρχει σε αναγνωριστικό, σε λέξη-κλειδί ή σε όνομα αρχείου. Οπότε δεν
+// χρειάζεται καθόλου AST. Σαρώνεται ΟΛΟΚΛΗΡΟ το κείμενο κάθε αρχείου του
+// έργου. Μηδέν τυφλά σημεία, μία γραμμή κανόνα.
 //
-// ΤΙ ΔΕΝ ΠΙΑΝΕΤΑΙ: το περιεχόμενο ενός <style> (είναι CSS) και οι τεχνικές
-// ιδιότητες JSX (className, style, href, id, key, type, name).
+// ΔΥΟ ΕΞΑΙΡΕΣΕΙΣ, ΚΑΙ ΟΙ ΔΥΟ ΓΙΑΤΙ ΤΟ « και» ΕΙΝΑΙ ΕΚΕΙ ΕΠΙΤΗΔΕΣ:
+//   · το scripts/lib/mutations.mjs κρατά τα ΣΦΑΛΜΑΤΑ που ξαναμπαίνουν στον
+//     πάγκο, άρα οφείλει να περιέχει ακριβώς ό,τι απαγορεύεται (το φιλτράρει
+//     ήδη το projectFiles ως πρόπλασμα)·
+//   · αυτός ο ίδιος ο φύλακας, που τυπώνει τον κανόνα με τα λόγια του.
 // ═══════════════════════════════════════════════════════════════════════════
-import ts from 'typescript';
 import { readFileSync } from 'node:fs';
 import { projectFiles } from './lib/git-files.mjs';
 
-// ΚΑΙ ΤΑ ΕΡΓΑΛΕΙΑ, ΓΙΑΤΙ ΚΙ ΑΥΤΑ ΜΙΛΑΝΕ. Τα μηνύματα των φύλακων και των
-// σουιτών τα διαβάζει άνθρωπος στο τερματικό: ο ίδιος κανόνας ισχύει.
-//
-// ΔΥΟ ΕΞΑΙΡΕΣΕΙΣ, ΚΑΙ ΟΙ ΔΥΟ ΓΙΑΤΙ ΤΟ «, και» ΕΙΝΑΙ ΕΚΕΙ ΕΠΙΤΗΔΕΣ:
-//   · το mutations.mjs κρατά τα ΣΦΑΛΜΑΤΑ που ξαναμπαίνουν στον πάγκο, άρα
-//     οφείλει να περιέχει ακριβώς ό,τι απαγορεύεται (το φιλτράρει ήδη το
-//     projectFiles ως fixture)·
-//   · αυτός ο ίδιος ο φύλακας, που τυπώνει τον κανόνα με τα λόγια του.
 const SELF = 'scripts/guard-comma-kai.mjs';
-const files = projectFiles("'app/**' 'components/**' 'lib/**' 'supabase/functions/**' 'scripts/**'")
-  .filter(f => /\.(tsx?|mjs)$/.test(f) && f !== SELF);
+
+// Ο,τι δεν είναι κείμενο που γράφει άνθρωπος: δυαδικά, κλειδωμένα, παραγόμενα.
+const BINARY = /\.(png|jpe?g|gif|webp|avif|ico|svg|woff2?|ttf|otf|eot|pdf|zip|gz|mp4|webm|lock)$/i;
+
+const files = projectFiles().filter(f => f !== SELF && !BINARY.test(f) && f !== 'package-lock.json');
 
 // Το «\b» δεν δουλεύει μετά από ελληνικό γράμμα: το «ι» δεν είναι χαρακτήρας
 // λέξης κατά ASCII, οπότε το όριο δεν βρίσκεται ποτέ και ο έλεγχος θα ήταν
 // σιωπηλά κενός. Το αρνητικό lookahead το λέει σωστά.
-const RE = /,\s*(και|κι)(?![α-ωΑ-Ωά-ώΆ-Ώ])/u;
-const GREEK = /[Ά-ώ]/;
+const RE = /,[ \t\n]*(και|κι)(?![α-ωΑ-Ωά-ώΆ-Ώ])/gu;
+
+// ═══ ΚΑΙ Ο ΔΕΥΤΕΡΟΣ ΦΑΚΟΣ: Η ΠΡΟΤΑΣΗ ΣΠΑΣΜΕΝΗ ΣΕ ΔΥΟ ΓΡΑΜΜΕΣ ═══════════════
+// Το κόμμα κλείνει τη μια γραμμή και το «και» ανοίγει την επόμενη:
+//
+//     echo "… η σειρά των πακέτων είναι «$TS_RANKS»,"
+//     echo "   και οι τιμές συμφωνούν: «$TS_PRICES»."
+//
+// Ανάμεσά τους δεν υπάρχει κενό αλλά εισαγωγικά και «echo». Ο άνθρωπος διαβάζει
+// μία πρόταση, ο σαρωτής δύο. Ο δεύτερος φακός βγάζει τα ικριώματα από τις
+// άκρες των γραμμών και ξανακοιτά. Ισχύει το ίδιο για ένωση με «+» στη JS.
+//
+// ΤΟ ΚΟΜΜΑ ΠΡΕΠΕΙ ΝΑ ΕΙΝΑΙ ΜΕΣΑ ΣΤΗ ΣΥΜΒΟΛΟΣΕΙΡΑ, ΟΧΙ ΜΕΤΑ ΑΠΟ ΑΥΤΗΝ. Χωρίς
+// αυτόν τον περιορισμό ο φακός έβγαζε τέσσερα ψεύτικα ευρήματα σε σουίτες:
+//
+//     eq(feedUrl(T).replace(/^https:\/\//, ''),
+//        'και είναι η ΙΔΙΑ διεύθυνση')
+//
+// Εκεί το κόμμα χωρίζει ΟΡΙΣΜΑΤΑ, δεν είναι σημείο στίξης. Η διαφορά φαίνεται
+// στη σειρά: «,\"» σημαίνει κόμμα μέσα στο κείμενο, «\",» σημαίνει κόμμα μετά.
+const TAIL = /,[ \t]*(["'`])[ \t]*[+,]?[ \t]*$/;
+const HEAD = /^[ \t]*(?:echo|console\.log\(|\+)?[ \t]*["'`]/;
+
+/** Το κείμενο με τις προτάσεις που σπάνε σε δύο γραμμές ξαναενωμένες. */
+const joined = (src) => {
+  const out = [];
+  const lines = src.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    if (!TAIL.test(lines[i]) || i + 1 >= lines.length) continue;
+    out.push(lines[i].replace(TAIL, ', ') + lines[i + 1].replace(HEAD, ''));
+  }
+  return out.join('\n');
+};
 
 const hits = [];
 for (const f of files) {
-  let src; try { src = readFileSync(f, 'utf8'); } catch { continue; }
-  if (!GREEK.test(src)) continue;
-  const sf = ts.createSourceFile(f, src, ts.ScriptTarget.Latest, true, /\.tsx$/.test(f) ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
-  const at = (n) => sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
-  const push = (n, t) => { if (GREEK.test(t) && RE.test(t)) hits.push({ f, line: at(n), t: t.replace(/\s+/g, ' ').trim() }); };
-  const inStyleTag = (n) => {
-    for (let a = n.parent; a; a = a.parent)
-      if (ts.isJsxElement(a) && a.openingElement.tagName.getText(sf) === 'style') return true;
-    return false;
-  };
-  const walk = (n) => {
-    if (inStyleTag(n)) { n.forEachChild(walk); return; }
-    if (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) {
-      const p = n.parent;
-      if (!(ts.isJsxAttribute(p) && ['className', 'style', 'href', 'id', 'key', 'type', 'name'].includes(p.name.getText(sf)))) push(n, n.text);
-    } else if (ts.isJsxText(n)) { const t = n.text.replace(/\s+/g, ' ').trim(); if (t) push(n, t); }
-    else if (ts.isTemplateExpression(n)) { for (const q of [n.head, ...n.templateSpans.map(s => s.literal)]) if (q.text.trim()) push(n, q.text); }
-    else if (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.PlusToken) {
-      // Ολα τα φύλλα της ένωσης, στη σειρά. Ο,τι δεν είναι συμβολοσειρά μπαίνει
-      // ως κενό: μια μεταβλητή στη μέση δεν φέρνει ούτε κόμμα ούτε «και».
-      const parts = [];
-      const flat = (x) => {
-        if (ts.isBinaryExpression(x) && x.operatorToken.kind === ts.SyntaxKind.PlusToken) { flat(x.left); flat(x.right); return; }
-        parts.push(ts.isStringLiteral(x) || ts.isNoSubstitutionTemplateLiteral(x) ? x.text : '');
-      };
-      flat(n);
-      push(n, parts.join(''));
-    }
-    n.forEachChild(walk);
-  };
-  walk(sf);
+  let src;
+  try { src = readFileSync(f, 'utf8'); } catch { continue; }
+  if (!src.includes('κα') && !src.includes('κι')) continue;
+  for (const m of src.matchAll(RE)) {
+    const line = src.slice(0, m.index).split('\n').length;
+    const from = Math.max(0, m.index - 44);
+    hits.push({ f, line, t: src.slice(from, m.index + 28).replace(/\s+/g, ' ').trim() });
+  }
+  const j = joined(src);
+  for (const m of j.matchAll(RE)) {
+    const from = Math.max(0, m.index - 44);
+    const t = j.slice(from, m.index + 28).replace(/\s+/g, ' ').trim();
+    if (!hits.some(h => h.f === f && h.t === t)) hits.push({ f, line: 0, t });
+  }
 }
 
 if (hits.length) {
-  console.error(`✗ ${hits.length} λεκτικά με κόμμα πριν από το «και», σε ${new Set(hits.map(h => h.f)).size} αρχεία:\n`);
-  for (const h of hits.slice(0, 12)) {
-    const m = RE.exec(h.t);
-    const i = Math.max(0, h.t.indexOf(m[0]) - 40);
-    console.error(`  ${h.f}:${h.line}\n     …${h.t.slice(i, i + 96)}…`);
-  }
-  if (hits.length > 12) console.error(`  … και ${hits.length - 12}`);
+  const byFile = new Set(hits.map(h => h.f));
+  console.error(`✗ ${hits.length} φορές κόμμα πριν από το «και», σε ${byFile.size} αρχεία:\n`);
+  for (const h of hits.slice(0, 14)) console.error(`  ${h.f}${h.line ? ':' + h.line : ' (σπασμένο σε δύο γραμμές)'}\n     …${h.t}…`);
+  if (hits.length > 14) console.error(`  … και ${hits.length - 14} ακόμη`);
   console.error(`
-  Γράφουμε «και», όχι «, και». Το ίδιο και για το «κι».
+  Γράφουμε «και», όχι « και». Το ίδιο και για το «κι».
 `);
   process.exit(1);
 }

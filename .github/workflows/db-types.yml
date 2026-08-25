@@ -117,7 +117,7 @@ jobs:
           git checkout -B "$BRANCH"
           git add "$OUT"
           git commit -m "chore(db): τύποι από το σχήμα παραγωγής" -m \
-            "Παραγόμενο αρχείο. Δεν γράφεται με το χέρι: χειρόγραφοι τύποι αποκλίνουν σιωπηλά από τη βάση με το πρώτο migration, και τότε ο TypeScript δίνει ΨΕΥΤΙΚΗ ασφάλεια αντί για καθόλου."
+            "Παραγόμενο αρχείο. Δεν γράφεται με το χέρι: χειρόγραφοι τύποι αποκλίνουν σιωπηλά από τη βάση με το πρώτο migration και τότε ο TypeScript δίνει ΨΕΥΤΙΚΗ ασφάλεια αντί για καθόλου."
           git push --force-with-lease origin "$BRANCH"
 
           if gh pr view "$BRANCH" --json number --jq .number >/dev/null 2>&1; then

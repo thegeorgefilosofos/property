@@ -63,7 +63,7 @@ Supabase → Project Settings → **Edge Functions** → Secrets:
 | `notify-mobile-launch` | με ενέργεια | σε όσους δήλωσαν ενδιαφέρον |
 
 Τα δύο ενημερωτικά χτίζουν ήδη σύνδεσμο διαγραφής από το
-`email_marketing_prefs.unsubscribe_token`, και η σελίδα `/unsubscribe/[token]`
+`email_marketing_prefs.unsubscribe_token` και η σελίδα `/unsubscribe/[token]`
 είναι δημόσια. Δεν χρειάζεται τίποτα επιπλέον για τη συμμόρφωση.
 
 ---
@@ -80,7 +80,7 @@ Supabase → Project Settings → **Edge Functions** → Secrets:
 
 ---
 
-## 5. Τι ΔΕΝ κάνει η εφαρμογή, και το λέει
+## 5. Τι ΔΕΝ κάνει η εφαρμογή και το λέει
 
 Η εφαρμογή **δεν στέλνει μηνύματα στον μισθωτή από μόνη της**. Το
 `tenants.email` το χρησιμοποιούν τρεις σύνδεσμοι `mailto:` — τα στέλνεις εσύ,

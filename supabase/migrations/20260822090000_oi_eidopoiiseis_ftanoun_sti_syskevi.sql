@@ -7,7 +7,7 @@
 --
 -- ── ΤΙ ΚΡΑΤΑΕΙ ΑΥΤΟΣ Ο ΠΙΝΑΚΑΣ, ΚΑΙ ΤΙ ΣΗΜΑΙΝΕΙ ─────────────────────────
 -- Μία γραμμή ανά ΣΥΣΚΕΥΗ, όχι ανά χρήστη: ο ίδιος άνθρωπος έχει κινητό,
--- tablet και υπολογιστή, και κάθε ένα δίνει δικό του `endpoint` με δικά του
+-- tablet και υπολογιστή και κάθε ένα δίνει δικό του `endpoint` με δικά του
 -- κλειδιά κρυπτογράφησης. Το `endpoint` είναι η διεύθυνση στην υπηρεσία push
 -- του κατασκευαστή (Google, Apple, Mozilla) και είναι ΜΟΝΑΔΙΚΟ: αν η ίδια
 -- συσκευή ξαναγραφτεί, ενημερώνεται η γραμμή της.
@@ -53,7 +53,7 @@ create policy push_subscriptions_own_insert on public.push_subscriptions
 
 -- Η ΕΝΗΜΕΡΩΣΗ ΕΠΙΤΡΕΠΕΤΑΙ ΓΙΑ ΕΝΑΝ ΛΟΓΟ: η ίδια συσκευή ξαναγράφεται. Ο
 -- περιηγητής δίνει νέα κλειδιά όταν ανανεώσει τη συνδρομή της, με το ΙΔΙΟ
--- endpoint, και το `upsert` πρέπει να μπορεί να πατήσει πάνω στη γραμμή της.
+-- endpoint και το `upsert` πρέπει να μπορεί να πατήσει πάνω στη γραμμή της.
 drop policy if exists push_subscriptions_own_update on public.push_subscriptions;
 create policy push_subscriptions_own_update on public.push_subscriptions
   for update using ((select auth.uid()) = user_id)
@@ -105,7 +105,7 @@ create trigger trg_lock_push_delivery
 --
 -- ΤΙ ΤΑ ΑΝΤΙΚΑΘΙΣΤΑ. Ο `push_subscriptions` από πάνω, με το πρότυπο του W3C
 -- (RFC 8291) και κλειδιά VAPID: χωρίς λογαριασμό Google, με κρυπτογράφηση από
--- άκρο σε άκρο, και με αποστολέα την ίδια την εφαρμογή.
+-- άκρο σε άκρο και με αποστολέα την ίδια την εφαρμογή.
 -- ═══════════════════════════════════════════════════════════════════════════
 
 drop table if exists public.push_devices;

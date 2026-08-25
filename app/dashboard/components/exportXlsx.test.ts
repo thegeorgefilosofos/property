@@ -20,7 +20,7 @@ const ok = (n: string, c: boolean) => { if (c) pass++; else { fail++; console.er
 const eq = (n: string, got: unknown, want: unknown) => ok(`${n} (${JSON.stringify(got)} ≠ ${JSON.stringify(want)})`, JSON.stringify(got) === JSON.stringify(want))
 
 // Το πλαστό έγγραφο ζει στο lib/core/downloadCapture.testkit.ts: ήταν γραμμένο δύο
-// φορές, και το ένα αντίγραφο κρατούσε το σφάλμα που έριχνε το CI.
+// φορές και το ένα αντίγραφο κρατούσε το σφάλμα που έριχνε το CI.
 const caught = captureDownloads()
 const last = () => caught[caught.length - 1]
 // `cellNF` ώστε να επιστραφεί η ΜΟΡΦΗ του κελιού, όχι μόνο η τιμή του.

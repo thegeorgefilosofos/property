@@ -8,7 +8,7 @@
 -- Ομως το `billing_profiles.plan` παίρνει free/solo/owner/agency/office
 -- (lib/billing/plans.ts). Τα 'individual' και 'professional' είναι τιμές του
 -- `profile_type` (lib/billing/entitlements.ts: ProfileType). Δηλαδή η συνθήκη
--- δεν ήταν ΠΟΤΕ αληθής, και κάθε λογαριασμός έπεφτε στο 'free'.
+-- δεν ήταν ΠΟΤΕ αληθής και κάθε λογαριασμός έπεφτε στο 'free'.
 --
 -- ΤΙ ΚΟΣΤΙΖΕ, ΣΙΩΠΗΛΑ:
 --
@@ -54,7 +54,7 @@ begin
          -- Διαβαζόταν το `bp.plan`, που παίρνει free/solo/owner/agency/office,
          -- και συγκρινόταν με 'individual'/'professional' — τιμές του
          -- `profile_type`. Η σύγκριση δεν πετύχαινε ΠΟΤΕ, οπότε κάθε χρήστης
-         -- έπεφτε στο 'free': όλοι έπαιρναν welcome_free, και το
+         -- έπεφτε στο 'free': όλοι έπαιρναν welcome_free και το
          -- `upsell_to_individual` στόχευε και συνδρομητές. Δύο λεξιλόγια με
          -- ένα όνομα· τα πρότυπα (welcome_individual / welcome_professional)
          -- ήταν ΠΑΝΤΑ του τύπου προφίλ, όπως δείχνουν τα ονόματά τους.

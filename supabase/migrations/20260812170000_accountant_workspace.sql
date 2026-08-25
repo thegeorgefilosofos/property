@@ -8,11 +8,11 @@
 --
 --  ΤΙ ΑΛΛΑΖΕΙ. Ο λογιστής φτιάχνει ΔΙΚΟ ΤΟΥ λογαριασμό και «διεκδικεί» κάθε
 --  σύνδεσμο που του στέλνουν. Από εκεί και πέρα βλέπει μία λίστα με όλους τους
---  ιδιοκτήτες που τον εξουσιοδότησαν, και τι λείπει από τον καθένα.
+--  ιδιοκτήτες που τον εξουσιοδότησαν και τι λείπει από τον καθένα.
 --
 --  ΚΑΙ Η ΑΝΤΙΣΤΡΟΦΗ ΚΑΤΕΥΘΥΝΣΗ, ΠΟΥ ΕΙΝΑΙ ΤΟ ΟΥΣΙΩΔΕΣ. Μέχρι τώρα η
 --  πληροφορία πήγαινε μόνο προς τον λογιστή. Τώρα ο λογιστής ΖΗΤΑ: πατά δίπλα
---  σε ό,τι λείπει, και ο ιδιοκτήτης το βλέπει στον πίνακά του. Δηλαδή το
+--  σε ό,τι λείπει και ο ιδιοκτήτης το βλέπει στον πίνακά του. Δηλαδή το
 --  τηλεφώνημα «στείλε μου το εκκαθαριστικό» γίνεται γραμμή που κλείνει.
 --
 --  ΓΙΑΤΙ ΟΛΑ ΠΕΡΝΟΥΝ ΑΠΟ SECURITY DEFINER. Ο λογιστής ΔΕΝ αποκτά δικαίωμα
@@ -41,7 +41,7 @@ create index if not exists accountant_clients_owner_idx on public.accountant_cli
 alter table public.accountant_clients enable row level security;
 
 -- Ο λογιστής βλέπει τις δικές του συνδέσεις. Ο ιδιοκτήτης βλέπει ποιος τον
--- βλέπει, και μπορεί να κόψει: το δικαίωμα ανάκλησης είναι δικό του, πάντα.
+-- βλέπει και μπορεί να κόψει: το δικαίωμα ανάκλησης είναι δικό του, πάντα.
 drop policy if exists accountant_clients_read on public.accountant_clients;
 create policy accountant_clients_read on public.accountant_clients for select
   using (accountant_id = (select auth.uid()) or owner_id = (select auth.uid()));
@@ -90,7 +90,7 @@ create policy accountant_requests_withdraw on public.accountant_requests for del
   using (accountant_id = (select auth.uid()));
 
 -- ── Η ΣΥΝΔΕΣΗ: Ο ΛΟΓΙΣΤΗΣ ΔΙΕΚΔΙΚΕΙ ΤΟΝ ΣΥΝΔΕΣΜΟ ────────────────────────
--- Επιστρέφει το όνομα του ιδιοκτήτη ώστε η οθόνη να πει ΠΟΙΟΝ πρόσθεσε, και
+-- Επιστρέφει το όνομα του ιδιοκτήτη ώστε η οθόνη να πει ΠΟΙΟΝ πρόσθεσε και
 -- όχι ένα άχρωμο «έγινε».
 create or replace function public.accountant_claim(p_token text)
 returns json

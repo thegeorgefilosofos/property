@@ -63,6 +63,6 @@
 - **Live:** μηχανή (`send-lifecycle-email`), 101 κείμενα, cron backbone
   (`email_marketing_cron`, `monthly_statements_cron`), `cron_secrets` auth.
 - **Pending domain:** `RESEND_FROM` (branded αποστολέας), verify Resend, inbound
-  webhook για το `reply_ack`, και οι per-event DB triggers που λείπουν.
+  webhook για το `reply_ack` και οι per-event DB triggers που λείπουν.
 - **Επόμενο:** σύνδεση κάθε εναύσματος (πίνακας §2) με DB trigger/edge function,
   ώστε να «ανάβει» μόνο του με το συμβάν του χρήστη.

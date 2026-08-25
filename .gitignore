@@ -63,7 +63,7 @@ __gen*.ts
 docs/marketing/posts/*
 !docs/marketing/posts/.gitkeep
 # Το ίδιο και οι καταγραφές οθόνης: παράγονται με μία εντολή, ζυγίζουν
-# μεγαμπάιτ, και γερνούν τη στιγμή που αλλάζει η σελίδα που δείχνουν.
+# μεγαμπάιτ και γερνούν τη στιγμή που αλλάζει η σελίδα που δείχνουν.
 docs/marketing/reels/*
 !docs/marketing/reels/.gitkeep
 .e2e-signup/

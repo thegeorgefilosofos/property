@@ -28,7 +28,7 @@ alter table public.billing_profiles
   add column if not exists extra_properties integer not null default 0;
 
 -- Δεν επιτρέπεται αρνητικό: θα ΜΕΙΩΝΕ σιωπηλά το όριο κάτω από αυτό που
--- υπόσχεται το πλάνο, και ο χρήστης θα έβλεπε «όριο» ενώ έχει πληρώσει.
+-- υπόσχεται το πλάνο και ο χρήστης θα έβλεπε «όριο» ενώ έχει πληρώσει.
 alter table public.billing_profiles
   drop constraint if exists billing_profiles_extra_properties_nonneg;
 alter table public.billing_profiles
@@ -99,7 +99,7 @@ begin
   -- Τα αγορασμένα προστίθενται ΜΟΝΟ σε πεπερασμένο όριο. Χωρίς αυτόν τον έλεγχο,
   -- το «απεριόριστο» (2147483647) συν οποιοδήποτε extra θα ξεχείλιζε τον integer
   -- και θα γινόταν αρνητικό — δηλαδή το ΑΝΩΤΕΡΟ πλάνο θα σταματούσε στο πρώτο
-  -- ακίνητο. Σιωπηλό, καταστροφικό, και ακριβώς ο τύπος σφάλματος που δεν
+  -- ακίνητο. Σιωπηλό, καταστροφικό και ακριβώς ο τύπος σφάλματος που δεν
   -- εμφανίζεται σε δοκιμή με μικρά νούμερα.
   if v_limit < 2147483647 then
     select coalesce(extra_properties, 0) into v_extra
