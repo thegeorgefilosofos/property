@@ -35,6 +35,9 @@ export const lemonPort: MerchantPort = {
 
   isLive: (env) => checkoutIsLive(env),
 
+  // Μόνο το κλειδί και το κατάστημα: χωρίς χάρτη παραλλαγών.
+  canTalk: (env) => apiConfigError(env) === '',
+
   configError(env) {
     const api = apiConfigError(env);
     if (api) return api;

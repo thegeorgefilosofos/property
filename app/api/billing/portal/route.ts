@@ -32,7 +32,7 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: 'Απαιτείται σύνδεση.' }, { status: 401 });
 
   const mor = merchant();
-  if (!mor.isLive(process.env)) {
+  if (!mor.canTalk(process.env)) {
     console.info(`[${mor.id}] η πύλη δεν είναι ρυθμισμένη:`, mor.configError(process.env));
     return NextResponse.json({ available: false, url: null });
   }
