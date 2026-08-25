@@ -1342,6 +1342,11 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
   .app-content .po-box::after { content: ''; position: absolute; inset: -13px; }
 }
 
+/* Το δαχτυλίδι εστίασης ζει ΕΔΩ και όχι σε handler κάθε αντιγράφου. Ηταν
+   γραμμένο με onFocus/onBlur και useState σε ένα από τα πέντε πλαίσια
+   επιλογής, δηλαδή τα άλλα τέσσερα δεν έδειχναν πού βρίσκεται το πληκτρολόγιο. */
+.po-box:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+
 /* ── ΤΟ ΚΟΥΜΠΙ ΜΕΣΑ ΣΕ ΠΡΟΤΑΣΗ ────────────────────────────────────────────
    Το ίδιο ιδίωμα με το .po-box, για τον στόχο που ζει μέσα σε τρεχούμενο
    κείμενο. Το κάθετο γέμισμα ΔΕΝ είναι δωρεάν εδώ, όσο κι αν το έλεγε το

@@ -15,6 +15,9 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { qrDataUrl } from '@/lib/qr'
 import { T, TT, Modal, SecHdr, Btn, pressable } from '@/components/Theme'
+// Το πλαίσιο επιλογής ζει στο Theme, ένα για όλη την εφαρμογή. Ξαναβγαίνει από
+// εδώ ώστε τα σημεία που το εισάγουν από τα Bits να μη χρειαστεί να αλλάξουν.
+export { SelectBox } from '@/components/Theme'
 import { CustomSelect } from '../UIComponents'
 import { replacementSuggestion, NOT_TAX_DEPRECIATION_NOTE } from '@/lib/inventory/depreciation'
 import { openReport, rEsc } from '../reportPdf'
@@ -34,20 +37,6 @@ export const labelStyle: React.CSSProperties = { ...TT.label, display:'block', m
 export const SectionLabel = ({label,right}:{label:string;right?:React.ReactNode}) => (
   <SecHdr label={label} right={right}/>
 )
-
-// Custom checkbox — Material/Google αισθητική: τετράγωνο με 2dp γωνίες, 2px border, καθαρό check.
-export function SelectBox({checked,indeterminate,onChange,size=18}:{checked:boolean;indeterminate?:boolean;onChange:()=>void;size?:number}) {
-  const on = checked||indeterminate
-  return (
-    <button onClick={e=>{e.stopPropagation();onChange()}} aria-pressed={checked} title={checked?'Αποεπιλογή':'Επιλογή'}
-      onMouseEnter={e=>{if(!on)e.currentTarget.style.background='var(--accent-soft)'}}
-      onMouseLeave={e=>{if(!on)e.currentTarget.style.background='transparent'}}
-      style={{width:size,height:size,borderRadius:3,border:`2px solid ${on?'var(--accent)':'var(--text-tertiary)'}`,background:on?'var(--accent)':'transparent',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0,transition:'background 0.12s, border-color 0.12s',padding:0}}>
-      {checked&&<svg width={size-4} height={size-4} viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>}
-      {!checked&&indeterminate&&<div style={{width:size-8,height:2.5,background:'var(--accent-text)',borderRadius:3}}/>}
-    </button>
-  )
-}
 
 // Μικρό labeled dropdown (portal) για μαζικές ενέργειες — δεν το κόβει κανένα overflow.
 /**

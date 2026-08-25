@@ -13,7 +13,7 @@ import { inferRole } from '@/lib/contacts/roles'
 import { alphaBucket, buildAlphaIndex, compareNames, initialsOf, type AlphaEntry } from '@/lib/contacts/alpha'
 import { Phone, Mail, X, Search, Globe, MapPin, FileText, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, Pencil, Trash2, Copy, MessageSquare, UserPlus, Camera, Check, Minus, SearchX } from 'lucide-react'
 import { DatePicker, CustomSelect } from './UIComponents'
-import { T, PageTitle, SecHdr, Btn, EmptyState, fn, fe, Skeleton, SkeletonKPIs, ABSENT, ABSENT_SHORT, Modal, SideSheet, localDay, pressable, pageShell } from '@/components/Theme'
+import { T, PageTitle, SecHdr, Btn, EmptyState, fn, fe, Skeleton, SkeletonKPIs, SelectBox, ABSENT, ABSENT_SHORT, Modal, SideSheet, localDay, pressable, pageShell } from '@/components/Theme'
 import { showTool, SHOW_FROM } from '@/lib/ui/thresholds'
 import { ActionMenu } from '@/components/ActionMenu'
 import { notify, notifyOk, notifyError } from '@/components/Toast'
@@ -881,21 +881,6 @@ function exportContactsPDF(contacts: Contact[], branding?: ReportBranding | null
 // ─── Select Box ───────────────────────────────────────────────────────────────
 // Premium custom checkbox (αντικαθιστά το browser default). Υποστηρίζει
 // indeterminate για το «κύριο» κουτί επιλογής όλων.
-function SelectBox({ checked, indeterminate, onToggle, size = 19 }: { checked: boolean; indeterminate?: boolean; onToggle?: () => void; size?: number }) {
-  const on = checked || indeterminate
-  const [foc, setFoc] = useState(false)
-  const ring = on ? '0 1px 5px color-mix(in srgb, var(--accent) 40%, transparent)' : 'none'
-  return (
-    <span role="checkbox" aria-checked={indeterminate ? 'mixed' : checked} tabIndex={0}
-      onClick={e => { e.stopPropagation(); onToggle?.() }}
-      onKeyDown={e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); onToggle?.() } }}
-      onFocus={() => setFoc(true)} onBlur={() => setFoc(false)}
-      style={{ width: size, height: size, borderRadius: 6, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: on ? 'var(--accent)' : 'var(--bg-elevated)', border: '1.5px solid ' + (on ? 'var(--accent)' : 'var(--border-default)'), color: 'var(--accent-text)', cursor: 'pointer', outline: 'none', transition: 'background .15s, border-color .15s, box-shadow .15s', boxShadow: foc ? '0 0 0 3px var(--accent-soft)' + (ring !== 'none' ? ', ' + ring : '') : ring }}>
-      {indeterminate ? <Minus size={size - 7} strokeWidth={3.2} /> : checked ? <Check size={size - 7} strokeWidth={3.2} /> : null}
-    </span>
-  )
-}
-
 // ─── Bulk Action Button ───────────────────────────────────────────────────────
 // Ουδέτερο κουμπί (Google-clean) που αποκαλύπτει accent —ή κόκκινο για διαγραφή—
 // μόνο στο hover. Γίνεται ανενεργό/ξεθωριασμένο όταν δεν υπάρχει επιλογή.
@@ -951,7 +936,7 @@ function ContactCard({ contact, onOpen, onEdit, onDelete, onQuickExpense, onQuic
       onClick={bulkMode ? onSelect : undefined}
       style={{ background: selected ? 'color-mix(in srgb, var(--accent) 6%, var(--bg-surface))' : 'var(--bg-surface)', border: '1.5px solid ' + (selected ? 'var(--accent)' : hov ? 'var(--accent-border)' : overdue ? 'var(--negative-border)' : 'var(--border-subtle)'), borderRadius: T.radius.card, padding: bulkMode ? '18px 18px 16px 46px' : '18px 18px 16px', position: 'relative', boxShadow: selected ? '0 0 0 3px var(--accent-soft)' : hov ? 'var(--elev-2)' : 'none', transition: 'border-color 0.2s, box-shadow 0.2s, background 0.2s', cursor: bulkMode ? 'pointer' : 'default' }}>
       <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: overdue ? 'var(--negative)' : 'var(--border-subtle)', borderRadius: '16px 0 0 16px', opacity: bulkMode ? 0 : 1 }} />
-      {bulkMode && <div style={{ position: 'absolute', top: 17, left: 15, zIndex: 2 }}><SelectBox checked={!!selected} onToggle={onSelect} /></div>}
+      {bulkMode && <div style={{ position: 'absolute', top: 17, left: 15, zIndex: 2 }}><SelectBox checked={!!selected} onChange={() => onSelect?.()} label={`Επιλογή ${contact.full_name}`} /></div>}
       {overdue && <div style={{ position: 'absolute', top: 0, right: 0, background: 'var(--negative)', color: 'var(--text-inverse)', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: '0 16px 0 8px', letterSpacing: '0.07em' }}>ΛΗΞΗ ΡΑΝΤΕΒΟΥ</div>}
       {(hov || showActions || coarse) && !bulkMode && (
         <div ref={actionsRef} style={{ position: 'absolute', top: 12, right: 12, zIndex: 20 }}>
@@ -1311,7 +1296,7 @@ function CompactRow({ contact, onOpen, onEdit, onDelete, selected, onSelect, bul
     <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       onClick={bulkMode ? onSelect : undefined}
       style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', background: selected ? 'var(--accent-soft)' : hov ? 'var(--bg-elevated)' : 'transparent', transition: 'background 0.15s', borderBottom: '1px solid var(--border-subtle)', cursor: bulkMode ? 'pointer' : 'default' }}>
-      {bulkMode && <SelectBox checked={!!selected} onToggle={onSelect} size={18} />}
+      {bulkMode && <SelectBox checked={!!selected} onChange={() => onSelect?.()} label={`Επιλογή ${contact.full_name}`} />}
       {/* Η κουκκίδα σημαίνει ΕΝΑ πράγμα: ληξιπρόθεσμο ραντεβού. Πριν έδειχνε
           «κατάσταση σχέσης» — τέσσερα χρώματα για μια επιλογή χωρίς συνέπεια. */}
       <div title={overdue ? 'Ληξιπρόθεσμο ραντεβού' : undefined} style={{ width: 8, height: 8, borderRadius: '50%', background: overdue ? 'var(--negative)' : 'var(--border-default)', flexShrink: 0 }} />
@@ -1809,7 +1794,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '11px 16px', marginBottom: 18, flexWrap: 'wrap', boxShadow: 'var(--elev-1)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
-              <SelectBox checked={allOn} indeterminate={someOn} onToggle={masterToggle} />
+              <SelectBox checked={allOn} indeterminate={someOn} onChange={masterToggle} label="Επιλογή όλων" />
               <span style={{ fontSize: 14, fontWeight: 650, color: none ? 'var(--text-secondary)' : 'var(--text-primary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
                 {none ? `Επιλογή όλων (${processed.length})` : `${selected.size} ${selected.size === 1 ? 'επιλεγμένη' : 'επιλεγμένες'}`}
               </span>

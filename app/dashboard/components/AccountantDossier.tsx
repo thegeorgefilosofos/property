@@ -22,7 +22,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { T, TT, Badge } from '@/components/Theme'
+import { T, TT, Badge, SelectBox } from '@/components/Theme'
 import { ChevronRight, Download, Check as CheckIcon } from 'lucide-react'
 import {
   requirementsFor, readiness, groupByWho, traps, defaultBookkeeping,
@@ -164,23 +164,12 @@ const card: React.CSSProperties = { position: 'relative', background: 'var(--sur
 const eyebrow: React.CSSProperties = { fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans, margin: 0 }
 const num: React.CSSProperties = { fontVariantNumeric: 'tabular-nums', fontFamily: T.font.sans }
 
-/** Το τετραγωνάκι «το έχω». Μικρό, ήσυχο, με ένα μόνο χρώμα όταν είναι γεμάτο. */
-function Mark({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) {
-  return (
-    <button type="button" className="po-box" role="checkbox" aria-checked={checked} aria-label={label} onClick={onChange}
-      style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, marginTop: 1, borderRadius: 6, flexShrink: 0, cursor: 'pointer', padding: 0,
-        border: `1.5px solid ${checked ? 'var(--accent)' : 'var(--border-default)'}`, background: checked ? 'var(--accent)' : 'var(--bg-surface)', transition: 'border-color 0.14s, background 0.14s' }}>
-      {checked && <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2.5 6.3l2.2 2.2L9.5 3.6" stroke="var(--accent-text)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-    </button>
-  )
-}
-
 /** Μία γραμμή καταλόγου: τι, γιατί, πού και αν μπλοκάρει. */
 function Row({ r, checked, onToggle, interactive }: { r: Requirement; checked: boolean; onToggle: () => void; interactive: boolean }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '11px 0', borderTop: '1px solid var(--border-subtle)' }}>
       {interactive
-        ? <Mark checked={checked} onChange={onToggle} label={r.title} />
+        ? <SelectBox checked={checked} onChange={onToggle} label={r.title} />
         : (
           <span title="Το ετοιμάζει το PROPERWISE" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, marginTop: 1, borderRadius: 6, flexShrink: 0, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-tertiary)' }}>
             <CheckIcon size={11} />
@@ -502,7 +491,7 @@ export default function AccountantDossier({
                   ['ownershipChanged', 'Άλλαξε κάτι στην ιδιοκτησία (αγορά, πώληση, κληρονομιά)', 'Τότε και μόνο τότε υποβάλλεται Ε9.'],
                 ] as [keyof DossierProfile, string, string][]).map(([key, label, hint]) => (
                   <div key={key} style={{ display: 'flex', alignItems: 'flex-start', gap: 11 }}>
-                    <Mark checked={!!profile[key]} onChange={() => setProfile({ [key]: !profile[key] } as Partial<DossierProfile>)} label={label} />
+                    <SelectBox checked={!!profile[key]} onChange={() => setProfile({ [key]: !profile[key] } as Partial<DossierProfile>)} label={label} />
                     <div style={{ minWidth: 0 }}>
                       <p style={{ fontSize: 13, color: 'var(--text-primary)', margin: 0, fontFamily: T.font.sans, lineHeight: 1.4 }}>{label}</p>
                       <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '2px 0 0', fontFamily: T.font.sans, lineHeight: 1.45 }}>{hint}</p>

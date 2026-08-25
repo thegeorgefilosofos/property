@@ -135,6 +135,12 @@ export const MUTATIONS = {
     { add: 'supabase/functions/_shared/__mut__.ts', content: 'export const head = () => `<div style="width:34px"><span>P</span></div>`\n' },
     { add: 'scripts/__mut__.mjs', content: 'export const mark = () => `<svg viewBox="0 0 50 50"><path d="M17 34V14h8.2c4.3 0 7.3 2.6 7.3 6.7z"/></svg>`\n' },
   ] },
+  // Δύο ξεχωριστά σφάλματα, ένας κανόνας: ένα δεύτερο χειρόγραφο πλαίσιο
+  // επιλογής, ΚΑΙ το κοινό πλαίσιο χωρίς την κλάση της περιοχής αφής.
+  'select-box': { every: [
+    { add: 'app/dashboard/components/__mut__.tsx', content: 'function SelectBox({ checked }: { checked: boolean }) {\n  return <span role="checkbox" aria-checked={checked} style={{ width: 18, height: 18 }} />\n}\nexport default function MutationProbe() {\n  return <SelectBox checked={false} />\n}\n' },
+    { file: 'components/Theme.tsx', from: 'type="button" className="po-box" role="checkbox"', to: 'type="button" role="checkbox"' },
+  ] },
   'http-bridge': { add: 'supabase/migrations/29990101000000_mut.sql', content: 'create or replace function public.mut_probe_call() returns void language sql as $$ select net.http_post(url => \'https://x\') $$;\ngrant execute on function public.mut_probe_call() to authenticated;\n' },
   'sql-types': { add: 'supabase/migrations/29990101000000_mut.sql', content: 'create or replace function public.mut_probe() returns void language plpgsql as $$\ndeclare v_row record;\nbegin\n  for v_row in select * from public.bills loop\n    if v_row.property_id = some_text then null; end if;\n  end loop;\nend $$;\n' },
   'service-role': { add: 'components/__mut__.ts', content: "export const key = process.env.SUPABASE_SERVICE_ROLE_KEY\n" },

@@ -17,7 +17,7 @@ import * as checklist from '@/lib/data/checklist';
 import * as expenses from '@/lib/data/expenses'
 import * as tenantStore from '@/lib/data/tenants'
 import { CustomSelect, BulkActionBar } from './UIComponents';
-import { T, PageTitle, KPIGrid, Badge, Btn, ExportButton, EmptyState, InfoBanner, SecHdr, SkeletonKPIs, Skeleton, fe, fn, fp, ABSENT_SHORT, Modal, TT } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, Badge, Btn, ExportButton, EmptyState, InfoBanner, SecHdr, SelectBox, SkeletonKPIs, Skeleton, fe, fn, fp, ABSENT_SHORT, Modal, TT } from '@/components/Theme';
 import { resolveRent } from '@/lib/billing/propertyFacts';
 import { statusLabel, type StatusRow } from '@/lib/property/status';
 import { declarableGross, declarableGrossOrTotal } from '@/lib/clients/stayAmounts';
@@ -838,18 +838,6 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
 }
 
 // Ήσυχο checkbox επιλογής (ίδιο ύφος με το TabChecklist)
-function SelectBox({ checked, indeterminate, onChange, label }: { checked: boolean; indeterminate?: boolean; onChange: () => void; label: string }) {
-  const on = checked || indeterminate;
-  return (
-    <button type="button" className="po-box" aria-label={label} onClick={e => { e.stopPropagation(); onChange(); }}
-      style={{ width: 18, height: 18, borderRadius: 6, border: '2px solid ' + (on ? 'var(--accent)' : 'var(--border-default)'), background: on ? 'var(--accent)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s', flexShrink: 0 }}>
-      {checked
-        ? <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="var(--accent-text)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        : indeterminate ? <div style={{ width: 8, height: 2, borderRadius: 3, background: 'var(--accent-text)' }} /> : null}
-    </button>
-  );
-}
-
 function Th({ label, k, sort, asc, onSort, align = 'right', pin }: { label: string; k?: SortKey; sort?: SortKey; asc?: boolean; onSort?: (k: SortKey) => void; align?: 'left' | 'right'; pin?: boolean }) {
   const active = k && sort === k;
   return (

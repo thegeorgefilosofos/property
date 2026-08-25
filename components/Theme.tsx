@@ -694,6 +694,58 @@ export function Btn({ children, onClick, variant = 'secondary', disabled, type }
 // ως κείμενο» σε κάθε γραμμή. Δεν είναι επιλογή του χρήστη το αν το αρχείο του
 // είναι σωστό. Έμεινε ένα κουμπί και ένα αρχείο που κάνει και τα δύο: φαίνεται
 // ελληνικά (από τη μορφή του κελιού) ΚΑΙ αθροίζεται.
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΟ ΠΛΑΙΣΙΟ ΕΠΙΛΟΓΗΣ, ΜΙΑ ΦΟΡΑ
+// ─────────────────────────────────────────────────────────────────────────
+// ΗΤΑΝ ΓΡΑΜΜΕΝΟ ΠΕΝΤΕ ΦΟΡΕΣ, ΜΕ ΠΕΝΤΕ ΣΧΗΜΑΤΑ. Το ίδιο χειριστήριο, στην ίδια
+// εφαρμογή, με διαφορετική γεωμετρία σε κάθε καρτέλα:
+//
+//   Χαρτοφυλάκιο   18px, ακτίνα 6, περίγραμμα 2px, διάφανο φόντο
+//   Αρχείο         18px, ακτίνα 6, περίγραμμα 1,5px, φόντο ανασηκωμένο
+//   Επαφές         19px, ακτίνα 6, περίγραμμα 1,5px, δαχτυλίδι εστίασης
+//   Απογραφή       18px, ακτίνα 3, περίγραμμα 2px σε χρώμα κειμένου
+//   Φάκελος        18px, ακτίνα 6, περίγραμμα 1,5px, φόντο επιφάνειας
+//
+// ΚΑΙ Η ΔΙΑΦΟΡΑ ΔΕΝ ΗΤΑΝ ΜΟΝΟ ΑΙΣΘΗΤΙΚΗ. Δύο από τα πέντε ήταν <span> με
+// role="checkbox": ο κανόνας του δαπέδου αφής πιάνει μόνο <button>, <select>
+// και <input>, οπότε εκείνα έμεναν στόχος 18 εικονοστοιχείων στο δάχτυλο.
+// Ενα ακόμη ήταν <button> ΧΩΡΙΣ την κλάση `po-box`, δηλαδή έπεφτε μέσα στο
+// δάπεδο και τεντωνόταν σε 18 × 44: φτιαγμένος στόχος, χαλασμένο σχήμα.
+//
+// Η κλάση `po-box` λύνει και τα δύο (app/globals.css): το σχήμα μένει 18 × 18
+// και ένα αόρατο ψευδοστοιχείο απλώνει την περιοχή αφής στα 44 × 44, χωρίς να
+// κουνηθεί η διάταξη ούτε ένα εικονοστοιχείο.
+//
+// ΓΙΑΤΙ <button role="checkbox"> ΚΑΙ ΟΧΙ <span>: το κουμπί ενεργοποιείται με
+// κενό και Enter από μόνο του, χωρίς χειρόγραφο onKeyDown σε κάθε αντίγραφο.
+// Το `aria-checked` λέει την κατάσταση, το «mixed» τη μερική επιλογή.
+// ═══════════════════════════════════════════════════════════════════════════
+export function SelectBox({ checked, indeterminate, onChange, label }: {
+  checked: boolean; indeterminate?: boolean; onChange: () => void; label: string;
+}) {
+  const on = checked || indeterminate;
+  return (
+    <button
+      type="button" className="po-box" role="checkbox"
+      aria-checked={indeterminate ? 'mixed' : checked} aria-label={label}
+      // Η γραμμή από κάτω είναι συχνά κι αυτή πατήσιμη (άνοιγμα εγγραφής): το
+      // πάτημα στο πλαίσιο επιλέγει, δεν ανοίγει.
+      onClick={e => { e.stopPropagation(); onChange(); }}
+      style={{
+        width: 18, height: 18, flexShrink: 0, padding: 0, borderRadius: 6,
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        border: `1.5px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`,
+        background: on ? 'var(--accent)' : 'var(--bg-elevated)',
+        color: 'var(--accent-text)', cursor: 'pointer',
+        transition: `background 0.14s ${T.ease.standard}, border-color 0.14s ${T.ease.standard}`,
+      }}>
+      {checked
+        ? <svg width={11} height={11} viewBox="0 0 12 12" fill="none" aria-hidden><path d="M2.5 6.3l2.2 2.2L9.5 3.6" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        : indeterminate ? <span style={{ width: 8, height: 2, borderRadius: 3, background: 'currentColor' }} /> : null}
+    </button>
+  );
+}
+
 export function ExportButton({ onClick, label = 'Εξαγωγή Excel', disabled }: { onClick: () => void; label?: string; disabled?: boolean }) {
   const icon = <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>;
   const base: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 8, height: T.h.md, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1, whiteSpace: 'nowrap' };
