@@ -13,7 +13,7 @@
 // ακριβώς το ίδιο και η μόνη διαφορά όταν μπει το DSN είναι ότι κάποιος
 // μαθαίνει τα σφάλματα χωρίς να τηλεφωνήσει ο πελάτης.
 // ═══════════════════════════════════════════════════════════════════════════
-import { captureError, worthReporting } from './report'
+import { captureError, worthReporting, makeThrottle, fingerprint, MAX_SAME, MAX_FINGERPRINTS } from './report'
 
 let passed = 0, failed = 0
 function ok(name: string, cond: boolean) { if (cond) { passed++ } else { failed++; console.log('  ✗ ' + name) } }
@@ -31,6 +31,11 @@ function withCapture(dsn: string | undefined, fn: () => void): { url: string; bo
     return Promise.resolve(new Response(''))
   }) as unknown as typeof fetch
   console.error = () => {}
+  // ΚΑΘΕ ΜΠΛΟΚ ΕΛΕΓΧΟΥ ΓΡΑΦΕΙ ΔΙΚΟ ΤΟΥ ΜΗΝΥΜΑ ΣΦΑΛΜΑΤΟΣ. Ο αναφορέας κρατά ένα
+  // φρένο για όλη τη διεργασία, οπότε δύο μπλοκ που στέλνουν το ΙΔΙΟ σφάλμα από
+  // την ίδια γραμμή θα αλληλοεπηρεάζονταν και το δεύτερο θα κοκκίνιζε για λόγο
+  // άσχετο με ό,τι εξετάζει. Ο έλεγχος του φρένου φτιάχνει δικό του με
+  // «makeThrottle», ώστε να μην εξαρτάται από σειρά εκτέλεσης.
   try { fn() } finally {
     globalThis.fetch = realFetch
     console.error = realLog
@@ -43,6 +48,42 @@ function withCapture(dsn: string | undefined, fn: () => void): { url: string; bo
 const DSN = 'https://abc123@o1.ingest.sentry.io/456'
 /** Το γεγονός μέσα στον φάκελο: τρεις γραμμές JSON, το γεγονός είναι η τρίτη. */
 const event = (body: string) => JSON.parse(body.split('\n')[2]) as Record<string, unknown>
+
+// ═══ ΤΟ ΦΡΕΝΟ ΤΗΣ ΕΠΑΝΑΛΗΨΗΣ ══════════════════════════════════════════════
+// Ενας βρόχος σφάλματος καίει τη δωρεάν βαθμίδα σε λεπτά και μετά πέφτουν στο
+// πάτωμα τα ΑΛΗΘΙΝΑ σφάλματα, όλον τον υπόλοιπο μήνα.
+{
+  const allow = makeThrottle()
+  const e = new Error('ο ίδιος βρόχος')
+  let sent = 0
+  for (let i = 0; i < 50; i++) if (allow(e)) sent++
+  ok(`το ίδιο σφάλμα ταξιδεύει ${MAX_SAME} φορές από τις 50`, sent === MAX_SAME)
+
+  // Και το κρίσιμο: ένα ΚΑΙΝΟΥΡΙΟ σφάλμα δεν φρενάρεται ποτέ από τα παλιά.
+  const allow2 = makeThrottle()
+  const loop = new Error('θόρυβος')
+  for (let i = 0; i < 100; i++) allow2(loop)
+  ok('καινούριο σφάλμα περνά ακόμη και μετά από εκατό επαναλήψεις άλλου',
+    allow2(new Error('κάτι εντελώς άλλο')))
+
+  // Δύο σφάλματα με ίδιο μήνυμα αλλά άλλη στοίβα είναι ΔΥΟ σφάλματα.
+  const a = Object.assign(new Error('ίδιο μήνυμα'), { stack: 'Error: ίδιο μήνυμα\n    at alfa (a.ts:1:1)' })
+  const b = Object.assign(new Error('ίδιο μήνυμα'), { stack: 'Error: ίδιο μήνυμα\n    at beta (b.ts:9:9)' })
+  ok('η στοίβα ξεχωρίζει δύο σφάλματα με ίδιο μήνυμα', fingerprint(a) !== fingerprint(b))
+
+  // Το μητρώο δεν μεγαλώνει χωρίς όριο: σε διακομιστή ζει όσο η διεργασία.
+  const allow3 = makeThrottle()
+  for (let i = 0; i < MAX_FINGERPRINTS + 20; i++) allow3(new Error('σφάλμα ' + i))
+  ok('το μητρώο αδειάζει στο ταβάνι αντί να μεγαλώνει για πάντα',
+    allow3(new Error('σφάλμα 0')))
+}
+
+// ── ΚΑΙ ΜΕΣΑ ΑΠΟ ΤΟΝ ΙΔΙΟ ΤΟΝ ΑΝΑΦΟΡΕΑ ────────────────────────────────────
+{
+  const same = new Error('βρόχος στο δίκτυο')
+  const sent = withCapture(DSN, () => { for (let i = 0; i < 20; i++) captureError(same) })
+  ok(`ο αναφορέας στέλνει ${MAX_SAME} φακέλους από τις 20 κλήσεις`, sent.length === MAX_SAME)
+}
 
 // ── ΧΩΡΙΣ DSN, ΚΑΜΙΑ ΚΙΝΗΣΗ ───────────────────────────────────────────────
 {
