@@ -17,7 +17,13 @@ import { PRODUCT_NAME, PRODUCT_TAGLINE } from '@/lib/core/site';
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: '/dashboard',
-    name: `${PRODUCT_NAME} · Διαχείριση Ακινήτων`,
+    // ΤΟ ΟΝΟΜΑ ΕΙΝΑΙ ΤΟ ΟΝΟΜΑ. Εγραφε «PROPERWISE · Διαχείριση Ακινήτων» και το
+    // παράθυρο της εγκατεστημένης εφαρμογής το κολλούσε δίπλα στον τίτλο της
+    // σελίδας, που ξεκινούσε κι αυτός με το σήμα. Η γραμμή διαβαζόταν
+    // «PROPERWISE · Διαχείριση Ακινήτων - PROPERWISE · Διαχείριση ακινήτων με
+    // μία φωτογραφία». Ο,τι λέει το manifest δεν το ξαναλέει ο τίτλος: η
+    // περιγραφή ζει στο `description` από κάτω.
+    name: PRODUCT_NAME,
     short_name: PRODUCT_NAME,
     description: PRODUCT_TAGLINE,
     start_url: '/dashboard',

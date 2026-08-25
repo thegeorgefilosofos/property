@@ -1997,7 +1997,13 @@ html.a11y-large-text { zoom: 1.08; }
 /* ΕΝΑ ΜΠΛΕ, ΕΝΑ ΝΟΗΜΑ: η κύρια ενέργεια. Η ιεραρχία βγαίνει από γεμάτο
    εναντίον περιγράμματος (.lp-ghost), όχι από δεύτερη απόχρωση. */
 .lp-primary { background: var(--accent); color: var(--accent-text); }
-.lp-ghost { transition: border-color .15s, background .15s, color .15s; }
+.lp-ghost { transition: border-color .15s, background .15s, color .15s, transform .1s; }
+
+/* ΤΟ ΠΑΤΗΜΑ ΦΑΙΝΕΤΑΙ, ΣΕ ΚΑΘΕ ΣΥΣΚΕΥΗ. Η ανάδραση ζούσε μόνο μέσα σε
+   @media (hover: none), δηλαδή σε ποντίκι δεν υπήρχε: ο επισκέπτης πατούσε
+   και τίποτα δεν κουνιόταν ώσπου να αλλάξει η σελίδα. Ενα εικονοστοιχείο
+   προς τα κάτω είναι όσο χρειάζεται για να διαβαστεί ως κουμπί. */
+.lp-press:active { transform: translateY(1px); filter: brightness(.96); }
 
 
 /* Ετικέτα ενότητας με κουκκίδα. Block-level και όχι inline-flex: τα κάθετα

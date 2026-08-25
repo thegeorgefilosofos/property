@@ -4,7 +4,7 @@ import { PLANS, PLAN_ORDER, TRIAL_DAYS, ACCOUNT_GRACE_DAYS } from '@/lib/billing
 import { aiLimitsFor } from '@/lib/billing/aiLimits';
 import { partnerWelcomeTier } from '@/lib/referral/referral';
 import { fe } from '@/lib/core/format';
-import { SITE } from '@/lib/core/site';
+import { SITE, PRODUCT_NAME } from '@/lib/core/site';
 import { IDENTITY } from '@/lib/legal/identity';
 import { billingWords } from '@/lib/legal/billingWords';
 import { createClient } from '@/lib/supabase/server';
@@ -24,14 +24,25 @@ import { T } from '@/components/tokens';
 // Αισθητική: μονόχρωμη, ένα γαλάζιο, καθαρή· καμία διακοσμητική «κονκάρδα».
 // ═══════════════════════════════════════════════════════════════════════════
 
-const OG_TITLE = 'PROPERWISE · Διαχείριση ακινήτων με μία φωτογραφία';
+// ΤΙ ΔΙΑΒΑΖΕΤΑΙ ΠΟΥ, ΚΑΙ ΠΟΤΕ ΔΥΟ ΦΟΡΕΣ.
+// Το παράθυρο της εγκατεστημένης εφαρμογής γράφει «όνομα από το manifest» και
+// από δίπλα τον τίτλο της σελίδας. Οσο ο τίτλος ξεκινούσε κι αυτός με το σήμα,
+// η γραμμή έβγαινε «PROPERWISE · Διαχείριση Ακινήτων - PROPERWISE · Διαχείριση
+// ακινήτων με μία φωτογραφία»: το σήμα δύο φορές και η διαχείριση ακινήτων δύο
+// φορές, σε δώδεκα λέξεις.
+//
+// Το σήμα ζει πλέον σε ΕΝΑ σημείο ανά περιβάλλον: στο παράθυρο το δίνει το
+// manifest, στην κάρτα κοινοποίησης το δίνει το openGraph. Ο τίτλος της
+// καρτέλας λέει μόνο τι κάνει η σελίδα.
+const TAB_TITLE = 'Διαχείριση Ακινήτων με μία φωτογραφία';
+const OG_TITLE = `${PRODUCT_NAME} · ${TAB_TITLE}`;
 const OG_DESC = 'Σάρωσε λογαριασμό, μισθωτήριο ή ασφαλιστήριο και καταχωρείται αυτόματα εκεί που πρέπει. Ρώτα τον βοηθό με τη φωνή σου. Αποδόσεις, δαπάνες, φορολογία 2026 και σύγκριση παρόχων ενέργειας, σε μία οθόνη.';
 
 export const metadata = {
   // Το `metadataBase` έφυγε από εδώ: ζει στη ρίζα και ισχύει για κάθε σελίδα.
   // Ο τίτλος είναι ΑΠΟΛΥΤΟΣ γιατί γράφει ήδη το όνομα· χωρίς αυτό, το πρότυπο
   // της ρίζας θα το πρόσθετε δεύτερη φορά.
-  title: { absolute: OG_TITLE },
+  title: { absolute: TAB_TITLE },
   description: OG_DESC,
   alternates: { canonical: SITE },
   openGraph: { title: OG_TITLE, description: OG_DESC, url: SITE, type: 'website', locale: 'el_GR', siteName: 'PROPERWISE' },
@@ -1763,7 +1774,18 @@ function PlanCard({ planId, name, nameColor, sub, price, per, note, annual, inhe
           ποσό μέσα, το κείμενο έσπαγε σε δύο γραμμές από τις 1000 ως τις 1160
           και μόνο σε τρεις από τις τέσσερις κάρτες — τέσσερα κουμπιά με άνισο
           «πόδι». Χωρίς αυτό, μία γραμμή σε κάθε πλάτος και σε κάθε πακέτο. */}
-      <Link href={`/signup?plan=${planId}&cycle=monthly`} className={ctaGhost ? 'lp-ghost' : 'lp-cta lp-primary'} style={{ display: 'block', textAlign: 'center', background: ctaGhost ? 'transparent' : undefined, color: ctaGhost ? TEXT : undefined, textDecoration: 'none', fontSize: 13, fontWeight: 700, padding: '10px', borderRadius: T.radius.pill, border: ctaGhost ? `1px solid ${LINE}` : 'none' }}>{cta}</Link>
+      {/* ΤΡΙΑ ΑΠΟ ΤΑ ΤΕΣΣΕΡΑ ΚΟΥΜΠΙΑ ΔΕΝ ΔΕΙΧΝΑΝ ΚΟΥΜΠΙΑ. Το δευτερεύον ήταν
+          διάφανο πάνω σε διάφανο με περίγραμμα --border-subtle: πάνω στο σκούρο
+          θέμα η γραμμή σχεδόν εξαφανίζεται και ό,τι μένει είναι κεντραρισμένο
+          κείμενο. Δίπλα στο γεμάτο μπλε του προτεινόμενου, τα άλλα τρία
+          διαβάζονταν ως ταμπέλες.
+
+          Η ιεραρχία μένει: γεμάτο μπλε για το προτεινόμενο, ανασηκωμένη
+          επιφάνεια για τα υπόλοιπα. Δεν μπαίνει δεύτερο χρώμα, μπαίνει ΥΨΟΣ:
+          το --bg-elevated είναι ένα σκαλί πάνω από την κάρτα και το
+          --border-default μια γραμμή που φαίνεται. Και τα τέσσερα πιάνουν 44
+          εικονοστοιχεία ύψος, όσο ζητά το δάχτυλο. */}
+      <Link href={`/signup?plan=${planId}&cycle=monthly`} className={ctaGhost ? 'lp-ghost lp-press' : 'lp-cta lp-primary lp-press'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 44, textAlign: 'center', background: ctaGhost ? 'var(--bg-elevated)' : undefined, color: ctaGhost ? TEXT : undefined, textDecoration: 'none', fontSize: 13, fontWeight: 700, padding: '10px', borderRadius: T.radius.pill, border: ctaGhost ? '1px solid var(--border-default)' : 'none' }}>{cta}</Link>
       <Link href={`/signup?plan=${planId}&cycle=annual`} className="lp-link" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', minHeight: 44, marginTop: 2, color: MUTED, textDecoration: 'none', fontSize: 12, lineHeight: 1.35 }}>{annual}</Link>
     </div>
   );

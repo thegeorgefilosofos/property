@@ -88,18 +88,35 @@ export default function StartPanel({ state, collapsed, onToggle, onNavigate, onP
           // τονισμένα βήματα δεν είναι ιεραρχία, είναι δύο κουμπιά που
           // διεκδικούν το ίδιο κλικ.
           const isNow = !s.done && state.steps.slice(0, i).every(p => p.done);
-          return (
+            // ΤΟ ΕΠΟΜΕΝΟ ΒΗΜΑ ΦΑΙΝΕΤΑΙ ΟΤΙ ΕΙΝΑΙ ΤΟ ΕΠΟΜΕΝΟ. Ο κύκλος του ήταν η
+            // μόνη διαφορά από τα υπόλοιπα: 18 εικονοστοιχεία περίγραμμα σε
+            // άλλο χρώμα, μέσα σε λίστα με ίδιο βάρος παντού. Η λίστα ξεκινά
+            // την περιήγηση ενός καινούργιου χρήστη και δεν έδειχνε πού να
+            // πατήσει. Τώρα το ενεργό βήμα παίρνει ράγα, απαλή επιφάνεια και
+            // γεμάτο κουμπί. Τα υπόλοιπα μένουν ήσυχα: μία έμφαση, μία φορά.
+            return (
             <li key={s.key} style={{
-              display: 'flex', alignItems: 'flex-start', gap: T.sp.md, padding: '11px 0',
-              borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)',
+              position: 'relative',
+              display: 'flex', alignItems: 'flex-start', gap: T.sp.md,
+              padding: isNow ? '12px 12px' : '11px 12px',
+              margin: '0 -12px',
+              borderRadius: isNow ? T.radius.inner : 0,
+              background: isNow ? 'color-mix(in srgb, var(--accent) 5%, transparent)' : 'transparent',
+              borderTop: i === 0 || isNow ? 'none' : '1px solid var(--border-subtle)',
             }}>
+              {isNow && <span aria-hidden style={{ position: 'absolute', left: 0, top: 8, bottom: 8, width: 3, borderRadius: T.radius.pill, background: 'var(--accent)' }} />}
               <Tick state={s.done ? 'done' : isNow ? 'now' : 'todo'} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ ...TT.bodySm, color: s.done ? 'var(--text-tertiary)' : 'var(--text-primary)', fontWeight: 700, textDecoration: s.done ? 'line-through' : 'none' }}>{s.title}</div>
                 {!s.done && <div style={{ ...TT.caption, marginTop: 2 }}>{s.hint}</div>}
               </div>
+              {/* ΕΝΑ ΚΟΥΜΠΙ, ΔΥΟ ΟΨΕΙΣ. Το ενεργό βήμα το γεμίζει, τα υπόλοιπα
+                  το αφήνουν ήσυχο. Δύο χωριστά <button> για το ίδιο πράγμα θα
+                  ήταν το ίδιο κουμπί γραμμένο δύο φορές. */}
               {!s.done && (
-                <button onClick={() => onNavigate(s.nav)} style={{ ...quiet, color: 'var(--accent)', flexShrink: 0 }}>Άνοιγμα</button>
+                <button onClick={() => onNavigate(s.nav)} style={isNow
+                  ? { ...quiet, flexShrink: 0, minHeight: 32, padding: '0 14px', borderRadius: T.radius.pill, background: 'var(--accent)', color: 'var(--accent-text)', fontWeight: 700 }
+                  : { ...quiet, color: 'var(--accent)', flexShrink: 0 }}>Άνοιγμα</button>
               )}
             </li>
           );

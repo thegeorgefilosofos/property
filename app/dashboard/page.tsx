@@ -2023,7 +2023,20 @@ export default function Dashboard() {
           {selected ? (
             <>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{display:'flex',alignItems:'center',gap:10,minWidth:0}}>
+                {/* ΤΟ ΚΟΥΜΠΙ ΚΑΤΑΣΤΑΣΗΣ ΕΠΕΦΤΕ ΠΑΝΩ ΣΤΟΝ ΦΑΚΟ ΣΕ ΚΙΝΗΤΟ.
+                    Η γραμμή δεν τύλιγε και κανένα από τα δύο παιδιά της δεν
+                    μπορούσε να συρρικνωθεί: ο επιλογέας ακινήτου φτάνει τα
+                    46vw και το κουμπί κατάστασης γράφει ολόκληρο το
+                    «Βραχυχρόνια μίσθωση». Στα 390 εικονοστοιχεία, με το μενού
+                    αριστερά και τον φακό δεξιά, το άθροισμα ξεπερνά το πλάτος
+                    και το πλεόνασμα ΔΕΝ κόβεται: ξεχειλίζει από πάνω του.
+
+                    Το τύλιγμα δίνει στην κατάσταση δική της γραμμή αντί να της
+                    κόψει το κείμενο. Η κατάσταση ορίζει ΠΟΙΕΣ καρτέλες
+                    εμφανίζονται, οπότε ένα «Βραχυχρόνια μίσ…» θα ήταν χειρότερο
+                    από μια γραμμή παραπάνω. Σε πλάτος που χωρά, τίποτα δεν
+                    αλλάζει: το wrap ενεργοποιείται μόνο όταν δεν χωρά. */}
+                <div style={{display:'flex',alignItems:'center',flexWrap:'wrap',gap:10,rowGap:8,minWidth:0}}>
                   {/* Ο ΤΙΤΛΟΣ ΗΤΑΝ ΝΕΚΡΟ <span>. Δίπλα του καθόταν ήδη ένα κουμπί
                       που ανοίγει μενού και 250 εικονοστοιχεία αριστερότερα η
                       πλαϊνή μπάρα ξανάλεγε το ίδιο όνομα με άλλη τελεία και άλλο
@@ -2037,7 +2050,7 @@ export default function Dashboard() {
                     onAdd={()=>tryAddProperty()}
                     canAdd={canAddProperty(ent, properties.length)} />
                   {/* Ένα κουμπί: κατάσταση ακινήτου + εργαλεία (επεξεργασία, διαγραφή) στο ίδιο μενού. */}
-                  <div style={{position:'relative'}}>
+                  <div style={{position:'relative',minWidth:0}}>
                     <button onClick={()=>setStatusDropdown(v=>!v)} title="Κατάσταση ακινήτου και εργαλεία (επεξεργασία, διαγραφή)" aria-haspopup="menu" aria-expanded={statusDropdown} style={{display:'flex',alignItems:'center',gap:7,height:T.h.sm,padding:'0 10px 0 12px',borderRadius:8,border:'1px solid var(--border-default)',background:statusDropdown?'var(--bg-hover)':'transparent',cursor:'pointer',fontFamily: T.font.sans,fontSize:12,fontWeight:500,color:'var(--text-primary)',transition:'background 0.15s'}} onMouseEnter={e=>{if(!statusDropdown)e.currentTarget.style.background='var(--bg-hover)'}} onMouseLeave={e=>{if(!statusDropdown)e.currentTarget.style.background='transparent'}}>
                       <div style={{width:6,height:6,borderRadius:'50%',background:statusColor}}/>{statusLabel}
                       <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{opacity:0.65,marginLeft:1,transform:statusDropdown?'rotate(180deg)':'none',transition:'transform 0.15s'}}><path d="m6 9 6 6 6-6"/></svg>

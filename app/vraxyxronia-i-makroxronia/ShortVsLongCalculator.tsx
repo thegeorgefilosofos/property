@@ -280,12 +280,24 @@ export function ShortVsLongCalculator({ today }: { today: string }) {
              μπροστά στον αναγνώστη είναι χειρότερος από κανέναν πίνακα. */}
       <div style={{ marginTop: 26 }}>
         <div className="po-scroll-x" style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 340 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 380, tableLayout: 'fixed' }}>
             <caption style={{ captionSide: 'top', textAlign: 'left', fontSize: 11, fontWeight: 700,
               letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)',
               paddingBottom: 10 }}>
               Πού πάνε τα χρήματα, τον χρόνο
             </caption>
+            {/* ΟΙ ΔΥΟ ΠΛΕΥΡΕΣ ΤΗΣ ΣΥΓΚΡΙΣΗΣ ΕΠΑΙΡΝΑΝ ΔΙΑΦΟΡΕΤΙΚΟ ΠΛΑΤΟΣ.
+                Μετρημένο στα 1280: μακροχρόνια 298,8 και βραχυχρόνια 289,4. Ο
+                περιηγητής μοιράζει το πλάτος κατά περιεχόμενο, οπότε η στήλη με
+                το μακρύτερο ποσό έπαιρνε παραπάνω. Δύο στήλες που ο αναγνώστης
+                τις βάζει δίπλα δίπλα δεν επιτρέπεται να διαφέρουν σε πλάτος:
+                το μάτι διαβάζει τη διαφορά ως έμφαση που δεν υπάρχει.
+                Το `fixed` με ρητά ποσοστά τις κάνει ίσες σε κάθε πλάτος. */}
+            <colgroup>
+              <col style={{ width: '44%' }} />
+              <col style={{ width: '28%' }} />
+              <col style={{ width: '28%' }} />
+            </colgroup>
             <thead>
               <tr>
                 <th scope="col" style={th}> </th>
@@ -315,15 +327,28 @@ export function ShortVsLongCalculator({ today }: { today: string }) {
           που χρησιμοποιεί ο υπολογιστής φόρου για το ενεργό κλιμάκιο. */}
       <div style={{ marginTop: 26 }}>
         <div className="po-scroll-x" style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 340 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 500, tableLayout: 'fixed' }}>
             <caption style={{ captionSide: 'top', textAlign: 'left', fontSize: 11, fontWeight: 700,
               letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)',
               paddingBottom: 10 }}>
               Αν πέσεις έξω στην πληρότητα
             </caption>
+            {/* ΚΑΙ ΟΙ ΤΕΣΣΕΡΙΣ ΣΤΗΛΕΣ ΕΙΝΑΙ ΑΡΙΘΜΟΙ, ΑΡΑ ΙΣΕΣ ΚΑΙ ΔΕΞΙΑ.
+                Μετρημένο στα 1280: 175,4 · 246 · 311,9 · 310,7. Τέσσερα
+                διαφορετικά πλάτη για το ίδιο είδος περιεχομένου, με την
+                πληρότητα να στοιχίζεται αριστερά ενώ τα υπόλοιπα νούμερα
+                στοιχίζονται δεξιά. Ο αναγνώστης σαρώνει κάθετα και βρίσκει
+                κάθε στήλη σε άλλη θέση. Τώρα τέσσερα ίσα τέταρτα, όλα δεξιά,
+                όλα σε αριθμούς πίνακα. */}
+            <colgroup>
+              <col style={{ width: '25%' }} />
+              <col style={{ width: '25%' }} />
+              <col style={{ width: '25%' }} />
+              <col style={{ width: '25%' }} />
+            </colgroup>
             <thead>
               <tr>
-                <th scope="col" style={th}>Πληρότητα</th>
+                <th scope="col" style={{ ...th, textAlign: 'right' }}>Πληρότητα</th>
                 <th scope="col" style={{ ...th, textAlign: 'right' }}>Διανυκτερεύσεις</th>
                 <th scope="col" style={{ ...th, textAlign: 'right' }}>Καθαρά βραχυχρόνιας</th>
                 <th scope="col" style={{ ...th, textAlign: 'right' }}>Έναντι μακροχρόνιας</th>
@@ -334,7 +359,7 @@ export function ShortVsLongCalculator({ today }: { today: string }) {
                 const ahead = row.net >= r.long.net;
                 return (
                   <tr key={row.pct} style={{ background: ahead ? 'var(--accent-soft)' : 'transparent' }}>
-                    <td style={{ ...td, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums',
+                    <td style={{ ...numTd,
                       fontWeight: ahead ? 650 : 400, color: ahead ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{fp(row.pct)}</td>
                     <td style={numTd}>{fn(row.nights)}</td>
                     <td style={{ ...numTd, fontWeight: ahead ? 650 : 400,
@@ -412,10 +437,15 @@ export function ShortVsLongCalculator({ today }: { today: string }) {
   );
 }
 
+// ΟΙ ΕΠΙΚΕΦΑΛΙΔΕΣ ΤΥΛΙΓΟΝΤΑΙ, ΓΙΑΤΙ ΟΙ ΣΤΗΛΕΣ ΕΙΝΑΙ ΠΛΕΟΝ ΣΤΑΘΕΡΕΣ.
+// Με «nowrap» και σταθερές στήλες, το «Καθαρά βραχυχρόνιας» ζητούσε 161
+// εικονοστοιχεία μέσα σε κελί 88 στα 390: ξεχυνόταν πάνω στη διπλανή στήλη.
+// Μετρημένο: επτά κελιά ξεχείλιζαν στα 360. Δύο γραμμές επικεφαλίδας κοστίζουν
+// λιγότερο από 250 εικονοστοιχεία οριζόντιας κύλισης.
 const th: React.CSSProperties = {
   textAlign: 'left', padding: '8px 10px', fontSize: 11, fontWeight: 700,
   letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)',
-  borderBottom: '1px solid var(--border-default)', whiteSpace: 'nowrap',
+  borderBottom: '1px solid var(--border-default)', lineHeight: 1.3,
 };
 const td: React.CSSProperties = {
   padding: '9px 10px', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-secondary)',

@@ -159,11 +159,16 @@ export default function AgendaPanel({ items, total, onNavigate }: {
           position: relative;
         }
         .agenda-row:first-child { border-top: none; }
-        /* Το εκπρόθεσμο δηλώνεται με ΓΡΑΜΜΗ, όχι με κόκκινο φόντο. */
+        /* Το εκπρόθεσμο δηλώνεται με ΓΡΑΜΜΗ, όχι με κόκκινο φόντο. Μαζί της
+           μια πολύ ήπια απόχρωση του ίδιου γαλάζιου: η γραμμή μόνη της
+           φαινόταν μόνο αν την έψαχνες, ενώ ο λόγος να υπάρχει είναι να τη
+           βρίσκει το μάτι χωρίς να ψάχνει. Ενα χρώμα, δύο εντάσεις. */
         .agenda-row.is-late::before {
-          content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
+          content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
           background: var(--accent);
         }
+        .agenda-row.is-late { background: color-mix(in srgb, var(--accent) 4%, transparent); }
+        .is-late .agenda-unit { color: var(--text-secondary); }
         .agenda-when {
           display: flex; flex-direction: column; align-items: flex-end;
           text-align: right; padding-top: 1px;
@@ -208,6 +213,15 @@ export default function AgendaPanel({ items, total, onNavigate }: {
           transition: color .16s ${T.ease.standard}, background .16s ${T.ease.standard};
         }
         .agenda-more:hover { color: var(--text-primary); background: var(--bg-hover); }
+
+        /* Η ΓΡΑΜΜΗ ΑΠΑΝΤΑ ΣΤΟΝ ΔΕΙΚΤΗ. Μόνο το κουμπί «πήγαινε» άλλαζε όψη,
+           οπότε ολόκληρη η λίστα διαβαζόταν ως τυπωμένο χαρτί. Μία απόχρωση
+           κάτω από τη γραμμή λέει ότι εδώ γίνονται πράγματα. Σε αφή δεν
+           εφαρμόζεται: εκεί δεν υπάρχει δείκτης να αιωρείται. */
+        .agenda-row { transition: background .16s ${T.ease.standard}; }
+        @media (hover: hover) {
+          .agenda-row:hover { background: var(--bg-hover); }
+        }
 
         @media (max-width: 620px) {
           /* Σε στενή οθόνη η στήλη των 72px θα έστριβε τους τίτλους σε τέσσερις
