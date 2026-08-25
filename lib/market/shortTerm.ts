@@ -21,13 +21,29 @@ export interface ShortTermInput {
   propertyCount?: number     // αριθμός ακινήτων (για εξαίρεση παρεπιδημούντων)
   individual?: boolean       // φυσικό πρόσωπο;
   highSeasonShare?: number   // ποσοστό νυχτών σε υψηλή περίοδο (default 0.6)
+  /**
+   * Χρεώνει ο ιδιοκτήτης το ΤΑΚΚ στον επισκέπτη, επιπλέον της τιμής;
+   *
+   * ΠΡΟΕΠΙΛΟΓΗ ΟΧΙ, ΚΑΙ ΕΙΝΑΙ Η ΣΥΝΤΗΡΗΤΙΚΗ. Ο νόμος λέει ότι το τέλος
+   * βαραίνει τον επισκέπτη, αλλά οι πλατφόρμες δεν έχουν πεδίο γι' αυτό στην
+   * Ελλάδα: όποιος δεν το ζητά ρητά, το πληρώνει από την τσέπη του. Οταν ο
+   * ιδιοκτήτης δηλώσει ότι το χρεώνει, παύει να είναι δικό του κόστος.
+   */
+  levyChargedToGuest?: boolean
 }
 export interface ShortTermResult {
   nights: number
   grossRevenue: number
   platformFees: number
   cleaning: number
-  climateLevy: number        // ΤΑΚΚ
+  climateLevy: number        // ΤΑΚΚ που οφείλεται συνολικά, χρεωμένο ή όχι
+  /**
+   * Οσο από το ΤΑΚΚ βαραίνει ΤΟΝ ΙΔΙΟΚΤΗΤΗ, δηλαδή όσο δεν εισέπραξε.
+   *
+   * Ιδιο ιδίωμα με το `levyShortfall` της Λογιστικής (lib/tax/shortTermTax.ts),
+   * ώστε οι δύο οθόνες να μη λένε διαφορετικά πράγματα για το ίδιο τέλος.
+   */
+  levyBorne: number
   municipalTax: number       // τέλος παρεπιδημούντων
   netRevenue: number         // πριν τον φόρο εισοδήματος
   netPerNight: number
@@ -48,10 +64,34 @@ export function shortTermEstimate(i: ShortTermInput): ShortTermResult {
   const hs = clamp(i.highSeasonShare ?? 0.6, 0, 1)
   const climateLevy = nights * hs * rate.high + nights * (1 - hs) * rate.low
   const municipalTax = municipalAccommodationTax(grossRevenue, { sqm: i.sqm, isHouse: i.isHouse, propertyCount: i.propertyCount, individual: i.individual })
-  const netRevenue = grossRevenue - platformFees - cleaning - climateLevy - municipalTax
+  // ═══════════════════════════════════════════════════════════════════════
+  // ΤΟ ΤΑΚΚ ΤΟ ΠΛΗΡΩΝΕΙ Ο ΕΠΙΣΚΕΠΤΗΣ, ΤΟ ΑΠΟΔΙΔΕΙ Ο ΙΔΙΟΚΤΗΤΗΣ
+  // ─────────────────────────────────────────────────────────────────────
+  // ΔΥΟ ΟΘΟΝΕΣ ΕΛΕΓΑΝ ΔΙΑΦΟΡΕΤΙΚΑ ΠΡΑΓΜΑΤΑ ΓΙΑ ΤΟ ΙΔΙΟ ΤΕΛΟΣ. Η Λογιστική
+  // αφαιρεί `max(0, οφειλόμενο − εισπραγμένο)`, δηλαδή μόνο όσο δεν πήρε ο
+  // ιδιοκτήτης από τον επισκέπτη. Η Αξιοποίηση αφαιρούσε ΟΛΟΚΛΗΡΟ το τέλος,
+  // πάντα. Η διαφορά φτάνει τα 1.500 € τον χρόνο στην προβολή εσόδων.
+  //
+  // ΤΙ ΙΣΧΥΕΙ. Ο νόμος είναι σαφής: το τέλος βαραίνει τον ΕΠΙΣΚΕΠΤΗ και ο
+  // εκμισθωτής το εισπράττει και το αποδίδει, με χωριστό παραστατικό. Δεν
+  // αποτελεί έσοδό του. Στην πράξη όμως οι πλατφόρμες δεν έχουν πεδίο για
+  // αυτό το τέλος στην Ελλάδα: αν ο οικοδεσπότης δεν το ζητήσει ρητά, ο
+  // επισκέπτης πληρώνει μόνο την αναρτημένη τιμή και το τέλος βγαίνει από
+  // την τσέπη του οικοδεσπότη.
+  //
+  // ΑΡΑ ΕΙΝΑΙ ΠΑΡΑΔΟΧΗ ΤΟΥ ΧΡΗΣΤΗ, ΟΧΙ ΣΤΑΘΕΡΑ ΤΟΥ ΚΩΔΙΚΑ. Ιδιο ιδίωμα με
+  // την είσπραξη μέσω τραπέζης, που ζει κι εκείνη ως διακόπτης στην οθόνη.
+  //
+  // Η ΠΡΟΕΠΙΛΟΓΗ ΜΕΝΕΙ Η ΣΥΝΤΗΡΗΤΙΚΗ: «δεν το χρεώνω». Μια προβολή εσόδων
+  // πάνω στην οποία κάποιος αγοράζει ακίνητο δεν επιτρέπεται να γίνει πιο
+  // αισιόδοξη επειδή αλλάξαμε παραδοχή· το νούμερο ανεβαίνει μόνο όταν ο
+  // ιδιοκτήτης δηλώσει ο ίδιος ότι όντως το χρεώνει.
+  const levyBorne = i.levyChargedToGuest ? 0 : climateLevy
+  const netRevenue = grossRevenue - platformFees - cleaning - levyBorne - municipalTax
   return {
     nights, grossRevenue: round2(grossRevenue), platformFees: round2(platformFees), cleaning: round2(cleaning),
-    climateLevy: round2(climateLevy), municipalTax: round2(municipalTax), netRevenue: round2(netRevenue),
+    climateLevy: round2(climateLevy), levyBorne: round2(levyBorne),
+    municipalTax: round2(municipalTax), netRevenue: round2(netRevenue),
     netPerNight: nights > 0 ? round2(netRevenue / nights) : 0,
   }
 }

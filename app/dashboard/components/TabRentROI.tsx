@@ -570,6 +570,11 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   // Είσπραξη μέσω τραπέζης: ήταν καρφωμένο `true`. Είναι προϋπόθεση της τεκμαρτής
   // έκπτωσης 5% από 1/1/2026 — άρα απόφαση του χρήστη, όχι παραδοχή του κώδικα.
   const [rentsBank, setRentsBank] = useState(true);
+  // ΤΟ ΤΑΚΚ ΤΟ ΠΛΗΡΩΝΕΙ Ο ΕΠΙΣΚΕΠΤΗΣ, ΤΟ ΑΠΟΔΙΔΕΙ Ο ΙΔΙΟΚΤΗΤΗΣ. Οι πλατφόρμες
+  // όμως δεν έχουν πεδίο γι' αυτό στην Ελλάδα: όποιος δεν το ζητά ρητά, το
+  // πληρώνει από την τσέπη του. Παραδοχή του χρήστη, όπως η τραπεζική είσπραξη.
+  // Προεπιλογή η ΣΥΝΤΗΡΗΤΙΚΗ, ώστε το νούμερο να μην ανεβαίνει από μόνο του.
+  const [levyToGuest, setLevyToGuest] = useState(false);
   // Ξεχωριστός ορίζοντας ανά ενότητα (η αλλαγή στη μία ΔΕΝ επηρεάζει τις άλλες).
   const [histYears, setHistYears] = useState<'10' | '20'>('10');
   const [cmpYears, setCmpYears] = useState<'10' | '20'>('10');
@@ -728,11 +733,15 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   const st = useMemo(() => shortTermEstimate({
     occupancyPct: occEff, adr: adrEff, cleaningPerStay: parseFloat(stClean) || 0,
     platformFeePct: parseFloat(stFee) || 0, sqm: pSqm, isHouse, highSeasonShare, propertyCount: 1, individual: individualPerson,
-  }), [occEff, adrEff, stClean, stFee, pSqm, isHouse, highSeasonShare, individualPerson]);
+    levyChargedToGuest: levyToGuest,
+  }), [occEff, adrEff, stClean, stFee, pSqm, isHouse, highSeasonShare, individualPerson, levyToGuest]);
 
   // Ενοποιημένα μεγέθη: το toggle μακροχρόνια/βραχυχρόνια αλλάζει πραγματικά τα έσοδα & κόστη.
   const grossAnnual = term === 'short' ? st.grossRevenue : nRent * 12;
-  const stCosts = term === 'short' ? (st.platformFees + st.cleaning + st.climateLevy + st.municipalTax) : 0;
+  // ΤΟ `levyBorne` ΚΑΙ ΟΧΙ ΤΟ `climateLevy`: κόστος του ιδιοκτήτη είναι μόνο
+  // όσο από το τέλος δεν το εισέπραξε από τον επισκέπτη. Ιδιο ιδίωμα με το
+  // `levyShortfall` της Λογιστικής, ώστε οι δύο οθόνες να λένε το ίδιο.
+  const stCosts = term === 'short' ? (st.platformFees + st.cleaning + st.levyBorne + st.municipalTax) : 0;
   const effOpex = nOpex + stCosts;                 // λειτουργικά έξοδα ακινήτου + κόστη βραχυχρόνιας
   const monthlyEquiv = grossAnnual / 12;           // ισοδύναμο «μηνιαίο ενοίκιο» για τη μηχανή
 
@@ -977,6 +986,11 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         : `Ετήσια ανατίμηση: ${rPct(nAppr)}· δείκτης τιμών κατοικιών Τράπεζας της Ελλάδος, ${apprRef.fromYear} ως ${apprRef.toYear}`,
       `Φορολογικό καθεστώς: ${regimeLabel}`,
       `Είσπραξη ενοικίων μέσω τραπέζης: ${rentsBank ? 'ναι, ισχύει η τεκμαρτή έκπτωση 5%' : 'όχι, φόρος στο 100% του ενοικίου'}`,
+      // Η ΔΕΥΤΕΡΗ ΠΑΡΑΔΟΧΗ ΤΑΞΙΔΕΥΕΙ ΚΙ ΑΥΤΗ. Οποιος διαβάσει την αναφορά χωρίς
+      // να έχει την οθόνη μπροστά του πρέπει να ξέρει ποιο σενάριο διαβάζει.
+      ...(term === 'short'
+        ? [`Τέλος ανθεκτικότητας: ${levyToGuest ? 'χρεώνεται στον επισκέπτη, δεν βαραίνει τα καθαρά' : 'δεν χρεώνεται στον επισκέπτη, βγαίνει από την τσέπη του ιδιοκτήτη'}`]
+        : []),
       ...(consolidated ? [`Φόρος: μερίδιο από τον προοδευτικό φόρο ${portfolioTax.count} ακινήτων (σύνολο ενοικίων ${rEur(portfolioTax.totalAnnualRent)}, συνολικός φόρος ${rEur(portfolioTax.totalTax)})`] : []),
       `Λειτουργικά έξοδα: ${rPct(opexPctOfRent)} των εσόδων (${rEur(effOpex)})`,
       ...(canInvest ? [`Χρηματοδότηση: δάνειο ${rPct(parseFloat(ltv) || 0)} της αξίας, επιτόκιο ${rPct(parseFloat(loanRate) || 0)}, διάρκεια ${nLoanYears} έτη, ορίζοντας κατοχής ${parseInt(holdYears)} έτη, κόστη πώλησης ${rPct(nSellCosts)} (πλευρά πωλητή)`] : []),
@@ -1051,6 +1065,11 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           : `Ετήσια ανατίμηση: ${pPct(nAppr)}· δείκτης τιμών κατοικιών Τράπεζας της Ελλάδος, ${apprRef.fromYear} ως ${apprRef.toYear}`,
         `Φορολογικό καθεστώς: ${regimeLabel}`,
         `Είσπραξη ενοικίων μέσω τραπέζης: ${rentsBank ? 'ναι, ισχύει η τεκμαρτή έκπτωση 5%' : 'όχι, φόρος στο 100% του ενοικίου'}`,
+      // Η ΔΕΥΤΕΡΗ ΠΑΡΑΔΟΧΗ ΤΑΞΙΔΕΥΕΙ ΚΙ ΑΥΤΗ. Οποιος διαβάσει την αναφορά χωρίς
+      // να έχει την οθόνη μπροστά του πρέπει να ξέρει ποιο σενάριο διαβάζει.
+      ...(term === 'short'
+        ? [`Τέλος ανθεκτικότητας: ${levyToGuest ? 'χρεώνεται στον επισκέπτη, δεν βαραίνει τα καθαρά' : 'δεν χρεώνεται στον επισκέπτη, βγαίνει από την τσέπη του ιδιοκτήτη'}`]
+        : []),
         ...(consolidated ? [`Φόρος: μερίδιο από τον προοδευτικό φόρο ${portfolioTax.count} ακινήτων (σύνολο ενοικίων ${pEur(portfolioTax.totalAnnualRent)}, συνολικός φόρος ${pEur(portfolioTax.totalTax)})`] : []),
         `Λειτουργικά έξοδα: ${pPct(opexPctOfRent)} των εσόδων (${pEur(effOpex)})`,
         ...(canInvest ? [`Χρηματοδότηση: δάνειο ${pPct(parseFloat(ltv) || 0)} της αξίας, επιτόκιο ${pPct(parseFloat(loanRate) || 0)}, διάρκεια ${nLoanYears} έτη, ορίζοντας κατοχής ${parseInt(holdYears)} έτη, κόστη πώλησης ${pPct(nSellCosts)} (πλευρά πωλητή)`] : []),
@@ -1578,6 +1597,12 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                   <div>
                     <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: SANS, display: 'inline-flex', alignItems: 'center' }}>Τέλος ανθεκτικότητας (ΤΑΚΚ)<TermInfo text={G.takk} /></span>
                     <p className="po-fig" style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', margin: '3px 0 0', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{fe(st.climateLevy)} τον χρόνο</p>
+                    {/* ΤΟ ΠΟΣΟ ΕΙΝΑΙ ΤΟ ΙΔΙΟ, Η ΤΣΕΠΗ ΟΧΙ. Χωρίς αυτή τη γραμμή
+                        ο ίδιος αριθμός διαβαζόταν ως κόστος του ιδιοκτήτη ακόμη
+                        και όταν τον πληρώνει ο επισκέπτης. */}
+                    <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '2px 0 0', fontFamily: SANS, lineHeight: 1.45 }}>
+                      {levyToGuest ? 'Το εισπράττεις και το αποδίδεις· δεν βαραίνει τα καθαρά σου.' : 'Δεν το χρεώνεις στον επισκέπτη, οπότε μετρά ως δικό σου κόστος.'}
+                    </p>
                   </div>
                   <div>
                     <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: SANS, display: 'inline-flex', alignItems: 'center' }}>Τέλος παρεπιδημούντων<TermInfo text={G.transient_tax} /></span>
@@ -1607,6 +1632,18 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
             <Toggle checked={rentsBank} onChange={setRentsBank}
               label="Τα ενοίκια εισπράττονται μέσω τραπέζης"
               note={PRESUMPTIVE_RULE_2026} />
+            {/* Η ΔΕΥΤΕΡΗ ΠΑΡΑΔΟΧΗ ΗΤΑΝ ΚΑΡΦΩΜΕΝΗ ΚΑΙ ΑΟΡΑΤΗ, ΟΠΩΣ ΗΤΑΝ ΚΑΙ Η
+                ΠΡΩΤΗ. Η οθόνη αφαιρούσε ολόκληρο το ΤΑΚΚ από τα καθαρά, ενώ η
+                Λογιστική αφαιρεί μόνο όσο δεν εισπράχθηκε: δύο αλήθειες για το
+                ίδιο τέλος, με διαφορά ώς 1.500 € τον χρόνο. Τώρα το λέει ο
+                ιδιοκτήτης μία φορά· το ακολουθούν και οι δύο. */}
+            {term === 'short' && (
+              <div style={{ marginTop: 10 }}>
+                <Toggle checked={levyToGuest} onChange={setLevyToGuest}
+                  label="Χρεώνω το τέλος ανθεκτικότητας στον επισκέπτη"
+                  note="Ο νόμος το βάζει στον επισκέπτη και ο ιδιοκτήτης το αποδίδει. Οι πλατφόρμες όμως δεν έχουν πεδίο γι᾽ αυτό στην Ελλάδα: αν δεν το ζητήσεις ρητά, βγαίνει από την τσέπη σου." />
+              </div>
+            )}
             <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--text-secondary)', fontFamily: SANS, lineHeight: 1.55 }}>
               {consolidated
                 ? <>{CONSOLIDATION_NOTE} Το χαρτοφυλάκιό σου: <strong style={{ color: 'var(--text-primary)' }}>{portfolioTax.count} ακίνητα</strong> με ενοίκια {fe(portfolioTax.totalAnnualRent)} και συνολικό φόρο {fe(portfolioTax.totalTax)} (μέσος συντελεστής {fp(portfolioTax.effectiveRate * 100)}, οριακός {fp(portfolioTax.marginalRate * 100)}). Το μερίδιο αυτού του ακινήτου είναι <strong style={{ color: 'var(--text-primary)' }}>{fe(annualTax)}</strong>. Αν υπολογιζόταν μόνο του, θα έδειχνε {fe(portfolioTax.perProperty.find(p => p.id === propertyId)?.standaloneTax ?? 0)}, δηλαδή λιγότερα από την πραγματικότητα.</>
