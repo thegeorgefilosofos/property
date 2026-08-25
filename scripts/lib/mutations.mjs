@@ -215,4 +215,6 @@ export const MUTATIONS = {
   // Παραπομπή σε νόμο μέσα στον κώδικα, χωρίς εγγραφή στο μητρώο πηγών.
   'accounting-sources': { add: 'lib/core/__mut__.ts', content: "// Κατά το ν.9999/2020, το τεκμαρτό ποσοστό αλλάζει.\nexport const rate = 0.05\n" },
   'landing-theme': { file: 'app/page.tsx', from: '          --bg-base: var(--mkt-bg-base);', to: '          --bg-base: #101418;' },
+  // Ακριβώς ό,τι έριχνε το CI: το πλαστό αντικείμενο στη θέση του κατασκευαστή.
+  'global-clobber': { add: 'lib/core/__mut__.ts', content: "export const stub = () => { (globalThis as unknown as Record<string, unknown>).URL = { createObjectURL: () => 'blob:x' } }\n" },
 }

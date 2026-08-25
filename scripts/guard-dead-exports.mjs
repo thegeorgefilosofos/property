@@ -101,7 +101,10 @@ for (const [file, s] of src) {
 // λόγο ύπαρξης. Οταν καθαρίζεις, κατέβασε το `maxTestOnly`.
 // ═══════════════════════════════════════════════════════════════════════════
 const BASELINE = JSON.parse(readFileSync('scripts/dead-exports-baseline.json', 'utf8'));
-const isTest = f => f.includes('.test.');
+// Το «.testkit.» είναι ρητή κατηγορία: αρχείο που υπάρχει ΜΟΝΟ για να το
+// χρησιμοποιούν οι σουίτες, όπως το πλαστό έγγραφο των εξαγωγών. Το «καλείται
+// μόνο από τεστ» είναι ο ορισμός του, όχι ελάττωμά του.
+const isTest = f => f.includes('.test.') || f.includes('.testkit.');
 const testOnly = [];
 for (const [file, s] of src) {
   if (isTest(file)) continue;

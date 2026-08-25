@@ -9,6 +9,7 @@
 // Δεν ελέγχεται «αν κατέβηκε» — αυτό το ξέρει μόνο ο περιηγητής. Ελέγχεται η
 // ΣΕΙΡΑ ΤΩΝ ΕΝΕΡΓΕΙΩΝ, που είναι ακριβώς αυτό που διέφερε ανάμεσα στα επτά.
 import { downloadFile, downloadCsv, safeFilename } from './download'
+import { stubObjectUrl } from './downloadCapture.testkit'
 
 let pass = 0, fail = 0
 function ok(name: string, cond: boolean) { if (cond) pass++; else { fail++; console.error('✗ ' + name) } }
@@ -41,10 +42,9 @@ ok('και δεν τελειώνει σε κενό μετά την κοπή', !s
     createElement: () => anchor,
     body: { appendChild: () => events.push('appendChild') },
   }
-  g.URL = {
-    createObjectURL: () => { events.push('createObjectURL'); return 'blob:δοκιμή' },
-    revokeObjectURL: () => { revoked = true; events.push('revokeObjectURL') },
-  }
+  const restoreUrl = stubObjectUrl(
+    () => { events.push('createObjectURL'); return 'blob:δοκιμή' },
+    () => { revoked = true; events.push('revokeObjectURL') })
   const realTimeout = globalThis.setTimeout
   ;(globalThis as unknown as { setTimeout: unknown }).setTimeout =
     ((fn: () => void) => { timers.push(fn); return 0 }) as unknown as typeof setTimeout
@@ -67,7 +67,24 @@ ok('και δεν τελειώνει σε κενό μετά την κοπή', !s
 
   ;(globalThis as unknown as { setTimeout: unknown }).setTimeout = realTimeout
   delete g.document
-  delete g.URL
+  restoreUrl()
+}
+
+// ═══ ΤΟ ΠΛΑΣΤΟ ΔΕΝ ΠΑΤΑΕΙ ΤΟΝ ΚΑΤΑΣΚΕΥΑΣΤΗ URL ════════════════════════════
+// Οσο οι σουίτες έγραφαν «globalThis.URL = { createObjectURL }», ο αληθινός
+// κατασκευαστής χανόταν. Κανένας έλεγχος δεν το έβλεπε, γιατί ο κώδικας του
+// κατεβάσματος δεν καλεί «new URL». Το καλεί όμως ο μεταγλωττιστής tsx σε κάθε
+// δυναμική εισαγωγή, και στον Node 22.23 τα άγκιστρά του τρέχουν στο ίδιο
+// πεδίο. Το CI έσκαγε με «URL is not a constructor» σε μια σουίτα Excel.
+{
+  const restore = stubObjectUrl(() => 'blob:x', () => {})
+  ok('το «new URL» δουλεύει όσο στέκει το πλαστό',
+    new URL('file:///a/b.ts').pathname === '/a/b.ts')
+  ok('και η πλαστή μέθοδος είναι όντως στη θέση της',
+    (URL as unknown as { createObjectURL: () => string }).createObjectURL() === 'blob:x')
+  restore()
+  ok('η επαναφορά αφήνει τον κατασκευαστή ακέραιο',
+    new URL('file:///a/b.ts').pathname === '/a/b.ts')
 }
 
 // ═══ ΧΩΡΙΣ ΕΓΓΡΑΦΟ (ΔΙΑΚΟΜΙΣΤΗΣ): ΔΕΝ ΣΚΑΕΙ ══════════════════════════════
@@ -81,10 +98,9 @@ ok('στον διακομιστή επιστρέφει false αντί να πε�
   const g = globalThis as unknown as Record<string, unknown>
   const anchor = { href: '', download: '', style: {} as Record<string, string>, click() {}, remove() {} }
   g.document = { createElement: () => anchor, body: { appendChild: () => {} } }
-  g.URL = {
-    createObjectURL: (b: { text?: unknown }) => { captured = String((b as { __t?: string }).__t ?? ''); return 'blob:x' },
-    revokeObjectURL: () => {},
-  }
+  const restoreUrl = stubObjectUrl(
+    (b: never) => { captured = String((b as { __t?: string }).__t ?? ''); return 'blob:x' },
+    () => {})
   const RealBlob = globalThis.Blob
   ;(globalThis as unknown as { Blob: unknown }).Blob =
     function (parts: string[]) { return { __t: parts.join('') } } as unknown as typeof Blob
@@ -100,7 +116,7 @@ ok('στον διακομιστή επιστρέφει false αντί να πε�
   ;(globalThis as unknown as { Blob: unknown }).Blob = RealBlob
   ;(globalThis as unknown as { setTimeout: unknown }).setTimeout = realTimeout2
   delete g.document
-  delete g.URL
+  restoreUrl()
 }
 
 console.log(fail === 0 ? `✓ download: ${pass} έλεγχοι πέρασαν` : `✗ download: ${fail} απέτυχαν από ${pass + fail}`)

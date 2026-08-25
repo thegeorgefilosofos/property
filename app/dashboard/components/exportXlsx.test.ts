@@ -13,23 +13,15 @@
 import { downloadXlsx } from './exportXlsx'
 import { downloadTableXlsx } from './exportCsv'
 import { XLSX } from './xlsxStyle'
+import { captureDownloads } from '@/lib/core/downloadCapture.testkit'
 
 let pass = 0, fail = 0
 const ok = (n: string, c: boolean) => { if (c) pass++; else { fail++; console.error('✗ ' + n) } }
 const eq = (n: string, got: unknown, want: unknown) => ok(`${n} (${JSON.stringify(got)} ≠ ${JSON.stringify(want)})`, JSON.stringify(got) === JSON.stringify(want))
 
-// ── Πλαστό έγγραφο: κρατά όνομα και byte του αρχείου που «κατέβηκε» ────────
-const caught: { name: string; bytes: Uint8Array }[] = []
-{
-  let pending: Uint8Array | null = null
-  const g = globalThis as Record<string, unknown>
-  g.URL = { createObjectURL: (b: { __bytes: Uint8Array }) => { pending = b.__bytes; return 'blob:test' }, revokeObjectURL: () => {} }
-  g.Blob = class { __bytes: Uint8Array; constructor(parts: ArrayBuffer[]) { this.__bytes = new Uint8Array(parts[0]) } }
-  const el = { href: '', download: '', style: {} as Record<string, string>, click() { caught.push({ name: this.download, bytes: pending! }) }, remove() {} }
-  g.document = { createElement: () => el, body: { appendChild: () => {} } }
-  const realTimeout = globalThis.setTimeout
-  g.setTimeout = ((fn: () => void, ms: number) => realTimeout(fn, ms).unref?.() ?? realTimeout(fn, ms)) as typeof setTimeout
-}
+// Το πλαστό έγγραφο ζει στο lib/core/downloadCapture.testkit.ts: ήταν γραμμένο δύο
+// φορές, και το ένα αντίγραφο κρατούσε το σφάλμα που έριχνε το CI.
+const caught = captureDownloads()
 const last = () => caught[caught.length - 1]
 // `cellNF` ώστε να επιστραφεί η ΜΟΡΦΗ του κελιού, όχι μόνο η τιμή του.
 const lastBook = () => XLSX.read(last().bytes, { type: 'array', cellNF: true })
