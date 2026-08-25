@@ -55,7 +55,7 @@ import * as stayStore from '@/lib/data/stays';
 import { T, fe, fp, Skeleton, pressable } from '@/components/Theme';
 import { readStatus, type StatusRow } from '@/lib/property/status';
 import { occupancyFromMonths, type ReportStay } from '@/lib/clients/reports';
-import { shortTermYearSummary } from '@/lib/tax/shortTermTax';
+import { isHouseType, shortTermYearSummary } from '@/lib/tax/shortTermTax';
 import { MONTHS_SHORT, MONTHS_ACC } from '@/lib/core/months';
 
 interface StayRow extends ReportStay { declared_at?: string | null }
@@ -94,7 +94,7 @@ export default function OccupancyPanel({ propertyId, userId }: {
   // Η ΚΑΤΑΣΤΑΣΗ ΑΠΟΦΑΣΙΖΕΙ, ΟΧΙ ΔΙΑΚΟΠΤΗΣ. Ίδια πηγή με τις καρτέλες.
   const isShort = readStatus(prop) === 'rent_short';
 
-  const isHouse = ['house', 'villa'].includes(String(prop?.prop_type || '').toLowerCase());
+  const isHouse = isHouseType(prop?.prop_type);
   const tax = useMemo(() => shortTermYearSummary(stays, year, {
     sqm: prop?.sqm ?? null, isHouse, propertyCount: shortTermCount ?? 1, individual: true,
   }), [stays, year, prop?.sqm, isHouse, shortTermCount]);

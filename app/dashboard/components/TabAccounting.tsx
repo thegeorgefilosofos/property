@@ -40,7 +40,8 @@ import {
   incomeStatement, taxProvision, consolidateIndividual,
   type TaxRegime, type StatementInput, type IncomeStatement,
 } from '@/lib/accounting/statement'
-import { shortTermYearSummary, platformFeeExpenses, staysMissingPlatformFee } from '@/lib/tax/shortTermTax'
+import { shortTermYearSummary, platformFeeExpenses, staysMissingPlatformFee, isHouseType } from '@/lib/tax/shortTermTax'
+import { bankReceiptMatters } from '@/lib/billing/consolidate'
 import { resolveEnfia } from '@/lib/billing/propertyFacts'
 import { estimateENFIAFromFacts, enfiaTypeBlock, ENFIA_TYPE_BLOCK_NOTE } from '@/lib/billing/enfia'
 import { annuityMonthly, interestForYear } from '@/lib/loans/recommend'
@@ -325,7 +326,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // Και ο `prop_type`: χωρίς αυτόν η εκτίμηση χρέωνε αποθήκη 20 τ.μ. με τον
   // πίνακα των κατοικιών (39,20 € τον χρόνο) και οικόπεδο 400 τ.μ. με 600,00 €.
   type PropRow     = Pick<UserPropertiesRow, 'id'|'name'|'address'|'rental_mode'|'enfia'|'sqm'|'value'|'year_built'|'floor'|'purchase_price'|'purchase_date'|'prop_type'|'ownership'>
-  type PropListRow = Pick<UserPropertiesRow, 'id'|'name'|'rental_mode'|'status_detail'|'enfia'|'sqm'|'ownership'>
+  type PropListRow = Pick<UserPropertiesRow, 'id'|'name'|'rental_mode'|'status_detail'|'enfia'|'sqm'|'ownership'|'prop_type'>
   type InventoryRow = Pick<InventoryItemsRow, 'name'|'purchase_value'|'category'|'purchase_date'>
 
   const [expenses,setExpenses] = useState<ExpenseRow[]>([])
@@ -369,7 +370,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         stayStore.ofPropertyWithError<StayRow>(supabase,propertyId,`id,${stayStore.ACCOUNTING_COLUMNS}`,userId),
         loanStore.ofPropertyWithError(supabase,propertyId,userId),
         properties.oneWithError<PropRow>(supabase, propertyId, 'id,name,address,rental_mode,enfia,sqm,value,year_built,floor,purchase_price,purchase_date,prop_type,ownership', userId),
-        properties.listWithError<PropListRow>(supabase, userId, { columns: 'id,name,rental_mode,status_detail,enfia,sqm,ownership' }),
+        properties.listWithError<PropListRow>(supabase, userId, { columns: 'id,name,rental_mode,status_detail,enfia,sqm,ownership,prop_type' }),
         rentStore.ofUserWithError<PortfolioRentRow>(supabase,userId,`property_id,${rentStore.LEDGER_COLUMNS}`),
         stayStore.ofUserWithError<PortfolioStayRow>(supabase,userId,`property_id,${stayStore.ACCOUNTING_COLUMNS}`),
         inventoryStore.ofPropertyWithError<InventoryRow>(supabase,propertyId,'name,purchase_value,category,purchase_date',userId),
@@ -470,7 +471,12 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // μόνο το ταμείο. (Μακροχρόνια.)
   const rentAccruedYear = useMemo(()=>mine(rent.filter(p=>p.period_year===year).reduce((s,p)=>s+(p.amount||0),0)),[rent,year,mine])
   const rentCollectedYear = useMemo(()=>mine(rent.filter(p=>p.paid&&p.period_year===year).reduce((s,p)=>s+(p.amount||0),0)),[rent,year,mine])
-  const shortSummary = useMemo(()=>shortTermYearSummary(stays, year, { sqm: prop?.sqm, isHouse:false, propertyCount:propCount, individual:true }),[stays,year,prop,propCount])
+  // ΤΟ ΤΕΛΟΣ ΠΑΡΕΠΙΔΗΜΟΥΝΤΩΝ ΡΩΤΑΕΙ ΑΝ ΕΙΣΑΙ ΦΥΣΙΚΟ ΠΡΟΣΩΠΟ. Εδώ περνούσε
+  // καρφωμένο «ναι», για κάθε λογαριασμό: το νομικό πρόσωπο με ένα ακίνητο δεν
+  // χρεωνόταν καθόλου το δημοτικό τέλος, δηλαδή 150,00 € σε ακαθάριστα
+  // 30.000,00 €. Η ίδια κρίση γίνεται σωστά δίπλα, στις Αποδόσεις.
+  const individualPerson = !(mode==='professional' && elp==='business' && elpForm==='company')
+  const shortSummary = useMemo(()=>shortTermYearSummary(stays, year, { sqm: prop?.sqm, isHouse: isHouseType(prop?.prop_type), propertyCount:propCount, individual:individualPerson }),[stays,year,prop,propCount,individualPerson])
   const expensesYear = useMemo(()=>expenses.filter(e=>(e.date||'').slice(0,4)===String(year)&&(e.amount||0)>0),[expenses,year])
   // ── Η ΠΡΟΜΗΘΕΙΑ ΤΗΣ ΠΛΑΤΦΟΡΜΑΣ ΕΙΝΑΙ ΔΑΠΑΝΗ, ΚΑΙ ΜΠΑΙΝΕΙ ΣΤΑ ΒΙΒΛΙΑ ──────
   // Καταγραφόταν ανά κράτηση, φαινόταν σε τέσσερις οθόνες ως «δαπάνη που
@@ -569,17 +575,24 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const uncollectedRent = regime==='individual_shortterm' ? 0 : Math.max(0, rentAccruedYear - rentCollectedYear)
   // Τι λένε τα δεδομένα και τι ισχύει τελικά (η παράκαμψη του χρήστη νικά).
   const collection = useMemo(() => rentCollectionMode(rent, year, leaseViaBank), [rent, year, leaseViaBank])
-  const rentsBank = rentsBankOverride ?? collection.viaBank
+  // Ο ΤΡΟΠΟΣ ΕΙΣΠΡΑΞΗΣ ΜΕΤΡΑΕΙ ΜΟΝΟ ΑΠΟ ΤΗ ΧΡΗΣΗ 2026. Ο δημόσιος υπολογιστής
+  // το φράζει σωστά με το έτος· εδώ περνούσε ωμό για κάθε χρονιά, οπότε μία
+  // είσπραξη σε μετρητά μέσα στο 2025 αφαιρούσε την τεκμαρτή έκπτωση 5% που ο
+  // νόμος έδινε: σε ενοίκια 20.000,00 € ο φόρος έβγαινε 4.600,00 € αντί για
+  // 4.250,00 €· το νούμερο έφευγε στον φάκελο του λογιστή ως δικός μας
+  // υπολογισμός. Η σύγκριση ζει πλέον στο lib/billing/consolidate.ts.
+  const bankMatters = bankReceiptMatters(year)
+  const rentsBank = bankMatters ? (rentsBankOverride ?? collection.viaBank) : true
 
   // Ενοποίηση χαρτοφυλακίου (φυσικό πρόσωπο): ο φόρος είναι προοδευτικός στο ΣΥΝΟΛΟ
   // των ενοικίων (Ε1), όχι ανά ακίνητο. Υπολογίζεται ΠΑΝΤΑ, ώστε ο φόρος του τρέχοντος
   // ακινήτου να είναι το ΜΕΡΙΔΙΟ του από τον συνολικό, σωστά και για πολλά ακίνητα.
   const consolidation = useMemo(()=>{
-    const items = (allProps.length?allProps:[{id:propertyId,name:prop?.name,rental_mode:prop?.rental_mode,enfia:prop?.enfia,sqm:prop?.sqm}]).map(p=>{
+    const items = (allProps.length?allProps:[{id:propertyId,name:prop?.name,rental_mode:prop?.rental_mode,enfia:prop?.enfia,sqm:prop?.sqm,prop_type:prop?.prop_type}]).map(p=>{
       const rmode:TaxRegime = readStatus(p as StatusRow) === 'rent_short' ? 'individual_shortterm' : 'individual_longterm'
       const pRentAccrued = allRent.filter(r=>r.property_id===p.id&&r.period_year===year).reduce((s,r)=>s+(r.amount||0),0)
       const pStays = allStays.filter(s=>s.property_id===p.id)
-      const pShort = shortTermYearSummary(pStays, year, { sqm:p.sqm??null, isHouse:false, propertyCount:propCount, individual:true })
+      const pShort = shortTermYearSummary(pStays, year, { sqm:p.sqm??null, isHouse: isHouseType(p.prop_type), propertyCount:propCount, individual:individualPerson })
       // Κάθε ακίνητο με ΤΟ ΔΙΚΟ ΤΟΥ ποσοστό: ένα χαρτοφυλάκιο μπορεί να έχει
       // δύο κληρονομιές στο ένα τρίτο και ένα διαμέρισμα ολόκληρο.
       const pPct = pctOf(p.id)
@@ -590,7 +603,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     }).filter(x=>x.input.grossIncome>0)
     if(items.length===0) return null
     return { con: consolidateIndividual(items.map(i=>({id:i.id,input:i.input})), rentalBracketsForYear(year)), names:Object.fromEntries(items.map(i=>[i.id,i.name])), count:items.length }
-  },[allProps,allRent,allStays,year,propCount,prop,propertyId,rentsBank,pctOf])
+  },[allProps,allRent,allStays,year,propCount,prop,propertyId,rentsBank,pctOf,individualPerson])
   const myTaxShare = useMemo(()=>consolidation?.con.perProperty.find(p=>p.id===propertyId)?.taxShare,[consolidation,propertyId])
   const portfolio = (mode==='professional' && elp==='personal') ? consolidation : null
 
@@ -1228,9 +1241,13 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               έναν διακόπτη χωρίς αποτέλεσμα και ένα αποτέλεσμα χωρίς αιτία,
               με μια ολόκληρη κάρτα ανάμεσά τους. Μια παράμετρος διαβάζεται
               μόνο δίπλα στο νούμερο που κουνάει. */}
-          {!businessMode && (regime==='individual_longterm' || uncollectedRent>0) && (
+          {!businessMode && ((regime==='individual_longterm' && bankMatters) || uncollectedRent>0) && (
             <div style={{ marginTop:12, paddingTop:12, borderTop:'1px solid var(--border-subtle)', display:'flex', flexDirection:'column', gap:10 }}>
-              {regime==='individual_longterm' && (
+              {/* Η ΕΡΩΤΗΣΗ ΔΕΝ ΜΠΑΙΝΕΙ ΟΠΟΥ ΔΕΝ ΑΛΛΑΖΕΙ ΤΙΠΟΤΑ. Για χρήσεις ώς το
+                  2025 η έκπτωση δινόταν ανεξάρτητα από τον τρόπο είσπραξης: ένα
+                  κουτάκι που δεν κουνάει κανένα νούμερο διδάσκει τον χρήστη ότι
+                  οι ερωτήσεις μας δεν αλλάζουν τίποτα. */}
+              {regime==='individual_longterm' && bankMatters && (
                 <div>
                   <div style={{ display:'flex', alignItems:'center', gap:7, flexWrap:'wrap' }}>
                     <Check checked={rentsBank} onChange={v=>setRentsBankOverride(v===collection.viaBank?null:v)} label={<span style={{ fontSize:12, color:'var(--text-secondary)' }}>Τα ενοίκια εισπράττονται <strong style={{ color:'var(--text-primary)' }}>μέσω τραπέζης</strong>.</span>}/>

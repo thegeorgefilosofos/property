@@ -30,6 +30,20 @@ import {
 
 export interface PropertyTaxMeta { sqm?: number | null; isHouse?: boolean; propertyCount?: number; individual?: boolean; rentsPaidViaBank?: boolean }
 
+/**
+ * ΕΙΝΑΙ ΜΟΝΟΚΑΤΟΙΚΙΑ; ΤΟ ΜΕΓΑΛΟ ΚΛΙΜΑΚΙΟ ΤΟΥ ΤΕΛΟΥΣ ΤΟ ΡΩΤΑΕΙ.
+ *
+ * Ο κανόνας ήταν γραμμένος με το χέρι σε δύο οθόνες και σε δύο ακόμη έλειπε
+ * εντελώς: η καρτέλα του λογιστή περνούσε καρφωμένο «όχι μονοκατοικία» για
+ * κάθε ακίνητο. Μονοκατοικία 120 τ.μ. με 200 νύχτες υψηλής περιόδου χρεωνόταν
+ * 1.600,00 € τέλος ανθεκτικότητας αντί για 3.000,00 €.
+ *
+ * Η μεζονέτα ΔΕΝ είναι μονοκατοικία για τον νόμο και γι' αυτό η λίστα έχει δύο
+ * τιμές και όχι τρεις.
+ */
+export const isHouseType = (propType?: string | null): boolean =>
+  ['house', 'villa'].includes(String(propType || '').toLowerCase());
+
 export interface TaxStay extends StayAmountLike {
   channel?: string | null;
   declared_at?: string | null;

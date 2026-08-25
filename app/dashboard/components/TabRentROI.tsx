@@ -20,6 +20,7 @@ import { NumberInput, CustomSelect, fieldLabelStyle, Toggle as Switch } from './
 import { ChevronRight, TrendingUp, Landmark, Percent, Wallet, Layers, ArrowUpRight, Info, ShieldCheck } from 'lucide-react';
 import { yields, compound, leverage, compareInvestments, propertyTotalReturn, projectLine, yieldGrade, dealAnalysis, type LeverageResult, type YieldGrade } from '@/lib/market/returns';
 import { shortTermEstimate, breakEvenOccupancy, adrReference, MAX_ST_GROSS_YIELD_WARN } from '@/lib/market/shortTerm';
+import { isHouseType } from '@/lib/tax/shortTermTax';
 import {
   REGIONS, BENCHMARKS, BENCHMARKS_ASOF, HISTORY_INDEX, HISTORY_ANCHORS, SHORT_TERM, YIELD_LEVERS,
   GREECE_AVG_GROSS_YIELD, ATHENS_AVG_GROSS_YIELD, MARKET_DISCLAIMER, MARKET_DATA_ASOF, MARKET_SOURCES,
@@ -721,13 +722,13 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
 
   // Εκτίμηση βραχυχρόνιας (πληρότητα × τιμή/νύχτα − κόστη − ΤΑΚΚ − παρεπιδημούντων).
   // Το μεγάλο κλιμάκιο ΤΑΚΚ (μονοκατοικίες >80 τ.μ.) αφορά ΜΟΝΟ μονοκατοικίες/βίλες — όχι μεζονέτες.
-  const isHouseType = ['house', 'villa'].includes((pType || '').toLowerCase());
+  const isHouse = isHouseType(pType);
   // Μερίδιο νυχτών σε υψηλή περίοδο: νησιά/τουριστικά συγκεντρώνουν τη ζήτηση στο καλοκαίρι.
   const highSeasonShare = (reg?.tags || []).some(t => t === 'island' || t === 'tourist') ? 0.85 : 0.6;
   const st = useMemo(() => shortTermEstimate({
     occupancyPct: occEff, adr: adrEff, cleaningPerStay: parseFloat(stClean) || 0,
-    platformFeePct: parseFloat(stFee) || 0, sqm: pSqm, isHouse: isHouseType, highSeasonShare, propertyCount: 1, individual: individualPerson,
-  }), [occEff, adrEff, stClean, stFee, pSqm, isHouseType, highSeasonShare, individualPerson]);
+    platformFeePct: parseFloat(stFee) || 0, sqm: pSqm, isHouse, highSeasonShare, propertyCount: 1, individual: individualPerson,
+  }), [occEff, adrEff, stClean, stFee, pSqm, isHouse, highSeasonShare, individualPerson]);
 
   // Ενοποιημένα μεγέθη: το toggle μακροχρόνια/βραχυχρόνια αλλάζει πραγματικά τα έσοδα & κόστη.
   const grossAnnual = term === 'short' ? st.grossRevenue : nRent * 12;
@@ -887,8 +888,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   const breakEvenOcc = useMemo(() => {
     const ltGross = nRent * 12;
     if (ltGross <= 0) return null;
-    return breakEvenOccupancy(ltGross, { adr: adrEff, cleaningPerStay: parseFloat(stClean) || 0, platformFeePct: parseFloat(stFee) || 0, sqm: pSqm, isHouse: isHouseType, highSeasonShare, propertyCount: 1, individual: individualPerson });
-  }, [nRent, adrEff, stClean, stFee, pSqm, isHouseType, highSeasonShare, individualPerson]);
+    return breakEvenOccupancy(ltGross, { adr: adrEff, cleaningPerStay: parseFloat(stClean) || 0, platformFeePct: parseFloat(stFee) || 0, sqm: pSqm, isHouse, highSeasonShare, propertyCount: 1, individual: individualPerson });
+  }, [nRent, adrEff, stClean, stFee, pSqm, isHouse, highSeasonShare, individualPerson]);
 
   // ΤΟ ΑΝΕΦΙΚΤΟ ΔΕΝ ΓΡΑΦΕΤΑΙ «100%».
   // Εδώ γραφόταν `Math.min(100, breakEvenOcc)`. Ένα ακίνητο με χαμηλή τιμή ανά

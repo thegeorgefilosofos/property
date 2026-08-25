@@ -5,7 +5,8 @@
 // ΔΕΝ ισούται με 3× τον φόρο των 8.000 €. Αυτό ακριβώς έδειχνε το app πριν.
 import {
   consolidateRentTax, taxShareOf, consolidationSummary,
-  presumptiveDeductionRate, PRESUMPTIVE_RULE_2026, CONSOLIDATION_NOTE,
+  presumptiveDeductionRate, presumptiveDeductionRateForYear, bankReceiptMatters,
+  PRESUMPTIVE_RULE_2026, CONSOLIDATION_NOTE,
 } from './consolidate';
 import { rentalIncomeTax } from './greekTax';
 
@@ -88,6 +89,25 @@ const src = (id: string, annualRent: number, over: Record<string, unknown> = {})
   eq('με τράπεζα → 5%', presumptiveDeductionRate(true), 0.05);
   eq('με μετρητά → 0%', presumptiveDeductionRate(false), 0);
   eq('χωρίς όρισμα → 5% (default)', presumptiveDeductionRate(), 0.05);
+
+  // ── Ο ΤΡΟΠΟΣ ΕΙΣΠΡΑΞΗΣ ΜΕΤΡΑΕΙ ΜΟΝΟ ΑΠΟ ΤΟ 2026 ────────────────────────
+  // Η προϋπόθεση της τράπεζας μπήκε με τον ν.5246/2025 και ισχύει από 1/1/2026.
+  // Ο δημόσιος υπολογιστής τη σύγκριση την έκανε, η καρτέλα του λογιστή όχι:
+  // μία είσπραξη σε μετρητά μέσα στο 2025 αφαιρούσε έκπτωση που ο νόμος έδινε.
+  eq('2025: ο τρόπος είσπραξης δεν μετράει', bankReceiptMatters(2025), false);
+  eq('2026: μετράει', bankReceiptMatters(2026), true);
+  eq('2027: μετράει', bankReceiptMatters(2027), true);
+  eq('χωρίς έτος μετράει, γιατί «τώρα»', bankReceiptMatters(null), true);
+
+  eq('2025 με μετρητά κρατά την έκπτωση', presumptiveDeductionRateForYear(2025, false), 0.05);
+  eq('2025 με τράπεζα το ίδιο', presumptiveDeductionRateForYear(2025, true), 0.05);
+  eq('2026 με μετρητά τη χάνει', presumptiveDeductionRateForYear(2026, false), 0);
+  eq('2026 με τράπεζα την κρατά', presumptiveDeductionRateForYear(2026, true), 0.05);
+
+  // ΚΑΙ ΤΟ ΝΟΥΜΕΡΟ ΠΟΥ ΕΦΤΑΝΕ ΣΤΟΝ ΛΟΓΙΣΤΗ. Ενοίκια 20.000,00 € στη χρήση
+  // 2025, εισπραγμένα με μετρητά: φορολογητέο 19.000,00 € και όχι 20.000,00 €.
+  eq('χρήση 2025, 20.000 € με μετρητά → φορολογητέο 19.000 €',
+    Math.round(20000 * (1 - presumptiveDeductionRateForYear(2025, false))), 19000);
 
   const bank = consolidateRentTax([src('a', 10000), src('b', 10000)]);
   const cash = consolidateRentTax([src('a', 10000, { rentsPaidViaBank: false }), src('b', 10000, { rentsPaidViaBank: false })]);

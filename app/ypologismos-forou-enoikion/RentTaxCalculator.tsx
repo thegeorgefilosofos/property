@@ -27,7 +27,7 @@ import {
   rentalBracketsForYear, FIRST_YEAR_NEW_BRACKETS,
 } from '@/lib/billing/greekTax';
 import { parseAmount } from '@/lib/core/greek';
-import { presumptiveDeductionRate } from '@/lib/billing/consolidate';
+import { bankReceiptMatters, presumptiveDeductionRateForYear } from '@/lib/billing/consolidate';
 import { PRESUMPTIVE_DEDUCTION_RATE } from '@/lib/accounting/statement';
 import { Toggle } from '@/app/dashboard/components/UIComponents';
 import { ToolCta, EstimateNote } from '@/app/PublicChrome';
@@ -80,7 +80,9 @@ export function RentTaxCalculator({ today }: { today: string }) {
   // έκπτωση 5% δίνεται ανεξάρτητα από τον τρόπο είσπραξης, οπότε η ερώτηση δεν
   // έχει νόημα εκεί και δεν εμφανίζεται: μια ερώτηση που δεν αλλάζει τίποτα
   // διδάσκει τον χρήστη ότι οι ερωτήσεις μας δεν αλλάζουν τίποτα.
-  const bankMatters = year >= FIRST_YEAR_NEW_BRACKETS;
+  // Η σύγκριση ζει στο lib/billing/consolidate.ts: γραμμένη εδώ, η καρτέλα του
+  // λογιστή δεν την έκανε καθόλου και έβγαζε άλλον φόρο για την ίδια χρονιά.
+  const bankMatters = bankReceiptMatters(year);
   const monthlyId = useId(), monthsId = useId();
 
   const r = useMemo(() => {
@@ -91,7 +93,7 @@ export function RentTaxCalculator({ today }: { today: string }) {
     // ρεαλιστικό ελάχιστο για κάθε ιδιοκτήτη — και ο φόρος υπολογίζεται πάνω σε
     // αυτό, όχι στο μεικτό. Από 1/1/2026 όμως προϋποθέτει τραπεζική είσπραξη,
     // και ο συντελεστής γίνεται μηδέν όταν ο χρήστης πει «μετρητά».
-    const rate = presumptiveDeductionRate(bankMatters ? viaBank : true);
+    const rate = presumptiveDeductionRateForYear(year, viaBank);
     const taxable = gross * (1 - rate);
     const tax = rentalIncomeTax(taxable, brackets);
     return {
