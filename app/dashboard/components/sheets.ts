@@ -26,6 +26,11 @@
 type Args<T extends (...a: never[]) => unknown> = Parameters<T>;
 
 /** Φύλλα εργασίας γενικής χρήσης (ατζέντα, δάνεια, καταστάσεις). */
+/** Τα byte ενός βιβλίου από φύλλα, για μαζική λήψη σε φάκελο. */
+export const xlsxBytes = async (
+  ...a: Args<typeof import('./exportXlsx')['xlsxBytes']>
+) => (await import('./exportXlsx')).xlsxBytes(...a);
+
 export const downloadXlsx = async (
   ...a: Args<typeof import('./exportXlsx')['downloadXlsx']>
 ) => (await import('./exportXlsx')).downloadXlsx(...a);

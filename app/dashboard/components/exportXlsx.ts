@@ -34,7 +34,7 @@
 // φόντο, πλαίσια, στοίχιση ανά τύπο, γραμμή ΣΥΝΟΛΟ με ζωντανό SUM, AutoFilter,
 // περιθώρια εκτύπωσης και επανάληψη επικεφαλίδων σε κάθε σελίδα.
 // ═══════════════════════════════════════════════════════════════════════════
-import { XLSX, setCell, downloadWorkbook, printTitles, sheetFinish } from './xlsxStyle';
+import { XLSX, setCell, downloadWorkbook, workbookBytes, printTitles, sheetFinish } from './xlsxStyle';
 import { FMT, S, ROW, sheetName, MARGINS, type Cell } from './sheetFormat';
 
 export type XlsxKind = 'text' | 'date' | 'eur' | 'int' | 'year' | 'pct' | 'num';
@@ -96,6 +96,17 @@ function columnWidth(col: XlsxCol, values: XlsxCell[]): number {
  * αθροίζει, ταξινομεί και φτιάχνει συγκεντρωτικούς πίνακες χωρίς μετατροπές.
  */
 export function downloadXlsx(filename: string, sheets: XlsxSheet[]): void {
+  downloadWorkbook(sheetsWorkbook(sheets), filename);
+}
+
+/**
+ * Το ίδιο βιβλίο, χωρίς να κατέβει.
+ *
+ * ΓΙΑΤΙ ΧΩΡΙΣΤΑ. Ενας φάκελος με ένα βιβλίο ανά πελάτη χρειάζεται τα byte, όχι
+ * μια λήψη ανά πελάτη. Το να ξαναγραφτεί η διάταξη εκεί θα σήμαινε δεύτερο
+ * σχέδιο για το ίδιο έγγραφο, που θα απέκλινε στην πρώτη αλλαγή.
+ */
+export function sheetsWorkbook(sheets: XlsxSheet[]): XLSX.WorkBook {
   const wb = XLSX.utils.book_new();
   const used = new Set<string>();
 
@@ -204,5 +215,10 @@ export function downloadXlsx(filename: string, sheets: XlsxSheet[]): void {
     printTitles(wb, wb.SheetNames.length - 1, name, HR + 1);
   }
 
-  downloadWorkbook(wb, filename);
+  return wb;
+}
+
+/** Τα byte ενός βιβλίου φτιαγμένου από φύλλα, για όποιον το βάζει σε φάκελο. */
+export function xlsxBytes(sheets: XlsxSheet[]): Uint8Array {
+  return workbookBytes(sheetsWorkbook(sheets));
 }

@@ -26,6 +26,12 @@ import { T, Card, Btn } from '@/components/Theme';
 import { TextInput } from '@/app/dashboard/components/UIComponents';
 import { PortalBar, PortalTitle, portalWrap } from '../Chrome';
 import { claim, clients, request, gapsOf, readinessOf, type ClientCounts } from '@/lib/data/accountant';
+import { loadStatements, downloadAll, type BulkClient, type ClientStatement } from '../bulk';
+import { fe } from '@/components/Theme';
+import { useRememberedFlag } from '@/components/useRememberedFlag';
+
+/** Η προτίμηση «δείξε ποσά» ζει στον περιηγητή του λογιστή, όχι στη βάση. */
+const MONEY_KEY = 'properwise.accountant.money';
 
 /** Το τελευταίο κλεισμένο έτος: εκεί δουλεύει ο λογιστής τον περισσότερο χρόνο. */
 const defaultYear = () => new Date().getFullYear() - 1;
@@ -39,6 +45,18 @@ export default function AccountantWorkspace() {
   const [adding, setAdding] = useState(false);
   const [notice, setNotice] = useState('');
   const [asked, setAsked] = useState<Record<string, true>>({});
+  // ── ΤΑ ΠΟΣΑ ΕΙΝΑΙ ΕΠΙΛΟΓΗ, ΟΧΙ ΠΡΟΕΠΙΛΟΓΗ ──────────────────────────────
+  // Η λίστα υπάρχει για να δει ο λογιστής ΠΟΙΟΝ να κυνηγήσει· μια μόνιμη στήλη
+  // αριθμών δίπλα στα κενά τραβά το μάτι από αυτά. Με ογδόντα πελάτες όμως
+  // θέλει και να ξεχωρίσει τον μεγάλο από τον μικρό, οπότε τα ποσά ανοίγουν με
+  // ένα πάτημα και η επιλογή του θυμάται.
+  const [showMoney, setShowMoney] = useRememberedFlag(MONEY_KEY);
+  // ΤΑ ΠΟΣΑ ΚΟΥΒΑΛΟΥΝ ΤΗ ΧΡΗΣΗ ΤΟΥΣ. Χωρίς αυτό χρειαζόταν ένα «σβήσε τα» σε
+  // effect κάθε φορά που άλλαζε η χρονιά — δηλαδή δεύτερη απόδοση — και υπήρχε
+  // στιγμή όπου ο λογιστής διάβαζε τα ποσά του 2024 κάτω από τον τίτλο του 2025.
+  const [cash, setCash] = useState<{ year: number; map: Map<string, ClientStatement> } | null>(null);
+  const money = cash && cash.year === year ? cash.map : null;
+  const [busy, setBusy] = useState<'money' | 'zip' | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
@@ -99,6 +117,38 @@ export default function AccountantWorkspace() {
   const stuck = ordered.filter(x => x.ready.blocking > 0).length;
   const done = ordered.filter(x => x.gaps.length === 0).length;
 
+  const bulk = useCallback((): BulkClient[] =>
+    (rows ?? []).map(c => ({ ownerId: c.ownerId, name: c.name, token: c.token })), [rows]);
+
+  const fetchMoney = useCallback(async () => {
+    if (money || !rows?.length) return money;
+    setBusy('money');
+    const map = await loadStatements(supabase, bulk(), year);
+    setCash({ year, map });
+    setBusy(null);
+    return map;
+  }, [money, rows, supabase, bulk, year]);
+
+  const toggleMoney = async () => {
+    const next = !showMoney;
+    setShowMoney(next);
+    if (next) await fetchMoney();
+  };
+
+  // ΕΝΑ ΒΙΒΛΙΟ ΑΝΑ ΠΕΛΑΤΗ, ΟΛΑ ΣΕ ΕΝΑΝ ΦΑΚΕΛΟ. Ο λογιστής αρχειοθετεί ανά
+  // πελάτη: ένα βιβλίο με ογδόντα φύλλα θα έπρεπε να το σπάσει μόνος του.
+  const downloadEverything = async () => {
+    setBusy('zip');
+    const m = (await fetchMoney()) ?? money;
+    setBusy('zip');
+    const ready = Array.from(m?.values() ?? []);
+    const n = await downloadAll(ready, year, new Date().toLocaleDateString('el-GR'));
+    setBusy(null);
+    setNotice(n === 0
+      ? 'Κανένας πελάτης δεν έχει ζωντανό σύνδεσμο για αυτή τη χρήση.'
+      : n === 1 ? 'Κατέβηκε ένα βιβλίο.' : `Κατέβηκαν ${n} βιβλία.`);
+  };
+
   const wrap = portalWrap;
   const label: React.CSSProperties = {
     fontSize: 11, letterSpacing: '0.5px', textTransform: 'uppercase',
@@ -144,7 +194,17 @@ export default function AccountantWorkspace() {
                 </strong> · {done === 1 ? '1 έτοιμος' : `${done} έτοιμοι`}</>
               )}
             </>
-          } />
+          }
+          right={ordered.length > 0 ? (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <Btn variant="ghost" onClick={() => void toggleMoney()} disabled={busy === 'money'}>
+                {busy === 'money' ? 'Φόρτωση…' : showMoney ? 'Κρύψε ποσά' : 'Δείξε ποσά'}
+              </Btn>
+              <Btn variant="secondary" onClick={() => void downloadEverything()} disabled={busy !== null}>
+                {busy === 'zip' ? 'Ετοιμάζεται…' : 'Κατέβασε τα όλα'}
+              </Btn>
+            </div>
+          ) : undefined} />
 
       {/* Η ΠΡΟΣΘΗΚΗ ΚΑΘΕΤΑΙ ΠΑΝΩ, ΓΙΑΤΙ ΕΙΝΑΙ Η ΠΡΩΤΗ ΚΙΝΗΣΗ ΠΟΥ ΚΑΝΕΙΣ ΕΔΩ.
           Όταν η λίστα γεμίσει, παύει να είναι η πρώτη — αλλά ούτε ενοχλεί, γιατί
@@ -203,6 +263,19 @@ export default function AccountantWorkspace() {
                       {c.afm ? ` · ΑΦΜ ${c.afm}` : ''}
                       {!c.token ? ' · ο σύνδεσμός του δεν ισχύει πια' : ''}
                     </p>
+                    {/* ΤΟ ΜΗΔΕΝ ΔΕΝ ΓΡΑΦΕΤΑΙ ΩΣ ΠΟΣΟ. Πελάτης χωρίς καμία
+                        καταχώρηση δεν έχει έσοδα «0,00 €»: δεν έχει μέτρηση. Και
+                        όποιος δεν απάντησε λείπει, δεν μηδενίζεται. */}
+                    {showMoney && money && (
+                      <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '6px 0 0', fontFamily: T.font.mono }}>
+                        {(() => {
+                          const m = money.get(c.ownerId);
+                          if (!m) return <span style={{ fontFamily: T.font.sans, color: 'var(--text-tertiary)' }}>Τα ποσά δεν διαβάστηκαν</span>;
+                          if (!m.hasEntries) return <span style={{ fontFamily: T.font.sans, color: 'var(--text-tertiary)' }}>Καμία καταχώρηση στη χρήση</span>;
+                          return `${fe(m.income)} έσοδα · ${fe(m.expenses)} δαπάνες`;
+                        })()}
+                      </p>
+                    )}
                   </div>
                   {/* Η ΚΑΤΑΣΤΑΣΗ ΕΙΝΑΙ ΛΕΞΗ, ΟΧΙ ΧΡΩΜΑ. Η ιεραρχία βγαίνει από
                       το βάρος και τη θέση: όποιος δεν κλείνει, το λέει δυνατά. */}
