@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import {
   MAX_PER_MINUTE, PLAN_RANK_ORDER,
-  dailyLimitsByRank, monthlyLimitsByRank, FREE_POOL_PER_MONTH, TRIAL_LIMITS,
+  dailyLimitsByRank, monthlyLimitsByRank, FREE_POOL_PER_MONTH, TRIAL_LIMITS, TESTER_LIMITS,
   dailyExhaustedMessage, monthlyExhaustedMessage, poolExhaustedMessage,
 } from '@/lib/billing/aiLimits';
 import { ASSISTANT_NAME } from '@/lib/assistant/identity';
@@ -116,6 +116,11 @@ export async function POST(req: NextRequest) {
       // συνδρομητής που πληρώνει το φθηνότερο.
       p_trial_day:   TRIAL_LIMITS.perDay,
       p_trial_month: TRIAL_LIMITS.perMonth,
+      // ΚΑΙ ΤΟ ΠΑΚΕΤΟ ΤΟΥ ΔΟΚΙΜΑΣΤΗ. Η ιδιότητα δοκιμαστή δίνει οποιοδήποτε
+      // πακέτο δωρεάν, οπότε ο λογαριασμός περνούσε ως πληρωμένος συνδρομητής
+      // και έπαιρνε 483 ερωτήσεις τον μήνα: 16,76 $ που δεν πληρώνει κανείς.
+      p_tester_day:   TESTER_LIMITS.perDay,
+      p_tester_month: TESTER_LIMITS.perMonth,
     });
     // ΤΟ supabase-js ΔΕΝ ΠΕΤΑΕΙ ΣΕ ΣΦΑΛΜΑ RPC — ΤΟ ΕΠΙΣΤΡΕΦΕΙ. Το `catch` από
     // κάτω δεν έπιανε ποτέ τίποτα, άρα ένα σφάλμα δικαιωμάτων, ένα timeout ή

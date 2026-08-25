@@ -12,7 +12,7 @@
 
 import {
   aiLimitsFor, remainingLine, dailyExhaustedMessage, monthlyExhaustedMessage,
-  poolExhaustedMessage, COST_PER_REQUEST_USD, COST_PER_REQUEST_EUR, FREE_BUDGET_USD,
+  poolExhaustedMessage, COST_PER_REQUEST_USD, COST_PER_REQUEST_EUR, FREE_BUDGET_USD, TESTER_LIMITS,
   FREE_POOL_PER_MONTH, FREE_TESTERS_PER_MONTH, dailyLimitsByRank, monthlyLimitsByRank, PLAN_RANK_ORDER,
   MAX_PER_MINUTE, AI_SHARE, monthlyQuestionBudget, TRIAL_LIMITS, effectiveAiLimits,
 } from './aiLimits'
@@ -39,6 +39,23 @@ const EUR_TO_USD = 1.08
   ok('ο προϋπολογισμός καλύπτει τη δεξαμενή', poolCost <= FREE_BUDGET_USD)
   ok('και δεν την υπερκαλύπτει με αέρα (ένα δολάριο περιθώριο, όχι δέκα)',
     FREE_BUDGET_USD - poolCost < 1)
+
+  // ── Ο ΔΟΚΙΜΑΣΤΗΣ ΕΧΕΙ ΤΑΒΑΝΙ, ΚΑΙ ΕΙΝΑΙ ΤΟ ΜΙΚΡΟΤΕΡΟ ΤΗΣ ΕΦΑΡΜΟΓΗΣ ────
+  // Η ιδιότητα δοκιμαστή δίνει ΟΠΟΙΟΔΗΠΟΤΕ πακέτο δωρεάν. Στη `bump_ai_usage`
+  // το «πληρώνει;» κρίνεται από το πακέτο, οπότε ο δοκιμαστής με
+  // «Επαγγελματίας+» περνούσε ως συνδρομητής: 483 ερωτήσεις, 16,76 $ τον μήνα
+  // που δεν πληρώνει κανείς. Τα τεστ κλειδώνουν τη ΣΧΕΣΗ, όχι το νούμερο.
+  ok('ο δοκιμαστής δεν παίρνει ποτέ περισσότερα από τον ακριβότερο συνδρομητή',
+    TESTER_LIMITS.perMonth < aiLimitsFor('office').perMonth)
+  const testerCost = TESTER_LIMITS.perMonth * COST_PER_REQUEST_USD
+  ok('ΚΑΙ ΤΟ ΚΟΣΤΟΣ ΤΟΥ ΕΙΝΑΙ ΤΑΞΗ ΜΕΓΕΘΟΥΣ ΜΙΚΡΟΤΕΡΟ',
+    testerCost * 10 < aiLimitsFor('office').perMonth * COST_PER_REQUEST_USD)
+  ok('και μένει κάτω από δύο δολάρια τον μήνα ανά δοκιμαστή', testerCost < 2)
+  // Το ημερήσιο ΙΣΟΥΤΑΙ με το μηνιαίο επίτηδες: ο δοκιμαστής δουλεύει σε
+  // συνεδρίες, όχι λίγο κάθε μέρα. Αν κάποιος το «διορθώσει» σε κλάσμα, θα τον
+  // σταματά στη μέση ακριβώς της δουλειάς που του ζητήσαμε.
+  ok('ο δοκιμαστής μπορεί να ξοδέψει τον μήνα του σε ένα απόγευμα',
+    TESTER_LIMITS.perDay === TESTER_LIMITS.perMonth)
 
   // Ο στόχος είναι απόφαση, αλλά όχι οποιαδήποτε: κάτω από δέκα δοκιμαστές τον
   // μήνα η δοκιμή δεν είναι προϊόν και πάνω από διακόσιους δεν είναι δοκιμή.

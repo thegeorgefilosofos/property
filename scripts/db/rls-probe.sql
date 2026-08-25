@@ -2070,6 +2070,97 @@ begin
   raise notice 'probe: ο δοκιμαστής δεν χρονομετρείται ποτέ για διαγραφή';
 end $probe$;
 
+-- ── Ο ΔΟΚΙΜΑΣΤΗΣ ΜΕ ΤΟ ΑΚΡΙΒΟΤΕΡΟ ΠΑΚΕΤΟ ΚΟΒΕΤΑΙ ΣΤΙΣ ΤΡΙΑΝΤΑ ────────────
+-- ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΚΛΕΙΝΕΙ. Η `bump_ai_usage` κρίνει το «πληρώνει;» από το ΠΑΚΕΤΟ.
+-- Ο δοκιμαστής παίρνει όποιο πακέτο θέλει δωρεάν, οπότε με «Επαγγελματίας+»
+-- περνούσε ως πληρωμένος και δικαιούνταν 483 ερωτήσεις τον μήνα: 16,76 $ που
+-- δεν πληρώνει κανείς. Και δεν μετρούσε ούτε στην κοινή δεξαμενή.
+--
+-- Ο έλεγχος καλεί την ΑΛΗΘΙΝΗ συνάρτηση ως ΑΛΗΘΙΝΟΣ χρήστης, τριάντα μία
+-- φορές. Οχι ανάγνωση κειμένου: το νούμερο βγαίνει από τη βάση.
+--
+-- ΤΟ ΦΡΑΓΜΑ ΑΝΑ ΛΕΠΤΟ ΔΙΝΕΤΑΙ ΨΗΛΟ ΕΠΙΤΗΔΕΣ. Και οι τριάντα μία κλήσεις
+-- πέφτουν στο ίδιο λεπτό, οπότε με την πραγματική τιμή (20) ο δοκιμαστής θα
+-- κοβόταν στην εικοστή πρώτη για ΑΛΛΟ λόγο και το μηνιαίο ταβάνι δεν θα
+-- δοκιμαζόταν ποτέ. Το φράγμα του λεπτού είναι δικό του θέμα: πιάνει script,
+-- όχι κόστος· το μετρά ο δικός του έλεγχος.
+do $probe$
+declare
+  t uuid := '33333333-3333-3333-3333-333333333332';
+  day   int[] := array[10, 23, 59, 150, 483];
+  mon   int[] := array[10, 23, 59, 150, 483];
+  res   json;
+  i     int;
+begin
+  insert into auth.users (id, email) values (t, 'dokimastis-noa@properwise.gr');
+  -- Το ΑΚΡΙΒΟΤΕΡΟ πακέτο επίτηδες: εκεί ήταν η μεγαλύτερη τρύπα.
+  insert into public.billing_profiles (user_id, plan, trial_used_at, tester_since)
+    values (t, 'office', now(), now())
+    on conflict (user_id) do update set plan = 'office', tester_since = now(), trial_used_at = now();
+  perform set_config('probe.uid', t::text, true);
+
+  -- Η ΠΡΩΤΗ ΕΡΩΤΗΣΗ ΠΕΡΝΑΕΙ, ΚΑΙ ΤΟ ΟΡΙΟ ΠΟΥ ΕΠΙΣΤΡΕΦΕΙ ΕΙΝΑΙ ΤΟ ΔΙΚΟ ΤΟΥ.
+  -- Χωρίς αυτόν τον έλεγχο, μια συνάρτηση που κόβει τους ΠΑΝΤΕΣ θα περνούσε.
+  res := public.bump_ai_usage(200, day, mon, 1000, 7, 20, 30, 30);
+  if (res->>'allowed')::boolean is not true then
+    raise exception 'Ο δοκιμαστής κόπηκε στην ΠΡΩΤΗ ερώτηση: %', res;
+  end if;
+  if (res->>'month_limit')::int <> 30 then
+    raise exception 'Ο ΔΟΚΙΜΑΣΤΗΣ ΠΑΙΡΝΕΙ ΤΟ ΠΑΚΕΤΟ ΤΟΥ ΣΥΝΔΡΟΜΗΤΗ: όριο %', res->>'month_limit';
+  end if;
+  if (res->>'tester')::boolean is not true then
+    raise exception 'Η συνάρτηση δεν αναγνωρίζει τον δοκιμαστή: %', res;
+  end if;
+
+  -- Ερωτήσεις 2 ώς 30: όλες περνούν.
+  for i in 2..30 loop
+    res := public.bump_ai_usage(200, day, mon, 1000, 7, 20, 30, 30);
+    if (res->>'allowed')::boolean is not true then
+      raise exception 'Ο δοκιμαστής κόπηκε στην ερώτηση % από 30: %', i, res;
+    end if;
+  end loop;
+
+  -- Η ΤΡΙΑΝΤΑ ΠΡΩΤΗ ΚΟΒΕΤΑΙ, ΚΑΙ ΓΙΑ ΤΟΝ ΣΩΣΤΟ ΛΟΓΟ.
+  res := public.bump_ai_usage(200, day, mon, 1000, 7, 20, 30, 30);
+  if (res->>'allowed')::boolean is not false then
+    raise exception 'Η 31η ερώτηση του δοκιμαστή ΠΕΡΑΣΕ: %', res;
+  end if;
+  if res->>'reason' <> 'month' then
+    raise exception 'Ο δοκιμαστής κόπηκε για λάθος λόγο («%»), όχι για το μηνιαίο', res->>'reason';
+  end if;
+
+  perform set_config('probe.uid', '', true);
+  raise notice 'probe: ο δοκιμαστής με πακέτο Επαγγελματίας+ κόβεται στις 30 ερωτήσεις';
+end $probe$;
+
+-- ── ΚΑΙ Ο ΣΥΝΔΡΟΜΗΤΗΣ ΠΟΥ ΠΛΗΡΩΝΕΙ ΔΕΝ ΑΓΓΙΧΤΗΚΕ ────────────────────────
+-- Χωρίς αυτό, ένα ταβάνι που κόβει τους ΠΑΝΤΕΣ στις τριάντα θα περνούσε τον
+-- παραπάνω έλεγχο πράσινο, ενώ θα είχε σπάσει το προϊόν για όποιον πληρώνει.
+do $probe$
+declare
+  s uuid := '33333333-3333-3333-3333-333333333333';
+  day   int[] := array[10, 23, 59, 150, 483];
+  mon   int[] := array[10, 23, 59, 150, 483];
+  res   json;
+begin
+  insert into auth.users (id, email) values (s, 'syndromitis@properwise.gr');
+  insert into public.billing_profiles (user_id, plan, trial_used_at, tester_since)
+    values (s, 'office', now(), null)
+    on conflict (user_id) do update set plan = 'office', tester_since = null, trial_used_at = now();
+  perform set_config('probe.uid', s::text, true);
+
+  res := public.bump_ai_usage(200, day, mon, 1000, 7, 20, 30, 30);
+  if (res->>'month_limit')::int <> 483 then
+    raise exception 'ΤΟ ΤΑΒΑΝΙ ΤΟΥ ΔΟΚΙΜΑΣΤΗ ΕΠΕΣΕ ΚΑΙ ΠΑΝΩ ΣΤΟΝ ΣΥΝΔΡΟΜΗΤΗ: όριο %', res->>'month_limit';
+  end if;
+  if (res->>'paying')::boolean is not true then
+    raise exception 'Ο συνδρομητής δεν μετρά ως πληρωμένος: %', res;
+  end if;
+
+  perform set_config('probe.uid', '', true);
+  raise notice 'probe: ο συνδρομητής που πληρώνει κρατά τις 483 ερωτήσεις του';
+end $probe$;
+
 -- ── ΤΑ ΕΞΙ ΚΕΙΜΕΝΑ ΦΕΥΓΟΥΝ ΠΡΑΓΜΑΤΙΚΑ ────────────────────────────────────
 -- Δεν αρκεί να υπάρχει το SQL: ελέγχεται ότι μετά την `lifecycle_enqueue()`
 -- υπάρχει γραμμή στην ουρά. Τα `year_end` και `quarterly_review` εξαρτώνται

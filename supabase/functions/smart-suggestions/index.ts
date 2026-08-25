@@ -37,6 +37,11 @@ const AI_LIMITS = {
   // μήνες, Συνεργάτης). Το `least` της bump_ai_usage δεν το αφήνει να ξεπεραστεί.
   trialPerDay: 7,
   trialPerMonth: 20,
+  // Το πακέτο του ΔΟΚΙΜΑΣΤΗ. Δεν είναι ανυψωμένο επίπεδο: είναι λογαριασμός
+  // που κρατά αληθινό πακέτο χωρίς να το πληρώνει, οπότε το `least` πρέπει να
+  // κόψει και πάνω από πληρωμένο επίπεδο.
+  testerPerDay: 30,
+  testerPerMonth: 30,
 }
 
 // ── Το «σήμερα» της Ελλάδας, μέσα σε Deno ───────────────────────────────────
@@ -104,6 +109,8 @@ Deno.serve(async (req) => {
       p_pool:    AI_LIMITS.freePoolPerMonth,
       p_trial_day:   AI_LIMITS.trialPerDay,
       p_trial_month: AI_LIMITS.trialPerMonth,
+      p_tester_day:   AI_LIMITS.testerPerDay,
+      p_tester_month: AI_LIMITS.testerPerMonth,
     })
     // Ο μετρητής είναι ΓΡΑΨΙΜΟ: αν δεν αυξήθηκε, δεν ξέρουμε πόσα έχει ξοδέψει ο
     // χρήστης. Το app/api/anthropic αφήνει να περάσει σε σφάλμα RPC, αλλά μόνο

@@ -23,7 +23,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import {
-  MAX_PER_MINUTE, FREE_POOL_PER_MONTH,
+  MAX_PER_MINUTE, FREE_POOL_PER_MONTH, TRIAL_LIMITS, TESTER_LIMITS,
   dailyLimitsByRank, monthlyLimitsByRank, PLAN_RANK_ORDER,
 } from '../../../lib/billing/aiLimits.ts'
 
@@ -98,6 +98,19 @@ ok('perMinute ίδιο με το MAX_PER_MINUTE', num('perMinute') === MAX_PER_M
 ok('perDayByRank ίδιο με το dailyLimitsByRank()', same(day, dailyLimitsByRank()))
 ok('perMonthByRank ίδιο με το monthlyLimitsByRank()', same(month, monthlyLimitsByRank()))
 ok('freePoolPerMonth ίδιο με το FREE_POOL_PER_MONTH', num('freePoolPerMonth') === FREE_POOL_PER_MONTH)
+
+// ΤΟ ΠΑΚΕΤΟ ΤΗΣ ΔΟΚΙΜΗΣ ΚΑΙ ΤΟΥ ΔΟΚΙΜΑΣΤΗ ΤΑΞΙΔΕΥΟΥΝ ΚΙ ΑΥΤΑ ΣΤΟ RPC, ΑΡΑ
+// ΟΦΕΙΛΟΥΝ ΝΑ ΣΥΓΚΡΙΝΟΝΤΑΙ. Χωρίς αυτούς τους τέσσερις ελέγχους, η συνάρτηση
+// άκρου θα έδινε στον ίδιο δοκιμαστή άλλο πακέτο από την εφαρμογή: η μία οθόνη
+// θα τον έκοβε στις τριάντα και η άλλη θα συνέχιζε.
+ok('trialPerDay ίδιο με το TRIAL_LIMITS.perDay', num('trialPerDay') === TRIAL_LIMITS.perDay)
+ok('trialPerMonth ίδιο με το TRIAL_LIMITS.perMonth', num('trialPerMonth') === TRIAL_LIMITS.perMonth)
+ok('testerPerDay ίδιο με το TESTER_LIMITS.perDay', num('testerPerDay') === TESTER_LIMITS.perDay)
+ok('testerPerMonth ίδιο με το TESTER_LIMITS.perMonth', num('testerPerMonth') === TESTER_LIMITS.perMonth)
+
+// ΚΑΙ ΤΑ ΔΥΟ ΠΕΡΝΟΥΝ ΟΝΤΩΣ ΣΤΗΝ ΚΛΗΣΗ. Ενα σωστό νούμερο σε σταθερά που δεν
+// στέλνεται πουθενά είναι ακριβώς το είδος του πράσινου που δεν σημαίνει τίποτα.
+ok('η κλήση στέλνει το πακέτο του δοκιμαστή', SRC.includes('p_tester_month:'))
 
 // Αν προστεθεί πλάνο στο PLAN_RANK_ORDER και δεν ενημερωθούν οι πίνακες εδώ, το
 // RPC θα έπεφτε σιωπηλά πίσω στο p_day[1] — δηλαδή στο ΔΩΡΕΑΝ όριο για όλους.
