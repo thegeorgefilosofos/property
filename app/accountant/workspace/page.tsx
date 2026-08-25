@@ -22,16 +22,22 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, Card, Btn } from '@/components/Theme';
+import { T, Card, Btn, Skeleton } from '@/components/Theme';
 import { TextInput } from '@/app/dashboard/components/UIComponents';
 import { PortalBar, PortalTitle, portalWrap } from '../Chrome';
-import { claim, clients, request, gapsOf, readinessOf, type ClientCounts } from '@/lib/data/accountant';
-import { loadStatements, downloadAll, type BulkClient, type ClientStatement } from '../bulk';
-import { fe } from '@/components/Theme';
+import { claim, clients, request, withdrawRequest, dropClient, gapsOf, readinessOf, type ClientCounts } from '@/lib/data/accountant';
+import { loadStatements, downloadAll, lastMove, type BulkClient, type ClientStatement } from '../bulk';
+import { foldName } from '@/lib/contacts/alpha';
+import { notify, notifyError } from '@/components/Toast';
+import { confirmDialog } from '@/components/confirmBus';
+import { fe, fd } from '@/components/Theme';
 import { useRememberedFlag } from '@/components/useRememberedFlag';
 
 /** Η προτίμηση «δείξε ποσά» ζει στον περιηγητή του λογιστή, όχι στη βάση. */
 const MONEY_KEY = 'properwise.accountant.money';
+
+/** Από πόσους πελάτες και πάνω εμφανίζεται η αναζήτηση: ένα κατέβασμα οθόνης. */
+const SEARCH_FROM = 8;
 
 /** Το τελευταίο κλεισμένο έτος: εκεί δουλεύει ο λογιστής τον περισσότερο χρόνο. */
 const defaultYear = () => new Date().getFullYear() - 1;
@@ -57,6 +63,14 @@ export default function AccountantWorkspace() {
   const [cash, setCash] = useState<{ year: number; map: Map<string, ClientStatement> } | null>(null);
   const money = cash && cash.year === year ? cash.map : null;
   const [busy, setBusy] = useState<'money' | 'zip' | null>(null);
+  // ΜΕ ΟΓΔΟΝΤΑ ΠΕΛΑΤΕΣ, Η ΣΕΙΡΑ ΛΥΝΕΙ ΤΗ ΜΙΑ ΧΡΗΣΗ ΚΑΙ Η ΑΝΑΖΗΤΗΣΗ ΤΗΝ ΑΛΛΗ.
+  // «Ποιος δεν κλείνει» το απαντά η σειρά· «θέλω τον Παπαδόπουλο τώρα» το
+  // απαντούσε μόνο το Ctrl+F του περιηγητή.
+  const [find, setFind] = useState('');
+  // Η σημείωση προς τον ιδιοκτήτη, ανά κενό. Ζει όσο η οθόνη: μόλις σταλεί, το
+  // κείμενο ανήκει στο αίτημα και το διαβάζει ο ιδιοκτήτης στον πίνακά του.
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  const [openNote, setOpenNote] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
@@ -100,9 +114,31 @@ export default function AccountantWorkspace() {
   };
 
   const ask = async (owner: string, key: string, item: string) => {
-    if (await request(supabase, owner, item)) {
-      setAsked(a => ({ ...a, [`${owner}:${key}`]: true }));
-    }
+    const k = `${owner}:${key}`;
+    // Η ΣΗΜΕΙΩΣΗ ΤΑΞΙΔΕΥΕΙ ΜΕ ΤΟ ΑΙΤΗΜΑ. Χωρίς αυτήν, το εργαλείο έλεγε στον
+    // ιδιοκτήτη «λείπει δαπάνη» και τον λογιστή τον έστελνε στο τηλέφωνο για να
+    // πει ποια, από πότε και γιατί τη θέλει τώρα.
+    if (await request(supabase, owner, item, notes[k]?.trim() || undefined)) {
+      setAsked(a => ({ ...a, [k]: true }));
+      setOpenNote(null);
+      await load(year);
+    } else notifyError('Το αίτημα δεν στάλθηκε');
+  };
+
+  /** Παίρνει πίσω αίτημα που στάλθηκε κατά λάθος. */
+  const unask = async (id: string) => {
+    if (await withdrawRequest(supabase, id)) await load(year);
+    else notifyError('Το αίτημα δεν αποσύρθηκε');
+  };
+
+  const removeClient = async (ownerId: string, name: string) => {
+    if (!await confirmDialog({
+      title: `Αφαίρεση του ${name};`,
+      message: 'Φεύγει από τη λίστα σου. Δεν σβήνει τίποτα δικό του και μπορεί να ξαναμπεί με τον σύνδεσμό του.',
+      confirmLabel: 'Αφαίρεση', tone: 'negative',
+    })) return;
+    if (await dropClient(supabase, ownerId)) { await load(year); notify('Ο πελάτης αφαιρέθηκε'); }
+    else notifyError('Ο πελάτης δεν αφαιρέθηκε');
   };
 
   // ΟΠΟΙΟΣ ΔΕΝ ΚΛΕΙΝΕΙ, ΠΡΩΤΟΣ. Η λίστα ερχόταν αλφαβητικά και ο λογιστής με
@@ -113,6 +149,15 @@ export default function AccountantWorkspace() {
     const gaps = gapsOf(c);
     return { c, gaps, ready: readinessOf(gaps) };
   }).sort((a, b) => (b.ready.blocking - a.ready.blocking) || (b.gaps.length - a.gaps.length)), [rows]);
+
+  // ΤΟ ΦΙΛΤΡΟ ΔΕΝ ΚΑΝΕΙ ΔΙΑΚΡΙΣΗ ΣΕ ΤΟΝΟ ΚΑΙ ΣΕ ΚΕΦΑΛΑΙΟ. Ο λογιστής γράφει
+  // «παπαδοπουλος» βιαστικά και το ζητούμενο είναι να τον βρει, όχι να τον
+  // διορθώσει. Ψάχνει και στο ΑΦΜ, που είναι ο τρόπος που τον ξέρει το σύστημά του.
+  const shown = useMemo(() => {
+    const q = foldName(find);
+    if (!q) return ordered;
+    return ordered.filter(x => foldName(x.c.name).includes(q) || (x.c.afm || '').includes(q));
+  }, [ordered, find]);
 
   const stuck = ordered.filter(x => x.ready.blocking > 0).length;
   const done = ordered.filter(x => x.gaps.length === 0).length;
@@ -209,7 +254,10 @@ export default function AccountantWorkspace() {
       {/* Η ΠΡΟΣΘΗΚΗ ΚΑΘΕΤΑΙ ΠΑΝΩ, ΓΙΑΤΙ ΕΙΝΑΙ Η ΠΡΩΤΗ ΚΙΝΗΣΗ ΠΟΥ ΚΑΝΕΙΣ ΕΔΩ.
           Όταν η λίστα γεμίσει, παύει να είναι η πρώτη — αλλά ούτε ενοχλεί, γιατί
           είναι μία γραμμή. */}
-      <Card style={{ marginTop: 22 }}>
+      {/* ΟΣΑ ΔΕΝ ΠΑΤΙΟΥΝΤΑΙ, ΔΕΝ ΤΥΠΩΝΟΝΤΑΙ. Ο λογιστής τυπώνει τη λίστα για να
+          την πάρει μαζί του: η προσθήκη πελάτη, η αναζήτηση και τα κουμπιά είναι
+          χειριστήρια, όχι πληροφορία. */}
+      <Card style={{ marginTop: 22 }} className="po-noprint">
         <p style={label}>Νέος πελάτης</p>
         {/* ΤΟ ΠΕΔΙΟ ΚΑΙ ΤΟ ΚΟΥΜΠΙ ΕΙΝΑΙ ΤΑ ΚΟΙΝΑ ΤΗΣ ΕΦΑΡΜΟΓΗΣ. Ηταν ζωγραφισμένα
             εδώ, με δικό τους ύψος, δικό τους περίγραμμα και δική τους
@@ -234,7 +282,36 @@ export default function AccountantWorkspace() {
         )}
       </Card>
 
-      {rows === null ? null : rows.length === 0 ? (
+      {/* Η ΑΝΑΖΗΤΗΣΗ ΕΜΦΑΝΙΖΕΤΑΙ ΟΤΑΝ ΑΡΧΙΖΕΙ ΝΑ ΕΧΕΙ ΝΟΗΜΑ. Πάνω από ένα
+          κατέβασμα οθόνης, το μάτι δεν σαρώνει πια: ψάχνει. Κάτω από αυτό,
+          ένα πεδίο αναζήτησης πάνω από τρεις κάρτες είναι θόρυβος. */}
+      {(rows?.length ?? 0) >= SEARCH_FROM && (
+        <div style={{ marginTop: 16 }} className="po-noprint">
+          <TextInput
+            ariaLabel="Αναζήτηση πελάτη"
+            value={find}
+            onChange={setFind}
+            placeholder="Ονομα ή ΑΦΜ"
+          />
+          {find.trim() && (
+            <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '8px 0 0', fontFamily: T.font.sans }}>
+              {shown.length === 0 ? 'Κανένας πελάτης με αυτό το όνομα ή ΑΦΜ.'
+                : shown.length === 1 ? '1 πελάτης' : `${shown.length} πελάτες`}
+            </p>
+          )}
+        </div>
+      )}
+
+      {rows === null ? (
+        /* ΤΟ ΛΕΥΚΟ ΔΕΝ ΕΙΝΑΙ ΚΑΤΑΣΤΑΣΗ. Οσο τα δεδομένα έρχονταν, η οθόνη δεν
+           έδειχνε τίποτα: ο λογιστής δεν ήξερε αν φορτώνει ή αν δεν έχει
+           πελάτες. Τρεις σκιές λένε «έρχονται» χωρίς να υποσχεθούν πόσοι. */
+        <div style={{ marginTop: 16, display: 'grid', gap: 10 }} aria-busy="true">
+          {[0, 1, 2].map(i => (
+            <Card key={i}><Skeleton h={54} /></Card>
+          ))}
+        </div>
+      ) : rows.length === 0 ? (
         <Card style={{ marginTop: 16 }}>
           <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.7, fontFamily: T.font.sans }}>
             Κανένας πελάτης ακόμη. Ο ιδιοκτήτης βγάζει τον σύνδεσμο από τη Λογιστική του, στον φάκελο για τον λογιστή και σου τον στέλνει.
@@ -242,7 +319,7 @@ export default function AccountantWorkspace() {
         </Card>
       ) : (
         <div style={{ marginTop: 16, display: 'grid', gap: 10 }}>
-          {ordered.map(({ c, gaps, ready }) => {
+          {shown.map(({ c, gaps, ready }) => {
             return (
               <Card key={c.ownerId}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
@@ -253,7 +330,7 @@ export default function AccountantWorkspace() {
                         ογδόντα σελιδοδείκτες που αυτή η οθόνη ήρθε να καταργήσει. */}
                     <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text-primary)', fontFamily: T.font.sans }}>
                       {c.token ? (
-                        <a href={`/accountant/${c.token}`} style={{ color: 'inherit', textDecoration: 'none', borderBottom: '1px solid var(--border-default)' }}>
+                        <a href={`/accountant/${c.token}?year=${year}`} style={{ color: 'inherit', textDecoration: 'none', borderBottom: '1px solid var(--border-default)' }}>
                           {c.name}
                         </a>
                       ) : c.name}
@@ -262,6 +339,12 @@ export default function AccountantWorkspace() {
                       {c.properties === 1 ? '1 ακίνητο' : `${c.properties} ακίνητα`}
                       {c.afm ? ` · ΑΦΜ ${c.afm}` : ''}
                       {!c.token ? ' · ο σύνδεσμός του δεν ισχύει πια' : ''}
+                    </p>
+                    {/* ΠΟΤΕ ΚΙΝΗΘΗΚΕ ΤΕΛΕΥΤΑΙΑ ΦΟΡΑ. Δύο πελάτες με τα ίδια κενά
+                        είναι εντελώς διαφορετική δουλειά όταν ο ένας καταχώρησε
+                        χθες και ο άλλος τον Μάρτιο. */}
+                    <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '3px 0 0', fontFamily: T.font.sans }}>
+                      {lastMove(c.lastActivity)}
                     </p>
                     {/* ΤΟ ΜΗΔΕΝ ΔΕΝ ΓΡΑΦΕΤΑΙ ΩΣ ΠΟΣΟ. Πελάτης χωρίς καμία
                         καταχώρηση δεν έχει έσοδα «0,00 €»: δεν έχει μέτρηση. Και
@@ -279,51 +362,102 @@ export default function AccountantWorkspace() {
                   </div>
                   {/* Η ΚΑΤΑΣΤΑΣΗ ΕΙΝΑΙ ΛΕΞΗ, ΟΧΙ ΧΡΩΜΑ. Η ιεραρχία βγαίνει από
                       το βάρος και τη θέση: όποιος δεν κλείνει, το λέει δυνατά. */}
-                  <p style={{
-                    fontSize: 13, margin: 0, fontFamily: T.font.sans,
-                    fontWeight: ready.blocking > 0 ? 700 : 500,
-                    color: ready.blocking > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)',
-                  }}>{ready.label}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <p style={{
+                      fontSize: 13, margin: 0, fontFamily: T.font.sans,
+                      fontWeight: ready.blocking > 0 ? 700 : 500,
+                      color: ready.blocking > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                    }}>{ready.label}</p>
+                    {/* Η ΑΦΑΙΡΕΣΗ ΔΕΝ ΕΙΝΑΙ ΑΝΑΚΛΗΣΗ. Η ανάκληση ανήκει στον
+                        ιδιοκτήτη και μένει δική του· εδώ ο λογιστής απλώς
+                        τακτοποιεί τη ΔΙΚΗ ΤΟΥ λίστα. Οσο δεν υπήρχε, ο πελάτης
+                        που έφυγε μετρούσε για πάντα στο «δεν κλείνουν». */}
+                    {/* ΛΕΞΗ ΚΑΙ ΟΧΙ ΕΙΚΟΝΙΔΙΟ. Ενα «Χ» δίπλα σε πελάτη διαβάζεται
+                        και ως «κόψε του την πρόσβαση»: δύο πολύ διαφορετικά
+                        πράγματα με το ίδιο σχήμα. */}
+                    <span className="po-noprint">
+                      <Btn variant="ghost" onClick={() => void removeClient(c.ownerId, c.name)}>Αφαίρεση</Btn>
+                    </span>
+                  </div>
                 </div>
 
                 {gaps.length > 0 && (
                   <ul style={{ listStyle: 'none', padding: 0, margin: '14px 0 0', display: 'grid', gap: 1 }}>
                     {gaps.map(g => {
-                      const done = asked[`${c.ownerId}:${g.key}`];
+                      const k = `${c.ownerId}:${g.key}`;
+                      const sent = asked[k] || c.requests.some(r => r.item === g.item);
+                      const writing = openNote === k;
                       return (
-                        <li key={g.key} style={{
-                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                          gap: 14, padding: '9px 0', borderTop: '1px solid var(--border-subtle)',
-                        }}>
-                          <span style={{
-                            fontSize: 13, fontFamily: T.font.sans, lineHeight: 1.5,
-                            color: g.blocking ? 'var(--text-primary)' : 'var(--text-secondary)',
-                            fontWeight: g.blocking ? 600 : 400,
-                          }}>{g.item}</span>
-                          <button
-                            onClick={() => void ask(c.ownerId, g.key, g.item)}
-                            disabled={done}
-                            // ΣΑΡΑΝΤΑ ΤΕΣΣΕΡΑ, ΟΧΙ ΤΡΙΑΝΤΑ. Ηταν 30 εικονοστοιχεία ψηλό,
-                            // δηλαδή κάτω από το δάπεδο αφής, σε κουμπί που ο λογιστής
-                            // πατά μία φορά ανά εκκρεμότητα ανά πελάτη.
-                            style={{
-                              flexShrink: 0, minHeight: 44, padding: '0 14px', borderRadius: T.radius.btn,
-                              border: '1px solid var(--border-subtle)', background: 'transparent',
-                              color: done ? 'var(--text-tertiary)' : 'var(--text-primary)',
-                              fontSize: 12, fontWeight: 600, fontFamily: T.font.sans,
-                              cursor: done ? 'default' : 'pointer',
-                            }}
-                          >{done ? 'Ζητήθηκε' : 'Ζήτησέ το'}</button>
+                        <li key={g.key} style={{ padding: '9px 0', borderTop: '1px solid var(--border-subtle)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
+                            <span style={{
+                              fontSize: 13, fontFamily: T.font.sans, lineHeight: 1.5,
+                              color: g.blocking ? 'var(--text-primary)' : 'var(--text-secondary)',
+                              fontWeight: g.blocking ? 600 : 400,
+                            }}>{g.item}</span>
+                            <button
+                              type="button"
+                              onClick={() => (writing ? void ask(c.ownerId, g.key, g.item) : setOpenNote(k))}
+                              disabled={sent}
+                              className="po-noprint"
+                              // ΣΑΡΑΝΤΑ ΤΕΣΣΕΡΑ, ΟΧΙ ΤΡΙΑΝΤΑ. Ηταν 30 εικονοστοιχεία ψηλό,
+                              // δηλαδή κάτω από το δάπεδο αφής, σε κουμπί που ο λογιστής
+                              // πατά μία φορά ανά εκκρεμότητα ανά πελάτη.
+                              style={{
+                                flexShrink: 0, minHeight: 44, padding: '0 14px', borderRadius: T.radius.btn,
+                                border: '1px solid var(--border-subtle)', background: 'transparent',
+                                color: sent ? 'var(--text-tertiary)' : 'var(--text-primary)',
+                                fontSize: 12, fontWeight: 600, fontFamily: T.font.sans,
+                                cursor: sent ? 'default' : 'pointer',
+                              }}
+                            >{sent ? 'Ζητήθηκε' : writing ? 'Στείλ᾽ το' : 'Ζήτησέ το'}</button>
+                          </div>
+                          {/* Η ΣΗΜΕΙΩΣΗ ΕΙΝΑΙ ΤΟ ΠΡΑΓΜΑΤΙΚΟ ΜΗΝΥΜΑ. Το εργαλείο
+                              έλεγε στον ιδιοκτήτη «λείπει δαπάνη» και τον λογιστή
+                              τον έστελνε στο τηλέφωνο για να πει ποια, από πότε
+                              και γιατί τη θέλει τώρα. Ανοίγει με το πρώτο πάτημα,
+                              στέλνει με το δεύτερο: όποιος δεν έχει να πει κάτι,
+                              πατά δύο φορές και δεν έγραψε τίποτα. */}
+                          {writing && !sent && (
+                            <div style={{ marginTop: 8 }}>
+                              <TextInput
+                                ariaLabel={`Σημείωση προς τον ιδιοκτήτη για «${g.item}»`}
+                                value={notes[k] || ''}
+                                onChange={v => setNotes(n => ({ ...n, [k]: v }))}
+                                onKeyDown={e => { if (e.key === 'Enter') void ask(c.ownerId, g.key, g.item); }}
+                                placeholder="Σημείωση προς τον ιδιοκτήτη, προαιρετικά"
+                              />
+                            </div>
+                          )}
                         </li>
                       );
                     })}
                   </ul>
                 )}
 
-                {c.openRequests > 0 && (
-                  <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: T.font.sans }}>
-                    {c.openRequests === 1 ? '1 αίτημα σε εκκρεμότητα' : `${c.openRequests} αιτήματα σε εκκρεμότητα`}
-                  </p>
+                {/* ΤΑ ΑΙΤΗΜΑΤΑ ΟΛΟΚΛΗΡΑ, ΟΧΙ ΣΕ ΠΛΗΘΟΣ. Εγραφε «2 αιτήματα σε
+                    εκκρεμότητα»: έναν αριθμό χωρίς περιεχόμενο, χωρίς ημερομηνία
+                    και χωρίς τρόπο να παρθεί πίσω λάθος αίτημα. */}
+                {c.requests.length > 0 && (
+                  <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border-subtle)' }}>
+                    <p style={label}>Σε εκκρεμότητα</p>
+                    <ul style={{ listStyle: 'none', padding: 0, margin: '8px 0 0', display: 'grid', gap: 1 }}>
+                      {c.requests.map(r => (
+                        <li key={r.id} style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, padding: '6px 0',
+                        }}>
+                          <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
+                            {r.item}
+                            <span style={{ color: 'var(--text-tertiary)' }}>{` · στάλθηκε ${fd(r.createdAt)}`}</span>
+                            {r.note ? <span style={{ display: 'block', color: 'var(--text-tertiary)' }}>{`«${r.note}»`}</span> : null}
+                          </span>
+                          <span className="po-noprint" style={{ flexShrink: 0 }}>
+                            <Btn variant="ghost" onClick={() => void unask(r.id)}>Πάρ᾽ το πίσω</Btn>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
               </Card>
             );

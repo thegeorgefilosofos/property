@@ -30,16 +30,16 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { rentalIncomeTax, rentalBracketsForYear, bracketsLabelForYear } from '@/lib/billing/greekTax';
 import { presumptiveDeductionRate, PRESUMPTIVE_RULE_2026 } from '@/lib/billing/consolidate';
-import { T, feAuto, Card } from '@/components/Theme';
+import { T, feAuto, Card, Btn } from '@/components/Theme';
 // Η ΠΥΛΗ ΤΟΥ ΛΟΓΙΣΤΗ ΕΙΝΑΙ ΔΙΚΗ ΤΗΣ ΔΙΑΔΡΟΜΗ, ΚΑΙ ΚΟΥΒΑΛΟΥΣΕ ΚΙ ΕΚΕΙΝΗ ΤΑ
 // 2,5 MB: ο λογιστής ανοίγει έναν σύνδεσμο, κοιτάζει και συνήθως δεν κατεβάζει
 // τίποτα. Η πρόσοψη φορτώνει τη βιβλιοθήκη με το πάτημα.
 import { downloadXlsx } from '@/app/dashboard/components/sheets';
-import { PortalBar, PortalTitle, portalWrap } from '../Chrome';
+import { PortalBar, PortalTitle, portalWrap, portalYears } from '../Chrome';
 import {
   propertyLines, statementTotals, statementGaps, statementSheets, type PortalData,
 } from '../statement';
@@ -52,7 +52,16 @@ export default function AccountantPortal() {
   const supabase = useMemo(() => createClient(), []);
 
   // Ο λογιστής δουλεύει σχεδόν πάντα την προηγούμενη χρήση.
-  const [year, setYear] = useState(() => new Date().getFullYear() - 1);
+  //
+  // ΑΛΛΑ ΟΤΑΝ ΕΡΧΕΤΑΙ ΑΠΟ ΤΗ ΛΙΣΤΑ ΤΟΥ, ΕΧΕΙ ΗΔΗ ΔΙΑΛΕΞΕΙ. Αλλαζε χρήση στους
+  // πελάτες του, άνοιγε έναν και ξανάρχιζε από την προεπιλογή: διάβαζε ποσά
+  // άλλης χρονιάς από αυτήν που μόλις κοίταζε, με τον τίτλο να το λέει σε μια
+  // γραμμή που δεν είχε λόγο να ξαναδιαβάσει.
+  const search = useSearchParams();
+  const [year, setYear] = useState(() => {
+    const asked = parseInt(search?.get('year') ?? '', 10);
+    return portalYears().includes(asked) ? asked : new Date().getFullYear() - 1;
+  });
   // Η ΑΠΑΝΤΗΣΗ ΚΡΑΤΑΕΙ ΤΗ ΧΡΗΣΗ ΤΗΣ. Χωρίς αυτό χρειαζόταν ένα `setState('loading')`
   // μέσα στο effect — δηλαδή δεύτερη απόδοση σε κάθε αλλαγή έτους — και υπήρχε
   // στιγμή όπου η οθόνη έδειχνε τα ποσά της ΠΡΟΗΓΟΥΜΕΝΗΣ χρήσης κάτω από τον
@@ -140,15 +149,11 @@ export default function AccountantPortal() {
   return (
     <div style={{ background: 'var(--bg-base)', minHeight: '100vh', color: 'var(--text-primary)', fontFamily: T.font.sans, paddingBottom: 48 }}>
       {/* Το έγγραφο τυπώνεται. Η μπάρα, ο επιλογέας και το κουμπί λήψης δεν
-          έχουν νόημα σε χαρτί· τα υπόλοιπα μένουν ακριβώς όπως στην οθόνη. */}
-      <style>{`
-        @media print {
-          .portal-noprint { display: none; }
-          body { background: white; }
-        }
-      `}</style>
-
-      <div className="portal-noprint">
+          έχουν νόημα σε χαρτί· τα υπόλοιπα μένουν ακριβώς όπως στην οθόνη.
+          Η κλάση είναι η ΚΟΙΝΗ «po-noprint» του globals.css, που ξέρει ήδη και
+          τα χρώματα του χαρτιού: εδώ ζούσε δεύτερος, μικρότερος κανόνας που
+          έκρυβε μεν αλλά άφηνε το σκούρο θέμα να τυπωθεί σε ολόκληρη σελίδα. */}
+      <div className="po-noprint">
         <PortalBar year={state === 'ok' ? year : undefined} onYear={setYear} back={back} />
       </div>
 
@@ -189,17 +194,9 @@ export default function AccountantPortal() {
                 /* ΤΟ ΑΡΧΕΙΟ ΕΙΝΑΙ ΤΟ ΠΑΡΑΔΟΤΕΟ, ΑΡΑ ΚΑΘΕΤΑΙ ΣΤΗΝ ΤΑΥΤΟΤΗΤΑ ΤΟΥ
                    ΕΓΓΡΑΦΟΥ. Δίπλα στο ποιος και για πότε, όχι στο τέλος της
                    σελίδας όπου θα το έβρισκε μόνο όποιος κύλησε ως κάτω. */
-                <button type="button" onClick={download} className="portal-noprint"
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 9, minHeight: 44, padding: '0 18px',
-                    borderRadius: T.radius.btn, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)',
-                    fontSize: 13, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer', whiteSpace: 'nowrap',
-                  }}>
-                  <svg aria-hidden width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M7 10l5 5 5-5" /><path d="M12 15V3" />
-                  </svg>
-                  Λήψη κατάστασης
-                </button>
+                <span className="po-noprint">
+                  <Btn variant="primary" onClick={download}>Λήψη κατάστασης</Btn>
+                </span>
               ) : undefined}
             />
 
@@ -341,7 +338,7 @@ export default function AccountantPortal() {
                 τη στιγμή που κρατά τον έναν σύνδεσμο και σκέφτεται τους άλλους
                 εβδομήντα εννιά. Και μαθαίνει ΚΑΙ ότι θέλει λογαριασμό, γιατί
                 αλλιώς το κλικ τον βγάζει σε τοίχο σύνδεσης χωρίς εξήγηση. */}
-            <div className="portal-noprint" style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-secondary)', marginTop: 26, lineHeight: 1.8 }}>
+            <div className="po-noprint" style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-secondary)', marginTop: 26, lineHeight: 1.8 }}>
               Έχεις κι άλλους πελάτες με PROPERWISE;{' '}
               <Link href="/accountant/workspace" style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Δες τους όλους μαζί</Link>, με ό,τι λείπει από τον καθένα.
               <div style={{ ...meta, marginTop: 4 }}>Χρειάζεται δικός σου λογαριασμός, μία φορά.</div>

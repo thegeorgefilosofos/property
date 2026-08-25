@@ -60,6 +60,9 @@ const P1_TRANSACTIONAL = [
   'welcome_free', 'welcome_individual', 'welcome_professional',
   'first_property_success', 'trial_started',
   'subscription_receipt', 'plan_changed', 'payment_failed', 'security_login', 'reply_ack',
+  // Απαντά σε αίτημα που έκανε ο ίδιος ο παραλήπτης, ώρες πριν. Ως ενημερωτικό
+  // θα κρατιόταν πίσω από τον κεντρικό διακόπτη και θα έφτανε ημέρες αργότερα.
+  'accountant_request_answered',
   // Η ΠΡΟΑΝΑΓΓΕΛΙΑ ΧΡΕΩΣΗΣ ΕΙΝΑΙ ΣΥΝΑΛΛΑΚΤΙΚΗ, ΟΧΙ ΕΝΗΜΕΡΩΤΙΚΗ. Αναγγέλλει
   // ποσό που θα φύγει από την κάρτα σε συγκεκριμένη ημερομηνία και οι Οροι τη
   // δεσμεύονται. Ως marketing θα κρατιόταν πίσω από τον κεντρικό διακόπτη και

@@ -187,6 +187,9 @@ export interface Personal extends Ctx {
   assistantSkill?: string;   // νέα ικανότητα του βοηθού
   anniversaryYears?: number; // χρόνια συνεργασίας
   hoursSaved?: number;       // ώρες που εξοικονομήθηκαν
+  // Πύλη λογιστή: ο πελάτης απάντησε σε αίτημα του λογιστή του
+  clientName?: string;       // όνομα του ιδιοκτήτη, όπως τον ξέρει ο λογιστής
+  requestItem?: string;      // τι ακριβώς είχε ζητηθεί
   // Συνδρομή / σχέσεις / benchmarking
   cardLast4?: string;        // τελευταία ψηφία κάρτας
   marketRent?: number;       // μέσο ενοίκιο αγοράς, σε EUR

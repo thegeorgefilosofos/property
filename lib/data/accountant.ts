@@ -31,6 +31,20 @@ export interface ClientCounts {
    * Κενό σημαίνει ανακλημένος ή ληγμένος σύνδεσμος.
    */
   token: string | null;
+  /**
+   * Πότε κινήθηκε τελευταία φορά ο φάκελος: η νεότερη καταχώρηση σε δαπάνες,
+   * εισπράξεις, διαμονές ή έγγραφα.
+   *
+   * ΓΙΑΤΙ ΜΕΤΡΑΕΙ. Δύο πελάτες με τα ίδια κενά είναι εντελώς διαφορετική
+   * δουλειά όταν ο ένας καταχώρησε χθες και ο άλλος τον Μάρτιο. `null` όταν
+   * δεν έχει καταχωρήσει ποτέ τίποτα.
+   */
+  lastActivity: string | null;
+  /**
+   * Τα ανοιχτά αιτήματα ΟΛΟΚΛΗΡΑ, όχι σε πλήθος: ένας αριθμός δεν λέει ούτε τι
+   * ζητήθηκε ούτε πότε, ούτε επιτρέπει να παρθεί πίσω.
+   */
+  requests: SentRequest[];
   properties: number;
   expenses: number;
   uncategorised: number;
@@ -39,6 +53,15 @@ export interface ClientCounts {
   stays: number;
   staysNoFee: number;
   openRequests: number;
+}
+
+/** Ενα αίτημα που έχει ήδη σταλεί, όπως το βλέπει ο λογιστής στη λίστα του. */
+export interface SentRequest {
+  id: string;
+  item: string;
+  /** Η σημείωση που έγραψε ο λογιστής δίπλα του. Κενή όταν δεν έγραψε. */
+  note: string | null;
+  createdAt: string;
 }
 
 /** Μια εκκρεμότητα, όπως θα τη διάβαζε ο ιδιοκτήτης στο τηλέφωνο. */
@@ -134,6 +157,31 @@ export async function request(db: Db, ownerId: string, item: string, note?: stri
   });
   if (error) return false;
   return Boolean((data as { ok?: boolean } | null)?.ok);
+}
+
+/**
+ * ΠΑΙΡΝΕΙ ΠΙΣΩ ΑΙΤΗΜΑ ΠΟΥ ΕΣΤΕΙΛΕ ΚΑΤΑ ΛΑΘΟΣ.
+ *
+ * Η πολιτική `accountant_requests_withdraw` το επιτρέπει από την πρώτη μέρα
+ * και καμία οθόνη δεν το πρόσφερε: ο λογιστής που ζητούσε λάθος πράγμα άφηνε
+ * στον ιδιοκτήτη μια εκκρεμότητα που δεν έκλεινε ποτέ.
+ */
+export async function withdrawRequest(db: Db, id: string): Promise<boolean> {
+  const { error } = await db.from('accountant_requests').delete().eq('id', id);
+  return !error;
+}
+
+/**
+ * ΒΓΑΖΕΙ ΠΕΛΑΤΗ ΑΠΟ ΤΗ ΛΙΣΤΑ ΤΟΥ ΛΟΓΙΣΤΗ.
+ *
+ * ΔΕΝ ΕΙΝΑΙ ΑΝΑΚΛΗΣΗ, ΕΙΝΑΙ ΤΑΚΤΟΠΟΙΗΣΗ. Η ανάκληση ανήκει στον ιδιοκτήτη και
+ * μένει δική του. Ομως ο λογιστής που έχασε πελάτη έβλεπε τη γραμμή του για
+ * πάντα και μετρούσε στο «δεν κλείνουν»: το εργαλείο του τον χρέωνε δουλειά
+ * που δεν έχει. Η ίδια γραμμή ξαναγεννιέται με τον σύνδεσμο, αν χρειαστεί.
+ */
+export async function dropClient(db: Db, ownerId: string): Promise<boolean> {
+  const { error } = await db.from('accountant_clients').delete().eq('owner_id', ownerId);
+  return !error;
 }
 
 /** Η άλλη πλευρά: ποιος λογιστής βλέπει τα δικά μου. */
