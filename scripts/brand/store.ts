@@ -230,20 +230,37 @@ function copyMarkdown(): string {
     'αντίγραψε από εδώ.',
     '',
   ];
-  for (const id of PLAN_ORDER.filter(x => x !== 'free')) {
+  const paid = PLAN_ORDER.filter(x => x !== 'free');
+  for (let i = 0; i < paid.length; i++) {
+    const id = paid[i];
     const p = PLANS[id];
+    const prev = i > 0 ? PLANS[paid[i - 1]] : null;
     const ai = aiLimitsFor(id).perMonth;
-    const cap = p.maxProperties === Infinity ? 'χωρίς όριο ακινήτων'
+    // Το όριο σε δύο μορφές: μία για μέσα σε πρόταση, μία για κουκκίδα.
+    const capFrasi = p.maxProperties === Infinity ? 'χωρίς όριο ακινήτων'
       : `έως ${p.maxProperties} ${p.maxProperties === 1 ? 'ακίνητο' : 'ακίνητα'}`;
+    const capKoukkida = p.maxProperties === Infinity ? 'Ακίνητα χωρίς όριο'
+      : `${p.maxProperties} ${p.maxProperties === 1 ? 'ακίνητο' : 'ακίνητα'}`;
     const freeMonths = 12 - Math.round(p.priceAnnual / p.priceMonthly);
+    // ΤΟ ΟΡΙΟ ΑΚΙΝΗΤΩΝ ΛΕΓΕΤΑΙ ΜΙΑ ΦΟΡΑ, ΩΣ ΚΟΥΚΚΙΔΑ. Ηταν και στην πρόταση
+    // «Περιλαμβάνει έως 3 ακίνητα» και ξανά ως κουκκίδα «Εως 3 ακίνητα»: το ίδιο
+    // νούμερο δύο φορές σε τέσσερις γραμμές, σε σελίδα όπου βγαίνει κάρτα.
+    const bullets = [capKoukkida, ...p.features.filter(f => !/^Έως \d|^Ακίνητα χωρίς όριο/.test(f))];
+    // ΚΑΙ Η ΚΛΙΜΑΚΑ ΛΕΓΕΤΑΙ ΚΙ ΕΔΩ. Στην αρχική σελίδα κάθε κάρτα γράφει «Ολα
+    // του προηγούμενου και:». Στο κατάστημα το κάθε προϊόν στέκει ΜΟΝΟ του:
+    // χωρίς αυτή τη γραμμή, ο αγοραστής του «Ιδιοκτήτης+» διαβάζει δύο
+    // κουκκίδες και συμπεραίνει ότι παίρνει λιγότερα από το φθηνότερο πακέτο.
+    const intro = prev
+      ? `Περιλαμβάνει ό,τι έχει το πακέτο «${prev.name}» και ${ai} ερωτήσεις στον βοηθό κάθε μήνα. Επιπλέον:`
+      : `Περιλαμβάνει ${ai} ερωτήσεις στον βοηθό κάθε μήνα και:`;
     out.push(
       `## ${p.name}`, '',
       `**Ονομα προϊόντος:** PROPERWISE ${p.name}`, '',
-      `**Μία γραμμή:** ${p.tagline}. ${price(p.priceMonthly)} τον μήνα, ${cap}.`, '',
+      `**Μία γραμμή:** ${p.tagline}. ${price(p.priceMonthly)} τον μήνα, ${capFrasi}.`, '',
       '**Περιγραφή:**', '',
       PITCH[id], '',
-      `Περιλαμβάνει ${cap}, ${ai} ερωτήσεις στον βοηθό κάθε μήνα και:`, '',
-      ...p.features.map(f => `- ${f}`), '',
+      intro, '',
+      ...bullets.map(f => `- ${f}`), '',
       `Δοκιμή ${TRIAL_DAYS} ημερών χωρίς δέσμευση. Μηνιαία ${price(p.priceMonthly)} ή ετήσια `
       + `${price(p.priceAnnual)}, δηλαδή ${freeMonths} ${freeMonths === 1 ? 'μήνας' : 'μήνες'} δωρεάν. `
       + 'Ακυρώνεις όποτε θέλεις. Οι τιμές αφορούν καταναλωτές στην Ελλάδα και περιλαμβάνουν ΦΠΑ.', '',
