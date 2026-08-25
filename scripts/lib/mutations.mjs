@@ -167,7 +167,12 @@ export const MUTATIONS = {
 
   // ── Ισχυρισμοί, τύποι και κείμενα με πηγή ──────────────────────────────
   'account-deletion': { add: 'app/api/__mut__/route.ts', content: "import { createClient } from '@/lib/supabase/server'\nexport async function POST() {\n  const sb = await createClient()\n  await sb.rpc('delete_my_account')\n  return new Response('ok')\n}\n" },
-  'billing-claims': { add: 'lib/core/__mut__.tsx', content: tsx('    <div>Η συνδρομή σου: δεν γίνεται καμία πληρωμή τώρα.</div>') },
+  // Δύο ψέματα, ένας φύλακας: η κατάσταση χρέωσης γραμμένη δεύτερη φορά, ΚΑΙ
+  // το πακέτο που υπόσχεται δωρεάν χρήση για πάντα.
+  'billing-claims': { every: [
+    { add: 'lib/core/__mut__.tsx', content: tsx('    <div>Η συνδρομή σου: δεν γίνεται καμία πληρωμή τώρα.</div>') },
+    { add: 'lib/core/__mut2__.tsx', content: tsx('    <div>{price === 0 ? \'για πάντα\' : \'τον μήνα\'}</div>') },
+  ] },
   'presumptive-rate': { add: 'lib/core/__mut__.ts', content: 'export const taxable = (gross: number) => gross * 0.95\n' },
   'stay-gross': { add: 'lib/core/__mut__.ts', content: 'export const income = (stay: { total: number }) => { const amount = stay.total; return amount }\n' },
   'local-formatters': { add: 'lib/core/__mut__.ts', content: "export const eur = (n: number) => `${n.toLocaleString('el-GR', { minimumFractionDigits: 2 })} €`\n" },

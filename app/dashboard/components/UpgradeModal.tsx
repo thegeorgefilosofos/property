@@ -97,8 +97,14 @@ export default function UpgradeModal({ currentCount, planId, profileType = 'indi
                   <span style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{feAuto(p.priceMonthly)}</span>
                   {p.priceMonthly > 0 && <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>/μήνα</span>}
                 </div>
+                {/* ΤΟ «ΓΙΑ ΠΑΝΤΑ» ΚΑΤΩ ΑΠΟ ΤΟ 0,00 € ΗΤΑΝ ΥΠΟΣΧΕΣΗ ΠΟΥ ΔΕΝ ΤΗΡΕΙΤΑΙ.
+                    Το «Χωρίς συνδρομή» δεν είναι δωρεάν πακέτο: είναι η κατάσταση
+                    ΩΣΠΟΥ να διαλέξεις πακέτο, με ένα ακίνητο και χωρίς τα φορολογικά
+                    εργαλεία. Δωρεάν είναι μόνο η δοκιμή και οι μήνες από συστάσεις.
+                    Η γραμμή δεν γράφει δεύτερη διατύπωση: παίρνει το tagline του
+                    ίδιου του πακέτου, ώστε να μην μπορεί να αποκλίνει από αυτό. */}
                 <div style={{ fontSize: 11, color: 'var(--text-tertiary)', minHeight: 16 }}>
-                  {p.priceAnnual > 0 ? `ή ${feAuto(p.priceAnnual)}/χρόνο (${feAuto(annualPerMonth(id as PlanId))}/μήνα)` : 'για πάντα'}
+                  {p.priceAnnual > 0 ? `ή ${feAuto(p.priceAnnual)}/χρόνο (${feAuto(annualPerMonth(id as PlanId))}/μήνα)` : p.tagline}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '10px 0 0', lineHeight: 1.5 }}>
                   {p.maxProperties === Infinity ? 'Απεριόριστα ακίνητα' : `Έως ${p.maxProperties} ${p.maxProperties === 1 ? 'ακίνητο' : 'ακίνητα'}`}
