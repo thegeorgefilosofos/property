@@ -9,6 +9,7 @@
     "lint": "eslint",
     "lint:ratchet": "node scripts/lint-ratchet.mjs",
     "security": "node scripts/security-check.mjs",
+    "security:bundle": "node scripts/check-bundle-secrets.mjs",
     "prices": "node scripts/price-freshness.mjs",
     "sources": "node scripts/guard-accounting-sources.mjs",
     "aade-editions": "node scripts/check-aade-editions.mjs",
