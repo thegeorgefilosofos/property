@@ -32,50 +32,9 @@
 // ξαναρχίσει —ούτε να κόψει— δοκιμή που ήδη τρέχει.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { PLAN_ORDER, type PlanId, type BillingCycle } from './plans';
+import type { PlanId, BillingCycle } from './plans';
 import { lemonRequest, subscriptionOf } from './lemonApi';
-import { isLsStatus, type LsStatus } from './lemon';
-
-/** Τι είδους αλλαγή είναι αυτή. */
-export type ChangeKind = 'upgrade' | 'downgrade' | 'same';
-
-/** Πού βρίσκεται μια συνδρομή: ποιο πακέτο και με ποιον κύκλο. */
-export interface PlanPoint { plan: PlanId; cycle: BillingCycle }
-
-const rank = (p: PlanId): number => PLAN_ORDER.indexOf(p);
-
-/**
- * ΤΟ «ΥΨΟΣ» ΕΝΟΣ ΣΗΜΕΙΟΥ: ΠΡΩΤΑ ΤΟ ΠΑΚΕΤΟ, ΚΑΙ ΜΕΤΑ Ο ΚΥΚΛΟΣ.
- *
- * Η ΣΕΙΡΑ ΒΓΑΙΝΕΙ ΑΠΟ ΤΟ PLAN_ORDER, ΟΧΙ ΑΠΟ ΤΗΝ ΤΙΜΗ. Η ετήσια συνδρομή του
- * «Ιδιοκτήτη» (42,90 €) κοστίζει περισσότερο από τη μηνιαία του «Ιδιοκτήτη+»
- * (9,90 €), οπότε μια σύγκριση ποσών θα έλεγε «υποβάθμιση» για κάτι που δίνει
- * ΠΕΡΙΣΣΟΤΕΡΑ. Το πακέτο κυριαρχεί· ο κύκλος λύνει μόνο την ισοπαλία.
- *
- * ΚΑΙ Ο ΚΥΚΛΟΣ ΜΕΤΡΑΕΙ, ΓΙΑΤΙ ΕΙΝΑΙ ΧΡΗΜΑΤΑ. Ιδιο πακέτο από μηνιαίο σε ετήσιο
- * σημαίνει «χρέωσέ με τώρα ολόκληρο τον χρόνο»· το αντίστροφο σημαίνει «μην
- * ξαναπάρεις τα λεφτά του χρόνου». Χωρίς αυτή τη διάκριση, μια αλλαγή κύκλου θα
- * περνούσε ως «τίποτα δεν άλλαξε» και ο πελάτης θα έμενε στην παλιά χρέωση.
- */
-const height = (p: PlanPoint): number => rank(p.plan) * 2 + (p.cycle === 'annual' ? 1 : 0);
-
-export function classifyChange(from: PlanPoint, to: PlanPoint): ChangeKind {
-  if (rank(from.plan) < 0 || rank(to.plan) < 0) return 'same';
-  const a = height(from), b = height(to);
-  return a === b ? 'same' : b > a ? 'upgrade' : 'downgrade';
-}
-
-/**
- * Πέφτει το ΠΑΚΕΤΟ; Μόνο τότε κρατιέται κάτι ώς την ανανέωση.
- *
- * Η αλλαγή από ετήσιο σε μηνιαίο ΙΔΙΟΥ πακέτου είναι κι αυτή υποβάθμιση για
- * τον έμπορο —χρεώνει λιγότερα στην ανανέωση— αλλά δεν αφαιρεί καμία
- * δυνατότητα: δεν υπάρχει τίποτα να κρατηθεί.
- */
-export function planDrops(from: PlanPoint, to: PlanPoint): boolean {
-  const a = rank(from.plan), b = rank(to.plan);
-  return a >= 0 && b >= 0 && b < a;
-}
+import { isMorStatus, type MorStatus, type ChangeKind } from './subscription';
 
 export interface ChangeWish {
   subscriptionId: string;
@@ -114,7 +73,7 @@ export function changePayload(w: ChangeWish): Record<string, unknown> {
 
 /** Η κατάσταση της συνδρομής, όπως τη διαβάζουμε από την απάντηση του εμπόρου. */
 export interface SubscriptionState {
-  status: LsStatus | null;
+  status: MorStatus | null;
   variantId: string | null;
   renewsAt: string | null;
   trialEndsAt: string | null;
@@ -135,7 +94,7 @@ const text = (v: unknown): string | null => {
 export function readSubscriptionState(payload: unknown): SubscriptionState {
   const data = (payload as { data?: unknown } | null)?.data;
   const attrs = ((data as { attributes?: unknown } | null)?.attributes ?? {}) as Record<string, unknown>;
-  const status = typeof attrs.status === 'string' && isLsStatus(attrs.status.trim()) ? attrs.status.trim() as LsStatus : null;
+  const status = typeof attrs.status === 'string' && isMorStatus(attrs.status.trim()) ? attrs.status.trim() as MorStatus : null;
   return {
     status,
     variantId: text(attrs.variant_id),

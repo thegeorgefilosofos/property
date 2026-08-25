@@ -35,10 +35,8 @@ import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { PLANS, PLAN_ORDER, normalizePlan, type PlanId, type BillingCycle } from '@/lib/billing/plans';
 import { cycleFromParam, activeHold } from '@/lib/billing/entitlements';
-import { parseVariantMap, planOfVariant } from '@/lib/billing/lemon';
-import { variantFor, checkoutIsLive } from '@/lib/billing/lemonCheckout';
-import { API_KEY_ENV } from '@/lib/billing/lemonApi';
-import { classifyChange, planDrops, changePlan, subscriptionState } from '@/lib/billing/lemonPlanChange';
+import { merchant } from '@/lib/billing/merchant';
+import { classifyChange, planDrops } from '@/lib/billing/subscription';
 import * as billing from '@/lib/data/billing';
 
 /** Οι καταστάσεις στις οποίες μια συνδρομή δέχεται αλλαγή πακέτου. */
@@ -94,19 +92,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Δεν υπάρχει συνδρομή για αλλαγή. Η πρώτη αγορά γίνεται από το ταμείο.' }, { status: 403 });
   }
 
-  if (!checkoutIsLive(process.env)) {
+  const mor = merchant();
+  if (!mor.isLive(process.env)) {
     console.info('[plan] η χρέωση δεν είναι ρυθμισμένη');
-    return NextResponse.json({ error: 'Η αλλαγή πακέτου δεν είναι διαθέσιμη αυτή τη στιγμή.' }, { status: 503 });
-  }
-  const apiKey = (process.env[API_KEY_ENV] || '').trim();
-  const variantId = variantFor(process.env, target, cycle);
-  if (!variantId) {
-    console.info(`[plan] καμία παραλλαγή για «${target}:${cycle}»`);
     return NextResponse.json({ error: 'Η αλλαγή πακέτου δεν είναι διαθέσιμη αυτή τη στιγμή.' }, { status: 503 });
   }
 
   // ── ΠΟΥ ΒΡΙΣΚΕΤΑΙ ΤΩΡΑ Η ΣΥΝΔΡΟΜΗ, ΚΑΤΑ ΤΟΝ ΕΜΠΟΡΟ ────────────────────
-  const { after: before, error: readErr } = await subscriptionState(subscriptionId, apiKey);
+  const { after: before, error: readErr } = await mor.subscriptionState(subscriptionId, process.env);
   if (readErr || !before) {
     console.info('[plan] η συνδρομή δεν διαβάστηκε:', readErr);
     return NextResponse.json({ error: 'Η αλλαγή δεν ολοκληρώθηκε.' }, { status: 502 });
@@ -115,16 +108,15 @@ export async function POST(request: Request) {
     console.info(`[plan] κατάσταση «${before.status}»: δεν αλλάζει πακέτο`);
     return NextResponse.json({ error: 'Η συνδρομή δεν είναι ενεργή. Η αλλαγή γίνεται από τη διαχείριση συνδρομής.' }, { status: 409 });
   }
-  if (before.variantId === variantId) {
+  if (mor.isAt(before, target, cycle, process.env)) {
     // Ιδιοδύναμο: δεύτερο πάτημα στο ίδιο πακέτο δεν είναι σφάλμα.
     return NextResponse.json({ ok: true, plan: target, cycle, kind: 'same' });
   }
 
-  // ΤΟ ΣΗΜΕΙΟ ΑΦΕΤΗΡΙΑΣ ΒΓΑΙΝΕΙ ΑΠΟ ΤΗΝ ΠΑΡΑΛΛΑΓΗ ΤΟΥ ΕΜΠΟΡΟΥ, με το προφίλ
-  // μας ως εφεδρεία: ο χάρτης παραλλαγών μπορεί να μη γνωρίζει μια παραλλαγή
-  // που δημιουργήθηκε στο κατάστημα χωρίς να μπει στη μεταβλητή.
-  const { map } = parseVariantMap(process.env.LEMON_VARIANTS);
-  const known = before.variantId ? planOfVariant(map, before.variantId) : null;
+  // ΤΟ ΣΗΜΕΙΟ ΑΦΕΤΗΡΙΑΣ ΤΟ ΛΕΕΙ Ο ΕΜΠΟΡΟΣ, με το προφίλ μας ως εφεδρεία: ο
+  // χάρτης του μπορεί να μη γνωρίζει μια παραλλαγή που δημιουργήθηκε στο
+  // κατάστημα χωρίς να μπει στη μεταβλητή.
+  const known = mor.planOf(before, process.env);
   const from = {
     plan: known?.plan ?? normalizePlan(profile.plan),
     cycle: (known?.cycle ?? cycleFromParam(profile.cycle)) as BillingCycle,
@@ -159,9 +151,9 @@ export async function POST(request: Request) {
   const kind = classifyChange(paid, to);
   const onTrial = before.status === 'on_trial';
 
-  const { after, error } = await changePlan(
-    { subscriptionId, variantId, kind, onTrial, trialEndsAt: before.trialEndsAt },
-    apiKey,
+  const { after, error } = await mor.changePlan(
+    { subscriptionId, plan: target, cycle, kind, onTrial, trialEndsAt: before.trialEndsAt },
+    process.env,
   );
   if (error || !after) {
     console.info('[plan] ο έμπορος δεν δέχτηκε την αλλαγή:', error);

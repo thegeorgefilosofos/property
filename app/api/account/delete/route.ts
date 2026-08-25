@@ -22,9 +22,7 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { checkoutIsLive } from '@/lib/billing/lemonCheckout';
-import { API_KEY_ENV } from '@/lib/billing/lemonApi';
-import { subscriptionState, cancelSubscription, needsCancelling } from '@/lib/billing/lemonPlanChange';
+import { merchant } from '@/lib/billing/merchant';
 import * as billing from '@/lib/data/billing';
 import { sweepOwnFiles } from '@/lib/storage/accountSweep';
 import { SAY } from '@/lib/core/dbError';
@@ -42,15 +40,15 @@ export async function POST() {
   }
 
   const subscriptionId = (state.subscriptionId || '').trim();
-  if (subscriptionId && checkoutIsLive(process.env)) {
-    const apiKey = (process.env[API_KEY_ENV] || '').trim();
-    const { after, error } = await subscriptionState(subscriptionId, apiKey);
+  const mor = merchant();
+  if (subscriptionId && mor.isLive(process.env)) {
+    const { after, error } = await mor.subscriptionState(subscriptionId, process.env);
     if (error || !after) {
       console.info('[delete] η συνδρομή δεν διαβάστηκε:', error);
       return NextResponse.json({ error: 'Δεν μπορέσαμε να ελέγξουμε τη συνδρομή σου, οπότε δεν προχωρήσαμε: δεν θέλουμε να χρεώνεται κάρτα λογαριασμού που δεν υπάρχει. Δοκίμασε ξανά σε λίγο.' }, { status: 502 });
     }
-    if (needsCancelling(after.status)) {
-      const out = await cancelSubscription(subscriptionId, apiKey);
+    if (mor.needsCancelling(after.status)) {
+      const out = await mor.cancel(subscriptionId, process.env);
       if (out.error) {
         console.info('[delete] η ακύρωση της συνδρομής απέτυχε:', out.error);
         return NextResponse.json({ error: 'Η συνδρομή σου δεν ακυρώθηκε, οπότε δεν προχωρήσαμε στη διαγραφή: δεν θέλουμε να συνεχίσει να χρεώνεται η κάρτα σου. Ακύρωσε πρώτα τη συνδρομή από τη διαχείριση συνδρομής, ή δοκίμασε ξανά σε λίγο.' }, { status: 502 });

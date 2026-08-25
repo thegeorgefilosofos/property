@@ -25,7 +25,11 @@ import { projectFiles } from './lib/git-files.mjs';
 
 const RPC = 'delete_my_account';
 const ROUTE = 'app/api/account/delete/route.ts';
-const CANCEL = 'cancelSubscription';
+// Η ΑΚΥΡΩΣΗ ΜΕΤΑ ΤΗ ΘΥΡΑ ΤΟΥ ΕΜΠΟΡΟΥ. Λεγόταν «cancelSubscription» όσο η
+// διαδρομή μιλούσε κατευθείαν στον πάροχο. Τώρα λέγεται «mor.cancel(» και ο
+// φύλακας δέχεται και τα δύο: το παλιό μένει δεκτό γιατί εξακολουθεί να
+// ακυρώνει, όχι για συμβατότητα χάριν συμβατότητας.
+const CANCEL = /\bcancelSubscription\b|\.cancel\(/;
 
 const problems = [];
 
@@ -55,7 +59,7 @@ let route = '';
 try { route = readFileSync(ROUTE, 'utf8'); } catch {
   problems.push(`${ROUTE}: λείπει. Η διαγραφή λογαριασμού δεν έχει πια πού να ακυρώσει τη συνδρομή.`);
 }
-if (route && !route.includes(CANCEL)) {
+if (route && !route.match(CANCEL)) {
   problems.push(`${ROUTE}: δεν ακυρώνει τη συνδρομή (${CANCEL}). Η κάρτα θα χρεώνεται μετά τη διαγραφή.`);
 }
 if (route && !route.includes(RPC)) {

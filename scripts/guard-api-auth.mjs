@@ -15,7 +15,7 @@
 //
 //   1. Ο διαμεσολαβητής εξαιρεί το /api/** από τον έλεγχο συνεδρίας.
 //   2. Κάθε app/api/**/route.ts ζητά ΜΟΝΟ ΤΟΥ ταυτότητα: είτε συνεδρία
-//      (`auth.getUser`), είτε υπογραφή (`verifySignature`), είτε το κοινό
+//      (`auth.getUser`), είτε υπογραφή (`verifySignature` ή `verifyWebhook`), είτε το κοινό
 //      μυστικό του χρονοδιαγράμματος (`cronSecretOk`).
 //
 // Οποιος προσθέσει αύριο διαδρομή που δεν κάνει ούτε το ένα ούτε το άλλο,
@@ -30,6 +30,8 @@ const EXEMPTION = 'pathname.startsWith("/api/")';
 const GATES = [
   { needle: 'auth.getUser(', what: 'συνεδρία' },
   { needle: 'verifySignature(', what: 'υπογραφή' },
+  // Η ίδια απόδειξη, μέσα από τη θύρα του εμπόρου.
+  { needle: '.verifyWebhook(', what: 'υπογραφή' },
   // Η προγραμματισμένη εργασία δεν έχει ούτε συνεδρία ούτε υπογραφή παρόχου:
   // τη φωνάζει η ΔΙΚΗ ΜΑΣ βάση με το κοινό μυστικό της `public.cron_secrets`.
   { needle: 'cronSecretOk(', what: 'μυστικό χρονοδιαγράμματος' },

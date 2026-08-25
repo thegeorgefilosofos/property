@@ -43,7 +43,7 @@ export interface Subprocessor {
   active: boolean;
 }
 
-import { checkoutIsLive, type BillingEnv } from '@/lib/billing/lemonCheckout';
+import { merchant, type BillingEnv } from '@/lib/billing/merchant';
 import { PAYMENTS_PROVIDER } from './merchant';
 import { billingWords } from './billingWords';
 
@@ -138,7 +138,7 @@ export const PUSH_SERVICES = 'Google / Apple / Mozilla';
  * από την ίδια συνθήκη που δείχνει το κουμπί του ταμείου.
  */
 export function subprocessors(env: BillingEnv = process.env): readonly Subprocessor[] {
-  const live = checkoutIsLive(env);
+  const live = merchant(env).isLive(env);
   // ΟΙ ΥΠΗΡΕΣΙΕΣ PUSH ΕΠΕΞΕΡΓΑΖΟΝΤΑΙ ΜΟΝΟ ΟΤΑΝ ΥΠΑΡΧΕΙ ΚΛΕΙΔΙ. Χωρίς το δημόσιο
   // κλειδί VAPID ο διακόπτης δεν εμφανίζεται σε καμία οθόνη, καμία συσκευή δεν
   // γράφεται και κανένα μήνυμα δεν φεύγει. Ενα καρφωμένο `true` θα δήλωνε

@@ -29,19 +29,20 @@
 
 import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
-import { verifySignature, SIGNATURE_HEADER, SECRET_ENV } from '@/lib/billing/lemonSignature';
-import { readSubscriptionEvent, carriesSubscription, parseVariantMap, planOfVariant, isEntitled } from '@/lib/billing/lemon';
+import { merchant } from '@/lib/billing/merchant';
+import { isEntitled } from '@/lib/billing/subscription';
 import { profileForPlan } from '@/lib/billing/entitlements';
 
 /** Ο πίνακας που κρατά το πακέτο του κάθε λογαριασμού. */
 const TABLE = 'billing_profiles';
 
-const log = (...parts: unknown[]) => console.info('[lemon]', ...parts);
+const log = (...parts: unknown[]) => console.info(`[${merchant().id}]`, ...parts);
 
 export async function POST(request: Request) {
   const raw = await request.text();
+  const mor = merchant();
 
-  if (!verifySignature(raw, request.headers.get(SIGNATURE_HEADER), process.env[SECRET_ENV])) {
+  if (!mor.verifyWebhook(raw, request.headers, process.env)) {
     // ΔΕΝ ΛΕΕΙ ΑΝ ΕΦΤΑΙΓΕ Η ΥΠΟΓΡΑΦΗ Ή ΤΟ ΜΥΣΤΙΚΟ. Η διεύθυνση είναι δημόσια·
     // η διαφορά των δύο μηνυμάτων θα έλεγε σε άγνωστο αν έχουμε ρυθμιστεί.
     log('υπογραφή που δεν επαληθεύεται');
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'bad_request' }, { status: 400 });
   }
 
-  const read = readSubscriptionEvent(payload);
+  const read = mor.readEvent(payload, process.env);
   if (!read.ok) {
     // ΔΥΟ ΔΙΑΦΟΡΕΤΙΚΑ ΠΡΑΓΜΑΤΑ, ΔΥΟ ΑΠΑΝΤΗΣΕΙΣ. Γεγονός που δεν μας αφορά —
     // παραγγελία, παραστατικό, γεγονός που δεν ξέρουμε — είναι φυσιολογικό και
@@ -65,24 +66,23 @@ export async function POST(request: Request) {
     // κι εκείνα από «subscription_» και φέρνουν παραστατικό, όχι συνδρομή:
     // απαντώντας τους 422 ζητούσαμε από τον έμπορο να τα ξαναστείλει, για
     // πάντα.
-    const ours = carriesSubscription(String((payload as { meta?: { event_name?: unknown } })?.meta?.event_name || ''));
+    // ΚΑΙ ΤΡΙΤΗ ΠΕΡΙΠΤΩΣΗ: ΔΙΚΗ ΜΑΣ ΡΥΘΜΙΣΗ ΣΠΑΣΜΕΝΗ. Το να ζητάς από τον
+    // έμπορο να ξαναστείλει δεν διορθώνει μεταβλητή περιβάλλοντος.
+    if (read.config) {
+      log('η ρύθμιση του εμπόρου δεν διαβάστηκε:', read.reason);
+      return NextResponse.json({ error: 'not_configured' }, { status: 500 });
+    }
     log('γεγονός που δεν εφαρμόστηκε:', read.reason);
-    return NextResponse.json({ ok: !ours }, { status: ours ? 422 : 200 });
+    return NextResponse.json({ ok: !read.ours }, { status: read.ours ? 422 : 200 });
   }
 
-  const { map, error: mapError } = parseVariantMap(process.env.LEMON_VARIANTS);
-  if (mapError) {
-    log('ο χάρτης παραλλαγών δεν διαβάστηκε:', mapError);
-    return NextResponse.json({ error: 'not_configured' }, { status: 500 });
-  }
-
-  const sub = read.sub;
-  const variant = planOfVariant(map, sub.variantId);
+  const sub = read.event.sub;
+  const variant = read.event.plan;
   if (!variant) {
     // ΠΑΡΑΛΛΑΓΗ ΕΚΤΟΣ ΧΑΡΤΗ ΔΕΝ ΑΝΑΒΑΘΜΙΖΕΙ ΚΑΝΕΝΑΝ και δεν υποβαθμίζει κιόλας:
     // πιθανότερο είναι να λείπει μια εγγραφή από τη ρύθμιση παρά να πούλησε ο
     // έμπορος κάτι ανύπαρκτο. Το γεγονός μένει ακράτητο ώστε να ξαναέρθει.
-    log(`παραλλαγή «${sub.variantId}» εκτός χάρτη· το γεγονός ${read.event} δεν εφαρμόστηκε`);
+    log(`παραλλαγή «${sub.variantId}» εκτός χάρτη· το γεγονός ${read.event.name} δεν εφαρμόστηκε`);
     return NextResponse.json({ error: 'unknown_variant' }, { status: 422 });
   }
 
@@ -110,13 +110,12 @@ export async function POST(request: Request) {
     userId = (data as { user_id?: string } | null)?.user_id ?? null;
   }
   if (!userId) {
-    log(`το γεγονός ${read.event} για τη συνδρομή ${sub.id} δεν αντιστοιχεί σε λογαριασμό`);
+    log(`το γεγονός ${read.event.name} για τη συνδρομή ${sub.id} δεν αντιστοιχεί σε λογαριασμό`);
     return NextResponse.json({ error: 'no_account' }, { status: 422 });
   }
 
   // ── ΤΑ ΚΑΘΥΣΤΕΡΗΜΕΝΑ ΔΕΝ ΓΡΑΦΟΥΝ ΠΑΝΩ ΑΠΟ ΤΑ ΝΕΟΤΕΡΑ ────────────────────
-  const attrs = (payload as { data?: { attributes?: Record<string, unknown> } })?.data?.attributes ?? {};
-  const eventAt = typeof attrs.updated_at === 'string' && attrs.updated_at.trim() ? attrs.updated_at.trim() : null;
+  const eventAt = read.event.occurredAt;
   if (eventAt) {
     // ΚΑΙ ΑΥΤΗ Η ΑΝΑΓΝΩΣΗ ΚΟΙΤΑ ΤΟ ΣΦΑΛΜΑ ΤΗΣ. Αν αποτύχει, το `data` έρχεται
     // κενό — δηλαδή «καμία προηγούμενη ώρα», δηλαδή «εφάρμοσε το γεγονός».
@@ -128,7 +127,7 @@ export async function POST(request: Request) {
     if (readError) log('η ώρα του τελευταίου γεγονότος δεν διαβάστηκε:', readError.message);
     const seen = (data as { mor_event_at?: string | null } | null)?.mor_event_at;
     if (seen && new Date(eventAt) < new Date(seen)) {
-      log(`γεγονός ${read.event} παλαιότερο από το καταγεγραμμένο· αγνοήθηκε`);
+      log(`γεγονός ${read.event.name} παλαιότερο από το καταγεγραμμένο· αγνοήθηκε`);
       return NextResponse.json({ ok: true, skipped: 'stale' });
     }
   }
@@ -193,6 +192,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'write_failed' }, { status: 502 });
   }
 
-  log(`${read.event}: ${variant.plan}/${variant.cycle}, κατάσταση ${sub.status}, πρόσβαση ${entitled ? 'ναι' : 'όχι'}${trialUsedAt && !seen?.trial_used_at ? ', η δοκιμή σφραγίστηκε' : ''}${profileType ? `, τύπος προφίλ ${profileType}` : ''}`);
+  log(`${read.event.name}: ${variant.plan}/${variant.cycle}, κατάσταση ${sub.status}, πρόσβαση ${entitled ? 'ναι' : 'όχι'}${trialUsedAt && !seen?.trial_used_at ? ', η δοκιμή σφραγίστηκε' : ''}${profileType ? `, τύπος προφίλ ${profileType}` : ''}`);
   return NextResponse.json({ ok: true });
 }

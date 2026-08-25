@@ -34,7 +34,7 @@
 // διαβάζουν και οι Οροι και η σελίδα εμπιστοσύνης από την ίδια πηγή.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { checkoutIsLive, type BillingEnv } from '@/lib/billing/lemonCheckout';
+import { merchant, type BillingEnv } from '@/lib/billing/merchant';
 import { TRIAL_DAYS, ACCOUNT_GRACE_DAYS } from '@/lib/billing/plans';
 
 export interface BillingWords {
@@ -139,6 +139,6 @@ const NOT_LIVE: Omit<BillingWords, 'live'> = {
 
 /** Τα λόγια που ισχύουν αυτή τη στιγμή. Διαβάζεται ΜΟΝΟ σε διακομιστή. */
 export function billingWords(env: BillingEnv = process.env): BillingWords {
-  const live = checkoutIsLive(env);
+  const live = merchant(env).isLive(env);
   return { live, ...(live ? LIVE : NOT_LIVE) };
 }

@@ -23,7 +23,7 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { API_KEY_ENV, portalUrlOf } from '@/lib/billing/lemonPortal';
+import { merchant } from '@/lib/billing/merchant';
 import * as billing from '@/lib/data/billing';
 
 export async function GET() {
@@ -31,9 +31,9 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Απαιτείται σύνδεση.' }, { status: 401 });
 
-  const key = (process.env[API_KEY_ENV] || '').trim();
-  if (!key) {
-    console.info('[lemon] η πύλη δεν είναι ρυθμισμένη: λείπει η', API_KEY_ENV);
+  const mor = merchant();
+  if (!mor.isLive(process.env)) {
+    console.info(`[${mor.id}] η πύλη δεν είναι ρυθμισμένη:`, mor.configError(process.env));
     return NextResponse.json({ available: false, url: null });
   }
 
@@ -43,9 +43,9 @@ export async function GET() {
   // κατάσταση του λογαριασμού. Η οθόνη δεν δείχνει κουμπί που δεν οδηγεί.
   if (!subscriptionId) return NextResponse.json({ available: false, url: null });
 
-  const { url, error } = await portalUrlOf(subscriptionId, key);
+  const { url, error } = await mor.portalUrl(subscriptionId, process.env);
   if (error) {
-    console.info('[lemon] η πύλη δεν άνοιξε:', error);
+    console.info(`[${mor.id}] η πύλη δεν άνοιξε:`, error);
     return NextResponse.json({ error: 'Η διαχείριση συνδρομής δεν άνοιξε.' }, { status: 502 });
   }
   return NextResponse.json({ available: !!url, url });

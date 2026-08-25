@@ -28,114 +28,12 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { PLANS, normalizePlan, BILLING_CYCLES, type PlanId, type BillingCycle } from './plans';
+import { type VariantPlan, type MorStatus, type MorSubscription, isMorStatus } from './subscription';
 
-/**
- * Οι καταστάσεις συνδρομής της Lemon Squeezy, όπως τις ορίζει η τεκμηρίωσή της.
- * Η λίστα δεν επεκτείνεται από εικασία.
- */
-export const LS_STATUSES = [
-  'on_trial', 'active', 'paused', 'past_due', 'unpaid', 'cancelled', 'expired',
-] as const;
-
-export type LsStatus = (typeof LS_STATUSES)[number];
-
-export const isLsStatus = (v: unknown): v is LsStatus =>
-  typeof v === 'string' && (LS_STATUSES as readonly string[]).includes(v);
-
-export interface VariantPlan { plan: PlanId; cycle: BillingCycle }
-
-export interface LsSubscription {
-  /** Το αναγνωριστικό της συνδρομής στη Lemon Squeezy. */
-  id: string;
-  status: LsStatus;
-  variantId: string;
-  customerId: string;
-  /** Ο λογαριασμός μας, από το `custom_data`. `null` όταν λείπει. */
-  userId: string | null;
-  /** Πότε ανανεώνεται. Κενό όταν δεν ανανεώνεται. */
-  renewsAt: string | null;
-  /** Πότε λήγει η πρόσβαση. Γεμάτο σε ακύρωση και σε λήξη. */
-  endsAt: string | null;
-}
-
-// ── ΠΟΤΕ ΙΣΧΥΕΙ Η ΣΥΝΔΡΟΜΗ ────────────────────────────────────────────────
-//
-// `on_trial`   δοκιμή σε εξέλιξη — η μόνη δωρεάν περίοδος του προϊόντος.
-// `active`     πληρωμένη και ενεργή.
-// `past_due`   μια ανανέωση απέτυχε και η Lemon Squeezy ξαναδοκιμάζει επί δύο
-//              εβδομάδες. Η πρόσβαση ΜΕΝΕΙ: το να κλείσει η πόρτα σε πελάτη
-//              που απλώς άλλαξε κάρτα είναι χειρότερο από δύο εβδομάδες πίστωση.
-// `cancelled`  ακυρώθηκε η ΜΕΛΛΟΝΤΙΚΗ χρέωση, αλλά η περίοδος που πληρώθηκε
-//              τρέχει ακόμη. Η πρόσβαση ΜΕΝΕΙ ώς το `ends_at` και ούτε μέρα
-//              παραπάνω. Χωρίς `ends_at` δεν υπάρχει πρόσβαση: δεν εφευρίσκουμε
-//              ημερομηνία λήξης για να είμαστε γενναιόδωροι.
-// `paused`     η είσπραξη έχει παύσει με τη θέληση του πελάτη. ΔΕΝ δίνει
-//              πρόσβαση: το προϊόν δεν έχει δωρεάν βαθμίδα και μια παύση που
-//              κρατά τη συνδρομή ανοιχτή θα ήταν ακριβώς αυτό.
-// `unpaid`     απέτυχαν και οι τέσσερις προσπάθειες είσπραξης.
-// `expired`    τελείωσε.
-//
-/**
- * Ισχύει η συνδρομή τη δεδομένη στιγμή;
- *
- * @param nowIso Η στιγμή που κρίνεται, σε ISO. Δίνεται από τον καλούντα ώστε ο
- *               έλεγχος να είναι ντετερμινιστικός.
- */
-export function isEntitled(sub: { status: LsStatus; endsAt: string | null }, nowIso: string): boolean {
-  switch (sub.status) {
-    case 'on_trial':
-    case 'active':
-    case 'past_due':
-      return true;
-    case 'cancelled':
-      return !!sub.endsAt && nowIso < sub.endsAt;
-    case 'paused':
-    case 'unpaid':
-    case 'expired':
-      return false;
-  }
-}
-
-// ── ΠΩΣ ΛΕΓΕΤΑΙ Η ΚΑΤΑΣΤΑΣΗ ΣΤΟΝ ΑΝΘΡΩΠΟ ──────────────────────────────────
-//
-// Η ΟΘΟΝΗ ΔΕΝ ΞΑΝΑΓΡΑΦΕΙ ΤΟ ΛΕΞΙΛΟΓΙΟ ΤΟΥ ΕΜΠΟΡΟΥ. Η κάρτα της συνδρομής
-// συνέκρινε με συμβολοσειρές γραμμένες με το χέρι· μια αλλαγή παρόχου σημαίνει
-// ότι καμία συνθήκη δεν ταιριάζει πια και ο πελάτης με ενεργή συνδρομή βλέπει
-// κάρτα που δεν λέει τίποτα — χωρίς κανένα σφάλμα να το εξηγεί.
-//
-// Η μετάφραση γίνεται ΕΔΩ, δίπλα στη λίστα των καταστάσεων, ώστε μια νέα
-// κατάσταση να μη γίνεται δεκτή χωρίς να αποφασιστεί τι λέει στον άνθρωπο.
-export type SubPhase =
-  /** Δοκιμή σε εξέλιξη. */
-  | 'trial'
-  /** Πληρωμένη και ενεργή. */
-  | 'active'
-  /** Μια ανανέωση απέτυχε και ξαναδοκιμάζεται. Η πρόσβαση μένει. */
-  | 'retrying'
-  /** Τελείωσε, πάγωσε, ή δεν πληρώθηκε ποτέ. */
-  | 'lapsed'
-  /** Καμία συνδρομή δεν έχει υπάρξει. */
-  | 'none';
-
-/**
- * Σε ποια φάση βρίσκεται η συνδρομή, από την κατάσταση που έγραψε ο webhook.
- *
- * ΤΟ `cancelled` ΔΕΝ ΕΙΝΑΙ ΦΑΣΗ ΕΔΩ, ΕΙΝΑΙ ΗΜΕΡΟΜΗΝΙΑ. Ακυρωμένη συνδρομή που
- * τρέχει ώς το `ends_at` δεν διαβάζεται από την κατάσταση αλλά από την ίδια την
- * ημερομηνία, που η οθόνη ελέγχει πρώτη.
- */
-export function subPhase(status: string): SubPhase {
-  if (!isLsStatus(status)) return 'none';
-  switch (status) {
-    case 'on_trial': return 'trial';
-    case 'active': return 'active';
-    case 'past_due': return 'retrying';
-    case 'cancelled':
-    case 'paused':
-    case 'unpaid':
-    case 'expired': return 'lapsed';
-  }
-}
+// ΟΙ ΤΥΠΟΙ ΞΑΝΑΒΓΑΙΝΟΥΝ ΑΠΟ ΕΔΩ ΜΟΝΟ ΓΙΑ ΤΗ ΘΥΡΑ. Ο υπόλοιπος κώδικας τους
+// παίρνει από το «subscription.ts»: ο φύλακας της θύρας δεν αφήνει κανέναν
+// έξω από το «merchant/» να εισάγει αυτό εδώ το αρχείο.
+export type { VariantPlan, MorStatus, MorSubscription };
 
 // ── Ο ΧΑΡΤΗΣ ΠΑΡΑΛΛΑΓΩΝ ───────────────────────────────────────────────────
 //
@@ -181,7 +79,7 @@ export function planOfVariant(map: Map<string, VariantPlan>, variantId: string):
 // ── Η ΑΝΑΓΝΩΣΗ ΤΟΥ ΓΕΓΟΝΟΤΟΣ ──────────────────────────────────────────────
 
 export type ReadResult =
-  | { ok: true; event: string; sub: LsSubscription }
+  | { ok: true; event: string; sub: MorSubscription }
   | { ok: false; reason: string };
 
 /** Αριθμός ή κείμενο από τη Lemon Squeezy, πάντα ως κείμενο για εμάς. */
@@ -252,7 +150,7 @@ export function readSubscriptionEvent(payload: unknown): ReadResult {
   if (!attrs) return { ok: false, reason: 'Λείπει το data.attributes.' };
 
   const status = attrs.status;
-  if (!isLsStatus(status)) {
+  if (!isMorStatus(status)) {
     return { ok: false, reason: `Αγνωστη κατάσταση συνδρομής «${String(status)}». Δεν ερμηνεύεται.` };
   }
 

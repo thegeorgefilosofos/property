@@ -3,10 +3,8 @@
 // ΕΔΩ ΚΡΙΝΕΤΑΙ ΠΟΙΟΣ ΠΛΗΡΩΝΕΙ ΚΑΙ ΠΟΙΟΣ ΟΧΙ.
 // Ενα λάθος σε αυτό το αρχείο δεν χαλάει οθόνη: ή χαρίζει συνδρομή, ή κόβει
 // πρόσβαση σε πελάτη που πλήρωσε. Και τα δύο τα μαθαίνεις από παράπονο.
-import {
-  carriesSubscription,
-  LS_STATUSES, isLsStatus, isEntitled, parseVariantMap, planOfVariant, readSubscriptionEvent,
-} from './lemon'
+import { carriesSubscription, parseVariantMap, planOfVariant, readSubscriptionEvent } from './lemon'
+import { MOR_STATUSES, isMorStatus, isEntitled } from './subscription'
 import { verifySignature } from './lemonSignature'
 import { createHmac } from 'node:crypto'
 
@@ -16,9 +14,9 @@ const ok = (n: string, c: boolean) => { if (c) pass++; else { fail++; console.er
 const NOW = '2026-08-20T10:00:00Z'
 
 // ── ΟΙ ΚΑΤΑΣΤΑΣΕΙΣ ────────────────────────────────────────────────────────
-ok('επτά καταστάσεις, όσες ορίζει η τεκμηρίωση', LS_STATUSES.length === 7)
-ok('άγνωστη κατάσταση δεν αναγνωρίζεται', !isLsStatus('super_active'))
-ok('κενό δεν αναγνωρίζεται', !isLsStatus('') && !isLsStatus(null) && !isLsStatus(7))
+ok('επτά καταστάσεις, όσες ορίζει η τεκμηρίωση', MOR_STATUSES.length === 7)
+ok('άγνωστη κατάσταση δεν αναγνωρίζεται', !isMorStatus('super_active'))
+ok('κενό δεν αναγνωρίζεται', !isMorStatus('') && !isMorStatus(null) && !isMorStatus(7))
 
 const ent = (status: string, endsAt: string | null = null) =>
   isEntitled({ status: status as never, endsAt }, NOW)

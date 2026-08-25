@@ -28,8 +28,7 @@ import type { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { PLANS, type PlanId, type BillingCycle } from '@/lib/billing/plans';
 import { isPlanAllowedForProfile, type ProfileType } from '@/lib/billing/entitlements';
-import { checkoutIsLive, createCheckout, variantFor, storeId } from '@/lib/billing/lemonCheckout';
-import { API_KEY_ENV } from '@/lib/billing/lemonApi';
+import { merchant } from '@/lib/billing/merchant';
 import { billingWords } from '@/lib/legal/billingWords';
 import { SITE } from '@/lib/core/site';
 import * as billing from '@/lib/data/billing';
@@ -52,10 +51,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Αγνωστο πακέτο ή κύκλος.' }, { status: 400 });
   }
 
-  if (!checkoutIsLive(process.env)) {
+  const mor = merchant();
+  if (!mor.isLive(process.env)) {
     // ΤΟ «ΓΙΑΤΙ ΟΧΙ» ΤΑΞΙΔΕΥΕΙ ΜΟΝΟ ΠΡΟΣ ΤΑ ΜΕΣΑ. Ονόματα μεταβλητών δεν
     // εκτίθενται σε δημόσια διεύθυνση.
-    console.info('[lemon] η χρέωση δεν είναι ρυθμισμένη');
+    console.info(`[${mor.id}] η χρέωση δεν είναι ρυθμισμένη`);
     return closed();
   }
 
@@ -86,28 +86,24 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Το πακέτο δεν αντιστοιχεί στον τύπο του λογαριασμού.' }, { status: 403 });
   }
 
-  const variantId = variantFor(process.env, plan as PlanId, cycle as BillingCycle);
-  if (!variantId) {
-    console.info(`[lemon] καμία παραλλαγή για «${plan}:${cycle}»`);
-    return closed();
-  }
-
   if (probe) return NextResponse.json({ available: true, url: null, note: billingWords().chargingToday });
 
-  const { url, error } = await createCheckout({
-    storeId: storeId(process.env),
-    variantId,
+  // Η ΔΙΑΔΡΟΜΗ ΔΕΝ ΞΕΡΕΙ ΤΙ ΕΙΝΑΙ ΠΑΡΑΛΛΑΓΗ. Ζητά «Ιδιοκτήτης+, ετήσια» και
+  // παίρνει διεύθυνση: η μετάφραση στη γλώσσα του παρόχου ζει στη θύρα.
+  const { url, error } = await mor.openCheckout({
     buyer: { userId: user.id, email: user.email, name: profile?.full_name },
+    plan: plan as PlanId,
+    cycle: cycle as BillingCycle,
     redirectUrl: `${SITE}/dashboard?checkout=ok`,
     // Η ΔΟΚΙΜΗ ΕΙΝΑΙ ΜΙΑ ΑΝΑ ΛΟΓΑΡΙΑΣΜΟ. Το πότε δόθηκε το γράφει ο webhook,
     // όταν δει την πρώτη συνδρομή σε δοκιμή — όχι εδώ: ένα ταμείο που άνοιξε
     // και εγκαταλείφθηκε δεν πρέπει να καίει τη δοκιμή κανενός.
     skipTrial: !!profile?.trial_used_at,
     expiresAt: new Date(Date.now() + LINK_MINUTES * 60_000).toISOString(),
-  }, (process.env[API_KEY_ENV] || '').trim());
+  }, process.env);
 
   if (error) {
-    console.info('[lemon] το ταμείο δεν άνοιξε:', error);
+    console.info(`[${mor.id}] το ταμείο δεν άνοιξε:`, error);
     return NextResponse.json({ error: 'Το ταμείο δεν άνοιξε.' }, { status: 502 });
   }
   return NextResponse.json({ available: !!url, url, note: billingWords().chargingToday });

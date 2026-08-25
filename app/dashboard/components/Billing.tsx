@@ -29,7 +29,7 @@ import { T, Btn, InfoBanner, Spinner, Card, SecHdr, fixedCols, fe, fd } from '@/
 import { PLANS, PLAN_ORDER, normalizePlan, annualPerMonth, type PlanId, type BillingCycle } from '@/lib/billing/plans';
 // Η ΦΑΣΗ ΤΗΣ ΣΥΝΔΡΟΜΗΣ ΔΕΝ ΚΡΙΝΕΤΑΙ ΕΔΩ. Οι καταστάσεις τις ονομάζει ο
 // έμπορος και τις γράφει ο webhook· η οθόνη τις διαβάζει από την ίδια πηγή.
-import { subPhase } from '@/lib/billing/lemon';
+import { subPhase } from '@/lib/billing/subscription';
 import { ALLOWED_PLANS, planFromParam, cycleFromParam, type ProfileType } from '@/lib/billing/entitlements';
 import { SegmentControl } from './UIComponents';
 import { notifyError, notifyOk } from '@/components/Toast';

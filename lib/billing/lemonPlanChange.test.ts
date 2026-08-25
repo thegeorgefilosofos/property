@@ -4,10 +4,8 @@
 // Ενα «invoice_immediately» σε υποβάθμιση εκδίδει πιστωτικό που δεν
 // υποσχεθήκαμε· ένα «disable_prorations» σε αναβάθμιση δίνει ακριβότερο πακέτο
 // δωρεάν ώς την ανανέωση. Καμία από τις δύο δεν βγάζει σφάλμα πουθενά.
-import {
-  classifyChange, planDrops, changePayload, readSubscriptionState, changePlan, subscriptionState,
-  cancelSubscription, needsCancelling,
-} from './lemonPlanChange'
+import { changePayload, readSubscriptionState, changePlan, subscriptionState, cancelSubscription, needsCancelling } from './lemonPlanChange'
+import { classifyChange, planDrops } from './subscription'
 import type { PlanId, BillingCycle } from './plans'
 
 /** Συντομογραφία: «owner/annual» → σημείο. */
