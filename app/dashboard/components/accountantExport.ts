@@ -294,7 +294,7 @@ export function buildWorkbook(inp: AccountantBundleInput, papers: readonly Filed
       ...plRows.map(r => [r.label, r.amount ?? '']),
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws['!rows'] = []; ws['!rows'][0] = { hpt: ROW.title }; ws['!rows'][1] = { hpt: ROW.sub }; ws['!rows'][HR] = { hpt: ROW.head };
+    ws['!rows'] = []; ws['!rows'][1] = { hpt: ROW.sub }; ws['!rows'][HR] = { hpt: ROW.head };
     bannerRow(ws, 0, NC, S.title);
     bannerRow(ws, 1, NC, S.sub);
     bannerRow(ws, 3, NC, S.section);
@@ -311,6 +311,7 @@ export function buildWorkbook(inp: AccountantBundleInput, papers: readonly Filed
     });
     ws['!cols'] = autoWidths(ws, { headRow: HR }).cols;
     ws['!margins'] = { ...MARGINS };
+    sheetFinish(ws, { brandMark: true });
     XLSX.utils.book_append_sheet(wb, ws, 'Κατάσταση αποτελεσμάτων');
   }
 
@@ -404,7 +405,7 @@ export function buildWorkbook(inp: AccountantBundleInput, papers: readonly Filed
     // Το όριο είναι 56 και όχι το προεπιλεγμένο: ο μακρύτερος χαρακτηρισμός
     // («14.3 · 2.5 Γενικά Έξοδα χωρίς δικαίωμα έκπτωσης Φ.Π.Α.») πιάνει 54 και
     // μια αναδίπλωση θα έκανε κάθε ξένη δαπάνη διγράμμη χωρίς λόγο.
-    ws['!rows'] = []; ws['!rows'][0] = { hpt: ROW.title }; ws['!rows'][1] = { hpt: ROW.sub }; ws['!rows'][HR] = { hpt: ROW.head };
+    ws['!rows'] = []; ws['!rows'][1] = { hpt: ROW.sub }; ws['!rows'][HR] = { hpt: ROW.head };
     const enc = (r: number, c: number) => XLSX.utils.encode_cell({ r, c });
     const emptyNote = sorted.length ? 0 : 1;
     const lastData = HR + sorted.length + emptyNote;
@@ -465,7 +466,7 @@ export function buildWorkbook(inp: AccountantBundleInput, papers: readonly Filed
     // παραπάνω και το «F» θα πρότεινε τόπο παροχής μέσα στη στήλη της χώρας.
     const supplyCol = XLSX.utils.encode_col(C_SUPPLY);
     sheetFinish(ws, {
-      landscape: true, freezeRows: HR + 1,
+      freezeRows: HR + 1, brandMark: true,
       ...(sorted.length ? { lists: [{ ref: `${supplyCol}${HR + 2}:${supplyCol}${lastData + 1}`, values: SUPPLY_VALUES }] } : {}),
     });
     // Ο ΛΟΓΙΣΤΗΣ ΤΥΠΩΝΕΙ, ΚΑΙ Η ΔΕΥΤΕΡΗ ΣΕΛΙΔΑ ΧΡΕΙΑΖΕΤΑΙ ΟΝΟΜΑΤΑ. Χωρίς
@@ -631,7 +632,14 @@ export function buildWorkbook(inp: AccountantBundleInput, papers: readonly Filed
       }
     }
 
-    const schedHeadR = grandRow + 2;
+    // ΜΕΤΡΗΜΕΝΟ ΑΠΟ ΤΟΝ ΠΙΝΑΚΑ, ΟΧΙ ΣΤΟ ΠΕΡΙΠΟΥ. Εδώ έγραφε «+2» και έπεφτε μία
+    // γραμμή ψηλά: η επικεφαλίδα «Β. ΠΙΝΑΚΑΣ ΑΠΟΣΒΕΣΕΩΝ» έπαιρνε το στυλ των
+    // στηλών, οι πραγματικές στήλες το στυλ των δεδομένων και η ΤΕΛΕΥΤΑΙΑ
+    // γραμμή του πίνακα έμενε χωρίς κανένα στυλ — χωρίς πλαίσιο και με τα ποσά
+    // στοιχισμένα αριστερά, μόνο εκείνη. Η ίδια μετατόπιση κουβαλιόταν και στον
+    // τρίτο πίνακα. Μετά το τελευταίο σύνολο μεσολαβούν ΤΡΕΙΣ γραμμές: η κενή,
+    // ο τίτλος της ενότητας και μετά οι στήλες.
+    const schedHeadR = grandRow + 3;
     const schedR = schedHeadR + 1;
     const lawHeadR = schedR + Math.max(1, scheduleRows.length) + 2;
 
@@ -662,7 +670,7 @@ export function buildWorkbook(inp: AccountantBundleInput, papers: readonly Filed
     ];
 
     const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws['!rows'] = []; ws['!rows'][0] = { hpt: ROW.title }; ws['!rows'][1] = { hpt: ROW.sub }; ws['!rows'][HR] = { hpt: ROW.head };
+    ws['!rows'] = []; ws['!rows'][1] = { hpt: ROW.sub }; ws['!rows'][HR] = { hpt: ROW.head };
     bannerRow(ws, 0, NC, S.title);
     bannerRow(ws, 1, NC, S.sub);
     bannerRow(ws, HR - 1, NC, S.section);
@@ -692,7 +700,7 @@ export function buildWorkbook(inp: AccountantBundleInput, papers: readonly Filed
       ws['!cols'] = cols; wrapColumns(ws, wrap, HR + 1);
     }
     ws['!margins'] = { ...MARGINS };
-    sheetFinish(ws, { landscape: true, freezeRows: HR + 1 });
+    sheetFinish(ws, { freezeRows: HR + 1, brandMark: true });
     XLSX.utils.book_append_sheet(wb, ws, 'Μητρώο παγίων');
   }
 
@@ -776,7 +784,7 @@ export function buildWorkbook(inp: AccountantBundleInput, papers: readonly Filed
     // Τα πλάτη μετρώνται σε ΟΛΟΝ τον πίνακα, μαζί με τα «ΣΥΝΟΛΑ ΑΝΑ
     // ΧΑΡΑΚΤΗΡΙΣΜΟ» από κάτω: δανείζονταν τα πλάτη του μεγάλου πίνακα και
     // έβγαιναν κομμένα, γιατί οι στήλες του ενός δεν είναι οι στήλες του άλλου.
-    ws['!rows'] = []; ws['!rows'][0] = { hpt: ROW.title }; ws['!rows'][1] = { hpt: ROW.sub }; ws['!rows'][HR] = { hpt: ROW.head };
+    ws['!rows'] = []; ws['!rows'][1] = { hpt: ROW.sub }; ws['!rows'][HR] = { hpt: ROW.head };
     bannerRow(ws, 0, NC, S.title);
     bannerRow(ws, 1, NC, S.sub);
     for (let c = 0; c < NC; c++) setCell(ws, HR, c, { s: S.head });
@@ -844,7 +852,7 @@ export function buildWorkbook(inp: AccountantBundleInput, papers: readonly Filed
     // επιτρέπονται σε καθέναν.
     const colOf = (c: number) => XLSX.utils.encode_col(c);
     sheetFinish(ws, {
-      landscape: true, freezeRows: HR + 1,
+      freezeRows: HR + 1, brandMark: true,
       ...(rows.length ? { lists: [
         { ref: `${colOf(6)}${HR + 2}:${colOf(6)}${last + 1}`, values: SUPPLY_VALUES },
         { ref: `${colOf(7)}${HR + 2}:${colOf(7)}${last + 1}`, source: comboSheet.typeList },
@@ -909,7 +917,7 @@ export function buildWorkbook(inp: AccountantBundleInput, papers: readonly Filed
     const { incSec, incHead, namSec, namHead, incNamSec, incNamHead, typeSec, typeHead } = comboSheet;
     const noteR = typeHead + 1 + typeNamedRows.length + 1;
     const hgt: { hpt: number }[] = []; ws['!rows'] = hgt;
-    hgt[0] = { hpt: ROW.title }; hgt[1] = { hpt: ROW.sub }; hgt[HR] = { hpt: ROW.head };
+    hgt[1] = { hpt: ROW.sub }; hgt[HR] = { hpt: ROW.head };
     bannerRow(ws, 0, NC, S.title);
     bannerRow(ws, 1, NC, S.sub);
     bannerRow(ws, noteR, NC, S.sub);
@@ -946,7 +954,7 @@ export function buildWorkbook(inp: AccountantBundleInput, papers: readonly Filed
     // ΠΑΓΩΝΟΥΝ ΜΟΝΟ Ο ΤΙΤΛΟΣ ΚΑΙ Η ΠΗΓΗ. Παγωμένη στη γραμμή των στηλών, η
     // επικεφαλίδα των ΕΞΟΔΩΝ έμενε στην οθόνη πάνω από τον πίνακα των ΕΣΟΔΩΝ,
     // όπου η ίδια στήλη «2.4» σημαίνει «1.4»: χειρότερο από καθόλου πάγωμα.
-    sheetFinish(ws, { landscape: true, freezeRows: 2 });
+    sheetFinish(ws, { freezeRows: 2, brandMark: true });
     XLSX.utils.book_append_sheet(wb, ws, COMBO_SHEET);
   }
 
@@ -984,7 +992,7 @@ export function buildWorkbook(inp: AccountantBundleInput, papers: readonly Filed
     // Χωρίς όριο πλάτους σε αυτό το φύλλο: με 1.442 γραμμές, μια αναδίπλωση θα
     // διπλασίαζε το ύψος του πίνακα για να κερδίσει λίγη οριζόντια κύλιση.
     const noteR = HR + 1 + rows.length + 1;
-    ws['!rows'] = []; ws['!rows'][0] = { hpt: ROW.title }; ws['!rows'][1] = { hpt: ROW.sub }; ws['!rows'][HR] = { hpt: ROW.head };
+    ws['!rows'] = []; ws['!rows'][1] = { hpt: ROW.sub }; ws['!rows'][HR] = { hpt: ROW.head };
     bannerRow(ws, 0, NC, S.title);
     bannerRow(ws, 1, NC, S.sub);
     bannerRow(ws, HR - 1, NC, S.section);
@@ -998,7 +1006,7 @@ export function buildWorkbook(inp: AccountantBundleInput, papers: readonly Filed
     ws['!cols'] = autoWidths(ws, { headRow: HR, max: 110 }).cols;
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: HR + rows.length, c: NC - 1 } }) };
     ws['!margins'] = { ...MARGINS };
-    sheetFinish(ws, { landscape: true, freezeRows: HR + 1 });
+    sheetFinish(ws, { freezeRows: HR + 1, brandMark: true });
     // Χίλιες τετρακόσιες γραμμές σε έναν πίνακα: από τη δεύτερη τυπωμένη σελίδα
     // και μετά, χωρίς επανάληψη της επικεφαλίδας, είναι κωδικοί χωρίς στήλες.
     const e3Sheet = 'Κωδικοί Ε3 ανά συνδυασμό';
@@ -1136,6 +1144,8 @@ export function buildWorkbook(inp: AccountantBundleInput, papers: readonly Filed
     {
       const income = book.filter(e => e.type === 'income');
       const sum = (rows: readonly AccountantMovement[]) => rows.reduce((s, e) => s + (e.amount || 0), 0);
+      /** «μία κίνηση» ή «τρεις κινήσεις»: ο αριθμός με τη λέξη του. */
+      const moves = (n: number) => `${n} ${n === 1 ? 'κίνηση' : 'κινήσεις'}`;
       const answers: Record<string, string> = {
         'Κατάσταση αποτελεσμάτων': 'Έσοδα, εκπιπτόμενα, αποτέλεσμα και πρόβλεψη φόρου.',
         [`Κινήσεις ${year}`]: 'Κάθε είσπραξη και πληρωμή της χρήσης, χρονολογικά.',
@@ -1177,13 +1187,19 @@ export function buildWorkbook(inp: AccountantBundleInput, papers: readonly Filed
             empty: 'Δεν έχουν καταχωρηθεί ακίνητα.',
           },
           {
+            // ΤΡΕΙΣ ΠΙΝΑΚΕΣ ΣΤΟ ΙΔΙΟ ΦΥΛΛΟ ΘΕΛΟΥΝ ΤΗΝ ΙΔΙΑ ΓΕΩΜΕΤΡΙΑ. Εδώ υπήρχε
+            // τρίτη στήλη για το πλήθος και μια επικεφαλίδα χωρίς όνομα. Τα
+            // πλάτη όμως είναι του ΦΥΛΛΟΥ και όχι του πίνακα: η μεσαία στήλη
+            // έπαιρνε τα εξήντα γράμματα του «Τι απαντά» παρακάτω, οπότε το
+            // «1» καθόταν εξήντα χαρακτήρες μακριά από το «Έσοδα» που μετρούσε.
+            // Το πλήθος μπαίνει δίπλα στη λέξη του, όπου και ανήκει.
             title: 'ΣΥΝΟΛΑ ΕΤΟΥΣ',
-            head: ['', 'Κινήσεις', 'Ποσό'],
-            numeric: [1, 2],
+            head: ['Κατηγορία', 'Ποσό'],
+            numeric: [1],
             rows: [
-              ['Έσοδα', income.length, money(sum(income))],
-              ['Έξοδα', expenses.length, money(sum(expenses))],
-              ['Καθαρό', '', money(sum(income) - sum(expenses))],
+              [`Έσοδα (${moves(income.length)})`, money(sum(income))],
+              [`Έξοδα (${moves(expenses.length)})`, money(sum(expenses))],
+              ['Καθαρό', money(sum(income) - sum(expenses))],
             ],
             totals: [2],
           },

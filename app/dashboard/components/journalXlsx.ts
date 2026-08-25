@@ -9,7 +9,7 @@
 // είναι των ΕΛΠ (ν. 4308/2014), όπως και σε κάθε άλλο έγγραφο της εφαρμογής.
 // ═══════════════════════════════════════════════════════════════════════════
 import { XLSX, setCell, sheetFinish, downloadWorkbook } from './xlsxStyle';
-import { FMT, S, type Cell } from './sheetFormat';
+import { FMT, S, ROW, type Cell } from './sheetFormat';
 import {
   trialBalance, journalTotals, auditJournal,
   type JournalLine,
@@ -53,7 +53,7 @@ export function downloadJournalWorkbook(opts: {
     const ws = XLSX.utils.aoa_to_sheet(aoa, { cellDates: true });
     ws['!cols'] = [{ wch: 8 }, { wch: 12 }, { wch: 11 }, { wch: 32 }, { wch: 42 }, { wch: 22 }, { wch: 15 }, { wch: 15 }, { wch: 16 }];
     ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: NC - 1 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: NC - 1 } }];
-    ws['!rows'] = []; ws['!rows'][0] = { hpt: 22 }; ws['!rows'][1] = { hpt: 15 }; ws['!rows'][HR] = { hpt: 24 };
+    ws['!rows'] = []; ws['!rows'][1] = { hpt: ROW.sub }; ws['!rows'][HR] = { hpt: ROW.head - 4 };
 
     const lastData = HR + lines.length;         // 0-indexed row of last data line
     const totalR = lastData + 1, checkR = lastData + 2;
@@ -106,7 +106,7 @@ export function downloadJournalWorkbook(opts: {
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: lastData, c: NC - 1 } }) };
     // Το `ws['!freeze']` καθόταν εδώ και ΔΕΝ έκανε τίποτα: η βιβλιοθήκη το
     // δέχεται και δεν το γράφει ποτέ. Το `sheetFinish` το γράφει στο XML.
-    sheetFinish(ws, { freezeRows: HR + 1 });
+    sheetFinish(ws, { freezeRows: HR + 1, brandMark: true });
     XLSX.utils.book_append_sheet(wb, ws, 'Ημερολόγιο');
   }
 
@@ -126,7 +126,7 @@ export function downloadJournalWorkbook(opts: {
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws['!cols'] = [{ wch: 10 }, { wch: 34 }, { wch: 16 }, { wch: 16 }, { wch: 17 }, { wch: 17 }];
     ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: NC - 1 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: NC - 1 } }];
-    ws['!rows'] = []; ws['!rows'][0] = { hpt: 22 }; ws['!rows'][1] = { hpt: 15 }; ws['!rows'][HR] = { hpt: 24 };
+    ws['!rows'] = []; ws['!rows'][1] = { hpt: ROW.sub }; ws['!rows'][HR] = { hpt: ROW.head - 4 };
     setCell(ws, 0, 0, { s: S.title }); setCell(ws, 1, 0, { s: S.sub });
     for (let c = 0; c < NC; c++) setCell(ws, HR, c, { s: S.head });
     const lastData = HR + tb.length, totalR = lastData + 1;
@@ -143,6 +143,7 @@ export function downloadJournalWorkbook(opts: {
       setCell(ws, totalR, c, { t: 'n', f: `SUM(${range})`, v: Math.round(sum * 100) / 100, z: FMT.eur, s: S.totNum });
     }
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: lastData, c: NC - 1 } }) };
+    sheetFinish(ws, { brandMark: true });
     XLSX.utils.book_append_sheet(wb, ws, 'Ισοζύγιο');
   }
 
@@ -161,7 +162,7 @@ export function downloadJournalWorkbook(opts: {
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws['!cols'] = [{ wch: 48 }, { wch: 14 }, { wch: 62 }];
     ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: NC - 1 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: NC - 1 } }];
-    ws['!rows'] = []; ws['!rows'][0] = { hpt: 22 }; ws['!rows'][1] = { hpt: 15 }; ws['!rows'][HR] = { hpt: 24 };
+    ws['!rows'] = []; ws['!rows'][1] = { hpt: ROW.sub }; ws['!rows'][HR] = { hpt: ROW.head - 4 };
     setCell(ws, 0, 0, { s: S.title });
     // Η σύνοψη του ελέγχου ξεχωρίζει με ΒΑΡΟΣ, όχι με χρώμα: η ίδια πρόταση
     // διαβάζεται τυπωμένη ασπρόμαυρη και από όποιον δεν ξεχωρίζει το κόκκινο.
@@ -178,6 +179,7 @@ export function downloadJournalWorkbook(opts: {
       setCell(ws, r, 1, { s: { ...S.strongTxt, alignment: { horizontal: 'center', vertical: 'center' }, font: { name: 'Calibri', bold: c.status !== 'pass', sz: 10, color: { rgb: c.status === 'pass' ? '6B7280' : '111111' } } } });
       setCell(ws, r, 2, { s: S.txtWrap });
     });
+    sheetFinish(ws, { brandMark: true });
     XLSX.utils.book_append_sheet(wb, ws, 'Έλεγχος');
   }
 

@@ -4,8 +4,8 @@ import * as propertyStore from '@/lib/data/properties';
 import * as stayStore from '@/lib/data/stays';
 import * as rentStore from '@/lib/data/rent';
 import * as tenantStore from '@/lib/data/tenants';
-import { XLSX, setCell, downloadWorkbook } from './xlsxStyle';
-import { FMT, S, type Cell } from './sheetFormat';
+import { XLSX, setCell, downloadWorkbook, sheetFinish } from './xlsxStyle';
+import { FMT, S, ROW, type Cell } from './sheetFormat';
 import { E2_OFFICIAL_HEADERS, E2_NUM_COLS, buildE2OfficialCells, buildE2Row, buildE1Summary, type E2Stay, E1_HEADERS, E2_INSTRUCTIONS, type E2Property, type E2Tenant, type E2Payment, type E2Row } from '@/lib/billing/e2';
 
 const NCOLS = E2_OFFICIAL_HEADERS.length; // 19
@@ -31,9 +31,9 @@ function buildMainSheet(officialRows: (string | number)[][], ownerAfmCommon: str
     ['Έντυπο Ε2 · προσυμπληρωμένο από το PROPERWISE · συμπληρώστε τα πεδία στο myAADE (τα εκτιμώμενα ελέγχονται πριν την υποβολή)'],
     [],
     ['ΣΤΟΙΧΕΙΑ ΥΠΟΧΡΕΟΥ'],
-    ['ΑΦΜ / Ονοματεπώνυμο', ownerAfmCommon],
-    ['Αριθμός υποβολής / Ημερομηνία', ''],
-    ['Στοιχεία Λογιστή', ''],
+    ['ΑΦΜ / Ονοματεπώνυμο', '', ownerAfmCommon],
+    ['Αριθμός υποβολής / Ημερομηνία', '', ''],
+    ['Στοιχεία Λογιστή', '', ''],
     [],
     [`ΠΙΝΑΚΑΣ I · ΕΚΜΙΣΘΟΥΜΕΝΑ / ΛΟΙΠΑ ΑΚΙΝΗΤΑ (${officialRows.length} ${officialRows.length === 1 ? 'ακίνητο' : 'ακίνητα'})`],
     [...E2_OFFICIAL_HEADERS],
@@ -45,9 +45,20 @@ function buildMainSheet(officialRows: (string | number)[][], ownerAfmCommon: str
   const totalR = lastDataRow + 1;
 
   ws['!cols'] = WIDTHS.map(w => ({ wch: w }));
-  ws['!merges'] = [0, 1, 3, 8].map(r => ({ s: { r, c: 0 }, e: { r, c: NCOLS - 1 } }));
+  // ΤΟ ΟΝΟΜΑ ΤΟΥ ΠΕΔΙΟΥ ΘΕΛΕΙ ΤΟΠΟ, ΑΛΛΙΩΣ ΚΟΒΕΤΑΙ ΠΑΝΩ ΣΤΟΝ ΑΡΙΘΜΟ.
+  // Η πρώτη στήλη είναι πλάτους «α/α», δηλαδή έξι χαρακτήρες: το «ΑΦΜ /
+  // Ονοματεπώνυμο» χωρούσε μόνο όσο η διπλανή στήλη ήταν άδεια. Με γεμάτο ΑΦΜ
+  // το Excel το έκοβε και ο λογιστής διάβαζε «ΑΦΜ / Ο  987654321».
+  // Δύο ζώνες λοιπόν: το όνομα του πεδίου στις δύο πρώτες στήλες, η τιμή στις
+  // τρεις επόμενες, με τη γραμμή συμπλήρωσης να τρέχει σε ΟΛΟ το πλάτος τους.
+  ws['!merges'] = [
+    ...[0, 1, 3, 8].map(r => ({ s: { r, c: 0 }, e: { r, c: NCOLS - 1 } })),
+    ...[4, 5, 6].flatMap(r => [
+      { s: { r, c: 0 }, e: { r, c: 1 } },
+      { s: { r, c: 2 }, e: { r, c: 4 } },
+    ]),
+  ];
   ws['!rows'] = [];
-  ws['!rows'][0] = { hpt: 24 };
   ws['!rows'][1] = { hpt: 16 };
   ws['!rows'][3] = { hpt: 18 };
   ws['!rows'][8] = { hpt: 18 };
@@ -59,7 +70,10 @@ function buildMainSheet(officialRows: (string | number)[][], ownerAfmCommon: str
   setCell(ws, 1, 0, { s: S.sub });
   setCell(ws, 3, 0, { s: S.section });
   setCell(ws, 8, 0, { s: S.section });
-  for (let r = 4; r <= 6; r++) { setCell(ws, r, 0, { s: S.label }); setCell(ws, r, 1, { s: S.field }); }
+  for (let r = 4; r <= 6; r++) {
+    setCell(ws, r, 0, { s: S.label });
+    for (let c = 2; c <= 4; c++) setCell(ws, r, c, { s: S.field });
+  }
   for (let c = 0; c < NCOLS; c++) setCell(ws, headerRow, c, { s: S.head });
   for (let r = headerRow + 1; r <= lastDataRow; r++) {
     for (let c = 0; c < NCOLS; c++) {
@@ -80,6 +94,7 @@ function buildMainSheet(officialRows: (string | number)[][], ownerAfmCommon: str
       : undefined;
     setCell(ws, totalR, c, { s: numeric ? S.totNum : S.totTxt, ...(numeric ? { t: 'n', z } : {}), ...(formula ? { f: formula } : {}) });
   }
+  sheetFinish(ws, { freezeRows: headerRow + 1, brandMark: true });
   return ws;
 }
 
@@ -196,7 +211,7 @@ export async function runE2Export(supabase: SupabaseClient, userId: string, year
     const fws = XLSX.utils.aoa_to_sheet(fAoa);
     fws['!cols'] = [{ wch: 6 }, { wch: 34 }, { wch: 20 }, { wch: 72 }];
     fws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: 3 } }];
-    fws['!rows'] = []; fws['!rows'][0] = { hpt: 22 }; fws['!rows'][1] = { hpt: 15 };
+    fws['!rows'] = []; fws['!rows'][1] = { hpt: ROW.sub };
     setCell(fws, 0, 0, { s: S.title });
     setCell(fws, 1, 0, { s: S.sub });
     for (let c = 0; c < 4; c++) setCell(fws, 3, c, { s: S.head });
@@ -209,6 +224,7 @@ export async function runE2Export(supabase: SupabaseClient, userId: string, year
       const note = x.flags.length ? x.flags.join(' · ') : '';
       fws['!rows']![r] = { hpt: Math.max(18, Math.ceil(note.length / 66) * 15 + 6) };
     });
+    sheetFinish(fws, { brandMark: true });
     XLSX.utils.book_append_sheet(wb, fws, 'Έλεγχος και ΑΤΑΚ');
   }
 
@@ -216,13 +232,14 @@ export async function runE2Export(supabase: SupabaseClient, userId: string, year
   const gAoa: (string | number)[][] = [['ΟΔΗΓΙΕΣ ΣΥΜΠΛΗΡΩΣΗΣ ΕΝΤΥΠΟΥ Ε2'], [], ...E2_INSTRUCTIONS.map(t => [t]), [], ['Σημείωση: οι στήλες ακολουθούν το επίσημο έντυπο Ε2. Επιβεβαιώστε τυχόν ετήσιες αλλαγές στο myAADE.']];
   const guide = XLSX.utils.aoa_to_sheet(gAoa);
   guide['!cols'] = [{ wch: 118 }];
-  guide['!rows'] = [{ hpt: 24 }];
+  guide['!rows'] = [];
   setCell(guide, 0, 0, { s: S.title });
   for (let i = 0; i < E2_INSTRUCTIONS.length; i++) {
     const r = 2 + i;
     setCell(guide, r, 0, { s: S.txtWrap });
     (guide['!rows'] as { hpt: number }[])[r] = { hpt: Math.max(28, Math.ceil(E2_INSTRUCTIONS[i].length / 95) * 15 + 12) };
   }
+  sheetFinish(guide, { brandMark: true });
   XLSX.utils.book_append_sheet(wb, guide, 'Οδηγίες συμπλήρωσης');
 
   // ── Φύλλο 3: Σύνοψη Ε1 (Πίνακας 4Δ1) ───────────────────────────────────────
@@ -236,7 +253,7 @@ export async function runE2Export(supabase: SupabaseClient, userId: string, year
     const e1ws = XLSX.utils.aoa_to_sheet(e1aoa);
     e1ws['!cols'] = [{ wch: 12 }, { wch: 60 }, { wch: 24 }, { wch: 20 }];
     e1ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }];
-    e1ws['!rows'] = []; e1ws['!rows'][0] = { hpt: 22 }; e1ws['!rows'][2] = { hpt: 30 };
+    e1ws['!rows'] = []; e1ws['!rows'][2] = { hpt: 30 };
     const hr = 2, last = 3 + e1.lines.length;
     setCell(e1ws, 0, 0, { s: S.title });
     for (let c = 0; c < 4; c++) setCell(e1ws, hr, c, { s: S.head });
@@ -252,6 +269,7 @@ export async function runE2Export(supabase: SupabaseClient, userId: string, year
         setCell(e1ws, r, c, { s: isTot ? (isNum ? S.totNum : S.totTxt) : (isNum ? S.num : S.txt), ...(numeric ? { t: 'n', z: FMT.eur } : {}), ...(formula ? { f: formula } : {}) });
       }
     }
+    sheetFinish(e1ws, { brandMark: true });
     XLSX.utils.book_append_sheet(wb, e1ws, 'Σύνοψη Ε1');
   }
 

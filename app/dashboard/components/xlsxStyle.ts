@@ -11,7 +11,7 @@ import { downloadFile, safeFilename } from '@/lib/core/download';
 // ΤΟ ΚΑΘΑΡΟ ΣΤΥΛ ΖΕΙ ΔΙΠΛΑ, ΚΑΙ ΔΕΝ ΞΑΝΑΕΞΑΓΕΤΑΙ ΑΠΟ ΕΔΩ. Μια επανεξαγωγή θα
 // έδινε στους πάντες έναν εύκολο δρόμο να πάρουν τη `money()` σέρνοντας μαζί
 // της τα 2,5 MB της βιβλιοθήκης — δηλαδή ακριβώς το σφάλμα που διορθώνεται.
-import { FMT, S, ROW, MARGINS, boxAll, withMark, sheetName, money, percent, type Cell } from './sheetFormat';
+import { FMT, S, ROW, MARGINS, boxAll, MARK_INDENT, sheetName, money, percent, type Cell } from './sheetFormat';
 import { SHEET_MARK_PNG } from './sheetMark';
 export { XLSX };
 
@@ -145,11 +145,30 @@ export function wrapColumns(ws: XLSX.WorkSheet, wrap: Set<number>, firstRow: num
   // Ώς το ΤΕΛΟΣ του φύλλου όταν δεν δοθεί όριο: μια στήλη που αναδιπλώνεται στον
   // κύριο πίνακα και όχι στον πίνακα από κάτω, κόβει εκεί — και εκεί ακριβώς
   // κόβονταν τα «ΣΥΝΟΛΑ ΑΝΑ ΧΑΡΑΚΤΗΡΙΣΜΟ».
+  //
+  // ΠΡΟΣΘΕΤΕΙ ΑΝΑΔΙΠΛΩΣΗ, ΔΕΝ ΞΑΝΑΓΡΑΦΕΙ ΤΟ ΣΤΥΛ. Εγραφε «S.txtWrap» πάνω σε
+  // ό,τι έβρισκε, από τη γραμμή των δεδομένων ώς το τέλος του φύλλου. Δηλαδή
+  // σε ΟΛΟΚΛΗΡΗ τη στήλη έσβηνε ό,τι την ξεχώριζε: η γραμμή «ΣΥΝΟΛΑ» έχανε τα
+  // έντονα και τη μεσαία γραμμή από πάνω της, οι επικεφαλίδες του δεύτερου και
+  // του τρίτου πίνακα έχαναν το κεντράρισμα και το γκρι τους και στέκονταν
+  // αριστερά ενώ οι διπλανές τους ήταν κεντραρισμένες. Σε φύλλο με τρεις
+  // πίνακες φαινόταν σαν να ξέχασε κάποιος μια στήλη.
+  //
+  // ΚΑΙ ΔΕΝ ΓΕΝΝΑΕΙ ΚΕΛΙΑ. Περνούσε και από τις κενές γραμμές που χωρίζουν τους
+  // πίνακες και τους έβαζε πλαίσιο: μια κορνίζα γύρω από το τίποτα.
   const end = lastRow ?? XLSX.utils.decode_range(String(ws['!ref'] ?? 'A1')).e.r;
   const rows = (ws['!rows'] ||= []) as ({ hpt: number } | undefined)[];
   for (let r = firstRow; r <= end; r++) {
-    rows[r] = undefined;
-    for (const c of wrap) setCell(ws, r, c, { s: S.txtWrap });
+    let touched = false;
+    for (const c of wrap) {
+      const cell = ws[XLSX.utils.encode_cell({ r, c })] as Cell | undefined;
+      if (!cell) continue;
+      const alignment = (cell.s as { alignment?: Record<string, unknown> } | undefined)?.alignment;
+      setCell(ws, r, c, { s: { alignment: { ...(alignment ?? S.txt.alignment), wrapText: true } } });
+      touched = true;
+    }
+    // Το ύψος το βρίσκει το Excel μόνο για τις γραμμές που όντως αναδιπλώθηκαν.
+    if (touched) rows[r] = undefined;
   }
 }
 
@@ -206,7 +225,6 @@ export function sectionSheet(o: {
   title: string;
   sub: string;
   blocks: readonly SheetBlock[];
-  landscape?: boolean;
   /** Ανώτατο πλάτος στήλης πριν αναδιπλωθεί το κείμενο. */
   maxWidth?: number;
 }): { ws: XLSX.WorkSheet; headRow: number } {
@@ -245,13 +263,10 @@ export function sectionSheet(o: {
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws['!rows'] = [];
-  // ΤΟ ΣΗΜΑ ΜΕΣΑ ΣΤΗ ΓΡΑΜΜΗ ΤΟΥ ΤΙΤΛΟΥ, ΚΑΙ ΜΟΝΟ ΕΚΕΙ. Η γραμμή ψηλώνει ώστε να
-  // το χωρέσει και ο τίτλος κάνει τόπο με εσοχή. Ο υπότιτλος μένει σε όλο το
-  // πλάτος: η ζώνη είναι ενωμένα κελιά και κόβει ό,τι περισσεύει, οπότε μια
-  // εσοχή εκεί θα έτρωγε το τέλος του σε κάθε στενό πίνακα.
-  ws['!rows'][0] = { hpt: ROW.titleMark };
+  // Ο ΥΠΟΤΙΤΛΟΣ ΜΕΝΕΙ ΧΩΡΙΣ ΕΣΟΧΗ. Η ζώνη είναι ενωμένα κελιά και κόβει ό,τι
+  // περισσεύει: μια εσοχή εκεί θα έτρωγε το τέλος του σε κάθε στενό πίνακα.
   ws['!rows'][1] = { hpt: ROW.sub };
-  bannerRow(ws, 0, width, withMark(S.title));
+  bannerRow(ws, 0, width, S.title);
   bannerRow(ws, 1, width, S.sub);
   for (const m of marks) {
     if (m.kind === 'section') { bannerRow(ws, m.r, width, S.section); ws['!rows'][m.r] = { hpt: ROW.head - 8 }; continue; }
@@ -279,7 +294,7 @@ export function sectionSheet(o: {
   // παγωμένες τις τρεις πρώτες, ο τίτλος έμενε και η επικεφαλίδα των στηλών
   // έφευγε προς τα πάνω: ο λογιστής κατέβαινε στη γραμμή 40 και έβλεπε στήλες
   // χωρίς ονόματα, με τον τίτλο του φύλλου καρφωμένο από πάνω τους.
-  sheetFinish(ws, { landscape: o.landscape ?? true, freezeRows: headRow + 1, brandMark: true });
+  sheetFinish(ws, { freezeRows: headRow + 1, brandMark: true });
   return { ws, headRow };
 }
 
@@ -303,8 +318,6 @@ export interface SheetFinish {
    * όταν τα λεκτικά είναι μεγάλα.
    */
   lists?: { ref: string; values?: readonly string[]; source?: string }[];
-  /** Οριζόντια σελίδα, προσαρμοσμένη σε ένα πλάτος. Για τους φαρδιούς πίνακες. */
-  landscape?: boolean;
   /**
    * Πάγωμα των πρώτων γραμμών (1-based: 4 = μένουν ορατές οι τέσσερις πρώτες).
    * Σε πίνακα χιλίων γραμμών, χωρίς αυτό η εκατοστή γραμμή είναι αριθμοί χωρίς
@@ -320,8 +333,27 @@ export interface SheetFinish {
   brandMark?: boolean;
 }
 
-/** Κρατά την προδιαγραφή πάνω στο φύλλο, εκεί που χτίζεται. */
+/**
+ * ΤΑ ΤΡΙΑ ΠΟΥ ΠΑΝΕ ΠΑΝΤΑ ΜΑΖΙ ΓΡΑΦΟΝΤΑΙ ΜΙΑ ΦΟΡΑ, ΕΔΩ.
+ *
+ * Το σήμα θέλει γραμμή που να το χωράει, τίτλο που να του κάνει τόπο και
+ * δήλωση στο φύλλο ότι το θέλει. Οσο τα τρία γράφονταν χωριστά σε κάθε φύλλο,
+ * δεκαεπτά ζώνες τίτλου έπρεπε να τα θυμούνται και τα τρία: ξεχασμένο το ύψος
+ * και η εικόνα ξεχειλίζει στη γραμμή από κάτω, ξεχασμένη η εσοχή και κάθεται
+ * πάνω στα γράμματα. Τώρα το φύλλο λέει μόνο «θέλω σήμα».
+ *
+ * Η ΕΣΟΧΗ ΜΠΑΙΝΕΙ ΠΑΝΩ ΣΤΗ ΣΤΟΙΧΙΣΗ ΠΟΥ ΥΠΑΡΧΕΙ ΗΔΗ. Ο τίτλος κάθε φύλλου
+ * είναι κατακόρυφα κεντραρισμένος· μια ολόκληρη αντικατάσταση της στοίχισης θα
+ * το έριχνε στη βάση της ψηλής γραμμής, κάτω από το σήμα.
+ */
 export function sheetFinish(ws: XLSX.WorkSheet, finish: SheetFinish): void {
+  if (finish.brandMark) {
+    const rows = (ws['!rows'] ||= []) as { hpt?: number }[];
+    rows[0] = { ...(rows[0] || {}), hpt: ROW.titleMark };
+    const style = (ws[XLSX.utils.encode_cell({ r: 0, c: 0 })] as Cell | undefined)?.s as
+      { alignment?: Record<string, unknown> } | undefined;
+    setCell(ws, 0, 0, { s: { alignment: { ...(style?.alignment ?? {}), horizontal: 'left', indent: MARK_INDENT } } });
+  }
   (ws as Record<string, unknown>)['!finish'] = finish;
 }
 
@@ -337,6 +369,31 @@ function validationsXml(lists: NonNullable<SheetFinish['lists']>): string {
       + `sqref="${esc(l.ref)}"><formula1>${esc(f)}</formula1></dataValidation>`;
   });
   return `<dataValidations count="${items.length}">${items.join('')}</dataValidations>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Η ΟΡΘΙΑ Η Η ΠΛΑΓΙΑ ΣΕΛΙΔΑ ΔΕΝ ΕΙΝΑΙ ΓΝΩΜΗ, ΕΙΝΑΙ ΜΕΤΡΗΣΗ
+// ─────────────────────────────────────────────────────────────────────────
+// Ηταν σημαία που έγραφε ο καθένας με το χέρι: τα εννέα φύλλα του λογιστή την
+// είχαν, τα άλλα εννέα όχι. Τυπωμένο, το ημερολόγιο των εννέα στηλών έκοβε
+// μετά την τέταρτη και η γραμμή «ΣΥΝΟΛΑ» έφευγε σε δεύτερη σελίδα, μακριά από
+// τα ποσά της: ο λογιστής κρατούσε δύο χαρτιά που δεν ένωναν πουθενά.
+//
+// ΤΟ ΟΡΙΟ ΕΙΝΑΙ ΜΕΤΡΗΜΕΝΟ ΚΑΙ ΟΧΙ ΥΠΟΘΕΤΙΚΟ. Φύλλο με σαράντα στήλες των δέκα
+// χαρακτήρων τυπώθηκε σε Α4 με τα περιθώρια του MARGINS: όρθια χώρεσαν επτά
+// στήλες, δηλαδή 75,83 μονάδες πλάτους· οι οκτώ (86,66) όχι. Πλάγια
+// χώρεσαν δέκα. Οσο το φύλλο μένει κάτω από το μετρημένο όριο τυπώνεται όρθιο
+// σε φυσικό μέγεθος· από εκεί και πάνω γυρίζει πλάγιο και συμπιέζεται σε ΕΝΑ
+// πλάτος σελίδας, ώστε καμία στήλη να μη φύγει ποτέ σε δεύτερο χαρτί.
+const PORTRAIT_FIT = 75.83;
+
+/** Το συνολικό πλάτος των στηλών, από το ίδιο το XML του φύλλου. */
+function sheetWidth(xml: string): number {
+  let total = 0;
+  for (const m of xml.matchAll(/<col min="(\d+)" max="(\d+)"[^>]*width="([\d.]+)"/g)) {
+    total += (Number(m[2]) - Number(m[1]) + 1) * Number(m[3]);
+  }
+  return total;
 }
 
 function applyFinish(xml: string, f: SheetFinish): string {
@@ -355,7 +412,7 @@ function applyFinish(xml: string, f: SheetFinish): string {
       : xml.includes('<ignoredErrors') ? xml.replace('<ignoredErrors', block + '<ignoredErrors')
         : xml.replace('</worksheet>', block + '</worksheet>');
   if (f.lists?.length) out = before(out, validationsXml(f.lists));
-  if (f.landscape) {
+  if (sheetWidth(xml) > PORTRAIT_FIT) {
     // Το «σε μία σελίδα πλάτος» ισχύει μόνο αν το φύλλο το δηλώσει στο sheetPr,
     // που πρέπει να είναι το ΠΡΩΤΟ παιδί του worksheet.
     out = out.replace(/(<worksheet[^>]*>)/, '$1<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>');
@@ -494,8 +551,7 @@ export function workbookBytes(wb: XLSX.WorkBook): Uint8Array {
     zip[MEDIA] = fromBase64(SHEET_MARK_PNG);
     let ct = strFromU8(zip['[Content_Types].xml']);
     if (!ct.includes('Extension="png"')) {
-      ct = ct.replace('<Types ', '<Types ').replace(/(<Types[^>]*>)/,
-        '$1<Default Extension="png" ContentType="image/png"/>');
+      ct = ct.replace(/(<Types[^>]*>)/, '$1<Default Extension="png" ContentType="image/png"/>');
     }
     const overrides = Array.from({ length: marks }, (_, k) =>
       `<Override PartName="/xl/drawings/drawing${k + 1}.xml"`

@@ -5,8 +5,8 @@
 // & εισπραγμένα ενοίκια, ανείσπρακτα, δαπάνες, καθαρό και ποσοστό είσπραξης — με
 // ζωντανά σύνολα (SUM), μορφή €/%, φίλτρα και το ενιαίο λογιστικό στυλ (xlsxStyle).
 // ═══════════════════════════════════════════════════════════════════════════
-import { XLSX, setCell, downloadWorkbook, printTitles } from './xlsxStyle';
-import { FMT, S, MARGINS, type Cell } from './sheetFormat';
+import { XLSX, setCell, downloadWorkbook, printTitles, sheetFinish } from './xlsxStyle';
+import { FMT, S, ROW, MARGINS, type Cell } from './sheetFormat';
 
 export interface PortfolioRow {
   name: string;
@@ -51,7 +51,7 @@ export function downloadPortfolioComparison(opts: {
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 12 }];
   ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: NC - 1 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: NC - 1 } }];
-  ws['!rows'] = []; ws['!rows'][0] = { hpt: 22 }; ws['!rows'][1] = { hpt: 15 }; ws['!rows'][HR] = { hpt: 24 };
+  ws['!rows'] = []; ws['!rows'][1] = { hpt: ROW.sub }; ws['!rows'][HR] = { hpt: ROW.head - 4 };
   setCell(ws, 0, 0, { s: S.title });
   setCell(ws, 1, 0, { s: S.sub });
   for (let c = 0; c < NC; c++) setCell(ws, HR, c, { s: S.head });
@@ -94,6 +94,7 @@ export function downloadPortfolioComparison(opts: {
   // έμοιαζε με λειτουργία και καμία γραμμή δεν πάγωσε ποτέ. Την ίδια ανάγκη —
   // να ξέρεις σε ποια στήλη κοιτάς — την καλύπτει η επανάληψη επικεφαλίδων στην
   // εκτύπωση, που ΔΟΥΛΕΥΕΙ.
+  sheetFinish(ws, { brandMark: true });
   XLSX.utils.book_append_sheet(wb, ws, 'Σύγκριση');
   printTitles(wb, 0, 'Σύγκριση', HR + 1);
 

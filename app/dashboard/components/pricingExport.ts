@@ -9,8 +9,8 @@
 // Ίδιο «λογιστικό» στυλ με τις άλλες εξαγωγές (xlsxStyle): ασπρόμαυρο, στοιχισμένο,
 // δύο δεκαδικά, ημερομηνίες ως ημερομηνίες, ζωντανά σύνολα όπου έχει νόημα.
 // ═══════════════════════════════════════════════════════════════════════════
-import { XLSX, setCell, downloadWorkbook } from './xlsxStyle';
-import { FMT, S, money, percent, intGr, type Cell } from './sheetFormat';
+import { XLSX, setCell, downloadWorkbook, sheetFinish } from './xlsxStyle';
+import { FMT, S, ROW, money, percent, intGr, type Cell } from './sheetFormat';
 import { SEASON_LABELS, type Season } from '@/lib/pricing/dynamicPricing';
 import { MONTHS_NOM } from '@/lib/core/months';
 
@@ -86,7 +86,7 @@ export function exportPricingWorkbook(inp: PricingExportInput): void {
     ws['!merges'] = [0, 1, 3].map(r => ({ s: { r, c: 0 }, e: { r, c: NC - 1 } }));
     const secRow2 = 6 + settingLines.length; // «ΑΠΟΤΕΛΕΣΜΑΤΑ» section
     ws['!merges'].push({ s: { r: secRow2, c: 0 }, e: { r: secRow2, c: NC - 1 } });
-    ws['!rows'] = []; ws['!rows'][0] = { hpt: 22 }; ws['!rows'][1] = { hpt: 15 };
+    ws['!rows'] = []; ws['!rows'][1] = { hpt: ROW.sub };
     setCell(ws, 0, 0, { s: S.title });
     setCell(ws, 1, 0, { s: S.sub });
     setCell(ws, 3, 0, { s: S.section });
@@ -102,6 +102,7 @@ export function exportPricingWorkbook(inp: PricingExportInput): void {
       const shown = typeof l.value === 'string' ? l.value : fmtZ(l.value, l.z);
       setCell(ws, r, 1, { v: shown, t: 's', s: l.kind === 'result' ? S.totNum : S.num });
     });
+    sheetFinish(ws, { brandMark: true });
     XLSX.utils.book_append_sheet(wb, ws, 'Σύνοψη');
   }
 
@@ -123,7 +124,7 @@ export function exportPricingWorkbook(inp: PricingExportInput): void {
     const ws = XLSX.utils.aoa_to_sheet(aoa, { cellDates: true });
     ws['!cols'] = [{ wch: 13 }, { wch: 8 }, { wch: 10 }, { wch: 15 }, { wch: 26 }, { wch: 15 }, { wch: 13 }];
     ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: NC - 1 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: NC - 1 } }];
-    ws['!rows'] = []; ws['!rows'][0] = { hpt: 22 }; ws['!rows'][1] = { hpt: 15 }; ws['!rows'][HR] = { hpt: 26 };
+    ws['!rows'] = []; ws['!rows'][1] = { hpt: ROW.sub }; ws['!rows'][HR] = { hpt: 26 };
     const enc = (r: number, c: number) => XLSX.utils.encode_cell({ r, c });
     const lastData = HR + rows.length;
     setCell(ws, 0, 0, { s: S.title });
@@ -142,6 +143,7 @@ export function exportPricingWorkbook(inp: PricingExportInput): void {
       setCell(ws, r, 6, { s: { ...S.txt, alignment: { horizontal: 'center', vertical: 'center' } } });
     }
     if (rows.length) ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: HR, c: 0 }, e: { r: lastData, c: NC - 1 } }) };
+    sheetFinish(ws, { brandMark: true });
     XLSX.utils.book_append_sheet(wb, ws, 'Ημερήσιες τιμές');
   }
 
@@ -170,7 +172,7 @@ export function exportPricingWorkbook(inp: PricingExportInput): void {
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws['!cols'] = [{ wch: 14 }, { wch: 9 }, { wch: 11 }, { wch: 11 }, { wch: 14 }, { wch: 13 }, { wch: 13 }];
     ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: NC - 1 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: NC - 1 } }];
-    ws['!rows'] = []; ws['!rows'][0] = { hpt: 22 }; ws['!rows'][1] = { hpt: 15 }; ws['!rows'][HR] = { hpt: 18 };
+    ws['!rows'] = []; ws['!rows'][1] = { hpt: ROW.sub }; ws['!rows'][HR] = { hpt: 18 };
     setCell(ws, 0, 0, { s: S.title });
     setCell(ws, 1, 0, { s: S.sub });
     for (let c = 0; c < NC; c++) setCell(ws, HR, c, { s: S.head });
@@ -185,6 +187,7 @@ export function exportPricingWorkbook(inp: PricingExportInput): void {
       setCell(ws, r, 5, { v: money(m.min), t: 's', s: S.num });
       setCell(ws, r, 6, { v: money(m.max), t: 's', s: S.num });
     });
+    sheetFinish(ws, { brandMark: true });
     XLSX.utils.book_append_sheet(wb, ws, 'Ανά μήνα');
   }
 
