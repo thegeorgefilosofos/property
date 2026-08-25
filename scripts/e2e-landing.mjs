@@ -227,6 +227,65 @@ for (const [w, h, label] of [[1440, 900, 'υπολογιστής 1440'], [820, 1
   await p.close()
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ΟΙ ΤΕΣΣΕΡΙΣ ΚΑΡΤΕΣ ΠΑΚΕΤΟΥ ΖΥΓΙΖΟΥΝ ΣΕ ΚΑΘΕ ΠΛΑΤΟΣ
+// ─────────────────────────────────────────────────────────────────────────
+// ΤΙ ΜΕΤΡΗΘΗΚΕ ΠΡΙΝ (πραγματικό Chromium, Αύγουστος 2026):
+//
+//   861 ώς 1020  τρεις στήλες για τέσσερα πακέτα, δηλαδή 3+1. Στα 900: ύψη
+//                450/450/450/376, το κουμπί του τέταρτου 388px πιο κάτω από
+//                των άλλων και η τιμή του 463px πιο κάτω.
+//   ώς 860       το καρουζέλ ήταν «display: flex», που σβήνει το subgrid των
+//                καρτών. Ισοϋψείς κάρτες με ΤΙΠΟΤΑ στοιχισμένο μέσα τους: η
+//                τιμή ξεκινούσε 28px πιο κάτω σε άλλο πακέτο απ' ό,τι σε άλλο,
+//                γιατί η υπότιτλη φράση σπάει σε δύο σειρές μόνο σε μερικά.
+//
+// Η ΣΥΓΚΡΙΣΗ ΓΙΝΕΤΑΙ ΑΝΑ ΣΕΙΡΑ ΚΑΡΤΩΝ. Σε διάταξη 2+2 οι δύο σειρές έχουν
+// φυσιολογικά άλλο ύψος στη σελίδα και τις χωρίζει κενό: ένας έλεγχος που
+// συνέκρινε και τις τέσσερις μαζί θα κοκκίνιζε σε σωστή διάταξη.
+const PLAN_WIDTHS = [390, 430, 768, 820, 834, 860, 900, 960, 1020, 1024, 1112, 1180, 1280, 1440]
+for (const w of PLAN_WIDTHS) {
+  const p = await browser.newPage()
+  await p.setViewportSize({ width: w, height: 1000 })
+  await p.goto(BASE + '/', { waitUntil: 'networkidle' })
+  const r = await p.evaluate(() => {
+    const g = document.querySelector('.lp-plans')
+    if (!g) return null
+    const rows = new Map()
+    for (const c of g.children) {
+      const b = c.getBoundingClientRect()
+      const cta = c.querySelector('a[href*="cycle=monthly"]')?.getBoundingClientRect()
+      const ann = c.querySelector('a[href*="cycle=annual"]')?.getBoundingClientRect()
+      const price = c.querySelector('[style*="tabular-nums"]')?.getBoundingClientRect()
+      const key = Math.round(b.top)
+      if (!rows.has(key)) rows.set(key, [])
+      rows.get(key).push({ h: b.height, cta: cta?.top ?? 0, ann: ann?.bottom ?? 0, price: price?.top ?? 0 })
+    }
+    const spread = a => Math.max(...a) - Math.min(...a)
+    let worst = 0, what = ''
+    for (const [, cs] of rows) {
+      for (const [name, get] of [['ύψος', c => c.h], ['τιμή', c => c.price], ['κουμπί', c => c.cta], ['κάτω άκρο', c => c.ann]]) {
+        const d = spread(cs.map(get))
+        if (d > worst) { worst = d; what = name }
+      }
+    }
+    return { per: [...rows.values()].map(cs => cs.length), rows: rows.size, worst: Math.round(worst), what }
+  })
+  ok(`τα πακέτα ζυγίζουν στα ${w} (${r?.rows} ${r?.rows === 1 ? 'σειρά' : 'σειρές'})`,
+    !!r && r.worst <= 1, r ? `${r.what} ${r.worst}px` : 'δεν βρέθηκαν κάρτες')
+  // ΚΑΜΙΑ ΟΡΦΑΝΗ ΚΑΡΤΑ. Τέσσερα πακέτα σε τρεις στήλες αφήνουν ένα μόνο του
+  // από κάτω, με μισή σειρά κενή δίπλα του: η σκάλα των τιμών σπάει στη μέση.
+  //
+  // ΤΟ «ΤΕΛΕΙΑ ΔΙΑΙΡΕΣΗ» ΕΙΝΑΙ ΚΕΝΟΣ ΕΛΕΓΧΟΣ, ΚΑΙ ΕΤΣΙ ΗΤΑΝ ΓΡΑΜΜΕΝΟΣ ΠΡΩΤΑ:
+  // τέσσερις κάρτες σε δύο σειρές διαιρούνται τέλεια είτε είναι 2+2 είτε 3+1.
+  // Και η στοίχιση ΑΝΑ ΣΕΙΡΑ βγαίνει κι αυτή τέλεια στο 3+1, γιατί η μοναχική
+  // κάρτα δεν έχει με ποια να συγκριθεί. Ο έλεγχος πέρασε πράσινος με το
+  // σφάλμα ζωντανό· τώρα ζητά ΙΣΕΣ σειρές, που είναι το πραγματικό ζητούμενο.
+  ok(`και καμία σειρά δεν μένει μισή στα ${w}`, !!r && new Set(r.per).size === 1,
+    r ? `σειρές ${r.per.join('+')}` : '')
+  await p.close()
+}
+
 await browser.close()
 console.log(`\nΑρχική σελίδα — ${pass} πέρασαν, ${fail} απέτυχαν`)
 process.exit(fail ? 1 : 0)

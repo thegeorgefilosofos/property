@@ -1000,7 +1000,7 @@ export default async function Landing() {
              θέλει να ΣΥΓΚΡΙΝΕΙ και η σύγκριση είναι αδύνατη όταν δεν βλέπεις
              δύο μαζί. Οριζόντια, με snap, βλέπει τη μία και μισή και σέρνει. */
           .lp-plans, .lp-duo, .lp-aud {
-            display: flex !important; gap: 12px;
+            gap: 12px;
             overflow-x: auto; overflow-y: hidden;
             scroll-snap-type: x mandatory;
             scroll-padding-inline: 20px;
@@ -1014,9 +1014,31 @@ export default async function Landing() {
           }
           .lp-plans::-webkit-scrollbar, .lp-duo::-webkit-scrollbar,
           .lp-aud::-webkit-scrollbar { display: none; }
-          .lp-plans > *, .lp-duo > *, .lp-aud > * {
-            flex: 0 0 min(84vw, 320px); scroll-snap-align: center;
+          .lp-duo, .lp-aud { display: flex !important; }
+          .lp-duo > *, .lp-aud > * { flex: 0 0 min(84vw, 320px); scroll-snap-align: center; }
+          /* ══ ΤΟ ΚΑΡΟΥΖΕΛ ΤΩΝ ΠΑΚΕΤΩΝ ΜΕΝΕΙ ΠΛΕΓΜΑ, ΚΑΙ ΑΥΤΟ ΕΙΝΑΙ ΟΛΗ Η ΔΙΑΦΟΡΑ
+             Ηταν κι αυτό «display: flex», όπως τα άλλα δύο. Οι κάρτες έβγαιναν
+             ισοϋψείς (το flex τις τεντώνει) και ΜΕΣΑ τους τίποτα δεν στοίχιζε:
+             η υπότιτλη φράση σπάει σε δύο σειρές σε άλλο πακέτο απ' ό,τι σε
+             άλλο, οπότε η ΤΙΜΗ ξεκινούσε 28px πιο κάτω και το κουμπί καθόταν
+             28px πιο κάτω. Μετρημένο σε πραγματικό Chromium στα 768, 800, 820,
+             834 και 860: παντού 28 ή 29 εικονοστοιχεία διαφορά.
+
+             Η στοίχιση υπάρχει ήδη και λέγεται subgrid: το «.lp-plans» ορίζει
+             επτά σειρές και κάθε κάρτα τις δανείζεται. Ενα «display: flex» τη
+             σβήνει ολόκληρη, γιατί το subgrid θέλει γονιό πλέγμα.
+
+             Το ίδιο καρουζέλ γίνεται λοιπόν με ροή ΣΤΗΛΗΣ: κάθε κάρτα παίρνει
+             μια στήλη, οι επτά σειρές μένουν κοινές και η οριζόντια κύλιση με
+             το snap δουλεύει ακριβώς όπως πριν. Τα άλλα δύο καρουζέλ δεν έχουν
+             subgrid, οπότε κρατούν το flex τους. */
+          .lp-plans {
+            display: grid !important;
+            grid-template-columns: none !important;
+            grid-auto-flow: column;
+            grid-auto-columns: min(84vw, 320px);
           }
+          .lp-plans > * { scroll-snap-align: center; }
           /* ΤΟ ΣΗΜΑ «ΠΡΟΤΕΙΝΟΜΕΝΟ» ΚΟΒΟΤΑΝ ΣΤΗ ΜΕΣΗ, ΚΑΙ ΜΟΝΟ ΕΔΩ.
              Κάθεται στο «top: -9px» της κάρτας, δηλαδή προεξέχει εννέα
              εικονοστοιχεία πάνω από αυτήν, όπως κάθε κορδέλα που κάθεται στο
