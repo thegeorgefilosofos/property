@@ -33,6 +33,7 @@
     "e2e:push": "node scripts/e2e-push.mjs",
     "e2e:money": "node scripts/e2e-money.mjs",
     "e2e:a11y": "node scripts/e2e-a11y.mjs",
+    "e2e:rendered": "node scripts/perf-bench/build-mobile.mjs && node scripts/e2e-rendered.mjs",
     "e2e:mobile": "node scripts/perf-bench/build-mobile.mjs && node scripts/e2e-mobile.mjs",
     "posts": "tsx scripts/marketing/posts.ts",
     "reel": "tsx scripts/marketing/reel.ts",
