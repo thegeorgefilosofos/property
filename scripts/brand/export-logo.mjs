@@ -105,11 +105,33 @@ await page.evaluate(() => document.fonts.ready);
 const wordW = await page.evaluate(() => document.getElementById('w').getBoundingClientRect().width);
 const LOGO_W = Math.ceil(WORD_X + wordW);
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΟ ΕΙΚΟΝΙΔΙΟ ΤΟΥ ΚΑΤΑΣΤΗΜΑΤΟΣ ΘΕΛΕΙ ΠΕΡΙΘΩΡΙΟ, ΓΙΑΤΙ ΚΟΒΕΤΑΙ ΣΕ ΚΥΚΛΟ
+// ─────────────────────────────────────────────────────────────────────────
+// Το σύμβολο γεμίζει το τετράγωνό του από άκρη σε άκρη: σωστό για αρχείο,
+// λάθος για άβαταρ. Ο κύκλος κόβει τις γωνίες, δηλαδή κόβει τους τοίχους του
+// κτιρίου. Με το σχήμα στο 62% του καμβά, ο κύκλος περνά έξω από αυτό.
+//
+// Και το φόντο είναι ΣΥΜΠΑΓΕΣ, όχι διαφανές: το εικονίδιο εμφανίζεται σε
+// αποδείξεις και σε πίνακες που δεν ξέρουμε αν είναι λευκοί ή σκούροι. Ενα
+// διαφανές σύμβολο σε σκούρο μελάνι γίνεται αόρατο στο πρώτο σκούρο θέμα.
+const AVATAR = 512;
+const avatarSvg = (fill, bg) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill-rule="nonzero">`
+  + `<rect width="100" height="100" fill="${bg}"/>`
+  + `<g transform="translate(19 19) scale(0.6889)">${paths(fill)}</g></svg>`;
+
 const FILES = [
   { name: 'properwise-simvolo-skouro',   svg: symbolSvg(INK),           w: 90,      bg: '#ffffff' },
   { name: 'properwise-simvolo-lefko',    svg: symbolSvg(ON_DARK),       w: 90,      bg: DARK_BG },
   { name: 'properwise-logotypo-skouro',  svg: logoSvg(INK, LOGO_W),     w: LOGO_W,  bg: '#ffffff' },
   { name: 'properwise-logotypo-lefko',   svg: logoSvg(ON_DARK, LOGO_W), w: LOGO_W,  bg: DARK_BG },
+];
+
+/** Το άβαταρ του καταστήματος: τετράγωνο, με περιθώριο και συμπαγές φόντο. */
+const AVATARS = [
+  { name: 'properwise-eikonidio-lefko-fonto', svg: avatarSvg(INK, '#ffffff'), bg: '#ffffff' },
+  { name: 'properwise-eikonidio-skouro-fonto', svg: avatarSvg(ON_DARK, DARK_BG), bg: DARK_BG },
 ];
 
 // Το μακρύτερο αρχείο βγαίνει 2400 εικονοστοιχεία πλάτος: αρκετό για εκτύπωση
@@ -137,6 +159,16 @@ for (const f of FILES) {
   console.log(`  ✓ ${f.name}  ${TARGET_W}×${h}  svg · png με διαφάνεια · jpg σε ${f.bg}`);
 }
 
+for (const a of AVATARS) {
+  writeFileSync(join(out, `${a.name}.svg`), a.svg);
+  const shot = await b.newPage({ viewport: { width: AVATAR, height: AVATAR }, deviceScaleFactor: 1 });
+  await shot.setContent(`<!doctype html><meta charset="utf-8"><style>html,body{margin:0}
+    svg{display:block;width:${AVATAR}px;height:${AVATAR}px}</style>${a.svg}`);
+  writeFileSync(join(out, `${a.name}.png`), await shot.screenshot({ type: 'png' }));
+  await shot.close();
+  console.log(`  ✓ ${a.name}  ${AVATAR}×${AVATAR}  για άβαταρ καταστήματος`);
+}
+
 await page.close();
 await b.close();
-console.log(`✓ ${FILES.length * 3} αρχεία σήματος στο public/brand/`);
+console.log(`✓ ${FILES.length * 3 + AVATARS.length * 2} αρχεία σήματος στο public/brand/`);
