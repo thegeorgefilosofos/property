@@ -18,7 +18,7 @@ const eq = (n: string, got: unknown, want: unknown) => {
 };
 
 const base: ClientCounts = {
-  ownerId: 'o1', name: 'Δοκιμή', afm: '123456789', linkedAt: '2026-01-01',
+  ownerId: 'o1', name: 'Δοκιμή', afm: '123456789', linkedAt: '2026-01-01', token: 'tok1',
   properties: 2, expenses: 18, uncategorised: 0, noSupplierAfm: 0,
   rentsUnpaid: 0, stays: 8, staysNoFee: 0, openRequests: 0,
 };

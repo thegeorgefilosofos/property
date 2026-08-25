@@ -57,19 +57,55 @@ export default function AccountantPortal() {
   // μέσα στο effect — δηλαδή δεύτερη απόδοση σε κάθε αλλαγή έτους — και υπήρχε
   // στιγμή όπου η οθόνη έδειχνε τα ποσά της ΠΡΟΗΓΟΥΜΕΝΗΣ χρήσης κάτω από τον
   // τίτλο της νέας. Σε έγγραφο που διαβάζει λογιστής, αυτό δεν είναι τρεμόπαιγμα.
-  const [result, setResult] = useState<{ year: number; data: PortalData | null } | null>(null);
+  const [result, setResult] = useState<{ year: number; data: PortalData | null; failed: boolean } | null>(null);
 
   useEffect(() => {
     let alive = true;
     supabase.rpc('get_accountant_data', { p_token: token, p_year: year }).then(({ data: d, error }) => {
       if (!alive) return;
-      setResult({ year, data: error || !d ? null : (d as PortalData) });
+      // ΤΟ ΣΦΑΛΜΑ ΔΕΝ ΕΙΝΑΙ «ΑΚΥΡΟΣ ΣΥΝΔΕΣΜΟΣ». Και τα δύο κατέληγαν στην ίδια
+      // κάρτα: μια στιγμή χωρίς δίκτυο ή μια βάση που δεν απάντησε έλεγε στον
+      // λογιστή ότι ο σύνδεσμος ανακλήθηκε. Εκείνος τηλεφωνούσε στον ιδιοκτήτη,
+      // ο ιδιοκτήτης περιέστρεφε τον σύνδεσμο και ο παλιός πέθαινε στ' αλήθεια.
+      setResult({ year, data: error ? null : ((d as PortalData) ?? null), failed: !!error });
     });
     return () => { alive = false; };
   }, [supabase, token, year]);
 
+  // ── ΠΟΥ ΓΥΡΝΑΕΙ Ο ΑΝΘΡΩΠΟΣ ΑΠΟ ΕΔΩ ──────────────────────────────────────
+  // Η οθόνη δεν είχε ΚΑΜΙΑ έξοδο. Ο λογιστής που ερχόταν από τη λίστα των
+  // πελατών του έμενε εδώ, με μόνο δρόμο το βελάκι του περιηγητή· ο ιδιοκτήτης
+  // που άνοιγε τον δικό του σύνδεσμο για να δει τι θα δει ο λογιστής, το ίδιο.
+  // Δύο διαφορετικοί άνθρωποι, δύο διαφορετικά «πίσω».
+  const [back, setBack] = useState<{ href: string; label: string } | undefined>(undefined);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const { data: u, error: authFailed } = await supabase.auth.getUser();
+      if (!alive) return;
+      // ΑΓΝΩΣΤΟΣ ΕΠΙΣΚΕΠΤΗΣ ΔΕΝ ΕΧΕΙ ΠΟΥ ΝΑ ΓΥΡΙΣΕΙ, ΚΑΙ ΔΕΝ ΤΟΥ ΤΟ ΛΕΜΕ. Ο
+      // λογιστής που άνοιξε τον σύνδεσμο χωρίς λογαριασμό είναι η συνηθισμένη
+      // περίπτωση: μια έξοδος προς οθόνη σύνδεσης θα ήταν πόρτα, όχι έξοδος.
+      if (authFailed || !u.user) { setBack(undefined); return; }
+      // Ο ΙΔΙΟΚΤΗΤΗΣ ΠΡΟΕΠΙΣΚΟΠΕΙ ΤΟΝ ΔΙΚΟ ΤΟΥ ΣΥΝΔΕΣΜΟ. Η RLS του πίνακα τον
+      // αφήνει να διαβάσει μόνο τη δική του γραμμή, οπότε η σύγκριση αρκεί.
+      const { data: mine, error } = await supabase
+        .from('accountant_links').select('token').eq('user_id', u.user.id).maybeSingle();
+      if (!alive) return;
+      // ΑΝ Η ΑΝΑΓΝΩΣΗ ΔΕΝ ΑΠΑΝΤΗΣΕ, Η ΕΞΟΔΟΣ ΜΕΝΕΙ Η ΓΕΝΙΚΗ. Το κενό εδώ θα
+      // σήμαινε «δεν είσαι ο ιδιοκτήτης» με βεβαιότητα που δεν έχουμε· ο χώρος
+      // των πελατών είναι σωστός προορισμός και για τους δύο ανθρώπους.
+      const isOwner = !error && (mine as { token?: string } | null)?.token === token;
+      setBack(isOwner
+        ? { href: '/dashboard?tab=accounting', label: 'Η Λογιστική σου' }
+        : { href: '/accountant/workspace', label: 'Οι πελάτες σου' });
+    })();
+    return () => { alive = false; };
+  }, [supabase, token]);
+
   const fresh = result && result.year === year ? result : null;
-  const state: 'loading' | 'ok' | 'notfound' = !fresh ? 'loading' : fresh.data ? 'ok' : 'notfound';
+  const state: 'loading' | 'ok' | 'notfound' | 'failed' =
+    !fresh ? 'loading' : fresh.failed ? 'failed' : fresh.data ? 'ok' : 'notfound';
   const data = fresh?.data ?? null;
 
   const props = useMemo(() => data?.properties || [], [data]);
@@ -113,12 +149,25 @@ export default function AccountantPortal() {
       `}</style>
 
       <div className="portal-noprint">
-        <PortalBar year={state === 'ok' ? year : undefined} onYear={setYear} />
+        <PortalBar year={state === 'ok' ? year : undefined} onYear={setYear} back={back} />
       </div>
 
       <div style={portalWrap}>
         {state === 'loading' && (
           <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', padding: 72, fontSize: 13 }}>Φόρτωση…</div>
+        )}
+
+        {/* ΔΥΟ ΑΣΤΟΧΙΕΣ, ΔΥΟ ΜΗΝΥΜΑΤΑ. «Δεν βρέθηκε» σημαίνει ότι ο σύνδεσμος
+            όντως τελείωσε. «Δεν απάντησε» σημαίνει ότι φταίει η στιγμή και η
+            σωστή κίνηση είναι μια ανανέωση, όχι ένα τηλεφώνημα που θα σκοτώσει
+            έναν σύνδεσμο που ζούσε. */}
+        {state === 'failed' && (
+          <Card style={{ marginTop: 32, textAlign: 'center' }}>
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>Η κατάσταση δεν φόρτωσε</div>
+            <div style={{ fontSize: 13, color: 'var(--text-tertiary)', lineHeight: 1.7, maxWidth: 460, margin: '0 auto' }}>
+              Κάτι δεν απάντησε τώρα. Ο σύνδεσμος δεν έχει πρόβλημα: ανανέωσε τη σελίδα σε λίγο.
+            </div>
+          </Card>
         )}
 
         {state === 'notfound' && (

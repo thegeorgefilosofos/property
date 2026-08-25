@@ -40,11 +40,33 @@ export function portalYears(): number[] {
  * χρονολογίες επάνω του (ημερομηνία έκδοσης, ημερομηνίες δαπανών) δεν λέει τι
  * αλλάζει αν το πειράξεις.
  */
-export function PortalBar({ year, onYear }: { year?: number; onYear?: (y: number) => void }) {
+export function PortalBar({ year, onYear, back }: {
+  year?: number;
+  onYear?: (y: number) => void;
+  /** Πού γυρνά ο άνθρωπος από εδώ. Λείπει όταν δεν υπάρχει πουθενά να γυρίσει. */
+  back?: { href: string; label: string };
+}) {
   return (
     <header style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-surface)' }}>
       <div style={{ ...portalWrap, minHeight: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+          {/* Η ΕΞΟΔΟΣ ΠΡΩΤΗ, ΑΡΙΣΤΕΡΑ ΤΟΥ ΣΗΜΑΤΟΣ. Η κατάσταση ενός πελάτη
+              ανοίγει σε δική της διεύθυνση και δεν είχε ΚΑΜΙΑ επιστροφή: ο
+              λογιστής που ερχόταν από τη λίστα των πελατών του έμενε εκεί, με
+              μόνο δρόμο το βελάκι του περιηγητή ή έναν σύνδεσμο θαμμένο στο
+              υποσέλιδο. Το ύψος είναι 44, όσο θέλει ένα δάχτυλο. */}
+          {back && (
+            <a href={back.href} aria-label={back.label} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8, height: 44, padding: '0 12px 0 8px',
+              marginLeft: -8, borderRadius: T.radius.btn, color: 'var(--text-secondary)',
+              textDecoration: 'none', fontSize: 13, fontWeight: 600, fontFamily: T.font.sans, whiteSpace: 'nowrap',
+            }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M19 12H5" /><path d="M12 19l-7-7 7-7" />
+              </svg>
+              {back.label}
+            </a>
+          )}
           <BrandMark />
           <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
             {PORTAL_NAME}

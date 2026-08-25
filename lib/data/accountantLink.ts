@@ -28,6 +28,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { row as readRow } from './read';
+import { siteUrl } from '@/lib/core/site';
 
 const TABLE = 'accountant_links';
 
@@ -50,8 +51,18 @@ export interface AccountantLink {
 
 type Row = { token: string; active: boolean | null; expires_at: string | null };
 
-const urlOf = (token: string) =>
-  `${typeof window === 'undefined' ? '' : window.location.origin}/accountant/${token}`;
+/**
+ * Η ΔΙΕΥΘΥΝΣΗ ΤΟΥ ΠΡΟΪΟΝΤΟΣ, ΟΧΙ ΤΟΥ ΠΕΡΙΗΓΗΤΗ.
+ *
+ * Χτιζόταν από το `window.location.origin`, δηλαδή από ό,τι έτυχε να γράφει η
+ * μπάρα διευθύνσεων τη στιγμή της αντιγραφής. Ενας ιδιοκτήτης που άνοιξε την
+ * εφαρμογή από τη διεύθυνση προεπισκόπησης του Vercel, ή από «www» ενώ ο
+ * κανονικός τομέας είναι χωρίς, έστελνε στον λογιστή του σύνδεσμο προς άλλη
+ * εγκατάσταση. Ο λογιστής τον άνοιγε και έβλεπε «δεν είναι έγκυρος».
+ *
+ * Η ίδια σταθερά χτίζει κάθε άλλη δημόσια διεύθυνση της εφαρμογής.
+ */
+const urlOf = (token: string) => siteUrl(`/accountant/${token}`);
 
 const shape = (row: Row | null | undefined): AccountantLink | null => {
   if (!row?.token) return null;

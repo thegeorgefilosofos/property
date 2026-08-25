@@ -22,7 +22,8 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, Card } from '@/components/Theme';
+import { T, Card, Btn } from '@/components/Theme';
+import { TextInput } from '@/app/dashboard/components/UIComponents';
 import { PortalBar, PortalTitle, portalWrap } from '../Chrome';
 import { claim, clients, request, gapsOf, readinessOf, type ClientCounts } from '@/lib/data/accountant';
 
@@ -86,6 +87,18 @@ export default function AccountantWorkspace() {
     }
   };
 
+  // ΟΠΟΙΟΣ ΔΕΝ ΚΛΕΙΝΕΙ, ΠΡΩΤΟΣ. Η λίστα ερχόταν αλφαβητικά και ο λογιστής με
+  // ογδόντα πελάτες κατέβαινε ολόκληρη για να βρει τους τρεις που τον
+  // εμποδίζουν. Μέσα στην ίδια κατηγορία μένει το αλφαβητικό της βάσης, ώστε η
+  // σειρά να μην αλλάζει από φόρτωση σε φόρτωση.
+  const ordered = useMemo(() => (rows ?? []).map(c => {
+    const gaps = gapsOf(c);
+    return { c, gaps, ready: readinessOf(gaps) };
+  }).sort((a, b) => (b.ready.blocking - a.ready.blocking) || (b.gaps.length - a.gaps.length)), [rows]);
+
+  const stuck = ordered.filter(x => x.ready.blocking > 0).length;
+  const done = ordered.filter(x => x.gaps.length === 0).length;
+
   const wrap = portalWrap;
   const label: React.CSSProperties = {
     fontSize: 11, letterSpacing: '0.5px', textTransform: 'uppercase',
@@ -98,18 +111,16 @@ export default function AccountantWorkspace() {
     return (
       <div style={{ background: 'var(--bg-base)', minHeight: '100vh' }}>
         <PortalBar />
-        <main style={{ ...wrap, paddingTop: 44 }}>
-          <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, fontFamily: T.font.sans, color: 'var(--text-primary)', letterSpacing: '-0.4px' }}>
-            Όλοι οι πελάτες σου σε μία λίστα
-          </h1>
-          <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--text-secondary)', margin: '10px 0 0', fontFamily: T.font.sans, maxWidth: 560 }}>
-            Με λογαριασμό βλέπεις μαζί κάθε ιδιοκτήτη που σε εξουσιοδότησε και τι λείπει από τον καθένα, χωρίς να κρατάς έναν σύνδεσμο ανά πελάτη.
-          </p>
-          <a href="/login?next=/accountant/workspace" style={{
-            display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 18px', marginTop: 22,
-            borderRadius: T.radius.btn, background: 'var(--accent)', color: 'var(--accent-text)',
-            fontSize: 13, fontWeight: 700, textDecoration: 'none', fontFamily: T.font.sans,
-          }}>Σύνδεση</a>
+        {/* ΤΟ ΙΔΙΟ ΠΕΡΙΓΡΑΜΜΑ ΜΕ ΤΗ ΣΥΝΔΕΔΕΜΕΝΗ ΟΘΟΝΗ. Ο τίτλος ήταν γραμμένος με
+            το χέρι, με άλλο μέγεθος και χωρίς την υπερκείμενη γραμμή: ο ίδιος
+            άνθρωπος, δύο δευτερόλεπτα απόσταση, δύο σχέδια. */}
+        <main style={wrap}>
+          <PortalTitle
+            over="Χωρίς λογαριασμό"
+            title="Όλοι οι πελάτες σου σε μία λίστα"
+            meta="Με λογαριασμό βλέπεις μαζί κάθε ιδιοκτήτη που σε εξουσιοδότησε και τι λείπει από τον καθένα, χωρίς να κρατάς έναν σύνδεσμο ανά πελάτη."
+          />
+          <Btn variant="primary" onClick={() => { window.location.href = '/login?next=/accountant/workspace'; }}>Σύνδεση</Btn>
         </main>
       </div>
     );
@@ -119,37 +130,44 @@ export default function AccountantWorkspace() {
     <div style={{ background: 'var(--bg-base)', minHeight: '100vh', paddingBottom: 72 }}>
       <PortalBar year={year} onYear={setYear} />
       <main style={wrap}>
+        {/* Η ΣΥΝΟΨΗ ΛΕΕΙ ΤΙ ΑΞΙΖΕΙ ΝΑ ΚΟΙΤΑΞΕΙΣ ΠΡΩΤΑ. Ο τίτλος έλεγε μόνο πόσοι
+            είναι: με ογδόντα πελάτες, ο αριθμός «80» δεν οδηγεί σε καμία κίνηση,
+            ενώ το «3 δεν κλείνουν» οδηγεί κατευθείαν στις τρεις πρώτες κάρτες. */}
         <PortalTitle over={`${rows?.length ?? 0} ${(rows?.length ?? 0) === 1 ? 'πελάτης' : 'πελάτες'}`}
           title="Οι πελάτες σου"
-          meta={`Χρήση 01/01/${year} έως 31/12/${year}`} />
+          meta={
+            <>
+              Χρήση 01/01/{year} έως 31/12/{year}
+              {ordered.length > 0 && (
+                <> · <strong style={{ color: stuck > 0 ? 'var(--text-primary)' : 'inherit' }}>
+                  {stuck === 0 ? 'κανένας δεν μπλοκάρει' : stuck === 1 ? '1 δεν κλείνει' : `${stuck} δεν κλείνουν`}
+                </strong> · {done === 1 ? '1 έτοιμος' : `${done} έτοιμοι`}</>
+              )}
+            </>
+          } />
 
       {/* Η ΠΡΟΣΘΗΚΗ ΚΑΘΕΤΑΙ ΠΑΝΩ, ΓΙΑΤΙ ΕΙΝΑΙ Η ΠΡΩΤΗ ΚΙΝΗΣΗ ΠΟΥ ΚΑΝΕΙΣ ΕΔΩ.
           Όταν η λίστα γεμίσει, παύει να είναι η πρώτη — αλλά ούτε ενοχλεί, γιατί
           είναι μία γραμμή. */}
       <Card style={{ marginTop: 22 }}>
         <p style={label}>Νέος πελάτης</p>
-        <div style={{ display: 'flex', gap: 10, marginTop: 10, flexWrap: 'wrap' }}>
-          <input
-            value={token}
-            onChange={e => { setToken(e.target.value); setNotice(''); }}
-            onKeyDown={e => { if (e.key === 'Enter') void addClient(); }}
-            placeholder="Επικόλλησε τον σύνδεσμο που σου έστειλε ο ιδιοκτήτης"
-            style={{
-              flex: '1 1 340px', height: T.h.lg, padding: '0 13px', borderRadius: T.radius.inner,
-              border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)',
-              color: 'var(--text-primary)', fontSize: 13, fontFamily: T.font.sans,
-            }}
-          />
-          <button
-            onClick={() => void addClient()}
-            disabled={adding || !token.trim()}
-            style={{
-              height: T.h.lg, padding: '0 18px', borderRadius: T.radius.inner, border: 'none',
-              background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 13, fontWeight: 600,
-              fontFamily: T.font.sans, cursor: adding || !token.trim() ? 'default' : 'pointer',
-              opacity: adding || !token.trim() ? 0.5 : 1,
-            }}
-          >{adding ? 'Προσθήκη…' : 'Πρόσθεσε'}</button>
+        {/* ΤΟ ΠΕΔΙΟ ΚΑΙ ΤΟ ΚΟΥΜΠΙ ΕΙΝΑΙ ΤΑ ΚΟΙΝΑ ΤΗΣ ΕΦΑΡΜΟΓΗΣ. Ηταν ζωγραφισμένα
+            εδώ, με δικό τους ύψος, δικό τους περίγραμμα και δική τους
+            απενεργοποίηση: η μία οθόνη που βλέπει ο λογιστής πρώτη έμοιαζε με
+            άλλο προϊόν από τις υπόλοιπες. */}
+        <div style={{ display: 'flex', gap: 10, marginTop: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ flex: '1 1 340px' }}>
+            <TextInput
+              ariaLabel="Σύνδεσμος που σου έστειλε ο ιδιοκτήτης"
+              value={token}
+              onChange={v => { setToken(v); setNotice(''); }}
+              onKeyDown={e => { if (e.key === 'Enter') void addClient(); }}
+              placeholder="Επικόλλησε τον σύνδεσμο που σου έστειλε ο ιδιοκτήτης"
+            />
+          </div>
+          <Btn variant="primary" onClick={() => void addClient()} disabled={adding || !token.trim()}>
+            {adding ? 'Προσθήκη…' : 'Πρόσθεσε'}
+          </Btn>
         </div>
         {notice && (
           <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '10px 0 0', fontFamily: T.font.sans }}>{notice}</p>
@@ -164,19 +182,26 @@ export default function AccountantWorkspace() {
         </Card>
       ) : (
         <div style={{ marginTop: 16, display: 'grid', gap: 10 }}>
-          {rows.map(c => {
-            const gaps = gapsOf(c);
-            const ready = readinessOf(gaps);
+          {ordered.map(({ c, gaps, ready }) => {
             return (
               <Card key={c.ownerId}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
                   <div>
+                    {/* ΤΟ ΟΝΟΜΑ ΑΝΟΙΓΕΙ ΤΟΝ ΠΕΛΑΤΗ. Η λίστα έλεγε ποιος δεν
+                        κλείνει και δεν είχε κανέναν δρόμο προς τα ποσά του: ο
+                        λογιστής γύριζε στο μήνυμα με τον σύνδεσμο. Δηλαδή στους
+                        ογδόντα σελιδοδείκτες που αυτή η οθόνη ήρθε να καταργήσει. */}
                     <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text-primary)', fontFamily: T.font.sans }}>
-                      {c.name}
+                      {c.token ? (
+                        <a href={`/accountant/${c.token}`} style={{ color: 'inherit', textDecoration: 'none', borderBottom: '1px solid var(--border-default)' }}>
+                          {c.name}
+                        </a>
+                      ) : c.name}
                     </h2>
                     <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '4px 0 0', fontFamily: T.font.sans }}>
                       {c.properties === 1 ? '1 ακίνητο' : `${c.properties} ακίνητα`}
                       {c.afm ? ` · ΑΦΜ ${c.afm}` : ''}
+                      {!c.token ? ' · ο σύνδεσμός του δεν ισχύει πια' : ''}
                     </p>
                   </div>
                   {/* Η ΚΑΤΑΣΤΑΣΗ ΕΙΝΑΙ ΛΕΞΗ, ΟΧΙ ΧΡΩΜΑ. Η ιεραρχία βγαίνει από
@@ -205,8 +230,11 @@ export default function AccountantWorkspace() {
                           <button
                             onClick={() => void ask(c.ownerId, g.key, g.item)}
                             disabled={done}
+                            // ΣΑΡΑΝΤΑ ΤΕΣΣΕΡΑ, ΟΧΙ ΤΡΙΑΝΤΑ. Ηταν 30 εικονοστοιχεία ψηλό,
+                            // δηλαδή κάτω από το δάπεδο αφής, σε κουμπί που ο λογιστής
+                            // πατά μία φορά ανά εκκρεμότητα ανά πελάτη.
                             style={{
-                              flexShrink: 0, height: 30, padding: '0 13px', borderRadius: 8,
+                              flexShrink: 0, minHeight: 44, padding: '0 14px', borderRadius: T.radius.btn,
                               border: '1px solid var(--border-subtle)', background: 'transparent',
                               color: done ? 'var(--text-tertiary)' : 'var(--text-primary)',
                               fontSize: 12, fontWeight: 600, fontFamily: T.font.sans,
