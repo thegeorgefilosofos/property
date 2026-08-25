@@ -11,6 +11,7 @@
 //   (RESEND_API_KEY / SUPABASE_URL / SUPABASE_ANON_KEY υπάρχουν ήδη)
 // ─────────────────────────────────────────────────────────────────────────
 
+import { NO_RESEND_KEY } from '../_shared/resendKey.ts'
 import { emailHeader } from '../_shared/emailTemplates.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.110.8'
 import { APP_URL } from '../_shared/site.ts'
@@ -107,7 +108,7 @@ Deno.serve(async (req) => {
   const needsConfirm = !!saved && saved.toLowerCase() !== accountEmail.toLowerCase()
   const email = needsConfirm ? saved : accountEmail
 
-  if (!RESEND_API_KEY) return json({ error: 'no_resend_key', detail: 'Λείπει το RESEND_API_KEY στα secrets της function.' }, 500)
+  if (!RESEND_API_KEY) return json({ error: 'no_resend_key', detail: NO_RESEND_KEY }, 500)
 
   // ── Δέκα μηνύματα την ημέρα, και τέλος ───────────────────────────────────
   // Ο παραλήπτης είναι είτε η διεύθυνση του λογαριασμού είτε η αποθηκευμένη, και

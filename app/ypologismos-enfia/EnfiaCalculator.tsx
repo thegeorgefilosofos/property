@@ -29,7 +29,7 @@ import { parseAmount } from '@/lib/core/greek';
 import { estimateENFIA, zoneKeyFromPricePerSqm, enfiaFloorCoef, enfiaAgeCoef, ENFIA_ZONE_TAX, ENFIA_FLOOR_COEF, ENFIA_AGE_BANDS } from '@/lib/billing/enfia';
 import { enfiaInstalments, ENFIA_INSTALMENTS } from '@/lib/tools/enfiaSchedule';
 import { useToolState, ToolActions, ToolPaper, ToolPaperFoot } from '@/app/ToolShare';
-import { ToolCta } from '@/app/PublicChrome';
+import { ToolCta, EstimateNote } from '@/app/PublicChrome';
 
 import LiveResult from '@/components/LiveResult';
 const amount = (s: string): number => Math.max(0, parseAmount(s) ?? 0);
@@ -243,8 +243,7 @@ export function EnfiaCalculator({ year, today }: { year: number; today: string }
           ή αποθήκες, η μείωση και η προσαύξηση αλλάζουν, οπότε το ποσό στο εκκαθαριστικό
           θα διαφέρει. Δεν περιλαμβάνει απαλλαγές με εισοδηματικά κριτήρια (χαμηλό
           εισόδημα, τρίτεκνοι, αναπηρία, ασφαλισμένη κατοικία), ούτε τους ειδικούς
-          συντελεστές οικοπέδου και πρόσοψης. Είναι <strong>εκτίμηση</strong> για να ξέρεις
-          την τάξη μεγέθους, όχι φορολογική συμβουλή.
+          συντελεστές οικοπέδου και πρόσοψης. <EstimateNote />
         </p>
       </div>
 

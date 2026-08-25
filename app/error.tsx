@@ -11,6 +11,7 @@
 // Γι' αυτό εδώ γίνεται ΜΙΑ αυτόματη απόπειρα καθαρισμού και επαναφόρτωσης, και
 // μετά προσφέρεται και χειροκίνητα. Δεν χάνεται τίποτα: σβήνονται μόνο τα
 // αποθηκευμένα αρχεία του build, όχι η συνεδρία ούτε τα δεδομένα.
+import { ERROR_COPY } from '@/lib/core/errorCopy';
 import { useEffect, useState } from 'react';
 import { captureError } from '@/lib/observability/report';
 import { recoverFromStaleBuild, alreadyRecovered } from '@/lib/recovery';
@@ -34,8 +35,8 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
         </h2>
         <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: '0 0 20px', lineHeight: 1.55 }}>
           {busy
-            ? 'Καθαρίζουμε τα αποθηκευμένα αρχεία και ξαναφορτώνουμε. Τα δεδομένα και η σύνδεσή σου δεν επηρεάζονται.'
-            : 'Παρουσιάστηκε ένα απρόσμενο σφάλμα.'}
+            ? ERROR_COPY.busy
+            : ERROR_COPY.unexpected}
         </p>
         {/* ΤΟ ΜΗΝΥΜΑ, ΟΡΑΤΟ.
             Μια οθόνη που λέει μόνο «κάτι πήγε στραβά» δεν βοηθά κανέναν: ούτε

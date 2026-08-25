@@ -28,7 +28,7 @@ import { climateLevyRates } from '@/lib/billing/greekTax';
 import { REGULATORY_UPDATES_2026 } from '@/lib/accounting/updates2026';
 import { CustomSelect } from '@/app/dashboard/components/UIComponents';
 import { useToolState, ToolActions, ToolPaper, ToolPaperFoot } from '@/app/ToolShare';
-import { ToolCta } from '@/app/PublicChrome';
+import { ToolCta, EstimateNote } from '@/app/PublicChrome';
 
 import LiveResult from '@/components/LiveResult';
 const amount = (s: string): number => Math.max(0, parseAmount(s) ?? 0);
@@ -364,8 +364,7 @@ export function ShortVsLongCalculator({ today }: { today: string }) {
           τέλος παρεπιδημούντων 0,5%, ΦΠΑ 13% και βιβλία κατά τα ΕΛΠ. Οι συντελεστές του τέλους ανθεκτικότητας είναι οι{' '}
           <strong>ενδεικτικοί του 2025</strong>: τα ακριβή ποσά και οι μήνες ορίζονται από την ΑΑΔΕ.
           Δεν περιλαμβάνει ΕΝΦΙΑ, ασφάλιση, έπιπλα και εξοπλισμό, κενά διαστήματα λόγω ανακαίνισης,
-          ούτε τον χρόνο που θα δώσεις εσύ στη διαχείριση. Είναι{' '}
-          <strong>εκτίμηση</strong> για να ξέρεις την τάξη μεγέθους, όχι φορολογική συμβουλή.
+          ούτε τον χρόνο που θα δώσεις εσύ στη διαχείριση. <EstimateNote />
         </p>
       </div>
 

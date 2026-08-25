@@ -13,6 +13,7 @@
 //   supabase secrets set RESEND_FROM="PROPERWISE <no-reply@to-domain-sou.gr>"
 //   supabase functions deploy send-client-email
 // ─────────────────────────────────────────────────────────────────────────
+import { NO_RESEND_KEY } from '../_shared/resendKey.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2.110.8'
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
@@ -41,7 +42,7 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
   const authHeader = req.headers.get('Authorization') || ''
   if (!authHeader.startsWith('Bearer ')) return json({ error: 'unauthorized' }, 401)
-  if (!RESEND_API_KEY) return json({ error: 'no_resend_key', detail: 'Λείπει το RESEND_API_KEY στα secrets της function.' }, 500)
+  if (!RESEND_API_KEY) return json({ error: 'no_resend_key', detail: NO_RESEND_KEY }, 500)
 
   let subject = '', bodyHtml = '', kind = 'broadcast', recipients: Recipient[] = []
   try {

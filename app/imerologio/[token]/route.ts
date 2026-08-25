@@ -24,7 +24,7 @@
 // η ιστορία δεν ανήκει σε ημερολόγιο υπενθυμίσεων.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { createServiceClient, serviceClientError } from '@/lib/supabase/service';
+import { createServiceClient, serviceClientError, SERVICE_CLIENT_LOG } from '@/lib/supabase/service';
 import * as feedStore from '@/lib/data/calendarFeed';
 import * as properties from '@/lib/data/properties';
 import * as calendar from '@/lib/data/calendar';
@@ -59,7 +59,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
 
   const missing = serviceClientError(process.env);
   if (missing) {
-    log('ο πελάτης υπηρεσίας δεν δημιουργήθηκε:', missing);
+    log(SERVICE_CLIENT_LOG, missing);
     return new Response('Το ημερολόγιο δεν είναι διαθέσιμο.', {
       status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
     });

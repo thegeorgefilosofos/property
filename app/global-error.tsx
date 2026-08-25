@@ -3,6 +3,7 @@
 // Root error boundary — catches errors thrown in the root layout itself. It
 // must render its own <html>/<body>. Reports the error (env-gated; no-op
 // without a Sentry DSN) and offers a full reload.
+import { ERROR_COPY } from '@/lib/core/errorCopy';
 import { useEffect, useState } from 'react';
 import { captureError } from '@/lib/observability/report';
 import { recoverFromStaleBuild, alreadyRecovered } from '@/lib/recovery';
@@ -64,8 +65,8 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
             </h2>
             <p style={{ fontSize: 14, color: 'var(--ge-muted)', margin: '0 0 20px', lineHeight: 1.55 }}>
               {busy
-                ? 'Καθαρίζουμε τα αποθηκευμένα αρχεία και ξαναφορτώνουμε. Τα δεδομένα και η σύνδεσή σου δεν επηρεάζονται.'
-                : 'Παρουσιάστηκε ένα απρόσμενο σφάλμα.'}
+                ? ERROR_COPY.busy
+                : ERROR_COPY.unexpected}
             </p>
             {/* Το μήνυμα ορατό: αλλιώς ούτε ο χρήστης καταλαβαίνει τι έγινε ούτε
                 εμείς μπορούμε να το διορθώσουμε. Κλικ για αντιγραφή. */}

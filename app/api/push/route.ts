@@ -24,7 +24,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { NextResponse } from 'next/server';
-import { createServiceClient, serviceClientError } from '@/lib/supabase/service';
+import { createServiceClient, serviceClientError, SERVICE_CLIENT_LOG } from '@/lib/supabase/service';
 import { cronSecretOk, CRON_SECRET_ENV } from '@/lib/api/cronSecret';
 import * as devices from '@/lib/data/pushSubscriptions';
 import * as properties from '@/lib/data/properties';
@@ -71,7 +71,7 @@ export async function POST(request: Request) {
 
   const missing = serviceClientError(process.env);
   if (missing) {
-    log('ο πελάτης υπηρεσίας δεν δημιουργήθηκε:', missing);
+    log(SERVICE_CLIENT_LOG, missing);
     return NextResponse.json({ error: 'not_configured' }, { status: 503 });
   }
   const db = createServiceClient();

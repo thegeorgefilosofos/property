@@ -28,6 +28,16 @@ export const URL_ENV = 'NEXT_PUBLIC_SUPABASE_URL';
 type Env = Record<string, string | undefined>;
 
 /** Τι λείπει για να υπάρξει πελάτης υπηρεσίας. Κενό σημαίνει «τίποτα». */
+/**
+ * Το πρόθεμα καταγραφής όταν λείπει ρύθμιση.
+ *
+ * Τρεις διαδρομές του διακομιστή έγραφαν την ΙΔΙΑ φράση με το χέρι πριν από το
+ * `serviceClientError`. Είναι το κείμενο που ψάχνει κανείς στα αρχεία
+ * καταγραφής όταν κάτι δεν στέλνεται: αν αποκλίνει, η αναζήτηση βρίσκει τα δύο
+ * τρίτα του προβλήματος.
+ */
+export const SERVICE_CLIENT_LOG = 'ο πελάτης υπηρεσίας δεν δημιουργήθηκε:';
+
 export function serviceClientError(env: Env): string {
   const missing = [URL_ENV, SERVICE_KEY_ENV].filter(k => !(env[k] || '').trim());
   return missing.length ? `Λείπουν μεταβλητές περιβάλλοντος: ${missing.join(', ')}.` : '';

@@ -30,7 +30,7 @@ import { parseAmount } from '@/lib/core/greek';
 import { presumptiveDeductionRate } from '@/lib/billing/consolidate';
 import { PRESUMPTIVE_DEDUCTION_RATE } from '@/lib/accounting/statement';
 import { Toggle } from '@/app/dashboard/components/UIComponents';
-import { ToolCta } from '@/app/PublicChrome';
+import { ToolCta, EstimateNote } from '@/app/PublicChrome';
 import { useToolState, ToolActions, ToolPaper, ToolPaperFoot } from '@/app/ToolShare';
 
 import LiveResult from '@/components/LiveResult';
@@ -370,8 +370,7 @@ export function RentTaxCalculator({ today }: { today: string }) {
           έκπτωση 5% που δίνει ο νόμος χωρίς δικαιολογητικά. Δεν περιλαμβάνει άλλα
           εισοδήματά σου, ΕΝΦΙΑ, τέλος επιτηδεύματος, εισφορά αλληλεγγύης, ούτε
           ειδικές περιπτώσεις (βραχυχρόνια μίσθωση, συνιδιοκτησία, νομικό πρόσωπο,
-          κενά διαστήματα, ανείσπρακτα). Είναι <strong>εκτίμηση</strong> για να ξέρεις
-          την τάξη μεγέθους, όχι φορολογική συμβουλή.
+          κενά διαστήματα, ανείσπρακτα). <EstimateNote />
         </p>
       </div>
 

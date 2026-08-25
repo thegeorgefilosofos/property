@@ -27,7 +27,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { NextResponse } from 'next/server';
-import { createServiceClient, serviceClientError } from '@/lib/supabase/service';
+import { createServiceClient, serviceClientError, SERVICE_CLIENT_LOG } from '@/lib/supabase/service';
 import { verifySignature, SECRET_ENV } from '@/lib/inbound/signature';
 import { readReceivedEvent } from '@/lib/inbound/event';
 import { tokenFromRecipients, INBOUND_DOMAIN, DOMAIN_ENV } from '@/lib/inbound/address';
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
 
   const missing = serviceClientError(process.env);
   if (missing) {
-    log('ο πελάτης υπηρεσίας δεν δημιουργήθηκε:', missing);
+    log(SERVICE_CLIENT_LOG, missing);
     return NextResponse.json({ error: 'not_configured' }, { status: 500 });
   }
   const db = createServiceClient();
