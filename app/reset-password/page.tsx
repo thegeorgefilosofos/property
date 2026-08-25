@@ -8,6 +8,7 @@ import AuthAside from '../AuthAside'
 import { checkPassword, PASSWORD_MIN_LABEL, PASSWORD_MSG } from '@/lib/auth/password'
 import PasswordStrength from '@/components/PasswordStrength'
 import { failed } from '@/lib/core/dbError';
+import { BackLink } from '../BackLink'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Επαναφορά κωδικού, δύο καταστάσεις:
@@ -160,6 +161,13 @@ export default function ResetPasswordPage() {
 
           {mode === 'update' && (
             <>
+              {/* ΤΟ ΤΕΤΑΡΤΟ ΑΔΙΕΞΟΔΟ ΤΗΣ ΙΔΙΑΣ ΟΙΚΟΓΕΝΕΙΑΣ. Οι δύο πρώτες οθόνες
+                  της επαναφοράς προσφέρουν «Επιστροφή στη σύνδεση» και η
+                  τελευταία «Μετάβαση στον πίνακα». Αυτή εδώ, όπου ο χρήστης
+                  φτάνει από σύνδεσμο σε email, δεν είχε τίποτα: ούτε πίσω,
+                  ούτε αρχική. Οποιος άνοιξε τον σύνδεσμο κατά λάθος έμενε
+                  μπροστά σε μια φόρμα που δεν ζήτησε. */}
+              <BackLink home />
               <h1 style={h2s}>Όρισε νέο κωδικό</h1>
               <p style={subs}>{`Διάλεξε έναν ισχυρό κωδικό, ${PASSWORD_MIN_LABEL.toLowerCase()}.`}</p>
               <form onSubmit={updatePassword} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
