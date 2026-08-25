@@ -22,6 +22,7 @@ import { confirmDialog } from '@/components/confirmBus'
 import { useReportBranding, type ReportBranding } from '@/lib/reportBranding'
 import { reportHead, reportHeader, reportSection, reportKpi, reportDisclaimer, openReport, rEsc } from './reportPdf'
 import { uploadUserScoped } from '@/lib/storage/scopedUpload';
+import { CONTACT_BUCKET, removeFiles, linkFor, type ContactFile } from '@/lib/storage/contactFiles';
 import { formFields, CONTACT_FIELDS, type FieldContext, type FieldDecision } from '@/lib/property/fields';
 import { athensToday, isoDate, daysUntilOrNull } from '@/lib/core/time';
 import { INK, INK_FAINT, INK_MUTED, PAPER_ALT, RULE } from '@/lib/print/ink';
@@ -94,7 +95,7 @@ interface ContactExtra {
   next_appointment?: string; specialty?: string
   tags?: string[]; avatar_url?: string
   notes_log?: { id: string; text: string; ts: string }[]
-  files?: { name: string; url: string; size: string; uploaded: string }[]
+  files?: ContactFile[]
   // ΠΑΛΙΑ ΠΕΔΙΑ, ΔΕΝ ΓΡΑΦΟΝΤΑΙ ΠΙΑ. Παραμένουν στον τύπο επειδή ζουν μέσα στο JSON
   // του `notes` παλιών επαφών — δεν σβήνουμε δεδομένα χρήστη, απλώς δεν τα ζητάμε
   // και δεν τα δείχνουμε: κανένα δεν προκαλούσε καμία ενέργεια στο app.
@@ -406,17 +407,34 @@ function TagEditor({ tags, onChange }: { tags: string[]; onChange: (t: string[])
 // έχουν ήδη φωτογραφία συνεχίζουν να τη δείχνουν στην κάρτα και στο ντοσιέ.
 
 // ─── File Uploader ────────────────────────────────────────────────────────────
-function FileUploader({ files, onChange, contactId }: { files: { name: string; url: string; size: string; uploaded: string }[]; onChange: (f: { name: string; url: string; size: string; uploaded: string }[]) => void; contactId?: string }) {
+function FileUploader({ files, onChange, contactId }: { files: ContactFile[]; onChange: (f: ContactFile[]) => void; contactId?: string }) {
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return; setUploading(true)
-    const { path, error } = await uploadUserScoped(supabase, 'avatars', `contact-files/${contactId || 'new'}/${Date.now()}.${file.name.split('.').pop()}`, file, { upsert: true })
-    if (!error) {
-      const { data: pub } = supabase.storage.from('avatars').getPublicUrl(path)
-      onChange([...files, { name: file.name, url: pub.publicUrl, size: file.size > 1048576 ? `${(file.size / 1048576).toFixed(1)} MB` : `${(file.size / 1024).toFixed(0)} KB`, uploaded: new Date().toISOString() }])
-    }
+    // ΙΔΙΩΤΙΚΟΣ ΚΑΔΟΣ, ΚΑΙ ΑΠΟΘΗΚΕΥΕΤΑΙ ΤΟ ΜΟΝΟΠΑΤΙ ΑΝΤΙ ΓΙΑ ΤΗ ΔΙΕΥΘΥΝΣΗ. Ο
+    // «avatars» είναι δηλωμένος δημόσιος: το μισθωτήριο και το τιμολόγιο με το
+    // ΑΦΜ κατέβαιναν από οποιονδήποτε ήξερε τη διεύθυνση.
+    const { path, error } = await uploadUserScoped(supabase, CONTACT_BUCKET, `contact-files/${contactId || 'new'}/${Date.now()}.${file.name.split('.').pop()}`, file, { upsert: true, contentType: file.type || undefined })
+    if (error) notifyError('Το αρχείο δεν ανέβηκε')
+    else onChange([...files, { name: file.name, url: '', path, size: file.size > 1048576 ? `${(file.size / 1048576).toFixed(1)} MB` : `${(file.size / 1024).toFixed(0)} KB`, uploaded: new Date().toISOString() }])
     setUploading(false); if (fileRef.current) fileRef.current.value = ''
+  }
+
+  // ΤΟ «Χ» ΣΒΗΝΕΙ ΚΑΙ ΤΟ ΑΡΧΕΙΟ, ΟΧΙ ΜΟΝΟ ΤΗ ΓΡΑΜΜΗ. Πριν, το αντικείμενο
+  // έμενε στον κάδο για πάντα και ο χρήστης δεν είχε πια τρόπο να το βρει.
+  const drop = async (i: number) => {
+    const gone = files[i]
+    onChange(files.filter((_, j) => j !== i))
+    const failed = await removeFiles(supabase, [gone])
+    if (failed) notifyError('Η γραμμή αφαιρέθηκε αλλά το αρχείο δεν σβήστηκε')
+  }
+
+  // Ο σύνδεσμος υπογράφεται τη στιγμή που τον ζητά ο χρήστης και ζει μία ώρα.
+  const open = async (f: ContactFile) => {
+    const href = await linkFor(supabase, f)
+    if (href) window.open(href, '_blank', 'noopener')
+    else notifyError('Το αρχείο δεν άνοιξε')
   }
   return (
     <div>
@@ -429,8 +447,8 @@ function FileUploader({ files, onChange, contactId }: { files: { name: string; u
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</div>
               <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.mono }}>{f.size} · {new Date(f.uploaded).toLocaleDateString('el-GR')}</div>
             </div>
-            <a href={f.url} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'none', padding: '4px 10px', borderRadius: T.radius.badge, border: '1px solid var(--accent-border)', background: 'var(--accent-soft)', whiteSpace: 'nowrap' }}>Άνοιγμα</a>
-            <button type="button" onClick={() => onChange(files.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center' }}><X size={15} /></button>
+            <Btn variant="ghost" onClick={() => open(f)}>Άνοιγμα</Btn>
+            <button type="button" onClick={() => drop(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center' }}><X size={15} /></button>
           </div>
         ))}
       </div>
@@ -1558,6 +1576,10 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
   }
 
   const handleDelete = async (id: string) => {
+    // ΤΑ ΑΡΧΕΙΑ ΦΕΥΓΟΥΝ ΠΡΩΤΑ, ΟΣΟ ΥΠΑΡΧΕΙ ΑΚΟΜΗ Η ΓΡΑΜΜΗ ΠΟΥ ΤΑ ΞΕΡΕΙ.
+    // Διαγραμμένη η επαφή, τα μονοπάτια τους δεν είναι πουθενά γραμμένα.
+    const gone = contacts.find(c => c.id === id)?._extra?.files ?? []
+    if (gone.length) await removeFiles(supabase, gone)
     if (!await saved('Η επαφή δεν διαγράφηκε', contactStore.remove(supabase, id))) return
     await saved('Η υπενθύμιση της επαφής δεν καθαρίστηκε', calendar.clearSource(supabase, { propertyId, userId }, { source: `contact:${id}:reminder` }))
     fetchContacts(); notify('Επαφή διαγράφηκε')
