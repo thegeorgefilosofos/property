@@ -11,7 +11,8 @@ import { downloadFile, safeFilename } from '@/lib/core/download';
 // ΤΟ ΚΑΘΑΡΟ ΣΤΥΛ ΖΕΙ ΔΙΠΛΑ, ΚΑΙ ΔΕΝ ΞΑΝΑΕΞΑΓΕΤΑΙ ΑΠΟ ΕΔΩ. Μια επανεξαγωγή θα
 // έδινε στους πάντες έναν εύκολο δρόμο να πάρουν τη `money()` σέρνοντας μαζί
 // της τα 2,5 MB της βιβλιοθήκης — δηλαδή ακριβώς το σφάλμα που διορθώνεται.
-import { FMT, S, ROW, MARGINS, boxAll, sheetName, money, percent, type Cell } from './sheetFormat';
+import { FMT, S, ROW, MARGINS, boxAll, withMark, sheetName, money, percent, type Cell } from './sheetFormat';
+import { SHEET_MARK_PNG } from './sheetMark';
 export { XLSX };
 
 
@@ -244,9 +245,13 @@ export function sectionSheet(o: {
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws['!rows'] = [];
-  ws['!rows'][0] = { hpt: ROW.title };
+  // ΤΟ ΣΗΜΑ ΜΕΣΑ ΣΤΗ ΓΡΑΜΜΗ ΤΟΥ ΤΙΤΛΟΥ, ΚΑΙ ΜΟΝΟ ΕΚΕΙ. Η γραμμή ψηλώνει ώστε να
+  // το χωρέσει και ο τίτλος κάνει τόπο με εσοχή. Ο υπότιτλος μένει σε όλο το
+  // πλάτος: η ζώνη είναι ενωμένα κελιά και κόβει ό,τι περισσεύει, οπότε μια
+  // εσοχή εκεί θα έτρωγε το τέλος του σε κάθε στενό πίνακα.
+  ws['!rows'][0] = { hpt: ROW.titleMark };
   ws['!rows'][1] = { hpt: ROW.sub };
-  bannerRow(ws, 0, width, S.title);
+  bannerRow(ws, 0, width, withMark(S.title));
   bannerRow(ws, 1, width, S.sub);
   for (const m of marks) {
     if (m.kind === 'section') { bannerRow(ws, m.r, width, S.section); ws['!rows'][m.r] = { hpt: ROW.head - 8 }; continue; }
@@ -274,7 +279,7 @@ export function sectionSheet(o: {
   // παγωμένες τις τρεις πρώτες, ο τίτλος έμενε και η επικεφαλίδα των στηλών
   // έφευγε προς τα πάνω: ο λογιστής κατέβαινε στη γραμμή 40 και έβλεπε στήλες
   // χωρίς ονόματα, με τον τίτλο του φύλλου καρφωμένο από πάνω τους.
-  sheetFinish(ws, { landscape: o.landscape ?? true, freezeRows: headRow + 1 });
+  sheetFinish(ws, { landscape: o.landscape ?? true, freezeRows: headRow + 1, brandMark: true });
   return { ws, headRow };
 }
 
@@ -306,6 +311,13 @@ export interface SheetFinish {
    * επικεφαλίδα. Η ιδιότητα `!freeze` της βιβλιοθήκης δεν γράφεται ποτέ.
    */
   freezeRows?: number;
+  /**
+   * Το σήμα πάνω αριστερά, μέσα στη ζώνη του τίτλου.
+   *
+   * ΜΟΝΟ ΟΠΟΥ ΥΠΑΡΧΕΙ ΖΩΝΗ ΤΙΤΛΟΥ. Σε φύλλο που ξεκινά κατευθείαν με
+   * επικεφαλίδες, η εικόνα θα καθόταν πάνω στα ονόματα των στηλών.
+   */
+  brandMark?: boolean;
 }
 
 /** Κρατά την προδιαγραφή πάνω στο φύλλο, εκεί που χτίζεται. */
@@ -355,6 +367,76 @@ function applyFinish(xml: string, f: SheetFinish): string {
   return out;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΟ ΣΗΜΑ ΜΕΣΑ ΣΤΟ ΦΥΛΛΟ
+// ─────────────────────────────────────────────────────────────────────────
+// ΓΙΑΤΙ ΧΕΙΡΩΝΑΚΤΙΚΑ ΚΑΙ ΟΧΙ ΑΠΟ ΤΗ ΒΙΒΛΙΟΘΗΚΗ. Η δωρεάν έκδοση της SheetJS δεν
+// γράφει εικόνες: είναι δυνατότητα της επί πληρωμή. Το αρχείο όμως είναι ένα
+// ZIP με XML μέσα και το βιβλίο ήδη ξαναγράφεται εδώ για άλλους λόγους.
+// Προστίθενται πέντε πράγματα, όλα υποχρεωτικά μαζί:
+//
+//   xl/media/…png                     οι ψηφίδες
+//   xl/drawings/drawingN.xml          πού κάθεται και πόσο μεγάλη είναι
+//   xl/drawings/_rels/…rels           σχέδιο → εικόνα
+//   xl/worksheets/_rels/sheetN…rels   φύλλο → σχέδιο
+//   [Content_Types].xml               τι είναι το κάθε νέο μέρος
+//
+// ΚΑΙ ΜΙΑ ΕΤΙΚΕΤΑ ΣΤΟ ΙΔΙΟ ΤΟ ΦΥΛΛΟ, ΣΤΗ ΣΩΣΤΗ ΘΕΣΗ. Το `<drawing>` έρχεται
+// ΜΕΤΑ το `ignoredErrors` στο πρότυπο. Ενα εικονοστοιχείο νωρίτερα και το
+// Excel αρνείται να ανοίξει ΟΛΟ το αρχείο, χωρίς να πει γιατί: το ίδιο
+// μάθημα με τα `dataValidations` παραπάνω.
+//
+// ΤΟ ΦΥΛΛΟ ΜΠΟΡΕΙ ΝΑ ΕΧΕΙ ΗΔΗ ΣΧΕΣΕΙΣ. Οι υπερσύνδεσμοι γράφουν κι εκείνοι
+// «rels». Το αρχείο διαβάζεται πρώτα και το νέο αναγνωριστικό βγαίνει ΠΑΝΩ
+// από όσα υπάρχουν, αντί να υποτεθεί «rId1» και να σβήσει έναν σύνδεσμο.
+
+/** Ενα εικονοστοιχείο σε EMU, η μονάδα του OOXML. */
+const EMU = 9525;
+/** Η πλευρά του σήματος μέσα στο φύλλο, σε εικονοστοιχεία. */
+const MARK_PX = 40;
+/** Πόσο χαμηλά ξεκινά, ώστε να κεντραριστεί στη ζώνη τίτλου των 37 σημείων. */
+const MARK_TOP_PX = 5;
+const MARK_LEFT_PX = 3;
+
+const MEDIA = 'xl/media/properwise-mark.png';
+const REL_NS = 'http://schemas.openxmlformats.org/package/2006/relationships';
+const REL_IMAGE = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image';
+const REL_DRAWING = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing';
+
+/** base64 σε ψηφία, στον περιηγητή και στον Node με τον ίδιο κώδικα. */
+function fromBase64(b64: string): Uint8Array<ArrayBuffer> {
+  const bin = atob(b64);
+  const out = new Uint8Array(new ArrayBuffer(bin.length));
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+function drawingXml(): string {
+  const cx = MARK_PX * EMU, cy = MARK_PX * EMU;
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    + '<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing"'
+    + ' xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
+    + '<xdr:oneCellAnchor>'
+    + `<xdr:from><xdr:col>0</xdr:col><xdr:colOff>${MARK_LEFT_PX * EMU}</xdr:colOff>`
+    + `<xdr:row>0</xdr:row><xdr:rowOff>${MARK_TOP_PX * EMU}</xdr:rowOff></xdr:from>`
+    + `<xdr:ext cx="${cx}" cy="${cy}"/>`
+    + '<xdr:pic><xdr:nvPicPr><xdr:cNvPr id="1" name="PROPERWISE" descr="PROPERWISE"/>'
+    + '<xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr>'
+    + '<xdr:blipFill><a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"'
+    + ' r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>'
+    + `<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm>`
+    + '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic>'
+    + '<xdr:clientData fLocksWithSheet="1" fPrintsWithSheet="1"/>'
+    + '</xdr:oneCellAnchor></xdr:wsDr>';
+}
+
+/** Το επόμενο ελεύθερο αναγνωριστικό σχέσης, πάνω από όσα υπάρχουν. */
+function nextRelId(xml: string): string {
+  let max = 0;
+  for (const m of xml.matchAll(/Id="rId(\d+)"/g)) max = Math.max(max, Number(m[1]));
+  return `rId${max + 1}`;
+}
+
 /** Τα bytes του βιβλίου, με όσα προσθέτει το `sheetFinish` γραμμένα μέσα. */
 export function workbookBytes(wb: XLSX.WorkBook): Uint8Array {
   const raw = new Uint8Array(XLSX.write(wb, { bookType: 'xlsx', type: 'array' }) as ArrayBuffer);
@@ -374,12 +456,54 @@ export function workbookBytes(wb: XLSX.WorkBook): Uint8Array {
     if (t) fileOf.set(m[1].replace(/&quot;/g, '"').replace(/&amp;/g, '&'), `xl/${t.replace(/^\//, '')}`);
   }
   let touched = false;
+  let marks = 0;
   wb.SheetNames.forEach((name, i) => {
     const f = finishes[i], path = fileOf.get(name);
     if (!f || !path || !zip[path]) return;
-    zip[path] = strToU8(applyFinish(strFromU8(zip[path]), f));
+    let xml = applyFinish(strFromU8(zip[path]), f);
+
+    if (f.brandMark) {
+      const n = ++marks;
+      const drawing = `xl/drawings/drawing${n}.xml`;
+      zip[drawing] = strToU8(drawingXml());
+      zip[`xl/drawings/_rels/drawing${n}.xml.rels`] = strToU8(
+        `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="${REL_NS}">`
+        + `<Relationship Id="rId1" Type="${REL_IMAGE}" Target="../media/${MEDIA.split('/').pop()}"/>`
+        + '</Relationships>');
+
+      // Το φύλλο μπορεί να έχει ήδη σχέσεις: το νέο αναγνωριστικό βγαίνει πάνω
+      // από όσα υπάρχουν, αλλιώς ένας υπερσύνδεσμος θα έχανε τον προορισμό του.
+      const relPath = path.replace(/^xl\/worksheets\//, 'xl/worksheets/_rels/') + '.rels';
+      const existing = zip[relPath] ? strFromU8(zip[relPath]) : '';
+      const id = existing ? nextRelId(existing) : 'rId1';
+      const entry = `<Relationship Id="${id}" Type="${REL_DRAWING}" Target="../drawings/drawing${n}.xml"/>`;
+      zip[relPath] = strToU8(existing
+        ? existing.replace('</Relationships>', entry + '</Relationships>')
+        : `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="${REL_NS}">${entry}</Relationships>`);
+
+      // ΤΟ «drawing» ΕΡΧΕΤΑΙ ΤΕΛΕΥΤΑΙΟ, ΜΕΤΑ ΤΟ «ignoredErrors». Λάθος σειρά
+      // σημαίνει αρχείο που το Excel αρνείται να ανοίξει ολόκληρο.
+      xml = xml.replace('</worksheet>', `<drawing r:id="${id}"/></worksheet>`);
+    }
+
+    zip[path] = strToU8(xml);
     touched = true;
   });
+
+  if (marks > 0) {
+    zip[MEDIA] = fromBase64(SHEET_MARK_PNG);
+    let ct = strFromU8(zip['[Content_Types].xml']);
+    if (!ct.includes('Extension="png"')) {
+      ct = ct.replace('<Types ', '<Types ').replace(/(<Types[^>]*>)/,
+        '$1<Default Extension="png" ContentType="image/png"/>');
+    }
+    const overrides = Array.from({ length: marks }, (_, k) =>
+      `<Override PartName="/xl/drawings/drawing${k + 1}.xml"`
+      + ' ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>').join('');
+    ct = ct.replace('</Types>', overrides + '</Types>');
+    zip['[Content_Types].xml'] = strToU8(ct);
+  }
+
   return touched ? zipSync(zip) : raw;
 }
 

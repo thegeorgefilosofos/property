@@ -14,6 +14,7 @@ import { downloadXlsx } from './exportXlsx'
 import { downloadTableXlsx } from './exportCsv'
 import { XLSX } from './xlsxStyle'
 import { captureDownloads } from '@/lib/core/downloadCapture.testkit'
+import { unzipSync } from 'fflate'
 
 let pass = 0, fail = 0
 const ok = (n: string, c: boolean) => { if (c) pass++; else { fail++; console.error('✗ ' + n) } }
@@ -116,6 +117,57 @@ void (async () => {
     const n = lastBook().SheetNames[0]
     ok('κόβεται στα 31', n.length <= 31)
     ok('χωρίς άκυρους χαρακτήρες', !/[\\/?*[\]:]/.test(n))
+  }
+
+  // ═══ ΤΟ ΣΗΜΑ ΕΙΝΑΙ ΜΕΣΑ ΣΤΟ ΑΡΧΕΙΟ, ΟΧΙ ΜΟΝΟ ΣΤΗΝ ΠΡΟΘΕΣΗ ═══════════════
+  // Η δωρεάν έκδοση της βιβλιοθήκης δεν γράφει εικόνες: τις προσθέτει το
+  // `workbookBytes` πειράζοντας το ZIP. Πέντε μέρη πρέπει να υπάρχουν ΟΛΑ
+  // μαζί και η ετικέτα στο φύλλο πρέπει να είναι στη ΣΩΣΤΗ ΣΕΙΡΑ: το
+  // `<drawing>` έρχεται μετά το `ignoredErrors` στο πρότυπο και ένα
+  // εικονοστοιχείο νωρίτερα σημαίνει αρχείο που δεν ανοίγει καθόλου.
+  {
+    await downloadTableXlsx('Με σήμα', {
+      title: 'Δοκιμή σήματος', subject: 'Ερμού 12',
+      headers: ['Α', 'Β'], rows: [['ένα', 1]],
+    })
+    const zip = unzipSync(last().bytes)
+    const names = Object.keys(zip)
+    ok('το PNG του σήματος μπήκε στο αρχείο', names.includes('xl/media/properwise-mark.png'))
+    ok('και είναι όντως PNG', (() => {
+      const b = zip['xl/media/properwise-mark.png']
+      return !!b && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47
+    })())
+    // ΚΑΙ ΕΧΕΙ ΤΟ ΣΩΣΤΟ ΣΧΗΜΑ. Το πλάτος και το ύψος ζουν στις ψηφίδες 16 ώς
+    // 23 του PNG (IHDR). Δύο ιδιότητες, καμία μαγική σταθερά:
+    //   · τετράγωνο, γιατί το σχέδιο ζητά ίσο cx και cy· ένα μη τετράγωνο
+    //     σήμα θα παραμορφωνόταν αντί να κοπεί και θα φαινόταν μόνο σε
+    //     τυπωμένη σελίδα·
+    //   · τουλάχιστον διπλάσιο από τα 40 σημεία που δείχνει, ώστε να μένει
+    //     καθαρό στην εκτύπωση αντί για θολό.
+    const ihdr = (() => {
+      const b = zip['xl/media/properwise-mark.png']!
+      const n = (o: number) => (b[o] << 24) | (b[o + 1] << 16) | (b[o + 2] << 8) | b[o + 3]
+      return { w: n(16), h: n(20) }
+    })()
+    eq('το σήμα είναι τετράγωνο', ihdr.w, ihdr.h)
+    ok(`το σήμα είναι αρκετά πυκνό για εκτύπωση (${ihdr.w})`, ihdr.w >= 80)
+    ok('υπάρχει σχέδιο', names.includes('xl/drawings/drawing1.xml'))
+    ok('το σχέδιο δείχνει στην εικόνα', names.includes('xl/drawings/_rels/drawing1.xml.rels'))
+    const sheetRels = names.find(n => /^xl\/worksheets\/_rels\/.*\.rels$/.test(n))
+    ok('το φύλλο δείχνει στο σχέδιο', !!sheetRels
+      && new TextDecoder().decode(zip[sheetRels!]).includes('../drawings/drawing1.xml'))
+
+    const ct = new TextDecoder().decode(zip['[Content_Types].xml'])
+    ok('το png δηλώνεται ως τύπος', ct.includes('Extension="png"'))
+    ok('το σχέδιο δηλώνεται ως τύπος', ct.includes('/xl/drawings/drawing1.xml'))
+
+    const sheetPath = names.find(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n))!
+    const sheetXml = new TextDecoder().decode(zip[sheetPath])
+    ok('το φύλλο κρεμά το σχέδιο', /<drawing r:id="rId\d+"\/>/.test(sheetXml))
+    // Η ΣΕΙΡΑ ΕΙΝΑΙ ΤΟ ΚΡΙΣΙΜΟ: μετά από ό,τι άλλο, πριν το κλείσιμο.
+    ok('και το κρεμά ΤΕΛΕΥΤΑΙΟ, όπως ζητά το πρότυπο',
+      sheetXml.indexOf('<drawing ') > sheetXml.indexOf('<pageMargins')
+      && sheetXml.endsWith('</worksheet>'))
   }
 
   console.log(fail === 0 ? `✓ exportXlsx: ${pass} έλεγχοι πέρασαν` : `✗ exportXlsx: ${fail} απέτυχαν από ${pass + fail}`)

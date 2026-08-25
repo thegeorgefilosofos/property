@@ -159,6 +159,39 @@ for (const f of FILES) {
   console.log(`  ✓ ${f.name}  ${TARGET_W}×${h}  svg · png με διαφάνεια · jpg σε ${f.bg}`);
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΟ ΣΗΜΑ ΜΕΣΑ ΣΤΑ ΦΥΛΛΑ EXCEL
+// ─────────────────────────────────────────────────────────────────────────
+// Το Excel θέλει ΨΗΦΙΔΕΣ: το OOXML δεν εμφανίζει SVG σε σχέδιο φύλλου. Οπότε
+// από την ίδια γεωμετρία βγαίνει ένα μικρό PNG και μπαίνει σε αρχείο
+// TypeScript ως base64, ώστε η εξαγωγή να μη ζητά τίποτα από το δίκτυο τη
+// στιγμή που ο λογιστής πατά «κατέβασμα».
+//
+// 128 ΕΙΚΟΝΟΣΤΟΙΧΕΙΑ ΚΑΙ ΟΧΙ 512. Εμφανίζεται σε περίπου 40 σημεία ύψος:
+// στα 128 μένει καθαρό και στην εκτύπωση, χωρίς να φουσκώσει το πακέτο του
+// περιηγητή. Το μέγεθος τυπώνεται παρακάτω, ώστε να φαίνεται αν μεγαλώσει.
+const SHEET_MARK = 128;
+{
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${VIEWBOX}" fill-rule="nonzero">${paths(INK)}</svg>`;
+  const shot = await b.newPage({ viewport: { width: SHEET_MARK, height: SHEET_MARK }, deviceScaleFactor: 1 });
+  await shot.setContent(`<!doctype html><meta charset="utf-8"><style>html,body{margin:0}
+    svg{display:block;width:${SHEET_MARK}px;height:${SHEET_MARK}px}</style>${svg}`);
+  const png = await shot.screenshot({ type: 'png', omitBackground: true });
+  await shot.close();
+  const b64 = png.toString('base64');
+  writeFileSync(join(root, 'app/dashboard/components/sheetMark.ts'),
+    `// ΠΑΡΑΓΟΜΕΝΟ ΑΡΧΕΙΟ. Μην το γράψεις με το χέρι: βγαίνει από το\n`
+    + `// scripts/brand/export-logo.mjs, που διαβάζει τη γεωμετρία από το\n`
+    + `// components/BrandMark.tsx. Ξανατρέξε το βήμα αν αλλάξει το σήμα.\n`
+    + `//\n`
+    + `// Γιατί ψηφίδες και όχι SVG: το OOXML δεν εμφανίζει SVG σε σχέδιο φύλλου.\n`
+    + `// Γιατί base64 και όχι αρχείο: η εξαγωγή δεν ζητά τίποτα από το δίκτυο τη\n`
+    + `// στιγμή που ο χρήστης πατά «κατέβασμα».\n\n`
+    + `/** Το σήμα ως PNG ${SHEET_MARK}×${SHEET_MARK}, σε base64. Σκούρο μελάνι, με διαφάνεια. */\n`
+    + `export const SHEET_MARK_PNG =\n  '${b64}';\n`);
+  console.log(`  ✓ sheetMark.ts  ${SHEET_MARK}×${SHEET_MARK}  ${(b64.length / 1024).toFixed(1)} KB σε base64`);
+}
+
 for (const a of AVATARS) {
   writeFileSync(join(out, `${a.name}.svg`), a.svg);
   const shot = await b.newPage({ viewport: { width: AVATAR, height: AVATAR }, deviceScaleFactor: 1 });

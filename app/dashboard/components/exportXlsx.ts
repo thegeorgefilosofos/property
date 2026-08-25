@@ -34,8 +34,8 @@
 // φόντο, πλαίσια, στοίχιση ανά τύπο, γραμμή ΣΥΝΟΛΟ με ζωντανό SUM, AutoFilter,
 // περιθώρια εκτύπωσης και επανάληψη επικεφαλίδων σε κάθε σελίδα.
 // ═══════════════════════════════════════════════════════════════════════════
-import { XLSX, setCell, downloadWorkbook, printTitles } from './xlsxStyle';
-import { FMT, S, sheetName, MARGINS, type Cell } from './sheetFormat';
+import { XLSX, setCell, downloadWorkbook, printTitles, sheetFinish } from './xlsxStyle';
+import { FMT, S, withMark, sheetName, MARGINS, type Cell } from './sheetFormat';
 
 export type XlsxKind = 'text' | 'date' | 'eur' | 'int' | 'year' | 'pct' | 'num';
 export type XlsxCol = { header: string; width?: number; kind?: XlsxKind };
@@ -129,9 +129,21 @@ export function downloadXlsx(filename: string, sheets: XlsxSheet[]): void {
         { s: { r: 0, c: 0 }, e: { r: 0, c: NC - 1 } },
         { s: { r: 1, c: 0 }, e: { r: 1, c: NC - 1 } },
       ];
-      ws['!rows'][0] = { hpt: 22 }; ws['!rows'][1] = { hpt: 15 };
-      setCell(ws, 0, 0, { s: S.title });
+      // ΤΟ ΣΗΜΑ ΜΕΝΕΙ ΜΕΣΑ ΣΤΗ ΓΡΑΜΜΗ ΤΟΥ ΤΙΤΛΟΥ ΚΑΙ ΜΟΝΟ.
+      //
+      // Πρώτη γραφή: σήμα ύψους 40 πάνω από ΔΥΟ γραμμές, με εσοχή και στις δύο.
+      // Μετρημένο σε τυπωμένη σελίδα: ο υπότιτλος «Ερμού 12, Αθήνα · Εκδοση
+      // 25/08/2026 · PROPERWISE» βγήκε «… · PROP». Η ζώνη είναι ενωμένα κελιά
+      // και κόβει ό,τι περισσεύει· η εσοχή του έφαγε ακριβώς όσο χρειαζόταν το
+      // τέλος του. Σε πίνακα τριών στηλών αυτό συμβαίνει πάντα.
+      //
+      // Τώρα η πρώτη γραμμή ψηλώνει στα 34 σημεία και χωρά ολόκληρο το σήμα.
+      // Ο υπότιτλος μένει σε ΟΛΟ το πλάτος, χωρίς εσοχή: το σήμα δεν φτάνει ώς
+      // εκεί, οπότε δεν έχει λόγο να του κάνει τόπο.
+      ws['!rows'][0] = { hpt: 34 }; ws['!rows'][1] = { hpt: 15 };
+      setCell(ws, 0, 0, { s: withMark(S.title) });
       setCell(ws, 1, 0, { s: S.sub });
+      sheetFinish(ws, { brandMark: true });
     }
 
     // Επικεφαλίδες.
