@@ -13,6 +13,7 @@ import { confirmDialog } from '@/components/ConfirmDialog';
 import { CustomSelect, TextInput, DatePicker, Textarea, NumberInput } from './UIComponents';
 import { downloadTableXlsx } from './exportCsv';
 import { saved } from '@/components/dbWrite';
+import { notifyError } from '@/components/Toast';
 import { money } from './sheetFormat';
 import { useAppPreferences } from './useAppPreferences';
 // Τα σχήματα των τριών πινάκων που διαβάζει το Αρχείο δίπλα στα δικά του αρχεία.
@@ -566,10 +567,19 @@ export default function TabDocuments({
     // πρώτος και ελεγχόταν μετά, θα εμφανιζόταν και σε όσους τον έχουν απενεργοποιήσει
     // στις προτιμήσεις — λειτουργικά «σωστό», σιωπηλά λάθος ως προς την επιλογή τους.
     if (prefs.confirmBeforeDelete && !(await confirmDialog('Να διαγραφεί οριστικά αυτό το αρχείο;', { tone: 'negative' }))) return;
-    await supabase.storage.from('property-files').remove([it.raw.file_path]);
-    // Αν χαθεί η γραμμή αλλά μείνει το αρχείο, ή το αντίστροφο, ο χρήστης βλέπει
-    // το αρχείο να «επιστρέφει» στην επόμενη φόρτωση. Καλύτερα να το μάθει τώρα.
+    // Η ΓΡΑΜΜΗ ΠΡΩΤΑ, ΤΟ ΑΡΧΕΙΟ ΜΕΤΑ. Ηταν ανάποδα: το αντικείμενο έφευγε από
+    // την αποθήκευση και ΜΟΝΟ ΜΕΤΑ διαγραφόταν η γραμμή. Οταν αποτύγχανε το
+    // δεύτερο βήμα, ο χρήστης διάβαζε «Το αρχείο δεν διαγράφηκε», έβλεπε τη
+    // γραμμή στη θέση της και θεωρούσε το σαρωμένο μισθωτήριο ασφαλές. Ηταν
+    // ήδη χαμένο, οριστικά.
+    //
+    // Ανάποδα, η αποτυχία αφήνει γραμμή ΚΑΙ αρχείο σύμφωνα: το μήνυμα λέει την
+    // αλήθεια και η επόμενη προσπάθεια βρίσκει τα δύο στη θέση τους.
     if (!await saved('Το αρχείο δεν διαγράφηκε', documents.remove(supabase, it.raw.id))) return;
+    // Και το αντικείμενο φεύγει τώρα. Αν αποτύχει ΑΥΤΟ, μένει ορφανό στην
+    // αποθήκευση: ο χρήστης δεν το βλέπει πουθενά και δεν του λέμε ψέματα.
+    const { error: gone } = await supabase.storage.from('property-files').remove([it.raw.file_path]);
+    if (gone) notifyError('Η γραμμή έφυγε αλλά το αρχείο δεν σβήστηκε');
     if (lightbox?.id === it.id) setLightbox(null);
     fetchAll();
   };
@@ -596,9 +606,11 @@ export default function TabDocuments({
     // ό,τι διαγραφεί μετά το await είναι ακριβώς όσα μέτρησε το μήνυμα. Επιπλέον ο
     // διάλογος έχει δικό του scrim, οπότε η επιλογή δεν αλλάζει όσο ρωτάει.
     if (prefs.confirmBeforeDelete && !(await confirmDialog(`Να διαγραφούν οριστικά ${selRaw.length} ${selRaw.length === 1 ? 'αρχείο' : 'αρχεία'};`, { tone: 'negative' }))) return;
-    await supabase.storage.from('property-files').remove(selRaw.map(i => i.raw!.file_path));
+    // Η ΙΔΙΑ ΣΕΙΡΑ ΜΕ ΤΗ ΜΟΝΑΔΙΚΗ ΔΙΑΓΡΑΦΗ: γραμμές πρώτα, αρχεία μετά.
     if (!await saved('Τα αρχεία δεν διαγράφηκαν',
       documents.removeMany(supabase, selRaw.map(i => i.raw!.id)))) return;
+    const { error: gone } = await supabase.storage.from('property-files').remove(selRaw.map(i => i.raw!.file_path));
+    if (gone) notifyError('Οι γραμμές έφυγαν αλλά κάποια αρχεία δεν σβήστηκαν');
     setSelected(new Set()); fetchAll();
   };
   const bulkDownload = () => { selItems.filter(i => i.url).forEach(i => window.open(i.url!, '_blank', 'noopener')); };
