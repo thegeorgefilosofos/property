@@ -24,7 +24,7 @@ import type { Metadata } from 'next';
 import { T } from '@/components/tokens';
 import { siteUrl } from '@/lib/core/site';
 import { athensToday } from '@/lib/core/time';
-import { PublicHeader, PublicFooter, SectionHead, ToolLede, WRAP, WRAP_PAD } from '../PublicChrome';
+import { PublicHeader, PublicFooter, JsonLd, SectionHead, ToolLede, WRAP, WRAP_PAD } from '../PublicChrome';
 import { BackLink } from '../BackLink';
 import { RentTaxCalculator } from './RentTaxCalculator';
 
@@ -120,8 +120,7 @@ export default function Page() {
       {/* Το δομημένο σχήμα δίνει στη Google τις ερωτήσεις/απαντήσεις αυτούσιες.
           Παράγεται από τον ΙΔΙΟ πίνακα FAQ που αποδίδεται παρακάτω, ώστε να μην
           μπορεί ποτέ να πει άλλα η σελίδα και άλλα το σχήμα. */}
-      <script type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}/>
+      <JsonLd data={jsonLd} />
 
       <PublicHeader />
 

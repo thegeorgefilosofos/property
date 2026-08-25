@@ -22,7 +22,7 @@ import type { Metadata } from 'next';
 import { T } from '@/components/tokens';
 import { siteUrl } from '@/lib/core/site';
 import { athensToday } from '@/lib/core/time';
-import { PublicHeader, PublicFooter, SectionHead, ToolLede, WRAP, WRAP_PAD } from '../PublicChrome';
+import { PublicHeader, PublicFooter, JsonLd, SectionHead, ToolLede, WRAP, WRAP_PAD } from '../PublicChrome';
 import { BackLink } from '../BackLink';
 import { ShortVsLongCalculator } from './ShortVsLongCalculator';
 
@@ -136,8 +136,7 @@ export default function Page() {
 
   return (
     <div className="po-tool-page" style={{ background: 'var(--bg-base)', color: 'var(--text-primary)', minHeight: '100vh', fontFamily: T.font.sans }}>
-      <script type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}/>
+      <JsonLd data={jsonLd} />
 
       <PublicHeader />
 

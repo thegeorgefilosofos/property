@@ -23,6 +23,7 @@
 // κάλυπτε και τις πέντε θα ήταν παραμετροποιημένο σε βαθμό που δεν διαβάζεται.
 // ═══════════════════════════════════════════════════════════════════════════
 import { PRODUCT_NAME } from '@/lib/core/site';
+import { jsonLdScript } from '@/lib/core/jsonLd';
 import { BrandLogo } from '@/components/BrandMark';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
@@ -179,6 +180,29 @@ export function SectionHead({ over, title, sub }: { over: string; title: string;
 
 /** Η φράση της δοκιμής, μία φορά για όλα τα εργαλεία. */
 export const TRIAL_LINE = `${TRIAL_DAYS} ημέρες δωρεάν δοκιμή, χωρίς δέσμευση.`;
+
+/**
+ * ΤΑ ΔΟΜΗΜΕΝΑ ΔΕΔΟΜΕΝΑ, ΓΡΑΜΜΕΝΑ ΜΙΑ ΦΟΡΑ ΚΑΙ ΜΕ ΔΙΑΦΥΓΗ.
+ *
+ * Η ίδια γραμμή `JSON.stringify(jsonLd)` ήταν σε πέντε σελίδες. Πέρα από την
+ * επανάληψη, το `JSON.stringify` ΔΕΝ ΕΙΝΑΙ ΑΣΦΑΛΕΣ μέσα σε `<script>`: αν μια
+ * τιμή περιέχει «</script», ο αναλυτής HTML κλείνει την ετικέτα εκεί, και ό,τι
+ * ακολουθεί γίνεται σήμα προς εκτέλεση. Σήμερα όλες οι τιμές είναι σταθερές
+ * γραμμένες από εμάς, άρα δεν υπάρχει κίνδυνος· η διαφυγή μπαίνει ΤΩΡΑ ώστε να
+ * μην εξαρτάται η ασφάλεια από το να θυμηθεί κάποιος τον κανόνα την ημέρα που
+ * θα βάλει εδώ όνομα ακινήτου ή κείμενο χρήστη.
+ *
+ * Το «<» γίνεται `\u003c`: μένει έγκυρο JSON, ίδιο για τη μηχανή αναζήτησης,
+ * και δεν μπορεί να κλείσει ετικέτα.
+ */
+export function JsonLd({ data }: { data: unknown }) {
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: jsonLdScript(data) }}
+    />
+  );
+}
 
 /**
  * Η ΕΙΣΑΓΩΓΗ ΚΑΘΕ ΔΩΡΕΑΝ ΥΠΟΛΟΓΙΣΤΗ, ΓΡΑΜΜΕΝΗ ΜΙΑ ΦΟΡΑ.

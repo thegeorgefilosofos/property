@@ -13,7 +13,7 @@ import ScrollStory from './ScrollStory';
 import LandingCalculator from './LandingCalculator';
 import Spotlight from './Spotlight';
 import FaqMore from './FaqMore';
-import { PublicFooter } from './PublicChrome';
+import { PublicFooter, JsonLd } from './PublicChrome';
 import { T } from '@/components/tokens';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1615,7 +1615,7 @@ export default async function Landing() {
                (`billingIsLive`), όχι δεύτερη κρίση.
              • `legalName`, ΑΦΜ, διεύθυνση — είναι `null` στο μητρώο νομικής
                ταυτότητας μέχρι να επιβεβαιωθούν, και δεν επινοούνται εδώ. */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+      <JsonLd data={{
         '@context': 'https://schema.org',
         '@graph': [
           {
@@ -1647,7 +1647,7 @@ export default async function Landing() {
             mainEntity: FAQ.map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
           },
         ],
-      }) }} />
+      }} />
 
       {/* ── ΤΟ ΥΠΟΣΕΛΙΔΟ ────────────────────────────────────────────────────
              ΗΤΑΝ ΔΥΟ ΣΤΗΛΕΣ ΣΠΡΩΓΜΕΝΕΣ ΣΤΑ ΑΚΡΑ, ΜΕ ΕΝΑ ΧΑΣΜΑ ΣΤΗ ΜΕΣΗ. Το
