@@ -1304,7 +1304,23 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const r = fabRef.current?.getBoundingClientRect();
     return { w: r?.width || FAB_H, h: r?.height || FAB_H };
   };
-  const fabDrag = useRef<{ sx: number; sy: number; ox: number; oy: number; moved: boolean } | null>(null);
+  // ═══ ΤΟ ΚΟΥΜΠΙ ΠΟΥ ΔΕΝ ΣΕΡΝΟΤΑΝ ΜΕ ΤΟ ΔΑΧΤΥΛΟ ══════════════════════════
+  // Με ποντίκι το σύρσιμο δούλευε. Με δάχτυλο όχι· ο λόγος δεν ήταν ο
+  // κώδικας εδώ: ο περιηγητής κρίνει μόνος του, στην πρώτη κίνηση, αν η
+  // χειρονομία ανήκει στη σελίδα (κύλιση) ή στο στοιχείο. Οσο το κουμπί δεν
+  // δήλωνε `touch-action:none`, την έπαιρνε η σελίδα: έστελνε `pointercancel`
+  // και ΣΤΑΜΑΤΟΥΣΕ να στέλνει `pointermove`.
+  //
+  // ΜΕΤΡΗΜΕΝΟ, ΟΧΙ ΕΙΚΑΣΙΑ (scripts/e2e-touch.mjs, αληθινά αγγίγματα CDP):
+  // σύρσιμο 220px μετακινούσε το κουμπί 18px και μετά κολλούσε. Και επειδή
+  // κανείς δεν άκουγε το `pointercancel`, η κατάσταση «σέρνεται» έμενε ανοιχτή
+  // για πάντα: το επόμενο δάχτυλο ΟΠΟΥΔΗΠΟΤΕ στην οθόνη τραβούσε το κουμπί
+  // μαζί του, 403px σε τηλέφωνο και 1051px σε ταμπλέτα.
+  //
+  // Τρία πράγματα το κλείνουν: το `touch-action:none` στο ίδιο το κουμπί, η
+  // σύλληψη του δείκτη (`setPointerCapture`) ώστε οι κινήσεις να έρχονται εδώ
+  // ακόμη κι όταν το δάχτυλο βγει εκτός· τρίτο, ακροατής στο `pointercancel`.
+  const fabDrag = useRef<{ id: number; sx: number; sy: number; ox: number; oy: number; slop: number; moved: boolean } | null>(null);
   const justDragged = useRef(false);
   useEffect(() => {
     // Φόρτωσε την αποθηκευμένη θέση, ΑΛΛΑ μόνο αν χωράει ολόκληρο το κουμπί μέσα
@@ -1331,32 +1347,56 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   }, [fabPos, dragging]);
   useEffect(() => {
     const move = (e: PointerEvent) => {
-      const d = fabDrag.current; if (!d) return;
+      const d = fabDrag.current; if (!d || e.pointerId !== d.id) return;
       const dx = e.clientX - d.sx, dy = e.clientY - d.sy;
-      if (!d.moved && Math.hypot(dx, dy) < 5) return;
+      if (!d.moved && Math.hypot(dx, dy) < d.slop) return;
       d.moved = true; if (!dragging) setDragging(true);
-      e.preventDefault();
+      if (e.cancelable) e.preventDefault();
       const m = 8;
       const { w, h } = fabBox();
       const x = Math.max(m, Math.min(d.ox + dx, window.innerWidth - w - m));
       const y = Math.max(m, Math.min(d.oy + dy, window.innerHeight - h - m));
       setFabPos({ x, y });
     };
-    const up = () => {
-      const d = fabDrag.current; fabDrag.current = null;
-      if (d?.moved) { justDragged.current = true; setTimeout(() => { justDragged.current = false; }, 80); }
+    // ΤΟ ΤΕΛΟΣ ΕΙΝΑΙ ΤΟ ΙΔΙΟ ΕΙΤΕ ΣΗΚΩΘΗΚΕ ΤΟ ΔΑΧΤΥΛΟ ΕΙΤΕ ΤΟ ΠΗΡΕ ΤΟ ΣΥΣΤΗΜΑ.
+    // Το `pointercancel` έρχεται σε εισερχόμενη κλήση, σε δεύτερο δάχτυλο, σε
+    // αλλαγή εφαρμογής. Χωρίς αυτό, η κατάσταση «σέρνεται» δεν έκλεινε ποτέ.
+    const end = (e: PointerEvent) => {
+      const d = fabDrag.current;
+      if (d && e.pointerId !== d.id) return;
+      fabDrag.current = null;
+      // Το πάτημα που γεννά ένα σύρσιμο με ΠΟΝΤΙΚΙ έρχεται αμέσως μετά το
+      // `pointerup`: ο δείκτης του λέει «ήταν σύρσιμο, μην ανοίξεις». Με ΑΦΗ ο
+      // περιηγητής δεν το στέλνει καν, οπότε ο δείκτης μένει σηκωμένος — και
+      // τον κατεβάζει η ΕΠΟΜΕΝΗ χειρονομία, στο `pointerdown` της. Ετσι κανένα
+      // αυθαίρετο χρονικό όριο δεν κρίνει πότε «τελείωσε» το σύρσιμο: ένα
+      // άγγιγμα αμέσως μετά ανοίγει κανονικά τον βοηθό.
+      if (d?.moved) justDragged.current = true;
       setDragging(false);
     };
     window.addEventListener('pointermove', move, { passive: false });
-    window.addEventListener('pointerup', up);
-    return () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
+    window.addEventListener('pointerup', end);
+    window.addEventListener('pointercancel', end);
+    return () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', end);
+      window.removeEventListener('pointercancel', end);
+    };
   }, [dragging]);
   const startFabDrag = (e: React.PointerEvent) => {
     if (e.button && e.button !== 0) return;
-    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    fabDrag.current = { sx: e.clientX, sy: e.clientY, ox: r.left, oy: r.top, moved: false };
+    justDragged.current = false;
+    const el = e.currentTarget as HTMLElement;
+    const r = el.getBoundingClientRect();
+    // Η ΣΥΛΛΗΨΗ ΤΟΥ ΔΕΙΚΤΗ. Χωρίς αυτήν, ένα γρήγορο σύρσιμο που προσπερνά το
+    // κουμπί χάνει τις κινήσεις του σε όποιο στοιχείο βρεθεί από κάτω.
+    try { el.setPointerCapture(e.pointerId); } catch { /* ο περιηγητής δεν το υποστηρίζει */ }
+    // ΤΟ ΔΑΧΤΥΛΟ ΤΡΕΜΕΙ, ΤΟ ΠΟΝΤΙΚΙ ΟΧΙ. Με το ίδιο κατώφλι, ένα λίγο άτσαλο
+    // άγγιγμα μετρούσε ως σύρσιμο και ο βοηθός δεν άνοιγε.
+    const slop = e.pointerType === 'mouse' ? 5 : 11;
+    fabDrag.current = { id: e.pointerId, sx: e.clientX, sy: e.clientY, ox: r.left, oy: r.top, slop, moved: false };
   };
-  const fabToggle = (next: boolean) => () => { if (justDragged.current) return; setOpen(next); };
+  const fabToggle = (next: boolean) => () => { if (!justDragged.current) setOpen(next); };
   const fabFixed: React.CSSProperties = fabPos ? { left: fabPos.x, top: fabPos.y, right: 'auto', bottom: 'auto' } : {};
   // Θέση πάνελ: αν το κουμπί έχει μετακινηθεί, το πάνελ ανοίγει κοντά του (πάνω ή κάτω, με clamp).
   const panelFixed: React.CSSProperties = (() => {
@@ -1627,7 +1667,15 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
            βοηθός δεν φωνάζει πάνω από αυτό που βοηθά. Τώρα είναι επιφάνεια της
            εφαρμογής με διακριτικό περίγραμμα· γεμίζει με το χρώμα του σήματος
            μόλις πλησιάσει ο κέρσορας ή πάρει εστίαση. */
-        .pa-fab{position:fixed;right:24px;bottom:var(--fab-gap);height:var(--fab-h);padding:0 20px 0 8px;border-radius:100px;border:1px solid var(--border-default);background:var(--bg-surface);color:var(--text-primary);cursor:pointer;display:flex;align-items:center;gap:10px;box-shadow:var(--highlight-inset),var(--elev-1);z-index:1201;transition:background .18s ${T.ease.standard},border-color .18s ${T.ease.standard},color .18s ${T.ease.standard},box-shadow .2s ${T.ease.standard},transform .14s cubic-bezier(.2,0,0,1)}
+        /* ΤΟ touch-action:none ΕΙΝΑΙ Ο ΛΟΓΟΣ ΠΟΥ ΣΕΡΝΕΤΑΙ ΜΕ ΤΟ ΔΑΧΤΥΛΟ.
+           Καμία γραμμή JavaScript δεν μπορεί να το αντικαταστήσει: ο περιηγητής
+           αποφασίζει ΠΡΙΝ στείλει την πρώτη κίνηση αν η χειρονομία ανήκει στη
+           σελίδα ή στο στοιχείο· η μόνη δήλωση που διαβάζει τότε είναι αυτή.
+           Χωρίς την ίδια δήλωση, σύρσιμο 220px μετακινούσε το κουμπί 18px
+           (μετρημένο σε αληθινά αγγίγματα: scripts/e2e-touch.mjs).
+           Το user-select και το -webkit-touch-callout κόβουν την επιλογή
+           κειμένου και το μενού της παρατεταμένης πίεσης πάνω στην πρόσκληση. */
+        .pa-fab{position:fixed;right:24px;bottom:var(--fab-gap);height:var(--fab-h);padding:0 20px 0 8px;border-radius:100px;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;border:1px solid var(--border-default);background:var(--bg-surface);color:var(--text-primary);cursor:pointer;display:flex;align-items:center;gap:10px;box-shadow:var(--highlight-inset),var(--elev-1);z-index:1201;transition:background .18s ${T.ease.standard},border-color .18s ${T.ease.standard},color .18s ${T.ease.standard},box-shadow .2s ${T.ease.standard},transform .14s cubic-bezier(.2,0,0,1)}
         .pa-fab-wrap .pa-fab{position:relative;right:auto;bottom:auto}
         .pa-fab:hover,.pa-fab:focus-visible{background:var(--accent);border-color:var(--accent);color:var(--accent-text);box-shadow:var(--highlight-inset),var(--elev-3);transform:translateY(-1px)}
         .pa-fab:hover .pa-mark,.pa-fab:focus-visible .pa-mark{background:var(--accent-text);color:var(--accent)}
