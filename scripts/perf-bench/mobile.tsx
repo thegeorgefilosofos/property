@@ -16,6 +16,7 @@ import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Responder } from '../e2e-money/fakeDb';
 import { portfolio } from './data';
+import { writeStatus } from '@/lib/property/status';
 import PortfolioTab from '@/app/dashboard/components/PortfolioTab';
 import CashHero from '@/app/dashboard/components/CashHero';
 import RentReceived from '@/app/dashboard/components/RentReceived';
@@ -23,6 +24,11 @@ import InboundInbox from '@/app/dashboard/components/InboundInbox';
 import { CustomSelect } from '@/app/dashboard/components/UIComponents';
 import ExpenseLedger from '@/app/dashboard/components/ExpenseLedger';
 import TabChecklist from '@/app/dashboard/components/TabChecklist';
+// Η ΣΥΓΚΡΙΣΗ ΜΠΗΚΕ ΟΤΑΝ Ο ΠΙΝΑΚΑΣ ΤΗΣ ΕΚΑΝΕ ΤΗΝ ΟΘΟΝΗ ΝΑ ΠΑΕΙ ΠΕΡΑ ΔΩΘΕ. Η
+// ταυτότητα κάθε στήλης («Βραχυχρόνια μίσθωση · 42 τ.μ. · 120.000,00 € · …»)
+// είναι μία μακριά συμβολοσειρά χωρίς όριο πλάτους: τραβούσε τη στήλη όσο
+// χρειαζόταν και ο πίνακας ξεπερνούσε κατά πολύ το πλάτος της οθόνης.
+import TabComparison from '@/app/dashboard/components/TabComparison';
 import { Modal, Btn, PageTitle, InfoBanner, fieldRow } from '@/components/Theme';
 import { createClient } from '@/lib/supabase/client';
 import type { CashLine, CashPosition } from '@/lib/home/cash';
@@ -89,6 +95,15 @@ const cash: CashPosition = {
   owedByMe: { total: 1287.4, count: 4, overdue: 620, overdueCount: 2, lines: lines.slice(0, 4).map(l => ({ ...l, rent: null, label: 'ΕΝΦΙΑ δόση Ιανουαρίου' })) },
 };
 
+// ΤΑ ΔΥΟ ΑΚΙΝΗΤΑ ΤΗΣ ΣΥΓΚΡΙΣΗΣ ΕΙΝΑΙ ΤΟΥ ΙΔΙΟΥ ΤΥΠΟΥ, ΑΛΛΙΩΣ Η ΟΘΟΝΗ ΔΕΙΧΝΕΙ
+// ΚΕΝΗ ΚΑΤΑΣΤΑΣΗ. Ο πάγκος έδινε το χαρτοφυλάκιο όπως έρχεται και η καρτέλα
+// απαντούσε, σωστά, «κανένα ζευγάρι ακινήτων ίδιου τύπου»: ο έλεγχος πλάτους
+// θα μετρούσε άδεια οθόνη. Τα νούμερα είναι αυτά της αναφοράς του χρήστη.
+const comparePair = [
+  { id: 'c1', name: 'Στούντιο Κουκάκι', prop_type: 'apartment', sqm: 42, value: 120000, ...writeStatus('rent_short') },
+  { id: 'c2', name: 'Διαμέρισμα Παγκράτι', prop_type: 'apartment', sqm: 78, value: 150000, ...writeStatus('rent_short') },
+];
+
 const OPTS = Array.from({ length: 14 }, (_, i) => ({ value: `v${i}`, label: `Κατηγορία δαπάνης πολύ μακρύ όνομα ${i + 1}` }));
 
 function ModalDemo() {
@@ -141,6 +156,7 @@ const VIEWS: Record<string, () => React.ReactElement> = {
   inbox: () => <InboundInbox propertyId="p0" userId="u1" propertyName="Ακίνητο 1" onFiled={() => {}} />,
   ledger: () => <ExpenseLedger propertyId="p0" userId="u1" />,
   checklist: () => <TabChecklist propertyId="p0" userId="u1" />,
+  compare: () => <TabComparison properties={comparePair as never} userId="u1" />,
   modal: () => <ModalDemo />,
   select: () => <SelectDemo />,
 };

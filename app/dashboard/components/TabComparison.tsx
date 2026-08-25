@@ -83,6 +83,15 @@ const TYPE_LABELS: Record<string, string> = {
   storage: 'Αποθήκες κτιρίου', villa: 'Βίλες', other: 'Άλλα',
 };
 
+/**
+ * Το πλάτος της στήλης με τα ονόματα των μετρήσεων.
+ *
+ * ΓΡΑΦΕΤΑΙ ΜΙΑ ΦΟΡΑ: το ίδιο νούμερο χρειάζεται και το ελάχιστο πλάτος του
+ * πίνακα και ο υπολογισμός των ίσων στηλών. Δύο αντίγραφα σημαίνει πίνακας που
+ * μια μέρα θα ζητά περισσότερο πλάτος απ' όσο μοιράζει.
+ */
+const LABEL_COL = 200;
+
 export default function TabComparison({ properties, userId }: Props) {
   const supabase = createClient();
   const [agg, setAgg] = useState<Record<string, Agg>>({});
@@ -448,20 +457,58 @@ export default function TabComparison({ properties, userId }: Props) {
       ) : (
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           <div className="table-wrap" style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 200 + rowsData.length * 150 }}>
+          {/* ΟΙ ΣΤΗΛΕΣ ΤΩΝ ΑΚΙΝΗΤΩΝ ΕΙΝΑΙ ΙΣΕΣ, ΚΑΙ ΑΥΤΟ ΘΕΛΕΙ ΡΗΤΗ ΔΗΛΩΣΗ.
+              Με αυτόματη διάταξη ο περιηγητής μοιράζει το πλάτος κατά
+              ΠΕΡΙΕΧΟΜΕΝΟ: μετρημένο στα 375, το «Στούντιο Κουκάκι» έπαιρνε 159
+              και το «Διαμέρισμα Παγκράτι» 186. Δύο στήλες που συγκρίνονται δεν
+              επιτρέπεται να έχουν άλλο πλάτος η καθεμία — το μάτι διαβάζει τη
+              διαφορά ως σημασία. Με σταθερή διάταξη και ρητά πλάτη, οι στήλες
+              των ακινήτων είναι ίσες εξ ορισμού, όσα κι αν είναι. */}
+          <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', minWidth: LABEL_COL + rowsData.length * 150 }}>
             <thead>
               <tr>
-                <th style={{ ...th, position: 'sticky', left: 0, zIndex: 1, background: 'var(--bg-surface)' }} />
+                <th style={{ ...th, width: LABEL_COL, position: 'sticky', left: 0, zIndex: 1, background: 'var(--bg-surface)' }} />
                 {rowsData.map(r => (
-                  <th key={r.p.id} style={{ ...th, textAlign: 'right' }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'none', letterSpacing: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 200 }}>{r.p.name}</div>
+                  <th key={r.p.id} style={{ ...th, width: `calc((100% - ${LABEL_COL}px) / ${rowsData.length})`, textAlign: 'right' }}>
+                    <div title={r.p.name} style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'none', letterSpacing: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{r.p.name}</div>
                     {/* Ταυτότητα, όχι μετρική: εμβαδόν, αξία και τιμή/τ.μ. λένε ποιο
                         ακίνητο κοιτάζεις. Δεν έχουν «καλύτερη τιμή», γι' αυτό δεν
                         είναι γραμμές του πίνακα. Ό,τι λείπει, απλώς λείπει —
                         δεν γράφεται παύλα για κάθε πεδίο χωριστά. */}
+                    {/* ═══ Η ΤΑΥΤΟΤΗΤΑ ΤΡΑΒΟΥΣΕ ΤΟΝ ΠΙΝΑΚΑ ΠΕΡΑ ΔΩΘΕ ══════════════════
+                        ΜΕΤΡΗΜΕΝΟ ΣΤΟΝ ΠΑΓΚΟ, ΜΕ ΤΑ ΑΚΙΝΗΤΑ ΤΗΣ ΑΝΑΦΟΡΑΣ. Η γραμμή
+                        «Βραχυχρόνια μίσθωση · 42 τ.μ. · 120.000,00 € · 2.857,14 €
+                        ανά τετραγωνικό» θέλει 425 εικονοστοιχεία και δεν είχε
+                        κανένα όριο πλάτους: τραβούσε τη στήλη στα 453 και τον
+                        πίνακα στα 1.095. Το δοχείο έχει 974 σε ταμπλέτα 1024,
+                        770 στα 820 και 357 σε κινητό 375, οπότε ο πίνακας
+                        ξέφευγε κατά 121, 325 και 738 αντίστοιχα. Ο χρήστης
+                        έσερνε οριζόντια για να διαβάσει μια ΤΑΥΤΟΤΗΤΑ, όχι
+                        νούμερα: η σύγκριση, που είναι όλος ο λόγος της οθόνης,
+                        γινόταν αδύνατη γιατί δεν χωρούσαν δύο στήλες μαζί.
+
+                        ΤΟ ΟΡΙΟ ΤΟ ΔΙΝΕΙ Η ΙΔΙΑ Η ΣΤΗΛΗ, ΟΧΙ ΔΕΥΤΕΡΟ ΝΟΥΜΕΡΟ. Με
+                        σταθερή διάταξη το πλάτος της στήλης δεν εξαρτάται πια
+                        από το περιεχόμενο, οπότε ένα καρφωμένο «200» εδώ μέσα
+                        θα ξέφευγε από στήλη 150 στο κινητό και θα άφηνε αέρα σε
+                        στήλη 595 στο laptop. Η γραμμή τυλίγεται σε δύο ή τρεις
+                        σειρές, ακριβώς ό,τι κάνει κάθε δευτερεύον κείμενο.
+
+                        ΚΑΙ ΤΟ «ΑΝΑ ΤΕΤΡΑΓΩΝΙΚΟ» ΓΙΝΕΤΑΙ «/τ.μ.» ΕΔΩ: η μονάδα
+                        λέγεται ήδη δύο στοιχεία πριν («42 τ.μ.»), οπότε η
+                        ολογράφως επανάληψη είναι το ίδιο πράγμα δεύτερη φορά.
+                        Οι γραμμές του πίνακα από κάτω κρατούν την πλήρη
+                        διατύπωση, γιατί εκεί στέκει μόνη της.
+
+                        ΚΑΙ Ο ΔΙΑΧΩΡΙΣΤΗΣ ΔΕΝ ΞΕΚΙΝΑ ΣΕΙΡΑ. Με σκέτο κενό πριν
+                        την τελεία, η αναδίπλωση άφηνε δεύτερη σειρά που άρχιζε
+                        με «· 2.857,14 €/τ.μ.»: μια τελεία μόνη της στην αρχή
+                        διαβάζεται ως λάθος. Το αδιάσπαστο κενό δένει την τελεία
+                        στη λέξη ΠΡΙΝ, οπότε το σπάσιμο πέφτει πάντα ανάμεσα σε
+                        δύο στοιχεία. */}
                     <div title={r.p.value ? 'Εμπορική αξία' : 'Αντικειμενική αξία (Ε9), επειδή δεν έχει καταχωρηθεί εμπορική'}
-                      style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginTop: 3, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>
-                      {[statusLabel(r.p as StatusRow) || null, r.sqm > 0 ? `${fn(r.sqm)} τ.μ.` : null, r.value != null ? fe(r.value) : null, r.perSqm != null ? `${fe(r.perSqm)} ανά τετραγωνικό` : null].filter(Boolean).join(' · ') || ABSENT}
+                      style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginTop: 3, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', maxWidth: '100%', whiteSpace: 'normal', lineHeight: 1.45 }}>
+                      {[statusLabel(r.p as StatusRow) || null, r.sqm > 0 ? `${fn(r.sqm)} τ.μ.` : null, r.value != null ? fe(r.value) : null, r.perSqm != null ? `${fe(r.perSqm)}/τ.μ.` : null].filter(Boolean).join('\u00a0· ') || ABSENT}
                     </div>
                   </th>
                 ))}

@@ -104,9 +104,32 @@ export const PanelFX = () => (
        Το ερώτημα είναι το ΠΛΑΙΣΙΟ και όχι η οθόνη: στα 768 το ίδιο πλαίσιο έχει
        534 εικονοστοιχεία και τα τρία πλακίδια στέκουν άνετα. */
     @container (max-width: 470px) {
-      .lp-kpis { grid-template-columns: 1fr !important; gap: 8px !important; }
-      .lp-kpis > * { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; text-align: left !important; padding: 11px 14px !important; }
-      .lp-kpis > * > div:first-child { margin-bottom: 0 !important; }
+      /* Ο κανόνας των δεικτών έφυγε από εδώ: κρίνει τη σειρά τους, όχι το
+         πλαίσιο. Εδώ μένει μόνο ό,τι αφορά ΟΛΟ το πλάτος του πλαισίου. */
+    }
+    /* ═══ ΤΟ ΕΡΩΤΗΜΑ ΕΙΝΑΙ Η ΣΕΙΡΑ ΤΩΝ ΔΕΙΚΤΩΝ, ΚΑΙ ΟΧΙ ΤΟ ΠΛΑΙΣΙΟ ══════════
+       ΤΟ ΣΦΑΛΜΑ, ΜΕΤΡΗΜΕΝΟ ΣΕ ΠΡΑΓΜΑΤΙΚΟ CHROMIUM. Ο παλιός κανόνας ρωτούσε
+       «είναι το ΠΛΑΙΣΙΟ κάτω από 470;». Σε κάθε laptop το πλαίσιο μένει ~505,
+       δηλαδή περνούσε τον έλεγχο, αλλά η σειρά των δεικτών από μέσα του είχε
+       μόλις 273: το πλευρικό μενού τρώει 150 και τα γεμίσματα άλλα 76. Τρία
+       πλακίδια των 84 με ετικέτες που θέλουν 60, 84 και 75 σημαίνει ότι
+       κόβονταν ΚΑΙ ΤΑ ΤΡΙΑ, σε 1280, 1366, 1440, 1512, 1680 και 1920.
+
+       ΤΟ ΚΑΤΩΦΛΙ ΒΓΑΙΝΕΙ ΑΠΟ ΤΑ ΝΟΥΜΕΡΑ, ΔΕΝ ΔΙΑΛΕΓΕΤΑΙ: η πλατύτερη ετικέτα
+       θέλει 84 και το γέμισμα 20, άρα το πλακίδιο 104· τρία τέτοια με δύο κενά
+       των 10 κάνουν 332. Κάτω από αυτό δεν χωρούν τρεις στήλες με τίποτα.
+
+       ΚΑΙ ΤΟ ΣΠΑΣΙΜΟ ΤΗΣ ΛΕΞΗΣ ΔΕΝ ΕΙΝΑΙ ΛΥΣΗ. Η πρώτη μου διόρθωση έβαλε
+       «overflow-wrap: anywhere» ώστε να μην κόβεται τίποτα. Κανένα κείμενο δεν
+       κοβόταν πια και η μέτρηση έβγαινε πράσινη — με ΕΝΑ ΓΡΑΜΜΑ ΑΝΑ ΣΕΙΡΑ.
+       Ενας έλεγχος που μετρά μόνο «κόπηκε;» δεν βλέπει το «διαβάζεται;». */
+    @container (max-width: 332px) {
+      /* Σε μία στήλη το subgrid δεν χρειάζεται: κάθε δείκτης είναι μία σειρά με
+         την ετικέτα αριστερά και τον αριθμό δεξιά. Η δήλωση επαναφέρεται ρητά,
+         αλλιώς το «grid-row: span 2» θα άφηνε κενές σειρές ανάμεσά τους. */
+      .lp-kpis { grid-template-columns: 1fr !important; grid-template-rows: none !important; gap: 8px !important; }
+      .lp-kpis > * { display: flex !important; grid-row: auto !important; align-items: baseline; justify-content: space-between; gap: 12px; text-align: left !important; padding: 11px 14px !important; }
+      .lp-kpis > * > div:first-child { padding-bottom: 0 !important; }
     }
     .lp-rail { display: flex; }
     @media (max-width: 760px) { .lp-rail { display: none; } }
@@ -139,7 +162,7 @@ export function PanelDashboard() {
           </div>
         ))}
       </div>
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ flex: 1, minWidth: 0, containerType: 'inline-size', display: 'flex', flexDirection: 'column', gap: 14 }}>
         {/* ═══ ΤΟ ΠΟΣΟ ΕΒΓΑΙΝΕ ΕΞΩ ΑΠΟ ΤΟ ΠΛΑΚΙΔΙΟ ═════════════════════════════
             ΤΙ ΣΥΝΕΒΑΙΝΕ. Το «1.250,00 €» είναι δέκα χαρακτήρες· τα άλλα δύο
             πλακίδια έχουν πέντε και τρεις. Με μέγεθος δεμένο στο ΠΛΑΤΟΣ ΟΘΟΝΗΣ
@@ -165,9 +188,27 @@ export function PanelDashboard() {
             κενό έπεφτε πάντα δεξιά και σε άλλο μέγεθος σε καθένα: τρία κουτιά
             ίδιου σχήματος με τρία διαφορετικά βάρη. Στο κέντρο, το κενό
             μοιράζεται και στις δύο πλευρές και η σειρά ισορροπεί. */}
-        <div className="lp-kpis" style={{ containerType: 'inline-size', display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
+        {/* ═══ ΟΙ ΤΡΕΙΣ ΕΤΙΚΕΤΕΣ ΚΟΒΟΝΤΑΝ ΣΤΗ ΜΕΣΗ, ΣΕ ΚΑΘΕ LAPTOP ═══════════════
+            ΜΕΤΡΗΜΕΝΟ ΣΕ ΠΡΑΓΜΑΤΙΚΟ CHROMIUM (1280, 1366, 1440, 1512, 1680, 1920):
+            το πλαίσιο της ιστορίας μένει ~505px σε ΚΑΘΕ μία από αυτές τις οθόνες,
+            η σειρά των πλακιδίων 270px και το πλακίδιο 84px. Με γέμισμα 14 δεξιά
+            κι αριστερά, το περιεχόμενο έχει 56px. Οι ετικέτες θέλουν 60, 84 και
+            75. Δηλαδή ΚΑΙ ΟΙ ΤΡΕΙΣ κόβονταν στη μέση από το overflow του
+            πλακιδίου· και το «92%» έβγαινε 7px έξω από το ίδιο το πλαίσιο.
+            Στην πρώτη εικόνα του προϊόντος, στην αρχική σελίδα.
+
+            ΓΙΑΤΙ ΤΟ NOWRAP ΗΤΑΝ ΛΑΘΟΣ ΕΡΓΑΛΕΙΟ. Μπήκε για να μη διαφέρουν τα
+            ύψη των τριών πλακιδίων. Σε πλέγμα όμως τα πλακίδια τεντώνονται ήδη
+            στο ίδιο ύψος· αυτό που όντως ξεστοίχιζε ήταν τα ΠΟΣΑ, όταν μια
+            ετικέτα έπιανε δύο σειρές. Το subgrid το λύνει χωρίς να απαγορεύσει
+            την αναδίπλωση: δύο κοινές σειρές, ετικέτα και ποσό, ίδιες και για
+            τα τρία. Ιδιο ιδίωμα με τις κάρτες πακέτου της τιμολόγησης.
+
+            ΚΑΙ ΤΟ ΓΕΜΙΣΜΑ ΠΕΦΤΕΙ ΣΤΑ 10: τέσσερα εικονοστοιχεία λιγότερα από
+            κάθε πλευρά είναι οκτώ παραπάνω για το κείμενο, σε πλακίδιο 84. */}
+        <div className="lp-kpis" style={{ containerType: 'inline-size', display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gridTemplateRows: 'auto auto', gap: 10 }}>
           {kpis.map(([l, v], i) => (
-            <div key={i} className="lp-live" style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '13px 14px', minWidth: 0, overflow: 'hidden', textAlign: 'center' }}>
+            <div key={i} className="lp-live" style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '13px 10px', minWidth: 0, overflow: 'hidden', textAlign: 'center', gridRow: 'span 2', display: 'grid', gridTemplateRows: 'subgrid', alignContent: 'start', gap: 0 }}>
               {/* ═══ ΤΟ ΜΕΓΕΘΟΣ ΔΕΝ ΕΙΝΑΙ ΤΟ ΕΡΓΑΛΕΙΟ ΓΙΑ ΝΑ ΧΩΡΕΣΕΙ ΜΙΑ ΛΕΞΗ ══
                   Η ετικέτα κοβόταν με αποσιωπητικά όταν τα ονόματα ήταν δύο
                   λέξεις («ΚΑΘΑΡΗ ΑΠΟΔΟΣΗ», «ΕΣΟΔΑ/ΜΗΝΑ») και η απάντηση τότε
@@ -181,8 +222,8 @@ export function PanelDashboard() {
                   μακρύτερη ετικέτα θέλει 61 στα 11. Χωράει με άνεση, οπότε το
                   μέγεθος γίνεται σταθερό: όποιος διαβάζει από τηλέφωνο βλέπει
                   το ίδιο κείμενο με όποιον διαβάζει από υπολογιστή. */}
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, lineHeight: 1.3, whiteSpace: 'nowrap' }}>{l}</div>
-              <div style={{ fontFamily: T.font.sans, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.025em', fontSize: 'clamp(11px, 4.2cqi, 19px)', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.1, whiteSpace: 'nowrap' }}>{v}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', paddingBottom: 8, lineHeight: 1.3 }}>{l}</div>
+              <div style={{ fontFamily: T.font.sans, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.025em', fontSize: 'clamp(11px, 3.4cqi, 19px)', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.1, whiteSpace: 'nowrap', alignSelf: 'end' }}>{v}</div>
             </div>
           ))}
         </div>

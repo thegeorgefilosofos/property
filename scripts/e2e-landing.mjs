@@ -228,6 +228,62 @@ for (const [w, h, label] of [[1440, 900, 'υπολογιστής 1440'], [820, 1
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// Η ΕΙΚΟΝΑ ΤΟΥ ΠΡΟΪΟΝΤΟΣ ΔΙΑΒΑΖΕΤΑΙ ΣΕ ΚΑΘΕ LAPTOP
+// ─────────────────────────────────────────────────────────────────────────
+// ΤΙ ΜΕΤΡΗΘΗΚΕ ΠΡΙΝ. Το πλαίσιο της ιστορίας μένει ~505px σε ΚΑΘΕ laptop
+// (1280, 1366, 1440, 1512, 1680, 1920), αλλά η σειρά των δεικτών από μέσα του
+// έχει 273: το πλευρικό μενού τρώει 150 και τα γεμίσματα άλλα 76. Τρία
+// πλακίδια των 84 με ετικέτες που θέλουν 60, 84 και 75 σημαίνει ότι κόβονταν
+// ΚΑΙ ΤΑ ΤΡΙΑ, στην πρώτη εικόνα του προϊόντος. Και το «92%» έβγαινε 7px έξω.
+//
+// ΚΑΙ ΓΙΑΤΙ ΜΕΤΡΙΟΥΝΤΑΙ ΓΡΑΜΜΕΣ ΚΑΙ ΟΧΙ ΜΟΝΟ ΚΟΨΙΜΟ. Η πρώτη διόρθωση έβαλε
+// «overflow-wrap: anywhere»: τίποτα δεν κοβόταν πια, η μέτρηση έβγαινε πράσινη
+// και η ετικέτα αποδιδόταν με ΕΝΑ ΓΡΑΜΜΑ ΑΝΑ ΣΕΙΡΑ. Ενας έλεγχος που ρωτά
+// μόνο «κόπηκε;» δεν βλέπει το «διαβάζεται;».
+for (const w of [390, 430, 768, 820, 1024, 1280, 1366, 1440, 1512, 1920]) {
+  const p = await browser.newPage()
+  await p.setViewportSize({ width: w, height: 900 })
+  await p.goto(BASE + '/', { waitUntil: 'networkidle' })
+  const r = await p.evaluate(() => {
+    const frame = document.querySelector('.story-frame')
+    if (!frame) return null   // κάτω από 900 το πλαίσιο δεν αποδίδεται
+    const bad = []
+    // ΤΟ ΨΑΛΙΔΙ ΔΕΝ ΕΙΝΑΙ ΠΑΝΤΑ ΤΟ ΠΛΑΙΣΙΟ, ΚΑΙ ΕΤΣΙ ΗΤΑΝ ΓΡΑΜΜΕΝΟΣ ΠΡΩΤΑ Ο
+    // ΕΛΕΓΧΟΣ. Συνέκρινε κάθε στοιχείο με το πλαίσιο και με το `scrollWidth`
+    // του ίδιου του στοιχείου. Η ετικέτα όμως ΔΕΝ κόβεται μόνη της: κόβεται από
+    // το πλακίδιο που την περιέχει, που έχει «overflow: hidden». Το κείμενο
+    // έβγαινε 12px έξω από το πλακίδιο, έμενε μέσα στο πλαίσιο· ο έλεγχος
+    // έβγαινε πράσινος με το σφάλμα ζωντανό. Τώρα ρωτά τον ΠΛΗΣΙΕΣΤΕΡΟ πρόγονο
+    // που όντως κόβει.
+    const clipperOf = (el) => {
+      for (let n = el.parentElement; n; n = n.parentElement) {
+        const cs = getComputedStyle(n)
+        if (/hidden|auto|scroll|clip/.test(cs.overflowX) || /hidden|auto|scroll|clip/.test(cs.overflowY)) return n
+        if (n === frame) return frame
+      }
+      return frame
+    }
+    for (const el of frame.querySelectorAll('*')) {
+      const b = el.getBoundingClientRect()
+      if (b.width < 1 || b.height < 1) continue
+      const t = (el.textContent || '').trim()
+      if (!t || el.children.length > 0) continue
+      const box = clipperOf(el).getBoundingClientRect()
+      if (b.right > box.right + 1 || b.left < box.left - 1)
+        bad.push(`κομμένο «${t.slice(0, 18)}» κατά ${Math.round(Math.max(b.right - box.right, box.left - b.left))}px`)
+      // Πόσες σειρές πιάνει το κείμενο. Πάνω από τρεις για μια ετικέτα ή έναν
+      // αριθμό σημαίνει ότι η λέξη σπάει, όχι ότι τυλίγεται.
+      const lh = parseFloat(getComputedStyle(el).lineHeight) || 16
+      const lines = Math.round(b.height / lh)
+      if (lines > 3) bad.push(`${lines} σειρές για «${t.slice(0, 18)}»`)
+    }
+    return { bad: [...new Set(bad)] }
+  })
+  ok(`η εικόνα του προϊόντος διαβάζεται στα ${w}`, !r || r.bad.length === 0, r ? r.bad.slice(0, 3).join(' · ') : '')
+  await p.close()
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // ΟΙ ΤΕΣΣΕΡΙΣ ΚΑΡΤΕΣ ΠΑΚΕΤΟΥ ΖΥΓΙΖΟΥΝ ΣΕ ΚΑΘΕ ΠΛΑΤΟΣ
 // ─────────────────────────────────────────────────────────────────────────
 // ΤΙ ΜΕΤΡΗΘΗΚΕ ΠΡΙΝ (πραγματικό Chromium, Αύγουστος 2026):
