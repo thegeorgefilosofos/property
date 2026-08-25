@@ -28,6 +28,7 @@
 //
 // ΔΕΝ ΤΡΕΧΕΙ ΣΤΟ CI: χρειάζεται ζωντανό server και browser.
 // ═══════════════════════════════════════════════════════════════════════════
+import { chromePath } from './lib/chrome.mjs';
 import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
 let pkg
@@ -83,7 +84,7 @@ for (const path of PUBLIC) {
 
 {
   const p = await (await chromium.launch({
-    executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+    executablePath: process.env.CHROMIUM_PATH || chromePath(),
     args: ['--no-sandbox'],
   })).newPage()
   await p.goto(B + '/accountant/workspace', { waitUntil: 'networkidle' })
@@ -110,7 +111,7 @@ if (!EMAIL || !PASSWORD) {
 } else {
   console.log('\nΒ. Οι διαδρομές του χρήστη')
   const b = await chromium.launch({
-    executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+    executablePath: process.env.CHROMIUM_PATH || chromePath(),
     args: ['--no-sandbox'],
   })
   const ctx = await b.newContext({ viewport: { width: 1440, height: 1000 }, locale: 'el-GR' })
@@ -217,7 +218,7 @@ if (!EMAIL || !PASSWORD) {
 if (process.env.E2E_SENTRY === '1') {
   console.log('\nΓ. Η αναφορά σφάλματος')
   const b = await chromium.launch({
-    executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+    executablePath: process.env.CHROMIUM_PATH || chromePath(),
     args: ['--no-sandbox'],
   })
   const p = await b.newPage()

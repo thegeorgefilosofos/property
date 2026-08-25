@@ -24,11 +24,12 @@
 // το γούστο του κατασκευαστή. Ο,τι βγαίνει έξω από τον κεντρικό κύκλο του 80%
 // μπορεί να κοπεί. Γι' αυτό το σήμα εκεί μπαίνει μικρότερο.
 // ═══════════════════════════════════════════════════════════════════════════
+import { chromePath } from './lib/chrome.mjs';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { inflateSync, deflateSync } from 'node:zlib';
 import { chromium } from 'playwright-core';
 
-const CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+const CHROME = chromePath();
 const NAVY = '#0B192C';
 const WHITE = '#ffffff';
 

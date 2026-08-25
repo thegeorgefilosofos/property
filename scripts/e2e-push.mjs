@@ -18,6 +18,7 @@
 //     npm run build && npm start        (σε άλλο τερματικό)
 //     node scripts/e2e-push.mjs
 // ═══════════════════════════════════════════════════════════════════════════
+import { chromePath } from './lib/chrome.mjs';
 import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
 let pkg
@@ -33,7 +34,7 @@ const ok = (n, c) => { if (c) pass++; else { fail++; console.log('  ✗ ' + n) }
 const wait = ms => new Promise(r => setTimeout(r, ms))
 
 const browser = await chromium.launch({
-  executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  executablePath: process.env.CHROMIUM_PATH || chromePath(),
   args: ['--no-sandbox'],
 })
 const ctx = await browser.newContext()

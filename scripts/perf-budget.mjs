@@ -22,6 +22,7 @@
 //     node scripts/perf-budget.mjs               (έλεγχος)
 //     node scripts/perf-budget.mjs --write       (καταγραφή νέου ορίου)
 // ═══════════════════════════════════════════════════════════════════════════
+import { chromePath } from './lib/chrome.mjs';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
@@ -62,7 +63,7 @@ catch { console.error('Λείπει το playwright-core. Τρέξε: npm i -D p
 
 void (async () => {
   const browser = await chromium.launch({
-    executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+    executablePath: process.env.CHROMIUM_PATH || chromePath(),
     args: ['--no-sandbox'],
   })
 

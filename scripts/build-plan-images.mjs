@@ -16,11 +16,12 @@
 // ενημερώνει, και θα έμενε να ανακοινώνει παλιό ποσό δίπλα στο νέο. Το ταμείο
 // γράφει ήδη την τιμή, σωστά, από μόνο του.
 // ═══════════════════════════════════════════════════════════════════════════
+import { chromePath } from './lib/chrome.mjs';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { chromium } from 'playwright-core';
 import { assertFontApplied } from './lib/font-ready.mjs';
 
-const CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+const CHROME = chromePath();
 const OUT = 'docs/marketing/plan-images';
 const NAVY = '#0B192C';
 const WHITE = '#ffffff';

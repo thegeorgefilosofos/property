@@ -20,6 +20,7 @@
 // Χρειάζεται playwright-core (devDependency κατ' απαίτηση):
 //     npm i -D playwright-core
 // ═══════════════════════════════════════════════════════════════════════════
+import { chromePath } from './lib/chrome.mjs';
 import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
 let pkg
@@ -27,7 +28,7 @@ try { pkg = require('playwright-core') }
 catch { console.error('Λείπει το playwright-core. Τρέξε: npm i -D playwright-core'); process.exit(2) }
 const { chromium } = pkg
 const B = process.env.E2E_BASE || 'http://localhost:3000'
-const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args:['--no-sandbox'] })
+const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || chromePath(), args:['--no-sandbox'] })
 let pass=0, fail=0
 const ok=(n,c)=>{ if(c) pass++; else { fail++; console.log('  ✗ '+n) } }
 

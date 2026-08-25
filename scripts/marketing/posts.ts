@@ -39,7 +39,9 @@ const require = createRequire(import.meta.url);
 const { chromium } = require('playwright-core');
 
 const OUT = join(process.cwd(), 'docs/marketing/posts');
-const CHROME = process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+// Η διαδρομή ρωτιέται, δεν γράφεται: βλ. scripts/lib/chrome.mjs.
+const { chromePath } = require('../lib/chrome.mjs');
+const CHROME: string = chromePath();
 const today = process.argv[2] || athensToday();
 
 /**

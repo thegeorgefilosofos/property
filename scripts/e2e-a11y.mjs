@@ -24,6 +24,7 @@
 //     npm run build && npx next start -p 3100
 //     node scripts/e2e-a11y.mjs
 // ═══════════════════════════════════════════════════════════════════════════
+import { chromePath } from './lib/chrome.mjs';
 import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
 let pkg
@@ -50,7 +51,7 @@ const bad = n => { fail++; console.log('  ✗ ' + n) }
 const ok = (n, c) => c ? pass++ : bad(n)
 
 const b = await chromium.launch({
-  executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  executablePath: process.env.CHROMIUM_PATH || chromePath(),
   args: ['--no-sandbox'],
 })
 

@@ -28,6 +28,7 @@
 //
 //   npm run e2e:keyboard
 // ═══════════════════════════════════════════════════════════════════════════
+import { chromePath } from './lib/chrome.mjs';
 import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
 let pkg
@@ -36,7 +37,7 @@ catch { console.error('Λείπει το playwright-core. Τρέξε: npm i -D p
 const { chromium } = pkg
 
 const PAGE = 'file://' + process.cwd() + '/.perf-bench/keyboard.html'
-const EXE = process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
+const EXE = process.env.CHROMIUM_PATH || chromePath()
 
 let pass = 0, fail = 0
 const ok = (name, cond, extra = '') => {

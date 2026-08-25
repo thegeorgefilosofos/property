@@ -17,6 +17,7 @@
 //
 //  ΧΡΗΣΗ:  npm run e2e:money
 // ═══════════════════════════════════════════════════════════════════════════
+import { chromePath } from './lib/chrome.mjs';
 import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
@@ -43,7 +44,7 @@ const eq = (name, got, want) =>
     `πήρα:    ${JSON.stringify(got)}\n      περίμενα: ${JSON.stringify(want)}`);
 
 const browser = await chromium.launch({
-  executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  executablePath: process.env.CHROMIUM_PATH || chromePath(),
   args: ['--no-sandbox'],
 });
 

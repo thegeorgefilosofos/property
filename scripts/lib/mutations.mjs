@@ -113,6 +113,12 @@ export const MUTATIONS = {
   // Το ελάττωμα που φυλάει: πακέτο χρέωσης στη θέση του τύπου προφίλ. Δεν
   // προστίθεται αρχείο — αλλοιώνεται το ΥΠΑΡΧΟΝ PLAN_LABEL, γιατί αυτό είναι
   // το σημείο που μπορεί πραγματικά να χαλάσει.
+  // Δύο διαδρομές: η καρφωτή διαδρομή σε σενάριο, και η έκδοση του CI που
+  // ξεκολλά από το playwright-core.
+  'chromium-path': { every: [
+    { add: 'scripts/__mut__.mjs', content: "import { chromium } from 'playwright-core';\nawait chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });\n" },
+    { file: '.github/workflows/ci.yml', from: 'playwright@1.62.1 install', to: 'playwright@1.40.0 install' },
+  ] },
   'email-audience': {
     file: 'supabase/functions/_shared/emailTemplates.ts',
     from: "free: 'Δωρεάν', individual: 'Ιδιώτης', professional: 'Επαγγελματίας',",

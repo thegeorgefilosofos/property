@@ -12,12 +12,13 @@
 // κατάσταση είναι σωστή σε κάθε ΜΕΜΟΝΩΜΕΝΟ βήμα: το λάθος υπάρχει μόνο στη
 // ΣΕΙΡΑ «υποβολή, πίσω, ξανά». Αυτό φαίνεται μόνο πατώντας.
 // ═══════════════════════════════════════════════════════════════════════════
+import { chromePath } from './lib/chrome.mjs';
 import { chromium } from 'playwright-core';
 import { existsSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 
-const CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+const CHROME = chromePath();
 const PAGE = resolve('.e2e-signup/index.html');
 if (!existsSync(PAGE)) {
   console.error('✗ Λείπει ο πάγκος. Τρέξε πρώτα: node scripts/e2e-signup/build.mjs');

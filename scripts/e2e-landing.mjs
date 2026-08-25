@@ -21,6 +21,7 @@
 //
 // ΤΡΕΧΕΙ ΜΕ ΖΩΝΤΑΝΟ SERVER:  npm run build && npx next start -p 3100
 // ═══════════════════════════════════════════════════════════════════════════
+import { chromePath } from './lib/chrome.mjs';
 import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
 let pkg
@@ -29,7 +30,7 @@ catch { console.error('Λείπει το playwright-core. Τρέξε: npm i -D p
 const { chromium } = pkg
 
 const BASE = process.env.E2E_BASE || 'http://localhost:3100'
-const EXE = process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
+const EXE = process.env.CHROME || chromePath()
 
 let pass = 0, fail = 0
 const ok = (name, cond, extra = '') => {

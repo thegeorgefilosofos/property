@@ -11,13 +11,14 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // Δοκιμάζει υποψήφια κείμενα ΜΕΣΑ στο πραγματικό στοιχείο, χωρίς ξαναχτίσιμο.
 // node probe.mjs <πλάτος> <selector> <αρχείο-με-μία-πρόταση-ανά-γραμμή>
+import { chromePath } from './lib/chrome.mjs';
 import { chromium } from 'playwright-core';
 import { readFileSync } from 'node:fs';
 const w = Number(process.argv[2]) || 1160;
 const sel = process.argv[3];
 const cands = readFileSync(process.argv[4], 'utf8').split('\n').filter(Boolean);
 const nth = Number(process.argv[5]) || 0;
-const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+const b = await chromium.launch({ executablePath: chromePath() });
 const p = await b.newPage({ viewport: { width: w, height: 1000 } });
 await p.goto('http://localhost:3111/', { waitUntil: 'networkidle' });
 await p.evaluate(() => { document.querySelectorAll('.lp-reveal').forEach(e => { e.style.opacity='1'; e.style.transform='none'; }); document.querySelectorAll('details').forEach(d => d.open = true); });

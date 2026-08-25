@@ -10,6 +10,7 @@
 // τα ΟΡΑΤΑ χειριστήρια: όχι όσα υπάρχουν στο DOM, όσα βλέπει ο άνθρωπος πριν
 // πατήσει «Περισσότερα». Το όριο είναι καστάνια: μόνο προς τα κάτω.
 // ═══════════════════════════════════════════════════════════════════════════
+import { chromePath } from './lib/chrome.mjs';
 import { chromium } from 'playwright-core'
 import { execSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
@@ -52,7 +53,7 @@ const LABEL = {
 }
 
 const browser = await chromium.launch({
-  executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  executablePath: chromePath(),
   args: ['--no-sandbox'],
 })
 const page = await browser.newPage({ viewport: { width: 1280, height: 1000 } })

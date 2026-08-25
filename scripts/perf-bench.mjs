@@ -14,6 +14,7 @@
 // Τρέξε:  npm run perf:bench            (έλεγχος στα όρια)
 //         npm run perf:bench -- --write (καταγραφή νέου ορίου)
 // ═══════════════════════════════════════════════════════════════════════════
+import { chromePath } from './lib/chrome.mjs';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { createRequire } from 'node:module'
@@ -41,7 +42,7 @@ const gr = n => String(Math.round(n))
 
 void (async () => {
   const browser = await chromium.launch({
-    executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+    executablePath: process.env.CHROMIUM_PATH || chromePath(),
     args: ['--no-sandbox'],
   })
   const file = 'file://' + join(ROOT, '.perf-bench/index.html')
