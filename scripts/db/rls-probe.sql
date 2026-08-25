@@ -1738,10 +1738,51 @@ begin
     raise exception 'Ξεκίνησε ρολόι διαγραφής σε λογαριασμό διαχειριστή';
   end if;
 
+  -- ── Η ΠΑΥΣΗ ΔΕΝ ΕΙΝΑΙ ΕΓΚΑΤΑΛΕΙΨΗ ────────────────────────────────────
+  -- Ο πελάτης πατά «παύση» στην πύλη του εμπόρου: το πακέτο πέφτει σε «free»
+  -- γιατί η παύση δεν δίνει πρόσβαση, αλλά η συνδρομή του υπάρχει και η κάρτα
+  -- του είναι δηλωμένη. Σβήνοντάς τον, χάναμε ΚΑΙ τα δεδομένα του ΚΑΙ το
+  -- `mor_subscription_id`, δηλαδή το μοναδικό αναγνωριστικό με το οποίο θα
+  -- μπορούσαμε να ακυρώσουμε στον έμπορο.
+  delete from public.app_admins where lower(btrim(email)) = v_mail;
+  update public.billing_profiles
+     set plan = 'free', lapsed_at = null,
+         mor_subscription_id = 'sub_probe_1', subscription_status = 'paused'
+   where user_id = v_uid;
+  perform public.sweep_lapsed_accounts(true);
+  select lapsed_at into v_when from public.billing_profiles where user_id = v_uid;
+  if v_when is not null then
+    raise exception 'Ξεκίνησε ρολόι διαγραφής σε συνδρομητή που πάτησε παύση';
+  end if;
+  update public.billing_profiles
+     set lapsed_at = now() - ((public.account_grace_days() + 1) || ' days')::interval
+   where user_id = v_uid;
+  res := public.purge_lapsed_account(v_uid, true);
+  if res->>'skipped' <> 'exempt' then
+    raise exception 'Σβήστηκε λογαριασμός με ζωντανή συνδρομή στον έμπορο: %', res;
+  end if;
+
+  -- Το ίδιο για την αποτυχημένη είσπραξη: κάρτα που έληξε, όχι άνθρωπος που έφυγε.
+  update public.billing_profiles set subscription_status = 'unpaid' where user_id = v_uid;
+  res := public.purge_lapsed_account(v_uid, true);
+  if res->>'skipped' <> 'exempt' then
+    raise exception 'Σβήστηκε λογαριασμός σε ανείσπρακτη συνδρομή: %', res;
+  end if;
+
+  -- ΚΑΙ ΟΤΑΝ Ο ΕΜΠΟΡΟΣ ΛΕΕΙ ΟΤΙ ΤΕΛΕΙΩΣΕ, Η ΠΡΟΣΤΑΣΙΑ ΦΕΥΓΕΙ. Αλλιώς τα δύο
+  -- παραπάνω θα σήμαιναν «κανένας συνδρομητής δεν σβήνεται ποτέ», που είναι
+  -- άλλο σφάλμα με το ίδιο πράσινο.
+  update public.billing_profiles set subscription_status = 'expired' where user_id = v_uid;
+  if public.account_is_exempt(v_uid) then
+    raise exception 'Ληγμένη συνδρομή κρατά τον λογαριασμό εξαιρεμένο για πάντα';
+  end if;
+
   -- ── ΚΑΙ ΟΤΑΝ ΙΣΧΥΟΥΝ ΟΛΑ, ΣΒΗΝΕΙ ΠΡΑΓΜΑΤΙΚΑ ──────────────────────────
   -- Αλλιώς τα έξι παραπάνω θα αποδείκνυαν απλώς έναν μηχανισμό που δεν κάνει
   -- τίποτα ποτέ και θα περνούσαν όλα πράσινα.
-  delete from public.app_admins where lower(btrim(email)) = v_mail;
+  update public.billing_profiles
+     set mor_subscription_id = null, subscription_status = null
+   where user_id = v_uid;
   perform public.sweep_lapsed_accounts(true);
   update public.billing_profiles
      set lapsed_at = now() - ((public.account_grace_days() + 1) || ' days')::interval
@@ -2076,3 +2117,69 @@ begin
 
   raise notice 'probe: τα έξι κείμενα φεύγουν και δεν ξαναφεύγουν στο δεύτερο πέρασμα';
 end $probe$;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+--  Ο ΜΕΤΡΗΤΗΣ ΑΠΟΣΤΟΛΩΝ ΔΕΝ ΜΗΔΕΝΙΖΕΤΑΙ ΑΠΟ ΤΟΝ ΙΔΙΟ ΤΟΝ ΧΡΗΣΤΗ
+--  ─────────────────────────────────────────────────────────────────────────
+--  Η `bump_send_quota` έχει grant στον ρόλο `authenticated`: κάθε συνδεδεμένος
+--  τη φτάνει από τον περιηγητή του. Οσο το παράθυρο ερχόταν ως όρισμα, μια
+--  κλήση με «1 hour» έκανε τον κουβά του ληγμένο και τον ΜΗΔΕΝΙΖΕ — δηλαδή το
+--  όριο των 3.000 παραληπτών ανά εικοσιτετράωρο γινόταν 3.000 ανά ώρα, με δική
+--  μας χρέωση και δική μας φήμη τομέα.
+-- ═══════════════════════════════════════════════════════════════════════════
+do $probe$
+declare
+  v_uid uuid := '9a9a9a9a-0000-4000-8000-000000000901'::uuid;
+  res   json;
+  v_units int;
+begin
+  insert into auth.users (id, email) values (v_uid, 'quota@probe.test');
+  perform set_config('probe.uid', v_uid::text, true);
+
+  -- Πέντε προσπάθειες κωδικού δοκιμαστή είναι το όριο του εικοσιτετραώρου.
+  for i in 1..5 loop
+    res := public.bump_send_quota('tester_code', 1, 5, interval '24 hours');
+    if (res->>'allowed')::boolean is not true then
+      raise exception 'Ο μετρητής έκοψε στην προσπάθεια %, ενώ το όριο είναι πέντε: %', i, res;
+    end if;
+  end loop;
+  res := public.bump_send_quota('tester_code', 1, 5, interval '24 hours');
+  if (res->>'allowed')::boolean is not false then
+    raise exception 'Η έκτη προσπάθεια πέρασε ενώ το όριο είναι πέντε: %', res;
+  end if;
+
+  -- ── ΚΑΙ Η ΕΠΙΘΕΣΗ: ΙΔΙΑ ΚΛΗΣΗ, ΜΙΚΡΟΤΕΡΟ ΠΑΡΑΘΥΡΟ ─────────────────────
+  -- Ο χρήστης γυρίζει τον κουβά του πίσω κατά δύο ώρες και ξανακαλεί λέγοντας
+  -- «το παράθυρό μου είναι μία ώρα». Πριν, ο κουβάς μηδενιζόταν.
+  update public.send_quota set bucket = now() - interval '2 hours'
+   where user_id = v_uid and kind = 'tester_code';
+  res := public.bump_send_quota('tester_code', 1, 5000, interval '1 hour');
+  if (res->>'allowed')::boolean is not false then
+    raise exception 'Ο χρήστης μηδένισε τον μετρητή του δίνοντας μικρότερο παράθυρο: %', res;
+  end if;
+  select units into v_units from public.send_quota where user_id = v_uid and kind = 'tester_code';
+  if v_units < 5 then
+    raise exception 'Ο κουβάς έπεσε στα % μονάδες: το παράθυρο του καλούντα μέτρησε', v_units;
+  end if;
+
+  -- ΚΑΙ ΤΟ ΠΑΡΑΘΥΡΟ ΤΗΣ ΒΑΣΗΣ ΚΥΛΑ ΚΑΝΟΝΙΚΑ. Αλλιώς τα παραπάνω θα σήμαιναν
+  -- «κανένας μετρητής δεν μηδενίζεται ποτέ», που είναι άλλο σφάλμα.
+  update public.send_quota set bucket = now() - interval '25 hours'
+   where user_id = v_uid and kind = 'tester_code';
+  res := public.bump_send_quota('tester_code', 1, 5, interval '24 hours');
+  if (res->>'allowed')::boolean is not true then
+    raise exception 'Ο μετρητής δεν κύλησε μετά το εικοσιτετράωρο: %', res;
+  end if;
+
+  -- ── ΤΟ ΑΓΝΩΣΤΟ ΕΙΔΟΣ ΚΛΕΙΝΕΙ ΤΗΝ ΠΟΡΤΑ ───────────────────────────────
+  res := public.bump_send_quota('kati_pou_den_yparxei', 1, 5, interval '24 hours');
+  if res->>'reason' <> 'unknown_kind' then
+    raise exception 'Αγνωστο είδος αποστολής πέρασε με προεπιλεγμένο όριο: %', res;
+  end if;
+
+  perform set_config('probe.uid', '', true);
+  delete from public.send_quota where user_id = v_uid;
+  delete from auth.users where id = v_uid;
+  raise notice '✓ ο μετρητής αποστολών κρατά το δικό του παράθυρο';
+end
+$probe$;

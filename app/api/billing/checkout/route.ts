@@ -29,6 +29,7 @@ import { createClient } from '@/lib/supabase/server';
 import { PLANS, type PlanId, type BillingCycle } from '@/lib/billing/plans';
 import { isPlanAllowedForProfile, type ProfileType } from '@/lib/billing/entitlements';
 import { merchant } from '@/lib/billing/merchant';
+import { isEntitled, isMorStatus } from '@/lib/billing/subscription';
 import { billingWords } from '@/lib/legal/billingWords';
 import { SITE } from '@/lib/core/site';
 import * as billing from '@/lib/data/billing';
@@ -62,12 +63,30 @@ export async function GET(request: NextRequest) {
   const profile = await billing.profile<{
     profile_type: string | null; trial_used_at: string | null;
     tester_since: string | null; full_name: string | null;
-  }>(supabase, user.id, 'profile_type, trial_used_at, tester_since, full_name');
+    subscription_status: string | null; mor_ends_at: string | null;
+  }>(supabase, user.id, 'profile_type, trial_used_at, tester_since, full_name, subscription_status, mor_ends_at');
 
   // Ο ΔΟΚΙΜΑΣΤΗΣ ΔΕΝ ΕΧΕΙ ΤΙ ΝΑ ΑΓΟΡΑΣΕΙ. Δεν είναι σφάλμα, είναι η κατάστασή
   // του: το προϊόν του δίνεται ολόκληρο και χωρίς συνδρομή στον έμπορο.
   if (profile?.tester_since) {
     return NextResponse.json({ available: false, url: null, tester: true });
+  }
+
+  // ── ΔΕΥΤΕΡΟ ΤΑΜΕΙΟ ΠΑΝΩ ΣΕ ΣΥΝΔΡΟΜΗ ΠΟΥ ΙΣΧΥΕΙ ΑΚΟΜΗ ─────────────────────
+  // Η οθόνη κρύβει το κουμπί όσο τρέχει συνδρομή, αλλά η διαδρομή δεν ρωτούσε
+  // ποτέ: μια διεύθυνση γραμμένη με το χέρι, ένας παλιός σελιδοδείκτης ή μια
+  // καρτέλα ανοιχτή από χθες άνοιγαν ταμείο δίπλα στο πρώτο. Ο πελάτης
+  // κατέληγε με ΔΥΟ συνδρομές στον έμπορο, δύο χρεώσεις τον μήνα και μία μόνο
+  // από τις δύο ορατή στην κάρτα του.
+  //
+  // Ο ΙΔΙΟΣ ΚΑΝΟΝΑΣ ΜΕ ΤΗΝ ΠΡΟΣΒΑΣΗ, ΚΑΙ ΟΧΙ ΔΕΥΤΕΡΟΣ. Το «ισχύει ακόμη;» το
+  // απαντά η `isEntitled`, εκεί όπου το απαντά και για κάθε άλλη διαδρομή: η
+  // ακυρωμένη συνδρομή που τρέχει ώς την ημερομηνία της μετράει ζωντανή.
+  const morStatus = (profile?.subscription_status || '').trim();
+  if (isMorStatus(morStatus) && isEntitled({ status: morStatus, endsAt: profile?.mor_ends_at ?? null }, new Date().toISOString())) {
+    return NextResponse.json({
+      error: 'Υπάρχει ήδη ενεργή συνδρομή. Η αλλαγή πακέτου γίνεται από τη διαχείριση συνδρομής.',
+    }, { status: 409 });
   }
 
   // ── Ο ΤΥΠΟΣ ΠΡΟΦΙΛ ΚΡΙΝΕΙ ΜΟΝΟ ΟΤΑΝ ΕΧΕΙ ΔΗΛΩΘΕΙ ───────────────────────

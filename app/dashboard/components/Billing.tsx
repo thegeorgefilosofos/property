@@ -29,7 +29,7 @@ import { T, Btn, InfoBanner, Spinner, Card, SecHdr, fixedCols, fe, fd } from '@/
 import { PLANS, PLAN_ORDER, normalizePlan, annualPerMonth, type PlanId, type BillingCycle } from '@/lib/billing/plans';
 // Η ΦΑΣΗ ΤΗΣ ΣΥΝΔΡΟΜΗΣ ΔΕΝ ΚΡΙΝΕΤΑΙ ΕΔΩ. Οι καταστάσεις τις ονομάζει ο
 // έμπορος και τις γράφει ο webhook· η οθόνη τις διαβάζει από την ίδια πηγή.
-import { subPhase } from '@/lib/billing/subscription';
+import { subPhase, cardState } from '@/lib/billing/subscription';
 import { ALLOWED_PLANS, planFromParam, cycleFromParam, type ProfileType } from '@/lib/billing/entitlements';
 import { SegmentControl } from './UIComponents';
 import { notifyError, notifyOk } from '@/components/Toast';
@@ -266,8 +266,8 @@ function Subscription({ d, wantPlan = null, wishPlan = null, wishCycle = 'monthl
   const phase = subPhase(status);
   const endsAt = (d.mor_ends_at || '').trim();
   const renewsAt = (d.mor_renews_at || '').trim();
-  /** Τρέχει συνδρομή αυτή τη στιγμή; Τότε το ταμείο θα έφτιαχνε δεύτερη. */
-  const running = phase === 'trial' || phase === 'active' || phase === 'retrying';
+  // Ο κανόνας ζει στο lib/billing/subscription.ts, όπου τον φτάνει δοκιμή.
+  const { tone, running } = cardState({ status, endsAt }, new Date().toISOString());
 
   // ── ΤΟ ΚΟΥΜΠΙ ΡΩΤΑΕΙ ΠΡΙΝ ΕΜΦΑΝΙΣΤΕΙ ────────────────────────────────────
   // Οι σύνδεσμοι αγοράς ζουν σε μεταβλητή περιβάλλοντος, δηλαδή ο περιηγητής
@@ -432,14 +432,16 @@ function Subscription({ d, wantPlan = null, wishPlan = null, wishCycle = 'monthl
       {/* Η ΑΚΥΡΩΣΗ ΕΙΝΑΙ ΔΕΔΟΜΕΝΟ, ΟΧΙ ΚΑΤΑΣΤΑΣΗ. Οσο τρέχει η πληρωμένη περίοδος
           η συνδρομή μένει ενεργή στον πάροχο· εκείνο που αλλάζει είναι ότι
           υπάρχει ημερομηνία λήξης αντί για ημερομηνία ανανέωσης. */}
-      {endsAt ? (
+      {tone === 'cancelled-running' ? (
         <InfoBanner tone="warning">Η συνδρομή έχει ακυρωθεί και ισχύει ώς τις <strong>{fd(endsAt)}</strong>. Μετά την ημερομηνία αυτή ο λογαριασμός επιστρέφει σε χωρίς συνδρομή.</InfoBanner>
-      ) : phase === 'trial' || phase === 'active' ? (
+      ) : tone === 'cancelled-over' ? (
+        <InfoBanner tone="warning">Η συνδρομή έληξε στις <strong>{fd(endsAt)}</strong>. Ο λογαριασμός είναι χωρίς συνδρομή· διάλεξε πακέτο για να ξαναρχίσει.</InfoBanner>
+      ) : tone === 'trial' || tone === 'active' ? (
         <InfoBanner tone="info">
-          {phase === 'trial' ? 'Δοκιμαστική περίοδος σε εξέλιξη' : `Ενεργή συνδρομή, ${plan.name}`}
+          {tone === 'trial' ? 'Δοκιμαστική περίοδος σε εξέλιξη' : `Ενεργή συνδρομή, ${plan.name}`}
           {renewsAt ? `. Ανανέωση στις ${fd(renewsAt)}.` : '.'}
         </InfoBanner>
-      ) : phase === 'retrying' ? (
+      ) : tone === 'retrying' ? (
         <InfoBanner tone="warning">Η τελευταία χρέωση δεν ολοκληρώθηκε. Ο λογαριασμός παραμένει ανοιχτός όσο ο έμπορος ξαναδοκιμάζει την κάρτα. Ανανέωσε την κάρτα σου από τη διαχείριση συνδρομής.</InfoBanner>
       ) : null}
 
