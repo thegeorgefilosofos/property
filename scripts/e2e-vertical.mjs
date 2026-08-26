@@ -23,11 +23,12 @@
 //     node scripts/perf-bench/build-mobile.mjs && node scripts/e2e-vertical.mjs
 //     UPDATE_BASELINE=1 node scripts/e2e-vertical.mjs   (μετά από ρητή απόφαση)
 // ═══════════════════════════════════════════════════════════════════════════
-import { chromePath } from '/home/user/property/scripts/lib/chrome.mjs'
+import { chromePath } from './lib/chrome.mjs'
+import { benchUrl } from './lib/paths.mjs'
 import { createRequire } from 'node:module'
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 const require = createRequire(import.meta.url)
-const { chromium } = require('/home/user/property/node_modules/playwright-core')
+const { chromium } = require('playwright-core')
 
 // Τρία πλάτη, τρεις συσκευές: τηλέφωνο, ταμπλέτα όρθια, φορητός.
 const WIDTHS = [[375, 812], [768, 1024], [1280, 800]]
@@ -43,7 +44,7 @@ for (const [w, h] of WIDTHS) {
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 2, isMobile: w < 1100, hasTouch: w < 1100, locale: 'el-GR' })
   for (const s of SCENES) {
     const p = await ctx.newPage()
-    await p.goto(`file:///home/user/property/.perf-bench/mobile.html?c=${s}&n=6`, { waitUntil: 'networkidle' })
+    await p.goto(benchUrl(s, 6), { waitUntil: 'networkidle' })
     await p.waitForTimeout(500)
     // Η ΚΥΛΙΣΗ ΔΕΝ ΕΙΝΑΙ ΠΑΝΤΑ ΣΤΟ ΠΑΡΑΘΥΡΟ. Το κέλυφος βάζει το περιεχόμενο
     // σε «.app-content» με δική του κύλιση· αν μετρηθεί το documentElement,

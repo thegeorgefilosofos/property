@@ -34,10 +34,12 @@
 //     node scripts/perf-bench/build-mobile.mjs && node scripts/e2e-layout.mjs
 //     (οι δημόσιες σελίδες ελέγχονται μόνο αν απαντά το E2E_BASE)
 // ═══════════════════════════════════════════════════════════════════════════
-import { chromePath } from '/home/user/property/scripts/lib/chrome.mjs'
+import { chromePath } from './lib/chrome.mjs'
+import { abortIfStyleless } from './lib/served-css.mjs'
+import { benchUrl } from './lib/paths.mjs'
 import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
-const { chromium } = require('/home/user/property/node_modules/playwright-core')
+const { chromium } = require('playwright-core')
 
 const PROBE = () => {
   const out = []
@@ -513,43 +515,10 @@ let live = false
 try { live = (await fetch(BASE, { signal: AbortSignal.timeout(3000) })).ok } catch { live = false }
 if (!live) console.log(`(οι δημόσιες σελίδες παραλείπονται: δεν απαντά το ${BASE})`)
 
-// ═══ ΕΝΑΣ ΔΙΑΚΟΜΙΣΤΗΣ ΠΟΥ ΑΠΑΝΤΑΕΙ ΔΕΝ ΕΙΝΑΙ ΚΑΙ ΔΙΑΚΟΜΙΣΤΗΣ ΠΟΥ ΣΕΡΒΙΡΕΙ ═══
-//
-// ΤΙ ΣΥΝΕΒΗ, ΓΡΑΜΜΕΝΟ ΓΙΑΤΙ ΘΑ ΞΑΝΑΣΥΜΒΕΙ. Στη θύρα 3100 έμεινε ζωντανός ένας
-// διακομιστής πέντε ωρών, από προηγούμενο χτίσιμο. Απαντούσε 200 στην αρχική,
-// οπότε ο έλεγχος τον δέχτηκε· το HTML του όμως έδειχνε σε φύλλο στυλ που δεν
-// υπήρχε πια στον δίσκο και επέστρεφε 500. Ολες οι δημόσιες σελίδες
-// μετρήθηκαν ΧΩΡΙΣ ΚΑΘΟΛΟΥ CSS: 310 ευρήματα «στόχος αφής» και δεκάδες
-// «ΚΟΜΜΕΝΟ ΠΑΡΑΔΕΙΓΜΑ», κανένα από τα οποία υπήρχε στην εφαρμογή.
-//
-// Ενας έλεγχος διάταξης που δεν ξέρει αν φόρτωσε το φύλλο στυλ δεν μετράει τη
-// διάταξη· μετράει γυμνό HTML και το ονομάζει σφάλμα. Ανοίγει μία σελίδα και
-// ρωτά τον ίδιο τον περιηγητή πόσους κανόνες έχει στα χέρια του. Κάτω από 200
-// δεν είναι «λίγο στυλ», είναι «κανένα φύλλο»: το globals.css μόνο του έχει
-// πάνω από χίλιους.
-if (live) {
-  const probe = await browser.newContext({ viewport: { width: 1280, height: 800 }, locale: 'el-GR' })
-  const pp = await probe.newPage()
-  await pp.goto(BASE, { waitUntil: 'domcontentloaded' })
-  await pp.waitForTimeout(600)
-  const rules = await pp.evaluate(() => {
-    let n = 0
-    for (const sheet of document.styleSheets) {
-      try { n += sheet.cssRules.length } catch { /* άλλης προέλευσης, δεν μετριέται */ }
-    }
-    return n
-  })
-  await probe.close()
-  if (rules < 200) {
-    console.log(`\n✗ ΤΟ ${BASE} ΣΕΡΒΙΡΕΙ ΣΕΛΙΔΕΣ ΧΩΡΙΣ ΦΥΛΛΟ ΣΤΥΛ (${rules} κανόνες).`)
-    console.log('  Είναι μπαγιάτικος διακομιστής από παλιό χτίσιμο. Κάθε μέτρηση')
-    console.log('  δημόσιας σελίδας θα ήταν ψεύτικη, οπότε ο έλεγχος σταματά εδώ.')
-    console.log('  Σκότωσέ τον, ξαναχτίσε και ξεκίνα τον:')
-    console.log('    kill -9 $(fuser -n tcp 3100) ; npm run build ; PORT=3100 nohup npm start &')
-    await browser.close()
-    process.exit(1)
-  }
-}
+// Ο ανιχνευτής μπαγιάτικου διακομιστή ζει στο scripts/lib/served-css.mjs, ώστε
+// να τον έχουν και οι δύο σαρωτές δημόσιων σελίδων και όχι μόνο αυτός.
+if (live) await abortIfStyleless(browser, BASE)
+
 const rows = []
 for (const dev of DEVICES) {
   const w = dev.w
@@ -557,7 +526,7 @@ for (const dev of DEVICES) {
   await ctx.addInitScript(() => { try { localStorage.setItem('pos-cookie-consent', JSON.stringify({v:'2026-08',ts:'x'})) } catch {} })
   for (const s of (ONLY ? SCENES.filter(x => ONLY.includes(x)) : SCENES)) {
     const p = await ctx.newPage()
-    await p.goto(`file:///home/user/property/.perf-bench/mobile.html?c=${s}&n=6`, { waitUntil:'networkidle' })
+    await p.goto(benchUrl(s, 6), { waitUntil:'networkidle' })
     await p.waitForTimeout(500)
     // ═══ ΤΑ ΚΛΕΙΣΤΑ ΠΤΥΣΣΟΜΕΝΑ ΔΕΝ ΕΛΕΓΧΟΝΤΑΝ ΠΟΤΕ ══════════════════════════
     // Η Αποδοση έχει επτά ενότητες που ανοίγουν με πάτημα και ΟΛΕΣ ξεκινούν

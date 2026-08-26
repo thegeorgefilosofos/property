@@ -13,11 +13,12 @@
 //
 //     node scripts/shots-mobile.mjs [φάκελος]
 // ═══════════════════════════════════════════════════════════════════════════
-import { chromePath } from '/home/user/property/scripts/lib/chrome.mjs'
+import { chromePath } from './lib/chrome.mjs'
+import { benchUrl } from './lib/paths.mjs'
 import { createRequire } from 'node:module'
 import { mkdirSync } from 'node:fs'
 const require = createRequire(import.meta.url)
-const { chromium } = require('/home/user/property/node_modules/playwright-core')
+const { chromium } = require('playwright-core')
 
 const OUT = process.argv[2] || '.shots'
 mkdirSync(OUT, { recursive: true })
@@ -36,7 +37,7 @@ await ctx.addInitScript(() => { try { localStorage.setItem('pos-cookie-consent',
 let n = 0
 for (const s of SCENES) {
   const p = await ctx.newPage()
-  await p.goto(`file:///home/user/property/.perf-bench/mobile.html?c=${s}&n=6`, { waitUntil: 'networkidle' })
+  await p.goto(benchUrl(s, 6), { waitUntil: 'networkidle' })
   await p.waitForTimeout(600)
   // Τα πτυσσόμενα ανοιχτά: αλλιώς φωτογραφίζονται επικεφαλίδες.
   for (let i = 0; i < 3; i++) {

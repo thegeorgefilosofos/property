@@ -19,6 +19,7 @@
 //     node scripts/e2e-mobile.mjs
 // ═══════════════════════════════════════════════════════════════════════════
 import { chromePath } from './lib/chrome.mjs';
+import { abortIfStyleless } from './lib/served-css.mjs';
 import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
 let pkg
@@ -49,6 +50,11 @@ const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM_PATH || chromePath(),
   args: ['--no-sandbox'],
 })
+
+// ΠΡΩΤΑ ΤΟ ΦΥΛΛΟ ΣΤΥΛ, ΜΕΤΑ ΟΙ ΜΕΤΡΗΣΕΙΣ. Χωρίς αυτή τη γραμμή ο έλεγχος
+// τύπωσε «51 πέρασαν, 51 απέτυχαν» πάνω σε γυμνό HTML που σέρβιρε ξεχασμένος
+// διακομιστής: κάθε ένα από τα 51 ήταν φάντασμα.
+await abortIfStyleless(browser, B)
 
 for (const d of DEVICES) {
   const ctx = await browser.newContext({ ...d, locale: 'el-GR' })
