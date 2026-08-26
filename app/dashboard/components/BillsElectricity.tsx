@@ -616,8 +616,13 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
         {/* kWh history */}
         <div>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 8, fontFamily: T.font.sans }}>Ιστορικό κατανάλωσης, <span title="κιλοβατώρα, μονάδα μέτρησης κατανάλωσης ηλεκτρικής ενέργειας">kWh</span> ανά μήνα</div>
-          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', margin: '0 -4px', padding: '0 4px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(44px, 1fr))', gap: 4, minWidth: 44 * 12 + 4 * 11 }}>
+          {/* ΤΟ ΕΤΟΣ ΔΕΝ ΚΥΛΑ ΠΛΑΓΙΑ. Ηταν δώδεκα στήλες των 44 μέσα σε δοχείο που
+              κυλούσε οριζόντια: σε ταμπλέτα φαινόταν ως τον Σεπτέμβριο και οι
+              τρεις τελευταίοι μήνες υπήρχαν μόνο για όποιον σκεφτόταν να σύρει.
+              Ενα ιστορικό που κρύβει το τελευταίο τρίμηνο δεν είναι ιστορικό.
+              Ιδιο ιδίωμα με τα Κοινόχρηστα και τα Δημοτικά τέλη: το `.po-year`
+              σπάει σε 12, 6, 4 ή 3 στήλες, πάντα σε διαιρέτη του δώδεκα. */}
+          <div className="po-year">
             {MONTHS_SHORT.map((m, i) => (
               <div key={i} style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 11, color: i === currentMonth ? 'var(--accent)' : 'var(--text-tertiary)', marginBottom: 4, fontWeight: i === currentMonth ? 700 : 400, fontFamily: T.font.sans }}>{m}</div>
@@ -635,7 +640,6 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                   }}/>
               </div>
             ))}
-          </div>
           </div>
         </div>
       </div>

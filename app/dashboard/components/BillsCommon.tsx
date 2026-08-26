@@ -480,16 +480,23 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
       <Card pad="lg">
         {secHdr('Ιστορικό Κοινοχρήστων ανά Μήνα')}
 
-        {history.every(v => !v) && (
+        {/* ΤΟ ΑΔΕΙΟ ΓΡΑΦΗΜΑ ΔΕΝ ΕΙΝΑΙ ΓΡΑΦΗΜΑ, ΕΙΝΑΙ ΔΩΔΕΚΑ ΓΡΑΜΜΕΣ. Ο άδειος μήνας
+            παίρνει στήλη δύο εικονοστοιχείων ώστε να υπάρχει η θέση του· με ΟΛΟΥΣ
+            τους μήνες άδειους αυτό γινόταν μια σειρά από παύλες κάτω από το κενό
+            μήνυμα, δηλαδή η οθόνη έλεγε δύο φορές «δεν υπάρχει τίποτα» και τη
+            δεύτερη φορά έμοιαζε χαλασμένη. Ή το μήνυμα ή το γράφημα. */}
+        {history.every(v => !v) ? (
           <EmptyState
             icon={<BarChart3 size={20} />}
             title="Κανένα μηνιαίο ποσό ακόμη"
             hint="Καταχώρησε μηνιαία ποσά κοινοχρήστων παρακάτω για να δεις την εξέλιξη του έτους."
           />
-        )}
-
-        {/* Ραβδόγραμμα, με τονισμό στο πέρασμα του δείκτη */}
-        <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 62px), 1fr))', gap: 5, alignItems: 'flex-end', height: 64, marginBottom: 0, padding: '4px 0 0' }}>
+        ) : (
+        /* Ραβδόγραμμα, με τονισμό στο πέρασμα του δείκτη. ΙΔΙΑ ΚΛΑΣΗ ΜΕ ΤΑ ΠΕΔΙΑ
+           ΑΠΟ ΚΑΤΩ: ήταν δύο πλέγματα `auto-fit`, που έδιναν άλλοτε οκτώ στήλες
+           και άλλοτε έξι, δηλαδή το έτος έσπαγε 8+4 σε μια οθόνη και 6+6 σε μια
+           άλλη. Το `.po-year` σπάει μόνο σε διαιρέτες του δώδεκα. */
+        <div className="po-year" style={{ position: 'relative', alignItems: 'flex-end', height: 64, marginBottom: 0, padding: '4px 0 0' }}>
           {monthlyAvg > 0 && (
             <div style={{ position: 'absolute', left: 0, right: 0, bottom: `${(monthlyAvg / maxH) * 54}px`, borderTop: '1px dashed color-mix(in srgb, var(--accent) 40%, transparent)', pointerEvents: 'none' }}>
               <span style={{ position: 'absolute', right: 0, top: -11, fontSize: 11, color: 'var(--accent)', background: 'var(--bg-surface)', padding: '0 4px', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', borderRadius: 3 }}>
@@ -518,6 +525,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
             );
           })}
         </div>
+        )}
 
         {/* ΟΙ ΜΗΝΕΣ ΓΡΑΦΟΝΤΑΝ ΔΥΟ ΦΟΡΕΣ, Η ΜΙΑ ΚΑΤΩ ΑΠΟ ΤΗΝ ΑΛΛΗ. Μία σειρά
             ετικετών κάτω από τις στήλες του γραφήματος και αμέσως από κάτω
@@ -531,7 +539,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
 
 
         {/* Πλέγμα πεδίων, με ύφος περάσματος δείκτη και εστίασης */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 62px), 1fr))', gap: 5 }}>
+        <div className="po-year">
           {MONTHS_SHORT.map((m, i) => (
             <div key={i}>
               {/* Η ΕΤΙΚΕΤΑ ΠΕΡΙΤΥΛΙΓΕΙ ΤΟ ΠΕΔΙΟ, ΔΕΝ ΚΑΘΕΤΑΙ ΑΠΛΩΣ ΑΠΟ ΠΑΝΩ.

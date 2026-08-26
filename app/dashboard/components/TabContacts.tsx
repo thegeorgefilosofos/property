@@ -13,7 +13,7 @@ import { inferRole } from '@/lib/contacts/roles'
 import { alphaBucket, buildAlphaIndex, compareNames, initialsOf, type AlphaEntry } from '@/lib/contacts/alpha'
 import { Phone, Mail, X, Search, Globe, MapPin, FileText, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, Pencil, Trash2, Copy, MessageSquare, UserPlus, Camera, Check, Minus, SearchX } from 'lucide-react'
 import { DatePicker, CustomSelect, Toggle } from './UIComponents'
-import { T, PageTitle, SecHdr, Btn, EmptyState, fn, fe, Skeleton, SkeletonKPIs, SelectBox, ABSENT, ABSENT_SHORT, Modal, SideSheet, localDay, pressable, pageShell } from '@/components/Theme'
+import { T, PageTitle, fieldRow, SecHdr, Btn, EmptyState, fn, fe, Skeleton, SkeletonKPIs, SelectBox, ABSENT, ABSENT_SHORT, Modal, SideSheet, localDay, pressable, pageShell } from '@/components/Theme'
 import { showTool, SHOW_FROM } from '@/lib/ui/thresholds'
 import { ActionMenu } from '@/components/ActionMenu'
 import { notify, notifyOk, notifyError } from '@/components/Toast'
@@ -2043,24 +2043,37 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
                 δείχνει ΓΡΑΜΜΕΝΟ το γιατί το ζητάμε. Η φωτογραφία επαφής έφυγε:
                 ένα πορτρέτο του υδραυλικού δεν κάνει τίποτα και ήταν το πρώτο
                 πράγμα που έβλεπε ο χρήστης ανοίγοντας τη φόρμα. */}
+            {/* ΤΟ ΜΕΓΕΘΟΣ ΤΟΥ ΚΟΥΤΙΟΥ ΕΙΝΑΙ ΥΠΟΣΧΕΣΗ ΓΙΑ ΤΟ ΠΕΡΙΕΧΟΜΕΝΟ ΤΟΥ.
+                Ηταν τέσσερα κουτιά το ένα κάτω από το άλλο, καθένα 550
+                εικονοστοιχεία σε ταμπλέτα: πεντακόσια πενήντα για δέκα ψηφία
+                τηλεφώνου και άλλα τόσα για εννιά του ΑΦΜ. Η φόρμα διαβαζόταν
+                σαν να ζητά κείμενο εκεί που ζητά αριθμό· χρειαζόταν και κύλιση
+                για τέσσερα πεδία.
+
+                Το όνομα κρατά ολόκληρο το πλάτος, γιατί όντως το θέλει. Τα
+                τρία σύντομα μπαίνουν σε μία σειρά των 170: το κουτί λέει
+                πλέον την αλήθεια για το τι χωρά και η φόρμα χωρά ολόκληρη σε
+                μία οθόνη. Σε κινητό η σειρά σπάει μόνη της. */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <CField d={cf('contact.name')} required>
-                <Inp value={form.full_name} onChange={v => setForm(f => ({ ...f, full_name: v }))} placeholder="Παράδειγμα: Γιώργος Παπαδόπουλος ή ΔΕΗ Α.Ε." />
+                <Inp value={form.full_name} onChange={v => setForm(f => ({ ...f, full_name: v }))} placeholder="Παράδειγμα: Γιώργος Παπαδόπουλος" />
               </CField>
-              <CField d={cf('contact.role')}>
-                <CustomSelect value={form.role} onChange={v => setForm(f => ({ ...f, role: v }))}
-                  options={ROLE_SELECT_OPTIONS.filter(o => !o.disabled).map(o => ({ value: o.value, label: o.label }))} />
-                {isOtherRole(form.role) && <div style={{ marginTop: 10 }}><Inp value={roleOther} onChange={setRoleOther} placeholder="Γράψε ελεύθερα κατηγορία ή όνομα εταιρείας" /></div>}
-              </CField>
-              <CField d={cf('contact.phone')}>
-                <Inp value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} placeholder="2101234567" />
-              </CField>
-              {/* ΤΟ ΑΦΜ ΕΙΝΑΙ CORE. Είναι το μόνο πεδίο που συνδέει την επαφή με τα
-                  παραστατικά της: χωρίς αυτό το ταίριασμα γίνεται με το όνομα και
-                  αστοχεί σε κάθε «Συντήρηση — Παπαδόπουλος». */}
-              <CField d={cf('contact.afm')}>
-                <Inp value={form.extra.afm || ''} onChange={v => setExtra('afm', v.replace(/\D/g, '').slice(0, 9))} placeholder="123456789" />
-              </CField>
+              <div {...fieldRow(160, 16, { alignItems: 'start' })}>
+                <CField d={cf('contact.role')}>
+                  <CustomSelect value={form.role} onChange={v => setForm(f => ({ ...f, role: v }))}
+                    options={ROLE_SELECT_OPTIONS.filter(o => !o.disabled).map(o => ({ value: o.value, label: o.label }))} />
+                  {isOtherRole(form.role) && <div style={{ marginTop: 10 }}><Inp value={roleOther} onChange={setRoleOther} placeholder="Κατηγορία" /></div>}
+                </CField>
+                <CField d={cf('contact.phone')}>
+                  <Inp value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} placeholder="2101234567" />
+                </CField>
+                {/* ΤΟ ΑΦΜ ΕΙΝΑΙ CORE. Είναι το μόνο πεδίο που συνδέει την επαφή με τα
+                    παραστατικά της: χωρίς αυτό το ταίριασμα γίνεται με το όνομα και
+                    αστοχεί σε κάθε «Συντήρηση — Παπαδόπουλος». */}
+                <CField d={cf('contact.afm')}>
+                  <Inp value={form.extra.afm || ''} onChange={v => setExtra('afm', v.replace(/\D/g, '').slice(0, 9))} placeholder="123456789" />
+                </CField>
+              </div>
             </div>
 
             {/* ── Πτυσσόμενες λεπτομέρειες ── */}
@@ -2073,12 +2086,14 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
               <>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <SecHead>Επικοινωνία και πληρωμές</SecHead>
-                  <CField d={cf('contact.email')}>
-                    <Inp value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} placeholder="info@example.gr" />
-                  </CField>
-                  <CField d={cf('contact.mobile')}>
-                    <Inp value={form.extra.phone2 || ''} onChange={v => setExtra('phone2', v)} placeholder="6941234567" />
-                  </CField>
+                  <div {...fieldRow(190, 16, { alignItems: 'start' })}>
+                    <CField d={cf('contact.email')}>
+                      <Inp value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} placeholder="info@example.gr" />
+                    </CField>
+                    <CField d={cf('contact.mobile')}>
+                      <Inp value={form.extra.phone2 || ''} onChange={v => setExtra('phone2', v)} placeholder="6941234567" />
+                    </CField>
+                  </div>
                   <CField d={cf('contact.messaging')}>
                     <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'center', padding: '12px 16px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Toggle on={!!form.extra.whatsapp} onChange={v => setExtra('whatsapp', v)} ariaLabel="WhatsApp" size="sm" /><span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>WhatsApp</span></div>
@@ -2098,21 +2113,25 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <SecHead>Στοιχεία συνεργάτη</SecHead>
-                  <CField d={cf('contact.specialty')}>
-                    <Inp value={form.extra.specialty || ''} onChange={v => setExtra('specialty', v)} placeholder="Παράδειγμα: ειδικός σε κεντρική θέρμανση" />
-                  </CField>
-                  <CField d={cf('contact.website')}>
-                    <Inp value={form.extra.website || ''} onChange={v => setExtra('website', v)} placeholder="www.example.gr" />
-                  </CField>
+                  <div {...fieldRow(190, 16, { alignItems: 'start' })}>
+                    <CField d={cf('contact.specialty')}>
+                      <Inp value={form.extra.specialty || ''} onChange={v => setExtra('specialty', v)} placeholder="Ειδικός σε κεντρική θέρμανση" />
+                    </CField>
+                    <CField d={cf('contact.website')}>
+                      <Inp value={form.extra.website || ''} onChange={v => setExtra('website', v)} placeholder="www.example.gr" />
+                    </CField>
+                  </div>
                   {/* ΑΠΛΟ ΠΕΔΙΟ ΚΕΙΜΕΝΟΥ. Ήταν autocomplete που έστελνε κάθε
                       πληκτρολόγηση σε τρίτο εξυπηρετητή — διεύθυνση γραφείου
                       τρίτου προσώπου, εκτός της υποδομής μας. */}
-                  <CField d={cf('contact.address')}>
-                    <Inp value={form.extra.office_address || ''} onChange={v => setExtra('office_address', v)} placeholder="Οδός, αριθμός, πόλη" />
-                  </CField>
-                  <CField d={cf('contact.next_appointment')}>
-                    <DatePicker value={form.extra.next_appointment || ''} onChange={v => setExtra('next_appointment', v)} />
-                  </CField>
+                  <div {...fieldRow(190, 16, { alignItems: 'start' })}>
+                    <CField d={cf('contact.address')}>
+                      <Inp value={form.extra.office_address || ''} onChange={v => setExtra('office_address', v)} placeholder="Οδός, αριθμός, πόλη" />
+                    </CField>
+                    <CField d={cf('contact.next_appointment')}>
+                      <DatePicker value={form.extra.next_appointment || ''} onChange={v => setExtra('next_appointment', v)} />
+                    </CField>
+                  </div>
                   <CField d={cf('contact.scope')}>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                       {([{ v: 'property' as const, label: 'Συγκεκριμένο ακίνητο', Icon: Building2 }, { v: 'portfolio' as const, label: 'Όλο το χαρτοφυλάκιο', Icon: Globe }]).map(o => {
