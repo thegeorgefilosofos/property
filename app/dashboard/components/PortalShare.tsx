@@ -18,6 +18,7 @@ import { athensToday } from '@/lib/core/time';
 import { saved, savedData } from '@/components/dbWrite';
 import { failed } from '@/lib/core/dbError';
 import { photosKey, signMaintenancePhotos } from '@/lib/maintenance/photos';
+import { useLoad } from '@/app/hooks/useLoad';
 
 interface Req { id: string; title: string; description: string | null; contact: string | null; status: string; created_at: string; photos?: string[] | null; }
 
@@ -117,7 +118,7 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
     setPinSet(false); setPinInput(''); notifyOk('Ο κωδικός πύλης καταργήθηκε');
   };
 
-  useEffect(() => { load(); }, [load]);
+  useLoad(load);
 
   const photoSig = useMemo(() => photosKey(reqs), [reqs]);
   useEffect(() => {

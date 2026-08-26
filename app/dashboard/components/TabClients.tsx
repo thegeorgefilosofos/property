@@ -71,6 +71,7 @@ import { parseICal, guessChannel, icalToStayDrafts, stayKey, type ICalEvent } fr
 import { athensToday, isoYear } from '@/lib/core/time';
 import { MONTHS_NOM } from '@/lib/core/months';
 import { MONTHS_ACC } from '@/lib/core/months';
+import { useLoad } from '@/app/hooks/useLoad';
 
 // ── Τύποι εγγραφών (καθρέφτης πινάκων Supabase) ─────────────────────────────
 // Τα πεδία CRM (rating/tags/do_not_rent/vip/address/id_number/nationality/source)
@@ -313,7 +314,9 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
     setIcalFeeds((data || []) as IcalFeed[]);
   }, [userId]);
 
-  useEffect(() => { load(); loadStays(); loadIcalFeeds(); }, [load, loadStays, loadIcalFeeds]);
+  // Τρεις φορτώσεις που ξεκινούν μαζί, δηλωμένες ως μία.
+  const loadAll = useCallback(() => Promise.all([load(), loadStays(), loadIcalFeeds()]), [load, loadStays, loadIcalFeeds]);
+  useLoad(loadAll);
 
   // Ζωντανή σύνδεση: πελάτες, διαμονές, σημειώσεις
   useEffect(() => {
@@ -337,9 +340,10 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   const docs  = docsOf?.clientId  === openId ? docsOf.rows  : [];
   const docMsg = docMsgOf?.clientId === openId ? docMsgOf.msg : null;
   const docKind = docKindOf?.clientId === openId ? docKindOf.kind : 'other';
-  useEffect(() => {
-    if (openId) { loadNotes(openId); loadDocs(openId); }
-  }, [openId, loadNotes, loadDocs]);
+  // Οι σημειώσεις και τα έγγραφα του ανοιχτού πελάτη. Χωρίς ανοιχτό πελάτη δεν
+  // υπάρχει τι να φορτωθεί και η υπόσχεση λύνεται αμέσως.
+  const loadOpen = useCallback(() => (openId ? Promise.all([loadNotes(openId), loadDocs(openId)]) : Promise.resolve()), [openId, loadNotes, loadDocs]);
+  useLoad(loadOpen);
 
   const propsByClient = useMemo(() => {
     const m = new Map<string, PropRow[]>();

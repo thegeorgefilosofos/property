@@ -1,10 +1,11 @@
 'use client'
 import { T, TT, formGrid } from '@/components/Theme'
 import { notify, notifyOk, notifyError } from '@/components/Toast'
-import { useState, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { NumberInput, TextInput, Toggle, InfoDot } from './UIComponents'
 import { athensToday } from '@/lib/core/time';
+import { useLoad } from '@/app/hooks/useLoad';
 
 // ── Διαχείριση επιτοκίων τραπεζών (μόνο διαχειριστές) ──────────────────────────
 // Γρήγορη, χειροκίνητη διόρθωση του `bank_rates` απευθείας από την εφαρμογή, ή
@@ -53,7 +54,11 @@ export default function BankRatesAdmin({ onSaved }:{
     const { data } = await supabase.from('bank_rates').select('*').order('fixed_min',{ascending:true})
     if (data) setRows(data as AdminBank[])
   }
-  useEffect(()=>{ if(open && rows.length===0) load() },[open])
+  // Φορτώνει μία φορά, όταν ανοίξει το πάνελ. Το `rows.length` δεν είναι
+  // εξάρτηση: αν ήταν, η φόρτωση θα ξανάτρεχε μόλις γέμιζε ο πίνακας.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const boot = useCallback(async () => { if (open && rows.length === 0) await load() }, [open])
+  useLoad(boot)
 
   function pick(b:AdminBank) {
     if (selId===b.bank_id) { setSelId(null); setEdit(null); return }

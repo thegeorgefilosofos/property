@@ -98,6 +98,7 @@ import { athensToday, daysUntilOrNull, isoYear, isoMonth } from '@/lib/core/time
 import * as documents from '@/lib/data/documents';
 import { saved, savedData } from '@/components/dbWrite';
 import { logActivity } from '@/lib/activity';
+import { useLoad } from '@/app/hooks/useLoad';
 
 interface Property {
   id: string; user_id: string; name: string; prop_type: string | null;
@@ -497,14 +498,20 @@ function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { pro
   // το δηλώνει ήδη στην καρτέλα Ενοικιαστή (`tenants.e_payment`), αλλά η
   // Επισκόπηση δεν το ρωτούσε καν — έδινε πάντα την έκπτωση.
   const [portfolioRents, setPortfolioRents] = useState<{ property_id:string; monthly:number; viaBank:boolean }[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Ο ΔΕΙΚΤΗΣ ΦΟΡΤΩΣΗΣ ΔΕΝ ΕΙΝΑΙ ΞΕΧΩΡΙΣΤΗ ΚΑΤΑΣΤΑΣΗ, ΕΙΝΑΙ ΕΡΩΤΗΣΗ. Ηταν
+  // `setLoading(true)` στην πρώτη γραμμή της φόρτωσης: σύγχρονη γραφή μέσα σε
+  // effect, δηλαδή δεύτερη απόδοση πριν καν φύγει το αίτημα. Η ερώτηση που ΟΝΤΩΣ
+  // απαντά είναι «τα δεδομένα που κρατώ είναι αυτού του ακινήτου και αυτής της
+  // χρονιάς;» και απαντιέται κατά την απόδοση. Με την αλλαγή ακινήτου γίνεται
+  // αληθής ΑΜΕΣΩΣ, οπότε δεν φαίνεται ποτέ καρέ με τα νούμερα του προηγούμενου.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const loading = loadedFor !== `${prop.id}|${year}`;
   /** Ανοιχτό παράθυρο είσπραξης ενοικίου από την κάρτα του Ταμείου. */
   const [receivingRent, setReceivingRent] = useState(false);
 
   const propIds = useMemo(() => properties.map(p => p.id), [properties]);
 
   const load = useCallback(async () => {
-    setLoading(true);
     const [exp,bil,{ data:tsk },ten,ci,iv,ln,hs,allExp,allTen,{ data:allRc },rp,{ data:mnt },{ data:decl }] = await Promise.all([
       expenseStore.ledger(supabase,prop.id,{ userId, from:`${year}-01-01`, columns:'*' }),
       billStore.ofProperty<Bill>(supabase,prop.id,'*',userId),
@@ -575,7 +582,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { pro
       // είναι στόχος, όχι πραγματική είσπραξη και η προεπιλογή είναι τράπεζα.
       return { property_id: p.id, monthly, viaBank: fromTenant?.viaBank ?? true };
     }));
-    setLoading(false);
+    setLoadedFor(`${prop.id}|${year}`);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prop.id, userId, year, propIds]);
 
@@ -583,8 +590,10 @@ function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { pro
   // στο σώμα του effect, προκαλεί δεύτερη απόδοση ΠΡΙΝ καν ξεκινήσει το αίτημα.
   // Μέσα στην ασύγχρονη συνάρτηση κάνει την ίδια δουλειά, χωρίς την επιπλέον
   // απόδοση και σταματά να ενοχλεί τον κανόνα set-state-in-effect.
+  // Η πρώτη φόρτωση δεν ανήκει στο effect του καναλιού: δύο δουλειές, δύο σώματα.
+  useLoad(load);
+
   useEffect(() => {
-    void load();
     // Real-time: κάθε αλλαγή σε άλλα tabs ενημερώνει ζωντανά την Επισκόπηση
     const ch = supabase.channel(`overview_${prop.id}`)
       .on('postgres_changes', { event:'*', schema:'public', table:'bills',             filter:`property_id=eq.${prop.id}` }, () => load())

@@ -244,7 +244,18 @@ const PROBE = () => {
 }
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || chromePath(), args: ['--no-sandbox'] })
-const WIDTHS = [375, 430, 768, 820, 1024, 1440]
+// Η ΤΑΜΠΛΕΤΑ ΣΕ ΟΡΙΖΟΝΤΙΑ ΘΕΣΗ ΔΕΝ ΜΕΤΡΙΟΤΑΝ ΩΣ ΤΑΜΠΛΕΤΑ. Το `hasTouch` ήταν
+// `w < 1100`, οπότε στα 1.024 και πάνω ο έλεγχος έτρεχε ΩΣ ΠΟΝΤΙΚΙ — και ο
+// κανόνας των 44 εικονοστοιχείων ισχύει μόνο σε χοντρό δείκτη, άρα δεν ίσχυε
+// πουθενά εκεί. Ενα Xiaomi Pad 6 σε οριζόντια θέση είναι 1.280 CSS και το
+// χειρίζεται δάχτυλο: κάθε στόχος κάτω από 44 σε εκείνο το πλάτος περνούσε
+// αθόρυβα. Τα 1.280 τρέχουν πλέον ΜΕ αφή.
+//
+// ΑΠΟΔΕΙΞΗ ΟΤΙ ΔΕΝ ΕΙΝΑΙ ΚΕΝΟ: το `--h-sm` γύρισε προσωρινά στα 40 και το
+// μενού «Περισσότερα» των Επαφών κοκκίνισε ΚΑΙ στα 1.280, εκεί που πριν
+// σιωπούσε. Με τα 44 πράσινο.
+const WIDTHS = [375, 430, 768, 820, 1024, 1280, 1440]
+const TOUCH = (w) => w < 1100 || w === 1280
 const SCENES = ['portfolio','cash','rent','inbox','ledger','checklist','modal','select','compare','loan','pricing','bills','contacts','wizard']
 const PAGES = ['/', '/login', '/signup', '/ypologismos-forou-enoikion', '/ypologismos-enfia', '/vraxyxronia-i-makroxronia', '/kathari-apodosi', '/imerologio', '/privacy']
 const BASE = process.env.E2E_BASE || 'http://localhost:3100'
@@ -255,7 +266,7 @@ try { live = (await fetch(BASE, { signal: AbortSignal.timeout(3000) })).ok } cat
 if (!live) console.log(`(οι δημόσιες σελίδες παραλείπονται: δεν απαντά το ${BASE})`)
 const rows = []
 for (const w of WIDTHS) {
-  const ctx = await browser.newContext({ viewport:{width:w,height:w<800?812:1000}, deviceScaleFactor:2, isMobile:w<1100, hasTouch:w<1100, locale:'el-GR' })
+  const ctx = await browser.newContext({ viewport:{width:w,height:w<800?812:1000}, deviceScaleFactor:2, isMobile:w<1100, hasTouch:TOUCH(w), locale:'el-GR' })
   await ctx.addInitScript(() => { try { localStorage.setItem('pos-cookie-consent', JSON.stringify({v:'2026-08',ts:'x'})) } catch {} })
   for (const s of SCENES) {
     const p = await ctx.newPage()

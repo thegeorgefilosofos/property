@@ -28,6 +28,7 @@ import { saved } from '@/components/dbWrite';
 import { TextInput } from './UIComponents';
 import { amaState, amaSummary, cleanAma, isValidAmaFormat, amaLengthLooksUnusual, AMA_COPY, type AmaRow } from '@/lib/property/ama';
 import { randomSuffix } from '@/lib/core/uploadPath';
+import { useLoad } from '@/app/hooks/useLoad';
 
 interface AmaProperty extends AmaRow { id: string; name: string }
 
@@ -47,7 +48,7 @@ export default function AmaStrip({ userId, propertyId }: { userId: string; prope
     setLoaded(true);
   }, [userId, propertyId]);
 
-  useEffect(() => { load(); }, [load]);
+  useLoad(load);
 
   // Ζωντανή ενημέρωση: αν αλλάξει η κατάσταση του ακινήτου σε βραχυχρόνια από
   // άλλη οθόνη, η γραμμή εμφανίζεται μόνη της. Δεν περιμένει refresh.

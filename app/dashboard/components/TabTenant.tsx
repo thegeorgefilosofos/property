@@ -116,6 +116,7 @@ import {
   RenewalView,
 } from './TabTenantMoney';
 import { DashboardView, CommView, LegalTaxView, DamagesView, MaintenanceView } from './TabTenantCare';
+import { useLoad } from '@/app/hooks/useLoad';
 
 // ─── Design tokens, shared source of truth (components/Theme) ────────────────
 const labelStyle = { ...TT.label, marginBottom:7 };
@@ -147,7 +148,14 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
   // αν υπάρχει πρόταση αγοράς, το δεύτερο αν ο φόρος ανά ακίνητο είναι υποεκτίμηση.
   const [propSqm,setPropSqm]=useState<number|null>(null);
   const [propertyCount,setPropertyCount]=useState(1);
-  const [loading,setLoading]=useState(true);
+  // Ο ΔΕΙΚΤΗΣ ΦΟΡΤΩΣΗΣ ΔΕΝ ΕΙΝΑΙ ΞΕΧΩΡΙΣΤΗ ΚΑΤΑΣΤΑΣΗ, ΕΙΝΑΙ ΕΡΩΤΗΣΗ. Ηταν
+  // `setLoading(true)` στην πρώτη γραμμή της φόρτωσης: σύγχρονη γραφή μέσα σε
+  // effect, δηλαδή δεύτερη απόδοση πριν καν φύγει το αίτημα. Η ερώτηση που ΟΝΤΩΣ
+  // απαντά είναι «τα δεδομένα που κρατώ είναι αυτού του ακινήτου;» και απαντιέται
+  // κατά την απόδοση, χωρίς καμία γραφή. Με την αλλαγή ακινήτου γίνεται αληθής
+  // ΑΜΕΣΩΣ, οπότε δεν υπάρχει καρέ με τα νούμερα του προηγούμενου.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null)
+  const loading = loadedFor !== propertyId
   const [saving,setSaving]=useState(false);
   const [uploading,setUploading]=useState(false);
   const [error,setError]=useState<string|null>(null);
@@ -185,7 +193,6 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
   },[form.lease_start,form.lease_type]);
 
   const fetch_=useCallback(async()=>{
-    setLoading(true);
     const list=await tenantStore.ofProperty<Tenant>(supabase,propertyId,'*',userId);
     const[pd,{data:dd},{data:cd},{data:md},own,pc]=await Promise.all([
       rentStore.ofProperty<RentPayment>(supabase,propertyId,'*',userId),
@@ -203,10 +210,10 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
     const sq=Number((own as {sqm?:number|null}|null)?.sqm);
     setPropSqm(Number.isFinite(sq)&&sq>0?sq:null);
     setPropertyCount(Math.max(1, pc||1));
-    setLoading(false);
+    setLoadedFor(propertyId);
   },[propertyId,userId]);
 
-  useEffect(()=>{fetch_();},[fetch_]);
+  useLoad(fetch_);
 
   // Συγχρονισμός ημερολογίου/εργασιών για τους τρέχοντες ενοικιαστές (idempotent).
   // Η ΣΗΜΑΙΑ ΚΡΑΤΑΕΙ ΤΟ ΑΚΙΝΗΤΟ, ΟΧΙ ΕΝΑ ΝΑΙ. Ήταν `useRef(false)` που γινόταν

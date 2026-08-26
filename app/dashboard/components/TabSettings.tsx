@@ -41,6 +41,7 @@ import { athensToday } from '@/lib/core/time';
 import { savedData } from '@/components/dbWrite';
 import { notifyError } from '@/components/Toast';
 import { SAY, failed } from '@/lib/core/dbError';
+import { useLoad } from '@/app/hooks/useLoad';
 
 type ProfileType = 'individual' | 'professional';
 
@@ -511,7 +512,10 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
     else setPrefs(DEFAULT_PREFERENCES);
   }
 
-  useEffect(() => { loadSettings(); loadPrefs(); }, [propertyId]);
+  // Δύο φορτώσεις του ίδιου ακινήτου, δηλωμένες ως μία.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const boot = useCallback(() => Promise.all([loadSettings(), loadPrefs()]), [propertyId]);
+  useLoad(boot);
 
   const savePrefs = useCallback(async (next: AppPreferences) => {
     const { error } = await settings.put(supabase, propertyId, userId, 'app_preferences', { ...next });

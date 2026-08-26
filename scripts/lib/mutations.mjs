@@ -190,6 +190,10 @@ export const MUTATIONS = {
   // καθαρά και κλείνει την πόρτα μόνο στον πρώτο πραγματικό χρήστη.
   'send-quota': { add: 'lib/__mut__.ts', content: "export async function ping(sb: { rpc: (n: string, a: unknown) => Promise<unknown> }) {\n  return sb.rpc('bump_send_quota', { p_kind: 'anexartito_eidos' })\n}\n" },
 
+  // Το useLoad που κρύβει σύγχρονη γραφή: ο κανόνας της React σωπαίνει (η
+  // φόρτωση είναι παράμετρος) και μόνο ο φύλακας το βλέπει.
+  'use-load': { add: 'app/dashboard/components/__mut__.tsx', content: "import { useCallback, useState } from 'react'\nimport { useLoad } from '@/app/hooks/useLoad'\nexport default function MutationProbe() {\n  const [loading, setLoading] = useState(true)\n  const load = useCallback(async () => {\n    setLoading(true)\n    await Promise.resolve()\n    setLoading(false)\n  }, [])\n  useLoad(load)\n  return <div>{loading ? 'Φορτώνει' : 'Ετοιμο'}</div>\n}\n" },
+
   'props-not-style': { every: [
     { add: 'components/__mut__.tsx', content: "import { fieldRow } from './tokens'\nconst g = { ...fieldRow(200), marginBottom: 14 }\nexport default function MutationProbe() {\n  return <div style={g} />\n}\n" },
     { add: 'components/__mut__.tsx', content: "import { fixedCols } from './tokens'\nconst g = { ...fixedCols(4), marginBottom: 14 }\nexport default function MutationProbe() {\n  return <div style={g} />\n}\n" },

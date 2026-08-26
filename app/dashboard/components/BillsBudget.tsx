@@ -33,6 +33,7 @@ import { subscriptionsMonthly } from '@/lib/expenses/subscriptions';
 // Ο ΕΝΦΙΑ διαβάζεται από την ίδια απόφαση με την καρτέλα Υπηρεσίες.
 import { enfiaInUse, estimateENFIA } from '@/lib/billing/enfia';
 import { climateLevyRates, isHighSeasonMonth } from '@/lib/billing/greekTax';
+import { useLoad } from '@/app/hooks/useLoad';
 
 // Μήνες-παράθυρα εισφοράς μέχρι την προθεσμία: 0 αν λείπει ή έχει περάσει (σύγκριση
 // ΗΜΕΡΑΣ)· τουλάχιστον 1 για μελλοντική προθεσμία, ακόμη κι αργότερα μέσα στον μήνα.
@@ -655,7 +656,6 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   useEffect(() => {
     if (!propertyId) return;
     let mounted = true;
-    loadData();
     const ch = supabase
       .channel(`budget_${propertyId}`)
       .on('postgres_changes' as const, { event: '*', schema: 'public', table: 'bills', filter: `property_id=eq.${propertyId}` }, () => { if (mounted) loadData(); })
@@ -670,6 +670,10 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       .subscribe();
     return () => { mounted = false; supabase.removeChannel(ch); };
   }, [propertyId, loadData]);
+
+  // Η ΠΡΩΤΗ ΦΟΡΤΩΣΗ ΧΩΡΙΣΤΑ ΑΠΟ ΤΗ ΣΥΝΔΡΟΜΗ. Ηταν και τα δύο στο ίδιο effect:
+  // «φέρε τα δεδομένα» και «άκου τις αλλαγές» είναι δύο δουλειές με ένα σώμα.
+  useLoad(loadData);
 
   const saveBudgets = useCallback((data: Record<string, string>) => {
     if (!propertyId) return;

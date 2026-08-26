@@ -36,6 +36,7 @@ import { isValidAfm } from '@/lib/billing/parse';
 import { navLabel } from '@/lib/nav/labels';
 import { applyFilters, facetOptions, toggleValue, clearAll, groupByMonth, sumValues, isSelectionEmpty, FACET_KEYS, FACET_LABEL, type Selection, type TimeGroup } from '@/lib/archive/facets';
 import { SAY } from '@/lib/core/dbError';
+import { useLoad } from '@/app/hooks/useLoad';
 
 /* ════════════════════════════════════════════════════════════════════════
    ΑΡΧΕΙΟ — μία επίπεδη λίστα με όψεις, ΧΩΡΙΣ φακέλους.
@@ -291,7 +292,14 @@ export default function TabDocuments({
   const isPro = profileType === 'professional';
 
   const [items, setItems] = useState<Item[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Ο ΔΕΙΚΤΗΣ ΦΟΡΤΩΣΗΣ ΔΕΝ ΕΙΝΑΙ ΞΕΧΩΡΙΣΤΗ ΚΑΤΑΣΤΑΣΗ, ΕΙΝΑΙ ΕΡΩΤΗΣΗ. Ηταν
+  // `setLoading(true)` στην πρώτη γραμμή της φόρτωσης: σύγχρονη γραφή μέσα σε
+  // effect, δηλαδή δεύτερη απόδοση πριν καν φύγει το αίτημα. Η ερώτηση που ΟΝΤΩΣ
+  // απαντά είναι «τα δεδομένα που κρατώ είναι αυτού του ακινήτου;» και απαντιέται
+  // κατά την απόδοση, χωρίς καμία γραφή. Με την αλλαγή ακινήτου γίνεται αληθής
+  // ΑΜΕΣΩΣ, οπότε δεν υπάρχει καρέ με τα νούμερα του προηγούμενου.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null)
+  const loading = loadedFor !== propertyId
   const [colWarn, setColWarn] = useState(false); // αν λείπει το attachment_url στα expenses
 
   // ── ΟΨΕΙΣ ΑΝΤΙ ΓΙΑ ΦΑΚΕΛΟΥΣ ──────────────────────────────────────────────
@@ -329,7 +337,6 @@ export default function TabDocuments({
 
   const fetchAll = useCallback(async () => {
     if (!propertyId) return;
-    setLoading(true);
     const [docsRes, expRes, billsRes, invRes] = await Promise.all([
       documents.ofProperty<DocRow>(supabase, propertyId, '*', userId),
       expenses.ledger(supabase, propertyId, { columns: '*' }),
@@ -428,10 +435,10 @@ export default function TabDocuments({
     });
 
     setItems(out.map(enrich));
-    setLoading(false);
+    setLoadedFor(propertyId);
   }, [propertyId]);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useLoad(fetchAll);
   // Καθάρισε την επιλογή όταν αλλάζει το πλαίσιο πλοήγησης (φάκελος, αναζήτηση).
   // Ήταν effect, άρα έτρεχε και στη φόρτωση — καθαρίζοντας ένα σύνολο που ήταν
   // ήδη άδειο — και σε κάθε αλλαγή φακέλου απέδιδε τη λίστα δύο φορές: μία με

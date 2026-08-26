@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 // Οι ρυθμίσεις ανά ενότητα έχουν ένα σπίτι: lib/data/settings.
 import * as settings from '@/lib/data/settings';
+import { useLoad } from '@/app/hooks/useLoad';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ΕΞΙ ΑΠΟ ΤΙΣ ΟΚΤΩ ΠΡΟΤΙΜΗΣΕΙΣ ΔΕΝ ΕΚΑΝΑΝ ΤΙΠΟΤΑ.
@@ -52,20 +53,26 @@ export const APP_PREFERENCES_SECTION = 'app_preferences';
 export function useAppPreferences(propertyId: string): { prefs: AppPreferences; loading: boolean } {
   const supabase = createClient();
   const [prefs, setPrefs] = useState<AppPreferences>(DEFAULT_PREFERENCES);
-  const [loading, setLoading] = useState(true);
+  // Ο ΔΕΙΚΤΗΣ ΦΟΡΤΩΣΗΣ ΔΕΝ ΕΙΝΑΙ ΞΕΧΩΡΙΣΤΗ ΚΑΤΑΣΤΑΣΗ, ΕΙΝΑΙ ΕΡΩΤΗΣΗ.
+  // Ηταν `setLoading(true)` στην πρώτη γραμμή της φόρτωσης: σύγχρονη γραφή μέσα
+  // σε effect, δηλαδή δεύτερη απόδοση πριν καν φύγει το αίτημα. Η ερώτηση που
+  // ΟΝΤΩΣ απαντά είναι «τα δεδομένα που κρατώ είναι αυτού του ακινήτου;» και
+  // απαντιέται κατά την απόδοση, χωρίς καμία γραφή. Με την αλλαγή ακινήτου
+  // γίνεται αληθής ΑΜΕΣΩΣ, οπότε δεν υπάρχει καρέ με τα νούμερα του προηγούμενου.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const loading = loadedFor !== propertyId;
 
   const load = useCallback(async () => {
-    setLoading(true);
     const data = await settings.section<Partial<AppPreferences>>(supabase, propertyId, APP_PREFERENCES_SECTION);
 
     if (data) {
       setPrefs(prev => ({ ...prev, ...data }));
     }
-    setLoading(false);
+    setLoadedFor(propertyId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propertyId]);
 
-  useEffect(() => { load(); }, [load]);
+  useLoad(load);
 
   return { prefs, loading };
 }

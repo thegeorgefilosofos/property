@@ -47,6 +47,7 @@ import BillsInsurance    from './BillsInsurance';
 import { type LegalForm } from '@/lib/accounting/dossier';
 import BillsServices     from './BillsServices';
 import ExpenseSwitchAlert from './ExpenseSwitchAlert';
+import { useLoad } from '@/app/hooks/useLoad';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Props {
@@ -187,7 +188,6 @@ export default function TabBills({
   useEffect(() => {
     if (!propertyId) return;
     let mounted = true;
-    loadStrip();
     const ch = supabase
       .channel(`tabbills_${propertyId}`)
       .on('postgres_changes' as const, { event: '*', schema: 'public', table: 'bills', filter: `property_id=eq.${propertyId}` }, () => { if (mounted) loadStrip(); })
@@ -195,6 +195,12 @@ export default function TabBills({
     channelRef.current = ch;
     return () => { mounted = false; supabase.removeChannel(ch); channelRef.current = null; };
   }, [propertyId, loadStrip]);
+
+  // Η ΠΡΩΤΗ ΦΟΡΤΩΣΗ ΔΕΝ ΕΙΝΑΙ ΔΟΥΛΕΙΑ ΤΗΣ ΣΥΝΔΡΟΜΗΣ. Ηταν γραμμένη μέσα στο ίδιο
+  // effect που ανοίγει το κανάλι realtime, δηλαδή δύο άσχετες δουλειές με ένα
+  // σώμα: «φέρε τα δεδομένα» και «άκου τις αλλαγές». Χωριστά, η καθεμία λέει
+  // τι κάνει και ο κανόνας των effect βλέπει τι πραγματικά συμβαίνει.
+  useLoad(loadStrip);
 
   // Άνοιγμα εργαλείου από αλλού (π.χ. από την ειδοποίηση «πληρώνεις παραπάνω»).
   const openTool = useCallback((id: ContractKind) => {

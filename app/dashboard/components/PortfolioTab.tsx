@@ -42,6 +42,7 @@ import { notifyOk, notifyError } from '@/components/Toast';
 import { failed, MSG } from '@/lib/core/dbError';
 import RentReceived from './RentReceived';
 import { collectableLines, allViaBank, type CollectableRent } from '@/lib/rent/collect';
+import { useLoad } from '@/app/hooks/useLoad';
 
 interface PropLite { id: string; name: string; prop_type: string | null; address: string | null; target_rent: number | null; value: number | null; }
 /** Δόση ενοικίου όπως την καταχωρεί ο ιδιοκτήτης — `paid` = εισπράχθηκε. */
@@ -131,7 +132,13 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   const [chk, setChk] = useState<ChkRow[]>([]);
   const [propOwners, setPropOwners] = useState<PropOwnerRow[]>([]);
   const [clients, setClients] = useState<ClientRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Ο ΔΕΙΚΤΗΣ ΦΟΡΤΩΣΗΣ ΔΕΝ ΕΙΝΑΙ ΞΕΧΩΡΙΣΤΗ ΚΑΤΑΣΤΑΣΗ, ΕΙΝΑΙ ΕΡΩΤΗΣΗ. Ηταν
+  // `setLoading(true)` στην πρώτη γραμμή της φόρτωσης: σύγχρονη γραφή μέσα σε
+  // effect, δηλαδή δεύτερη απόδοση πριν καν φύγει το αίτημα. Η ερώτηση που ΟΝΤΩΣ
+  // απαντά είναι «τα δεδομένα που κρατώ είναι αυτού του χρήστη;» και απαντιέται
+  // κατά την απόδοση, χωρίς καμία γραφή.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const loading = loadedFor !== userId;
   const [sort, setSort] = useState<SortKey>('net');
   const [asc, setAsc] = useState(false);
 
@@ -165,7 +172,6 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
     [collectable, leases]);
 
   const load = useCallback(async () => {
-    setLoading(true);
     const [st, bl, ex, tn, ci, po, { data: cl }, rp, cr, lp] = await Promise.all([
       // Τα πεδία ανάλυσης ποσού ΔΕΝ είναι προαιρετικά εδώ: χωρίς αυτά το
       // declarableGrossOrTotal δεν έχει τι να διαβάσει και υποχωρεί στο ωμό
@@ -185,7 +191,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
         { unpaid: true, dueTo: athensToday() }),
       tenantStore.ofUser<LeasePay>(supabase, userId, 'id,e_payment'),
     ]);
-    setStays(st); setBills(bl); setExp((ex || []) as ExpRow[]); setRentByTenant(tn); setChk((ci || []) as ChkRow[]); setPropOwners((po || []) as PropOwnerRow[]); setClients((cl || []) as ClientRow[]); setRentPays(rp); setCollectRows(cr); setLeases(lp); setLoading(false);
+    setStays(st); setBills(bl); setExp((ex || []) as ExpRow[]); setRentByTenant(tn); setChk((ci || []) as ChkRow[]); setPropOwners((po || []) as PropOwnerRow[]); setClients((cl || []) as ClientRow[]); setRentPays(rp); setCollectRows(cr); setLeases(lp); setLoadedFor(userId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, year]);
 
@@ -194,7 +200,6 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
   // Μέσα στην ασύγχρονη συνάρτηση κάνει την ίδια δουλειά, χωρίς την επιπλέον
   // απόδοση και σταματά να ενοχλεί τον κανόνα set-state-in-effect.
   useEffect(() => {
-    void load();
     const ch = supabase.channel(`portfolio_${userId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'client_stays' }, () => load())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'bills' }, () => load())
@@ -205,6 +210,10 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
     return () => { supabase.removeChannel(ch); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, load]);
+
+  // Η πρώτη φόρτωση δεν ανήκει στο effect του καναλιού. Χωριστά, καθεμία λέει
+  // τι κάνει.
+  useLoad(load);
 
   const rows: Row[] = useMemo(() => {
     // Πιο πρόσφατο ενοίκιο ανά ακίνητο (η λίστα tenants έρχεται φθίνουσα κατά updated_at).

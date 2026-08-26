@@ -37,6 +37,7 @@ import { BulkImportModal } from './inventory/BulkImportModal'
 import { HandoverTab } from './inventory/HandoverTab'
 import { MaintenanceTab } from './inventory/MaintenanceTab'
 import { inventoryExports } from './inventory/exports'
+import { useLoad } from '@/app/hooks/useLoad';
 
 export { INVENTORY_CATEGORIES }
 export type { HandoverIntent }
@@ -502,7 +503,14 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   // ή από ρητή δήλωση. Όσο λείπει, δείχνουμε kWh και όχι ευρώ.
   const [kwhPrice,setKwhPrice] = useState(0)
   const [kwInput,setKwInput] = useState('')
-  const [loading,setLoading] = useState(true)
+  // Ο ΔΕΙΚΤΗΣ ΦΟΡΤΩΣΗΣ ΔΕΝ ΕΙΝΑΙ ΞΕΧΩΡΙΣΤΗ ΚΑΤΑΣΤΑΣΗ, ΕΙΝΑΙ ΕΡΩΤΗΣΗ. Ηταν
+  // `setLoading(true)` στην πρώτη γραμμή της φόρτωσης: σύγχρονη γραφή μέσα σε
+  // effect, δηλαδή δεύτερη απόδοση πριν καν φύγει το αίτημα. Η ερώτηση που ΟΝΤΩΣ
+  // απαντά είναι «τα δεδομένα που κρατώ είναι αυτού του ακινήτου;» και απαντιέται
+  // κατά την απόδοση, χωρίς καμία γραφή. Με την αλλαγή ακινήτου γίνεται αληθής
+  // ΑΜΕΣΩΣ, οπότε δεν υπάρχει καρέ με τα νούμερα του προηγούμενου.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null)
+  const loading = loadedFor !== propertyId
   const [showItemForm,setShowItemForm] = useState(false)
   // Χειροκίνητο άνοιγμα: όλα τα πεδία ορατά από την πρώτη στιγμή.
   const [formManual,setFormManual] = useState(false)
@@ -515,7 +523,6 @@ export default function TabInventory({propertyId,userId,profileType='individual'
   const [furnishing,setFurnishing] = useState<string|null>(null)
 
   const fetchData = useCallback(async()=>{
-    setLoading(true)
     const [iR,rR,hR,sR,bR,psR] = await Promise.all([
       inventory.ofProperty<InventoryItem>(supabase,propertyId,'*',userId),
       supabase.from('inventory_repairs').select('*').eq('user_id',userId).order('repair_date',{ascending:false}),
@@ -545,10 +552,10 @@ export default function TabInventory({propertyId,userId,profileType='individual'
     if(sR.data)setSchedules(sR.data)
     const savedKwh=(psR.data?.[0] as {kwh_price?:number}|undefined)?.kwh_price||bR.find(t=>t.kwh_price!=null)?.kwh_price
     if(savedKwh){setKwhPrice(savedKwh);setKwInput(String(savedKwh))}
-    setLoading(false)
+    setLoadedFor(propertyId)
   },[propertyId,userId])
 
-  useEffect(()=>{fetchData()},[fetchData])
+  useLoad(fetchData)
 
   const saveKwh=async(price:number)=>{
     // Ο μοναδικός περιορισμός είναι `UNIQUE (property_id)` — ΜΟΝΟ αυτόν δέχεται

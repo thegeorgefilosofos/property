@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useLoad } from '@/app/hooks/useLoad';
 
 export interface LiveMarketRates {
   euribor_3m: number
@@ -157,7 +158,9 @@ export function useBankRates() {
     setLoading(false)
   }, [supabase])
 
-  useEffect(() => { reload().catch(() => setLoading(false)) }, [reload])
+  // Η αποτυχία σβήνει τον δείκτη φόρτωσης· και τα δύο συμβαίνουν στην απάντηση.
+  const boot = useCallback(() => reload().catch(() => setLoading(false)), [reload])
+  useLoad(boot)
 
   return { banks, loading, verifiedAt, reload }
 }

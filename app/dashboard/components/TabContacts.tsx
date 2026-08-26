@@ -30,6 +30,7 @@ import { downloadFile } from '@/lib/core/download';
 import { MSG, SAY, failed } from '@/lib/core/dbError';
 // Το Αρχείο έχει ένα σπίτι: lib/data/documents.
 import * as documents from '@/lib/data/documents';
+import { useLoad } from '@/app/hooks/useLoad';
 
 // ── Δομικά του ντοσιέ επαφής ──────────────────────────────────────────────
 // ΣΕ MODULE SCOPE: ορισμένα μέσα στο DossierPanel, ξαναγεννιούνταν σε κάθε
@@ -1405,7 +1406,14 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
   const isPro = profileType === 'professional'
   const branding = useReportBranding(userId)
   const [contacts, setContacts] = useState<Contact[]>([])
-  const [loading, setLoading] = useState(true)
+  // Ο ΔΕΙΚΤΗΣ ΦΟΡΤΩΣΗΣ ΔΕΝ ΕΙΝΑΙ ΞΕΧΩΡΙΣΤΗ ΚΑΤΑΣΤΑΣΗ, ΕΙΝΑΙ ΕΡΩΤΗΣΗ.
+  // Ηταν `setLoading(true)` στην πρώτη γραμμή της φόρτωσης: σύγχρονη γραφή μέσα
+  // σε effect, δηλαδή δεύτερη απόδοση πριν καν φύγει το αίτημα. Η ερώτηση που
+  // ΟΝΤΩΣ απαντά είναι «τα δεδομένα που κρατώ είναι αυτού του ακινήτου;» και
+  // απαντιέται κατά την απόδοση, χωρίς καμία γραφή. Με την αλλαγή ακινήτου
+  // γίνεται αληθής ΑΜΕΣΩΣ, οπότε δεν υπάρχει καρέ με τα νούμερα του προηγούμενου.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null)
+  const loading = loadedFor !== propertyId
   const [showModal, setShowModal] = useState(false)
   const [editContact, setEditContact] = useState<Contact | null>(null)
   const [form, setForm] = useState({ ...EMPTY_FORM, extra: { ...EMPTY_EXTRA } })
@@ -1442,16 +1450,15 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
     return propName(c._extra?.scope_property_id || propertyId) || 'Αυτό το ακίνητο'
   }
   const fetchContacts = useCallback(async () => {
-    setLoading(true)
     // Φέρνουμε ΟΛΕΣ τις επαφές του χρήστη και δείχνουμε: αυτές του τρέχοντος ακινήτου
     // ΣΥΝ όσες έχουν οριστεί «όλο το χαρτοφυλάκιο» (ώστε οι επαγγελματικές επαφές
     // χαρτοφυλακίου να εμφανίζονται πραγματικά σε κάθε ακίνητο, όχι μόνο ως ετικέτα).
     const data = await contactStore.ofUser<Contact>(supabase, userId, '*', { orderBy: 'created_at', ascending: false })
     const parsed = data.map(parseContact)
     setContacts(parsed.filter(c => c.property_id === propertyId || c._extra?.scope === 'portfolio'))
-    setLoading(false)
+    setLoadedFor(propertyId)
   }, [propertyId, userId])
-  useEffect(() => { fetchContacts() }, [fetchContacts])
+  useLoad(fetchContacts)
 
   const isOtherRole = (r: string) => r === 'other' || r.endsWith('_other')
   const openAdd = () => { setEditContact(null); setForm({ ...EMPTY_FORM, extra: { ...EMPTY_EXTRA } }); setRoleOther(''); setError(null); setShowMore(false); setShowModal(true) }
