@@ -1,6 +1,6 @@
 'use client'
 import { T } from '@/components/Theme'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useSyncExternalStore } from 'react'
 import { authClient } from '@/lib/supabase/lazy';
 import Link from 'next/link'
 import AlreadySignedIn from '../AlreadySignedIn'
@@ -60,6 +60,10 @@ const TAP: React.CSSProperties = {
 const landing = (plan: PlanId | null, cycle: BillingCycle) =>
   plan ? `/tameio?plan=${plan}&cycle=${cycle}` : '/dashboard'
 
+// Ο σύνδεσμος δεν αλλάζει χωρίς πλοήγηση: η συνδρομή δεν έχει τι να ακούσει.
+const SEARCH_NEVER_CHANGES = () => () => {}
+const readSearch = () => window.location.search
+
 export default function SignupPage() {
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
@@ -71,18 +75,25 @@ export default function SignupPage() {
   // Το κουμπί της Google δεν έχει «υποβολή» για να δείξει το πρόβλημα. Χωρίς
   // αυτό, το πάτημα χωρίς αποδοχή δεν έκανε τίποτα και έμοιαζε με βλάβη.
   const [consentTouched, setConsentTouched] = useState(false)
-  const [refCode, setRefCode] = useState('')
+  // Η ΔΙΕΥΘΥΝΣΗ ΕΙΝΑΙ ΕΞΩΤΕΡΙΚΗ ΠΗΓΗ, ΟΧΙ ΚΑΤΑΣΤΑΣΗ. Ηταν τρεις προεπιλογές που
+  // ένα effect διόρθωνε μετά την πρώτη απόδοση: όποιος ερχόταν από σύνδεσμο
+  // πρόσκλησης με πακέτο έβλεπε για ένα καρέ ΑΛΛΟ πακέτο από αυτό που πάτησε.
+  // Το `useSyncExternalStore` δίνει ξεχωριστή τιμή στον διακομιστή, άρα καμία
+  // ασυμφωνία ενυδάτωσης. Ο σύνδεσμος δεν αλλάζει χωρίς πλοήγηση, οπότε η
+  // συνδρομή δεν έχει τι να ακούσει.
+  const query = useSyncExternalStore(SEARCH_NEVER_CHANGES, readSearch, () => '')
+  const refCode = new URLSearchParams(query).get('ref') || ''
   // ΤΟ ΠΑΚΕΤΟ ΠΟΥ ΔΙΑΛΕΞΕ Ο ΕΠΙΣΚΕΠΤΗΣ ΣΤΟΝ ΤΙΜΟΚΑΤΑΛΟΓΟ. Φτάνει ως `?plan=`
   // από την κάρτα που πάτησε. Χωρίς αυτό, η μόνη απόφαση που πήρε στην αρχική
   // σελίδα χανόταν στη μετάβαση και η εγγραφή ξεκινούσε σαν να μην είχε
   // επιλέξει ποτέ τίποτα. Κρατιέται στο προφίλ, ώστε στη λήξη της δοκιμής να
   // ξέρουμε ΚΑΙ εμείς ΚΑΙ ο χρήστης ποιο πακέτο περιμένει.
-  const [chosenPlan, setChosenPlan] = useState<PlanId | null>(null)
+  const chosenPlan = planFromParam(new URLSearchParams(query).get('plan'))
   // ΚΑΙ Ο ΚΥΚΛΟΣ ΤΑΞΙΔΕΥΕΙ ΜΑΖΙ ΤΟΥ. Το πακέτο έφτανε μόνο του, οπότε η
   // επιλογή «ετήσια, με δύο μήνες δωρεάν» —η ακριβώς μισή απόφαση και η πιο
   // ακριβή— χανόταν στη μετάβαση: ο χρήστης κατέληγε στο ταμείο με μηνιαία
   // χρέωση, δηλαδή σε ΑΛΛΟ ποσό από εκείνο που πάτησε.
-  const [chosenCycle, setChosenCycle] = useState<BillingCycle>('monthly')
+  const chosenCycle = cycleFromParam(new URLSearchParams(query).get('cycle'))
   const [sessionEmail, setSessionEmail] = useState<string | null>(null)
   /** Ηρθε από τη σύνδεση με Google και δεν έχει δεχτεί ποτέ τους Ορους. */
   const [needsConsent, setNeedsConsent] = useState<string | null>(null)
@@ -103,16 +114,6 @@ export default function SignupPage() {
     : /rate limit|too many/i.test(m) ? SAY.tooManyTries
     : /valid email/i.test(m) ? 'Το email δεν φαίνεται έγκυρο.'
     : m
-  useEffect(() => {
-    try {
-      const q = new URLSearchParams(window.location.search)
-      const r = q.get('ref'); if (r) setRefCode(r)
-      // Μόνο πακέτο επί πληρωμή: το «free» δεν επιλέγεται, είναι κατάσταση.
-      // Ο κανόνας ζει στο planFromParam, όχι σε δύο αντίγραφα εδώ μέσα.
-      setChosenPlan(planFromParam(q.get('plan')))
-      setChosenCycle(cycleFromParam(q.get('cycle')))
-    } catch {}
-  }, [])
   useEffect(() => {
     // Ασύγχρονο ξετύλιγμα: το effect δεν επιστρέφει ποτέ υπόσχεση.
     void (async () => {

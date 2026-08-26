@@ -73,6 +73,7 @@ import { Printer, ShieldCheck } from 'lucide-react'
 import { notifyError } from '@/components/Toast';
 import { MONTHS_NOM, MONTHS_SHORT } from '@/lib/core/months';
 import { failed, MSG } from '@/lib/core/dbError';
+import { useRemembered, useRememberedFlag } from '@/components/useRememberedFlag';
 
 // ΔΥΟ ΟΝΟΜΑΤΑ ΓΙΑ ΤΗΝ ΙΔΙΑ ΣΥΝΑΡΤΗΣΗ. Ήταν `eur = fe(n,0)` και `eur2 = fe(n)`,
 // δηλαδή «στρογγυλό» και «ακριβές» — αλλά το δεύτερο όρισμα του `fe` αγνοούνταν,
@@ -158,6 +159,9 @@ function Kpi({ label, value, note, hot, tone='accent', onHover }:{
   )
 }
 
+const readNum = (raw: string | null): number | '' => { const n = Number(raw); return raw && Number.isFinite(n) && n ? n : '' }
+const writeNum = (v: number | '') => (v ? String(v) : '')
+
 export default function TabAccounting({ propertyId, userId, profileType='individual', legalForm='individual', plan='free', onNavigate }: { propertyId:string; userId:string; profileType?:'individual'|'professional'; legalForm?:DossierLegalForm; plan?:PlanId; onNavigate?:(tab:string)=>void }) {
   const supabase = createClient()
   const branding = useReportBranding(userId)
@@ -203,11 +207,14 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // της σε φορολογικό καθεστώς ζει σε ένα σημείο, με τεστ (lib/accounting/taxProfile).
   const elpForm = businessFormOf(legalForm)
   // Ηλικία, μόνο για τη μειωμένη κλίμακα νέων (ν.5246/2025). Τοπική, προαιρετική.
-  const [age,setAge] = useState<number|''>('')
+  // ΤΡΕΙΣ ΤΙΜΕΣ ΠΟΥ ΤΙΣ ΘΥΜΑΤΑΙ Ο ΠΕΡΙΗΓΗΤΗΣ, ΟΧΙ Η REACT. Ηταν κενές αρχικές
+  // τιμές με effect που τις γέμιζε μετά: η οθόνη του φόρου έδειχνε για ένα καρέ
+  // υπολογισμό ΧΩΡΙΣ τις εισφορές ΕΦΚΑ, δηλαδή λάθος νούμερο πριν το σωστό.
+  const [age,setAge] = useRemembered<number|''>('acc_age', readNum, writeNum, '')
   // Επιχειρηματικές παράμετροι (τοπικές, προαιρετικές): ετήσιες εισφορές ΕΦΚΑ,
   // πρώτη τριετία δραστηριότητας, ποσοστό διανομής κερδών νομικού προσώπου.
-  const [ekfa,setEkfa] = useState<number|''>('')
-  const [firstYears,setFirstYears] = useState(false)
+  const [ekfa,setEkfa] = useRemembered<number|''>('acc_ekfa', readNum, writeNum, '')
+  const [firstYears,updateFirstYears] = useRememberedFlag('acc_first3')
   const [distribution,setDistribution] = useState<number|''>('')
   const [claimedUncollected,setClaimedUncollected] = useState(false)
   // ═══════════════════════════════════════════════════════════════════════
@@ -302,14 +309,8 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const [acctLink,setAcctLink] = useState<string|null>(null)
   const [acctRevoked,setAcctRevoked] = useState(false)
   const [acctUntil,setAcctUntil] = useState('')
-  useEffect(()=>{ try{
-    const v=localStorage.getItem('acc_age'); if(v) setAge(Number(v)||'')
-    const e=localStorage.getItem('acc_ekfa'); if(e) setEkfa(Number(e)||'')
-    setFirstYears(localStorage.getItem('acc_first3')==='1')
-  }catch{} },[])
-  const updateAge=(v:number|'')=>{ setAge(v); try{ if(v) localStorage.setItem('acc_age',String(v)); else localStorage.removeItem('acc_age') }catch{} }
-  const updateEkfa=(v:number|'')=>{ setEkfa(v); try{ if(v) localStorage.setItem('acc_ekfa',String(v)); else localStorage.removeItem('acc_ekfa') }catch{} }
-  const updateFirstYears=(v:boolean)=>{ setFirstYears(v); try{ localStorage.setItem('acc_first3',v?'1':'0') }catch{} }
+  const updateAge=setAge
+  const updateEkfa=setEkfa
   // ── ΤΙ ΑΚΡΙΒΩΣ ΖΗΤΑΕΙ ΚΑΘΕ ΕΡΩΤΗΜΑ ──────────────────────────────────────
   // Οι τύποι γραμμών γεννιούνται από τα migrations (lib/supabase/tables.ts) και
   // κόβονται με `Pick` στις στήλες που ΟΝΤΩΣ ζητά το `select`. Έτσι μια στήλη

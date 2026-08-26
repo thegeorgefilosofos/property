@@ -2,23 +2,29 @@
 import { useEffect, useState } from 'react'
 import type { LoanDoc } from './TabLoanData'
 import { T } from '@/components/Theme'
+import { useRemembered } from '@/components/useRememberedFlag'
 
 // Επαγγελματική, ελεγχόμενη λίστα δικαιολογητικών: τικάρεις ό,τι έχεις μαζέψει,
 // βλέπεις πρόοδο και η κατάσταση διατηρείται (ανά ακίνητο/τύπο δανείου).
+// Σταθερή αναφορά για το «τίποτα τικαρισμένο».
+const NONE: Set<number> = new Set()
+
 export default function DocChecklist({ docs, storageKey, title = 'Δικαιολογητικά που θα χρειαστείς', compact = false }: {
   docs: LoanDoc[]; storageKey?: string; title?: string; compact?: boolean
 }) {
-  const [done, setDone] = useState<Set<number>>(new Set())
-  useEffect(() => {
-    if (!storageKey) { setDone(new Set()); return }
-    try { const raw = localStorage.getItem('docchk:' + storageKey); setDone(raw ? new Set(JSON.parse(raw) as number[]) : new Set()) }
-    catch { setDone(new Set()) }
-  }, [storageKey])
-  const toggle = (i: number) => setDone(prev => {
-    const n = new Set(prev); n.has(i) ? n.delete(i) : n.add(i)
-    if (storageKey) { try { localStorage.setItem('docchk:' + storageKey, JSON.stringify([...n])) } catch { /* ignore */ } }
-    return n
-  })
+  // Η ΛΙΣΤΑ ΘΥΜΑΤΑΙ ΣΤΟΝ ΠΕΡΙΗΓΗΤΗ, ΟΧΙ ΣΤΗ REACT. Ηταν άδειο σύνολο που ένα
+  // effect γέμιζε μετά την πρώτη απόδοση: ο χρήστης που είχε τικάρει εννιά
+  // δικαιολογητικά έβλεπε για ένα καρέ όλα άτικαρα και την πρόοδο στο μηδέν.
+  const [done, setDone] = useRemembered<Set<number>>(
+    'docchk:' + (storageKey || ''),
+    raw => { try { return storageKey && raw ? new Set<number>(JSON.parse(raw) as number[]) : NONE } catch { return NONE } },
+    v => JSON.stringify([...v]),
+    NONE,
+  )
+  const toggle = (i: number) => {
+    const n = new Set(done); n.has(i) ? n.delete(i) : n.add(i)
+    if (storageKey) setDone(n)
+  }
   const total = docs.length
   const count = [...done].filter(i => i < total).length
   const pct = total ? Math.round((count / total) * 100) : 0

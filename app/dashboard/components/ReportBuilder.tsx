@@ -26,6 +26,7 @@ import type { ReportBranding } from '@/lib/reportBranding';
 import { MONTHS_NOM } from '@/lib/core/months';
 import { failed } from '@/lib/core/dbError';
 import { monthEndIso } from '@/lib/core/time';
+import { useRemembered } from '@/components/useRememberedFlag';
 
 interface Prop { id: string; name: string; address: string | null }
 interface RentRow { property_id: string | null; period_year: number | null; period_month: number | null; amount: number | null; paid: boolean | null }
@@ -44,6 +45,9 @@ const PRESET_KEY = 'po_report_presets_v1';
 interface Preset { name: string; month: number; sections: SectionKey[]; propIds: string[] }
 
 
+// Σταθερή αναφορά για την απάντηση του διακομιστή και για το άδειο.
+const NO_PRESETS: Preset[] = [];
+
 export default function ReportBuilder({ open, onClose, userId, supabase, branding }: {
   open: boolean; onClose: () => void; userId: string; supabase: SupabaseClient; branding?: ReportBranding | null;
 }) {
@@ -54,15 +58,20 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
   const [month, setMonth] = useState(0);                 // 0 = όλο το έτος
   const [propIds, setPropIds] = useState<Set<string>>(new Set());
   const [sections, setSections] = useState<Set<SectionKey>>(new Set(['summary', 'byProperty', 'charts', 'rent', 'expenses']));
-  const [presets, setPresets] = useState<Preset[]>([]);
+  // ΟΙ ΠΡΟΕΠΙΛΟΓΕΣ ΖΟΥΝ ΣΤΟΝ ΠΕΡΙΗΓΗΤΗ. Ηταν άδειος πίνακας που ένα effect
+  // γέμιζε μετά την πρώτη απόδοση: ο χρήστης με έξι αποθηκευμένες αναφορές
+  // έβλεπε «καμία προεπιλογή» για ένα καρέ, κάθε φορά.
+  const [presets, savePresets] = useRemembered<Preset[]>(
+    PRESET_KEY,
+    raw => { try { return raw ? (JSON.parse(raw) as Preset[]) : NO_PRESETS; } catch { return NO_PRESETS; } },
+    v => JSON.stringify(v),
+    NO_PRESETS,
+  );
   const [presetName, setPresetName] = useState('');
   const [busy, setBusy] = useState(false);
   const [xlsxBusy, setXlsxBusy] = useState(false);
   const [err, setErr] = useState('');
 
-  useEffect(() => {
-    try { setPresets(JSON.parse(localStorage.getItem(PRESET_KEY) || '[]')); } catch { /* ignore */ }
-  }, []);
 
   // Η ΣΗΜΑΙΑ ΦΟΡΤΩΣΗΣ ΜΠΑΙΝΕΙ ΜΕΣΑ ΣΤΗΝ ΑΛΥΣΙΔΑ, ΟΧΙ ΠΡΙΝ ΑΠΟ ΑΥΤΗΝ. Γραμμένη
   // στο σώμα του effect, προκαλεί δεύτερη απόδοση ΠΡΙΝ καν ξεκινήσει το αίτημα.
@@ -82,7 +91,6 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
     return () => { alive = false; };
   }, [open, userId, supabase]);
 
-  const savePresets = (list: Preset[]) => { setPresets(list); try { localStorage.setItem(PRESET_KEY, JSON.stringify(list)); } catch { /* ignore */ } };
   const addPreset = () => {
     const name = presetName.trim(); if (!name) return;
     const p: Preset = { name, month, sections: [...sections], propIds: [...propIds] };

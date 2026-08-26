@@ -9,9 +9,10 @@
 import { TriangleAlert, CircleCheckBig } from 'lucide-react';
 import BrandMark from '@/components/BrandMark';
 import { ABSENT, T } from '@/components/tokens';
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useLoad } from '@/app/hooks/useLoad';
 
 interface Verified {
   id: string; doc_type: string; subject: string; period: string; issued_at: string; issuer: string;
@@ -26,20 +27,23 @@ export default function VerifyDocument() {
   const params = useParams();
   const id = String(params?.id || '');
   const supabase = createClient();
-  const [state, setState] = useState<'loading' | 'ok' | 'notfound'>('loading');
-  const [doc, setDoc] = useState<Verified | null>(null);
+  // Η ΚΑΤΑΣΤΑΣΗ ΤΗΣ ΟΘΟΝΗΣ ΒΓΑΙΝΕΙ ΑΠΟ ΤΟ ΑΠΟΤΕΛΕΣΜΑ, ΔΕΝ ΓΡΑΦΕΤΑΙ ΔΙΠΛΑ ΤΟΥ.
+  // Ηταν δύο καταστάσεις με `setState('loading')` σύγχρονα μέσα σε effect: μία
+  // περιττή απόδοση και δύο πηγές αλήθειας που μπορούσαν να διαφωνήσουν. Τώρα
+  // υπάρχει ΕΝΑ αποτέλεσμα, με σφραγίδα του εγγράφου που ελέγχθηκε· η
+  // κατάσταση διαβάζεται από αυτό.
+  const [result, setResult] = useState<{ id: string; doc: Verified | null } | null>(null);
+  const doc = result?.id === id ? result.doc : null;
+  const state: 'loading' | 'ok' | 'notfound' =
+    result?.id !== id ? 'loading' : result.doc ? 'ok' : 'notfound';
 
-  useEffect(() => {
-    setState('loading');
-    (async () => {
-      const { data, error } = await supabase.rpc('verify_document', { p_id: id });
-      const row = Array.isArray(data) ? data[0] : data;
-      if (error || !row) { setState('notfound'); return; }
-      setDoc(row as Verified);
-      setState('ok');
-    })();
+  const check = useCallback(async () => {
+    const { data, error } = await supabase.rpc('verify_document', { p_id: id });
+    const row = Array.isArray(data) ? data[0] : data;
+    setResult({ id, doc: error || !row ? null : (row as Verified) });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+  useLoad(check);
 
   const wrap: React.CSSProperties = { minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: 'Inter, system-ui, Arial, sans-serif', color: 'var(--text-primary)' };
   const card: React.CSSProperties = { width: '100%', maxWidth: 460, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '30px 30px 26px', boxShadow: 'var(--elev-1)' };

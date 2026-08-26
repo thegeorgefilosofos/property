@@ -1,6 +1,6 @@
 'use client'
 import { T } from '@/components/Theme'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
 import { authClient } from '@/lib/supabase/lazy';
 import Link from 'next/link'
@@ -19,9 +19,21 @@ import { BackLink } from '../BackLink'
 
 type Mode = 'request' | 'sent' | 'update' | 'done'
 
+// Το κάταγμα δεν αλλάζει χωρίς πλοήγηση: η συνδρομή δεν έχει τι να ακούσει.
+const HASH_NEVER_CHANGES = () => () => {}
+const readRecovery = () => window.location.hash.includes('type=recovery')
+
 export default function ResetPasswordPage() {
   const router = useRouter()
-  const [mode, setMode] = useState<Mode>('request')
+  // Ο ΣΥΝΔΕΣΜΟΣ ΤΟΥ EMAIL ΛΕΕΙ ΗΔΗ ΣΕ ΠΟΙΑ ΟΘΟΝΗ ΕΙΜΑΣΤΕ. Ηταν
+  // `setMode('update')` μέσα σε effect: ο χρήστης που πάτησε τον σύνδεσμο
+  // επαναφοράς έβλεπε για ένα καρέ τη φόρμα «στείλε μου σύνδεσμο», δηλαδή τη
+  // φόρμα που μόλις είχε συμπληρώσει. Το κάταγμα (#) της διεύθυνσης είναι
+  // εξωτερική πηγή και διαβάζεται κατά την απόδοση, με ξεχωριστή απάντηση για
+  // τον διακομιστή.
+  const fromRecoveryLink = useSyncExternalStore(HASH_NEVER_CHANGES, readRecovery, () => false)
+  const [modeOverride, setMode] = useState<Mode | null>(null)
+  const mode: Mode = modeOverride ?? (fromRecoveryLink ? 'update' : 'request')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -45,7 +57,6 @@ export default function ResetPasswordPage() {
       })
       sub = data.subscription
     })()
-    if (typeof window !== 'undefined' && window.location.hash.includes('type=recovery')) setMode('update')
     return () => { gone = true; sub?.unsubscribe() }
   }, [])
 

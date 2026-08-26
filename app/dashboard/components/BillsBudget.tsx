@@ -34,6 +34,7 @@ import { subscriptionsMonthly } from '@/lib/expenses/subscriptions';
 import { enfiaInUse, estimateENFIA } from '@/lib/billing/enfia';
 import { climateLevyRates, isHighSeasonMonth } from '@/lib/billing/greekTax';
 import { useLoad } from '@/app/hooks/useLoad';
+import { useRemembered } from '@/components/useRememberedFlag';
 
 // Μήνες-παράθυρα εισφοράς μέχρι την προθεσμία: 0 αν λείπει ή έχει περάσει (σύγκριση
 // ΗΜΕΡΑΣ)· τουλάχιστον 1 για μελλοντική προθεσμία, ακόμη κι αργότερα μέσα στον μήνα.
@@ -260,6 +261,12 @@ interface CustomCatRaw { key?: unknown; label?: unknown }
 
 interface Props { propertyId: string; userId?: string; profileType?: 'individual' | 'professional'; }
 
+// Οι ενότητες που ξεκινούν μαζεμένες, γραμμένες ΜΙΑ φορά. Το `COLLAPSED_SERVER`
+// είναι η απάντηση του διακομιστή και πρέπει να είναι ΣΤΑΘΕΡΗ αναφορά: νέο
+// `Set` σε κάθε απόδοση θα έβαζε τη React σε ατέρμονο βρόχο.
+const COLLAPSED_BY_DEFAULT = ['annual', 'week', 'recurring', 'income', 'exclusions', 'import', 'cats'];
+const COLLAPSED_SERVER = new Set<string>(COLLAPSED_BY_DEFAULT);
+
 export default function BillsBudget({ propertyId, userId = '', profileType = 'individual' }: Props) {
   const isPro = profileType === 'professional';
   const supabase  = createClient();
@@ -324,20 +331,20 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   const [demoBusy,     setDemoBusy]     = useState(false);   // δημιουργία/αφαίρεση δείγματος δεδομένων
   // Πλοήγηση μήνα: 0 = τρέχων, −1 = προηγούμενος … έως −12 (από το φορτωμένο ιστορικό).
   const [monthOffset,  setMonthOffset]  = useState(0);
-  // Ελαχιστοποίηση ενοτήτων (μνήμη ανά ακίνητο).
-  const [collapsed,    setCollapsed]    = useState<Set<string>>(new Set());
-  // Προεπιλογή: όλες οι ενότητες κλειστές (μαζεμένες) — ο χρήστης ανοίγει ό,τι θέλει.
-  useEffect(() => {
-    try {
-      const s = localStorage.getItem(`budget_collapsed_${propertyId}`);
-      setCollapsed(new Set(s ? JSON.parse(s) : ['annual', 'week', 'recurring', 'income', 'exclusions', 'import', 'cats']));
-    } catch { setCollapsed(new Set(['annual', 'week', 'recurring', 'income', 'exclusions', 'import', 'cats'])); }
-  }, [propertyId]);
-  const toggleCollapse = (key: string) => setCollapsed(prev => {
-    const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key);
-    try { localStorage.setItem(`budget_collapsed_${propertyId}`, JSON.stringify([...n])); } catch { /* ignore */ }
+  // Ελαχιστοποίηση ενοτήτων (μνήμη ανά ακίνητο). Ο localStorage είναι ΕΞΩΤΕΡΙΚΗ
+  // πηγή, όχι κατάσταση της React: ήταν «ξεκινάω με άδειο σύνολο και το διορθώνω
+  // σε effect», δηλαδή δύο αποδόσεις σε κάθε φόρτωση και μια στιγμή όπου όλες οι
+  // ενότητες φαίνονταν ανοιχτές. Προεπιλογή: όλες κλειστές.
+  const [collapsed, setCollapsedStore] = useRemembered<Set<string>>(
+    `budget_collapsed_${propertyId}`,
+    raw => new Set<string>(raw ? (JSON.parse(raw) as string[]) : COLLAPSED_BY_DEFAULT),
+    v => JSON.stringify([...v]),
+    COLLAPSED_SERVER,
+  );
+  const toggleCollapse = (key: string) => setCollapsedStore((() => {
+    const n = new Set(collapsed); n.has(key) ? n.delete(key) : n.add(key);
     return n;
-  });
+  })());
 
   // Η αντιστοίχιση κατηγορίας σε κουβά ζει πλέον στο κοινό λεξιλόγιο
   // (lib/expenses/taxonomy). Εδώ υπήρχε δικό της λεξικό με ΜΟΝΟ αγγλικά κλειδιά,

@@ -478,21 +478,30 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
 
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Αύξων αριθμός σποράς, αντί για `Date.now()`: η γραφή γίνεται πλέον ΚΑΤΑ ΤΗΝ
+// ΑΠΟΔΟΣΗ και η απόδοση πρέπει να είναι καθαρή. Δύο κλήσεις στην ίδια στιγμή
+// θα έδιναν την ίδια σφραγίδα και το πρωτόκολλο δεν θα ξανάνοιγε.
+let seedCounter = 0
+const seedSerial = () => ++seedCounter
+
 export default function TabInventory({propertyId,userId,profileType='individual',embedded,handoverIntent,onIntentConsumed,properties=[]}:TabInventoryProps & {embedded?:boolean;handoverIntent?:HandoverIntent|null;onIntentConsumed?:()=>void;properties?:InventoryPropertyOption[]}) {
   // ΔΥΟ ΣΕΛΙΔΕΣ, ΟΧΙ ΤΕΣΣΕΡΙΣ ΥΠΟΚΑΡΤΕΛΕΣ. Η απογραφή είναι μία σελίδα που
   // διαβάζεται από πάνω προς τα κάτω. Το πρωτόκολλο παράδοσης είναι χωριστή
   // εργασία με δικό της βήμα-βήμα, οπότε μένει δική του σελίδα.
   const [page,setPage] = useState<'main'|'handover'>('main')
   const [handoverSeed,setHandoverSeed] = useState<(HandoverIntent&{n:number})|null>(null)
-  // Deep-link από την καρτέλα ενοικιαστή: άνοιξε κατευθείαν τη «Παράδοση» σε νέο πρωτόκολλο με προ-συμπληρωμένα στοιχεία.
-  useEffect(()=>{
-    if(handoverIntent){
-      setPage('handover')
-      setHandoverSeed({...handoverIntent,n:Date.now()})
-      onIntentConsumed?.()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[handoverIntent])
+  // Deep-link από την καρτέλα ενοικιαστή: άνοιξε κατευθείαν τη «Παράδοση» σε νέο
+  // πρωτόκολλο με προ-συμπληρωμένα στοιχεία. ΚΑΤΑ ΤΗΝ ΑΠΟΔΟΣΗ, όχι σε effect:
+  // ως effect, η οθόνη έδειχνε πρώτα την κύρια σελίδα της απογραφής και μετά
+  // πηδούσε στην παράδοση. Η React το ονομάζει «adjusting state when a prop
+  // changes» και είναι ακριβώς αυτή η περίπτωση.
+  const [intentSeen,setIntentSeen] = useState<HandoverIntent|null>(null)
+  if(handoverIntent && handoverIntent!==intentSeen){
+    setIntentSeen(handoverIntent)
+    setPage('handover')
+    setHandoverSeed({...handoverIntent,n:seedSerial()})
+    onIntentConsumed?.()
+  }
   const [items,setItems] = useState<InventoryItem[]>([])
   const [repairs,setRepairs] = useState<InventoryRepair[]>([])
   const [handovers,setHandovers] = useState<InventoryHandover[]>([])

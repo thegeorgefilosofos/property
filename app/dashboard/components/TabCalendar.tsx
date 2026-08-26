@@ -1,6 +1,6 @@
 'use client'
 import { navLabel } from '@/lib/nav/labels';
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { isoDate, athensToday, daysUntil as athensDaysUntil } from '@/lib/core/time'
 import { deviceNotifyOn, NOTIFY_EVENT } from '@/lib/push/client'
@@ -1512,6 +1512,13 @@ function SubscribeModal({ token, propertyId, onClose }: { token:string|null; pro
   )
 }
 
+// Οποιος αλλάξει τον διακόπτη σε ΑΛΛΗ καρτέλα ή σε άλλη οθόνη, φτάνει εδώ.
+function subscribeNotify(onChange: () => void): () => void {
+  window.addEventListener(NOTIFY_EVENT, onChange)
+  window.addEventListener('storage', onChange)
+  return () => { window.removeEventListener(NOTIFY_EVENT, onChange); window.removeEventListener('storage', onChange) }
+}
+
 export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenTasks }: {
   propertyId:string; userId:string;
   /** Πόσες εκκρεμότητες είναι ανοιχτές. Δείχνεται δίπλα στον σύνδεσμο, όχι ως σήμα. */
@@ -1553,7 +1560,13 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
   // πλήρως ορατό (clamp στα άκρα της οθόνης), προς τα κάτω· πάνω μόνο αν δεν χωράει.
   const positionMenu=()=>{ const el=menuBtnRef.current; if(!el)return; const r=el.getBoundingClientRect(); const W=248, PANEL_H=392, M=8; const below=window.innerHeight-r.bottom-M; const up=below<PANEL_H && r.top-M>below; const left=Math.max(M,Math.min(r.right-W,window.innerWidth-W-M)); setMenuCoords({top:up?r.top-6:r.bottom+6,left,up}) }
   const importRef=useRef<HTMLInputElement>(null)
-  const [notifyOn,setNotifyOn]=useState(false)
+  // Ο ΔΙΑΚΟΠΤΗΣ ΕΙΝΑΙ ΤΟΥ ΠΕΡΙΗΓΗΤΗ, ΟΧΙ ΤΗΣ REACT. Ηταν `useState(false)` και
+  // `if(deviceNotifyOn())setNotifyOn(true)` μέσα στο effect που στήνει τον
+  // ακροατή: σύγχρονη γραφή κατάστασης, δηλαδή δεύτερη απόδοση σε κάθε φόρτωση
+  // του ημερολογίου. Το `useSyncExternalStore` δίνει ΞΕΧΩΡΙΣΤΗ απάντηση στον
+  // διακομιστή («όχι», γιατί εκεί δεν υπάρχουν ειδοποιήσεις), οπότε δεν υπάρχει
+  // ούτε ασυμφωνία ενυδάτωσης ούτε δεύτερη απόδοση.
+  const notifyOn = useSyncExternalStore(subscribeNotify, deviceNotifyOn, () => false)
   const [stays,setStays]=useState<StaySpan[]>([])
   const notifiedRef=useRef<Set<string>>(new Set())
   // Ενιαίο drag (ποντίκι + αφή) — μετακίνηση γεγονότος με σύρσιμο στο πλέγμα του μήνα.
@@ -1590,12 +1603,6 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
   // ειδοποίηση με την εφαρμογή κλειστή ΚΑΙ αυτή εδώ την τοπική, ~10' πριν από
   // κάθε ραντεβού, όσο η εφαρμογή είναι ανοιχτή. Το ημερολόγιο ΑΚΟΥΕΙ: όποιος
   // αλλάξει τον διακόπτη σε άλλη καρτέλα δεν χρειάζεται να ανανεώσει σελίδα.
-  useEffect(()=>{
-    if(deviceNotifyOn())setNotifyOn(true)
-    const h=()=>setNotifyOn(deviceNotifyOn())
-    window.addEventListener(NOTIFY_EVENT,h)
-    return ()=>window.removeEventListener(NOTIFY_EVENT,h)
-  },[])
   useEffect(()=>{
     if(!notifyOn||typeof Notification==='undefined')return
     const tick=()=>{

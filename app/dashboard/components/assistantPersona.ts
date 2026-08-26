@@ -928,10 +928,10 @@ export function parseAction(text: string): { clean: string; action?: AssistantAc
 // εκεί ό,τι εξακολουθεί να ισχύει (προσφώνηση, μνήμη, σύγκριση), ώστε ο χρήστης
 // που είχε επιλέξει πληθυντικό ευγενείας να μην ξαναβρεθεί στον ενικό επειδή
 // αλλάξαμε εμείς το σχήμα. Το όνομα και το φύλο απλώς αγνοούνται.
-const PREFS_KEY = 'pa_prefs_v2';
+export const PREFS_KEY = 'pa_prefs_v2';
 const LEGACY_KEY = 'pa_identity_v1';
 
-const readPrefs = (raw: string | null): AssistantPrefs | null => {
+export const readPrefs = (raw: string | null): AssistantPrefs | null => {
   if (!raw) return null;
   try {
     const p = JSON.parse(raw);
@@ -981,7 +981,7 @@ export function clearHistory(pid: string) {
 // Μένουν στη συσκευή (localStorage), ξεχωριστά από το ιστορικό συνομιλίας.
 export interface Memory { id: string; text: string; }
 const MEM_CAP = 100;
-const memKey = (uid: string) => `pa_mem_${uid || 'anon'}`;
+export const memKey = (uid: string) => `pa_mem_${uid || 'anon'}`;
 
 const normFact = (s: string) => (s || '').trim().replace(/\s+/g, ' ').slice(0, 140);
 // Σταθερό id από το ίδιο το κείμενο (djb2). Αφού τα γεγονότα είναι μοναδικά (dedup),

@@ -49,3 +49,58 @@ export function useRememberedFlag(key: string): [boolean, (next: boolean) => voi
   }, [key]);
   return [on, set];
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ΚΑΙ ΟΤΑΝ Η ΜΝΗΜΗ ΔΕΝ ΕΙΝΑΙ ΝΑΙ/ΟΧΙ
+// ─────────────────────────────────────────────────────────────────────────
+// Οκτώ οθόνες διάβαζαν τον localStorage με το ίδιο λάθος μοτίβο: κατάσταση με
+// προεπιλογή, effect που τη διορθώνει, δύο αποδόσεις σε κάθε φόρτωση. Το ίδιο
+// που έλυσε το `useRememberedFlag` για τα ναι/όχι, μόνο που εδώ η τιμή είναι
+// σύνολο, πίνακας ή αριθμός.
+//
+// ΤΟ ΠΑΓΙΔΕΥΜΕΝΟ ΣΗΜΕΙΟ: το `getSnapshot` ΠΡΕΠΕΙ να επιστρέφει την ΙΔΙΑ αναφορά
+// όσο δεν αλλάζει η αποθηκευμένη τιμή. Ενα `new Set(JSON.parse(raw))` σε κάθε
+// κλήση δίνει καινούριο αντικείμενο κάθε φορά και η React μπαίνει σε ατέρμονο
+// βρόχο αποδόσεων. Το μνημόνιο κρατά το ΩΜΟ κείμενο δίπλα στην τιμή: όσο το
+// κείμενο είναι το ίδιο, γυρίζει η ίδια αναφορά.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const memo = new Map<string, { raw: string | null; value: unknown }>();
+
+function readRaw(key: string): string | null {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+
+function snapshot<T>(key: string, parse: (raw: string | null) => T): T {
+  const raw = readRaw(key);
+  const hit = memo.get(key);
+  if (hit && hit.raw === raw) return hit.value as T;
+  const value = parse(raw);
+  memo.set(key, { raw, value });
+  return value;
+}
+
+/**
+ * Μια τιμή που θυμάται ο περιηγητής και ΔΕΝ είναι ναι/όχι.
+ *
+ * @param key       κλειδί στον localStorage, με πρόθεμα του προϊόντος
+ * @param parse     από ωμό κείμενο (ή `null`) στην τιμή. Καλείται μόνο όταν αλλάξει.
+ * @param serialize από την τιμή στο ωμό κείμενο που γράφεται
+ * @param server    τι απαντά ο διακομιστής, όπου δεν υπάρχει localStorage.
+ *                  ΣΤΑΘΕΡΗ αναφορά, αλλιώς ξανα-αποδίδει σε κάθε πέρασμα.
+ */
+export function useRemembered<T>(
+  key: string,
+  parse: (raw: string | null) => T,
+  serialize: (value: T) => string,
+  server: T,
+): [T, (next: T) => void] {
+  const read = useCallback(() => snapshot(key, parse), [key, parse]);
+  const value = useSyncExternalStore(subscribe, read, () => server);
+  const set = useCallback((next: T) => {
+    try { localStorage.setItem(key, serialize(next)); } catch { /* ό,τι δεν θυμάται, δεν χαλάει */ }
+    memo.delete(key);
+    listeners.forEach(l => l());
+  }, [key, serialize]);
+  return [value, set];
+}

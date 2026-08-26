@@ -42,6 +42,7 @@ import { savedData } from '@/components/dbWrite';
 import { notifyError } from '@/components/Toast';
 import { SAY, failed } from '@/lib/core/dbError';
 import { useLoad } from '@/app/hooks/useLoad';
+import { useRememberedFlag } from '@/components/useRememberedFlag';
 
 type ProfileType = 'individual' | 'professional';
 
@@ -480,8 +481,12 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
   const [sheetNote, setSheetNote] = useState('');
   const [exportErr, setExportErr] = useState('');
   const [exportOk, setExportOk] = useState('');
-  const [reduceMotion, setReduceMotion] = useState(false);
-  const [largeText, setLargeText] = useState(false);
+  // ΟΙ ΔΥΟ ΠΡΟΤΙΜΗΣΕΙΣ ΠΡΟΣΒΑΣΙΜΟΤΗΤΑΣ ΖΟΥΝ ΣΤΟΝ ΠΕΡΙΗΓΗΤΗ, ΟΧΙ ΣΤΗ REACT. Ηταν
+  // «ξεκινάω με ψέμα και το διορθώνω σε effect»: ο χρήστης που είχε ζητήσει
+  // λιγότερη κίνηση έβλεπε τον διακόπτη σβηστό για μία απόδοση, σε ΑΚΡΙΒΩΣ
+  // εκείνη την οθόνη που του υπόσχεται ότι τον θυμάται.
+  const [reduceMotion, setReduceMotion] = useRememberedFlag('po_reduce_motion');
+  const [largeText, setLargeText] = useRememberedFlag('po_large_text');
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -635,19 +640,11 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
     setExportOk(`Κατέβηκαν ${fn(res.rows ?? 0)} εγγραφές από ${fn(res.tables ?? 0)} πίνακες.`);
   };
 
-  // Προσβασιμότητα: διάβασε τις αποθηκευμένες προτιμήσεις, εφάρμοσέ τες ζωντανά.
-  useEffect(() => {
-    try {
-      setReduceMotion(localStorage.getItem('po_reduce_motion') === '1');
-      setLargeText(localStorage.getItem('po_large_text') === '1');
-    } catch { /* ignore */ }
-  }, []);
-  const setA11y = (key: 'po_reduce_motion' | 'po_large_text', cls: string, v: boolean, setter: (b: boolean) => void) => {
+  // Η γραφή στον localStorage γίνεται πλέον από το `useRememberedFlag`. Εδώ μένει
+  // μόνο η κλάση στο <html>, που είναι το ορατό αποτέλεσμα.
+  const setA11y = (cls: string, v: boolean, setter: (b: boolean) => void) => {
     setter(v);
-    try {
-      localStorage.setItem(key, v ? '1' : '0');
-      document.documentElement.classList.toggle(cls, v);
-    } catch { /* ignore */ }
+    try { document.documentElement.classList.toggle(cls, v); } catch { /* ignore */ }
   };
 
   const PROFILE_OPTS: { v: ProfileType; title: string; sub: string }[] = [
@@ -896,9 +893,9 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
                 ]} />
             </div>} />
           <SetRow title="Μειωμένη κίνηση" desc="Περιορίζει τα εφέ κίνησης σε όλη την εφαρμογή, για πιο ήρεμη εμπειρία."
-            control={<Toggle on={reduceMotion} onChange={v => setA11y('po_reduce_motion', 'a11y-reduce-motion', v, setReduceMotion)} size="sm" />} />
+            control={<Toggle on={reduceMotion} onChange={v => setA11y('a11y-reduce-motion', v, setReduceMotion)} size="sm" />} />
           <SetRow title="Μεγαλύτερο κείμενο" desc="Ήπια μεγέθυνση της διεπαφής για πιο άνετη ανάγνωση."
-            control={<Toggle on={largeText} onChange={v => setA11y('po_large_text', 'a11y-large-text', v, setLargeText)} size="sm" />} />
+            control={<Toggle on={largeText} onChange={v => setA11y('a11y-large-text', v, setLargeText)} size="sm" />} />
           {/* ── ΤΟ «ΑΠΛΟΠΟΙΗΜΕΝΟ ΜΕΝΟΥ» ΕΦΥΓΕ ΑΠΟ ΕΔΩ ────────────────────────
               Η ίδια προτίμηση ρυθμιζόταν σε δύο σημεία, με δύο ονόματα και
               ΑΝΤΙΣΤΡΟΦΗ πολικότητα: στην πλαϊνή μπάρα ως «Όλες οι καρτέλες» /

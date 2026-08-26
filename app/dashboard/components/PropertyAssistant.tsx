@@ -47,6 +47,7 @@ import { suggestBase, realizedAdr, indicativeMonthly } from '@/lib/pricing/dynam
 import {
   type AssistantPrefs, type Memory, type AssistantAction, DEFAULT_PREFS, ADDRESS_OPTIONS,
   NAV_MAP, buildSystemBlocks, parseAction, cleanForSpeech, loadPrefs, savePrefs,
+  PREFS_KEY, readPrefs, memKey,
   loadHistory, saveHistory, clearHistory,
   loadMemories, addMemory, removeMemory, clearMemories, actionReachable,
 } from './assistantPersona';
@@ -112,6 +113,7 @@ import { DOC_TYPE_LABELS, type ScannedDoc } from '@/lib/billing/documents';
 import { remainingLine, type QuotaSnapshot } from '@/lib/billing/aiLimits';
 import { athensToday, athensNowLabel, daysUntil, isoMonth } from '@/lib/core/time';
 import { MONTHS_SHORT, MONTHS_GEN } from '@/lib/core/months';
+import { useRemembered } from '@/components/useRememberedFlag';
 
 // Ο άγνωστος αριθμός γράφεται 0,00 €, όχι παύλα: η παύλα δεν στοιχίζεται με
 // τίποτα και σε στήλη ποσών διαβάζεται ως σφάλμα (lib/core/format.ts).
@@ -131,12 +133,23 @@ const reachLabel = (ch: 'whatsapp' | 'viber' | 'email' | 'call', name: string) =
 const CH_HUMAN: Record<'whatsapp' | 'viber' | 'email' | 'call', string> = { whatsapp: 'WhatsApp', viber: 'Viber', email: 'email', call: 'κλήση' };
 
 
+// Σταθερή αναφορά για «καμία μνήμη».
+const NO_MEMORIES: Memory[] = [];
+
 export default function PropertyAssistant({ propertyId, userId, propContext, allProperties = [], onNavigate, onScan, canNavigate, planBrief }: Props) {
   const supabase = createClient();
   const [open, setOpen] = useState(false);
   const [fabPos, setFabPos] = useState<{ x: number; y: number } | null>(null);
   const [dragging, setDragging] = useState(false);
-  const [prefs, setPrefs] = useState<AssistantPrefs>(DEFAULT_PREFS);
+  // ΟΙ ΠΡΟΤΙΜΗΣΕΙΣ ΤΟΥ ΒΟΗΘΟΥ ΖΟΥΝ ΣΤΟΝ ΠΕΡΙΗΓΗΤΗ. Ηταν προεπιλογή που ένα
+  // effect αντικαθιστούσε μετά την πρώτη απόδοση: όποιος είχε ζητήσει πληθυντικό
+  // άκουγε τη Νόα να τον προσφωνεί στον ενικό για ένα καρέ, σε κάθε άνοιγμα.
+  const [prefs, setPrefs] = useRemembered<AssistantPrefs>(
+    PREFS_KEY,
+    raw => readPrefs(raw) ?? loadPrefs() ?? DEFAULT_PREFS,
+    v => JSON.stringify(v),
+    DEFAULT_PREFS,
+  );
   // Η ανοιχτή ερώτηση συμφωνίας: ποιον εκκρεμή λογαριασμό εξοφλεί η απόδειξη.
   const [reconcile, setReconcile] = useState<ReconcileQuestion | null>(null);
   const [editing, setEditing] = useState(false);
@@ -179,7 +192,19 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   // διάβαζε «μόλις καταχωρήσεις τα πρώτα στοιχεία…» για όσο κρατούσε το ερώτημα.
   const [openerCtx, setOpenerCtx] = useState<OpenerContext | null>(null);
   const [techStr, setTechStr] = useState('');   // επαφές τεχνικών/παρόχων (καρτέλα Επαφές)
-  const [memories, setMemories] = useState<Memory[]>([]);
+  // Η ΜΟΝΙΜΗ ΜΝΗΜΗ ΕΠΙΣΗΣ. Οι `addMemory`/`removeMemory` γράφουν ήδη στον
+  // localStorage και επιστρέφουν τη νέα λίστα· περνώντας την από τον setter
+  // ειδοποιούνται και οι υπόλοιπες καρτέλες. Το δεύτερο γράψιμο είναι της ίδιας
+  // τιμής, δηλαδή χωρίς συνέπεια.
+  const [storedMemories, setMemories] = useRemembered<Memory[]>(
+    memKey(userId),
+    raw => { try { return raw ? (JSON.parse(raw) as Memory[]) : NO_MEMORIES } catch { return NO_MEMORIES } },
+    v => JSON.stringify(v),
+    NO_MEMORIES,
+  );
+  // Οταν η μνήμη είναι σβηστή, δεν διαβάζεται ΤΙΠΟΤΑ: η ρύθμιση δεν είναι
+  // φίλτρο εμφάνισης, είναι υπόσχεση.
+  const memories = prefs.memory ? storedMemories : NO_MEMORIES;
   const scrollRef = useRef<HTMLDivElement>(null);
   const listeningRef = useRef(false);
   const clientsRef = useRef<ClientLite[]>([]);   // ευρετήριο πελατών για εκτέλεση ενεργειών (σύνδεσμος check-in)
@@ -241,11 +266,6 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     };
   }, []);
 
-  // Προτιμήσεις από localStorage (μία φορά). Το όνομα δεν φορτώνεται: είναι ένα.
-  useEffect(() => {
-    const saved = loadPrefs();
-    if (saved) setPrefs(saved);
-  }, []);
 
   // Κλείσιμο με κλικ εκτός πάνελ (χωρίς να χρειάζεται το «×»). Δεν κλείνει όταν
   // αλλάζεις ρυθμίσεις ή όταν «ακούει», για να μη χαθεί η ενέργεια.
@@ -304,10 +324,6 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     }
   }, [propertyId]);
 
-  // Μόνιμη μνήμη (γεγονότα) ανά χρήστη, μόνο αν το επιτρέπει η ρύθμιση.
-  useEffect(() => {
-    setMemories(prefs.memory ? loadMemories(userId) : []);
-  }, [userId, prefs.memory]);
 
   // Αποθήκευση συζήτησης όταν η μνήμη είναι ενεργή.
   useEffect(() => {
@@ -1476,12 +1492,12 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
               hasMemory={msgs.length > 0 || loadHistory(propertyId).length > 0}
               facts={memories}
               onForgetFact={(id) => setMemories(removeMemory(userId, id))}
-              onForgetAllFacts={() => { clearMemories(userId); setMemories([]); }}
+              onForgetAllFacts={() => { clearMemories(userId); setMemories(NO_MEMORIES); }}
               onCancel={() => setEditing(false)}
               onClearMemory={() => { clearHistory(propertyId); setMsgs([]); }}
               onSave={(next) => {
                 // Αν έκλεισε τη μνήμη, σβήσε ό,τι έχει αποθηκευτεί (σεβασμός στην επιλογή).
-                if (prefs.memory && !next.memory) { clearHistory(propertyId); clearMemories(userId); setMemories([]); }
+                if (prefs.memory && !next.memory) { clearHistory(propertyId); clearMemories(userId); setMemories(NO_MEMORIES); }
                 setPrefs(next); savePrefs(next); setEditing(false);
               }}
             />

@@ -586,10 +586,16 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
   const [scenarios,   setScenarios]   = useState<LoanScenario[]>([])
   const [editingId,   setEditingId]   = useState<string|null>(null)
 
-  // Εφαρμογή τιμών από εξωτερική σάρωση (έγγραφο/φωτογραφία δανειολήπτη). Τρέχει
-  // μόνο όταν αλλάζει η σφραγίδα έκδοσης, ώστε να μη «μαχαιρώνει» τις χειροκίνητες αλλαγές.
-  useEffect(()=>{
-    if(!applied) return
+  // ΕΦΑΡΜΟΓΗ ΤΙΜΩΝ ΑΠΟ ΕΞΩΤΕΡΙΚΗ ΣΑΡΩΣΗ, ΚΑΤΑ ΤΗΝ ΑΠΟΔΟΣΗ ΚΑΙ ΟΧΙ ΣΕ EFFECT.
+  // Τρέχει μόνο όταν αλλάζει η σφραγίδα έκδοσης, ώστε να μη «μαχαιρώνει» τις
+  // χειροκίνητες αλλαγές. Ηταν effect: ο χρήστης που σάρωνε το χαρτί του
+  // έβλεπε ΜΙΑ απόδοση με τα παλιά νούμερα και μετά τα νέα, δηλαδή τα ποσά
+  // αναπηδούσαν μπροστά του. Η React το λέει ρητά («adjusting state when a
+  // prop changes»): η γραφή κατά την απόδοση ξαναρχίζει την ίδια απόδοση, χωρίς
+  // να φτάσει ποτέ στην οθόνη η ενδιάμεση εικόνα.
+  const [appliedSeen,setAppliedSeen] = useState<number|null>(null)
+  if(applied && applied.v !== appliedSeen) {
+    setAppliedSeen(applied.v)
     if(applied.loanAmount!=null && applied.loanAmount>0) setLoanAmount(String(Math.round(applied.loanAmount)))
     if(applied.propValue!=null && applied.propValue>0) setPropValue(String(Math.round(applied.propValue)))
     if(applied.rate!=null && applied.rate>0) setRate(String(applied.rate))
@@ -599,8 +605,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
     if(applied.income!=null && applied.income>0) setIncome(String(Math.round(applied.income)))
     if(applied.marital) setMarital(applied.marital)
     if(applied.children!=null) setChildren(String(Math.round(applied.children)))
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[applied?.v])
+  }
   const [remBal,      setRemBal]      = useState('100000')
   const [remYears,    setRemYears]    = useState('20')
   const [curRate,     setCurRate]     = useState('4.0')
