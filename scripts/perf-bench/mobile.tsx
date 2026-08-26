@@ -181,9 +181,29 @@ const VIEWS: Record<string, () => React.ReactElement> = {
 };
 
 // Το κέλυφος, όπως ακριβώς το γράφει το app/dashboard/page.tsx.
+//
+// ΚΑΙ Η ΜΠΑΡΑ ΜΕΣΑ, ΓΙΑΤΙ ΕΚΕΙ ΗΤΑΝ ΤΟ ΣΦΑΛΜΑ. Ο πάγκος έστηνε μόνο
+// «.app-shell > .app-main > .app-content», οπότε η μπάρα δεν αποδιδόταν ποτέ
+// και κανένας έλεγχος δεν την είδε. Ο χρήστης την είδε: με δεύτερη γραμμή
+// (κατοικία, τετραγωνικά, διεύθυνση) το περιεχόμενό της ξεχείλιζε κάτω από το
+// καρφωμένο ύψος των 64 και το κυλιόμενο περιεχόμενο περνούσε από κάτω του.
+// Οι δύο γραμμές γράφονται εδώ με το ΙΔΙΟ σχήμα που γράφει η σελίδα.
 const shell = document.createElement('div');
 shell.className = 'app-shell';
-shell.innerHTML = '<main class="app-main"><div class="app-content"></div></main>';
+shell.innerHTML = `<main class="app-main">
+  <header class="app-topbar">
+    <button class="nav-toggle" aria-label="Μενού"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+    <div style="flex:1;min-width:0">
+      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:10px;row-gap:8px;min-width:0">
+        <button style="display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 10px;border:none;background:transparent;color:var(--text-primary);font-size:16px;font-weight:700">Διαμέρισμα Λεωφόρος Αλεξάνδρας 145, τρίτος όροφος, Αμπελόκηποι</button>
+        <button style="display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;border:1px solid var(--border-default);border-radius:999px;background:transparent;color:var(--text-secondary);font-size:13px;white-space:nowrap">Βραχυχρόνια μίσθωση</button>
+      </div>
+      <div style="font-size:12px;color:var(--text-tertiary);margin-top:2px">Κατοικία · 42 τ.μ. · Λεωφόρος Ανδρέα Συγγρού 123, Νέα Σμύρνη</div>
+    </div>
+    <button style="min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--border-default);background:transparent;color:var(--text-secondary);flex-shrink:0">Αναζήτηση</button>
+  </header>
+  <div class="app-content"></div>
+</main>`;
 document.body.appendChild(shell);
 const host = shell.querySelector('.app-content') as HTMLElement;
 

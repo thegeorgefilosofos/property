@@ -9,7 +9,7 @@
 // tokens and Inter, so every toolbar reads as one system instead of a row of ten
 // loose buttons. Reuse this anywhere several related actions crowd a header.
 // ─────────────────────────────────────────────────────────────────────────────
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { T } from '@/components/Theme';
 
@@ -24,6 +24,10 @@ export interface ActionMenuItem {
   busyLabel?: string;
   danger?: boolean;
 }
+
+// Το πλάτος του μενού είναι γνωστό ΠΡΙΝ αποδοθεί, ώστε η στοίχιση να μπορεί να
+// υπολογιστεί στο πάτημα και όχι μετά.
+const MENU_WIDTH = 258;
 
 export function ActionMenu({
   label,
@@ -41,6 +45,48 @@ export function ActionMenu({
   const [open, setOpen] = useState(false);
   const [shown, setShown] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // ΤΟ ΜΕΝΟΥ ΕΒΓΑΙΝΕ 111 ΕΙΚΟΝΟΣΤΟΙΧΕΙΑ ΕΞΩ ΑΠΟ ΤΗΝ ΟΘΟΝΗ
+  //
+  // ΜΕΤΡΗΜΕΝΟ, ΟΧΙ ΕΙΚΑΣΜΕΝΟ: στα 375 και στα 430 το αριστερό άκρο του έβγαινε
+  // στο -111. Το μενού είναι 258 πλατύ και ήταν αγκυρωμένο ΔΕΞΙΑ του κουμπιού
+  // («right: 0»), οπότε όταν το κουμπί κάθεται κοντά στην αριστερή άκρη, το
+  // μενού απλώνεται προς τα έξω. Δεν δημιουργεί κύλιση, άρα δεν το έπιανε
+  // κανένας έλεγχος υπερχείλισης: απλώς τέσσερις από τις έξι ενέργειες ήταν
+  // αδιάβαστες και μισές από αυτές απάτητες.
+  //
+  // Η ΘΕΣΗ ΥΠΟΛΟΓΙΖΕΤΑΙ ΣΤΟ ΠΑΤΗΜΑ, δηλαδή σε χειριστή συμβάντος, όπου η
+  // μέτρηση του DOM είναι θεμιτή και δεν κοστίζει δεύτερη απόδοση. Και είναι
+  // `fixed`: έτσι το μενού δεν κόβεται ούτε από κάρτα με `overflow: hidden`.
+  // ΑΓΚΥΡΩΝΕΤΑΙ ΑΠΟ ΤΗΝ ΑΚΡΗ ΠΟΥ ΞΕΡΟΥΜΕ, ΟΧΙ ΑΠΟ ΤΟ ΠΛΑΤΟΣ ΠΟΥ ΜΑΝΤΕΥΟΥΜΕ.
+  // Πρώτη προσπάθεια ήταν «λογάριασε το πλάτος και βάλε left»: το πραγματικό
+  // πλάτος βγήκε 291 αντί για 258 (το περιεχόμενο ζητά περισσότερα) και το μενού
+  // ακούμπησε την ΔΕΞΙΑ άκρη χωρίς περιθώριο. Αγκυρωμένο στη δεξιά άκρη, το
+  // περιθώριο είναι εγγυημένο· το `maxWidth` κρατά και την αριστερή μέσα.
+  const [pos, setPos] = useState<{ top: number; left?: number; right?: number; maxWidth: number } | null>(null);
+
+  const place = useCallback(() => {
+    const b = btnRef.current?.getBoundingClientRect();
+    if (!b) return;
+    const m = 8;
+    const vw = window.innerWidth;
+    const top = b.bottom + 6;
+    // Αριστερή στοίχιση μόνο όταν χωράει ολόκληρο το μενού δεξιά του κουμπιού.
+    const fitsLeftAligned = b.left + MENU_WIDTH <= vw - m;
+    // ΤΟ ΠΛΑΤΟΣ ΔΕΣΜΕΥΕΤΑΙ ΑΠΟ ΤΗΝ ΑΓΚΥΡΑ, ΑΡΑ ΚΑΙ Η ΑΛΛΗ ΑΚΡΗ. Με μόνη την
+    // αγκύρωση δεξιά, το μενού εξακολουθούσε να βγαίνει αριστερά (μετρημένο:
+    // -111 στα 375). Το ανώτατο πλάτος υπολογίζεται από την απόσταση της
+    // άγκυρας ώς την απέναντι άκρη, οπότε καμία από τις δύο δεν ξεπερνιέται.
+    if (align === 'left' && fitsLeftAligned) {
+      const left = Math.max(m, b.left);
+      setPos({ top, left, maxWidth: vw - left - m });
+    } else {
+      const right = Math.max(m, vw - Math.min(b.right, vw - m));
+      setPos({ top, right, maxWidth: vw - right - m });
+    }
+  }, [align]);
 
   useEffect(() => {
     if (!open) return;
@@ -48,15 +94,21 @@ export function ActionMenu({
     const raf = requestAnimationFrame(() => setShown(true));
     const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    // Ανοιχτό μενού σε συντεταγμένες οθόνης πρέπει να ακολουθεί ό,τι το μετακινεί.
+    const onMove = () => place();
     document.addEventListener('mousedown', onDoc);
     document.addEventListener('keydown', onKey);
+    window.addEventListener('scroll', onMove, true);
+    window.addEventListener('resize', onMove);
     return () => {
       cancelAnimationFrame(raf);
       document.removeEventListener('mousedown', onDoc);
       document.removeEventListener('keydown', onKey);
+      window.removeEventListener('scroll', onMove, true);
+      window.removeEventListener('resize', onMove);
       setShown(false);
     };
-  }, [open]);
+  }, [open, place]);
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
@@ -65,7 +117,8 @@ export function ActionMenu({
         title={title}
         aria-haspopup="menu"
         aria-expanded={open}
-        onClick={() => setOpen(o => !o)}
+        ref={btnRef}
+        onClick={() => { place(); setOpen(o => !o); }}
         className="po-hov-accent"
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 7, minHeight: T.h.sm, padding: '0 13px', borderRadius: T.radius.modal,
@@ -79,12 +132,14 @@ export function ActionMenu({
         <ChevronDown size={14} style={{ transition: 'transform 0.18s ease', transform: open ? 'rotate(180deg)' : 'none', opacity: 0.7 }} />
       </button>
 
-      {open && (
+      {open && pos && (
         <div
           role="menu"
           style={{
-            position: 'absolute', top: 'calc(100% + 6px)', ...(align === 'left' ? { left: 0 } : { right: 0 }),
-            minWidth: 258, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 12,
+            position: 'fixed', top: pos.top,
+            ...(pos.left !== undefined ? { left: pos.left } : { right: pos.right }),
+            minWidth: Math.min(MENU_WIDTH, pos.maxWidth), maxWidth: pos.maxWidth,
+            background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 12,
             boxShadow: 'var(--elev-3)', padding: 6, zIndex: 200,
             opacity: shown ? 1 : 0, transform: shown ? 'translateY(0)' : 'translateY(-4px)',
             transition: 'opacity 0.14s ease, transform 0.14s ease',

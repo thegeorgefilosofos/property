@@ -482,14 +482,26 @@ export function KPIGrid({ items, columns }: { items: KPIItem[]; columns?: number
   // ισχύει ήδη στο `fixedCols`: ο μεγαλύτερος διαιρέτης του πλήθους που
   // χωράει. Τέσσερα γίνονται 2+2, έξι γίνονται 3+3, πέντε μένουν 3+2 που δεν
   // είναι ορφανό. Οι μεταβλητές ζουν εδώ και τα σπασίματα στο globals.css.
+  //
+  // ΚΑΙ Η ΖΩΝΗ 821 ΩΣ 1023 ΕΙΧΕ ΜΕΙΝΕΙ ΕΞΩ, ΠΟΥ ΕΙΝΑΙ ΑΚΡΙΒΩΣ Η ΤΑΜΠΛΕΤΑ ΣΕ
+  // ΟΡΙΖΟΝΤΙΑ ΘΕΣΗ. Μετρημένο στον πάγκο: τέσσερα πλακίδια έβγαιναν 3+1 στα 900
+  // και στα 1.000, ενώ στα 820 έβγαιναν σωστά 2+2 και στα 1.024 σωστά 4. Ο
+  // χρήστης το φωτογράφισε στον υπολογιστή δανείου. Μπαίνει τρίτο σκαλί με
+  // ταβάνι τέσσερα.
+  //
+  // ΚΑΙ Ο ΚΑΝΟΝΑΣ ΕΓΙΝΕ ΑΥΣΤΗΡΟΤΕΡΟΣ. Οταν δεν υπάρχει διαιρέτης, δεν αρκεί
+  // «πάρε το ταβάνι»: πέντε πλακίδια σε τέσσερις στήλες δίνουν 4+1, δηλαδή
+  // ακριβώς το ορφανό που αποφεύγουμε. Δεύτερο πέρασμα διαλέγει το μεγαλύτερο
+  // πλήθος στηλών που ΔΕΝ αφήνει υπόλοιπο ένα: πέντε σε τρεις δίνει 3+2.
   const step = (cap: number) => {
     for (let d = Math.min(cols, cap); d >= 2; d--) if (cols % d === 0) return d;
+    for (let d = Math.min(cols, cap); d >= 2; d--) if (cols % d !== 1) return d;
     // Ιδιο σκεπτικό με το `fixedCols`: με ταβάνι δύο, το ορφανό πιάνει μισό
     // πλάτος και δίπλα του χάσκει τρύπα ίδιου μεγέθους. Μία στήλη είναι ζυγισμένη.
-    return cap === 2 ? 1 : Math.min(cols, cap);
+    return 1;
   };
   return (
-    <div className="kpi-row" style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${Math.max(140, Math.floor(920 / cols))}px), 1fr))`, gap: 12, marginBottom: 16, '--kpi-md': step(3), '--kpi-sm': step(2) } as React.CSSProperties}>
+    <div className="kpi-row" style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${Math.max(140, Math.floor(920 / cols))}px), 1fr))`, gap: 12, marginBottom: 16, '--kpi-lg': step(4), '--kpi-md': step(3), '--kpi-sm': step(2) } as React.CSSProperties}>
       {items.map((k, i) => {
         const toned = !!(k.tone && k.tone !== 'neutral');
         return (
