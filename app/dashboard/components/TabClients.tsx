@@ -948,7 +948,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
       <ClientCompose open={composeOpen} onClose={() => setComposeOpen(false)} clients={clients} supabase={supabase} />
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} className="po-field" aria-label="Αναζήτηση επισκέπτη" placeholder="Όνομα, τηλέφωνο ή email"
+        <input value={search} onChange={e => setSearch(e.target.value)} className="po-field field-wide" aria-label="Αναζήτηση επισκέπτη" placeholder="Όνομα, τηλέφωνο ή email"
           style={{ ...inp, maxWidth: 280, width: 'auto', flex: '1 1 220px' }} />
         {/* Ένα φίλτρο και είναι το χρήσιμο. Τα «VIP / Επαναλαμβανόμενοι /
             Με επισήμανση» έφυγαν: το πρώτο είχε επινοημένο κατώφλι 1.000 €, το

@@ -232,7 +232,11 @@ export default function InboundInbox({ propertyId, userId, propertyName, onFiled
                 </div>
               )}
 
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {/* Δύο ενέργειες, ίδιο πλάτος σε τηλέφωνο: ο κανόνας ζει στην
+                  `.act-row` του globals.css. Χωρίς αυτόν, το «Καταχώρηση» και
+                  το «Δεν είναι δαπάνη» έπεφταν σε δύο σειρές διαφορετικού
+                  πλάτους μέσα στην ίδια κάρτα. */}
+              <div className="act-row" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <Btn variant="primary" onClick={() => file(r)} disabled={!ready || busy === r.id}>
                   {busy === r.id ? 'Καταχώρηση…' : 'Καταχώρηση'}
                 </Btn>

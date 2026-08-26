@@ -723,7 +723,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
         /* ΕΝΑ ΚΟΥΜΠΙ, ΚΑΙ ΕΝΑ ΜΕΝΟΥ. Ήταν τρία κουμπιά στην κεφαλίδα και άλλες
            τρεις εξαγωγές σε δική τους κάρτα στο τέλος της σελίδας — έξι ενέργειες
            για μια οθόνη που έχει ΜΙΑ κύρια: πρόσθεσε αντικείμενο. */
-        right={<div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
+        right={<>
           <ActionMenu label="Περισσότερα" items={[
             {key:'bulk',label:'Μαζική εισαγωγή',description:'Επικόλλησε λίστα ή αρχείο και μπαίνουν όλα μαζί.',onClick:()=>setShowBulkImport(true)},
             {key:'hand',label:'Πρωτόκολλο παράδοσης',description:'Κατάσταση εξοπλισμού στην είσοδο ή στην έξοδο του ενοικιαστή.',onClick:()=>setPage('handover'),disabled:items.length===0},
@@ -736,7 +736,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
           {/* Με άδεια απογραφή, το «Νέο αντικείμενο» λέγεται από την κενή κατάσταση.
               Εδώ εμφανιζόταν και στα δύο σημεία, σε απόσταση μιας ματιάς. */}
           {items.length>0&&<Btn variant="primary" onClick={()=>{setEditingItem(null);setShowItemForm(true)}}>Νέο αντικείμενο</Btn>}
-        </div>}
+        </>}
       />}
 
       {/* ═══ ΟΤΑΝ Η ΑΠΟΓΡΑΦΗ ΔΕΝ ΑΦΟΡΑ ΑΥΤΟ ΤΟ ΑΚΙΝΗΤΟ ═════════════════════════

@@ -570,14 +570,14 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
       {error&&<div style={{ background:'var(--negative-dim)', border:'1px solid var(--negative-border)', borderLeft:'3px solid var(--negative)', borderRadius:T.radius.inner, padding:'11px 18px', marginBottom:14, color:'var(--negative)', fontSize:13, fontFamily:T.font.sans, fontWeight:500, display:'flex', justifyContent:'space-between', alignItems:'center' }}><span>{error}</span><button onClick={()=>setError(null)} style={{ background:'none', border:'none', color:'var(--negative)', cursor:'pointer', fontSize:18, lineHeight:1, padding:0 }}>×</button></div>}
 
       <PageTitle title="Ενοικιαστής" sub="Τρέχουσα και προηγούμενες μισθώσεις, με πλήρη φάκελο ανά ενοικιαστή"
-        right={tenants.length>0?<div style={{ display:'flex', gap:8, flexWrap:'wrap' as const }}>
+        right={tenants.length>0?<>
           <ExportButton onClick={exportRoster}/>
           {/* Η ίδια ενέργεια λεγόταν «Μισθωτήριο» εδώ και «Σύνταξη μισθωτηρίου» στην
               κενή κατάσταση. Ο χρήστης μαθαίνει το ένα όνομα και συναντά το άλλο. */}
           <Btn variant="secondary" onClick={()=>setLeaseOpen(true)}>Σύνταξη μισθωτηρίου</Btn>
           <Btn variant="secondary" onClick={()=>setDeclOpen(true)}>Δήλωση μίσθωσης</Btn>
           <Btn variant="primary" onClick={openAdd}>Νέος ενοικιαστής</Btn>
-        </div>:undefined}/>
+        </>:undefined}/>
 
       <KPIGrid items={kpis}/>
 
@@ -589,7 +589,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
             πληροφορία — και το «Αναζήτηση» μετακόμισε στην ετικέτα για τον
             αναγνώστη οθόνης, όπου ανήκει. */}
         <input value={search} onChange={e=>setSearch(e.target.value)}
-          className="po-field" aria-label="Αναζήτηση ενοικιαστή" placeholder="Όνομα, ΑΦΜ ή τηλέφωνο"
+          className="po-field field-wide" aria-label="Αναζήτηση ενοικιαστή" placeholder="Όνομα, ΑΦΜ ή τηλέφωνο"
           style={{ background:'var(--bg-base)', border:'1px solid var(--border-default)', borderRadius:10, padding:'10px 14px', color:'var(--text-primary)', fontSize:14, height:T.h.lg, maxWidth:280, flex:'1 1 220px', outline:'none', boxSizing:'border-box', fontFamily:T.font.sans }}/>
         <div style={{ display:'flex', gap:6, flexWrap:'wrap' as const }}>
           {/* «Όλοι», «Τρέχων», «Προηγούμενοι»: δύο πληθυντικοί και ένας ενικός, σε

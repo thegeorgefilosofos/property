@@ -364,7 +364,7 @@ export function SideSheet({ open, onClose, ariaLabel, size = 'md', header, foote
         </div>
 
         {footer && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: T.sp.sm, padding: '14px 24px', borderTop: '1px solid var(--border-subtle)', flexShrink: 0, flexWrap: 'wrap' }}>
+          <div className="act-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: T.sp.sm, padding: '14px 24px', borderTop: '1px solid var(--border-subtle)', flexShrink: 0, flexWrap: 'wrap' }}>
             {footer}
           </div>
         )}
@@ -412,7 +412,11 @@ export function Modal({ open, onClose, title, ariaLabel, subtitle, icon, size = 
         {(footer || footerInfo) && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: T.sp.md, padding: '14px 24px', borderTop: '1px solid var(--border-subtle)', flexShrink: 0, flexWrap: 'wrap' }}>
             <span style={{ ...TT.bodySm }}>{footerInfo}</span>
-            <div style={{ display: 'flex', gap: T.sp.sm }}>{footer}</div>
+            {/* ΤΑ ΚΟΥΜΠΙΑ ΤΟΥ ΥΠΟΣΕΛΙΔΟΥ ΜΟΙΡΑΖΟΝΤΑΙ ΤΗ ΓΡΑΜΜΗ ΣΕ ΤΗΛΕΦΩΝΟ. Το
+                «Ακύρωση» και το «Καταχώρηση» είχαν το πλάτος του λεκτικού τους
+                και κάθονταν δεξιά: δύο κουμπιά άνισα, με το αριστερό να αρχίζει
+                στη μέση του πουθενά. Ο κανόνας ζει στην `.act-row`. */}
+            <div className="act-row" style={{ display: 'flex', gap: T.sp.sm }}>{footer}</div>
           </div>
         )}
       </div>
@@ -488,12 +492,13 @@ export function PageTitle({ over, title, sub, lede, right, titleHint }: { over?:
           κανείς.
 
           Σε στενή οθόνη γίνεται πλέγμα δύο στηλών: δύο ίσα κουμπιά ανά σειρά
-          και το μονό τελευταίο σε πλήρες πλάτος. Η δεξιά άκρη γίνεται μία
+          και το μονό τελευταίο σε πλήρες πλάτος. Ο κανόνας ζει στην `.act-row`
+          του globals.css, γιατί τον θέλει κάθε σειρά ενεργειών. Η δεξιά άκρη γίνεται μία
           γραμμή. ΓΙΑΤΙ ΟΧΙ ΣΚΕΤΟ `flex: 1`: με ελεύθερη βάση, «Πρότυπα» 196 και
           «Εξαγωγή» 262 δεν χωρούν μαζί στα 340, οπότε το τύλιγμα τα έριχνε ένα
           ανά σειρά και οι τρεις ενέργειες έπιαναν τρεις σειρές αντί για δύο.
           Σε ταμπλέτα και υπολογιστή δεν αλλάζει τίποτα. */}
-      {right && <div className="pt-actions" style={{ display: 'flex', gap: 8, alignItems: 'stretch', flexWrap: 'wrap' }}>{right}</div>}
+      {right && <div className="act-row" style={{ display: 'flex', gap: 8, alignItems: 'stretch', flexWrap: 'wrap' }}>{right}</div>}
     </div>
   );
 }
