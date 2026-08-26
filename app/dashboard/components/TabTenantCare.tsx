@@ -231,8 +231,15 @@ export function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propert
   useLoad(loadLogs);
   const saveLog=async()=>{
     if(!form.summary.trim())return;setSaving(true);
-    await saved('Η καταγραφή επικοινωνίας δεν αποθηκεύτηκε', supabase.from('tenant_comm_log').insert({tenant_id:tenant.id,property_id:propertyId,user_id:userId,type:form.type,summary:form.summary.trim(),date:form.date,outcome:form.outcome||null}));
-    setSaving(false);setShowAdd(false);setForm({type:'call',summary:'',date:athensToday(),outcome:''});loadLogs();
+    const ok=await saved('Η καταγραφή επικοινωνίας δεν αποθηκεύτηκε', supabase.from('tenant_comm_log').insert({tenant_id:tenant.id,property_id:propertyId,user_id:userId,type:form.type,summary:form.summary.trim(),date:form.date,outcome:form.outcome||null}));
+    setSaving(false);
+    // ΤΟ ΓΡΑΨΙΜΟ ΤΟΥ ΧΡΗΣΤΗ ΔΕΝ ΣΒΗΝΕΤΑΙ ΟΤΑΝ Η ΑΠΟΘΗΚΕΥΣΗ ΑΠΕΤΥΧΕ. Η φόρμα
+    // έκλεινε και τα πεδία μηδενίζονταν ΑΝΕΞΑΡΤΗΤΑ από το αποτέλεσμα: ο χρήστης
+    // έβλεπε το μήνυμα σφάλματος και μαζί ένα άδειο πλαίσιο, δηλαδή έχανε ό,τι
+    // μόλις είχε γράψει και δεν είχε τρόπο να ξαναδοκιμάσει παρά γράφοντάς το
+    // από την αρχή.
+    if(!ok) return;
+    setShowAdd(false);setForm({type:'call',summary:'',date:athensToday(),outcome:''});loadLogs();
   };
 
   const d=daysLeft(tenant.lease_end);
@@ -523,7 +530,7 @@ export function DamagesView({ tenant, propertyId, userId, damages, onRefresh }:{
 
         {addOpen&&(
           <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:20, marginBottom:20 }}>
-            <div style={{ ...s.g3, marginBottom:14 }}>
+            <div className="kpi-row" style={{ ...s.g3, marginBottom:14 }}>
               <DatePicker label="Ημερομηνία" value={f.occurred_on} onChange={v=>setF(x=>({...x,occurred_on:v}))}/>
               <NumberInput label="Κόστος" value={f.cost} onChange={v=>setF(x=>({...x,cost:v}))} suffix="€"/>
               <div><div style={{ ...labelStyle, marginBottom:8 }}>Χρέωση στον ενοικιαστή</div><Toggle on={f.charged_to_tenant} onChange={v=>setF(x=>({...x,charged_to_tenant:v}))} ariaLabel="Ναι ή όχι"/></div>
@@ -531,7 +538,7 @@ export function DamagesView({ tenant, propertyId, userId, damages, onRefresh }:{
             <div style={{ marginBottom:14 }}>
               <TextInput label="Περιγραφή *" value={f.description} onChange={v=>setF(x=>({...x,description:v}))} placeholder="Παράδειγμα: Φθορά πάγκου κουζίνας"/>
             </div>
-            <div style={{ ...s.g3, marginBottom:14 }}>
+            <div className="kpi-row" style={{ ...s.g3, marginBottom:14 }}>
               <div><div style={{ ...labelStyle, marginBottom:8 }}>Επισκευάστηκε</div><Toggle on={f.repaired} onChange={v=>setF(x=>({...x,repaired:v}))} ariaLabel="Ναι ή όχι"/></div>
               {f.repaired&&<DatePicker label="Ημερομηνία επισκευής" value={f.repaired_on} onChange={v=>setF(x=>({...x,repaired_on:v}))}/>}
               <TextInput label="Σημείωση" value={f.notes} onChange={v=>setF(x=>({...x,notes:v}))} placeholder="προαιρετικό"/>
@@ -624,38 +631,48 @@ export function MaintenanceView({ tenant, propertyId, userId, requests, others, 
   const [doneCost,setDoneCost]=useState('');
   const setStatus=async(m:MaintenanceReq,status:string)=>{
     setBusy(true);
-    await saved('Η κατάσταση του αιτήματος δεν αποθηκεύτηκε', supabase.from('maintenance_requests').update({ status, resolved_at: status==='done'?new Date().toISOString():null }).eq('id',m.id));
-    setBusy(false); onRefresh(); notifyOk('Το αίτημα ενημερώθηκε');
+    const ok=await saved('Η κατάσταση του αιτήματος δεν αποθηκεύτηκε', supabase.from('maintenance_requests').update({ status, resolved_at: status==='done'?new Date().toISOString():null }).eq('id',m.id));
+    setBusy(false); onRefresh(); if(ok) notifyOk('Το αίτημα ενημερώθηκε');
   };
   // Ολοκλήρωση εργασίας: σημειώνεται «done» και, αν δοθεί κόστος, καταχωρείται
   // δαπάνη ώστε να μπει αυτόματα στη λογιστική εικόνα του ακινήτου.
   const completeWithCost=async(m:MaintenanceReq)=>{
     const cost=parseFloat(String(doneCost).replace(',','.'));
     setBusy(true);
-    await saved('Το αίτημα δεν κλείστηκε', supabase.from('maintenance_requests').update({ status:'done', resolved_at:new Date().toISOString() }).eq('id',m.id));
-    if(Number.isFinite(cost)&&cost>0){
+    // ΔΥΟ ΓΡΑΨΙΜΑΤΑ, ΚΑΙ ΤΟ ΔΕΥΤΕΡΟ ΕΞΑΡΤΑΤΑΙ ΑΠΟ ΤΟ ΠΡΩΤΟ. Αν το αίτημα δεν
+    // έκλεισε, η δαπάνη δεν πρέπει να μπει: θα έμενε κόστος επισκευής χωρίς
+    // επισκευή. Και το τελικό μήνυμα λέει ΤΙ ΕΓΙΝΕ ΠΡΑΓΜΑΤΙΚΑ, όχι τι ζητήθηκε.
+    const closed=await saved('Το αίτημα δεν κλείστηκε', supabase.from('maintenance_requests').update({ status:'done', resolved_at:new Date().toISOString() }).eq('id',m.id));
+    let costSaved=false;
+    if(closed&&Number.isFinite(cost)&&cost>0){
       // Η ομάδα ΔΕΝ γραφόταν: το κόστος της επισκευής που πλήρωσε ο ιδιοκτήτης
       // δεν εξέπιπτε ποτέ. Το στρώμα την παράγει από την κατηγορία.
-      await saved('Το αίτημα έκλεισε, αλλά το κόστος δεν καταχωρήθηκε στις δαπάνες', expenses.insert(supabase, [expenses.row({ propertyId, userId }, {
+      costSaved=await saved('Το αίτημα έκλεισε, αλλά το κόστος δεν καταχωρήθηκε στις δαπάνες', expenses.insert(supabase, [expenses.row({ propertyId, userId }, {
         amount:cost, date:todayISO(), paid:true,
         category:'Συντήρηση & Επισκευές', description:[m.title,m.assignee_name].filter(Boolean).join(' · ').slice(0,120),
       })]));
     }
-    setBusy(false); setDoneFor(null); setDoneCost(''); onRefresh();
-    notifyOk(Number.isFinite(cost)&&cost>0?'Ολοκληρώθηκε και καταχωρήθηκε στις δαπάνες':'Ολοκληρώθηκε');
+    setBusy(false); onRefresh();
+    if(!closed) return;
+    setDoneFor(null); setDoneCost('');
+    notifyOk(costSaved?'Ολοκληρώθηκε και καταχωρήθηκε στις δαπάνες':'Ολοκληρώθηκε');
   };
   const toDamage=async(m:MaintenanceReq)=>{
     setBusy(true);
-    await saved('Η φθορά δεν καταγράφηκε', supabase.from('tenant_damages').insert({ tenant_id:tenant.id, property_id:propertyId, user_id:userId, occurred_on:todayISO(), description:[m.title,m.description].filter(Boolean).join(': ').slice(0,500), cost:null, charged_to_tenant:false, repaired:false, notes:'Από αίτημα βλάβης ενοικιαστή' }));
-    setBusy(false); onRefresh(); notifyOk('Καταγράφηκε στις φθορές');
+    const ok=await saved('Η φθορά δεν καταγράφηκε', supabase.from('tenant_damages').insert({ tenant_id:tenant.id, property_id:propertyId, user_id:userId, occurred_on:todayISO(), description:[m.title,m.description].filter(Boolean).join(': ').slice(0,500), cost:null, charged_to_tenant:false, repaired:false, notes:'Από αίτημα βλάβης ενοικιαστή' }));
+    setBusy(false); onRefresh(); if(ok) notifyOk('Καταγράφηκε στις φθορές');
   };
   const del=async(m:MaintenanceReq)=>{ if(!(await confirmDialog('Διαγραφή αιτήματος;',{tone:'negative'}))) return; if(await saved('Το αίτημα δεν διαγράφηκε',supabase.from('maintenance_requests').delete().eq('id',m.id))) onRefresh(); };
   const gdt=(d:string|null)=>d?localDay(d).toLocaleDateString('el-GR',{day:'2-digit',month:'short',year:'numeric'}):ABSENT_DATE;
   const openAssign=(m:MaintenanceReq)=>{ setAssignFor(m.id); setAf({name:m.assignee_name||'',contact:m.assignee_contact||''}); };
   const saveAssign=async(m:MaintenanceReq)=>{
     setBusy(true);
-    await saved('Η ανάθεση δεν αποθηκεύτηκε', supabase.from('maintenance_requests').update({ assignee_name:af.name.trim()||null, assignee_contact:af.contact.trim()||null, status:m.status==='new'?'in_progress':m.status }).eq('id',m.id));
-    setBusy(false); setAssignFor(null); onRefresh(); notifyOk('Η ανάθεση αποθηκεύτηκε');
+    const ok=await saved('Η ανάθεση δεν αποθηκεύτηκε', supabase.from('maintenance_requests').update({ assignee_name:af.name.trim()||null, assignee_contact:af.contact.trim()||null, status:m.status==='new'?'in_progress':m.status }).eq('id',m.id));
+    setBusy(false); onRefresh();
+    // Το πλαίσιο ανάθεσης μένει ανοιχτό όταν η αποθήκευση απέτυχε: κλειστό, με
+    // κόκκινο μήνυμα από πάνω, δεν αφήνει τον χρήστη να ξαναδοκιμάσει.
+    if(!ok) return;
+    setAssignFor(null); notifyOk('Η ανάθεση αποθηκεύτηκε');
   };
   // Μήνυμα προς συνεργείο (τίτλος, περιγραφή, ακίνητο, σύνδεσμοι φωτογραφιών).
   const contractorText=(m:MaintenanceReq)=>[

@@ -210,6 +210,10 @@ export const MUTATIONS = {
   // από όσα υπάρχουν στον κώδικα. Ακριβώς ό,τι έγινε με το «106 emails».
   'message-catalog': { file: 'docs/KATALOGOS-MINYMATON.md', from: '| **ΣΥΝΟΛΟ** | **119** | |', to: '| **ΣΥΝΟΛΟ** | **106** | |' },
 
+  // Το πράσινο πάνω στο κόκκινο: η απάντηση του γραψίματος πετιέται και η
+  // επιτυχία ανακοινώνεται ούτως ή άλλως.
+  'success-over-error': { add: 'app/dashboard/components/__mut__.tsx', content: "import { saved } from '@/components/dbWrite'\nimport { notifyOk } from '@/components/toastBus'\nexport default function MutationProbe() {\n  const go = async () => {\n    await saved('Η ανάθεση δεν αποθηκεύτηκε', Promise.resolve({ error: null }))\n    notifyOk('Η ανάθεση αποθηκεύτηκε')\n  }\n  return <button onClick={go}>Ανάθεση</button>\n}\n" },
+
   'validity': { every: [
     { file: 'lib/legal/validity.ts',
       from: "    label: 'Τέλος ανθεκτικότητας στην κλιματική κρίση (ΤΑΚΚ)',\n    where: 'lib/billing/greekTax.ts',\n    validFrom: '2026-01-01',\n    validTo: '2026-12-31',",

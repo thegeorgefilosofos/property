@@ -20,7 +20,27 @@ await build({
   target: 'es2022',
   outfile: join(out, 'mobile.js'),
   logLevel: 'error',
-  define: { 'process.env.NODE_ENV': '"production"' },
+  // ΤΟ «process is not defined» ΕΡΙΧΝΕ ΟΛΟΚΛΗΡΗ ΤΗ ΣΚΗΝΗ, ΣΙΩΠΗΛΑ. Οταν μπήκε η
+  // καρτέλα ενοικιαστή, ο πάγκος τράβηξε μαζί της modules που διαβάζουν
+  // `process.env.NEXT_PUBLIC_SITE_URL` και `NEXT_PUBLIC_SUPABASE_URL`. Στον
+  // περιηγητή το `process` δεν υπάρχει, οπότε η απόδοση έσκαγε πριν γράψει
+  // τίποτα: η σκηνή έβγαινε ΚΕΝΗ και ο έλεγχος διάταξης «πράσινος», επειδή σε
+  // κενή σελίδα δεν υπάρχει τίποτα κομμένο. Δηλώνονται όλες ρητά, με τιμές
+  // πάγκου.
+  define: {
+    'process.env.NODE_ENV': '"production"',
+    'process.env.NEXT_PUBLIC_SITE_URL': '"https://example.invalid"',
+    'process.env.NEXT_PUBLIC_SUPABASE_URL': '"https://example.invalid"',
+    'process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY': '"anon"',
+    'process.env.NEXT_PUBLIC_SENTRY_DSN': 'undefined',
+    'process.env.NEXT_PUBLIC_BUILD_SHA': '"bench"',
+    'process.env.NEXT_PUBLIC_INBOUND_DOMAIN': '"example.invalid"',
+    'process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY': 'undefined',
+    'process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION': 'undefined',
+    // Ο,τι διαβάζει `process.env.X` για άγνωστο X, ή ρωτά `typeof process`.
+    'process.env': 'BENCH_ENV',
+  },
+  inject: [join(here, 'bench-env.js')],
   loader: { '.css': 'text' },
   alias: {
     '@/lib/supabase/client': join(here, '../e2e-money/fakeClient.ts'),

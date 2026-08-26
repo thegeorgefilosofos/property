@@ -1,0 +1,122 @@
+name: Ισχύς φορολογικών δεδομένων
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ΤΟ ΠΡΟΒΛΗΜΑ ΠΟΥ ΛΥΝΕΙ
+# Ο έλεγχος ισχύος τρέχει ήδη σε κάθε push, μαζί με τους υπόλοιπους φύλακες.
+# Αν όμως δεν πέσει push για δύο μήνες, κανείς δεν θα μάθει ότι μια κλίμακα
+# έληξε: ο φύλακας είναι σωστός και σιωπηλός, γιατί δεν τον καλεί κανείς.
+#
+# Και ακριβώς έτσι συμβαίνει η ζημιά. Η 1η Ιανουαρίου δεν είναι ημέρα που
+# γράφει κανείς κώδικα. Είναι όμως η ημέρα που η κλίμακα του περασμένου έτους
+# γίνεται λάθος σε κάθε οθόνη, χωρίς κανένα σημάδι.
+#
+# ΤΙ ΚΑΝΕΙ
+# Κάθε Δευτέρα ρωτά το μητρώο `lib/legal/validity.ts` τι έληξε, τι λήγει μέσα
+# σε 45 ημέρες και τι δεν έχει δει άνθρωπος πάνω από δώδεκα μήνες. Το ίδιο και
+# την 1η και τη 2η Ιανουαρίου, που είναι η μέρα του κινδύνου.
+#
+# ΤΙ ΔΕΝ ΚΑΝΕΙ
+# Δεν κατεβάζει νόμους και δεν μαντεύει. Λέει ΤΙ πρέπει να κοιτάξεις, ΠΟΥ ζει
+# στον κώδικα και ΠΟΙΟΝ σύνδεσμο να ανοίξεις. Ο έλεγχος είναι δέκα λεπτά· το
+# «δεν ήξερα ότι άλλαξε» είναι λάθος υπολογισμός σε κάθε χρήστη για έναν χρόνο.
+#
+# ΠΩΣ ΕΙΔΟΠΟΙΕΙ
+# Με GitHub issue, όπως και η φρεσκάδα τιμών: μένει ανοιχτό ώσπου να γίνει η
+# δουλειά, φαίνεται στην αρχική του repo και φτάνει ως ειδοποίηση στο κινητό.
+# ═══════════════════════════════════════════════════════════════════════════
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'      # κάθε Δευτέρα, 06:00 UTC
+    - cron: '0 6 1,2 1 *'    # και την 1η και 2η Ιανουαρίου, που είναι η μέρα του κινδύνου
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: validity
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+
+      - name: Ελεγχος ισχύος ρυθμιζόμενων μεγεθών
+        id: check
+        run: |
+          set +e
+          OUT=$(node scripts/guard-validity.mjs 2>&1)
+          CODE=$?
+          echo "$OUT"
+          {
+            echo 'report<<VALIDITY_EOF'
+            echo "$OUT"
+            echo 'VALIDITY_EOF'
+          } >> "$GITHUB_OUTPUT"
+          echo "stale=$([ $CODE -ne 0 ] && echo yes || echo no)" >> "$GITHUB_OUTPUT"
+
+      - name: Ανοιγμα issue όταν κάτι λήγει ή έληξε
+        if: steps.check.outputs.stale == 'yes'
+        uses: actions/github-script@v7
+        env:
+          REPORT: ${{ steps.check.outputs.report }}
+        with:
+          script: |
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'validity', per_page: 5,
+            });
+            if (open.length) { core.info('Υπάρχει ήδη ανοιχτό issue.'); return; }
+            const body = [
+              'Ενα ή περισσότερα ρυθμιζόμενα μεγέθη θέλουν ανθρώπινο μάτι.',
+              '',
+              'Ενας υπολογισμός που ήταν σωστός και σιωπηλά έγινε λάθος είναι χειρότερος',
+              'από υπολογισμό που δεν υπήρξε ποτέ: ο χρήστης τον έχει ήδη εμπιστευτεί.',
+              '',
+              '```',
+              process.env.REPORT || '',
+              '```',
+              '',
+              '### Τι χρειάζεται',
+              '1. Ανοιξε τον σύνδεσμο της πηγής για κάθε γραμμή.',
+              '2. Αν η τιμή άλλαξε, πρόσθεσε τη ΝΕΑ χρονιά στον κώδικα· η παλιά μένει για τις αναδρομικές δηλώσεις.',
+              '3. Ενημέρωσε `validTo` και `checkedAt` στο `lib/legal/validity.ts`.',
+              '',
+              'Αν η τιμή ΔΕΝ άλλαξε, αρκεί το `checkedAt`: αυτό είναι η υπογραφή ότι κάποιος κοίταξε.',
+              '',
+              'Το issue κλείνει μόνο του στον επόμενο έλεγχο.',
+            ].join('\n');
+            await github.rest.issues.create({
+              owner: context.repo.owner, repo: context.repo.repo,
+              title: 'Φορολογικά δεδομένα που λήγουν ή έληξαν', body, labels: ['validity'],
+            });
+
+      - name: Κλείσιμο issue όταν όλα είναι εν ισχύι
+        if: steps.check.outputs.stale == 'no'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'validity', per_page: 20,
+            });
+            for (const issue of open) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: issue.number,
+                body: 'Ολα τα ρυθμιζόμενα μεγέθη είναι εν ισχύι και ελεγμένα. Κλείνει αυτόματα.',
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: issue.number, state: 'closed', state_reason: 'completed',
+              });
+            }

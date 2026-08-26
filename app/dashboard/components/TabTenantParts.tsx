@@ -33,10 +33,16 @@ export const InfoBlock = ({ title, children, tone }: { title: string; children: 
   </div>
 );
 
+// ΤΑ 10 ΗΤΑΝ ΚΑΤΩ ΑΠΟ ΤΟ ΔΑΠΕΔΟ ΤΟΥ ΕΡΓΟΥ, ΚΑΙ ΚΑΝΕΙΣ ΔΕΝ ΤΟ ΕΙΧΕ ΔΕΙ. Οι έξι
+// επικεφαλίδες της φόρμας ενοικιαστή («Ποιος είναι ο ενοικιαστής», «Το ενοίκιο»,
+// «Εγγύηση», «Κατάσταση επίπλωσης», «Μισθωτήριο και λοιπά έγγραφα») γράφονταν σε
+// δέκα στιγμές, κεφαλαία και με αραίωση, δηλαδή στο πιο δυσανάγνωστο συνδυασμό
+// που υπάρχει. Δεν είχαν μετρηθεί ποτέ επειδή η φόρμα ζει πίσω από κουμπί και
+// καμία σκηνή του πάγκου δεν την άνοιγε.
 export function SectionTitle({ children, info }: { children: React.ReactNode; info?: string }) {
   return (
     <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16 }}>
-      <span style={{ fontSize:'10px', letterSpacing:'0.06em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, fontWeight:700 }}>{children}</span>
+      <span style={{ fontSize:'11px', letterSpacing:'0.06em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, fontWeight:700 }}>{children}</span>
       {info&&<InfoDot text={info}/>}
     </div>
   );

@@ -392,7 +392,14 @@ const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PAT
 // η ταμπλέτα σε οριζόντια θέση.
 const WIDTHS = [375, 430, 768, 820, 900, 1024, 1280, 1440]
 const TOUCH = (w) => w < 1100 || w === 1280
-const SCENES = ['portfolio','cash','rent','inbox','ledger','checklist','modal','select','compare','loan','pricing','bills','contacts','wizard','roi']
+const SCENES = ['portfolio','cash','rent','inbox','ledger','checklist','modal','select','compare','loan','pricing','bills','contacts','wizard','roi','tenant','scan']
+// ═══ ΤΑ ΠΑΡΑΘΥΡΑ ΠΟΥ ΑΝΟΙΓΟΥΝ ΜΕ ΚΟΥΜΠΙ ═════════════════════════════════════
+// ΜΙΑ ΦΟΡΜΑ ΜΕΣΑ ΣΕ ΠΑΡΑΘΥΡΟ ΔΕΝ ΑΠΟΔΙΔΕΤΑΙ ΑΝ ΔΕΝ ΤΗΝ ΑΝΟΙΞΕΙ ΚΑΠΟΙΟΣ. Η φόρμα
+// ενοικιαστή ζει πίσω από το «Νέος ενοικιαστής» και καμία μέτρηση δεν την είχε
+// δει ποτέ. Το `aria-pressed` δεν βοηθά εδώ: το κουμπί δεν είναι διακόπτης, δεν
+// έχει κατάσταση, απλώς ανοίγει παράθυρο. Γράφεται ρητά ποιο κουμπί πατιέται σε
+// ποια σκηνή, ώστε ο κατάλογος των μετρημένων παραθύρων να είναι ΟΡΑΤΟΣ.
+const OPENERS = { tenant: ['Νέος ενοικιαστής'] }
 const PAGES = ['/', '/login', '/signup', '/ypologismos-forou-enoikion', '/ypologismos-enfia', '/vraxyxronia-i-makroxronia', '/kathari-apodosi', '/imerologio', '/privacy']
 const BASE = process.env.E2E_BASE || 'http://localhost:3100'
 // Για να δουλεύεται μία σκηνή χωρίς να τρέχουν και οι 120: E2E_ONLY=roi
@@ -425,6 +432,14 @@ for (const w of WIDTHS) {
       if (!opened) break
       await p.waitForTimeout(300)
     }
+    // ═══ Η ΚΕΝΗ ΣΚΗΝΗ ΠΕΡΝΑΕΙ ΚΑΘΕ ΕΛΕΓΧΟ ══════════════════════════════════
+    // ΤΟ ΧΕΙΡΟΤΕΡΟ ΕΙΔΟΣ ΠΡΑΣΙΝΟΥ. Οταν μπήκε η καρτέλα ενοικιαστή, ο πάγκος
+    // τράβηξε module που διαβάζει `process.env.NEXT_PUBLIC_SITE_URL`. Στον
+    // περιηγητή το `process` δεν υπάρχει: η απόδοση έσκαγε πριν γράψει τίποτα
+    // και η σκηνή έβγαινε ΚΕΝΗ. Σε κενή σελίδα δεν υπάρχει τίποτα κομμένο,
+    // τίποτα πάνω στο άλλο, κανένας μικρός στόχος αφής. Πράσινο, χωρίς οθόνη.
+    const size = await p.evaluate(() => (document.querySelector('.app-content')?.innerText || '').trim().length)
+    if (size < 120) rows.push({ where: `πάγκος ${s} @${w}`, r: [`Η ΣΚΗΝΗ ΕΙΝΑΙ ΚΕΝΗ (${size} χαρακτήρες)`] })
     const r = await p.evaluate(PROBE)
     if (r.length) rows.push({ where: `πάγκος ${s} @${w}`, r })
     // ═══ ΚΑΙ ΤΑ ΠΑΝΕΛ ΠΟΥ ΖΟΥΝ ΠΙΣΩ ΑΠΟ ΔΙΑΚΟΠΤΗ ═══════════════════════════
@@ -433,6 +448,17 @@ for (const w of WIDTHS) {
     // τον πρώτο και κανέναν άλλο: τέσσερις οθόνες που ο χρήστης ανοίγει με ένα
     // πάτημα δεν είχαν μετρηθεί ποτέ. Το ίδιο ισχύει για κάθε ομάδα διακοπτών
     // της εφαρμογής, που γράφεται παντού με `aria-pressed`.
+    for (const label of (OPENERS[s] || [])) {
+      const hit = await p.evaluate((t) => {
+        const b = [...document.querySelectorAll('button')].find(x => (x.textContent || '').trim() === t)
+        if (!b) return false
+        b.click(); return true
+      }, label)
+      if (!hit) { rows.push({ where: `πάγκος ${s} @${w}`, r: [`ΤΟ ΚΟΥΜΠΙ «${label}» ΔΕΝ ΒΡΕΘΗΚΕ`] }); continue }
+      await p.waitForTimeout(400)
+      const rr = await p.evaluate(PROBE)
+      if (rr.length) rows.push({ where: `πάγκος ${s}·${label.slice(0, 14)} @${w}`, r: rr })
+    }
     const pressLabels = await p.evaluate(() =>
       [...document.querySelectorAll('button[aria-pressed="false"]')].map(b => (b.textContent || '').trim()).filter(Boolean))
     for (const label of pressLabels) {

@@ -133,7 +133,12 @@ export const s = {
   dot:      (c='var(--accent)') => ({ width:'6px', height:'6px', borderRadius:'50%', background:c, flexShrink:0 } as React.CSSProperties),
   divider:  { borderTop:'1px solid var(--border-subtle)', margin:'18px 0' } as React.CSSProperties,
   g2:       { display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap:'14px' } as React.CSSProperties,
-  g3:       { display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:'14px' } as React.CSSProperties,
+  // ΤΡΙΑ ΠΕΔΙΑ ΣΕ ΔΥΟ ΣΤΗΛΕΣ ΑΦΗΝΟΥΝ ΤΟ ΤΡΙΤΟ ΜΟΝΟ ΤΟΥ. Μετρημένο στα 430 μέσα
+  // στη φόρμα ενοικιαστή: «2+1», με το «Κινητό τηλέφωνο» σε μισό πλάτος και
+  // τρύπα δίπλα του. Με ρευστό ελάχιστο, τρία στοιχεία βγάζουν δύο στήλες σε
+  // ΚΑΠΟΙΟ πλάτος όσο κι αν αλλάξει το νούμερο· ο κανόνας των διαιρετών δίνει
+  // τρεις ή μία, ποτέ δύο. Ιδια κλάση και ίδιοι κανόνες με τους δείκτες.
+  g3:       { display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap:'14px', '--kpi-lg':3, '--kpi-md':3, '--kpi-sm':1 } as React.CSSProperties,
   g4:       { display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap:'14px' } as React.CSSProperties,
   badge:    (color: string, bg: string) => ({ display:'inline-flex', alignItems:'center', padding:'3px 9px', borderRadius: T.radius.pill, fontSize:'10px', letterSpacing:'0.08em', textTransform:'uppercase' as const, color, background:bg, border:`1px solid color-mix(in srgb, ${color} 20%, transparent)` } as React.CSSProperties),
   tabBtn:   (a: boolean) => ({ padding:'9px 18px', fontSize:'11px', fontWeight: a ? 600 : 400, letterSpacing:'0.04em', cursor:'pointer', border:'none', background:'transparent', color: a ? 'var(--accent)' : 'var(--text-secondary)', borderBottom:`2px solid ${a ? 'var(--accent)' : 'transparent'}`, fontFamily:T.font.sans, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s', whiteSpace:'nowrap' as const } as React.CSSProperties),

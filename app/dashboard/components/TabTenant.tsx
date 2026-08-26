@@ -843,7 +843,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
 
             {/* ── ΠΟΙΟΣ ΕΙΝΑΙ ────────────────────────────────────────────── */}
             <SectionTitle>Ποιος είναι ο ενοικιαστής</SectionTitle>
-            <div style={{ ...s.g3, marginBottom:6 }}>
+            <div className="kpi-row" style={{ ...s.g3, marginBottom:6 }}>
               {show('tenant.full_name')&&<TextInput label="Ονοματεπώνυμο *" value={form.full_name} onChange={v=>sf('full_name',v)}/>}
               {show('tenant.afm')&&<TextInput label="ΑΦΜ" labelInfo={whyOf('tenant.afm')} value={form.afm} onChange={v=>sf('afm',v)}/>}
               {show('tenant.phone')&&<TextInput label="Κινητό τηλέφωνο" value={form.phone} onChange={v=>sf('phone',v)}/>}
@@ -870,7 +870,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
                 </ChipRow>
               </>
             )}
-            <div style={{ ...s.g3, marginBottom:6 }}>
+            <div className="kpi-row" style={{ ...s.g3, marginBottom:6 }}>
               {show('tenant.lease_start')&&<DatePicker label="Έναρξη μίσθωσης" labelInfo={whyOf('tenant.lease_start')} value={form.lease_start} onChange={v=>sf('lease_start',v)}/>}
               {show('tenant.lease_end')&&<DatePicker label="Λήξη μίσθωσης" labelInfo={whyOf('tenant.lease_start')} value={form.lease_end} onChange={v=>sf('lease_end',v)}/>}
               {form.lease_type==='custom'&&<NumberInput label="Ημέρες" value={String(form.custom_lease_days)} onChange={v=>sf('custom_lease_days',parseInt(v)||0)} suffix="ημ."/>}
@@ -879,7 +879,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
             <div style={s.divider}/>
             {/* ── ΤΟ ΕΝΟΙΚΙΟ ───────────────────────────────────────────────── */}
             <SectionTitle>Το ενοίκιο</SectionTitle>
-            <div style={{ ...s.g3, marginBottom:6 }}>
+            <div className="kpi-row" style={{ ...s.g3, marginBottom:6 }}>
               {show('tenant.rent')&&<NumberInput label="Μηνιαίο ενοίκιο" value={form.monthly_rent} onChange={v=>sf('monthly_rent',v)} suffix="€"/>}
               {show('tenant.rent_due_day')&&<SelectField label="Ημέρα πληρωμής" labelInfo={whyOf('tenant.rent_due_day')} value={form.rent_due_day} onChange={v=>sf('rent_due_day',v)} options={Array.from({length:28},(_,i)=>({value:String(i+1),label:`${i+1}η`}))}/>}
             </div>
@@ -907,7 +907,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
             {/* ── ΕΓΓΥΗΣΗ ──────────────────────────────────────────────────── */}
             <SectionTitle>Εγγύηση</SectionTitle>
             {show('tenant.deposit')&&(
-              <div style={{ ...s.g3, marginBottom:6 }}>
+              <div className="kpi-row" style={{ ...s.g3, marginBottom:6 }}>
                 <NumberInput label="Ποσό εγγύησης" labelInfo={whyOf('tenant.deposit')} value={form.deposit_amount} onChange={v=>sf('deposit_amount',v)} suffix="€"/>
               </div>
             )}
@@ -1037,7 +1037,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
                     )}
                     {more('tenant.parking')&&(
                       <div style={{ marginBottom:16 }}>
-                        <div style={{ ...s.g3, marginBottom:6 }}>
+                        <div className="kpi-row" style={{ ...s.g3, marginBottom:6 }}>
                           <div><div style={{ ...labelStyle, marginBottom:8 }}>Περιλαμβάνεται στο ενοίκιο</div><Toggle on={form.parking_included} onChange={v=>sf('parking_included',v)} ariaLabel="Ναι ή όχι"/></div>
                           <div><div style={{ ...labelStyle, marginBottom:8 }}>Χρεώνεται ξεχωριστά<InfoDot text={whyOf('tenant.parking')||''}/></div><Toggle on={form.parking_extra} onChange={v=>sf('parking_extra',v)} ariaLabel="Ναι ή όχι"/></div>
                           {form.parking_extra&&<NumberInput label="Μηνιαία τιμή στάθμευσης" value={form.parking_extra_price} onChange={v=>sf('parking_extra_price',v)} suffix="€"/>}

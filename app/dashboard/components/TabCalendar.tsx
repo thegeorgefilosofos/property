@@ -1579,7 +1579,11 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
       const evs=parseICS(text)
       if(!evs.length){ notify('Δεν βρέθηκαν γεγονότα στο αρχείο.',{tone:'warning'}); return }
       const rows=evs.map(ev=>calendar.row({propertyId,userId},'import',{title:ev.title,category:'reminder',event_date:ev.date,event_time:ev.time,duration_minutes:ev.durationMinutes,notes:ev.notes}))
-      await saved('Τα γεγονότα δεν εισήχθησαν', calendar.insert(supabase,rows))
+      // ΤΟ «ΕΙΣΗΧΘΗΣΑΝ N ΓΕΓΟΝΟΤΑ» ΛΕΓΟΤΑΝ ΚΑΙ ΟΤΑΝ ΔΕΝ ΕΙΣΗΧΘΗ ΚΑΝΕΝΑ. Η
+      // απάντηση του γραψίματος πεταγόταν, οπότε ο χρήστης έβλεπε κόκκινο «Τα
+      // γεγονότα δεν εισήχθησαν» και από πάνω πράσινο με νούμερο. Πιστεύει το
+      // νούμερο: είναι συγκεκριμένο.
+      if(!await saved('Τα γεγονότα δεν εισήχθησαν', calendar.insert(supabase,rows))) return
       await load()
       notifyOk(`Εισήχθησαν ${rows.length} γεγονότα.`)
     }catch{ notifyError('Το αρχείο δεν διαβάστηκε.') }

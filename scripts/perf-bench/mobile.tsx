@@ -41,6 +41,11 @@ import TabBills from '@/app/dashboard/components/TabBills';
 // μόνη που κανένας έλεγχος δεν κοίταζε ποτέ: ζει μέσα σε παράθυρο που ανοίγει
 // με πάτημα, οπότε καμία σκηνή του πάγκου δεν την αποδίδει.
 import AddPropertyWizard from '@/app/dashboard/components/AddPropertyWizard';
+// ΤΑ ΔΥΟ ΠΑΡΑΘΥΡΑ ΠΟΥ ΜΙΚΡΥΝΑΝ ΧΩΡΙΣ ΝΑ ΜΕΤΡΗΘΟΥΝ. Η φόρμα ενοικιαστή ήταν 860
+// και η γρήγορη προσθήκη 820· η κλίμακα των τεσσάρων τα έφερε και τα δύο στα
+// 760. Καμία σκηνή δεν τα απέδιδε, οπότε η αλλαγή ήταν απόφαση χωρίς μέτρηση.
+import TabTenant from '@/app/dashboard/components/TabTenant';
+import DocumentScan from '@/app/dashboard/components/DocumentScan';
 // Η ΑΠΟΔΟΣΗ ΤΗΣ ΕΠΕΝΔΥΣΗΣ: πλακίδια, ιστορικό διάγραμμα, σύγκριση με
 // εναλλακτικές και το πεδίο «Ετήσια ανατίμηση ακινήτου», όπου ο χρήστης
 // φωτογράφησε κομμένο το «6,8» σε ταμπλέτα.
@@ -191,6 +196,12 @@ const VIEWS: Record<string, () => React.ReactElement> = {
   contacts: () => <TabContacts propertyId="p0" userId="u1" />,
   wizard: () => <AddPropertyWizard userId="u1" onClose={() => {}} onSaved={() => {}} />,
   roi: () => <TabRentROI propertyId="p0" userId="u1" propertyValue={185000} />,
+  tenant: () => <TabTenant propertyId="p0" userId="u1" onStartHandover={() => {}} />,
+  scan: () => (
+    <Modal open onClose={() => {}} size="lg" title="Σάρωση εγγράφου">
+      <DocumentScan propertyId="p0" userId="u1" onSaved={async () => {}} onBusyChange={() => {}} />
+    </Modal>
+  ),
   modal: () => <ModalDemo />,
   select: () => <SelectDemo />,
 };
