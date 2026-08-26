@@ -11,6 +11,7 @@ import * as settings from '@/lib/data/settings';
 import { T, fe, fn, fp, ABSENT, ABSENT_SHORT, Skeleton, ExportButton, EmptyState, InfoBanner, PageTitle } from '@/components/Theme';
 import { Building2 } from 'lucide-react';
 import { comparableGroups } from '@/lib/property/visibility';
+import { propertyTypePlural } from '@/lib/property/types';
 import { statusLabel, type StatusRow } from '@/lib/property/status';
 import { downloadTableXlsx } from './exportCsv';
 import { money } from './sheetFormat';
@@ -77,12 +78,6 @@ const budgetTotalOf = (data: Record<string, unknown> | null | undefined): number
 
 // Ο τύπος ακινήτου με ανθρώπινα λόγια, για τον τίτλο της ομάδας. Ό,τι δεν
 // αναγνωρίζεται εμφανίζεται όπως το έγραψε ο χρήστης.
-const TYPE_LABELS: Record<string, string> = {
-  apartment: 'Διαμερίσματα', house: 'Μονοκατοικίες', studio: 'Στούντιο',
-  maisonette: 'Μεζονέτες', office: 'Γραφεία', shop: 'Καταστήματα',
-  warehouse: 'Αποθήκες', land: 'Οικόπεδα', parking: 'Θέσεις parking',
-  storage: 'Αποθήκες κτιρίου', villa: 'Βίλες', other: 'Άλλα',
-};
 
 /**
  * Το πλάτος της στήλης με τα ονόματα των μετρήσεων.
@@ -144,8 +139,9 @@ export default function TabComparison({ properties, userId }: Props) {
   const groups = useMemo(() => comparableGroups(properties), [properties]);
   const group = groups.find(g => g.key === groupKey) ?? groups[0] ?? null;
   const inGroup = group ? properties.filter(p => group.ids.includes(p.id)) : [];
-  const typeLabel = (key: string, sample: Property | undefined) =>
-    TYPE_LABELS[key] ?? sample?.prop_type ?? key;
+  // Ο πληθυντικός επιστρέφει το κλειδί όπως ήρθε όταν δεν το γνωρίζει, οπότε
+  // δεύτερο δίχτυ δεν χρειάζεται.
+  const typeLabel = (key: string) => propertyTypePlural(key);
 
   // ΤΟ «ΦΟΡΤΩΝΕΙ» ΑΝΗΚΕΙ ΣΤΗ ΦΟΡΤΩΣΗ, ΟΧΙ ΣΤΟ EFFECT. Ηταν
   // `useEffect(() => { setLoading(true); load(); })`: μια σύγχρονη γραφή
@@ -483,7 +479,7 @@ export default function TabComparison({ properties, userId }: Props) {
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
       <PageTitle
         title="Σύγκριση ακινήτων"
-        sub={`${rowsData.length} ${typeLabel(group.key, inGroup[0]).toLowerCase()}, δίπλα-δίπλα`}
+        sub={`${rowsData.length} ${typeLabel(group.key).toLowerCase()}, δίπλα-δίπλα`}
         right={!loading ? <ExportButton onClick={exportCSV} /> : undefined}
       />
 
@@ -499,7 +495,7 @@ export default function TabComparison({ properties, userId }: Props) {
                   border: `1px solid ${on ? 'var(--border-default)' : 'var(--border-subtle)'}`,
                   background: on ? 'var(--bg-hover)' : 'transparent',
                   color: on ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
-                {typeLabel(g.key, properties.find(p => p.id === g.ids[0]))} ({g.ids.length})
+                {typeLabel(g.key)} ({g.ids.length})
               </button>
             );
           })}

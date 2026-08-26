@@ -938,7 +938,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
             {/* ── ΧΑΡΤΙΑ ───────────────────────────────────────────────────── */}
             <SectionTitle info={whyOf('tenant.lease_doc')}>Μισθωτήριο και λοιπά έγγραφα</SectionTitle>
             <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:20 }}>
-              <TextInput label="Εξωτερικός σύνδεσμος" value={form.lease_doc_external_url} onChange={v=>sf('lease_doc_external_url',v)} placeholder="https://drive.google.com/..."/>
+              <TextInput label="Εξωτερικός σύνδεσμος" value={form.lease_doc_external_url} onChange={v=>sf('lease_doc_external_url',v)} placeholder="drive.google.com/…"/>
               <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:14, flexWrap:'wrap' as const }}>
                 <label style={{ ...s.btnSm, cursor:docBusy?'default':'pointer', display:'inline-block', opacity:docBusy?0.6:1, whiteSpace:'nowrap' as const }}>
                   {docBusy?'Ανέβασμα…':'Ανέβασμα αρχείου'}

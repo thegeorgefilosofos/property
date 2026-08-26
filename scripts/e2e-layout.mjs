@@ -325,8 +325,34 @@ const PROBE = () => {
       if (eb.top > nb.bottom - 2 || eb.bottom < nb.top + 2 || eb.left > nb.right - 2 || eb.right < nb.left + 2) { vis = false; break }
     }
     if (!vis) continue
+    // ═══ ΤΟ ΟΡΘΟΓΩΝΙΟ ΤΟΥ ΚΕΙΜΕΝΟΥ ΔΕΝ ΕΙΝΑΙ ΑΥΤΟ ΠΟΥ ΦΑΙΝΕΤΑΙ ═════════════
+    // 761 ΑΠΟ ΤΑ 785 ΕΥΡΗΜΑΤΑ ΜΙΑΣ ΣΑΡΩΣΗΣ ΗΤΑΝ ΤΟ ΙΔΙΟ ΦΑΝΤΑΣΜΑ. Το `Range`
+    // δίνει το ορθογώνιο ΟΛΟΚΛΗΡΟΥ του κειμένου, ακόμη κι όταν το ίδιο το
+    // στοιχείο το κόβει με `overflow: hidden`. Ο τίτλος ακινήτου στην μπάρα
+    // γράφεται σε μία σειρά με αποσιωπητικά: φαίνεται 311 εικονοστοιχεία και το
+    // `Range` επέστρεφε 520. Τα 209 που «περίσσευαν» έπεφταν πάνω στο σήμα
+    // κατάστασης δίπλα του και ο έλεγχος ανακοίνωνε σύγκρουση 33 σε κάθε σκηνή
+    // και σε κάθε ταμπλέτα, δηλαδή 761 φορές. Καμία δεν ήταν ορατή.
+    //
+    // Ο βρόχος από πάνω κοιτάζει ΠΡΟΓΟΝΟΥΣ και ρωτά «φαίνεται καθόλου;». Εδώ
+    // κόβεται το ορθογώνιο στο κουτί κάθε κόφτη, ΞΕΚΙΝΩΝΤΑΣ ΑΠΟ ΤΟ ΙΔΙΟ ΤΟ
+    // ΣΤΟΙΧΕΙΟ: ό,τι μένει είναι ακριβώς ό,τι βλέπει το μάτι.
+    const clip = (r) => {
+      let x1 = r.left, y1 = r.top, x2 = r.right, y2 = r.bottom
+      for (let n = el; n && n !== document.body; n = n.parentElement) {
+        const c = getComputedStyle(n)
+        if (!/auto|scroll|hidden|clip/.test(c.overflowY + c.overflowX)) continue
+        const nb = n.getBoundingClientRect()
+        if (/auto|scroll|hidden|clip/.test(c.overflowX)) { x1 = Math.max(x1, nb.left); x2 = Math.min(x2, nb.right) }
+        if (/auto|scroll|hidden|clip/.test(c.overflowY)) { y1 = Math.max(y1, nb.top); y2 = Math.min(y2, nb.bottom) }
+      }
+      return { left: x1, top: y1, right: x2, bottom: y2, width: x2 - x1, height: y2 - y1 }
+    }
     const rg = document.createRange(); rg.selectNodeContents(el)
-    for (const r of rg.getClientRects()) if (r.width > 4 && r.height > 4) leaves.push({ el, r, t: el.textContent.trim() })
+    for (const raw of rg.getClientRects()) {
+      const r = clip(raw)
+      if (r.width > 4 && r.height > 4) leaves.push({ el, r, t: el.textContent.trim() })
+    }
   }
   for (let i = 0; i < leaves.length; i++) {
     for (let j = i + 1; j < leaves.length; j++) {

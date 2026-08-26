@@ -11,6 +11,7 @@ import { CustomSelect, DatePicker } from './UIComponents';
 import { cleanAma, isValidAmaFormat, amaLengthLooksUnusual } from '@/lib/property/ama';
 import { ATAK_SOURCE, atakDigits } from '@/lib/property/atak';
 import { STATUSES, BY_KEY, readStatus, writeStatus, type PropertyStatus } from '@/lib/property/status';
+import { PROPERTY_TYPES, propertyTypeLabel } from '@/lib/property/types';
 import { fillOnlyEmpty, firstFilled } from '@/lib/core/prefill';
 import { fieldPlacement, PROPERTY_FIELDS, type FieldContext, type Placement } from '@/lib/property/fields';
 import { failed } from '@/lib/core/dbError';
@@ -33,13 +34,6 @@ const STATUS_COLORS: Record<string, string> = {
 //
 // Πηγή είναι το `lib/property/status.ts`, που κρατά και τις επεξηγήσεις και
 // ξέρει τι γράφεται στη βάση (`writeStatus`) για κάθε επιλογή.
-const PROP_TYPE_LABELS: Record<string, string> = {
-  apartment: 'Διαμέρισμα', house: 'Μονοκατοικία', studio: 'Στούντιο',
-  maisonette: 'Μεζονέτα', office: 'Γραφείο', shop: 'Κατάστημα',
-  warehouse: 'Αποθήκη', land: 'Οικόπεδο', parking: 'Parking',
-  storage: 'Αποθήκη κτιρίου', villa: 'Βίλα', other: 'Άλλο',
-};
-const PROP_TYPES = ['apartment', 'house', 'studio', 'maisonette', 'office', 'shop', 'warehouse', 'land', 'parking', 'storage', 'villa', 'other'];
 
 // Τύποι χωρίς όροφο / έτος κατασκευής (γη & βοηθητικοί χώροι)
 const LAND_LIKE = new Set(['land', 'parking', 'storage', 'warehouse']);
@@ -606,13 +600,32 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
         )}
       </>}>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+      {/* ═══ ΟΙ ΚΥΚΛΟΙ ΣΤΟΙΧΙΖΟΝΤΑΙ ΑΠΟ ΠΑΝΩ, ΟΧΙ ΑΠΟ ΤΟ ΚΕΝΤΡΟ ══════════════════
+          ΤΟ ΕΦΕΡΕ Η ΑΠΟΚΡΥΨΗ ΤΩΝ ΟΝΟΜΑΤΩΝ. Οταν σε τηλέφωνο γράφεται μόνο το
+          ενεργό βήμα, η στήλη του έχει κύκλο 28 συν κενό 6 συν όνομα 14, δηλαδή
+          48, ενώ οι άλλες τέσσερις έχουν μόνο τα 28 του κύκλου. Η ράγα ψηλώνει
+          στα 48 και με στοίχιση στο κέντρο οι τέσσερις κοντές στήλες πέφτουν
+          (48 − 28) ÷ 2 = 10 εικονοστοιχεία χαμηλότερα από τον ενεργό κύκλο:
+          μετρημένο κέντρο 139,75 ο πρώτος έναντι 150,75 οι υπόλοιποι, δηλαδή
+          μια ράγα βημάτων που δεν κάθεται σε γραμμή.
+
+          Με στοίχιση στην κορυφή όλοι οι κύκλοι ξεκινούν στο ίδιο ύψος και το
+          όνομα κρέμεται από κάτω. Η γραμμή που τους ενώνει παίρνει περιθώριο
+          κορυφής (28 − 2) ÷ 2 = 13 για να πέσει στο κέντρο του κύκλου, γιατί
+          έχει πάψει να το βρίσκει μόνη της.
+
+          ΓΙΑΤΙ ΠΛΕΓΜΑ ΚΑΙ ΟΧΙ ΓΡΑΜΜΗ: με flex η ορατή ετικέτα πλάταινε τη στήλη
+          του ενεργού βήματος και έτρωγε από τη δική του γραμμή σύνδεσης. Στα 320
+          έβγαινε 3,6 εικονοστοιχεία δίπλα σε τρεις των 8,5 και στα 300 μηδένιζε.
+          Το πλέγμα δίνει στις τέσσερις γραμμές ίδιο κλάσμα: μετρημένες 7,3 στα
+          320 και 17,3 στα 360, ίσες μεταξύ τους σε κάθε πλάτος. */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, auto minmax(4px, 1fr)) auto', alignItems: 'start' }}>
         {STEPS.map((label, i) => {
           const done = i < step, active = i === step;
           const on = done || active;
           return (
-            <div key={label} style={{ display: 'flex', alignItems: 'center', flex: i < STEPS.length - 1 ? 1 : '0 0 auto' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+            <Fragment key={label}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
                 <div style={{
                   width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   background: on ? 'var(--accent)' : 'var(--bg-overlay)', color: on ? 'var(--accent-text)' : 'var(--text-tertiary)',
@@ -636,8 +649,8 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                     επόμενων βημάτων εμφανίζονται καθώς φτάνεις σε αυτά. */}
                 <div className={`wiz-step${active ? ' wiz-step-on' : ''}`} style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 500, color: on ? 'var(--text-primary)' : 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{label}</div>
               </div>
-              {i < STEPS.length - 1 && <div style={{ flex: 1, height: 2, background: i < step ? 'var(--accent)' : 'var(--border-subtle)', margin: '0 8px', marginBottom: 22, transition: 'background 0.2s' }} />}
-            </div>
+              {i < STEPS.length - 1 && <div style={{ height: 2, background: i < step ? 'var(--accent)' : 'var(--border-subtle)', margin: '13px 8px 0', transition: 'background 0.2s' }} />}
+            </Fragment>
           );
         })}
       </div>
@@ -647,21 +660,31 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           <div>
             <label style={labelStyle}>Τύπος ακινήτου</label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 10 }}>
-              {PROP_TYPES.map(t => {
+            {/* ΟΛΑ ΤΑ ΠΛΑΚΙΔΙΑ ΙΣΑ, ΚΑΙ ΟΤΑΝ ΤΟ ΟΝΟΜΑ ΠΙΑΝΕΙ ΔΥΟ ΣΕΙΡΕΣ.
+                Στα 360 η «Επαγγελματική αποθήκη» και η «Αποθήκη πολυκατοικίας»
+                τυλίγονται, οπότε η γραμμή τους μετρήθηκε 94 ενώ οι υπόλοιπες
+                80: τρία διαφορετικά ύψη στην ίδια οθόνη. Το `1fr` στις γραμμές
+                δίνει σε όλες το ύψος της ψηλότερης. */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gridAutoRows: '1fr', gap: 10 }}>
+              {PROPERTY_TYPES.map(t => {
                 const sel = propType === t;
                 return (
                   <button key={t} onClick={() => setPropType(t)} style={{
                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '16px 8px',
                     borderRadius: 12, cursor: 'pointer', transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s',
-                    border: sel ? '2px solid var(--accent)' : '1px solid var(--border-default)',
+                    // Η επιλογή ΔΕΝ παχαίνει το περίγραμμα: το δεύτερο εικονοστοιχείο
+                    // έκανε το επιλεγμένο πλακίδιο 82 ψηλό δίπλα σε γείτονες των 80.
+                    // Ο δακτύλιος δίνει την ίδια έμφαση χωρίς να πειράξει τη διάταξη,
+                    // όπως ήδη κάνουν τα πλακίδια της κατάστασης από κάτω.
+                    border: `1px solid ${sel ? 'var(--accent)' : 'var(--border-default)'}`,
+                    boxShadow: sel ? '0 0 0 1px var(--accent)' : 'none',
                     background: sel ? 'var(--accent-soft)' : 'var(--bg-surface)',
                     color: sel ? 'var(--accent)' : 'var(--text-secondary)',
                   }}
                     onMouseEnter={e => { if (!sel) e.currentTarget.style.background = 'var(--bg-overlay)'; }}
                     onMouseLeave={e => { if (!sel) e.currentTarget.style.background = 'var(--bg-surface)'; }}>
                     <TypeIcon type={t} />
-                    <span style={{ fontFamily: T.font.sans, fontSize: 12, fontWeight: 500, color: sel ? 'var(--text-primary)' : 'var(--text-secondary)', textAlign: 'center' }}>{PROP_TYPE_LABELS[t]}</span>
+                    <span style={{ fontFamily: T.font.sans, fontSize: 12, fontWeight: sel ? 700 : 500, color: sel ? 'var(--text-primary)' : 'var(--text-secondary)', textAlign: 'center' }}>{propertyTypeLabel(t)}</span>
                   </button>
                 );
               })}
@@ -730,7 +753,11 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
             <div style={{ marginTop: -8 }}>
               <Field label="Αριθμός Μητρώου Ακινήτου (ΑΜΑ)">
                 <input style={inputStyle} value={ama} onChange={e => setAma(cleanAma(e.target.value))}
-                  inputMode="numeric" placeholder="Μόνο ψηφία, από το myAADE"
+                  // Η ΥΠΟΔΕΙΞΗ ΚΟΒΟΤΑΝ ΣΤΑ 320: ήθελε 234 και το πεδίο δίνει 204.
+                  // Το «μόνο ψηφία» το λέει ήδη το πληκτρολόγιο που ανοίγει
+                  // (inputMode numeric) και ο έλεγχος που απορρίπτει γράμματα· η
+                  // πηγή δεν λέγεται πουθενά αλλού και μένει.
+                  inputMode="numeric" placeholder="Από το myAADE"
                   onFocus={onFocus} onBlur={onBlur} />
               </Field>
               <div style={{ fontFamily: T.font.sans, fontSize: 12, color: amaLengthLooksUnusual(ama) ? 'var(--warning)' : 'var(--text-secondary)', marginTop: 6, lineHeight: 1.6 }}>
@@ -907,7 +934,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
             <div style={{ color: 'var(--accent)' }}><TypeIcon type={propType} /></div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontFamily: T.font.sans, fontSize: 16, fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name.trim() || ABSENT}</div>
-              <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{PROP_TYPE_LABELS[propType]}{address.trim() ? ` · ${address.trim()}` : ''}</div>
+              <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{propertyTypeLabel(propType)}{address.trim() ? ` · ${address.trim()}` : ''}</div>
             </div>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6, height: 28, padding: '0 12px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 500, color: STATUS_COLORS[dbStatus.status_detail] }}>
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: STATUS_COLORS[dbStatus.status_detail] }} />{BY_KEY[statusKey].label}
@@ -916,7 +943,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
 
           <div style={{ border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, overflow: 'hidden' }}>
             {([
-              ['Τύπος', PROP_TYPE_LABELS[propType]],
+              ['Τύπος', propertyTypeLabel(propType)],
               ['Κατάσταση', BY_KEY[statusKey].label],
               airbnb ? ['Βραχυχρόνια μίσθωση', 'Ναι (Airbnb / Booking)'] : null,
               ['Διεύθυνση', address.trim() || ABSENT],

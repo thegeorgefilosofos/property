@@ -120,6 +120,12 @@ const near = (a: number, b: number, eps = 0.5) => Math.abs(a - b) <= eps
   ok('κλειδί οδηγού: land', enfiaTypeBlock('land') === 'land')
   ok('ελληνική ετικέτα: Οικόπεδο', enfiaTypeBlock('Οικόπεδο') === 'land')
   ok('κλειδιά βοηθητικών', enfiaTypeBlock('storage') === 'auxiliary' && enfiaTypeBlock('parking') === 'auxiliary')
+  // Η αυτοτελής αποθήκη δεν είναι βοηθητικός χώρος και δεν παίρνει το κείμενό του.
+  ok('η επαγγελματική αποθήκη ξεχωρίζει', enfiaTypeBlock('warehouse') === 'warehouse')
+  ok('ετικέτα «Επαγγελματική αποθήκη»', enfiaTypeBlock('Επαγγελματική αποθήκη') === 'warehouse')
+  ok('ετικέτα «Αποθήκη πολυκατοικίας»', enfiaTypeBlock('Αποθήκη πολυκατοικίας') === 'auxiliary')
+  ok('καμία αποθήκη δεν βγάζει εκτίμηση',
+    ENFIA_TYPE_BLOCK_NOTE.warehouse !== ENFIA_TYPE_BLOCK_NOTE.auxiliary)
   ok('ετικέτα «Αποθήκη Κτιρίου»', enfiaTypeBlock('Αποθήκη Κτιρίου') === 'auxiliary')
   ok('ετικέτα «Θέση Στάθμευσης»', enfiaTypeBlock('Θέση Στάθμευσης') === 'auxiliary')
   ok('κατοικία δεν μπλοκάρει', enfiaTypeBlock('Κατοικία') === null && enfiaTypeBlock('apartment') === null)

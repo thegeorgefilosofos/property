@@ -280,7 +280,7 @@ export function ShortVsLongCalculator({ today }: { today: string }) {
              μπροστά στον αναγνώστη είναι χειρότερος από κανέναν πίνακα. */}
       <div style={{ marginTop: 26 }}>
         <div className="po-scroll-x" style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 380, tableLayout: 'fixed' }}>
+          <table className="pin-1" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 380, tableLayout: 'fixed' }}>
             <caption style={{ captionSide: 'top', textAlign: 'left', fontSize: 11, fontWeight: 700,
               letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)',
               paddingBottom: 10 }}>
@@ -327,7 +327,7 @@ export function ShortVsLongCalculator({ today }: { today: string }) {
           που χρησιμοποιεί ο υπολογιστής φόρου για το ενεργό κλιμάκιο. */}
       <div style={{ marginTop: 26 }}>
         <div className="po-scroll-x" style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 500, tableLayout: 'fixed' }}>
+          <table className="pin-1" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 500, tableLayout: 'fixed' }}>
             <caption style={{ captionSide: 'top', textAlign: 'left', fontSize: 11, fontWeight: 700,
               letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)',
               paddingBottom: 10 }}>

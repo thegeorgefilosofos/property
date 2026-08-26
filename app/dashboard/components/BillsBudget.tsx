@@ -33,6 +33,7 @@ import { subscriptionsMonthly } from '@/lib/expenses/subscriptions';
 // Ο ΕΝΦΙΑ διαβάζεται από την ίδια απόφαση με την καρτέλα Υπηρεσίες.
 import { enfiaInUse, estimateENFIA } from '@/lib/billing/enfia';
 import { climateLevyRates, isHighSeasonMonth } from '@/lib/billing/greekTax';
+import { isHouseType } from '@/lib/tax/shortTermTax';
 import { useLoad } from '@/app/hooks/useLoad';
 import { useRemembered } from '@/components/useRememberedFlag';
 
@@ -407,8 +408,11 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       const rMode = (propRes?.rental_mode as 'long_term' | 'short_term' | undefined) ?? '';
       setRentalMode(rMode);
       setPropSqm(Number(propRes?.sqm) || null);
-      // «Μονοκατοικία» κατά την έννοια του ΤΑΚΚ: ό,τι δεν είναι διαμέρισμα σε πολυκατοικία.
-      setPropIsHouse(/house|maisonette|villa|μονοκατοικ|μεζονέτ|βίλα/i.test(String(propRes?.prop_type ?? '')));
+      // ΤΟ ΕΡΩΤΗΜΑ ΤΟ ΑΠΑΝΤΑ Η `isHouseType`, ΟΧΙ ΕΚΦΡΑΣΗ ΕΔΩ. Η έκφραση που
+      // ήταν γραμμένη σε αυτή τη γραμμή δεχόταν και τη μεζονέτα, δηλαδή έδινε
+      // στο ίδιο ακίνητο άλλο τέλος από την Τιμολόγηση και από την καρτέλα του
+      // λογιστή. Ο νόμος έχει δύο τιμές και όχι τρεις· ζουν στο lib/tax.
+      setPropIsHouse(isHouseType(propRes?.prop_type as string | null));
       // Οι δύο σχήματα γραμμών, όπως ακριβώς τα ζητά το ερώτημα από πάνω. Ήταν
       // `any`, οπότε ένα λάθος όνομα στήλης (`nightlyRate` αντί για
       // `nightly_rate`) θα έδινε αθόρυβα μηδέν έσοδα αντί για σφάλμα.

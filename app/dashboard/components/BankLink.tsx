@@ -81,9 +81,16 @@ function BankLinkModal({ open, onClose }: { open: boolean; onClose: () => void }
 /**
  * Το πλακίδιο της σάρωσης: τρίτη επιλογή, ίδια γεωμετρία με τα δύο διπλανά.
  *
- * Το ύψος και η ακτίνα ΔΕΝ γράφονται εδώ ελεύθερα — έρχονται από τον καλούντα,
+ * Το ύψος και η ακτίνα ΔΕΝ γράφονται εδώ ελεύθερα, έρχονται από τον καλούντα,
  * ώστε τα τρία πλακίδια να είναι πάντα ίσα. Ένα τρίτο πλακίδιο δύο
  * εικονοστοιχεία ψηλότερο διαβάζεται ως λάθος, όχι ως έμφαση.
+ *
+ * ΟΣΟ ΕΤΟΙΜΑΖΕΤΑΙ, ΤΟ ΠΕΡΙΓΡΑΜΜΑ ΕΙΝΑΙ ΔΙΑΚΕΚΟΜΜΕΝΟ. Πριν, τα τρία πλακίδια
+ * ήταν οπτικά πανομοιότυπα και το μόνο που ξεχώριζε το τρίτο ήταν μια σειρά
+ * έντεκα εικονοστοιχείων από κάτω: ο χρήστης το πατούσε περιμένοντας να
+ * τραβήξει κινήσεις. Το διακεκομμένο περίγραμμα το λέει πριν το πάτημα, χωρίς
+ * σήμα που να επαναλαμβάνει τη λέξη και χωρίς χρώμα που να σημαίνει σφάλμα.
+ * Ίδιο πάχος, ίδια γεωμετρία: μόνο το στυλ της γραμμής αλλάζει.
  */
 export function BankLinkTile({ minHeight = 172 }: { minHeight?: number }) {
   const [open, setOpen] = useState(false);
@@ -92,7 +99,7 @@ export function BankLinkTile({ minHeight = 172 }: { minHeight?: number }) {
   return (<>
     <div role="button" tabIndex={0} onClick={() => setOpen(true)} className="pick-tile"
       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(true); } }}
-      style={{ border: '1px solid var(--border-default)', borderRadius: T.radius.card, minHeight, cursor: 'pointer', background: 'var(--bg-elevated)', transition: 'background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s, opacity 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)', padding: '0 12px', textAlign: 'center' }}
+      style={{ border: `1px ${state === 'open' ? 'solid' : 'dashed'} var(--border-default)`, borderRadius: T.radius.card, minHeight, cursor: 'pointer', background: 'var(--bg-elevated)', transition: 'background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s, opacity 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)', padding: '0 12px', textAlign: 'center' }}
       onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'var(--accent-dim)'; }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.background = 'var(--bg-elevated)'; }}>
       <span style={{ marginBottom: 12, display: 'inline-flex' }}><BankGlyph /></span>

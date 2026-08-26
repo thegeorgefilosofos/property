@@ -3,6 +3,7 @@
 import { BrandLogo } from '@/components/BrandMark'
 import { useNavHistory } from './components/useNavHistory';
 import { heatingLabel } from '@/lib/property/heating';
+import { propertyTypeLabel } from '@/lib/property/types';
 import { useEffect, useState, useCallback, useMemo, useRef, useSyncExternalStore } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as propertyStore from '@/lib/data/properties';
@@ -160,12 +161,6 @@ const STATUS_COLORS: Record<PropertyStatus,string> = {
   renovation:statusShade(60),
   for_sale:  statusShade(50),
   disputed:  statusShade(40),
-};
-const PROP_TYPE_LABELS: Record<string,string> = {
-  apartment:'Διαμέρισμα', house:'Μονοκατοικία', studio:'Στούντιο',
-  maisonette:'Μεζονέτα', office:'Γραφείο', shop:'Κατάστημα',
-  warehouse:'Αποθήκη', land:'Οικόπεδο', parking:'Parking',
-  storage:'Αποθήκη κτιρίου', villa:'Βίλα', other:'Άλλο',
 };
 
 
@@ -969,7 +964,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { pro
         </div>
         <button onClick={()=>printPropertyStatement({
           propName: prop.name, address: prop.address||undefined, postalCode: prop.postal_code||undefined,
-          propType: PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type||'Ακίνητο',
+          propType: propertyTypeLabel(prop.prop_type)||'Ακίνητο',
           status: statusLabelOf(prop), year, propValue: propValue||undefined,
           objValue: prop.obj_value!=null?Number(prop.obj_value):undefined, enfia: prop.enfia!=null?Number(prop.enfia):undefined,
           sqm: prop.sqm||undefined, bedrooms: prop.bedrooms!=null?prop.bedrooms:undefined,
@@ -1055,7 +1050,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { pro
         <div className="card">
           <div className="section-label"><span className="section-dot"/> Στοιχεία ακινήτου</div>
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,230px),1fr))',columnGap:28}}>
-            {([['Τύπος',PROP_TYPE_LABELS[prop.prop_type||'']||prop.prop_type],['Εμβαδόν',prop.sqm?`${prop.sqm} τ.μ.`:null],['Υπνοδωμάτια',prop.bedrooms?String(prop.bedrooms):null],['Διεύθυνση',prop.address],['ΑΤΑΚ',prop.atak],['Έτος κατασκευής',prop.year_built?String(prop.year_built):null],['Όροφος',prop.floor!=null?String(prop.floor):null],['Θέρμανση',heatingLabel(prop.heating)||null],['Ενεργειακή κλάση',prop.pea_class],['Θέσεις στάθμευσης',prop.parking_spaces?String(prop.parking_spaces):null],['Αποθήκη',prop.storage_sqm?`${prop.storage_sqm} τ.μ.`:null],['Αντικειμενική αξία',prop.obj_value?fmtEur(prop.obj_value):null],['Εκτιμώμενος ΕΝΦΙΑ',prop.enfia?fmtEur(prop.enfia):null]] as [string,string|null][]).filter(([,v])=>v).map(([k,v]) => (
+            {([['Τύπος',propertyTypeLabel(prop.prop_type)],['Εμβαδόν',prop.sqm?`${prop.sqm} τ.μ.`:null],['Υπνοδωμάτια',prop.bedrooms?String(prop.bedrooms):null],['Διεύθυνση',prop.address],['ΑΤΑΚ',prop.atak],['Έτος κατασκευής',prop.year_built?String(prop.year_built):null],['Όροφος',prop.floor!=null?String(prop.floor):null],['Θέρμανση',heatingLabel(prop.heating)||null],['Ενεργειακή κλάση',prop.pea_class],['Θέσεις στάθμευσης',prop.parking_spaces?String(prop.parking_spaces):null],['Αποθήκη',prop.storage_sqm?`${prop.storage_sqm} τ.μ.`:null],['Αντικειμενική αξία',prop.obj_value?fmtEur(prop.obj_value):null],['Εκτιμώμενος ΕΝΦΙΑ',prop.enfia?fmtEur(prop.enfia):null]] as [string,string|null][]).filter(([,v])=>v).map(([k,v]) => (
               <div key={k} title={k==='ΑΤΑΚ'?'Αριθμός Ταυτότητας Ακινήτου, από το έντυπο Ε9':k==='Εκτιμώμενος ΕΝΦΙΑ'?'Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων: ο ετήσιος φόρος περιουσίας':undefined}
                 style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:14,padding:'8px 0',borderBottom:'1px solid var(--border-subtle)'}}>
                 <span style={{fontFamily:T.font.sans,color:'var(--text-secondary)',fontSize:13,letterSpacing:'0.25px',whiteSpace:'nowrap'}}>{k}</span>
@@ -1858,7 +1853,7 @@ export default function Dashboard() {
     })),
     ...properties.map(p => ({
       id: `prop-${p.id}`, label: p.name, hint: 'Ακίνητο', group: 'Ακίνητα',
-      keywords: `${p.address||''} ${PROP_TYPE_LABELS[p.prop_type||'']||''}`,
+      keywords: `${p.address||''} ${propertyTypeLabel(p.prop_type)}`,
       // Η καρτέλα ΔΕΝ μηδενίζεται στην αλλαγή ακινήτου — δες switchProperty.
       action: () => switchProperty(p),
     })),
@@ -2121,9 +2116,9 @@ export default function Dashboard() {
                     κλάση κόβει μόνο κάτω από τα 640· σε ταμπλέτα και οθόνη
                     υπολογιστή η γραμμή μένει ολόκληρη. Ο τίτλος του στοιχείου
                     δίνει το πλήρες κείμενο σε όποιον το θέλει. */}
-                <div className="app-topbar-sub" title={[PROP_TYPE_LABELS[selected.prop_type||'']||selected.prop_type,selected.sqm?`${selected.sqm} τ.μ.`:null,selected.address,selected.postal_code?`ΤΚ ${selected.postal_code}`:null].filter(Boolean).join(' · ')}
+                <div className="app-topbar-sub" title={[propertyTypeLabel(selected.prop_type),selected.sqm?`${selected.sqm} τ.μ.`:null,selected.address,selected.postal_code?`ΤΚ ${selected.postal_code}`:null].filter(Boolean).join(' · ')}
                   style={{fontFamily: T.font.sans,fontSize:12,color:'var(--text-secondary)',marginTop:2,letterSpacing:'0.4px'}}>
-                  {[PROP_TYPE_LABELS[selected.prop_type||'']||selected.prop_type,selected.sqm?`${selected.sqm} τ.μ.`:null,selected.address,selected.postal_code?`ΤΚ ${selected.postal_code}`:null].filter(Boolean).join(' · ')}
+                  {[propertyTypeLabel(selected.prop_type),selected.sqm?`${selected.sqm} τ.μ.`:null,selected.address,selected.postal_code?`ΤΚ ${selected.postal_code}`:null].filter(Boolean).join(' · ')}
                 </div>
               </div>
               {/* Η «Αντιγραφή απογραφής» έφυγε από ΕΔΩ. Ήταν κουμπί στην καθολική
@@ -2412,13 +2407,13 @@ export default function Dashboard() {
           propertyId={selected.id} userId={user.id}
           propContext={{
             name: selected.name,
-            propType: PROP_TYPE_LABELS[selected.prop_type||'']||selected.prop_type||undefined,
+            propType: propertyTypeLabel(selected.prop_type)||undefined,
             address: selected.address||undefined, value: selected.value||undefined,
             sqm: selected.sqm||undefined, status: statusLabelOf(selected),
             targetRent: selected.target_rent||undefined,
           }}
           allProperties={properties.map(p=>({
-            name: p.name, propType: PROP_TYPE_LABELS[p.prop_type||'']||p.prop_type||undefined,
+            name: p.name, propType: propertyTypeLabel(p.prop_type)||undefined,
             value: p.value||undefined, targetRent: p.target_rent||undefined,
             sqm: p.sqm||undefined, status: statusLabelOf(p),
           }))}

@@ -294,7 +294,7 @@ export function RentTaxCalculator({ today }: { today: string }) {
           με τις άλλες ετικέτες αυτής της κάρτας και σωστή σημασιολογία. */}
       <div style={{ marginTop: 26 }}>
         <div className="po-scroll-x" style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 300 }}>
+          <table className="pin-1" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 300 }}>
             <caption style={{ captionSide: 'top', textAlign: 'left', fontSize: 11, fontWeight: 700,
               letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)',
               paddingBottom: 10 }}>

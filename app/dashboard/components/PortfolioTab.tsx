@@ -20,6 +20,7 @@ import { CustomSelect, BulkActionBar } from './UIComponents';
 import { T, PageTitle, KPIGrid, KpiValue, Badge, Btn, ExportButton, EmptyState, InfoBanner, SecHdr, SelectBox, SkeletonKPIs, Skeleton, fe, fn, fp, fixedCols, ABSENT_SHORT, Modal, TT } from '@/components/Theme';
 import { resolveRent } from '@/lib/billing/propertyFacts';
 import { statusLabel, type StatusRow } from '@/lib/property/status';
+import { propertyTypeLabel } from '@/lib/property/types';
 import { declarableGross, declarableGrossOrTotal } from '@/lib/clients/stayAmounts';
 import { yearOccupancy } from '@/lib/clients/reports';
 import { athensToday, daysUntil } from '@/lib/core/time';
@@ -344,7 +345,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
         : mode === 'short' ? Math.round(revenue * (365 / daysElapsed)) : 0;
       const annualExpenses = Math.round(expenses * (12 / monthsElapsed));
       return {
-        id: p.id, name: p.name, typeLabel: PROP_LABEL[p.prop_type || ''] || p.prop_type || 'Ακίνητο', mode, statusLabel: declaredStatus,
+        id: p.id, name: p.name, typeLabel: propertyTypeLabel(p.prop_type) || 'Ακίνητο', mode, statusLabel: declaredStatus,
         revenue, expenses, net: revenue - expenses, revenueEstimated, staysUnresolved, rentExpected,
         occupancy, overbooked, nights, availableDays: occ.availableDays, pending: unpaid + chkAtt, owed,
         value: p.value || 0, annualRevenue, annualExpenses,
@@ -927,7 +928,3 @@ const revenueBasis = (r: Row): string =>
     : r.revenueEstimated ? 'εκτίμηση (ενοίκιο × μήνες)'
     : 'εισπράξεις';
 
-const PROP_LABEL: Record<string, string> = {
-  apartment: 'Διαμέρισμα', house: 'Μονοκατοικία', maisonette: 'Μεζονέτα', studio: 'Στούντιο',
-  shop: 'Κατάστημα', office: 'Γραφείο', warehouse: 'Αποθήκη', land: 'Οικόπεδο', parking: 'Θέση στάθμευσης', other: 'Άλλο',
-};

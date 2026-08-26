@@ -67,6 +67,7 @@ import { MSG_TEMPLATES, buildMessage, whatsappLink, viberLink as viberTextLink }
 import { revenueByChannel, revenueByMonth, yearOccupancy, totals } from '@/lib/clients/reports';
 import { navLabel } from '@/lib/nav/labels';
 import { climateLevyRates, isHighSeasonMonth } from '@/lib/billing/greekTax';
+import { isHouseType } from '@/lib/tax/shortTermTax';
 import { parseICal, guessChannel, icalToStayDrafts, stayKey, type ICalEvent } from '@/lib/clients/ical';
 import { athensToday, isoYear } from '@/lib/core/time';
 import { MONTHS_NOM } from '@/lib/core/months';
@@ -607,7 +608,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
     const nights = parseInt(f.nights, 10) || stayNights(f.check_in, f.check_out);
     if (!nights || !f.check_in) return 0;
     const p = props.find(x => x.id === f.property_id);
-    const isHouse = ['house', 'villa'].includes(String(p?.prop_type || '').toLowerCase());
+    const isHouse = isHouseType(p?.prop_type);
     const r = climateLevyRates(p?.sqm ?? null, isHouse);
     // Ανά νύχτα, με τον μήνα της κάθε νύχτας (μια διαμονή μπορεί να αλλάζει περίοδο).
     let sum = 0;

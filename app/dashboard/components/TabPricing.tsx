@@ -36,7 +36,7 @@ import * as expenses from '@/lib/data/expenses'
 import * as calendar from '@/lib/data/calendar'
 import { T, PageTitle, KPIGrid, InfoBanner, Btn, ExportButton, SecHdr, EmptyState, Skeleton, SkeletonKPIs, fe, fd, fp, fn, pressable, formGrid , fieldRow} from '@/components/Theme';
 import { navLabel } from '@/lib/nav/labels';
-import { shortTermYearSummary } from '@/lib/tax/shortTermTax';
+import { shortTermYearSummary, isHouseType } from '@/lib/tax/shortTermTax';
 import { shortTermCashflow } from '@/lib/tax/shortTermCashflow';
 import { mergeLedger, type LedgerBill, type LedgerExpense } from '@/lib/expenses/ledger';
 import { notify, notifyOk, notifyError } from '@/components/Toast';
@@ -105,7 +105,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
   // κάθε ακίνητο άνω των 80 τ.μ. Χωρίς αυτό, η ανάλυση τιμής θα ήταν λάθος.
   const loadPropType = useCallback(async () => {
     const data = await properties.one<{ prop_type: string }>(supabase, propertyId, 'prop_type', userId);
-    setIsHouse(['house', 'villa'].includes(String(data?.prop_type || '').toLowerCase()));
+    setIsHouse(isHouseType(data?.prop_type));
   }, [propertyId]);
 
   const loadSettings = useCallback(async () => {

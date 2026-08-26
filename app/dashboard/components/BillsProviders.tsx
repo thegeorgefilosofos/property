@@ -474,7 +474,10 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
             <div>
               <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Διαθέσιμα Προγράμματα {provData?.label}</div>
               <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, minWidth: 500 }}>
+                {/* Η πρώτη στήλη μένει όσο ο πίνακας κυλά: ο λόγος είναι γραμμένος
+                    στην `.pin-1` του globals.css. Χωρίς αυτό, μόλις ο χρήστης
+                    σύρει για να δει τιμή, το όνομα του προγράμματος φεύγει. */}
+                <table className="pin-1" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, minWidth: 500 }}>
                   <thead>
                     <tr>{['Πρόγραμμα','Ταχύτητα','Σταθερό Τηλέφωνο','Δέσμευση','Μηνιαίο','Ετήσιο'].map((h, i) => (
                       <th key={i} style={{ fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-secondary)', padding: '6px 10px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 600, fontFamily: T.font.sans, background: 'var(--bg-elevated)', whiteSpace: 'nowrap' as const }}>{h}</th>
@@ -486,7 +489,9 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
                       return (
                         <tr key={plan.id}
                           onClick={() => upd({ internetPlanId: plan.id, internetPlan: plan.name, internetSpeed: plan.speed, internetPrice: String(plan.price), internetPhone: plan.hasPhone })}
-                          style={{ cursor: 'pointer', background: isCur ? 'var(--accent-soft)' : 'transparent', transition: 'background 0.15s' }}>
+                          style={{ cursor: 'pointer', background: isCur ? 'var(--accent-soft)' : 'transparent', transition: 'background 0.15s',
+                            // Το καρφωμένο κελί διαβάζει από εδώ το φόντο της γραμμής του.
+                            ['--row-bg' as string]: isCur ? 'var(--accent-soft)' : 'var(--bg-surface)' } as React.CSSProperties}>
                           <td style={{ padding: '7px 10px', fontWeight: isCur ? 700 : 400, color: isCur ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.sans }}>{plan.name}{isCur ? ' ✓' : ''}</td>
                           <td style={{ padding: '7px 10px', color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 11 }}>{plan.speed}</td>
                           <td style={{ padding: '7px 10px', color: plan.hasPhone ? 'var(--text-primary)' : 'var(--text-tertiary)', fontWeight: 700, textAlign: 'center' as const }}>{plan.hasPhone ? 'Ναι' : 'Όχι'}</td>
