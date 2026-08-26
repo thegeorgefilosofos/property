@@ -700,7 +700,18 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   // αλλάζει η περιοχή· ο χρήστης μπορεί πάντα να διορθώσει).
   const stRef = stRefFor(region);
   // Prefill ADR κουμπωμένο στο μέγεθος & τύπο του ακινήτου (ρεαλιστικό ανά κατηγορία).
-  useEffect(() => { if (loading) return; setStOcc(String(stRef.occupancy)); setStAdr(String(adrReference(stRef.adr, pSqm, pType))); }, [region, loading, pSqm, pType]); // eslint-disable-line react-hooks/exhaustive-deps
+  // ΚΑΤΑ ΤΗΝ ΑΠΟΔΟΣΗ, ΟΧΙ ΣΕ EFFECT. Ηταν effect: με αλλαγή περιοχής, τα δύο
+  // πεδία της βραχυχρόνιας ζωγραφίζονταν πρώτα με τα νούμερα της ΠΡΟΗΓΟΥΜΕΝΗΣ
+  // περιοχής και μετά με τα σωστά. Σε οθόνη που συγκρίνει αποδόσεις, εκείνο το
+  // καρέ είναι λάθος απάντηση. Η React το ονομάζει «adjusting state when a prop
+  // changes» και το συνιστά ρητά για ακριβώς αυτή την περίπτωση.
+  const stKey = `${region}|${pSqm}|${pType}`;
+  const [stSeen, setStSeen] = useState<string | null>(null);
+  if (!loading && stKey !== stSeen) {
+    setStSeen(stKey);
+    setStOcc(String(stRef.occupancy));
+    setStAdr(String(adrReference(stRef.adr, pSqm, pType)));
+  }
 
   const nVal = parseFloat(value) || 0;
   const nRent = parseFloat(rent) || 0;

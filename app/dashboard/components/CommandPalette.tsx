@@ -65,7 +65,17 @@ export function CommandPalette({ open, onClose, items }: { open: boolean; onClos
     return { rows: [...recent, ...suggested], groups: gs };
   }, [q, items, recentIds]);
 
-  useEffect(() => { if (open) { setQ(''); setActive(0); setRecentIds(loadRecent()); setTimeout(() => inputRef.current?.focus(), 20); } }, [open]);
+  // ΤΟ ΑΝΟΙΓΜΑ ΚΑΘΑΡΙΖΕΙ ΤΗΝ ΠΑΛΕΤΑ ΚΑΤΑ ΤΗΝ ΑΠΟΔΟΣΗ. Ηταν effect: η παλέτα
+  // ζωγραφιζόταν ΜΙΑ φορά με το ερώτημα της προηγούμενης φοράς και μετά άδεια.
+  // Στα 20ms του focus δεν φαίνεται πάντα· φαίνεται σε αργή συσκευή, που είναι
+  // ακριβώς η συσκευή όπου το γρήγορο άνοιγμα μετράει.
+  const [openSeen, setOpenSeen] = useState(open);
+  if (open !== openSeen) {
+    setOpenSeen(open);
+    if (open) { setQ(''); setActive(0); setRecentIds(loadRecent()); }
+  }
+  // Το focus είναι παρενέργεια στο DOM, όχι κατάσταση: μένει σε effect.
+  useEffect(() => { if (open) { const t = setTimeout(() => inputRef.current?.focus(), 20); return () => clearTimeout(t); } }, [open]);
   // Ο δείκτης της επιλεγμένης γραμμής μηδενιζόταν με effect: σε κάθε γράμμα που
   // πληκτρολογεί ο χρήστης, η παλέτα αποδιδόταν ΔΥΟ φορές — μία με τα νέα
   // αποτελέσματα και τον παλιό δείκτη (που μπορεί να δείχνει σε γραμμή που δεν

@@ -696,6 +696,9 @@ export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate
  */
 export type InsuranceScope = 'insurance' | 'subscriptions';
 
+// Σταθερή αναφορά για «καμία προσφορά».
+const NO_QUOTES: LiveQuote[] = [];
+
 export default function BillsInsurance({ propertyId, userId = '', only, legalForm = 'individual' }: {
   propertyId: string; userId?: string; only?: InsuranceScope; legalForm?: LegalForm;
 }) {
@@ -731,8 +734,11 @@ export default function BillsInsurance({ propertyId, userId = '', only, legalFor
   }>({});
   const [calendarSynced, setCalendarSynced] = useState(false);
   // ── Live quotes state ─────────────────────────────────────────────────────
-  const [liveQuotes,      setLiveQuotes]      = useState<LiveQuote[]>([]);
-  const [quotesLoading,   setQuotesLoading]   = useState(false);
+  // ΟΙ ΠΡΟΣΦΟΡΕΣ ΚΟΥΒΑΛΟΥΝ ΤΑ ΣΤΟΙΧΕΙΑ ΑΠΟ ΤΑ ΟΠΟΙΑ ΒΓΗΚΑΝ. Αλλιώς, μεταξύ
+  // πληκτρολόγησης και υπολογισμού, ο πίνακας δείχνει ασφάλιστρα που
+  // υπολογίστηκαν για ΑΛΛΑ τετραγωνικά, σε οθόνη που ζητά απόφαση αλλαγής
+  // παρόχου. Με το κλειδί, ό,τι δεν ταιριάζει δεν υπάρχει.
+  const [quoted, setQuoted] = useState<{ key: string; rows: LiveQuote[] } | null>(null);
   const [quotesFilter,    setQuotesFilter]    = useState<QuoteFilter>('all');
   const [showQuotes,      setShowQuotes]      = useState(false);
   const quotesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -870,15 +876,23 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
   const effectiveCity   = insCity   || crossProperty.city   || '';
 
   // ── Live quotes computation (debounced) ──────────────────────────────────
+  const quotesKey = [effectiveSqm, insPropValue, insContentValue, effectiveFloor, effectiveAge, insCustomPrice, insPlanId].join('|');
+  const liveQuotes = quoted?.key === quotesKey ? quoted.rows : NO_QUOTES;
+  const quotesLoading = quoted?.key !== quotesKey && !!(parseFloat(effectiveSqm) && parseFloat(insPropValue));
+
   useEffect(() => {
     const sqm    = parseFloat(effectiveSqm)   || 0;
     const pVal   = parseFloat(insPropValue)   || 0;
     const cVal   = parseFloat(insContentValue)|| 0;
 
-    if (!sqm || !pVal) { setLiveQuotes([]); return; }
+    // ΧΩΡΙΣ ΤΕΤΡΑΓΩΝΙΚΑ ΚΑΙ ΑΞΙΑ ΔΕΝ ΥΠΑΡΧΕΙ ΠΡΟΣΦΟΡΑ, ΔΕΝ ΣΒΗΝΕΤΑΙ ΠΡΟΣΦΟΡΑ.
+    // Ηταν `setLiveQuotes([])` σύγχρονα μέσα στο effect. Πλέον οι προσφορές
+    // κρατούν το κλειδί των στοιχείων από τα οποία βγήκαν και διαβάζονται μόνο
+    // όταν ταιριάζει: κανείς δεν βλέπει ποτέ τιμή ασφάλισης που υπολογίστηκε
+    // για άλλα τετραγωνικά.
+    if (!sqm || !pVal) return;
 
     if (quotesTimer.current) clearTimeout(quotesTimer.current);
-    setQuotesLoading(true);
     // Μικρή καθυστέρηση επειδή ο χρήστης πληκτρολογεί, ΟΧΙ για να μιμηθεί
     // κλήση σε διακομιστή. Ο παλιός κώδικας περίμενε 800ms με τη σημείωση
     // «Simulate API latency»: έδειχνε στον χρήστη ότι κάτι ρωτιέται κάπου, ενώ
@@ -887,8 +901,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
       const quotes = computeLiveQuotes(sqm, pVal, cVal, effectiveFloor, effectiveAge);
       const currentMonthly = parseFloat(insCustomPrice) || (insCompany?.plans ?? []).find(p => p.id === insPlanId)?.monthly || 0;
       const withSavings = quotes.map(q => ({ ...q, savings: currentMonthly > 0 ? currentMonthly - q.monthlyEstimate : undefined }));
-      setLiveQuotes(withSavings);
-      setQuotesLoading(false);
+      setQuoted({ key: quotesKey, rows: withSavings });
     }, 250);
 
     return () => { if (quotesTimer.current) clearTimeout(quotesTimer.current); };
@@ -897,7 +910,8 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
   // εταιρείας και ίδιο αναγνωριστικό προγράμματος, ο υπολογισμός έμενε στην
   // παλιά — και η στήλη «εξοικονόμηση» έβγαινε από λάθος ασφάλιστρο, δηλαδή
   // λάθος νούμερο σε οθόνη που ζητά απόφαση αλλαγής παρόχου.
-  }, [effectiveSqm, insPropValue, insContentValue, effectiveFloor, effectiveAge, insCustomPrice, insPlanId, insCompany?.plans]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveSqm, insPropValue, insContentValue, effectiveFloor, effectiveAge, insCustomPrice, insPlanId, insCompany?.plans, quotesKey]);
 
   const insPlan    = (insCompany?.plans ?? []).find(p => p.id === insPlanId);
   const insCost    = parseFloat(insCustomPrice) || insPlan?.monthly || 0;

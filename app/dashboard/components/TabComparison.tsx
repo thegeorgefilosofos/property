@@ -20,6 +20,7 @@ import { mergeLedger, ledgerTotal, recurringMonthly, monthlyAverage } from '@/li
 import { loanInstalment } from '@/lib/loans/shape';
 import { athensToday } from '@/lib/core/time';
 import type { ExpensesRow, BillsRow, TenantsRow } from '@/lib/supabase/tables';
+import { useLoad } from '@/app/hooks/useLoad';
 
 interface Property {
   id: string; name: string; prop_type: string | null; address: string | null;
@@ -94,8 +95,16 @@ const LABEL_COL = 200;
 
 export default function TabComparison({ properties, userId }: Props) {
   const supabase = createClient();
+  // Ο ΔΕΙΚΤΗΣ ΦΟΡΤΩΣΗΣ ΒΓΑΙΝΕΙ ΑΠΟ ΤΟ ΠΟΙΩΝ ΑΚΙΝΗΤΩΝ ΕΙΝΑΙ ΤΑ ΣΥΓΚΕΝΤΡΩΤΙΚΑ.
+  // Ηταν `setLoading(true)` στην πρώτη γραμμή της φόρτωσης, δηλαδή σύγχρονη
+  // γραφή μέσα σε effect. Και έκρυβε δεύτερο πρόβλημα: με αλλαγή ομάδας
+  // ακινήτων, ο πίνακας σύγκρισης έδειχνε για ένα καρέ τα ποσά της
+  // ΠΡΟΗΓΟΥΜΕΝΗΣ ομάδας κάτω από τα νέα ονόματα.
   const [agg, setAgg] = useState<Record<string, Agg>>({});
-  const [loading, setLoading] = useState(true);
+  const aggKey = properties.map(p => p.id).join(',');
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  // Χωρίς ακίνητα δεν φορτώνει τίποτα: η απάντηση είναι ήδη εδώ, είναι το κενό.
+  const loading = properties.length > 0 && loadedFor !== aggKey;
   // Ποια ομάδα κοιτάζει ο χρήστης. `null` σημαίνει «η μεγαλύτερη», που είναι και
   // η πιο χρήσιμη προεπιλογή: εκεί έχει τα περισσότερα να συγκρίνει.
   const [groupKey, setGroupKey] = useState<string | null>(null);
@@ -116,9 +125,8 @@ export default function TabComparison({ properties, userId }: Props) {
   // Μέσα στη `load` λέει το ίδιο πράγμα μία φορά, στο σημείο που ξέρει πότε
   // αρχίζει και πότε τελειώνει.
   const load = useCallback(async () => {
-    setLoading(true);
     const ids = properties.map(p => p.id);
-    if (!ids.length) { setLoading(false); return; }
+    if (!ids.length) return;
     const year = new Date().getFullYear();
     // Τα πεδία είναι αυτά που ζητά ο κοινός πυρήνας (lib/expenses/ledger.ts): ο
     // λογαριασμός δίνει πρόγραμμα και προθεσμία, η δαπάνη το γεγονός και το ποσό.
@@ -210,10 +218,11 @@ export default function TabComparison({ properties, userId }: Props) {
       if (m[pid]) m[pid].loanMonthly += loanInstalment(l);
     }
     setAgg(m);
-    setLoading(false);
-  }, [properties, userId]);
+    setLoadedFor(aggKey);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [properties, userId, aggKey]);
 
-  useEffect(() => { load(); }, [load]);
+  useLoad(load);
 
   // ── ΦΟΡΟΣ ΣΕ ΕΠΙΠΕΔΟ ΦΟΡΟΛΟΓΟΥΜΕΝΟΥ ─────────────────────────────────────────
   // Η κλίμακα είναι προοδευτική στο ΣΥΝΟΛΟ των ενοικίων (Ε1). Άρα η ενοποίηση

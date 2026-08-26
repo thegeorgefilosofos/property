@@ -25,9 +25,15 @@ import type { ReportBranding } from '@/lib/reportBranding';
 import { MONTHS_NOM } from '@/lib/core/months';
 import { failed } from '@/lib/core/dbError';
 import { monthEndIso } from '@/lib/core/time';
+import { useRemembered } from '@/components/useRememberedFlag';
 
 interface Prop { id: string; name: string; address: string | null }
 const LS = (pid: string) => `po_owner_split_${pid}`;
+
+/** Η αποθηκευμένη διάταξη, όπως γράφεται στον περιηγητή. */
+type SavedSplit = { rows: Row[]; feePct: string; managerName: string };
+// Σταθερή αναφορά: νέο αντικείμενο σε κάθε απόδοση θα έβαζε τη React σε βρόχο.
+const EMPTY_SPLIT: SavedSplit = { rows: [{ name: '', pct: '', afm: '' }], feePct: '', managerName: '' };
 
 interface Row { name: string; pct: string; afm: string }
 
@@ -39,11 +45,17 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
   const [propId, setPropId] = useState('');
   const [year, setYear] = useState(nowYear);
   const [month, setMonth] = useState(0);
-  const [rows, setRows] = useState<Row[]>([{ name: '', pct: '', afm: '' }]);
   const [hoverRow, setHoverRow] = useState<number | null>(null);
-  const [feePct, setFeePct] = useState('');
-  const [managerName, setManagerName] = useState('');
-  const [figures, setFigures] = useState<{ gross: number; expenses: number } | null>(null);
+  // ΤΑ ΠΟΣΑ ΦΕΡΟΥΝ ΤΟ ΚΛΕΙΔΙ ΤΟΥΣ, ΩΣΤΕ ΝΑ ΜΗ ΔΙΑΒΑΖΟΝΤΑΙ ΠΟΤΕ ΚΑΤΩ ΑΠΟ ΛΑΘΟΣ
+  // ΟΝΟΜΑ. Η σημαία ακύρωσης παρακάτω εξηγεί γιατί: το αργό ερώτημα του
+  // προηγούμενου ακινήτου απαντούσε τελευταίο και έγραφε πάνω από το γρήγορο
+  // του τρέχοντος. Η σημαία λύνει την ΑΠΑΝΤΗΣΗ που έρχεται καθυστερημένα· το
+  // κλειδί λύνει και την ΕΜΦΑΝΙΣΗ: όσο τα ποσά δεν είναι αυτού του ακινήτου,
+  // αυτής της χρονιάς και αυτού του μήνα, δεν υπάρχουν. Μαζί έφυγε και το
+  // `setFigures(null)` που ήταν σύγχρονη γραφή μέσα σε effect.
+  const [loadedFigures, setFigures] = useState<{ key: string; gross: number; expenses: number } | null>(null);
+  const figuresKey = open && propId ? `${propId}|${year}|${month}` : '';
+  const figures = loadedFigures && loadedFigures.key === figuresKey ? loadedFigures : null;
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -64,15 +76,31 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
     return () => { alive = false; };
   }, [open, userId, supabase]);
 
-  // Φόρτωσε αποθηκευμένη διάταξη ιδιοκτητών ανά ακίνητο (localStorage).
-  useEffect(() => {
-    if (!propId) return;
-    try {
-      const saved = JSON.parse(localStorage.getItem(LS(propId)) || 'null');
-      if (saved?.rows?.length) { setRows(saved.rows); setFeePct(saved.feePct || ''); setManagerName(saved.managerName || ''); }
-      else { setRows([{ name: '', pct: '', afm: '' }]); setFeePct(''); setManagerName(''); }
-    } catch { /* ignore */ }
-  }, [propId]);
+  // Η ΑΠΟΘΗΚΕΥΜΕΝΗ ΔΙΑΤΑΞΗ ΙΔΙΟΚΤΗΤΩΝ ΖΕΙ ΣΤΟΝ ΠΕΡΙΗΓΗΤΗ, ΟΧΙ ΣΤΗ REACT. Ηταν
+  // effect που έγραφε τρεις καταστάσεις με την αλλαγή ακινήτου: μία περιττή
+  // απόδοση· για ένα καρέ η φόρμα έδειχνε τους ΙΔΙΟΚΤΗΤΕΣ ΤΟΥ ΠΡΟΗΓΟΥΜΕΝΟΥ
+  // ακινήτου κάτω από το όνομα του νέου. Σε οθόνη που βγάζει επίσημο χαρτί με
+  // ποσοστά συνιδιοκτησίας, εκείνο το καρέ δεν είναι λεπτομέρεια.
+  //
+  // Διαβάζεται πλέον κατά την απόδοση, με μνημονευμένο στιγμιότυπο. Οι τοπικές
+  // αλλαγές του χρήστη ζουν σε ξεχωριστή κατάσταση από πάνω: όσο δεν έχει
+  // αγγίξει τίποτα για ΑΥΤΟ το ακίνητο, βλέπει ό,τι είναι γραμμένο.
+  const [stored, setStored] = useRemembered<SavedSplit>(
+    LS(propId),
+    raw => { try { const v = raw ? JSON.parse(raw) : null; return v?.rows?.length ? v as SavedSplit : EMPTY_SPLIT } catch { return EMPTY_SPLIT } },
+    v => JSON.stringify(v),
+    EMPTY_SPLIT,
+  );
+  const [edited, setEdited] = useState<{ key: string; value: SavedSplit } | null>(null);
+  const split = edited && edited.key === propId ? edited.value : stored;
+  const rows = split.rows;
+  const feePct = split.feePct;
+  const managerName = split.managerName;
+  const patch = (p: Partial<SavedSplit>) => setEdited({ key: propId, value: { ...split, ...p } });
+  const setRows = (next: Row[] | ((prev: Row[]) => Row[])) =>
+    patch({ rows: typeof next === 'function' ? next(rows) : next });
+  const setFeePct = (v: string) => patch({ feePct: v });
+  const setManagerName = (v: string) => patch({ managerName: v });
 
   // Άντληση εσόδων/εξόδων περιόδου για το ακίνητο.
   //
@@ -90,7 +118,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
   // Το πρώτο effect του ίδιου αρχείου έχει ήδη `let alive = true`· αυτό εδώ,
   // που είναι το μόνο που παράγει ΠΟΣΑ, δεν το είχε πάρει ποτέ.
   useEffect(() => {
-    if (!open || !propId) { setFigures(null); return; }
+    if (!figuresKey) return;
     let alive = true;
     (async () => {
       const from = `${year}-${String(month || 1).padStart(2, '0')}-01`;
@@ -122,12 +150,12 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
       const sumAmount = (rows: { amount?: number | string | null }[] | null) =>
         (rows || []).reduce((s, x) => s + num(x.amount ?? 0), 0);
       if (!alive) return;
-      setFigures({ gross: sumAmount(r), expenses: sumAmount(e as { amount: number | null }[]) });
+      setFigures({ key: figuresKey, gross: sumAmount(r), expenses: sumAmount(e as { amount: number | null }[]) });
     })();
     return () => { alive = false; };
   // Το `userId` χρησιμοποιείται μέσα στο ερώτημα και λείπει από τις εξαρτήσεις:
   // μπαίνει, ώστε αλλαγή χρήστη να ξαναφέρνει δεδομένα αντί να κρατά τα παλιά.
-  }, [open, propId, year, month, userId, supabase]);
+  }, [open, propId, year, month, userId, supabase, figuresKey]);
 
   const owners: OwnerShare[] = useMemo(() => rows.filter(r => r.name.trim()).map(r => ({ name: r.name.trim(), pct: num(r.pct), afm: r.afm.trim() || undefined })), [rows]);
   const result = useMemo(() => computeSplit({ grossIncome: figures?.gross || 0, expenses: figures?.expenses || 0, owners, managementFeePct: num(feePct), managerName }), [figures, owners, feePct, managerName]);
@@ -146,7 +174,9 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
   const prop = props.find(p => p.id === propId);
   const periodLabel = month === 0 ? `Έτος ${year}` : `${MONTHS_NOM[month - 1]} ${year}`;
 
-  const saveLayout = () => { try { localStorage.setItem(LS(propId), JSON.stringify({ rows, feePct, managerName })); } catch { /* ignore */ } };
+  // Η αποθήκευση περνά από τον ίδιο δρόμο που διαβάζει: γράφει ΚΑΙ ειδοποιεί,
+  // ώστε μια δεύτερη ανοιχτή καρτέλα να μη μείνει με την παλιά διάταξη.
+  const saveLayout = () => setStored({ rows, feePct, managerName });
 
   if (!open) return null;
 

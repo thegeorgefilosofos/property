@@ -186,11 +186,16 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
   const [openId,setOpenId]=useState<string|null>(null);
   const [dossierTab,setDossierTab]=useState<DossierTab>('overview');
 
-  useEffect(()=>{
+  // Η ΛΗΞΗ ΒΓΑΙΝΕΙ ΑΠΟ ΤΗΝ ΕΝΑΡΞΗ ΚΑΙ ΤΟΝ ΤΥΠΟ, ΚΑΤΑ ΤΗΝ ΑΠΟΔΟΣΗ. Ηταν effect:
+  // ο χρήστης που διάλεγε «τριετία» έβλεπε για ένα καρέ την ΠΑΛΙΑ ημερομηνία
+  // λήξης δίπλα στον νέο τύπο, σε φόρμα που καταλήγει σε συμφωνητικό.
+  const leaseKey=`${form.lease_start}|${form.lease_type}|${form.custom_lease_days}`;
+  const [leaseSeen,setLeaseSeen]=useState(leaseKey);
+  if(leaseKey!==leaseSeen){
+    setLeaseSeen(leaseKey);
     if(form.lease_start&&form.lease_type&&form.lease_type!=='custom')
       sf('lease_end',calcEnd(form.lease_start,form.lease_type as LeaseType,form.custom_lease_days));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[form.lease_start,form.lease_type]);
+  }
 
   const fetch_=useCallback(async()=>{
     const list=await tenantStore.ofProperty<Tenant>(supabase,propertyId,'*',userId);

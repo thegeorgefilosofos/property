@@ -739,7 +739,13 @@ function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { pro
   // χαρτοφυλακίου και εμφανίζεται το μερίδιο αυτού του ακινήτου, με την εξήγηση
   // από κάτω. Το ενοίκιο του τρέχοντος ακινήτου έρχεται από το resolveRent, ώστε
   // ο φόρος να πατά πάνω στον ίδιο αριθμό που δείχνει το πλακίδιο.
-  const portfolioTax = useMemo(() => consolidateRentTax(
+  // ΧΩΡΙΣ ΧΕΙΡΟΚΙΝΗΤΗ ΑΠΟΜΝΗΜΟΝΕΥΣΗ. Το `useMemo` εδώ ΔΕΝ διατηρούνταν από τον
+  // μεταγλωττιστή της React: το ανέφερε ρητά («existing memoization could not be
+  // preserved») και, επειδή δεν μπορούσε να το κρατήσει, παρέλειπε τη
+  // βελτιστοποίηση ΟΛΟΚΛΗΡΟΥ του component. Δηλαδή μια χειροκίνητη απομνημόνευση
+  // που υποτίθεται ότι κερδίζει χρόνο κόστιζε τη βελτιστοποίηση των πάντων γύρω
+  // της. Ο υπολογισμός είναι καθαρός και ο μεταγλωττιστής τον απομνημονεύει μόνος.
+  const portfolioTax = consolidateRentTax(
     properties.map(p => {
       const row = portfolioRents.find(r => r.property_id === p.id);
       const monthly = p.id === prop.id ? rent : (row?.monthly ?? 0);
@@ -748,7 +754,7 @@ function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { pro
       const viaBank = p.id === prop.id ? (tenantFull?.e_payment !== false) : (row?.viaBank ?? true);
       return { id: p.id, annualRent: monthly * 12, shortTerm: isShortTerm(p), rentsPaidViaBank: viaBank };
     }),
-  ), [properties, portfolioRents, prop.id, rent, tenantFull]);
+  );
   const estTax = Math.round(taxShareOf(portfolioTax, prop.id));
   const taxNote = consolidationSummary(portfolioTax, fmtEur);
   // Εισπράττεται το ενοίκιο ΑΥΤΟΥ του ακινήτου μέσω τραπέζης; Κρίνει το κείμενο

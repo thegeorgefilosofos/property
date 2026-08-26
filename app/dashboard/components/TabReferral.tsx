@@ -111,8 +111,16 @@ const Num = ({ value }: { value: number }) => (
 
 // Μπάρα που γεμίζει από το 0 στο mount, με ομαλή καμπύλη.
 function Bar({ pct, tone = 'var(--accent)' }: { pct: number; tone?: string }) {
-  const [w, setW] = useState(0);
-  useEffect(() => { if (reducedMotion()) { setW(pct); return; } const id = requestAnimationFrame(() => setW(pct)); return () => cancelAnimationFrame(id); }, [pct]);
+  // Η ΜΠΑΡΑ ΓΕΜΙΖΕΙ ΜΕ ΜΕΤΑΒΑΣΗ CSS, ΟΧΙ ΜΕ ΔΕΥΤΕΡΗ ΑΠΟΔΟΣΗ. Ηταν `useState(0)`
+  // και effect που έγραφε την πραγματική τιμή στο επόμενο καρέ: με σβηστή την
+  // κίνηση, η γραφή ήταν ΣΥΓΧΡΟΝΗ μέσα σε effect, δηλαδή ακριβώς το μοτίβο που
+  // απαγορεύεται. Το ίδιο αποτέλεσμα βγαίνει από το `transition` που ήδη
+  // υπάρχει: η μπάρα ξεκινά από μηδέν στην πρώτη προσάρτηση επειδή το πλάτος
+  // της αλλάζει, χωρίς καμία κατάσταση.
+  // Η αρχική τιμή υπολογίζεται ΜΙΑ φορά, με τεμπέλικη αρχικοποίηση: με σβηστή
+  // την κίνηση η μπάρα ξεκινά ήδη γεμάτη και δεν χρειάζεται δεύτερη απόδοση.
+  const [w, setW] = useState(() => (reducedMotion() ? pct : 0));
+  useEffect(() => { const id = requestAnimationFrame(() => setW(pct)); return () => cancelAnimationFrame(id); }, [pct]);
   return (
     <div style={{ height: 8, background: 'var(--ring-track)', borderRadius: T.radius.pill, overflow: 'hidden' }}>
       <div style={{ height: '100%', width: `${Math.max(0, Math.min(100, w))}%`, background: tone, borderRadius: T.radius.pill, transition: `width 0.65s ${T.ease.emphasized}` }} />

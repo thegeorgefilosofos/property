@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as expenses from '@/lib/data/expenses';
 // Οι επαφές έχουν ένα σπίτι: lib/data/contacts.
@@ -92,6 +92,7 @@ import {
   tenantFieldCtx,
   filledTenantIds,
 } from './TabTenantParts';
+import { useLoad } from '@/app/hooks/useLoad';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Ο ΕΝΟΙΚΙΑΣΤΗΣ: Η ΕΠΙΣΚΟΠΗΣΗ, Η ΕΠΙΚΟΙΝΩΝΙΑ, Ο ΝΟΜΟΣ ΚΑΙ Η ΣΥΝΤΗΡΗΣΗ
@@ -196,7 +197,8 @@ export function DashboardView({ tenant, payments, propertyCount }:{ tenant:Tenan
 export function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propertyId:string; userId:string }) {
   const supabase=createClient();
   const [logs,setLogs]=useState<CommLog[]>([]);
-  const [loading,setLoading]=useState(true);
+  const [loadedFor,setLoadedFor]=useState<string|null>(null);
+  const loading=loadedFor!==tenant.id;
   const [showAdd,setShowAdd]=useState(false);
   const [form,setForm]=useState({type:'call' as CommLog['type'],summary:'',date:athensToday(),outcome:''});
   const [saving,setSaving]=useState(false);
@@ -216,13 +218,17 @@ export function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propert
   // διαδρομή προς τον διακομιστή στη μεταγλώττιση, όπου κοστίζει μηδέν.
   const isCommType=(v:string):v is CommLog['type']=>Object.prototype.hasOwnProperty.call(TYPE_LABELS,v);
 
-  const loadLogs=async()=>{
-    setLoading(true);
+  // Ο ΔΕΙΚΤΗΣ ΦΟΡΤΩΣΗΣ ΒΓΑΙΝΕΙ ΑΠΟ ΤΟ ΠΟΙΟΥ ΕΝΟΙΚΙΑΣΤΗ ΕΙΝΑΙ ΤΟ ΗΜΕΡΟΛΟΓΙΟ.
+  // Ηταν `setLoading(true)` στην πρώτη γραμμή της φόρτωσης, μέσα σε effect:
+  // σύγχρονη γραφή, δεύτερη απόδοση και μια στιγμή όπου το ημερολόγιο του ΕΝΟΣ
+  // ενοικιαστή φαινόταν κάτω από το όνομα του άλλου.
+  const loadLogs=useCallback(async()=>{
     const{data}=await supabase.from('tenant_comm_log').select('*').eq('tenant_id',tenant.id).order('date',{ascending:false});
-    setLogs(data||[]);setLoading(false);
-  };
+    setLogs(data||[]);setLoadedFor(tenant.id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[tenant.id]);
 
-  useEffect(()=>{loadLogs();},[tenant.id]);
+  useLoad(loadLogs);
   const saveLog=async()=>{
     if(!form.summary.trim())return;setSaving(true);
     await saved('Η καταγραφή επικοινωνίας δεν αποθηκεύτηκε', supabase.from('tenant_comm_log').insert({tenant_id:tenant.id,property_id:propertyId,user_id:userId,type:form.type,summary:form.summary.trim(),date:form.date,outcome:form.outcome||null}));

@@ -61,28 +61,37 @@ export function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{it
     setItemConds(p=>({...p,[itemId]:{...p[itemId],photo:data.publicUrl}}))
     setUploadingId(null)
   }
-  // Reset ΜΟΝΟ όταν μπαίνουμε σε νέο πρωτόκολλο (αλλαγή mode), όχι σε κάθε refetch των items.
-  useEffect(()=>{
+  // ΤΡΕΙΣ ΠΡΟΣΑΡΜΟΓΕΣ ΚΑΤΑ ΤΗΝ ΑΠΟΔΟΣΗ, ΟΧΙ ΤΡΙΑ EFFECT. Ολες ήταν «όταν αλλάξει
+  // αυτό, γράψε εκείνο»: ως effect, η οθόνη ζωγραφιζόταν πρώτα με τα ΠΑΛΙΑ και
+  // μετά με τα νέα. Σε πρωτόκολλο παράδοσης, το ενδιάμεσο καρέ δείχνει
+  // καταστάσεις αντικειμένων από άλλη παράδοση. Η React το ονομάζει «adjusting
+  // state when a prop changes».
+  //
+  // Reset ΜΟΝΟ όταν μπαίνουμε σε νέο πρωτόκολλο (αλλαγή mode), όχι σε κάθε
+  // refetch των items.
+  const [modeSeen,setModeSeen]=useState(mode)
+  if(mode!==modeSeen){
+    setModeSeen(mode)
     if(mode==='new'){const init:Record<string,{condition:string;notes:string;photo?:string}>={};items.forEach(i=>{init[i.id]={condition:i.condition,notes:''}});setItemConds(init)}
     if(mode==='list')setFromTenant('')
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[mode])
-  // Αν αλλάξουν τα items ενώ συμπληρώνουμε, πρόσθεσε μόνο τα νέα — διατήρησε κατάσταση/σημειώσεις/φωτο σε εξέλιξη.
-  useEffect(()=>{
-    if(mode!=='new') return
-    setItemConds(prev=>{const next={...prev};items.forEach(i=>{if(!next[i.id])next[i.id]={condition:i.condition,notes:''}});return next})
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[items])
-  // Prefill από deep-link (καρτέλα ενοικιαστή): άνοιξε νέο πρωτόκολλο με το όνομα/τηλέφωνο/τύπο έτοιμα.
-  useEffect(()=>{
-    if(seed){
-      setMode('new')
-      if(seed.tenantName){setTenantName(seed.tenantName);setFromTenant(seed.tenantName)}
-      if(seed.tenantPhone)setTenantPhone(seed.tenantPhone)
-      if(seed.type)setType(seed.type)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[seed?.n])
+  }
+  // Αν αλλάξουν τα items ενώ συμπληρώνουμε, πρόσθεσε μόνο τα νέα — διατήρησε
+  // κατάσταση, σημειώσεις και φωτογραφίες σε εξέλιξη.
+  const [itemsSeen,setItemsSeen]=useState(items)
+  if(items!==itemsSeen){
+    setItemsSeen(items)
+    if(mode==='new') setItemConds(prev=>{const next={...prev};items.forEach(i=>{if(!next[i.id])next[i.id]={condition:i.condition,notes:''}});return next})
+  }
+  // Prefill από deep-link (καρτέλα ενοικιαστή): άνοιξε νέο πρωτόκολλο με το
+  // όνομα, το τηλέφωνο και τον τύπο έτοιμα.
+  const [seedSeen,setSeedSeen]=useState<number|null>(seed?.n??null)
+  if(seed&&seed.n!==seedSeen){
+    setSeedSeen(seed.n)
+    setMode('new')
+    if(seed.tenantName){setTenantName(seed.tenantName);setFromTenant(seed.tenantName)}
+    if(seed.tenantPhone)setTenantPhone(seed.tenantPhone)
+    if(seed.type)setType(seed.type)
+  }
   const handleSave = async() => {
     if(!tenantName.trim()){notifyError(SAY.nameRequired);return}
     setSaving(true)

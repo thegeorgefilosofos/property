@@ -114,6 +114,7 @@ import { remainingLine, type QuotaSnapshot } from '@/lib/billing/aiLimits';
 import { athensToday, athensNowLabel, daysUntil, isoMonth } from '@/lib/core/time';
 import { MONTHS_SHORT, MONTHS_GEN } from '@/lib/core/months';
 import { useRemembered } from '@/components/useRememberedFlag';
+import { useLoad } from '@/app/hooks/useLoad';
 
 // Ο άγνωστος αριθμός γράφεται 0,00 €, όχι παύλα: η παύλα δεν στοιχίζεται με
 // τίποτα και σε στήλη ποσών διαβάζεται ως σφάλμα (lib/core/format.ts).
@@ -153,7 +154,16 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   // Η ανοιχτή ερώτηση συμφωνίας: ποιον εκκρεμή λογαριασμό εξοφλεί η απόδειξη.
   const [reconcile, setReconcile] = useState<ReconcileQuestion | null>(null);
   const [editing, setEditing] = useState(false);
-  const [msgs, setMsgs] = useState<Msg[]>([]);
+  // ΤΟ ΙΣΤΟΡΙΚΟ ΔΙΑΒΑΖΕΤΑΙ ΜΙΑ ΦΟΡΑ, ΜΕ ΤΕΜΠΕΛΙΚΗ ΑΡΧΙΚΟΠΟΙΗΣΗ. Ηταν σημαία
+  // `firstRunRef` μέσα σε effect που έγραφε κατάσταση σύγχρονα. Ο πίνακας
+  // μηνυμάτων αποδίδεται ΜΟΝΟ με ανοιχτό το πάνελ (γραμμή «{open && …}» πιο
+  // κάτω), οπότε δεν υπάρχει τίποτα να ενυδατωθεί λάθος: στον διακομιστή δεν
+  // αποδίδεται καθόλου.
+  const [msgs, setMsgs] = useState<Msg[]>(() => {
+    if (typeof window === 'undefined') return [];
+    if (loadPrefs()?.memory === false) return [];
+    return loadHistory(propertyId).map(m => ({ role: m.role, text: m.text }));
+  });
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   // Κουμπιά ενεργειών που έχουν ήδη εκτελεστεί (ώστε ένα δεύτερο πάτημα να μη διπλοκαταχωρεί).
@@ -207,17 +217,34 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const memories = prefs.memory ? storedMemories : NO_MEMORIES;
   const scrollRef = useRef<HTMLDivElement>(null);
   const listeningRef = useRef(false);
-  const clientsRef = useRef<ClientLite[]>([]);   // ευρετήριο πελατών για εκτέλεση ενεργειών (σύνδεσμος check-in)
-  const contactsRef = useRef<ContactLite[]>([]); // ευρετήριο επαφών για επικοινωνία (WhatsApp/Viber/email/κλήση)
+  // Ιδιο με το ευρετήριο επαφών: κατάσταση, όχι αναφορά. Διαβάζεται από τη
+  // `findClient`, που την καλεί η `runAction` του κουμπιού κάθε μηνύματος.
+  const [clientsLite, setClientsLite] = useState<ClientLite[]>([]);
+  // ΤΟ ΕΥΡΕΤΗΡΙΟ ΕΠΑΦΩΝ ΕΙΝΑΙ ΚΑΤΑΣΤΑΣΗ, ΟΧΙ ΑΝΑΦΟΡΑ. Ηταν `useRef` και
+  // διαβαζόταν ΚΑΤΑ ΤΗΝ ΑΠΟΔΟΣΗ, μέσα στο κουμπί «Κάλεσε τον υδραυλικό» κάθε
+  // μηνύματος. Μια αναφορά που αλλάζει δεν ξαναποδίδει τίποτα: όταν έφταναν οι
+  // επαφές, το κουμπί έμενε κρυμμένο ώσπου να αλλάξει κάτι άλλο στην οθόνη.
+  const [contactsLite, setContactsLite] = useState<ContactLite[]>([]);
   // Ανοιχτά στοιχεία προς πληρωμή, για τη σήμανση «πληρωμένο» ([[paid:…]]).
-  const openBillsRef = useRef<{ id: string; name: string; category: string; amount: number }[]>([]);
+  // ΟΙ ΑΝΟΙΧΤΟΙ ΛΟΓΑΡΙΑΣΜΟΙ ΚΑΙ ΟΙ ΑΝΕΞΟΦΛΗΤΕΣ ΔΟΣΕΙΣ ΕΙΝΑΙ ΚΑΤΑΣΤΑΣΗ, ΟΧΙ
+  // ΑΝΑΦΟΡΑ. Ηταν `useRef` και τις διαβάζει η `markPaid`, δηλαδή ο χειριστής του
+  // κουμπιού «Σήμανση πληρωμένο» κάθε μηνύματος. Ο μεταγλωττιστής της React
+  // βλέπει την αλυσίδα από την απόδοση και δεν μπορεί να ξεχωρίσει τι είναι
+  // χειριστής: το αποτέλεσμα ήταν να καταγγέλλεται ολόκληρος ο πίνακας
+  // μηνυμάτων. Ως κατάσταση, λέει την αλήθεια και ξαναποδίδει όταν πρέπει.
+  const [openBills, setOpenBills] = useState<{ id: string; name: string; category: string; amount: number }[]>([]);
   // Η ΠΡΟΘΕΣΜΙΑ ΤΑΞΙΔΕΥΕΙ ΜΑΖΙ: ο βοηθός σημειώνει δόσεις πληρωμένες και χωρίς
   // αυτήν η καταχώρηση δεν μπορεί να πει πόσο άργησε ο μισθωτής.
-  const openRentRef = useRef<{ id: string; label: string; amount: number; due: string | null }[]>([]);
+  const [openRent, setOpenRent] = useState<{ id: string; label: string; amount: number; due: string | null }[]>([]);
   // Το σαρωμένο παραστατικό που περιμένει έγκριση. Είναι ref και όχι κατάσταση:
   // δεν το ζωγραφίζει τίποτα — το μήνυμα δίπλα του το περιγράφει ήδη — και μία
   // σάρωση είναι σε εξέλιξη κάθε φορά.
-  const pendingDocRef = useRef<{ doc: ScannedDoc; file: File } | null>(null);
+  // ΤΟ ΣΑΡΩΜΕΝΟ ΠΑΡΑΣΤΑΤΙΚΟ ΠΟΥ ΠΕΡΙΜΕΝΕΙ ΕΓΚΡΙΣΗ ΕΙΝΑΙ ΚΑΤΑΣΤΑΣΗ. Ηταν
+  // αναφορά, την οποία διαβάζει η `commitPendingDoc`, δηλαδή ο χειριστής του
+  // κουμπιού «Καταχώρησε» μέσα στον πίνακα μηνυμάτων. Ο μεταγλωττιστής δεν
+  // ξεχωρίζει χειριστή από απόδοση όταν η συνάρτηση ζει στο σώμα, οπότε
+  // κατήγγελλε ολόκληρο τον πίνακα.
+  const [pendingDoc, setPendingDoc] = useState<{ doc: ScannedDoc; file: File } | null>(null);
   // Το `ask` ορίζεται πολύ πιο κάτω και κλείνει πάνω σε κατάσταση που αλλάζει.
   // Ο ακροατής του `pos:ask` γράφεται μία φορά (deps []), οπότε τον φτάνει μέσω
   // ref — αλλιώς θα κρατούσε για πάντα το πρώτο, άδειο, στιγμιότυπο.
@@ -308,21 +335,19 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   // effect αποθήκευσης, άρα δεν έχει το ίδιο πρόβλημα σειράς. Εδώ μέσα γίνεται
   // ΚΑΙ η πρώτη και μόνη φόρτωση ιστορικού, στην πρώτη προσάρτηση: το effect
   // αποθήκευσης δεν κινδυνεύει, γιατί η άδεια συζήτηση δεν αποθηκεύεται ποτέ.
-  const firstRunRef = useRef(true);
-  useEffect(() => {
+  // ΤΟ ΣΒΗΣΙΜΟ ΤΩΝ ΣΥΜΦΡΑΖΟΜΕΝΩΝ ΓΙΝΕΤΑΙ ΚΑΤΑ ΤΗΝ ΑΠΟΔΟΣΗ. Ηταν επτά γραφές
+  // κατάστασης μέσα σε effect: με την αλλαγή ακινήτου, η Νόα κρατούσε για ένα
+  // καρέ τα συμφραζόμενα του προηγούμενου — δηλαδή μπορούσε να απαντήσει με
+  // νούμερα άλλου ακινήτου αν προλάβαινε το πάτημα.
+  const [propSeen, setPropSeen] = useState(propertyId);
+  if (propertyId !== propSeen) {
+    setPropSeen(propertyId);
     setCtxStr(''); setInsightsStr(''); setMarketStr(''); setClientsStr(''); setPricingStr(''); setTechStr(''); setOpenerCtx(null);
     // Το σαρωμένο παραστατικό ανήκει στο ακίνητο που ήταν ανοιχτό όταν
     // φωτογραφήθηκε. Χωρίς αυτό, ένα πάτημα «Καταχώρησε» μετά την αλλαγή
     // ακινήτου θα έγραφε τον λογαριασμό της Κυψέλης στη Γλυφάδα.
-    pendingDocRef.current = null; setReconcile(null);
-    if (firstRunRef.current) {
-      firstRunRef.current = false;
-      if (loadPrefs()?.memory !== false) {
-        const stored = loadHistory(propertyId);
-        if (stored.length) setMsgs(stored.map(m => ({ role: m.role, text: m.text })));
-      }
-    }
-  }, [propertyId]);
+    setPendingDoc(null); setReconcile(null);
+  }
 
 
   // Αποθήκευση συζήτησης όταν η μνήμη είναι ενεργή.
@@ -400,13 +425,13 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     ofYear.forEach(e => { const k = e.category || 'Άλλο'; catMap[k] = (catMap[k] || 0) + e.amount; });
     const topCats = Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
     const unpaid = billRows.filter(b => !b.paid);
-    openBillsRef.current = unpaid.map(b => ({ id: b.id, name: b.name || 'λογαριασμός', category: b.category || '', amount: b.amount || 0 }));
+    setOpenBills(unpaid.map(b => ({ id: b.id, name: b.name || 'λογαριασμός', category: b.category || '', amount: b.amount || 0 })));
     // Ανεξόφλητες δόσεις ενοικίου (για σήμανση «πληρωμένο» από τη συνομιλία)
     // ΟΛΕΣ ΟΙ ΔΟΣΕΙΣ, ΟΧΙ ΜΟΝΟ ΟΙ ΑΠΛΗΡΩΤΕΣ. Το φίλτρο `paid=false` σήμαινε ότι ο
     // βοηθός δεν είχε καμία εικόνα συνέπειας πληρωμών και ότι τα δεδουλευμένα
     // έσοδα της χρονιάς έπρεπε να μαντευτούν από το ενοίκιο επί δώδεκα.
     const rentAll = await rentStore.chronological<RentPaymentsRow>(supabase, propertyId, `id,due_date,${rentStore.PERIOD_COLUMNS}`, userId);
-    openRentRef.current = rentAll.filter(r => !r.paid).map(r => ({ id: r.id, label: `Ενοίκιο ${MONTHS_GEN[(r.period_month || 1) - 1]} ${r.period_year}`, amount: r.amount || 0, due: r.due_date }));
+    setOpenRent(rentAll.filter(r => !r.paid).map(r => ({ id: r.id, label: `Ενοίκιο ${MONTHS_GEN[(r.period_month || 1) - 1]} ${r.period_year}`, amount: r.amount || 0, due: r.due_date })));
     const t = ten?.[0];
     const rent = resolveRent({ tenantRent: t?.monthly_rent, targetRent: propContext.targetRent }).value;
     const value = resolveValue(propContext.value).value;
@@ -494,7 +519,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       propertyValue: value || undefined,
       expensesYtd: total || undefined,
       openTasks: openTasks.length,
-      overdueRent: openRentRef.current.reduce((sum, r) => sum + (r.amount || 0), 0) || undefined,
+      overdueRent: openRent.reduce((sum, r) => sum + (r.amount || 0), 0) || undefined,
       hasLoan: loanRows.length > 0,
       isShortTerm: propStays.length > 0,
       propertyCount: allProperties.length || undefined,
@@ -554,7 +579,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       `Δαπάνες ${year}: σύνολο ${eur(total)} (πληρωμένες ${eur(paid)}, εκκρεμείς ${eur(owed)}). Κάθε ευρώ μετρημένο μία φορά· οι απλήρωτοι λογαριασμοί μετρούν στην ημερομηνία που λήγουν· ίδιος υπολογισμός με τις Δαπάνες και τη Σύγκριση.`,
       topCats.length ? `Μεγαλύτερες κατηγορίες: ${topCats.map(([c, a]) => `${c} ${eur(a)}`).join(', ')}` : '',
       unpaid.length ? `Απλήρωτοι λογαριασμοί (${unpaid.length}): ${unpaid.slice(0, 12).map(b => `${b.name || 'λογαριασμός'} ${eur(b.amount)}${b.due_date ? ` λήξη ${b.due_date}` : ''}`).join('; ')}` : 'Δεν υπάρχουν απλήρωτοι λογαριασμοί.',
-      openRentRef.current.length ? `Ανεξόφλητες δόσεις ενοικίου (${openRentRef.current.length}): ${openRentRef.current.slice(0, 12).map(r => `${r.label} ${eur(r.amount)}`).join('; ')}` : '',
+      openRent.length ? `Ανεξόφλητες δόσεις ενοικίου (${openRent.length}): ${openRent.slice(0, 12).map(r => `${r.label} ${eur(r.amount)}`).join('; ')}` : '',
       t ? `Ενοικιαστής: ${t.full_name || 'καταχωρημένος'}${t.deposit_amount ? `, εγγύηση ${eur(t.deposit_amount)}` : ''}` : 'Δεν έχει καταχωρηθεί ενοικιαστής.',
       leaseEnd ? `Λήξη μίσθωσης: ${leaseEnd}${daysLease != null ? ` (σε ${daysLease} ημέρες)` : ''}` : '',
       insurance?.insurance_company || insurance?.insurance_expiry ? `Ασφάλεια: ${insurance?.insurance_company || 'εταιρεία άγνωστη'}${insurance?.insurance_expiry ? `, λήξη ${insurance.insurance_expiry}` : ''}` : 'Ασφάλεια: δεν έχει καταχωρηθεί.',
@@ -614,7 +639,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
 
     // ── Πελατολόγιο: ρόστερ με ιστορικό, ώστε να βρίσκει από όνομα/τηλέφωνο/ΑΦΜ ──
     const clientRoster = (clientRows || []) as ClientsRow[];
-    clientsRef.current = clientRoster.map(c => ({ id: c.id, name: c.full_name || '', phone: String(c.phone || ''), afm: String(c.afm || '') }));
+    setClientsLite(clientRoster.map(c => ({ id: c.id, name: c.full_name || '', phone: String(c.phone || ''), afm: String(c.afm || '') })));
     if (clientRoster.length) {
       const staysByClient = new Map<string, ClientStaysRow[]>();
       stays.forEach(s => { const a = staysByClient.get(s.client_id) || []; a.push(s); staysByClient.set(s.client_id, a); });
@@ -652,7 +677,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     // ── Επαφές τεχνικών/παρόχων (καρτέλα Επαφές): για να προτείνει ΠΟΙΟΝ
     // να καλέσει/προγραμματίσει για μια εργασία, ή να παραπέμψει αν λείπει ο ρόλος ──
     const techRoster = contacts.filter(c => c.full_name);
-    contactsRef.current = techRoster.map(c => ({ name: c.full_name || '', role: c.role || 'other', phone: String(c.phone || ''), email: String(c.email || '') }));
+    setContactsLite(techRoster.map(c => ({ name: c.full_name || '', role: c.role || 'other', phone: String(c.phone || ''), email: String(c.email || '') })));
     if (techRoster.length) {
       const tLines = techRoster.slice(0, 60).map(c => {
         const bits = [c.full_name, roleLabel(c.role || 'other')];
@@ -663,7 +688,10 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     } else setTechStr('');
   }, [propertyId, userId, propContext, supabase]);
 
-  useEffect(() => { if (open && !ctxStr) loadContext(); }, [open, ctxStr, loadContext]);
+  // Τα συμφραζόμενα φορτώνονται ΜΙΑ φορά, όταν ανοίξει το πάνελ. Μέσα από το
+  // κοινό `useLoad`, γιατί είναι ασύγχρονη φόρτωση όπως κάθε άλλη.
+  const bootContext = useCallback(async () => { if (open && !ctxStr) await loadContext(); }, [open, ctxStr, loadContext]);
+  useLoad(bootContext);
 
   const runAction = (a?: Action, keepOpen = false) => {
     if (!a) return;
@@ -688,7 +716,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const q = (who || '').trim().toLowerCase();
     if (!q) return null;
     const digits = q.replace(/\D/g, '');
-    const list = clientsRef.current;
+    const list = clientsLite;
     if (digits.length >= 6) {
       const byNum = list.find(c => c.afm.replace(/\D/g, '') === digits || c.phone.replace(/\D/g, '').endsWith(digits));
       if (byNum) return byNum;
@@ -704,7 +732,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const findContact = (name: string): ContactLite | null => {
     const q = (name || '').trim().toLowerCase();
     if (!q) return null;
-    const list = contactsRef.current;
+    const list = contactsLite;
     const exact = list.find(c => c.name.toLowerCase() === q);
     if (exact) return exact;
     const partial = list.filter(c => { const n = c.name.toLowerCase(); return !!n && (n.includes(q) || q.includes(n)); });
@@ -771,7 +799,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   // και ανακοινώνει — και ανακοινώνει ΟΣΑ ΕΓΙΝΑΝ ΠΡΑΓΜΑΤΙΚΑ, γιατί το
   // αποτέλεσμα επιστρέφει τη λίστα των καρτελών που ενημερώθηκαν.
   const commitPendingDoc = async (choice?: string | null) => {
-    const pending = pendingDocRef.current;
+    const pending = pendingDoc;
     if (!pending || busy) return;
     setBusy(true);
     try {
@@ -786,7 +814,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       // πληρωμένος που δεν πληρώθηκε.
       if (r.ask) { setMsgs(m => [...m, { role: 'assistant', text: reconcilePrompt(r.ask as ReconcileQuestion) }]); setReconcile(r.ask); setBusy(false); return; }
 
-      pendingDocRef.current = null;
+      setPendingDoc(null);
       setReconcile(null);
       if (r.error || !r.saved.length) {
         setMsgs(m => [...m, { role: 'assistant', text: 'Δεν μπόρεσα να το καταχωρήσω τώρα. Δοκίμασε από τη σάρωση της εφαρμογής, όπου μπορείς και να διορθώσεις ό,τι διάβασα λάθος.', action: { type: 'scan' } }]);
@@ -840,8 +868,8 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     const q = (description || '').trim().toLowerCase();
     const norm = (s: string) => s.toLowerCase();
     const amtOk = (a: number) => amount == null || (a > 0 && Math.abs(a - amount) / a <= 0.01);
-    const bills = openBillsRef.current;
-    const rents = openRentRef.current;
+    const bills = openBills;
+    const rents = openRent;
     // Υποψήφια: λογαριασμοί (όνομα/κατηγορία ταιριάζει με το κείμενο) + δόσεις ενοικίου.
     // Προσοχή: ΠΟΤΕ να μη ταιριάζει με κενή κατηγορία (q.includes('') === true) — θα
     // σημείωνε λάθος λογαριασμό ως πληρωμένο.
@@ -1237,7 +1265,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     try {
       const scan = await scanFile(file);
       if (scan.kind === 'document' && scan.doc) {
-        pendingDocRef.current = { doc: scan.doc, file };
+        setPendingDoc({ doc: scan.doc, file });
         const d = scan.doc;
         const bits = [d.provider, d.amount != null ? eur(d.amount) : null, d.period || d.issue_date].filter(Boolean).join(' · ');
         setMsgs(m => [...m, { role: 'assistant',
@@ -1344,6 +1372,12 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     // Φόρτωσε την αποθηκευμένη θέση, ΑΛΛΑ μόνο αν χωράει ολόκληρο το κουμπί μέσα
     // στην τρέχουσα οθόνη. Αλλιώς (άλλο μέγεθος παραθύρου/οθόνη, χαλασμένη τιμή)
     // αγνόησέ την ώστε το πλωτό να επιστρέψει στη σταθερή κάτω-δεξιά θέση.
+    //
+    // ΜΕΤΑ ΤΟ ΠΡΩΤΟ ΚΑΡΕ, ΓΙΑΤΙ ΕΙΝΑΙ ΜΕΤΡΗΣΗ. Το «χωράει;» απαντιέται από τις
+    // διαστάσεις του παραθύρου και του ίδιου του κουμπιού, δηλαδή από το DOM.
+    // Γραμμένο σύγχρονα μέσα στο effect ήταν γραφή κατάστασης πριν καν
+    // ζωγραφιστεί το κουμπί που μετριέται.
+    const frame = requestAnimationFrame(() => {
     try {
       const s = localStorage.getItem('pa_fab_pos');
       if (!s) return;
@@ -1358,6 +1392,8 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       if (inView) setFabPos(p);
       else localStorage.removeItem('pa_fab_pos');
     } catch { /* ignore */ }
+    });
+    return () => cancelAnimationFrame(frame);
   }, []);
   useEffect(() => {
     if (!fabPos || dragging) return;

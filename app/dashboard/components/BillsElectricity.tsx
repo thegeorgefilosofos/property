@@ -246,9 +246,14 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
   // προεπιλογή 250 κιλοβατώρες, δηλαδή πάνω σε κατανάλωση κάποιου άλλου.
   const [billsKwh,         setBillsKwh]         = useState<number[]>([]);
 
-  // Φόρτωση από τις ρυθμίσεις
-  useEffect(() => {
-    if (!s) return;
+  // ΟΙ ΑΠΟΘΗΚΕΥΜΕΝΕΣ ΡΥΘΜΙΣΕΙΣ ΜΠΑΙΝΟΥΝ ΚΑΤΑ ΤΗΝ ΑΠΟΔΟΣΗ, ΟΧΙ ΣΕ EFFECT. Ηταν
+  // εννιά γραφές κατάστασης μέσα σε effect: η οθόνη ζωγραφιζόταν ΜΙΑ φορά με
+  // τον προεπιλεγμένο πάροχο και το προεπιλεγμένο τιμολόγιο και μετά πηδούσε
+  // στα δικά του. Σε σύγκριση τιμών, εκείνο το καρέ δείχνει τιμολόγιο άλλου.
+  // Η React το ονομάζει «adjusting state when a prop changes».
+  const [settingsSeen, setSettingsSeen] = useState<typeof s | null>(null);
+  if (s && s !== settingsSeen) {
+    setSettingsSeen(s);
     if (s.elecProvider)          setProvider(s.elecProvider as string);
     if (s.elecTariff)            setTariffId(s.elecTariff as string);
     if (s.useEbill !== undefined) setUseEbill(Boolean(s.useEbill));
@@ -258,7 +263,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
     if (s.contractStart)         setContractStart(String(s.contractStart));
     if (s.contractMonths)        setContractMonths(String(s.contractMonths));
     if (s.manualMonthly)         setManualMonthly(String(s.manualMonthly));
-  }, [s]);
+  }
 
   useEffect(() => {
     if (!propertyId) return;

@@ -59,6 +59,7 @@ import { TemplateModal } from './checklist/TemplateModal'
 import { ItemModal } from './checklist/ItemModal'
 import { ReceiptScanModal } from './checklist/ReceiptScanModal'
 import { exportChecklistExcel, exportChecklistPDF, exportHandoverProtocol } from './checklist/reports'
+import { useLoad } from '@/app/hooks/useLoad'
 
 const supabase = createSupabaseClient()
 
@@ -75,7 +76,12 @@ const supabase = createSupabaseClient()
 export default function TabChecklist({ propertyId, userId, embedded, profileType = 'individual' }: TabChecklistProps & { embedded?: boolean; profileType?: ProfileType }) {
   const [items, setItems] = useState<ChecklistItem[]>([])
   const [contacts, setContacts] = useState<Contact[]>([])
-  const [loading, setLoading] = useState(true)
+  // Ο ΔΕΙΚΤΗΣ ΦΟΡΤΩΣΗΣ ΒΓΑΙΝΕΙ ΑΠΟ ΤΟ ΠΟΙΟΥ ΑΚΙΝΗΤΟΥ ΕΙΝΑΙ Η ΛΙΣΤΑ. Ηταν
+  // `setLoading(true)` στην πρώτη γραμμή της φόρτωσης, μέσα σε effect: σύγχρονη
+  // γραφή και, με την αλλαγή ακινήτου, ένα καρέ με τις εκκρεμότητες του
+  // προηγούμενου.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null)
+  const loading = loadedFor !== propertyId
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all')
   const [filterCat, setFilterCat] = useState('all')
@@ -127,7 +133,6 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   // χειροκίνητες ανανεώσεις (μετά από αποθήκευση ή διαγραφή) δεν έχουν τέτοιο
   // πρόβλημα και δεν περνούν τίποτα.
   const fetchAll = useCallback(async (fresh: () => boolean = () => true) => {
-    setLoading(true)
     // Ο ενοικιαστής-επαφή ζητιόταν ΔΥΟ φορές μέσα σε αυτή τη φόρτωση: μια εδώ
     // για να κριθεί αν προτείνεται λίστα check-in και μια παρακάτω για τηλέφωνο
     // και email. Ίδια γραμμή, δύο ταξίδια. Τώρα μία, με όλες τις στήλες.
@@ -209,14 +214,21 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
         }
       }
     } catch (_) {}
-    if (fresh()) setLoading(false)
+    if (fresh()) setLoadedFor(propertyId)
   }, [propertyId, userId])
 
-  useEffect(() => {
-    let alive = true
-    fetchAll(() => alive)
-    return () => { alive = false }
+  // Η ΑΚΥΡΩΣΗ ΜΕΤΑΚΟΜΙΖΕΙ ΜΕΣΑ ΣΤΗ ΦΟΡΤΩΣΗ. Ηταν `let alive` στο effect, δηλαδή
+  // το effect έπρεπε να ξέρει τι σημαίνει «άκυρη απάντηση». Ενας αύξων αριθμός
+  // εκτέλεσης λέει το ίδιο πράγμα χωρίς να το ξέρει κανείς άλλος: γράφει μόνο
+  // η ΤΕΛΕΥΤΑΙΑ φόρτωση που ξεκίνησε. Η απάντηση του προηγούμενου ακινήτου, που
+  // φτάνει αργότερα, δεν γράφει τίποτα.
+  const runId = useRef(0)
+  const boot = useCallback(async () => {
+    const id = runId.current + 1
+    runId.current = id
+    await fetchAll(() => runId.current === id)
   }, [fetchAll])
+  useLoad(boot)
 
   // ── ΤΟ ESCAPE ΑΝΗΚΕΙ ΣΤΗΝ ΕΠΙΚΑΛΥΨΗ ΠΟΥ ΕΙΝΑΙ ΑΝΟΙΧΤΗ ─────────────────────
   // Όσο τα παράθυρα αυτής της οθόνης ήταν χειρόγραφα, ΚΑΝΕΝΑ δεν άκουγε Escape:

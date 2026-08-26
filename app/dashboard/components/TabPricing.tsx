@@ -91,7 +91,6 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
   const [propCount, setPropCount] = useState(1);
   const [comps, setComps] = useState<string[]>(() => { try { return JSON.parse(localStorage.getItem(compsKey) || '[]'); } catch { return []; } });
   const [compsOpen, setCompsOpen] = useState(false);
-  const loadedSettings = useRef(false);
 
   // ── Φόρτωση διαμονών + αποθηκευμένων ρυθμίσεων ─────────────────────────────
   const loadStays = useCallback(async () => {
@@ -117,7 +116,6 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
       if (data.max_price != null) setMax(Number(data.max_price));
       if (data.weekend_premium != null) setWknd(Math.round(Number(data.weekend_premium) * 100));
       if (data.min_stay != null) setMinStay(Number(data.min_stay));
-      loadedSettings.current = true;
       setTouched(true); // υπάρχουν αποθηκευμένες τιμές, μην τις παρακάμψεις με auto
     }
   }, [userId, propertyId]);
@@ -166,11 +164,19 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
   // Αρχική πρόταση βάσης ΜΟΝΟ από πραγματικό ιστορικό (πραγματοποιημένη ADR).
   // Χωρίς ιστορικό δεν προτείνουμε τίποτα: εμφανίζεται το EmptyState και η
   // βαθμονόμηση από αγγελίες ανταγωνιστών, όπου τα νούμερα τα βάζει ο χρήστης.
-  useEffect(() => {
-    if (touched || loadedSettings.current) return;
+  // ΚΑΤΑ ΤΗΝ ΑΠΟΔΟΣΗ, ΟΧΙ ΣΕ EFFECT: η πρόταση εμφανίζεται ΜΑΖΙ με το ιστορικό
+  // από το οποίο βγήκε, όχι ένα καρέ αργότερα. Σε οθόνη τιμολόγησης, το
+  // ενδιάμεσο καρέ δείχνει μηδενική βάση κάτω από γεμάτο ημερολόγιο.
+  //
+  // ΤΟ `loadedSettings` ΕΦΥΓΕ: έλεγε ΑΚΡΙΒΩΣ ό,τι και το `touched`, που
+  // γράφεται στην ίδια στιγμή, δύο γραμμές πιο κάτω από αυτό. Δύο σημαίες για
+  // μία συνθήκη σημαίνει ότι κάποια μέρα θα διαφωνήσουν.
+  const [staysSeen, setStaysSeen] = useState<typeof stays | null>(null);
+  if (!touched && stays !== staysSeen) {
+    setStaysSeen(stays);
     const b = suggestBase(stays);
     if (b > 0) { setBase(b); const g = suggestGuardrails(b); setMin(g.min); setMax(g.max); }
-  }, [stays, touched]);
+  }
 
   // ── Αποθήκευση ρυθμίσεων (debounced) ──────────────────────────────────────
   const settingsRef = useRef({ base, min, max, wknd, minStay, touched });
