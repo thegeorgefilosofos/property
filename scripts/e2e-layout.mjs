@@ -519,7 +519,13 @@ if (!live) console.log(`(οι δημόσιες σελίδες παραλείπο
 // να τον έχουν και οι δύο σαρωτές δημόσιων σελίδων και όχι μόνο αυτός.
 if (live) await abortIfStyleless(browser, BASE)
 
+// ═══ ΜΙΑ ΓΡΑΜΜΗ ΑΝΑ ΣΥΣΚΕΥΗ, ΟΣΟ ΤΡΕΧΕΙ ═══════════════════════════════════════
+// Η σάρωση κρατά πάνω από είκοσι λεπτά και δεν τύπωνε τίποτα ώς το τέλος. Ενας
+// έλεγχος που μοιάζει κολλημένος τον ξαναπατάς: έτρεξαν δύο αντίγραφα μαζί στο
+// ίδιο μηχάνημα, μοιράστηκαν τους πυρήνες και άργησαν και τα δύο. Η γραμμή ανά
+// συσκευή λέει πού βρίσκεται και πόσα έχει βρει ώς εκεί.
 const rows = []
+let done = 0
 for (const dev of DEVICES) {
   const w = dev.w
   const ctx = await browser.newContext({ viewport:{width:w,height:dev.h}, deviceScaleFactor:2, isMobile:w<1100, hasTouch:TOUCH(w), locale:'el-GR' })
@@ -596,6 +602,8 @@ for (const dev of DEVICES) {
     await p.close()
   }
   await ctx.close()
+  done++
+  console.log(`  ${String(done).padStart(2)}/${DEVICES.length} ${String(w).padStart(4)}×${dev.h} · ${rows.length} οθόνες με εύρημα ώς εδώ`)
 }
 await browser.close()
 for (const row of rows) console.log('  ✗ ' + row.where.padEnd(32), (process.env.E2E_ALL ? row.r.join('\n      ') : row.r.slice(0,4).join(' · ') + (row.r.length>4 ? ` (+${row.r.length-4})` : '')))
