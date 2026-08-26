@@ -213,7 +213,7 @@ export default function RentReceived({
       {/* ΤΑ ΔΥΟ ΠΕΔΙΑ ΜΟΙΡΑΖΟΝΤΑΙ ΤΟ ΠΛΑΤΟΣ, δεν κόβονται σε σταθερή στήλη. Με
           `formGrid` το πεδίο έμενε στα 210 εικονοστοιχεία και άφηνε τη μισή
           γραμμή κενή σε κινητό — μετρήθηκε σε Pixel 7. */}
-      <div style={fieldRow(160)}>
+      <div {...fieldRow(160)}>
         <DatePicker label="Ημερομηνία είσπραξης" value={paidDate} onChange={setPaidDate} />
         <CustomSelect label="Τρόπος είσπραξης" value={method} onChange={v => setMethod(v as PayMethod)}
           options={PAY_METHODS.map(m => ({ value: m, label: m }))} />

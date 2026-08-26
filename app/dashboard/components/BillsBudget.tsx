@@ -12,7 +12,7 @@ import * as billStore from '@/lib/data/bills';
 import * as tenantStore from '@/lib/data/tenants';
 import * as expenses from '@/lib/data/expenses'
 import * as calendar from '@/lib/data/calendar'
-import { TextInput, ToggleTrack } from './UIComponents';
+import { TextInput, Toggle, ToggleTrack } from './UIComponents';
 import { T, TT, fe, feAuto, fp, fn, fixedCols, Skeleton, SkeletonKPIs, pressable } from '@/components/Theme';
 import { waterMonthly } from '@/lib/energy/tariff';
 import { monthAcc, monthGen, monthYearLabel } from '@/lib/core/months';
@@ -1838,11 +1838,12 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                           (36×20, δείκτης 12/16, περίγραμμα 2) ώστε να είναι
                           οπτικά ο ΙΔΙΟΣ διακόπτης· έφευγε πριν με ωμό #fff στον
                           δείκτη και ωμό rgba στη σκιά. */}
-                      <button type="button" role="switch" aria-checked={!isEx} aria-label="Μετρά στον προϋπολογισμό"
-                        onClick={() => { if (isEx) { unexcludeItem(it.id); setExclAmtDraft(d => { const n = { ...d }; delete n[it.id]; return n; }); } else { const snap = budgets.__excluded; excludeItem(it.id); notify(`Εξαιρέθηκε «${it.label}»`, { duration: UNDO_MS, action: { label: 'Αναίρεση', onClick: () => persistCats({ __excluded: snap ?? '{}' }) } }); } }}
-                        style={{ position: 'relative', width: 36, height: 20, borderRadius: 20, background: isEx ? 'transparent' : 'var(--accent)', border: `2px solid ${isEx ? 'var(--border-default)' : 'var(--accent)'}`, cursor: 'pointer', flexShrink: 0, padding: 0, transition: 'background 0.2s, border-color 0.2s' }}>
-                        <span style={{ display: 'block', width: isEx ? 12 : 16, height: isEx ? 12 : 16, borderRadius: '50%', background: isEx ? 'var(--text-secondary)' : 'var(--accent-text)', position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: isEx ? 2 : 'calc(100% - 16px - 2px)', transition: `all 0.2s ${T.ease.standard}`, boxShadow: 'var(--elev-1)' }} />
-                      </button>
+                      {/* ΤΟ ΑΝΤΙΓΡΑΦΟ ΕΦΥΓΕ. Το σχόλιο από πάνω παραδεχόταν ότι
+                          ζωγράφιζε «οπτικά τον ΙΔΙΟ διακόπτη» με το χέρι: ίδια
+                          νούμερα, γραμμένα δεύτερη φορά. Την επόμενη φορά που
+                          θα αλλάξει το ελατήριο, αυτό εδώ θα έμενε πίσω. */}
+                      <Toggle on={!isEx} size="sm" ariaLabel="Μετρά στον προϋπολογισμό"
+                        onChange={() => { if (isEx) { unexcludeItem(it.id); setExclAmtDraft(d => { const n = { ...d }; delete n[it.id]; return n; }); } else { const snap = budgets.__excluded; excludeItem(it.id); notify(`Εξαιρέθηκε «${it.label}»`, { duration: UNDO_MS, action: { label: 'Αναίρεση', onClick: () => persistCats({ __excluded: snap ?? '{}' }) } }); } }} />
                     </div>
                     {isEx && (
                       <div style={{ marginTop: 10, padding: '12px 13px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, display: 'flex', flexDirection: 'column', gap: 11 }}>

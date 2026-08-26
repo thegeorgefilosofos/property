@@ -33,7 +33,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as expenseStore from '@/lib/data/expenses'
 import * as billStore from '@/lib/data/bills'
-import { T, fe, Skeleton } from '@/components/Theme';
+import { T, fe, fixedCols, Skeleton } from '@/components/Theme';
 import { mergeLedger, type LedgerEntry } from '@/lib/expenses/ledger';
 import { cadenceLabel } from '@/lib/expenses/expected';
 import { contractOverview, totalMonthly, CONTRACT_EMPTY_HINT, CONTRACT_LABEL, type ContractCard, type ContractKind } from '@/lib/contracts/overview';
@@ -249,7 +249,11 @@ export default function TabBills({
           μελετήσει την αγορά· τα ανοίγει για να θυμηθεί τι έχει και πόσο του
           κοστίζει. Η αγορά είναι η ΔΕΥΤΕΡΗ ερώτηση και μόνο για όποιον τη
           ρωτήσει: ζει ακέραιη ένα κλικ πιο μέσα. */}
-      <div ref={toolsRef} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 230px), 1fr))', gap: 10 }}>
+      {/* ΟΚΤΩ ΚΑΡΤΕΣ ΘΕΛΟΥΝ ΣΤΗΛΕΣ ΠΟΥ ΔΙΑΙΡΟΥΝ ΤΟ ΟΚΤΩ. Το `auto-fill` έδινε όσες
+          χωρούσαν: στα 1.440 έβγαζε πέντε, δηλαδή 5+3, με τρεις κάρτες στη
+          δεύτερη σειρά και κενό δίπλα τους όσο δύο. Τέσσερις στήλες δίνουν 4+4,
+          δύο δίνουν 2+2+2+2: καμία σειρά μισή, σε κανένα πλάτος. */}
+      <div ref={toolsRef} {...fixedCols(4, 10, 'stretch')}>
         {showSkeleton
           ? [0, 1, 2, 3, 4, 5, 6, 7].map(i => <Skeleton key={i} h={92} r={T.radius.card} />)
           : strip.cards.map(c => (

@@ -1252,7 +1252,12 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
    παράθυρο 500 στην επιφάνεια εργασίας με ποντίκι. */
 @media (pointer: coarse) {
   :root {
-    --h-sm: 40px;
+    /* ΤΟ «ΜΙΚΡΟ» ΗΤΑΝ 40 ΚΑΙ ΤΟ 40 ΔΕΝ ΕΙΝΑΙ 44. Η ιεραρχία μικρό/μεσαίο/μεγάλο
+       είναι σχεδιαστική διάκριση· τα 44 είναι όριο. Το μενού «Περισσότερα» των
+       επαφών, μετρημένο στον πάγκο κινητού, έβγαινε 40 σε κάθε πλάτος με
+       δάχτυλο. Στο ποντίκι η διάκριση μένει ακέραιη, γιατί το μπλοκ αφορά μόνο
+       τον χοντρό δείκτη. */
+    --h-sm: 44px;
     --h-md: 44px;
     --h-lg: 44px;
   }
@@ -1634,8 +1639,21 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
    η αρχική οθόνη γινόταν δώδεκα οθόνες scroll για δώδεκα αριθμούς. Στα στενά
    πλάτη το πλέγμα γίνεται ρητά δίστηλο. Το !important είναι απαραίτητο: το
    grid-template-columns γράφεται inline από το KPIGrid και το inline νικά. */
+/* ── ΚΑΝΕΝΑΣ ΔΕΙΚΤΗΣ ΔΕΝ ΜΕΝΕΙ ΜΟΝΟΣ ΤΟΥ ΣΕ ΤΑΜΠΛΕΤΑ ────────────────────────
+   Το `auto-fit` του KPIGrid δίνει όσες στήλες ΧΩΡΑΝΕ: πέντε δείκτες στα 820
+   έβγαζαν 4+1, με τον πέμπτο μόνο του και τρύπα δεξιά. Το πλήθος γράφεται πια
+   ρητά και είναι ο μεγαλύτερος διαιρέτης που χωράει (--kpi-md, --kpi-sm από το
+   KPIGrid). Το !important είναι απαραίτητο: το inline νικά κάθε φύλλο στυλ. */
+/* ΟΙ ΠΡΟΕΠΙΛΟΓΕΣ ΓΡΑΦΟΝΤΑΙ ΣΤΗΝ ΚΛΑΣΗ, ΟΧΙ ΜΟΝΟ ΩΣ ΕΦΕΔΡΙΚΗ ΤΙΜΗ ΣΤΗ var().
+   Μια εφεδρική τιμή μέσα στη var() δεν είναι ορισμός: το token δεν υπάρχει
+   πουθενά και ο φύλακας των tokens το καταγγέλλει σωστά ως αόριστο. Εδώ ορίζεται
+   μία φορά και το inline του KPIGrid το αντικαθιστά όπου ξέρει καλύτερα. */
+.kpi-row { --kpi-md: 3; --kpi-sm: 2; }
+@media (max-width: 820px) {
+  .kpi-row { grid-template-columns: repeat(var(--kpi-md), minmax(0, 1fr)) !important; }
+}
 @media (max-width: 640px) {
-  .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .kpi-row { grid-template-columns: repeat(var(--kpi-sm), minmax(0, 1fr)) !important; }
 }
 @media (max-width: 640px) {
   .app-topbar { height: auto; min-height: 56px; padding: 8px 12px; gap: 8px; }
@@ -1712,6 +1730,19 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
    ήταν ΧΩΡΙΣ εφεδρική τιμή: σε στοιχείο που παίρνει την κλάση χωρίς το inline
    style του `fixedCols()`, η δήλωση `grid-template-columns` πετιέται ΟΛΟΚΛΗΡΗ
    και το πλέγμα καταρρέει σε μία στήλη. Σιωπηλά και μόνο σε εκείνο το σημείο. */
+/* ── ΜΙΑ ΣΕΙΡΑ ΠΕΔΙΩΝ ΔΕΝ ΑΦΗΝΕΙ ΠΟΤΕ ΤΡΥΠΑ ─────────────────────────────────
+   Ηταν πλέγμα με `auto-fit`: πέντε πεδία στα 820 έβγαιναν 4+1, με το τελευταίο
+   μόνο του και κενό δεξιά του όσο τρία πεδία. Με flex και `flex-grow: 1` τα
+   πεδία της τελευταίας σειράς απλώνονται και τη γεμίζουν, όσα κι αν είναι.
+   Το `align-items: end` μένει: τα πεδία έχουν ετικέτα από πάνω και μια ετικέτα
+   δύο γραμμών θα έσπρωχνε το κουτί της πιο χαμηλά από τα διπλανά. */
+.field-row {
+  --fr-min: min(100%, 170px); --fr-gap: 14px;
+  display: flex; flex-wrap: wrap;
+  gap: var(--fr-gap); align-items: end;
+}
+.field-row > * { flex: 1 1 var(--fr-min); min-width: 0; }
+
 .fixed-cols {
   --fc: 3; --fc-md: 3; --fc-sm: 2; --fc-gap: 12px;
   display: grid; gap: var(--fc-gap); align-items: end;

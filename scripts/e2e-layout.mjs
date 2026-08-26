@@ -169,6 +169,50 @@ const PROBE = () => {
     }
   }
 
+  // ═══ Η ΜΙΣΗ ΤΕΛΕΥΤΑΙΑ ΣΕΙΡΑ ═══════════════════════════════════════════
+  // Η ΠΙΟ ΣΥΧΝΗ ΠΑΡΑΦΩΝΙΑ ΤΗΣ ΕΦΑΡΜΟΓΗΣ, ΚΑΙ Η ΠΙΟ ΕΥΚΟΛΗ ΝΑ ΜΗ ΦΑΝΕΙ ΣΕ
+  // ΟΘΟΝΗ ΥΠΟΛΟΓΙΣΤΗ. Τέσσερα πλακίδια σε τρεις στήλες αφήνουν ένα μόνο του
+  // με τρύπα δεξιά. Στον υπολογιστή οι στήλες βγαίνουν τέσσερις και δεν
+  // φαίνεται· σε ταμπλέτα γίνονται τρεις και φαίνεται σε κάθε οθόνη.
+  //
+  // ΤΙ ΜΕΤΡΑΕΙ ΚΑΙ ΤΙ ΟΧΙ. Μόνο δοχεία με ΙΣΟΜΕΓΕΘΗ αδέλφια, δηλαδή πλακίδια
+  // που διαβάζονται ως σύνολο. Μια λίστα κειμένων με άνισα ύψη δεν είναι
+  // πλακίδια και δεν κρίνεται εδώ.
+  for (const g of document.querySelectorAll('*')) {
+    const cs = getComputedStyle(g)
+    if (!/grid|flex/.test(cs.display)) continue
+    const kids = [...g.children].filter(k => {
+      const b = k.getBoundingClientRect()
+      return b.width > 8 && b.height > 8 && getComputedStyle(k).position === 'static'
+    })
+    if (kids.length < 3) continue
+    const rows = new Map()
+    let sameW = true, w0 = null
+    for (const k of kids) {
+      const b = k.getBoundingClientRect()
+      if (w0 === null) w0 = b.width
+      else if (Math.abs(b.width - w0) > 2) sameW = false
+      const key = Math.round(b.top)
+      rows.set(key, (rows.get(key) || 0) + 1)
+    }
+    if (!sameW || rows.size < 2) continue
+    // ΤΟ ΗΜΕΡΟΛΟΓΙΟ ΔΕΝ ΕΧΕΙ ΟΡΦΑΝΑ, ΕΧΕΙ ΜΗΝΑ. Επτά στήλες με τις συντομογραφίες
+    // των ημερών στην πρώτη σειρά είναι ημερολόγιο: η τελευταία εβδομάδα του
+    // Φεβρουαρίου ΠΡΕΠΕΙ να είναι μισή. Ενας έλεγχος που το καταγγέλλει μαθαίνει
+    // τον επόμενο αναγνώστη να αγνοεί τα ευρήματα.
+    const head = kids.slice(0, 7).map(k => (k.textContent || '').trim())
+    if (head.length === 7 && head.every(t => /^(Δε|Τρ|Τε|Πε|Πα|Σα|Σά|Κυ)$/.test(t))) continue
+    const counts = [...rows.values()]
+    if (new Set(counts).size === 1) continue
+    // Η τελευταία σειρά με ΕΝΑ πλακίδιο δίπλα σε σειρές των τριών ή τεσσάρων
+    // είναι το ορφανό· δύο από τρία είναι ανεκτό και δεν αναφέρεται.
+    const full = Math.max(...counts), last = counts[counts.length - 1]
+    if (last > 1 && last >= full - 1) continue
+    // Το πρώτο πλακίδιο ονομάζει το μπλοκ: μια κλάση «DIV» δεν βρίσκεται.
+    const first = (kids[0].textContent || '').trim().slice(0, 20)
+    add('ΟΡΦΑΝΟ ΠΛΑΚΙΔΙΟ', `${(g.className || g.tagName).toString().slice(0, 16)} → ${first}`, counts.join('+'))
+  }
+
   // ── οριζόντια υπερχείλιση σε κάθε κυλιόμενο δοχείο ──
   if (document.documentElement.scrollWidth > innerWidth + 1) out.push(`ΣΕΛΙΔΑ ΚΥΛΑ ΟΡΙΖΟΝΤΙΑ ${document.documentElement.scrollWidth - innerWidth}px`)
   return out
@@ -176,7 +220,7 @@ const PROBE = () => {
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || chromePath(), args: ['--no-sandbox'] })
 const WIDTHS = [375, 430, 768, 820, 1024, 1440]
-const SCENES = ['portfolio','cash','rent','inbox','ledger','checklist','modal','select','compare']
+const SCENES = ['portfolio','cash','rent','inbox','ledger','checklist','modal','select','compare','loan','pricing','bills','contacts']
 const PAGES = ['/', '/login', '/signup', '/ypologismos-forou-enoikion', '/ypologismos-enfia', '/vraxyxronia-i-makroxronia', '/kathari-apodosi', '/imerologio', '/privacy']
 const BASE = process.env.E2E_BASE || 'http://localhost:3100'
 // ΟΙ ΔΗΜΟΣΙΕΣ ΘΕΛΟΥΝ ΖΩΝΤΑΝΟ ΔΙΑΚΟΜΙΣΤΗ, Ο ΠΑΓΚΟΣ ΟΧΙ. Ετσι ο έλεγχος τρέχει

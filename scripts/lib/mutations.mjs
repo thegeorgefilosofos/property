@@ -147,6 +147,7 @@ export const MUTATIONS = {
     { add: 'app/dashboard/components/__mut__.ts', content: "export async function put(db: { storage: { from: (b: string) => { upload: (p: string, f: Blob) => Promise<{ error: unknown }> } } }, files: Blob[]) {\n  const out: string[] = []\n  for (const f of files) {\n    const { error: upErr } = await db.storage.from('b').upload('p', f)\n    if (upErr) continue\n    out.push('p')\n  }\n  return out\n}\n" },
     { add: 'app/dashboard/components/__mut2__.ts', content: "export async function put(db: { storage: { from: (b: string) => { upload: (p: string, f: Blob) => Promise<{ error: unknown }> } } }, f: Blob) {\n  await db.storage.from('b').upload('p', f)\n  return 'p'\n}\n" },
   ] },
+  'toggle': { add: 'app/dashboard/components/__mut__.tsx', content: "export function Tog({ on, set }: { on: boolean; set: (v: boolean) => void }) {\n  return (\n    <button type=\"button\" role=\"switch\" aria-checked={on} onClick={() => set(!on)}\n      style={{ width: 46, height: 26, borderRadius: 12, background: on ? 'var(--accent)' : 'var(--border-default)' }}>\n      <span />\n    </button>\n  )\n}\n" },
   'http-bridge': { add: 'supabase/migrations/29990101000000_mut.sql', content: 'create or replace function public.mut_probe_call() returns void language sql as $$ select net.http_post(url => \'https://x\') $$;\ngrant execute on function public.mut_probe_call() to authenticated;\n' },
   'sql-types': { add: 'supabase/migrations/29990101000000_mut.sql', content: 'create or replace function public.mut_probe() returns void language plpgsql as $$\ndeclare v_row record;\nbegin\n  for v_row in select * from public.bills loop\n    if v_row.property_id = some_text then null; end if;\n  end loop;\nend $$;\n' },
   'service-role': { add: 'components/__mut__.ts', content: "export const key = process.env.SUPABASE_SERVICE_ROLE_KEY\n" },
@@ -183,6 +184,17 @@ export const MUTATIONS = {
   'stay-gross': { add: 'lib/core/__mut__.ts', content: 'export const income = (stay: { total: number }) => { const amount = stay.total; return amount }\n' },
   'local-formatters': { add: 'lib/core/__mut__.ts', content: "export const eur = (n: number) => `${n.toLocaleString('el-GR', { minimumFractionDigits: 2 })} €`\n" },
   'dashes': { add: 'components/__mut__.tsx', content: tsx('    <td>—</td>') },
+  // Το χύσιμο σε αντικείμενο στυλ: ο μεταγλωττιστής το δέχεται, η οθόνη το
+  // πληρώνει. Δύο μορφές, μία για κάθε βοηθό διάταξης.
+  // Νέος καλών που ζητά αποστολή είδους που η βάση δεν ξέρει: μεταγλωττίζεται
+  // καθαρά και κλείνει την πόρτα μόνο στον πρώτο πραγματικό χρήστη.
+  'send-quota': { add: 'lib/__mut__.ts', content: "export async function ping(sb: { rpc: (n: string, a: unknown) => Promise<unknown> }) {\n  return sb.rpc('bump_send_quota', { p_kind: 'anexartito_eidos' })\n}\n" },
+
+  'props-not-style': { every: [
+    { add: 'components/__mut__.tsx', content: "import { fieldRow } from './tokens'\nconst g = { ...fieldRow(200), marginBottom: 14 }\nexport default function MutationProbe() {\n  return <div style={g} />\n}\n" },
+    { add: 'components/__mut__.tsx', content: "import { fixedCols } from './tokens'\nconst g = { ...fixedCols(4), marginBottom: 14 }\nexport default function MutationProbe() {\n  return <div style={g} />\n}\n" },
+  ] },
+
   'form-grid': { add: 'components/__mut__.tsx', content: tsx("    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))' }}>\n      <NumberInput label=\"Ποσό\" />\n    </div>") },
   'ical-mirror': { file: 'lib/clients/ical.ts', from: 'function unfold(', to: 'function unfoldLines(' },
   // ΔΥΟ μήνες πίσω, όχι ένας: ο ένας μήνας είναι ρητά προειδοποίηση («το

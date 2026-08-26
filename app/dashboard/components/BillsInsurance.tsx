@@ -653,7 +653,7 @@ export function SubscriptionSection({ label, catalog, active, onToggle, onUpdate
                   <span style={{ ...TT.h2, fontSize: 15 }}>{svc.label}</span>
                   <span style={{ ...TT.kpi, fontSize: 18 }}>{fe(subShare(svc, a))}</span>
                 </div>
-                <div style={fieldRow(150, 12)}>
+                <div {...fieldRow(150, 12)}>
                 <CustomSelect label="Πακέτο" value={a.planId} onChange={v => onUpdate(a.service, 'planId', v)}
                   options={svc.plans.map(p => ({ value: p.id, label: p.name }))}/>
                 <CustomSelect label="Μοιράζεται" value={String(a.splitActive && a.splitPeople > 1 ? a.splitPeople : 1)}
@@ -1510,7 +1510,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
             )}
             {/* Τέσσερα στοιχεία του ίδιου ακινήτου, σε μία σειρά ίσα μοιρασμένη
                 αντί για δύο σειρές των δύο με μισή κάρτα άδεια δεξιά. */}
-            <div style={{ ...fieldRow(180), marginBottom: 14 }}>
+            <div {...fieldRow(180, 14, { marginBottom: 14 })}>
               <NumberInput label="Εμβαδόν"           value={effectiveSqm}    onChange={v => u({ insSqm: v })}          suffix="τ.μ." step={5}/>
               <TextInput   label="Πόλη ή περιοχή"    value={effectiveCity}   onChange={v => u({ insCity: v })}         placeholder="Παράδειγμα: Αθήνα…"/>
               <NumberInput label="Αξία κτιρίου"      value={insPropValue}    onChange={v => u({ insPropValue: v })}    suffix="€" step={5000}/>
@@ -1776,7 +1776,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
                 διαβάζεται από αριστερά προς τα δεξιά σε μία ευθεία.
                 Και δεν φαίνεται πια πατήσιμο όταν δεν είναι: ήταν πάντα σε
                 χρώμα ενέργειας και, χωρίς ονομασία ή κόστος, δεν έκανε τίποτα. */}
-            <div style={fieldRow(160)}>
+            <div {...fieldRow(160)}>
               <TextInput   label="Ονομασία"             value={newSubName}    onChange={setNewSubName}    placeholder="Παράδειγμα: Canva Pro…"/>
               <NumberInput label="Κόστος τον μήνα"      value={newSubPrice}   onChange={setNewSubPrice}   suffix="€" step={1}/>
               <DatePicker  label="Ημερομηνία ανανέωσης" value={newSubRenewal} onChange={setNewSubRenewal}/>

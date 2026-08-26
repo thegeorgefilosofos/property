@@ -177,7 +177,7 @@ export function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{it
           </button>
         ))}
       </div>
-      <div style={fieldRow(180, 12)}>
+      <div {...fieldRow(180, 12)}>
         <div><label htmlFor={nameId} style={labelStyle}>Ονοματεπώνυμο *</label><TextInput id={nameId} value={tenantName} onChange={setTenantName} placeholder="Παράδειγμα: Ιωάννης Παπαδόπουλος"/></div>
         <div><label htmlFor={phoneId} style={labelStyle}>Τηλέφωνο</label><TextInput id={phoneId} value={tenantPhone} onChange={setTenantPhone} placeholder="6912345678"/></div>
         <div><label style={labelStyle}>Ημερομηνία</label><DatePicker value={handoverDate} onChange={setHandoverDate}/></div>

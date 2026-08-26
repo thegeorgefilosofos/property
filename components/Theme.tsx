@@ -472,8 +472,24 @@ export function KPIGrid({ items, columns }: { items: KPIItem[]; columns?: number
   // Ρευστό πλέγμα: γεμίζει όσες στήλες χωράνε (min 150px) και «σπάει» μόνο του
   // σε 2 ή 1 στήλες σε tablet/κινητό, χωρίς media queries, δουλεύει παντού.
   const cols = columns ?? items.length;
+  // ═══ ΤΟ ΡΕΥΣΤΟ ΠΛΕΓΜΑ ΑΦΗΝΕΙ ΕΝΑ ΠΛΑΚΙΔΙΟ ΜΟΝΟ ΤΟΥ ═══════════════════════
+  // ΠΙΑΣΜΕΝΟ ΣΕ ΤΑΜΠΛΕΤΑ. Το `auto-fit` δίνει όσες στήλες ΧΩΡΑΝΕ, όχι όσες
+  // βγαίνουν σε γεμάτες σειρές: πέντε δείκτες στα 820 έβγαζαν 4+1, με τον
+  // πέμπτο μόνο του και τρύπα δεξιά. Στην οθόνη υπολογιστή δεν φαίνεται ποτέ,
+  // γιατί χωρούν και οι πέντε.
+  //
+  // ΤΟ ΠΛΗΘΟΣ ΣΤΗΛΕΩΝ ΓΡΑΦΕΤΑΙ ΡΗΤΑ ΣΤΑ ΣΤΕΝΑ ΠΛΑΤΗ, με τον ίδιο κανόνα που
+  // ισχύει ήδη στο `fixedCols`: ο μεγαλύτερος διαιρέτης του πλήθους που
+  // χωράει. Τέσσερα γίνονται 2+2, έξι γίνονται 3+3, πέντε μένουν 3+2 που δεν
+  // είναι ορφανό. Οι μεταβλητές ζουν εδώ και τα σπασίματα στο globals.css.
+  const step = (cap: number) => {
+    for (let d = Math.min(cols, cap); d >= 2; d--) if (cols % d === 0) return d;
+    // Ιδιο σκεπτικό με το `fixedCols`: με ταβάνι δύο, το ορφανό πιάνει μισό
+    // πλάτος και δίπλα του χάσκει τρύπα ίδιου μεγέθους. Μία στήλη είναι ζυγισμένη.
+    return cap === 2 ? 1 : Math.min(cols, cap);
+  };
   return (
-    <div className="kpi-row" style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${Math.max(140, Math.floor(920 / cols))}px), 1fr))`, gap: 12, marginBottom: 16 }}>
+    <div className="kpi-row" style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${Math.max(140, Math.floor(920 / cols))}px), 1fr))`, gap: 12, marginBottom: 16, '--kpi-md': step(3), '--kpi-sm': step(2) } as React.CSSProperties}>
       {items.map((k, i) => {
         const toned = !!(k.tone && k.tone !== 'neutral');
         return (

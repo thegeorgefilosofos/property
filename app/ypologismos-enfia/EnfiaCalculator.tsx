@@ -23,7 +23,7 @@ import { OBJECTIVE_VALUES } from '@/lib/tax/aade';
 // ακίνητο θα δει διαφορετικό ποσό στο εκκαθαριστικό.
 // ═══════════════════════════════════════════════════════════════════════════
 import { useMemo, useId } from 'react';
-import { T, feAuto, fixedCols } from '@/components/tokens';
+import { T, feAuto, fieldRow, fixedCols } from '@/components/tokens';
 import { fn, fp, feRate } from '@/lib/core/format';
 import { parseAmount } from '@/lib/core/greek';
 import { estimateENFIA, zoneKeyFromPricePerSqm, enfiaFloorCoef, enfiaAgeCoef, ENFIA_ZONE_TAX, ENFIA_FLOOR_COEF, ENFIA_AGE_BANDS } from '@/lib/billing/enfia';
@@ -104,12 +104,14 @@ export function EnfiaCalculator({ year, today }: { year: number; today: string }
 
   return (
     <div style={{ fontFamily: T.font.sans }}>
-      {/* ΠΕΝΤΕ ΠΕΔΙΑ ΣΕ ΡΗΤΕΣ ΔΥΟ ΣΤΗΛΕΣ. Το `formGrid` έβγαζε άλλοτε δύο και
-          άλλοτε τρεις στήλες ανάλογα με το zoom του περιηγητή, οπότε το πέμπτο
-          πεδίο άλλαζε θέση χωρίς να αλλάξει τίποτα στην οθόνη. Δύο στήλες και
-          το ποσοστό ιδιοκτησίας μόνο του στην τρίτη σειρά: είναι το μόνο που
-          σπάνια αλλάζει, οπότε ανήκει τελευταίο. */}
-      <div {...fixedCols(2, 14, 'start', 'po-tool-controls')}>
+      {/* ΠΕΝΤΕ ΠΕΔΙΑ, ΚΑΜΙΑ ΜΙΣΗ ΣΕΙΡΑ. Ηταν ρητές δύο στήλες, που έδιναν 2+2+1:
+          το ποσοστό ιδιοκτησίας έμενε μόνο του στην τρίτη σειρά με κενό δίπλα
+          του όσο ένα ολόκληρο πεδίο. Το σχόλιο που το δικαιολογούσε έλεγε ότι
+          «ανήκει τελευταίο» — και ανήκει, αλλά αυτό ορίζει τη ΣΕΙΡΑ, όχι την
+          τρύπα. Το πέντε δεν έχει διαιρέτη· η σειρά πεδίων με flex-grow το
+          λύνει χωρίς να χρειάζεται: το τελευταίο πεδίο απλώνεται και γεμίζει
+          τη σειρά του, σε κάθε πλάτος. */}
+      <div {...fieldRow(200, 14, { alignItems: 'start' }, 'po-tool-controls')}>
         <div>
           <label htmlFor={ids.sqm} style={label}>Τετραγωνικά</label>
           <input id={ids.sqm} inputMode="decimal" value={sqm} onChange={e => set('tm', e.target.value)} style={numField}/>

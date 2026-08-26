@@ -258,8 +258,8 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
   // «τρεις ενότητες», διαβάζει σκάλα. Τώρα κάθε σειρά πιάνει ΟΛΟ το πλάτος και
   // μοιράζεται ίσα: μία αριστερή άκρη, μία δεξιά, όσες στήλες χρειάζεται η κάθε
   // ενότητα. Το ελάχιστο κρατά τα στενά πεδία αναγνώσιμα.
-  const g2: React.CSSProperties   = { ...fieldRow(200), marginBottom: 14 };
-  const g3: React.CSSProperties   = { ...fieldRow(190), marginBottom: 14 };
+  const g2 = fieldRow(200, 14, { marginBottom: 14 });
+  const g3 = fieldRow(190, 14, { marginBottom: 14 });
 
   const internetCost = parseFloat(s.internetPrice) || 0;
   const waterM       = waterMonthly(s);
@@ -376,7 +376,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
         {/* ── Internet & Σταθερό Τηλέφωνο ──────────────────────────────────── */}
         <div style={card}>
           {secHdr('Internet και σταθερό τηλέφωνο', { url: 'https://www.eett.gr/opencms/opencms/EETT/Electronic_Communications/Market360/', text: 'ΕΕΤΤ 360° Σύγκριση' })}
-          <div style={g2}>
+          <div {...g2}>
             <CustomSelect label="Πάροχος" value={s.internetProvider}
               onChange={v => upd({ internetProvider: v, internetPlanId: '', internetPrice: '', internetSpeed: '' })}
               options={INTERNET_PROVIDERS.map(p => ({ value: p.value, label: p.label }))}/>
@@ -411,7 +411,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
               που ΠΑΙΡΝΕΙΣ και μέχρι πότε δεσμεύεσαι. Η σύγκριση των δύο
               ταχυτήτων είναι όλο το νόημα του πεδίου — και ήταν σε άλλη σειρά
               από το νούμερο με το οποίο συγκρίνεται. */}
-          <div style={g3}>
+          <div {...g3}>
             <TextInput   label="Ταχύτητα συμβολαίου" value={s.internetSpeed} onChange={v => upd({ internetSpeed: v })} placeholder="Παράδειγμα: 500/200 Mbps"/>
             <NumberInput label="Πραγματική ταχύτητα λήψης" value={s.internetSpeedReal || ''}  onChange={v => upd({ internetSpeedReal: v })} suffix="Mbps" step={10}/>
             <DatePicker  label="Λήξη συμβολαίου"                      value={s.internetContractEnd || ''} onChange={v => upd({ internetContractEnd: v })}/>
@@ -515,7 +515,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
                 διάλεξες ΠΕΡΙΕΧΕΙ αθλητικά, ανάβει μόνος του: το ξέρει ήδη ο
                 κατάλογος, δεν χρειάζεται να το ξαναπεί ο χρήστης. */}
             {s.hasTV && (
-              <div style={fieldRow(170)}>
+              <div {...fieldRow(170)}>
                 <CustomSelect label="Πάροχος" value={s.tvProvider}
                   onChange={v => upd({ tvProvider: v, tvPlanId: '', tvPlan: '' })}
                   options={TV_PROVIDERS.map(p => ({ value: p.value, label: p.label }))}/>
@@ -596,7 +596,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
         {/* ── Θέρμανση ─────────────────────────────────────────────────────── */}
         <div style={card}>
           {secHdr('Θέρμανση')}
-          <div style={g3}>
+          <div {...g3}>
             {/* ΤΟ ΜΕΝΟΥ ΓΡΑΦΕΙ ΣΤΟ ΑΚΙΝΗΤΟ. Πριν έγραφε στις ρυθμίσεις ΑΥΤΗΣ της
                 καρτέλας, ενώ η καρτέλα του αερίου είχε δικό της μενού με δικό
                 του λεξιλόγιο: δύο απαντήσεις για ένα κτίριο. */}
@@ -640,7 +640,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
         {/* ── Security & Συναγερμός ─────────────────────────────────────────── */}
         <div style={card}>
           {secHdr('Συναγερμός και ασφάλεια χώρου')}
-          <div style={g3}>
+          <div {...g3}>
             <CustomSelect label="Εταιρεία"            value={s.securityCompany}  onChange={v => upd({ securityCompany: v })}  options={SECURITY_COMPANIES.map(c => ({ value: c.value, label: c.label }))}/>
             <TextInput    label="Πρόγραμμα ή πακέτο" value={s.securityPlan}    onChange={v => upd({ securityPlan: v })}    placeholder="Παράδειγμα: Basic Monitor"/>
             <NumberInput  label="Μηνιαίο κόστος" value={s.securityMonthly} onChange={v => upd({ securityMonthly: v })} suffix="€" step={2}/>

@@ -433,7 +433,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
           προτάσεις, όχι αυτόματη αλλαγή. Το «από πού βγαίνει» το λέει η ίδια η
           ημέρα όταν την πατήσεις, ονομαστικά και με την πηγή της. */}
       {/* Ρυθμίσεις (τυποποιημένα πεδία, αποθηκεύονται αυτόματα) */}
-      <div style={{ ...fieldRow(150), margin: '18px 0 6px' }}>
+      <div {...fieldRow(150, 14, { margin: '18px 0 6px' })}>
         <NumberInput label="Βασική τιμή ανά νύχτα" value={base ? String(base) : ''} onChange={v => mark(setBase)(Number(v) || 0)} suffix="€" />
         <NumberInput label="Κατώτατο όριο" value={min ? String(min) : ''} onChange={v => mark(setMin)(Number(v) || 0)} suffix="€" />
         <NumberInput label="Ανώτατο όριο" value={max ? String(max) : ''} onChange={v => mark(setMax)(Number(v) || 0)} suffix="€" />
@@ -702,39 +702,27 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                                 ως κράτηση αντί για επτά ξεχωριστά τετράγωνα. */}
                             {d.booked && <span aria-hidden style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(45deg, transparent 0 4px, var(--border-default) 4px 5px)', opacity: 0.75 }} />}
                             <span style={{ position: 'relative', fontSize: 11, fontWeight: 600, color: d.booked ? 'var(--text-tertiary)' : 'var(--text-tertiary)' }}>{dayNum}</span>
-                            {/* Ακέραια ευρώ στο κελί, δύο δεκαδικά στην ανάλυση που
-                                ανοίγει με το πάτημα: το «45,00» είναι πέντε
-                                χαρακτήρες για να πει αυτό που λένε δύο.
-                                ΤΟ ΣΥΜΒΟΛΟ ΟΜΩΣ ΕΛΕΙΠΕ και ένα γυμνό «45» δίπλα
-                                σε ένα «45» της επόμενης ημέρας δεν λέει αν είναι
-                                ευρώ, ποσοστό ή νύχτες. Μπαίνει μικρότερο και
-                                πιο σβηστό: διαβάζεται ως μονάδα, όχι ως ψηφίο. */}
                             {/* Κλεισμένη ημέρα: δεν έχει προτεινόμενη τιμή και η
                                 παύλα που έμπαινε στη θέση της διαβαζόταν ως
                                 «λείπει τιμή» αντί για «είναι πιασμένη». */}
-                            {!d.booked && (() => {
-                              /* ══ ΤΕΤΡΑΨΗΦΙΑ ΤΙΜΗ ΚΟΒΟΤΑΝ ΚΑΙ ΑΠΟ ΤΙΣ ΔΥΟ ΜΕΡΙΕΣ ══
-                                 Ιδιο σφάλμα με τη λέξη «πιασμένη», ίδιο κελί: το
-                                 τετράγωνο βγαίνει 34,8 εικονοστοιχεία σε στενή
-                                 κάρτα (33 ωφέλιμα) και το «1.250 €» στα 12px
-                                 θέλει 37. Επειδή είναι κεντραρισμένο, χανόταν το
-                                 πρώτο ψηφίο ΚΑΙ το σύμβολο: το 1.250 διαβαζόταν
-                                 «.25». Σε οθόνη που ο ιδιοκτήτης χρησιμοποιεί για
-                                 να ορίσει τιμή, αυτό δεν είναι θέμα τυπογραφίας.
-                                 Το μέγεθος βγαίνει από το ΜΗΚΟΣ, μετρημένο σε
-                                 Chromium στο στενότερο δυνατό κελί:
-                                   ως 3 ψηφία   12px → 27 / 33
-                                   ως 5 χαρακτ. 10px → 31 / 33
-                                   πάνω από     9px → 33 / 33 */
-                              const txt = fn(d.price);
-                              const [fs, es] = txt.length <= 3 ? [12, 9] : txt.length <= 5 ? [10, 8] : [9, 7];
-                              return (
-                                <span style={{ position: 'relative', fontSize: fs, fontWeight: top ? 800 : 600, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
-                                  {txt}
-                                  <span style={{ fontSize: es, fontWeight: 600, marginLeft: 1.5, opacity: 0.55 }}>€</span>
-                                </span>
-                              );
-                            })()}
+                            {/* ══ ΤΟ ΕΥΡΩ ΛΕΓΕΤΑΙ ΜΙΑ ΦΟΡΑ, ΣΤΟ ΥΠΟΜΝΗΜΑ ══
+                                Το σύμβολο έμπαινε ΜΕΣΑ σε κάθε κελί, μικρότερο
+                                από τον αριθμό ώστε να χωρέσει: 9, 8 ή και 7
+                                εικονοστοιχεία. Στα 7 δεν είναι σύμβολο, είναι
+                                μουτζούρα· επαναλαμβανόταν τριάντα φορές τον
+                                μήνα για να πει κάτι που ισχύει για όλο τον πίνακα.
+                                Μαζί του έφυγε και ο λόγος να μικραίνει ο αριθμός:
+                                μετρημένο σε Chromium στο στενότερο κελί (41,8px
+                                στα 375 της οθόνης κινητού), το «12.500» στα 11px
+                                θέλει 37,8. Καμία τιμή δεν κόβεται πια και κανένα
+                                γράμμα δεν πέφτει κάτω από το δάπεδο των 11.
+                                Η μονάδα ζει στο υπόμνημα από κάτω, στην υπόδειξη
+                                του κελιού και στην ετικέτα προσιτότητας. */}
+                            {!d.booked && (
+                              <span style={{ position: 'relative', fontSize: 11, fontWeight: top ? 800 : 600, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                                {fn(d.price)}
+                              </span>
+                            )}
                             {d.isHoliday && !d.booked && <span style={{ position: 'absolute', top: 3, right: 3, width: 4, height: 4, borderRadius: '50%', background: 'var(--text-secondary)' }} />}
                           </button>
                         );
@@ -745,7 +733,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
               })}
             </div>
             <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 14, fontSize: 11, color: 'var(--text-tertiary)', alignItems: 'center' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 44, height: 10, borderRadius: 3, background: 'linear-gradient(90deg, color-mix(in srgb, var(--accent) 12%, transparent), var(--accent))' }} />από χαμηλή σε υψηλή τιμή</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 44, height: 10, borderRadius: 3, background: 'linear-gradient(90deg, color-mix(in srgb, var(--accent) 12%, transparent), var(--accent))' }} />τιμή ανά νύχτα σε ευρώ, από χαμηλή σε υψηλή</span>
               {/* «υψηλή ζήτηση» έφυγε: το σημάδι δηλώνει ΑΡΓΙΑ, που είναι
                   ημερολογιακό γεγονός. Δεδομένο ζήτησης δεν έχουμε. */}
               <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent)' }} />αργία</span>

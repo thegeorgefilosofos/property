@@ -58,6 +58,8 @@ import { classifyExpense } from '@/lib/expenses/classify';
 // Το Supabase δεν πετάει σε σφάλμα βάσης· η `must` το κάνει να πετάει, ώστε τα
 // try/catch αυτού του αρχείου να λένε αλήθεια. Βλ. lib/supabase/must.ts.
 import { must } from '@/lib/supabase/must';
+// Ο διακόπτης ζει στο UIComponents, ένας για όλη την εφαρμογή.
+import { Toggle } from './UIComponents';
 // Οι επαφές έχουν ένα σπίτι: lib/data/contacts.
 import * as contactStore from '@/lib/data/contacts';
 import { inferRole, roleLabel } from '@/lib/contacts/roles';
@@ -1723,15 +1725,6 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
 }
 
 // ── Διακόπτης (toggle) ──────────────────────────────────────────────────────
-function Switch({ on, onToggle }: { on: boolean; onToggle: () => void }) {
-  return (
-    <button onClick={onToggle} role="switch" aria-checked={on}
-      style={{ width: 42, height: 26, borderRadius: 12, border: 'none', cursor: 'pointer', flexShrink: 0, background: on ? 'var(--accent)' : 'var(--border-default)', position: 'relative', transition: 'background 0.2s' }}>
-      <span style={{ position: 'absolute', top: 3, left: on ? 21 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: 'var(--elev-1)' }} />
-    </button>
-  );
-}
-
 // ── Ρυθμίσεις συμπεριφοράς ──────────────────────────────────────────────────
 // ΤΟ ΟΝΟΜΑ ΚΑΙ ΤΟ ΦΥΛΟ ΕΦΥΓΑΝ ΑΠΟ ΕΔΩ. Δεν είναι απώλεια επιλογής: ο χρήστης
 // δεν ζητούσε να «φτιάξει βοηθό», ζητούσε βοήθεια. Το ερώτημα «πώς να με λες;»
@@ -1773,7 +1766,7 @@ function AssistantSettings({ draft, onSave, onCancel, onClearMemory, hasMemory, 
             <div style={{ fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Να θυμάται τις συζητήσεις</div>
             <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.4 }}>Συνεχίζει από εκεί που μείνατε, ανά ακίνητο. Μένει μόνο στη συσκευή σου.</div>
           </div>
-          <Switch on={memory} onToggle={() => setMemory(v => !v)} />
+          <Toggle on={memory} onChange={setMemory} ariaLabel="Μνήμη" size="sm" />
         </div>
         {memory && hasMemory && (
           <button onClick={onClearMemory} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--negative)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 600 }}>Σβήσε τη μνήμη αυτού του ακινήτου</button>
@@ -1801,7 +1794,7 @@ function AssistantSettings({ draft, onSave, onCancel, onClearMemory, hasMemory, 
             <div style={{ fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Σύγκριση μεταξύ ακινήτων</div>
             <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.4 }}>Να βλέπει και τα άλλα σου ακίνητα για συγκρίσεις (ποιο αποδίδει καλύτερα).</div>
           </div>
-          <Switch on={compare} onToggle={() => setCompare(v => !v)} />
+          <Toggle on={compare} onChange={setCompare} ariaLabel="Σύγκριση" size="sm" />
         </div>
       </div>
 

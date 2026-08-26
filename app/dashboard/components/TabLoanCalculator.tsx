@@ -7,7 +7,7 @@ import { fp, fe } from '@/lib/core/format'
 import { money as csvEur } from './sheetFormat';
 import DocChecklist from './DocChecklist'
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rPct, rEsc } from './reportPdf'
-import { T, Badge, ABSENT, TT, formGrid, fieldRow , fixedCols} from '@/components/Theme'
+import { T, Badge, ABSENT, TT, formGrid, fixedCols } from '@/components/Theme'
 import { affordability, rentVsBuy } from '@/lib/loans/affordability'
 import { AADE_HOME } from '@/lib/tax/aade'
 import { createClient } from '@/lib/supabase/client'

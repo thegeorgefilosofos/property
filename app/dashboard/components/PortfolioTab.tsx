@@ -17,7 +17,7 @@ import * as checklist from '@/lib/data/checklist';
 import * as expenses from '@/lib/data/expenses'
 import * as tenantStore from '@/lib/data/tenants'
 import { CustomSelect, BulkActionBar } from './UIComponents';
-import { T, PageTitle, KPIGrid, Badge, Btn, ExportButton, EmptyState, InfoBanner, SecHdr, SelectBox, SkeletonKPIs, Skeleton, fe, fn, fp, ABSENT_SHORT, Modal, TT } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, Badge, Btn, ExportButton, EmptyState, InfoBanner, SecHdr, SelectBox, SkeletonKPIs, Skeleton, fe, fn, fp, fixedCols, ABSENT_SHORT, Modal, TT } from '@/components/Theme';
 import { resolveRent } from '@/lib/billing/propertyFacts';
 import { statusLabel, type StatusRow } from '@/lib/property/status';
 import { declarableGross, declarableGrossOrTotal } from '@/lib/clients/stayAmounts';
@@ -608,7 +608,9 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
               έτους» το σημαίνει ήδη γραμμή-γραμμή και η σύνοψη δεν επιτρέπεται
               να το κρύψει πίσω από ένα δεκαδικό. */}
           <SecHdr label="Απόδοση χαρτοφυλακίου" sub={`Σε ετήσια βάση (εκτίμηση ρυθμού) · ${agg.valuedCount} από ${agg.count} ${agg.count === 1 ? 'ακίνητο' : 'ακίνητα'} με καταχωρημένη αξία${estimatedValued > 0 ? ` · ${estimatedValued} με εκτιμώμενα έσοδα` : ''}`} />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 170px), 1fr))', gap: 16, marginTop: 14 }}>
+          {/* Τέσσερις δείκτες με `auto-fit` έβγαιναν 3+1 στα 768: ο τέταρτος
+              μόνος του. Το `fixedCols` δίνει 2+2, γιατί διαλέγει διαιρέτη. */}
+          <div {...fixedCols(4, 16, 'start')} style={{ ...fixedCols(4, 16, 'start').style, marginTop: 14 }}>
             <PStat label="Αξία χαρτοφυλακίου" value={eur(agg.totalValue)} />
             <PStat label="Ετήσια έσοδα" value={eur(agg.totalRevenue)} />
             {/* ΔΥΟ ΔΕΚΑΔΙΚΑ, ΟΠΩΣ ΠΑΝΤΟΥ. Εγραφαν «6,7%» με ένα δεκαδικό, ενώ

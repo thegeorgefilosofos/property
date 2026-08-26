@@ -12,7 +12,7 @@ import * as contactStore from '@/lib/data/contacts';
 import { inferRole } from '@/lib/contacts/roles'
 import { alphaBucket, buildAlphaIndex, compareNames, initialsOf, type AlphaEntry } from '@/lib/contacts/alpha'
 import { Phone, Mail, X, Search, Globe, MapPin, FileText, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, Pencil, Trash2, Copy, MessageSquare, UserPlus, Camera, Check, Minus, SearchX } from 'lucide-react'
-import { DatePicker, CustomSelect } from './UIComponents'
+import { DatePicker, CustomSelect, Toggle } from './UIComponents'
 import { T, PageTitle, SecHdr, Btn, EmptyState, fn, fe, Skeleton, SkeletonKPIs, SelectBox, ABSENT, ABSENT_SHORT, Modal, SideSheet, localDay, pressable, pageShell } from '@/components/Theme'
 import { showTool, SHOW_FROM } from '@/lib/ui/thresholds'
 import { ActionMenu } from '@/components/ActionMenu'
@@ -347,13 +347,6 @@ function SecHead({ children }: { children: React.ReactNode }) {
       <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>{children}</span>
       <span style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
     </div>
-  )
-}
-function Tog({ value, onChange, colorOn = 'var(--accent)' }: { value: boolean; onChange: (v: boolean) => void; colorOn?: string }) {
-  return (
-    <button type="button" onClick={() => onChange(!value)} style={{ width: 46, height: 26, borderRadius: 12, border: 'none', cursor: 'pointer', background: value ? colorOn : 'var(--border-default)', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
-      <div style={{ position: 'absolute', top: 3, left: value ? 23 : 3, width: 20, height: 20, borderRadius: '50%', background: 'var(--bg-surface)', boxShadow: 'var(--elev-1)', transition: 'left 0.18s' }} />
-    </button>
   )
 }
 // Τα αστέρια αξιολόγησης και το «badge κατάστασης σχέσης» έφυγαν: ένα σκορ και μια
@@ -2088,8 +2081,8 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
                   </CField>
                   <CField d={cf('contact.messaging')}>
                     <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'center', padding: '12px 16px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Tog value={!!form.extra.whatsapp} onChange={v => setExtra('whatsapp', v)} /><span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>WhatsApp</span></div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Tog value={!!form.extra.viber} onChange={v => setExtra('viber', v)} /><span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Viber</span></div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Toggle on={!!form.extra.whatsapp} onChange={v => setExtra('whatsapp', v)} ariaLabel="WhatsApp" size="sm" /><span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>WhatsApp</span></div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Toggle on={!!form.extra.viber} onChange={v => setExtra('viber', v)} ariaLabel="Viber" size="sm" /><span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Viber</span></div>
                     </div>
                   </CField>
                   <CField d={cf('contact.iban')}>
@@ -2098,7 +2091,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
                   <CField d={cf('contact.iris')}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
                       <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>Δέχεται πληρωμή με IRIS</span>
-                      <Tog value={!!form.extra.iris} onChange={v => setExtra('iris', v)} />
+                      <Toggle on={!!form.extra.iris} onChange={v => setExtra('iris', v)} ariaLabel="Δέχεται πληρωμή με IRIS" size="sm" />
                     </div>
                   </CField>
                 </div>
@@ -2139,7 +2132,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
                   </CField>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
                     <div><div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Προτιμώμενη επαφή</div><div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Ανεβαίνει στη γρήγορη πρόσβαση, για να τη βρίσκεις αμέσως</div></div>
-                    <Tog value={!!form.extra.preferred} onChange={v => setExtra('preferred', v)} />
+                    <Toggle on={!!form.extra.preferred} onChange={v => setExtra('preferred', v)} ariaLabel="Προτιμώμενη επαφή" size="sm" />
                   </div>
                 </div>
 

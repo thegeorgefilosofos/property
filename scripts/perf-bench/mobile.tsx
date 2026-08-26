@@ -29,6 +29,14 @@ import TabChecklist from '@/app/dashboard/components/TabChecklist';
 // είναι μία μακριά συμβολοσειρά χωρίς όριο πλάτους: τραβούσε τη στήλη όσο
 // χρειαζόταν και ο πίνακας ξεπερνούσε κατά πολύ το πλάτος της οθόνης.
 import TabComparison from '@/app/dashboard/components/TabComparison';
+// ΟΙ ΟΘΟΝΕΣ ΠΟΥ ΦΩΤΟΓΡΑΦΙΣΕ Ο ΧΡΗΣΤΗΣ ΣΕ ΤΑΜΠΛΕΤΑ. Ο πάγκος έδειχνε εννιά
+// οθόνες και καμία από αυτές: ο έλεγχος διάταξης έβγαινε πράσινος για κώδικα
+// που κανείς δεν κοίταζε. Δάνειο, τιμολόγηση βραχυχρόνιας, λογαριασμοί, επαφές.
+import TabLoanCalculator from '@/app/dashboard/components/TabLoanCalculator';
+import { MARKET_FALLBACK } from '@/app/dashboard/components/TabLoanData';
+import TabPricing from '@/app/dashboard/components/TabPricing';
+import TabContacts from '@/app/dashboard/components/TabContacts';
+import TabBills from '@/app/dashboard/components/TabBills';
 import { Modal, Btn, PageTitle, InfoBanner, fieldRow } from '@/components/Theme';
 import { createClient } from '@/lib/supabase/client';
 import type { CashLine, CashPosition } from '@/lib/home/cash';
@@ -117,7 +125,7 @@ function ModalDemo() {
         footer={<><Btn variant="ghost" onClick={() => setOpen(false)}>Άκυρο</Btn><Btn variant="primary" onClick={() => {}}>Έκδοση</Btn></>}
         footerInfo="Η κατάσταση εκδίδεται σε PDF">
         <InfoBanner tone="warning">Ένα μήνυμα που εξηγεί τι θα γίνει, αρκετά μακρύ ώστε να τυλιχτεί σε στενή οθόνη κινητού.</InfoBanner>
-        <div style={fieldRow(170)}>
+        <div {...fieldRow(170)}>
           <CustomSelect label="Κατηγορία" value={v} onChange={setV} options={OPTS} />
           <CustomSelect label="Δεύτερη κατηγορία" value={v} onChange={setV} options={OPTS} />
         </div>
@@ -137,7 +145,7 @@ function SelectDemo() {
     <div>
       <PageTitle title="Επιλογείς" sub="CustomSelect στα 375" />
       <div className="card">
-        <div style={fieldRow(160)}>
+        <div {...fieldRow(160)}>
           <CustomSelect label="Κατηγορία" value={v} onChange={setV} options={OPTS} />
           <CustomSelect label="Ακίνητο" value={v} onChange={setV} options={OPTS} />
           <CustomSelect label="Τρόπος" value={v} onChange={setV} options={OPTS} />
@@ -157,6 +165,12 @@ const VIEWS: Record<string, () => React.ReactElement> = {
   ledger: () => <ExpenseLedger propertyId="p0" userId="u1" />,
   checklist: () => <TabChecklist propertyId="p0" userId="u1" />,
   compare: () => <TabComparison properties={comparePair as never} userId="u1" />,
+  loan: () => <TabLoanCalculator propertyId="p0" userId="u1" market={MARKET_FALLBACK}
+    onSaveLoan={async () => {}} onSaveToCalendar={async () => {}} onSaveToExpenses={async () => {}}
+    lens="" onLens={() => {}} />,
+  pricing: () => <TabPricing propertyId="p0" userId="u1" propertyName="Στούντιο Κουκάκι" propertySqm={42} />,
+  bills: () => <TabBills propertyId="p0" userId="u1" />,
+  contacts: () => <TabContacts propertyId="p0" userId="u1" />,
   modal: () => <ModalDemo />,
   select: () => <SelectDemo />,
 };

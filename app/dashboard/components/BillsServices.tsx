@@ -266,7 +266,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 10, fontFamily: T.font.sans, lineHeight: 1.5 }}>
             Πάρε έναν λογαριασμό ρεύματος και γράψε δύο ποσά. Από εκεί και πέρα κάθε μήνας υπολογίζεται μόνος του.
           </div>
-          <div style={fieldRow(190, 12)}>
+          <div {...fieldRow(190, 12)}>
             <NumberInput label="Σύνολο λογαριασμού"       value={s.lastBillTotal}    onChange={v => upd({ lastBillTotal: v })}    suffix="€" step={1}/>
             <NumberInput label="Δημοτικά τέλη στον λογαριασμό" value={s.lastBillDimotika} onChange={v => upd({ lastBillDimotika: v })} suffix="€" step={0.5}/>
             {/* ΤΟ ΑΠΟΤΕΛΕΣΜΑ ΕΧΕΙ ΤΟ ΣΧΗΜΑ ΤΩΝ ΔΥΟ ΠΕΔΙΩΝ ΠΟΥ ΤΟ ΓΕΝΝΟΥΝ.
@@ -487,7 +487,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           {/* Πέντε πεδία και μια ενέργεια ήταν τρία μικρά πάνω, δύο πλατιά κάτω
               και ένα κουμπί στριμωγμένο στην άκρη: τρία διαφορετικά πλάτη στο
               ίδιο κουτί. Μία σειρά, ίσα μοιρασμένη, η ενέργεια τελευταία. */}
-          <div style={fieldRow(150, 12)}>
+          <div {...fieldRow(150, 12)}>
             <TextInput    label="Υπηρεσία"           value={newName}    onChange={setNewName}    placeholder="Παράδειγμα: Βαφή…"/>
             <TextInput    label="Τεχνικός ή εταιρεία" value={newContact} onChange={setNewContact} placeholder="Ονοματεπώνυμο"/>
             <TextInput    label="Τηλέφωνο"           value={newPhone}   onChange={setNewPhone}   placeholder="69xxxxxxxx"/>

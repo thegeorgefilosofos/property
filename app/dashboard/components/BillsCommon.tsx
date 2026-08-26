@@ -356,7 +356,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         {secHdr('Διαχείριση Κτηρίου')}
 
         {/* FIX: 3 cols so DatePicker has enough room, was 4 cols causing overflow */}
-        <div style={{ ...fieldRow(180), marginBottom: 14 }}>
+        <div {...fieldRow(180, 14, { marginBottom: 14 })}>
           <CustomSelect label="Τύπος διαχείρισης" labelInfo={mgmtInfo} value={mgmtType} onChange={sMgmt} options={MGMT_TYPES}/>
           <NumberInput  label="Μηνιαίο κόστος" value={mgmtCost}   onChange={sMgmtC} suffix="€" step={5}/>
           <NumberInput  label="Ημέρα χρέωσης"       value={mgmtDueDay} onChange={sMgmtD} suffix="η" step={1}/>
@@ -391,7 +391,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
             εισφορά, πότε ενημερώθηκε. Ήταν σπασμένα σε δύο σειρές των δύο, με
             μισή κάρτα άδεια δεξιά — όχι επιλογή, αλλά ό,τι απέμενε από ένα
             πλέγμα με σταθερό μέγιστο στήλης. Μία σειρά, ίσα μοιρασμένη. */}
-        <div style={{ ...fieldRow(180), marginBottom: 14 }}>
+        <div {...fieldRow(180, 14, { marginBottom: 14 })}>
           <NumberInput label="Υπόλοιπο ταμείου"    value={fundBalance}  onChange={sFundBal} suffix="€" step={100}/>
           <NumberInput label="Μερίδιό μου"         value={fundMyPct}    onChange={sFundPct} suffix="%" step={1} max={100}/>
           <NumberInput label="Μηνιαία εισφορά"     value={fundMonthly}  onChange={sFundM}   suffix="€" step={5}/>
@@ -422,7 +422,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 16, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
           {/* Η ενέργεια είναι η τέταρτη στήλη της σειράς, όχι κουμπί κρεμασμένο
               από κάτω δεξιά. Και δεν φαίνεται πατήσιμη χωρίς αιτία και ποσό. */}
-          <div style={fieldRow(160)}>
+          <div {...fieldRow(160)}>
             <TextInput   label="Αιτία"      value={extraReason} onChange={setExtraReason} placeholder="Παράδειγμα: Ανακαίνιση ταράτσας"/>
             <NumberInput label="Ποσό"       value={extraAmount} onChange={setExtraAmount} suffix="€" step={50}/>
             <DatePicker  label="Ημερομηνία" value={extraDate}   onChange={setExtraDate}/>

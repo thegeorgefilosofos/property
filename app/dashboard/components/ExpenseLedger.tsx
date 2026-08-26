@@ -32,7 +32,7 @@ import * as expenseStore from '@/lib/data/expenses'
 import * as billStore from '@/lib/data/bills'
 import ExpenseCompare from './ExpenseCompare';
 import type { Spend } from '@/lib/expenses/compare';
-import { T, TT, fe, Btn, Card, EmptyState, Modal, Skeleton, ABSENT_DATE } from '@/components/Theme';
+import { T, TT, fe, Btn, Card, EmptyState, Modal, Skeleton, fixedCols, ABSENT_DATE } from '@/components/Theme';
 import { notify, notifyError } from '@/components/toastBus';
 import { confirmDialog } from '@/components/ConfirmDialog';
 import { saved } from '@/components/dbWrite';
@@ -409,9 +409,13 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
           Χωρίς πλαίσια και χωρίς γεμίσματα. Τρεις στήλες χωρισμένες με μία
           τρίχα, όπως σε τραπεζική κατάσταση. Το κουτί γύρω από νούμερα δεν
           προσθέτει πληροφορία, προσθέτει θόρυβο. */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',
-        gap: T.sp.lg, padding: `${T.sp.md}px 0 ${T.sp.lg}px`,
+      {/* ΤΟ `auto-fit` ΑΦΗΝΕΙ ΟΡΦΑΝΟ, ΚΑΙ ΤΟ ΑΦΗΝΕ. Τρεις αριθμοί στα 375 και στα
+          430 έβγαιναν 2+1, με τον τρίτο μόνο του και τρύπα δίπλα του. Το κοινό
+          `fixedCols` διαλέγει πλήθος στηλών που ΔΙΑΙΡΕΙ το πλήθος των
+          πλακιδίων, οπότε καμία σειρά δεν μένει μισή. */}
+      <div {...fixedCols(3, T.sp.lg, 'start')} style={{
+        ...fixedCols(3, T.sp.lg, 'start').style,
+        padding: `${T.sp.md}px 0 ${T.sp.lg}px`,
         borderBottom: '1px solid var(--border-subtle)', marginBottom: T.sp.lg,
       }}>
         <Figure label="αυτόν τον μήνα" value={loading ? null : fe(monthTotal)} />
