@@ -659,7 +659,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
                   `feSigned` υπάρχει στο `lib/core/format` ακριβώς γι’ αυτό, με δικό
                   του test — και δεν το καλούσε ΚΑΝΕΝΑ σημείο της εφαρμογής. Μια
                   συνάρτηση που κανείς δεν χρησιμοποιεί δεν φυλάει τίποτα. */}
-              <span style={{ ...TT.mono, fontSize: 13, color: 'var(--text-primary)' }}>{feSigned(-l.amount)}</span>
+              <span style={{ ...TT.figure, fontSize: 13, color: 'var(--text-primary)' }}>{feSigned(-l.amount)}</span>
             </div>
           ))}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, padding: '14px 0 0', borderTop: '1px solid var(--border-default)', marginTop: 4 }}>

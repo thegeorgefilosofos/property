@@ -85,7 +85,24 @@ export const TT = {
   caption: { fontFamily: T.font.sans, fontSize: 11, fontWeight: 400, lineHeight: 1.45, color: 'var(--text-tertiary)', ...PRETTY },
   // Μεγάλοι αριθμοί KPI: σφιχτή sans (num) + tabular. Το πυκνό mono μένει για πίνακες.
   kpi:     { fontFamily: T.font.num, fontSize: 22, fontWeight: 700, fontVariantNumeric: 'tabular-nums' as const, letterSpacing: '-0.01em', lineHeight: 1, color: 'var(--text-primary)' },
+  /**
+   * ΓΙΑ ΚΩΔΙΚΟΥΣ, ΟΧΙ ΓΙΑ ΠΟΣΑ. Η μονοδιάστημη γραμματοσειρά υπάρχει για κείμενο
+   * που διαβάζεται ΧΑΡΑΚΤΗΡΑ ΧΑΡΑΚΤΗΡΑ, όπως ένας κωδικός ανάκτησης: εκεί η
+   * διάκριση του «l» από το «1» αξίζει το τίμημα.
+   */
   mono:    { fontFamily: T.font.mono, fontSize: 13, fontWeight: 500, fontVariantNumeric: 'tabular-nums' as const, color: 'var(--text-primary)' },
+  /**
+   * ΕΝΑΣ ΑΡΙΘΜΟΣ ΜΕΣΑ ΣΕ ΓΡΑΜΜΗ, ΣΤΗΝ ΑΡΙΘΜΗΤΙΚΗ ΤΟΥ ΘΕΜΑΤΟΣ.
+   *
+   * Τέσσερα σημεία έγραφαν ποσά και ποσοστά με το `mono`, δηλαδή σε ΑΛΛΗ
+   * γραμματοσειρά από κάθε άλλο ποσό της ίδιας οθόνης: το σύνολο μήνα στις
+   * Δαπάνες, δύο γραμμές του ΕΝΦΙΑ και μία του Σχεδίου. Το «1.152,00 €» δίπλα
+   * στο «60,00 €» φαινόταν άλλο είδος πράγματος, σε απόσταση μιας ματιάς.
+   *
+   * Η στοίχιση δεν χάνεται: το `tabular-nums` δίνει ίσο πλάτος στα ψηφία, που
+   * είναι ο πραγματικός λόγος που ήθελε κανείς μονοδιάστημη σε στήλη ποσών.
+   */
+  figure:  { fontFamily: T.font.num, fontSize: 13, fontWeight: 500, fontVariantNumeric: 'tabular-nums' as const, color: 'var(--text-primary)' },
 } as const;
 
 // ── Κελί ιστορικού λογαριασμών ─────────────────────────────────────────────

@@ -662,7 +662,7 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
             <div key={m.month}>
               <div className="exp-month">
                 <span style={TT.label}>{monthLabel(m.month)}</span>
-                <span style={{ ...TT.mono, fontWeight: 700, color: 'var(--text-secondary)' }}>{fe(m.total)}</span>
+                <span style={{ ...TT.figure, fontWeight: 700, color: 'var(--text-secondary)' }}>{fe(m.total)}</span>
               </div>
               <div style={{ padding: '4px 0' }}>
                 {m.entries.map(e => (

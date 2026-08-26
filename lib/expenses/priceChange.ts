@@ -29,7 +29,7 @@
 
 import { expectedSeries } from './expected';
 import type { LedgerEntry } from './ledger';
-import { fe, fp } from '../core/format';
+import { fe, fpSigned } from '../core/format';
 
 /**
  * Κατηγορίες όπου το ποσό ΔΕΝ εξαρτάται από κατανάλωση.
@@ -113,7 +113,8 @@ export function priceChanges(
     // ποσά με δύο δεκαδικά, οπότε ένα σκέτο «−30%» ήταν το μοναδικό νούμερο της
     // οθόνης χωρίς υποδιαστολή. Το κείμενο παίρνει την ακριβή τιμή και ο κοινός
     // μορφοποιητής τη στρογγυλεύει· ΔΕΝ γράφεται «−30,00%», που θα υποσχόταν
-    // ακρίβεια που δεν υπάρχει.
+    // ακρίβεια που δεν υπάρχει. Το πρόσημο το βάζει το `fpSigned`, με το
+    // τυπογραφικό μείον που χρησιμοποιούν και τα ποσά της ίδιας πρότασης.
     const deltaPctExact = (deltaEur / previous) * 100;
     const deltaPct = Math.round(deltaPctExact);
     if (Math.abs(deltaEur) < MIN_ABS_EUR || Math.abs(deltaPct) < MIN_PCT) continue;
@@ -130,7 +131,7 @@ export function priceChanges(
       // το ποσοστό «−30%» με κανένα: το μοναδικό νούμερο της οθόνης χωρίς
       // υποδιαστολή, δίπλα σε δύο που την είχαν. Το πρόσημο μπαίνει από το `fp`,
       // που γράφει το τυπογραφικό μείον· εδώ μένει μόνο το «+».
-      : `${s.title}: ${eur(current)} αντί για ${eur(previous)} που πλήρωνες συνήθως, ${up ? '+' : ''}${fp(deltaPctExact)}. Μπορεί να είναι η κατανάλωση ή η τιμή.`;
+      : `${s.title}: ${eur(current)} αντί για ${eur(previous)} που πλήρωνες συνήθως, ${up ? '+' : ''}${fpSigned(deltaPctExact)}. Μπορεί να είναι η κατανάλωση ή η τιμή.`;
 
     out.push({
       key: s.key, title: s.title, category: s.category, vendor: s.vendor,

@@ -374,7 +374,7 @@ export default function EnfiaPanel({ propertyId, userId }: { propertyId: string;
                   <span style={{ ...TT.bodySm, color: 'var(--text-primary)', fontWeight: active ? 600 : 400, display: 'block' }}>{r.label}</span>
                   <span style={{ ...TT.caption, display: 'block', marginTop: 2 }}>{r.note}</span>
                 </span>
-                <span style={{ ...TT.mono, fontSize: 12, color: 'var(--text-secondary)', flexShrink: 0 }}>{fp(r.pct)}</span>
+                <span style={{ ...TT.figure, fontSize: 12, color: 'var(--text-secondary)', flexShrink: 0 }}>{fp(r.pct)}</span>
               </button>
             );
           })}
@@ -390,7 +390,7 @@ export default function EnfiaPanel({ propertyId, userId }: { propertyId: string;
             ].map(row => (
               <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '8px 0', borderBottom: '1px solid var(--border-subtle)' }}>
                 <span style={{ ...TT.bodySm, color: 'var(--text-secondary)' }}>{row.label}</span>
-                <span style={{ ...TT.mono, fontSize: 12 }}>{fe(row.val)}</span>
+                <span style={{ ...TT.figure, fontSize: 12 }}>{fe(row.val)}</span>
               </div>
             ))}
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, paddingTop: 12 }}>

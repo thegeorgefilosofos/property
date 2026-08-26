@@ -446,7 +446,11 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
         {/* Το 18 δεν το έγραψε ο χρήστης: είναι η αφετηρία της μηχανής και το
             πεδίο το παρουσίαζε σαν δική του καταχώρηση. Λέγεται ρητά. */}
         <NumberInput label="Προσαύξηση σαββατοκύριακου" labelInfo="Πόσο ακριβότερη είναι η Παρασκευή και το Σάββατο από τις καθημερινές. Ξεκινά από την αφετηρία της εφαρμογής· άλλαξέ την και οι προτάσεις προσαρμόζονται." value={String(wknd)} onChange={v => mark(setWknd)(Number(v) || 0)} suffix="%" />
-        <NumberInput label="Ελάχιστη διαμονή" value={String(minStay)} onChange={v => mark(setMinStay)(Math.max(1, Number(v) || 1))} suffix="νύχτες" />
+        {/* «1 ΝΥΧΤΕΣ» ΔΕΝ ΕΙΝΑΙ ΕΛΛΗΝΙΚΑ. Η μονάδα ήταν καρφωμένη στον πληθυντικό
+            και η προεπιλογή του πεδίου είναι ένα, δηλαδή η πιο συχνή τιμή του
+            έγραφε λάθος. Η μονάδα ακολουθεί τον αριθμό, όπως κάθε άλλη
+            μονάδα της εφαρμογής. */}
+        <NumberInput label="Ελάχιστη διαμονή" value={String(minStay)} onChange={v => mark(setMinStay)(Math.max(1, Number(v) || 1))} suffix={minStay === 1 ? 'νύχτα' : 'νύχτες'} />
       </div>
       {/* ΤΟ ΕΤΟΣ ΔΕΝ ΕΙΝΑΙ ΠΕΔΙΟ ΤΙΜΗΣ. Καθόταν έκτη στήλη μέσα στη σειρά, με
           ύψος πεδίου και ίδιο βάρος με τη «Βασική τιμή ανά νύχτα» — και επειδή
@@ -455,7 +459,15 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
           ημερολογίου από κάτω: μικρότερο, πιο διακριτικό, στη θέση του. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 14px' }}>
         <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Έτος</span>
-        <div style={{ display: 'inline-flex', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, overflow: 'hidden', height: 28 }}>
+        {/* ΤΟ ΚΑΡΦΩΜΕΝΟ ΥΨΟΣ ΕΚΟΒΕ ΤΟΝ ΣΤΟΧΟ ΑΦΗΣ ΣΤΗ ΜΕΣΗ. Με «height: 28» και
+            «overflow: hidden», τα δύο κουμπιά έπαιρναν κανονικά το δάπεδο των 44
+            σε συσκευή αφής και το κουτί τα έκοβε στα 28: ο στόχος έμενε 28 ΚΑΙ
+            τα ψηφία έβγαιναν εκτός κέντρου, γιατί το ορατό κομμάτι ήταν η μέση
+            ενός ψηλότερου κουμπιού. Μετρημένο στην Αξιοποίηση, 360×800.
+
+            Με ΕΛΑΧΙΣΤΟ ύψος, σε ποντίκι μένει 28 όπως ήταν και σε δάχτυλο το
+            κουτί ακολουθεί τα κουμπιά του. */}
+        <div style={{ display: 'inline-flex', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, overflow: 'hidden', minHeight: 28 }}>
           {[nowYear, nowYear + 1].map(y => (
             <button key={y} onClick={() => setPyear(y)} style={{
               border: 'none', cursor: 'pointer', fontFamily: T.font.sans, fontSize: 12,
