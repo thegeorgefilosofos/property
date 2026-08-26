@@ -90,7 +90,7 @@ export function BankLinkTile({ minHeight = 172 }: { minHeight?: number }) {
   const state = bankLinkState();
 
   return (<>
-    <div role="button" tabIndex={0} onClick={() => setOpen(true)}
+    <div role="button" tabIndex={0} onClick={() => setOpen(true)} className="pick-tile"
       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(true); } }}
       style={{ border: '1px solid var(--border-default)', borderRadius: T.radius.card, minHeight, cursor: 'pointer', background: 'var(--bg-elevated)', transition: 'background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s, opacity 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)', padding: '0 12px', textAlign: 'center' }}
       onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'var(--accent-dim)'; }}
