@@ -110,7 +110,13 @@ export default function TabComparison({ properties, userId }: Props) {
   const typeLabel = (key: string, sample: Property | undefined) =>
     TYPE_LABELS[key] ?? sample?.prop_type ?? key;
 
+  // ΤΟ «ΦΟΡΤΩΝΕΙ» ΑΝΗΚΕΙ ΣΤΗ ΦΟΡΤΩΣΗ, ΟΧΙ ΣΤΟ EFFECT. Ηταν
+  // `useEffect(() => { setLoading(true); load(); })`: μια σύγχρονη γραφή
+  // κατάστασης μέσα σε effect, δηλαδή δεύτερη απόδοση σε κάθε αλλαγή ακινήτων.
+  // Μέσα στη `load` λέει το ίδιο πράγμα μία φορά, στο σημείο που ξέρει πότε
+  // αρχίζει και πότε τελειώνει.
   const load = useCallback(async () => {
+    setLoading(true);
     const ids = properties.map(p => p.id);
     if (!ids.length) { setLoading(false); return; }
     const year = new Date().getFullYear();
@@ -207,7 +213,7 @@ export default function TabComparison({ properties, userId }: Props) {
     setLoading(false);
   }, [properties, userId]);
 
-  useEffect(() => { setLoading(true); load(); }, [load]);
+  useEffect(() => { load(); }, [load]);
 
   // ── ΦΟΡΟΣ ΣΕ ΕΠΙΠΕΔΟ ΦΟΡΟΛΟΓΟΥΜΕΝΟΥ ─────────────────────────────────────────
   // Η κλίμακα είναι προοδευτική στο ΣΥΝΟΛΟ των ενοικίων (Ε1). Άρα η ενοποίηση

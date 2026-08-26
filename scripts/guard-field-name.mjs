@@ -64,11 +64,46 @@ const BASELINE = 'scripts/field-name-baseline.json'
 // ανοιχτή ετικέτα και ΟΛΑ τα 31 πεδία από κάτω φάνηκαν τυλιγμένα σε ετικέτα,
 // δηλαδή ονομασμένα. Ο,τι σβήνεται γίνεται κενά, ώστε οι θέσεις και οι αριθμοί
 // γραμμών να μείνουν ίδιοι.
-const strip = src => src
-  .replace(/\{\/\*[\s\S]*?\*\/\}|\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
-  .split('\n')
-  .map(l => /^\s*(\/\/|\*)/.test(l) ? ' '.repeat(l.length) : l)
-  .join('\n')
+//
+// ΚΑΙ ΤΟ «/*» ΜΕΣΑ ΣΕ ΣΥΜΒΟΛΟΣΕΙΡΑ ΔΕΝ ΕΙΝΑΙ ΣΧΟΛΙΟ. Το καθάρισμα ήταν σκέτη
+// αντικατάσταση με κανονική έκφραση, οπότε το `accept="image/*,application/pdf"`
+// του σαρωτή δανείων άνοιγε ψεύτικο σχόλιο και ΕΣΒΗΝΕ 300 γραμμές πραγματικού
+// κώδικα ώς το επόμενο «*/». Ο φύλακας τύπωνε τότε μια ετικέτα-τέρας που ένωνε
+// δύο components και δεν έβλεπε τίποτα από όσα είχε φάει. Ο σαρωτής παρακάτω
+// περνά τις συμβολοσειρές και τα πρότυπα ακέραια.
+const strip = (src) => {
+  const out = src.split('')
+  const blank = (a, b) => { for (let k = a; k < b; k++) if (out[k] !== '\n') out[k] = ' ' }
+  let i = 0
+  while (i < src.length) {
+    const c = src[i]
+    if (c === '"' || c === "'" || c === '`') {
+      const q = c
+      i++
+      while (i < src.length && src[i] !== q) { if (src[i] === '\\') i++; i++ }
+      i++
+      continue
+    }
+    if (c === '/' && src[i + 1] === '*') {
+      const end = src.indexOf('*/', i + 2)
+      const stop = end === -1 ? src.length : end + 2
+      blank(i, stop)
+      i = stop
+      continue
+    }
+    if (c === '/' && src[i + 1] === '/') {
+      const end = src.indexOf('\n', i)
+      blank(i, end === -1 ? src.length : end)
+      i = end === -1 ? src.length : end
+      continue
+    }
+    i++
+  }
+  return out.join('')
+    .split('\n')
+    .map(l => /^\s*\*/.test(l) ? ' '.repeat(l.length) : l)
+    .join('\n')
+}
 
 // Διαβάζει την ετικέτα ολόκληρη, μετρώντας αγκύλες: μια ετικέτα μπορεί να
 // απλώνεται σε πολλές γραμμές και να περιέχει «>» μέσα σε συμβολοσειρά.
@@ -99,6 +134,18 @@ const named = tag =>
 
 // ── Ντόπια πεδία ────────────────────────────────────────────────────────────
 const NATIVE = ['input', 'textarea']
+// ΤΟ display:none ΔΕΝ ΕΙΝΑΙ ΚΡΥΨΩΝΑΣ, ΕΙΝΑΙ ΑΠΟΥΣΙΑ. Εννιά επιλογείς αρχείου
+// γράφονται `<input type="file" style={{ display: 'none' }}>` και τους ανοίγει
+// ένα ΟΡΑΤΟ κουμπί δίπλα τους («Ανέβασμα αρχείου», «Σάρωση»). Ενα στοιχείο με
+// `display: none` βγαίνει ΟΛΟΚΛΗΡΟ από το δέντρο προσιτότητας: ο αναγνώστης
+// οθόνης δεν το φτάνει ποτέ, δεν το εστιάζει και δεν το ανακοινώνει. Δεν είναι
+// ανώνυμο πεδίο· δεν είναι πεδίο. Το όνομα το κουβαλά το κουμπί που το ανοίγει
+// και ΕΚΕΙΝΟ κρίνεται από τους φύλακες των κουμπιών.
+//
+// Η εξαίρεση είναι στενή επίτηδες: ΜΟΝΟ `display: none` γραμμένο πάνω στο ίδιο
+// το πεδίο. Το `visibility: hidden`, το `opacity: 0` και το κρύψιμο από γονέα
+// ΔΕΝ περνούν, γιατί εκεί το πεδίο μπορεί να μένει εστιάσιμο.
+const HIDDEN_FROM_AT = /style=\{\{[^}]*display:\s*['"]none['"]/
 const NO_NAME_NEEDED = /type=["'](hidden|submit|button|reset|image)["']/
 const NATIVE_NAMED = tag =>
   /\b(id|aria-label|aria-labelledby)=/.test(tag) ||
@@ -164,7 +211,7 @@ for (const f of findSources()) {
   const wrapper = PROOF.every(p => p.test(src)) ? WRAPPERS[f] : undefined
   for (const el of NATIVE) {
     for (const { tag, line, at } of tagsOf(src, el)) {
-      if (NO_NAME_NEEDED.test(tag) || NATIVE_NAMED(tag)) continue
+      if (NO_NAME_NEEDED.test(tag) || HIDDEN_FROM_AT.test(tag) || NATIVE_NAMED(tag)) continue
       if (wrappedBy(src, at, 'label')) continue
       if (wrapper && wrapper.some(w => wrappedBy(src, at, w) || insideCall(src, at, w))) continue
       ;(native[f] ??= []).push(`${f}:${line}  ${tag.replace(/\s+/g, ' ').slice(0, 92)}`)
@@ -178,6 +225,11 @@ if (findings.length) {
   console.error('\n  Δώσε `label`, ή `id` μαζί με `htmlFor` στη δική σου ετικέτα, ή `ariaLabel`.')
   console.error('  Χωρίς κανένα από τα τρία, ο αναγνώστης οθόνης λέει «πλαίσιο κειμένου».')
   process.exit(1)
+}
+
+if (process.argv.includes('--list')) {
+  for (const xs of Object.values(native)) for (const x of xs) console.log(x)
+  process.exit(0)
 }
 
 const counts = Object.fromEntries(Object.entries(native).map(([f, xs]) => [f, xs.length]))
@@ -194,6 +246,10 @@ if (process.argv.includes('--write')) {
   process.exit(0)
 }
 
+// ΤΟ ΜΗΔΕΝ ΔΕΝ ΘΕΛΕΙ ΚΑΤΑΛΟΓΟ. Οσο υπήρχαν εξήντα εννέα ανώνυμα πεδία, η γραμμή
+// αναφοράς ανά αρχείο ήταν ο μόνος τρόπος να μη μπει εξηκοστό δέκατο. Τώρα που
+// είναι μηδέν, ο κατάλογος είναι χειρότερος από άχρηστος: θα ήταν το σημείο
+// όπου κάποιος θα έγραφε «1» για να περάσει η αλλαγή του.
 const base = existsSync(BASELINE) ? JSON.parse(readFileSync(BASELINE, 'utf8')).αρχεία : counts
 const over = Object.entries(counts).filter(([f, n]) => n > (base[f] ?? 0))
 

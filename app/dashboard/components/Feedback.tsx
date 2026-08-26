@@ -171,6 +171,7 @@ export default function Feedback({ target = 'general', onDone, embedded }: {
 
         {/* Πεδίο */}
         <textarea
+          aria-label="Το μήνυμά σου"
           value={body}
           onChange={e => { setBody(e.target.value); if (error) setError(null); }}
           onFocus={() => setFocused(true)}

@@ -295,7 +295,7 @@ function DeleteAccount() {
           <div style={{ fontSize: 13, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 10 }}>
             Για επιβεβαίωση, γράψε <strong>ΔΙΑΓΡΑΦΗ</strong> στο πεδίο και πάτησε την οριστική διαγραφή.
           </div>
-          <input value={confirmText} onChange={e => setConfirmText(e.target.value)} placeholder="ΔΙΑΓΡΑΦΗ" autoFocus className="po-field"
+          <input aria-label="Επιβεβαίωση διαγραφής" value={confirmText} onChange={e => setConfirmText(e.target.value)} placeholder="ΔΙΑΓΡΑΦΗ" autoFocus className="po-field"
             style={{ ...settingsField, maxWidth: 260, marginBottom: 12 }} />
           {error && <div style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, marginBottom: 10 }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>

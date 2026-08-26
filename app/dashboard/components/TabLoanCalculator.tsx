@@ -539,6 +539,13 @@ interface Props {
   lens:string; onLens:(v:string)=>void; lensRef?:React.Ref<HTMLDivElement>
 }
 
+// Τα τέσσερα κελιά του σεναρίου γράφονται από ΜΙΑ συνάρτηση, οπότε το όνομα
+// βγαίνει από το πεδίο που ήδη λέει ποιο είναι. Χωρίς αυτό, ο αναγνώστης οθόνης
+// άκουγε τέσσερα «πλαίσιο κειμένου» ανά σενάριο και έξι σενάρια είναι εικοσιτέσσερα.
+const SCEN_NAME: Record<'label' | 'amount' | 'rate' | 'years', string> = {
+  label: 'Ονομα σεναρίου', amount: 'Ποσό δανείου', rate: 'Επιτόκιο', years: 'Διάρκεια σε έτη',
+}
+
 const NATURAL_BORROWERS:BorrowerType[] = ['individual','young','family','senior','military','abroad']
 const BUSINESS_BORROWERS:BorrowerType[] = ['professional','company']
 
@@ -1080,7 +1087,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
                   const m=calcMonthly(s.amount,s.rate,s.years),ti=m*s.years*12-s.amount,saved=totalInt-ti
                   const isBest=scenarios.length>1&&saved===Math.max(...scenarios.map(x=>{const mx=calcMonthly(x.amount,x.rate,x.years);return totalInt-(mx*x.years*12-x.amount)}))
                   const isEd=editingId===s.id
-                  const cell=(v:string,f:'label'|'amount'|'rate'|'years',w:number)=><input value={v} onChange={e=>{ if(f==='label') updScen(s.id,'label',e.target.value); else updScen(s.id,f,Number(e.target.value)); }} style={{background:'var(--bg-surface)',border:'1px solid var(--accent)',borderRadius:10,padding:'5px 8px',color:'var(--text-primary)',fontSize:12,letterSpacing:0,outline:'none',width:w,fontFamily:f==='label'?"'Inter',sans-serif":"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}} type={f==='label'?'text':'number'} step={f==='rate'?0.05:1}/>
+                  const cell=(v:string,f:'label'|'amount'|'rate'|'years',w:number)=><input value={v} aria-label={SCEN_NAME[f]} onChange={e=>{ if(f==='label') updScen(s.id,'label',e.target.value); else updScen(s.id,f,Number(e.target.value)); }} style={{background:'var(--bg-surface)',border:'1px solid var(--accent)',borderRadius:10,padding:'5px 8px',color:'var(--text-primary)',fontSize:12,letterSpacing:0,outline:'none',width:w,fontFamily:f==='label'?"'Inter',sans-serif":"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}} type={f==='label'?'text':'number'} step={f==='rate'?0.05:1}/>
                   return(
                     <tr key={s.id} style={{borderBottom:'1px solid var(--border-subtle)',background:isBest?'var(--bg-surface)':'transparent'}}>
                       <td style={{padding:'9px 10px'}}>{isEd?cell(s.label,'label',120):<div style={{display:'flex',alignItems:'center',gap:7}}><span style={{color:'var(--text-primary)',fontFamily: T.font.sans,fontWeight:500}}>{s.label}</span>{isBest&&<Badge tone="accent">Βέλτιστο</Badge>}</div>}</td>

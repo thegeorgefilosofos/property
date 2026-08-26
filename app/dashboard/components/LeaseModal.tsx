@@ -221,9 +221,14 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
   // αποτέλεσμα έφτανε σε υπογεγραμμένο μισθωτήριο με QR επαλήθευσης: αρνητικό
   // μίσθωμα σε συμφωνητικό που υπογράφουν δύο μέρη. Όπου υπάρχει φυσικό
   // ανώτατο (ποσοστό 100, ημέρα μήνα 31) το λέμε ρητά (lib/core/numInput.ts).
-  const money = (value: string, on: (v: string) => void, suffix: string, max?: number) => (
+  // ΤΟ ΟΝΟΜΑ ΕΙΝΑΙ ΟΡΙΣΜΑ, ΓΙΑΤΙ Η ΕΤΙΚΕΤΑ ΖΕΙ ΣΤΟ ΣΗΜΕΙΟ ΚΛΗΣΗΣ. Το πεδίο
+  // γράφεται πέντε φορές με πέντε νοήματα («Μηνιαίο μίσθωμα», «Εγγύηση»,
+  // «Διάρκεια», «Αναπροσαρμογή», «Ημέρα πληρωμής») και η ετικέτα κάθεται σε
+  // διπλανό <div>. Χωρίς αυτό, ο αναγνώστης οθόνης άκουγε πέντε φορές
+  // «πλαίσιο κειμένου» σε συμφωνητικό που υπογράφουν δύο μέρη.
+  const money = (value: string, on: (v: string) => void, suffix: string, name: string, max?: number) => (
     <div style={{ position: 'relative' }}>
-      <input value={value} onChange={e => { const v = acceptNumeric(e.target.value, max); if (v !== null) on(v); }}
+      <input value={value} aria-label={name} onChange={e => { const v = acceptNumeric(e.target.value, max); if (v !== null) on(v); }}
         onFocus={onF} onBlur={onB} inputMode="decimal" placeholder=""
         style={{ ...field, paddingRight: 32, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} />
       {/* Ίδιο ύψος με το πεδίο, από την ΙΔΙΑ πηγή: αλλιώς το «€» δεν ακολουθεί
@@ -317,19 +322,19 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
               </div>
 
               <div {...fixedCols(2, 12, 'start')}>
-                <div><div style={lbl}>Εκμισθωτής</div><input value={landlord} onChange={e => setLandlord(e.target.value)} onFocus={onF} onBlur={onB} placeholder="Ονοματεπώνυμο ή επωνυμία" style={field} /></div>
-                <div><div style={lbl}>ΑΦΜ εκμισθωτή</div><input value={landlordAfm} onChange={e => setLandlordAfm(e.target.value)} onFocus={onF} onBlur={onB} placeholder="Προαιρετικό" inputMode="numeric" style={field} /></div>
-                <div><div style={lbl}>Μισθωτής</div><input value={tenant} onChange={e => setTenant(e.target.value)} onFocus={onF} onBlur={onB} placeholder="Ονοματεπώνυμο" style={field} /></div>
-                <div><div style={lbl}>ΑΦΜ μισθωτή</div><input value={tenantAfm} onChange={e => setTenantAfm(e.target.value)} onFocus={onF} onBlur={onB} placeholder="Προαιρετικό" inputMode="numeric" style={field} /></div>
+                <div><div style={lbl}>Εκμισθωτής</div><input aria-label="Ονοματεπώνυμο εκμισθωτή" value={landlord} onChange={e => setLandlord(e.target.value)} onFocus={onF} onBlur={onB} placeholder="Ονοματεπώνυμο ή επωνυμία" style={field} /></div>
+                <div><div style={lbl}>ΑΦΜ εκμισθωτή</div><input aria-label="ΑΦΜ εκμισθωτή" value={landlordAfm} onChange={e => setLandlordAfm(e.target.value)} onFocus={onF} onBlur={onB} placeholder="Προαιρετικό" inputMode="numeric" style={field} /></div>
+                <div><div style={lbl}>Μισθωτής</div><input aria-label="Ονοματεπώνυμο μισθωτή" value={tenant} onChange={e => setTenant(e.target.value)} onFocus={onF} onBlur={onB} placeholder="Ονοματεπώνυμο" style={field} /></div>
+                <div><div style={lbl}>ΑΦΜ μισθωτή</div><input aria-label="ΑΦΜ μισθωτή" value={tenantAfm} onChange={e => setTenantAfm(e.target.value)} onFocus={onF} onBlur={onB} placeholder="Προαιρετικό" inputMode="numeric" style={field} /></div>
               </div>
 
               <div {...fixedCols(3, 12, 'start')}>
-                <div><div style={lbl}>Μηνιαίο μίσθωμα</div>{money(rent, setRent, '€')}</div>
-                <div><div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 5 }}>Εγγύηση<InfoHint>Συνήθως ένα ή δύο μισθώματα. Δεν συμψηφίζεται με μισθώματα και επιστρέφεται ατόκως στη λήξη, εφόσον δεν υπάρχουν φθορές ή οφειλές.</InfoHint></div>{money(deposit, setDeposit, '€')}</div>
+                <div><div style={lbl}>Μηνιαίο μίσθωμα</div>{money(rent, setRent, '€', 'Μηνιαίο μίσθωμα')}</div>
+                <div><div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 5 }}>Εγγύηση<InfoHint>Συνήθως ένα ή δύο μισθώματα. Δεν συμψηφίζεται με μισθώματα και επιστρέφεται ατόκως στη λήξη, εφόσον δεν υπάρχουν φθορές ή οφειλές.</InfoHint></div>{money(deposit, setDeposit, '€', 'Εγγύηση')}</div>
                 <div><div style={lbl}>Έναρξη</div><DatePicker value={start} onChange={setStart} /></div>
-                <div><div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 5 }}>Διάρκεια<InfoHint>Στις μισθώσεις κατοικίας ισχύει η κατά νόμο ελάχιστη τριετής διάρκεια, ακόμη και αν συμφωνηθεί μικρότερη.</InfoHint></div>{money(years, setYears, 'έτη')}</div>
-                <div><div style={lbl}>Αναπροσαρμογή</div>{money(adjust, setAdjust, '%', PCT_MAX)}</div>
-                <div><div style={lbl}>Ημέρα πληρωμής</div>{money(payDay, setPayDay, 'ημ.', 31)}</div>
+                <div><div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 5 }}>Διάρκεια<InfoHint>Στις μισθώσεις κατοικίας ισχύει η κατά νόμο ελάχιστη τριετής διάρκεια, ακόμη και αν συμφωνηθεί μικρότερη.</InfoHint></div>{money(years, setYears, 'έτη', 'Διάρκεια σε έτη')}</div>
+                <div><div style={lbl}>Αναπροσαρμογή</div>{money(adjust, setAdjust, '%', 'Ετήσια αναπροσαρμογή', PCT_MAX)}</div>
+                <div><div style={lbl}>Ημέρα πληρωμής</div>{money(payDay, setPayDay, 'ημ.', 'Ημέρα πληρωμής', 31)}</div>
               </div>
 
               {/* Σύνοψη διάρκειας — ουδέτερη, με προειδοποίηση μόνο όπου έχει νόημα */}
@@ -360,7 +365,7 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
 
               <div style={{ maxWidth: 260 }}>
                 <div style={lbl}>Τόπος υπογραφής</div>
-                <input value={place} onChange={e => setPlace(e.target.value)} onFocus={onF} onBlur={onB} placeholder="Παράδειγμα: Αθήνα" style={field} />
+                <input aria-label="Τόπος υπογραφής" value={place} onChange={e => setPlace(e.target.value)} onFocus={onF} onBlur={onB} placeholder="Παράδειγμα: Αθήνα" style={field} />
               </div>
 
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '11px 13px', borderRadius: T.radius.inner, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>

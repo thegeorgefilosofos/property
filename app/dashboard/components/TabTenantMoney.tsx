@@ -251,7 +251,7 @@ export function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string
                   υπολογισμό. Και η υπόδειξη έγραφε «3.5» με αγγλική υποδιαστολή,
                   μέσα σε εφαρμογή που γράφει παντού ελληνικό κόμμα. Το κενό
                   πεδίο μένει κενό και η υπόδειξη πάει από κάτω, με λέξεις. */}
-              <input type="number" min={0} value={customPct} onChange={e=>setCustomPct(e.target.value)} placeholder="" step="0.1"
+              <input aria-label="Ποσοστό αναπροσαρμογής" type="number" min={0} value={customPct} onChange={e=>setCustomPct(e.target.value)} placeholder="" step="0.1"
                 style={{ ...selectStyle, border:'1px solid var(--border-default)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontSize:14 }}/>
               <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, marginTop:5 }}>Όπως το γράφει η σύμβαση, για παράδειγμα τρία και μισό.</div>
             </div>

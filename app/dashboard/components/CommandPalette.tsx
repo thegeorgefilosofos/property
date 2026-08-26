@@ -103,6 +103,7 @@ export function CommandPalette({ open, onClose, items }: { open: boolean; onClos
       <div className="cmdk" role="dialog" aria-modal="true">
         <input
           ref={inputRef}
+          aria-label="Αναζήτηση ή μετάβαση"
           className="cmdk-input"
           placeholder="Αναζήτηση ή μετάβαση… (ακίνητο, καρτέλα, ενέργεια)"
           value={q}

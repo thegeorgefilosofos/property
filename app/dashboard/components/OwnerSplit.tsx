@@ -252,14 +252,14 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
               // μόνο όταν ο κέρσορας/δάχτυλο περνά πάνω από τη γραμμή (ήσυχο UI).
               <div key={i} onMouseEnter={() => setHoverRow(i)} onMouseLeave={() => setHoverRow(null)} onFocusCapture={() => setHoverRow(i)}
                 style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <input value={r.name} onChange={e => setRow(i, 'name', e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="Όνομα" style={{ ...field, flex: '2 1 140px' }} />
-                <input value={r.afm} onChange={e => setRow(i, 'afm', e.target.value.replace(/\D/g, '').slice(0, 9))} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="ΑΦΜ" style={{ ...field, flex: '1 1 100px' }} inputMode="numeric" />
+                <input aria-label="Ονομα συνιδιοκτήτη" value={r.name} onChange={e => setRow(i, 'name', e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="Όνομα" style={{ ...field, flex: '2 1 140px' }} />
+                <input aria-label="ΑΦΜ συνιδιοκτήτη" value={r.afm} onChange={e => setRow(i, 'afm', e.target.value.replace(/\D/g, '').slice(0, 9))} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="ΑΦΜ" style={{ ...field, flex: '1 1 100px' }} inputMode="numeric" />
                 <div style={{ position: 'relative', flex: '0 0 92px' }}>
                   {/* ΤΟ ΠΟΣΟΣΤΟ ΙΔΙΟΚΤΗΣΙΑΣ ΔΕΝ ΠΕΡΝΑΕΙ ΤΟ 100 ΚΑΙ ΔΕΝ ΓΙΝΕΤΑΙ
                       ΑΡΝΗΤΙΚΟ. Το πεδίο δεχόταν «250» και «-40» και το ποσό
                       κάθε συνιδιοκτήτη έβγαινε από εκεί — σε κατάσταση που
                       κατεβαίνει ως PDF και πάει στον λογιστή. */}
-                  <input value={r.pct} onChange={e => { const v = acceptNumeric(e.target.value, PCT_MAX); if (v !== null) setRow(i, 'pct', v); }} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="" style={{ ...field, width: '100%', paddingRight: 32, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} inputMode="decimal" />
+                  <input aria-label="Ποσοστό συνιδιοκτησίας" value={r.pct} onChange={e => { const v = acceptNumeric(e.target.value, PCT_MAX); if (v !== null) setRow(i, 'pct', v); }} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="" style={{ ...field, width: '100%', paddingRight: 32, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} inputMode="decimal" />
                   <span style={{ position: 'absolute', right: 13, top: 0, height: T.h.lg, display: 'flex', alignItems: 'center', color: 'var(--text-tertiary)', fontSize: 13, pointerEvents: 'none' }}>%</span>
                 </div>
                 <button onClick={() => delRow(i)} aria-label="Αφαίρεση ιδιοκτήτη" title="Αφαίρεση"
@@ -276,13 +276,13 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
           <div style={{ flex: '1 1 160px' }}>
             <div style={{ ...TT.label, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Αμοιβή διαχείρισης<InfoHint>Η αμοιβή του διαχειριστή, ως ποσοστό επί των εσόδων. Αφαιρείται από το σύνολο πριν μοιραστεί το καθαρό στους ιδιοκτήτες. Άφησέ την κενή αν δεν υπάρχει.</InfoHint></div>
             <div style={{ position: 'relative' }}>
-              <input value={feePct} onChange={e => { const v = acceptNumeric(e.target.value, PCT_MAX); if (v !== null) setFeePct(v); }} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="" style={{ ...field, width: '100%', paddingRight: 84, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} inputMode="decimal" />
+              <input aria-label="Αμοιβή διαχείρισης σε ποσοστό εσόδων" value={feePct} onChange={e => { const v = acceptNumeric(e.target.value, PCT_MAX); if (v !== null) setFeePct(v); }} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="" style={{ ...field, width: '100%', paddingRight: 84, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} inputMode="decimal" />
               <span style={{ position: 'absolute', right: 13, top: 0, height: T.h.lg, display: 'flex', alignItems: 'center', color: 'var(--text-tertiary)', fontSize: 12, pointerEvents: 'none', whiteSpace: 'nowrap' }}>% εσόδων</span>
             </div>
           </div>
           <div style={{ flex: '2 1 200px' }}>
             <div style={{ ...TT.label, marginBottom: 6 }}>Διαχειριστής (προαιρετικό)</div>
-            <input value={managerName} onChange={e => setManagerName(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="Επωνυμία διαχειριστή" style={{ ...field, width: '100%' }} />
+            <input aria-label="Επωνυμία διαχειριστή" value={managerName} onChange={e => setManagerName(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="Επωνυμία διαχειριστή" style={{ ...field, width: '100%' }} />
           </div>
         </div>
 

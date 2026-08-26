@@ -1866,7 +1866,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                           <span style={{ width: 74, flexShrink: 0, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Εξαιρείται</span>
                           <div style={{ position: 'relative', width: 108 }}>
-                            <input inputMode="decimal" value={amtVal}
+                            <input aria-label="Ποσό που εξαιρείται" inputMode="decimal" value={amtVal}
                               onChange={e => { const raw = e.target.value.replace(/[^\d.,]/g, ''); setExclAmtDraft(d => ({ ...d, [it.id]: raw })); const n = parseFloat(raw.replace(',', '.')); patchExcl(it.id, { amount: isFinite(n) && n > 0 ? n : undefined }); }}
                               placeholder={`όλο (${feAuto(full)})`}
                               style={{ width: '100%', height: 28, padding: '0 22px 0 10px', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 12, fontWeight: 600, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', outline: 'none', transition: 'border-color 0.15s' }}
@@ -1881,7 +1881,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                         {/* Σημείωση: ελεύθερο κείμενο (προαιρετικό) */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <span style={{ width: 74, flexShrink: 0, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Σημείωση</span>
-                          <input type="text" value={ex?.note ?? ''} maxLength={120}
+                          <input aria-label="Σημείωση εξαίρεσης" type="text" value={ex?.note ?? ''} maxLength={120}
                             onChange={e => patchExcl(it.id, { note: e.target.value })}
                             placeholder="Παράδειγμα: το μισό το πλήρωσε ο συγκάτοικος"
                             style={{ flex: 1, minWidth: 0, height: 28, padding: '0 10px', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans, outline: 'none', transition: 'border-color 0.15s' }}

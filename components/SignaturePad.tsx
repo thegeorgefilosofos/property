@@ -134,7 +134,7 @@ export default function SignaturePad({ onChange, height = 116 }: { onChange: (da
           style={{ ...surface, touchAction: 'none', cursor: 'crosshair', display: 'block' }} />
       ) : (
         <div style={{ ...surface, display: 'flex', alignItems: 'center', padding: '0 16px' }}>
-          <input value={typed} onChange={e => renderTyped(e.target.value)} placeholder="Πληκτρολόγησε το όνομά σου"
+          <input aria-label="Ονοματεπώνυμο για την υπογραφή" value={typed} onChange={e => renderTyped(e.target.value)} placeholder="Πληκτρολόγησε το όνομά σου"
             style={{ width: '100%', border: 'none', outline: 'none', background: 'transparent', color: 'var(--text-primary)', fontSize: 28, fontStyle: 'italic', fontFamily: '"Brush Script MT","Segoe Script","Comic Sans MS",cursive', boxSizing: 'border-box' }} />
         </div>
       )}

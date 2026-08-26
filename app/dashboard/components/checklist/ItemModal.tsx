@@ -42,7 +42,7 @@ export function ItemModal({ item, contacts, onSave, onClose, onScan }: {
         <Btn variant="secondary" onClick={onClose}>Ακύρωση</Btn>
         <Btn variant="primary" disabled={!canSave} onClick={() => { if (canSave) onSave(form) }}>{item ? 'Αποθήκευση' : 'Προσθήκη εκκρεμότητας'}</Btn>
       </>}>
-      <div><FL>Περιγραφή *</FL><Inp value={form.description} onChange={v => setForm(f => ({ ...f, description: v }))} placeholder="Παράδειγμα: Service καλοριφέρ" /></div>
+      <div><FL>Περιγραφή *</FL><Inp ariaLabel="Περιγραφή" value={form.description} onChange={v => setForm(f => ({ ...f, description: v }))} placeholder="Παράδειγμα: Service καλοριφέρ" /></div>
       <div style={{ ...formGrid(200, 270), gap: 12 }}>
         <div><FL>Κατηγορία</FL><Sel value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))} options={CATEGORIES.map(c => ({ value: c.id, label: c.label }))} /></div>
         <div><FL>Προτεραιότητα</FL><Sel value={form.priority} onChange={v => setForm(f => ({ ...f, priority: v as Priority }))} options={PRIORITIES.map(p => ({ value: p.value, label: p.label }))} /></div>
@@ -55,7 +55,7 @@ export function ItemModal({ item, contacts, onSave, onClose, onScan }: {
           και είχε δική του κολόνα στον Πίνακα, χωρίς κανέναν τρόπο να επιλεγεί. */}
       <div style={{ ...formGrid(200, 270), gap: 12 }}>
         <div><FL>Κατάσταση</FL><Sel value={form.status} onChange={v => setForm(f => ({ ...f, status: v as Status }))} options={STATUSES.map(st => ({ value: st.value, label: st.label }))} /></div>
-        <div><FL>Δική σου εκτίμηση κόστους (€)</FL><Inp value={form.estimated_cost} onChange={v => setForm(f => ({ ...f, estimated_cost: v }))} placeholder="προαιρετικό" type="number" min={0} /></div>
+        <div><FL>Δική σου εκτίμηση κόστους (€)</FL><Inp ariaLabel="Δική σου εκτίμηση κόστους σε ευρώ" value={form.estimated_cost} onChange={v => setForm(f => ({ ...f, estimated_cost: v }))} placeholder="προαιρετικό" type="number" min={0} /></div>
       </div>
       <div style={{ ...formGrid(200, 270), gap: 12 }}>
         <div><FL>Ανάθεση σε επαφή</FL>
@@ -104,7 +104,7 @@ export function ItemModal({ item, contacts, onSave, onClose, onScan }: {
         <SubTaskEditor subtasks={form.subtasks} onChange={sub => setForm(f => ({ ...f, subtasks: sub }))} />
       </div>
       <div><FL>Σημείωση</FL>
-        <textarea value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} placeholder="Επιπλέον πληροφορίες…" rows={3} style={{ ...iStyle, resize: 'vertical', lineHeight: 1.5 }} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-default)')} />
+        <textarea value={form.note} aria-label="Σημείωση" onChange={e => setForm(f => ({ ...f, note: e.target.value }))} placeholder="Επιπλέον πληροφορίες…" rows={3} style={{ ...iStyle, resize: 'vertical', lineHeight: 1.5 }} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-default)')} />
       </div>
       <div><FL>Ιστορικό ({form.comments.length})</FL>
         <CommentsEditor comments={form.comments} onChange={c => setForm(f => ({ ...f, comments: c }))} />

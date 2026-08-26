@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo, useRef, type ElementType } from 'react'
+import { useState, useEffect, useCallback, useContext, useMemo, useRef, createContext, type ElementType } from 'react'
 import { useCoarsePointer } from '@/components/useCoarsePointer'
 import { downloadWorkbook } from './sheets';
 import { qrDataUrl } from '@/lib/qr';
@@ -306,11 +306,25 @@ function isOverdue(d: string) { const n = daysUntil(d); return n !== null && n <
 // δεν υπάρχει και το πεδίο δεν έχει λόγο να το δέχεται.
 // Ο τύπος ΔΕΝ δέχεται 'date': οι ημερομηνίες αυτής της οθόνης περνούν από τον
 // DatePicker, που τον χρησιμοποιεί ήδη τρεις φορές.
-function Inp({ value, onChange, placeholder, type = 'text', min }: { value: string; onChange: (v: string) => void; placeholder?: string; type?: 'text' | 'email' | 'tel' | 'url' | 'search' | 'number' | 'password'; min?: number }) {
-  return <input type={type} min={min} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={iStyle} onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)' }} onBlur={e => { e.target.style.borderColor = 'var(--border-default)'; e.target.style.boxShadow = 'none' }} />
+// ΤΟ ΟΝΟΜΑ ΤΟΥ ΠΕΔΙΟΥ ΤΟ ΞΕΡΕΙ ΗΔΗ Ο ΓΟΝΕΑΣ, ΚΑΙ ΔΕΝ ΕΦΤΑΝΕ ΠΟΤΕ ΣΤΟ ΠΕΔΙΟ.
+// Το `CField` γράφει την ετικέτα («ΟΝΟΜΑ», «ΤΗΛΕΦΩΝΟ», «ΑΦΜ») ως ΑΔΕΛΦΟ του
+// κουτιού, όχι συνδεδεμένη με αυτό. Ο βλέπων διαβάζει τη σειρά και καταλαβαίνει·
+// ο αναγνώστης οθόνης ακούει «πλαίσιο κειμένου» δεκατέσσερις φορές στη σειρά.
+// Το `placeholder` δεν σώζει: σβήνεται με τον πρώτο χαρακτήρα.
+//
+// ΓΙΑΤΙ ΣΥΜΦΡΑΖΟΜΕΝΑ ΚΑΙ ΟΧΙ ΙΔΙΟΤΗΤΑ ΣΕ ΚΑΘΕ ΚΛΗΣΗ. Οι κλήσεις είναι
+// δεκαπέντε και η ετικέτα υπάρχει ΗΔΗ, μία φορά, στο μητρώο πεδίων. Γραμμένη
+// ξανά σε κάθε `<Inp>` θα ήταν το ίδιο κείμενο δύο φορές, με τον γνωστό
+// επόμενο βαθμό: τη μέρα που αλλάξει η μία και μείνει η άλλη.
+const FieldName = createContext<string | undefined>(undefined);
+
+function Inp({ value, onChange, placeholder, type = 'text', min, ariaLabel }: { value: string; onChange: (v: string) => void; placeholder?: string; type?: 'text' | 'email' | 'tel' | 'url' | 'search' | 'number' | 'password'; min?: number; ariaLabel?: string }) {
+  const named = useContext(FieldName);
+  return <input type={type} min={min} value={value} aria-label={ariaLabel ?? named} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={iStyle} onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)' }} onBlur={e => { e.target.style.borderColor = 'var(--border-default)'; e.target.style.boxShadow = 'none' }} />
 }
-function Txt({ value, onChange, placeholder, rows = 4 }: { value: string; onChange: (v: string) => void; placeholder?: string; rows?: number }) {
-  return <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={rows} style={{ ...iStyle, height: 'auto', resize: 'vertical', lineHeight: 1.6 }} onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)' }} onBlur={e => { e.target.style.borderColor = 'var(--border-default)'; e.target.style.boxShadow = 'none' }} />
+function Txt({ value, onChange, placeholder, rows = 4, ariaLabel }: { value: string; onChange: (v: string) => void; placeholder?: string; rows?: number; ariaLabel?: string }) {
+  const named = useContext(FieldName);
+  return <textarea value={value} onChange={e => onChange(e.target.value)} aria-label={ariaLabel ?? named} placeholder={placeholder} rows={rows} style={{ ...iStyle, height: 'auto', resize: 'vertical', lineHeight: 1.6 }} onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)' }} onBlur={e => { e.target.style.borderColor = 'var(--border-default)'; e.target.style.boxShadow = 'none' }} />
 }
 // Πεδίο ΜΕ ΤΟ «ΓΙΑΤΙ» ΤΟΥ, από το μητρώο. Αν το πεδίο δεν αφορά αυτόν τον χρήστη,
 // δεν αποδίδεται καθόλου — δεν κλειδώνεται και δεν εμφανίζεται γκριζαρισμένο.
@@ -319,7 +333,10 @@ function CField({ d, required, children }: { d?: FieldDecision; required?: boole
   return (
     <div>
       <FL>{d.label}{required || d.critical ? ' *' : ''}</FL>
-      {children}
+      {/* Η ετικέτα που μόλις γράφτηκε ταξιδεύει και ΜΕΣΑ στο πεδίο, ως όνομα για
+          τον αναγνώστη οθόνης. Το `why` από κάτω δεν μπαίνει: είναι περιγραφή,
+          όχι όνομα· ένα όνομα δύο προτάσεων ακούγεται σε κάθε εστίαση. */}
+      <FieldName.Provider value={d.label}>{children}</FieldName.Provider>
       {/* Κενό `why` δεν αποδίδει γραμμή. Πριν, ΚΑΘΕ πεδίο κουβαλούσε τη δική του
           πρόταση και τα μισά ξανάλεγαν την ετικέτα («Όνομα · Για να τον βρεις»):
           διπλάσιο ύψος φόρμας για μηδέν πληροφορία και ύφος οδηγιών χρήσης αντί
@@ -387,7 +404,7 @@ function TagEditor({ tags, onChange }: { tags: string[]; onChange: (t: string[])
         </div>
       )}
       <div style={{ display: 'flex', gap: 8 }}>
-        <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), add(input))} placeholder="Νέα ετικέτα…" style={{ ...iStyle, flex: 1 }} />
+        <input value={input} aria-label="Νέα ετικέτα" onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), add(input))} placeholder="Νέα ετικέτα…" style={{ ...iStyle, flex: 1 }} />
         <button type="button" onClick={() => add(input)} style={{ padding: '10px 16px', borderRadius: T.radius.inner, border: '1px solid var(--accent-border)', background: 'var(--accent-soft)', color: 'var(--accent)', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>+</button>
       </div>
     </div>
@@ -1847,7 +1864,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
         {showTool('search', contacts.length) && (
         <div style={{ flex: 1, minWidth: 220, position: 'relative' }}>
           <Search size={14} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Όνομα, τηλέφωνο, email, ΑΦΜ ή IBAN" style={{ ...iStyle, paddingLeft: 38 }} onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)' }} onBlur={e => { e.target.style.borderColor = 'var(--border-default)'; e.target.style.boxShadow = 'none' }} />
+          <input value={search} aria-label="Αναζήτηση επαφής" onChange={e => setSearch(e.target.value)} placeholder="Όνομα, τηλέφωνο, email, ΑΦΜ ή IBAN" style={{ ...iStyle, paddingLeft: 38 }} onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)' }} onBlur={e => { e.target.style.borderColor = 'var(--border-default)'; e.target.style.boxShadow = 'none' }} />
         </div>
         )}
         {allTags.length > 0 && (

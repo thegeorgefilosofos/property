@@ -27,8 +27,11 @@ export function FL({ children }: { children: React.ReactNode }) {
 // δέχονταν αρνητικούς αριθμούς — δαπάνη μείον διακοσίων ευρώ δεν υπάρχει.
 // Ο τύπος ΔΕΝ δέχεται 'date': το ημερολόγιο του περιηγητή γράφει αγγλικά και
 // αντιστρέφει ημέρα με μήνα. Οι ημερομηνίες περνούν από τον DatePicker.
-export function Inp({ value, onChange, placeholder, type = 'text', min }: { value: string; onChange: (v: string) => void; placeholder?: string; type?: 'text' | 'email' | 'tel' | 'url' | 'search' | 'number' | 'password'; min?: number }) {
-  return <input type={type} min={min} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={iStyle} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-default)')} />
+// Η <FL> γράφει την ετικέτα ΔΙΠΛΑ στο πεδίο, όχι συνδεδεμένη με αυτό: ο βλέπων
+// τη διαβάζει, ο αναγνώστης οθόνης ακούει «πλαίσιο κειμένου». Πέντε κλήσεις εδώ,
+// οπότε το όνομα γράφεται ρητά σε καθεμία αντί για συμφραζόμενα.
+export function Inp({ value, onChange, placeholder, type = 'text', min, ariaLabel }: { value: string; onChange: (v: string) => void; placeholder?: string; type?: 'text' | 'email' | 'tel' | 'url' | 'search' | 'number' | 'password'; min?: number; ariaLabel?: string }) {
+  return <input type={type} min={min} value={value} aria-label={ariaLabel} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={iStyle} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-default)')} />
 }
 // Ένα σημείο για όλα τα πεδία επιλογής της οθόνης. Ήταν ντόπιο <select>, δηλαδή
 // το λειτουργικό ζωγράφιζε τη λίστα με δικά του χρώματα μέσα σε μια οθόνη που
@@ -122,7 +125,7 @@ export function SubTaskEditor({ subtasks, onChange }: { subtasks: SubTask[]; onC
         ))}
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
-        <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), add())} placeholder="Νέο βήμα…" style={{ ...iStyle, flex: 1 }} />
+        <input value={input} aria-label="Νέο βήμα" onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), add())} placeholder="Νέο βήμα…" style={{ ...iStyle, flex: 1 }} />
         <button type="button" onClick={add} style={{ padding: '10px 16px', borderRadius: T.radius.inner, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>+</button>
       </div>
     </div>
@@ -135,7 +138,7 @@ export function CommentsEditor({ comments, onChange }: { comments: Comment[]; on
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ display: 'flex', gap: 8 }}>
-        <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), add())} placeholder="Γράψε σχόλιο…" style={{ ...iStyle, flex: 1 }} />
+        <input value={input} aria-label="Νέο σχόλιο" onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), add())} placeholder="Γράψε σχόλιο…" style={{ ...iStyle, flex: 1 }} />
         <button type="button" onClick={add} style={{ padding: '10px 16px', borderRadius: T.radius.inner, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>+</button>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 240, overflowY: 'auto' }}>

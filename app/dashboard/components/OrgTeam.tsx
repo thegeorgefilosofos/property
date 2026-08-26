@@ -439,6 +439,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
             <input
               type="text"
+              aria-label="Ονομασία ομάδας"
               className="po-field"
               value={nameDraft}
               onChange={e => setNameDraft(e.target.value)}
@@ -630,6 +631,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
           <input
             type="email"
+            aria-label="Διεύθυνση ηλεκτρονικού ταχυδρομείου για πρόσκληση"
             className="po-field"
             value={inviteEmail}
             onChange={e => { setInviteEmail(e.target.value); if (inviteError) setInviteError(null); if (inviteNote) setInviteNote(null); }}

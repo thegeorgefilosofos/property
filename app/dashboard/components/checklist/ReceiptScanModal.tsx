@@ -227,11 +227,11 @@ export function ReceiptScanModal({ item, propertyId, userId, onClose, onSaved }:
             )}
           </div>
           <div style={{ ...formGrid(150, 210), gap: 12 }}>
-            <div><FL>Ποσό (€) *</FL><Inp value={amount} onChange={setAmount} placeholder="" type="number" min={0} /></div>
+            <div><FL>Ποσό (€) *</FL><Inp ariaLabel="Ποσό σε ευρώ" value={amount} onChange={setAmount} placeholder="" type="number" min={0} /></div>
             <div><FL>Ημερομηνία *</FL><DatePicker value={date} onChange={setDate} /></div>
           </div>
-          <div><FL>Πάροχος</FL><Inp value={provider} onChange={setProvider} placeholder="Παράδειγμα: Υδραυλικές Εργασίες ΕΠΕ" /></div>
-          <div><FL>Περιγραφή δαπάνης</FL><Inp value={desc} onChange={setDesc} placeholder="Περιγραφή" /></div>
+          <div><FL>Πάροχος</FL><Inp ariaLabel="Πάροχος" value={provider} onChange={setProvider} placeholder="Παράδειγμα: Υδραυλικές Εργασίες ΕΠΕ" /></div>
+          <div><FL>Περιγραφή δαπάνης</FL><Inp ariaLabel="Περιγραφή δαπάνης" value={desc} onChange={setDesc} placeholder="Περιγραφή" /></div>
           <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, margin: 0, lineHeight: 1.5 }}>
             Καταχωρείται ως <strong style={{ color: 'var(--text-secondary)' }}>{expenseCategoryFor(item.category).cat}</strong>, πληρωμένη, με το αρχείο συνημμένο στο Αρχείο.
           </p>

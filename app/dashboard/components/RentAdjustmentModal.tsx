@@ -275,9 +275,11 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
   // αποτέλεσμα έφτανε σε υπογεγραμμένο PDF με QR επαλήθευσης: αρνητικό μίσθωμα
   // σε επίσημη ειδοποίηση προς τον μισθωτή. Το ποσοστό δέχεται έως 100, γιατί
   // πάνω από αυτό δεν είναι ποσοστό (lib/core/numInput.ts).
-  const money = (value: string, on: (v: string) => void, suffix: string, max?: number) => (
+  // Το όνομα είναι όρισμα: η ετικέτα ζει σε διπλανό <div> και δεν φτάνει ποτέ
+  // στο πεδίο. Τρεις κλήσεις, τρία διαφορετικά νοήματα.
+  const money = (value: string, on: (v: string) => void, suffix: string, name: string, max?: number) => (
     <div style={{ position: 'relative' }}>
-      <input value={value} onChange={e => { const v = acceptNumeric(e.target.value, max); if (v !== null) on(v); }}
+      <input value={value} aria-label={name} onChange={e => { const v = acceptNumeric(e.target.value, max); if (v !== null) on(v); }}
         onFocus={onFieldFocus} onBlur={onFieldBlur} inputMode="decimal" placeholder=""
         style={{ ...field, paddingRight: 30, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} />
       {/* Ίδιο ύψος με το πεδίο, από την ΙΔΙΑ πηγή: με literal 40 εδώ και πεδίο
@@ -365,7 +367,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
 
               <div {...fixedCols(2, 12, 'start')}>
                 <div><div style={lbl}>Ακίνητο</div><Select value={propId} onChange={setPropId} options={props.map(p => ({ value: p.id, label: p.name }))} placeholder="Επιλογή ακινήτου" /></div>
-                <div><div style={lbl}>Μισθωτής</div><input value={tenant} onChange={e => setTenant(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="Ονοματεπώνυμο" style={field} /></div>
+                <div><div style={lbl}>Μισθωτής</div><input aria-label="Ονοματεπώνυμο μισθωτή" value={tenant} onChange={e => setTenant(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="Ονοματεπώνυμο" style={field} /></div>
               </div>
 
               <div>
@@ -398,12 +400,12 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
                   672 του παραθύρου, οπότε το «Ισχύς από» έπεφτε μόνο του σε δεύτερη
                   σειρά, με δυόμισι στήλες κενές δεξιά του. */}
               <div {...fixedCols(3, 12, 'start')}>
-                <div><div style={lbl}>Τρέχον μίσθωμα</div>{money(currentRent, setCurrentRent, '€')}</div>
+                <div><div style={lbl}>Τρέχον μίσθωμα</div>{money(currentRent, setCurrentRent, '€', 'Τρέχον μίσθωμα')}</div>
                 {method === 'manual'
-                  ? <div><div style={lbl}>Νέο μίσθωμα</div>{money(newRentManual, setNewRentManual, '€')}</div>
+                  ? <div><div style={lbl}>Νέο μίσθωμα</div>{money(newRentManual, setNewRentManual, '€', 'Νέο μίσθωμα')}</div>
                   : method === 'cpi'
                     ? <div><div style={lbl}>Μεταβολή ΔΤΚ</div>{readOnlyPct(cpiPct)}</div>
-                    : <div><div style={lbl}>Ποσοστό</div>{money(percent, setPercent, '%', PCT_MAX)}</div>}
+                    : <div><div style={lbl}>Ποσοστό</div>{money(percent, setPercent, '%', 'Ποσοστό αναπροσαρμογής', PCT_MAX)}</div>}
                 <div><div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 5 }}>Ισχύς από<InfoHint>Η ημερομηνία από την οποία εφαρμόζεται το νέο μίσθωμα. Κοινοποίησε την ειδοποίηση στον μισθωτή εγκαίρως, τηρώντας την προθεσμία που ορίζει το μισθωτήριο ή ο νόμος.</InfoHint></div><DatePicker value={effective} onChange={setEffective} /></div>
               </div>
 
@@ -430,8 +432,8 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
               </div>
 
               <div {...fixedCols(2, 12, 'start')}>
-                <div><div style={lbl}>Εκμισθωτής (υπογράφων)</div><input value={ownerName} onChange={e => setOwnerName(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="Ονοματεπώνυμο ή επωνυμία" style={field} /></div>
-                <div><div style={lbl}>Τόπος</div><input value={place} onChange={e => setPlace(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="Παράδειγμα: Αθήνα" style={field} /></div>
+                <div><div style={lbl}>Εκμισθωτής (υπογράφων)</div><input aria-label="Ονοματεπώνυμο εκμισθωτή" value={ownerName} onChange={e => setOwnerName(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="Ονοματεπώνυμο ή επωνυμία" style={field} /></div>
+                <div><div style={lbl}>Τόπος</div><input aria-label="Τόπος υπογραφής" value={place} onChange={e => setPlace(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="Παράδειγμα: Αθήνα" style={field} /></div>
               </div>
 
               <div>

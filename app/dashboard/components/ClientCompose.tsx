@@ -291,7 +291,7 @@ export default function ClientCompose({ open, onClose, clients, supabase }: {
                 {aiOpen && (
                   <div style={{ border: '1px solid var(--accent-border)', background: 'var(--accent-soft)', borderRadius: 12, padding: 14, marginBottom: 12 }}>
                     <div style={{ ...TT.bodySm, marginBottom: 8 }}>Πες μου με λίγα λόγια τι θέλεις να πεις· θα το γράψω επαγγελματικά.</div>
-                    <textarea value={aiBrief} onChange={e => setAiBrief(e.target.value)} rows={2}
+                    <textarea aria-label="Τι θέλεις να λέει το μήνυμα" value={aiBrief} onChange={e => setAiBrief(e.target.value)} rows={2}
                       placeholder="Παράδειγμα: Ευχαριστήριο μετά τη διαμονή + κάλεσμα για κράτηση με 10% έκπτωση την επόμενη φορά"
                       style={{ ...field, resize: 'vertical', marginBottom: 10 }} />
                     {aiErr && <div style={{ fontSize: 12, color: 'var(--negative)', marginBottom: 8 }}>{aiErr}</div>}
@@ -299,8 +299,8 @@ export default function ClientCompose({ open, onClose, clients, supabase }: {
                   </div>
                 )}
 
-                <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Θέμα" style={{ ...field, marginBottom: 10 }} />
-                <textarea value={body} onChange={e => setBody(e.target.value)} rows={8}
+                <input aria-label="Θέμα μηνύματος" value={subject} onChange={e => setSubject(e.target.value)} placeholder="Θέμα" style={{ ...field, marginBottom: 10 }} />
+                <textarea aria-label="Κείμενο μηνύματος" value={body} onChange={e => setBody(e.target.value)} rows={8}
                   placeholder="Γράψε το μήνυμά σου εδώ…" style={{ ...field, resize: 'vertical', lineHeight: 1.6 }} />
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Προσωποποίηση:</span>
