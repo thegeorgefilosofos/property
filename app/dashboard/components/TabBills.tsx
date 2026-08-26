@@ -102,8 +102,8 @@ function ContractTile({ card, active, onOpen }: { card: ContractCard; active: bo
   // Ο ΚΥΚΛΟΣ ΛΕΓΕΤΑΙ ΟΤΑΝ ΔΕΝ ΕΙΝΑΙ Ο ΑΥΤΟΝΟΗΤΟΣ. Το ποσό της κάρτας είναι ΑΝΑ
   // ΜΗΝΑ: ένα ασφάλιστρο 240 € τον χρόνο γράφεται 20,00 €. Χωρίς τον κύκλο
   // δίπλα, ο ιδιοκτήτης θα έψαχνε χρέωση 20 € που δεν υπάρχει πουθενά. Το
-  // «κάθε μήνα» παραλείπεται γιατί δεν προσθέτει τίποτα σε νούμερο που είναι
-  // ήδη μηνιαίο. Η διατύπωση έρχεται από το lib/expenses/expected.ts, μία φορά.
+  // «κάθε μήνα» παραλείπεται εδώ γιατί το ίδιο το ποσό το γράφει πια δίπλα του.
+  // Η διατύπωση έρχεται από το lib/expenses/expected.ts, μία φορά.
   const period = card.everyMonths === 1 ? '' : cadenceLabel(card.everyMonths);
   const meta = card.known
     ? [card.provider, period, `${card.occurrences} ${card.occurrences === 1 ? 'περίοδος' : 'περίοδοι'}`].filter(Boolean).join(' · ')
@@ -131,8 +131,23 @@ function ContractTile({ card, active, onOpen }: { card: ContractCard; active: bo
             είναι το μόνο μεγάλο νούμερο της κάρτας· ό,τι δεν γνωρίζουμε μένει
             στο μέγεθος του κειμένου, όχι σε κόκκινο. */}
         {card.monthly !== null && (
-          <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
-            {fe(card.monthly)}
+          /* ═══ ΤΟ «ΤΟΝ ΜΗΝΑ» ΔΕΝ ΕΙΝΑΙ ΠΕΡΙΤΤΟ, ΚΑΙ ΤΟ ΕΔΕΙΞΕ Η ΙΔΙΑ Η ΚΑΡΤΑ ═══
+             Το ποσό είναι ΑΝΑ ΜΗΝΑ και από κάτω του γράφεται «κάθε δίμηνο · 4
+             περίοδοι». Δύο γραμμές, η μία με νούμερο και η άλλη με περίοδο: ο
+             αναγνώστης διαβάζει «34,50 € κάθε δίμηνο», δηλαδή το μισό από την
+             αλήθεια. Το παλιό σχόλιο εδώ υποστήριζε ότι η μονάδα «δεν προσθέτει
+             τίποτα σε νούμερο που είναι ήδη μηνιαίο» — προσθέτει, όταν ακριβώς
+             από κάτω στέκεται άλλη περίοδος.
+
+             ΤΟ ΝΟΥΜΕΡΟ ΤΗΣ ΚΕΦΑΛΙΔΑΣ ΕΙΝΑΙ ΤΟ ΑΘΡΟΙΣΜΑ ΤΟΥΣ. Χωρίς τη μονάδα, το
+             «75,00 € τον μήνα» φαινόταν να μην προκύπτει από πουθενά: 34,50 και
+             40,50 «κάθε δίμηνο» δίνουν 37,50 τον μήνα, όχι 75. Με τη μονάδα, η
+             πρόσθεση γίνεται με το μάτι. */
+          <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4, whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em' }}>
+              {fe(card.monthly)}
+            </span>
+            <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>τον μήνα</span>
           </span>
         )}
       </span>
