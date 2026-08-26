@@ -355,7 +355,9 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
       {/* ── Επισκόπηση κόστους ── */}
       <div style={card}>
         {secHdr('Τρέχον κόστος', `Τελευταία επαλήθευση δεδομένων: ${LAST_VERIFIED}`)}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 12 }}>
+        {/* Τρία πλακίδια: το ρευστό πλέγμα έβγαζε 2+1 στα 430. Ιδια κλάση και
+            ίδιοι κανόνες με τους δείκτες του KPIGrid. */}
+        <div className="kpi-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 12, '--kpi-lg': 3, '--kpi-md': 3, '--kpi-sm': 1 } as React.CSSProperties}>
           <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Μηνιαίο κόστος προμήθειας</div>
             <div style={{ fontSize: 22, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--accent)', lineHeight: 1 }}>{fe(effective)}</div>
@@ -396,7 +398,11 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
             διπλανά του. Ο σύνδεσμος δεν χάνεται από αδιαφορία: το tooltip έχει
             `pointerEvents: none`, οπότε δεν πατιέται ούτως ή άλλως. */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div {...fixedCols(4, 14, 'start')}>
+        {/* ΤΡΙΑ ΠΑΙΔΙΑ, ΟΧΙ ΤΕΣΣΕΡΑ. Το πλήθος ήταν γραμμένο «4» ενώ οι επιλογείς
+            είναι τρεις, οπότε ο κανόνας των διαιρετών υπολόγιζε για τέσσερα και
+            έβγαζε 2+1: ο τρίτος μόνος του, με τρύπα δίπλα του. Μετρημένο στα
+            430, 768 και 820. */}
+        <div {...fixedCols(3, 14, 'start')}>
           <CustomSelect label="Διαχειριστής δικτύου" value={s.networkOperator} onChange={v => upd({ networkOperator: v })} options={networkOptions} />
           <CustomSelect label="Πάροχος" value={s.gasProvider}
             onChange={v => upd({ gasProvider: v, gasTariffId: GAS_PROVIDERS.find(p => p.value === v)?.tariffs[0]?.id || '' })}
@@ -424,7 +430,7 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
                   <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: T.radius.badge, background: pb.bg, border: `1px solid ${pb.border}`, color: pb.color }}>{pb.label}</span>
                 ); })()}
               </div>
-              <a href={provider?.url} target="_blank" rel="noopener noreferrer"
+              <a href={provider?.url} target="_blank" rel="noopener noreferrer" className="tap-link"
                 style={{ fontSize: 11, color: 'var(--accent)', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, padding: '4px 12px', textDecoration: 'none', whiteSpace: 'nowrap' as const, fontFamily: T.font.sans, fontWeight: 600 }}>
                 Επίσημη σελίδα
               </a>
@@ -584,7 +590,7 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
             </div>
           ))}
         </div>
-        <a href={RAAEY_COMPARE} target="_blank" rel="noopener noreferrer"
+        <a href={RAAEY_COMPARE} target="_blank" rel="noopener noreferrer" className="tap-link"
           style={{ display: 'inline-block', marginTop: 14, fontSize: 11, fontWeight: 600, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.pill, padding: '8px 18px', textDecoration: 'none' }}>
           Επίσημη σύγκριση τιμών <span title={RAAEY_NAME}>ΡΑΑΕΥ</span> στο gov.gr
         </a>

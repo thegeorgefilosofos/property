@@ -6,7 +6,7 @@ import * as expenses from '@/lib/data/expenses';
 // Οι ρυθμίσεις ανά ενότητα έχουν ένα σπίτι: lib/data/settings.
 import * as settings from '@/lib/data/settings';
 import { NumberInput, TextInput, DatePicker, CustomSelect, addBtn } from './UIComponents';
-import { T, TT, fe, formGrid, fieldRow, InfoBanner, Card, EmptyState, fp, histInputStyle, localDay, ABSENT_SHORT } from '@/components/Theme';
+import { T, TT, fe, formGrid, fieldRow, fixedCols, InfoBanner, Card, EmptyState, fp, histInputStyle, localDay, ABSENT_SHORT } from '@/components/Theme';
 import { notifyOk } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
 import { HandCoins, BarChart3 } from 'lucide-react';
@@ -422,8 +422,18 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
         <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: 16, marginBottom: 14, border: '1px solid var(--border-subtle)' }}>
           {/* Η ενέργεια είναι η τέταρτη στήλη της σειράς, όχι κουμπί κρεμασμένο
               από κάτω δεξιά. Και δεν φαίνεται πατήσιμη χωρίς αιτία και ποσό. */}
-          <div {...fieldRow(160)}>
-            <TextInput   label="Αιτία"      value={extraReason} onChange={setExtraReason} placeholder="Παράδειγμα: Ανακαίνιση ταράτσας"/>
+{/* ΤΟ «ΠΑΡΑΔΕΙΓΜΑ: » ΔΕΝ ΧΩΡΑΕΙ ΣΕ ΤΕΤΡΑΠΛΗ ΣΕΙΡΑ, ΚΑΙ ΠΑΙΡΝΕΙ ΤΗ ΘΕΣΗ ΤΟΥ
+              ΙΔΙΟΥ ΤΟΥ ΠΑΡΑΔΕΙΓΜΑΤΟΣ. Μετρημένο σε τηλέφωνο 375: το κουτί αφήνει
+              132 εικονοστοιχεία και η λέξη «Παράδειγμα: » πιάνει 105, δηλαδή 79%.
+              Ο χρήστης έβλεπε «Παράδειγμα: ταρά», που δεν είναι παράδειγμα. Η
+              ετικέτα λέει ήδη τι ζητείται, οπότε μένει μόνο η απάντηση. Οπου το
+              πεδίο είναι αρκετά πλατύ, το πρόθεμα μένει όπως ήταν.
+
+              Και το πλήθος στηλών από το fixedCols, όχι από το πόσες χωράνε: με
+              τέσσερα στοιχεία και ρευστό ελάχιστο, κάποιο πλάτος βγάζει πάντα
+              3+1. Ο κανόνας των διαιρετών δίνει 4 ή 2+2, ποτέ ορφανό. */}
+          <div {...fixedCols(4, 14)}>
+            <TextInput   label="Αιτία"      value={extraReason} onChange={setExtraReason} placeholder="ταράτσα"/>
             <NumberInput label="Ποσό"       value={extraAmount} onChange={setExtraAmount} suffix="€" step={50}/>
             <DatePicker  label="Ημερομηνία" value={extraDate}   onChange={setExtraDate}/>
             <button type="button" disabled={!extraReason.trim() || !extraAmount} onClick={addExtra}

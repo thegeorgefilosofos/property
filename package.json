@@ -23,6 +23,8 @@
     "theme-tokens": "node scripts/guard-theme-tokens.mjs",
     "db-types": "node scripts/gen-db-types.mjs",
     "tax-year": "node scripts/guard-tax-year.mjs",
+    "validity": "node scripts/guard-validity.mjs",
+    "katalogos": "node scripts/gen-message-catalog.mjs",
     "pg-schema": "node scripts/pg-sandbox.mjs",
     "single-source": "node scripts/guard-single-source.mjs",
     "writes": "node scripts/unchecked-writes.mjs",

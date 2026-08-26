@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import * as expenseStore from '@/lib/data/expenses';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker, addBtn, FIELD_HEIGHT, FIELD_RADIUS, fieldLabelStyle } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe, fieldRow, fp, Spinner, histInputStyle } from '@/components/Theme';
+import { T, fe, fieldRow, fixedCols, fp, Spinner, histInputStyle } from '@/components/Theme';
 import { estimateENFIA, enfiaInUse, enfiaLastYearAnnual } from '@/lib/billing/enfia';
 import { MONTHS_SHORT } from '@/lib/core/months';
 import { averageMonthly, feeOriginNote, feeShare, monthlyFees, TYPICAL_SHARE, type FeeSourceRow } from '@/lib/expenses/municipalFees';
@@ -487,8 +487,17 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           {/* Πέντε πεδία και μια ενέργεια ήταν τρία μικρά πάνω, δύο πλατιά κάτω
               και ένα κουμπί στριμωγμένο στην άκρη: τρία διαφορετικά πλάτη στο
               ίδιο κουτί. Μία σειρά, ίσα μοιρασμένη, η ενέργεια τελευταία. */}
-          <div {...fieldRow(150, 12)}>
-            <TextInput    label="Υπηρεσία"           value={newName}    onChange={setNewName}    placeholder="Παράδειγμα: Βαφή…"/>
+          {/* ΤΟ ΕΛΑΧΙΣΤΟ ΒΓΑΙΝΕΙ ΑΠΟ ΤΟ ΠΛΑΤΥΤΕΡΟ ΠΑΡΑΔΕΙΓΜΑ. Στα 150 το κουτί
+              άφηνε 122 εικονοστοιχεία και το «Ονοματεπώνυμο» ζητά 132: κοβόταν
+              σε τέσσερα από τα οκτώ πλάτη. Μετρημένο με canvas, όχι σε
+              χαρακτήρες. */}
+          {/* ΤΡΕΙΣ ΣΤΗΛΕΣ ΓΙΑ ΕΞΙ ΣΤΟΙΧΕΙΑ, ΔΗΛΑΔΗ 3+3. Το `fixedCols` παίρνει το
+              πλήθος ΣΤΗΛΩΝ, όχι το πλήθος παιδιών: με έξι στήλες κάθε πεδίο
+              έπαιρνε 140 εικονοστοιχεία στα 900 και το «Ονοματεπώνυμο» ζητά
+              132, δηλαδή κοβόταν ξανά. Με τρεις στήλες το πεδίο διπλασιάζεται
+              και η σειρά μένει ζυγισμένη σε κάθε πλάτος. */}
+          <div {...fixedCols(3, 12)}>
+            <TextInput    label="Υπηρεσία"           value={newName}    onChange={setNewName}    placeholder="βαφή"/>
             <TextInput    label="Τεχνικός ή εταιρεία" value={newContact} onChange={setNewContact} placeholder="Ονοματεπώνυμο"/>
             <TextInput    label="Τηλέφωνο"           value={newPhone}   onChange={setNewPhone}   placeholder="69xxxxxxxx"/>
             <NumberInput  label="Κόστος"             value={newCost}    onChange={setNewCost}    suffix="€" step={10}/>

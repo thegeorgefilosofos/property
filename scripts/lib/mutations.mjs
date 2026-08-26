@@ -202,6 +202,23 @@ export const MUTATIONS = {
   // Το παράθυρο που ξαναδηλώνει πλάτος σε εικονοστοιχεία. Δύο μεταλλάξεις:
   // η μία στο Modal, η άλλη στο SideSheet· και οι δύο με εικονίδιο που έχει
   // το ΔΙΚΟ του width, ώστε να αποδεικνύεται ότι ο φύλακας δεν το μπερδεύει.
+  // Η ΤΙΜΗ ΠΟΥ ΕΛΗΞΕ ΚΑΙ ΤΟ ΑΡΧΕΙΟ ΠΟΥ ΜΕΤΑΚΟΜΙΣΕ. Δύο μεταλλάξεις, γιατί ο
+  // φύλακας φυλάει δύο διαφορετικά πράγματα: την ΗΜΕΡΟΜΗΝΙΑ και τον ΔΕΣΜΟ με
+  // τον κώδικα. Το δεύτερο είναι το πιο ύπουλο: ένα μητρώο που δείχνει σε
+  // ανύπαρκτο αρχείο συνεχίζει να λέει «ελεγμένο».
+  // Ο κατάλογος που ξέμεινε πίσω: ένα μήνυμα λιγότερο στο δεσμευμένο έγγραφο
+  // από όσα υπάρχουν στον κώδικα. Ακριβώς ό,τι έγινε με το «106 emails».
+  'message-catalog': { file: 'docs/KATALOGOS-MINYMATON.md', from: '| **ΣΥΝΟΛΟ** | **119** | |', to: '| **ΣΥΝΟΛΟ** | **106** | |' },
+
+  'validity': { every: [
+    { file: 'lib/legal/validity.ts',
+      from: "    label: 'Τέλος ανθεκτικότητας στην κλιματική κρίση (ΤΑΚΚ)',\n    where: 'lib/billing/greekTax.ts',\n    validFrom: '2026-01-01',\n    validTo: '2026-12-31',",
+      to:   "    label: 'Τέλος ανθεκτικότητας στην κλιματική κρίση (ΤΑΚΚ)',\n    where: 'lib/billing/greekTax.ts',\n    validFrom: '2024-01-01',\n    validTo: '2024-12-31'," },
+    { file: 'lib/legal/validity.ts',
+      from: "    where: 'lib/billing/enfia.ts',",
+      to:   "    where: 'lib/billing/enfia-METAKOMISE.ts'," },
+  ] },
+
   'modal-width': { every: [
     { add: 'components/__mut__.tsx', content: "import { Modal } from './Theme'\nexport default function MutationProbe() {\n  return <Modal open onClose={() => {}} title=\"Δοκιμή\" width={560}\n    icon={<svg width={20} height={20} viewBox=\"0 0 24 24\" />}>{null}</Modal>\n}\n" },
     { add: 'components/__mut__.tsx', content: "import { SideSheet } from './Theme'\nexport default function MutationProbe() {\n  return <SideSheet open onClose={() => {}} ariaLabel=\"Δοκιμή\" width={720}>{null}</SideSheet>\n}\n" },

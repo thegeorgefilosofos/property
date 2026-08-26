@@ -1703,7 +1703,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                     δηλαδή τέσσερις στόχοι αφής στο 39% του ορίου των 44. Η
                     κλάση δίνει το ύψος ΜΟΝΟ στο δάχτυλο· στο ποντίκι η γραμμή
                     μένει όσο ήταν. */}
-                {MARKET_SOURCES.map(s => <a key={s.href} href={s.href} target="_blank" rel="noreferrer" className="src-link" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontFamily: SANS }}>{s.label}</a>)}
+                {MARKET_SOURCES.map(s => <a key={s.href} href={s.href} target="_blank" rel="noreferrer" className="tap-link" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontFamily: SANS }}>{s.label}</a>)}
               </div>
             </div>
           </div>

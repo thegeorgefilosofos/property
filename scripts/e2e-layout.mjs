@@ -328,14 +328,23 @@ const PROBE = () => {
       return b.width > 8 && b.height > 8 && !/absolute|fixed/.test(getComputedStyle(k).position)
     })
     if (kids.length < 3) continue
+    // ═══ Η ΣΕΙΡΑ ΒΓΑΙΝΕΙ ΑΠΟ ΕΠΙΚΑΛΥΨΗ, ΟΧΙ ΑΠΟ ΙΔΙΟ «top» ═══════════════════
+    // ΨΕΥΔΕΣ ΕΥΡΗΜΑ, ΔΙΚΟ ΜΟΥ. Το κλειδί ήταν το `top` στρογγυλεμένο, που
+    // υποθέτει ότι τα αδέλφια της ίδιας σειράς ξεκινούν στο ίδιο ύψος. Με
+    // `align-items: end` ευθυγραμμίζεται η ΒΑΣΗ: σε σειρά με τρία πεδία και ένα
+    // κουμπί, το κουμπί είναι κοντύτερο, άρα ξεκινά πιο χαμηλά και μετριόταν ως
+    // ΔΙΚΗ ΤΟΥ σειρά. Δέκα «3+1» και «5+1» σε πλάτη όπου η σειρά ήταν μία.
+    // Δύο στοιχεία είναι στην ίδια σειρά όταν τα κατακόρυφα διαστήματά τους
+    // τέμνονται· αυτό ισχύει σε κάθε στοίχιση.
+    const boxes = kids.map(k => k.getBoundingClientRect()).sort((a, b) => a.top - b.top)
     const rows = new Map()
-    let sameW = true, w0 = null
-    for (const k of kids) {
-      const b = k.getBoundingClientRect()
+    let sameW = true, w0 = null, line = 0, lineBottom = -Infinity
+    for (const b of boxes) {
       if (w0 === null) w0 = b.width
       else if (Math.abs(b.width - w0) > 2) sameW = false
-      const key = Math.round(b.top)
-      rows.set(key, (rows.get(key) || 0) + 1)
+      if (b.top >= lineBottom - 1) { line++; lineBottom = b.bottom }
+      else lineBottom = Math.max(lineBottom, b.bottom)
+      rows.set(line, (rows.get(line) || 0) + 1)
     }
     if (!sameW || rows.size < 2) continue
     // ΤΟ ΗΜΕΡΟΛΟΓΙΟ ΔΕΝ ΕΧΕΙ ΟΡΦΑΝΑ, ΕΧΕΙ ΜΗΝΑ. Επτά στήλες με τις συντομογραφίες
@@ -346,6 +355,12 @@ const PROBE = () => {
     if (head.length === 7 && head.every(t => /^(Δε|Τρ|Τε|Πε|Πα|Σα|Σά|Κυ)$/.test(t))) continue
     const counts = [...rows.values()]
     if (new Set(counts).size === 1) continue
+    // ΤΟ ΚΕΝΤΡΑΡΙΣΜΕΝΟ ΥΠΟΛΟΙΠΟ ΔΕΝ ΕΙΝΑΙ ΟΡΦΑΝΟ. Ενα πλακίδιο μόνο του
+    // ενοχλεί επειδή κάθεται αριστερά και αφήνει τρύπα δεξιά. Οταν το δοχείο
+    // κεντράρει (`justify-content: center`), η τελευταία σειρά κάθεται στη μέση
+    // και είναι συμμετρική ως προς το κουτί: αυτό είναι η ΛΥΣΗ του προβλήματος,
+    // όχι το πρόβλημα. Ετσι είναι γραμμένο το `.tile-grid` των συνδρομών.
+    if (/center/.test(cs.justifyContent)) continue
     // Η τελευταία σειρά με ΕΝΑ πλακίδιο δίπλα σε σειρές των τριών ή τεσσάρων
     // είναι το ορφανό· δύο από τρία είναι ανεκτό και δεν αναφέρεται.
     const full = Math.max(...counts), last = counts[counts.length - 1]

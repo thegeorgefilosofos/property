@@ -314,7 +314,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
       <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans, flex: 1 }}>{label}</span>
       {link?.url && (
-        <a href={link.url} target="_blank" rel="noopener noreferrer"
+        <a href={link.url} target="_blank" rel="noopener noreferrer" className="tap-link"
           style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.pill, padding: '3px 10px', whiteSpace: 'nowrap' as const }}>
           {link.text}
         </a>
@@ -398,7 +398,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--border-default)', flexShrink: 0 }}/>
               <span style={{ color: 'var(--text-secondary)', flex: 1 }}>{selectedPlan.note} · {selectedPlan.hasPhone ? 'Περιλαμβάνει σταθερό τηλέφωνο' : 'Χωρίς σταθερό τηλέφωνο'}</span>
               {provData?.url && (
-                <a href={provData.url} target="_blank" rel="noopener noreferrer"
+                <a href={provData.url} target="_blank" rel="noopener noreferrer" className="tap-link"
                   style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans, whiteSpace: 'nowrap' as const }}>
                   Επίσημη σελίδα {provData.label}
                 </a>
@@ -412,7 +412,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
               ταχυτήτων είναι όλο το νόημα του πεδίου — και ήταν σε άλλη σειρά
               από το νούμερο με το οποίο συγκρίνεται. */}
           <div {...g3}>
-            <TextInput   label="Ταχύτητα συμβολαίου" value={s.internetSpeed} onChange={v => upd({ internetSpeed: v })} placeholder="Παράδειγμα: 500/200 Mbps"/>
+            <TextInput   label="Ταχύτητα συμβολαίου" value={s.internetSpeed} onChange={v => upd({ internetSpeed: v })} placeholder="500 Mbps"/>
             <NumberInput label="Πραγματική ταχύτητα λήψης" value={s.internetSpeedReal || ''}  onChange={v => upd({ internetSpeedReal: v })} suffix="Mbps" step={10}/>
             <DatePicker  label="Λήξη συμβολαίου"                      value={s.internetContractEnd || ''} onChange={v => upd({ internetContractEnd: v })}/>
           </div>
@@ -584,7 +584,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
               {s.waterPersons && parseInt(s.waterPersons) > 0 && (
                 <span style={{ marginLeft: 14 }}>Ανά άτομο: <strong style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(waterM / parseInt(s.waterPersons))}</strong> / μήνα</span>
               )}
-              {waterData?.url && <a href={waterData.url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 14, fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Επίσημη σελίδα {waterData.label}</a>}
+              {waterData?.url && <a href={waterData.url} target="_blank" rel="noopener noreferrer" className="tap-link" style={{ marginLeft: 14, fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Επίσημη σελίδα {waterData.label}</a>}
             </div>
           )}
           {benchmarkBar(waterM * 2, 24, BENCHMARKS.water.label)}
@@ -642,7 +642,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
           {secHdr('Συναγερμός και ασφάλεια χώρου')}
           <div {...g3}>
             <CustomSelect label="Εταιρεία"            value={s.securityCompany}  onChange={v => upd({ securityCompany: v })}  options={SECURITY_COMPANIES.map(c => ({ value: c.value, label: c.label }))}/>
-            <TextInput    label="Πρόγραμμα ή πακέτο" value={s.securityPlan}    onChange={v => upd({ securityPlan: v })}    placeholder="Παράδειγμα: Basic Monitor"/>
+            <TextInput    label="Πρόγραμμα ή πακέτο" value={s.securityPlan}    onChange={v => upd({ securityPlan: v })}    placeholder="Basic"/>
             <NumberInput  label="Μηνιαίο κόστος" value={s.securityMonthly} onChange={v => upd({ securityMonthly: v })} suffix="€" step={2}/>
           </div>
           <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' as const, marginBottom: 12 }}>
@@ -651,7 +651,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
             <Toggle on={s.securityHasDoor}   onChange={v => upd({ securityHasDoor: v })}   label="Αυτόματη πόρτα"/>
           </div>
           {securityM > 0 && secData?.url && (
-            <a href={secData.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans }}>
+            <a href={secData.url} target="_blank" rel="noopener noreferrer" className="tap-link" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans }}>
               Επίσημη σελίδα {secData.label}
             </a>
           )}

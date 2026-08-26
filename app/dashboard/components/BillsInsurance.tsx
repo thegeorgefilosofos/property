@@ -19,7 +19,7 @@ import { NumberInput, CustomSelect, TextInput, DatePicker, addBtn } from './UICo
 import { useBillsSettings } from './BillsSettings';
 import { ReminderLinks } from './ReminderLinks';
 import { findDuplicates, type ExpenseLike } from '@/lib/expenses/duplicates';
-import { T, TT, fe, fieldRow, SecHdr, InfoBanner, Skeleton, SkeletonKPIs, localDay, ABSENT_SHORT, pressable } from '@/components/Theme';
+import { T, TT, fe, fieldRow, fixedCols, SecHdr, InfoBanner, Skeleton, SkeletonKPIs, localDay, ABSENT_SHORT, pressable } from '@/components/Theme';
 // Ο κατάλογος συνδρομών ζει στο lib: τον διαβάζει και ο Προϋπολογισμός.
 import { SUB_INCLUDES, SUB_GROUPS, planMonthly, entryPlan, entryPlanId,
          planNote, subShare, type SubService, type SubKey } from '@/lib/expenses/subscriptions';
@@ -710,8 +710,16 @@ export default function BillsInsurance({ propertyId, userId = '', only, legalFor
   const supabase = createClient();
   const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 };
   const g2: React.CSSProperties  = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14, marginBottom: 14 };
-  const g3: React.CSSProperties  = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 14, marginBottom: 14 };
-  const g4: React.CSSProperties  = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 14, marginBottom: 14 };
+  // ΤΡΙΑ ΠΕΔΙΑ ΣΕ ΔΥΟ ΣΤΗΛΕΣ ΑΦΗΝΟΥΝ ΤΟ ΤΡΙΤΟ ΜΟΝΟ ΤΟΥ. Μετρημένο στα 430:
+  // «2+1», με το «Πραγματικό κόστος τον μήνα» σε μισό πλάτος και τρύπα δίπλα.
+  // Ιδια κλάση και ίδιοι κανόνες με τους δείκτες του KPIGrid: στα στενά πλάτη
+  // μία στήλη, που είναι ζυγισμένη.
+  const g3: React.CSSProperties  = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 14, marginBottom: 14, '--kpi-lg': 3, '--kpi-md': 3, '--kpi-sm': 1 } as React.CSSProperties;
+  // ΤΑ 120 ΕΚΟΒΑΝ ΤΟ «ΟΝΟΜΑΤΕΠΩΝΥΜΟ». Το πεδίο άφηνε 99 ώς 127 εικονοστοιχεία
+  // για ένα παράδειγμα που ζητά 132, σε τρία από τα οκτώ πλάτη. Το ελάχιστο
+  // ενός πεδίου δεν είναι αισθητική επιλογή, είναι το πλατύτερο κείμενο που
+  // πρέπει να χωρέσει μέσα του.
+  const g4: React.CSSProperties  = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 170px), 1fr))', gap: 14, marginBottom: 14 };
 
   // ── Cross-tab: checklist renewal ─────────────────────────────────────────
   const [checklistRenewal, setChecklistRenewal] = useState<{ daysLeft: number | null } | null>(null);
@@ -1400,7 +1408,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
               πρώτο πεδίο («Ασφαλιστική εταιρεία»). Έφυγε και μαζί ο διπλός
               κανόνας που έκοβε την κάρτα στα δύο πριν αρχίσει. */}
           <div>
-            <div style={g3}>
+            <div className="kpi-row" style={g3}>
               <CustomSelect label="Ασφαλιστική εταιρεία" value={insProvider}
                 onChange={v => { u({ insProvider: v, insEditCovers: false }); const c = INSURANCE_COMPANIES.find(x => x.value === v); if (c) u({ insPlanId: c.plans[0].id }); }}
                 options={insOptions}/>
@@ -1415,7 +1423,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
               <DatePicker  label="Ημερομηνία ανανέωσης"                     value={insRenewalDate}  onChange={v => u({ insRenewalDate: v })}/>
               {insCompany?.url && (
                 <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 2 }}>
-                  <a href={insCompany.url} target="_blank" rel="noopener noreferrer"
+                  <a href={insCompany.url} target="_blank" rel="noopener noreferrer" className="tap-link"
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.btn, padding: '9px 14px', fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans }}>
                     Επίσημη σελίδα
                   </a>
@@ -1526,7 +1534,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
                 αντί για δύο σειρές των δύο με μισή κάρτα άδεια δεξιά. */}
             <div {...fieldRow(180, 14, { marginBottom: 14 })}>
               <NumberInput label="Εμβαδόν"           value={effectiveSqm}    onChange={v => u({ insSqm: v })}          suffix="τ.μ." step={5}/>
-              <TextInput   label="Πόλη ή περιοχή"    value={effectiveCity}   onChange={v => u({ insCity: v })}         placeholder="Παράδειγμα: Αθήνα…"/>
+              <TextInput   label="Πόλη ή περιοχή"    value={effectiveCity}   onChange={v => u({ insCity: v })}         placeholder="Παράδειγμα: Αθήνα"/>
               <NumberInput label="Αξία κτιρίου"      value={insPropValue}    onChange={v => u({ insPropValue: v })}    suffix="€" step={5000}/>
               <NumberInput label="Αξία περιεχομένου" value={insContentValue} onChange={v => u({ insContentValue: v })} suffix="€" step={1000}/>
             </div>
@@ -1790,8 +1798,10 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
                 διαβάζεται από αριστερά προς τα δεξιά σε μία ευθεία.
                 Και δεν φαίνεται πια πατήσιμο όταν δεν είναι: ήταν πάντα σε
                 χρώμα ενέργειας και, χωρίς ονομασία ή κόστος, δεν έκανε τίποτα. */}
-            <div {...fieldRow(160)}>
-              <TextInput   label="Ονομασία"             value={newSubName}    onChange={setNewSubName}    placeholder="Παράδειγμα: Canva Pro…"/>
+            {/* Ιδιος λόγος με τις Εκτακτες Εισφορές: σε τηλέφωνο το πρόθεμα
+                «Παράδειγμα: » έπιανε 105 από τα 132 του κουτιού. */}
+            <div {...fixedCols(4, 14)}>
+              <TextInput   label="Ονομασία"             value={newSubName}    onChange={setNewSubName}    placeholder="Netflix"/>
               <NumberInput label="Κόστος τον μήνα"      value={newSubPrice}   onChange={setNewSubPrice}   suffix="€" step={1}/>
               <DatePicker  label="Ημερομηνία ανανέωσης" value={newSubRenewal} onChange={setNewSubRenewal}/>
               <button type="button" disabled={!newSubName.trim() || !newSubPrice}

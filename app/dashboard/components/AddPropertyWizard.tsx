@@ -716,7 +716,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
             <div style={{ marginTop: -8 }}>
               <Field label="Αριθμός Μητρώου Ακινήτου (ΑΜΑ)">
                 <input style={inputStyle} value={ama} onChange={e => setAma(cleanAma(e.target.value))}
-                  inputMode="numeric" placeholder="Μόνο ψηφία, από το Μητρώο Ακινήτων Βραχυχρόνιας Διαμονής (myAADE)"
+                  inputMode="numeric" placeholder="Μόνο ψηφία, από το myAADE"
                   onFocus={onFocus} onBlur={onBlur} />
               </Field>
               <div style={{ fontFamily: T.font.sans, fontSize: 12, color: amaLengthLooksUnusual(ama) ? 'var(--warning)' : 'var(--text-secondary)', marginTop: 6, lineHeight: 1.6 }}>

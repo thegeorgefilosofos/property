@@ -2016,7 +2016,13 @@ export const DIGESTS: Record<string, CopyFn> = {
   }),
 }
 
-// Ενιαίο ευρετήριο (106 emails, δεκαέξι προγράμματα).
+// ΕΝΙΑΙΟ ΕΥΡΕΤΗΡΙΟ: 116 μηνύματα, δεκαέξι προγράμματα.
+//
+// ΤΟ ΝΟΥΜΕΡΟ ΕΛΕΓΕ 106 ΚΑΙ ΗΤΑΝ 116. Δέκα μηνύματα προστέθηκαν χωρίς να αλλάξει
+// το σχόλιο, δηλαδή το ίδιο το αρχείο έλεγε ψέματα για τον εαυτό του. Δεν είναι
+// αθώο: όποιος διαβάζει «106» υποθέτει ότι τα ξέρει όλα. Το `npm run katalogos`
+// γράφει το docs/KATALOGOS-MINYMATON.md από τον ΙΔΙΟ τον κώδικα και ο φύλακας
+// message-catalog κοκκινίζει όταν τα δύο αποκλίνουν.
 export const CATALOG: Record<string, CopyFn> = {
   ...ONBOARDING, ...ENGAGEMENT, ...UPSELL, ...SEASONAL, ...REFERRAL, ...LIFECYCLE, ...WINBACK,
   ...OPERATIONS, ...SHORTTERM, ...PRODUCT, ...CONVERSION, ...COMPLIANCE, ...BILLING, ...RELATIONSHIP,
