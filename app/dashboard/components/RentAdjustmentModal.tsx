@@ -347,7 +347,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
   // κάτω, ορατός χωρίς πάτημα: «Επίσημη ειδοποίηση προς τον μισθωτή, με
   // ηλεκτρονική υπογραφή και επαλήθευση». Έμεινε αυτός που φαίνεται.
   return (
-    <Modal open={open} onClose={closeIfIdle} width={720}
+    <Modal open={open} onClose={closeIfIdle} size="lg"
       ariaLabel="Δήλωση αναπροσαρμογής"
       title="Αναπροσαρμογή ενοικίου"
       subtitle="Επίσημη ειδοποίηση προς τον μισθωτή, με ηλεκτρονική υπογραφή και επαλήθευση"

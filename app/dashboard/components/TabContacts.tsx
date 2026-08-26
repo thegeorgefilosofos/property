@@ -479,7 +479,7 @@ function QRCodeModal({ contact, onClose }: { contact: Contact; onClose: () => vo
   const qrUrl = qrDataUrl(vcard, { size: 240 })
   return (
     <Modal open onClose={onClose} title="QR Επαφής" subtitle="Σάρωσε για να αποθηκεύσεις τα στοιχεία"
-      icon={<QrCode size={17} />} width={380} footer={<Btn onClick={onClose}>Κλείσιμο</Btn>}>
+      icon={<QrCode size={17} />} size="sm" footer={<Btn onClick={onClose}>Κλείσιμο</Btn>}>
       <div style={{ textAlign: 'center' }}>
         {/* ΤΟ ΜΟΝΟ ΚΥΡΙΟΛΕΚΤΙΚΟ ΛΕΥΚΟ ΤΟΥ ΑΡΧΕΙΟΥ, ΚΑΙ ΜΕ ΛΟΓΟ: ο κώδικας QR
             διαβάζεται από τη ΔΙΑΦΟΡΑ φωτεινότητας. Με token επιφάνειας, στο
@@ -542,7 +542,7 @@ function HistoryModal({ contact, propertyId, onClose }: { contact: Contact; prop
     ...notesLog.map(n => ({ date: n.ts.split('T')[0], title: n.text, sub: 'Σημείωση', color: 'var(--accent)' })),
   ].filter(x => x.date).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 20)
   return (
-    <Modal open onClose={onClose} title="Ιστορικό συνεργασίας" subtitle={contact.full_name} icon={<History size={17} />} width={540}>
+    <Modal open onClose={onClose} title="Ιστορικό συνεργασίας" subtitle={contact.full_name} icon={<History size={17} />} size="md">
       {loading ? (
         <div><SkeletonKPIs n={3} />{[0, 1, 2].map(i => <Skeleton key={i} h={48} r={10} style={{ marginBottom: 12 }} />)}</div>
       ) : (
@@ -656,10 +656,10 @@ function QuickExpenseModal({ contact, propertyId, userId, onClose, onSaved }: { 
     onSaved(); onClose()
   }
   return (
-    <Modal open onClose={close} title="Νέα δαπάνη" subtitle={contact.full_name} icon={<Receipt size={17} />} width={440}
+    <Modal open onClose={close} title="Νέα δαπάνη" subtitle={contact.full_name} icon={<Receipt size={17} />} size="sm"
       footer={<>
         <Btn onClick={close} disabled={saving}>Ακύρωση</Btn>
-        <Btn variant="primary" onClick={save} disabled={saving || !amount}>{saving ? 'Αποθήκευση…' : 'Αποθήκευση Δαπάνης'}</Btn>
+        <Btn variant="primary" onClick={save} disabled={saving || !amount}>{saving ? 'Αποθήκευση…' : 'Αποθήκευση δαπάνης'}</Btn>
       </>}>
       <div><FL>Ποσό (€)</FL><Inp value={amount} onChange={setAmount} placeholder="Παράδειγμα: 150" type="number" min={0} /></div>
       <div><FL>Περιγραφή</FL><Inp value={description} onChange={setDescription} placeholder="Περιγραφή εργασίας" /></div>
@@ -681,7 +681,7 @@ function QuickCalendarModal({ contact, propertyId, userId, onClose, onSaved }: {
     onSaved(date); onClose()
   }
   return (
-    <Modal open onClose={close} title="Νέο ραντεβού" subtitle={contact.full_name} icon={<CalendarPlus size={17} />} width={440}
+    <Modal open onClose={close} title="Νέο ραντεβού" subtitle={contact.full_name} icon={<CalendarPlus size={17} />} size="sm"
       footer={<>
         <Btn onClick={close} disabled={saving}>Ακύρωση</Btn>
         <Btn variant="primary" onClick={save} disabled={saving}>{saving ? 'Αποθήκευση…' : 'Προσθήκη στο Ημερολόγιο'}</Btn>
@@ -1162,7 +1162,7 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
   // πάνω στο σκοτεινό φόντο κυλούσε τη λίστα από πίσω).
 
   return (
-    <SideSheet open onClose={onClose} ariaLabel="Καρτέλα επαφής" width={460}
+    <SideSheet open onClose={onClose} ariaLabel="Καρτέλα επαφής" size="sm"
       header={<>
         <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
           {extra.avatar_url
@@ -2053,11 +2053,11 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
           title={editContact ? 'Επεξεργασία επαφής' : 'Νέα επαφή'}
           subtitle={editContact ? editContact.full_name : undefined}
           icon={roleMeta ? <RoleIcon size={17} /> : undefined}
-          width={600}
+          size="md"
           footer={<>
             <Btn onClick={requestCloseModal} disabled={saving}>Ακύρωση</Btn>
             <Btn variant="primary" onClick={handleSave} disabled={saving}>
-              {saving ? 'Αποθήκευση…' : editContact ? 'Αποθήκευση Αλλαγών' : 'Προσθήκη Επαφής'}
+              {saving ? 'Αποθήκευση…' : editContact ? 'Αποθήκευση αλλαγών' : 'Προσθήκη επαφής'}
             </Btn>
           </>}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -2205,7 +2205,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
           οπότε σβήστηκε και αυτή: η ερώτηση ζει τώρα μέσα στο `askDelete`. */}
 
       {dup && (
-        <Modal open onClose={requestCloseDup} title="Υπάρχει ήδη παρόμοια επαφή" width={440}
+        <Modal open onClose={requestCloseDup} title="Υπάρχει ήδη παρόμοια επαφή" size="sm"
           footer={<>
             <Btn onClick={requestCloseDup} disabled={saving}>Ακύρωση</Btn>
             <Btn onClick={() => persist('insert')} disabled={saving}>Ξεχωριστή</Btn>

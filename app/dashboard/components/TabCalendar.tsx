@@ -1140,7 +1140,7 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
   const amt=parseFloat(form.amount)
   const canSave=!!form.title.trim()&&!!form.event_date
   return (
-    <Modal open onClose={onClose} title={editing?'Επεξεργασία':'Νέο γεγονός'} width={480} footer={<>
+    <Modal open onClose={onClose} title={editing?'Επεξεργασία':'Νέο γεγονός'} size="sm" footer={<>
       <button onClick={onClose} style={{ height:T.h.lg, padding:'0 18px', borderRadius:T.radius.btn, border:'1px solid var(--border-subtle)', background:'transparent', color:'var(--text-secondary)', fontSize:14, cursor:'pointer', fontFamily: T.font.sans }}>Ακύρωση</button>
       <button onClick={onSave} disabled={saving||!canSave} style={{ height:T.h.lg, padding:'0 22px', borderRadius:T.radius.btn, border:'none', background:canSave&&!saving?'var(--accent)':'var(--bg-surface)', color:canSave&&!saving?'var(--accent-text)':'var(--text-tertiary)', fontSize:14, fontWeight:600, cursor:canSave&&!saving?'pointer':'not-allowed', fontFamily: T.font.sans }}>
         {saving?'Αποθήκευση…':editing?'Αποθήκευση':'Προσθήκη'}
@@ -1412,7 +1412,7 @@ function Section({ title, color, events, onToggle, onEdit, onDelete, collapsed=f
 function ScopeModal({ title, hint, danger, onPick, onClose }: { title:string; hint?:string; danger?:boolean; onPick:(s:'this'|'following'|'all')=>void; onClose:()=>void }) {
   const opts:[('this'|'following'|'all'),string][]=[['this','Μόνο αυτό το γεγονός'],['following','Αυτό και τα επόμενα'],['all','Όλη τη σειρά']]
   return (
-    <Modal open onClose={onClose} title={title} subtitle={hint} width={400}
+    <Modal open onClose={onClose} title={title} subtitle={hint} size="sm"
       footer={<button onClick={onClose} style={{ height:T.h.lg, padding:'0 18px', borderRadius:T.radius.btn, border:'none', background:'transparent', color:'var(--text-secondary)', fontSize:13, cursor:'pointer', fontFamily: T.font.sans }}>Ακύρωση</button>}>
       <div style={{ display:'flex', flexDirection:'column', gap:T.sp.sm }}>
         {opts.map(([v,label])=>(
@@ -1480,7 +1480,7 @@ function SubscribeModal({ token, propertyId, onClose }: { token:string|null; pro
   const copy=async()=>{ try{ await navigator.clipboard.writeText(httpsUrl); setCopied(true); setTimeout(()=>setCopied(false),1800) }catch{} }
   const linkBtn:React.CSSProperties={ display:'flex', alignItems:'center', justifyContent:'center', gap:8, height:T.h.lg, borderRadius:T.radius.btn, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:14, fontWeight:500, textDecoration:'none', fontFamily: T.font.sans, cursor:'pointer' }
   return (
-    <Modal open onClose={onClose} width={500} icon={<CalendarPlus size={19}/>}
+    <Modal open onClose={onClose} size="md" icon={<CalendarPlus size={19}/>}
       title="Ζωντανή συνδρομή"
       subtitle="Σύνδεσε μία φορά και το ημερολόγιό σου ενημερώνεται μόνο του, σε Google, Apple ή Outlook. Κουβαλά όλα σου τα ακίνητα: γεγονότα, λογαριασμούς που λήγουν, δόσεις ενοικίου και εκκρεμότητες με προθεσμία.">
       {!token?(

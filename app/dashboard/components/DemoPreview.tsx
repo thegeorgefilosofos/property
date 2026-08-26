@@ -52,7 +52,7 @@ export default function DemoPreview({ open, onClose, onAddProperty }: {
   const lines = s.statement.lines;
 
   return (
-    <Modal open={open} onClose={onClose} width={720}
+    <Modal open={open} onClose={onClose} size="lg"
       title="Παράδειγμα μιας ολόκληρης χρονιάς"
       subtitle={`${DEMO_PROPERTY.name} · ${DEMO_PROPERTY.sqm} τ.μ. · μακροχρόνια μίσθωση · ${s.year}`}
       footerInfo="Το παράδειγμα δεν αποθηκεύεται στον λογαριασμό σου."

@@ -36,8 +36,8 @@ export function ItemModal({ item, contacts, onSave, onClose, onScan }: {
   // φόντου ΔΕΝ υπήρχαν καθόλου — τώρα έρχονται μαζί με το primitive.
   const canSave = !!form.description.trim()
   return (
-    <Modal open onClose={onClose} width={560}
-      title={item ? 'Επεξεργασία εκκρεμότητας' : 'Νέα Εκκρεμότητα'}
+    <Modal open onClose={onClose} size="md"
+      title={item ? 'Επεξεργασία εκκρεμότητας' : 'Νέα εκκρεμότητα'}
       footer={<>
         <Btn variant="secondary" onClick={onClose}>Ακύρωση</Btn>
         <Btn variant="primary" disabled={!canSave} onClick={() => { if (canSave) onSave(form) }}>{item ? 'Αποθήκευση' : 'Προσθήκη εκκρεμότητας'}</Btn>

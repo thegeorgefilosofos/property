@@ -207,8 +207,8 @@ export function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice,start
   // αρχεία και αντικείμενο που ο χρήστης νομίζει ότι καταχωρήθηκε.
   const closeGuarded = () => { if(!saving) onClose() }
   return (
-    <Modal open onClose={closeGuarded} width={680}
-      title={item?'Επεξεργασία Αντικειμένου':'Νέο Αντικείμενο'}
+    <Modal open onClose={closeGuarded} size="lg"
+      title={item?'Επεξεργασία αντικειμένου':'Νέο αντικείμενο'}
       subtitle={item?item.name:undefined}
       footer={<>
         <Btn onClick={closeGuarded} disabled={saving}>Ακύρωση</Btn>

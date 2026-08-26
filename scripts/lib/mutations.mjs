@@ -27,7 +27,12 @@ export const MUTATIONS = {
   'no-arrows': { add: 'components/__mut__.tsx', content: tsx('    <div>Πήγαινε στις Δαπάνες → Κατηγορίες</div>') },
   'em-dash': { add: 'components/__mut__.tsx', content: tsx('    <p>\n      Τα δεδομένα σου είναι ασφαλή — μόλις επανέλθει η σύνδεση\n      εμφανίζονται όλα κανονικά στη θέση τους.\n    </p>') },
   'uppercase-tonos': { add: 'components/__mut__.tsx', content: tsx('    <div>ΈΣΟΔΑ ΑΚΙΝΗΤΟΥ</div>') },
-  'greek-case': { add: 'components/__mut__.tsx', content: tsx('    <h2>Καθαρή Απόδοση Ακινήτου</h2>') },
+  // Δύο αποδείξεις: το κείμενο ανάμεσα σε ετικέτες, ΚΑΙ ο τίτλος σε μονά
+  // εισαγωγικά μέσα σε άγκιστρα (`title={x?'…':'…'}`), που ήταν το τυφλό σημείο.
+  'greek-case': { every: [
+    { add: 'components/__mut__.tsx', content: tsx('    <h2>Καθαρή Απόδοση Ακινήτου</h2>') },
+    { add: 'components/__mut__.tsx', content: tsx("    <div title={true ? 'Επεξεργασία Αντικειμένου' : 'Νέο Αντικείμενο'} />") },
+  ] },
   'decimal-comma': { add: 'components/__mut__.tsx', content: tsx('    <div>Πληρωτέο 1234.50 €</div>') },
   // Δύο κανόνες, δύο αποδείξεις: το ευρώ κολλητά, και το ευρώ με απλό κενό που
   // πέφτει μόνο του στην επόμενη γραμμή σε στενή στήλη.
@@ -193,6 +198,14 @@ export const MUTATIONS = {
   // Το useLoad που κρύβει σύγχρονη γραφή: ο κανόνας της React σωπαίνει (η
   // φόρτωση είναι παράμετρος) και μόνο ο φύλακας το βλέπει.
   'use-load': { add: 'app/dashboard/components/__mut__.tsx', content: "import { useCallback, useState } from 'react'\nimport { useLoad } from '@/app/hooks/useLoad'\nexport default function MutationProbe() {\n  const [loading, setLoading] = useState(true)\n  const load = useCallback(async () => {\n    setLoading(true)\n    await Promise.resolve()\n    setLoading(false)\n  }, [])\n  useLoad(load)\n  return <div>{loading ? 'Φορτώνει' : 'Ετοιμο'}</div>\n}\n" },
+
+  // Το παράθυρο που ξαναδηλώνει πλάτος σε εικονοστοιχεία. Δύο μεταλλάξεις:
+  // η μία στο Modal, η άλλη στο SideSheet· και οι δύο με εικονίδιο που έχει
+  // το ΔΙΚΟ του width, ώστε να αποδεικνύεται ότι ο φύλακας δεν το μπερδεύει.
+  'modal-width': { every: [
+    { add: 'components/__mut__.tsx', content: "import { Modal } from './Theme'\nexport default function MutationProbe() {\n  return <Modal open onClose={() => {}} title=\"Δοκιμή\" width={560}\n    icon={<svg width={20} height={20} viewBox=\"0 0 24 24\" />}>{null}</Modal>\n}\n" },
+    { add: 'components/__mut__.tsx', content: "import { SideSheet } from './Theme'\nexport default function MutationProbe() {\n  return <SideSheet open onClose={() => {}} ariaLabel=\"Δοκιμή\" width={720}>{null}</SideSheet>\n}\n" },
+  ] },
 
   'props-not-style': { every: [
     { add: 'components/__mut__.tsx', content: "import { fieldRow } from './tokens'\nconst g = { ...fieldRow(200), marginBottom: 14 }\nexport default function MutationProbe() {\n  return <div style={g} />\n}\n" },

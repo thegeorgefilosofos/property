@@ -13,6 +13,7 @@ import * as loanStore from '@/lib/data/loans';
 import * as expenses from '@/lib/data/expenses';
 import { isActiveLoan } from '@/lib/loans/shape'
 import { readStatus, type StatusRow } from '@/lib/property/status'
+import { useChartWidth } from '@/app/hooks/useChartWidth'
 import { businessFormOf } from '@/lib/accounting/taxProfile'
 import type { LegalForm as DossierLegalForm } from '@/lib/accounting/dossier'
 import { Skeleton, SkeletonKPIs, fe, feCompact, fp, fn, ABSENT, ABSENT_SHORT, T, fixedCols } from '@/components/Theme';
@@ -240,7 +241,8 @@ function BarRow({ label, value, max, valueLabel, tone = 'neutral', hint }: { lab
 
 // Έξυπνο γράφημα περιοχής — premium: ομαλή καμπύλη, βάθος, διαδραστικό tooltip ανά έτος.
 function AreaChart({ points }: { points: { year: number; value: number }[] }) {
-  const W = 640, H = 196, padX = 18, padTop = 16, padBottom = 26;
+  const [svgRef, W] = useChartWidth();
+  const H = 196, padX = 18, padTop = 16, padBottom = 26;
   const [hover, setHover] = useState<number | null>(null);
   if (points.length < 2) return null;
   const vals = points.map(p => p.value);
@@ -278,7 +280,7 @@ function AreaChart({ points }: { points: { year: number; value: number }[] }) {
   const belowTop = hp ? Y(hp.value) - TH - 12 : 0;
   const ty = belowTop < 2 ? (hp ? Y(hp.value) + 14 : 0) : belowTop;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block', touchAction: 'none' }} role="img" aria-label="Ιστορική διαδρομή αξίας"
+    <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ display: 'block', touchAction: 'none' }} role="img" aria-label="Ιστορική διαδρομή αξίας"
       onPointerMove={onMove} onPointerLeave={() => setHover(null)}>
       <defs>
         <linearGradient id="roiArea" x1="0" y1="0" x2="0" y2="1">
@@ -298,7 +300,7 @@ function AreaChart({ points }: { points: { year: number; value: number }[] }) {
         <circle key={m.year} cx={X(m.i)} cy={Y(m.value)} r={m.kind === 'now' ? 4.4 : 3.4} fill={mColor[m.kind]} stroke="var(--bg-surface)" strokeWidth="1.8" />
       ))}
       {points.map((p, i) => (i === 0 || i === n - 1 || i === Math.floor((n - 1) / 2)) ? (
-        <text key={'t' + p.year} x={X(i)} y={H - 6} textAnchor={i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'} fontSize="10" fill="var(--text-tertiary)" fontFamily="Inter, sans-serif">{p.year}</text>
+        <text key={'t' + p.year} x={X(i)} y={H - 6} textAnchor={i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'} fontSize="11" fill="var(--text-tertiary)" fontFamily="Inter, sans-serif">{p.year}</text>
       ) : null)}
       {/* Διαδραστικός δείκτης: κάθετη γραμμή, φωτεινό σημείο, tooltip έτους/τιμής */}
       {hp && (
@@ -308,7 +310,7 @@ function AreaChart({ points }: { points: { year: number; value: number }[] }) {
           <circle cx={X(hover!)} cy={Y(hp.value)} r="4" fill="var(--accent)" stroke="var(--bg-surface)" strokeWidth="2" />
           <g transform={`translate(${tx.toFixed(1)},${ty.toFixed(1)})`}>
             <rect width={TW} height={TH} rx="8" fill="var(--bg-elevated)" stroke="var(--border-subtle)" strokeWidth="1" style={{ filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.28))' }} />
-            <text x="10" y="14" fontSize="9.5" fill="var(--text-tertiary)" fontFamily="Inter, sans-serif" letterSpacing="0.2">Έτος {hp.year}</text>
+            <text x="10" y="14" fontSize="11" fill="var(--text-tertiary)" fontFamily="Inter, sans-serif" letterSpacing="0.2">Έτος {hp.year}</text>
             <text x="10" y="28" fontSize="12" fontWeight="600" fill="var(--text-primary)" fontFamily="Inter, sans-serif" style={{ fontVariantNumeric: 'tabular-nums' }}>{feC(hp.value)}</text>
           </g>
         </g>
@@ -319,7 +321,8 @@ function AreaChart({ points }: { points: { year: number; value: number }[] }) {
 
 // Γράφημα πολλαπλών γραμμών (forward προβολή) — premium, ομαλό, με διαδραστικό tooltip.
 function LineChart({ series }: { series: { label: string; color: string; points: { year: number; value: number }[] }[] }) {
-  const W = 640, H = 200, padX = 18, padTop = 16, padBottom = 26;
+  const [svgRef, W] = useChartWidth();
+  const H = 200, padX = 18, padTop = 16, padBottom = 26;
   const [hover, setHover] = useState<number | null>(null);
   const all = series.flatMap(s => s.points.map(p => p.value));
   if (!all.length) return null;
@@ -351,25 +354,25 @@ function LineChart({ series }: { series: { label: string; color: string; points:
   const tx = th != null ? (X(th) + 12 + TW > W - 2 ? Math.max(2, X(th) - TW - 12) : X(th) + 12) : 0;
   const ty = th != null ? padTop : 0;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block', touchAction: 'none' }} role="img" aria-label="Προβολή απόδοσης"
+    <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ display: 'block', touchAction: 'none' }} role="img" aria-label="Προβολή απόδοσης"
       onPointerMove={onMove} onPointerLeave={() => setHover(null)}>
       {[0, 0.25, 0.5, 0.75, 1].map(f => { const gy = padTop + f * (baseY - padTop); return <line key={f} x1={padX} y1={gy.toFixed(1)} x2={W - padX} y2={gy.toFixed(1)} stroke="var(--border-subtle)" strokeWidth="1" opacity="0.45" />; })}
       {series.map(s => (
         <path key={s.label} d={smooth(s.points.map(p => [X(p.year), Y(p.value)] as [number, number]))} fill="none" stroke={s.color} strokeWidth="2.4" strokeLinejoin="round" strokeLinecap="round" />
       ))}
       {series.map(s => { const last = s.points[s.points.length - 1]; return (<circle key={s.label + 'c'} cx={X(last.year)} cy={Y(last.value)} r="4" fill={s.color} stroke="var(--bg-surface)" strokeWidth="1.6" />); })}
-      {[0, Math.round(years / 2), years].map(t => <text key={t} x={X(t)} y={H - 6} textAnchor={t === 0 ? 'start' : t === years ? 'end' : 'middle'} fontSize="10" fill="var(--text-tertiary)" fontFamily="Inter, sans-serif">{`Έτος ${t}`}</text>)}
+      {[0, Math.round(years / 2), years].map(t => <text key={t} x={X(t)} y={H - 6} textAnchor={t === 0 ? 'start' : t === years ? 'end' : 'middle'} fontSize="11" fill="var(--text-tertiary)" fontFamily="Inter, sans-serif">{`Έτος ${t}`}</text>)}
       {th != null && (
         <g pointerEvents="none">
           <line x1={X(th)} y1={padTop - 4} x2={X(th)} y2={baseY} stroke="var(--border-default)" strokeWidth="1" strokeDasharray="3 3" />
           {series.map(s => <circle key={s.label + 'h'} cx={X(th)} cy={Y(s.points[th].value)} r="4" fill={s.color} stroke="var(--bg-surface)" strokeWidth="2" />)}
           <g transform={`translate(${tx.toFixed(1)},${ty.toFixed(1)})`}>
             <rect width={TW} height={TH} rx="8" fill="var(--bg-elevated)" stroke="var(--border-subtle)" strokeWidth="1" style={{ filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.28))' }} />
-            <text x="11" y="13" fontSize="9.5" fill="var(--text-tertiary)" fontFamily="Inter, sans-serif" letterSpacing="0.2">Έτος {th}</text>
+            <text x="11" y="13" fontSize="11" fill="var(--text-tertiary)" fontFamily="Inter, sans-serif" letterSpacing="0.2">Έτος {th}</text>
             {rows.map((r, i) => (
               <g key={r.label + 'r'} transform={`translate(11,${27 + i * 16})`}>
                 <rect x="0" y="-6.5" width="8" height="3" rx="1.5" fill={r.color} />
-                <text x="15" y="0" fontSize="10.5" fill="var(--text-secondary)" fontFamily="Inter, sans-serif">{r.label}</text>
+                <text x="15" y="0" fontSize="11" fill="var(--text-secondary)" fontFamily="Inter, sans-serif">{r.label}</text>
                 <text x={TW - 22} y="0" textAnchor="end" fontSize="11" fontWeight="600" fill="var(--text-primary)" fontFamily="Inter, sans-serif" style={{ fontVariantNumeric: 'tabular-nums' }}>{r.value}</text>
               </g>
             ))}
@@ -1385,7 +1388,12 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <label htmlFor={apprId} style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: SANS }}>Ετήσια ανατίμηση ακινήτου</label>
-              <div style={{ width: 90 }}><NumberInput id={apprId} value={apprShown} onChange={v => { setAppreciation(v); setApprTouched(true); }} suffix="%" step={0.5} max={20} /></div>
+              {/* ΤΑ 90 ΔΕΝ ΧΩΡΟΥΣΑΝ ΤΗΝ ΤΙΜΗ. Το επίθεμα «%» παίρνει 33, το
+                  γέμισμα του πεδίου 28 και το περίγραμμα 2: μένουν 22 για τον
+                  αριθμό, που ζητά 29 για το «6,8». Μετρημένο σε Chromium και
+                  στα οκτώ πλάτη. Τα 120 αφήνουν 52, δηλαδή χωρούν και το
+                  «10,5» με περιθώριο. */}
+              <div style={{ width: 120 }}><NumberInput id={apprId} value={apprShown} onChange={v => { setAppreciation(v); setApprTouched(true); }} suffix="%" step={0.5} max={20} /></div>
               {apprTouched
                 ? <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: SANS, border: '1px solid var(--border-default)', borderRadius: 8, padding: '3px 7px' }}>δική σου υπόθεση</span>
                 : <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: SANS, border: '1px solid var(--border-default)', borderRadius: 8, padding: '3px 7px' }}>δείκτης ΤτΕ</span>}
@@ -1690,8 +1698,12 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
               {/* Μία σειρά. Το `flexWrap` μένει ως δίχτυ για πολύ στενή οθόνη ή
                   για τη ρύθμιση «μεγαλύτερο κείμενο» — δεν είναι η κανονική
                   κατάσταση, είναι η υποχώρηση. */}
-              <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 8 }}>
-                {MARKET_SOURCES.map(s => <a key={s.href} href={s.href} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontFamily: SANS }}>{s.label}</a>)}
+              <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 8, alignItems: 'center' }}>
+                {/* ΜΕΤΡΗΜΕΝΟΙ ΣΤΑ 17. Τέσσερις σύνδεσμοι σε γραμμή 11 στιγμών,
+                    δηλαδή τέσσερις στόχοι αφής στο 39% του ορίου των 44. Η
+                    κλάση δίνει το ύψος ΜΟΝΟ στο δάχτυλο· στο ποντίκι η γραμμή
+                    μένει όσο ήταν. */}
+                {MARKET_SOURCES.map(s => <a key={s.href} href={s.href} target="_blank" rel="noreferrer" className="src-link" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontFamily: SANS }}>{s.label}</a>)}
               </div>
             </div>
           </div>

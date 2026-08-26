@@ -99,7 +99,7 @@ export function BulkImportModal({propertyId,userId,onImported,onClose}:{property
   // Escape στη μέση αφήνει τον χρήστη χωρίς να μάθει αν πέρασαν ή όχι.
   const closeGuarded = () => { if(!importing) onClose() }
   return (
-    <Modal open onClose={closeGuarded} width={600} ariaLabel="Μαζική εισαγωγή CSV"
+    <Modal open onClose={closeGuarded} size="md" ariaLabel="Μαζική εισαγωγή CSV"
       title={<>Μαζική εισαγωγή <span title="CSV: αρχείο τιμών χωρισμένων με κόμμα· ανοίγει σε Excel/λογιστικά φύλλα">CSV</span></>}
       footer={step==='preview'?(<>
         <Btn onClick={()=>setStep('upload')}>Πίσω</Btn>

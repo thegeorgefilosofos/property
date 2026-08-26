@@ -148,7 +148,7 @@ export default function RentReceived({
       : '';
 
   return (
-    <Modal open onClose={() => { if (!busy) onClose(); }} width={480}
+    <Modal open onClose={() => { if (!busy) onClose(); }} size="sm"
       title={openLines.length === 1 ? 'Είσπραξη ενοικίου' : 'Είσπραξη ενοικίων'}
       footerInfo="Για μερική πληρωμή ή διαφορετικό ποσό, από τον Ενοικιαστή."
       footer={<>

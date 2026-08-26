@@ -65,6 +65,8 @@ const OFFICIAL = new Set([
   'Ευρωπαϊκό Χρηματιστήριο Ενέργειας (European Energy Exchange)',
   'Τέλος Ανθεκτικότητας στην Κλιματική Κρίση',         // ονομασία του τέλους
   'Αριθμός Μητρώου Ακινήτου (ΑΜΑ)',
+  'Αριθμός Ταυτότητας Ακινήτου (από το Ε9)',           // ΑΤΑΚ, ονομασία ΑΑΔΕ
+  'Αριθμός Ταυτότητας Ακινήτου, από το έντυπο Ε9',     // το ίδιο, ολογράφως
 ])
 
 const findings = []
@@ -79,8 +81,15 @@ for (const file of findSources()) {
     const t = line.trim()
     if (t.startsWith('//') || t.startsWith('*')) return
     const texts = [
-      ...[...line.matchAll(/(?:label|labelOff|labelInfo|title|sub|hint|placeholder|name)="([^"]{6,60})"/g)].map(m => m[1]),
+      ...[...line.matchAll(/(?:label|labelOff|labelInfo|title|subtitle|sub|hint|placeholder|name)="([^"]{6,60})"/g)].map(m => m[1]),
       ...[...line.matchAll(/>([^<>{}\n]{6,60})</g)].map(m => m[1]),
+      // ΤΟ ΚΕΝΟ ΠΟΥ ΒΡΕΘΗΚΕ ΣΕ ΟΘΟΝΗ TABLET. Ο τίτλος «Επεξεργασία Αντικειμένου»
+      // περνούσε αθόρυβα επειδή ήταν γραμμένος ως `title={item?'…':'…'}`:
+      // μονά εισαγωγικά μέσα σε άγκιστρα, που δεν έπιαναν ούτε το πρώτο μοτίβο
+      // (θέλει διπλά) ούτε το δεύτερο (θέλει κείμενο ανάμεσα σε ετικέτες).
+      // Δώδεκα τίτλοι και ετικέτες κουμπιών κρύβονταν εκεί.
+      ...[...line.matchAll(/(?:label|labelOff|labelInfo|title|subtitle|sub|hint|placeholder|name)=\{([^}]{6,200})\}/g)]
+        .flatMap(m => [...m[1].matchAll(/'([^'\n]{6,60})'/g)].map(x => x[1])),
     ]
     for (const raw of texts) {
       const text = raw.trim()

@@ -43,6 +43,7 @@ export function portfolio(n: number): Bench {
   const rentPays: unknown[] = [];
   const clients: unknown[] = [];
   const propOwners: unknown[] = [];
+  const rentCfg: unknown[] = [];
 
   for (let i = 0; i < n; i++) {
     const id = `p${i}`;
@@ -56,7 +57,18 @@ export function portfolio(n: number): Bench {
       target_rent: rent,
       value: 90_000 + (i % 23) * 7_500,
     });
-    propOwners.push({ id, client_id: i % 5 === 0 ? `c${i % 40}` : null });
+    // ΤΟ ΑΚΙΝΗΤΟ ΤΟΥ ΠΑΓΚΟΥ ΕΙΧΕ ΜΟΝΟ ΤΑΥΤΟΤΗΤΑ ΚΑΙ ΙΔΙΟΚΤΗΤΗ. Καμία οθόνη που
+    // διαβάζει αξία, μίσθωμα, τετραγωνικά ή τύπο δεν έφτανε ποτέ στη γεμάτη της
+    // κατάσταση: η Απόδοση, για παράδειγμα, έμενε αιώνια στο «Συμπλήρωσε αξία
+    // ακινήτου και μηνιαίο μίσθωμα» και όλα τα από κάτω δεν μετρήθηκαν ποτέ.
+    propOwners.push({
+      id, client_id: i % 5 === 0 ? `c${i % 40}` : null,
+      name: `Ακίνητο ${i + 1}`, prop_type: TYPES[i % TYPES.length],
+      value: 90_000 + (i % 23) * 7_500, target_rent: rent,
+      sqm: 42 + (i % 9) * 8, postal_code: '11742',
+      rental_mode: short ? 'short' : 'long', status_detail: null,
+    });
+    rentCfg.push({ property_id: id, actual_rent: rent, target_rent: rent });
 
     if (short) {
       // Βραχυχρόνια: 18 διαμονές τον χρόνο, μέση διάρκεια 4 νύχτες.
@@ -127,6 +139,7 @@ export function portfolio(n: number): Bench {
       rent_payments: rentPays,
       clients,
       properties: propOwners,
+      rent_config: rentCfg,
     },
   };
 }

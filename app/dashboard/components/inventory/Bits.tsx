@@ -310,8 +310,8 @@ export function QRModal({item,onClose}:{item:InventoryItem;onClose:()=>void}) {
   // Το κουμπί «Κλείσιμο» της κεφαλίδας το δίνει πλέον το ίδιο το Modal (× με
   // aria-label «Κλείσιμο»), μαζί με Escape και επιστροφή εστίασης που δεν υπήρχαν.
   return (
-    <Modal open onClose={onClose} width={380} ariaLabel="QR Αντικειμένου"
-      title={<span title="Κωδικός QR: γρήγορη σάρωση στοιχείων αντικειμένου με κινητό">QR Αντικειμένου</span>}
+    <Modal open onClose={onClose} size="sm" ariaLabel="QR αντικειμένου"
+      title={<span title="Κωδικός QR: γρήγορη σάρωση στοιχείων αντικειμένου με κινητό">QR αντικειμένου</span>}
       footer={<Btn variant="primary" onClick={print}>Εκτύπωση καρτέλας</Btn>}>
       <div style={{background:'var(--qr-paper)',padding:12,borderRadius:T.radius.card,alignSelf:'center'}}><img src={qr} width={200} height={200} alt="QR"/></div>
       <div style={{textAlign:'center'}}>

@@ -41,6 +41,10 @@ import TabBills from '@/app/dashboard/components/TabBills';
 // μόνη που κανένας έλεγχος δεν κοίταζε ποτέ: ζει μέσα σε παράθυρο που ανοίγει
 // με πάτημα, οπότε καμία σκηνή του πάγκου δεν την αποδίδει.
 import AddPropertyWizard from '@/app/dashboard/components/AddPropertyWizard';
+// Η ΑΠΟΔΟΣΗ ΤΗΣ ΕΠΕΝΔΥΣΗΣ: πλακίδια, ιστορικό διάγραμμα, σύγκριση με
+// εναλλακτικές και το πεδίο «Ετήσια ανατίμηση ακινήτου», όπου ο χρήστης
+// φωτογράφησε κομμένο το «6,8» σε ταμπλέτα.
+import TabRentROI from '@/app/dashboard/components/TabRentROI';
 import { Modal, Btn, PageTitle, InfoBanner, fieldRow } from '@/components/Theme';
 import { createClient } from '@/lib/supabase/client';
 import type { CashLine, CashPosition } from '@/lib/home/cash';
@@ -159,6 +163,18 @@ function SelectDemo() {
   );
 }
 
+// ΤΟ «lens» ΗΤΑΝ ΚΑΡΦΩΜΕΝΟ ΣΤΟ ΚΕΝΟ ΚΑΙ Ο ΔΙΑΚΟΠΤΗΣ ΤΟΥ ΑΝΕΝΕΡΓΟΣ. Ο πάγκος
+// έδινε `lens=""` και `onLens={() => {}}`, δηλαδή ΚΑΝΕΝΑ από τα πέντε πάνελ του
+// δανείου δεν αποδιδόταν ποτέ: ούτε το γράφημα απόσβεσης, ούτε η σύγκριση
+// τόκων, ούτε η αντοχή δόσης, ούτε ο πίνακας. Πέντε οθόνες που ο χρήστης
+// βλέπει και κανένας έλεγχος διάταξης δεν τις είχε δει.
+function LoanScene() {
+  const [lens, setLens] = useState('amort');
+  return <TabLoanCalculator propertyId="p0" userId="u1" market={MARKET_FALLBACK}
+    onSaveLoan={async () => {}} onSaveToCalendar={async () => {}} onSaveToExpenses={async () => {}}
+    lens={lens} onLens={setLens} />;
+}
+
 const supabase = createClient();
 
 const VIEWS: Record<string, () => React.ReactElement> = {
@@ -169,13 +185,12 @@ const VIEWS: Record<string, () => React.ReactElement> = {
   ledger: () => <ExpenseLedger propertyId="p0" userId="u1" />,
   checklist: () => <TabChecklist propertyId="p0" userId="u1" />,
   compare: () => <TabComparison properties={comparePair as never} userId="u1" />,
-  loan: () => <TabLoanCalculator propertyId="p0" userId="u1" market={MARKET_FALLBACK}
-    onSaveLoan={async () => {}} onSaveToCalendar={async () => {}} onSaveToExpenses={async () => {}}
-    lens="" onLens={() => {}} />,
+  loan: () => <LoanScene />,
   pricing: () => <TabPricing propertyId="p0" userId="u1" propertyName="Στούντιο Κουκάκι" propertySqm={42} />,
   bills: () => <TabBills propertyId="p0" userId="u1" />,
   contacts: () => <TabContacts propertyId="p0" userId="u1" />,
   wizard: () => <AddPropertyWizard userId="u1" onClose={() => {}} onSaved={() => {}} />,
+  roi: () => <TabRentROI propertyId="p0" userId="u1" propertyValue={185000} />,
   modal: () => <ModalDemo />,
   select: () => <SelectDemo />,
 };

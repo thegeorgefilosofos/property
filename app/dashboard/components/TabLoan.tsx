@@ -36,6 +36,7 @@ import { athensToday, isoDate } from '@/lib/core/time';
 import { MONTHS_SHORT } from '@/lib/core/months';
 import { failed } from '@/lib/core/dbError';
 import { grDate } from '@/lib/core/format'
+import { useChartWidth } from '@/app/hooks/useChartWidth'
 
 // Μορφοποίηση επιτοκίων ως κείμενο: κόμμα δεκαδικό και σωστή παύλα εύρους (–),
 // π.χ. «2.40-4.70» → «2,40–4,70». Καθαρά ελληνικά, χωρίς πρόχειρες παύλες.
@@ -211,7 +212,8 @@ const euFmtDate=(d:string)=>{ const [y,m]=d.split('-'); return `${MONTHS_SHORT[(
 function EuriborArea({data}:{data:{date:string;val:number}[]}) {
   const [hi,setHi]=useState<number|null>(null)
   const wrapRef=useRef<HTMLDivElement>(null)
-  const W=620,H=160,padL=6,padR=10,padT=18,padB=22
+  const [svgRef,W]=useChartWidth(620)
+  const H=160,padL=6,padR=10,padT=18,padB=22
   const n=data.length
   if(n<2) return null
   const vals=data.map(d=>d.val)
@@ -235,7 +237,7 @@ function EuriborArea({data}:{data:{date:string;val:number}[]}) {
     <div ref={wrapRef} style={{position:'relative',width:'100%',touchAction:'pan-y',cursor:'crosshair'}}
       onMouseMove={e=>locate(e.clientX)} onMouseLeave={()=>setHi(null)}
       onTouchStart={e=>locate(e.touches[0].clientX)} onTouchMove={e=>locate(e.touches[0].clientX)} onTouchEnd={()=>setHi(null)}>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{display:'block'}} role="img" aria-label="Ιστορική πορεία Euribor τριμήνου, διαδραστικό">
+      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{display:'block'}} role="img" aria-label="Ιστορική πορεία Euribor τριμήνου, διαδραστικό">
         <defs>
           <linearGradient id="euriborFill" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.2"/>

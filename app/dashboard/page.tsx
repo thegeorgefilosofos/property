@@ -2440,7 +2440,7 @@ export default function Dashboard() {
           σαρώνει πια τίποτα. Ο τίτλος μένει: είναι το όνομα του παραθύρου δίπλα
           στο «×» και το μόνο που ακούει ο αναγνώστης οθόνης — το χειρόγραφο
           παράθυρο δεν είχε κανένα. */}
-      <Modal open={!!(quickAddOpen&&user&&selected)} onClose={()=>{ if(!scanBusy) closeQuickAdd(); }} width={820}
+      <Modal open={!!(quickAddOpen&&user&&selected)} onClose={()=>{ if(!scanBusy) closeQuickAdd(); }} size="lg"
         title="Σάρωση εγγράφου">
         {user&&selected&&<DocumentScan propertyId={selected.id} userId={user.id} onBusyChange={setScanBusy}
           onSaved={async()=>{setScanDraftId(null);await fetchProperties(user.id);}}/>}

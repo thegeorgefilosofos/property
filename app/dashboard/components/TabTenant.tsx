@@ -709,7 +709,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
           το `isForm` θα άφηνε ένα Escape πάνω τους να κλείσει ολόκληρο το
           ντοσιέ. */}
       {dc&&(
-        <SideSheet open onClose={closeDossier} width={980}
+        <SideSheet open onClose={closeDossier} size="xl"
           ariaLabel={`Ντοσιέ ενοικιαστή: ${dc.full_name}`}
           header={<>
             <div style={{ display:'flex', alignItems:'flex-start', gap:14, flexWrap:'wrap' as const }}>
@@ -814,7 +814,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
 
       {/* ── Φόρμα — κοινό Modal ───────────────────────────────────────────────
           Ήταν χειρόγραφο: το ίδιο το φόντο κυλούσε (alignItems:'flex-start' +
-          overflowY στο overlay), οπότε ο τίτλος «Νέος Ενοικιαστής» και το κουμπί
+          overflowY στο overlay), οπότε ο τίτλος «Νέος ενοικιαστής» και το κουμπί
           αποθήκευσης έφευγαν από την οθόνη μόλις άνοιγες τα «Περισσότερα». Το
           Modal κυλά ΜΟΝΟ το σώμα (maxHeight 92dvh): κεφαλίδα και ενέργειες
           μένουν πάντα στη θέση τους.
@@ -823,15 +823,15 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
           έχει πλέον το «×» του Modal, που καλεί το ίδιο closeForm (άρα και την
           ίδια προστασία από ακούσια απώλεια δεδομένων). */}
       {isForm&&(
-        <Modal open onClose={closeForm} width={860}
-          title={editId?'Επεξεργασία Ενοικιαστή':'Νέος Ενοικιαστής'}
+        <Modal open onClose={closeForm} size="lg"
+          title={editId?'Επεξεργασία ενοικιαστή':'Νέος ενοικιαστής'}
           subtitle="Ζητάμε μόνο ό,τι έχει νόημα για αυτή τη μίσθωση. Κάθε πεδίο λέει γιατί."
           footer={<>
             {/* Και τα δύο κουμπιά κλειδώνουν όσο γράφει: το «Ακύρωση» δεν
                 επιτρέπεται να εξαφανίσει τη φόρμα στη μέση της αποθήκευσης
                 (ίδιος φρουρός με το closeForm, ώστε να μη μοιάζει ενεργό). */}
             <button style={s.btnGhost} onClick={closeForm} disabled={saving}>Ακύρωση</button>
-            <button style={s.btnGold} onClick={save} disabled={saving}>{saving?'Αποθήκευση…':editId?'Αποθήκευση Αλλαγών':'Προσθήκη Ενοικιαστή'}</button>
+            <button style={s.btnGold} onClick={save} disabled={saving}>{saving?'Αποθήκευση…':editId?'Αποθήκευση αλλαγών':'Προσθήκη ενοικιαστή'}</button>
           </>}>
           {/* ΕΝΑ παιδί, όχι τριάντα. Το σώμα του Modal είναι flex column με
               gap 20· η φόρμα έχει ~30 αδέλφια πρώτου επιπέδου με δικά τους,

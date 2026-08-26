@@ -207,7 +207,7 @@ export default function ClientCompose({ open, onClose, clients, supabase }: {
   );
 
   return (
-    <Modal open={open} onClose={closeIfIdle} width={760}
+    <Modal open={open} onClose={closeIfIdle} size="lg"
       ariaLabel="Σύνταξη μηνύματος"
       title="Σύνταξη email"
       subtitle="Μαζική, στοχευμένη επικοινωνία με τους πελάτες σου"

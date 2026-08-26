@@ -398,7 +398,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
           του z-index 60 — δηλαδή κάτω από κάθε άλλο παράθυρο της εφαρμογής,
           που ζει στο 1000. Τίτλος, μία πρόταση, περιεχόμενο και μία ενέργεια:
           αυτό ακριβώς είναι το Modal. */}
-      <Modal open={qrOpen} onClose={() => setQrOpen(false)} width={340}
+      <Modal open={qrOpen} onClose={() => setQrOpen(false)} size="sm"
         ariaLabel="Κωδικός QR πρόσκλησης"
         title="Σάρωσε για να προσκαλέσεις"
         subtitle="Δείξε τον κωδικό ώστε να ανοίξει τον σύνδεσμό σου από το κινητό."

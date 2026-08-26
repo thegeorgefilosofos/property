@@ -116,7 +116,7 @@ export function ConfirmHost() {
         open
         onClose={() => answer(req, false)}   // Escape, κλικ έξω και το × = ΑΚΥΡΟ, ποτέ «ναι»
         title={req.title}
-        width={460}
+        size="sm"
         footer={
           <>
             <button ref={cancelRef} type="button" style={{ ...btnBase, ...btnSecondary }} onClick={() => answer(req, false)}>

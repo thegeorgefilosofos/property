@@ -1216,7 +1216,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
         //     κλειδωμένη χωρίς καμία επικάλυψη ανοιχτή.
         // Όσο η φόρμα είναι ανοιχτή, το φύλλο αγνοεί το κλείσιμο· το scrim του
         // ούτως ή άλλως δεν είναι προσιτό, γιατί το παράθυρο το σκεπάζει.
-        <SideSheet open onClose={() => { if (modalOpen) return; setOpenId(null); setStayFormOpen(false); }} ariaLabel="Καρτέλα επισκέπτη" width={720}
+        <SideSheet open onClose={() => { if (modalOpen) return; setOpenId(null); setStayFormOpen(false); }} ariaLabel="Καρτέλα επισκέπτη" size="lg"
           header={
             // Avatar + όνομα + σήματα συμμόρφωσης + ενέργεια.
             // Καμία βαθμολογία, κανένα VIP, καμία «μαύρη λίστα».
@@ -1650,7 +1650,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
           κάθονταν κάτω από αυτήν. Το Modal μετρά σε 92dvh.
           Οι δύο ενέργειες ήταν μέσα στην περιοχή κύλισης, δηλαδή έφευγαν από το
           κάδρο όταν το επικολλημένο email ήταν μεγάλο· τώρα είναι υποσέλιδο. */}
-      <Modal open={emailOpen} onClose={() => setEmailOpen(false)} width={600}
+      <Modal open={emailOpen} onClose={() => setEmailOpen(false)} size="md"
         title="Εισαγωγή από email" ariaLabel="Εισαγωγή κράτησης από μήνυμα"
         subtitle="Επικόλλησε το email κράτησης (Airbnb/Booking) και το AI βρίσκει όνομα, ημερομηνίες και ποσό"
         footer={!emailDraft ? (
@@ -1698,7 +1698,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
           αντί για T.radius.modal και '92vh' αντί για '92dvh'. Το εικονίδιο του
           ημερολογίου ζούσε σε δικό του κουτί 44×44 — το Modal το τοποθετεί μόνο
           του, οπότε εδώ μένει σκέτο το SVG. */}
-      <Modal open={icalOpen} onClose={() => setIcalOpen(false)} width={680}
+      <Modal open={icalOpen} onClose={() => setIcalOpen(false)} size="lg"
         title="Εισαγωγή iCal" subtitle="Συγχρονισμός κρατήσεων από Airbnb ή Booking"
         icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>}
         footer={icalEvents ? (
@@ -1806,7 +1806,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
           ονόματος τυπώνονταν σε μέγεθος 15, που ΔΕΝ υπάρχει στην κλίμακα
           (…13, 14, 16…). Το κουτί του εικονιδίου το δίνει τώρα το Modal και τα
           αρχικά κάθονται στο 14. */}
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} width={680}
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} size="lg"
         title={editing ? (form.full_name.trim() || 'Επεξεργασία επισκέπτη') : 'Νέος επισκέπτης'}
         ariaLabel="Στοιχεία επισκέπτη"
         subtitle={editing ? 'Επεξεργασία στοιχείων επισκέπτη' : 'Νέος επισκέπτης'}

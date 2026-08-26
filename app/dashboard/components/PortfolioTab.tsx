@@ -747,7 +747,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
       {/* Modal: νέα εργασία σε επιλεγμένα ακίνητα */}
       {/* Ίδια ιστορία: ωμή σκιά, ακτίνα ως αριθμός, δικός του τίτλος σε <h3>
           με μέγεθος και βάρος γραμμένα στο χέρι. Το Modal δίνει τα τρία. */}
-      <Modal open={showBulk} onClose={() => !bulkSaving && setShowBulk(false)} width={460}
+      <Modal open={showBulk} onClose={() => !bulkSaving && setShowBulk(false)} size="sm"
         title="Νέα εργασία σε επιλεγμένα"
         subtitle={`Δημιουργείται μία ίδια εργασία σε ${selected.size} ${selected.size === 1 ? 'ακίνητο' : 'ακίνητα'}.`}
         footer={<>
@@ -790,7 +790,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
           έμεναν κάτω από το ορατό, χωρίς τίποτα να τα δείχνει. Το υποσέλιδο δεν
           κυλά. Η προειδοποίηση της εκτίμησης μένει στο σώμα, δηλαδή ΠΑΝΩ από τα
           κουμπιά όπως και πριν: διαβάζεται πριν φύγει το αρχείο. */}
-      <Modal open={showStatements} onClose={() => setShowStatements(false)} width={640}
+      <Modal open={showStatements} onClose={() => setShowStatements(false)} size="md"
         title="Καταστάσεις ιδιοκτήτη" subtitle={`Έσοδα, δαπάνες και καθαρό ανά ακίνητο · ${year}`}
         footer={stmt ? <>
           <Btn variant="secondary" onClick={officialStatement} disabled={genOfficial}><ShieldCheck size={14} />{genOfficial ? 'Δημιουργία…' : 'Επίσημο PDF'}</Btn>

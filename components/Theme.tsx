@@ -307,11 +307,38 @@ export function CloseButton({ onClose, tone = 'default', style, label = 'Κλε�
   );
 }
 
-export function SideSheet({ open, onClose, ariaLabel, width = 640, header, footer, children }: {
+// ══════════════════════════════════════════════════════════════════════════
+// ΤΕΣΣΕΡΑ ΠΛΑΤΗ ΠΑΡΑΘΥΡΟΥ, ΟΧΙ ΔΕΚΑΟΚΤΩ
+//
+// ΜΕΤΡΗΜΕΝΟ: 340, 380, 400, 420, 440, 460, 480, 500, 520, 540, 560, 600, 620,
+// 640, 680, 720, 760, 860. Δεκαοκτώ τιμές για τέσσερα πράγματα. Ο χρήστης το
+// είδε ως εξής: άνοιξε «Νέα επαφή» και πήρε ένα παράθυρο, άνοιξε «Επεξεργασία
+// αντικειμένου» στην ίδια οθόνη και πήρε άλλο, αισθητά πλατύτερο. Δύο
+// παράθυρα της ίδιας εφαρμογής, στην ίδια συσκευή, με άλλο μέγεθος.
+//
+// Η κλίμακα λέει ΤΙ είναι το παράθυρο, όχι πόσα εικονοστοιχεία θέλει:
+//
+//   sm  440  μια ερώτηση, μια επιβεβαίωση, μια στήλη
+//   md  620  μια φόρμα
+//   lg  760  φόρμα με δύο στήλες ή πίνακας
+//   xl  980  χώρος εργασίας με καρτέλες και πίνακες
+//
+// Το ίδιο μέτρο ισχύει και για το SideSheet: το ντοσιέ επαφής είναι μια στήλη
+// άρα sm, του επισκέπτη έχει φόρμες άρα lg, του ενοικιαστή έχει καρτέλες και
+// πίνακες άρα xl. Το πλάτος βγαίνει από το είδος του περιεχομένου.
+//
+// Οπως η κλίμακα τύπου και η κλίμακα αποστάσεων: το πλήθος των τιμών είναι
+// απόφαση, όχι αποτέλεσμα του τι χρειάστηκε η κάθε οθόνη τη μέρα που γράφτηκε.
+// ══════════════════════════════════════════════════════════════════════════
+export const MODAL_WIDTH = { sm: 440, md: 620, lg: 760, xl: 980 } as const;
+export type ModalSize = keyof typeof MODAL_WIDTH;
+
+export function SideSheet({ open, onClose, ariaLabel, size = 'md', header, footer, children }: {
   open: boolean; onClose: () => void;
   /** Υποχρεωτικό: ο αναγνώστης οθόνης δεν βλέπει την κεφαλίδα σου. */
   ariaLabel: string;
-  width?: number;
+  /** Το ίδιο μέτρο πλάτους με το Modal. Βλέπε MODAL_WIDTH. */
+  size?: ModalSize;
   /** Η κεφαλίδα του ντοσιέ. Το κουμπί κλεισίματος μπαίνει από το ίδιο το SideSheet. */
   header?: ReactNode;
   footer?: ReactNode;
@@ -323,7 +350,7 @@ export function SideSheet({ open, onClose, ariaLabel, width = 640, header, foote
     <div onClick={onClose} role="dialog" aria-modal="true" aria-label={ariaLabel}
       style={{ position: 'fixed', inset: 0, background: T.scrim, backdropFilter: 'blur(2px)', display: 'flex', justifyContent: 'flex-end', zIndex: z, overscrollBehavior: 'contain' }}>
       <div ref={panelRef} tabIndex={-1} onClick={e => e.stopPropagation()}
-        style={{ width: `min(${width}px, 100%)`, height: '100%', background: 'var(--bg-surface)', borderLeft: '1px solid var(--border-subtle)', boxShadow: 'var(--elev-3)', display: 'flex', flexDirection: 'column', overflow: 'hidden', outline: 'none', overscrollBehavior: 'contain', animation: 'sheetIn 0.22s cubic-bezier(0.2,0,0,1) both' }}>
+        style={{ width: `min(${MODAL_WIDTH[size]}px, 100%)`, height: '100%', background: 'var(--bg-surface)', borderLeft: '1px solid var(--border-subtle)', boxShadow: 'var(--elev-3)', display: 'flex', flexDirection: 'column', overflow: 'hidden', outline: 'none', overscrollBehavior: 'contain', animation: 'sheetIn 0.22s cubic-bezier(0.2,0,0,1) both' }}>
         <style>{`@keyframes sheetIn{from{transform:translateX(28px);opacity:0}to{transform:none;opacity:1}}
           @media (prefers-reduced-motion: reduce){@keyframes sheetIn{from{opacity:1}to{opacity:1}}}`}</style>
 
@@ -352,11 +379,12 @@ export function SideSheet({ open, onClose, ariaLabel, width = 640, header, foote
 // Εδώ ορίζεται μία φορά: ίδιο scrim, ίδιο radius, ίδια κεφαλίδα (εικονίδιο +
 // τίτλος + υπότιτλος + ×), ίδιο padding, ίδιο υποσέλιδο ενεργειών.
 // Κλείνει με κλικ στο φόντο ή Escape· το περιεχόμενο κυλά, header/footer όχι.
-export function Modal({ open, onClose, title, ariaLabel, subtitle, icon, width = 620, children, footer, footerInfo }: {
+// ══════════════════════════════════════════════════════════════════════════
+export function Modal({ open, onClose, title, ariaLabel, subtitle, icon, size = 'md', children, footer, footerInfo }: {
   open: boolean; onClose: () => void;
   /** Δέχεται και JSX (π.χ. τίτλος με <InfoHint>). Για τεχνολογίες υποβοήθησης δώσε ariaLabel. */
   title: ReactNode; ariaLabel?: string; subtitle?: ReactNode; icon?: ReactNode;
-  width?: number; children: ReactNode; footer?: ReactNode; footerInfo?: ReactNode;
+  size?: ModalSize; children: ReactNode; footer?: ReactNode; footerInfo?: ReactNode;
 }) {
   const { panelRef, z } = useOverlayShell(open, onClose);
   if (!open) return null;
@@ -364,7 +392,7 @@ export function Modal({ open, onClose, title, ariaLabel, subtitle, icon, width =
     <div onClick={onClose} role="dialog" aria-modal="true" aria-label={ariaLabel ?? (typeof title === 'string' ? title : undefined)}
       style={{ position: 'fixed', inset: 0, background: T.scrim, backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: z, padding: T.sp.lg, overscrollBehavior: 'contain' }}>
       <div ref={panelRef} tabIndex={-1} onClick={e => e.stopPropagation()}
-        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.modal, width: `min(${width}px, 100%)`, maxHeight: '92dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)', outline: 'none', overscrollBehavior: 'contain' }}>
+        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.modal, width: `min(${MODAL_WIDTH[size]}px, 100%)`, maxHeight: '92dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--elev-3)', outline: 'none', overscrollBehavior: 'contain' }}>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
           {icon && (

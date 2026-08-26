@@ -292,7 +292,7 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
   );
 
   return (
-    <Modal open={open} onClose={closeIfIdle} width={760}
+    <Modal open={open} onClose={closeIfIdle} size="lg"
       ariaLabel="Σύνταξη μισθωτηρίου"
       title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>Μισθωτήριο<InfoHint>Το PDF βγαίνει με αριθμό εγγράφου και QR επαλήθευσης, αρχειοθετείται στα έγγραφα του ακινήτου και ενημερώνει την καρτέλα ενοικιαστή.</InfoHint></span>}
       subtitle="Ιδιωτικό συμφωνητικό με υπογραφή και των δύο μερών"

@@ -476,7 +476,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
     };
     // Η αποθήκευση είναι δύο κλήσεις: πρώτα το ακίνητο, μετά οι «Ρυθμίσεις».
     // Αν έσκαγε η δεύτερη (π.χ. χάθηκε το δίκτυο ενδιάμεσα), το ακίνητο είχε
-    // ΗΔΗ δημιουργηθεί αλλά ο οδηγός το ξεχνούσε: το «Προσθήκη Ακινήτου» που
+    // ΗΔΗ δημιουργηθεί αλλά ο οδηγός το ξεχνούσε: το «Προσθήκη ακινήτου» που
     // πατούσε ο χρήστης βλέποντας το σφάλμα έκανε ΔΕΥΤΕΡΟ insert. Έβρισκε το
     // ίδιο ακίνητο δύο φορές στη λίστα — και επειδή τα ακίνητα μετρούν στο όριο
     // του πακέτου, το διπλό κατανάλωνε θέση που είχε πληρώσει.
@@ -554,7 +554,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
     // χρήστης. Το χειρόγραφο κέλυφος δεν άκουγε Escape, δεν επέστρεφε την
     // εστίαση και δεν κλείδωνε την κύλιση του φόντου· και το «✕» του ήταν
     // 36×36 με radius 18, δηλαδή τέταρτο σχήμα κλεισίματος στην ίδια εφαρμογή.
-    <Modal open onClose={requestClose} width={640}
+    <Modal open onClose={requestClose} size="md"
       ariaLabel="Προσθήκη ακινήτου"
       // Ο ΥΠΟΤΙΤΛΟΣ ΕΛΕΓΕ «Βήμα 1 από 5 · Τύπος» ΚΑΙ ΑΠΟ ΚΑΤΩ Η ΡΑΓΑ ΤΟ ΙΔΙΟ.
       // Πέντε κύκλοι με αριθμό, πέντε ονόματα βημάτων, τσεκ σε ό,τι τελείωσε
@@ -602,7 +602,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
             height: T.h.lg, padding: '0 24px', borderRadius: T.radius.pill, border: 'none',
             background: saving || !name.trim() ? 'var(--bg-overlay)' : 'var(--accent)', color: saving || !name.trim() ? 'var(--text-tertiary)' : 'var(--accent-text)',
             fontFamily: T.font.sans, fontSize: 14, fontWeight: 500, cursor: saving || !name.trim() ? 'not-allowed' : 'pointer',
-          }}>{saving ? 'Αποθήκευση…' : isEdit ? 'Αποθήκευση αλλαγών' : 'Προσθήκη Ακινήτου'}</button>
+          }}>{saving ? 'Αποθήκευση…' : isEdit ? 'Αποθήκευση αλλαγών' : 'Προσθήκη ακινήτου'}</button>
         )}
       </>}>
 

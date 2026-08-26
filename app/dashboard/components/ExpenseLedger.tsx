@@ -901,7 +901,7 @@ function EditExpense({ row, userId, onClose, onSaved }: {
     // χρήστης δεν ήθελε να ανοίξει. Και δεν προσφέρεται και στα δύο σημεία —
     // δύο δρόμοι για την ίδια οριστική ενέργεια είναι δύο ευκαιρίες να πατηθεί
     // κατά λάθος.
-    <Modal open onClose={onClose} title="Επεξεργασία δαπάνης" width={560}
+    <Modal open onClose={onClose} title="Επεξεργασία δαπάνης" size="md"
       footerInfo={missing ?? undefined}
       footer={<>
         <Btn variant="secondary" onClick={onClose}>Ακύρωση</Btn>

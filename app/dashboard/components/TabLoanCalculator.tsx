@@ -1,7 +1,7 @@
 'use client'
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { CustomSelect, NumberInput, TextInput, DatePicker, InfoDot , ToggleField, fieldLabelStyle} from './UIComponents'
-import { KPI, LensBar, cardStyle, panelStyle } from './LoanShared'
+import { KPI, LensBar, axisGutter, cardStyle, panelStyle } from './LoanShared'
 import { downloadTableXlsx } from './exportCsv'
 import { fp, fe } from '@/lib/core/format'
 import { money as csvEur } from './sheetFormat';
@@ -29,6 +29,7 @@ import { PRESUMPTIVE_RULE_2026 } from '@/lib/billing/consolidate'
 import { regionByKey, GREECE_AVG_GROSS_YIELD, MARKET_DATA_ASOF } from '@/lib/market/greekMarket'
 import { athensToday } from '@/lib/core/time';
 import { failed, MSG } from '@/lib/core/dbError';
+import { useChartWidth } from '@/app/hooks/useChartWidth'
 
 // ── MD3 tokens ────────────────────────────────────────────────────────────────
 const labelStyle: React.CSSProperties = { ...TT.label, display:'block', marginBottom:6 }
@@ -67,13 +68,16 @@ function Section({title,sub,children,defaultOpen=false,badge}:{title:string;sub?
 }
 
 // ── Bespoke SVG: donut κατανομής κεφαλαίου/τόκων (αισθητική «2050», μονόχρωμη) ──
+// ΤΟ viewBox ΗΤΑΝ 136 ΚΑΙ ΤΟ ΠΛΑΤΟΣ 128: συντελεστής 0,94 χωρίς κανέναν λόγο,
+// που έγραφε τη λέξη «ΚΕΦΑΛΑΙΟ» στα 10,3 αντί για 11. Οι δύο αριθμοί λένε τώρα
+// το ίδιο πράγμα, οπότε κάθε μέγεθος μέσα στο donut είναι αυτό που γράφεται.
 function AmortDonut({principal,interest}:{principal:number;interest:number}) {
   const total = Math.max(1, principal+interest)
   const pFrac = principal/total
   const R=52, sw=15, C=2*Math.PI*R
   const pLen = C*pFrac
   return (
-    <svg viewBox="0 0 136 136" width="128" height="128" role="img" aria-label={`Κατανομή: ${Math.round(pFrac*100)}% κεφάλαιο, ${Math.round((1-pFrac)*100)}% τόκοι`} style={{flexShrink:0}}>
+    <svg viewBox="0 0 136 136" width="136" height="136" role="img" aria-label={`Κατανομή: ${Math.round(pFrac*100)}% κεφάλαιο, ${Math.round((1-pFrac)*100)}% τόκοι`} style={{flexShrink:0}}>
       <defs>
         <linearGradient id="donutCap" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.95"/>
@@ -98,10 +102,13 @@ function AmortDonut({principal,interest}:{principal:number;interest:number}) {
 function AmortArea({data,fmt}:{data:{year:string;cap:number;int:number}[];fmt:(n:number)=>string}) {
   const [hi,setHi]=useState<number|null>(null)
   const wrapRef=useRef<HTMLDivElement>(null)
-  const W=620,H=228,padL=6,padR=52,padT=16,padB=26
+  const [svgRef,W]=useChartWidth(620)
+  const H=228,padL=6,padT=16,padB=26
   const n=data.length
   if(n<1) return null
   const maxTotal=Math.max(...data.map(d=>d.cap+d.int),1)
+  const gridLabels=[0,0.5,1].map(f=>fmt(maxTotal*f))
+  const padR=axisGutter(gridLabels)
   const plotW=W-padL-padR, plotH=H-padT-padB
   const step=plotW/n
   const bw=Math.min(26, step*0.58)
@@ -110,7 +117,7 @@ function AmortArea({data,fmt}:{data:{year:string;cap:number;int:number}[];fmt:(n
   const base=padT+plotH
   const r=Math.min(3, bw/2)
   const crossIdx=data.findIndex(d=>d.cap>=d.int)
-  const grid=[0,0.5,1].map(f=>({ y:padT+(1-f)*plotH, label:fmt(maxTotal*f) }))
+  const grid=[0,0.5,1].map((f,i)=>({ y:padT+(1-f)*plotH, label:gridLabels[i] }))
   const tickEvery=Math.max(1, Math.ceil(n/8))
   const locate=(clientX:number)=>{
     const el=wrapRef.current; if(!el)return
@@ -124,7 +131,7 @@ function AmortArea({data,fmt}:{data:{year:string;cap:number;int:number}[];fmt:(n
     <div ref={wrapRef} style={{position:'relative',width:'100%',touchAction:'pan-y',cursor:'crosshair'}}
       onMouseMove={e=>locate(e.clientX)} onMouseLeave={()=>setHi(null)}
       onTouchStart={e=>locate(e.touches[0].clientX)} onTouchMove={e=>locate(e.touches[0].clientX)} onTouchEnd={()=>setHi(null)}>
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{display:'block'}} role="img" aria-label="Κατανομή κεφαλαίου και τόκων ανά έτος">
+    <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{display:'block'}} role="img" aria-label="Κατανομή κεφαλαίου και τόκων ανά έτος">
       <defs>
         <linearGradient id="barCap" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="var(--accent)" stopOpacity="1"/>
@@ -199,7 +206,8 @@ type SeriesPoint = Record<string, string | number>;
 function DualLine({data,keyA,keyB,fmt}:{data:SeriesPoint[];keyA:string;keyB:string;fmt:(n:number)=>string}) {
   const [hi,setHi]=useState<number|null>(null)
   const wrapRef=useRef<HTMLDivElement>(null)
-  const W=620,H=200,padL=8,padR=56,padT=18,padB=28
+  const [svgRef,W]=useChartWidth(620)
+  const H=200,padL=8,padT=18,padB=28
   const n=data.length
   if(n<2) return null
   // Οι δύο σειρές είναι αριθμητικές· η ετικέτα του άξονα είναι κείμενο. Η
@@ -207,6 +215,7 @@ function DualLine({data,keyA,keyB,fmt}:{data:SeriesPoint[];keyA:string;keyB:stri
   const v=(d:SeriesPoint,k:string)=>Number(d[k])||0
   const vals=data.flatMap(d=>[v(d,keyA),v(d,keyB)])
   const maxV=Math.max(...vals,1)
+  const padR=axisGutter([0,0.5,1].map(f=>fmt(maxV*f)))
   const X=(i:number)=> padL + (i/(n-1))*(W-padL-padR)
   const Y=(v:number)=> padT + (1 - v/maxV)*(H-padT-padB)
   const path=(k:string)=> data.map((d,i)=>`${i===0?'M':'L'} ${X(i)} ${Y(v(d,k))}`).join(' ')
@@ -224,7 +233,7 @@ function DualLine({data,keyA,keyB,fmt}:{data:SeriesPoint[];keyA:string;keyB:stri
     <div ref={wrapRef} style={{position:'relative',width:'100%',touchAction:'pan-y',cursor:'crosshair'}}
       onMouseMove={e=>locate(e.clientX)} onMouseLeave={()=>setHi(null)}
       onTouchStart={e=>locate(e.touches[0].clientX)} onTouchMove={e=>locate(e.touches[0].clientX)} onTouchEnd={()=>setHi(null)}>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{display:'block'}} role="img" aria-label="Σύγκριση σωρευτικών τόκων στη διάρκεια">
+      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{display:'block'}} role="img" aria-label="Σύγκριση σωρευτικών τόκων στη διάρκεια">
         <defs>
           <linearGradient id="dualAreaA" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.16"/>
@@ -270,10 +279,12 @@ function DualLine({data,keyA,keyB,fmt}:{data:SeriesPoint[];keyA:string;keyB:stri
 function RentBuyChart({buy,rent,horizon,breakEvenYear,fmt}:{buy:number[];rent:number[];horizon:number;breakEvenYear?:number|null;fmt:(n:number)=>string}) {
   const [hi,setHi]=useState<number|null>(null)
   const wrapRef=useRef<HTMLDivElement>(null)
-  const W=560,H=170,padL=6,padR=52,padT=14,padB=22, n=horizon+1
+  const [svgRef,W]=useChartWidth(560)
+  const H=170,padL=6,padT=14,padB=22, n=horizon+1
   if(n<2) return null
   const maxV=Math.max(...buy,...rent,1)
   const minV=Math.min(...buy,0)
+  const padR=axisGutter([0,0.5,1].map(f=>fmt(minV+(maxV-minV)*f)))
   const X=(i:number)=>padL+(i/(n-1))*(W-padL-padR)
   const Yv=(v:number)=>padT+(1-(v-minV)/(maxV-minV||1))*(H-padT-padB)
   const buyLine=buy.map((v,i)=>`${i===0?'M':'L'} ${X(i)} ${Yv(v)}`).join(' ')
@@ -291,7 +302,7 @@ function RentBuyChart({buy,rent,horizon,breakEvenYear,fmt}:{buy:number[];rent:nu
     <div ref={wrapRef} style={{position:'relative',width:'100%',touchAction:'pan-y',cursor:'crosshair'}}
       onMouseMove={e=>locate(e.clientX)} onMouseLeave={()=>setHi(null)}
       onTouchStart={e=>locate(e.touches[0].clientX)} onTouchMove={e=>locate(e.touches[0].clientX)} onTouchEnd={()=>setHi(null)}>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{display:'block'}} role="img" aria-label="Σύγκριση κόστους αγοράς και ενοικίασης, διαδραστικό">
+      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{display:'block'}} role="img" aria-label="Σύγκριση κόστους αγοράς και ενοικίασης, διαδραστικό">
         {grid.map((g,i)=>(<g key={i}><line x1={padL} y1={g.y} x2={W-padR} y2={g.y} stroke="var(--border-subtle)" strokeWidth="1" strokeOpacity={i===0?0.9:0.4}/><text x={W-padR+5} y={g.y+3} textAnchor="start" style={{fontSize: 11,fontFamily: T.font.sans,fill:'var(--text-tertiary)',fontVariantNumeric:'tabular-nums'}}>{g.label}</text></g>))}
         <line x1={padL} y1={H-padB} x2={W-padR} y2={H-padB} stroke="var(--border-default)" strokeWidth="1"/>
         <path d={rentLine} fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeDasharray="4 3" strokeLinejoin="round"/>
@@ -331,9 +342,11 @@ function RentBuyChart({buy,rent,horizon,breakEvenYear,fmt}:{buy:number[];rent:nu
 function StressBars({stress,limit,INC,fmt,fmtPct,fmtPct1}:{stress:{label:string;rate:number;monthly:number}[];limit:number;INC:number;fmt:(n:number)=>string;fmtPct:(n:number)=>string;fmtPct1:(n:number)=>string}) {
   const [hi,setHi]=useState<number|null>(null)
   const wrapRef=useRef<HTMLDivElement>(null)
-  const W=620,H=176,padL=8,padR=58,padT=18,padB=28
-  const plotW=W-padL-padR, plotH=H-padT-padB, base=padT+plotH
+  const [svgRef,W]=useChartWidth(620)
+  const H=176,padL=8,padT=18,padB=28
   const maxV=Math.max(...stress.map(s=>s.monthly), limit, 1)*1.14
+  const padR=axisGutter((limit>0?[0,limit,maxV/1.14]:[0,maxV/2/1.14,maxV/1.14]).map(v=>fmt(v)))
+  const plotW=W-padL-padR, plotH=H-padT-padB, base=padT+plotH
   const step=plotW/stress.length, bw=Math.min(42, step*0.56)
   const Y=(v:number)=> padT+(1-v/maxV)*plotH
   const cx=(i:number)=> padL+i*step+step/2
@@ -349,7 +362,7 @@ function StressBars({stress,limit,INC,fmt,fmtPct,fmtPct1}:{stress:{label:string;
     <div ref={wrapRef} style={{position:'relative',width:'100%',touchAction:'pan-y',cursor:'crosshair'}}
       onMouseMove={e=>locate(e.clientX)} onMouseLeave={()=>setHi(null)}
       onTouchStart={e=>locate(e.touches[0].clientX)} onTouchMove={e=>locate(e.touches[0].clientX)} onTouchEnd={()=>setHi(null)}>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{display:'block'}} role="img" aria-label="Αντοχή δόσης σε άνοδο επιτοκίου, διαδραστικό">
+      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{display:'block'}} role="img" aria-label="Αντοχή δόσης σε άνοδο επιτοκίου, διαδραστικό">
         <defs>
           <linearGradient id="stressBar" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--accent)" stopOpacity="1"/><stop offset="100%" stopColor="color-mix(in srgb, var(--accent) 76%, transparent)"/></linearGradient>
           <linearGradient id="stressOver" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--text-tertiary)" stopOpacity="1"/><stop offset="100%" stopColor="color-mix(in srgb, var(--text-tertiary) 74%, transparent)"/></linearGradient>
@@ -1278,7 +1291,11 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
         return (
       <Section title="Δανειοληπτική ικανότητα" sub="Μέγιστο δάνειο βάσει εισοδήματος και ορίων Τράπεζας Ελλάδος" defaultOpen>
         <div style={{marginBottom:16}}><NumberInput label="Μηνιαίο καθαρό εισόδημα" value={income} onChange={setIncome} suffix="€"/></div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:12,marginBottom:16}}>
+        {/* ΤΡΙΑ ΠΛΑΚΙΔΙΑ ΣΕ ΔΥΟ ΣΤΗΛΕΣ ΑΦΗΝΟΥΝ ΤΟ ΤΡΙΤΟ ΜΟΝΟ ΤΟΥ. Μετρημένο στα
+            375 και στα 430: «2+1», με το τρίτο σε μισό πλάτος και τρύπα δίπλα.
+            Ιδια κλάση με τους δείκτες του KPIGrid, ίδιοι κανόνες: στα στενά
+            πλάτη μία στήλη, που είναι ζυγισμένη. */}
+        <div className="kpi-row" style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:12,marginBottom:16,'--kpi-lg':3,'--kpi-md':3,'--kpi-sm':1} as React.CSSProperties}>
           {[
             {k:'Μέγιστη δόση τον μήνα',v:fmtEur(aff.maxMonthly),s:`${fp(aff.limitPct*100)} του εισοδήματος${firstTimeBuyer?', ως πρωτοαγοραστής':''}`,accent:false,neg:false},
             {k:'Μέγιστο δάνειο',v:fmtEur(aff.maxLoan),s:`με ${fmtPct(effRate)} · ${Y} έτη`,accent:false,neg:aff.maxLoan<LA},
@@ -1372,7 +1389,8 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
                 <CustomSelect label="Εξαρτώμενα τέκνα" value={children} onChange={setChildren} options={CHILDREN_OPTIONS}/>
               </div>
             )}
-            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:8,marginBottom:10}}>
+            {/* Τρία πλακίδια, ο ίδιος κανόνας με τη Δανειοληπτική ικανότητα. */}
+            <div className="kpi-row" style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:8,marginBottom:10,'--kpi-lg':3,'--kpi-md':3,'--kpi-sm':1} as React.CSSProperties}>
               {isNewBuilding?(
                 <>
                   <KPI label="ΦΠΑ 24%" value={fmtEur(vatOwed)} sub="Αντί ΦΜΑ"/>

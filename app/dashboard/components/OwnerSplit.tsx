@@ -242,7 +242,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
     // δικό του radius 18, δική του κεφαλίδα με «×» σε padding 4 (στόχος ~21×30,
     // κάτω από το μέγεθος αφής) — και ΧΩΡΙΣ Escape, χωρίς επιστροφή εστίασης,
     // χωρίς κλείδωμα κύλισης του φόντου. Το Modal τα δίνει και τα τέσσερα.
-    <Modal open onClose={requestClose} width={760}
+    <Modal open onClose={requestClose} size="lg"
       ariaLabel="Ποσοστά συνιδιοκτησίας"
       icon={<svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>}
       title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>Κατανομή σε ιδιοκτήτες<InfoHint>Μοιράζει τα καθαρά έσοδα της περιόδου στους συνιδιοκτήτες, ανάλογα με το ποσοστό του καθενός. Αφαιρεί πρώτα τα έξοδα και τη διαχειριστική αμοιβή και βγάζει επίσημη «Κατάσταση κατανομής» σε PDF, με αριθμό εγγράφου και QR επαλήθευσης, για τον κάθε ιδιοκτήτη.</InfoHint></span>}

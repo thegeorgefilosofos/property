@@ -1702,7 +1702,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
           («Αποστολή», «Άλλη φορά», «Κλείσιμο») τα δίνει το ίδιο το Feedback. */}
       {feedbackOpen && (
         <div style={{ position: 'relative', zIndex: 1400 }}>
-          <Modal open onClose={() => setFeedbackOpen(false)} title="Η γνώμη σου" width={460}>
+          <Modal open onClose={() => setFeedbackOpen(false)} title="Η γνώμη σου" size="sm">
             <Feedback target="assistant" embedded onDone={() => setFeedbackOpen(false)} />
           </Modal>
         </div>

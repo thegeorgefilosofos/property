@@ -1366,7 +1366,7 @@ function DraftCard({ d, onToggle, onPatch, onPatchDoc, onCommit, onRemove }: {
 function RenameModal({ initial, onCancel, onSave }: { initial: string; onCancel: () => void; onSave: (v: string) => void }) {
   const [val, setVal] = useState(initial);
   return (
-    <Modal open onClose={onCancel} title="Μετονομασία" width={440}
+    <Modal open onClose={onCancel} title="Μετονομασία" size="sm"
       footer={<>
         <Btn variant="ghost" onClick={onCancel}>Ακύρωση</Btn>
         <Btn variant="primary" onClick={() => val.trim() && onSave(val)} disabled={!val.trim()}>Αποθήκευση</Btn>
@@ -1410,7 +1410,7 @@ function FixModal({ items, onCancel, onSave }: { items: Item[]; onCancel: () => 
   };
 
   return (
-    <Modal open onClose={onCancel} width={440}
+    <Modal open onClose={onCancel} size="sm"
       title={items.length > 1 ? `Διόρθωση ${items.length} αρχείων` : 'Διόρθωση αναγνώρισης'}
       subtitle={items.length > 1
         ? 'Σε πολλά αρχεία μαζί αλλάζει μόνο η κατηγορία· ο φάκελος ενημερώνεται αυτόματα.'

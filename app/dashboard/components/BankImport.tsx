@@ -140,7 +140,7 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
     // εστίασης, χωρίς κλείδωμα κύλισης — το φόντο κυλούσε κάτω από το παράθυρο.
     // Οι ενέργειες κάθε βήματος πέρασαν στο υποσέλιδο: ίδια θέση και στα δύο
     // βήματα και δεν κυλούν μαζί με τη λίστα των κινήσεων.
-    <Modal open onClose={requestClose} width={560}
+    <Modal open onClose={requestClose} size="md"
       icon={<Landmark size={19}/>}
       title="Εισαγωγή τραπεζικής κίνησης"
       subtitle="Αντιστοίχισε αυτόματα τις κινήσεις σε ενοίκια και έξοδα, με τη δική σου έγκριση"

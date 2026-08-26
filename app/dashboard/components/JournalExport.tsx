@@ -273,7 +273,7 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
   );
 
   return (
-    <Modal open={open} onClose={onClose} width={760}
+    <Modal open={open} onClose={onClose} size="lg"
       title="Λογιστικό ημερολόγιο"
       subtitle="Διπλογραφικό, έτοιμο για τον λογιστή · SoftOne · Epsilon · QuickBooks · Xero"
       icon={<svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 10h16M10 4v16"/></svg>}

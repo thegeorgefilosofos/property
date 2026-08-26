@@ -837,7 +837,7 @@ export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, 
           τίτλος 15/600 αντί για την κοινή κεφαλίδα και κανένα Escape, καμία
           επιστροφή εστίασης, κανένα κλείδωμα κύλισης του φόντου. */}
       {mark&&(
-        <Modal open onClose={()=>setMark(null)} width={420}
+        <Modal open onClose={()=>setMark(null)} size="sm"
           title="Σήμανση ως πληρωμένο"
           subtitle={`${monthLabel(mark.p)} · ${fmt(mark.p.amount)}`}
           footer={<>
@@ -853,7 +853,7 @@ export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, 
           Το χειρόγραφο έστηνε μόνο του maxHeight:'90vh' + overflowY· το Modal
           κυλά ΜΟΝΟ το σώμα και κρατά κεφαλίδα και ενέργειες πάντα ορατές. */}
       {req&&(
-        <Modal open onClose={()=>setReq(null)} width={460}
+        <Modal open onClose={()=>setReq(null)} size="sm"
           title="Αίτημα πληρωμής"
           ariaLabel="Αίτημα πληρωμής"
           subtitle={<>{monthLabel(req)} · {fmt(req.amount)}{req.services_charge&&req.services_charge>0?<span style={{ color:'var(--text-tertiary)' }}> (ενοίκιο {fmt(req.base_rent)} + υπηρεσίες {fmt(req.services_charge)})</span>:null}</>}
@@ -900,7 +900,7 @@ export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, 
           που προσθέτει το Modal (Escape και «×») — αλλιώς η σάρωση θα μπορούσε
           να κλείσει στη μέση και το αποτέλεσμα να χαθεί χωρίς μήνυμα. */}
       {scan&&(
-        <Modal open onClose={()=>{ if(scan.stage!=='scanning') setScan(null); }} width={460}
+        <Modal open onClose={()=>{ if(scan.stage!=='scanning') setScan(null); }} size="sm"
           title="Σάρωση απόδειξης"
           footer={
             scan.stage==='error' ? <button style={s.btnGhost} onClick={()=>setScan(null)}>Κλείσιμο</button>

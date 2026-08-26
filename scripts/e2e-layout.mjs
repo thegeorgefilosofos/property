@@ -92,8 +92,21 @@ const PROBE = () => {
       const lines = rg.getClientRects().length
       const words = txt.split(/\s+/).length
       if (lines > 3 && lines > words) add('σπασμένη λέξη', txt, lines + ' σειρές')
-      // Μέγεθος κάτω από το δάπεδο
-      const fs = parseFloat(cs.fontSize)
+      // ═══ ΤΟ ΜΕΓΕΘΟΣ ΜΕΣΑ ΣΕ SVG ΔΕΝ ΕΙΝΑΙ ΤΟ ΜΕΓΕΘΟΣ ΣΤΗΝ ΟΘΟΝΗ ══════════
+      // Ενα διάγραμμα με `viewBox="0 0 640 196"` και `width="100%"` ΚΛΙΜΑΚΩΝΕΤΑΙ.
+      // Το `getComputedStyle` επιστρέφει τη μονάδα του viewBox, δηλαδή «10px»
+      // ό,τι κι αν βλέπει ο άνθρωπος: στα 375 η κάρτα δίνει 311 εικονοστοιχεία
+      // στα 640 του viewBox, άρα το «2016» ζωγραφίζεται στα 4,9 και ο έλεγχος
+      // ανέφερε 10. Το `getScreenCTM` δίνει τον πραγματικό συντελεστή.
+      let fs = parseFloat(cs.fontSize)
+      if (el.ownerSVGElement && el.getScreenCTM) {
+        const m = el.getScreenCTM()
+        if (m) fs *= Math.sqrt(Math.abs(m.a * m.d - m.b * m.c)) || 1
+      }
+      // Στρογγυλοποίηση ΠΡΙΝ τη σύγκριση: ο πολλαπλασιασμός με τον πίνακα
+      // μετασχηματισμού δίνει 10,999999 εκεί που το svg γράφει καθαρό 11 και
+      // ο έλεγχος κατήγγειλλε «11px» ως μικρότερο από 11.
+      fs = Math.round(fs * 10) / 10
       if (fs && fs < 11) add('γράμματα κάτω από 11', txt, fs + 'px')
     }
     // ── στόχοι αφής ──
@@ -182,6 +195,58 @@ const PROBE = () => {
     if (need > room + 4) add('ΚΟΜΜΕΝΟ ΠΑΡΑΔΕΙΓΜΑ', ph, `${Math.round(need)} σε ${Math.round(room)}`)
   }
 
+  // ═══ Η ΤΙΜΗ ΜΕΣΑ ΣΤΟ ΠΕΔΙΟ ═════════════════════════════════════════════
+  // ΤΟ ΠΑΡΑΔΕΙΓΜΑ ΗΤΑΝ ΤΟ ΜΙΣΟ ΠΡΟΒΛΗΜΑ. Ο,τι κόβει το `placeholder` κόβει και
+  // την ΤΙΜΗ· και η τιμή είναι χειρότερη: το παράδειγμα το βλέπει ο χρήστης μία
+  // φορά, την τιμή τη διαβάζει για να αποφασίσει. Στο tablet, το πεδίο «Ετήσια
+  // ανατίμηση ακινήτου» με πλάτος 90 και επίθεμα «%» έδειχνε κομμένο το «6,8».
+  //
+  // Δεν αρκεί το `scrollWidth > clientWidth`: το πεδίο κειμένου κυλά μόνο του
+  // και όταν η εστίαση είναι αλλού ο περιηγητής επιστρέφει ίσα νούμερα. Ετσι
+  // μετριέται το ΙΔΙΟ πράγμα με το παράδειγμα, με canvas και την πραγματική
+  // γραμματοσειρά, ώστε μια αλλαγή σε καθεμιά από τις δύο να μη χαλά την άλλη.
+  for (const el of document.querySelectorAll('input, textarea')) {
+    if (/^(checkbox|radio|file|range|color|hidden|submit|button|image)$/.test(el.type || '')) continue
+    const v = el.value
+    if (!v || !el.checkVisibility?.()) continue
+    const cs = getComputedStyle(el)
+    cv.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`
+    const room = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
+    const need = cv.measureText(v).width
+    if (need > room + 4) add('ΚΟΜΜΕΝΗ ΤΙΜΗ ΠΕΔΙΟΥ', v, `${Math.round(need)} σε ${Math.round(room)}`)
+  }
+
+  // ═══ ΔΥΟ ΠΕΔΙΑ ΔΙΠΛΑ ΔΙΠΛΑ, ΣΕ ΑΛΛΟ ΥΨΟΣ ════════════════════════════════
+  // ΤΟ ΕΙΔΕ Ο ΧΡΗΣΤΗΣ ΣΕ ΤΑΜΠΛΕΤΑ, ΣΤΑ ΠΑΡΑΘΥΡΑ ΤΩΝ ΦΟΡΜΩΝ: η μία στήλη είχε
+  // υπόδειξη τριών σειρών κάτω από το πεδίο και η διπλανή καμία, οπότε με
+  // στοίχιση στη ΒΑΣΗ τα δύο κουτιά γραφής κάθονταν σε διαφορετικό ύψος. Δύο
+  // πεδία της ίδιας γραμμής, στην ίδια φόρμα, το ένα πιο ψηλά από το άλλο.
+  //
+  // ΤΙ ΜΕΤΡΑΕΙ. Για κάθε `.field-row`, τα ΚΟΥΤΙΑ ΓΡΑΦΗΣ που ανήκουν στην ίδια
+  // οπτική σειρά (ίδιο ύψος αρχής μέσα σε ανοχή γραμμής) πρέπει να ξεκινούν
+  // στο ίδιο σημείο. Η σύγκριση γίνεται στο ΠΕΔΙΟ, όχι στο περίβλημά του:
+  // εκείνο έχει και ετικέτα και υπόδειξη, που δικαιολογημένα διαφέρουν.
+  for (const row of document.querySelectorAll('.field-row')) {
+    const fields = [...row.querySelectorAll('input, select, textarea, [role="combobox"]')]
+      .filter(f => f.checkVisibility?.() && f.getBoundingClientRect().height > 8)
+    // Ομαδοποίηση ανά οπτική σειρά: το `flex-wrap` σπάει τη γραμμή σε πολλές.
+    const byLine = new Map()
+    for (const f of fields) {
+      const b = f.getBoundingClientRect()
+      // Κλειδί η ΜΕΣΗ του πεδίου στρογγυλεμένη ανά 60: όσα μοιράζονται σειρά
+      // πέφτουν στον ίδιο κάδο ακόμη κι αν διαφέρουν κατά λίγο.
+      const key = Math.round(b.top / 60)
+      if (!byLine.has(key)) byLine.set(key, [])
+      byLine.get(key).push(b)
+    }
+    for (const boxes of byLine.values()) {
+      if (boxes.length < 2) continue
+      const tops = boxes.map(b => b.top)
+      const spread = Math.max(...tops) - Math.min(...tops)
+      if (spread > 4) add('ΑΣΤΟΙΧΙΣΤΑ ΠΕΔΙΑ', (row.textContent || '').trim().slice(0, 24), Math.round(spread) + 'px')
+    }
+  }
+
   // ═══ ΔΥΟ ΚΕΙΜΕΝΑ ΤΟ ΕΝΑ ΠΑΝΩ ΣΤΟ ΑΛΛΟ ══════════════════════════════════
   // ΤΟ ΧΕΙΡΟΤΕΡΟ ΟΠΤΙΚΟ ΣΦΑΛΜΑ ΠΟΥ ΥΠΑΡΧΕΙ, ΚΑΙ ΚΑΝΕΙΣ ΔΕΝ ΤΟ ΜΕΤΡΟΥΣΕ. Οταν
   // ένα κείμενο ξεχειλίζει από τη στήλη του και η στήλη δεν κόβει, το κείμενο
@@ -253,9 +318,14 @@ const PROBE = () => {
   for (const g of document.querySelectorAll('*')) {
     const cs = getComputedStyle(g)
     if (!/grid|flex/.test(cs.display)) continue
+    // ΕΚΤΟΣ ΡΟΗΣ ΣΗΜΑΙΝΕΙ «absolute» Η «fixed», ΟΧΙ «relative». Ο ορος ηταν
+    // `position === 'static'` και πετούσε έξω κάθε πλακίδιο που είναι απλώς
+    // άγκυρα για κάτι δικό του — ο επιλογέας «Περιοχή» είναι `relative` για να
+    // κρεμάσει τη λίστα του. Ετσι το πλέγμα των τεσσάρων της Αποδοσης μετριόταν
+    // ως τριών και καταγγελλόταν «2+1» σε τρία πλάτη, ενώ στην οθόνη ήταν 2+2.
     const kids = [...g.children].filter(k => {
       const b = k.getBoundingClientRect()
-      return b.width > 8 && b.height > 8 && getComputedStyle(k).position === 'static'
+      return b.width > 8 && b.height > 8 && !/absolute|fixed/.test(getComputedStyle(k).position)
     })
     if (kids.length < 3) continue
     const rows = new Map()
@@ -307,9 +377,11 @@ const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PAT
 // η ταμπλέτα σε οριζόντια θέση.
 const WIDTHS = [375, 430, 768, 820, 900, 1024, 1280, 1440]
 const TOUCH = (w) => w < 1100 || w === 1280
-const SCENES = ['portfolio','cash','rent','inbox','ledger','checklist','modal','select','compare','loan','pricing','bills','contacts','wizard']
+const SCENES = ['portfolio','cash','rent','inbox','ledger','checklist','modal','select','compare','loan','pricing','bills','contacts','wizard','roi']
 const PAGES = ['/', '/login', '/signup', '/ypologismos-forou-enoikion', '/ypologismos-enfia', '/vraxyxronia-i-makroxronia', '/kathari-apodosi', '/imerologio', '/privacy']
 const BASE = process.env.E2E_BASE || 'http://localhost:3100'
+// Για να δουλεύεται μία σκηνή χωρίς να τρέχουν και οι 120: E2E_ONLY=roi
+const ONLY = process.env.E2E_ONLY ? process.env.E2E_ONLY.split(',') : null
 // ΟΙ ΔΗΜΟΣΙΕΣ ΘΕΛΟΥΝ ΖΩΝΤΑΝΟ ΔΙΑΚΟΜΙΣΤΗ, Ο ΠΑΓΚΟΣ ΟΧΙ. Ετσι ο έλεγχος τρέχει
 // στο CI για τον πίνακα ελέγχου και τοπικά για όλα.
 let live = false
@@ -319,15 +391,51 @@ const rows = []
 for (const w of WIDTHS) {
   const ctx = await browser.newContext({ viewport:{width:w,height:w<800?812:1000}, deviceScaleFactor:2, isMobile:w<1100, hasTouch:TOUCH(w), locale:'el-GR' })
   await ctx.addInitScript(() => { try { localStorage.setItem('pos-cookie-consent', JSON.stringify({v:'2026-08',ts:'x'})) } catch {} })
-  for (const s of SCENES) {
+  for (const s of (ONLY ? SCENES.filter(x => ONLY.includes(x)) : SCENES)) {
     const p = await ctx.newPage()
     await p.goto(`file:///home/user/property/.perf-bench/mobile.html?c=${s}&n=6`, { waitUntil:'networkidle' })
     await p.waitForTimeout(500)
+    // ═══ ΤΑ ΚΛΕΙΣΤΑ ΠΤΥΣΣΟΜΕΝΑ ΔΕΝ ΕΛΕΓΧΟΝΤΑΝ ΠΟΤΕ ══════════════════════════
+    // Η Αποδοση έχει επτά ενότητες που ανοίγουν με πάτημα και ΟΛΕΣ ξεκινούν
+    // κλειστές. Ο έλεγχος μετρούσε επτά επικεφαλίδες και τίποτε άλλο: το
+    // διάγραμμα δεκαετίας, ο πίνακας εναλλακτικών, τα πεδία παραμέτρων — όσα
+    // δηλαδή φωτογράφησε ο χρήστης — δεν μπήκαν ποτέ σε καμία μέτρηση.
+    // Ανοίγουν όλα, σε τρία περάσματα για τα φωλιασμένα.
+    for (let pass = 0; pass < 3; pass++) {
+      const opened = await p.evaluate(() => {
+        const t = [...document.querySelectorAll('.acc-toggle[aria-expanded="false"]')]
+        t.forEach(b => b.click())
+        return t.length
+      })
+      if (!opened) break
+      await p.waitForTimeout(300)
+    }
     const r = await p.evaluate(PROBE)
     if (r.length) rows.push({ where: `πάγκος ${s} @${w}`, r })
+    // ═══ ΚΑΙ ΤΑ ΠΑΝΕΛ ΠΟΥ ΖΟΥΝ ΠΙΣΩ ΑΠΟ ΔΙΑΚΟΠΤΗ ═══════════════════════════
+    // ΤΟ ΔΑΝΕΙΟ ΕΧΕΙ ΠΕΝΤΕ ΦΑΚΟΥΣ (απόσβεση, επιτόκιο, ικανότητα, φόρος και
+    // αντοχή, πίνακας) και ΜΟΝΟ ΕΝΑΣ αποδίδεται κάθε φορά. Ο έλεγχος έβλεπε
+    // τον πρώτο και κανέναν άλλο: τέσσερις οθόνες που ο χρήστης ανοίγει με ένα
+    // πάτημα δεν είχαν μετρηθεί ποτέ. Το ίδιο ισχύει για κάθε ομάδα διακοπτών
+    // της εφαρμογής, που γράφεται παντού με `aria-pressed`.
+    const pressLabels = await p.evaluate(() =>
+      [...document.querySelectorAll('button[aria-pressed="false"]')].map(b => (b.textContent || '').trim()).filter(Boolean))
+    for (const label of pressLabels) {
+      const hit = await p.evaluate((t) => {
+        const b = [...document.querySelectorAll('button[aria-pressed="false"]')].find(x => (x.textContent || '').trim() === t)
+        if (!b) return false
+        b.click(); return true
+      }, label)
+      if (!hit) continue
+      await p.waitForTimeout(300)
+      await p.evaluate(() => { document.querySelectorAll('.acc-toggle[aria-expanded="false"]').forEach(b => b.click()) })
+      await p.waitForTimeout(250)
+      const rr = await p.evaluate(PROBE)
+      if (rr.length) rows.push({ where: `πάγκος ${s}·${label.slice(0, 14)} @${w}`, r: rr })
+    }
     await p.close()
   }
-  for (const path of (live ? PAGES : [])) {
+  for (const path of (live && !ONLY ? PAGES : [])) {
     const p = await ctx.newPage()
     try { await p.goto(BASE + path, { waitUntil:'networkidle', timeout: 30000 }) } catch { await p.close(); continue }
     await p.waitForTimeout(300)
@@ -338,7 +446,7 @@ for (const w of WIDTHS) {
   await ctx.close()
 }
 await browser.close()
-for (const row of rows) console.log('  ✗ ' + row.where.padEnd(32), row.r.slice(0,4).join(' · ') + (row.r.length>4 ? ` (+${row.r.length-4})` : ''))
+for (const row of rows) console.log('  ✗ ' + row.where.padEnd(32), (process.env.E2E_ALL ? row.r.join('\n      ') : row.r.slice(0,4).join(' · ') + (row.r.length>4 ? ` (+${row.r.length-4})` : '')))
 const total = rows.reduce((a, b) => a + b.r.length, 0)
 console.log(`\nΔιάταξη — ${rows.length ? `${rows.length} οθόνες με ${total} ευρήματα` : 'τίποτα κομμένο, τίποτα πάνω στο άλλο, τίποτα έξω'}`)
 process.exit(rows.length ? 1 : 0)

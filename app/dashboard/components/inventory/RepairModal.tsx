@@ -48,7 +48,7 @@ export function RepairModal({item,repairs,onAdd,onClose,propertyId,userId}:{item
     setForm({repair_date:'',cost:0,technician:'',description:''})
     setSaving(false)
   }
-  // Η «Καταχώρηση Επισκευής» ήταν το τελευταίο στοιχείο ΜΕΣΑ στο σώμα που κυλά:
+  // Η «Καταχώρηση επισκευής» ήταν το τελευταίο στοιχείο ΜΕΣΑ στο σώμα που κυλά:
   // με ιστορικό πέντε επισκευών ο χρήστης έπρεπε να κυλήσει ως το τέλος για να τη
   // βρει. Στο υποσέλιδο του Modal μένει καρφωμένη και ορατή σε κάθε θέση κύλισης.
   //
@@ -57,8 +57,8 @@ export function RepairModal({item,repairs,onAdd,onClose,propertyId,userId}:{item
   // χειρόγραφο δεν είχε — κρύβει το μήνυμα που λέει ότι η δαπάνη δεν πέρασε.
   const closeGuarded = () => { if(!saving) onClose() }
   return (
-    <Modal open onClose={closeGuarded} width={520} title="Επισκευές" subtitle={item.name}
-      footer={<Btn variant="primary" onClick={handleAdd} disabled={saving}>{saving?'Αποθήκευση…':'Καταχώρηση Επισκευής'}</Btn>}>
+    <Modal open onClose={closeGuarded} size="md" title="Επισκευές" subtitle={item.name}
+      footer={<Btn variant="primary" onClick={handleAdd} disabled={saving}>{saving?'Αποθήκευση…':'Καταχώρηση επισκευής'}</Btn>}>
       {/* Το ξεπέρασμα του ορίου είναι προειδοποίηση· το «εντός ορίων» δεν
           είναι βραβείο. Πράσινο πλαίσιο γύρω από ένα κόστος επισκευών λέει
           στον χρήστη «μπράβο που ξόδεψες», που δεν το εννοούσε κανείς. */}

@@ -178,7 +178,7 @@ export function ReceiptScanModal({ item, propertyId, userId, onClose, onSaved }:
   // στιγμή που φωτογράφιζε παραστατικό. Το <Modal> παράγει την ετικέτα από τον
   // ΟΡΑΤΟ τίτλο, οπότε τα δύο δεν μπορούν να ξαναχωρίσουν.
   return (
-    <Modal open onClose={close} width={460}
+    <Modal open onClose={close} size="sm"
       title="Φωτογράφισε το τιμολόγιο" subtitle={item.description}
       footer={<>
         <Btn variant="secondary" disabled={busy} onClick={close}>Ακύρωση</Btn>

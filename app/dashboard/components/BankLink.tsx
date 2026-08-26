@@ -49,7 +49,7 @@ function BankLinkModal({ open, onClose }: { open: boolean; onClose: () => void }
   const [asked, setAsked] = useState(false);
 
   return (
-    <Modal open={open} onClose={onClose} width={620}
+    <Modal open={open} onClose={onClose} size="md"
       title={BANK_LINK_TITLE}
       subtitle={BANK_LINK_TAGLINE}
       icon={<BankGlyph size={18} />}

@@ -37,7 +37,7 @@ export function TemplateModal({ onSelect, onLoadObligations, onClose, ctx, pendi
   // φόντου: τα τρία που το χειρόγραφο παράθυρο ξεχνά πάντα. Έμεινε μόνο το
   // περιεχόμενο, που είναι και το μόνο που ήταν δικό του.
   return (
-    <Modal open onClose={onClose} width={620}
+    <Modal open onClose={onClose} size="md"
       title="Έτοιμα πρότυπα"
       subtitle="Έτοιμες λίστες εργασιών και οι υποχρεώσεις που προκύπτουν από τον νόμο για αυτό το ακίνητο.">
       {visibleSmart.length > 0 && (
