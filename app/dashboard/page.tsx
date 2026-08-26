@@ -164,7 +164,7 @@ const PROP_TYPE_LABELS: Record<string,string> = {
   apartment:'Διαμέρισμα', house:'Μονοκατοικία', studio:'Στούντιο',
   maisonette:'Μεζονέτα', office:'Γραφείο', shop:'Κατάστημα',
   warehouse:'Αποθήκη', land:'Οικόπεδο', parking:'Parking',
-  storage:'Αποθήκη Κτιρίου', villa:'Βίλα', other:'Άλλο',
+  storage:'Αποθήκη κτιρίου', villa:'Βίλα', other:'Άλλο',
 };
 
 

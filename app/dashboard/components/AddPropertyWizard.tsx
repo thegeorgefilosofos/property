@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
 // Το προφίλ χρέωσης έχει ένα σπίτι: lib/data/billing.
 import * as billing from '@/lib/data/billing';
-import { T, fe, fn, fp, fd, ABSENT, Modal, TT } from '@/components/Theme';
+import { T, fe, fn, fp, fd, fixedCols, ABSENT, Modal, TT } from '@/components/Theme';
 import { CustomSelect, DatePicker } from './UIComponents';
 import { cleanAma, isValidAmaFormat, amaLengthLooksUnusual } from '@/lib/property/ama';
 import { ATAK_SOURCE, atakDigits } from '@/lib/property/atak';
@@ -37,7 +37,7 @@ const PROP_TYPE_LABELS: Record<string, string> = {
   apartment: 'Διαμέρισμα', house: 'Μονοκατοικία', studio: 'Στούντιο',
   maisonette: 'Μεζονέτα', office: 'Γραφείο', shop: 'Κατάστημα',
   warehouse: 'Αποθήκη', land: 'Οικόπεδο', parking: 'Parking',
-  storage: 'Αποθήκη Κτιρίου', villa: 'Βίλα', other: 'Άλλο',
+  storage: 'Αποθήκη κτιρίου', villa: 'Βίλα', other: 'Άλλο',
 };
 const PROP_TYPES = ['apartment', 'house', 'studio', 'maisonette', 'office', 'shop', 'warehouse', 'land', 'parking', 'storage', 'villa', 'other'];
 
@@ -556,8 +556,12 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
     // 36×36 με radius 18, δηλαδή τέταρτο σχήμα κλεισίματος στην ίδια εφαρμογή.
     <Modal open onClose={requestClose} width={640}
       ariaLabel="Προσθήκη ακινήτου"
-      title={isEdit ? 'Επεξεργασία ακινήτου' : 'Νέο Ακίνητο'}
-      subtitle={`Βήμα ${step + 1} από ${STEPS.length} · ${STEPS[step]}`}
+      // Ο ΥΠΟΤΙΤΛΟΣ ΕΛΕΓΕ «Βήμα 1 από 5 · Τύπος» ΚΑΙ ΑΠΟ ΚΑΤΩ Η ΡΑΓΑ ΤΟ ΙΔΙΟ.
+      // Πέντε κύκλοι με αριθμό, πέντε ονόματα βημάτων, τσεκ σε ό,τι τελείωσε
+      // και φωτισμένο το τρέχον: η ράγα λέει ΠΕΡΙΣΣΟΤΕΡΑ από τη φράση και τη
+      // λέει με μια ματιά. Η φράση ήταν η ίδια πληροφορία, δεύτερη φορά, στην
+      // πρώτη οθόνη που βλέπει όποιος μόλις έγραψε λογαριασμό.
+      title={isEdit ? 'Επεξεργασία ακινήτου' : 'Νέο ακίνητο'}
       footer={<>
         <button onClick={() => (step === 0 ? requestClose() : setStep(s => s - 1))} style={{ height: T.h.lg, padding: '0 20px', borderRadius: T.radius.pill, border: 'none', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 14, fontWeight: 500, cursor: 'pointer' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-overlay)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
           {step === 0 ? 'Ακύρωση' : 'Πίσω'}
@@ -655,9 +659,20 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
             {/* ΕΠΤΑ ΕΠΙΛΟΓΕΣ, ΙΔΙΕΣ ΑΚΡΙΒΩΣ ΜΕ ΤΗΝ ΚΕΦΑΛΙΔΑ ΤΟΥ ΑΚΙΝΗΤΟΥ.
                 Η κάθε μία φέρει και την επεξήγησή της, όπως στο μενού: η
                 διαφορά μακροχρόνιας και βραχυχρόνιας δεν είναι προφανής από
-                τον τίτλο και ήταν ο λόγος που υπήρχε χωριστός διακόπτης. */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 8 }}>
-              {STATUSES.map(st => {
+                τον τίτλο και ήταν ο λόγος που υπήρχε χωριστός διακόπτης.
+
+                ΤΟ ΕΠΤΑ ΔΕΝ ΔΙΑΙΡΕΙΤΑΙ, ΚΑΙ ΦΑΙΝΟΤΑΝ. Ηταν ένα πλέγμα `auto-fit`:
+                στο παράθυρο των 640 έβγαζε δύο στήλες, δηλαδή 2+2+2+1, με το
+                «Αμφισβητούμενο» μόνο του και τρύπα δίπλα του. Μετρημένο στον
+                πάγκο, σε τέσσερα πλάτη — και είναι η ΠΡΩΤΗ οθόνη που βλέπει
+                όποιος μόλις έγραψε λογαριασμό.
+
+                Η μακροχρόνια μίσθωση παίρνει ολόκληρη τη γραμμή. Δεν είναι
+                τέχνασμα για να βγει ο αριθμός: είναι η συντριπτικά συνηθέστερη
+                απάντηση, οπότε ο μεγαλύτερος στόχος ανήκει σε εκείνη. Μένουν
+                έξι, που κάνουν 3+3 και 2+2+2. */}
+            {(() => {
+              const tile = (st: typeof STATUSES[number]) => {
                 const sel = statusKey === st.key;
                 return (
                   <button key={st.key} onClick={() => setStatusKey(st.key)} aria-pressed={sel} style={{
@@ -666,14 +681,20 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                     transition: `border-color .15s ${T.ease.standard}, background .15s ${T.ease.standard}`,
                     border: `1px solid ${sel ? 'var(--accent)' : 'var(--border-default)'}`,
                     background: sel ? 'var(--accent-soft)' : 'var(--bg-surface)',
-                    fontFamily: T.font.sans,
+                    fontFamily: T.font.sans, width: '100%',
                   }}>
                     <span style={{ fontSize: 13, fontWeight: sel ? 700 : 500, color: 'var(--text-primary)' }}>{st.label}</span>
                     <span style={{ fontSize: 11, lineHeight: 1.4, color: 'var(--text-tertiary)' }}>{st.hint}</span>
                   </button>
                 );
-              })}
-            </div>
+              };
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {tile(STATUSES[0])}
+                  <div {...fixedCols(3, 8, 'stretch')}>{STATUSES.slice(1).map(tile)}</div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Ο ΔΙΑΚΟΠΤΗΣ «Βραχυχρόνια μίσθωση (Airbnb / Booking)» ΕΦΥΓΕ.

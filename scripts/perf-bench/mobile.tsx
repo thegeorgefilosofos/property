@@ -37,6 +37,10 @@ import { MARKET_FALLBACK } from '@/app/dashboard/components/TabLoanData';
 import TabPricing from '@/app/dashboard/components/TabPricing';
 import TabContacts from '@/app/dashboard/components/TabContacts';
 import TabBills from '@/app/dashboard/components/TabBills';
+// Η ΠΡΩΤΗ ΟΘΟΝΗ ΠΟΥ ΒΛΕΠΕΙ ΑΝΘΡΩΠΟΣ ΠΟΥ ΜΟΛΙΣ ΕΓΡΑΨΕ ΛΟΓΑΡΙΑΣΜΟ· ήταν επίσης η
+// μόνη που κανένας έλεγχος δεν κοίταζε ποτέ: ζει μέσα σε παράθυρο που ανοίγει
+// με πάτημα, οπότε καμία σκηνή του πάγκου δεν την αποδίδει.
+import AddPropertyWizard from '@/app/dashboard/components/AddPropertyWizard';
 import { Modal, Btn, PageTitle, InfoBanner, fieldRow } from '@/components/Theme';
 import { createClient } from '@/lib/supabase/client';
 import type { CashLine, CashPosition } from '@/lib/home/cash';
@@ -171,6 +175,7 @@ const VIEWS: Record<string, () => React.ReactElement> = {
   pricing: () => <TabPricing propertyId="p0" userId="u1" propertyName="Στούντιο Κουκάκι" propertySqm={42} />,
   bills: () => <TabBills propertyId="p0" userId="u1" />,
   contacts: () => <TabContacts propertyId="p0" userId="u1" />,
+  wizard: () => <AddPropertyWizard userId="u1" onClose={() => {}} onSaved={() => {}} />,
   modal: () => <ModalDemo />,
   select: () => <SelectDemo />,
 };
