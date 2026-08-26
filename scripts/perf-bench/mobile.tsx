@@ -50,7 +50,8 @@ import DocumentScan from '@/app/dashboard/components/DocumentScan';
 // εναλλακτικές και το πεδίο «Ετήσια ανατίμηση ακινήτου», όπου ο χρήστης
 // φωτογράφησε κομμένο το «6,8» σε ταμπλέτα.
 import TabRentROI from '@/app/dashboard/components/TabRentROI';
-import { Modal, Btn, PageTitle, InfoBanner, fieldRow } from '@/components/Theme';
+import PropertySwitcher from '@/app/dashboard/components/PropertySwitcher';
+import { T, Modal, Btn, PageTitle, InfoBanner, fieldRow } from '@/components/Theme';
 import { createClient } from '@/lib/supabase/client';
 import type { CashLine, CashPosition } from '@/lib/home/cash';
 
@@ -214,23 +215,69 @@ const VIEWS: Record<string, () => React.ReactElement> = {
 // (κατοικία, τετραγωνικά, διεύθυνση) το περιεχόμενό της ξεχείλιζε κάτω από το
 // καρφωμένο ύψος των 64 και το κυλιόμενο περιεχόμενο περνούσε από κάτω του.
 // Οι δύο γραμμές γράφονται εδώ με το ΙΔΙΟ σχήμα που γράφει η σελίδα.
+// ═══════════════════════════════════════════════════════════════════════════
+// Η ΜΠΑΡΑ ΕΙΝΑΙ Η ΠΡΑΓΜΑΤΙΚΗ ΜΠΑΡΑ, ΟΧΙ ΣΚΙΤΣΟ ΤΗΣ
+// ─────────────────────────────────────────────────────────────────────────
+// ΤΙ ΗΤΑΝ, ΚΑΙ ΤΙ ΚΟΣΤΙΣΕ. Η μπάρα γραφόταν εδώ ως ωμό `innerHTML`, με ένα
+// `<button style="font-size:16px;font-weight:700">` στη θέση του επιλογέα
+// ακινήτου. Το πραγματικό `PropertySwitcher` όμως φοράει την κλάση
+// `.topbar-switch-name`, που έχει `white-space: nowrap` και αποσιωπητικά.
+//
+// Αποτέλεσμα: στα 360 ο πάγκος έδειχνε τον τίτλο «Διαμέρισμα Λεωφόρος
+// Αλεξάνδρας 145, τρίτος όροφος, Αμπελόκηποι» σπασμένο σε ΠΕΝΤΕ σειρές και τη
+// μπάρα να πιάνει 420 από τα 800 εικονοστοιχεία της οθόνης. Στην εφαρμογή ο
+// ίδιος τίτλος κόβεται σε ΜΙΑ σειρά. Ο πάγκος δεν έδειχνε σφάλμα του προϊόντος·
+// έδειχνε σφάλμα του πάγκου· θα με είχε στείλει να «διορθώσω» κάτι που
+// δούλευε.
+//
+// ΤΩΡΑ Η ΜΠΑΡΑ ΑΠΟΔΙΔΕΤΑΙ ΜΕ REACT, ΜΕ ΤΟ ΙΔΙΟ COMPONENT. Οτι αλλάζει στο
+// PropertySwitcher αλλάζει και εδώ, χωρίς να το θυμηθεί κανείς.
+const BENCH_PROPS = [
+  { id: 'p0', name: 'Διαμέρισμα Λεωφόρος Αλεξάνδρας 145, τρίτος όροφος, Αμπελόκηποι', status: 'Βραχυχρόνια μίσθωση', address: 'Λεωφόρος Ανδρέα Συγγρού 123, Νέα Σμύρνη' },
+  { id: 'p1', name: 'Στούντιο Κουκάκι', status: 'Μακροχρόνια μίσθωση', address: 'Δράκου 12, Κουκάκι' },
+];
+
+function BenchTopbar() {
+  const [id, setId] = useState('p0');
+  return (
+    <header className="app-topbar">
+      <button className="nav-toggle" aria-label="Μενού">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18" /></svg>
+      </button>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, rowGap: 8, minWidth: 0 }}>
+          <PropertySwitcher items={BENCH_PROPS} activeId={id} onSelect={setId} onAdd={() => {}} canAdd />
+          <div style={{ position: 'relative', minWidth: 0 }}>
+            <button className="topbar-status" style={{ display: 'flex', alignItems: 'center', gap: 7, height: T.h.sm, padding: '0 10px 0 12px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'transparent', cursor: 'pointer', fontFamily: T.font.sans, fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
+              <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Βραχυχρόνια μίσθωση</span>
+              <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.65, marginLeft: 1, flexShrink: 0 }}><path d="m6 9 6 6 6-6" /></svg>
+            </button>
+          </div>
+        </div>
+        <div className="app-topbar-sub" style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginTop: 2, letterSpacing: '0.4px' }}>
+          Κατοικία · 42 τ.μ. · Λεωφόρος Ανδρέα Συγγρού 123, Νέα Σμύρνη · ΤΚ 11742
+        </div>
+      </div>
+      {/* ΑΝΤΙΓΡΑΦΟ ΤΟΥ ΠΡΑΓΜΑΤΙΚΟΥ ΚΟΥΜΠΙΟΥ, ΟΧΙ ΔΙΚΗ ΜΟΥ ΕΚΔΟΧΗ. Ηταν πλατιά
+          πιλούλα με τη λέξη «Αναζήτηση» μέσα, δηλαδή 200 από τα 360 της μπάρας:
+          ο πάγκος έδειχνε το όνομα του ακινήτου κομμένο στα 124 και το πρόβλημα
+          ΔΕΝ ΥΠΗΡΧΕ στην εφαρμογή, όπου η λέξη δεν γράφεται ποτέ και το κουμπί
+          είναι φακός με τη συντόμευση δίπλα, κρυμμένη σε κινητό. Ενας πάγκος
+          που γράφει δικό του σήμα μετράει τον εαυτό του. */}
+      <button aria-label="Αναζήτηση" style={{ display: 'flex', alignItems: 'center', gap: 8, height: T.h.md, padding: '0 10px 0 12px', borderRadius: T.radius.modal, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', marginRight: 4, flexShrink: 0 }}>
+        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <span className="desktop-only" style={{ fontSize: 11, fontFamily: T.font.mono, color: 'var(--text-tertiary)', border: '1px solid var(--border-subtle)', borderRadius: 6, padding: '1px 5px' }}>Ctrl K</span>
+      </button>
+    </header>
+  );
+}
+
 const shell = document.createElement('div');
 shell.className = 'app-shell';
-shell.innerHTML = `<main class="app-main">
-  <header class="app-topbar">
-    <button class="nav-toggle" aria-label="Μενού"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
-    <div style="flex:1;min-width:0">
-      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:10px;row-gap:8px;min-width:0">
-        <button style="display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 10px;border:none;background:transparent;color:var(--text-primary);font-size:16px;font-weight:700">Διαμέρισμα Λεωφόρος Αλεξάνδρας 145, τρίτος όροφος, Αμπελόκηποι</button>
-        <button style="display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;border:1px solid var(--border-default);border-radius:999px;background:transparent;color:var(--text-secondary);font-size:13px;white-space:nowrap">Βραχυχρόνια μίσθωση</button>
-      </div>
-      <div style="font-size:12px;color:var(--text-tertiary);margin-top:2px">Κατοικία · 42 τ.μ. · Λεωφόρος Ανδρέα Συγγρού 123, Νέα Σμύρνη</div>
-    </div>
-    <button style="min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--border-default);background:transparent;color:var(--text-secondary);flex-shrink:0">Αναζήτηση</button>
-  </header>
-  <div class="app-content"></div>
-</main>`;
+shell.innerHTML = '<main class="app-main"><div class="bench-topbar"></div><div class="app-content"></div></main>';
 document.body.appendChild(shell);
+createRoot(shell.querySelector('.bench-topbar') as HTMLElement).render(<BenchTopbar />);
 const host = shell.querySelector('.app-content') as HTMLElement;
 
 const View = VIEWS[which] || VIEWS.portfolio;

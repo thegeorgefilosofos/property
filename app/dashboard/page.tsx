@@ -2066,9 +2066,15 @@ export default function Dashboard() {
                     canAdd={canAddProperty(ent, properties.length)} />
                   {/* Ένα κουμπί: κατάσταση ακινήτου + εργαλεία (επεξεργασία, διαγραφή) στο ίδιο μενού. */}
                   <div style={{position:'relative',minWidth:0}}>
-                    <button onClick={()=>setStatusDropdown(v=>!v)} title="Κατάσταση ακινήτου και εργαλεία (επεξεργασία, διαγραφή)" aria-haspopup="menu" aria-expanded={statusDropdown} style={{display:'flex',alignItems:'center',gap:7,height:T.h.sm,padding:'0 10px 0 12px',borderRadius:8,border:'1px solid var(--border-default)',background:statusDropdown?'var(--bg-hover)':'transparent',cursor:'pointer',fontFamily: T.font.sans,fontSize:12,fontWeight:500,color:'var(--text-primary)',transition:'background 0.15s'}} onMouseEnter={e=>{if(!statusDropdown)e.currentTarget.style.background='var(--bg-hover)'}} onMouseLeave={e=>{if(!statusDropdown)e.currentTarget.style.background='transparent'}}>
-                      <div style={{width:6,height:6,borderRadius:'50%',background:statusColor}}/>{statusLabel}
-                      <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{opacity:0.65,marginLeft:1,transform:statusDropdown?'rotate(180deg)':'none',transition:'transform 0.15s'}}><path d="m6 9 6 6 6-6"/></svg>
+                    <button onClick={()=>setStatusDropdown(v=>!v)} className="topbar-status" title="Κατάσταση ακινήτου και εργαλεία (επεξεργασία, διαγραφή)" aria-haspopup="menu" aria-expanded={statusDropdown} style={{display:'flex',alignItems:'center',gap:7,height:T.h.sm,padding:'0 10px 0 12px',borderRadius:8,border:'1px solid var(--border-default)',background:statusDropdown?'var(--bg-hover)':'transparent',cursor:'pointer',fontFamily: T.font.sans,fontSize:12,fontWeight:500,color:'var(--text-primary)',transition:'background 0.15s'}} onMouseEnter={e=>{if(!statusDropdown)e.currentTarget.style.background='var(--bg-hover)'}} onMouseLeave={e=>{if(!statusDropdown)e.currentTarget.style.background='transparent'}}>
+                      <div style={{width:6,height:6,borderRadius:'50%',background:statusColor,flexShrink:0}}/>
+                      {/* ΤΟ ΨΑΛΙΔΙ ΘΕΛΕΙ ΣΤΟΙΧΕΙΟ ΓΙΑ ΝΑ ΠΙΑΣΕΙ. Η ετικέτα ήταν
+                          γυμνό κείμενο ανάμεσα σε δύο στοιχεία, οπότε το
+                          `text-overflow: ellipsis` δεν είχε πάνω σε τι να
+                          εφαρμοστεί: το chip δεν μίκραινε, ξεχείλιζε — και σε
+                          Galaxy A ζωγραφιζόταν ΠΑΝΩ στο κουμπί αναζήτησης. */}
+                      <span style={{minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{statusLabel}</span>
+                      <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{opacity:0.65,marginLeft:1,flexShrink:0,transform:statusDropdown?'rotate(180deg)':'none',transition:'transform 0.15s'}}><path d="m6 9 6 6 6-6"/></svg>
                     </button>
                     {statusDropdown && (
                       <>
@@ -2110,7 +2116,13 @@ export default function Dashboard() {
                     )}
                   </div>
                 </div>
-                <div style={{fontFamily: T.font.sans,fontSize:12,color:'var(--text-secondary)',marginTop:2,letterSpacing:'0.4px'}}>
+                {/* ΜΙΑ ΣΕΙΡΑ ΣΕ ΚΙΝΗΤΟ. Σε Galaxy A τα ίδια στοιχεία τύλιγαν σε
+                    τέσσερις σειρές και έπιαναν 110 εικονοστοιχεία μπάρας. Η
+                    κλάση κόβει μόνο κάτω από τα 640· σε ταμπλέτα και οθόνη
+                    υπολογιστή η γραμμή μένει ολόκληρη. Ο τίτλος του στοιχείου
+                    δίνει το πλήρες κείμενο σε όποιον το θέλει. */}
+                <div className="app-topbar-sub" title={[PROP_TYPE_LABELS[selected.prop_type||'']||selected.prop_type,selected.sqm?`${selected.sqm} τ.μ.`:null,selected.address,selected.postal_code?`ΤΚ ${selected.postal_code}`:null].filter(Boolean).join(' · ')}
+                  style={{fontFamily: T.font.sans,fontSize:12,color:'var(--text-secondary)',marginTop:2,letterSpacing:'0.4px'}}>
                   {[PROP_TYPE_LABELS[selected.prop_type||'']||selected.prop_type,selected.sqm?`${selected.sqm} τ.μ.`:null,selected.address,selected.postal_code?`ΤΚ ${selected.postal_code}`:null].filter(Boolean).join(' · ')}
                 </div>
               </div>

@@ -1077,6 +1077,12 @@ function CommButton({ label, Icon, href, target, accent }: { label: string; Icon
 // ═══════════════════════════════════════════════════════════════════════════
 
 /** Δύο ίσες στήλες, με ανώτατο πλάτος ώστε τα πλακίδια να μη διαλυθούν σε μεγάλη οθόνη. */
+// ΣΤΑ 320 ΟΙ ΔΥΟ ΔΙΑΔΡΟΜΕΣ ΜΠΑΙΝΟΥΝ Η ΜΙΑ ΚΑΤΩ ΑΠΟ ΤΗΝ ΑΛΛΗ. Δύο στήλες αφήνουν
+// 90 εικονοστοιχεία στην καθεμία και η λέξη «Καταχώρησε» θέλει 99: κοβόταν το
+// ίδιο το ρήμα που ονομάζει τη διαδρομή. Στοιβαγμένες, οι δύο κάρτες κρατούν το
+// ίδιο εμβαδόν μεταξύ τους, που είναι ο λόγος που μπήκαν σε πλέγμα εξαρχής.
+// Η στοίβαξη γράφεται στο globals.css, γιατί το ενσωματωμένο στυλ δεν έχει
+// ερωτήματα μέσων.
 const contactRouteGrid: React.CSSProperties = {
   display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
   gap: T.sp.md, maxWidth: 420, margin: `${T.sp.sm}px auto 0`, alignItems: 'stretch',
@@ -1975,7 +1981,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
           icon={<Users size={20} />}
           title="Καμία επαφή ακόμη"
           hint="Η κάρτα ή ένα τιμολόγιό του διαβάζεται και συμπληρώνει τα πεδία, μαζί με το IBAN. Τίποτα δεν αποθηκεύεται πριν το ελέγξεις."
-          action={<div style={contactRouteGrid}>
+          action={<div className="route-two" style={contactRouteGrid}>
             <ContactActionTile Icon={Camera} label="Σάρωσε" sub={scanning ? 'Ανάλυση…' : 'Κάρτα ή τιμολόγιο του συνεργάτη'} onClick={() => cardRef.current?.click()} primary />
             {/* «Τέσσερα πεδία» ήταν σωστό και αόριστο. Τα τέσσερα ονομάζονται:
                 ο χρήστης ξέρει τι τον περιμένει πριν πατήσει. */}

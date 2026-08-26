@@ -145,8 +145,16 @@ export default function InboundInbox({ propertyId, userId, propertyName, onFiled
           const amountChanged = readAmount != null && Number.isFinite(amount)
             && Math.abs(amount - readAmount) > 0.005;
           return (
+            /* ΤΟ `minWidth: 0` ΔΕΝ ΕΙΝΑΙ ΔΙΑΚΟΣΜΗΤΙΚΟ. Η γραμμή είναι στοιχείο
+               πλέγματος και τα στοιχεία πλέγματος ξεκινούν με `min-width: auto`,
+               δηλαδή αρνούνται να γίνουν στενότερα από το ελάχιστο περιεχόμενό
+               τους. ΜΕΤΡΗΜΕΝΟ ΣΕ 320 (One UI με μεγάλη γραμματοσειρά): η κάρτα
+               δίνει 266 και η γραμμή έπαιρνε 304, δηλαδή έβγαινε 38 έξω από τη
+               δεξιά της άκρη, με το «€» του ποσού πάνω από το περίγραμμα. Με το
+               μηδέν, η γραμμή δέχεται το πλάτος που της δίνεται και τα πεδία
+               μέσα της στριμώχνονται κανονικά, όπως κάνουν σε κάθε άλλη οθόνη. */
             <div key={r.id} style={{
-              display: 'grid', gap: 10, padding: '12px 14px',
+              display: 'grid', gap: 10, padding: '12px 14px', minWidth: 0,
               borderRadius: T.radius.card, background: 'var(--bg-elevated)',
               border: '1px solid var(--border-subtle)',
             }}>

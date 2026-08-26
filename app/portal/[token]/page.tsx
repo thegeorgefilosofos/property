@@ -10,7 +10,7 @@ import BrandMark from '@/components/BrandMark';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { T, feAuto, feOr, fdLong, ABSENT_DATE } from '@/components/Theme';
+import { T, Btn, feAuto, feOr, fdLong, ABSENT_DATE } from '@/components/Theme';
 import { MONTHS_NOM } from '@/lib/core/months';
 
 interface DueItem { id: string; year: number; month: number; amount: number; due_date: string | null; declared: boolean }
@@ -33,7 +33,16 @@ export default function TenantPortal() {
   const supabase = createClient();
 
   const [data, setData] = useState<PortalData | null>(null);
-  const [state, setState] = useState<'loading' | 'ok' | 'notfound' | 'locked'>('loading');
+  // ═══ Η ΑΠΟΤΥΧΙΑ ΔΙΚΤΥΟΥ ΔΕΝ ΕΙΝΑΙ ΑΚΥΡΟΣ ΣΥΝΔΕΣΜΟΣ ══════════════════════════
+  // ΤΙ ΕΛΕΓΕ Η ΟΘΟΝΗ. Καθε αποτυχία, από λάθος κουπόνι ώς πεσμένο δίκτυο,
+  // κατέληγε στο ίδιο «Ο σύνδεσμος δεν είναι έγκυρος. Ζήτησε ενημερωμένο».
+  // Ο ενοικιαστής σε ασανσέρ ή σε τούνελ διαβάζει ότι ο ιδιοκτήτης του έστειλε
+  // χαλασμένο σύνδεσμο. Παίρνει τηλέφωνο, ο ιδιοκτήτης ακυρώνει και εκδίδει
+  // νέο, ο παλιός σταματά να δουλεύει· το πρόβλημα ΗΤΑΝ το σήμα.
+  //
+  // Τρεις καταστάσεις, τρία διαφορετικά πράγματα: άκυρο κουπόνι, κλειδωμένο με
+  // PIN, «δεν φτάσαμε ώς τον διακομιστή». Μόνο η πρώτη ζητά νέο σύνδεσμο.
+  const [state, setState] = useState<'loading' | 'ok' | 'notfound' | 'locked' | 'offline'>('loading');
 
   const [pin, setPin] = useState('');
   const [pinErr, setPinErr] = useState('');
@@ -70,26 +79,34 @@ export default function TenantPortal() {
     });
   };
 
+  const [tries, setTries] = useState(0);
+
   useEffect(() => {
     (async () => {
+      setState('loading');
       const { data: meta, error: metaErr } = await supabase.rpc('portal_meta', { p_token: token });
-      if (metaErr || !meta || !(meta as { found?: boolean }).found) { setState('notfound'); return; }
+      // ΤΟ ΣΦΑΛΜΑ ΧΩΡΙΖΕΤΑΙ ΑΠΟ ΤΗΝ ΑΠΑΝΤΗΣΗ. Σφάλμα σημαίνει «δεν ρωτήθηκε»·
+      // απάντηση χωρίς `found` σημαίνει «ρωτήθηκε και δεν υπάρχει».
+      if (metaErr) { setState('offline'); return; }
+      if (!meta || !(meta as { found?: boolean }).found) { setState('notfound'); return; }
       if ((meta as { pin_required?: boolean }).pin_required) { setState('locked'); return; }
       const { data: d, error } = await supabase.rpc('get_portal_data', { p_token: token });
+      if (error) { setState('offline'); return; }
       // Αμυντικά: null ή { locked } χωρίς PIN σημαίνει μη έγκυρη κατάσταση.
-      if (error || !d || (d as { locked?: boolean }).locked) { setState('notfound'); return; }
+      if (!d || (d as { locked?: boolean }).locked) { setState('notfound'); return; }
       applyData(d);
       setState('ok');
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, [token, tries]);
 
   const submitPin = async () => {
     if (pinChecking || !pin.trim()) return;
     setPinErr(''); setPinChecking(true);
     const { data: d, error } = await supabase.rpc('get_portal_data', { p_token: token, p_pin: pin });
     setPinChecking(false);
-    if (error || !d || (d as { locked?: boolean }).locked) {
+    if (error) { setPinErr('Δεν φτάσαμε ώς τον διακομιστή. Ελεγξε τη σύνδεσή σου και δοκίμασε ξανά.'); return; }
+    if (!d || (d as { locked?: boolean }).locked) {
       const rl = (d as { rate_limited?: boolean } | null)?.rate_limited;
       setPinErr(rl ? 'Πολλές αποτυχημένες προσπάθειες. Δοκίμασε ξανά σε λίγα λεπτά.' : 'Λάθος κωδικός');
       return;
@@ -230,6 +247,22 @@ export default function TenantPortal() {
           <div style={{ ...card, textAlign: 'center' }}>
             <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>Ο σύνδεσμος δεν είναι έγκυρος</div>
             <div style={{ fontSize: 13, color: 'var(--text-tertiary)', lineHeight: 1.6 }}>Ζήτησε από τον ιδιοκτήτη έναν ενημερωμένο σύνδεσμο πύλης.</div>
+          </div>
+        )}
+
+        {/* Το ίδιο κουτί, άλλα λόγια: εδώ ο σύνδεσμος είναι μια χαρά και φταίει
+            η σύνδεση. Το κουμπί ξαναρωτά ΤΟΝ ΙΔΙΟ σύνδεσμο, χωρίς να χρειάζεται
+            ο ενοικιαστής να ψάξει το email από την αρχή. */}
+        {state === 'offline' && (
+          <div style={{ ...card, textAlign: 'center' }}>
+            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>Δεν φτάσαμε ώς τον διακομιστή</div>
+            <div style={{ fontSize: 13, color: 'var(--text-tertiary)', lineHeight: 1.6, marginBottom: 16 }}>
+              Ο σύνδεσμός σου είναι εντάξει. Ελεγξε τη σύνδεσή σου και δοκίμασε ξανά.
+            </div>
+            {/* Το κοινό κουμπί, όχι ζωγραφισμένο στο χέρι: ίδια όψη, ίδιες
+                καταστάσεις αιώρησης και εστίασης, ίδιο ύψος αφής με όλη την
+                εφαρμογή. */}
+            <Btn variant="primary" onClick={() => setTries(t => t + 1)}>Δοκίμασε ξανά</Btn>
           </div>
         )}
 

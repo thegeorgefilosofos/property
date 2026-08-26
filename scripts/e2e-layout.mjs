@@ -216,6 +216,33 @@ const PROBE = () => {
     if (need > room + 4) add('ΚΟΜΜΕΝΗ ΤΙΜΗ ΠΕΔΙΟΥ', v, `${Math.round(need)} σε ${Math.round(room)}`)
   }
 
+  // ═══ Ο ΠΙΝΑΚΑΣ ΠΟΥ ΚΥΛΑ ΚΑΙ ΧΑΝΕΙ ΤΟ ΟΝΟΜΑ ΤΗΣ ΓΡΑΜΜΗΣ ═════════════════
+  // ΤΙ ΣΥΜΒΑΙΝΕΙ ΣΕ ΤΑΜΠΛΕΤΑ. Ενας πίνακας δέκα στηλών δεν χωράει, οπότε κυλά
+  // οριζόντια. Ο χρήστης σέρνει δεξιά για να δει το ποσό της τελευταίας στήλης
+  // και η ΠΡΩΤΗ στήλη, αυτή που λέει ΠΟΙΑΝΟΥ είναι το ποσό, φεύγει εκτός
+  // οθόνης. Μένει μια σειρά νούμερα χωρίς ιδιοκτήτη.
+  //
+  // Ο ΕΛΕΓΧΟΣ ΚΡΙΝΕΙ ΜΟΝΟ ΟΣΟΥΣ ΚΥΛΟΥΝ ΠΡΑΓΜΑΤΙΚΑ. Ενας πίνακας που χωράει δεν
+  // έχει πρόβλημα να λύσει· μια καρφωμένη στήλη εκεί θα ήταν περιττή
+  // πολυπλοκότητα. Η ερώτηση είναι «κυλά ΤΩΡΑ, σε αυτό το πλάτος;».
+  //
+  // ΚΑΙ ΜΟΝΟ ΟΣΟΥΣ ΕΧΟΥΝ ΟΝΟΜΑ ΣΤΗΝ ΠΡΩΤΗ ΣΤΗΛΗ. Οταν το πρώτο κελί είναι
+  // αριθμός, εικονίδιο ή κουτάκι επιλογής, δεν κουβαλά ταυτότητα και δεν
+  // χρειάζεται να μείνει ορατό.
+  for (const t of document.querySelectorAll('table')) {
+    if (!t.checkVisibility?.()) continue
+    let sc = t.parentElement
+    while (sc && sc !== document.body && !/auto|scroll/.test(getComputedStyle(sc).overflowX)) sc = sc.parentElement
+    if (!sc || sc === document.body) continue
+    if (sc.scrollWidth <= sc.clientWidth + 4) continue
+    const firstCell = t.querySelector('tbody tr > :first-child')
+    if (!firstCell) continue
+    const label = (firstCell.textContent || '').trim()
+    if (label.length < 3 || /^[\d.,€%\s]+$/.test(label)) continue
+    if (getComputedStyle(firstCell).position === 'sticky') continue
+    add('ΧΑΝΕΤΑΙ Η ΤΑΥΤΟΤΗΤΑ ΤΗΣ ΓΡΑΜΜΗΣ', label.slice(0, 22), `${sc.scrollWidth - sc.clientWidth}px κύλιση`)
+  }
+
   // ═══ ΔΥΟ ΠΕΔΙΑ ΔΙΠΛΑ ΔΙΠΛΑ, ΣΕ ΑΛΛΟ ΥΨΟΣ ════════════════════════════════
   // ΤΟ ΕΙΔΕ Ο ΧΡΗΣΤΗΣ ΣΕ ΤΑΜΠΛΕΤΑ, ΣΤΑ ΠΑΡΑΘΥΡΑ ΤΩΝ ΦΟΡΜΩΝ: η μία στήλη είχε
   // υπόδειξη τριών σειρών κάτω από το πεδίο και η διπλανή καμία, οπότε με
@@ -261,10 +288,23 @@ const PROBE = () => {
     // περνά από πάνω: αυτός είναι ο λόγος που υπάρχει. Χωρίς αυτόν τον όρο ο
     // ανιχνευτής έβγαζε 146 «συγκρούσεις» που ήταν όλες σωστός σχεδιασμός.
     const cs = getComputedStyle(el)
+    // ═══ ΤΟ «relative» ΧΩΡΙΣ ΜΕΤΑΤΟΠΙΣΗ ΔΕΝ ΒΓΑΖΕΙ ΤΙΠΟΤΑ ΑΠΟ ΤΗ ΡΟΗ ═══════
+    // ΨΕΥΔΩΣ ΑΘΩΩΘΗΚΕ ΜΙΑ ΠΡΑΓΜΑΤΙΚΗ ΣΥΓΚΡΟΥΣΗ. Ο όρος ήταν «position !==
+    // static» για ΚΑΘΕ πρόγονο, δηλαδή αρκούσε ένα `position: relative` κάπου
+    // πιο πάνω —που μπαίνει παντού απλώς ως άγκυρα για μενού— και το στοιχείο
+    // έβγαινε εκτός ελέγχου. Ετσι το chip κατάστασης της μπάρας ζωγραφιζόταν
+    // δεκαεπτά εικονοστοιχεία ΠΑΝΩ στο κουμπί αναζήτησης, σε κάθε τηλέφωνο, ενώ
+    // ο έλεγχος σιωπούσε: η θήκη του chip είναι `relative`.
+    //
+    // Αυτό που ΟΝΤΩΣ βγάζει από τη ροή είναι το `absolute`, το `fixed`, το
+    // `sticky` (που ΠΡΕΠΕΙ να περνά από πάνω) και το `relative` ΜΕ μετατόπιση.
     let flow = true
     for (let n = el; n && n !== document.body; n = n.parentElement) {
       const pcs = getComputedStyle(n)
-      if (pcs.position !== 'static' || pcs.transform !== 'none' || parseFloat(pcs.opacity) < 1) { flow = false; break }
+      const moved = pcs.position === 'relative'
+        && ['top', 'left', 'right', 'bottom'].some(k => pcs[k] !== 'auto' && parseFloat(pcs[k]) !== 0)
+      if (/absolute|fixed|sticky/.test(pcs.position) || moved
+          || pcs.transform !== 'none' || parseFloat(pcs.opacity) < 1) { flow = false; break }
     }
     if (!flow) continue
     const b = el.getBoundingClientRect()
@@ -390,7 +430,44 @@ const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PAT
 // τους δείκτες έπιανε ώς τα 820 και ξανάπιανε από τα 1.024· ανάμεσά τους,
 // τέσσερα πλακίδια έβγαιναν 3+1. Δηλαδή η ζώνη που ΔΕΝ μετριόταν ήταν ακριβώς
 // η ταμπλέτα σε οριζόντια θέση.
-const WIDTHS = [375, 430, 768, 820, 900, 1024, 1280, 1440]
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΑ ΠΛΑΤΗ ΕΙΝΑΙ ΣΥΣΚΕΥΕΣ, ΚΑΙ ΤΟ ΣΤΕΝΟΤΕΡΟ ΔΕΝ ΗΤΑΝ ΤΟ ΣΤΕΝΟΤΕΡΟ
+// ─────────────────────────────────────────────────────────────────────────
+// ΤΟ ΚΕΝΟ, ΟΠΩΣ ΤΟ ΑΝΕΦΕΡΕ Ο ΧΡΗΣΤΗΣ. «Εχω ένα Samsung A κάτι και όλα φαίνονται
+// χάλια». Η σειρά Galaxy A αναφέρει ΤΡΙΑΚΟΣΙΑ ΕΞΗΝΤΑ εικονοστοιχεία CSS: A12,
+// A13, A14, A15, A25, A54, A55, όλα 360. Το στενότερο πλάτος αυτού του ελέγχου
+// ήταν 375, δηλαδή ΔΕΚΑΠΕΝΤΕ ΠΑΡΑΠΑΝΩ από τη συσκευή του μισού ελληνικού
+// κοινού. Δεκαπέντε εικονοστοιχεία είναι η διαφορά ανάμεσα σε «χωράει» και
+// «ξεχειλίζει» σε κάθε σειρά που μετρήθηκε οριακά σωστή.
+//
+// ΚΑΙ ΤΟ 320 ΔΕΝ ΕΙΝΑΙ ΘΕΩΡΗΤΙΚΟ. Το One UI της Samsung έχει ρύθμιση «Μέγεθος
+// οθόνης»: στη μεγαλύτερη βαθμίδα το ίδιο τηλέφωνο αναφέρει γύρω στα 320. Ο
+// χρήστης δεν το θεωρεί προσβασιμότητα, το θεωρεί προτίμηση.
+//
+// ΤΟ ΥΨΟΣ ΕΙΝΑΙ ΚΙ ΑΥΤΟ ΣΥΣΚΕΥΗ. Το 640 του Galaxy A5 και του A6 δεν είναι
+// «μικρή οθόνη»· είναι δεκατέσσερις σειρές λιγότερες από το 800, με την ίδια
+// μπάρα από πάνω και την ίδια πλοήγηση από κάτω.
+//
+// Ο ΕΛΕΓΧΟΣ ΚΙΝΗΤΟΥ (`npm run e2e:mobile`) ΕΙΧΕ 320 ΚΑΙ 360 — ΣΕ ΜΙΑ ΟΘΟΝΗ.
+// Τρέχει μόνο το Χαρτοφυλάκιο. Ολοι οι ανιχνευτές αυτού εδώ (κομμένο κείμενο,
+// ξεχείλισμα, ορφανά, στόχοι αφής, συγκρούσεις, γράμματα διαγράμματος, τιμές
+// πεδίων, ταυτότητα γραμμής) δεν είχαν δει ποτέ 360.
+// ═══════════════════════════════════════════════════════════════════════════
+const DEVICES = [
+  { w: 320, h: 640,  name: 'Samsung μεγάλη γραμματοσειρά' },
+  { w: 360, h: 640,  name: 'Galaxy A5, A6' },
+  { w: 360, h: 800,  name: 'Galaxy A12 ώς A55' },
+  { w: 375, h: 812,  name: 'iPhone SE, 13 mini' },
+  { w: 412, h: 915,  name: 'Galaxy A71, Pixel' },
+  { w: 430, h: 932,  name: 'iPhone Pro Max' },
+  { w: 768, h: 1024, name: 'ταμπλέτα κάθετη' },
+  { w: 820, h: 1180, name: 'iPad Air' },
+  { w: 900, h: 1200, name: 'ταμπλέτα οριζόντια' },
+  { w: 1024, h: 1366, name: 'iPad Pro' },
+  { w: 1280, h: 800, name: 'φορητός με αφή' },
+  { w: 1440, h: 900, name: 'φορητός' },
+]
+const WIDTHS = DEVICES.map(d => d.w)
 const TOUCH = (w) => w < 1100 || w === 1280
 const SCENES = ['portfolio','cash','rent','inbox','ledger','checklist','modal','select','compare','loan','pricing','bills','contacts','wizard','roi','tenant','scan']
 // ═══ ΤΑ ΠΑΡΑΘΥΡΑ ΠΟΥ ΑΝΟΙΓΟΥΝ ΜΕ ΚΟΥΜΠΙ ═════════════════════════════════════
@@ -409,9 +486,48 @@ const ONLY = process.env.E2E_ONLY ? process.env.E2E_ONLY.split(',') : null
 let live = false
 try { live = (await fetch(BASE, { signal: AbortSignal.timeout(3000) })).ok } catch { live = false }
 if (!live) console.log(`(οι δημόσιες σελίδες παραλείπονται: δεν απαντά το ${BASE})`)
+
+// ═══ ΕΝΑΣ ΔΙΑΚΟΜΙΣΤΗΣ ΠΟΥ ΑΠΑΝΤΑΕΙ ΔΕΝ ΕΙΝΑΙ ΚΑΙ ΔΙΑΚΟΜΙΣΤΗΣ ΠΟΥ ΣΕΡΒΙΡΕΙ ═══
+//
+// ΤΙ ΣΥΝΕΒΗ, ΓΡΑΜΜΕΝΟ ΓΙΑΤΙ ΘΑ ΞΑΝΑΣΥΜΒΕΙ. Στη θύρα 3100 έμεινε ζωντανός ένας
+// διακομιστής πέντε ωρών, από προηγούμενο χτίσιμο. Απαντούσε 200 στην αρχική,
+// οπότε ο έλεγχος τον δέχτηκε· το HTML του όμως έδειχνε σε φύλλο στυλ που δεν
+// υπήρχε πια στον δίσκο και επέστρεφε 500. Ολες οι δημόσιες σελίδες
+// μετρήθηκαν ΧΩΡΙΣ ΚΑΘΟΛΟΥ CSS: 310 ευρήματα «στόχος αφής» και δεκάδες
+// «ΚΟΜΜΕΝΟ ΠΑΡΑΔΕΙΓΜΑ», κανένα από τα οποία υπήρχε στην εφαρμογή.
+//
+// Ενας έλεγχος διάταξης που δεν ξέρει αν φόρτωσε το φύλλο στυλ δεν μετράει τη
+// διάταξη· μετράει γυμνό HTML και το ονομάζει σφάλμα. Ανοίγει μία σελίδα και
+// ρωτά τον ίδιο τον περιηγητή πόσους κανόνες έχει στα χέρια του. Κάτω από 200
+// δεν είναι «λίγο στυλ», είναι «κανένα φύλλο»: το globals.css μόνο του έχει
+// πάνω από χίλιους.
+if (live) {
+  const probe = await browser.newContext({ viewport: { width: 1280, height: 800 }, locale: 'el-GR' })
+  const pp = await probe.newPage()
+  await pp.goto(BASE, { waitUntil: 'domcontentloaded' })
+  await pp.waitForTimeout(600)
+  const rules = await pp.evaluate(() => {
+    let n = 0
+    for (const sheet of document.styleSheets) {
+      try { n += sheet.cssRules.length } catch { /* άλλης προέλευσης, δεν μετριέται */ }
+    }
+    return n
+  })
+  await probe.close()
+  if (rules < 200) {
+    console.log(`\n✗ ΤΟ ${BASE} ΣΕΡΒΙΡΕΙ ΣΕΛΙΔΕΣ ΧΩΡΙΣ ΦΥΛΛΟ ΣΤΥΛ (${rules} κανόνες).`)
+    console.log('  Είναι μπαγιάτικος διακομιστής από παλιό χτίσιμο. Κάθε μέτρηση')
+    console.log('  δημόσιας σελίδας θα ήταν ψεύτικη, οπότε ο έλεγχος σταματά εδώ.')
+    console.log('  Σκότωσέ τον, ξαναχτίσε και ξεκίνα τον:')
+    console.log('    kill -9 $(fuser -n tcp 3100) ; npm run build ; PORT=3100 nohup npm start &')
+    await browser.close()
+    process.exit(1)
+  }
+}
 const rows = []
-for (const w of WIDTHS) {
-  const ctx = await browser.newContext({ viewport:{width:w,height:w<800?812:1000}, deviceScaleFactor:2, isMobile:w<1100, hasTouch:TOUCH(w), locale:'el-GR' })
+for (const dev of DEVICES) {
+  const w = dev.w
+  const ctx = await browser.newContext({ viewport:{width:w,height:dev.h}, deviceScaleFactor:2, isMobile:w<1100, hasTouch:TOUCH(w), locale:'el-GR' })
   await ctx.addInitScript(() => { try { localStorage.setItem('pos-cookie-consent', JSON.stringify({v:'2026-08',ts:'x'})) } catch {} })
   for (const s of (ONLY ? SCENES.filter(x => ONLY.includes(x)) : SCENES)) {
     const p = await ctx.newPage()
@@ -439,9 +555,9 @@ for (const w of WIDTHS) {
     // και η σκηνή έβγαινε ΚΕΝΗ. Σε κενή σελίδα δεν υπάρχει τίποτα κομμένο,
     // τίποτα πάνω στο άλλο, κανένας μικρός στόχος αφής. Πράσινο, χωρίς οθόνη.
     const size = await p.evaluate(() => (document.querySelector('.app-content')?.innerText || '').trim().length)
-    if (size < 120) rows.push({ where: `πάγκος ${s} @${w}`, r: [`Η ΣΚΗΝΗ ΕΙΝΑΙ ΚΕΝΗ (${size} χαρακτήρες)`] })
+    if (size < 120) rows.push({ where: `πάγκος ${s} @${w}×${dev.h}`, r: [`Η ΣΚΗΝΗ ΕΙΝΑΙ ΚΕΝΗ (${size} χαρακτήρες)`] })
     const r = await p.evaluate(PROBE)
-    if (r.length) rows.push({ where: `πάγκος ${s} @${w}`, r })
+    if (r.length) rows.push({ where: `πάγκος ${s} @${w}×${dev.h}`, r })
     // ═══ ΚΑΙ ΤΑ ΠΑΝΕΛ ΠΟΥ ΖΟΥΝ ΠΙΣΩ ΑΠΟ ΔΙΑΚΟΠΤΗ ═══════════════════════════
     // ΤΟ ΔΑΝΕΙΟ ΕΧΕΙ ΠΕΝΤΕ ΦΑΚΟΥΣ (απόσβεση, επιτόκιο, ικανότητα, φόρος και
     // αντοχή, πίνακας) και ΜΟΝΟ ΕΝΑΣ αποδίδεται κάθε φορά. Ο έλεγχος έβλεπε
@@ -454,10 +570,10 @@ for (const w of WIDTHS) {
         if (!b) return false
         b.click(); return true
       }, label)
-      if (!hit) { rows.push({ where: `πάγκος ${s} @${w}`, r: [`ΤΟ ΚΟΥΜΠΙ «${label}» ΔΕΝ ΒΡΕΘΗΚΕ`] }); continue }
+      if (!hit) { rows.push({ where: `πάγκος ${s} @${w}×${dev.h}`, r: [`ΤΟ ΚΟΥΜΠΙ «${label}» ΔΕΝ ΒΡΕΘΗΚΕ`] }); continue }
       await p.waitForTimeout(400)
       const rr = await p.evaluate(PROBE)
-      if (rr.length) rows.push({ where: `πάγκος ${s}·${label.slice(0, 14)} @${w}`, r: rr })
+      if (rr.length) rows.push({ where: `πάγκος ${s}·${label.slice(0, 14)} @${w}×${dev.h}`, r: rr })
     }
     const pressLabels = await p.evaluate(() =>
       [...document.querySelectorAll('button[aria-pressed="false"]')].map(b => (b.textContent || '').trim()).filter(Boolean))
@@ -472,7 +588,7 @@ for (const w of WIDTHS) {
       await p.evaluate(() => { document.querySelectorAll('.acc-toggle[aria-expanded="false"]').forEach(b => b.click()) })
       await p.waitForTimeout(250)
       const rr = await p.evaluate(PROBE)
-      if (rr.length) rows.push({ where: `πάγκος ${s}·${label.slice(0, 14)} @${w}`, r: rr })
+      if (rr.length) rows.push({ where: `πάγκος ${s}·${label.slice(0, 14)} @${w}×${dev.h}`, r: rr })
     }
     await p.close()
   }
@@ -481,7 +597,7 @@ for (const w of WIDTHS) {
     try { await p.goto(BASE + path, { waitUntil:'networkidle', timeout: 30000 }) } catch { await p.close(); continue }
     await p.waitForTimeout(300)
     const r = await p.evaluate(PROBE)
-    if (r.length) rows.push({ where: `${path} @${w}`, r })
+    if (r.length) rows.push({ where: `${path} @${w}×${dev.h}`, r })
     await p.close()
   }
   await ctx.close()

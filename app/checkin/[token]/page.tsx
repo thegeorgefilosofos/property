@@ -10,7 +10,7 @@ import BrandMark from '@/components/BrandMark';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { T, formGrid } from '@/components/Theme';
+import { T, Btn, formGrid } from '@/components/Theme';
 
 interface CheckinContext { property: { name: string; address: string | null } }
 
@@ -20,7 +20,10 @@ export default function GuestCheckin() {
   const supabase = createClient();
 
   const [ctx, setCtx] = useState<CheckinContext | null>(null);
-  const [state, setState] = useState<'loading' | 'ok' | 'notfound'>('loading');
+  // Ιδιος διαχωρισμός με την πύλη μισθωτή: άκυρο κουπόνι και πεσμένο δίκτυο
+  // είναι ΔΥΟ πράγματα· μόνο το πρώτο δικαιολογεί «ζήτησε νέο σύνδεσμο».
+  const [state, setState] = useState<'loading' | 'ok' | 'notfound' | 'offline'>('loading');
+  const [tries, setTries] = useState(0);
 
   const [fullName, setFullName] = useState('');
   const [idNumber, setIdNumber] = useState('');
@@ -38,12 +41,14 @@ export default function GuestCheckin() {
 
   useEffect(() => {
     (async () => {
+      setState('loading');
       const { data, error } = await supabase.rpc('get_checkin_context', { p_token: token });
-      if (error || !data) { setState('notfound'); return; }
+      if (error) { setState('offline'); return; }
+      if (!data) { setState('notfound'); return; }
       setCtx(data as CheckinContext); setState('ok');
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, [token, tries]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setErr(''); setSending(true);
@@ -54,7 +59,10 @@ export default function GuestCheckin() {
       p_accepts: accepts, p_privacy_consent: privacyConsent,
     });
     setSending(false);
-    if (error || !ok) { setErr('Δεν ήταν δυνατή η υποβολή. Έλεγξε τα στοιχεία και δοκίμασε ξανά.'); return; }
+    // Το σφάλμα δικτύου λέει «ξαναδοκίμασε»· η άρνηση της βάσης λέει «κοίτα τα
+    // στοιχεία». Ενα μήνυμα για τα δύο στέλνει τον μισό κόσμο να ψάχνει λάθος.
+    if (error) { setErr('Δεν φτάσαμε ώς τον διακομιστή. Ελεγξε τη σύνδεσή σου και δοκίμασε ξανά.'); return; }
+    if (!ok) { setErr('Δεν ήταν δυνατή η υποβολή. Έλεγξε τα στοιχεία και δοκίμασε ξανά.'); return; }
     setSent(true);
   };
 
@@ -87,6 +95,19 @@ export default function GuestCheckin() {
           <div style={{ ...card, textAlign: 'center' }}>
             <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em', marginBottom: 6 }}>Ο σύνδεσμος δεν είναι έγκυρος</div>
             <div style={{ fontSize: 13, color: 'var(--text-tertiary)', lineHeight: 1.6 }}>Ζήτησε από τον οικοδεσπότη έναν ενημερωμένο σύνδεσμο.</div>
+          </div>
+        )}
+
+        {state === 'offline' && (
+          <div style={{ ...card, textAlign: 'center' }}>
+            <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em', marginBottom: 6 }}>Δεν φτάσαμε ώς τον διακομιστή</div>
+            <div style={{ fontSize: 13, color: 'var(--text-tertiary)', lineHeight: 1.6, marginBottom: 16 }}>
+              Ο σύνδεσμός σου είναι εντάξει. Ελεγξε τη σύνδεσή σου και δοκίμασε ξανά.
+            </div>
+            {/* Το κοινό κουμπί, όχι ζωγραφισμένο στο χέρι: ίδια όψη, ίδιες
+                καταστάσεις αιώρησης και εστίασης, ίδιο ύψος αφής με όλη την
+                εφαρμογή. */}
+            <Btn variant="primary" onClick={() => setTries(t => t + 1)}>Δοκίμασε ξανά</Btn>
           </div>
         )}
 

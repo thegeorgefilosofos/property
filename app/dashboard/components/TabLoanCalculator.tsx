@@ -7,7 +7,7 @@ import { fp, fe } from '@/lib/core/format'
 import { money as csvEur } from './sheetFormat';
 import DocChecklist from './DocChecklist'
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rPct, rEsc } from './reportPdf'
-import { T, Badge, ABSENT, TT, formGrid, fixedCols } from '@/components/Theme'
+import { T, Badge, ABSENT, TT, formGrid, fixedCols, KPIGrid } from '@/components/Theme'
 import { affordability, rentVsBuy } from '@/lib/loans/affordability'
 import { AADE_HOME } from '@/lib/tax/aade'
 import { createClient } from '@/lib/supabase/client'
@@ -627,7 +627,6 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
   const [saving,      setSaving]      = useState(false)
   const [activePreset,setActivePreset]= useState<string|null>(null)
   // Ομοιόμορφοι αριθμοί: όλα λευκά, γαλάζιο μόνο όταν περνά ο κέρσορας/δάχτυλο.
-  const [hoverKpi,  setHoverKpi]  = useState<number|null>(null)
   const [hoverCap,  setHoverCap]  = useState<number|null>(null)
   const [hoverRow,  setHoverRow]  = useState<number|null>(null)
   const [hoverCost, setHoverCost] = useState<number|null>(null)
@@ -1056,28 +1055,29 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
         </div>
       </div>
 
-      {/* KPIs — ομοιόμορφα 3D κουτάκια· ίδιο χρώμα παντού, γαλάζιο μόνο στο hover */}
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:14}}>
-        {[
-          {k:'Μηνιαία δόση',v:fmtEur(monthly),s:`${rateType==='variable'?'κυμαινόμενο':'σταθερό'} ${fmtPct(effRate)} · ${Y} έτη`,neg:false},
-          {k:'Σύνολο τόκων',v:fmtEur(totalInt),s:`${fp(((totalInt/Math.max(LA,1))*100))} επί κεφαλαίου`,neg:false},
-          {k:'Συνολική αποπληρωμή',v:fmtEur(total),s:`κεφάλαιο ${fmtEur(LA)}`,neg:false},
-          {k:'Δάνειο προς αξία',v:`${fp(ltv)}`,s:`ίδια κεφάλαια ${fmtEur(PV-LA)}`,neg:ltv>90},
-        ].map((t,i)=>{
-          const on=hoverKpi===i
-          return (
-          <div key={t.k}
-            onMouseEnter={()=>setHoverKpi(i)} onMouseLeave={()=>setHoverKpi(null)}
-            onTouchStart={()=>setHoverKpi(i)} onTouchEnd={()=>setHoverKpi(null)}
-            style={{position:'relative',background:'var(--bg-elevated)',border:`1px solid ${on?'var(--border-default)':'var(--border-subtle)'}`,borderRadius: T.radius.card,padding:'18px 18px 16px',transition:'border-color 0.15s, box-shadow 0.15s',
-            boxShadow:on?'var(--elev-2)':'var(--elev-1)'}}>
-            <p style={{fontSize: 11,textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:700,color:'var(--text-tertiary)',fontFamily: T.font.sans}}>{t.k}</p>
-            <p style={{fontSize:28,fontWeight:700,letterSpacing:'-0.02em',lineHeight:1,marginTop:8,color:t.neg?'var(--text-primary)':on?'var(--accent)':'var(--text-primary)',fontVariantNumeric:'tabular-nums',fontFamily: T.font.sans,transition:'color 0.15s'}}>{t.v}</p>
-            <p style={{fontSize:12,marginTop:7,color:'var(--text-tertiary)',fontFamily: T.font.sans}}>{t.s}</p>
-          </div>
-          )
-        })}
-      </div>
+      {/* ═══ ΤΑ ΤΕΣΣΕΡΑ ΝΟΥΜΕΡΑ ΕΙΝΑΙ ΤΟ ΙΔΙΟ ΣΤΟΙΧΕΙΟ ΜΕ ΤΑ ΥΠΟΛΟΙΠΑ ΤΗΣ ΕΦΑΡΜΟΓΗΣ
+          Ηταν χειροποίητα κουτάκια: δικό τους πλέγμα, δικό τους περιθώριο, δικό
+          τους μέγεθος γραμματοσειράς στα 28, δική τους κατάσταση `hoverKpi`.
+          Το ίδιο πράγμα με το KPIGrid, γραμμένο δεύτερη φορά — και επειδή ήταν
+          δεύτερη γραφή, δεν πήρε τίποτα από όσα διορθώθηκαν στην πρώτη.
+
+          ΤΙ ΚΟΣΤΙΣΕ. ΜΕΤΡΗΜΕΝΟ ΣΕ Galaxy A, 360×800: δύο στήλες των 163, κάρτα
+          με 18 περιθώριο δεξιά-αριστερά, δηλαδή 127 για το νούμερο· η
+          «Συνολική αποπληρωμή» έγραφε «225.280,61 €», που στα 28 θέλει 200. Ο
+          κύριος αριθμός του υπολογιστή δανείου ήταν κομμένος στη μέση· μαζί
+          του ολόκληρη η γραμμή ξεχείλιζε την κάρτα κατά 37.
+
+          Με το κοινό στοιχείο, το μέγεθος βγαίνει από το πλάτος της κάρτας ΚΑΙ
+          από το μήκος του αριθμού, ο τόνος αποκαλύπτεται στο άγγιγμα όπως
+          παντού και η κατάσταση `hoverKpi` δεν χρειάζεται καν. */}
+      <KPIGrid items={[
+        { label:'Μηνιαία δόση', value:fmtEur(monthly), sub:`${rateType==='variable'?'κυμαινόμενο':'σταθερό'} ${fmtPct(effRate)} · ${Y} έτη` },
+        { label:'Σύνολο τόκων', value:fmtEur(totalInt), sub:`${fp(((totalInt/Math.max(LA,1))*100))} επί κεφαλαίου` },
+        { label:'Συνολική αποπληρωμή', value:fmtEur(total), sub:`κεφάλαιο ${fmtEur(LA)}` },
+        // Ο τόνος μπαίνει ΜΟΝΟ όταν λέει κάτι: πάνω από 90% δάνειο προς αξία
+        // είναι το όριο πέρα από το οποίο οι τράπεζες σταματούν να δανείζουν.
+        { label:'Δάνειο προς αξία', value:`${fp(ltv)}`, sub:`ίδια κεφάλαια ${fmtEur(PV-LA)}`, tone: ltv>90 ? 'warning' : undefined },
+      ]}/>
 
       <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
         {[

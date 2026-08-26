@@ -32,6 +32,20 @@ import { rentIndexFor, rentAdjustmentPct, indexMonthLabel, indexPeriodLabel, CPI
 
 interface Prop { id: string; name: string; address: string | null }
 
+/**
+ * Η εγγραφή του μητρώου για μια ειδοποίηση που έχει ήδη εκδοθεί.
+ *
+ * Το `summary` το γράφει το ίδιο αυτό παράθυρο (βλέπε `issueDocument` πιο κάτω),
+ * οπότε τα πεδία είναι γνωστά. Γράφονται προαιρετικά γιατί έρχονται από JSON
+ * της βάσης: μια παλιά γραμμή μπορεί να μην τα έχει όλα.
+ */
+type PriorNotice = {
+  id: string;
+  issued_at: string;
+  period: string | null;
+  summary: { currentRent?: number; newRent?: number; pct?: number; tenant?: string } | null;
+};
+
 export default function RentAdjustmentModal({ open, onClose, userId, supabase, branding }: {
   open: boolean; onClose: () => void; userId: string; supabase: SupabaseClient; branding?: ReportBranding | null;
 }) {
@@ -79,6 +93,14 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
   const [loading, setLoading] = useState(true);
   // Μετά τη δημιουργία: ερώτηση αρχειοθέτησης στα έγγραφα του ακινήτου.
   const [pending, setPending] = useState<{ model: PdfReportModel; fname: string } | null>(null);
+  // Η προηγούμενη ειδοποίηση του ίδιου ακινήτου, όπως την κρατά το μητρώο.
+  const [prior, setPrior] = useState<PriorNotice | null>(null);
+  // Ρητή επιβεβαίωση όταν υπάρχει ήδη ειδοποίηση για την ίδια περίοδο ισχύος.
+  const [priorAck, setPriorAck] = useState(false);
+  // Το μητρώο δεν απάντησε. Δεν ξέρουμε αν υπάρχει προηγούμενη ειδοποίηση.
+  const [priorUnknown, setPriorUnknown] = useState(false);
+  /** Για ποιο ακίνητο ισχύουν τα δύο από πάνω. Βλέπε το σχόλιο στο effect. */
+  const [priorFor, setPriorFor] = useState<string | null>(null);
   const [archiving, setArchiving] = useState(false);
   const [archived, setArchived] = useState(false);
 
@@ -123,11 +145,63 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
     })();
   }, [open, propId, userId, supabase]);
 
+
   const prop = props.find(p => p.id === propId);
+
+  // ═══ Η ΔΕΥΤΕΡΗ ΕΠΙΣΤΟΛΗ ΠΑΤΑΕΙ ΠΑΝΩ ΣΤΗΝ ΠΡΩΤΗ, ΚΑΙ ΤΗΝ ΑΝΕΒΑΖΕΙ ΞΑΝΑ ══════
+  // ΤΟ ΣΕΝΑΡΙΟ, ΒΗΜΑ ΒΗΜΑ. Ο ιδιοκτήτης εκδίδει ειδοποίηση 600,00 € προς
+  // 626,40 € με ισχύ σήμερα. Το παράθυρο γράφει το νέο μίσθωμα στην καρτέλα του
+  // μισθωτή, όπως πρέπει. Την επόμενη μέρα ξανανοίγει το ίδιο παράθυρο, για να
+  // δει τι είχε κάνει ή επειδή δεν είναι σίγουρος ότι κατέβηκε το PDF. Το
+  // «Τρέχον μίσθωμα» προσυμπληρώνεται ΤΩΡΑ με 626,40 €, γιατί αυτό λέει η
+  // καρτέλα. Πατά «Υπογεγραμμένο PDF» και παίρνει δεύτερη επίσημη ειδοποίηση,
+  // 626,40 € προς 653,96 €, με τον ΙΔΙΟ δείκτη του ΙΔΙΟΥ μήνα.
+  //
+  // ΤΙ ΜΕΝΕΙ ΜΕΤΑ. Δύο αριθμημένα έγγραφα στο μητρώο για την ίδια αναπροσαρμογή,
+  // ο μισθωτής με το πρώτο στο χέρι, η καρτέλα με το ποσό του δεύτερου· και μια
+  // αύξηση διπλάσια από αυτήν που επιτρέπει ο δείκτης. Κανένα σφάλμα, καμία
+  // προειδοποίηση: κάθε βήμα ήταν νόμιμο μόνο του.
+  //
+  // Ο ΕΛΕΓΧΟΣ ΔΕΝ ΑΠΑΓΟΡΕΥΕΙ, ΛΕΕΙ. Δεύτερη ειδοποίηση στην ίδια περίοδο είναι
+  // θεμιτή (διόρθωση ονόματος, λάθος ημερομηνία, νέο μισθωτήριο). Αυτό που δεν
+  // είναι θεμιτό είναι να γίνει ΚΑΤΑ ΛΑΘΟΣ. Οπότε φαίνεται τι έχει ήδη εκδοθεί,
+  // με ημερομηνία και ποσά· και ζητείται ρητή επιβεβαίωση.
+  useEffect(() => {
+    if (!open || !propId || !prop) return;
+    (async () => {
+      // ΤΟ «ΔΕΝ ΞΕΡΩ» ΔΕΝ ΕΠΙΤΡΕΠΕΤΑΙ ΝΑ ΔΙΑΒΑΖΕΤΑΙ ΩΣ «ΔΕΝ ΥΠΑΡΧΕΙ». Μια
+      // ανάγνωση που αγνοεί το `error` γυρίζει άδειο πίνακα και όταν αποτύχει:
+      // εδώ αυτό θα σήμαινε «καμία προηγούμενη ειδοποίηση», δηλαδή ο έλεγχος θα
+      // σιωπούσε ακριβώς όταν δεν μπορεί να απαντήσει. Η άγνοια είναι λόγος για
+      // ΠΕΡΙΣΣΟΤΕΡΗ προσοχή, όχι για λιγότερη.
+      const { data, error } = await supabase.from('issued_documents')
+        .select('id,issued_at,period,summary')
+        .eq('user_id', userId).eq('doc_type', 'Ειδοποίηση αναπροσαρμογής μισθώματος')
+        .eq('subject', prop.name || '')
+        .order('issued_at', { ascending: false }).limit(1);
+      setPriorUnknown(!!error);
+      const row = (data || [])[0] as PriorNotice | undefined;
+      setPrior(row || null);
+      // ΤΟ ΚΛΕΙΔΙ ΑΝΤΙ ΓΙΑ ΜΗΔΕΝΙΣΜΟ. Ο μηδενισμός στην αρχή του effect είναι
+      // σύγχρονη γραφή κατάστασης μέσα σε effect, δηλαδή δεύτερη απόδοση σε κάθε
+      // άνοιγμα. Με κλειδί, το «για ποιο ακίνητο ισχύει αυτό που διάβασα»
+      // απαντιέται από τα ίδια τα δεδομένα: αλλάζοντας ακίνητο, το παλιό
+      // αποτέλεσμα παύει να ταιριάζει και δεν λαμβάνεται υπόψη.
+      setPriorFor(propId);
+    })();
+  }, [open, propId, prop, userId, supabase]);
 
   // Ο δείκτης που εφαρμόζεται σε αναπροσαρμογή με ισχύ αυτόν τον μήνα. Η ΕΛΣΤΑΤ
   // ανακοινώνει με καθυστέρηση, οπότε ισχύς τον Αύγουστο στηρίζεται στον
   // δημοσιευμένο δείκτη του Ιουλίου — και η οθόνη γράφει ποιον διάλεξε.
+  // ΙΔΙΑ ΠΕΡΙΟΔΟΣ ΣΗΜΑΙΝΕΙ ΙΔΙΟΣ ΜΗΝΑΣ ΙΣΧΥΟΣ. Το `period` γράφεται από εδώ ως
+  // «Ισχύς από <ημερομηνία>»· κρατιέται ο μήνας, γιατί δύο ειδοποιήσεις με ισχύ
+  // 01/09 και 15/09 είναι η ίδια αναπροσαρμογή γραμμένη δύο φορές.
+  const priorReady = priorFor === propId;
+  const priorSameMonth = priorReady && prior && (prior.period || '').includes(grDate(effective).slice(3))
+    ? prior : null;
+  const blockedByPrior = (!!priorSameMonth || (priorReady && priorUnknown)) && !priorAck;
+
   const index = rentIndexFor(effective.slice(0, 7));
   const cpiPct = index ? rentAdjustmentPct(index.pct, cpiShare75) : null;
   // ΧΩΡΙΣ useMemo, ΕΠΙΤΗΔΕΣ. Ο υπολογισμός είναι τέσσερις πράξεις πάνω σε
@@ -147,6 +221,10 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
     // ΔΤΚ» με μηδέν δίπλα. Καλύτερα να μη βγει έγγραφο παρά να βγει ψεύτικο.
     if (method === 'cpi' && cpiPct == null) { setErr('Για τον μήνα ισχύος δεν υπάρχει δημοσιευμένος δείκτης ΕΛΣΤΑΤ.'); return; }
     if (!sig) { setErr('Υπόγραψε το έγγραφο.'); return; }
+    // Ο ίδιος όρος με το κουμπί, γραμμένος και εδώ: ένα disabled κουμπί δεν
+    // είναι έλεγχος, είναι ένδειξη. Το πληκτρολόγιο και η επαναφορά της οθόνης
+    // το προσπερνούν.
+    if (blockedByPrior) { setErr('Υπάρχει ήδη ειδοποίηση για αυτόν τον μήνα ισχύος. Επιβεβαίωσε πιο πάνω ότι θέλεις δεύτερη.'); return; }
     setBusy(true);
     try {
       const notice = adjustmentNoticeText({ tenantName: tenant.trim() || undefined, address: prop.address || undefined, effectiveDate: grDate(effective), method, res, cpiPeriod: index ? indexPeriodLabel(index.ym) : undefined, cpiShare75 });
@@ -338,7 +416,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
   ) : (
     <>
       <Btn variant="secondary" onClick={onClose} disabled={busy}>Ακύρωση</Btn>
-      <Btn variant="primary" onClick={generate} disabled={busy || !sig || num(currentRent) <= 0}>{busy ? 'Δημιουργία…' : 'Υπογεγραμμένο PDF'}</Btn>
+      <Btn variant="primary" onClick={generate} disabled={busy || !sig || num(currentRent) <= 0 || blockedByPrior}>{busy ? 'Δημιουργία…' : 'Υπογεγραμμένο PDF'}</Btn>
     </>
   );
 
@@ -394,6 +472,49 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
                   </>
                 )}
               </div>
+
+              {/* ═══ ΤΙ ΕΧΕΙ ΗΔΗ ΕΚΔΟΘΕΙ ΓΙΑ ΑΥΤΟΝ ΤΟΝ ΜΗΝΑ ══════════════════════
+                  Το «Τρέχον μίσθωμα» προσυμπληρώνεται από την καρτέλα του
+                  μισθωτή, που την έγραψε η ΠΡΟΗΓΟΥΜΕΝΗ ειδοποίηση. Χωρίς αυτή
+                  τη γραμμή, η δεύτερη έκδοση ανεβάζει ξανά ένα ήδη ανεβασμένο
+                  μίσθωμα, με τον ίδιο δείκτη του ίδιου μήνα. */}
+              {priorReady && priorUnknown && !priorSameMonth && (
+                <div style={{ border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', borderRadius: T.radius.card, padding: '12px 16px', marginBottom: 16 }}>
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>
+                    Το μητρώο εγγράφων δεν απάντησε.
+                  </p>
+                  <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>
+                    Δεν μπορούμε να δούμε αν έχει ήδη εκδοθεί ειδοποίηση για αυτόν τον μήνα. Ελεγξε το «Τρέχον μίσθωμα» πιο κάτω πριν προχωρήσεις.
+                  </p>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, cursor: 'pointer', minHeight: 44 }}>
+                    <input type="checkbox" checked={priorAck} onChange={e => setPriorAck(e.target.checked)}
+                      style={{ width: 16, height: 16, accentColor: 'var(--accent)', flexShrink: 0 }} />
+                    <span style={{ fontSize: 13, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Το έλεγξα, προχώρα</span>
+                  </label>
+                </div>
+              )}
+
+              {priorSameMonth && (
+                <div style={{ border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', borderRadius: T.radius.card, padding: '12px 16px', marginBottom: 16 }}>
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>
+                    Έχει ήδη εκδοθεί ειδοποίηση για αυτόν τον μήνα ισχύος.
+                  </p>
+                  <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>
+                    {grDate(priorSameMonth.issued_at.slice(0, 10))}
+                    {typeof priorSameMonth.summary?.currentRent === 'number' && typeof priorSameMonth.summary?.newRent === 'number'
+                      ? `: ${pEur(priorSameMonth.summary.currentRent)} σε ${pEur(priorSameMonth.summary.newRent)}` : ''}
+                    {' · '}αριθμός {priorSameMonth.id}
+                  </p>
+                  <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>
+                    Το «Τρέχον μίσθωμα» πιο κάτω είναι ΗΔΗ το αναπροσαρμοσμένο. Δεύτερη ειδοποίηση θα το ανεβάσει ξανά.
+                  </p>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, cursor: 'pointer', minHeight: 44 }}>
+                    <input type="checkbox" checked={priorAck} onChange={e => setPriorAck(e.target.checked)}
+                      style={{ width: 16, height: 16, accentColor: 'var(--accent)', flexShrink: 0 }} />
+                    <span style={{ fontSize: 13, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Το ξέρω, θέλω δεύτερη ειδοποίηση</span>
+                  </label>
+                </div>
+              )}
 
               {/* ΤΡΕΙΣ ΙΣΕΣ ΣΤΗΛΕΣ, ΜΙΑ ΣΕΙΡΑ. Το `formGrid` κόβει κάθε στήλη σε
                   σταθερό μέγιστο: τρία πεδία των 220 με δύο κενά δεν χωρούσαν στα

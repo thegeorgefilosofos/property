@@ -101,6 +101,8 @@ export default function SignupPage() {
   const [show, setShow] = useState(false)
   const [pwTouched, setPwTouched] = useState(false)
   const [resent, setResent] = useState(false)
+  /** Γιατί δεν ξαναστάλθηκε. Κενό όσο δεν έχει αποτύχει. */
+  const [resendErr, setResendErr] = useState('')
   const [leakedPw, setLeakedPw] = useState<string | null>(null)
   // ΤΟ ΕΥΡΗΜΑ ΔΙΑΡΡΟΗΣ ΦΤΑΝΕΙ ΩΣ ΤΗΝ ΥΠΟΒΟΛΗ. Πριν, ζούσε μόνο μέσα στο
   // PasswordStrength: η οθόνη προειδοποιούσε και μετά δεχόταν τον κωδικό.
@@ -239,9 +241,23 @@ export default function SignupPage() {
     if (error) setError(failed('Η εγγραφή δεν ολοκληρώθηκε', error))
   }
 
+  // ═══ Η ΕΠΑΝΑΠΟΣΤΟΛΗ ΠΟΥ ΔΕΝ ΕΓΙΝΕ, ΚΑΙ ΚΛΕΙΔΩΣΕ ΤΟ ΚΟΥΜΠΙ ═══════════════════
+  // ΤΙ ΕΒΛΕΠΕ Ο ΝΕΟΣ ΧΡΗΣΤΗΣ. Δεν έφτασε το email επιβεβαίωσης, πατούσε
+  // «Ξαναστείλε το email»· το κουμπί γινόταν «Το ξαναστείλαμε ✓» και
+  // ΚΛΕΙΔΩΝΕ. Το `error` της κλήσης πεταγόταν. Οταν η επαναποστολή είχε
+  // απορριφθεί, ο άνθρωπος περίμενε ένα email που δεν έφυγε ποτέ, χωρίς τρόπο
+  // να ξαναδοκιμάσει, στην ΠΡΩΤΗ οθόνη που βλέπει από το προϊόν.
+  //
+  // Η ΑΠΟΡΡΙΨΗ ΕΙΝΑΙ Η ΚΑΝΟΝΙΚΗ ΠΕΡΙΠΤΩΣΗ, ΟΧΙ Η ΣΠΑΝΙΑ. Ο πάροχος ταυτότητας
+  // περιορίζει τις επαναποστολές ανά διεύθυνση και ανά λεπτό: όποιος πατήσει
+  // δύο φορές γρήγορα, ή είχε μόλις ζητήσει εγγραφή, πέφτει πάνω στο όριο. Το
+  // μήνυμα λέει ακριβώς αυτό, γιατί «δοκίμασε σε ένα λεπτό» είναι οδηγία που
+  // λύνει το πρόβλημα· ένα ✓ που δεν ισχύει δεν λύνει τίποτα.
   async function resend() {
+    setResendErr('')
     const supabase = await authClient()
-    await supabase.auth.resend({ type: 'signup', email })
+    const { error } = await supabase.auth.resend({ type: 'signup', email })
+    if (error) { setResendErr(failed('Το email δεν ξαναστάλθηκε', error)); return }
     setResent(true)
   }
 
@@ -421,9 +437,15 @@ export default function SignupPage() {
               <button onClick={resend} disabled={resent} style={{ display: 'inline-block', padding: '12px 24px', background: resent ? 'var(--bg-elevated)' : 'var(--accent)', border: resent ? '1px solid var(--border-default)' : 'none', borderRadius: T.radius.pill, color: resent ? 'var(--text-secondary)' : 'var(--accent-text)', fontSize: 15, fontWeight: 700, cursor: resent ? 'default' : 'pointer', fontFamily: 'inherit' }}>
                 {resent ? 'Το ξαναστείλαμε ✓' : 'Ξαναστείλε το email'}
               </button>
+              {/* Η αποτυχία κάθεται ΚΑΤΩ από το κουμπί που την προκάλεσε, με το
+                  κουμπί ακόμη πατήσιμο: ο χρήστης έχει και την εξήγηση και τον
+                  δρόμο. */}
+              {resendErr && (
+                <p role="alert" style={{ margin: '12px 0 0', fontSize: 13, lineHeight: 1.6, color: 'var(--negative)', fontWeight: 600 }}>{resendErr}</p>
+              )}
               <p style={{ margin: '18px 0 0', fontSize: 12.5, lineHeight: 1.6, color: 'var(--text-tertiary)' }}>
                 Λάθος διεύθυνση;{' '}
-                <button type="button" onClick={() => { setDone(false); setResent(false); }}
+                <button type="button" onClick={() => { setDone(false); setResent(false); setResendErr(''); }}
                   style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent)', fontWeight: 600, fontSize: 12.5, fontFamily: 'inherit', textDecoration: 'underline' }}>
                   Γράψε άλλη
                 </button>

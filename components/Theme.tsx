@@ -423,8 +423,16 @@ export function Modal({ open, onClose, title, ariaLabel, subtitle, icon, size = 
 // ═══ SecHdr, επικεφαλίδα ενότητας (η τελεία + uppercase label των Bills) ══
 export function SecHdr({ label, sub, right }: { label: string; sub?: string; right?: ReactNode }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
+    // ═══ Η ΕΝΕΡΓΕΙΑ ΠΕΦΤΕΙ ΚΑΤΩ ΑΝΤΙ ΝΑ ΣΤΥΨΕΙ ΤΟΝ ΤΙΤΛΟ ═══════════════════
+    // ΜΕΤΡΗΜΕΝΟ ΣΕ Galaxy A, 360×800, στην Αξιοποίηση: το «Δείξε προηγούμενους
+    // μήνες (2)» κρατούσε ό,τι πλάτος ήθελε και άφηνε 88 στον τίτλο, που
+    // ζητούσε 90· το «ΗΜΕΡΟΛΟΓΙΟ ΤΙΜΩΝ» έβγαινε πάνω στο κουμπί.
+    //
+    // Η κεφαλίδα χρησιμοποιείται σε δεκάδες σημεία, οπότε ο κανόνας γράφεται
+    // εδώ μία φορά: όταν τα δύο δεν χωρούν στην ίδια σειρά, η ενέργεια παίρνει
+    // δική της από κάτω. Σε φαρδιά οθόνη δεν αλλάζει τίποτα, γιατί χωρούν.
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, rowGap: 8, flexWrap: 'wrap', marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
+      <div style={{ flex: '1 1 200px', minWidth: 0 }}>
         <div style={{ ...TT.label, fontSize: 11 }}>{label}</div>
         {sub && <div style={{ ...TT.caption, fontSize: 11, marginTop: 2 }}>{sub}</div>}
       </div>
@@ -447,7 +455,13 @@ export function PageTitle({ over, title, sub, lede, right, titleHint }: { over?:
     <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, marginBottom: T.sp.xxl, flexWrap: 'wrap' as const }}>
       <div style={{ minWidth: 0 }}>
         {over && <div style={{ ...TT.label, color: 'var(--text-tertiary)', marginBottom: 8 }}>{over}</div>}
-        <h1 title={titleHint} style={{ ...TT.display, margin: 0 }}>{title}</h1>
+        {/* Η ΚΛΑΣΗ ΥΠΑΡΧΕΙ ΓΙΑ ΝΑ ΜΙΚΡΑΙΝΕΙ Ο ΤΙΤΛΟΣ ΣΤΟ ΤΗΛΕΦΩΝΟ. Τα 28 είναι
+            σωστά σε οθόνη υπολογιστή, όπου δίνουν στη σελίδα παρουσία. Σε
+            Galaxy A μετρήθηκε ότι ο τίτλος, ο υπότιτλος και τα κουμπιά μαζί
+            πιάνουν 150 από τα 800· το ΠΕΡΙΕΧΟΜΕΝΟ για το οποίο μπήκε ο
+            χρήστης αρχίζει μετά την πρώτη οθόνη. Το μέγεθος ζει στο CSS, όχι σε
+            δεύτερη σταθερά: μία κλίμακα, ένα σπάσιμο. */}
+        <h1 className="page-title" title={titleHint} style={{ ...TT.display, margin: 0 }}>{title}</h1>
         {sub && <div style={{ ...TT.caption, fontSize: 12, marginTop: 4 }}>{sub}</div>}
         {/* Η εισαγωγή είναι κείμενο σώματος, όχι λεζάντα: το `sub` των δέκα
             καρτελών είναι 12 εικονοστοιχεία και μια παράγραφος τριών σειρών σε
@@ -461,7 +475,12 @@ export function PageTitle({ over, title, sub, lede, right, titleHint }: { over?:
             και το πάνω πάνω. */}
         {lede && <p style={{ ...TT.body, color: 'var(--text-secondary)', margin: '10px 0 0' }}>{lede}</p>}
       </div>
-      {right && <div style={{ display: 'flex', gap: 8 }}>{right}</div>}
+      {/* ΙΣΑ ΥΨΗ, ΚΑΙ ΟΤΑΝ Η ΜΙΑ ΕΤΙΚΕΤΑ ΤΥΛΙΓΕΙ. Σε Galaxy A το «Καταστάσεις
+          ιδιοκτήτη» έσπαγε στα δύο και γινόταν 62 εικονοστοιχεία ψηλό, δίπλα
+          στο «Εξαγωγή Excel» των 44: δύο κουμπιά της ίδιας σειράς, με άλλο
+          μέγεθος. Το `stretch` δίνει και στα δύο το ύψος του ψηλότερου, οπότε
+          η σειρά διαβάζεται ως ΜΙΑ σειρά. */}
+      {right && <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>{right}</div>}
     </div>
   );
 }
@@ -528,8 +547,22 @@ export function KPIGrid({ items, columns }: { items: KPIItem[]; columns?: number
     // πλάτος και δίπλα του χάσκει τρύπα ίδιου μεγέθους. Μία στήλη είναι ζυγισμένη.
     return 1;
   };
+  // ═══ ΣΤΟ ΤΗΛΕΦΩΝΟ ΔΥΟ ΣΤΗΛΕΣ, ΓΙΑΤΙ ΤΟ ΟΡΦΑΝΟ ΤΟ ΛΥΝΕΙ ΗΔΗ ΤΟ CSS ═════════
+  // ΤΙ ΜΕΤΡΗΘΗΚΕ ΣΕ Galaxy A, 360×800. Το Χαρτοφυλάκιο έχει ΠΕΝΤΕ δείκτες. Ο
+  // κανόνας των διαιρετών, με ταβάνι δύο, δεν βρίσκει διαιρέτη (5 % 2 = 1) και
+  // υποχωρεί σε ΜΙΑ στήλη: πέντε κάρτες η μία κάτω από την άλλη, γύρω στα 900
+  // εικονοστοιχεία, δηλαδή μιάμιση οθόνη για πέντε αριθμούς.
+  //
+  // ΟΜΩΣ ΤΟ ΟΡΦΑΝΟ ΕΧΕΙ ΗΔΗ ΛΥΘΕΙ, ΑΛΛΟΥ. Στο globals.css, κάτω από τα 650:
+  // «.kpi-row > .kpi-card:last-child:nth-child(odd) { grid-column: 1 / -1 }».
+  // Το τελευταίο μονό πλακίδιο απλώνεται σε ΟΛΟ το πλάτος, οπότε δεν υπάρχει
+  // ούτε ορφανό ούτε τρύπα: πέντε δείκτες γίνονται 2+2+1 με το ένα πλατύ.
+  //
+  // Δύο προστασίες για το ίδιο πράγμα· η μία ακύρωνε την άλλη. Στο στενό
+  // ταβάνι μετράει μόνο πόσα ΧΩΡΑΝΕ· τη συμμετρία την κρατά το CSS.
+  const sm = Math.min(cols, 2);
   return (
-    <div className="kpi-row" style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${Math.max(140, Math.floor(920 / cols))}px), 1fr))`, gap: 12, marginBottom: 16, '--kpi-lg': step(4), '--kpi-md': step(3), '--kpi-sm': step(2) } as React.CSSProperties}>
+    <div className="kpi-row" style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${Math.max(140, Math.floor(920 / cols))}px), 1fr))`, gap: 12, marginBottom: 16, '--kpi-lg': step(4), '--kpi-md': step(3), '--kpi-sm': sm } as React.CSSProperties}>
       {items.map((k, i) => {
         const toned = !!(k.tone && k.tone !== 'neutral');
         return (
@@ -540,7 +573,12 @@ export function KPIGrid({ items, columns }: { items: KPIItem[]; columns?: number
           <div className="kpi-label">{k.label}</div>
           {/* Ουδέτερο by default· ο σημασιολογικός τόνος αποκαλύπτεται στο hover ή
               στο άγγιγμα (data-tone + globals.css), για χαμηλού θορύβου look. */}
-          <div className="kpi-value" style={{ marginBottom: 0 }} data-tone={toned ? k.tone : undefined}>{k.value}</div>
+          {/* ΤΟ ΜΗΚΟΣ ΤΟΥ ΑΡΙΘΜΟΥ ΤΑΞΙΔΕΥΕΙ ΜΑΖΙ ΤΟΥ. Το φύλλο στυλ ξέρει πόσο
+              φαρδιά είναι η κάρτα, δεν ξέρει πόσα ψηφία του ζητήθηκε να
+              χωρέσει· ο κανόνας και η μέτρηση είναι γραμμένα στο globals.css,
+              πάνω από το `.kpi-value`. Τα τέσσερα είναι κατώφλι, ώστε ένα
+              «7» να μη ζητήσει γραμματοσειρά μισής οθόνης. */}
+          <div className="kpi-value" style={{ marginBottom: 0, '--kpi-fit': `calc(100cqi / ${Math.max(4, k.value.length)} * 1.52)` } as React.CSSProperties} data-tone={toned ? k.tone : undefined}>{k.value}</div>
           {k.sub && <div style={{ fontSize: 11, lineHeight: 1.4, fontWeight: k.subTone ? 600 : 400, color: (k.subTone && TONE_COLOR[k.subTone]) || 'var(--text-tertiary)', fontFamily: T.font.sans }}>{k.sub}</div>}
         </div>
         );

@@ -19,6 +19,8 @@ export default function Unsubscribe() {
   const [market, setMarket] = useState(true);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState('');
+  // Η αποτυχία λέγεται με λόγια, στην ίδια θέση που θα λεγόταν η επιτυχία.
+  const [failed, setFailed] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -30,16 +32,36 @@ export default function Unsubscribe() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
+  // ═══ Η ΑΠΕΓΓΡΑΦΗ ΠΟΥ ΑΠΕΤΥΧΕ ΣΙΩΠΗΛΑ ══════════════════════════════════════
+  // ΤΙ ΕΒΛΕΠΕ Ο ΠΑΡΑΛΗΠΤΗΣ. Πατούσε «Απεγγραφή από όλα», το κουμπί σταματούσε
+  // να γυρίζει και ΤΙΠΟΤΑ δεν άλλαζε: ούτε μήνυμα, ούτε εξαφάνιση του κουμπιού.
+  // Το `error` της κλήσης πεταγόταν και το `if (data)` σιωπούσε. Ο άνθρωπος
+  // συμπεραίνει ένα από τα δύο: ή ότι έγινε (και εξοργίζεται με το επόμενο
+  // email), ή ότι η σελίδα χάλασε (και το ξαναπατά χωρίς αποτέλεσμα).
+  //
+  // ΚΑΙ ΔΕΝ ΕΙΝΑΙ ΜΟΝΟ ΕΥΓΕΝΕΙΑ. Η απεγγραφή είναι δικαίωμα του παραλήπτη· μια
+  // αποτυχία που δεν λέγεται σημαίνει ότι συνεχίζουμε να στέλνουμε σε κάποιον
+  // που ζήτησε να σταματήσουμε, πιστεύοντας και οι δύο ότι σταματήσαμε.
+  //
+  // ΤΟ `data === false` ΕΙΝΑΙ ΤΟ ΤΡΙΤΟ ΕΝΔΕΧΟΜΕΝΟ. Η συνάρτηση της βάσης
+  // επιστρέφει ψευδές όταν το κουπόνι δεν ταιριάζει, χωρίς σφάλμα: εκεί δεν
+  // φταίει το δίκτυο, έληξε ο σύνδεσμος.
   const unsubscribe = async (kind: 'product' | 'market' | 'all') => {
-    setBusy(true);
-    const { data } = await supabase.rpc('unsubscribe_email', { p_token: token, p_kind: kind });
+    setBusy(true); setFailed('');
+    const { data, error } = await supabase.rpc('unsubscribe_email', { p_token: token, p_kind: kind });
     setBusy(false);
-    if (data) {
-      if (kind === 'product' || kind === 'all') setProduct(false);
-      if (kind === 'market' || kind === 'all') setMarket(false);
-      setDone(kind === 'all' ? 'Απεγγράφηκες από όλα τα ενημερωτικά emails.'
-        : kind === 'product' ? 'Απεγγράφηκες από τα προϊοντικά νέα.' : 'Απεγγράφηκες από τα δεδομένα αγοράς.');
+    if (error) {
+      setFailed('Η απεγγραφή δεν ολοκληρώθηκε. Δοκίμασε ξανά σε λίγο, ή στείλε μας μήνυμα και θα τη διαγράψουμε εμείς.');
+      return;
     }
+    if (!data) {
+      setFailed('Ο σύνδεσμος δεν είναι πλέον έγκυρος. Χρησιμοποίησε τον σύνδεσμο του τελευταίου email, ή τις Ρυθμίσεις μέσα στην εφαρμογή.');
+      return;
+    }
+    if (kind === 'product' || kind === 'all') setProduct(false);
+    if (kind === 'market' || kind === 'all') setMarket(false);
+    setDone(kind === 'all' ? 'Απεγγράφηκες από όλα τα ενημερωτικά emails.'
+      : kind === 'product' ? 'Απεγγράφηκες από τα προϊοντικά νέα.' : 'Απεγγράφηκες από τα δεδομένα αγοράς.');
   };
 
   const wrap: React.CSSProperties = { minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: 'Inter, system-ui, Arial, sans-serif', color: 'var(--text-primary)' };
@@ -61,9 +83,11 @@ export default function Unsubscribe() {
 
         {state === 'ok' && (
           <div style={{ paddingTop: 20 }}>
-            {done
-              ? <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', borderRadius: 10, padding: '11px 14px', marginBottom: 18 }}><span style={{ color: 'var(--positive)', fontWeight: 700 }}>✓</span><span style={{ fontSize: 13, fontWeight: 600, color: 'var(--positive)' }}>{done}</span></div>
-              : <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 18 }}>Διάλεξε από τι θέλεις να απεγγραφείς. Τα λειτουργικά emails (υπενθυμίσεις, καταστάσεις) δεν επηρεάζονται.</p>}
+            {failed
+              ? <div role="alert" style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.inner, padding: '12px 16px', marginBottom: 16 }}><span style={{ fontSize: 13, fontWeight: 600, color: 'var(--negative)', lineHeight: 1.6 }}>{failed}</span></div>
+              : done
+              ? <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', borderRadius: 10, padding: '11px 14px', marginBottom: 16 }}><span style={{ color: 'var(--positive)', fontWeight: 700 }}>✓</span><span style={{ fontSize: 13, fontWeight: 600, color: 'var(--positive)' }}>{done}</span></div>
+              : <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 16 }}>Διάλεξε από τι θέλεις να απεγγραφείς. Τα λειτουργικά emails (υπενθυμίσεις, καταστάσεις) δεν επηρεάζονται.</p>}
             <div style={{ display: 'grid', gap: 10 }}>
               {product && <button style={btn(true)} disabled={busy} onClick={() => unsubscribe('product')}>Απεγγραφή από προϊοντικά νέα</button>}
               {market && <button style={btn(true)} disabled={busy} onClick={() => unsubscribe('market')}>Απεγγραφή από δεδομένα αγοράς</button>}

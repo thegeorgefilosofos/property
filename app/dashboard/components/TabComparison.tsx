@@ -90,8 +90,25 @@ const TYPE_LABELS: Record<string, string> = {
  * ΓΡΑΦΕΤΑΙ ΜΙΑ ΦΟΡΑ: το ίδιο νούμερο χρειάζεται και το ελάχιστο πλάτος του
  * πίνακα και ο υπολογισμός των ίσων στηλών. Δύο αντίγραφα σημαίνει πίνακας που
  * μια μέρα θα ζητά περισσότερο πλάτος απ' όσο μοιράζει.
+ *
+ * ΚΑΙ ΔΕΝ ΕΙΝΑΙ ΤΟ ΙΔΙΟ ΣΕ ΚΙΝΗΤΟ.
+ *
+ * ΜΕΤΡΗΜΕΝΟ ΣΕ Galaxy A, 360×800. Η κάρτα έχει 336 εικονοστοιχεία. Με 200 στις
+ * ετικέτες και 150 σε κάθε ακίνητο, ο πίνακας ζητά 500 και φαίνονται τα 336:
+ * ολόκληρη η στήλη των ετικετών και 136 από το ΠΡΩΤΟ ακίνητο. Το δεύτερο δεν
+ * φαίνεται καθόλου, ούτε μια λωρίδα του, οπότε ο χρήστης δεν έχει κανέναν λόγο
+ * να υποψιαστεί ότι ο πίνακας συνεχίζεται δεξιά. Μια οθόνη σύγκρισης που
+ * δείχνει ένα ακίνητο δεν είναι σύγκριση.
+ *
+ * ΤΟ ΙΔΙΟ ΤΟ ΚΟΨΙΜΟ ΕΙΝΑΙ Η ΕΝΔΕΙΞΗ. Με 132 στις ετικέτες ο πίνακας ζητά 432
+ * και στα 336 χωρούν οι ετικέτες, ΟΛΟΚΛΗΡΟ το πρώτο ακίνητο και 54 από το
+ * δεύτερο: μισή στήλη κομμένη στην άκρη, που λέει «υπάρχει και συνέχεια» χωρίς
+ * βελάκι, χωρίς σκιά και χωρίς κείμενο. Οι ετικέτες στα 132 τυλίγονται σε δύο
+ * σειρές («Τιμή ανά τετραγωνικό»), που είναι ό,τι κάνει κάθε κείμενο σε στενή
+ * οθόνη· η στήλη του ακινήτου δεν χάνει ούτε εικονοστοιχείο. Σε ταμπλέτα και σε
+ * υπολογιστή δεν αλλάζει τίποτα.
  */
-const LABEL_COL = 200;
+const CMP_LABEL = 'var(--cmp-label)';
 
 export default function TabComparison({ properties, userId }: Props) {
   const supabase = createClient();
@@ -479,12 +496,12 @@ export default function TabComparison({ properties, userId }: Props) {
               επιτρέπεται να έχουν άλλο πλάτος η καθεμία — το μάτι διαβάζει τη
               διαφορά ως σημασία. Με σταθερή διάταξη και ρητά πλάτη, οι στήλες
               των ακινήτων είναι ίσες εξ ορισμού, όσα κι αν είναι. */}
-          <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', minWidth: LABEL_COL + rowsData.length * 150 }}>
+          <table className="cmp-table" style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', minWidth: `calc(${CMP_LABEL} + ${rowsData.length * 150}px)` }}>
             <thead>
               <tr>
-                <th style={{ ...th, width: LABEL_COL, position: 'sticky', left: 0, zIndex: 1, background: 'var(--bg-surface)' }} />
+                <th style={{ ...th, width: CMP_LABEL, position: 'sticky', left: 0, zIndex: 1, background: 'var(--bg-surface)' }} />
                 {rowsData.map(r => (
-                  <th key={r.p.id} style={{ ...th, width: `calc((100% - ${LABEL_COL}px) / ${rowsData.length})`, textAlign: 'right' }}>
+                  <th key={r.p.id} style={{ ...th, width: `calc((100% - ${CMP_LABEL}) / ${rowsData.length})`, textAlign: 'right' }}>
                     <div title={r.p.name} style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'none', letterSpacing: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{r.p.name}</div>
                     {/* Ταυτότητα, όχι μετρική: εμβαδόν, αξία και τιμή/τ.μ. λένε ποιο
                         ακίνητο κοιτάζεις. Δεν έχουν «καλύτερη τιμή», γι' αυτό δεν
@@ -534,7 +551,13 @@ export default function TabComparison({ properties, userId }: Props) {
                 const best = bestId(m);
                 return (
                   <tr key={i}>
-                    <td title={m.tip} style={{ ...td, textAlign: 'left', fontFamily: T.font.sans, color: 'var(--text-secondary)', fontWeight: 500, fontSize: 12, position: 'sticky', left: 0, background: 'var(--bg-surface)', zIndex: 1 }}>{m.label}</td>
+                    {/* Η ΕΤΙΚΕΤΑ ΤΥΛΙΓΕΤΑΙ, Ο ΑΡΙΘΜΟΣ ΟΧΙ. Το `td` απαγορεύει την
+                        αναδίπλωση, γιατί «1.234,56 €» σπασμένο στα δύο δεν
+                        διαβάζεται. Η ετικέτα είναι λέξεις: στα 132 του κινητού
+                        το «Τιμή ανά τετραγωνικό» θέλει δύο σειρές και, χωρίς
+                        άδεια να τυλίξει, θα έβγαινε έξω από τη στήλη της πάνω
+                        στους αριθμούς του πρώτου ακινήτου. */}
+                    <td title={m.tip} style={{ ...td, textAlign: 'left', fontFamily: T.font.sans, color: 'var(--text-secondary)', fontWeight: 500, fontSize: 12, whiteSpace: 'normal', lineHeight: 1.35, position: 'sticky', left: 0, background: 'var(--bg-surface)', zIndex: 1 }}>{m.label}</td>
                     {rowsData.map(r => {
                       const v = m.get(r);
                       const isBest = best === r.p.id;

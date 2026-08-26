@@ -620,7 +620,21 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                   boxShadow: active ? '0 0 0 4px var(--accent-soft)' : 'none',
                   fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, transition: 'background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s, opacity 0.2s',
                 }}>{done ? '✓' : i + 1}</div>
-                <div style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 500, color: on ? 'var(--text-primary)' : 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{label}</div>
+                {/* ═══ ΣΕ ΣΤΕΝΗ ΟΘΟΝΗ ΓΡΑΦΕΤΑΙ ΜΟΝΟ ΤΟ ΒΗΜΑ ΠΟΥ ΠΑΤΑΣ ═══════════
+                    Τα πέντε ονόματα μαζί θέλουν 293 εικονοστοιχεία και το
+                    παράθυρο δίνει 278: μετρημένο σε Galaxy A, 360×800, η
+                    «Σύνοψη» έβγαινε δεκαπέντε έξω από τη δεξιά άκρη.
+
+                    ΓΙΑΤΙ ΟΧΙ ΜΙΚΡΟΤΕΡΑ ΓΡΑΜΜΑΤΑ: στα 10 χωρούν όλα, αλλά τα 11
+                    είναι το κάτω όριο αναγνωσιμότητας που τηρεί η εφαρμογή
+                    παντού και το ελέγχει ο έλεγχος διάταξης. Μια εξαίρεση εδώ
+                    θα ήταν εξαίρεση παντού.
+
+                    ΤΙ ΜΕΝΕΙ ΟΡΑΤΟ: οι πέντε κύκλοι με τους αριθμούς τους, τα
+                    τικ στα περασμένα και το όνομα του βήματος που πατάς. Δηλαδή
+                    πού είσαι, πόσα έκανες και πόσα μένουν. Τα ονόματα των
+                    επόμενων βημάτων εμφανίζονται καθώς φτάνεις σε αυτά. */}
+                <div className={`wiz-step${active ? ' wiz-step-on' : ''}`} style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 500, color: on ? 'var(--text-primary)' : 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{label}</div>
               </div>
               {i < STEPS.length - 1 && <div style={{ flex: 1, height: 2, background: i < step ? 'var(--accent)' : 'var(--border-subtle)', margin: '0 8px', marginBottom: 22, transition: 'background 0.2s' }} />}
             </div>

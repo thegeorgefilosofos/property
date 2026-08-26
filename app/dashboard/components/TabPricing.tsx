@@ -630,7 +630,14 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                         </div>
                         <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>{g.nights} {g.nights === 1 ? 'νύχτα' : 'νύχτες'} · εποχή {SEASON_LABELS[g.season]} · πρόταση πλήρωσης <strong className="po-fig" data-tone="accent" style={{ fontFamily: T.font.num }}>{fe(g.fillPrice)}</strong>/νύχτα</div>
                       </div>
-                      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                      {/* ΤΑ ΔΥΟ ΚΟΥΜΠΙΑ ΤΥΛΙΓΟΝΤΑΙ ΜΕΤΑΞΥ ΤΟΥΣ. Με `flexShrink: 0`
+                          και χωρίς άδεια αναδίπλωσης, το ζευγάρι ήταν ένα
+                          αδιαίρετο κομμάτι 317 εικονοστοιχείων: μετρημένο σε
+                          Galaxy A, 360×800, η κάρτα δίνει 306 και το «Υπενθύμιση»
+                          έβγαινε έντεκα έξω από τη δεξιά της άκρη. Ο γονέας
+                          τυλίγει ήδη, αλλά έριχνε ολόκληρο το ζευγάρι σε δική
+                          του σειρά, όπου πάλι δεν χωρούσε. */}
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         <Btn variant="secondary" onClick={() => copyOffer(g)}>Αντιγραφή προσφοράς</Btn>
                         <Btn variant="secondary" onClick={() => toggleGap(g)}>{gapTitles.has(gapTitle(g)) ? 'Προστέθηκε στο Ημερολόγιο' : 'Υπενθύμιση'}</Btn>
                       </div>
@@ -657,7 +664,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                 const byDay = new Map(days.map(d => [Number(d.date.slice(8, 10)), d]));
                 const daysInMonth = new Date(Date.UTC(yy, mm, 0)).getUTCDate();
                 return (
-                  <div key={key} style={{ flex: '1 1 300px', minWidth: 280, background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.card, padding: 16, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
+                  <div key={key} className="cal-month" style={{ flex: '1 1 300px', minWidth: 280, background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.card, padding: 16, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
                     <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>{MONTHS_NOM[mm - 1]} {yy}</div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
                       {WEEKDAYS.map(w => <div key={w} style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', paddingBottom: 4 }}>{w}</div>)}
@@ -672,7 +679,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                         return (
                           <button key={dayNum} onClick={() => setSel(d)} title={[d.holidayName, d.booked ? 'Ήδη κλεισμένη' : `Προτεινόμενη τιμή ${fe(d.price)}`].filter(Boolean).join(' · ')}
                             aria-label={`${fd(d.date)}: ${d.booked ? 'ήδη κλεισμένη' : `προτεινόμενη τιμή ${fe(d.price)}`}${d.holidayName ? `, ${d.holidayName}` : ''}`}
-                            aria-pressed={sel?.date === d.date} style={{
+                            aria-pressed={sel?.date === d.date} className="cal-day" style={{
                             position: 'relative', aspectRatio: '1', borderRadius: 8, cursor: 'pointer', overflow: 'hidden',
                             border: sel?.date === d.date ? '2px solid var(--accent)' : top ? '1px solid var(--accent)' : '1px solid var(--border-subtle)',
                             background: d.booked ? 'var(--bg-base)' : 'var(--surface-raised)', padding: 0,

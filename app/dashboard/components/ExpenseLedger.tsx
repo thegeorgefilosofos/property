@@ -32,7 +32,7 @@ import * as expenseStore from '@/lib/data/expenses'
 import * as billStore from '@/lib/data/bills'
 import ExpenseCompare from './ExpenseCompare';
 import type { Spend } from '@/lib/expenses/compare';
-import { T, TT, fe, Btn, Card, EmptyState, Modal, Skeleton, fixedCols, ABSENT_DATE } from '@/components/Theme';
+import { T, TT, PageTitle, fe, Btn, Card, EmptyState, Modal, Skeleton, fixedCols, ABSENT_DATE } from '@/components/Theme';
 import { notify, notifyError } from '@/components/toastBus';
 import { confirmDialog } from '@/components/ConfirmDialog';
 import { saved } from '@/components/dbWrite';
@@ -322,6 +322,12 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
           }
         }
         .exp-row:focus-within { border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+        /* ΤΟ ΚΕΝΟ ΕΦΥΓΕ ΑΠΟ ΤΟ ΕΝΣΩΜΑΤΩΜΕΝΟ ΣΤΥΛ ΚΑΙ ΗΡΘΕ ΕΔΩ. Οσο γραφόταν
+           «gap: 10» πάνω στο στοιχείο, ο κανόνας του κινητού που το κατεβάζει
+           στα 4 δεν είχε καμία ελπίδα: το ενσωματωμένο στυλ κερδίζει κάθε
+           κανόνα φύλλου. Τα τρία κουμπιά μοιράζονταν 216 αντί για 228 και το
+           «Επεξεργασία», που θέλει 78, έπαιρνε 72. */
+        .exp-actions { gap: 10px; }
         .exp-act { opacity: 0; transition: opacity .15s; }
         .exp-row:hover .exp-act, .exp-row:focus-within .exp-act { opacity: 1; }
         @media (hover: none) { .exp-act { opacity: 1; } }
@@ -378,7 +384,7 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
              έμεναν και τα τρία κουμπιά ξαναξεχείλιζαν κατά 31 pixel. */
           .exp-actions .po-btn {
             width: 100%; min-width: 0;
-            padding-left: 6px !important; padding-right: 6px !important;
+            padding-left: 3px !important; padding-right: 3px !important;
             border-color: transparent !important; background: transparent !important;
             font-weight: 600;
           }
@@ -389,17 +395,36 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
              ίδιο πράγμα χωρίς να πάρει ούτε ένα pixel. */
           .exp-actions .po-btn[data-variant="secondary"] { color: var(--accent) !important; }
         }
+        /* ═══ ΣΤΑ 320 ΤΟ «ΕΠΕΞΕΡΓΑΣΙΑ» ΘΕΛΕΙ ΕΝΑ ΣΗΜΕΙΟ ΛΙΓΟΤΕΡΟ ══════════════
+           ΜΕΤΡΗΜΕΝΟ: η γραμμή δίνει 236 στα τρία κουμπιά, δηλαδή 76 στο καθένα
+           μείον τέσσερα κενά· η λέξη «Επεξεργασία» στα 12 θέλει 74 και με το
+           γέμισμα 80. Λείπουν τέσσερα εικονοστοιχεία και η λέξη κοβόταν.
+
+           Στα 11 θέλει 70 και με το γέμισμα 76. Μαζεύονται και τα δύο κενά που
+           του τα έτρωγαν: το διάστημα ανάμεσα στα κουμπιά από 4 σε 2 και το
+           περιθώριο της ίδιας της γραμμής από 14 σε 9. Η γραμμή δίνει τότε 246
+           και το κάθε κουμπί 81, δηλαδή πέντε παραπάνω από όσα ζητά.
+           Τα 11 είναι το κάτω όριο που
+           τηρεί η εφαρμογή παντού, όχι εξαίρεση γι' αυτή τη γραμμή· ο κανόνας
+           ισχύει μόνο κάτω από τα 360, δηλαδή στα τηλέφωνα όπου πράγματι δεν
+           χωράει· σε Galaxy A των 360 τα κουμπιά μένουν στα 12. */
+        @media (max-width: 360px) {
+          .exp-row { padding-left: 9px; padding-right: 9px; }
+          .exp-actions { gap: 2px; }
+          .exp-actions .po-btn { font-size: 11px !important; }
+        }
       `}</style>
 
       {/* ── Κεφαλίδα ───────────────────────────────────────────────────────────
-          Ο τίτλος ήταν 28 και το υπότιτλο 12,5: μεγέθη γραμμένα με το χέρι, εκτός
-          κλίμακας. Η οθόνη δεν έχει ανάγκη από αφίσα, έχει ανάγκη από ιεραρχία.
-          Πλέον όλα τα μεγέθη έρχονται από το TT, που είναι η μία πηγή αλήθειας
-          του συστήματος. Ό,τι δεν είναι στην κλίμακα, δεν μπαίνει στην οθόνη. */}
-      <div style={{ marginBottom: T.sp.lg }}>
-        <h1 style={{ ...TT.h1, margin: 0 }}>Δαπάνες</h1>
-        <div style={{ ...TT.caption, marginTop: 4 }}>Κάθε ευρώ που φεύγει, σε μία λίστα.</div>
-      </div>
+          ΗΤΑΝ ΧΕΙΡΟΠΟΙΗΤΗ, ΚΑΙ ΗΤΑΝ Η ΜΟΝΗ. Δεκαέξι καρτέλες χρησιμοποιούν το
+          `PageTitle`· αυτή έγραφε δικό της `<h1>` με `TT.h1`. Το αποτέλεσμα
+          μετρήθηκε σε τηλέφωνο: ύψος κεφαλαίου 15 εδώ, 20,5 στις Εκκρεμότητες.
+          Δύο μεγέθη για το ίδιο πράγμα, στην ίδια εφαρμογή, δύο πατήματα μακριά.
+
+          Ο λόγος που είχε γραφτεί μικρότερος ήταν σωστός («η οθόνη δεν έχει
+          ανάγκη από αφίσα») και τηρείται πλέον ΓΙΑ ΟΛΕΣ: το `PageTitle` πέφτει
+          μόνο του στα 22 κάτω από τα 640. Μία απόφαση, ένα σημείο. */}
+      <PageTitle title="Δαπάνες" sub="Κάθε ευρώ που φεύγει, σε μία λίστα." />
 
       {/* Πρώτα η απάντηση στο «ξόδεψα περισσότερα;», μετά η λίστα. Ο χρήστης δεν
           ανοίγει τις Δαπάνες για να διαβάσει εγγραφές — ανοίγει για να καταλάβει. */}
@@ -413,11 +438,19 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
           430 έβγαιναν 2+1, με τον τρίτο μόνο του και τρύπα δίπλα του. Το κοινό
           `fixedCols` διαλέγει πλήθος στηλών που ΔΙΑΙΡΕΙ το πλήθος των
           πλακιδίων, οπότε καμία σειρά δεν μένει μισή. */}
-      <div {...fixedCols(3, T.sp.lg, 'start')} style={{
+      {/* ΤΡΙΑ ΝΟΥΜΕΡΑ, ΤΡΕΙΣ ΣΕΙΡΕΣ ΣΤΟ ΤΗΛΕΦΩΝΟ. Το `.fixed-cols` πέφτει σε μία
+          στήλη κάτω από τα 420 ως δίχτυ ασφαλείας για φόρμες με μακριές
+          ετικέτες. Εδώ όμως τα παιδιά είναι «αυτόν τον μήνα 45,00 €»: σε Galaxy
+          A έπιαναν 360 εικονοστοιχεία για τρεις αριθμούς.
+
+          Με το ιδίωμα των δεικτών γίνονται 2+1, με το τρίτο απλωμένο σε όλο το
+          πλάτος: δύο σειρές αντί για τρεις, χωρίς ορφανό και χωρίς τρύπα. */}
+      <div {...fixedCols(3, T.sp.lg, 'start', 'kpi-row')} style={{
         ...fixedCols(3, T.sp.lg, 'start').style,
         padding: `${T.sp.md}px 0 ${T.sp.lg}px`,
         borderBottom: '1px solid var(--border-subtle)', marginBottom: T.sp.lg,
-      }}>
+        '--kpi-lg': 3, '--kpi-md': 3, '--kpi-sm': 2,
+      } as React.CSSProperties}>
         <Figure label="αυτόν τον μήνα" value={loading ? null : fe(monthTotal)} />
         <Figure label={unpaid.length === 1 ? 'απλήρωτο' : 'απλήρωτα'} value={loading ? null : fe(unpaidTotal)}
           sub={unpaid.length ? `${unpaid.length} ${unpaid.length === 1 ? 'γραμμή' : 'γραμμές'}` : undefined} />
@@ -716,7 +749,7 @@ function Row({ e, busy, onPaid, onEdit, onDelete }: { e: LedgerEntry; busy: bool
           </span>
         )}
       </span>
-      <span className="exp-actions" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <span className="exp-actions" style={{ display: 'flex', alignItems: 'center' }}>
         {/* ΜΟΝΟ ΟΠΟΥ ΥΠΑΡΧΕΙ ΚΑΤΙ ΝΑ ΑΛΛΑΞΕΙ. Η γραμμή του απλήρωτου
             λογαριασμού δεν είναι δαπάνη ακόμη: ζει σε άλλον πίνακα, με άλλα
             πεδία. Κουμπί που θα άνοιγε φόρμα δαπάνης πάνω της θα υποσχόταν

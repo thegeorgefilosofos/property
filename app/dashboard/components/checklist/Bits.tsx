@@ -44,7 +44,21 @@ export function relDays(n: number) { const a = Math.abs(n); return a === 0 ? 'σ
 
 // Premium, καθαρό φίλτρο-dropdown: portal (δεν κόβεται από overflow), σαφής επιλεγμένη
 // κατάσταση, ήρεμα χρώματα. Αντικαθιστά τα «φθηνά» native selects.
-export function FilterSelect({ value, onChange, options, minWidth = 168 }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[]; minWidth?: number }) {
+/**
+ * ΟΤΑΝ ΔΕΝ ΦΙΛΤΡΑΡΕΙ ΤΙΠΟΤΑ, ΤΟ ΚΟΥΜΠΙ ΛΕΕΙ ΤΟ ΟΝΟΜΑ ΤΟΥ ΠΕΔΙΟΥ.
+ *
+ * Το «Όλες οι προτεραιότητες» είναι σωστή διατύπωση για ΕΠΙΛΟΓΗ μέσα στο μενού:
+ * εκεί στέκει δίπλα στην «Κρίσιμη» και στην «Υψηλή» και λέει ποια από τις
+ * τέσσερις διάλεξες. Πάνω στο κλειστό κουμπί λέει «δεν έχω φιλτράρει», δηλαδή
+ * τίποτα, με δεκαέξι γράμματα παραπάνω.
+ *
+ * ΚΑΙ ΔΕΝ ΧΩΡΑΕΙ. ΜΕΤΡΗΜΕΝΟ ΣΕ Galaxy A, 360×800, με τη γραμμή φίλτρων σε δύο
+ * στήλες: το κουμπί δίνει 116 στο κείμενο και το «Όλες οι προτεραιότητες» θέλει
+ * 160, το «Όλες οι καταστάσεις» 138. Και τα δύο έβγαιναν «Όλες οι κατα…»,
+ * δηλαδή δύο κουμπιά που δείχνουν το ίδιο πράγμα και δεν λένε κανένα.
+ * Το «Προτεραιότητα» θέλει 93 και γράφεται ολόκληρο.
+ */
+export function FilterSelect({ value, onChange, options, minWidth = 168, idle }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[]; minWidth?: number; idle?: string }) {
   const [open, setOpen] = useState(false)
   const btnRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -73,7 +87,7 @@ export function FilterSelect({ value, onChange, options, minWidth = 168 }: { val
     <>
       <button ref={btnRef} type="button" onClick={() => setOpen(o => !o)}
         style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px 9px 14px', minWidth, borderRadius: T.radius.pill, border: '1px solid ' + (open || active ? 'var(--accent)' : 'var(--border-subtle)'), background: active ? 'var(--accent-soft)' : 'var(--bg-surface)', color: active ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 13, fontWeight: active ? 600 : 500, cursor: 'pointer', fontFamily: T.font.sans, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s', whiteSpace: 'nowrap' }}>
-        <span style={{ flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis' }}>{current.label}</span>
+        <span style={{ flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis' }}>{!active && idle ? idle : current.label}</span>
         <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0, opacity: 0.7 }}><path d="M6 9l6 6 6-6"/></svg>
       </button>
       {open && createPortal(

@@ -709,7 +709,21 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
         </div>
       )}
 
-      {items.length > 0 && <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+      {/* ═══ ΣΕ ΚΙΝΗΤΟ Η ΓΡΑΜΜΗ ΤΩΝ ΦΙΛΤΡΩΝ ΓΙΝΕΤΑΙ ΠΛΕΓΜΑ ══════════════════════
+          ΜΕΤΡΗΜΕΝΟ ΣΕ Galaxy A, 360×800. Έξι χειριστήρια με ελάχιστα πλάτη
+          240, 172, 178 και τρία «όσο θέλει το κείμενό μου» δεν χωρούν δύο σε
+          σειρά στα 336 της κάρτας, οπότε το `flex-wrap` τα βάζει ένα ανά
+          σειρά: έξι σειρές, καθεμία σε ΑΛΛΟ πλάτος, με τη δεξιά άκρη να
+          κάνει σκάλα. Δεν σπάει τίποτα, απλώς φαίνεται σαν να μην το είδε
+          κανείς.
+
+          ΤΟ ΠΛΕΓΜΑ ΔΙΝΕΙ ΜΙΑ ΑΚΡΗ. Δύο ίσες στήλες, η αναζήτηση σε ολόκληρο
+          πλάτος από πάνω επειδή είναι το ένα πράγμα που θέλει χώρο για να
+          γραφτεί, τα υπόλοιπα ανά δύο. Τα ελάχιστα πλάτη μηδενίζονται εδώ:
+          κρατούν την υπόδειξη ολόκληρη σε φαρδιά οθόνη, αλλά σε 164
+          εικονοστοιχεία στήλης η υπόδειξη κόβεται με αποσιωπητικά, που το
+          ίδιο το χειριστήριο ήδη ξέρει να κάνει. */}
+      {items.length > 0 && <div className="filter-bar" style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         {/* ΤΟ ΕΛΑΧΙΣΤΟ ΠΛΑΤΟΣ ΒΓΑΙΝΕΙ ΑΠΟ ΤΗΝ ΥΠΟΔΕΙΞΗ, ΟΧΙ ΑΠΟ ΣΤΡΟΓΓΥΛΟ ΑΡΙΘΜΟ.
             Στα 180 το πεδίο χωρούσε δίπλα στα φίλτρα σε ορισμένα πλάτη και η
             υπόδειξη κοβόταν στη μέση: μετρημένο στα 430, ήθελε 209 και είχε 176.
@@ -719,9 +733,9 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Εργασία, ετικέτα ή επαφή" aria-label="Αναζήτηση εκκρεμοτήτων" style={iStyle} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-default)')} />
           {search && <button type="button" onClick={() => setSearch('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18 }}><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>}
         </div>
-        <FilterSelect value={filterStatus} onChange={v => setFilterStatus(v as FilterStatus)} minWidth={172}
+        <FilterSelect value={filterStatus} onChange={v => setFilterStatus(v as FilterStatus)} minWidth={172} idle="Κατάσταση"
           options={[{ value: 'all', label: 'Όλες οι καταστάσεις' }, ...STATUSES.map(s => ({ value: s.value, label: s.label })), { value: 'overdue', label: 'Ληξιπρόθεσμα' }]} />
-        <FilterSelect value={filterPri} onChange={setFilterPri} minWidth={178}
+        <FilterSelect value={filterPri} onChange={setFilterPri} minWidth={178} idle="Προτεραιότητα"
           options={[{ value: 'all', label: 'Όλες οι προτεραιότητες' }, ...PRIORITIES.map(p => ({ value: p.value, label: p.label }))]} />
         {/* ΤΟ «ΟΛΟΚΛΗΡΩΜΕΝΑ» ΗΤΑΝ ΔΕΥΤΕΡΟ ΦΙΛΤΡΟ ΓΙΑ ΤΗΝ ΙΔΙΑ ΣΤΗΛΗ, ΚΑΙ
             ΜΠΟΡΟΥΣΑΝ ΝΑ ΔΙΑΦΩΝΗΣΟΥΝ. Το φίλτρο κατάστασης έχει ήδη
@@ -736,7 +750,12 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
             {selectMode ? 'Τέλος επιλογής' : 'Επιλογή'}
           </button>
         )}
-        <div style={{ display: 'flex', gap: 2, padding: '3px', background: 'var(--bg-surface)', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)' }}>
+        {/* Η ΟΜΑΔΑ ΤΩΝ ΔΥΟ ΔΙΑΤΑΞΕΩΝ ΠΙΑΝΕΙ ΟΛΟ ΤΟ ΠΛΑΤΟΣ ΣΕ ΚΙΝΗΤΟ. Οι δύο
+            ετικέτες θέλουν 187 μαζί και το κελί του πλέγματος δίνει 164:
+            μετρημένο σε Galaxy A, το «Κατά προθεσμία» κοβόταν στη μέση μέσα
+            στο ίδιο του το κουμπί. Με μία σειρά δική της, οι δύο διατάξεις
+            μοιράζονται τα 340 και γράφονται ολόκληρες. */}
+        <div className="seg-two" style={{ display: 'flex', gap: 2, padding: '3px', background: 'var(--bg-surface)', borderRadius: T.radius.btn, border: '1px solid var(--border-subtle)' }}>
           {/* ΔΥΟ ΔΙΑΤΑΞΕΙΣ, ΟΧΙ ΤΡΕΙΣ. Ο «Πίνακας» ήταν kanban: τέσσερις στήλες
               κατάστασης, με κάρτες που μετακινούνται. Για έξι εκκρεμότητες ενός
               διαμερίσματος είναι εργαλείο ομάδας λογισμικού, όχι ιδιοκτήτη — και

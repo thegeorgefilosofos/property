@@ -225,16 +225,33 @@ function BarRow({ label, value, max, valueLabel, tone = 'neutral', hint }: { lab
   const pct = max > 0 ? Math.max(2, Math.min(100, (value / max) * 100)) : 0;
   const bg = tone === 'accent' ? 'var(--accent)' : tone === 'muted' ? 'var(--text-tertiary)' : 'var(--border-default)';
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '5px 0' }} title={hint}>
-      {/* ΤΟ ΟΝΟΜΑ ΤΗΣ ΓΡΑΜΜΗΣ ΔΕΝ ΚΟΒΕΤΑΙ. «Μακροχρόνια στην ίδια περιοχή» γινόταν
-          «Μακροχρόνια στην ίδια π…», δηλαδή ο χρήστης δεν μάθαινε με τι
-          συγκρίνεται. Δύο λέξεις σε δεύτερη σειρά κοστίζουν δεκαέξι
-          εικονοστοιχεία ύψους· η μισή πρόταση κοστίζει το νόημα. */}
-      <span style={{ width: 168, flexShrink: 0, fontSize: 12, color: 'var(--text-secondary)', fontFamily: SANS, lineHeight: 1.35 }}>{label}</span>
-      <div style={{ flex: 1, height: 8, borderRadius: 6, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
+    /* ═══ ΤΡΕΙΣ ΣΤΗΛΕΣ ΣΕ ΦΑΡΔΙΑ ΟΘΟΝΗ, ΔΥΟ ΣΕΙΡΕΣ ΣΕ ΣΤΕΝΗ ══════════════════
+       Ονομα 168, ράβδος, τιμή 92 και δύο κενά των 12: μαζί 284 ΠΡΙΝ πάρει η
+       ράβδος ούτε ένα εικονοστοιχείο. ΜΕΤΡΗΜΕΝΟ ΣΕ 320 (One UI με μεγάλη
+       γραμματοσειρά), η κάρτα δίνει 258, οπότε κάθε μία από τις τέσσερις
+       γραμμές σύγκρισης έβγαινε 26 έξω από την κάρτα και το ποσοστό, που είναι
+       ΟΛΟ το νόημα της γραμμής, έπεφτε πάνω στο περίγραμμα.
+
+       ΤΙ ΑΛΛΑΖΕΙ ΣΕ ΣΤΕΝΗ ΟΘΟΝΗ: το όνομα και το ποσοστό κρατούν τη σειρά
+       τους, αριστερά και δεξιά· η ράβδος κατεβαίνει από κάτω σε ΟΛΟ το
+       πλάτος. Κερδίζει και η ράβδος: από 64 εικονοστοιχεία που θα της έμεναν,
+       πηγαίνει στα 258. Το πλέγμα το κάνει το globals.css· εδώ μένει η δομή.
+
+       Ο ΛΟΓΟΣ ΠΟΥ ΤΑ ΠΛΑΤΗ ΕΙΝΑΙ ΣΤΑΘΕΡΑ ΚΑΙ ΟΧΙ `auto`: κάθε γραμμή είναι δικό
+       της πλέγμα, οπότε μια στήλη `auto` θα μετρούσε ΜΟΝΟ το δικό της
+       περιεχόμενο. Το «5,40%» και το «10,00%» θα έπαιρναν άλλο πλάτος και οι
+       τέσσερις τιμές δεν θα στοίχιζαν μεταξύ τους.
+
+       ΤΟ ΟΝΟΜΑ ΤΗΣ ΓΡΑΜΜΗΣ ΔΕΝ ΚΟΒΕΤΑΙ. «Μακροχρόνια στην ίδια περιοχή» γινόταν
+       «Μακροχρόνια στην ίδια π…», δηλαδή ο χρήστης δεν μάθαινε με τι
+       συγκρίνεται. Δύο λέξεις σε δεύτερη σειρά κοστίζουν δεκαέξι
+       εικονοστοιχεία ύψους· η μισή πρόταση κοστίζει το νόημα. */
+    <div className="bar-row" style={{ display: 'grid', alignItems: 'center', columnGap: 12, rowGap: 6, padding: '5px 0' }} title={hint}>
+      <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: SANS, lineHeight: 1.35 }}>{label}</span>
+      <div style={{ height: 8, borderRadius: 6, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
         <div style={{ width: `${pct}%`, height: '100%', borderRadius: 6, background: bg, transition: 'width 0.4s ease' }} />
       </div>
-      <span style={{ width: 92, flexShrink: 0, textAlign: 'right', fontSize: 12, fontWeight: 600, color: tone === 'accent' ? 'var(--accent)' : 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', fontFamily: SANS }}>{valueLabel}</span>
+      <span style={{ textAlign: 'right', fontSize: 12, fontWeight: 600, color: tone === 'accent' ? 'var(--accent)' : 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', fontFamily: SANS }}>{valueLabel}</span>
     </div>
   );
 }
@@ -1386,7 +1403,12 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         {/* 3) Σύγκριση με εναλλακτικές */}
         <Section icon={<Layers size={15} />} title="Σύγκριση με εναλλακτικές επενδύσεις" sub={`Ίδιο ποσό (${fe(nVal)}) με τις πραγματικές αποδόσεις ${cmpYears}ετίας`} info={G.total_return}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* Η ΟΜΑΔΑ ΤΥΛΙΓΕΤΑΙ ΚΙ ΑΥΤΗ, ΟΧΙ ΜΟΝΟ Ο ΓΟΝΕΑΣ ΤΗΣ. Ετικέτα 148,
+                πεδίο 120 και σήμα ΤτΕ 76 δένονταν σε ένα αδιαίρετο κομμάτι 272:
+                μετρημένο σε 320, η κάρτα δίνει 258 και το σήμα έβγαινε
+                δεκατέσσερα έξω. Ο γονέας τύλιγε ήδη, αλλά τύλιγε ολόκληρη την
+                ομάδα σε δική της σειρά, όπου πάλι δεν χωρούσε. */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, rowGap: 6, flexWrap: 'wrap' }}>
               <label htmlFor={apprId} style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: SANS }}>Ετήσια ανατίμηση ακινήτου</label>
               {/* ΤΑ 90 ΔΕΝ ΧΩΡΟΥΣΑΝ ΤΗΝ ΤΙΜΗ. Το επίθεμα «%» παίρνει 33, το
                   γέμισμα του πεδίου 28 και το περίγραμμα 2: μένουν 22 για τον
@@ -1394,9 +1416,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                   στα οκτώ πλάτη. Τα 120 αφήνουν 52, δηλαδή χωρούν και το
                   «10,5» με περιθώριο. */}
               <div style={{ width: 120 }}><NumberInput id={apprId} value={apprShown} onChange={v => { setAppreciation(v); setApprTouched(true); }} suffix="%" step={0.5} max={20} /></div>
-              {apprTouched
-                ? <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: SANS, border: '1px solid var(--border-default)', borderRadius: 8, padding: '3px 7px' }}>δική σου υπόθεση</span>
-                : <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: SANS, border: '1px solid var(--border-default)', borderRadius: 8, padding: '3px 7px' }}>δείκτης ΤτΕ</span>}
+              {/* Το ίδιο σήμα με δύο λεκτικά· το στυλ γραφόταν δύο φορές. */}
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: SANS, border: '1px solid var(--border-default)', borderRadius: 8, padding: '3px 7px' }}>{apprTouched ? 'δική σου υπόθεση' : 'δείκτης ΤτΕ'}</span>
               {apprTouched && (
                 <button type="button" onClick={() => { setAppreciation(''); setApprTouched(false); }} className="acc-toggle"
                   style={{ height: 26, padding: '0 10px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, fontFamily: SANS, fontWeight: 600, cursor: 'pointer' }}>
