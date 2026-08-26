@@ -606,11 +606,25 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
         // αντικείμενο. Το πλακίδιο δεν εμφανίζεται καθόλου.
         ...(avgOcc != null ? [{ label: 'Μέση πληρότητα', value: fp(avgOcc),
           sub: `${shortRows.length} ${shortRows.length === 1 ? 'βραχυχρόνια' : 'βραχυχρόνια'}` }] : []),
-        { label: 'Εκκρεμότητες', value: totalOwed > 0 ? `${totalPending} · ${fe(totalOwed)}` : String(totalPending) },
+        // ΔΥΟ ΓΕΓΟΝΟΤΑ ΔΕΝ ΧΩΡΑΝΕ ΣΕ ΕΝΑΝ ΑΡΙΘΜΟ. Το «14 · 756,00 €» είναι πλήθος
+        // ΚΑΙ ποσό κολλημένα με μια τελεία: δεκατρείς χαρακτήρες εκεί που τα
+        // διπλανά πλακίδια έχουν έντεκα. Επειδή το μέγεθος του αριθμού βγαίνει
+        // από το μακρύτερο της σειράς, αυτό το ένα πλακίδιο κατέβαζε ΚΑΙ ΤΑ
+        // ΠΕΝΤΕ από τα 18 στα 15,2 — μετρημένο σε Galaxy A, 360×800. Το πλήθος
+        // είναι ο αριθμός, το ποσό είναι η εξήγηση: ακριβώς η διάκριση που
+        // κάνουν ήδη τα «Έσοδα» και το «Καθαρό» δίπλα του.
+        { label: 'Εκκρεμότητες', value: String(totalPending),
+          sub: totalOwed > 0 ? `${eur(totalOwed)} ανοιχτά` : undefined },
       ]} />
 
       {/* Συγκεντρωτική απόδοση χαρτοφυλακίου (σταθμισμένη με την αξία) */}
-      {agg.valuedCount > 0 && (
+      {agg.valuedCount > 0 && ((() => {
+      // Ολοι οι αριθμοί της κάρτας στο ίδιο μέγεθος, όσο χωράει ο μακρύτερος.
+      // Ο λόγος είναι γραμμένος στο `KpiValue`: τέσσερα νούμερα σε τέσσερα
+      // μεγέθη διαβάζονται ως τέσσερις βαθμίδες σημασίας, ενώ είναι ισότιμα.
+      const aggWidest = Math.max(eur(agg.totalValue).length, eur(agg.totalRevenue).length,
+        fp(agg.grossYield).length, fp(agg.netYield).length);
+      return (
         <div className="card" style={{ marginTop: 12, padding: 16 }}>
           {/* ΟΤΑΝ ΜΕΣΑ ΣΤΟ ΠΟΣΟΣΤΟ ΥΠΑΡΧΕΙ ΕΚΤΙΜΗΣΗ, ΛΕΓΕΤΑΙ. Ακίνητο χωρίς καμία
               καταχωρημένη δόση μπαίνει με τον στόχο ενοικίου· η στήλη «Έσοδα
@@ -624,18 +638,19 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
               ανάμεσα στα πλακίδια και στον πίνακα των ακινήτων, μετρημένο σε
               Galaxy A. Είναι νούμερα, όχι πεδία φόρμας. */}
           <div {...fixedCols(4, 16, 'start', 'fc-xs-2')} style={{ ...fixedCols(4, 16, 'start').style, marginTop: 14 }}>
-            <PStat label="Αξία χαρτοφυλακίου" value={eur(agg.totalValue)} />
-            <PStat label="Ετήσια έσοδα" value={eur(agg.totalRevenue)} />
+            <PStat label="Αξία χαρτοφυλακίου" value={eur(agg.totalValue)} chars={aggWidest} />
+            <PStat label="Ετήσια έσοδα" value={eur(agg.totalRevenue)} chars={aggWidest} />
             {/* ΔΥΟ ΔΕΚΑΔΙΚΑ, ΟΠΩΣ ΠΑΝΤΟΥ. Εγραφαν «6,7%» με ένα δεκαδικό, ενώ
                 τρία πλακίδια πιο πάνω η μέση πληρότητα γράφει «19,50%» από τον
                 κοινό μορφοποιητή. Στην ίδια οθόνη, δύο ακρίβειες για το ίδιο
                 είδος μεγέθους: ο αναγνώστης δεν ξέρει ποια από τις δύο είναι
                 στρογγυλεμένη. Το fp() δίνει πάντα δύο. */}
-            <PStat label="Μεικτή απόδοση" value={fp(agg.grossYield)} />
-            <PStat label="Καθαρή απόδοση" value={fp(agg.netYield)} />
+            <PStat label="Μεικτή απόδοση" value={fp(agg.grossYield)} chars={aggWidest} />
+            <PStat label="Καθαρή απόδοση" value={fp(agg.netYield)} chars={aggWidest} />
           </div>
         </div>
-      )}
+      );
+      })())}
 
       {/* ═══ ΠΙΝΑΚΑΣ ΑΝΑ ΑΚΙΝΗΤΟ: ΤΟ ΟΝΟΜΑ ΜΕΝΕΙ, ΟΙ ΑΡΙΘΜΟΙ ΚΥΛΟΥΝ ══════════
           ΤΙ ΔΕΝ ΠΗΓΑΙΝΕ. Ο πίνακας έχει ελάχιστο πλάτος 720 και κυλά οριζόντια.
@@ -878,11 +893,11 @@ function Th({ label, k, sort, asc, onSort, align = 'right', pin }: { label: stri
 // και νούμερο 22, γραμμένα στο χέρι: δηλαδή το `.kpi-label` και το `.kpi-value`
 // με άλλο μέγεθος και χωρίς τίποτα από όσα έμαθαν αυτά τα δύο. Το «652.500,00 €»
 // στα 22 θέλει 150 εικονοστοιχεία και σε δύο στήλες τηλεφώνου υπάρχουν 146.
-function PStat({ label, value }: { label: string; value: string }) {
+function PStat({ label, value, chars }: { label: string; value: string; chars?: number }) {
   return (
     <div className="kpi-plain">
       <div className="kpi-label">{label}</div>
-      <KpiValue value={value} />
+      <KpiValue value={value} chars={chars} />
     </div>
   );
 }

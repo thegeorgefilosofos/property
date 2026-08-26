@@ -29,7 +29,7 @@
 
 import { expectedSeries } from './expected';
 import type { LedgerEntry } from './ledger';
-import { fe } from '../core/format';
+import { fe, fp } from '../core/format';
 
 /**
  * Κατηγορίες όπου το ποσό ΔΕΝ εξαρτάται από κατανάλωση.
@@ -107,7 +107,15 @@ export function priceChanges(
     if (previous <= 0) continue;
 
     const deltaEur = Math.round((current - previous) * 100) / 100;
-    const deltaPct = Math.round((deltaEur / previous) * 100);
+    // ΔΥΟ ΤΙΜΕΣ, ΜΙΑ ΑΛΗΘΕΙΑ. Το `deltaPct` είναι στρογγυλεμένο ακέραιο και το
+    // χρησιμοποιεί το κατώφλι: «άλλαξε τουλάχιστον τόσο τοις εκατό» είναι
+    // ερώτηση που δεν χρειάζεται δεκαδικά. Η ΠΡΟΤΑΣΗ όμως γράφεται δίπλα σε δύο
+    // ποσά με δύο δεκαδικά, οπότε ένα σκέτο «−30%» ήταν το μοναδικό νούμερο της
+    // οθόνης χωρίς υποδιαστολή. Το κείμενο παίρνει την ακριβή τιμή και ο κοινός
+    // μορφοποιητής τη στρογγυλεύει· ΔΕΝ γράφεται «−30,00%», που θα υποσχόταν
+    // ακρίβεια που δεν υπάρχει.
+    const deltaPctExact = (deltaEur / previous) * 100;
+    const deltaPct = Math.round(deltaPctExact);
     if (Math.abs(deltaEur) < MIN_ABS_EUR || Math.abs(deltaPct) < MIN_PCT) continue;
 
     const flatRate = FLAT_RATE.test(`${s.category} ${s.title} ${s.vendor ?? ''}`.toLowerCase());
@@ -117,7 +125,12 @@ export function priceChanges(
       // ΜΕΤΡΟΥΜΕΝΟΣ ΛΟΓΑΡΙΑΣΜΟΣ: λέμε ΜΟΝΟ ότι άλλαξε το ποσό και ρητά ότι
       // μπορεί να φταίει η κατανάλωση. Το «ακρίβυνε το ρεύμα» τον Ιανουάριο
       // είναι λάθος με σιγουριά.
-      : `${s.title}: ${eur(current)} αντί για ${eur(previous)} που πλήρωνες συνήθως, ${up ? '+' : '−'}${Math.abs(deltaPct)}%. Μπορεί να είναι η κατανάλωση ή η τιμή.`;
+      // ΤΟ ΠΟΣΟΣΤΟ ΠΕΡΝΑΕΙ ΑΠΟ ΤΟΝ ΚΟΙΝΟ ΜΟΡΦΟΠΟΙΗΤΗ, ΟΠΩΣ ΚΑΘΕ ΑΛΛΟ. Στην ίδια
+      // πρόταση τα δύο ποσά έγραφαν «57,00 €» και «81,00 €» με δύο δεκαδικά και
+      // το ποσοστό «−30%» με κανένα: το μοναδικό νούμερο της οθόνης χωρίς
+      // υποδιαστολή, δίπλα σε δύο που την είχαν. Το πρόσημο μπαίνει από το `fp`,
+      // που γράφει το τυπογραφικό μείον· εδώ μένει μόνο το «+».
+      : `${s.title}: ${eur(current)} αντί για ${eur(previous)} που πλήρωνες συνήθως, ${up ? '+' : ''}${fp(deltaPctExact)}. Μπορεί να είναι η κατανάλωση ή η τιμή.`;
 
     out.push({
       key: s.key, title: s.title, category: s.category, vendor: s.vendor,

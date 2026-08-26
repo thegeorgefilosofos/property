@@ -530,9 +530,46 @@ const TONE_COLOR: Record<string, string> = {
  * ΤΟ `cqi` ΘΕΛΕΙ ΔΟΧΕΙΟ. Μέσα σε πλακίδιο KPI το δίνει η `.kpi-card`. Οπου ο
  * αριθμός στέκει χωρίς πλακίδιο, το δοχείο το δηλώνει η `.kpi-plain`.
  */
-export function KpiValue({ value, tone }: { value: string; tone?: Tone }) {
+export function KpiValue({ value, tone, chars, half }: { value: string; tone?: Tone;
+  /**
+   * ΤΟ ΠΛΑΚΙΔΙΟ ΠΟΥ ΑΠΛΩΝΕΤΑΙ ΣΕ ΟΛΟ ΤΟ ΠΛΑΤΟΣ ΔΕΝ ΕΙΝΑΙ ΚΑΙ ΠΙΟ ΣΗΜΑΝΤΙΚΟ.
+   *
+   * Σε κινητό, το τελευταίο μονό πλακίδιο πιάνει ολόκληρη τη σειρά ώστε να μην
+   * αφήσει τρύπα δίπλα του. Το `cqi` όμως μετράει το πλάτος ΤΟΥ, οπότε ο
+   * αριθμός του έβγαινε 24 ενώ οι τέσσερις διπλανοί του 18: το πλατύτερο κουτί
+   * γινόταν, χωρίς να το θέλει κανείς, το μεγαλύτερο νούμερο της οθόνης.
+   *
+   * Ο ΣΥΝΤΕΛΕΣΤΗΣ ΒΓΑΙΝΕΙ ΑΠΟ ΤΗ ΓΕΩΜΕΤΡΙΑ, ΟΧΙ ΑΠΟ ΤΟ ΜΑΤΙ. Δύο μισά πλακίδια
+   * με κενό 12 και περιθώριο 16 δεξιά-αριστερά δίνουν εσωτερικό πλάτος
+   * (Π − 12) ÷ 2 − 32, όπου Π το εξωτερικό πλάτος της σειράς· το πλατύ πλακίδιο
+   * έχει εσωτερικό Π − 32. Λύνοντας, το ισοδύναμο μισό είναι «μισό του δικού
+   * του εσωτερικού, μείον 22». Επαληθεύτηκε στα 360: πλατύ 306, μισά 130· και
+   * πράγματι 306 ÷ 2 − 22 = 131.
+   *
+   * Δίνεται ως δεύτερη μεταβλητή και το φύλλο στυλ διαλέγει: μόνο κάτω από τα
+   * 650, όπου το πλακίδιο είναι πράγματι πλατύ.
+   */
+  half?: boolean;
+  /**
+   * ΤΟ ΜΗΚΟΣ ΠΟΥ ΜΕΤΡΑΕΙ ΔΕΝ ΕΙΝΑΙ ΠΑΝΤΑ ΤΟ ΔΙΚΟ ΜΟΥ.
+   *
+   * ΜΙΑ ΣΕΙΡΑ ΠΛΑΚΙΔΙΩΝ ΕΙΝΑΙ ΕΝΑ ΠΡΑΓΜΑ, ΟΧΙ ΠΕΝΤΕ. Με το μήκος του καθενός,
+   * το «6» έπαιρνε 24, το «19,50%» 24 και το «14 · 756,00 €» 17,5: τρία
+   * μεγέθη στην ίδια σειρά, μετρημένα σε Galaxy A. Το μάτι διαβάζει τη διαφορά
+   * μεγέθους ως διαφορά σημασίας, οπότε το μικρότερο νούμερο έμοιαζε
+   * λιγότερο σημαντικό επειδή ήταν απλώς μακρύτερο.
+   *
+   * Ο ΚΑΝΟΝΑΣ: όλη η σειρά παίρνει το μέγεθος που χωράει το ΜΑΚΡΥΤΕΡΟ. Ισα
+   * μεταξύ τους και κανένα κομμένο. Οποιος αριθμός στέκει μόνος του δίνει το
+   * δικό του μήκος και δεν αλλάζει τίποτα.
+   */
+  chars?: number }) {
+  const n = Math.max(4, chars ?? value.length);
   return (
-    <div className="kpi-value" style={{ marginBottom: 0, '--kpi-fit': `calc(100cqi / ${Math.max(4, value.length)} * 1.52)` } as React.CSSProperties} data-tone={tone}>{value}</div>
+    <div className="kpi-value" style={{ marginBottom: 0,
+      '--kpi-fit': `calc(100cqi / ${n} * 1.52)`,
+      ...(half ? { '--kpi-fit-half': `calc((100cqi / 2 - 22px) / ${n} * 1.52)` } : null),
+    } as React.CSSProperties} data-tone={tone}>{value}</div>
   );
 }
 
@@ -596,6 +633,10 @@ export function KPIGrid({ items, columns }: { items: KPIItem[]; columns?: number
   // Δύο προστασίες για το ίδιο πράγμα· η μία ακύρωνε την άλλη. Στο στενό
   // ταβάνι μετράει μόνο πόσα ΧΩΡΑΝΕ· τη συμμετρία την κρατά το CSS.
   const sm = Math.min(cols, 2);
+  // Το μήκος του μακρύτερου νούμερου της σειράς· ο λόγος είναι γραμμένος στο
+  // `KpiValue`. Μετριέται σε χαρακτήρες, γιατί ο αριθμός γράφεται με
+  // `tabular-nums` και εκεί κάθε χαρακτήρας πιάνει το ίδιο πλάτος.
+  const widest = items.reduce((m, k) => Math.max(m, k.value.length), 0);
   return (
     <div className="kpi-row" style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${Math.max(140, Math.floor(920 / cols))}px), 1fr))`, gap: 12, marginBottom: 16, '--kpi-lg': step(4), '--kpi-md': step(3), '--kpi-sm': sm } as React.CSSProperties}>
       {items.map((k, i) => {
@@ -608,7 +649,7 @@ export function KPIGrid({ items, columns }: { items: KPIItem[]; columns?: number
           <div className="kpi-label">{k.label}</div>
           {/* Ουδέτερο by default· ο σημασιολογικός τόνος αποκαλύπτεται στο hover ή
               στο άγγιγμα (data-tone + globals.css), για χαμηλού θορύβου look. */}
-          <KpiValue value={k.value} tone={toned ? k.tone : undefined} />
+          <KpiValue value={k.value} chars={widest} half={i === items.length - 1 && items.length % 2 === 1} tone={toned ? k.tone : undefined} />
           {k.sub && <div style={{ fontSize: 11, lineHeight: 1.4, fontWeight: k.subTone ? 600 : 400, color: (k.subTone && TONE_COLOR[k.subTone]) || 'var(--text-tertiary)', fontFamily: T.font.sans }}>{k.sub}</div>}
         </div>
         );
