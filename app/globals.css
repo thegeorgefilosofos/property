@@ -747,6 +747,11 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
   margin-bottom: 5px;
   transition: color 0.15s cubic-bezier(0.2,0,0,1);
 }
+/* Ενα νούμερο KPI χωρίς πλακίδιο γύρω του: μέσα σε κάρτα που έχει ήδη δικό της
+   περίγραμμα, δεύτερο κουτί είναι κουτί μέσα σε κουτί. Το δοχείο χρειάζεται
+   ούτως ή άλλως, γιατί το μέγεθος του αριθμού μετριέται σε `cqi`. */
+.kpi-plain { container-type: inline-size; }
+
 /* Σημασιολογικός τόνος τιμής KPI: ουδέτερος by default, αποκαλύπτεται μόνο στο
    hover/focus της κάρτας — ομοιόμορφο, χαμηλού θορύβου look σε όλο το app. */
 .kpi-card:hover .kpi-value[data-tone="negative"],
@@ -1780,6 +1785,20 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .desktop-only { display: none !important; }
 }
 
+/* Ενέργειες τίτλου σελίδας: το γιατί είναι γραμμένο στο PageTitle του
+   components/Theme.tsx. Το `> *` πιάνει και τα κουμπιά και τα περιτυλίγματα
+   των μενού (π.χ. η «Εξαγωγή», που είναι κουμπί μέσα σε θέση αναφοράς). */
+@media (max-width: 560px) {
+  .pt-actions { width: 100%; display: grid !important; grid-template-columns: 1fr 1fr; }
+  .pt-actions > * { min-width: 0; }
+  /* Το μονό τελευταίο κουμπί παίρνει ολόκληρη τη σειρά, ίδιος κανόνας με τα
+     πλακίδια KPI: αλλιώς μένει μισό, με τρύπα ίδιου μεγέθους δίπλα του. Και
+     επειδή η κύρια ενέργεια γράφεται πάντα τελευταία, πέφτει ακριβώς εκεί. */
+  .pt-actions > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .pt-actions > button, .pt-actions > a,
+  .pt-actions > * > button, .pt-actions > * > a { width: 100%; }
+}
+
 /* Δύο ισότιμες διαδρομές σε πολύ στενό τηλέφωνο: στοίβα αντί για δύο στήλες.
    Το γιατί είναι γραμμένο πάνω από το `contactRouteGrid` στο TabContacts.tsx. */
 @media (max-width: 360px) { .route-two { grid-template-columns: minmax(0, 1fr) !important; } }
@@ -1924,7 +1943,19 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
    αντί για την οθόνη. Το πρώτο σπάσιμο πάει εκεί που όντως δεν χωρούν. */
 @media (max-width: 820px) { .fixed-cols { grid-template-columns: repeat(var(--fc-md), minmax(0, 1fr)); } }
 @media (max-width: 600px) { .fixed-cols { grid-template-columns: repeat(var(--fc-sm), minmax(0, 1fr)); } }
-@media (max-width: 420px) { .fixed-cols { grid-template-columns: 1fr; } }
+/* ΤΟ ΔΙΧΤΥ ΤΩΝ 420 ΕΙΝΑΙ ΓΙΑ ΦΟΡΜΕΣ, ΟΧΙ ΓΙΑ ΑΡΙΘΜΟΥΣ. Μια σειρά πεδίων σε
+   τηλέφωνο θέλει μία στήλη: το πεδίο έχει ετικέτα, υπόδειξη και τιμή· σε 146
+   εικονοστοιχεία δεν στέκει κανένα από τα τρία. Μια σειρά ΝΟΥΜΕΡΩΝ είναι το
+   αντίθετο πράγμα: τέσσερα ποσά σε τέσσερις σειρές πιάνουν 373 εικονοστοιχεία,
+   δηλαδή σχεδόν μισή οθόνη· σε δύο στήλες πιάνουν 251.
+
+   Το δίχτυ μένει η προεπιλογή, γιατί οι φόρμες είναι οι περισσότερες. Οποιος
+   δείχνει νούμερα το δηλώνει ρητά με την `fc-xs-2` και αναλαμβάνει να χωρέσουν:
+   ο κοινός αριθμός KPI ξέρει ήδη να μικραίνει όσο χρειάζεται. */
+@media (max-width: 420px) {
+  .fixed-cols { grid-template-columns: 1fr; }
+  .fixed-cols.fc-xs-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
 /* ΤΑ ΠΛΑΚΙΔΙΑ ΤΩΝ ΣΥΝΔΡΟΜΩΝ: ΙΣΑ ΠΛΑΤΗ, ΚΑΙ Η ΜΙΣΗ ΣΕΙΡΑ ΣΤΟ ΚΕΝΤΡΟ.
    Έντεκα υπηρεσίες σε τέσσερις στήλες βγάζουν 4+4+3: το πλέγμα άφηνε την

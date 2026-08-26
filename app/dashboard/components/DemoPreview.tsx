@@ -20,17 +20,19 @@
 // το εξηγεί με παράγραφο.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { Modal, Btn, T, TT, fe, fp } from '@/components/Theme';
+import { Modal, Btn, T, TT, KpiValue, fe, fp } from '@/components/Theme';
 import { DEMO_PROPERTY, demoLedger, demoSummary } from '@/lib/demo/sample';
 import { isoDate } from '@/lib/core/time';
 
 const numStyle = { fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' as const };
 
+// Ιδιο ιδίωμα με κάθε άλλο νούμερο της εφαρμογής: το μέγεθος βγαίνει από το
+// πλάτος του πλαισίου ΚΑΙ από το μήκος του αριθμού, όχι από σταθερά.
 function Figure({ label, value, note }: { label: string; value: string; note: string }) {
   return (
-    <div style={{ minWidth: 0 }}>
-      <div style={{ ...TT.label, fontSize: 11 }}>{label}</div>
-      <div style={{ ...TT.kpi, marginTop: 6 }}>{value}</div>
+    <div className="kpi-plain" style={{ minWidth: 0 }}>
+      <div className="kpi-label">{label}</div>
+      <div style={{ marginTop: 6 }}><KpiValue value={value} /></div>
       <div style={{ ...TT.caption, marginTop: 4 }}>{note}</div>
     </div>
   );

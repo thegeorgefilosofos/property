@@ -142,6 +142,36 @@ export default function RentReceived({
     if (done === selected.length) notifyOk(note); else notifyError(note);
   };
 
+  /**
+   * ΤΟ ΚΟΙΝΟ ΚΟΜΜΑΤΙ ΛΕΓΕΤΑΙ ΜΙΑ ΦΟΡΑ, ΠΑΝΩ ΑΠΟ ΤΗ ΛΙΣΤΑ.
+   *
+   * ΜΕΤΡΗΜΕΝΟ ΣΕ Galaxy A, 360×800, με έξι ανοιχτές δόσεις από το Χαρτοφυλάκιο:
+   * κάθε γραμμή έγραφε «Ακίνητο 1 · Ενοίκιο Ιανουαρίου 2026». Το «Ενοίκιο
+   * Ιανουαρίου 2026» δεν χωρούσε στην ίδια σειρά με το όνομα, οπότε κάθε γραμμή
+   * έπιανε δύο σειρές και το παράθυρο έδειχνε τεσσερισήμισι δόσεις αντί για έξι.
+   * Και οι έξι έλεγαν ΤΟ ΙΔΙΟ πράγμα: ο μήνας είναι ένας.
+   *
+   * Ο ΚΑΝΟΝΑΣ ΕΙΝΑΙ ΑΥΣΤΗΡΟΣ, ΓΙΑΤΙ ΤΟ ΛΑΘΟΣ ΘΑ ΗΤΑΝ ΣΟΒΑΡΟ. Κόβεται μόνο
+   * ΟΛΟΚΛΗΡΟ τελευταίο κομμάτι, χωρισμένο με «·», μόνο όταν το έχουν ΟΛΕΣ οι
+   * γραμμές ίδιο. Δύο δόσεις διαφορετικού μήνα κρατούν τον μήνα τους: μια οθόνη
+   * είσπραξης που κρύβει ποιον μήνα εισπράττεις είναι χειρότερη από μια οθόνη
+   * που το γράφει έξι φορές.
+   */
+  const SEP = ' · ';
+  const commonTail = (() => {
+    if (openLines.length < 2) return '';
+    const parts = openLines.map(l => l.label.split(SEP));
+    const first = parts[0];
+    if (first.length < 2) return '';
+    let n = 0;
+    while (n < first.length - 1 && parts.every(p => p.length > n + 1 && p[p.length - 1 - n] === first[first.length - 1 - n])) n++;
+    return n ? first.slice(first.length - n).join(SEP) : '';
+  })();
+  const rowLabel = (l: CashLine) =>
+    commonTail && l.label.endsWith(SEP + commonTail)
+      ? l.label.slice(0, -(SEP.length + commonTail.length))
+      : l.label;
+
   const lateNote = (l: CashLine) =>
     l.daysLeft != null && l.daysLeft < 0
       ? `${Math.abs(l.daysLeft)} ${Math.abs(l.daysLeft) === 1 ? 'ημέρα' : 'ημέρες'} πίσω`
@@ -177,7 +207,11 @@ export default function RentReceived({
             καταχώρηση, ξανά άνοιγμα, ξανά καταχώρηση. Η προεπιλογή όμως ΔΕΝ
             άλλαξε: «όλες» σημαίνει «πληρώθηκα» και μια σιωπηλή προεπιλογή θα
             έγραφε ως εισπραγμένα ενοίκια που δεν ήρθαν. */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: T.sp.md }}>
+          {/* Ο μήνας που εισπράττεται, μία φορά. Οταν οι δόσεις είναι από
+              διαφορετικούς μήνες δεν υπάρχει κοινό κομμάτι και η θέση μένει
+              κενή· τότε ο μήνας ζει μέσα σε κάθε γραμμή, όπου ανήκει. */}
+          <span style={{ ...TT.label, minWidth: 0 }}>{commonTail}</span>
           <Btn variant="ghost" onClick={() => setTouched(allOn ? new Set() : new Set(openLines.map(l => l.rent?.id ?? '')))}>
             {allOn ? 'Καμία' : 'Όλες'}
           </Btn>
@@ -197,7 +231,7 @@ export default function RentReceived({
                   fontFamily: T.font.sans,
                 }}>
                 <span style={{ minWidth: 0 }}>
-                  <span style={{ ...TT.body, fontWeight: on ? 700 : 400, display: 'block' }}>{l.label}</span>
+                  <span style={{ ...TT.body, fontWeight: on ? 700 : 400, display: 'block' }}>{rowLabel(l)}</span>
                   <span style={{ ...TT.caption, display: 'block', marginTop: 2 }}>{lateNote(l)}</span>
                 </span>
                 <span style={{ fontFamily: T.font.num, fontSize: 13, fontWeight: 700,

@@ -17,7 +17,7 @@ import * as checklist from '@/lib/data/checklist';
 import * as expenses from '@/lib/data/expenses'
 import * as tenantStore from '@/lib/data/tenants'
 import { CustomSelect, BulkActionBar } from './UIComponents';
-import { T, PageTitle, KPIGrid, Badge, Btn, ExportButton, EmptyState, InfoBanner, SecHdr, SelectBox, SkeletonKPIs, Skeleton, fe, fn, fp, fixedCols, ABSENT_SHORT, Modal, TT } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, KpiValue, Badge, Btn, ExportButton, EmptyState, InfoBanner, SecHdr, SelectBox, SkeletonKPIs, Skeleton, fe, fn, fp, fixedCols, ABSENT_SHORT, Modal, TT } from '@/components/Theme';
 import { resolveRent } from '@/lib/billing/propertyFacts';
 import { statusLabel, type StatusRow } from '@/lib/property/status';
 import { declarableGross, declarableGrossOrTotal } from '@/lib/clients/stayAmounts';
@@ -619,7 +619,11 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
           <SecHdr label="Απόδοση χαρτοφυλακίου" sub={`Σε ετήσια βάση (εκτίμηση ρυθμού) · ${agg.valuedCount} από ${agg.count} ${agg.count === 1 ? 'ακίνητο' : 'ακίνητα'} με καταχωρημένη αξία${estimatedValued > 0 ? ` · ${estimatedValued} με εκτιμώμενα έσοδα` : ''}`} />
           {/* Τέσσερις δείκτες με `auto-fit` έβγαιναν 3+1 στα 768: ο τέταρτος
               μόνος του. Το `fixedCols` δίνει 2+2, γιατί διαλέγει διαιρέτη. */}
-          <div {...fixedCols(4, 16, 'start')} style={{ ...fixedCols(4, 16, 'start').style, marginTop: 14 }}>
+          {/* ΔΥΟ ΣΤΗΛΕΣ ΚΑΙ ΣΤΟ ΤΗΛΕΦΩΝΟ. Το γενικό δίχτυ των 420 έριχνε τους
+              τέσσερις δείκτες σε τέσσερις σειρές: κάρτα 373 εικονοστοιχείων
+              ανάμεσα στα πλακίδια και στον πίνακα των ακινήτων, μετρημένο σε
+              Galaxy A. Είναι νούμερα, όχι πεδία φόρμας. */}
+          <div {...fixedCols(4, 16, 'start', 'fc-xs-2')} style={{ ...fixedCols(4, 16, 'start').style, marginTop: 14 }}>
             <PStat label="Αξία χαρτοφυλακίου" value={eur(agg.totalValue)} />
             <PStat label="Ετήσια έσοδα" value={eur(agg.totalRevenue)} />
             {/* ΔΥΟ ΔΕΚΑΔΙΚΑ, ΟΠΩΣ ΠΑΝΤΟΥ. Εγραφαν «6,7%» με ένα δεκαδικό, ενώ
@@ -870,11 +874,15 @@ function Th({ label, k, sort, asc, onSort, align = 'right', pin }: { label: stri
   );
 }
 
+// ΤΡΙΤΗ ΓΡΑΦΗ ΤΟΥ ΙΔΙΟΥ ΠΡΑΓΜΑΤΟΣ, ΚΑΙ Η ΤΕΛΕΥΤΑΙΑ. Ητανε ετικέτα 11 κεφαλαία
+// και νούμερο 22, γραμμένα στο χέρι: δηλαδή το `.kpi-label` και το `.kpi-value`
+// με άλλο μέγεθος και χωρίς τίποτα από όσα έμαθαν αυτά τα δύο. Το «652.500,00 €»
+// στα 22 θέλει 150 εικονοστοιχεία και σε δύο στήλες τηλεφώνου υπάρχουν 146.
 function PStat({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <div style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>{label}</div>
-      <div style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', marginTop: 4 }}>{value}</div>
+    <div className="kpi-plain">
+      <div className="kpi-label">{label}</div>
+      <KpiValue value={value} />
     </div>
   );
 }

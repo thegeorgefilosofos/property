@@ -688,11 +688,14 @@ export default function TabDocuments({
   );
   // Όταν το αρχείο είναι κενό, το κουμπί ζει ΜΟΝΟ στην κενή κατάσταση
   // (κεντρικό CTA) — αποφεύγουμε διπλότυπο κουμπί στην κεφαλίδα.
+  // ΧΩΡΙΣ ΠΕΡΙΤΥΛΙΓΜΑ. Το PageTitle δίνει ήδη flex, κενό 8 και αναδίπλωση στις
+  // ενέργειές του· σε τηλέφωνο τις στήνει σε πλέγμα δύο στηλών. Ενα δεύτερο
+  // flex από μέσα ακύρωνε το πλέγμα, γιατί τα κουμπιά έπαυαν να είναι παιδιά του.
   const headerActions = (
-    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+    <>
       {items.length > 0 && <ExportButton onClick={exportCsv} />}
       {items.length > 0 && uploadBtn}
-    </div>
+    </>
   );
   const fileActions = (showFolder: boolean): FileActions => ({
     view, showFolder, selected,

@@ -32,7 +32,7 @@ import * as expenseStore from '@/lib/data/expenses'
 import * as billStore from '@/lib/data/bills'
 import ExpenseCompare from './ExpenseCompare';
 import type { Spend } from '@/lib/expenses/compare';
-import { T, TT, PageTitle, fe, Btn, Card, EmptyState, Modal, Skeleton, fixedCols, ABSENT_DATE } from '@/components/Theme';
+import { T, TT, PageTitle, fe, Btn, Card, EmptyState, Modal, Skeleton, KpiValue, fixedCols, ABSENT_DATE } from '@/components/Theme';
 import { notify, notifyError } from '@/components/toastBus';
 import { confirmDialog } from '@/components/ConfirmDialog';
 import { saved } from '@/components/dbWrite';
@@ -700,13 +700,17 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
  * Η διάκριση που μετράει δεν είναι «πληρώθηκε ή όχι» — είναι «πέρασε η
  * προθεσμία ή όχι» και τη λέει η ίδια η γραμμή με λέξεις, στη σειρά της.
  */
+// ΤΕΤΑΡΤΗ ΓΡΑΦΗ ΤΟΥ ΙΔΙΟΥ ΠΡΑΓΜΑΤΟΣ. Ετικέτα και μεγάλος αριθμός, με δικό της
+// μέγεθος 20 αντί για την κοινή κλίμακα και χωρίς όσα ξέρει ο κοινός αριθμός:
+// μέχρι πριν λίγο κανένας από τους τέσσερις τρόπους δεν κοίταζε πόσα ψηφία
+// ζητήθηκε να χωρέσει, οπότε στα 320 το «1.278,00 €» δούλευε μόνο κατά τύχη.
+// Ενα σημείο γράφει τον αριθμό· εδώ μένει η σκάλα της φόρτωσης, που είναι το
+// μόνο δικό της.
 function Figure({ label, value, sub }: { label: string; value: string | null; sub?: string }) {
   return (
-    <div>
-      <div style={{ ...TT.label, marginBottom: 8 }}>{label}</div>
-      <div style={{ ...TT.kpi, fontSize: 20, color: 'var(--text-primary)' }}>
-        {value ?? <Skeleton w={78} h={18} />}
-      </div>
+    <div className="kpi-plain">
+      <div className="kpi-label" style={{ marginBottom: 8 }}>{label}</div>
+      {value === null ? <Skeleton w={78} h={18} /> : <KpiValue value={value} />}
       {sub && <div style={{ ...TT.caption, marginTop: 5 }}>{sub}</div>}
     </div>
   );

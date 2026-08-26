@@ -931,7 +931,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
           // Τρεις σύνδεσμοι χωρίς περίγραμμα δίπλα σε ένα κουμπί με περίγραμμα
           // δίπλα σε ένα γεμάτο: τέσσερα διαφορετικά βάρη για ενέργειες της ίδιας
           // σειράς. Τώρα δευτερεύουσες όλες, κύρια μία.
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <>
             <Btn variant="secondary" onClick={() => { setEmailOpen(true); setEmailDraft(null); setEmailErr(''); }}>Εισαγωγή από email</Btn>
             {props.length > 0 && <Btn variant="secondary" onClick={openIcal}>Σύνδεση ημερολογίου</Btn>}
             {clients.length > 0 && <Btn variant="secondary" onClick={() => setComposeOpen(true)}>Μαζικό μήνυμα</Btn>}
@@ -940,7 +940,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 λίγο πιο κάτω — δύο ίδια κουμπιά στην ίδια οθόνη δεν είναι έμφαση.
                 Οι δύο εισαγωγές μένουν: η κενή κατάσταση τις ονομάζει. */}
             {clients.length > 0 && <Btn variant="primary" onClick={openNew}>Νέος επισκέπτης</Btn>}
-          </div>
+          </>
         ) : undefined} />
 
       <KPIGrid items={kpis} />

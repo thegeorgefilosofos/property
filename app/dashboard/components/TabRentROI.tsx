@@ -16,7 +16,7 @@ import { readStatus, type StatusRow } from '@/lib/property/status'
 import { useChartWidth } from '@/app/hooks/useChartWidth'
 import { businessFormOf } from '@/lib/accounting/taxProfile'
 import type { LegalForm as DossierLegalForm } from '@/lib/accounting/dossier'
-import { Skeleton, SkeletonKPIs, fe, feCompact, fp, fn, ABSENT, ABSENT_SHORT, T, fixedCols } from '@/components/Theme';
+import { Skeleton, SkeletonKPIs, PageTitle, fe, feCompact, fp, fn, ABSENT, ABSENT_SHORT, T, fixedCols } from '@/components/Theme';
 import { NumberInput, CustomSelect, fieldLabelStyle, Toggle as Switch } from './UIComponents';
 import { ChevronRight, TrendingUp, Landmark, Percent, Wallet, Layers, ArrowUpRight, Info, ShieldCheck } from 'lucide-react';
 import { yields, compound, leverage, compareInvestments, propertyTotalReturn, projectLine, yieldGrade, dealAnalysis, type LeverageResult, type YieldGrade } from '@/lib/market/returns';
@@ -1185,13 +1185,10 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   // (σειρά μετρικών + κάρτες ανάλυσης), οπότε το περιεχόμενο δεν «πετάγεται» όταν φορτώσει.
   if (loading) return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* ── Η ΟΘΟΝΗ ΧΡΕΙΑΖΕΤΑΙ ΟΝΟΜΑ, ΚΑΙ ΑΣ ΜΗΝ ΤΟ ΔΕΙΧΝΕΙ ──────────────────
-          Δώδεκα καρτέλες έχουν ορατό τίτλο μέσω `PageTitle`, δηλαδή `h1`. Αυτή
-          δεν είχε ΚΑΝΕΝΑ: ο αναγνώστης οθόνης την ανακοίνωνε χωρίς όνομα και η
-          πλοήγηση ανά επικεφαλίδα ξεκινούσε από το δεύτερο επίπεδο. Το όνομα
-          έρχεται από το `lib/nav/labels.ts`, την ίδια πηγή με το μενού και τον
-          βοηθό. Κρυφό ΟΠΤΙΚΑ, όχι από τον αναγνώστη: η οθόνη έχει ήδη τη δική
-          της κεφαλίδα και δεν αλλάζει ούτε ένα εικονοστοιχείο. */}
+      {/* Ο ΣΚΕΛΕΤΟΣ ΚΡΑΤΑ ΤΟ ΟΝΟΜΑ ΤΗΣ ΟΘΟΝΗΣ. Οσο φορτώνει, ο αναγνώστης οθόνης
+          πρέπει να μπορεί να πει πού βρίσκεται· η φορτωμένη οθόνη το γράφει
+          ορατά, με το κοινό `PageTitle`, που είναι κι αυτό `h1`. Κρυφό ΟΠΤΙΚΑ
+          μόνο εδώ, ώστε ο σκελετός να μην αλλάξει ούτε ένα εικονοστοιχείο. */}
       <h1 className="sr-only">{navLabel('roi')}</h1>
       <SkeletonKPIs n={4} />
       <div {...fixedCols(2, 12, 'stretch')}>{[0, 1].map(i => <Skeleton key={i} h={140} r={14} />)}</div>
@@ -1204,40 +1201,40 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-        <div style={{ minWidth: 0 }}>
-          {/* ΤΟ ΟΝΟΜΑ ΕΡΧΕΤΑΙ ΑΠΟ ΤΟ ΜΕΝΟΥ, ΚΑΙ ΑΥΤΗ Η ΟΘΟΝΗ ΕΙΝΑΙ ΤΟ ΠΑΡΑΔΕΙΓΜΑ.
-              Το `lib/nav/labels.ts` γράφτηκε ακριβώς για αυτό το σφάλμα και
-              ονομάζει ΑΥΤΗ την περίπτωση στην κεφαλίδα του:
+      {/* ═══ Η ΚΕΦΑΛΙΔΑ ΗΤΑΝ ΧΕΙΡΟΠΟΙΗΤΗ, ΚΑΙ ΗΤΑΝ Η ΠΕΜΠΤΗ ══════════════════════
+          Τίτλος h2 στα 20, υπότιτλος στα 13, δικό της flex με τις ενέργειες
+          δεξιά: δηλαδή το PageTitle, γραμμένο ξανά με άλλα νούμερα. Δεκαέξι
+          καρτέλες χρησιμοποιούν το κοινό· αυτή έγραφε δικό της, οπότε δεν πήρε
+          τίποτα από όσα διορθώθηκαν εκεί.
 
-                  κωδικός  μενού        βοηθός        ατζέντα
-                  roi      «Απόδοση»    «Αποδόσεις»   «Αποδόσεις»
+          ΤΙ ΚΟΣΤΙΖΕ, ΜΕΤΡΗΜΕΝΟ ΣΕ Galaxy A, 360×800. Τα δύο κουμπιά είχαν 110
+          και 212 εικονοστοιχεία, δηλαδή το ένα σχεδόν διπλάσιο από το άλλο, ενώ
+          το σχόλιο από πάνω τους έλεγε «ίδιο σχήμα, ίδιο μέγεθος». Το κοινό
+          στοιχείο τα βάζει σε πλέγμα δύο στηλών στο τηλέφωνο, οπότε γίνονται
+          πράγματι ίσα. Και ο τίτλος πέφτει στα 22 σε στενή οθόνη αντί να μένει
+          καρφωμένος, όπως σε κάθε άλλη καρτέλα.
 
-              Ο βοηθός και η ατζέντα διορθώθηκαν. Ο τίτλος της ίδιας της οθόνης
-              έμεινε «Αποδόσεις», δηλαδή ο χρήστης πατούσε «Απόδοση» στο μενού
-              και έφτανε σε σελίδα με άλλο όνομα. Τώρα διαβάζεται από την πηγή
-              και δεν μπορεί να ξαναποκλίνει. */}
-          <h2 style={{ fontFamily: SANS, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{navLabel('roi')}</h2>
-          <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '4px 0 0', fontFamily: SANS }}>{regimeLabel} · πραγματική απόδοση του ακινήτου και σύγκριση με την αγορά.</p>
-        </div>
-        {/* ΔΥΟ ΚΟΥΜΠΙΑ, ΙΔΙΟ ΣΧΗΜΑ, ΙΔΙΟ ΜΕΓΕΘΟΣ, ΚΑΙ Η ΔΙΑΦΟΡΑ ΜΟΝΟ ΣΕ TOOLTIP.
-            Έλεγαν «Αναφορά PDF» και «Επίσημο PDF» — δηλαδή ο χρήστης έπρεπε να
-            μαντέψει ποιο θέλει και σε κινητό δεν υπήρχε καν tooltip να τον
-            βοηθήσει. Είναι όντως δύο διαφορετικά παραδοτέα: το ένα το τυπώνεις
-            για σένα, το άλλο φέρει αριθμό εγγράφου που μπορεί να επαληθεύσει
-            τρίτος. Τα κουμπιά το λένε πια αυτό, αντί για τη μορφή του αρχείου —
-            που δεν είναι ερώτηση που κάνει κανείς. */}
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          {!empty && (<>
-            <button onClick={printReport} className="acc-toggle" style={{ height: T.h.md, padding: '0 14px', borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 13, fontFamily: SANS, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <ArrowUpRight size={14} /> Για μένα
-            </button>
-            <button onClick={officialReport} disabled={genOfficial} className="acc-toggle" title="Επίσημο true-PDF με αριθμό εγγράφου και QR επαλήθευσης· κατάλληλο για τράπεζες, ΔΟΥ και φορείς" style={{ height: T.h.md, padding: '0 14px', borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 13, fontFamily: SANS, fontWeight: 600, cursor: genOfficial ? 'wait' : 'pointer', opacity: genOfficial ? 0.6 : 1, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <ShieldCheck size={14} /> {genOfficial ? 'Δημιουργία…' : 'Για τράπεζα ή λογιστή'}
-            </button>
-          </>)}
-        </div>
-      </div>
+          ΔΥΟ ΚΟΥΜΠΙΑ, Η ΔΙΑΦΟΡΑ ΜΟΝΟ ΣΕ TOOLTIP. Έλεγαν «Αναφορά PDF» και
+          «Επίσημο PDF», δηλαδή ο χρήστης έπρεπε να μαντέψει ποιο θέλει και σε
+          κινητό δεν υπήρχε καν tooltip να τον βοηθήσει. Είναι όντως δύο
+          διαφορετικά παραδοτέα: το ένα το τυπώνεις για σένα, το άλλο φέρει
+          αριθμό εγγράφου που μπορεί να επαληθεύσει τρίτος.
+
+          ΤΟ ΟΝΟΜΑ ΕΡΧΕΤΑΙ ΑΠΟ ΤΟ ΜΕΝΟΥ. Το `lib/nav/labels.ts` γράφτηκε ακριβώς
+          για αυτό το σφάλμα και ονομάζει ΑΥΤΗ την περίπτωση στην κεφαλίδα του:
+          ο κωδικός `roi` λεγόταν «Απόδοση» στο μενού και «Αποδόσεις» εδώ. */}
+      <PageTitle
+        title={navLabel('roi')}
+        sub={`${regimeLabel} · πραγματική απόδοση του ακινήτου και σύγκριση με την αγορά.`}
+        right={empty ? undefined : (<>
+          <button onClick={printReport} className="acc-toggle" style={{ height: T.h.md, padding: '0 14px', borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 13, fontFamily: SANS, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <ArrowUpRight size={14} /> Για μένα
+          </button>
+          <button onClick={officialReport} disabled={genOfficial} className="acc-toggle" title="Επίσημο true-PDF με αριθμό εγγράφου και QR επαλήθευσης· κατάλληλο για τράπεζες, ΔΟΥ και φορείς" style={{ height: T.h.md, padding: '0 14px', borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 13, fontFamily: SANS, fontWeight: 600, cursor: genOfficial ? 'wait' : 'pointer', opacity: genOfficial ? 0.6 : 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <ShieldCheck size={14} /> {genOfficial ? 'Δημιουργία…' : 'Για τράπεζα ή λογιστή'}
+          </button>
+        </>)}
+      />
 
       {/* ═══ ΟΚΤΩ ΠΕΔΙΑ ΑΝΑΜΕΣΑ ΣΤΟΝ ΧΡΗΣΤΗ ΚΑΙ ΣΤΟ ΑΠΟΤΕΛΕΣΜΑ ══════════════════
           Η κάρτα των στοιχείων ήταν πάντα ανοιχτή: τέσσερα πεδία, μια γραμμή

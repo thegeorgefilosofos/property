@@ -480,7 +480,20 @@ export function PageTitle({ over, title, sub, lede, right, titleHint }: { over?:
           στο «Εξαγωγή Excel» των 44: δύο κουμπιά της ίδιας σειράς, με άλλο
           μέγεθος. Το `stretch` δίνει και στα δύο το ύψος του ψηλότερου, οπότε
           η σειρά διαβάζεται ως ΜΙΑ σειρά. */}
-      {right && <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>{right}</div>}
+      {/* ═══ ΣΕ ΤΗΛΕΦΩΝΟ ΟΙ ΕΝΕΡΓΕΙΕΣ ΚΛΕΙΝΟΥΝ ΤΗ ΓΡΑΜΜΗ ΤΟΥΣ ══════════════════
+          ΜΕΤΡΗΜΕΝΟ ΣΕ Galaxy A, 360×800, στις Εκκρεμότητες: «Πρότυπα» 196,
+          «Εξαγωγή» 262 και «Νέα εκκρεμότητα» 308 στοιχίζονταν αριστερά και
+          τύλιγαν όπου έβρισκαν. Τρεις σειρές, τρία διαφορετικά πλάτη, δεξιά
+          άκρη σε σκάλα. Δεν σπάει τίποτα· απλώς δεν φαίνεται ότι το είδε
+          κανείς.
+
+          Σε στενή οθόνη γίνεται πλέγμα δύο στηλών: δύο ίσα κουμπιά ανά σειρά
+          και το μονό τελευταίο σε πλήρες πλάτος. Η δεξιά άκρη γίνεται μία
+          γραμμή. ΓΙΑΤΙ ΟΧΙ ΣΚΕΤΟ `flex: 1`: με ελεύθερη βάση, «Πρότυπα» 196 και
+          «Εξαγωγή» 262 δεν χωρούν μαζί στα 340, οπότε το τύλιγμα τα έριχνε ένα
+          ανά σειρά και οι τρεις ενέργειες έπιαναν τρεις σειρές αντί για δύο.
+          Σε ταμπλέτα και υπολογιστή δεν αλλάζει τίποτα. */}
+      {right && <div className="pt-actions" style={{ display: 'flex', gap: 8, alignItems: 'stretch', flexWrap: 'wrap' }}>{right}</div>}
     </div>
   );
 }
@@ -500,6 +513,23 @@ const TONE_COLOR: Record<string, string> = {
   positive: 'var(--positive)', negative: 'var(--negative)',
   warning: 'var(--warning)', info: 'var(--info)', accent: 'var(--accent)',
 };
+
+/**
+ * ΤΟ ΝΟΥΜΕΡΟ ΓΡΑΦΕΤΑΙ ΑΠΟ ΕΝΑ ΣΗΜΕΙΟ, ΟΣΕΣ ΟΘΟΝΕΣ ΚΙ ΑΝ ΤΟ ΔΕΙΧΝΟΥΝ.
+ *
+ * ΤΟ ΜΗΚΟΣ ΤΟΥ ΑΡΙΘΜΟΥ ΤΑΞΙΔΕΥΕΙ ΜΑΖΙ ΤΟΥ. Το φύλλο στυλ ξέρει πόσο φαρδύ είναι
+ * το πλαίσιο, δεν ξέρει πόσα ψηφία του ζητήθηκε να χωρέσει· ο κανόνας και η
+ * μέτρηση είναι γραμμένα στο globals.css, πάνω από το `.kpi-value`. Τα τέσσερα
+ * είναι κατώφλι, ώστε ένα «7» να μη ζητήσει γραμματοσειρά μισής οθόνης.
+ *
+ * ΤΟ `cqi` ΘΕΛΕΙ ΔΟΧΕΙΟ. Μέσα σε πλακίδιο KPI το δίνει η `.kpi-card`. Οπου ο
+ * αριθμός στέκει χωρίς πλακίδιο, το δοχείο το δηλώνει η `.kpi-plain`.
+ */
+export function KpiValue({ value, tone }: { value: string; tone?: Tone }) {
+  return (
+    <div className="kpi-value" style={{ marginBottom: 0, '--kpi-fit': `calc(100cqi / ${Math.max(4, value.length)} * 1.52)` } as React.CSSProperties} data-tone={tone}>{value}</div>
+  );
+}
 
 export function KPIGrid({ items, columns }: { items: KPIItem[]; columns?: number }) {
   // ── ΜΙΑ ΣΕΙΡΑ ΜΗΔΕΝΙΚΑ ΔΕΝ ΕΙΝΑΙ ΣΥΝΟΨΗ ────────────────────────────────
@@ -573,12 +603,7 @@ export function KPIGrid({ items, columns }: { items: KPIItem[]; columns?: number
           <div className="kpi-label">{k.label}</div>
           {/* Ουδέτερο by default· ο σημασιολογικός τόνος αποκαλύπτεται στο hover ή
               στο άγγιγμα (data-tone + globals.css), για χαμηλού θορύβου look. */}
-          {/* ΤΟ ΜΗΚΟΣ ΤΟΥ ΑΡΙΘΜΟΥ ΤΑΞΙΔΕΥΕΙ ΜΑΖΙ ΤΟΥ. Το φύλλο στυλ ξέρει πόσο
-              φαρδιά είναι η κάρτα, δεν ξέρει πόσα ψηφία του ζητήθηκε να
-              χωρέσει· ο κανόνας και η μέτρηση είναι γραμμένα στο globals.css,
-              πάνω από το `.kpi-value`. Τα τέσσερα είναι κατώφλι, ώστε ένα
-              «7» να μη ζητήσει γραμματοσειρά μισής οθόνης. */}
-          <div className="kpi-value" style={{ marginBottom: 0, '--kpi-fit': `calc(100cqi / ${Math.max(4, k.value.length)} * 1.52)` } as React.CSSProperties} data-tone={toned ? k.tone : undefined}>{k.value}</div>
+          <KpiValue value={k.value} tone={toned ? k.tone : undefined} />
           {k.sub && <div style={{ fontSize: 11, lineHeight: 1.4, fontWeight: k.subTone ? 600 : 400, color: (k.subTone && TONE_COLOR[k.subTone]) || 'var(--text-tertiary)', fontFamily: T.font.sans }}>{k.sub}</div>}
         </div>
         );

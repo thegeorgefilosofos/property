@@ -651,7 +651,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
             + (attention > 0 ? ` · ${fn(attention)} ${attention === 1 ? 'χρειάζεται' : 'χρειάζονται'} προσοχή` : '')
             + ` · ${fn(stats.done)} από ${fn(stats.total)} ολοκληρωμένες`}
         right={loading || items.length === 0 ? undefined : (
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <>
             {/* ΤΟ «ghost» ΕΙΝΑΙ ΓΙΑ ΤΙΣ ΑΠΟΡΡΙΠΤΙΚΕΣ ΕΝΕΡΓΕΙΕΣ, ΚΑΙ ΜΟΝΟ.
                 Το φοράνε το «Ακύρωση», το «Άλλη φορά», το «Διαγραφή»: πράγματα
                 που ο χρήστης πατά για να ΜΗΝ κάνει κάτι. Εδώ όμως τα «Πρότυπα»
@@ -665,7 +665,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
               onHandover={profileType === 'professional' ? () => exportHandoverProtocol(items, 'checkin', tenantInfo || undefined, branding) : undefined}
             />
             <Btn variant="primary" onClick={() => { setEditItem(null); setShowAddModal(true) }}>Νέα εκκρεμότητα</Btn>
-          </div>
+          </>
         )}
       />}
 
