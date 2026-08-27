@@ -20,7 +20,7 @@ export const PUBLIC = [
 export const BENCH = [
   'portfolio', 'cash', 'rent', 'inbox', 'ledger', 'checklist', 'modal', 'select',
   'compare', 'loan', 'pricing', 'bills', 'contacts', 'wizard', 'roi', 'roi-pro', 'tenant', 'scan',
-  'accounting', 'accounting-pro', 'calendar', 'clients', 'documents',
+  'accounting', 'accounting-pro', 'calendar', 'clients', 'documents', 'inventory',
 ];
 
 export const benchUrl = (c, n = 12) =>

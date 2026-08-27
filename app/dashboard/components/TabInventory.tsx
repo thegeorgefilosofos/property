@@ -30,6 +30,7 @@ import * as calendar from '@/lib/data/calendar'
 import { INVENTORY_CATEGORIES, type InventoryItem, type InventoryRepair, type InventoryHandover, type MaintenanceSchedule, type HandoverIntent, type InventoryPropertyOption, type TabInventoryProps, ROOM_PRESETS, STARTER_PACK } from './inventory/model'
 import { calcCurrentValue, calcDepreciationPct, calcYearsLeft, calcAgeDisplay, calcMonthlyKwh, calcMonthlyCost, hasEnergy, fmtDate, daysUntil, warrantyStatus, needsAction } from './inventory/calc'
 import { DOCS_BUCKET } from './inventory/storage'
+import { InfoHint } from './InfoHint'
 import { Badge, EnergyBadge, DepBar, ReplacementHint, InlineConditionEdit, OverflowMenu, SelectBox, BulkPicker, SectionLabel, QRModal, cardStyle, quietAction, IconEdit, IconRepair, IconQR, IconCal, IconTrash, type OverflowAction } from './inventory/Bits'
 import { ItemFormModal } from './inventory/ItemFormModal'
 import { RepairModal } from './inventory/RepairModal'
@@ -110,17 +111,17 @@ function AttentionCard({items,onEdit,onWarrantyReminder}:{items:InventoryItem[];
     return out
   })()
 
-  if(attention.length===0) return (
-    <div style={{...cardStyle,display:'flex',alignItems:'center',gap:14,padding:'16px 20px'}}>
-      <div style={{width:36,height:36,borderRadius:T.radius.pill,background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,color:'var(--text-secondary)'}}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-      </div>
-      <div style={{minWidth:0}}>
-        <p style={{fontSize:14,fontWeight:600,fontFamily:T.font.sans,color:'var(--text-primary)'}}>Τίποτα δεν χρειάζεται προσοχή</p>
-        <p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Καμία εγγύηση κοντά στη λήξη, καμία κακή κατάσταση, καμία πρόταση αντικατάστασης.</p>
-      </div>
-    </div>
-  )
+  // ═══ ΚΑΡΤΑ ΠΛΗΡΟΥΣ ΠΛΑΤΟΥΣ ΓΙΑ ΝΑ ΠΕΙ ΟΤΙ ΔΕΝ ΣΥΜΒΑΙΝΕΙ ΤΙΠΟΤΑ ═══════════
+  // Είχε εικονίδιο σε κύκλο 36 εικονοστοιχείων, τίτλο στα 14 και υπότιτλο που
+  // απαριθμούσε τρία πράγματα που ΔΕΝ υπάρχουν: «καμία εγγύηση κοντά στη λήξη,
+  // καμία κακή κατάσταση, καμία πρόταση αντικατάστασης». Τρεις αρνήσεις, ένα
+  // κουτί, μηδέν πληροφορία· σε κινητό ένα ολόκληρο σκρολ πριν φανεί το
+  // πρώτο αντικείμενο.
+  //
+  // ΚΑΙ ΤΟ ΚΥΡΙΟΤΕΡΟ: η ίδια η απουσία της κάρτας «Χρειάζονται προσοχή» ΕΙΝΑΙ το
+  // μήνυμα. Οταν κάτι χρειάζεται προσοχή, εμφανίζεται και το βλέπεις. Οταν όχι,
+  // δεν υπάρχει τίποτα να διαβάσεις.
+  if(attention.length===0) return null
 
   return (
     <div style={cardStyle}>
@@ -163,9 +164,14 @@ function AnalysisCards({items,repairs,kwhPrice,kwhControl}:{items:InventoryItem[
   const electricItems = items.filter(hasEnergy)
   const byCategory = [...INVENTORY_CATEGORIES].map(cat=>{const ci=items.filter(i=>i.category===cat);return{cat,count:ci.length,val:ci.reduce((s,i)=>s+calcCurrentValue(i),0)}}).filter(x=>x.count>0)
   const maxVal = Math.max(...byCategory.map(x=>x.val),1)
+  // ΚΑΤΑΝΟΜΗ ΧΩΡΙΣ ΤΙΠΟΤΑ ΝΑ ΚΑΤΑΝΕΜΗΘΕΙ. Οταν κανένα αντικείμενο δεν έχει
+  // δηλωμένη τιμή αγοράς, η κάρτα τύπωνε τέσσερις γραμμές «0,00 €» με μπάρες
+  // ίδιου μήκους: ένα γράφημα που δείχνει ότι όλα είναι ίσα με το μηδέν. Το
+  // πλήθος ανά κατηγορία το λέει ήδη το πλακίδιο «Αντικείμενα» και το φίλτρο.
+  const hasAnyValue = byCategory.some(x=>x.val>0)
   const topEnergy = [...electricItems].sort((a,b)=>calcMonthlyCost(b,kwhPrice)-calcMonthlyCost(a,kwhPrice)).slice(0,5)
 
-  const categoriesCard = (
+  const categoriesCard = !hasAnyValue ? null : (
     <div style={cardStyle}>
       <SectionLabel label="Κατανομή αξίας ανά κατηγορία"/>
       <div style={{display:'flex',flexDirection:'column',gap:10}}>
@@ -223,9 +229,16 @@ function AnalysisCards({items,repairs,kwhPrice,kwhControl}:{items:InventoryItem[
 function HandoverCard({handovers,onOpenHandover}:{handovers:InventoryHandover[];onOpenHandover:()=>void}) {
   return (
     <div style={cardStyle}>
-      <SectionLabel label="Παραδόσεις και παραλαβές" right={<button onClick={onOpenHandover} style={{padding:'0 12px',height:28,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',color:'var(--text-secondary)',fontSize:12,fontFamily:T.font.sans,fontWeight:500,cursor:'pointer'}}>{handovers.length>0?'Άνοιγμα':'Νέο πρωτόκολλο'}</button>}/>
+      {/* ΤΟ «ΤΙ ΕΙΝΑΙ ΑΥΤΟ» ΠΗΓΕ ΣΤΟ ΚΥΚΛΑΚΙ. Χωρίς πρωτόκολλα, η κάρτα ήταν μια
+          επικεφαλίδα, ένα κουμπί και μία πρόταση εξήγησης: το κουμπί λέει ήδη την
+          κίνηση («Νέο πρωτόκολλο») και η εξήγηση κρατούσε δική της γραμμή σε κάθε
+          φόρτωση, για πάντα. Τώρα διαβάζεται με πάτημα, από όποιον τη θέλει. */}
+      <SectionLabel label="Παραδόσεις και παραλαβές" right={<span style={{display:'inline-flex',alignItems:'center',gap:8}}>
+        <InfoHint label="Τι είναι το πρωτόκολλο παράδοσης">Καταγραφή της κατάστασης του εξοπλισμού στην είσοδο και στην έξοδο του ενοικιαστή. Είναι η απόδειξη για την εγγύηση.</InfoHint>
+        <button onClick={onOpenHandover} style={{padding:'0 12px',height:28,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',color:'var(--text-secondary)',fontSize:12,fontFamily:T.font.sans,fontWeight:500,cursor:'pointer'}}>{handovers.length>0?'Άνοιγμα':'Νέο πρωτόκολλο'}</button>
+      </span>}/>
       {handovers.length===0
-        ?<p style={{fontSize:13,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.6}}>Καταγραφή της κατάστασης του εξοπλισμού στην είσοδο και στην έξοδο του ενοικιαστή: η απόδειξη για την εγγύηση.</p>
+        ? null
         :<div style={{display:'flex',flexDirection:'column',gap:6}}>
           {[...handovers].sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime()).slice(0,4).map(h=>{
             const snap=h.items_snapshot||[]; const bad=snap.filter(s=>s.condition_at_handover==='Κακή'||s.condition_at_handover==='Εκτός Λειτουργίας').length
@@ -308,14 +321,26 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
     // εξαρτάται από τον κόμβο του κουμπιού, άρα η διαγραφή εκτελείται κανονικά.
     {label:'Διαγραφή',icon:IconTrash,danger:true,onClick:async()=>{ if(await confirmDialog(`Διαγραφή «${item.name}»;`,{tone:'negative'})) onDelete(item.id) }},
   ]
-  const SORT_LABELS:Record<SortKey,string> = {name:'Όνομα',value:'Αξία',energy:'Ρεύμα/μήνα',age:'Ηλικία',depreciation:'Υπολειπόμενη αξία'}
+  // ═══ ΤΕΣΣΕΡΑ ΧΕΙΡΙΣΤΗΡΙΑ, ΜΙΑ ΓΡΑΜΜΗ ΒΑΣΗΣ ══════════════════════════════
+  // Τρία από τα τέσσερα φίλτρα δεν είχαν ετικέτα από πάνω και το τέταρτο είχε
+  // («Ταξινόμηση»): μόνο αυτό κατέβαινε κατά το ύψος της ετικέτας και έσπαγε τη
+  // γραμμή, με το κουμπί κατεύθυνσης να ακολουθεί.
+  //
+  // Η λύση δεν είναι τέσσερις ετικέτες αλλά καμία: οι δύο γείτονες λένε ήδη τι
+  // κάνουν μέσα από την προεπιλογή τους («Ολες οι κατηγορίες», «Ολα τα
+  // δωμάτια»). Η ταξινόμηση μιλά τώρα το ίδιο ιδίωμα, «Κατά όνομα», «Κατά
+  // αξία», οπότε η ετικέτα περισσεύει και η γραμμή ισιώνει.
+  const SORT_LABELS:Record<SortKey,string> = {name:'Κατά όνομα',value:'Κατά αξία',energy:'Κατά ρεύμα τον μήνα',age:'Κατά ηλικία',depreciation:'Κατά υπολειπόμενη αξία'}
   // Οι μαζικές ενέργειες δρουν ΜΟΝΟ σε ό,τι είναι επιλεγμένο ΚΑΙ ορατό στα τρέχοντα φίλτρα.
   const visIds = filtered.filter(i=>selected.has(i.id)).map(i=>i.id)
 
   return (
     <div style={{display:'flex',flexDirection:'column',gap:14}}>
       <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
-        <div style={{flex:1,minWidth:180}}><TextInput ariaLabel="Αναζήτηση αντικειμένου" value={search} onChange={setSearch} placeholder="Αντικείμενο ή μάρκα" aria-label="Αναζήτηση απογραφής"/></div>
+        {/* ΤΟ minWidth ΗΤΑΝ 180 ΚΑΙ Η ΥΠΟΔΕΙΞΗ ΘΕΛΕΙ 167 ΣΥΝ ΤΑ ΠΕΡΙΘΩΡΙΑ. Η πρώτη
+            σάρωση της καρτέλας το έπιασε κομμένο στα 430 και στα 1024: το πεδίο
+            έπεφτε στα 158 και το «Αντικείμενο ή μάρκα» έχανε το τέλος του. */}
+        <div style={{flex:1,minWidth:210}}><TextInput ariaLabel="Αναζήτηση αντικειμένου" value={search} onChange={setSearch} placeholder="Αντικείμενο ή μάρκα" aria-label="Αναζήτηση απογραφής"/></div>
         {/* ΤΑ ΠΛΑΤΗ ΒΓΑΙΝΟΥΝ ΑΠΟ ΤΟ ΚΕΙΜΕΝΟ, ΚΑΙ ΤΟ ΚΕΙΜΕΝΟ ΕΙΝΑΙ ΕΛΛΗΝΙΚΟ.
             Το «Όλες οι κατηγορίες» και το «Όλα τα δωμάτια» είναι οι ΠΡΟΕΠΙΛΟΓΕΣ,
             δηλαδή αυτό που βλέπει ο χρήστης πριν αγγίξει τίποτα — και δεν
@@ -325,7 +350,7 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
         <div style={{width:210}}><CustomSelect value={filterCat} onChange={setFilterCat} options={['Όλες',...[...INVENTORY_CATEGORIES].filter(c=>items.some(i=>i.category===c))].map(c=>({value:c,label:c==='Όλες'?'Όλες οι κατηγορίες':c}))}/></div>
         {allRooms.length>0&&<div style={{width:190}}><CustomSelect value={filterRoom} onChange={setFilterRoom} options={[{value:'Όλα',label:'Όλα τα δωμάτια'},...allRooms.map(r=>({value:r,label:r}))]}/></div>}
         <div style={{display:'flex',alignItems:'center',gap:6}}>
-          <div style={{width:196}}><CustomSelect label="Ταξινόμηση" value={sortKey} onChange={v=>setSortKey(v as SortKey)} options={(Object.keys(SORT_LABELS) as SortKey[]).map(k=>({value:k,label:SORT_LABELS[k]}))}/></div>
+          <div style={{width:212}}><CustomSelect ariaLabel="Ταξινόμηση" value={sortKey} onChange={v=>setSortKey(v as SortKey)} options={(Object.keys(SORT_LABELS) as SortKey[]).map(k=>({value:k,label:SORT_LABELS[k]}))}/></div>
           <button title={sortDir==='asc'?'Αύξουσα':'Φθίνουσα'} aria-label="Κατεύθυνση ταξινόμησης" onClick={()=>setSortDir(d=>d==='asc'?'desc':'asc')} style={{width:T.h.md,height:T.h.md,borderRadius:T.radius.pill,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',color:'var(--text-secondary)',cursor:'pointer',fontFamily:T.font.sans,fontSize:14,flexShrink:0,display:'inline-flex',alignItems:'center',justifyContent:'center'}}><svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">{sortDir==='asc'?<path d="M12 19V5M5 12l7-7 7 7"/>:<path d="M12 5v14M19 12l-7 7-7-7"/>}</svg></button>
         </div>
         {actionCount>0&&<button onClick={()=>setShowNeedsAction(v=>!v)} title="Προβολή μόνο όσων χρειάζονται προσοχή" style={{padding:'0 12px',height:T.h.md,borderRadius:T.radius.pill,fontSize:12,cursor:'pointer',fontFamily:T.font.sans,fontWeight:500,border:`1px solid ${showNeedsAction?'var(--warning-border)':'var(--border-subtle)'}`,background:showNeedsAction?'var(--warning-soft)':'var(--bg-elevated)',color:showNeedsAction?'var(--warning)':'var(--text-secondary)',display:'flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>
@@ -355,8 +380,10 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
           </button>
         </div>
       ):(
-        <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',borderBottom:'1px solid var(--border-subtle)',paddingBottom:8}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',gap:8,borderBottom:'1px solid var(--border-subtle)',paddingBottom:8}}>
           <span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{filtered.length} {filtered.length===1?'αντικείμενο':'αντικείμενα'}</span>
+          {/* ΕΔΩ ΛΕΓΕΤΑΙ ΜΙΑ ΦΟΡΑ Ο,ΤΙ ΛΕΓΟΤΑΝ ΣΕ ΚΑΘΕ ΚΑΡΤΑ. */}
+          <InfoHint label="Τι δείχνουν τα ποσά">Το ποσό κάθε αντικειμένου είναι η εκτιμώμενη τρέχουσα αξία του: η τιμή αγοράς μειωμένη με την ηλικία του, πάνω στην ωφέλιμη ζωή της κατηγορίας. Είναι εκτίμηση για ασφάλιση και αντικατάσταση, όχι φορολογική απόσβεση. Η μπάρα δείχνει πόσο μένει από αυτήν την αξία.</InfoHint>
         </div>
       )}
       {filtered.length===0?(
@@ -370,6 +397,10 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:14}}>
           {filtered.map(item=>{
             const curVal=calcCurrentValue(item); const depPct=calcDepreciationPct(item); const left=calcYearsLeft(item)
+            // Δύο ερωτήματα, όχι ένα: «ξέρουμε πόσο κόστισε;» και «ξέρουμε πότε
+            // αγοράστηκε;». Το πρώτο κρίνει αν υπάρχει ποσό, το δεύτερο αν
+            // επιτρέπεται να μιλήσουμε για υπολειπόμενη αξία και χρόνια.
+            const hasValue=(item.purchase_value||0)>0; const hasDate=!!item.purchase_date
             const mc=calcMonthlyCost(item,kwhPrice)
             const photos=(item.photos||[]).filter(Boolean); const displayPhoto=item.photo_url||(photos[0]||'')
             const ws=item.warranty_expiry?warrantyStatus(item.warranty_expiry):null
@@ -408,12 +439,20 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
                       <p style={{fontSize:14,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:2,lineHeight:1.3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</p>
                       <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.category}{item.room?` · ${item.room}`:''}</p>
                     </div>
-                    <div style={{textAlign:'right',flexShrink:0}}>
-                      <p style={{fontSize:14,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:700,color:'var(--text-primary)',lineHeight:1.2}}>{fe(curVal)}</p>
-                      <p style={{fontSize: 11,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.5px',fontFamily:T.font.sans}}>Τρέχουσα αξία</p>
-                    </div>
+                    {/* ΤΟ «0,00 €» ΕΦΥΓΕ ΑΠΟ ΤΗ ΘΕΣΗ ΤΗΣ ΑΠΑΝΤΗΣΗΣ. Ενα αντικείμενο
+                        χωρίς δηλωμένη τιμή αγοράς δεν αξίζει μηδέν: δεν ξέρουμε πόσο
+                        αξίζει. Και η ετικέτα «ΤΡΕΧΟΥΣΑ ΑΞΙΑ» γραφόταν σε κάθε μία από
+                        τις δεκατρείς κάρτες· λέγεται μόνο όταν υπάρχει ποσό να
+                        ονομαστεί. */}
+                    {/* Η ΕΤΙΚΕΤΑ ΕΦΥΓΕ ΑΠΟ ΚΑΘΕ ΚΑΡΤΑ. Μετρήθηκε: «ΤΡΕΧΟΥΣΑ ΑΞΙΑ»
+                        ×11 σε μία οθόνη με δεκατρία αντικείμενα. Το ποσό σε ευρώ
+                        δίπλα στο όνομα ενός επίπλου δεν χρειάζεται να συστηθεί
+                        έντεκα φορές· λέγεται μία, στο κυκλάκι πάνω από το πλέγμα. */}
+                    {hasValue && (
+                      <p style={{fontSize:14,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:700,color:'var(--text-primary)',lineHeight:1.2,flexShrink:0}}>{fe(curVal)}</p>
+                    )}
                   </div>
-                  <DepBar pct={depPct} left={left}/>
+                  <DepBar pct={depPct} left={left} hasData={hasDate} hasValue={hasValue} compact/>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,minHeight:15}}>
                     <div style={{minWidth:0,overflow:'hidden'}}>
                       {repl.suggested
@@ -436,6 +475,8 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
           </div>
           {filtered.map(item=>{
             const curVal=calcCurrentValue(item); const mc=calcMonthlyCost(item,kwhPrice); const age=calcAgeDisplay(item.purchase_date)
+            // Ιδιος κανόνας με τις κάρτες: χωρίς τιμή αγοράς δεν υπάρχει ποσό.
+            const hasValue=(item.purchase_value||0)>0; const hasDate=!!item.purchase_date
             const sel=selected.has(item.id)
             return (
               <div key={item.id} {...pressable(()=>selectMode?toggleSel(item.id):onEdit(item))} style={{display:'grid',gridTemplateColumns:`${selectMode?'32px ':''}minmax(0,2fr) 130px 96px 90px 44px`,gap:10,padding:'11px 16px',background:sel?'var(--accent-soft)':'var(--bg-surface)',borderBottom:'1px solid var(--border-subtle)',alignItems:'center',transition:'background 0.15s',cursor:'pointer'}}
@@ -449,11 +490,13 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
                     {item.energy_class&&<EnergyBadge cls={item.energy_class}/>}
                   </div>
                   <p style={{fontSize: 11,color:'var(--text-tertiary)',fontFamily:T.font.sans,margin:'2px 0 4px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.category}{item.room?` · ${item.room}`:''}{age?` · ${age}`:''}</p>
-                  <DepBar pct={calcDepreciationPct(item)} left={calcYearsLeft(item)}/>
+                  <DepBar pct={calcDepreciationPct(item)} left={calcYearsLeft(item)} hasData={hasDate} hasValue={hasValue} compact/>
                   {replacementSuggestion(item).suggested&&<div style={{marginTop:4}}><ReplacementHint item={item} compact/></div>}
                 </div>
                 <div onClick={e=>e.stopPropagation()}><InlineConditionEdit item={item} onUpdate={onUpdateCondition}/></div>
-                <p style={{fontSize:13,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:700}}>{fe(curVal)}</p>
+                {hasValue
+                  ? <p style={{fontSize:13,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:700}}>{fe(curVal)}</p>
+                  : <p style={{fontSize:12,fontFamily:T.font.sans,color:'var(--text-tertiary)'}}>Χωρίς αξία</p>}
                 <div>{mc>0&&<p style={{fontSize:12,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:700}}>{fe(mc)}</p>}</div>
                 <div style={{display:'flex',justifyContent:'flex-end'}}><OverflowMenu actions={itemActions(item)}/></div>
               </div>
@@ -814,10 +857,14 @@ export default function TabInventory({propertyId,userId,profileType='individual'
             // υπάρχει μέτρηση», λέει «μετρήσαμε μηδέν» — και είναι ψέμα.
             <KPIGrid items={[
               {label:'Αντικείμενα',value:fn(items.length),sub:`${categoryCount} ${categoryCount===1?'κατηγορία':'κατηγορίες'}`},
-              {label:'Εκτιμώμενη υπολειπόμενη αξία',value:fe(totalValue),
-                sub:invSummary.totalOriginal>0
-                  ? `από ${fe(invSummary.totalOriginal)} αξία αγοράς, μένει το ${Math.max(0,100-invSummary.avgDepreciatedPct)}%`
-                  : 'εκτίμηση, όχι φορολογική απόσβεση'},
+              // ΤΟ ΙΔΙΟ ΠΛΑΚΙΔΙΟ ΕΣΠΑΖΕ ΤΟΝ ΚΑΝΟΝΑ ΠΟΥ ΓΡΑΦΕΙ ΑΠΟ ΠΑΝΩ ΤΟΥ. Οταν
+              // κανένα αντικείμενο δεν έχει δηλωμένη τιμή αγοράς, το άθροισμα
+              // είναι μηδέν και το πλακίδιο τύπωνε «0,00 €» με υπότιτλο
+              // «εκτίμηση, όχι φορολογική απόσβεση»: ανακοίνωνε αποτέλεσμα
+              // εκτίμησης εκεί που δεν έγινε καμία εκτίμηση. Εμφανίζεται μόνο
+              // όταν υπάρχει έστω μία τιμή αγοράς να αθροιστεί.
+              ...(invSummary.totalOriginal>0?[{label:'Εκτιμώμενη υπολειπόμενη αξία',value:fe(totalValue),
+                sub:`από ${fe(invSummary.totalOriginal)} αξία αγοράς, μένει το ${Math.max(0,100-invSummary.avgDepreciatedPct)}%`}]:[]),
               ...(electricItems.length>0?[kwhPrice>0
                 ? {label:'Ρεύμα ανά μήνα',value:fe(monthlyCost),sub:`${fn(monthlyKwh,1)} κιλοβατώρες, στα ${feRate(kwhPrice)} ανά κιλοβατώρα`}
                 : {label:'Ρεύμα ανά μήνα',value:`${fn(monthlyKwh,1)} kWh`,sub:'δήλωσε τιμή ανά κιλοβατώρα για κόστος'}]:[]),

@@ -14,7 +14,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { qrDataUrl } from '@/lib/qr'
-import { T, TT, Modal, SecHdr, Btn, pressable } from '@/components/Theme'
+import { T, TT, Modal, SecHdr, Btn, pressable, fp } from '@/components/Theme'
 // Το πλαίσιο επιλογής ζει στο Theme, ένα για όλη την εφαρμογή. Ξαναβγαίνει από
 // εδώ ώστε τα σημεία που το εισάγουν από τα Bits να μη χρειαστεί να αλλάξουν.
 export { SelectBox } from '@/components/Theme'
@@ -106,9 +106,37 @@ export const EnergyBadge = ({cls}:{cls:string}) => { if(!cls) return null; const
   <span title={`Ενεργειακή κλάση ${cls}`} style={{display:'inline-flex',alignItems:'center',padding:'2px 8px',borderRadius:6,fontSize: 11,fontWeight:700,color:fg,background:bg,border:`1px solid ${bd}`,letterSpacing:'0.5px',fontFamily:T.font.sans}}>{cls}</span>
 ) }
 
-// Η μπάρα δείχνει ΤΙ ΜΕΝΕΙ, όχι «Απόσβεση»: το ίδιο νούμερο, με το όνομα που δεν
-// μπερδεύεται με τη φορολογική απόσβεση του ΚΦΕ. Γεμάτη μπάρα = αξία που κρατάει.
-export const DepBar = ({pct,left}:{pct:number;left:number}) => {
+// ═══════════════════════════════════════════════════════════════════════════
+// Η ΜΠΑΡΑ ΔΕΝ ΜΙΛΑ ΓΙΑ ΑΝΤΙΚΕΙΜΕΝΟ ΠΟΥ ΔΕΝ ΞΕΡΕΙ
+// ─────────────────────────────────────────────────────────────────────────
+// ΤΙ ΕΒΛΕΠΕ Ο ΧΡΗΣΤΗΣ. Δεκατρία αντικείμενα χωρίς τιμή αγοράς έδειχναν, ΟΛΑ,
+// «0,00 € ΤΡΕΧΟΥΣΑ ΑΞΙΑ», «Εκτιμώμενη υπολειπόμενη αξία 100%», γεμάτη μπάρα και
+// «περίπου 9 χρόνια». Τέσσερα νούμερα, κανένα αληθινό:
+//
+//   · το «0,00 €» δεν είναι αξία, είναι ΑΠΟΥΣΙΑ αξίας
+//   · το «100%» είναι εκατό τοις εκατό του τίποτα
+//   · η γεμάτη μπάρα σε κάθε κάρτα δεν διακρίνει τίποτα από τίποτα
+//   · τα «περίπου 9 χρόνια» είναι η ωφέλιμη ζωή ΤΗΣ ΚΑΤΗΓΟΡΙΑΣ, όχι αυτού του
+//     αντικειμένου: χωρίς ημερομηνία αγοράς δεν ξέρουμε πόσο έχει ήδη ζήσει
+//
+// Η μηχανή το ήξερε και το έλεγε. Το `depreciate()` επιστρέφει `hasData: false`
+// όταν λείπει η ημερομηνία (lib/inventory/depreciation.ts:85) και το πεδίο δεν
+// το διάβαζε ΚΑΜΙΑ οθόνη: ζούσε μόνο μέσα στην πρόταση αντικατάστασης.
+//
+// Τώρα η κάρτα λέει τι της λείπει. Ο,τι λείπει είναι και η επόμενη κίνηση.
+// ═══════════════════════════════════════════════════════════════════════════
+// Το `compact` είναι για ΚΑΤΑΛΟΓΟ: εκεί η ίδια ετικέτα θα γραφόταν όσες φορές
+// υπάρχουν αντικείμενα. Μετρήθηκε στην απογραφή των δεκατριών: «Εκτιμώμενη
+// υπολειπόμενη αξία» ×9 σε μία οθόνη. Ολόκληρη μένει όπου το αντικείμενο είναι
+// ΕΝΑ, δηλαδή στο παράθυρο επισκευής.
+export const DepBar = ({pct,left,hasData=true,hasValue=true,compact}:{pct:number;left:number;hasData?:boolean;hasValue?:boolean;compact?:boolean}) => {
+  if (!hasValue || !hasData) {
+    return (
+      <div style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.45}}>
+        {!hasValue ? 'Χωρίς τιμή αγοράς' : 'Χωρίς ημερομηνία αγοράς'}
+      </div>
+    )
+  }
   const remaining = Math.max(0, 100 - pct)
   // Η υπολειπόμενη αξία δεν είναι βαθμός. Ένα ψυγείο στο 45% δεν είναι
   // «κίτρινο» και στο 70% δεν είναι «πράσινο» — απλώς έχει την ηλικία του.
@@ -121,7 +149,7 @@ export const DepBar = ({pct,left}:{pct:number;left:number}) => {
         <div style={{height:'100%',width:`${remaining}%`,background:c,borderRadius:3,transition:'width 0.4s'}}/>
       </div>
       <div style={{display:'flex',justifyContent:'space-between',marginTop:3}}>
-        <span style={{fontSize: 11,color:'var(--text-tertiary)',fontFamily:T.font.num,fontVariantNumeric:'tabular-nums'}}>Εκτιμώμενη υπολειπόμενη αξία {remaining}%</span>
+        <span style={{fontSize: 11,color:'var(--text-tertiary)',fontFamily:T.font.num,fontVariantNumeric:'tabular-nums'}}>{compact?'μένει ':'Εκτιμώμενη υπολειπόμενη αξία '}{fp(remaining)}</span>
         {left>0
           ?<span style={{fontSize: 11,color:'var(--text-tertiary)',fontFamily:T.font.num,fontVariantNumeric:'tabular-nums'}}>περίπου {left} χρόνια</span>
           :<span style={{fontSize: 11,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Τέλος ωφέλιμης ζωής</span>
@@ -137,15 +165,20 @@ export function ReplacementHint({item,compact}:{item:InventoryItem;compact?:bool
   if (s.severity === 'none') return null
   const due = s.severity === 'due'
   const tip = s.reasons.join(' · ')
+  // ΤΑ 9 ΚΑΙ ΤΑ 10 ΣΗΜΕΙΑ ΕΓΙΝΑΝ 11, ΤΟ ΔΑΠΕΔΟ ΤΟΥ ΕΡΓΟΥ. Η πρώτη σάρωση που
+  // είδε ποτέ αυτή την καρτέλα βρήκε το ίδιο εύρημα και στις δώδεκα συσκευές:
+  // η μόνη προειδοποίηση της κάρτας γραφόταν στα εννιά σημεία, δηλαδή ήταν
+  // δυσανάγνωστη ακριβώς εκεί που έπρεπε να διαβαστεί. Η σμίκρυνση δεν λύνει
+  // πρόβλημα χώρου, το μεταφέρει σε όποιον δεν βλέπει καλά.
   if (due) return (
     <div title={tip} style={{display:'inline-flex',alignItems:'center',gap:6,padding:compact?'2px 8px':'6px 10px',borderRadius:compact?20:8,background:'var(--warning-soft)',border:'1px solid var(--warning-border)',maxWidth:'100%'}}>
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-      <span style={{fontSize:compact?9:10,color:'var(--warning)',fontFamily:T.font.sans,fontWeight:600,letterSpacing:compact?'0.02em':0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>Προτείνεται αντικατάσταση</span>
+      <span style={{fontSize:11,color:'var(--warning)',fontFamily:T.font.sans,fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>Προτείνεται αντικατάσταση</span>
     </div>
   )
   // soft: πλησιάζει τέλος ωφέλιμης ζωής
   return (
-    <span title={tip} style={{fontSize:compact?9:10,color:'var(--text-tertiary)',fontFamily:T.font.sans,whiteSpace:'nowrap'}}>Πλησιάζει το τέλος ζωής</span>
+    <span title={tip} style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,whiteSpace:'nowrap'}}>Πλησιάζει το τέλος ζωής</span>
   )
 }
 

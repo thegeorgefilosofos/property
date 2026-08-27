@@ -44,6 +44,7 @@ export function portfolio(n: number): Bench {
   const clients: unknown[] = [];
   const propOwners: unknown[] = [];
   const rentCfg: unknown[] = [];
+  const inventory: unknown[] = [];
 
   for (let i = 0; i < n; i++) {
     const id = `p${i}`;
@@ -126,6 +127,48 @@ export function portfolio(n: number): Bench {
     }
   }
 
+  // ═══ ΕΞΟΠΛΙΣΜΟΣ ΣΤΟ ΠΡΩΤΟ ΑΚΙΝΗΤΟ, ΜΕ ΚΑΙ ΧΩΡΙΣ ΣΤΟΙΧΕΙΑ ══════════════════
+  // Ο πίνακας `inventory_items` δεν σπερνόταν καθόλου, οπότε η καρτέλα «Επιπλα
+  // και εξοπλισμός» δεν είχε μετρηθεί ΠΟΤΕ σε καμία συσκευή.
+  //
+  // Τα δεκατρία αντικείμενα δεν είναι όλα ίδια ΣΚΟΠΙΜΑ: εννιά έχουν τιμή και
+  // ημερομηνία αγοράς, δύο έχουν τιμή χωρίς ημερομηνία και δύο δεν έχουν τίποτα.
+  // Ετσι η μέτρηση βλέπει ΚΑΙ ΤΙΣ ΤΡΕΙΣ καταστάσεις της κάρτας, δηλαδή και εκείνη
+  // που έδειχνε «0,00 €» και «100%» για αντικείμενο χωρίς κανένα στοιχείο.
+  const INV = [
+    { name: 'Απορροφητήρας', cat: 'Ηλεκτρικές Συσκευές', room: 'Κουζίνα' },
+    { name: 'Θερμοσίφωνας', cat: 'Θέρμανση & Ψύξη', room: 'Μπάνιο' },
+    { name: 'Καναπές', cat: 'Έπιπλα', room: 'Σαλόνι' },
+    { name: 'Καρέκλες (σετ)', cat: 'Έπιπλα', room: 'Σαλόνι' },
+    { name: 'Κλιματιστικό', cat: 'Θέρμανση & Ψύξη', room: 'Σαλόνι' },
+    { name: 'Κουζίνα (εστίες και φούρνος)', cat: 'Ηλεκτρικές Συσκευές', room: 'Κουζίνα' },
+    { name: 'Κρεβάτι διπλό', cat: 'Έπιπλα', room: 'Κύριο Υπνοδωμάτιο' },
+    { name: 'Ντουλάπα', cat: 'Έπιπλα', room: 'Κύριο Υπνοδωμάτιο' },
+    { name: 'Πλυντήριο ρούχων', cat: 'Ηλεκτρικές Συσκευές', room: 'Μπάνιο' },
+    { name: 'Ψυγείο', cat: 'Ηλεκτρικές Συσκευές', room: 'Κουζίνα' },
+    { name: 'Τηλεόραση', cat: 'Ηλεκτρονικά', room: 'Σαλόνι' },
+    { name: 'Τραπέζι', cat: 'Έπιπλα', room: 'Σαλόνι' },
+    { name: 'Φωτιστικό δαπέδου', cat: 'Έπιπλα', room: 'Σαλόνι' },
+  ];
+  INV.forEach((it, k) => {
+    const withValue = k < 11;
+    const withDate = k < 9;
+    inventory.push({
+      id: `inv${k}`, property_id: 'p0', user_id: 'u1',
+      name: it.name, category: it.cat, room: it.room,
+      brand: k % 3 === 0 ? 'Bosch' : '', model: '', serial_number: '',
+      purchase_value: withValue ? 180 + (k % 7) * 145 : 0,
+      current_value: 0,
+      purchase_date: withDate ? `${YEAR - 3 - (k % 6)}-0${(k % 8) + 1}-12` : '',
+      warranty_expiry: k % 4 === 0 ? `${YEAR + 1}-03-01` : '',
+      condition: 'Καλή', notes: '', photo_url: '', photos: [],
+      energy_class: k % 3 === 0 ? 'A' : '', power_watts: 0, daily_hours_use: 0,
+      energy_mode: null, kwh_per_100_cycles: 0, cycles_per_month: 0, annual_kwh: 0,
+      replacement_cost: k % 5 === 0 ? 320 : 0,
+      created_at: `${YEAR}-01-01`, updated_at: `${YEAR}-01-01`,
+    });
+  });
+
   for (let c = 0; c < 40; c++) clients.push({ id: `c${c}`, full_name: `Πελάτης ${c + 1}` });
 
   return {
@@ -145,6 +188,7 @@ export function portfolio(n: number): Bench {
       // και ΚΑΜΙΑ δεν πήρε γραμμή. Δηλαδή ο σαρωτής διάταξης έβγαινε καθαρός
       // πάνω σε κελύφη, όχι πάνω στην εφαρμογή.
       user_properties: propOwners,
+      inventory_items: inventory,
       rent_config: rentCfg,
     },
   };

@@ -35,6 +35,9 @@ import TabComparison from '@/app/dashboard/components/TabComparison';
 import TabLoanCalculator from '@/app/dashboard/components/TabLoanCalculator';
 import { MARKET_FALLBACK } from '@/app/dashboard/components/TabLoanData';
 import TabPricing from '@/app/dashboard/components/TabPricing';
+// Η ΑΠΟΓΡΑΦΗ ΔΕΝ ΕΙΧΕ ΣΚΗΝΗ. Δεκατρείς κάρτες σε πλέγμα, φίλτρα, μενού και δύο
+// προβολές· καμία μέτρηση σε καμία συσκευή, ποτέ.
+import TabInventory from '@/app/dashboard/components/TabInventory';
 import TabContacts from '@/app/dashboard/components/TabContacts';
 import TabBills from '@/app/dashboard/components/TabBills';
 // Η ΠΡΩΤΗ ΟΘΟΝΗ ΠΟΥ ΒΛΕΠΕΙ ΑΝΘΡΩΠΟΣ ΠΟΥ ΜΟΛΙΣ ΕΓΡΑΨΕ ΛΟΓΑΡΙΑΣΜΟ· ήταν επίσης η
@@ -238,6 +241,7 @@ const VIEWS: Record<string, () => React.ReactElement> = {
       <DocumentScan propertyId="p0" userId="u1" onSaved={async () => {}} onBusyChange={() => {}} />
     </Modal>
   ),
+  inventory: () => <TabInventory propertyId="p0" userId="u1" />,
   accounting: () => <TabAccounting propertyId="p0" userId="u1" />,
   calendar: () => <TabCalendar propertyId="p0" userId="u1" openTasks={3} />,
   clients: () => <TabClients userId="u1" />,
