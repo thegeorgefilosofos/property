@@ -630,13 +630,13 @@ export function buildSystemBlocks(prefs: AssistantPrefs, propertyContext: string
   ];
 }
 
-/**
- * Το ίδιο περιεχόμενο ως ένα ενιαίο κείμενο. Μένει για όσους καλούντες θέλουν
- * απλό string (και για τα τεστ) — η σειρά είναι ίδια με των μπλοκ.
- */
-export function buildSystemPrompt(prefs: AssistantPrefs, propertyContext: string, allPropsContext?: string, extras?: PromptExtras): string {
-  return buildSystemBlocks(prefs, propertyContext, allPropsContext, extras).map(b => b.text).join('\n\n');
-}
+// ΤΟ ΕΝΙΑΙΟ ΚΕΙΜΕΝΟ ΔΕΝ ΤΟ ΖΗΤΑΕΙ ΚΑΝΕΝΑΣ. Εδώ ζούσε η `buildSystemPrompt`, που
+// ένωνε τα δύο μπλοκ σε ένα string· το σχόλιό της έλεγε ότι μένει «για όσους
+// καλούντες θέλουν απλό string». Τέτοιος καλών δεν υπήρχε ποτέ: ο βοηθός
+// στέλνει μπλοκ, γιατί μόνο έτσι μπαίνει το σταθερό κομμάτι σε cache.
+//
+// Ο μόνος πραγματικός χρήστης της ήταν η σουίτα, που τώρα ενώνει μόνη της ό,τι
+// στέλνει η παραγωγή. Ετσι το τεστ μετράει το ΙΔΙΟ πράγμα με τον χρήστη.
 
 // Καθαρισμός κειμένου για ΦΩΝΗ: η εκφώνηση πρέπει να ακούγεται σαν φυσικά ελληνικά,
 // όχι να διαβάζει «αστεράκια», σύμβολα ή βέλη. Αφαιρεί markdown/bullets/βέλη/οδηγίες

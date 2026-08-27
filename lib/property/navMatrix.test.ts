@@ -20,7 +20,8 @@
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { visibleTabs, type OwnerContext, type PropertyLike, type LegalForm } from './visibility';
+import { type OwnerContext, type PropertyLike, type LegalForm } from './visibility';
+import { visibleTabs } from './visibility.testkit';
 import { NAV_LABELS } from '../nav/labels';
 import { STATUSES, writeStatus, type PropertyStatus } from './status';
 

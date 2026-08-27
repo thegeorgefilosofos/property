@@ -1,10 +1,11 @@
 // npx tsx lib/property/visibility.test.ts
 import { STATUSES, writeStatus, isLet } from './status';
 import {
-  tabDecision, visibleTabs, comparableGroups, canCompare,
-  accountingSections, accountingScope, normType,
+  tabDecision, comparableGroups, canCompare,
+  normType,
   type OwnerContext, type PropertyLike,
 } from './visibility';
+import { visibleTabs } from './visibility.testkit';
 import { NAV_LABELS } from '../nav/labels';
 
 let pass = 0, fail = 0;
@@ -159,38 +160,13 @@ for (const [status, mode] of [['vacant', null], ['disputed', null], ['for_sale',
 }
 eq('τύπος με τόνους και κεφαλαία', normType('ΔΙΑΜΕΡΙΣΜΑ'), normType('Διαμέρισμα'));
 
-// ═══ ΛΟΓΙΣΤΙΚΗ: ΔΥΟ ΑΝΕΞΑΡΤΗΤΟΙ ΑΞΟΝΕΣ ═══════════════════════════════════
-// Ένας ιδιώτης με ένα διαμέρισμα προς ενοικίαση χρειάζεται το Ε2 και δεν έχει
-// καμία σχέση με ΕΦΚΑ και προκαταβολή φόρου. Μέχρι σήμερα έβλεπε και τα δύο.
-{
-  const s = accountingSections(ctxOf([flat()], 'individual'));
-  ok('ιδιώτης που εκμισθώνει: εισόδημα από ακίνητα', s.includes('rental_income'));
-  ok('ιδιώτης: ΚΑΜΙΑ φορολογία επιχείρησης', !s.includes('business'));
-  ok('ιδιώτης: καμία απόσβεση κτιρίου', !s.includes('depreciation'));
-  ok('ΕΝΦΙΑ πάντα', s.includes('enfia'));
-}
-{
-  const s = accountingSections(ctxOf([flat({ status_detail: 'own_use', rental_mode: null })], 'individual'));
-  ok('ιδιοχρησία: κανένα εισόδημα από ακίνητα', !s.includes('rental_income'));
-  ok('αλλά ΕΝΦΙΑ και δαπάνες μένουν', s.includes('enfia') && s.includes('expenses'));
-}
-{
-  const s = accountingSections(ctxOf([flat()], 'company'));
-  ok('εταιρεία: φορολογία επιχείρησης', s.includes('business'));
-  ok('εταιρεία: αποσβέσεις', s.includes('depreciation'));
-}
-{
-  const s = accountingSections(ctxOf([flat({ status_detail: 'seasonal', rental_mode: 'short_term' })]));
-  ok('βραχυχρόνια: τα ειδικά της', s.includes('short_term_tax'));
-}
-{
-  const s = accountingSections(ctxOf([flat({ status_detail: 'rented', rental_mode: 'long_term' })]));
-  ok('μακροχρόνια: όχι τα ειδικά της βραχυχρόνιας', !s.includes('short_term_tax'));
-}
-eq('τίτλος για ιδιώτη με ενοίκιο', accountingScope(ctxOf([flat()])), 'Φορολογία εισοδήματος από ακίνητα');
-eq('τίτλος για εταιρεία', accountingScope(ctxOf([flat()], 'company')), 'Φορολογία επιχείρησης και ακινήτων');
-eq('τίτλος για ιδιοχρησία', accountingScope(ctxOf([flat({ status_detail: 'own_use', rental_mode: null })])),
-  'Φόροι και τέλη ακινήτου');
+// ═══ ΛΟΓΙΣΤΙΚΗ: ΟΙ ΕΛΕΓΧΟΙ ΕΦΥΓΑΝ ΜΑΖΙ ΜΕ ΤΟΝ ΚΡΙΤΗ ══════════════════════
+// Δεκατέσσερις έλεγχοι κρατούσαν τα `accountingSections` και `accountingScope`:
+// ποιες ενότητες αφορούν τον ιδιώτη, την εταιρεία, τη βραχυχρόνια. Καμία οθόνη
+// δεν καλούσε καμία από τις δύο· η πρώτη φαινόταν χρησιμοποιημένη μόνο επειδή
+// την καλούσε η δεύτερη. Ο κανόνας που φύλαγαν ΙΣΧΥΕΙ και επιβάλλεται, αλλού:
+// το TabAccounting φράζει ΕΦΚΑ, προκαταβολή φόρου και αποσβέσεις πίσω από το
+// `businessMode`, οπότε ο ιδιώτης δεν τα βλέπει. Εκεί ζει και ο έλεγχός του.
 
 // ═══ ΧΩΡΙΣ ΕΠΙΛΕΓΜΕΝΟ ΑΚΙΝΗΤΟ ═════════════════════════════════════════════
 // Οι εξαρτώμενες καρτέλες ΔΕΝ φαίνονται: δεν υπάρχει κατάσταση να τις

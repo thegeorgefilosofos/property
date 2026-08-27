@@ -439,6 +439,8 @@ export function isTabPurchasable(profile: ProfileType, tabId: string): boolean {
   return planAtLeast(paidPlanForProfile(profile), requiredPlanForTab(tabId));
 }
 
-/** @deprecated Ασαφές όνομα: «relevant» σημαίνει πλέον «αφορά τον χρήστη» και
- *  ζει στο lib/property/visibility.ts. Χρησιμοποίησε το `isTabPurchasable`. */
-export const isTabRelevant = isTabPurchasable;
+// ΕΝΑ ΟΝΟΜΑ ΓΙΑ ΤΗΝ ΕΡΩΤΗΣΗ, ΟΧΙ ΔΥΟ. Εδώ ζούσε το ψευδώνυμο `isTabRelevant`,
+// σημειωμένο ως deprecated από τη μέρα που η ερώτηση «αφορά τον χρήστη;» πήγε
+// στο lib/property/visibility.ts. Κανείς δεν το καλούσε πια εκτός από το τεστ
+// του. Δύο ονόματα για την ίδια συνάρτηση σημαίνουν ότι ο επόμενος αναγνώστης
+// ψάχνει τη διαφορά τους· δεν υπάρχει διαφορά, οπότε δεν υπάρχει και το όνομα.

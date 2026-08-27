@@ -3,7 +3,7 @@ import {
   ALLOWED_PLANS, FEATURE_MIN_PLAN, TAB_MIN_PLAN, PROFESSIONAL_ONLY_TABS,
   planAtLeast, effectivePlan, activeComp, hasFeature, isTabAllowed,
   requiredPlanForTab, requiredPlanForFeature, propertyLimit, canAddProperty,
-  isPlanAllowedForProfile, paidPlanForProfile, isTabRelevant, isTabPurchasable,
+  isPlanAllowedForProfile, paidPlanForProfile, isTabPurchasable,
   trialState, isOpenEnded, planFromParam, cycleFromParam, profileForPlan, activeHold,
   type EntitlementInput,
 } from './entitlements';
@@ -127,11 +127,11 @@ ok(requiredPlanForFeature('clients') === 'agency', 'required feature clients = a
 // ── Σχετικότητα καρτέλας ανά προφίλ (portfolio/clients μόνο σε επαγγελματίες) ──
 ok(PROFESSIONAL_ONLY_TABS.has('portfolio') === true, 'portfolio professional-only');
 ok(PROFESSIONAL_ONLY_TABS.has('clients') === true, 'clients professional-only');
-ok(isTabRelevant('individual', 'portfolio') === false, 'ιδιώτης δεν βλέπει χαρτοφυλάκιο καθόλου');
-ok(isTabRelevant('individual', 'clients') === false, 'ιδιώτης δεν βλέπει πελατολόγιο καθόλου');
-ok(isTabRelevant('professional', 'portfolio') === true, 'επαγγελματίας βλέπει χαρτοφυλάκιο (έστω κλειδωμένο)');
-ok(isTabRelevant('individual', 'comparison') === true, 'ιδιώτης βλέπει σύγκριση (μπορεί να πάρει owner)');
-ok(isTabRelevant('individual', 'overview') === true, 'ιδιώτης βλέπει overview');
+ok(isTabPurchasable('individual', 'portfolio') === false, 'ιδιώτης δεν βλέπει χαρτοφυλάκιο καθόλου');
+ok(isTabPurchasable('individual', 'clients') === false, 'ιδιώτης δεν βλέπει πελατολόγιο καθόλου');
+ok(isTabPurchasable('professional', 'portfolio') === true, 'επαγγελματίας βλέπει χαρτοφυλάκιο (έστω κλειδωμένο)');
+ok(isTabPurchasable('individual', 'comparison') === true, 'ιδιώτης βλέπει σύγκριση (μπορεί να πάρει owner)');
+ok(isTabPurchasable('individual', 'overview') === true, 'ιδιώτης βλέπει overview');
 // Το νέο, ρητό όνομα: «θα το φτάσει ποτέ αυτό το προφίλ;» — τίποτα άλλο.
 ok(isTabPurchasable('individual', 'portfolio') === false, 'ο ιδιώτης δεν αγοράζει ποτέ χαρτοφυλάκιο');
 ok(isTabPurchasable('individual', 'comparison') === true, 'ο ιδιώτης φτάνει τη σύγκριση με το πλάνο Ιδιοκτήτης');

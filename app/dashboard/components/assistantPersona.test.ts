@@ -20,7 +20,7 @@ shim.localStorage = {
 };
 
 import {
-  parseAction, cleanForSpeech, buildSystemPrompt, buildSystemBlocks, NAV_MAP,
+  parseAction, cleanForSpeech, buildSystemBlocks, NAV_MAP,
   DEFAULT_PREFS, type AssistantPrefs, type AssistantAction,
   loadMemories, addMemory, removeMemory, clearMemories,
   normalizeBookTime, resolveBookDate, KNOWLEDGE_PACKS, packsFor,
@@ -30,6 +30,16 @@ import { PLANS, TRIAL_DAYS } from '@/lib/billing/plans';
 import { monthlyQuestionBudget, TRIAL_LIMITS } from '@/lib/billing/aiLimits';
 import { EARLY_ACCESS_DAYS } from '@/lib/billing/entitlements';
 import { ASSISTANT_NAME } from '@/lib/assistant/identity';
+
+// Ο,ΤΙ ΦΤΑΝΕΙ ΣΤΟ ΜΟΝΤΕΛΟ, ΣΕ ΕΝΑ ΚΕΙΜΕΝΟ. Η παραγωγή στέλνει δύο μπλοκ και
+// τα κρατάει χωριστά για το cache. Οι έλεγχοι από κάτω ρωτούν «περιέχεται
+// αυτή η φράση;», που είναι η ίδια ερώτηση πάνω στα ενωμένα μπλοκ. Το ένωμα
+// γίνεται εδώ, ώστε η παραγωγή να μη χρειάζεται δεύτερη εξαγωγή γι' αυτό.
+const buildSystemPrompt = (
+  prefs: AssistantPrefs, propertyContext: string,
+  allPropsContext?: string, extras?: Parameters<typeof buildSystemBlocks>[3],
+): string =>
+  buildSystemBlocks(prefs, propertyContext, allPropsContext, extras).map(b => b.text).join('\n\n');
 
 let passed = 0, failed = 0;
 const fails: string[] = [];
