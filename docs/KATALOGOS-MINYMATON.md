@@ -88,7 +88,7 @@ npm run katalogos
 | `trial_ending` | Η δοκιμή σου τελειώνει σύντομα | `supabase/functions/_shared/emailPolicy.ts`, `supabase/migrations/20260819130000_o_kyklos_zois_diavazei_to_sosto_pedio.sql` (+2) |
 | `winback_downgrade` | Είμαστε εδώ, όποτε θες | `supabase/functions/_shared/emailPolicy.ts` |
 | `reactivation_offer` | Γύρνα με ${pct}% έκπτωση | `supabase/functions/_shared/emailPolicy.ts` |
-| `trial_started` | Η δοκιμή σου ξεκίνησε. Ας την αξιοποιήσουμε | `supabase/functions/_shared/emailPolicy.ts` |
+| `trial_started` | Η δοκιμή σου ξεκίνησε. Ας την αξιοποιήσουμε | `lib/analytics/events.ts`, `supabase/functions/_shared/emailPolicy.ts` (+1) |
 
 ## SEASONAL
 

@@ -38,6 +38,9 @@ const SERVICE_ONLY = [
   'feedback_campaign_winners',
   'invoice_counters',
   'portal_pin_attempts',
+  // Μέτρηση προϊόντος. Γράφεται ΜΟΝΟ μέσω της RPC log_event, που ορίζει τον
+  // χρήστη από το auth.uid(). Ο περιηγητής δεν το αγγίζει ποτέ απευθείας.
+  'product_events',
   'referrals',
   'send_quota',
 ]

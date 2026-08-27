@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useId, cloneElement, isValidElement, Children, Fragment } from 'react';
+import { track, PRODUCT_EVENTS } from '@/lib/analytics/events';
 import { HEATING_TYPES, heatingLabel, normalizeHeating } from '@/lib/property/heating';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
@@ -497,6 +498,18 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
       // Το ακίνητο έχει ήδη αποθηκευτεί — λέμε ρητά τι έμεινε πίσω, ώστε το
       // «δοκίμασε ξανά» να μη διαβάζεται ως «ξαναφτιάξ' το από την αρχή».
       if (sErr) { setSaving(false); setError(failed('Το ακίνητο αποθηκεύτηκε, αλλά οι ρυθμίσεις του δεν καταχωρήθηκαν', sErr)); return; }
+    }
+
+    // ── ΤΟ ΣΚΑΛΙ ΤΗΣ ΑΞΙΑΣ ─────────────────────────────────────────────────
+    // Το πρώτο ακίνητο είναι η στιγμή που η εφαρμογή αρχίζει να χρησιμεύει, το
+    // δεύτερο είναι το πιο δυνατό σημάδι ότι κάποιος έμεινε. Τα δύο μετρώνται
+    // χωριστά, γιατί απαντούν σε διαφορετική ερώτηση. Καταγράφεται ΜΟΝΟ σε νέο
+    // ακίνητο: η επεξεργασία υπάρχοντος δεν είναι σκαλί.
+    //
+    // Πλήθος και μόνο, κανένα όνομα, καμία διεύθυνση, κανένα αναγνωριστικό.
+    if (!existing) {
+      const n = await properties.count(supabase, userId);
+      void track(supabase, n >= 2 ? PRODUCT_EVENTS.second_property_added : PRODUCT_EVENTS.property_added, { count: n });
     }
 
     setSaving(false);

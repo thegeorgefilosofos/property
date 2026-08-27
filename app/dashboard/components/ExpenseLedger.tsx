@@ -27,6 +27,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { track, PRODUCT_EVENTS } from '@/lib/analytics/events';
 import { createClient } from '@/lib/supabase/client';
 import * as expenseStore from '@/lib/data/expenses'
 import * as billStore from '@/lib/data/bills'
@@ -1124,6 +1125,10 @@ function QuickAdd({ propertyId, userId, seed, onDone }: { propertyId: string; us
         }]);
         if (error) throw error;
       }
+      // Πρώτη δαπάνη: το σκαλί όπου η εφαρμογή παύει να είναι άδεια φόρμα.
+      // Καταγράφεται το ΠΩΣ μπήκε, όχι το τι είναι: ποσό, περιγραφή, πάροχος
+      // και ΑΦΜ δεν φεύγουν ποτέ από τη γραμμή τους.
+      void track(supabase, PRODUCT_EVENTS.expense_added, { source: 'manual' });
       notify(paid ? 'Καταχωρήθηκε' : 'Καταχωρήθηκε ως εκκρεμής υποχρέωση');
       onDone();
     } catch { notifyError('Δεν αποθηκεύτηκε. Δοκίμασε ξανά.'); }
