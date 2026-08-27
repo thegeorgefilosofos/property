@@ -59,9 +59,15 @@ begin
   -- και όλα τα εργαλεία που ο δοκιμαστής υποτίθεται ότι ελέγχει.
   -- Το «agency» είναι το ανώτατο σκαλί που ζητά οποιοδήποτε χαρακτηριστικό στο
   -- FEATURE_MIN_PLAN, άρα ξεκλειδώνει τα πάντα με πραγματικό όνομα πακέτου.
-  insert into public.billing_profiles(user_id, plan, subscription_status, full_name)
-    values (uid, 'agency', 'active', 'Λογαριασμός δοκιμών')
-  on conflict (user_id) do update set plan = 'agency', subscription_status = 'active';
+  -- Το `tester_since` λέει «αυτός δεν πληρώνει ποτέ»: όσο είναι γεμάτο, ο
+  -- λογαριασμός αλλάζει ελεύθερα πακέτο μέσα από την εφαρμογή, χωρίς κάρτα και
+  -- χωρίς συνδρομή στον έμπορο (app/api/billing/plan/route.ts). Χωρίς αυτό, ο
+  -- δοκιμαστής θα κολλούσε στο πακέτο που του γράφει αυτό το αρχείο.
+  insert into public.billing_profiles(user_id, plan, subscription_status, tester_since, full_name)
+    values (uid, 'agency', 'active', now(), 'Λογαριασμός δοκιμών')
+  on conflict (user_id) do update
+    set plan = 'agency', subscription_status = 'active',
+        tester_since = coalesce(public.billing_profiles.tester_since, now());
 
   -- ── ΤΑ ΔΥΟ ΑΚΙΝΗΤΑ ──────────────────────────────────────────────────────
   insert into public.user_properties(user_id, name, prop_type, address, sqm, value, year_built, status_detail, rental_mode, enfia)
