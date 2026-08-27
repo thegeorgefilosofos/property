@@ -19,8 +19,8 @@ export const PUBLIC = [
 // σημαίνουν ότι ο ένας μένει πίσω· έμενε.
 export const BENCH = [
   'portfolio', 'cash', 'rent', 'inbox', 'ledger', 'checklist', 'modal', 'select',
-  'compare', 'loan', 'pricing', 'bills', 'contacts', 'wizard', 'roi', 'tenant', 'scan',
-  'accounting', 'calendar', 'clients', 'documents',
+  'compare', 'loan', 'pricing', 'bills', 'contacts', 'wizard', 'roi', 'roi-pro', 'tenant', 'scan',
+  'accounting', 'accounting-pro', 'calendar', 'clients', 'documents',
 ];
 
 export const benchUrl = (c, n = 12) =>

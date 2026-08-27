@@ -138,7 +138,13 @@ export function portfolio(n: number): Bench {
       checklist_items: checklist,
       rent_payments: rentPays,
       clients,
-      properties: propOwners,
+      // ═══ ΤΟ ΚΛΕΙΔΙ ΗΤΑΝ «properties» ΚΑΙ Ο ΠΙΝΑΚΑΣ ΛΕΓΕΤΑΙ «user_properties» ═══
+      // Μία λέξη· κάθε οθόνη που ρωτούσε για ακίνητα έπαιρνε άδειο. Το
+      // lib/data/properties.ts γράφει ρητά `const TABLE = 'user_properties'`.
+      // Μετρήθηκε: ο πίνακας ζητήθηκε 19 φορές σε σχεδόν κάθε σκηνή του πάγκου
+      // και ΚΑΜΙΑ δεν πήρε γραμμή. Δηλαδή ο σαρωτής διάταξης έβγαινε καθαρός
+      // πάνω σε κελύφη, όχι πάνω στην εφαρμογή.
+      user_properties: propOwners,
       rent_config: rentCfg,
     },
   };

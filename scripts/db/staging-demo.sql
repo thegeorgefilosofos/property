@@ -51,10 +51,17 @@ begin
   delete from public.clients where user_id = uid;
   delete from public.user_properties where user_id = uid;
 
-  -- Το πλάνο, ώστε να μη χτυπήσει το όριο ακινήτων στο δεύτερο διαμέρισμα.
+  -- ══ ΤΟ ΠΛΑΝΟ ΗΤΑΝ «pro» ΚΑΙ ΤΕΤΟΙΟ ΠΛΑΝΟ ΔΕΝ ΥΠΑΡΧΕΙ ═════════════════════
+  -- Τα πέντε ονόματα είναι free, solo, owner, agency, office (lib/billing/plans.ts).
+  -- Η normalizePlan γυρίζει σιωπηλά ΚΑΘΕ άγνωστο όνομα σε «free», οπότε ο
+  -- λογαριασμός δοκιμών έπαιρνε μηδενική συνδρομή: όριο ενός ακινήτου, δηλαδή
+  -- ακριβώς αυτό που το σχόλιο από πάνω έλεγε ότι αποφεύγει· κλειδωμένα ήταν
+  -- και όλα τα εργαλεία που ο δοκιμαστής υποτίθεται ότι ελέγχει.
+  -- Το «agency» είναι το ανώτατο σκαλί που ζητά οποιοδήποτε χαρακτηριστικό στο
+  -- FEATURE_MIN_PLAN, άρα ξεκλειδώνει τα πάντα με πραγματικό όνομα πακέτου.
   insert into public.billing_profiles(user_id, plan, subscription_status, full_name)
-    values (uid, 'pro', 'active', 'Λογαριασμός δοκιμών')
-  on conflict (user_id) do update set plan = 'pro', subscription_status = 'active';
+    values (uid, 'agency', 'active', 'Λογαριασμός δοκιμών')
+  on conflict (user_id) do update set plan = 'agency', subscription_status = 'active';
 
   -- ── ΤΑ ΔΥΟ ΑΚΙΝΗΤΑ ──────────────────────────────────────────────────────
   insert into public.user_properties(user_id, name, prop_type, address, sqm, value, year_built, status_detail, rental_mode, enfia)

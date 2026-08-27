@@ -219,6 +219,19 @@ const VIEWS: Record<string, () => React.ReactElement> = {
   contacts: () => <TabContacts propertyId="p0" userId="u1" />,
   wizard: () => <AddPropertyWizard userId="u1" onClose={() => {}} onSaved={() => {}} />,
   roi: () => <TabRentROI propertyId="p0" userId="u1" propertyValue={185000} />,
+  // ═══ ΟΙ ΚΛΕΙΔΩΜΕΝΕΣ ΕΝΟΤΗΤΕΣ ΔΕΝ ΜΕΤΡΗΘΗΚΑΝ ΠΟΤΕ ═══════════════════════════
+  // Ολες οι σκηνές τρέχουν με τις προεπιλογές των στηριγμάτων, δηλαδή
+  // `plan = 'free'` και `profileType = 'individual'`. Στην Αποδοση αυτό κόβει
+  // δύο ολόκληρες ενότητες, την Επενδυτική ανάλυση και την Αναλυση
+  // ευαισθησίας, μαζί με τα χειριστήρια «Ορίζοντας ανατοκισμού» και «Ορίζοντας
+  // κατοχής», τα τέσσερα MetricTile του IRR και τον πίνακα παραδοχών. Καμία
+  // σάρωση δεν τα είχε δει ΠΟΤΕ: μετρούσαμε τη μισή καρτέλα και το λέγαμε
+  // «καθαρή». Το ίδιο ισχύει για τη Λογιστική με το ημερολόγιο άρθρων.
+  //
+  // Οι δύο σκηνές δεν αντικαθιστούν τις ελεύθερες: ΚΑΙ ΟΙ ΔΥΟ καταστάσεις
+  // υπάρχουν σε πραγματικούς χρήστες, οπότε και οι δύο μετριούνται.
+  'roi-pro': () => <TabRentROI propertyId="p0" userId="u1" propertyValue={185000} profileType="professional" legalForm="company" plan="agency" />,
+  'accounting-pro': () => <TabAccounting propertyId="p0" userId="u1" profileType="professional" legalForm="company" plan="agency" />,
   tenant: () => <TabTenant propertyId="p0" userId="u1" onStartHandover={() => {}} />,
   scan: () => (
     <Modal open onClose={() => {}} size="lg" title="Σάρωση εγγράφου">
