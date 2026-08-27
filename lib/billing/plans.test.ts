@@ -1,5 +1,5 @@
 // npx tsx lib/billing/plans.test.ts
-import { PLANS, PLAN_ORDER, TRIAL_DAYS, normalizePlan, planLimit, planForCount, annualPerMonth,
+import { PLANS, PLAN_ORDER, TRIAL_DAYS, normalizePlan, planForCount, annualPerMonth,
   propertyAllowance } from './plans';
 
 let p = 0, f = 0;
@@ -9,10 +9,6 @@ ok(normalizePlan('owner') === 'owner', 'normalize owner');
 ok(normalizePlan('agency') === 'agency', 'normalize agency');
 ok(normalizePlan('junk') === 'free', 'normalize junk → free');
 ok(normalizePlan(null) === 'free', 'normalize null → free');
-
-ok(planLimit('free') === 1, 'free limit 1');
-ok(planLimit('owner') === 3, 'owner limit 3');
-ok(planLimit('agency') === 15, 'agency limit 15');
 
 // Το canAddProperty ελέγχεται στο entitlements.test.ts — εκεί ζει η μία υλοποίηση.
 

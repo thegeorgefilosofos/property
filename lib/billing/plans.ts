@@ -279,9 +279,12 @@ export function isPayingPlan(id: string | null | undefined): boolean {
   return PLANS[normalizePlan(id)].priceMonthly > 0;
 }
 
-export function planLimit(id: string | null | undefined): number {
-  return PLANS[normalizePlan(id)].maxProperties;
-}
+// ΤΟ `planLimit` ΕΦΥΓΕ ΚΙ ΑΥΤΟ, ΓΙΑ ΤΟΝ ΙΔΙΟ ΛΟΓΟ ΜΕ ΤΟ `canAddProperty`.
+// Επέστρεφε το `maxProperties` του πακέτου και ΜΟΝΟ αυτό: σε χρήστη που είχε
+// πληρώσει για επιπλέον ακίνητα έδινε μικρότερο όριο από το πραγματικό. Εμεινε
+// πίσω όταν έφυγε το `canAddProperty` και το βρήκε ο φύλακας νεκρών εξαγωγών,
+// γιατί το καλούσε μόνο το δικό του τεστ. Η μία απάντηση είναι το
+// `propertyLimit` του entitlements.ts.
 
 // ΤΟ `canAddProperty` ΕΦΥΓΕ ΑΠΟ ΕΔΩ.
 // Υπήρχε σε δύο αρχεία με το ίδιο όνομα και ΔΙΑΦΟΡΕΤΙΚΗ απάντηση: αυτό εδώ
