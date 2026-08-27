@@ -495,6 +495,15 @@ const DEVICES = [
   { w: 1280, h: 800, name: 'φορητός με αφή' },
   { w: 1440, h: 900, name: 'φορητός' },
 ]
+// ═══ ΜΟΝΟ ΤΑ ΠΛΑΤΗ ΠΟΥ ΔΟΥΛΕΥΕΙΣ ═══════════════════════════════════════════
+// Οι βαριές σκηνές έχουν δεκάδες διακόπτες η καθεμιά και ο έλεγχος ανοίγει
+// κάθε έναν: δώδεκα συσκευές επί οκτώ τέτοιες σκηνές δεν τελειώνουν σε μια
+// συνεδρία. Οταν η δουλειά είναι το τηλέφωνο, τα πλάτη της ταμπλέτας και του
+// φορητού είναι αναμονή χωρίς απάντηση.
+//     E2E_WIDTHS=320,360,375,412 node scripts/e2e-layout.mjs
+const PICK_W = process.env.E2E_WIDTHS ? process.env.E2E_WIDTHS.split(',').map(Number) : null
+const RUN_DEVICES = PICK_W ? DEVICES.filter(d => PICK_W.includes(d.w)) : DEVICES
+
 const WIDTHS = DEVICES.map(d => d.w)
 const TOUCH = (w) => w < 1100 || w === 1280
 const SCENES = ['portfolio','cash','rent','inbox','ledger','checklist','modal','select','compare','loan','pricing','bills','contacts','wizard','roi','tenant','scan']
@@ -526,7 +535,7 @@ if (live) await abortIfStyleless(browser, BASE)
 // συσκευή λέει πού βρίσκεται και πόσα έχει βρει ώς εκεί.
 const rows = []
 let done = 0
-for (const dev of DEVICES) {
+for (const dev of RUN_DEVICES) {
   const w = dev.w
   const ctx = await browser.newContext({ viewport:{width:w,height:dev.h}, deviceScaleFactor:2, isMobile:w<1100, hasTouch:TOUCH(w), locale:'el-GR' })
   await ctx.addInitScript(() => { try { localStorage.setItem('pos-cookie-consent', JSON.stringify({v:'2026-08',ts:'x'})) } catch {} })
@@ -576,8 +585,24 @@ for (const dev of DEVICES) {
       const rr = await p.evaluate(PROBE)
       if (rr.length) rows.push({ where: `πάγκος ${s}·${label.slice(0, 14)} @${w}×${dev.h}`, r: rr })
     }
-    const pressLabels = await p.evaluate(() =>
-      [...document.querySelectorAll('button[aria-pressed="false"]')].map(b => (b.textContent || '').trim()).filter(Boolean))
+    // ═══ ΕΝΑ ΚΕΛΙ ΔΕΔΟΜΕΝΩΝ ΔΕΝ ΕΙΝΑΙ ΠΑΝΕΛ ══════════════════════════════════
+    // Ο βρόχος από κάτω υπάρχει για τα πανέλα που αποδίδονται ένα κάθε φορά.
+    // Η Τιμολόγηση όμως έχει ημερολόγιο τιμών: μετρημένα 153 κουμπιά με
+    // `aria-pressed`, ένα ανά ημέρα («1195», «2155», …) και όχι 153 οθόνες.
+    // Με 550 χιλιοστά αναμονής και δύο σαρώσεις όλου του DOM το καθένα, η
+    // σκηνή δεν τελείωνε ΟΥΤΕ ΜΙΑ συσκευή σε μισή ώρα, οπότε ολόκληρη η
+    // σάρωση έμοιαζε κολλημένη και ξαναπατιόταν από την αρχή.
+    //
+    // ΤΟ ΟΡΙΟ ΛΕΓΕΤΑΙ ΔΥΝΑΤΑ. Ενα σιωπηλό κόψιμο διαβάζεται ως «τα κάλυψα
+    // όλα». Οι υπόλοιπες σκηνές έχουν 8, 6 και 4 τέτοια κουμπιά, δηλαδή το
+    // δώδεκα δεν αγγίζει καμία τους.
+    const PRESS_CAP = 12
+    const pressAll = await p.evaluate(() =>
+      [...new Set([...document.querySelectorAll('button[aria-pressed="false"]')].map(b => (b.textContent || '').trim()).filter(Boolean))])
+    const pressLabels = pressAll.slice(0, PRESS_CAP)
+    if (pressAll.length > PRESS_CAP) {
+      console.log(`     ${s} @${w}: ${pressAll.length} διακόπτες, ανοίγουν οι πρώτοι ${PRESS_CAP}`)
+    }
     for (const label of pressLabels) {
       const hit = await p.evaluate((t) => {
         const b = [...document.querySelectorAll('button[aria-pressed="false"]')].find(x => (x.textContent || '').trim() === t)
@@ -603,7 +628,7 @@ for (const dev of DEVICES) {
   }
   await ctx.close()
   done++
-  console.log(`  ${String(done).padStart(2)}/${DEVICES.length} ${String(w).padStart(4)}×${dev.h} · ${rows.length} οθόνες με εύρημα ώς εδώ`)
+  console.log(`  ${String(done).padStart(2)}/${RUN_DEVICES.length} ${String(w).padStart(4)}×${dev.h} · ${rows.length} οθόνες με εύρημα ώς εδώ`)
 }
 await browser.close()
 for (const row of rows) console.log('  ✗ ' + row.where.padEnd(32), (process.env.E2E_ALL ? row.r.join('\n      ') : row.r.slice(0,4).join(' · ') + (row.r.length>4 ? ` (+${row.r.length-4})` : '')))

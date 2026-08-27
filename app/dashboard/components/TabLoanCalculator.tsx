@@ -1198,7 +1198,18 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
           ].map(item=>(
             <div key={item.label} style={{background:item.bg,border:`1px solid ${item.border}`,borderRadius:10,padding:14}}>
               <p style={{fontSize:13,color:item.c,fontWeight:500,fontFamily: T.font.sans,marginBottom:12}}>{item.label}</p>
-              <div style={{display:'flex',gap:16,marginBottom:12}}>
+              {/* ═══ ΤΡΙΑ ΝΟΥΜΕΡΑ ΠΟΥ ΤΥΛΙΓΟΝΤΑΙ, ΟΧΙ ΤΡΙΑ ΠΟΥ ΞΕΦΕΥΓΟΥΝ ═══════════
+                  Ηταν `flex` με κενό 16. Στα 320 η κάρτα δίνει 236 και τα
+                  «75.280,61 €» θέλουν 92 το καθένα: μετρημένο, ο τίτλος
+                  «Συνολικοί τόκοι» και τα δύο ποσά έβγαιναν 6 εικονοστοιχεία
+                  έξω από την κάρτα.
+
+                  ΚΑΙ ΟΧΙ `auto-fit`: δοκιμάστηκε πρώτο και έδωσε δύο πάνω, ένα
+                  κάτω, δηλαδή ακριβώς το ορφανό πλακίδιο που ο έλεγχος διάταξης
+                  κυνηγά· το έπιασε στα 320, στα 360×640 και στα 360×800. Η
+                  `fixedCols` κρατά τον κανόνα του έργου: τρία σε στενή οθόνη
+                  γίνονται τρεις γεμάτες σειρές, όχι 2+1. */}
+              <div {...fixedCols(3, 12, 'start')} style={{...fixedCols(3, 12, 'start').style, marginBottom:12}}>
                 {[['Επιτόκιο',fmtPct(item.rate)],['Δόση τον μήνα',fmtEur(item.m)],['Συνολικοί τόκοι',fmtEur(item.m*Y*12-LA)]].map(([k,v])=>(
                   <div key={k}><p style={{fontSize: 11,color:'var(--text-tertiary)',marginBottom:2,fontFamily: T.font.sans,textTransform:'uppercase',letterSpacing:'0.5px'}}>{k}</p><p style={{fontSize:16,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:item.c,fontWeight:700}}>{v}</p></div>
                 ))}
