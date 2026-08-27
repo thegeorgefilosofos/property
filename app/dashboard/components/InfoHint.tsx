@@ -1,6 +1,6 @@
 'use client'
 import { T } from '@/components/Theme'
-import { useState, useRef, useCallback, type ReactNode } from 'react'
+import { useState, useRef, useCallback, useId, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 // Μικρό, ενιαίο ⓘ με premium popover που εμφανίζεται στο hover/focus. Portal →
@@ -8,6 +8,20 @@ import { createPortal } from 'react-dom'
 // υπάρχει ουσιαστική εξήγηση να «ανοίξει έξυπνα», ώστε το UI να μένει καθαρό.
 export function InfoHint({ children, size = 14, label = 'Περισσότερα' }: { children: ReactNode; size?: number; label?: string }) {
   const ref = useRef<HTMLButtonElement>(null)
+  // ═══════════════════════════════════════════════════════════════════════
+  // ΤΟ ΚΕΙΜΕΝΟ ΥΠΑΡΧΕΙ ΠΑΝΤΑ ΓΙΑ ΤΟΝ ΑΝΑΓΝΩΣΤΗ ΟΘΟΝΗΣ, ΟΧΙ ΜΟΝΟ ΑΝΟΙΧΤΟ
+  // ─────────────────────────────────────────────────────────────────────
+  // Το popover ζει σε portal και μπαίνει στο DOM ΜΟΝΟ όσο είναι ανοιχτό. Ο
+  // χρήστης βοηθητικής τεχνολογίας άκουγε «Περισσότερα, κουμπί» και τίποτε
+  // άλλο: η εξήγηση δεν ανακοινωνόταν ποτέ, γιατί δεν υπήρχε να ανακοινωθεί.
+  //
+  // ΚΑΙ ΤΟ ΒΑΡΟΣ ΜΕΓΑΛΩΣΕ ΟΤΑΝ ΜΠΗΚΑΝ ΑΠΟΠΟΙΗΣΕΙΣ ΑΠΟ ΠΙΣΩ. Όσο εδώ έμπαιναν
+  // ορισμοί, το κόστος ήταν μικρό. Νομική επιφύλαξη που δεν ακούγεται είναι
+  // υποβάθμιση, όχι καθάρισμα.
+  //
+  // Το ίδιο κείμενο γράφεται σε κρυφό κόμβο με σταθερό `id` και το κουμπί το
+  // δείχνει με `aria-describedby`. Οπτικά δεν αλλάζει τίποτα.
+  const descId = useId()
   const [pos, setPos] = useState<{ top: number; left: number; place: 'top' | 'bottom' } | null>(null)
 
   const show = useCallback(() => {
@@ -25,9 +39,45 @@ export function InfoHint({ children, size = 14, label = 'Περισσότερα'
 
   return (
     <>
+      {/* ΤΟ ΚΥΚΛΑΚΙ ΕΙΝΑΙ 14 ΕΙΚΟΝΟΣΤΟΙΧΕΙΑ ΚΑΙ ΠΑΤΙΕΤΑΙ ΜΕ ΔΑΧΤΥΛΟ. Χωρίς ζώνη
+          αφής ήταν το μικρότερο χειριστήριο της εφαρμογής, στο ένα τρίτο του
+          ορίου· ο σαρωτής ΔΕΝ το έβλεπε: ο ανιχνευτής στόχων ζητούσε
+          κείμενο και το κουμπί έχει μόνο σχήμα. Το `po-tap-inline` δίνει αόρατη
+          ζώνη 44 σε ύψος και 24 σε πλάτος, χωρίς να μεγαλώσει το σημάδι ούτε
+          κατά ένα. Το πλάτος σταματά στα 24, το όριο του WCAG 2.5.8: με 44 θα
+          άπλωνε δεκαπέντε εικονοστοιχεία ανά πλευρά και θα άρπαζε το πάτημα
+          από τον σύνδεσμο που κάθεται συχνά ακριβώς πριν από το ⓘ. */}
       <button
-        ref={ref} type="button" aria-label={label}
-        onMouseEnter={show} onMouseLeave={hide} onFocus={show} onBlur={hide}
+        className="po-tap-inline"
+        ref={ref} type="button" aria-label={label} aria-describedby={descId}
+        // ═══════════════════════════════════════════════════════════════
+        // ΤΟ ΚΥΚΛΑΚΙ ΔΕΝ ΑΝΟΙΓΕ ΜΕ ΔΑΧΤΥΛΟ. ΜΕΤΡΗΘΗΚΕ, ΔΕΝ ΕΙΚΑΖΕΤΑΙ.
+        // ─────────────────────────────────────────────────────────────
+        // Με πραγματικό πάτημα σε Chromium με αφή, ο αριθμός των popover
+        // στο DOM ήταν μηδέν πριν και μηδέν μετά. Δηλαδή ό,τι έμπαινε εδώ
+        // πίσω ήταν, στο κινητό, απροσπέλαστο.
+        //
+        // Ο ΛΟΓΟΣ ΕΙΝΑΙ Η ΑΚΟΛΟΥΘΙΑ ΣΥΜΒΑΤΟΤΗΤΑΣ ΤΟΥ ΠΕΡΙΗΓΗΤΗ. Σε αφή
+        // στέλνει pointerdown, pointerup, ΜΕΤΑ mouseenter και τελευταίο
+        // click. Το mouseenter καλούσε `show()` και γέμιζε το `pos`· όταν
+        // έφτανε το click, το `pos ? hide() : show()` έβλεπε γεμάτο `pos`
+        // και ΕΚΛΕΙΝΕ ό,τι είχε ανοίξει ένα χιλιοστό νωρίτερα.
+        //
+        // Τα pointer events ξέρουν ΤΙ άγγιξε: το `pointerType`. Η αιώρηση
+        // ισχύει μόνο για ποντίκι, το πάτημα ανοίγει και κλείνει για όλους.
+        // ═══════════════════════════════════════════════════════════════
+        onPointerEnter={(e) => { if (e.pointerType === 'mouse') show() }}
+        onPointerLeave={(e) => { if (e.pointerType === 'mouse') hide() }}
+        // ΚΑΙ Η ΕΣΤΙΑΣΗ ΗΤΑΝ Η ΔΕΥΤΕΡΗ ΜΙΣΗ ΤΟΥ ΙΔΙΟΥ ΠΡΟΒΛΗΜΑΤΟΣ. Με το
+        // `pointerType` το mouseenter έπαψε να ανοίγει σε αφή· το κυκλάκι
+        // ΠΑΛΙ δεν άνοιγε: το πάτημα εστιάζει το κουμπί, το `onFocus` καλούσε
+        // `show()` και το click που ερχόταν αμέσως μετά έβρισκε γεμάτο `pos`.
+        // Μετρημένο με πραγματικό πάτημα: mousedown, focus, click, μηδέν popover.
+        //
+        // Η εστίαση αφορά ΤΟ ΠΛΗΚΤΡΟΛΟΓΙΟ· ο περιηγητής το ξέρει: το
+        // `:focus-visible` είναι αληθές μόνο όταν η εστίαση ήρθε με Tab.
+        onFocus={(e) => { if (e.target.matches(':focus-visible')) show() }}
+        onBlur={hide}
         onClick={(e) => { e.stopPropagation(); pos ? hide() : show() }}
         style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center', verticalAlign: 'middle',
@@ -44,6 +94,10 @@ export function InfoHint({ children, size = 14, label = 'Περισσότερα'
           <circle cx="8" cy="5.1" r="0.85" fill="currentColor" />
         </svg>
       </button>
+      {/* Ο κρυφός κόμβος που δείχνει το `aria-describedby`. Το `.sr-only` του
+          globals.css τον βγάζει από την εικόνα χωρίς να τον βγάλει από το
+          δέντρο προσβασιμότητας. */}
+      <span id={descId} className="sr-only">{children}</span>
       {pos && typeof document !== 'undefined' && createPortal(
         <div
           role="tooltip"

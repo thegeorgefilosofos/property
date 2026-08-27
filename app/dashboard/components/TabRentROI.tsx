@@ -40,6 +40,7 @@ import { issueDocument } from '@/lib/documents/issue';
 import { notifyError } from '@/components/Toast';
 import { INK_FAINT, INK_MUTED } from '@/lib/print/ink';
 import { failed, MSG } from '@/lib/core/dbError';
+import { InfoHint } from './InfoHint';
 
 // Αντιστοίχιση περιοχής → πλησιέστερη αναφορά βραχυχρόνιας (τα δεδομένα ST είναι ανά
 // ευρύτερη ζώνη, όχι ανά προάστιο). Δίνει ρεαλιστικά defaults (πληρότητα/τιμή) ανά περιοχή.
@@ -109,37 +110,21 @@ const KPI_LABEL: React.CSSProperties = {
   display: 'flex', alignItems: 'flex-start', lineHeight: '16px',
 };
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ΔΥΟ ΥΛΟΠΟΙΗΣΕΙΣ ΤΟΥ ΙΔΙΟΥ ΚΥΚΛΑΚΙΟΥ· ΜΟΝΟ Η ΜΙΑ ΕΙΧΕ ΔΙΟΡΘΩΘΕΙ
+// ─────────────────────────────────────────────────────────────────────────
+// Εδώ ζούσαν τριάντα γραμμές popover με portal, δικό τους εικονίδιο 12,5 και
+// δικό τους περιθώριο: αντίγραφο του `InfoHint`, γραμμένο ξεχωριστά. Ο σαρωτής
+// το έπιασε από τον νέο έλεγχο πλάτους: στόχος αφής 16 εικονοστοιχείων, ενώ το
+// αδελφάκι του είχε ήδη πάρει τη ζώνη των 24. Κάθε διόρθωση στο ένα άφηνε το
+// άλλο πίσω· δεν το έβλεπε κανείς γιατί έμοιαζαν ίδια στην οθόνη.
+//
+// Το `TermInfo` κρατά το όνομά του και τα δεκαοκτώ σημεία που το καλούν, αλλά
+// είναι πλέον ο ίδιος `InfoHint` με άλλη ετικέτα: ένα σχήμα, μία συμπεριφορά,
+// μία ζώνη αφής, μία σύνδεση με τον αναγνώστη οθόνης.
+// ═══════════════════════════════════════════════════════════════════════════
 function TermInfo({ text }: { text: string }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLButtonElement>(null);
-  const [pos, setPos] = useState<{ top: number; left: number; up: boolean }>({ top: 0, left: 0, up: false });
-  const show = () => {
-    const r = ref.current?.getBoundingClientRect();
-    if (!r || typeof window === 'undefined') return;
-    const W = 280;
-    const left = Math.min(Math.max(8, r.left - 2), window.innerWidth - W - 8);
-    const up = r.bottom + 130 > window.innerHeight;
-    setPos({ top: up ? r.top - 8 : r.bottom + 8, left, up });
-    setOpen(true);
-  };
-  const hide = () => setOpen(false);
-  return (
-    <>
-      <button ref={ref} type="button" aria-label="Επεξήγηση όρου" aria-expanded={open}
-        onMouseEnter={show} onMouseLeave={hide} onFocus={show} onBlur={hide}
-        onClick={(e) => { e.preventDefault(); e.stopPropagation(); open ? hide() : show(); }}
-        onKeyDown={(e) => { if (e.key === 'Escape') hide(); }}
-        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', verticalAlign: 'middle', marginLeft: 5, padding: 0, width: 16, height: 16, border: 'none', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'help' }}>
-        <Info size={12.5} />
-      </button>
-      {open && typeof document !== 'undefined' && createPortal(
-        <div role="tooltip" style={{ position: 'fixed', top: pos.top, left: pos.left, transform: pos.up ? 'translateY(-100%)' : 'none', width: 280, maxWidth: 'calc(100vw - 16px)', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '10px 12px', boxShadow: 'var(--elev-3)', zIndex: 3000, pointerEvents: 'none' }}>
-          <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', fontFamily: SANS, lineHeight: 1.55 }}>{text}</p>
-        </div>,
-        document.body,
-      )}
-    </>
-  );
+  return <InfoHint label="Επεξήγηση όρου">{text}</InfoHint>;
 }
 
 // ── Πτυσσόμενη ενότητα (ομοιόμορφη, χωρίς μπλε πλαίσιο) ─────────────────────

@@ -163,24 +163,26 @@ function Check({ checked, onChange, label, hint, align='center' }:{ checked:bool
   )
 }
 
-// ═══ ΟΙ ΤΡΕΙΣ ΑΡΙΘΜΟΙ ΤΗΣ ΧΡΟΝΙΑΣ ══════════════════════════════════════════
-// Ήταν πέντε, σε δύο σειρές με ΔΙΑΦΟΡΕΤΙΚΟ μέγεθος κουτιού: δύο μεγάλα από
-// πάνω, τρία μικρά από κάτω. Η ιεραρχία διαβαζόταν σαν λάθος στοίχιση και τα
-// τρία μικρά («Μεικτά έσοδα», «Φόρος εισοδήματος», «Καθαρό αποτέλεσμα») ήταν
-// ΟΛΑ γραμμές της Κατάστασης Αποτελεσμάτων που ακολουθούσε αμέσως από κάτω:
-// ο ίδιος αριθμός, δύο φορές, σε απόσταση μιας ανάσας.
+// ═══ ΕΝΑΣ ΑΡΙΘΜΟΣ· Ο ΜΟΝΟΣ ΠΟΥ ΔΕΝ ΓΡΑΦΕΤΑΙ ΑΛΛΟΥ ═══════════════════════════
+// ΠΕΝΤΕ, ΜΕΤΑ ΤΡΙΑ, ΜΕΤΑ ΔΥΟ, ΤΩΡΑ ΕΝΑΣ. Και κάθε φορά ο λόγος ήταν ο ίδιος:
+// τα πλακίδια έγραφαν νούμερα που η Κατάσταση Αποτελεσμάτων γράφει από κάτω
+// τους. «Μεικτά έσοδα», «Φόρος εισοδήματος», «Καθαρό αποτέλεσμα» και τελευταίο
+// το «Ταμειακό υπόλοιπο»: ο ίδιος αριθμός, δύο φορές, σε απόσταση μιας ανάσας.
 //
-// Μένουν τρεις, ίδιου μεγέθους, σε μία ευθεία και είναι οι τρεις αποφάσεις:
-// τι μου μένει, τι θα πληρώσω, τι βάζω στην άκρη κάθε μήνα. Η ΠΡΟΕΛΕΥΣΗ κάθε
-// αριθμού μένει στην Κατάσταση Αποτελεσμάτων, εκεί που ανήκει.
-function Kpi({ label, value, note, hot, tone='accent', onHover }:{
-  label:string; value:string; note:React.ReactNode; hot:boolean; tone?:'accent'|'negative'; onHover:(v:boolean)=>void
+// Ο ΦΟΡΟΣ ΜΕΝΕΙ ΓΙΑΤΙ ΕΙΝΑΙ ΑΘΡΟΙΣΜΑ ΠΟΥ ΔΕΝ ΤΟ ΚΑΝΕΙ ΚΑΝΕΙΣ ΑΛΛΟΣ. Η Κατάσταση
+// δείχνει φόρο εισοδήματος, ΕΝΦΙΑ και τέλη ως ΞΕΧΩΡΙΣΤΕΣ γραμμές και δεν τις
+// αθροίζει ποτέ. Και είναι το μόνο νούμερο της οθόνης που κοιτάζει μπροστά.
+//
+// ΧΩΡΙΣ `tone`: το πλακίδιο ήταν χρωματιστό όταν το ταμείο έβγαινε αρνητικό.
+// Ο φόρος δεν είναι ποτέ αρνητικός, οπότε η ιδιότητα δεν είχε πια καλούντα.
+function Kpi({ label, value, note, hot, onHover }:{
+  label:string; value:string; note:React.ReactNode; hot:boolean; onHover:(v:boolean)=>void
 }){
   return (
     <div onMouseEnter={()=>onHover(true)} onMouseLeave={()=>onHover(false)}
       style={{ ...card, padding:'18px 20px', minWidth:0, borderColor:hot?'var(--border-default)':undefined, transition:'border-color 0.15s' }}>
       <p style={{ ...TT.label, color:'var(--text-tertiary)', margin:0 }}>{label}</p>
-      <p style={{ ...TT.kpi, fontSize:24, color:hot?(tone==='negative'?'var(--negative)':'var(--accent)'):'var(--text-primary)', margin:'11px 0 0', transition:'color 0.15s' }}>{value}</p>
+      <p style={{ ...TT.kpi, fontSize:24, color:hot?'var(--accent)':'var(--text-primary)', margin:'11px 0 0', transition:'color 0.15s' }}>{value}</p>
       <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'9px 0 0', fontFamily: T.font.sans, lineHeight:1.5 }}>{note}</p>
     </div>
   )
@@ -289,7 +291,9 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const [refreshKey,setRefreshKey] = useState(0)
   const [hoverBracket,setHoverBracket] = useState<number|null>(null)
   // Ουδετερότητα: οι αριθμοί είναι μελάνι· χρώμα ΜΟΝΟ στο hover, στα νούμερα με νόημα.
-  const [hoverStat,setHoverStat] = useState<string|null>(null)
+  // Ενα πλακίδιο, μία κατάσταση: το `hoverStat` κρατούσε ποιο από τα δύο ήταν
+  // από κάτω ο δείκτης. Με ένα, το ερώτημα είναι ναι ή όχι.
+  const [taxHot,setTaxHot] = useState(false)
   const [tenant,setTenant] = useState<{ full_name?:string; afm?:string }|null>(null)
   const [xferOpen,setXferOpen] = useState(true)
   const [cashOpen,setCashOpen] = useState(true)
@@ -1002,7 +1006,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // Ξέρουμε το σχήμα της οθόνης (σειρά μετρικών + πίνακας λογιστικής), οπότε
   // δείχνουμε το σχήμα αντί για κυκλικό δείκτη: η διάταξη δεν «πηδά» όταν
   // φτάσουν τα δεδομένα.
-  if(loading) return (<><SkeletonKPIs n={2} /><Skeleton h={280} r={14} /></>)
+  if(loading) return (<><SkeletonKPIs n={1} /><Skeleton h={280} r={14} /></>)
 
   const regimeLabel = businessMode ? 'Επιχείρηση (ΕΛΠ)' : (regime==='individual_shortterm' ? 'Βραχυχρόνια μίσθωση' : 'Μακροχρόνια μίσθωση')
   // Έχει το έτος πραγματική κίνηση; Αν όχι, αντί για τοίχο από «0 €» δείχνουμε μια
@@ -1169,47 +1173,6 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           και μαζί του, στην ΙΔΙΑ κάρτα, ό,τι άλλο φεύγει προς τον λογιστή. */}
       <AccountantDossier state={dossier} year={year} properties={dossierProps} exportSource={dossierExport} actions={accountantActions} />
 
-      {/* Παράμετροι επιχείρησης, τυποποιημένα πεδία με σύντομη εξήγηση */}
-      {businessMode&&(
-        <div style={{ ...card, display:'flex', gap:14, flexWrap:'wrap', alignItems:'stretch' }}>
-          {elpForm==='sole'&&(
-            <div style={{ display:'flex', flexDirection:'column', gap:5, minWidth:150 }}>
-              <span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily: T.font.sans, fontWeight:500 }}>Εισφορές ΕΦΚΑ / έτος</span>
-              <input aria-label="Εισφορές ΕΦΚΑ ανά έτος" type="number" inputMode="numeric" min={0} value={ekfa} onChange={e=>updateEkfa(e.target.value===''?'':Math.max(0,Number(e.target.value)))} placeholder=""
-                onFocus={e=>e.currentTarget.style.borderColor='var(--accent)'} onBlur={e=>e.currentTarget.style.borderColor='var(--border-default)'}
-                style={{ width:110, height:T.h.lg, padding:'10px 16px', borderRadius:10, border:'1px solid var(--border-default)', background:'var(--bg-elevated)', color:'var(--text-primary)', fontSize:14, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right', outline:'none', transition:'border-color 0.14s' }}/>
-              <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>Εκπίπτουν και μειώνουν το ταμείο.</span>
-            </div>
-          )}
-          {elpForm==='sole'&&(
-            <div style={{ display:'flex', flexDirection:'column', gap:5, minWidth:150 }}>
-              <span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily: T.font.sans, fontWeight:500 }}>Ηλικία</span>
-              <input aria-label="Ηλικία" type="number" inputMode="numeric" min={16} max={99} value={age} onChange={e=>updateAge(e.target.value===''?'':Math.max(0,Number(e.target.value)))} placeholder="Παράδειγμα: 30"
-                title="Προαιρετικό. Ενεργοποιεί τη μειωμένη κλίμακα νέων (ν.5246/2025) στην ατομική επιχείρηση."
-                onFocus={e=>e.currentTarget.style.borderColor='var(--accent)'} onBlur={e=>e.currentTarget.style.borderColor='var(--border-default)'}
-                style={{ width:90, height:T.h.lg, padding:'10px 16px', borderRadius:10, border:'1px solid var(--border-default)', background:'var(--bg-elevated)', color:'var(--text-primary)', fontSize:14, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right', outline:'none', transition:'border-color 0.14s' }}/>
-              <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>Μειωμένη κλίμακα νέων (έως 30 ετών).</span>
-            </div>
-          )}
-          {elpForm==='company'&&(
-            <div style={{ display:'flex', flexDirection:'column', gap:5, minWidth:150 }}>
-              <span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily: T.font.sans, fontWeight:500 }}>Διανομή κερδών</span>
-              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                <input aria-label="Διανομή κερδών σε ποσοστό" type="number" inputMode="numeric" min={0} max={100} value={distribution} onChange={e=>setDistribution(e.target.value===''?'':Math.min(100,Math.max(0,Number(e.target.value))))} placeholder=""
-                  onFocus={e=>e.currentTarget.style.borderColor='var(--accent)'} onBlur={e=>e.currentTarget.style.borderColor='var(--border-default)'}
-                  style={{ width:74, height:T.h.lg, padding:'10px 16px', borderRadius:10, border:'1px solid var(--border-default)', background:'var(--bg-elevated)', color:'var(--text-primary)', fontSize:14, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right', outline:'none', transition:'border-color 0.14s' }}/>
-                <span style={{ color:'var(--text-tertiary)', fontSize:14 }}>%</span>
-              </div>
-              <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>Το μέρισμα φορολογείται επιπλέον με 5%.</span>
-            </div>
-          )}
-          <div style={{ display:'flex', flexDirection:'column', gap:6, justifyContent:'center', paddingLeft:14, borderLeft:'1px solid var(--border-subtle)', minWidth:220 }}>
-            <Check checked={firstYears} onChange={updateFirstYears} label={<span style={{ fontWeight:500, color:'var(--text-primary)' }}>Νέα επιχείρηση (πρώτη τριετία)</span>} align="start" />
-            <span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight:1.5, paddingLeft:26 }}>Τα πρώτα 3 έτη δραστηριότητας: 1ο κλιμάκιο 4,5% (αντί 9%) και προκαταβολή φόρου μειωμένη κατά 50%.</span>
-          </div>
-        </div>
-      )}
-
       {/* Αφετηρία — όταν δεν υπάρχει καμία κίνηση για το έτος (καθαρή onboarding εικόνα) */}
       {!hasActivity && (
         <div style={{ ...card, padding:'26px 24px' }}>
@@ -1221,7 +1184,11 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               <p style={{ fontSize:16, fontWeight:700, color:'var(--text-primary)', margin:0, fontFamily: T.font.sans, letterSpacing:'0.1px' }}>Ξεκίνα τη λογιστική σου για το {year}</p>
               <p style={{ fontSize:13, color:'var(--text-secondary)', margin:'6px 0 0', lineHeight:1.6, fontFamily: T.font.sans, maxWidth:520 }}>Καταχώρησε ενοίκια και έξοδα και όλα εδώ υπολογίζονται αυτόματα: έσοδα, φόρος, καθαρό ταμείο και έτοιμες αναφορές για τον λογιστή σου.</p>
               <div style={{ display:'flex', alignItems:'center', gap:16, margin:'14px 0 0', flexWrap:'wrap' }}>
-                {['Έσοδα και πρόβλεψη φόρου','Καθαρό ταμείο','Αναφορές και PDF'].map(t=>(
+                {/* ΤΑ ΟΝΟΜΑΤΑ ΕΙΝΑΙ ΤΑ ΟΝΟΜΑΤΑ ΠΟΥ ΘΑ ΔΕΙ. Η κενή οθόνη υποσχόταν «Καθαρό
+                    ταμείο», ταμπέλα που δεν υπάρχει σε καμία γεμάτη οθόνη: εκεί η
+                    γραμμή λέγεται «Ταμειακό υπόλοιπο». Οποιος το ψάχνει μετά την
+                    πρώτη καταχώρηση δεν το βρίσκει με το όνομα που του δόθηκε. */}
+                {['Έσοδα και πρόβλεψη φόρου','Ταμειακό υπόλοιπο','Αναφορές και PDF'].map(t=>(
                   <span key={t} style={{ display:'inline-flex', alignItems:'center', gap:7, fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>
                     <span style={{ width:5, height:5, borderRadius:'50%', background:'var(--border-default)', flexShrink:0 }}/>{t}
                   </span>
@@ -1237,21 +1204,40 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
       )}
 
       {hasActivity && (<>
-      {/* Οι τρεις αποφάσεις της χρονιάς, ίδιο μέγεθος, μία ευθεία. Ουδέτερα
-          (μελάνι) by default· χρώμα ΜΟΝΟ στο hover. */}
-      <div {...fixedCols(2, 12, 'stretch')}>
-        <Kpi label={`Καθαρό ταμείο · ${year}`} value={eur(statement.netCash)} tone={statement.netCash<0?'negative':'accent'}
-          hot={hoverStat==='cash'} onHover={v=>setHoverStat(v?'cash':null)}
-          note="Ό,τι απομένει μετά από φόρους, τέλη και δόσεις δανείου." />
-        <Kpi label="Πρόβλεψη φόρου · μήνα" value={eur(provision.monthly)}
-          hot={hoverStat==='prov'} onHover={v=>setHoverStat(v?'prov':null)}
-          note={`Για τον φόρο ${year} · σύνολο ${eur(provision.annualTaxTotal)} τον χρόνο.`} />
-      </div>
+      {/* ═══════════════════════════════════════════════════════════════════
+          ΕΝΑΣ ΑΡΙΘΜΟΣ ΣΤΗΝ ΚΟΡΥΦΗ· ΕΙΝΑΙ Ο ΜΟΝΟΣ ΠΟΥ ΔΕΝ ΛΕΕΙ Η ΚΑΤΑΣΤΑΣΗ
+
+          ΗΤΑΝ ΔΥΟ ΠΛΑΚΙΔΙΑ ΜΕ ΔΥΟ ΔΙΑΦΟΡΕΤΙΚΕΣ ΜΟΝΑΔΕΣ ΧΡΟΝΟΥ, ΔΙΠΛΑ ΔΙΠΛΑ,
+          ΙΔΙΟ ΜΕΓΕΘΟΣ. «Καθαρό ταμείο · 2026» και «Πρόβλεψη φόρου · μήνα». Ο
+          χρήστης έβαζε το μάτι του σε δύο αριθμούς που ΔΕΝ συγκρίνονται· ο
+          δεύτερος γύριζε στο έτος μέσα στη δική του υποσημείωση («σύνολο … τον
+          χρόνο»). Ηταν η πρώτη εικόνα της οθόνης.
+
+          ΚΑΙ ΤΟ ΠΡΩΤΟ ΗΤΑΝ ΗΔΗ ΓΡΑΜΜΕΝΟ ΤΕΣΣΕΡΑ ΕΚΑΤΟΣΤΑ ΠΙΟ ΚΑΤΩ. Το
+          `statement.netCash` είναι η ΤΕΛΕΥΤΑΙΑ γραμμή της Κατάστασης
+          Αποτελεσμάτων, «Ταμειακό υπόλοιπο», με δική της γραμμή από πάνω, δικό
+          της βάρος και δικό της τόνο. Το ίδιο νούμερο, δύο φορές, σε μια ανάσα.
+          Το σχόλιο του `Kpi` κατέγραφε ήδη ότι ΤΡΙΑ πλακίδια είχαν φύγει για
+          ακριβώς αυτόν τον λόγο· αυτό είχε μείνει πίσω.
+
+          ΜΕΝΕΙ Ο ΦΟΡΟΣ, ΓΙΑΤΙ ΕΙΝΑΙ ΤΟ ΜΟΝΟ ΑΘΡΟΙΣΜΑ ΠΟΥ ΔΕΝ ΥΠΑΡΧΕΙ ΑΛΛΟΥ.
+          Το `annualTaxTotal` είναι φόρος εισοδήματος συν φόρος μερισμάτων συν
+          φόροι και τέλη ακινήτου. Η Κατάσταση τα δείχνει ως ΞΕΧΩΡΙΣΤΕΣ γραμμές
+          και δεν τα αθροίζει ποτέ: κανείς δεν σου λέει «τόσα θα δώσεις φέτος».
+          Και είναι το μόνο νούμερο της οθόνης που κοιτάζει ΜΠΡΟΣΤΑ.
+
+          Ο ΜΗΝΑΣ ΓΙΝΕΤΑΙ ΑΝΑΓΝΩΣΗ ΤΟΥ ΕΤΟΥΣ, ΟΧΙ ΑΝΤΑΓΩΝΙΣΤΗΣ ΤΟΥ. Δεν είναι
+          δεύτερο μέγεθος, είναι ο ίδιος αριθμός διά δώδεκα. Πάει στη γραμμή
+          υποστήριξης, όπου ανήκει κάθε παράγωγη ανάγνωση.
+          ═══════════════════════════════════════════════════════════════════ */}
+      <Kpi label="Πρόβλεψη φόρου" value={eur(provision.annualTaxTotal)}
+        hot={taxHot} onHover={setTaxHot}
+        note={`Σύνολο για τη χρονιά. Το ένα δωδέκατο είναι ${eur(provision.monthly)} τον μήνα.`} />
 
       {/* Κατάσταση Αποτελεσμάτων + Πρόβλεψη φόρου */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap:16 }}>
         <div className="po-fig-card" style={card}>
-          <p style={cardTitle}>Κατάσταση αποτελεσμάτων {year}</p>
+          <p style={cardTitle}>Κατάσταση αποτελεσμάτων</p>
           <div style={{ display:'flex', flexDirection:'column' }}>
             {statement.lines.map((l,i)=>{
               const strong = l.kind==='subtotal'||l.kind==='result'
@@ -1307,7 +1293,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             ακινήτου και τι πληρώνεται πότε. Και η επιφύλαξη, που ήταν
             ΞΕΧΩΡΙΣΤΗ ΚΑΡΤΑ για μία πρόταση, έγινε το υποσέλιδό της. */}
         <div className="po-fig-card" style={{ ...card, display:'flex', flexDirection:'column' }}>
-          <p style={cardTitle}>Πώς βγαίνει ο φόρος {year}</p>
+          <p style={cardTitle}>Πώς βγαίνει ο φόρος</p>
           <p style={{ fontSize:13, color:'var(--text-secondary)', margin:0, fontFamily: T.font.sans, lineHeight:1.6 }}>
             {businessMode
               ? (elpForm==='company' ? <>Σταθερός συντελεστής <strong style={{ color:'var(--text-primary)' }}>22%</strong> στα καθαρά κέρδη, μετά από εκπιπτόμενα έξοδα, αποσβέσεις και τόκους.</> : <>Κλίμακα άρθρου 15 στα καθαρά κέρδη, μετά από εκπιπτόμενα έξοδα, εισφορές ΕΦΚΑ, αποσβέσεις και τόκους.</>)
@@ -1345,6 +1331,62 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         </div>
       </div>
       </>)}
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          Η ΠΑΡΑΜΕΤΡΟΣ ΔΙΑΒΑΖΕΤΑΙ ΔΙΠΛΑ ΣΤΟ ΝΟΥΜΕΡΟ ΠΟΥ ΚΟΥΝΑΕΙ
+          ─────────────────────────────────────────────────────────────────
+          ΗΤΑΝ ΠΑΝΩ ΑΠΟ ΟΛΑ, ΠΡΙΝ ΑΠΟ ΚΑΘΕ ΑΡΙΘΜΟ. Ο χρήστης άνοιγε τη Λογιστική
+          και το πρώτο που του ζητούσε η οθόνη ήταν να συμπληρώσει εισφορές
+          ΕΦΚΑ, ηλικία και ποσοστό διανομής κερδών, χωρίς να έχει δει ούτε έναν
+          αριθμό από αυτούς που τα τρία αυτά αλλάζουν. Είσοδος πριν από έξοδο.
+
+          ΤΟΝ ΚΑΝΟΝΑ ΤΟΝ ΓΡΑΦΕΙ ΗΔΗ ΤΟ ΙΔΙΟ ΑΡΧΕΙΟ, για το κουτάκι της τραπεζικής
+          είσπραξης: «Μια παράμετρος διαβάζεται μόνο δίπλα στο νούμερο που
+          κουνάει». Εκεί εφαρμόστηκε, εδώ όχι.
+
+          Και τα τρία πεδία κουνούν τα ΙΔΙΑ νούμερα: οι εισφορές είναι έκπτωση
+          της Κατάστασης, η ηλικία διαλέγει κλίμακα, το ποσοστό διανομής γεννά
+          τον φόρο μερισμάτων. Κάθονται λοιπόν από κάτω τους.
+          ═══════════════════════════════════════════════════════════════════ */}
+      {businessMode&&(
+        <div style={{ ...card, display:'flex', gap:14, flexWrap:'wrap', alignItems:'stretch' }}>
+          {elpForm==='sole'&&(
+            <div style={{ display:'flex', flexDirection:'column', gap:5, minWidth:150 }}>
+              <span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily: T.font.sans, fontWeight:500 }}>Εισφορές ΕΦΚΑ / έτος</span>
+              <input aria-label="Εισφορές ΕΦΚΑ ανά έτος" type="number" inputMode="numeric" min={0} value={ekfa} onChange={e=>updateEkfa(e.target.value===''?'':Math.max(0,Number(e.target.value)))} placeholder=""
+                onFocus={e=>e.currentTarget.style.borderColor='var(--accent)'} onBlur={e=>e.currentTarget.style.borderColor='var(--border-default)'}
+                style={{ width:110, height:T.h.lg, padding:'10px 16px', borderRadius:10, border:'1px solid var(--border-default)', background:'var(--bg-elevated)', color:'var(--text-primary)', fontSize:14, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right', outline:'none', transition:'border-color 0.14s' }}/>
+              <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>Εκπίπτουν και μειώνουν το ταμείο.</span>
+            </div>
+          )}
+          {elpForm==='sole'&&(
+            <div style={{ display:'flex', flexDirection:'column', gap:5, minWidth:150 }}>
+              <span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily: T.font.sans, fontWeight:500 }}>Ηλικία</span>
+              <input aria-label="Ηλικία" type="number" inputMode="numeric" min={16} max={99} value={age} onChange={e=>updateAge(e.target.value===''?'':Math.max(0,Number(e.target.value)))} placeholder="Παράδειγμα: 30"
+                title="Προαιρετικό. Ενεργοποιεί τη μειωμένη κλίμακα νέων (ν.5246/2025) στην ατομική επιχείρηση."
+                onFocus={e=>e.currentTarget.style.borderColor='var(--accent)'} onBlur={e=>e.currentTarget.style.borderColor='var(--border-default)'}
+                style={{ width:90, height:T.h.lg, padding:'10px 16px', borderRadius:10, border:'1px solid var(--border-default)', background:'var(--bg-elevated)', color:'var(--text-primary)', fontSize:14, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right', outline:'none', transition:'border-color 0.14s' }}/>
+              <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>Μειωμένη κλίμακα νέων (έως 30 ετών).</span>
+            </div>
+          )}
+          {elpForm==='company'&&(
+            <div style={{ display:'flex', flexDirection:'column', gap:5, minWidth:150 }}>
+              <span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily: T.font.sans, fontWeight:500 }}>Διανομή κερδών</span>
+              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                <input aria-label="Διανομή κερδών σε ποσοστό" type="number" inputMode="numeric" min={0} max={100} value={distribution} onChange={e=>setDistribution(e.target.value===''?'':Math.min(100,Math.max(0,Number(e.target.value))))} placeholder=""
+                  onFocus={e=>e.currentTarget.style.borderColor='var(--accent)'} onBlur={e=>e.currentTarget.style.borderColor='var(--border-default)'}
+                  style={{ width:74, height:T.h.lg, padding:'10px 16px', borderRadius:10, border:'1px solid var(--border-default)', background:'var(--bg-elevated)', color:'var(--text-primary)', fontSize:14, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right', outline:'none', transition:'border-color 0.14s' }}/>
+                <span style={{ color:'var(--text-tertiary)', fontSize:14 }}>%</span>
+              </div>
+              <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>Το μέρισμα φορολογείται επιπλέον με 5%.</span>
+            </div>
+          )}
+          <div style={{ display:'flex', flexDirection:'column', gap:6, justifyContent:'center', paddingLeft:14, borderLeft:'1px solid var(--border-subtle)', minWidth:220 }}>
+            <Check checked={firstYears} onChange={updateFirstYears} label={<span style={{ fontWeight:500, color:'var(--text-primary)' }}>Νέα επιχείρηση (πρώτη τριετία)</span>} align="start" />
+            <span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight:1.5, paddingLeft:26 }}>Τα πρώτα 3 έτη δραστηριότητας: 1ο κλιμάκιο 4,5% (αντί 9%) και προκαταβολή φόρου μειωμένη κατά 50%.</span>
+          </div>
+        </div>
+      )}
 
       {/* ══ Η ΣΥΜΦΩΝΙΑ ΕΝΟΙΚΙΩΝ ΔΕΝ ΑΦΟΡΑ ΤΗ ΒΡΑΧΥΧΡΟΝΙΑ ══════════════════════
           Η κάρτα αποδιδόταν ΠΑΝΤΑ. Σε βραχυχρόνιο ακίνητο δεν υπάρχουν «ενοίκια
@@ -1458,10 +1500,16 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           </div>
         )})()}
 
-        {/* Φορολογική κλίμακα 2026, αναφορά ανά καθεστώς (έμφαση στο κλιμάκιο του χρήστη) */}
+        {/* Η κλίμακα, με έμφαση στο κλιμάκιο του χρήστη. Ο ΤΙΤΛΟΣ ΛΕΕΙ ΧΡΟΝΙΑ
+            ΜΟΝΟ ΣΤΗΝ ΕΠΙΧΕΙΡΗΜΑΤΙΚΗ, ΚΑΙ ΕΙΝΑΙ ΣΚΟΠΙΜΟ: τα κλιμάκια των ενοικίων
+            βγαίνουν από το `rentalRowsForYear(year)` και ακολουθούν τον επιλογέα,
+            οπότε η χρονιά λέγεται ήδη εκεί. Τα επιχειρηματικά βγαίνουν από τη
+            σταθερή `BUSINESS_INCOME_ROWS_2026`, που ΔΕΝ τον ακολουθεί: εκεί το
+            «2026» δεν είναι επανάληψη, είναι η μόνη προειδοποίηση ότι ο πίνακας
+            δείχνει άλλη χρονιά από αυτήν που διάλεξε ο χρήστης. */}
         {!(businessMode&&elpForm==='company') ? (
           <div style={card}>
-            <p style={cardTitle}>{businessMode ? 'Κλίμακα επιχειρηματικής δραστηριότητας 2026' : 'Φορολογική κλίμακα ενοικίων 2026'}</p>
+            <p style={cardTitle}>{businessMode ? 'Κλίμακα επιχειρηματικής δραστηριότητας 2026' : 'Φορολογική κλίμακα ενοικίων'}</p>
             {/* ΜΙΑ ΣΕΙΡΑ, ΟΣΑ ΚΙ ΑΝ ΕΙΝΑΙ ΤΑ ΚΛΙΜΑΚΙΑ. Το `auto-fit` έβγαζε πέντε
                 κουτιά και ένα μόνο του από κάτω: η κλίμακα είναι ΜΙΑ κλίμακα και
                 διαβάζεται ως σκάλα μόνο όταν τα σκαλιά είναι στην ίδια ευθεία.
@@ -1503,7 +1551,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             <div style={card}>
               <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
                 <Layers size={15} style={{ color:'var(--text-secondary)' }}/>
-                <p style={{ ...cardTitle, margin:0 }}>Ενοποίηση χαρτοφυλακίου {year}</p>
+                <p style={{ ...cardTitle, margin:0 }}>Ενοποίηση χαρτοφυλακίου</p>
               </div>
               {!portfolio?(
                 <p style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily: T.font.sans, padding:'8px 0' }}>Δεν υπάρχουν έσοδα σε άλλα ακίνητα για το {year}.</p>
@@ -1528,7 +1576,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             )}
 
             <div style={card}>
-              <p style={cardTitle}>Εκπιπτόμενα έξοδα {year}</p>
+              <p style={cardTitle}>Εκπιπτόμενα έξοδα</p>
               <div style={{ display:'flex', gap:16, flexWrap:'wrap', marginBottom:12 }}>
                 <div><p style={{ fontSize:11, color:'var(--text-tertiary)', margin:0, textTransform:'uppercase', letterSpacing:'0.4px', fontFamily: T.font.sans }}>Εκπιπτόμενα</p><p style={{ fontSize:16, fontWeight:700, color:'var(--text-primary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{eur(deductibleTotal)}</p></div>
                 <div><p style={{ fontSize:11, color:'var(--text-tertiary)', margin:0, textTransform:'uppercase', letterSpacing:'0.4px', fontFamily: T.font.sans }}>Μη εκπιπτόμενα</p><p style={{ fontSize:16, fontWeight:700, color:'var(--text-secondary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{eur(expensesTotal-deductibleTotal)}</p></div>
@@ -1623,7 +1671,11 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           )}
           {changesOpen && (
           <div style={{ marginTop:14, paddingTop:12, borderTop:'1px solid var(--border-subtle)' }}>
-            <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:0, fontFamily: T.font.sans, lineHeight:1.55 }}>Ενημερωτικά, με επίσημες πηγές. Οι κανόνες αλλάζουν, επιβεβαίωσε στο myAADE/gov.gr ή με τον λογιστή σου.</p>
+            {/* ΙΔΙΟ ΣΧΗΜΑ ΜΕ ΤΗ ΔΙΠΛΑΝΗ ΚΑΡΤΑ, ΠΟΥ ΤΟ ΕΚΑΝΕ ΗΔΗ ΣΩΣΤΑ. Η
+                Συμβουλευτική γράφει «Ενημερωτικές προτάσεις, όχι επίσημη
+                συμβουλή.» και βάζει τα υπόλοιπα σε κυκλάκι· εδώ η ίδια
+                αποποίηση ήταν απλωμένη σε δύο σειρές ψιλών γραμμάτων. */}
+            <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:0, fontFamily: T.font.sans, lineHeight:1.55 }}>Ενημερωτικά, με επίσημες πηγές.<InfoHint>Οι κανόνες αλλάζουν. Επιβεβαίωσε στο myAADE ή στο gov.gr, ή με τον λογιστή σου.</InfoHint></p>
           </div>
           )}
         </div>
@@ -1689,7 +1741,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         <div style={card}>
           <button onClick={()=>setCashOpen(o=>!o)} className="acc-toggle" style={{ display:'flex', alignItems:'center', gap:9, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left', marginBottom:cashOpen?16:0 }}>
             <ChevronRight size={16} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:cashOpen?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
-            <p style={{ ...cardTitle, margin:0 }}>Ταμειακές ροές {year}</p>
+            <p style={{ ...cardTitle, margin:0 }}>Ταμειακές ροές</p>
           </button>
           {/* ═══ ΤΟ ΓΡΑΦΗΜΑ ΠΟΥ ΞΕΚΙΝΑ ΑΠΟ ΤΟ ΜΗΔΕΝ ══════════════════════════
               Ήταν δύο λωρίδες των έξι εικονοστοιχείων, στοιβαγμένες και οι δύο
@@ -1739,7 +1791,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           </div>
           {/* Το σύνολο της χρονιάς, μία φορά, στο ίδιο πλάτος με τη στήλη του. */}
           <div style={{ display:'flex', alignItems:'center', gap:14, marginTop:6, paddingTop:10, borderTop:'1px solid var(--border-default)' }}>
-            <span style={{ flex:1, fontSize:12, fontWeight:600, color:'var(--text-secondary)', fontFamily: T.font.sans }}>Σύνολο {year}</span>
+            <span style={{ flex:1, fontSize:12, fontWeight:600, color:'var(--text-secondary)', fontFamily: T.font.sans }}>Σύνολο</span>
             <span style={{ width:110, flexShrink:0, textAlign:'right', fontSize:13, fontWeight:700, color:'var(--text-primary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>
               {eur(cash.reduce((s,c)=>s+c.income-c.expense,0))}
             </span>
@@ -1760,7 +1812,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             ξέρει ο φάκελος (dossier.ts) — εδώ απλώς υπακούμε στην απάντησή του. */}
         {canJournal && doubleEntry && (
         <div style={card}>
-          <p style={cardTitle}>Ισοζύγιο διπλογραφικής {year}</p>
+          <p style={cardTitle}>Ισοζύγιο διπλογραφικής</p>
           {trial.length===0?(
             <p style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily: T.font.sans, padding:'2px 0' }}>Δεν υπάρχουν εισπράξεις ή πληρωμές για το {year} ώστε να σχηματιστεί ισοζύγιο.</p>
           ):(
@@ -1792,7 +1844,11 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               </div>
             </div>
             )}
-          <p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'12px 0 0', fontFamily: T.font.sans, lineHeight:1.55 }}>Ταμειακή βάση, σχέδιο λογαριασμών των Ελληνικών Λογιστικών Προτύπων (ν. 4308/2014), αυτό που τροφοδοτεί το έντυπο Ε3. Κάθε άρθρο ισοσκελισμένο (χρέωση ίση με πίστωση), έτοιμο για καταχώρηση από τον λογιστή σου. Η αντιστοιχία με το παλιό ΕΓΛΣ, για όποιο λογιστήριο τη χρειάζεται, ταξιδεύει στο Excel.</p>
+          {/* ΤΡΕΙΣ ΠΡΟΤΑΣΕΙΣ ΟΡΙΣΜΟΥ ΚΑΤΩ ΑΠΟ ΠΙΝΑΚΑ ΠΟΥ ΛΕΕΙ ΗΔΗ «ΙΣΟΣΚΕΛΙΣΜΕΝΟ».
+              Απαντούσαν ερώτηση που δεν είχε κάνει κανείς: ποιο πρότυπο, ποιο
+              έντυπο, ποια αντιστοιχία με το παλιό ΕΓΛΣ. Μένει η μία φράση που
+              λέει ΤΙ κοιτάς· ο ορισμός και η νομική βάση ανοίγουν με πάτημα. */}
+          <p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'12px 0 0', fontFamily: T.font.sans, lineHeight:1.55 }}>Ταμειακή βάση, κατά τα Ελληνικά Λογιστικά Πρότυπα.<InfoHint>Σχέδιο λογαριασμών του ν. 4308/2014, αυτό που τροφοδοτεί το έντυπο Ε3. Κάθε άρθρο ισοσκελισμένο (χρέωση ίση με πίστωση), έτοιμο για καταχώρηση από τον λογιστή σου. Η αντιστοιχία με το παλιό ΕΓΛΣ, για όποιο λογιστήριο τη χρειάζεται, ταξιδεύει στο Excel.</InfoHint></p>
         </div>
         )}
 

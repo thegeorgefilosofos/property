@@ -71,6 +71,15 @@ const PROBE = () => {
     if (b.width <= 2 || b.height <= 2) continue
     if (el.closest('[aria-live], .sr-only, [class*="skip"]')) continue
     const txt = (el.textContent || '').trim()
+    // ΤΟ ΧΕΙΡΙΣΤΗΡΙΟ ΧΩΡΙΣ ΛΕΞΕΙΣ ΗΤΑΝ ΑΟΡΑΤΟ ΣΤΟΝ ΕΛΕΓΧΟ ΑΦΗΣ. Ζητούσε κείμενο
+    // για να ονομάσει το εύρημα, οπότε κάθε κουμπί που είναι μόνο εικονίδιο (το
+    // ⓘ του InfoHint, το «χ» που καθαρίζει αναζήτηση, τα βελάκια) περνούσε
+    // αθόρυβα όσο μικρό κι αν ήταν. Ο αναγνώστης οθόνης έχει ήδη όνομα γι' αυτά.
+    //
+    // ΜΟΝΟ ΓΙΑ ΤΗΝ ΑΦΗ, ΟΧΙ ΓΙΑ ΤΟ ΜΑΤΙ. Πρώτη γραφή το έβαλε στο κοινό `txt`,
+    // που τροφοδοτεί και τους ΟΠΤΙΚΟΥΣ ελέγχους: κάθε `<input aria-label="…">`
+    // θα κρινόταν για «κομμένο κείμενο» πάνω σε λέξεις που δεν εμφανίζει ποτέ.
+    const tapTxt = txt || (el.getAttribute('aria-label') || '').trim()
     // ── κείμενο ──
     if (txt && el.children.length === 0) {
       // ΤΟ «ΞΕΠΕΡΝΑ ΤΟ ΚΟΥΤΙ ΤΟΥ» ΔΕΝ ΕΙΝΑΙ «ΚΟΒΕΤΑΙ». Ενα <p> με nowrap μέσα
@@ -117,12 +126,20 @@ const PROBE = () => {
     // ΚΑΙ ΟΧΙ ΓΙΑ ΣΥΝΔΕΣΜΟ ΜΕΣΑ ΣΕ ΠΡΟΤΑΣΗ: εκεί το ύψος είναι το ύψος της
     // γραμμής και η περιοχή αφής δίνεται με το ιδίωμα `po-tap-inline`.
     if (matchMedia('(pointer: coarse)').matches
-      && /^(BUTTON|A|SELECT)$/.test(el.tagName) && txt
+      && /^(BUTTON|A|SELECT)$/.test(el.tagName) && tapTxt
       && cs.display !== 'inline') {
       const ac = getComputedStyle(el, '::after')
-      const inset = ac.content !== 'none' ? Math.abs(parseFloat(ac.top) || 0) : 0
-      const h = b.height + inset * 2
-      if (h < 44) add('στόχος αφής', txt, Math.round(h) + 'px')
+      const has = ac.content !== 'none'
+      const insetY = has ? Math.abs(Math.min(0, parseFloat(ac.top) || 0)) : 0
+      const h = b.height + insetY * 2
+      if (h < 44) add('στόχος αφής', tapTxt, Math.round(h) + 'px')
+      // ΚΑΙ ΤΟ ΠΛΑΤΟΣ, ΓΙΑΤΙ ΤΟ ΕΙΚΟΝΙΔΙΟ ΕΙΝΑΙ ΣΤΕΝΟ ΣΕ ΔΥΟ ΑΞΟΝΕΣ. Ο έλεγχος
+      // μετρούσε μόνο ύψος: ένα ⓘ 14 επί 14 με ζώνη 44 ψηλή και 20 φαρδιά
+      // έβγαινε πράσινο. Το κατώτατο εδώ είναι 24, το όριο του WCAG 2.5.8, όσο
+      // και η ζώνη που δίνει το `po-tap-inline` οριζόντια.
+      const insetX = has ? Math.abs(Math.min(0, parseFloat(ac.left) || 0)) : 0
+      const w = b.width + insetX * 2
+      if (w < 24) add('στόχος αφής στενός', tapTxt, Math.round(w) + 'px')
     }
   }
   // ═══ ΔΟΧΕΙΟ ΠΟΥ ΞΕΡΝΑΕΙ ΤΟ ΠΕΡΙΕΧΟΜΕΝΟ ΤΟΥ ═══════════════════════════════
