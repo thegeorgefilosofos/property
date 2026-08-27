@@ -215,6 +215,14 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
     () => ledgerTotal(entries.filter(e => e.date.startsWith(thisMonth))), [entries, thisMonth]);
   const unpaid = useMemo(() => entries.filter(e => !e.paid), [entries]);
   const unpaidTotal = useMemo(() => ledgerTotal(unpaid), [unpaid]);
+  // ═══ Η ΧΡΟΝΙΑ ΕΒΓΑΙΝΕ ΑΠΟ ΤΟ ΡΟΛΟΙ ΤΟΥ ΠΕΡΙΗΓΗΤΗ, Ο ΜΗΝΑΣ ΑΠΟ ΤΗΝ ΑΘΗΝΑ.
+  // Δύο πηγές χρόνου στην ίδια σειρά τριών πλακιδίων. Την παραμονή της
+  // Πρωτοχρονιάς, χρήστης σε άλλη ζώνη ώρας έβλεπε μήνα μιας χρονιάς και σύνολο
+  // άλλης. Η `athensMonth()` δίνει «2026-08», οπότε η χρονιά είναι τα τέσσερα
+  // πρώτα ψηφία της: ίδια πηγή, μία αλήθεια. Και υπολογίζεται μία φορά αντί για
+  // κάθε απόδοση, όπως ήδη γίνεται με τα άλλα δύο.
+  const yearTotal = useMemo(
+    () => ledgerTotal(entries.filter(e => e.date.startsWith(thisMonth.slice(0, 4)))), [entries, thisMonth]);
 
   // ── ΤΙ ΣΥΝΗΘΩΣ ΘΑ ΕΙΧΕ ΕΡΘΕΙ ΚΑΙ ΛΕΙΠΕΙ ──────────────────────────────────
   // Ο πυρήνας το έγραφε ρητά: «καμία αυτόματη ανανέωση δεν υπάρχει». Ο
@@ -451,10 +459,14 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
         borderBottom: '1px solid var(--border-subtle)', marginBottom: T.sp.lg,
         '--kpi-lg': 3, '--kpi-md': 3, '--kpi-sm': 2,
       } as React.CSSProperties}>
-        <Figure label="αυτόν τον μήνα" value={loading ? null : fe(monthTotal)} />
-        <Figure label={unpaid.length === 1 ? 'απλήρωτο' : 'απλήρωτα'} value={loading ? null : fe(unpaidTotal)}
+        {/* ΤΡΙΑ ΟΝΟΜΑΤΑ ΠΟΥ ΛΕΝΕ ΤΙ ΜΕΤΡΑΝΕ. Ηταν «αυτόν τον μήνα», «απλήρωτα»
+            και «φέτος»: τρεις διαφορετικοί τρόποι να πεις χρόνο, με το μεσαίο να
+            μην είναι καν χρόνος. Τώρα και τα τρία ονομάζουν το ίδιο πράγμα, τη
+            δαπάνη· ξεχωρίζουν στο εύρος της. */}
+        <Figure label="Μηνιαίες δαπάνες" value={loading ? null : fe(monthTotal)} />
+        <Figure label={'Ανεξόφλητες δαπάνες'} value={loading ? null : fe(unpaidTotal)}
           sub={unpaid.length ? `${unpaid.length} ${unpaid.length === 1 ? 'γραμμή' : 'γραμμές'}` : undefined} />
-        <Figure label="φέτος" value={loading ? null : fe(ledgerTotal(entries.filter(e => e.date.startsWith(String(new Date().getFullYear())))))} />
+        <Figure label="Ετήσιες δαπάνες" value={loading ? null : fe(yearTotal)} />
       </div>
 
       {/* ── ΤΙ ΛΕΙΠΕΙ ────────────────────────────────────────────────────────

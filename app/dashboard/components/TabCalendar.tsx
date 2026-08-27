@@ -780,6 +780,17 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
           })}
         </div>
       </div>
+      {/* ═══ ΚΑΜΙΑ ΛΩΡΙΔΑ ΓΙΑ ΤΟ ΤΙΠΟΤΑ ═══════════════════════════════════════
+          Η ράγα τύπωνε «Καμία εκκρεμότητα» μέσα σε κάρτα με περίγραμμα και σκιά,
+          δηλαδή ολόκληρη κάρτα για να πει ότι δεν έχει τίποτα. Σε ταμπλέτα και
+          κινητό (globals.css: .cal-rail γίνεται 100% κάτω από τα 768) αυτό
+          κατέβαινε ΚΑΤΩ από το πλέγμα σε πλήρες πλάτος, οπότε ο χρήστης κυλούσε
+          και διάβαζε δύο μπλοκ στη σειρά που και τα δύο έλεγαν «άδειο».
+
+          ΦΕΥΓΕΙ Ο ΠΕΡΙΕΚΤΗΣ, ΟΧΙ ΜΟΝΟ Η ΚΑΡΤΑ. Το `width:200` με `flexShrink:0`
+          θα άφηνε κενή λωρίδα 212 εικονοστοιχείων δίπλα στο πλέγμα σε επιτραπέζιο,
+          δηλαδή θα αντικαθιστούσε ένα ορατό κενό με ένα αόρατο. */}
+      {upcomingRows.length>0&&(
       <div className="cal-rail" style={{ width:200, flexShrink:0, display:'flex', flexDirection:'column', gap:10 }}>
         {/* Εδώ ζούσε ΤΡΙΤΗ εκδοχή του ίδιου υπομνήματος: κάρτα με τον μήνα
             ως τίτλο και μία σειρά ανά κατηγορία με το πλήθος της. Με ένα
@@ -793,7 +804,6 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
               σήμερα και δεν κουνιέται. Δύο μονάδες χρόνου κολλητά, με τον
               επιλογέα να κυβερνά μόνο τη μία: αυτό λέγεται, δεν μαντεύεται. */}
           <p style={{ fontSize:12, fontFamily: T.font.sans, fontWeight:500, color:'var(--accent)', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:10 }}>Επόμενα από σήμερα</p>
-          {upcomingRows.length===0&&<p style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>Καμία εκκρεμότητα</p>}
           <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
             {upcomingRows.map(row=>{
               const ev=row.kind==='series'?row.lead:row.event
@@ -818,6 +828,7 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
           </div>
         </div>
       </div>
+      )}
     </div>
   )
 }
@@ -2253,7 +2264,16 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
               {monthEvents.map(e=>(<EventCard key={e.id} event={e} onToggleStatus={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} selected={selectedIds.has(e.id)} onSelect={toggleSelect} bulkMode={bulkMode} sameMonth/>))}
             </div>
           )}
-          {monthEvents.length===0&&<EmptyState icon={<CalendarDays size={20}/>} title="Δεν βρέθηκαν γεγονότα αυτόν τον μήνα" hint="Πάτησε σε μια ημέρα για να προσθέσεις ραντεβού, πληρωμή ή υπενθύμιση." />}
+          {/* ═══ ΤΟ ΑΔΕΙΟ ΠΛΕΓΜΑ ΕΙΝΑΙ Η ΚΕΝΗ ΚΑΤΑΣΤΑΣΗ ══════════════════════
+              Από κάτω του καθόταν ολόκληρο EmptyState με εικονίδιο, τίτλο «Δεν
+              βρέθηκαν γεγονότα αυτόν τον μήνα» και υπόδειξη «Πάτησε σε μια ημέρα
+              για να προσθέσεις». Το πλέγμα από πάνω είναι ήδη ολοφάνερα άδειο και
+              ΗΔΗ δέχεται πάτημα σε μέρα: το μπλοκ περιέγραφε το κενό που φαίνεται
+              και δίδασκε κίνηση που είναι ήδη διαθέσιμη.
+              Και ανακάτευε δύο καταστάσεις σε μία: ο τίτλος είχε τη μορφή του
+              φίλτρου («δεν βρέθηκαν») και η υπόδειξη τη μορφή της πρώτης
+              καταχώρησης. Στην Ατζέντα, δώδεκα γραμμές πιο κάτω, οι δύο είναι
+              σωστά χωρισμένες και εκεί χρειάζονται, γιατί εκεί δεν υπάρχει πλέγμα. */}
         </div>
       )}
 
