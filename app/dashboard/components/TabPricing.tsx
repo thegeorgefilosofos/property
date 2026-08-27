@@ -69,6 +69,51 @@ const WEEKDAYS = ['Δε', 'Τρ', 'Τε', 'Πε', 'Πα', 'Σα', 'Κυ'];
 const todayIso = () => athensToday();
 const addDaysIso = (d: string, n: number) => { const t = new Date(d + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); };
 
+// ΓΙΑΤΙ ΕΞΩ ΑΠΟ ΤΟ COMPONENT. Γραμμένο μέσα στο σώμα του TabPricing, το
+// MoneySteps ξαναγεννιόταν ως ΝΕΟΣ τύπος σε κάθε απόδοση: ο React έβλεπε άλλο
+// component και ξεστήνει ό,τι υπάρχει από κάτω αντί να το ενημερώσει. Το
+// eslint το έπιασε ως σφάλμα («Cannot create components during render»).
+// ── ΜΙΑ ΣΤΗΛΗ ΓΙΑ ΚΑΘΕ ΑΦΑΙΡΕΣΗ ΧΡΗΜΑΤΩΝ ΤΗΣ ΟΘΟΝΗΣ ───────────────────────
+// Μία υποδιαστολή, μία στήλη. Οι εκροές έχουν εσοχή και πρόσημο ώστε να
+// διαβάζονται ως αφαιρέσεις από τη γραμμή που τις γεννά· το αποτέλεσμα κάθεται
+// κάτω από γραμμή, με μεγαλύτερο και εντονότερο ψηφίο.
+//
+// ΔΥΟ ΚΛΙΜΑΚΕΣ, ΕΝΑ ΙΔΙΩΜΑ. Η χρονιά είναι η επικεφαλής πράξη της καρτέλας και
+// παίρνει το μεγάλο ψηφίο· η νύχτα είναι υποσημείωση μέσα σε κάρτα και παίρνει
+// το μικρό. Ό,τι αλλάζει είναι το μέγεθος, όχι ο τρόπος: ίδια στοίχιση, ίδια
+// εσοχή, ίδιο πρόσημο, ίδια γραμμή αποτελέσματος. Κανένα ψηφίο κάτω από 11.
+type MoneyStep = { key: string; label: string; amount: number; kind: 'in' | 'out' | 'total'; note?: string; negative?: boolean };
+const MoneySteps = ({ steps, scale = 'lead' }: { steps: MoneyStep[]; scale?: 'lead' | 'note' }) => {
+  const lead = scale === 'lead';
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {steps.map(step => {
+        const isTotal = step.kind === 'total';
+        const isOut = step.kind === 'out';
+        return (
+          <div key={step.key} title={step.note}
+            style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16,
+              padding: isTotal ? (lead ? '14px 0 2px' : '7px 0 1px') : (lead ? '9px 0' : '4px 0'),
+              borderTop: isTotal ? '1px solid var(--border-default)' : 'none',
+              marginTop: isTotal ? (lead ? 6 : 4) : 0 }}>
+            <span style={{ fontFamily: T.font.sans, fontSize: lead ? (isTotal ? 14 : 12.5) : 11.5,
+              fontWeight: isTotal ? 700 : 400,
+              color: isTotal ? 'var(--text-primary)' : 'var(--text-secondary)',
+              paddingLeft: isOut ? 14 : 0, minWidth: 0 }}>{step.label}</span>
+            <span style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums',
+              fontSize: lead ? (isTotal ? 19 : 13) : (isTotal ? 13 : 11.5),
+              fontWeight: isTotal ? 700 : 500,
+              color: isTotal ? 'var(--text-primary)' : 'var(--text-secondary)',
+              whiteSpace: 'nowrap', flexShrink: 0 }}>
+              {isOut || step.negative ? '\u2212' : ''}{fe(step.amount)}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 export default function TabPricing({ propertyId, userId, propertyName, propertySqm }: Props) {
   const supabase = createClient();
   const [stays, setStays] = useState<PriceStay[]>([]);
@@ -353,46 +398,6 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
 
   const mark = (fn: (v: number) => void) => (v: number) => { setTouched(true); fn(v); };
 
-  // ── ΜΙΑ ΣΤΗΛΗ ΓΙΑ ΚΑΘΕ ΑΦΑΙΡΕΣΗ ΧΡΗΜΑΤΩΝ ΤΗΣ ΟΘΟΝΗΣ ───────────────────────
-  // Μία υποδιαστολή, μία στήλη. Οι εκροές έχουν εσοχή και πρόσημο ώστε να
-  // διαβάζονται ως αφαιρέσεις από τη γραμμή που τις γεννά· το αποτέλεσμα κάθεται
-  // κάτω από γραμμή, με μεγαλύτερο και εντονότερο ψηφίο.
-  //
-  // ΔΥΟ ΚΛΙΜΑΚΕΣ, ΕΝΑ ΙΔΙΩΜΑ. Η χρονιά είναι η επικεφαλής πράξη της καρτέλας και
-  // παίρνει το μεγάλο ψηφίο· η νύχτα είναι υποσημείωση μέσα σε κάρτα και παίρνει
-  // το μικρό. Ό,τι αλλάζει είναι το μέγεθος, όχι ο τρόπος: ίδια στοίχιση, ίδια
-  // εσοχή, ίδιο πρόσημο, ίδια γραμμή αποτελέσματος. Κανένα ψηφίο κάτω από 11.
-  type MoneyStep = { key: string; label: string; amount: number; kind: 'in' | 'out' | 'total'; note?: string; negative?: boolean };
-  const MoneySteps = ({ steps, scale = 'lead' }: { steps: MoneyStep[]; scale?: 'lead' | 'note' }) => {
-    const lead = scale === 'lead';
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        {steps.map(step => {
-          const isTotal = step.kind === 'total';
-          const isOut = step.kind === 'out';
-          return (
-            <div key={step.key} title={step.note}
-              style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16,
-                padding: isTotal ? (lead ? '14px 0 2px' : '7px 0 1px') : (lead ? '9px 0' : '4px 0'),
-                borderTop: isTotal ? '1px solid var(--border-default)' : 'none',
-                marginTop: isTotal ? (lead ? 6 : 4) : 0 }}>
-              <span style={{ fontFamily: T.font.sans, fontSize: lead ? (isTotal ? 14 : 12.5) : 11.5,
-                fontWeight: isTotal ? 700 : 400,
-                color: isTotal ? 'var(--text-primary)' : 'var(--text-secondary)',
-                paddingLeft: isOut ? 14 : 0, minWidth: 0 }}>{step.label}</span>
-              <span style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums',
-                fontSize: lead ? (isTotal ? 19 : 13) : (isTotal ? 13 : 11.5),
-                fontWeight: isTotal ? 700 : 500,
-                color: isTotal ? 'var(--text-primary)' : 'var(--text-secondary)',
-                whiteSpace: 'nowrap', flexShrink: 0 }}>
-                {isOut || step.negative ? '\u2212' : ''}{fe(step.amount)}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
 
   // ── Η γραμμή που κανείς δεν επινοεί ────────────────────────────────────────
   // Ο οικοδεσπότης βλέπει «85 €/νύχτα» και νομίζει ότι εισπράττει 85 και δηλώνει
