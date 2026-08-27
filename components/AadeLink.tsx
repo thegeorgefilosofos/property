@@ -72,7 +72,10 @@ export function AadeLinks({ actions }: { actions: readonly AadeAction[] }) {
 export function AadePill({ action, label }: { action: AadeAction; label?: string }) {
   const d = AADE_DESTINATIONS[action];
   return (
-    <a href={d.url} target="_blank" rel="noopener noreferrer" title={aadeTitle(action)}
+    // Η ΠΙΛΟΥΛΑ ΕΙΝΑΙ 27 ΕΙΚΟΝΟΣΤΟΙΧΕΙΑ ΚΑΙ ΜΕΝΕΙ 27. Το `po-tap-inline` δίνει
+    // τα 44 της αφής ως αόρατη ζώνη, χωρίς να αλλάξει το σχήμα: μια πιλούλα με
+    // κείμενο 11 και ύψος 44 θα ήταν χοντρή δίπλα στα υπόλοιπα chip.
+    <a className="po-tap-inline" href={d.url} target="_blank" rel="noopener noreferrer" title={aadeTitle(action)}
       style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, fontWeight: 600, textDecoration: 'none', padding: '4px 12px', background: 'var(--bg-elevated)', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)' }}>
       {label ?? d.label}
     </a>

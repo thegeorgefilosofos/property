@@ -106,6 +106,29 @@ const STATUS_META:Record<ReconStatus,{label:string;color:string;strong:boolean}>
 // διπλανή του πληροφορία είναι πίνακας που μια μέρα θα διαφωνήσει μαζί της.
 const statusInk = (st: ReconStatus): string => (STATUS_META[st].strong ? INK : INK_MUTED)
 
+// ═══════════════════════════════════════════════════════════════════════════
+// Ο ΣΥΝΔΕΣΜΟΣ ΠΡΟΣ ΤΑ ΕΞΩ, ΓΡΑΜΜΕΝΟΣ ΜΙΑ ΦΟΡΑ
+// ─────────────────────────────────────────────────────────────────────────
+// ΗΤΑΝ ΓΡΑΜΜΕΝΟΣ ΔΥΟ ΦΟΡΕΣ, ΠΕΝΗΝΤΑ ΓΡΑΜΜΕΣ ΜΑΚΡΙΑ: μία στις ενέργειες
+// («Περισσότερα») και μία στις αλλαγές του έτους («Πηγή»), με πανομοιότυπο
+// ενσώματο στυλ. Ο σαρωτής ανέφερε στόχο αφής 18 εικονοστοιχείων και η
+// διόρθωση έμπαινε στο ΕΝΑ αντίγραφο: η μέτρηση συνέχιζε να κοκκινίζει και το
+// σφάλμα έμοιαζε άλυτο, ενώ απλώς διορθωνόταν λάθος σημείο. Δύο αντίγραφα του
+// ίδιου στοιχείου σημαίνουν ότι κάθε διόρθωση έχει πενήντα τοις εκατό να πιάσει.
+//
+// ΤΟ `.tap-link` ΕΙΝΑΙ ΤΟ ΙΔΙΩΜΑ ΤΟΥ ΕΡΓΟΥ ΓΙ' ΑΥΤΗ ΤΗΝ ΠΕΡΙΠΤΩΣΗ: σύνδεσμος
+// που ΔΕΝ ζει μέσα σε πρόταση παίρνει κανονικό ύψος 44 και κεντράρει το κείμενό
+// του, μόνο σε οθόνη αφής. Στο ποντίκι η γραμμή μένει όσο ήταν.
+// ═══════════════════════════════════════════════════════════════════════════
+function OutLink({ href, label }: { href: string; label: string }) {
+  return (
+    <a className="tap-link" href={href} target="_blank" rel="noreferrer"
+      style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:12, color:'var(--accent)', textDecoration:'none', fontFamily: T.font.sans }}>
+      {label}<ArrowUpRight size={12}/>
+    </a>
+  )
+}
+
 // Κάρτα λογιστικής: καθαρή, ανασηκωμένη με σκιά (3D) αλλά ΧΩΡΙΣ λευκό περίγραμμα/
 // γυαλάδα (highlight-inset). Ήσυχο, Stripe/Apple αίσθηση, ομοιόμορφο σε όλο το tab.
 // Κάρτα: ΚΑΜΙΑ ορατή περίμετρος (το «λευκό γύρω γύρω»). Το βάθος/ζωντάνια έρχεται
@@ -1527,7 +1550,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             <ChevronRight size={17} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:advisoryOpen?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
           </button>
           {advisoryOpen && (<>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap:12, alignItems:'start', marginTop:16 }}>
+          <div className="card-row" style={{ marginTop:16 }}>
             {advisory.map(a=>{
               const open = openAdvisory===a.id
               return (
@@ -1542,11 +1565,11 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
                   </button>
                   {open&&(
                     <div style={{ padding:'0 16px 15px' }}>
-                      <p style={{ fontSize:13, color:'var(--text-secondary)', margin:0, fontFamily: T.font.sans, lineHeight:1.6 }}>{a.body}</p>
+                      <p className="text-measure" style={{ fontSize:13, color:'var(--text-secondary)', margin:0, fontFamily: T.font.sans, lineHeight:1.6 }}>{a.body}</p>
                       {(a.refer||a.linkHref)&&(
                         <div style={{ display:'flex', alignItems:'center', gap:14, marginTop:11, flexWrap:'wrap' }}>
                           {a.refer&&<span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>{referLabel(a.refer)}</span>}
-                          {a.linkHref&&<a href={a.linkHref} target="_blank" rel="noreferrer" style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:12, color:'var(--accent)', textDecoration:'none', fontFamily: T.font.sans }}>{a.linkLabel||'Περισσότερα'}<ArrowUpRight size={12}/></a>}
+                          {a.linkHref&&<OutLink href={a.linkHref} label={a.linkLabel||'Περισσότερα'}/>}
                         </div>
                       )}
                     </div>
@@ -1589,7 +1612,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
                         <p style={{ fontSize:13, color:'var(--text-secondary)', margin:0, lineHeight:1.6, fontFamily: T.font.sans }}>{u.summary}</p>
                         <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:11, flexWrap:'wrap' }}>
                           <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily: T.font.sans, letterSpacing:'0.3px' }}>Ισχύς: {u.effective} · {u.legalBasis}</span>
-                          {u.sourceHref && <a href={u.sourceHref} target="_blank" rel="noreferrer" style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:12, color:'var(--accent)', textDecoration:'none', fontFamily: T.font.sans }}>{u.sourceLabel||'Πηγή'}<ArrowUpRight size={12}/></a>}
+                          {u.sourceHref && <OutLink href={u.sourceHref} label={u.sourceLabel||'Πηγή'}/>}
                         </div>
                       </div>
                     )}

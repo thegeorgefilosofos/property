@@ -11,7 +11,17 @@ export const PUBLIC = [
   '/vraxyxronia-i-makroxronia',
 ];
 
-export const BENCH = ['portfolio', 'cash', 'rent', 'inbox', 'ledger', 'checklist', 'modal', 'select'];
+// ΟΙ ΟΚΤΩ ΕΓΙΝΑΝ ΕΙΚΟΣΙ ΜΙΑ, ΟΣΕΣ ΚΑΙ ΤΟΥ ΣΑΡΩΤΗ ΔΙΑΤΑΞΗΣ. Οι δύο σαρωτές
+// έβλεπαν ΑΛΛΗ εφαρμογή: εδώ οκτώ σκηνές, εκεί δεκαεπτά. Ο έλεγχος για στοιχείο
+// που αποδίδεται με μηδενικό ύψος ή με γραμματοσειρά που δεν φόρτωσε δεν είχε
+// δει ποτέ Τιμολόγηση, Λογαριασμούς, Επαφές, Αποδόσεις, Ενοικιαστή, Σάρωση,
+// Σύγκριση, Δάνειο ή τον οδηγό προσθήκης. Δύο κατάλογοι για το ίδιο ερώτημα
+// σημαίνουν ότι ο ένας μένει πίσω· έμενε.
+export const BENCH = [
+  'portfolio', 'cash', 'rent', 'inbox', 'ledger', 'checklist', 'modal', 'select',
+  'compare', 'loan', 'pricing', 'bills', 'contacts', 'wizard', 'roi', 'tenant', 'scan',
+  'accounting', 'calendar', 'clients', 'documents',
+];
 
 export const benchUrl = (c, n = 12) =>
   `file://${process.cwd()}/.perf-bench/mobile.html?c=${c}&n=${n}`;

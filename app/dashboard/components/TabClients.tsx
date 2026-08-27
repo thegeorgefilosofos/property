@@ -1130,7 +1130,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
             {/* Η ΠΛΗΡΟΤΗΤΑ ΜΕ ΣΩΣΤΟ ΠΑΡΟΝΟΜΑΣΤΗ και δεύτερο νούμερο για την
                 υψηλή περίοδο. Πριν διαιρούσε με 365 και το εποχιακό εξοχικό
                 εμφανιζόταν στο «16%». */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 10, marginBottom: 16 }}>
+            <div className="tile-row" style={{ marginBottom: 16 }}>
               {statTile('Δηλωτέα ακαθάριστα', fe(tot.revenue))}
               {statTile('Τέλος ανθεκτικότητας', tot.climateLevy > 0 ? fe(tot.climateLevy) : fe(0), { title: 'Εισπράχθηκε από τους επισκέπτες για λογαριασμό του κράτους. Δεν είναι έσοδό σου.' })}
               {statTile('Προμήθειες πλατφορμών', tot.platformFees > 0 ? fe(tot.platformFees) : fe(0), { title: 'Δαπάνη που εκπίπτει. ΔΕΝ μειώνει το δηλωτέο έσοδο.' })}

@@ -611,10 +611,25 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
             // της στήλης είναι το πλάτος του πλέγματος διά εφτά, μείον το
             // εσωτερικό περιθώριο του κελιού από τις δύο πλευρές.
             const colInner=Math.max(0,(gridW/7)-CELL_PAD*2)
-            const weekHolH=!weekHasHoliday?0:(weekDates.some(d=>{
+            // ═══ ΚΑΙ ΑΝ ΔΕΝ ΧΩΡΑΕΙ ΟΥΤΕ ΣΕ ΔΥΟ, ΔΕΝ ΓΡΑΦΕΤΑΙ ΚΑΘΟΛΟΥ ═══════════
+            //
+            // ΜΕΤΡΗΜΕΝΟ ΣΤΟΝ ΠΑΓΚΟ, ΣΤΑ 320 ΚΑΙ 360: η στήλη είναι 33
+            // εικονοστοιχεία και το «Κοίμηση της Θεοτόκου» έσπαγε σε ΕΠΤΑ
+            // σειρές. Με ψαλίδι στις δύο, ο χρήστης έβλεπε «Κοί» και «μησ»:
+            // συλλαβές, όχι όνομα. Η αργία φαίνεται ήδη από τον τόνο του κελιού
+            // και γράφεται ολόκληρη στο πλαίσιο της ημέρας από κάτω.
+            //
+            // ΚΑΙ Η ΜΕΤΡΗΣΗ ΓΙΝΟΤΑΝ ΜΕ ΛΑΘΟΣ ΓΡΑΜΜΑΤΟΣΕΙΡΑ. Ζητούσε πλάτος για
+            // «600 10px», ενώ το κελί αποδίδει 11: κάθε όνομα υπολογιζόταν
+            // περίπου δέκα τοις εκατό στενότερο απ' ό,τι είναι, δηλαδή η
+            // απόφαση «μία ή δύο γραμμές» έπαιρνε στενά μηνύματα για φαρδιά.
+            const holFont='600 11px '+T.font.sans
+            const widestHol=weekDates.reduce((mx,d)=>{
               const n=d?holidayName(d):null
-              return !!n && colInner>0 && textWidth(n,'600 10px '+T.font.sans)>colInner
-            })?HOL_H2:HOL_H)
+              return n?Math.max(mx,textWidth(n,holFont)):mx
+            },0)
+            const holLines=colInner>0?Math.ceil(widestHol/colInner):1
+            const weekHolH=!weekHasHoliday||holLines>2?0:(holLines>1?HOL_H2:HOL_H)
             const shownLanes=Math.min(lanes,MAX_LANES)
             const railH=shownLanes*(BAR_H+BAR_GAP)
             return (
@@ -643,7 +658,7 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
               // (τι κοιτάς) και πρέπει να ξεχωρίζει από το σήμερα (τι μέρα είναι).
               const cellBg=isSelected?'color-mix(in srgb, var(--accent) 12%, transparent)':hol?'color-mix(in srgb, var(--accent) 5%, transparent)':wknd?'color-mix(in srgb, var(--text-tertiary) 5%, transparent)':'transparent'
               return (
-                <div key={idx} {...pressable(()=>day&&onDayClick(dateStr))} data-drop-date={day?dateStr:undefined} style={{ minHeight:80, padding:'6px', borderRight:(idx+1)%7===0?'none':'1px solid var(--border-subtle)', borderBottom:idx<cells.length-7?'1px solid var(--border-subtle)':'none', background:cellBg, boxShadow:isSelected&&!isToday?'inset 0 0 0 2px var(--accent)':'none', cursor:day?'pointer':'default', transition:'background 0.1s' }}
+                <div key={idx} {...pressable(()=>day&&onDayClick(dateStr))} title={hol||undefined} data-drop-date={day?dateStr:undefined} style={{ minHeight:80, padding:'6px', borderRight:(idx+1)%7===0?'none':'1px solid var(--border-subtle)', borderBottom:idx<cells.length-7?'1px solid var(--border-subtle)':'none', background:cellBg, boxShadow:isSelected&&!isToday?'inset 0 0 0 2px var(--accent)':'none', cursor:day?'pointer':'default', transition:'background 0.1s' }}
                   onMouseEnter={e=>{if(day)(e.currentTarget as HTMLElement).style.background='var(--bg-hover)'}}
                   onMouseLeave={e=>{if(day)(e.currentTarget as HTMLElement).style.background=cellBg}}
                 >
@@ -656,7 +671,7 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
                       {/* Η αργία, κολλητά στην ημερομηνία της. Ο χώρος κρατιέται
                           και στα κελιά χωρίς αργία, ώστε ο διάδρομος από κάτω να
                           ξεκινά στο ίδιο ύψος σε όλη την εβδομάδα. */}
-                      {weekHasHoliday&&(
+                      {weekHasHoliday&&weekHolH>0&&(
                         <div title={hol||undefined} style={{ height:weekHolH, fontSize: 11, lineHeight:'14px', color:'var(--accent)', fontWeight:600, overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', textWrap:'balance', wordBreak:'break-word', fontFamily: T.font.sans }}>{hol||''}</div>
                       )}
                       {/* Ο ΔΙΑΔΡΟΜΟΣ ΤΩΝ ΚΡΑΤΗΣΕΩΝ. Το κελί δεν ζωγραφίζει πια
@@ -2027,7 +2042,10 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
         )}
 
         <div style={{ flex:1, minWidth:100, position:'relative' }}>
-          <input className="po-field" aria-label="Αναζήτηση γεγονότος" placeholder="Τίτλος γεγονότος" value={searchQ} onChange={e=>setSearchQ(e.target.value)}
+          {/* Το «Τίτλος γεγονότος» ζητούσε 143 εικονοστοιχεία και το πεδίο δίνει
+              116 στα 320: κοβόταν στο «Τίτλος γεγον…». Ο φακός δίπλα λέει ήδη
+              ότι είναι αναζήτηση· το παράδειγμα λέει ΤΙ γράφεις. */}
+          <input className="po-field" aria-label="Αναζήτηση γεγονότος με τον τίτλο του" placeholder="Τίτλος" value={searchQ} onChange={e=>setSearchQ(e.target.value)}
             style={{ width:'100%', height:T.h.md, background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius: T.radius.modal, padding:'0 16px', color:'var(--text-primary)', fontSize:14, fontFamily: T.font.sans, outline:'none' }}
             onFocus={e=>e.currentTarget.style.borderColor='var(--accent)'} onBlur={e=>e.currentTarget.style.borderColor='var(--border-subtle)'}/>
         </div>

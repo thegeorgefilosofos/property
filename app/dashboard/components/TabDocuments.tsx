@@ -860,7 +860,13 @@ export default function TabDocuments({
         {showTool('search', items.length) && (
         <div style={{ position: 'relative', width: 240, maxWidth: '100%' }}>
           <svg {...S} width={15} height={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }}><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Όνομα, πάροχος ή έτος" aria-label="Αναζήτηση στο αρχείο"
+          {/* ΤΟ ΠΑΡΑΔΕΙΓΜΑ ΔΕΝ ΧΩΡΟΥΣΕ ΣΕ ΚΑΝΕΝΑ ΠΛΑΤΟΣ, ΟΥΤΕ ΣΤΟΝ ΦΟΡΗΤΟ. Το
+              πεδίο είναι σταθερά 240 με 68 γέμισμα για τον φακό και το «χ»,
+              δηλαδή 172 ελεύθερα· το «Όνομα, πάροχος ή έτος» ζητούσε 189. Ο
+              χρήστης διάβαζε «Όνομα, πάροχος ή έτ…» παντού. Το έτος δεν έπαψε
+              να αναζητείται: το παράδειγμα δίνει τα δύο συνηθισμένα, δεν
+              απαριθμεί τι δέχεται το πεδίο. */}
+          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Όνομα ή πάροχος" aria-label="Αναζήτηση στο αρχείο, με όνομα, πάροχο ή έτος"
             style={{ width: '100%', height: T.h.md, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, padding: '0 34px 0 34px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box' }}/>
           {query && <button onClick={() => setQuery('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 13 }}><IconX/></button>}
         </div>
