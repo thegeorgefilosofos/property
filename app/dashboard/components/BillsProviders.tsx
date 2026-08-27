@@ -388,7 +388,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
                 }}
                 options={[{ value: '', label: '— Επιλογή προγράμματος —' }, ...planOptions]}/>
             ) : (
-              <TextInput label="Ονομασία προγράμματος" value={s.internetPlan} onChange={v => upd({ internetPlan: v })} placeholder="Παράδειγμα: Fiber 500"/>
+              <TextInput label="Ονομασία προγράμματος" value={s.internetPlan} onChange={v => upd({ internetPlan: v })} placeholder="Fiber 500"/>
             )}
             <NumberInput label="Μηνιαίο κόστος"  value={s.internetPrice} onChange={v => upd({ internetPrice: v })} suffix="€" step={1}/>
           </div>
@@ -466,7 +466,7 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
                   </div>
                 ))}
               </div>
-              <TextInput label="Σημειώσεις πακέτου" value={s.phoneNotes} onChange={v => upd({ phoneNotes: v })} placeholder="Παράδειγμα: 100 λεπτά διεθνή, αποκλείονται premium…"/>
+              <TextInput label="Σημειώσεις πακέτου" value={s.phoneNotes} onChange={v => upd({ phoneNotes: v })} placeholder="100 λεπτά διεθνή, αποκλείονται premium…"/>
             </div>
           )}
 

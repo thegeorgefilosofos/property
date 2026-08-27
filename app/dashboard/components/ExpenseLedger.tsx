@@ -961,7 +961,7 @@ function EditExpense({ row, userId, onClose, onSaved }: {
       <label style={{ display: 'block', minWidth: 0 }}>
         <span style={LAB}>Περιγραφή</span>
         <input value={what} onChange={e => setWhat(e.target.value)} style={FIELD}
-          placeholder="Παράδειγμα: λογαριασμός ΔΕΗ, υδραυλικός" />
+          placeholder="λογαριασμός ΔΕΗ, υδραυλικός" />
       </label>
 
       {/* Ίδια γεωμετρία με την καταχώρηση: το ευρώ μέσα στο πεδίο, δεξιά. */}
@@ -1147,7 +1147,7 @@ function QuickAdd({ propertyId, userId, seed, onDone }: { propertyId: string; us
         <label className="qa-wide" style={{ minWidth: 0 }}>
           <span style={LAB}>Περιγραφή</span>
           <input ref={first} value={what} onChange={e => setWhat(e.target.value)} style={FIELD}
-            placeholder="Παράδειγμα: λογαριασμός ΔΕΗ, υδραυλικός" />
+            placeholder="λογαριασμός ΔΕΗ, υδραυλικός" />
         </label>
         {/* Το ευρώ ζει ΜΕΣΑ στο πεδίο, δεξιά, όπως σε κάθε άλλο ποσό της
             εφαρμογής. Χωρίς αυτό, ένα κενό κουτί δίπλα στη λέξη «Πόσο;» δεν

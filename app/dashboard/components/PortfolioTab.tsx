@@ -780,7 +780,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
             ανήκει στον υπότιτλο από πάνω, όχι στο πεδίο από κάτω. */}
         <div>
           <label style={{ ...TT.label, display: 'block', marginBottom: 6 }}>Περιγραφή</label>
-          <input aria-label="Περιγραφή" autoFocus value={bulkDesc} onChange={e => setBulkDesc(e.target.value)} placeholder="Παράδειγμα: Έλεγχος κλιματιστικών" style={fieldStyle} />
+          <input aria-label="Περιγραφή" autoFocus value={bulkDesc} onChange={e => setBulkDesc(e.target.value)} placeholder="Έλεγχος κλιματιστικών" style={fieldStyle} />
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
           <div style={{ flex: 1 }}>

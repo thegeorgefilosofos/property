@@ -136,12 +136,12 @@ export default function GuestCheckin() {
                   <div><label htmlFor="ci-name" style={label}>Ονοματεπώνυμο *</label><input id="ci-name" required value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Όπως στην ταυτότητα/διαβατήριο" style={field} /></div>
                   <div style={{ ...formGrid(200, 270), gap: 14 }}>
                     <div><label htmlFor="ci-id" style={label}>Αριθμός ταυτότητας / διαβατηρίου</label><input id="ci-id" value={idNumber} onChange={e => setIdNumber(e.target.value)} style={field} /></div>
-                    <div><label htmlFor="ci-nat" style={label}>Εθνικότητα</label><input id="ci-nat" value={nationality} onChange={e => setNationality(e.target.value)} placeholder="Παράδειγμα: Ελληνική" style={field} /></div>
+                    <div><label htmlFor="ci-nat" style={label}>Εθνικότητα</label><input id="ci-nat" value={nationality} onChange={e => setNationality(e.target.value)} placeholder="Ελληνική" style={field} /></div>
                     <div><label htmlFor="ci-birth" style={label}>Ημερομηνία γέννησης</label><input id="ci-birth" type="date" value={birthDate} onChange={e => setBirthDate(e.target.value)} style={field} /></div>
                     <div><label htmlFor="ci-arrival" style={label}>Ημερομηνία άφιξης</label><input id="ci-arrival" type="date" value={arrival} onChange={e => setArrival(e.target.value)} style={field} /></div>
                     <div><label htmlFor="ci-phone" style={label}>Τηλέφωνο</label><input id="ci-phone" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+30…" style={field} /></div>
                     <div><label htmlFor="ci-email" style={label}>Ηλεκτρονικό ταχυδρομείο</label><input id="ci-email" type="email" value={email} onChange={e => setEmail(e.target.value)} style={field} /></div>
-                    <div><label htmlFor="ci-guests" style={label}>Αριθμός ατόμων</label><input id="ci-guests" inputMode="numeric" value={guests} onChange={e => setGuests(e.target.value.replace(/[^\d]/g, ''))} placeholder="Παράδειγμα: 2" style={field} /></div>
+                    <div><label htmlFor="ci-guests" style={label}>Αριθμός ατόμων</label><input id="ci-guests" inputMode="numeric" value={guests} onChange={e => setGuests(e.target.value.replace(/[^\d]/g, ''))} placeholder="2" style={field} /></div>
                   </div>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13, color: 'var(--text-secondary)' }}>
                     <input type="checkbox" checked={accepts} onChange={e => setAccepts(e.target.checked)} style={{ width: 18, height: 18, accentColor: 'var(--accent)' }} />

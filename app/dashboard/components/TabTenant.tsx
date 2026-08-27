@@ -979,7 +979,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
                     )}
                     {more('tenant.profession')&&(
                       <div style={{ marginBottom:16 }}>
-                        <TextInput label="Επάγγελμα" labelInfo={whyOf('tenant.profession')} value={form.profession} onChange={v=>sf('profession',v)} placeholder="Παράδειγμα: Μηχανικός"/>
+                        <TextInput label="Επάγγελμα" labelInfo={whyOf('tenant.profession')} value={form.profession} onChange={v=>sf('profession',v)} placeholder="Μηχανικός"/>
                       </div>
                     )}
                     {more('tenant.iban')&&(
@@ -1046,7 +1046,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
                     )}
                     {more('tenant.extra_perks')&&(
                       <div style={{ marginBottom:16 }}>
-                        <Textarea label="Επιπλέον παροχές" labelInfo={whyOf('tenant.extra_perks')} value={form.extra_perks} onChange={v=>sf('extra_perks',v)} placeholder="Παράδειγμα: Αποθήκη, κήπος, κοινόχρηστο πλυντήριο…"/>
+                        <Textarea label="Επιπλέον παροχές" labelInfo={whyOf('tenant.extra_perks')} value={form.extra_perks} onChange={v=>sf('extra_perks',v)} placeholder="Αποθήκη, κήπος, κοινόχρηστο πλυντήριο…"/>
                       </div>
                     )}
                     {more('tenant.notes')&&(

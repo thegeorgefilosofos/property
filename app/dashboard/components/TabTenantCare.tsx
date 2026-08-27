@@ -304,7 +304,7 @@ export function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propert
               </div>
               <div>
                 <div style={{ ...labelStyle, marginBottom:8 }}>Αποτέλεσμα</div>
-                <input type="text" value={form.outcome} onChange={e=>setForm(f=>({...f,outcome:e.target.value}))} placeholder="Παράδειγμα: Θετικό, αρνητικό…" style={inputStyle}/>
+                <input type="text" value={form.outcome} onChange={e=>setForm(f=>({...f,outcome:e.target.value}))} placeholder="Θετικό, αρνητικό…" style={inputStyle}/>
               </div>
             </div>
             <div style={{ marginBottom:14 }}>
@@ -536,7 +536,7 @@ export function DamagesView({ tenant, propertyId, userId, damages, onRefresh }:{
               <div><div style={{ ...labelStyle, marginBottom:8 }}>Χρέωση στον ενοικιαστή</div><Toggle on={f.charged_to_tenant} onChange={v=>setF(x=>({...x,charged_to_tenant:v}))} ariaLabel="Ναι ή όχι"/></div>
             </div>
             <div style={{ marginBottom:14 }}>
-              <TextInput label="Περιγραφή *" value={f.description} onChange={v=>setF(x=>({...x,description:v}))} placeholder="Παράδειγμα: Φθορά πάγκου κουζίνας"/>
+              <TextInput label="Περιγραφή *" value={f.description} onChange={v=>setF(x=>({...x,description:v}))} placeholder="Φθορά πάγκου κουζίνας"/>
             </div>
             <div className="kpi-row" style={{ ...s.g3, marginBottom:14 }}>
               <div><div style={{ ...labelStyle, marginBottom:8 }}>Επισκευάστηκε</div><Toggle on={f.repaired} onChange={v=>setF(x=>({...x,repaired:v}))} ariaLabel="Ναι ή όχι"/></div>

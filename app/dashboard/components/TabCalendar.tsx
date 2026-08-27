@@ -728,17 +728,25 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
                           πάτημα. Το μέγεθος βγαίνει από το μήκος και το
                           δοχείο κόβει ως έσχατο δίχτυ ώστε τίποτα να μη
                           μπορεί ποτέ να πέσει στο διπλανό κελί. */}
-                      {dayAmt>0&&(()=>{
-                        const txt=fn(dayAmt)
-                        const [fs,es]=txt.length<=3?[10,8]:txt.length<=5?[9,7]:[8,7]
-                        return (
-                          <div style={{ marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                            <span style={{ fontSize:fs, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', color:'var(--accent)', opacity:0.8 }}>
-                              {txt}<span style={{ fontSize:es, marginLeft:1.5, opacity:0.7 }}>€</span>
-                            </span>
-                          </div>
-                        )
-                      })()}
+                      {/* ═══ Η ΣΜΙΚΡΥΝΣΗ ΕΦΥΓΕ, ΤΟ ΔΟΧΕΙΟ ΜΕΝΕΙ ΤΟ ΔΙΧΤΥ ═══════════
+                          Το μέγεθος έβγαινε από το ΜΗΚΟΣ του ποσού: 10 και 8 για
+                          τρία ψηφία, 9 και 7 για πέντε, 8 και 7 για περισσότερα.
+                          Δηλαδή όσο μεγαλύτερο το ποσό, τόσο πιο δυσανάγνωστο —
+                          και το «€» έπεφτε στα ΕΠΤΑ, κάτω από το δάπεδο των 11.
+                          Η σάρωση το βρήκε σε δώδεκα οθόνες.
+
+                          Ο κανόνας του έργου το λέει ήδη για τα μεγέθη: όταν ένα
+                          κείμενο δεν χωρά, απαντά η διάταξη, όχι η σμίκρυνση. Το
+                          δοχείο κόβει ήδη με αποσιωπητικά και η ημέρα ανοίγει με
+                          πάτημα δείχνοντας το πλήρες ποσό, οπότε το δίχτυ
+                          υπάρχει. Ενα μέγεθος, το ελάχιστο επιτρεπτό. */}
+                      {dayAmt>0&&(
+                        <div style={{ marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                          <span style={{ fontSize:11, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', color:'var(--accent)', opacity:0.8 }}>
+                            {fn(dayAmt)}<span style={{ marginLeft:1.5, opacity:0.7 }}>€</span>
+                          </span>
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
@@ -1339,7 +1347,7 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
               <CustomSelect value={form.recurrence_end_mode} onChange={v=>setForm(f=>({...f,recurrence_end_mode:v as FormState['recurrence_end_mode']}))}
                 options={[{value:'none',label:'Χωρίς λήξη'},{value:'until',label:'Μέχρι ημερομηνία'},{value:'count',label:'Για πλήθος φορών'}]}/>
               {form.recurrence_end_mode==='until'&&<div style={{ gridColumn:'1 / -1' }}><DatePicker value={form.recurrence_until} onChange={v=>setForm(f=>({...f,recurrence_until:v}))}/></div>}
-              {form.recurrence_end_mode==='count'&&<div style={{ gridColumn:'1 / -1' }}><input type="number" min="1" style={fld} placeholder="Παράδειγμα: 12 φορές" value={form.recurrence_count} onChange={e=>setForm(f=>({...f,recurrence_count:e.target.value}))} onFocus={focus} onBlur={blur}/></div>}
+              {form.recurrence_end_mode==='count'&&<div style={{ gridColumn:'1 / -1' }}><input type="number" min="1" style={fld} placeholder="12 φορές" value={form.recurrence_count} onChange={e=>setForm(f=>({...f,recurrence_count:e.target.value}))} onFocus={focus} onBlur={blur}/></div>}
             </div>
           )}
         </div>

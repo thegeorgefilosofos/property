@@ -394,7 +394,7 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
           <div>
             <div style={{ ...TT.label, marginBottom: 8 }}>ΑΠΟΘΗΚΕΥΣΗ ΩΣ ΠΡΟΦΙΛ (ΠΡΟΑΙΡΕΤΙΚΟ)</div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <input aria-label="Ονομα προεπιλογής" value={presetName} onChange={e => setPresetName(e.target.value)} placeholder="Παράδειγμα: Μηνιαία σύνοψη" style={{ ...field, flex: 1 }} />
+              <input aria-label="Ονομα προεπιλογής" value={presetName} onChange={e => setPresetName(e.target.value)} placeholder="Μηνιαία σύνοψη" style={{ ...field, flex: 1 }} />
               <Btn variant="secondary" onClick={addPreset} disabled={!presetName.trim()}>Αποθήκευση</Btn>
             </div>
           </div>

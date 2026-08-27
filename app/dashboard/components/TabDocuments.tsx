@@ -1118,7 +1118,14 @@ function FileCard({ i, a }: { i: Item; a: FileActions }) {
           {i.value != null && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{fe(i.value)}</span>}
           <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.mono, marginLeft: 'auto' }}>{i.date ? fd(i.date) : ABSENT_DATE}</span>
         </div>
-        {i.url && <a href={i.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 11, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none' }}>Άνοιγμα</a>}
+        {/* ═══ ΤΟ ΔΑΠΕΔΟ ΤΩΝ 44 ΔΕΝ ΠΙΑΝΕΙ ΤΟΥΣ ΣΥΝΔΕΣΜΟΥΣ ═══════════════════
+            Ο κανόνας του globals.css τεντώνει `button`, `select` και `input`.
+            Αυτό είναι `a`, δηλαδή έμενε στο φυσικό του ύψος: μετρήθηκε 17
+            εικονοστοιχεία, σε ΕΝΤΕΚΑ οθόνες και σε κάθε συσκευή αφής.
+            Παίρνει το σχήμα του διπλανού του «Άνοιγμα» της γραμμής λίστας, ώστε
+            τα δύο να είναι το ίδιο πράγμα, συν το `po-box` που δίνει αόρατη
+            ζώνη γύρω γύρω χωρίς να μεγαλώσει το σχήμα. */}
+        {i.url && <a className="po-box" href={i.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 11, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', padding: '6px 12px', border: '1px solid var(--accent-border)', borderRadius: T.radius.badge }}>Άνοιγμα</a>}
       </div>
     </div>
   );
@@ -1163,7 +1170,7 @@ function FileRow({ i, a }: { i: Item; a: FileActions }) {
           {canFix && <RowBtn title="Διόρθωση αναγνώρισης" onClick={() => a.onFix(i)}><IconMoveFolder size={14}/></RowBtn>}
         </>
       )}
-      {i.url && <a href={i.url} target="_blank" rel="noopener noreferrer"
+      {i.url && <a className="po-box" href={i.url} target="_blank" rel="noopener noreferrer"
         style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', padding: '6px 12px', border: '1px solid var(--accent-border)', borderRadius: T.radius.badge, whiteSpace: 'nowrap' }}>Άνοιγμα</a>}
       {i.raw && <RowBtn title="Διαγραφή" onClick={() => a.onDelete(i)}><IconX/></RowBtn>}
     </div>
@@ -1305,7 +1312,7 @@ function DraftCard({ d, onToggle, onPatch, onPatchDoc, onCommit, onRemove }: {
             <div style={g2x}>
               <CustomSelect label="Κατηγορία φωτογραφίας" value={d.category} onChange={c => onPatch({ category: c })}
                 options={PHOTO_CATEGORIES.map(c => ({ value: c, label: c }))}/>
-              <TextInput label="Τι δείχνει" value={d.photoTitle || ''} onChange={t => onPatch({ photoTitle: t })} placeholder="Παράδειγμα: Σαλόνι, βόρειος τοίχος"/>
+              <TextInput label="Τι δείχνει" value={d.photoTitle || ''} onChange={t => onPatch({ photoTitle: t })} placeholder="Σαλόνι, βόρειος τοίχος"/>
             </div>
           ) : doc ? (<>
             {(v.blocking.length > 0 || v.invalid.length > 0 || v.recommended.length > 0) && (

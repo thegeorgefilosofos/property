@@ -1779,7 +1779,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
               {addingCat && (
                 <div style={{ marginTop: 10, display: 'flex', alignItems: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
                   <div style={{ flex: 1, minWidth: 180 }}>
-                    <TextInput label="Νέα κατηγορία" value={newCatName} onChange={setNewCatName} placeholder="Παράδειγμα: Καθαριότητα, Φύλαξη…"
+                    <TextInput label="Νέα κατηγορία" value={newCatName} onChange={setNewCatName} placeholder="Καθαριότητα, Φύλαξη…"
                       onKeyDown={e => { if (e.key === 'Enter' && newCatName.trim()) { addCategory(newCatName); setNewCatName(''); } }}/>
                   </div>
                   <button type="button" disabled={!newCatName.trim()}
@@ -1898,7 +1898,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                           <span style={{ width: 74, flexShrink: 0, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Σημείωση</span>
                           <input aria-label="Σημείωση εξαίρεσης" type="text" value={ex?.note ?? ''} maxLength={120}
                             onChange={e => patchExcl(it.id, { note: e.target.value })}
-                            placeholder="Παράδειγμα: το μισό το πλήρωσε ο συγκάτοικος"
+                            placeholder="το μισό το πλήρωσε ο συγκάτοικος"
                             style={{ flex: 1, minWidth: 0, height: 28, padding: '0 10px', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans, outline: 'none', transition: 'border-color 0.15s' }}
                             onFocus={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-accent)'; }}
                             onBlur={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-subtle)'; }} />

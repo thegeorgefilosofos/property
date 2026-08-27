@@ -554,7 +554,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
 
               <div {...fixedCols(2, 12, 'start')}>
                 <div><div style={lbl}>Εκμισθωτής (υπογράφων)</div><input aria-label="Ονοματεπώνυμο εκμισθωτή" value={ownerName} onChange={e => setOwnerName(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="Ονοματεπώνυμο ή επωνυμία" style={field} /></div>
-                <div><div style={lbl}>Τόπος</div><input aria-label="Τόπος υπογραφής" value={place} onChange={e => setPlace(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="Παράδειγμα: Αθήνα" style={field} /></div>
+                <div><div style={lbl}>Τόπος</div><input aria-label="Τόπος υπογραφής" value={place} onChange={e => setPlace(e.target.value)} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="Αθήνα" style={field} /></div>
               </div>
 
               <div>

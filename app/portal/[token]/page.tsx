@@ -427,7 +427,7 @@ export default function TenantPortal() {
                 </div>
               ) : (
                 <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  <div><label htmlFor="portal-title" style={label}>Θέμα</label><input id="portal-title" required value={title} onChange={e => setTitle(e.target.value)} placeholder="Παράδειγμα: Διαρροή στο μπάνιο" style={field} /></div>
+                  <div><label htmlFor="portal-title" style={label}>Θέμα</label><input id="portal-title" required value={title} onChange={e => setTitle(e.target.value)} placeholder="Διαρροή στο μπάνιο" style={field} /></div>
                   <div><label htmlFor="portal-desc" style={label}>Περιγραφή</label><textarea id="portal-desc" value={desc} onChange={e => setDesc(e.target.value)} placeholder="Περίγραψε το πρόβλημα…" rows={4} style={{ ...field, resize: 'vertical' }} /></div>
                   <div><label htmlFor="portal-contact" style={label}>Τηλέφωνο επικοινωνίας (προαιρετικό)</label><input id="portal-contact" value={contact} onChange={e => setContact(e.target.value)} placeholder="69XXXXXXXX" style={field} /></div>
 

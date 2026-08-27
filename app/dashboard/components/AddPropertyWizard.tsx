@@ -796,9 +796,9 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
           place={place}
           rows={[
             row('prop.name', 'full',
-              <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="Παράδειγμα: Αράββου 45" onFocus={onFocus} onBlur={onBlur} autoFocus />),
+              <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="Αράββου 45" onFocus={onFocus} onBlur={onBlur} autoFocus />),
             row('prop.address', 'full',
-              <input style={inputStyle} value={address} onChange={e => setAddress(e.target.value)} placeholder="Παράδειγμα: Αράββου 45, Βύρωνας" onFocus={onFocus} onBlur={onBlur} />),
+              <input style={inputStyle} value={address} onChange={e => setAddress(e.target.value)} placeholder="Αράββου 45, Βύρωνας" onFocus={onFocus} onBlur={onBlur} />),
             /* Η οδηγία ΔΕΝ ζει σε placeholder: το placeholder σβήνει με το πρώτο
                ψηφίο, δηλαδή τη στιγμή ακριβώς που ο χρήστης το χρειάζεται. */
             row('prop.atak', 'full', <>

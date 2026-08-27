@@ -1534,7 +1534,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
                 αντί για δύο σειρές των δύο με μισή κάρτα άδεια δεξιά. */}
             <div {...fieldRow(180, 14, { marginBottom: 14 })}>
               <NumberInput label="Εμβαδόν"           value={effectiveSqm}    onChange={v => u({ insSqm: v })}          suffix="τ.μ." step={5}/>
-              <TextInput   label="Πόλη ή περιοχή"    value={effectiveCity}   onChange={v => u({ insCity: v })}         placeholder="Παράδειγμα: Αθήνα"/>
+              <TextInput   label="Πόλη ή περιοχή"    value={effectiveCity}   onChange={v => u({ insCity: v })}         placeholder="Αθήνα"/>
               <NumberInput label="Αξία κτιρίου"      value={insPropValue}    onChange={v => u({ insPropValue: v })}    suffix="€" step={5000}/>
               <NumberInput label="Αξία περιεχομένου" value={insContentValue} onChange={v => u({ insContentValue: v })} suffix="€" step={1000}/>
             </div>

@@ -141,7 +141,7 @@ export function MaintenanceTab({items,schedules,propertyId,userId,onSaved}:{item
         <div style={{...cardStyle,border:'1px solid var(--border-accent)'}}>
           <SectionLabel label="Νέα εργασία συντήρησης"/>
           <div style={{...formGrid(200, 270),gap:12}}>
-            <div style={{gridColumn:'1/-1'}}><label htmlFor={taskId} style={labelStyle}>Εργασία *</label><TextInput id={taskId} value={form.task} onChange={v=>setForm(f=>({...f,task:v}))} placeholder="Παράδειγμα: Ετήσιος έλεγχος λέβητα"/></div>
+            <div style={{gridColumn:'1/-1'}}><label htmlFor={taskId} style={labelStyle}>Εργασία *</label><TextInput id={taskId} value={form.task} onChange={v=>setForm(f=>({...f,task:v}))} placeholder="Ετήσιος έλεγχος λέβητα"/></div>
             <div><label style={labelStyle}>Αντικείμενο</label><CustomSelect value={form.item_id} onChange={v=>{const it=items.find(i=>i.id===v);setForm(f=>({...f,item_id:v,item_name:it?.name||''}))}} options={[{value:'',label:'Γενική εργασία'},...items.map(i=>({value:i.id,label:i.name}))]}/></div>
             <div><label htmlFor={intervalId} style={labelStyle}>Επανάληψη κάθε</label><NumberInput id={intervalId} value={String(form.interval_months)} onChange={v=>setForm(f=>({...f,interval_months:parseInt(v)||1}))} suffix="μήνες" min={1} max={60}/></div>
             <div><label style={labelStyle}>Τελευταία εκτέλεση</label><DatePicker value={form.last_done} onChange={v=>setForm(f=>({...f,last_done:v}))}/></div>

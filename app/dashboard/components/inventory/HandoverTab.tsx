@@ -216,7 +216,7 @@ export function HandoverTab({items,handovers,propertyId,userId,onSaved,seed}:{it
                 <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.category}{item.room?` · ${item.room}`:''}</p>
               </div>
               <CustomSelect ariaLabel={`Κατάσταση: ${item.name}`} value={itemConds[item.id]?.condition||item.condition} onChange={v=>setItemConds(p=>({...p,[item.id]:{...p[item.id],condition:v}}))} options={CONDITIONS.map(c=>({value:c,label:c}))}/>
-              <TextInput ariaLabel={`Παρατηρήσεις: ${item.name}`} value={itemConds[item.id]?.notes||''} onChange={v=>setItemConds(p=>({...p,[item.id]:{...p[item.id],notes:v}}))} placeholder="Παράδειγμα: μικρή γρατζουνιά στην πόρτα"/>
+              <TextInput ariaLabel={`Παρατηρήσεις: ${item.name}`} value={itemConds[item.id]?.notes||''} onChange={v=>setItemConds(p=>({...p,[item.id]:{...p[item.id],notes:v}}))} placeholder="μικρή γρατζουνιά στην πόρτα"/>
             </div>
           ))}
         </div>

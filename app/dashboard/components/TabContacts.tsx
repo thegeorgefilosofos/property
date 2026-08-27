@@ -385,8 +385,13 @@ function QuickAct({ as, href, target, rel, onClick, title, label, children }: {
   const enter = (e: React.MouseEvent<HTMLElement>) => { const s = e.currentTarget.style; s.borderColor = 'var(--accent-border)'; s.color = 'var(--accent)'; s.background = 'var(--accent-soft)' }
   const leave = (e: React.MouseEvent<HTMLElement>) => { const s = e.currentTarget.style; s.borderColor = 'var(--border-subtle)'; s.color = 'var(--text-secondary)'; s.background = 'var(--bg-elevated)' }
   const content = children ?? label
-  if (as === 'a') return <a href={href} target={target} rel={rel} title={title} aria-label={title} style={base} onMouseEnter={enter} onMouseLeave={leave}>{content}</a>
-  return <button type="button" onClick={onClick} title={title} aria-label={title} style={base} onMouseEnter={enter} onMouseLeave={leave}>{content}</button>
+  // ΤΟ ΣΤΡΟΓΓΥΛΟ ΤΩΝ 30 ΜΕΝΕΙ 30, Ο ΣΤΟΧΟΣ ΓΙΝΕΤΑΙ 56. Το δάπεδο των 44 του
+  // globals.css πιάνει `button`, `select` και `input`: ο σύνδεσμος έμενε στα 30
+  // και το κουμπί γινόταν 30 επί 44, δηλαδή δύο ΔΙΑΦΟΡΕΤΙΚΟΙ στόχοι για δύο
+  // κουμπιά που φαίνονται ίδια. Το `po-box` τα εξισώνει και στα δύο, χωρίς να
+  // πειραχτεί ο κύκλος: αόρατη ζώνη −13 γύρω γύρω.
+  if (as === 'a') return <a className="po-box" href={href} target={target} rel={rel} title={title} aria-label={title} style={base} onMouseEnter={enter} onMouseLeave={leave}>{content}</a>
+  return <button type="button" className="po-box" onClick={onClick} title={title} aria-label={title} style={base} onMouseEnter={enter} onMouseLeave={leave}>{content}</button>
 }
 
 // ─── Tag Editor ───────────────────────────────────────────────────────────────
@@ -2093,7 +2098,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
                 μία οθόνη. Σε κινητό η σειρά σπάει μόνη της. */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <CField d={cf('contact.name')} required>
-                <Inp value={form.full_name} onChange={v => setForm(f => ({ ...f, full_name: v }))} placeholder="Παράδειγμα: Γιώργος Παπαδόπουλος" />
+                <Inp value={form.full_name} onChange={v => setForm(f => ({ ...f, full_name: v }))} placeholder="Γιώργος Παπαδόπουλος" />
               </CField>
               <div {...fieldRow(160, 16, { alignItems: 'start' })}>
                 <CField d={cf('contact.role')}>
