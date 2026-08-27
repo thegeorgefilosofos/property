@@ -40,7 +40,7 @@ import {
   mergeLedger, ledgerTotal, groupByMonth,
   type LedgerEntry, type LedgerBill, type LedgerExpense,
 } from '@/lib/expenses/ledger';
-import { categoryLabel, resolveCategory, searchCategories, BY_SLUG, CATEGORIES } from '@/lib/expenses/taxonomy';
+import { categoryLabel, resolveCategory, BY_SLUG, CATEGORIES } from '@/lib/expenses/taxonomy';
 import { missingThisMonth, cadenceLabel } from '@/lib/expenses/expected';
 import { priceChanges } from '@/lib/expenses/priceChange';
 import { planBillPayment, type BillToPay } from '@/lib/expenses/pay';
@@ -856,7 +856,7 @@ function AfmField({ value, onChange, note }: { value: string; onChange: (v: stri
   return (
     <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
       <label style={{ flex: '0 1 190px', minWidth: 0 }}>
-        <span style={LAB}>ΑΦΜ προμηθευτή;</span>
+        <span style={LAB}>ΑΦΜ προμηθευτή</span>
         <input value={value} onChange={e => onChange(e.target.value)} inputMode="numeric" maxLength={13}
           aria-invalid={bad || undefined}
           style={{ ...FIELD, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}
@@ -959,7 +959,7 @@ function EditExpense({ row, userId, onClose, onSaved }: {
         </Btn>
       </>}>
       <label style={{ display: 'block', minWidth: 0 }}>
-        <span style={LAB}>Τι ήταν;</span>
+        <span style={LAB}>Περιγραφή</span>
         <input value={what} onChange={e => setWhat(e.target.value)} style={FIELD}
           placeholder="Παράδειγμα: λογαριασμός ΔΕΗ, υδραυλικός" />
       </label>
@@ -967,14 +967,14 @@ function EditExpense({ row, userId, onClose, onSaved }: {
       {/* Ίδια γεωμετρία με την καταχώρηση: το ευρώ μέσα στο πεδίο, δεξιά. */}
       <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
         <label style={{ flex: '0 1 150px', minWidth: 0, position: 'relative' }}>
-          <span style={LAB}>Πόσο;</span>
+          <span style={LAB}>Ποσό</span>
           <input value={amount} onChange={e => setAmount(e.target.value)} inputMode="decimal"
             style={{ ...FIELD, paddingRight: 34, textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}
             placeholder="0,00" />
           <span aria-hidden style={{ position: 'absolute', right: 14, bottom: 0, height: T.h.lg, display: 'flex', alignItems: 'center', fontSize: 14, color: 'var(--text-tertiary)', pointerEvents: 'none' }}>€</span>
         </label>
         <div style={{ flex: '1 1 190px', minWidth: 0 }}>
-          <span style={LAB}>Πότε;</span>
+          <span style={LAB}>Ημερομηνία</span>
           <DatePicker value={date} onChange={setDate} />
         </div>
       </div>
@@ -984,7 +984,7 @@ function EditExpense({ row, userId, onClose, onSaved }: {
           και ο λόγος που άνοιξε η οθόνη είναι συχνά ότι είναι λάθος: μια λίστα
           με ΟΛΕΣ τις κατηγορίες απαντά σε αυτό, έξι πλακίδια όχι. */}
       <div style={{ minWidth: 0 }}>
-        <span style={LAB}>Τι κατηγορία;</span>
+        <span style={LAB}>Κατηγορία</span>
         <CustomSelect value={slug} onChange={setSlug} ariaLabel="Κατηγορία δαπάνης"
           placeholder="Χωρίς κατηγορία"
           options={CATEGORIES.map(c => ({ value: c.slug, label: c.label }))} />
@@ -1043,18 +1043,6 @@ function QuickAdd({ propertyId, userId, seed, onDone }: { propertyId: string; us
   // Μόλις την αγγίξει, σταματάμε να μαντεύουμε: τίποτα πιο εκνευριστικό από
   // πεδίο που αλλάζει μόνο του αφού το διόρθωσες.
   const slug = touched ? picked : (resolveCategory(what) || '');
-  // Η ΕΠΙΛΕΓΜΕΝΗ ΚΑΤΗΓΟΡΙΑ ΕΞΑΦΑΝΙΖΟΤΑΝ. Οι προτάσεις έβγαιναν από το κείμενο,
-  // και μόλις ο χρήστης άγγιζε ένα πλακίδιο η αναζήτηση μηδενιζόταν: έμεναν οι
-  // έξι πρώτες κατηγορίες του καταλόγου. Αν είχε διαλέξει «Υδραυλικός», η
-  // επιλογή του δεν φαινόταν πουθενά — η φόρμα έδειχνε έξι πλακίδια, κανένα
-  // αναμμένο και ο χρήστης δεν είχε τρόπο να ξέρει τι θα αποθηκευτεί.
-  const suggestions = useMemo(() => {
-    const base = searchCategories(touched ? '' : what, 6);
-    if (!slug || base.some(c => c.slug === slug)) return base;
-    const chosen = BY_SLUG[slug];
-    return chosen ? [chosen, ...base.slice(0, 5)] : base;
-  }, [what, touched, slug]);
-
   const afmOk = afm.trim() === '' || isValidAfm(afm);
 
   const save = async () => {
@@ -1157,7 +1145,7 @@ function QuickAdd({ propertyId, userId, seed, onDone }: { propertyId: string; us
       <div className="qa-form">
       <div className="qa-grid">
         <label className="qa-wide" style={{ minWidth: 0 }}>
-          <span style={LAB}>Τι ήταν;</span>
+          <span style={LAB}>Περιγραφή</span>
           <input ref={first} value={what} onChange={e => setWhat(e.target.value)} style={FIELD}
             placeholder="Παράδειγμα: λογαριασμός ΔΕΗ, υδραυλικός" />
         </label>
@@ -1165,7 +1153,7 @@ function QuickAdd({ propertyId, userId, seed, onDone }: { propertyId: string; us
             εφαρμογής. Χωρίς αυτό, ένα κενό κουτί δίπλα στη λέξη «Πόσο;» δεν
             έλεγε καν σε τι μονάδα απαντά ο χρήστης. */}
         <label style={{ minWidth: 0, position: 'relative' }}>
-          <span style={LAB}>Πόσο;</span>
+          <span style={LAB}>Ποσό</span>
           <input value={amount} onChange={e => setAmount(e.target.value)} inputMode="decimal"
             style={{ ...FIELD, paddingRight: 34, textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}
             placeholder="0,00" />
@@ -1178,40 +1166,30 @@ function QuickAdd({ propertyId, userId, seed, onDone }: { propertyId: string; us
             επιλέγει η γλώσσα του περιηγητή. Ο επιλογέας της εφαρμογής είναι
             ελληνικός, με Δευτέρα πρώτη και ο ίδιος σε κάθε οθόνη. */}
         <div style={{ minWidth: 0 }}>
-          <span style={LAB}>{paid ? 'Πότε;' : 'Λήγει;'}</span>
+          <span style={LAB}>{paid ? 'Ημερομηνία' : 'Λήξη'}</span>
           <DatePicker value={paid ? date : (due || date)}
             onChange={v => (paid ? setDate(v) : setDue(v))} />
         </div>
       </div>
 
-      {/* ΜΙΑ ΓΛΩΣΣΑ. Οι μισές ετικέτες ρωτούσαν («Τι ήταν;», «Πόσο;») και οι
-          άλλες μισές ονόμαζαν («Κατηγορία», «Πληρωμένη»): δύο ύφη στην ίδια
-          φόρμα, έξι γραμμές απόσταση. Ρωτούν όλες. */}
-      <div style={{ marginTop: 16 }}>
-        <span style={LAB}>Τι κατηγορία;</span>
-        <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-          {suggestions.map(c => {
-            const on = slug === c.slug;
-            return (
-              // ΤΟ ΔΕΥΤΕΡΟ ΠΑΤΗΜΑ ΞΕΔΙΑΛΕΓΕΙ. Το πλακίδιο κλείδωνε: μια
-              // κατηγορία πατημένη κατά λάθος έμενε εκεί και ο μόνος τρόπος να
-              // φύγει ήταν να διαλέξει ο χρήστης ΑΛΛΗ — δηλαδή να πει κάτι που
-              // δεν εννοεί. Ξεδιαλέγοντας, η φόρμα γυρίζει στη μαντεψιά από την
-              // περιγραφή, που είναι ακριβώς η κατάσταση πριν το λάθος πάτημα.
-              <button key={c.slug} type="button" aria-pressed={on}
-                onClick={() => { if (on) { setPicked(''); setTouched(false); } else { setPicked(c.slug); setTouched(true); } }}
-                style={{
-                  appearance: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13,
-                  padding: '7px 14px', borderRadius: T.radius.pill,
-                  border: `1px solid ${on ? 'color-mix(in srgb, var(--accent) 50%, transparent)' : 'var(--border-default)'}`,
-                  background: on ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'transparent',
-                  color: on ? 'var(--accent)' : 'var(--text-secondary)',
-                  fontWeight: on ? 700 : 500, transition: 'background-color .15s, border-color .15s, color .15s, box-shadow .15s, transform .15s, opacity .15s',
-                }}>
-                {c.label}
-              </button>
-            );
-          })}
+      {/* ═══ ΕΝΑΣ ΕΠΙΛΟΓΕΑΣ, ΟΠΩΣ ΣΤΗ ΦΟΡΜΑ ΕΠΕΞΕΡΓΑΣΙΑΣ ════════════════════
+          ΔΥΟ ΧΕΙΡΙΣΤΗΡΙΑ ΓΙΑ ΤΟ ΙΔΙΟ ΠΕΔΙΟ, ΣΤΟ ΙΔΙΟ ΑΡΧΕΙΟ. Η καταχώρηση
+          έδειχνε έξι πλακίδια και η επεξεργασία, διακόσιες γραμμές πιο πάνω,
+          έναν `CustomSelect` με ΟΛΟΚΛΗΡΟ τον κατάλογο. Ο χρήστης μάθαινε δύο
+          τρόπους για το ίδιο πράγμα και ο πρώτος έδειχνε έξι από τις πολλές: αν
+          η κατηγορία που ήθελε δεν ήταν στις έξι, δεν υπήρχε τρόπος να τη
+          διαλέξει χωρίς να αποθηκεύσει και να ξαναδιορθώσει.
+
+          Η ΜΑΝΤΕΨΙΑ ΜΕΝΕΙ ΚΑΙ ΓΛΙΤΩΝΕΙ ΤΟ ΠΑΤΗΜΑ. Η τιμή του επιλογέα είναι το
+          ίδιο `slug` που έβγαζε το χρώμα των πλακιδίων, δηλαδή η κατηγορία
+          έρχεται συμπληρωμένη από την περιγραφή χωρίς κανένα πάτημα. Το άδειασμα
+          γίνεται με την επιλογή «Χωρίς κατηγορία», που πριν απαιτούσε να ξέρεις
+          ότι το δεύτερο πάτημα στο ίδιο πλακίδιο το ξεδιαλέγει. */}
+      <div className="qa-grid" style={{ marginTop: 16 }}>
+        <div className="qa-wide" style={{ minWidth: 0 }}>
+          <span style={LAB}>Κατηγορία</span>
+          <CustomSelect value={slug} onChange={v => { setPicked(v); setTouched(true); }} ariaLabel="Κατηγορία δαπάνης"
+            options={[{ value: '', label: 'Χωρίς κατηγορία' }, ...CATEGORIES.map(c => ({ value: c.slug, label: c.label }))]} />
         </div>
       </div>
 
@@ -1230,19 +1208,19 @@ function QuickAdd({ propertyId, userId, seed, onDone }: { propertyId: string; us
             χρησιμοποιεί την ίδια και η ενσωματωμένη έχει minHeight 32, οπότε θα
             ξεχώριζε η μία γραμμή από τις άλλες ακριβώς δίπλα της. */}
         <div className="qa-wide" style={{ minWidth: 0 }}>
-          <span style={LAB}>Ποιος πληρώνει;</span>
+          <span style={LAB}>Ποιος πληρώνει</span>
           <CustomSelect value={paidBy} onChange={setPaidBy} options={PAID_BY_OPTIONS} />
         </div>
         {SHARED_SCOPES.has(paidBy) && (
           <label style={{ minWidth: 0 }}>
-            <span style={LAB}>Πόσο δικό μου;</span>
+            <span style={LAB}>Μερίδιό μου</span>
             <input value={sharePct} onChange={e => setSharePct(e.target.value)} inputMode="numeric"
               style={{ ...FIELD, textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}
               placeholder={`${DEFAULT_SHARE_PERCENT} %`} />
           </label>
         )}
         <div style={{ minWidth: 0 }}>
-          <span style={LAB}>Πληρώθηκε;</span>
+          <span style={LAB}>Πληρώθηκε</span>
           <div style={{ height: T.h.lg, display: 'flex', alignItems: 'center' }}>
             <Toggle on={paid} onChange={setPaid} ariaLabel="Πληρώθηκε" />
           </div>

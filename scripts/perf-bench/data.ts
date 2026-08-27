@@ -109,12 +109,22 @@ export function portfolio(n: number): Bench {
       });
     }
 
-    // Δαπάνες της χρήσης.
+    // ═══ ΟΙ ΔΑΠΑΝΕΣ ΕΓΡΑΦΑΝ ΣΤΗΛΕΣ ΠΟΥ ΔΕΝ ΥΠΑΡΧΟΥΝ ══════════════════════
+    // Ο πίνακας `expenses` έχει `date` και `description` (lib/data/expenses.ts),
+    // ενώ ο πάγκος έγραφε `expense_date` και καμία περιγραφή. Αποτέλεσμα, ορατό
+    // στην απόδοση: κάθε γραμμή του Καθολικού έγραφε «Χωρίς ημερομηνία» και
+    // «Χωρίς περιγραφή», όλες μαζεύονταν σε ομάδα «ΑΓΝΩΣΤΟ» και έμεναν έξω από
+    // τα σύνολα μήνα και έτους. Δηλαδή η οθόνη μετριόταν σε κατάσταση που δεν
+    // συμβαίνει σε κανέναν χρήστη.
+    const EXP_TITLES = ['Λογαριασμός ΔΕΗ', 'Υδραυλικός', 'Ασφάλιστρα', 'Κοινόχρηστα',
+      'Συντήρηση καυστήρα', 'Ελαιοχρωματισμοί', 'Απεντόμωση', 'Καθαρισμός'];
     for (let e = 0; e < 8; e++) {
       expenses.push({
         id: `${id}-e${e}`, property_id: id, user_id: 'u1',
         amount: 60 + (e % 11) * 24, category: e % 3 ? 'maintenance' : 'insurance',
-        expense_date: `${YEAR}-${String((e % 12) + 1).padStart(2, '0')}-09`, deductible: true,
+        description: EXP_TITLES[e % EXP_TITLES.length],
+        date: `${YEAR}-${String((e % 12) + 1).padStart(2, '0')}-09`,
+        paid: e % 4 !== 0, paid_by: 'owner', deductible: true,
       });
     }
 

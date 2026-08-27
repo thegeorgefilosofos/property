@@ -186,24 +186,12 @@ export function isDeductible(raw: unknown): boolean {
 /** Οι κατηγορίες μιας οικογένειας, με τη σειρά εμφάνισης. */
 export const categoriesOf = (f: Family): Category[] => CATEGORIES.filter(c => c.family === f);
 
-/**
- * Αναζήτηση για το πεδίο κατηγορίας: ένα πεδίο, όχι δύο.
- * Η παλιά φόρμα ζητούσε πρώτα Ομάδα και μετά Κατηγορία, δηλαδή δύο αποφάσεις
- * για ένα πράγμα. Εδώ γράφεις «υδρ» και βρίσκεις τον Υδραυλικό· η οικογένεια
- * προκύπτει μόνη της.
- */
-export function searchCategories(q: string, limit = 8): Category[] {
-  const n = norm(q);
-  if (!n) return CATEGORIES.slice(0, limit);
-  const starts: Category[] = [];
-  const contains: Category[] = [];
-  for (const c of CATEGORIES) {
-    const hay = [c.label, ...c.aliases].map(norm);
-    if (hay.some(h => h.startsWith(n))) starts.push(c);
-    else if (hay.some(h => h.includes(n))) contains.push(c);
-  }
-  return [...starts, ...contains].slice(0, limit);
-}
+// ══ Η `searchCategories` ΕΦΥΓΕ ΜΑΖΙ ΜΕ ΤΑ ΕΞΙ ΠΛΑΚΙΔΙΑ ══════════════════════
+// Υπήρχε για ένα μόνο πράγμα: να βγάζει έξι προτάσεις κατηγορίας από την
+// περιγραφή, στη φόρμα νέας δαπάνης. Η φόρμα χρησιμοποιεί πλέον τον ίδιο
+// `CustomSelect` με ολόκληρο τον κατάλογο που είχε ήδη η φόρμα επεξεργασίας,
+// οπότε η αναζήτηση δεν είχε καλούντα: την καλούσε μόνο το τεστ της.
+// Η μαντεψιά από την περιγραφή ΔΕΝ χάθηκε, τη δίνει η `resolveCategory`.
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ΓΕΦΥΡΑ ΠΡΟΣ ΤΟΝ ΠΡΟΫΠΟΛΟΓΙΣΜΟ

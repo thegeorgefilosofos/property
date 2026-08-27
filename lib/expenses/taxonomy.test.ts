@@ -1,7 +1,7 @@
 // npx tsx lib/expenses/taxonomy.test.ts
 import {
   resolveCategory, categoryLabel, categoryFamily, isDeductible,
-  searchCategories, categoriesOf, budgetBucket, CATEGORIES, norm,
+  categoriesOf, budgetBucket, CATEGORIES, norm,
 } from './taxonomy';
 
 let pass = 0, fail = 0;
@@ -98,13 +98,6 @@ eq('ανακαίνιση δεν εκπίπτει', isDeductible('renovation'), f
 eq('άγνωστο δεν εκπίπτει', isDeductible('κάτι άγνωστο'), false);
 
 // ── ΑΝΑΖΗΤΗΣΗ: ΕΝΑ ΠΕΔΙΟ ΑΝΤΙ ΓΙΑ ΔΥΟ ──────────────────────────────────────
-ok('«υδρ» βρίσκει τον υδραυλικό', searchCategories('υδρ')[0].slug === 'plumber');
-ok('«ρευ» βρίσκει το ρεύμα', searchCategories('ρευ')[0].slug === 'electricity');
-ok('«δεη» βρίσκει το ρεύμα', searchCategories('δεη').some(c => c.slug === 'electricity'));
-ok('«καθαρ» βρίσκει καθαριότητα', searchCategories('καθαρ').some(c => c.slug === 'cleaning'));
-ok('κενό ερώτημα δίνει προτάσεις', searchCategories('').length > 0);
-ok('τηρεί το όριο', searchCategories('α', 3).length <= 3);
-ok('τα ακριβή πρώτα', searchCategories('νερ')[0].slug === 'water');
 
 // ── ΑΚΕΡΑΙΟΤΗΤΑ ΤΗΣ ΛΙΣΤΑΣ ─────────────────────────────────────────────────
 ok('κανένα διπλό slug', new Set(CATEGORIES.map(c => c.slug)).size === CATEGORIES.length);
