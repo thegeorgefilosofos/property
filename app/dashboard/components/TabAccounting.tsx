@@ -44,6 +44,7 @@ import { shortTermYearSummary, platformFeeExpenses, staysMissingPlatformFee, isH
 import { bankReceiptMatters } from '@/lib/billing/consolidate'
 import { resolveEnfia } from '@/lib/billing/propertyFacts'
 import { estimateENFIAFromFacts, enfiaTypeBlock, ENFIA_TYPE_BLOCK_NOTE } from '@/lib/billing/enfia'
+import { INK, INK_MUTED } from '@/lib/print/ink'
 import { annuityMonthly, interestForYear } from '@/lib/loans/recommend'
 import { isGroupDeductible } from '@/lib/expenses/groups'
 import { rentalRowsForYear, BUSINESS_INCOME_ROWS_2026, BUILDING_DEPRECIATION_RATE, EQUIPMENT_DEPRECIATION_RATE, BUILDING_VALUE_FRACTION, selfEmployedMinNetIncome, rentalBracketsForYear, bracketsLabelForYear } from '@/lib/billing/greekTax'
@@ -97,10 +98,13 @@ const STATUS_META:Record<ReconStatus,{label:string;color:string;strong:boolean}>
 }
 
 // Οι ίδιοι τόνοι για το τυπωμένο χαρτί, όπου δεν υπάρχουν μεταβλητές θέματος.
-// Ήταν τέσσερα ωμά χρώματα, γραμμένα ΔΥΟ φορές μέσα στο αρχείο.
-const STATUS_PRINT:Record<ReconStatus,string> = {
-  paid:'#5f6368', partial:'#202124', unpaid:'#5f6368', overdue:'#202124',
-}
+//
+// ΤΟ ΧΑΡΤΙ ΕΧΕΙ ΕΝΑ ΜΕΛΑΝΟΔΟΧΕΙΟ, ΤΟ lib/print/ink.ts. Εδώ ζούσε δεύτερο
+// αντίγραφο με τέσσερα ωμά χρώματα, που έλεγε ακριβώς ό,τι λέει ήδη το
+// `strong` από πάνω: οι δύο καταστάσεις που πρέπει να ξεχωρίσουν παίρνουν
+// κύριο μελάνι, οι άλλες δύο δευτερεύον. Ενας πίνακας που επαναλαμβάνει
+// διπλανή του πληροφορία είναι πίνακας που μια μέρα θα διαφωνήσει μαζί της.
+const statusInk = (st: ReconStatus): string => (STATUS_META[st].strong ? INK : INK_MUTED)
 
 // Κάρτα λογιστικής: καθαρή, ανασηκωμένη με σκιά (3D) αλλά ΧΩΡΙΣ λευκό περίγραμμα/
 // γυαλάδα (highlight-inset). Ήσυχο, Stripe/Apple αίσθηση, ομοιόμορφο σε όλο το tab.
@@ -946,7 +950,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   }
 
   function printReport(){
-    const reconLite:ReconLite[] = recon.map(r=>{ const m=STATUS_META[r.status]; return { label:r.expected.label||'', paid:r.paidAmount, expected:r.expected.amount, statusLabel:m.label, statusColor:STATUS_PRINT[r.status] } })
+    const reconLite:ReconLite[] = recon.map(r=>{ const m=STATUS_META[r.status]; return { label:r.expected.label||'', paid:r.paidAmount, expected:r.expected.amount, statusLabel:m.label, statusColor:statusInk(r.status) } })
     printAccountingReport({
       propName: prop?.name||'Ακίνητο', address: prop?.address??undefined, year, regimeLabel,
       statement, provision, reconciliation: reconLite,
@@ -958,7 +962,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
 
   async function officialReport(){
     if(genOfficial) return
-    const reconLite:ReconLite[] = recon.map(r=>{ const m=STATUS_META[r.status]; return { label:r.expected.label||'', paid:r.paidAmount, expected:r.expected.amount, statusLabel:m.label, statusColor:STATUS_PRINT[r.status] } })
+    const reconLite:ReconLite[] = recon.map(r=>{ const m=STATUS_META[r.status]; return { label:r.expected.label||'', paid:r.paidAmount, expected:r.expected.amount, statusLabel:m.label, statusColor:statusInk(r.status) } })
     setGenOfficial(true)
     try {
       await downloadOfficialAccountingReport({
