@@ -40,12 +40,6 @@ import { normalizePhone } from '../core/greek';
 export const ACTIVATION_MIN_PROPERTIES = 1;
 export const ACTIVATION_MIN_DOCUMENTS = 1;
 
-// ΔΩΡΟ ΠΟΥ ΔΕΝ ΑΠΟΝΕΜΕΤΑΙ ΑΚΟΜΗ. Καμία συνάρτηση της βάσης δεν γράφει
-// ανταμοιβή για τον ΣΥΣΤΗΝΟΜΕΝΟ: και οι πέντε εγγραφές στο `referral_rewards`
-// πάνε στον συστήνοντα. Ο αριθμός μένει ως σχεδιασμός, τα κείμενα όμως δεν τον
-// υπόσχονται πουθενά — ώσπου να γραφτεί η απονομή.
-export const REFEREE_TRIAL_MONTHS = 1;
-
 // ── Κωδικός & σύνδεσμος πρόσκλησης ──────────────────────────────────────────
 function fnv1a(str: string): number {
   let h = 0x811c9dc5;
@@ -123,10 +117,6 @@ export const REFERRER_SLOT_MONTHS = 1;        // κάθε συστήνων: +1 �
 export const INDIV_PRO_BONUS_MONTHS = 1;      // αν ο νέος γίνει Επαγγελματίας → +1 μήνας στο πακέτο «Ιδιοκτήτης»
 export const INDIV_VOLUME_TARGET = 3;         // 3 νέοι ιδιώτες μέσα στον μήνα
 export const INDIV_VOLUME_BONUS_MONTHS = 1;   // → +1 μήνας στο πακέτο «Ιδιοκτήτης»
-// Δώρο νέου χρήστη, ανά επιλογή πλάνου
-export const REFEREE_FREE_SLOT_MONTHS = 1;    // μένει δωρεάν: +1 ακίνητο για 1 μήνα
-export const REFEREE_OWNER_MONTHS = 1;        // μπαίνει στο «Ιδιοκτήτης»: 1 μήνας δωρεάν
-export const REFEREE_AGENCY_MONTHS = 1;       // γίνεται Επαγγελματίας: 1 μήνας δωρεάν
 
 export type Outcome = 'free' | 'owner' | 'agency';
 export type SideReward = { months: number; isSlot: boolean; tier: 'owner' | 'agency' | 'office' };
@@ -143,12 +133,19 @@ export function individualReferrerReward(_referrerPaying: boolean, outcome: Outc
   return { months: REFERRER_SLOT_MONTHS, isSlot: true, tier: 'owner' };
 }
 
-/** Τι κερδίζει ο ΝΕΟΣ χρήστης (ανά επιλογή πλάνου). */
-export function refereeWelcome(outcome: Outcome): SideReward {
-  if (outcome === 'agency') return { months: REFEREE_AGENCY_MONTHS, isSlot: false, tier: 'agency' };
-  if (outcome === 'owner')  return { months: REFEREE_OWNER_MONTHS, isSlot: false, tier: 'owner' };
-  return { months: REFEREE_FREE_SLOT_MONTHS, isSlot: true, tier: 'owner' };
-}
+// ═══ Ο ΣΥΣΤΗΝΟΜΕΝΟΣ ΔΕΝ ΠΑΙΡΝΕΙ ΑΝΤΑΜΟΙΒΗ. ΑΠΟΦΑΣΙΣΜΕΝΟ, ΟΧΙ ΕΚΚΡΕΜΕΣ. ══════
+//
+// Εδώ ζούσε η `refereeWelcome` με τρεις σταθερές `REFEREE_*`: δώρο ενός μήνα
+// στον νέο χρήστη, ανά πακέτο. ΔΕΝ ΤΟ ΑΠΟΝΕΜΕΙ ΚΑΝΕΝΑΣ ΚΩΔΙΚΑΣ — και οι πέντε
+// εγγραφές στο `referral_rewards` γράφουν τον συστήνοντα.
+//
+// Η καρτέλα σύστασης όμως το ΥΠΟΣΧΟΤΑΝ, μέσα στο έτοιμο μήνυμα που αντιγράφει
+// ο χρήστης και στέλνει στον φίλο του. Η υπόσχεση αφαιρέθηκε και ο ιδιοκτήτης
+// αποφάσισε ρητά να ΜΗΝ χτιστεί η απονομή: ο προσκεκλημένος παίρνει τη δοκιμή
+// των τριάντα ημερών, όπως κάθε νέος λογαριασμός.
+//
+// Οι σταθερές φεύγουν μαζί με τη συνάρτηση. Όσο έμεναν, διαβάζονταν ως κανόνας
+// του προϊόντος που απλώς δεν είχε συνδεθεί ακόμη — και δεν είναι αυτό.
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ΠΡΟΓΡΑΜΜΑ ΣΥΝΕΡΓΑΤΩΝ — ΕΝΑΣ ΣΤΟΧΟΣ, ΟΧΙ ΤΡΕΙΣ

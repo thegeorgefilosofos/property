@@ -1,10 +1,8 @@
 // npx tsx lib/referral/referral.test.ts
 import {
   referralCode, referralLink, isReferralCode, normalizePhone,
-  REFEREE_TRIAL_MONTHS,
-  individualReferrerReward, refereeWelcome,
+  individualReferrerReward,
   REFERRER_SLOT_MONTHS, INDIV_PRO_BONUS_MONTHS,
-  REFEREE_FREE_SLOT_MONTHS, REFEREE_OWNER_MONTHS, REFEREE_AGENCY_MONTHS,
   INDIV_VOLUME_TARGET, INDIV_VOLUME_BONUS_MONTHS,
   PRO_PAID_TARGET, PRO_PAID_BONUS_MONTHS, partnerWelcome, partnerWelcomeTier, PARTNER_WELCOME_MONTHS,
   progress, currentStreak, isPartner, streakProgress, partnerFreeMonths,
@@ -56,19 +54,12 @@ ok(!any2pro.isSlot && any2pro.months === INDIV_PRO_BONUS_MONTHS && any2pro.month
 ok(individualReferrerReward(true, 'agency').months === 1, 'ίδιο και για Ιδιώτη συστήνοντα');
 ok(INDIV_VOLUME_TARGET === 3 && INDIV_VOLUME_BONUS_MONTHS === 1, '3 νέοι ιδιώτες/μήνα → +1 μήνας');
 
-// ── Πρόγραμμα Ιδιώτη: δώρο νέου χρήστη ανά επιλογή πλάνου ──
-// ΕΝΑΣ ΜΗΝΑΣ ΔΩΡΕΑΝ, ΣΤΟ ΠΛΑΝΟ ΠΟΥ ΔΙΑΛΕΓΕΙ. Ο νέος χρήστης δεν χρειάζεται να
-// καταλάβει τρία διαφορετικά δώρα πριν καν μπει: διαλέγει πλάνο ανάλογα με τα
-// ακίνητά του και ο πρώτος μήνας είναι δώρο — όποιο κι αν είναι.
-const wFree = refereeWelcome('free');
-ok(wFree.isSlot && wFree.months === REFEREE_FREE_SLOT_MONTHS && wFree.months === 1, 'νέος δωρεάν: +1 ακίνητο για 1 μήνα');
-ok(refereeWelcome('owner').months === REFEREE_OWNER_MONTHS && refereeWelcome('owner').months === 1 && !refereeWelcome('owner').isSlot, 'νέος στο Ιδιώτης: 1 μήνας δωρεάν');
-const wPro = refereeWelcome('agency');
-ok(wPro.months === REFEREE_AGENCY_MONTHS && wPro.months === 1 && wPro.tier === 'agency', 'νέος Επαγγελματίας: 1 μήνας Επαγγελματία');
-ok(REFEREE_TRIAL_MONTHS === 1, 'δώρο καλωσορίσματος στο invite = 1 μήνας');
-// Και τα τρία μονοπάτια δίνουν ΤΟΝ ΙΔΙΟ αριθμό μηνών: αυτό είναι ολόκληρο το μήνυμα.
-ok([refereeWelcome('free'), refereeWelcome('owner'), refereeWelcome('agency')].every(w => w.months === 1),
-   'ένας μήνας δωρεάν, ό,τι πλάνο κι αν διαλέξει');
+// ── Ο ΣΥΣΤΗΝΟΜΕΝΟΣ ΔΕΝ ΠΑΙΡΝΕΙ ΑΝΤΑΜΟΙΒΗ ──
+// Εδώ δοκιμαζόταν η `refereeWelcome`: ένας μήνας δωρεάν στο πακέτο που διαλέγει
+// ο νέος χρήστης. Κανένας κώδικας δεν την απένεμε ποτέ και ο ιδιοκτήτης
+// αποφάσισε να μην χτιστεί. Η συνάρτηση και οι σταθερές της σβήστηκαν, άρα
+// σβήστηκαν και οι έλεγχοί τους: δοκίμιο για κανόνα που δεν υπάρχει είναι
+// δοκίμιο που θα κρατούσε τον κανόνα ζωντανό στα χαρτιά.
 
 // ── Πρόγραμμα Επαγγελματία: milestones ──
 ok(PRO_PAID_TARGET === 5 && PRO_PAID_BONUS_MONTHS === 1, '5 συνδρομητές τον μήνα → ο επόμενος δωρεάν');
