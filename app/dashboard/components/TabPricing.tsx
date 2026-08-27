@@ -353,6 +353,47 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
 
   const mark = (fn: (v: number) => void) => (v: number) => { setTouched(true); fn(v); };
 
+  // ── ΜΙΑ ΣΤΗΛΗ ΓΙΑ ΚΑΘΕ ΑΦΑΙΡΕΣΗ ΧΡΗΜΑΤΩΝ ΤΗΣ ΟΘΟΝΗΣ ───────────────────────
+  // Μία υποδιαστολή, μία στήλη. Οι εκροές έχουν εσοχή και πρόσημο ώστε να
+  // διαβάζονται ως αφαιρέσεις από τη γραμμή που τις γεννά· το αποτέλεσμα κάθεται
+  // κάτω από γραμμή, με μεγαλύτερο και εντονότερο ψηφίο.
+  //
+  // ΔΥΟ ΚΛΙΜΑΚΕΣ, ΕΝΑ ΙΔΙΩΜΑ. Η χρονιά είναι η επικεφαλής πράξη της καρτέλας και
+  // παίρνει το μεγάλο ψηφίο· η νύχτα είναι υποσημείωση μέσα σε κάρτα και παίρνει
+  // το μικρό. Ό,τι αλλάζει είναι το μέγεθος, όχι ο τρόπος: ίδια στοίχιση, ίδια
+  // εσοχή, ίδιο πρόσημο, ίδια γραμμή αποτελέσματος. Κανένα ψηφίο κάτω από 11.
+  type MoneyStep = { key: string; label: string; amount: number; kind: 'in' | 'out' | 'total'; note?: string; negative?: boolean };
+  const MoneySteps = ({ steps, scale = 'lead' }: { steps: MoneyStep[]; scale?: 'lead' | 'note' }) => {
+    const lead = scale === 'lead';
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {steps.map(step => {
+          const isTotal = step.kind === 'total';
+          const isOut = step.kind === 'out';
+          return (
+            <div key={step.key} title={step.note}
+              style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16,
+                padding: isTotal ? (lead ? '14px 0 2px' : '7px 0 1px') : (lead ? '9px 0' : '4px 0'),
+                borderTop: isTotal ? '1px solid var(--border-default)' : 'none',
+                marginTop: isTotal ? (lead ? 6 : 4) : 0 }}>
+              <span style={{ fontFamily: T.font.sans, fontSize: lead ? (isTotal ? 14 : 12.5) : 11.5,
+                fontWeight: isTotal ? 700 : 400,
+                color: isTotal ? 'var(--text-primary)' : 'var(--text-secondary)',
+                paddingLeft: isOut ? 14 : 0, minWidth: 0 }}>{step.label}</span>
+              <span style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums',
+                fontSize: lead ? (isTotal ? 19 : 13) : (isTotal ? 13 : 11.5),
+                fontWeight: isTotal ? 700 : 500,
+                color: isTotal ? 'var(--text-primary)' : 'var(--text-secondary)',
+                whiteSpace: 'nowrap', flexShrink: 0 }}>
+                {isOut || step.negative ? '\u2212' : ''}{fe(step.amount)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   // ── Η γραμμή που κανείς δεν επινοεί ────────────────────────────────────────
   // Ο οικοδεσπότης βλέπει «85 €/νύχτα» και νομίζει ότι εισπράττει 85 και δηλώνει
   // 85. Κανένα από τα δύο. Το τέλος ανθεκτικότητας ΔΕΝ είναι έσοδό του (το κρατά
@@ -379,22 +420,35 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
     return null;
   };
 
+  /* ── Η ΑΦΑΙΡΕΣΗ ΤΗΣ ΝΥΧΤΑΣ, ΜΕ ΤΟ ΙΔΙΟ ΙΔΙΩΜΑ ΤΗΣ ΧΡΟΝΙΑΣ ────────────────
+     ΔΥΟ ΙΔΙΩΜΑΤΑ ΓΙΑ ΤΗΝ ΙΔΙΑ ΠΡΑΞΗ, ΣΤΗΝ ΙΔΙΑ ΟΘΟΝΗ. Λίγο πιο κάτω, η κάρτα
+     «Τι μένει σε εσένα» γράφει την ίδια ακριβώς αφαίρεση σε στήλη: ετικέτα
+     αριστερά, ποσό δεξιά, οι εκροές με εσοχή και πρόσημο, το αποτέλεσμα κάτω
+     από γραμμή. Εδώ η ίδια πράξη ήταν τρεχούμενη πρόταση με πέντε ποσά χωρισμένα
+     με τελείες. Το ίδιο πράγμα, δύο φορές σχεδιασμένο.
+
+     ΚΑΙ ΤΟ ΠΡΩΤΟ ΑΠΟ ΤΑ ΠΕΝΤΕ ΠΟΣΑ ΛΕΓΟΤΑΝ ΗΔΗ ΑΠΟ ΠΑΝΩ. Η «Τιμή στον επισκέπτη»
+     είναι ΑΥΤΟΥΣΙΑ η τιμή που δίνει ο καλών: στην κάρτα του κενού γράφεται τρεις
+     γραμμές πιο πάνω ως «πρόταση πλήρωσης» και στη λεπτομέρεια ημέρας ως
+     «Προτεινόμενη τιμή», με έντονα και σε χρώμα τόνου. Μετρημένο στον πάγκο:
+     «120,00 €» δύο φορές στην ίδια κάρτα.
+
+     Μένει η αφαίρεση και μόνο: τι φεύγει και τι απομένει, δύο φορές. */
   const priceLine = (date: string, price: number, end?: string) => {
     const b = guestPriceBreakdown(date, price, { sqm: propertySqm ?? null, isHouse, platformFeeRate: feeRate });
     const change = levyChange(date, end);
     const after = change ? guestPriceBreakdown(change.date, price, { sqm: propertySqm ?? null, isHouse, platformFeeRate: feeRate }) : null;
+    const steps: MoneyStep[] = [
+      { key: 'levy', label: 'Τέλος ανθεκτικότητας', amount: b.climateLevy, kind: 'out' },
+      { key: 'gross', label: 'Δηλωτέο ακαθάριστο', amount: b.declarableGross, kind: 'total' },
+    ];
+    if (b.platformFee != null) steps.push({ key: 'fee', label: 'Προμήθεια πλατφόρμας', amount: b.platformFee, kind: 'out' });
+    if (b.payout != null) steps.push({ key: 'payout', label: 'Μένει σε εσένα', amount: b.payout, kind: 'total' });
     return (
-      <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border-subtle)', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-        {/* Ήταν μία γραμμή με τρεις παρενθέσεις, δύο παύλες, ένα βέλος και έξι
-            έντονα — τέσσερις σειρές κειμένου για να πει μια αφαίρεση. Η αφαίρεση
-            γράφεται όπως γράφεται μια αφαίρεση: στη σειρά, με τα ποσά στοιχισμένα. */}
-        Τιμή στον επισκέπτη <strong style={{ fontFamily: T.font.num, color: 'var(--text-primary)' }}>{fe(b.guestPrice)}</strong>
-        {' · '}τέλος ανθεκτικότητας <strong style={{ fontFamily: T.font.num }}>{fe(b.climateLevy)}</strong>
-        {' · '}δηλωτέο ακαθάριστο <strong style={{ fontFamily: T.font.num, color: 'var(--text-primary)' }}>{fe(b.declarableGross)}</strong>
-        {b.platformFee != null && <>{' · '}προμήθεια <strong style={{ fontFamily: T.font.num }}>{fe(b.platformFee)}</strong></>}
-        {b.payout != null && <>{' · '}μένει σε εσένα <strong style={{ fontFamily: T.font.num }}>{fe(b.payout)}</strong></>}
+      <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border-subtle)' }}>
+        <MoneySteps steps={steps} scale="note" />
         {change && after && (
-          <div style={{ marginTop: 4, color: 'var(--text-tertiary)' }}>
+          <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.6, fontFamily: T.font.sans }}>
             Από {fd(change.date)} το τέλος γίνεται <strong style={{ fontFamily: T.font.num }}>{fe(after.climateLevy)}</strong>
             {after.payout != null && <> και μένουν <strong style={{ fontFamily: T.font.num }}>{fe(after.payout)}</strong></>}.
           </div>
@@ -570,34 +624,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                   ? <span title="Ποσοστό των ακαθαρίστων που καταλήγει σε εσένα" style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{fp(cashflow.keptPct)}</span>
                   : undefined} />
 
-              {/* Μία στήλη, μία υποδιαστολή. Οι εκροές έχουν εσοχή ώστε να
-                  διαβάζονται ως αφαιρέσεις από τη γραμμή που τις γεννά, χωρίς
-                  να χρειάζεται πρόσημο που θα μετακινούσε τα ψηφία. */}
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                {cashflow.steps.map(step => {
-                  const isTotal = step.kind === 'total';
-                  const isOut = step.kind === 'out';
-                  return (
-                    <div key={step.key} title={step.note}
-                      style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16,
-                        padding: isTotal ? '14px 0 2px' : '9px 0',
-                        borderTop: isTotal ? '1px solid var(--border-default)' : 'none',
-                        marginTop: isTotal ? 6 : 0 }}>
-                      <span style={{ fontFamily: T.font.sans, fontSize: isTotal ? 14 : 12.5,
-                        fontWeight: isTotal ? 700 : 400,
-                        color: isTotal ? 'var(--text-primary)' : 'var(--text-secondary)',
-                        paddingLeft: isOut ? 14 : 0, minWidth: 0 }}>{step.label}</span>
-                      <span style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums',
-                        fontSize: isTotal ? 19 : 13,
-                        fontWeight: isTotal ? 700 : 500,
-                        color: isTotal ? 'var(--text-primary)' : 'var(--text-secondary)',
-                        whiteSpace: 'nowrap', flexShrink: 0 }}>
-                        {isOut ? '−' : cashflow.net < 0 && isTotal ? '−' : ''}{fe(step.amount)}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+              <MoneySteps scale="lead" steps={cashflow.steps.map(st => ({ ...st, negative: st.kind === 'total' && cashflow.net < 0 }))} />
 
               {/* Η αναλογία με μια ματιά: πόσο από τη μπάρα μένει δικό σου. */}
               {cashflow.keptPct != null && cashflow.net > 0 && (

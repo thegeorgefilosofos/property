@@ -2024,7 +2024,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
           </div>
         </div>
       ) : letter || sortMode === 'alpha' ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 310px), 1fr))', gap: 14 }}>
+        <div data-list style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 310px), 1fr))', gap: 14 }}>
           {processed.map(c => (
             <ContactCard key={c.id} contact={c} onOpen={() => setDetailId(c.id)} onEdit={() => openEdit(c)} onDelete={() => askDelete(c)} onQuickExpense={() => setQuickExpense(c)} onQuickCalendar={() => setQuickCalendar(c)} onShowHistory={() => setHistoryContact(c)} onShowQR={() => setQrContact(c)} selected={selected.has(c.id)} onSelect={() => toggleSelect(c.id)} bulkMode={bulkMode} branding={branding} scopeLabel={scopeLabelFor(c)} scopePortfolio={scopeIsPortfolio(c)} />
           ))}
@@ -2034,7 +2034,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
           {GROUPS.filter(g => groupedFiltered[g.id]?.length).map(g => (
             <div key={g.id}>
               <GroupDivider group={g} count={groupedFiltered[g.id].length} />
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 310px), 1fr))', gap: 14 }}>
+              <div data-list style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 310px), 1fr))', gap: 14 }}>
                 {groupedFiltered[g.id].map(c => (
                   <ContactCard key={c.id} contact={c} onOpen={() => setDetailId(c.id)} onEdit={() => openEdit(c)} onDelete={() => askDelete(c)} onQuickExpense={() => setQuickExpense(c)} onQuickCalendar={() => setQuickCalendar(c)} onShowHistory={() => setHistoryContact(c)} onShowQR={() => setQrContact(c)} selected={selected.has(c.id)} onSelect={() => toggleSelect(c.id)} bulkMode={bulkMode} branding={branding} scopeLabel={scopeLabelFor(c)} scopePortfolio={scopeIsPortfolio(c)} />
                 ))}
