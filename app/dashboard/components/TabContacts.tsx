@@ -1397,7 +1397,7 @@ function AlphaRail({ entries, active, onPick }: {
               title={`${e.count} ${e.count === 1 ? 'επαφή' : 'επαφές'}`}
               style={{
                 minWidth: 26, height: 26, padding: '0 4px', border: 'none', cursor: 'pointer',
-                borderRadius: 7, background: on ? 'var(--accent)' : 'transparent',
+                borderRadius: T.radius.chip, background: on ? 'var(--accent)' : 'transparent',
                 color: on ? 'var(--accent-text)' : 'var(--text-secondary)',
                 fontFamily: T.font.sans, fontSize: 12, fontWeight: on ? 700 : 500,
                 fontVariantNumeric: 'tabular-nums', transition: 'background .14s, color .14s',

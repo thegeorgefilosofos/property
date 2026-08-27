@@ -231,7 +231,7 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
       {loading ? <Spinner size={18} label="Φόρτωση…" /> : <>
 
         {/* Ετυμηγορία */}
-        <div style={{ display: 'flex', gap: 11, alignItems: 'flex-start', padding: '13px 15px', borderRadius: 11,
+        <div style={{ display: 'flex', gap: 11, alignItems: 'flex-start', padding: '13px 15px', borderRadius: T.radius.inner,
                       background: `color-mix(in srgb, ${toneVar} 8%, transparent)`, border: `1px solid color-mix(in srgb, ${toneVar} 28%, transparent)` }}>
           <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: '50%', background: toneVar, color: 'var(--on-tone)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, marginTop: 1 }}>
             {decl.readiness === 'ready' ? '✓' : decl.readiness === 'invalid' ? '✕' : '!'}
@@ -240,7 +240,7 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
         </div>
 
         {/* Προθεσμία */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 15px', borderRadius: 11,
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 15px', borderRadius: T.radius.inner,
                       border: `1px solid ${decl.deadline.state === 'overdue' ? 'var(--negative-border)' : 'var(--border-subtle)'}`,
                       background: decl.deadline.state === 'overdue' ? 'var(--negative-soft)' : 'var(--bg-elevated)' }}>
           {decl.deadline.state === 'overdue' ? <AlertTriangle size={15} style={{ color: 'var(--negative)', flexShrink: 0 }} />
@@ -261,7 +261,7 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
           <div style={{ ...TT.caption, marginBottom: 10, lineHeight: 1.5, padding: '8px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 10 }}>
             Μέσα στην πύλη: {aadePath('lease')}
           </div>
-          <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 11, overflow: 'hidden' }}>
+          <div style={{ border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, overflow: 'hidden' }}>
             {decl.fields.map(row)}
           </div>
         </div>
@@ -270,7 +270,7 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
         <div>
           <div style={{ ...TT.label, marginBottom: 8 }}>ΜΕΤΑ ΤΗΝ ΥΠΟΒΟΛΗ</div>
           {submitted ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '11px 15px', borderRadius: 11, background: 'var(--positive-soft)', border: '1px solid var(--positive-border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '11px 15px', borderRadius: T.radius.inner, background: 'var(--positive-soft)', border: '1px solid var(--positive-border)' }}>
               <Check size={15} style={{ color: 'var(--positive)', flexShrink: 0 }} />
               <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>
                 Καταγράφηκε στις {new Date(submitted.at).toLocaleDateString('el-GR')}

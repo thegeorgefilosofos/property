@@ -196,7 +196,7 @@ const avatar = (name: string, size: number) => (
 const statTile = (label: string, value: React.ReactNode, opts?: { neg?: boolean; title?: string }) => (
   <div title={opts?.title} style={{
     background: 'var(--surface-raised)', border: '1px solid var(--border-raised)',
-    borderRadius: 12, padding: '10px 12px', minWidth: 0,
+    borderRadius: T.radius.card, padding: '10px 12px', minWidth: 0,
     boxShadow: 'var(--highlight-inset), var(--elev-1)',
   }}>
     <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: T.font.sans }}>{label}</div>
@@ -1007,7 +1007,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
 
                 {/* Λωρίδα στατιστικών: βυθισμένο well με ισομερή micro-stats */}
                 {st.stayCount > 0 ? (
-                  <div style={{ background: 'var(--bg-base)', boxShadow: 'var(--well-inset)', borderRadius: 12, padding: 12, display: 'flex' }}>
+                  <div style={{ background: 'var(--bg-base)', boxShadow: 'var(--well-inset)', borderRadius: T.radius.inner, padding: 12, display: 'flex' }}>
                     {([
                       { l: 'Διαμονές', v: String(st.stayCount) },
                       { l: 'Νύχτες', v: String(st.nights) },
@@ -1155,7 +1155,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 14 }}>
               <div>
                 <div style={{ ...lbl, marginBottom: 8 }}>Ανά κανάλι</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'var(--bg-base)', boxShadow: 'var(--well-inset)', borderRadius: 12, padding: 14 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'var(--bg-base)', boxShadow: 'var(--well-inset)', borderRadius: T.radius.inner, padding: 14 }}>
                   {chRows.map(r => (
                     <div key={r.channel}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, marginBottom: 5 }}>
@@ -1338,7 +1338,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
             <div>
               <SecHdr label="Διαμονές" right={!stayFormOpen ? <Btn variant="secondary" onClick={openStayNew}>Νέα διαμονή</Btn> : undefined} />
               {stayFormOpen && (
-                <div style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: 16, marginBottom: 14, boxShadow: 'var(--well-inset)' }}>
+                <div style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: 16, marginBottom: 14, boxShadow: 'var(--well-inset)' }}>
                   <div style={{ ...formGrid(200, 270), gap: 14 }}>
                     <div style={{ gridColumn: '1 / -1' }}>
                       <CustomSelect label="Ακίνητο" value={stayForm.property_id} onChange={v => setStayForm(f => ({ ...f, property_id: v }))} options={props.map(p => ({ value: p.id, label: p.name }))} placeholder="Χωρίς ακίνητο" />
@@ -1780,7 +1780,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
             const toImport = icalIncludeBlocked ? drafts : bookings;
             const nights = toImport.reduce((s, d) => s + d.nights, 0);
             return (
-              <div style={{ background: 'var(--bg-base)', boxShadow: 'var(--well-inset)', borderRadius: 12, padding: 14 }}>
+              <div style={{ background: 'var(--bg-base)', boxShadow: 'var(--well-inset)', borderRadius: T.radius.inner, padding: 14 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: 10, marginBottom: 12 }}>
                   {statTile('Κρατήσεις', String(bookings.length))}
                   {statTile('Μπλοκαρίσματα', String(blocks.length))}

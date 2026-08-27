@@ -595,7 +595,7 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
   return (
     <div className="cal-layout" style={{ display:'flex', gap:12 }}>
       <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, overflow:'hidden', boxShadow:'var(--shadow-sm)' }}>
+        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, overflow:'hidden', boxShadow:'var(--shadow-sm)' }}>
           <div style={{ display:'flex', alignItems:'center', gap:16, padding:'8px 16px', borderBottom:'1px solid var(--border-subtle)', background:'var(--bg-elevated)' }}>
             {/* ═══ ΕΠΤΑ ΚΟΥΚΚΙΔΕΣ ΣΤΟ ΙΔΙΟ ΓΚΡΙ ══════════════════════════════
                 Ο υπόμνημα κατηγοριών έπιανε όλη τη δεξιά πλευρά της γραμμής:
@@ -806,7 +806,7 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
             κατέλαβε μια ολόκληρη κάρτα για να πει «ένα», τη στιγμή που η
             γραμμή σύνοψης το έλεγε ήδη και το ίδιο το γεγονός φαινόταν από
             κάτω. */}
-        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:12, boxShadow:'var(--shadow-sm)' }}>
+        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:12, boxShadow:'var(--shadow-sm)' }}>
           {/* «ΑΠΟ ΣΗΜΕΡΑ», ΓΙΑΤΙ Η ΡΑΓΑ ΔΕΝ ΑΚΟΛΟΥΘΕΙ ΤΟΝ ΕΠΙΛΟΓΕΑ ΜΗΝΑ. Το πλέγμα
               δίπλα της αλλάζει μήνα με τα βελάκια· η ράγα μετρά πάντα από
               σήμερα και δεν κουνιέται. Δύο μονάδες χρόνου κολλητά, με τον
@@ -1334,7 +1334,7 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
           </div>
         </div>
         {/* Επανάληψη */}
-        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:'12px 14px' }}>
+        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, padding:'12px 14px' }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
             <span style={{ fontFamily: T.font.sans, fontSize:14, fontWeight:500, color:'var(--text-primary)' }}>Επαναλαμβανόμενο</span>
             <div {...pressable(()=>setForm(f=>({...f,recurring:!f.recurring})))} style={{ width:46, height:28, borderRadius: T.radius.card, background:form.recurring?'var(--accent)':'var(--border-default)', position:'relative', transition: 'background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s, opacity 0.2s', cursor:'pointer', flexShrink:0 }}>
@@ -2036,7 +2036,7 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
           Τώρα: μία κάρτα, η επικεφαλίδα της είναι το κουμπί και μόνο στην όψη
           «Μήνας» — γιατί μόνο εκεί λείπει. */}
       {viewMode==='month'&&overdue.length>0&&(
-        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--negative)', borderRadius:12, overflow:'hidden' }}>
+        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderLeft:'3px solid var(--negative)', borderRadius:T.radius.card, overflow:'hidden' }}>
           <button onClick={()=>setShowOverdue(o=>!o)} aria-expanded={showOverdue}
             style={{ display:'flex', alignItems:'center', gap:11, width:'100%', textAlign:'left', background:'transparent', border:'none', borderBottom:showOverdue?'1px solid var(--border-subtle)':'none', padding:'11px 16px', cursor:'pointer' }}>
             <AlertTriangle size={14} color="var(--negative)"/>

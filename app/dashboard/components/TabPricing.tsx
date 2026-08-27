@@ -797,7 +797,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                   φαίνεται και το δείγμα δίπλα στη λέξη είναι ΤΟ ΙΔΙΟ που βλέπει
                   κανείς μέσα στο κελί. */}
               <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 14, height: 14, borderRadius: 4, border: '1px solid var(--border-subtle)', backgroundImage: 'repeating-linear-gradient(45deg, transparent 0 4px, var(--border-default) 4px 5px)' }} />
+                <span style={{ width: 14, height: 14, borderRadius: T.radius.xs, border: '1px solid var(--border-subtle)', backgroundImage: 'repeating-linear-gradient(45deg, transparent 0 4px, var(--border-default) 4px 5px)' }} />
                 κλεισμένη
               </span>
             </div>
