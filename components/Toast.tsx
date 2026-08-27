@@ -7,7 +7,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useEffect, useState, useRef } from 'react';
-import { T, type Tone } from './tokens';
+import { T, Z, type Tone } from './tokens';
 import { subscribeToasts, type ToastItem } from './toastBus';
 import { CloseButton } from './Theme';
 
@@ -86,7 +86,7 @@ export function ToastHost() {
       aria-atomic="false"
       style={{
         position: 'fixed', left: '50%', bottom: 'var(--float-bottom)', transform: 'translateX(-50%)',
-        zIndex: 2000, display: 'flex', flexDirection: 'column', alignItems: 'center',
+        zIndex: Z.toast, display: 'flex', flexDirection: 'column', alignItems: 'center',
         gap: 8, pointerEvents: 'none', maxWidth: 'min(92vw, 460px)',
       }}
     >
