@@ -1953,11 +1953,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
      Το μενού πάει ΠΑΝΩ, στη γραμμή του τίτλου, αντί να αιωρείται στη μέση
      ενός κουτιού που πια είναι ψηλό. */
-  .app-topbar { height: auto; min-height: 56px; padding: 8px 12px; gap: 8px; align-items: flex-start; }
-  .app-topbar > .nav-toggle { margin-top: 2px; }
-  .app-topbar-sub {
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
+  /* ΤΟ ΚΕΝΤΡΑΡΙΣΜΑ ΓΥΡΙΣΕ ΟΤΑΝ ΕΦΥΓΕ Η ΔΕΥΤΕΡΗ ΣΕΙΡΑ. Το `flex-start` και το
+     αντισταθμιστικό `margin-top: 2px` του μενού υπήρχαν επειδή το μεσαίο μπλοκ
+     ήταν δίγραμμο: όνομα ακινήτου από πάνω, «Κατοικία · 42 τ.μ. · διεύθυνση»
+     από κάτω. Με μία σειρά, το `flex-start` κρατούσε τα πάντα κολλημένα ψηλά
+     και το μενού δύο εικονοστοιχεία χαμηλότερα από όλα τα άλλα.
+
+     Ο κανόνας `.app-topbar-sub` έσβησε μαζί με το στοιχείο του: κανένα στοιχείο
+     δεν φοράει πλέον την κλάση, οπότε ήταν νεκρό βάρος. */
+  .app-topbar { height: auto; min-height: 56px; padding: 8px 12px; gap: 8px; align-items: center; }
   .app-content { padding: 14px 12px 28px; }
 
   /* ═══ Η ΠΡΩΤΗ ΟΘΟΝΗ ΕΙΝΑΙ ΓΙΑ ΤΟ ΠΕΡΙΕΧΟΜΕΝΟ, ΟΧΙ ΓΙΑ ΤΗΝ ΤΑΜΠΕΛΑ ═══════

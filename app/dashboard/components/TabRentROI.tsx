@@ -417,6 +417,26 @@ function Figure({ label, value, tone }: { label: string; value: string; tone?: '
 }
 
 // Κάρτα μοχλού — στο hover γίνεται accent ΜΟΝΟ ο τίτλος (καθαρή, διακριτική ένδειξη).
+/* ── Ο ΜΟΧΛΟΣ ΛΕΕΙ ΤΟ ΠΟΣΟ ΚΑΙ ΚΡΥΒΕΙ ΤΑ ΨΙΛΑ ────────────────────────────
+   ΤΕΣΣΕΡΑ ΜΠΛΟΚ ΚΕΙΜΕΝΟΥ ΑΝΑ ΚΑΡΤΑ, ΕΠΙ ΤΕΣΣΕΡΙΣ ΚΑΡΤΕΣ. Η κάρτα έγραφε
+   μονίμως ορατά: τίτλο, τη γραμμή του ποσού, ολόκληρη την παράγραφο των
+   προϋποθέσεων και από κάτω το «Προσοχή». Δεκαέξι μπλοκ σε μια ενότητα που
+   απαντά ΕΝΑ ερώτημα: αξίζει να το κοιτάξω;
+
+   ΚΑΙ ΤΟ ΜΙΣΟ ΠΛΑΤΟΣ ΤΗΣ ΚΑΡΤΑΣ ΕΜΕΝΕ ΑΔΕΙΟ. Μετρημένο στον πάγκο, στη σκηνή
+   roi-pro: η παράγραφος του «Άρθρου 39Β» έπιανε 552 εικονοστοιχεία μέσα σε
+   κάρτα 1.350, δηλαδή άφηνε 798 κενά δεξιά της· στα 1920 άφηνε 1.126. Αιτία η
+   `text-measure`, που κόβει στους 74 χαρακτήρες. Σωστός κανόνας για τρεχούμενο
+   κείμενο, λάθος σχήμα για σημείωση μέσα σε φαρδιά κάρτα.
+
+   ΤΩΡΑ ΜΕΝΕΙ ΟΡΑΤΟ ΜΟΝΟ ΟΤΙ ΚΡΙΝΕΙ ΤΗΝ ΑΠΟΦΑΣΗ: ο τίτλος και το ποσό. Οι
+   προϋποθέσεις και ο κίνδυνος μπαίνουν πίσω από το κυκλάκι, μαζί, γιατί
+   διαβάζονται μαζί από όποιον αποφάσισε ότι τον ενδιαφέρει.
+
+   ΤΙΠΟΤΑ ΔΕΝ ΥΠΟΒΑΘΜΙΖΕΤΑΙ. Το `InfoHint` γράφει το κείμενό του σε κρυφό κόμβο
+   με `aria-describedby`, οπότε ο αναγνώστης οθόνης το ανακοινώνει είτε είναι
+   ανοιχτό είτε όχι. Η ετικέτα του κυκλακιού ονομάζει ρητά τι κρύβει, ώστε να
+   μην είναι ένα ⓘ που δεν λέει τίποτα. */
 function LeverCard({ lever }: { lever: YieldLever }) {
   const [hot, setHot] = useState(false);
   return (
@@ -424,11 +444,13 @@ function LeverCard({ lever }: { lever: YieldLever }) {
       style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <p style={{ fontSize: 13, fontWeight: 600, color: hot ? 'var(--accent)' : 'var(--text-primary)', margin: 0, fontFamily: SANS, transition: 'color 0.15s' }}>{lever.title}</p>
+        <InfoHint label={`Προϋποθέσεις και κίνδυνος: ${lever.title}`}>
+          <span style={{ display: 'block' }}>{lever.detail}</span>
+          <span style={{ display: 'block', marginTop: 8 }}><strong>Προσοχή:</strong> {lever.risk}</span>
+        </InfoHint>
         {lever.href && <a href={lever.href} target="_blank" rel="noreferrer" style={{ marginLeft: 'auto', color: 'var(--text-tertiary)', display: 'inline-flex' }}><ArrowUpRight size={14} /></a>}
       </div>
-      <p style={{ fontSize: 12, color: 'var(--text-primary)', margin: 0, fontFamily: SANS, fontWeight: 600 }}>{lever.impact}</p>
-      <p className="text-measure" style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '5px 0 0', fontFamily: SANS, lineHeight: 1.55 }}>{lever.detail}</p>
-      <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '5px 0 0', fontFamily: SANS, lineHeight: 1.5 }}><strong style={{ color: 'var(--text-secondary)' }}>Προσοχή:</strong> {lever.risk}</p>
+      <p style={{ fontSize: 12, color: 'var(--text-primary)', margin: 0, fontFamily: SANS, fontWeight: 600, lineHeight: 1.5 }}>{lever.impact}</p>
     </div>
   );
 }
@@ -1429,7 +1451,12 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           {/* Η μακρά ιστορία λέγεται μόνο όταν φαίνεται. Κάτω από γράφημα που
               ξεκινά το 2016, μια πρόταση για την κορυφή του 2008 ζητά από τον
               αναγνώστη να πιστέψει κάτι που δεν μπορεί να δει. */}
-          <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: SANS, lineHeight: 1.5 }}>{hist.some(p => p.year === HISTORY_ANCHORS.peakYear) ? `${HISTORY_ANCHORS.long} ${HISTORY_ANCHORS.recent}` : HISTORY_ANCHORS.recent} <strong style={{ color: 'var(--text-secondary)' }}>Παρελθούσες αποδόσεις δεν εγγυώνται μελλοντικές.</strong></p>
+          {/* Η ΕΠΙΦΥΛΑΞΗ ΛΕΓΕΤΑΙ ΜΙΑ ΦΟΡΑ, ΣΤΗΝ ΚΑΡΤΑ ΤΩΝ ΠΗΓΩΝ. Ήταν γραμμένη
+              εδώ με έντονα, στη σύγκριση εναλλακτικών και μέσα στο
+              MARKET_DISCLAIMER: τρία αντίγραφα της ίδιας πρότασης σε μία
+              καρτέλα. Όσο πιο συχνά γράφεται μια επιφύλαξη, τόσο λιγότερο
+              διαβάζεται. Εδώ μένει το ιστορικό, που είναι μέτρηση. */}
+          <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: SANS, lineHeight: 1.5 }}>{hist.some(p => p.year === HISTORY_ANCHORS.peakYear) ? `${HISTORY_ANCHORS.long} ${HISTORY_ANCHORS.recent}` : HISTORY_ANCHORS.recent}</p>
         </Section>
 
         {/* 3) Σύγκριση με εναλλακτικές */}
@@ -1498,8 +1525,34 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
               <BarRow key={c.key} label={c.label} value={c.futureValue} max={compMax} valueLabel={feC(c.futureValue)} tone={c.key === 'property' ? 'accent' : 'neutral'} hint={`${fp(c.annualReturnPct)} ετησίως · ${c.totalReturnPct >= 0 ? '+' : ''}${fp(c.totalReturnPct)} συνολικά`} />
             ))}
           </div>
+          {/* ═══ ΕΝΝΙΑΚΟΣΙΟΙ ΧΑΡΑΚΤΗΡΕΣ ΚΑΤΩ ΑΠΟ ΤΕΣΣΕΡΙΣ ΜΠΑΡΕΣ ══════════════════
+              Η παράγραφος ήταν μονίμως ορατή και έλεγε πέντε πράγματα μαζί: τι
+              δείχνουν οι μπάρες, τι έγινε στην κρίση, γιατί το ακίνητο δεν είναι
+              ρευστό, πόσο κοστίζει η αγοραπωλησία και μια νομική επιφύλαξη.
+              Μετρημένο στον πάγκο, στα 1440: έπιανε 537 εικονοστοιχεία μέσα σε
+              κάρτα 1.392 και άφηνε 855 κενά δεξιά της.
+
+              ΟΡΑΤΟ ΜΕΝΕΙ ΤΟ ΤΙ ΔΕΙΧΝΟΥΝ ΟΙ ΜΠΑΡΕΣ, γιατί χωρίς αυτό οι μπάρες
+              δεν διαβάζονται. Ολα τα υπόλοιπα είναι απάντηση στο «γιατί όχι
+              απλώς να πουλήσω και να τα βάλω αλλού», δηλαδή δεύτερη ερώτηση. Πάνε
+              πίσω από το κυκλάκι αυτούσια, χωρίς να χαθεί ούτε ένα νούμερο.
+
+              Η ΕΠΙΦΥΛΑΞΗ ΔΕΝ ΚΡΥΒΕΤΑΙ, ΦΕΥΓΕΙ ΩΣ ΔΙΠΛΟΤΥΠΙΑ. Το «Παρελθούσες
+              αποδόσεις δεν εγγυώνται μελλοντικές» γραφόταν ΤΡΕΙΣ φορές στην ίδια
+              καρτέλα: εδώ, στο ιστορικό των τιμών πιο πάνω και στο MARKET_DISCLAIMER
+              της κάρτας πηγών στο τέλος. Μένει στην κάρτα πηγών, που είναι το
+              σημείο της και είναι ορατή χωρίς πάτημα.
+
+              ΚΑΙ Η ΚΡΙΣΗ ΑΝΑΦΕΡΕΤΑΙ ΜΟΝΟ ΟΤΑΝ ΕΙΝΑΙ ΜΕΣΑ ΣΤΟΝ ΟΡΙΖΟΝΤΑ. Η
+              πρόταση για τη 20ετία γραφόταν και με επιλεγμένη τη 10ετία, δηλαδή
+              περιέγραφε γράφημα που ο χρήστης δεν έβλεπε. */}
           <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: SANS, lineHeight: 1.55 }}>
-            Οι εναλλακτικές εμφανίζονται με τη <strong style={{ color: 'var(--text-secondary)' }}>μέση πραγματική ετήσια απόδοσή τους της τελευταίας {cmpYears}ετίας</strong> (συνολική απόδοση σε ευρώ, από επίσημες πηγές, ορίζοντας {BENCHMARKS_ASOF}), όχι με εξομαλυμένες υποθέσεις. Η 20ετία περιλαμβάνει την κρίση: το Χρηματιστήριο Αθηνών και το ομόλογο είναι σχεδόν μηδενικά. Το ακίνητο υπολογίζεται με τη δική σου καθαρή απόδοση συν ανατίμηση. Όλα προ φόρου εισοδήματος· οι εναλλακτικές είναι <strong style={{ color: 'var(--text-secondary)' }}>παθητικές και ρευστές</strong>, ενώ το ακίνητο απαιτεί χρόνο, συγκεντρώνει τον κίνδυνο σε ένα περιουσιακό στοιχείο και κοστίζει για να μπεις και να βγεις: μια πλήρης διαδρομή αγοράς και πώλησης είναι τυπικά 4 έως 10% της αξίας (φόρος μεταβίβασης 3% και συμβολαιογραφικά στην αγορά, μεσιτική αμοιβή και νομικός έλεγχος στην πώληση). Στην Επενδυτική ανάλυση παρακάτω μπαίνει μόνο το σκέλος του <strong style={{ color: 'var(--text-secondary)' }}>πωλητή</strong> και το βλέπεις και το αλλάζεις. Παρελθούσες αποδόσεις δεν εγγυώνται μελλοντικές· ενδεικτικά στοιχεία, όχι επενδυτική συμβουλή.
+            Οι εναλλακτικές τρέχουν με τη <strong style={{ color: 'var(--text-secondary)' }}>μέση πραγματική ετήσια απόδοσή τους της τελευταίας {cmpYears}ετίας</strong>, ως συνολική απόδοση σε ευρώ από επίσημες πηγές, με ορίζοντα {BENCHMARKS_ASOF}. Το ακίνητο τρέχει με τη δική σου καθαρή απόδοση συν ανατίμηση. Όλα προ φόρου εισοδήματος.{' '}
+            <InfoHint label="Τι δεν δείχνει η σύγκριση">
+              <span style={{ display: 'block' }}>Τα νούμερα των εναλλακτικών είναι πραγματικές αποδόσεις, όχι εξομαλυμένες υποθέσεις.{cmpYears === '20' ? ' Η 20ετία περιλαμβάνει την κρίση: το Χρηματιστήριο Αθηνών και το ομόλογο είναι σχεδόν μηδενικά.' : ''}</span>
+              <span style={{ display: 'block', marginTop: 8 }}>Οι εναλλακτικές είναι <strong>παθητικές και ρευστές</strong>, ενώ το ακίνητο απαιτεί χρόνο, συγκεντρώνει τον κίνδυνο σε ένα περιουσιακό στοιχείο και κοστίζει για να μπεις και να βγεις: μια πλήρης διαδρομή αγοράς και πώλησης είναι τυπικά 4 έως 10% της αξίας, δηλαδή φόρος μεταβίβασης 3% και συμβολαιογραφικά στην αγορά, μεσιτική αμοιβή και νομικός έλεγχος στην πώληση.</span>
+              <span style={{ display: 'block', marginTop: 8 }}>Στην ενότητα «Επενδυτική ανάλυση» παρακάτω μπαίνει μόνο το σκέλος του <strong>πωλητή</strong> και το βλέπεις και το αλλάζεις.</span>
+            </InfoHint>
           </p>
         </Section>
 

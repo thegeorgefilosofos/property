@@ -23,6 +23,7 @@ import RentReceived from '@/app/dashboard/components/RentReceived';
 import InboundInbox from '@/app/dashboard/components/InboundInbox';
 import { CustomSelect } from '@/app/dashboard/components/UIComponents';
 import ExpenseLedger from '@/app/dashboard/components/ExpenseLedger';
+import TabFinances from '@/app/dashboard/components/TabFinances';
 import TabChecklist from '@/app/dashboard/components/TabChecklist';
 // Η ΣΥΓΚΡΙΣΗ ΜΠΗΚΕ ΟΤΑΝ Ο ΠΙΝΑΚΑΣ ΤΗΣ ΕΚΑΝΕ ΤΗΝ ΟΘΟΝΗ ΝΑ ΠΑΕΙ ΠΕΡΑ ΔΩΘΕ. Η
 // ταυτότητα κάθε στήλης («Βραχυχρόνια μίσθωση · 42 τ.μ. · 120.000,00 € · …»)
@@ -214,6 +215,11 @@ const VIEWS: Record<string, () => React.ReactElement> = {
   rent: () => <RentReceived onClose={() => {}} lines={lines} supabase={supabase} propertyId={null} tenantId={null} leaseViaBank today="2026-08-23" onSaved={() => {}} />,
   inbox: () => <InboundInbox propertyId="p0" userId="u1" propertyName="Ακίνητο 1" onFiled={() => {}} />,
   ledger: () => <ExpenseLedger propertyId="p0" userId="u1" />,
+  // Η ΚΑΡΤΕΛΑ ΟΛΟΚΛΗΡΗ, ΟΧΙ ΜΟΝΟ ΤΟ ΒΙΒΛΙΟ. Η σκηνή «ledger» αποδίδει σκέτο το
+  // ExpenseLedger, οπότε η σειρά καρτελών, η γραμμή τράπεζας και η κύρια
+  // ενέργεια δεν μετρήθηκαν ποτέ από κανέναν έλεγχο: ό,τι ζει στο TabFinances
+  // ήταν αόρατο στον πάγκο. Εδώ μπαίνει το πραγματικό κέλυφος.
+  finances: () => <TabFinances propertyId="p0" userId="u1" propertyName="Στούντιο Κουκάκι" onScan={() => {}} />,
   checklist: () => <TabChecklist propertyId="p0" userId="u1" />,
   compare: () => <TabComparison properties={comparePair as never} userId="u1" />,
   loan: () => <LoanScene />,

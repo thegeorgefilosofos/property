@@ -21,9 +21,10 @@ import { createClient } from '@/lib/supabase/client';
 import * as calendar from '@/lib/data/calendar'
 import { Check, Plus, X, RotateCcw, CircleCheckBig } from 'lucide-react';
 import { isoDate } from '@/lib/core/time';
+import { AssistantMark } from './AssistantMark';
 import { T, TT, fe, EmptyState } from '@/components/Theme';
 import { saved } from '@/components/dbWrite';
-import { ASSISTANT_INITIAL, ASSISTANT_ACC, suggestionsTitle, suggestionsSub, suggestionsTeaser } from '@/lib/assistant/identity';
+import { ASSISTANT_ACC, suggestionsTitle, suggestionsSub, suggestionsTeaser } from '@/lib/assistant/identity';
 
 interface Suggestion {
   title: string;
@@ -244,7 +245,12 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
   const hasSomethingToSay = visibleSuggestions.length > 0 || loadingSugg || failed;
   if (!hasSomethingToSay || collapsed) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+      /* ΣΤΟΙΧΙΣΜΕΝΗ ΜΕ ΤΗΝ ΥΠΟΛΟΙΠΗ ΟΘΟΝΗ, ΟΧΙ ΔΕΞΙΑ ΜΟΝΗ ΤΗΣ. Ο τίτλος της
+         καρτέλας, τα φίλτρα, οι κάρτες και οι επικεφαλίδες ενοτήτων ξεκινούν
+         όλα από την αριστερή άκρη. Αυτή η μία γραμμή ξεκινούσε από τη δεξιά,
+         οπότε το μάτι έκανε ένα ταξίδι για μια πρόταση που δεν το άξιζε.
+         Η ανοιχτή μορφή της ίδιας κάρτας ήταν ήδη αριστερά. */
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
         {/* Η συμπτυγμένη μορφή ΔΕΝ αποδίδει τον τίτλο «Νόα · Προτάσεις», οπότε ο
             υπότιτλος έμενε χωρίς υποκείμενο: «Διαβάζει τα δεδομένα σου» — ποιος;
             Εδώ μπαίνει η εκδοχή που κουβαλά το όνομα μαζί της. */}
@@ -263,7 +269,7 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
           {/* Το σήμα είναι το αρχικό του ονόματος: ίδιο με το πλωτό κουμπί, ώστε
               ο χρήστης να δει με μια ματιά ότι μιλάει στο ίδιο πρόσωπο. */}
-          <div aria-hidden style={{ width: 32, height: 32, flexShrink: 0, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', fontFamily: T.font.sans, fontWeight: 700, fontSize: 14, letterSpacing: '-0.01em' }}>{ASSISTANT_INITIAL}</div>
+          <div aria-hidden style={{ width: 32, height: 32, flexShrink: 0, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}><AssistantMark size={16} /></div>
           <div style={{ minWidth: 0 }}>
             <p style={{ ...TT.h2, fontSize: 13 }}>{suggestionsTitle()}</p>
             <p style={{ ...TT.caption, marginTop: 2 }}>{suggestionsSub()}</p>

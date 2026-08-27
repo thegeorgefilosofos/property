@@ -24,7 +24,7 @@
 
 import { navLabel } from '@/lib/nav/labels';
 import { useState } from 'react';
-import { T } from '@/components/Theme';
+import { T, Btn } from '@/components/Theme';
 import ExpenseLedger from './ExpenseLedger';
 import InboundInbox from './InboundInbox';
 import { BankLinkRow } from './BankLink';
@@ -99,8 +99,20 @@ export default function TabFinances({
           Κρυφό ΟΠΤΙΚΑ, όχι από τον αναγνώστη — η οθόνη έχει ήδη τη δική της
           κεφαλίδα και δεν αλλάζει ούτε ένα εικονοστοιχείο. */}
       <h1 className="sr-only">{navLabel('finances')}</h1>
+      {/* ═══ Η ΚΥΡΙΑ ΕΝΕΡΓΕΙΑ ΑΝΕΒΑΙΝΕΙ ΣΤΗ ΣΕΙΡΑ ΤΩΝ ΚΑΡΤΕΛΩΝ ═══════════════
+          Η σάρωση ζούσε ΜΟΝΟ μέσα στην κενή κατάσταση, δηλαδή εξαφανιζόταν τη
+          στιγμή που καταχωρούνταν η πρώτη δαπάνη: ακριβώς τότε που ο χρήστης
+          αρχίζει να τη χρειάζεται κάθε μήνα. Και όσο φαινόταν, καθόταν
+          κεντραρισμένη στη μέση της οθόνης, τρίτη στοίχιση κάτω από αριστερά
+          στοιχισμένες καρτέλες και αριστερά στοιχισμένη γραμμή τράπεζας.
+
+          Τώρα κάθεται στη σειρά των καρτελών, στην ίδια γραμμή βάσης με αυτές
+          και με το «Τι είναι» της τράπεζας από κάτω, στη δεξιά άκρη όπου η
+          εφαρμογή βάζει παντού την κύρια ενέργεια. Είναι ορατή πάντα, με ή
+          χωρίς δαπάνες. */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: T.sp.xl }}>
       <div style={{
-        display: 'inline-flex', padding: 3, gap: 2, marginBottom: T.sp.xl,
+        display: 'inline-flex', padding: 3, gap: 2,
         background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
         borderRadius: T.radius.pill, maxWidth: '100%', overflowX: 'auto',
       }}>
@@ -124,6 +136,12 @@ export default function TabFinances({
             </button>
           );
         })}
+      </div>
+        {/* Η σάρωση αφορά ΜΟΝΟ τις δαπάνες. Στον Προϋπολογισμό και στα
+            Συμβόλαια δεν υπάρχει τίποτα να σαρωθεί, οπότε δεν προσφέρεται. */}
+        {onScan && !contracts && view === 'expenses' && (
+          <Btn variant="primary" onClick={onScan}>Σάρωσε δαπάνη</Btn>
+        )}
       </div>
 
       {contracts

@@ -33,6 +33,7 @@ import * as expenseStore from '@/lib/data/expenses';
 import * as calendar from '@/lib/data/calendar'
 import { speechRecognizer, speechSupported, type SpeechEvent, type SpeechErrorEvent, type SpeechRecognizer } from '@/lib/core/speech';
 import type { BillsRow, ChecklistItemsRow, ClientStaysRow, ClientsRow, ContactsRow, ExpensesRow, RentPaymentsRow, UserPropertiesRow } from '@/lib/supabase/tables';
+import { AssistantMark } from './AssistantMark';
 import { T, TT, Modal, fe, feAuto, feOr, fp } from '@/components/Theme';
 import Feedback from './Feedback';
 import { resolveRent, resolveValue, computeYields } from '@/lib/billing/propertyFacts';
@@ -1477,7 +1478,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
           <button ref={fabRef} className="pa-fab" onPointerDown={startFabDrag} onClick={fabToggle(true)}
             aria-label={openAria()} title="Σύρετε για μετακίνηση"
             style={{ cursor: dragging ? 'grabbing' : 'pointer' }}>
-            <span className="pa-mark" aria-hidden>{ASSISTANT_INITIAL}</span>
+            <span className="pa-mark" aria-hidden><AssistantMark size={18} /></span>
             <span className="pa-fab-cta">{cta}</span>
             {(listening || speaking) && <span className="pa-fab-live" style={{ background: listening ? 'var(--negative)' : 'var(--accent)' }} />}
           </button>
@@ -1496,7 +1497,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
             {/* Το 15 δεν υπάρχει στην κλίμακα (…13, 14, 16, 18…) — ήταν ένα από
                 τα δύο μεγέθη όλου του αρχείου εκτός κλίμακας. Στα 16 κρατά την
                 ίδια αναλογία μέσα στον δίσκο των 34 (0,44 → 0,47). */}
-            <div aria-hidden style={{ width: 34, height: 34, borderRadius: T.radius.inner, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', fontFamily: T.font.sans, fontWeight: 700, fontSize: 16, letterSpacing: '-0.01em', flexShrink: 0 }}>{ASSISTANT_INITIAL}</div>
+            <div aria-hidden style={{ width: 34, height: 34, borderRadius: T.radius.inner, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', flexShrink: 0 }}><AssistantMark size={17} /></div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ ...TT.h2, fontSize: 14 }}>{ASSISTANT_NAME}</div>
               <div style={{ ...TT.caption, marginTop: 1 }}>{tagline(prefs.formal)}</div>
@@ -1736,9 +1737,15 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
         .pa-fab:active{transform:translateY(0)}
         .pa-fab:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
         /* Το σήμα: το αρχικό μέσα σε φωτεινό δίσκο. Καμία εικονογραφία, κανένα
-           «σπινθήρισμα» — το όνομα είναι το σήμα. */
-        /* 17px → 18: το 17 δεν υπάρχει στην κλίμακα μεγεθών (…16, 18, 20…). */
-        .pa-mark{width:36px;height:36px;flex-shrink:0;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;font-weight:700;font-size:18px;line-height:1;letter-spacing:-.01em;transition:background .18s ${T.ease.standard},color .18s ${T.ease.standard}}
+           «σπινθήρισμα» — το όνομα είναι το σήμα.
+
+           ΟΙ ΠΕΝΤΕ ΙΔΙΟΤΗΤΕΣ ΓΡΑΜΜΑΤΟΣΕΙΡΑΣ ΕΦΥΓΑΝ ΜΑΖΙ ΜΕ ΤΟ ΓΡΑΜΜΑ. Εδώ
+           γράφονταν font-family, font-weight, font-size, line-height και
+           letter-spacing για ένα «Ν» της Inter. Το σήμα είναι πλέον σχήμα
+           (AssistantMark), οπότε καμία από τις πέντε δεν επηρεάζει τίποτα:
+           μένουν μόνο ο δίσκος και το χρώμα, που το σχήμα κληρονομεί με
+           currentColor. */
+        .pa-mark{width:36px;height:36px;flex-shrink:0;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;transition:background .18s ${T.ease.standard},color .18s ${T.ease.standard}}
         .pa-fab-cta{font-family:'Inter',sans-serif;font-size:14px;font-weight:600;letter-spacing:-.01em;white-space:nowrap}
         .pa-fab-close{padding:0;width:var(--fab-h);justify-content:center;background:var(--bg-surface);color:var(--text-secondary);border-color:var(--border-default)}
         .pa-fab-live{position:absolute;top:8px;left:34px;width:9px;height:9px;border-radius:50%;animation:pa-pulse 1.4s infinite}

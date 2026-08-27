@@ -1114,12 +1114,12 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
             <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em' }}>Προϋπολογισμός</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-secondary)' }}>
-            <button onClick={() => canGoOlder && setMonthOffset(o => o - 1)} disabled={!canGoOlder} aria-label="Προηγούμενος μήνας"
+            <button className="po-box" onClick={() => canGoOlder && setMonthOffset(o => o - 1)} disabled={!canGoOlder} aria-label="Προηγούμενος μήνας"
               style={{ display: 'flex', border: 'none', background: 'transparent', cursor: canGoOlder ? 'pointer' : 'default', color: canGoOlder ? 'var(--text-secondary)' : 'var(--border-default)', padding: 2, margin: '0 -2px' }}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
             <span style={{ minWidth: 96, textAlign: 'center', textTransform: 'capitalize' }}>{viewMonthLabel}</span>
-            <button onClick={() => canGoNewer && setMonthOffset(o => o + 1)} disabled={!canGoNewer} aria-label="Επόμενος μήνας"
+            <button className="po-box" onClick={() => canGoNewer && setMonthOffset(o => o + 1)} disabled={!canGoNewer} aria-label="Επόμενος μήνας"
               style={{ display: 'flex', border: 'none', background: 'transparent', cursor: canGoNewer ? 'pointer' : 'default', color: canGoNewer ? 'var(--text-secondary)' : 'var(--border-default)', padding: 2, margin: '0 -2px' }}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
@@ -1499,7 +1499,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                     style={{ height: 28, padding: '0 12px', borderRadius: T.radius.inner, border: '1px solid var(--border-accent)', background: 'var(--accent-dim)', color: 'var(--accent)', fontSize: 12, fontWeight: 600, fontFamily: T.font.sans, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' }}>
                     Εφαρμογή
                   </button>
-                  <button type="button" aria-label="Απόρριψη" title="Απόρριψη" onClick={() => dismissSuggestion(s.key)}
+                  <button type="button" className="po-box" aria-label="Απόρριψη" title="Απόρριψη" onClick={() => dismissSuggestion(s.key)}
                     style={{ display: 'inline-flex', border: 'none', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', padding: 3, margin: '-3px' }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                   </button>

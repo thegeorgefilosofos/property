@@ -643,8 +643,17 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
       {!embedded && <PageTitle
         title={navLabel('checklist')}
         titleHint="Λίστα ελέγχου εργασιών ακινήτου"
+        /* ΤΟ ΙΔΙΟ ΓΕΓΟΝΟΣ ΛΕΓΟΤΑΝ ΤΡΕΙΣ ΦΟΡΕΣ ΣΕ ΜΙΑ ΟΘΟΝΗ. Με άδεια λίστα ο
+           χρήστης διάβαζε «Καμία εργασία ακόμη» εδώ, «Όλα καθαρά εδώ» ως τίτλο
+           της κενής κατάστασης και «Δεν έχεις καμία εργασία» στην εξήγησή της.
+           Τρεις διατυπώσεις του ίδιου πράγματος, σε ύψος δύο εκατοστών.
+
+           Ο υπότιτλος σωπαίνει όταν η λίστα είναι άδεια: την κατάσταση την
+           αναλαμβάνει η κενή κατάσταση, που είναι και το μόνο σημείο με
+           ενέργειες. Σε γεμάτη λίστα ο υπότιτλος μετράει, γιατί τότε ΔΕΝ
+           υπάρχει κενή κατάσταση να το πει. */
         sub={stats.total === 0
-          ? 'Καμία εργασία ακόμη'
+          ? undefined
           : openCount === 0
           ? (stats.total === 1 ? 'Ολοκληρώθηκε η μοναδική εργασία' : `Ολοκληρώθηκαν και οι ${fn(stats.total)}`)
           : `${fn(openCount)} ${openCount === 1 ? 'ανοιχτή' : 'ανοιχτές'}`
@@ -799,17 +808,41 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[0, 1, 2, 3].map(i => <Skeleton key={i} h={62} r={12} />)}</div>
         </>
       ) : items.length === 0 ? (
+        /* ═══ «ΟΛΑ ΚΑΘΑΡΑ ΕΔΩ» ΕΝΩ ΕΚΚΡΕΜΟΥΝ ΟΚΤΩ ΥΠΟΧΡΕΩΣΕΙΣ ΤΟΥ ΝΟΜΟΥ ═══════
+           Ο τίτλος έλεγε ότι δεν υπάρχει τίποτα και η αμέσως επόμενη γραμμή ότι
+           υπάρχουν οκτώ, με ημερομηνία και όνομα. Το κείμενο αντέφασκε στον
+           εαυτό του μέσα σε δύο σειρές. Και η πρώτη λέξη που διαβάζει το μάτι
+           είναι ο τίτλος: ο χρήστης έφευγε ήσυχος από οθόνη που του έλεγε ότι
+           κάτι λήγει σε λίγες ημέρες.
+
+           Δύο καταστάσεις, δύο διαφορετικά πράγματα να ειπωθούν. Οταν εκκρεμούν
+           υποχρεώσεις, ο τίτλος τις ονομάζει και η εξήγηση δίνει την πρώτη με
+           την προθεσμία της. Οταν δεν εκκρεμεί τίποτα, τότε και μόνο τότε το
+           «Ολα καθαρά εδώ» είναι αλήθεια. */
         <EmptyState
           icon={<ClipboardCheck size={20} />}
-          title="Όλα καθαρά εδώ"
+          title={pendingObligations.length > 0
+            ? (pendingObligations.length === 1 ? 'Μία υποχρέωση του νόμου, εκτός λίστας' : `${fn(pendingObligations.length)} υποχρεώσεις του νόμου, εκτός λίστας`)
+            : 'Όλα καθαρά εδώ'}
           hint={pendingObligations.length > 0
-            ? `Δεν έχεις καμία εργασία, αλλά ο νόμος έχει ${pendingObligations.length} υποχρεώσεις για αυτό το ακίνητο.${nextObligation ? ` Πρώτη: ${nextObligation.description}, ${fmtDate(nextObligation.due_date)}.` : ''}`
+            ? `${nextObligation ? `Πρώτη η ${nextObligation.description}, ${fmtDate(nextObligation.due_date)}. ` : ''}Μπαίνουν στη λίστα με ημερομηνία και επίσημη πηγή, χωρίς να γραφτεί τίποτα από μόνο του.`
             : 'Ξεκίνα με ένα έτοιμο πρότυπο ή πρόσθεσε τη δική σου εκκρεμότητα.'}
           action={
+            /* ΜΙΑ ΚΥΡΙΑ ΕΝΕΡΓΕΙΑ, ΚΑΙ ΦΑΙΝΕΤΑΙ ΠΟΙΑ. Τα τρία κουμπιά είχαν
+               σχεδόν ίδιο βάρος, ενώ η απάντηση στην οθόνη είναι προφανώς μία:
+               φέρε τις υποχρεώσεις που ήδη μετρήθηκαν. Τα «Πρότυπα» δεν είναι
+               τρίτος ισότιμος δρόμος αλλά συντόμευση, οπότε φεύγει από τη σειρά
+               των κουμπιών όσο υπάρχει κάτι πιο συγκεκριμένο να προταθεί. */
             <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
-              {pendingObligations.length > 0 && <Btn variant="primary" onClick={loadObligations}>Φέρε τις υποχρεώσεις</Btn>}
-              <Btn variant="secondary" onClick={() => setShowTemplates(true)}>Πρότυπα</Btn>
-              <Btn variant={pendingObligations.length > 0 ? 'secondary' : 'primary'} onClick={() => { setEditItem(null); setShowAddModal(true) }}>Νέα εκκρεμότητα</Btn>
+              {pendingObligations.length > 0
+                ? <>
+                    <Btn variant="primary" onClick={loadObligations}>Φέρε τις υποχρεώσεις</Btn>
+                    <Btn variant="secondary" onClick={() => { setEditItem(null); setShowAddModal(true) }}>Νέα εκκρεμότητα</Btn>
+                  </>
+                : <>
+                    <Btn variant="primary" onClick={() => { setEditItem(null); setShowAddModal(true) }}>Νέα εκκρεμότητα</Btn>
+                    <Btn variant="secondary" onClick={() => setShowTemplates(true)}>Πρότυπα</Btn>
+                  </>}
             </div>
           }
         />
@@ -868,7 +901,17 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
           από τρεις άλλες που έλεγαν εν μέρει τα ίδια. Εδώ είναι το φυσικό της
           σημείο: αυτή η καρτέλα ΕΙΝΑΙ η λίστα εκκρεμοτήτων και δίπλα της ζουν
           ήδη οι προτάσεις προτύπων. Ό,τι προτείνεται, προστίθεται εδώ. */}
-      {!embedded && <SmartSuggestions userId={userId} propertyId={propertyId} />}
+      {/* ΟΧΙ ΠΑΝΩ ΣΕ ΑΔΕΙΑ ΛΙΣΤΑ. Με άδεια λίστα η οθόνη έδειχνε δύο δρόμους
+          για το ίδιο πράγμα, τον έναν κάτω από τον άλλο: το «Φέρε τις
+          υποχρεώσεις» της κενής κατάστασης, που ξέρει ονόματα και ημερομηνίες
+          από επίσημη πηγή· δίπλα του το «Δες τι έρχεται» της Νόας, που θα
+          έψαχνε τα ίδια δεδομένα χωρίς να υπόσχεται τίποτα. Ο δεύτερος δρόμος εμφανιζόταν
+          και στοιχισμένος δεξιά, τρίτη στοίχιση σε οθόνη με τίτλο αριστερά και
+          κενή κατάσταση στο κέντρο.
+
+          Η Νόα μένει εκεί που προσθέτει: όταν υπάρχει ήδη λίστα, όπου η
+          πρότασή της είναι ΕΠΙΠΛΕΟΝ και όχι υποκατάστατο. */}
+      {!embedded && items.length > 0 && <SmartSuggestions userId={userId} propertyId={propertyId} />}
 
       {/* Γραμμή μαζικών ενεργειών — εμφανίζεται μόλις επιλεγεί ≥1 εργασία.
           Ηταν γραμμένη εδώ και ξανά στο Χαρτοφυλάκιο, με πέντε διαφορές που δεν
