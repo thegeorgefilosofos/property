@@ -45,6 +45,13 @@ export function portfolio(n: number): Bench {
   const propOwners: unknown[] = [];
   const rentCfg: unknown[] = [];
   const inventory: unknown[] = [];
+  const calendar: unknown[] = [];
+  const contacts: unknown[] = [];
+  const loans: unknown[] = [];
+  const billsSettings: unknown[] = [];
+  const documents: unknown[] = [];
+  const repairs: unknown[] = [];
+  const handovers: unknown[] = [];
 
   for (let i = 0; i < n; i++) {
     const id = `p${i}`;
@@ -137,6 +144,69 @@ export function portfolio(n: number): Bench {
     }
   }
 
+  // ═══ ΤΕΣΣΕΡΙΣ ΠΙΝΑΚΕΣ ΠΟΥ ΓΥΡΝΟΥΣΑΝ ΠΑΝΤΑ ΑΔΕΙΟΙ ══════════════════════════
+  // Μετρήθηκε με τύλιγμα του `window.__respond`: ο κάθε ένας ζητιόταν από δύο ώς
+  // εφτά οθόνες και ΚΑΜΙΑ κλήση δεν έπαιρνε γραμμή. Το Ημερολόγιο μετριόταν
+  // πάντα άδειο, οι Επαφές πάντα άδειες, η Αποδοση χωρίς δάνειο και όλες οι
+  // ρυθμίσεις των Λογαριασμών ανύπαρκτες.
+
+  // Ημερολόγιο: γεγονότα σε όλες τις κατηγορίες, μοιρασμένα στον χρόνο ώστε να
+  // πέφτουν και στους τρεις κάδους της Ατζέντας, εκπρόθεσμα, εβδομάδα, αργότερα.
+  const CAL = [
+    { t: 'Δήλωση Ε2', c: 'tax', d: 3 }, { t: 'ΕΝΦΙΑ, δόση', c: 'tax', d: 21 },
+    { t: 'Λογαριασμός ΔΕΗ', c: 'bills', d: -4 }, { t: 'Λογαριασμός ΕΥΔΑΠ', c: 'bills', d: 12 },
+    { t: 'Συντήρηση καυστήρα', c: 'maintenance', d: 45 }, { t: 'Απεντόμωση', c: 'maintenance', d: 90 },
+    { t: 'Λήξη μίσθωσης', c: 'contract', d: 58 }, { t: 'Ανανέωση ασφαλιστηρίου', c: 'contract', d: 120 },
+    { t: 'Είσπραξη ενοικίου', c: 'financial', d: 1 }, { t: 'Δόση δανείου', c: 'financial', d: 6 },
+    { t: 'Παράδοση κλειδιών', c: 'tenant', d: 2 }, { t: 'Ελεγχος υγρασίας', c: 'reminder', d: 30 },
+  ];
+  const dayOf = (offset: number): string => {
+    const dt = new Date(Date.UTC(YEAR, 7, 27 + offset));
+    return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`;
+  };
+  CAL.forEach((e, k) => calendar.push({
+    id: `cal${k}`, property_id: 'p0', user_id: 'u1',
+    title: e.t, category: e.c, event_date: dayOf(e.d),
+    amount: k % 3 === 0 ? 120 + k * 35 : null,
+    priority: k % 4 === 0 ? 'high' : 'medium',
+    status: e.d < 0 ? 'pending' : 'pending',
+    recurring: false, notes: null, source: 'manual', event_time: k % 5 === 0 ? '10:00' : null,
+    created_at: dayOf(-30),
+  }));
+
+  // Επαφές: οι ρόλοι που ξέρει η οθόνη, ένας ανά ρόλο συν διπλοί σε δύο.
+  const ROLES = ['plumber', 'electrician', 'accountant', 'lawyer', 'cleaner', 'technician', 'manager', 'other'];
+  ROLES.forEach((r, k) => contacts.push({
+    id: `ct${k}`, property_id: k % 3 === 0 ? null : 'p0', user_id: 'u1',
+    role: r, full_name: `Επαφή ${k + 1}`,
+    phone: `21055500${String(k).padStart(2, '0')}`,
+    email: k % 2 ? `epafi${k}@example.gr` : null,
+    notes: k === 0 ? 'Δουλεύει και Σαββατοκύριακα.' : null,
+    created_at: dayOf(-200),
+  }));
+
+  // Ενα δάνειο στο πρώτο ακίνητο: η Αποδοση δείχνει μόχλευση μόνο όταν υπάρχει.
+  loans.push({
+    id: 'ln0', property_id: 'p0', user_id: 'u1', bank: 'Τράπεζα Πειραιώς',
+    loan_amount: 120_000, down_payment: 40_000, rate_type: 'floating',
+    fixed_rate: null, euribor: 2.6, spread: 1.8, years: 25,
+    start_date: `${YEAR - 4}-03-01`, status: 'active', loan_type: 'mortgage',
+    property_value: 190_000, notes: null, created_at: `${YEAR - 4}-03-01`,
+  });
+
+  // Ρυθμίσεις λογαριασμών: τα κλειδιά που διαβάζουν οι οθόνες των Λογαριασμών
+  // και ο ΕΝΦΙΑ. Τιμές που ΥΠΑΡΧΟΥΝ, ώστε να αποδίδονται οι γεμάτες καταστάσεις.
+  billsSettings.push(
+    { id: 'bs0', property_id: 'p0', user_id: 'u1', section: 'services',
+      data: { enfiaLastAnnual: '428', enfiaLastCount: '12', enfiaSqm: '42', enfiaZone: '1501_2500',
+              enfiaOwnership: '100', hasCleaning: true, cleaningCostPerVisit: '45', cleaningFreq: 'monthly' },
+      updated_at: dayOf(-10) },
+    { id: 'bs1', property_id: 'p0', user_id: 'u1', section: 'electricity',
+      data: { provider: 'ΔΕΗ', lastBillTotal: '96', lastBillDimotika: '18' }, updated_at: dayOf(-10) },
+    { id: 'bs2', property_id: 'p0', user_id: 'u1', section: 'insurance',
+      data: { insCustomEarthquake: true, insCustomFlood: false }, updated_at: dayOf(-10) },
+  );
+
   // ═══ ΕΞΟΠΛΙΣΜΟΣ ΣΤΟ ΠΡΩΤΟ ΑΚΙΝΗΤΟ, ΜΕ ΚΑΙ ΧΩΡΙΣ ΣΤΟΙΧΕΙΑ ══════════════════
   // Ο πίνακας `inventory_items` δεν σπερνόταν καθόλου, οπότε η καρτέλα «Επιπλα
   // και εξοπλισμός» δεν είχε μετρηθεί ΠΟΤΕ σε καμία συσκευή.
@@ -179,6 +249,42 @@ export function portfolio(n: number): Bench {
     });
   });
 
+  // Το στιγμιότυπο του πρωτοκόλλου βγαίνει από τα ΙΔΙΑ αντικείμενα, ώστε τα δύο
+  // να μη διαφωνούν όπως θα διαφωνούσαν δύο χειρόγραφοι κατάλογοι.
+  const INV_SNAPSHOT = INV.slice(0, 6).map((it, k) => ({
+    item_id: `inv${k}`, name: it.name, condition_at_handover: k === 2 ? 'Μέτρια' : 'Καλή',
+  }));
+
+  // Αρχείο ακινήτου: έγγραφα σε διαφορετικές κατηγορίες και μεγέθη, ώστε να
+  // αποδοθούν οι γραμμές με ποσό, με προμηθευτή και χωρίς τίποτα από τα δύο.
+  const DOCS = [
+    { k: 'contract', t: 'Μισθωτήριο 2026', a: null, sup: null },
+    { k: 'invoice', t: 'Τιμολόγιο υδραυλικού', a: 180, sup: 'Υδραυλικές Εργασίες ΑΕ' },
+    { k: 'bill', t: 'Λογαριασμός ΔΕΗ Ιουλίου', a: 96.4, sup: 'ΔΕΗ' },
+    { k: 'tax', t: 'Εκκαθαριστικό ΕΝΦΙΑ', a: 428, sup: null },
+    { k: 'insurance', t: 'Ασφαλιστήριο κατοικίας', a: 240, sup: 'Ασφάλειες Ελλάς' },
+    { k: 'other', t: 'Πιστοποιητικό ενεργειακής απόδοσης', a: null, sup: null },
+  ];
+  DOCS.forEach((d, k) => documents.push({
+    id: `doc${k}`, property_id: 'p0', user_id: 'u1',
+    kind: d.k, category: d.k, title: d.t, notes: null,
+    doc_date: dayOf(-20 - k * 15), file_path: `u1/p0/doc${k}.pdf`,
+    file_name: `${d.t}.pdf`, mime: 'application/pdf', size_bytes: 180_000 + k * 42_000,
+    created_at: dayOf(-20 - k * 15), supplier: d.sup, amount: d.a, provider_afm: d.sup ? '099123456' : null,
+  }));
+
+  // Επισκευές και πρωτόκολλα: οι δύο υποσελίδες του εξοπλισμού που δεν είχαν
+  // αποδοθεί ποτέ με περιεχόμενο.
+  repairs.push(
+    { id: 'rep0', item_id: 'inv8', user_id: 'u1', repair_date: dayOf(-120), cost: 85, technician: 'Τεχνικός Α', description: 'Αντικατάσταση αντλίας', created_at: dayOf(-120) },
+    { id: 'rep1', item_id: 'inv4', user_id: 'u1', repair_date: dayOf(-40), cost: 140, technician: 'Ψυκτικός Β', description: 'Πλήρωση ψυκτικού', created_at: dayOf(-40) },
+  );
+  handovers.push({
+    id: 'ho0', property_id: 'p0', user_id: 'u1', handover_type: 'check_in',
+    tenant_name: 'Μισθωτής 1', tenant_phone: '2105550000', handover_date: dayOf(-300),
+    notes: null, items_snapshot: INV_SNAPSHOT, created_at: dayOf(-300),
+  });
+
   for (let c = 0; c < 40; c++) clients.push({ id: `c${c}`, full_name: `Πελάτης ${c + 1}` });
 
   return {
@@ -199,6 +305,16 @@ export function portfolio(n: number): Bench {
       // πάνω σε κελύφη, όχι πάνω στην εφαρμογή.
       user_properties: propOwners,
       inventory_items: inventory,
+      calendar_events: calendar,
+      contacts,
+      loans,
+      bills_settings: billsSettings,
+      property_documents: documents,
+      inventory_repairs: repairs,
+      inventory_handovers: handovers,
+      report_branding: [{ user_id: 'u1', enabled: true, company_name: 'Διαχείριση Ακινήτων ΑΕ', logo_url: null, accent_color: null, phone: '2105550100', email: 'info@example.gr', updated_at: `${YEAR}-01-01` }],
+      property_settings: [{ id: 'ps0', property_id: 'p0', user_id: 'u1', owner_name: 'Ιδιοκτήτης Δοκιμών', owner_afm: '099123456', electricity_provider: 'ΔΕΗ', water_provider: 'ΕΥΔΑΠ' }],
+      billing_profiles: [{ user_id: 'u1', plan: 'agency', subscription_status: 'active', profile_type: 'professional', legal_form: 'company', full_name: 'Λογαριασμός δοκιμών' }],
       rent_config: rentCfg,
     },
   };

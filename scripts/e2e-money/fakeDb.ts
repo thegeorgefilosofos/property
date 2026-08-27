@@ -93,6 +93,25 @@ export function makeFakeDb(respond: Responder = () => undefined) {
       channel: () => channelDouble(),
       removeChannel: () => {},
       functions: { invoke: async () => ({ data: null, error: null }) },
+      // ═══ Ο ΑΠΟΘΗΚΕΥΤΙΚΟΣ ΧΩΡΟΣ ΕΛΕΙΠΕ, ΚΑΙ ΕΡΙΧΝΕ ΟΛΟΚΛΗΡΗ ΤΗΝ ΟΘΟΝΗ ══════
+      // Μόλις ο πάγκος απέκτησε έγγραφα, ο Φάκελος Ακινήτου έσκασε με «Cannot
+      // read properties of undefined (reading 'from')»: ζητά υπογεγραμμένους
+      // συνδέσμους από το `supabase.storage`, που ο διπλός δεν είχε καθόλου. Το
+      // κείμενο της σκηνής έπεσε από 1.922 σε 439 χαρακτήρες, δηλαδή έμεινε
+      // μόνο η κεφαλίδα, και καμία μέτρηση δεν θα το είχε καταλάβει ως σφάλμα.
+      //
+      // Ο διπλός δεν ανεβάζει και δεν κατεβάζει τίποτα: επιστρέφει διαδρομές
+      // αντί για συνδέσμους, ώστε η οθόνη να ακολουθήσει τον κανονικό της δρόμο.
+      storage: {
+        from: () => ({
+          createSignedUrls: async (paths: string[]) =>
+            ({ data: paths.map(path => ({ path, signedUrl: `blob:${path}`, error: null })), error: null }),
+          createSignedUrl: async (path: string) => ({ data: { signedUrl: `blob:${path}` }, error: null }),
+          getPublicUrl: (path: string) => ({ data: { publicUrl: `blob:${path}` } }),
+          upload: async (path: string) => ({ data: { path }, error: null }),
+          remove: async () => ({ data: [], error: null }),
+        }),
+      },
     },
     calls,
   };
