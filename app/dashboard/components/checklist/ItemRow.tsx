@@ -7,6 +7,7 @@
 // γραμμή που πρέπει να διαβάζεται με μια ματιά.
 // ═══════════════════════════════════════════════════════════════════════════
 import { useState, useEffect, useRef } from 'react'
+import { useCoarsePointer } from '@/components/useCoarsePointer'
 import { T, fe } from '@/components/Theme'
 import { isTaxTaskRef } from '@/lib/checklist/obligationTasks'
 import { WHO_LABEL } from '@/lib/accounting/dossier'
@@ -26,6 +27,19 @@ export function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCal
   onSelect?: () => void; selected?: boolean; selectMode?: boolean
 }) {
   const [hov, setHov] = useState(false)
+  // ═══ ΤΟ ΜΕΝΟΥ ΤΗΣ ΣΕΙΡΑΣ ΗΤΑΝ ΑΟΡΑΤΟ ΣΕ ΚΑΘΕ ΚΙΝΗΤΟ ══════════════════════
+  // Η διαφάνεια του «···» ήταν δεμένη ΜΟΝΟ στο `hov`, δηλαδή σε δείκτη που
+  // αιωρείται. Σε οθόνη αφής δεν υπάρχει αιώρηση: το `hov` έμενε false για
+  // πάντα, άρα το κουμπί έμενε στο opacity 0. Μαζί του έμεναν απρόσιτες ΟΛΕΣ οι
+  // ενέργειες της εργασίας, γιατί ζουν όλες πίσω από αυτό το μενού.
+  //
+  // ΜΕΤΡΗΜΕΝΟ ΣΕ ΠΡΑΓΜΑΤΙΚΟ CHROMIUM ΜΕ hasTouch, ΣΤΑ 390: δύο κουμπιά
+  // «Ενέργειες» με opacity ακριβώς 0. Δεν φαινόταν σε καμία σάρωση, γιατί ο
+  // πάγκος έσπερνε τις εκκρεμότητες με λάθος ονόματα στηλών και η οθόνη
+  // μετριόταν πάντα άδεια.
+  //
+  // Το ίδιο ιδίωμα με το Αρχείο και τις Επαφές: σε δάχτυλο, πάντα ορατό.
+  const coarse = useCoarsePointer()
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const menuBtnRef = useRef<HTMLButtonElement>(null)
@@ -86,8 +100,11 @@ export function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCal
           {selected && <svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="var(--accent-text)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
         </button>
       ) : (
-        // Στρογγυλό toggle ολοκλήρωσης (Gmail/Linear pattern)
-        <button type="button" onClick={() => { if (!blocked) onToggle() }} aria-label={done ? 'Αναίρεση ολοκλήρωσης' : 'Ολοκλήρωση'}
+        // Στρογγυλό toggle ολοκλήρωσης (Gmail/Linear pattern).
+        // Το πλαίσιο των 20 είναι ΣΧΗΜΑ, όχι κουμπί με λεκτικό: το δάπεδο των 44
+        // θα το τέντωνε σε 20 επί 44 και θα χάλαγε τον κύκλο. Η κλάση po-box
+        // δίνει αόρατη ζώνη 44 επί 44 γύρω του, χωρίς να κουνηθεί η διάταξη.
+        <button type="button" className="po-box" onClick={() => { if (!blocked) onToggle() }} aria-label={done ? 'Αναίρεση ολοκλήρωσης' : 'Ολοκλήρωση'}
           style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, border: '2px solid ' + cbColor, background: cbBg, cursor: blocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s', animation: pop ? 'taskCheckPop 0.44s cubic-bezier(.34,1.56,.64,1)' : undefined }}
           onMouseEnter={e => { if (!done && !blocked) { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'var(--accent-soft)' } }}
           onMouseLeave={e => { if (!done && !blocked) { e.currentTarget.style.borderColor = overdue ? 'var(--negative)' : 'var(--border-default)'; e.currentTarget.style.background = 'transparent' } }}>
@@ -141,7 +158,7 @@ export function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCal
       {/* Μία διακριτική ενέργεια «···» — όλες οι λειτουργίες μαζεμένες, καθαρή σειρά. */}
       {!selecting && (
         <button ref={menuBtnRef} type="button" className="po-box" onClick={openMenu} title="Ενέργειες" aria-label="Ενέργειες"
-          style={{ width: 30, height: 30, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1px solid ' + (showMenu ? 'var(--border-default)' : 'transparent'), background: showMenu ? 'var(--bg-elevated)' : 'transparent', color: 'var(--text-secondary)', opacity: hov || showMenu ? 1 : 0, transition: 'opacity 0.15s, background 0.15s' }}
+          style={{ width: 30, height: 30, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1px solid ' + (showMenu ? 'var(--border-default)' : 'transparent'), background: showMenu ? 'var(--bg-elevated)' : 'transparent', color: 'var(--text-secondary)', opacity: hov || coarse || showMenu ? 1 : 0, transition: 'opacity 0.15s, background 0.15s' }}
           onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)' }}
           onMouseLeave={e => { if (!showMenu) e.currentTarget.style.background = 'transparent' }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>

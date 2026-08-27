@@ -135,11 +135,33 @@ export function portfolio(n: number): Bench {
       });
     }
 
-    // Εκκρεμότητες: μία στα τρία ακίνητα έχει ανοιχτή.
+    // ═══ ΟΙ ΕΚΚΡΕΜΟΤΗΤΕΣ ΓΥΡΝΟΥΣΑΝ ΠΑΝΤΑ ΑΔΕΙΕΣ, ΜΕ ΤΟ ΙΔΙΟ ΛΑΘΟΣ ΤΟΥ
+    // `properties` ΠΡΟΣ `user_properties` ══════════════════════════════════
+    // Οι γραμμές γράφονταν με `title` και `done`. Ο πίνακας δεν έχει τέτοιες
+    // στήλες: έχει `description`, `status`, `category` και `priority` (βλ.
+    // checklist/calc.ts, parseItem). Καμία γραμμή δεν διαβαζόταν ποτέ, οπότε η
+    // σκηνή «checklist» μετρούσε επί μήνες την ΚΕΝΗ κατάσταση και κάθε έλεγχος
+    // πάνω της περνούσε κενός: το ItemRow, το μενού της σειράς, οι υποεργασίες
+    // και τα φίλτρα δεν αποδόθηκαν ποτέ σε μέτρηση.
+    //
+    // ΤΡΕΙΣ ΚΑΤΑΣΤΑΣΕΙΣ ΕΠΙΤΗΔΕΣ, ΟΧΙ ΤΡΕΙΣ ΙΔΙΕΣ ΓΡΑΜΜΕΣ: μία εκπρόθεσμη ΚΑΙ
+    // κρίσιμη (η περίπτωση που διπλομετριόταν στο «χρειάζονται προσοχή»), μία
+    // ανοιχτή κανονική με μελλοντική προθεσμία και μία ολοκληρωμένη.
     if (i % 3 === 0) {
       checklist.push({
-        id: `${id}-k`, property_id: id, title: `Εργασία ${i}`, done: false,
-        due_date: `${YEAR}-${String((i % 12) + 1).padStart(2, '0')}-20`, priority: 'normal',
+        id: `${id}-k1`, property_id: id, user_id: 'u1', category: 'maintenance',
+        description: `Ετήσιος έλεγχος λέβητα ${i}`, status: 'pending', priority: 'critical',
+        due_date: `${YEAR - 1}-11-20`, note: null, completed: false, sort_order: 1,
+      });
+      checklist.push({
+        id: `${id}-k2`, property_id: id, user_id: 'u1', category: 'legal',
+        description: `Ανανέωση ασφαλιστηρίου ${i}`, status: 'in_progress', priority: 'normal',
+        due_date: `${YEAR + 1}-03-10`, note: null, completed: false, sort_order: 2,
+      });
+      checklist.push({
+        id: `${id}-k3`, property_id: id, user_id: 'u1', category: 'cleaning',
+        description: `Καθαρισμός μετά την αποχώρηση ${i}`, status: 'done', priority: 'low',
+        due_date: `${YEAR}-02-01`, note: null, completed: true, sort_order: 3,
       });
     }
   }

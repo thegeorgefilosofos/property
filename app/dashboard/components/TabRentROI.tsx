@@ -1065,7 +1065,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
       + finBlock
       + sensBlock
       + beBlock
-      + reportSection(`Σύγκριση με εναλλακτικές επενδύσεις (${cmpYears} έτη, πραγματικές αποδόσεις)`)
+      + reportSection(`Σύγκριση με εναλλακτικές επενδύσεις (${cmpYears} έτη, ονομαστικές αποδόσεις)`)
         + `<table><tbody>${compare.map(c => R(c.label, `${rEur(c.futureValue)} · ${rPct(c.annualReturnPct)} ετησίως`)).join('')}</tbody></table>`
       + reportSection('Παραδοχές και μεθοδολογία')
         + `<ul style="margin:4px 0 0;padding-left:18px;font-size:12px;color:${INK_MUTED};line-height:1.7">${asmpItems}</ul>`
@@ -1176,7 +1176,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           text: `Ελάχιστη πληρότητα ώστε η βραχυχρόνια να αποδώσει όσο η μακροχρόνια στην ίδια περιοχή: ${breakEvenText(pPct)}. Εκτιμώμενη πληρότητα εργαλείου: ${pPct(occEff)} · τιμή/νύχτα ${pEur(adrEff)}.` });
       }
 
-      sections.push({ type: 'rows', title: `Σύγκριση με εναλλακτικές επενδύσεις (${cmpYears} έτη, πραγματικές αποδόσεις)`,
+      sections.push({ type: 'rows', title: `Σύγκριση με εναλλακτικές επενδύσεις (${cmpYears} έτη, ονομαστικές αποδόσεις)`,
         rows: compare.map(c => ({ label: c.label, value: `${pEur(c.futureValue)} · ${pPct(c.annualReturnPct)} ετησίως` })) });
       sections.push({ type: 'note', title: 'Παραδοχές και μεθοδολογία', text: asmpItems.map(t => `· ${t}`).join('\n') });
       sections.push({ type: 'note', text: `Πηγές: ${MARKET_SOURCES.map(s => s.label).join(' · ')}` });
@@ -1243,7 +1243,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           ο κωδικός `roi` λεγόταν «Απόδοση» στο μενού και «Αποδόσεις» εδώ. */}
       <PageTitle
         title={navLabel('roi')}
-        sub={`${regimeLabel} · πραγματική απόδοση του ακινήτου και σύγκριση με την αγορά.`}
+        sub={`${regimeLabel} · η απόδοση του ακινήτου σου και σύγκριση με την αγορά.`}
         right={empty ? undefined : (<>
           <button onClick={printReport} className="acc-toggle" style={{ height: T.h.md, padding: '0 14px', borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 13, fontFamily: SANS, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
             <ArrowUpRight size={14} /> Για μένα
@@ -1460,7 +1460,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         </Section>
 
         {/* 3) Σύγκριση με εναλλακτικές */}
-        <Section icon={<Layers size={15} />} title="Σύγκριση με εναλλακτικές επενδύσεις" sub={`Ίδιο ποσό (${fe(nVal)}) με τις πραγματικές τους αποδόσεις`} info={G.total_return}>
+        <Section icon={<Layers size={15} />} title="Σύγκριση με εναλλακτικές επενδύσεις" sub={`Ίδιο ποσό (${fe(nVal)}) με τις ονομαστικές τους αποδόσεις`} info={G.total_return}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 12 }}>
             {/* Η ΟΜΑΔΑ ΤΥΛΙΓΕΤΑΙ ΚΙ ΑΥΤΗ, ΟΧΙ ΜΟΝΟ Ο ΓΟΝΕΑΣ ΤΗΣ. Ετικέτα 148,
                 πεδίο 120 και σήμα ΤτΕ 76 δένονταν σε ένα αδιαίρετο κομμάτι 272:
@@ -1547,9 +1547,9 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
               πρόταση για τη 20ετία γραφόταν και με επιλεγμένη τη 10ετία, δηλαδή
               περιέγραφε γράφημα που ο χρήστης δεν έβλεπε. */}
           <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: SANS, lineHeight: 1.55 }}>
-            Οι εναλλακτικές τρέχουν με τη <strong style={{ color: 'var(--text-secondary)' }}>μέση πραγματική ετήσια απόδοσή τους της τελευταίας {cmpYears}ετίας</strong>, ως συνολική απόδοση σε ευρώ από επίσημες πηγές, με ορίζοντα {BENCHMARKS_ASOF}. Το ακίνητο τρέχει με τη δική σου καθαρή απόδοση συν ανατίμηση. Όλα προ φόρου εισοδήματος.{' '}
+            Οι εναλλακτικές τρέχουν με τη <strong style={{ color: 'var(--text-secondary)' }}>μέση ετήσια ονομαστική απόδοσή τους της τελευταίας {cmpYears}ετίας</strong>, ως συνολική απόδοση σε ευρώ από επίσημες πηγές, με ορίζοντα {BENCHMARKS_ASOF}. Το ακίνητο τρέχει με τη δική σου καθαρή απόδοση συν ανατίμηση. Όλα προ φόρου εισοδήματος.{' '}
             <InfoHint label="Τι δεν δείχνει η σύγκριση">
-              <span style={{ display: 'block' }}>Τα νούμερα των εναλλακτικών είναι πραγματικές αποδόσεις, όχι εξομαλυμένες υποθέσεις.{cmpYears === '20' ? ' Η 20ετία περιλαμβάνει την κρίση: το Χρηματιστήριο Αθηνών και το ομόλογο είναι σχεδόν μηδενικά.' : ''}</span>
+              <span style={{ display: 'block' }}>Τα νούμερα είναι μετρημένα, όχι εξομαλυμένες υποθέσεις. Ονομαστικά και τα δύο σκέλη, χωρίς αφαίρεση πληθωρισμού: γι' αυτό ο πληθωρισμός στέκει ως δική του γραμμή αναφοράς παραπάνω.{cmpYears === '20' ? ' Η 20ετία περιλαμβάνει την κρίση: το Χρηματιστήριο Αθηνών και το ομόλογο είναι σχεδόν μηδενικά.' : ''}</span>
               <span style={{ display: 'block', marginTop: 8 }}>Οι εναλλακτικές είναι <strong>παθητικές και ρευστές</strong>, ενώ το ακίνητο απαιτεί χρόνο, συγκεντρώνει τον κίνδυνο σε ένα περιουσιακό στοιχείο και κοστίζει για να μπεις και να βγεις: μια πλήρης διαδρομή αγοράς και πώλησης είναι τυπικά 4 έως 10% της αξίας, δηλαδή φόρος μεταβίβασης 3% και συμβολαιογραφικά στην αγορά, μεσιτική αμοιβή και νομικός έλεγχος στην πώληση.</span>
               <span style={{ display: 'block', marginTop: 8 }}>Στην ενότητα «Επενδυτική ανάλυση» παρακάτω μπαίνει μόνο το σκέλος του <strong>πωλητή</strong> και το βλέπεις και το αλλάζεις.</span>
             </InfoHint>

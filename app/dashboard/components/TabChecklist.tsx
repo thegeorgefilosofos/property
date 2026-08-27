@@ -49,7 +49,7 @@ import {
   type ProfileType, type SmartSuggestion,
 } from './checklist/model'
 import {
-  fmtDate, isOverdue,
+  fmtDate, isOverdue, checklistStats,
   nextDueDate, nextOccurrence, parseItem, serializeNote, mkEmpty, carryOver,
 } from './checklist/calc'
 import { FilterSelect, ExportMenu, iStyle } from './checklist/Bits'
@@ -568,16 +568,8 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     setSelected(new Set()); fetchAll(); notify(`${count} εργασίες διαγράφηκαν`)
   }
 
-  const stats = useMemo(() => {
-    const total = items.length; const done = items.filter(i => i.status === 'done').length
-    const overdue = items.filter(i => isOverdue(i.due_date, i.status)).length
-    const inProgress = items.filter(i => i.status === 'in_progress').length
-    const critical = items.filter(i => i.priority === 'critical' && i.status !== 'done').length
-    const totalEstimated = items.reduce((s, i) => s + (i.estimated_cost || 0), 0)
-    const totalActual = items.reduce((s, i) => s + (i.actual_cost || 0), 0)
-    const pct = total > 0 ? Math.round((done / total) * 100) : 0
-    return { total, done, overdue, inProgress, critical, totalEstimated, totalActual, pct }
-  }, [items])
+  // Οι αριθμοί βγαίνουν από το checklist/calc.ts, όπου τους πιάνουν δοκιμές.
+  const stats = useMemo(() => checklistStats(items), [items])
 
   useEffect(() => {
     if (stats.pct === 100 && prevPct.current < 100 && stats.total > 0) { setShowCelebration(true); setTimeout(() => setShowCelebration(false), 4000) }
@@ -601,7 +593,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
   // ΜΟΝΟ για ένα πραγματικά επείγον σήμα — τα εκπρόθεσμα, όταν υπάρχουν.
   // 3 έξυπνα, συνδυασμένα KPI αντί για 5 — clean & minimal: εκκρεμείς · προσοχή · ολοκλήρωση.
   const openCount = stats.total - stats.done
-  const attention = stats.overdue + stats.critical
+  const attention = stats.attention
   // ΤΑ ΤΡΙΑ ΠΛΑΚΙΔΙΑ ΕΦΥΓΑΝ. Έλεγαν τους ΙΔΙΟΥΣ τρεις αριθμούς με τον υπότιτλο
   // της σελίδας, με τη γραμμή προόδου και με τα chips των κατηγοριών: το «6»
   // τυπωνόταν πέντε φορές («6 εργασίες», «ΕΚΚΡΕΜΕΙΣ 6», «από 6 συνολικά»,
@@ -870,7 +862,17 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: cat.color, flexShrink: 0 }} />
                   <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{cat.label}</span>
                   <div style={{ flex: 1, height: 1, background: 'linear-gradient(to right, var(--border-default), transparent)' }} />
-                  <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{catDone}/{catItems.length} · {fp(catPct)}{catEst > 0 ? ` · ${fe(catEst)}` : ''}</span>
+                  {/* ΔΥΟ ΔΙΟΡΘΩΣΕΙΣ ΣΕ ΜΙΑ ΓΡΑΜΜΗ.
+                      ΤΟ ΛΕΚΤΙΚΟ ΕΣΠΑΓΕ ΣΕ ΠΕΝΤΕ ΣΕΙΡΕΣ. Χωρίς `nowrap` και
+                      χωρίς `flexShrink: 0`, το flex το στρίμωχνε ώσπου να
+                      σπάσει· μετρημένο στα 768 και στα 1440, το «0/1 · 0,00%»
+                      έβγαινε πέντε σειρές ύψος για επτά χαρακτήρες.
+
+                      ΚΑΙ ΤΟ ΠΟΣΟΣΤΟ ΛΕΓΟΤΑΝ ΔΥΟ ΦΟΡΕΣ. Ακριβώς έξι
+                      εικονοστοιχεία πιο κάτω, η μπάρα προόδου ΕΙΝΑΙ το ίδιο
+                      ποσοστό, σχεδιασμένο. Μένει ο αριθμός των εργασιών, που η
+                      μπάρα δεν τον δίνει, μαζί με το κόστος. */}
+                  <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>{catDone}/{catItems.length}{catEst > 0 ? ` · ${fe(catEst)}` : ''}</span>
                 </div>
                 <div style={{ height: 3, borderRadius: 3, background: 'var(--bg-elevated)', marginBottom: 8, overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: catPct + '%', background: 'var(--series-in)', borderRadius: 3, transition: 'width 0.4s' }} />

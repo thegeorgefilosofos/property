@@ -25,6 +25,38 @@ export function isOverdue(due: string | null, status: string) {
   return new Date(due) < new Date()
 }
 export { daysUntilOrNull as daysUntil } from '@/lib/core/time'
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ΟΙ ΑΡΙΘΜΟΙ ΤΗΣ ΛΙΣΤΑΣ, ΣΕ ΕΝΑ ΣΗΜΕΙΟ ΚΑΙ ΔΟΚΙΜΑΣΜΕΝΟΙ
+// ─────────────────────────────────────────────────────────────────────────
+// Ζούσαν μέσα στο component, οπότε καμία δοκιμή δεν τους άγγιζε ποτέ. Εκεί
+// γεννήθηκε και το λάθος που τους έφερε εδώ: η «προσοχή» υπολογιζόταν ως
+// `overdue + critical`, δηλαδή ΑΘΡΟΙΣΜΑ δύο συνόλων που τέμνονται. Μια εργασία
+// εκπρόθεσμη ΚΑΙ κρίσιμη μετριόταν δύο φορές, άρα ο υπότιτλος έγραφε «2
+// χρειάζονται προσοχή» πάνω από ΜΙΑ γραμμή.
+//
+// Η προσοχή είναι ΕΝΩΣΗ: μία εργασία μετριέται μία φορά, όσοι κι αν είναι οι
+// λόγοι που την κάνουν επείγουσα.
+// ═══════════════════════════════════════════════════════════════════════════
+export interface ChecklistStats {
+  total: number; done: number; overdue: number; inProgress: number;
+  critical: number; attention: number;
+  totalEstimated: number; totalActual: number; pct: number;
+}
+
+export function checklistStats(items: ChecklistItem[]): ChecklistStats {
+  const total = items.length
+  const done = items.filter(i => i.status === 'done').length
+  const overdue = items.filter(i => isOverdue(i.due_date, i.status)).length
+  const inProgress = items.filter(i => i.status === 'in_progress').length
+  const critical = items.filter(i => i.priority === 'critical' && i.status !== 'done').length
+  const attention = items.filter(i => i.status !== 'done' && (isOverdue(i.due_date, i.status) || i.priority === 'critical')).length
+  const totalEstimated = items.reduce((s, i) => s + (i.estimated_cost || 0), 0)
+  const totalActual = items.reduce((s, i) => s + (i.actual_cost || 0), 0)
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0
+  return { total, done, overdue, inProgress, critical, attention, totalEstimated, totalActual, pct }
+}
+
 // ΟΙ ΠΡΟΕΠΙΛΟΓΕΣ ΜΕ ΤΟ ΟΝΟΜΑ ΤΟΥΣ, ΟΧΙ ΜΕ ΤΗ ΘΕΣΗ ΤΟΥΣ.
 // Ήταν `PRIORITIES[2]` και `STATUSES[0]`. Τώρα που η σειρά έρχεται από κοινό
 // αρχείο, μια αναδιάταξη εκεί θα άλλαζε σιωπηλά την προεπιλογή εδώ — άγνωστη

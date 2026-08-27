@@ -13,9 +13,10 @@
 // χρήστη γίνονται αόρατα χωρίς κανένα σφάλμα πουθενά.
 // ═══════════════════════════════════════════════════════════════════════════
 import type { ChecklistItemsRow } from '@/lib/supabase/tables'
+import type { ChecklistItem } from './model'
 import {
   parseItem, serializeNote, nextDueDate, nextOccurrence, carryOver, mkEmpty,
-  isOverdue, asPriority, asStatus, asRecurring, getCat, getPri, getStatusMeta,
+  isOverdue, asPriority, asStatus, asRecurring, getCat, getPri, getStatusMeta, checklistStats,
 } from './calc'
 
 let passed = 0, failed = 0
@@ -151,6 +152,40 @@ const row = (o: Partial<ChecklistItemsRow> = {}): ChecklistItemsRow => ({
   ok('η άδεια φόρμα ξεκινά εκκρεμής και κανονική', e.status === 'pending' && e.priority === 'normal')
   ok('…χωρίς επανάληψη και χωρίς κόστος', e.recurring === 'none' && e.estimated_cost === '')
   ok('…με κενές λίστες', e.subtasks.length === 0 && e.comments.length === 0 && e.tags.length === 0)
+}
+
+// ── ΟΙ ΑΡΙΘΜΟΙ ΤΗΣ ΚΕΦΑΛΙΔΑΣ ─────────────────────────────────────────────
+// ΤΟ ΛΑΘΟΣ ΠΟΥ ΓΕΝΝΗΣΕ ΑΥΤΟ ΤΟ ΜΠΛΟΚ: η «προσοχή» ήταν `overdue + critical`,
+// άθροισμα δύο συνόλων που τέμνονται. Μία εργασία και εκπρόθεσμη και κρίσιμη
+// μετριόταν δύο φορές, οπότε ο υπότιτλος έλεγε «2 χρειάζονται προσοχή» πάνω
+// από μία γραμμή. Ο έλεγχος παρακάτω ΑΠΟΤΥΓΧΑΝΕΙ αν ξαναγραφτεί ως άθροισμα.
+{
+  const item = (o: Partial<ChecklistItem>): ChecklistItem => parseItem(row({
+    due_date: o.due_date ?? null,
+    status: (o.status ?? 'pending') as string,
+    priority: (o.priority ?? 'normal') as string,
+  }))
+
+  const both = item({ due_date: '2020-01-01', priority: 'critical' })
+  const s1 = checklistStats([both])
+  ok('εκπρόθεσμη ΚΑΙ κρίσιμη μετριέται ΜΙΑ φορά', s1.attention === 1)
+  ok('…ενώ και τα δύο επιμέρους σύνολα την περιέχουν', s1.overdue === 1 && s1.critical === 1)
+
+  const s2 = checklistStats([
+    item({ due_date: '2020-01-01' }),
+    item({ priority: 'critical' }),
+  ])
+  ok('δύο ξεχωριστοί λόγοι, δύο εργασίες', s2.attention === 2)
+
+  const s3 = checklistStats([item({ due_date: '2020-01-01', priority: 'critical', status: 'done' })])
+  ok('η ολοκληρωμένη δεν χρειάζεται προσοχή', s3.attention === 0)
+
+  ok('η άδεια λίστα δεν χρειάζεται προσοχή', checklistStats([]).attention === 0)
+  ok('…και δεν διαιρεί με το μηδέν', checklistStats([]).pct === 0)
+
+  const s4 = checklistStats([item({ status: 'done' }), item({})])
+  ok('ποσοστό ολοκλήρωσης', s4.pct === 50 && s4.done === 1 && s4.total === 2)
+  ok('η προσοχή δεν ξεπερνά ποτέ τις ανοιχτές', s4.attention <= s4.total - s4.done)
 }
 
 console.log(`checklist/calc.test.ts: ${passed} passed, ${failed} failed`)
