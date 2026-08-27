@@ -67,7 +67,11 @@ export function RepairModal({item,repairs,onAdd,onClose,propertyId,userId}:{item
           <p style={{fontSize:12,color:totalCost>curVal*0.5?'var(--warning)':'var(--text-secondary)',fontWeight:500,fontFamily:T.font.sans}}>{totalCost>curVal*0.5?`Οι επισκευές (${fe(totalCost)}) ξεπερνούν το μισό της τρέχουσας αξίας (${fe(curVal)}). Σκέψου αντικατάσταση.`:`Επισκευές ${fe(totalCost)} σε αξία ${fe(curVal)}.`}</p>
         </div>
       )}
-      <DepBar pct={calcDepreciationPct(item)} left={calcYearsLeft(item)}/>
+      {/* Ιδιος κανόνας με τις κάρτες: χωρίς τιμή ή ημερομηνία αγοράς η μπάρα δεν
+          μιλά για αξία που δεν ξέρει. Εδώ το αντικείμενο είναι ΕΝΑ, οπότε η
+          ετικέτα γράφεται ολόκληρη και δεν χρειάζεται σύντμηση. */}
+      <DepBar pct={calcDepreciationPct(item)} left={calcYearsLeft(item)}
+        hasValue={(item.purchase_value||0)>0} hasData={!!item.purchase_date}/>
       {itemRepairs.length>0&&(
         <div style={{display:'flex',flexDirection:'column',gap:8}}>
           <SectionLabel label="Ιστορικό" right={<span style={{fontSize:12,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)'}}>{fe(totalCost)}</span>}/>

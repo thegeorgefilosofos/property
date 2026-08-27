@@ -517,6 +517,18 @@ const PROBE = () => {
     if (t.length < 90) continue
     const cs2 = getComputedStyle(el)
     if (cs2.display === 'none' || cs2.visibility === 'hidden') continue
+    // ═══ ΤΟ ΚΕΙΜΕΝΟ ΤΟΥ ΑΝΑΓΝΩΣΤΗ ΟΘΟΝΗΣ ΔΕΝ ΕΧΕΙ ΜΗΚΟΣ ΓΡΑΜΜΗΣ ═══════════
+    // Ο ανιχνευτής χτύπησε δικό μου κείμενο: την επεξήγηση ενός κυκλακιού, που
+    // ζει ΔΥΟ φορές, μία στο αναδυόμενο (με maxWidth 280) και μία σε κρυφό
+    // κόμβο `.sr-only` για το `aria-describedby`. Ο κρυφός είναι κουτί 1 × 1 με
+    // `clip-path`, δηλαδή δεν τον βλέπει κανένα μάτι — και το Range επάνω του
+    // δίνει κανονικά κουτιά κειμένου, οπότε έβγαινε «158 χαρακτήρες ανά γραμμή».
+    //
+    // Το μήκος γραμμής είναι κανόνας ΑΝΑΓΝΩΣΙΜΟΤΗΤΑΣ. Σε κόμβο που ακούγεται
+    // αντί να διαβάζεται δεν σημαίνει τίποτα. Χωρίς αυτόν τον έλεγχο, ο σαρωτής
+    // θα ανάγκαζε να κονταίνουν οι επεξηγήσεις για λόγο που δεν υπάρχει.
+    const own = el.getBoundingClientRect()
+    if (el.classList.contains('sr-only') || own.width <= 1 || own.height <= 1) continue
     const r = document.createRange()
     r.selectNodeContents(el)
     const rects = [...r.getClientRects()].filter(x => x.width > 1 && x.height > 1)

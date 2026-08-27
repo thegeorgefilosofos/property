@@ -19,7 +19,7 @@ import { T, TT, Modal, SecHdr, Btn, pressable, fp } from '@/components/Theme'
 // εδώ ώστε τα σημεία που το εισάγουν από τα Bits να μη χρειαστεί να αλλάξουν.
 export { SelectBox } from '@/components/Theme'
 import { CustomSelect } from '../UIComponents'
-import { replacementSuggestion, NOT_TAX_DEPRECIATION_NOTE } from '@/lib/inventory/depreciation'
+import { replacementSuggestion } from '@/lib/inventory/depreciation'
 import { openReport, rEsc } from '../reportPdf'
 import { INK, RULE } from '@/lib/print/ink'
 import type { FieldDecision } from '@/lib/property/fields'
@@ -143,8 +143,12 @@ export const DepBar = ({pct,left,hasData=true,hasValue=true,compact}:{pct:number
   // Το μήκος της μπάρας λέει ήδη πόσο μένει· το χρώμα μπαίνει μόνο όταν η
   // αξία έχει σχεδόν εξαντληθεί, δηλαδή όταν πλησιάζει αντικατάσταση.
   const c = remaining>20?'var(--series-in)':'var(--warning)'
+  // ΤΟ `title` ΕΦΥΓΕ: ΔΕΝ ΑΝΟΙΓΕΙ ΜΕ ΔΑΧΤΥΛΟ. Η νομική επιφύλαξη κρεμόταν εδώ ως
+  // αιωρούμενη υπόδειξη, δηλαδή ήταν αόρατη σε κάθε κινητό και σε κάθε ταμπλέτα.
+  // Λέγεται τώρα μία φορά, στο κυκλάκι πάνω από το πλέγμα, που ανοίγει και με
+  // πάτημα.
   return (
-    <div title={NOT_TAX_DEPRECIATION_NOTE}>
+    <div>
       <div style={{height:3,background:'var(--border-subtle)',borderRadius:3,overflow:'hidden'}}>
         <div style={{height:'100%',width:`${remaining}%`,background:c,borderRadius:3,transition:'width 0.4s'}}/>
       </div>
@@ -267,7 +271,13 @@ export function OverflowMenu({actions,align='right',dark}:{actions:OverflowActio
   },[open,place])
   return (
     <div style={{display:'inline-block'}} onClick={e=>e.stopPropagation()}>
-      <button ref={btnRef} title="Ενέργειες" aria-label="Ενέργειες" onClick={()=>setOpen(v=>!v)}
+      {/* ΤΟ ΔΑΠΕΔΟ ΤΩΝ 44 ΔΙΝΕΙ ΜΟΝΟ ΥΨΟΣ, ΟΧΙ ΠΛΑΤΟΣ. Ο κανόνας του globals.css
+          τεντώνει κάθε κουμπί σε 44 ΥΨΟΣ σε συσκευή αφής· αυτό εδώ έχει καρφωμένο
+          πλάτος 28, οπότε ο στόχος έβγαινε 28 επί 44 και το δάχτυλο αστοχούσε
+          κατά πλάτος. Το `po-box` βγάζει το κουμπί από το δάπεδο και του δίνει
+          αόρατη ζώνη −13 γύρω γύρω, δηλαδή 54 επί 54, χωρίς να πειραχτεί το
+          σχήμα του: το ίδιο ιδίωμα που κρατά τα τετράγωνα σημάδια στα 18. */}
+      <button ref={btnRef} className="po-box" title="Ενέργειες" aria-label="Ενέργειες" onClick={()=>setOpen(v=>!v)}
         style={{width:28,height:28,borderRadius:T.radius.pill,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s',
           border:`1px solid ${dark?'rgba(255,255,255,0.25)':'var(--border-subtle)'}`,
           background:dark?'rgba(0,0,0,0.45)':(open?'var(--bg-hover)':'var(--bg-surface)'),

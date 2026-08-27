@@ -6,7 +6,7 @@ import * as tenantStore from '@/lib/data/tenants'
 import { CustomSelect, TextInput } from './UIComponents'
 import { T, PageTitle, KPIGrid, Btn, EmptyState, Skeleton, SkeletonKPIs, fe, feRate, fn, pressable } from '@/components/Theme'
 import { PackageOpen, SearchX, Archive } from 'lucide-react'
-import { portfolioSummary, replacementSuggestion } from '@/lib/inventory/depreciation'
+import { portfolioSummary, replacementSuggestion, NOT_TAX_DEPRECIATION_NOTE } from '@/lib/inventory/depreciation'
 import type { FieldContext } from '@/lib/property/fields'
 import { readStatus, statusLabel, type StatusRow } from '@/lib/property/status'
 import { notifyError, notifyOk } from '@/components/Toast'
@@ -383,7 +383,7 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
         <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',gap:8,borderBottom:'1px solid var(--border-subtle)',paddingBottom:8}}>
           <span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{filtered.length} {filtered.length===1?'αντικείμενο':'αντικείμενα'}</span>
           {/* ΕΔΩ ΛΕΓΕΤΑΙ ΜΙΑ ΦΟΡΑ Ο,ΤΙ ΛΕΓΟΤΑΝ ΣΕ ΚΑΘΕ ΚΑΡΤΑ. */}
-          <InfoHint label="Τι δείχνουν τα ποσά">Το ποσό κάθε αντικειμένου είναι η εκτιμώμενη τρέχουσα αξία του: η τιμή αγοράς μειωμένη με την ηλικία του, πάνω στην ωφέλιμη ζωή της κατηγορίας. Είναι εκτίμηση για ασφάλιση και αντικατάσταση, όχι φορολογική απόσβεση. Η μπάρα δείχνει πόσο μένει από αυτήν την αξία.</InfoHint>
+          <InfoHint label="Τι δείχνουν τα ποσά">Το ποσό κάθε αντικειμένου είναι η εκτιμώμενη τρέχουσα αξία του: η τιμή αγοράς μειωμένη με την ηλικία του, πάνω στην ωφέλιμη ζωή της κατηγορίας. Η μπάρα δείχνει πόσο μένει από αυτήν την αξία. {NOT_TAX_DEPRECIATION_NOTE}</InfoHint>
         </div>
       )}
       {filtered.length===0?(
