@@ -78,7 +78,7 @@ import { syncTenantSchedule } from './TabTenantHelpers'
 import { notify, notifyOk, notifyError } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
 import { confirmDialog } from '@/components/confirmBus';
-import { MONTHS_GEN, MONTHS_NOM, MONTHS_SHORT, DAY_NAMES_SHORT, mondayFirst } from '@/lib/core/months';
+import { MONTHS_NOM, MONTHS_SHORT, DAY_NAMES_SHORT, mondayFirst } from '@/lib/core/months';
 import { INK, INK_MUTED } from '@/lib/print/ink';
 import { reportHead, reportHeader, reportDisclaimer, openReport, rEsc, rEur } from './reportPdf';
 import { downloadFile } from '@/lib/core/download'
@@ -215,8 +215,18 @@ function fmtShort(date: string) { if (!date) return ''; const [y,m,d]=date.split
 function athensNow(): Date { const t=athensToday(); return new Date(`${t}T00:00:00`) }
 function daysUntil(dateStr: string) { return athensDaysUntil(dateStr) ?? 0 }
 function isOverdue(e: CalEvent)  { return e.status==='pending'&&daysUntil(e.event_date)<0 }
-function isThisWeek(e: CalEvent) { const d=daysUntil(e.event_date); return e.status==='pending'&&d>=0&&d<=7 }
-function isThisMonth(e: CalEvent){ const d=daysUntil(e.event_date); return e.status==='pending'&&d>7&&d<=30 }
+// ═══ ΟΙ ΤΙΤΛΟΙ ΤΩΝ ΚΑΔΩΝ ΗΤΑΝ ΨΕΥΔΕΙΣ, ΟΧΙ ΑΝΑΚΡΙΒΕΙΣ ══════════════════════
+// «Αυτόν τον μήνα» ήταν `d>7 && d<=30`, δηλαδή ΚΥΛΙΟΜΕΝΕΣ ημέρες. Στις 27
+// Αυγούστου, γεγονός της 20ής Σεπτεμβρίου καθόταν στο «Αυτόν τον μήνα» ενώ
+// γεγονός της 30ής Αυγούστου καθόταν στο «Επόμενες 7 μέρες». Οι δύο διπλανοί
+// τίτλοι μετρούσαν το ίδιο πράγμα με δύο μονάδες· ο ένας από τους δύο έλεγε
+// μήνα εκεί που υπήρχαν μόνο ημέρες.
+//
+// Και το «7» ήταν οκτώ: `d>=0 && d<=7` πιάνει τη σημερινή ΚΑΙ επτά ακόμη.
+// Τώρα η μία ενότητα είναι ακριβώς επτά ημερολογιακές ημέρες, η άλλη οι επόμενες
+// είκοσι τρεις, το άθροισμά τους τριάντα· η «Αργότερα» παίρνει ό,τι περισσεύει.
+function isThisWeek(e: CalEvent) { const d=daysUntil(e.event_date); return e.status==='pending'&&d>=0&&d<=6 }
+function isThisMonth(e: CalEvent){ const d=daysUntil(e.event_date); return e.status==='pending'&&d>6&&d<=29 }
 function isExpiring(e: CalEvent) { const d=daysUntil(e.event_date); return e.category==='contract'&&e.status==='pending'&&d>=0&&d<=60 }
 function todayStr() { return athensToday() }
 function addDaysStr(date:string, days:number) { const [y,m,d]=date.split('-').map(Number); const dt=new Date(Date.UTC(y,m-1,d+days)); return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth()+1).padStart(2,'0')}-${String(dt.getUTCDate()).padStart(2,'0')}` }
@@ -591,7 +601,7 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
                 έβγαλε το «0 πληρωμένα» δίπλα του — η μέτρηση έχει νόημα όταν
                 υπάρχει κάτι να μετρηθεί. */}
             {events.length>0&&<span style={{ fontSize:12, fontFamily: T.font.sans, color:'var(--text-secondary)', letterSpacing:'0.4px' }}>{events.length===1?'1 γεγονός':`${events.length} γεγονότα`}</span>}
-            {monthPendingAmt>0&&<span title={`Άθροισμα των εκκρεμών ποσών ${MONTHS_GEN[month]} ${year}, μόνο αυτού του μήνα`} style={{ fontSize:12, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', color:'var(--accent)' }}>{fe(monthPendingAmt)} εκκρεμή</span>}
+            {monthPendingAmt>0&&<span title="Άθροισμα των εκκρεμών ποσών, μόνο αυτού του μήνα" style={{ fontSize:12, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', color:'var(--accent)' }}>{fe(monthPendingAmt)} εκκρεμή</span>}
             {/* ΤΟ «0 ΠΛΗΡΩΜΕΝΑ» ΔΙΠΛΑ ΣΤΟ «0 ΓΕΓΟΝΟΤΑ» ΔΕΝ ΛΕΕΙ ΤΙΠΟΤΑ. Σε άδειο
                 μήνα η γραμμή έγραφε δύο μηδενικά στη σειρά — δύο μετρήσεις για το
                 ίδιο κενό. Ο αριθμός των πληρωμένων έχει νόημα μόνο όταν υπάρχει
@@ -766,7 +776,11 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
             γραμμή σύνοψης το έλεγε ήδη και το ίδιο το γεγονός φαινόταν από
             κάτω. */}
         <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:12, padding:12, boxShadow:'var(--shadow-sm)' }}>
-          <p style={{ fontSize:12, fontFamily: T.font.sans, fontWeight:500, color:'var(--accent)', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:10 }}>Επόμενα</p>
+          {/* «ΑΠΟ ΣΗΜΕΡΑ», ΓΙΑΤΙ Η ΡΑΓΑ ΔΕΝ ΑΚΟΛΟΥΘΕΙ ΤΟΝ ΕΠΙΛΟΓΕΑ ΜΗΝΑ. Το πλέγμα
+              δίπλα της αλλάζει μήνα με τα βελάκια· η ράγα μετρά πάντα από
+              σήμερα και δεν κουνιέται. Δύο μονάδες χρόνου κολλητά, με τον
+              επιλογέα να κυβερνά μόνο τη μία: αυτό λέγεται, δεν μαντεύεται. */}
+          <p style={{ fontSize:12, fontFamily: T.font.sans, fontWeight:500, color:'var(--accent)', letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:10 }}>Επόμενα από σήμερα</p>
           {upcomingRows.length===0&&<p style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>Καμία εκκρεμότητα</p>}
           <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
             {upcomingRows.map(row=>{
@@ -1706,7 +1720,7 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
   const thisWeek=filtered.filter(isThisWeek)
   const thisMonth=filtered.filter(isThisMonth)
   const expiring=filtered.filter(isExpiring)
-  const later=filtered.filter(e=>{const d=daysUntil(e.event_date);return e.status==='pending'&&d>30})
+  const later=filtered.filter(e=>{const d=daysUntil(e.event_date);return e.status==='pending'&&d>29})
   const done=filtered.filter(e=>e.status==='paid'||e.status==='cancelled')
   // Το εύρος της προβολής: ο μήνας, με επέκταση των επαναλαμβανόμενων ώστε να
   // φαίνονται σε ΟΛΕΣ τις εμφανίσεις τους.
@@ -2216,7 +2230,8 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
           <MonthView events={monthEvents} currentDate={currentDate} selectedDate={selectedDate} onDayClick={d=>{setSelectedDate(d);setCurrentDate(new Date(d+'T00:00:00'))}} onEventClick={openEdit} upcomingAll={filtered} drag={drag} stays={stays}/>
           {monthEvents.length>0&&(
             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-              <p style={{ fontSize:12, fontFamily: T.font.sans, fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase' }}>Γεγονότα {MONTHS_GEN[currentDate.getMonth()]}</p>
+              {/* Ο μήνας τον λέει ο επιλογέας από πάνω, μαζί με τη χρονιά του. */}
+              <p style={{ fontSize:12, fontFamily: T.font.sans, fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase' }}>Γεγονότα</p>
               {monthEvents.map(e=>(<EventCard key={e.id} event={e} onToggleStatus={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} selected={selectedIds.has(e.id)} onSelect={toggleSelect} bulkMode={bulkMode}/>))}
             </div>
           )}
@@ -2227,8 +2242,8 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
       {!loading&&viewMode==='agenda'&&(
         <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
           {overdue.length>0&&<Section title="Εκπρόθεσμα" color="var(--negative)" events={overdue} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
-          {thisWeek.length>0&&<Section title="Επόμενες 7 μέρες" color="var(--accent)" events={thisWeek} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
-          {thisMonth.length>0&&<Section title="Αυτόν τον μήνα" color="var(--text-secondary)" events={thisMonth} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
+          {thisWeek.length>0&&<Section title="Επόμενες 7 ημέρες" color="var(--accent)" events={thisWeek} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
+          {thisMonth.length>0&&<Section title="Σε 8 ως 30 ημέρες" color="var(--text-secondary)" events={thisMonth} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
           {later.length>0&&<Section title="Αργότερα" color="var(--text-secondary)" events={later} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
           {done.length>0&&<Section title="Ολοκληρωμένα και ακυρωμένα" color="var(--text-tertiary)" events={done} onToggle={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} collapsed desc bulkMode={bulkMode} selectedIds={selectedIds} onSelect={toggleSelect}/>}
           {/* ΔΥΟ ΔΙΑΦΟΡΕΤΙΚΕΣ ΚΕΝΕΣ ΚΑΤΑΣΤΑΣΕΙΣ, ΟΧΙ ΜΙΑ. Το «άλλαξε φίλτρο» σε

@@ -23,7 +23,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { T, TT, Badge, SelectBox } from '@/components/Theme'
-import { ChevronRight, Download, Check as CheckIcon } from 'lucide-react'
+import { ChevronRight, Download } from 'lucide-react'
 import {
   requirementsFor, readiness, groupByWho, traps, defaultBookkeeping,
   statusForAccountant, LEGAL_FORM_LABEL, WHO_LABEL,
@@ -165,16 +165,14 @@ const eyebrow: React.CSSProperties = { fontSize: 11, fontWeight: 700, letterSpac
 const num: React.CSSProperties = { fontVariantNumeric: 'tabular-nums', fontFamily: T.font.sans }
 
 /** Μία γραμμή καταλόγου: τι, γιατί, πού και αν μπλοκάρει. */
-function Row({ r, checked, onToggle, interactive }: { r: Requirement; checked: boolean; onToggle: () => void; interactive: boolean }) {
+// ΧΩΡΙΣ `interactive`: ΔΕΝ ΥΠΑΡΧΕΙ ΠΙΑ ΜΗ ΠΑΤΗΣΙΜΗ ΓΡΑΜΜΗ. Η ιδιότητα υπήρχε
+// για τη μία ομάδα που ετοίμαζε το ίδιο το εργαλείο, όπου το τετραγωνάκι ήταν
+// σφραγίδα και όχι επιλογή. Εκείνη η ομάδα δεν αποδίδεται πλέον ως κάρτα, οπότε
+// οι δύο κλάδοι έγιναν ένας.
+function Row({ r, checked, onToggle }: { r: Requirement; checked: boolean; onToggle: () => void }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '11px 0', borderTop: '1px solid var(--border-subtle)' }}>
-      {interactive
-        ? <SelectBox checked={checked} onChange={onToggle} label={r.title} />
-        : (
-          <span title="Το ετοιμάζει το PROPERWISE" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, marginTop: 1, borderRadius: 6, flexShrink: 0, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-tertiary)' }}>
-            <CheckIcon size={11} />
-          </span>
-        )}
+      <SelectBox checked={checked} onChange={onToggle} label={r.title} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 14, fontWeight: 600, fontFamily: T.font.sans, lineHeight: 1.35, color: checked ? 'var(--text-secondary)' : 'var(--text-primary)' }}>{r.title}</span>
@@ -336,9 +334,22 @@ export default function AccountantDossier({
           <span style={{ ...num, fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600 }}>{ready.done} / {ready.total}</span>
         </div>
 
-        {/* Ποιος κάνει τι, σε τρεις αριθμούς. Η ουσία όλης της οθόνης. */}
+        {/* ═══════════════════════════════════════════════════════════════════
+            ΠΟΙΟΣ ΚΑΝΕΙ ΤΙ, ΣΕ ΔΥΟ ΑΡΙΘΜΟΥΣ. ΗΤΑΝ ΤΡΕΙΣ.
+            ─────────────────────────────────────────────────────────────────
+            Ο τρίτος ήταν το «Το ετοιμάζουμε εμείς», που είναι πάντα πλήρες και
+            δεν ζητά τίποτα από κανέναν. Σε κατάλογο εκκρεμοτήτων, μια στήλη που
+            δείχνει πάντα «2 / 2» δεν είναι πληροφορία: είναι το εργαλείο που
+            διαφημίζεται μέσα στη λίστα υποχρεώσεων του χρήστη.
+
+            Και λεγόταν ΤΡΕΙΣ φορές: ετικέτα, αριθμός και ολόκληρη κάρτα από
+            κάτω με δύο τσεκαρισμένες γραμμές που δεν πατιούνται.
+
+            ΤΟ ΓΕΓΟΝΟΣ ΔΕΝ ΧΑΝΕΤΑΙ, ΓΙΝΕΤΑΙ ΜΙΑ ΓΡΑΜΜΗ. Ο χρήστης χρειάζεται να
+            ξέρει ότι δεν του λείπουν· δεν χρειάζεται να τα μετράει.
+            ═══════════════════════════════════════════════════════════════════ */}
         <div style={{ display: 'flex', gap: 26, margin: '16px 0 0', paddingTop: 14, borderTop: '1px solid var(--border-subtle)', flexWrap: 'wrap' }}>
-          {(['owner', 'app', 'accountant'] as Who[]).map(w => {
+          {(['owner', 'accountant'] as Who[]).map(w => {
             const c = perWho(w)
             if (c.total === 0) return null
             return (
@@ -351,6 +362,12 @@ export default function AccountantDossier({
             )
           })}
         </div>
+
+        {appIds.length > 0 && (
+          <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: T.font.sans, lineHeight: 1.5 }}>
+            {appIds.length === 1 ? 'Ένα ακόμη μπαίνει' : `${appIds.length} ακόμη μπαίνουν`} αυτόματα από τα δεδομένα σου.
+          </p>
+        )}
 
         {/* ΤΙ ΘΑ ΒΡΕΙ ΜΕΣΑ, ΠΡΙΝ ΤΟ ΚΑΤΕΒΑΣΕΙ.
             Η γραμμή αυτή υποσχόταν πέντε αριθμημένους υποφακέλους με αρχεία CSV.
@@ -382,8 +399,7 @@ export default function AccountantDossier({
       </div>
 
       {/* ── Οι ομάδες: πρώτα τα δικά σου ──────────────────────────────────── */}
-      {groups.map(g => {
-        const interactive = g.who !== 'app'
+      {groups.filter(g => g.who !== 'app').map(g => {
         const done = g.items.filter(r => haveAll.includes(r.id)).length
         return (
           <div key={g.who} style={card}>
@@ -391,16 +407,16 @@ export default function AccountantDossier({
               <div style={{ minWidth: 0 }}>
                 <p style={eyebrow}>{g.label}</p>
                 <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '5px 0 0', fontFamily: T.font.sans, lineHeight: 1.5 }}>
-                  {g.who === 'owner' ? 'Τα μόνα που ζητούν ενέργεια από εσένα. Σημείωσε ό,τι έχεις ήδη βρει.'
-                    : g.who === 'app' ? 'Βγαίνουν από τα δεδομένα σου και μπαίνουν μέσα στον φάκελο.'
-                      : 'Τα ετοιμάζει ο λογιστής από όσα του δίνεις. Σημείωσε ό,τι έχει ήδη γίνει.'}
+                  {g.who === 'owner'
+                    ? 'Τα μόνα που ζητούν ενέργεια από εσένα. Σημείωσε ό,τι έχεις ήδη βρει.'
+                    : 'Τα ετοιμάζει ο λογιστής από όσα του δίνεις. Σημείωσε ό,τι έχει ήδη γίνει.'}
                 </p>
               </div>
               <span style={{ ...num, fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600, flexShrink: 0 }}>{done} / {g.items.length}</span>
             </div>
             <div style={{ marginTop: 10 }}>
               {g.items.map(r => (
-                <Row key={r.id} r={r} checked={haveAll.includes(r.id)} interactive={interactive} onToggle={() => toggle(r.id)} />
+                <Row key={r.id} r={r} checked={haveAll.includes(r.id)} onToggle={() => toggle(r.id)} />
               ))}
             </div>
           </div>

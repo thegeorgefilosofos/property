@@ -86,9 +86,8 @@ const REDS = ENFIA_REDUCTIONS.map(r => r.key)
     ok(`enfia extra @${i}`, near(eng!.extra, orc.extra))
     ok(`enfia προσαύξηση @${i}`, near(eng!.supplementary, orc.suppl))
     ok(`enfia ετήσιος @${i}`, near(eng!.annual, orc.annual))
-    // Αναλλοίωτες: ο τελικός ≤ subtotal, μη αρνητικός, δόση = ceil(annual/12).
+    // Αναλλοίωτες: ο τελικός ≤ subtotal και μη αρνητικός.
     ok(`enfia φράγμα @${i}`, eng!.annual >= -1e-9 && eng!.annual <= eng!.subtotal + 1e-6)
-    ok(`enfia δόση @${i}`, eng!.installment === Math.ceil(eng!.annual / 12))
   }
 }
 

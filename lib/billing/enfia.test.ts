@@ -16,7 +16,6 @@ const near = (a: number, b: number, eps = 0.5) => Math.abs(a - b) <= eps
   ok('βασικός = τ.μ.×ΣΒΦ×συντελεστές', near(r.basic, 100 * 3.70 * 1.01 * 1.15))
   ok('χωρίς προσαύξηση (καμία αξία)', r.supplementary === 0)
   ok('χωρίς μείωση όταν άγνωστη αξία', r.reductionPct === 0 && near(r.annual, r.subtotal))
-  ok('12 δόσεις', r.installment === Math.ceil(r.annual / 12))
 }
 
 // ── Αυτόματη μείωση ανά συνολική αξία (άρθρο 7 §2Α) ─────────────────────────

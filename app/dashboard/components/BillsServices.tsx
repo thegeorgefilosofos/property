@@ -34,12 +34,12 @@ function calcENFIA(sqm: number, zone: string, floor: string, age: string, owners
   // η συνολική αξία αφορά ένα μόνο ακίνητο, ο χρήστης βάζει το ίδιο ποσό και στα δύο πεδία.
   const r = estimateENFIA({ sqm, zone, floor, age, ownership, totalValue: totalVal, propertyValue: propVal, reductions });
   if (!r) return null;
-  return { basic: r.basic, extra: r.extra, suppl: r.supplementary, subtotal: r.subtotal, redAmt: r.reductionAmount, maxPct: r.reductionPct, final: r.annual, installment: r.installment };
+  return { basic: r.basic, extra: r.extra, suppl: r.supplementary, subtotal: r.subtotal, redAmt: r.reductionAmount, maxPct: r.reductionPct, final: r.annual };
 }
 
 const DEFAULTS = {
   enfiaAnnual: '', enfiaMonthly: '',
-  enfiaLastAnnual: '', enfiaLastInstalment: '', enfiaLastCount: '12', enfiaSqm: '', enfiaZone: '', enfiaFloor: '',
+  enfiaLastAnnual: '', enfiaLastInstalment: '', enfiaLastCount: '', enfiaSqm: '', enfiaZone: '', enfiaFloor: '',
   enfiaAge: '', enfiaOwnership: '100', enfiaTotalVal: '', enfiaPropVal: '', enfiaReductions: [] as string[],
   enfiaShowCalc: true,
   dimotikaHistory: Array(12).fill('') as string[],
@@ -529,8 +529,13 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
       {totalServices > 0 && (
         <div style={card}>
           {secHdr('Σύνοψη Υπηρεσιών')}
+          {/* Η ΕΤΙΚΕΤΑ ΕΛΕΓΕ «ΕΝΦΙΑ 2026» ΓΙΑ ΠΟΣΟ ΠΟΥ ΜΠΟΡΕΙ ΝΑ ΕΙΝΑΙ ΠΕΡΣΙΝΟ.
+              Το `enfiaM` βγαίνει από την `enfiaInUse`, που δέχεται τρεις πηγές:
+              φετινό εκκαθαριστικό, ΠΕΡΣΙΝΟ ποσό ή εκτίμηση. Μόνο η πρώτη ανήκει
+              στη χρονιά που έγραφε η ετικέτα. Ποια χρονιά αφορά το νούμερο το
+              λέει η οθόνη του ΕΝΦΙΑ, εκεί που φαίνεται και η πηγή του. */}
           {([
-            { label: 'ΕΝΦΙΑ 2026',              amount: enfiaM      },
+            { label: 'ΕΝΦΙΑ',                   amount: enfiaM      },
             { label: 'Δημοτικά Τέλη (μέσος όρος)',    amount: dimotikaAvg },
             { label: 'Καθαρισμός',              amount: cleaningM   },
             { label: 'Κηπουρός',                amount: gardenM     },

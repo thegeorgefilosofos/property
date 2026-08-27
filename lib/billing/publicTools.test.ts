@@ -176,7 +176,6 @@ const enfia = (sqm: number, price: number, floor: string, age: string, own = 100
   ok('Κ. κύριος φόρος 240,38 €', eq(r.basic, 240.38))
   ok('Κ. αυτόματη μείωση 25%', r.reductionPct === 25)
   ok('Κ. ετήσιο 180,28 €', eq(r.annual, 180.28))
-  ok('Κ. δόση 16 €', r.installment === 16)
   ok('Κ. καμία προσαύξηση σε μικρή περιουσία', r.supplementary === 0)
   ok('Κ. κανένας πρόσθετος φόρος', r.extra === 0)
 }
@@ -229,7 +228,6 @@ const enfia = (sqm: number, price: number, floor: string, age: string, own = 100
   ok('Ξ. υπόγειο πληρώνει λιγότερο από ισόγειο',
      enfia(100, 2000, 'basement', '10_20')!.basic < enfia(100, 2000, 'ground', '10_20')!.basic)
   ok('Ξ. το ετήσιο δεν είναι ποτέ αρνητικό', base.annual >= 0)
-  ok('Ξ. η δόση × 12 καλύπτει το ετήσιο', base.installment * 12 >= base.annual)
 }
 
 // Ο. Ζώνες: η αντιστοίχιση €/τ.μ. σε κλιμάκιο, στα όρια.

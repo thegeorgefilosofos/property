@@ -250,7 +250,6 @@ export interface ENFIAResult {
   reductionPct: number
   reductionAmount: number
   annual: number
-  installment: number  // σε 12 μηνιαίες δόσεις (ενδεικτικά)
 }
 
 /** Εκτίμηση ΕΝΦΙΑ. Επιστρέφει null αν λείπουν τα βασικά (τ.μ./ζώνη). */
@@ -287,13 +286,15 @@ export function estimateENFIA(input: ENFIAInput): ENFIAResult | null {
   const manualPct = Math.max(0, ...(input.reductions ?? []).map(r => ENFIA_REDUCTIONS.find(rd => rd.key === r)?.pct || 0))
   const combinedFrac = 1 - (1 - wealthPct / 100) * (1 - manualPct / 100)
   const reductionAmount = subtotal * combinedFrac
-  // Στρογγυλοποιούμε ΜΙΑ φορά και βγάζουμε τη δόση από το ΕΜΦΑΝΙΖΟΜΕΝΟ ετήσιο ποσό,
-  // ώστε δόση = ceil(ετήσιο/12) να είναι πάντα συνεπής με το ετήσιο που δείχνουμε.
+  // ΚΑΜΙΑ ΔΟΣΗ ΔΕΝ ΒΓΑΙΝΕΙ ΑΠΟ ΕΔΩ. Η μηχανή επέστρεφε `installment` ίσο με
+  // ceil(ετήσιο/12), δηλαδή δήλωνε δώδεκα δόσεις ως γεγονός — ενώ η οθόνη του
+  // ΕΝΦΙΑ και ο δημόσιος υπολογιστής αρνούνται και οι δύο ρητά να το πουν,
+  // επειδή το πλήθος ορίζεται ανά έτος από την ΑΑΔΕ. Δεν το τύπωνε κανείς·
+  // επιβίωνε μόνο μέσα σε τεστ. Στρογγυλοποιούμε ΜΙΑ φορά, στο ετήσιο.
   const annual = cents(Math.max(0, subtotal - reductionAmount))
   return {
     basic: cents(basic), extra: cents(extra), supplementary: cents(suppl), subtotal: cents(subtotal),
     reductionPct: Math.round(combinedFrac * 100), reductionAmount: cents(reductionAmount), annual,
-    installment: Math.ceil(annual / 12),
   }
 }
 

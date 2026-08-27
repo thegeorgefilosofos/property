@@ -92,7 +92,17 @@ const AGE_OPTIONS = [
   ...ENFIA_AGE_BANDS.map(b => ({ value: b.key, label: b.label })),
 ];
 
+// ═══ ΤΟ ΠΛΗΘΟΣ ΤΩΝ ΔΟΣΕΩΝ ΔΕΝ ΕΧΕΙ ΠΡΟΕΠΙΛΟΓΗ ══════════════════════════════
+// Η κεφαλίδα αυτού του αρχείου αρνείται ρητά να γράψει το πλήθος των δόσεων ως
+// βεβαιότητα, επειδή είναι νομικό γεγονός που αλλάζει ανά έτος. Το ίδιο αρχείο
+// όμως ξεκινούσε τον επιλογέα στο «12 δόσεις». Οποιος έγραφε ΜΟΝΟ το ποσό μιας
+// δόσης και δεν άγγιζε τον επιλογέα έπαιρνε σιωπηλά ποσό δόσης επί δώδεκα — η
+// ίδια ακριβώς κατηγορία σφάλματος που η κεφαλίδα λέει ότι διόρθωσε.
+//
+// Χωρίς επιλογή, η `enfiaLastYearAnnual` επιστρέφει 0 και η οθόνη ζητά την
+// επιλογή με το όνομά της. Κανένα νούμερο δεν γεννιέται από μαντεψιά.
 const INSTALMENT_OPTIONS = [
+  { value: UNKNOWN, label: 'Δεν γνωρίζω' },
   { value: '12', label: '12 δόσεις' },
   { value: '10', label: '10 δόσεις' },
   { value: '6',  label: '6 δόσεις'  },
@@ -103,7 +113,7 @@ const DEFAULTS = {
   // Φετινό, αν το έχει ήδη στα χέρια του.
   enfiaAnnual: '', enfiaMonthly: '',
   // Περσινό: το ένα από τα δύο αρκεί.
-  enfiaLastAnnual: '', enfiaLastInstalment: '', enfiaLastCount: '12',
+  enfiaLastAnnual: '', enfiaLastInstalment: '', enfiaLastCount: UNKNOWN,
   // Εκτίμηση, μόνο όταν δεν υπάρχει κανένα από τα δύο.
   enfiaSqm: '', enfiaZone: UNKNOWN, enfiaFloor: UNKNOWN, enfiaAge: UNKNOWN,
   enfiaOwnership: '100', enfiaTotalVal: '', enfiaPropVal: '',
@@ -118,9 +128,6 @@ const SOURCE_NOTE = {
   none:     '',
 } as const;
 
-/** Τι γράφει μια συμπτυγμένη ενότητα που δεν κρατά τίποτα. */
-const NOT_SET = 'Δεν έχει καταχωρηθεί';
-
 const SOURCE_LABEL = {
   declared: 'Φετινό εκκαθαριστικό',
   lastYear: 'Περσινό ποσό',
@@ -129,49 +136,75 @@ const SOURCE_LABEL = {
 } as const;
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ΕΝΟΤΗΤΑ ΠΟΥ ΣΥΜΠΤΥΣΣΕΤΑΙ, ΓΡΑΜΜΕΝΗ ΜΙΑ ΦΟΡΑ
+// ΤΡΕΙΣ ΔΡΟΜΟΙ ΓΙΑ ΤΟ ΙΔΙΟ ΠΟΣΟ, ΩΣ ΜΙΑ ΕΠΙΛΟΓΗ
 // ─────────────────────────────────────────────────────────────────────────
-// Η οθόνη είχε ΤΡΕΙΣ ενότητες εισόδου η μία κάτω από την άλλη — «πέρσι»,
-// «φέτος», «εκτίμηση» — και μόνο η τρίτη μάζευε. Οι άλλες δύο έμεναν ανοιχτές
-// για πάντα: τρεις φόρμες συνολικά, με δεδομένα που ο χρήστης έχει ήδη δώσει
-// και δεν ξανακοιτάζει, ανάμεσα στην απάντηση και στο τέλος της σελίδας.
+// ΠΟΥ ΗΜΑΣΤΑΝ. Τέσσερις κάρτες η μία κάτω από την άλλη: η απάντηση και από
+// κάτω τρεις ενότητες που άνοιγαν και έκλειναν, καθεμιά με δικό της «Άνοιγμα»,
+// δικό της «Σύμπτυξη» και δική της περίληψη. Οι τρεις έκαναν ΤΗΝ ΙΔΙΑ δουλειά,
+// απαντούσαν ΤΗΝ ΙΔΙΑ ερώτηση και είχαν δηλωμένη σειρά μεταξύ τους — και όμως
+// στην οθόνη στέκονταν σαν τρία άσχετα θέματα. Για να περάσεις από τον έναν
+// δρόμο στον άλλο χρειαζόσουν δύο πατήματα, ένα για να κλείσεις και ένα για να
+// ανοίξεις· στο ενδιάμεσο έβλεπες δύο φόρμες μαζί.
 //
-// Ο ΚΑΝΟΝΑΣ ΤΩΡΑ ΕΙΝΑΙ ΕΝΑΣ ΚΑΙ ΙΔΙΟΣ ΓΙΑ ΤΙΣ ΤΡΕΙΣ. Οσο δεν υπάρχει καμία
-// απάντηση, ανοιχτή είναι μόνο η ενότητα που τη δίνει με τη λιγότερη προσπάθεια
-// (το «πέρσι»). Μόλις υπάρξει απάντηση, από οποιαδήποτε πηγή και οι τρεις
-// συμπτύσσονται. Πουθενά δύο ανοιχτές φόρμες ταυτόχρονα.
+// ΤΙ ΕΙΝΑΙ ΤΩΡΑ. Η επιλογή είναι μία και φαίνεται ολόκληρη: τρία πλακίδια στη
+// σειρά της προτεραιότητας, καθένα με το ΔΙΚΟ ΤΟΥ νούμερο πάνω του. Ενα
+// πάτημα αλλάζει δρόμο. Ο δρόμος που δίνει το ποσό της κάρτας από πάνω φοράει
+// κουκκίδα, οπότε η ιεραρχία δεν χρειάζεται να εξηγηθεί με πρόταση: φαίνεται.
 //
-// ΚΛΕΙΣΤΗ ΔΕΝ ΣΗΜΑΙΝΕΙ ΑΔΕΙΑ. Μια κεφαλίδα πάνω από το τίποτα διαβάζεται ως
-// σφάλμα φόρτωσης — το ίδιο λάθος που είχε ήδη διορθωθεί στον Φάκελο. Η
-// συμπτυγμένη ενότητα λέει με μία γραμμή ΤΙ ΚΡΑΤΑΕΙ, ώστε το κλείσιμο να μην
-// κρύβει πληροφορία αλλά να τη συνοψίζει.
+// ΚΑΙ ΤΟ ΚΕΡΔΟΣ ΔΕΝ ΕΙΝΑΙ ΑΙΣΘΗΤΙΚΟ. Πριν, ο ιδιοκτήτης δεν μπορούσε να δει
+// ταυτόχρονα τι κρατά ο κάθε δρόμος χωρίς να τους ανοίξει έναν έναν. Τώρα τα
+// τρία νούμερα είναι μπροστά του και συγκρίνονται με μια ματιά — που είναι
+// ακριβώς η ερώτηση που κάνει κανείς εδώ: πόσο πέφτει έξω η εκτίμηση.
 // ═══════════════════════════════════════════════════════════════════════════
-function Foldable({ label, sub, summary, open, onToggle, style, children }: {
-  label: string; sub: string; summary: string; open: boolean;
-  onToggle: () => void; style: React.CSSProperties; children: React.ReactNode;
+type Route = Exclude<keyof typeof SOURCE_LABEL, 'none'>;
+
+/** Η σειρά είναι Η ΣΕΙΡΑ ΠΡΟΤΕΡΑΙΟΤΗΤΑΣ του `enfiaInUse`, όχι διακοσμητική. */
+const ROUTES: Route[] = ['declared', 'lastYear', 'estimate'];
+
+/** Τι ζητά ο κάθε δρόμος. Λέγεται μόλις τον διαλέξεις, όχι τρεις φορές μαζί. */
+const ROUTE_HELP: Record<Route, string> = {
+  declared: 'Μόλις εκδοθεί, υπερισχύει κάθε άλλου ποσού αυτής της οθόνης.',
+  lastYear: 'Το ένα από τα δύο αρκεί. Τις δόσεις τις βλέπει ο καθένας στην τράπεζα.',
+  estimate: 'Ζώνη, εμβαδόν, όροφος και παλαιότητα. Όσα δεν ξέρεις μένουν ουδέτερα, δεν μαντεύονται.',
+};
+
+function RouteTile({ route, value, inUse, active, onSelect }: {
+  route: Route; value: number; inUse: boolean; active: boolean; onSelect: () => void;
 }) {
   return (
-    <div style={style}>
-      <button type="button" onClick={onToggle} aria-expanded={open}
-        style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit' }}>
-        <SecHdr label={label} sub={open ? sub : summary}
-          right={<span style={{ ...TT.caption, color: 'var(--accent)', fontWeight: 600 }}>{open ? 'Σύμπτυξη' : 'Άνοιγμα'}</span>}/>
-      </button>
-      {open && children}
-    </div>
+    <button type="button" onClick={onSelect} aria-pressed={active}
+      style={{
+        minWidth: 0, minHeight: 62, textAlign: 'left',
+        padding: '10px 13px', borderRadius: T.radius.inner, cursor: 'pointer',
+        fontFamily: 'inherit',
+        background: active ? 'var(--accent-soft)' : 'var(--bg-elevated)',
+        border: `1px solid ${active ? 'var(--accent)' : 'var(--border-subtle)'}`,
+        transition: 'background-color .15s, border-color .15s',
+      }}>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        {/* Η κουκκίδα λέει «από εδώ βγαίνει το ποσό πάνω». Για όποιον δεν τη
+            βλέπει, το ίδιο πράγμα γίνεται λέξη μέσα στο κουμπί. */}
+        {inUse && <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />}
+        <span style={{ ...TT.label, fontSize: 11, color: active ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+          {SOURCE_LABEL[route]}
+        </span>
+        {inUse && <span className="sr-only">σε χρήση</span>}
+      </span>
+      <span style={{ ...TT.figure, fontSize: 15, display: 'block', marginTop: 5, color: value > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
+        {value > 0 ? fe(value) : 'Κενό'}
+      </span>
+    </button>
   );
 }
 
 export default function EnfiaPanel({ propertyId, userId }: { propertyId: string; userId: string }) {
   const [s, upd, loading] = useBillsSettings(propertyId, userId, 'services', DEFAULTS);
-  // ΤΡΙΑ «ΔΕΝ ΤΟ ΕΧΕΙ ΑΠΟΦΑΣΙΣΕΙ ΑΚΟΜΗ Ο ΧΡΗΣΤΗΣ», ΟΧΙ ΤΡΙΑ ΨΕΥΔΗ.
+  // ΕΝΑ «ΔΕΝ ΤΟ ΕΧΕΙ ΑΠΟΦΑΣΙΣΕΙ ΑΚΟΜΗ Ο ΧΡΗΣΤΗΣ», ΟΧΙ ΤΡΙΑ.
   // Το `null` σημαίνει «κανείς δεν πάτησε ακόμη», οπότε ισχύει ο κανόνας. Μόλις
   // πατήσει, η επιλογή του υπερισχύει. Παράγεται στην απόδοση και όχι σε effect:
   // η πηγή της απάντησης έρχεται ασύγχρονα από τη βάση και ένα effect θα
   // ζωγράφιζε πρώτα λάθος και μετά σωστά — ορατό τίναγμα σε κάθε φόρτωση.
-  const [openLast, setOpenLast] = useState<boolean | null>(null);
-  const [openThis, setOpenThis] = useState<boolean | null>(null);
-  const [showEstimate, setShowEstimate] = useState<boolean | null>(null);
+  const [route, setRoute] = useState<Route | null>(null);
 
   // ── ΜΙΑ ΜΕΙΩΣΗ ΠΟΥ ΔΙΚΑΙΟΥΤΑΙ ΚΑΙ ΔΕΝ ΤΗ ΞΕΡΕΙ ──────────────────────────
   // Αν το ασφαλιστήριο του ακινήτου καλύπτει σεισμό ή πλημμύρα, ο νόμος δίνει
@@ -210,15 +243,17 @@ export default function EnfiaPanel({ propertyId, userId }: { propertyId: string;
 
   const inUse = enfiaInUse(s.enfiaAnnual, s.enfiaMonthly, est?.annual, lastYear);
 
-  // ΑΝΟΙΧΤΗ ΜΕΝΕΙ ΜΟΝΟ Η ΕΝΟΤΗΤΑ ΠΟΥ ΕΧΕΙ ΝΟΗΜΑ ΝΑ ΕΙΝΑΙ ΑΝΟΙΧΤΗ.
-  // Οσο δεν υπάρχει καμία απάντηση, ανοιχτό είναι το «πέρσι»: ο συντομότερος
-  // δρόμος, τον οποίο δείχνει ήδη η κάρτα από πάνω. Μόλις υπάρξει απάντηση —από
-  // οποιαδήποτε πηγή— και οι τρεις συμπτύσσονται και δηλώνουν σε μία γραμμή τι
-  // κρατούν. Η ρητή επιλογή του χρήστη υπερισχύει πάντα του κανόνα.
-  const lastOpen = openLast ?? (inUse.source === 'none');
-  const thisOpen = openThis ?? false;
-  const estOpen = showEstimate ?? false;
+  // ΑΝΟΙΧΤΟΣ ΕΙΝΑΙ Ο ΔΡΟΜΟΣ ΠΟΥ ΔΙΝΕΙ ΤΗΝ ΑΠΑΝΤΗΣΗ. Όσο δεν υπάρχει καμία
+  // απάντηση, ανοιχτό είναι το «πέρσι»: ο συντομότερος δρόμος, αυτός που
+  // προτείνει ήδη η κάρτα από πάνω. Η ρητή επιλογή του χρήστη υπερισχύει.
+  const activeRoute: Route = route ?? (inUse.source === 'none' ? 'lastYear' : inUse.source);
+  // Το φετινό έχει την ΠΡΩΤΗ προτεραιότητα, οπότε όποτε υπάρχει είναι και το
+  // ποσό σε χρήση. Δεν χρειάζεται δεύτερος υπολογισμός για να γραφτεί στο
+  // πλακίδιό του.
   const declaredAnnual = inUse.source === 'declared' ? inUse.annual : 0;
+  const routeValue: Record<Route, number> = {
+    declared: declaredAnnual, lastYear, estimate: est?.annual ?? 0,
+  };
 
   const toggleReduction = (key: string) => {
     const cur = s.enfiaReductions || [];
@@ -284,126 +319,145 @@ export default function EnfiaPanel({ propertyId, userId }: { propertyId: string;
         )}
       </div>
 
-      {/* ── ΠΕΡΣΙΝΟ: Η ΠΙΟ ΑΚΡΙΒΗΣ ΠΛΗΡΟΦΟΡΙΑ, ΚΑΙ Η ΕΥΚΟΛΟΤΕΡΗ ─────────── */}
-      <Foldable style={card} label="Πόσο πλήρωσες πέρσι"
-        sub="Το ένα από τα δύο αρκεί. Τις δόσεις τις βλέπει ο καθένας στην τράπεζα."
-        summary={lastYear > 0 ? `${fe(lastYear)} τον χρόνο` : NOT_SET}
-        open={lastOpen} onToggle={() => setOpenLast(!lastOpen)}>
-        <div style={g2}>
-          <NumberInput label="Περσινός ΕΝΦΙΑ, σύνολο έτους" value={s.enfiaLastAnnual}
-            onChange={v => upd({ enfiaLastAnnual: v })} suffix="€" step={10}/>
-          <NumberInput label="Ποσό μίας δόσης" value={s.enfiaLastInstalment}
-            onChange={v => upd({ enfiaLastInstalment: v })} suffix="€" step={5}/>
-          <CustomSelect label="Σε πόσες δόσεις" value={s.enfiaLastCount}
-            onChange={v => upd({ enfiaLastCount: v })} options={INSTALMENT_OPTIONS}/>
+      {/* ── ΑΠΟ ΠΟΥ ΒΓΑΙΝΕΙ: ΜΙΑ ΚΑΡΤΑ, ΤΡΙΑ ΠΛΑΚΙΔΙΑ ───────────────────────
+          Η σειρά των πλακιδίων ΕΙΝΑΙ η σειρά προτεραιότητας, οπότε το «ποιο
+          νικά» διαβάζεται από αριστερά προς τα δεξιά χωρίς να γραφτεί. */}
+      <div style={card}>
+        <SecHdr label="Από πού βγαίνει"
+          sub="Τρεις δρόμοι για το ίδιο ποσό. Υπερισχύει ο πρώτος που έχει νούμερο."/>
+        <div className="route-row">
+          {ROUTES.map(r => (
+            <RouteTile key={r} route={r} value={routeValue[r]} inUse={inUse.source === r}
+              active={activeRoute === r} onSelect={() => setRoute(r)}/>
+          ))}
         </div>
-        {lastYear > 0 && !s.enfiaLastAnnual && (
-          <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 12 }}>
-            {s.enfiaLastCount === '1'
-              ? `Εφάπαξ ${fe(lastYear)} τον χρόνο.`
-              : `${s.enfiaLastCount} δόσεις επί ${fe(parseFloat(s.enfiaLastInstalment) || 0)} δίνουν ${fe(lastYear)} τον χρόνο.`}
+        <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border-subtle)', maxWidth: 720 }}>
+          {ROUTE_HELP[activeRoute]}
+          {/* Η ΜΟΝΗ ΠΡΟΤΑΣΗ ΠΟΥ ΧΡΕΙΑΖΕΤΑΙ Η ΙΕΡΑΡΧΙΑ, ΚΑΙ ΜΟΝΟ ΟΤΑΝ ΧΡΕΙΑΖΕΤΑΙ.
+              Δύο γεμάτοι δρόμοι ταυτόχρονα είναι η στιγμή που ο ιδιοκτήτης
+              απορεί ποιο ποσό μετράει. Αν ο δρόμος που κοιτάζει είναι κενός,
+              το λέει ήδη το πλακίδιό του και δεν ξαναλέγεται εδώ. */}
+          {routeValue[activeRoute] > 0 && inUse.source !== activeRoute && (
+            <> Δεν είναι αυτός ο δρόμος σε χρήση· κρατιέται για σύγκριση.</>
+          )}
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+        {activeRoute === 'lastYear' && (<>
+          <div style={g2}>
+            <NumberInput label="Περσινός ΕΝΦΙΑ, σύνολο έτους" value={s.enfiaLastAnnual}
+              onChange={v => upd({ enfiaLastAnnual: v })} suffix="€" step={10}/>
+            <NumberInput label="Ποσό μίας δόσης" value={s.enfiaLastInstalment}
+              onChange={v => upd({ enfiaLastInstalment: v })} suffix="€" step={5}/>
+            <CustomSelect label="Σε πόσες δόσεις" value={s.enfiaLastCount}
+              onChange={v => upd({ enfiaLastCount: v })} options={INSTALMENT_OPTIONS}/>
           </div>
-        )}
-      </Foldable>
-
-      {/* ── ΦΕΤΙΝΟ, ΟΤΑΝ ΤΟ ΕΧΕΙ ΗΔΗ ──────────────────────────────────────── */}
-      <Foldable style={card} label="Το φετινό εκκαθαριστικό"
-        sub="Μόλις εκδοθεί, υπερισχύει κάθε άλλου ποσού αυτής της οθόνης."
-        summary={declaredAnnual > 0 ? `${fe(declaredAnnual)} τον χρόνο` : NOT_SET}
-        open={thisOpen} onToggle={() => setOpenThis(!thisOpen)}>
-        <div style={g2}>
-          <NumberInput label="Φετινός ΕΝΦΙΑ, σύνολο έτους" value={s.enfiaAnnual}
-            onChange={v => upd({ enfiaAnnual: v, enfiaMonthly: v ? String(((parseFloat(v) || 0) / 12).toFixed(2)) : '' })}
-            suffix="€" step={10}/>
-        </div>
-      </Foldable>
-
-      {/* ── ΕΚΤΙΜΗΣΗ: ΕΣΧΑΤΗ ΛΥΣΗ, ΚΑΙ ΤΟ ΛΕΕΙ ──────────────────────────── */}
-      <Foldable style={card} label="Εκτίμηση από τα στοιχεία του ακινήτου"
-        sub={inUse.source === 'declared' || inUse.source === 'lastYear'
-          ? 'Χρησιμοποιείται μόνο όταν δεν υπάρχει πραγματικό ποσό. Μένει για σύγκριση.'
-          : 'Ζώνη, εμβαδόν, όροφος και παλαιότητα. Οσα δεν ξέρεις μένουν ουδέτερα, δεν μαντεύονται.'}
-        summary={est ? `${fe(est.annual)} τον χρόνο` : 'Χρειάζονται εμβαδόν και τιμή ζώνης'}
-        open={estOpen} onToggle={() => setShowEstimate(!estOpen)}>
-        <div style={g2}>
-          <NumberInput label="Εμβαδόν" value={s.enfiaSqm} onChange={v => upd({ enfiaSqm: v })} suffix="τ.μ."/>
-          <NumberInput label="Ποσοστό ιδιοκτησίας" value={s.enfiaOwnership} onChange={v => upd({ enfiaOwnership: v })} suffix="%" max={100}/>
-        </div>
-        <div style={{ ...g2, marginTop: 14 }}>
-          <CustomSelect label="Τιμή ζώνης" value={s.enfiaZone} onChange={v => upd({ enfiaZone: v })} options={ZONE_OPTIONS}/>
-          <CustomSelect label="Όροφος" value={s.enfiaFloor} onChange={v => upd({ enfiaFloor: v })} options={FLOOR_OPTIONS}/>
-          <CustomSelect label="Παλαιότητα" value={s.enfiaAge} onChange={v => upd({ enfiaAge: v })} options={AGE_OPTIONS}/>
-        </div>
-        <div style={{ ...g2, marginTop: 14 }}>
-          <NumberInput label="Συνολική αξία όλων των ακινήτων" value={s.enfiaTotalVal} onChange={v => upd({ enfiaTotalVal: v })} suffix="€"
-            labelInfo="Από αυτήν εξαρτάται η αυτόματη μείωση και η προσαύξηση πάνω από τις 500.000 €."/>
-          <NumberInput label="Αντικειμενική αξία αυτού του ακινήτου" value={s.enfiaPropVal} onChange={v => upd({ enfiaPropVal: v })} suffix="€"
-            labelInfo="Πρόσθετος φόρος επιβάλλεται όταν η αξία του ενός ακινήτου ξεπερνά τις 400.000 €."/>
-        </div>
-
-        {insured && !(s.enfiaReductions || []).includes('insurance') && (
-          <div style={{ marginTop: 18, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-            <span style={{ ...TT.bodySm, color: 'var(--text-secondary)', flex: 1, minWidth: 240 }}>
-              Το ασφαλιστήριό σου καλύπτει φυσικές καταστροφές, άρα δικαιούσαι μείωση ΕΝΦΙΑ. Δεν εφαρμόζεται μόνη της.
-            </span>
-            <button type="button" onClick={() => toggleReduction('insurance')}
-              style={{ height: T.h.sm, padding: '0 16px', borderRadius: T.radius.pill, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 12, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer' }}>
-              Εφαρμογή
-            </button>
-          </div>
-        )}
-
-        <div style={{ ...TT.label, color: 'var(--text-secondary)', margin: '20px 0 8px' }}>Μειώσεις</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {ENFIA_REDUCTIONS.map(r => {
-            const active = (s.enfiaReductions || []).includes(r.key);
-            return (
-              <button key={r.key} type="button" onClick={() => toggleReduction(r.key)} aria-pressed={active}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', width: '100%',
-                  textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
-                  background: active ? 'var(--accent-soft)' : 'var(--bg-elevated)',
-                  border: `1px solid ${active ? 'var(--accent)' : 'var(--border-subtle)'}`,
-                  borderRadius: T.radius.inner,
-                  transition: 'background-color .15s, border-color .15s',
-                }}>
-                <span aria-hidden style={{ width: 16, height: 16, borderRadius: 5, flexShrink: 0, border: `2px solid ${active ? 'var(--accent)' : 'var(--border-default)'}`, background: active ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {active && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
-                </span>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ ...TT.bodySm, color: 'var(--text-primary)', fontWeight: active ? 600 : 400, display: 'block' }}>{r.label}</span>
-                  <span style={{ ...TT.caption, display: 'block', marginTop: 2 }}>{r.note}</span>
-                </span>
-                <span style={{ ...TT.figure, fontSize: 12, color: 'var(--text-secondary)', flexShrink: 0 }}>{fp(r.pct)}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {est ? (
-          <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
-            {[
-              { label: 'Κύριος φόρος κτισμάτων', val: est.basic },
-              ...(est.extra > 0 ? [{ label: 'Πρόσθετος φόρος, αξία πάνω από 400.000 €', val: est.extra }] : []),
-              ...(est.supplementary > 0 ? [{ label: 'Προσαύξηση, συνολική αξία πάνω από 500.000 €', val: est.supplementary }] : []),
-              ...(est.reductionAmount > 0 ? [{ label: `Μειώσεις ${fp(est.reductionPct)}`, val: -est.reductionAmount }] : []),
-            ].map(row => (
-              <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '8px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-                <span style={{ ...TT.bodySm, color: 'var(--text-secondary)' }}>{row.label}</span>
-                <span style={{ ...TT.figure, fontSize: 12 }}>{fe(row.val)}</span>
-              </div>
-            ))}
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, paddingTop: 12 }}>
-              <span style={{ ...TT.bodySm, fontWeight: 700, color: 'var(--text-primary)' }}>Εκτίμηση ΕΝΦΙΑ</span>
-              <span style={{ ...TT.kpi, fontSize: 20 }}>{fe(est.annual)}</span>
+          {lastYear > 0 && !s.enfiaLastAnnual && (
+            <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 12 }}>
+              {s.enfiaLastCount === '1'
+                ? `Εφάπαξ ${fe(lastYear)} τον χρόνο.`
+                : `${s.enfiaLastCount} δόσεις επί ${fe(parseFloat(s.enfiaLastInstalment) || 0)} δίνουν ${fe(lastYear)} τον χρόνο.`}
             </div>
+          )}
+          {/* Η ΕΛΛΕΙΨΗ ΛΕΓΕΤΑΙ, ΔΕΝ ΚΑΛΥΠΤΕΤΑΙ ΜΕ ΥΠΟΘΕΣΗ. Ποσό δόσης χωρίς
+              πλήθος δόσεων δεν είναι ετήσιο ποσό. */}
+          {!s.enfiaLastAnnual && parseFloat(s.enfiaLastInstalment) > 0 && !s.enfiaLastCount && (
+            <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 12 }}>
+              Διάλεξε σε πόσες δόσεις πληρώθηκε, για να βγει το ετήσιο ποσό.
+            </div>
+          )}
+        </>)}
+
+        {activeRoute === 'declared' && (<>
+          <div style={g2}>
+            <NumberInput label="Φετινός ΕΝΦΙΑ, σύνολο έτους" value={s.enfiaAnnual}
+              onChange={v => upd({ enfiaAnnual: v, enfiaMonthly: v ? String(((parseFloat(v) || 0) / 12).toFixed(2)) : '' })}
+              suffix="€" step={10}/>
           </div>
-        ) : (
-          <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
-            Χρειάζονται εμβαδόν και τιμή ζώνης. Το εμβαδόν το βρίσκεις στο Ε9 σου, την τιμή ζώνης στον χάρτη αντικειμενικών αξιών.
+        </>)}
+
+        {activeRoute === 'estimate' && (<>
+          <div style={g2}>
+            <NumberInput label="Εμβαδόν" value={s.enfiaSqm} onChange={v => upd({ enfiaSqm: v })} suffix="τ.μ."/>
+            <NumberInput label="Ποσοστό ιδιοκτησίας" value={s.enfiaOwnership} onChange={v => upd({ enfiaOwnership: v })} suffix="%" max={100}/>
           </div>
-        )}
-      </Foldable>
+          <div style={{ ...g2, marginTop: 14 }}>
+            <CustomSelect label="Τιμή ζώνης" value={s.enfiaZone} onChange={v => upd({ enfiaZone: v })} options={ZONE_OPTIONS}/>
+            <CustomSelect label="Όροφος" value={s.enfiaFloor} onChange={v => upd({ enfiaFloor: v })} options={FLOOR_OPTIONS}/>
+            <CustomSelect label="Παλαιότητα" value={s.enfiaAge} onChange={v => upd({ enfiaAge: v })} options={AGE_OPTIONS}/>
+          </div>
+          <div style={{ ...g2, marginTop: 14 }}>
+            <NumberInput label="Συνολική αξία όλων των ακινήτων" value={s.enfiaTotalVal} onChange={v => upd({ enfiaTotalVal: v })} suffix="€"
+              labelInfo="Από αυτήν εξαρτάται η αυτόματη μείωση και η προσαύξηση πάνω από τις 500.000 €."/>
+            <NumberInput label="Αντικειμενική αξία αυτού του ακινήτου" value={s.enfiaPropVal} onChange={v => upd({ enfiaPropVal: v })} suffix="€"
+              labelInfo="Πρόσθετος φόρος επιβάλλεται όταν η αξία του ενός ακινήτου ξεπερνά τις 400.000 €."/>
+          </div>
+
+          {insured && !(s.enfiaReductions || []).includes('insurance') && (
+            <div style={{ marginTop: 18, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+              <span style={{ ...TT.bodySm, color: 'var(--text-secondary)', flex: 1, minWidth: 240 }}>
+                Το ασφαλιστήριό σου καλύπτει φυσικές καταστροφές, άρα δικαιούσαι μείωση ΕΝΦΙΑ. Δεν εφαρμόζεται μόνη της.
+              </span>
+              <button type="button" onClick={() => toggleReduction('insurance')}
+                style={{ height: T.h.sm, padding: '0 16px', borderRadius: T.radius.pill, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 12, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer' }}>
+                Εφαρμογή
+              </button>
+            </div>
+          )}
+
+          <div style={{ ...TT.label, color: 'var(--text-secondary)', margin: '20px 0 8px' }}>Μειώσεις</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {ENFIA_REDUCTIONS.map(r => {
+              const active = (s.enfiaReductions || []).includes(r.key);
+              return (
+                <button key={r.key} type="button" onClick={() => toggleReduction(r.key)} aria-pressed={active}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', width: '100%',
+                    textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
+                    background: active ? 'var(--accent-soft)' : 'var(--bg-elevated)',
+                    border: `1px solid ${active ? 'var(--accent)' : 'var(--border-subtle)'}`,
+                    borderRadius: T.radius.inner,
+                    transition: 'background-color .15s, border-color .15s',
+                  }}>
+                  <span aria-hidden style={{ width: 16, height: 16, borderRadius: 5, flexShrink: 0, border: `2px solid ${active ? 'var(--accent)' : 'var(--border-default)'}`, background: active ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {active && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                  </span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ ...TT.bodySm, color: 'var(--text-primary)', fontWeight: active ? 600 : 400, display: 'block' }}>{r.label}</span>
+                    <span style={{ ...TT.caption, display: 'block', marginTop: 2 }}>{r.note}</span>
+                  </span>
+                  <span style={{ ...TT.figure, fontSize: 12, color: 'var(--text-secondary)', flexShrink: 0 }}>{fp(r.pct)}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {est ? (
+            <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
+              {[
+                { label: 'Κύριος φόρος κτισμάτων', val: est.basic },
+                ...(est.extra > 0 ? [{ label: 'Πρόσθετος φόρος, αξία πάνω από 400.000 €', val: est.extra }] : []),
+                ...(est.supplementary > 0 ? [{ label: 'Προσαύξηση, συνολική αξία πάνω από 500.000 €', val: est.supplementary }] : []),
+                ...(est.reductionAmount > 0 ? [{ label: `Μειώσεις ${fp(est.reductionPct)}`, val: -est.reductionAmount }] : []),
+              ].map(row => (
+                <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '8px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+                  <span style={{ ...TT.bodySm, color: 'var(--text-secondary)' }}>{row.label}</span>
+                  <span style={{ ...TT.figure, fontSize: 12 }}>{fe(row.val)}</span>
+                </div>
+              ))}
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, paddingTop: 12 }}>
+                <span style={{ ...TT.bodySm, fontWeight: 700, color: 'var(--text-primary)' }}>Εκτίμηση ΕΝΦΙΑ</span>
+                <span style={{ ...TT.kpi, fontSize: 20 }}>{fe(est.annual)}</span>
+              </div>
+            </div>
+          ) : (
+            <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
+              Χρειάζονται εμβαδόν και τιμή ζώνης. Το εμβαδόν το βρίσκεις στο Ε9 σου, την τιμή ζώνης στον χάρτη αντικειμενικών αξιών.
+            </div>
+          )}
+        </>)}
+        </div>
+      </div>
     </div>
   );
 }

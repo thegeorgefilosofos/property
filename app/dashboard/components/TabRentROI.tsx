@@ -561,6 +561,13 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   const [value, setValue] = useState('');
   const [rent, setRent] = useState('');
   const [opex, setOpex] = useState('');
+  // ΠΟΙΑ ΧΡΟΝΙΑ ΕΙΝΑΙ ΤΟ ΠΡΟΣΥΜΠΛΗΡΩΜΕΝΟ ΠΟΣΟ, ΚΑΙ ΑΝ ΕΧΕΙ ΚΛΕΙΣΕΙ.
+  // Το πεδίο λέει «Ετήσια έξοδα» και γεμίζει με το άθροισμα των εξόδων της
+  // ΤΡΕΧΟΥΣΑΣ χρονιάς — δηλαδή, τον Αύγουστο, με οκτώ μήνες. Ο αριθμός μπαίνει
+  // αυτούσιος σε καθαρή απόδοση, βαθμό A ώς F και IRR, χωρίς πουθενά να λέγεται
+  // ότι είναι μερικός. `null` σημαίνει «το έγραψε ο χρήστης», οπότε δεν είναι
+  // δική μας δουλειά να σχολιάσουμε τι περιλαμβάνει.
+  const [opexYear, setOpexYear] = useState<number | null>(null);
   const [region, setRegion] = useState('ath_center');
   // ── ΑΝΑΤΙΜΗΣΗ: ΜΕΤΡΗΜΕΝΗ, ΟΧΙ ΕΠΙΛΕΓΜΕΝΗ ────────────────────────────────
   // Ήταν σταθερά «3» χωρίς πηγή — και αυτή η σταθερά έκρινε μόνη της το
@@ -666,8 +673,9 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         if (activeLoan) setSavedLoan({ amount: activeLoan.amount, rate: activeLoan.rate, property_value: Number(activeLoan.property_value) || 0, loan_type: activeLoan.loan_type ?? '' });
         setValue(String(propertyValue || p.value || localStorage.getItem(K('value')) || ''));
         setRent(String(c.actual_rent || c.target_rent || p.target_rent || localStorage.getItem(K('rent')) || ''));
-        const expSum = exp.reduce((s, e) => s + (e.amount || 0), 0);
-        setOpex(String(Math.round(expSum) || localStorage.getItem(K('opex')) || ''));
+        const expSum = Math.round(exp.reduce((s, e) => s + (e.amount || 0), 0));
+        setOpex(String(expSum || localStorage.getItem(K('opex')) || ''));
+        setOpexYear(expSum > 0 ? new Date().getFullYear() : null);
         setPSqm(p.sqm && p.sqm > 0 ? p.sqm : null);
         setPType(p.prop_type || null);
         setPName(p.name || '');
@@ -727,6 +735,9 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
   // περίοδος εμφανίζεται δίπλα, ώστε ο χρήστης να βλέπει και τις δύο αναγνώσεις.
   const apprRef = useMemo(() => historyPriceCagr(parseInt(cmpYears)), [cmpYears]);
   const apprLong = useMemo(() => historyPriceCagr(20), []);
+  // Στα «20 έτη» οι δύο μετρήσεις ταυτίζονται (ο δείκτης δεν πάει πιο πίσω από
+  // το 2007), οπότε δεν υπάρχει δεύτερη περίοδος για να αντιπαρατεθεί.
+  const longIsOther = apprLong.fromYear !== apprRef.fromYear;
   const apprShown = apprTouched ? appreciation : String(apprRef.pct);
   const nAppr = apprTouched ? (parseFloat(appreciation) || 0) : apprRef.pct;
   const reg = regionByKey(region);
@@ -1258,10 +1269,19 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         {inputsOpen && (<div style={{ marginTop: 16 }}>
         <div {...g4}>
           <NumberInput label="Αξία ακινήτου" value={value} onChange={setValue} suffix="€" step={5000} />
-          <NumberInput label={term === 'short' ? 'Ενοίκιο μακροχρόνιας' : 'Μηνιαίο ενοίκιο'} value={rent} onChange={setRent} suffix="€" step={50} />
-          <NumberInput label="Ετήσια έξοδα" value={opex} onChange={setOpex} suffix="€" step={100} />
+          {/* Η ΜΟΝΑΔΑ ΧΡΟΝΟΥ ΔΕΝ ΦΕΥΓΕΙ ΑΠΟ ΤΗΝ ΕΤΙΚΕΤΑ ΟΤΑΝ ΑΛΛΑΖΕΙ Ο ΤΡΟΠΟΣ.
+              Σε βραχυχρόνια η ετικέτα γινόταν σκέτο «Ενοίκιο μακροχρόνιας» και
+              καθόταν δίπλα στα «Ετήσια έξοδα»: δύο πεδία, ένα με μονάδα και ένα
+              χωρίς, ενώ το ποσό είναι μηνιαίο και πολλαπλασιάζεται επί δώδεκα. */}
+          <NumberInput label={term === 'short' ? 'Μηνιαίο ενοίκιο μακροχρόνιας' : 'Μηνιαίο ενοίκιο'} value={rent} onChange={setRent} suffix="€" step={50} />
+          <NumberInput label="Ετήσια έξοδα" value={opex} onChange={v => { setOpex(v); setOpexYear(null); }} suffix="€" step={100} />
           <CustomSelect label="Περιοχή" value={region} onChange={setRegion} options={REGIONS.map((r, i) => ({ value: r.key, label: r.label, header: r.region !== REGIONS[i - 1]?.region ? r.region : undefined }))} />
         </div>
+        {opexYear !== null && (
+          <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '10px 0 0', fontFamily: SANS, lineHeight: 1.55 }}>
+            Τα «Ετήσια έξοδα» προσυμπληρώθηκαν με όσα έξοδα του {opexYear} έχεις καταχωρήσει. Η χρονιά δεν έχει κλείσει, οπότε το ετήσιο ποσό μπορεί να είναι μεγαλύτερο.
+          </p>
+        )}
         {showEstValue && (
           <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: 13, fontFamily: SANS, color: 'var(--text-secondary)' }}>
             <span>Ενδεικτική εκτίμηση αξίας για την περιοχή{pSqm ? ` (${pSqm} τ.μ.)` : ''}: <strong style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{fe(estValue)}</strong></span>
@@ -1369,8 +1389,17 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
             <Seg value={histYears} onChange={setHistYears} options={[['10', '10 έτη'], ['20', '20 έτη']]} />
           </div>
           <AreaChart points={hist} />
+          {/* ═══ ΛΕΖΑΝΤΑ ΜΟΝΟ ΓΙΑ ΣΗΜΑΔΙΑ ΠΟΥ ΥΠΑΡΧΟΥΝ ═══════════════════════
+              Ηταν σταθερή τριάδα «Σήμερα · Κορυφή 2008 · Πυθμένας 2017». Στην
+              προβολή δεκαετίας η καμπύλη ξεκινά το 2016, οπότε το `marks` του
+              γραφήματος δεν βρίσκει το 2008 και δεν ζωγραφίζει κουκκίδα: η
+              λεζάντα εξηγούσε σημάδι που δεν υπήρχε. Οι χρονιές έρχονται τώρα
+              από τα HISTORY_ANCHORS, όχι γραμμένες στο χέρι δίπλα τους. */}
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 4 }}>
-            {[['Σήμερα', 'var(--accent)'], ['Κορυφή 2008', 'var(--text-tertiary)'], ['Πυθμένας 2017', 'var(--text-tertiary)']].map(([l, c]) => (
+            {([['Σήμερα', 'var(--accent)'] as [string, string]]
+              .concat(hist.some(p => p.year === HISTORY_ANCHORS.peakYear) ? [[`Κορυφή ${HISTORY_ANCHORS.peakYear}`, 'var(--text-tertiary)']] : [])
+              .concat(hist.some(p => p.year === HISTORY_ANCHORS.troughYear) ? [[`Πυθμένας ${HISTORY_ANCHORS.troughYear}`, 'var(--text-tertiary)']] : [])
+            ).map(([l, c]) => (
               <span key={l} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: SANS }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: c }} />{l}</span>
             ))}
           </div>
@@ -1379,7 +1408,10 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
             <div><p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.4px', fontFamily: SANS }}>Σήμερα</p><p className="po-fig" data-tone="accent" style={{ fontSize: 15, fontWeight: 700, margin: '2px 0 0', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{fe(histEnd)}</p></div>
             <div><p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.4px', fontFamily: SANS }}>Μεταβολή</p><p className="po-fig" style={{ fontSize: 15, fontWeight: 700, margin: '2px 0 0', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{histStart > 0 ? `${histEnd >= histStart ? '+' : ''}${fp(((histEnd - histStart) / histStart) * 100)}` : ABSENT_SHORT}</p></div>
           </div>
-          <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: SANS, lineHeight: 1.5 }}>{HISTORY_ANCHORS.note} <strong style={{ color: 'var(--text-secondary)' }}>Παρελθούσες αποδόσεις δεν εγγυώνται μελλοντικές.</strong></p>
+          {/* Η μακρά ιστορία λέγεται μόνο όταν φαίνεται. Κάτω από γράφημα που
+              ξεκινά το 2016, μια πρόταση για την κορυφή του 2008 ζητά από τον
+              αναγνώστη να πιστέψει κάτι που δεν μπορεί να δει. */}
+          <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: SANS, lineHeight: 1.5 }}>{hist.some(p => p.year === HISTORY_ANCHORS.peakYear) ? `${HISTORY_ANCHORS.long} ${HISTORY_ANCHORS.recent}` : HISTORY_ANCHORS.recent} <strong style={{ color: 'var(--text-secondary)' }}>Παρελθούσες αποδόσεις δεν εγγυώνται μελλοντικές.</strong></p>
         </Section>
 
         {/* 3) Σύγκριση με εναλλακτικές */}
@@ -1409,11 +1441,24 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
             </div>
             <Seg value={cmpYears} onChange={setCmpYears} options={[['10', '10 έτη'], ['20', '20 έτη']]} />
           </div>
-          {/* ΑΠΟ ΠΟΥ ΒΓΑΙΝΕΙ Η ΠΡΟΕΠΙΛΟΓΗ. Ήταν «3%» χωρίς πηγή, δηλαδή ο αριθμός
-              που αποφάσιζε μόνος του το συμπέρασμα της σύγκρισης. Τώρα είναι
-              μετρημένος, στον ίδιο ορίζοντα με τις εναλλακτικές και λέγεται. */}
+          {/* ═══ ΑΠΟ ΠΟΥ ΒΓΑΙΝΕΙ Η ΠΡΟΕΠΙΛΟΓΗ, ΚΑΙ ΔΥΟ ΨΕΜΑΤΑ ΠΟΥ ΕΦΥΓΑΝ ══════
+              Ηταν «3%» χωρίς πηγή, δηλαδή ο αριθμός που αποφάσιζε μόνος του το
+              συμπέρασμα της σύγκρισης. Μετρήθηκε. Η πρόταση όμως που τον
+              εξηγούσε έλεγε δύο πράγματα που δεν ίσχυαν πάντα:
+
+              1. «ΓΙΑ ΣΥΓΚΡΙΣΗ, Η ΜΑΚΡΑ ΠΕΡΙΟΔΟΣ…» ΗΤΑΝ Η ΙΔΙΑ ΠΕΡΙΟΔΟΣ. Στα
+                 «20 έτη» το `apprRef` και το `apprLong` είναι κυριολεκτικά η
+                 ίδια κλήση `historyPriceCagr(20)`. Ο δείκτης ΤτΕ ξεκινά το
+                 2007, οπότε και τα δύο μετρούν 2007 ώς 2026. Η οθόνη τύπωνε
+                 ίδιο ζεύγος χρονιών και ίδιο ποσοστό δύο φορές και εισήγαγε το
+                 δεύτερο ως αντίλογο του πρώτου.
+
+              2. «Ο ΙΔΙΟΣ ΟΡΙΖΟΝΤΑΣ ΜΕ ΤΙΣ ΕΝΑΛΛΑΚΤΙΚΕΣ» ΔΕΝ ΕΙΝΑΙ Ο ΙΔΙΟΣ.
+                 Ζητώντας 20 έτη ο δείκτης δίνει 19 (2007 ώς 2026), ενώ οι
+                 εναλλακτικές τρέχουν με πραγματική 20ετία. Ο ισχυρισμός
+                 γράφεται πλέον μόνο όταν τα δύο νούμερα συμπίπτουν. */}
           <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '0 0 12px', fontFamily: SANS, lineHeight: 1.55 }}>
-            Προεπιλογή <strong style={{ color: 'var(--text-secondary)' }}>{fp(apprRef.pct)}</strong>: μέση ετήσια μεταβολή του δείκτη τιμών κατοικιών της Τράπεζας της Ελλάδος από το {apprRef.fromYear} ως το {apprRef.toYear}, δηλαδή {apprRef.years} έτη, ο ίδιος ορίζοντας με τις εναλλακτικές παρακάτω. Για σύγκριση, η μακρά περίοδος από το {apprLong.fromYear} ως το {apprLong.toYear} δίνει {fp(apprLong.pct)}, επειδή περιλαμβάνει την κρίση. Καμία από τις δύο δεν είναι πρόβλεψη· αν βάλεις άλλο νούμερο, είναι δική σου υπόθεση και βαραίνει όσο και το υπόλοιπο της σελίδας.
+            Προεπιλογή <strong style={{ color: 'var(--text-secondary)' }}>{fp(apprRef.pct)}</strong>: μέση ετήσια μεταβολή του δείκτη τιμών κατοικιών της Τράπεζας της Ελλάδος από το {apprRef.fromYear} ως το {apprRef.toYear}, δηλαδή {apprRef.years} έτη{apprRef.years === parseInt(cmpYears) ? ', ο ίδιος ορίζοντας με τις εναλλακτικές παρακάτω' : ''}.{longIsOther && <> Για σύγκριση, η μακρά περίοδος από το {apprLong.fromYear} ως το {apprLong.toYear} δίνει {fp(apprLong.pct)}, επειδή περιλαμβάνει την κρίση.</>} {longIsOther ? 'Καμία από τις δύο δεν είναι πρόβλεψη' : 'Δεν είναι πρόβλεψη'}· αν βάλεις άλλο νούμερο, είναι δική σου υπόθεση και βαραίνει όσο και το υπόλοιπο της σελίδας.
           </p>
           {/* Προβολή-γραμμή: ακίνητο vs κορυφαία εναλλακτική στον χρόνο */}
           {projSeries.length === 0 ? (

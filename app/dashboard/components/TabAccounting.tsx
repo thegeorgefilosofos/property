@@ -49,9 +49,9 @@ import { annuityMonthly, interestForYear } from '@/lib/loans/recommend'
 import { isGroupDeductible } from '@/lib/expenses/groups'
 import { rentalRowsForYear, BUSINESS_INCOME_ROWS_2026, BUILDING_DEPRECIATION_RATE, EQUIPMENT_DEPRECIATION_RATE, BUILDING_VALUE_FRACTION, selfEmployedMinNetIncome, rentalBracketsForYear, bracketsLabelForYear } from '@/lib/billing/greekTax'
 import { useReportBranding } from '@/lib/reportBranding'
-import { hasFeature, planAtLeast } from '@/lib/billing/entitlements'
+import { hasFeature, planAtLeast, FEATURE_MIN_PLAN } from '@/lib/billing/entitlements'
 import type { VatDeduction } from '@/lib/tax/myData'
-import type { PlanId } from '@/lib/billing/plans'
+import { PLANS, type PlanId } from '@/lib/billing/plans'
 import { toMovement } from './accountantTypes';
 import { exportAccountantBundle } from './sheets';
 import { buildRegister, chargeForYear, RENTED_PROPERTY_ACCOUNT, EQUIPMENT_ACCOUNT } from '@/lib/accounting/fixedAssets'
@@ -309,6 +309,10 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // ερώτημα — όχι «το πληρώνει;» αλλά «το έχει;»: ισοζύγιο χωρίς διπλογραφικά
   // βιβλία δεν υπάρχει, σε κανένα πλάνο.
   const canJournal = hasFeature({ plan }, 'accounting_journal')
+  // Το όνομα του πακέτου διαβάζεται από το μητρώο, ποτέ γραμμένο στο χέρι:
+  // αλλιώς την ημέρα που το ημερολόγιο άρθρων αλλάξει σκαλί, η οθόνη θα
+  // συνέχιζε να στέλνει τον χρήστη σε λάθος πακέτο.
+  const journalPlanName = PLANS[FEATURE_MIN_PLAN.accounting_journal].name
   // Τα ίδιο ερώτημα για τα τρία εργαλεία χαρτοφυλακίου του μενού: τα δίνει η
   // ΣΥΝΔΡΟΜΗ (όλα «Επαγγελματίας»), όχι ο διακόπτης εμφάνισης. Ίδιος λόγος με
   // το ημερολόγιο άρθρων — και ίδιος χρήστης που τα έχανε.
@@ -1041,10 +1045,18 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             : <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}
           {acctBusy?'Δημιουργία…':acctLink?'Πύλη λογιστή έτοιμη':'Ζωντανή πύλη λογιστή'}
         </button>
-        {canJournal && doubleEntry && (
-        <button onClick={()=>setJournalOpen(true)} title="Πλήρες ημερολόγιο άρθρων και εξαγωγή CSV (SoftOne/Epsilon/QuickBooks/Xero)" style={pillBtn}
+        {/* ΤΟ ΚΛΕΙΔΩΜΕΝΟ ΦΑΙΝΕΤΑΙ ΕΚΕΙ ΠΟΥ ΠΑΤΙΕΤΑΙ. Ίδιος κανόνας με τη διπλανή
+            πύλη λογιστή: το λουκέτο μπαίνει στη θέση του εικονιδίου, το κουμπί
+            πάει στα πακέτα. Μόνο σε όποιον κρατά διπλογραφικά βιβλία, δηλαδή
+            σε όποιον το ημερολόγιο άρθρων του χρησιμεύει. */}
+        {doubleEntry && (
+        <button onClick={()=>{ if(!canJournal){ onNavigate?.('settings'); return } setJournalOpen(true) }}
+          title={canJournal?"Πλήρες ημερολόγιο άρθρων και εξαγωγή CSV (SoftOne/Epsilon/QuickBooks/Xero)":`Το ημερολόγιο άρθρων και το ισοζύγιο διπλογραφικής περιλαμβάνονται από το πακέτο «${journalPlanName}» και πάνω.`} style={pillBtn}
           onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}>
-          <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 10h16M10 4v16"/></svg>Ημερολόγιο άρθρων
+          {canJournal
+            ? <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 10h16M10 4v16"/></svg>
+            : <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}
+          Ημερολόγιο άρθρων
         </button>
         )}
       </div>
@@ -1856,23 +1868,20 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         )}
       </div>
 
-      {/* ΠΡΟΣΚΛΗΣΗ ΜΟΝΟ ΣΕ ΟΠΟΙΟΝ ΔΕΝ ΤΑ ΕΧΕΙ ΗΔΗ. Ήταν δεμένη στο προφίλ, ενώ ό,τι
-          διαφημίζει (ισοζύγιο, ημερολόγιο άρθρων) κρίνεται πλέον από τη
-          ΣΥΝΔΡΟΜΗ: ο συνεργάτης με πακέτο Επαγγελματία και προφίλ Ιδιώτη έβλεπε
-          το ημερολόγιο άρθρων να δουλεύει και από κάτω μια κάρτα να του
-          πουλάει το ημερολόγιο άρθρων. Ο φάκελος, το Excel και η πύλη λογιστή
-          δεν αναφέρονται καθόλου: τα έχει ήδη κάθε συνδρομητής. */}
-      {!canJournal && (
-        <div style={{ ...card, padding:'20px 22px' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
-            <div style={{ flex:1, minWidth:240 }}>
-              <p style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', margin:0, fontFamily: T.font.sans }}>Διαχειρίζεσαι πολλά ακίνητα ή θέλεις πλήρη λογιστική;</p>
-              <p style={{ fontSize:12, color:'var(--text-tertiary)', margin:'3px 0 0', lineHeight:1.55, fontFamily: T.font.sans, maxWidth:520 }}>Το πακέτο Επαγγελματίας προσθέτει καθεστώς Επιχείρησης (ΕΛΠ), ισοζύγιο διπλογραφικής, ημερολόγιο άρθρων, ενοποίηση χαρτοφυλακίου και εκπιπτόμενα έξοδα με ακρίβεια λογιστή.</p>
-            </div>
-            <button onClick={()=>onNavigate?.('settings')} style={{ flexShrink:0, height:T.h.md, padding:'0 17px', borderRadius:10, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily: T.font.sans }}>Δες το Επαγγελματίας</button>
-          </div>
-        </div>
-      )}
+      {/* ═════════════════════════════════════════════════════════════════════
+          Η ΚΑΡΤΑ ΠΟΥ ΠΟΥΛΟΥΣΕ ΤΟ ΠΑΚΕΤΟ ΣΤΟ ΤΕΛΟΣ ΤΗΣ ΛΟΓΙΣΤΙΚΗΣ ΕΦΥΓΕ.
+          ───────────────────────────────────────────────────────────────────
+          Καθόταν κάτω από όλα, σε πλήρες πλάτος, με δικό της τίτλο, παράγραφο
+          και έγχρωμο κουμπί: την τελευταία εικόνα που έπαιρνε ο χρήστης από τη
+          Λογιστική του δεν την έδιναν τα νούμερά του, την έδινε μια διαφήμιση.
+          Και τη διάβαζε ΚΑΘΕ μη συνδρομητής του «Επαγγελματία», ακόμη κι ο
+          ιδιοκτήτης ενός διαμερίσματος που δεν θα κρατήσει ποτέ διπλογραφικά.
+
+          Ό,τι έλεγε λέγεται ήδη σε δύο σημεία που τα ζητά ο χρήστης: η σύγκριση
+          πακέτων στις Ρυθμίσεις έχει τη γραμμή «Λογιστικό ημερολόγιο» με το
+          σκαλί της· το ίδιο το κουμπί «Ημερολόγιο άρθρων» πιο πάνω δείχνει
+          πλέον λουκέτο αντί να κρύβεται. Η πληροφορία μένει· η διαφήμιση φεύγει.
+          ═════════════════════════════════════════════════════════════════════ */}
 
       {showBankImport&&<BankImport propertyId={propertyId} userId={userId} year={year} onClose={()=>setShowBankImport(false)} onDone={()=>setRefreshKey(k=>k+1)} />}
       <ReportBuilder open={reportBuilderOpen} onClose={()=>setReportBuilderOpen(false)} userId={userId} supabase={supabase} branding={branding} />
