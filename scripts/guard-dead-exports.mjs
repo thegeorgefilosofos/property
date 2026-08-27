@@ -38,6 +38,7 @@
 // του confirmBus, που ήταν γραμμένη και δεν την έβρισκε ο εκτελεστής.
 // ═══════════════════════════════════════════════════════════════════════════
 import { readFileSync, globSync } from 'node:fs';
+import { dirname, resolve, relative } from 'node:path';
 
 /** Ονόματα που τα καλεί το πλαίσιο, όχι δικός μας κώδικας. */
 const FRAMEWORK = new Set([
@@ -105,12 +106,53 @@ const BASELINE = JSON.parse(readFileSync('scripts/dead-exports-baseline.json', '
 // χρησιμοποιούν οι σουίτες, όπως το πλαστό έγγραφο των εξαγωγών. Το «καλείται
 // μόνο από τεστ» είναι ο ορισμός του, όχι ελάττωμά του.
 const isTest = f => f.includes('.test.') || f.includes('.testkit.');
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ΔΕΥΤΕΡΟ ΤΥΦΛΟ ΣΗΜΕΙΟ: ΤΑ ΕΡΓΑΛΕΙΑ ΤΟΥ `scripts/` ΕΙΝΑΙ ΚΑΤΑΝΑΛΩΤΕΣ
+// ─────────────────────────────────────────────────────────────────────────
+// Το glob σαρώνει app, lib και components. Ο κατάλογος `scripts/` έμενε έξω,
+// οπότε ΕΞΙ ζωντανές εξαγωγές του lib/market αναφέρονταν ως χρέος: όλη η
+// αλυσίδα που κατεβάζει τον μηνιαίο δείκτη της ΕΛΣΤΑΤ (publicationUrl,
+// announcementLink, parseAnnouncement, pdfText, withIndexRow, RENT_INDEX_LATEST)
+// έχει έναν και μοναδικό καταναλωτή, το scripts/check-elstat-cpi.ts· ο
+// φύλακας δεν τον έβλεπε. Ενας φύλακας που ονομάζει ζωντανό κώδικα νεκρό
+// σπρώχνει προς τη λάθος διαγραφή, που είναι χειρότερο από το να μη μετράει.
+//
+// ΓΙΑΤΙ ΟΝΟΜΑΣΤΙΚΗ ΕΙΣΑΓΩΓΗ ΚΑΙ ΟΧΙ ΑΝΑΖΗΤΗΣΗ ΛΕΞΗΣ. Το `scripts/` είναι γεμάτο
+// φύλακες που ΓΡΑΦΟΥΝ ονόματα εξαγωγών ως δεδομένα, για να τα αστυνομεύσουν:
+// το `KEPT` παραπάνω είναι ακριβώς τέτοια λίστα. Αν μετρούσαμε κάθε εμφάνιση
+// λέξης, ο φύλακας θα αυτοακύρωνε τον εαυτό του, βαφτίζοντας «χρησιμοποιημένο»
+// ό,τι απλώς κατονομάζει. Μετράει λοιπόν ΜΟΝΟ ό,τι εισάγεται ονομαστικά από
+// διαδρομή του lib: εκεί η πρόθεση είναι αδιαμφισβήτητη.
+//
+// Τα ίδια τα εργαλεία ΔΕΝ μετρώνται ως ορισμοί. Είναι σημεία εισόδου· οι
+// εξαγωγές τους δεν έχουν να δώσουν λόγο σε κανέναν.
+// ═══════════════════════════════════════════════════════════════════════════
+const toolImports = new Set();
+for (const f of globSync(['scripts/**/*.{ts,mjs}']).filter(f => !f.includes('node_modules'))) {
+  let t; try { t = readFileSync(f, 'utf8'); } catch { continue; }
+  for (const m of t.matchAll(/import\s*\{([^}]*)\}\s*from\s*['"]([^'"]+)['"]/g)) {
+    const spec = m[2];
+    // Η ΔΙΑΔΡΟΜΗ ΕΠΙΛΥΕΤΑΙ, ΔΕΝ ΤΑΙΡΙΑΖΕΤΑΙ. Το `scripts/` έχει το ΔΙΚΟ του
+    // `lib/` με τα βοηθήματα των φυλάκων· ένα σκέτο ταίριασμα του «lib/» θα
+    // έβαζε στην εξαίρεση και τα δικά του ονόματα, οπότε μια αληθινή εξαγωγή
+    // της εφαρμογής με ίδιο όνομα θα γλίτωνε τον έλεγχο κατά λάθος.
+    const target = spec.startsWith('@/')
+      ? spec.slice(2)
+      : (spec.startsWith('.') ? relative('.', resolve(dirname(f), spec)) : null);
+    if (!target || !target.replace(/\\/g, '/').startsWith('lib/')) continue;
+    for (const part of m[1].split(',')) {
+      const name = part.replace(/^\s*type\s+/, '').split(/\s+as\s+/)[0].trim();
+      if (name) toolImports.add(name);
+    }
+  }
+}
 const testOnly = [];
 for (const [file, s] of src) {
   if (isTest(file)) continue;
   for (const m of s.matchAll(/^export (?:async )?function (\w+)|^export const (\w+)\s*[:=]/gm)) {
     const name = m[1] || m[2];
-    if (FRAMEWORK.has(name) || KEPT.has(name)) continue;
+    if (FRAMEWORK.has(name) || KEPT.has(name) || toolImports.has(name)) continue;
     const re = new RegExp(`\\b${name}\\b`, 'g');
     let inProd = 0, inTest = 0;
     for (const [other, t] of src) {

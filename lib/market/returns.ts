@@ -140,8 +140,14 @@ export function leverage(input: LeverageInput): LeverageResult {
 export interface ProjectionPoint { year: number; index: number; value: number; changePct: number }
 
 /**
- * Εφαρμόζει σειρά ετήσιων μεταβολών (%) σε αρχική αξία, παράγοντας διαδρομή ανά έτος
- * για το timelapse. `changes`: [{year, pct}] σε χρονολογική σειρά.
+ * Εφαρμόζει σειρά ετήσιων μεταβολών (%) σε αρχική αξία, παράγοντας διαδρομή ανά
+ * έτος. `changes`: [{year, pct}] σε χρονολογική σειρά.
+ *
+ * ΔΕΝ ΤΗΝ ΚΑΛΕΙ ΑΚΟΜΗ ΚΑΜΙΑ ΟΘΟΝΗ, ΚΑΙ ΤΟ ΣΧΟΛΙΟ ΤΟ ΛΕΕΙ. Εγραφε «για το
+ * timelapse», που διαβαζόταν ως λειτουργία που υπάρχει· τέτοια οθόνη δεν έχει
+ * χτιστεί. Μένει επειδή είναι αριθμητική, όχι κανόνας του προϊόντος: γινόμενο
+ * μεταβολών και CAGR, κλειδωμένα σε τρεις σουίτες με χρυσές τιμές. Δεν υπόσχεται
+ * τίποτα σε κανέναν χρήστη και δεν μπορεί να πει ψέματα σε καμία οθόνη.
  */
 export function applySeries(startValue: number, changes: { year: number; pct: number }[]): {
   points: ProjectionPoint[]; endValue: number; totalReturnPct: number; cagrPct: number
