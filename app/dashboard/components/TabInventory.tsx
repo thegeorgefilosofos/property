@@ -407,7 +407,7 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
             const repl=replacementSuggestion(item)
             const sel=selected.has(item.id)
             return (
-              <div key={item.id} {...pressable(()=>selectMode?toggleSel(item.id):onEdit(item))} style={{background:'var(--bg-surface)',border:`1px solid ${sel?'var(--accent)':'var(--border-subtle)'}`,boxShadow:sel?'0 0 0 1px var(--accent)':'none',borderRadius:T.radius.card,overflow:'hidden',display:'flex',flexDirection:'column',transition: 'background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s, opacity 0.2s',cursor:'pointer'}}
+              <div key={item.id} {...pressable(()=>selectMode?toggleSel(item.id):onEdit(item))} style={{background:'var(--surface-raised)',border:`1px solid ${sel?'var(--accent)':'var(--border-raised)'}`,boxShadow:sel?'0 0 0 1px var(--accent)':'var(--highlight-inset), var(--elev-1)',borderRadius:T.radius.card,overflow:'hidden',display:'flex',flexDirection:'column',transition: 'background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s, opacity 0.2s',cursor:'pointer'}}
                 onMouseEnter={e=>{if(sel)return;(e.currentTarget as HTMLDivElement).style.boxShadow='var(--shadow-md)';(e.currentTarget as HTMLDivElement).style.borderColor='var(--border-default)'}}
                 onMouseLeave={e=>{if(sel)return;(e.currentTarget as HTMLDivElement).style.boxShadow='none';(e.currentTarget as HTMLDivElement).style.borderColor='var(--border-subtle)'}}
               >
@@ -468,7 +468,7 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
         </div>
       ):(
         <div style={{overflowX:'auto',margin:'0 -4px',WebkitOverflowScrolling:'touch'}}>
-        <div style={{display:'flex',flexDirection:'column',gap:1,background:'var(--bg-surface)',borderRadius:T.radius.card,border:'1px solid var(--border-subtle)',overflow:'hidden',minWidth:560}}>
+        <div style={{display:'flex',flexDirection:'column',gap:1,background:'var(--surface-raised)',borderRadius:T.radius.card,border:'1px solid var(--border-raised)',boxShadow:'var(--highlight-inset), var(--elev-1)',overflow:'hidden',minWidth:560}}>
           <div style={{display:'grid',gridTemplateColumns:`${selectMode?'32px ':''}minmax(0,2fr) 130px 96px 90px 44px`,gap:10,padding:'10px 16px',borderBottom:'2px solid var(--border-subtle)',background:'var(--bg-elevated)'}}>
             {selectMode&&<div/>}
             {['Αντικείμενο','Κατάσταση','Αξία','Ρεύμα/μήνα',''].map(h=><p key={h} style={{fontSize: 11,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',fontWeight:500,fontFamily:T.font.sans}}>{h}</p>)}

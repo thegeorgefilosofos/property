@@ -262,8 +262,12 @@ export default function EnfiaPanel({ propertyId, userId }: { propertyId: string;
 
   if (loading) return <Spinner label="Φόρτωση…" />;
 
+  // Οι δύο κάρτες του ΕΝΦΙΑ φοράνε τη συνταγή της `.card` του globals.css, με
+  // τις ΙΔΙΕΣ μεταβλητές: ήταν οι τελευταίες δύο της εφαρμογής που κάθονταν
+  // επίπεδες σε οθόνη όπου κάθε άλλη κάρτα ανασηκώνεται.
   const card: React.CSSProperties = {
-    background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
+    background: 'var(--surface-raised)', border: '1px solid var(--border-raised)',
+    boxShadow: 'var(--highlight-inset), var(--elev-1)',
     borderRadius: T.radius.card, padding: 20, marginBottom: 16,
   };
   const g2: React.CSSProperties = {

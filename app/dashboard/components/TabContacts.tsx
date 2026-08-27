@@ -950,8 +950,21 @@ function ContactCard({ contact, onOpen, onEdit, onDelete, onQuickExpense, onQuic
   return (
     <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       onClick={bulkMode ? onSelect : undefined}
-      style={{ background: selected ? 'color-mix(in srgb, var(--accent) 6%, var(--bg-surface))' : 'var(--bg-surface)', border: '1.5px solid ' + (selected ? 'var(--accent)' : hov ? 'var(--accent-border)' : overdue ? 'var(--negative-border)' : 'var(--border-subtle)'), borderRadius: T.radius.card, padding: bulkMode ? '18px 18px 16px 46px' : '18px 18px 16px', position: 'relative', boxShadow: selected ? '0 0 0 3px var(--accent-soft)' : hov ? 'var(--elev-2)' : 'none', transition: 'border-color 0.2s, box-shadow 0.2s, background 0.2s', cursor: bulkMode ? 'pointer' : 'default' }}>
-      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: overdue ? 'var(--negative)' : 'var(--border-subtle)', borderRadius: '16px 0 0 16px', opacity: bulkMode ? 0 : 1 }} />
+      /* ═══ Η ΚΑΡΤΑ ΕΠΑΦΗΣ ΑΝΑΠΑΥΕΤΑΙ ΟΠΟΥ ΚΑΙ Η ΚΑΡΤΑ ΠΕΛΑΤΗ ══════════════════
+         ΜΕΤΡΗΜΕΝΟ ΣΤΟΝ ΠΑΓΚΟ, 22 ΟΘΟΝΕΣ: πέντε κάρτες επαφής ήταν οι μόνες της
+         οθόνης χωρίς βάθος, ενώ δίπλα τους οι κάρτες ενότητας ανασηκώνονται.
+         Το `boxShadow` πήγαινε από το ΤΙΠΟΤΑ κατευθείαν στο `elev-2` με το
+         ποντίκι, δηλαδή η κάρτα δεν ανέβαινε ένα σκαλί, εμφανιζόταν.
+
+         Η `.client-card` του globals.css λέει ήδη πώς αναπαύεται μια κάρτα
+         περιεχομένου σε πλέγμα: `surface-raised` με `border-raised` και
+         `highlight-inset, elev-1`. Στο hover παίρνει `highlight-inset-strong` με
+         `elev-2`. Η κάρτα επαφής είναι το ίδιο πράγμα και παίρνει τα ίδια.
+
+         ΚΑΙ ΤΟ ΠΕΡΙΓΡΑΜΜΑ ΓΙΝΕΤΑΙ ΕΝΟΣ ΕΙΚΟΝΟΣΤΟΙΧΕΙΟΥ. Το 1,5 ήταν το μόνο
+         της εφαρμογής: κάθε άλλη κάρτα, εδώ και παντού, γράφει 1. */
+      style={{ background: selected ? 'color-mix(in srgb, var(--accent) 6%, var(--surface-raised))' : 'var(--surface-raised)', border: '1px solid ' + (selected ? 'var(--accent)' : hov ? 'var(--accent-border)' : overdue ? 'var(--negative-border)' : 'var(--border-raised)'), borderRadius: T.radius.card, padding: bulkMode ? '18px 18px 16px 46px' : '18px 18px 16px', position: 'relative', boxShadow: selected ? '0 0 0 3px var(--accent-soft)' : hov ? 'var(--highlight-inset-strong), var(--elev-2)' : 'var(--highlight-inset), var(--elev-1)', transition: 'border-color 0.2s, box-shadow 0.2s, background 0.2s', cursor: bulkMode ? 'pointer' : 'default' }}>
+      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: overdue ? 'var(--negative)' : 'var(--border-subtle)', borderRadius: `${T.radius.card}px 0 0 ${T.radius.card}px`, opacity: bulkMode ? 0 : 1 }} />
       {bulkMode && <div style={{ position: 'absolute', top: 17, left: 15, zIndex: 2 }}><SelectBox checked={!!selected} onChange={() => onSelect?.()} label={`Επιλογή ${contact.full_name}`} /></div>}
       {overdue && <div style={{ position: 'absolute', top: 0, right: 0, background: 'var(--negative)', color: 'var(--text-inverse)', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: '0 16px 0 8px', letterSpacing: '0.07em' }}>ΛΗΞΗ ΡΑΝΤΕΒΟΥ</div>}
       {(hov || showActions || coarse) && !bulkMode && (

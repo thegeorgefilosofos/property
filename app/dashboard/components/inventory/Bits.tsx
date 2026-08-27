@@ -25,12 +25,23 @@ import { INK, RULE } from '@/lib/print/ink'
 import type { FieldDecision } from '@/lib/property/fields'
 import { CONDITIONS, CONDITION_COLOR, ENERGY_TONE, ROOM_PRESETS, type InventoryItem } from './model'
 
-// ── MD3 Design Tokens ──────────────────────────────────────────────────────
+// ── Η ΚΑΡΤΑ ΤΗΣ ΑΠΟΓΡΑΦΗΣ ΕΙΝΑΙ Η ΚΑΡΤΑ ΤΗΣ ΕΦΑΡΜΟΓΗΣ ─────────────────────
+// ΜΙΑ ΚΑΡΤΕΛΑ ΕΙΧΕ ΔΙΚΟ ΤΗΣ ΟΡΙΣΜΟ ΚΑΡΤΑΣ. Η συνταγή εδώ ήταν bg-surface με
+// border-subtle και ΚΑΘΟΛΟΥ βάθος, ενώ η `.card` του globals.css είναι
+// surface-raised με border-raised και `highlight-inset, elev-1`. Δηλαδή άλλο
+// χρώμα και άλλο βάθος από κάθε άλλη οθόνη, με το ίδιο όνομα.
+//
+// ΜΕΤΡΗΜΕΝΟ ΣΤΟΝ ΠΑΓΚΟ, 22 ΟΘΟΝΕΣ: 25 κάρτες ανώτατου επιπέδου έβγαιναν χωρίς
+// βάθος, δίπλα σε ανυψωμένες κάρτες της ίδιας οθόνης· οι 16 ήταν αυτή εδώ.
+//
+// Οι τιμές δεν ξαναγράφονται με το χέρι: είναι ΟΙ ΙΔΙΕΣ μεταβλητές που διαβάζει
+// η `.card`, οπότε κάθε μελλοντική αλλαγή του θέματος τις πιάνει και τις δύο.
 export const cardStyle: React.CSSProperties = {
-  background:'var(--bg-surface)',
-  border:'1px solid var(--border-subtle)',
+  background:'var(--surface-raised)',
+  border:'1px solid var(--border-raised)',
   borderRadius:T.radius.card,
   padding:16,
+  boxShadow:'var(--highlight-inset), var(--elev-1)',
 }
 export const labelStyle: React.CSSProperties = { ...TT.label, display:'block', marginBottom:6 }
 
