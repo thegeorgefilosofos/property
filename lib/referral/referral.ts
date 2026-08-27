@@ -34,9 +34,17 @@
 // ── Ενεργοποίηση ────────────────────────────────────────────────────────────
 import { normalizePhone } from '../core/greek';
 
+// ΤΑ ΔΥΟ ΝΟΥΜΕΡΑ ΥΠΑΡΧΟΥΝ ΓΙΑ ΝΑ ΓΡΑΦΤΟΥΝ ΣΤΗΝ ΟΘΟΝΗ, ΟΧΙ ΓΙΑ ΝΑ ΚΡΙΝΟΥΝ.
+// Ποιος κρίνει: η `mark_referral_activated` στη βάση, που τα έχει γραμμένα
+// κυριολεκτικά. Αν αλλάξει το ένα, αλλάζει και το άλλο στο ίδιο commit.
 export const ACTIVATION_MIN_PROPERTIES = 1;
 export const ACTIVATION_MIN_DOCUMENTS = 1;
-export const REFEREE_TRIAL_MONTHS = 1;   // δώρο καλωσορίσματος στον νέο χρήστη
+
+// ΔΩΡΟ ΠΟΥ ΔΕΝ ΑΠΟΝΕΜΕΤΑΙ ΑΚΟΜΗ. Καμία συνάρτηση της βάσης δεν γράφει
+// ανταμοιβή για τον ΣΥΣΤΗΝΟΜΕΝΟ: και οι πέντε εγγραφές στο `referral_rewards`
+// πάνε στον συστήνοντα. Ο αριθμός μένει ως σχεδιασμός, τα κείμενα όμως δεν τον
+// υπόσχονται πουθενά — ώσπου να γραφτεί η απονομή.
+export const REFEREE_TRIAL_MONTHS = 1;
 
 // ── Κωδικός & σύνδεσμος πρόσκλησης ──────────────────────────────────────────
 function fnv1a(str: string): number {
@@ -72,44 +80,27 @@ export function isReferralCode(code: string | null | undefined): boolean {
 // Η κανονικοποίηση τηλεφώνου γίνεται ΜΙΑ φορά, στο lib/core/greek.ts.
 export { normalizePhone };
 
-const normEmail = (e: string | null | undefined) => (e || '').trim().toLowerCase();
+// ═══ ΟΙ ΚΑΝΟΝΕΣ ANTI-ABUSE ΖΟΥΝ ΣΤΗ ΒΑΣΗ, ΟΧΙ ΕΔΩ ═══════════════════════════
+//
+// Εδώ στέκονταν η `isSelfOrDuplicate` και η `isValidReferral`, με τεστ και με
+// προσεγμένα σχόλια. ΔΕΝ ΤΙΣ ΚΑΛΟΥΣΕ ΚΑΝΕΙΣ: τις βρήκε ο φύλακας νεκρών
+// εξαγωγών, γιατί εμφανίζονταν μόνο στο δικό τους δοκίμιο.
+//
+// Ενας κανόνας anti-abuse σε κώδικα πελάτη δεν είναι κανόνας· είναι πρόταση.
+// Οποιος θέλει να τον παρακάμψει καλεί απευθείας την RPC. Η μόνη θέση όπου
+// επιβάλλεται είναι η `redeem_referral`, που τρέχει `security definer` στη
+// βάση και βλέπει και τα δύο προφίλ.
+//
+// ΜΕΤΑΚΟΜΙΣΑΝ, ΔΕΝ ΧΑΘΗΚΑΝ: το «άλλος από τον εαυτό του» και το «νέος
+// λογαριασμός» τα φύλαγε ήδη η SQL. Το «ίδιο πλήρες τηλέφωνο» προστέθηκε στη
+// μετανάστευση 20260827090000, με το ίδιο κατώφλι των εννιά ψηφίων. Το ίδιο
+// email δεν χρειάζεται έλεγχο, γιατί το `auth.users.email` είναι μοναδικό. Η
+// κοινή συσκευή μένει άλυτη και είναι γραμμένο εκεί γιατί.
 
-/**
- * Τηλέφωνο σε μορφή που ΕΠΙΤΡΕΠΕΤΑΙ να συγκριθεί για διπλότυπο.
- *
- * ΓΙΑΤΙ ΧΩΡΙΣΤΑ ΑΠΟ ΤΗΝ ΚΑΝΟΝΙΚΟΠΟΙΗΣΗ: αυτός είναι κανόνας anti-abuse, όχι
- * ανάγνωσης. Δύο μισοσυμπληρωμένα τηλέφωνα («694», «694») δεν είναι απόδειξη ότι
- * πρόκειται για το ίδιο πρόσωπο — και θα έκοβαν άδικα μια πραγματική παραπομπή.
- * Κάτω από 9 ψηφία, δεν συγκρίνουμε.
- */
-const comparablePhone = (p: string | null | undefined): string => {
-  const n = normalizePhone(p);
-  return n.length >= 9 ? n : '';
-};
-
-export function isSelfOrDuplicate(s: {
-  referrerId: string; refereeId: string;
-  referrerEmail?: string | null; refereeEmail?: string | null;
-  referrerPhone?: string | null; refereePhone?: string | null;
-  sharedDevice?: boolean;
-}): boolean {
-  if (s.referrerId && s.refereeId && s.referrerId === s.refereeId) return true;
-  if (normEmail(s.referrerEmail) && normEmail(s.referrerEmail) === normEmail(s.refereeEmail)) return true;
-  const rp = comparablePhone(s.referrerPhone), ep = comparablePhone(s.refereePhone);
-  if (rp && rp === ep) return true;
-  if (s.sharedDevice === true) return true;
-  return false;
-}
-
-/** Έγκυρη μόνο αν ο φίλος είναι ΑΛΛΟΣ, νέος χρήστης, χωρίς σημάδι διπλότυπου. */
-export function isValidReferral(referrerId: string, refereeId: string, refereeIsNew: boolean): boolean {
-  return !!referrerId && !!refereeId && referrerId !== refereeId && refereeIsNew;
-}
-
-/** Η σύσταση «κλειδώνει» μόνο εδώ: ο νέος πρόσθεσε ακίνητο & σάρωσε έγγραφο. */
-export function isActivated(state: { propertiesAdded: number; documentsScanned: number }): boolean {
-  return state.propertiesAdded >= ACTIVATION_MIN_PROPERTIES && state.documentsScanned >= ACTIVATION_MIN_DOCUMENTS;
-}
+// Εδώ στεκόταν και η `isActivated`, τρίτο αντίγραφο του ίδιου μοτίβου: ο
+// κανόνας «κλειδώνει με ένα ακίνητο συν ένα έγγραφο» τον επιβάλλει η
+// `mark_referral_activated` στη βάση, που είναι και η μόνη που γράφει
+// `activated_at`. Καμία οθόνη δεν καλούσε την TypeScript εκδοχή.
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ΠΡΟΓΡΑΜΜΑ ΙΔΙΩΤΗ — ανά ΠΛΑΝΟ ΣΥΣΤΗΝΟΝΤΑ και ΤΙ ΕΓΙΝΕ ο νέος

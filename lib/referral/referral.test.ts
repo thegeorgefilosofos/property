@@ -1,7 +1,7 @@
 // npx tsx lib/referral/referral.test.ts
 import {
-  referralCode, referralLink, isReferralCode, isValidReferral, isSelfOrDuplicate, normalizePhone,
-  isActivated, REFEREE_TRIAL_MONTHS,
+  referralCode, referralLink, isReferralCode, normalizePhone,
+  REFEREE_TRIAL_MONTHS,
   individualReferrerReward, refereeWelcome,
   REFERRER_SLOT_MONTHS, INDIV_PRO_BONUS_MONTHS,
   REFEREE_FREE_SLOT_MONTHS, REFEREE_OWNER_MONTHS, REFEREE_AGENCY_MONTHS,
@@ -34,22 +34,12 @@ ok(!isReferralCode('<b>PO1234567</b>'), 'κείμενο γύρω από κωδι
 ok(!isReferralCode(null) && !isReferralCode(''), 'κενό: δεν είναι κωδικός');
 
 // ── Εγκυρότητα ──
-ok(isValidReferral('A', 'B', true) === true, 'έγκυρη');
-ok(isValidReferral('A', 'A', true) === false, 'άκυρη: αυτο-παραπομπή (id)');
-ok(isValidReferral('A', 'B', false) === false, 'άκυρη: μη-νέος');
 
 // ── Anti-abuse: τηλέφωνο, email, συσκευή ──
 ok(normalizePhone('+30 697 1234567') === '6971234567', 'κανονικοποίηση τηλεφώνου');
 ok(normalizePhone('0030-6971234567') === '6971234567', 'ίδιο τηλέφωνο, άλλη μορφή');
-ok(isSelfOrDuplicate({ referrerId: 'A', refereeId: 'A' }) === true, 'μπλοκ: ίδιο id');
-ok(isSelfOrDuplicate({ referrerId: 'A', refereeId: 'B', referrerEmail: 'X@a.gr', refereeEmail: 'x@a.gr' }) === true, 'μπλοκ: ίδιο email');
-ok(isSelfOrDuplicate({ referrerId: 'A', refereeId: 'B', referrerPhone: '+306971234567', refereePhone: '6971234567' }) === true, 'μπλοκ: ίδιο τηλέφωνο');
-ok(isSelfOrDuplicate({ referrerId: 'A', refereeId: 'B', sharedDevice: true }) === true, 'μπλοκ: κοινή συσκευή');
-ok(isSelfOrDuplicate({ referrerId: 'A', refereeId: 'B', referrerPhone: '6971111111', refereePhone: '6972222222' }) === false, 'ΟΚ: διαφορετικά στοιχεία');
 
 // ── Ενεργοποίηση ──
-ok(isActivated({ propertiesAdded: 1, documentsScanned: 1 }) === true, 'ενεργοποιήθηκε');
-ok(isActivated({ propertiesAdded: 1, documentsScanned: 0 }) === false, 'χωρίς σάρωση → όχι');
 
 // ── Πρόγραμμα Ιδιώτη: ανταμοιβή ανά σύσταση (συστήνων) ──
 // ΕΝΑΣ ΚΑΝΟΝΑΣ ΓΙΑ ΟΛΟΥΣ: ένα ακίνητο παραπάνω για έναν μήνα, ό,τι πλάνο κι αν

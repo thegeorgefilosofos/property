@@ -1,7 +1,15 @@
 // ─────────────────────────────────────────────────────────────────────────
-// Μηχανή τιμολόγησης (OSS-ready): καθεστώς ΦΠΑ, ανάλυση ποσών και αρίθμηση
-// παραστατικών. Καθαρές συναρτήσεις — έτοιμες να τις καλέσει ο webhook του εμπόρου
-// για να εκδώσει σωστό, νόμιμο παραστατικό. Καμία χρέωση εδώ.
+// ΠΟΙΟ ΚΑΘΕΣΤΩΣ ΦΠΑ ΙΣΧΥΕΙ ΓΙΑ ΤΟΝ ΣΥΝΔΡΟΜΗΤΗ, ΚΑΙ ΤΙΠΟΤΑ ΑΛΛΟ.
+//
+// Η καρτέλα χρέωσης το γράφει δίπλα στη συνδρομή, ώστε ο συνδρομητής να ξέρει
+// τι θα δει στην απόδειξη που του στέλνει ο έμπορος.
+//
+// ΕΔΩ ΖΟΥΣΕ ΚΑΙ ΜΗΧΑΝΗ ΕΚΔΟΣΗΣ ΠΑΡΑΣΤΑΤΙΚΩΝ: ανάλυση ποσού σε καθαρό και ΦΠΑ
+// (`vatFromNet`, `vatFromGross`) και αρίθμηση σειράς ΤΠΥ/ΑΠΥ (`invoiceSeries`,
+// `formatInvoiceNumber`). Καμία οθόνη δεν τις καλούσε· μόνο το δικό τους τεστ.
+// Η εφαρμογή ΔΕΝ εκδίδει παραστατικά και δεν πρόκειται: τα εκδίδει ο έμπορος.
+// Κώδικας που στέκεται εξαγόμενος με επικεφαλίδα «έτοιμος να εκδώσει σωστό,
+// νόμιμο παραστατικό» διαβάζεται ως δυνατότητα της εφαρμογής· δεν είναι.
 //
 // Καθεστώτα:
 //   • domestic      : πελάτης Ελλάδας → ΦΠΑ Ελλάδας.
@@ -12,7 +20,6 @@
 
 import { standardVatRate } from './vatRates';
 import { isEuCountry } from './invoiceProfile';
-import { cents } from '@/lib/core/money'
 
 export type VatTreatment = 'domestic' | 'oss_b2c' | 'reverse_charge' | 'outside_eu';
 
@@ -54,29 +61,4 @@ export function vatTreatmentLabel(v: VatDecision): string {
     case 'reverse_charge': return 'Αντιστροφή υποχρέωσης (reverse charge), χωρίς ΦΠΑ';
     case 'outside_eu':     return 'Εκτός πεδίου ΦΠΑ ΕΕ';
   }
-}
-
-export interface VatBreakdown { net: number; vatPct: number; vat: number; gross: number }
-
-
-// Από καθαρή αξία (χωρίς ΦΠΑ) → ανάλυση.
-export function vatFromNet(net: number, pct: number): VatBreakdown {
-  const vat = cents(net * pct / 100);
-  return { net: cents(net), vatPct: pct, vat, gross: cents(net + vat) };
-}
-
-// Από τελική αξία (με ΦΠΑ) → ανάλυση.
-export function vatFromGross(gross: number, pct: number): VatBreakdown {
-  const net = pct > 0 ? cents(gross / (1 + pct / 100)) : cents(gross);
-  return { net, vatPct: pct, vat: cents(gross - net), gross: cents(gross) };
-}
-
-// ── Αρίθμηση παραστατικών ───────────────────────────────────────────────────
-// Σειρά ανά τύπο: ΤΠΥ (τιμολόγιο παροχής υπηρεσιών) / ΑΠΥ (απόδειξη παροχής).
-export const invoiceSeries = (docType: string): 'ΤΠΥ' | 'ΑΠΥ' =>
-  docType === 'invoice' ? 'ΤΠΥ' : 'ΑΠΥ';
-
-// Μορφή αριθμού: SERIES-YYYY-000123 (σειριακός, χωρίς κενά, ανά έτος).
-export function formatInvoiceNumber(series: string, year: number, seq: number): string {
-  return `${series}-${year}-${String(Math.max(1, Math.trunc(seq))).padStart(6, '0')}`;
 }

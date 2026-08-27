@@ -6,12 +6,12 @@ import { downloadTableXlsx, csvDate } from './exportCsv';
 import { saved } from '@/components/dbWrite';
 import { drawQrToCanvas } from '@/lib/qr';
 import { T, TT, Badge, PageTitle, ExportButton, EmptyState, Modal, SkeletonKPIs, fn, fixedCols, pageShell } from '@/components/Theme';
-import { PLANS, type PlanId } from '@/lib/billing/plans';
+import { PLANS, TRIAL_DAYS, type PlanId } from '@/lib/billing/plans';
 import { UserPlus } from 'lucide-react';
 import {
   referralCode, referralLink, progress,
-  individualReferrerReward, refereeWelcome,
-  INDIV_PRO_BONUS_MONTHS, REFEREE_OWNER_MONTHS, REFERRER_SLOT_MONTHS,
+  individualReferrerReward,
+  INDIV_PRO_BONUS_MONTHS, REFERRER_SLOT_MONTHS,
   INDIV_VOLUME_TARGET, INDIV_VOLUME_BONUS_MONTHS,
   PRO_PAID_TARGET, PRO_PAID_BONUS_MONTHS, PARTNER_WELCOME_MONTHS, partnerWelcomeTier,
   STREAK_TARGET_MONTHS, PARTNER_MONTHLY_FREE_MONTHS,
@@ -302,7 +302,21 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
   //    διαλέξεις», δηλαδή δεύτερο πρόσωπο μέσα σε πρόταση τρίτου προσώπου.
   // Ποιο πακέτο πιάνει ο μήνας λέγεται στην κάρτα «Ο φίλος σου κερδίζει», που
   // έχει χώρο να ονομάσει και τα δύο.
-  const friendGift = `${moAcc(REFEREE_OWNER_MONTHS)} συνδρομή δωρεάν`;
+  // ═══ ΤΙ ΚΕΡΔΙΖΕΙ ΠΡΑΓΜΑΤΙΚΑ Ο ΦΙΛΟΣ: ΤΗ ΔΟΚΙΜΗ ΠΟΥ ΠΑΙΡΝΟΥΝ ΟΛΟΙ ══════════
+  //
+  // ΕΔΩ ΓΡΑΦΟΤΑΝ «έναν μήνα συνδρομή δωρεάν» ΚΑΙ ΔΕΝ ΤΟΝ ΕΠΑΙΡΝΕ ΠΟΤΕ. Ελέγχθηκε
+  // στη ρίζα: και οι πέντε εγγραφές στο `referral_rewards` γράφουν `v_owner`,
+  // δηλαδή τον ΣΥΣΤΗΝΟΝΤΑ. Δεν υπάρχει trigger στον πίνακα `referrals` και
+  // κανένα μονοπάτι εγγραφής δεν επιμηκύνει τη δοκιμή του νέου χρήστη.
+  //
+  // ΓΙΑΤΙ ΕΙΝΑΙ ΤΟ ΧΕΙΡΟΤΕΡΟ ΕΙΔΟΣ ΛΑΘΟΥΣ: η φράση δεν έμενε στην οθόνη. Μπαίνει
+  // στο έτοιμο μήνυμα που ο χρήστης αντιγράφει και στέλνει στον φίλο του. Η
+  // εφαρμογή έβαζε τον ΙΔΙΟ ΤΟΝ ΧΡΗΣΤΗ να δώσει υπόσχεση που δεν τηρείται.
+  //
+  // Ο σχεδιασμός της ανταμοιβής ΔΕΝ σβήστηκε: η `refereeWelcome` και οι σταθερές
+  // `REFEREE_*` μένουν στο lib/referral, έτοιμες για τη μέρα που θα γραφτεί η
+  // απονομή. Μέχρι τότε τα κείμενα λένε τη δοκιμή, που ισχύει για όλους.
+  const friendGift = `${TRIAL_DAYS} ημέρες δωρεάν δοκιμή`;
   const invite = isPro
     ? `Για το ακίνητό σου, σου προτείνω το PROPERWISE. Κρατάει τα οικονομικά σου σε τάξη και ετοιμάζει σωστά τα στοιχεία για τη φορολογική σου δήλωση, ώστε να μην τρέχεις εσύ. Με τον σύνδεσμό μου κερδίζεις ${friendGift}: ${link}`
     : `Οργανώνω το ακίνητό μου με το PROPERWISE και μου έλυσε τα χέρια: σαρώνω λογαριασμούς, βλέπω φόρους και αποδόσεις, όλα σε ένα. Ρίξε του μια ματιά. Με τον σύνδεσμό μου κερδίζεις ${friendGift}: ${link}`;
@@ -355,14 +369,13 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
     : [
         { n: '1', t: 'Στέλνεις τον σύνδεσμο', d: 'Σε έναν ιδιοκτήτη ακινήτου, όπου σε βολεύει.', d2: 'M22 2 11 13|M22 2 15 22l-4-9-9-4z' },
         { n: '2', t: 'Ο νέος ιδιοκτήτης ξεκινά', d: 'Προσθέτει το πρώτο του ακίνητο και σαρώνει ένα έγγραφο στο PROPERWISE.', d2: 'M22 11.08V12a10 10 0 1 1-5.93-9.14|M22 4 12 14.01l-3-3' },
-        { n: '3', t: 'Παίρνετε τα δώρα σας', d: `Εκείνος παίρνει ${friendGift} κι εσύ ένα επιπλέον ακίνητο για ${moAcc(REFERRER_SLOT_MONTHS)}, στο πακέτο που ήδη έχεις.`, d2: 'M20 12v9H4v-9|M2 7h20v5H2z|M12 22V7|M12 7S9 2 6.5 4.5 12 7 12 7z|M12 7s3-5 5.5-2.5S12 7 12 7z' },
+        { n: '3', t: 'Παίρνεις το δώρο σου', d: `Ένα επιπλέον ακίνητο για ${moAcc(REFERRER_SLOT_MONTHS)}, στο πακέτο που ήδη έχεις.`, d2: 'M20 12v9H4v-9|M2 7h20v5H2z|M12 22V7|M12 7S9 2 6.5 4.5 12 7 12 7z|M12 7s3-5 5.5-2.5S12 7 12 7z' },
       ];
 
   const partner = stats?.partner ?? false;
   const streak = Math.min(stats?.streak ?? 0, STREAK_TARGET_MONTHS);
   const streakPct = Math.min(100, (streak / STREAK_TARGET_MONTHS) * 100);
   const youBase = individualReferrerReward(referrerPaying, 'free');   // τι κερδίζεις για δωρεάν φίλο
-  const friendBase = refereeWelcome('free');                          // τι κερδίζει ο φίλος (μένει δωρεάν)
   const myTier: 'owner' | 'agency' | 'partner' = partner ? 'partner' : (isPro ? 'agency' : 'owner');
   const styleBlock = (
     <style>{`
@@ -635,10 +648,10 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
             <div className="ref-lift" style={{ ...card, padding: PAD }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                 <Ic d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2|M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" s={16} c="var(--text-secondary)" />
-                <span style={{ ...TT.label }}>Ο φίλος σου κερδίζει</span>
+                <span style={{ ...TT.label }}>Ο φίλος σου ξεκινά με</span>
               </div>
-              <div style={{ ...TT.displaySm, marginBottom: 6 }}>+{moNom(REFEREE_OWNER_MONTHS)} δωρεάν</div>
-              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>στο πακέτο που θα διαλέξει στην αρχή, «{PLANS.solo.name}» ή «{PLANS.agency.name}», ανάλογα με τα ακίνητά του. Αν αργότερα χρειαστεί δεύτερο ακίνητο, το έχει δωρεάν για {moAcc(friendBase.months)}.</div>
+              <div style={{ ...TT.displaySm, marginBottom: 6 }}>{TRIAL_DAYS} ημέρες δοκιμή</div>
+              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>στο πακέτο που θα διαλέξει στην αρχή, «{PLANS.solo.name}» ή «{PLANS.agency.name}», ανάλογα με τα ακίνητά του. Χωρίς κάρτα και χωρίς δέσμευση, όπως κάθε νέος λογαριασμός.</div>
             </div>
           </div>
 
@@ -651,7 +664,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                 {(stats?.m_pro ?? 0) >= 1 && <Badge tone="positive">Το πέτυχες</Badge>}
               </div>
               <div style={{ ...TT.displaySm, marginBottom: 6 }}>+{moNom(INDIV_PRO_BONUS_MONTHS)} {PLANS.solo.nameGen}</div>
-              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>για σένα, μόλις κάποιος που προσκάλεσες γίνει Επαγγελματίας. Εδώ κερδίζεις ολόκληρο μήνα συνδρομής, όχι ένα ακίνητο, γιατί η σύσταση είναι μεγαλύτερη. Κι εκείνος ξεκινά με {moAcc(REFEREE_OWNER_MONTHS)} {PLANS.agency.nameGen} δωρεάν.</div>
+              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>για σένα, μόλις κάποιος που προσκάλεσες γίνει Επαγγελματίας. Εδώ κερδίζεις ολόκληρο μήνα συνδρομής, όχι ένα ακίνητο, γιατί η σύσταση είναι μεγαλύτερη. </div>
             </div>
             {/* Μπόνους όγκου: ο στόχος διαβάζεται από τη μηχανή, δεν ξαναγράφεται. */}
             <Milestone title={`${INDIV_VOLUME_TARGET} νέοι τον μήνα`} count={stats?.m_indiv ?? 0} target={INDIV_VOLUME_TARGET} kind="indiv_volume" reward={`${moAcc(INDIV_VOLUME_BONUS_MONTHS)} επιπλέον ${PLANS.solo.nameGen}`} claimState={claim.indiv_volume || 'idle'} onClaim={doClaim} />
@@ -694,7 +707,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ ...TT.h2, fontSize: 13 }}>{stage}</div>
                     {/* Έλεγε «Εκκρεμεί ενεργοποίηση» χωρίς να λέει ΤΙ λείπει, ενώ ο
-                        κανόνας είναι γραμμένος στη μηχανή (isActivated: ακίνητο +
+                        κανόνας είναι γραμμένος στη βάση (mark_referral_activated: ακίνητο +
                         σαρωμένο έγγραφο). Δύο λέξεις παραπάνω κλείνουν το χωνί. */}
                     <div style={{ ...TT.bodySm, marginTop: 2 }}>{pending
                       ? `Λείπει ${ACTIVATION_MIN_PROPERTIES === 1 ? '1 ακίνητο' : `${ACTIVATION_MIN_PROPERTIES} ακίνητα`} και ${ACTIVATION_MIN_DOCUMENTS === 1 ? '1 σαρωμένο έγγραφο' : `${ACTIVATION_MIN_DOCUMENTS} σαρωμένα έγγραφα`}. Θύμισέ του· κερδίζετε κι οι δύο.`
