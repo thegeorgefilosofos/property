@@ -442,7 +442,7 @@ function LeverCard({ lever }: { lever: YieldLever }) {
         {lever.href && <a href={lever.href} target="_blank" rel="noreferrer" style={{ marginLeft: 'auto', color: 'var(--text-tertiary)', display: 'inline-flex' }}><ArrowUpRight size={14} /></a>}
       </div>
       <p style={{ fontSize: 12, color: 'var(--text-primary)', margin: 0, fontFamily: SANS, fontWeight: 600 }}>{lever.impact}</p>
-      <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '5px 0 0', fontFamily: SANS, lineHeight: 1.55 }}>{lever.detail}</p>
+      <p className="text-measure" style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '5px 0 0', fontFamily: SANS, lineHeight: 1.55 }}>{lever.detail}</p>
       <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '5px 0 0', fontFamily: SANS, lineHeight: 1.5 }}><strong style={{ color: 'var(--text-secondary)' }}>Προσοχή:</strong> {lever.risk}</p>
     </div>
   );
@@ -509,7 +509,7 @@ function Toggle({ checked, onChange, label, note }: { checked: boolean; onChange
   return (
     <div>
       <Switch on={checked} onChange={onChange} label={label} size="sm" />
-      <p style={{ margin: '4px 0 0 48px', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: SANS, lineHeight: 1.5 }}>{note}</p>
+      <p className="text-measure" style={{ margin: '4px 0 0 48px', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: SANS, lineHeight: 1.5 }}>{note}</p>
     </div>
   );
 }
@@ -1681,7 +1681,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                   note="Ο νόμος το βάζει στον επισκέπτη και ο ιδιοκτήτης το αποδίδει. Οι πλατφόρμες όμως δεν έχουν πεδίο γι᾽ αυτό στην Ελλάδα: αν δεν το ζητήσεις ρητά, βγαίνει από την τσέπη σου." />
               </div>
             )}
-            <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--text-secondary)', fontFamily: SANS, lineHeight: 1.55 }}>
+            <p className="text-measure" style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--text-secondary)', fontFamily: SANS, lineHeight: 1.55 }}>
               {consolidated
                 ? <>{CONSOLIDATION_NOTE} Το χαρτοφυλάκιό σου: <strong style={{ color: 'var(--text-primary)' }}>{portfolioTax.count} ακίνητα</strong> με ενοίκια {fe(portfolioTax.totalAnnualRent)} και συνολικό φόρο {fe(portfolioTax.totalTax)} (μέσος συντελεστής {fp(portfolioTax.effectiveRate * 100)}, οριακός {fp(portfolioTax.marginalRate * 100)}). Το μερίδιο αυτού του ακινήτου είναι <strong style={{ color: 'var(--text-primary)' }}>{fe(annualTax)}</strong>. Αν υπολογιζόταν μόνο του, θα έδειχνε {fe(portfolioTax.perProperty.find(p => p.id === propertyId)?.standaloneTax ?? 0)}, δηλαδή λιγότερα από την πραγματικότητα.</>
                 : <>Ο φόρος υπολογίζεται με την προοδευτική κλίμακα ενοικίων 2026 (15% έως 12.000 €, 25% έως 24.000 €, 35% έως 35.000 €, 45% πάνω από αυτά), στο σύνολο των ενοικίων σου. Έχεις ένα ακίνητο με εισόδημα, οπότε ο φόρος του είναι όλος ο φόρος σου. Οριακός συντελεστής {fp(portfolioTax.marginalRate * 100)}.</>}
@@ -1712,7 +1712,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
             <Info size={14} style={{ color: 'var(--text-tertiary)', flexShrink: 0, marginTop: 2 }} />
             <div>
-              <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: 0, fontFamily: SANS, lineHeight: 1.55 }}>{MARKET_DISCLAIMER}</p>
+              <p className="text-measure" style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: 0, fontFamily: SANS, lineHeight: 1.55 }}>{MARKET_DISCLAIMER}</p>
               {/* Μία σειρά. Το `flexWrap` μένει ως δίχτυ για πολύ στενή οθόνη ή
                   για τη ρύθμιση «μεγαλύτερο κείμενο» — δεν είναι η κανονική
                   κατάσταση, είναι η υποχώρηση. */}

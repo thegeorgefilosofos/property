@@ -50,6 +50,24 @@ import DocumentScan from '@/app/dashboard/components/DocumentScan';
 // εναλλακτικές και το πεδίο «Ετήσια ανατίμηση ακινήτου», όπου ο χρήστης
 // φωτογράφησε κομμένο το «6,8» σε ταμπλέτα.
 import TabRentROI from '@/app/dashboard/components/TabRentROI';
+// ═══ ΟΙ ΤΕΣΣΕΡΙΣ ΜΕΓΑΛΥΤΕΡΕΣ ΚΑΡΤΕΛΕΣ ΠΟΥ ΔΕΝ ΕΙΧΕ ΔΕΙ ΠΟΤΕ ΚΑΜΙΑ ΜΕΤΡΗΣΗ ═══
+//
+// Ο πάγκος είχε δεκαεπτά σκηνές και ο σαρωτής έβγαινε πράσινος σε δώδεκα
+// πλάτη. Το «πράσινο» όμως αφορούσε ΜΟΝΟ ό,τι αποδιδόταν εδώ. Εξω έμεναν οι
+// τέσσερις μεγαλύτερες καρτέλες της εφαρμογής, 7.333 γραμμές διεπαφής:
+//
+//   TabCalendar    2.239 γραμμές   ημερολόγιο, πλέγμα μήνα, λίστα ημέρας
+//   TabClients     1.838 γραμμές   πελατολόγιο, κάρτες, διαμονές
+//   TabAccounting  1.805 γραμμές   λογιστική, πίνακες, φορολογικά
+//   TabDocuments   1.451 γραμμές   έγγραφα, φάκελοι, προεπισκόπηση
+//
+// Ενα ημερολόγιο με πλέγμα επτά στηλών και μια λογιστική με πίνακες είναι
+// ακριβώς οι δύο μορφές που σπάνε πρώτες σε στενή οθόνη. Το ότι δεν είχαν
+// μετρηθεί ΔΕΝ σήμαινε ότι ήταν εντάξει· σήμαινε ότι δεν το ξέραμε.
+import TabAccounting from '@/app/dashboard/components/TabAccounting';
+import TabCalendar from '@/app/dashboard/components/TabCalendar';
+import TabClients from '@/app/dashboard/components/TabClients';
+import TabDocuments from '@/app/dashboard/components/TabDocuments';
 import PropertySwitcher from '@/app/dashboard/components/PropertySwitcher';
 import { T, Modal, Btn, PageTitle, InfoBanner, fieldRow } from '@/components/Theme';
 import { createClient } from '@/lib/supabase/client';
@@ -207,6 +225,10 @@ const VIEWS: Record<string, () => React.ReactElement> = {
       <DocumentScan propertyId="p0" userId="u1" onSaved={async () => {}} onBusyChange={() => {}} />
     </Modal>
   ),
+  accounting: () => <TabAccounting propertyId="p0" userId="u1" />,
+  calendar: () => <TabCalendar propertyId="p0" userId="u1" openTasks={3} />,
+  clients: () => <TabClients userId="u1" />,
+  documents: () => <TabDocuments propertyId="p0" userId="u1" />,
   modal: () => <ModalDemo />,
   select: () => <SelectDemo />,
 };
@@ -284,7 +306,19 @@ document.body.appendChild(shell);
 createRoot(shell.querySelector('.bench-topbar') as HTMLElement).render(<BenchTopbar />);
 const host = shell.querySelector('.app-content') as HTMLElement;
 
-const View = VIEWS[which] || VIEWS.portfolio;
+// ═══ ΑΓΝΩΣΤΗ ΣΚΗΝΗ: ΦΩΝΑΖΕΙ, ΔΕΝ ΓΥΡΝΑΕΙ ΣΙΩΠΗΛΑ ΣΤΟ ΧΑΡΤΟΦΥΛΑΚΙΟ ═══════════
+//
+// Εγραφε `VIEWS[which] || VIEWS.portfolio`. Μια σκηνή γραμμένη λάθος στον
+// σαρωτή, ή γραμμένη εκεί πριν προστεθεί εδώ, απέδιδε ΤΟ ΧΑΡΤΟΦΥΛΑΚΙΟ: ο
+// σαρωτής μετρούσε την ίδια οθόνη ξανά και ξανά και έβγαινε πράσινος για
+// καρτέλες που δεν είχε ανοίξει ποτέ. Το ίδιο αρχείο κρατάει ήδη σημείωση για
+// σκηνή που έβγαινε ΚΕΝΗ και έδινε «πράσινο» επειδή σε κενή σελίδα δεν υπάρχει
+// τίποτα κομμένο. Η σιωπηλή επιστροφή είναι η ίδια παγίδα με άλλο ρούχο.
+const View: () => React.ReactElement = VIEWS[which] || (() => (
+  <div data-bench-unknown={which} style={{ padding: 24, fontFamily: T.font.sans, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>
+    ΑΓΝΩΣΤΗ ΣΚΗΝΗ «{which}». Πρόσθεσέ την στο VIEWS του scripts/perf-bench/mobile.tsx.
+  </div>
+));
 window.__t.start = performance.now();
 createRoot(host).render(<View />);
 requestAnimationFrame(() => { window.__t.firstPaint = performance.now(); });

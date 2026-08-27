@@ -1181,7 +1181,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
           </div>
           <div style={{flex:1,minWidth:260}}>
             <AmortArea data={amortChart.map(d=>({year:d.year,cap:d.Κεφάλαιο,int:d.Τόκοι}))} fmt={fmtEur}/>
-            <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:6,lineHeight:1.5,fontFamily: T.font.sans}}>
+            <p className="text-measure" style={{fontSize:11,color:'var(--text-tertiary)',marginTop:6,lineHeight:1.5,fontFamily: T.font.sans}}>
               Κάθε στήλη είναι η ετήσια δόση. Στην αρχή πληρώνεις κυρίως τόκους· σταδιακά υπερισχύει το κεφάλαιο. Η διακεκομμένη γραμμή δείχνει το έτος όπου το κεφάλαιο ξεπερνά τους τόκους.
             </p>
           </div>

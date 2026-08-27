@@ -586,7 +586,7 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
           ].map((x, i, arr) => (
             <div key={x.t} style={{ padding: '12px 0', borderBottom: i === arr.length - 1 ? 'none' : '1px solid var(--border-subtle)' }}>
               <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', fontFamily: T.font.sans, lineHeight: 1.45 }}>{x.t}</p>
-              <p style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 3 }}>{x.b}</p>
+              <p className="text-measure" style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 3 }}>{x.b}</p>
             </div>
           ))}
         </div>

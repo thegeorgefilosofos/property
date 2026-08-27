@@ -307,7 +307,7 @@ function Instalments({ annual, year }: { annual: number; year: number }) {
           </tbody>
         </table>
       </div>
-      <p style={{ margin: '10px 0 0', fontSize: 12, lineHeight: 1.6, color: 'var(--text-tertiary)' }}>
+      <p className="text-measure" style={{ margin: '10px 0 0', fontSize: 12, lineHeight: 1.6, color: 'var(--text-tertiary)' }}>
         Οι ημερομηνίες είναι οι τυπικές των τελευταίων ετών, δηλαδή η τελευταία εργάσιμη
         κάθε μήνα· ανακοινώνονται κάθε χρόνο με απόφαση. Ο ΕΝΦΙΑ πληρώνεται εφάπαξ ή σε
         δόσεις. Η τελευταία δόση φέρει τη διαφορά της στρογγυλοποίησης, ώστε οι δώδεκα να

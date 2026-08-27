@@ -151,7 +151,7 @@ export function ShortVsLongCalculator({ today }: { today: string }) {
           πολλαπλασιασμένη επί τριακόσιες εξήντα πέντε. Το εργαλείο ζητά ρητά τον
           μέσο όρο, γιατί αλλιώς παράγει το ίδιο ακριβώς λάθος που υπάρχει για
           να διορθώσει. */}
-      <p className="po-tool-controls" style={{ margin: '10px 0 0', fontSize: 12, lineHeight: 1.6, color: 'var(--text-tertiary)' }}>
+      <p className="po-tool-controls text-measure" style={{ margin: '10px 0 0', fontSize: 12, lineHeight: 1.6, color: 'var(--text-tertiary)' }}>
         Η τιμή είναι η δική σου ανά διανυκτέρευση· ο επισκέπτης πληρώνει επιπλέον το τέλος
         ανθεκτικότητας, που εσύ το αποδίδεις. Στη βραχυχρόνια η τιμή αλλάζει με την εποχή και τη
         ζήτηση: βάλε τον μέσο όρο που πιάνεις, όχι την τιμή της αιχμής. Τα πάγια είναι ρεύμα, νερό
