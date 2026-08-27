@@ -1384,8 +1384,26 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         </Section>
 
         {/* 2) Ιστορική διαδρομή */}
-        <Section icon={<TrendingUp size={15} />} title={`Ιστορική διαδρομή ${histYears}ετίας`} sub="Πώς θα κινούνταν η αξία ενός ακινήτου όπως το δικό σου (δείκτης Τράπεζας της Ελλάδος)" info={G.hist_index}>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+        {/* ═══ ΤΕΣΣΕΡΙΣ ΕΠΙΛΟΓΕΙΣ ΟΡΙΖΟΝΤΑ ΣΕ ΜΙΑ ΟΘΟΝΗ, ΚΑΝΕΝΑΣ ΜΕ ΟΝΟΜΑ ══════
+            Η καρτέλα έχει τέσσερα χειριστήρια ετών: το παράθυρο του ιστορικού,
+            τον ορίζοντα της σύγκρισης, τον ορίζοντα του ανατοκισμού και τον
+            ορίζοντα κατοχής. Τα δύο τελευταία έχουν ετικέτα· τα δύο πρώτα
+            κάθονταν γυμνά και το ΜΟΝΟ ίχνος του τι κυβερνούν ήταν η τιμή τους
+            ξαναγραμμένη μέσα στον τίτλο («Ιστορική διαδρομή 10ετίας», «πραγματικές
+            αποδόσεις 10ετίας»), δέκα εικονοστοιχεία πιο πάνω από τον ίδιο τον
+            διακόπτη. Δηλαδή ο τίτλος έκανε τη δουλειά της ετικέτας, λέγοντας
+            δύο φορές το ίδιο νούμερο.
+
+            Η ετικέτα του πρώτου διαβάζεται μαζί με την επιλογή του, «Τελευταία
+            10 έτη»: μετρήθηκε ότι το «Παράθυρο γραφήματος» έσπαγε σε δύο σειρές
+            στα 320 και στα 375 εικονοστοιχεία.
+
+            Τώρα κάθε επιλογέας λέει ΤΙ ΚΥΒΕΡΝΑ, με τη δική του ετικέτα· ο
+            τίτλος λέει τι είναι η ενότητα. Η τιμή γράφεται μία φορά, στον
+            διακόπτη. */}
+        <Section icon={<TrendingUp size={15} />} title="Ιστορική διαδρομή" sub="Πώς θα κινούνταν η αξία ενός ακινήτου όπως το δικό σου (δείκτης Τράπεζας της Ελλάδος)" info={G.hist_index}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+            <label style={{ ...fieldLabelStyle, margin: 0 }}>Τελευταία</label>
             <Seg value={histYears} onChange={setHistYears} options={[['10', '10 έτη'], ['20', '20 έτη']]} />
           </div>
           <AreaChart points={hist} />
@@ -1415,7 +1433,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         </Section>
 
         {/* 3) Σύγκριση με εναλλακτικές */}
-        <Section icon={<Layers size={15} />} title="Σύγκριση με εναλλακτικές επενδύσεις" sub={`Ίδιο ποσό (${fe(nVal)}) με τις πραγματικές αποδόσεις ${cmpYears}ετίας`} info={G.total_return}>
+        <Section icon={<Layers size={15} />} title="Σύγκριση με εναλλακτικές επενδύσεις" sub={`Ίδιο ποσό (${fe(nVal)}) με τις πραγματικές τους αποδόσεις`} info={G.total_return}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 12 }}>
             {/* Η ΟΜΑΔΑ ΤΥΛΙΓΕΤΑΙ ΚΙ ΑΥΤΗ, ΟΧΙ ΜΟΝΟ Ο ΓΟΝΕΑΣ ΤΗΣ. Ετικέτα 148,
                 πεδίο 120 και σήμα ΤτΕ 76 δένονταν σε ένα αδιαίρετο κομμάτι 272:
@@ -1439,6 +1457,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                 </button>
               )}
             </div>
+            <label style={{ ...fieldLabelStyle, margin: 0 }}>Ορίζοντας σύγκρισης</label>
             <Seg value={cmpYears} onChange={setCmpYears} options={[['10', '10 έτη'], ['20', '20 έτη']]} />
           </div>
           {/* ═══ ΑΠΟ ΠΟΥ ΒΓΑΙΝΕΙ Η ΠΡΟΕΠΙΛΟΓΗ, ΚΑΙ ΔΥΟ ΨΕΜΑΤΑ ΠΟΥ ΕΦΥΓΑΝ ══════
@@ -1502,7 +1521,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                 <p style={{ ...titleStyle, marginBottom: 12, display: 'flex', alignItems: 'center' }}>Ανατοκισμός επανεπένδυσης<TermInfo text={G.compound} /></p>
                 <div {...fixedCols(2, 12)}>
                   <NumberInput label="Απόδοση επανεπένδυσης" value={compRate} onChange={setCompRate} suffix="%" step={0.5} />
-                  <div><label style={fieldLabelStyle}>Ορίζοντας</label><Seg value={compYears} onChange={setCompYears} options={[['10', '10 έτη'], ['20', '20 έτη']]} /></div>
+                  <div><label style={fieldLabelStyle}>Ορίζοντας ανατοκισμού</label><Seg value={compYears} onChange={setCompYears} options={[['10', '10 έτη'], ['20', '20 έτη']]} /></div>
                 </div>
                 <div {...fixedCols(2, 16, 'start')} style={{ ...fixedCols(2, 16, 'start').style, marginTop: 14 }}>
                   <Figure label="Τελική αξία" value={fe(comp.futureValue)} tone="accent" />

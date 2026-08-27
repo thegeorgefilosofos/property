@@ -291,19 +291,27 @@ export default function EnfiaPanel({ propertyId, userId }: { propertyId: string;
           </div>
         ) : (
           <>
+            {/* ═══ ΕΝΑΣ ΑΡΙΘΜΟΣ ΕΙΝΑΙ Η ΑΠΑΝΤΗΣΗ, Ο ΑΛΛΟΣ ΕΙΝΑΙ Η ΔΙΑΙΡΕΣΗ ΤΟΥ ═══
+                Το ετήσιο και το μηνιαίο κάθονταν δίπλα-δίπλα με ΤΟ ΙΔΙΟ μέγεθος,
+                28 εικονοστοιχεία το καθένα, σαν δύο ισότιμες απαντήσεις σε δύο
+                ερωτήσεις. Είναι όμως ένα νούμερο και το ένα δωδέκατό του: ο
+                ιδιοκτήτης δεν πληρώνει δύο πράγματα.
+
+                Ιδιο ιδίωμα με την πρόβλεψη φόρου στη Λογιστική, που είχε ήδη
+                μπει στη σειρά: το σύνολο της χρονιάς μεγάλο, η μηνιαία ανάγνωσή
+                του σε πρόταση από κάτω. Μία μονάδα χρόνου κρατά το μεγάλο
+                μέγεθος και η άλλη δηλώνει από πού βγήκε. */}
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
               <div>
                 <div style={{ ...TT.label, color: 'var(--text-tertiary)', marginBottom: 8 }}>ΕΝΦΙΑ τον χρόνο</div>
                 <div style={{ ...TT.display }}>{fe(inUse.annual)}</div>
               </div>
-              <div>
-                <div style={{ ...TT.label, color: 'var(--text-tertiary)', marginBottom: 8 }}>Να βάζεις στην άκρη</div>
-                <div style={{ ...TT.display }}>{fe(inUse.monthly)}</div>
-                <div style={{ ...TT.caption, marginTop: 4 }}>τον μήνα</div>
-              </div>
               <span style={{ ...TT.label, fontSize: 11, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, padding: '4px 12px' }}>
                 {SOURCE_LABEL[inUse.source]}
               </span>
+            </div>
+            <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 10, maxWidth: 720 }}>
+              Σύνολο για τη χρονιά. Το ένα δωδέκατο είναι {fe(inUse.monthly)} τον μήνα, για να το βάζεις στην άκρη.
             </div>
             <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border-subtle)', maxWidth: 720 }}>
               {SOURCE_NOTE[inUse.source]}
@@ -370,8 +378,22 @@ export default function EnfiaPanel({ propertyId, userId }: { propertyId: string;
 
         {activeRoute === 'declared' && (<>
           <div style={g2}>
-            <NumberInput label="Φετινός ΕΝΦΙΑ, σύνολο έτους" value={s.enfiaAnnual}
-              onChange={v => upd({ enfiaAnnual: v, enfiaMonthly: v ? String(((parseFloat(v) || 0) / 12).toFixed(2)) : '' })}
+            {/* ΕΝΑ ΠΕΔΙΟ ΔΕΝ ΓΡΑΦΕΙ ΔΥΟ ΑΛΗΘΕΙΕΣ. Εγραφε `enfiaAnnual` ΚΑΙ
+                `enfiaMonthly = ετήσιο/12`, δηλαδή αποθήκευε δύο φορές το ίδιο
+                γεγονός· και η `enfiaInUse` δέχεται και τα δύο ως «δηλωμένο»,
+                οπότε μπορούσαν να διαφωνήσουν. Το πηλίκο το βγάζει η μηχανή.
+                Το παλιό κλειδί ΚΑΘΑΡΙΖΕΤΑΙ σε κάθε γραφή: όσοι έχουν ήδη τιμή
+                αποθηκευμένη από παλαιότερη έκδοση συνεχίζουν να τη διαβάζουν,
+                αλλά δεν ξαναζωντανεύει αν ο χρήστης σβήσει το ετήσιο.
+
+                ΚΑΙ ΤΟ ΠΕΔΙΟ ΔΕΙΧΝΕΙ Ο,ΤΙ ΧΡΗΣΙΜΟΠΟΙΕΙ Η ΜΗΧΑΝΗ. Με παλιά τιμή
+                μόνο στο `enfiaMonthly`, η κάρτα από πάνω έδειχνε ποσό ενώ αυτό
+                το πεδίο ήταν ΚΕΝΟ: ο χρήστης διάβαζε νούμερο που δεν υπήρχε
+                πουθενά να το αλλάξει. Τώρα το βρίσκει γραμμένο· μόλις το
+                αγγίξει μεταφέρεται στο κανονικό του κλειδί. */}
+            <NumberInput label="Φετινός ΕΝΦΙΑ, σύνολο έτους"
+              value={s.enfiaAnnual || (declaredAnnual > 0 ? declaredAnnual.toFixed(2) : '')}
+              onChange={v => upd({ enfiaAnnual: v, enfiaMonthly: '' })}
               suffix="€" step={10}/>
           </div>
         </>)}
@@ -438,16 +460,23 @@ export default function EnfiaPanel({ propertyId, userId }: { propertyId: string;
                 { label: 'Κύριος φόρος κτισμάτων', val: est.basic },
                 ...(est.extra > 0 ? [{ label: 'Πρόσθετος φόρος, αξία πάνω από 400.000 €', val: est.extra }] : []),
                 ...(est.supplementary > 0 ? [{ label: 'Προσαύξηση, συνολική αξία πάνω από 500.000 €', val: est.supplementary }] : []),
-                ...(est.reductionAmount > 0 ? [{ label: `Μειώσεις ${fp(est.reductionPct)}`, val: -est.reductionAmount }] : []),
+                // Το ποσοστό ΕΔΩ είναι το συνδυασμένο, όχι το ονομαστικό της κάθε
+              // μείωσης που γράφεται πιο πάνω δίπλα στην επιλογή. Διάλεγες 50%
+              // και διάβαζες 65% χωρίς λέξη που να το εξηγεί.
+              ...(est.reductionAmount > 0 ? [{ label: `Μειώσεις, συνολικά ${fp(est.reductionPct)}`, val: -est.reductionAmount }] : []),
               ].map(row => (
                 <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '8px 0', borderBottom: '1px solid var(--border-subtle)' }}>
                   <span style={{ ...TT.bodySm, color: 'var(--text-secondary)' }}>{row.label}</span>
                   <span style={{ ...TT.figure, fontSize: 12 }}>{fe(row.val)}</span>
                 </div>
               ))}
+              {/* ΤΟ ΙΔΙΟ ΠΟΣΟ ΣΕ ΤΡΙΤΟ ΜΕΓΕΘΟΣ. Οταν ισχύει η εκτίμηση, το ποσό
+                  της γράφεται ήδη στα 28 σημεία στην κάρτα απάντησης και στα 15
+                  πάνω στο πλακίδιό της. Εδώ κλείνει μια πρόσθεση, δεν
+                  ανακοινώνει απάντηση: παίρνει βάρος, όχι μέγεθος. */}
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, paddingTop: 12 }}>
                 <span style={{ ...TT.bodySm, fontWeight: 700, color: 'var(--text-primary)' }}>Εκτίμηση ΕΝΦΙΑ</span>
-                <span style={{ ...TT.kpi, fontSize: 20 }}>{fe(est.annual)}</span>
+                <span style={{ ...TT.figure, fontWeight: 700 }}>{fe(est.annual)}</span>
               </div>
             </div>
           ) : (

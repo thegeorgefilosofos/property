@@ -343,9 +343,21 @@ function AddToCalendarMenu({ event, onEdit, onDelete, onOpenChange }: { event: C
   )
 }
 
-function EventCard({ event, onToggleStatus, onEdit, onDelete, selected, onSelect, bulkMode }: {
+// ═══ Η ΧΡΟΝΙΑ ΓΡΑΦΕΤΑΙ ΜΙΑ ΦΟΡΑ, ΟΧΙ ΔΕΚΑΕΞΙ ══════════════════════════════════
+// Στην προβολή Μήνα ο επιλογέας από πάνω γράφει «Αύγουστος 2026» και κάθε κάρτα
+// από κάτω ξανάγραφε ολόκληρη την ημερομηνία, «12/08/2026». Με δεκαπέντε
+// γεγονότα, το «2026» εμφανιζόταν δεκαέξι φορές στην ίδια οθόνη — και ήταν
+// ΕΓΓΥΗΜΕΝΑ το ίδιο, γιατί το `monthEvents` κόβεται στα όρια του μήνα που
+// δείχνει ο επιλογέας.
+//
+// Στην Ατζέντα η ίδια κάρτα ΧΡΕΙΑΖΕΤΑΙ τη χρονιά: εκεί δεν υπάρχει επιλογέας
+// και ο κατάλογος περνά από μήνα σε μήνα. Γι' αυτό το κρίνει ο καλών, με το
+// `sameMonth`· δεν το κρίνει η κάρτα μόνη της.
+function EventCard({ event, onToggleStatus, onEdit, onDelete, selected, onSelect, bulkMode, sameMonth }: {
   event: CalEvent; onToggleStatus:(e:CalEvent)=>void; onEdit:(e:CalEvent)=>void
   onDelete:(id:string)=>void; selected?:boolean; onSelect?:(id:string)=>void; bulkMode?:boolean
+  /** Ο κατάλογος είναι ήδη κλεισμένος σε έναν μήνα, οπότε η χρονιά περισσεύει. */
+  sameMonth?:boolean
 }) {
   const overdue = isOverdue(event)
   const done    = event.status==='paid'||event.status==='cancelled'
@@ -436,7 +448,7 @@ function EventCard({ event, onToggleStatus, onEdit, onDelete, selected, onSelect
         {/* Το βάρος κάνει τη δουλειά που έκανε το χρώμα: εκπρόθεσμο και σημερινό
             διαβάζονται πιο έντονα, τα υπόλοιπα υποχωρούν. */}
         <span style={{ fontSize:12, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', fontWeight:(overdue||due===0)?600:400, color:(overdue||due===0)?'var(--text-primary)':'var(--text-secondary)' }}>
-          {overdue?`πριν ${relLbl(due)}`:due===0?'Σήμερα':due===1?'Αύριο':fmt(event.event_date)}{event.event_time?` · ${event.event_time}`:''}
+          {overdue?`πριν ${relLbl(due)}`:due===0?'Σήμερα':due===1?'Αύριο':(sameMonth?fmtShort:fmt)(event.event_date)}{event.event_time?` · ${event.event_time}`:''}
         </span>
         {!bulkMode&&(
           <div style={{ display:'flex', gap:2, alignItems:'center', opacity:(hover||menuOpen)?1:0, pointerEvents:(hover||menuOpen)?'auto':'none', transition:'opacity 0.13s' }}>
@@ -1914,6 +1926,12 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
   // χρώμα έπεφτε σιωπηλά στο κληρονομημένο. Δηλαδή δύο από τις τρεις καταστάσεις
   // βάφονταν κόκκινη και πορτοκαλί και η τρίτη δεν βαφόταν καθόλου.
   //
+  // ΚΑΙ Η ΣΤΗΛΗ ΕΧΕΙ ΑΦΕΤΗΡΙΑ, ΓΙΑΤΙ ΤΟ ΧΑΡΤΙ ΔΕΝ ΞΕΡΕΙ ΠΟΤΕ ΔΙΑΒΑΖΕΤΑΙ.
+  // Ελεγε «Πότε» και από κάτω «σε 5 ημέρες»: σωστό τη στιγμή της εκτύπωσης,
+  // λάθος από την επομένη, ενώ η διπλανή ημερομηνία μένει σωστή για πάντα. Η
+  // κεφαλίδα του εγγράφου τυπώνει ήδη «Ημερομηνία έκδοσης»· η στήλη δείχνει
+  // πλέον σε αυτήν και το νούμερο ξαναγίνεται αληθές όσο υπάρχει το χαρτί.
+  //
   // Η ΕΠΕΙΓΟΥΣΑ ΚΑΤΑΣΤΑΣΗ ΔΕΝ ΛΕΓΕΤΑΙ ΜΕ ΧΡΩΜΑ. Η στήλη γράφει ήδη «3 ημέρες
   // πριν», «Σήμερα», «σε 5 ημέρες» — η πληροφορία είναι εκεί, σε λέξεις. Το
   // ληξιπρόθεσμο παίρνει βάρος, όχι κόκκινο: σε ασπρόμαυρη εκτύπωση το κόκκινο
@@ -1938,7 +1956,7 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
       + reportHeader(null, 'Επερχόμενα γεγονότα και προθεσμίες')
       + `
       <table style="margin-top:22px">
-        <thead><tr><th>Ημερομηνία</th><th>Γεγονός</th><th>Κατηγορία</th><th class="n">Πότε</th></tr></thead>
+        <thead><tr><th>Ημερομηνία</th><th>Γεγονός</th><th>Κατηγορία</th><th class="n">Από την έκδοση</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
       ${reportDisclaimer('Κατάσταση επερχόμενων γεγονότων και προθεσμιών, όπως καταγράφονται στο ημερολόγιο του ακινήτου.')}
@@ -2232,7 +2250,7 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
               {/* Ο μήνας τον λέει ο επιλογέας από πάνω, μαζί με τη χρονιά του. */}
               <p style={{ fontSize:12, fontFamily: T.font.sans, fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase' }}>Γεγονότα</p>
-              {monthEvents.map(e=>(<EventCard key={e.id} event={e} onToggleStatus={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} selected={selectedIds.has(e.id)} onSelect={toggleSelect} bulkMode={bulkMode}/>))}
+              {monthEvents.map(e=>(<EventCard key={e.id} event={e} onToggleStatus={toggleStatus} onEdit={openEdit} onDelete={deleteEvent} selected={selectedIds.has(e.id)} onSelect={toggleSelect} bulkMode={bulkMode} sameMonth/>))}
             </div>
           )}
           {monthEvents.length===0&&<EmptyState icon={<CalendarDays size={20}/>} title="Δεν βρέθηκαν γεγονότα αυτόν τον μήνα" hint="Πάτησε σε μια ημέρα για να προσθέσεις ραντεβού, πληρωμή ή υπενθύμιση." />}
