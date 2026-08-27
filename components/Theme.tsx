@@ -678,10 +678,21 @@ export function Badge({ children, tone = 'neutral' }: { children: ReactNode; ton
 // Ένα ενιαίο primitive για όλα τα chips των Ρυθμίσεων: ίδια γεωμετρία παντού
 // (padding/radius/μέγεθος/βάρος). Το gap:6 αφήνει μικρή τελεία/εικονίδιο να
 // καθίσει μέσα (π.χ. ο παλλόμενος live-dot). Το title περνά για tooltip.
+//
+// ΤΟ ΟΝΟΜΑ ΔΕΝ ΒΓΑΙΝΕΙ ΠΟΤΕ ΕΞΩ ΑΠΟ ΤΟ ΚΟΥΤΙ ΤΟΥ. Το `nowrap` έλεγε στο chip να
+// αγνοήσει το πλάτος του γονέα του: όποιο όνομα δεν χωρούσε, απλώς έβγαινε έξω.
+// Μετρημένο στον πάγκο, στο πλέγμα των μικρογραφιών του Αρχείου: το «από
+// «Έπιπλα και εξοπλισμός»» έπιανε 209 εικονοστοιχεία μέσα σε κάρτα των 192.
+//
+// Το `normal` με `maxWidth: 100%` το κάνει να σπάει σε δεύτερη γραμμή αντί να
+// ξεφεύγει. Δεν κρύβει τίποτα (καμία αποσιώπηση, κανένα tooltip που δεν ανοίγει
+// σε αφή) και δεν αλλάζει τίποτα στα chips μίας λέξης: το σπάσιμο ενεργοποιείται
+// ΜΟΝΟ εκεί που σήμερα υπάρχει υπερχείλιση. Το `wrap-word` πιάνει και τη μία
+// λέξη που από μόνη της είναι φαρδύτερη από την κάρτα.
 export function Chip({ children, tone = 'neutral', title }: { children: ReactNode; tone?: Tone; title?: string }) {
   const tv = toneVars(tone);
   return (
-    <span title={title} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: T.radius.pill, background: tv.bg, border: `1px solid ${tv.border}`, color: tv.color, fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, letterSpacing: '0.01em', lineHeight: 1.4 }}>
+    <span title={title} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: T.radius.pill, background: tv.bg, border: `1px solid ${tv.border}`, color: tv.color, fontFamily: T.font.sans, maxWidth: '100%', whiteSpace: 'normal' as const, overflowWrap: 'anywhere' as const, letterSpacing: '0.01em', lineHeight: 1.4 }}>
       {children}
     </span>
   );

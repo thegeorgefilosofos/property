@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as expenses from '@/lib/data/expenses';
 import * as billStore from '@/lib/data/bills';
-import { T, fd, fe, fn, Modal, Skeleton, EmptyState, InfoBanner, PageTitle, SecHdr, SelectBox, Badge, Btn, ExportButton, ABSENT_DATE, pressable, CloseButton } from '@/components/Theme';
+import { T, fd, fe, fn, Modal, Skeleton, EmptyState, InfoBanner, PageTitle, SecHdr, SelectBox, Chip, Btn, ExportButton, ABSENT_DATE, pressable, CloseButton } from '@/components/Theme';
 import { useCoarsePointer } from '@/components/useCoarsePointer';
 import { showTool } from '@/lib/ui/thresholds';
 import { fmtBytes } from '@/lib/core/bytes';
@@ -1177,15 +1177,28 @@ function FileRow({ i, a }: { i: Item; a: FileActions }) {
   );
 }
 
-// Σήματα προέλευσης: πάροχος (αν υπάρχει) + πηγή αρχειοθέτησης (Έξοδα/Λογαριασμοί/
-// Απογραφή). Εμφανίζονται μία φορά ώστε να μην επαναλαμβάνονται στη γραμμή meta.
+/* ── Σήματα προέλευσης: πάροχος (αν υπάρχει) + πηγή αρχειοθέτησης ─────────
+   ΓΙΑΤΙ Chip ΚΑΙ ΟΧΙ Badge. Το Badge είναι ετικέτα ΚΑΤΑΣΤΑΣΗΣ: γράφει με
+   κεφαλαία και αραιό γράμμα, σχήμα φτιαγμένο για μία λέξη σαν «Πληρώθηκε».
+   Εδώ όμως δεν λέμε κατάσταση, λέμε ΟΝΟΜΑ: το όνομα του παρόχου και το όνομα
+   της καρτέλας. Ένα όνομα σε κεφαλαία χάνει τους τόνους του και πλαταίνει.
+
+   ΜΕΤΡΗΜΕΝΟ ΣΤΟΝ ΠΑΓΚΟ, ΣΤΟ ΠΛΕΓΜΑ ΤΩΝ ΜΙΚΡΟΓΡΑΦΙΩΝ: το «από Έπιπλα και
+   εξοπλισμός» έβγαινε 219 εικονοστοιχεία μέσα σε γραμμή 192, δηλαδή έβγαινε
+   26 έξω από την κάρτα, σε 1024 και σε 1440. Το ίδιο κείμενο ως Chip χωράει.
+
+   ΚΑΙ ΤΑ ΕΙΣΑΓΩΓΙΚΑ ΔΙΟΡΘΩΝΟΥΝ ΤΑ ΕΛΛΗΝΙΚΑ. Το «από» ζητά αιτιατική, οπότε
+   το «από Λογαριασμοί» ήταν λάθος. Τα ονόματα των καρτελών ΔΕΝ κλίνονται εδώ,
+   γιατί πρέπει να λένε ό,τι ακριβώς λέει και το μενού· μπαίνουν λοιπόν σε
+   εισαγωγικά, όπως ήδη γίνεται στους Πελάτες και στον Βοηθό. Έτσι το όνομα
+   μένει αυτούσιο και η πρόταση στέκει. */
 function OriginTag({ i }: { i: Item }) {
   const label = ORIGIN_LABEL[i.source];
   if (!i.provider && !label) return null;
   return (
     <>
-      {i.provider && <Badge tone="neutral">{i.provider}</Badge>}
-      {label && <Badge tone="neutral">από {label}</Badge>}
+      {i.provider && <Chip tone="neutral">{i.provider}</Chip>}
+      {label && <Chip tone="neutral">{`από «${label}»`}</Chip>}
     </>
   );
 }

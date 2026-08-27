@@ -399,7 +399,7 @@ function EventCard({ event, onToggleStatus, onEdit, onDelete, selected, onSelect
           μετέτρεπε μια μέτρηση σε επιβράβευση. Το ημερολόγιο δεν πήρε ποτέ την
           ίδια διόρθωση. Το μπλε μένει το χρώμα της πράξης, εδώ και εκεί. */}
       {!bulkMode&&(
-        <button aria-label={done?'Αναίρεση':'Ολοκλήρωση'} onClick={()=>onToggleStatus(event)} style={{ marginTop:1, flexShrink:0, width:18, height:18, borderRadius:'50%', border:`2px solid ${done?'var(--accent)':'var(--border-default)'}`, background:done?'var(--accent)':'transparent', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' }}>
+        <button className="po-box" aria-label={done?'Αναίρεση':'Ολοκλήρωση'} onClick={()=>onToggleStatus(event)} style={{ marginTop:1, flexShrink:0, width:18, height:18, borderRadius:'50%', border:`2px solid ${done?'var(--accent)':'var(--border-default)'}`, background:done?'var(--accent)':'transparent', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' }}>
           {done&&<Check size={9} color="var(--accent-text)"/>}
         </button>
       )}

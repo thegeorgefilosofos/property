@@ -26,8 +26,15 @@ export interface ActionMenuItem {
 }
 
 // Το πλάτος του μενού είναι γνωστό ΠΡΙΝ αποδοθεί, ώστε η στοίχιση να μπορεί να
-// υπολογιστεί στο πάτημα και όχι μετά.
+// υπολογιστεί στο πάτημα και όχι μετά. Το ΑΝΩΤΑΤΟ υπάρχει γιατί το πλάτος ήταν
+// ελεύθερο προς τα πάνω: με `minWidth` 258 και `maxWidth` όσο η οθόνη, μια
+// περιγραφή 163 χαρακτήρων τέντωνε το μενού σε 1093 εικονοστοιχεία στα 1440.
+// Ενα μενού 1093 πλάτους δεν είναι μενού, είναι λωρίδα.
 const MENU_WIDTH = 258;
+const MENU_MAX = 340;
+// Απόσταση από κάθε άκρη της οθόνης και από το κουμπί.
+const EDGE = 8;
+const GAP = 6;
 
 export function ActionMenu({
   label,
@@ -65,27 +72,43 @@ export function ActionMenu({
   // πλάτος βγήκε 291 αντί για 258 (το περιεχόμενο ζητά περισσότερα) και το μενού
   // ακούμπησε την ΔΕΞΙΑ άκρη χωρίς περιθώριο. Αγκυρωμένο στη δεξιά άκρη, το
   // περιθώριο είναι εγγυημένο· το `maxWidth` κρατά και την αριστερή μέσα.
-  const [pos, setPos] = useState<{ top: number; left?: number; right?: number; maxWidth: number } | null>(null);
+  const [pos, setPos] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null);
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // Η ΑΓΚΥΡΑ ΕΙΧΕ ΓΙΝΕΙ ΚΕΛΙ
+  //
+  // Η προηγούμενη τοποθέτηση κρατούσε μία άκρη καρφωμένη στο κουμπί και άφηνε
+  // το πλάτος να προκύψει από την απόσταση ώς την απέναντι άκρη της οθόνης.
+  // Ετσι το μενού δεν έβγαινε ποτέ έξω, αλλά ΜΕΤΡΗΜΕΝΟ ΣΤΟΝ ΠΑΓΚΟ πλήρωνε το
+  // αντίτιμο και από τις δύο μεριές:
+  //
+  //   στα 390 · Επαφές          139 πλάτος, κάθε περιγραφή σε 3 γραμμές
+  //   στα 390 · Απογραφή        183 πλάτος, μία γραμμή σε ΟΚΤΩ σειρές, 182 ψηλή
+  //   στα 390 · Λογιστική       227 πλάτος, μενού 604 ψηλό σε οθόνη 844
+  //   στα 1440 · Απογραφή      1093 πλάτος
+  //
+  // Δηλαδή στο κινητό το μενού στριμωχνόταν στον χώρο ΑΡΙΣΤΕΡΑ του κουμπιού και
+  // αγνοούσε μισή οθόνη, ενώ στον υπολογιστή απλωνόταν όσο το άφηνε το κείμενο.
+  //
+  // ΤΩΡΑ ΤΟ ΠΛΑΤΟΣ ΕΙΝΑΙ ΑΠΟΦΑΣΗ ΚΑΙ Η ΘΕΣΗ ΑΚΟΛΟΥΘΕΙ. Διαλέγουμε ένα πλάτος
+  // μέσα στη ζώνη 258 ώς 340 (ή όσο επιτρέπει η οθόνη, αν είναι στενότερη),
+  // στοιχίζουμε την επιθυμητή άκρη στο κουμπί και μετά ΣΠΡΩΧΝΟΥΜΕ όλο το κουτί
+  // μέσα στα όρια. Το κουτί δεν παραμορφώνεται ποτέ: ή χωρά όπως θέλει ο
+  // σχεδιασμός, ή μετακινείται. Μόνο σε οθόνη στενότερη από 356 μικραίνει.
+  //
+  // ΚΑΙ ΤΟ ΥΨΟΣ ΕΧΕΙ ΟΡΙΟ. Το μενού της Λογιστικής έβγαινε 40 εικονοστοιχεία
+  // κάτω από την οθόνη, δηλαδή οι δύο τελευταίες ενέργειες ήταν απάτητες χωρίς
+  // να υπάρχει καμία ένδειξη ότι υπάρχουν. Το ανώτατο ύψος είναι ο χώρος ώς την
+  // κάτω άκρη και ό,τι περισσεύει κυλά μέσα στο μενού.
   const place = useCallback(() => {
     const b = btnRef.current?.getBoundingClientRect();
     if (!b) return;
-    const m = 8;
     const vw = window.innerWidth;
-    const top = b.bottom + 6;
-    // Αριστερή στοίχιση μόνο όταν χωράει ολόκληρο το μενού δεξιά του κουμπιού.
-    const fitsLeftAligned = b.left + MENU_WIDTH <= vw - m;
-    // ΤΟ ΠΛΑΤΟΣ ΔΕΣΜΕΥΕΤΑΙ ΑΠΟ ΤΗΝ ΑΓΚΥΡΑ, ΑΡΑ ΚΑΙ Η ΑΛΛΗ ΑΚΡΗ. Με μόνη την
-    // αγκύρωση δεξιά, το μενού εξακολουθούσε να βγαίνει αριστερά (μετρημένο:
-    // -111 στα 375). Το ανώτατο πλάτος υπολογίζεται από την απόσταση της
-    // άγκυρας ώς την απέναντι άκρη, οπότε καμία από τις δύο δεν ξεπερνιέται.
-    if (align === 'left' && fitsLeftAligned) {
-      const left = Math.max(m, b.left);
-      setPos({ top, left, maxWidth: vw - left - m });
-    } else {
-      const right = Math.max(m, vw - Math.min(b.right, vw - m));
-      setPos({ top, right, maxWidth: vw - right - m });
-    }
+    const width = Math.min(MENU_MAX, Math.max(0, vw - 2 * EDGE));
+    const wanted = align === 'left' ? b.left : b.right - width;
+    const left = Math.min(Math.max(EDGE, wanted), vw - EDGE - width);
+    const top = b.bottom + GAP;
+    setPos({ top, left, width, maxHeight: Math.max(0, window.innerHeight - top - EDGE) });
   }, [align]);
 
   useEffect(() => {
@@ -136,9 +159,9 @@ export function ActionMenu({
         <div
           role="menu"
           style={{
-            position: 'fixed', top: pos.top,
-            ...(pos.left !== undefined ? { left: pos.left } : { right: pos.right }),
-            minWidth: Math.min(MENU_WIDTH, pos.maxWidth), maxWidth: pos.maxWidth,
+            position: 'fixed', top: pos.top, left: pos.left,
+            width: pos.width, minWidth: Math.min(MENU_WIDTH, pos.width),
+            maxHeight: pos.maxHeight, overflowY: 'auto', overscrollBehavior: 'contain',
             background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 12,
             boxShadow: 'var(--elev-3)', padding: 6, zIndex: 200,
             opacity: shown ? 1 : 0, transform: shown ? 'translateY(0)' : 'translateY(-4px)',
