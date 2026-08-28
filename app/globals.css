@@ -623,6 +623,22 @@ body {
    δεν άλλαζε όψη. Το δαχτυλίδι μπαίνει γύρω από ολόκληρη τη στήλη, με απόσταση,
    ώστε να μη σκεπάζει τη μπάρα. */
 .exp-month:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ΤΑ ΠΛΑΚΙΔΙΑ ΤΗΣ ΣΑΡΩΣΗΣ: ΜΙΑ ΣΕΙΡΑ ΣΕ ΟΘΟΝΗ ΓΡΑΦΕΙΟΥ
+
+   Τρία ή τέσσερα, ανάλογα με το αν προσφέρεται η χειροκίνητη καταχώρηση. Το
+   πλήθος γράφεται στο `data-tiles` από το component: έτσι το πλέγμα δεν
+   μαντεύει από το πλάτος και δεν αφήνει ποτέ ένα πλακίδιο μόνο του σε δεύτερη
+   σειρά. Κάτω από τα 880 δύο ανά σειρά, κάτω από τα 560 ένα: εκεί η στοίβα
+   είναι η σωστή απάντηση, όχι συμβιβασμός.
+   ══════════════════════════════════════════════════════════════════════════ */
+.scan-tiles { display: grid; gap: 12px; grid-template-columns: 1fr; }
+@media (min-width: 560px) { .scan-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 880px) {
+  .scan-tiles[data-tiles="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .scan-tiles[data-tiles="4"] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
 .client-card-act { opacity: 0; transition: opacity .15s ease; }
 /* Μόνο στο hover (φεύγει μόλις απομακρυνθεί ο κέρσορας). Για πληκτρολόγιο,
    εμφανίζεται μόνο σε focus-visible, όχι σε mouse-focus που θα το «κόλλαγε». */

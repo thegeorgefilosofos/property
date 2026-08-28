@@ -245,7 +245,7 @@ const VIEWS: Record<string, () => React.ReactElement> = {
   tenant: () => <TabTenant propertyId="p0" userId="u1" onStartHandover={() => {}} />,
   scan: () => (
     <Modal open onClose={() => {}} size="lg" title="Σάρωση εγγράφου">
-      <DocumentScan propertyId="p0" userId="u1" onSaved={async () => {}} onBusyChange={() => {}} />
+      <DocumentScan propertyId="p0" userId="u1" onSaved={async () => {}} onBusyChange={() => {}} onManual={() => {}} />
     </Modal>
   ),
   inventory: () => <TabInventory propertyId="p0" userId="u1" />,

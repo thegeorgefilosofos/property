@@ -26,8 +26,8 @@ import { T, TT, Badge, SelectBox } from '@/components/Theme'
 import { ChevronRight, Download } from 'lucide-react'
 import {
   requirementsFor, readiness, groupByWho, traps, defaultBookkeeping,
-  statusForAccountant, LEGAL_FORM_LABEL, WHO_LABEL,
-  type LegalForm, type BookKeeping, type Requirement, type Who,
+  statusForAccountant, LEGAL_FORM_LABEL,
+  type LegalForm, type BookKeeping, type Requirement,
 } from '@/lib/accounting/dossier'
 import type { PropertyStatus } from '@/lib/property/status'
 import type { DossierAttachment } from './accountantExport';
@@ -257,11 +257,6 @@ export default function AccountantDossier({
   const groups = useMemo(() => groupByWho(reqs), [reqs])
   const warnings = useMemo(() => traps(reqs), [reqs])
 
-  const perWho = (who: Who) => {
-    const items = reqs.filter(r => r.who === who)
-    return { total: items.length, done: items.filter(r => haveAll.includes(r.id)).length }
-  }
-
   // ΤΟ ΚΟΥΜΠΙ ΠΕΡΙΜΕΝΕΙ ΤΑ ΧΑΡΤΙΑ, ΚΑΙ ΤΟ ΛΕΕΙ. Το κατέβασμα των παραστατικών
   // παίρνει δευτερόλεπτα· χωρίς ένδειξη ο χρήστης πατά δεύτερη φορά και παίρνει
   // δύο φακέλους. Το κουμπί κλειδώνει όσο ετοιμάζεται.
@@ -348,20 +343,18 @@ export default function AccountantDossier({
             ΤΟ ΓΕΓΟΝΟΣ ΔΕΝ ΧΑΝΕΤΑΙ, ΓΙΝΕΤΑΙ ΜΙΑ ΓΡΑΜΜΗ. Ο χρήστης χρειάζεται να
             ξέρει ότι δεν του λείπουν· δεν χρειάζεται να τα μετράει.
             ═══════════════════════════════════════════════════════════════════ */}
-        <div style={{ display: 'flex', gap: 26, margin: '16px 0 0', paddingTop: 14, borderTop: '1px solid var(--border-subtle)', flexWrap: 'wrap' }}>
-          {(['owner', 'accountant'] as Who[]).map(w => {
-            const c = perWho(w)
-            if (c.total === 0) return null
-            return (
-              <div key={w}>
-                <p style={{ ...eyebrow, fontSize: 11 }}>{WHO_LABEL[w]}</p>
-                <p style={{ ...num, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', margin: '5px 0 0', lineHeight: 1 }}>
-                  {c.done}<span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-tertiary)' }}> / {c.total}</span>
-                </p>
-              </div>
-            )
-          })}
-        </div>
+        {/* ══════════════════════════════════════════════════════════════
+            ΤΟ ΙΔΙΟ ΝΟΥΜΕΡΟ ΔΥΟ ΦΟΡΕΣ ΣΤΗΝ ΙΔΙΑ ΟΘΟΝΗ
+            ──────────────────────────────────────────────────────────────
+            Εδώ κάθονταν δύο μετρητές, «ΧΡΕΙΑΖΕΤΑΙ ΑΠΟ ΕΣΕΝΑ 0 / 10» και «ΤΟ
+            ΕΤΟΙΜΑΖΕΙ Ο ΛΟΓΙΣΤΗΣ», με ΑΚΡΙΒΩΣ την ίδια ετικέτα και τον ίδιο
+            αριθμό που γράφει η κάθε ομάδα λίγο πιο κάτω, μαζί με τη λίστα της.
+            Δύο φορές η ίδια πληροφορία σε απόσταση μιας οθόνης: ο χρήστης τη
+            διαβάζει δεύτερη φορά για να καταλάβει αν είναι άλλη.
+
+            Η σύνοψη ΔΕΝ χάνεται: η κάθε ομάδα λέει το δικό της «x / y» πάνω
+            από τις γραμμές της, δηλαδή ακριβώς εκεί που μπορεί κανείς να
+            κάνει κάτι γι' αυτό. ═════════════════════════════════════ */}
 
         {appIds.length > 0 && (
           <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: T.font.sans, lineHeight: 1.5 }}>

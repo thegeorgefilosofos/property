@@ -441,7 +441,12 @@ export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyC
         {/* Αριστερά: upload ή προεπισκόπηση */}
         <div>
           {step === 'upload' ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 190px), 1fr))', gap: 12 }}>
+            /* ΜΙΑ ΣΕΙΡΑ, ΟΣΑ ΚΙ ΑΝ ΕΙΝΑΙ. Το `auto-fit` με ελάχιστο 190 έβγαζε
+               τρία πλακίδια πάνω και ένα μόνο του από κάτω: η τέταρτη επιλογή
+               διαβαζόταν ως υποσημείωση των τριών, ενώ είναι ισότιμη απάντηση
+               στην ίδια ερώτηση. Το πλήθος το ξέρει το ίδιο το component, οπότε
+               το λέει ρητά στο πλέγμα αντί να το αφήνει στο πλάτος. */
+            <div className="scan-tiles" data-tiles={onManual ? 4 : 3}>
               {/* ΓΡΑΜΜΕΝΟ ΡΗΤΑ, ΟΧΙ ΜΕ ΤΟΝ ΒΟΗΘΟ `pressable`, ΚΑΙ ΕΧΕΙ ΛΟΓΟ.
                   Το JSX spread κρύβει τις ιδιότητες από τη στατική ανάλυση: με
                   `{...pressable(…)}` ο μεταγλωττιστής του React παύει να βλέπει τι
