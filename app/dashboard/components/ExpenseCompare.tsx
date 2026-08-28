@@ -206,7 +206,7 @@ function HistoryBars({ points, currentKey }: { points: MonthPoint[]; currentKey:
               onMouseEnter={() => setHover(p.key)} onMouseLeave={() => setHover(null)}
               onFocus={() => setHover(p.key)} onBlur={() => setHover(null)}
               tabIndex={0} title={`${p.label}: ${fe(p.total)}`}
-              className="exp-month" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'default' }}>
+              className="exp-bar" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'default' }}>
               <span style={{ display: 'flex', alignItems: 'flex-end', height: 116, width: '100%', justifyContent: 'center', borderBottom: '1px solid var(--border-subtle)' }}>
                 <span style={{
                   display: 'block', width: 14, height: `${h}%`, minHeight: p.total > 0 ? 3 : 0,

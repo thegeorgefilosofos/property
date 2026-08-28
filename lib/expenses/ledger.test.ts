@@ -1,5 +1,5 @@
 // npx tsx lib/expenses/ledger.test.ts
-import { mergeLedger, ledgerTotal, ledgerUnpaid, groupByMonth, recurringMonthly, monthlyAverage, type LedgerBill, type LedgerExpense } from './ledger';
+import { mergeLedger, ledgerTotal, ledgerUnpaid, groupByMonth, openMonths, recurringMonthly, monthlyAverage, type LedgerBill, type LedgerExpense } from './ledger';
 
 let pass = 0, fail = 0;
 function eq(name: string, got: unknown, want: unknown) {
@@ -356,6 +356,29 @@ const exp = (o: Partial<LedgerExpense> & { id: string }): LedgerExpense => o;
   );
   eq('ρητό true → πληρωμένη', r.entries[0].paid, true);
   eq('και δεν φαίνεται στις οφειλές', ledgerUnpaid(r.entries).length, 0);
+}
+
+// ── ΠΟΙΟΙ ΜΗΝΕΣ ΑΝΟΙΓΟΥΝ ΧΩΡΙΣ ΠΑΤΗΜΑ ──────────────────────────────────────
+// Οι ομάδες έρχονται ΠΑΝΤΑ νεότερη πρώτη, όπως τις δίνει το groupByMonth.
+{
+  const g = (month: string) => ({ month });
+  const all = [g('2026-09'), g('2026-08'), g('2026-07'), g('2025-12')];
+
+  // Ο μήνας που τρέχει και ΟΤΙ λήγει μετά. Ο Σεπτέμβρης είναι εκεί γιατί ένας
+  // απλήρωτος λογαριασμός μετρά στον μήνα που λήγει: κρυμμένος, θα ξεχνιόταν.
+  eq('τρέχων και επόμενοι', openMonths(all, '2026-08').map(m => m.month), ['2026-09', '2026-08']);
+
+  // Μήνας χωρίς καμία γραμμή: δείχνει τον τελευταίο που έχει, όχι κενή κάρτα.
+  eq('άδειος μήνας → ο τελευταίος με περιεχόμενο', openMonths(all, '2026-10').map(m => m.month), ['2026-09']);
+
+  // Και τα τρία παλιότερα μένουν έξω, δηλαδή πίσω από το «Περισσότερα».
+  eq('τι μένει πίσω από το κουμπί', all.length - openMonths(all, '2026-08').length, 2);
+
+  // Ιδια αντικείμενα, όχι αντίγραφα: η οθόνη μετρά τι έμεινε έξω με ταυτότητα.
+  ok('επιστρέφει τα ίδια αντικείμενα', openMonths(all, '2026-08')[0] === all[0]);
+
+  // Κενή λίστα δεν σκάει και δεν επινοεί μήνα.
+  eq('χωρίς δαπάνες', openMonths([], '2026-08'), []);
 }
 
 console.log(fail === 0 ? `✓ ledger: ${pass} έλεγχοι πέρασαν` : `✗ ledger: ${fail} απέτυχαν από ${pass + fail}`);

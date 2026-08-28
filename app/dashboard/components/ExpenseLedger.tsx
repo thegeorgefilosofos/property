@@ -33,12 +33,13 @@ import * as expenseStore from '@/lib/data/expenses'
 import * as billStore from '@/lib/data/bills'
 import ExpenseCompare from './ExpenseCompare';
 import type { Spend } from '@/lib/expenses/compare';
-import { T, TT, PageTitle, fe, Btn, Card, EmptyState, Modal, Skeleton, KpiValue, fixedCols, ABSENT_DATE } from '@/components/Theme';
+import { T, TT, PageTitle, fe, fn, Btn, Card, EmptyState, Modal, Skeleton, KpiValue, fixedCols, ABSENT_DATE } from '@/components/Theme';
+import { ChevronRight } from 'lucide-react';
 import { notify, notifyError } from '@/components/toastBus';
 import { confirmDialog } from '@/components/ConfirmDialog';
 import { saved } from '@/components/dbWrite';
 import {
-  mergeLedger, ledgerTotal, groupByMonth,
+  mergeLedger, ledgerTotal, groupByMonth, openMonths,
   type LedgerEntry, type LedgerBill, type LedgerExpense,
 } from '@/lib/expenses/ledger';
 import { categoryLabel, resolveCategory, BY_SLUG, CATEGORIES } from '@/lib/expenses/taxonomy';
@@ -51,7 +52,7 @@ import { PAID_BY_OPTIONS, SHARED_SCOPES, DEFAULT_SHARE_PERCENT } from '@/lib/exp
 import { CustomSelect, DatePicker, Toggle } from './UIComponents';
 import { InfoHint } from './InfoHint';
 import { athensToday, athensMonth } from '@/lib/core/time';
-import { MONTHS_NOM } from '@/lib/core/months';
+import { monthYearLabel } from '@/lib/core/months';
 import { afmDigits, isValidAfm, parseAmount } from '@/lib/core/greek';
 
 interface Props {
@@ -69,14 +70,15 @@ interface Props {
 }
 
 
-const monthLabel = (m: string): string => {
-  const [y, mm] = m.split('-');
-  const i = parseInt(mm, 10) - 1;
-  if (!MONTHS_NOM[i]) return m;
-  const now = new Date();
-  const sameYear = String(now.getFullYear()) === y;
-  return sameYear ? MONTHS_NOM[i] : `${MONTHS_NOM[i]} ${y}`;
-};
+// ═══ Η ΧΡΟΝΙΑ ΓΡΑΦΕΤΑΙ ΠΑΝΤΑ ΣΤΗΝ ΚΕΦΑΛΙΔΑ ΤΟΥ ΜΗΝΑ ═══════════════════════
+// Η κεφαλίδα έγραφε σκέτο «ΔΕΚΕΜΒΡΙΟΣ» όταν ο μήνας ανήκε στην τρέχουσα χρονιά.
+// Με τη λίστα ανοιχτή ως την πρώτη καταχώρηση, δύο «ΔΕΚΕΜΒΡΙΟΣ» κάθονται ο ένας
+// κάτω από τον άλλο και δεν ξεχωρίζουν. Η χρονιά μπαίνει ΜΟΝΟ εδώ: η κεφαλίδα
+// είναι κολλημένη στην κορυφή όσο κυλάς μέσα στον μήνα της, οπότε φαίνεται σε
+// κάθε γραμμή χωρίς να τυπωθεί σε καθεμιά τους.
+//
+// Και δεν γράφεται δεύτερη φορά εδώ: ο πυρήνας έχει ήδη το «Ιανουάριος 2026»
+// από «2026-01», με τα ονόματα των μηνών σε ένα σημείο.
 
 /** «24/07» για φέτος, «24/07/25» για παλιότερα. Η χρονιά μπαίνει μόνο όταν μετρά. */
 const shortDate = (d: string): string => {
@@ -149,6 +151,8 @@ export default function ExpenseLedger({ propertyId, userId, onScan, openAddNonce
   // όχι αντίγραφο της γραμμής: μετά την αποθήκευση η λίστα ξαναφορτώνεται και
   // ένα αντίγραφο θα έδειχνε τα παλιά δεδομένα αν ο χρήστης ξανάνοιγε αμέσως.
   const [editingId, setEditingId] = useState<string | null>(null);
+  /** Ανοιχτό ιστορικό: κλειστό ξεκινά, ανοίγει με το «Περισσότερα» κάτω δεξιά. */
+  const [wholeHistory, setWholeHistory] = useState(false);
 
   // ═══════════════════════════════════════════════════════════════════════
   // Η ΣΥΓΚΡΙΣΗ ΜΗΝΑ ΔΙΑΒΑΖΕΙ ΤΑ ΙΔΙΑ ΔΕΔΟΜΕΝΑ — ΔΕΝ ΞΑΝΑΡΩΤΑ ΤΗ ΒΑΣΗ
@@ -231,8 +235,28 @@ export default function ExpenseLedger({ propertyId, userId, onScan, openAddNonce
 
   const months = useMemo(() => groupByMonth(filtered), [filtered]);
 
-  // ── ΤΑ ΤΡΙΑ ΝΟΥΜΕΡΑ ──────────────────────────────────────────────────────
+  // Ο μήνας έρχεται από την Αθήνα, όχι από το ρολόι του περιηγητή· γράφεται
+  // ΜΙΑ φορά: τον διαβάζουν και τα τρία νούμερα της κορυφής και το τι φαίνεται
+  // από τη λίστα. Δύο κλήσεις θα ήταν δύο πηγές χρόνου στην ίδια οθόνη.
   const thisMonth = athensMonth();
+
+  // ── ΜΠΡΟΣΤΑ Ο ΜΗΝΑΣ ΠΟΥ ΤΡΕΧΕΙ. ΤΟ ΙΣΤΟΡΙΚΟ ΠΙΣΩ ΑΠΟ ΕΝΑ ΠΑΤΗΜΑ ──────────
+  //
+  // Ο κανόνας για το ΠΟΙΟΙ μήνες ανοίγουν χωρίς πάτημα ζει στον πυρήνα, με τους
+  // ελέγχους του: εδώ μένει μόνο το τι κάνει η οθόνη με την απάντηση.
+  //
+  // ΟΣΟ ΨΑΧΝΕΙ, ΤΙΠΟΤΑ ΔΕΝ ΚΡΥΒΕΤΑΙ. Αναζήτηση που δείχνει μόνο τα ευρήματα του
+  // τρέχοντος μήνα απαντά ψέματα στο ερώτημα «πού πήγαν τα λεφτά της ΔΕΗ». Με
+  // κείμενο στο πεδίο, η λίστα είναι πάντα ολόκληρη.
+  const searching = q.trim().length > 0;
+  const current = useMemo(() => openMonths(months, thisMonth), [months, thisMonth]);
+  const shown = wholeHistory || searching ? months : current;
+  /** Πόσες δαπάνες μένουν πίσω από το «Περισσότερα». Μηδέν σημαίνει: κανένα κουμπί. */
+  const olderCount = useMemo(
+    () => months.filter(m => !current.includes(m)).reduce((n, m) => n + m.entries.length, 0),
+    [months, current]);
+
+  // ── ΤΑ ΤΡΙΑ ΝΟΥΜΕΡΑ ──────────────────────────────────────────────────────
   const monthTotal = useMemo(
     () => ledgerTotal(entries.filter(e => e.date.startsWith(thisMonth))), [entries, thisMonth]);
   const unpaid = useMemo(() => entries.filter(e => !e.paid), [entries]);
@@ -373,6 +397,15 @@ export default function ExpenseLedger({ propertyId, userId, onScan, openAddNonce
           background: var(--bg-surface); border-bottom: 1px solid var(--border-subtle);
         }
         .exp-month:first-child { margin-top: 0; }
+        /* ΤΟ «ΠΕΡΙΣΣΟΤΕΡΑ» ΚΑΘΕΤΑΙ ΚΑΤΩ ΔΕΞΙΑ, ΟΠΟΥ ΤΕΛΕΙΩΝΕΙ Η ΑΝΑΓΝΩΣΗ.
+           Δεν παίρνει όλο το πλάτος: δεν είναι ενότητα που ανοίγει πάνω από
+           περιεχόμενο, είναι η συνέχεια της λίστας που μόλις διάβασες. Μια
+           τρίχα από πάνω το χωρίζει από την τελευταία γραμμή χωρίς να μοιάζει
+           με κεφαλίδα νέου μήνα. */
+        .exp-more {
+          display: flex; justify-content: flex-end;
+          padding: 4px 10px 2px; border-top: 1px solid var(--border-subtle);
+        }
         /* ΣΕ ΣΤΕΝΗ ΟΘΟΝΗ: ΗΜΕΡΟΜΗΝΙΑ, ΤΙΤΛΟΣ ΚΑΙ ΠΟΣΟ ΣΤΗΝ ΠΡΩΤΗ ΣΕΙΡΑ.
            Τα κουμπιά κατεβαίνουν ολόκληρα από κάτω και τυλίγονται: τρία κουμπιά
            με «white-space: nowrap» δεν χωρούν ποτέ δίπλα σε ποσό σε 375 pixel
@@ -705,10 +738,10 @@ export default function ExpenseLedger({ propertyId, userId, onScan, openAddNonce
           action={<Btn variant="secondary" onClick={() => setQ('')}>Καθάρισε την αναζήτηση</Btn>} />
       ) : (
         <Card pad="sm" gap={false}>
-          {months.map(m => (
+          {shown.map(m => (
             <div key={m.month}>
               <div className="exp-month">
-                <span style={TT.label}>{monthLabel(m.month)}</span>
+                <span style={TT.label}>{monthYearLabel(m.month)}</span>
                 <span style={{ ...TT.figure, fontWeight: 700, color: 'var(--text-secondary)' }}>{fe(m.total)}</span>
               </div>
               <div style={{ padding: '4px 0' }}>
@@ -720,6 +753,27 @@ export default function ExpenseLedger({ propertyId, userId, onScan, openAddNonce
               </div>
             </div>
           ))}
+          {/* ΤΟ ΚΟΥΜΠΙ ΛΕΕΙ ΤΙ ΑΝΟΙΓΕΙ, ΟΧΙ ΣΚΕΤΟ «ΠΕΡΙΣΣΟΤΕΡΑ».
+              Το πλήθος είναι η μόνη πληροφορία που χρειάζεται ο χρήστης για να
+              αποφασίσει αν αξίζει το πάτημα: τρεις παλιότερες δαπάνες είναι
+              άλλο πράγμα από τριακόσιες. Ο μήνας της πρώτης καταχώρησης δεν
+              γράφεται εδώ, γιατί μόλις ανοίξει η λίστα τον λέει η τελευταία
+              κεφαλίδα, με τη χρονιά της. */}
+          {!searching && olderCount > 0 && (
+            <div className="exp-more">
+              <button type="button" className="acc-toggle" onClick={() => setWholeHistory(v => !v)}
+                aria-expanded={wholeHistory}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 44, padding: '0 4px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: T.font.sans }}>
+                <span style={{ ...TT.label, fontSize: 11, color: 'var(--text-secondary)' }}>
+                  {wholeHistory ? 'Λιγότερα' : 'Περισσότερα'}
+                </span>
+                <span style={{ ...TT.caption, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
+                  {fn(olderCount)} παλιότερες
+                </span>
+                <ChevronRight aria-hidden size={15} style={{ flexShrink: 0, color: 'var(--text-tertiary)', transform: wholeHistory ? 'rotate(-90deg)' : 'rotate(90deg)', transition: 'transform .18s' }} />
+              </button>
+            </div>
+          )}
         </Card>
       )}
 
@@ -890,26 +944,29 @@ function AfmField({ value, onChange }: { value: string; onChange: (v: string) =>
   const bad = value.trim() !== '' && !isValidAfm(value);
   const id = useId();
   return (
-    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-      <div style={{ flex: '0 1 190px', minWidth: 0 }}>
-        {/* Η ΟΔΗΓΙΑ ΠΙΣΩ ΑΠΟ ΤΟ ΚΥΚΛΑΚΙ. Διαβάζεται μία φορά στη ζωή του
-            χρήστη: γιατί ζητείται ένα προαιρετικό πεδίο. Μόνιμα ορατή, έπιανε
-            240 εικονοστοιχεία δίπλα σε κάθε καταχώρηση δαπάνης και έλεγε στον
-            εκατοστό λογαριασμό ό,τι είχε πει στον πρώτο. */}
-        <span style={{ ...LAB, display: 'flex', alignItems: 'center' }}>
-          <label htmlFor={id}>ΑΦΜ προμηθευτή</label>
-          <InfoHint label="Γιατί ζητείται το ΑΦΜ">Προαιρετικό. Χωρίς αυτό, ο λογιστής ταιριάζει τα παραστατικά με το όνομα.</InfoHint>
-        </span>
-        <input id={id} value={value} onChange={e => onChange(e.target.value)} inputMode="numeric" maxLength={13}
-          aria-invalid={bad || undefined}
-          style={{ ...FIELD, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}
-          placeholder="Εννέα ψηφία" />
-      </div>
-      {/* Το λάθος ΦΑΙΝΕΤΑΙ, δεν κρύβεται πουθενά: κάθεται δίπλα στο πεδίο και
-          είναι χαμηλότερο από αυτό, οπότε η φόρμα δεν αλλάζει ύψος τη στιγμή
-          που ο χρήστης πληκτρολογεί. */}
+    // ΠΑΙΡΝΕΙ ΤΟ ΠΛΑΤΟΣ ΤΟΥ ΚΕΛΙΟΥ ΤΟΥ, ΔΕΝ ΤΟ ΟΡΙΖΕΙ ΜΟΝΟ ΤΟΥ. Το πεδίο
+    // κουβαλούσε δικό του `flex: 0 1 190px`, οπότε σε όποιο πλέγμα κι αν
+    // έμπαινε στεκόταν 190 εικονοστοιχεία μέσα σε στήλη άλλου πλάτους και το
+    // δεξί του άκρο δεν έπεφτε σε καμία κάθετη της φόρμας. Το πόσο φαρδύ είναι
+    // ένα πεδίο το αποφασίζει η στήλη· εδώ μένει μόνο τι γράφει.
+    <div style={{ minWidth: 0 }}>
+      {/* Η ΟΔΗΓΙΑ ΠΙΣΩ ΑΠΟ ΤΟ ΚΥΚΛΑΚΙ. Διαβάζεται μία φορά στη ζωή του
+          χρήστη: γιατί ζητείται ένα προαιρετικό πεδίο. Μόνιμα ορατή, έπιανε
+          240 εικονοστοιχεία δίπλα σε κάθε καταχώρηση δαπάνης και έλεγε στον
+          εκατοστό λογαριασμό ό,τι είχε πει στον πρώτο. */}
+      <span style={{ ...LAB, display: 'flex', alignItems: 'center' }}>
+        <label htmlFor={id}>ΑΦΜ προμηθευτή</label>
+        <InfoHint label="Γιατί ζητείται το ΑΦΜ">Προαιρετικό. Χωρίς αυτό, ο λογιστής ταιριάζει τα παραστατικά με το όνομα.</InfoHint>
+      </span>
+      <input id={id} value={value} onChange={e => onChange(e.target.value)} inputMode="numeric" maxLength={13}
+        aria-invalid={bad || undefined}
+        style={{ ...FIELD, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}
+        placeholder="Εννέα ψηφία" />
+      {/* Το λάθος ΦΑΙΝΕΤΑΙ, δεν κρύβεται πουθενά: κάθεται κάτω από το πεδίο που
+          το γέννησε, εκεί που το ψάχνει το μάτι μετά την πληκτρολόγηση. Είναι η
+          τελευταία σειρά της φόρμας, οπότε τίποτα δεν μετακινείται από κάτω. */}
       {bad && (
-        <span style={{ ...TT.caption, flex: '1 1 240px', minWidth: 0, paddingBottom: 11, lineHeight: 1.5 }}>
+        <span style={{ ...TT.caption, display: 'block', marginTop: 6, lineHeight: 1.5 }}>
           Δεν είναι έγκυρο ΑΦΜ. Εννέα ψηφία, όπως στο παραστατικό.
         </span>
       )}
@@ -994,7 +1051,12 @@ function EditExpense({ row, userId, onClose, onSaved }: {
     // χρήστης δεν ήθελε να ανοίξει. Και δεν προσφέρεται και στα δύο σημεία —
     // δύο δρόμοι για την ίδια οριστική ενέργεια είναι δύο ευκαιρίες να πατηθεί
     // κατά λάθος.
-    <Modal open onClose={onClose} title="Επεξεργασία δαπάνης" size="md"
+    // ΤΟ ΠΛΑΤΟΣ ΒΓΑΙΝΕΙ ΑΠΟ ΤΟ ΠΛΕΓΜΑ, ΟΧΙ ΑΝΑΠΟΔΑ. Στο «md» (620) το παράθυρο
+    // αφήνει 572 στα πεδία, δηλαδή δώδεκα λιγότερα από όσα θέλει η μεσαία στήλη
+    // συν την τρίτη στα μέγιστά τους: η περιγραφή θα έτρωγε τη διαφορά και ο
+    // κατάλογος κατηγοριών θα κοβόταν. Στο «lg» οι τρεις στήλες βγαίνουν
+    // ακριβώς όπως στη φόρμα καταχώρησης.
+    <Modal open onClose={onClose} title="Επεξεργασία δαπάνης" size="lg"
       footerInfo={missing ?? undefined}
       footer={<>
         <Btn variant="secondary" onClick={onClose}>Ακύρωση</Btn>
@@ -1002,22 +1064,32 @@ function EditExpense({ row, userId, onClose, onSaved }: {
           {saving ? 'Γίνεται…' : 'Αποθήκευση'}
         </Btn>
       </>}>
-      <label style={{ display: 'block', minWidth: 0 }}>
-        <span style={LAB}>Περιγραφή</span>
-        <input value={what} onChange={e => setWhat(e.target.value)} style={FIELD}
-          placeholder="λογαριασμός ΔΕΗ, υδραυλικός" />
-      </label>
+      {/* ═══ ΔΥΟ ΣΕΙΡΕΣ, ΟΧΙ ΤΕΣΣΕΡΙΣ. ΚΑΙ ΟΙ ΙΔΙΕΣ ΜΕ ΤΗΣ ΚΑΤΑΧΩΡΗΣΗΣ ══════
+          Τα πέντε πεδία κάθονταν σε τέσσερα επίπεδα: η περιγραφή μόνη της σε όλο
+          το πλάτος, το ζευγάρι ποσό και ημερομηνία, η κατηγορία μόνη της, το
+          ΑΦΜ μόνο του. Τέσσερα ξεκινήματα, τέσσερα τέλη, καμία κάθετη κοινή:
+          ένα παράθυρο 890 εικονοστοιχείων για να διορθώσεις μια λέξη και ένα
+          ποσό.
 
-      {/* Ίδια γεωμετρία με την καταχώρηση: το ευρώ μέσα στο πεδίο, δεξιά. */}
-      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-        <label style={{ flex: '0 1 150px', minWidth: 0, position: 'relative' }}>
+          Το πλέγμα είναι ΤΟ ΙΔΙΟ που στήνει τη φόρμα καταχώρησης, γραμμένο μία
+          φορά στο φύλλο στυλ. Ο χρήστης που έγραψε τη δαπάνη και ο χρήστης που
+          τη διορθώνει βλέπουν τα ίδια πεδία στα ίδια πλάτη, στις ίδιες θέσεις:
+          η διόρθωση δεν είναι δεύτερη φόρμα που πρέπει να τη μάθει ξανά. */}
+      <div className="qa-grid">
+        <label className="qa-wide" style={{ minWidth: 0 }}>
+          <span style={LAB}>Περιγραφή</span>
+          <input value={what} onChange={e => setWhat(e.target.value)} style={FIELD}
+            placeholder="λογαριασμός ΔΕΗ, υδραυλικός" />
+        </label>
+        {/* Ίδια γεωμετρία με την καταχώρηση: το ευρώ μέσα στο πεδίο, δεξιά. */}
+        <label style={{ minWidth: 0, position: 'relative' }}>
           <span style={LAB}>Ποσό</span>
           <input value={amount} onChange={e => setAmount(e.target.value)} inputMode="decimal"
             style={{ ...FIELD, paddingRight: 34, textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}
             placeholder="0,00" />
           <span aria-hidden style={{ position: 'absolute', right: 14, bottom: 0, height: T.h.lg, display: 'flex', alignItems: 'center', fontSize: 14, color: 'var(--text-tertiary)', pointerEvents: 'none' }}>€</span>
         </label>
-        <div style={{ flex: '1 1 190px', minWidth: 0 }}>
+        <div style={{ minWidth: 0 }}>
           <span style={LAB}>Ημερομηνία</span>
           <DatePicker value={date} onChange={setDate} />
         </div>
@@ -1027,14 +1099,15 @@ function EditExpense({ row, userId, onClose, onSaved }: {
           από την περιγραφή, γιατί εκεί δεν υπάρχει ακόμη κατηγορία. Εδώ υπάρχει
           και ο λόγος που άνοιξε η οθόνη είναι συχνά ότι είναι λάθος: μια λίστα
           με ΟΛΕΣ τις κατηγορίες απαντά σε αυτό, έξι πλακίδια όχι. */}
-      <div style={{ minWidth: 0 }}>
-        <span style={LAB}>Κατηγορία</span>
-        <CustomSelect value={slug} onChange={setSlug} ariaLabel="Κατηγορία δαπάνης"
-          placeholder="Χωρίς κατηγορία"
-          options={CATEGORIES.map(c => ({ value: c.slug, label: c.label }))} />
+      <div className="qa-grid">
+        <div className="qa-wide" style={{ minWidth: 0 }}>
+          <span style={LAB}>Κατηγορία</span>
+          <CustomSelect value={slug} onChange={setSlug} ariaLabel="Κατηγορία δαπάνης"
+            placeholder="Χωρίς κατηγορία"
+            options={CATEGORIES.map(c => ({ value: c.slug, label: c.label }))} />
+        </div>
+        <AfmField value={afm} onChange={setAfm} />
       </div>
-
-      <AfmField value={afm} onChange={setAfm} />
     </Modal>
   );
 }
@@ -1180,35 +1253,6 @@ function QuickAdd({ propertyId, userId, seed, onDone }: { propertyId: string; us
           ολόκληρη τρίτη σειρά από κάτω. Είναι η ίδια ερώτηση δύο φορές («τι
           είναι αυτή η δαπάνη» και «ποιανού είναι»): κάθεται τώρα στην ίδια
           γραμμή και η φόρμα κοντύνει κατά μία σειρά. */}
-      <style>{`
-        /* ΕΝΑ ΜΕΤΡΟ ΓΙΑ ΟΛΗ ΤΗ ΦΟΡΜΑ. Τα πεδία πιάνουν 824 εικονοστοιχεία
-           (414+12+196+12+190) και το κουμπί καθόταν στο δεξί άκρο μιας κάρτας
-           1.100: η γραμμή της ενέργειας δεν είχε καμία σχέση με τη γραμμή των
-           πεδίων. Τώρα κάθε σειρά τελειώνει στην ίδια κάθετη.
-
-           Η ΜΕΣΑΙΑ ΣΤΗΛΗ ΕΙΝΑΙ 196 ΚΑΙ ΟΧΙ 150, ΕΠΕΙΔΗ ΜΕΤΡΗΘΗΚΕ ΣΕ ΠΕΡΙΗΓΗΤΗ.
-           Η μακρύτερη επιλογή του «Ποιος πληρώνει» («Μοιρασμένο 50/50») θέλει
-           134 εικονοστοιχεία κειμένου, ο επιλογέας τρώει 58 σε περιθώρια, βέλος
-           και περίγραμμα: 192 για να μην κοπεί. Στα 170 κοβόταν κατά 22, στα
-           190 κατά 2. Τα σαράντα έξι που πήρε η στήλη τα έδωσε η πρώτη, που
-           κρατά περιγραφή και όχι αριθμό. */
-        .qa-form { max-width: 824px; }
-        .qa-grid { display: grid; gap: 12px; align-items: end;
-          grid-template-columns: minmax(200px, 414px) minmax(150px, 196px) minmax(150px, 190px); }
-        /* Το μερίδιο ανήκει στον επιλογέα που το γέννησε: πέφτει ΑΚΡΙΒΩΣ από
-           κάτω του σε κάθε πλάτος, στη δεύτερη στήλη όσο υπάρχουν τρεις και
-           στην πρώτη όταν οι στήλες γίνουν δύο, όπου εκεί κάθεται ο επιλογέας. */
-        .qa-share { grid-column: 2; }
-        @media (max-width: 760px) { .qa-grid { grid-template-columns: 1fr 1fr; }
-          .qa-grid > .qa-wide { grid-column: 1 / -1; }
-          .qa-share { grid-column: 1; } }
-        /* ΜΙΑ ΣΤΗΛΗ ΑΠΟ ΤΑ 470 ΚΑΙ ΚΑΤΩ, ΟΧΙ ΑΠΟ ΤΑ 420. Δύο στήλες σε οθόνη
-           430 (iPhone Pro Max) αφήνουν 180 στον επιλογέα του πληρωτή, δώδεκα
-           λιγότερα από όσα θέλει: το «Μοιρασμένο 50/50» θα έφτανε στην οθόνη
-           κομμένο. Στα 470 και πάνω η κάθε στήλη βγαίνει 200. */
-        @media (max-width: 470px) { .qa-grid { grid-template-columns: 1fr; } }
-      `}</style>
-
       <div className="qa-form">
       <div className="qa-grid">
         <label className="qa-wide" style={{ minWidth: 0 }}>
@@ -1306,8 +1350,8 @@ function QuickAdd({ propertyId, userId, seed, onDone }: { propertyId: string; us
           δεν θα αποθηκευόταν είναι χειρότερο από πεδίο που λείπει. Το ΑΦΜ
           μπαίνει μετά την εξόφληση, από την επεξεργασία της δαπάνης. */}
       {paid && (
-        <div style={{ marginTop: 14 }}>
-          <AfmField value={afm} onChange={setAfm} />
+        <div className="qa-grid" style={{ marginTop: 14 }}>
+          <div className="qa-afm"><AfmField value={afm} onChange={setAfm} /></div>
         </div>
       )}
 

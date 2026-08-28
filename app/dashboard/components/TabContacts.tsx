@@ -12,7 +12,7 @@ import * as contactStore from '@/lib/data/contacts';
 import { inferRole } from '@/lib/contacts/roles'
 import { alphaBucket, buildAlphaIndex, compareNames, initialsOf, type AlphaEntry } from '@/lib/contacts/alpha'
 import { Phone, Mail, X, Search, Globe, MapPin, FileText, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, Pencil, Trash2, Copy, MessageSquare, UserPlus, Camera, Check, Minus, SearchX } from 'lucide-react'
-import { DatePicker, CustomSelect, Toggle } from './UIComponents'
+import { DatePicker, CustomSelect, Toggle, InfoDot } from './UIComponents'
 import { T, PageTitle, fieldRow, SecHdr, Btn, EmptyState, fn, fe, Skeleton, SkeletonKPIs, SelectBox, ABSENT, ABSENT_SHORT, Modal, SideSheet, localDay, pressable, pageShell } from '@/components/Theme'
 import { showTool, SHOW_FROM } from '@/lib/ui/thresholds'
 import { ActionMenu } from '@/components/ActionMenu'
@@ -329,25 +329,31 @@ function Txt({ value, onChange, placeholder, rows = 4, ariaLabel }: { value: str
 }
 // Πεδίο ΜΕ ΤΟ «ΓΙΑΤΙ» ΤΟΥ, από το μητρώο. Αν το πεδίο δεν αφορά αυτόν τον χρήστη,
 // δεν αποδίδεται καθόλου — δεν κλειδώνεται και δεν εμφανίζεται γκριζαρισμένο.
+// ═══ ΤΟ «ΓΙΑΤΙ» ΗΤΑΝ ΜΟΝΙΜΗ ΠΑΡΑΓΡΑΦΟΣ ΚΑΤΩ ΑΠΟ ΤΟ ΠΕΔΙΟ ══════════════════════
+// Το ΑΦΜ της επαφής κουβαλούσε τέσσερις σειρές κειμένου κάτω από ένα κουτί δύο
+// εκατοστών: «Συνδέει τα παραστατικά του με την επαφή. Χωρίς αυτό, το ταίριασμα
+// γίνεται με το όνομα και αστοχεί.» Σωστό, χρήσιμο και διαβάζεται ΜΙΑ φορά στη
+// ζωή του χρήστη — μετά είναι θόρυβος που ψηλώνει τη φόρμα και σπρώχνει τα
+// επόμενα πεδία εκτός οθόνης. Και η ίδια η σειρά έσπαγε τη στοίχιση: το πεδίο
+// δίπλα του τελείωνε τέσσερις σειρές ψηλότερα.
+//
+// Πάει στο κυκλάκι, όπως κάθε εξήγηση της εφαρμογής. Το κείμενο δεν χάνεται
+// ούτε για τον αναγνώστη οθόνης: το `InfoDot` το γράφει σε κρυφό κόμβο που
+// ανακοινώνεται με το κουμπί του.
 function CField({ d, required, children }: { d?: FieldDecision; required?: boolean; children: React.ReactNode }) {
   if (!d) return null
   return (
     <div>
-      <FL>{d.label}{required || d.critical ? ' *' : ''}</FL>
+      <FL>{d.label}{required || d.critical ? ' *' : ''}{!d.selfEvident && d.why ? <InfoDot text={d.why} /> : null}</FL>
       {/* Η ετικέτα που μόλις γράφτηκε ταξιδεύει και ΜΕΣΑ στο πεδίο, ως όνομα για
-          τον αναγνώστη οθόνης. Το `why` από κάτω δεν μπαίνει: είναι περιγραφή,
-          όχι όνομα· ένα όνομα δύο προτάσεων ακούγεται σε κάθε εστίαση. */}
+          τον αναγνώστη οθόνης. Το `why` δεν μπαίνει: είναι περιγραφή, όχι όνομα·
+          ένα όνομα δύο προτάσεων ακούγεται σε κάθε εστίαση. */}
       <FieldName.Provider value={d.label}>{children}</FieldName.Provider>
-      {/* Κενό `why` δεν αποδίδει γραμμή. Πριν, ΚΑΘΕ πεδίο κουβαλούσε τη δική του
-          πρόταση και τα μισά ξανάλεγαν την ετικέτα («Όνομα · Για να τον βρεις»):
-          διπλάσιο ύψος φόρμας για μηδέν πληροφορία και ύφος οδηγιών χρήσης αντί
-          για εργαλείο. Μένουν μόνο όσες λένε συνέπεια που δεν μαντεύεται. */}
-      {!d.selfEvident && d.why && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.45, marginTop: 6 }}>{d.why}</div>}
     </div>
   )
 }
 function FL({ children }: { children: React.ReactNode }) {
-  return <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 7, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>{children}</label>
+  return <label style={{ display: 'flex', alignItems: 'center', fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 7, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>{children}</label>
 }
 // ΕΔΩ ΗΤΑΝ ΤΟ AddressAutocomplete (52 γραμμές). Έστελνε ΚΑΘΕ πληκτρολόγηση του
 // χρήστη σε τρίτο εξυπηρετητή (nominatim.openstreetmap.org) για να προτείνει
@@ -455,7 +461,12 @@ function FileUploader({ files, onChange, contactId }: { files: ContactFile[]; on
   return (
     <div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
-        {files.length === 0 && <EmptyState icon={<FileText size={20} />} title="Κανένα αρχείο ακόμη" hint="Ανέβασε συμβόλαια, τιμολόγια ή φωτογραφίες που αφορούν αυτή την επαφή." />}
+        {/* ΤΕΣΣΕΡΑ ΚΕΙΜΕΝΑ ΓΙΑ ΝΑ ΠΕΙ ΚΑΝΕΙΣ «ΑΝΕΒΑΣΕ ΕΝΑ ΑΡΧΕΙΟ». Με άδεια λίστα, η
+            οθόνη έγραφε τίτλο («Κανένα αρχείο ακόμη»), υπότιτλο («Ανέβασε συμβόλαια,
+            τιμολόγια ή φωτογραφίες που αφορούν αυτή την επαφή»), το κουμπί
+            («+ Προσθήκη Αρχείου») και από κάτω μια τέταρτη σειρά με το «γιατί» του
+            μητρώου. Το κουμπί λέει ήδη και τι κάνει και τι δέχεται· τα άλλα τρία
+            ήταν εκατόν είκοσι εικονοστοιχεία για να το επαναλάβουν. Μένει το κουμπί. */}
         {files.map((f, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 14px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
             <FileText size={16} color="var(--text-tertiary)" style={{ flexShrink: 0 }} />
