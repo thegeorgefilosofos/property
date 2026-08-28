@@ -88,7 +88,7 @@ export function InfoHint({ children, size = 14, label = 'Περισσότερα'
         onMouseOver={(e) => (e.currentTarget.style.color = 'var(--accent)')}
         onMouseOut={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
       >
-        <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
+        <svg aria-hidden="true" width={size} height={size} viewBox="0 0 16 16" fill="none">
           <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.3" />
           <path d="M8 7.2v3.6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           <circle cx="8" cy="5.1" r="0.85" fill="currentColor" />

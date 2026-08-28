@@ -332,7 +332,7 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
     <Modal open={open} onClose={closeIfIdle} size="lg"
       title="Δημιουργία αναφοράς"
       subtitle="Περίοδος, ακίνητα και ενότητες σε επίσημο, επαληθεύσιμο PDF"
-      icon={<svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>}
+      icon={<svg aria-hidden="true" width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>}
       footer={footer} footerInfo={footerInfo}>
       <>
           {presets.length > 0 && (
@@ -355,10 +355,10 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
             <div style={{ ...TT.label, marginBottom: 8 }}>ΠΕΡΙΟΔΟΣ</div>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <div style={{ flex: '0 1 130px', minWidth: 110 }}>
-                <Select value={String(year)} onChange={v => setYear(Number(v))} options={yearsAvail.map(y => ({ value: String(y), label: String(y) }))} />
+                <Select ariaLabel="Έτος" value={String(year)} onChange={v => setYear(Number(v))} options={yearsAvail.map(y => ({ value: String(y), label: String(y) }))} />
               </div>
               <div style={{ flex: '0 1 170px', minWidth: 150 }}>
-                <Select value={String(month)} onChange={v => setMonth(Number(v))} options={[{ value: '0', label: 'Όλο το έτος' }, ...MONTHS_NOM.map((m, i) => ({ value: String(i + 1), label: m }))]} />
+                <Select ariaLabel="Μήνας" value={String(month)} onChange={v => setMonth(Number(v))} options={[{ value: '0', label: 'Όλο το έτος' }, ...MONTHS_NOM.map((m, i) => ({ value: String(i + 1), label: m }))]} />
               </div>
             </div>
           </div>
@@ -378,7 +378,7 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
                 return (
                   <button key={s.key} onClick={() => toggle(sections, s.key, setSections)} style={{ ...pill(on), display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                     <span style={{ width: 16, height: 16, marginTop: 1, borderRadius: 6, flexShrink: 0, border: `1.5px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {on && <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>}
+                      {on && <svg aria-hidden="true" width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>}
                     </span>
                     <span>
                       <span style={{ display: 'block', fontWeight: 660, letterSpacing: '-0.01em' }}>{s.label}</span>

@@ -296,7 +296,7 @@ export function exportHandoverProtocol(items: ChecklistItem[], type: 'checkin' |
 
   const taskRows = relevant.map(item => `
     <div class="task-row ${item.status === 'done' ? 'done' : ''}">
-      <div class="task-cb ${item.status === 'done' ? 'task-cb-done' : ''}">${item.status === 'done' ? `<svg width="9" height="9" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="${PAPER}" stroke-width="2.5" stroke-linecap="round"/></svg>` : ''}</div>
+      <div class="task-cb ${item.status === 'done' ? 'task-cb-done' : ''}">${item.status === 'done' ? `<svg aria-hidden="true" width="9" height="9" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="${PAPER}" stroke-width="2.5" stroke-linecap="round"/></svg>` : ''}</div>
       <div class="task-label">${esc(item.description)}</div>
       ${item.assigned_contact_name ? `<div class="task-contact">${esc(item.assigned_contact_name)}</div>` : ''}
     </div>`).join('')
@@ -423,7 +423,7 @@ body{font-family:'Inter',sans-serif;background:${PAPER};color:${INK};font-size:1
   </div>
 </div>
 
-<div class="notice"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${INK}" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><span>Αυτό το πρωτόκολλο αποτελεί νομικά δεσμευτικό αποδεικτικό παράδοσης/παραλαβής ακινήτου. Κρατήστε αντίγραφο και οι δύο πλευρές. Εκτυπώστε σε 2 αντίτυπα.</span></div>
+<div class="notice"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${INK}" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><span>Αυτό το πρωτόκολλο αποτελεί νομικά δεσμευτικό αποδεικτικό παράδοσης/παραλαβής ακινήτου. Κρατήστε αντίγραφο και οι δύο πλευρές. Εκτυπώστε σε 2 αντίτυπα.</span></div>
 
 ${sectionHtml(1, 'Στοιχεία Ακινήτου και Συμβαλλομένων', `
   <div class="field-grid">

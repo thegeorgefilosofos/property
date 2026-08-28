@@ -52,7 +52,7 @@ export default function DocChecklist({ docs, storageKey, title = 'Δικαιολ
                 width: compact ? 18 : 20, height: compact ? 18 : 20, flexShrink: 0, borderRadius: 6, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 background: on ? 'var(--accent)' : 'transparent', border: `1.5px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, transition: 'background 0.15s, border-color 0.15s',
               }}>
-                {on && <svg width={compact ? 11 : 12} height={compact ? 11 : 12} viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
+                {on && <svg aria-hidden="true" width={compact ? 11 : 12} height={compact ? 11 : 12} viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
               </span>
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ fontSize: compact ? 12 : 13, fontWeight: 500, fontFamily: font, color: on ? 'var(--text-tertiary)' : 'var(--text-primary)', textDecoration: on ? 'line-through' : 'none' }}>{d.name}</span>

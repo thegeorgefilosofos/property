@@ -976,7 +976,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               <div key={c.id} className="client-card" role="button" tabIndex={0}
                 onClick={() => setOpenId(c.id)}
                 onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) { e.preventDefault(); setOpenId(c.id); } }}
-                style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, outline: 'none' }}>
+                style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
 
                 {/* Κεφαλίδα: avatar + όνομα + σήματα συμμόρφωσης + ενέργειες.
                     Καμία βαθμολογία, κανένα VIP, καμία «Προσοχή» πάνω σε όνομα ανθρώπου. */}
@@ -999,7 +999,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                         style={{ background: 'none', border: 'none', borderRadius: 8, width: T.h.sm, height: T.h.sm, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 0, flexShrink: 0 }}
                         onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--negative)'; }}
                         onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-tertiary)'; }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
                       </button>
                     </div>
                   </div>
@@ -1028,11 +1028,11 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 {(c.phone || c.email) && (
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                     {c.phone && <a onClick={e => e.stopPropagation()} href={`tel:${c.phone}`} style={contactChip}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92Z" /></svg>
+                      <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92Z" /></svg>
                       {c.phone}
                     </a>}
                     {c.email && <a onClick={e => e.stopPropagation()} href={`mailto:${c.email}`} style={contactChip}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
+                      <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.email}</span>
                     </a>}
                     {/* WhatsApp και Viber ΔΕΝ επαναλαμβάνονται εδώ. Ζουν στην
@@ -1046,7 +1046,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingTop: 2 }}>
                     {linked.map(p => (
                       <button key={p.id} onClick={e => { e.stopPropagation(); onSelectProperty?.(p.id); }} title={`Άνοιγμα: ${p.name}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, padding: '4px 9px', borderRadius: 8, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--accent)', cursor: 'pointer', fontFamily: T.font.sans }}>
-                        <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5 12 3l9 6.5" /><path d="M5 10v10h14V10" /></svg>{p.name}
+                        <svg aria-hidden="true" width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5 12 3l9 6.5" /><path d="M5 10v10h14V10" /></svg>{p.name}
                       </button>
                     ))}
                   </div>
@@ -1091,7 +1091,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                     aria-haspopup="listbox" aria-expanded={reportYearMenu}
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: T.h.sm, padding: '0 10px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: T.font.mono, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                     {reportYear}
-                    <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: reportYearMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', opacity: 0.7 }}><path d="m6 9 6 6 6-6" /></svg>
+                    <svg aria-hidden="true" width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: reportYearMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', opacity: 0.7 }}><path d="m6 9 6 6 6-6" /></svg>
                   </button>
                   {/* ΔΕΝ ΕΙΝΑΙ ΠΑΡΑΘΥΡΟ, ΑΡΑ ΔΕΝ ΓΙΝΕΤΑΙ Modal. Είναι popover
                       αγκυρωμένο στο κουμπί του έτους: χωρίς τίτλο, χωρίς σώμα,
@@ -1278,7 +1278,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                     λευκό πλαίσιο σε σκούρα σελίδα. Ένα πεδίο, το ίδιο με τα άλλα. */}
                 {unlinkedProps.length > 0 && (
                   <div style={{ flex: '1 1 220px', minWidth: 190 }}>
-                    <CustomSelect value="" onChange={v => { if (v) linkProperty(dc.id, v); }}
+                    <CustomSelect ariaLabel="Σύνδεση ακινήτου" value="" onChange={v => { if (v) linkProperty(dc.id, v); }}
                       options={unlinkedProps.map(p => ({ value: p.id, label: p.name }))}
                       placeholder="Πρόσθεσε ακίνητο" />
                   </div>
@@ -1591,7 +1591,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   {docs.map(d => (
                     <div key={d.id} style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.card, padding: 12, boxShadow: 'var(--highlight-inset), var(--elev-1)', display: 'flex', alignItems: 'center', gap: 12 }}>
                       <div style={{ width: 38, height: 38, borderRadius: 10, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', flexShrink: 0 }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></svg>
+                        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></svg>
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name}</div>
@@ -1701,7 +1701,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
           του, οπότε εδώ μένει σκέτο το SVG. */}
       <Modal open={icalOpen} onClose={() => setIcalOpen(false)} size="lg"
         title="Εισαγωγή iCal" subtitle="Συγχρονισμός κρατήσεων από Airbnb ή Booking"
-        icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>}
+        icon={<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>}
         footer={icalEvents ? (
           <>
             <Btn variant="ghost" onClick={() => setIcalOpen(false)}>Κλείσιμο</Btn>

@@ -469,7 +469,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
   // τέλος ανήκει στο κράτος και ότι η προμήθεια είναι δαπάνη ισχύει για όλη την
   // καρτέλα. Λέγεται μία φορά, εκεί που πρωτοεμφανίζεται η ανάλυση.
   const priceAnatomy = (
-    <div className="text-measure" style={{ marginTop: 10, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.65, fontFamily: T.font.sans }}>
+    <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.65, fontFamily: T.font.sans }}>
       Το τέλος ανθεκτικότητας εισπράττεται για το κράτος και δεν είναι έσοδό σου.{' '}
       {feeRate != null && feeRate > 0
         ? `Η προμήθεια (${fp(feeRate * 100)}, από τις δικές σου καταγεγραμμένες διαμονές) είναι δαπάνη και δεν μειώνει το δηλωτέο έσοδο.`
@@ -557,7 +557,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
                 {median > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.num }}>διάμεση {fe(median)}</span>}
-                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: compsOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="m6 9 6 6 6-6" /></svg>
+                <svg aria-hidden="true" width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: compsOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="m6 9 6 6 6-6" /></svg>
               </div>
             </div>
             {compsOpen && (
@@ -641,7 +641,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
               {/* ΟΠΟΥ ΤΟ ΝΟΥΜΕΡΟ ΕΙΝΑΙ ΕΚΤΙΜΗΣΗ, ΤΟ ΛΕΜΕ ΔΙΠΛΑ ΤΟΥ. Διαμονές με
                   απροσδιόριστη βάση ποσού κάνουν τα ακαθάριστα εκτίμηση· διαμονές
                   χωρίς Δήλωση Βραχυχρόνιας είναι εκκρεμότητα, όχι λογιστικό λάθος. */}
-              <div className="text-measure" style={{ marginTop: 14, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.65 }}>
+              <div style={{ marginTop: 14, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.65 }}>
                 Ο φόρος υπολογίζεται στα ακαθάριστα με την κλίμακα ενοικίων, όχι στο υπόλοιπο μετά τα έξοδα. Δεν περιλαμβάνονται δόσεις δανείου.
                 {taxSummary.unresolvedCount > 0 && ` ${taxSummary.unresolvedCount === 1 ? 'Μία διαμονή' : `${fn(taxSummary.unresolvedCount)} διαμονές`} χωρίς ανάλυση ποσού σε ακαθάριστο, προμήθεια και τέλος: τα ακαθάριστα είναι εκτίμηση ως τότε.`}
                 {taxSummary.undeclaredCount > 0 && ` ${taxSummary.undeclaredCount === 1 ? 'Μία διαμονή δεν έχει' : `${fn(taxSummary.undeclaredCount)} διαμονές δεν έχουν`} Δήλωση Βραχυχρόνιας Διαμονής.`}

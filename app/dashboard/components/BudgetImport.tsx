@@ -101,7 +101,7 @@ export default function BudgetImport({ propertyId, userId = '', cats, onImported
         <button type="button" onClick={() => fileRef.current?.click()} disabled={busy}
           onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 14px', borderRadius: T.radius.inner, border: `1px solid ${hover ? 'var(--border-default)' : 'var(--border-subtle)'}`, background: hover ? 'var(--bg-elevated)' : 'transparent', color: 'var(--text-secondary)', fontSize: 12, fontWeight: 600, fontFamily: T.font.sans, cursor: busy ? 'default' : 'pointer', transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' }}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           {busy ? 'Ανάγνωση…' : 'Εισαγωγή από αρχείο (CSV / Excel)'}
         </button>
       )}
@@ -125,12 +125,12 @@ export default function BudgetImport({ propertyId, userId = '', cats, onImported
                 <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)', background: r.selected ? 'var(--bg-elevated)' : 'transparent', opacity: r.selected ? 1 : 0.5, transition: 'opacity 0.15s, background 0.15s' }}>
                   <button type="button" onClick={() => setRows(rs => rs!.map(x => x.id === r.id ? { ...x, selected: !x.selected } : x))} aria-label="Επιλογή"
                     style={{ width: 18, height: 18, flexShrink: 0, borderRadius: 6, border: `1.5px solid ${r.selected ? 'var(--accent)' : 'var(--border-default)'}`, background: r.selected ? 'var(--accent)' : 'transparent', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
-                    {r.selected && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                    {r.selected && <svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
                   </button>
                   <span style={{ width: 66, flexShrink: 0, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{/^\d{4}-\d{2}-\d{2}$/.test(r.date) ? `${r.date.slice(8, 10)}/${r.date.slice(5, 7)}/${r.date.slice(2, 4)}` : '·'}</span>
                   <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: 'var(--text-primary)', fontFamily: T.font.sans, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.description}</span>
                   <div style={{ width: 168, flexShrink: 0 }}>
-                    <CustomSelect value={r.catKey} onChange={v => setRows(rs => rs!.map(x => x.id === r.id ? { ...x, catKey: v } : x))} options={catOptions} />
+                    <CustomSelect ariaLabel="Κατηγορία δαπάνης" value={r.catKey} onChange={v => setRows(rs => rs!.map(x => x.id === r.id ? { ...x, catKey: v } : x))} options={catOptions} />
                   </div>
                   <span style={{ minWidth: 66, textAlign: 'right', flexShrink: 0, fontSize: 12, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>{feAuto(r.amount)}</span>
                 </div>

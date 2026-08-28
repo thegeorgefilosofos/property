@@ -113,7 +113,7 @@ export default function UpgradeModal({ currentCount, planId, profileType = 'indi
                   <ul style={{ listStyle: 'none', margin: '10px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {p.features.slice(0, 3).map((f, i) => (
                       <li key={i} style={{ display: 'flex', gap: 7, fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                        <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M20 6 9 17l-5-5" /></svg>
+                        <svg aria-hidden="true" width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M20 6 9 17l-5-5" /></svg>
                         <span>{f}</span>
                       </li>
                     ))}

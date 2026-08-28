@@ -195,7 +195,10 @@ export default function E2ReconcileCard({ userId, year, plan = 'free', onUpgrade
     background: 'var(--bg-base)', border: '1px solid var(--border-default)',
     borderRadius: T.radius.inner, height: T.h.md, padding: '0 12px', width: 130,
     color: 'var(--text-primary)', fontFamily: T.font.num, fontSize: 14,
-    fontVariantNumeric: 'tabular-nums', textAlign: 'right', outline: 'none',
+    // ΧΩΡΙΣ `outline: none`: το ενσώματο στυλ έσβηνε τον καθολικό κανόνα
+    // `input:focus-visible` και το πεδίο του ΑΤΑΚ δεν έδειχνε πού βρίσκεται το
+    // πληκτρολόγιο. Μετρημένο με πραγματικό Tab στη σκηνή της Λογιστικής.
+    fontVariantNumeric: 'tabular-nums', textAlign: 'right',
     boxSizing: 'border-box',
   };
 

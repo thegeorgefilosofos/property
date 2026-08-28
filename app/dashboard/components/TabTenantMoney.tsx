@@ -227,7 +227,7 @@ export function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string
 
           <div style={{ marginBottom:16 }}>
             <div style={{ ...labelStyle, marginBottom:8 }}>Έτος αναπροσαρμογής</div>
-            <SelectField value={yr} onChange={v=>{ setYr(v); setUseCustom(cpiFor(parseInt(v))===null); }}
+            <SelectField ariaLabel="Έτος αναπροσαρμογής" value={yr} onChange={v=>{ setYr(v); setUseCustom(cpiFor(parseInt(v))===null); }}
               options={years.map(y=>{ const v=cpiFor(y); return { value:String(y), label:`${y}${v===null?', χωρίς δείκτη ακόμη':`, ΔΤΚ: ${v>=0?'+':''}${fp(v)}`}` }; })}/>
           </div>
 
@@ -719,7 +719,7 @@ export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, 
             <div style={{ display:'flex', alignItems:'center', gap:6 }}>
               <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>Ημέρα λήξης</span>
               <div style={{ minWidth:88 }}>
-                <SelectField value={String(rentDueDay)} onChange={v=>setRentDueDay(+v)}
+                <SelectField ariaLabel="Ημέρα λήξης" value={String(rentDueDay)} onChange={v=>setRentDueDay(+v)}
                   options={Array.from({length:28},(_,i)=>i+1).map(d=>({ value:String(d), label:String(d) }))}/>
               </div>
             </div>
@@ -925,7 +925,7 @@ export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, 
               ):(
                 <div>
                   <div style={{ ...labelStyle, marginBottom:8 }}>Αντιστοίχιση σε δόση</div>
-                  <SelectField value={scan.periodId||''} onChange={v=>setScan(sc=>sc?{...sc,periodId:v}:sc)}
+                  <SelectField ariaLabel="Αντιστοίχιση σε δόση" value={scan.periodId||''} onChange={v=>setScan(sc=>sc?{...sc,periodId:v}:sc)}
                     options={open.map(p=>({ value:p.id, label:`${monthLabel(p)} · ${fmt(p.amount)}` }))}/>
                   <div style={{ marginTop:12 }}>
                     <SelectField label="Τρόπος πληρωμής" value={scan.method||'Τραπεζική κατάθεση'} onChange={v=>setScan(sc=>sc?{...sc,method:v as PayMethod}:sc)} options={PAY_METHODS.map(m=>({value:m,label:m}))}/>

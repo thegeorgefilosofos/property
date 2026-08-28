@@ -31,7 +31,7 @@ import {
 
 const BankGlyph = ({ size = 30 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-    strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M3 10h18M5 10v9M9 10v9M15 10v9M19 10v9M2 19h20M12 3 3 8h18z" />
   </svg>
 );

@@ -615,7 +615,7 @@ export default function TabComparison({ properties, userId }: Props) {
           επαναλάμβαναν όσα λέει ήδη το tooltip κάθε μετρικής και ο τίτλος της
           οθόνης. Μένει μόνο ό,τι δεν λέγεται αλλού: πώς διαβάζεται ο πίνακας. */}
       {!loading && (
-        <div className="fineprint" style={{ marginTop: 10, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.6 }}>
+        <div className="fineprint" style={{ marginTop: 10, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
           {/* ΚΑΘΕ ΠΡΟΤΑΣΗ ΕΜΦΑΝΙΖΕΤΑΙ ΜΟΝΟ ΟΤΑΝ ΕΧΕΙ ΑΝΤΙΚΕΙΜΕΝΟ. Με άδεια λίστα, το
               «η καλύτερη τιμή σε» έμενε να κρέμεται πριν από μια τελεία. */}
           {marked.length > 0 && (<>

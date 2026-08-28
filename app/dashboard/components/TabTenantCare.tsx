@@ -295,7 +295,7 @@ export function CommView({ tenant, propertyId, userId }:{ tenant:Tenant; propert
             <div style={{ ...formGrid(150, 210), gap:12, marginBottom:12 }}>
               <div>
                 <div style={{ ...labelStyle, marginBottom:8 }}>Τύπος επικοινωνίας</div>
-                <SelectField value={form.type} onChange={v=>{ if(isCommType(v)) setForm(f=>({...f,type:v})); }}
+                <SelectField ariaLabel="Τύπος επικοινωνίας" value={form.type} onChange={v=>{ if(isCommType(v)) setForm(f=>({...f,type:v})); }}
                   options={(Object.keys(TYPE_LABELS) as CommLog['type'][]).map(k=>({ value:k, label:TYPE_LABELS[k] }))}/>
               </div>
               <div>
@@ -779,7 +779,7 @@ export function MaintenanceView({ tenant, propertyId, userId, requests, others, 
         {others.length>0&&(
           <div style={{ borderTop:'1px solid var(--border-subtle)', marginTop:20, paddingTop:14 }}>
             <button onClick={()=>setHistOpen(o=>!o)} style={{ display:'flex', alignItems:'center', gap:9, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left' as const, fontFamily:T.font.sans }}>
-              <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ color:'var(--text-tertiary)', transform:histOpen?'rotate(90deg)':'none', transition:'transform 0.2s', flexShrink:0 }}><path d="M9 6l6 6-6 6"/></svg>
+              <svg aria-hidden="true" width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ color:'var(--text-tertiary)', transform:histOpen?'rotate(90deg)':'none', transition:'transform 0.2s', flexShrink:0 }}><path d="M9 6l6 6-6 6"/></svg>
               <span style={{ fontSize:13, fontWeight:600, color:'var(--text-secondary)' }}>Ιστορικό ακινήτου</span>
               <span style={{ marginLeft:'auto', fontSize:12, color:'var(--text-tertiary)', fontWeight:600 }}>{others.length} {others.length===1?'αίτημα':'αιτήματα'}</span>
             </button>

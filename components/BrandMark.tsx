@@ -70,7 +70,7 @@ const SHAPE = [
 /**
  * Η ΓΕΩΜΕΤΡΙΑ ΒΓΑΙΝΕΙ ΠΡΟΣ ΤΑ ΕΞΩ, ΓΙΑΤΙ ΥΠΑΡΧΟΥΝ ΚΑΙ ΑΛΛΟΙ ΑΠΟΔΟΤΕΣ: η
  * εικόνα κοινωνικής προεπισκόπησης (Satori) και η γεννήτρια εικονιδίων. Και οι
- * δύο χρειάζονται δικό τους `<svg>` με ρητά χρώματα, αλλά ΟΧΙ δικό τους σχήμα.
+ * δύο χρειάζονται δικό τους `<svg aria-hidden="true">` με ρητά χρώματα, αλλά ΟΧΙ δικό τους σχήμα.
  */
 export const BRAND_PATHS = { shape: SHAPE };
 export const BRAND_VIEWBOX = '0 0 90 90';
@@ -79,7 +79,7 @@ export const BRAND_VIEWBOX = '0 0 90 90';
 export default function BrandMark({ size = 28, style }: { size?: number; style?: React.CSSProperties }) {
   return (
     <svg
-      aria-hidden
+      aria-hidden="true"
       viewBox={BRAND_VIEWBOX}
       width={size} height={size}
       fill="currentColor"
@@ -151,7 +151,7 @@ export const BRAND_MARK_INK = '#0b1b33';
  * SVG. Δύο περιβάλλοντα, δύο απαντήσεις, ένα σχήμα.
  */
 export const brandMarkSvg = (px = 34, color = BRAND_MARK_INK) =>
-  `<svg width="${px}" height="${px}" viewBox="${BRAND_VIEWBOX}" fill="${color}" fill-rule="nonzero" xmlns="http://www.w3.org/2000/svg">`
+  `<svg aria-hidden="true" width="${px}" height="${px}" viewBox="${BRAND_VIEWBOX}" fill="${color}" fill-rule="nonzero" xmlns="http://www.w3.org/2000/svg">`
   + SHAPE.map(d => `<path d="${d}"/>`).join('')
   + '</svg>';
 

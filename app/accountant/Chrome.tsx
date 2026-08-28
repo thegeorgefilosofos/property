@@ -74,7 +74,7 @@ export function PortalBar({ year, onYear, back }: {
         </div>
         {year !== undefined && onYear && (
           <div style={{ minWidth: 138 }}>
-            <CustomSelect value={String(year)} onChange={v => onYear(parseInt(v, 10))}
+            <CustomSelect ariaLabel="Χρήση" value={String(year)} onChange={v => onYear(parseInt(v, 10))}
               options={portalYears().map(y => ({ value: String(y), label: `Χρήση ${y}` }))} />
           </div>
         )}

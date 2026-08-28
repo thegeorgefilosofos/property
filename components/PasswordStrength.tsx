@@ -105,7 +105,7 @@ export default function PasswordStrength({ password, id, onLeaked }: {
           <li key={c.key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: c.ok ? 'var(--positive, var(--accent))' : 'var(--text-tertiary)' }}>
             <span aria-hidden="true" style={{ width: 14, display: 'inline-flex', justifyContent: 'center' }}>
               {c.ok
-                ? <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                ? <svg aria-hidden="true" width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
                 : <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--text-tertiary)' }} />}
             </span>
             {c.label}
@@ -114,7 +114,7 @@ export default function PasswordStrength({ password, id, onLeaked }: {
         {pw.common && (
           <li style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--negative)' }}>
             <span aria-hidden="true" style={{ width: 14, display: 'inline-flex', justifyContent: 'center' }}>
-              <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+              <svg aria-hidden="true" width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
             </span>
             Πολύ κοινός κωδικός: διάλεξε κάτι πιο μοναδικό
           </li>
@@ -122,7 +122,7 @@ export default function PasswordStrength({ password, id, onLeaked }: {
         {leaked && (
           <li style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, color: 'var(--negative)' }}>
             <span aria-hidden="true" style={{ width: 14, display: 'inline-flex', justifyContent: 'center', paddingTop: 2 }}>
-              <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+              <svg aria-hidden="true" width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
             </span>
             {leaked}
           </li>

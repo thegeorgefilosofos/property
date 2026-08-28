@@ -162,7 +162,7 @@ export default function PropertySwitcher({ items, activeId, onSelect, onAdd, can
         <span className="topbar-switch-face">
           <span className="topbar-switch-name">{active?.name || 'Κανένα ακίνητο ακόμη'}</span>
           <svg className="topbar-switch-caret" width={14} height={14} viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="m6 9 6 6 6-6" />
           </svg>
         </span>
@@ -217,7 +217,7 @@ export default function PropertySwitcher({ items, activeId, onSelect, onAdd, can
                   </span>
                   {isActive && (
                     <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.4"
-                      strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ flexShrink: 0 }}>
+                      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
                       <path d="M20 6 9 17l-5-5" />
                     </svg>
                   )}
@@ -236,7 +236,7 @@ export default function PropertySwitcher({ items, activeId, onSelect, onAdd, can
               }}
               onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; }}
               onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
-              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
                 <path d="M12 5v14M5 12h14" />
               </svg>
               Προσθήκη ακινήτου

@@ -141,9 +141,9 @@ export default function SpitiMouPanel({
             <div key={c.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10 }}>
               <span style={{ width: 18, height: 18, flexShrink: 0, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: c.status === 'pass' ? 'var(--accent-dim)' : 'var(--bg-elevated)', border: c.status === 'pass' ? 'none' : '1px solid var(--border-subtle)' }}>
                 {c.status === 'pass'
-                  ? <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2"><polyline points="20 6 9 17 4 12" /></svg>
+                  ? <svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2"><polyline points="20 6 9 17 4 12" /></svg>
                   : c.status === 'fail'
-                  ? <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--negative)" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                  ? <svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--negative)" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                   : <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--text-tertiary)' }} />}
               </span>
               <span style={{ flex: 1, minWidth: 0 }}>

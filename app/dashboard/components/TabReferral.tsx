@@ -45,7 +45,7 @@ import {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const Ic = ({ d, s = 18, c = 'currentColor', sw = 1.8 }: { d: string; s?: number; c?: string; sw?: number }) => (
-  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
+  <svg aria-hidden="true" width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
     {d.split('|').map((p, i) => <path key={i} d={p} />)}
   </svg>
 );
@@ -179,8 +179,24 @@ const rewardTitle = (r: Reward) => r.kind === 'slot'
 // ═══════════════════════════════════════════════════════════════════════════
 type ClaimState = 'idle' | 'saving' | 'done' | 'error';
 
-function Milestone({ title, count, target, kind, reward, claimState, onClaim }: {
-  title: string; count: number; target: number; kind: string; reward: string;
+/**
+ * ΤΟ ΟΡΟΣΗΜΟ ΕΧΕΙ ΤΟ ΙΔΙΟ ΣΧΗΜΑ ΜΕ ΤΙΣ ΑΛΛΕΣ ΚΑΡΤΕΣ ΑΝΤΑΜΟΙΒΗΣ.
+ *
+ * ΤΕΣΣΕΡΙΣ ΚΑΡΤΕΣ, ΤΡΙΑ ΣΧΗΜΑΤΑ. Οι δύο πρώτες άνοιγαν με εικονίδιο και
+ * κεφαλαία ετικέτα, η τρίτη με τίτλο `h2` δεκαέξι στιγμών και αυτή εδώ με άλλον
+ * έναν `h2` συν μετρητή. Ο αναγνώστης δεν έβρισκε δύο φορές την ίδια πληροφορία
+ * στο ίδιο ύψος: ένα πλέγμα από τέσσερις κάρτες διαβάζεται ΚΑΘΕΤΑ, στήλη τη
+ * στήλη, μόνο όταν η κάθε σειρά σημαίνει το ίδιο πράγμα σε όλες.
+ *
+ * ΤΩΡΑ ΚΑΘΕ ΚΑΡΤΑ ΛΕΕΙ ΤΑ ΙΔΙΑ ΤΡΙΑ, ΜΕ ΤΗΝ ΙΔΙΑ ΣΕΙΡΑ: τι είναι (εικονίδιο και
+ * ετικέτα), τι κερδίζεις (ένα μεγάλο νούμερο) και πώς (μία πρόταση).
+ *
+ * ΚΑΙ Η ΑΝΤΑΜΟΙΒΗ ΛΕΓΕΤΑΙ ΜΙΑ ΦΟΡΑ. Ηταν γραμμένη και στη μεγάλη γραμμή και
+ * μέσα στην πρόταση («…και κέρδισε έναν μήνα επιπλέον Ιδιοκτήτη»). Η πρόταση
+ * κρατά πλέον μόνο την ενέργεια που λείπει.
+ */
+function Milestone({ title, icon, count, target, kind, rewardTitle, claimState, onClaim }: {
+  title: string; icon: string; count: number; target: number; kind: string; rewardTitle: string;
   claimState: ClaimState; onClaim: (kind: string) => void;
 }) {
     const pr = progress(count, target);
@@ -188,19 +204,23 @@ function Milestone({ title, count, target, kind, reward, claimState, onClaim }: 
     const dleft = daysLeftInMonth();
     return (
       <div className="ref-lift" style={{ ...card, padding: PAD, position: 'relative', overflow: 'visible', ...(pr.reached ? { borderColor: 'color-mix(in srgb, var(--positive) 38%, var(--border-raised))', background: 'linear-gradient(180deg, color-mix(in srgb, var(--positive) 8%, var(--surface-raised)), var(--surface-raised) 62%)' } : {}) }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <span style={{ ...TT.h2 }}>{title}</span>
-          <span className={pr.reached ? undefined : 'ref-kpi-hover'} style={{ ...TT.kpi, color: pr.reached ? 'var(--positive)' : undefined }}><Num value={pr.count} /><span style={{ ...TT.caption }}> / {target}</span></span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12, minHeight: 22 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            <Ic d={icon} s={16} c="var(--text-secondary)" />
+            <span style={{ ...TT.label }}>{title}</span>
+          </span>
+          <span className={pr.reached ? undefined : 'ref-kpi-hover'} style={{ ...TT.kpi, flexShrink: 0, color: pr.reached ? 'var(--positive)' : undefined }}><Num value={pr.count} /><span style={{ ...TT.caption }}> / {target}</span></span>
         </div>
+        <div style={{ ...TT.displaySm, marginBottom: 10 }}>{rewardTitle}</div>
         <Bar pct={pr.pct} tone={pr.reached ? 'var(--positive)' : 'var(--accent)'} />
         <p style={{ ...TT.bodySm, marginTop: 12, lineHeight: 1.55 }}>
           {pr.reached
-            ? `Μπράβο, το πέτυχες. Κέρδισες ${reward}.`
+            ? 'Μπράβο, το πέτυχες.'
             : pr.count === 0
-              ? `Προσκάλεσε ${target} μέσα στον ίδιο μήνα και κέρδισε ${reward}.`
+              ? `Προσκάλεσε ${target} μέσα στον ίδιο μήνα.`
               : pr.remaining === 1
-                ? `Σου λείπει μόλις ένας ακόμη για ${reward}. Είσαι ένα βήμα πριν τον στόχο.`
-                : `Σου λείπουν ${pr.remaining} ακόμη για ${reward}. Συνέχισε.`}
+                ? 'Σου λείπει μόλις ένας ακόμη. Είσαι ένα βήμα πριν τον στόχο.'
+                : `Σου λείπουν ${pr.remaining} ακόμη. Συνέχισε.`}
         </p>
         {!pr.reached && (
           <div style={{ ...TT.caption, marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6, color: dleft <= 5 ? 'var(--warning)' : 'var(--text-tertiary)' }}>
@@ -377,7 +397,6 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
   const streak = Math.min(stats?.streak ?? 0, STREAK_TARGET_MONTHS);
   const streakPct = Math.min(100, (streak / STREAK_TARGET_MONTHS) * 100);
   const youBase = individualReferrerReward(referrerPaying, 'free');   // τι κερδίζεις για δωρεάν φίλο
-  const myTier: 'owner' | 'agency' | 'partner' = partner ? 'partner' : (isPro ? 'agency' : 'owner');
   const styleBlock = (
     <style>{`
       .ref-chip { transition: border-color .16s ${T.ease.standard}, background .16s, color .16s, transform .16s; }
@@ -570,7 +589,10 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
               καταλάβει τι κερδίζει. Τώρα κρατά ένα. */}
           <SectionLabel>Ο στόχος του μήνα</SectionLabel>
           <div style={{ marginBottom: T.sp.xl }}>
-            <Milestone title="Συνδρομητές, σε οποιοδήποτε πακέτο" count={stats?.m_paid ?? 0} target={PRO_PAID_TARGET} kind="pro_paid" reward="τη συνδρομή του επόμενου μήνα δωρεάν" claimState={claim.pro_paid || 'idle'} onClaim={doClaim} />
+            <Milestone title="Συνδρομητές, σε οποιοδήποτε πακέτο"
+              icon="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2|M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z|M23 21v-2a4 4 0 0 0-3-3.9|M16 3.1a4 4 0 0 1 0 7.8"
+              count={stats?.m_paid ?? 0} target={PRO_PAID_TARGET} kind="pro_paid"
+              rewardTitle={`+${moNom(PRO_PAID_BONUS_MONTHS)} συνδρομής δωρεάν`} claimState={claim.pro_paid || 'idle'} onClaim={doClaim} />
           </div>
 
           {/* Συνεργάτης */}
@@ -603,7 +625,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                 // το αποδίδει. Δύο πηγές για το ίδιο νούμερο έχουν ήδη διαφωνήσει
                 // δύο φορές σε αυτό το αρχείο.
                 `${moNom(PARTNER_WELCOME_MONTHS)} ${PLANS[partnerWelcomeTier(plan)].name} δώρο, μόλις αποκτήσεις την ιδιότητα`,
-                'Κάθε μήνας που πιάνει τον στόχο κάνει τον επόμενο δωρεάν',
+                `Κάθε μήνας που πιάνει τον στόχο χαρίζει ${moAcc(PARTNER_MONTHLY_FREE_MONTHS)} δωρεάν`,
                 'Προτεραιότητα σε νέες κυκλοφορίες, αναβαθμίσεις και επικοινωνία',
               ].map((t, i) => (
                 <li key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
@@ -660,15 +682,22 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
           <div {...cardGrid(2)}>
             {/* Ποιοτικό μπόνους: φέρε έναν Επαγγελματία */}
             <div className="ref-lift" style={{ ...card, padding: PAD }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, minHeight: 22 }}>
-                <span style={{ ...TT.h2 }}>Προσκάλεσε έναν Επαγγελματία</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12, minHeight: 22 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                  <Ic d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z|M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" s={16} c="var(--text-secondary)" />
+                  <span style={{ ...TT.label }}>Προσκάλεσε έναν Επαγγελματία</span>
+                </span>
                 {(stats?.m_pro ?? 0) >= 1 && <Badge tone="positive">Το πέτυχες</Badge>}
               </div>
               <div style={{ ...TT.displaySm, marginBottom: 6 }}>+{moNom(INDIV_PRO_BONUS_MONTHS)} {PLANS.solo.nameGen}</div>
-              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>για σένα, μόλις κάποιος που προσκάλεσες γίνει Επαγγελματίας. Εδώ κερδίζεις ολόκληρο μήνα συνδρομής, όχι ένα ακίνητο, γιατί η σύσταση είναι μεγαλύτερη. </div>
+              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>για σένα, μόλις κάποιος που προσκάλεσες γίνει Επαγγελματίας. Εδώ κερδίζεις ολόκληρο μήνα συνδρομής, όχι ένα ακίνητο, γιατί η σύσταση είναι μεγαλύτερη.</div>
             </div>
             {/* Μπόνους όγκου: ο στόχος διαβάζεται από τη μηχανή, δεν ξαναγράφεται. */}
-            <Milestone title={`${INDIV_VOLUME_TARGET} νέοι τον μήνα`} count={stats?.m_indiv ?? 0} target={INDIV_VOLUME_TARGET} kind="indiv_volume" reward={`${moAcc(INDIV_VOLUME_BONUS_MONTHS)} επιπλέον ${PLANS.solo.nameGen}`} claimState={claim.indiv_volume || 'idle'} onClaim={doClaim} />
+            <Milestone title={`${INDIV_VOLUME_TARGET} νέοι τον μήνα`}
+              icon="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2|M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z|M23 21v-2a4 4 0 0 0-3-3.9|M16 3.1a4 4 0 0 1 0 7.8"
+              count={stats?.m_indiv ?? 0} target={INDIV_VOLUME_TARGET} kind="indiv_volume"
+              rewardTitle={`+${moNom(INDIV_VOLUME_BONUS_MONTHS)} ${PLANS.solo.nameGen}`}
+              claimState={claim.indiv_volume || 'idle'} onClaim={doClaim} />
           </div>
         </>
       )}

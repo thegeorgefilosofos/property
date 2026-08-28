@@ -203,7 +203,7 @@ const Check = ({ on, next }: { on: boolean; next?: boolean }) => (
     border: `2px solid ${on ? 'var(--accent)' : next ? 'var(--border-default)' : 'var(--border-subtle)'}`,
   }}>
     {on && (
-      <svg width={10} height={10} viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="var(--text-inverse)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      <svg aria-hidden="true" width={10} height={10} viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" fill="none" stroke="var(--text-inverse)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
     )}
   </span>
 );

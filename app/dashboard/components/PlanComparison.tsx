@@ -107,14 +107,14 @@ const MATRIX_GRID = `minmax(184px, 1.7fr) repeat(${COMPARED.length}, minmax(84px
 // ── Μικρά εικονίδια ────────────────────────────────────────────────────────
 function Check({ tone }: { tone: 'accent' | 'muted' }) {
   return (
-    <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke={tone === 'accent' ? 'var(--accent)' : 'var(--text-secondary)'} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke={tone === 'accent' ? 'var(--accent)' : 'var(--text-secondary)'} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M20 6 9 17l-5-5" />
     </svg>
   );
 }
 function LockGlyph() {
   return (
-    <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
     </svg>
   );
@@ -180,7 +180,7 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
             γιατί αφορά ΟΛΗ τη σκάλα. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '11px 14px', marginBottom: 14, borderRadius: T.radius.inner, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: 8, background: 'var(--accent-dim)', color: 'var(--accent)', flexShrink: 0 }}>
-            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M21 12a8 8 0 0 1-8 8H8l-5 3 1.4-4.2A8 8 0 1 1 21 12" /><path d="M8.5 12h.01M12 12h.01M15.5 12h.01" /></svg>
+            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-8 8H8l-5 3 1.4-4.2A8 8 0 1 1 21 12" /><path d="M8.5 12h.01M12 12h.01M15.5 12h.01" /></svg>
           </span>
           {/* Η αρχική σελίδα γράφει «ο βοηθός», γιατί ο επισκέπτης δεν ξέρει
               ακόμη το όνομα. Μέσα στην εφαρμογή το ξέρει και ο βοηθός έχει

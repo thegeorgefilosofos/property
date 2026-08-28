@@ -620,7 +620,7 @@ export default function ExpenseLedger({ propertyId, userId, onScan, openAddNonce
                 background: 'var(--bg-elevated)', transition: 'border-color 0.15s, background 0.15s' }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'var(--bg-hover)'; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.background = 'var(--bg-elevated)'; }}>
-              <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+              <svg aria-hidden="true" width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                 <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3.2"/>
               </svg>
               <span style={{ minWidth: 0 }}>
@@ -1277,7 +1277,7 @@ function QuickAdd({ propertyId, userId, seed, onDone }: { propertyId: string; us
         </div>
         <div style={{ minWidth: 0 }}>
           <span style={LAB}>Ποιος πληρώνει</span>
-          <CustomSelect value={paidBy} onChange={setPaidBy} options={PAID_BY_OPTIONS} />
+          <CustomSelect ariaLabel="Ποιος πληρώνει" value={paidBy} onChange={setPaidBy} options={PAID_BY_OPTIONS} />
         </div>
         <div style={{ minWidth: 0 }}>
           <span style={LAB}>Πληρώθηκε</span>

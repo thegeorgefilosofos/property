@@ -72,6 +72,7 @@ import TabAccounting from '@/app/dashboard/components/TabAccounting';
 import TabCalendar from '@/app/dashboard/components/TabCalendar';
 import TabClients from '@/app/dashboard/components/TabClients';
 import TabDocuments from '@/app/dashboard/components/TabDocuments';
+import TabReferral from '@/app/dashboard/components/TabReferral';
 import PropertySwitcher from '@/app/dashboard/components/PropertySwitcher';
 import { T, Modal, Btn, PageTitle, InfoBanner, fieldRow } from '@/components/Theme';
 import { createClient } from '@/lib/supabase/client';
@@ -252,6 +253,11 @@ const VIEWS: Record<string, () => React.ReactElement> = {
   calendar: () => <TabCalendar propertyId="p0" userId="u1" openTasks={3} />,
   clients: () => <TabClients userId="u1" />,
   documents: () => <TabDocuments propertyId="p0" userId="u1" />,
+  // Οι κάρτες ανταμοιβής δεν είχαν ΚΑΜΙΑ κάλυψη: η καρτέλα ζει πίσω από
+  // λογαριασμό, οπότε ούτε ο σαρωτής διάταξης ούτε ο έλεγχος προσβασιμότητας
+  // την είχαν δει ποτέ.
+  referral: () => <TabReferral userId="u1" plan="solo" profileType="individual" />,
+  referralPro: () => <TabReferral userId="u1" plan="agency" profileType="professional" />,
   modal: () => <ModalDemo />,
   select: () => <SelectDemo />,
 };
@@ -291,7 +297,7 @@ function BenchTopbar() {
   return (
     <header className="app-topbar">
       <button className="nav-toggle" aria-label="Μενού">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18" /></svg>
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18" /></svg>
       </button>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, rowGap: 8, minWidth: 0 }}>
@@ -300,7 +306,7 @@ function BenchTopbar() {
             <button className="topbar-status" style={{ display: 'flex', alignItems: 'center', gap: 7, height: T.h.sm, padding: '0 10px 0 12px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'transparent', cursor: 'pointer', fontFamily: T.font.sans, fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
               <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Βραχυχρόνια μίσθωση</span>
-              <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.65, marginLeft: 1, flexShrink: 0 }}><path d="m6 9 6 6 6-6" /></svg>
+              <svg aria-hidden="true" width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.65, marginLeft: 1, flexShrink: 0 }}><path d="m6 9 6 6 6-6" /></svg>
             </button>
           </div>
         </div>
@@ -315,7 +321,7 @@ function BenchTopbar() {
           είναι φακός με τη συντόμευση δίπλα, κρυμμένη σε κινητό. Ενας πάγκος
           που γράφει δικό του σήμα μετράει τον εαυτό του. */}
       <button aria-label="Αναζήτηση" className="topbar-search" style={{ display: 'flex', alignItems: 'center', gap: 8, height: T.h.md, padding: '0 10px 0 12px', borderRadius: T.radius.modal, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', marginRight: 4, flexShrink: 0 }}>
-        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <svg aria-hidden="true" width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
         <span className="desktop-only" style={{ fontSize: 11, fontFamily: T.font.mono, color: 'var(--text-tertiary)', border: '1px solid var(--border-subtle)', borderRadius: 6, padding: '1px 5px' }}>Ctrl K</span>
       </button>
     </header>

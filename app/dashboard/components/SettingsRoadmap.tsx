@@ -135,7 +135,7 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
           aria-hidden
           style={{ position: 'absolute', top: -22, right: -14, color: 'var(--accent)', opacity: 0.1, pointerEvents: 'none' }}
         >
-          <svg width={150} height={150} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ maxWidth: '100%' }}>
+          <svg aria-hidden="true" width={150} height={150} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ maxWidth: '100%' }}>
             <rect x="6" y="2" width="12" height="20" rx="3" />
             <line x1="10" y1="18.5" x2="14" y2="18.5" />
           </svg>
@@ -207,7 +207,7 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
                     transition: 'border-color 0.15s cubic-bezier(0.2,0,0,1)',
                   }}
                 >
-                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                  <svg aria-hidden="true" width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
                   Θα σε ειδοποιήσουμε
                 </button>
               ) : (

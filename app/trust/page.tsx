@@ -71,7 +71,7 @@ function Row({ label, value }: { label: string; value: string }) {
 function Point({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-      <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 4 }} aria-hidden><path d="M20 6 9 17l-5-5" /></svg>
+      <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 4 }} aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>
       <div>
         <div style={{ fontSize: 15, fontWeight: 650, color: 'var(--text-primary)', marginBottom: 3 }}>{title}</div>
         <div className="lg-just" style={{ fontSize: 15, color: 'var(--text-secondary)', lineHeight: 1.65 }}>{children}</div>
@@ -84,7 +84,7 @@ function Point({ title, children }: { title: string; children: React.ReactNode }
 function Never({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-      <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 4 }} aria-hidden><path d="M18 6 6 18M6 6l12 12" /></svg>
+      <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 4 }} aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
       <div className="lg-just" style={{ fontSize: 15, color: 'var(--text-secondary)', lineHeight: 1.65 }}>{children}</div>
     </div>
   );

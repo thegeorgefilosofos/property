@@ -446,7 +446,7 @@ export default function EnfiaPanel({ propertyId, userId }: { propertyId: string;
                     transition: 'background-color .15s, border-color .15s',
                   }}>
                   <span aria-hidden style={{ width: 16, height: 16, borderRadius: T.radius.xs, flexShrink: 0, border: `2px solid ${active ? 'var(--accent)' : 'var(--border-default)'}`, background: active ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {active && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                    {active && <svg aria-hidden="true" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
                   </span>
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ ...TT.bodySm, color: 'var(--text-primary)', fontWeight: active ? 600 : 400, display: 'block' }}>{r.label}</span>

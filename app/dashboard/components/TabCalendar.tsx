@@ -78,7 +78,7 @@ import { syncTenantSchedule } from './TabTenantHelpers'
 import { notify, notifyOk, notifyError } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
 import { confirmDialog } from '@/components/confirmBus';
-import { MONTHS_NOM, MONTHS_SHORT, DAY_NAMES_SHORT, mondayFirst } from '@/lib/core/months';
+import { MONTHS_NOM, MONTHS_SHORT, DAY_NAMES_SHORT, mondayFirst, monthGen } from '@/lib/core/months';
 import { INK, INK_MUTED } from '@/lib/print/ink';
 import { reportHead, reportHeader, reportDisclaimer, openReport, rEsc, rEur } from './reportPdf';
 import { downloadFile } from '@/lib/core/download'
@@ -680,7 +680,15 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
               // (τι κοιτάς) και πρέπει να ξεχωρίζει από το σήμερα (τι μέρα είναι).
               const cellBg=isSelected?'color-mix(in srgb, var(--accent) 12%, transparent)':hol?'color-mix(in srgb, var(--accent) 5%, transparent)':wknd?'color-mix(in srgb, var(--text-tertiary) 5%, transparent)':'transparent'
               return (
-                <div key={idx} {...pressable(()=>day&&onDayClick(dateStr))} title={hol||undefined} data-drop-date={day?dateStr:undefined} style={{ minHeight:80, padding:'6px', borderRight:(idx+1)%7===0?'none':'1px solid var(--border-subtle)', borderBottom:idx<cells.length-7?'1px solid var(--border-subtle)':'none', background:cellBg, boxShadow:isSelected&&!isToday?'inset 0 0 0 2px var(--accent)':'none', cursor:day?'pointer':'default', transition:'background 0.1s' }}
+                /* ΤΑ ΑΔΕΙΑ ΚΕΛΙΑ ΔΕΝ ΕΙΝΑΙ ΚΟΥΜΠΙΑ. Ο μήνας ξεκινά και τελειώνει
+                   στη μέση της εβδομάδας, οπότε το πλέγμα έχει ώς έντεκα κελιά
+                   χωρίς ημέρα. Επαιρναν κι αυτά `role="button"` και `tabIndex`:
+                   μετρημένο στο δέντρο προσβασιμότητας του Chrome, έντεκα
+                   ανώνυμα κουμπιά που ο χρήστης του πληκτρολογίου διέσχιζε ένα
+                   ένα πριν φτάσει στην πρώτη πραγματική ημέρα, ακούγοντας
+                   «κουμπί» χωρίς τίποτε άλλο. Το `onDayClick` είχε ήδη φρένο
+                   (`day&&`), δηλαδή το πάτημα δεν έκανε ποτέ τίποτα. */
+                <div key={idx} {...(day!=null ? pressable(()=>onDayClick(dateStr), `${day} ${monthGen(month)}`) : {})} title={hol||undefined} data-drop-date={day?dateStr:undefined} style={{ minHeight:80, padding:'6px', borderRight:(idx+1)%7===0?'none':'1px solid var(--border-subtle)', borderBottom:idx<cells.length-7?'1px solid var(--border-subtle)':'none', background:cellBg, boxShadow:isSelected&&!isToday?'inset 0 0 0 2px var(--accent)':'none', cursor:day?'pointer':'default', transition:'background 0.1s' }}
                   onMouseEnter={e=>{if(day)(e.currentTarget as HTMLElement).style.background='var(--bg-hover)'}}
                   onMouseLeave={e=>{if(day)(e.currentTarget as HTMLElement).style.background=cellBg}}
                 >
@@ -1343,8 +1351,8 @@ function EventModal({ form, setForm, onSave, onClose, editing, saving, conflicts
           </div>
           {form.recurring&&(
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginTop:12 }}>
-              <CustomSelect value={form.recurring_interval} onChange={v=>setForm(f=>({...f,recurring_interval:v}))} options={RECURRING_OPTIONS.map(o=>({ value:o.value, label:o.label }))}/>
-              <CustomSelect value={form.recurrence_end_mode} onChange={v=>setForm(f=>({...f,recurrence_end_mode:v as FormState['recurrence_end_mode']}))}
+              <CustomSelect ariaLabel="Συχνότητα επανάληψης" value={form.recurring_interval} onChange={v=>setForm(f=>({...f,recurring_interval:v}))} options={RECURRING_OPTIONS.map(o=>({ value:o.value, label:o.label }))}/>
+              <CustomSelect ariaLabel="Λήξη επανάληψης" value={form.recurrence_end_mode} onChange={v=>setForm(f=>({...f,recurrence_end_mode:v as FormState['recurrence_end_mode']}))}
                 options={[{value:'none',label:'Χωρίς λήξη'},{value:'until',label:'Μέχρι ημερομηνία'},{value:'count',label:'Για πλήθος φορών'}]}/>
               {form.recurrence_end_mode==='until'&&<div style={{ gridColumn:'1 / -1' }}><DatePicker value={form.recurrence_until} onChange={v=>setForm(f=>({...f,recurrence_until:v}))}/></div>}
               {form.recurrence_end_mode==='count'&&<div style={{ gridColumn:'1 / -1' }}><input type="number" min="1" style={fld} placeholder="12 φορές" value={form.recurrence_count} onChange={e=>setForm(f=>({...f,recurrence_count:e.target.value}))} onFocus={focus} onBlur={blur}/></div>}

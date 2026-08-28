@@ -39,7 +39,7 @@ export default function Image() {
           {/* ΤΟ ΣΧΗΜΑ ΕΡΧΕΤΑΙ ΑΠΟ ΤΟ BrandMark, ΤΟ ΧΡΩΜΑ ΟΧΙ. Το Satori δεν
               γνωρίζει `currentColor` ούτε μεταβλητές θέματος και η εικόνα έχει
               ΕΝΑ φόντο που το ξέρουμε: σκούρο. Αρα λευκό, ρητά. */}
-          <svg
+          <svg aria-hidden="true"
             width={104} height={104} viewBox={BRAND_VIEWBOX}
             fill={BRAND_MARK_ON_DARK} fillRule="nonzero"
           >

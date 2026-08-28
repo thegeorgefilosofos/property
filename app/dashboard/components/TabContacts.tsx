@@ -1901,7 +1901,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
         )}
         {allTags.length > 0 && (
           <div style={{ minWidth: 170 }}>
-            <CustomSelect value={filterTag} onChange={setFilterTag} placeholder="Όλες οι ετικέτες"
+            <CustomSelect ariaLabel="Ετικέτα" value={filterTag} onChange={setFilterTag} placeholder="Όλες οι ετικέτες"
               options={[{ value: '', label: 'Όλες οι ετικέτες' }, ...allTags.map(t => ({ value: t, label: t }))]} />
           </div>
         )}
@@ -2115,7 +2115,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
               </CField>
               <div {...fieldRow(160, 16, { alignItems: 'start' })}>
                 <CField d={cf('contact.role')}>
-                  <CustomSelect value={form.role} onChange={v => setForm(f => ({ ...f, role: v }))}
+                  <CustomSelect ariaLabel="Ρόλος επαφής" value={form.role} onChange={v => setForm(f => ({ ...f, role: v }))}
                     options={ROLE_SELECT_OPTIONS.filter(o => !o.disabled).map(o => ({ value: o.value, label: o.label }))} />
                   {isOtherRole(form.role) && <div style={{ marginTop: 10 }}><Inp value={roleOther} onChange={setRoleOther} placeholder="Κατηγορία" /></div>}
                 </CField>
@@ -2134,7 +2134,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
             {/* ── Πτυσσόμενες λεπτομέρειες ── */}
             <button type="button" onClick={() => setShowMore(m => !m)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 0', border: '1px dashed var(--border-default)', borderRadius: T.radius.inner, background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: T.font.sans }}>
               {showMore ? 'Λιγότερες λεπτομέρειες' : 'Περισσότερες λεπτομέρειες'}
-              <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: showMore ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="m6 9 6 6 6-6" /></svg>
+              <svg aria-hidden="true" width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: showMore ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="m6 9 6 6 6-6" /></svg>
             </button>
 
             {showMore && (
@@ -2199,7 +2199,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
                     </div>
                     {(form.extra.scope || 'property') !== 'portfolio' && properties.length > 0 && (
                       <div style={{ marginTop: 12 }}>
-                        <CustomSelect value={form.extra.scope_property_id || propertyId} onChange={v => setExtra('scope_property_id', v)}
+                        <CustomSelect ariaLabel="Ακίνητο" value={form.extra.scope_property_id || propertyId} onChange={v => setExtra('scope_property_id', v)}
                           options={properties.map(p => ({ value: p.id, label: p.name }))} />
                       </div>
                     )}

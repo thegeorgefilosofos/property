@@ -152,7 +152,7 @@ export function InfoDot({ text }: { text: string }) {
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); open ? hide() : show(); }}
         style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', verticalAlign: 'middle', marginLeft: 0, marginTop: -9, marginBottom: -9, padding: 0, width: T.h.sm, height: T.h.sm, borderRadius: '50%', border: 'none', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'help', flexShrink: 0 }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 15, height: 15, borderRadius: '50%', border: '1px solid var(--border-default)' }}>
-          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 8h.01M11 12h1v4h1" /></svg>
+          <svg aria-hidden="true" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 8h.01M11 12h1v4h1" /></svg>
         </span>
       </button>
       {open && typeof document !== 'undefined' && createPortal(
@@ -532,15 +532,25 @@ interface SelectOption {
   header?: string; // προαιρετική επικεφαλίδα ομάδας (εμφανίζεται πριν από αυτή την επιλογή)
 }
 
-interface CustomSelectProps {
-  label?: string;
-  /**
-   * Χωρίς ετικέτα, ο επιλογέας ονομάζεται από την ΤΙΜΗ του — δηλαδή αλλάζει
-   * όνομα κάθε φορά που ο χρήστης επιλέγει κάτι και σε λίστα με μία γραμμή
-   * ανά αντικείμενο ακούγονται είκοσι επιλογείς που λένε «Καλή», «Καλή»…
-   * Το `ariaLabel` δίνει σταθερό όνομα που λέει ΤΙ ρυθμίζει, όχι τι δείχνει.
-   */
-  ariaLabel?: string;
+/**
+ * ── ΚΑΘΕ ΕΠΙΛΟΓΕΑΣ ΕΧΕΙ ΟΝΟΜΑ, ΚΑΙ ΤΟ ΟΝΟΜΑ ΔΕΝ ΕΙΝΑΙ Η ΤΙΜΗ ΤΟΥ ────────────
+ *
+ * ΤΙ ΕΚΑΝΕ ΠΡΙΝ. Χωρίς ορατή ετικέτα, ο επιλογέας έπαιρνε `aria-label` από την
+ * επιλεγμένη τιμή ή από το placeholder. Ο αναγνώστης οθόνης άκουγε «Όλες οι
+ * κατηγορίες, σύνθετο πλαίσιο, Όλες οι κατηγορίες»: την ΤΙΜΗ δύο φορές και την
+ * ερώτηση («ποια κατηγορία;») ΠΟΤΕ. Και το όνομα άλλαζε σε κάθε επιλογή, οπότε
+ * ο ίδιος επιλογέας λεγόταν κάθε φορά αλλιώς.
+ *
+ * ΤΟ ΟΝΟΜΑ ΕΙΝΑΙ ΠΛΕΟΝ ΥΠΟΧΡΕΩΤΙΚΟ ΣΤΟΝ ΤΥΠΟ. Ο τύπος δέχεται ΕΙΤΕ ορατή
+ * `label` ΕΙΤΕ `ariaLabel`: μια κλήση χωρίς κανένα από τα δύο δεν μεταγλωττίζει.
+ * Ενας κανόνας που ελέγχεται στη μεταγλώττιση δεν ξεχνιέται ποτέ, σε αντίθεση
+ * με έναν κανόνα που ζει σε σχόλιο.
+ */
+type SelectNaming =
+  | { label: string; ariaLabel?: string }
+  | { label?: undefined; ariaLabel: string };
+
+type CustomSelectProps = SelectNaming & {
   labelInfo?: ReactNode;
   value: string;
   onChange: (v: string) => void;
@@ -691,7 +701,7 @@ export function CustomSelect({
         aria-controls={open ? listId : undefined}
         aria-disabled={disabled || undefined}
         aria-labelledby={label ? labelId : undefined}
-        aria-label={label ? undefined : (ariaLabel || selected?.label || placeholder)}
+        aria-label={label ? undefined : ariaLabel}
         aria-activedescendant={open && activeIndex >= 0 ? `${baseId}-opt-${activeIndex}` : undefined}
         onClick={() => !disabled && (open ? setOpen(false) : openList())}
         onKeyDown={onKeyDown}
@@ -1127,7 +1137,7 @@ export function BulkActionBar({ count, countLabel, actions, onClear, minWidth = 
         style={{ padding: '12px 16px', border: 'none', borderLeft: '1px solid var(--border-subtle)', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, lineHeight: 1, flexShrink: 0, transition: 'background 0.15s' }}
         onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-surface)'; }}
         onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
-        <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        <svg aria-hidden="true" width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
       </button>
     </div>
   );

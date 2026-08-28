@@ -799,11 +799,11 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
                     <span style={{ fontSize: 15, fontWeight: 700, color: on ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.sans }}>{o.title}</span>
                     {requiresUpgrade ? (
                       <span aria-hidden style={{ flexShrink: 0, color: 'var(--text-tertiary)', display: 'inline-flex' }}>
-                        <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                        <svg aria-hidden="true" width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
                       </span>
                     ) : (
                       <span style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, border: `2px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        {on && <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>}
+                        {on && <svg aria-hidden="true" width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>}
                       </span>
                     )}
                   </div>
@@ -882,7 +882,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
               κάθεται σε άλλη θέση σε κάθε γραμμή και η στήλη σπάει. */}
           <SetRow title="Ορίζοντας προθεσμιών" desc="Πόσο μπροστά κοιτά η λίστα «Τι χρειάζεται τώρα» στην αρχική οθόνη. Ό,τι είναι πιο μακριά ζει στο Ημερολόγιο και στις Εκκρεμότητες. Οι εκπρόθεσμες εμφανίζονται πάντα, όποια τιμή κι αν επιλέξεις."
             control={<div style={{ width: 264 }}>
-              <CustomSelect value={String(prefs.agendaHorizonDays)}
+              <CustomSelect ariaLabel="Ορίζοντας προθεσμιών" value={String(prefs.agendaHorizonDays)}
                 onChange={v => updatePrefs({ agendaHorizonDays: Number(v) as AppPreferences['agendaHorizonDays'] })}
                 options={[
                   { value: '30',  label: 'Επόμενος μήνας (30 ημέρες)' },

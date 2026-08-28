@@ -102,7 +102,7 @@ export default function ExpenseSwitchAlert({ propertyId, userId, onOpen }: {
             <button type="button" aria-label="Απόκρυψη" title="Απόκρυψη"
               onClick={() => setDismissed(d => new Set(d).add(r.section))}
               style={{ height: T.h.sm, width: T.h.sm, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: T.radius.pill, border: '1px solid transparent', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer' }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>
         </div>

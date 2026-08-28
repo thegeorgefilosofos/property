@@ -61,18 +61,18 @@ export function ItemModal({ item, contacts, onSave, onClose, onScan }: {
           `formGrid` που κόβει κάθε στήλη σε σταθερό μέγιστο και αφήνει το
           υπόλοιπο κενό. Σε στενή οθόνη τυλίγει μόνο του. */}
       <div {...fieldRow(170, 12)}>
-        <div><FL>Κατηγορία</FL><Sel value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))} options={CATEGORIES.map(c => ({ value: c.id, label: c.label }))} /></div>
-        <div><FL>Προτεραιότητα</FL><Sel value={form.priority} onChange={v => setForm(f => ({ ...f, priority: v as Priority }))} options={PRIORITIES.map(p => ({ value: p.value, label: p.label }))} /></div>
-        <div><FL>Κατάσταση</FL><Sel value={form.status} onChange={v => setForm(f => ({ ...f, status: v as Status }))} options={STATUSES.map(st => ({ value: st.value, label: st.label }))} /></div>
+        <div><FL>Κατηγορία</FL><Sel ariaLabel="Κατηγορία" value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))} options={CATEGORIES.map(c => ({ value: c.id, label: c.label }))} /></div>
+        <div><FL>Προτεραιότητα</FL><Sel ariaLabel="Προτεραιότητα" value={form.priority} onChange={v => setForm(f => ({ ...f, priority: v as Priority }))} options={PRIORITIES.map(p => ({ value: p.value, label: p.label }))} /></div>
+        <div><FL>Κατάσταση</FL><Sel ariaLabel="Κατάσταση" value={form.status} onChange={v => setForm(f => ({ ...f, status: v as Status }))} options={STATUSES.map(st => ({ value: st.value, label: st.label }))} /></div>
       </div>
       <div {...fieldRow(170, 12)}>
         <div><FL>Προθεσμία</FL><DatePicker value={form.due_date} onChange={v => setForm(f => ({ ...f, due_date: v }))} /></div>
-        <div><FL>Επανάληψη</FL><Sel value={form.recurring} onChange={v => setForm(f => ({ ...f, recurring: v as Recurring }))} options={RECURRING_OPTIONS} /></div>
+        <div><FL>Επανάληψη</FL><Sel ariaLabel="Επανάληψη" value={form.recurring} onChange={v => setForm(f => ({ ...f, recurring: v as Recurring }))} options={RECURRING_OPTIONS} /></div>
         <div><FL>Δική σου εκτίμηση κόστους (€)</FL><Inp ariaLabel="Δική σου εκτίμηση κόστους σε ευρώ" value={form.estimated_cost} onChange={v => setForm(f => ({ ...f, estimated_cost: v }))} placeholder="προαιρετικό" type="number" min={0} /></div>
       </div>
       <div>
         <div><FL>Ανάθεση σε επαφή</FL>
-          <CustomSelect value={form.assigned_contact_id}
+          <CustomSelect ariaLabel="Ανάθεση σε επαφή" value={form.assigned_contact_id}
             onChange={v => { const c = contacts.find(x => x.id === v); setForm(f => ({ ...f, assigned_contact_id: v, assigned_contact_name: c?.full_name || '' })) }}
             placeholder="Χωρίς ανάθεση"
             options={[{ value: '', label: 'Χωρίς ανάθεση' }, ...contacts.map(c => ({ value: c.id, label: c.full_name }))]} />
@@ -132,7 +132,7 @@ export function ItemModal({ item, contacts, onSave, onClose, onScan }: {
         </div>
       )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner }}>
-        <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        <svg aria-hidden="true" width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
         {/* ΚΑΜΙΑ ΥΠΟΣΧΕΣΗ «ΕΚΚΡΕΜΗΣ ΔΑΠΑΝΗ». Η εκτίμηση δεν γράφεται πλέον στα
             Δαπάνες: ο προϋπολογισμός και το σύνολο που πάει στο Ε2 δεν δέχονται
             νούμερο χωρίς παραστατικό. */}

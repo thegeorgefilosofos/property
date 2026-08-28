@@ -39,7 +39,7 @@
  */
 export function AssistantMark({ size = 18 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden focusable="false" style={{ display: 'block', flexShrink: 0 }}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false" style={{ display: 'block', flexShrink: 0 }}>
       <path d="M4 3 H8.5 L15.5 14.5 V3 H20 V21 H15.5 L8.5 9.5 V21 H4 Z" />
     </svg>
   )

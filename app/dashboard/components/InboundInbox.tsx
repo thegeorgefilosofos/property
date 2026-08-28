@@ -188,8 +188,8 @@ export default function InboundInbox({ propertyId, userId, propertyName, onFiled
               <div {...fieldRow(180)}>
                 <div style={{ minWidth: 0 }}>
                   <span style={{ ...TT.bodySm, display: 'block', marginBottom: 6, color: 'var(--text-secondary)' }}>Κατηγορία</span>
-                  <CustomSelect value={draft.slug} onChange={v => patch(r.id, { slug: v })}
-                    ariaLabel="Κατηγορία δαπάνης" placeholder="Χωρίς κατηγορία"
+                  <CustomSelect ariaLabel="Κατηγορία δαπάνης" value={draft.slug} onChange={v => patch(r.id, { slug: v })}
+                    placeholder="Χωρίς κατηγορία"
                     options={CATEGORIES.map(c => ({ value: c.slug, label: c.label }))} />
                 </div>
                 {/* ══════════════════════════════════════════════════════════

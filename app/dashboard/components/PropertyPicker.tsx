@@ -48,7 +48,7 @@ export default function PropertyPicker({ items, selected, onChange, loading, pla
     border: `1.5px solid ${on || mixed ? 'var(--accent)' : 'var(--border-default)'}`,
     background: on || mixed ? 'var(--accent)' : 'var(--bg-surface)', transition: 'border-color 0.14s, background 0.14s',
   });
-  const check = <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>;
+  const check = <svg aria-hidden="true" width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>;
   const row: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 11, width: '100%', padding: '9px 13px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: T.font.sans, fontSize: 13, color: 'var(--text-primary)' };
 
   return (
@@ -56,7 +56,7 @@ export default function PropertyPicker({ items, selected, onChange, loading, pla
       <button type="button" onClick={() => !loading && items.length > 0 && setOpen(o => !o)} disabled={loading || items.length === 0}
         style={{ width: '100%', height: T.h.lg, padding: '0 13px', borderRadius: 10, border: `1px solid ${open ? 'var(--accent)' : 'var(--border-default)'}`, background: 'var(--bg-surface)', color: selected.size ? 'var(--text-primary)' : 'var(--text-tertiary)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 10, cursor: (loading || !items.length) ? 'default' : 'pointer', transition: 'border-color 0.15s', opacity: (loading || !items.length) ? 0.6 : 1 }}>
         <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'left' }}>{summary}</span>
-        <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-tertiary)', flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="M6 9l6 6 6-6"/></svg>
+        <svg aria-hidden="true" width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-tertiary)', flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="M6 9l6 6 6-6"/></svg>
       </button>
 
       {open && (

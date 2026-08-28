@@ -78,7 +78,7 @@ export default function BillingNudge({ userId, onNavigate }: { userId: string; o
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
         <Btn variant="secondary" onClick={() => onNavigate?.('settings')}>Συμπλήρωσε τα στοιχεία</Btn>
         <button onClick={dismiss} aria-label="Απόκρυψη" style={{ appearance: 'none', border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'inline-flex', padding: 6, borderRadius: 8 }}>
-          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+          <svg aria-hidden="true" width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
         </button>
       </div>
     </div>

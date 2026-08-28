@@ -732,7 +732,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
                       : <span style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-tertiary)' }}>Καμία</span>}
                   </td>
                   <td style={{ padding: '13px 14px', textAlign: 'right' }}>
-                    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                    <svg aria-hidden="true" width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
                   </td>
                 </tr>
               ))}
@@ -785,12 +785,12 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
         <div style={{ display: 'flex', gap: 12 }}>
           <div style={{ flex: 1 }}>
             <label style={{ ...TT.label, display: 'block', marginBottom: 6 }}>Κατηγορία</label>
-            <CustomSelect value={bulkCat} onChange={setBulkCat}
+            <CustomSelect ariaLabel="Κατηγορία" value={bulkCat} onChange={setBulkCat}
               options={TASK_CATEGORIES.map(c => ({ value: c.id, label: c.label }))} />
           </div>
           <div style={{ flex: 1 }}>
             <label style={{ ...TT.label, display: 'block', marginBottom: 6 }}>Προτεραιότητα</label>
-            <CustomSelect value={bulkPriority} onChange={setBulkPriority}
+            <CustomSelect ariaLabel="Προτεραιότητα" value={bulkPriority} onChange={setBulkPriority}
               options={TASK_PRIORITIES.map(p => ({ value: p.value, label: p.label }))} />
           </div>
         </div>
@@ -822,7 +822,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
         {/* Τα κενά τα δίνει το σώμα του <Modal> (flex column, gap 20). Τα
             χειρόγραφα marginBottom/marginTop που έμειναν από το παλιό κέλυφος
             πρόσθεταν 18 και 14 ΠΑΝΩ σε αυτό. */}
-        <CustomSelect value={stmt?.id || ''} onChange={setStmtOwner}
+        <CustomSelect ariaLabel="Ιδιοκτήτης" value={stmt?.id || ''} onChange={setStmtOwner}
           options={owners.map(o => ({ value: o.id, label: `${o.name} · ${o.rows.length} ${o.rows.length === 1 ? 'ακίνητο' : 'ακίνητα'}` }))} />
 
         {stmt && (
@@ -881,7 +881,7 @@ function Th({ label, k, sort, asc, onSort, align = 'right', pin }: { label: stri
       {label}
       {active && (
         <svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.4"
-          strokeLinecap="round" strokeLinejoin="round" aria-hidden
+          strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
           style={{ marginLeft: 5, verticalAlign: 'middle', transform: asc ? 'rotate(180deg)' : 'none' }}>
           <path d="M6 9l6 6 6-6" />
         </svg>

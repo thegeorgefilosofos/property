@@ -219,7 +219,7 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
     <Modal open={open} onClose={onClose} size="lg"
       title="Δήλωση μίσθωσης"
       subtitle="Έλεγχος πληρότητας πριν την υποβολή στο myAADE"
-      icon={<svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 15l2 2 4-4"/></svg>}
+      icon={<svg aria-hidden="true" width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 15l2 2 4-4"/></svg>}
       footerInfo={<>{decl.fields.filter(f => f.status === 'ok').length} από {decl.fields.length} πεδία έτοιμα</>}
       footer={<>
         <Btn variant="secondary" onClick={printSheet}><Printer size={14} />Εκτύπωση φύλλου</Btn>

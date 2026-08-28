@@ -425,9 +425,9 @@ function Figure({ label, value, tone }: { label: string; value: string; tone?: '
 
    ΚΑΙ ΤΟ ΜΙΣΟ ΠΛΑΤΟΣ ΤΗΣ ΚΑΡΤΑΣ ΕΜΕΝΕ ΑΔΕΙΟ. Μετρημένο στον πάγκο, στη σκηνή
    roi-pro: η παράγραφος του «Άρθρου 39Β» έπιανε 552 εικονοστοιχεία μέσα σε
-   κάρτα 1.350, δηλαδή άφηνε 798 κενά δεξιά της· στα 1920 άφηνε 1.126. Αιτία η
-   `text-measure`, που κόβει στους 74 χαρακτήρες. Σωστός κανόνας για τρεχούμενο
-   κείμενο, λάθος σχήμα για σημείωση μέσα σε φαρδιά κάρτα.
+   κάρτα 1.350, δηλαδή άφηνε 798 κενά δεξιά της· στα 1920 άφηνε 1.126. Αιτία ένα
+   όριο 74 χαρακτήρων που έμπαινε τότε σε κάθε σημείωση: σωστός κανόνας για
+   σελίδα βιβλίου, λάθος σχήμα για σημείωση μέσα σε φαρδιά κάρτα.
 
    ΤΩΡΑ ΜΕΝΕΙ ΟΡΑΤΟ ΜΟΝΟ ΟΤΙ ΚΡΙΝΕΙ ΤΗΝ ΑΠΟΦΑΣΗ: ο τίτλος και το ποσό. Οι
    προϋποθέσεις και ο κίνδυνος μπαίνουν πίσω από το κυκλάκι, μαζί, γιατί
@@ -516,7 +516,10 @@ function Toggle({ checked, onChange, label, note }: { checked: boolean; onChange
   return (
     <div>
       <Switch on={checked} onChange={onChange} label={label} size="sm" />
-      <p className="text-measure" style={{ margin: '4px 0 0 48px', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: SANS, lineHeight: 1.5 }}>{note}</p>
+      {/* ΜΑΚΡΙΑ ΓΡΑΜΜΗ, ΠΕΡΙΣΣΟΤΕΡΟΣ ΑΕΡΑΣ. Χωρίς όριο πλάτους η σημείωση πιάνει
+          όλη την κάρτα και φτάνει τους 103 χαρακτήρες ανά γραμμή στα 820: το
+          1,5 του ύψους γραμμής άφηνε το μάτι να χάνει τη σειρά στην επιστροφή. */}
+      <p style={{ margin: '4px 0 0 48px', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: SANS, lineHeight: 1.7 }}>{note}</p>
     </div>
   );
 }
@@ -1817,7 +1820,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                   note="Ο νόμος το βάζει στον επισκέπτη και ο ιδιοκτήτης το αποδίδει. Οι πλατφόρμες όμως δεν έχουν πεδίο γι᾽ αυτό στην Ελλάδα: αν δεν το ζητήσεις ρητά, βγαίνει από την τσέπη σου." />
               </div>
             )}
-            <p className="text-measure" style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--text-secondary)', fontFamily: SANS, lineHeight: 1.55 }}>
+            <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--text-secondary)', fontFamily: SANS, lineHeight: 1.55 }}>
               {consolidated
                 ? <>{CONSOLIDATION_NOTE} Το χαρτοφυλάκιό σου: <strong style={{ color: 'var(--text-primary)' }}>{portfolioTax.count} ακίνητα</strong> με ενοίκια {fe(portfolioTax.totalAnnualRent)} και συνολικό φόρο {fe(portfolioTax.totalTax)} (μέσος συντελεστής {fp(portfolioTax.effectiveRate * 100)}, οριακός {fp(portfolioTax.marginalRate * 100)}). Το μερίδιο αυτού του ακινήτου είναι <strong style={{ color: 'var(--text-primary)' }}>{fe(annualTax)}</strong>. Αν υπολογιζόταν μόνο του, θα έδειχνε {fe(portfolioTax.perProperty.find(p => p.id === propertyId)?.standaloneTax ?? 0)}, δηλαδή λιγότερα από την πραγματικότητα.</>
                 : <>{/* Μένει ο ΔΙΚΟΣ ΣΟΥ συντελεστής, που είναι το νούμερο της
@@ -1854,15 +1857,12 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
             <Info size={14} style={{ color: 'var(--text-tertiary)', flexShrink: 0, marginTop: 2 }} />
             <div>
-              {/* ΤΟ `text-measure` ΕΚΟΒΕ ΣΤΟΥΣ 74 ΧΑΡΑΚΤΗΡΕΣ ΚΑΙ ΑΦΗΝΕ ΤΗ ΜΙΣΗ
+              {/* ΤΟ ΟΡΙΟ ΤΩΝ 74 ΧΑΡΑΚΤΗΡΩΝ ΕΚΟΒΕ ΤΟ ΚΕΙΜΕΝΟ ΚΑΙ ΑΦΗΝΕ ΤΗ ΜΙΣΗ
                   ΚΑΡΤΑ ΑΔΕΙΑ. Μετρημένο στα 1440: το κείμενο έπιανε 498
                   εικονοστοιχεία μέσα σε κάρτα 1.358, δηλαδή 860 κενά δεξιά του.
-
-                  Το `fineprint` λύνει ακριβώς αυτό και υπάρχει ήδη: πάνω από τα
-                  900 το μπλοκ πιάνει ΟΛΟ το πλάτος σε δύο στήλες, με κάθε στήλη
-                  γύρω στους 75 χαρακτήρες· κάτω από τα 900 γίνεται μία στήλη.
-                  Ούτε κενό δεξιά ούτε γραμμές 150 χαρακτήρων. */}
-              <p className="fineprint" style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: 0, fontFamily: SANS, lineHeight: 1.55 }}>{MARKET_DISCLAIMER}</p>
+                  Το `fineprint` το αφήνει να πιάσει ολόκληρο το μέτρο της
+                  κάρτας, σε μία στήλη, όπως κάθε άλλο κείμενο της οθόνης. */}
+              <p className="fineprint" style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: 0, fontFamily: SANS }}>{MARKET_DISCLAIMER}</p>
               {/* Μία σειρά. Το `flexWrap` μένει ως δίχτυ για πολύ στενή οθόνη ή
                   για τη ρύθμιση «μεγαλύτερο κείμενο» — δεν είναι η κανονική
                   κατάσταση, είναι η υποχώρηση. */}
