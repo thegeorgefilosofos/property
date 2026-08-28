@@ -1790,10 +1790,17 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .form-row-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .form-row-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .form-span-2 { grid-column: span 2; }
-@media (max-width: 820px) {
-  .form-row-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (max-width: 600px) {
+/* ΤΡΙΑ ΠΕΔΙΑ ΣΕ ΔΥΟ ΣΤΗΛΕΣ ΑΦΗΝΟΥΝ ΤΟ ΤΡΙΤΟ ΜΟΝΟ ΤΟΥ, ΚΑΙ Ο ΣΑΡΩΤΗΣ ΤΟ ΕΠΙΑΣΕ.
+   Μετρημένο στη φόρμα ενοικιαστή στα 820: «2+1» δύο φορές, με το «Κινητό
+   τηλέφωνο» και το «Εισπράττεται μέσω τραπέζης» σε μισό πλάτος και τρύπα ίσου
+   μεγέθους δίπλα τους. Είναι ο ΙΔΙΟΣ κανόνας που το `fcStep` γράφει ήδη για τα
+   πλακίδια: διάλεξε τον μεγαλύτερο ΔΙΑΙΡΕΤΗ του πλήθους που χωράει. Το τρία δεν
+   έχει διαιρέτη δύο, οπότε πάει κατευθείαν στη μία στήλη.
+
+   ΚΑΙ ΤΟ ΣΠΑΣΙΜΑ ΚΑΤΕΒΑΙΝΕΙ ΣΤΑ 700, ΓΙΑΤΙ ΤΑ ΤΡΙΑ ΧΩΡΑΝΕ. Στα 820 ήταν πρόωρο:
+   μέσα στο παράθυρο κάθε στήλη παίρνει 244 εικονοστοιχεία, δηλαδή περισσότερα
+   από όσα ζητά το φαρδύτερο πεδίο. Το όριο μπαίνει εκεί που όντως δεν χωρούν. */
+@media (max-width: 700px) {
   .form-row-2, .form-row-3 { grid-template-columns: minmax(0, 1fr); }
   .form-span-2 { grid-column: auto; }
 }

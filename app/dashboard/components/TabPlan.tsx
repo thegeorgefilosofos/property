@@ -809,7 +809,13 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
         )}
       </Card>
 
-      <p style={{ ...TT.caption, color: 'var(--text-tertiary)', margin: 0, padding: '0 2px' }}>
+      {/* ΤΟ ΥΨΟΣ ΓΡΑΜΜΗΣ ΤΗΣ ΛΕΖΑΝΤΑΣ ΕΙΝΑΙ 1,45 ΚΑΙ Η ΓΡΑΜΜΗ ΕΔΩ ΦΤΑΝΕΙ 101
+          ΧΑΡΑΚΤΗΡΕΣ. Μετρημένο από τον σαρωτή σε πέντε πλάτη, από τα 768 ώς τα
+          1.440: δύο προτάσεις που πάνε πέρα πέρα, σε ύψος γραμμής φτιαγμένο για
+          λεζάντα τριών λέξεων. Το κείμενο ΔΕΝ στενεύει — ο κανόνας του έργου
+          είναι να πηγαίνει πέρα πέρα — οπότε παίρνει τον αέρα του: 1,7, όπως
+          κάθε άλλο κείμενο πλήρους πλάτους της εφαρμογής. */}
+      <p style={{ ...TT.caption, lineHeight: 1.7, color: 'var(--text-tertiary)', margin: 0, padding: '0 2px' }}>
         {PLAN_DISCLAIMER}
       </p>
     </div>
