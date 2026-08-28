@@ -31,9 +31,15 @@ export function Skeleton({ w = '100%', h = 14, r = 8, style }: { w?: number | st
 }
 
 // ═══ SkeletonKPIs, σειρά από skeleton κάρτες μετρικών ═════════════════════
+// ΙΔΙΟ ΠΛΕΓΜΑ ΜΕ ΤΗΝ ΠΡΑΓΜΑΤΙΚΗ ΣΕΙΡΑ, ΟΧΙ ΔΕΥΤΕΡΟ. Ο σκελετός είχε δικό του
+// `auto-fit`: στα 430 έβγαζε τρία πλακίδια ως 2+1, με το τρίτο μισό και τρύπα
+// δεξιά του, ενώ η σειρά που αντικαθιστά βγάζει το τελευταίο σε ΟΛΟ το πλάτος
+// (ο κανόνας `.kpi-row > :last-child:nth-child(odd)`). Δηλαδή η οθόνη άλλαζε
+// σχήμα τη στιγμή που έφταναν τα δεδομένα. Με την ίδια κλάση, ο σκελετός είναι
+// το περίγραμμα εκείνου που έρχεται και όχι μια δεύτερη διάταξη.
 export function SkeletonKPIs({ n = 4 }: { n?: number }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, 150px), 1fr))`, gap: 10, marginBottom: 16 }}>
+    <div className="kpi-row" style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, 150px), 1fr))`, gap: 10, marginBottom: 16 }}>
       {Array.from({ length: n }).map((_, i) => (
         <div key={i} className="kpi-card" style={{ pointerEvents: 'none' }}>
           <Skeleton w={70} h={9} style={{ marginBottom: 12 }} />
@@ -477,7 +483,12 @@ export function PageTitle({ over, title, sub, lede, right, titleHint }: { over?:
             άφηνε τριακόσια κενά δεξιά, με ΟΛΟ το υπόλοιπο περιεχόμενο από κάτω να
             φτάνει ως την άκρη. Δύο διαφορετικά δεξιά περιθώρια στην ίδια οθόνη
             και το πάνω πάνω. */}
-        {lede && <p style={{ ...TT.body, color: 'var(--text-secondary)', margin: '10px 0 0' }}>{lede}</p>}
+        {/* ΤΟ ΥΨΟΣ ΓΡΑΜΜΗΣ ΕΙΝΑΙ 1,7 ΚΑΙ ΟΧΙ ΤΟ 1,55 ΤΟΥ ΣΩΜΑΤΟΣ. Το lede πιάνει
+            όλο το μέτρο της οθόνης: μετρημένο στα 1024, η γραμμή του φτάνει
+            τους 111 χαρακτήρες. Οσο πιο μακριά η γραμμή, τόσο περισσότερο αέρα
+            θέλει το μάτι για να βρει την επόμενη — το ίδιο μέτρο που ισχύει
+            και στα ψιλά γράμματα. */}
+        {lede && <p style={{ ...TT.body, color: 'var(--text-secondary)', margin: '10px 0 0', lineHeight: 1.7 }}>{lede}</p>}
       </div>
       {/* ΙΣΑ ΥΨΗ, ΚΑΙ ΟΤΑΝ Η ΜΙΑ ΕΤΙΚΕΤΑ ΤΥΛΙΓΕΙ. Σε Galaxy A το «Καταστάσεις
           ιδιοκτήτη» έσπαγε στα δύο και γινόταν 62 εικονοστοιχεία ψηλό, δίπλα

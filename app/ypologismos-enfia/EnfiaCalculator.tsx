@@ -150,7 +150,7 @@ export function EnfiaCalculator({ year, today }: { year: number; today: string }
         </div>
       </div>
 
-      <p className="po-tool-controls" style={{ margin: '10px 0 0', fontSize: 12, lineHeight: 1.6, color: 'var(--text-tertiary)' }}>
+      <p className="po-tool-controls" style={{ margin: '10px 0 0', fontSize: 12, lineHeight: 1.7, color: 'var(--text-tertiary)' }}>
         Την τιμή ζώνης τη βρίσκεις στο συμβόλαιο, στο Ε9 ή στον{' '}
         <a href={OBJECTIVE_VALUES} target="_blank" rel="noopener noreferrer"
           style={{ color: 'var(--accent)' }}>χάρτη αντικειμενικών αξιών (valuemaps.gov.gr)</a>.

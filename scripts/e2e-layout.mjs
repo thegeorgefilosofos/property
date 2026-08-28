@@ -100,7 +100,14 @@ const PROBE = () => {
       // Δέκα ψευδή ευρήματα στο χαρτοφυλάκιο, από ένα και μόνο κελί που
       // τύλιγε αλλού. Το Range δίνει τα πραγματικά ορθογώνια του κειμένου.
       const rg = document.createRange(); rg.selectNodeContents(el)
-      const lines = rg.getClientRects().length
+      // ΜΙΑ ΓΡΑΜΜΗ ΕΙΝΑΙ ΕΝΑ ΥΨΟΣ, ΟΧΙ ΕΝΑ ΟΡΘΟΓΩΝΙΟ. Το Range δίνει ΕΝΑ κουτί
+      // ανά κόμβο κειμένου: το «+1 μήνας Ιδιοκτήτη» γράφεται στο JSX ως
+      // `+{moNom(n)} {PLANS.solo.nameGen}`, δηλαδή τέσσερις κόμβοι σε ΜΙΑ
+      // οπτική γραμμή· έβγαινε «σπασμένη λέξη, 4 σειρές». Το ίδιο και κάθε
+      // ποσό με μονάδα δίπλα του. Τα κουτιά της ίδιας γραμμής μοιράζονται το
+      // `top`: μετρώντας διαφορετικά ύψη, μετριούνται γραμμές.
+      const lines = new Set([...rg.getClientRects()].filter(r => r.width > 1 && r.height > 1)
+        .map(r => Math.round(r.top))).size
       const words = txt.split(/\s+/).length
       if (lines > 3 && lines > words) add('σπασμένη λέξη', txt, lines + ' σειρές')
       // ═══ ΤΟ ΜΕΓΕΘΟΣ ΜΕΣΑ ΣΕ SVG ΔΕΝ ΕΙΝΑΙ ΤΟ ΜΕΓΕΘΟΣ ΣΤΗΝ ΟΘΟΝΗ ══════════
@@ -492,6 +499,16 @@ const PROBE = () => {
     // σειρά είναι απαίτηση να έχει ο χρήστης τον σωστό αριθμό εγγραφών.
     const full = Math.max(...counts), last = counts[counts.length - 1]
     if (last > 1) continue
+    // ΚΑΙ ΤΟ ΜΟΝΟ ΠΛΑΚΙΔΙΟ ΠΟΥ ΑΠΛΩΝΕΤΑΙ ΔΕΝ ΕΙΝΑΙ ΟΡΦΑΝΟ, ΕΙΝΑΙ Η ΔΙΟΡΘΩΣΗ.
+    // Ο κανόνας `:last-child:nth-child(odd) { grid-column: 1 / -1 }` υπάρχει
+    // ακριβώς γι' αυτό και εφαρμόζεται σε τέσσερα πλέγματα της εφαρμογής: το
+    // τελευταίο πλακίδιο πιάνει ΟΛΗ τη σειρά και δεν αφήνει κενό δεξιά του. Ο
+    // έλεγχος μετρούσε μόνο πλήθος ανά σειρά, οπότε κατήγγελλε ως ελάττωμα το
+    // ίδιο το γιατρικό: μετρημένο στη σύνοψη δαπανών στα 430, το τρίτο
+    // πλακίδιο είχε πλάτος 402 μέσα σε πλέγμα 402.
+    const lastKid = kids[kids.length - 1]
+    const gw = g.getBoundingClientRect().width
+    if (lastKid.getBoundingClientRect().width >= gw - 2) continue
     // Το πρώτο πλακίδιο ονομάζει το μπλοκ: μια κλάση «DIV» δεν βρίσκεται.
     const first = (kids[0].textContent || '').trim().slice(0, 20)
     add('ΟΡΦΑΝΟ ΠΛΑΚΙΔΙΟ', `${(g.className || g.tagName).toString().slice(0, 16)} → ${first}`, counts.join('+'))
