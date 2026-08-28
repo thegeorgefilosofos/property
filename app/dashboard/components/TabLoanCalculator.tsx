@@ -1021,9 +1021,18 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
           <div {...fixedCols(4, 12, 'start')}>
             <div>
               <NumberInput label="Ποσό δανείου" value={loanAmount} onChange={v=>{setLoanAmount(v);setActivePreset(null)}} suffix="€"/>
-              <div style={{display:'flex',justifyContent:'space-between',marginTop:5}}>
-                <span title="Ποσοστό δανείου ως προς την αξία του ακινήτου" style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans,fontWeight:500}}>Δάνειο προς αξία {fp(ltv)}</span>
-                <span style={{fontSize:12,color:'var(--text-tertiary)',fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums'}}>Ίδια κεφάλαια: {fmtEur(PV-LA)}</span>
+              {/* ΤΟ `space-between` ΕΣΠΡΩΧΝΕ ΤΑ ΔΥΟ ΣΤΑ ΑΚΡΑ, ΚΑΙ ΤΑ ΕΣΠΑΣΕ ΚΑΙ ΤΑ ΔΥΟ.
+                  Δύο μικρά κείμενα σε στήλη 320 εικονοστοιχείων: το πρώτο κολλούσε
+                  αριστερά, το δεύτερο δεξιά· επειδή μαζί ζητούσαν περισσότερο
+                  από τη στήλη, τσάκισε το καθένα στα δύο. Το αποτέλεσμα ήταν
+                  τέσσερις μισές γραμμές σε δύο στήλες: «Δάνειο προς αξία / 80,00%»
+                  αριστερά, «Ίδια κεφάλαια: / 24.000,00 €» δεξιά.
+
+                  Μία πρόταση, μία ροή, ένας διαχωριστής. Οταν δεν χωρά, τσακίζει
+                  σαν κείμενο — στο κενό ανάμεσα στις λέξεις — αντί να σπάσει σε
+                  δύο στήλες που κανείς δεν ζήτησε. */}
+              <div title="Ποσοστό δανείου ως προς την αξία του ακινήτου" style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans,fontWeight:500,marginTop:5,lineHeight:1.5,fontVariantNumeric:'tabular-nums'}}>
+                Δάνειο προς αξία {fp(ltv)} <span style={{color:'var(--text-tertiary)',fontWeight:400}}>· ίδια κεφάλαια {fmtEur(PV-LA)}</span>
               </div>
             </div>
             <NumberInput label="Διάρκεια (χρόνια)" value={years} onChange={v=>{setYears(v);setActivePreset(null)}} suffix="έτη" min={3} max={35}/>

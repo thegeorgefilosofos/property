@@ -616,6 +616,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
             <span className="plan-head" aria-hidden>Κόπος</span>
             <span className="plan-head" aria-hidden>Ρίσκο</span>
             <span className="plan-head" aria-hidden>Χρόνος</span>
+            <span className="plan-head-rule" aria-hidden />
             {plan.options.map((o: Option, i: number) => (
               <div key={o.id} style={{ display: 'contents' }}>
                 {i > 0 && <span className="plan-span" style={{ borderTop: '1px solid var(--border-subtle)' }} />}
@@ -777,8 +778,14 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
             <div style={{ ...TT.label, fontSize: 11, color: 'var(--text-tertiary)', paddingBottom: 6, marginBottom: 2, borderBottom: '1px solid var(--border-subtle)' }}>
               Οι κανόνες που κοστίζουν χρήματα
             </div>
-            {plan.rules.map(r => (
-              <div key={r.id} className="plan-row plan-row-bare">
+            {/* ΟΙ ΓΡΑΜΜΕΣ ΤΗΣ ΑΝΑΦΟΡΑΣ ΕΠΛΕΑΝ ΧΩΡΙΣ ΤΙΠΟΤΑ ΝΑ ΤΙΣ ΧΩΡΙΖΕΙ. Επτά
+                τίτλοι ο ένας κάτω από τον άλλον, με μόνο το κενό ανάμεσά τους:
+                στον ίδιο πίνακα, δύο ενότητες πιο πάνω, οι σειρές της σύγκρισης
+                έχουν λεπτή γραμμή. Ιδιο υλικό, δύο ρυθμοί. Η γραμμή μπαίνει
+                ΑΝΑΜΕΣΑ και ποτέ πριν από την πρώτη: εκεί υπάρχει ήδη η γραμμή
+                της υποενότητας. */}
+            {plan.rules.map((r, i) => (
+              <div key={r.id} className="plan-row plan-row-bare" style={{ borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
                 <span style={{ minWidth: 0 }}>
                   <RowTitle state="plain">{r.title}</RowTitle>
                   <InfoHint label={`Ο κανόνας: ${r.title}`}>{r.body}</InfoHint>
@@ -792,8 +799,8 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
             <div style={{ ...TT.label, fontSize: 11, color: 'var(--text-tertiary)', paddingBottom: 6, marginTop: T.sp.lg, marginBottom: 2, borderBottom: '1px solid var(--border-subtle)' }}>
               Προς επιβεβαίωση
             </div>
-            {plan.verify.map(v => (
-              <div key={v.id} className="plan-row plan-row-bare">
+            {plan.verify.map((v, i) => (
+              <div key={v.id} className="plan-row plan-row-bare" style={{ borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
                 {/* ΔΕΝ ΕΙΝΑΙ ΤΙΤΛΟΣ, ΕΙΝΑΙ ΕΡΩΤΗΜΑ και γι᾽ αυτό δεν φοράει το
                     βάρος του τίτλου κανόνα από πάνω: μια ερώτηση δύο σειρών σε
                     14/600 διαβάζεται σαν κραυγή. */}

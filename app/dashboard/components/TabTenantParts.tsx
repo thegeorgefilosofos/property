@@ -66,7 +66,7 @@ export function ChipRow({ label, groupLabel, info, children }: { label?:string; 
           ΕΙΝΑΙ η ετικέτα: η σειρά παραλείπει τη δική της και δηλώνει το όνομα
           στο `groupLabel`, ώστε ο αναγνώστης οθόνης να ακούει «Κατάσταση
           επίπλωσης, ομάδα» και να μη χάσει τίποτα. */}
-      {label&&<div style={fieldLabelStyle}>{label}{info&&<InfoDot text={info}/>}</div>}
+      {label&&<div style={fieldLabelStyle}><span>{label}{info&&<InfoDot text={info}/>}</span></div>}
       <div role="group" aria-label={label ?? groupLabel} style={{ display:'flex', gap:6, flexWrap:'wrap' as const }}>{children}</div>
     </div>
   );

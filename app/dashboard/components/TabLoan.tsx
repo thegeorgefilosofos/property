@@ -881,9 +881,19 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                     <p style={{fontSize:16,fontWeight:600,fontFamily: T.font.sans,color:'var(--text-primary)',letterSpacing:'-0.01em'}}>{bank.name}</p>
                     {bank.note&&<p style={{fontSize:12,color:'var(--text-tertiary)',marginTop:3,fontFamily: T.font.sans}}>{bank.note}</p>}
                   </div>
-                  <div style={{display:'flex',gap:8}}>
+                  <div style={{display:'flex',gap:8,alignItems:'center'}}>
                     {bank.url&&<a href={bank.url} target="_blank" rel="noreferrer" style={{padding:'0 16px',height:T.h.md,borderRadius: T.radius.modal,border:'1px solid var(--border-default)',background:'none',color:'var(--text-secondary)',fontSize:13,fontFamily: T.font.sans,textDecoration:'none',fontWeight:500,display:'flex',alignItems:'center'}}>Επίσκεψη</a>}
                     <button disabled={bankRate===null} title={bankRate===null?'Η τράπεζα δεν έχει δημοσιεύσει επιτόκιο· δεν υπάρχει τιμή να εφαρμοστεί':undefined} onClick={()=>{ if(bankRate!==null) applyBank(bankRate, 'fixed', bank.name) }} style={{padding:'0 16px',height:T.h.md,borderRadius: T.radius.modal,background:bankRate===null?'var(--bg-elevated)':'var(--accent)',border:bankRate===null?'1px solid var(--border-subtle)':'none',color:bankRate===null?'var(--text-tertiary)':'var(--accent-text)',fontSize:13,fontFamily: T.font.sans,cursor:bankRate===null?'not-allowed':'pointer',fontWeight:600}}>Υπολόγισε τη δόση</button>
+                    {/* ΤΟ ΠΑΝΕΛ ΑΝΟΙΓΕ ΚΑΙ ΔΕΝ ΕΚΛΕΙΝΕ ΑΠΟ ΠΟΥΘΕΝΑ. Η μόνη έξοδος
+                        ήταν να ξαναβρεί ο χρήστης το πλακίδιο της τράπεζας ΠΑΝΩ από
+                        το πάνελ και να το ξαναπατήσει — δηλαδή να κυλήσει προς τα
+                        πάνω, να θυμηθεί ποιο από τα επτά ήταν, να μαντέψει ότι
+                        το δεύτερο πάτημα κλείνει. Πεντακόσια εικονοστοιχεία
+                        περιεχομένου χωρίς κουμπί κλεισίματος. Το «×» κάθεται εκεί
+                        που κάθεται σε κάθε παράθυρο της εφαρμογής: δεξιά στην
+                        κεφαλίδα, με ζώνη αφής 44. */}
+                    <button type="button" onClick={()=>setSelBank(null)} aria-label={`Κλείσιμο: ${bank.name}`}
+                      style={{width:T.h.md,height:T.h.md,display:'flex',alignItems:'center',justifyContent:'center',borderRadius: T.radius.modal,border:'1px solid var(--border-subtle)',background:'none',color:'var(--text-tertiary)',cursor:'pointer',fontSize:18,lineHeight:1,fontFamily: T.font.sans,padding:0}}>×</button>
                   </div>
                 </div>
                 <p style={{...labelStyle,marginBottom:10}}>Σταθερά επιτόκια «από», ανά διάρκεια</p>

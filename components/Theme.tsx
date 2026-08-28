@@ -37,9 +37,18 @@ export function Skeleton({ w = '100%', h = 14, r = 8, style }: { w?: number | st
 // (ο κανόνας `.kpi-row > :last-child:nth-child(odd)`). Δηλαδή η οθόνη άλλαζε
 // σχήμα τη στιγμή που έφταναν τα δεδομένα. Με την ίδια κλάση, ο σκελετός είναι
 // το περίγραμμα εκείνου που έρχεται και όχι μια δεύτερη διάταξη.
+// ΚΑΙ ΤΟ ΠΛΗΘΟΣ ΣΤΗΛΩΝ ΒΓΑΙΝΕΙ ΑΠΟ ΤΟΝ ΙΔΙΟ ΚΑΝΟΝΑ. Με το `auto-fit` στο inline,
+// ο σκελετός ξαναέβρισκε τρόπο να διαφέρει: πάνω από τα 1.280 η πραγματική σειρά
+// βάζει ΟΛΑ τα πλακίδια σε μία γραμμή και ο σκελετός έβγαζε όσα χωρούσαν σε 150.
+// Τα ίδια τέσσερα σκαλιά, από την ίδια συνάρτηση, για τα δύο.
 export function SkeletonKPIs({ n = 4 }: { n?: number }) {
+  const step = (cap: number) => {
+    for (let d = Math.min(n, cap); d >= 2; d--) if (n % d === 0) return d;
+    for (let d = Math.min(n, cap); d >= 2; d--) if (n % d !== 1) return d;
+    return 1;
+  };
   return (
-    <div className="kpi-row" style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, 150px), 1fr))`, gap: 10, marginBottom: 16 }}>
+    <div className="kpi-row kpi-grid" style={{ display: 'grid', gap: 10, marginBottom: 16, '--kpi-xl': n, '--kpi-lg': step(4), '--kpi-md': step(3), '--kpi-sm': Math.min(n, 2) } as CSSProperties}>
       {Array.from({ length: n }).map((_, i) => (
         <div key={i} className="kpi-card" style={{ pointerEvents: 'none' }}>
           <Skeleton w={70} h={9} style={{ marginBottom: 12 }} />
@@ -654,8 +663,13 @@ export function KPIGrid({ items, columns }: { items: KPIItem[]; columns?: number
   // `KpiValue`. Μετριέται σε χαρακτήρες, γιατί ο αριθμός γράφεται με
   // `tabular-nums` και εκεί κάθε χαρακτήρας πιάνει το ίδιο πλάτος.
   const widest = items.reduce((m, k) => Math.max(m, k.value.length), 0);
+  // ΤΟ `auto-fit` ΕΦΥΓΕ ΑΠΟ ΤΟ INLINE, ΚΑΙ ΜΑΖΙ ΤΟΥ Η ΤΥΦΛΗ ΖΩΝΗ. Οσο το πλήθος
+  // στηλών γραφόταν εδώ ως «όσες χωράνε», ο κανόνας των διαιρετών ίσχυε μόνο
+  // κάτω από τα 1.023, δηλαδή παντού ΕΚΤΟΣ από την οθόνη του φορητού. Πλέον το
+  // πλήθος το ορίζουν και στα τέσσερα σκαλιά οι μεταβλητές, το φύλλο στυλ τις
+  // διαβάζει, ενώ το inline κρατά μόνο ό,τι δεν είναι διάταξη.
   return (
-    <div className="kpi-row" style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${Math.max(140, Math.floor(920 / cols))}px), 1fr))`, gap: 12, marginBottom: 16, '--kpi-lg': step(4), '--kpi-md': step(3), '--kpi-sm': sm } as React.CSSProperties}>
+    <div className="kpi-row kpi-grid" style={{ display: 'grid', gap: 12, marginBottom: 16, '--kpi-xl': cols, '--kpi-lg': step(4), '--kpi-md': step(3), '--kpi-sm': sm } as React.CSSProperties}>
       {items.map((k, i) => {
         const toned = !!(k.tone && k.tone !== 'neutral');
         return (

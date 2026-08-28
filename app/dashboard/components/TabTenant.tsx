@@ -992,29 +992,42 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
                         οθόνες. Πλέον είναι οι ΙΔΙΕΣ σειρές τριών στηλών με την
                         υπόλοιπη φόρμα: ίδια πλάτη, ίδιες αφετηρίες, ίδια
                         απόσταση. Το «Περισσότερα» έπαψε να είναι άλλη φόρμα. */}
+                    {/* ΤΡΙΑ ΚΑΙ ΤΡΙΑ, ΟΧΙ ΤΕΣΣΕΡΑ ΚΑΙ ΔΥΟ. Τα τέσσερα πρώτα πεδία
+                        ήταν σε ΜΙΑ σειρά τριών στηλών, οπότε το τέταρτο («Συχνότητα
+                        εξόφλησης») έπεφτε μόνο του σε δεύτερη σειρά με δύο τρύπες
+                        δίπλα του· ο τύπος με τον αριθμό εγγράφου έμεναν δύο σε
+                        τρεις στήλες. Οι σειρές γράφονται πλέον ΓΕΜΑΤΕΣ: τρία και
+                        τρία, το ίδιο σχήμα δύο φορές. */}
                     <div className="form-row form-row-3" style={{ marginBottom:14 }}>
                       {more('tenant.email')&&<TextInput label={labelOf('tenant.email')} labelInfo={whyOf('tenant.email')} value={form.email} onChange={v=>sf('email',v)} type="email"/>}
                       {more('tenant.profession')&&<TextInput label={labelOf('tenant.profession')} labelInfo={whyOf('tenant.profession')} value={form.profession} onChange={v=>sf('profession',v)} placeholder="Μηχανικός"/>}
                       {more('tenant.iban')&&<TextInput label={labelOf('tenant.iban')} labelInfo={whyOf('tenant.iban')} value={form.iban} onChange={v=>sf('iban',v)} placeholder="GR00 0000 0000 0000…"/>}
+                    </div>
+
+                    <div className="form-row form-row-3" style={{ marginBottom:14 }}>
                       {more('tenant.payment_frequency')&&<SelectField label={labelOf('tenant.payment_frequency')} labelInfo={whyOf('tenant.payment_frequency')} value={form.payment_frequency} onChange={v=>{ if(isPaymentFreq(v)) sf('payment_frequency',v); }} options={(Object.keys(PAYMENT_FREQ_LABELS) as PaymentFreq[]).map(k=>({value:k,label:PAYMENT_FREQ_LABELS[k]}))}/>}
+                      {more('tenant.id_doc')&&<SelectField label="Τύπος εγγράφου" labelInfo={whyOf('tenant.id_doc')} value={form.id_doc_type} onChange={v=>{ if(isIdDocType(v)) sf('id_doc_type',v); }} options={ID_DOCS.map(d=>({value:d,label:d}))} placeholder="Επιλογή…"/>}
+                      {more('tenant.id_doc')&&<TextInput label="Αριθμός εγγράφου" value={form.id_doc_number} onChange={v=>sf('id_doc_number',v)}/>}
                     </div>
 
                     {more('tenant.id_doc')&&(
-                      <>
-                        <div className="form-row form-row-3" style={{ marginBottom:14 }}>
-                          <SelectField label="Τύπος εγγράφου" labelInfo={whyOf('tenant.id_doc')} value={form.id_doc_type} onChange={v=>{ if(isIdDocType(v)) sf('id_doc_type',v); }} options={ID_DOCS.map(d=>({value:d,label:d}))} placeholder="Επιλογή…"/>
-                          <TextInput label="Αριθμός εγγράφου" value={form.id_doc_number} onChange={v=>sf('id_doc_number',v)}/>
-                        </div>
-                        <FilePickRow label="Σαρωμένη ταυτότητα ή διαβατήριο" hint="PDF ή εικόνα" busy={docBusy} onPick={f=>uploadFormDoc(f,'id')} docs={formDocs.filter(d=>d.tag==='id')}/>
-                      </>
+                      <FilePickRow label="Σαρωμένη ταυτότητα ή διαβατήριο" hint="PDF ή εικόνα" busy={docBusy} onPick={f=>uploadFormDoc(f,'id')} docs={formDocs.filter(d=>d.tag==='id')}/>
                     )}
 
+                    {/* Η ΕΠΙΣΤΡΟΦΗ ΕΙΝΑΙ ΤΕΤΑΡΤΟ ΠΕΔΙΟ, ΚΑΙ ΓΙ᾽ ΑΥΤΟ ΠΑΙΡΝΕΙ ΔΙΚΗ
+                        ΤΗΣ ΣΕΙΡΑ. Μέσα στην τριάδα της καταβολής έκανε «3+1» μόλις
+                        άναβε ο διακόπτης: μία ημερομηνία μόνη της κάτω από τρία
+                        πεδία, με δύο τρύπες δεξιά της. */}
                     <div className="form-row form-row-3" style={{ marginBottom:14 }}>
                       {more('tenant.deposit_method')&&<SelectField label={labelOf('tenant.deposit_method')} labelInfo={whyOf('tenant.deposit_method')} value={form.deposit_method} onChange={v=>sf('deposit_method',v)} options={DEPOSIT_METHODS.map(m=>({value:m,label:m}))} placeholder="Επιλογή…"/>}
                       {more('tenant.deposit_paid_on')&&<DatePicker label={labelOf('tenant.deposit_paid_on')} labelInfo={whyOf('tenant.deposit_paid_on')} value={form.deposit_paid_on} onChange={v=>sf('deposit_paid_on',v)}/>}
                       {more('tenant.deposit_returned')&&<ToggleField label={labelOf('tenant.deposit_returned')} labelInfo={whyOf('tenant.deposit_returned')} on={form.deposit_returned} onChange={v=>sf('deposit_returned',v)}/>}
-                      {more('tenant.deposit_returned')&&form.deposit_returned&&<DatePicker label="Ημερομηνία επιστροφής" value={form.deposit_return_date} onChange={v=>sf('deposit_return_date',v)}/>}
                     </div>
+                    {more('tenant.deposit_returned')&&form.deposit_returned&&(
+                      <div className="form-row form-row-3" style={{ marginBottom:14 }}>
+                        <DatePicker label="Ημερομηνία επιστροφής" value={form.deposit_return_date} onChange={v=>sf('deposit_return_date',v)}/>
+                      </div>
+                    )}
 
                     {/* ΔΥΟ ΔΙΑΚΟΠΤΕΣ ΧΩΡΙΣ ΘΕΜΑ. Το «Περιλαμβάνεται στο ενοίκιο»
                         και το «Χρεώνεται ξεχωριστά» στέκονταν μόνα τους, χωρίς
@@ -1022,7 +1035,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
                         («Χώρος στάθμευσης») και το γράφει η ετικέτα της σειράς. */}
                     {more('tenant.parking')&&(
                       <>
-                        <div style={{ ...fieldLabelStyle, marginBottom:0 }}>{labelOf('tenant.parking')}<InfoDot text={whyOf('tenant.parking')||''}/></div>
+                        <div style={{ ...fieldLabelStyle, marginBottom:0 }}><span>{labelOf('tenant.parking')}<InfoDot text={whyOf('tenant.parking')||''}/></span></div>
                         <div className="form-row form-row-3" style={{ marginBottom:14 }}>
                           <ToggleField label="Περιλαμβάνεται στο ενοίκιο" on={form.parking_included} onChange={v=>sf('parking_included',v)}/>
                           <ToggleField label="Χρεώνεται ξεχωριστά" on={form.parking_extra} onChange={v=>sf('parking_extra',v)}/>
@@ -1031,16 +1044,20 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
                       </>
                     )}
 
-                    {more('tenant.extra_perks')&&(
-                      <div style={{ marginBottom:14 }}>
+                    {/* ΔΥΟ ΠΛΑΙΣΙΑ ΕΛΕΥΘΕΡΟΥ ΚΕΙΜΕΝΟΥ, ΤΟ ΕΝΑ ΚΑΤΩ ΑΠΟ ΤΟ ΑΛΛΟ, ΣΕ
+                        ΠΛΗΡΕΣ ΠΛΑΤΟΣ: τριακόσια εικονοστοιχεία ύψος στο τέλος μιας
+                        φόρμας που μόλις μαζεύτηκε. Είναι το ίδιο είδος πεδίου με το
+                        ίδιο ύψος, οπότε στέκονται δίπλα δίπλα και το κάτω άκρο της
+                        φόρμας γίνεται μία ευθεία. Σε στενή οθόνη ξαναπέφτουν το ένα
+                        κάτω από το άλλο, όπως κάθε άλλη σειρά. */}
+                    <div className="form-row form-row-2">
+                      {more('tenant.extra_perks')&&(
                         <Textarea label={labelOf('tenant.extra_perks')} labelInfo={whyOf('tenant.extra_perks')} value={form.extra_perks} onChange={v=>sf('extra_perks',v)} placeholder="Αποθήκη, κήπος, κοινόχρηστο πλυντήριο…"/>
-                      </div>
-                    )}
-                    {more('tenant.notes')&&(
-                      <div>
+                      )}
+                      {more('tenant.notes')&&(
                         <Textarea label={labelOf('tenant.notes')} labelInfo={whyOf('tenant.notes')} value={form.notes} onChange={v=>sf('notes',v)}/>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 )}
               </>

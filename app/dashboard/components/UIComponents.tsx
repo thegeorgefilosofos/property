@@ -50,7 +50,7 @@ export function ToggleField({ label, labelInfo, on, onChange }: { label: string;
           όποιος διακόπτης χρειαζόταν εξήγηση δεν μπορούσε να τη δώσει μέσα από
           αυτό το component: η φόρμα ενοικιαστή έστηνε τέσσερις φορές τον
           διακόπτη με το χέρι, με ΚΕΦΑΛΑΙΑ ετικέτα, δίπλα σε πεδία με πεζή. */}
-      <label style={fieldLabelStyle}>{label}{infoNode(labelInfo)}</label>
+      <label style={fieldLabelStyle}><span>{label}{infoNode(labelInfo)}</span></label>
       {/* ΧΩΡΙΣ ΚΟΥΤΙ. Το πλαίσιο ενός πεδίου σημαίνει «εδώ γράφεις»· γύρω από
           διακόπτη είναι άδειο περίγραμμα που περικλείει ένα αντικείμενο μισού
           πλάτους και το κάνει να μοιάζει με πεδίο που δεν γέμισε κανείς. Μένει
@@ -118,6 +118,18 @@ const mdInputBase: React.CSSProperties = {
  * γραμμένο κανονικά, το «ΤΙΜΗ ΑΝΑ Τ.Μ.» διαβαζόταν ως άλλο είδος πράγματος.
  * Ίδια ετικέτα, ίδια γραμμή βάσης, μία δήλωση.
  */
+// ═══ ΚΑΙ ΤΟ ΚΥΚΛΑΚΙ ΑΚΟΛΟΥΘΕΙ ΤΗΝ ΤΕΛΕΥΤΑΙΑ ΛΕΞΗ, ΟΧΙ ΤΟ ΔΕΞΙ ΑΚΡΟ ═══════════
+// Η ετικέτα είναι flex και τα δύο περιεχόμενά της — το κείμενο και το ⓘ — ήταν
+// ΑΔΕΛΦΙΑ στοιχεία της. Το κείμενο παίρνει όσο πλάτος του δώσει η στήλη· όταν
+// τσακίζει σε δεύτερη γραμμή, το κουτί του ΠΑΡΑΜΕΝΕΙ όλο το πλάτος, οπότε το ⓘ
+// κάθεται στο δεξί άκρο της στήλης, δεκάδες εικονοστοιχεία μακριά από τη λέξη
+// που εξηγεί. Μετρημένο στο «Ημερομηνία καταβολής εγγύησης»: το κείμενο έκλεινε
+// στα 610 και το κυκλάκι του καθόταν στα 697.
+//
+// Το κείμενο και το ⓘ μπαίνουν σε ΕΝΑ `span`. Ο flex βλέπει ένα στοιχείο, μέσα
+// του η ροή είναι κανονική ενσωματωμένη ροή· το ⓘ πάει εκεί που ανήκει:
+// αμέσως μετά την τελευταία λέξη, σε όποια γραμμή κι αν πέσει αυτή. Η στοίχιση
+// στο κάτω μέρος δεν αλλάζει: το `span` είναι που στοιχίζεται, με ό,τι έχει μέσα.
 export const fieldLabelStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'flex-end',
@@ -401,7 +413,7 @@ export function NumberInput({
 
   return (
     <div className={className}>
-      {label && <label htmlFor={inputId} style={fieldLabelStyle}>{label}{infoNode(labelInfo)}</label>}
+      {label && <label htmlFor={inputId} style={fieldLabelStyle}><span>{label}{infoNode(labelInfo)}</span></label>}
       <div style={{
         width: '100%',
         background: 'var(--bg-surface)',
@@ -692,7 +704,7 @@ export function CustomSelect({
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      {label && <label style={fieldLabelStyle} id={labelId}>{label}{infoNode(labelInfo)}</label>}
+      {label && <label style={fieldLabelStyle} id={labelId}><span>{label}{infoNode(labelInfo)}</span></label>}
       <div
         ref={triggerRef}
         role="combobox"
@@ -918,7 +930,7 @@ export function DatePicker({ label, labelInfo, ariaLabel, value, onChange, disab
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      {label && <label style={fieldLabelStyle}>{label}{infoNode(labelInfo)}</label>}
+      {label && <label style={fieldLabelStyle}><span>{label}{infoNode(labelInfo)}</span></label>}
       <div
         role="button"
         tabIndex={disabled ? -1 : 0}
@@ -1283,7 +1295,7 @@ export function TextInput({ label, labelInfo, ariaLabel, id, value, onChange, pl
   const inputId = id ?? autoId;
   return (
     <div>
-      {label && <label htmlFor={inputId} style={fieldLabelStyle}>{label}{infoNode(labelInfo)}</label>}
+      {label && <label htmlFor={inputId} style={fieldLabelStyle}><span>{label}{infoNode(labelInfo)}</span></label>}
       <div style={{
         display: 'flex', alignItems: 'center',
         background: 'var(--bg-surface)',
@@ -1344,7 +1356,7 @@ export function Textarea({
   const inputId = useId();
   return (
     <div>
-      {label && <label htmlFor={inputId} style={fieldLabelStyle}>{label}{infoNode(labelInfo)}</label>}
+      {label && <label htmlFor={inputId} style={fieldLabelStyle}><span>{label}{infoNode(labelInfo)}</span></label>}
       <textarea
         id={inputId}
         value={value}

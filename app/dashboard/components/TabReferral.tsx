@@ -483,7 +483,16 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
 
       {/* ── Σύνδεσμος πρόσκλησης (focal, elevated) ── */}
       <div style={{ ...card, boxShadow: 'var(--highlight-inset), var(--elev-2)', padding: 'clamp(18px, 2.4vw, 26px)', marginBottom: T.sp.xl }}>
-        <SectionLabel>Ο προσωπικός σου σύνδεσμος</SectionLabel>
+        {/* Ο ΚΩΔΙΚΟΣ ΕΣΠΑΓΕ ΤΗ ΣΕΙΡΑ ΤΩΝ ΚΟΥΜΠΙΩΝ, ΚΑΙ ΔΕΝ ΕΙΝΑΙ ΚΟΥΜΠΙ. Καθόταν
+            τελευταίος μέσα στη σειρά των επτά τρόπων κοινοποίησης, με `margin-left:
+            auto`: ένα όγδοο στοιχείο που δεν πατιέται, να διεκδικεί χώρο από επτά
+            που πατιούνται. Το άθροισμα ξεπερνούσε τη γραμμή και έσπαγε το τελευταίο
+            κουμπί μόνο του σε δεύτερη σειρά. Ο κωδικός είναι ΤΑΥΤΟΤΗΤΑ, όχι
+            ενέργεια: πάει στην επικεφαλίδα, δίπλα στον σύνδεσμο που τον περιέχει. */}
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <SectionLabel>Ο προσωπικός σου σύνδεσμος</SectionLabel>
+          <span style={{ ...TT.caption }}>Κωδικός <strong style={{ color: 'var(--text-secondary)', fontFamily: T.font.num, letterSpacing: '0.04em' }}>{code}</strong></span>
+        </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
           <div className="ref-linkbox" style={{ flex: 1, minWidth: 240, display: 'flex', alignItems: 'center', gap: 10, background: 'var(--surface-sunken)', border: '1px solid var(--border-default)', borderRadius: T.radius.inner, padding: '11px 14px', minHeight: 44, boxSizing: 'border-box', boxShadow: 'var(--well-inset)' }}>
             <Ic d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1|M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" s={15} c="var(--text-tertiary)" />
@@ -513,7 +522,6 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
           <button onClick={nativeShare} className="ref-chip" style={{ ...CHIP, cursor: 'pointer', fontFamily: T.font.sans }}>
             <Ic d="M4 12v8h16v-8|M12 16V4|M8 8l4-4 4 4" s={15} c="var(--text-tertiary)" />Κοινοποίηση
           </button>
-          <span style={{ ...TT.caption, marginLeft: 'auto' }}>Κωδικός <strong style={{ color: 'var(--text-secondary)', fontFamily: T.font.num, letterSpacing: '0.04em' }}>{code}</strong></span>
         </div>
       </div>
 
