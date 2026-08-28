@@ -1,7 +1,7 @@
 'use client';
 
 import { daysUntil } from '@/lib/core/time';
-import { NumberInput, CustomSelect, TextInput, Toggle, ToggleField, DatePicker } from './UIComponents';
+import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
 import { usePropertyHeating } from './usePropertyHeating';
 import { HEATING_TYPES, isCentralHeating } from '@/lib/property/heating';
@@ -224,7 +224,7 @@ const DEFAULTS = {
   internetContractEnd: '', internetSpeedReal: '',
   phoneLocal: true, phoneMobile: false, phoneIntl: false, phoneVoip: false, phoneNotes: '',
   // FIX: "Συνδρομητική τηλεόραση" label
-  hasTV: false, tvProvider: 'cosmote', tvPlanId: '', tvPlan: '', tvPrice: '', tvHasSports: false,
+  hasTV: false, tvProvider: 'cosmote', tvPlanId: '', tvPlan: '', tvPrice: '',
   waterProvider: 'eydap', waterBiMonthly: '', waterMonthly: '', waterPersons: '2', waterPeriodMonths: '2',
   heatingMonthly: '',
   heatingLitersPerYear: '', heatingOilPricePerLiter: '1.20',
@@ -533,7 +533,6 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
                         ...(pack?.price ? { tvPrice: pack.price.toFixed(2) } : {}),
                         // Ανάβει, δεν σβήνει: ένα πακέτο χωρίς αθλητικά δεν
                         // σημαίνει ότι ο χρήστης δεν έχει ξεχωριστή συνδρομή.
-                        ...(pack?.sports ? { tvHasSports: true } : {}),
                       });
                     }}
                     options={[{ value: '', label: '— Επιλογή πακέτου —' }, ...tvPackOptions]}/>
@@ -541,7 +540,16 @@ export default function BillsProviders({ propertyId, userId = '', only }: Props)
                   <TextInput label="Πακέτο" value={s.tvPlan} onChange={v => upd({ tvPlan: v })} placeholder="Ονομασία πακέτου"/>
                 )}
                 <NumberInput label="Μηνιαίο κόστος" value={s.tvPrice} onChange={v => upd({ tvPrice: v })} suffix="€" step={1}/>
-                <ToggleField label="Αθλητικά" on={s.tvHasSports} onChange={v => upd({ tvHasSports: v })}/>
+                {/* Ο ΔΙΑΚΟΠΤΗΣ «ΑΘΛΗΤΙΚΑ» ΕΦΥΓΕ, ΓΙΑΤΙ ΔΕΝ ΕΚΑΝΕ ΤΙΠΟΤΑ. Το
+                    `tvHasSports` γραφόταν σε τρία σημεία και ΔΕΝ διαβαζόταν σε
+                    κανένα: ούτε σε υπολογισμό κόστους, ούτε σε σύγκριση
+                    πακέτων, ούτε σε καμία οθόνη. Ο χρήστης γύριζε έναν
+                    διακόπτη και δεν άλλαζε ούτε ένα νούμερο πουθενά.
+
+                    Ενα χειριστήριο που δεν κάνει τίποτα είναι χειρότερο από
+                    απόν: ζητά απόφαση και υπόσχεται αποτέλεσμα που δεν έρχεται.
+                    Το μηνιαίο κόστος του πακέτου, που είναι το μόνο που μετρά,
+                    το δίνει ήδη το πεδίο από πάνω. */}
               </div>
             )}
           </div>

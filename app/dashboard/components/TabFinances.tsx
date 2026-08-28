@@ -50,13 +50,14 @@ interface Props {
   // ζει στο entitlements, όχι σε παράμετρο που κανείς δεν κοιτάζει.
   /** Ανοίγει το παράθυρο σάρωσης της εφαρμογής. */
   onScan?: () => void;
+  openAddNonce?: number;
 }
 
 type View = 'expenses' | 'budget';
 
 export default function TabFinances({
   propertyId, userId, propertyName,
-  profileType = 'individual', legalForm = 'individual', onScan,
+  profileType = 'individual', legalForm = 'individual', onScan, openAddNonce,
 }: Props) {
   const [view, setView] = useState<View>('expenses');
   const [contracts, setContracts] = useState(false);
@@ -139,8 +140,13 @@ export default function TabFinances({
       </div>
         {/* Η σάρωση αφορά ΜΟΝΟ τις δαπάνες. Στον Προϋπολογισμό και στα
             Συμβόλαια δεν υπάρχει τίποτα να σαρωθεί, οπότε δεν προσφέρεται. */}
+        {/* ΛΕΓΕΤΑΙ «ΝΕΑ ΔΑΠΑΝΗ», ΓΙΑΤΙ ΑΥΤΟ ΚΑΝΕΙ. Το «Σάρωσε δαπάνη» υπόσχεται
+            ΕΝΑΝ δρόμο, τη φωτογραφία, ενώ πίσω του ανοίγει οθόνη με τέσσερις:
+            φωτογραφία, αρχείο, τράπεζα και χειροκίνητη καταχώρηση. Οποιος δεν
+            έχει χαρτί μπροστά του δεν θα πατούσε ποτέ κουμπί που λέει «σάρωσε»
+            και θα έψαχνε άλλο, που δεν υπάρχει. */}
         {onScan && !contracts && view === 'expenses' && (
-          <Btn variant="primary" onClick={onScan}>Σάρωσε δαπάνη</Btn>
+          <Btn variant="primary" onClick={onScan}>Νέα δαπάνη</Btn>
         )}
       </div>
 
@@ -155,7 +161,7 @@ export default function TabFinances({
               <InboundInbox propertyId={propertyId} userId={userId} propertyName={propertyName}
                 onFiled={() => setLedgerKey(k => k + 1)} />
               <BankLinkRow />
-              <ExpenseLedger key={ledgerKey} propertyId={propertyId} userId={userId} onScan={onScan} />
+              <ExpenseLedger key={ledgerKey} propertyId={propertyId} userId={userId} onScan={onScan} openAddNonce={openAddNonce} />
             </>
           : <BillsBudget propertyId={propertyId} userId={userId} profileType={profileType} />}
     </div>

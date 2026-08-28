@@ -3,7 +3,7 @@
 // Η ΚΑΡΤΕΛΑ ΜΙΑΣ ΕΚΚΡΕΜΟΤΗΤΑΣ
 // ═══════════════════════════════════════════════════════════════════════════
 import { useState } from 'react'
-import { T, Modal, Btn, fe, formGrid } from '@/components/Theme'
+import { T, Modal, Btn, fe, fieldRow } from '@/components/Theme'
 import { WHO_LABEL } from '@/lib/accounting/dossier'
 import { DatePicker, CustomSelect } from '../UIComponents'
 import { FL, Inp, Sel, SubTaskEditor, CommentsEditor, iStyle } from './Bits'
@@ -43,27 +43,40 @@ export function ItemModal({ item, contacts, onSave, onClose, onScan }: {
         <Btn variant="primary" disabled={!canSave} onClick={() => { if (canSave) onSave(form) }}>{item ? 'Αποθήκευση' : 'Προσθήκη εκκρεμότητας'}</Btn>
       </>}>
       <div><FL>Περιγραφή *</FL><Inp ariaLabel="Περιγραφή" value={form.description} onChange={v => setForm(f => ({ ...f, description: v }))} placeholder="Service καλοριφέρ" /></div>
-      <div style={{ ...formGrid(200, 270), gap: 12 }}>
+      {/* ═══ ΔΥΟ ΣΕΙΡΕΣ ΤΩΝ ΤΡΙΩΝ, ΟΧΙ ΤΕΣΣΕΡΙΣ ΤΩΝ ΔΥΟ ══════════════════════
+          Τα επτά πεδία κάθονταν σε τέσσερα ξεχωριστά πλέγματα των δύο, οπότε η
+          φόρμα έβγαινε 2-2-2-1: τέσσερις σειρές, με την τελευταία μισή άδεια
+          και το πλάτος της κάρτας αχρησιμοποίητο δεξιά σε κάθε μία.
+
+          Και ο χωρισμός δεν σήμαινε τίποτα: η «Κατάσταση» κάθισε με το κόστος
+          επειδή έτσι έτυχε να προστεθεί, όχι επειδή έχουν σχέση.
+
+          Τώρα οι σειρές λένε κάτι. Η πρώτη είναι ΤΙ ΕΙΝΑΙ η εργασία:
+          κατηγορία, προτεραιότητα, κατάσταση. Η δεύτερη είναι ΠΟΤΕ ΚΑΙ ΠΟΣΟ:
+          προθεσμία, επανάληψη, εκτίμηση κόστους. Η ανάθεση μένει μόνη της σε
+          όλο το πλάτος, γιατί δείχνει ονόματα ανθρώπων και είναι το μόνο πεδίο
+          που μια στήλη των 170 θα του έκοβε το όνομα.
+
+          Το `fieldRow` μοιράζει ΙΣΑ σε όλο το πλάτος, σε αντίθεση με το
+          `formGrid` που κόβει κάθε στήλη σε σταθερό μέγιστο και αφήνει το
+          υπόλοιπο κενό. Σε στενή οθόνη τυλίγει μόνο του. */}
+      <div {...fieldRow(170, 12)}>
         <div><FL>Κατηγορία</FL><Sel value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))} options={CATEGORIES.map(c => ({ value: c.id, label: c.label }))} /></div>
         <div><FL>Προτεραιότητα</FL><Sel value={form.priority} onChange={v => setForm(f => ({ ...f, priority: v as Priority }))} options={PRIORITIES.map(p => ({ value: p.value, label: p.label }))} /></div>
+        <div><FL>Κατάσταση</FL><Sel value={form.status} onChange={v => setForm(f => ({ ...f, status: v as Status }))} options={STATUSES.map(st => ({ value: st.value, label: st.label }))} /></div>
       </div>
-      <div style={{ ...formGrid(200, 270), gap: 12 }}>
+      <div {...fieldRow(170, 12)}>
         <div><FL>Προθεσμία</FL><DatePicker value={form.due_date} onChange={v => setForm(f => ({ ...f, due_date: v }))} /></div>
         <div><FL>Επανάληψη</FL><Sel value={form.recurring} onChange={v => setForm(f => ({ ...f, recurring: v as Recurring }))} options={RECURRING_OPTIONS} /></div>
-      </div>
-      {/* Η ΚΑΤΑΣΤΑΣΗ ΑΠΟΚΤΑ ΕΠΙΤΕΛΟΥΣ INPUT. Το «Σε εξέλιξη» μετριόταν στα KPI
-          και είχε δική του κολόνα στον Πίνακα, χωρίς κανέναν τρόπο να επιλεγεί. */}
-      <div style={{ ...formGrid(200, 270), gap: 12 }}>
-        <div><FL>Κατάσταση</FL><Sel value={form.status} onChange={v => setForm(f => ({ ...f, status: v as Status }))} options={STATUSES.map(st => ({ value: st.value, label: st.label }))} /></div>
         <div><FL>Δική σου εκτίμηση κόστους (€)</FL><Inp ariaLabel="Δική σου εκτίμηση κόστους σε ευρώ" value={form.estimated_cost} onChange={v => setForm(f => ({ ...f, estimated_cost: v }))} placeholder="προαιρετικό" type="number" min={0} /></div>
       </div>
-      <div style={{ ...formGrid(200, 270), gap: 12 }}>
+      <div>
         <div><FL>Ανάθεση σε επαφή</FL>
           <CustomSelect value={form.assigned_contact_id}
             onChange={v => { const c = contacts.find(x => x.id === v); setForm(f => ({ ...f, assigned_contact_id: v, assigned_contact_name: c?.full_name || '' })) }}
             placeholder="Χωρίς ανάθεση"
             options={[{ value: '', label: 'Χωρίς ανάθεση' }, ...contacts.map(c => ({ value: c.id, label: c.full_name }))]} />
-        </div>
+      </div>
       </div>
       <div>
         <FL>Ετικέτες</FL>

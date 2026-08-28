@@ -60,6 +60,12 @@ interface Props {
   /** Ενεργό πλάνο: ορίζει πόσες γραμμές δέχεται η μαζική καταχώρηση. */
   /** Ανοίγει το υπάρχον παράθυρο σάρωσης της εφαρμογής. */
   onScan?: () => void;
+  /**
+   * Νόνσο που ανοίγει τη χειροκίνητη φόρμα από έξω. Αλλάζει τιμή, ανοίγει η
+   * φόρμα· δεν είναι boolean, γιατί ένα boolean δεν μπορεί να ζητήσει δεύτερο
+   * άνοιγμα αφού ο χρήστης κλείσει τη φόρμα με το χέρι.
+   */
+  openAddNonce?: number;
 }
 
 
@@ -112,7 +118,7 @@ async function fetchLedger(
   };
 }
 
-export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
+export default function ExpenseLedger({ propertyId, userId, onScan, openAddNonce }: Props) {
   // Ένα instance ανά component. Χωρίς useMemo, κάθε render έφτιαχνε νέο client
   // και το κανάλι realtime ξαναδενόταν χωρίς λόγο.
   const supabase = useMemo(() => createClient(), []);
@@ -121,6 +127,14 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
   const [expenses, setExpenses] = useState<LedgerExpense[]>([]);
   const [q, setQ] = useState('');
   const [adding, setAdding] = useState(false);
+  // Το τέταρτο πλακίδιο της σάρωσης («Χειροκίνητα») φτάνει ώς εδώ. Η πρώτη
+  // απόδοση αγνοείται: χωρίς αυτό, η φόρμα θα άνοιγε μόνη της κάθε φορά που
+  // φορτώνει η καρτέλα.
+  const firstNonce = useRef(true)
+  useEffect(() => {
+    if (firstNonce.current) { firstNonce.current = false; return }
+    if (openAddNonce !== undefined) setAdding(true)
+  }, [openAddNonce])
   // Ο σπόρος της φόρμας, όταν η καταχώρηση ξεκινά από γραμμή που «λείπει».
   const [seed, setSeed] = useState<AddSeed | undefined>(undefined);
   const [busy, setBusy] = useState<string | null>(null);
@@ -671,10 +685,12 @@ export default function ExpenseLedger({ propertyId, userId, onScan }: Props) {
            Η σάρωση έφυγε από εδώ και ανέβηκε στη σειρά των καρτελών, όπου
            φαίνεται πάντα. Εδώ μένει η χειροκίνητη καταχώρηση, που είναι ο
            άλλος δρόμος, μία γραμμή, χωρίς διαφήμιση. */
-        <EmptyState
-          title="Καμία δαπάνη ακόμη"
-          action={<Btn variant="primary" onClick={() => setAdding(true)}>Νέα δαπάνη</Btn>}
-        />
+        /* ΚΑΙ ΤΟ ΤΕΛΕΥΤΑΙΟ ΚΟΥΜΠΙ ΕΦΥΓΕ ΑΠΟ ΕΔΩ. Η κύρια ενέργεια ζει πλέον
+           πάνω δεξιά, στη σειρά των καρτελών, όπου φαίνεται ΠΑΝΤΑ: με άδεια
+           λίστα και με γεμάτη. Ενα δεύτερο κουμπί στο κέντρο της οθόνης, που
+           κάνει το ίδιο πράγμα και εξαφανίζεται μόλις μπει η πρώτη δαπάνη,
+           ρωτούσε τον χρήστη ποιο από τα δύο είναι το σωστό. */
+        <EmptyState title="Καμία δαπάνη ακόμη" />
       // Ο τίτλος λέει ήδη ότι δεν βρέθηκε τίποτα. Ο υπότιτλος έλεγε το ίδιο με
       // άλλα λόγια· τώρα λέει ΤΙ αναζητήθηκε, που είναι το χρήσιμο.
       ) : months.length === 0 ? (

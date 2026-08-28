@@ -1289,6 +1289,8 @@ export default function Dashboard() {
   // οπότε η αρχική τιμή δεν αλλάζει τίποτα στην πρώτη εικόνα — αλλάζει το ότι
   // δεν χρειάζεται δεύτερη απόδοση για να φανεί.
   const [quickAddOpen, setQuickAddOpen] = useState(LAUNCH.scan);// γρήγορη προσθήκη με φωτογραφία/σάρωση
+  // Ανοίγει τη χειροκίνητη φόρμα δαπάνης από το τέταρτο πλακίδιο της σάρωσης.
+  const [manualExpense, setManualExpense] = useState(0);
   const [showWelcome, setShowWelcome] = useState(false);// καλωσόρισμα πρώτης χρήσης
 
   // ── Ο ΠΙΝΑΚΑΣ «ΑΠΟ ΠΟΥ ΞΕΚΙΝΑΣ» ─────────────────────────────────────────
@@ -2240,7 +2242,7 @@ export default function Dashboard() {
                   component που δεν υπάρχει πια και η React το αγνοεί. Το ίδιο
                   ισχύει για κάθε καρτέλα που φορτώνει δικά της δεδομένα. */}
               {navSafe==='overview'  && <OverviewTab key={selected.id} prop={selected} properties={properties} userId={user.id} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : t==='edit' ? setEditProperty(selected) : setNav(t)} tabVisible={navVisible}/>}
-              {nav==='finances'  && <TabFinances propertyId={selected.id} userId={user.id} propertyName={selected.name} profileType={effProfileType} legalForm={taxForm} onScan={()=>setQuickAddOpen(true)}/>}
+              {nav==='finances'  && <TabFinances propertyId={selected.id} userId={user.id} propertyName={selected.name} profileType={effProfileType} legalForm={taxForm} onScan={()=>setQuickAddOpen(true)}openAddNonce={manualExpense} />}
               {nav==='calendar'  && <TabCalendar key={selected.id} propertyId={selected.id} userId={user.id} openTasks={checklistAlerts} onOpenTasks={()=>setNav('checklist')}/>}
               {/* ═══ Η ΒΡΑΧΥΧΡΟΝΙΑ ΣΤΕΚΕΤΑΙ ΜΟΝΗ ΤΗΣ ═══════════════════════════
                   Ζούσε μέσα στην καρτέλα «Πελάτης», που απαιτεί πακέτο
@@ -2456,6 +2458,7 @@ export default function Dashboard() {
       <Modal open={!!(quickAddOpen&&user&&selected)} onClose={()=>{ if(!scanBusy) closeQuickAdd(); }} size="lg"
         title="Σάρωση εγγράφου">
         {user&&selected&&<DocumentScan propertyId={selected.id} userId={user.id} onBusyChange={setScanBusy}
+          onManual={()=>{ closeQuickAdd(); setNav('finances'); setManualExpense(n=>n+1); }}
           onSaved={async()=>{setScanDraftId(null);await fetchProperties(user.id);}}/>}
       </Modal>
 

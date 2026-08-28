@@ -479,7 +479,10 @@ export default function TabComparison({ properties, userId }: Props) {
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
       <PageTitle
         title="Σύγκριση ακινήτων"
-        sub={`${rowsData.length} ${typeLabel(group.key).toLowerCase()}, δίπλα-δίπλα`}
+        /* Ο ΥΠΟΤΙΤΛΟΣ ΠΕΡΙΕΓΡΑΦΕ ΤΟ ΠΡΟΦΑΝΕΣ. Ελεγε «2 κατοικίες, δίπλα-δίπλα»
+           πάνω από πίνακα με δύο στήλες, μία ανά κατοικία, που ο χρήστης τις
+           βλέπει. Ούτε ο αριθμός ούτε η διάταξη είναι πληροφορία: και τα δύο
+           διαβάζονται σε λιγότερο χρόνο από όσο χρειάζεται η πρόταση. */
         right={!loading ? <ExportButton onClick={exportCSV} /> : undefined}
       />
 
@@ -612,7 +615,7 @@ export default function TabComparison({ properties, userId }: Props) {
           επαναλάμβαναν όσα λέει ήδη το tooltip κάθε μετρικής και ο τίτλος της
           οθόνης. Μένει μόνο ό,τι δεν λέγεται αλλού: πώς διαβάζεται ο πίνακας. */}
       {!loading && (
-        <div className="text-measure" style={{ marginTop: 10, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.6 }}>
+        <div className="fineprint" style={{ marginTop: 10, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.6 }}>
           {/* ΚΑΘΕ ΠΡΟΤΑΣΗ ΕΜΦΑΝΙΖΕΤΑΙ ΜΟΝΟ ΟΤΑΝ ΕΧΕΙ ΑΝΤΙΚΕΙΜΕΝΟ. Με άδεια λίστα, το
               «η καλύτερη τιμή σε» έμενε να κρέμεται πριν από μια τελεία. */}
           {marked.length > 0 && (<>

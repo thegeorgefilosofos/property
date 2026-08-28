@@ -33,6 +33,19 @@ export const SYSTEM_PROMPT = SCAN_SYSTEM_PROMPT;
 interface Props {
   propertyId: string; userId?: string; onSaved?: () => void;
   /**
+   * Ο ΤΕΤΑΡΤΟΣ ΔΡΟΜΟΣ: ΧΩΡΙΣ ΧΑΡΤΙ.
+   *
+   * Τα τρία πλακίδια απαντούν στο «πώς μπαίνει αυτό μέσα;» υποθέτοντας ότι
+   * υπάρχει ένα «αυτό»: φωτογραφία, αρχείο ή κίνηση τράπεζας. Οποιος όμως
+   * θυμήθηκε μια δαπάνη χωρίς να έχει παραστατικό μπροστά του δεν είχε εδώ
+   * καμία απάντηση και έπρεπε να κλείσει το παράθυρο και να ψάξει αλλού.
+   *
+   * Οταν δίνεται, εμφανίζεται τέταρτο πλακίδιο που πάει στη χειροκίνητη
+   * καταχώρηση. Ο καλών αποφασίζει τι σημαίνει αυτό: το παράθυρο δεν ξέρει
+   * ούτε ποια καρτέλα είναι ανοιχτή ούτε πού ζει η φόρμα.
+   */
+  onManual?: () => void;
+  /**
    * Λέει προς τα έξω αν η σάρωση ή η αποθήκευση τρέχει ΤΩΡΑ.
    *
    * ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΚΛΕΙΝΕΙ. Το παράθυρο που φιλοξενεί τη σάρωση ακούει πλέον
@@ -174,7 +187,7 @@ const Field = ({ label, value, onChange, type = 'text', invalid = false, bad = f
 
 const NUM_KEYS = new Set<keyof ScannedDoc>(['amount', 'monthly_rent', 'deposit', 'premium', 'coverage', 'purchase_price', 'obj_value', 'year_built', 'sqm', 'tax_year', 'kwh', 'cubic_meters', 'millesimi', 'vat_rate']);
 
-export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyChange }: Props) {
+export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyChange, onManual }: Props) {
   const supabase = createClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -462,6 +475,22 @@ export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyC
                   Το ίδιο ελάχιστο ύψος με τα δύο διπλανά, ώστε τα τρία
                   πλακίδια να είναι μία σειρά και όχι δύο και μισό. */}
               <BankLinkTile minHeight={172} />
+
+              {/* ΤΕΤΑΡΤΗ ΑΠΑΝΤΗΣΗ: ΔΕΝ ΕΧΩ ΧΑΡΤΙ. Οι τρεις πρώτες υποθέτουν ότι
+                  υπάρχει παραστατικό. Χωρίς αυτό το πλακίδιο, ο χρήστης που
+                  θυμήθηκε μια δαπάνη έπρεπε να κλείσει το παράθυρο και να ψάξει
+                  κουμπί που δεν υπάρχει πια στην κενή λίστα. Ιδιο σχήμα και ίδιο
+                  ύψος με τα άλλα τρία: τέσσερα πλακίδια, μία απόφαση. */}
+              {onManual && (
+                <div role="button" tabIndex={0} onClick={onManual} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();onManual()}}}
+                  className="pick-tile" style={{ border: '1px solid var(--border-default)', borderRadius: T.radius.card, minHeight: 172, cursor: 'pointer', background: 'var(--bg-elevated)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, textAlign: 'center', padding: 16, transition: 'border-color .15s, background .15s' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'var(--accent-dim)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.background = 'var(--bg-elevated)'; }}>
+                  <svg width={30} height={30} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Χειροκίνητα</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Χωρίς παραστατικό</div>
+                </div>
+              )}
             </div>
           ) : (
             <div>
