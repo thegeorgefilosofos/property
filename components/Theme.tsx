@@ -599,7 +599,7 @@ export function KpiValue({ value, tone, chars, half }: { value: string; tone?: T
   );
 }
 
-export function KPIGrid({ items, columns }: { items: KPIItem[]; columns?: number }) {
+export function KPIGrid({ items, columns, nested }: { items: KPIItem[]; columns?: number; nested?: boolean }) {
   // ── ΜΙΑ ΣΕΙΡΑ ΜΗΔΕΝΙΚΑ ΔΕΝ ΕΙΝΑΙ ΣΥΝΟΨΗ ────────────────────────────────
   // Σε άδεια οθόνη το Αρχείο τύπωνε «ΣΥΝΟΛΟ ΑΡΧΕΙΩΝ 0 · ΕΓΓΡΑΦΑ 0 ·
   // ΦΩΤΟΓΡΑΦΙΕΣ 0 · ΚΑΤΗΓΟΡΙΕΣ 0» και από κάτω, με εικονίδιο και κουμπί,
@@ -676,7 +676,13 @@ export function KPIGrid({ items, columns }: { items: KPIItem[]; columns?: number
         // Οι κάρτες με τόνο γίνονται εστιάσιμες, ώστε το tap σε κινητό να
         // αποκαλύπτει το χρώμα όπως ο κέρσορας (focus-within). Οι ουδέτερες όχι,
         // για να μη γεμίζει το tab order.
-        <div key={i} className="kpi-card" title={k.title} tabIndex={toned ? 0 : undefined} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        // ΤΟ `nested` ΕΙΝΑΙ ΠΡΟΠΟΝΗΣΗ ΤΟΥ ΙΔΙΟΥ ΠΛΑΚΙΔΙΟΥ, ΟΧΙ ΔΕΥΤΕΡΟ ΠΛΑΚΙΔΙΟ.
+        // Μέσα σε κάρτα που έχει ήδη περίγραμμα, η κανονική `.kpi-card` βάζει
+        // δεύτερη κορνίζα σε απόσταση δεκαέξι εικονοστοιχείων και το μάτι πιάνει
+        // τη γραμμή πριν τον αριθμό. Η ένθετη εκδοχή δίνει το βάθος με σκιά.
+        // Χωρίς αυτή την παράμετρο, όποια οθόνη χρειαζόταν ένθετα πλακίδια τα
+        // έστηνε με το χέρι — και έτσι απέκτησε δεύτερο σύστημα καρτών.
+        <div key={i} className={nested ? 'kpi-card nested' : 'kpi-card'} title={k.title} tabIndex={toned ? 0 : undefined} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div className="kpi-label">{k.label}</div>
           {/* Ουδέτερο by default· ο σημασιολογικός τόνος αποκαλύπτεται στο hover ή
               στο άγγιγμα (data-tone + globals.css), για χαμηλού θορύβου look. */}

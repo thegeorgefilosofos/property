@@ -13,7 +13,7 @@ import * as tenantStore from '@/lib/data/tenants';
 import * as expenses from '@/lib/data/expenses'
 import * as calendar from '@/lib/data/calendar'
 import { TextInput, Toggle, ToggleTrack } from './UIComponents';
-import { T, TT, fe, feAuto, fp, fn, fixedCols, Skeleton, SkeletonKPIs, pressable } from '@/components/Theme';
+import { T, TT, fe, feAuto, fp, fn, fixedCols, KPIGrid, Skeleton, SkeletonKPIs, pressable } from '@/components/Theme';
 import { waterMonthly } from '@/lib/energy/tariff';
 import { monthAcc, monthGen, monthYearLabel } from '@/lib/core/months';
 import { randomSuffix } from '@/lib/core/uploadPath';
@@ -25,7 +25,6 @@ import { incomeStatement } from '@/lib/accounting/statement';
 import { interestForYear } from '@/lib/loans/recommend';
 import { isActiveLoan, loansInstalmentTotal } from '@/lib/loans/shape';
 import { InfoDot } from './UIComponents';
-import { KPI } from './LoanShared';
 import BudgetImport from './BudgetImport';
 import { mergeLedger, type LedgerBill, type LedgerExpense, type LedgerEntry } from '@/lib/expenses/ledger';
 import { budgetBucket } from '@/lib/expenses/taxonomy';
@@ -927,22 +926,31 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   // δαπάνη → διαθέσιμο. Ουδέτερο ύφος, σωστά ελληνικά, χωρίς διακοσμητικό χρώμα.
   const insights: string[] = (() => {
     if (!isCurMonth) return [];
+    // ═══ ΔΥΟ ΑΠΟ ΤΙΣ ΤΡΕΙΣ ΠΑΡΑΤΗΡΗΣΕΙΣ ΔΙΑΒΑΖΑΝ ΦΩΝΑΧΤΑ ΤΑ ΠΛΑΚΙΔΙΑ ΑΠΟ ΠΑΝΩ
+    // ─────────────────────────────────────────────────────────────────────
+    // ΜΕΤΡΗΜΕΝΟ ΣΤΗΝ ΟΘΟΝΗ ΤΟΥ ΧΡΗΣΤΗ, ΜΕ ΤΑ ΔΙΚΑ ΤΟΥ ΔΕΔΟΜΕΝΑ:
+    //
+    //   «Η κατηγορία «Νερό» έχει ξεπεράσει τον στόχο κατά 6,20 €.»
+    //   ...ενώ ΑΚΡΙΒΩΣ από πάνω η λωρίδα υπέρβασης έγραφε ήδη
+    //   «Νερό υπέρβαση +6,20 € (31,20 € έναντι 25,00 €)», δηλαδή το ίδιο
+    //   γεγονός ΜΕ ΠΕΡΙΣΣΟΤΕΡΑ στοιχεία.
+    //
+    //   «Πρόβλεψη τέλους μήνα 31,00 €: εντός στόχου κατά 359,00 €.»
+    //   ...ενώ δύο πλακίδια από πάνω γράφουν «ΠΡΟΒΛΕΨΗ ΜΗΝΑ 31,00 €» και
+    //   «ΔΙΑΘΕΣΙΜΟ 358,80 €». Και τα δύο «διαθέσιμα» διέφεραν κατά είκοσι
+    //   λεπτά, γιατί το ένα βγαίνει από την πρόβλεψη και το άλλο από τα
+    //   πραγματικά: δύο αριθμοί που παριστάνουν τον ίδιο, με διαφορά.
+    //
+    // Μένουν ΜΟΝΟ όσες λένε κάτι που δεν γράφεται πουθενά αλλού στην οθόνη:
+    // η πρόβλεψη υπέρβασης κατηγορίας (που δεν έχει συμβεί ακόμη, άρα δεν έχει
+    // λωρίδα), η τάση έναντι του τριμήνου, η μεγαλύτερη δαπάνη και το τι
+    // περισσεύει μετά τα πάγια.
     const out: string[] = [];
-    const totalActual = activeCats.reduce((s, c) => s + (actuals[c.key] || 0), 0);
-    if (overBudget.length > 0) {
-      const top = [...overBudget].sort((a, b) => ((actuals[b.key] || 0) - catBudget(b.key)) - ((actuals[a.key] || 0) - catBudget(a.key)))[0];
-      out.push(`Η κατηγορία «${top.label}» έχει ξεπεράσει τον στόχο κατά ${feAuto((actuals[top.key] || 0) - catBudget(top.key))}.`);
-    } else if (projectedOver.length > 0) {
+    if (overBudget.length === 0 && projectedOver.length > 0) {
       out.push(`Με τον τρέχοντα ρυθμό, η «${projectedOver[0].label}» θα ξεπεράσει τον στόχο πριν το τέλος του μήνα.`);
     }
     if (monthTrend.avgPrior > 0 && Math.abs(monthTrend.deltaPct) >= 8) {
       out.push(`Ο μήνας τρέχει ${Math.abs(monthTrend.deltaPct)}% ${monthTrend.direction === 'up' ? 'πάνω από' : 'κάτω από'} τον μέσο όρο του τριμήνου.`);
-    }
-    if (totalActual > 0 && masterBudget > 0 && out.length < 3) {
-      const diff = forecastTotal - masterBudget;
-      out.push(diff > 5
-        ? `Πρόβλεψη τέλους μήνα ${feAuto(forecastTotal)}: ${feAuto(diff)} πάνω από τον στόχο.`
-        : `Πρόβλεψη τέλους μήνα ${feAuto(forecastTotal)}: εντός στόχου κατά ${feAuto(Math.max(0, -diff))}.`);
     }
     const biggest = activeCats.map(c => ({ label: c.label, v: actuals[c.key] || 0 })).filter(x => x.v > 0).sort((a, b) => b.v - a.v)[0];
     if (biggest && out.length < 3) out.push(`Η μεγαλύτερη δαπάνη του μήνα είναι η «${biggest.label}» με ${feAuto(biggest.v)}.`);
@@ -1192,7 +1200,13 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         // ώστε το άθροισμα των πλακιδίων να ΕΙΝΑΙ ο αριθμός από πάνω.
         const subsCost = actuals.subscriptions || 0;
         const parts = [
-          { l: 'Λογαριασμοί',  v: committedBills - subsCost, sub: 'ρεύμα, νερό, θέρμανση, τηλέφωνο, ασφάλεια, κοινόχρηστα' },
+          // Η ΑΠΑΡΙΘΜΗΣΗ ΤΩΝ ΕΞΙ ΚΑΤΗΓΟΡΙΩΝ ΕΚΑΝΕ ΤΟ ΠΛΑΚΙΔΙΟ ΤΕΣΣΕΡΙΣ ΣΕΙΡΕΣ ΨΗΛΟ,
+          // ΕΝΩ ΤΑ ΔΙΠΛΑΝΑ ΤΟΥ ΗΤΑΝ ΜΙΑ. Μετρημένο στην οθόνη του χρήστη: το πρώτο
+          // από τα πέντε ξεκινούσε σαράντα εικονοστοιχεία ψηλότερα από τα άλλα
+          // τέσσερα. Η λίστα απαντά «τι μετράει ως λογαριασμός», δηλαδή ορισμό:
+          // πάει στο κυκλάκι, όπως κάθε ορισμός σε αυτή την εφαρμογή.
+          { l: 'Λογαριασμοί',  v: committedBills - subsCost, sub: 'πάγια του μήνα',
+            info: 'Ρεύμα, νερό, θέρμανση, τηλέφωνο, ασφάλεια και κοινόχρηστα.' },
           { l: 'Δόση δανείου', v: loanMonthly,               sub: 'τοκοχρεολύσιο του μήνα' },
           { l: 'Συνδρομές',    v: subsCost,                  sub: 'ό,τι χρεώνεται μόνο του' },
         ].filter(p => p.v !== 0);
@@ -1267,26 +1281,21 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
               // δεξιά του. Πέντε στήλες αφήνουν τον βοηθό να διαλέξει διαιρέτη
               // στα στενά: τρία και δύο στην ταμπλέτα, ένα ανά σειρά στο
               // τηλέφωνο. Καμία σειρά δεν τελειώνει με ένα.
+              // ΤΟ ΠΛΑΚΙΔΙΟ ΗΤΑΝ ΓΡΑΜΜΕΝΟ ΜΕ ΤΟ ΧΕΡΙ, ΔΙΠΛΑ ΣΕ ΕΝΑ ΑΛΛΟ ΓΡΑΜΜΕΝΟ ΜΕ
+              // ΤΟ ΧΕΡΙ. Η ίδια οθόνη είχε ΔΥΟ σειρές δεικτών με δύο διαφορετικά
+              // πλακίδια και δύο διαφορετικά πλέγματα: εδώ `.kpi-card nested` μέσα
+              // σε `fixedCols`, εκατόν πενήντα γραμμές πιο κάτω το `KPI` του
+              // LoanShared μέσα σε `auto-fit minmax(128px)`. Διαφορετικό ύψος,
+              // διαφορετικό μέγεθος αριθμού, διαφορετικά σπασίματα.
+              //
+              // Και οι δύο περνούν πλέον από το κοινό `KPIGrid`, στην ένθετη
+              // εκδοχή του: ίδιο κουτί, ίδιος κανόνας στηλών σε τέσσερα σκαλιά,
+              // ίδια κλιμάκωση αριθμού, ίδιο ύψος — το πλέγμα τεντώνει τα κελιά
+              // του, οπότε τα πλακίδια είναι ΑΚΡΙΒΩΣ ίδια όσο κι αν διαφέρει το
+              // κείμενό τους.
               return (
-                <div {...fixedCols(Math.min(tiles.length, 5), 10)} style={{ ...fixedCols(Math.min(tiles.length, 5), 10).style, marginTop: 16 }}>
-                  {/* ΤΟ ΙΔΙΟ ΠΛΑΚΙΔΙΟ ΜΕ ΟΛΗ ΤΗΝ ΕΦΑΡΜΟΓΗ, ΜΕ ΕΝΑ ΛΙΓΟΤΕΡΟ
-                      ΠΕΡΙΓΡΑΜΜΑ. Ήταν επίπεδο κουτί με δική του γραμμή γύρω
-                      γύρω, μέσα σε κάρτα που έχει ήδη γραμμή: δύο κορνίζες σε
-                      απόσταση δεκαέξι εικονοστοιχείων και το μάτι έπιανε τη
-                      γραμμή πριν τον αριθμό. Τώρα είναι η `.kpi-card` (ίδια
-                      βαθμίδα, ίδια σκιά, ίδιο σήκωμα στο πέρασμα) στην ένθετη
-                      εκδοχή της, όπου το βάθος το δίνει η σκιά. */}
-                  {tiles.map(t => (
-                    <div key={t.l} className="kpi-card nested" style={{ padding: '11px 13px' }}>
-                      <div className="kpi-label" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.l}</div>
-                      {/* Το μέγεθος είναι της κλίμακας (TT.kpi = 18 εδώ, 28 στο
-                          κύριο νούμερο): τα πλακίδια στηρίζουν το σύνολο, δεν
-                          ανταγωνίζονται μαζί του. */}
-                      <div style={{ ...TT.kpi, fontSize: 18, marginTop: 4 }}>{feAuto(t.v)}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 3,
-                        lineHeight: 1.4 }}>{t.sub}</div>
-                    </div>
-                  ))}
+                <div style={{ marginTop: 16 }}>
+                  <KPIGrid nested items={tiles.map(t => ({ label: t.l, value: feAuto(t.v), sub: t.sub, title: t.info }))} />
                 </div>
               );
             })()}
@@ -1331,29 +1340,22 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                 ? 'Ό,τι μπήκε στο ταμείο από τα καταλύματα: του μήνα, από την αρχή του έτους, διανυκτερεύσεις και μέση τιμή ανά βραδιά. Το ΔΗΛΩΤΕΟ ποσό είναι μεγαλύτερο, γιατί περιλαμβάνει την προμήθεια της πλατφόρμας: το βλέπεις στη Λογιστική ως «Μεικτά έσοδα».'
                 : 'Αναμενόμενο ενοίκιο από τους ενεργούς μισθωτές: μηνιαίο, ετήσιο και η καθαρή ροή μετά τα μηνιαία κόστη. Είναι πρόβλεψη, όχι καταγεγραμμένες εισπράξεις· αυτές ζουν στους Μισθωτές και στη Λογιστική.'} />)}
             {!collapsed.has('income') && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 128px), 1fr))', gap: 8 }}>
-                {isSTRmode ? (
-                  <>
-                    {/* ΕΙΣΠΡΑΞΕΙΣ, ΟΧΙ ΕΣΟΔΑ: εδώ αθροίζεται ό,τι μπήκε στο ταμείο
-                        από τις διαμονές. Το ΔΗΛΩΤΕΟ ποσό είναι μεγαλύτερο, γιατί
-                        περιλαμβάνει την προμήθεια της πλατφόρμας — και το λέει η
-                        Λογιστική, ως «Μεικτά έσοδα». Δύο σωστά νούμερα για την
-                        ίδια διαμονή· η λέξη ξεχωρίζει ποιο είναι ποιο. */}
-                    <KPI label="Εισπράξεις μήνα" value={feAuto(income)}
-                      title="Ό,τι μπήκε στο ταμείο από διαμονές αυτόν τον μήνα. Το δηλωτέο ποσό είναι μεγαλύτερο: το βλέπεις στη Λογιστική ως «Μεικτά έσοδα»." />
-                    <KPI label="Από την αρχή έτους" value={feAuto(incomeYtd)} title="Εισπράξεις από διαμονές, από 1η Ιανουαρίου." />
-                    <KPI label="Διανυκτερεύσεις" value={String(strNights)} />
-                    <KPI label="Μέση τιμή ανά βραδιά" value={strNights > 0 ? feAuto(income / strNights) : fe(0)} />
-                  </>
-                ) : (
-                  <>
-                    <KPI label="Μηνιαίο ενοίκιο" value={feAuto(income)} />
-                    <KPI label="Ετησίως" value={feAuto(income * 12)} />
-                    <KPI label="Αναμενόμενα φέτος" value={feAuto(incomeYtd)} title="Μηνιαίο ενοίκιο × μήνες που πέρασαν φέτος (αναμενόμενα, όχι καταγεγραμμένες εισπράξεις)." />
-                    <KPI label="Καθαρή ροή" value={`${netFlow < 0 ? '−' : ''}${feAuto(Math.abs(netFlow))}`} title="Αναμενόμενο ενοίκιο μείον μηνιαία κόστη (λογαριασμοί, δόση, αποθεματικά). Πρόβλεψη, όχι εισπράξεις." />
-                  </>
-                )}
-              </div>
+              <KPIGrid nested items={isSTRmode ? [
+                /* ΕΙΣΠΡΑΞΕΙΣ, ΟΧΙ ΕΣΟΔΑ: εδώ αθροίζεται ό,τι μπήκε στο ταμείο από
+                   τις διαμονές. Το ΔΗΛΩΤΕΟ ποσό είναι μεγαλύτερο, γιατί περιλαμβάνει
+                   την προμήθεια της πλατφόρμας — και το λέει η Λογιστική, ως «Μεικτά
+                   έσοδα». Δύο σωστά νούμερα για την ίδια διαμονή· η λέξη ξεχωρίζει
+                   ποιο είναι ποιο. */
+                { label: 'Εισπράξεις μήνα', value: feAuto(income), title: 'Ό,τι μπήκε στο ταμείο από διαμονές αυτόν τον μήνα. Το δηλωτέο ποσό είναι μεγαλύτερο: το βλέπεις στη Λογιστική ως «Μεικτά έσοδα».' },
+                { label: 'Από την αρχή έτους', value: feAuto(incomeYtd), title: 'Εισπράξεις από διαμονές, από 1η Ιανουαρίου.' },
+                { label: 'Διανυκτερεύσεις', value: String(strNights) },
+                { label: 'Μέση τιμή ανά βραδιά', value: strNights > 0 ? feAuto(income / strNights) : fe(0) },
+              ] : [
+                { label: 'Μηνιαίο ενοίκιο', value: feAuto(income) },
+                { label: 'Ετησίως', value: feAuto(income * 12) },
+                { label: 'Αναμενόμενα φέτος', value: feAuto(incomeYtd), title: 'Μηνιαίο ενοίκιο × μήνες που πέρασαν φέτος (αναμενόμενα, όχι καταγεγραμμένες εισπράξεις).' },
+                { label: 'Καθαρή ροή', value: `${netFlow < 0 ? '−' : ''}${feAuto(Math.abs(netFlow))}`, title: 'Αναμενόμενο ενοίκιο μείον μηνιαία κόστη (λογαριασμοί, δόση, αποθεματικά). Πρόβλεψη, όχι εισπράξεις.' },
+              ]}/>
             )}
           </div>
         );
@@ -1447,14 +1449,19 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
 
       {/* Ο μήνας — μετρικές + πρόοδος σε ΕΝΑ πλαίσιο (χωρίς διπλότυπη κάρτα «Σύνολο») */}
       <div className="po-fig-card" tabIndex={0} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 128px), 1fr))', gap: 8, marginBottom: 12 }}>
-          <KPI label="Στόχος τον μήνα" value={feAuto(masterBudget)} />
-          <KPI label={isCurMonth ? 'Έως τώρα' : 'Σύνολο μήνα'} value={feAuto(viewActualTotal)} title={isCurMonth ? 'Καταγεγραμμένα του μήνα συν εκτιμήσεις παρόχων για πάγιες κατηγορίες που δεν έχουν χρεωθεί ακόμη.' : 'Καταγεγραμμένες δαπάνες αυτού του μήνα από το ιστορικό.'} />
-          {isCurMonth
-            ? <KPI label="Πρόβλεψη μήνα" value={feAuto(forecastTotal)} />
-            : <KPI label="Έναντι στόχου" value={`${viewActualTotal <= masterBudget ? '−' : '+'}${feAuto(Math.abs(masterBudget - viewActualTotal))}`} />}
-          <KPI label="Διαθέσιμο" value={feAuto(Math.max(0, masterBudget - viewActualTotal))} />
-        </div>
+        {/* Η ΔΕΥΤΕΡΗ ΣΕΙΡΑ ΔΕΙΚΤΩΝ ΤΗΣ ΙΔΙΑΣ ΟΘΟΝΗΣ ΕΙΧΕ ΑΛΛΟ ΠΛΑΚΙΔΙΟ ΚΑΙ ΑΛΛΟ
+            ΠΛΕΓΜΑ. Πάνω της, τα σκέλη του μηνιαίου κόστους ήταν `.kpi-card nested`
+            σε `fixedCols`· εδώ το `KPI` του LoanShared σε `auto-fit minmax(128px)`.
+            Δύο συστήματα καρτών, δύο ύψη, δύο μεγέθη αριθμού, εκατόν πενήντα
+            γραμμές απόσταση. Το κοινό `KPIGrid` τα κάνει ένα. */}
+        <KPIGrid nested items={[
+          { label: 'Στόχος τον μήνα', value: feAuto(masterBudget) },
+          { label: isCurMonth ? 'Έως τώρα' : 'Σύνολο μήνα', value: feAuto(viewActualTotal), title: isCurMonth ? 'Καταγεγραμμένα του μήνα συν εκτιμήσεις παρόχων για πάγιες κατηγορίες που δεν έχουν χρεωθεί ακόμη.' : 'Καταγεγραμμένες δαπάνες αυτού του μήνα από το ιστορικό.' },
+          isCurMonth
+            ? { label: 'Πρόβλεψη μήνα', value: feAuto(forecastTotal) }
+            : { label: 'Έναντι στόχου', value: `${viewActualTotal <= masterBudget ? '−' : '+'}${feAuto(Math.abs(masterBudget - viewActualTotal))}` },
+          { label: 'Διαθέσιμο', value: feAuto(Math.max(0, masterBudget - viewActualTotal)) },
+        ]}/>
         {(() => {
           const pct    = masterBudget > 0 ? Math.min((viewActualTotal / masterBudget) * 100, 100) : 0;
           const isOver = viewActualTotal > masterBudget;
@@ -1487,12 +1494,12 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
             <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: T.font.sans }}>Απόδοση επένδυσης</span>
             <InfoDot text="NOI = καθαρά λειτουργικά έσοδα (χωρίς δόση δανείου). Ταμειακή ροή = NOI μείον δόση. Cap rate = NOI / τιμή αγοράς. Cash-on-cash = ταμειακή ροή / ίδια κεφάλαια. Ετησιοποιημένες εκτιμήσεις." />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 128px), 1fr))', gap: 8 }}>
-            <KPI label="NOI / έτος" value={feAuto(invReturns.noi)} />
-            <KPI label="Ταμειακή ροή" value={feAuto(invReturns.preTaxCashFlow)} />
-            <KPI label="Cap rate" value={fp(invReturns.capRatePct)} />
-            <KPI label="Cash-on-cash" value={fp(invReturns.cashOnCashPct)} />
-          </div>
+          <KPIGrid nested items={[
+            { label: 'NOI / έτος', value: feAuto(invReturns.noi) },
+            { label: 'Ταμειακή ροή', value: feAuto(invReturns.preTaxCashFlow) },
+            { label: 'Cap rate', value: fp(invReturns.capRatePct) },
+            { label: 'Cash-on-cash', value: fp(invReturns.cashOnCashPct) },
+          ]}/>
         </div>
       )}
 
@@ -1576,14 +1583,13 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
                   <span className="po-fig" data-tone={annual.variance > 0 ? 'negative' : undefined}>{annual.variance > 0 ? `Υπέρβαση ${feAuto(annual.variance)} έναντι στόχου` : `Εντός στόχου κατά ${feAuto(-annual.variance)}`}</span>
-                  {monthTrend.avgPrior > 0 && (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: 'var(--text-tertiary)' }}>
-                      {trDir === 'flat'
-                        ? <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                        : <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: trDir === 'down' ? 'scaleY(-1)' : 'none' }}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>}
-                      {trDir === 'flat' ? 'σταθερά' : `${monthTrend.deltaPct > 0 ? '+' : ''}${monthTrend.deltaPct}% έναντι τριμήνου`}
-                    </span>
-                  )}
+                  {/* Η ΤΑΣΗ ΤΟΥ ΤΡΙΜΗΝΟΥ ΔΕΝ ΕΙΝΑΙ ΕΤΗΣΙΑ ΕΙΚΟΝΑ, ΚΑΙ ΓΡΑΦΟΤΑΝ ΗΔΗ.
+                      Καθόταν στο δεξί άκρο μιας κάρτας που μιλά για ΤΟ ΕΤΟΣ («προβολή
+                      τέλους έτους», «από την αρχή του έτους», «έξοδα ανά μήνα») και
+                      έλεγε «−91% έναντι τριμήνου». Το ίδιο γεγονός το γράφει ήδη με
+                      λέξεις η παρατήρηση από πάνω: «ο μήνας τρέχει 91% κάτω από τον
+                      μέσο όρο του τριμήνου». Δύο φορές το ίδιο, σε δύο κάρτες, σε δύο
+                      μορφές — και η μία από τις δύο εκτός θέματος. */}
                 </div>
                 {/* Ετήσιο εργαλείο: ράβδοι εξόδων ανά μήνα (με ήπια κατάσταση όταν δεν υπάρχει ιστορικό) */}
                 <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
@@ -1646,8 +1652,16 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
         const cadLabel = (c: RecurringCharge['cadence']) => c === 'monthly' ? 'μηνιαία' : c === 'bimonthly' ? 'διμηνιαία' : c === 'quarterly' ? 'τριμηνιαία' : c === 'yearly' ? 'ετήσια' : 'ακανόνιστη';
         return (
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
+            {/* ΜΕ ΜΙΑ ΧΡΕΩΣΗ, ΤΟ ΑΘΡΟΙΣΜΑ ΕΙΝΑΙ Η ΧΡΕΩΣΗ. Η κεφαλίδα έγραφε «46,77
+                €/μήνα · 561,00 €/έτος» και η μοναδική γραμμή από κάτω τα ίδια δύο
+                νούμερα, με την ίδια σειρά και τις ίδιες μονάδες, σε απόσταση σαράντα
+                εικονοστοιχείων. Ενα σύνολο υπάρχει για να αθροίζει: χρειάζεται δύο
+                προσθετέους για να πει κάτι. Ο ίδιος κανόνας ισχύει ήδη για τον μέσο
+                όρο του δωδεκαμήνου στη σύγκριση δαπανών. */}
             {secHdr('Επαναλαμβανόμενες χρεώσεις', 'recurring',
-              <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{feAuto(monthlyTotal)}/μήνα · {feAuto(annualTotal)}/έτος</span>,
+              recurring.length > 1
+                ? <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{feAuto(monthlyTotal)}/μήνα · {feAuto(annualTotal)}/έτος</span>
+                : undefined,
               <InfoDot text="Συνδρομές και πάγιες χρεώσεις που εντοπίζονται αυτόματα από τις καταγεγραμμένες δαπάνες σου, όταν ο ίδιος πάροχος επαναλαμβάνεται σε πολλούς μήνες. Δείχνει συχνότητα, τυπικό ποσό και ετήσιο κόστος, ώστε να εντοπίζεις εύκολα τις «κρυφές» συνδρομές." />)}
             {!collapsed.has('recurring') && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -1708,8 +1722,22 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                 <div {...(hasBd ? pressable(toggleCat) : {})} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 5, cursor: hasBd ? 'pointer' : 'default' }}>
                   <div style={{ width: 3, height: 26, borderRadius: 3, background: hov ? 'var(--accent)' : col, flexShrink: 0, transition: 'background 0.15s' }}/>
                   <span onClick={e => e.stopPropagation()} style={{ display: 'inline-flex' }}><InlineText value={cat.label} onCommit={v => renameCategory(cat.key, v)} ariaLabel={`Μετονομασία «${cat.label}»`} /></span>
-                  {<span title="Τάση 12 μηνών"><Sparkline values={catSpark(cat.key)} activeIndex={_sparkYms.indexOf(viewYm)} /></span>}
-                  {isCurMonth && tr.avgPrior > 0 && tr.direction !== 'flat' && (
+                  {/* ═══ ΓΡΑΜΜΗ ΤΑΣΗΣ ΧΩΡΙΣ ΤΑΣΗ, ΚΑΙ ΠΤΩΣΗ ΠΟΥ ΔΕΝ ΕΓΙΝΕ ═════════════
+                      ΤΟ ΜΙΚΡΟΓΡΑΦΗΜΑ ΣΧΕΔΙΑΖΟΤΑΝ ΠΑΝΤΑ, ΑΚΟΜΗ ΚΑΙ ΜΕ ΕΝΑ ΝΟΥΜΕΡΟ.
+                      Δώδεκα μήνες με δεδομένα σε έναν δεν είναι τάση: είναι μία
+                      κορυφή πάνω σε ίσια γραμμή. Μετρημένο στην οθόνη του χρήστη:
+                      τρεις από τις τέσσερις κατηγορίες έδειχναν πριόνι χωρίς νόημα.
+                      Τρία σημεία είναι το ελάχιστο για να υπάρχει κατεύθυνση.
+
+                      ΚΑΙ ΤΟ «−100%» ΕΛΕΓΕ ΠΤΩΣΗ ΠΟΥ ΔΕΝ ΕΧΕΙ ΣΥΜΒΕΙ. Στον τρέχοντα
+                      μήνα, κατηγορία με μηδέν σημαίνει «δεν έχει καταχωρηθεί ακόμη»,
+                      όχι «έπεσε στο μηδέν»: ο λογαριασμός του ρεύματος έρχεται στα
+                      μέσα του μήνα. Η εφαρμογή δεν βγάζει συμπέρασμα από δεδομένα
+                      που δεν έχουν φτάσει. */}
+                  {catSpark(cat.key).filter(v => v > 0).length >= 3 && (
+                    <span title="Τάση 12 μηνών"><Sparkline values={catSpark(cat.key)} activeIndex={_sparkYms.indexOf(viewYm)} /></span>
+                  )}
+                  {isCurMonth && actual > 0 && tr.avgPrior > 0 && tr.direction !== 'flat' && (
                     <span title={`Μέσος όρος τριμήνου: ${feAuto(tr.avgPrior)}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 11, fontWeight: 700, fontFamily: T.font.num, color: 'var(--text-tertiary)' }}>
                       <svg aria-hidden="true" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: tr.direction === 'down' ? 'scaleY(-1)' : 'none' }}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
                       {tr.deltaPct > 0 ? '+' : ''}{tr.deltaPct}%
@@ -1891,13 +1919,22 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                             );
                           })}
                         </div>
-                        {/* Μερική εξαίρεση: πόσο από το ποσό να εξαιρεθεί (κενό = όλο) */}
+                        {/* Μερική εξαίρεση: πόσο από το ποσό να εξαιρεθεί (κενό = όλο)
+
+                            ΤΟ ΕΥΡΩ ΓΡΑΦΟΤΑΝ ΔΥΟ ΦΟΡΕΣ, ΚΑΙ Η ΠΑΡΕΝΘΕΣΗ ΚΟΒΟΤΑΝ. Το
+                            κείμενο υπόδειξης ήταν «όλο (31,20 €)» μέσα σε πεδίο 108
+                            εικονοστοιχείων που κρατά 22 δεξιά για το δικό του «€»:
+                            έμεναν 76 για δεκατρείς χαρακτήρες. Η οθόνη έγραφε «όλο
+                            (31,20 € €», με κομμένη παρένθεση και δύο σύμβολα
+                            νομίσματος στη σειρά. Το ποσό το λέει ήδη η ίδια η γραμμή,
+                            διαγραμμένο στο δεξί άκρο· η υπόδειξη λέει μόνο τι σημαίνει
+                            το κενό πεδίο. */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                           <span style={{ width: 74, flexShrink: 0, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Εξαιρείται</span>
                           <div style={{ position: 'relative', width: 108 }}>
                             <input aria-label="Ποσό που εξαιρείται" inputMode="decimal" value={amtVal}
                               onChange={e => { const raw = e.target.value.replace(/[^\d.,]/g, ''); setExclAmtDraft(d => ({ ...d, [it.id]: raw })); const n = parseFloat(raw.replace(',', '.')); patchExcl(it.id, { amount: isFinite(n) && n > 0 ? n : undefined }); }}
-                              placeholder={`όλο (${feAuto(full)})`}
+                              placeholder="όλο"
                               style={{ width: '100%', height: 28, padding: '0 22px 0 10px', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 12, fontWeight: 600, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', outline: 'none', transition: 'border-color 0.15s' }}
                               onFocus={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-accent)'; }}
                               onBlur={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-subtle)'; }} />
