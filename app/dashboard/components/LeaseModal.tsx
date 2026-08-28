@@ -226,14 +226,28 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
   // «Διάρκεια», «Αναπροσαρμογή», «Ημέρα πληρωμής») και η ετικέτα κάθεται σε
   // διπλανό <div>. Χωρίς αυτό, ο αναγνώστης οθόνης άκουγε πέντε φορές
   // «πλαίσιο κειμένου» σε συμφωνητικό που υπογράφουν δύο μέρη.
+  // ═══ Η ΜΟΝΑΔΑ ΗΤΑΝ ΚΡΕΜΑΣΜΕΝΗ ΠΑΝΩ ΑΠΟ ΤΟ ΠΕΔΙΟ, ΚΑΙ Η ΤΙΜΗ ΤΗΝ ΠΑΤΟΥΣΕ ══════
+  // ΜΕΤΡΗΜΕΝΟ, ΔΕΝ ΕΙΚΑΖΕΤΑΙ: το πεδίο «Διάρκεια» έγραφε «3έτη». Η μονάδα ήταν
+  // `position: absolute` στα 13 από το δεξί άκρο και το κουτί κρατούσε 32
+  // δεξιό περιθώριο για να μην την ακουμπήσει η τιμή. Τα 32 δούλευαν για το «€»
+  // (ένας χαρακτήρας, 9 εικονοστοιχεία)· το «έτη» ζητά 25, δηλαδή φτάνει ώς τα
+  // 38 και μπαίνει κάτω από την τιμή. Η ίδια βοηθός γράφει πέντε πεδία με τρεις
+  // διαφορετικές μονάδες, οπότε κανένας σταθερός αριθμός δεν τα καλύπτει.
+  //
+  // Η ΜΟΝΑΔΑ ΜΠΑΙΝΕΙ ΣΤΗ ΡΟΗ. Το περίβλημα φοράει το περίγραμμα και το ύψος του
+  // πεδίου, το κουτί κειμένου παίρνει ό,τι μένει και η μονάδα όσο ζητά: καμία
+  // επικάλυψη είναι δυνατή, με οποιαδήποτε μονάδα. Η εστίαση περνά στο
+  // περίβλημα με `:focus-within`, γιατί εκεί ζει πλέον το περίγραμμα.
   const money = (value: string, on: (v: string) => void, suffix: string, name: string, max?: number) => (
-    <div style={{ position: 'relative' }}>
+    <div className="field-inline" style={{ ...field, padding: 0 }}>
       <input value={value} aria-label={name} onChange={e => { const v = acceptNumeric(e.target.value, max); if (v !== null) on(v); }}
-        onFocus={onF} onBlur={onB} inputMode="decimal" placeholder=""
-        style={{ ...field, paddingRight: 32, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} />
-      {/* Ίδιο ύψος με το πεδίο, από την ΙΔΙΑ πηγή: αλλιώς το «€» δεν ακολουθεί
-          το πεδίο όταν η κλίμακα ανεβαίνει στα 44 για το δάχτυλο. */}
-      <span style={{ position: 'absolute', right: 13, top: 0, height: T.h.lg, display: 'flex', alignItems: 'center', color: 'var(--text-tertiary)', fontSize: 14, pointerEvents: 'none' }}>{suffix}</span>
+        inputMode="decimal" placeholder=""
+        style={{
+          flex: 1, minWidth: 0, alignSelf: 'stretch', background: 'transparent', border: 'none', outline: 'none',
+          padding: '0 6px 0 13px', textAlign: 'right', fontVariantNumeric: 'tabular-nums',
+          color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans,
+        }} />
+      <span style={{ paddingRight: 13, color: 'var(--text-tertiary)', fontSize: 14, flexShrink: 0, whiteSpace: 'nowrap' }}>{suffix}</span>
     </div>
   );
   const stat = (label: string, value: string, strong = false) => (

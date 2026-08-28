@@ -23,12 +23,14 @@ import {
 import type { LeaseType, LeaseCategory, IdDocType, PaymentFreq } from './TabTenantHelpers';
 import {
   Toggle,
+  ToggleField,
   NumberInput,
   TextInput,
   Textarea,
   CustomSelect as SelectField,
   DatePicker,
   InfoDot,
+  fieldLabelStyle,
 } from './UIComponents';
 import {
   T,
@@ -53,6 +55,7 @@ import {
 import {
   Users,
   SearchX,
+  ChevronRight,
 } from 'lucide-react';
 import {
   notify,
@@ -105,6 +108,8 @@ import {
   ChipRow,
   AlertBar,
   whyOf,
+  labelOf,
+  FilePickRow,
   MissingCriticalBar,
   tenantFieldCtx,
   filledTenantIds,
@@ -843,10 +848,10 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
 
             {/* ── ΠΟΙΟΣ ΕΙΝΑΙ ────────────────────────────────────────────── */}
             <SectionTitle>Ποιος είναι ο ενοικιαστής</SectionTitle>
-            <div className="kpi-row" style={{ ...s.g3, marginBottom:6 }}>
-              {show('tenant.full_name')&&<TextInput label="Ονοματεπώνυμο *" value={form.full_name} onChange={v=>sf('full_name',v)}/>}
-              {show('tenant.afm')&&<TextInput label="ΑΦΜ" labelInfo={whyOf('tenant.afm')} value={form.afm} onChange={v=>sf('afm',v)}/>}
-              {show('tenant.phone')&&<TextInput label="Κινητό τηλέφωνο" value={form.phone} onChange={v=>sf('phone',v)}/>}
+            <div className="form-row form-row-3">
+              {show('tenant.full_name')&&<TextInput label={`${labelOf('tenant.full_name')} *`} labelInfo={whyOf('tenant.full_name')} value={form.full_name} onChange={v=>sf('full_name',v)}/>}
+              {show('tenant.afm')&&<TextInput label={labelOf('tenant.afm')} labelInfo={whyOf('tenant.afm')} value={form.afm} onChange={v=>sf('afm',v)}/>}
+              {show('tenant.phone')&&<TextInput label={labelOf('tenant.phone')} labelInfo={whyOf('tenant.phone')} value={form.phone} onChange={v=>sf('phone',v)}/>}
             </div>
 
             <div style={s.divider}/>
@@ -854,7 +859,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
             <SectionTitle>Η μίσθωση <span style={{ color:'var(--negative)' }}>*</span></SectionTitle>
             {show('tenant.lease_category')&&(
               <>
-                <ChipRow label="Είδος μίσθωσης" info={whyOf('tenant.lease_category')}>
+                <ChipRow label={labelOf('tenant.lease_category')} info={whyOf('tenant.lease_category')}>
                   {(Object.keys(LEASE_CATEGORY_LABELS) as LeaseCategory[]).map(lc=>(
                     <button key={lc} onClick={()=>sf('lease_category',lc)} style={{ padding:'8px 18px', fontSize:'12px', fontFamily:T.font.sans, cursor:'pointer', borderRadius:T.radius.btn, border:`1px solid ${form.lease_category===lc?'var(--accent)':'var(--border-default)'}`, background:form.lease_category===lc?'var(--accent-dim)':'transparent', color:form.lease_category===lc?'var(--accent)':'var(--text-secondary)', fontWeight:form.lease_category===lc?700:400 }}>{LEASE_CATEGORY_LABELS[lc]}</button>
                   ))}
@@ -863,25 +868,33 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
             )}
             {show('tenant.lease_type')&&(
               <>
-                <ChipRow label="Διάρκεια" info={whyOf('tenant.lease_type')}>
+                <ChipRow label={labelOf('tenant.lease_type')} info={whyOf('tenant.lease_type')}>
                   {(Object.keys(LEASE_LABELS) as LeaseType[]).map(lt=>(
                     <button key={lt} onClick={()=>sf('lease_type',lt)} style={{ padding:'8px 16px', fontSize:'11px', fontFamily:T.font.sans, cursor:'pointer', borderRadius:T.radius.btn, border:`1px solid ${form.lease_type===lt?'var(--accent)':'var(--border-default)'}`, background:form.lease_type===lt?'var(--accent-dim)':'transparent', color:form.lease_type===lt?'var(--accent)':'var(--text-secondary)', fontWeight:form.lease_type===lt?600:400 }}>{LEASE_LABELS[lt]}</button>
                   ))}
                 </ChipRow>
               </>
             )}
-            <div className="kpi-row" style={{ ...s.g3, marginBottom:6 }}>
-              {show('tenant.lease_start')&&<DatePicker label="Έναρξη μίσθωσης" labelInfo={whyOf('tenant.lease_start')} value={form.lease_start} onChange={v=>sf('lease_start',v)}/>}
-              {show('tenant.lease_end')&&<DatePicker label="Λήξη μίσθωσης" labelInfo={whyOf('tenant.lease_start')} value={form.lease_end} onChange={v=>sf('lease_end',v)}/>}
+            <div className="form-row form-row-3">
+              {show('tenant.lease_start')&&<DatePicker label={labelOf('tenant.lease_start')} labelInfo={whyOf('tenant.lease_start')} value={form.lease_start} onChange={v=>sf('lease_start',v)}/>}
+              {/* Η ΛΗΞΗ ΕΙΧΕ ΤΟ «ΓΙΑΤΙ» ΤΗΣ ΕΝΑΡΞΗΣ. Δύο πεδία δίπλα δίπλα, το
+                  ίδιο κείμενο πίσω από τα δύο κυκλάκια· το ένα από τα δύο
+                  έλεγε πράγμα που δεν αφορούσε το πεδίο του. */}
+              {show('tenant.lease_end')&&<DatePicker label={labelOf('tenant.lease_end')} labelInfo={whyOf('tenant.lease_end')} value={form.lease_end} onChange={v=>sf('lease_end',v)}/>}
               {form.lease_type==='custom'&&<NumberInput label="Ημέρες" value={String(form.custom_lease_days)} onChange={v=>sf('custom_lease_days',parseInt(v)||0)} suffix="ημ."/>}
             </div>
 
             <div style={s.divider}/>
             {/* ── ΤΟ ΕΝΟΙΚΙΟ ───────────────────────────────────────────────── */}
             <SectionTitle>Το ενοίκιο</SectionTitle>
-            <div className="kpi-row" style={{ ...s.g3, marginBottom:6 }}>
-              {show('tenant.rent')&&<NumberInput label="Μηνιαίο ενοίκιο" value={form.monthly_rent} onChange={v=>sf('monthly_rent',v)} suffix="€"/>}
-              {show('tenant.rent_due_day')&&<SelectField label="Ημέρα πληρωμής" labelInfo={whyOf('tenant.rent_due_day')} value={form.rent_due_day} onChange={v=>sf('rent_due_day',v)} options={Array.from({length:28},(_,i)=>({value:String(i+1),label:`${i+1}η`}))}/>}
+            <div className="form-row form-row-3">
+              {show('tenant.rent')&&<NumberInput label={labelOf('tenant.rent')} labelInfo={whyOf('tenant.rent')} value={form.monthly_rent} onChange={v=>sf('monthly_rent',v)} suffix="€"/>}
+              {show('tenant.rent_due_day')&&<SelectField label={labelOf('tenant.rent_due_day')} labelInfo={whyOf('tenant.rent_due_day')} value={form.rent_due_day} onChange={v=>sf('rent_due_day',v)} options={Array.from({length:28},(_,i)=>({value:String(i+1),label:`${i+1}η`}))}/>}
+              {/* Ο ΔΙΑΚΟΠΤΗΣ ΗΤΑΝ ΑΛΛΟΥ, ΚΑΙ ΜΕ ΑΛΛΗ ΕΤΙΚΕΤΑ. Καθόταν δίπλα στο
+                  IBAN με ΚΕΦΑΛΑΙΑ ετικέτα, στημένος με το χέρι, ανάμεσα σε πεδία
+                  με πεζή. Εδώ είναι το τρίτο πεδίο της σειράς του ενοικίου, με
+                  το ίδιο `ToggleField` που χρησιμοποιεί η υπόλοιπη εφαρμογή. */}
+              {show('tenant.rent_iban')&&<ToggleField label="Εισπράττεται μέσω τραπέζης" labelInfo={whyOf('tenant.rent_iban')} on={form.e_payment} onChange={v=>sf('e_payment',v)}/>}
             </div>
             {/* Ο,τι θα συμβεί μόνο του, λέγεται πριν συμβεί — και μαζί τι το ακυρώνει. */}
             {editRow?.pending_rent!=null&&editRow.pending_rent_from&&(
@@ -891,12 +904,16 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
             )}
             {show('tenant.rent_iban')&&(
               <>
-                <div style={{ ...s.g2, marginBottom:6 }}>
-                  <TextInput label="IBAN Είσπραξης Ενοικίου" labelInfo={whyOf('tenant.rent_iban')} value={form.rent_iban} onChange={v=>sf('rent_iban',v)} placeholder="GR..."/>
-                  <div><div style={{ ...labelStyle, marginBottom:8 }}>Εισπράττεται μέσω τραπέζης<InfoDot text={whyOf('tenant.rent_iban')||''}/></div><Toggle on={form.e_payment} onChange={v=>sf('e_payment',v)} ariaLabel="Εισπράττεται μέσω τραπέζης"/></div>
+                <div className="form-row form-row-3" style={{ marginTop:14 }}>
+                  {/* Το IBAN είναι το μόνο πεδίο της φόρμας που κουβαλά είκοσι
+                      επτά χαρακτήρες: παίρνει ρητά δύο στήλες αντί να απλωθεί σε
+                      όλο το πλάτος ή να στριμωχτεί σε μία. */}
+                  <div className="form-span-2">
+                    <TextInput label={labelOf('tenant.rent_iban')} value={form.rent_iban} onChange={v=>sf('rent_iban',v)} placeholder="GR..."/>
+                  </div>
                 </div>
                 {!form.e_payment&&(
-                  <div style={{ marginTop:10 }}>
+                  <div style={{ marginTop:14 }}>
                     <AlertBar level="warning" text={`Με είσπραξη σε μετρητά χάνεται η τεκμαρτή έκπτωση ${fp((PRESUMPTIVE_DEDUCTION_RATE*100))} και ο φόρος υπολογίζεται στο 100% των ακαθάριστων.`}/>
                   </div>
                 )}
@@ -905,17 +922,17 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
 
             <div style={s.divider}/>
             {/* ── ΕΓΓΥΗΣΗ ──────────────────────────────────────────────────── */}
-            <SectionTitle>Εγγύηση</SectionTitle>
+            <SectionTitle info={whyOf('tenant.deposit')}>{labelOf('tenant.deposit')}</SectionTitle>
             {show('tenant.deposit')&&(
-              <div className="kpi-row" style={{ ...s.g3, marginBottom:6 }}>
-                <NumberInput label="Ποσό εγγύησης" labelInfo={whyOf('tenant.deposit')} value={form.deposit_amount} onChange={v=>sf('deposit_amount',v)} suffix="€"/>
+              <div className="form-row form-row-3">
+                <NumberInput ariaLabel={labelOf('tenant.deposit')} value={form.deposit_amount} onChange={v=>sf('deposit_amount',v)} suffix="€"/>
               </div>
             )}
 
             <div style={s.divider}/>
             {/* ── ΤΙ ΠΑΡΕΧΕΙΣ ──────────────────────────────────────────────── */}
-            <SectionTitle>Κατάσταση επίπλωσης</SectionTitle>
-            <ChipRow label="Επίπλωση" info={whyOf('tenant.furnishing')}>
+            <SectionTitle info={whyOf('tenant.furnishing')}>{labelOf('tenant.furnishing')}</SectionTitle>
+            <ChipRow groupLabel={labelOf('tenant.furnishing')}>
               {(Object.keys(FURNISHING_LABELS) as Furnishing[]).map(fv=>(
                 <button key={fv} onClick={()=>sf('furnishing',form.furnishing===fv?'':fv)} style={{ padding:'8px 16px', fontSize:'12px', fontFamily:T.font.sans, cursor:'pointer', borderRadius:T.radius.btn, border:`1px solid ${form.furnishing===fv?'var(--accent)':'var(--border-default)'}`, background:form.furnishing===fv?'var(--accent-dim)':'transparent', color:form.furnishing===fv?'var(--accent)':'var(--text-secondary)', fontWeight:form.furnishing===fv?700:400 }}>{FURNISHING_LABELS[fv]}</button>
               ))}
@@ -936,122 +953,94 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
 
             <div style={s.divider}/>
             {/* ── ΧΑΡΤΙΑ ───────────────────────────────────────────────────── */}
-            <SectionTitle info={whyOf('tenant.lease_doc')}>Μισθωτήριο και λοιπά έγγραφα</SectionTitle>
-            <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:20 }}>
-              <TextInput label="Εξωτερικός σύνδεσμος" value={form.lease_doc_external_url} onChange={v=>sf('lease_doc_external_url',v)} placeholder="drive.google.com/…"/>
-              <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:14, flexWrap:'wrap' as const }}>
-                <label style={{ ...s.btnSm, cursor:docBusy?'default':'pointer', display:'inline-block', opacity:docBusy?0.6:1, whiteSpace:'nowrap' as const }}>
-                  {docBusy?'Ανέβασμα…':'Ανέβασμα αρχείου'}
-                  <input type="file" accept=".pdf,image/*" style={{ display:'none' }} disabled={docBusy} onChange={e=>{const f=e.target.files?.[0]; if(f)uploadFormDoc(f,'lease'); e.currentTarget.value='';}}/>
-                </label>
-                <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>PDF ή εικόνα, αποθηκεύεται στον χώρο εγγράφων του ακινήτου</span>
+            <SectionTitle info={whyOf('tenant.lease_doc')}>{labelOf('tenant.lease_doc')}</SectionTitle>
+            <div className="form-row form-row-3" style={{ marginBottom:14 }}>
+              <div className="form-span-2">
+                <TextInput label="Εξωτερικός σύνδεσμος" value={form.lease_doc_external_url} onChange={v=>sf('lease_doc_external_url',v)} placeholder="drive.google.com/…"/>
               </div>
-              {formDocs.filter(d=>d.tag==='lease').length>0&&(
-                <div style={{ marginTop:14, display:'flex', flexDirection:'column' as const, gap:6 }}>
-                  {formDocs.filter(d=>d.tag==='lease').map(d=>(
-                    <div key={d.id} style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans, minWidth:0 }}>
-                      <span style={{ width:5, height:5, borderRadius:'50%', background:'var(--positive)', flexShrink:0 }}/>
-                      <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' as const }}>{esc(d.file_name)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
+            <FilePickRow label="Υπογεγραμμένο μισθωτήριο" hint="PDF ή εικόνα, αποθηκεύεται στον χώρο εγγράφων του ακινήτου"
+              busy={docBusy} onPick={f=>uploadFormDoc(f,'lease')} docs={formDocs.filter(d=>d.tag==='lease')}/>
 
             {/* ── ΠΕΡΙΣΣΟΤΕΡΑ: σπάνια αλλά υπαρκτά, κλειστά εξ ορισμού ─────── */}
             {moreFields.length>0&&(
               <>
                 <div style={s.divider}/>
-                <button onClick={()=>setMoreOpen(o=>!o)} style={{ ...s.btnGhost, width:'100%', textAlign:'left' as const, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                  <span>Περισσότερα ({fn(moreFields.length)})</span>
-                  <span style={{ color:'var(--text-tertiary)' }}>{moreOpen?'−':'+'}</span>
+                {/* ΤΟ ΑΝΟΙΓΜΑ ΕΙΧΕ ΔΙΚΟ ΤΟΥ ΣΧΗΜΑ, ΚΑΙ ΗΤΑΝ ΤΟ ΜΟΝΑΔΙΚΟ ΤΗΣ ΕΦΑΡΜΟΓΗΣ.
+                    Κουμπί σε όλο το πλάτος, με περίγραμμα σαν πεδίο· δεξιά
+                    ένα «+» ή «−» αντί για το βελάκι που ανοίγει κάθε άλλη λίστα
+                    σε δώδεκα οθόνες. Και από κάτω μια πρόταση που εξηγούσε τι
+                    είναι μέσα, μόνιμα ορατή μόλις άνοιγε. Πλέον είναι η ΙΔΙΑ
+                    γραμμή που ανοίγει με παντού: ετικέτα, μέτρημα, βελάκι — και
+                    η εξήγηση στο κυκλάκι της. */}
+                <button type="button" onClick={()=>setMoreOpen(o=>!o)} aria-expanded={moreOpen} aria-label="Περισσότερα πεδία"
+                  className="acc-toggle" style={{ display:'flex', alignItems:'center', gap:10, width:'100%', minHeight:44, background:'none', border:'none', cursor:'pointer', textAlign:'left' as const, padding:0, fontFamily:T.font.sans }}>
+                  <span style={{ ...TT.label, fontSize:11, color:'var(--text-secondary)', flex:1, minWidth:0, display:'flex', alignItems:'center' }}>
+                    Περισσότερα
+                    <InfoDot text="Τίποτα εδώ δεν είναι υποχρεωτικό για τη δήλωση. Είναι όσα χρειάζονται σπάνια και γι’ αυτό δεν στέκονται μπροστά σου."/>
+                  </span>
+                  <span style={{ ...TT.caption, color:'var(--text-tertiary)', fontVariantNumeric:'tabular-nums' }}>{fn(moreFields.length)} πεδία</span>
+                  <ChevronRight aria-hidden size={15} style={{ flexShrink:0, color:'var(--text-tertiary)', transform:moreOpen?'rotate(90deg)':'none', transition:'transform .18s' }}/>
                 </button>
                 {moreOpen&&(
-                  <div style={{ marginTop:16 }}>
-                    <div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, lineHeight:1.6, marginBottom:16 }}>
-                      Τίποτα εδώ δεν είναι υποχρεωτικό για τη δήλωση. Είναι όσα χρειάζονται σπάνια και γι&apos; αυτό δεν στέκονται μπροστά σου.
+                  <div style={{ marginTop:14 }}>
+
+                    {/* ΕΝΤΕΚΑ ΠΕΔΙΑ, ΕΝΤΕΚΑ ΠΛΗΡΗ ΠΛΑΤΗ, ΤΟ ΕΝΑ ΚΑΤΩ ΑΠΟ ΤΟ ΑΛΛΟ.
+                        Κάθε πεδίο εδώ ήταν τυλιγμένο σε δικό του `<div>` με
+                        `marginBottom:16`, δηλαδή μία στήλη σε όλο το πλάτος του
+                        παραθύρου για να δεχτεί ένα επάγγελμα ή μια συχνότητα.
+                        Μετρημένο στο παράθυρο: 1.030 εικονοστοιχεία πλάτος για
+                        πεδία που ζητούν 200· ύψος που ξεπερνούσε τρεις
+                        οθόνες. Πλέον είναι οι ΙΔΙΕΣ σειρές τριών στηλών με την
+                        υπόλοιπη φόρμα: ίδια πλάτη, ίδιες αφετηρίες, ίδια
+                        απόσταση. Το «Περισσότερα» έπαψε να είναι άλλη φόρμα. */}
+                    <div className="form-row form-row-3" style={{ marginBottom:14 }}>
+                      {more('tenant.email')&&<TextInput label={labelOf('tenant.email')} labelInfo={whyOf('tenant.email')} value={form.email} onChange={v=>sf('email',v)} type="email"/>}
+                      {more('tenant.profession')&&<TextInput label={labelOf('tenant.profession')} labelInfo={whyOf('tenant.profession')} value={form.profession} onChange={v=>sf('profession',v)} placeholder="Μηχανικός"/>}
+                      {more('tenant.iban')&&<TextInput label={labelOf('tenant.iban')} labelInfo={whyOf('tenant.iban')} value={form.iban} onChange={v=>sf('iban',v)} placeholder="GR00 0000 0000 0000…"/>}
+                      {more('tenant.payment_frequency')&&<SelectField label={labelOf('tenant.payment_frequency')} labelInfo={whyOf('tenant.payment_frequency')} value={form.payment_frequency} onChange={v=>{ if(isPaymentFreq(v)) sf('payment_frequency',v); }} options={(Object.keys(PAYMENT_FREQ_LABELS) as PaymentFreq[]).map(k=>({value:k,label:PAYMENT_FREQ_LABELS[k]}))}/>}
                     </div>
 
-                    {more('tenant.email')&&(
-                      <div style={{ marginBottom:16 }}>
-                        <TextInput label="Ηλεκτρονικό ταχυδρομείο" labelInfo={whyOf('tenant.email')} value={form.email} onChange={v=>sf('email',v)} type="email"/>
-                      </div>
-                    )}
-                    {more('tenant.profession')&&(
-                      <div style={{ marginBottom:16 }}>
-                        <TextInput label="Επάγγελμα" labelInfo={whyOf('tenant.profession')} value={form.profession} onChange={v=>sf('profession',v)} placeholder="Μηχανικός"/>
-                      </div>
-                    )}
-                    {more('tenant.iban')&&(
-                      <div style={{ marginBottom:16 }}>
-                        <TextInput label="IBAN Ενοικιαστή" labelInfo={whyOf('tenant.iban')} value={form.iban} onChange={v=>sf('iban',v)} placeholder="GR00 0000 0000 0000..."/>
-                      </div>
-                    )}
-                    {more('tenant.payment_frequency')&&(
-                      <div style={{ marginBottom:16 }}>
-                        <SelectField label="Συχνότητα εξόφλησης" labelInfo={whyOf('tenant.payment_frequency')} value={form.payment_frequency} onChange={v=>{ if(isPaymentFreq(v)) sf('payment_frequency',v); }} options={(Object.keys(PAYMENT_FREQ_LABELS) as PaymentFreq[]).map(k=>({value:k,label:PAYMENT_FREQ_LABELS[k]}))}/>
-                      </div>
-                    )}
                     {more('tenant.id_doc')&&(
-                      <div style={{ marginBottom:16 }}>
-                        <div style={{ ...s.g2, marginBottom:6 }}>
-                          <SelectField label="Τύπος εγγράφου ταυτοποίησης" labelInfo={whyOf('tenant.id_doc')} value={form.id_doc_type} onChange={v=>{ if(isIdDocType(v)) sf('id_doc_type',v); }} options={ID_DOCS.map(d=>({value:d,label:d}))} placeholder="Επιλογή…"/>
+                      <>
+                        <div className="form-row form-row-3" style={{ marginBottom:14 }}>
+                          <SelectField label="Τύπος εγγράφου" labelInfo={whyOf('tenant.id_doc')} value={form.id_doc_type} onChange={v=>{ if(isIdDocType(v)) sf('id_doc_type',v); }} options={ID_DOCS.map(d=>({value:d,label:d}))} placeholder="Επιλογή…"/>
                           <TextInput label="Αριθμός εγγράφου" value={form.id_doc_number} onChange={v=>sf('id_doc_number',v)}/>
                         </div>
-                        <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:'14px 16px', marginTop:12 }}>
-                          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' as const }}>
-                            <div style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans }}>Σαρωμένη ταυτότητα ή διαβατήριο (PDF ή εικόνα)</div>
-                            <label style={{ ...s.btnSm, cursor:docBusy?'default':'pointer', display:'inline-block', opacity:docBusy?0.6:1, whiteSpace:'nowrap' as const }}>
-                              {docBusy?'Ανέβασμα…':'Επιλογή αρχείου'}
-                              <input type="file" accept=".pdf,image/*" style={{ display:'none' }} disabled={docBusy} onChange={e=>{const f=e.target.files?.[0]; if(f)uploadFormDoc(f,'id'); e.currentTarget.value='';}}/>
-                            </label>
-                          </div>
-                          {formDocs.filter(d=>d.tag==='id').length>0&&(
-                            <div style={{ marginTop:12, display:'flex', flexDirection:'column' as const, gap:6 }}>
-                              {formDocs.filter(d=>d.tag==='id').map(d=>(
-                                <div key={d.id} style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans, minWidth:0 }}>
-                                  <span style={{ width:5, height:5, borderRadius:'50%', background:'var(--positive)', flexShrink:0 }}/>
-                                  <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' as const }}>{esc(d.file_name)}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                        <FilePickRow label="Σαρωμένη ταυτότητα ή διαβατήριο" hint="PDF ή εικόνα" busy={docBusy} onPick={f=>uploadFormDoc(f,'id')} docs={formDocs.filter(d=>d.tag==='id')}/>
+                      </>
                     )}
-                    {(more('tenant.deposit_method')||more('tenant.deposit_paid_on'))&&(
-                      <div style={{ marginBottom:16 }}>
-                        <div style={{ ...s.g2, marginBottom:6 }}>
-                          {more('tenant.deposit_method')&&<SelectField label="Τρόπος καταβολής εγγύησης" labelInfo={whyOf('tenant.deposit_method')} value={form.deposit_method} onChange={v=>sf('deposit_method',v)} options={DEPOSIT_METHODS.map(m=>({value:m,label:m}))} placeholder="Επιλογή…"/>}
-                          {more('tenant.deposit_paid_on')&&<DatePicker label="Ημερομηνία καταβολής εγγύησης" value={form.deposit_paid_on} onChange={v=>sf('deposit_paid_on',v)}/>}
-                        </div>
-                      </div>
-                    )}
-                    {more('tenant.deposit_returned')&&(
-                      <div style={{ marginBottom:16 }}>
-                        <div style={{ ...s.g2, marginBottom:6 }}>
-                          <div><div style={{ ...labelStyle, marginBottom:8 }}>Επεστράφη η εγγύηση<InfoDot text={whyOf('tenant.deposit_returned')||''}/></div><Toggle on={form.deposit_returned} onChange={v=>sf('deposit_returned',v)} ariaLabel="Ναι ή όχι"/></div>
-                          {form.deposit_returned&&<DatePicker label="Ημερομηνία επιστροφής" value={form.deposit_return_date} onChange={v=>sf('deposit_return_date',v)}/>}
-                        </div>
-                      </div>
-                    )}
+
+                    <div className="form-row form-row-3" style={{ marginBottom:14 }}>
+                      {more('tenant.deposit_method')&&<SelectField label={labelOf('tenant.deposit_method')} labelInfo={whyOf('tenant.deposit_method')} value={form.deposit_method} onChange={v=>sf('deposit_method',v)} options={DEPOSIT_METHODS.map(m=>({value:m,label:m}))} placeholder="Επιλογή…"/>}
+                      {more('tenant.deposit_paid_on')&&<DatePicker label={labelOf('tenant.deposit_paid_on')} labelInfo={whyOf('tenant.deposit_paid_on')} value={form.deposit_paid_on} onChange={v=>sf('deposit_paid_on',v)}/>}
+                      {more('tenant.deposit_returned')&&<ToggleField label={labelOf('tenant.deposit_returned')} labelInfo={whyOf('tenant.deposit_returned')} on={form.deposit_returned} onChange={v=>sf('deposit_returned',v)}/>}
+                      {more('tenant.deposit_returned')&&form.deposit_returned&&<DatePicker label="Ημερομηνία επιστροφής" value={form.deposit_return_date} onChange={v=>sf('deposit_return_date',v)}/>}
+                    </div>
+
+                    {/* ΔΥΟ ΔΙΑΚΟΠΤΕΣ ΧΩΡΙΣ ΘΕΜΑ. Το «Περιλαμβάνεται στο ενοίκιο»
+                        και το «Χρεώνεται ξεχωριστά» στέκονταν μόνα τους, χωρίς
+                        να λέει τίποτα ΤΙ περιλαμβάνεται: το μητρώο το ξέρει
+                        («Χώρος στάθμευσης») και το γράφει η ετικέτα της σειράς. */}
                     {more('tenant.parking')&&(
-                      <div style={{ marginBottom:16 }}>
-                        <div className="kpi-row" style={{ ...s.g3, marginBottom:6 }}>
-                          <div><div style={{ ...labelStyle, marginBottom:8 }}>Περιλαμβάνεται στο ενοίκιο</div><Toggle on={form.parking_included} onChange={v=>sf('parking_included',v)} ariaLabel="Ναι ή όχι"/></div>
-                          <div><div style={{ ...labelStyle, marginBottom:8 }}>Χρεώνεται ξεχωριστά<InfoDot text={whyOf('tenant.parking')||''}/></div><Toggle on={form.parking_extra} onChange={v=>sf('parking_extra',v)} ariaLabel="Ναι ή όχι"/></div>
-                          {form.parking_extra&&<NumberInput label="Μηνιαία τιμή στάθμευσης" value={form.parking_extra_price} onChange={v=>sf('parking_extra_price',v)} suffix="€"/>}
+                      <>
+                        <div style={{ ...fieldLabelStyle, marginBottom:0 }}>{labelOf('tenant.parking')}<InfoDot text={whyOf('tenant.parking')||''}/></div>
+                        <div className="form-row form-row-3" style={{ marginBottom:14 }}>
+                          <ToggleField label="Περιλαμβάνεται στο ενοίκιο" on={form.parking_included} onChange={v=>sf('parking_included',v)}/>
+                          <ToggleField label="Χρεώνεται ξεχωριστά" on={form.parking_extra} onChange={v=>sf('parking_extra',v)}/>
+                          {form.parking_extra&&<NumberInput label="Μηνιαία τιμή" value={form.parking_extra_price} onChange={v=>sf('parking_extra_price',v)} suffix="€"/>}
                         </div>
-                      </div>
+                      </>
                     )}
+
                     {more('tenant.extra_perks')&&(
-                      <div style={{ marginBottom:16 }}>
-                        <Textarea label="Επιπλέον παροχές" labelInfo={whyOf('tenant.extra_perks')} value={form.extra_perks} onChange={v=>sf('extra_perks',v)} placeholder="Αποθήκη, κήπος, κοινόχρηστο πλυντήριο…"/>
+                      <div style={{ marginBottom:14 }}>
+                        <Textarea label={labelOf('tenant.extra_perks')} labelInfo={whyOf('tenant.extra_perks')} value={form.extra_perks} onChange={v=>sf('extra_perks',v)} placeholder="Αποθήκη, κήπος, κοινόχρηστο πλυντήριο…"/>
                       </div>
                     )}
                     {more('tenant.notes')&&(
-                      <div style={{ marginBottom:16 }}>
-                        <Textarea label="Σημειώσεις" labelInfo={whyOf('tenant.notes')} value={form.notes} onChange={v=>sf('notes',v)}/>
+                      <div>
+                        <Textarea label={labelOf('tenant.notes')} labelInfo={whyOf('tenant.notes')} value={form.notes} onChange={v=>sf('notes',v)}/>
                       </div>
                     )}
                   </div>

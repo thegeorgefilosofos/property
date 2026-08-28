@@ -43,10 +43,14 @@ export const fieldRing = (active: boolean) => (active ? '0 0 0 3px var(--accent-
  * καθόταν ψηλότερα από τα διπλανά του και έσπαγε τη γραμμή βάσης. Εδώ παίρνει
  * την ίδια γεωμετρία με ένα πεδίο: ετικέτα από πάνω, κουτί ύψους πεδίου.
  */
-export function ToggleField({ label, on, onChange }: { label: string; on: boolean; onChange: (v: boolean) => void }) {
+export function ToggleField({ label, labelInfo, on, onChange }: { label: string; labelInfo?: string; on: boolean; onChange: (v: boolean) => void }) {
   return (
     <div>
-      <label style={fieldLabelStyle}>{label}</label>
+      {/* ΚΑΙ Η ΕΞΗΓΗΣΗ ΜΠΑΙΝΕΙ ΕΔΩ, ΟΠΩΣ ΣΕ ΚΑΘΕ ΑΛΛΟ ΠΕΔΙΟ. Χωρίς `labelInfo`,
+          όποιος διακόπτης χρειαζόταν εξήγηση δεν μπορούσε να τη δώσει μέσα από
+          αυτό το component: η φόρμα ενοικιαστή έστηνε τέσσερις φορές τον
+          διακόπτη με το χέρι, με ΚΕΦΑΛΑΙΑ ετικέτα, δίπλα σε πεδία με πεζή. */}
+      <label style={fieldLabelStyle}>{label}{infoNode(labelInfo)}</label>
       {/* ΧΩΡΙΣ ΚΟΥΤΙ. Το πλαίσιο ενός πεδίου σημαίνει «εδώ γράφεις»· γύρω από
           διακόπτη είναι άδειο περίγραμμα που περικλείει ένα αντικείμενο μισού
           πλάτους και το κάνει να μοιάζει με πεδίο που δεν γέμισε κανείς. Μένει

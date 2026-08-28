@@ -105,7 +105,7 @@ export function BankLinkTile({ minHeight = 172 }: { minHeight?: number }) {
       <span style={{ marginBottom: 12, display: 'inline-flex' }}><BankGlyph /></span>
       <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4, color: 'var(--text-primary)' }}>{BANK_LINK_TITLE}</div>
       <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
-        {state === 'open' ? 'Οι κινήσεις σου, έτοιμες' : 'Ετοιμάζεται · δες τι είναι'}
+        {state === 'open' ? 'Οι κινήσεις σου, έτοιμες' : 'Σύντομα διαθέσιμο'}
       </div>
     </div>
     <BankLinkModal open={open} onClose={() => setOpen(false)} />

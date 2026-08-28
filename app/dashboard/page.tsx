@@ -2293,7 +2293,7 @@ export default function Dashboard() {
                       «δεν υπάρχουν δύο ακίνητα ίδιου τύπου». */}
                   {canCompare(properties) && (
                     <div style={{marginTop:T.sp.section}}>
-                      <SecHdr label="Σε σχέση με τα υπόλοιπα ακίνητά σου" sub={`${properties.length} ακίνητα δίπλα-δίπλα`}/>
+                      <SecHdr label="Σε σχέση με τα υπόλοιπα ακίνητά σου"/>
                       {isTabAllowed(ent,'comparison')
                         ? <TabComparison properties={properties} userId={user.id}/>
                         : <FeatureLock title="Σύγκρινε τα ακίνητά σου δίπλα-δίπλα" benefit={`Απόδοση, δαπάνες και πάροχοι όλων των ακινήτων σου σε έναν πίνακα, για να δεις καθαρά πού κερδίζεις και πού χρειάζεται να λάβεις αποφάσεις. Ξεκλειδώνει με το πακέτο ${PLANS.owner.name}.`} requiredPlan="owner" currentPlanName={PLANS[effPlan].name} onManage={()=>setNav('settings')} />}

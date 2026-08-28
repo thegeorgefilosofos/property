@@ -73,6 +73,7 @@ import TabCalendar from '@/app/dashboard/components/TabCalendar';
 import TabClients from '@/app/dashboard/components/TabClients';
 import TabDocuments from '@/app/dashboard/components/TabDocuments';
 import TabReferral from '@/app/dashboard/components/TabReferral';
+import TabPlan from '@/app/dashboard/components/TabPlan';
 import PropertySwitcher from '@/app/dashboard/components/PropertySwitcher';
 import { T, Modal, Btn, PageTitle, InfoBanner, fieldRow } from '@/components/Theme';
 import { createClient } from '@/lib/supabase/client';
@@ -210,6 +211,14 @@ function LoanScene() {
 
 const supabase = createClient();
 
+// Το ακίνητο της Αξιοποίησης: παλιό αρκετά ώστε να ενεργοποιεί τα βήματα που
+// εξαρτώνται από το έτος κατασκευής (γείωση, θερμομόνωση) και με αξία, ώστε ο
+// πίνακας «τι μένει καθαρό» της πώλησης να έχει νούμερα να δείξει.
+const PLAN_PROPERTY = {
+  id: 'p0', name: 'Στούντιο Κουκάκι', address: 'Δημητρακοπούλου 12, Αθήνα',
+  sqm: 42, value: 185000, year_built: 1972, postal_code: '11741', prop_type: 'Διαμέρισμα',
+};
+
 const VIEWS: Record<string, () => React.ReactElement> = {
   portfolio: () => <PortfolioTab properties={bench.properties} userId="u1" onSelectProperty={() => {}} />,
   cash: () => <CashHero cash={cash} showIncome onNavigate={() => {}} onRecordRent={() => {}} />,
@@ -256,6 +265,15 @@ const VIEWS: Record<string, () => React.ReactElement> = {
   // Οι κάρτες ανταμοιβής δεν είχαν ΚΑΜΙΑ κάλυψη: η καρτέλα ζει πίσω από
   // λογαριασμό, οπότε ούτε ο σαρωτής διάταξης ούτε ο έλεγχος προσβασιμότητας
   // την είχαν δει ποτέ.
+  // Η ΑΞΙΟΠΟΙΗΣΗ ΔΕΝ ΕΙΧΕ ΣΚΗΝΗ. Τέσσερις καταστάσεις ακινήτου, τέσσερις
+  // διαφορετικές οθόνες· καμία δεν είχε περάσει ποτέ από σαρωτή διάταξης ή
+  // από έλεγχο προσβασιμότητας: η καρτέλα ζει πίσω από λογαριασμό ΚΑΙ πίσω από
+  // συγκεκριμένη κατάσταση. Μπαίνουν οι δύο πιο πλούσιες (κενό: σύγκριση επτά
+  // επιλογών· ανακαίνιση: ομάδες βημάτων και προγράμματα χρηματοδότησης) και η
+  // πώληση, που είναι η μόνη με πίνακα ποσών.
+  plan: () => <TabPlan propertyId="p0" userId="u1" status="vacant" property={PLAN_PROPERTY} />,
+  planReno: () => <TabPlan propertyId="p0" userId="u1" status="renovation" property={PLAN_PROPERTY} />,
+  planSale: () => <TabPlan propertyId="p0" userId="u1" status="for_sale" property={PLAN_PROPERTY} />,
   referral: () => <TabReferral userId="u1" plan="solo" profileType="individual" />,
   referralPro: () => <TabReferral userId="u1" plan="agency" profileType="professional" />,
   modal: () => <ModalDemo />,

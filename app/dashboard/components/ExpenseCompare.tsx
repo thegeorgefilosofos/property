@@ -138,24 +138,39 @@ function Drivers({ c }: { c: Comparison }) {
 // ήταν ότι η ετικέτα είχε καρφωμένο πλάτος ίσο με της ράβδου, σε ΞΕΧΩΡΙΣΤΗ
 // σειρά. Ράβδος και ετικέτα είναι πλέον μία στήλη, άρα και στοιχισμένες.
 
+// ═══ Η ΓΡΑΜΜΗ ΑΝΑΓΝΩΣΗΣ ΕΓΡΑΦΕ ΤΟΝ ΙΔΙΟ ΑΡΙΘΜΟ ΜΕ ΤΗΝ ΚΟΡΥΦΗ ΤΗΣ ΚΑΡΤΑΣ ═══════
+// Χωρίς κέρσορα πάνω από ράβδο, ο «επιλεγμένος» μήνας ήταν ο ΤΡΕΧΩΝ: η κάρτα
+// έγραφε «31,20 €» σε 28 εικονοστοιχεία στην κορυφή και «Αύγουστος 2026 31,20 €»
+// εκατόν πενήντα πιο κάτω, με μια επικεφαλίδα «ΔΩΔΕΚΑ ΜΗΝΕΣ» ανάμεσά τους. Τρεις
+// σειρές, δύο από τις οποίες έλεγαν ό,τι είχε ήδη ειπωθεί.
+//
+// ΜΙΑ ΣΕΙΡΑ, ΔΥΟ ΚΑΤΑΣΤΑΣΕΙΣ. Σε ηρεμία η σειρά είναι η επικεφαλίδα του
+// γραφήματος· με τον κέρσορα πάνω σε ράβδο γίνεται η ανάγνωσή της. Η θέση, το
+// ύψος και το δεξί άκρο δεν αλλάζουν, οπότε τίποτα δεν αναπηδά — αλλάζει μόνο
+// τι λέει· το λέει μόνο όταν υπάρχει κάτι νέο να πει.
 function HistoryBars({ points, currentKey }: { points: MonthPoint[]; currentKey: string }) {
   const [hover, setHover] = useState<string | null>(null);
   const max = Math.max(...points.map(p => p.total), 1);
-  const sel = points.find(p => p.key === (hover ?? currentKey)) ?? points[points.length - 1];
+  const sel = hover ? points.find(p => p.key === hover) ?? null : null;
   const months = points.filter(p => p.total > 0).length;
   const avg = months > 0 ? points.reduce((s, p) => s + p.total, 0) / months : 0;
 
   return (
     <div>
-      {/* Σταθερή θέση ανάγνωσης: ό,τι δείχνει ο κέρσορας γράφεται εδώ. */}
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, minWidth: 0 }}>
-          <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>{sel.label}</span>
-          <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}><Eur value={sel.total} /></span>
-          {sel.yoy !== null && Math.abs(sel.yoy) >= 1 && (
-            <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
-              <Eur value={sel.yoy} sign /> από πέρσι
-            </span>
+          {sel ? (
+            <>
+              <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>{sel.label}</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}><Eur value={sel.total} /></span>
+              {sel.yoy !== null && Math.abs(sel.yoy) >= 1 && (
+                <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                  <Eur value={sel.yoy} sign /> από πέρσι
+                </span>
+              )}
+            </>
+          ) : (
+            <span style={LABEL}>Δώδεκα μήνες</span>
           )}
         </div>
         {/* Ο ΜΕΣΟΣ ΟΡΟΣ ΔΕΝ ΕΙΝΑΙ ΔΩΔΕΚΑΜΗΝΟΣ, ΚΑΙ ΤΟ ΕΛΕΓΕ ΣΑΝ ΝΑ ΗΤΑΝ.
@@ -183,7 +198,7 @@ function HistoryBars({ points, currentKey }: { points: MonthPoint[]; currentKey:
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${points.length}, 1fr)`, alignItems: 'end' }}>
         {points.map(p => {
           const isCur = p.key === currentKey;
-          const isSel = p.key === sel.key;
+          const isSel = p.key === hover;
           const h = p.total > 0 ? Math.max((p.total / max) * 100, 3) : 0;
           const m = Number(p.key.slice(5, 7)) - 1;
           return (
@@ -241,7 +256,7 @@ export default function ExpenseCompare({ spends, today }: Props) {
       {anyBasis && (
         <>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
-            <span style={LABEL}>Τον {monthPhrase(currentKey)} σε σχέση με</span>
+            <span style={LABEL}>Τον {monthPhrase(currentKey)} σε σχέση με τον {monthPhrase(c.baseKey, Number(currentKey.slice(0, 4)))}</span>
             <BasisSwitch value={active} onChange={setBasis} enabled={enabled} />
           </div>
 
@@ -260,14 +275,18 @@ export default function ExpenseCompare({ spends, today }: Props) {
             </span>
           </div>
 
-          {/* ΤΟ ΙΔΙΟ ΝΟΥΜΕΡΟ ΔΥΟ ΦΟΡΕΣ, ΣΕ ΔΥΟ ΓΡΑΜΜΕΣ ΑΠΟΣΤΑΣΗ. Η πρόταση
-              απαριθμούσε τις κατηγορίες («Κυρίως από «Άλλο» 751,00 €») και
-              αμέσως από κάτω το «Πού πήγε η διαφορά» τις έδειχνε ξανά, με
-              ράβδο και ποσό. Όταν υπάρχει το γράφημα, η πρόταση κρατά μόνο την
-              επικεφαλίδα· η ειδοποίηση, που δεν έχει γράφημα, κρατά την πλήρη. */}
-          <p style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--text-primary)', fontFamily: T.font.sans, margin: '0 0 12px' }}>
-            {c.drivers.length > 0 ? c.headline : c.sentence}
-          </p>
+          {/* Η ΠΡΟΤΑΣΗ ΕΛΕΓΕ ΓΙΑ ΤΡΙΤΗ ΦΟΡΑ ΤΟ ΙΔΙΟ. Πάνω της κάθεται το ποσό
+              της διαφοράς σε 14 εικονοστοιχεία («−99,20 €») και δίπλα του το
+              ποσοστό· δεξιά ο διακόπτης λέει με τι συγκρίνεται· από κάτω οι
+              ράβδοι δείχνουν πού πήγε. Η πρόταση («Ξόδεψες 99,20 € λιγότερα από
+              τον Ιούλιο») δεν πρόσθετε παρά το ΟΝΟΜΑ του μήνα βάσης, που πλέον
+              το γράφει η επικεφαλίδα. Μένει μόνο εκεί που είναι η ΜΟΝΗ εξήγηση:
+              όταν καμία κατηγορία δεν ξεχωρίζει, άρα δεν υπάρχουν ράβδοι. */}
+          {c.drivers.length === 0 && (
+            <p style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--text-primary)', fontFamily: T.font.sans, margin: '0 0 12px' }}>
+              {c.sentence}
+            </p>
+          )}
 
           {c.caveats.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: c.drivers.length > 0 ? 16 : 0 }}>
@@ -293,12 +312,7 @@ export default function ExpenseCompare({ spends, today }: Props) {
         <div style={{ height: 1, background: 'var(--border-subtle)', margin: '20px 0' }} />
       )}
 
-      {hasHistory && (
-        <>
-          <div style={{ ...LABEL, marginBottom: 12 }}>Δώδεκα μήνες</div>
-          <HistoryBars points={points} currentKey={currentKey} />
-        </>
-      )}
+      {hasHistory && <HistoryBars points={points} currentKey={currentKey} />}
     </Card>
   );
 }

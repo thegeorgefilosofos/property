@@ -11,7 +11,7 @@
 import React from 'react';
 import { T, EmptyState, fn } from '@/components/Theme';
 import { BarChart3 } from 'lucide-react';
-import { daysLeft } from './TabTenantHelpers';
+import { daysLeft, s as sty } from './TabTenantHelpers';
 import { MONTHS_SHORT } from '@/lib/core/months';
 import { fieldDecision, type FieldContext, type FieldDecision } from '@/lib/property/fields';
 import { InfoDot, fieldLabelStyle } from './UIComponents';
@@ -56,11 +56,18 @@ export function SectionTitle({ children, info }: { children: React.ReactNode; in
  * και μάντευε τι διαλέγει, ενώ κάθε διπλανό πεδίο είχε ετικέτα από πάνω. Δύο
  * ιδιώματα για το ίδιο πράγμα, στην ίδια οθόνη.
  */
-export function ChipRow({ label, info, children }: { label:string; info?:string; children:React.ReactNode }) {
+export function ChipRow({ label, groupLabel, info, children }: { label?:string; groupLabel?:string; info?:string; children:React.ReactNode }) {
   return (
     <div style={{ marginBottom:14 }}>
-      <div style={fieldLabelStyle}>{label}{info&&<InfoDot text={info}/>}</div>
-      <div style={{ display:'flex', gap:6, flexWrap:'wrap' as const }}>{children}</div>
+      {/* ΤΟ ΙΔΙΟ ΟΝΟΜΑ ΓΡΑΦΟΤΑΝ ΔΥΟ ΦΟΡΕΣ, ΣΕ ΑΠΟΣΤΑΣΗ ΕΞΗΝΤΑ ΕΙΚΟΝΟΣΤΟΙΧΕΙΩΝ.
+          Η ενότητα έλεγε «ΚΑΤΑΣΤΑΣΗ ΕΠΙΠΛΩΣΗΣ» και το μοναδικό χειριστήριό της
+          «Κατάσταση επίπλωσης»: ίδιες λέξεις, δύο μεγέθη, καμία νέα πληροφορία.
+          Οπου η ενότητα έχει ΕΝΑ χειριστήριο με το όνομά της, ο τίτλος της
+          ΕΙΝΑΙ η ετικέτα: η σειρά παραλείπει τη δική της και δηλώνει το όνομα
+          στο `groupLabel`, ώστε ο αναγνώστης οθόνης να ακούει «Κατάσταση
+          επίπλωσης, ομάδα» και να μη χάσει τίποτα. */}
+      {label&&<div style={fieldLabelStyle}>{label}{info&&<InfoDot text={info}/>}</div>}
+      <div role="group" aria-label={label ?? groupLabel} style={{ display:'flex', gap:6, flexWrap:'wrap' as const }}>{children}</div>
     </div>
   );
 }
@@ -79,6 +86,22 @@ export function ChipRow({ label, info, children }: { label:string; info?:string;
  * μονίμως ορατή σε ένα άγγιγμα μακριά.
  */
 export const whyOf = (id:string):string|undefined => fieldDecision(id, tenantFieldCtx(true,1)).why || undefined;
+
+/**
+ * ΤΟ ΟΝΟΜΑ ΤΟΥ ΠΕΔΙΟΥ, ΑΠΟ ΤΗΝ ΙΔΙΑ ΠΗΓΗ ΜΕ ΤΟ «ΓΙΑΤΙ».
+ *
+ * ΕΝΑ ΠΡΑΓΜΑ ΕΙΧΕ ΔΥΟ ΟΝΟΜΑΤΑ, ΚΑΙ ΤΑ ΔΥΟ ΣΤΗΝ ΙΔΙΑ ΟΘΟΝΗ. Το μητρώο έλεγε
+ * «Μηνιαίο μίσθωμα», η φόρμα έγραφε «Μηνιαίο ενοίκιο»· το μητρώο «IBAN
+ * είσπραξης», η φόρμα «IBAN Είσπραξης Ενοικίου»· το μητρώο «Τηλέφωνο», η φόρμα
+ * «Κινητό τηλέφωνο»· το μητρώο «Εγγύηση», η φόρμα «Ποσό εγγύησης». Και η μπάρα
+ * «τι λείπει» στην κορυφή διαβάζει ΤΟ ΜΗΤΡΩΟ: ο χρήστης έβλεπε «λείπει το
+ * Μηνιαίο μίσθωμα» και έψαχνε πεδίο με αυτό το όνομα, που δεν υπήρχε.
+ *
+ * Πλέον η φόρμα δεν γράφει ονόματα: τα ζητά. Οποιο πεδίο έχει καταχώρηση στο
+ * μητρώο παίρνει από εκεί και το όνομά του και την εξήγησή του, οπότε τα δύο
+ * δεν μπορούν να αποκλίνουν.
+ */
+export const labelOf = (id:string):string => fieldDecision(id, tenantFieldCtx(true,1)).label;
 
 // ΤΙ ΕΦΥΓΕ: το `SvcSection` (πέντε πτυσσόμενες ενότητες υπηρεσιών) και το
 // `SplitBar` (συρόμενη κατανομή κόστους 0–100 ανά μηχάνημα). Υπήρχαν για να
@@ -176,17 +199,65 @@ export const tenantFieldCtx = (furnished:boolean, propertyCount:number):FieldCon
 export function MissingCriticalBar({ missing }:{ missing:FieldDecision[] }) {
   if(!missing.length) return null;
   return (
-    <div style={{ background:'var(--warning-dim)', border:'1px solid color-mix(in srgb, var(--warning) 26%, transparent)', borderLeft:'3px solid var(--warning)', borderRadius:T.radius.inner, padding:'12px 16px', marginBottom:16 }}>
-      <div style={{ fontSize:12, fontWeight:600, color:'var(--warning)', fontFamily:T.font.sans, marginBottom:8 }}>
-        Λείπουν {fn(missing.length)} στοιχεία που χρειάζεται η δήλωση
+    /* ═══ ΕΛΕΓΕ ΔΥΟ ΦΟΡΕΣ ΤΟ ΙΔΙΟ, ΜΕ ΤΑ ΙΔΙΑ ΛΟΓΙΑ ══════════════════════════
+       Η μπάρα τύπωνε για κάθε πεδίο που λείπει το «γιατί» του μητρώου, ΑΥΤΟΥΣΙΟ:
+       «Το Ε2 ζητά ΑΦΜ μισθωτή. Χωρίς αυτό η δήλωση δεν κλείνει.» Και τριάντα
+       εικονοστοιχεία πιο κάτω, το κυκλάκι δίπλα στο πεδίο ΑΦΜ τύπωνε την ίδια
+       πρόταση, από την ίδια σταθερά. Με πέντε πεδία που λείπουν, αυτό είναι
+       πέντε παράγραφοι πάνω από την πρώτη ερώτηση της φόρμας.
+
+       Η μπάρα κρατά τη δουλειά που κάνει ΜΟΝΟ αυτή: λέει ΠΟΣΑ και ΠΟΙΑ. Το
+       γιατί ζει δίπλα στο πεδίο, εκεί που χρησιμεύει. */
+    <div style={{ background:'var(--warning-dim)', border:'1px solid color-mix(in srgb, var(--warning) 26%, transparent)', borderLeft:'3px solid var(--warning)', borderRadius:T.radius.inner, padding:'12px 16px', marginBottom:16, fontSize:12, fontFamily:T.font.sans, lineHeight:1.6 }}>
+      <span style={{ fontWeight:600, color:'var(--warning)' }}>
+        Λείπουν {fn(missing.length)} στοιχεία που χρειάζεται η δήλωση:
+      </span>{' '}
+      <span style={{ color:'var(--text-secondary)' }}>{missing.map(m=>m.label).join(' · ')}</span>
+    </div>
+  );
+}
+
+/**
+ * ΜΙΑ ΓΡΑΜΜΗ ΑΝΕΒΑΣΜΑΤΟΣ ΑΡΧΕΙΟΥ, ΓΡΑΜΜΕΝΗ ΜΙΑ ΦΟΡΑ.
+ *
+ * Η φόρμα του ενοικιαστή είχε ΔΥΟ: μία για το μισθωτήριο και μία για την
+ * ταυτότητα. Ιδιο ένθετο πλαίσιο, ίδιο κρυφό `<input type=file>`, ίδια λίστα
+ * ονομάτων με κουκκίδα, γραμμένα δύο φορές με διαφορετικά περιθώρια (20 και 16),
+ * διαφορετική διάταξη (κουμπί κάτω από το κείμενο, κουμπί δίπλα στο κείμενο) και
+ * διαφορετική σειρά κειμένου. Δύο σχήματα για την ίδια πράξη, στην ίδια οθόνη.
+ *
+ * Η ΚΟΥΚΚΙΔΑ ΗΤΑΝ ΠΡΑΣΙΝΗ, ΚΑΙ ΔΕΝ ΕΙΝΑΙ ΝΕΑ. Το όνομα ενός αρχείου που
+ * ανέβηκε δεν είναι «καλά νέα» — είναι κατάσταση. Παίρνει το χρώμα του
+ * κειμένου, όπως κάθε άλλη κατάσταση της εφαρμογής.
+ */
+export function FilePickRow({ label, hint, busy, docs, onPick }: {
+  label: string; hint?: string; busy: boolean;
+  docs: readonly { id: string; file_name: string }[];
+  onPick: (f: File) => void;
+}) {
+  return (
+    <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.inner, padding:'14px 16px', marginBottom:14 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' as const }}>
+        <div style={{ minWidth:0 }}>
+          <div style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans }}>{label}</div>
+          {hint&&<div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, marginTop:3 }}>{hint}</div>}
+        </div>
+        <label style={{ ...sty.btnSm, cursor:busy?'default':'pointer', opacity:busy?0.6:1, whiteSpace:'nowrap' as const }}>
+          {busy?'Ανέβασμα…':'Επιλογή αρχείου'}
+          <input type="file" accept=".pdf,image/*" style={{ display:'none' }} disabled={busy}
+            onChange={e=>{ const f=e.target.files?.[0]; if(f) onPick(f); e.currentTarget.value=''; }}/>
+        </label>
       </div>
-      <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
-        {missing.map(m=>(
-          <div key={m.id} style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans, lineHeight:1.55 }}>
-            <strong style={{ color:'var(--text-primary)' }}>{m.label}</strong> — {m.why}
-          </div>
-        ))}
-      </div>
+      {docs.length>0&&(
+        <div style={{ marginTop:12, display:'flex', flexDirection:'column' as const, gap:6 }}>
+          {docs.map(d=>(
+            <div key={d.id} style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans, minWidth:0 }}>
+              <span style={{ width:5, height:5, borderRadius:'50%', background:'var(--text-tertiary)', flexShrink:0 }}/>
+              <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' as const }}>{d.file_name}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

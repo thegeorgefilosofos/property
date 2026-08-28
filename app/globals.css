@@ -1773,21 +1773,130 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
    κρύβεται, με κάποιον που ξέρει» έσπαγε σε τέσσερις σειρές. Στο στενό, η
    ιδιότητα κατεβαίνει από κάτω και ο τίτλος παίρνει όλο το πλάτος. Ένα ερώτημα
    μέσων (media query) δεν γράφεται σε ενσωματωμένο στυλ — γι' αυτό ζει εδώ. */
+/* ═══ ΣΕΙΡΑ ΠΕΔΙΩΝ ΦΟΡΜΑΣ: ΣΤΑΘΕΡΕΣ ΣΤΗΛΕΣ, ΟΧΙ ΡΕΥΣΤΕΣ ═══════════════════════
+   ΤΟ auto-fit ΔΕΝ ΞΕΡΕΙ ΠΟΣΑ ΠΕΔΙΑ ΕΧΕΙ Η ΣΕΙΡΑ. Η φόρμα ενοικιαστή έστηνε
+   κάθε σειρά με `repeat(auto-fit, minmax(min(100%, 150px), 1fr))`: με τρία
+   πεδία έβγαζε τρεις στήλες, με ΕΝΑ έβγαζε μία στήλη σε ΟΛΟ το πλάτος. Το
+   «Ποσό εγγύησης» απλωνόταν σε 1.030 εικονοστοιχεία για να δεχτεί τέσσερα
+   ψηφία· τα έντεκα πεδία των «Περισσότερων» στέκονταν το ένα κάτω από το
+   άλλο, καθένα σε πλήρες πλάτος: μια φόρμα που φαινόταν τριπλάσια από όση ήταν.
+
+   Οι στήλες είναι ΔΗΛΩΜΕΝΕΣ. Ενα πεδίο σε σειρά τριών πιάνει ένα τρίτο, όπως
+   κάθε άλλο πεδίο της φόρμας, οπότε όλα τα κουτιά της οθόνης έχουν τα ίδια
+   πλάτη και τις ίδιες αφετηρίες. Οποιο θέλει περισσότερο χώρο το ζητά ρητά με
+   `.form-span-2`. Τα σπασίματα είναι τα ίδια με του `.fixed-cols`, ώστε η
+   φόρμα να αλλάζει διάταξη στα ίδια πλάτη με τα πλέγματα δίπλα της. */
+.form-row { display: grid; gap: 14px; align-items: start; }
+.form-row-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.form-row-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.form-span-2 { grid-column: span 2; }
+@media (max-width: 820px) {
+  .form-row-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .form-row-2, .form-row-3 { grid-template-columns: minmax(0, 1fr); }
+  .form-span-2 { grid-column: auto; }
+}
+
+/* ΤΟ ΠΕΔΙΟ ΜΕ ΜΟΝΑΔΑ ΜΕΣΑ ΤΟΥ: Η ΜΟΝΑΔΑ ΕΙΝΑΙ ΣΤΗ ΡΟΗ, ΟΧΙ ΑΠΟ ΠΑΝΩ.
+   ΜΕΤΡΗΜΕΝΟ ΣΤΟ ΜΙΣΘΩΤΗΡΙΟ: το πεδίο «Διάρκεια» έγραφε «3έτη», κολλητά. Η
+   μονάδα ήταν απόλυτα τοποθετημένη στα 13 από το δεξί άκρο και το κουτί κρατούσε
+   32 εικονοστοιχεία δεξιό περιθώριο για να μη την πατήσει η τιμή. Τα 32 βγήκαν
+   από το «€», που είναι ένας χαρακτήρας· το «έτη» είναι τρεις και ζητά 25, άρα
+   έφτανε ώς τα 38 και η τιμή έπεφτε πάνω του. Καμία αριθμητική δεν λύνει αυτό
+   για ΚΑΘΕ μονάδα: η μονάδα μπαίνει στη ροή και το κουτί δεν χρειάζεται να
+   μαντέψει πλάτος. Η εστίαση ζωγραφίζεται στο περίβλημα, γιατί εκεί ζει πλέον
+   το περίγραμμα. */
+.field-inline { display: flex; align-items: center; }
+.field-inline:focus-within { border-color: var(--accent); }
+
+/* ═══ ΑΞΙΟΠΟΙΗΣΗ: ΜΙΑ ΓΡΑΜΜΗ ΑΝΑ ΠΡΑΓΜΑ ════════════════════════════════════
+   Κάθε βήμα, επιλογή, πρόγραμμα, κανόνας ή εκκρεμότητα είναι ΜΙΑ σειρά με το
+   ίδιο ελάχιστο ύψος και την ίδια αφετηρία κειμένου. Ό,τι εξηγούσε κάτω από τη
+   γραμμή ζει πλέον σε κυκλάκι ⓘ μέσα στη γραμμή, οπότε το ύψος δεν εξαρτάται
+   από το μήκος του κειμένου: δώδεκα βήματα είναι δώδεκα ίσες σειρές.
+
+   ΤΑ 48 ΕΙΝΑΙ ΤΟ ΟΡΙΟ ΑΦΗΣ ΣΥΝ ΑΕΡΑ. Ο κρίκος του βήματος είναι κουμπί 44 επί
+   44· σε γραμμή 44 τα δύο γειτονικά κουμπιά θα ακουμπούσαν, οπότε η σειρά
+   κρατά τέσσερα εικονοστοιχεία παραπάνω. */
 .plan-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 116px 15px;
   align-items: center;
-  gap: 4px 12px;
+  gap: 2px 12px;
   width: 100%;
+  min-height: 48px;
 }
-.plan-row-wide { grid-template-columns: minmax(0, 1fr) 150px 15px; }
+/* ΤΟ ΠΛΑΤΟΣ ΤΗΣ ΣΤΗΛΗΣ ΕΙΝΑΙ ΜΕΤΡΗΜΕΝΟ, ΟΧΙ ΕΠΙΛΕΓΜΕΝΟ. Οι ετικέτες ιδιότητας
+   ζητούν, χωρίς αναδίπλωση: «Εσύ» 25, «Δάνειο» 52, «Τεχνίτης» 67, «Επιδότηση»
+   79, «Μηχανικός» 82, «Συμβολαιογράφος» 127, «Φορολογική έκπτωση» 158, «Το
+   ετοιμάζουμε εμείς» 164. Η στήλη παίρνει τη μακρύτερη συν λίγο αέρα: με 116
+   έσπαγαν τρεις σε δύο σειρές και το «ΣΥΜΒΟΛΑΙΟΓΡΑΦΟΣ» κολλούσε στον γείτονά
+   του, μετρημένο στην πώληση στα 900. */
+.plan-row-step { grid-template-columns: minmax(0, 1fr) 170px; }
+.plan-row-fund { grid-template-columns: minmax(0, 1fr) 170px auto; }
 .plan-row-bare { grid-template-columns: minmax(0, 1fr) 15px; }
 .plan-tag { text-align: right; }
 
 @media (max-width: 720px) {
-  .plan-row, .plan-row-wide { grid-template-columns: minmax(0, 1fr) 15px; }
-  .plan-row .plan-tag { grid-column: 1; grid-row: 2; text-align: left; }
-  .plan-row .plan-caret { grid-column: 2; grid-row: 1 / span 2; }
+  .plan-row-step, .plan-row-fund { grid-template-columns: minmax(0, 1fr); }
+  .plan-tag { text-align: left; }
+}
+
+/* ═══ Η ΣΥΓΚΡΙΣΗ ΕΙΝΑΙ ΠΙΝΑΚΑΣ, ΜΕ ΜΙΑ ΚΕΦΑΛΙΔΑ ══════════════════════════════
+   ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΚΛΕΙΝΕΙ: οι τρεις άξονες («Κόπος», «Ρίσκο», «Χρόνος») ήταν
+   ετικέτα και τιμή μαζί, μέσα σε κάθε γραμμή. Σε έξι επιλογές αυτό είναι
+   δεκαοκτώ ετικέτες για τρία πράγματα· οι τιμές δεν έπεφταν ποτέ η μία
+   κάτω από την άλλη: το «Μέτριο» της δεύτερης σειράς ξεκινούσε εκεί που
+   τελείωνε το «Λίγος» της πρώτης, γιατί κάθε ζευγάρι είχε το πλάτος του
+   κειμένου του.
+
+   ΕΝΑ ΠΛΕΓΜΑ ΓΙΑ ΟΛΗ ΤΗΝ ΕΝΟΤΗΤΑ. Η κεφαλίδα και κάθε γραμμή είναι κελιά του
+   ΙΔΙΟΥ πλέγματος, οπότε η στοίχιση δεν είναι ρύθμιση αλλά ιδιότητα. Το
+   `display: contents` στο δοχείο κάθε γραμμής και στο δοχείο των τριών τιμών
+   είναι που το επιτρέπει: τα παιδιά τους γίνονται κελιά του πλέγματος σαν να
+   μην υπήρχε το δοχείο. */
+.plan-table {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 92px 92px 172px;
+  align-items: center;
+  gap: 0 16px;
+}
+.plan-axes { display: contents; }
+.plan-span { grid-column: 1 / -1; }
+.plan-head {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--text-tertiary);
+  padding-bottom: 10px;
+}
+.plan-name, .plan-axis { padding: 13px 0; min-height: 48px; display: flex; align-items: center; }
+.plan-axis {
+  font-size: 12px; font-weight: 600; color: var(--text-primary);
+  line-height: 1.4;
+}
+/* Η ΛΕΞΗ ΤΟΥ ΑΞΟΝΑ ΚΡΥΒΕΤΑΙ ΑΠΟ ΤΟ ΜΑΤΙ, ΟΧΙ ΑΠΟ ΤΟΝ ΑΝΑΓΝΩΣΤΗ ΟΘΟΝΗΣ. Στη
+   φαρδιά οθόνη την τυπώνει η κεφαλίδα των στηλών μία φορά· εδώ μένει διαθέσιμη
+   στο δέντρο προσβασιμότητας, ώστε το κελί να ακούγεται «Λίγος κόπος» και όχι
+   σκέτο «Λίγος». Στη στενή οθόνη, όπου κεφαλίδα δεν υπάρχει, γίνεται ορατή. */
+.plan-axis-k {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+@media (max-width: 760px) {
+  .plan-table { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .plan-head { display: none; }
+  /* Οι τρεις τιμές μαζεύονται σε ΜΙΑ σειρά κάτω από τον τίτλο· παίρνουν
+     πίσω το ουσιαστικό τους: «Λίγος κόπος · Μέτριο ρίσκο · Αμέσως». */
+  .plan-axes {
+    display: flex; flex-wrap: wrap; gap: 2px 14px;
+    padding-bottom: 14px; margin-top: -6px;
+  }
+  .plan-name { padding-bottom: 4px; min-height: 40px; }
+  .plan-axis { padding: 0; min-height: 0; font-weight: 500; color: var(--text-secondary); }
+  .plan-axis-k {
+    position: static; width: auto; height: auto; margin: 0;
+    overflow: visible; clip: auto; white-space: normal;
+  }
 }
 
 /* MD3 Scrim (for dialogs/modals) */

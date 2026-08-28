@@ -459,7 +459,7 @@ export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyC
                 onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'var(--accent-dim)'; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.background = 'var(--bg-elevated)'; }}>
                 <svg aria-hidden="true" width={30} height={30} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 12 }}><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>
-                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Φωτογράφισε</div>
+                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Φωτογραφία</div>
                 <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Κάμερα κινητού · tablet</div>
               </div>
               <input ref={cameraRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && loadFile(e.target.files[0])} />
@@ -474,18 +474,11 @@ export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyC
               </div>
               <input ref={fileRef} type="file" accept="image/*,.pdf,.csv,.txt,.xlsx,.xls,.ods" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && loadFile(e.target.files[0])} />
 
-              {/* ΤΡΙΤΗ ΑΠΑΝΤΗΣΗ ΣΤΗΝ ΙΔΙΑ ΕΡΩΤΗΣΗ. Ο χρήστης στέκεται εδώ
-                  ρωτώντας «πώς μπαίνει αυτό μέσα;». Η φωτογραφία και το αρχείο
-                  απαντούν για ένα παραστατικό· η τράπεζα απαντά για όλα μαζί.
-                  Το ίδιο ελάχιστο ύψος με τα δύο διπλανά, ώστε τα τρία
-                  πλακίδια να είναι μία σειρά και όχι δύο και μισό. */}
-              <BankLinkTile minHeight={172} />
-
-              {/* ΤΕΤΑΡΤΗ ΑΠΑΝΤΗΣΗ: ΔΕΝ ΕΧΩ ΧΑΡΤΙ. Οι τρεις πρώτες υποθέτουν ότι
+              {/* ΤΡΙΤΗ ΑΠΑΝΤΗΣΗ: ΔΕΝ ΕΧΩ ΧΑΡΤΙ. Οι δύο πρώτες υποθέτουν ότι
                   υπάρχει παραστατικό. Χωρίς αυτό το πλακίδιο, ο χρήστης που
                   θυμήθηκε μια δαπάνη έπρεπε να κλείσει το παράθυρο και να ψάξει
                   κουμπί που δεν υπάρχει πια στην κενή λίστα. Ιδιο σχήμα και ίδιο
-                  ύψος με τα άλλα τρία: τέσσερα πλακίδια, μία απόφαση. */}
+                  ύψος με τα άλλα: τέσσερα πλακίδια, μία απόφαση. */}
               {onManual && (
                 <div role="button" tabIndex={0} onClick={onManual} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();onManual()}}}
                   className="pick-tile" style={{ border: '1px solid var(--border-default)', borderRadius: T.radius.card, minHeight: 172, cursor: 'pointer', background: 'var(--bg-elevated)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, textAlign: 'center', padding: 16, transition: 'border-color .15s, background .15s' }}
@@ -496,6 +489,13 @@ export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyC
                   <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Χωρίς παραστατικό</div>
                 </div>
               )}
+
+              {/* ΤΕΛΕΥΤΑΙΑ, ΓΙΑΤΙ ΔΕΝ ΓΙΝΕΤΑΙ ΑΚΟΜΗ. Οι τρεις πρώτες επιλογές
+                  δουλεύουν σήμερα· η τράπεζα ετοιμάζεται. Οσο καθόταν τρίτη,
+                  ανάμεσα σε δύο πράγματα που δουλεύουν, διαβαζόταν ως ισότιμη
+                  και ο χρήστης την πατούσε πρώτος. Στο τέλος της σειράς λέει
+                  αυτό που είναι: το επόμενο βήμα, όχι το τωρινό. */}
+              <BankLinkTile minHeight={172} />
             </div>
           ) : (
             <div>

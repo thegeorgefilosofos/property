@@ -24,12 +24,26 @@ export function InfoHint({ children, size = 14, label = 'Περισσότερα'
   const descId = useId()
   const [pos, setPos] = useState<{ top: number; left: number; place: 'top' | 'bottom' } | null>(null)
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // Η ΠΛΕΥΡΑ ΔΙΑΛΕΓΕΤΑΙ ΜΕ ΜΕΤΡΗΣΗ ΧΩΡΟΥ, ΟΧΙ ΜΕ ΜΑΝΤΕΨΙΑ ΥΨΟΥΣ
+  // ─────────────────────────────────────────────────────────────────────
+  // Ηταν `below + 140 > innerHeight ? 'top' : 'bottom'`, δηλαδή «υπόθεσε ότι
+  // κάθε επεξήγηση είναι 140 ψηλή». Οσο εδώ έμπαιναν ορισμοί μιας σειράς, η
+  // υπόθεση κρατούσε. Στην Αξιοποίηση μπαίνει πίσω από το κυκλάκι ΟΛΟ το
+  // κείμενο ενός κανόνα: το άρθρο 47Α είναι 515 χαρακτήρες, δηλαδή περίπου
+  // 250 εικονοστοιχεία. Με το 140 ο υπολογισμός έλεγε «χωράει από κάτω», το
+  // popover έμπαινε κάτω και έβγαινε εκατό εικονοστοιχεία έξω από την οθόνη.
+  //
+  // Δεν χρειάζεται να ξέρουμε το ύψος: αρκεί να διαλέξουμε την πλευρά με τον
+  // ΠΕΡΙΣΣΟΤΕΡΟ χώρο. Οποιο κι αν είναι το κείμενο, πάει εκεί που χωράει
+  // περισσότερο· σε ισοπαλία κάτω, που είναι η φυσική φορά ανάγνωσης.
   const show = useCallback(() => {
     const el = ref.current
     if (!el) return
     const r = el.getBoundingClientRect()
-    const below = r.bottom + 12
-    const place = below + 140 > window.innerHeight ? 'top' : 'bottom'
+    const roomBelow = window.innerHeight - r.bottom - 16
+    const roomAbove = r.top - 16
+    const place = roomBelow >= roomAbove ? 'bottom' : 'top'
     const top = place === 'bottom' ? r.bottom + 8 : r.top - 8
     let left = r.left + r.width / 2
     left = Math.max(150, Math.min(left, window.innerWidth - 150))

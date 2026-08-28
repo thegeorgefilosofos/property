@@ -98,14 +98,14 @@ export function computeInsights(input: InsightInput): Insight[] {
   // ── 1. Ασφάλεια ακινήτου ──────────────────────────────────────────────────
   const insD = daysUntil(p.insurance_expiry, now);
   if (insD !== null) {
-    if (insD < 0) out.push({ id: 'insurance-expired', kind: 'urgent', title: 'Η ασφάλεια του ακινήτου έχει λήξει', detail: `Έληξε πριν ${Math.abs(insD)} ${Math.abs(insD) === 1 ? 'ημέρα' : 'ημέρες'}. Ένα ασφάλιστρο σε καλύπτει από πυρκαγιά, σεισμό και ζημιές. Ανανέωσέ το άμεσα.`, action: { label: navLabel('finances'), tab: 'finances' } });
+    if (insD < 0) out.push({ id: 'insurance-expired', kind: 'urgent', title: 'Η ασφάλεια του ακινήτου έχει λήξει', detail: `Έληξε πριν ${Math.abs(insD)} ${Math.abs(insD) === 1 ? 'ημέρα' : 'ημέρες'}. Ανανέωσέ το: καλύπτει πυρκαγιά, σεισμό και ζημιές.`, action: { label: navLabel('finances'), tab: 'finances' } });
     else if (insD <= 45) out.push({ id: 'insurance-soon', kind: 'attention', title: 'Λήγει σύντομα η ασφάλεια', detail: `Σε ${insD} ${insD === 1 ? 'ημέρα' : 'ημέρες'}. Ανανέωσέ την έγκαιρα για να μη μείνει το ακίνητο ακάλυπτο.`, action: { label: navLabel('finances'), tab: 'finances' } });
   }
 
   // ── 2. Λήξη μίσθωσης ───────────────────────────────────────────────────────
   const leaseD = daysUntil(tenant?.lease_end, now);
   if (leaseD !== null) {
-    if (leaseD < 0) out.push({ id: 'lease-expired', kind: 'urgent', title: 'Έχει λήξει η σύμβαση ενοικίασης', detail: `Έληξε πριν ${Math.abs(leaseD)} ${Math.abs(leaseD) === 1 ? 'ημέρα' : 'ημέρες'}. Ανανέωσε ή σύναψε νέο μισθωτήριο για να είσαι καλυμμένος.`, action: { label: navLabel('tenant'), tab: 'tenant' } });
+    if (leaseD < 0) out.push({ id: 'lease-expired', kind: 'urgent', title: 'Έχει λήξει η σύμβαση ενοικίασης', detail: `Έληξε πριν ${Math.abs(leaseD)} ${Math.abs(leaseD) === 1 ? 'ημέρα' : 'ημέρες'}. Ανανέωσε ή σύναψε νέο μισθωτήριο.`, action: { label: navLabel('tenant'), tab: 'tenant' } });
     else if (leaseD <= 60) out.push({ id: 'lease-soon', kind: 'attention', title: 'Πλησιάζει η λήξη της μίσθωσης', detail: `Σε ${leaseD} ${leaseD === 1 ? 'ημέρα' : 'ημέρες'}. Καλή στιγμή να συζητήσεις ανανέωση ή αναπροσαρμογή ενοικίου με τον ενοικιαστή.`, action: { label: navLabel('tenant'), tab: 'tenant' } });
   }
 
@@ -141,7 +141,7 @@ export function computeInsights(input: InsightInput): Insight[] {
     out.push({ id: 'vacant', kind: 'opportunity', title: 'Το ακίνητο είναι κενό', detail: `Κάθε μήνας χωρίς ενοικιαστή είναι περίπου ${eur(rent)} χαμένο εισόδημα. Αν ψάχνεις, δες πρώτα τι ενοίκιο πιάνει η περιοχή σου.`, metric: `${eur(rent)}/μήνα`, action: { label: navLabel('plan'), tab: 'plan' } });
   } else if (isVacant && shortTerm) {
     // Βραχυχρόνια: το «κενό» ανάμεσα σε κρατήσεις είναι φυσιολογικό. Εστίασε σε πληρότητα/τιμολόγηση.
-    out.push({ id: 'vacant-st', kind: 'opportunity', title: 'Ελεύθερες ημερομηνίες', detail: 'Σε βραχυχρόνια μίσθωση το κενό ανάμεσα σε κρατήσεις είναι φυσιολογικό. Πριν την υψηλή σεζόν, ρίξε μια ματιά στην τιμή ανά διανυκτέρευση, στις φωτογραφίες και στις αξιολογήσεις για να ανεβάσεις την πληρότητα.', action: { label: navLabel('roi'), tab: 'roi' } });
+    out.push({ id: 'vacant-st', kind: 'opportunity', title: 'Ελεύθερες ημερομηνίες', detail: 'Το κενό ανάμεσα σε κρατήσεις είναι φυσιολογικό. Πριν από την υψηλή σεζόν δες τιμή, φωτογραφίες και αξιολογήσεις.', action: { label: navLabel('roi'), tab: 'roi' } });
   }
 
   // ── 7. Έκπτωση φόρου: πλήρωνε ηλεκτρονικά ─────────────────────────────────
@@ -150,7 +150,7 @@ export function computeInsights(input: InsightInput): Insight[] {
     const cashTotal = withMethod.filter(e => e.payment_method && CASH.has(e.payment_method)).reduce((s, e) => s + e.amount, 0);
     const cashShare = expensesYTD > 0 ? cashTotal / expensesYTD : 0;
     if (withMethod.length >= 3 && cashShare > 0.35) {
-      out.push({ id: 'tax-electronic', kind: 'opportunity', title: 'Πλήρωνε ηλεκτρονικά και γλίτωσε φόρο', detail: `Το ${Math.round(cashShare * 100)}% των δαπανών σου είναι με μετρητά. Οι ηλεκτρονικές πληρωμές (κάρτα, e-banking) μετρούν για την έκπτωση φόρου και χτίζουν το «καλάθι» αποδείξεων που ζητά η εφορία.`, action: { label: navLabel('finances'), tab: 'finances' } });
+      out.push({ id: 'tax-electronic', kind: 'opportunity', title: 'Πλήρωνε ηλεκτρονικά και γλίτωσε φόρο', detail: `Το ${Math.round(cashShare * 100)}% των δαπανών σου είναι με μετρητά. Μόνο οι ηλεκτρονικές μετρούν για την έκπτωση φόρου.`, action: { label: navLabel('finances'), tab: 'finances' } });
     }
   }
 
@@ -158,7 +158,7 @@ export function computeInsights(input: InsightInput): Insight[] {
   const energyBills = bills.filter(b => (b.type || '').toLowerCase().includes('electric') || b.type === 'electricity' || b.type === 'ρεύμα');
   const energyTotal = energyBills.reduce((s, b) => s + (b.amount || 0), 0);
   if (energyTotal > 0 && expensesYTD > 0 && energyTotal / Math.max(expensesYTD, energyTotal) > 0.25) {
-    out.push({ id: 'energy-review', kind: 'opportunity', title: 'Το ρεύμα «τρώει» μεγάλο μέρος των εξόδων', detail: 'Οι τιμές στα τιμολόγια ρεύματος αλλάζουν συχνά. Μια σύγκριση παρόχων μπορεί να σου γλιτώσει αρκετά τον χρόνο, ειδικά αν το ακίνητο μένει άδειο κάποιους μήνες.', metric: eur(energyTotal), action: { label: navLabel('finances'), tab: 'finances' } });
+    out.push({ id: 'energy-review', kind: 'opportunity', title: 'Το ρεύμα «τρώει» μεγάλο μέρος των εξόδων', detail: 'Οι τιμές ρεύματος αλλάζουν συχνά. Μια σύγκριση παρόχων γλιτώνει αρκετά, ειδικά στους άδειους μήνες.', metric: eur(energyTotal), action: { label: navLabel('finances'), tab: 'finances' } });
   }
 
   // ── 9. Πλαίσιο απόδοσης ───────────────────────────────────────────────────
@@ -172,7 +172,7 @@ export function computeInsights(input: InsightInput): Insight[] {
   const YIELD_STRONG_PCT = 5;   // κατώφλι ΕΜΦΑΝΙΣΗΣ, όχι ισχυρισμός για την αγορά
   const YIELD_LOW_PCT = 3;
   if (netYield > 0 && propValue > 0) {
-    if (netYield >= YIELD_STRONG_PCT) out.push({ id: 'yield-strong', kind: 'positive', title: 'Δυνατή απόδοση', detail: `Με τα στοιχεία που έχεις καταχωρήσει, το ακίνητο αποδίδει καθαρά ${fp(netYield)} τον χρόνο. Στις Αποδόσεις βλέπεις πώς συγκρίνεται με την περιοχή σου και με άλλες επενδύσεις, με αναγραφόμενες πηγές.`, metric: `${fp(netYield)}`, action: { label: navLabel('roi'), tab: 'roi' } });
+    if (netYield >= YIELD_STRONG_PCT) out.push({ id: 'yield-strong', kind: 'positive', title: 'Δυνατή απόδοση', detail: `Με όσα έχεις καταχωρήσει, το ακίνητο αποδίδει καθαρά ${fp(netYield)} τον χρόνο. Η σύγκριση με την περιοχή είναι στις Αποδόσεις.`, metric: `${fp(netYield)}`, action: { label: navLabel('roi'), tab: 'roi' } });
     else if (netYield < YIELD_LOW_PCT) out.push({ id: 'yield-low', kind: 'opportunity', title: 'Υπάρχει περιθώριο στην απόδοση', detail: `Η καθαρή απόδοση είναι ${fp(netYield)}. Δες στις Αποδόσεις τι πιάνει η περιοχή σου και ποιες δαπάνες τη μειώνουν.`, metric: `${fp(netYield)}`, action: { label: navLabel('roi'), tab: 'roi' } });
   }
 
@@ -204,13 +204,13 @@ export function computeInsights(input: InsightInput): Insight[] {
     if (cash < 0) out.push({
       id: 'loan-cash-negative', kind: 'attention',
       title: 'Η δόση ξεπερνά όσα αφήνει το ακίνητο',
-      detail: `Με ενοίκιο ${eur(rent)} και δόση ${eur(loanPayment)} τον μήνα, μετά τις δαπάνες μένουν ${eur(cash)}. Οι δαπάνες είναι ο μηνιαίος μέσος όρος της φετινής χρονιάς. Στο Δάνειο βλέπεις τι αλλάζει μια μερική εξόφληση ή μια επιμήκυνση.`,
+      detail: `Με ενοίκιο ${eur(rent)} και δόση ${eur(loanPayment)}, μετά τις δαπάνες μένουν ${eur(cash)} τον μήνα. Οι δαπάνες είναι ο φετινός μηνιαίος μέσος όρος.`,
       metric: `${eur(cash)}/μήνα`, action: { label: navLabel('loan'), tab: 'loan' },
     });
     else out.push({
       id: 'loan-cash-positive', kind: 'positive',
       title: 'Το ενοίκιο καλύπτει τη δόση',
-      detail: `Μετά τη δόση ${eur(loanPayment)} και τις δαπάνες, μένουν ${eur(cash)} τον μήνα. Οι δαπάνες είναι ο μηνιαίος μέσος όρος της φετινής χρονιάς.`,
+      detail: `Μετά τη δόση ${eur(loanPayment)} και τις δαπάνες μένουν ${eur(cash)} τον μήνα, με βάση τον φετινό μέσο όρο.`,
       metric: `${eur(cash)}/μήνα`, action: { label: navLabel('loan'), tab: 'loan' },
     });
   }
@@ -236,7 +236,7 @@ export function computeInsights(input: InsightInput): Insight[] {
     .map(x => -x);
   const lastExpenseDays = daysAgo.length ? Math.min(...daysAgo) : null;
   if (expenses.length === 0) {
-    out.push({ id: 'no-expenses', kind: 'opportunity', title: 'Ξεκίνα με μία φωτογραφία', detail: 'Βγάλε φωτογραφία έναν λογαριασμό ή μια απόδειξη πληρωμής που σχετίζεται με το ακίνητό σου και θα καταχωρηθεί αυτόματα, με τη βοήθεια του AI, στη σωστή θέση. Έτσι, εύκολα και γρήγορα, αρχίζει να χτίζεται η εικόνα των εξόδων σου.', action: { label: 'Σάρωση', tab: 'scan' } });
+    out.push({ id: 'no-expenses', kind: 'opportunity', title: 'Ξεκίνα με μία φωτογραφία', detail: 'Βγάλε φωτογραφία έναν λογαριασμό ή μια απόδειξη και μπαίνει μόνη της στη σωστή κατηγορία.', action: { label: 'Σάρωση', tab: 'scan' } });
   } else if (lastExpenseDays !== null && lastExpenseDays > 45) {
     out.push({ id: 'stale', kind: 'attention', title: 'Έχεις καιρό να καταχωρήσεις κάτι', detail: `Πάνω από ${lastExpenseDays} ημέρες χωρίς νέα καταχώρηση. Μια γρήγορη φωτογραφία κρατά την εικόνα ενημερωμένη.`, action: { label: 'Σάρωση', tab: 'scan' } });
   }

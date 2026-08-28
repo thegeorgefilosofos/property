@@ -431,7 +431,7 @@ export function Modal({ open, onClose, title, ariaLabel, subtitle, icon, size = 
 }
 
 // ═══ SecHdr, επικεφαλίδα ενότητας (η τελεία + uppercase label των Bills) ══
-export function SecHdr({ label, sub, right }: { label: string; sub?: string; right?: ReactNode }) {
+export function SecHdr({ label, sub, info, right }: { label: string; sub?: string; info?: ReactNode; right?: ReactNode }) {
   return (
     // ═══ Η ΕΝΕΡΓΕΙΑ ΠΕΦΤΕΙ ΚΑΤΩ ΑΝΤΙ ΝΑ ΣΤΥΨΕΙ ΤΟΝ ΤΙΤΛΟ ═══════════════════
     // ΜΕΤΡΗΜΕΝΟ ΣΕ Galaxy A, 360×800, στην Αξιοποίηση: το «Δείξε προηγούμενους
@@ -442,8 +442,14 @@ export function SecHdr({ label, sub, right }: { label: string; sub?: string; rig
     // εδώ μία φορά: όταν τα δύο δεν χωρούν στην ίδια σειρά, η ενέργεια παίρνει
     // δική της από κάτω. Σε φαρδιά οθόνη δεν αλλάζει τίποτα, γιατί χωρούν.
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, rowGap: 8, flexWrap: 'wrap', marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
+      {/* ΤΟ `info` ΕΙΝΑΙ Η ΘΕΣΗ ΤΟΥ ΥΠΟΤΙΤΛΟΥ ΠΟΥ ΔΕΝ ΑΞΙΖΕΙ ΓΡΑΜΜΗ. Μια ενότητα
+          έχει συχνά μία διευκρίνιση («μόνο όσα φεύγουν από τον λογαριασμό
+          σου») που είναι σωστή, χρήσιμη και διαβάζεται ΜΙΑ φορά στη ζωή του
+          χρήστη. Ως `sub` κρατούσε δική της σειρά για πάντα· ως κυκλάκι δίπλα
+          στον τίτλο κρατά δεκατέσσερα εικονοστοιχεία και λέει τα ίδια. Τα δύο
+          δεν αποκλείονται: όποια κεφαλίδα χρειάζεται ΚΑΙ τα δύο, τα έχει. */}
       <div style={{ flex: '1 1 200px', minWidth: 0 }}>
-        <div style={{ ...TT.label, fontSize: 11 }}>{label}</div>
+        <div style={{ ...TT.label, fontSize: 11 }}>{label}{info}</div>
         {sub && <div style={{ ...TT.caption, fontSize: 11, marginTop: 2 }}>{sub}</div>}
       </div>
       {right}

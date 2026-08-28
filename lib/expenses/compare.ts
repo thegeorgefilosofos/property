@@ -74,15 +74,6 @@ export interface Comparison {
   caveats: string[];
   /** Η σύγκριση σε μία φράση, στα ελληνικά. Ποτέ κενή. */
   sentence: string;
-  /**
-   * Η ΙΔΙΑ φράση ΧΩΡΙΣ την απαρίθμηση των κατηγοριών.
-   *
-   * Η κάρτα δείχνει τις κατηγορίες από κάτω, με ράβδους και ποσά: γράφοντάς τες
-   * και μέσα στην πρόταση, ο ίδιος αριθμός εμφανιζόταν δύο φορές σε δύο γραμμές
-   * απόσταση, τη μία στρογγυλεμένος και την άλλη με λεπτά. Η ειδοποίηση όμως
-   * ΔΕΝ έχει ράβδους, γι' αυτό κρατά την πλήρη `sentence`.
-   */
-  headline: string;
   /** Υπάρχουν αρκετά δεδομένα για να ειπωθεί κάτι; */
   meaningful: boolean;
 }
@@ -193,7 +184,6 @@ export function compareMonth(
       drivers: [], caveats,
       meaningful: false,
       sentence: none,
-      headline: none,
     };
   }
 
@@ -232,8 +222,7 @@ export function compareMonth(
     drivers: drivers.slice(0, MAX_DRIVERS),
     caveats,
     meaningful: true,
-    sentence: buildSentence(diff, drivers, baseKey, yearRef, basis, partial),
-    headline: buildSentence(diff, [], baseKey, yearRef, basis, partial),
+    sentence: buildSentence(diff, drivers, baseKey, yearRef, basis),
   };
 }
 
@@ -256,9 +245,19 @@ const eur = (n: number): string => fe(Math.abs(n));
  * Η φράση αναφέρει το πολύ ΔΥΟ κατηγορίες. Με τρεις παύει να είναι πρόταση και
  * γίνεται λίστα και η λίστα δεν διαβάζεται όταν εμφανίζεται σε ειδοποίηση.
  */
+// ═══ ΤΟ «Ο ΜΗΝΑΣ ΔΕΝ ΕΧΕΙ ΤΕΛΕΙΩΣΕΙ» ΓΡΑΦΟΤΑΝ ΔΥΟ ΦΟΡΕΣ, ΠΑΝΤΟΥ ═══════════════
+// Η φράση τελείωνε με «Ο μήνας δεν έχει τελειώσει.» και η ΠΡΩΤΗ επιφύλαξη έλεγε
+// «Ο Αύγουστος δεν έχει τελειώσει: μετράνε 28 από 31 ημέρες.» Στην κάρτα οι δύο
+// προτάσεις κάθονταν σε απόσταση είκοσι εικονοστοιχείων, η μία πάνω από την
+// άλλη· στη μηνιαία ειδοποίηση, που ενώνει φράση και επιφυλάξεις με κενό
+// (`monthlyDigest`), κόλλαγαν στην ΙΔΙΑ γραμμή.
+//
+// Η δεύτερη λέει ό,τι η πρώτη ΚΑΙ τον μήνα ΚΑΙ τις ημέρες. Μένει αυτή. Το
+// `partial` δεν χρειάζεται πια εδώ: η επιφύλαξη μπαίνει στη λίστα ούτως ή άλλως,
+// στο ίδιο σημείο, από την ίδια συνθήκη.
 function buildSentence(
   diff: number, drivers: Driver[], baseKey: string, yearRef: number,
-  basis: Basis, partial: boolean,
+  basis: Basis,
 ): string {
   const when = basis === 'previous_month'
     ? `από τον ${monthPhrase(baseKey, yearRef)}`
@@ -274,7 +273,7 @@ function buildSentence(
   // Οι αιτίες που δείχνουν προς ΤΗΝ ΙΔΙΑ κατεύθυνση με τη συνολική διαφορά.
   // Μια κατηγορία που έπεσε ενώ το σύνολο ανέβηκε δεν «εξηγεί» την αύξηση.
   const same = drivers.filter(d => (diff > 0 ? d.diff > 0 : d.diff < 0)).slice(0, 2);
-  if (same.length === 0) return `${head}.${partial ? ' Ο μήνας δεν έχει τελειώσει.' : ''}`;
+  if (same.length === 0) return `${head}.`;
 
   // «Κυρίως Άλλο 751 €» ΔΕΝ ΕΙΝΑΙ ΕΛΛΗΝΙΚΑ. Το όνομα της κατηγορίας μπαίνει σε
   // εισαγωγικά και προηγείται πρόθεση, ώστε η πρόταση να στέκει με ΟΠΟΙΟ όνομα
@@ -284,7 +283,7 @@ function buildSentence(
     return `«${d.label}» ${eur(d.diff)}`;
   });
   const tail = parts.length === 1 ? parts[0] : `${parts[0]} και ${parts[1]}`;
-  return `${head}. Κυρίως από ${tail}.${partial ? ' Ο μήνας δεν έχει τελειώσει.' : ''}`;
+  return `${head}. Κυρίως από ${tail}.`;
 }
 
 // ── ΤΟ ΙΣΤΟΡΙΚΟ ────────────────────────────────────────────────────────────

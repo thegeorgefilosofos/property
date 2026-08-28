@@ -401,12 +401,12 @@ for (const s of PLAN_STATUSES) {
     statuses.filter(s => s !== 'renovation').every(s => plan(s).funding.length === 0));
   ok('τίτλος σύγκρισης όπου υπάρχουν επιλογές',
     plan('vacant').optionsTitle.length > 5 && plan('disputed').optionsTitle === '');
-  ok('...και υπότιτλος που λέει με τι κριτήριο συγκρίνονται',
-    /άξονες/.test(plan('vacant').optionsSub) && /άξονες/.test(plan('for_sale').optionsSub));
-  ok('χωρίς επιλογές, χωρίς υπότιτλο σύγκρισης',
-    plan('disputed').optionsSub === '' && plan('renovation').optionsSub === '');
-  ok('ο υπότιτλος του κενού αναφέρει ρητά το «να μην κάνεις τίποτα»',
-    /τίποτα/.test(plan('vacant').optionsSub));
+  // Ο ΥΠΟΤΙΤΛΟΣ ΣΥΓΚΡΙΣΗΣ ΔΕΝ ΕΛΕΓΧΕΤΑΙ ΠΙΑ, ΓΙΑΤΙ ΔΕΝ ΥΠΑΡΧΕΙ. Περιέγραφε τους
+  // άξονες με λόγια· τώρα οι άξονες είναι στήλες με κεφαλίδα και ονομάζονται
+  // μία φορά. Ό,τι έλεγε για το «να μην κάνεις τίποτα» το λέει η ίδια η γραμμή
+  // «Το αφήνω όπως είναι», που ελέγχεται παραπάνω με το κόστος της.
+  ok('κάθε επιλογή δίνει και τους τρεις άξονες, χωρίς πρόταση από πάνω',
+    statuses.every(s => plan(s).options.every(o => o.effort && o.risk && o.speed.length > 3)));
   // Άγνωστο είδος εκκρεμότητας δεν ρίχνει την οθόνη.
   const weird = planFor({ status: 'disputed', disputeKind: 'unknown' as DisputeKind, done: [] });
   ok('άγνωστο είδος: πλήρες σχέδιο', !!weird && weird.steps.length >= 5);
