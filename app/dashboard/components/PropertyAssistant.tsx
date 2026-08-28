@@ -17,6 +17,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { track, PRODUCT_EVENTS } from '@/lib/analytics/events';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
 import * as loanStore from '@/lib/data/loans';
@@ -1147,6 +1148,9 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
     setErr(''); setLimitMsg(''); setInput('');
     const history = [...msgs, { role: 'user' as const, text: q }];
     setMsgs(history); setBusy(true);
+    // Το σκαλί της εμπιστοσύνης: ο χρήστης έδωσε ερώτηση στο προϊόν. Μετριέται
+    // ο ΤΡΟΠΟΣ, όχι η ερώτηση: το κείμενο δεν φεύγει ποτέ από εδώ.
+    void track(supabase, PRODUCT_EVENTS.assistant_asked, { source: viaVoice ? 'voice' : 'typed' });
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const system = buildSystemBlocks(prefs, ctxStr || 'Τα δεδομένα φορτώνονται.', allPropsContext, {

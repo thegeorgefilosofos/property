@@ -51,6 +51,19 @@ create index if not exists product_events_user_time_idx
 create index if not exists product_events_event_time_idx
   on public.product_events (event, created_at desc);
 
+-- ── ΤΟ «ΓΡΑΦΤΗΚΕ» ΓΙΝΕΤΑΙ ΜΙΑ ΦΟΡΑ, ΚΑΙ ΤΟ ΕΓΓΥΑΤΑΙ Η ΒΑΣΗ ────────────────
+-- Η στιγμή της εγγραφής δεν έχει συνεδρία: το email θέλει επιβεβαίωση, οπότε
+-- ένα γεγονός γραμμένο εκεί δεν θα είχε χρήστη και θα χανόταν. Η πρώτη στιγμή
+-- με ταυτότητα είναι η ΠΡΩΤΗ ΣΥΝΔΕΣΗ, δηλαδή το πάτημα του συνδέσμου.
+--
+-- Το ίδιο σημείο όμως περνά ΚΑΘΕ σύνδεση. Αντί να θυμάται ο κώδικας αν το
+-- έγραψε ήδη (κάτι που ο περιηγητής δεν μπορεί να θυμάται αξιόπιστα), το
+-- εγγυάται η βάση με μοναδικό ευρετήριο: η δεύτερη προσπάθεια απλώς δεν
+-- γράφει. Ετσι ο παρονομαστής του χωνιού είναι «άνθρωποι» και όχι «συνδέσεις».
+create unique index if not exists product_events_signup_once_idx
+  on public.product_events (user_id)
+  where event = 'signed_up';
+
 -- ── Η ΠΡΟΣΒΑΣΗ ───────────────────────────────────────────────────────────
 -- RLS ΕΝΕΡΓΟ ΜΕ ΜΗΔΕΝ ΠΟΛΙΤΙΚΕΣ. Στην Postgres αυτό σημαίνει «κανείς δεν
 -- διαβάζει και κανείς δεν γράφει», για κάθε ρόλο εκτός από τον ιδιοκτήτη του
@@ -98,7 +111,8 @@ begin
   end if;
 
   insert into public.product_events (user_id, event, props)
-  values (v_user, p_event, coalesce(p_props, '{}'::jsonb));
+  values (v_user, p_event, coalesce(p_props, '{}'::jsonb))
+  on conflict do nothing;
 end;
 $$;
 
@@ -146,3 +160,46 @@ order by τελευταία_μέρα desc;
 
 revoke all on public.product_activation from anon, authenticated;
 revoke all on public.product_retention from anon, authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+--  Η ΔΕΥΤΕΡΗ ΠΟΡΤΑ: ΓΕΓΟΝΟΤΑ ΠΟΥ ΤΑ ΞΕΡΕΙ ΜΟΝΟ Ο ΔΙΑΚΟΜΙΣΤΗΣ
+-- ─────────────────────────────────────────────────────────────────────────
+--  ΓΙΑΤΙ ΧΡΕΙΑΣΤΗΚΕ. Η έναρξη δοκιμής και η πληρωμή ΔΕΝ επιβεβαιώνονται από
+--  τον περιηγητή. Ο χρήστης πατά «πληρωμή» και μπορεί να εγκαταλείψει στο
+--  ταμείο του εμπόρου· αν το γεγονός γραφόταν στην ανακατεύθυνση, το χωνί θα
+--  έλεγε ότι πλήρωσαν άνθρωποι που δεν πλήρωσαν ποτέ. Η μόνη πηγή αλήθειας
+--  είναι το webhook του εμπόρου, που τρέχει χωρίς συνεδρία χρήστη.
+--
+--  ΓΙΑΤΙ ΔΕΥΤΕΡΗ RPC ΚΑΙ ΟΧΙ ΑΠΕΥΘΕΙΑΣ ΓΡΑΨΙΜΟ ΣΤΟΝ ΠΙΝΑΚΑ. Ο φύλακας
+--  guard-service-only-tables απαγορεύει το `.from('product_events')` σε κάθε
+--  αρχείο της εφαρμογής. Σωστά: η αξία του κανόνα είναι ότι δεν έχει
+--  εξαιρέσεις. Μια δεύτερη πόρτα με ρητά δικαιώματα κρατά τον κανόνα άθικτο.
+--
+--  Η ΔΙΑΦΟΡΑ ΑΠΟ ΤΗΝ ΠΡΩΤΗ ΠΟΡΤΑ ΕΙΝΑΙ ΜΙΑ: εδώ ο χρήστης ΔΙΝΕΤΑΙ. Γι' αυτό
+--  ακριβώς δεν την αγγίζει ποτέ ο περιηγητής: με δικαίωμα εκτέλεσης, ο
+--  καθένας θα έγραφε γεγονότα στο όνομα οποιουδήποτε.
+-- ═══════════════════════════════════════════════════════════════════════════
+create or replace function public.log_event_for(p_user uuid, p_event text, p_props jsonb default '{}'::jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+  if p_user is null then
+    return;
+  end if;
+  if p_event !~ '^[a-z][a-z0-9_]{2,47}$' then
+    raise exception 'άκυρο όνομα γεγονότος: %', p_event;
+  end if;
+  if pg_column_size(p_props) > 2048 then
+    raise exception 'πολύ μεγάλο φορτίο γεγονότος';
+  end if;
+  insert into public.product_events (user_id, event, props)
+  values (p_user, p_event, coalesce(p_props, '{}'::jsonb))
+  on conflict do nothing;
+end;
+$$;
+
+revoke all on function public.log_event_for(uuid, text, jsonb) from public, anon, authenticated;
+grant execute on function public.log_event_for(uuid, text, jsonb) to service_role;

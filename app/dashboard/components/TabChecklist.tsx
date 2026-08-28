@@ -49,7 +49,7 @@ import {
   type ProfileType, type SmartSuggestion,
 } from './checklist/model'
 import {
-  fmtDate, isOverdue, checklistStats,
+  fmtDate, isOverdue, checklistStats, obligationsCta, firstDueLine,
   nextDueDate, nextOccurrence, parseItem, serializeNote, mkEmpty, carryOver,
 } from './checklist/calc'
 import { FilterSelect, ExportMenu, iStyle } from './checklist/Bits'
@@ -648,9 +648,13 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
           ? undefined
           : openCount === 0
           ? (stats.total === 1 ? 'Ολοκληρώθηκε η μοναδική εργασία' : `Ολοκληρώθηκαν και οι ${fn(stats.total)}`)
+          /* Η ΑΝΑΛΟΓΙΑ ΟΛΟΚΛΗΡΩΣΗΣ ΕΦΥΓΕ ΑΠΟ ΕΔΩ. Η μπάρα λίγο πιο κάτω ΕΙΝΑΙ
+             η ίδια αναλογία, σχεδιασμένη: «3 από 7 ολοκληρωμένες» και μια
+             μπάρα στο 43% λένε το ίδιο πράγμα με δύο τρόπους, σε απόσταση
+             είκοσι εικονοστοιχείων. Ο υπότιτλος κρατά όσα η μπάρα ΔΕΝ δίνει:
+             πόσες είναι ανοιχτές και πόσες χρειάζονται προσοχή. */
           : `${fn(openCount)} ${openCount === 1 ? 'ανοιχτή' : 'ανοιχτές'}`
-            + (attention > 0 ? ` · ${fn(attention)} ${attention === 1 ? 'χρειάζεται' : 'χρειάζονται'} προσοχή` : '')
-            + ` · ${fn(stats.done)} από ${fn(stats.total)} ολοκληρωμένες`}
+            + (attention > 0 ? ` · ${fn(attention)} ${attention === 1 ? 'χρειάζεται' : 'χρειάζονται'} προσοχή` : '')}
         right={loading || items.length === 0 ? undefined : (
           <>
             {/* ΤΟ «ghost» ΕΙΝΑΙ ΓΙΑ ΤΙΣ ΑΠΟΡΡΙΠΤΙΚΕΣ ΕΝΕΡΓΕΙΕΣ, ΚΑΙ ΜΟΝΟ.
@@ -681,9 +685,9 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
             <span style={{ flex: 1, minWidth: 200 }}>
               <strong style={{ color: 'var(--text-primary)' }}>{pendingObligations.length === 1 ? 'Λείπει 1 υποχρέωση' : `Λείπουν ${pendingObligations.length} υποχρεώσεις`}</strong>
               {' '}που προκύπτουν από τον νόμο για αυτό το ακίνητο, με ημερομηνία και επίσημη πηγή.
-              {nextObligation ? ` Πρώτη: ${nextObligation.description}, ${fmtDate(nextObligation.due_date)}.` : ''}
+              {nextObligation ? ` ${firstDueLine(nextObligation)}` : ''}
             </span>
-            <Btn variant="secondary" onClick={loadObligations}>Πρόσθεσέ τες</Btn>
+            <Btn variant="secondary" onClick={loadObligations}>{obligationsCta(pendingObligations.length)}</Btn>
           </div>
         </InfoBanner>
       )}
@@ -817,7 +821,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
             ? (pendingObligations.length === 1 ? 'Μία υποχρέωση του νόμου, εκτός λίστας' : `${fn(pendingObligations.length)} υποχρεώσεις του νόμου, εκτός λίστας`)
             : 'Όλα καθαρά εδώ'}
           hint={pendingObligations.length > 0
-            ? `${nextObligation ? `Πρώτη η ${nextObligation.description}, ${fmtDate(nextObligation.due_date)}. ` : ''}Μπαίνουν στη λίστα με ημερομηνία και επίσημη πηγή, χωρίς να γραφτεί τίποτα από μόνο του.`
+            ? `${firstDueLine(nextObligation)} Μπαίνουν στη λίστα με ημερομηνία και επίσημη πηγή, χωρίς να γραφτεί τίποτα από μόνο του.`.trim()
             : 'Ξεκίνα με ένα έτοιμο πρότυπο ή πρόσθεσε τη δική σου εκκρεμότητα.'}
           action={
             /* ΜΙΑ ΚΥΡΙΑ ΕΝΕΡΓΕΙΑ, ΚΑΙ ΦΑΙΝΕΤΑΙ ΠΟΙΑ. Τα τρία κουμπιά είχαν
@@ -828,7 +832,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
             <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
               {pendingObligations.length > 0
                 ? <>
-                    <Btn variant="primary" onClick={loadObligations}>Φέρε τις υποχρεώσεις</Btn>
+                    <Btn variant="primary" onClick={loadObligations}>{obligationsCta(pendingObligations.length)}</Btn>
                     <Btn variant="secondary" onClick={() => { setEditItem(null); setShowAddModal(true) }}>Νέα εκκρεμότητα</Btn>
                   </>
                 : <>
@@ -874,9 +878,12 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
                       μπάρα δεν τον δίνει, μαζί με το κόστος. */}
                   <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>{catDone}/{catItems.length}{catEst > 0 ? ` · ${fe(catEst)}` : ''}</span>
                 </div>
-                <div style={{ height: 3, borderRadius: 3, background: 'var(--bg-elevated)', marginBottom: 8, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: catPct + '%', background: 'var(--series-in)', borderRadius: 3, transition: 'width 0.4s' }} />
-                </div>
+                {/* Η ΜΠΑΡΑ ΤΗΣ ΚΑΤΗΓΟΡΙΑΣ ΕΦΥΓΕ. Τρία εικονοστοιχεία ύψος για να
+                    ειπωθεί ξανά το «1/3» που κάθεται έξι εικονοστοιχεία από
+                    πάνω της. Με έξι κατηγορίες, έξι μπάρες που δεν προσθέτουν
+                    τίποτα: ο αριθμός δίνει και το πλήθος, που η μπάρα δεν το
+                    δίνει ποτέ. Η γενική μπάρα της σελίδας μένει, γιατί εκεί
+                    είναι η ΜΟΝΗ που λέει την αναλογία. */}
                 <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.card, border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
                   {catItems.map((item, idx) => (
                     <ItemRow key={item.id} item={item} allItems={items}

@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import { track, PRODUCT_EVENTS } from '@/lib/analytics/events';
 import { createClient } from '@/lib/supabase/client'
 import * as properties from '@/lib/data/properties';
 import * as loanStore from '@/lib/data/loans';
@@ -980,7 +981,10 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
     })
   }
 
+  // Το σκαλί της εξόδου: ο χρήστης πήρε κάτι που δίνεται σε τρίτον. Μετριέται
+  // ΠΟΙΟ είδος αναφοράς, όχι το περιεχόμενό της.
   function printReport(){
+    void track(supabase, PRODUCT_EVENTS.report_generated, { kind: 'accounting' });
     const reconLite:ReconLite[] = recon.map(r=>{ const m=STATUS_META[r.status]; return { label:r.expected.label||'', paid:r.paidAmount, expected:r.expected.amount, statusLabel:m.label, statusColor:statusInk(r.status) } })
     printAccountingReport({
       propName: prop?.name||'Ακίνητο', address: prop?.address??undefined, year, regimeLabel,
@@ -992,6 +996,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   }
 
   async function officialReport(){
+    void track(supabase, PRODUCT_EVENTS.report_generated, { kind: 'official' });
     if(genOfficial) return
     const reconLite:ReconLite[] = recon.map(r=>{ const m=STATUS_META[r.status]; return { label:r.expected.label||'', paid:r.paidAmount, expected:r.expected.amount, statusLabel:m.label, statusColor:statusInk(r.status) } })
     setGenOfficial(true)

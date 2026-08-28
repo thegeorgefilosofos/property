@@ -45,6 +45,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState } from 'react';
+import { track, PRODUCT_EVENTS } from '@/lib/analytics/events';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { T, TT, Modal, Btn, InfoBanner, fieldRow, fe, fd } from '@/components/Theme';
 import { CustomSelect, DatePicker } from './UIComponents';
@@ -138,6 +139,9 @@ export default function RentReceived({
     const note = receiptNote(done, selected.length);
     if (done === 0) { notifyError(note); return; }
     onClose();
+    // Πρώτο ενοίκιο καταχωρημένο: το προϊόν έπαψε να είναι άδειο βιβλίο.
+    // Μετριέται το ΠΛΗΘΟΣ των δόσεων, ποτέ τα ποσά τους.
+    if (done > 0) void track(supabase, PRODUCT_EVENTS.rent_recorded, { count: done });
     onSaved();
     if (done === selected.length) notifyOk(note); else notifyError(note);
   };

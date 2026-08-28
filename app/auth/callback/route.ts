@@ -27,6 +27,7 @@ import type { NextRequest } from 'next/server';
 import type { EmailOtpType } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
 import { safeNext } from '@/lib/auth/redirect';
+import { track, PRODUCT_EVENTS } from '@/lib/analytics/events';
 
 /** Οι μορφές διακριτικού που στέλνει το ταχυδρομείο του παρόχου. */
 const OTP_TYPES = ['signup', 'email', 'invite', 'magiclink', 'recovery', 'email_change'] as const;
@@ -49,6 +50,19 @@ export async function GET(request: NextRequest) {
     problem = error?.message || '';
   } else {
     problem = 'ο σύνδεσμος δεν κουβαλά διακριτικό';
+  }
+
+  // ── Ο ΠΑΡΟΝΟΜΑΣΤΗΣ ΤΟΥ ΧΩΝΙΟΥ ─────────────────────────────────────────────
+  // Η στιγμή της εγγραφής δεν έχει συνεδρία, γιατί το email θέλει επιβεβαίωση.
+  // Εδώ, μόλις ανταλλαγεί το διακριτικό, υπάρχει ταυτότητα για πρώτη φορά.
+  //
+  // Το ίδιο σημείο περνά και κάθε επόμενη σύνδεση, οπότε το «μία φορά» ΔΕΝ το
+  // θυμάται ο κώδικας: το εγγυάται μοναδικό ευρετήριο στη βάση και η δεύτερη
+  // προσπάθεια απλώς δεν γράφει. Χωρίς αυτό, ο παρονομαστής θα μετρούσε
+  // συνδέσεις αντί για ανθρώπους και κάθε ποσοστό ενεργοποίησης θα έδειχνε
+  // μικρότερο απ' ό,τι είναι.
+  if (!problem) {
+    await track(supabase, PRODUCT_EVENTS.signed_up);
   }
 
   if (problem) {

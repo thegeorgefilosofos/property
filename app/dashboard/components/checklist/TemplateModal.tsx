@@ -7,7 +7,7 @@
 // στο ακίνητο: ο ιδιοκτήτης κενού ακινήτου δεν χρειάζεται λίστα αποχώρησης.
 // ═══════════════════════════════════════════════════════════════════════════
 import { T, Modal } from '@/components/Theme'
-import { fmtDate } from './calc'
+import { obligationsCta, firstDueLine } from './calc'
 import { TEMPLATES, type SmartSuggestion } from './model'
 import type { ChecklistTaskDraft } from '@/lib/checklist/obligationTasks'
 import type { FieldContext } from '@/lib/property/fields'
@@ -83,12 +83,12 @@ export function TemplateModal({ onSelect, onLoadObligations, onClose, ctx, pendi
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>
-              {pending.length === 0 ? 'Οι υποχρεώσεις είναι όλες μέσα' : `Πρόσθεσε ${pending.length} ${pending.length === 1 ? 'υποχρέωση' : 'υποχρεώσεις'}`}
+              {pending.length === 0 ? 'Οι υποχρεώσεις είναι όλες μέσα' : obligationsCta(pending.length)}
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
               {pending.length === 0
                 ? 'Τίποτα δεν λείπει από το φορολογικό ημερολόγιο για αυτό το ακίνητο.'
-                : firstDue ? `Πρώτη προθεσμία: ${firstDue.description}, ${fmtDate(firstDue.due_date)}` : 'Αλλαγές νομοθεσίας που αφορούν αυτό το ακίνητο'}
+                : firstDue ? firstDueLine(firstDue) : 'Αλλαγές νομοθεσίας που αφορούν αυτό το ακίνητο'}
             </div>
           </div>
           {pending.length > 0 && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>}

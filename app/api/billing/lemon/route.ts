@@ -192,6 +192,29 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'write_failed' }, { status: 502 });
   }
 
+  // ── ΤΑ ΔΥΟ ΤΕΛΕΥΤΑΙΑ ΣΚΑΛΙΑ ΤΟΥ ΧΩΝΙΟΥ, ΑΠΟ ΤΗ ΜΟΝΗ ΠΗΓΗ ΠΟΥ ΤΑ ΞΕΡΕΙ ──
+  // Ο περιηγητής ξέρει μόνο ότι κάποιος ΑΝΟΙΞΕ το ταμείο. Αν το γεγονός
+  // γραφόταν εκεί, το χωνί θα έλεγε ότι πλήρωσαν άνθρωποι που εγκατέλειψαν
+  // στη σελίδα της κάρτας. Εδώ το λέει ο ίδιος ο έμπορος.
+  //
+  // ΤΑ ΔΥΟ ΞΕΧΩΡΙΖΟΥΝ ΑΠΟ ΤΗΝ ΚΑΤΑΣΤΑΣΗ ΠΟΥ ΣΤΕΛΝΕΙ: `on_trial` σημαίνει ότι
+  // η δοκιμή ΔΟΘΗΚΕ, οτιδήποτε άλλο με πρόσβαση σημαίνει ότι πληρώνεται.
+  // Χρησιμοποιείται η `log_event_for`, που δέχεται χρήστη και εκτελείται μόνο
+  // από service role: ο πίνακας κρατά τη ΜΙΑ πόρτα του και ο φύλακας των
+  // πινάκων μόνο-υπηρεσίας μένει χωρίς εξαίρεση.
+  //
+  // ΠΟΤΕ ΔΕΝ ΜΠΛΟΚΑΡΕΙ ΤΗΝ ΠΛΗΡΩΜΗ. Μια αποτυχία μέτρησης δεν επιτρέπεται να
+  // γυρίσει σφάλμα στον έμπορο και να ξαναδοκιμαστεί ολόκληρο το γεγονός.
+  if (entitled) {
+    const measured = sub.status === 'on_trial' ? 'trial_started' : 'subscription_started';
+    const { error: mErr } = await db.rpc('log_event_for', {
+      p_user: userId,
+      p_event: measured,
+      p_props: { plan: variant.plan, cycle: variant.cycle },
+    });
+    if (mErr) log('η μέτρηση δεν γράφτηκε:', mErr.message);
+  }
+
   log(`${read.event.name}: ${variant.plan}/${variant.cycle}, κατάσταση ${sub.status}, πρόσβαση ${entitled ? 'ναι' : 'όχι'}${trialUsedAt && !seen?.trial_used_at ? ', η δοκιμή σφραγίστηκε' : ''}${profileType ? `, τύπος προφίλ ${profileType}` : ''}`);
   return NextResponse.json({ ok: true });
 }

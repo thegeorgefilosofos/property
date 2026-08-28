@@ -1504,7 +1504,14 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                  εναλλακτικές τρέχουν με πραγματική 20ετία. Ο ισχυρισμός
                  γράφεται πλέον μόνο όταν τα δύο νούμερα συμπίπτουν. */}
           <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '0 0 12px', fontFamily: SANS, lineHeight: 1.55 }}>
-            Προεπιλογή <strong style={{ color: 'var(--text-secondary)' }}>{fp(apprRef.pct)}</strong>: μέση ετήσια μεταβολή του δείκτη τιμών κατοικιών της Τράπεζας της Ελλάδος από το {apprRef.fromYear} ως το {apprRef.toYear}, δηλαδή {apprRef.years} έτη{apprRef.years === parseInt(cmpYears) ? ', ο ίδιος ορίζοντας με τις εναλλακτικές παρακάτω' : ''}.{longIsOther && <> Για σύγκριση, η μακρά περίοδος από το {apprLong.fromYear} ως το {apprLong.toYear} δίνει {fp(apprLong.pct)}, επειδή περιλαμβάνει την κρίση.</>} {longIsOther ? 'Καμία από τις δύο δεν είναι πρόβλεψη' : 'Δεν είναι πρόβλεψη'}· αν βάλεις άλλο νούμερο, είναι δική σου υπόθεση και βαραίνει όσο και το υπόλοιπο της σελίδας.
+            {/* Μένει Η ΠΗΓΗ του νούμερου, που είναι ο λόγος να το εμπιστευτείς.
+                Τα υπόλοιπα τετρακόσια είναι επιχειρηματολογία: γιατί άλλη
+                περίοδος δίνει άλλο νούμερο και τι σημαίνει αν το αλλάξεις. */}
+            Προεπιλογή <strong style={{ color: 'var(--text-secondary)' }}>{fp(apprRef.pct)}</strong>: μέση ετήσια μεταβολή του δείκτη τιμών κατοικιών της Τράπεζας της Ελλάδος, {apprRef.fromYear} ως {apprRef.toYear}.{' '}
+            <InfoHint label="Από πού βγαίνει η προεπιλογή ανατίμησης">
+              <span style={{ display: 'block' }}>Είναι {apprRef.years} έτη{apprRef.years === parseInt(cmpYears) ? ', ο ίδιος ορίζοντας με τις εναλλακτικές παρακάτω' : ''}.{longIsOther ? ` Για σύγκριση, η μακρά περίοδος από το ${apprLong.fromYear} ως το ${apprLong.toYear} δίνει ${fp(apprLong.pct)}, επειδή περιλαμβάνει την κρίση.` : ''}</span>
+              <span style={{ display: 'block', marginTop: 8 }}>{longIsOther ? 'Καμία από τις δύο δεν είναι πρόβλεψη' : 'Δεν είναι πρόβλεψη'}· αν βάλεις άλλο νούμερο, είναι δική σου υπόθεση και βαραίνει όσο και το υπόλοιπο της σελίδας.</span>
+            </InfoHint>
           </p>
           {/* Προβολή-γραμμή: ακίνητο vs κορυφαία εναλλακτική στον χρόνο */}
           {projSeries.length === 0 ? (
@@ -1673,7 +1680,14 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
               </div>
             </div>
             <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: SANS, lineHeight: 1.55 }}>
-              Ο υπολογισμός υποθέτει πώληση στο τέλος του ορίζοντα, με καθαρό προϊόν {fe(deal.saleProceeds)} μετά τα κόστη πώλησης {fp(nSellCosts)} και το υπόλοιπο του δανείου {fe(deal.loanBalanceAtExit)}. Το IRR ενσωματώνει τη χρονική αξία του χρήματος και την έξοδο. Ενδεικτικά, όχι επενδυτική συμβουλή.
+              {/* Μένουν τα τρία ποσά που χαρακτηρίζουν τους δείκτες από πάνω.
+                  Ο ορισμός του IRR και η επιφύλαξη «όχι επενδυτική συμβουλή»
+                  έφυγαν: η δεύτερη γραφόταν ΤΕΤΑΡΤΗ φορά στην ίδια καρτέλα και
+                  ζει στην κάρτα των πηγών. */}
+              Πώληση στο τέλος του ορίζοντα: καθαρό προϊόν {fe(deal.saleProceeds)}, μετά τα κόστη πώλησης {fp(nSellCosts)} και το υπόλοιπο του δανείου {fe(deal.loanBalanceAtExit)}.{' '}
+              <InfoHint label="Τι μετρά το IRR">
+                <span style={{ display: 'block' }}>Το IRR ενσωματώνει τη χρονική αξία του χρήματος και την έξοδο: ένα ευρώ σήμερα δεν είναι ίδιο με ένα ευρώ στο τέλος του ορίζοντα και η πώληση μετρά όσο και τα ενοίκια.</span>
+              </InfoHint>
             </p>
           </Section>
         )}
@@ -1786,7 +1800,13 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
             <p className="text-measure" style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--text-secondary)', fontFamily: SANS, lineHeight: 1.55 }}>
               {consolidated
                 ? <>{CONSOLIDATION_NOTE} Το χαρτοφυλάκιό σου: <strong style={{ color: 'var(--text-primary)' }}>{portfolioTax.count} ακίνητα</strong> με ενοίκια {fe(portfolioTax.totalAnnualRent)} και συνολικό φόρο {fe(portfolioTax.totalTax)} (μέσος συντελεστής {fp(portfolioTax.effectiveRate * 100)}, οριακός {fp(portfolioTax.marginalRate * 100)}). Το μερίδιο αυτού του ακινήτου είναι <strong style={{ color: 'var(--text-primary)' }}>{fe(annualTax)}</strong>. Αν υπολογιζόταν μόνο του, θα έδειχνε {fe(portfolioTax.perProperty.find(p => p.id === propertyId)?.standaloneTax ?? 0)}, δηλαδή λιγότερα από την πραγματικότητα.</>
-                : <>Ο φόρος υπολογίζεται με την προοδευτική κλίμακα ενοικίων 2026 (15% έως 12.000 €, 25% έως 24.000 €, 35% έως 35.000 €, 45% πάνω από αυτά), στο σύνολο των ενοικίων σου. Έχεις ένα ακίνητο με εισόδημα, οπότε ο φόρος του είναι όλος ο φόρος σου. Οριακός συντελεστής {fp(portfolioTax.marginalRate * 100)}.</>}
+                : <>{/* Μένει ο ΔΙΚΟΣ ΣΟΥ συντελεστής, που είναι το νούμερο της
+                       απόφασης. Η κλίμακα είναι πίνακας αναφοράς: τη βλέπεις
+                       μία φορά και μετά σε ενδιαφέρει μόνο πού πέφτεις. */}
+                    Έχεις ένα ακίνητο με εισόδημα, οπότε ο φόρος του είναι όλος ο φόρος σου. Οριακός συντελεστής <strong style={{ color: 'var(--text-primary)' }}>{fp(portfolioTax.marginalRate * 100)}</strong>.{' '}
+                    <InfoHint label="Η κλίμακα ενοικίων 2026">
+                      <span style={{ display: 'block' }}>Ο φόρος υπολογίζεται με την προοδευτική κλίμακα ενοικίων 2026, στο σύνολο των ενοικίων σου: 15% έως 12.000 €, 25% έως 24.000 €, 35% έως 35.000 € και 45% πάνω από αυτά.</span>
+                    </InfoHint></>}
             </p>
           </div>
         )}
