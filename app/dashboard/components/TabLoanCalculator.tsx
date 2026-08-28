@@ -1602,30 +1602,53 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
 
             Στοιβαγμένο: ετικέτα, ποσό, εξήγηση. Οκτώ ίδια πλακίδια, οκτώ ποσά
             στην ίδια κατακόρυφο, καμία σύγκρουση όσο κι αν τυλίξει η ετικέτα. */}
-        <div {...fixedCols(4, 8, 'stretch')} style={{...fixedCols(4, 8, 'stretch').style,marginBottom:14}}>
+        {/* ═══ ΕΞΙ ΚΟΣΤΗ ΚΑΙ ΔΥΟ ΑΘΡΟΙΣΜΑΤΑ ΕΙΧΑΝ ΤΟ ΙΔΙΟ ΣΧΗΜΑ, ΣΤΟ ΙΔΙΟ ΠΛΕΓΜΑ
+            Οκτώ πανομοιότυπα πλακίδια σε δύο σειρές των τεσσάρων: τα έξι πρώτα
+            είναι ΜΕΡΗ (φόρος, συμβολαιογραφικά, κτηματολόγιο, δικηγόρος, μεσίτης,
+            λοιπά) και τα δύο τελευταία είναι το ΑΘΡΟΙΣΜΑ τους. Το «Σύνολο εξόδων
+            αγοράς» καθόταν δίπλα στο «Λοιπά 120,00 €» με την ίδια κορνίζα, το ίδιο
+            φόντο και δύο εικονοστοιχεία διαφορά στο μέγεθος του αριθμού. Ενα
+            άθροισμα που μοιάζει με προσθετέο δεν είναι ιεραρχία, είναι λίστα.
+
+            Τα μέρη πάνε σε τρεις στήλες (τρία και τρία, καμία τρύπα) και τα δύο
+            αθροίσματα σε δική τους σειρά κάτω από λεπτή γραμμή, με το φόντο της
+            επιφάνειας αντί για ανασηκωμένο: διαβάζονται ως ΣΥΝΟΨΗ και όχι ως δύο
+            ακόμη έξοδα. Και δεν σηκώνονται στο πέρασμα του δείκτη, γιατί δεν
+            είναι στοιχεία που εξετάζεις ένα ένα. */}
+        <div {...fixedCols(3, 8, 'stretch')} style={{...fixedCols(3, 8, 'stretch').style,marginBottom:12}}>
           {[
-            {label:isNewBuilding?'ΦΠΑ 24%':'Φόρος μεταβίβασης (ΦΜΑ)',value:isNewBuilding?fmtEur(vatOwed):fmaOwed===0?'Απαλλαγή':fmtEur(fmaOwed),sub:isNewBuilding?'Νεόδμητο':fmaOwed===0?'Πρώτη κατοικία':'3% επί αξίας',hi:false},
-            {label:'Συμβολαιογραφικά',value:fmtEur(totalCosts.notary),sub:'Κλιμακωτή αμοιβή',hi:false},
-            {label:'Κτηματολόγιο και εγγραφή',value:fmtEur(totalCosts.landReg),sub:'0,475% επί αξίας',hi:false},
-            {label:'Δικηγόρος ελέγχου τίτλων',value:fmtEur(totalCosts.legal),sub:'Έλεγχος + παρουσία',hi:false},
-            {label:'Αμοιβή μεσίτη',value:hasAgent?fmtEur(AGNT):fe(0),sub:hasAgent?`${agentPct}%`:'Ανενεργό',hi:false},
-            {label:'Λοιπά',value:fmtEur(totalCosts.other),sub:'Φόρος ενεγγύησης',hi:false},
-            {label:'Σύνολο εξόδων αγοράς',value:fmtEur(totalCosts.total),sub:'Εκτός δόσεων',hi:true,primary:false},
-            {label:'Απαιτούμενα ίδια κεφάλαια',value:fmtEur(totalCosts.totalCash),sub:'Προκαταβολή + έξοδα',hi:true,primary:true},
-          ].map((item:{label:string;value:string;sub:string;hi:boolean;primary?:boolean},i:number)=>{
+            {label:isNewBuilding?'ΦΠΑ 24%':'Φόρος μεταβίβασης (ΦΜΑ)',value:isNewBuilding?fmtEur(vatOwed):fmaOwed===0?'Απαλλαγή':fmtEur(fmaOwed),sub:isNewBuilding?'Νεόδμητο':fmaOwed===0?'Πρώτη κατοικία':'3% επί αξίας'},
+            {label:'Συμβολαιογραφικά',value:fmtEur(totalCosts.notary),sub:'Κλιμακωτή αμοιβή'},
+            {label:'Κτηματολόγιο και εγγραφή',value:fmtEur(totalCosts.landReg),sub:'0,475% επί αξίας'},
+            {label:'Δικηγόρος ελέγχου τίτλων',value:fmtEur(totalCosts.legal),sub:'Έλεγχος + παρουσία'},
+            {label:'Αμοιβή μεσίτη',value:hasAgent?fmtEur(AGNT):fe(0),sub:hasAgent?`${agentPct}%`:'Ανενεργό'},
+            {label:'Λοιπά',value:fmtEur(totalCosts.other),sub:'Φόρος ενεγγύησης'},
+          ].map((item,i:number)=>{
             const on=hoverCost===i
             return (
             <div key={item.label}
               onMouseEnter={()=>setHoverCost(i)} onMouseLeave={()=>setHoverCost(null)}
               onTouchStart={()=>setHoverCost(i)} onTouchEnd={()=>setHoverCost(null)}
-              style={{display:'flex',flexDirection:'column',gap:6,padding:'12px 14px',borderRadius:T.radius.inner,background:'var(--bg-elevated)',border:`1px solid ${(on||item.primary)?'var(--border-default)':'var(--border-subtle)'}`,transition:'border-color 0.15s, box-shadow 0.15s, transform 0.15s',transform:on?'translateY(-1px)':'none',
+              style={{display:'flex',flexDirection:'column',gap:6,padding:'12px 14px',borderRadius:T.radius.inner,background:'var(--bg-elevated)',border:`1px solid ${on?'var(--border-default)':'var(--border-subtle)'}`,transition:'border-color 0.15s, box-shadow 0.15s, transform 0.15s',transform:on?'translateY(-1px)':'none',
               boxShadow:on?'var(--elev-2)':'none'}}>
               <p style={{fontSize:12,color:'var(--text-secondary)',fontWeight:500,fontFamily: T.font.sans,lineHeight:1.35}}>{item.label}</p>
-              <p style={{fontSize:item.hi?17:15,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:on?'var(--accent)':'var(--text-primary)',fontWeight:item.hi?700:600,lineHeight:1,marginTop:'auto',transition:'color 0.15s'}}>{item.value}</p>
+              <p style={{fontSize:15,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:on?'var(--accent)':'var(--text-primary)',fontWeight:600,lineHeight:1,marginTop:'auto',transition:'color 0.15s'}}>{item.value}</p>
               <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily: T.font.sans,lineHeight:1.35}}>{item.sub}</p>
             </div>
             )
           })}
+        </div>
+        <div {...fixedCols(2, 8, 'stretch')} style={{...fixedCols(2, 8, 'stretch').style,marginBottom:14,paddingTop:12,borderTop:'1px solid var(--border-subtle)'}}>
+          {[
+            {label:'Σύνολο εξόδων αγοράς',value:fmtEur(totalCosts.total),sub:'Εκτός δόσεων',strong:false},
+            {label:'Απαιτούμενα ίδια κεφάλαια',value:fmtEur(totalCosts.totalCash),sub:'Προκαταβολή + έξοδα',strong:true},
+          ].map(item=>(
+            <div key={item.label} style={{display:'flex',flexDirection:'column',gap:6,padding:'12px 14px',borderRadius:T.radius.inner,background:'var(--bg-surface)',border:`1px solid ${item.strong?'var(--border-default)':'var(--border-subtle)'}`}}>
+              <p style={{fontSize:12,color:'var(--text-secondary)',fontWeight:500,fontFamily: T.font.sans,lineHeight:1.35}}>{item.label}</p>
+              <p style={{fontSize:item.strong?20:17,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:700,lineHeight:1,marginTop:'auto'}}>{item.value}</p>
+              <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily: T.font.sans,lineHeight:1.35}}>{item.sub}</p>
+            </div>
+          ))}
         </div>
         {/* Πώς σπάει η αμοιβή του συμβολαιογράφου: ετικέτα αριστερά, ποσό στη
             δεξιά άκρη, ίδια κατακόρυφος με τα ποσά των πλακιδίων από πάνω. */}
@@ -1639,10 +1662,14 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
           ))}
         </div>
         {/* Οι ασφάλειες δεν είναι έξοδο αγοράς: τρέχουν κάθε χρόνο όσο ζει το
-            δάνειο. Η παύλα του εύρους («100–300 €») διαβαζόταν σαν αφαίρεση. */}
-        <div style={{padding:'12px 14px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:T.radius.inner,marginBottom:10}}>
-          <p style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans,lineHeight:1.5}}>Ετήσιο κόστος ασφαλειών · Κατοικίας, υποχρεωτική: από {fmtEur(100)} έως {fmtEur(300)} · Ζωής: περίπου {fmtEur(LA*0.001)}</p>
-        </div>
+            δάνειο. Η παύλα του εύρους («100–300 €») διαβαζόταν σαν αφαίρεση.
+
+            ΚΑΙ ΤΟ ΚΟΥΤΙ ΤΟΥΣ ΕΦΥΓΕ. Μία πρόταση δεν χρειάζεται ανασηκωμένο φόντο,
+            περίγραμμα και δεκατέσσερα εικονοστοιχεία περιθώριο: μέσα σε κάρτα που
+            έχει ήδη οκτώ πλακίδια και έναν ένθετο πίνακα, το τέταρτο πλαίσιο δεν
+            προσθέτει έμφαση — προσθέτει βάρος. Μένει γραμμή κειμένου, δίπλα στην
+            αδελφή της που λέει την πηγή. */}
+        <p style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans,lineHeight:1.7,marginBottom:6}}>Ετήσιο κόστος ασφαλειών · Κατοικίας, υποχρεωτική: από {fmtEur(100)} έως {fmtEur(300)} · Ζωής: περίπου {fmtEur(LA*0.001)}</p>
         <p style={{fontSize:11,color:'var(--text-tertiary)',lineHeight:1.6,fontFamily: T.font.sans}}>
           Εκτιμήσεις βάσει δεδομένων χρήστη. Πηγή:{' '}
           <a href={AADE_HOME} target="_blank" rel="noreferrer" title="ΑΑΔΕ: Ανεξάρτητη Αρχή Δημοσίων Εσόδων" style={{color:'var(--accent)',textDecoration:'none',fontWeight:500}}>ΑΑΔΕ</a>

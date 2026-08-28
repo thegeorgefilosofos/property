@@ -1182,6 +1182,21 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                 τρεις φορές στην ίδια οθόνη: πλήρες πάνελ ψηλά, γραμμή εδώ, γραμμή
                 στην επιλεξιμότητα. Το πάνελ το λέει αναλυτικά, η επιλεξιμότητα το
                 λέει με προθεσμία και ποσό. Η τρίτη φορά δεν πρόσθετε τίποτα. */}
+            {/* ═══ ΕΦΤΑ ΕΝΟΤΗΤΕΣ ΑΝΟΙΓΑΝ ΜΑΖΙ, ΚΑΙ ΚΑΜΙΑ ΔΕΝ ΕΙΧΕ ΠΡΟΤΕΡΑΙΟΤΗΤΑ
+                Ο φακός της Συμβουλευτικής άνοιγε με `defaultOpen` σε επτά
+                ενότητες: «Τι βλέπω στο σενάριό σου», «Τι μπορείς να βελτιώσεις»,
+                «Πιθανότητα έγκρισης», «Σπίτι μου ΙΙ», «Επιλεξιμότητα κρατικών
+                προγραμμάτων», «Σύσταση καλύτερου δανείου» και «Πώς λειτουργεί ένα
+                στεγαστικό δάνειο». Οταν όλα είναι εξίσου ανοιχτά, τίποτα δεν
+                είναι σημαντικό — και ο χρήστης κάνει το μόνο λογικό: κυλά χωρίς
+                να διαβάσει. Η ίδια διάγνωση είχε γίνει ήδη στην Αξιοποίηση.
+
+                ΜΙΑ ΑΝΟΙΧΤΗ, ΚΑΙ ΕΙΝΑΙ Η ΑΠΑΝΤΗΣΗ ΣΤΗΝ ΕΡΩΤΗΣΗ ΤΟΥ ΦΑΚΟΥ. Οποιος
+                πατά «Συμβουλευτική» ρωτά «πώς είναι το δικό μου δάνειο;». Η
+                ανάγνωση του σεναρίου το απαντά· τα υπόλοιπα είναι επόμενες
+                ερωτήσεις και περιμένουν να γίνουν. Κάθε τίτλος κουβαλά τη
+                σύνοψή του δεξιά (`meta`), οπότε η κλειστή λίστα λέει τι υπάρχει
+                χωρίς να το ανοίξεις. */}
             <MiniSection title="Τι βλέπω στο σενάριό σου" defaultOpen>
               <div>
                 <FindingRow
@@ -1226,7 +1241,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
               ].filter(Boolean)) as {t:string;b:string}[]
               if(!tips.length) return null
               return (
-                <MiniSection title="Τι μπορείς να βελτιώσεις" defaultOpen
+                <MiniSection title="Τι μπορείς να βελτιώσεις"
                   meta={<span style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans,fontWeight:600,whiteSpace:'nowrap' as const}}>{tips.length===1?'μία κίνηση':`${tips.length} κινήσεις`}</span>}>
                   <div>
                     {tips.map((t,i)=>(<FindingRow key={t.t} title={t.t} body={t.b} last={i===tips.length-1}/>))}
@@ -1235,7 +1250,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
               )
             })()}
             {/* ── Θα εγκριθώ; — διαδραστική εκτίμηση πιθανότητας έγκρισης ── */}
-            <MiniSection title="Πιθανότητα έγκρισης" defaultOpen badges={<span style={{fontSize: 11,padding:'2px 8px',borderRadius:8,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontWeight:600,fontFamily: T.font.sans}}>Νέο</span>} meta={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily: T.font.sans,whiteSpace:'nowrap' as const}}>Δανειοληπτικό προφίλ</span>}>
+            <MiniSection title="Πιθανότητα έγκρισης" badges={<span style={{fontSize: 11,padding:'2px 8px',borderRadius:8,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontWeight:600,fontFamily: T.font.sans}}>Νέο</span>} meta={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily: T.font.sans,whiteSpace:'nowrap' as const}}>Δανειοληπτικό προφίλ</span>}>
               <ApprovalPanel
                 amount={LA} years={Y} ratePct={cs.effectiveRate} propertyValue={cs.propertyValue}
                 incomeMonthly={calcState.incomeMonthly} borrowerType={advBorr}
@@ -1245,7 +1260,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
 
             {/* ── Σπίτι μου ΙΙ, για σένα — όταν αφορά (πρώτη κατοικία ή νέος/οικογένεια) ── */}
             {spitiPanelShown && (
-              <MiniSection title="Σπίτι μου ΙΙ, για σένα" defaultOpen badges={<span style={{fontSize: 11,padding:'2px 8px',borderRadius:8,background:'var(--accent-dim)',border:'1px solid var(--border-accent)',color:'var(--accent)',fontWeight:600,fontFamily: T.font.sans}}>50% άτοκο</span>}>
+              <MiniSection title="Σπίτι μου ΙΙ, για σένα" badges={<span style={{fontSize: 11,padding:'2px 8px',borderRadius:8,background:'var(--accent-dim)',border:'1px solid var(--border-accent)',color:'var(--accent)',fontWeight:600,fontFamily: T.font.sans}}>50% άτοκο</span>}>
                 <SpitiMouPanel
                   amount={LA} propertyValue={cs.propertyValue} years={Y} bankRatePct={cs.effectiveRate}
                   incomeMonthly={calcState.incomeMonthly} marital={calcState.marital} childCount={calcState.children}
@@ -1329,7 +1344,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
               const sorted = [...rows].sort((a,b)=>Number(b.el)-Number(a.el))
               const yes = sorted.filter(r=>r.el).length
               return (
-              <MiniSection title="Επιλεξιμότητα κρατικών προγραμμάτων" defaultOpen
+              <MiniSection title="Επιλεξιμότητα κρατικών προγραμμάτων"
                 meta={<span style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans,fontWeight:600,whiteSpace:'nowrap' as const}}>{yes>0?`${yes} από ${sorted.length}`:'κανένα αυτή τη στιγμή'}</span>}>
                 <div>
                   {sorted.map((item,i)=>(
@@ -1350,7 +1365,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
             })()}
 
             {/* ── Σύσταση καλύτερου δανείου — premium, πτυσσόμενη ── */}
-            <MiniSection title="Σύσταση καλύτερου δανείου" defaultOpen meta={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily: T.font.sans,whiteSpace:'nowrap' as const}}>{fmtEur(LA)} / {Y} έτη</span>}>
+            <MiniSection title="Σύσταση καλύτερου δανείου" meta={<span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily: T.font.sans,whiteSpace:'nowrap' as const}}>{fmtEur(LA)} / {Y} έτη</span>}>
               {topRec && (
                 <div onMouseEnter={()=>setRecHover(true)} onMouseLeave={()=>setRecHover(false)}
                   onTouchStart={()=>setRecHover(true)} onTouchEnd={()=>setRecHover(false)}
@@ -1526,7 +1541,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
               Και η επιφύλαξη «όχι νομική συμβουλή» γραφόταν ήδη στο τέλος της
               Στρατηγικής. Οδηγίες ανάγνωσης για μια λίστα δέκα σειρών είναι
               θόρυβος· η σειρά των τίτλων είναι η οδηγία. */}
-          <MiniSection title="Πώς λειτουργεί ένα στεγαστικό δάνειο στην Ελλάδα" defaultOpen={profile!=='business'}>
+          <MiniSection title="Πώς λειτουργεί ένα στεγαστικό δάνειο στην Ελλάδα">
             {[
               {step:1,title:'Προεπιλογή και προετοιμασία',time:'1 έως 2 εβδομάδες',desc:'Υπολόγισε πόσο αντέχεις και μάζεψε τα οικονομικά σου στοιχεία πριν μιλήσεις σε τράπεζα. Το «Σπίτι μου ΙΙ» έκλεισε για νέες αιτήσεις στις 31/05/2026.',tip:'Ξεκίνα από τη δόση που αντέχεις, όχι από το ποσό που θέλεις: η τράπεζα κρίνει με τον δείκτη δόσης προς εισόδημα.',warning:'Οι οφειλές σε ΔΟΥ ή ΕΦΚΑ δεν μπλοκάρουν αυτόματα την έγκριση. Η ενημερότητα ζητείται στο συμβόλαιο, κυρίως από τον πωλητή και εκδίδεται ακόμη και με οφειλές με παρακράτηση από το τίμημα.',url:null},
               {step:2,title:'Συλλογή εγγράφων',time:'1 έως 3 εβδομάδες',desc:'Εκκαθαριστικά, μισθοδοτικές 3 μηνών, Ε9, πιστοποιητικό οικογενειακής κατάστασης. Ελεύθεροι επαγγελματίες: φορολογικές 2 ετών.',tip:'Ζήτησε κάθε έγγραφο εκ των προτέρων, η τράπεζα συχνά ζητά επιπλέον κατά τη διαδικασία.',warning:'Τα Ε1/Ε9 από ΑΑΔΕ, βεβαιώσου ότι είναι ενημερωμένα.',url:null},
@@ -1576,7 +1591,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
           </MiniSection>
 
           {/* Ειδικές κατηγορίες δανειοληπτών, σε συμπτυγμένη μορφή */}
-          <MiniSection title="Ειδικές κατηγορίες δανειοληπτών" defaultOpen={profile==='business'}>
+          <MiniSection title="Ειδικές κατηγορίες δανειοληπτών">
             <div style={{display:'flex',flexDirection:'column'}}>
               {[
                 {title:'Ένοπλες Δυνάμεις',desc:'Στεγαστική υποστήριξη σε εν ενεργεία στελέχη δίνουν ο Αυτόνομος Οικοδομικός Οργανισμός Αξιωματικών (ΑΟΟΑ) και το Ταμείο Παρακαταθηκών και Δανείων, με δικούς τους όρους. Το σταθερό εισόδημα βοηθά και στην τραπεζική αξιολόγηση.',url:'https://www.aooa.gr'},
@@ -1591,7 +1606,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
             </div>
           </MiniSection>
 
-          <MiniSection defaultOpen={profile==='business'} title="Ιστορικό Euribor τριμήνου, 2020 έως σήμερα" meta={<a href="https://data.ecb.europa.eu" target="_blank" rel="noreferrer" style={{fontSize:11,color:'var(--accent)',textDecoration:'none',fontFamily: T.font.sans,fontWeight:500}}>Πηγή: Ευρωπαϊκή Κεντρική Τράπεζα</a>}>
+          <MiniSection title="Ιστορικό Euribor τριμήνου, 2020 έως σήμερα" meta={<a href="https://data.ecb.europa.eu" target="_blank" rel="noreferrer" style={{fontSize:11,color:'var(--accent)',textDecoration:'none',fontFamily: T.font.sans,fontWeight:500}}>Πηγή: Ευρωπαϊκή Κεντρική Τράπεζα</a>}>
             <EuriborArea data={EURIBOR_HISTORY}/>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 130px), 1fr))',gap:10,marginTop:14}}>
               {[
