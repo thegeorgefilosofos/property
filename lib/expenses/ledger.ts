@@ -24,6 +24,17 @@
 // πληρωθεί, παύει να ξεχωρίζει.
 // ═══════════════════════════════════════════════════════════════════════════
 
+/**
+ * Ο ΤΙΤΛΟΣ ΟΤΑΝ ΔΕΝ ΥΠΑΡΧΕΙ ΤΙΤΛΟΣ.
+ *
+ * Γραφόταν ως κείμενο σε δύο σημεία εδώ μέσα· όποιος διάβαζε τη λίστα δεν
+ * είχε τρόπο να ξεχωρίσει «γραμμή που ο χρήστης ονόμασε έτσι» από «γραμμή χωρίς
+ * όνομα». Η σύγκριση μηνών το κατάλαβε με τον δύσκολο τρόπο: έβγαζε «η αύξηση
+ * οφείλεται σε έκτακτη δαπάνη: Χωρίς περιγραφή», δηλαδή μια πρόταση που δεν
+ * λέει τίποτα. Με σταθερά, ο καλών ρωτά και μαθαίνει.
+ */
+export const NO_TITLE = 'Χωρίς περιγραφή';
+
 /** Γραμμή λογαριασμού όπως έρχεται από τη βάση. Μόνο ό,τι χρειάζεται η συγχώνευση. */
 export interface LedgerBill {
   id: string;
@@ -177,7 +188,7 @@ export function mergeLedger(bills: LedgerBill[], expenses: LedgerExpense[]): Led
       date: day(e.date) || (b ? billDate(b) : '') || '',
       // Η προθεσμία έχει νόημα μόνο όσο δεν έχει πληρωθεί. Μετά είναι θόρυβος.
       due: paid ? null : (b ? day(b.due_date) : null),
-      title: (e.description || (b ? b.name : '') || '').trim() || 'Χωρίς περιγραφή',
+      title: (e.description || (b ? b.name : '') || '').trim() || NO_TITLE,
       amount: num(e.amount),
       paid,
       category: (e.category || (b ? b.category : '') || '').trim(),
@@ -201,7 +212,7 @@ export function mergeLedger(bills: LedgerBill[], expenses: LedgerExpense[]): Led
       expenseId: null,
       date: billDate(b),
       due: paid ? null : day(b.due_date),
-      title: (b.name || '').trim() || 'Χωρίς περιγραφή',
+      title: (b.name || '').trim() || NO_TITLE,
       amount: num(b.amount),
       paid,
       category: (b.category || '').trim(),

@@ -15,8 +15,9 @@
 // της ράβδου γύρω από τον άξονα και από το πρόσημο, όχι από χρώμα.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { useMemo, useState } from 'react';
-import { T, Card, fe, fn } from '@/components/Theme';
+import { Fragment, useMemo, useState } from 'react';
+import { T, TT, Card, fe, fn } from '@/components/Theme';
+import { fpSigned } from '@/lib/core/format';
 import { MONTHS_SHORT } from '@/lib/core/months';
 import {
   compareMonth, history, monthKey, monthPhrase,
@@ -33,9 +34,16 @@ interface Props {
 // Τα λεπτά μία απόχρωση πιο σβηστά από τα ευρώ: το μάτι διαβάζει πρώτα το ποσό
 // που μετράει. Το `currentColor` κρατά τη σχέση σωστή σε κάθε συμφραζόμενο,
 // φωτεινό ή σκοτεινό θέμα.
+//
+// ΚΑΙ ΔΕΝ ΕΦΑΡΜΟΖΕΤΑΙ ΠΑΝΩ ΣΕ Ο,ΤΙ ΕΙΝΑΙ ΗΔΗ ΤΟ ΠΙΟ ΣΒΗΣΤΟ. Μετρημένο στον
+// περιηγητή, στο ίδιο στιγμιότυπο: πάνω σε `--text-primary` τα λεπτά βγάζουν
+// αντίθεση 4,63 προς 1 και περνούν· πάνω σε `--text-tertiary`, στα ένδεκα
+// εικονοστοιχεία της γραμμής «μέσος όρος», βγάζουν 3,44 προς 1 και κόβονται
+// από το όριο του 4,50. Μια τρίτη βαθμίδα κάτω από την τρίτη δεν υπάρχει: εκεί
+// το σβήσιμο απλώς σβήνει. Το `dim` λέει πού έχει νόημα η διάκριση.
 const CENTS_DIM = 'color-mix(in srgb, currentColor 52%, transparent)';
 
-function Eur({ value, sign = false }: { value: number; sign?: boolean }) {
+function Eur({ value, sign = false, dim = true }: { value: number; sign?: boolean; dim?: boolean }) {
   const abs = Math.abs(value);
   // Τα λεπτά γράφονται πιο σβηστά από τα ευρώ — τυπογραφική επιλογή, όχι δεύτερη
   // μορφοποίηση: ο αριθμός παράγεται από τον κοινό `fn` και μετά χωρίζεται.
@@ -43,44 +51,54 @@ function Eur({ value, sign = false }: { value: number; sign?: boolean }) {
   const pre = sign ? (value > 0 ? '+' : value < 0 ? '−' : '') : '';
   return (
     <span style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
-      {pre}{int}<span style={{ color: CENTS_DIM }}>,{dec}</span>{'\u00A0€'}
+      {pre}{int}<span style={dim ? { color: CENTS_DIM } : undefined}>,{dec}</span>{'\u00A0€'}
     </span>
   );
 }
 
-const LABEL: React.CSSProperties = {
-  fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
-  textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: T.font.sans,
-};
-
 // ── Η εναλλαγή βάσης ───────────────────────────────────────────────────────
 // Δύο επιλογές, όχι πέντε. Η βάση που δεν έχει δεδομένα μένει απενεργοποιημένη
 // και το λέει στο tooltip: καλύτερα από μια καρτέλα που ανοίγει και είναι άδεια.
-function BasisSwitch({ value, onChange, enabled }: {
-  value: Basis; onChange: (b: Basis) => void; enabled: Record<Basis, boolean>;
+//
+// ═══ ΤΑ ΠΛΗΚΤΡΑ ΟΝΟΜΑΖΟΥΝ ΤΟΝ ΜΗΝΑ, ΚΑΙ ΕΤΣΙ Η ΣΕΙΡΑ ΛΕΓΕΤΑΙ ΜΙΑ ΦΟΡΑ ══════
+// Ελεγαν «Προηγούμενος μήνας» και «Ίδιος μήνας πέρσι», δηλαδή ΤΟ ΙΔΙΟ ΓΕΓΟΝΟΣ
+// με την επικεφαλίδα δίπλα τους: «Τον Αύγουστο σε σχέση με τον Ιούλιο» και,
+// δώδεκα εικονοστοιχεία δεξιά, «Προηγούμενος μήνας». Ο χρήστης διάβαζε δύο
+// φορές ποια είναι η βάση πριν φτάσει στο νούμερο. Στη δεύτερη κατάσταση ήταν
+// χειρότερο: «σε σχέση με τον Αύγουστο 2025» δίπλα σε «Ίδιος μήνας πέρσι».
+//
+// Τώρα η επικεφαλίδα τελειώνει στο «ΣΕ ΣΧΕΣΗ ΜΕ» και τα πλήκτρα τη συμπληρώνουν.
+// Ολη η σειρά διαβάζεται ως μία πρόταση, αριστερά προς τα δεξιά· το όνομα
+// του μήνα βάσης γράφεται εκεί ακριβώς που ο χρήστης τον αλλάζει.
+//
+// ΤΟ ΥΨΟΣ ΕΡΧΕΤΑΙ ΑΠΟ ΤΗΝ ΚΟΙΝΗ ΚΛΙΜΑΚΑ. Ηταν `padding: 5px 12px`, δηλαδή
+// μετρημένα 23 εικονοστοιχεία: μισός στόχος αφής. Το `T.h.sm` είναι 32 με
+// ποντίκι και 44 με δάχτυλο, από το ίδιο σημείο που το ξέρει κάθε άλλο
+// χειριστήριο της εφαρμογής.
+function BasisSwitch({ value, onChange, enabled, labels }: {
+  value: Basis; onChange: (b: Basis) => void;
+  enabled: Record<Basis, boolean>; labels: Record<Basis, string>;
 }) {
-  const opts: { id: Basis; label: string }[] = [
-    { id: 'previous_month', label: 'Προηγούμενος μήνας' },
-    { id: 'same_month_last_year', label: 'Ίδιος μήνας πέρσι' },
-  ];
+  const opts: Basis[] = ['previous_month', 'same_month_last_year'];
   return (
     <div style={{ display: 'inline-flex', gap: 2, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, padding: 3 }}>
-      {opts.map(o => {
-        const on = value === o.id;
-        const can = enabled[o.id];
+      {opts.map(id => {
+        const on = value === id;
+        const can = enabled[id];
         return (
-          <button key={o.id} type="button" disabled={!can}
-            onClick={() => can && onChange(o.id)}
+          <button key={id} type="button" disabled={!can} aria-pressed={on}
+            onClick={() => can && onChange(id)}
+            aria-label={`Σύγκριση με ${labels[id]}`}
             title={can ? undefined : 'Δεν υπάρχουν καταχωρημένες δαπάνες σε αυτή την περίοδο.'}
             style={{
-              padding: '5px 12px', borderRadius: T.radius.pill, border: 'none',
+              minHeight: T.h.sm, padding: '0 14px', borderRadius: T.radius.pill, border: 'none',
               cursor: can ? 'pointer' : 'not-allowed', opacity: can ? 1 : 0.45,
-              fontSize: 11, fontWeight: on ? 700 : 500, fontFamily: T.font.sans,
+              fontSize: 12, fontWeight: on ? 700 : 500, fontFamily: T.font.sans,
               background: on ? 'var(--accent)' : 'transparent',
               color: on ? 'var(--accent-text)' : 'var(--text-secondary)',
               transition: 'background 0.15s, color 0.15s', whiteSpace: 'nowrap',
             }}>
-            {o.label}
+            {labels[id]}
           </button>
         );
       })}
@@ -91,15 +109,34 @@ function BasisSwitch({ value, onChange, enabled }: {
 // ── Πού πήγε η διαφορά ─────────────────────────────────────────────────────
 // Άξονας στη μέση: δεξιά ό,τι ανέβηκε, αριστερά ό,τι έπεσε. Καμία χρωματική
 // κρίση — η θέση και το πρόσημο λένε την κατεύθυνση.
+//
+// ═══ ΕΝΑ ΠΛΕΓΜΑ ΓΙΑ ΟΛΕΣ ΤΙΣ ΣΕΙΡΕΣ, ΟΧΙ ΕΝΑ ΑΝΑ ΣΕΙΡΑ ═════════════════════
+// Κάθε οδηγός ήταν ΔΙΚΟ ΤΟΥ πλέγμα μέσα σε στήλη flex, με τρίτη στήλη `auto`.
+// Το `auto` υπολογίζεται μέσα στο πλέγμα που το ορίζει, οπότε τρεις σειρές
+// έβγαζαν τρία διαφορετικά πλάτη και τρία διαφορετικά δεξιά άκρα: το «€» της
+// μιας σειράς δεν έπεφτε ποτέ πάνω στο «€» της επόμενης. Το `tabular-nums` του
+// `Eur` υπάρχει ακριβώς για αυτή την κάθετη στοίχιση και ακυρωνόταν από τη
+// δομή που το περιέβαλλε.
+//
+// ΚΑΙ ΤΟ ΣΗΜΑ ΕΦΥΓΕ ΑΠΟ ΤΟ ΚΕΛΙ ΤΟΥ ΠΟΣΟΥ. Το «σταμάτησε» πιάνει περίπου
+// πενήντα οκτώ εικονοστοιχεία, το «νέο» είκοσι τέσσερα: όσο κάθονταν δίπλα
+// στον αριθμό μέσα στο ίδιο κελί, το ποσό μετακινούνταν κατά τη διαφορά τους.
+// Δική του στήλη, που υπάρχει μόνο όταν κάποιος οδηγός έχει κάτι να πει: αλλιώς
+// θα άφηνε κενό διάστημα δεξιά από κάθε ποσό.
 function Drivers({ c }: { c: Comparison }) {
   const max = Math.max(...c.drivers.map(d => Math.abs(d.diff)), 1);
+  const anyFlag = c.drivers.some(d => d.isNew || d.vanished);
+  const flag: React.CSSProperties = { fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight: 400, whiteSpace: 'nowrap' };
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{
+      display: 'grid', alignItems: 'center', columnGap: 12, rowGap: 10,
+      gridTemplateColumns: `minmax(84px, 128px) minmax(60px, 1fr) auto${anyFlag ? ' auto' : ''}`,
+    }}>
       {c.drivers.map(d => {
         const ratio = Math.min(Math.abs(d.diff) / max, 1);
         const up = d.diff > 0;
         return (
-          <div key={d.slug} style={{ display: 'grid', gridTemplateColumns: 'minmax(84px, 128px) minmax(60px, 1fr) auto', alignItems: 'center', gap: 12 }}>
+          <Fragment key={d.slug}>
             <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {d.label}
             </span>
@@ -112,12 +149,11 @@ function Drivers({ c }: { c: Comparison }) {
                 background: 'color-mix(in srgb, var(--text-primary) 30%, transparent)',
               }} />
             </span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right' }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', justifySelf: 'end' }}>
               <Eur value={d.diff} sign />
-              {d.isNew && <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight: 400 }}>νέο</span>}
-              {d.vanished && <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight: 400 }}>σταμάτησε</span>}
             </span>
-          </div>
+            {anyFlag && <span style={flag}>{d.isNew ? 'νέο' : d.vanished ? 'σταμάτησε' : ''}</span>}
+          </Fragment>
         );
       })}
     </div>
@@ -165,12 +201,12 @@ function HistoryBars({ points, currentKey }: { points: MonthPoint[]; currentKey:
               <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}><Eur value={sel.total} /></span>
               {sel.yoy !== null && Math.abs(sel.yoy) >= 1 && (
                 <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
-                  <Eur value={sel.yoy} sign /> από πέρσι
+                  <Eur value={sel.yoy} sign dim={false} /> από πέρσι
                 </span>
               )}
             </>
           ) : (
-            <span style={LABEL}>Δώδεκα μήνες</span>
+            <span style={TT.label}>Δώδεκα μήνες</span>
           )}
         </div>
         {/* Ο ΜΕΣΟΣ ΟΡΟΣ ΔΕΝ ΕΙΝΑΙ ΔΩΔΕΚΑΜΗΝΟΣ, ΚΑΙ ΤΟ ΕΛΕΓΕ ΣΑΝ ΝΑ ΗΤΑΝ.
@@ -189,7 +225,7 @@ function HistoryBars({ points, currentKey }: { points: MonthPoint[]; currentKey:
             για να υπάρχει μέση τιμή. */}
         {avg > 0 && months >= 2 && (
           <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
-            μέσος όρος <span style={{ color: 'var(--text-secondary)' }}><Eur value={avg} /></span>
+            μέσος όρος <span style={{ color: 'var(--text-secondary)' }}><Eur value={avg} dim={false} /></span>
             {months < points.length && ` σε ${months === 1 ? 'έναν μήνα' : `${months} μήνες`} με δαπάνες`}
           </span>
         )}
@@ -202,10 +238,18 @@ function HistoryBars({ points, currentKey }: { points: MonthPoint[]; currentKey:
           const h = p.total > 0 ? Math.max((p.total / max) * 100, 3) : 0;
           const m = Number(p.key.slice(5, 7)) - 1;
           return (
+            /* ΤΟ `title` ΕΓΡΑΦΕ ΔΙΠΛΑ ΣΤΟΝ ΔΕΙΚΤΗ Ο,ΤΙ ΕΓΡΑΦΕ ΚΑΙ Η ΓΡΑΜΜΗ
+               ΑΝΑΓΝΩΣΗΣ ΠΑΝΩ ΑΠΟ ΤΟ ΓΡΑΦΗΜΑ, με άλλη στίξη: «Αύγουστος 2026
+               31,20 €» στην κορυφή και «Αύγουστος 2026: 31,20 €» στο βομβίδιο,
+               ταυτόχρονα. Η γραμμή ανάγνωσης χτίστηκε ΑΚΡΙΒΩΣ για να μη λέγεται
+               αυτό δύο φορές.
+               Το `aria-label` κάνει τη δουλειά που το `title` έκανε κατά λάθος:
+               δίνει όνομα σε ένα εστιάσιμο στοιχείο που δεν είχε κανένα, χωρίς
+               να τυπώνει τίποτα δεύτερη φορά στην οθόνη. */
             <div key={p.key}
               onMouseEnter={() => setHover(p.key)} onMouseLeave={() => setHover(null)}
               onFocus={() => setHover(p.key)} onBlur={() => setHover(null)}
-              tabIndex={0} title={`${p.label}: ${fe(p.total)}`}
+              tabIndex={0} aria-label={`${p.label}: ${fe(p.total)}`}
               className="exp-bar" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'default' }}>
               <span style={{ display: 'flex', alignItems: 'flex-end', height: 116, width: '100%', justifyContent: 'center', borderBottom: '1px solid var(--border-subtle)' }}>
                 <span style={{
@@ -240,6 +284,13 @@ export default function ExpenseCompare({ spends, today }: Props) {
   const year = useMemo(() => compareMonth(spends, currentKey, { today: now, basis: 'same_month_last_year' }), [spends, currentKey, now]);
   const points = useMemo(() => history(spends, now, 12), [spends, now]);
 
+  // Αιτιατική, γιατί συνεχίζουν την επικεφαλίδα «Τον Αύγουστο σε σχέση με…».
+  // Ο χρόνος μπαίνει μόνο όταν διαφέρει από τον τρέχοντα, όπως παντού αλλού.
+  const basisLabels: Record<Basis, string> = {
+    previous_month: `τον ${monthPhrase(prev.baseKey, Number(currentKey.slice(0, 4)))}`,
+    same_month_last_year: `τον ${monthPhrase(year.baseKey, Number(currentKey.slice(0, 4)))}`,
+  };
+
   const enabled: Record<Basis, boolean> = { previous_month: prev.meaningful, same_month_last_year: year.meaningful };
   const anyBasis = prev.meaningful || year.meaningful;
   // Η προεπιλογή πέφτει στη βάση που ΕΧΕΙ δεδομένα, χωρίς να το ζητήσει ο χρήστης.
@@ -256,35 +307,64 @@ export default function ExpenseCompare({ spends, today }: Props) {
       {anyBasis && (
         <>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
-            <span style={LABEL}>Τον {monthPhrase(currentKey)} σε σχέση με τον {monthPhrase(c.baseKey, Number(currentKey.slice(0, 4)))}</span>
-            <BasisSwitch value={active} onChange={setBasis} enabled={enabled} />
+            <span style={TT.label}>Τον {monthPhrase(currentKey)} σε σχέση με</span>
+            <BasisSwitch value={active} onChange={setBasis} enabled={enabled} labels={basisLabels} />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap', marginBottom: 10 }}>
+          {/* ═══ Η ΚΑΡΤΑ ΤΗΣ ΣΥΓΚΡΙΣΗΣ ΟΔΗΓΟΥΣΕ ΜΕ ΝΟΥΜΕΡΟ ΠΟΥ ΔΕΝ ΕΙΝΑΙ ΣΥΓΚΡΙΣΗ
+              Στα 28 εικονοστοιχεία, δηλαδή στο μεγαλύτερο νούμερο της κάρτας,
+              καθόταν το ΣΥΝΟΛΟ του μήνα. Δύο πράγματα ταυτόχρονα λάθος:
+
+              ΠΡΩΤΟ, δεν απαντά στην ερώτηση του τίτλου. Ο τίτλος ρωτά «τον
+              Αύγουστο σε σχέση με τον Ιούλιο» και η απάντηση σε αυτό είναι η
+              ΔΙΑΦΟΡΑ. Το σύνολο του Αυγούστου είναι η απάντηση σε άλλη ερώτηση.
+
+              ΔΕΥΤΕΡΟ, ήταν ήδη γραμμένο δύο φορές πιο κάτω, στην ΙΔΙΑ οθόνη:
+              μετρημένο στον πάγκο, «273,00 €» στα 28 εδώ, «273,00 €» στα 24 στο
+              πλακίδιο «Μηνιαίες δαπάνες» τετρακόσια εξήντα εικονοστοιχεία πιο
+              κάτω, «273,00 €» στα 13 στην κεφαλίδα «ΑΥΓΟΥΣΤΟΣ 2026» της λίστας.
+              Τρεις φορές το ίδιο ποσό, σε τρία μεγέθη, σε μία οθόνη.
+
+              Μένει η διαφορά, μόνη της, στο μέγεθος που της αξίζει. Το σύνολο το
+              λέει το πλακίδιο που υπάρχει ακριβώς γι' αυτό. */}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
             <span style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
-              <Eur value={c.current} />
-            </span>
-            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)' }}>
               <Eur value={c.diff} sign />
-              {/* Ποσοστό ΜΟΝΟ όταν ορίζεται. Στο μηδέν δεν υπάρχει «+∞%». */}
-              {c.pct !== null && Math.abs(c.pct) >= 1 && (
-                <span style={{ marginLeft: 8, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-tertiary)' }}>
-                  {c.pct > 0 ? '+' : '−'}{Math.abs(Math.round(c.pct))}%
-                </span>
-              )}
             </span>
+            {/* Ποσοστό ΜΟΝΟ όταν ορίζεται. Στο μηδέν δεν υπάρχει «+∞%».
+                ΚΑΙ ΓΡΑΦΕΤΑΙ ΟΠΩΣ ΚΑΘΕ ΠΟΣΟΣΤΟ ΤΗΣ ΕΦΑΡΜΟΓΗΣ. Εδώ ζούσε ο
+                μοναδικός χειροποίητος μορφοποιητής ποσοστού του κώδικα:
+                `Math.round` σε ακέραιο και σκέτο «%», δηλαδή «−76%» δίπλα σε
+                «−99,20 €». Δύο συμβάσεις αριθμού σε απόσταση οκτώ
+                εικονοστοιχείων. Το `fpSigned` δίνει δύο δεκαδικά με ελληνικό
+                κόμμα και τυπογραφικό μείον, όπως παντού αλλού. */}
+            {c.pct !== null && Math.abs(c.pct) >= 1 && (
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>
+                {fpSigned(c.pct)}
+              </span>
+            )}
           </div>
 
-          {/* Η ΠΡΟΤΑΣΗ ΕΛΕΓΕ ΓΙΑ ΤΡΙΤΗ ΦΟΡΑ ΤΟ ΙΔΙΟ. Πάνω της κάθεται το ποσό
-              της διαφοράς σε 14 εικονοστοιχεία («−99,20 €») και δίπλα του το
-              ποσοστό· δεξιά ο διακόπτης λέει με τι συγκρίνεται· από κάτω οι
-              ράβδοι δείχνουν πού πήγε. Η πρόταση («Ξόδεψες 99,20 € λιγότερα από
-              τον Ιούλιο») δεν πρόσθετε παρά το ΟΝΟΜΑ του μήνα βάσης, που πλέον
-              το γράφει η επικεφαλίδα. Μένει μόνο εκεί που είναι η ΜΟΝΗ εξήγηση:
-              όταν καμία κατηγορία δεν ξεχωρίζει, άρα δεν υπάρχουν ράβδοι. */}
+          {/* ═══ Η ΓΡΑΜΜΗ ΚΑΤΩ ΑΠΟ ΤΟΝ ΑΡΙΘΜΟ ΛΕΕΙ ΜΟΝΟ Ο,ΤΙ ΔΕΝ ΦΑΙΝΕΤΑΙ ΑΛΛΟΥ
+              Εδώ αποδιδόταν η φράση της μηχανής, «Ξόδεψες 99,20 € λιγότερα από
+              τον Ιούλιο», πίσω από τον φύλακα `drivers.length === 0`. Και ο
+              φύλακας ήταν ακριβώς αυτό που την άδειαζε: χωρίς οδηγούς, η
+              `buildSentence` δεν έχει ουρά να προσθέσει («Κυρίως από…»), οπότε
+              έμενε η κεφαλή της. Ποσό, κατεύθυνση και μήνας βάσης, δηλαδή τρία
+              πράγματα που κάθονται ήδη μέσα σε τριάντα εικονοστοιχεία από πάνω.
+
+              Ο ΦΥΛΑΚΑΣ ΕΚΡΥΒΕ ΚΑΙ ΔΥΟ ΔΙΑΦΟΡΕΤΙΚΕΣ ΚΑΤΑΣΤΑΣΕΙΣ ΣΕ ΜΙΑ. Το
+              «καμία κατηγορία δεν ξεχωρίζει» σημαίνει είτε «δεν άλλαξε τίποτα»
+              είτε «άλλαξαν πολλά, από λίγο το καθένα»: δύο εντελώς άλλα
+              μηνύματα για τον ιδιοκτήτη. Τα ξεχωρίζει το `flat` της μηχανής.
+
+              Η πλήρης φράση ΔΕΝ σβήνεται: ζει για τη μηνιαία ειδοποίηση, που
+              φτάνει χωρίς κάρτα, χωρίς ράβδους και χωρίς επικεφαλίδα. */}
           {c.drivers.length === 0 && (
-            <p style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--text-primary)', fontFamily: T.font.sans, margin: '0 0 12px' }}>
-              {c.sentence}
+            <p style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--text-secondary)', fontFamily: T.font.sans, margin: '0 0 12px' }}>
+              {c.flat
+                ? 'Χωρίς ουσιαστική αλλαγή.'
+                : 'Η διαφορά είναι μοιρασμένη: καμία κατηγορία δεν ξεχωρίζει.'}
             </p>
           )}
 
@@ -301,7 +381,7 @@ export default function ExpenseCompare({ spends, today }: Props) {
 
           {c.drivers.length > 0 && (
             <div style={{ marginTop: 14 }}>
-              <div style={{ ...LABEL, marginBottom: 10 }}>Πού πήγε η διαφορά</div>
+              <div style={{ ...TT.label, marginBottom: 10 }}>Πού πήγε η διαφορά</div>
               <Drivers c={c} />
             </div>
           )}

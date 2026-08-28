@@ -39,7 +39,7 @@ import { notify, notifyError } from '@/components/toastBus';
 import { confirmDialog } from '@/components/ConfirmDialog';
 import { saved } from '@/components/dbWrite';
 import {
-  mergeLedger, ledgerTotal, groupByMonth, openMonths,
+  mergeLedger, ledgerTotal, groupByMonth, openMonths, NO_TITLE,
   type LedgerEntry, type LedgerBill, type LedgerExpense,
 } from '@/lib/expenses/ledger';
 import { categoryLabel, resolveCategory, BY_SLUG, CATEGORIES } from '@/lib/expenses/taxonomy';
@@ -172,16 +172,6 @@ export default function ExpenseLedger({ propertyId, userId, onScan, openAddNonce
   // βάση σύγκρισης είναι μηδέν δεν δείχνει ποσοστό και όταν δεν υπάρχει τίποτα
   // να πει επιστρέφει κενό — οπότε η κάρτα δεν εμφανίζεται καθόλου.
   // ═══════════════════════════════════════════════════════════════════════
-  const spends: Spend[] = useMemo(() => expenses
-    .filter(e => (e.amount || 0) > 0 && !!e.date)
-    .map(e => ({
-      date: String(e.date).slice(0, 10),
-      amount: Number(e.amount) || 0,
-      category: e.category || 'Λοιπά',
-      title: e.description || undefined,
-      recurring: e.is_recurring === true,
-    })), [expenses]);
-
   const load = useCallback(async () => {
     if (!propertyId) return;
     try {
@@ -217,6 +207,37 @@ export default function ExpenseLedger({ propertyId, userId, onScan, openAddNonce
 
   const { entries, duplicates } = useMemo(() => mergeLedger(bills, expenses), [bills, expenses]);
 
+  // ═══ Η ΣΥΓΚΡΙΣΗ ΕΒΛΕΠΕ ΑΛΛΟ ΣΥΝΟΛΟ ΑΠΟ ΤΗΝ ΙΔΙΑ ΤΗΝ ΟΘΟΝΗ ΠΟΥ ΤΗ ΦΙΛΟΞΕΝΕΙ
+  //
+  // ΤΟ ΣΦΑΛΜΑ, ΜΕΤΡΗΜΕΝΟ ΣΤΟΝ ΠΑΓΚΟ. Τον Αύγουστο 2026 η κάρτα της σύγκρισης
+  // έγραφε 228,00 € σε γράμματα ύψους 28 και τετρακόσια εξήντα εικονοστοιχεία
+  // πιο κάτω το πλακίδιο «Μηνιαίες δαπάνες» έγραφε 273,00 €, με την κεφαλίδα
+  // «ΑΥΓΟΥΣΤΟΣ 2026» της λίστας να συμφωνεί με το δεύτερο. Ιδιος μήνας, ίδια
+  // οθόνη, δύο σύνολα. Ο χρήστης δεν έχει τρόπο να μαντέψει ποιο ισχύει.
+  //
+  // Η ΑΙΤΙΑ. Ο πίνακας χτιζόταν από τις `expenses` και μόνο, ενώ κάθε άλλο
+  // νούμερο της οθόνης βγαίνει από τα `entries`, δηλαδή από τη συγχώνευση
+  // λογαριασμών και δαπανών. Η διαφορά είναι ακριβώς οι απλήρωτοι λογαριασμοί.
+  // Το σχόλιο από πάνω υποσχόταν «ένα ερώτημα, ένα σύνολο, μία απάντηση» και
+  // κρατούσε το πρώτο σκέλος: ένα ερώτημα όντως γινόταν. Απλώς μετά η σύγκριση
+  // πετούσε τη μισή απάντηση.
+  //
+  // ΚΑΙ ΔΕΝ ΗΤΑΝ ΜΟΝΟ ΤΟ ΣΥΝΟΛΟ. Οι απλήρωτοι λογαριασμοί δεν έφταναν ποτέ στο
+  // «Πού πήγε η διαφορά»: ο λογαριασμός ρεύματος που οφείλεις είναι ακριβώς η
+  // γραμμή που εξηγεί γιατί ο μήνας βγήκε ακριβότερος· ήταν η μόνη που δεν
+  // μπορούσε να εμφανιστεί εκεί.
+  const spends: Spend[] = useMemo(() => entries
+    .filter(e => e.amount > 0 && !!e.date)
+    .map(e => ({
+      date: e.date,
+      amount: e.amount,
+      category: e.category || 'Λοιπά',
+      // Ο μπαλαντέρ ΔΕΝ είναι τίτλος. Περασμένος αυτούσιος, η μηχανή έβγαζε
+      // «η αύξηση οφείλεται σε έκτακτη δαπάνη: Χωρίς περιγραφή».
+      title: e.title === NO_TITLE ? undefined : e.title,
+      recurring: e.recurring,
+    })), [entries]);
+
   // Η γραμμή που επεξεργάζεται, από την ΙΔΙΑ λίστα που δείχνει η οθόνη. Αν η
   // δαπάνη διαγραφεί από άλλη συσκευή όσο το παράθυρο είναι ανοιχτό, το
   // realtime ξαναφορτώνει, η γραμμή δεν βρίσκεται και το παράθυρο κλείνει μόνο
@@ -239,6 +260,16 @@ export default function ExpenseLedger({ propertyId, userId, onScan, openAddNonce
   // ΜΙΑ φορά: τον διαβάζουν και τα τρία νούμερα της κορυφής και το τι φαίνεται
   // από τη λίστα. Δύο κλήσεις θα ήταν δύο πηγές χρόνου στην ίδια οθόνη.
   const thisMonth = athensMonth();
+
+  // ═══ ΚΑΙ Η ΣΥΓΚΡΙΣΗ ΔΙΑΒΑΖΕΙ ΤΟ ΙΔΙΟ ΡΟΛΟΙ ════════════════════════════════
+  // Η κάρτα έπαιρνε το «σήμερα» από το `new Date()` του περιηγητή, ενώ κάθε
+  // άλλο νούμερο αυτής της οθόνης το παίρνει από την Αθήνα. Χρήστης σε άλλη
+  // ζώνη ώρας, την πρώτη ή την τελευταία μέρα του μήνα, έβλεπε την κάρτα να
+  // συγκρίνει ΑΛΛΟΝ μήνα από αυτόν που μετρούσαν τα πλακίδια από κάτω της.
+  // Μεσημέρι και όχι μεσάνυχτα: η ώρα δεν χρησιμοποιείται πουθενά, αλλά στα
+  // μεσάνυχτα μια αλλαγή θερινής ώρας μπορεί να γυρίσει την ημερομηνία πίσω.
+  const athensDay = athensToday();
+  const compareToday = useMemo(() => new Date(`${athensDay}T12:00:00`), [athensDay]);
 
   // ── ΜΠΡΟΣΤΑ Ο ΜΗΝΑΣ ΠΟΥ ΤΡΕΧΕΙ. ΤΟ ΙΣΤΟΡΙΚΟ ΠΙΣΩ ΑΠΟ ΕΝΑ ΠΑΤΗΜΑ ──────────
   //
@@ -303,7 +334,7 @@ export default function ExpenseLedger({ propertyId, userId, onScan, openAddNonce
     if (!e.expenseId) return;
     if (!await confirmDialog({
       title: `Διαγραφή δαπάνης ${fe(e.amount)};`,
-      message: `«${e.title || 'Χωρίς περιγραφή'}» της ${shortDate(e.date)}.\nΗ γραμμή φεύγει οριστικά από τον Προϋπολογισμό, τη Λογιστική και τον φάκελο του λογιστή. Δεν αναιρείται.`,
+      message: `«${e.title || NO_TITLE}» της ${shortDate(e.date)}.\nΗ γραμμή φεύγει οριστικά από τον Προϋπολογισμό, τη Λογιστική και τον φάκελο του λογιστή. Δεν αναιρείται.`,
       confirmLabel: 'Διαγραφή',
       tone: 'negative',
     })) return;
@@ -491,7 +522,7 @@ export default function ExpenseLedger({ propertyId, userId, onScan, openAddNonce
 
       {/* Πρώτα η απάντηση στο «ξόδεψα περισσότερα;», μετά η λίστα. Ο χρήστης δεν
           ανοίγει τις Δαπάνες για να διαβάσει εγγραφές — ανοίγει για να καταλάβει. */}
-      <ExpenseCompare spends={spends} />
+      <ExpenseCompare spends={spends} today={compareToday} />
 
       {/* ── Τρία νούμερα ─────────────────────────────────────────────────────
           Χωρίς πλαίσια και χωρίς γεμίσματα. Τρεις στήλες χωρισμένες με μία
@@ -740,9 +771,17 @@ export default function ExpenseLedger({ propertyId, userId, onScan, openAddNonce
         <Card pad="sm" gap={false}>
           {shown.map(m => (
             <div key={m.month}>
+              {/* ΣΥΝΟΛΟ ΜΙΑΣ ΓΡΑΜΜΗΣ ΕΙΝΑΙ Η ΓΡΑΜΜΗ. Ο μήνας με μία δαπάνη έγραφε
+                  «69,00 €» στην κεφαλίδα και «69,00 €» πενήντα πέντε
+                  εικονοστοιχεία πιο κάτω, στη μοναδική του σειρά, με το δεύτερο
+                  να παριστάνει άθροισμα. Χρειάζονται δύο προσθετέοι για να
+                  υπάρχει άθροισμα· ο ίδιος κανόνας ισχύει ήδη για τον μέσο όρο
+                  του δωδεκαμήνου στη σύγκριση και για τη σειρά των παγίων. */}
               <div className="exp-month">
                 <span style={TT.label}>{monthYearLabel(m.month)}</span>
-                <span style={{ ...TT.figure, fontWeight: 700, color: 'var(--text-secondary)' }}>{fe(m.total)}</span>
+                {m.entries.length > 1 && (
+                  <span style={{ ...TT.figure, fontWeight: 700, color: 'var(--text-secondary)' }}>{fe(m.total)}</span>
+                )}
               </div>
               <div style={{ padding: '4px 0' }}>
                 {m.entries.map(e => (
@@ -924,9 +963,6 @@ const FIELD: React.CSSProperties = {
 };
 const LAB: React.CSSProperties = { display: 'block', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 5 };
 
-/** Ποσό σε πεδίο κειμένου: δύο δεκαδικά, κόμμα, χωρίς τελεία χιλιάδων. */
-const amountText = (n: number): string => n.toFixed(2).replace('.', ',');
-
 // ── ΤΟ ΑΦΜ ΤΟΥ ΠΡΟΜΗΘΕΥΤΗ ─────────────────────────────────────────────────
 /**
  * ΤΙ ΕΛΕΙΠΕ: η στήλη `supplier_afm` υπάρχει, ο φάκελος του λογιστή μετρά τις
@@ -990,7 +1026,17 @@ function EditExpense({ row, userId, onClose, onSaved }: {
 }) {
   const supabase = useMemo(() => createClient(), []);
   const [what, setWhat] = useState((row.description || '').trim());
-  const [amount, setAmount] = useState(amountText(Number(row.amount) || 0));
+  // ═══ ΔΕΥΤΕΡΟΣ ΜΟΡΦΟΠΟΙΗΤΗΣ ΠΟΣΟΥ, ΣΤΟ ΙΔΙΟ ΑΡΧΕΙΟ, ΜΕ ΑΛΛΗ ΕΞΟΔΟ ═══════════
+  // Εδώ ζούσε ένα `n.toFixed(2).replace('.', ',')`, δηλαδή ποσό χωρίς τελεία
+  // χιλιάδων. Δαπάνη 1.234,50 € γραφόταν «1.234,50 €» στη γραμμή της λίστας,
+  // «1.234,50 €» στην επιβεβαίωση διαγραφής της ίδιας γραμμής και «1234,50»
+  // μέσα στο πεδίο που ανοίγει από εκείνη τη γραμμή. Το ίδιο ποσό, τρεις
+  // θέσεις, δύο γραφές.
+  //
+  // Ο κύκλος κλείνει: ο κοινός `fn` γράφει «1.234,50» και το `parseAmount`
+  // διαβάζει ρητά αυτή τη μορφή πίσω, οπότε ό,τι φαίνεται στο πεδίο
+  // ξαναδιαβάζεται σωστά στην αποθήκευση.
+  const [amount, setAmount] = useState(fn(Number(row.amount) || 0, 2));
   const [date, setDate] = useState(String(row.date || '').slice(0, 10) || athensToday());
   // ΚΕΝΟ ΣΗΜΑΙΝΕΙ «ΔΕΝ ΤΗΝ ΞΕΡΟΥΜΕ», ΟΧΙ «ΑΛΛΟ». Το κείμενο της βάσης μπορεί να
   // μην είναι στην ταξινομία — αυτές ακριβώς είναι οι γραμμές που «θέλουν μια

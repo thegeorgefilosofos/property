@@ -11,8 +11,19 @@
 //
 // 1. ΜΙΣΟΣ ΜΗΝΑΣ ΕΝΑΝΤΙΑ ΣΕ ΟΛΟΚΛΗΡΟ. Στις 12 του μήνα, ο τρέχων μήνας έχει
 //    δώδεκα μέρες δαπανών και ο προηγούμενος τριάντα. Το «ξοδεύεις λιγότερα»
-//    είναι μαθηματικά σωστό και εντελώς ψεύτικο. Ο τρέχων μήνας σημειώνεται
-//    ρητά ως ημιτελής και η σύγκριση το λέει.
+//    είναι μαθηματικά σωστό και εντελώς ψεύτικο.
+//
+//    ΔΕΝ ΑΡΚΕΙ ΝΑ ΤΟ ΣΗΜΕΙΩΣΕΙΣ. Εδώ γραφόταν ένας ΛΑΘΟΣ αριθμός και από κάτω
+//    του μια επιφύλαξη που ζητούσε από τον αναγνώστη να τον διορθώσει στο μυαλό
+//    του: «−76%» και μετά «ο Αύγουστος δεν έχει τελειώσει». Κανείς δεν το κάνει
+//    αυτό. Διαβάζει το νούμερο, όπως θα διάβαζε κάθε νούμερο· έπειτα φεύγει.
+//
+//    Οταν ο μήνας τρέχει, συγκρίνονται ΙΣΑ ΔΙΑΣΤΗΜΑΤΑ: οι πρώτες N ημέρες του
+//    τρέχοντα με τις πρώτες N του μήνα βάσης, όπου N η σημερινή ημερομηνία. Και
+//    το πρόσημο μπορεί να ΑΝΤΙΣΤΡΑΦΕΙ: 273 € στις 28 μέρες του Αυγούστου απέναντι
+//    στις 321 € ΟΛΟΚΛΗΡΟΥ του Ιουλίου δίνει «λιγότερα», ενώ απέναντι στις 240 €
+//    των πρώτων 28 ημερών του Ιουλίου δίνει «περισσότερα». Το δεύτερο είναι η
+//    αλήθεια· το πρώτο είναι το ημερολόγιο μεταμφιεσμένο σε συμπεριφορά.
 //
 // 2. ΤΟ ΕΤΗΣΙΟ ΠΟΥ ΕΤΥΧΕ. Η ασφάλεια των 340 € πληρώνεται μία φορά τον χρόνο.
 //    Τον μήνα που πέφτει, οι δαπάνες «εκτοξεύονται». Δεν είναι υπέρβαση, είναι
@@ -29,7 +40,7 @@
 
 import { categoryLabel, resolveCategory } from './taxonomy';
 import { fe } from '../core/format';
-import { monthAcc, monthNom } from '../core/months';
+import { monthAcc, monthGen, monthNom } from '../core/months';
 
 /** Το ελάχιστο που χρειάζεται η σύγκριση από μια κίνηση. */
 export interface Spend {
@@ -51,9 +62,24 @@ export interface Driver {
   diff: number;
   current: number;
   base: number;
-  /** Καινούρια κατηγορία που δεν υπήρχε στη βάση σύγκρισης. */
+  /**
+   * Κατηγορία που δεν έχει εμφανιστεί ΠΟΤΕ πριν από τον τρέχοντα μήνα.
+   *
+   * ΚΟΙΤΑΖΕ ΕΝΑΝ ΜΗΝΑ ΠΙΣΩ ΚΑΙ ΕΛΕΓΕ «ΝΕΟ». Η ΕΥΔΑΠ είναι δίμηνη: 31,20 € τον
+   * Ιούνιο, τίποτα τον Ιούλιο, 31,20 € τον Αύγουστο. Με βάση τον Ιούλιο, το
+   * νερό βγαινε «νέο» — και το γράφημα δώδεκα μηνών της ίδιας κάρτας έδειχνε
+   * τη στήλη του Ιουνίου λίγα εκατοστά πιο κάτω. Ο ιδιοκτήτης έψαχνε χρέωση
+   * που δεν αναγνωρίζει, ενώ την είχε ήδη πληρώσει δύο φορές φέτος.
+   */
   isNew: boolean;
-  /** Υπήρχε στη βάση και εξαφανίστηκε. */
+  /**
+   * Υπήρχε στη βάση και δεν υπάρχει πια. ΠΟΤΕ αληθές όσο ο μήνας τρέχει.
+   *
+   * Στις 28 του μήνα, ο λογαριασμός ρεύματος που έρχεται στις 30 δεν έχει
+   * «σταματήσει»: δεν έχει έρθει. Η ίδια οθόνη το έλεγε κιόλας, με τη γραμμή
+   * «ένα πάγιο δεν έχει καταχωρηθεί ακόμη» λίγο πιο κάτω, οπότε δύο σημεία
+   * έδιναν αντίθετη απάντηση για την ίδια χρέωση.
+   */
   vanished: boolean;
 }
 
@@ -72,6 +98,15 @@ export interface Comparison {
   drivers: Driver[];
   /** Ό,τι πρέπει να ξέρει ο αναγνώστης για να μην παρερμηνεύσει. */
   caveats: string[];
+  /**
+   * Η διαφορά είναι μέσα στον θόρυβο: υπάρχει σύγκριση, δεν υπάρχει αλλαγή.
+   *
+   * Η οθόνη το χρειάζεται για να ξέρει ΤΙ να γράψει κάτω από τον αριθμό. Χωρίς
+   * αυτό, έπρεπε να μαντέψει από το `drivers.length === 0`, που σημαίνει δύο
+   * εντελώς διαφορετικά πράγματα: «δεν άλλαξε τίποτα» και «άλλαξαν πολλά, από
+   * λίγο το καθένα». Το κατώφλι ζει στη μηχανή, όπου ελέγχεται.
+   */
+  flat: boolean;
   /** Η σύγκριση σε μία φράση, στα ελληνικά. Ποτέ κενή. */
   sentence: string;
   /** Υπάρχουν αρκετά δεδομένα για να ειπωθεί κάτι; */
@@ -102,12 +137,13 @@ export function monthPhrase(key: string, refYear?: number): string {
 }
 
 /**
- * «Ο Ιούλιος», ονομαστική — όταν ο μήνας είναι ΥΠΟΚΕΙΜΕΝΟ και όχι αντικείμενο.
- * Χωρίς αυτό, η πρόταση για τον μισοτελειωμένο μήνα έβγαινε «Ο Ιούλιο δεν έχει
- * τελειώσει»: η αιτιατική του `monthPhrase` σε θέση υποκειμένου.
+ * «του Ιουλίου», γενική — όταν ο μήνας ΠΡΟΣΔΙΟΡΙΖΕΙ κάτι άλλο, εδώ τις ημέρες
+ * του. Τα ελληνικά κλίνουν και η λάθος πτώση είναι από τα πρώτα πράγματα που
+ * βλέπει ο αναγνώστης: «οι πρώτες 28 ημέρες του Αύγουστος» δεν είναι πρόταση.
+ * Ο κατάλογος των μηνών σε τρεις πτώσεις ζει ήδη στο lib/core/months.
  */
-function monthSubject(key: string): string {
-  return monthNom(Number(key.slice(5, 7)) - 1) || key;
+function monthGenitive(key: string): string {
+  return monthGen(Number(key.slice(5, 7)) - 1) || key;
 }
 
 /** Πόσες μέρες έχει ο μήνας. */
@@ -118,10 +154,19 @@ const daysInMonth = (key: string): number =>
 
 interface Bucket { total: number; byCat: Map<string, number>; oneOffs: Spend[] }
 
-function bucketOf(spends: readonly Spend[], key: string): Bucket {
+/**
+ * Τα ποσά ενός μήνα, προαιρετικά ΜΕΧΡΙ ΚΑΙ μια ημέρα του.
+ *
+ * Το `upto` είναι όλη η σύγκριση ίσων διαστημάτων: με την ίδια τιμή και στους
+ * δύο κάδους, ο τρέχων μήνας κόβεται στο σήμερα και ο μήνας βάσης στην ίδια
+ * ημέρα. Χωρίς αυτό, ο ένας κάδος μετρά είκοσι οκτώ ημέρες και ο άλλος τριάντα
+ * μία· η διαφορά τους τότε λέγεται «συμπεριφορά».
+ */
+function bucketOf(spends: readonly Spend[], key: string, upto?: number): Bucket {
   const b: Bucket = { total: 0, byCat: new Map(), oneOffs: [] };
   for (const s of spends) {
     if (s.date.slice(0, 7) !== key) continue;
+    if (upto !== undefined && Number(s.date.slice(8, 10)) > upto) continue;
     const amount = Math.abs(Number(s.amount));
     if (!Number.isFinite(amount) || amount === 0) continue;
     b.total += amount;
@@ -159,35 +204,54 @@ export function compareMonth(
   const basis: Basis = opts.basis ?? 'previous_month';
   const baseKey = basis === 'previous_month' ? prevMonth(currentKey) : sameMonthLastYear(currentKey);
 
-  const cur = bucketOf(spends, currentKey);
-  const bas = bucketOf(spends, baseKey);
+  // ── ΗΜΙΤΕΛΗΣ ΜΗΝΑΣ: ΙΣΑ ΔΙΑΣΤΗΜΑΤΑ, ΟΧΙ ΕΠΙΦΥΛΑΞΗ ───────────────────────
+  // Οσο ο μήνας τρέχει, κόβονται ΚΑΙ ΟΙ ΔΥΟ στη σημερινή ημέρα. Η επιφύλαξη
+  // λέει πλέον ΤΙ συγκρίθηκε, δεν ζητά συγγνώμη για ό,τι συγκρίθηκε λάθος.
+  const nowKey = monthKey(opts.today);
+  const day = opts.today.getDate();
+  const partial = currentKey === nowKey && day < daysInMonth(currentKey);
+  const upto = partial ? day : undefined;
+
+  const cur = bucketOf(spends, currentKey, upto);
+  const bas = bucketOf(spends, baseKey, upto);
   const diff = cur.total - bas.total;
   const caveats: string[] = [];
-
-  // ── ΗΜΙΤΕΛΗΣ ΜΗΝΑΣ ───────────────────────────────────────────────────────
-  // Στις 12 του μήνα, ο τρέχων έχει δώδεκα μέρες και ο προηγούμενος τριάντα.
-  // Το «ξοδεύεις λιγότερα» είναι μαθηματικά σωστό και εντελώς ψεύτικο.
-  const nowKey = monthKey(opts.today);
-  const partial = currentKey === nowKey && opts.today.getDate() < daysInMonth(currentKey);
   if (partial) {
-    caveats.push(`Ο ${monthSubject(currentKey)} δεν έχει τελειώσει: μετράνε ${opts.today.getDate()} από ${daysInMonth(currentKey)} ημέρες.`);
+    caveats.push(`Ίσα διαστήματα: οι πρώτες ${day} ημέρες του ${monthGenitive(currentKey)} με τις πρώτες ${day} του ${monthGenitive(baseKey)}.`);
   }
 
   // ── ΛΕΙΠΕΙ Η ΒΑΣΗ ────────────────────────────────────────────────────────
+  // Το μήνυμα λέει ΠΟΙΟ διάστημα βρέθηκε άδειο. Με ίσα διαστήματα, «δεν
+  // υπάρχουν δαπάνες τον Ιούλιο» θα ήταν ψέμα όταν ο Ιούλιος έχει δαπάνες μετά
+  // την ημέρα που κόβει η σύγκριση: άδειες είναι οι πρώτες N ημέρες του, όχι ο
+  // μήνας.
   if (bas.total === 0) {
     const yearRef = Number(currentKey.slice(0, 4));
+    const where = upto === undefined
+      ? `τον ${monthPhrase(baseKey, yearRef)}`
+      : `στις πρώτες ${upto} ημέρες του ${monthGenitive(baseKey)}`;
     const none = cur.total === 0
       ? 'Δεν υπάρχουν καταχωρημένες δαπάνες για σύγκριση.'
-      : `Δεν υπάρχουν δαπάνες τον ${monthPhrase(baseKey, yearRef)} για να γίνει σύγκριση.`;
+      : `Δεν υπάρχουν δαπάνες ${where} για να γίνει σύγκριση.`;
     return {
       basis, currentKey, baseKey, current: cur.total, base: 0, diff: cur.total, pct: null,
       drivers: [], caveats,
-      meaningful: false,
+      meaningful: false, flat: false,
       sentence: none,
     };
   }
 
   // ── ΟΙ ΚΑΤΗΓΟΡΙΕΣ ΠΟΥ ΕΞΗΓΟΥΝ ΤΗ ΔΙΑΦΟΡΑ ────────────────────────────────
+  // «Νέο» σημαίνει ποτέ πριν, όχι «όχι τον προηγούμενο μήνα». Το σύνολο
+  // χτίζεται από ΟΛΟ το ιστορικό που δόθηκε, μία φορά, όχι ανά κατηγορία.
+  const everBefore = new Set<string>();
+  for (const sp of spends) {
+    if (sp.date.slice(0, 7) >= currentKey) continue;
+    const a = Math.abs(Number(sp.amount));
+    if (!Number.isFinite(a) || a === 0) continue;
+    everBefore.add(resolveCategory(sp.category) ?? 'other');
+  }
+
   const slugs = new Set([...cur.byCat.keys(), ...bas.byCat.keys()]);
   const drivers: Driver[] = [...slugs]
     .map(slug => {
@@ -196,8 +260,8 @@ export function compareMonth(
       return {
         slug, label: categoryLabel(slug) || 'Άλλο',
         diff: c - b, current: c, base: b,
-        isNew: b === 0 && c > 0,
-        vanished: c === 0 && b > 0,
+        isNew: c > 0 && !everBefore.has(slug),
+        vanished: !partial && c === 0 && b > 0,
       };
     })
     .filter(d => Math.abs(d.diff) >= NOISE)
@@ -222,6 +286,7 @@ export function compareMonth(
     drivers: drivers.slice(0, MAX_DRIVERS),
     caveats,
     meaningful: true,
+    flat: Math.abs(diff) < NOISE,
     sentence: buildSentence(diff, drivers, baseKey, yearRef, basis),
   };
 }
