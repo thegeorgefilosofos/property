@@ -1903,23 +1903,39 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                       <Toggle on={!isEx} size="sm" ariaLabel="Μετρά στον προϋπολογισμό"
                         onChange={() => { if (isEx) { unexcludeItem(it.id); setExclAmtDraft(d => { const n = { ...d }; delete n[it.id]; return n; }); } else { const snap = budgets.__excluded; excludeItem(it.id); notify(`Εξαιρέθηκε «${it.label}»`, { duration: UNDO_MS, action: { label: 'Αναίρεση', onClick: () => persistCats({ __excluded: snap ?? '{}' }) } }); } }} />
                     </div>
+                    {/* ═══ ΤΡΕΙΣ ΣΕΙΡΕΣ ΕΓΙΝΑΝ ΜΙΑ ══════════════════════════════════
+                        Το πάνελ έπιανε τρεις σειρές με στήλη ετικετών 74
+                        εικονοστοιχείων: «Λόγος», «Εξαιρείται», «Σημείωση». Ενα
+                        κουτί ύψους εκατόν είκοσι για να πεις ότι τον λογαριασμό
+                        τον πλήρωσε ο ενοικιαστής, ανοιγμένο κάτω από ΚΑΘΕ
+                        εξαιρεμένη γραμμή του μήνα.
+
+                        Τα τρία χειριστήρια χωρούν σε μία σειρά: τα πλακίδια του
+                        λόγου, το ποσό των εκατόν οκτώ και η σημείωση που παίρνει
+                        τον υπόλοιπο χώρο. Οι δύο ετικέτες που χρειάζονται μπαίνουν
+                        μπροστά από το χειριστήριό τους αντί για δική τους στήλη· η
+                        σημείωση δεν χρειάζεται καμία, γιατί το κείμενο υπόδειξης
+                        είναι ολόκληρο παράδειγμα.
+
+                        ΚΑΙ ΕΝΑ ΚΕΙΜΕΝΟ ΕΦΥΓΕ. Το «όλη η εγγραφή εξαιρείται» έλεγε
+                        ό,τι λέει ήδη η διαγραμμένη τιμή στη γραμμή από πάνω· το
+                        «μετρά 15,60 €» της μερικής εξαίρεσης γράφεται κιόλας
+                        εκεί, κάτω από το ποσό. */}
                     {isEx && (
-                      <div style={{ marginTop: 10, padding: '12px 13px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, display: 'flex', flexDirection: 'column', gap: 11 }}>
+                      <div style={{ marginTop: 8, padding: '9px 11px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                         {/* Λόγος: γρήγορες επιλογές (προαιρετικό) */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                          <span style={{ width: 74, flexShrink: 0, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Λόγος</span>
-                          {PAYERS.map(p => {
+                        <span style={{ flexShrink: 0, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Λόγος</span>
+                        {PAYERS.map(p => {
                             const sel = ex?.payer === p;
-                            return (
-                              <button key={p} type="button" onClick={() => patchExcl(it.id, { payer: sel ? '' : p })}
-                                style={{ border: `1px solid ${sel ? 'var(--border-accent)' : 'var(--border-subtle)'}`, background: sel ? 'var(--accent-dim)' : 'transparent', color: sel ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: T.font.sans, padding: '3px 10px', borderRadius: T.radius.pill, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' }}
-                                onMouseEnter={e => { if (!sel) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-accent)'; (e.currentTarget as HTMLElement).style.color = 'var(--accent)'; } }}
-                                onMouseLeave={e => { if (!sel) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-subtle)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'; } }}>
-                                {p}
-                              </button>
-                            );
-                          })}
-                        </div>
+                          return (
+                            <button key={p} type="button" onClick={() => patchExcl(it.id, { payer: sel ? '' : p })}
+                              style={{ border: `1px solid ${sel ? 'var(--border-accent)' : 'var(--border-subtle)'}`, background: sel ? 'var(--accent-dim)' : 'transparent', color: sel ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: T.font.sans, padding: '3px 10px', borderRadius: T.radius.pill, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' }}
+                              onMouseEnter={e => { if (!sel) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-accent)'; (e.currentTarget as HTMLElement).style.color = 'var(--accent)'; } }}
+                              onMouseLeave={e => { if (!sel) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-subtle)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'; } }}>
+                              {p}
+                            </button>
+                          );
+                        })}
                         {/* Μερική εξαίρεση: πόσο από το ποσό να εξαιρεθεί (κενό = όλο)
 
                             ΤΟ ΕΥΡΩ ΓΡΑΦΟΤΑΝ ΔΥΟ ΦΟΡΕΣ, ΚΑΙ Η ΠΑΡΕΝΘΕΣΗ ΚΟΒΟΤΑΝ. Το
@@ -1930,31 +1946,24 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                             νομίσματος στη σειρά. Το ποσό το λέει ήδη η ίδια η γραμμή,
                             διαγραμμένο στο δεξί άκρο· η υπόδειξη λέει μόνο τι σημαίνει
                             το κενό πεδίο. */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                          <span style={{ width: 74, flexShrink: 0, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Εξαιρείται</span>
-                          <div style={{ position: 'relative', width: 108 }}>
-                            <input aria-label="Ποσό που εξαιρείται" inputMode="decimal" value={amtVal}
-                              onChange={e => { const raw = e.target.value.replace(/[^\d.,]/g, ''); setExclAmtDraft(d => ({ ...d, [it.id]: raw })); const n = parseFloat(raw.replace(',', '.')); patchExcl(it.id, { amount: isFinite(n) && n > 0 ? n : undefined }); }}
-                              placeholder="όλο"
-                              style={{ width: '100%', height: 28, padding: '0 22px 0 10px', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 12, fontWeight: 600, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', outline: 'none', transition: 'border-color 0.15s' }}
-                              onFocus={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-accent)'; }}
-                              onBlur={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-subtle)'; }} />
-                            <span style={{ position: 'absolute', right: 9, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, pointerEvents: 'none' }}>€</span>
-                          </div>
-                          <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-                            {partial ? <>από {feAuto(full)} · μετρά <span style={{ color: 'var(--text-secondary)', fontFamily: T.font.num }}>{feAuto(cnt)}</span></> : 'όλη η εγγραφή εξαιρείται'}
-                          </span>
-                        </div>
-                        {/* Σημείωση: ελεύθερο κείμενο (προαιρετικό) */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ width: 74, flexShrink: 0, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Σημείωση</span>
-                          <input aria-label="Σημείωση εξαίρεσης" type="text" value={ex?.note ?? ''} maxLength={120}
-                            onChange={e => patchExcl(it.id, { note: e.target.value })}
-                            placeholder="το μισό το πλήρωσε ο συγκάτοικος"
-                            style={{ flex: 1, minWidth: 0, height: 28, padding: '0 10px', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans, outline: 'none', transition: 'border-color 0.15s' }}
+                        <span style={{ flexShrink: 0, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginLeft: 4 }}>Εξαιρείται</span>
+                        <div style={{ position: 'relative', width: 92, flexShrink: 0 }}>
+                          <input aria-label="Ποσό που εξαιρείται" inputMode="decimal" value={amtVal}
+                            onChange={e => { const raw = e.target.value.replace(/[^\d.,]/g, ''); setExclAmtDraft(d => ({ ...d, [it.id]: raw })); const n = parseFloat(raw.replace(',', '.')); patchExcl(it.id, { amount: isFinite(n) && n > 0 ? n : undefined }); }}
+                            placeholder="όλο"
+                            style={{ width: '100%', height: 28, padding: '0 22px 0 10px', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 12, fontWeight: 600, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', outline: 'none', transition: 'border-color 0.15s' }}
                             onFocus={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-accent)'; }}
                             onBlur={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-subtle)'; }} />
+                          <span style={{ position: 'absolute', right: 9, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, pointerEvents: 'none' }}>€</span>
                         </div>
+                        {/* Σημείωση: ελεύθερο κείμενο (προαιρετικό). Χωρίς ετικέτα:
+                            το κείμενο υπόδειξης είναι ολόκληρο παράδειγμα. */}
+                        <input aria-label="Σημείωση εξαίρεσης" type="text" value={ex?.note ?? ''} maxLength={120}
+                          onChange={e => patchExcl(it.id, { note: e.target.value })}
+                          placeholder="το μισό το πλήρωσε ο συγκάτοικος"
+                          style={{ flex: '1 1 180px', minWidth: 0, height: 28, padding: '0 10px', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans, outline: 'none', transition: 'border-color 0.15s' }}
+                          onFocus={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-accent)'; }}
+                          onBlur={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-subtle)'; }} />
                       </div>
                     )}
                   </div>
