@@ -26,7 +26,7 @@
 // να γίνει.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, useId } from 'react';
 import { track, PRODUCT_EVENTS } from '@/lib/analytics/events';
 import { createClient } from '@/lib/supabase/client';
 import * as expenseStore from '@/lib/data/expenses'
@@ -45,11 +45,11 @@ import { categoryLabel, resolveCategory, BY_SLUG, CATEGORIES } from '@/lib/expen
 import { missingThisMonth, cadenceLabel } from '@/lib/expenses/expected';
 import { priceChanges } from '@/lib/expenses/priceChange';
 import { planBillPayment, type BillToPay } from '@/lib/expenses/pay';
-import { groupForCategory } from '@/lib/expenses/groups';
 import { hintAction } from '@/lib/expenses/hints';
 import * as hintStore from '@/lib/data/categoryHints';
 import { PAID_BY_OPTIONS, SHARED_SCOPES, DEFAULT_SHARE_PERCENT } from '@/lib/expenses/sharing';
 import { CustomSelect, DatePicker, Toggle } from './UIComponents';
+import { InfoHint } from './InfoHint';
 import { athensToday, athensMonth } from '@/lib/core/time';
 import { MONTHS_NOM } from '@/lib/core/months';
 import { afmDigits, isValidAfm, parseAmount } from '@/lib/core/greek';
@@ -127,14 +127,21 @@ export default function ExpenseLedger({ propertyId, userId, onScan, openAddNonce
   const [expenses, setExpenses] = useState<LedgerExpense[]>([]);
   const [q, setQ] = useState('');
   const [adding, setAdding] = useState(false);
-  // Το τέταρτο πλακίδιο της σάρωσης («Χειροκίνητα») φτάνει ώς εδώ. Η πρώτη
-  // απόδοση αγνοείται: χωρίς αυτό, η φόρμα θα άνοιγε μόνη της κάθε φορά που
-  // φορτώνει η καρτέλα.
-  const firstNonce = useRef(true)
-  useEffect(() => {
-    if (firstNonce.current) { firstNonce.current = false; return }
-    if (openAddNonce !== undefined) setAdding(true)
-  }, [openAddNonce])
+  // ── ΤΟ ΤΕΤΑΡΤΟ ΠΛΑΚΙΔΙΟ ΤΗΣ ΣΑΡΩΣΗΣ («ΧΕΙΡΟΚΙΝΗΤΑ») ΦΤΑΝΕΙ ΩΣ ΕΔΩ ────────
+  // Η πρώτη τιμή του μετρητή κρατιέται ως «ήδη ιδωμένη», ώστε η φόρμα να μην
+  // ανοίγει μόνη της κάθε φορά που φορτώνει η καρτέλα.
+  //
+  // ΓΙΑΤΙ ΟΧΙ ΣΕ useEffect. Ήταν ένα effect που καλούσε `setAdding` και ένα
+  // ref για να αγνοηθεί η πρώτη εκτέλεση. Ο κανόνας `set-state-in-effect` το
+  // σημείωνε ως ΣΦΑΛΜΑ και είχε δίκιο: το effect τρέχει ΜΕΤΑ τη ζωγραφική,
+  // οπότε ο χρήστης έβλεπε μια απόδοση χωρίς τη φόρμα και μετά τη φόρμα να
+  // εμφανίζεται. Η προσαρμογή κατάστασης όταν αλλάζει μια ιδιότητα γίνεται
+  // στην απόδοση: το React ξαναποδίδει αμέσως, πριν βγει τίποτα στην οθόνη.
+  const [seenNonce, setSeenNonce] = useState(openAddNonce);
+  if (openAddNonce !== seenNonce) {
+    setSeenNonce(openAddNonce);
+    setAdding(true);
+  }
   // Ο σπόρος της φόρμας, όταν η καταχώρηση ξεκινά από γραμμή που «λείπει».
   const [seed, setSeed] = useState<AddSeed | undefined>(undefined);
   const [busy, setBusy] = useState<string | null>(null);
@@ -879,27 +886,36 @@ const amountText = (n: number): string => n.toFixed(2).replace('.', ',');
  * («094 014 201»). Στη βάση γράφονται μόνο τα ψηφία, γιατί ο περιορισμός της
  * στήλης είναι `^[0-9]{9}$`.
  */
-function AfmField({ value, onChange, note }: { value: string; onChange: (v: string) => void; note: string }) {
+function AfmField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const bad = value.trim() !== '' && !isValidAfm(value);
+  const id = useId();
   return (
     <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-      <label style={{ flex: '0 1 190px', minWidth: 0 }}>
-        <span style={LAB}>ΑΦΜ προμηθευτή</span>
-        <input value={value} onChange={e => onChange(e.target.value)} inputMode="numeric" maxLength={13}
+      <div style={{ flex: '0 1 190px', minWidth: 0 }}>
+        {/* Η ΟΔΗΓΙΑ ΠΙΣΩ ΑΠΟ ΤΟ ΚΥΚΛΑΚΙ. Διαβάζεται μία φορά στη ζωή του
+            χρήστη: γιατί ζητείται ένα προαιρετικό πεδίο. Μόνιμα ορατή, έπιανε
+            240 εικονοστοιχεία δίπλα σε κάθε καταχώρηση δαπάνης και έλεγε στον
+            εκατοστό λογαριασμό ό,τι είχε πει στον πρώτο. */}
+        <span style={{ ...LAB, display: 'flex', alignItems: 'center' }}>
+          <label htmlFor={id}>ΑΦΜ προμηθευτή</label>
+          <InfoHint label="Γιατί ζητείται το ΑΦΜ">Προαιρετικό. Χωρίς αυτό, ο λογιστής ταιριάζει τα παραστατικά με το όνομα.</InfoHint>
+        </span>
+        <input id={id} value={value} onChange={e => onChange(e.target.value)} inputMode="numeric" maxLength={13}
           aria-invalid={bad || undefined}
           style={{ ...FIELD, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}
           placeholder="Εννέα ψηφία" />
-      </label>
-      {/* Το λάθος λέγεται στη ΘΕΣΗ της οδηγίας, όχι σε δεύτερη γραμμή από κάτω:
-          η φόρμα δεν αλλάζει ύψος τη στιγμή που ο χρήστης πληκτρολογεί. */}
-      <span style={{ ...TT.caption, flex: '1 1 240px', minWidth: 0, paddingBottom: 11, lineHeight: 1.5 }}>
-        {bad ? 'Δεν είναι έγκυρο ΑΦΜ. Εννέα ψηφία, όπως στο παραστατικό.' : note}
-      </span>
+      </div>
+      {/* Το λάθος ΦΑΙΝΕΤΑΙ, δεν κρύβεται πουθενά: κάθεται δίπλα στο πεδίο και
+          είναι χαμηλότερο από αυτό, οπότε η φόρμα δεν αλλάζει ύψος τη στιγμή
+          που ο χρήστης πληκτρολογεί. */}
+      {bad && (
+        <span style={{ ...TT.caption, flex: '1 1 240px', minWidth: 0, paddingBottom: 11, lineHeight: 1.5 }}>
+          Δεν είναι έγκυρο ΑΦΜ. Εννέα ψηφία, όπως στο παραστατικό.
+        </span>
+      )}
     </div>
   );
 }
-
-const AFM_NOTE = 'Προαιρετικό. Χωρίς αυτό, ο λογιστής ταιριάζει τα παραστατικά με το όνομα.';
 
 // ── ΕΠΕΞΕΡΓΑΣΙΑ ΥΠΑΡΧΟΥΣΑΣ ΔΑΠΑΝΗΣ ────────────────────────────────────────
 /**
@@ -1018,7 +1034,7 @@ function EditExpense({ row, userId, onClose, onSaved }: {
           options={CATEGORIES.map(c => ({ value: c.slug, label: c.label }))} />
       </div>
 
-      <AfmField value={afm} onChange={setAfm} note={AFM_NOTE} />
+      <AfmField value={afm} onChange={setAfm} />
     </Modal>
   );
 }
@@ -1159,19 +1175,38 @@ function QuickAdd({ propertyId, userId, seed, onDone }: { propertyId: string; us
           επιλογέας «Ποιος πληρώνει» έπιανε ολόκληρη τη γραμμή για τέσσερις
           λέξεις. Το μέγεθος ενός πεδίου είναι υπόσχεση για το περιεχόμενό του.
 
-          Οι ΙΔΙΕΣ στήλες στις δύο σειρές, ώστε το «Ποιος πληρώνει» να πέφτει
-          ακριβώς κάτω από το «Τι ήταν;» και το μερίδιο κάτω από το ποσό. */}
+          ΔΥΟ ΣΕΙΡΕΣ, ΟΧΙ ΤΡΕΙΣ. Η κατηγορία καθόταν μόνη της σε μια σειρά και
+          άφηνε δύο άδειες στήλες δίπλα της, ενώ το «Ποιος πληρώνει» κρατούσε
+          ολόκληρη τρίτη σειρά από κάτω. Είναι η ίδια ερώτηση δύο φορές («τι
+          είναι αυτή η δαπάνη» και «ποιανού είναι»): κάθεται τώρα στην ίδια
+          γραμμή και η φόρμα κοντύνει κατά μία σειρά. */}
       <style>{`
         /* ΕΝΑ ΜΕΤΡΟ ΓΙΑ ΟΛΗ ΤΗ ΦΟΡΜΑ. Τα πεδία πιάνουν 824 εικονοστοιχεία
-           (460+12+150+12+190) και το κουμπί καθόταν στο δεξί άκρο μιας κάρτας
+           (414+12+196+12+190) και το κουμπί καθόταν στο δεξί άκρο μιας κάρτας
            1.100: η γραμμή της ενέργειας δεν είχε καμία σχέση με τη γραμμή των
-           πεδίων. Τώρα κάθε σειρά τελειώνει στην ίδια κάθετη. */
+           πεδίων. Τώρα κάθε σειρά τελειώνει στην ίδια κάθετη.
+
+           Η ΜΕΣΑΙΑ ΣΤΗΛΗ ΕΙΝΑΙ 196 ΚΑΙ ΟΧΙ 150, ΕΠΕΙΔΗ ΜΕΤΡΗΘΗΚΕ ΣΕ ΠΕΡΙΗΓΗΤΗ.
+           Η μακρύτερη επιλογή του «Ποιος πληρώνει» («Μοιρασμένο 50/50») θέλει
+           134 εικονοστοιχεία κειμένου, ο επιλογέας τρώει 58 σε περιθώρια, βέλος
+           και περίγραμμα: 192 για να μην κοπεί. Στα 170 κοβόταν κατά 22, στα
+           190 κατά 2. Τα σαράντα έξι που πήρε η στήλη τα έδωσε η πρώτη, που
+           κρατά περιγραφή και όχι αριθμό. */
         .qa-form { max-width: 824px; }
         .qa-grid { display: grid; gap: 12px; align-items: end;
-          grid-template-columns: minmax(200px, 460px) minmax(110px, 150px) minmax(150px, 190px); }
+          grid-template-columns: minmax(200px, 414px) minmax(150px, 196px) minmax(150px, 190px); }
+        /* Το μερίδιο ανήκει στον επιλογέα που το γέννησε: πέφτει ΑΚΡΙΒΩΣ από
+           κάτω του σε κάθε πλάτος, στη δεύτερη στήλη όσο υπάρχουν τρεις και
+           στην πρώτη όταν οι στήλες γίνουν δύο, όπου εκεί κάθεται ο επιλογέας. */
+        .qa-share { grid-column: 2; }
         @media (max-width: 760px) { .qa-grid { grid-template-columns: 1fr 1fr; }
-          .qa-grid > .qa-wide { grid-column: 1 / -1; } }
-        @media (max-width: 420px) { .qa-grid { grid-template-columns: 1fr; } }
+          .qa-grid > .qa-wide { grid-column: 1 / -1; }
+          .qa-share { grid-column: 1; } }
+        /* ΜΙΑ ΣΤΗΛΗ ΑΠΟ ΤΑ 470 ΚΑΙ ΚΑΤΩ, ΟΧΙ ΑΠΟ ΤΑ 420. Δύο στήλες σε οθόνη
+           430 (iPhone Pro Max) αφήνουν 180 στον επιλογέα του πληρωτή, δώδεκα
+           λιγότερα από όσα θέλει: το «Μοιρασμένο 50/50» θα έφτανε στην οθόνη
+           κομμένο. Στα 470 και πάνω η κάθε στήλη βγαίνει 200. */
+        @media (max-width: 470px) { .qa-grid { grid-template-columns: 1fr; } }
       `}</style>
 
       <div className="qa-form">
@@ -1217,40 +1252,33 @@ function QuickAdd({ propertyId, userId, seed, onDone }: { propertyId: string; us
           έρχεται συμπληρωμένη από την περιγραφή χωρίς κανένα πάτημα. Το άδειασμα
           γίνεται με την επιλογή «Χωρίς κατηγορία», που πριν απαιτούσε να ξέρεις
           ότι το δεύτερο πάτημα στο ίδιο πλακίδιο το ξεδιαλέγει. */}
+      {/* ── ΤΙ ΕΙΝΑΙ, ΠΟΙΑΝΟΥ ΕΙΝΑΙ, ΑΝ ΠΛΗΡΩΘΗΚΕ ─────────────────────────
+          Ο πληρωτής δεν είναι πάντα ο ιδιοκτήτης: κοινόχρηστα που βαραίνουν
+          τον ενοικιαστή δεν είναι δικό του κόστος και ένα διαμέρισμα με
+          συνιδιοκτήτη μοιράζει κάθε λογαριασμό. Το ποσοστό εμφανίζεται μόνο
+          όταν αποκτά νόημα.
+
+          Ο ΔΙΑΚΟΠΤΗΣ ΗΤΑΝ ΤΕΤΡΑΓΩΝΑΚΙ ΤΟΥ ΠΕΡΙΗΓΗΤΗ, ΜΟΝΟ ΤΟΥ ΣΤΟ ΑΡΙΣΤΕΡΟ
+          ΑΚΡΟ και έλεγε «Δεν το έχω πληρώσει ακόμη»: διπλή άρνηση, που ο
+          χρήστης έπρεπε να λύσει στο μυαλό του για να καταλάβει τι σημαίνει
+          τσεκαρισμένο. Τώρα είναι πεδίο σαν τα άλλα, με θετική διατύπωση.
+
+          ΚΑΙ ΚΑΘΕΤΑΙ ΚΑΤΩ ΑΠΟ ΤΗΝ ΗΜΕΡΟΜΗΝΙΑ ΠΟΥ ΟΡΙΖΕΙ. Ο ίδιος διακόπτης
+          αλλάζει την ετικέτα του πεδίου από πάνω («Ημερομηνία» ή «Λήξη»): στην
+          ίδια στήλη, η αιτία και το αποτέλεσμα φαίνονται μαζί. */}
       <div className="qa-grid" style={{ marginTop: 16 }}>
+        {/* Η ετικέτα μένει η κοινή `LAB`, όχι αυτή του CustomSelect: όλη η φόρμα
+            χρησιμοποιεί την ίδια και η ενσωματωμένη έχει minHeight 32, οπότε θα
+            ξεχώριζε η μία γραμμή από τις άλλες ακριβώς δίπλα της. */}
         <div className="qa-wide" style={{ minWidth: 0 }}>
           <span style={LAB}>Κατηγορία</span>
           <CustomSelect value={slug} onChange={v => { setPicked(v); setTouched(true); }} ariaLabel="Κατηγορία δαπάνης"
             options={[{ value: '', label: 'Χωρίς κατηγορία' }, ...CATEGORIES.map(c => ({ value: c.slug, label: c.label }))]} />
         </div>
-      </div>
-
-      {/* ── ΠΟΙΟΣ ΠΛΗΡΩΝΕΙ, ΚΑΙ ΑΝ ΠΛΗΡΩΘΗΚΕ ──────────────────────────────
-          Δεν είναι πάντα ο ιδιοκτήτης: κοινόχρηστα που βαραίνουν τον ενοικιαστή
-          δεν είναι δικό του κόστος και ένα διαμέρισμα με συνιδιοκτήτη μοιράζει
-          κάθε λογαριασμό. Το ποσοστό εμφανίζεται μόνο όταν αποκτά νόημα.
-
-          Ο ΔΙΑΚΟΠΤΗΣ ΗΤΑΝ ΤΕΤΡΑΓΩΝΑΚΙ ΤΟΥ ΠΕΡΙΗΓΗΤΗ, ΜΟΝΟ ΤΟΥ ΣΤΟ ΑΡΙΣΤΕΡΟ
-          ΑΚΡΟ και έλεγε «Δεν το έχω πληρώσει ακόμη»: διπλή άρνηση, που ο
-          χρήστης έπρεπε να λύσει στο μυαλό του για να καταλάβει τι σημαίνει
-          τσεκαρισμένο. Τώρα είναι πεδίο σαν τα άλλα, με θετική διατύπωση και
-          στέκεται δίπλα στα υπόλοιπα αντί να αιωρείται. */}
-      <div className="qa-grid" style={{ marginTop: 14 }}>
-        {/* Η ετικέτα μένει η κοινή `LAB`, όχι αυτή του CustomSelect: όλη η φόρμα
-            χρησιμοποιεί την ίδια και η ενσωματωμένη έχει minHeight 32, οπότε θα
-            ξεχώριζε η μία γραμμή από τις άλλες ακριβώς δίπλα της. */}
-        <div className="qa-wide" style={{ minWidth: 0 }}>
+        <div style={{ minWidth: 0 }}>
           <span style={LAB}>Ποιος πληρώνει</span>
           <CustomSelect value={paidBy} onChange={setPaidBy} options={PAID_BY_OPTIONS} />
         </div>
-        {SHARED_SCOPES.has(paidBy) && (
-          <label style={{ minWidth: 0 }}>
-            <span style={LAB}>Μερίδιό μου</span>
-            <input value={sharePct} onChange={e => setSharePct(e.target.value)} inputMode="numeric"
-              style={{ ...FIELD, textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}
-              placeholder={`${DEFAULT_SHARE_PERCENT} %`} />
-          </label>
-        )}
         <div style={{ minWidth: 0 }}>
           <span style={LAB}>Πληρώθηκε</span>
           <div style={{ height: T.h.lg, display: 'flex', alignItems: 'center' }}>
@@ -1259,13 +1287,27 @@ function QuickAdd({ propertyId, userId, seed, onDone }: { propertyId: string; us
         </div>
       </div>
 
+      {/* Το μερίδιο υπάρχει μόνο για τις μοιρασμένες δαπάνες, οπότε δεν
+          δεσμεύει στήλη στις υπόλοιπες: εμφανίζεται κάτω από τον επιλογέα που
+          το ζήτησε και η φόρμα μεγαλώνει μόνο τότε. */}
+      {SHARED_SCOPES.has(paidBy) && (
+        <div className="qa-grid" style={{ marginTop: 14 }}>
+          <label className="qa-share" style={{ minWidth: 0 }}>
+            <span style={LAB}>Μερίδιό μου</span>
+            <input value={sharePct} onChange={e => setSharePct(e.target.value)} inputMode="numeric"
+              style={{ ...FIELD, textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}
+              placeholder={`${DEFAULT_SHARE_PERCENT} %`} />
+          </label>
+        </div>
+      )}
+
       {/* ΜΟΝΟ ΣΤΗΝ ΠΛΗΡΩΜΕΝΗ. Η απλήρωτη γραμμή γράφεται στον πίνακα των
           λογαριασμών, που ΔΕΝ έχει στήλη ΑΦΜ: ένα πεδίο που θα φαινόταν και
           δεν θα αποθηκευόταν είναι χειρότερο από πεδίο που λείπει. Το ΑΦΜ
           μπαίνει μετά την εξόφληση, από την επεξεργασία της δαπάνης. */}
       {paid && (
         <div style={{ marginTop: 14 }}>
-          <AfmField value={afm} onChange={setAfm} note={AFM_NOTE} />
+          <AfmField value={afm} onChange={setAfm} />
         </div>
       )}
 
