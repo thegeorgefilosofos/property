@@ -63,7 +63,7 @@ const { chromium } = pkg
 const SCENES = ['portfolio', 'cash', 'rent', 'inbox', 'ledger', 'finances', 'checklist', 'modal',
   'select', 'compare', 'loan', 'pricing', 'bills', 'contacts', 'wizard', 'roi', 'roi-pro',
   'tenant', 'scan', 'accounting', 'accounting-pro', 'calendar', 'clients', 'documents', 'inventory',
-  'referral', 'referralPro']
+  'referral', 'referralPro', 'plan', 'planReno', 'planSale']
 
 const ONLY = process.env.E2E_ONLY ? process.env.E2E_ONLY.split(',') : null
 const RUN = ONLY ? SCENES.filter(s => ONLY.includes(s)) : SCENES

@@ -22,7 +22,6 @@ import {
 } from './TabTenantHelpers';
 import type { LeaseType, LeaseCategory, IdDocType, PaymentFreq } from './TabTenantHelpers';
 import {
-  Toggle,
   ToggleField,
   NumberInput,
   TextInput,
@@ -124,7 +123,6 @@ import { DashboardView, CommView, LegalTaxView, DamagesView, MaintenanceView } f
 import { useLoad } from '@/app/hooks/useLoad';
 
 // ─── Design tokens, shared source of truth (components/Theme) ────────────────
-const labelStyle = { ...TT.label, marginBottom:7 };
 
 // ─── HTML escaping for values interpolated into document.write() templates ────
 
