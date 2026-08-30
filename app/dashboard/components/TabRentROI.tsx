@@ -1471,7 +1471,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                 δεκατέσσερα έξω. Ο γονέας τύλιγε ήδη, αλλά τύλιγε ολόκληρη την
                 ομάδα σε δική της σειρά, όπου πάλι δεν χωρούσε. */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, rowGap: 6, flexWrap: 'wrap' }}>
-              <label htmlFor={apprId} style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: SANS }}>Ετήσια ανατίμηση ακινήτου</label>
+              <label htmlFor={apprId} style={{ ...fieldLabelStyle, margin: 0, alignItems: 'center' }}>Ετήσια ανατίμηση ακινήτου</label>
               {/* ΤΑ 90 ΔΕΝ ΧΩΡΟΥΣΑΝ ΤΗΝ ΤΙΜΗ. Το επίθεμα «%» παίρνει 33, το
                   γέμισμα του πεδίου 28 και το περίγραμμα 2: μένουν 22 για τον
                   αριθμό, που ζητά 29 για το «6,8». Μετρημένο σε Chromium και
@@ -1487,8 +1487,25 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                 </button>
               )}
             </div>
-            <label style={{ ...fieldLabelStyle, margin: 0 }}>Ορίζοντας σύγκρισης</label>
-            <Seg value={cmpYears} onChange={setCmpYears} options={[['10', '10 έτη'], ['20', '20 έτη']]} />
+            {/* ═══ ΔΥΟ ΟΜΑΔΕΣ ΣΕ ΜΙΑ ΣΕΙΡΑ, ΚΑΙ ΦΑΙΝΟΤΑΝ ΜΙΑ ═════════════════
+                Η σειρά έτρεχε «Ετήσια ανατίμηση ακινήτου [6,80 %] ΔΕΙΚΤΗΣ ΤΤΕ
+                Ορίζοντας σύγκρισης [10 έτη][20 έτη]» χωρίς τίποτα να δείχνει
+                πού τελειώνει το ένα χειριστήριο και πού αρχίζει το άλλο: το
+                σήμα της ΤτΕ καθόταν ανάμεσα στο πεδίο και στην επόμενη ετικέτα,
+                οπότε το μάτι δεν ήξερε σε ποιο από τα δύο ανήκει.
+
+                ΚΑΙ ΟΙ ΔΥΟ ΕΤΙΚΕΤΕΣ ΕΙΧΑΝ ΑΛΛΟ ΒΑΡΟΣ: η πρώτη γραμμένη με το
+                χέρι (12, δεύτερη βαθμίδα), η δεύτερη με την κοινή
+                `fieldLabelStyle` (12, βάρος 500). Ιδια σειρά, δύο ιδιώματα.
+
+                Τώρα η κάθε ομάδα είναι δικό της κουτί με το δικό της κενό, μια
+                τρίχα τις χωρίζει και οι δύο ετικέτες διαβάζουν την ίδια πηγή.
+                Οταν η σειρά τυλίγεται, η τρίχα εξαφανίζεται μαζί με τη σειρά. */}
+            <span aria-hidden style={{ width: 1, alignSelf: 'stretch', minHeight: 24, background: 'var(--border-subtle)' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, rowGap: 6, flexWrap: 'wrap' }}>
+              <label style={{ ...fieldLabelStyle, margin: 0, alignItems: 'center' }}>Ορίζοντας σύγκρισης</label>
+              <Seg value={cmpYears} onChange={setCmpYears} options={[['10', '10 έτη'], ['20', '20 έτη']]} />
+            </div>
           </div>
           {/* ═══ ΑΠΟ ΠΟΥ ΒΓΑΙΝΕΙ Η ΠΡΟΕΠΙΛΟΓΗ, ΚΑΙ ΔΥΟ ΨΕΜΑΤΑ ΠΟΥ ΕΦΥΓΑΝ ══════
               Ηταν «3%» χωρίς πηγή, δηλαδή ο αριθμός που αποφάσιζε μόνος του το

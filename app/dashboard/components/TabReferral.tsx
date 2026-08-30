@@ -76,8 +76,17 @@ const PAD = T.sp.xl;
 // Κοινό στυλ «chip» για τα κανάλια κοινοποίησης (ενιαία εμφάνιση).
 // Το ύψος έρχεται από την κοινή κλίμακα (T.h.md): τα chips κοινοποίησης κάθονται
 // στην ίδια γραμμή με κουμπιά άλλων αρχείων και κάθε literal εδώ τα ξεσυγχρόνιζε.
+// ═══ ΕΠΤΑ ΤΡΟΠΟΙ ΚΟΙΝΟΠΟΙΗΣΗΣ, ΜΙΑ ΣΕΙΡΑ ═══════════════════════════════════
+// Μετρημένο στα 1.440: τα επτά πλακίδια ζητούσαν 1.019 εικονοστοιχεία μέσα σε
+// 846, οπότε η «Κοινοποίηση» έπεφτε μόνη της σε δεύτερη σειρά — ένα κουμπί
+// κάτω αριστερά, χωρίς λόγο να ξεχωρίζει από τα άλλα έξι.
+//
+// ΤΑ 173 ΠΟΥ ΕΛΕΙΠΑΝ ΒΓΗΚΑΝ ΑΠΟ ΤΙΣ ΛΕΞΕΙΣ, ΟΧΙ ΑΠΟ ΤΟΝ ΣΤΟΧΟ ΑΦΗΣ. Το ύψος
+// μένει `T.h.md`, δηλαδή 44 με δάχτυλο. Το γέμισμα κατεβαίνει δύο και το κενό
+// ένα· τα υπόλοιπα τα έδωσαν δύο ετικέτες που ήταν διπλάσιες από κάθε αδελφή
+// τους σε σειρά όπου όλες οι άλλες είναι μία λέξη.
 const CHIP: React.CSSProperties = {
-  display: 'inline-flex', alignItems: 'center', gap: 8, height: T.h.md, padding: '0 14px',
+  display: 'inline-flex', alignItems: 'center', gap: 7, height: T.h.md, padding: '0 12px',
   background: 'transparent', border: '1px solid var(--border-default)', borderRadius: T.radius.pill,
   fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textDecoration: 'none',
 };
@@ -370,7 +379,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
     { label: 'WhatsApp', href: `https://wa.me/?text=${encodeURIComponent(invite)}`, d: 'M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-4-1L3 20l1-4.5a8.5 8.5 0 0 1-1-4A8.38 8.38 0 0 1 11.5 3 8.5 8.5 0 0 1 21 11.5z' },
     { label: 'Viber', href: `viber://forward?text=${encodeURIComponent(invite)}`, d: 'M12 3a9 9 0 0 0-9 9 8.7 8.7 0 0 0 2 5.6L4 21l3.6-1a9 9 0 1 0 4.4-17z|M9 8c1.5 3 3.5 5 6.5 6' },
     { label: 'Telegram', href: `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(invite)}`, d: 'M21 4 3 11l5 2 2 6 3-4 5 4z' },
-    { label: 'Ηλεκτρονικό ταχυδρομείο', href: `mailto:?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(invite)}`, d: 'M2 5h20v14H2z|M2 6l10 7 10-7' },
+    { label: 'Ηλ. ταχυδρομείο', href: `mailto:?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(invite)}`, d: 'M2 5h20v14H2z|M2 6l10 7 10-7' },
   ];
 
   // ΤΟ «monthly / annual» ΔΕΝ ΕΙΝΑΙ ΠΑΚΕΤΟ, ΕΙΝΑΙ ΚΥΚΛΟΣ ΧΡΕΩΣΗΣ. Η στήλη
@@ -383,13 +392,13 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
   const referrerPaying = (PLANS[plan as PlanId]?.priceMonthly ?? 0) > 0;
   const steps = isPro
     ? [
-        { n: '1', t: 'Στέλνεις τον σύνδεσμο', d: 'Στους πελάτες-ιδιοκτήτες σου, όπου σε βολεύει.', d2: 'M22 2 11 13|M22 2 15 22l-4-9-9-4z' },
-        { n: '2', t: 'Ο νέος ιδιοκτήτης ξεκινά', d: 'Προσθέτει το πρώτο του ακίνητο και σαρώνει ένα έγγραφο στο PROPERWISE.', d2: 'M22 11.08V12a10 10 0 1 1-5.93-9.14|M22 4 12 14.01l-3-3' },
+        { n: '1', t: 'Στέλνεις τον σύνδεσμο', d: 'Στους πελάτες-ιδιοκτήτες σου.', d2: 'M22 2 11 13|M22 2 15 22l-4-9-9-4z' },
+        { n: '2', t: 'Ο νέος ιδιοκτήτης ξεκινά', d: 'Προσθέτει ένα ακίνητο και σαρώνει ένα έγγραφο.', d2: 'M22 11.08V12a10 10 0 1 1-5.93-9.14|M22 4 12 14.01l-3-3' },
         { n: '3', t: 'Παίρνεις πίσω τη συνδρομή σου', d: `Δωρεάν μήνες Επαγγελματία από τον πρώτο μήνα. Με ${PRO_PAID_TARGET} συνδρομητές για ${STREAK_TARGET_MONTHS} συνεχόμενους μήνες, κάθε επόμενος μήνας που πιάνεις τον στόχο είναι δωρεάν.`, d2: 'M23 6l-9.5 9.5-5-5L1 18|M17 6h6v6' },
       ]
     : [
-        { n: '1', t: 'Στέλνεις τον σύνδεσμο', d: 'Σε έναν ιδιοκτήτη ακινήτου, όπου σε βολεύει.', d2: 'M22 2 11 13|M22 2 15 22l-4-9-9-4z' },
-        { n: '2', t: 'Ο νέος ιδιοκτήτης ξεκινά', d: 'Προσθέτει το πρώτο του ακίνητο και σαρώνει ένα έγγραφο στο PROPERWISE.', d2: 'M22 11.08V12a10 10 0 1 1-5.93-9.14|M22 4 12 14.01l-3-3' },
+        { n: '1', t: 'Στέλνεις τον σύνδεσμο', d: 'Σε έναν ιδιοκτήτη ακινήτου.', d2: 'M22 2 11 13|M22 2 15 22l-4-9-9-4z' },
+        { n: '2', t: 'Ο νέος ιδιοκτήτης ξεκινά', d: 'Προσθέτει ένα ακίνητο και σαρώνει ένα έγγραφο.', d2: 'M22 11.08V12a10 10 0 1 1-5.93-9.14|M22 4 12 14.01l-3-3' },
         { n: '3', t: 'Παίρνεις το δώρο σου', d: `Ένα επιπλέον ακίνητο για ${moAcc(REFERRER_SLOT_MONTHS)}, στο πακέτο που ήδη έχεις.`, d2: 'M20 12v9H4v-9|M2 7h20v5H2z|M12 22V7|M12 7S9 2 6.5 4.5 12 7 12 7z|M12 7s3-5 5.5-2.5S12 7 12 7z' },
       ];
 
@@ -507,14 +516,14 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
           </button>
         </div>
         <span aria-live="polite" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>{copied ? 'Ο σύνδεσμος αντιγράφηκε' : msgCopied ? 'Το μήνυμα αντιγράφηκε' : ''}</span>
-        <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 7, marginTop: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           {shares.map(s => (
             <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" className="ref-chip" style={CHIP}>
               <Ic d={s.d} s={15} c="var(--text-tertiary)" />{s.label}
             </a>
           ))}
           <button onClick={copyMsg} className="ref-chip" style={{ ...CHIP, cursor: 'pointer', fontFamily: T.font.sans }}>
-            <Ic d={msgCopied ? 'M20 6 9 17l-5-5' : 'M8 4h10a2 2 0 0 1 2 2v10|M4 8h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z'} s={15} c="var(--text-tertiary)" />{msgCopied ? 'Αντιγράφηκε' : 'Αντιγραφή μηνύματος'}
+            <Ic d={msgCopied ? 'M20 6 9 17l-5-5' : 'M8 4h10a2 2 0 0 1 2 2v10|M4 8h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z'} s={15} c="var(--text-tertiary)" />{msgCopied ? 'Αντιγράφηκε' : 'Μήνυμα'}
           </button>
           <button onClick={() => setQrOpen(true)} className="ref-chip" style={{ ...CHIP, cursor: 'pointer', fontFamily: T.font.sans }}>
             <Ic d="M3 3h7v7H3z|M14 3h7v7h-7z|M3 14h7v7H3z|M14 14h3v3|M20 20h1|M20 14h1|M14 20h1" s={15} c="var(--text-tertiary)" />QR
@@ -673,8 +682,8 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                   θα βρει ο χρήστης στη «Συνδρομή». */}
               <div style={{ ...TT.displaySm, marginBottom: 6 }}>{youBase.isSlot ? '+1 ακίνητο' : `+${moNom(youBase.months)} ${PLANS.solo.nameGen}`}</div>
               <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>{youBase.isSlot
-                ? `δωρεάν για ${moAcc(youBase.months)}, στο πακέτο που ήδη έχεις, για κάθε φίλο που προσκαλείς. Προστίθεται στα ακίνητα του πακέτου σου και πιστώνεται μόλις εκείνος ενεργοποιήσει τον λογαριασμό του.`
-                : 'για κάθε φίλο που προσκαλείς. Πιστώνεται αυτόματα στη συνδρομή σου, μόλις εκείνος ενεργοποιήσει τον λογαριασμό του.'}</div>
+                ? `για ${moAcc(youBase.months)}, στο πακέτο σου, για κάθε φίλο που ενεργοποιεί τον λογαριασμό του.`
+                : 'στη συνδρομή σου, για κάθε φίλο που ενεργοποιεί τον λογαριασμό του.'}</div>
             </div>
             <div className="ref-lift" style={{ ...card, padding: PAD }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
@@ -682,7 +691,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                 <span style={{ ...TT.label }}>Ο φίλος σου ξεκινά με</span>
               </div>
               <div style={{ ...TT.displaySm, marginBottom: 6 }}>{TRIAL_DAYS} ημέρες δοκιμή</div>
-              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>στο πακέτο που θα διαλέξει στην αρχή, «{PLANS.solo.name}» ή «{PLANS.agency.name}», ανάλογα με τα ακίνητά του. Χωρίς κάρτα και χωρίς δέσμευση, όπως κάθε νέος λογαριασμός.</div>
+              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>στο πακέτο που θα διαλέξει, «{PLANS.solo.name}» ή «{PLANS.agency.name}». Χωρίς κάρτα.</div>
             </div>
           </div>
 
@@ -698,7 +707,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                 {(stats?.m_pro ?? 0) >= 1 && <Badge tone="positive">Το πέτυχες</Badge>}
               </div>
               <div style={{ ...TT.displaySm, marginBottom: 6 }}>+{moNom(INDIV_PRO_BONUS_MONTHS)} {PLANS.solo.nameGen}</div>
-              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>για σένα, μόλις κάποιος που προσκάλεσες γίνει Επαγγελματίας. Εδώ κερδίζεις ολόκληρο μήνα συνδρομής, όχι ένα ακίνητο, γιατί η σύσταση είναι μεγαλύτερη.</div>
+              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>μόλις κάποιος που προσκάλεσες γίνει Επαγγελματίας. Ολόκληρος μήνας, όχι ένα ακίνητο.</div>
             </div>
             {/* Μπόνους όγκου: ο στόχος διαβάζεται από τη μηχανή, δεν ξαναγράφεται. */}
             <Milestone title={`${INDIV_VOLUME_TARGET} νέοι τον μήνα`}
@@ -764,7 +773,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
       {stats && list.length === 0 && (
         <div style={{ marginBottom: T.sp.xl }}>
           <SectionLabel>Οι προσκλήσεις σου</SectionLabel>
-          <EmptyState icon={<UserPlus size={20} />} title="Καμία πρόσκληση ακόμη" hint="Μοιράσου τον σύνδεσμό σου· κάθε φίλος που ενεργοποιείται εμφανίζεται εδώ με το στάδιό του." />
+          <EmptyState icon={<UserPlus size={20} />} title="Καμία πρόσκληση ακόμη" hint="Μοιράσου τον σύνδεσμό σου. Κάθε φίλος που ενεργοποιείται εμφανίζεται εδώ." />
         </div>
       )}
 
@@ -794,9 +803,16 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
         </div>
       )}
 
+      {/* ═══ ΤΕΣΣΕΡΙΣ ΠΡΟΤΑΣΕΙΣ ΕΓΙΝΑΝ ΔΥΟ ═════════════════════════════════════
+          Ελεγε: πότε κατοχυρώνεται η ανταμοιβή, ΓΙΑΤΙ το κάνουμε έτσι, σε τι
+          δίνεται και ότι δεν δίνεται σε μετρητά. Το δεύτερο («έτσι επιβραβεύουμε
+          μόνο πραγματικές συστάσεις») είναι το προϊόν που χειροκροτεί τον εαυτό
+          του: ο χρήστης δεν ρώτησε γιατί, ρώτησε πότε. Το τρίτο και το τέταρτο
+          λένε το ίδιο πράγμα από δύο πλευρές. Μένουν οι δύο απαντήσεις: πότε
+          κλειδώνει και σε τι πληρώνεται. */}
       <p style={{ ...TT.caption, lineHeight: 1.6 }}>
-        Κάθε ανταμοιβή κατοχυρώνεται μόλις ο νέος ιδιοκτήτης σου προσθέσει {ACTIVATION_MIN_PROPERTIES === 1 ? 'ένα ακίνητο' : `${ACTIVATION_MIN_PROPERTIES} ακίνητα`} και σαρώσει {ACTIVATION_MIN_DOCUMENTS === 1 ? 'ένα έγγραφο' : `${ACTIVATION_MIN_DOCUMENTS} έγγραφα`} στο PROPERWISE. Έτσι επιβραβεύουμε μόνο πραγματικές συστάσεις.
-        {' '}Όλες οι ανταμοιβές είναι δωρεάν μήνες ή δωρεάν ακίνητα στη δική σου συνδρομή. Δεν διαχειριζόμαστε πληρωμές και δεν αποδίδουμε μετρητά.
+        Η ανταμοιβή κλειδώνει μόλις ο φίλος σου προσθέσει {ACTIVATION_MIN_PROPERTIES === 1 ? 'ένα ακίνητο' : `${ACTIVATION_MIN_PROPERTIES} ακίνητα`} και σαρώσει {ACTIVATION_MIN_DOCUMENTS === 1 ? 'ένα έγγραφο' : `${ACTIVATION_MIN_DOCUMENTS} έγγραφα`}.
+        {' '}Πάντα σε δωρεάν μήνες ή ακίνητα στη συνδρομή σου, ποτέ σε μετρητά.
       </p>
 
       {(list.length > 0 || rewards.length > 0) && (

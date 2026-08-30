@@ -52,7 +52,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 // Οι ρυθμίσεις ανά ενότητα έχουν ένα σπίτι: lib/data/settings.
 import * as settings from '@/lib/data/settings';
-import { T, TT, fe, fp, SecHdr, Spinner } from '@/components/Theme';
+import { T, TT, fe, fp, SecHdr, Spinner, fixedCols } from '@/components/Theme';
 import { NumberInput, CustomSelect } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
 import { AadePill } from '@/components/AadeLink';
@@ -270,9 +270,6 @@ export default function EnfiaPanel({ propertyId, userId }: { propertyId: string;
     boxShadow: 'var(--highlight-inset), var(--elev-1)',
     borderRadius: T.radius.card, padding: 20, marginBottom: 16,
   };
-  const g2: React.CSSProperties = {
-    display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 14,
-  };
 
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
@@ -356,7 +353,7 @@ export default function EnfiaPanel({ propertyId, userId }: { propertyId: string;
 
         <div style={{ marginTop: 16 }}>
         {activeRoute === 'lastYear' && (<>
-          <div style={g2}>
+          <div {...fixedCols(3, 14)}>
             <NumberInput label="Περσινός ΕΝΦΙΑ, σύνολο έτους" value={s.enfiaLastAnnual}
               onChange={v => upd({ enfiaLastAnnual: v })} suffix="€" step={10}/>
             <NumberInput label="Ποσό μίας δόσης" value={s.enfiaLastInstalment}
@@ -381,7 +378,7 @@ export default function EnfiaPanel({ propertyId, userId }: { propertyId: string;
         </>)}
 
         {activeRoute === 'declared' && (<>
-          <div style={g2}>
+          <div {...fixedCols(1, 14)}>
             {/* ΕΝΑ ΠΕΔΙΟ ΔΕΝ ΓΡΑΦΕΙ ΔΥΟ ΑΛΗΘΕΙΕΣ. Εγραφε `enfiaAnnual` ΚΑΙ
                 `enfiaMonthly = ετήσιο/12`, δηλαδή αποθήκευε δύο φορές το ίδιο
                 γεγονός· και η `enfiaInUse` δέχεται και τα δύο ως «δηλωμένο»,
@@ -403,16 +400,27 @@ export default function EnfiaPanel({ propertyId, userId }: { propertyId: string;
         </>)}
 
         {activeRoute === 'estimate' && (<>
-          <div style={g2}>
+          {/* ═══ ΤΡΕΙΣ ΣΕΙΡΕΣ ΕΓΙΝΑΝ ΔΥΟ, ΜΕ ΙΕΡΑΡΧΙΑ ═══════════════════════
+              Ηταν 2 + 3 + 2, τρία σπασίματα για επτά πεδία, με το πλήθος
+              στηλών να το αποφασίζει ένα `auto-fit`: δηλαδή η ίδια οθόνη
+              έβγαζε άλλη διάταξη σε κάθε ρύθμιση zoom του περιηγητή· μια
+              σειρά ΔΥΟ πεδίων μπορούσε να γίνει τριών.
+
+              ΠΑΝΩ, ΤΙ ΕΙΝΑΙ ΤΟ ΑΚΙΝΗΤΟ: τέσσερα στοιχεία που ο ιδιοκτήτης τα
+              ξέρει απέξω ή τα διαβάζει από το συμβόλαιο.
+              ΚΑΤΩ, ΤΙ ΑΞΙΖΕΙ: η παλαιότητα και οι δύο αντικειμενικές αξίες,
+              που θέλουν αναζήτηση στο Ε9 και ορίζουν μειώσεις και προσαυξήσεις.
+
+              Το πλήθος γράφεται ρητά, οπότε τα σπασίματα είναι τα ίδια με κάθε
+              άλλη φόρμα της εφαρμογής: τέσσερα σε δύο, τρία σε ένα. */}
+          <div {...fixedCols(4, 14)}>
             <NumberInput label="Εμβαδόν" value={s.enfiaSqm} onChange={v => upd({ enfiaSqm: v })} suffix="τ.μ."/>
             <NumberInput label="Ποσοστό ιδιοκτησίας" value={s.enfiaOwnership} onChange={v => upd({ enfiaOwnership: v })} suffix="%" max={100}/>
-          </div>
-          <div style={{ ...g2, marginTop: 14 }}>
             <CustomSelect label="Τιμή ζώνης" value={s.enfiaZone} onChange={v => upd({ enfiaZone: v })} options={ZONE_OPTIONS}/>
             <CustomSelect label="Όροφος" value={s.enfiaFloor} onChange={v => upd({ enfiaFloor: v })} options={FLOOR_OPTIONS}/>
-            <CustomSelect label="Παλαιότητα" value={s.enfiaAge} onChange={v => upd({ enfiaAge: v })} options={AGE_OPTIONS}/>
           </div>
-          <div style={{ ...g2, marginTop: 14 }}>
+          <div {...fixedCols(3, 14)} style={{ ...fixedCols(3, 14).style, marginTop: 14 }}>
+            <CustomSelect label="Παλαιότητα" value={s.enfiaAge} onChange={v => upd({ enfiaAge: v })} options={AGE_OPTIONS}/>
             <NumberInput label="Συνολική αξία όλων των ακινήτων" value={s.enfiaTotalVal} onChange={v => upd({ enfiaTotalVal: v })} suffix="€"
               labelInfo="Από αυτήν εξαρτάται η αυτόματη μείωση και η προσαύξηση πάνω από τις 500.000 €."/>
             <NumberInput label="Αντικειμενική αξία αυτού του ακινήτου" value={s.enfiaPropVal} onChange={v => upd({ enfiaPropVal: v })} suffix="€"

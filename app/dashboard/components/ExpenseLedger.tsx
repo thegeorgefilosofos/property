@@ -1188,6 +1188,8 @@ function QuickAdd({ propertyId, userId, seed, onDone }: { propertyId: string; us
   // μόνο από τη φόρμα των «Συμβολαίων», δηλαδή από τη δεύτερη φόρμα δαπάνης που
   // δεν έπρεπε να υπάρχει. Ζει τώρα εδώ, στη μία φόρμα.
   const [paidBy, setPaidBy] = useState('owner');
+  /** «Περισσότερα»: ΚΛΕΙΣΤΟ εξ ορισμού. Κλειδωμένο δεν είναι, μόνο μαζεμένο. */
+  const [moreOpen, setMoreOpen] = useState(false);
   const [sharePct, setSharePct] = useState('');
   // ΑΦΜ προμηθευτή: το πεδίο που ζητά ο φάκελος του λογιστή και δεν υπήρχε
   // πουθενά στη χειροκίνητη καταχώρηση. Βλ. AfmField παραπάνω.
@@ -1295,8 +1297,23 @@ function QuickAdd({ propertyId, userId, seed, onDone }: { propertyId: string; us
           είναι αυτή η δαπάνη» και «ποιανού είναι»): κάθεται τώρα στην ίδια
           γραμμή και η φόρμα κοντύνει κατά μία σειρά. */}
       <div className="qa-form">
-      <div className="qa-grid">
-        <label className="qa-wide" style={{ minWidth: 0 }}>
+      {/* ═══ ΜΙΑ ΣΕΙΡΑ ΓΙΑ ΤΗΝ ΚΑΤΑΧΩΡΗΣΗ, Η ΙΔΙΑ ΜΕ ΤΗΣ ΔΙΟΡΘΩΣΗΣ ══════════
+          Η φόρμα έπιανε ΤΡΕΙΣ σειρές: περιγραφή, ποσό, ημερομηνία· κατηγορία,
+          ποιος πληρώνει, πληρώθηκε· και το ΑΦΜ μόνο του από κάτω. Επτά
+          χειριστήρια για να γράψεις «ΔΕΗ 84,50».
+
+          ΠΕΝΤΕ ΜΠΡΟΣΤΑ, ΔΥΟ ΠΙΣΩ. Μπροστά μένει ό,τι συμπληρώνεται ΚΑΘΕ φορά:
+          τι, πόσο, πότε, τι είδους, πληρώθηκε. Πίσω από το «Περισσότερα» πάνε
+          τα δύο που ο ιδιοκτήτης αγγίζει σπάνια: ο πληρωτής, που είναι «Μόνο
+          εγώ» στη συντριπτική πλειοψηφία· το ΑΦΜ αφορά τον λογιστή.
+          Καμία πληροφορία δεν χάνεται· παύει να ζητά χώρο σε κάθε καταχώρηση.
+
+          ΚΑΙ ΤΟ ΠΛΕΓΜΑ ΕΙΝΑΙ ΤΟ ΙΔΙΟ ΜΕ ΤΟ ΠΑΡΑΘΥΡΟ ΔΙΟΡΘΩΣΗΣ. Τέσσερα από τα
+          πέντε πεδία είναι κοινά και βρίσκονται στην ίδια θέση με τα ίδια
+          πλάτη: όποιος έγραψε τη δαπάνη ξέρει ήδη πού να κοιτάξει για να τη
+          διορθώσει. */}
+      <div className="exp-edit">
+        <label className="exp-edit-wide" style={{ minWidth: 0 }}>
           <span style={LAB}>Περιγραφή</span>
           <input ref={first} value={what} onChange={e => setWhat(e.target.value)} style={FIELD}
             placeholder="λογαριασμός ΔΕΗ, υδραυλικός" />
@@ -1322,48 +1339,18 @@ function QuickAdd({ propertyId, userId, seed, onDone }: { propertyId: string; us
           <DatePicker value={paid ? date : (due || date)}
             onChange={v => (paid ? setDate(v) : setDue(v))} />
         </div>
-      </div>
-
-      {/* ═══ ΕΝΑΣ ΕΠΙΛΟΓΕΑΣ, ΟΠΩΣ ΣΤΗ ΦΟΡΜΑ ΕΠΕΞΕΡΓΑΣΙΑΣ ════════════════════
-          ΔΥΟ ΧΕΙΡΙΣΤΗΡΙΑ ΓΙΑ ΤΟ ΙΔΙΟ ΠΕΔΙΟ, ΣΤΟ ΙΔΙΟ ΑΡΧΕΙΟ. Η καταχώρηση
-          έδειχνε έξι πλακίδια και η επεξεργασία, διακόσιες γραμμές πιο πάνω,
-          έναν `CustomSelect` με ΟΛΟΚΛΗΡΟ τον κατάλογο. Ο χρήστης μάθαινε δύο
-          τρόπους για το ίδιο πράγμα και ο πρώτος έδειχνε έξι από τις πολλές: αν
-          η κατηγορία που ήθελε δεν ήταν στις έξι, δεν υπήρχε τρόπος να τη
-          διαλέξει χωρίς να αποθηκεύσει και να ξαναδιορθώσει.
-
-          Η ΜΑΝΤΕΨΙΑ ΜΕΝΕΙ ΚΑΙ ΓΛΙΤΩΝΕΙ ΤΟ ΠΑΤΗΜΑ. Η τιμή του επιλογέα είναι το
-          ίδιο `slug` που έβγαζε το χρώμα των πλακιδίων, δηλαδή η κατηγορία
-          έρχεται συμπληρωμένη από την περιγραφή χωρίς κανένα πάτημα. Το άδειασμα
-          γίνεται με την επιλογή «Χωρίς κατηγορία», που πριν απαιτούσε να ξέρεις
-          ότι το δεύτερο πάτημα στο ίδιο πλακίδιο το ξεδιαλέγει. */}
-      {/* ── ΤΙ ΕΙΝΑΙ, ΠΟΙΑΝΟΥ ΕΙΝΑΙ, ΑΝ ΠΛΗΡΩΘΗΚΕ ─────────────────────────
-          Ο πληρωτής δεν είναι πάντα ο ιδιοκτήτης: κοινόχρηστα που βαραίνουν
-          τον ενοικιαστή δεν είναι δικό του κόστος και ένα διαμέρισμα με
-          συνιδιοκτήτη μοιράζει κάθε λογαριασμό. Το ποσοστό εμφανίζεται μόνο
-          όταν αποκτά νόημα.
-
-          Ο ΔΙΑΚΟΠΤΗΣ ΗΤΑΝ ΤΕΤΡΑΓΩΝΑΚΙ ΤΟΥ ΠΕΡΙΗΓΗΤΗ, ΜΟΝΟ ΤΟΥ ΣΤΟ ΑΡΙΣΤΕΡΟ
-          ΑΚΡΟ και έλεγε «Δεν το έχω πληρώσει ακόμη»: διπλή άρνηση, που ο
-          χρήστης έπρεπε να λύσει στο μυαλό του για να καταλάβει τι σημαίνει
-          τσεκαρισμένο. Τώρα είναι πεδίο σαν τα άλλα, με θετική διατύπωση.
-
-          ΚΑΙ ΚΑΘΕΤΑΙ ΚΑΤΩ ΑΠΟ ΤΗΝ ΗΜΕΡΟΜΗΝΙΑ ΠΟΥ ΟΡΙΖΕΙ. Ο ίδιος διακόπτης
-          αλλάζει την ετικέτα του πεδίου από πάνω («Ημερομηνία» ή «Λήξη»): στην
-          ίδια στήλη, η αιτία και το αποτέλεσμα φαίνονται μαζί. */}
-      <div className="qa-grid" style={{ marginTop: 16 }}>
-        {/* Η ετικέτα μένει η κοινή `LAB`, όχι αυτή του CustomSelect: όλη η φόρμα
-            χρησιμοποιεί την ίδια και η ενσωματωμένη έχει minHeight 32, οπότε θα
-            ξεχώριζε η μία γραμμή από τις άλλες ακριβώς δίπλα της. */}
-        <div className="qa-wide" style={{ minWidth: 0 }}>
+        {/* Η ετικέτα μένει η κοινή `LAB`, όχι αυτή του CustomSelect: όλη η
+            φόρμα χρησιμοποιεί την ίδια και η ενσωματωμένη έχει minHeight 32,
+            οπότε θα ξεχώριζε η μία γραμμή από τις άλλες ακριβώς δίπλα της. */}
+        <div style={{ minWidth: 0 }}>
           <span style={LAB}>Κατηγορία</span>
           <CustomSelect value={slug} onChange={v => { setPicked(v); setTouched(true); }} ariaLabel="Κατηγορία δαπάνης"
             options={[{ value: '', label: 'Χωρίς κατηγορία' }, ...CATEGORIES.map(c => ({ value: c.slug, label: c.label }))]} />
         </div>
-        <div style={{ minWidth: 0 }}>
-          <span style={LAB}>Ποιος πληρώνει</span>
-          <CustomSelect ariaLabel="Ποιος πληρώνει" value={paidBy} onChange={setPaidBy} options={PAID_BY_OPTIONS} />
-        </div>
+        {/* Ο ΔΙΑΚΟΠΤΗΣ ΔΙΠΛΑ ΣΤΗΝ ΗΜΕΡΟΜΗΝΙΑ ΠΟΥ ΟΡΙΖΕΙ. Ο ίδιος διακόπτης
+            αλλάζει την ετικέτα εκείνου του πεδίου («Ημερομηνία» ή «Λήξη») και
+            το αν η γραμμή γίνεται δαπάνη ή υποχρέωση: στην ίδια σειρά, η αιτία
+            και το αποτέλεσμα φαίνονται μαζί. */}
         <div style={{ minWidth: 0 }}>
           <span style={LAB}>Πληρώθηκε</span>
           <div style={{ height: T.h.lg, display: 'flex', alignItems: 'center' }}>
@@ -1372,27 +1359,47 @@ function QuickAdd({ propertyId, userId, seed, onDone }: { propertyId: string; us
         </div>
       </div>
 
-      {/* Το μερίδιο υπάρχει μόνο για τις μοιρασμένες δαπάνες, οπότε δεν
-          δεσμεύει στήλη στις υπόλοιπες: εμφανίζεται κάτω από τον επιλογέα που
-          το ζήτησε και η φόρμα μεγαλώνει μόνο τότε. */}
-      {SHARED_SCOPES.has(paidBy) && (
-        <div className="qa-grid" style={{ marginTop: 14 }}>
-          <label className="qa-share" style={{ minWidth: 0 }}>
-            <span style={LAB}>Μερίδιό μου</span>
-            <input value={sharePct} onChange={e => setSharePct(e.target.value)} inputMode="numeric"
-              style={{ ...FIELD, textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}
-              placeholder={`${DEFAULT_SHARE_PERCENT} %`} />
-          </label>
-        </div>
-      )}
+      {/* ═══ ΤΑ ΔΥΟ ΠΟΥ ΑΓΓΙΖΟΝΤΑΙ ΣΠΑΝΙΑ, ΠΙΣΩ ΑΠΟ ΕΝΑ ΠΑΤΗΜΑ ═══════════════
+          Ο ΠΛΗΡΩΤΗΣ δεν είναι πάντα ο ιδιοκτήτης: κοινόχρηστα που βαραίνουν τον
+          ενοικιαστή δεν είναι δικό του κόστος και ένα διαμέρισμα με συνιδιοκτήτη
+          μοιράζει κάθε λογαριασμό. Είναι όμως «Μόνο εγώ» στη συντριπτική
+          πλειοψηφία των καταχωρήσεων, οπότε δεν δικαιούται στήλη σε ΚΑΘΕ μία.
 
-      {/* ΜΟΝΟ ΣΤΗΝ ΠΛΗΡΩΜΕΝΗ. Η απλήρωτη γραμμή γράφεται στον πίνακα των
-          λογαριασμών, που ΔΕΝ έχει στήλη ΑΦΜ: ένα πεδίο που θα φαινόταν και
-          δεν θα αποθηκευόταν είναι χειρότερο από πεδίο που λείπει. Το ΑΦΜ
-          μπαίνει μετά την εξόφληση, από την επεξεργασία της δαπάνης. */}
-      {paid && (
-        <div className="qa-grid" style={{ marginTop: 14 }}>
-          <div className="qa-afm"><AfmField value={afm} onChange={setAfm} /></div>
+          ΤΟ ΑΦΜ αφορά τον λογιστή, όχι τον ιδιοκτήτη· είναι ρητά
+          προαιρετικό. Μπαίνει ΜΟΝΟ στην πληρωμένη: η απλήρωτη γραμμή γράφεται
+          στον πίνακα των λογαριασμών, που δεν έχει τέτοια στήλη, οπότε ένα
+          πεδίο που θα φαινόταν και δεν θα αποθηκευόταν είναι χειρότερο από
+          πεδίο που λείπει.
+
+          ΤΟ ΜΕΡΙΔΙΟ εμφανίζεται μόνο όταν ο πληρωτής το γεννά, μέσα στο ίδιο
+          άνοιγμα, κάτω από τον επιλογέα που το ζήτησε.
+
+          Η κλειστή γραμμή ΛΕΕΙ ΤΙ ΚΡΥΒΕΙ: σκέτο «Περισσότερα» ζητά από τον
+          χρήστη να πατήσει για να μάθει αν τον αφορά. */}
+      <button type="button" onClick={() => setMoreOpen(o => !o)} aria-expanded={moreOpen}
+        className="acc-toggle"
+        style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', minHeight: T.h.sm, marginTop: 12, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' as const, padding: 0, fontFamily: T.font.sans }}>
+        <span style={{ ...TT.label, fontSize: 11, color: 'var(--text-secondary)', flex: 1, minWidth: 0 }}>
+          {moreOpen ? 'Λιγότερα' : `Περισσότερα: ποιος πληρώνει${paid ? ', ΑΦΜ προμηθευτή' : ''}`}
+        </span>
+        <ChevronRight aria-hidden size={15} style={{ flexShrink: 0, color: 'var(--text-tertiary)', transform: moreOpen ? 'rotate(90deg)' : 'none', transition: 'transform .18s' }} />
+      </button>
+
+      {moreOpen && (
+        <div className="exp-edit" style={{ marginTop: 12 }}>
+          <div style={{ minWidth: 0 }}>
+            <span style={LAB}>Ποιος πληρώνει</span>
+            <CustomSelect ariaLabel="Ποιος πληρώνει" value={paidBy} onChange={setPaidBy} options={PAID_BY_OPTIONS} />
+          </div>
+          {SHARED_SCOPES.has(paidBy) ? (
+            <label style={{ minWidth: 0 }}>
+              <span style={LAB}>Μερίδιό μου</span>
+              <input value={sharePct} onChange={e => setSharePct(e.target.value)} inputMode="numeric"
+                style={{ ...FIELD, textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}
+                placeholder={`${DEFAULT_SHARE_PERCENT} %`} />
+            </label>
+          ) : <div />}
+          {paid ? <AfmField value={afm} onChange={setAfm} /> : <div />}
         </div>
       )}
 

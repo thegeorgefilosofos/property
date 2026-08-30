@@ -137,6 +137,46 @@ function OutLink({ href, label }: { href: string; label: string }) {
 const card:React.CSSProperties = { position:'relative', background:'var(--surface-raised)', border:'none', borderRadius: T.radius.card, padding:16, boxShadow:'var(--elev-1)' }
 const cardTitle:React.CSSProperties = { fontSize:13, fontWeight:700, color:'var(--text-primary)', margin:'0 0 14px', fontFamily: T.font.sans, letterSpacing:'0.1px' }
 
+/**
+ * ΚΑΘΕ ΚΑΡΤΑ ΤΗΣ ΛΟΓΙΣΤΙΚΗΣ ΜΑΖΕΥΕΙ.
+ *
+ * ΤΙ ΕΛΕΙΠΕ, ΜΕΤΡΗΜΕΝΟ: δεκατρείς κάρτες στην οθόνη και μόνο ΤΕΣΣΕΡΙΣ με
+ * χειριστήριο σύμπτυξης. Το Βιβλίο Εσόδων-Εξόδων, το Ισοζύγιο διπλογραφικής και
+ * η Ενοποίηση χαρτοφυλακίου είναι πίνακες δεκάδων γραμμών ο καθένας: ο
+ * ιδιοκτήτης που θέλει να δει τη Συμφωνία ενοικίων κυλούσε από πάνω τους κάθε
+ * φορά, χωρίς τρόπο να τους κλείσει.
+ *
+ * ΚΑΙ ΤΑ ΤΕΣΣΕΡΑ ΠΟΥ ΥΠΗΡΧΑΝ ΗΤΑΝ ΓΡΑΜΜΕΝΑ ΤΕΣΣΕΡΙΣ ΦΟΡΕΣ, με το χέρι, με
+ * μικρές διαφορές: δύο από αυτά ξέχασαν το `aria-expanded`, δηλαδή ο αναγνώστης
+ * οθόνης δεν άκουγε αν η ενότητα είναι ανοιχτή ή κλειστή και καμία σάρωση δεν
+ * μπορούσε να τα ανοίξει για να μετρήσει το περιεχόμενό τους.
+ *
+ * Εδώ γράφεται ΜΙΑ φορά: βελάκι που γυρίζει, τίτλος, προαιρετικό δεξί στοιχείο
+ * που μένει ορατό και όταν η κάρτα είναι κλειστή (ένα σύνολο δεν χρειάζεται
+ * άνοιγμα για να διαβαστεί).
+ */
+function Fold({ open, onToggle, title, sub, right, children }: {
+  open: boolean; onToggle: () => void; title: React.ReactNode;
+  sub?: React.ReactNode; right?: React.ReactNode; children: React.ReactNode;
+}) {
+  return (
+    <div style={card}>
+      <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
+        <button type="button" onClick={onToggle} aria-expanded={open} className="acc-toggle"
+          style={{ display:'flex', alignItems:'center', gap:9, flex:1, minWidth:0, background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left', fontFamily: T.font.sans }}>
+          <ChevronRight size={16} aria-hidden style={{ color:'var(--text-tertiary)', flexShrink:0, transform:open?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
+          <span style={{ minWidth:0 }}>
+            <span style={{ ...cardTitle, margin:0, display:'block' }}>{title}</span>
+            {sub&&<span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight:400, display:'block', marginTop:3 }}>{sub}</span>}
+          </span>
+        </button>
+        {right}
+      </div>
+      {open&&<div style={{ marginTop:14 }}>{children}</div>}
+    </div>
+  )
+}
+
 // Οι στήλες του ισοζυγίου, ΜΙΑ φορά: επικεφαλίδες, γραμμές και σύνολα διαβάζουν
 // την ίδια τιμή. Γραμμένες τρεις φορές, μια αλλαγή σε δύο από τις τρεις έδινε
 // πίνακα με μετατοπισμένα σύνολα — που δεν σκάει πουθενά, απλώς είναι λάθος.
@@ -269,6 +309,12 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   const [openAdvisory,setOpenAdvisory] = useState<string|null>(null)
   const [advisoryOpen,setAdvisoryOpen] = useState(false)
   const [changesOpen,setChangesOpen] = useState(false)
+  // Οι μεγάλες κάρτες ανοίγουν ΑΝΟΙΧΤΕΣ: ο ιδιοκτήτης έρχεται εδώ για να τις
+  // διαβάσει. Το χειριστήριο υπάρχει για να τις κλείσει όταν ψάχνει άλλη.
+  const [reconOpen,setReconOpen] = useState(true)
+  const [ledgerOpen,setLedgerOpen] = useState(true)
+  const [consolOpen,setConsolOpen] = useState(true)
+  const [balanceOpen,setBalanceOpen] = useState(true)
   const [openChange,setOpenChange] = useState<string|null>(null)
   // Οι δύο ενημερωτικές ενότητες (Συμβουλευτική, Τι άλλαξε) ανοίγουν/κλείνουν ομοιόμορφα:
   // κλικ στην κεφαλίδα εναλλάσσει, κλικ εκτός τις ελαχιστοποιεί (καθαρή, ήσυχη εικόνα).
@@ -1419,11 +1465,9 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           περιεχομένου της. (Ο κανόνας «ίδιο ύψος» ισχύει για ΣΕΙΡΑ ομοειδών
           καρτών, όχι για δύο διαφορετικά πράγματα δίπλα-δίπλα.) */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap:16, alignItems:'start' }}>
-        {!isShort && <div style={card}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
-            <p style={{ ...cardTitle, margin:0 }}>Συμφωνία ενοικίων</p>
-            <span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily: T.font.sans }}>Εισπράχθηκαν <strong style={{ color:'var(--text-primary)' }}>{eur(rs.collectedTotal)}</strong> / {eur(rs.expectedTotal)}</span>
-          </div>
+        {!isShort && (
+          <Fold open={reconOpen} onToggle={()=>setReconOpen(o=>!o)} title="Συμφωνία ενοικίων"
+            right={<span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily: T.font.sans }}>Εισπράχθηκαν <strong style={{ color:'var(--text-primary)' }}>{eur(rs.collectedTotal)}</strong> / {eur(rs.expectedTotal)}</span>}>
           {recon.length===0?(
             <p style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily: T.font.sans, padding:'12px 0' }}>Δεν υπάρχουν καταχωρημένα ενοίκια για το {year}.</p>
           ):(
@@ -1444,12 +1488,10 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               <button onClick={officialRentCertificate} disabled={genOfficialCert} title="Επίσημο true-PDF βεβαίωσης ενοικίου με αριθμό εγγράφου και QR επαλήθευσης· κατάλληλο για τράπεζες, ΔΟΥ και φορείς" style={{ display:'inline-flex', alignItems:'center', gap:6, height:T.h.sm, padding:'0 12px', borderRadius:T.radius.pill, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:13, fontWeight:500, cursor:genOfficialCert?'wait':'pointer', opacity:genOfficialCert?0.6:1, fontFamily: T.font.sans }} onMouseEnter={e=>{if(!genOfficialCert){e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}><ShieldCheck size={14}/>{genOfficialCert?'Δημιουργία…':'Επίσημο PDF'}</button>
             </div>
           )}
-        </div>}
+          </Fold>
+        )}
 
-        <div style={card}>
-          <div style={{ marginBottom:12 }}>
-            <p style={{ ...cardTitle, margin:0 }}>{mode==='professional'?'Βιβλίο Εσόδων-Εξόδων':'Πρόσφατες κινήσεις'}</p>
-          </div>
+        <Fold open={ledgerOpen} onToggle={()=>setLedgerOpen(o=>!o)} title={mode==='professional'?'Βιβλίο Εσόδων-Εξόδων':'Πρόσφατες κινήσεις'}>
           {recentLedger.length===0?(
             <p style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily: T.font.sans, padding:'8px 0' }}>Καμία κίνηση για το {year}.</p>
           ):(
@@ -1464,7 +1506,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               ))}
             </div>
           )}
-        </div>
+        </Fold>
       </div>
 
       {/* ΟΙ ΔΥΟ ΦΟΡΟΙ ΠΟΥ ΕΧΟΥΝ ΔΙΚΟ ΤΟΥΣ ΕΝΤΥΠΟ. Ο ΕΝΦΙΑ και ο έλεγχος του
@@ -1565,11 +1607,8 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         {mode==='professional'&&(
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap:16 }}>
             {elp==='personal'&&(
-            <div style={card}>
-              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
-                <Layers size={15} style={{ color:'var(--text-secondary)' }}/>
-                <p style={{ ...cardTitle, margin:0 }}>Ενοποίηση χαρτοφυλακίου</p>
-              </div>
+            <Fold open={consolOpen} onToggle={()=>setConsolOpen(o=>!o)}
+              title={<span style={{ display:'inline-flex', alignItems:'center', gap:8 }}><Layers size={15} style={{ color:'var(--text-secondary)' }}/>Ενοποίηση χαρτοφυλακίου</span>}>
               {!portfolio?(
                 <p style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily: T.font.sans, padding:'8px 0' }}>Δεν υπάρχουν έσοδα σε άλλα ακίνητα για το {year}.</p>
               ):(<>
@@ -1589,7 +1628,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
                   ))}
                 </div>
               </>)}
-            </div>
+            </Fold>
             )}
 
             <div style={card}>
@@ -1701,7 +1740,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         {/* Κόστος αγοράς & πώλησης, δομημένη εκτίμηση μεταβίβασης */}
         <div style={card}>
           <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, flexWrap:'wrap', marginBottom:xferOpen?16:0 }}>
-            <button onClick={()=>setXferOpen(o=>!o)} className="acc-toggle" style={{ display:'flex', alignItems:'center', gap:9, background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left', flex:1, minWidth:0 }}>
+            <button onClick={()=>setXferOpen(o=>!o)} aria-expanded={xferOpen} className="acc-toggle" style={{ display:'flex', alignItems:'center', gap:9, background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left', flex:1, minWidth:0 }}>
               <ChevronRight size={16} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:xferOpen?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
               <div>
                 <p style={{ ...cardTitle, margin:0 }}>Κόστος αγοράς και πώλησης</p>
@@ -1755,11 +1794,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         </div>
 
         {/* Ταμειακές ροές */}
-        <div style={card}>
-          <button onClick={()=>setCashOpen(o=>!o)} className="acc-toggle" style={{ display:'flex', alignItems:'center', gap:9, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left', marginBottom:cashOpen?16:0 }}>
-            <ChevronRight size={16} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:cashOpen?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
-            <p style={{ ...cardTitle, margin:0 }}>Ταμειακές ροές</p>
-          </button>
+        <Fold open={cashOpen} onToggle={()=>setCashOpen(o=>!o)} title="Ταμειακές ροές">
           {/* ═══ ΤΟ ΓΡΑΦΗΜΑ ΠΟΥ ΞΕΚΙΝΑ ΑΠΟ ΤΟ ΜΗΔΕΝ ══════════════════════════
               Ήταν δύο λωρίδες των έξι εικονοστοιχείων, στοιβαγμένες και οι δύο
               να ξεκινούν από την ίδια αριστερή άκρη: για να καταλάβεις αν ο
@@ -1814,7 +1849,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             </span>
           </div>
           </>))}
-        </div>
+        </Fold>
 
         {/* ── ΤΟ ΙΣΟΖΥΓΙΟ, ΚΑΙ ΜΟΝΟ ΑΥΤΟ ────────────────────────────────────
             Εδώ καθόταν ολόκληρη κάρτα «Για τον λογιστή»: Excel, ζωντανή πύλη,
@@ -1828,8 +1863,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             ποτέ τη λέξη· μια ΙΚΕ πρέπει να τη δει με έμφαση. Ποιος έχει τι, το
             ξέρει ο φάκελος (dossier.ts) — εδώ απλώς υπακούμε στην απάντησή του. */}
         {canJournal && doubleEntry && (
-        <div style={card}>
-          <p style={cardTitle}>Ισοζύγιο διπλογραφικής</p>
+        <Fold open={balanceOpen} onToggle={()=>setBalanceOpen(o=>!o)} title="Ισοζύγιο διπλογραφικής">
           {trial.length===0?(
             <p style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily: T.font.sans, padding:'2px 0' }}>Δεν υπάρχουν εισπράξεις ή πληρωμές για το {year} ώστε να σχηματιστεί ισοζύγιο.</p>
           ):(
@@ -1866,7 +1900,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               έντυπο, ποια αντιστοιχία με το παλιό ΕΓΛΣ. Μένει η μία φράση που
               λέει ΤΙ κοιτάς· ο ορισμός και η νομική βάση ανοίγουν με πάτημα. */}
           <p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'12px 0 0', fontFamily: T.font.sans, lineHeight:1.55 }}>Ταμειακή βάση, κατά τα Ελληνικά Λογιστικά Πρότυπα.<InfoHint>Σχέδιο λογαριασμών του ν. 4308/2014, αυτό που τροφοδοτεί το έντυπο Ε3. Κάθε άρθρο ισοσκελισμένο (χρέωση ίση με πίστωση), έτοιμο για καταχώρηση από τον λογιστή σου. Η αντιστοιχία με το παλιό ΕΓΛΣ, για όποιο λογιστήριο τη χρειάζεται, ταξιδεύει στο Excel.</InfoHint></p>
-        </div>
+        </Fold>
         )}
 
         </div>
