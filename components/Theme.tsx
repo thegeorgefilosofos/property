@@ -828,8 +828,20 @@ export function pressable<E extends { key: string; preventDefault: () => void }>
 }
 
 // ═══ Btn, κουμπιά σε 3 ρόλους ═════════════════════════════════════════════
-export function Btn({ children, onClick, variant = 'secondary', disabled, type }: {
+export function Btn({ children, onClick, variant = 'secondary', disabled, type, href, newTab }: {
   children: ReactNode; onClick?: () => void; variant?: 'primary' | 'secondary' | 'ghost'; disabled?: boolean; type?: 'button' | 'submit';
+  /**
+   * ΟΤΑΝ Η ΕΝΕΡΓΕΙΑ ΕΙΝΑΙ ΠΡΟΟΡΙΣΜΟΣ, ΤΟ ΣΤΟΙΧΕΙΟ ΕΙΝΑΙ ΣΥΝΔΕΣΜΟΣ.
+   *
+   * Ενα `<button onClick={() => router.push(…)}>` δείχνει ίδιο και δεν είναι:
+   * δεν ανοίγει σε νέα καρτέλα με μεσαίο κλικ, δεν αντιγράφεται με δεξί κλικ,
+   * δεν το βλέπει η μηχανή αναζήτησης και ο αναγνώστης οθόνης το ανακοινώνει
+   * ως κουμπί ενώ αλλάζει σελίδα. Η όψη μένει ΑΚΡΙΒΩΣ ίδια, γιατί ζει στην
+   * κλάση, όχι στο στοιχείο.
+   */
+  href?: string;
+  /** Ανοίγει σε νέα καρτέλα, με το `rel` που απαιτεί η ασφάλεια. */
+  newTab?: boolean;
 }) {
   const base: CSSProperties = {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -882,6 +894,18 @@ export function Btn({ children, onClick, variant = 'secondary', disabled, type }
   // απλώς δεν περνούσε το `onClick`: το κουμπί έμενε εστιάσιμο, ανακοινωνόταν
   // ως ενεργό από τους αναγνώστες οθόνης και το `:disabled` του CSS δεν
   // ταίριαζε ποτέ. Τώρα δηλώνεται στο ίδιο το στοιχείο.
+  if (href) {
+    return (
+      <a
+        href={href}
+        className="po-btn"
+        data-variant={variant}
+        target={newTab ? '_blank' : undefined}
+        rel={newTab ? 'noopener noreferrer' : undefined}
+        style={{ ...base, textDecoration: 'none' }}
+      >{children}</a>
+    );
+  }
   return (
     <button
       type={type ?? 'button'}

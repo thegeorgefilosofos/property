@@ -36,7 +36,7 @@ import { PLANS, PLAN_ORDER, normalizePlan, type PlanId } from '@/lib/billing/pla
 
 /** Τα πακέτα που αγοράζονται. Το «χωρίς συνδρομή» είναι κατάσταση, όχι πακέτο. */
 const PAID_PLAN_ORDER = PLAN_ORDER.filter(id => PLANS[id].priceMonthly > 0) as PlanId[];
-import { effectivePlan, activeComp, planAtLeast, propertyLimit, trialState, isOpenEnded, EARLY_ACCESS_DAYS, FEATURE_MIN_PLAN } from '@/lib/billing/entitlements';
+import { effectivePlan, activeComp, planAtLeast, propertyLimit, trialState, isOpenEnded } from '@/lib/billing/entitlements';
 import { athensToday } from '@/lib/core/time';
 import { savedData } from '@/components/dbWrite';
 import { notifyError } from '@/components/Toast';
@@ -785,7 +785,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
         <div style={divider}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 3 }}>Τρόπος χρήσης</div>
           <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 14, lineHeight: 1.5 }}>
-            Προσαρμόζει το περιβάλλον στις ανάγκες σου. Μπορείς να το αλλάξεις όποτε θες.{partner ? ' Είσαι ενεργός Συνεργάτης PROPERWISE.' : ''}
+            Αλλάζει όποτε θες.{partner ? ' Είσαι ενεργός Συνεργάτης PROPERWISE.' : ''}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 12 }}>
             {PROFILE_OPTS.map(o => {
@@ -817,23 +817,12 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
           </div>
         </div>
 
-        {/* ═══ Η ΥΠΟΣΧΕΣΗ ΤΗΣ ΠΡΟΩΡΗΣ ΠΡΟΣΒΑΣΗΣ, ΕΚΕΙ ΠΟΥ ΤΗ ΔΙΑΒΑΖΕΙ ΚΑΠΟΙΟΣ ══
-            Δεν είναι διαφήμιση: είναι όρος του πακέτου, γραμμένος και στους
-            Όρους Χρήσης. Για όποιον την έχει, λέγεται ως γεγονός· για όποιον δεν
-            την έχει, ως ένα ακόμη πράγμα που παίρνει αν ανέβει — χωρίς λουκέτο,
-            χωρίς πίεση, γιατί δεν του λείπει τίποτα σήμερα. */}
-        <div style={{ ...divider, borderBottom: 'none', paddingBottom: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 3 }}>Πρόωρη πρόσβαση</div>
-          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>
-            {planAtLeast(effPlan, FEATURE_MIN_PLAN.early_access)
-              /* ΜΕΛΛΟΝΤΑΣ, ΟΧΙ ΕΝΕΣΤΩΤΑΣ. Εγραφε «Το πακέτο σου ΠΑΙΡΝΕΙ την εφαρμογή
-                 κινητού, στο App Store και στο Google Play» — για προϊόν που δεν
-                 υπάρχει και δεν έχει ημερομηνία. Ο συνδρομητής διάβαζε ότι κάτι
-                 του ανήκει ήδη και έψαχνε πού να το κατεβάσει. */
-              ? `Όταν βγει η εφαρμογή κινητού, το πακέτο σου θα την έχει ${EARLY_ACCESS_DAYS} ημέρες νωρίτερα. Δεν έχει ημερομηνία ακόμη. Κάθε νέα δυνατότητα και βελτίωση ενσωματώνεται πρώτα εδώ.`
-              : `Με το πακέτο «${PLANS.owner.name}» και πάνω, κάθε νέα δυνατότητα ενσωματώνεται πρώτα εκεί· και η εφαρμογή κινητού, όταν βγει, θα έρχεται ${EARLY_ACCESS_DAYS} ημέρες νωρίτερα.`}
-          </div>
-        </div>
+        {/* ═══ Η ΠΡΟΩΡΗ ΠΡΟΣΒΑΣΗ ΕΦΥΓΕ ΑΠΟ ΕΔΩ ══════════════════════════════
+            Δύο σειρές κειμένου για εφαρμογή κινητού που δεν έχει βγει και δεν
+            έχει ημερομηνία, μέσα στην κάρτα που ο συνδρομητής ανοίγει για να
+            αλλάξει πακέτο. Είναι όρος του πακέτου, όχι νέα: ζει στη σειρά
+            «Πρόωρη πρόσβαση» του πίνακα δυνατοτήτων και στους Ορους Χρήσης,
+            δηλαδή εκεί που τη διαβάζει όποιος τη ζητά. */}
 
       </Card>
 

@@ -1,0 +1,66 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΙ ΠΕΡΙΛΑΜΒΑΝΕΙ ΚΑΘΕ ΠΑΚΕΤΟ — Η ΔΗΜΟΣΙΑ ΣΕΛΙΔΑ
+// ─────────────────────────────────────────────────────────────────────────
+// ΓΙΑΤΙ ΥΠΑΡΧΕΙ. Ο πίνακας των δεκαέξι γραμμών ζούσε ανοιχτός μέσα στις
+// Ρυθμίσεις, κάτω από τον τιμοκατάλογο. Ο συνδρομητής που μπήκε για να αλλάξει
+// τη διεύθυνση τιμολόγησής του κυλούσε από πάνω του κάθε φορά, για μια
+// πληροφορία που διαβάζεται ΜΙΑ φορά στη ζωή του λογαριασμού.
+//
+// Και ήταν κλειδωμένος πίσω από τη σύνδεση. «Τι παίρνω με τι» είναι η πρώτη
+// ερώτηση που κάνει και ο επισκέπτης που δεν έχει ακόμη λογαριασμό: η απάντηση
+// δεν έπρεπε να χρειάζεται εγγραφή, ούτε να λείπει από τις μηχανές αναζήτησης.
+//
+// ΚΑΜΙΑ ΤΙΜΗ ΓΡΑΜΜΕΝΗ ΕΔΩ. Οι τιμές ζουν στο `lib/billing/plans` και τις
+// δείχνει η αρχική σελίδα· εδώ απαντάται μόνο το «τι περιλαμβάνει». Δύο σελίδες
+// με τιμές θα ήταν δύο σελίδες που μπορούν να διαφωνήσουν.
+// ═══════════════════════════════════════════════════════════════════════════
+import type { Metadata } from 'next';
+import { siteUrl } from '@/lib/core/site';
+import { TRIAL_DAYS } from '@/lib/billing/plans';
+import { PublicHeader, PublicFooter, JsonLd, ToolLede, WRAP, WRAP_PAD } from '../PublicChrome';
+import { BackLink } from '../BackLink';
+import { PlanMatrix } from '@/components/PlanMatrix';
+
+const TITLE = 'Τι περιλαμβάνει κάθε πακέτο · PROPERWISE';
+const DESC =
+  'Δες γραμμή προς γραμμή τι δίνει κάθε πακέτο του PROPERWISE: ακίνητα, '
+  + 'σάρωση εγγράφων, εξαγωγή Ε2, λογιστικό ημερολόγιο, χαρτοφυλάκιο και '
+  + 'επενδυτική ανάλυση. Χωρίς εγγραφή.';
+const PATH = '/paketa';
+const URL = siteUrl(PATH);
+
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESC,
+  alternates: { canonical: URL },
+  openGraph: { title: TITLE, description: DESC, url: URL, type: 'website' },
+};
+
+export default function Page() {
+  return (
+    <>
+      <JsonLd data={{
+        '@context': 'https://schema.org',
+        '@type': 'WebPage',
+        name: TITLE,
+        description: DESC,
+        url: URL,
+      }} />
+      <PublicHeader />
+      {/* Ιδια δομή κεφαλίδας με τα δωρεάν εργαλεία: μάτι, τίτλος πρώτου
+          επιπέδου, μία γραμμή υπόσχεσης. Δύο δημόσιες σελίδες με την ίδια
+          δουλειά δεν επιτρέπεται να έχουν δύο διατάξεις. */}
+      <main style={{ ...WRAP, padding: `clamp(28px,4vw,44px) ${WRAP_PAD} clamp(56px,7vw,88px)` }}>
+        <BackLink />
+        <div className="lp-eyebrow">Πακέτα</div>
+        <h1 style={{ fontSize: 'clamp(28px,4.4vw,42px)', fontWeight: 680, letterSpacing: '-0.035em',
+          lineHeight: 1.1, margin: '0 0 14px', textWrap: 'balance' }}>
+          Τι περιλαμβάνει κάθε πακέτο
+        </h1>
+        <ToolLede>Κάθε πακέτο ξεκινά με {TRIAL_DAYS} ημέρες δωρεάν δοκιμή. Χωρίς δέσμευση και χωρίς κρυφές χρεώσεις: αναβαθμίζεις, αλλάζεις ή σταματάς όποτε θέλεις.</ToolLede>
+        <div style={{ marginTop: 'clamp(22px,3vw,34px)' }}><PlanMatrix /></div>
+      </main>
+      <PublicFooter />
+    </>
+  );
+}

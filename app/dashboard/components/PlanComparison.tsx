@@ -325,57 +325,23 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
         </div>
       </Card>
 
-      {/* ── 3. Πίνακας δυνατοτήτων ────────────────────────────────────────── */}
+      {/* ═══ Ο ΠΙΝΑΚΑΣ ΤΩΝ ΔΕΚΑΕΞΙ ΓΡΑΜΜΩΝ ΕΦΥΓΕ ΑΠΟ ΤΙΣ ΡΥΘΜΙΣΕΙΣ ═══════════
+          Δεκαέξι γραμμές επί τέσσερις στήλες, δηλαδή εξήντα τέσσερα κελιά,
+          κάθονταν μόνιμα ανοιχτά κάτω από τον τιμοκατάλογο. Ο συνδρομητής που
+          μπήκε στις Ρυθμίσεις για να αλλάξει τη διεύθυνση τιμολόγησής του
+          κυλούσε από πάνω τους κάθε φορά.
+
+          Ενας πίνακας δυνατοτήτων διαβάζεται ΜΙΑ φορά στη ζωή του λογαριασμού,
+          τη στιγμή που διαλέγεις πακέτο. Ζει πλέον στη δική του σελίδα, που
+          ανοίγει και χωρίς λογαριασμό: την ίδια ερώτηση την κάνει και ο
+          επισκέπτης, οπότε η απάντηση δεν έπρεπε να είναι κλειδωμένη. */}
       <Card className="acc-section" style={{ animationDelay: '80ms' }}>
-        <SecHdr label="Τι περιλαμβάνει κάθε πακέτο" />
-
-        <div style={{ overflowX: 'auto' }}>
-          <div style={{ minWidth: 560 }}>
-            {/* Κεφαλίδα πίνακα: επανάληψη ονομάτων, μικρά & διακριτικά */}
-            <div style={{ display: 'grid', gridTemplateColumns: MATRIX_GRID, alignItems: 'end', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 10 }}>
-              <div />
-              {COMPARED.map(id => (
-                <div key={id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '0 8px' }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', fontFamily: T.font.sans, textAlign: 'center' }}>{PLANS[id].name}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Γραμμές δυνατοτήτων */}
-            {MATRIX.map(row => (
-              <div key={row.label} style={{ display: 'grid', gridTemplateColumns: MATRIX_GRID, alignItems: 'center', borderBottom: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.4, padding: '13px 12px 13px 2px' }}>{row.label}</div>
-                {COMPARED.map(id => {
-                  const v = row.values[id];
-                  const gain = isGain(row, id);
-                  let content: ReactNode;
-                  if (typeof v === 'string') {
-                    content = <span style={{ fontSize: 13, fontWeight: gain ? 700 : 600, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{v}</span>;
-                  } else if (v === true) {
-                    content = <Check tone="muted" />;
-                  } else {
-                    content = <span style={{ color: 'var(--text-tertiary)', fontSize: 13, fontFamily: T.font.sans }}>Όχι</span>;
-                  }
-                  return (
-                    <div key={id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '13px 8px' }}>
-                      {content}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
+          <span style={{ ...TT.bodySm, minWidth: 0 }}>Όλες οι δυνατότητες, γραμμή προς γραμμή.</span>
+          <Btn variant="secondary" href="/paketa" newTab>
+            Τι περιλαμβάνει κάθε πακέτο
+          </Btn>
         </div>
-
-        {/* ── ΤΑ ΨΙΛΑ ΓΡΑΜΜΑΤΑ, ΜΙΑ ΦΟΡΑ ΚΑΙ ΟΛΟΚΛΗΡΑ ────────────────────────
-            Ήταν δύο μισές παράγραφοι σε δύο μεγέθη: «Χωρίς δέσμευση» στα 12 και
-            ο ΦΠΑ στα 11, με διαφορετικό περιθώριο η καθεμία. Και οι δύο μαζί
-            έλεγαν λιγότερα από όσα λέει η αρχική σελίδα στον επισκέπτη ΠΡΙΝ
-            εγγραφεί: ο συνδρομητής που πληρώνει έβλεπε λιγότερους όρους από τον
-            περαστικό. Ένα κείμενο, τα ίδια λόγια με την αρχική. */}
-        <p style={{ ...TT.bodySm, color: 'var(--text-tertiary)', marginTop: 16, marginBottom: 0 }}>
-          Κάθε πακέτο ξεκινά με {TRIAL_DAYS} ημέρες δωρεάν δοκιμή και τίποτα δεν αλλάζει χωρίς να το ξέρεις: το πακέτο το διαλέγεις εσύ από την αρχή, ανάλογα με τα ακίνητα και τα εργαλεία που χρειάζεσαι. Χωρίς δέσμευση, χωρίς κρυφές χρεώσεις και χωρίς ποινή αν φύγεις· αναβαθμίζεις, αλλάζεις ή σταματάς όποτε θέλεις, σύμφωνα με την ισχύουσα τιμολογιακή πολιτική. Δωρεάν είναι μόνο η δοκιμή και οι μήνες που κερδίζεις από συστάσεις· οι τιμές αφορούν καταναλωτές στην Ελλάδα και περιλαμβάνουν ΦΠΑ.
-        </p>
       </Card>
     </div>
   );
