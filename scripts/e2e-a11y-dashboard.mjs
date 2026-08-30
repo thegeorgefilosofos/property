@@ -60,7 +60,7 @@ const { chromium } = pkg
 
 // Οι ίδιες σκηνές με τη σάρωση διάταξης. Γραμμένες ρητά, ώστε μια σκηνή που
 // προστίθεται στον πάγκο να μπαίνει ΣΥΝΕΙΔΗΤΑ και εδώ.
-const SCENES = ['portfolio', 'cash', 'rent', 'inbox', 'ledger', 'finances', 'checklist', 'modal',
+const SCENES = ['overview', 'portfolio', 'cash', 'rent', 'inbox', 'ledger', 'finances', 'checklist', 'modal',
   'select', 'compare', 'loan', 'pricing', 'bills', 'contacts', 'wizard', 'roi', 'roi-pro',
   'tenant', 'scan', 'accounting', 'accounting-pro', 'calendar', 'clients', 'documents', 'inventory',
   'billing', 'branding', 'referral', 'referralPro', 'plan', 'planReno', 'planSale']

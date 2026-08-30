@@ -1945,6 +1945,20 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   transition: width .35s cubic-bezier(0.2,0,0,1), background .15s;
 }
 .cl-ch:focus-within .cl-ch-fill { background: var(--accent); }
+
+/* ═══ ΤΑ ΣΤΟΙΧΕΙΑ ΤΟΥ ΑΚΙΝΗΤΟΥ: ΚΑΝΕΝΑ ΟΡΦΑΝΟ ΣΤΙΣ ΔΥΟ ΣΤΗΛΕΣ ═══════════════
+   Ζευγάρια ετικέτας και τιμής, όσα έχει συμπληρώσει ο ιδιοκτήτης. Το πλήθος
+   είναι δεδομένο, όχι σχεδιαστική απόφαση: όταν βγει μονό και οι στήλες είναι
+   δύο, το τελευταίο μένει μισό με τρύπα ίσου μεγέθους δίπλα του. Απλώνεται σε
+   ολόκληρη τη σειρά. Στις τρεις στήλες ο κανόνας ΔΕΝ ισχύει: δύο στοιχεία στην
+   τελευταία σειρά είναι σειρά που τελείωσε.
+   Τα σπασίματα αναπαράγουν ακριβώς όσα έβγαζε το `auto-fit` με ελάχιστο 230. */
+.prop-facts { display: grid; column-gap: 28px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 700px) { .prop-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 900px) { .prop-facts { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 700px) and (max-width: 899px) {
+  .prop-facts > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
 @media (hover: hover) {
   .cl-ch:hover .cl-ch-fill { background: var(--accent); }
 }

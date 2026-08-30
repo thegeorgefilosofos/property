@@ -438,7 +438,15 @@ function useChecklistAlerts(propertyId: string | null) {
 // γιατί τίποτα δεν θα είχε «σπάσει». Τώρα η σήμανση είναι δεδομένο του
 // πλακιδίου (`incomeOnly`), όχι σύμπτωση κειμένου.
 
-function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { prop: Property;
+// ═══ ΕΞΑΓΕΤΑΙ ΓΙΑ ΝΑ ΜΕΤΡΗΘΕΙ ═══════════════════════════════════════════════
+// Η ΕΠΙΣΚΟΠΗΣΗ ΕΙΝΑΙ Η ΟΘΟΝΗ ΠΟΥ ΒΛΕΠΕΙ ΠΡΩΤΗ ΚΑΘΕ ΧΡΗΣΤΗΣ, ΚΑΘΕ ΦΟΡΑ — και
+// ήταν η ΜΟΝΗ που κανένας σαρωτής δεν είχε δει ποτέ. Ο πάγκος έχει σκηνή για
+// τριάντα δύο καρτέλες· η Επισκόπηση έλειπε, επειδή ζει μέσα στο `page.tsx` ως
+// τοπική συνάρτηση και δεν υπήρχε τρόπος να αποδοθεί χωρίς ολόκληρη τη σελίδα.
+// Μία λέξη το λύνει: εξάγεται, ο πάγκος τη στήνει με τα δικά του δεδομένα και
+// από εδώ και πέρα περνά κι αυτή από τους δώδεκα ελέγχους διάταξης και από τον
+// έλεγχο προσβασιμότητας, όπως κάθε άλλη οθόνη.
+export function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { prop: Property;
   /** ΟΛΑ τα ακίνητα του χρήστη — χρειάζονται για τον φόρο: η κλίμακα των ενοικίων
    *  είναι προοδευτική στο σύνολο του φορολογούμενου, όχι ανά ακίνητο. */
   properties: Property[];
@@ -1049,7 +1057,20 @@ function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }: { pro
             το διπλανό — η ίδια πληροφορία, χωρίς το κενό. */}
         <div className="card">
           <div className="section-label"><span className="section-dot"/> Στοιχεία ακινήτου</div>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,230px),1fr))',columnGap:28}}>
+          {/* ═══ ΤΟ ΤΕΛΕΥΤΑΙΟ ΣΤΟΙΧΕΙΟ ΕΜΕΝΕ ΜΟΝΟ ΤΟΥ, ΜΕ ΤΡΥΠΑ ΔΙΠΛΑ ΤΟΥ ══════
+              ΤΟ ΠΡΩΤΟ ΕΥΡΗΜΑ ΤΗΣ ΠΡΩΤΗΣ ΣΑΡΩΣΗΣ ΑΥΤΗΣ ΤΗΣ ΟΘΟΝΗΣ. Μετρημένο σε
+              768 και 820: έντεκα στοιχεία σε δύο στήλες δίνουν 2+2+2+2+2+1 και
+              το «Εκτιμώμενος ΕΝΦΙΑ» έμενε μισό, με κενό ίσου μεγέθους δεξιά του.
+              Το πλήθος το ορίζουν ΤΑ ΔΕΔΟΜΕΝΑ (πόσα πεδία έχει συμπληρώσει ο
+              ιδιοκτήτης), οπότε η μονή περίπτωση δεν είναι σπάνια: είναι η μισή.
+
+              ΚΑΙ ΤΟ `auto-fit` ΔΕΝ ΜΠΟΡΕΙ ΝΑ ΤΟ ΛΥΣΕΙ, γιατί δεν ξέρει πόσες
+              στήλες έβγαλε: ο κανόνας του ορφανού χρειάζεται να ισχύει ΜΟΝΟ στις
+              δύο στήλες (στις τρεις, δύο στοιχεία στην τελευταία σειρά είναι
+              σειρά που τελείωσε, όχι ορφανό). Οι στήλες γράφονται ρητά, στα ίδια
+              ακριβώς πλάτη που έβγαζε το `auto-fit`: μία ώς τα 700, δύο ώς τα
+              900, τρεις από εκεί και πάνω. */}
+          <div className="prop-facts">
             {([['Τύπος',propertyTypeLabel(prop.prop_type)],['Εμβαδόν',prop.sqm?`${prop.sqm} τ.μ.`:null],['Υπνοδωμάτια',prop.bedrooms?String(prop.bedrooms):null],['Διεύθυνση',prop.address],['ΑΤΑΚ',prop.atak],['Έτος κατασκευής',prop.year_built?String(prop.year_built):null],['Όροφος',prop.floor!=null?String(prop.floor):null],['Θέρμανση',heatingLabel(prop.heating)||null],['Ενεργειακή κλάση',prop.pea_class],['Θέσεις στάθμευσης',prop.parking_spaces?String(prop.parking_spaces):null],['Αποθήκη',prop.storage_sqm?`${prop.storage_sqm} τ.μ.`:null],['Αντικειμενική αξία',prop.obj_value?fmtEur(prop.obj_value):null],['Εκτιμώμενος ΕΝΦΙΑ',prop.enfia?fmtEur(prop.enfia):null]] as [string,string|null][]).filter(([,v])=>v).map(([k,v]) => (
               <div key={k} title={k==='ΑΤΑΚ'?'Αριθμός Ταυτότητας Ακινήτου, από το έντυπο Ε9':k==='Εκτιμώμενος ΕΝΦΙΑ'?'Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων: ο ετήσιος φόρος περιουσίας':undefined}
                 style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:14,padding:'8px 0',borderBottom:'1px solid var(--border-subtle)'}}>

@@ -75,6 +75,7 @@ import TabDocuments from '@/app/dashboard/components/TabDocuments';
 import TabReferral from '@/app/dashboard/components/TabReferral';
 import Billing from '@/app/dashboard/components/Billing';
 import ReportBranding from '@/app/dashboard/components/ReportBranding';
+import { OverviewTab } from '@/app/dashboard/page';
 import TabPlan from '@/app/dashboard/components/TabPlan';
 import PropertySwitcher from '@/app/dashboard/components/PropertySwitcher';
 import { T, Modal, Btn, PageTitle, InfoBanner, fieldRow } from '@/components/Theme';
@@ -221,7 +222,28 @@ const PLAN_PROPERTY = {
   sqm: 42, value: 185000, year_built: 1972, postal_code: '11741', prop_type: 'Διαμέρισμα',
 };
 
+// ═══ Η ΟΘΟΝΗ ΠΟΥ ΒΛΕΠΟΥΝ ΟΛΟΙ, ΚΑΙ ΔΕΝ ΕΙΧΕ ΔΕΙ ΠΟΤΕ ΚΑΝΕΙΣ ═══════════════════
+// Τριάντα δύο σκηνές, δώδεκα πλάτη, δύο σαρωτές — και η Επισκόπηση έλειπε από
+// τον κατάλογο. Είναι η πρώτη οθόνη κάθε συνεδρίας: το ταμείο, τα πρώτα βήματα,
+// οι προθεσμίες, η κατάσταση του ακινήτου. Κάθε εύρημα διάταξης ή προσβασιμότητας
+// εκεί το έβλεπε ο χρήστης πριν από εμάς.
+//
+// ΤΟ ΑΚΙΝΗΤΟ ΕΙΝΑΙ ΠΛΗΡΕΣ, ΟΧΙ ΣΚΙΤΣΟ: η οθόνη διαβάζει αντικειμενική αξία,
+// παλαιότητα, ΑΤΑΚ, ασφάλιση και ενεργειακή κλάση για να χτίσει τον φόρο, τον
+// ΕΝΦΙΑ και τις εκκρεμότητες. Με μισό ακίνητο θα μετρούσαμε μισή οθόνη.
+const OVERVIEW_PROPERTY = {
+  id: 'p0', user_id: 'u1', name: 'Στούντιο Κουκάκι', prop_type: 'Διαμέρισμα',
+  address: 'Δημητρακοπούλου 12, Αθήνα', postal_code: '11741', sqm: 42, ownership: '100',
+  value: 185000, obj_value: 96000, purchase_price: 148000, purchase_date: '2019-04-18',
+  target_rent: 620, enfia: 214, insurance_amount: 180, insurance_company: 'Παράδειγμα ΑΕ',
+  insurance_expiry: '2027-03-31', pea_class: 'D', year_built: 1972, atak: '01234567890123',
+  floor: 3, heating: 'Αυτόνομη', parking_spaces: 0, storage_sqm: 5, bedrooms: 1,
+  rental_mode: 'long', client_id: null, co_owners: null, notes: null,
+  status_detail: null, created_at: '2019-04-18T00:00:00Z',
+};
+
 const VIEWS: Record<string, () => React.ReactElement> = {
+  overview: () => <OverviewTab prop={OVERVIEW_PROPERTY as never} properties={[OVERVIEW_PROPERTY] as never} userId="u1" onNavigate={() => {}} tabVisible={() => true} />,
   portfolio: () => <PortfolioTab properties={bench.properties} userId="u1" onSelectProperty={() => {}} />,
   cash: () => <CashHero cash={cash} showIncome onNavigate={() => {}} onRecordRent={() => {}} />,
   rent: () => <RentReceived onClose={() => {}} lines={lines} supabase={supabase} propertyId={null} tenantId={null} leaseViaBank today="2026-08-23" onSaved={() => {}} />,
