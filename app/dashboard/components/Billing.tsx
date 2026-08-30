@@ -185,6 +185,21 @@ export default function Billing({ userId, wantPlan = null }: {
           <TextInput label="Πόλη" value={d.city} onChange={v => set('city', v)} placeholder="Αθήνα" />
           <TextInput label="Ταχ. Κώδικας" value={d.postal_code} onChange={v => set('postal_code', v)} placeholder="11527" />
           <TextInput label="Τηλέφωνο" value={d.phone} onChange={v => set('phone', v)} placeholder="69XXXXXXXX" />
+          {/* ═══ Η ΑΠΟΘΗΚΕΥΣΗ ΜΠΑΙΝΕΙ ΣΤΟ ΚΕΝΟ ΚΕΛΙ ΤΗΣ ΤΕΛΕΥΤΑΙΑΣ ΣΕΙΡΑΣ ═════
+              Καθόταν σε δική της σειρά από κάτω, δηλαδή μια ολόκληρη γραμμή για
+              ένα κουμπί, ενώ η σειρά ακριβώς από πάνω τελείωνε με άδειο κελί.
+              Το κουμπί είναι το τέλος της φόρμας και το άδειο κελί είναι το
+              τέλος της σειράς: μπαίνουν μαζί.
+
+              Η στοίχιση είναι στο ΚΑΤΩ άκρο, ώστε το κουμπί να πέφτει στη
+              γραμμή βάσης των πεδίων δίπλα του και όχι στην κορυφή τους. Οταν
+              η σειρά σπάσει σε λιγότερες στήλες, ακολουθεί από κάτω όπως κάθε
+              άλλο κελί. */}
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, minHeight: T.h.lg, flexWrap: 'wrap' }}>
+            <Btn variant="primary" onClick={save} disabled={saving}>{saving ? 'Αποθήκευση…' : 'Αποθήκευση στοιχείων'}</Btn>
+            {saved && <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, fontWeight: 600, paddingBottom: 10 }}>Αποθηκεύτηκε</span>}
+            {saveErr && <span style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, paddingBottom: 10 }}>Δεν αποθηκεύτηκε. Δοκίμασε ξανά.</span>}
+          </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 12, fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>
@@ -196,11 +211,6 @@ export default function Billing({ userId, wantPlan = null }: {
             Για σωστό τιμολόγιο, συμπλήρωσε ακόμη: {missing.map(f => f.label).join(', ')}.
           </div>
         )}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 16 }}>
-          <Btn variant="primary" onClick={save} disabled={saving}>{saving ? 'Αποθήκευση…' : 'Αποθήκευση στοιχείων'}</Btn>
-          {saved && <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, fontWeight: 600 }}>Αποθηκεύτηκε</span>}
-          {saveErr && <span style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans }}>Δεν αποθηκεύτηκε. Δοκίμασε ξανά.</span>}
-        </div>
       </Card>
 
       <Subscription d={d} wantPlan={wantPlan} wishPlan={wishPlan} wishCycle={wishCycle} onChanged={reload} />

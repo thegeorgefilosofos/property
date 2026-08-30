@@ -23,6 +23,8 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import ExpenseCompare from './ExpenseCompare';
+import CashHero from './CashHero';
+import type { CashPosition } from '@/lib/home/cash';
 import { deriveCoverages } from './BillsInsurance';
 import type { Spend } from '@/lib/expenses/compare';
 
@@ -248,6 +250,36 @@ console.log('\nΟι καλύψεις του προγράμματος');
   const flags = deriveCoverages([], true, true, true);
   ok('ο σεισμός από το πεδίο του', flags.find(c => c.label === 'Σεισμός')?.ok === true);
 }
+
+
+// ══ ΤΟ ΤΑΜΕΙΟ ΟΤΑΝ ΔΕΝ ΤΡΕΧΕΙ ΤΙΠΟΤΑ ═════════════════════════════════════
+// Σε ακίνητο χωρίς έσοδο και χωρίς ανοιχτή οφειλή, η κορυφή της οθόνης έπιανε
+// εκατόν είκοσι εικονοστοιχεία για να πει «0,00 €». Το μεγαλύτερο νούμερο της
+// οθόνης ήταν το μηδέν: κουτί στο μέγεθος της είδησης, για την απουσία είδησης.
+console.log('Το ταμείο');
+{
+  const empty = { total: 0, count: 0, overdue: 0, overdueCount: 0, lines: [] };
+  const zero: CashPosition = { owedToMe: empty, owedByMe: empty };
+  const t = textOf(createElement(CashHero, {
+    cash: zero, showIncome: false, onNavigate: () => {}, onRecordRent: null,
+  }));
+  ok('χωρίς εκκρεμότητες δεν τυπώνεται ποσό', !t.includes('0,00 €'));
+  ok('λέγεται ήσυχα, με λέξεις', t.includes('Τίποτα σε εκκρεμότητα'));
+  ok('και ο δρόμος προς τις Δαπάνες μένει', t.includes('Ταμείο'));
+
+  // ΜΟΛΙΣ ΥΠΑΡΞΕΙ ΕΣΤΩ ΜΙΑ ΕΚΚΡΕΜΟΤΗΤΑ, Ο ΑΡΙΘΜΟΣ ΞΑΝΑΠΑΙΡΝΕΙ ΤΟ ΜΕΓΕΘΟΣ ΤΟΥ.
+  const owed: CashPosition = {
+    owedToMe: empty,
+    owedByMe: { total: 84.5, count: 1, overdue: 0, overdueCount: 0,
+      lines: [{ label: 'ΔΕΗ', amount: 84.5, due: '2026-09-10', daysLeft: 12, rent: null }] },
+  };
+  const t2 = textOf(createElement(CashHero, {
+    cash: owed, showIncome: false, onNavigate: () => {}, onRecordRent: null,
+  }));
+  ok('με εκκρεμότητα, το ποσό γράφεται', t2.includes('84,50 €'));
+  ok('και η ετικέτα είναι «Χρωστάω»', t2.includes('Χρωστάω'));
+}
+
 
 console.log(`\nscreens.ts — ${passed} passed, ${failed} failed`);
 if (failed) { console.log('FAILED:\n' + fails.map(f => '  ✗ ' + f).join('\n')); process.exit(1); }

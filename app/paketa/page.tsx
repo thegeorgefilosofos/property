@@ -17,7 +17,7 @@
 import type { Metadata } from 'next';
 import { siteUrl } from '@/lib/core/site';
 import { TRIAL_DAYS } from '@/lib/billing/plans';
-import { PublicHeader, PublicFooter, JsonLd, ToolLede, WRAP, WRAP_PAD } from '../PublicChrome';
+import { PublicHeader, PublicFooter, JsonLd, WRAP, WRAP_PAD } from '../PublicChrome';
 import { BackLink } from '../BackLink';
 import { PlanMatrix } from '@/components/PlanMatrix';
 
@@ -57,7 +57,20 @@ export default function Page() {
           lineHeight: 1.1, margin: '0 0 14px', textWrap: 'balance' }}>
           Τι περιλαμβάνει κάθε πακέτο
         </h1>
-        <ToolLede>Κάθε πακέτο ξεκινά με {TRIAL_DAYS} ημέρες δωρεάν δοκιμή. Χωρίς δέσμευση και χωρίς κρυφές χρεώσεις: αναβαθμίζεις, αλλάζεις ή σταματάς όποτε θέλεις.</ToolLede>
+        {/* ═══ ΟΧΙ ΤΟ `ToolLede` ═════════════════════════════════════════════
+            Το κοινό εισαγωγικό των ΔΩΡΕΑΝ ΕΡΓΑΛΕΙΩΝ κλείνει με «χωρίς εγγραφή
+            και χωρίς email: ο υπολογισμός γίνεται στη συσκευή σου και μένει
+            εκεί» και με υποσημείωση «οι ίδιοι υπολογισμοί που τρέχει το
+            PROPERWISE». Εδώ δεν τρέχει κανένας υπολογισμός: είναι κατάλογος
+            δυνατοτήτων. Η υπόσχεση θα ήταν άσχετη, άρα θόρυβος.
+
+            ΔΥΟ ΠΡΟΤΑΣΕΙΣ, ΚΑΙ ΟΙ ΔΥΟ ΑΛΗΘΕΙΣ. Το «χωρίς κάρτα» δεν γράφεται
+            πουθενά: η κάρτα ζητείται στην εγγραφή και η χρέωση ξεκινά μετά τη
+            δοκιμή. Αυτό ακριβώς λέει η δεύτερη πρόταση. */}
+        <p style={{ fontSize: 15, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 6px', maxWidth: 720 }}>
+          Κάθε πακέτο ξεκινά με {TRIAL_DAYS} ημέρες δωρεάν δοκιμή.
+          {' '}Η χρέωση ξεκινά μετά τη δοκιμή και σταματά όποτε θέλεις, χωρίς κρυφές χρεώσεις.
+        </p>
         <div style={{ marginTop: 'clamp(22px,3vw,34px)' }}><PlanMatrix /></div>
       </main>
       <PublicFooter />

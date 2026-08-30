@@ -24,9 +24,17 @@ import type { ReactNode } from 'react';
 import { T, fe, Btn } from '@/components/Theme';
 import { cashSideNote, type CashPosition, type CashSide } from '@/lib/home/cash';
 
-function Side({ label, side, kind, onOpen, actionLabel, action }: {
+function Side({ label, side, kind, onOpen, actionLabel, action, compact }: {
   label: string; side: CashSide; kind: 'in' | 'out';
   onOpen: () => void; actionLabel: string;
+  /**
+   * ΗΣΥΧΗ ΜΟΡΦΗ: ΕΤΙΚΕΤΑ ΚΑΙ ΛΕΞΕΙΣ, ΧΩΡΙΣ ΤΟΝ ΜΕΓΑΛΟ ΑΡΙΘΜΟ.
+   *
+   * Οταν δεν τρέχει τίποτα, ο αριθμός είναι μηδέν και το μηδέν δεν αξίζει τα
+   * σαράντα εικονοστοιχεία ύψους που παίρνει ένα ποσό. Το ίδιο κουμπί, ο ίδιος
+   * δρόμος προς την καρτέλα, μία σειρά.
+   */
+  compact?: boolean;
   /**
    * Η ΕΝΕΡΓΕΙΑ ΕΙΝΑΙ ΑΔΕΛΦΟΣ ΤΟΥ ΑΡΙΘΜΟΥ, ΟΧΙ ΠΑΙΔΙ ΤΟΥ. Ολόκληρη η πλευρά
    * ήταν ένα κουμπί που πλοηγούσε· ένα δεύτερο κουμπί μέσα του δεν είναι
@@ -42,7 +50,12 @@ function Side({ label, side, kind, onOpen, actionLabel, action }: {
       type="button"
       onClick={onOpen}
       title={actionLabel}
-      style={{
+      style={compact ? {
+        display: 'flex', flexDirection: 'row', gap: 10, alignItems: 'center',
+        width: '100%', minWidth: 0, minHeight: T.h.lg, padding: '0 18px',
+        background: 'transparent', border: 'none', borderRadius: T.radius.inner,
+        textAlign: 'left', cursor: 'pointer', transition: 'background 0.15s',
+      } : {
         display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start',
         width: '100%', minWidth: 0, padding: action ? '18px 20px 12px' : '18px 20px',
         background: 'transparent', border: 'none', borderRadius: T.radius.inner,
@@ -63,13 +76,15 @@ function Side({ label, side, kind, onOpen, actionLabel, action }: {
           το στρογγυλεμένο ποσό τυπωνόταν σαν να ήταν ακριβές: 97,45 € γινόταν
           «97,00 €», ενώ η γραμμή ακριβώς από κάτω έλεγε «84,55 € ληξιπρόθεσμα».
           Δύο ασυμβίβαστα νούμερα, στο ΠΡΩΤΟ πράγμα που βλέπει ο ιδιοκτήτης. */}
-      <span className="cash-figure" style={{
-        fontFamily: T.font.num, fontWeight: 700, color: 'var(--text-primary)',
-        fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', lineHeight: 1.05,
-        maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis',
-      }}>{fe(side.total)}</span>
+      {!compact && (
+        <span className="cash-figure" style={{
+          fontFamily: T.font.num, fontWeight: 700, color: 'var(--text-primary)',
+          fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', lineHeight: 1.05,
+          maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>{fe(side.total)}</span>
+      )}
       <span style={{
-        fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.45,
+        fontFamily: T.font.sans, fontSize: compact ? 13 : 12, color: 'var(--text-secondary)', lineHeight: 1.45,
       }}>{note}</span>
     </button>
     {action && <div style={{ padding: '0 20px 18px' }}>{action}</div>}
@@ -97,6 +112,27 @@ export default function CashHero({ cash, showIncome, onNavigate, onRecordRent }:
    */
   onRecordRent: (() => void) | null;
 }) {
+  // ═══ ΟΤΑΝ ΔΕΝ ΤΡΕΧΕΙ ΤΙΠΟΤΑ, ΤΟ ΤΑΜΕΙΟ ΕΙΝΑΙ ΜΙΑ ΓΡΑΜΜΗ ══════════════════
+  //
+  // Σε ακίνητο χωρίς έσοδο και χωρίς ανοιχτή οφειλή, η κορυφή της οθόνης έπιανε
+  // εκατόν είκοσι εικονοστοιχεία για να πει «0,00 €» και «τίποτα σε
+  // εκκρεμότητα». Το μεγαλύτερο νούμερο της οθόνης ήταν το μηδέν: ένα κουτί στο
+  // μέγεθος της είδησης, για την απουσία είδησης.
+  //
+  // Η ΑΠΟΥΣΙΑ ΝΕΩΝ ΕΙΝΑΙ ΚΑΛΗ ΕΙΔΗΣΗ ΚΑΙ ΛΕΓΕΤΑΙ ΗΣΥΧΑ. Η κάρτα δεν εξαφανίζεται
+  // — μένει ο δρόμος προς τις Δαπάνες, στο ίδιο σημείο που τον έμαθε ο χρήστης —
+  // αλλά συρρικνώνεται σε μία σειρά. Μόλις υπάρξει έστω μία εκκρεμότητα, ο
+  // αριθμός ξαναπαίρνει το μέγεθος που του αξίζει.
+  const quiet = cash.owedByMe.count === 0 && (!showIncome || cash.owedToMe.count === 0);
+  if (quiet) {
+    return (
+      <div className="card cash-hero" style={{ padding: 0, marginBottom: 20 }}>
+        <Side compact label="Ταμείο" side={cash.owedByMe} kind="out"
+              actionLabel="Άνοιγμα στις Δαπάνες" onOpen={() => onNavigate('finances')} />
+      </div>
+    );
+  }
+
   return (
     <div className="card cash-hero" style={{ padding: 0, marginBottom: 20 }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'stretch' }}>

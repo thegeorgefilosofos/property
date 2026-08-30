@@ -1,0 +1,12 @@
+import { chromium } from 'playwright-core';
+import { chromePath } from './lib/chrome.mjs';
+import { benchUrl } from './lib/paths.mjs';
+const OUT = '/tmp/claude-0/-home-user-property/fe22d132-56da-5d8b-b87a-58829319f7e4/scratchpad';
+const b = await chromium.launch({ executablePath: chromePath(), args: ['--no-sandbox'] });
+const p = await b.newPage({ viewport: { width: 1280, height: 1000 }, deviceScaleFactor: 2 });
+await p.goto(benchUrl('cash') + '&n=1', { waitUntil: 'networkidle' });
+await p.waitForTimeout(1500);
+const t = await p.evaluate(() => document.body.innerText);
+console.log(t.split('\n').filter(Boolean).slice(0, 45).join(' | '));
+await p.screenshot({ path: `${OUT}/ov.png`, fullPage: true });
+await b.close();

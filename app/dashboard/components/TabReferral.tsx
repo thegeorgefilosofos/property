@@ -691,7 +691,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                 <span style={{ ...TT.label }}>Ο φίλος σου ξεκινά με</span>
               </div>
               <div style={{ ...TT.displaySm, marginBottom: 6 }}>{TRIAL_DAYS} ημέρες δοκιμή</div>
-              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>στο πακέτο που θα διαλέξει, «{PLANS.solo.name}» ή «{PLANS.agency.name}». Χωρίς κάρτα.</div>
+              <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>στο πακέτο που θα διαλέξει, «{PLANS.solo.name}» ή «{PLANS.agency.name}». Η χρέωση ξεκινά μετά τη δοκιμή.</div>
             </div>
           </div>
 

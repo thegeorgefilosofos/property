@@ -659,7 +659,7 @@ const SCENES = ['portfolio','cash','rent','inbox','ledger','finances','checklist
 // έχει κατάσταση, απλώς ανοίγει παράθυρο. Γράφεται ρητά ποιο κουμπί πατιέται σε
 // ποια σκηνή, ώστε ο κατάλογος των μετρημένων παραθύρων να είναι ΟΡΑΤΟΣ.
 const OPENERS = { tenant: ['Νέος ενοικιαστής'] }
-const PAGES = ['/', '/login', '/signup', '/ypologismos-forou-enoikion', '/ypologismos-enfia', '/vraxyxronia-i-makroxronia', '/kathari-apodosi', '/imerologio', '/privacy']
+const PAGES = ['/', '/login', '/signup', '/paketa', '/ypologismos-forou-enoikion', '/ypologismos-enfia', '/vraxyxronia-i-makroxronia', '/kathari-apodosi', '/imerologio', '/privacy']
 const BASE = process.env.E2E_BASE || 'http://localhost:3100'
 // Για να δουλεύεται μία σκηνή χωρίς να τρέχουν και οι 120: E2E_ONLY=roi
 const ONLY = process.env.E2E_ONLY ? process.env.E2E_ONLY.split(',') : null
