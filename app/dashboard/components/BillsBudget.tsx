@@ -248,7 +248,13 @@ const PAYERS = ['Οικογένεια', 'Ενοικιαστής', 'Ασφαλι�
 // «Πληρώνει / Διαμοιρασμός» στη δαπάνη ή τον λογαριασμό) — ΕΝΑ μοντέλο σε όλη
 // την εφαρμογή. Ο προϋπολογισμός εδώ κρατά μόνο στόχους έναντι πραγματικών.
 
-interface MonthItem { id: string; kind: 'bill' | 'expense'; label: string; amount: number; catKey: string }
+// ═══ Η ΓΡΑΜΜΗ ΚΟΥΒΑΛΑ ΤΟΝ ΜΗΝΑ ΤΗΣ ═════════════════════════════════════════
+// Ο κατάλογος χτιζόταν μόνο από τον ΤΡΕΧΟΝΤΑ μήνα, οπότε γυρίζοντας στον Ιούλιο
+// η ενότητα των εξαιρέσεων δεν είχε τι να δείξει και κρυβόταν ολόκληρη: δεν
+// μπορούσες ούτε να εξαιρέσεις παλιά δαπάνη ούτε να δεις τι είχες εξαιρέσει,
+// ενώ ο ίδιος ο κανόνας δεν έχει ημερομηνία. Πλέον χτίζεται από ΟΛΟ το
+// δωδεκάμηνο που φορτώνεται ούτως ή άλλως και φιλτράρεται στον μήνα που βλέπεις.
+interface MonthItem { id: string; kind: 'bill' | 'expense'; label: string; amount: number; catKey: string; ym: string }
 // Κανόνας εξαίρεσης ανά εγγραφή: προαιρετικός λόγος (payer/note) και προαιρετικό
 // μερικό ποσό (amount). Χωρίς amount → εξαιρείται όλη η εγγραφή· με amount →
 // εξαιρείται μόνο αυτό το μέρος (π.χ. το κομμάτι που πλήρωσε κάποιος άλλος).
@@ -541,8 +547,16 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       }
 
       const billActuals: Record<string, number> = {};
-      // Στοιχεία του μήνα (λογαριασμοί + λοιπές δαπάνες) με id/ποσό/κατηγορία, για τη διαχείριση εξαιρέσεων.
-      const items: MonthItem[] = [];
+      // Στοιχεία ΟΛΟΥ του δωδεκαμήνου (λογαριασμοί + λοιπές δαπάνες) με
+      // id/ποσό/κατηγορία, για τη διαχείριση εξαιρέσεων σε όποιον μήνα βλέπεις.
+      const items: MonthItem[] = inWindow
+        .map(e => ({ e, id: idOf(e) }))
+        .filter(x => !!x.id)
+        .map(({ e, id }) => ({
+          id, kind: (e.billId ? 'bill' : 'expense') as 'bill' | 'expense',
+          label: e.title || catLabelOf(bucketOf(e)), amount: e.amount,
+          catKey: bucketOf(e), ym: e.date.slice(0, 7),
+        }));
       // Ανάλυση ανά κατηγορία: οι επιμέρους πληρωμές (πάροχος/περιγραφή, ποσό, ημερομηνία).
       const bd: Record<string, { label: string; amount: number; date: string; paid: boolean; kind: 'bill' | 'expense' }[]> = {};
       // Οι γραμμές του μήνα, λογαριασμοί και δαπάνες μαζί. Άγνωστες κατηγορίες →
@@ -550,8 +564,6 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       monthRows.forEach(e => {
         const key = bucketOf(e);
         const label = catLabelOf(key);
-        const id = idOf(e);
-        if (id) items.push({ id, kind: e.billId ? 'bill' : 'expense', label: e.title || label, amount: e.amount, catKey: key });
         const amt = countedEntry(e);
         if (amt <= 0) return;
         billActuals[key] = (billActuals[key] ?? 0) + amt;
@@ -908,6 +920,9 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   // «Ιουλίου» χωρίς αυτόν. Δύο κλήσεις στο ίδιο αρχείο έβγαζαν διαφορετική
   // λέξη για τον ίδιο μήνα. Το `monthYearLabel` τη λέει μία φορά.
   const viewMonthLabel  = monthYearLabel(viewYm);
+  // Οι γραμμές του μήνα ΠΟΥ ΒΛΕΠΕΙΣ, για τις εξαιρέσεις. Ο κατάλογος κρατά όλο
+  // το δωδεκάμηνο, δηλαδή ακριβώς όσο πάει πίσω και ο επιλογέας μήνα.
+  const viewItems       = monthItems.filter(it => it.ym === viewYm);
   const displayOver     = activeCats.filter(c => (viewActuals[c.key] || 0) > catBudget(c.key));
   const canGoNewer      = monthOffset < 0;
   const canGoOlder      = monthOffset > -12;
@@ -1860,14 +1875,14 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
       </div>
 
       {/* Εξαιρέσεις: όσα δεν θέλεις να μετρούν στα στατιστικά/προϋπολογισμό (τα πληρώνει άλλος ή απλώς εκτός) */}
-      {isCurMonth && monthItems.length > 0 && (
+      {viewItems.length > 0 && (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16, marginBottom: 12 }}>
           {secHdr('Εξαιρέσεις', 'exclusions',
             excludedCount > 0 ? <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{excludedCount} εκτός</span> : undefined,
             <InfoDot text="Απενεργοποίησε όσα δεν θέλεις να μετρούν στα στατιστικά και στον προϋπολογισμό: είτε γιατί τα πληρώνει κάποιος άλλος, είτε επειδή απλώς δεν θες να προσμετρώνται. Μπορείς να εξαιρέσεις ολόκληρη την εγγραφή ή μόνο ένα μέρος του ποσού (π.χ. το μισό το πλήρωσε άλλος) και προαιρετικά να σημειώσεις τον λόγο." />)}
           {!collapsed.has('exclusions') && (
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {monthItems.map((it, idx) => {
+              {viewItems.map((it, idx) => {
                 const ex = excludedMap[it.id];
                 const isEx = !!ex;
                 const full = it.amount;

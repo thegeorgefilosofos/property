@@ -42,6 +42,8 @@ import {
   mergeLedger, ledgerTotal, groupByMonth, openMonths, NO_TITLE,
   type LedgerEntry, type LedgerBill, type LedgerExpense,
 } from '@/lib/expenses/ledger';
+import { parseExclusions, countsIn, setCounts, type ExclusionMap } from '@/lib/expenses/exclusions';
+import * as settings from '@/lib/data/settings';
 import { categoryLabel, resolveCategory, BY_SLUG, CATEGORIES } from '@/lib/expenses/taxonomy';
 import { missingThisMonth, cadenceLabel } from '@/lib/expenses/expected';
 import { priceChanges } from '@/lib/expenses/priceChange';
@@ -172,23 +174,56 @@ export default function ExpenseLedger({ propertyId, userId, onScan, openAddNonce
   // βάση σύγκρισης είναι μηδέν δεν δείχνει ποσοστό και όταν δεν υπάρχει τίποτα
   // να πει επιστρέφει κενό — οπότε η κάρτα δεν εμφανίζεται καθόλου.
   // ═══════════════════════════════════════════════════════════════════════
+  // ═══ ΤΙ ΜΕΤΡΑ ΣΤΑ ΣΤΑΤΙΣΤΙΚΑ, ΔΙΑΒΑΣΜΕΝΟ ΕΔΩ ══════════════════════════════
+  // Ο κανόνας ζει στη ρύθμιση «budgets» του ακινήτου, γιατί εκεί τον έγραφε ώς
+  // τώρα ο προϋπολογισμός. ΔΕΝ αντιγράφεται σε δεύτερη θέση: η οθόνη διαβάζει
+  // το ίδιο αντικείμενο και γράφει πίσω σε αυτό, ώστε οι δύο οθόνες να μη
+  // μπορούν ποτέ να διαφωνήσουν για το ποια δαπάνη μετρά.
+  //
+  // Ολόκληρο το αντικείμενο κρατιέται, όχι μόνο οι εξαιρέσεις: μέσα του ζουν
+  // και οι στόχοι ανά κατηγορία. Γράψιμο μόνο του `__excluded` θα έσβηνε τους
+  // στόχους του χρήστη χωρίς να το πει κανείς.
+  const [budgetsRow, setBudgetsRow] = useState<Record<string, unknown>>({});
+  const excl = useMemo<ExclusionMap>(() => parseExclusions(budgetsRow.__excluded), [budgetsRow]);
+  const counts = useCallback((e: { billId: string | null; expenseId: string | null }) => countsIn(excl, e), [excl]);
+
   const load = useCallback(async () => {
     if (!propertyId) return;
     try {
-      const r = await fetchLedger(supabase, propertyId, userId);
+      const [r, b] = await Promise.all([
+        fetchLedger(supabase, propertyId, userId),
+        settings.section<Record<string, unknown>>(supabase, propertyId, 'budgets', userId),
+      ]);
       setBills(r.bills);
       setExpenses(r.expenses);
+      setBudgetsRow(b ?? {});
     } catch { /* η οθόνη δείχνει κενή κατάσταση, όχι σφάλμα */ }
     finally { setLoading(false); }
   }, [supabase, propertyId, userId]);
+
+  /**
+   * Ο διακόπτης μιας γραμμής, γραμμένος στη βάση.
+   *
+   * Η ΟΘΟΝΗ ΑΛΛΑΖΕΙ ΑΜΕΣΩΣ ΚΑΙ Η ΓΡΑΦΗ ΑΚΟΛΟΥΘΕΙ. Ο χρήστης πατά έναν διακόπτη:
+   * αν περίμενε το δίκτυο για να τον δει να γυρίζει, θα τον πατούσε δεύτερη φορά.
+   * Η αποτυχία δεν σιωπά — το κοινό `saved` βγάζει μήνυμα.
+   */
+  const setEntryCounts = useCallback(async (e: { billId: string | null; expenseId: string | null }, on: boolean) => {
+    const next = { ...budgetsRow, __excluded: JSON.stringify(setCounts(excl, e, on)) };
+    setBudgetsRow(next);
+    await saved('Η αλλαγή δεν αποθηκεύτηκε', settings.put(supabase, propertyId, userId, 'budgets', next));
+  }, [budgetsRow, excl, supabase, propertyId, userId]);
 
   useEffect(() => {
     if (!propertyId) return;
     // alive: αν ο χρήστης αλλάξει ακίνητο όσο τρέχει το αίτημα, η απάντηση του
     // προηγούμενου δεν επιτρέπεται να γράψει πάνω στη λίστα του επόμενου.
     let alive = true;
-    fetchLedger(supabase, propertyId, userId)
-      .then(r => { if (!alive) return; setBills(r.bills); setExpenses(r.expenses); })
+    Promise.all([
+      fetchLedger(supabase, propertyId, userId),
+      settings.section<Record<string, unknown>>(supabase, propertyId, 'budgets', userId),
+    ])
+      .then(([r, b]) => { if (!alive) return; setBills(r.bills); setExpenses(r.expenses); setBudgetsRow(b ?? {}); })
       .catch(() => { /* κενή κατάσταση */ })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
@@ -226,8 +261,11 @@ export default function ExpenseLedger({ propertyId, userId, onScan, openAddNonce
   // «Πού πήγε η διαφορά»: ο λογαριασμός ρεύματος που οφείλεις είναι ακριβώς η
   // γραμμή που εξηγεί γιατί ο μήνας βγήκε ακριβότερος· ήταν η μόνη που δεν
   // μπορούσε να εμφανιστεί εκεί.
+  // ΚΑΙ Η ΣΥΓΚΡΙΣΗ ΣΕΒΕΤΑΙ ΤΟΝ ΔΙΑΚΟΠΤΗ. Ο διακόπτης λέει «Μετρά στα στατιστικά»:
+  // αν η κάρτα «τι άλλαξε αυτόν τον μήνα» συνέχιζε να μετρά τη γραμμή, η ετικέτα
+  // θα ήταν ψέμα και ο χρήστης θα κυνηγούσε μια διαφορά που ο ίδιος είχε βγάλει.
   const spends: Spend[] = useMemo(() => entries
-    .filter(e => e.amount > 0 && !!e.date)
+    .filter(e => e.amount > 0 && !!e.date && countsIn(excl, e))
     .map(e => ({
       date: e.date,
       amount: e.amount,
@@ -236,7 +274,7 @@ export default function ExpenseLedger({ propertyId, userId, onScan, openAddNonce
       // «η αύξηση οφείλεται σε έκτακτη δαπάνη: Χωρίς περιγραφή».
       title: e.title === NO_TITLE ? undefined : e.title,
       recurring: e.recurring,
-    })), [entries]);
+    })), [entries, excl]);
 
   // Η γραμμή που επεξεργάζεται, από την ΙΔΙΑ λίστα που δείχνει η οθόνη. Αν η
   // δαπάνη διαγραφεί από άλλη συσκευή όσο το παράθυρο είναι ανοιχτό, το
@@ -288,8 +326,13 @@ export default function ExpenseLedger({ propertyId, userId, onScan, openAddNonce
     [months, current]);
 
   // ── ΤΑ ΤΡΙΑ ΝΟΥΜΕΡΑ ──────────────────────────────────────────────────────
+  // ═══ ΤΑ ΔΥΟ ΣΥΝΟΛΑ ΜΕΤΡΟΥΝ ΟΣΑ ΜΕΤΡΑΝΕ ══════════════════════════════════════
+  // Το «Ανεξόφλητα» ΔΕΝ φιλτράρεται και είναι απόφαση: μια εξαιρεμένη γραμμή δεν
+  // παύει να είναι λογαριασμός που δεν πληρώθηκε. Η εξαίρεση λέει «μη μου τη
+  // μετράς στα στατιστικά», όχι «δεν την οφείλω» — και ένα ποσό που λείπει από
+  // τα ανεξόφλητα είναι λογαριασμός που ξεχνιέται.
   const monthTotal = useMemo(
-    () => ledgerTotal(entries.filter(e => e.date.startsWith(thisMonth))), [entries, thisMonth]);
+    () => ledgerTotal(entries.filter(e => e.date.startsWith(thisMonth) && countsIn(excl, e))), [entries, thisMonth, excl]);
   const unpaid = useMemo(() => entries.filter(e => !e.paid), [entries]);
   const unpaidTotal = useMemo(() => ledgerTotal(unpaid), [unpaid]);
   // ═══ Η ΧΡΟΝΙΑ ΕΒΓΑΙΝΕ ΑΠΟ ΤΟ ΡΟΛΟΙ ΤΟΥ ΠΕΡΙΗΓΗΤΗ, Ο ΜΗΝΑΣ ΑΠΟ ΤΗΝ ΑΘΗΝΑ.
@@ -299,7 +342,7 @@ export default function ExpenseLedger({ propertyId, userId, onScan, openAddNonce
   // πρώτα ψηφία της: ίδια πηγή, μία αλήθεια. Και υπολογίζεται μία φορά αντί για
   // κάθε απόδοση, όπως ήδη γίνεται με τα άλλα δύο.
   const yearTotal = useMemo(
-    () => ledgerTotal(entries.filter(e => e.date.startsWith(thisMonth.slice(0, 4)))), [entries, thisMonth]);
+    () => ledgerTotal(entries.filter(e => e.date.startsWith(thisMonth.slice(0, 4)) && countsIn(excl, e))), [entries, thisMonth, excl]);
 
   // ── ΤΙ ΣΥΝΗΘΩΣ ΘΑ ΕΙΧΕ ΕΡΘΕΙ ΚΑΙ ΛΕΙΠΕΙ ──────────────────────────────────
   // Ο πυρήνας το έγραφε ρητά: «καμία αυτόματη ανανέωση δεν υπάρχει». Ο
@@ -779,13 +822,20 @@ export default function ExpenseLedger({ propertyId, userId, onScan, openAddNonce
                   του δωδεκαμήνου στη σύγκριση και για τη σειρά των παγίων. */}
               <div className="exp-month">
                 <span style={TT.label}>{monthYearLabel(m.month)}</span>
+                {/* ΤΟ ΑΘΡΟΙΣΜΑ ΕΙΝΑΙ ΟΣΩΝ ΜΕΤΡΑΝΕ, ΟΠΩΣ ΚΑΙ ΤΟ ΠΛΑΚΙΔΙΟ ΑΠΟ ΠΑΝΩ.
+                    Μια εξαιρεμένη γραμμή φαίνεται στη λίστα με διαγραμμένο ποσό:
+                    αν μετρούσε εδώ, η κεφαλίδα του μήνα θα διαφωνούσε με το
+                    «Δαπάνες μήνα» της κορυφής και ο χρήστης δεν έχει τρόπο να
+                    μαντέψει ποιο από τα δύο ισχύει. */}
                 {m.entries.length > 1 && (
-                  <span style={{ ...TT.figure, fontWeight: 700, color: 'var(--text-secondary)' }}>{fe(m.total)}</span>
+                  <span style={{ ...TT.figure, fontWeight: 700, color: 'var(--text-secondary)' }}>
+                    {fe(ledgerTotal(m.entries.filter(counts)))}
+                  </span>
                 )}
               </div>
               <div style={{ padding: '4px 0' }}>
                 {m.entries.map(e => (
-                  <Row key={e.key} e={e} busy={busy === e.key} onPaid={() => markPaid(e)}
+                  <Row key={e.key} e={e} busy={busy === e.key} counts={counts(e)} onPaid={() => markPaid(e)}
                     onEdit={e.expenseId ? () => setEditingId(e.expenseId) : null}
                     onDelete={e.expenseId ? () => removeExpense(e) : null} />
                 ))}
@@ -817,7 +867,10 @@ export default function ExpenseLedger({ propertyId, userId, onScan, openAddNonce
       )}
 
       {editingRow && (
-        <EditExpense row={editingRow} userId={userId} onClose={() => setEditingId(null)} onSaved={load} />
+        <EditExpense row={editingRow} userId={userId}
+          counts={counts({ billId: editingRow.bill_id ?? null, expenseId: editingRow.id })}
+          onCountsChange={on => setEntryCounts({ billId: editingRow.bill_id ?? null, expenseId: editingRow.id }, on)}
+          onClose={() => setEditingId(null)} onSaved={load} />
       )}
     </div>
   );
@@ -861,14 +914,19 @@ function Figure({ label, value, sub }: { label: string; value: string | null; su
 const bare = (s: string): string =>
   s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
 
-function Row({ e, busy, onPaid, onEdit, onDelete }: { e: LedgerEntry; busy: boolean; onPaid: () => void; onEdit: (() => void) | null; onDelete: (() => void) | null }) {
+function Row({ e, busy, counts, onPaid, onEdit, onDelete }: { e: LedgerEntry; busy: boolean; counts: boolean; onPaid: () => void; onEdit: (() => void) | null; onDelete: (() => void) | null }) {
   const cat = categoryLabel(e.category);
   const due = e.due ? dueText(e.due) : null;
   // «Δόση δανείου» με από κάτω «Δόση Δανείου» δεν είναι δεύτερη πληροφορία,
   // είναι η ίδια δύο φορές με άλλα κεφαλαία. Η δεύτερη γραμμή υπάρχει μόνο όταν
   // λέει κάτι που δεν λέει ήδη ο τίτλος.
   const showCat = cat && bare(cat) !== bare(e.title);
-  const meta = [showCat ? cat : '', e.recurring ? 'πάγιο' : ''].filter(Boolean).join(' · ');
+  // ═══ Η ΕΞΑΙΡΕΣΗ ΦΑΙΝΕΤΑΙ ΕΚΕΙ ΠΟΥ ΕΙΝΑΙ Η ΔΑΠΑΝΗ ══════════════════════════
+  // Ηταν αόρατη: η γραμμή έδειχνε ολόκληρο το ποσό ενώ τα σύνολα από πάνω δεν
+  // το μετρούσαν· ο μόνος τρόπος να δεις τι είχες εξαιρέσει ήταν άλλη
+  // καρτέλα, στον τρέχοντα μήνα. Μία λέξη στη δεύτερη σειρά και το ποσό
+  // διαγραμμένο: η αριθμητική της κεφαλίδας διαβάζεται χωρίς εξήγηση.
+  const meta = [showCat ? cat : '', e.recurring ? 'πάγιο' : '', counts ? '' : 'εκτός στατιστικών'].filter(Boolean).join(' · ');
 
   return (
     <div className="exp-row">
@@ -946,7 +1004,7 @@ function Row({ e, busy, onPaid, onEdit, onDelete }: { e: LedgerEntry; busy: bool
 
           Το ποσό είναι ποσό, όχι κρίση: ήταν κόκκινο σε ΚΑΘΕ ανεξόφλητη γραμμή,
           δηλαδή στις περισσότερες, μόνιμα. */}
-      <span className="exp-amount" style={{ fontSize: 14, fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+      <span className="exp-amount" style={{ fontSize: 14, fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: counts ? 'var(--text-primary)' : 'var(--text-tertiary)', textDecoration: counts ? 'none' : 'line-through', textDecorationColor: 'var(--border-default)', whiteSpace: 'nowrap' }}>
         {fe(e.amount)}
       </span>
     </div>
@@ -1021,8 +1079,12 @@ function AfmField({ value, onChange }: { value: string; onChange: (v: string) =>
  * «ΕΝΦΙΑ» με ομάδα «fixed», δηλαδή μη εκπεστέα δαπάνη δηλωμένη ως εκπεστέα. Η
  * ομάδα ξαναπαράγεται εδώ από την ταξινομία, όπως και στην καταχώρηση.
  */
-function EditExpense({ row, userId, onClose, onSaved }: {
-  row: LedgerExpense; userId: string; onClose: () => void; onSaved: () => Promise<void>;
+function EditExpense({ row, userId, counts, onCountsChange, onClose, onSaved }: {
+  row: LedgerExpense; userId: string;
+  /** Μετρά η δαπάνη στα στατιστικά; Ο κανόνας ζει στη ρύθμιση του ακινήτου. */
+  counts: boolean;
+  onCountsChange: (on: boolean) => Promise<void>;
+  onClose: () => void; onSaved: () => Promise<void>;
 }) {
   const supabase = useMemo(() => createClient(), []);
   const [what, setWhat] = useState((row.description || '').trim());
@@ -1048,6 +1110,9 @@ function EditExpense({ row, userId, onClose, onSaved }: {
   // κατηγορίες και δεν πρέπει να γράφεται κανόνας στο όνομά του.
   const initialSlug = useMemo(() => resolveCategory(row.category) || '', [row.category]);
   const [afm, setAfm] = useState(row.supplier_afm || '');
+  // Ο ΔΙΑΚΟΠΤΗΣ ΑΚΟΛΟΥΘΕΙ ΤΟ «ΑΚΥΡΩΣΗ» ΤΟΥ ΠΑΡΑΘΥΡΟΥ. Γραμμένος κατευθείαν στη
+  // βάση θα ήταν το μόνο πράγμα εδώ μέσα που η ακύρωση δεν θα ανέτρεπε.
+  const [countsDraft, setCountsDraft] = useState(counts);
   const [saving, setSaving] = useState(false);
 
   const amt = parseAmount(amount);
@@ -1079,6 +1144,10 @@ function EditExpense({ row, userId, onClose, onSaved }: {
       // ισχύει από την επόμενη φορά: δώδεκα ίδιες διορθώσεις τον χρόνο γίνονται
       // μία. Η αποτυχία της εγγραφής ΔΕΝ ακυρώνει την αποθήκευση της δαπάνης
       // και δεν εμφανίζεται: η δαπάνη είναι το ζητούμενο, ο κανόνας το επιπλέον.
+      // Ο κανόνας «μετρά ή όχι» ζει σε άλλη ρύθμιση, όχι στη γραμμή της δαπάνης:
+      // γράφεται μόνο αν άλλαξε, ώστε ένα άνοιγμα και κλείσιμο να μην ξαναγράφει
+      // ολόκληρο το αντικείμενο των προϋπολογισμών χωρίς λόγο.
+      if (countsDraft !== counts) await onCountsChange(countsDraft);
       if (slug !== initialSlug && cat) {
         const action = hintAction(row.store_vendor, what, cat.label);
         if (action && 'forget' in action) await hintStore.forget(supabase, userId, action.key);
@@ -1148,6 +1217,31 @@ function EditExpense({ row, userId, onClose, onSaved }: {
             options={CATEGORIES.map(c => ({ value: c.slug, label: c.label }))} />
         </div>
         <AfmField value={afm} onChange={setAfm} />
+      </div>
+      {/* ═══ Η ΕΞΑΙΡΕΣΗ ΕΓΙΝΕ ΔΙΑΚΟΠΤΗΣ, ΚΑΙ ΗΡΘΕ ΕΔΩ ═══════════════════════
+          ΠΟΥ ΗΤΑΝ: σε άλλη καρτέλα, μέσα στον προϋπολογισμό, σε λίστα που
+          χτιζόταν ΜΟΝΟ από τον τρέχοντα μήνα. Για να μη μετρά μια δαπάνη ο
+          χρήστης την έβλεπε εδώ, άλλαζε καρτέλα, την ξαναέβρισκε και την
+          έσβηνε εκεί — και τον Ιούλιο δεν μπορούσε καθόλου.
+
+          ΓΙΑΤΙ ΣΤΟ ΠΑΡΑΘΥΡΟ ΚΑΙ ΟΧΙ ΠΑΝΩ ΣΤΗ ΓΡΑΜΜΗ. Η γραμμή κουβαλά ήδη
+          τρεις ενέργειες που εμφανίζονται στην αιώρηση· τέταρτο χειριστήριο
+          δίπλα τους, σε κάθε μία από δεκάδες σειρές, είναι θόρυβος σε μια
+          λίστα που διαβάζεται. Η γραμμή ΔΕΙΧΝΕΙ την κατάσταση (διαγραμμένο
+          ποσό, «εκτός στατιστικών») και το παράθυρο, ένα πάτημα μακριά, την
+          αλλάζει: εκεί ζει ήδη κάθε άλλη ιδιότητα της δαπάνης.
+
+          ΟΛΟ ΤΟ ΠΛΑΤΟΣ ΚΑΙ ΟΧΙ ΕΚΤΟ ΚΕΛΙ ΤΟΥ ΠΛΕΓΜΑΤΟΣ: δεν είναι πεδίο της
+          δαπάνης, είναι κανόνας γι' αυτήν. Και ως έκτο κελί θα άνοιγε δεύτερη
+          σειρά με τέσσερα κενά δίπλα του. */}
+      <div className="exp-count">
+        <span style={{ minWidth: 0 }}>
+          <span style={{ ...TT.body, display: 'block' }}>Μετρά στα στατιστικά</span>
+          <span style={{ ...TT.caption, display: 'block', marginTop: 2 }}>
+            Οσα δεν μετρούν μένουν στη λίστα, έξω από τα σύνολα.
+          </span>
+        </span>
+        <Toggle on={countsDraft} onChange={setCountsDraft} ariaLabel="Μετρά στα στατιστικά" />
       </div>
     </Modal>
   );

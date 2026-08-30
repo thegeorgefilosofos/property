@@ -828,7 +828,7 @@ export function pressable<E extends { key: string; preventDefault: () => void }>
 }
 
 // ═══ Btn, κουμπιά σε 3 ρόλους ═════════════════════════════════════════════
-export function Btn({ children, onClick, variant = 'secondary', disabled, type, href, newTab }: {
+export function Btn({ children, onClick, variant = 'secondary', disabled, type, href, newTab, field }: {
   children: ReactNode; onClick?: () => void; variant?: 'primary' | 'secondary' | 'ghost'; disabled?: boolean; type?: 'button' | 'submit';
   /**
    * ΟΤΑΝ Η ΕΝΕΡΓΕΙΑ ΕΙΝΑΙ ΠΡΟΟΡΙΣΜΟΣ, ΤΟ ΣΤΟΙΧΕΙΟ ΕΙΝΑΙ ΣΥΝΔΕΣΜΟΣ.
@@ -842,13 +842,23 @@ export function Btn({ children, onClick, variant = 'secondary', disabled, type, 
   href?: string;
   /** Ανοίγει σε νέα καρτέλα, με το `rel` που απαιτεί η ασφάλεια. */
   newTab?: boolean;
+  /**
+   * ΤΟ ΚΟΥΜΠΙ ΠΟΥ ΖΕΙ ΜΕΣΑ ΣΕ ΠΛΕΓΜΑ ΦΟΡΜΑΣ, ΩΣ ΠΕΔΙΟ.
+   *
+   * Οταν η αποθήκευση κάθεται στο κενό κελί μιας σειράς πεδίων, το κανονικό
+   * κουμπί δεν ζυγίζει: είναι 36 ψηλό δίπλα σε πεδία των 40 και όσο πλατύ το
+   * λεκτικό του, δηλαδή μισό κελί. Με `field` παίρνει ΑΚΡΙΒΩΣ το ύψος και το
+   * πλάτος του διπλανού πεδίου, οπότε η σειρά διαβάζεται ως τέσσερα ίσα κουτιά.
+   */
+  field?: boolean;
 }) {
   const base: CSSProperties = {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
     // Το padding έδινε ύψος ~38: κάτω από το ελάχιστο μέγεθος αφής, σε 148
     // σημεία. Το `minHeight` από την κοινή κλίμακα το ανεβάζει στα 44 όταν ο
     // δείκτης είναι δάχτυλο, χωρίς να αλλάξει τίποτα στο ποντίκι.
-    minHeight: T.h.md,
+    minHeight: field ? T.h.lg : T.h.md,
+    ...(field ? { display: 'flex', width: '100%' } : null),
     padding: '9px 18px', borderRadius: T.radius.btn,
     fontSize: 12, fontWeight: 700, fontFamily: T.font.sans,
     cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1,

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { T, TT, Btn, InfoBanner, Spinner, Card, SecHdr, formGrid } from '@/components/Theme';
+import { T, TT, Btn, InfoBanner, Spinner, Card, SecHdr, fixedCols } from '@/components/Theme';
 import { TextInput, Toggle } from './UIComponents';
 import { PLANS, type PlanId } from '@/lib/billing/plans';
 import { planAtLeast, FEATURE_MIN_PLAN } from '@/lib/billing/entitlements';
@@ -140,7 +140,13 @@ export default function ReportBranding({ userId, plan, onUpgrade }: { userId: st
 
         <div style={line} />
 
-        <div style={{ ...formGrid(220, 297), gap: 14 }}>
+        {/* ΤΡΙΑ ΠΕΔΙΑ, ΜΙΑ ΣΕΙΡΑ. Το `formGrid` κόβει κάθε στήλη σε σταθερό
+            μέγιστο και γεμίζει με `auto-fill`: τα τρία έβγαιναν δύο πάνω και
+            ένα κάτω, με τη μισή σειρά άδεια δεξιά της. Είναι τα στοιχεία
+            επικοινωνίας ΕΝΟΣ γραφείου, δηλαδή ένα πράγμα: μπαίνουν μαζί και
+            μοιράζονται ίσα το πλάτος. Σε στενή οθόνη πέφτουν και τα τρία σε
+            μία στήλη, ποτέ σε δύο και ένα. */}
+        <div {...fixedCols(3, 14, 'start', '', 1)}>
           <TextInput label="Επωνυμία ή όνομα γραφείου" value={companyName} onChange={setCompanyName} placeholder="Παπαδόπουλος Ακίνητα" />
           <TextInput label="Τηλέφωνο επικοινωνίας" value={phone} onChange={setPhone} placeholder="210 0000000" />
           <TextInput label="Ηλεκτρονικό ταχυδρομείο επικοινωνίας" value={email} onChange={setEmail} placeholder="info@grafeio.gr" />

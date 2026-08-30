@@ -24,9 +24,17 @@ import { readFileSync } from 'node:fs'
 
 const CHROME = 'app/PublicChrome.tsx'
 const PROXY = 'proxy.ts'
+// ── ΚΑΙ Ο ΧΑΡΤΗΣ ΤΟΥ ΙΣΤΟΤΟΠΟΥ ────────────────────────────────────────────
+// Το ίδιο σφάλμα ξαναέγινε, από άλλη πόρτα. Η σελίδα «Τι περιλαμβάνει κάθε
+// πακέτο» δεν είναι συνδεδεμένη από το δημόσιο κέλυφος — ο δρόμος της ξεκινά
+// από τις ρυθμίσεις και από τη μηχανή αναζήτησης — οπότε ο έλεγχος από πάνω
+// δεν την έβλεπε ΠΟΤΕ. Ημασταν όμως εμείς που είπαμε στη Google να την
+// ευρετηριάσει: ο,τι μπαίνει στον χάρτη υπόσχεται ότι ανοίγει.
+const SITEMAP = 'app/sitemap.ts'
 
 const chrome = readFileSync(CHROME, 'utf8')
 const proxy = readFileSync(PROXY, 'utf8')
+const sitemap = readFileSync(SITEMAP, 'utf8')
 
 /** Ο κατάλογος δημόσιων διαδρομών, όπως τον γράφει ο διαμεσολαβητής. */
 const block = /const PUBLIC = new Set\(\[([\s\S]*?)\]\)/.exec(proxy)
@@ -42,6 +50,8 @@ const linked = new Set()
 const route = (href) => href.split(/[#?]/)[0] || '/'
 for (const m of chrome.matchAll(/href=["'](\/[^"']*)["']/g)) linked.add(route(m[1]))
 for (const m of chrome.matchAll(/\['(\/[^']*)',\s*'/g)) linked.add(route(m[1]))
+// Ο χάρτης γράφει «${base}/διαδρομή»: κρατάμε ό,τι ακολουθεί τη βάση.
+for (const m of sitemap.matchAll(/\$\{base\}(\/[^`]*)`/g)) linked.add(route(m[1]))
 
 const TOKEN_PREFIXES = ['/portal/', '/accountant/', '/checkin/', '/verify/', '/unsubscribe/']
 const missing = [...linked]
@@ -50,10 +60,10 @@ const missing = [...linked]
   .sort()
 
 if (missing.length) {
-  console.error(`\n✗ ${missing.length} σύνδεσμοι του δημόσιου κελύφους οδηγούν σε σελίδα που ζητά σύνδεση:\n`)
+  console.error(`\n✗ ${missing.length} δημόσιες διαδρομές οδηγούν σε σελίδα που ζητά σύνδεση:\n`)
   for (const r of missing) console.error(`  ${r}`)
-  console.error(`\nΠρόσθεσέ τους στον κατάλογο PUBLIC του ${PROXY}, ή βγάλε τον σύνδεσμο.`)
+  console.error(`\nΠρόσθεσέ τες στον κατάλογο PUBLIC του ${PROXY}, ή βγάλε τη διαδρομή από το κέλυφος και τον χάρτη.`)
   process.exit(1)
 }
 
-console.log(`✓ και οι ${linked.size} σύνδεσμοι του δημόσιου κελύφους ανοίγουν χωρίς σύνδεση`)
+console.log(`✓ και οι ${linked.size} δημόσιες διαδρομές, κελύφους και χάρτη, ανοίγουν χωρίς σύνδεση`)

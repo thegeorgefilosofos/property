@@ -73,6 +73,8 @@ import TabCalendar from '@/app/dashboard/components/TabCalendar';
 import TabClients from '@/app/dashboard/components/TabClients';
 import TabDocuments from '@/app/dashboard/components/TabDocuments';
 import TabReferral from '@/app/dashboard/components/TabReferral';
+import Billing from '@/app/dashboard/components/Billing';
+import ReportBranding from '@/app/dashboard/components/ReportBranding';
 import TabPlan from '@/app/dashboard/components/TabPlan';
 import PropertySwitcher from '@/app/dashboard/components/PropertySwitcher';
 import { T, Modal, Btn, PageTitle, InfoBanner, fieldRow } from '@/components/Theme';
@@ -274,6 +276,14 @@ const VIEWS: Record<string, () => React.ReactElement> = {
   plan: () => <TabPlan propertyId="p0" userId="u1" status="vacant" property={PLAN_PROPERTY} />,
   planReno: () => <TabPlan propertyId="p0" userId="u1" status="renovation" property={PLAN_PROPERTY} />,
   planSale: () => <TabPlan propertyId="p0" userId="u1" status="for_sale" property={PLAN_PROPERTY} />,
+  // ═══ ΟΙ ΡΥΘΜΙΣΕΙΣ ΔΕΝ ΕΙΧΑΝ ΠΟΤΕ ΣΚΗΝΗ ══════════════════════════════════════
+  // Τα «Στοιχεία τιμολόγησης» είναι η πυκνότερη φόρμα της εφαρμογής (έντεκα
+  // πεδία σε τέσσερις στήλες) και η «Επωνυμία στις αναφορές» η μόνη με ανέβασμα
+  // αρχείου δίπλα σε πεδία. Καμία από τις δύο δεν είχε περάσει ποτέ από σαρωτή
+  // διάταξης ή από έλεγχο προσβασιμότητας: ζουν πίσω από λογαριασμό, οπότε ούτε
+  // ο πάγκος ούτε οι δημόσιες σελίδες τις έβλεπαν. Ο χρήστης τις είδε.
+  billing: () => <Billing userId="u1" />,
+  branding: () => <ReportBranding userId="u1" plan="agency" onUpgrade={() => {}} />,
   referral: () => <TabReferral userId="u1" plan="solo" profileType="individual" />,
   referralPro: () => <TabReferral userId="u1" plan="agency" profileType="professional" />,
   modal: () => <ModalDemo />,

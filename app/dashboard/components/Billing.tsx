@@ -24,7 +24,7 @@ import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
 // Το προφίλ χρέωσης έχει ένα σπίτι: lib/data/billing.
 import * as billing from '@/lib/data/billing';
-import { TextInput, CustomSelect } from './UIComponents';
+import { TextInput, CustomSelect, FIELD_LABEL_ROW } from './UIComponents';
 import { T, Btn, InfoBanner, Spinner, Card, SecHdr, fixedCols, fe, fd } from '@/components/Theme';
 import { PLANS, PLAN_ORDER, normalizePlan, annualPerMonth, type PlanId, type BillingCycle } from '@/lib/billing/plans';
 // Η ΦΑΣΗ ΤΗΣ ΣΥΝΔΡΟΜΗΣ ΔΕΝ ΚΡΙΝΕΤΑΙ ΕΔΩ. Οι καταστάσεις τις ονομάζει ο
@@ -169,7 +169,7 @@ export default function Billing({ userId, wantPlan = null }: {
 
             Η στοίχιση είναι στην ΚΟΡΥΦΗ: μια ετικέτα δύο γραμμών δεν σπρώχνει
             το διπλανό πεδίο πιο κάτω από τα υπόλοιπα της σειράς. */}
-        <div {...fixedCols(4, 14, 'start')}>
+        <div {...fixedCols(4, 14, 'start', 'fc-roomy')}>
           <CustomSelect label="Τύπος παραστατικού" value={d.doc_type} onChange={v => set('doc_type', v)}
             options={[{ value: 'receipt', label: 'Απόδειξη (ιδιώτης)' }, { value: 'invoice', label: 'Τιμολόγιο (επιχείρηση)' }]} />
           <CustomSelect label="Χώρα" value={country} onChange={v => set('country', v)}
@@ -185,22 +185,35 @@ export default function Billing({ userId, wantPlan = null }: {
           <TextInput label="Πόλη" value={d.city} onChange={v => set('city', v)} placeholder="Αθήνα" />
           <TextInput label="Ταχ. Κώδικας" value={d.postal_code} onChange={v => set('postal_code', v)} placeholder="11527" />
           <TextInput label="Τηλέφωνο" value={d.phone} onChange={v => set('phone', v)} placeholder="69XXXXXXXX" />
-          {/* ═══ Η ΑΠΟΘΗΚΕΥΣΗ ΜΠΑΙΝΕΙ ΣΤΟ ΚΕΝΟ ΚΕΛΙ ΤΗΣ ΤΕΛΕΥΤΑΙΑΣ ΣΕΙΡΑΣ ═════
+          {/* ═══ Η ΑΠΟΘΗΚΕΥΣΗ ΕΙΝΑΙ ΤΟ ΟΓΔΟΟ ΚΟΥΤΙ ΤΗΣ ΦΟΡΜΑΣ ═══════════════════
               Καθόταν σε δική της σειρά από κάτω, δηλαδή μια ολόκληρη γραμμή για
               ένα κουμπί, ενώ η σειρά ακριβώς από πάνω τελείωνε με άδειο κελί.
               Το κουμπί είναι το τέλος της φόρμας και το άδειο κελί είναι το
               τέλος της σειράς: μπαίνουν μαζί.
 
-              Η στοίχιση είναι στο ΚΑΤΩ άκρο, ώστε το κουμπί να πέφτει στη
-              γραμμή βάσης των πεδίων δίπλα του και όχι στην κορυφή τους. Οταν
-              η σειρά σπάσει σε λιγότερες στήλες, ακολουθεί από κάτω όπως κάθε
-              άλλο κελί. */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, minHeight: T.h.lg, flexWrap: 'wrap' }}>
-            <Btn variant="primary" onClick={save} disabled={saving}>{saving ? 'Αποθήκευση…' : 'Αποθήκευση στοιχείων'}</Btn>
-            {saved && <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, fontWeight: 600, paddingBottom: 10 }}>Αποθηκεύτηκε</span>}
-            {saveErr && <span style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, paddingBottom: 10 }}>Δεν αποθηκεύτηκε. Δοκίμασε ξανά.</span>}
+              ΚΑΙ ΠΑΙΡΝΕΙ ΤΟ ΜΕΓΕΘΟΣ ΤΟΥ ΠΕΔΙΟΥ, ΟΧΙ ΤΟΥ ΛΕΚΤΙΚΟΥ ΤΟΥ. Μετρημένο
+              στο κελί δίπλα στο «Τηλέφωνο»: 152 × 36 δίπλα σε πεδίο 296 × 40,
+              δηλαδή μισό κουτί σε λάθος ύψος. Με `field` γίνεται ακριβώς 296 × 40
+              και η φόρμα διαβάζεται ως δύο πλήρεις σειρές των τεσσάρων.
+
+              Το κενό από πάνω είναι η ΕΤΙΚΕΤΑ που δεν έχει: χωρίς αυτό το κουμπί
+              θα ξεκινούσε ψηλότερα από τα πεδία της σειράς του.
+
+              Η ΑΠΑΝΤΗΣΗ ΤΗΣ ΑΠΟΘΗΚΕΥΣΗΣ ΜΠΗΚΕ ΜΕΣΑ ΣΤΟ ΚΟΥΜΠΙ. Ηταν δεύτερη
+              λέξη δίπλα του, που σε τέσσερις στήλες τύλιγε σε τρίτη σειρά: η
+              επιβεβαίωση χαλούσε τη διάταξη που επιβεβαίωνε. */}
+          <div style={{ paddingTop: FIELD_LABEL_ROW }}>
+            <Btn variant="primary" field onClick={save} disabled={saving}>
+              {saving ? 'Αποθήκευση…' : saved ? 'Αποθηκεύτηκε' : 'Αποθήκευση στοιχείων'}
+            </Btn>
           </div>
         </div>
+
+        {saveErr && (
+          <div style={{ fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 10 }}>
+            Δεν αποθηκεύτηκε. Δοκίμασε ξανά.
+          </div>
+        )}
 
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 12, fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>
           <span style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>Καθεστώς ΦΠΑ</span>
