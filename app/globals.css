@@ -1923,6 +1923,36 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 .cl-notes-old { margin-top: 14px; }
 
+/* Η ΚΕΦΑΛΙΔΑ ΜΙΑΣ ΜΠΑΡΑΣ ΚΑΝΑΛΙΟΥ: ΟΝΟΜΑ, ΠΟΣΟ, ΜΕΤΡΗΣΕΙΣ.
+   Ηταν ένα `span` με ποσό και μετρήσεις μαζί, στοιχισμένο δεξιά: κάθε γραμμή
+   έσπρωχνε το ευρώ σε άλλη θέση, ανάλογα με το πόσα ψηφία είχαν οι νύχτες. Το
+   ποσό παίρνει δική του στήλη σταθερού πλάτους, οπότε οι χιλιάδες πέφτουν κάτω
+   από τις χιλιάδες. Σε στενή οθόνη οι μετρήσεις κατεβαίνουν σε δεύτερη γραμμή
+   αντί να στριμώξουν το ποσό. */
+.cl-ch-head {
+  display: grid; align-items: baseline; gap: 4px 10px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+/* Η ΜΠΑΡΑ ΚΑΝΑΛΙΟΥ ΑΠΑΝΤΑΕΙ, ΚΑΙ ΤΟ ΚΑΝΕΙ ΣΕ CSS. Πρώτη γραφή κρατούσε
+   `chHover` σε `useState` με τέσσερις χειριστές ανά γραμμή: πέντε γραμμές
+   JavaScript για να αλλάξει ένα χρώμα, που δεν ξέρουν τι είναι οθόνη αφής
+   (όπου το «hover» κολλάει μετά το πάτημα ώσπου να αγγίξεις αλλού).
+   Το `:focus-within` δίνει την ίδια απάντηση σε όποιον πλοηγείται με Tab. */
+.cl-ch-fill {
+  height: 100%; border-radius: 6px;
+  background: color-mix(in srgb, var(--text-primary) 26%, transparent);
+  transition: width .35s cubic-bezier(0.2,0,0,1), background .15s;
+}
+.cl-ch:focus-within .cl-ch-fill { background: var(--accent); }
+@media (hover: hover) {
+  .cl-ch:hover .cl-ch-fill { background: var(--accent); }
+}
+@media (max-width: 460px) {
+  .cl-ch-head { grid-template-columns: minmax(0, 1fr) auto; }
+  .cl-ch-head > :last-child { grid-column: 1 / -1; text-align: left !important; }
+}
+
 /* ΤΟ ΠΕΔΙΟ ΜΕ ΜΟΝΑΔΑ ΜΕΣΑ ΤΟΥ: Η ΜΟΝΑΔΑ ΕΙΝΑΙ ΣΤΗ ΡΟΗ, ΟΧΙ ΑΠΟ ΠΑΝΩ.
    ΜΕΤΡΗΜΕΝΟ ΣΤΟ ΜΙΣΘΩΤΗΡΙΟ: το πεδίο «Διάρκεια» έγραφε «3έτη», κολλητά. Η
    μονάδα ήταν απόλυτα τοποθετημένη στα 13 από το δεξί άκρο και το κουτί κρατούσε

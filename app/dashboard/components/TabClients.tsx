@@ -51,6 +51,7 @@ import * as inventory from '@/lib/data/inventory';
 import { T, PageTitle, KPIGrid, Badge, InfoBanner, Btn, ExportButton, EmptyState, Skeleton, SkeletonKPIs, SecHdr, Modal, SideSheet, fe, fd, fp, ABSENT_DATE, formGrid, fixedCols } from '@/components/Theme';
 import { confirmDialog } from '@/components/confirmBus';
 import { NumberInput, TextInput, CustomSelect, DatePicker, Textarea, Toggle } from './UIComponents';
+import MonthBars from '@/components/MonthBars';
 import { downloadTableXlsx } from './exportCsv';
 import { saved, savedData } from '@/components/dbWrite';
 
@@ -423,11 +424,18 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
         label: 'Αδήλωτες διαμονές',
         value: String(tot.undeclared),
         sub: 'Δήλωση Βραχυχρόνιας Διαμονής',
-        // ΠΡΟΕΙΔΟΠΟΙΗΣΗ, ΟΧΙ ΣΦΑΛΜΑ. Η αδήλωτη διαμονή είναι εκκρεμότητα με
-        // προθεσμία, ακριβώς όπως κάθε άλλη προθεσμία της εφαρμογής — και
-        // εκείνες φορούν τον τόνο της προειδοποίησης. Το κόκκινο εδώ έλεγε
-        // «κάτι έσπασε» με το ίδιο χρώμα που αλλού σημαίνει ακριβώς αυτό.
-        tone: (tot.undeclared > 0 ? 'warning' : 'neutral') as 'warning' | 'neutral',
+        // ═══ ΟΥΤΕ ΚΟΚΚΙΝΟ ΟΥΤΕ ΚΙΤΡΙΝΟ: ΤΟ ΓΚΡΙ ΤΗΣ ΕΦΑΡΜΟΓΗΣ ═══════════════
+        // Πρώτα ήταν κόκκινο, δηλαδή «κάτι έσπασε» με το χρώμα που αλλού
+        // σημαίνει ακριβώς αυτό. Μετά κίτρινο, που δεν έσπαγε τίποτα αλλά
+        // έβαζε τρίτο χρώμα σε μια οθόνη χτισμένη σε ένα μελάνι και ένα
+        // γαλάζιο: το πλακίδιο τραβούσε το μάτι περισσότερο από τα «Δηλωτέα
+        // ακαθάριστα» δίπλα του, που είναι το νούμερο της χρονιάς.
+        //
+        // Η ΠΛΗΡΟΦΟΡΙΑ ΕΙΝΑΙ Ο ΑΡΙΘΜΟΣ, ΟΧΙ Ο ΤΟΝΟΣ. «8 αδήλωτες διαμονές» με
+        // υπότιτλο «Δήλωση Βραχυχρόνιας Διαμονής» λέει τα πάντα· ένα οκτώ δεν
+        // γίνεται πιο επείγον επειδή είναι πορτοκαλί. Το χρώμα φυλάγεται για
+        // την προθεσμία που ΤΡΕΧΕΙ, όχι για το πλήθος που στέκει.
+        tone: 'neutral' as const,
       },
       {
         label: 'Νύχτες',
@@ -1011,9 +1019,9 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                      {undeclared > 0 && <Badge tone="warning">{undeclared} αδήλωτη{undeclared === 1 ? '' : 'ς'}</Badge>}
+                      {undeclared > 0 && <Badge>{undeclared} αδήλωτη{undeclared === 1 ? '' : 'ς'}</Badge>}
                       {unresolved > 0 && <Badge tone="warning">Ποσό προς επιβεβαίωση</Badge>}
-                      {st.hasDamage && <Badge tone="warning">Φθορές</Badge>}
+                      {st.hasDamage && <Badge>Φθορές</Badge>}
                     </div>
                     <div className="client-card-act">
                       <button title="Διαγραφή" onClick={e => { e.stopPropagation(); del(c); }}
@@ -1173,41 +1181,69 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               )}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 14 }}>
+            {/* ═══ ΤΑ ΔΥΟ ΓΡΑΦΗΜΑΤΑ ΑΠΑΝΤΟΥΝ, ΑΝΤΙ ΝΑ ΚΑΘΟΝΤΑΙ ══════════════════════
+                ΤΙ ΗΤΑΝ. Δώδεκα ορθογώνια με `title` και τρεις μπάρες με σκέτο
+                χρώμα. Κανένα από τα δύο δεν είχε όνομα για αναγνώστη οθόνης,
+                κανένα δεν εστιαζόταν με πληκτρολόγιο, κανένα δεν αντιδρούσε στο
+                πέρασμα του δείκτη — και το `title` του περιηγητή ΔΕΝ εμφανίζεται
+                ποτέ σε οθόνη αφής, δηλαδή στο κινητό το γράφημα των μηνών δεν
+                έλεγε ούτε έναν αριθμό.
+
+                ΚΑΙ ΤΑ ΔΥΟ ΚΟΥΤΙΑ ΗΤΑΝ ΑΛΛΟ ΚΟΥΤΙ: αριστερά βαθούλωμα πάνω στη
+                βάση, δεξιά ανασηκωμένη κάρτα με περίγραμμα. Δύο επιφάνειες για
+                δύο γραφήματα που κάθονται δίπλα δίπλα, στην ίδια σειρά.
+
+                Το δωδεκάμηνο είναι πλέον το ΙΔΙΟ component με την κάρτα των
+                δαπανών (components/MonthBars.tsx) και οι μπάρες των καναλιών
+                μιλούν την ίδια γλώσσα: ίδια πίστα, ίδιο μελάνι σε δύο εντάσεις,
+                ίδιο δαχτυλίδι εστίασης. */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 14, alignItems: 'start' }}>
               <div>
                 <div style={{ ...lbl, marginBottom: 8 }}>Ανά κανάλι</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'var(--bg-base)', boxShadow: 'var(--well-inset)', borderRadius: T.radius.inner, padding: 14 }}>
-                  {chRows.map(r => (
-                    <div key={r.channel}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, marginBottom: 5 }}>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{r.label}</span>
-                        <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.num, whiteSpace: 'nowrap' }}>{fe(r.revenue)}<span style={{ color: 'var(--text-tertiary)', marginLeft: 8 }}>{r.nights} νύχτες · {r.count} διαμονές</span></span>
+                <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.card, padding: 14, boxShadow: 'var(--highlight-inset), var(--elev-1)', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {chRows.map(r => {
+                    const pct = Math.max(2, (r.revenue / maxCh) * 100);
+                    return (
+                      /* Η ΑΙΩΡΗΣΗ ΕΙΝΑΙ CSS, ΟΧΙ ΤΕΣΣΕΡΙΣ ΧΕΙΡΙΣΤΕΣ ΚΑΙ ΜΙΑ ΚΑΤΑΣΤΑΣΗ.
+                         Πρώτη γραφή κρατούσε `chHover` σε `useState` με
+                         onMouseEnter/Leave/Focus/Blur: πέντε γραμμές JavaScript
+                         για να αλλάξει ένα χρώμα, που δεν ξέρουν τι είναι οθόνη
+                         αφής (όπου το «hover» κολλάει μετά το πάτημα). Η κλάση
+                         `.cl-ch` το κάνει με `:hover` μέσα σε `@media (hover:
+                         hover)` και με `:focus-within` για το πληκτρολόγιο. */
+                      <div key={r.channel} className="exp-bar cl-ch"
+                        tabIndex={0}
+                        aria-label={`${r.label}: ${fe(r.revenue)}, ${r.nights} νύχτες, ${r.count} ${r.count === 1 ? 'διαμονή' : 'διαμονές'}`}>
+                        {/* ΤΡΕΙΣ ΣΤΗΛΕΣ, ΩΣΤΕ ΤΑ ΕΥΡΩ ΝΑ ΠΕΦΤΟΥΝ ΤΟ ΕΝΑ ΚΑΤΩ ΑΠΟ
+                            ΤΟ ΑΛΛΟ. Ηταν ένα `span` με ποσό και μετρήσεις μαζί,
+                            στοιχισμένο δεξιά: «3.400,00 € 20 νύχτες · 5 διαμονές»
+                            και από κάτω «400,00 € 4 νύχτες · 1 διαμονές». Καμία
+                            κάθετη δεν έπεφτε πάνω σε άλλη. */}
+                        <div className="cl-ch-head">
+                          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.label}</span>
+                          <span style={{ fontSize: 12, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap' }}>{fe(r.revenue)}</span>
+                          <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', textAlign: 'right', whiteSpace: 'nowrap' }}>{r.nights} νύχτες · {r.count} {r.count === 1 ? 'διαμονή' : 'διαμονές'}</span>
+                        </div>
+                        <div style={{ height: 8, borderRadius: 6, background: 'var(--ring-track)', overflow: 'hidden', marginTop: 6 }}>
+                          <div className="cl-ch-fill" style={{ width: `${pct}%` }} />
+                        </div>
+                        {r.unresolved > 0 && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>{r.unresolved} με απροσδιόριστο ποσό</div>}
                       </div>
-                      <div style={{ height: 8, borderRadius: 6, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
-                        <div style={{ width: `${Math.max(2, (r.revenue / maxCh) * 100)}%`, height: '100%', background: 'var(--series-in)', borderRadius: 6 }} />
-                      </div>
-                      {r.unresolved > 0 && <div style={{ fontSize: 11, color: 'var(--warning)', marginTop: 3 }}>{r.unresolved} με απροσδιόριστο ποσό</div>}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
               <div>
                 <div style={{ ...lbl, marginBottom: 8 }}>Ανά μήνα</div>
-                <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.card, padding: '14px 14px 8px', boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 120 }}>
-                    {months.map((v, i) => (
-                      <div key={i} title={`${MONTHS_NOM[i]}: ${fe(v)}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', height: '100%' }}>
-                        <div style={{ width: '100%', height: `${(v / maxMonth) * 100}%`, minHeight: v > 0 ? 3 : 0, background: 'var(--series-in)', borderRadius: '3px 3px 0 0' }} />
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ height: 1, background: 'var(--border-subtle)', margin: '2px 0 6px' }} />
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    {monthInitials.map((m, i) => (
-                      <div key={i} style={{ flex: 1, textAlign: 'center', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{m}</div>
-                    ))}
-                  </div>
+                <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.card, padding: 14, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
+                  <MonthBars
+                    points={months.map((v, i) => ({ key: `${reportYear}-${String(i + 1).padStart(2, '0')}`, label: `${MONTHS_NOM[i]} ${reportYear}`, total: v }))}
+                    currentKey={`${reportYear}-${String(new Date().getMonth() + 1).padStart(2, '0')}`}
+                    restLabel={`Δηλωτέα ακαθάριστα ${reportYear}`}
+                    format={fe}
+                    height={104}
+                  />
                 </div>
               </div>
             </div>
@@ -1247,7 +1283,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 20, fontWeight: 700 }}>{dc.full_name}</span>
-                  {dcUndeclared > 0 && <Badge tone="warning">{dcUndeclared} αδήλωτη{dcUndeclared === 1 ? '' : 'ς'}</Badge>}
+                  {dcUndeclared > 0 && <Badge>{dcUndeclared} αδήλωτη{dcUndeclared === 1 ? '' : 'ς'}</Badge>}
                 </div>
               </div>
               <Btn variant="secondary" onClick={() => openEdit(dc)}>Επεξεργασία στοιχείων</Btn>
@@ -1554,7 +1590,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                               {/* ΤΟ ΣΗΜΑ ΠΟΥ ΕΛΕΙΠΕ: μία δήλωση ανά κράτηση και
                                   το app είχε όλες τις κρατήσεις χωρίς να
                                   παρακολουθεί καμία. */}
-                              {!declared && <Badge tone="warning">Αδήλωτη</Badge>}
+                              {!declared && <Badge>Αδήλωτη</Badge>}
                               {review && <Badge tone="warning">Ποσό προς επιβεβαίωση</Badge>}
                             </div>
                             <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 3, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>

@@ -18,7 +18,7 @@
 import { Fragment, useMemo, useState } from 'react';
 import { T, TT, Card, fe, fn } from '@/components/Theme';
 import { fpSigned } from '@/lib/core/format';
-import { MONTHS_SHORT } from '@/lib/core/months';
+import MonthBars from '@/components/MonthBars';
 import {
   compareMonth, history, lastCompleteMonth, monthPhrase,
   type Basis, type Comparison, type MonthPoint, type Spend,
@@ -184,93 +184,58 @@ function Drivers({ c }: { c: Comparison }) {
 // γραφήματος· με τον κέρσορα πάνω σε ράβδο γίνεται η ανάγνωσή της. Η θέση, το
 // ύψος και το δεξί άκρο δεν αλλάζουν, οπότε τίποτα δεν αναπηδά — αλλάζει μόνο
 // τι λέει· το λέει μόνο όταν υπάρχει κάτι νέο να πει.
+// ═══ ΤΟ ΓΡΑΦΗΜΑ ΕΦΥΓΕ ΣΕ ΚΟΙΝΟ ΣΤΟΙΧΕΙΟ ══════════════════════════════════════
+// Ηταν γραμμένο ΚΑΙ εδώ ΚΑΙ στην καρτέλα των επισκεπτών, με τη δεύτερη γραφή να
+// έχει χάσει τα πάντα: κανένα `aria-label`, καμία εστίαση, καμία γραμμή
+// ανάγνωσης και ένα `title` που σε οθόνη αφής δεν εμφανίζεται ποτέ — δηλαδή στο
+// κινητό δώδεκα ορθογώνια χωρίς ούτε έναν αριθμό. Δώδεκα μήνες με ένα ποσό ο
+// καθένας είναι το ίδιο σχήμα και στις δύο οθόνες: components/MonthBars.tsx.
+//
+// Ο,τι είναι ΔΙΚΟ ΤΗΣ αυτής της κάρτας μένει εδώ και περνά ως ιδιότητα: ο μέσος
+// όρος στο δεξί άκρο και η μεταβολή «από πέρσι» στη γραμμή ανάγνωσης.
 function HistoryBars({ points, currentKey }: { points: MonthPoint[]; currentKey: string }) {
-  const [hover, setHover] = useState<string | null>(null);
-  const max = Math.max(...points.map(p => p.total), 1);
-  const sel = hover ? points.find(p => p.key === hover) ?? null : null;
   const months = points.filter(p => p.total > 0).length;
   const avg = months > 0 ? points.reduce((s, p) => s + p.total, 0) / months : 0;
+  const yoyOf = (key: string) => points.find(p => p.key === key)?.yoy ?? null;
 
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, minWidth: 0 }}>
-          {sel ? (
-            <>
-              <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>{sel.label}</span>
-              <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}><Eur value={sel.total} /></span>
-              {sel.yoy !== null && Math.abs(sel.yoy) >= 1 && (
-                <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
-                  <Eur value={sel.yoy} sign dim={false} /> από πέρσι
-                </span>
-              )}
-            </>
-          ) : (
-            <span style={TT.label}>Δώδεκα μήνες</span>
-          )}
-        </div>
-        {/* Ο ΜΕΣΟΣ ΟΡΟΣ ΔΕΝ ΕΙΝΑΙ ΔΩΔΕΚΑΜΗΝΟΣ, ΚΑΙ ΤΟ ΕΛΕΓΕ ΣΑΝ ΝΑ ΗΤΑΝ.
-            Διαιρεί με τους μήνες που ΕΧΟΥΝ δαπάνες, όχι με τους δώδεκα — και
-            σωστά: οι μήνες πριν από την πρώτη καταχώρηση δεν είναι μήνες με
-            μηδέν έξοδα, είναι μήνες χωρίς στοιχεία και το μηδέν τους θα
-            τραβούσε τον μέσο όρο κάτω χωρίς λόγο. Κάτω όμως από την επικεφαλίδα
-            «Δώδεκα μήνες», ένα σκέτο «μέσος όρος 751,00 €» με μία στήλη στο
-            γράφημα διαβάζεται ως δωδεκάμηνος μέσος όρος — δηλαδή δωδεκαπλάσιος
-            από την αλήθεια. Ο αριθμός μένει· λέει πλέον σε πόσους μήνες. */}
-        {/* ═══ ΜΕΣΟΣ ΟΡΟΣ ΕΝΟΣ ΜΗΝΑ ΔΕΝ ΕΙΝΑΙ ΜΕΣΟΣ ΟΡΟΣ ══════════════════════
-            Με έναν μόνο μήνα να έχει δαπάνες, ο «μέσος όρος» ΕΙΝΑΙ το ποσό του
-            μήνα: η ίδια γραμμή τύπωνε «Αύγουστος 2026 324,10 €» και δίπλα «μέσος
-            όρος 324,10 € σε έναν μήνα με δαπάνες», δηλαδή το ίδιο νούμερο δύο
-            φορές, με το δεύτερο να παριστάνει σύγκριση. Χρειάζονται δύο τιμές
-            για να υπάρχει μέση τιμή. */}
-        {avg > 0 && months >= 2 && (
+    <MonthBars
+      points={points}
+      currentKey={currentKey}
+      restLabel="Δώδεκα μήνες"
+      format={fe}
+      readout={p => {
+        const yoy = yoyOf(p.key);
+        return (
+          <>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>{p.label}</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}><Eur value={p.total} /></span>
+            {yoy !== null && Math.abs(yoy) >= 1 && (
+              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                <Eur value={yoy} sign dim={false} /> από πέρσι
+              </span>
+            )}
+          </>
+        );
+      }}
+      right={
+        /* Ο ΜΕΣΟΣ ΟΡΟΣ ΔΕΝ ΕΙΝΑΙ ΔΩΔΕΚΑΜΗΝΟΣ, ΚΑΙ ΤΟ ΕΛΕΓΕ ΣΑΝ ΝΑ ΗΤΑΝ.
+           Διαιρεί με τους μήνες που ΕΧΟΥΝ δαπάνες, όχι με τους δώδεκα — και
+           σωστά: οι μήνες πριν από την πρώτη καταχώρηση δεν είναι μήνες με μηδέν
+           έξοδα, είναι μήνες χωρίς στοιχεία. Κάτω όμως από την επικεφαλίδα
+           «Δώδεκα μήνες», ένα σκέτο «μέσος όρος 751,00 €» διαβάζεται ως
+           δωδεκάμηνος, δηλαδή δωδεκαπλάσιος από την αλήθεια: λέει σε πόσους.
+           ΚΑΙ ΜΕ ΕΝΑΝ ΜΗΝΑ ΔΕΝ ΛΕΓΕΤΑΙ ΚΑΘΟΛΟΥ: ο «μέσος όρος» ΕΙΝΑΙ το ποσό
+           του μήνα, δηλαδή το ίδιο νούμερο δύο φορές με το δεύτερο ντυμένο ως
+           σύγκριση. Χρειάζονται δύο τιμές για να υπάρχει μέση τιμή. */
+        avg > 0 && months >= 2 ? (
           <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
             μέσος όρος <span style={{ color: 'var(--text-secondary)' }}><Eur value={avg} dim={false} /></span>
             {months < points.length && ` σε ${months === 1 ? 'έναν μήνα' : `${months} μήνες`} με δαπάνες`}
           </span>
-        )}
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${points.length}, 1fr)`, alignItems: 'end' }}>
-        {points.map(p => {
-          const isCur = p.key === currentKey;
-          const isSel = p.key === hover;
-          const h = p.total > 0 ? Math.max((p.total / max) * 100, 3) : 0;
-          const m = Number(p.key.slice(5, 7)) - 1;
-          return (
-            /* ΤΟ `title` ΕΓΡΑΦΕ ΔΙΠΛΑ ΣΤΟΝ ΔΕΙΚΤΗ Ο,ΤΙ ΕΓΡΑΦΕ ΚΑΙ Η ΓΡΑΜΜΗ
-               ΑΝΑΓΝΩΣΗΣ ΠΑΝΩ ΑΠΟ ΤΟ ΓΡΑΦΗΜΑ, με άλλη στίξη: «Αύγουστος 2026
-               31,20 €» στην κορυφή και «Αύγουστος 2026: 31,20 €» στο βομβίδιο,
-               ταυτόχρονα. Η γραμμή ανάγνωσης χτίστηκε ΑΚΡΙΒΩΣ για να μη λέγεται
-               αυτό δύο φορές.
-               Το `aria-label` κάνει τη δουλειά που το `title` έκανε κατά λάθος:
-               δίνει όνομα σε ένα εστιάσιμο στοιχείο που δεν είχε κανένα, χωρίς
-               να τυπώνει τίποτα δεύτερη φορά στην οθόνη. */
-            <div key={p.key}
-              onMouseEnter={() => setHover(p.key)} onMouseLeave={() => setHover(null)}
-              onFocus={() => setHover(p.key)} onBlur={() => setHover(null)}
-              tabIndex={0} aria-label={`${p.label}: ${fe(p.total)}`}
-              className="exp-bar" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'default' }}>
-              <span style={{ display: 'flex', alignItems: 'flex-end', height: 116, width: '100%', justifyContent: 'center', borderBottom: '1px solid var(--border-subtle)' }}>
-                <span style={{
-                  display: 'block', width: 14, height: `${h}%`, minHeight: p.total > 0 ? 3 : 0,
-                  borderRadius: '3px 3px 0 0',
-                  background: isCur ? 'var(--accent)'
-                    : isSel ? 'color-mix(in srgb, var(--text-primary) 42%, transparent)'
-                    : 'color-mix(in srgb, var(--text-primary) 22%, transparent)',
-                  transition: 'height 0.35s cubic-bezier(0.2,0,0,1), background 0.15s',
-                }} />
-              </span>
-              <span style={{
-                marginTop: 6, textAlign: 'center', fontSize: 11, fontFamily: T.font.sans,
-                fontWeight: isSel ? 700 : 400,
-                color: isSel ? 'var(--text-secondary)' : 'var(--text-tertiary)',
-              }}>{MONTHS_SHORT[m]}</span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
+        ) : undefined
+      }
+    />
   );
 }
 
