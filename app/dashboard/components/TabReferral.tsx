@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { SITE } from '@/lib/core/site';
 import { downloadTableXlsx, csvDate } from './exportCsv';
@@ -204,12 +204,31 @@ type ClaimState = 'idle' | 'saving' | 'done' | 'error';
  * μέσα στην πρόταση («…και κέρδισε έναν μήνα επιπλέον Ιδιοκτήτη»). Η πρόταση
  * κρατά πλέον μόνο την ενέργεια που λείπει.
  */
-function Milestone({ title, icon, count, target, kind, rewardTitle, claimState, onClaim }: {
-  title: string; icon: string; count: number; target: number; kind: string; rewardTitle: string;
-  claimState: ClaimState; onClaim: (kind: string) => void;
+// ═══ ΜΙΑ ΚΑΡΤΑ ΣΤΟΧΟΥ, ΟΧΙ ΔΥΟ ΠΟΥ ΜΟΙΑΖΟΥΝ ═══════════════════════════════════
+// Ο «Στόχος του μήνα» και η «Ιδιότητα συνεργάτη» είναι το ίδιο πράγμα: κάτι
+// μετριέται, φτάνει σε νούμερο, δίνει δώρο. Ηταν γραμμένες δύο φορές και οι δύο
+// γραφές απέκλιναν σε ό,τι μπορούσαν — η μία έβαζε εικονίδιο και ετικέτα πάνω,
+// η άλλη τίτλο· η μία έγραφε τον στόχο σε δικό του μεγάλο μέγεθος, η άλλη τον
+// έκρυβε σε παράγραφο· η μία μετρούσε «0 / 5», η άλλη «0 / 3 μήνες» με τη
+// μονάδα κολλημένη μέσα στον αριθμό.
+//
+// Μία γραφή, τέσσερα προαιρετικά: η μονάδα δίπλα στον στόχο, η γραμμή κάτω από
+// τη μπάρα, η προθεσμία του μήνα και ό,τι κρέμεται από κάτω.
+function Milestone({ title, icon, count, target, unit, kind, rewardTitle, claimState, onClaim, note, deadline = true, children }: {
+  title: string; icon: string; count: number; target: number; rewardTitle: string;
+  /** Η μονάδα δίπλα στον στόχο: «0 / 3 μήνες». Χωρίς αυτήν, σκέτο πλήθος. */
+  unit?: string;
+  /** Η γραμμή κάτω από τη μπάρα, όταν δεν είναι η τυπική «σου λείπουν N». */
+  note?: string;
+  /** Η προθεσμία του μήνα. Ο στόχος που μετρά ΜΗΝΕΣ δεν λήγει στο τέλος του μήνα. */
+  deadline?: boolean;
+  /** Το δώρο αναλυτικά, όταν δεν χωρά σε μία γραμμή. */
+  children?: ReactNode;
+  /** Το δώρο που παραλαμβάνεται με πάτημα. Χωρίς αυτά, ο στόχος απλώς μετρά. */
+  kind?: string; claimState?: ClaimState; onClaim?: (kind: string) => void;
 }) {
     const pr = progress(count, target);
-    const st = claimState;
+    const st = claimState ?? 'idle';
     const dleft = daysLeftInMonth();
     return (
       <div className="ref-lift" style={{ ...card, padding: PAD, position: 'relative', overflow: 'visible', ...(pr.reached ? { borderColor: 'color-mix(in srgb, var(--positive) 38%, var(--border-raised))', background: 'linear-gradient(180deg, color-mix(in srgb, var(--positive) 8%, var(--surface-raised)), var(--surface-raised) 62%)' } : {}) }}>
@@ -218,26 +237,27 @@ function Milestone({ title, icon, count, target, kind, rewardTitle, claimState, 
             <Ic d={icon} s={16} c="var(--text-secondary)" />
             <span style={{ ...TT.label }}>{title}</span>
           </span>
-          <span className={pr.reached ? undefined : 'ref-kpi-hover'} style={{ ...TT.kpi, flexShrink: 0, color: pr.reached ? 'var(--positive)' : undefined }}><Num value={pr.count} /><span style={{ ...TT.caption }}> / {target}</span></span>
+          <span className={pr.reached ? undefined : 'ref-kpi-hover'} style={{ ...TT.kpi, flexShrink: 0, color: pr.reached ? 'var(--positive)' : undefined }}><Num value={pr.count} /><span style={{ ...TT.caption }}> / {target}{unit ? ` ${unit}` : ''}</span></span>
         </div>
         <div style={{ ...TT.displaySm, marginBottom: 10 }}>{rewardTitle}</div>
         <Bar pct={pr.pct} tone={pr.reached ? 'var(--positive)' : 'var(--accent)'} />
         <p style={{ ...TT.bodySm, marginTop: 12, lineHeight: 1.55 }}>
-          {pr.reached
+          {note ?? (pr.reached
             ? 'Μπράβο, το πέτυχες.'
             : pr.count === 0
               ? `Προσκάλεσε ${target} μέσα στον ίδιο μήνα.`
               : pr.remaining === 1
                 ? 'Σου λείπει μόλις ένας ακόμη. Είσαι ένα βήμα πριν τον στόχο.'
-                : `Σου λείπουν ${pr.remaining} ακόμη. Συνέχισε.`}
+                : `Σου λείπουν ${pr.remaining} ακόμη. Συνέχισε.`)}
         </p>
-        {!pr.reached && (
+        {children && <div style={{ marginTop: 12 }}>{children}</div>}
+        {deadline && !pr.reached && (
           <div style={{ ...TT.caption, marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6, color: dleft <= 5 ? 'var(--warning)' : 'var(--text-tertiary)' }}>
             <Ic d="M12 8v4l3 2|M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z" s={13} c="currentColor" />
             {dleft <= 1 ? 'Τελευταία ημέρα του μήνα' : `Απομένουν ${dleft} ημέρες ως το τέλος του μήνα`}
           </div>
         )}
-        {pr.reached && (
+        {pr.reached && kind && onClaim && (
           <div style={{ marginTop: 12 }}>
             {st === 'done'
               ? <span role="status" style={{ ...TT.bodySm, color: 'var(--positive)', fontWeight: 600 }}>Το δώρο σου καταχωρήθηκε. Πιστώνεται στη συνδρομή σου.</span>
@@ -390,21 +410,29 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
   // στο SQL· το αντίγραφο εδώ έμεινε πίσω. Η ίδια πηγή δίνει την απάντηση:
   // πληρωμένο είναι το πακέτο με τιμή.
   const referrerPaying = (PLANS[plan as PlanId]?.priceMonthly ?? 0) > 0;
+  // ═══ ΤΡΙΑ ΒΗΜΑΤΑ, ΤΡΕΙΣ ΙΣΕΣ ΓΡΑΜΜΕΣ ══════════════════════════════════════
+  // ΤΟ ΣΦΑΛΜΑ ΗΤΑΝ ΟΡΑΤΟ ΩΣ ΚΕΝΟ: το τρίτο βήμα κουβαλούσε τέσσερις σειρές με
+  // ολόκληρο τον μηχανισμό του στόχου, ενώ τα δύο πρώτα είχαν μία. Οι τρεις
+  // κάρτες παίρνουν το ύψος της ψηλότερης, οπότε η οθόνη έδειχνε δύο μισοάδεια
+  // κουτιά δίπλα σε ένα γεμάτο. Και ο μηχανισμός ήταν ΗΔΗ γραμμένος, δύο φορές,
+  // στις δύο κάρτες στόχου από πάνω: εδώ λεγόταν τρίτη.
+  //
+  // Ενα βήμα είναι μία πράξη και μία πρόταση. Ο,τι δεν χωρά σε μία πρόταση δεν
+  // είναι βήμα, είναι όρος — και οι όροι ζουν στον στόχο που τους μετρά.
   const steps = isPro
     ? [
-        { n: '1', t: 'Στέλνεις τον σύνδεσμο', d: 'Στους πελάτες-ιδιοκτήτες σου.', d2: 'M22 2 11 13|M22 2 15 22l-4-9-9-4z' },
-        { n: '2', t: 'Ο νέος ιδιοκτήτης ξεκινά', d: 'Προσθέτει ένα ακίνητο και σαρώνει ένα έγγραφο.', d2: 'M22 11.08V12a10 10 0 1 1-5.93-9.14|M22 4 12 14.01l-3-3' },
-        { n: '3', t: 'Παίρνεις πίσω τη συνδρομή σου', d: `Δωρεάν μήνες Επαγγελματία από τον πρώτο μήνα. Με ${PRO_PAID_TARGET} συνδρομητές για ${STREAK_TARGET_MONTHS} συνεχόμενους μήνες, κάθε επόμενος μήνας που πιάνεις τον στόχο είναι δωρεάν.`, d2: 'M23 6l-9.5 9.5-5-5L1 18|M17 6h6v6' },
+        { n: '1', t: 'Στέλνεις τον σύνδεσμο', d: 'Στους ιδιοκτήτες που έχεις πελάτες.', d2: 'M22 2 11 13|M22 2 15 22l-4-9-9-4z' },
+        { n: '2', t: 'Ο νέος ιδιοκτήτης ξεκινά', d: 'Ένα ακίνητο, ένα σαρωμένο έγγραφο.', d2: 'M22 11.08V12a10 10 0 1 1-5.93-9.14|M22 4 12 14.01l-3-3' },
+        { n: '3', t: 'Παίρνεις πίσω τη συνδρομή σου', d: 'Δωρεάν μήνες Επαγγελματία.', d2: 'M23 6l-9.5 9.5-5-5L1 18|M17 6h6v6' },
       ]
     : [
         { n: '1', t: 'Στέλνεις τον σύνδεσμο', d: 'Σε έναν ιδιοκτήτη ακινήτου.', d2: 'M22 2 11 13|M22 2 15 22l-4-9-9-4z' },
-        { n: '2', t: 'Ο νέος ιδιοκτήτης ξεκινά', d: 'Προσθέτει ένα ακίνητο και σαρώνει ένα έγγραφο.', d2: 'M22 11.08V12a10 10 0 1 1-5.93-9.14|M22 4 12 14.01l-3-3' },
-        { n: '3', t: 'Παίρνεις το δώρο σου', d: `Ένα επιπλέον ακίνητο για ${moAcc(REFERRER_SLOT_MONTHS)}, στο πακέτο που ήδη έχεις.`, d2: 'M20 12v9H4v-9|M2 7h20v5H2z|M12 22V7|M12 7S9 2 6.5 4.5 12 7 12 7z|M12 7s3-5 5.5-2.5S12 7 12 7z' },
+        { n: '2', t: 'Ο νέος ιδιοκτήτης ξεκινά', d: 'Ένα ακίνητο, ένα σαρωμένο έγγραφο.', d2: 'M22 11.08V12a10 10 0 1 1-5.93-9.14|M22 4 12 14.01l-3-3' },
+        { n: '3', t: 'Παίρνεις το δώρο σου', d: `Ένα επιπλέον ακίνητο για ${moAcc(REFERRER_SLOT_MONTHS)}.`, d2: 'M20 12v9H4v-9|M2 7h20v5H2z|M12 22V7|M12 7S9 2 6.5 4.5 12 7 12 7z|M12 7s3-5 5.5-2.5S12 7 12 7z' },
       ];
 
   const partner = stats?.partner ?? false;
   const streak = Math.min(stats?.streak ?? 0, STREAK_TARGET_MONTHS);
-  const streakPct = Math.min(100, (streak / STREAK_TARGET_MONTHS) * 100);
   const youBase = individualReferrerReward(referrerPaying, 'free');   // τι κερδίζεις για δωρεάν φίλο
   const styleBlock = (
     <style>{`
@@ -587,11 +615,20 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
           <SectionLabel>Γιατί να στείλεις τον σύνδεσμο στους πελάτες σου</SectionLabel>
           <div style={{ ...card, padding: PAD, marginBottom: T.sp.xl }}>
             <ul style={{ ...TT.bodySm, lineHeight: 1.7, margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: 8 }}>
+              {/* ═══ ΤΕΣΣΕΡΑ ΟΦΕΛΗ, ΟΧΙ ΤΕΣΣΕΡΙΣ ΠΑΡΑΓΡΑΦΟΙ ═══════════════════════
+                  Δύο από τα τέσσερα τύλιγαν σε δεύτερη σειρά και το τελευταίο
+                  κουβαλούσε ΟΔΗΓΙΕΣ ΠΛΟΗΓΗΣΗΣ («Ρυθμίσεις, Σύνδεσμος για τον
+                  λογιστή σου») μέσα σε κατάλογο που απαντά «γιατί». Το πού
+                  βρίσκεται το κουμπί δεν είναι όφελος.
+
+                  ΚΑΙ ΕΝΑ ΗΤΑΝ ΛΑΘΟΣ: υποσχόταν «αρχείο ΤΙ ΛΕΙΠΕΙ». Ο φάκελος
+                  έγινε ένα βιβλίο εργασίας και το «Τι λείπει» είναι ΦΥΛΛΟ μέσα
+                  του, με αυτό ακριβώς το όνομα. */}
               {[
-                'Ο ίδιος φάκελος από κάθε πελάτη: αριθμημένοι υποφάκελοι, ίδια δομή κάθε χρόνο, ίδια ονόματα αρχείων.',
-                'Ένα αρχείο «ΤΙ ΛΕΙΠΕΙ» που το λέει ρητά, ώστε να μη ψάχνεις εσύ τι δεν έστειλε.',
-                'Οι παγίδες πιασμένες πριν γίνουν λάθη: ΑΜΑ στην αγγελία, ακαθάριστα αντί καθαρών, τέλος ανθεκτικότητας, μετρητά που δεν εκπίπτουν.',
-                'Δικός σου σύνδεσμος μόνο για ανάγνωση, ανά πελάτη: Ρυθμίσεις, «Σύνδεσμος για τον λογιστή σου». Δεν βλέπει πελατολόγιο ούτε στοιχεία τρίτων.',
+                'Ο ίδιος φάκελος από κάθε πελάτη: ίδια δομή, ίδια ονόματα, κάθε χρόνο.',
+                'Ένα φύλλο «Τι λείπει» που το γράφει, ώστε να μην το ψάχνεις εσύ.',
+                'Οι παγίδες πιασμένες πριν γίνουν λάθη: ΑΜΑ, ακαθάριστα αντί καθαρών, τέλος ανθεκτικότητας.',
+                'Δικός σου σύνδεσμος ανά πελάτη, μόνο για ανάγνωση. Χωρίς πελατολόγιο ή στοιχεία τρίτων.',
               ].map((t, i) => (
                 <li key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                   <span style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 3 }}><Ic d="M20 6 9 17l-5-5" s={14} /></span>{t}
@@ -612,50 +649,47 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
               rewardTitle={`+${moNom(PRO_PAID_BONUS_MONTHS)} συνδρομής δωρεάν`} claimState={claim.pro_paid || 'idle'} onClaim={doClaim} />
           </div>
 
-          {/* Συνεργάτης */}
+          {/* ── Συνεργάτης: Η ΙΔΙΑ ΚΑΡΤΑ ΜΕ ΤΟΝ ΣΤΟΧΟ ΤΟΥ ΜΗΝΑ ──────────────────
+              Ηταν δική της γραφή, με άλλη σειρά στοιχείων: τίτλος αντί για
+              ετικέτα μετρούμενου, μονάδα κολλημένη μέσα στον αριθμό, το δώρο
+              κρυμμένο σε παράγραφο αντί για τη θέση του δώρου. Δύο κάρτες που
+              κάνουν την ίδια δουλειά, δίπλα δίπλα, με άλλη ανατομία η καθεμιά.
+              Πλέον διαβάζονται με ΤΟ ΙΔΙΟ βλέμμα: τι μετριέται, πόσο, τι
+              κερδίζεις, πόσο έχεις φτάσει. */}
           <SectionLabel>Ιδιότητα συνεργάτη</SectionLabel>
-          <div className="ref-hover-accent" style={{ ...card, padding: PAD, marginBottom: T.sp.xl, ...(partner ? { borderColor: 'var(--accent-border)', background: 'linear-gradient(180deg, var(--accent-soft), transparent 140%)' } : {}) }}>
-            {partner ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <span style={{ ...TT.h2, color: 'var(--accent)' }}>Είσαι Συνεργάτης PROPERWISE</span>
-                  <span style={{ ...TT.bodySm }}>Ενεργή ιδιότητα. Να τι απολαμβάνεις:</span>
-                </div>
-              </div>
-            ) : (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <span style={{ ...TT.h2 }}>Γίνε Συνεργάτης PROPERWISE</span>
-              <span className="ref-kpi-hover" style={{ ...TT.kpi }}><Num value={streak} /><span style={{ ...TT.caption }}> / {STREAK_TARGET_MONTHS} μήνες</span></span>
-            </div>
-            )}
-            {!partner && <div style={{ marginBottom: 14 }}><Bar pct={streakPct} /></div>}
-            {!partner && (
-              <p style={{ ...TT.bodySm, marginBottom: 14, lineHeight: 1.55 }}>
-                Πιάσε τον στόχο των {PRO_PAID_TARGET} συνδρομητών {STREAK_TARGET_MONTHS} συνεχόμενους μήνες και γίνε επίσημος Συνεργάτης. Να τι κερδίζεις:
-              </p>
-            )}
-            <ul style={{ ...TT.bodySm, lineHeight: 1.7, margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: 6 }}>
-              {[
-                // ΤΟ ΟΝΟΜΑ ΤΟΥ ΔΩΡΟΥ ΗΤΑΝ ΓΡΑΜΜΕΝΟ ΜΕ ΤΟ ΧΕΡΙ, ΚΑΙ ΗΤΑΝ ΑΛΛΟ. Τώρα
-                // δεν είναι καν σταθερό: το δώρο είναι ένα σκαλί πάνω από το πακέτο
-                // που ήδη έχεις, οπότε το όνομά του το δίνει η ίδια η συνάρτηση που
-                // το αποδίδει. Δύο πηγές για το ίδιο νούμερο έχουν ήδη διαφωνήσει
-                // δύο φορές σε αυτό το αρχείο.
-                `${moNom(PARTNER_WELCOME_MONTHS)} ${PLANS[partnerWelcomeTier(plan)].name} δώρο, μόλις αποκτήσεις την ιδιότητα`,
-                `Κάθε μήνας που πιάνει τον στόχο χαρίζει ${moAcc(PARTNER_MONTHLY_FREE_MONTHS)} δωρεάν`,
-                'Προτεραιότητα σε νέες κυκλοφορίες, αναβαθμίσεις και επικοινωνία',
-              ].map((t, i) => (
-                <li key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                  <span style={{ color: partner ? 'var(--accent)' : 'var(--text-tertiary)', flexShrink: 0, marginTop: 3 }}><Ic d="M20 6 9 17l-5-5" s={14} /></span>{t}
-                </li>
-              ))}
-            </ul>
+          <div style={{ marginBottom: T.sp.xl }}>
+            <Milestone title="Μήνες με πιασμένο τον στόχο"
+              icon="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4-3.9-3.8 5.4-.8z|M8 21h8"
+              count={streak} target={STREAK_TARGET_MONTHS} unit="μήνες" deadline={false}
+              rewardTitle={partner ? 'Είσαι Συνεργάτης PROPERWISE' : 'Ιδιότητα Συνεργάτη'}
+              note={partner
+                ? 'Ενεργή ιδιότητα.'
+                : `Πιάσε τον στόχο των ${PRO_PAID_TARGET} συνδρομητών ${STREAK_TARGET_MONTHS} συνεχόμενους μήνες.`}>
+              <ul style={{ ...TT.bodySm, lineHeight: 1.7, margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: 6 }}>
+                {[
+                  // ΤΟ ΟΝΟΜΑ ΤΟΥ ΔΩΡΟΥ ΗΤΑΝ ΓΡΑΜΜΕΝΟ ΜΕ ΤΟ ΧΕΡΙ, ΚΑΙ ΗΤΑΝ ΑΛΛΟ. Τώρα
+                  // δεν είναι καν σταθερό: το δώρο είναι ένα σκαλί πάνω από το πακέτο
+                  // που ήδη έχεις, οπότε το όνομά του το δίνει η ίδια η συνάρτηση που
+                  // το αποδίδει. Δύο πηγές για το ίδιο νούμερο έχουν ήδη διαφωνήσει
+                  // δύο φορές σε αυτό το αρχείο.
+                  `${moNom(PARTNER_WELCOME_MONTHS)} ${PLANS[partnerWelcomeTier(plan)].name} δώρο, μόλις την αποκτήσεις`,
+                  `Κάθε μήνας που πιάνει τον στόχο χαρίζει ${moAcc(PARTNER_MONTHLY_FREE_MONTHS)} δωρεάν`,
+                  'Προτεραιότητα σε νέες κυκλοφορίες και αναβαθμίσεις',
+                ].map((t, i) => (
+                  <li key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                    <span style={{ color: partner ? 'var(--accent)' : 'var(--text-tertiary)', flexShrink: 0, marginTop: 3 }}><Ic d="M20 6 9 17l-5-5" s={14} /></span>{t}
+                  </li>
+                ))}
+              </ul>
+            </Milestone>
+            {/* Η ΜΙΑ ΠΡΟΕΙΔΟΠΟΙΗΣΗ ΠΟΥ ΑΞΙΖΕΙ ΘΕΣΗ: ο μήνας κλείνει και το σερί
+                χάνεται. Δεν λέγεται ποτέ όταν δεν υπάρχει σερί να χαθεί. */}
             {(() => {
               const d = daysLeftInMonth();
               const r = PRO_PAID_TARGET - (stats?.m_paid ?? 0);
               if (!(streak >= 1 && r > 0 && d <= 10)) return null;
               return (
-                <div style={{ marginTop: 16, display: 'flex', gap: 9, alignItems: 'flex-start', padding: '10px 12px', borderRadius: T.radius.inner, background: 'color-mix(in srgb, var(--warning) 9%, transparent)', border: '1px solid color-mix(in srgb, var(--warning) 26%, transparent)' }}>
+                <div style={{ marginTop: 12, display: 'flex', gap: 9, alignItems: 'flex-start', padding: '10px 12px', borderRadius: T.radius.inner, background: 'color-mix(in srgb, var(--warning) 9%, transparent)', border: '1px solid color-mix(in srgb, var(--warning) 26%, transparent)' }}>
                   <span style={{ color: 'var(--warning)', flexShrink: 0, marginTop: 1 }}><Ic d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z|M12 9v4|M12 17h.01" s={15} /></span>
                   <span style={{ ...TT.bodySm, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                     {d === 1 ? 'Ο μήνας κλείνει αύριο.' : `Ο μήνας κλείνει σε ${d} ημέρες.`} {r === 1 ? 'Σου λείπει ένας συνδρομητής' : `Σου λείπουν ${r} συνδρομητές`} {partner ? 'για να εξασφαλίσεις τον δωρεάν μήνα.' : 'για να διατηρήσεις τους συνεχόμενους μήνες σου.'}
