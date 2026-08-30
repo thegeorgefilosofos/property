@@ -18,12 +18,19 @@
 //    του: «−76%» και μετά «ο Αύγουστος δεν έχει τελειώσει». Κανείς δεν το κάνει
 //    αυτό. Διαβάζει το νούμερο, όπως θα διάβαζε κάθε νούμερο· έπειτα φεύγει.
 //
-//    Οταν ο μήνας τρέχει, συγκρίνονται ΙΣΑ ΔΙΑΣΤΗΜΑΤΑ: οι πρώτες N ημέρες του
-//    τρέχοντα με τις πρώτες N του μήνα βάσης, όπου N η σημερινή ημερομηνία. Και
-//    το πρόσημο μπορεί να ΑΝΤΙΣΤΡΑΦΕΙ: 273 € στις 28 μέρες του Αυγούστου απέναντι
-//    στις 321 € ΟΛΟΚΛΗΡΟΥ του Ιουλίου δίνει «λιγότερα», ενώ απέναντι στις 240 €
-//    των πρώτων 28 ημερών του Ιουλίου δίνει «περισσότερα». Το δεύτερο είναι η
-//    αλήθεια· το πρώτο είναι το ημερολόγιο μεταμφιεσμένο σε συμπεριφορά.
+//    ΚΑΙ ΤΑ ΙΣΑ ΔΙΑΣΤΗΜΑΤΑ ΗΤΑΝ Η ΔΕΥΤΕΡΗ ΑΠΑΝΤΗΣΗ, ΣΩΣΤΗ ΚΑΙ ΔΥΣΑΝΑΓΝΩΣΤΗ. Η
+//    σύγκριση έκοβε τους δύο μήνες στη σημερινή ημέρα και το έγραφε: «Ισα
+//    διαστήματα: οι πρώτες 30 ημέρες του Αυγούστου με τις πρώτες 30 του
+//    Ιουλίου». Ο αριθμός έπαυε να λέει ψέματα, αλλά έπαυε και να είναι
+//    ΜΗΝΑΣ: κανείς δεν σκέφτεται τα έξοδά του σε παράθυρα τριάντα ημερών, τα
+//    σκέφτεται σε Ιούλιο και Αύγουστο. Και το ίδιο διάστημα άλλαζε κάθε μέρα,
+//    οπότε ο ίδιος μήνας έδινε άλλη απάντηση το πρωί και άλλη το βράδυ.
+//
+//    Η ΑΠΑΝΤΗΣΗ ΕΙΝΑΙ ΝΑ ΜΗ ΣΥΓΚΡΙΝΕΤΑΙ ΜΗΝΑΣ ΠΟΥ ΤΡΕΧΕΙ. Η κάρτα δείχνει τον
+//    τελευταίο ΟΛΟΚΛΗΡΩΜΕΝΟ μήνα απέναντι στον προηγούμενό του: δύο πλήρεις
+//    μήνες, όποια κι αν είναι η σημερινή ημέρα, με το ίδιο νούμερο κάθε φορά
+//    που ανοίγει η οθόνη. Ο μήνας που τρέχει έχει τη δική του θέση, στο
+//    πλακίδιο «Δαπάνες μήνα» από πάνω.
 //
 // 2. ΤΟ ΕΤΗΣΙΟ ΠΟΥ ΕΤΥΧΕ. Η ασφάλεια των 340 € πληρώνεται μία φορά τον χρόνο.
 //    Τον μήνα που πέφτει, οι δαπάνες «εκτοξεύονται». Δεν είναι υπέρβαση, είναι
@@ -150,23 +157,33 @@ function monthGenitive(key: string): string {
 const daysInMonth = (key: string): number =>
   new Date(Number(key.slice(0, 4)), Number(key.slice(5, 7)), 0).getDate();
 
+/**
+ * Ο ΤΕΛΕΥΤΑΙΟΣ ΜΗΝΑΣ ΠΟΥ ΕΧΕΙ ΤΕΛΕΙΩΣΕΙ.
+ *
+ * Ο ΚΑΝΟΝΑΣ ΤΗΣ ΣΥΓΚΡΙΣΗΣ, ΓΡΑΜΜΕΝΟΣ ΜΙΑ ΦΟΡΑ. Σύγκριση μήνα που τρέχει με
+ * ολόκληρο μήνα λέει ψέματα· σύγκριση ίσων παραθύρων τριάντα ημερών λέει
+ * αλήθεια που δεν διαβάζεται και αλλάζει κάθε μέρα. Και οι δύο ήταν εδώ. Ο
+ * μήνας που δείχνει η κάρτα είναι ΠΑΝΤΑ ολοκληρωμένος.
+ *
+ * Η ΤΕΛΕΥΤΑΙΑ ΗΜΕΡΑ ΤΟΥ ΜΗΝΑ ΜΕΤΡΑΕΙ ΩΣ ΟΛΟΚΛΗΡΩΜΕΝΟΣ. Στις 31 Αυγούστου δεν
+ * μένει τίποτα να καταχωρηθεί που να αλλάξει τον Αύγουστο: η κάρτα δείχνει
+ * Αύγουστο. Στις 30, δείχνει Ιούλιο.
+ */
+export function lastCompleteMonth(today: Date): string {
+  const key = monthKey(today);
+  if (today.getDate() >= daysInMonth(key)) return key;
+  return prevMonth(key);
+}
+
 // ── ΣΥΝΟΛΑ ΑΝΑ ΜΗΝΑ ────────────────────────────────────────────────────────
 
 interface Bucket { total: number; byCat: Map<string, number>; oneOffs: Spend[] }
 
-/**
- * Τα ποσά ενός μήνα, προαιρετικά ΜΕΧΡΙ ΚΑΙ μια ημέρα του.
- *
- * Το `upto` είναι όλη η σύγκριση ίσων διαστημάτων: με την ίδια τιμή και στους
- * δύο κάδους, ο τρέχων μήνας κόβεται στο σήμερα και ο μήνας βάσης στην ίδια
- * ημέρα. Χωρίς αυτό, ο ένας κάδος μετρά είκοσι οκτώ ημέρες και ο άλλος τριάντα
- * μία· η διαφορά τους τότε λέγεται «συμπεριφορά».
- */
-function bucketOf(spends: readonly Spend[], key: string, upto?: number): Bucket {
+/** Τα ποσά ενός μήνα, ολόκληρου. Ο μήνας έρχεται ήδη ολοκληρωμένος. */
+function bucketOf(spends: readonly Spend[], key: string): Bucket {
   const b: Bucket = { total: 0, byCat: new Map(), oneOffs: [] };
   for (const s of spends) {
     if (s.date.slice(0, 7) !== key) continue;
-    if (upto !== undefined && Number(s.date.slice(8, 10)) > upto) continue;
     const amount = Math.abs(Number(s.amount));
     if (!Number.isFinite(amount) || amount === 0) continue;
     b.total += amount;
@@ -204,21 +221,13 @@ export function compareMonth(
   const basis: Basis = opts.basis ?? 'previous_month';
   const baseKey = basis === 'previous_month' ? prevMonth(currentKey) : sameMonthLastYear(currentKey);
 
-  // ── ΗΜΙΤΕΛΗΣ ΜΗΝΑΣ: ΙΣΑ ΔΙΑΣΤΗΜΑΤΑ, ΟΧΙ ΕΠΙΦΥΛΑΞΗ ───────────────────────
-  // Οσο ο μήνας τρέχει, κόβονται ΚΑΙ ΟΙ ΔΥΟ στη σημερινή ημέρα. Η επιφύλαξη
-  // λέει πλέον ΤΙ συγκρίθηκε, δεν ζητά συγγνώμη για ό,τι συγκρίθηκε λάθος.
-  const nowKey = monthKey(opts.today);
-  const day = opts.today.getDate();
-  const partial = currentKey === nowKey && day < daysInMonth(currentKey);
-  const upto = partial ? day : undefined;
-
-  const cur = bucketOf(spends, currentKey, upto);
-  const bas = bucketOf(spends, baseKey, upto);
+  // ── ΔΥΟ ΟΛΟΚΛΗΡΟΙ ΜΗΝΕΣ, ΠΑΝΤΑ ────────────────────────────────────────────
+  // Καμία κοπή στη σημερινή ημέρα, καμία επιφύλαξη να τη δικαιολογήσει: ο
+  // καλών δίνει μήνα που έχει τελειώσει (βλ. `lastCompleteMonth`).
+  const cur = bucketOf(spends, currentKey);
+  const bas = bucketOf(spends, baseKey);
   const diff = cur.total - bas.total;
   const caveats: string[] = [];
-  if (partial) {
-    caveats.push(`Ίσα διαστήματα: οι πρώτες ${day} ημέρες του ${monthGenitive(currentKey)} με τις πρώτες ${day} του ${monthGenitive(baseKey)}.`);
-  }
 
   // ── ΛΕΙΠΕΙ Η ΒΑΣΗ ────────────────────────────────────────────────────────
   // Το μήνυμα λέει ΠΟΙΟ διάστημα βρέθηκε άδειο. Με ίσα διαστήματα, «δεν
@@ -227,12 +236,9 @@ export function compareMonth(
   // μήνας.
   if (bas.total === 0) {
     const yearRef = Number(currentKey.slice(0, 4));
-    const where = upto === undefined
-      ? `τον ${monthPhrase(baseKey, yearRef)}`
-      : `στις πρώτες ${upto} ημέρες του ${monthGenitive(baseKey)}`;
     const none = cur.total === 0
       ? 'Δεν υπάρχουν καταχωρημένες δαπάνες για σύγκριση.'
-      : `Δεν υπάρχουν δαπάνες ${where} για να γίνει σύγκριση.`;
+      : `Δεν υπάρχουν δαπάνες τον ${monthPhrase(baseKey, yearRef)} για να γίνει σύγκριση.`;
     return {
       basis, currentKey, baseKey, current: cur.total, base: 0, diff: cur.total, pct: null,
       drivers: [], caveats,
@@ -261,7 +267,7 @@ export function compareMonth(
         slug, label: categoryLabel(slug) || 'Άλλο',
         diff: c - b, current: c, base: b,
         isNew: c > 0 && !everBefore.has(slug),
-        vanished: !partial && c === 0 && b > 0,
+        vanished: c === 0 && b > 0,
       };
     })
     .filter(d => Math.abs(d.diff) >= NOISE)
@@ -428,7 +434,9 @@ export function history(spends: readonly Spend[], today: Date, months = 12): Mon
  * λέει «δεν άλλαξε τίποτα» εκπαιδεύει τον χρήστη να τις αγνοεί.
  */
 export function monthlyDigest(spends: readonly Spend[], today: Date): string | null {
-  const key = monthKey(today);
+  // ΚΑΙ Η ΕΙΔΟΠΟΙΗΣΗ ΜΙΛΑ ΓΙΑ ΟΛΟΚΛΗΡΩΜΕΝΟ ΜΗΝΑ. Εστελνε τον μήνα ΠΟΥ ΤΡΕΧΕΙ,
+  // δηλαδή έναν αριθμό που άλλαζε κάθε μέρα ώς το τέλος του μήνα.
+  const key = lastCompleteMonth(today);
   const c = compareMonth(spends, key, { today });
   if (!c.meaningful) return null;
   if (Math.abs(c.diff) < NOISE) return null;

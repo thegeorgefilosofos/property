@@ -20,7 +20,7 @@ import { T, TT, Card, fe, fn } from '@/components/Theme';
 import { fpSigned } from '@/lib/core/format';
 import { MONTHS_SHORT } from '@/lib/core/months';
 import {
-  compareMonth, history, monthKey, monthPhrase,
+  compareMonth, history, lastCompleteMonth, monthPhrase,
   type Basis, type Comparison, type MonthPoint, type Spend,
 } from '@/lib/expenses/compare';
 
@@ -279,7 +279,13 @@ export default function ExpenseCompare({ spends, today }: Props) {
   const now = useMemo(() => today ?? new Date(), [today]);
   const [basis, setBasis] = useState<Basis>('previous_month');
 
-  const currentKey = monthKey(now);
+  // ═══ Ο ΜΗΝΑΣ ΤΗΣ ΚΑΡΤΑΣ ΕΧΕΙ ΤΕΛΕΙΩΣΕΙ ══════════════════════════════════════
+  // Η κάρτα έδειχνε τον μήνα ΠΟΥ ΤΡΕΧΕΙ και ο πυρήνας τον έκοβε στη σημερινή
+  // ημέρα για να μη συγκρίνει μισό μήνα με ολόκληρο. Σωστός αριθμός, λάθος
+  // ερώτηση: κανείς δεν σκέφτεται τα έξοδά του σε παράθυρα τριάντα ημερών και
+  // το ίδιο παράθυρο άλλαζε κάθε μέρα. Πλέον η κάρτα απαντά για δύο ΟΛΟΚΛΗΡΟΥΣ
+  // μήνες· ο μήνας που τρέχει ζει στο πλακίδιο «Δαπάνες μήνα» από πάνω.
+  const currentKey = lastCompleteMonth(now);
   const prev = useMemo(() => compareMonth(spends, currentKey, { today: now, basis: 'previous_month' }), [spends, currentKey, now]);
   const year = useMemo(() => compareMonth(spends, currentKey, { today: now, basis: 'same_month_last_year' }), [spends, currentKey, now]);
   const points = useMemo(() => history(spends, now, 12), [spends, now]);

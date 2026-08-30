@@ -1895,6 +1895,34 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-subtle);
 }
 
+/* ═══ Η ΣΕΙΡΑ ΕΝΕΡΓΕΙΑΣ ΤΗΣ ΚΑΡΤΕΛΑΣ ΕΠΙΣΚΕΠΤΗ ════════════════════════════════
+   Δύο σειρές κάνουν την ίδια δουλειά — διάλεξε είδος, δώσε κάτι, πάτα — και
+   ήταν γραμμένες με δύο γεωμετρίες. Ενας ρυθμός: επιλογέας σταθερών 200, ό,τι
+   μεσολαβεί παίρνει τον χώρο, ενέργεια 176 στο δεξί άκρο. Σε στενή οθόνη τα
+   τρία γίνονται τρεις γραμμές πλήρους πλάτους: μισό κουμπί δίπλα σε μισό πεδίο
+   δεν είναι σειρά, είναι υπόλειμμα. */
+.cl-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 14px; }
+.cl-row-kind { flex: 0 0 200px; min-width: 0; }
+.cl-row-main { flex: 1 1 220px; min-width: 0; }
+.cl-row-act  { flex: 0 0 176px; margin-left: auto; }
+@media (max-width: 560px) {
+  .cl-row-kind, .cl-row-main, .cl-row-act { flex: 1 1 100%; margin-left: 0; }
+}
+
+/* ΤΟ ΔΙΑΚΡΙΤΙΚΟ ΧΩΡΙΣΜΑ ΑΝΑΜΕΣΑ ΣΕ ΔΥΟ ΣΤΗΛΕΣ ΠΟΥ ΕΙΝΑΙ ΔΥΟ ΘΕΜΑΤΑ.
+   Η δήλωση στο myAADE και οι φθορές είναι ξεχωριστά πράγματα που κάθονται
+   δίπλα δίπλα: χωρίς γραμμή διαβάζονται ως μία λίστα διακοπτών. Μία κάθετη
+   τρίχα, μόνο όσο υπάρχουν δύο στήλες — μόλις στοιβαχτούν, θα ήταν γραμμή
+   που δεν χωρίζει τίποτα. */
+.fixed-cols.cl-split > :not(:first-child) {
+  border-left: 1px solid var(--border-subtle);
+  padding-left: 20px;
+}
+@media (max-width: 600px) {
+  .fixed-cols.cl-split > :not(:first-child) { border-left: none; padding-left: 0; }
+}
+.cl-notes-old { margin-top: 14px; }
+
 /* ΤΟ ΠΕΔΙΟ ΜΕ ΜΟΝΑΔΑ ΜΕΣΑ ΤΟΥ: Η ΜΟΝΑΔΑ ΕΙΝΑΙ ΣΤΗ ΡΟΗ, ΟΧΙ ΑΠΟ ΠΑΝΩ.
    ΜΕΤΡΗΜΕΝΟ ΣΤΟ ΜΙΣΘΩΤΗΡΙΟ: το πεδίο «Διάρκεια» έγραφε «3έτη», κολλητά. Η
    μονάδα ήταν απόλυτα τοποθετημένη στα 13 από το δεξί άκρο και το κουτί κρατούσε

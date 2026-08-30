@@ -17,7 +17,7 @@ import { useChartWidth } from '@/app/hooks/useChartWidth'
 import { businessFormOf } from '@/lib/accounting/taxProfile'
 import type { LegalForm as DossierLegalForm } from '@/lib/accounting/dossier'
 import { Skeleton, SkeletonKPIs, PageTitle, fe, feCompact, fp, fn, ABSENT, ABSENT_SHORT, T, fixedCols } from '@/components/Theme';
-import { NumberInput, CustomSelect, fieldLabelStyle, Toggle as Switch } from './UIComponents';
+import { NumberInput, CustomSelect, fieldLabelStyle, SegmentControl, Toggle as Switch } from './UIComponents';
 import { ChevronRight, TrendingUp, Landmark, Percent, Wallet, Layers, ArrowUpRight, Info, ShieldCheck } from 'lucide-react';
 import { yields, compound, leverage, compareInvestments, propertyTotalReturn, projectLine, yieldGrade, dealAnalysis, type LeverageResult, type YieldGrade } from '@/lib/market/returns';
 import { shortTermEstimate, breakEvenOccupancy, adrReference, MAX_ST_GROSS_YIELD_WARN } from '@/lib/market/shortTerm';
@@ -385,19 +385,17 @@ function LineChart({ series }: { series: { label: string; color: string; points:
   );
 }
 
-// Segmented control (ομοιόμορφο)
-// ΥΨΟΣ ΠΕΔΙΟΥ, ΟΧΙ ΥΨΟΣ CHIP. Ο επιλογέας κάθεται σε τρεις οθόνες δίπλα σε πεδία
-// αριθμού και ήταν δύο εικονοστοιχεία κοντύτερος: αρκετά ώστε η σειρά να μη
-// διαβάζεται ευθεία, πολύ λίγα ώστε να φαίνεται ότι φταίει κάτι.
-function Seg<T extends string>({ value, onChange, options }: { value: T; onChange: (v: T) => void; options: [T, string][] }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', height: T.h.lg, boxSizing: 'border-box', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: 3, gap: 2 }}>
-      {options.map(([v, label]) => (
-        <button key={v} onClick={() => onChange(v)} style={{ height: '100%', padding: '0 12px', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontFamily: SANS, fontWeight: value === v ? 600 : 500, background: value === v ? 'var(--accent)' : 'transparent', color: value === v ? 'var(--accent-text)' : 'var(--text-secondary)', transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' }}>{label}</button>
-      ))}
-    </div>
-  );
-}
+// ═══ Ο ΕΠΙΛΟΓΕΑΣ ΕΙΝΑΙ Ο ΚΟΙΝΟΣ ΕΠΙΛΟΓΕΑΣ ══════════════════════════════════════
+// ΗΤΑΝ ΤΕΤΑΡΤΟ ΑΝΤΙΓΡΑΦΟ, ΚΑΙ ΦΑΙΝΟΤΑΝ. Το `SegmentControl` των κοινών
+// στοιχείων υπάρχει και το χρησιμοποιούν οι Ρυθμίσεις· εδώ ζούσε δικό του
+// `Seg` με τρεις αποκλίσεις: τα τμήματα έπαιρναν πλάτος από το ΚΕΙΜΕΝΟ τους
+// («10 έτη» στενό, «20 έτη» πλατύ, δηλαδή δύο επιλογές σε άνισα κουτιά), το
+// επιλεγμένο γέμιζε ΣΥΜΠΑΓΕΣ γαλάζιο αντί για το ανασηκωμένο πλακίδιο που
+// χρησιμοποιεί κάθε άλλος επιλογέας· και δεν δήλωνε `aria-pressed`.
+//
+// Ο κοινός δίνει `flex: 1` σε κάθε τμήμα: δύο επιλογές γίνονται δύο ίσα μισά,
+// τρεις γίνονται τρία ίσα τρίτα, όποιο κι αν είναι το λεκτικό τους.
+const yearOpts = (...years: number[]) => years.map(y => ({ value: String(y), label: `${y} έτη` }));
 
 /**
  * ΝΟΥΜΕΡΟ ΜΕ ΕΤΙΚΕΤΑ ΑΠΟ ΠΑΝΩ — ΜΙΑ ΦΟΡΑ, ΓΙΑ ΟΛΗ ΤΗΝ ΟΘΟΝΗ.
@@ -1403,7 +1401,11 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
               {stExact
                 ? <>Δεδομένα αναφοράς περιοχής: πληρότητα περίπου {stExact.occupancy}%, μέση τιμή {fe(stExact.adr)} ανά νύχτα.{stExact.redZone ? ' Κόκκινη ζώνη Αριθμού Μητρώου Ακινήτων: δεν επιτρέπονται νέες εγγραφές.' : ''} </>
                 : <>Στη βραχυχρόνια τα μεικτά έσοδα είναι συνήθως υψηλότερα, με έντονη όμως εποχικότητα. </>}
-              Η καθαρή απόδοση είναι σημαντικά χαμηλότερη από τη μεικτή, καθώς τα λειτουργικά έξοδα (καθαρισμοί, διαχείριση, τέλος ανθεκτικότητας, κενές νύχτες) απορροφούν το 40 έως 60% των εσόδων.
+              {/* Η ΠΑΡΕΝΘΕΣΗ ΜΕ ΤΑ ΤΕΣΣΕΡΑ ΠΑΡΑΔΕΙΓΜΑΤΑ ΕΦΥΓΕ. Τρεις σειρές για μια
+                  πρόταση· τα «καθαρισμοί, διαχείριση, τέλος ανθεκτικότητας,
+                  κενές νύχτες» δεν αλλάζουν τίποτα στην απόφαση: ο αριθμός είναι
+                  το 40 έως 60%. */}
+              Η καθαρή απόδοση είναι σημαντικά χαμηλότερη από τη μεικτή: τα λειτουργικά έξοδα απορροφούν 40 έως 60% των εσόδων.
             </div>
           )}
         </Section>
@@ -1429,7 +1431,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         <Section icon={<TrendingUp size={15} />} title="Ιστορική διαδρομή" sub="Πώς θα κινούνταν η αξία ενός ακινήτου όπως το δικό σου (δείκτης Τράπεζας της Ελλάδος)" info={G.hist_index}>
           <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, marginBottom: 10 }}>
             <label style={{ ...fieldLabelStyle, margin: 0 }}>Τελευταία</label>
-            <Seg value={histYears} onChange={setHistYears} options={[['10', '10 έτη'], ['20', '20 έτη']]} />
+            <SegmentControl ariaLabel="Ορίζοντας ιστορικής διαδρομής" value={histYears} onChange={v => setHistYears(v as typeof histYears)} options={yearOpts(10, 20)} />
           </div>
           <AreaChart points={hist} />
           {/* ═══ ΛΕΖΑΝΤΑ ΜΟΝΟ ΓΙΑ ΣΗΜΑΔΙΑ ΠΟΥ ΥΠΑΡΧΟΥΝ ═══════════════════════
@@ -1459,7 +1461,13 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
               MARKET_DISCLAIMER: τρία αντίγραφα της ίδιας πρότασης σε μία
               καρτέλα. Όσο πιο συχνά γράφεται μια επιφύλαξη, τόσο λιγότερο
               διαβάζεται. Εδώ μένει το ιστορικό, που είναι μέτρηση. */}
-          <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: SANS, lineHeight: 1.5 }}>{hist.some(p => p.year === HISTORY_ANCHORS.peakYear) ? `${HISTORY_ANCHORS.long} ${HISTORY_ANCHORS.recent}` : HISTORY_ANCHORS.recent}</p>
+          {/* ΜΑΚΡΙΑ ΓΡΑΜΜΗ ΘΕΛΕΙ ΑΕΡΑ. Στα 20 έτη η υποσημείωση παίρνει και τις
+              δύο προτάσεις (κύκλος 2008 ώς 2017 συν πρόσφατα), δηλαδή 115
+              χαρακτήρες ανά γραμμή με ύψος γραμμής 1,5: το μάτι χάνει τη σειρά
+              γυρίζοντας αριστερά. Ο σαρωτής το έπιασε σε δέκα οθόνες, μόλις ο
+              κοινός επιλογέας ετών του επέτρεψε να φτάσει ώς εκείνη την
+              κατάσταση — με τον προηγούμενο, χειρόγραφο, δεν την είχε δει ποτέ. */}
+          <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: SANS, lineHeight: 1.7 }}>{hist.some(p => p.year === HISTORY_ANCHORS.peakYear) ? `${HISTORY_ANCHORS.long} ${HISTORY_ANCHORS.recent}` : HISTORY_ANCHORS.recent}</p>
         </Section>
 
         {/* 3) Σύγκριση με εναλλακτικές */}
@@ -1504,7 +1512,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
             <span aria-hidden style={{ width: 1, alignSelf: 'stretch', minHeight: 24, background: 'var(--border-subtle)' }} />
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, rowGap: 6, flexWrap: 'wrap' }}>
               <label style={{ ...fieldLabelStyle, margin: 0, alignItems: 'center' }}>Ορίζοντας σύγκρισης</label>
-              <Seg value={cmpYears} onChange={setCmpYears} options={[['10', '10 έτη'], ['20', '20 έτη']]} />
+              <SegmentControl ariaLabel="Ορίζοντας σύγκρισης" value={cmpYears} onChange={v => setCmpYears(v as typeof cmpYears)} options={yearOpts(10, 20)} />
             </div>
           </div>
           {/* ═══ ΑΠΟ ΠΟΥ ΒΓΑΙΝΕΙ Η ΠΡΟΕΠΙΛΟΓΗ, ΚΑΙ ΔΥΟ ΨΕΜΑΤΑ ΠΟΥ ΕΦΥΓΑΝ ══════
@@ -1601,7 +1609,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                 <p style={{ ...titleStyle, marginBottom: 12, display: 'flex', alignItems: 'center' }}>Ανατοκισμός επανεπένδυσης<TermInfo text={G.compound} /></p>
                 <div {...fixedCols(2, 12)}>
                   <NumberInput label="Απόδοση επανεπένδυσης" value={compRate} onChange={setCompRate} suffix="%" step={0.5} />
-                  <div><label style={fieldLabelStyle}>Ορίζοντας ανατοκισμού</label><Seg value={compYears} onChange={setCompYears} options={[['10', '10 έτη'], ['20', '20 έτη']]} /></div>
+                  <div><label style={fieldLabelStyle}>Ορίζοντας ανατοκισμού</label><SegmentControl ariaLabel="Ορίζοντας ανατοκισμού" value={compYears} onChange={v => setCompYears(v as typeof compYears)} options={yearOpts(10, 20)} /></div>
                 </div>
                 <div {...fixedCols(2, 16, 'start')} style={{ ...fixedCols(2, 16, 'start').style, marginTop: 14 }}>
                   <Figure label="Τελική αξία" value={fe(comp.futureValue)} tone="accent" />
@@ -1661,7 +1669,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                 και τύλιγε σε δύο σειρές, οπότε το πεδίο της κατέβαινε και έσπαγε
                 τη γραμμή. Τέσσερις ίσες στήλες, μία γραμμή βάσης. */}
             <div {...fixedCols(4, 12)} style={{ ...fixedCols(4, 12).style, marginBottom: 14 }}>
-              <div><label style={fieldLabelStyle}>Ορίζοντας κατοχής</label><Seg value={holdYears} onChange={setHoldYears} options={[['5', '5 έτη'], ['10', '10 έτη'], ['20', '20 έτη']]} /></div>
+              <div><label style={fieldLabelStyle}>Ορίζοντας κατοχής</label><SegmentControl ariaLabel="Ορίζοντας κατοχής" value={holdYears} onChange={v => setHoldYears(v as typeof holdYears)} options={yearOpts(5, 10, 20)} /></div>
               <NumberInput label="Αύξηση ενοικίου" value={rentGrowth} onChange={setRentGrowth} suffix="%" step={0.5} />
               <NumberInput label="Επιτόκιο προεξόφλησης" value={discountRate} onChange={setDiscountRate} suffix="%" step={0.5} labelInfo={<TermInfo text={G.npv} />} />
               {/* Τα κόστη πώλησης ήταν σταθερά 3% μέσα στην κλήση: αφαιρούνταν από

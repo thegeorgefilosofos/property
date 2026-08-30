@@ -48,7 +48,7 @@ import * as properties from '@/lib/data/properties';
 import * as stayStore from '@/lib/data/stays';
 // Η απογραφή έχει ένα σπίτι: lib/data/inventory.
 import * as inventory from '@/lib/data/inventory';
-import { T, PageTitle, KPIGrid, Badge, InfoBanner, Btn, ExportButton, EmptyState, Skeleton, SkeletonKPIs, SecHdr, Modal, SideSheet, fe, fd, fp, ABSENT_DATE, formGrid } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, Badge, InfoBanner, Btn, ExportButton, EmptyState, Skeleton, SkeletonKPIs, SecHdr, Modal, SideSheet, fe, fd, fp, ABSENT_DATE, formGrid, fixedCols } from '@/components/Theme';
 import { confirmDialog } from '@/components/confirmBus';
 import { NumberInput, TextInput, CustomSelect, DatePicker, Textarea, Toggle } from './UIComponents';
 import { downloadTableXlsx } from './exportCsv';
@@ -193,14 +193,31 @@ const avatar = (name: string, size: number) => (
 
 // Τυποποιημένο πλακίδιο στατιστικού: ανυψωμένο, ετικέτα (10px κεφαλαία) + τιμή
 // (tabular-nums, 700). neg → τιμή σε var(--negative)· title → tooltip.
-const statTile = (label: string, value: React.ReactNode, opts?: { neg?: boolean; title?: string }) => (
+// ═══ ΚΑΝΕΝΑ ΚΟΚΚΙΝΟ ΝΟΥΜΕΡΟ ═════════════════════════════════════════════════
+// Το πλακίδιο δεχόταν `neg` και έβαφε την τιμή με το `--negative`. Το έπαιρναν
+// δύο πλακέτες: οι «Αδήλωτες» και οι «Φθορές». Καμία από τις δύο δεν είναι
+// σφάλμα — η μία είναι εκκρεμότητα προς την ΑΑΔΕ, η άλλη ένα ποσό που
+// πληρώθηκε. Και το υπόλοιπο app δεν βάφει νούμερα με το πρόσημό τους: το
+// κόκκινο εκεί σήμαινε «κάτι έσπασε» και εδώ σήμαινε «πρόσεξε», δηλαδή δύο
+// πράγματα με το ίδιο χρώμα. Το «πρόσεξε» το λέει το σήμα δίπλα στο όνομα, με
+// τον τόνο της προειδοποίησης που χρησιμοποιεί ήδη κάθε προθεσμία.
+const statTile = (label: string, value: React.ReactNode, opts?: { title?: string }) => (
   <div title={opts?.title} style={{
     background: 'var(--surface-raised)', border: '1px solid var(--border-raised)',
     borderRadius: T.radius.card, padding: '10px 12px', minWidth: 0,
     boxShadow: 'var(--highlight-inset), var(--elev-1)',
   }}>
-    <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: T.font.sans }}>{label}</div>
-    <div style={{ fontSize: 16, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: opts?.neg ? 'var(--negative)' : 'var(--text-primary)' }}>{value}</div>
+    {/* ═══ Η ΕΤΙΚΕΤΑ ΤΥΛΙΓΕΙ, ΔΕΝ ΚΟΒΕΤΑΙ ══════════════════════════════════════
+        ΜΕΤΡΗΜΕΝΟ ΣΕ ΚΑΘΕ ΠΛΑΤΟΣ, ΑΠΟ 360 ΩΣ 1.440: «Μέση τιμή νύχτας» ζητούσε
+        134 σε κουτί 108 και «Τελευταία επίσκεψη» 146 σε 108. Ο χρήστης διάβαζε
+        «ΜΕΣΗ ΤΙΜΗ ΝΥ…» και «ΤΕΛΕΥΤΑΙΑ ΕΠΙ…» ΠΑΝΤΟΥ, όχι σε στενή οθόνη: το
+        πλέγμα έδινε 108 και η ellipsis έκοβε σιωπηλά.
+
+        Τα αδέλφια του πλέγματος ισοϋψώνονται μόνα τους, οπότε μια ετικέτα δύο
+        γραμμών δεν αφήνει τίποτα ασύμμετρο. Το `min-height` κρατά ίδιο ύψος και
+        όταν ΟΛΕΣ οι ετικέτες μιας σειράς χωρούν σε μία γραμμή. */}
+    <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 6, lineHeight: 1.3, minHeight: 15, fontFamily: T.font.sans }}>{label}</div>
+    <div style={{ fontSize: 16, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>{value}</div>
   </div>
 );
 
@@ -406,7 +423,11 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
         label: 'Αδήλωτες διαμονές',
         value: String(tot.undeclared),
         sub: 'Δήλωση Βραχυχρόνιας Διαμονής',
-        tone: (tot.undeclared > 0 ? 'negative' : 'neutral') as 'negative' | 'neutral',
+        // ΠΡΟΕΙΔΟΠΟΙΗΣΗ, ΟΧΙ ΣΦΑΛΜΑ. Η αδήλωτη διαμονή είναι εκκρεμότητα με
+        // προθεσμία, ακριβώς όπως κάθε άλλη προθεσμία της εφαρμογής — και
+        // εκείνες φορούν τον τόνο της προειδοποίησης. Το κόκκινο εδώ έλεγε
+        // «κάτι έσπασε» με το ίδιο χρώμα που αλλού σημαίνει ακριβώς αυτό.
+        tone: (tot.undeclared > 0 ? 'warning' : 'neutral') as 'warning' | 'neutral',
       },
       {
         label: 'Νύχτες',
@@ -990,9 +1011,9 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                      {undeclared > 0 && <Badge tone="negative">{undeclared} αδήλωτη{undeclared === 1 ? '' : 'ς'}</Badge>}
+                      {undeclared > 0 && <Badge tone="warning">{undeclared} αδήλωτη{undeclared === 1 ? '' : 'ς'}</Badge>}
                       {unresolved > 0 && <Badge tone="warning">Ποσό προς επιβεβαίωση</Badge>}
-                      {st.hasDamage && <Badge tone="negative">Φθορές</Badge>}
+                      {st.hasDamage && <Badge tone="warning">Φθορές</Badge>}
                     </div>
                     <div className="client-card-act">
                       <button title="Διαγραφή" onClick={e => { e.stopPropagation(); del(c); }}
@@ -1226,7 +1247,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 20, fontWeight: 700 }}>{dc.full_name}</span>
-                  {dcUndeclared > 0 && <Badge tone="negative">{dcUndeclared} αδήλωτη{dcUndeclared === 1 ? '' : 'ς'}</Badge>}
+                  {dcUndeclared > 0 && <Badge tone="warning">{dcUndeclared} αδήλωτη{dcUndeclared === 1 ? '' : 'ς'}</Badge>}
                 </div>
               </div>
               <Btn variant="secondary" onClick={() => openEdit(dc)}>Επεξεργασία στοιχείων</Btn>
@@ -1318,19 +1339,38 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
 
             {/* Αναλυτικά: μόνο όταν υπάρχουν διαμονές (αλλιώς περιττά μηδενικά).
                 Τα ποσά είναι διακριτά: ακαθάριστο ≠ payout ≠ τι πλήρωσε ο επισκέπτης. */}
+            {/* ═══ ΤΕΣΣΕΡΑ ΑΝΑ ΣΕΙΡΑ, ΜΕΤΡΗΜΕΝΑ ΣΤΟ ΠΛΑΤΟΣ ΤΟΥ ΦΥΛΛΟΥ ══════════════
+                Εδώ ζούσε δικό του `auto-fit` με ελάχιστο 116: οκτώ πλακίδια
+                έβγαιναν πέντε και τρία, με τη μισή δεύτερη σειρά άδεια· κάθε
+                κουτί έμενε 108 εικονοστοιχεία σε ΚΑΘΕ πλάτος οθόνης.
+
+                ΚΑΙ ΤΟ `.tile-row` ΔΕΝ ΕΙΝΑΙ Η ΑΠΑΝΤΗΣΗ ΕΔΩ, όσο κι αν είναι η
+                κοινή κλάση: τα σπασίματά του κοιτούν το πλάτος της ΟΘΟΝΗΣ, ενώ
+                αυτό το πλέγμα ζει μέσα σε πλαϊνό φύλλο σταθερού πλάτους. Στα
+                1.440 έδινε πέντε στήλες των 108 και στα 1.024 τρεις των 204,
+                δηλαδή όσο μεγάλωνε η οθόνη τόσο ΣΤΕΝΕΥΑΝ τα κουτιά.
+
+                Το φύλλο δίνει 711 εικονοστοιχεία περιεχομένου, δηλαδή στήλες
+                των 144: η μακρύτερη ετικέτα («Τελευταία επίσκεψη», 146) τυλίγει
+                σε δεύτερη γραμμή και τα αδέλφια του πλέγματος ισοϋψώνονται μαζί
+                της. Τέσσερις είναι ο αριθμός που ζητά η ίδια η οθόνη: οκτώ
+                πλακέτες σε δύο γεμάτες σειρές. */}
             {dcStats.stayCount > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 116px), 1fr))', gap: 10 }}>
+              <div {...fixedCols(4, 10, 'stretch')}>
                 {statTile('Ακαθάριστα', fe(dcTotals.revenue), { title: 'Δηλωτέο ακαθάριστο: τι πλήρωσε ο επισκέπτης μείον το τέλος ανθεκτικότητας. Η προμήθεια ΔΕΝ αφαιρείται.' })}
                 {dcTotals.platformFees > 0 && statTile('Προμήθειες', fe(dcTotals.platformFees), { title: 'Δαπάνη που εκπίπτει, όχι μείωση εσόδου' })}
                 {dcTotals.climateLevy > 0 && statTile('Τέλος ανθεκτικότητας', fe(dcTotals.climateLevy), { title: 'Εισπράχθηκε για λογαριασμό του κράτους. Δεν είναι έσοδό σου.' })}
                 {statTile('Νύχτες', String(dcStats.nights))}
                 {statTile('Διαμονές', String(dcStats.stayCount))}
-                {statTile('Μέση τιμή νύχτας', fe(dcStats.adr), { title: 'Δηλωτέο ακαθάριστο διά τις νύχτες' })}
+                {/* «Μέση νύχτα», όπως ακριβώς γράφει η κάρτα του ίδιου επισκέπτη στη
+                    λίστα από πίσω. Ηταν «Μέση τιμή νύχτας» εδώ: ίδιο νούμερο, δύο
+                    ονόματα, σε δύο οθόνες που ανοίγουν η μία την άλλη. */}
+                {statTile('Μέση νύχτα', fe(dcStats.adr), { title: 'Δηλωτέο ακαθάριστο διά τις νύχτες' })}
                 {/* Η παύλα σε θέση τιμής δεν λέει «καμία»· λέει «κάτι έσπασε».
                     Η πλακέτα εμφανίζεται μόνο όταν υπάρχει ημερομηνία να δείξει. */}
                 {dcStats.lastVisit && statTile('Τελευταία επίσκεψη', fd(dcStats.lastVisit))}
-                {dcUndeclared > 0 && statTile('Αδήλωτες', String(dcUndeclared), { neg: true, title: 'Διαμονές χωρίς Δήλωση Βραχυχρόνιας Διαμονής' })}
-                {dcStats.damageTotal > 0 && statTile('Φθορές', fe(dcStats.damageTotal), { neg: true })}
+                {dcUndeclared > 0 && statTile('Αδήλωτες', String(dcUndeclared), { title: 'Διαμονές χωρίς Δήλωση Βραχυχρόνιας Διαμονής' })}
+                {dcStats.damageTotal > 0 && statTile('Φθορές', fe(dcStats.damageTotal))}
               </div>
             )}
 
@@ -1339,10 +1379,15 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               <SecHdr label="Διαμονές" right={!stayFormOpen ? <Btn variant="secondary" onClick={openStayNew}>Νέα διαμονή</Btn> : undefined} />
               {stayFormOpen && (
                 <div style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: 16, marginBottom: 14, boxShadow: 'var(--well-inset)' }}>
-                  <div style={{ ...formGrid(200, 270), gap: 14 }}>
-                    <div style={{ gridColumn: '1 / -1' }}>
-                      <CustomSelect label="Ακίνητο" value={stayForm.property_id} onChange={v => setStayForm(f => ({ ...f, property_id: v }))} options={props.map(p => ({ value: p.id, label: p.name }))} placeholder="Χωρίς ακίνητο" />
-                    </div>
+                  {/* ═══ ΤΕΣΣΕΡΑ ΚΑΙ ΤΡΙΑ, ΣΕ ΔΥΟ ΣΕΙΡΕΣ ═════════════════════════════
+                      Το `formGrid` κόβει κάθε στήλη στα 270 και γεμίζει με
+                      `auto-fill`: επτά πεδία έβγαιναν ΤΕΣΣΕΡΙΣ σειρές (ένα, δύο,
+                      δύο, δύο) με τη μισή κάρτα άδεια δεξιά. Οι στήλες
+                      γράφονται πλέον ως απόφαση: ποιο ακίνητο, πότε ήρθε, πότε
+                      έφυγε, πόσες νύχτες· και από κάτω πόσα άτομα, από πού
+                      ήρθε, πόσο η νύχτα. Δύο σειρές, μία ερώτηση η καθεμιά. */}
+                  <div {...fixedCols(4, 14, 'start')}>
+                    <CustomSelect label="Ακίνητο" value={stayForm.property_id} onChange={v => setStayForm(f => ({ ...f, property_id: v }))} options={props.map(p => ({ value: p.id, label: p.name }))} placeholder="Χωρίς ακίνητο" />
                     <DatePicker label="Άφιξη" value={stayForm.check_in} onChange={v => onStayDates({ check_in: v })} />
                     <DatePicker label="Αναχώρηση" value={stayForm.check_out} onChange={v => onStayDates({ check_out: v })} />
                     {/* ΟΙ ΝΥΧΤΕΣ ΔΕΝ ΕΙΝΑΙ ΕΡΩΤΗΣΗ ΟΤΑΝ ΥΠΑΡΧΟΥΝ ΟΙ ΗΜΕΡΟΜΗΝΙΕΣ.
@@ -1369,7 +1414,9 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                       γέμιζε με payout, η φορολογική μηχανή το διάβαζε ως
                       ακαθάριστο και ο φάκελος του λογιστή ζητούσε ακαθάριστο. */}
                   {secHead('Ποσά')}
-                  <div style={{ ...formGrid(200, 270), gap: 14 }}>
+                  {/* ΤΡΙΑ ΠΟΣΑ, ΜΙΑ ΣΕΙΡΑ. Το `auto-fill` των 270 έβγαζε δύο πάνω
+                      και ένα κάτω, δηλαδή το τρίτο ποσό έμοιαζε με άλλη ενότητα. */}
+                  <div {...fixedCols(3, 14, 'start')}>
                     {/* ΚΑΜΙΑ ΚΟΥΚΚΙΔΑ ΕΠΕΞΗΓΗΣΗΣ ΕΔΩ. Ήταν τρεις, μία σε κάθε
                         πεδίο και έλεγαν ακριβώς ό,τι λέει η σύνοψη δύο σειρές
                         πιο κάτω με πραγματικούς αριθμούς: τι πλήρωσε ο
@@ -1433,43 +1480,54 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                     </div>
                   )}
 
-                  {/* ── ΔΗΛΩΣΗ ΒΡΑΧΥΧΡΟΝΙΑΣ ΔΙΑΜΟΝΗΣ (μία ανά κράτηση) ───── */}
-                  {secHead('Δήλωση βραχυχρόνιας διαμονής')}
-                  <div style={{ ...formGrid(200, 270), gap: 14, alignItems: 'end' }}>
-                    <Toggle on={stayForm.declared}
-                      onChange={v => setStayForm(f => ({ ...f, declared: v, declared_at: v ? (f.declared_at || todayStr()) : '' }))}
-                      label="Δηλώθηκε στο myAADE" />
-                    {stayForm.declared && <DatePicker label="Ημερομηνία δήλωσης" value={stayForm.declared_at} onChange={v => setStayForm(f => ({ ...f, declared_at: v }))} />}
+                  {/* ═══ ΔΥΟ ΔΙΑΚΟΠΤΕΣ, ΔΙΠΛΑ ΔΙΠΛΑ ═════════════════════════════════
+                      Ηταν δύο ολόκληρες ενότητες, η μία κάτω από την άλλη, με
+                      δική της γραμμή τίτλου η καθεμιά — για να δείξουν ΕΝΑΝ
+                      διακόπτη η κάθε μία. Ογδόντα εικονοστοιχεία ύψους και δύο
+                      οριζόντιες γραμμές, για δύο ναι/όχι. Πλέον στέκονται στην
+                      ίδια ευθεία, χωρισμένες από μία κάθετη γραμμή· ό,τι ανοίγει
+                      ο διακόπτης κατεβαίνει ΚΑΤΩ από αυτόν, μέσα στη στήλη του. */}
+                  {secHead('Δήλωση και φθορές')}
+                  <div {...fixedCols(2, 20, 'start', 'cl-split')}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      <Toggle on={stayForm.declared}
+                        onChange={v => setStayForm(f => ({ ...f, declared: v, declared_at: v ? (f.declared_at || todayStr()) : '' }))}
+                        label="Δηλώθηκε στο myAADE" />
+                      {stayForm.declared && <DatePicker label="Ημερομηνία δήλωσης" value={stayForm.declared_at} onChange={v => setStayForm(f => ({ ...f, declared_at: v }))} />}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      <Toggle on={stayForm.damages} onChange={v => setStayForm(f => ({ ...f, damages: v }))} label="Καταγράφηκαν φθορές" />
+                      {stayForm.damages && (
+                        <>
+                          <CustomSelect label="Ποιο αντικείμενο"
+                            value={stayForm.damage_item_id} onChange={v => setStayForm(f => ({ ...f, damage_item_id: v }))}
+                            placeholder={invForStay.length ? `Επίλεξε από «${navLabel('inventory')}»` : `Καμία καταχώρηση σε «${navLabel('inventory')}»`}
+                            options={invForStay.map(i => ({ value: i.id, label: i.current_value != null ? `${i.name} · ${fe(i.current_value)}` : i.name }))} />
+                          <NumberInput label="Κόστος φθοράς" value={stayForm.damage_cost} onChange={v => setStayForm(f => ({ ...f, damage_cost: v }))} suffix="€" />
+                        </>
+                      )}
+                    </div>
                   </div>
 
-                  {/* ── ΦΘΟΡΕΣ, ΣΥΝΔΕΔΕΜΕΝΕΣ ΜΕ ΤΗΝ ΑΠΟΓΡΑΦΗ ────────────── */}
-                  {secHead('Φθορές και σημειώσεις')}
-                  <div style={{ ...formGrid(200, 270), gap: 14 }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 8 }}>
-                      <Toggle on={stayForm.damages} onChange={v => setStayForm(f => ({ ...f, damages: v }))} label="Καταγράφηκαν φθορές" />
+                  {/* ═══ ΤΑ ΔΥΟ ΚΟΥΤΙΑ ΕΛΕΥΘΕΡΟΥ ΚΕΙΜΕΝΟΥ ΕΦΥΓΑΝ ═══════════════════
+                      Η καρτέλα του επισκέπτη έχει ΗΔΗ «Χρονολόγιο» με σχόλια,
+                      τηλεφωνήματα και επισκέψεις. Δύο ακόμη πεδία ελεύθερου
+                      κειμένου μέσα στη φόρμα της διαμονής σήμαιναν ότι ο χρήστης
+                      έπρεπε να θυμάται σε ΠΟΙΟ από τα τρία έγραψε.
+
+                      Ο,τι έχει ήδη γραφτεί δεν εξαφανίζεται: το πεδίο
+                      επανεμφανίζεται μόνο σε γραμμές που ΕΧΟΥΝ τιμή, ώστε να
+                      διαβαστεί και να καθαριστεί, όχι για να ξαναγεμίσει. */}
+                  {(stayForm.damage_note.trim() !== '' || stayForm.notes.trim() !== '') && (
+                    <div {...fixedCols(2, 14, 'start', 'cl-notes-old')}>
+                      {stayForm.damage_note.trim() !== '' && (
+                        <TextInput label="Παλαιότερη σημείωση φθοράς" value={stayForm.damage_note} onChange={v => setStayForm(f => ({ ...f, damage_note: v }))} />
+                      )}
+                      {stayForm.notes.trim() !== '' && (
+                        <TextInput label="Παλαιότερη σημείωση" value={stayForm.notes} onChange={v => setStayForm(f => ({ ...f, notes: v }))} />
+                      )}
                     </div>
-                    {stayForm.damages && (
-                      <>
-                        <CustomSelect label="Ποιο αντικείμενο"
-                          value={stayForm.damage_item_id} onChange={v => setStayForm(f => ({ ...f, damage_item_id: v }))}
-                          placeholder={invForStay.length ? `Επίλεξε από «${navLabel('inventory')}»` : `Καμία καταχώρηση σε «${navLabel('inventory')}»`}
-                          options={invForStay.map(i => ({ value: i.id, label: i.current_value != null ? `${i.name} · ${fe(i.current_value)}` : i.name }))} />
-                        <NumberInput label="Κόστος φθοράς" value={stayForm.damage_cost} onChange={v => setStayForm(f => ({ ...f, damage_cost: v }))} suffix="€" />
-                      </>
-                    )}
-                    {/* ΔΥΟ ΚΟΥΤΙΑ ΕΛΕΥΘΕΡΟΥ ΚΕΙΜΕΝΟΥ, ΣΑΡΑΝΤΑ ΕΙΚΟΝΟΣΤΟΙΧΕΙΑ ΜΑΚΡΙΑ.
-                        Το «Σημείωση φθοράς» δεν έλεγε τίποτα που να μη χωρά στις
-                        «Σημειώσεις» και ο χρήστης έπρεπε να αποφασίσει σε ποιο
-                        από τα δύο γράφει. Έμεινε ένα. Το πεδίο επανεμφανίζεται
-                        μόνο σε παλιές γραμμές που ΕΧΟΥΝ ήδη τιμή, ώστε να μπορεί
-                        να διαβαστεί και να καθαριστεί, όχι για να ξαναγεμίσει. */}
-                    {stayForm.damages && stayForm.damage_note.trim() !== '' && (
-                      <TextInput label="Παλαιότερη σημείωση φθοράς" value={stayForm.damage_note} onChange={v => setStayForm(f => ({ ...f, damage_note: v }))} />
-                    )}
-                    <div style={{ gridColumn: '1 / -1' }}>
-                      <TextInput label="Σημειώσεις" value={stayForm.notes} onChange={v => setStayForm(f => ({ ...f, notes: v }))} />
-                    </div>
-                  </div>
+                  )}
                   <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 14 }}>
                     <Btn variant="ghost" onClick={() => setStayFormOpen(false)}>Ακύρωση</Btn>
                     <Btn variant="primary" onClick={saveStay} disabled={savingStay}>{savingStay ? 'Αποθήκευση…' : 'Αποθήκευση'}</Btn>
@@ -1496,7 +1554,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                               {/* ΤΟ ΣΗΜΑ ΠΟΥ ΕΛΕΙΠΕ: μία δήλωση ανά κράτηση και
                                   το app είχε όλες τις κρατήσεις χωρίς να
                                   παρακολουθεί καμία. */}
-                              {!declared && <Badge tone="negative">Αδήλωτη</Badge>}
+                              {!declared && <Badge tone="warning">Αδήλωτη</Badge>}
                               {review && <Badge tone="warning">Ποσό προς επιβεβαίωση</Badge>}
                             </div>
                             <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 3, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -1576,12 +1634,24 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
             {/* Έγγραφα (ταυτότητα, συμβόλαιο, αποδείξεις) */}
             <div>
               <SecHdr label="Έγγραφα" sub="Ταυτότητα, συμβόλαιο, αποδείξεις, ασφαλής αποθήκευση" />
-              <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                <div style={{ minWidth: 200, flex: '1 1 200px' }}>
-                  <CustomSelect label="Είδος εγγράφου" value={docKind} onChange={k => { if (openId) setDocKindOf({ clientId: openId, kind: k }) }} options={DOC_KINDS.map(k => ({ value: k, label: DOC_KIND_LABELS[k] }))} />
+              {/* ═══ ΔΥΟ ΣΕΙΡΕΣ ΜΕ ΤΟΝ ΙΔΙΟ ΡΥΘΜΟ ══════════════════════════════════
+                  Η σειρά των εγγράφων και η σειρά του χρονολογίου κάνουν την
+                  ίδια δουλειά — διάλεξε είδος, δώσε κάτι, πάτα — και ήταν
+                  γραμμένες με δύο γεωμετρίες: εδώ ο επιλογέας άπλωνε στα 441 με
+                  ορατή ετικέτα, εκεί έμενε 150 χωρίς· εδώ το κουμπί κολλούσε
+                  δίπλα του, εκεί έφτανε στο δεξί άκρο· και τα δύο κουμπιά ήταν 36
+                  ψηλά δίπλα σε πεδία 40.
+
+                  Ενας ρυθμός: επιλογέας 200, ό,τι μεσολαβεί, ενέργεια 176 στο
+                  δεξί άκρο, όλα στο ύψος του πεδίου. */}
+              <div className="cl-row">
+                <div className="cl-row-kind">
+                  <CustomSelect ariaLabel="Είδος εγγράφου" value={docKind} onChange={k => { if (openId) setDocKindOf({ clientId: openId, kind: k }) }} options={DOC_KINDS.map(k => ({ value: k, label: DOC_KIND_LABELS[k] }))} />
                 </div>
                 <input ref={docFileRef} type="file" style={{ display: 'none' }} onChange={e => onDocFile(e.target.files?.[0])} />
-                <Btn variant="secondary" onClick={() => docFileRef.current?.click()} disabled={docBusy}>{docBusy ? 'Ανέβασμα…' : 'Ανέβασμα αρχείου'}</Btn>
+                <div className="cl-row-act">
+                  <Btn variant="secondary" field onClick={() => docFileRef.current?.click()} disabled={docBusy}>{docBusy ? 'Ανέβασμα…' : 'Ανέβασμα αρχείου'}</Btn>
+                </div>
               </div>
               {docMsg && <div style={{ fontSize: 12, color: docMsg.error ? 'var(--negative)' : 'var(--text-secondary)', marginBottom: 12 }}>{docMsg.text}</div>}
               {docs.length === 0 ? (
@@ -1612,14 +1682,16 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
             {/* Χρονολόγιο (σχόλια) */}
             <div>
               <SecHdr label="Χρονολόγιο" sub="Σχόλια, τηλεφωνήματα, επισκέψεις" />
-              <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                <div style={{ width: 150 }}>
+              <div className="cl-row">
+                <div className="cl-row-kind">
                   <CustomSelect ariaLabel="Είδος σχολίου" value={noteForm.kind} onChange={v => setNoteForm(f => ({ ...f, kind: v }))} options={noteKindOptions} />
                 </div>
-                <div style={{ flex: '1 1 200px' }}>
+                <div className="cl-row-main">
                   <TextInput ariaLabel="Νέο σχόλιο" value={noteForm.body} onChange={v => setNoteForm(f => ({ ...f, body: v }))} placeholder="Νέο σχόλιο…" />
                 </div>
-                <Btn variant="primary" onClick={saveNote} disabled={!noteForm.body.trim()}>Προσθήκη</Btn>
+                <div className="cl-row-act">
+                  <Btn variant="primary" field onClick={saveNote} disabled={!noteForm.body.trim()}>Προσθήκη</Btn>
+                </div>
               </div>
               {notes.length === 0 ? (
                 <div style={{ fontSize: 12, color: 'var(--text-tertiary)', padding: '4px 0' }}>Κανένα σχόλιο ακόμη</div>

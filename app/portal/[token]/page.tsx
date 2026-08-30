@@ -216,12 +216,29 @@ export default function TenantPortal() {
   const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 'clamp(18px,4vw,24px)', marginBottom: 16 };
   const field: React.CSSProperties = { width: '100%', boxSizing: 'border-box', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, fontFamily: 'inherit' };
   const label: React.CSSProperties = { fontSize: 11, color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' };
+  // ═══ Η ΓΡΑΜΜΗ ΤΗΣ ΜΙΣΘΩΣΗΣ ═══════════════════════════════════════════════════
+  // ΤΟ MONO ΕΦΥΓΕ. Η στήλη τιμών γραφόταν σε γραμματοσειρά σταθερού πλάτους,
+  // σωστή για ποσά και λάθος για λέξεις: το «Χωρίς ημερομηνία» έβγαινε με τα
+  // γράμματα αραιωμένα σαν κωδικός. Το `T.font.num` είναι η ίδια Inter της
+  // σελίδας με ΨΗΦΙΑ ίσου πλάτους — τα ποσά στοιχίζονται κάθετα, οι λέξεις
+  // διαβάζονται σαν λέξεις.
   const row = (k: string, v: string) => (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
       <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{k}</span>
-      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.mono }}>{v}</span>
+      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{v}</span>
     </div>
   );
+  /**
+   * Η ΓΡΑΜΜΗ ΠΟΥ ΔΕΝ ΕΧΕΙ ΤΙΜΗ ΔΕΝ ΓΡΑΦΕΤΑΙ.
+   *
+   * Ο ενοικιαστής διάβαζε «Μηνιαίο ενοίκιο 0,00 €» και «Έναρξη μίσθωσης: Χωρίς
+   * ημερομηνία» επειδή ο ιδιοκτήτης δεν τα είχε συμπληρώσει. Δεν είναι κενό
+   * πεδίο για εκείνον: είναι ΔΗΛΩΣΗ ότι το ενοίκιό του είναι μηδέν. Η πύλη
+   * είναι το πρόσωπο του ιδιοκτήτη προς τον ενοικιαστή του και ένα μηδενικό
+   * ενοίκιο εκεί κοστίζει περισσότερο από μια γραμμή που λείπει.
+   */
+  const rowIf = (k: string, v: number | string | null, fmt: (x: never) => string) =>
+    v == null || v === '' || v === 0 ? null : row(k, fmt(v as never));
 
   return (
     <div style={{ background: 'var(--bg-base)', minHeight: '100vh', color: 'var(--text-primary)', fontFamily: T.font.sans, paddingBottom: 40 }}>
@@ -310,13 +327,20 @@ export default function TenantPortal() {
               const hasDue = data.total_due > 0 && data.due.length > 0;
               return (
                 <div style={card}>
-                  <div style={{ ...label, marginBottom: 12 }}>Οφειλή</div>
+                  {/* ═══ ΤΟ ΜΕΓΑΛΟ ΚΟΥΤΙ ΓΙΑ ΤΟ ΜΗΔΕΝ ══════════════════════════════
+                      Οταν δεν οφείλεται τίποτα, η οθόνη έβγαζε πράσινο πλαίσιο
+                      ύψους πενήντα εικονοστοιχείων για να πει μια καλή είδηση που
+                      δεν ζητά καμία ενέργεια — και το πράσινο το κρατάμε για όσα
+                      ΣΗΜΑΙΝΟΥΝ κάτι. Μία γραμμή, στο ίδιο ιδίωμα με τις γραμμές
+                      της μίσθωσης από κάτω: ετικέτα αριστερά, τιμή δεξιά. */}
                   {!hasDue ? (
-                    <div style={{ background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', borderRadius: 10, padding: '14px 16px', color: 'var(--positive)', fontSize: 14, fontWeight: 600 }}>
-                      Δεν υπάρχει εκκρεμής οφειλή
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+                      <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Οφειλή</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.num }}>Καμία εκκρεμής</span>
                     </div>
                   ) : (
                     <>
+                      <div style={{ ...label, marginBottom: 12 }}>Οφειλή</div>
                       <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', fontFamily: T.font.mono, color: 'var(--text-primary)', marginBottom: 4 }}>{eur(data.total_due)}</div>
                       <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 18 }}>Συνολικό εκκρεμές ποσό προς εξόφληση</div>
 
@@ -350,65 +374,86 @@ export default function TenantPortal() {
 
                       {declareErr && <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: 'var(--negative)', marginTop: 12 }}>{declareErr}</div>}
 
-                      {(() => {
-                        const link = data.payment_link;
-                        const hasLink = typeof link === 'string' && link.startsWith('https://');
-                        const hasIban = Boolean(data.tenant.rent_iban);
-                        if (!hasLink && !hasIban) return null;
-                        return (
-                          <div style={{ borderTop: '1px solid var(--border-subtle)', marginTop: 16, paddingTop: 16 }}>
-                            <div style={label}>Τρόπος πληρωμής</div>
-
-                            {hasLink && (
-                              <div style={{ marginBottom: hasIban ? 18 : 0 }}>
-                                <a
-                                  href={link as string}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 44, borderRadius: T.radius.pill, background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, textDecoration: 'none', fontFamily: 'inherit' }}
-                                >
-                                  Πληρωμή τώρα
-                                </a>
-                                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center', marginTop: 8, lineHeight: 1.5 }}>Ασφαλής πληρωμή μέσω του παρόχου του ιδιοκτήτη.</div>
-                              </div>
-                            )}
-
-                            {hasIban && (
-                              <>
-                                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 10, lineHeight: 1.5 }}>Πλήρωσε με τραπεζικό έμβασμα στον παρακάτω IBAN και έπειτα δήλωσε την πληρωμή.</div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                                  <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.mono, wordBreak: 'break-all', flex: 1 }}>{data.tenant.rent_iban}</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => copyIban(data.tenant.rent_iban as string)}
-                                    style={{ background: 'var(--bg-base)', border: '1px solid var(--border-default)', color: 'var(--text-primary)', fontSize: 13, fontWeight: 600, borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
-                                  >
-                                    {copied ? 'Αντιγράφηκε' : 'Αντιγραφή'}
-                                  </button>
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        );
-                      })()}
                     </>
                   )}
                 </div>
               );
             })()}
 
-            <div style={card}>
-              <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em', marginBottom: 2 }}>{data.property.name}</div>
-              <div style={{ fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 16 }}>{[data.property.type, data.property.address].filter(Boolean).join(' · ') || 'Ακίνητο'}</div>
-              {row('Μηνιαίο ενοίκιο', eur(data.tenant.rent))}
-              {row('Έναρξη μίσθωσης', gdate(data.tenant.lease_start))}
-              {row('Λήξη μίσθωσης', gdate(data.tenant.lease_end))}
-              {row('Εγγύηση', eur(data.tenant.deposit))}
-            </div>
+            {/* ═══ Ο ΤΡΟΠΟΣ ΠΛΗΡΩΜΗΣ ΒΓΗΚΕ ΑΠΟ ΤΗΝ ΟΦΕΙΛΗ ══════════════════════════
+                Ζούσε ΜΕΣΑ στο κουτί της οφειλής, δηλαδή υπήρχε μόνο όσο χρωστούσε
+                κάποιος. Ο ενοικιαστής που θέλει να πληρώσει νωρίτερα, ή απλώς να
+                αντιγράψει τον IBAN για να στήσει πάγια εντολή, δεν είχε πουθενά
+                να τον βρει: η πληροφορία εξαφανιζόταν ακριβώς όταν ήταν εντάξει.
+
+                Δική του κάρτα, κάτω από την οφειλή: όταν χρωστάει, το κουμπί
+                είναι η επόμενη κίνηση· όταν όχι, είναι ο τρόπος για την επόμενη
+                φορά. */}
+            {(() => {
+              const link = data.payment_link;
+              const hasLink = typeof link === 'string' && link.startsWith('https://');
+              const hasIban = Boolean(data.tenant.rent_iban);
+              if (!hasLink && !hasIban) return null;
+              return (
+                <div style={card}>
+                  <div style={label}>Τρόπος πληρωμής</div>
+                  {hasLink && (
+                    <div style={{ marginBottom: hasIban ? 18 : 0 }}>
+                      <a href={link as string} target="_blank" rel="noopener noreferrer"
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 44, borderRadius: T.radius.pill, background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 15, fontWeight: 700, textDecoration: 'none', fontFamily: 'inherit' }}>
+                        Πληρωμή τώρα
+                      </a>
+                      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center', marginTop: 8, lineHeight: 1.5 }}>Η πληρωμή γίνεται στον πάροχο του ιδιοκτήτη.</div>
+                    </div>
+                  )}
+                  {hasIban && (
+                    <>
+                      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 10, lineHeight: 1.5 }}>Τραπεζικό έμβασμα στον IBAN και μετά δήλωσε την πληρωμή.</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', wordBreak: 'break-all', flex: 1 }}>{data.tenant.rent_iban}</span>
+                        <button type="button" onClick={() => copyIban(data.tenant.rent_iban as string)}
+                          style={{ minHeight: 44, background: 'var(--bg-base)', border: '1px solid var(--border-default)', color: 'var(--text-primary)', fontSize: 13, fontWeight: 600, borderRadius: 8, padding: '0 16px', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+                          {copied ? 'Αντιγράφηκε' : 'Αντιγραφή'}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* ═══ ΤΟ ΣΠΙΤΙ, ΚΑΙ ΜΟΝΟ ΟΣΑ ΞΕΡΟΥΜΕ ΓΙ' ΑΥΤΟ ══════════════════════════
+                Οι τέσσερις γραμμές γράφονταν πάντα, ακόμη κι όταν ήταν κενές:
+                ο ενοικιαστής διάβαζε «Μηνιαίο ενοίκιο 0,00 €» και δύο φορές
+                «Χωρίς ημερομηνία». Οταν δεν ξέρουμε τίποτα, το λέει μία γραμμή
+                αντί για τέσσερις που μοιάζουν με απάντηση. */}
+            {(() => {
+              const rows = [
+                rowIf('Μηνιαίο ενοίκιο', data.tenant.rent, eur),
+                rowIf('Έναρξη μίσθωσης', data.tenant.lease_start, gdate),
+                rowIf('Λήξη μίσθωσης', data.tenant.lease_end, gdate),
+                rowIf('Εγγύηση', data.tenant.deposit, eur),
+              ].filter(Boolean);
+              return (
+                <div style={card}>
+                  <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em', marginBottom: 2 }}>{data.property.name}</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 16 }}>{[data.property.type, data.property.address].filter(Boolean).join(' · ') || 'Ακίνητο'}</div>
+                  {rows.length > 0 ? rows : (
+                    <div style={{ fontSize: 13, color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
+                      Τα στοιχεία της μίσθωσης δεν έχουν συμπληρωθεί ακόμη.
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             <div style={card}>
-              <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Αίτημα βλάβης / επικοινωνία</div>
-              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 16, lineHeight: 1.5 }}>Στείλε αίτημα στον ιδιοκτήτη, θα το δει άμεσα στο πάνελ διαχείρισης.</div>
+              {/* Ο ΤΙΤΛΟΣ ΔΕΝ ΕΧΕΙ ΚΑΘΕΤΟ ΚΑΙ Ο ΥΠΟΤΙΤΛΟΣ ΔΕΝ ΕΧΕΙ ΟΡΟΛΟΓΙΑ. Το
+                  «Αίτημα βλάβης / επικοινωνία» ζητά από τον ενοικιαστή να
+                  διαλέξει κατηγορία πριν γράψει· το «πάνελ διαχείρισης» είναι
+                  λέξη του ιδιοκτήτη, όχι δική του. */}
+              <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Στείλε αίτημα στον ιδιοκτήτη</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 16, lineHeight: 1.5 }}>Βλάβη, ερώτηση ή ό,τι χρειάζεσαι. Το βλέπει αμέσως.</div>
 
               {sent ? (
                 <div style={{ background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', borderRadius: 10, padding: '14px 16px', color: 'var(--positive)', fontSize: 14, fontWeight: 600 }}>
