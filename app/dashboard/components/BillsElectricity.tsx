@@ -502,6 +502,24 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                   Λήγει {contractExpiry.date}, σε {contractExpiry.daysLeft} ημέρες
                 </span>
               )}
+              {/* ═══ ΠΟΤΕ ΓΙΝΕΤΑΙ ΟΡΙΣΤΙΚΗ Η ΤΙΜΗ ΠΟΥ ΔΕΙΧΝΟΥΜΕ ═══════════════════
+                  Το αέριο το έλεγε από την αρχή, το ρεύμα το σιωπούσε: κάθε τιμή
+                  φαινόταν εξίσου στέρεη. Στα «κίτρινα» με Μηχανισμό Διακύμανσης
+                  Κόστους Αγοράς η ΤΕΛΙΚΗ τιμή του μήνα ανακοινώνεται τον ΕΠΟΜΕΝΟ:
+                  το επίσημο εργαλείο σύγκρισης γράφει «Η τιμή δεν είναι ακόμα
+                  γνωστή» εκεί όπου εμείς δείχναμε νούμερο — και μάλιστα νούμερο
+                  που τα έβγαζε πρώτα στη σύγκριση. Δεν λύνεται με συχνότερη
+                  ενημέρωση: η τιμή ΔΕΝ υπάρχει τη στιγμή που ο χρήστης αποφασίζει. */}
+              {tariff.priceStatus === 'retro' && (
+                <span title="Η τελική τιμή του μήνα ανακοινώνεται τον επόμενο μήνα" style={{ fontSize: 11, fontWeight: 700, color: 'var(--warning)', background: 'var(--warning-soft)', padding: '2px 10px', borderRadius: T.radius.pill, border: '1px solid var(--warning-border)', fontFamily: T.font.sans }}>
+                  Τιμή που κλείνει αναδρομικά
+                </span>
+              )}
+              {tariff.priceStatus === 'verified' && (
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', fontFamily: T.font.sans }}>
+                  Διασταυρωμένη τιμή
+                </span>
+              )}
               {tariff.no_fixed && <span style={{ fontSize: 11, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>Χωρίς πάγιο</span>}
               {tariff.smart_meter && <span style={{ fontSize: 11, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, fontFamily: T.font.sans }}>Έξυπνος μετρητής</span>}
             </div>

@@ -35,7 +35,34 @@ export interface LocalTariff extends Tariff {
    * δικαιούται. Θα άλλαζε πάροχο και θα απορριπτόταν στην αίτηση.
    */
   studentOnly?: boolean;
+
+  /**
+   * ΠΟΤΕ ΓΙΝΕΤΑΙ ΟΡΙΣΤΙΚΗ Η ΤΙΜΗ ΠΟΥ ΔΕΙΧΝΟΥΜΕ.
+   *
+   * ΤΟ ΣΦΑΛΜΑ: το αέριο έχει από την αρχή `priceStatus` σε είκοσι επτά σημεία,
+   * το ρεύμα δεν είχε τίποτα. Καθε τιμή του καταλόγου παρουσιαζόταν εξίσου
+   * στέρεη — και δεν είναι. Στα «κίτρινα» με Μηχανισμό Διακύμανσης Κόστους
+   * Αγοράς η ΤΕΛΙΚΗ τιμή του μήνα ανακοινώνεται τον ΕΠΟΜΕΝΟ μήνα: το επίσημο
+   * εργαλείο σύγκρισης γράφει εκεί «Η τιμή δεν είναι ακόμα γνωστή», ενώ εμείς
+   * δείχναμε νούμερο. Μετρημένο στον πίνακα Αυγούστου 2026: τέσσερα τιμολόγια
+   * του Ηρωνα με άγνωστη τιμή εμφανίζονταν στα 0,0825 και 0,0840 — τιμές που
+   * τα έβγαζαν ΠΡΩΤΑ στη σύγκριση.
+   *
+   * Δεν είναι θέμα φρεσκάδας: όσο συχνά κι αν ενημερώσουμε, η τιμή αυτών των
+   * τιμολογίων ΔΕΝ υπάρχει ακόμη τη στιγμή που ο χρήστης αποφασίζει.
+   *
+   * Προαιρετικό ΕΠΙΤΗΔΕΣ: σημειώνονται μόνο όσα έχουν ελεγχθεί σε πηγή. Η
+   * απουσία σημαίνει «δεν το έχουμε κρίνει», όχι «επιβεβαιωμένο».
+   */
+  priceStatus?: PriceStatus;
 }
+
+/**
+ * `verified`   δημοσιευμένη και οριστική για τον μήνα.
+ * `retro`      η τελική τιμή ανακοινώνεται ΜΕΤΑ τη λήξη του μήνα (ΜΔΚΑ/ΔΚΑ).
+ * `indicative` καταγεγραμμένη από τον πάροχο, χωρίς διασταύρωση σε επίσημο εργαλείο.
+ */
+export type PriceStatus = 'verified' | 'retro' | 'indicative';
 
 export interface ProviderGroup { value: string; label: string; url: string; tariffs: LocalTariff[] }
 
@@ -97,7 +124,7 @@ export const PROVIDERS: ProviderGroup[] = [
       { id: 'dei_enter',        name: 'myHome Enter',           badge: 'ΜΠΛΕ',    type: 'fixed',         kwh_day: 0.1450, kwh_night: null,   fixed: 7.50, fixed_ebill: 3.50, contract_months: 12, vat: 6, segment: 'residential', desc: 'Σταθερό 12 μήνες. Πάγιο 7,50 € (3,50 € με e-bill + πάγια εντολή).' },
       // FIX: πάγιο myHome EnterTwo αναπροσαρμόστηκε → 9,00 € (επιβεβαιωμένο, Ιούλιος 2026)
       { id: 'dei_entertwo',     name: 'myHome EnterTwo',        badge: 'ΜΠΛΕ',    type: 'fixed',         kwh_day: 0.1450, kwh_night: 0.0950, fixed: 9.00, fixed_ebill: 3.50, contract_months: 24, vat: 6, segment: 'residential', desc: 'Σταθερό 24 μήνες με νυχτερινή ζώνη, από τις 23:00 έως τις 07:00. Ιδανικό για πλυντήρια, θερμοσίφωνα.' },
-      { id: 'dei_online',       name: 'myHome Online',          badge: 'ΜΠΛΕ',    type: 'fixed',         kwh_day: 0.1420, kwh_night: null,   fixed: 5.00, fixed_ebill: 3.50, contract_months: 12, vat: 6, segment: 'residential', desc: 'Σταθερό online-only 12 μήνες. Χαμηλότερη τιμή με e-bill + πάγια εντολή.' },
+      { id: 'dei_online', priceStatus: 'verified',       name: 'myHome Online',          badge: 'ΜΠΛΕ',    type: 'fixed',         kwh_day: 0.1420, kwh_night: null,   fixed: 5.00, fixed_ebill: 3.50, contract_months: 12, vat: 6, segment: 'residential', desc: 'Σταθερό online-only 12 μήνες. Χαμηλότερη τιμή με e-bill + πάγια εντολή.' },
       // FIX: κλιμάκια myHome Maxima αναπροσαρμόστηκαν 0.132/0.122 → 0.141/0.129 (επιβεβαιωμένο, Ιούλιος 2026)
       { id: 'dei_maxima',       name: 'myHome Maxima',          badge: 'ΜΠΛΕ',    type: 'fixed',         kwh_day: 0.1410, kwh_night: null,   kwh_tier2: 0.1290, tier2_threshold: 600, fixed: 5.00, fixed_ebill: 3.50, contract_months: 12, vat: 6, segment: 'residential', desc: 'Κλιμακωτό: 0,141 € έως τις 600 kWh και 0,129 € πάνω από αυτές. Συμφέρει για υψηλή κατανάλωση.' },
       { id: 'dei_plan',         name: 'myHome Plan',            badge: 'ΜΠΛΕ',    type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 60.00, fixed: 0, contract_months: 12, vat: 6, segment: 'residential', desc: 'Flat 60 € τον μήνα all-in. Ιδανικό για 2.500 έως 4.500 kWh τον χρόνο.' },
@@ -116,16 +143,16 @@ export const PROVIDERS: ProviderGroup[] = [
     value: 'heron', label: 'Ήρων', url: 'https://www.heron.gr',
     tariffs: [
       // ── Σταθερά (Μπλε) ────────────────────────────────────────────────────
-      { id: 'heron_blue_smart',   name: 'Blue Smart Home',              badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1380, kwh_night: null, flat_monthly: null, fixed: 7.95,  fixed_ebill: 7.95, contract_months: 12, no_fixed: false, vat: 6, segment: 'residential', desc: 'Πάγιο 7,95 € έως τις 150 kWh / 15,90 € πάνω από τις 150 kWh. Έκπτωση Συνέπειας.' },
-      { id: 'heron_blue_gen_max', name: 'Blue Generous Max Home',       badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1440, kwh_night: null, flat_monthly: null, fixed: 11.90, fixed_ebill: null, contract_months: 18, no_fixed: false, vat: 6, segment: 'residential', desc: 'Best Seller. Πάγιο 11,90 €. Έκπτωση Συνέπειας. 18 μήνες.' },
-      { id: 'heron_blue_gen',     name: 'Blue Generous Home',           badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1530, kwh_night: null, flat_monthly: null, fixed: 10.90, fixed_ebill: null, contract_months: 12, no_fixed: false, vat: 6, segment: 'residential', desc: 'Πάγιο 10,90 €. Έκπτωση Συνέπειας.' },
-      { id: 'heron_blue_simple',  name: 'Blue Simple Home',             badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1580, kwh_night: null, flat_monthly: null, fixed: 15.90, fixed_ebill: null, contract_months: 12, no_fixed: false, vat: 6, segment: 'residential', desc: 'Χωρίς προϋπόθεση συνέπειας. Πάγιο 15,90 €.' },
+      { id: 'heron_blue_smart', priceStatus: 'verified',   name: 'Blue Smart Home',              badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1380, kwh_night: null, flat_monthly: null, fixed: 7.95,  fixed_ebill: 7.95, contract_months: 12, no_fixed: false, vat: 6, segment: 'residential', desc: 'Πάγιο 7,95 € έως τις 150 kWh / 15,90 € πάνω από τις 150 kWh. Έκπτωση Συνέπειας.' },
+      { id: 'heron_blue_gen_max', priceStatus: 'verified', name: 'Blue Generous Max Home',       badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1440, kwh_night: null, flat_monthly: null, fixed: 11.90, fixed_ebill: null, contract_months: 18, no_fixed: false, vat: 6, segment: 'residential', desc: 'Best Seller. Πάγιο 11,90 €. Έκπτωση Συνέπειας. 18 μήνες.' },
+      { id: 'heron_blue_gen', priceStatus: 'verified',     name: 'Blue Generous Home',           badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1530, kwh_night: null, flat_monthly: null, fixed: 10.90, fixed_ebill: null, contract_months: 12, no_fixed: false, vat: 6, segment: 'residential', desc: 'Πάγιο 10,90 €. Έκπτωση Συνέπειας.' },
+      { id: 'heron_blue_simple', priceStatus: 'verified',  name: 'Blue Simple Home',             badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1580, kwh_night: null, flat_monthly: null, fixed: 15.90, fixed_ebill: null, contract_months: 12, no_fixed: false, vat: 6, segment: 'residential', desc: 'Χωρίς προϋπόθεση συνέπειας. Πάγιο 15,90 €.' },
       // ── Κυμαινόμενα (Κίτρινα) ─────────────────────────────────────────────
       { id: 'heron_yellow_one',     name: 'Yellow One Home',            badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.13044, kwh_night: null, flat_monthly: null, fixed: 5.00,  fixed_ebill: null, contract_months: 12, no_fixed: false, vat: 6, segment: 'residential', desc: 'Κυμαινόμενο. Έκπτωση Συνέπειας. Συμβατό με ΚΟΤ.' },
-      { id: 'heron_yellow_free',    name: 'Yellow Free Home',           badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.0840,  kwh_night: null, flat_monthly: null, fixed: 0,     fixed_ebill: null, contract_months: 12, no_fixed: true,  vat: 6, segment: 'residential', desc: 'Χωρίς πάγιο. Τιμή συν ΜΔΚΑ. Απαιτείται πάγια εντολή.' },
-      { id: 'heron_yellow_student', studentOnly: true, name: 'Yellow Free Student',        badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.0840,  kwh_night: null, flat_monthly: null, fixed: 0,     fixed_ebill: null, contract_months: 12, no_fixed: true,  vat: 6, segment: 'residential', desc: 'Φοιτητικό. Χωρίς πάγιο. Δώρο 20 €. Απαιτείται φοιτητική ταυτότητα ή ΑΜΚΑ.' },
-      { id: 'heron_protect',        name: 'Protect Home',               badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.0825,  kwh_night: null, flat_monthly: null, fixed: 5.50,  fixed_ebill: null, contract_months: 12, no_fixed: false, vat: 6, segment: 'residential', desc: 'Νέο τιμολόγιο. Τιμή 0,0825 € συν ΜΔΚΑ. Πάγιο 5,50 €.' },
-      { id: 'heron_happy_hour',     name: 'Happy Hour Home',            badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.0825,  kwh_night: null, flat_monthly: null, fixed: 7.00,  fixed_ebill: null, contract_months: 12, no_fixed: false, vat: 6, segment: 'residential', desc: 'Νέο. 3 ώρες δωρεάν ρεύμα ημερησίως. Πάγιο 7 €.' },
+      { id: 'heron_yellow_free', priceStatus: 'retro',    name: 'Yellow Free Home',           badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.0840,  kwh_night: null, flat_monthly: null, fixed: 0,     fixed_ebill: null, contract_months: 12, no_fixed: true,  vat: 6, segment: 'residential', desc: 'Χωρίς πάγιο. Τιμή συν ΜΔΚΑ. Απαιτείται πάγια εντολή.' },
+      { id: 'heron_yellow_student', priceStatus: 'retro', studentOnly: true, name: 'Yellow Free Student',        badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.0840,  kwh_night: null, flat_monthly: null, fixed: 0,     fixed_ebill: null, contract_months: 12, no_fixed: true,  vat: 6, segment: 'residential', desc: 'Φοιτητικό. Χωρίς πάγιο. Δώρο 20 €. Απαιτείται φοιτητική ταυτότητα ή ΑΜΚΑ.' },
+      { id: 'heron_protect', priceStatus: 'retro',        name: 'Protect Home',               badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.0825,  kwh_night: null, flat_monthly: null, fixed: 5.50,  fixed_ebill: null, contract_months: 12, no_fixed: false, vat: 6, segment: 'residential', desc: 'Νέο τιμολόγιο. Τιμή 0,0825 € συν ΜΔΚΑ. Πάγιο 5,50 €.' },
+      { id: 'heron_happy_hour', priceStatus: 'retro',     name: 'Happy Hour Home',            badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.0825,  kwh_night: null, flat_monthly: null, fixed: 7.00,  fixed_ebill: null, contract_months: 12, no_fixed: false, vat: 6, segment: 'residential', desc: 'Νέο. 3 ώρες δωρεάν ρεύμα ημερησίως. Πάγιο 7 €.' },
       // ── Πράσινο (Γ1 Ειδικό) ───────────────────────────────────────────────
       { id: 'heron_basic',          name: 'Basic Home (Γ1 Πράσινο)',    badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.1642,  kwh_night: null, flat_monthly: null, fixed: 7.00,  fixed_ebill: null, contract_months: 0, no_fixed: false, vat: 6, segment: 'residential', desc: 'Ειδικό τιμολόγιο Γ1. Ανακοινώνεται κάθε 1η μήνα. Έκπτωση συνέπειας 7 λεπτά ανά kWh.' },
       { id: 'heron_ena',            name: 'Ε.ΝΑ (Virtual Net Metering)', badge: 'VNM',   type: 'vnm',      kwh_day: 0.1290,  kwh_night: null, flat_monthly: null, fixed: 7.00,  fixed_ebill: null, contract_months: 0, no_fixed: false, vat: 6, segment: 'residential', desc: 'Εικονική Καθαρή Μέτρηση. Συμμετοχή σε κοινό φωτοβολταϊκό. Χωρίς δέσμευση.' },
