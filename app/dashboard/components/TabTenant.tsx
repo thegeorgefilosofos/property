@@ -29,7 +29,6 @@ import {
   CustomSelect as SelectField,
   DatePicker,
   InfoDot,
-  fieldLabelStyle,
 } from './UIComponents';
 import {
   T,
@@ -879,21 +878,37 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
                 η σειρά έβγαινε ΤΡΕΙΣ στήλες με την προεπιλογή του CSS αντί για
                 δύο. Μετρημένο στον πάγκο: 228 επί τρία. Το άπλωμα μπαίνει πρώτο,
                 όπως το γράφουν και τα άλλα δεκατρία σημεία της εφαρμογής. */}
-            <div {...fixedCols(2, 20, 'end', 'cl-split')} style={{ ...fixedCols(2, 20, 'end', 'cl-split').style, marginBottom: 12 }}>
+            {/* ══ Η ΜΙΣΘΩΣΗ ΕΙΝΑΙ ΜΙΑ ΕΡΩΤΗΣΗ ΜΕ ΤΕΣΣΕΡΑ ΣΚΕΛΗ, ΟΧΙ ΔΥΟ ΣΕΙΡΕΣ ══
+                Το είδος και η διάρκεια κάθονταν σε μία σειρά δύο στηλών, η
+                έναρξη και η λήξη σε δεύτερη σειρά τριών — δηλαδή τέσσερα πεδία
+                που απαντιούνται μαζί, σπασμένα σε δύο γραμμές με διαφορετικό
+                αριθμό στηλών, άρα και διαφορετικά πλάτη κουτιών. Ο αναγνώστης
+                άλλαζε ρυθμό στη μέση μιας ερώτησης.
+
+                Τώρα μία σειρά τεσσάρων: τι μίσθωση, για πόσο, από πότε, ώς πότε.
+                Η `form-row-4` πέφτει σε δύο στήλες κάτω από τα 1.000 και σε μία
+                στο τηλέφωνο, οπότε δεν στριμώχνεται πουθενά. */}
+            <div className="form-row form-row-4" style={{ marginBottom: 12 }}>
+              {/* ══ ΤΑ ΚΟΥΜΠΑΚΙΑ ΔΕΝ ΧΩΡΑΝΕ ΣΕ ΤΕΤΑΡΤΟ ΤΟΥ ΠΑΡΑΘΥΡΟΥ ══════════════
+                  Μετρημένο: η σειρά της φόρμας είναι 710 εικονοστοιχεία, άρα η
+                  στήλη 169· και τα δύο κουμπάκια θέλουν 211 («Κατοικία» 83,
+                  «Επαγγελματική» 122, με το κενό τους). Στοιβάζονταν το ένα πάνω
+                  στο άλλο και η σειρά ψήλωνε για να χωρέσει ένα χειριστήριο που
+                  δίπλα του είχε τρία μονόγραμμα.
+
+                  Μία επιλογή από δύο σε λίστα δεν χάνει τίποτα και κερδίζει το
+                  ίδιο ιδίωμα με τη «Διάρκεια» ακριβώς δίπλα της: δύο λίστες και
+                  δύο ημερομηνίες, ίδιο ύψος, ίδιο πλάτος, μία γραμμή. */}
               {show('tenant.lease_category')&&(
-                <ChipRow flush label={labelOf('tenant.lease_category')} info={whyOf('tenant.lease_category')}>
-                  {(Object.keys(LEASE_CATEGORY_LABELS) as LeaseCategory[]).map(lc=>(
-                    <Chip key={lc} on={form.lease_category===lc} onClick={()=>sf('lease_category',lc)}>{LEASE_CATEGORY_LABELS[lc]}</Chip>
-                  ))}
-                </ChipRow>
+                <SelectField label={labelOf('tenant.lease_category')} labelInfo={whyOf('tenant.lease_category')}
+                  value={form.lease_category} onChange={v=>sf('lease_category',v as LeaseCategory)} placeholder="Επιλογή…"
+                  options={(Object.keys(LEASE_CATEGORY_LABELS) as LeaseCategory[]).map(lc=>({ value:lc, label:LEASE_CATEGORY_LABELS[lc] }))}/>
               )}
               {show('tenant.lease_type')&&(
                 <SelectField label={labelOf('tenant.lease_type')} labelInfo={whyOf('tenant.lease_type')}
                   value={form.lease_type} onChange={v=>sf('lease_type',v as LeaseType)}
                   options={(Object.keys(LEASE_LABELS) as LeaseType[]).map(lt=>({ value:lt, label:LEASE_LABELS[lt] }))}/>
               )}
-            </div>
-            <div className="form-row form-row-3">
               {show('tenant.lease_start')&&<DatePicker label={labelOf('tenant.lease_start')} labelInfo={whyOf('tenant.lease_start')} value={form.lease_start} onChange={v=>sf('lease_start',v)}/>}
               {/* Η ΛΗΞΗ ΕΙΧΕ ΤΟ «ΓΙΑΤΙ» ΤΗΣ ΕΝΑΡΞΗΣ. Δύο πεδία δίπλα δίπλα, το
                   ίδιο κείμενο πίσω από τα δύο κυκλάκια· το ένα από τα δύο
@@ -915,8 +930,14 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
                   IBAN με ΚΕΦΑΛΑΙΑ ετικέτα, στημένος με το χέρι, ανάμεσα σε πεδία
                   με πεζή. Εδώ είναι το τρίτο πεδίο της σειράς του ενοικίου, με
                   το ίδιο `ToggleField` που χρησιμοποιεί η υπόλοιπη εφαρμογή. */}
-              {show('tenant.rent_iban')&&<ToggleField label="Μέσω τράπεζας" labelInfo={whyOf('tenant.rent_iban')} on={form.e_payment} onChange={v=>sf('e_payment',v)}/>}
+              {/* ΤΟ IBAN ΠΡΙΝ ΤΟΝ ΔΙΑΚΟΠΤΗ. Η σειρά διαβάζεται «πόσο, πότε, πού,
+                  πώς»: ο λογαριασμός είναι στοιχείο που γράφεις, ο διακόπτης
+                  είναι η επιβεβαίωση ότι έτσι εισπράττεις. Ο διακόπτης πρώτος
+                  ρωτούσε «πώς;» πριν υπάρχει το «πού;» — και ο διακόπτης, που
+                  είναι το πιο μικρό χειριστήριο της σειράς, καθόταν ανάμεσα σε
+                  δύο πεδία κόβοντας τη ροή τους. Τελευταίος, κλείνει τη σειρά. */}
               {show('tenant.rent_iban')&&<TextInput label={labelOf('tenant.rent_iban')} value={form.rent_iban} onChange={v=>sf('rent_iban',v)} placeholder="GR..."/>}
+              {show('tenant.rent_iban')&&<ToggleField label="Μέσω τράπεζας" labelInfo={whyOf('tenant.rent_iban')} on={form.e_payment} onChange={v=>sf('e_payment',v)}/>}
             </div>
             {/* Ο,τι θα συμβεί μόνο του, λέγεται πριν συμβεί — και μαζί τι το ακυρώνει. */}
             {editRow?.pending_rent!=null&&editRow.pending_rent_from&&(
@@ -945,11 +966,17 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
               {show('tenant.deposit')&&(
                 <NumberInput label={labelOf('tenant.deposit')} labelInfo={whyOf('tenant.deposit')} value={form.deposit_amount} onChange={v=>sf('deposit_amount',v)} suffix="€"/>
               )}
-              <ChipRow flush label={labelOf('tenant.furnishing')} info={whyOf('tenant.furnishing')}>
-                {(Object.keys(FURNISHING_LABELS) as Furnishing[]).map(fv=>(
-                  <Chip key={fv} on={form.furnishing===fv} onClick={()=>sf('furnishing',form.furnishing===fv?'':fv)}>{FURNISHING_LABELS[fv]}</Chip>
-                ))}
-              </ChipRow>
+              {/* ══ ΤΡΙΑ ΚΟΥΜΠΑΚΙΑ ΓΙΑ ΜΙΑ ΕΠΙΛΟΓΗ ΕΓΙΝΑΝ ΛΙΣΤΑ ══════════════════
+                  Το «Turn Key (όλα μέσα)» θέλει διπλάσιο πλάτος από τα άλλα δύο,
+                  οπότε η σειρά έβγαινε άνιση δίπλα σε ένα πεδίο ποσού με σταθερό
+                  κουτί. Και η επιλογή είναι ΜΙΑ από τρεις, δηλαδή ακριβώς αυτό
+                  που κάνει μια λίστα. Τα κουμπάκια αξίζουν όταν οι επιλογές
+                  είναι δύο και κοντές («Κατοικία» ή «Επαγγελματική») και τις
+                  βλέπεις χωρίς να ανοίξεις τίποτα· στις τρεις με μακρύ όνομα
+                  κοστίζουν πλάτος χωρίς να κερδίζουν πάτημα. */}
+              <SelectField label={labelOf('tenant.furnishing')} labelInfo={whyOf('tenant.furnishing')}
+                value={form.furnishing} onChange={v=>sf('furnishing',v as Furnishing)} placeholder="Επιλογή…"
+                options={(Object.keys(FURNISHING_LABELS) as Furnishing[]).map(fv=>({ value:fv, label:FURNISHING_LABELS[fv] }))}/>
             </div>
 
             {/* Οι παρεχόμενες υπηρεσίες υπάρχουν ΜΟΝΟ σε επιπλωμένο — το λέει το μητρώο */}
@@ -1045,19 +1072,30 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
                       </div>
                     )}
 
-                    {/* ΔΥΟ ΔΙΑΚΟΠΤΕΣ ΧΩΡΙΣ ΘΕΜΑ. Το «Περιλαμβάνεται στο ενοίκιο»
-                        και το «Χρεώνεται ξεχωριστά» στέκονταν μόνα τους, χωρίς
-                        να λέει τίποτα ΤΙ περιλαμβάνεται: το μητρώο το ξέρει
-                        («Χώρος στάθμευσης») και το γράφει η ετικέτα της σειράς. */}
+                    {/* ══ ΔΥΟ ΓΡΑΜΜΕΣ ΓΙΑ ΜΙΑ ΕΡΩΤΗΣΗ, ΚΑΙ ΔΥΟ ΑΠΑΝΤΗΣΕΙΣ ΠΟΥ ΔΕΝ
+                            ΜΠΟΡΟΥΝ ΝΑ ΙΣΧΥΟΥΝ ΜΑΖΙ ═══════════════════════════════
+                        Η ετικέτα «Χώρος στάθμευσης» έπιανε ολόκληρη τη δική της
+                        γραμμή και οι δύο διακόπτες την επόμενη: δύο γραμμές για
+                        μία ερώτηση με μία απάντηση.
+
+                        ΚΑΙ ΗΤΑΝ ΔΥΟ ΑΝΕΞΑΡΤΗΤΟΙ ΔΙΑΚΟΠΤΕΣ. Ο χρήστης μπορούσε να
+                        ανάψει και τους δύο, δηλαδή να δηλώσει ότι το πάρκινγκ
+                        ΠΕΡΙΛΑΜΒΑΝΕΤΑΙ στο ενοίκιο ΚΑΙ χρεώνεται ξεχωριστά. Δύο
+                        ισχυρισμοί που αναιρούν ο ένας τον άλλο, αποθηκευμένοι
+                        μαζί στη βάση, χωρίς κανένα σφάλμα πουθενά.
+
+                        Είναι μία επιλογή από δύο, άρα κουμπάκια: το πάτημα του
+                        ενός σβήνει το άλλο και το δεύτερο πάτημα το αποεπιλέγει,
+                        για την περίπτωση που δεν υπάρχει καθόλου στάθμευση. Η
+                        ετικέτα μπαίνει στη σειρά, δίπλα στα κουμπάκια. */}
                     {more('tenant.parking')&&(
-                      <>
-                        <div style={{ ...fieldLabelStyle, marginBottom:0 }}><span>{labelOf('tenant.parking')}<InfoDot text={whyOf('tenant.parking')||''}/></span></div>
-                        <div className="form-row form-row-3" style={{ marginBottom:14 }}>
-                          <ToggleField label="Περιλαμβάνεται στο ενοίκιο" on={form.parking_included} onChange={v=>sf('parking_included',v)}/>
-                          <ToggleField label="Χρεώνεται ξεχωριστά" on={form.parking_extra} onChange={v=>sf('parking_extra',v)}/>
-                          {form.parking_extra&&<NumberInput label="Μηνιαία τιμή" value={form.parking_extra_price} onChange={v=>sf('parking_extra_price',v)} suffix="€"/>}
-                        </div>
-                      </>
+                      <div className="form-row form-row-2" style={{ marginBottom:14 }}>
+                        <ChipRow flush label={labelOf('tenant.parking')} info={whyOf('tenant.parking')}>
+                          <Chip on={form.parking_included} onClick={()=>{ const on=!form.parking_included; sf('parking_included',on); if(on) sf('parking_extra',false); }}>Στο ενοίκιο</Chip>
+                          <Chip on={form.parking_extra} onClick={()=>{ const on=!form.parking_extra; sf('parking_extra',on); if(on) sf('parking_included',false); }}>Χρεώνεται ξεχωριστά</Chip>
+                        </ChipRow>
+                        {form.parking_extra&&<NumberInput label="Μηνιαία τιμή" value={form.parking_extra_price} onChange={v=>sf('parking_extra_price',v)} suffix="€"/>}
+                      </div>
                     )}
 
                     {/* ΔΥΟ ΠΛΑΙΣΙΑ ΕΛΕΥΘΕΡΟΥ ΚΕΙΜΕΝΟΥ, ΤΟ ΕΝΑ ΚΑΤΩ ΑΠΟ ΤΟ ΑΛΛΟ, ΣΕ
@@ -1067,11 +1105,16 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
                         φόρμας γίνεται μία ευθεία. Σε στενή οθόνη ξαναπέφτουν το ένα
                         κάτω από το άλλο, όπως κάθε άλλη σειρά. */}
                     <div className="form-row form-row-2">
+                      {/* ΔΥΟ ΓΡΑΜΜΕΣ ΑΝΤΙ ΓΙΑ ΤΡΕΙΣ. Τα πλαίσια άνοιγαν με `rows=3`,
+                          δηλαδή ζητούσαν 110 εικονοστοιχεία το καθένα στο τέλος
+                          μιας φόρμας που μόλις μαζεύτηκε — και για περιεχόμενο που
+                          σπάνια ξεπερνά μία πρόταση («Αποθήκη, κήπος»). Ο χρήστης
+                          που γράφει περισσότερα το τραβά από τη γωνία του. */}
                       {more('tenant.extra_perks')&&(
-                        <Textarea label={labelOf('tenant.extra_perks')} labelInfo={whyOf('tenant.extra_perks')} value={form.extra_perks} onChange={v=>sf('extra_perks',v)} placeholder="Αποθήκη, κήπος…"/>
+                        <Textarea rows={2} label={labelOf('tenant.extra_perks')} labelInfo={whyOf('tenant.extra_perks')} value={form.extra_perks} onChange={v=>sf('extra_perks',v)} placeholder="Αποθήκη, κήπος…"/>
                       )}
                       {more('tenant.notes')&&(
-                        <Textarea label={labelOf('tenant.notes')} labelInfo={whyOf('tenant.notes')} value={form.notes} onChange={v=>sf('notes',v)}/>
+                        <Textarea rows={2} label={labelOf('tenant.notes')} labelInfo={whyOf('tenant.notes')} value={form.notes} onChange={v=>sf('notes',v)}/>
                       )}
                     </div>
                   </div>

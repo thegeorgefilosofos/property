@@ -1,5 +1,5 @@
 'use client'
-import { T, TT, formGrid, fixedCols } from '@/components/Theme'
+import { T, TT, fixedCols } from '@/components/Theme'
 import { useState } from 'react'
 import { NumberInput, CustomSelect, Toggle, InfoChip } from './UIComponents'
 import { assessApproval, verdictLabel, type EmploymentType, type CreditHistory } from '@/lib/loans/approval'
@@ -87,7 +87,14 @@ export default function ApprovalPanel({
       {/* Είσοδοι */}
       {/* Το ελάχιστο πλάτος ήταν 190 και η μεγαλύτερη επιλογή («Μισθωτός αορίστου
           χρόνου») χρειάζεται περισσότερα: το πεδίο έγραφε «Μισθωτός αορίστ…». */}
-      <div style={{...formGrid(215, 290),gap:10}}>
+      {/* ══ ΠΕΝΤΕ ΠΕΔΙΑ, ΜΙΑ ΕΡΩΤΗΣΗ, ΜΙΑ ΣΕΙΡΑ ══════════════════════════════
+          Το `formGrid(215, 290)` έδινε όσες στήλες χωρούσαν: στα 1.280 τρεις,
+          οπότε τα δύο μενού έπεφταν σε δεύτερη σειρά με μια τρύπα δίπλα τους.
+          «3+2» για πέντε ερωτήσεις που απαντιούνται μαζί και περιγράφουν ΕΝΑ
+          πρόσωπο. Πέντε ίσες στήλες, που πέφτουν σε τρεις και σε δύο όσο
+          στενεύει η οθόνη. Τα δύο μενού παίρνουν διπλή στήλη, γιατί οι
+          επιλογές τους είναι μακριές: ο κανόνας ζει στο `.approval-row`. */}
+      <div className="approval-row">
         <NumberInput label="Ηλικία" value={age} onChange={setAge} suffix="ετών"/>
         <NumberInput label="Καθαρό μηνιαίο εισόδημα" value={income} onChange={setIncome} suffix="€"/>
         <NumberInput label="Υφιστάμενες μηνιαίες δόσεις" value={existing} onChange={setExisting} suffix="€"/>
@@ -124,12 +131,25 @@ export default function ApprovalPanel({
             κάτω δίνουν τα στοιχεία πάνω στα οποία βγήκε, με τα όριά τους.
             Ενας βαθμός στα 100 σε όλη την καρτέλα. ══════════════════════ */}
         <p style={{fontSize:16,fontWeight:700,fontFamily: T.font.sans,color:verdictColor,letterSpacing:'-0.01em',transition:'color 0.15s',marginBottom:14}}>{verdictLabel(res.verdict)}</p>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))',gap:10}}>
+        {/* Τέσσερα μεγέθη, τέσσερις ή δύο στήλες. Το `auto-fit` έδινε τρεις σε
+            ενδιάμεσα πλάτη και άφηνε τη «Δόση» μόνη της με τρύπα δίπλα της· τώρα
+            που η τιμή κουβαλά και το όριό της, το κελί θέλει και περισσότερο
+            πλάτος. Ο κανόνας του `fcStep`: μεγαλύτερος διαιρέτης που χωράει. */}
+        <div {...fixedCols(4, 10, 'stretch', 'fc-xs-2')}>
+          {/* ══ ΤΟ ΟΡΙΟ ΔΙΠΛΑ ΣΤΟΝ ΑΡΙΘΜΟ, ΟΧΙ ΑΠΟ ΚΑΤΩ ══════════════════════
+              Ηταν τρεις γραμμές ανά μέγεθος: ετικέτα, τιμή, όριο. Το όριο όμως
+              δεν είναι τρίτη πληροφορία, είναι το ΜΕΤΡΟ της δεύτερης: το
+              «30,04%» δεν σημαίνει τίποτα χωρίς το «όριο 40,00%» και το μάτι
+              πρέπει να τα διαβάσει μαζί για να βγάλει «περνάω». Στην ίδια
+              γραμμή, με το όριο μικρό και ήσυχο δεξιά, η σύγκριση γίνεται με μια
+              ματιά και το μπλοκ χάνει μια γραμμή σε κάθε μέγεθος. */}
           {metrics.map((m,i)=>(
             <div key={m.l} onMouseEnter={()=>setHm(i)} onMouseLeave={()=>setHm(null)} onTouchStart={()=>setHm(i)} onTouchEnd={()=>setHm(null)}>
-              <p style={{fontSize: 11,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.06em',fontWeight:700,fontFamily: T.font.sans,marginBottom:4}}>{m.l}</p>
-              <p style={{fontSize:16,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',fontWeight:700,lineHeight:1,color:m.over?'var(--negative)':hm===i?'var(--accent)':'var(--text-primary)',transition:'color 0.15s'}}>{m.v}</p>
-              <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:4,fontFamily: T.font.sans}}>{m.sub}</p>
+              <p style={{fontSize: 11,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.06em',fontWeight:700,fontFamily: T.font.sans,marginBottom:5}}>{m.l}</p>
+              <p style={{display:'flex',alignItems:'baseline',gap:7,flexWrap:'wrap' as const,lineHeight:1.1}}>
+                <span style={{fontSize:16,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',fontWeight:700,color:m.over?'var(--negative)':hm===i?'var(--accent)':'var(--text-primary)',transition:'color 0.15s'}}>{m.v}</span>
+                <span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums'}}>{m.sub}</span>
+              </p>
             </div>
           ))}
         </div>
@@ -140,7 +160,7 @@ export default function ApprovalPanel({
       <div>
         <p style={{...labelStyle,marginBottom:10}}>Ανάλυση κριτηρίων</p>
         {/* Πέντε κριτήρια, μία σειρά. Το `auto-fit` τα έβγαζε τρία και δύο. */}
-        <div {...fixedCols(res.factors.length, 6, 'stretch')}>
+        <div {...fixedCols(res.factors.length, 6, 'stretch', 'fc-chips')}>
           {res.factors.map((f,i)=>(
             <InfoChip key={i} label={f.label} detail={f.detail} tone={f.kind==='block'?'negative':'default'}
               icon={f.kind==='pass'

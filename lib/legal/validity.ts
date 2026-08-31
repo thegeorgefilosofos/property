@@ -136,7 +136,7 @@ export const REGULATED: readonly Regulated[] = [
   },
   {
     id: 'enfia-thresholds',
-    label: 'Οριο συμπληρωματικού ΕΝΦΙΑ και αφορολόγητο περιουσίας',
+    label: 'Όριο συμπληρωματικού ΕΝΦΙΑ και αφορολόγητο περιουσίας',
     where: 'lib/billing/enfia.ts',
     validFrom: '2026-01-01',
     validTo: '2026-12-31',
@@ -184,7 +184,7 @@ export const REGULATED: readonly Regulated[] = [
     validTo: null,
     source: `${AADE_HOME}/epiheiriseis/forologikes-ypiresies/mitroo-akiniton-brahyhronias-diamonis`,
     checkedAt: '2026-08-26',
-    recheck: 'Ορια ακινήτων ανά ΑΦΜ, υποχρέωση έναρξης δραστηριότητας, ΦΠΑ σε υπηρεσίες. Το πεδίο αλλάζει συχνά.',
+    recheck: 'Όρια ακινήτων ανά ΑΦΜ, υποχρέωση έναρξης δραστηριότητας, ΦΠΑ σε υπηρεσίες. Το πεδίο αλλάζει συχνά.',
   },
 
   // ── Μισθώσεις ────────────────────────────────────────────────────────────
