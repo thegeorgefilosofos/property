@@ -64,6 +64,7 @@ import AccountantDossier, { useAccountantDossier } from './AccountantDossier'
 import { fetchDossierPapers } from './dossierPapers'
 import { defaultBookkeeping, type LegalForm } from '@/lib/accounting/dossier'
 import { readStatus, type PropertyStatus, type StatusRow } from '@/lib/property/status'
+import { incomeEntry } from '@/lib/property/visibility'
 import { printAccountingReport, downloadOfficialAccountingReport, type ReconLite } from './accountingReport'
 import { printRentCertificate, downloadOfficialRentCertificate } from './rentCertificate'
 import ReportBuilder from './ReportBuilder'
@@ -232,7 +233,7 @@ function Kpi({ label, value, note, hot, onHover }:{
 const readNum = (raw: string | null): number | '' => { const n = Number(raw); return raw && Number.isFinite(n) && n ? n : '' }
 const writeNum = (v: number | '') => (v ? String(v) : '')
 
-export default function TabAccounting({ propertyId, userId, profileType='individual', legalForm='individual', plan='free', onNavigate }: { propertyId:string; userId:string; profileType?:'individual'|'professional'; legalForm?:DossierLegalForm; plan?:PlanId; onNavigate?:(tab:string)=>void }) {
+export default function TabAccounting({ propertyId, userId, profileType='individual', legalForm='individual', plan='free', status='rent_long', onNavigate }: { propertyId:string; userId:string; profileType?:'individual'|'professional'; legalForm?:DossierLegalForm; plan?:PlanId; status?:PropertyStatus; onNavigate?:(tab:string)=>void }) {
   const supabase = createClient()
   const branding = useReportBranding(userId)
   const [reportBuilderOpen, setReportBuilderOpen] = useState(false)
@@ -1067,6 +1068,11 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   // Έχει το έτος πραγματική κίνηση; Αν όχι, αντί για τοίχο από «0 €» δείχνουμε μια
   // ήρεμη, καθοδηγητική αφετηρία (τι θα ξεκλειδώσει μόλις μπουν δεδομένα).
   const hasActivity = grossIncome>0 || expensesTotal>0 || rentAccruedYear>0 || book.length>0
+
+  // Πού γράφεται το έσοδο αυτού του ακινήτου, από τη ΜΙΑ πηγή που ξέρει και την
+  // ορατότητα των καρτελών. Δοκιμή τα σταυρώνει: ό,τι προτείνεται εδώ είναι
+  // ορατό· όπου δεν υπάρχει έσοδο δεν προτείνεται καρτέλα εσόδου.
+  const income = incomeEntry(status)
   // Η περίληψη των προχωρημένων λέει ΤΙ κρύβει, ώστε κανείς να μη χρειαστεί να
   // το ανοίξει «μήπως». Το ισοζύγιο αναφέρεται μόνο σε όποιον όντως το έχει.
   const advancedSummary = [
@@ -1245,7 +1251,9 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             </span>
             <div style={{ flex:1, minWidth:240 }}>
               <p style={{ fontSize:16, fontWeight:700, color:'var(--text-primary)', margin:0, fontFamily: T.font.sans, letterSpacing:'0.1px' }}>Ξεκίνα τη λογιστική σου για το {year}</p>
-              <p style={{ fontSize:13, color:'var(--text-secondary)', margin:'6px 0 0', lineHeight:1.6, fontFamily: T.font.sans, maxWidth:520 }}>Καταχώρησε ενοίκια και έξοδα και όλα εδώ υπολογίζονται αυτόματα: έσοδα, φόρος, καθαρό ταμείο και έτοιμες αναφορές για τον λογιστή σου.</p>
+              <p style={{ fontSize:13, color:'var(--text-secondary)', margin:'6px 0 0', lineHeight:1.6, fontFamily: T.font.sans, maxWidth:520 }}>{income
+                ? `Καταχώρησε ${income.noun} και έξοδα και όλα εδώ υπολογίζονται αυτόματα: έσοδα, φόρος, καθαρό ταμείο και έτοιμες αναφορές για τον λογιστή σου.`
+                : 'Καταχώρησε τα έξοδα του ακινήτου και όλα εδώ υπολογίζονται αυτόματα: κόστος, καθαρό ταμείο και έτοιμες αναφορές για τον λογιστή σου.'}</p>
               <div style={{ display:'flex', alignItems:'center', gap:16, margin:'14px 0 0', flexWrap:'wrap' }}>
                 {/* ΤΑ ΟΝΟΜΑΤΑ ΕΙΝΑΙ ΤΑ ΟΝΟΜΑΤΑ ΠΟΥ ΘΑ ΔΕΙ. Η κενή οθόνη υποσχόταν «Καθαρό
                     ταμείο», ταμπέλα που δεν υπάρχει σε καμία γεμάτη οθόνη: εκεί η
@@ -1258,8 +1266,29 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
                 ))}
               </div>
               <div style={{ display:'flex', alignItems:'center', gap:10, margin:'18px 0 0', flexWrap:'wrap' }}>
-                <button onClick={()=>onNavigate?.('tenant')} style={{ height:T.h.md, padding:'0 17px', borderRadius:10, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily: T.font.sans }}>Καταχώρηση ενοικίου</button>
-                <button onClick={()=>onNavigate?.('finances')} style={{ height:T.h.md, padding:'0 16px', borderRadius:10, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:13, fontWeight:500, cursor:'pointer', fontFamily: T.font.sans }} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)'}}>Προσθήκη εξόδου</button>
+                {/* ═══ ΤΟ ΚΟΥΜΠΙ ΠΗΓΑΙΝΕ ΣΕ ΚΑΡΤΕΛΑ ΠΟΥ ΔΕΝ ΥΠΑΡΧΕΙ ═══════════
+                    Το κύριο κουμπί έλεγε πάντα «Καταχώρηση ενοικίου» και καλούσε
+                    `onNavigate('tenant')`. Ομως ο Ενοικιαστής είναι ορατός ΜΟΝΟ
+                    σε μακροχρόνια μίσθωση: σε βραχυχρόνια, κενό, ιδιοχρησία,
+                    ανακαίνιση, προς πώληση και νομική εκκρεμότητα κρύβεται με
+                    γραμμένο λόγο. Η Λογιστική όμως φαίνεται και στις επτά.
+                    Το `navSafe` της σελίδας ρίχνει σιωπηλά στην Επισκόπηση
+                    όποιον ζητήσει αόρατη καρτέλα, άρα σε έξι στις επτά
+                    καταστάσεις το κύριο, μπλε κουμπί της κενής οθόνης πετούσε
+                    τον χρήστη αλλού χωρίς λέξη εξήγησης.
+
+                    Τώρα η κενή οθόνη προτείνει ό,τι ΥΠΑΡΧΕΙ για αυτό το ακίνητο:
+                    ενοίκιο στη μακροχρόνια, διαμονή στη βραχυχρόνια· όπου
+                    δεν υπάρχει έσοδο, κύρια ενέργεια γίνεται το έξοδο — που
+                    είναι και η μόνη καρτέλα ορατή σε κάθε κατάσταση. */}
+                {income && (
+                  <button onClick={()=>onNavigate?.(income.tab)} style={{ height:T.h.md, padding:'0 17px', borderRadius:10, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily: T.font.sans }}>{income.label}</button>
+                )}
+                <button onClick={()=>onNavigate?.('finances')} style={income
+                  ? { height:T.h.md, padding:'0 16px', borderRadius:10, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:13, fontWeight:500, cursor:'pointer', fontFamily: T.font.sans }
+                  : { height:T.h.md, padding:'0 17px', borderRadius:10, border:'none', background:'var(--accent)', color:'var(--accent-text)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily: T.font.sans }}
+                  onMouseEnter={e=>{ if(income){ e.currentTarget.style.borderColor='var(--accent)'; e.currentTarget.style.color='var(--accent)' } }}
+                  onMouseLeave={e=>{ if(income){ e.currentTarget.style.borderColor='var(--border-default)'; e.currentTarget.style.color='var(--text-secondary)' } }}>Προσθήκη εξόδου</button>
               </div>
             </div>
           </div>

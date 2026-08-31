@@ -190,7 +190,7 @@ export default function AccountantWorkspace() {
     const n = await downloadAll(ready, year, new Date().toLocaleDateString('el-GR'));
     setBusy(null);
     setNotice(n === 0
-      ? 'Κανένας πελάτης δεν έχει ζωντανό σύνδεσμο για αυτή τη χρήση.'
+      ? 'Κανένα βιβλίο δεν είναι διαθέσιμο για αυτή τη χρήση.'
       : n === 1 ? 'Κατέβηκε ένα βιβλίο.' : `Κατέβηκαν ${n} βιβλία.`);
   };
 
@@ -314,7 +314,7 @@ export default function AccountantWorkspace() {
       ) : rows.length === 0 ? (
         <Card style={{ marginTop: 16 }}>
           <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.7, fontFamily: T.font.sans }}>
-            Κανένας πελάτης ακόμη. Ο ιδιοκτήτης βγάζει τον σύνδεσμο από τη Λογιστική του, στον φάκελο για τον λογιστή και σου τον στέλνει.
+            Κανένας πελάτης στη λίστα. Ο ιδιοκτήτης βγάζει τον σύνδεσμο από τη Λογιστική του, στον φάκελο για τον λογιστή και σου τον στέλνει.
           </p>
         </Card>
       ) : (

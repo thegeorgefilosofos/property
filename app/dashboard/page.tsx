@@ -2338,7 +2338,7 @@ export default function Dashboard() {
                 </>
               )}
               {nav==='loan'      && <TabLoan key={selected.id} propertyId={selected.id} userId={user.id} propertyValue={selected.value??undefined} propertySqm={selected.sqm??undefined} propertyYearBuilt={selected.year_built??undefined} profileType={effProfileType}/>}
-              {nav==='accounting'&& <TabAccounting key={selected.id} propertyId={selected.id} userId={user.id} profileType={effProfileType} legalForm={taxForm} plan={effPlan} onNavigate={(t)=>setNav(t)}/>}
+              {nav==='accounting'&& <TabAccounting key={selected.id} propertyId={selected.id} userId={user.id} profileType={effProfileType} legalForm={taxForm} plan={effPlan} status={readStatus(selected)} onNavigate={(t)=>setNav(t)}/>}
               {navSafe==='inventory' && <TabInventory key={selected.id} propertyId={selected.id} userId={user.id} profileType={effProfileType} handoverIntent={handoverIntent} onIntentConsumed={()=>setHandoverIntent(null)} properties={properties}/>}
               {nav==='checklist' && <TabChecklist key={selected.id} propertyId={selected.id} userId={user.id} profileType={effProfileType}/>}
               {/* Ο ΕΛΕΓΧΟΣ ΤΟΥ ΑΜΑ ΕΙΝΑΙ ΕΞΩ ΑΠΟ ΤΟ FeatureLock, ΣΚΟΠΙΜΑ.

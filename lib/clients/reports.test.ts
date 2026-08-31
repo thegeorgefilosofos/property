@@ -11,8 +11,9 @@
 import { execFileSync } from 'node:child_process'
 import {
   revenueByChannel, revenueByMonth, nightsInRange, nightsByMonth,
-  yearOccupancy, totals, type ReportStay,
+  yearOccupancy, occupancyFromMonths, totals, type ReportStay,
 } from './reports'
+import { nightsByMonthForYear } from '../tax/shortTermTax'
 
 let pass = 0, fail = 0
 function ok(name: string, cond: boolean) { if (cond) pass++; else { fail++; console.error('✗ ' + name) } }
@@ -191,5 +192,31 @@ if (!process.env.PO_TZ_CHILD) {
   ok('ίδια αποτελέσματα σε Αθήνα, UTC, Νέα Υόρκη και Ώκλαντ' + (bad ? ` — απέτυχε: ${bad}` : ''), bad === '')
 }
 
+// ═══ ΕΝΑΣ ΜΕΤΡΗΤΗΣ ΝΥΧΤΩΝ ΓΙΑ ΟΛΗ ΤΗΝ ΟΘΟΝΗ ════════════════════════════════
+// ΤΟ ΣΦΑΛΜΑ: στους «Επισκέπτες», το πλακίδιο «Νύχτες» και οι μπάρες καναλιών
+// μετρούσαν με `nightsOf` (πέφτει πίσω στο `s.nights` που έγραψε ο χρήστης),
+// ενώ η πληρότητα δίπλα τους με `nightsInRange`, που απαιτεί ΚΑΙ αναχώρηση και
+// γυρίζει μηδέν χωρίς αυτήν. Διαμονή γραμμένη στο χέρι, χωρίς check_out,
+// μετρούσε στη μία και εξαφανιζόταν από την άλλη.
+{
+  const withOut = stay({ check_in: '2026-07-01', check_out: '2026-07-11', nights: 10 })
+  const noOut = stay({ check_in: '2026-08-05', check_out: null, nights: 6 })
+  const both = [withOut, noOut]
+
+  eq('τα σύνολα μετρούν και τη διαμονή χωρίς αναχώρηση', totals(both).nights, 16)
+  eq('τα κανάλια το ίδιο', revenueByChannel(both).reduce((s, r) => s + r.nights, 0), 16)
+
+  // Ο ΠΑΛΙΟΣ ΔΡΟΜΟΣ, ΓΡΑΜΜΕΝΟΣ ΩΣ ΑΠΟΔΕΙΞΗ ΤΗΣ ΔΙΑΦΩΝΙΑΣ: όσο η οθόνη τον
+  // καλούσε, έδειχνε 10 δίπλα σε 16.
+  eq('το yearOccupancy μόνο του χάνει τις έξι', yearOccupancy(both, 2026).bookedNights, 10)
+
+  // Ο ΔΡΟΜΟΣ ΠΟΥ ΤΡΕΧΕΙ ΤΩΡΑ: ίδιος μετρητής με το πλακίδιο και τις μπάρες.
+  const nbm = nightsByMonthForYear(both, 2026)
+  eq('ο κοινός μετρητής τις κρατά', occupancyFromMonths(nbm, 2026).bookedNights, 16)
+  eq('και τις βάζει στον μήνα της άφιξης', nbm[7], 6)
+  eq('χωρίς να πειράξει τον Ιούλιο', nbm[6], 10)
+}
+
 console.log(fail === 0 ? `✓ reports: ${pass} έλεγχοι πέρασαν` : `✗ reports: ${fail} απέτυχαν από ${pass + fail}`)
 if (fail > 0) process.exit(1)
+

@@ -283,6 +283,13 @@ const VIEWS: Record<string, () => React.ReactElement> = {
   ),
   inventory: () => <TabInventory propertyId="p0" userId="u1" />,
   accounting: () => <TabAccounting propertyId="p0" userId="u1" />,
+  // Η ΚΕΝΗ ΟΘΟΝΗ ΤΗΣ ΛΟΓΙΣΤΙΚΗΣ, ΣΤΙΣ ΔΥΟ ΑΚΡΕΣ ΤΗΣ. Το κύριο κουμπί της έστελνε
+  // πάντα στον Ενοικιαστή, καρτέλα αόρατη σε έξι από τις επτά καταστάσεις: ο
+  // χρήστης προσγειωνόταν σιωπηλά στην Επισκόπηση. Καμία σκηνή δεν την απέδιδε,
+  // οπότε το λάθος δεν φαινόταν πουθενά. Το ακίνητο «p9» δεν υπάρχει στα
+  // πλαστά δεδομένα, άρα η καρτέλα μένει κενή — που είναι ακριβώς το ζητούμενο.
+  accountingEmpty: () => <TabAccounting propertyId="p9" userId="u1" status="vacant" />,
+  accountingShort: () => <TabAccounting propertyId="p9" userId="u1" status="rent_short" />,
   calendar: () => <TabCalendar propertyId="p0" userId="u1" openTasks={3} />,
   clients: () => <TabClients userId="u1" />,
   documents: () => <TabDocuments propertyId="p0" userId="u1" />,

@@ -9,6 +9,7 @@
 import { TriangleAlert, CircleCheckBig } from 'lucide-react';
 import BrandMark from '@/components/BrandMark';
 import { ABSENT, T } from '@/components/tokens';
+import { Btn } from '@/components/Theme';
 import { useCallback, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -32,15 +33,26 @@ export default function VerifyDocument() {
   // περιττή απόδοση και δύο πηγές αλήθειας που μπορούσαν να διαφωνήσουν. Τώρα
   // υπάρχει ΕΝΑ αποτέλεσμα, με σφραγίδα του εγγράφου που ελέγχθηκε· η
   // κατάσταση διαβάζεται από αυτό.
-  const [result, setResult] = useState<{ id: string; doc: Verified | null } | null>(null);
+  // ═══ «ΔΕΝ ΑΠΑΝΤΗΣΕ Ο ΔΙΑΚΟΜΙΣΤΗΣ» ΔΕΝ ΕΙΝΑΙ «ΔΕΝ ΥΠΑΡΧΕΙ ΤΟ ΕΓΓΡΑΦΟ» ══════
+  //
+  // Εδώ γραφόταν `doc: error || !row ? null : row`: το σφάλμα της κλήσης και το
+  // «καμία τέτοια γραμμή» κατέληγαν στην ίδια απάντηση· η οθόνη είχε μόνο
+  // τρεις καταστάσεις. Υπάλληλος τράπεζας ή ΔΟΥ που σαρώνει το QR μιας ΓΝΗΣΙΑΣ
+  // βεβαίωσης από γκισέ με κακό σήμα διάβαζε «Δεν βρέθηκε έγγραφο με αυτόν τον
+  // κωδικό» και «δεν αντιστοιχεί σε έγγραφο που εκδόθηκε από το PROPERWISE».
+  //
+  // Είναι η μία σελίδα ολόκληρου του προϊόντος που υπάρχει για να πει αν κάτι
+  // είναι αληθινό. Το να λέει «όχι» επειδή έπεσε το δίκτυο δεν είναι ατέλεια
+  // εμφάνισης: είναι λάθος απάντηση στη μόνη ερώτηση που της κάνουν.
+  const [result, setResult] = useState<{ id: string; doc: Verified | null; failed: boolean } | null>(null);
   const doc = result?.id === id ? result.doc : null;
-  const state: 'loading' | 'ok' | 'notfound' =
-    result?.id !== id ? 'loading' : result.doc ? 'ok' : 'notfound';
+  const state: 'loading' | 'ok' | 'notfound' | 'error' =
+    result?.id !== id ? 'loading' : result.failed ? 'error' : result.doc ? 'ok' : 'notfound';
 
   const check = useCallback(async () => {
     const { data, error } = await supabase.rpc('verify_document', { p_id: id });
     const row = Array.isArray(data) ? data[0] : data;
-    setResult({ id, doc: error || !row ? null : (row as Verified) });
+    setResult({ id, doc: error || !row ? null : (row as Verified), failed: !!error });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
   useLoad(check);
@@ -100,6 +112,27 @@ export default function VerifyDocument() {
               Ο κωδικός <strong style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', letterSpacing: '.02em' }}>{id || ABSENT}</strong> δεν αντιστοιχεί σε έγγραφο που εκδόθηκε από το PROPERWISE.
               Ελέγξτε ότι σαρώσατε σωστά το QR ή ζητήστε νέο αντίγραφο από τον εκδότη.
             </p>
+          </div>
+        )}
+
+        {/* Ο ΤΟΝΟΣ ΕΙΝΑΙ ΟΥΔΕΤΕΡΟΣ, ΚΑΙ ΑΥΤΟ ΕΙΝΑΙ ΤΟ ΝΟΗΜΑ. Η αποτυχία δεν λέει
+            τίποτα για το έγγραφο: ούτε «γνήσιο» ούτε «άγνωστο». Χρώμα
+            προειδοποίησης εδώ θα έριχνε υποψία σε χαρτί που κανείς δεν
+            εξέτασε. Και υπάρχει κουμπί: η μόνη σωστή ενέργεια είναι να
+            ξαναρωτήσεις, όχι να φύγεις με απάντηση που δεν πήρες. */}
+        {state === 'error' && (
+          <div style={{ paddingTop: 22 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 10, padding: '11px 14px' }}>
+              <TriangleAlert size={18} strokeWidth={2.5} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} aria-hidden="true" />
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Ο έλεγχος δεν ολοκληρώθηκε</span>
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginTop: 16 }}>
+              Δεν λάβαμε απάντηση για τον κωδικό <strong style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', letterSpacing: '.02em' }}>{id || ABSENT}</strong>.
+              Αυτό δεν λέει τίποτα για το έγγραφο: δεν προλάβαμε να το ελέγξουμε.
+            </p>
+            <div style={{ marginTop: 16 }}>
+              <Btn onClick={() => { setResult(null); void check(); }}>Δοκιμή ξανά</Btn>
+            </div>
           </div>
         )}
 

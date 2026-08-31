@@ -7,14 +7,15 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import BrandMark from '@/components/BrandMark';
 import { T } from '@/components/tokens';
-import { useEffect, useState } from 'react';
+import { Btn } from '@/components/Theme';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 export default function Unsubscribe() {
   const token = String(useParams()?.token || '');
   const supabase = createClient();
-  const [state, setState] = useState<'loading' | 'ok' | 'notfound'>('loading');
+  const [state, setState] = useState<'loading' | 'ok' | 'notfound' | 'error'>('loading');
   const [product, setProduct] = useState(true);
   const [market, setMarket] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -22,15 +23,27 @@ export default function Unsubscribe() {
   // Η αποτυχία λέγεται με λόγια, στην ίδια θέση που θα λεγόταν η επιτυχία.
   const [failed, setFailed] = useState('');
 
-  useEffect(() => {
-    (async () => {
-      const { data, error } = await supabase.rpc('marketing_prefs_by_token', { p_token: token });
-      const row = Array.isArray(data) ? data[0] : data;
-      if (error || !row) { setState('notfound'); return; }
-      setProduct(row.product_news); setMarket(row.market_news); setState('ok');
-    })();
+  // ═══ Η ΦΟΡΤΩΣΗ ΕΛΕΓΕ «ΑΚΥΡΟΣ ΣΥΝΔΕΣΜΟΣ» ΓΙΑ ΠΕΣΜΕΝΟ ΔΙΚΤΥΟ ══════════════════
+  // `if (error || !row) { setState('notfound') }`: μία κατάσταση για δύο εντελώς
+  // διαφορετικά πράγματα. Ο παραλήπτης που πατά «Απεγγραφή» μέσα από email, από
+  // κινητό με κακό σήμα, διάβαζε «Ο σύνδεσμος δεν είναι έγκυρος ή έχει λήξει»
+  // για σύνδεσμο ΜΙΑ ΧΑΡΑ ΕΓΚΥΡΟ — και έφευγε πιστεύοντας ότι δεν υπάρχει
+  // τρόπος να σταματήσει τα email. Η απεγγραφή είναι δικαίωμά του· η σελίδα του
+  // έλεγε ότι το δικαίωμα δεν ισχύει, επειδή δεν πήρε απάντηση.
+  //
+  // Το `unsubscribe()` είκοσι γραμμές πιο κάτω, στο ΙΔΙΟ αρχείο, τα ξεχώριζε
+  // ήδη σωστά: σφάλμα → «δοκίμασε ξανά», `!data` → «ο σύνδεσμος έληξε». Ο ίδιος
+  // κανόνας ισχύει τώρα και στη φόρτωση.
+  const load = useCallback(async () => {
+    setState('loading');
+    const { data, error } = await supabase.rpc('marketing_prefs_by_token', { p_token: token });
+    const row = Array.isArray(data) ? data[0] : data;
+    if (error) { setState('error'); return; }
+    if (!row) { setState('notfound'); return; }
+    setProduct(row.product_news); setMarket(row.market_news); setState('ok');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+  useEffect(() => { void load(); }, [load]);
 
   // ═══ Η ΑΠΕΓΓΡΑΦΗ ΠΟΥ ΑΠΕΤΥΧΕ ΣΙΩΠΗΛΑ ══════════════════════════════════════
   // ΤΙ ΕΒΛΕΠΕ Ο ΠΑΡΑΛΗΠΤΗΣ. Πατούσε «Απεγγραφή από όλα», το κουμπί σταματούσε
@@ -80,6 +93,17 @@ export default function Unsubscribe() {
 
         {state === 'loading' && <div style={{ padding: '34px 0', textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }}>Φόρτωση…</div>}
         {state === 'notfound' && <p style={{ paddingTop: 22, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>Ο σύνδεσμος δεν είναι έγκυρος ή έχει λήξει. Μπορείς να διαχειριστείς τις προτιμήσεις σου από τις Ρυθμίσεις μέσα στην εφαρμογή.</p>}
+        {/* Ο σύνδεσμος δεν κρίθηκε: δεν πήραμε απάντηση. Το λέμε με αυτά τα
+            λόγια και δίνουμε το κουμπί, γιατί η μόνη σωστή ενέργεια είναι να
+            ξαναρωτήσεις — όχι να φύγεις νομίζοντας ότι έχασες το δικαίωμά σου. */}
+        {state === 'error' && (
+          <div style={{ paddingTop: 22 }}>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
+              Δεν καταφέραμε να διαβάσουμε τις προτιμήσεις σου. Ο σύνδεσμος δεν ελέγχθηκε, οπότε μπορεί κάλλιστα να είναι έγκυρος.
+            </p>
+            <div style={{ marginTop: 16 }}><Btn onClick={() => void load()}>Δοκιμή ξανά</Btn></div>
+          </div>
+        )}
 
         {state === 'ok' && (
           <div style={{ paddingTop: 20 }}>

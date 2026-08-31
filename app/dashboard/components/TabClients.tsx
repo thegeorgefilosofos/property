@@ -65,7 +65,8 @@ import {
   AMOUNT_BASIS_LABELS, type AmountBasis,
 } from '@/lib/clients/stayAmounts';
 import { MSG_TEMPLATES, buildMessage, whatsappLink, viberLink as viberTextLink } from '@/lib/clients/messages';
-import { revenueByChannel, revenueByMonth, yearOccupancy, totals } from '@/lib/clients/reports';
+import { revenueByChannel, revenueByMonth, occupancyFromMonths, totals } from '@/lib/clients/reports';
+import { nightsByMonthForYear } from '@/lib/tax/shortTermTax';
 import { navLabel } from '@/lib/nav/labels';
 import { climateLevyRates, isHighSeasonMonth } from '@/lib/billing/greekTax';
 import { isHouseType } from '@/lib/tax/shortTermTax';
@@ -1103,7 +1104,22 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
         const maxCh = Math.max(1, ...chRows.map(r => r.revenue));
         const months = revenueByMonth(yStays, reportYear);
         const maxMonth = Math.max(1, ...months);
-        const occ = yearOccupancy(yStays, reportYear);
+        // ═══ ΔΥΟ ΜΕΤΡΗΤΕΣ ΝΥΧΤΩΝ, ΔΙΠΛΑ ΔΙΠΛΑ, ΜΕ ΔΙΑΦΟΡΕΤΙΚΟ ΑΠΟΤΕΛΕΣΜΑ ══
+        //
+        // Το `yearOccupancy` μετρά με `nightsInRange`, που απαιτεί ΚΑΙ
+        // αναχώρηση: διαμονή χωρίς καταχωρημένο check_out μετράει ΜΗΔΕΝ. Το
+        // πλακίδιο «Νύχτες» από πάνω και οι μπάρες καναλιών από κάτω μετρούν με
+        // `nightsOf`, που πέφτει πίσω στο `s.nights` που έγραψε ο χρήστης.
+        //
+        // Ακίνητο με 1 ώς 11/7 (10 νύχτες) και μια διαμονή από 5/8 χωρίς
+        // αναχώρηση αλλά με 6 νύχτες γραμμένες στο χέρι: η μπάρα έλεγε «16
+        // νύχτες» και η πληρότητα υπολόγιζε 10 — δύο αριθμοί στην ίδια οθόνη
+        // που αναιρούν ο ένας τον άλλον, χωρίς κανένα σφάλμα πουθενά.
+        //
+        // Το `occupancyFromMonths` γράφτηκε ακριβώς γι' αυτό: δέχεται ΕΤΟΙΜΟ
+        // πίνακα νυχτών, ώστε η οθόνη να μετρά μία φορά. Ο μετρητής είναι ο
+        // ίδιος που χρησιμοποιεί και η φορολογική σύνοψη.
+        const occ = occupancyFromMonths(nightsByMonthForYear(yStays, reportYear), reportYear);
         const monthInitials = ['Ι', 'Φ', 'Μ', 'Α', 'Μ', 'Ι', 'Ι', 'Α', 'Σ', 'Ο', 'Ν', 'Δ'];
         return (
           <div style={{ marginTop: 26 }}>

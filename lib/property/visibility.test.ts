@@ -2,7 +2,7 @@
 import { STATUSES, writeStatus, isLet } from './status';
 import {
   tabDecision, comparableGroups, canCompare,
-  normType,
+  normType, incomeEntry, INCOME_TABS,
   type OwnerContext, type PropertyLike,
 } from './visibility';
 import { visibleTabs } from './visibility.testkit';
@@ -258,6 +258,32 @@ const known = (id: string) =>
   const ownUse = flat({ status_detail: 'own_use', rental_mode: null });
   ok('ο εξοπλισμός με δεδομένα μένει ορατός',
     tabDecision('inventory', ctxOf([ownUse]), ownUse, { hasInventory: true }).visible);
+}
+
+// ═══ Η ΠΡΟΤΑΣΗ ΕΣΟΔΟΥ ΔΕΙΧΝΕΙ ΠΑΝΤΑ ΣΕ ΚΑΡΤΕΛΑ ΠΟΥ ΥΠΑΡΧΕΙ ══════════════════
+// ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΦΥΛΑΕΙ: η κενή οθόνη της Λογιστικής είχε κύριο κουμπί
+// «Καταχώρηση ενοικίου» προς την καρτέλα «tenant», σε ΚΑΘΕ κατάσταση. Η
+// Λογιστική φαίνεται και στις επτά, ο Ενοικιαστής μόνο στη μακροχρόνια: σε έξι
+// στις επτά ο χρήστης πατούσε το κύριο κουμπί και προσγειωνόταν σιωπηλά στην
+// Επισκόπηση. Οι δύο κανόνες ζουν πια στο ίδιο αρχείο και ο έλεγχος τους
+// σταυρώνει σε κάθε κατάσταση, αντί να τους εμπιστεύεται χωριστά.
+{
+  for (const st of STATUSES) {
+    const p = flat(writeStatus(st.key));
+    const ctx = ctxOf([p]);
+    const e = incomeEntry(st.key);
+    if (e) {
+      ok(`${st.key}: η προτεινόμενη «${e.tab}» είναι ορατή`, tabDecision(e.tab, ctx, p).visible);
+      ok(`${st.key}: το κουμπί έχει λόγια`, e.label.length > 4 && e.noun.length > 3);
+    } else {
+      for (const tab of INCOME_TABS) {
+        ok(`${st.key}: καμία πρόταση· η «${tab}» όντως κρύβεται`, !tabDecision(tab, ctx, p).visible);
+      }
+    }
+    // Και ό,τι κι αν ισχύει, το έξοδο είναι πάντα εκεί: γι' αυτό γίνεται κύρια
+    // ενέργεια όταν δεν υπάρχει έσοδο.
+    ok(`${st.key}: οι Δαπάνες μένουν ορατές`, tabDecision('finances', ctx, p).visible);
+  }
 }
 
 console.log(fail === 0 ? `✓ visibility: ${pass} έλεγχοι πέρασαν` : `✗ visibility: ${fail} απέτυχαν από ${pass + fail}`);
