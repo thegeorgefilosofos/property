@@ -69,16 +69,32 @@ function programFacts(p: ComparisonProgram): ProgramFact[] {
 const cellRate = (v:unknown):string => { const n = rateNum(v); return n===null ? NO_RATE : fp(n) }
 
 // Επικεφαλίδα ενεργού φακού — ο τίτλος τον οποίο το LensBar έχει επιλέξει.
+// ══ Ο ΤΙΤΛΟΣ ΤΟΥ ΦΑΚΟΥ ΓΡΑΦΟΤΑΝ ΔΥΟ ΦΟΡΕΣ, ΣΕ ΑΠΟΣΤΑΣΗ ΔΕΚΑ ΕΙΚΟΝΟΣΤΟΙΧΕΙΩΝ
+//
+// Η μπάρα από πάνω δείχνει ΗΔΗ ποιος φακός είναι ανοιχτός: το κουμπί είναι
+// φωτισμένο, με έντονα γράμματα και δικό του φόντο. Αμέσως από κάτω το πάνελ
+// ξανάγραφε τις ίδιες λέξεις ως επικεφαλίδα — «Το δάνειό σου» πάνω από «Το
+// δάνειό σου», «Οδηγός» πάνω από «Οδηγός δανείου». Η επιλογή που μόλις έκανε ο
+// χρήστης δεν χρειάζεται επιβεβαίωση σε δεύτερη γραμμή.
+//
+// Ο ΥΠΟΤΙΤΛΟΣ ΜΕΝΕΙ, ΓΙΑΤΙ ΛΕΕΙ ΚΑΤΙ ΑΛΛΟ: «Βάσει 148.000,00 € / 25 χρόνια, από
+// τον Υπολογιστή» ή «7 τράπεζες, επιβεβαιωμένα 08/07/2026». Αυτό δεν το λέει η
+// μπάρα και είναι ο λόγος που ο αναγνώστης εμπιστεύεται ό,τι ακολουθεί.
+//
+// Ο τίτλος μένει στον τύπο και πηγαίνει στον αναγνώστη οθόνης: η μπάρα δίνει
+// `aria-pressed`, όχι επικεφαλίδα, οπότε χωρίς αυτόν η περιοχή θα ήταν ανώνυμη
+// στην πλοήγηση ανά επικεφαλίδα.
 function LensPanel({title,subtitle,right,children}:{title:string;subtitle?:string;right?:React.ReactNode;children:React.ReactNode}) {
   return (
-    <div style={{display:'flex',flexDirection:'column',gap:14}}>
+    <div style={{display:'flex',flexDirection:'column',gap:14}} aria-label={title} role="group">
+      {(subtitle||right)&&(
       <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:12,flexWrap:'wrap',padding:'2px 2px 0'}}>
-        <div style={{minWidth:0}}>
-          <p style={{fontSize:16,fontWeight:600,color:'var(--text-primary)',fontFamily: T.font.sans,letterSpacing:'-0.01em'}}>{title}</p>
-          {subtitle&&<p style={{fontSize:12,color:'var(--text-tertiary)',marginTop:3,fontFamily: T.font.sans}}>{subtitle}</p>}
-        </div>
+        {subtitle
+          ? <p style={{fontSize:12,color:'var(--text-tertiary)',fontFamily: T.font.sans,minWidth:0}}>{subtitle}</p>
+          : <span/>}
         {right}
       </div>
+      )}
       {children}
     </div>
   )
@@ -339,7 +355,6 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
   const [otherHover,setOtherHover] = useState<string|null>(null)
   const [hoverBank,setHoverBank] = useState<string|null>(null)
   const [hoverBankRow,setHoverBankRow] = useState<number|null>(null)
-  const [hoverRate,setHoverRate] = useState<number|null>(null)
   // Ξεκινά «true»: πριν, η καρτέλα έδειχνε ΤΙΠΟΤΑ όσο έτρεχε η loadSaved και μετά
   // αναβόσβηνε για μια στιγμή η κενή κατάσταση «δεν υπάρχουν δάνεια», σαν να μην
   // είχε αποθηκεύσει ποτέ τίποτα ο χρήστης.
@@ -589,7 +604,9 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
         ]
         return (
           <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius: T.radius.card,padding:'16px 18px'}}>
-            <p style={{...labelStyle,marginBottom:12}}>Ενιαίο δάνειο, συνολική εικόνα · {rows.length} δάνεια</p>
+            {/* «2 δάνεια» γραφόταν και στη γραμμή από πάνω, δίπλα στην εξαγωγή.
+                Ο τίτλος της σύνοψης δεν χρειάζεται να το ξαναπεί. */}
+            <p style={{...labelStyle,marginBottom:12}}>Ενιαίο δάνειο, συνολική εικόνα</p>
             {/* ══ ΤΟ ΠΟΣΟ ΔΕΝ ΧΩΡΑΓΕ ΣΤΟ ΠΛΑΚΙΔΙΟ ΤΟΥ ══════════════════════════
                 Μετρημένο στα 375 έως 768: το «123.186,65 €» στα 24 θέλει 171
                 εικονοστοιχεία και το πλακίδιο έδινε 118 έως 145. Το ευρώ έβγαινε
@@ -608,28 +625,41 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
 
                 ΚΑΙ ΤΑ ΠΛΑΚΙΔΙΑ ΕΓΙΝΑΝ ΤΟ ΚΟΙΝΟ `KPI`. Είχαν δικό τους κουτί με
                 σταθερό αριθμό στα 24, οπότε σε δύο στήλες κινητού το
-                «123.186,65 €» κοβόταν. Το `KPI` που χρησιμοποιεί ήδη η κάρτα
-                δανείου δέκα γραμμές πιο κάτω κλιμακώνει τον αριθμό με το πλάτος
-                της στήλης, δηλαδή το πρόβλημα ήταν λυμένο στην ίδια οθόνη με
-                άλλο ιδίωμα. Ενα ιδίωμα, ένα πλακίδιο. */}
+                «123.186,65 €» κοβόταν. Το κοινό `KPI` του Δανείου κλιμακώνει τον
+                αριθμό με το πλάτος της στήλης, δηλαδή το πρόβλημα ήταν ήδη
+                λυμένο και εδώ γραφόταν δεύτερη φορά με άλλο ιδίωμα.
+
+                ΕΔΩ ΜΕΝΟΥΝ ΠΛΑΚΙΔΙΑ, ΣΤΗΝ ΚΑΡΤΑ ΟΧΙ. Αυτά τα τέσσερα είναι τα
+                ΑΘΡΟΙΣΜΑΤΑ: ο μόνος τόπος όπου υπάρχει το συνολικό υπόλοιπο, άρα
+                είναι το περιεχόμενο της σύνοψης. Στην κάρτα κάθε δανείου ο ήρωας
+                είναι το δικό της υπόλοιπο και τα υπόλοιπα μεγέθη κατεβαίνουν σε
+                γραμμή στοιχείων. */}
             <div {...fixedCols(4, 10, 'stretch', 'fc-xs-2 fc-roomy fc-xxs-1')} style={{...fixedCols(4, 10, 'stretch', 'fc-xs-2 fc-roomy fc-xxs-1').style, marginBottom:16}}>
               {tiles.map(t=>(<KPI key={t.k} label={t.k} value={t.v}/>))}
             </div>
+            {/* ══ ΤΟ ΥΠΟΜΝΗΜΑ ΞΑΝΑΕΓΡΑΦΕ ΤΙΣ ΚΑΡΤΕΣ ΠΟΥ ΑΚΟΛΟΥΘΟΥΝ ═══════════════
+                Καθε γραμμή του έλεγε τράπεζα, επιτόκιο και δόση — τα ίδια τρία
+                που γράφει, με μεγαλύτερα γράμματα, η κάρτα του κάθε δανείου
+                αμέσως από κάτω. Δύο δάνεια, έξι νούμερα γραμμένα δύο φορές μέσα
+                σε μία οθόνη.
+
+                Η ΜΠΑΡΑ ΜΕΝΕΙ, ΓΙΑΤΙ ΛΕΕΙ ΚΑΤΙ ΠΟΥ ΟΙ ΚΑΡΤΕΣ ΔΕΝ ΛΕΝΕ: την
+                αναλογία. Το υπόμνημα κρατά μόνο αυτό — όνομα και ποσοστό, σε μία
+                γραμμή που τυλίγεται. Το επιτόκιο και η δόση ζουν στην κάρτα
+                τους, όπου έχουν και το μέγεθος που τους αξίζει. */}
             {rows.length>1&&(<>
-              <p style={{...labelStyle,marginBottom:9}}>Κατανομή μηνιαίας δόσης ανά δάνειο</p>
-              <div style={{display:'flex',height:14,borderRadius:8,overflow:'hidden',border:'1px solid var(--border-subtle)',marginBottom:10}}>
+              <div style={{display:'flex',height:10,borderRadius: T.radius.pill,overflow:'hidden',border:'1px solid var(--border-subtle)',marginBottom:9}}>
                 {rows.map((r,i)=>(
                   <div key={r.l.id} title={`${r.l.bank}: ${fmtEur(r.m)} τον μήνα`} style={{width:`${totalMonthly>0?(r.m/totalMonthly)*100:0}%`,height:'100%',background:`color-mix(in srgb, var(--accent) ${Math.max(20,100-i*14)}%, var(--bg-elevated))`}}/>
                 ))}
               </div>
-              <div style={{display:'flex',flexDirection:'column',gap:6}}>
+              <div style={{display:'flex',flexWrap:'wrap',gap:'4px 16px'}}>
                 {rows.map((r,i)=>(
-                  <div key={r.l.id} style={{display:'flex',alignItems:'center',gap:10}}>
-                    <span style={{width:10,height:10,borderRadius:3,flexShrink:0,background:`color-mix(in srgb, var(--accent) ${Math.max(20,100-i*14)}%, var(--bg-elevated))`}}/>
-                    <span style={{fontSize:13,color:'var(--text-primary)',fontFamily: T.font.sans,fontWeight:500,flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.l.bank||'Δάνειο'}</span>
-                    <span style={{fontSize:12,color:'var(--text-tertiary)',fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums'}}>{fmtPct(r.l.rate)}</span>
-                    <span style={{fontSize:13,color:'var(--text-secondary)',fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',fontWeight:600,minWidth:110,textAlign:'right' as const}}>{fmtEur(r.m)} τον μήνα</span>
-                  </div>
+                  <span key={r.l.id} style={{display:'inline-flex',alignItems:'center',gap:7,minWidth:0}}>
+                    <span style={{width:8,height:8,borderRadius:2,flexShrink:0,background:`color-mix(in srgb, var(--accent) ${Math.max(20,100-i*14)}%, var(--bg-elevated))`}}/>
+                    <span style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' as const}}>{r.l.bank||'Δάνειο'}</span>
+                    <span style={{fontSize:12,color:'var(--text-tertiary)',fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums'}}>{fp(totalMonthly>0?(r.m/totalMonthly)*100:0)}</span>
+                  </span>
                 ))}
               </div>
             </>)}
@@ -696,7 +726,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                     από {fe(loan.amount)} · εκτίμηση με σταθερή δόση
                   </p>
                 </div>
-                <div style={{textAlign:'right'}}>
+                <div className="pole-right">
                   <p style={{...labelStyle,marginBottom:4}}>Δόση τον μήνα</p>
                   <p style={{fontSize:20,fontWeight:600,color:'var(--text-primary)',fontFamily:T.font.sans,lineHeight:1.1}}>{fe(m)}</p>
                   <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:4,fontFamily:T.font.sans}}>
@@ -720,20 +750,6 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                 </div>
               </div>
 
-              {/* Τόκοι: πληρωμένοι έναντι υπολοίπων. Το νούμερο που κάνει κάποιον
-                  να σκεφτεί αναχρηματοδότηση — και που δεν φαινόταν καθόλου. */}
-              {/* ΤΡΙΑ ΠΛΑΚΙΔΙΑ ΣΕ ΔΥΟ ΣΤΗΛΕΣ ΑΦΗΝΑΝ ΤΟ ΤΡΙΤΟ ΜΟΝΟ ΤΟΥ. Το `auto-fit`
-                  δίνει όσες στήλες χωράνε: στα 375 και στα 412 χωρούσαν δύο, οπότε
-                  το «Κεφάλαιο που εξοφλήθηκε» καθόταν αριστερά με τρύπα ίσου
-                  μεγέθους δεξιά του. Ο κανόνας υπάρχει ήδη γραμμένος στο `fcStep`,
-                  με τα ίδια λόγια: διάλεξε τον μεγαλύτερο ΔΙΑΙΡΕΤΗ του πλήθους που
-                  χωράει. Το τρία δεν έχει διαιρέτη δύο, άρα στο κινητό πάει σε μία
-                  στήλη — τρεις γεμάτες σειρές αντί για δύο και μισή. */}
-              <div {...fixedCols(3, 8, 'stretch')} style={{...fixedCols(3, 8, 'stretch').style, marginBottom:12}}>
-                <KPI label="Τόκοι που πλήρωσες" value={fe(prog.interestPaid)}/>
-                <KPI label="Τόκοι που απομένουν" value={fe(prog.interestRemaining)} emphasis/>
-                <KPI label="Κεφάλαιο που εξοφλήθηκε" value={fe(prog.principalPaid)}/>
-              </div>
             </>) : (
               // Χωρίς ημερομηνία έναρξης δεν υπάρχει «σήμερα»: δεν τυπώνεται
               // υπόλοιπο-εικασία, λέγεται τι λείπει για να υπολογιστεί.
@@ -746,13 +762,26 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
               </div>
             )}
 
-            {/* Ό,τι δεν αλλάζει: μία ήσυχη γραμμή, όχι πλακίδια. */}
+            {/* ══ ΜΙΑ ΚΑΡΤΑ ΔΑΝΕΙΟΥ, ΕΝΑΣ ΗΡΩΑΣ ΚΑΙ ΜΙΑ ΓΡΑΜΜΗ ΣΤΟΙΧΕΙΩΝ ═════════
+                ΤΙ ΕΦΥΓΕ ΑΠΟ ΤΗ ΓΡΑΜΜΗ. Είχε πέντε στοιχεία και τα δύο γράφονταν
+                ήδη πιο πάνω: το «Αρχικό ποσό 120.000,00 €» κάθεται δύο εκατοστά
+                ψηλότερα ως «από 120.000,00 €», ακριβώς κάτω από το υπόλοιπο, όπου
+                έχει και νόημα· και η «Διάρκεια 25 έτη» γράφεται από τη μπάρα ως
+                «σε 53 από 300 δόσεις», με τη λήξη σε ημερομηνία δίπλα της.
+                Τριακόσιες δόσεις ΕΙΝΑΙ εικοσιπέντε έτη.
+
+                ΤΙ ΗΡΘΕ ΜΕΣΑ ΤΗΣ. Οι δύο τόκοι ήταν πλακίδια `KPI` σε δύο στήλες:
+                στα 1.280 αυτό σημαίνει δύο κουτιά των 940 εικονοστοιχείων που
+                κρατούν από ένα ποσό το καθένα, δηλαδή ένα νούμερο με το βάρος
+                του υπολοίπου χωρίς να είναι το υπόλοιπο. Ο ήρωας της κάρτας
+                είναι ΕΝΑΣ, το υπόλοιπο· τα υπόλοιπα είναι στοιχεία και ζουν στη
+                γραμμή στοιχείων. Ιδια πληροφορία, μισό ύψος, μία ιεραρχία. */}
             <div style={{display:'flex',gap:22,flexWrap:'wrap',paddingTop:12,borderTop:'1px solid var(--border-subtle)'}}>
-              <div><p style={{...labelStyle,marginBottom:2}}>Αρχικό ποσό</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>{fe(loan.amount)}</p></div>
               <div><p style={{...labelStyle,marginBottom:2}}>Επιτόκιο</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>{fp(loan.rate)} · {loan.rate_type==='variable'?'κυμαινόμενο':'σταθερό'}</p></div>
-              <div><p style={{...labelStyle,marginBottom:2}}>Διάρκεια</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>{loan.years} έτη</p></div>
               {ltv>0&&<div><p style={{...labelStyle,marginBottom:2}}>Δάνειο προς αξία</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>{fp(ltv)}</p></div>}
               {loan.start_date&&<div><p style={{...labelStyle,marginBottom:2}}>Έναρξη</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>{fdLong(loan.start_date)}</p></div>}
+              {prog&&<div><p style={{...labelStyle,marginBottom:2}}>Τόκοι που πλήρωσες</p><p style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans,fontVariantNumeric:'tabular-nums'}}>{fe(prog.interestPaid)}</p></div>}
+              {prog&&<div><p style={{...labelStyle,marginBottom:2}}>Τόκοι που απομένουν</p><p style={{fontSize:12,color:'var(--text-primary)',fontWeight:600,fontFamily:T.font.sans,fontVariantNumeric:'tabular-nums'}}>{fe(prog.interestRemaining)}</p></div>}
             </div>
           </div>
         )
@@ -779,32 +808,41 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
           <p style={{fontSize:16,color:'var(--text-primary)',fontWeight:700,fontFamily: T.font.sans,letterSpacing:'-0.02em'}}>Στεγαστικό δάνειο</p>
           <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:1,fontFamily: T.font.sans}}>Ελληνική αγορά · δεδομένα ΕΚΤ και Τράπεζας Ελλάδος</p>
         </div>
-        {/* ΤΑ ΤΕΣΣΕΡΑ ΕΠΙΤΟΚΙΑ ΤΥΛΙΓΟΝΤΑΝ ΑΖΥΓΙΣΤΑ. Ηταν σειρά flex με πλάτος όσο
-            το κείμενο του καθενός: στο κινητό τα δύο πρώτα έπιαναν τη μία σειρά
-            και τα δύο επόμενα, στενότερα («ΕΚΤ», «ΤτΕ μέσο»), κάθονταν από κάτω
-            μετατοπισμένα, με άλλο βήμα και άλλο πλάτος. Τέσσερα μεγέθη του ίδιου
-            είδους πρέπει να έχουν το ίδιο κουτί. Πλέον ίσες στήλες: τέσσερις
-            στην οθόνη, 2×2 στο κινητό, χωρίς ορφανό σε κανένα πλάτος. */}
-        <div {...fixedCols(4, 10, 'stretch', 'fc-xs-2')} style={{...fixedCols(4, 10, 'stretch', 'fc-xs-2').style, marginLeft:'auto', flex:'1 1 300px', minWidth:0}}>
+        {/* ══ ΤΕΣΣΕΡΑ ΕΠΙΤΟΚΙΑ ΑΝΑΦΟΡΑΣ ΔΕΝ ΕΙΝΑΙ ΤΕΣΣΕΡΙΣ ΔΕΙΚΤΕΣ ═══════════
+            ΗΤΑΝ ΤΕΣΣΕΡΑ ΠΛΑΚΙΔΙΑ ΜΕ ΣΤΟΙΧΙΣΗ ΣΤΟ ΚΕΝΤΡΟ, ΕΤΙΚΕΤΑ ΠΑΝΩ ΚΑΙ
+            ΑΡΙΘΜΟ 15 ΑΠΟ ΚΑΤΩ. Μετρημένο στα 390: 106 εικονοστοιχεία σε 2×2,
+            με την κεφαλίδα να φτάνει τα 188 πριν αρχίσει η οθόνη. Ομως αυτά τα
+            νούμερα δεν είναι δικά σου: είναι το Euribor και το επιτόκιο της
+            ΕΚΤ, δηλαδή το κλίμα της αγοράς. Οταν φορούν το ίδιο ρούχο με το
+            υπόλοιπο του δανείου σου, διεκδικούν την ίδια προσοχή με αυτό.
+
+            Τώρα είναι μία ήσυχη λωρίδα, ετικέτα και τιμή στην ίδια γραμμή, με
+            λεπτό διαχωριστικό ανάμεσα. Ιδια πληροφορία, καμία λιγότερη, στο
+            μισό ύψος και χωρίς να μοιάζει με δείκτη απόδοσης.
+
+            ΚΑΙ ΤΟ ΦΩΤΙΣΜΑ ΣΤΟ ΠΕΡΑΣΜΑ ΤΟΥ ΚΕΡΣΟΡΑ ΕΦΥΓΕ. Αλλαζε φόντο σε κάτι
+            που δεν πατιέται και δεν ανοίγει τίποτα: κίνηση χωρίς προορισμό. */}
+        <div style={{display:'flex',flexWrap:'wrap',alignItems:'baseline',gap:'6px 20px',marginLeft:'auto',minWidth:0}}>
           {[
             {l:'Euribor τριμήνου',v:market.euribor_3m},
             {l:'Euribor μηνός',v:market.euribor_1m},
             {l:'ΕΚΤ',v:market.ecb_rate},
             ...(market.bog_housing_new?[{l:'ΤτΕ μέσο',v:market.bog_housing_new}]:[]),
-          ].map((item,i)=>{
-            const on=hoverRate===i
-            return (
-            <div key={item.l} onMouseEnter={()=>setHoverRate(i)} onMouseLeave={()=>setHoverRate(null)} onTouchStart={()=>setHoverRate(i)} onTouchEnd={()=>setHoverRate(null)}
-              style={{textAlign:'center' as const,minWidth:76,padding:'2px 10px',borderRadius:10,transition:'background 0.15s',background:on?'var(--bg-surface)':'transparent',cursor:'default'}}>
-              {/* Χωρίς `nowrap`: σε 115 εικονοστοιχεία στήλης το «Euribor
-                  τριμήνου» κοβόταν στο «Euribor τριμήν». Δύο γραμμές ετικέτας
-                  δεν χαλούν τη στοίχιση, γιατί το πλέγμα τεντώνει τα κουτιά. */}
-              <p style={{fontSize: 11,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:600,fontFamily: T.font.sans}}>{item.l}</p>
-              <p style={{fontSize:15,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:market.isLoading?'var(--border-default)':on?'var(--accent)':'var(--text-primary)',fontWeight:700,marginTop:2,letterSpacing:'-0.01em',transition:'color 0.15s'}}>
+          ].map(item=>(
+            /* ΤΟ ΔΙΑΧΩΡΙΣΤΙΚΟ ΗΤΑΝ ΑΡΙΣΤΕΡΟ ΠΕΡΙΓΡΑΜΜΑ, ΚΑΙ ΣΤΟ ΤΥΛΙΓΜΑ ΕΠΕΦΤΕ ΣΤΗΝ
+               ΑΡΧΗ ΤΗΣ ΓΡΑΜΜΗΣ. Μετρημένο στα 390: η λωρίδα σπάει σε 1+2+1 και
+               δύο κάθετες γραμμούλες κάθονταν κολλητά στο αριστερό περιθώριο,
+               χωρίς να χωρίζουν τίποτα. Ενα διαχωριστικό που δεν ξέρει πού
+               τελειώνει η σειρά του δεν είναι διαχωριστικό. Χωρίζει το κενό: η
+               ετικέτα είναι μικρή κεφαλαία και η τιμή έντονη, οπότε το ζευγάρι
+               διαβάζεται ως μονάδα χωρίς βοήθεια. */
+            <span key={item.l} style={{display:'inline-flex',alignItems:'baseline',gap:6,whiteSpace:'nowrap' as const}}>
+              <span style={{fontSize: 11,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.06em',fontWeight:600,fontFamily: T.font.sans}}>{item.l}</span>
+              <span style={{fontSize:13,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:market.isLoading?'var(--border-default)':'var(--text-primary)',fontWeight:700,letterSpacing:'-0.01em'}}>
                 {market.isLoading?'…':fmtPct(item.v)}
-              </p>
-            </div>
-          )})}
+              </span>
+            </span>
+          ))}
         </div>
       </div>
 
