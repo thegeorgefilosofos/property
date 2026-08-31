@@ -3375,6 +3375,16 @@ details.lp-faq-more[open] > div > details.lp-faq:first-child { border-top: none;
   .pf-table th.pf-pin-2, .pf-table td.pf-pin-2 { box-shadow: 1px 0 0 var(--border-subtle); }
 }
 
+/* Η ΟΝΟΜΑΣΙΑ ΤΗΣ ΓΡΑΜΜΗΣ ΜΕΝΕΙ ΟΣΟ ΚΥΛΑ Ο ΠΙΝΑΚΑΣ ΤΩΝ ΠΑΚΕΤΩΝ.
+   Χωρίς αυτό, μόλις ο επισκέπτης σύρει δεξιά για να δει το τελευταίο πακέτο,
+   βλέπει τέσσερα σημάδια και κανένα όνομα: συγκρίνει χωρίς να ξέρει τι. Το
+   φόντο είναι ρητό, αλλιώς οι στήλες που περνούν από κάτω φαίνονται μέσα από
+   τη διαφανή στήλη. */
+.plan-matrix-row-label {
+  position: sticky; left: 0; z-index: 1;
+  background: var(--bg-surface);
+}
+
 .po-scroll-x, .lp-plans, .lp-aud, .lp-duo {
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
@@ -3395,6 +3405,18 @@ details.lp-faq-more[open] > div > details.lp-faq:first-child { border-top: none;
    το μέγεθος γραμματοσειράς του καθορίζει το πάχος του δρομέα. */
 @media (pointer: coarse) {
   input:not([type="range"]), select, textarea { font-size: 16px !important; }
+
+  /* ── ΤΟ ΗΜΕΡΟΛΟΓΙΟ ΤΟΥ ΕΠΙΛΟΓΕΑ ΗΜΕΡΟΜΗΝΙΑΣ ─────────────────────────────
+     Το αναδυόμενο είναι 280 πλατύ με περιθώριο 16: μένουν 248 για επτά στήλες,
+     δηλαδή κελιά 35 επί 35 σε ένα πλέγμα όπου οι στόχοι εφάπτονται. Εννέα
+     εικονοστοιχεία κάτω από το όριο, στο πιο πυκνό χειριστήριο της εφαρμογής.
+
+     Επτά στήλες των 44 ζητούν 308 συν περιθώριο, άρα 340. Οσο δεν χωρούν —
+     οθόνη 320 — παίρνει ό,τι υπάρχει και το ΥΨΟΣ μένει 44: ο στόχος γίνεται
+     ορθογώνιος αντί για τετράγωνος, που είναι η σωστή απάντηση όταν το πλάτος
+     το ορίζει η συσκευή. */
+  .dp-pop { width: min(340px, calc(100vw - 20px)) !important; padding: 12px !important; }
+  .dp-day { aspect-ratio: auto !important; min-height: 44px; }
 }
 
 /* ── Η ΣΕΙΡΑ ΣΥΓΚΡΙΣΗΣ ΤΙΜΟΛΟΓΙΩΝ ΣΠΑΕΙ ΣΕ ΔΥΟ, ΔΕΝ ΣΤΡΙΜΩΧΝΕΤΑΙ ΣΕ ΤΡΙΑ ──

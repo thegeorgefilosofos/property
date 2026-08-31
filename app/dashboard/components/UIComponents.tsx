@@ -885,10 +885,17 @@ export function DatePicker({ label, labelInfo, ariaLabel, value, onChange, disab
   const reposition = () => {
     if (!ref.current) return;
     const r = ref.current.getBoundingClientRect();
-    const PANEL_W = 280, GAP = 4, MARGIN = 8;
+    const GAP = 4, MARGIN = 8;
+    // ΤΟ ΠΛΑΤΟΣ ΜΕΤΡΙΕΤΑΙ, ΔΕΝ ΥΠΟΤΙΘΕΤΑΙ. Εδώ ήταν σταθερά 280, όσο λέει το
+    // ενσωματωμένο στυλ. Σε οθόνη αφής όμως το φύλλο στυλ ανοίγει το ημερολόγιο
+    // στα 340 για να χωρέσουν στόχοι 44 εικονοστοιχείων· ο περιορισμός κρατούσε
+    // μέσα στην οθόνη ένα πλάτος που δεν υπήρχε και το ημερολόγιο έβγαινε ως και
+    // πενήντα δύο εικονοστοιχεία έξω από τη δεξιά άκρη, χωρίς η σελίδα να κυλά
+    // για να το φτάσει το δάχτυλο. Μετρημένο: 375 → 9 έξω, 320 → 12, 820 → 52.
+    const panelW = popupRef.current?.offsetWidth || 280;
     // Πραγματικό ύψος πίνακα (μεταβλητό: 5–6 εβδομάδες) — με fallback πριν ζωγραφιστεί.
     const panelH = popupRef.current?.offsetHeight || 344;
-    const left = Math.max(MARGIN, Math.min(r.left, window.innerWidth - PANEL_W - MARGIN));
+    const left = Math.max(MARGIN, Math.min(r.left, window.innerWidth - panelW - MARGIN));
     const below = window.innerHeight - r.bottom - MARGIN;
     // Προτίμηση προς τα κάτω· αν δεν χωράει ολόκληρο, γύρισμα προς τα πάνω, αλλιώς
     // clamp ώστε ο πίνακας να μένει πάντα πλήρως ορατός στην οθόνη.
@@ -1001,7 +1008,7 @@ export function DatePicker({ label, labelInfo, ariaLabel, value, onChange, disab
           zIndex: 2000,
           width: 280,
           boxShadow: 'var(--shadow-lg)',
-        }}>
+        }} className="dp-pop">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <button onClick={prevMonth} aria-label="Προηγούμενος μήνας" style={{ width: T.h.sm, height: T.h.sm, borderRadius: T.radius.card, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
@@ -1030,8 +1037,17 @@ export function DatePicker({ label, labelInfo, ariaLabel, value, onChange, disab
               const isSelected = value === iso;
               const isToday = today === iso;
               return (
+                /* ═══ ΤΟ ΚΕΛΙ ΗΜΕΡΑΣ ΗΤΑΝ 35 ΕΠΙ 35 ΣΕ ΔΑΧΤΥΛΟ ═══════════════
+                   Το αναδυόμενο είναι 280 πλατύ με περιθώριο 16: μένουν 248 για
+                   επτά στήλες, δηλαδή 35,4 η καθεμιά· και το `aspect-ratio: 1`
+                   τα κάνει και 35 ψηλά. Εννέα εικονοστοιχεία κάτω από το όριο,
+                   σε ένα πλέγμα όπου οι στόχοι ΑΓΓΙΖΟΝΤΑΙ μεταξύ τους: το λάθος
+                   πάτημα δεν είναι απροσεξία, είναι το αναμενόμενο.
+                   Η κλάση δίνει στο φύλλο στυλ τη λαβή να το διορθώσει μόνο
+                   όπου ο δείκτης είναι δάχτυλο. */
                 <button
                   key={day}
+                  className="dp-day"
                   onClick={() => pick(day)}
                   aria-label={localDay(iso).toLocaleDateString('el-GR', { day: 'numeric', month: 'long', year: 'numeric' })}
                   aria-current={isToday ? 'date' : undefined}

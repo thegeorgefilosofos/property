@@ -86,7 +86,16 @@ function Tick() {
  */
 export function PlanMatrix({ highlight }: { highlight?: PlanId }) {
   return (
-    <div style={{ overflowX: 'auto' }}>
+    /* ═══ ΔΥΟ ΠΡΑΓΜΑΤΑ ΠΟΥ ΘΕΛΕΙ ΚΑΘΕ ΟΡΙΖΟΝΤΙΟΣ ΠΙΝΑΚΑΣ ══════════════════════
+       1. `po-scroll-x`: χωρίς αυτό, η σάρωση που φτάνει στο τέρμα του πίνακα
+          συνεχίζει ως χειρονομία «πίσω» του iOS Safari. Ο επισκέπτης που
+          σέρνει τη σύγκριση πακέτων για να δει το τελευταίο βγαίνει από τη
+          σελίδα. Η κλάση υπάρχει και τη φορούν ήδη οι τέσσερις πίνακες των
+          δωρεάν εργαλείων· αυτός εδώ γράφτηκε αργότερα και την ξέχασε.
+       2. ΚΟΛΛΗΜΕΝΗ ΠΡΩΤΗ ΣΤΗΛΗ: μόλις ο πίνακας κυλήσει δεξιά, τα «ναι» και τα
+          «όχι» μένουν χωρίς όνομα γραμμής. Ο επισκέπτης βλέπει τέσσερα σημάδια
+          και δεν ξέρει τι συγκρίνει. */
+    <div className="po-scroll-x plan-matrix" style={{ overflowX: 'auto' }}>
       <div style={{ minWidth: 560 }}>
         <div style={{ display: 'grid', gridTemplateColumns: GRID, alignItems: 'end', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 10 }}>
           <div />
@@ -98,7 +107,7 @@ export function PlanMatrix({ highlight }: { highlight?: PlanId }) {
         </div>
         {MATRIX.map(row => (
           <div key={row.label} style={{ display: 'grid', gridTemplateColumns: GRID, alignItems: 'center', borderBottom: '1px solid var(--border-subtle)' }}>
-            <div style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.4, padding: '13px 12px 13px 2px' }}>{row.label}</div>
+            <div className="plan-matrix-row-label" style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.4, padding: '13px 12px 13px 2px' }}>{row.label}</div>
             {COMPARED.map(id => {
               const v = row.values[id];
               return (
