@@ -378,12 +378,10 @@ export const SERVICERS_GUIDE = {
   ],
 }
 
-export function calcMonthly(amount:number,annualRate:number,years:number):number {
-  if(amount<=0||years<=0)return 0
-  if(annualRate===0)return amount/(years*12)
-  const r=annualRate/100/12,n=years*12
-  return amount*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1)
-}
+// Η δόση υπολογίζεται ΜΙΑ φορά, στο lib/loans/progress. Εδώ έμενε τρίτο
+// αντίγραφο της ίδιας πράξης, χωρίς φύλαξη για NaN.
+export { monthlyPayment as calcMonthly } from '@/lib/loans/progress'
+import { monthlyPayment as calcMonthly } from '@/lib/loans/progress'
 
 export function calcAmortization(amount:number,annualRate:number,years:number):AmortRow[] {
   const rows:AmortRow[]=[],r=annualRate/100/12,monthly=calcMonthly(amount,annualRate,years)

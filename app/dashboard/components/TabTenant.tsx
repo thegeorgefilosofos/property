@@ -1068,7 +1068,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
                         κάτω από το άλλο, όπως κάθε άλλη σειρά. */}
                     <div className="form-row form-row-2">
                       {more('tenant.extra_perks')&&(
-                        <Textarea label={labelOf('tenant.extra_perks')} labelInfo={whyOf('tenant.extra_perks')} value={form.extra_perks} onChange={v=>sf('extra_perks',v)} placeholder="Αποθήκη, κήπος, κοινόχρηστο πλυντήριο…"/>
+                        <Textarea label={labelOf('tenant.extra_perks')} labelInfo={whyOf('tenant.extra_perks')} value={form.extra_perks} onChange={v=>sf('extra_perks',v)} placeholder="Αποθήκη, κήπος, πάρκινγκ…"/>
                       )}
                       {more('tenant.notes')&&(
                         <Textarea label={labelOf('tenant.notes')} labelInfo={whyOf('tenant.notes')} value={form.notes} onChange={v=>sf('notes',v)}/>

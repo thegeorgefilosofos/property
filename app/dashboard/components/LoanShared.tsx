@@ -80,9 +80,20 @@ export function KPI({label,value,emphasis,sub,title}:{label:string;value:string;
 // Cockpit: εναλλαγή φακών επί τόπου (segmented control, ένα πάνελ τη φορά).
 export function LensBar({value,onChange,items,barRef}:{value:string;onChange:(v:string)=>void;items:{id:string;label:string}[];barRef?:React.Ref<HTMLDivElement>}) {
   return (
-    <div ref={barRef} style={{display:'flex',gap:3,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:T.radius.card,padding:4,overflowX:'auto'}}>
+    /* ══ Ο ΤΕΤΑΡΤΟΣ ΦΑΚΟΣ ΕΒΓΑΙΝΕ ΕΞΩ ΑΠΟ ΤΗΝ ΟΘΟΝΗ ΣΤΟ ΚΙΝΗΤΟ ═══════════
+       Μετρημένο στα 375: η μπάρα χωρά 349 εικονοστοιχεία και τα τέσσερα
+       κουμπιά θέλουν 452, οπότε το «Οδηγός» ξεκινούσε 98 έξω από το ορατό
+       κουτί. Το `overflow-x: auto` δεν σχεδιάζει τίποτα που να το δείχνει:
+       καμία σκιά, κανένα βέλος, καμία μπάρα κύλισης σε κινητό. Ο χρήστης
+       δεν έβλεπε ότι υπάρχει τέταρτος προορισμός, άρα δεν υπήρχε.
+
+       ΤΥΛΙΓΕΤΑΙ ΣΕ ΙΣΕΣ ΣΤΗΛΕΣ, ΔΕΝ ΚΥΛΑΕΙ. Η πλοήγηση μιας ενότητας δείχνει
+       ΟΛΟΥΣ τους προορισμούς της· δύο σειρές στο κινητό είναι φθηνότερες
+       από έναν κρυμμένο. Ο κανόνας ζει στο `.lens-bar` του globals.css,
+       γιατί χρειάζεται πλέγμα με κατώφλι στήλης. ══════════════════════ */
+    <div ref={barRef} className="lens-bar" style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:T.radius.card,padding:4}}>
       {items.map(it=>{const on=value===it.id;return(
-        <button key={it.id} onClick={()=>onChange(it.id)} aria-pressed={on} style={{flex:'1 0 auto',minWidth:92,borderRadius:T.radius.inner,padding:'9px 14px',cursor:'pointer',fontFamily: T.font.sans,fontSize:13,fontWeight:on?600:500,whiteSpace:'nowrap' as const,border:'none',
+        <button key={it.id} onClick={()=>onChange(it.id)} aria-pressed={on} style={{minWidth:0,borderRadius:T.radius.inner,padding:'9px 14px',cursor:'pointer',fontFamily: T.font.sans,fontSize:13,fontWeight:on?600:500,whiteSpace:'nowrap' as const,border:'none',
           color:on?'var(--accent)':'var(--text-tertiary)',background:on?'var(--bg-elevated)':'transparent',
           boxShadow:on?'0 1px 2px color-mix(in srgb, var(--text-primary) 10%, transparent), 0 2px 8px -4px color-mix(in srgb, var(--text-primary) 18%, transparent)':'none',
           transition:'color 0.2s, background 0.2s, box-shadow 0.2s'}}>{it.label}</button>

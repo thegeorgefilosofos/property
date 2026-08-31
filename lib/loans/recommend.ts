@@ -95,13 +95,21 @@ export const SPITI_MOU = {
 }
 
 // Τοκοχρεολύσιο: σταθερή μηνιαία δόση (annuity).
-export function annuityMonthly(principal: number, annualRatePct: number, years: number): number {
-  if (principal <= 0 || years <= 0) return 0
-  if (annualRatePct === 0) return principal / (years * 12)
-  const r = annualRatePct / 100 / 12
-  const n = years * 12
-  return principal * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1)
-}
+/**
+ * Η ΜΗΝΙΑΙΑ ΔΟΣΗ ΓΡΑΦΟΤΑΝ ΤΡΕΙΣ ΦΟΡΕΣ, ΜΕ ΤΡΙΑ ΟΝΟΜΑΤΑ.
+ *
+ *   lib/loans/progress.ts        `monthlyPayment`   με φύλαξη NaN και στρογγυλά
+ *                                                   στους μήνες
+ *   lib/loans/recommend.ts       `annuityMonthly`   χωρίς φύλαξη
+ *   components/TabLoanData.tsx   `calcMonthly`      χωρίς φύλαξη
+ *
+ * Ιδια πράξη, τρία σημεία που μπορούν να αποκλίνουν· και μία οθόνη που τα
+ * δείχνει ΟΛΑ μαζί: ο υπολογιστής με το ένα, η σύσταση με το άλλο. Μένει η πιο
+ * αυστηρή, η μόνη που δεν αφήνει NaN να περάσει· το όνομα εδώ γίνεται συνώνυμο
+ * ώστε να μη χρειαστεί να αλλάξουν οι δεκάδες κλήσεις.
+ */
+export { monthlyPayment as annuityMonthly } from './progress'
+import { monthlyPayment as annuityMonthly } from './progress'
 
 export function totalInterest(principal: number, annualRatePct: number, years: number): number {
   const m = annuityMonthly(principal, annualRatePct, years)
@@ -269,9 +277,14 @@ export function rankLoans(needs: UserLoanNeeds, banks: BankInput[], euribor3m: n
       rateType,
       nominalRatePct: Number(nominal.toFixed(2)),
       effectiveRatePct: Number(effectiveRatePct.toFixed(2)),
-      monthlyPayment: Math.round(monthlyPayment),
-      totalInterest: Math.round(interest),
-      totalCost: Math.round(needs.amount + interest),
+      // ══ Η ΣΤΡΟΓΓΥΛΟΠΟΙΗΣΗ ΕΔΩ ΕΒΓΑΖΕ ΔΥΟ ΔΟΣΕΙΣ ΓΙΑ ΤΟ ΙΔΙΟ ΔΑΝΕΙΟ ═══════
+      // Μετρημένο σε 120.000 € / 25 έτη / 2,40%: ο υπολογιστής έγραφε 532,32 €
+      // και η σύσταση 532,00 €, δύο κάρτες πιο κάτω, για την ΙΔΙΑ τράπεζα και το
+      // ίδιο επιτόκιο. Η στρογγυλοποίηση είναι δουλειά της μορφοποίησης, που
+      // δίνει ήδη δύο δεκαδικά· εδώ ήταν απώλεια ακρίβειας που φαινόταν.
+      monthlyPayment,
+      totalInterest: interest,
+      totalCost: needs.amount + interest,
       ltvPct: Number(ltv.toFixed(1)),
       spitiMouApplied: useSpiti,
       eligible: blockers.length === 0,

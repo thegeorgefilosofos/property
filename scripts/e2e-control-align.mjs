@@ -35,7 +35,7 @@ const require = createRequire(import.meta.url)
 const { chromium } = require('playwright-core')
 
 const SCENES = ['overview','portfolio','cash','rent','inbox','ledger','finances','checklist',
-  'compare','loan','pricing','bills','contacts','wizard','roi','tenant','scan','inventory',
+  'compare','loan','loanAdvisor','pricing','bills','contacts','wizard','roi','tenant','scan','inventory',
   'accounting','calendar','clients','documents','plan','billing','branding','referral','modal','select']
 
 // Ενα εικονοστοιχείο δεν είναι αστοχία σχεδίασης, είναι στρογγυλοποίηση του

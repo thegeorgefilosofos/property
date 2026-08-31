@@ -158,9 +158,17 @@ export function programStatus(p: ProgramDates, today: Date): ProgramStatus {
     }
   }
 
+  // ΤΟ `??` ΔΕΝ ΠΕΦΤΕΙ ΣΤΟ ΕΠΟΜΕΝΟ ΟΤΑΝ ΤΟ ΠΡΩΤΟ ΕΙΝΑΙ ΚΕΝΗ ΣΥΜΒΟΛΟΣΕΙΡΑ.
+  // Ο κανονικοποιητής γράφει `''` σε προγράμματα χωρίς προθεσμία αίτησης, οπότε
+  // το `applicationDeadline ?? deadline` επέστρεφε το κενό και η πρόταση έβγαινε
+  // «Εκλεισε . Τυχόν νέος κύκλος…», με τελεία που κρέμεται. Μετρημένο στο
+  // «Εξοικονομώ 2025», που έχει μόνο ημερομηνία λήξης.
+  const closedOn = programDateLabel(p.applicationDeadline || p.deadline);
   return {
     state: 'closed', badge: 'Έκλεισε', acceptsApplications: false, daysLeft: daysToApply,
-    note: `Έκλεισε ${programDateLabel(p.applicationDeadline ?? p.deadline)}. Τυχόν νέος κύκλος ανακοινώνεται από τον φορέα.`,
+    note: closedOn
+      ? `Έκλεισε ${closedOn}. Τυχόν νέος κύκλος ανακοινώνεται από τον φορέα.`
+      : 'Έκλεισε. Τυχόν νέος κύκλος ανακοινώνεται από τον φορέα.',
   };
 }
 

@@ -212,8 +212,19 @@ export function portfolio(n: number): Bench {
     id: 'ln0', property_id: 'p0', user_id: 'u1', bank: 'Τράπεζα Πειραιώς',
     loan_amount: 120_000, down_payment: 40_000, rate_type: 'floating',
     fixed_rate: null, euribor: 2.6, spread: 1.8, years: 25,
-    start_date: `${YEAR - 4}-03-01`, status: 'active', loan_type: 'mortgage',
+    start_date: `${YEAR - 4}-03-01`, status: 'active', loan_type: 'purchase',
     property_value: 190_000, notes: null, created_at: `${YEAR - 4}-03-01`,
+  });
+  // ΔΕΥΤΕΡΟ ΔΑΝΕΙΟ, ΓΙΑΤΙ Η ΣΥΝΟΨΗ ΥΠΑΡΧΕΙ ΜΟΝΟ ΜΕ ΔΥΟ ΚΑΙ ΠΑΝΩ. Με ένα δάνειο
+  // η «Ενιαίο δάνειο, συνολική εικόνα» δεν αποδίδεται πια (ήταν αντίγραφο της
+  // κάρτας), οπότε καμία σάρωση δεν θα την άνοιγε ξανά: τα τέσσερα πλακίδια
+  // αθροίσματος, η κατανομή της δόσης και το υπόμνημα θα έμεναν αμέτρητα.
+  loans.push({
+    id: 'ln1', property_id: 'p0', user_id: 'u1', bank: 'Eurobank',
+    loan_amount: 18_000, down_payment: 0, rate_type: 'fixed',
+    fixed_rate: 5.9, euribor: null, spread: null, years: 7,
+    start_date: `${YEAR - 1}-09-15`, status: 'active', loan_type: 'renovation',
+    property_value: 190_000, notes: null, created_at: `${YEAR - 1}-09-15`,
   });
 
   // Ρυθμίσεις λογαριασμών: τα κλειδιά που διαβάζουν οι οθόνες των Λογαριασμών

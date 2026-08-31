@@ -109,7 +109,7 @@ const CMP_LOAN = {
   id: 'l1', property_id: 'p3', user_id: 'u1', bank: 'Τράπεζα δοκιμής',
   loan_amount: 100000, down_payment: 0, rate_type: 'fixed', fixed_rate: 3,
   euribor: null, spread: null, years: 30, start_date: `${new Date().getFullYear()}-01-01`,
-  status: 'active', loan_type: 'mortgage', property_value: 200000, notes: null,
+  status: 'active', loan_type: 'purchase', property_value: 200000, notes: null,
   created_at: `${new Date().getFullYear()}-01-01`,
 };
 

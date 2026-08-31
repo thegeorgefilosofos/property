@@ -651,7 +651,7 @@ const RUN_DEVICES = PICK_W ? DEVICES.filter(d => PICK_W.includes(d.w)) : DEVICES
 
 const WIDTHS = DEVICES.map(d => d.w)
 const TOUCH = (w) => w < 1100 || w === 1280
-const SCENES = ['overview','portfolio','cash','rent','inbox','ledger','finances','checklist','modal','select','compare','loan','pricing','bills','contacts','wizard','roi','roi-pro','tenant','scan','accounting','accounting-pro','calendar','clients','documents','inventory','billing','branding','referral','referralPro','plan','planReno','planSale']
+const SCENES = ['overview','portfolio','cash','rent','inbox','ledger','finances','checklist','modal','select','compare','loan','loanAdvisor','pricing','bills','contacts','wizard','roi','roi-pro','tenant','scan','accounting','accounting-pro','calendar','clients','documents','inventory','billing','branding','referral','referralPro','plan','planReno','planSale']
 // ═══ ΤΑ ΠΑΡΑΘΥΡΑ ΠΟΥ ΑΝΟΙΓΟΥΝ ΜΕ ΚΟΥΜΠΙ ═════════════════════════════════════
 // ΜΙΑ ΦΟΡΜΑ ΜΕΣΑ ΣΕ ΠΑΡΑΘΥΡΟ ΔΕΝ ΑΠΟΔΙΔΕΤΑΙ ΑΝ ΔΕΝ ΤΗΝ ΑΝΟΙΞΕΙ ΚΑΠΟΙΟΣ. Η φόρμα
 // ενοικιαστή ζει πίσω από το «Νέος ενοικιαστής» και καμία μέτρηση δεν την είχε

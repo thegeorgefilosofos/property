@@ -102,5 +102,23 @@ const greenRanked = rankLoans({ ...baseNeeds, purpose: 'purchase', energyClass: 
 const noGreen = rankLoans({ ...baseNeeds, purpose: 'purchase' }, banks, 2.324, OPEN_DAY)
 ok('green class lowers Cheap nominal rate', greenRanked.find(r => r.bankId === 'cheap')!.nominalRatePct < noGreen.find(r => r.bankId === 'cheap')!.nominalRatePct)
 
+// ══ ΜΙΑ ΔΟΣΗ ΓΙΑ ΤΟ ΙΔΙΟ ΔΑΝΕΙΟ, ΟΠΟΥ ΚΙ ΑΝ ΥΠΟΛΟΓΙΣΤΕΙ ═══════════════════
+//
+// Η κατάταξη στρογγύλευε τη δόση σε ακέραια ευρώ ενώ ο υπολογιστής της ίδιας
+// οθόνης έδειχνε δεκαδικά. Μετρημένο σε 120.000 € / 25 έτη / 2,40%: η ανάγνωση
+// του σεναρίου έγραφε «δόση 532,32 €» και η κάρτα σύστασης, δύο κάρτες πιο
+// κάτω, «532,00 € τον μήνα». Ιδια τράπεζα, ίδιο επιτόκιο, ίδιο δάνειο.
+{
+  const amount = 120_000, years = 25, rate = 3
+  const flat = [{ id: 'flat', name: 'Flat', fixed_min: rate, fixed_3yr: String(rate), variable_min: rate,
+    max_ltv: 90, max_years: 40, max_amount: 500_000, min_amount: 10_000, spiti_mou: false, green_discount: 0 }]
+  const one = rankLoans({ ...baseNeeds, amount, years, purpose: 'purchase' }, flat as never, 2.324, OPEN_DAY)[0]
+  const direct = annuityMonthly(amount, rate, years)
+  ok('η κατάταξη δίνει την ίδια δόση με τον τύπο', Math.abs(one.monthlyPayment - direct) < 0.0001)
+  ok('και η δόση κρατά τα λεπτά της', Math.abs(one.monthlyPayment - Math.round(one.monthlyPayment)) > 0.001)
+  ok('το συνολικό κόστος βγαίνει από την ίδια δόση',
+    Math.abs(one.totalCost - (amount + (direct * years * 12 - amount))) < 0.01)
+}
+
 console.log(`\nrecommend.test: ${passed} passed, ${failed} failed`)
 if (failed > 0) process.exit(1)

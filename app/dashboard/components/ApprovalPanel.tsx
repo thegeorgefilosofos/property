@@ -1,6 +1,6 @@
 'use client'
 import { T, TT, formGrid, fixedCols } from '@/components/Theme'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { NumberInput, CustomSelect, Toggle, InfoChip } from './UIComponents'
 import { assessApproval, verdictLabel, type EmploymentType, type CreditHistory } from '@/lib/loans/approval'
 import { fp } from '@/lib/core/format'
@@ -108,18 +108,23 @@ export default function ApprovalPanel({
           κέρσορα (το κόκκινο για πραγματικό κίνδυνο παραμένει πάντα). */}
       {(()=>{ const blocked=res.verdict==='blocked'
         const verdictColor = blocked?'var(--negative)':(vh?'var(--accent)':'var(--text-primary)')
-        const barColor = blocked?'var(--negative)':(vh?'var(--accent)':'var(--text-secondary)')
         return (
       <div onMouseEnter={()=>setVh(true)} onMouseLeave={()=>setVh(false)} onTouchStart={()=>setVh(true)} onTouchEnd={()=>setVh(false)}
         style={{background:'var(--bg-surface)',border:`1px solid ${vh?'var(--border-default)':'var(--border-subtle)'}`,borderRadius: T.radius.card,padding:'16px',transition:'border-color 0.15s'}}>
-        <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:14,flexWrap:'wrap',marginBottom:12}}>
-          <p style={{fontSize:16,fontWeight:700,fontFamily: T.font.sans,color:verdictColor,letterSpacing:'-0.01em',transition:'color 0.15s'}}>{verdictLabel(res.verdict)}</p>
-          <p style={{fontSize:13,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:'var(--text-tertiary)',fontWeight:600}}>{res.score}<span style={{fontSize:11,color:'var(--text-tertiary)'}}> / 100</span></p>
-        </div>
-        <div role="progressbar" aria-valuenow={res.score} aria-valuemin={0} aria-valuemax={100} aria-label={`Βαθμολογία έγκρισης ${res.score} στα 100`} style={{height:6,borderRadius:3,background:'color-mix(in srgb, var(--text-primary) 8%, transparent)',overflow:'hidden'}}>
-          <div style={{height:'100%',width:`${res.score}%`,borderRadius:3,background:barColor,transition:'width 0.3s, background 0.15s'}}/>
-        </div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))',gap:10,marginTop:14}}>
+        {/* ══ ΔΥΟ ΒΑΘΜΟΛΟΓΙΕΣ ΣΤΑ 100, Η ΜΙΑ ΚΑΤΩ ΑΠΟ ΤΗΝ ΑΛΛΗ ══════════════
+            Δύο κάρτες στην ίδια κύλιση έδειχναν αριθμό στα 100 με μπάρα από
+            κάτω, με το ΙΔΙΟ ακριβώς σχήμα: η «Ανάλυση δανείου» βαθμολογούσε
+            την ποιότητα του δανείου, αυτή εδώ την πιθανότητα έγκρισης. Ιδιο
+            σχήμα, άλλο νόημα: ο αναγνώστης τα διάβαζε ως δύο μετρήσεις του
+            ίδιου πράγματος που διαφωνούν («100 / 100» και δίπλα «92 / 100»).
+
+            Ο αριθμός έφυγε από ΕΔΩ, όχι από την Ανάλυση: εκεί η βαθμολογία
+            είναι το περιεχόμενο της κάρτας, εδώ η ετυμηγορία τη λέει ήδη με
+            λέξεις («Υψηλή πιθανότητα έγκρισης») και τα τέσσερα μεγέθη από
+            κάτω δίνουν τα στοιχεία πάνω στα οποία βγήκε, με τα όριά τους.
+            Ενας βαθμός στα 100 σε όλη την καρτέλα. ══════════════════════ */}
+        <p style={{fontSize:16,fontWeight:700,fontFamily: T.font.sans,color:verdictColor,letterSpacing:'-0.01em',transition:'color 0.15s',marginBottom:14}}>{verdictLabel(res.verdict)}</p>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))',gap:10}}>
           {metrics.map((m,i)=>(
             <div key={m.l} onMouseEnter={()=>setHm(i)} onMouseLeave={()=>setHm(null)} onTouchStart={()=>setHm(i)} onTouchEnd={()=>setHm(null)}>
               <p style={{fontSize: 11,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.06em',fontWeight:700,fontFamily: T.font.sans,marginBottom:4}}>{m.l}</p>

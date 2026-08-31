@@ -33,6 +33,7 @@ import TabComparison from '@/app/dashboard/components/TabComparison';
 // ΟΙ ΟΘΟΝΕΣ ΠΟΥ ΦΩΤΟΓΡΑΦΙΣΕ Ο ΧΡΗΣΤΗΣ ΣΕ ΤΑΜΠΛΕΤΑ. Ο πάγκος έδειχνε εννιά
 // οθόνες και καμία από αυτές: ο έλεγχος διάταξης έβγαινε πράσινος για κώδικα
 // που κανείς δεν κοίταζε. Δάνειο, τιμολόγηση βραχυχρόνιας, λογαριασμοί, επαφές.
+import TabLoan from '@/app/dashboard/components/TabLoan';
 import TabLoanCalculator from '@/app/dashboard/components/TabLoanCalculator';
 import { MARKET_FALLBACK } from '@/app/dashboard/components/TabLoanData';
 import TabPricing from '@/app/dashboard/components/TabPricing';
@@ -257,6 +258,13 @@ const VIEWS: Record<string, () => React.ReactElement> = {
   checklist: () => <TabChecklist propertyId="p0" userId="u1" />,
   compare: () => <TabComparison properties={comparePair as never} userId="u1" />,
   loan: () => <LoanScene />,
+  // ══ Η ΣΥΜΒΟΥΛΕΥΤΙΚΗ ΔΑΝΕΙΟΥ ΔΕΝ ΕΙΧΕ ΜΕΤΡΗΘΕΙ ΠΟΤΕ ══════════════════════
+  // Η σκηνή «loan» στήνει ΜΟΝΟ τον υπολογιστή. Ολο το υπόλοιπο της καρτέλας —
+  // η ανάλυση σεναρίου, η πιθανότητα έγκρισης, η σύγκριση τραπεζών, τα κρατικά
+  // προγράμματα, ο οδηγός — δηλαδή το μεγαλύτερο και πιο σύνθετο κομμάτι της
+  // εφαρμογής, δεν το άνοιγε καμία σάρωση: ούτε η διάταξη, ούτε ο κάθετος
+  // χώρος, ούτε η στοίχιση χειριστηρίων, ούτε η προσβασιμότητα.
+  loanAdvisor: () => <TabLoan propertyId="p0" userId="u1" propertyValue={185000} propertySqm={78} propertyYearBuilt={1998} />,
   pricing: () => <TabPricing propertyId="p0" userId="u1" propertyName="Στούντιο Κουκάκι" propertySqm={42} />,
   bills: () => <TabBills propertyId="p0" userId="u1" />,
   contacts: () => <TabContacts propertyId="p0" userId="u1" />,
