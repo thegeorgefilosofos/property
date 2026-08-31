@@ -23,7 +23,7 @@ function ok(name: string, cond: boolean) {
 
 const sources = JSON.parse(readFileSync('data/price-sources.json', 'utf8')) as {
   electricity: { label: string; checkedAt: string; maxAgeDays: number; sources: { name: string; url: string }[] };
-  gas: { label: string; checkedAt: string };
+  gas: { label: string; checkedAt: string; maxAgeDays: number; sources: { name: string; url: string }[] };
   insurance: { label: string; checkedAt: string; maxAgeDays: number; registryVerifiedAt: string | null };
 };
 
@@ -57,6 +57,20 @@ const im = /const INSURANCE_MAX_AGE_DAYS = (\d+)/.exec(ins);
 eq('η ημερομηνία της ασφάλειας συμφωνεί με το checkedAt', iv?.[1], sources.insurance.checkedAt);
 eq('και το κατώφλι της με το maxAgeDays', Number(im?.[1]), sources.insurance.maxAgeDays);
 
+// ── ΤΟ ΑΕΡΙΟ, ΠΟΥ ΔΕΝ ΤΟ ΦΥΛΑΓΕ ΤΙΠΟΤΑ ─────────────────────────────────────
+// Το `gas` υπήρχε στο price-sources.json και καμία γραμμή δεν το διάβαζε: οι δύο
+// ημερομηνίες του καταλόγου αερίου ζούσαν ανεξάρτητα από τη δηλωμένη πηγή και
+// έμειναν στον Ιούλιο ενώ ο κατάλογος ξαναγράφτηκε από τα στοιχεία Αυγούστου.
+// Τώρα η κεφαλίδα της οθόνης, η πύλη φρεσκάδας και η καταγραφή της πηγής
+// δείχνουν την ίδια ημέρα ή ο έλεγχος πέφτει.
+const gasCat = readFileSync('lib/energy/gas.ts', 'utf8');
+const gv = /export const GAS_VERIFIED = '([^']+)'/.exec(gasCat);
+const gl = /export const GAS_LABEL = '([^']+)'/.exec(gasCat);
+const gm = /export const GAS_MAX_AGE_DAYS = (\d+)/.exec(gasCat);
+eq('η ημερομηνία του αερίου συμφωνεί με το checkedAt', gv?.[1], sources.gas.checkedAt);
+eq('και η ετικέτα του με το label', gl?.[1], sources.gas.label);
+eq('και το κατώφλι του με το maxAgeDays', Number(gm?.[1]), sources.gas.maxAgeDays);
+
 // Η ημερομηνία ελέγχου πρέπει να είναι πραγματική ημερομηνία, όχι κείμενο.
 for (const key of ['electricity', 'gas', 'insurance'] as const) {
   const iso = sources[key].checkedAt;
@@ -65,7 +79,9 @@ for (const key of ['electricity', 'gas', 'insurance'] as const) {
 }
 
 ok('το ρεύμα έχει καταγεγραμμένες πηγές', sources.electricity.sources.length >= 3);
-ok('κάθε πηγή έχει διεύθυνση', sources.electricity.sources.every(s => /^https:\/\//.test(s.url)));
+ok('το αέριο έχει καταγεγραμμένες πηγές', sources.gas.sources.length >= 1);
+ok('κάθε πηγή έχει διεύθυνση',
+  [...sources.electricity.sources, ...sources.gas.sources].every(s => /^https:\/\//.test(s.url)));
 
 // Δεν δηλώνουμε επαλήθευση μητρώου που δεν έγινε. Όταν γίνει από άνθρωπο,
 // μπαίνει ημερομηνία και αυτός ο έλεγχος τη δέχεται.

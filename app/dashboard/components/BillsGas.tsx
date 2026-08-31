@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 // Οι ρυθμίσεις ανά ενότητα έχουν ένα σπίτι: lib/data/settings.
 import * as settings from '@/lib/data/settings';
@@ -10,7 +10,11 @@ import { useBillsSettings } from './BillsSettings';
 import { usePropertyHeating } from './usePropertyHeating';
 import { usesGas } from '@/lib/property/heating';
 import { T, fe, feRate, Spinner, fixedCols } from '@/components/Theme';
-import { RAAEY_COMPARE, RAAEY_NAME } from '@/lib/energy/freshness';
+import { canRecommend, freshness, RAAEY_COMPARE, RAAEY_NAME } from '@/lib/energy/freshness';
+// Ο κατάλογος είναι δεδομένα και ζει στο lib, όπως και του ρεύματος. Η οθόνη
+// τον διαβάζει, δεν τον φιλοξενεί: 130 γραμμές τιμών μέσα σε React component
+// σήμαιναν ότι κάθε διόρθωση τιμής έδειχνε αλλαγή σε οθόνη.
+import { GAS_PROVIDERS, NETWORK_OPERATORS, GAS_LABEL, GAS_VERIFIED, GAS_MAX_AGE_DAYS } from '@/lib/energy/gas';
 import { saved } from '@/components/dbWrite';
 import { athensToday } from '@/lib/core/time';
 
@@ -18,168 +22,10 @@ import { athensToday } from '@/lib/core/time';
  * Η ΤΙΜΗ ΤΗΣ ΚΙΛΟΒΑΤΩΡΑΣ ΑΕΡΙΟΥ, ΜΕ ΤΑ ΔΕΚΑΔΙΚΑ ΠΟΥ ΤΗΝ ΞΕΧΩΡΙΖΟΥΝ.
  * Το ίδιο σφάλμα με το ρεύμα, στην επόμενη οθόνη: ήταν `fe(n, 4)`, που
  * διαβάζεται σαν «τέσσερα δεκαδικά» ενώ το δεύτερο όρισμα αγνοούνταν. Οι
- * χρεώσεις αερίου κινούνται στα 0,0850–0,0899 €/kWh — στα δύο δεκαδικά όλες
- * γίνονταν «0,09 €», δηλαδή η στήλη σύγκρισης έδειχνε τα πάντα ίδια.
+ * χρεώσεις αερίου κινούνται στα 0,0398–0,0870 €/kWh — στα δύο δεκαδικά όλες
+ * γίνονταν «0,05 €», δηλαδή η στήλη σύγκρισης έδειχνε τα πάντα ίδια.
  */
 const fk = feRate;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ΠΗΓΕΣ & ΗΜΕΡΟΜΗΝΙΑ ΕΠΑΛΗΘΕΥΣΗΣ
-// Τελευταία επαλήθευση: Ιούλιος 2026, από επίσημες σελίδες παρόχων
-// (nrg.gr, zenith.gr, energy.elin.gr, fysikoaerioellados.gr, protergia.gr,
-//  heron.gr, dei.gr) και το εργαλείο σύγκρισης της ΡΑΑΕΥ.
-//
-// ΣΗΜΑΝΤΙΚΟ, για να ΜΗΝ παραπλανάται ο χρήστης:
-// 1. Όλες οι τιμές αφορούν ΜΟΝΟ τη χρέωση προμήθειας (ανταγωνιστικό σκέλος).
-//    Ο τελικός λογαριασμός περιλαμβάνει επιπλέον: ρυθμιζόμενες χρεώσεις
-//    δικτύου (ΕΔΑ/ΔΕΣΦΑ), ΕΦΚ και ΦΠΑ 6% και βγαίνει αισθητά υψηλότερος.
-// 2. Τα κυμαινόμενα τιμολόγια ΔΕΝ έχουν σταθερή τιμή: υπολογίζονται από
-//    τύπο βάσει του δείκτη TTF που αλλάζει κάθε μήνα. Εδώ ο υπολογισμός
-//    γίνεται διαφανώς από τον τύπο του παρόχου + το TTF που ορίζει ο χρήστης.
-// 3. Κάθε τιμή φέρει σήμανση: ΕΠΙΒΕΒΑΙΩΜΕΝΗ / ΕΝΔΕΙΚΤΙΚΗ / ΤΥΠΟΣ TTF.
-// ─────────────────────────────────────────────────────────────────────────────
-const LAST_VERIFIED = 'Ιούλιος 2026';
-const DEFAULT_TTF_EUR_MWH = 33; // Ενδεικτική τιμή TTF €/MWh, ο χρήστης τη διορθώνει
-
-type PriceStatus = 'verified' | 'indicative' | 'formula';
-
-interface GasTariff {
-  id: string;
-  name: string;
-  badge: 'ΜΠΛΕ' | 'ΚΙΤΡΙΝΟ' | 'ΕΙΔΙΚΟ';
-  type: 'fixed' | 'variable' | 'special';
-  segment: 'residential' | 'business';
-  priceStatus: PriceStatus;      // πόσο αξιόπιστη είναι η τιμή
-  kwh?: number;                  // σταθερή/ενδεικτική χρέωση €/kWh (προμήθεια)
-  ttfMultiplier?: number;        // για formula: kWh = multiplier × TTF + margin
-  ttfMargin?: number;            // περιθώριο παρόχου €/kWh
-  fixed: number;                 // αρχικό μηνιαίο πάγιο €
-  fixedNote?: string;            // εκπτώσεις παγίου
-  vat: number;
-  desc: string;
-  contract_months?: number;
-  dual_fuel_discount?: number;   // €/kWh έκπτωση σε συνδυασμό με ρεύμα
-  sourceNote?: string;           // από πού προκύπτει η τιμή
-}
-
-// ── Διαχειριστές δικτύου ανά περιοχή ─────────────────────────────────────────
-const NETWORK_OPERATORS = [
-  { value: 'eda_attikis', label: 'ΕΔΑ Αττικής', region: 'Αττική', url: 'https://www.edaattikis.gr' },
-  { value: 'eda_thess',   label: 'ΕΔΑ ΘΕΣΣ',     region: 'Θεσσαλονίκη / Θεσσαλία', url: 'https://www.edathess.gr' },
-  { value: 'deda',        label: 'ΔΕΔΑ',          region: 'Λοιπή Ελλάδα', url: 'https://deda.gr' },
-];
-
-const GAS_PROVIDERS: { value: string; label: string; url: string; tariffs: GasTariff[] }[] = [
-  {
-    value: 'nrg', label: 'nrg (Motor Oil)', url: 'https://www.nrg.gr',
-    tariffs: [
-      { id: 'nrg_fixed',      name: 'nrg fixed GAS',          badge: 'ΜΠΛΕ',    type: 'fixed',    segment: 'residential', priceStatus: 'verified',
-        kwh: 0.0470, fixed: 4.80, fixedNote: 'Έκπτωση παγίου: −30% με ηλεκτρονικό λογαριασμό και πάγια εντολή, −20% με πάγια εντολή, −10% με ηλεκτρονικό λογαριασμό', vat: 6, contract_months: 12,
-        desc: 'Σταθερή τιμή για 12 μήνες, χωρίς προϋποθέσεις και χωρίς ρήτρα αναπροσαρμογής.', sourceNote: 'Επίσημη τιμή nrg, επαληθεύτηκε Ιούλιος 2026' },
-      { id: 'nrg_fixed_ot',   name: 'nrg fixed on time GAS',  badge: 'ΜΠΛΕ',    type: 'fixed',    segment: 'residential', priceStatus: 'verified',
-        kwh: 0.0350, fixed: 4.80, fixedNote: 'Τελική τιμή με Έκπτωση Συνέπειας ΚΑΙ συνδυασμό με ρεύμα nrg', vat: 6, contract_months: 12,
-        desc: 'Σταθερό 12μηνο. Η τιμή 0,035 €/kWh ισχύει με εμπρόθεσμη πληρωμή και ρεύμα nrg, αλλιώς ισχύει υψηλότερη βασική τιμή.', sourceNote: 'Επίσημη τιμή nrg, επαληθεύτηκε Ιούλιος 2026' },
-      { id: 'nrg_ontime',     name: 'nrg on time GAS',        badge: 'ΚΙΤΡΙΝΟ', type: 'variable', segment: 'residential', priceStatus: 'formula',
-        ttfMultiplier: 1.10, ttfMargin: 0.0126, fixed: 4.80, fixedNote: 'Πάγιο με εκπτώσεις: 1,80 € με πάγια εντολή και ηλεκτρονικό λογαριασμό, 2,80 € με πάγια εντολή, 3,80 € με ηλεκτρονικό λογαριασμό', vat: 6,
-        desc: 'Κυμαινόμενο: (1,10 × TTF) + 0,0126 €/kWh με Έκπτωση Συνέπειας 40% στο περιθώριο. Χωρίς έκπτωση: περιθώριο 0,0210 €/kWh. Χωρίς δέσμευση.', sourceNote: 'Τύπος από επίσημη σελίδα nrg' },
-      { id: 'nrg_prime',      name: 'nrg prime GAS',          badge: 'ΚΙΤΡΙΝΟ', type: 'variable', segment: 'residential', priceStatus: 'formula',
-        ttfMultiplier: 1.00, ttfMargin: 0.0090, fixed: 4.80, fixedNote: 'Προνομιακές εκπτώσεις παγίου', vat: 6,
-        desc: 'Ενέργεια στο κόστος + 0,009 €/kWh. Για αυτόνομη ή κεντρική θέρμανση, χωρίς ρήτρα αναπροσαρμογής και χωρίς δέσμευση.', sourceNote: 'Τύπος από επίσημη σελίδα nrg' },
-      { id: 'nrg_ontime_biz', name: 'nrg on time GAS 4BUSINESS', badge: 'ΚΙΤΡΙΝΟ', type: 'variable', segment: 'business', priceStatus: 'formula',
-        ttfMultiplier: 1.10, ttfMargin: 0.0099, fixed: 4.80, fixedNote: 'Μηδενικό πάγιο με πάγια εντολή και ηλεκτρονικό λογαριασμό', vat: 6,
-        desc: 'Επαγγελματικό: (1,10 × TTF) + 0,0099 €/kWh με Έκπτωση Συνέπειας 40% (αρχικό περιθώριο 0,0165).', sourceNote: 'Τύπος από επίσημη σελίδα nrg' },
-    ],
-  },
-  {
-    value: 'zenith', label: 'ZeniΘ', url: 'https://zenith.gr/el/for-the-home/gas/',
-    tariffs: [
-      { id: 'zen_flex',    name: 'Gas Home Flex',   badge: 'ΚΙΤΡΙΝΟ', type: 'variable', segment: 'residential', priceStatus: 'indicative',
-        kwh: 0.0480, fixed: 5.00, vat: 6,
-        desc: 'Κυμαινόμενο, συνδεδεμένο με TTF. Η ZeniΘ ανακοινώνει τη χρέωση προμήθειας κάθε μήνα, δες «Ιστορικό Τιμών» στο zenith.gr.', sourceNote: 'Ενδεικτική τιμή, η επίσημη ανακοινώνεται μηνιαίως στο zenith.gr' },
-      { id: 'zen_t2',      name: 'Οικιακό Τ2 (αυτόνομη θέρμανση)', badge: 'ΕΙΔΙΚΟ', type: 'special', segment: 'residential', priceStatus: 'indicative',
-        kwh: 0.0460, fixed: 5.00, vat: 6,
-        desc: 'Κλασικό οικιακό τιμολόγιο θέρμανσης. Μηνιαία ανακοινωθείσα χρέωση με ιστορικότητα στο site.', sourceNote: 'Ενδεικτική τιμή, η επίσημη ανακοινώνεται μηνιαίως στο zenith.gr' },
-      { id: 'zen_biz',     name: 'Gas Business Flex', badge: 'ΚΙΤΡΙΝΟ', type: 'variable', segment: 'business', priceStatus: 'indicative',
-        kwh: 0.0520, fixed: 7.00, vat: 6,
-        desc: 'Επαγγελματικό κυμαινόμενο. Μηνιαία ανακοινωθείσα χρέωση.', sourceNote: 'Ενδεικτική τιμή, δες zenith.gr' },
-    ],
-  },
-  {
-    value: 'elin', label: 'ελίν (ΕΛΙΝΟΙΛ)', url: 'https://energy.elin.gr',
-    tariffs: [
-      { id: 'elin_f12',  name: 'Gas On! Fixed Now 12M', badge: 'ΜΠΛΕ', type: 'fixed', segment: 'residential', priceStatus: 'indicative',
-        kwh: 0.0460, fixed: 5.00, vat: 6, contract_months: 12, dual_fuel_discount: 0.005,
-        desc: 'Σταθερό 12μηνο. Σε συνδυασμό με ρεύμα ελίν: έκπτωση έως 30% στη χρέωση προμήθειας + 200 πόντοι elin up/μήνα για καύσιμα.', sourceNote: 'Ενδεικτική τιμή, ο επίσημος τιμοκατάλογος στο energy.elin.gr' },
-      { id: 'elin_f24',  name: 'Gas On! Fixed Now 24M', badge: 'ΜΠΛΕ', type: 'fixed', segment: 'residential', priceStatus: 'indicative',
-        kwh: 0.0450, fixed: 5.00, vat: 6, contract_months: 24, dual_fuel_discount: 0.005,
-        desc: 'Σταθερό 24μηνο, ελαφρώς χαμηλότερη τιμή λόγω μεγαλύτερης δέσμευσης.', sourceNote: 'Ενδεικτική τιμή, ο επίσημος τιμοκατάλογος στο energy.elin.gr' },
-    ],
-  },
-  {
-    value: 'fysiko_aerio', label: 'Φυσικό αέριο ΕΕΕ (ΔΕΠΑ)', url: 'https://fysikoaerioellados.gr',
-    tariffs: [
-      { id: 'fae_extra',   name: 'Οικιακό Πλήρες Extra', badge: 'ΚΙΤΡΙΝΟ', type: 'variable', segment: 'residential', priceStatus: 'verified',
-        kwh: 0.03794, fixed: 4.50, vat: 6,
-        desc: 'Κυμαινόμενο, κοστοστρεφής τιμολόγηση, η τιμή αναθεωρείται μηνιαίως.', sourceNote: 'Τελευταία γνωστή δημοσιευμένη τιμή: Μάρτιος 2026, ενδέχεται να έχει αλλάξει' },
-      { id: 'fae_pliris',  name: 'Οικιακό Πλήρες',       badge: 'ΚΙΤΡΙΝΟ', type: 'variable', segment: 'residential', priceStatus: 'indicative',
-        kwh: 0.0420, fixed: 0, vat: 6,
-        desc: 'Κυμαινόμενο ΧΩΡΙΣ μηνιαίο πάγιο. Ελαφρώς υψηλότερη χρέωση kWh από το Extra.', sourceNote: 'Ενδεικτική, μηνιαία ανακοίνωση στο fysikoaerioellados.gr' },
-      { id: 'fae_kouzina', name: 'Κουζίνα',              badge: 'ΕΙΔΙΚΟ',  type: 'special',  segment: 'residential', priceStatus: 'indicative',
-        kwh: 0.0450, fixed: 0, vat: 6,
-        desc: 'Για χρήση μόνο σε μαγείρεμα/ζεστό νερό. Χωρίς πάγιο.', sourceNote: 'Ενδεικτική, δες επίσημο τιμοκατάλογο' },
-      { id: 'fae_biz',     name: 'Επαγγελματικό',        badge: 'ΚΙΤΡΙΝΟ', type: 'variable', segment: 'business', priceStatus: 'indicative',
-        kwh: 0.0550, fixed: 14.90, vat: 6,
-        desc: 'Επαγγελματικό κυμαινόμενο.', sourceNote: 'Ενδεικτική, δες επίσημο τιμοκατάλογο' },
-    ],
-  },
-  {
-    value: 'dei', label: 'ΔΕΗ', url: 'https://www.dei.gr',
-    tariffs: [
-      { id: 'dei_gas',     name: 'myHome Φυσικό αέριο', badge: 'ΚΙΤΡΙΝΟ', type: 'variable', segment: 'residential', priceStatus: 'indicative',
-        kwh: 0.0480, fixed: 5.00, vat: 6, dual_fuel_discount: 0.003,
-        desc: 'Κυμαινόμενο, η τιμή ανακοινώνεται μηνιαίως στο dei.gr. Έκπτωση dual fuel με ρεύμα ΔΕΗ.', sourceNote: 'Ενδεικτική τιμή, μηνιαία ανακοίνωση στο dei.gr' },
-      { id: 'dei_gas_biz', name: 'myBusiness Αέριο',    badge: 'ΚΙΤΡΙΝΟ', type: 'variable', segment: 'business', priceStatus: 'indicative',
-        kwh: 0.0520, fixed: 7.00, vat: 6,
-        desc: 'Επαγγελματικό κυμαινόμενο.', sourceNote: 'Ενδεικτική τιμή, δες dei.gr' },
-    ],
-  },
-  {
-    value: 'protergia', label: 'Protergia (Metlen)', url: 'https://www.protergia.gr',
-    tariffs: [
-      { id: 'prot_secure', name: 'Value Gas Secure',    badge: 'ΜΠΛΕ',    type: 'fixed',    segment: 'residential', priceStatus: 'indicative',
-        kwh: 0.0450, fixed: 5.00, vat: 6, contract_months: 12, dual_fuel_discount: 0.003,
-        desc: 'Σταθερό 12μηνο. Power&Gas: επιπλέον έκπτωση με ρεύμα Protergia. Δώρο πάγια καλοκαιρινών μηνών σε προωθητικές περιόδους.', sourceNote: 'Ενδεικτική, επίσημος τιμοκατάλογος στο protergia.gr' },
-      { id: 'prot_single', name: 'Single Value Gas',    badge: 'ΚΙΤΡΙΝΟ', type: 'variable', segment: 'residential', priceStatus: 'indicative',
-        kwh: 0.0470, fixed: 5.00, vat: 6,
-        desc: 'Κυμαινόμενο για αυτόνομη σύνδεση, με τιμές βάσει κόστους.', sourceNote: 'Ενδεικτική, δες protergia.gr' },
-      { id: 'prot_koin',   name: 'Οικιακό Κοινόχρηστο', badge: 'ΕΙΔΙΚΟ',  type: 'special',  segment: 'residential', priceStatus: 'indicative',
-        kwh: 0.0460, fixed: 5.00, vat: 6,
-        desc: 'Για κεντρική θέρμανση πολυκατοικίας (κοινόχρηστος μετρητής).', sourceNote: 'Ενδεικτική, δες protergia.gr' },
-      { id: 'prot_biz',    name: 'Φυσικό αέριο Εμπορικό', badge: 'ΚΙΤΡΙΝΟ', type: 'variable', segment: 'business', priceStatus: 'indicative',
-        kwh: 0.0550, fixed: 5.00, vat: 6,
-        desc: 'Επαγγελματικό.', sourceNote: 'Ενδεικτική, δες protergia.gr' },
-    ],
-  },
-  {
-    value: 'heron', label: 'ΗΡΩΝ', url: 'https://www.heron.gr',
-    tariffs: [
-      { id: 'heron_fix',  name: 'ΗΡΩΝ Gas Σταθερό',     badge: 'ΜΠΛΕ',    type: 'fixed',    segment: 'residential', priceStatus: 'indicative',
-        kwh: 0.0460, fixed: 5.00, vat: 6, contract_months: 12,
-        desc: 'Σταθερό 12μηνο. Περιοδικές προσφορές (π.χ. δώρο % μηνιαίας κατανάλωσης), δες τρέχουσα προωθητική ενέργεια.', sourceNote: 'Ενδεικτική, δες heron.gr' },
-      { id: 'heron_var',  name: 'ΗΡΩΝ Gas Κυμαινόμενο', badge: 'ΚΙΤΡΙΝΟ', type: 'variable', segment: 'residential', priceStatus: 'indicative',
-        kwh: 0.0440, fixed: 4.50, vat: 6,
-        desc: 'Κυμαινόμενο χωρίς δέσμευση.', sourceNote: 'Ενδεικτική, δες heron.gr' },
-    ],
-  },
-  {
-    value: 'enerwave', label: 'enerwave (πρώην Elpedison)', url: 'https://www.enerwave.gr',
-    tariffs: [
-      { id: 'enw_gas', name: 'enerwave Gas Home', badge: 'ΚΙΤΡΙΝΟ', type: 'variable', segment: 'residential', priceStatus: 'indicative',
-        kwh: 0.0470, fixed: 5.00, vat: 6,
-        desc: 'Κυμαινόμενο οικιακό. Η Elpedison μετονομάστηκε σε enerwave.', sourceNote: 'Ενδεικτική, δες επίσημη σελίδα' },
-    ],
-  },
-];
 
 const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 20, marginBottom: 16 };
 
@@ -192,23 +38,16 @@ const secHdr = (label: string, sub?: string) => (
   </div>
 );
 
-const bc = (badge: string) => {
-  switch (badge) {
-    case 'ΜΠΛΕ':    return { bg: 'var(--bg-elevated)', border: 'var(--border-subtle)', color: 'var(--text-secondary)' };
-    case 'ΚΙΤΡΙΝΟ': return { bg: 'var(--bg-elevated)', border: 'var(--border-subtle)', color: 'var(--text-secondary)' };
-    case 'ΕΙΔΙΚΟ':  return { bg: 'var(--bg-elevated)', border: 'var(--border-subtle)', color: 'var(--text-secondary)' };
-    default:         return { bg: 'var(--bg-elevated)', border: 'var(--border-subtle)', color: 'var(--text-secondary)' };
-  }
-};
+// ΤΟ ΣΗΜΑ ΤΟΥ ΤΥΠΟΥ ΤΙΜΟΛΟΓΙΟΥ ΗΤΑΝ ΣΥΝΑΡΤΗΣΗ ΜΕ ΤΕΣΣΕΡΙΣ ΚΛΑΔΟΥΣ ΚΑΙ ΕΝΑ
+// ΑΠΟΤΕΛΕΣΜΑ. Το `bc(badge)` έκανε switch σε τρεις τιμές και επέστρεφε τρεις
+// φορές το ίδιο αντικείμενο: ουδέτερο φόντο, ουδέτερο περίγραμμα, ουδέτερο
+// γράμμα. Διαβαζόταν σαν να χρωματίζει κάτι, ενώ δεν χρωμάτιζε τίποτα. Η
+// διάκριση ΜΠΛΕ έναντι ΚΙΤΡΙΝΟ λέγεται από την ίδια τη λέξη, όχι από χρώμα.
+const badgeStyle = { background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' };
 
-// Σήμανση αξιοπιστίας τιμής
-const priceBadge = (status: PriceStatus) => {
-  switch (status) {
-    case 'verified':   return { label: '✓ Επιβεβαιωμένη', color: 'var(--accent)', bg: 'var(--bg-elevated)',  border: 'var(--border-subtle)' };
-    case 'formula':    return { label: 'ƒ Τύπος TTF',     color: 'var(--text-secondary)', bg: 'var(--bg-elevated)', border: 'var(--border-subtle)' };
-    case 'indicative': return { label: '~ Ενδεικτική',    color: 'var(--text-secondary)',  bg: 'var(--bg-elevated)',  border: 'var(--border-subtle)' };
-  }
-};
+// Το πλήθος μετριέται, δεν γράφεται. Αριθμός καρφωμένος σε πρόταση γερνά με την
+// πρώτη προσθήκη τιμολογίου και κανένας έλεγχος δεν τον πιάνει.
+const TARIFF_COUNT = GAS_PROVIDERS.reduce((n, p) => n + p.tariffs.length, 0);
 
 interface Props { propertyId: string; userId?: string; }
 
@@ -216,7 +55,6 @@ const DEFAULTS = {
   gasProvider: 'nrg', gasTariffId: '', gasMonthly: '', gasKwhMonthly: '',
   networkOperator: 'eda_attikis', gasContractStart: '', gasContractMonths: '',
   hasGasConnection: true,
-  ttfPrice: String(DEFAULT_TTF_EUR_MWH), // €/MWh, ο χρήστης το ενημερώνει από ΕΕΧ
 };
 
 export default function BillsGas({ propertyId, userId = '' }: Props) {
@@ -231,24 +69,22 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
   const upd = (patch: Partial<typeof DEFAULTS>) => su(patch);
 
   const kwh    = parseFloat(s.gasKwhMonthly) || 0;
-  const ttf    = (parseFloat(s.ttfPrice) || DEFAULT_TTF_EUR_MWH) / 1000; // €/MWh → €/kWh
-
-  // Ενιαίος, διαφανής υπολογισμός χρέωσης kWh ανά τιμολόγιο.
-  //
-  // ΣΕ useCallback ΓΙΑ ΝΑ ΕΙΝΑΙ Η ΕΞΑΡΤΗΣΗ ΑΠΟΔΕΙΞΙΜΗ. Η συνάρτηση κλείνει πάνω
-  // στο `ttf` (τιμή χονδρικής αερίου). Ως απλή συνάρτηση σώματος, ο έλεγχος
-  // εξαρτήσεων δεν μπορούσε να το δει και ζητούσε το `tariffKwh` στα useMemo —
-  // εκεί το `ttf` υπήρχε ήδη, οπότε το αποτέλεσμα ήταν σωστό ΚΑΤΑ ΤΥΧΗ. Την
-  // ημέρα που η συνάρτηση διαβάσει και δεύτερη τιμή, η τύχη τελειώνει σιωπηλά.
-  const tariffKwh = useCallback((t: GasTariff): number => {
-    if (t.priceStatus === 'formula' && t.ttfMultiplier !== undefined && t.ttfMargin !== undefined)
-      return t.ttfMultiplier * ttf + t.ttfMargin;
-    return t.kwh ?? 0;
-  }, [ttf]);
 
   const provider    = GAS_PROVIDERS.find(p => p.value === s.gasProvider);
   const tariff      = provider?.tariffs.find(t => t.id === s.gasTariffId) || provider?.tariffs[0];
-  const calcMonthly = tariff ? kwh * tariffKwh(tariff) + tariff.fixed : 0;
+  const calcMonthly = tariff ? kwh * tariff.kwh + tariff.fixed : 0;
+
+  // ══ Η ΠΥΛΗ ΦΡΕΣΚΑΔΑΣ, ΟΠΩΣ ΚΑΙ ΣΤΟ ΡΕΥΜΑ ══════════════════════════════
+  // Η οθόνη του ρεύματος σιωπά όταν ο κατάλογος έχει παλιώσει: δεν ανακηρύσσει
+  // «φθηνότερο» ούτε υπόσχεται εξοικονόμηση σε τιμές περασμένου μήνα. Η οθόνη
+  // του αερίου το έκανε πάντα, χωρίς καμία προϋπόθεση, πάνω σε κατάλογο που
+  // ανακοινώνεται μηνιαία. Το ίδιο ρίσκο, η ίδια δέσμευση δώδεκα ή είκοσι
+  // τεσσάρων μηνών, ίδιος πλέον και ο κανόνας.
+  const fresh   = freshness(GAS_VERIFIED, new Date(), GAS_MAX_AGE_DAYS);
+  // Η κατανάλωση εδώ δεν εκτιμάται, τη γράφει ο ίδιος ο ιδιοκτήτης: αξιόπιστη
+  // είναι όταν υπάρχει.
+  const canRank = canRecommend(fresh, kwh > 0);
+
   const manual      = parseFloat(s.gasMonthly) || 0;
   const effective   = manual > 0 ? manual : calcMonthly;
 
@@ -261,9 +97,12 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
     })();
   }, [propertyId]);
 
-  const sameDualFuelProvider = elecProvider && elecProvider === s.gasProvider &&
-    ['dei', 'protergia', 'heron', 'zenith', 'nrg', 'elin', 'enerwave'].includes(s.gasProvider);
-  const dualFuelTariff = tariff?.dual_fuel_discount;
+  // ΗΤΑΝ ΤΡΙΤΟΣ ΚΑΤΑΛΟΓΟΣ ΠΑΡΟΧΩΝ, ΓΡΑΜΜΕΝΟΣ ΜΕ ΤΟ ΧΕΡΙ. Μια λίστα επτά τιμών
+  // έπρεπε να μένει συγχρονισμένη με δύο καταλόγους. Δεν έμενε: η «Φυσικό αέριο
+  // ΕΕΕ» πουλά και ρεύμα και αέριο, έλειπε όμως από τη λίστα, οπότε όποιος την
+  // είχε και στα δύο δεν έβλεπε ποτέ την υπόδειξη. Η ισότητα των δύο τιμών
+  // σημαίνει ήδη ότι ο πάροχος υπάρχει και στους δύο καταλόγους.
+  const sameDualFuelProvider = Boolean(elecProvider) && elecProvider === s.gasProvider;
 
   // Ο μήνας από την ώρα της Αθήνας: ο περιηγητής ενός χρήστη σε άλλη ζώνη
   // μπορεί να είναι ήδη στον επόμενο μήνα και η περίοδος θέρμανσης να αρχίσει
@@ -313,11 +152,9 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
   const allTariffs = useMemo(() => {
     return GAS_PROVIDERS.flatMap(p => p.tariffs
       .filter(t => t.segment === segmentFilter)
-      .map(t => {
-        const rate = tariffKwh(t);
-        return { ...t, providerLabel: p.label, providerUrl: p.url, rate, monthly: kwh * rate + t.fixed, isCurrent: t.id === s.gasTariffId };
-      })).sort((a, b) => a.monthly - b.monthly);
-  }, [kwh, tariffKwh, s.gasTariffId, segmentFilter]);
+      .map(t => ({ ...t, providerLabel: p.label, providerUrl: p.url, monthly: kwh * t.kwh + t.fixed, isCurrent: t.id === s.gasTariffId })))
+      .sort((a, b) => a.monthly - b.monthly);
+  }, [kwh, s.gasTariffId, segmentFilter]);
 
   const bestMonthly = allTariffs[0]?.monthly || 0;
   // ═══ ΤΑ ΔΥΟ ΝΟΥΜΕΡΑ ΔΕΝ ΕΙΝΑΙ ΤΟΥ ΙΔΙΟΥ ΕΙΔΟΥΣ ══════════════════════════
@@ -336,7 +173,7 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
 
   const providerOptions = GAS_PROVIDERS.map(p => ({ value: p.value, label: p.label }));
   const tariffOptions   = (provider?.tariffs ?? []).filter(t => t.segment === segmentFilter)
-    .map(t => ({ value: t.id, label: `${t.name}, ${t.badge}, ${fk(tariffKwh(t))}/kWh` }));
+    .map(t => ({ value: t.id, label: `${t.name}, ${t.badge}, ${fk(t.kwh)}/kWh` }));
   const networkOptions  = NETWORK_OPERATORS.map(n => ({ value: n.value, label: `${n.label} (${n.region})` }));
 
   if (loading) return <Spinner label="Φόρτωση…" />;
@@ -346,21 +183,28 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
 
       {/* ── Διαφάνεια τιμών, τι ακριβώς βλέπεις ── */}
       <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, padding: '12px 16px', marginBottom: 14, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.6 }}>
-        <strong style={{ color: 'var(--text-primary)' }}>Διαφάνεια τιμών:</strong> Οι τιμές αφορούν μόνο τη <strong>χρέωση προμήθειας</strong> (ανταγωνιστικό σκέλος), χωρίς ρυθμιζόμενες χρεώσεις δικτύου, <span title="Ειδικός Φόρος Κατανάλωσης">ΕΦΚ</span> και <span title="Φόρος Προστιθέμενης Αξίας">ΦΠΑ</span>, ο τελικός λογαριασμός είναι υψηλότερος.
-        Σήμανση κάθε τιμής: <span style={{ color: 'var(--accent)', fontWeight: 700 }}>✓ Επιβεβαιωμένη</span> (επίσημη, {LAST_VERIFIED}) ·{' '}
-        <span title="Δείκτης χονδρικής τιμής φυσικού αερίου στην ευρωπαϊκή αγορά (Title Transfer Facility)" style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>ƒ Τύπος TTF</span> (υπολογίζεται από τον επίσημο τύπο του παρόχου) ·{' '}
-        <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>~ Ενδεικτική</span> (τάξη μεγέθους, επιβεβαίωσε στον πάροχο).
+        <strong style={{ color: 'var(--text-primary)' }}>Διαφάνεια τιμών:</strong> Και τα {TARIFF_COUNT} τιμολόγια είναι όπως τα δημοσιεύει το εργαλείο σύγκρισης της <span title={RAAEY_NAME}>ΡΑΑΕΥ</span>, κατάσταση {GAS_LABEL}.
+        Αφορούν μόνο τη <strong>χρέωση προμήθειας</strong> (ανταγωνιστικό σκέλος): χωρίς ρυθμιζόμενες χρεώσεις δικτύου, χωρίς <span title="Ειδικός Φόρος Κατανάλωσης">ΕΦΚ</span> και χωρίς <span title="Φόρος Προστιθέμενης Αξίας">ΦΠΑ</span> 6%, οπότε ο λογαριασμός σου βγαίνει υψηλότερος. Τα κυμαινόμενα (ΚΙΤΡΙΝΟ) αναθεωρούνται κάθε μήνα.
       </div>
 
       {/* ── Επισκόπηση κόστους ── */}
       <div style={card}>
-        {secHdr('Τρέχον κόστος', `Τελευταία επαλήθευση δεδομένων: ${LAST_VERIFIED}`)}
+        {secHdr('Τρέχον κόστος', `Τιμές ΡΑΑΕΥ, ${GAS_LABEL}`)}
         {/* Τρία πλακίδια: το ρευστό πλέγμα έβγαζε 2+1 στα 430. Ιδια κλάση και
             ίδιοι κανόνες με τους δείκτες του KPIGrid. */}
         <div className="kpi-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 12, '--kpi-lg': 3, '--kpi-md': 3, '--kpi-sm': 1 } as React.CSSProperties}>
           <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Μηνιαίο κόστος προμήθειας</div>
+            {/* ══ Η ΕΤΙΚΕΤΑ ΕΛΕΓΕ «ΠΡΟΜΗΘΕΙΑ» ΚΑΙ ΤΟ ΝΟΥΜΕΡΟ ΗΤΑΝ ΟΛΟΚΛΗΡΟΣ
+                Ο ΛΟΓΑΡΙΑΣΜΟΣ. Το `effective` παίρνει το ποσό που γράφει ο
+                ιδιοκτήτης στο «Πραγματικό κόστος τον μήνα»· το ίδιο το
+                πεδίο του ζητά ρητά ΟΛΟΚΛΗΡΟ το ποσό, με δίκτυο, ΕΦΚ και ΦΠΑ.
+                Το πλακίδιο το τύπωνε από κάτω ως «κόστος προμήθειας»: ο
+                αριθμός που ο ιδιοκτήτης θα σύγκρινε με τον πίνακα παρόχων
+                ήταν 20 έως 30% μεγαλύτερος από ό,τι ο πίνακας μετρά. Τώρα η
+                ετικέτα λέει ποιο από τα δύο βλέπει. ══ */}
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{manual > 0 ? 'Ο λογαριασμός σου' : 'Μηνιαίο κόστος προμήθειας'}</div>
             <div style={{ fontSize: 22, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--accent)', lineHeight: 1 }}>{fe(effective)}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6, fontFamily: T.font.sans }}>{manual > 0 ? 'Με δίκτυο, ΕΦΚ και ΦΠΑ' : 'Χωρίς δίκτυο, ΕΦΚ και ΦΠΑ'}</div>
           </div>
           <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Ετήσιο κόστος, εκτίμηση</div>
@@ -409,14 +253,16 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
             options={providerOptions}/>
           <CustomSelect label="Τιμολόγιο" value={s.gasTariffId || provider?.tariffs[0]?.id || ''} onChange={v => upd({ gasTariffId: v })} options={tariffOptions}/>
         </div>
-        <div {...fixedCols(5, 14, 'start')}>
+        {/* ΤΕΣΣΕΡΑ ΠΕΔΙΑ, ΟΧΙ ΠΕΝΤΕ. Το πέμπτο ζητούσε από τον ιδιοκτήτη τη
+            χρηματιστηριακή τιμή TTF για να υπολογιστούν τρία τιμολόγια nrg. Η
+            ΡΑΑΕΥ δημοσιεύει την πραγματική τιμή τους κάθε μήνα, οπότε το πεδίο
+            ζητούσε δουλειά για απάντηση που υπάρχει ήδη. */}
+        <div {...fixedCols(4, 14, 'start')}>
           <DatePicker label="Έναρξη σύμβασης" value={s.gasContractStart} onChange={v => upd({ gasContractStart: v })}/>
           <NumberInput label="Διάρκεια σύμβασης" value={s.gasContractMonths} onChange={v => upd({ gasContractMonths: v })} suffix="μήνες"/>
           <NumberInput label="Μηνιαία κατανάλωση" value={s.gasKwhMonthly} onChange={v => upd({ gasKwhMonthly: v })} suffix="kWh"/>
           <NumberInput label="Πραγματικό κόστος τον μήνα" labelInfo="Ολόκληρο το ποσό του λογαριασμού, με δίκτυο, ΕΦΚ και ΦΠΑ. Χρησιμοποιείται για την παρακολούθηση κόστους, ΟΧΙ για τη σύγκριση παρόχων: εκεί συγκρίνεται προμήθεια με προμήθεια."
             value={s.gasMonthly} onChange={v => upd({ gasMonthly: v })} suffix="€"/>
-          <NumberInput label="Τρέχουσα τιμή TTF" value={s.ttfPrice} onChange={v => upd({ ttfPrice: v })} suffix="€/MWh" step={1}
-            labelInfo="Τα κυμαινόμενα τιμολόγια (σήμανση ƒ) υπολογίζονται από τον επίσημο τύπο του παρόχου με βάση αυτή την τιμή. Η μηνιαία τιμή δημοσιεύεται στο Ευρωπαϊκό Χρηματιστήριο Ενέργειας (EEX) και στους λογαριασμούς των παρόχων."/>
         </div>
         </div>
 
@@ -425,26 +271,21 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' as const, gap: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' as const }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{tariff.name}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: T.radius.badge, background: bc(tariff.badge).bg, border: `1px solid ${bc(tariff.badge).border}`, color: bc(tariff.badge).color }}>{tariff.badge}</span>
-                {(() => { const pb = priceBadge(tariff.priceStatus); return (
-                  <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: T.radius.badge, background: pb.bg, border: `1px solid ${pb.border}`, color: pb.color }}>{pb.label}</span>
-                ); })()}
+                <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: T.radius.badge, ...badgeStyle }}>{tariff.badge}</span>
               </div>
               <a href={provider?.url} target="_blank" rel="noopener noreferrer" className="tap-link"
                 style={{ fontSize: 11, color: 'var(--accent)', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, padding: '4px 12px', textDecoration: 'none', whiteSpace: 'nowrap' as const, fontFamily: T.font.sans, fontWeight: 600 }}>
                 Επίσημη σελίδα
               </a>
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{tariff.desc}</div>
-            {tariff.sourceNote && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4, fontFamily: T.font.sans }}>Πηγή: {tariff.sourceNote}</div>}
+            {tariff.desc && <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{tariff.desc}</div>}
             <div style={{ display: 'flex', gap: 20, marginTop: 10, flexWrap: 'wrap' as const }}>
-              <span title="Κιλοβατώρα, μονάδα μέτρησης κατανάλωσης ενέργειας" style={{ fontSize: 11, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>Χρέωση kWh:{'  '}<strong style={{ color: 'var(--text-primary)' }}>{fk(tariffKwh(tariff))} / kWh</strong></span>
-              <span style={{ fontSize: 11, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>Αρχικό πάγιο:{'  '}<strong>{fe(tariff.fixed)} / μήνα</strong></span>
-              {tariff.dual_fuel_discount != null && (
-                <span title="Κοινός πάροχος ρεύματος και αερίου με ενιαία έκπτωση" style={{ fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>Dual Fuel:{'  '}<strong>−{fk(tariff.dual_fuel_discount)} / kWh</strong></span>
+              <span title="Κιλοβατώρα, μονάδα μέτρησης κατανάλωσης ενέργειας" style={{ fontSize: 11, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>Χρέωση kWh:{'  '}<strong style={{ color: 'var(--text-primary)' }}>{fk(tariff.kwh)} / kWh</strong></span>
+              <span style={{ fontSize: 11, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>Πάγιο:{'  '}<strong>{fe(tariff.fixed)} / μήνα</strong></span>
+              {tariff.contract_months != null && (
+                <span style={{ fontSize: 11, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>Δέσμευση:{'  '}<strong>{tariff.contract_months} μήνες</strong></span>
               )}
             </div>
-            {tariff.fixedNote && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6, fontFamily: T.font.sans }}>{tariff.fixedNote}</div>}
           </div>
         )}
       </div>
@@ -453,7 +294,7 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
       {kwh > 0 && (
         <div style={card}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4, flexWrap: 'wrap' as const, gap: 10 }}>
-            {secHdr('Σύγκριση παρόχων', `Βάσει ${kwh} kWh/μήνα και TTF ${feRate(parseFloat(s.ttfPrice) || DEFAULT_TTF_EUR_MWH)}/MWh, χρέωση προμήθειας, χωρίς ρυθμιζόμενες/ΦΠΑ`)}
+            {secHdr('Σύγκριση παρόχων', `${allTariffs.length} τιμολόγια της ΡΑΑΕΥ σε ${kwh} kWh τον μήνα, χρέωση προμήθειας`)}
             <div style={{ display: 'flex', background: 'var(--bg-base)', borderRadius: T.radius.pill, padding: 3, border: '1px solid var(--border-default)' }}>
               {(['residential', 'business'] as const).map(seg => (
                 <button key={seg} onClick={() => setSegmentFilter(seg)}
@@ -466,7 +307,7 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
             </div>
           </div>
 
-          {savings > 1 && (
+          {canRank && savings > 1 && (
             <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 14, display: 'flex', gap: 10, alignItems: 'center' }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)' }}/>
               <span style={{ fontSize: 12, fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
@@ -475,33 +316,42 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
             </div>
           )}
 
+          {/* Η σιωπή χωρίς εξήγηση διαβάζεται ως βλάβη. Οταν ο κατάλογος έχει
+              παλιώσει, η οθόνη λέει γιατί δεν ονομάζει νικητή. */}
+          {fresh.stale && (
+            <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 14, fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
+              {fresh.note}
+            </div>
+          )}
+
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
               <thead>
-                <tr>{['Πάροχος', 'Τιμολόγιο', 'Τύπος', 'Τιμή', 'kWh', 'Πάγιο', 'Μήνας', 'Έτος', 'Διαφορά'].map(h => (
+                {/* Η στήλη «Τιμή» έδειχνε τη σήμανση αξιοπιστίας, όχι τιμή, δίπλα
+                    στη στήλη «kWh» που έδειχνε την πραγματική τιμή. Δύο κεφαλίδες
+                    που λένε το ίδιο πράγμα και η μία λέει ψέματα. Στη θέση της
+                    μπαίνει η δέσμευση, που ο ιδιοκτήτης πρέπει να ξέρει πριν
+                    αλλάξει πάροχο. */}
+                <tr>{['Πάροχος', 'Τιμολόγιο', 'Τύπος', 'Δέσμευση', 'kWh', 'Πάγιο', 'Μήνας', 'Έτος', 'Διαφορά'].map(h => (
                   <th key={h} style={{ fontSize: 11, color: 'var(--text-secondary)', padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.05em', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, background: 'var(--bg-elevated)' }}>{h}</th>
                 ))}</tr>
               </thead>
               <tbody>
                 {allTariffs.map((t, i) => {
-                  const rowBc  = bc(t.badge);
-                  const pb     = priceBadge(t.priceStatus);
                   const isBest = i === 0;
                   const diff   = t.monthly - bestMonthly;
                   return (
                     <tr key={t.id} style={{ background: t.isCurrent ? 'var(--accent-soft)' : isBest ? 'var(--bg-elevated)' : 'transparent' }}>
                       <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', fontWeight: 600 }}>
-                        {!t.isCurrent && isBest && <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginRight: 6, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Φθηνότερο</span>}
+                        {canRank && !t.isCurrent && isBest && <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginRight: 6, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Φθηνότερο</span>}
                         {t.providerLabel}
                       </td>
                       <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)' }}>{t.name}</td>
                       <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)' }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: T.radius.badge, background: rowBc.bg, border: `1px solid ${rowBc.border}`, color: rowBc.color }}>{t.badge}</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: T.radius.badge, ...badgeStyle }}>{t.badge}</span>
                       </td>
-                      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)' }}>
-                        <span title={t.sourceNote} style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: T.radius.badge, background: pb.bg, border: `1px solid ${pb.border}`, color: pb.color, cursor: 'help' }}>{pb.label}</span>
-                      </td>
-                      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fk(t.rate)}</td>
+                      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>{t.contract_months != null ? `${t.contract_months} μήνες` : 'Χωρίς'}</td>
+                      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fk(t.kwh)}</td>
                       <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fe(t.fixed)}</td>
                       <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: 'var(--accent)' }}>{fe(t.monthly)}</td>
                       <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-tertiary)' }}>{fe(t.monthly * 12)}</td>
@@ -519,7 +369,7 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
             </table>
           </div>
           <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, background: 'var(--bg-elevated)', padding: '6px 12px', borderRadius: T.radius.badge, lineHeight: 1.5 }}>
-            * Οι τιμές αφορούν τη χρέωση προμήθειας χωρίς ρυθμιζόμενες χρεώσεις δικτύου, ΕΦΚ και ΦΠΑ. Οι κυμαινόμενες αλλάζουν μηνιαίως, τελευταία επαλήθευση: {LAST_VERIFIED}. Επίσημη σύγκριση: εργαλείο ΡΑΑΕΥ μέσω gov.gr.
+            * Χρέωση προμήθειας χωρίς δίκτυο, ΕΦΚ και ΦΠΑ. Πηγή: εργαλείο σύγκρισης της ΡΑΑΕΥ, {GAS_LABEL}. Οι εκπτώσεις συνέπειας και συνδυασμού που περιγράφονται είναι ήδη μέσα στην τιμή· χάνονται με μία εκπρόθεσμη πληρωμή.
           </div>
         </div>
       )}
@@ -528,11 +378,8 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
       {(() => {
         const hints: { text: string; severity: 'info' | 'warning' | 'tip' }[] = [];
 
-        if (sameDualFuelProvider && !dualFuelTariff) {
-          hints.push({ text: `Έχεις ${provider?.label} και στα δύο (ρεύμα + αέριο), έλεγξε αν δικαιούσαι τιμολόγιο dual fuel με έκπτωση.`, severity: 'tip' });
-        }
-        if (dualFuelTariff) {
-          hints.push({ text: `Το τρέχον τιμολόγιο έχει Dual Fuel έκπτωση −${fk(dualFuelTariff)}/kWh λόγω κοινού παρόχου με το ρεύμα.`, severity: 'info' });
+        if (sameDualFuelProvider) {
+          hints.push({ text: `Έχεις ${provider?.label} και στο ρεύμα και στο αέριο. Αρκετά τιμολόγια του καταλόγου δίνουν έκπτωση για τον συνδυασμό, έλεγξε αν το δικό σου την περιλαμβάνει.`, severity: 'tip' });
         }
         if (isHeatingSeason && noGasDataYet && usesGas(heatingType)) {
           hints.push({ text: 'Είμαστε σε περίοδο θέρμανσης και δεν έχεις καταχωρήσει ακόμη κατανάλωση ή κόστος αερίου. Συμπλήρωσε τα στοιχεία για ακριβή παρακολούθηση.', severity: 'warning' });

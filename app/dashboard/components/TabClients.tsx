@@ -1018,7 +1018,15 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                       {st.lastVisit && <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>τελ. επίσκεψη {fd(st.lastVisit)}</span>}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
+                  {/* ══ ΤΟ `flexShrink: 0` ΑΚΥΡΩΝΕ ΤΟ `flexWrap` ΠΟΥ ΕΧΕΙ ΑΠΟ ΚΑΤΩ ΤΟΥ.
+                      Η στήλη κρατούσε το πλάτος του περιεχομένου της, οπότε τα δύο
+                      σήματα έμεναν πάντα δίπλα δίπλα και η αναδίπλωση δεν ενεργοποιούνταν
+                      ποτέ. Μετρημένο στα 360: στήλη 300 εικονοστοιχείων μέσα σε κάρτα
+                      306, με την κεφαλίδα να βγαίνει 33 έξω από την οθόνη. Το σήμα
+                      «Ποσό προς επιβεβαίωση» είναι `nowrap`, δηλαδή δεν σπάει μέσα του:
+                      η μόνη διέξοδος ήταν να πέσει το ένα κάτω από το άλλο, που είναι
+                      ακριβώς αυτό που ζητούσε ήδη το `flexWrap`. ══ */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, minWidth: 0 }}>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                       {undeclared > 0 && <Badge>{undeclared} αδήλωτη{undeclared === 1 ? '' : 'ς'}</Badge>}
                       {unresolved > 0 && <Badge tone="warning">Ποσό προς επιβεβαίωση</Badge>}
