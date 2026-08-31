@@ -40,7 +40,7 @@ const fk = feRate;
 //
 // Η συνέπεια με το data/price-sources.json, που είναι η πηγή αλήθειας για το
 // workflow φρεσκάδας, φυλάσσεται από test: αν αποκλίνουν, κοκκινίζει το CI.
-const LAST_UPDATED = 'Ιούλιος 2026';
+const LAST_UPDATED = 'Αύγουστος 2026';
 // ΤΟ ΣΧΟΛΙΟ ΕΛΕΓΕ ΤΟ energycost.gr «ΙΔΙΩΤΙΚΟ SITE». ΔΕΝ ΕΙΝΑΙ. Είναι το ΕΠΙΣΗΜΟ
 // εργαλείο σύγκρισης τιμών ρεύματος και φυσικού αερίου της ΡΑΑΕΥ, ανακοινωμένο
 // από την ίδια την Αρχή· το ίδιο λέει και το data/price-sources.json, που το
@@ -100,7 +100,7 @@ const DURATION_OPTIONS = [
  * υπάρχον test φύλαγε μόνο το `LAST_UPDATED`. Συγχρονίστηκε και φυλάσσεται
  * πλέον από το ίδιο test — αλλιώς η επόμενη απόκλιση θα ήταν εξίσου αθόρυβη.
  */
-export const TARIFFS_VERIFIED = '2026-07-29';
+export const TARIFFS_VERIFIED = '2026-08-31';
 /** Το κατώφλι του ρεύματος, από το `maxAgeDays` του data/price-sources.json. */
 export const TARIFFS_MAX_AGE_DAYS = 40;
 
@@ -408,7 +408,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
         <div>
           <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 4 }}>Ρεύμα</div>
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Τιμολόγια {LAST_UPDATED}, Πηγή: bestenergydeals.gr / ΡΑΑΕΥ</div>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Τιμολόγια {LAST_UPDATED}, διασταυρωμένα με το energycost.gr της ΡΑΑΕΥ</div>
         </div>
         <a href={RAAEY_COMPARE} target="_blank" rel="noopener noreferrer" title={RAAEY_NAME} className="tap-link"
           style={{ fontSize: 11, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.pill, padding: '6px 16px', cursor: 'pointer', textDecoration: 'none', fontFamily: T.font.sans, fontWeight: 600 }}>
