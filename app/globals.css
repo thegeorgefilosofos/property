@@ -1816,6 +1816,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .form-row { display: grid; gap: 12px; align-items: end; }
 .form-row-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .form-row-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* ΤΕΣΣΕΡΑ ΠΕΔΙΑ ΣΕ ΜΙΑ ΓΡΑΜΜΗ ΘΕΛΟΥΝ ΠΛΑΤΟΣ ΠΟΥ ΔΕΝ ΥΠΑΡΧΕΙ ΠΑΝΤΟΥ. Το ενοίκιο
+   είναι τέσσερα πράγματα που απαντιούνται μαζί (ποσό, ημέρα, τρόπος, λογαριασμός)
+   και διαβάζονται ως ένα. Το IBAN όμως κουβαλά είκοσι επτά χαρακτήρες: κάτω από
+   τα 1.000 η στήλη πέφτει στα 170 και το κείμενο κόβεται. Τέσσερα πάνω από τα
+   1.000, δύο ώς εκεί, ένα στο τηλέφωνο. */
+.form-row-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1000px) { .form-row-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .form-span-2 { grid-column: span 2; }
 /* ΤΡΙΑ ΠΕΔΙΑ ΣΕ ΔΥΟ ΣΤΗΛΕΣ ΑΦΗΝΟΥΝ ΤΟ ΤΡΙΤΟ ΜΟΝΟ ΤΟΥ, ΚΑΙ Ο ΣΑΡΩΤΗΣ ΤΟ ΕΠΙΑΣΕ.
    Μετρημένο στη φόρμα ενοικιαστή στα 820: «2+1» δύο φορές, με το «Κινητό
@@ -1828,7 +1835,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
    μέσα στο παράθυρο κάθε στήλη παίρνει 244 εικονοστοιχεία, δηλαδή περισσότερα
    από όσα ζητά το φαρδύτερο πεδίο. Το όριο μπαίνει εκεί που όντως δεν χωρούν. */
 @media (max-width: 700px) {
-  .form-row-2, .form-row-3 { grid-template-columns: minmax(0, 1fr); }
+  .form-row-2, .form-row-3, .form-row-4 { grid-template-columns: minmax(0, 1fr); }
   .form-span-2 { grid-column: auto; }
 }
 

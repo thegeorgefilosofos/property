@@ -48,6 +48,7 @@ import {
   Skeleton,
   SkeletonKPIs,
   ExportButton,
+  fixedCols,
   type KPIItem,
   TT,
 } from '@/components/Theme';
@@ -862,24 +863,36 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
                 μήνυμα δύο φορές, η μία χωρίς περιεχόμενο. Το χρώμα ήταν και
                 παράβαση του κανόνα: κόκκινο σημαίνει σφάλμα, όχι «συμπλήρωσέ το». */}
             <SectionTitle>Η μίσθωση</SectionTitle>
-            {show('tenant.lease_category')&&(
-              <>
-                <ChipRow label={labelOf('tenant.lease_category')} info={whyOf('tenant.lease_category')}>
+            {/* ══ ΕΙΔΟΣ ΚΑΙ ΔΙΑΡΚΕΙΑ ΣΤΗΝ ΙΔΙΑ ΕΥΘΕΙΑ ══════════════════════════
+                Ηταν δύο σειρές κουμπιών, η μία κάτω από την άλλη, με εννιά κουμπιά
+                συνολικά και δύο ολόκληρα πλάτη οθόνης. Οι επτά διάρκειες ειδικά
+                δεν είναι επιλογή που θέλει να φαίνεται ολόκληρη: διαλέγεις μία και
+                δεν την ξανακοιτάς. Ως πτυσσόμενη λίστα πιάνει ένα πεδίο και
+                αφήνει τη διπλανή στήλη στο είδος, με λεπτή γραμμή ανάμεσα.
+
+                Η ΛΕΠΤΗ ΓΡΑΜΜΗ ΕΙΝΑΙ Η `cl-split`, που υπάρχει ήδη: περίγραμμα
+                αριστερά σε κάθε κελί εκτός του πρώτου· φεύγει κάτω από τα 600
+                όπου τα κελιά στοιβάζονται. */}
+            {/* ΤΟ ΔΕΥΤΕΡΟ ΣΤΥΛ ΣΒΗΝΕΙ ΤΟ ΠΡΩΤΟ, ΚΑΙ ΤΟ ΕΚΑΝΕ ΕΔΩ. Ο βοηθός
+                διάταξης επιστρέφει className ΚΑΙ στυλ με τις μεταβλητές των
+                στηλών. Χωρίς άπλωμα, το δικό μας στυλ τις αντικαθιστούσε όλες και
+                η σειρά έβγαινε ΤΡΕΙΣ στήλες με την προεπιλογή του CSS αντί για
+                δύο. Μετρημένο στον πάγκο: 228 επί τρία. Το άπλωμα μπαίνει πρώτο,
+                όπως το γράφουν και τα άλλα δεκατρία σημεία της εφαρμογής. */}
+            <div {...fixedCols(2, 20, 'end', 'cl-split')} style={{ ...fixedCols(2, 20, 'end', 'cl-split').style, marginBottom: 12 }}>
+              {show('tenant.lease_category')&&(
+                <ChipRow flush label={labelOf('tenant.lease_category')} info={whyOf('tenant.lease_category')}>
                   {(Object.keys(LEASE_CATEGORY_LABELS) as LeaseCategory[]).map(lc=>(
                     <Chip key={lc} on={form.lease_category===lc} onClick={()=>sf('lease_category',lc)}>{LEASE_CATEGORY_LABELS[lc]}</Chip>
                   ))}
                 </ChipRow>
-              </>
-            )}
-            {show('tenant.lease_type')&&(
-              <>
-                <ChipRow label={labelOf('tenant.lease_type')} info={whyOf('tenant.lease_type')}>
-                  {(Object.keys(LEASE_LABELS) as LeaseType[]).map(lt=>(
-                    <Chip key={lt} on={form.lease_type===lt} onClick={()=>sf('lease_type',lt)}>{LEASE_LABELS[lt]}</Chip>
-                  ))}
-                </ChipRow>
-              </>
-            )}
+              )}
+              {show('tenant.lease_type')&&(
+                <SelectField label={labelOf('tenant.lease_type')} labelInfo={whyOf('tenant.lease_type')}
+                  value={form.lease_type} onChange={v=>sf('lease_type',v as LeaseType)}
+                  options={(Object.keys(LEASE_LABELS) as LeaseType[]).map(lt=>({ value:lt, label:LEASE_LABELS[lt] }))}/>
+              )}
+            </div>
             <div className="form-row form-row-3">
               {show('tenant.lease_start')&&<DatePicker label={labelOf('tenant.lease_start')} labelInfo={whyOf('tenant.lease_start')} value={form.lease_start} onChange={v=>sf('lease_start',v)}/>}
               {/* Η ΛΗΞΗ ΕΙΧΕ ΤΟ «ΓΙΑΤΙ» ΤΗΣ ΕΝΑΡΞΗΣ. Δύο πεδία δίπλα δίπλα, το
@@ -892,14 +905,18 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
             <div style={s.divider}/>
             {/* ── ΤΟ ΕΝΟΙΚΙΟ ───────────────────────────────────────────────── */}
             <SectionTitle>Το ενοίκιο</SectionTitle>
-            <div className="form-row form-row-3">
+            {/* Τεσσερα πεδία που απαντιούνται μαζί: πόσο, πότε, πώς και πού. Το
+                IBAN καθόταν σε δική του σειρά από κάτω, δηλαδή η ίδια ερώτηση
+                σπασμένη σε δύο γραμμές με μια τρύπα δίπλα της. */}
+            <div className="form-row form-row-4">
               {show('tenant.rent')&&<NumberInput label={labelOf('tenant.rent')} labelInfo={whyOf('tenant.rent')} value={form.monthly_rent} onChange={v=>sf('monthly_rent',v)} suffix="€"/>}
               {show('tenant.rent_due_day')&&<SelectField label={labelOf('tenant.rent_due_day')} labelInfo={whyOf('tenant.rent_due_day')} value={form.rent_due_day} onChange={v=>sf('rent_due_day',v)} options={Array.from({length:28},(_,i)=>({value:String(i+1),label:`${i+1}η`}))}/>}
               {/* Ο ΔΙΑΚΟΠΤΗΣ ΗΤΑΝ ΑΛΛΟΥ, ΚΑΙ ΜΕ ΑΛΛΗ ΕΤΙΚΕΤΑ. Καθόταν δίπλα στο
                   IBAN με ΚΕΦΑΛΑΙΑ ετικέτα, στημένος με το χέρι, ανάμεσα σε πεδία
                   με πεζή. Εδώ είναι το τρίτο πεδίο της σειράς του ενοικίου, με
                   το ίδιο `ToggleField` που χρησιμοποιεί η υπόλοιπη εφαρμογή. */}
-              {show('tenant.rent_iban')&&<ToggleField label="Είσπραξη σε τράπεζα" labelInfo={whyOf('tenant.rent_iban')} on={form.e_payment} onChange={v=>sf('e_payment',v)}/>}
+              {show('tenant.rent_iban')&&<ToggleField label="Μέσω τράπεζας" labelInfo={whyOf('tenant.rent_iban')} on={form.e_payment} onChange={v=>sf('e_payment',v)}/>}
+              {show('tenant.rent_iban')&&<TextInput label={labelOf('tenant.rent_iban')} value={form.rent_iban} onChange={v=>sf('rent_iban',v)} placeholder="GR..."/>}
             </div>
             {/* Ο,τι θα συμβεί μόνο του, λέγεται πριν συμβεί — και μαζί τι το ακυρώνει. */}
             {editRow?.pending_rent!=null&&editRow.pending_rent_from&&(
@@ -907,41 +924,33 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
                 Εκκρεμεί αναπροσαρμογή σε {fmt(editRow.pending_rent)} από {fmtD(editRow.pending_rent_from)}, από υπογεγραμμένη ειδοποίηση. Αλλαγή του ενοικίου εδώ την ακυρώνει.
               </div>
             )}
-            {show('tenant.rent_iban')&&(
-              <>
-                <div className="form-row form-row-3" style={{ marginTop:14 }}>
-                  {/* Το IBAN είναι το μόνο πεδίο της φόρμας που κουβαλά είκοσι
-                      επτά χαρακτήρες: παίρνει ρητά δύο στήλες αντί να απλωθεί σε
-                      όλο το πλάτος ή να στριμωχτεί σε μία. */}
-                  <div className="form-span-2">
-                    <TextInput label={labelOf('tenant.rent_iban')} value={form.rent_iban} onChange={v=>sf('rent_iban',v)} placeholder="GR..."/>
-                  </div>
-                </div>
-                {!form.e_payment&&(
-                  <div style={{ marginTop:14 }}>
-                    <AlertBar level="warning" text={`Με είσπραξη σε μετρητά χάνεται η τεκμαρτή έκπτωση ${fp((PRESUMPTIVE_DEDUCTION_RATE*100))} και ο φόρος υπολογίζεται στο 100% των ακαθάριστων.`}/>
-                  </div>
-                )}
-              </>
-            )}
-
-            <div style={s.divider}/>
-            {/* ── ΕΓΓΥΗΣΗ ──────────────────────────────────────────────────── */}
-            <SectionTitle info={whyOf('tenant.deposit')}>{labelOf('tenant.deposit')}</SectionTitle>
-            {show('tenant.deposit')&&(
-              <div className="form-row form-row-3">
-                <NumberInput ariaLabel={labelOf('tenant.deposit')} value={form.deposit_amount} onChange={v=>sf('deposit_amount',v)} suffix="€"/>
+            {show('tenant.rent_iban')&&!form.e_payment&&(
+              <div style={{ marginTop:12 }}>
+                <AlertBar level="warning" text={`Με είσπραξη σε μετρητά χάνεται η τεκμαρτή έκπτωση ${fp((PRESUMPTIVE_DEDUCTION_RATE*100))} και ο φόρος υπολογίζεται στο 100% των ακαθάριστων.`}/>
               </div>
             )}
 
             <div style={s.divider}/>
-            {/* ── ΤΙ ΠΑΡΕΧΕΙΣ ──────────────────────────────────────────────── */}
-            <SectionTitle info={whyOf('tenant.furnishing')}>{labelOf('tenant.furnishing')}</SectionTitle>
-            <ChipRow groupLabel={labelOf('tenant.furnishing')}>
-              {(Object.keys(FURNISHING_LABELS) as Furnishing[]).map(fv=>(
-                <Chip key={fv} on={form.furnishing===fv} onClick={()=>sf('furnishing',form.furnishing===fv?'':fv)}>{FURNISHING_LABELS[fv]}</Chip>
-              ))}
-            </ChipRow>
+            {/* ══ ΕΓΓΥΗΣΗ ΚΑΙ ΕΠΙΠΛΩΣΗ ΣΤΗΝ ΙΔΙΑ ΕΥΘΕΙΑ ══════════════════════
+                Ηταν δύο ενότητες με δικό τους τίτλο και δική τους γραμμή, η μία
+                κάτω από την άλλη, με ΕΝΑ χειριστήριο η καθεμία: ένα πεδίο ποσού
+                σε πλάτος ενός τρίτου, με δύο τρύπες δεξιά του· από κάτω τρία
+                κουμπάκια. Τρεις γραμμές τίτλων και δύο οριζόντιες γραμμές για
+                δύο ερωτήσεις που απαντιούνται σε δέκα δευτερόλεπτα.
+
+                Ο τίτλος ενότητας έγινε ετικέτα πεδίου, που είναι ό,τι ήταν
+                εξαρχής: το όνομα του ΕΝΟΣ χειριστηρίου από κάτω του. Το χώρισμα
+                ανάμεσά τους είναι η λεπτή κάθετη γραμμή της `cl-split`. */}
+            <div {...fixedCols(2, 20, 'end', 'cl-split')}>
+              {show('tenant.deposit')&&(
+                <NumberInput label={labelOf('tenant.deposit')} labelInfo={whyOf('tenant.deposit')} value={form.deposit_amount} onChange={v=>sf('deposit_amount',v)} suffix="€"/>
+              )}
+              <ChipRow flush label={labelOf('tenant.furnishing')} info={whyOf('tenant.furnishing')}>
+                {(Object.keys(FURNISHING_LABELS) as Furnishing[]).map(fv=>(
+                  <Chip key={fv} on={form.furnishing===fv} onClick={()=>sf('furnishing',form.furnishing===fv?'':fv)}>{FURNISHING_LABELS[fv]}</Chip>
+                ))}
+              </ChipRow>
+            </div>
 
             {/* Οι παρεχόμενες υπηρεσίες υπάρχουν ΜΟΝΟ σε επιπλωμένο — το λέει το μητρώο */}
             {show('tenant.services')&&(

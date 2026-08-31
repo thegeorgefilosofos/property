@@ -77,7 +77,11 @@ export function Chip({ on, onClick, children }: { on:boolean; onClick:()=>void; 
   return (
     <button type="button" onClick={onClick} aria-pressed={on}
       style={{
-        height:T.h.sm, padding:'0 16px', fontSize:12, fontFamily:T.font.sans, cursor:'pointer',
+        // ΤΟ ΓΕΜΙΣΜΑ ΚΡΙΝΕΙ ΑΝ Η ΣΕΙΡΑ ΣΠΑΕΙ. Μετρημένο στη σειρά της επίπλωσης:
+        // τρία κουμπάκια ζητούσαν 333 και το κελί έδινε 325, οπότε το «Turn Key
+        // (όλα μέσα)» έπεφτε σε δεύτερη γραμμή και σήκωνε ολόκληρη τη σειρά κατά
+        // τριάντα εικονοστοιχεία. Δύο λιγότερα δεξιά και αριστερά τα χωρούν.
+        height:T.h.sm, padding:'0 14px', fontSize:12, fontFamily:T.font.sans, cursor:'pointer',
         borderRadius:T.radius.btn, boxSizing:'border-box',
         border:`1px solid ${on?'var(--accent)':'var(--border-default)'}`,
         background:on?'var(--accent-dim)':'transparent',
@@ -88,9 +92,12 @@ export function Chip({ on, onClick, children }: { on:boolean; onClick:()=>void; 
   );
 }
 
-export function ChipRow({ label, groupLabel, info, children }: { label?:string; groupLabel?:string; info?:string; children:React.ReactNode }) {
+export function ChipRow({ label, groupLabel, info, flush, children }: { label?:string; groupLabel?:string; info?:string; flush?:boolean; children:React.ReactNode }) {
   return (
-    <div style={{ marginBottom:12 }}>
+    // ΜΕΣΑ ΣΕ ΚΕΛΙ ΠΛΕΓΜΑΤΟΣ ΤΟ ΠΕΡΙΘΩΡΙΟ ΕΙΝΑΙ ΛΑΘΟΣ. Το πλέγμα στοιχίζει τα
+    // κελιά του στο κάτω άκρο· δώδεκα εικονοστοιχεία κάτω από τα κουμπάκια τα
+    // σηκώνουν τόσο ψηλότερα από το πεδίο δίπλα τους. Το `flush` το αφαιρεί.
+    <div style={flush ? undefined : { marginBottom:12 }}>
       {/* ΤΟ ΙΔΙΟ ΟΝΟΜΑ ΓΡΑΦΟΤΑΝ ΔΥΟ ΦΟΡΕΣ, ΣΕ ΑΠΟΣΤΑΣΗ ΕΞΗΝΤΑ ΕΙΚΟΝΟΣΤΟΙΧΕΙΩΝ.
           Η ενότητα έλεγε «ΚΑΤΑΣΤΑΣΗ ΕΠΙΠΛΩΣΗΣ» και το μοναδικό χειριστήριό της
           «Κατάσταση επίπλωσης»: ίδιες λέξεις, δύο μεγέθη, καμία νέα πληροφορία.
@@ -99,7 +106,14 @@ export function ChipRow({ label, groupLabel, info, children }: { label?:string; 
           στο `groupLabel`, ώστε ο αναγνώστης οθόνης να ακούει «Κατάσταση
           επίπλωσης, ομάδα» και να μη χάσει τίποτα. */}
       {label&&<div style={fieldLabelStyle}><span>{label}{info&&<InfoDot text={info}/>}</span></div>}
-      <div role="group" aria-label={label ?? groupLabel} style={{ display:'flex', gap:6, flexWrap:'wrap' as const }}>{children}</div>
+      {/* ══ ΤΑ ΚΟΥΜΠΑΚΙΑ ΚΑΘΟΝΤΑΙ ΣΕ ΚΟΥΤΙ ΥΨΟΥΣ ΠΕΔΙΟΥ ═══════════════════════
+          Δίπλα σε πεδίο των 40, μια σειρά κουμπακιών των 32 είναι οκτώ
+          εικονοστοιχεία κοντύτερη. Με στοίχιση στο κάτω άκρο, το κοντύτερο κελί
+          ξεκινά χαμηλότερα και η ΕΤΙΚΕΤΑ του πέφτει οκτώ πιο κάτω από τη διπλανή:
+          δύο ονόματα στην ίδια σειρά, σε δύο ύψη. Το ίδιο κόλπο με το
+          `ToggleField`: το ύψος του πεδίου μπαίνει στο κουτί, το χειριστήριο
+          κεντράρεται μέσα του. */}
+      <div role="group" aria-label={label ?? groupLabel} style={{ display:'flex', gap:6, flexWrap:'wrap' as const, alignItems:'center', minHeight:T.h.lg }}>{children}</div>
     </div>
   );
 }
