@@ -93,7 +93,7 @@ export function LensBar({value,onChange,items,barRef}:{value:string;onChange:(v:
        γιατί χρειάζεται πλέγμα με κατώφλι στήλης. ══════════════════════ */
     <div ref={barRef} className="lens-bar" style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:T.radius.card,padding:4}}>
       {items.map(it=>{const on=value===it.id;return(
-        <button key={it.id} onClick={()=>onChange(it.id)} aria-pressed={on} style={{minWidth:0,borderRadius:T.radius.inner,padding:'9px 14px',cursor:'pointer',fontFamily: T.font.sans,fontSize:13,fontWeight:on?600:500,whiteSpace:'nowrap' as const,border:'none',
+        <button key={it.id} onClick={()=>onChange(it.id)} aria-pressed={on} style={{minWidth:0,borderRadius:T.radius.inner,padding:'9px 14px',cursor:'pointer',fontFamily: T.font.sans,fontSize:13,fontWeight:on?600:500,border:'none',
           color:on?'var(--accent)':'var(--text-tertiary)',background:on?'var(--bg-elevated)':'transparent',
           boxShadow:on?'0 1px 2px color-mix(in srgb, var(--text-primary) 10%, transparent), 0 2px 8px -4px color-mix(in srgb, var(--text-primary) 18%, transparent)':'none',
           transition:'color 0.2s, background 0.2s, box-shadow 0.2s'}}>{it.label}</button>

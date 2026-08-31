@@ -715,7 +715,14 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
 
               {/* Τόκοι: πληρωμένοι έναντι υπολοίπων. Το νούμερο που κάνει κάποιον
                   να σκεφτεί αναχρηματοδότηση — και που δεν φαινόταν καθόλου. */}
-              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:8,marginBottom:12}}>
+              {/* ΤΡΙΑ ΠΛΑΚΙΔΙΑ ΣΕ ΔΥΟ ΣΤΗΛΕΣ ΑΦΗΝΑΝ ΤΟ ΤΡΙΤΟ ΜΟΝΟ ΤΟΥ. Το `auto-fit`
+                  δίνει όσες στήλες χωράνε: στα 375 και στα 412 χωρούσαν δύο, οπότε
+                  το «Κεφάλαιο που εξοφλήθηκε» καθόταν αριστερά με τρύπα ίσου
+                  μεγέθους δεξιά του. Ο κανόνας υπάρχει ήδη γραμμένος στο `fcStep`,
+                  με τα ίδια λόγια: διάλεξε τον μεγαλύτερο ΔΙΑΙΡΕΤΗ του πλήθους που
+                  χωράει. Το τρία δεν έχει διαιρέτη δύο, άρα στο κινητό πάει σε μία
+                  στήλη — τρεις γεμάτες σειρές αντί για δύο και μισή. */}
+              <div {...fixedCols(3, 8, 'stretch')} style={{...fixedCols(3, 8, 'stretch').style, marginBottom:12}}>
                 <KPI label="Τόκοι που πλήρωσες" value={fe(prog.interestPaid)}/>
                 <KPI label="Τόκοι που απομένουν" value={fe(prog.interestRemaining)} emphasis/>
                 <KPI label="Κεφάλαιο που εξοφλήθηκε" value={fe(prog.principalPaid)}/>
@@ -765,7 +772,13 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
           <p style={{fontSize:16,color:'var(--text-primary)',fontWeight:700,fontFamily: T.font.sans,letterSpacing:'-0.02em'}}>Στεγαστικό δάνειο</p>
           <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:1,fontFamily: T.font.sans}}>Ελληνική αγορά · δεδομένα ΕΚΤ και Τράπεζας Ελλάδος</p>
         </div>
-        <div style={{display:'flex',gap:10,marginLeft:'auto',flexWrap:'wrap',alignItems:'stretch'}}>
+        {/* ΤΑ ΤΕΣΣΕΡΑ ΕΠΙΤΟΚΙΑ ΤΥΛΙΓΟΝΤΑΝ ΑΖΥΓΙΣΤΑ. Ηταν σειρά flex με πλάτος όσο
+            το κείμενο του καθενός: στο κινητό τα δύο πρώτα έπιαναν τη μία σειρά
+            και τα δύο επόμενα, στενότερα («ΕΚΤ», «ΤτΕ μέσο»), κάθονταν από κάτω
+            μετατοπισμένα, με άλλο βήμα και άλλο πλάτος. Τέσσερα μεγέθη του ίδιου
+            είδους πρέπει να έχουν το ίδιο κουτί. Πλέον ίσες στήλες: τέσσερις
+            στην οθόνη, 2×2 στο κινητό, χωρίς ορφανό σε κανένα πλάτος. */}
+        <div {...fixedCols(4, 10, 'stretch', 'fc-xs-2')} style={{...fixedCols(4, 10, 'stretch', 'fc-xs-2').style, marginLeft:'auto', flex:'1 1 300px', minWidth:0}}>
           {[
             {l:'Euribor τριμήνου',v:market.euribor_3m},
             {l:'Euribor μηνός',v:market.euribor_1m},
@@ -776,7 +789,10 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
             return (
             <div key={item.l} onMouseEnter={()=>setHoverRate(i)} onMouseLeave={()=>setHoverRate(null)} onTouchStart={()=>setHoverRate(i)} onTouchEnd={()=>setHoverRate(null)}
               style={{textAlign:'center' as const,minWidth:76,padding:'2px 10px',borderRadius:10,transition:'background 0.15s',background:on?'var(--bg-surface)':'transparent',cursor:'default'}}>
-              <p style={{fontSize: 11,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:600,fontFamily: T.font.sans,whiteSpace:'nowrap' as const}}>{item.l}</p>
+              {/* Χωρίς `nowrap`: σε 115 εικονοστοιχεία στήλης το «Euribor
+                  τριμήνου» κοβόταν στο «Euribor τριμήν». Δύο γραμμές ετικέτας
+                  δεν χαλούν τη στοίχιση, γιατί το πλέγμα τεντώνει τα κουτιά. */}
+              <p style={{fontSize: 11,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:600,fontFamily: T.font.sans}}>{item.l}</p>
               <p style={{fontSize:15,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:market.isLoading?'var(--border-default)':on?'var(--accent)':'var(--text-primary)',fontWeight:700,marginTop:2,letterSpacing:'-0.01em',transition:'color 0.15s'}}>
                 {market.isLoading?'…':fmtPct(item.v)}
               </p>
@@ -1028,12 +1044,17 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
             const deadStr = programDateLabel(
               st.acceptsApplications ? (prog.applicationDeadline || prog.deadline) : prog.deadline) || null
             const closed = !st.acceptsApplications
+            // ΤΟ `nowrap` ΕΒΓΑΖΕ ΤΗΝ ΠΡΟΘΕΣΜΙΑ ΕΞΩ ΑΠΟ ΤΗΝ ΚΑΡΤΑ. Μετρημένο στα
+            // 320: το όνομα του προγράμματος και το «Αιτήσεις έως 31/05/2026» δεν
+            // χωρούν στην ίδια γραμμή και η ημερομηνία ξέφευγε 14 εικονοστοιχεία.
+            // Η προθεσμία επιτρέπεται να πέσει σε δεύτερη γραμμή· να βγει έξω από
+            // την κάρτα δεν επιτρέπεται.
             return (
             <MiniSection key={prog.id} title={prog.name} defaultOpen={isSpitiMou2(prog.name) && st.acceptsApplications}
               badges={<>
                 <span style={{fontSize: 11,padding:'2px 8px',borderRadius:8,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',color:closed?'var(--text-tertiary)':'var(--text-primary)',fontWeight:closed?500:600,fontFamily: T.font.sans}}>{st.badge}</span>
               </>}
-              meta={deadStr?<span style={{fontSize:12,color:'var(--text-tertiary)',fontFamily: T.font.sans,whiteSpace:'nowrap' as const}}>{st.acceptsApplications?'Αιτήσεις έως':'Υπογραφές έως'} {deadStr}</span>:undefined}
+              meta={deadStr?<span style={{fontSize:12,color:'var(--text-tertiary)',fontFamily: T.font.sans}}>{st.acceptsApplications?'Αιτήσεις έως':'Υπογραφές έως'} {deadStr}</span>:undefined}
             >
               {/* Η ΠΡΟΤΑΣΗ ΠΟΥ ΕΛΕΙΠΕ. Χωρίς αυτήν, δύο ημερομηνίες κάθονταν
                   δίπλα-δίπλα και ο χρήστης μάντευε ποια τον αφορά. */}
@@ -1711,7 +1732,14 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
             </div>
           </MiniSection>
 
-          <MiniSection title="Ιστορικό Euribor τριμήνου, 2020 έως σήμερα" meta={<a href="https://data.ecb.europa.eu" target="_blank" rel="noreferrer" style={{fontSize:11,color:'var(--accent)',textDecoration:'none',fontFamily: T.font.sans,fontWeight:500}}>Πηγή: Ευρωπαϊκή Κεντρική Τράπεζα</a>}>
+          <MiniSection title="Ιστορικό Euribor τριμήνου, 2020 έως σήμερα" meta={/* Ο ΣΥΝΔΕΣΜΟΣ ΗΤΑΝ 13 ΕΙΚΟΝΟΣΤΟΙΧΕΙΑ ΨΗΛΟΣ. Κείμενο 11 σε γραμμή
+                    χωρίς ύψος: στο κινητό ο στόχος αφής ήταν το ένα τρίτο των 44
+                    που ζητά ο κανόνας· και δίπλα του κάθεται το βέλος που ανοίγει
+                    την ενότητα — δηλαδή η αστοχία δεν ήταν «δεν άνοιξε», ήταν
+                    «άνοιξε κάτι άλλο». Το ύψος έρχεται από την κλίμακα, που στο
+                    κινητό γίνεται 44 από μόνη της· το κείμενο δεν μετακινείται,
+                    γιατί η κεφαλίδα είναι ήδη ψηλότερη. */
+                  <a href="https://data.ecb.europa.eu" target="_blank" rel="noreferrer" style={{display:'inline-flex',alignItems:'center',minHeight:T.h.md,fontSize:11,color:'var(--accent)',textDecoration:'none',fontFamily: T.font.sans,fontWeight:500}}>Πηγή: Ευρωπαϊκή Κεντρική Τράπεζα</a>}>
             <EuriborArea data={EURIBOR_HISTORY}/>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 130px), 1fr))',gap:10,marginTop:14}}>
               {[

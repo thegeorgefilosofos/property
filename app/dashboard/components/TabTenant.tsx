@@ -1017,7 +1017,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
                     <div className="form-row form-row-3" style={{ marginBottom:14 }}>
                       {more('tenant.email')&&<TextInput label={labelOf('tenant.email')} labelInfo={whyOf('tenant.email')} value={form.email} onChange={v=>sf('email',v)} type="email"/>}
                       {more('tenant.profession')&&<TextInput label={labelOf('tenant.profession')} labelInfo={whyOf('tenant.profession')} value={form.profession} onChange={v=>sf('profession',v)} placeholder="Μηχανικός"/>}
-                      {more('tenant.iban')&&<TextInput label={labelOf('tenant.iban')} labelInfo={whyOf('tenant.iban')} value={form.iban} onChange={v=>sf('iban',v)} placeholder="GR00 0000 0000 0000…"/>}
+                      {more('tenant.iban')&&<TextInput label={labelOf('tenant.iban')} labelInfo={whyOf('tenant.iban')} value={form.iban} onChange={v=>sf('iban',v)} placeholder="GR00 0000 0000…"/>}
                     </div>
 
                     <div className="form-row form-row-3" style={{ marginBottom:14 }}>
@@ -1068,7 +1068,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
                         κάτω από το άλλο, όπως κάθε άλλη σειρά. */}
                     <div className="form-row form-row-2">
                       {more('tenant.extra_perks')&&(
-                        <Textarea label={labelOf('tenant.extra_perks')} labelInfo={whyOf('tenant.extra_perks')} value={form.extra_perks} onChange={v=>sf('extra_perks',v)} placeholder="Αποθήκη, κήπος, πάρκινγκ…"/>
+                        <Textarea label={labelOf('tenant.extra_perks')} labelInfo={whyOf('tenant.extra_perks')} value={form.extra_perks} onChange={v=>sf('extra_perks',v)} placeholder="Αποθήκη, κήπος…"/>
                       )}
                       {more('tenant.notes')&&(
                         <Textarea label={labelOf('tenant.notes')} labelInfo={whyOf('tenant.notes')} value={form.notes} onChange={v=>sf('notes',v)}/>
