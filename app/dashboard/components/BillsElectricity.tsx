@@ -349,10 +349,13 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
   )
     // Το κουμπί Οικιακό/Επιχειρηματικό υπήρχε και δεν φιλτράριζε τίποτα.
     .filter(r => r.tariff.segment === segmentFilter)
-    .map(r => ({ ...r.tariff, monthly: r.cost.total, isCurrent: r.isCurrent, diff: r.diff }));
+    .map(r => ({ ...r.tariff, monthly: r.cost.total, isCurrent: r.isCurrent, diff: r.diff, priced: r.priced }));
 
-  const bestMonthly  = allTariffs[0]?.monthly || 0;
-  const savings      = calcMonthly - bestMonthly;
+  // Το φθηνότερο βγαίνει από όσα ΕΧΟΥΝ τιμή. Οταν το τμήμα δεν έχει κανένα
+  // τιμολογημένο, δεν υπάρχει φθηνότερο και δεν υπάρχει εξοικονόμηση.
+  const bestPriced   = allTariffs.find(t => t.priced);
+  const bestMonthly  = bestPriced?.monthly ?? 0;
+  const savings      = bestPriced ? calcMonthly - bestMonthly : 0;
 
   // ── ΤΙ ΔΕΙΧΝΕΤΑΙ ΑΠΟ ΤΗΝ ΚΑΤΑΤΑΞΗ ────────────────────────────────────────
   // Η κεφαλίδα έγραφε «Σύγκριση Όλων των Παρόχων» και από κάτω κόβονταν είκοσι
@@ -749,7 +752,15 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
               } else if (t.type === 'vnm') {
                 facts.push('Συμψηφισμός με φωτοβολταϊκό');
               } else {
-                facts.push(`${fk(t.kwh_day)} ανά κιλοβατώρα`);
+                // Μηδενική τιμή σε τιμολόγιο που κλείνει αναδρομικά σημαίνει ότι
+                // η ΡΑΑΕΥ δεν έχει ακόμη τιμή γι' αυτόν τον μήνα, όχι δωρεάν ρεύμα.
+                // Στα αναδρομικά ο αριθμός του καταλόγου είναι η ΒΑΣΙΚΗ τιμή, όχι
+                // η τελική. Δίπλα σε «Χωρίς τιμή» στη στήλη του ποσού, ένα σκέτο
+                // «0,148 € ανά κιλοβατώρα» διαβάζεται ως αντίφαση: εδώ λέγεται τι
+                // είναι. Και όταν ούτε βασική τιμή υπάρχει, δεν γράφεται μηδέν.
+                facts.push(t.priceStatus !== 'retro' ? `${fk(t.kwh_day)} ανά κιλοβατώρα`
+                  : t.kwh_day > 0 ? `${fk(t.kwh_day)} βασική τιμή, κλείνει αναδρομικά`
+                  : 'Η τιμή του μήνα ανακοινώνεται τον επόμενο');
                 facts.push(t.no_fixed ? 'Χωρίς πάγιο' : `Πάγιο ${fe(fixedNow)}`);
               }
               facts.push(t.contract_months ? `Δέσμευση ${t.contract_months} μήνες` : 'Χωρίς δέσμευση');
@@ -759,7 +770,8 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
               // μετριέται. Και τα τρία «—» της παλιάς στήλης (τρέχον, μηδενική
               // διαφορά, δυναμικό) έλεγαν τρία διαφορετικά πράγματα με το ίδιο
               // σύμβολο, που είναι ακριβώς ο λόγος που η παύλα δεν είναι τιμή.
-              const relative = isCur ? 'Το τιμολόγιό σου'
+              const relative = !t.priced ? 'Γράψε τον λογαριασμό σου για να μπει στη σύγκριση'
+                : isCur ? 'Το τιμολόγιό σου'
                 : t.diff === 0 ? 'Ίδιο με το τρέχον'
                 : t.diff < 0 ? `${fe(-t.diff)} λιγότερα τον μήνα`
                 : `${fe(t.diff)} περισσότερα τον μήνα`;
@@ -779,8 +791,10 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                     background: isCur ? 'var(--accent-soft)' : isBest ? 'var(--bg-elevated)' : 'transparent',
                     borderRadius: isCur || isBest ? T.radius.inner : 0,
                   }}>
+                    {/* Οσα δεν έχουν τιμή δεν έχουν και θέση: ένας αριθμός
+                        κατάταξης δίπλα τους θα έλεγε ότι μετρήθηκαν. */}
                     <div style={{ fontSize: 11, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-tertiary)', minWidth: 18, textAlign: 'right' as const }}>
-                      {rank}
+                      {t.priced ? rank : ''}
                     </div>
 
                     <div style={{ minWidth: 0 }}>
@@ -813,7 +827,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                         fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums',
                         color: isCur ? 'var(--accent)' : 'var(--text-primary)', lineHeight: 1.2,
                       }}>
-                        {fe(t.monthly)}
+                        {t.priced ? fe(t.monthly) : 'Χωρίς τιμή'}
                       </div>
                       <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const }}>
                         {relative}

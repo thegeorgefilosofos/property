@@ -242,6 +242,11 @@ export interface Ranked<T extends Tariff> {
   isCurrent: boolean;
   /** Διαφορά από το τρέχον τιμολόγιο. Αρνητικό σημαίνει φθηνότερο. */
   diff: number;
+  /**
+   * Ξέρουμε τι κοστίζει; Οταν όχι, το τιμολόγιο φαίνεται αλλά ΔΕΝ κατατάσσεται.
+   * Το ψέμα δεν είναι ότι η τιμή λείπει, είναι ότι το μηδέν διαβάζεται ως τιμή.
+   */
+  priced: boolean;
 }
 
 /**
@@ -253,14 +258,40 @@ export interface Ranked<T extends Tariff> {
 export function compareTariffs<T extends Tariff>(
   tariffs: T[], u: Usage, currentId: string | null, currentCost: number,
 ): Ranked<T>[] {
-  return tariffs
+  const rows = tariffs
     .filter(t => t.type !== 'dynamic')
     .map(t => {
       const cost = monthlyCost(t, u);
       const isCurrent = t.id === currentId;
-      return { tariff: t, cost, isCurrent, diff: isCurrent ? 0 : cents(cost.total - currentCost) };
-    })
-    .sort((a, b) => a.cost.total - b.cost.total);
+      // ΑΓΝΩΣΤΟ ΔΕΝ ΕΙΝΑΙ ΜΗΔΕΝ. Οσα κλείνουν αναδρομικά επιστρέφουν το ποσό που
+      // δήλωσε ο χρήστης· όταν δεν έχει δηλώσει, το ποσό είναι μηδέν και ΔΕΝ
+      // είναι τιμή. Χωρίς αυτή τη γραμμή τα μηδενικά κάθονταν στην κορυφή.
+      const priced = !(cost.manual && cost.total <= 0);
+      return { tariff: t, cost, isCurrent, diff: isCurrent ? 0 : cents(cost.total - currentCost), priced };
+    });
+
+  // ══ ΤΟ ΜΗΔΕΝ ΕΒΓΑΙΝΕ ΠΡΩΤΟ, ΚΑΙ ΗΤΑΝ ΟΙ ΠΕΝΤΕ ΠΡΩΤΕΣ ΘΕΣΕΙΣ ═══════════════
+  //
+  // Μετρημένο στα 300 kWh, πριν τη διόρθωση:
+  //
+  //     0,00 €  heron_yellow_free    0,00 €  heron_protect    0,00 €  heron_happy_hour
+  //     0,00 €  wv_home_standard     0,00 €  eun_home_core
+  //
+  // Η προηγούμενη διόρθωση σταμάτησε τα αναδρομικά τιμολόγια να ΥΠΟΛΟΓΙΖΟΝΤΑΙ,
+  // γιατί η τιμή τους δεν υπάρχει τη στιγμή που αποφασίζει ο χρήστης. Επέστρεψαν
+  // όμως μηδέν και η κατάταξη ταξινομεί με αύξουσα σειρά κόστους: τα έστειλε
+  // ΟΛΑ στην κορυφή. Το «φθηνότερο τιμολόγιο» της οθόνης κόστιζε μηδέν ευρώ, το
+  // πλακίδιο «Εξοικονόμηση» μετρούσε απέναντι σε μηδέν και η αυτόκλητη
+  // ειδοποίηση «άλλαξε πάροχο» έβγαινε πάνω σε τιμή που δεν υπάρχει.
+  //
+  // Το ίδιο λάθος με τα δυναμικά, δύο γραμμές πιο πάνω, με μια διαφορά: εκείνα
+  // βγαίνουν εντελώς από τη λίστα, ενώ αυτά πρέπει να ΦΑΙΝΟΝΤΑΙ. Είναι υπαρκτά
+  // προϊόντα του καταλόγου της ΡΑΑΕΥ, ο ιδιοκτήτης μπορεί να έχει ένα από αυτά,
+  // απλώς δεν μπαίνουν σε σειρά με όσα έχουν τιμή. Πάνε στο τέλος, με τη δική
+  // τους εξήγηση.
+  const priced = rows.filter(r => r.priced).sort((a, b) => a.cost.total - b.cost.total);
+  const unpriced = rows.filter(r => !r.priced).sort((a, b) => a.tariff.name.localeCompare(b.tariff.name, 'el'));
+  return [...priced, ...unpriced];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

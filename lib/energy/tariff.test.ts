@@ -377,5 +377,31 @@ const simple: Tariff = {
   eq('κανένας αριθμός της περιγραφής δεν διαφωνεί με τα πεδία', clashes, []);
 }
 
+// ══ ΤΟ ΑΓΝΩΣΤΟ ΔΕΝ ΚΑΤΑΤΑΣΣΕΤΑΙ ΩΣ ΜΗΔΕΝ ══════════════════════════════════
+// Πριν: οι πέντε πρώτες θέσεις στα 300 kWh ήταν πέντε μηδενικά, όλα τιμολόγια
+// που κλείνουν αναδρομικά. Το «φθηνότερο» της οθόνης κόστιζε μηδέν ευρώ.
+{
+  const u: Usage = consumes(300);
+  const ranked = compareTariffs(COMPARABLE_TARIFFS(), u, null, 0);
+
+  const firstUnpriced = ranked.findIndex(r => !r.priced);
+  const lastPriced = ranked.map(r => r.priced).lastIndexOf(true);
+  ok('όσα έχουν τιμή προηγούνται όσων δεν έχουν', firstUnpriced === -1 || firstUnpriced > lastPriced);
+
+  const zeros = ranked.filter(r => r.priced && r.cost.total <= 0).map(r => r.tariff.id);
+  eq('κανένα τιμολόγιο με τιμή δεν κοστίζει μηδέν', zeros, []);
+
+  ok('η πρώτη θέση κοστίζει κάτι', (ranked[0]?.cost.total ?? 0) > 0);
+
+  // Και όποιο δηλώσει ποσό ο χρήστης ΞΑΝΑΜΠΑΙΝΕΙ στην κατάταξη: το εμπόδιο
+  // ήταν η άγνωστη τιμή, όχι το ίδιο το τιμολόγιο.
+  const retro = ALL_TARIFFS().find(t => t.priceStatus === 'retro');
+  if (retro) {
+    const told = compareTariffs([retro], { ...u, manualMonthly: 62 }, null, 0);
+    ok('με δηλωμένο ποσό το αναδρομικό κατατάσσεται', told[0].priced === true);
+    eq('και με το ποσό του χρήστη', told[0].cost.total, 62);
+  }
+}
+
 console.log(fail === 0 ? `✓ tariff: ${pass} έλεγχοι πέρασαν` : `✗ tariff: ${fail} απέτυχαν από ${pass + fail}`);
 if (fail > 0) process.exit(1);
