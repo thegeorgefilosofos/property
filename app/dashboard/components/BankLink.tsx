@@ -26,7 +26,7 @@ import { useState } from 'react';
 import { Modal, Btn, T, TT } from '@/components/Theme';
 import {
   BANK_LINK_TITLE, BANK_LINK_TAGLINE, BANK_LINK_POINTS,
-  bankLinkState, bankLinkCta, bankLinkStatusLine, bankLinkPriceLine,
+  bankLinkState, bankLinkStatusLine, bankLinkPriceLine,
 } from '@/lib/bank/link';
 
 const BankGlyph = ({ size = 30 }: { size?: number }) => (
@@ -46,7 +46,6 @@ const BankGlyph = ({ size = 30 }: { size?: number }) => (
  */
 function BankLinkModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const state = bankLinkState();
-  const [asked, setAsked] = useState(false);
 
   return (
     <Modal open={open} onClose={onClose} size="md"
@@ -55,13 +54,13 @@ function BankLinkModal({ open, onClose }: { open: boolean; onClose: () => void }
       icon={<BankGlyph size={18} />}
       footerInfo={bankLinkStatusLine(state)}
       footer={<>
+        {/* Ο,ΤΙ ΔΕΝ ΓΙΝΕΤΑΙ ΑΚΟΜΗ, ΔΕΝ ΠΡΟΣΠΟΙΕΙΤΑΙ ΟΤΙ ΓΙΝΕΤΑΙ. Εδώ καθόταν ένα
+            «Ειδοποίησέ με μόλις ανοίξει» που έκανε μόνο `setAsked(true)`: καμία
+            εγγραφή πουθενά. Ο χρήστης διάβαζε «Θα σου πούμε» και έφευγε
+            πιστεύοντας ότι μπήκε σε λίστα που δεν υπάρχει· ακόμη και η ένδειξη
+            χανόταν με το κλείσιμο του παραθύρου. Το παράθυρο εξηγεί· δεν
+            υπόσχεται. */}
         <Btn onClick={onClose}>Κλείσιμο</Btn>
-        {/* Ο,ΤΙ ΔΕΝ ΓΙΝΕΤΑΙ ΑΚΟΜΗ, ΔΕΝ ΠΡΟΣΠΟΙΕΙΤΑΙ ΟΤΙ ΓΙΝΕΤΑΙ. Όσο δεν
-            υπάρχει πάροχος με τιμή, το κουμπί ζητά ειδοποίηση αντί να ανοίγει
-            ροή που θα σκάσει στο δεύτερο βήμα. */}
-        <Btn variant="primary" onClick={() => setAsked(true)}>
-          {asked ? 'Θα σου πούμε' : bankLinkCta(state)}
-        </Btn>
       </>}>
 
       {BANK_LINK_POINTS.map(p => (

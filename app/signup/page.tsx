@@ -1,6 +1,7 @@
 'use client'
 import { T } from '@/components/Theme'
 import { useState, useEffect, useSyncExternalStore } from 'react'
+import { leaveDevice } from '@/lib/localPrivacy'
 import { authClient } from '@/lib/supabase/lazy';
 import Link from 'next/link'
 import AlreadySignedIn from '../AlreadySignedIn'
@@ -195,6 +196,9 @@ export default function SignupPage() {
     setSigningOut(true)
     const supabase = await authClient()
     await supabase.auth.signOut()
+    // Αλλάζει λογαριασμός στην ΙΔΙΑ συσκευή: τα προσωπικά του προηγούμενου
+    // δεν περνούν στον επόμενο.
+    leaveDevice()
     setSessionEmail(null); setSigningOut(false)
   }
 

@@ -6,6 +6,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useRef, useId, useCallback } from 'react';
+import { leaveDevice } from '@/lib/localPrivacy';
 import { createClient } from '@/lib/supabase/client';
 import { shouldStop, leftoverText, type DeleteReport } from './deletionReport';
 import * as properties from '@/lib/data/properties';
@@ -231,6 +232,9 @@ function DeleteAccount() {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    // Ο διακομιστής έσβησε τα πάντα· ο περιηγητής δεν μένει η τελευταία θέση
+    // όπου επιβιώνουν προσωπικά δεδομένα τρίτων.
+    leaveDevice();
     window.location.assign('/login');
   };
 

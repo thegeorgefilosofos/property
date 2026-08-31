@@ -10,6 +10,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, CSSProperties } from 'react';
+import { leaveDevice } from '@/lib/localPrivacy';
 import { createClient } from '@/lib/supabase/client';
 import { T, TT, Btn, settingsField, Spinner, ABSENT, ABSENT_DATE, fixedCols } from '@/components/Theme';
 import { SetList, SetRow, SetFact } from './SettingsKit';
@@ -225,6 +226,9 @@ export default function SecuritySettings() {
     // Καταγραφή ΠΡΙΝ την καθολική αποσύνδεση (μετά χάνεται η συνεδρία).
     await logActivity(supabase, 'signed_out_all', 'security');
     await supabase.auth.signOut({ scope: 'global' });
+    // Η καθολική αποσύνδεση κλείνει ΚΑΘΕ συνεδρία· η συσκευή που την πάτησε
+    // δεν επιτρέπεται να είναι η μόνη που κρατά ονόματα και ΑΦΜ.
+    leaveDevice();
     window.location.assign('/login');
   }
 

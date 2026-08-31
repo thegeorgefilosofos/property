@@ -42,3 +42,42 @@ export function clearLocalPersonalData(storage?: Pick<Storage, 'length' | 'key' 
     return 0;   // private mode ή κλειδωμένο storage
   }
 }
+
+/** Το μήνυμα που λέει στον service worker να πετάξει τις caches του. Το ίδιο
+ *  ακριβώς κείμενο ακούει το public/sw.js. */
+export const CACHE_CLEAR_MESSAGE = 'pos-clear-caches';
+
+/**
+ * Η ΕΞΟΔΟΣ ΑΠΟ ΤΗ ΣΥΣΚΕΥΗ, ΟΛΟΚΛΗΡΗ, ΣΕ ΜΙΑ ΚΛΗΣΗ.
+ *
+ * ΤΟ ΣΦΑΛΜΑ ΠΟΥ ΤΗ ΓΕΝΝΗΣΕ: ο καθαρισμός ΕΓΡΑΦΟΤΑΝ σε ένα σημείο, αλλά
+ * ΚΑΛΟΥΝΤΑΝ σε ένα μόνο από τα πέντε. Πέντε δρόμοι βγάζουν τον χρήστη έξω και
+ * μόνο η απλή «Αποσύνδεση» καθάριζε τη συσκευή:
+ *
+ *   ✓ Επισκόπηση → Αποσύνδεση
+ *   ✗ Ασφάλεια → «Αποσύνδεση από όλες τις συσκευές», ο ΙΣΧΥΡΟΤΕΡΟΣ διακόπτης
+ *   ✗ Ρυθμίσεις → Οριστική διαγραφή λογαριασμού
+ *   ✗ /login → «είσαι ήδη συνδεδεμένος ως …, αποσύνδεση»
+ *   ✗ /signup → το ίδιο
+ *
+ * Δηλαδή σε κοινό υπολογιστή ο χρήστης πατούσε τον πιο δυνατό διακόπτη που
+ * υπάρχει και τα `pa_hist_*` (ονόματα ενοικιαστών, ΑΦΜ, ποσά μέσα σε συνομιλίες
+ * του βοηθού) με τα `po_owner_split_*` (ονοματεπώνυμα και ΑΦΜ συνιδιοκτητών)
+ * έμεναν στο μηχάνημα. Και μετά τη ΔΙΑΓΡΑΦΗ του λογαριασμού, ο διακομιστής
+ * έσβηνε τα πάντα ενώ ο περιηγητής τα κρατούσε: προσωπικά δεδομένα τρίτων που
+ * επιβίωναν του ίδιου του λογαριασμού.
+ *
+ * Καμία οθόνη δεν ξαναγράφει τα δύο βήματα ξεχωριστά: υπάρχει φύλακας.
+ */
+export function leaveDevice(deps?: {
+  storage?: Pick<Storage, 'length' | 'key' | 'removeItem'>;
+  /** `null` σημαίνει «κανένας worker». Παραλείποντάς το, βρίσκεται μόνος του. */
+  controller?: { postMessage: (m: string) => void } | null;
+}): number {
+  const cleared = clearLocalPersonalData(deps?.storage);
+  const controller = deps && 'controller' in deps
+    ? deps.controller
+    : (typeof navigator === 'undefined' ? null : navigator.serviceWorker?.controller ?? null);
+  try { controller?.postMessage(CACHE_CLEAR_MESSAGE); } catch { /* κλειδωμένος ή νεκρός worker */ }
+  return cleared;
+}

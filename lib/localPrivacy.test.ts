@@ -5,7 +5,7 @@
 // συνιδιοκτητών) και ότι ΔΕΝ σβήνεται ό,τι είναι απλή προτίμηση — ο
 // καθαρισμός στην αποσύνδεση δεν είναι τιμωρία.
 
-import { clearLocalPersonalData, PERSONAL_KEY_PREFIXES } from './localPrivacy'
+import { clearLocalPersonalData, leaveDevice, CACHE_CLEAR_MESSAGE, PERSONAL_KEY_PREFIXES } from './localPrivacy'
 
 let passed = 0, failed = 0
 function ok(name: string, cond: boolean) { if (cond) { passed++ } else { failed++; console.log('  ✗ ' + name) } }
@@ -85,6 +85,37 @@ const SAMPLE = {
 ok('καλύπτει τις συνομιλίες', PERSONAL_KEY_PREFIXES.includes('pa_hist_'))
 ok('καλύπτει την κατανομή συνιδιοκτητών', PERSONAL_KEY_PREFIXES.includes('po_owner_split_'))
 ok('δεν καλύπτει τις αναμνήσεις', !(PERSONAL_KEY_PREFIXES as readonly string[]).includes('pa_mem_'))
+
+// ── Η ΕΞΟΔΟΣ ΑΠΟ ΤΗ ΣΥΣΚΕΥΗ ΚΑΝΕΙ ΚΑΙ ΤΑ ΔΥΟ ────────────────────────────────
+// Ο καθαρισμός υπήρχε· έλειπε η ΚΛΗΣΗ του σε τέσσερις από τις πέντε εξόδους.
+// Τώρα το ζεύγος «σβήσε τα τοπικά, πέτα τις caches» έχει ένα όνομα, ώστε καμία
+// οθόνη να μη θυμάται δύο βήματα.
+{
+  const st = fakeStorage({ pa_hist_1: 'x', po_owner_split_a: 'y', pos_mode: 'dark' })
+  const sent: string[] = []
+  const n = leaveDevice({ storage: st, controller: { postMessage: (m: string) => { sent.push(m) } } })
+  ok('σβήνει τα προσωπικά', n === 2)
+  ok('και αφήνει τις προτιμήσεις', st.has('pos_mode'))
+  ok('στέλνει το μήνυμα στον service worker', sent.length === 1 && sent[0] === CACHE_CLEAR_MESSAGE)
+}
+{
+  // Χωρίς service worker (πρώτη φόρτωση, ή περιηγητής που δεν τον υποστηρίζει)
+  // η έξοδος ΔΕΝ πετά: αλλιώς ο χρήστης θα έμενε συνδεδεμένος από ένα σφάλμα.
+  const st = fakeStorage({ pa_hist_1: 'x' })
+  let threw = false
+  let n = -1
+  try { n = leaveDevice({ storage: st, controller: null }) } catch { threw = true }
+  ok('χωρίς worker δεν πετά', !threw)
+  ok('και καθαρίζει κανονικά', n === 1)
+}
+{
+  // Νεκρός worker: το postMessage πετά. Η έξοδος συνεχίζει.
+  const st = fakeStorage({ pa_hist_1: 'x' })
+  let threw = false
+  try { leaveDevice({ storage: st, controller: { postMessage: () => { throw new Error('InvalidStateError') } } }) } catch { threw = true }
+  ok('νεκρός worker δεν σταματά την έξοδο', !threw)
+  ok('και τα προσωπικά έφυγαν', !st.has('pa_hist_1'))
+}
 
 console.log(`localPrivacy.test.ts: ${passed} passed, ${failed} failed`)
 if (failed > 0) process.exit(1)

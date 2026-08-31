@@ -76,7 +76,7 @@ import { annuityMonthly } from '@/lib/loans/recommend';
 import { LOAN_COLUMNS, toLoanViews, type LoanView } from '@/lib/loans/shape';
 import { stayTotal } from '@/lib/clients/clients';
 import { clearHistory as clearAssistantHistory, planBriefing } from './components/assistantPersona';
-import { clearLocalPersonalData } from '@/lib/localPrivacy';
+import { leaveDevice } from '@/lib/localPrivacy';
 import { consolidateRentTax, taxShareOf, consolidationSummary, CONSOLIDATION_NOTE } from '@/lib/billing/consolidate';
 import UpgradeModal from './components/UpgradeModal';
 import FeatureLock, { LockBadge } from './components/FeatureLock';
@@ -1758,8 +1758,7 @@ export default function Dashboard() {
       notifyError('Δεν έγινε η αποσύνδεση. Δες τη σύνδεσή σου στο δίκτυο και δοκίμασε ξανά. Τα δεδομένα σου στη συσκευή δεν πειράχτηκαν.', { duration: 0 });
       return;
     }
-    clearLocalPersonalData();
-    try { navigator.serviceWorker?.controller?.postMessage('pos-clear-caches'); } catch { /* ignore */ }
+    leaveDevice();
     // ΠΛΗΡΗΣ ΦΟΡΤΩΣΗ, ΟΧΙ ΠΛΟΗΓΗΣΗ ΤΟΥ ROUTER: μετά την αποσύνδεση θέλουμε να
     // πεθάνει ΟΛΗ η μνήμη της εφαρμογής, όχι να μείνει ζωντανή με άδειο χρήστη.
     // Ως `assign` και όχι ως ανάθεση στο `href`: ίδια ακριβώς συμπεριφορά, αλλά

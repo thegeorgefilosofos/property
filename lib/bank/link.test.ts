@@ -7,7 +7,7 @@
 // πει «σύνδεση» ενώ η σύνδεση δεν υπάρχει ακόμη.
 import {
   BANK_LINK_TITLE, BANK_LINK_TAGLINE, BANK_LINK_POINTS,
-  bankLinkState, bankLinkCta, bankLinkStatusLine, bankLinkPriceLine,
+  bankLinkState, bankLinkStatusLine, bankLinkPriceLine,
 } from './link';
 import { ADDONS, available } from '@/lib/billing/addons';
 
@@ -15,7 +15,7 @@ let pass = 0, fail = 0;
 const ok = (n: string, c: boolean) => { if (c) pass++; else { fail++; console.error('✗ ' + n); } };
 
 const ALL = [BANK_LINK_TITLE, BANK_LINK_TAGLINE, bankLinkPriceLine(),
-  bankLinkStatusLine('open'), bankLinkStatusLine('coming'), bankLinkCta('open'), bankLinkCta('coming'),
+  bankLinkStatusLine('open'), bankLinkStatusLine('coming'),
   ...BANK_LINK_POINTS.flatMap(p => [p.title, p.body])].join(' ');
 
 // ── ΤΙ ΔΕΝ ΛΕΜΕ ΠΟΤΕ ──────────────────────────────────────────────────────
@@ -51,10 +51,16 @@ ok('η κατάσταση δένεται με τη διαθεσιμότητα τ
    bankLinkState() === (available('bank_link') ? 'open' : 'coming'));
 if (ADDONS.bank_link.priceMonthly == null) {
   ok('χωρίς τιμή, δεν λέμε «Σύνδεση τράπεζας»', bankLinkState() === 'coming');
-  ok('το κουμπί ζητά ειδοποίηση', /ειδοποίησέ/i.test(bankLinkCta()));
   ok('και η γραμμή τιμής το παραδέχεται', /θα φαίνεται πριν/i.test(bankLinkPriceLine()));
-} else {
-  ok('με τιμή, το κουμπί συνδέει', bankLinkCta() === 'Σύνδεση τράπεζας');
+}
+
+// ── ΚΑΜΙΑ ΥΠΟΣΧΕΣΗ ΠΟΥ ΔΕΝ ΤΗΡΕΙΤΑΙ ────────────────────────────────────────
+// Η γραμμή κατάστασης έλεγε «Σου στέλνουμε ένα μήνυμα μόλις ανοίξει», ενώ το
+// κουμπί από πάνω της δεν έγραφε πουθενά τίποτα: ούτε λίστα αναμονής, ούτε
+// αποστολέας email. Οποια υπόσχεση αποστολής μπει ξανά εδώ, μπαίνει ΜΑΖΙ με τη
+// γραφή που την τηρεί.
+for (const s of ['open', 'coming'] as const) {
+  ok(`«${s}»: καμία υπόσχεση μηνύματος`, !/στέλνουμε|θα σου πούμε|ειδοποι/i.test(bankLinkStatusLine(s)));
 }
 
 // Η μονάδα χρέωσης λέγεται με τα ίδια λόγια όπως στο τιμολόγιο.
