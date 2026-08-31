@@ -1809,7 +1809,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
    πλάτη και τις ίδιες αφετηρίες. Οποιο θέλει περισσότερο χώρο το ζητά ρητά με
    `.form-span-2`. Τα σπασίματα είναι τα ίδια με του `.fixed-cols`, ώστε η
    φόρμα να αλλάζει διάταξη στα ίδια πλάτη με τα πλέγματα δίπλα της. */
-.form-row { display: grid; gap: 14px; align-items: start; }
+/* Στοίχιση στο ΚΑΤΩ άκρο: με ίδιο ύψος χειριστηρίου παντού, τα κουτιά πέφτουν
+   στην ίδια γραμμή ακόμη κι όταν μια ετικέτα πιάνει δύο γραμμές. Με `start` η
+   στοίχιση εξαρτιόταν από το να έχουν ΟΛΕΣ οι ετικέτες το ίδιο ύψος, που το
+   αγόραζε γέμισμα 32 εικονοστοιχείων πάνω από κάθε πεδίο. */
+.form-row { display: grid; gap: 12px; align-items: end; }
 .form-row-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .form-row-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .form-span-2 { grid-column: span 2; }

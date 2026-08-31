@@ -41,7 +41,7 @@ export const InfoBlock = ({ title, children, tone }: { title: string; children: 
 // καμία σκηνή του πάγκου δεν την άνοιγε.
 export function SectionTitle({ children, info }: { children: React.ReactNode; info?: string }) {
   return (
-    <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16 }}>
+    <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:12 }}>
       <span style={{ fontSize:'11px', letterSpacing:'0.06em', textTransform:'uppercase' as const, color:'var(--text-secondary)', fontFamily:T.font.sans, fontWeight:700 }}>{children}</span>
       {info&&<InfoDot text={info}/>}
     </div>
@@ -56,9 +56,41 @@ export function SectionTitle({ children, info }: { children: React.ReactNode; in
  * και μάντευε τι διαλέγει, ενώ κάθε διπλανό πεδίο είχε ετικέτα από πάνω. Δύο
  * ιδιώματα για το ίδιο πράγμα, στην ίδια οθόνη.
  */
+/**
+ * ΤΟ ΚΟΥΜΠΑΚΙ ΕΠΙΛΟΓΗΣ, ΜΙΑ ΦΟΡΑ.
+ *
+ * ΤΙ ΜΕΤΡΗΘΗΚΕ ΣΤΗ ΦΟΡΜΑ ΕΝΟΙΚΙΑΣΤΗ. Τρεις σειρές κουμπιών, γραμμένες τρεις
+ * φορές με το χέρι, με τρεις διαφορετικές ρυθμίσεις:
+ *
+ *   «Κατοικία / Επαγγελματική»   padding 8/18, 12px, βάρος 700  →  ύψος 32
+ *   «Διάρκεια» (επτά κουμπιά)    padding 8/16, 11px, βάρος 600  →  ύψος 31
+ *   «Κατάσταση επίπλωσης»        padding 8/16, 12px, βάρος 700  →  ύψος 32
+ *
+ * Ενα εικονοστοιχείο διαφορά ανάμεσα σε δύο σειρές που κάθονται η μία κάτω από
+ * την άλλη· δύο μεγέθη γραμμάτων για την ίδια πράξη. Δεν το βλέπει κανείς
+ * ονομαστικά· φαίνεται ως «κάτι δεν κάθεται καλά».
+ *
+ * Το ύψος έρχεται από την κοινή κλίμακα (T.h.sm), όχι από padding: με padding,
+ * κάθε αλλαγή μεγέθους γραμμάτων μετακινεί σιωπηλά το ύψος.
+ */
+export function Chip({ on, onClick, children }: { on:boolean; onClick:()=>void; children:React.ReactNode }) {
+  return (
+    <button type="button" onClick={onClick} aria-pressed={on}
+      style={{
+        height:T.h.sm, padding:'0 16px', fontSize:12, fontFamily:T.font.sans, cursor:'pointer',
+        borderRadius:T.radius.btn, boxSizing:'border-box',
+        border:`1px solid ${on?'var(--accent)':'var(--border-default)'}`,
+        background:on?'var(--accent-dim)':'transparent',
+        color:on?'var(--accent)':'var(--text-secondary)',
+        fontWeight:on?600:400,
+        transition:'background .15s, border-color .15s, color .15s',
+      }}>{children}</button>
+  );
+}
+
 export function ChipRow({ label, groupLabel, info, children }: { label?:string; groupLabel?:string; info?:string; children:React.ReactNode }) {
   return (
-    <div style={{ marginBottom:14 }}>
+    <div style={{ marginBottom:12 }}>
       {/* ΤΟ ΙΔΙΟ ΟΝΟΜΑ ΓΡΑΦΟΤΑΝ ΔΥΟ ΦΟΡΕΣ, ΣΕ ΑΠΟΣΤΑΣΗ ΕΞΗΝΤΑ ΕΙΚΟΝΟΣΤΟΙΧΕΙΩΝ.
           Η ενότητα έλεγε «ΚΑΤΑΣΤΑΣΗ ΕΠΙΠΛΩΣΗΣ» και το μοναδικό χειριστήριό της
           «Κατάσταση επίπλωσης»: ίδιες λέξεις, δύο μεγέθη, καμία νέα πληροφορία.

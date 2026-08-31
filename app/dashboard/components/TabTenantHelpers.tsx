@@ -131,7 +131,15 @@ export const s = {
   cardGold: { background:'var(--bg-surface)',  border:'1px solid var(--border-accent)',  borderRadius: T.radius.card, padding:'16px', marginBottom:'16px' } as React.CSSProperties,
   sec:      { fontSize:'10px', fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase' as const, color:'var(--text-secondary)', marginBottom:'14px', display:'flex', alignItems:'center', gap:'8px' },
   dot:      (c='var(--accent)') => ({ width:'6px', height:'6px', borderRadius:'50%', background:c, flexShrink:0 } as React.CSSProperties),
-  divider:  { borderTop:'1px solid var(--border-subtle)', margin:'18px 0' } as React.CSSProperties,
+  // ══ Ο ΚΑΤΑΚΟΡΥΦΟΣ ΡΥΘΜΟΣ ΤΗΣ ΦΟΡΜΑΣ, ΜΕΤΡΗΜΕΝΟΣ ═══════════════════════════
+  // Απόσταση από το τελευταίο πεδίο μιας ενότητας ώς το πρώτο της επόμενης: 73
+  // εικονοστοιχεία, επί έξι ενότητες. Η φόρμα έβγαινε 1.314 σε παράθυρο 758,
+  // δηλαδή δύο οθόνες για οκτώ ορατά πεδία· με τα «Περισσότερα» ανοιχτά
+  // πέντε. Η πυκνότητα δεν είναι στρίμωγμα: όταν ο χώρος ανάμεσα σε δύο ενότητες
+  // είναι διπλάσιος από τον χώρο μέσα σε μία, η σελίδα διαβάζεται σαν λίστα
+  // άσχετων πραγμάτων. Δεκατέσσερα πάνω και κάτω κρατούν τη διάκριση και
+  // κερδίζουν εκατό εικονοστοιχεία.
+  divider:  { borderTop:'1px solid var(--border-subtle)', margin:'14px 0' } as React.CSSProperties,
   g2:       { display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap:'14px' } as React.CSSProperties,
   // ΤΡΙΑ ΠΕΔΙΑ ΣΕ ΔΥΟ ΣΤΗΛΕΣ ΑΦΗΝΟΥΝ ΤΟ ΤΡΙΤΟ ΜΟΝΟ ΤΟΥ. Μετρημένο στα 430 μέσα
   // στη φόρμα ενοικιαστή: «2+1», με το «Κινητό τηλέφωνο» σε μισό πλάτος και

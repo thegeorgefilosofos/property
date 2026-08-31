@@ -105,6 +105,7 @@ import {
 import {
   SectionTitle,
   ChipRow,
+  Chip,
   AlertBar,
   whyOf,
   labelOf,
@@ -854,12 +855,18 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
 
             <div style={s.divider}/>
             {/* ── Η ΜΙΣΘΩΣΗ ────────────────────────────────────────────────── */}
-            <SectionTitle>Η μίσθωση <span style={{ color:'var(--negative)' }}>*</span></SectionTitle>
+            {/* ══ Ο ΑΣΤΕΡΙΣΚΟΣ ΗΤΑΝ ΚΟΚΚΙΝΟΣ ΚΑΙ ΔΕΝ ΕΔΕΙΧΝΕ ΠΟΥΘΕΝΑ ═══════════
+                Καθόταν πάνω στον τίτλο μιας ενότητας με πέντε χειριστήρια, οπότε
+                δεν έλεγε ΠΟΙΟ είναι υποχρεωτικό. Και η μπάρα στην κορυφή τα
+                ονομάζει ήδη ένα προς ένα, με τη διατύπωση του μητρώου: το ίδιο
+                μήνυμα δύο φορές, η μία χωρίς περιεχόμενο. Το χρώμα ήταν και
+                παράβαση του κανόνα: κόκκινο σημαίνει σφάλμα, όχι «συμπλήρωσέ το». */}
+            <SectionTitle>Η μίσθωση</SectionTitle>
             {show('tenant.lease_category')&&(
               <>
                 <ChipRow label={labelOf('tenant.lease_category')} info={whyOf('tenant.lease_category')}>
                   {(Object.keys(LEASE_CATEGORY_LABELS) as LeaseCategory[]).map(lc=>(
-                    <button key={lc} onClick={()=>sf('lease_category',lc)} style={{ padding:'8px 18px', fontSize:'12px', fontFamily:T.font.sans, cursor:'pointer', borderRadius:T.radius.btn, border:`1px solid ${form.lease_category===lc?'var(--accent)':'var(--border-default)'}`, background:form.lease_category===lc?'var(--accent-dim)':'transparent', color:form.lease_category===lc?'var(--accent)':'var(--text-secondary)', fontWeight:form.lease_category===lc?700:400 }}>{LEASE_CATEGORY_LABELS[lc]}</button>
+                    <Chip key={lc} on={form.lease_category===lc} onClick={()=>sf('lease_category',lc)}>{LEASE_CATEGORY_LABELS[lc]}</Chip>
                   ))}
                 </ChipRow>
               </>
@@ -868,7 +875,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
               <>
                 <ChipRow label={labelOf('tenant.lease_type')} info={whyOf('tenant.lease_type')}>
                   {(Object.keys(LEASE_LABELS) as LeaseType[]).map(lt=>(
-                    <button key={lt} onClick={()=>sf('lease_type',lt)} style={{ padding:'8px 16px', fontSize:'11px', fontFamily:T.font.sans, cursor:'pointer', borderRadius:T.radius.btn, border:`1px solid ${form.lease_type===lt?'var(--accent)':'var(--border-default)'}`, background:form.lease_type===lt?'var(--accent-dim)':'transparent', color:form.lease_type===lt?'var(--accent)':'var(--text-secondary)', fontWeight:form.lease_type===lt?600:400 }}>{LEASE_LABELS[lt]}</button>
+                    <Chip key={lt} on={form.lease_type===lt} onClick={()=>sf('lease_type',lt)}>{LEASE_LABELS[lt]}</Chip>
                   ))}
                 </ChipRow>
               </>
@@ -892,7 +899,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
                   IBAN με ΚΕΦΑΛΑΙΑ ετικέτα, στημένος με το χέρι, ανάμεσα σε πεδία
                   με πεζή. Εδώ είναι το τρίτο πεδίο της σειράς του ενοικίου, με
                   το ίδιο `ToggleField` που χρησιμοποιεί η υπόλοιπη εφαρμογή. */}
-              {show('tenant.rent_iban')&&<ToggleField label="Εισπράττεται μέσω τραπέζης" labelInfo={whyOf('tenant.rent_iban')} on={form.e_payment} onChange={v=>sf('e_payment',v)}/>}
+              {show('tenant.rent_iban')&&<ToggleField label="Είσπραξη σε τράπεζα" labelInfo={whyOf('tenant.rent_iban')} on={form.e_payment} onChange={v=>sf('e_payment',v)}/>}
             </div>
             {/* Ο,τι θα συμβεί μόνο του, λέγεται πριν συμβεί — και μαζί τι το ακυρώνει. */}
             {editRow?.pending_rent!=null&&editRow.pending_rent_from&&(
@@ -932,7 +939,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
             <SectionTitle info={whyOf('tenant.furnishing')}>{labelOf('tenant.furnishing')}</SectionTitle>
             <ChipRow groupLabel={labelOf('tenant.furnishing')}>
               {(Object.keys(FURNISHING_LABELS) as Furnishing[]).map(fv=>(
-                <button key={fv} onClick={()=>sf('furnishing',form.furnishing===fv?'':fv)} style={{ padding:'8px 16px', fontSize:'12px', fontFamily:T.font.sans, cursor:'pointer', borderRadius:T.radius.btn, border:`1px solid ${form.furnishing===fv?'var(--accent)':'var(--border-default)'}`, background:form.furnishing===fv?'var(--accent-dim)':'transparent', color:form.furnishing===fv?'var(--accent)':'var(--text-secondary)', fontWeight:form.furnishing===fv?700:400 }}>{FURNISHING_LABELS[fv]}</button>
+                <Chip key={fv} on={form.furnishing===fv} onClick={()=>sf('furnishing',form.furnishing===fv?'':fv)}>{FURNISHING_LABELS[fv]}</Chip>
               ))}
             </ChipRow>
 
