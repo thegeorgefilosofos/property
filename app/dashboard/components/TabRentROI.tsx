@@ -439,16 +439,30 @@ function LeverCard({ lever }: { lever: YieldLever }) {
   const [hot, setHot] = useState(false);
   return (
     <div onMouseEnter={() => setHot(true)} onMouseLeave={() => setHot(false)}
-      style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-        <p style={{ fontSize: 13, fontWeight: 600, color: hot ? 'var(--accent)' : 'var(--text-primary)', margin: 0, fontFamily: SANS, transition: 'color 0.15s' }}>{lever.title}</p>
+      style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--bg-surface)', border: `1px solid ${hot ? 'var(--border-default)' : 'var(--border-subtle)'}`, transition: 'border-color 0.15s' }}>
+      {/* ══ ΕΞΙ ΚΑΡΤΕΣ ΜΕ ΤΟ ΙΔΙΟ ΣΧΗΜΑ ΚΑΙ ΚΑΝΕΝΑ ΣΗΜΕΙΟ ΣΑΡΩΣΗΣ ═══════════
+          Ο τίτλος ήταν έντονος και μπλε· και από κάτω μία ΕΝΤΟΝΗ πρόταση σε
+          πλήρες πλάτος. Δύο έντονα μπλοκ ανά κάρτα, επί έξι κάρτες: τίποτα δεν
+          ξεχώριζε, γιατί όλα ήταν εξίσου τονισμένα. Και το μέγεθος που κρίνει
+          την απόφαση καθόταν μέσα στην πρόταση, σε άλλη θέση κάθε φορά.
+
+          Τώρα κάθε κάρτα έχει τρία επίπεδα και μία ανάγνωση: το ΠΟΣΟ δεξιά,
+          στην ίδια θέση σε κάθε γραμμή, ώστε τα έξι να συγκρίνονται κάθετα· ο
+          τίτλος αριστερά, που λέει τι είναι· η πρόταση από κάτω σε κανονικό
+          βάρος, που λέει πώς βγαίνει. Οι προϋποθέσεις και ο κίνδυνος μένουν
+          πίσω από το κυκλάκι, όπως ήταν. */}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 5, flexWrap: 'wrap' }}>
+        <p style={{ fontSize: 13, fontWeight: 600, color: hot ? 'var(--accent)' : 'var(--text-primary)', margin: 0, fontFamily: SANS, transition: 'color 0.15s', minWidth: 0 }}>{lever.title}</p>
         <InfoHint label={`Προϋποθέσεις και κίνδυνος: ${lever.title}`}>
           <span style={{ display: 'block' }}>{lever.detail}</span>
           <span style={{ display: 'block', marginTop: 8 }}><strong>Προσοχή:</strong> {lever.risk}</span>
         </InfoHint>
-        {lever.href && <a href={lever.href} target="_blank" rel="noreferrer" style={{ marginLeft: 'auto', color: 'var(--text-tertiary)', display: 'inline-flex' }}><ArrowUpRight size={14} /></a>}
+        <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'baseline', gap: 8, whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontFamily: SANS, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em' }}>{lever.gain}</span>
+          {lever.href && <a href={lever.href} target="_blank" rel="noreferrer" aria-label={`Πηγή: ${lever.title}`} style={{ color: 'var(--text-tertiary)', display: 'inline-flex', alignItems: 'center', minHeight: T.h.md }}><ArrowUpRight size={14} /></a>}
+        </span>
       </div>
-      <p style={{ fontSize: 12, color: 'var(--text-primary)', margin: 0, fontFamily: SANS, fontWeight: 600, lineHeight: 1.5 }}>{lever.impact}</p>
+      <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0, fontFamily: SANS, lineHeight: 1.55 }}>{lever.impact}</p>
     </div>
   );
 }
