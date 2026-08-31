@@ -726,6 +726,27 @@ export default function TabInventory({propertyId,userId,profileType='individual'
     propertyCount: properties.length||1, furnished: declaredFurnished||items.length>0,
   }
   const inventoryApplies = declaredFurnished || items.length>0
+  // ══ Η ΦΟΡΜΑ ΑΝΟΙΓΕ ΧΩΡΙΣ ΟΥΤΕ ΕΝΑ ΠΕΔΙΟ ═══════════════════════════════════
+  //
+  // ΤΙ ΕΒΛΕΠΕ Ο ΧΡΗΣΤΗΣ. Η κενή κατάσταση λέει «Το ακίνητο δεν έχει δηλωθεί
+  // επιπλωμένο» και δίνει κουμπί «Πρόσθεσε ένα αντικείμενο». Το κουμπί άνοιγε
+  // παράθυρο με τίτλο «Νέο αντικείμενο», την κάρτα της φωτογραφίας, την
+  // επικεφαλίδα «ΑΓΟΡΑ» και ΤΙΠΟΤΑ ΑΛΛΟ: ούτε όνομα, ούτε κατηγορία, ούτε
+  // κατάσταση, ούτε ποσό. Και από κάτω κουμπί «Αποθήκευση», που δεν είχε τι να
+  // αποθηκεύσει.
+  //
+  // ΓΙΑΤΙ. Κάθε πεδίο της απογραφής κρίνεται με το `equipped`, δηλαδή
+  // «μισθώνεται ΚΑΙ είναι επιπλωμένο». Το `furnished` εδώ βγαίνει από το τι
+  // έχει δηλωθεί στην καρτέλα Ενοικιαστή ή από το αν υπάρχουν ήδη αντικείμενα:
+  // με μηδέν αντικείμενα και χωρίς δήλωση επίπλωσης είναι ψευδές, οπότε το
+  // μητρώο δεν επέστρεφε κανένα πεδίο και κάθε `Field` αποδιδόταν κενό.
+  //
+  // Η ΔΙΟΡΘΩΣΗ. Το γκρίζωμα της ΛΙΣΤΑΣ είναι σωστό: χωρίς επίπλωση δεν υπάρχει
+  // απογραφή να δείξεις. Η ΦΟΡΜΑ όμως είναι άλλο πράγμα: όποιος την ανοίγει
+  // δηλώνει με την πράξη του ότι υπάρχει εξοπλισμός να καταγραφεί, αλλιώς δεν
+  // θα πατούσε «Πρόσθεσε ένα αντικείμενο». Το παράθυρο παίρνει το ίδιο
+  // περιβάλλον με τη σημαία της επίπλωσης ανοιχτή· η καρτέλα κρατά το δικό της.
+  const formCtx: FieldContext = { ...fieldCtx, furnished: true }
 
   const overdueCount=schedules.filter(s=>daysUntil(s.next_due)<0).length
   const warnCount=schedules.filter(s=>{const d=daysUntil(s.next_due);return d>=0&&d<=30}).length
@@ -757,7 +778,7 @@ export default function TabInventory({propertyId,userId,profileType='individual'
 
   return (
     <div style={{minWidth:0,width:'100%'}}>
-      {(showItemForm||editingItem)&&<ItemFormModal item={editingItem} startManual={formManual} onSave={handleSaveItem} onClose={()=>{setShowItemForm(false);setEditingItem(null);setFormManual(false)}} propertyId={propertyId} ctx={fieldCtx} kwhPrice={kwhPrice}/>}
+      {(showItemForm||editingItem)&&<ItemFormModal item={editingItem} startManual={formManual} onSave={handleSaveItem} onClose={()=>{setShowItemForm(false);setEditingItem(null);setFormManual(false)}} propertyId={propertyId} ctx={formCtx} kwhPrice={kwhPrice}/>}
       {repairItem&&<RepairModal item={repairItem} repairs={repairs} onAdd={handleAddRepair} onClose={()=>setRepairItem(null)} propertyId={propertyId} userId={userId}/>}
       {qrItem&&<QRModal item={qrItem} onClose={()=>setQrItem(null)}/>}
       {showBulkImport&&<BulkImportModal propertyId={propertyId} userId={userId} onImported={fetchData} onClose={()=>setShowBulkImport(false)}/>}

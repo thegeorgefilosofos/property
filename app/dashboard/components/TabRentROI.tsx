@@ -1615,7 +1615,11 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                   <Figure label="Τελική αξία" value={fe(comp.futureValue)} tone="accent" />
                   <Figure label="Κέρδος ανατοκισμού" value={fe(comp.totalGrowth)} />
                 </div>
-                <p style={{ ...toolNote, marginTop: 12 }}>Αρχική αξία συν ετήσια επανεπένδυση της καθαρής ταμειακής ροής ({fe(Math.max(0, grossAnnual - effOpex - annualTax))} ανά έτος).</p>
+                {/* Ητανε 84 χαρακτήρες και τσάκιζε σε δεύτερη γραμμή μέσα στη
+                    στήλη του εργαλείου. Η ίδια πρόταση χωρίς τα γεμίσματα: το
+                    «ετήσια» το λέει το «τον χρόνο» στο τέλος και η «καθαρή
+                    ταμειακή ροή» είναι ό,τι ακριβώς δείχνει το ποσό δίπλα της. */}
+                <p style={{ ...toolNote, marginTop: 12 }}>Αρχική αξία συν επανεπένδυση ροής {fe(Math.max(0, grossAnnual - effOpex - annualTax))} τον χρόνο.</p>
               </div>
               {/* Μόχλευση */}
               <div className="po-fig-card" tabIndex={0} style={toolCard}>
@@ -1649,13 +1653,41 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                   <Figure label="Απόδοση ιδίων" value={fp(lev.cashOnCash)} tone={lev.cashOnCash >= 0 ? 'accent' : 'negative'} />
                   <Figure label="Ετήσια ροή" value={fe(lev.cashFlow)} tone={lev.cashFlow >= 0 ? undefined : 'negative'} />
                 </div>
-                <p style={{ ...toolNote, color: 'var(--text-secondary)', marginTop: 12 }}>{lev.positiveCarry ? `Θετική μόχλευση: η καθαρή απόδοση ${fp(lev.unleveredYield)} υπερβαίνει το κόστος δανείου ${fp(lev.effectiveLoanRate)}. Η ετήσια ροή μπορεί να είναι αρνητική λόγω χρεολυσίου, αυξάνεις όμως τα ίδια κεφάλαιά σου.` : `Αρνητική μόχλευση: το κόστος δανείου ${fp(lev.effectiveLoanRate)} καλύπτει ή υπερβαίνει την καθαρή απόδοση ${fp(lev.unleveredYield)}.`}</p>
+                {/* ══ ΔΥΟ ΓΚΡΙΖΕΣ ΠΑΡΑΓΡΑΦΟΙ ΓΙΑ ΜΙΑ ΕΤΥΜΗΓΟΡΙΑ ΚΑΙ ΤΕΣΣΕΡΑ ΜΕΓΕΘΗ
+                    Το κουτί έκλεινε με δύο μπλοκ κειμένου στο ίδιο μέγεθος και
+                    σχεδόν στο ίδιο χρώμα, που τύλιγαν σε τρεις και τέσσερις
+                    σειρές. Μέσα τους κρύβονταν πράγματα διαφορετικού είδους: μία
+                    ΚΡΙΣΗ («αρνητική μόχλευση»), δύο ΜΕΓΕΘΗ που τη στηρίζουν
+                    (κόστος δανείου έναντι καθαρής απόδοσης) και δύο ΠΑΡΑΔΟΧΕΣ
+                    (λειτουργικά έξοδα, διάρκεια). Ο αναγνώστης έπρεπε να τα
+                    ξεχωρίσει μόνος του μέσα από τη σύνταξη.
+
+                    Τώρα: η ετυμηγορία με λέξεις, τα δύο μεγέθη που τη βγάζουν
+                    δίπλα της, οι παραδοχές σε ήσυχη γραμμή στοιχείων από κάτω.
+                    Ιδιο ιδίωμα με την κάρτα δανείου: όνομα πάνω, μέγεθος κάτω. */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '6px 18px', marginTop: 14 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, fontFamily: SANS, color: 'var(--text-primary)' }}>
+                    {lev.positiveCarry ? 'Θετική μόχλευση' : 'Αρνητική μόχλευση'}
+                  </span>
+                  <span style={{ fontSize: 12, fontFamily: SANS, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>καθαρή απόδοση {fp(lev.unleveredYield)}</span>
+                  <span style={{ fontSize: 12, fontFamily: SANS, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>κόστος δανείου {fp(lev.effectiveLoanRate)}</span>
+                </div>
+                {lev.positiveCarry && (
+                  <p style={{ ...toolNote, marginTop: 6 }}>Η ετήσια ροή μπορεί να είναι αρνητική λόγω χρεολυσίου, αυξάνεις όμως τα ίδια κεφάλαιά σου.</p>
+                )}
                 {/* Το ποσοστό λειτουργικών εξόδων έμπαινε στη μηχανή σιωπηλά (με
                     εφεδρικό 20% όταν έλειπαν έσοδα). Δεν είναι υπόθεση: βγαίνει από
                     τα «Ετήσια έξοδα» που έγραψε ο χρήστης. Άρα λέγεται. */}
-                <p style={{ ...toolNote, marginTop: 6 }}>
-                  Λειτουργικά έξοδα {fp(opexPctOfRent)} των εσόδων ({fe(effOpex)} σε {fe(grossAnnual)}), από τα στοιχεία που καταχώρησες. Διάρκεια δανείου {nLoanYears} έτη.
-                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 22px', marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border-subtle)' }}>
+                  <div>
+                    <p style={{ ...toolNote, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>Λειτουργικά έξοδα</p>
+                    <p style={{ fontSize: 12, fontFamily: SANS, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums', margin: '2px 0 0' }}>{fp(opexPctOfRent)} των εσόδων · {fe(effOpex)} σε {fe(grossAnnual)}</p>
+                  </div>
+                  <div>
+                    <p style={{ ...toolNote, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>Διάρκεια δανείου</p>
+                    <p style={{ fontSize: 12, fontFamily: SANS, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums', margin: '2px 0 0' }}>{nLoanYears} έτη</p>
+                  </div>
+                </div>
               </div>
             </div>
           </Section>

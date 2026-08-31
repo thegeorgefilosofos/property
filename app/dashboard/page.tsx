@@ -1089,13 +1089,22 @@ export function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }
           <div className="prop-facts">
             {([['Τύπος',propertyTypeLabel(prop.prop_type)],['Εμβαδόν',prop.sqm?`${prop.sqm} τ.μ.`:null],['Υπνοδωμάτια',prop.bedrooms?String(prop.bedrooms):null],['Διεύθυνση',prop.address],['ΑΤΑΚ',prop.atak],['Έτος κατασκευής',prop.year_built?String(prop.year_built):null],['Όροφος',prop.floor!=null?String(prop.floor):null],['Θέρμανση',heatingLabel(prop.heating)||null],['Ενεργειακή κλάση',prop.pea_class],['Θέσεις στάθμευσης',prop.parking_spaces?String(prop.parking_spaces):null],['Αποθήκη',prop.storage_sqm?`${prop.storage_sqm} τ.μ.`:null],['Αντικειμενική αξία',prop.obj_value?fmtEur(prop.obj_value):null],['Εκτιμώμενος ΕΝΦΙΑ',prop.enfia?fmtEur(prop.enfia):null]] as [string,string|null][]).filter(([,v])=>v).map(([k,v]) => (
               <div key={k} title={k==='ΑΤΑΚ'?'Αριθμός Ταυτότητας Ακινήτου, από το έντυπο Ε9':k==='Εκτιμώμενος ΕΝΦΙΑ'?'Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων: ο ετήσιος φόρος περιουσίας':undefined}
-                style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:14,padding:'8px 0',borderBottom:'1px solid var(--border-subtle)'}}>
-                <span style={{fontFamily:T.font.sans,color:'var(--text-secondary)',fontSize:13,letterSpacing:'0.25px',whiteSpace:'nowrap'}}>{k}</span>
-                {/* Το `textOverflow:'ellipsis'` δεν πυροδοτείται χωρίς
-                    `whiteSpace:'nowrap'`: η τιμή τύλιγε σε δεύτερη σειρά και
-                    έσπαγε τη γραμμή βάσης της ετικέτας δίπλα της, αντί να
-                    κοπεί με τρεις τελείες όπως δήλωνε ο κώδικας. */}
-                <span title={String(v)} style={{fontFamily:T.font.sans,color:'var(--text-primary)',fontSize:13,letterSpacing:'0.25px',textAlign:'right',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{v}</span>
+                style={{padding:'9px 0',borderBottom:'1px solid var(--border-subtle)',minWidth:0}}>
+                {/* ══ Η ΤΙΜΗ ΚΟΒΟΤΑΝ, ΚΑΙ ΜΑΖΙ ΤΗΣ ΚΟΒΟΤΑΝ ΚΑΙ ΤΟ ΠΟΣΟ ══════════
+                    Ετικέτα και τιμή κάθονταν στην ΙΔΙΑ γραμμή, η μία απέναντι
+                    στην άλλη, με τρεις τελείες όταν δεν χωρούσαν. Σε τρεις
+                    στήλες η τιμή παίρνει ό,τι περισσεύει από την ετικέτα, που
+                    δεν είναι πολύ: η διεύθυνση γινόταν «Υμηττού 100,…» και ο
+                    ΕΝΦΙΑ «340…». Μια κομμένη διεύθυνση είναι μισή διεύθυνση·
+                    ένα κομμένο ποσό είναι ΛΑΘΟΣ ποσό, γιατί το «340…» διαβάζεται
+                    ως τριακόσια σαράντα και μπορεί να είναι 3.400.
+
+                    Η ετικέτα ανεβαίνει από πάνω, μικρή και ήσυχη· και η τιμή
+                    παίρνει ΟΛΟ το πλάτος της στήλης και τυλίγεται όσο χρειάζεται.
+                    Ιδιο ιδίωμα με τη γραμμή στοιχείων της κάρτας δανείου: όνομα
+                    πάνω, μέγεθος κάτω, τίποτα κρυμμένο πίσω από τελείες. */}
+                <span style={{display:'block',fontFamily:T.font.sans,color:'var(--text-tertiary)',fontSize:11,textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:600,marginBottom:3}}>{k}</span>
+                <span style={{display:'block',fontFamily:T.font.sans,color:'var(--text-primary)',fontSize:13,letterSpacing:'0.25px',minWidth:0,overflowWrap:'anywhere'}}>{v}</span>
               </div>
             ))}
           </div>

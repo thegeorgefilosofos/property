@@ -1515,9 +1515,19 @@ interface SegmentOption { value: string; label: string; }
  */
 export function SegmentControl({ options, value, onChange, ariaLabel }: { options: SegmentOption[]; value: string; onChange: (v: string) => void; ariaLabel?: string }) {
   return (
+    // ══ ΤΟ ΕΠΙΛΕΓΜΕΝΟ ΠΛΑΚΙΔΙΟ ΗΤΑΝ ΠΙΟ ΣΚΟΥΡΟ ΑΠΟ ΤΗ ΡΑΓΑ ΤΟΥ ═══════════════
+    // ΜΕΤΡΗΜΕΝΟ ΣΤΟ ΣΚΟΥΡΟ ΘΕΜΑ: η ράγα ήταν `--bg-elevated`, rgb(53,54,58)· και
+    // το επιλεγμένο κουμπί `--bg-surface`, rgb(41,42,45). Δηλαδή αυτό που είναι
+    // ΕΝΕΡΓΟ βυθιζόταν και ό,τι δεν είναι έμοιαζε να επιπλέει. Η αντίθεση του
+    // κειμένου ήταν μια χαρά (6,67:1)· ανάποδη ήταν η ΕΠΙΦΑΝΕΙΑ· και γι' αυτό
+    // το ανεπίλεκτο διαβαζόταν ως «πολύ σκούρο».
+    //
+    // Η ΜΠΑΡΑ ΦΑΚΩΝ ΤΟΥ ΔΑΝΕΙΟΥ ΤΟ ΕΚΑΝΕ ΗΔΗ ΣΩΣΤΑ: ράγα `--bg-surface`,
+    // ενεργό `--bg-elevated` με σκιά. Ιδιο χειριστήριο, δύο υλοποιήσεις, η μία
+    // ανεστραμμένη. Πλέον μία: η ράγα βυθισμένη, το ενεργό σηκωμένο.
     <div role="group" aria-label={ariaLabel} style={{
       display: 'flex',
-      background: 'var(--bg-elevated)',
+      background: 'var(--bg-surface)',
       border: '1px solid var(--border-subtle)',
       borderRadius: 8,
       padding: 4,
@@ -1541,7 +1551,7 @@ export function SegmentControl({ options, value, onChange, ariaLabel }: { option
             cursor: 'pointer',
             borderRadius: 6,
             border: 'none',
-            background: value === o.value ? 'var(--bg-surface)' : 'transparent',
+            background: value === o.value ? 'var(--bg-elevated)' : 'transparent',
             color: value === o.value ? 'var(--accent)' : 'var(--text-secondary)',
             transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s',
             whiteSpace: 'nowrap',

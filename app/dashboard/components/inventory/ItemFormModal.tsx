@@ -264,8 +264,13 @@ export function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice,start
         <Field d={f('inv.room')}><RoomInput value={form.room||''} onChange={v=>set('room',v)}/></Field>
       </div>
 
-      {/* Αγορά */}
-      {revealed && (<>
+      {/* ══ ΕΠΙΚΕΦΑΛΙΔΑ ΠΑΝΩ ΑΠΟ ΤΟ ΤΙΠΟΤΑ ═══════════════════════════════════
+          Η «ΑΓΟΡΑ» με τη γραμμή της αποδιδόταν με μόνη προϋπόθεση το `revealed`,
+          ενώ τα δύο πεδία της κρίνονταν χωριστά από το μητρώο. Οταν το μητρώο
+          έλεγε όχι, έμενε τίτλος ενότητας με κενό από κάτω — και ο χρήστης
+          κοιτούσε μια επικεφαλίδα ψάχνοντας τι έπρεπε να συμπληρώσει.
+          Ο τίτλος υπάρχει μόνο όταν υπάρχει τουλάχιστον ένα πεδίο να τιτλοφορήσει. */}
+      {revealed && (f('inv.purchase_date')||f('inv.value')) && (<>
         <SectionLabel label="Αγορά"/>
         <div style={{...formGrid(200, 270),gap:12}}>
           <Field d={f('inv.purchase_date')}><DatePicker value={form.purchase_date||''} onChange={v=>set('purchase_date',v)}/></Field>
