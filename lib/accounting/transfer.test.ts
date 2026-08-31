@@ -43,6 +43,16 @@ const near = (a: number, b: number, eps = 0.5) => Math.abs(a - b) <= eps
   const vat = transferCosts({ side: 'buy', price: 200000, newBuild: true, vatSuspended: false })
   ok('new-build without suspension → 24% VAT', near(vat.lines.find(l => l.key === 'vat')!.amount, 200000 * 0.24))
   ok('VAT path has no transfer tax', !vat.lines.some(l => l.key === 'transferTax'))
+
+  // ΤΟ ΜΟΝΟΠΑΤΙ ΠΟΥ ΤΡΕΧΕΙ ΣΤΗΝ ΠΡΑΞΗ ΗΤΑΝ ΤΟ ΜΟΝΟ ΑΝΕΛΕΓΚΤΟ. Καμία οθόνη δεν
+  // περνά `vatSuspended`: όλες αφήνουν την προεπιλογή. Οι δύο έλεγχοι από πάνω
+  // δοκίμαζαν `true` και `false`, δηλαδή ό,τι δεν στέλνει κανείς. Οταν ο
+  // υπολογιστής δανείου χρέωνε ΦΠΑ 24% στα νεόδμητα, εδώ δεν έπεσε τίποτα.
+  const dflt = transferCosts({ side: 'buy', price: 200000, newBuild: true })
+  ok('νεόδμητο χωρίς όρισμα: ισχύει η αναστολή, άρα ΦΜΑ', dflt.lines.some(l => l.key === 'transferTax'))
+  ok('νεόδμητο χωρίς όρισμα: κανένας ΦΠΑ', !dflt.lines.some(l => l.key === 'vat'))
+  ok('και ο ΦΜΑ είναι 3,09%', near(dflt.lines.find(l => l.key === 'transferTax')!.amount, 200000 * TRANSFER_TAX_RATE))
+  ok('ο συντελεστής είναι όντως 3,09%', TRANSFER_TAX_RATE === 0.0309)
 }
 
 // ── Πώληση: μεσιτικά + ΠΕΑ + υπεραξία σε αναστολή, καθαρό έσοδο ─────────────

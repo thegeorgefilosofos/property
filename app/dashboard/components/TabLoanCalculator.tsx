@@ -28,6 +28,7 @@ import { athensParts } from '@/lib/core/time'
 import { PRESUMPTIVE_RULE_2026 } from '@/lib/billing/consolidate'
 import { regionByKey, GREECE_AVG_GROSS_YIELD, MARKET_DATA_ASOF } from '@/lib/market/greekMarket'
 import { athensToday } from '@/lib/core/time';
+import { TRANSFER_TAX_RATE, NEW_BUILD_VAT_RATE, NEW_BUILD_VAT_SUSPENDED_UNTIL } from '@/lib/accounting/transfer'
 import { failed, MSG } from '@/lib/core/dbError';
 import { useChartWidth } from '@/app/hooks/useChartWidth'
 
@@ -415,7 +416,7 @@ function StressBars({stress,limit,INC,fmt,fmtPct,fmtPct1}:{stress:{label:string;
 
 const PROPERTY_TYPES = [
   {value:'residence',    label:'Κατοικία',              desc:'Διαμέρισμα, μονοκατοικία, μεζονέτα'},
-  {value:'new_residence',label:'Νεόδμητη κατοικία',     desc:'Άδεια μετά το 2006, ΦΠΑ 24%'},
+  {value:'new_residence',label:'Νεόδμητη κατοικία',     desc:'Άδεια μετά το 2006, ΦΠΑ σε αναστολή'},
   {value:'store',        label:'Κατάστημα / Γραφείο',   desc:'Επαγγελματική χρήση'},
   {value:'warehouse',    label:'Αποθήκη / Βιομηχανικό', desc:'Βιομηχανική / αποθήκευση'},
   {value:'land',         label:'Οικόπεδο / Γη',         desc:'Εντός ή εκτός σχεδίου'},
@@ -698,17 +699,26 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
   const fmaEx    = calcFmaExemption(marital,CH)
   const isNewBuilding = propType==='new_residence'
   const isCommercial  = propType==='store'||propType==='warehouse'
-  const fmaOwed  = useMemo(()=>{
-    if(isNewBuilding)return 0
-    if(isCommercial)return PV*0.03
-    if(loanType==='first_home'&&PV<=fmaEx)return 0
-    return PV*0.03
-  },[isNewBuilding,isCommercial,loanType,PV,fmaEx])
-  const vatOwed  = isNewBuilding?PV*0.24:0
+  // ═══ ΤΟ ΝΕΟΔΜΗΤΟ ΧΡΕΩΝΟΤΑΝ ΜΕ ΦΠΑ 24% ΠΟΥ ΚΑΝΕΙΣ ΔΕΝ ΠΛΗΡΩΝΕΙ ═══════════
+  // Η ΙΔΙΑ ΕΦΑΡΜΟΓΗ ΕΛΕΓΕ ΔΥΟ ΠΡΑΓΜΑΤΑ. Το lib/accounting/transfer.ts, που
+  // τροφοδοτεί το «Κόστος αγοράς και πώλησης» στη Λογιστική, εφαρμόζει ΦΠΑ μόνο
+  // όταν του πουν ρητά ότι η αναστολή ΔΕΝ ισχύει — και κανείς δεν του το λέει,
+  // άρα εκεί το νεόδμητο πληρώνει ΦΜΑ. Εδώ χρεωνόταν 24% χωρίς όρο. Σε ακίνητο
+  // 300.000 € οι δύο οθόνες διέφεραν κατά 72.000 €, δηλαδή το «συνολικό μετρητά»
+  // του δανείου ήταν άλλος πλανήτης από τη Λογιστική για το ίδιο ακίνητο.
+  //
+  // ΚΑΙ Ο ΣΥΝΤΕΛΕΣΤΗΣ ΗΤΑΝ 3% ΑΝΤΙ ΓΙΑ 3,09%. Πάνω στον κύριο φόρο 3% μπαίνει
+  // τέλος υπέρ δήμων ίσο με 3% ΤΟΥ ΦΟΡΟΥ. Το transfer.ts το είχε σωστά, εδώ
+  // λειπε: τώρα και οι δύο οθόνες διαβάζουν την ίδια σταθερά.
+  const fmaOwed  = useMemo(()=>
+    loanType==='first_home'&&!isCommercial&&PV<=fmaEx ? 0 : PV*TRANSFER_TAX_RATE,
+  [isCommercial,loanType,PV,fmaEx])
+  // Ενημερωτικό, όχι χρέωση: πόσο ΘΑ ηταν ο ΦΠΑ αν έπαυε η αναστολή.
+  const vatOwed  = isNewBuilding?PV*NEW_BUILD_VAT_RATE:0
   const totalCosts = useMemo(()=>{
-    const tax=isNewBuilding?vatOwed:fmaOwed
+    const tax=fmaOwed
     return{tax,notary:notaryCosts.notary,landReg:notaryCosts.landReg,legal:notaryCosts.legal,agent:AGNT,other:notaryCosts.other,total:tax+notaryCosts.total+AGNT,downpayment:PV-LA,totalCash:(PV-LA)+tax+notaryCosts.total+AGNT}
-  },[isNewBuilding,vatOwed,fmaOwed,notaryCosts,AGNT,PV,LA])
+  },[fmaOwed,notaryCosts,AGNT,PV,LA])
 
   // ── ΕΝΟΙΚΙΟ-ΑΝΑΦΟΡΑ: ΠΡΑΓΜΑΤΙΚΟ Ή ΤΕΚΜΗΡΙΩΜΕΝΟ ─────────────────────────────
   // Πριν: `renInc = PV*0.04`, «ενοίκιο ~4% της αξίας», που τροφοδοτούσε τον
@@ -1001,8 +1011,8 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
               </div>
             )}
           </div>
-          {isNewBuilding&&<div style={{padding:'9px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}><p title="ΦΠΑ: Φόρος Προστιθέμενης Αξίας · ΦΜΑ: Φόρος Μεταβίβασης Ακινήτου" style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans}}>Νεόδμητο: ΦΠΑ 24% ({fmtEur(vatOwed)}) αντί ΦΜΑ</p></div>}
-          {isCommercial&&<div style={{padding:'9px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}><p title="ΦΜΑ: Φόρος Μεταβίβασης Ακινήτου (3% επί της αξίας)" style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans}}>Επαγγελματικό: ΦΜΑ 3% + Τέλη χαρτοσήμου 3,6% αν εκμισθωθεί</p></div>}
+          {isNewBuilding&&<div style={{padding:'9px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}><p title="ΦΠΑ: Φόρος Προστιθέμενης Αξίας · ΦΜΑ: Φόρος Μεταβίβασης Ακινήτου" style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans}}>Νεόδμητο: ο ΦΠΑ 24% ({fmtEur(vatOwed)}) είναι σε αναστολή έως {NEW_BUILD_VAT_SUSPENDED_UNTIL}, οπότε ο υπολογισμός κρατά ΦΜΑ 3,09%</p></div>}
+          {isCommercial&&<div style={{padding:'9px 12px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}><p title="ΦΜΑ: Φόρος Μεταβίβασης Ακινήτου (3% συν 3% υπέρ δήμων επί του φόρου)" style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans}}>Επαγγελματικό: ΦΜΑ 3,09% + Ψηφιακό Τέλος Συναλλαγής 3,6% αν εκμισθωθεί</p></div>}
         </div>
       </div>
 
@@ -1396,9 +1406,9 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
       <Section title="Φορολογική ανάλυση" sub="ΦΜΑ, απαλλαγές, ενοίκια, ΑΑΔΕ 2026" defaultOpen>
         <div style={{display:'flex',flexDirection:'column',gap:14}}>
           <div style={{padding:'12px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
-            <p title="ΦΜΑ: Φόρος Μεταβίβασης Ακινήτου · ΦΠΑ: Φόρος Προστιθέμενης Αξίας" style={{...labelStyle,marginBottom:4}}>{isNewBuilding?'ΦΠΑ 24%':isCommercial?'ΦΜΑ 3% + Χαρτόσημο':'ΦΜΑ 3%'}</p>
-            <p style={{fontSize:11,color:'var(--text-tertiary)',marginBottom:12,lineHeight:1.5,fontFamily: T.font.sans}}>{isNewBuilding?'Φόρος Προστιθέμενης Αξίας':isCommercial?'Φόρος Μεταβίβασης Ακινήτου και τέλη χαρτοσήμου μίσθωσης':'Φόρος Μεταβίβασης Ακινήτου'}</p>
-            {!isNewBuilding&&(
+            <p title="ΦΜΑ: Φόρος Μεταβίβασης Ακινήτου · ΦΠΑ: Φόρος Προστιθέμενης Αξίας" style={{...labelStyle,marginBottom:4}}>{isCommercial?'ΦΜΑ 3,09% + Ψηφιακό Τέλος':'ΦΜΑ 3,09%'}</p>
+            <p style={{fontSize:11,color:'var(--text-tertiary)',marginBottom:12,lineHeight:1.5,fontFamily: T.font.sans}}>{isCommercial?'Φόρος Μεταβίβασης Ακινήτου και Ψηφιακό Τέλος Συναλλαγής μίσθωσης':'Φόρος Μεταβίβασης Ακινήτου'}</p>
+            {!isCommercial&&(
               <div style={{...formGrid(200, 270),gap:10,marginBottom:12}}>
                 <CustomSelect label="Οικογενειακή κατάσταση" value={marital} onChange={v=>setMarital(v === 'married' ? 'married' : 'single')} options={MARITAL_OPTIONS}/>
                 <CustomSelect label="Εξαρτώμενα τέκνα" value={children} onChange={setChildren} options={CHILDREN_OPTIONS}/>
@@ -1406,21 +1416,11 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
             )}
             {/* Τρία πλακίδια, ο ίδιος κανόνας με τη Δανειοληπτική ικανότητα. */}
             <div className="kpi-row" style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:8,marginBottom:10,'--kpi-lg':3,'--kpi-md':3,'--kpi-sm':1} as React.CSSProperties}>
-              {isNewBuilding?(
-                <>
-                  <KPI label="ΦΠΑ 24%" value={fmtEur(vatOwed)} sub="Αντί ΦΜΑ"/>
-                  <KPI label="Αξία ακινήτου" value={fmtEur(PV)}/>
-                  <KPI label="Τιμή πριν ΦΠΑ" value={fmtEur(PV-vatOwed)}/>
-                </>
-              ):(
-                <>
-                  <KPI label={isCommercial?'ΦΜΑ 3%':'Όριο απαλλαγής ΦΜΑ'} value={isCommercial?fmtEur(fmaOwed):fmtEur(fmaEx)} emphasis={!isCommercial}/>
-                  <KPI label="ΦΜΑ που αναλογεί" value={fmaOwed===0?'Απαλλαγή':fmtEur(fmaOwed)} emphasis={fmaOwed===0}/>
-                  <KPI label="Αξία ακινήτου" value={fmtEur(PV)}/>
-                </>
-              )}
+              <KPI label={isCommercial?'ΦΜΑ 3,09%':'Όριο απαλλαγής ΦΜΑ'} value={isCommercial?fmtEur(fmaOwed):fmtEur(fmaEx)} emphasis={!isCommercial}/>
+              <KPI label="ΦΜΑ που αναλογεί" value={fmaOwed===0?'Απαλλαγή':fmtEur(fmaOwed)} emphasis={fmaOwed===0}/>
+              <KPI label="Αξία ακινήτου" value={fmtEur(PV)}/>
             </div>
-            {loanType==='first_home'&&PV<=fmaEx&&!isNewBuilding&&!isCommercial&&<div style={{padding:'10px 14px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:8}}><p title="ΦΜΑ: Φόρος Μεταβίβασης Ακινήτου" style={{fontSize:13,color:'var(--text-primary)',fontFamily: T.font.sans,fontWeight:500}}>Δικαιούστε πλήρη απαλλαγή ΦΜΑ, εξοικονόμηση {fmtEur(PV*0.03)}</p></div>}
+            {loanType==='first_home'&&PV<=fmaEx&&!isCommercial&&<div style={{padding:'10px 14px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:8}}><p title="ΦΜΑ: Φόρος Μεταβίβασης Ακινήτου" style={{fontSize:13,color:'var(--text-primary)',fontFamily: T.font.sans,fontWeight:500}}>Δικαιούστε πλήρη απαλλαγή ΦΜΑ, εξοικονόμηση {fmtEur(PV*TRANSFER_TAX_RATE)}</p></div>}
           </div>
           {loanType==='investment'&&(
             <div style={{padding:'12px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10}}>
@@ -1612,7 +1612,7 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
             είναι στοιχεία που εξετάζεις ένα ένα. */}
         <div {...fixedCols(3, 8, 'stretch')} style={{...fixedCols(3, 8, 'stretch').style,marginBottom:12}}>
           {[
-            {label:isNewBuilding?'ΦΠΑ 24%':'Φόρος μεταβίβασης (ΦΜΑ)',value:isNewBuilding?fmtEur(vatOwed):fmaOwed===0?'Απαλλαγή':fmtEur(fmaOwed),sub:isNewBuilding?'Νεόδμητο':fmaOwed===0?'Πρώτη κατοικία':'3% επί αξίας'},
+            {label:'Φόρος μεταβίβασης (ΦΜΑ)',value:fmaOwed===0?'Απαλλαγή':fmtEur(fmaOwed),sub:fmaOwed===0?'Πρώτη κατοικία':'3,09% επί αξίας'},
             {label:'Συμβολαιογραφικά',value:fmtEur(totalCosts.notary),sub:'Κλιμακωτή αμοιβή'},
             {label:'Κτηματολόγιο και εγγραφή',value:fmtEur(totalCosts.landReg),sub:'0,475% επί αξίας'},
             {label:'Δικηγόρος ελέγχου τίτλων',value:fmtEur(totalCosts.legal),sub:'Έλεγχος + παρουσία'},
