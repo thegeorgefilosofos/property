@@ -2,7 +2,7 @@
 import { ALL_TARIFFS, COMPARABLE_TARIFFS, FLAT_WITHOUT_ALLOWANCE } from './catalogue';
 import {
   monthlyCost, compareTariffs, estimateUsage, waterMonthly, waterMonthlyText,
-  ERT, ETMEAR, type Tariff, type Usage,
+  ETMEAR, type Tariff, type Usage,
 } from './tariff';
 
 let pass = 0, fail = 0;
@@ -29,19 +29,34 @@ const simple: Tariff = {
 {
   const c = monthlyCost(simple, consumes(300));
   near('ενέργεια + πάγιο', c.supply, 5 + 300 * 0.145);
-  near('ρυθμιζόμενα', c.regulated, 300 * (ERT + ETMEAR));
+  // ΗΤΑΝ `300 * (ERT + ETMEAR)`: ο έλεγχος ξαναέγραφε τον τύπο αντί να πει το
+  // αποτέλεσμα, οπότε θα έμενε πράσινος με οποιονδήποτε συντελεστή — ακόμη και
+  // με τον επινοημένο που έφυγε. Τώρα λέει το ποσό.
+  near('ρυθμιζόμενα: 300 kWh επί το ΕΤΜΕΑΡ', c.regulated, 4.56);
   near('ΦΠΑ 6%', c.vat, (c.supply + c.regulated) * 0.06);
   near('σύνολο', c.total, c.supply + c.regulated + c.vat);
   eq('δεν είναι χειροκίνητο', c.manual, false);
 }
 {
-  // Ο ΦΠΑ ΔΙΑΦΕΡΕΙ: 24% στα επαγγελματικά. Αν έμενε έξω, η επαγγελματική
-  // εκτίμηση θα ήταν 18% χαμηλότερη από τον πραγματικό λογαριασμό.
-  const biz: Tariff = { ...simple, id: 'biz', vat: 24, segment: 'business' };
+  // ═══ Ο ΕΛΕΓΧΟΣ ΠΟΥ ΚΡΑΤΟΥΣΕ ΤΟ ΣΦΑΛΜΑ ΖΩΝΤΑΝΟ ════════════════════════════
+  // Εδώ έγραφε «Ο ΦΠΑ ΔΙΑΦΕΡΕΙ: 24% στα επαγγελματικά» και το επιβεβαίωνε με
+  // δικό του τιμολόγιο στα 24. Δηλαδή ο έλεγχος ΔΕΝ επαλήθευε τον κανόνα, τον
+  // ΔΗΛΩΝΕ — και μάλιστα λάθος. Ο υπερμειωμένος συντελεστής της ενέργειας
+  // κρίνεται από το ΑΓΑΘΟ, όχι από τον πελάτη: 6% σε ρεύμα και αέριο, οικιακά
+  // και επαγγελματικά, βάσει του Κώδικα ΦΠΑ. Η επιχείρηση δεν πληρώνει
+  // άλλον συντελεστή· απλώς εκπίπτει τον φόρο ως εισροή.
+  //
+  // Ο κατάλογος αυτοαναιρούνταν: τα επαγγελματικά της ΔΕΗ έγραφαν 6, όλων των
+  // άλλων 24· κανένας έλεγχος δεν το έπιασε επειδή κανείς δεν ρώτησε αν οι
+  // δύο μερίδες συμφωνούν.
+  let mismatched = '';
+  for (const t of ALL_TARIFFS()) if (t.vat !== 6) mismatched = `${t.id}: ${t.vat}`;
+  eq('κανένα τιμολόγιο εκτός του 6%', mismatched, '');
+
+  const biz: Tariff = { ...simple, id: 'biz', segment: 'business' };
   const c = monthlyCost(biz, consumes(300));
-  near('ΦΠΑ 24%', c.vat, (c.supply + c.regulated) * 0.24);
-  ok('το επαγγελματικό βγαίνει ακριβότερο από το ίδιο οικιακό',
-    c.total > monthlyCost(simple, consumes(300)).total);
+  near('ο ΦΠΑ βγαίνει στο 6%', c.vat, (c.supply + c.regulated) * 0.06);
+  near('και είναι ο ίδιος με το ίδιο οικιακό', c.total, monthlyCost(simple, consumes(300)).total);
 }
 
 // ── ΗΛΕΚΤΡΟΝΙΚΟΣ ΛΟΓΑΡΙΑΣΜΟΣ ───────────────────────────────────────────────
