@@ -86,6 +86,17 @@ export interface Tariff {
   flat_overage_rate?: number;
   fixed: number;
   fixed_ebill?: number | null;
+  /**
+   * ΠΑΓΙΟ ΠΟΥ ΑΝΕΒΑΙΝΕΙ ΠΑΝΩ ΑΠΟ ΕΝΑ ΟΡΙΟ ΚΑΤΑΝΑΛΩΣΗΣ.
+   *
+   * Τρία τιμολόγια της ΡΑΑΕΥ χρεώνουν 7,95 € έως τις 150 kWh τον μήνα και 15,90 €
+   * πάνω από αυτές. Ο κατάλογος κρατούσε μόνο το 7,95 και το έγραφε ολόκληρο στην
+   * περιγραφή: η ΣΥΓΚΡΙΣΗ έτρεχε με το μισό πάγιο. Σε επαγγελματική παροχή, όπου
+   * οι 150 κιλοβατώρες ξεπερνιούνται σχεδόν πάντα, ο υπολογισμός έβγαινε 8 € τον
+   * μήνα χαμηλότερος από την πραγματικότητα, δηλαδή σχεδόν 100 € τον χρόνο.
+   */
+  fixed_tier2?: number;
+  fixed_tier2_threshold?: number;
   /** 6 για ρεύμα και αέριο, οικιακά και επαγγελματικά. Κρίνει το αγαθό. */
   vat: number;
   segment?: 'residential' | 'business';
@@ -221,7 +232,9 @@ export function monthlyCost(t: Tariff, u: Usage): CostBreakdown {
     return { supply: cents(supply), regulated: 0, vat: cents(vat), total: cents(supply + vat), overage: cents(over), manual: false };
   }
 
-  const fixed = (u.ebill && t.fixed_ebill != null) ? t.fixed_ebill : t.fixed;
+  const base = (u.ebill && t.fixed_ebill != null) ? t.fixed_ebill : t.fixed;
+  const fixed = (t.fixed_tier2 != null && t.fixed_tier2_threshold != null && u.kwhMonthly > t.fixed_tier2_threshold)
+    ? t.fixed_tier2 : base;
   const supply = fixed + energyCharge(t, u);
   const regulated = Math.max(0, u.kwhMonthly) * ETMEAR;
   const vat = (supply + regulated) * vatRate;

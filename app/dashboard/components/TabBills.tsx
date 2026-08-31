@@ -123,8 +123,24 @@ function ContractTile({ card, active, onOpen }: { card: ContractCard; active: bo
         transition: `background .15s ${T.ease.standard}, border-color .15s, box-shadow .15s, transform .15s`,
         transform: hover && !active ? 'translateY(-1px)' : 'none',
       }}>
-      <span style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+      {/* ══ Ο ΤΙΤΛΟΣ ΚΑΙ ΤΟ ΠΟΣΟ ΕΠΑΨΑΝ ΝΑ ΜΟΙΡΑΖΟΝΤΑΙ ΓΡΑΜΜΗ ═══════════════
+          Ηταν `justify-content: space-between` σε μία σειρά: τίτλος αριστερά,
+          ποσό δεξιά. Οσο ο τίτλος ήταν κοντός δούλευε· «ΣΤΑΘΕΡΟ ΚΑΙ INTERNET»
+          όμως δεν χωρά δίπλα σε «4,98 €» και τυλιγόταν γύρω του, με το «INTERNET»
+          να πέφτει κάτω από το «ΣΤΑΘΕΡΟ ΚΑΙ» και το ποσό να κρέμεται στα δεξιά.
+          Δίπλα του, οι κάρτες χωρίς ποσό είχαν τον τίτλο μόνο του σε ολόκληρη
+          γραμμή: οκτώ κάρτες, δύο διαφορετικές γεωμετρίες.
+
+          Τώρα κάθε κάρτα έχει την ίδια στοίβα, με ή χωρίς ποσό:
+
+              ΕΤΙΚΕΤΑ            ← πάντα μόνη της, σε όλο το πλάτος
+              45,68 € τον μήνα   ← το μοναδικό μεγάλο νούμερο
+              κάθε δίμηνο · 4    ← στο κάτω μέρος, ίδια θέση παντού
+
+          Ο τίτλος δεν παλεύει ποτέ με τον αριθμό και οι δύο μορφές κάρτας
+          διαβάζονται ως ένα πράγμα. ══ */}
+      <span style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', lineHeight: 1.35 }}>
           {card.label}
         </span>
         {/* Η ΙΕΡΑΡΧΙΑ ΒΓΑΙΝΕΙ ΑΠΟ ΜΕΓΕΘΟΣ ΚΑΙ ΒΑΡΟΣ, ΟΧΙ ΑΠΟ ΧΡΩΜΑ. Το ποσό
@@ -135,16 +151,14 @@ function ContractTile({ card, active, onOpen }: { card: ContractCard; active: bo
              Το ποσό είναι ΑΝΑ ΜΗΝΑ και από κάτω του γράφεται «κάθε δίμηνο · 4
              περίοδοι». Δύο γραμμές, η μία με νούμερο και η άλλη με περίοδο: ο
              αναγνώστης διαβάζει «34,50 € κάθε δίμηνο», δηλαδή το μισό από την
-             αλήθεια. Το παλιό σχόλιο εδώ υποστήριζε ότι η μονάδα «δεν προσθέτει
-             τίποτα σε νούμερο που είναι ήδη μηνιαίο» — προσθέτει, όταν ακριβώς
-             από κάτω στέκεται άλλη περίοδος.
+             αλήθεια.
 
              ΤΟ ΝΟΥΜΕΡΟ ΤΗΣ ΚΕΦΑΛΙΔΑΣ ΕΙΝΑΙ ΤΟ ΑΘΡΟΙΣΜΑ ΤΟΥΣ. Χωρίς τη μονάδα, το
              «75,00 € τον μήνα» φαινόταν να μην προκύπτει από πουθενά: 34,50 και
              40,50 «κάθε δίμηνο» δίνουν 37,50 τον μήνα, όχι 75. Με τη μονάδα, η
              πρόσθεση γίνεται με το μάτι. */
-          <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4, whiteSpace: 'nowrap' }}>
-            <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5, whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em', lineHeight: 1.1 }}>
               {fe(card.monthly)}
             </span>
             <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>τον μήνα</span>
