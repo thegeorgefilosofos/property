@@ -143,11 +143,23 @@ export async function claim(db: Db, token: string): Promise<{ ok: boolean; owner
   return (data ?? { ok: false, reason: 'error' }) as { ok: boolean; owner?: string; reason?: string };
 }
 
-/** Όλοι οι πελάτες που τον εξουσιοδότησαν, με τους αριθμούς της χρήσης. */
-export async function clients(db: Db, year: number): Promise<ClientCounts[]> {
+/**
+ * Ολοι οι πελάτες που τον εξουσιοδότησαν, με τους αριθμούς της χρήσης.
+ *
+ * ΤΟ ΣΦΑΛΜΑ ΤΑΞΙΔΕΥΕΙ ΜΑΖΙ, ΚΑΙ ΟΧΙ ΓΙΑ ΤΥΠΙΚΟΤΗΤΑ. Εδώ γραφόταν
+ * `if (error || !Array.isArray(data)) return []`: η αποτυχία της ανάγνωσης
+ * γινόταν άδεια λίστα, δηλαδή η ΙΔΙΑ απάντηση με «δεν σε εξουσιοδότησε κανείς».
+ * Λογιστής με ογδόντα πελάτες, με ληγμένη συνεδρία ή στιγμιαία πτώση δικτύου,
+ * διάβαζε ότι δεν έχει κανέναν και ότι πρέπει να ζητήσει σύνδεσμο από τον
+ * ιδιοκτήτη — για πελάτες που έχει ήδη.
+ *
+ * Το ίδιο μοτίβο με το `profileOutcome` της χρέωσης: μία ανάγνωση, δύο
+ * αποτελέσματα που ΔΕΝ συγχέονται.
+ */
+export async function clients(db: Db, year: number): Promise<{ rows: ClientCounts[]; failed: boolean }> {
   const { data, error } = await db.rpc('accountant_clients_overview', { p_year: year });
-  if (error || !Array.isArray(data)) return [];
-  return data as ClientCounts[];
+  if (error) return { rows: [], failed: true };
+  return { rows: Array.isArray(data) ? (data as ClientCounts[]) : [], failed: false };
 }
 
 /** «Ζήτησέ το»: γράφει εκκρεμότητα που ο ιδιοκτήτης βλέπει στον πίνακά του. */

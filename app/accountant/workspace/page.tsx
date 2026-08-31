@@ -47,6 +47,8 @@ export default function AccountantWorkspace() {
   const [email, setEmail] = useState<string | null | undefined>(undefined);
   const [year, setYear] = useState(defaultYear);
   const [rows, setRows] = useState<ClientCounts[] | null>(null);
+  // «Δεν διαβάστηκε» δεν είναι «δεν υπάρχουν». Δες lib/data/accountant.ts.
+  const [readFailed, setReadFailed] = useState(false);
   const [token, setToken] = useState('');
   const [adding, setAdding] = useState(false);
   const [notice, setNotice] = useState('');
@@ -77,7 +79,9 @@ export default function AccountantWorkspace() {
   }, [supabase]);
 
   const load = useCallback(async (y: number) => {
-    setRows(await clients(supabase, y));
+    const r = await clients(supabase, y);
+    setReadFailed(r.failed);
+    if (!r.failed) setRows(r.rows);
   }, [supabase]);
 
   // ΤΟ ΑΠΟΤΕΛΕΣΜΑ ΓΡΑΦΕΤΑΙ ΜΟΝΟ ΑΝ Η ΟΘΟΝΗ ΤΟ ΠΕΡΙΜΕΝΕΙ ΑΚΟΜΗ. Χωρίς το `alive`,
@@ -88,7 +92,7 @@ export default function AccountantWorkspace() {
   useEffect(() => {
     if (!email) return;
     let alive = true;
-    clients(supabase, year).then(r => { if (alive) setRows(r); });
+    clients(supabase, year).then(r => { if (!alive) return; setReadFailed(r.failed); if (!r.failed) setRows(r.rows); });
     return () => { alive = false; };
   }, [supabase, email, year]);
 
@@ -302,7 +306,17 @@ export default function AccountantWorkspace() {
         </div>
       )}
 
-      {rows === null ? (
+      {readFailed ? (
+        /* Η ΛΙΣΤΑ ΔΕΝ ΔΙΑΒΑΣΤΗΚΕ, ΔΕΝ ΑΔΕΙΑΣΕ. Η οθόνη έλεγε «Κανένας πελάτης»
+           και έστελνε τον λογιστή να ζητήσει σύνδεσμο από ιδιοκτήτες που τον
+           έχουν ήδη εξουσιοδοτήσει. */
+        <Card style={{ marginTop: 16 }}>
+          <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: '0 0 14px', lineHeight: 1.7, fontFamily: T.font.sans }}>
+            Η λίστα των πελατών σου δεν διαβάστηκε. Δεν σημαίνει ότι είναι άδεια: δεν πήραμε απάντηση.
+          </p>
+          <Btn onClick={() => void load(year)}>Δοκιμή ξανά</Btn>
+        </Card>
+      ) : rows === null ? (
         /* ΤΟ ΛΕΥΚΟ ΔΕΝ ΕΙΝΑΙ ΚΑΤΑΣΤΑΣΗ. Οσο τα δεδομένα έρχονταν, η οθόνη δεν
            έδειχνε τίποτα: ο λογιστής δεν ήξερε αν φορτώνει ή αν δεν έχει
            πελάτες. Τρεις σκιές λένε «έρχονται» χωρίς να υποσχεθούν πόσοι. */

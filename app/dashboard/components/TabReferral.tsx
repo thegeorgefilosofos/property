@@ -285,6 +285,18 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
   // με το χειρόγραφο overlay: τα δίνει το primitive.
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
   const [stats, setStats] = useState<Overview | null>(null);
+  // ═══ Ο ΣΚΕΛΕΤΟΣ ΠΟΥ ΔΕΝ ΤΕΛΕΙΩΝΕ ΠΟΤΕ ══════════════════════════════════════
+  // Ο σκελετός κρεμόταν από το `!stats`· το `stats` γράφεται ΜΟΝΟ μέσα στο
+  // `if (alive && data)`. Οταν η ανάγνωση αποτύχει, τρία γκρι πλακίδια πάλλονται
+  // στην κορυφή για όσο μένει ανοιχτή η καρτέλα, χωρίς μήνυμα και χωρίς
+  // επανάληψη — ενώ αμέσως από κάτω οι κάρτες στόχων διαβάζουν `stats?.x ?? 0`
+  // και δείχνουν κανονικά μηδενικά. Η ίδια οθόνη έλεγε ταυτόχρονα «φορτώνω» και
+  // «τελείωσα».
+  //
+  // Το «φόρτωσα» είναι ΔΙΚΗ ΤΟΥ κατάσταση: σημαίνει ότι η προσπάθεια τελείωσε,
+  // όχι ότι πέτυχε. Ετσι ο σκελετός φεύγει με την απάντηση, όποια κι αν είναι,
+  // και η υπόλοιπη οθόνη κρατά τη συμπεριφορά που ήδη είχε.
+  const [loaded, setLoaded] = useState(false);
   const [social, setSocial] = useState(0);
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [list, setList] = useState<Referee[]>([]);
@@ -332,6 +344,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
           streak: Number(data.streak) || 0, partner: !!data.partner,
         });
       } catch { /* δουλεύει και χωρίς σύνδεση: δείχνει μηδενική πρόοδο */ }
+      finally { if (alive) setLoaded(true); }
     })();
     return () => { alive = false; };
   }, [userId, code]);
@@ -576,7 +589,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
       {/* Όσο το `stats` είναι null δεν αποδιδόταν ΤΙΠΟΤΑ εδώ: οι τρεις μετρικές
           έπεφταν μέσα αργότερα και έσπρωχναν όλη τη σελίδα προς τα κάτω, τη στιγμή
           που ο χρήστης διάβαζε ήδη τα παρακάτω. Ο σκελετός κρατά τη θέση τους. */}
-      {!stats && <SkeletonKPIs n={3} />}
+      {!loaded && <SkeletonKPIs n={3} />}
 
       {/* ── Τα κέρδη σου με μια ματιά (μόλις υπάρχει δραστηριότητα) ── */}
       {stats && stats.invites > 0 && (
