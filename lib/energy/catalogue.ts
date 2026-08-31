@@ -38,6 +38,25 @@ export interface LocalTariff extends Tariff {
    */
   studentOnly?: boolean;
 
+  /**
+   * ΤΟ ΜΗΝΙΑΙΟ ΠΟΣΟ ΕΙΝΑΙ ΕΝΑΝΤΙ, ΟΧΙ ΤΙΜΗ: ΕΚΚΑΘΑΡΙΖΕΤΑΙ ΑΡΓΟΤΕΡΑ.
+   *
+   * Το «myHome Plan» της ΔΕΗ χρεώνει 60 € κάθε μήνα και εκκαθαρίζει την
+   * πραγματική κατανάλωση δύο φορές τον χρόνο, στον έκτο και στον δωδέκατο
+   * μήνα της σύμβασης, με τις καταμετρήσεις του ΔΕΔΔΗΕ. Ο κατάλογος το κρατούσε
+   * ως `flat_monthly: 60` χωρίς κανένα όριο κιλοβατωρών, δηλαδή η εφαρμογή
+   * υποστήριζε ότι 60 € αγοράζουν ΟΣΗ ενέργεια θέλει κανείς. Σε 600 kWh τον
+   * μήνα το τιμολόγιο έβγαινε πρώτο στην κατάταξη με ποσό που η εκκαθάριση
+   * ακυρώνει· η οθόνη θα το πρότεινε σε δωδεκάμηνη δέσμευση.
+   *
+   * Η ΑΡΧΗ ΥΠΑΡΧΕΙ ΗΔΗ ΣΤΟ ΕΡΓΟ, ΔΥΟ ΦΟΡΕΣ: τα δυναμικά και όσα κλείνουν
+   * αναδρομικά με ΜΔΚΑ δεν υπολογίζονται, γιατί εκτίμηση με ύφος υπολογισμού
+   * είναι μαντεψιά. Εδώ ισχύει το ίδιο, με μια διαφορά: το τιμολόγιο μένει
+   * επιλέξιμο ως ΤΡΕΧΟΝ, ώστε όποιος το έχει να το δηλώσει, αλλά δεν μπαίνει σε
+   * κατάταξη ώσπου να καταγραφούν το πάγιο και η τιμή του με πηγή.
+   */
+  settled?: boolean;
+
 }
 
 export interface ProviderGroup { value: string; label: string; url: string; tariffs: LocalTariff[] }
@@ -52,7 +71,10 @@ export interface ProviderGroup { value: string; label: string; url: string; tari
  * απαγορεύει στη λίστα να μεγαλώσει.
  */
 export const FLAT_WITHOUT_ALLOWANCE = new Set([
-  'dei_plan',        // «ιδανικό για 2.500-4.500 kWh/έτος»: εύρος, όχι όριο
+  // Το «myHome Plan» έφυγε από εδώ: το θέμα του δεν είναι αδημοσίευτο όριο
+  // κιλοβατωρών αλλά εκκαθάριση δύο φορές τον χρόνο. Φέρει `settled` και δική
+  // του εξήγηση, γιατί μια προειδοποίηση για «υπέρβαση ορίου» θα έστελνε τον
+  // ιδιοκτήτη να ρωτήσει τον πάροχο λάθος ερώτηση.
   'zen_zenergy_s',   // η ίδια η περιγραφή λέει «ακριβές όριο: δες zenith.gr»
   'zen_zenergy_m',
   'zen_zenergy_l',
@@ -79,7 +101,7 @@ export const ALL_TARIFFS = (): (LocalTariff & { providerLabel: string; providerU
  * είναι σύσταση, είναι χαμένος χρόνος και χαμένη εμπιστοσύνη.
  */
 export const COMPARABLE_TARIFFS = (): (LocalTariff & { providerLabel: string; providerUrl: string })[] =>
-  ALL_TARIFFS().filter(t => !t.studentOnly);
+  ALL_TARIFFS().filter(t => !t.studentOnly && !t.settled);
 
 // ── REAL TARIFFS, SOURCE: bestenergydeals.gr / pricefox.gr / Selectra (June–July 2026) ──
 // Τα πεδία που χρειάζεται ο ΥΠΟΛΟΓΙΣΜΟΣ ζουν στο lib/energy/tariff.ts. Εδώ
@@ -96,16 +118,26 @@ export const PROVIDERS: ProviderGroup[] = [
   {
     value: 'dei', label: 'ΔΕΗ', url: 'https://www.dei.gr',
     tariffs: [
-      // FIX: πάγιο myHome Enter αναπροσαρμόστηκε 5,00 € → 7,50 € (επιβεβαιωμένο, Ιούλιος 2026)
-      { id: 'dei_enter',        name: 'myHome Enter',           badge: 'ΜΠΛΕ',    type: 'fixed',         kwh_day: 0.1421, kwh_night: null,   fixed: 7.35, fixed_ebill: 3.50, contract_months: 12, vat: 6, segment: 'residential', desc: 'Σταθερό 12 μήνες. Πάγιο 7,50 € (3,50 € με e-bill + πάγια εντολή).' },
+      // ══ Η ΠΕΡΙΓΡΑΦΗ ΕΛΕΓΕ ΑΛΛΟ ΠΑΓΙΟ ΑΠΟ ΑΥΤΟ ΠΟΥ ΥΠΟΛΟΓΙΖΟΤΑΝ ════════════
+      // Το κείμενο έγραφε «Πάγιο 7,50 €», το πεδίο κρατούσε 7,35 και η οθόνη
+      // τυπώνει το πεδίο. Ο ιδιοκτήτης διάβαζε δύο νούμερα για το ίδιο πράγμα,
+      // δύο γραμμές το ένα από το άλλο. Το 7,35 είναι η τιμή του Αυγούστου από
+      // τη ΡΑΑΕΥ, όπως και όλος ο υπόλοιπος κατάλογος· το 7,50 ήταν υπόλειμμα
+      // παλιότερης διόρθωσης που έμεινε μόνο μέσα στην πρόταση.
+      //
+      // ΚΑΙ Ο ΚΑΝΟΝΑΣ ΕΓΙΝΕ ΕΛΕΓΧΟΣ. Η περιγραφή δεν επαναλαμβάνει αριθμό που
+      // η οθόνη δείχνει ήδη από το πεδίο: το πάγιο τυπώνεται μόνο του, οι δύο
+      // κλίμακες επίσης. Το `tariff.test.ts` απαγορεύει πλέον σε περιγραφή να
+      // αναφέρει τιμή ή πάγιο που δεν υπάρχει ως πεδίο.
+      { id: 'dei_enter',        name: 'myHome Enter',           badge: 'ΜΠΛΕ',    type: 'fixed',         kwh_day: 0.1421, kwh_night: null,   fixed: 7.35, fixed_ebill: 3.50, contract_months: 12, vat: 6, segment: 'residential', desc: 'Σταθερό 12 μήνες. Το πάγιο πέφτει με ηλεκτρονικό λογαριασμό και πάγια εντολή.' },
       // FIX: πάγιο myHome EnterTwo αναπροσαρμόστηκε → 9,00 € (επιβεβαιωμένο, Ιούλιος 2026)
       { id: 'dei_entertwo',     name: 'myHome EnterTwo',        badge: 'ΜΠΛΕ',    type: 'fixed',         kwh_day: 0.1421, kwh_night: 0.1029, fixed: 8.82, fixed_ebill: 3.50, contract_months: 24, vat: 6, segment: 'residential', desc: 'Σταθερό 24 μήνες με νυχτερινή ζώνη, από τις 23:00 έως τις 07:00. Ιδανικό για πλυντήρια, θερμοσίφωνα.' },
       { id: 'dei_online', priceStatus: 'verified',       name: 'myHome Online',          badge: 'ΜΠΛΕ',    type: 'fixed',         kwh_day: 0.1420, kwh_night: null,   fixed: 3.50, fixed_ebill: 3.50, contract_months: 12, vat: 6, segment: 'residential', desc: 'Σταθερό online-only 12 μήνες. Χαμηλότερη τιμή με e-bill + πάγια εντολή.' },
       // FIX: κλιμάκια myHome Maxima αναπροσαρμόστηκαν 0.132/0.122 → 0.141/0.129 (επιβεβαιωμένο, Ιούλιος 2026)
       { id: 'dei_maxima',       name: 'myHome Maxima',          badge: 'ΜΠΛΕ',    type: 'fixed',         kwh_day: 0.13818, kwh_night: null,   kwh_tier2: 0.12642, tier2_threshold: 600, fixed: 13.23, fixed_ebill: 3.50, contract_months: 18, vat: 6, segment: 'residential', desc: 'Κλιμακωτό: 0,141 € έως τις 600 kWh και 0,129 € πάνω από αυτές. Συμφέρει για υψηλή κατανάλωση.' },
-      { id: 'dei_plan',         name: 'myHome Plan',            badge: 'ΜΠΛΕ',    type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 60.00, fixed: 0, contract_months: 12, vat: 6, segment: 'residential', desc: 'Flat 60 € τον μήνα all-in. Ιδανικό για 2.500 έως 4.500 kWh τον χρόνο.' },
-      { id: 'dei_4all',         name: 'myHome 4All',            badge: 'ΚΙΤΡΙΝΟ', type: 'variable',      kwh_day: 0.15135, kwh_night: null,   kwh_tier2: 0.19482, tier2_threshold: 500, fixed: 4.90, fixed_ebill: 3.50, contract_months: 12, vat: 6, segment: 'residential', desc: 'Κυμαινόμενο. 0,137 € έως τις 500 kWh και 0,187 € πάνω από αυτές. Χωρίς δέσμευση.' },
-      { id: 'dei_4students', studentOnly: true,    name: 'myHome 4Students',       badge: 'ΚΙΤΡΙΝΟ', type: 'variable',      kwh_day: 0.11155, kwh_night: null,   kwh_tier2: 0.1850, tier2_threshold: 150, fixed: 2.91, fixed_ebill: 0, contract_months: 12, vat: 6, segment: 'residential', desc: 'Φοιτητικό: 0,129 € έως τις 150 kWh και 0,185 € πάνω από αυτές. Πάγιο 3 €. Bonus καλοκαίρι.' },
+      { id: 'dei_plan', settled: true,         name: 'myHome Plan',            badge: 'ΜΠΛΕ',    type: 'fixed_monthly', kwh_day: 0, kwh_night: null, flat_monthly: 60.00, fixed: 0, contract_months: 12, vat: 6, segment: 'residential', desc: 'Πληρώνεις 60 € τον μήνα έναντι και η ΔΕΗ εκκαθαρίζει την πραγματική κατανάλωση δύο φορές τον χρόνο, στον έκτο και στον δωδέκατο μήνα. Το μηνιαίο ποσό δεν είναι το κόστος σου και το τιμολόγιο δεν μπαίνει στη σύγκριση.' },
+      { id: 'dei_4all',         name: 'myHome 4All',            badge: 'ΚΙΤΡΙΝΟ', type: 'variable',      kwh_day: 0.15135, kwh_night: null,   kwh_tier2: 0.19482, tier2_threshold: 500, fixed: 4.90, fixed_ebill: 3.50, contract_months: 12, vat: 6, segment: 'residential', desc: 'Κυμαινόμενο κλιμακωτό: χαμηλότερη τιμή έως τις 500 kWh τον μήνα, υψηλότερη πάνω από αυτές. Χωρίς δέσμευση.' },
+      { id: 'dei_4students', studentOnly: true,    name: 'myHome 4Students',       badge: 'ΚΙΤΡΙΝΟ', type: 'variable',      kwh_day: 0.11155, kwh_night: null,   kwh_tier2: 0.1850, tier2_threshold: 150, fixed: 2.91, fixed_ebill: 0, contract_months: 12, vat: 6, segment: 'residential', desc: 'Φοιτητικό κλιμακωτό, με όριο τις 150 kWh τον μήνα. Bonus καλοκαίρι. Απαιτείται φοιτητική ιδιότητα.' },
       { id: 'dei_prasino',      name: 'Γ1 Πράσινο',            badge: 'ΠΡΑΣΙΝΟ', type: 'variable',      kwh_day: 0.1440, kwh_night: null,   fixed: 5.00, fixed_ebill: 3.50, contract_months: 0, vat: 6, segment: 'residential', desc: 'Ειδικό Οικιακό (Γ1), κυμαινόμενο. Ανακοινώνεται κάθε 1η του μήνα.' },
       { id: 'dei_prasino_n',    name: 'Γ1Ν Πράσινο Νυχτερινό', badge: 'ΠΡΑΣΙΝΟ', type: 'variable',      kwh_day: 0.1440, kwh_night: 0.1160, fixed: 5.00, fixed_ebill: 3.50, contract_months: 0, vat: 6, segment: 'residential', desc: 'Ειδικό με νυχτερινή ζώνη. Ανακοινώνεται κάθε 1η του μήνα.' },
       { id: 'dei_dynamic',      name: 'myHome Dynamic',         badge: 'ΔΥΝΑΜΙΚΟ',type: 'dynamic',       kwh_day: 0, kwh_night: null, fixed: 5.00, smart_meter: true, contract_months: 0, vat: 6, segment: 'residential', desc: 'Ωριαία τιμολόγηση βάσει χονδρεμπορικής (HEnEx). Απαιτεί έξυπνο μετρητή ΔΕΔΔΗΕ.' },
@@ -223,7 +255,7 @@ export const PROVIDERS: ProviderGroup[] = [
     tariffs: [
       // ── Οικιακά ────────────────────────────────────────────────────────
       { id: 'volton_green',    name: 'Volton Green Ειδικό',   badge: 'ΠΡΑΣΙΝΟ', type: 'variable', kwh_day: 0.1861, kwh_night: null, flat_monthly: null, fixed: 0,    fixed_ebill: null, contract_months: 0,  no_fixed: true,  vat: 6, segment: 'residential', desc: 'Ειδικό Γ1. Μηδενική εγγύηση. Ανακοινώνεται 1η μήνα.' },
-      { id: 'volton_blue',     name: 'Volton Blue Flat 18M',  badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1520, kwh_night: null, flat_monthly: null, fixed: 9.90, fixed_ebill: null, contract_months: 18, no_fixed: false, vat: 6, segment: 'residential', desc: 'Σταθερό 18 μηνών με έκπτωση συνέπειας. Καλοκαιρινή προσφορά από Ιούνιο έως Αύγουστο, με έκπτωση 15% που φέρνει την τιμή περίπου στα 0,129 € ανά kWh. Επιβεβαίωσε τρέχουσα εποχιακή τιμή στο volton.gr.' },
+      { id: 'volton_blue',     name: 'Volton Blue Flat 18M',  badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1520, kwh_night: null, flat_monthly: null, fixed: 9.90, fixed_ebill: null, contract_months: 18, no_fixed: false, vat: 6, segment: 'residential', desc: 'Σταθερό 18 μηνών με έκπτωση συνέπειας. Καλοκαιρινή προσφορά από Ιούνιο έως Αύγουστο, με έκπτωση 15% πάνω στην τιμή. Επιβεβαίωσε την τρέχουσα εποχιακή τιμή στο volton.gr.' },
       // ── Επαγγελματικά ──────────────────────────────────────────────────
       { id: 'volton_yellow_biz', name: 'Yellow Simple Business', badge: 'ΚΙΤΡΙΝΟ', type: 'variable', kwh_day: 0.14078, kwh_night: null, flat_monthly: null, fixed: 6.90, fixed_ebill: null, contract_months: 0,  no_fixed: false, vat: 6, segment: 'business', desc: 'Κυμαινόμενο επαγγελματικό.' },
       { id: 'volton_blue_biz',   name: 'Blue Flat 18M Business', badge: 'ΜΠΛΕ',    type: 'fixed',    kwh_day: 0.1590,  kwh_night: null, flat_monthly: null, fixed: 9.90, fixed_ebill: null, contract_months: 18, no_fixed: false, vat: 6, segment: 'business', desc: 'Σταθερό 18μηνο επαγγελματικό.' },
