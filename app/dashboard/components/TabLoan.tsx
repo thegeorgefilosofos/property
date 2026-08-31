@@ -338,7 +338,6 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
   const [scoreHover,setScoreHover] = useState(false)
   const [otherHover,setOtherHover] = useState<string|null>(null)
   const [hoverBank,setHoverBank] = useState<string|null>(null)
-  const [uniHover,setUniHover] = useState<number|null>(null)
   const [hoverBankRow,setHoverBankRow] = useState<number|null>(null)
   const [hoverRate,setHoverRate] = useState<number|null>(null)
   // Ξεκινά «true»: πριν, η καρτέλα έδειχνε ΤΙΠΟΤΑ όσο έτρεχε η loadSaved και μετά
@@ -600,13 +599,21 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                 Το κατώφλι 150 γράφτηκε για τετραψήφια ποσά. Το 205 είναι το
                 μετρημένο πλάτος του μεγαλύτερου ποσού συν το περιθώριο του
                 πλακιδίου: εξαψήφιο υπόλοιπο με λεπτά και σύμβολο. ══════ */}
-            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 205px), 1fr))',gap:10,marginBottom:16}}>
-              {tiles.map((t,i)=>{const on=uniHover===i;return(
-                <div key={t.k} onMouseEnter={()=>setUniHover(i)} onMouseLeave={()=>setUniHover(null)} onTouchStart={()=>setUniHover(i)} onTouchEnd={()=>setUniHover(null)} style={{background:'var(--bg-elevated)',border:`1px solid ${on?'var(--border-default)':'var(--border-subtle)'}`,borderRadius:12,padding:'14px 16px',transition:'border-color 0.15s, box-shadow 0.15s',boxShadow:on?'0 2px 4px color-mix(in srgb, var(--text-primary) 9%, transparent)':'none'}}>
-                  <p style={{fontSize: 11,textTransform:'uppercase' as const,letterSpacing:'0.06em',fontWeight:600,color:'var(--text-tertiary)',fontFamily: T.font.sans}}>{t.k}</p>
-                  <p style={{fontSize:24,fontWeight:700,letterSpacing:'-0.02em',lineHeight:1,marginTop:8,color:t.accent?'var(--accent)':on?'var(--accent)':'var(--text-primary)',fontVariantNumeric:'tabular-nums',fontFamily: T.font.sans,transition:'color 0.15s'}}>{t.v}</p>
-                </div>
-              )})}
+            {/* ΤΟ `auto-fit` ΕΒΓΑΖΕ ΤΡΕΙΣ ΣΤΗΛΕΣ ΚΑΙ ΑΦΗΝΕ ΤΟ ΤΕΤΑΡΤΟ ΜΟΝΟ ΤΟΥ.
+                Μετρημένο στα 768, 820 και 900: «3+1», με τους τόκους να κάθονται
+                αριστερά και τρύπα δύο στηλών δεξιά τους. Το πλήθος εδώ το όρισε ο
+                σχεδιαστής (τέσσερα αθροίσματα, πάντα τα ίδια), οπότε το ορφανό
+                διορθώνεται: τέσσερις στήλες όπου χωρούν τα ποσά, δύο παντού
+                αλλού, ποτέ τρεις.
+
+                ΚΑΙ ΤΑ ΠΛΑΚΙΔΙΑ ΕΓΙΝΑΝ ΤΟ ΚΟΙΝΟ `KPI`. Είχαν δικό τους κουτί με
+                σταθερό αριθμό στα 24, οπότε σε δύο στήλες κινητού το
+                «123.186,65 €» κοβόταν. Το `KPI` που χρησιμοποιεί ήδη η κάρτα
+                δανείου δέκα γραμμές πιο κάτω κλιμακώνει τον αριθμό με το πλάτος
+                της στήλης, δηλαδή το πρόβλημα ήταν λυμένο στην ίδια οθόνη με
+                άλλο ιδίωμα. Ενα ιδίωμα, ένα πλακίδιο. */}
+            <div {...fixedCols(4, 10, 'stretch', 'fc-xs-2 fc-roomy fc-xxs-1')} style={{...fixedCols(4, 10, 'stretch', 'fc-xs-2 fc-roomy fc-xxs-1').style, marginBottom:16}}>
+              {tiles.map(t=>(<KPI key={t.k} label={t.k} value={t.v}/>))}
             </div>
             {rows.length>1&&(<>
               <p style={{...labelStyle,marginBottom:9}}>Κατανομή μηνιαίας δόσης ανά δάνειο</p>
@@ -895,7 +902,15 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
 
           {/* Επιλέξιμες συμπαγείς κάρτες — διάλεξε τράπεζα για λεπτομέρειες */}
           <p style={{...labelStyle,marginBottom:2}}>Διάλεξε τράπεζα για ανάλυση</p>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',gap:10}}>
+          {/* ΤΟ ΠΛΗΘΟΣ ΤΩΝ ΤΡΑΠΕΖΩΝ ΔΕΝ ΤΟ ΟΡΙΖΕΙ Ο ΣΧΕΔΙΑΣΜΟΣ. Ο σαρωτής
+              κατήγγειλε «3+3+1» στα 768 και «6+1» στα 1.440: επτά τράπεζες σε
+              τρεις ή έξι στήλες αφήνουν πάντα μία στην τελευταία σειρά. Καμία
+              διάταξη δεν το αποφεύγει, γιατί το επτά δεν είναι επιλογή μας —
+              είναι όσες τράπεζες δίνουν στεγαστικό· και ο αριθμός αλλάζει και
+              με το φίλτρο «Σπίτι μου ΙΙ» που πατά ο χρήστης. Ακριβώς γι' αυτό
+              υπάρχει το `data-list`: δηλώνει ότι το πλήθος είναι δεδομένο, όχι
+              απόφαση. */}
+          <div data-list style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',gap:10}}>
             {BANKS.filter(b=>!filterSpiti||b.spiti_mou).map(bank=>{
               const key = bank.id||bank.name
               const on = selBank===key
@@ -1043,6 +1058,12 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
             // προθεσμία υπογραφής, με το κείμενο να λέει ρητά ποιανού είναι.
             const deadStr = programDateLabel(
               st.acceptsApplications ? (prog.applicationDeadline || prog.deadline) : prog.deadline) || null
+            // ΤΟ «ΕΩΣ» ΘΕΛΕΙ ΗΜΕΡΟΜΗΝΙΑ. Το πεδίο της προθεσμίας δέχεται και
+            // κείμενο, για προγράμματα χωρίς ανακοινωμένη λήξη: τότε η κεφαλίδα
+            // έγραφε «Αιτήσεις έως Χωρίς ανακοινωμένη λήξη», που δεν στέκει ως
+            // ελληνικά και στα 320 ξέφευγε 14 έξω από την κάρτα. Οταν δεν είναι
+            // ημερομηνία, λέγεται σκέτο.
+            const deadIsDate = !!deadStr && /^\d{2}\/\d{2}\/\d{4}$/.test(deadStr)
             const closed = !st.acceptsApplications
             // ΤΟ `nowrap` ΕΒΓΑΖΕ ΤΗΝ ΠΡΟΘΕΣΜΙΑ ΕΞΩ ΑΠΟ ΤΗΝ ΚΑΡΤΑ. Μετρημένο στα
             // 320: το όνομα του προγράμματος και το «Αιτήσεις έως 31/05/2026» δεν
@@ -1054,7 +1075,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
               badges={<>
                 <span style={{fontSize: 11,padding:'2px 8px',borderRadius:8,background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',color:closed?'var(--text-tertiary)':'var(--text-primary)',fontWeight:closed?500:600,fontFamily: T.font.sans}}>{st.badge}</span>
               </>}
-              meta={deadStr?<span style={{fontSize:12,color:'var(--text-tertiary)',fontFamily: T.font.sans}}>{st.acceptsApplications?'Αιτήσεις έως':'Υπογραφές έως'} {deadStr}</span>:undefined}
+              meta={deadStr?<span style={{fontSize:12,color:'var(--text-tertiary)',fontFamily: T.font.sans}}>{deadIsDate?`${st.acceptsApplications?'Αιτήσεις έως':'Υπογραφές έως'} ${deadStr}`:deadStr}</span>:undefined}
             >
               {/* Η ΠΡΟΤΑΣΗ ΠΟΥ ΕΛΕΙΠΕ. Χωρίς αυτήν, δύο ημερομηνίες κάθονταν
                   δίπλα-δίπλα και ο χρήστης μάντευε ποια τον αφορά. */}
