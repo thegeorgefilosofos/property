@@ -36,7 +36,10 @@ const CSS = /font-size:\s*(\d+(?:\.\d+)?)px/g
 const CLAMP = /font-?[sS]ize:\s*'?clamp\(\s*(\d+(?:\.\d+)?)px/g
 
 const hits = []
-for (const file of projectFiles("'app/**' 'components/**' 'lib/**'")) {
+// ΤΑ EMAIL ΤΩΝ CRON ΕΙΝΑΙ ΚΙ ΑΥΤΑ ΟΘΟΝΗ, ΚΑΙ ΜΑΛΙΣΤΑ ΤΗΛΕΦΩΝΟΥ. Εννέα edge
+// functions γράφουν δικό τους HTML και έμεναν έξω από τον έλεγχο: εκεί ζούσε το
+// μικρότερο κείμενο ολόκληρου του προϊόντος, στα 10 εικονοστοιχεία.
+for (const file of projectFiles("'app/**' 'components/**' 'lib/**' 'supabase/functions/**'")) {
   if (file === SELF || file.startsWith('lib/pdf/')) continue
   if (!/\.(tsx?|css)$/.test(file)) continue
   let src

@@ -12,7 +12,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 
 import { NO_RESEND_KEY } from '../_shared/resendKey.ts'
-import { emailHeader } from '../_shared/emailTemplates.ts';
+import { emailHeader, eyebrow } from '../_shared/emailTemplates.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.110.8'
 import { APP_URL } from '../_shared/site.ts'
 
@@ -35,7 +35,7 @@ function testEmailHtml(): { subject: string; html: string } {
   <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
     ${emailHeader()}
     <div style="background:#ffffff;border:1px solid #e8eaed;border-radius:14px;padding:28px 24px;">
-      <p style="margin:0 0 6px;font-size:11px;color:#1a73e8;font-family:monospace;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">Δοκιμή</p>
+      ${eyebrow('Δοκιμή')}
       <h1 style="margin:0 0 12px;font-size:22px;color:#202124;font-weight:800;letter-spacing:-0.5px;">Οι ειδοποιήσεις σου δουλεύουν</h1>
       <p style="margin:0;font-size:14px;color:#5f6368;line-height:1.6;">
         Αυτό είναι ένα δοκιμαστικό email. Αν το βλέπεις, η διεύθυνσή σου είναι σωστή και θα λαμβάνεις κανονικά τις υπενθυμίσεις για ενοίκια, λογαριασμούς και γεγονότα του ημερολογίου σου.

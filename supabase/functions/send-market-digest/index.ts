@@ -8,7 +8,7 @@
 // key (Authorization: Bearer, από το vault) και η authorized() το δέχεται.
 // Προαιρετικά: RESEND_FROM (branded αποστολέας μετά την επαλήθευση domain).
 // ─────────────────────────────────────────────────────────────────────────
-import { emailHeader } from '../_shared/emailTemplates.ts';
+import { emailHeader, eyebrow } from '../_shared/emailTemplates.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.110.8'
 import { APP_URL } from '../_shared/site.ts'
 import { authorizeCron } from '../_shared/auth.ts'
@@ -45,7 +45,13 @@ function rowHtml(label: string, cur: number | null, prev: number | null): string
   // επιτόκιο ΕΙΝΑΙ μηδέν. Η απουσία λέγεται με απουσία, όπως και στην οθόνη.
   if (cur == null) return ''
   const d = prev != null ? cur - prev : null
-  const arrow = d == null || Math.abs(d) < 0.001 ? '<span style="color:#80868b;">—</span>'
+  // ΚΑΜΙΑ ΠΑΥΛΑ ΣΕ ΘΕΣΗ ΤΙΜΗΣ, ΚΑΙ ΟΙ ΔΥΟ ΣΙΩΠΕΣ ΔΕΝ ΕΙΝΑΙ Η ΙΔΙΑ. Το digest
+  // φεύγει μόνο όταν κινηθεί ΤΟΥΛΑΧΙΣΤΟΝ ένα από τα πέντε μεγέθη, άρα σε κάθε
+  // email που στέλνεται τα υπόλοιπα εμφανίζονταν με «—». Ενα σημάδι που σημαίνει
+  // άλλοτε «δεν άλλαξε» και άλλοτε «δεν έχουμε προηγούμενη τιμή» δεν λέει τίποτα
+  // από τα δύο· και ο αναγνώστης οθόνης το διαβάζει ως «παύλα».
+  const arrow = d == null ? '<span style="color:#80868b;">Χωρίς σύγκριση</span>'
+    : Math.abs(d) < 0.001 ? '<span style="color:#80868b;">Αμετάβλητο</span>'
     : d > 0 ? `<span style="color:#d93025;">▲ ${pct(Math.abs(d))}</span>` : `<span style="color:#188038;">▼ ${pct(Math.abs(d))}</span>`
   return `<tr>
     <td style="padding:11px 0;border-bottom:1px solid #f1f3f4;font-size:13px;color:#3c4043;">${label}</td>
@@ -59,7 +65,7 @@ function layout(inner: string, unsubUrl: string): string {
   <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
     ${emailHeader()}
     <div style="background:#fff;border:1px solid #e8eaed;border-radius:14px;padding:26px 24px;">
-      <p style="margin:0 0 4px;font-size:10.5px;color:#1a73e8;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">Δεδομένα αγοράς</p>
+      ${eyebrow('Δεδομένα αγοράς')}
       <h1 style="margin:0 0 14px;font-size:20px;color:#111;font-weight:700;">Εβδομαδιαία ενημέρωση επιτοκίων</h1>
       <table style="width:100%;border-collapse:collapse;">${inner}</table>
       <p style="margin:16px 0 0;font-size:12px;color:#5f6368;line-height:1.6;">Χρήσιμο για την αξιολόγηση δανείων και αποδόσεων στο PROPERWISE.</p>

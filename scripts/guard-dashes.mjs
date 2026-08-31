@@ -25,7 +25,9 @@
 import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 
-const ROOTS = ['app', 'components']
+// Τα email των cron γράφουν δικό τους HTML και έμεναν έξω: εκεί η παύλα καθόταν
+// στη στήλη μεταβολής κάθε εβδομαδιαίας ενημέρωσης επιτοκίων.
+const ROOTS = ['app', 'components', 'supabase/functions']
 const BASELINE = 'scripts/dashes-baseline.json'
 
 function walk(dir, out) {

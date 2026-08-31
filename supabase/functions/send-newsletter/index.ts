@@ -10,7 +10,7 @@
 // authorized() το δέχεται. Προαιρετικά: RESEND_FROM (branded αποστολέας μετά την
 // επαλήθευση domain) & APP_URL (μία πηγή: _shared/site.ts).
 // ─────────────────────────────────────────────────────────────────────────
-import { emailHeader } from '../_shared/emailTemplates.ts';
+import { emailHeader, eyebrow } from '../_shared/emailTemplates.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.110.8'
 import { authorizeCron } from '../_shared/auth.ts'
 import { APP_URL } from '../_shared/site.ts'
@@ -40,7 +40,7 @@ function layout(inner: string, unsubUrl: string): string {
   <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
     ${emailHeader()}
     <div style="background:#fff;border:1px solid #e8eaed;border-radius:14px;padding:26px 24px;">
-      <p style="margin:0 0 4px;font-size:10.5px;color:#1a73e8;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">Νέες δυνατότητες</p>
+      ${eyebrow('Νέες δυνατότητες')}
       ${inner}
     </div>
     <p style="text-align:center;font-size:11px;color:#80868b;margin:18px 0 4px;line-height:1.6;">

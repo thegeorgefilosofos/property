@@ -12,7 +12,7 @@
 // Deploy: supabase functions deploy send-monthly-statements  (verify_jwt=false)
 // Χρειάζεται RESEND_API_KEY (υπάρχει) + προαιρετικά RESEND_FROM (branded αποστολέας).
 // ─────────────────────────────────────────────────────────────────────────
-import { emailHeader } from '../_shared/emailTemplates.ts';
+import { emailHeader, eyebrow, grUp } from '../_shared/emailTemplates.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.110.8'
 import { APP_URL } from '../_shared/site.ts'
 import { authorizeCron } from '../_shared/auth.ts'
@@ -39,8 +39,11 @@ interface Rent { property_id: string | null; tenant_id: string | null; amount: n
 function statementHtml(ownerRows: { primary: string; secondary: string; expected: number; paid: number }[], expected: number, collected: number, periodLabel: string): string {
   const outstanding = Math.max(0, expected - collected)
   const rows = ownerRows.map(r => {
-    const status = r.expected === 0 ? '—' : r.paid >= r.expected ? 'Πλήρης' : r.paid > 0 ? 'Μερική' : 'Εκκρεμεί'
-    const color = r.paid >= r.expected ? '#188038' : r.paid > 0 ? '#b8860b' : '#d93025'
+    // ΚΑΜΙΑ ΠΑΥΛΑ ΣΕ ΘΕΣΗ ΤΙΜΗΣ. Οταν δεν αναμένεται μίσθωμα, η κατάσταση δεν
+    // είναι άγνωστη: είναι «δεν οφείλεται τίποτα». Η παύλα το έκρυβε πίσω από
+    // ένα σημάδι που ο αναγνώστης οθόνης διαβάζει ως «παύλα».
+    const status = r.expected === 0 ? 'Χωρίς μίσθωμα' : r.paid >= r.expected ? 'Πλήρης' : r.paid > 0 ? 'Μερική' : 'Εκκρεμεί'
+    const color = r.expected === 0 ? '#80868b' : r.paid >= r.expected ? '#188038' : r.paid > 0 ? '#b8860b' : '#d93025'
     return `<tr>
       <td style="padding:11px 0;border-bottom:1px solid #f1f3f4;">
         <span style="display:block;font-size:13px;color:#202124;font-weight:500;">${r.primary}</span>
@@ -54,11 +57,16 @@ function statementHtml(ownerRows: { primary: string; secondary: string; expected
   <div style="max-width:600px;margin:0 auto;padding:32px 16px;">
     ${emailHeader()}
     <div style="background:#fff;border:1px solid #e8eaed;border-radius:14px;padding:26px 24px;">
-      <p style="margin:0 0 4px;font-size:10.5px;color:#1a73e8;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">Μηνιαία κατάσταση</p>
+      ${eyebrow('Μηνιαία κατάσταση')}
       <h1 style="margin:0 0 4px;font-size:20px;color:#111;font-weight:700;">Εισπράξεις ${periodLabel}</h1>
       <p style="margin:0 0 16px;font-size:12px;color:#5f6368;">Εισπράχθηκαν <b>${eur(collected)}</b> από ${eur(expected)}${outstanding > 0 ? ` · ανείσπρακτα <b style="color:#d93025;">${eur(outstanding)}</b>` : ''}.</p>
       <table style="width:100%;border-collapse:collapse;">
-        <tr><td style="padding:0 0 6px;font-size:10px;color:#80868b;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #d0d5dd;">Ακίνητο / Ενοικιαστής</td><td style="padding:0 0 6px;text-align:right;font-size:10px;color:#80868b;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #d0d5dd;">Εισπρ. / Αναμ.</td><td style="padding:0 0 6px;text-align:right;font-size:10px;color:#80868b;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #d0d5dd;">Κατάσταση</td></tr>
+        ${/* ΤΟ ΔΑΠΕΔΟ ΤΩΝ 11px ΙΣΧΥΕΙ ΚΑΙ ΕΔΩ, ΚΑΙ ΤΑ ΚΕΦΑΛΑΙΑ ΔΕΝ ΚΡΑΤΟΥΝ ΤΟΝΟ.
+             Ηταν 10 εικονοστοιχεία, το μικρότερο κείμενο ολόκληρου του προϊόντος,
+             σε email που ανοίγει σχεδόν πάντα σε τηλέφωνο. Και το `uppercase` πάνω
+             σε ωμό ελληνικό έγραφε «ΑΚΊΝΗΤΟ» και «ΚΑΤΆΣΤΑΣΗ». */''}
+        <tr>${['Ακίνητο / Ενοικιαστής', 'Εισπρ. / Αναμ.', 'Κατάσταση'].map((t, i) =>
+          `<td style="padding:0 0 6px;${i ? 'text-align:right;' : ''}font-size:11px;color:#80868b;letter-spacing:.04em;border-bottom:1px solid #d0d5dd;">${grUp(t)}</td>`).join('')}</tr>
         ${rows}
         <tr><td style="padding:12px 0 0;font-size:13px;font-weight:700;color:#111;">Σύνολο</td><td style="padding:12px 0 0;text-align:right;font-size:13px;font-weight:700;color:#111;">${eur(collected)} / ${eur(expected)}</td><td></td></tr>
       </table>

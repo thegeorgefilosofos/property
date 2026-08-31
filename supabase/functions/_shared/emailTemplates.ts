@@ -29,7 +29,7 @@ const esc = (v: unknown): string =>
   String(v ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c] || c));
 
 // Ελληνικά κεφαλαία ΧΩΡΙΣ τόνο (σωστή τυπογραφία· κρατά τα διαλυτικά). Για eyebrow/labels.
-const grUp = (v: string): string => String(v).toUpperCase()
+export const grUp = (v: string): string => String(v).toUpperCase()
   .replace(/[ΆΈΉΊΌΎΏ]/g, m => ({ 'Ά': 'Α', 'Έ': 'Ε', 'Ή': 'Η', 'Ί': 'Ι', 'Ό': 'Ο', 'Ύ': 'Υ', 'Ώ': 'Ω' }[m] || m))
   .replace(/ΐ/g, 'Ϊ').replace(/ΰ/g, 'Ϋ');
 
@@ -47,8 +47,14 @@ export const h = (html: string): string =>
 // οθόνη και μάλιστα διαβάζεται σχεδόν πάντα σε κινητό: το 10,5 ήταν το
 // μικρότερο κείμενο ολόκληρου του προϊόντος, σε μέγεθος που κανένας κανόνας
 // δεν θα επέτρεπε αν ζούσε μέσα στην εφαρμογή.
-export const eyebrow = (text: string): string =>
-  `<p style="margin:0 0 6px;font-size:11px;color:${ACCENT};text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">${esc(grUp(text))}</p>`;
+// ΤΟ ΧΡΩΜΑ ΕΙΝΑΙ ΟΡΙΣΜΑ, ΩΣΤΕ ΝΑ ΜΗΝ ΞΑΝΑΓΡΑΦΕΤΑΙ Η ΕΤΙΚΕΤΑ. Εννέα edge
+// functions έγραφαν δικό τους eyebrow με αντιγραμμένα στυλ· ο μόνος λόγος
+// που δεν καλούσαν αυτό εδώ ήταν ότι μία από αυτές το θέλει κόκκινο. Το
+// αποτέλεσμα: τρία διαφορετικά μεγέθη (10,5 · 11 · 11 με monospace) και ωμό
+// ελληνικό λεκτικό κάτω από `text-transform:uppercase`, δηλαδή «ΛΗΞΙΠΡΌΘΕΣΜΟ
+// ΕΝΟΊΚΙΟ» με τόνο, κάθε πρωί στις 06:00.
+export const eyebrow = (text: string, color: string = ACCENT): string =>
+  `<p style="margin:0 0 6px;font-size:11px;color:${color};text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">${esc(grUp(text))}</p>`;
 export const bullets = (items: string[]): string =>
   `<table style="width:100%;border-collapse:collapse;margin:0 0 8px;">${items.map(it => `<tr><td style="vertical-align:top;padding:5px 10px 5px 0;width:18px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${ACCENT};"></span></td><td style="font-size:14px;color:#3c4043;line-height:1.6;padding:3px 0;">${it}</td></tr>`).join('')}</table>`;
 export const button = (label: string, url: string): string =>

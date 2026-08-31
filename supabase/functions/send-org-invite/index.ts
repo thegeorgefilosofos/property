@@ -14,7 +14,7 @@
 //   (RESEND_API_KEY / SUPABASE_URL / SUPABASE_ANON_KEY υπάρχουν ήδη)
 // ─────────────────────────────────────────────────────────────────────────
 
-import { emailHeader } from '../_shared/emailTemplates.ts';
+import { emailHeader, eyebrow } from '../_shared/emailTemplates.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.110.8'
 import { APP_URL } from '../_shared/site.ts'
 
@@ -43,7 +43,7 @@ function inviteEmail(orgName: string, inviter: string, role: string): { subject:
   <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
     ${emailHeader()}
     <div style="background:#ffffff;border:1px solid #e8eaed;border-radius:14px;padding:28px 24px;">
-      <p style="margin:0 0 6px;font-size:11px;color:#1a73e8;font-family:monospace;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">Πρόσκληση σε ομάδα</p>
+      ${eyebrow('Πρόσκληση σε ομάδα')}
       <h1 style="margin:0 0 12px;font-size:22px;color:#202124;font-weight:800;letter-spacing:-0.5px;">Προσκλήθηκες στο ${org}</h1>
       <p style="margin:0 0 20px;font-size:14px;color:#5f6368;line-height:1.6;">
         ${who} σε προσκάλεσε να συνεργαστείς στο PROPERWISE με ρόλο <strong style="color:#202124;">${roleLabel(role)}</strong>.

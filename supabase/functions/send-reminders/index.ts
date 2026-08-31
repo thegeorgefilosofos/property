@@ -1,4 +1,4 @@
-import { emailHeader } from '../_shared/emailTemplates.ts';
+import { emailHeader, eyebrow } from '../_shared/emailTemplates.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.110.8'
 import { APP_URL } from '../_shared/site.ts'
 import { authorizeCron } from '../_shared/auth.ts'
@@ -87,7 +87,7 @@ function buildEmail(events: CalendarEventsRow[], reminderType: string) {
     ${emailHeader()}
     <div style="background:#ffffff;border:1px solid #e8eaed;border-radius:14px;padding:24px;">
       <div style="background:${isUrgent ? 'rgba(217,48,37,0.08)' : 'rgba(26,115,232,0.08)'};border:1px solid ${isUrgent ? 'rgba(217,48,37,0.25)' : 'rgba(26,115,232,0.22)'};border-radius:10px;padding:16px 20px;margin-bottom:20px;">
-        <p style="margin:0 0 4px;font-size:11px;color:${isUrgent ? '#d93025' : '#1a73e8'};font-family:monospace;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">${isUrgent ? 'Απαιτείται Δράση' : 'Υπενθύμιση'}</p>
+        ${eyebrow(isUrgent ? 'Απαιτείται δράση' : 'Υπενθύμιση', isUrgent ? '#d93025' : undefined)}
         <p style="margin:0;font-size:15px;color:#202124;font-weight:500;">${events.length} γεγονότα ${reminderType === 'overdue' ? 'είναι εκπρόθεσμα' : reminderType === 'today' ? 'πρέπει να διεκπεραιωθούν σήμερα' : `λήγουν σε ${typeLabel[reminderType]}`}</p>
         ${totalAmount > 0 ? `<p style="margin:6px 0 0;font-size:13px;color:#1a73e8;font-family:monospace;font-weight:600;">Σύνολο: ${eur(totalAmount)}</p>` : ''}
       </div>
@@ -113,11 +113,14 @@ function buildDunningEmail(rows: RentPaymentsRow[], tenantMap: Record<string, Te
     const tenant = r.tenant_id != null ? (tenantMap[r.tenant_id]?.full_name || null) : null
     const prop   = r.property_id != null ? (propMap[r.property_id]?.name || null) : null
     const primary = tenant || prop || 'Χωρίς όνομα'
+    // ΚΑΜΙΑ ΠΑΥΛΑ ΣΕ ΘΕΣΗ ΤΙΜΗΣ. Εγραφε «Περίοδος —» και «Λήξη —», δηλαδή δύο
+    // ετικέτες που δεν συνοδεύονται από τίποτα. Η απουσία λέγεται με απουσία:
+    // το κομμάτι απλώς δεν μπαίνει στη γραμμή.
     const period = (r.period_month != null && r.period_year != null)
-      ? `${String(r.period_month).padStart(2, '0')}/${r.period_year}` : '—'
-    const dueStr = r.due_date ? new Date(r.due_date).toLocaleDateString('el-GR') : '—'
+      ? `${String(r.period_month).padStart(2, '0')}/${r.period_year}` : null
+    const dueStr = r.due_date ? new Date(r.due_date).toLocaleDateString('el-GR') : null
     const daysOverdue = r.due_date ? Math.floor((today.getTime() - new Date(r.due_date).getTime()) / 86400000) : 0
-    const secondary = [tenant && prop ? prop : null, `Περίοδος ${period}`, `Λήξη ${dueStr}`].filter(Boolean).join(' · ')
+    const secondary = [tenant && prop ? prop : null, period && `Περίοδος ${period}`, dueStr && `Λήξη ${dueStr}`].filter(Boolean).join(' · ')
     return `
       <tr>
         <td style="padding:12px 0;border-bottom:1px solid #e8eaed;">
@@ -142,7 +145,7 @@ function buildDunningEmail(rows: RentPaymentsRow[], tenantMap: Record<string, Te
     ${emailHeader()}
     <div style="background:#ffffff;border:1px solid #e8eaed;border-radius:14px;padding:24px;">
       <div style="background:rgba(217,48,37,0.08);border:1px solid rgba(217,48,37,0.25);border-radius:10px;padding:16px 20px;margin-bottom:20px;">
-        <p style="margin:0 0 4px;font-size:11px;color:#d93025;font-family:monospace;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">Ληξιπρόθεσμο Ενοίκιο</p>
+        ${eyebrow('Ληξιπρόθεσμο ενοίκιο', '#d93025')}
         <p style="margin:0;font-size:15px;color:#202124;font-weight:500;">${n} ${n === 1 ? 'δόση ενοικίου είναι ληξιπρόθεσμη' : 'δόσεις ενοικίου είναι ληξιπρόθεσμες'}</p>
         <p style="margin:6px 0 0;font-size:12px;color:#80868b;font-family:monospace;font-weight:600;">${noticeLabel} (ειδοποίηση Νο ${noticeNumber})</p>
         ${total > 0 ? `<p style="margin:6px 0 0;font-size:13px;color:#d93025;font-family:monospace;font-weight:600;">Σύνολο ληξιπρόθεσμων: ${eur(total)}</p>` : ''}
