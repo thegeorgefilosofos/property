@@ -105,8 +105,12 @@ export function ScanUploadRow({ title, description, action, icon, scanning, onFi
         {/* ΓΡΑΜΜΗ 101 ΧΑΡΑΚΤΗΡΩΝ ΜΕ ΥΨΟΣ 1,55. Πάνω από τους 95 χαρακτήρες το μάτι
             χάνει την αρχή της επόμενης γραμμής και χρειάζεται 1,6 για να τη βρει.
             Μετρημένο στα 1.280 και στα 1.440, όπου η περιγραφή απλώνεται σε όλο
-            το πλάτος της κάρτας. */}
-        <p style={{ ...TT.bodySm, color: 'var(--text-tertiary)', lineHeight: 1.6 }}>{description}</p>
+            το πλάτος της κάρτας.
+            ΓΙΑΤΙ 1,65 ΚΑΙ ΟΧΙ 1,6. Ο περιηγητής επιστρέφει το ύψος σε πίξελ:
+            13 × 1,6 δίνει 20,7969 και η αναλογία ξαναβγαίνει 1,5997, δηλαδή
+            ακριβώς κάτω από το όριο. Το ίδιο το κατώφλι γραμμένο ως τιμή πέφτει
+            στη λάθος μεριά της στρογγυλοποίησης. */}
+        <p style={{ ...TT.bodySm, color: 'var(--text-tertiary)', lineHeight: 1.65 }}>{description}</p>
       </div>
       <button onClick={() => inputRef.current?.click()} disabled={scanning}
         style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0 16px', height: T.h.lg, borderRadius: T.radius.inner, background: 'var(--accent)', border: '1px solid transparent', color: 'var(--accent-text)', fontSize: 13, fontFamily: T.font.sans, fontWeight: 600, cursor: scanning ? 'wait' : 'pointer', flexShrink: 0 }}>
