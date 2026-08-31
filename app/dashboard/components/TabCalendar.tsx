@@ -2083,7 +2083,10 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
 
       {/* Toolbar — καθαρή, ένα πρωτεύον κουμπί· τα δευτερεύοντα σε ένα ήσυχο μενού */}
       <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
-        <div style={{ display:'flex', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:10, padding:2, gap:2 }}>
+        {/* Το κουτί της ομάδας παίρνει το ύψος από τα κουμπιά της: 32 συν 3
+            γέμισμα και 1 περίγραμμα πάνω κάτω, δηλαδή 40, όσο και τα υπόλοιπα
+            χειριστήρια της γραμμής. Με γέμισμα 2 έβγαινε 38. */}
+        <div style={{ display:'flex', background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', borderRadius:10, padding:3, gap:2 }}>
           {([['month','Μήνας',Calendar],['agenda','Ατζέντα',List]] as [ViewMode,string,typeof Calendar][]).map(([v,label,Icon])=>(
             <button key={v} onClick={()=>setViewMode(v)} style={{ display:'flex', alignItems:'center', gap:6, height:T.h.sm, padding:'0 12px', border:'none', borderRadius:8, cursor:'pointer', fontSize:13, fontFamily: T.font.sans, fontWeight:viewMode===v?600:500, background:viewMode===v?'var(--accent)':'transparent', color:viewMode===v?'var(--accent-text)':'var(--text-secondary)', transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s', letterSpacing:'0.1px' }}>
               <Icon size={13}/>{label}
@@ -2096,7 +2099,7 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
             <button aria-label="Προηγούμενο" title="Προηγούμενο" onClick={prevPeriod} style={{ width:34, height:34, borderRadius:'50%', border:'none', background:'transparent', cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center' }} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><ChevronLeft size={18}/></button>
             <span aria-live="polite" style={{ fontSize:15, fontWeight:600, fontFamily: T.font.sans, color:'var(--text-primary)', minWidth:150, textAlign:'center', letterSpacing:'0.1px' }}>{periodLabel()}</span>
             <button aria-label="Επόμενο" title="Επόμενο" onClick={nextPeriod} style={{ width:34, height:34, borderRadius:'50%', border:'none', background:'transparent', cursor:'pointer', color:'var(--text-secondary)', display:'flex', alignItems:'center', justifyContent:'center' }} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><ChevronRight size={18}/></button>
-            <button onClick={()=>setCurrentDate(athensNow())} style={{ height:T.h.sm, padding:'0 14px', borderRadius: T.radius.modal, border:'1px solid var(--border-default)', background:'var(--bg-surface)', cursor:'pointer', color:'var(--text-secondary)', fontSize:13, fontWeight:500, fontFamily: T.font.sans }} onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.color='var(--text-primary)'}} onMouseLeave={e=>{e.currentTarget.style.background='var(--bg-surface)';e.currentTarget.style.color='var(--text-secondary)'}}>Σήμερα</button>
+            <button onClick={()=>setCurrentDate(athensNow())} style={{ height:T.h.lg, padding:'0 14px', borderRadius: T.radius.modal, border:'1px solid var(--border-default)', background:'var(--bg-surface)', cursor:'pointer', color:'var(--text-secondary)', fontSize:13, fontWeight:500, fontFamily: T.font.sans }} onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-hover)';e.currentTarget.style.color='var(--text-primary)'}} onMouseLeave={e=>{e.currentTarget.style.background='var(--bg-surface)';e.currentTarget.style.color='var(--text-secondary)'}}>Σήμερα</button>
           </div>
         )}
 
@@ -2105,11 +2108,11 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
               116 στα 320: κοβόταν στο «Τίτλος γεγον…». Ο φακός δίπλα λέει ήδη
               ότι είναι αναζήτηση· το παράδειγμα λέει ΤΙ γράφεις. */}
           <input className="po-field" aria-label="Αναζήτηση γεγονότος με τον τίτλο του" placeholder="Τίτλος" value={searchQ} onChange={e=>setSearchQ(e.target.value)}
-            style={{ width:'100%', height:T.h.md, background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius: T.radius.modal, padding:'0 16px', color:'var(--text-primary)', fontSize:14, fontFamily: T.font.sans, outline:'none' }}
+            style={{ width:'100%', height:T.h.lg, background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius: T.radius.modal, padding:'0 16px', color:'var(--text-primary)', fontSize:14, fontFamily: T.font.sans, outline:'none' }}
             onFocus={e=>e.currentTarget.style.borderColor='var(--accent)'} onBlur={e=>e.currentTarget.style.borderColor='var(--border-subtle)'}/>
         </div>
 
-        <button onClick={()=>openNew()} title="Νέο γεγονός" style={{ display:'flex', alignItems:'center', gap:6, height:T.h.md, padding:'0 18px', background:'var(--accent)', border:'none', borderRadius: T.radius.modal, cursor:'pointer', color:'var(--accent-text)', fontSize:14, fontFamily: T.font.sans, fontWeight:600, letterSpacing:'0.1px', boxShadow:'var(--shadow-sm)' }}>
+        <button onClick={()=>openNew()} title="Νέο γεγονός" style={{ display:'flex', alignItems:'center', gap:6, height:T.h.lg, padding:'0 18px', background:'var(--accent)', border:'none', borderRadius: T.radius.modal, cursor:'pointer', color:'var(--accent-text)', fontSize:14, fontFamily: T.font.sans, fontWeight:600, letterSpacing:'0.1px', boxShadow:'var(--shadow-sm)' }}>
           <Plus size={15}/>Νέο
         </button>
 

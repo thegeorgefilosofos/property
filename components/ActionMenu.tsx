@@ -144,7 +144,10 @@ export function ActionMenu({
         onClick={() => { place(); setOpen(o => !o); }}
         className="po-hov-accent"
         style={{
-          display: 'inline-flex', alignItems: 'center', gap: 7, minHeight: T.h.sm, padding: '0 13px', borderRadius: T.radius.modal,
+          // ΤΟ ΜΕΝΟΥ ΕΙΝΑΙ ΚΟΥΜΠΙ, ΟΧΙ ΚΟΥΜΠΑΚΙ. Με `T.h.sm` έβγαινε 32 ενώ το
+          // `Btn` δίπλα του είναι 36: μετρημένο στις Επαφές, «Περισσότερα» και
+          // «Σάρωση κάρτας» στην ίδια σειρά με τέσσερα εικονοστοιχεία διαφορά.
+          display: 'inline-flex', alignItems: 'center', gap: 7, minHeight: T.h.md, padding: '0 13px', borderRadius: T.radius.modal,
           border: `1px solid ${open ? 'var(--accent)' : 'var(--border-default)'}`, background: 'var(--bg-surface)',
           color: open ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 13, fontWeight: 500, cursor: 'pointer',
           fontFamily: T.font.sans, transition: 'background-color 0.13s, border-color 0.13s, color 0.13s, box-shadow 0.13s, transform 0.13s, opacity 0.13s', whiteSpace: 'nowrap',

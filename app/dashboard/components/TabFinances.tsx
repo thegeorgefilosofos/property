@@ -125,7 +125,13 @@ export default function TabFinances({
               aria-pressed={on}
               style={{
                 appearance: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
-                height: T.h.md, padding: '0 18px', borderRadius: T.radius.pill,
+                // ══ Η ΟΜΑΔΑ ΤΩΝ ΚΑΡΤΕΛΩΝ ΕΒΓΑΙΝΕ 44 ΔΙΠΛΑ ΣΕ ΚΟΥΜΠΙ 36 ════
+                // Το κουτί της ομάδας δεν έχει δικό του ύψος: το παίρνει από τα
+                // κουμπιά της συν 3 γέμισμα και 1 περίγραμμα πάνω κάτω. Με
+                // κουμπιά 36 έβγαινε 44, δηλαδή οκτώ εικονοστοιχεία ψηλότερη από
+                // τη «Νέα δαπάνη» ακριβώς δίπλα της. Με 32 βγαίνει 40, όσο και
+                // κάθε άλλο χειριστήριο που κάθεται σε σειρά.
+                height: T.h.sm, padding: '0 18px', borderRadius: T.radius.pill,
                 fontFamily: T.font.sans, fontSize: 13, fontWeight: on ? 700 : 500,
                 background: on ? 'var(--bg-surface)' : 'transparent',
                 border: on ? '1px solid var(--border-default)' : '1px solid transparent',
@@ -146,7 +152,7 @@ export default function TabFinances({
             έχει χαρτί μπροστά του δεν θα πατούσε ποτέ κουμπί που λέει «σάρωσε»
             και θα έψαχνε άλλο, που δεν υπάρχει. */}
         {onScan && !contracts && view === 'expenses' && (
-          <Btn variant="primary" onClick={onScan}>Νέα δαπάνη</Btn>
+          <Btn variant="primary" size="lg" onClick={onScan}>Νέα δαπάνη</Btn>
         )}
       </div>
 

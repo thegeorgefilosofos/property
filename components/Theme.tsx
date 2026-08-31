@@ -828,7 +828,7 @@ export function pressable<E extends { key: string; preventDefault: () => void }>
 }
 
 // ═══ Btn, κουμπιά σε 3 ρόλους ═════════════════════════════════════════════
-export function Btn({ children, onClick, variant = 'secondary', disabled, type, href, newTab, field }: {
+export function Btn({ children, onClick, variant = 'secondary', disabled, type, href, newTab, field, size }: {
   children: ReactNode; onClick?: () => void; variant?: 'primary' | 'secondary' | 'ghost'; disabled?: boolean; type?: 'button' | 'submit';
   /**
    * ΟΤΑΝ Η ΕΝΕΡΓΕΙΑ ΕΙΝΑΙ ΠΡΟΟΡΙΣΜΟΣ, ΤΟ ΣΤΟΙΧΕΙΟ ΕΙΝΑΙ ΣΥΝΔΕΣΜΟΣ.
@@ -851,13 +851,31 @@ export function Btn({ children, onClick, variant = 'secondary', disabled, type, 
    * πλάτος του διπλανού πεδίου, οπότε η σειρά διαβάζεται ως τέσσερα ίσα κουτιά.
    */
   field?: boolean;
+  /**
+   * ΤΟ ΥΨΟΣ ΤΟΥ ΚΟΥΜΠΙΟΥ ΟΤΑΝ ΚΑΘΕΤΑΙ ΣΕ ΣΕΙΡΑ ΜΕ ΑΛΛΑ ΧΕΙΡΙΣΤΗΡΙΑ.
+   *
+   * ΤΙ ΜΕΤΡΗΘΗΚΕ. Η κλίμακα του έργου ορίζει 36 για τα κουμπιά και 40 για τα
+   * πεδία φόρμας, οπότε κάθε γραμμή εργαλείων που έχει και τα δύο είναι εξ
+   * ορισμού αστοίχιστη. Σε έξι οθόνες:
+   *
+   *   Δαπάνες        ομάδα καρτελών 44  δίπλα σε κουμπί 36
+   *   Απογραφή       τρεις επιλογείς 40  δίπλα σε κουμπί 36
+   *   Ημερολόγιο     επιλογέας 38  δίπλα σε πεδίο αναζήτησης 36
+   *   Αρχείο         πεδίο 36  δίπλα σε επιλογέα 38
+   *   Ταυτότητα      κουμπί 36  δίπλα σε πεδίο 40
+   *   Εκκρεμότητες   38 · 35 · 35 · 34 στην ίδια γραμμή
+   *
+   * Το `field` το έλυνε ήδη, αλλά επιβάλλει και πλάτος 100% γιατί φτιάχτηκε για
+   * κελί πλέγματος. Σε γραμμή εργαλείων το κουμπί θέλει το ύψος χωρίς το πλάτος.
+   */
+  size?: 'md' | 'lg';
 }) {
   const base: CSSProperties = {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
     // Το padding έδινε ύψος ~38: κάτω από το ελάχιστο μέγεθος αφής, σε 148
     // σημεία. Το `minHeight` από την κοινή κλίμακα το ανεβάζει στα 44 όταν ο
     // δείκτης είναι δάχτυλο, χωρίς να αλλάξει τίποτα στο ποντίκι.
-    minHeight: field ? T.h.lg : T.h.md,
+    minHeight: (field || size === 'lg') ? T.h.lg : T.h.md,
     ...(field ? { display: 'flex', width: '100%' } : null),
     padding: '9px 18px', borderRadius: T.radius.btn,
     fontSize: 12, fontWeight: 700, fontFamily: T.font.sans,

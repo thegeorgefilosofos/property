@@ -751,7 +751,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
         {viewMode === 'list' && items.length > 3 && (
           <button type="button" onClick={() => { if (selectMode) exitSelectMode(); else setSelectMode(true) }}
             title="Επιλογή εργασιών για μαζικές ενέργειες"
-            style={{ padding: '9px 14px', borderRadius: T.radius.pill, border: '1px solid ' + (selectMode ? 'var(--accent)' : 'var(--border-subtle)'), background: selectMode ? 'var(--accent-soft)' : 'var(--bg-surface)', color: selectMode ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: 500, whiteSpace: 'nowrap', fontFamily: T.font.sans, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' }}>
+            style={{ height: T.h.lg, padding: '0 14px', borderRadius: T.radius.pill, border: '1px solid ' + (selectMode ? 'var(--accent)' : 'var(--border-subtle)'), background: selectMode ? 'var(--accent-soft)' : 'var(--bg-surface)', color: selectMode ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: 500, whiteSpace: 'nowrap', fontFamily: T.font.sans, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' }}>
             {selectMode ? 'Τέλος επιλογής' : 'Επιλογή'}
           </button>
         )}
@@ -768,14 +768,14 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
               δύο που απαντούν σε πραγματικές ερωτήσεις: «τι έχω ανά κατηγορία»
               και «τι λήγει πότε». */}
           {(['list', 'timeline'] as ViewMode[]).map(v => (
-            <button key={v} type="button" title={v === 'timeline' ? 'Κατά προθεσμία' : 'Ανά κατηγορία'} onClick={() => { setViewMode(v); if (v !== 'list') exitSelectMode() }} style={{ padding: '6px 12px', borderRadius: T.radius.badge, border: 'none', background: viewMode === v ? 'var(--accent)' : 'transparent', color: viewMode === v ? 'var(--accent-text)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: viewMode === v ? 700 : 400, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s', fontFamily: T.font.sans }}>
+            <button key={v} type="button" title={v === 'timeline' ? 'Κατά προθεσμία' : 'Ανά κατηγορία'} onClick={() => { setViewMode(v); if (v !== 'list') exitSelectMode() }} style={{ height: T.h.sm, padding: '0 12px', borderRadius: T.radius.badge, border: 'none', background: viewMode === v ? 'var(--accent)' : 'transparent', color: viewMode === v ? 'var(--accent-text)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: viewMode === v ? 700 : 400, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s', fontFamily: T.font.sans }}>
               {v === 'list' ? 'Ανά κατηγορία' : 'Κατά προθεσμία'}
             </button>
           ))}
         </div>
         {/* Ο καθαρισμός φίλτρων ήταν κόκκινος, σαν διαγραφή. Δεν σβήνει τίποτα:
             επαναφέρει την όψη. */}
-        {hasFilters && <button type="button" onClick={clearFilters} style={{ padding: '8px 12px', borderRadius: T.radius.btn, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: T.font.sans }}>Καθαρισμός φίλτρων</button>}
+        {hasFilters && <button type="button" onClick={clearFilters} style={{ height: T.h.lg, padding: '0 12px', borderRadius: T.radius.btn, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: T.font.sans }}>Καθαρισμός φίλτρων</button>}
       </div>}
 
       {usedCats.length > 0 && (

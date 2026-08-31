@@ -162,7 +162,7 @@ export default function ReportBranding({ userId, plan, onUpgrade }: { userId: st
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
               {logoUrl && <img src={logoUrl} alt="Λογότυπο επιχείρησης" style={{ height: 40, width: 'auto', maxWidth: 160, objectFit: 'contain', background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: 5 }} />}
               <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={onFile} style={{ display: 'none' }} />
-              <Btn variant="secondary" onClick={() => fileRef.current?.click()}>{logoUrl ? 'Αλλαγή' : 'Μεταφόρτωση'}</Btn>
+              <Btn variant="secondary" size="lg" onClick={() => fileRef.current?.click()}>{logoUrl ? 'Αλλαγή' : 'Μεταφόρτωση'}</Btn>
               {logoUrl && <Btn variant="ghost" onClick={() => setLogoUrl('')}>Αφαίρεση</Btn>}
             </div>
             {/* Ηταν τρεις προτάσεις σε δική της παράγραφο. Οι περιορισμοί του
@@ -175,7 +175,11 @@ export default function ReportBranding({ userId, plan, onUpgrade }: { userId: st
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <input type="color" value={sanitizeAccent(accent)} onChange={e => setAccent(e.target.value)}
                 aria-label="Χρώμα επωνυμίας"
-                style={{ width: 44, height: 44, border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, background: 'transparent', cursor: 'pointer', padding: 3, flexShrink: 0 }} />
+                /* Το δείγμα χρώματος ήταν 44 δίπλα σε πεδίο 40: δύο εικονοστοιχεία
+                   ψηλότερο και ορατά μεγαλύτερο στην ίδια σειρά, ενώ η διπλανή στήλη
+                   («Λογότυπο») είχε το κουμπί της δύο πιο πάνω. Το `T.h.lg` δίνει 40
+                   στο ποντίκι και 44 στο δάχτυλο, από τον καθολικό κανόνα. */
+                style={{ width: T.h.lg, height: T.h.lg, border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, background: 'transparent', cursor: 'pointer', padding: 3, flexShrink: 0, boxSizing: 'border-box' }} />
               <div style={{ width: 132 }}>
                 <TextInput label="" value={accent} onChange={v => setAccent(v)} placeholder="#1a73e8" />
               </div>

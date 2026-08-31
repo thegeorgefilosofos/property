@@ -867,17 +867,22 @@ export default function TabDocuments({
               να αναζητείται: το παράδειγμα δίνει τα δύο συνηθισμένα, δεν
               απαριθμεί τι δέχεται το πεδίο. */}
           <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Όνομα ή πάροχος" aria-label="Αναζήτηση στο αρχείο, με όνομα, πάροχο ή έτος"
-            style={{ width: '100%', height: T.h.md, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, padding: '0 34px 0 34px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans, boxSizing: 'border-box' }}/>
+            style={{ width: '100%', height: T.h.lg, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, padding: '0 34px 0 34px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans, boxSizing: 'border-box' }}/>
           {query && <button onClick={() => setQuery('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 13 }}><IconX/></button>}
         </div>
         )}
 
+        {/* Η ΟΜΑΔΑ ΕΙΝΑΙ ΕΝΑ ΧΕΙΡΙΣΤΗΡΙΟ ΤΩΝ 40, ΟΧΙ ΔΥΟ ΚΟΥΜΠΙΑ ΜΕ ΠΕΡΙΓΡΑΜΜΑ.
+            Το ύψος το έδιναν τα κουμπιά της (36) συν το περίγραμμα, δηλαδή 38
+            δίπλα σε πεδίο αναζήτησης 40. Τώρα το ύψος δηλώνεται στην ομάδα και τα
+            κουμπιά το γεμίζουν: ένας αριθμός αντί για δύο που πρέπει να
+            συμφωνούν. */}
         {showTool('view', items.length) && (
-        <div style={{ display: 'flex', gap: 0, border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', gap: 0, height: T.h.lg, alignItems: 'stretch', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, overflow: 'hidden', boxSizing: 'border-box' }}>
           {([['grid', 'Πλέγμα', <><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></>],
              ['list', 'Λίστα', <><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></>]] as const).map(([k, title, ic]) => (
             <button key={k} onClick={() => setView(k)} title={title}
-              style={{ width: 38, height: T.h.md, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', background: view === k ? 'var(--accent)' : 'transparent', color: view === k ? 'var(--accent-text)' : 'var(--text-secondary)' }}>
+              style={{ width: 38, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', background: view === k ? 'var(--accent)' : 'transparent', color: view === k ? 'var(--accent-text)' : 'var(--text-secondary)' }}>
               <svg aria-hidden="true" {...S} width={15} height={15}>{ic}</svg>
             </button>
           ))}

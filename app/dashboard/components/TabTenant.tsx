@@ -600,7 +600,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
               τρία διπλανά κουμπιά που φιλτράρουν ΛΙΣΤΑ. Το «Τρέχων» είναι σωστό
               στη σήμανση ΕΝΟΣ ενοικιαστή — και εκεί μένει· εδώ μετρά πόσοι. */}
           {([['all','Όλοι'],['current','Τρέχοντες'],['past','Προηγούμενοι']] as [typeof segment,string][]).map(([v,l])=>(
-            <button key={v} onClick={()=>setSegment(v)} style={{ padding:'7px 14px', borderRadius: T.radius.modal, border:`1px solid ${segment===v?'var(--accent)':'var(--border-subtle)'}`, background:segment===v?'var(--accent-soft)':'transparent', color:segment===v?'var(--accent)':'var(--text-secondary)', cursor:'pointer', fontSize:12, fontFamily:T.font.sans, fontWeight:500, whiteSpace:'nowrap' as const }}>{l}</button>
+            <button key={v} onClick={()=>setSegment(v)} style={{ height:T.h.lg, padding:'0 14px', borderRadius: T.radius.modal, border:`1px solid ${segment===v?'var(--accent)':'var(--border-subtle)'}`, background:segment===v?'var(--accent-soft)':'transparent', color:segment===v?'var(--accent)':'var(--text-secondary)', cursor:'pointer', fontSize:12, fontFamily:T.font.sans, fontWeight:500, whiteSpace:'nowrap' as const }}>{l}</button>
           ))}
         </div>
       </div>

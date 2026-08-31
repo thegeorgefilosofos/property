@@ -100,7 +100,8 @@
     "e2e:vertical": "node scripts/perf-bench/build-mobile.mjs && node scripts/e2e-vertical.mjs",
     "e2e:simple": "node scripts/e2e-simple.mjs",
     "e2e:signup": "node scripts/e2e-signup/build.mjs && node scripts/e2e-signup.mjs",
-    "xlsx": "node scripts/xlsx/readers.mjs"
+    "xlsx": "node scripts/xlsx/readers.mjs",
+    "e2e:align": "node scripts/perf-bench/build-mobile.mjs && node scripts/e2e-control-align.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

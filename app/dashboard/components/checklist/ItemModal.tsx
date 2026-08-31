@@ -117,7 +117,7 @@ export function ItemModal({ item, contacts, onSave, onClose, onScan }: {
         <SubTaskEditor subtasks={form.subtasks} onChange={sub => setForm(f => ({ ...f, subtasks: sub }))} />
       </div>
       <div><FL>Σημείωση</FL>
-        <textarea value={form.note} aria-label="Σημείωση" onChange={e => setForm(f => ({ ...f, note: e.target.value }))} placeholder="Επιπλέον πληροφορίες…" rows={3} style={{ ...iStyle, resize: 'vertical', lineHeight: 1.5 }} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-default)')} />
+        <textarea value={form.note} aria-label="Σημείωση" onChange={e => setForm(f => ({ ...f, note: e.target.value }))} placeholder="Επιπλέον πληροφορίες…" rows={3} style={{ ...iStyle, height: 'auto', padding: '10px 14px', resize: 'vertical', lineHeight: 1.5 }} onFocus={e => (e.target.style.borderColor = 'var(--accent)')} onBlur={e => (e.target.style.borderColor = 'var(--border-default)')} />
       </div>
       <div><FL>Ιστορικό ({form.comments.length})</FL>
         <CommentsEditor comments={form.comments} onChange={c => setForm(f => ({ ...f, comments: c }))} />
