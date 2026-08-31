@@ -215,6 +215,49 @@ export function normProgram(p: RawProgram): ComparisonProgram {
 }
 export const PROGRAMS_NORM: ComparisonProgram[] = STATE_PROGRAMS.map(normProgram)
 
+// ══ ΤΑ ΖΩΝΤΑΝΑ ΔΕΔΟΜΕΝΑ ΣΥΜΠΛΗΡΩΝΟΥΝ ΤΟΝ ΚΑΤΑΛΟΓΟ, ΔΕΝ ΤΟΝ ΣΒΗΝΟΥΝ ═════════
+//
+// ΤΟ ΣΦΑΛΜΑ, ΠΙΑΣΜΕΝΟ ΤΗΝ ΤΕΛΕΥΤΑΙΑ ΜΕΡΑ ΤΟΥ «ΣΠΙΤΙ ΜΟΥ ΙΙ». Η οθόνη έγραφε
+// «Λήγει σύντομα · Οι αιτήσεις κλείνουν, σε λιγότερο από μία μέρα» στις 31/08
+// — για πρόγραμμα του οποίου οι αιτήσεις είχαν κλείσει στις 31/05. Η 31/08 ΔΕΝ
+// είναι προθεσμία αίτησης: είναι η προθεσμία ΥΠΟΓΡΑΦΗΣ για όσους έχουν ήδη
+// έγκριση. Ο χρήστης διάβαζε ότι προλαβαίνει να κάνει αίτηση· δεν προλάβαινε
+// τρεις μήνες.
+//
+// ΓΙΑΤΙ. Η καρτέλα γράφει `livePrograms.length ? livePrograms.map(norm) : στατικά`
+// δηλαδή ΟΛΟ ή ΤΙΠΟΤΑ. Η γραμμή της βάσης δεν είχε `application_deadline` (το
+// πεδίο προστέθηκε στον στατικό κατάλογο αργότερα), οπότε το ζωντανό αντίγραφο
+// έσβηνε μια ημερομηνία που ο κώδικας γνώριζε — και η μηχανή, χωρίς προθεσμία
+// αίτησης, πήρε την προθεσμία υπογραφής στη θέση της.
+//
+// Η ΔΙΟΡΘΩΣΗ ΕΙΝΑΙ ΕΝΩΣΗ, ΟΧΙ ΑΝΤΙΚΑΤΑΣΤΑΣΗ. Ο,τι έχει τιμή στη βάση νικά·
+// ό,τι λείπει έρχεται από τον κατάλογο. Το ίδιο ισχύει για κάθε πεδίο, όχι
+// μόνο για την προθεσμία: μια γραμμή βάσης με κενό `criteria` δεν σβήνει τα
+// κριτήρια που ξέρουμε.
+const emptyValue = (v: unknown): boolean =>
+  v == null || v === '' || (Array.isArray(v) && v.length === 0);
+
+/** Ενώνει μια κανονικοποιημένη εγγραφή με την εφεδρική της, ανά πεδίο. */
+function mergeKnown<T extends object>(live: T, fallback: T | undefined): T {
+  if (!fallback) return live;
+  const out = { ...live };
+  for (const k of Object.keys(fallback) as (keyof T)[]) {
+    if (emptyValue(out[k]) && !emptyValue(fallback[k])) out[k] = fallback[k];
+  }
+  return out;
+}
+
+const PROGRAM_FALLBACK = new Map(PROGRAMS_NORM.map(p => [p.id, p]));
+const BANK_FALLBACK = new Map(BANKS_NORM.map(b => [b.id, b]));
+
+/** Ζωντανά προγράμματα, με ό,τι λείπει συμπληρωμένο από τον κατάλογο. */
+export const mergePrograms = (live: RawProgram[]): ComparisonProgram[] =>
+  live.map(normProgram).map(p => mergeKnown(p, PROGRAM_FALLBACK.get(p.id)));
+
+/** Ζωντανές τράπεζες, με ό,τι λείπει συμπληρωμένο από τον κατάλογο. */
+export const mergeBanks = (live: RawBank[]): ComparisonBank[] =>
+  live.map(normBank).map(b => mergeKnown(b, BANK_FALLBACK.get(b.id)));
+
 // ΑΦΑΙΡΕΘΗΚΑΝ το `rental_tax` και το `rental_expense_deduction`.
 // Ήταν ΤΡΙΤΟ αντίγραφο της φορολογικής κλίμακας ενοικίων και ΤΕΤΑΡΤΟ της τεκμαρτής
 // έκπτωσης 5% και χρησιμοποιούνταν για ΕΜΦΑΝΙΣΗ στην ίδια κάρτα όπου ο

@@ -2657,12 +2657,17 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
    τρεις ίσες στήλες (3+2, χωρίς ορφανό) και στο τηλέφωνο μία. */
 .approval-row {
   display: grid; gap: 10px; align-items: end;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  /* ΤΑ ΙΧΝΗ ΒΓΑΙΝΟΥΝ ΑΠΟ ΤΙΣ ΕΤΙΚΕΤΕΣ, ΟΧΙ ΑΠΟ ΤΟ ΠΛΗΘΟΣ. Με επτά ίσα ίχνη τα
+     τρία νούμερα έπαιρναν 162 το καθένα, ενώ το «Καθαρό μηνιαίο εισόδημα» θέλει
+     171 και το «Υφιστάμενες μηνιαίες δόσεις» 189: δύο ετικέτες τσάκιζαν σε
+     δεύτερη γραμμή και τα κουτιά τους ξεκινούσαν πιο χαμηλά από τα διπλανά.
+     Μετρημένο στα 1.280, σε σειρά 1.194 εικονοστοιχείων. Οι αναλογίες δίνουν
+     98 · 185 · 202 · 335 · 335, δηλαδή κάθε ετικέτα σε μία γραμμή και κάθε
+     μενού με χώρο για το «Μισθωτός αορίστου χρόνου». */
+  grid-template-columns: 0.85fr 1.6fr 1.75fr 2.9fr 2.9fr;
 }
-.approval-row > :nth-child(4), .approval-row > :nth-child(5) { grid-column: span 2; }
-@media (max-width: 1000px) {
+@media (max-width: 1100px) {
   .approval-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .approval-row > :nth-child(4), .approval-row > :nth-child(5) { grid-column: auto; }
 }
 @media (max-width: 600px) { .approval-row { grid-template-columns: minmax(0, 1fr); } }
 

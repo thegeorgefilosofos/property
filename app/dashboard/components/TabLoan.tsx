@@ -21,7 +21,7 @@ import { Gift } from 'lucide-react'
 import { downloadXlsx } from './sheets';
 import TabLoanCalculator, { type LoanCalcState } from './TabLoanCalculator'
 import { useMarketRates, useBankRates, useLoanPrograms, useIsAdmin } from '../../hooks/useMarketData'
-import { BANKS_NORM, PROGRAMS_NORM, normBank, normProgram, BANKS_VERIFIED, RATES_DISCLAIMER, type ComparisonBank, type ComparisonProgram, LOAN_TYPES, rateRange, GLOSSARY, EURIBOR_HISTORY, SERVICERS_GUIDE, calcMonthly, fmtEur, fmtPct, LoanType, RateType, SavedLoan, MARKET_FALLBACK } from './TabLoanData'
+import { BANKS_NORM, PROGRAMS_NORM, mergeBanks, mergePrograms, normProgram, BANKS_VERIFIED, RATES_DISCLAIMER, type ComparisonBank, type ComparisonProgram, LOAN_TYPES, rateRange, GLOSSARY, EURIBOR_HISTORY, SERVICERS_GUIDE, calcMonthly, fmtEur, fmtPct, LoanType, RateType, SavedLoan, MARKET_FALLBACK } from './TabLoanData'
 import { rankLoans, spitiMouEligibility, type UserLoanNeeds } from '@/lib/loans/recommend'
 import { euriborInsight } from '@/lib/loans/affordability'
 import LoanDocScan, { type AppliedLoan } from './LoanDocScan'
@@ -368,8 +368,11 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
   // Ζωντανά ή εφεδρικά, περνούν από την ΙΔΙΑ κανονικοποίηση. Πριν, τα ζωντανά
   // πήγαιναν κατευθείαν στην οθόνη με άλλα ονόματα πεδίων από τα εφεδρικά και
   // η απόδοση τα γεφύρωνε με `||` και `as any` σε δώδεκα σημεία.
-  const BANKS: ComparisonBank[]       = liveBanks.length    ? liveBanks.map(normBank)       : BANKS_NORM
-  const PROGRAMS: ComparisonProgram[] = livePrograms.length ? livePrograms.map(normProgram) : PROGRAMS_NORM
+  // Και ό,τι λείπει από τη ζωντανή γραμμή έρχεται από τον κατάλογο: «όλο ή
+  // τίποτα» έσβηνε την προθεσμία αίτησης του «Σπίτι μου ΙΙ» και η οθόνη πήρε
+  // την προθεσμία υπογραφής στη θέση της. Ο λόγος γράφεται στο TabLoanData.
+  const BANKS: ComparisonBank[]       = liveBanks.length    ? mergeBanks(liveBanks)       : BANKS_NORM
+  const PROGRAMS: ComparisonProgram[] = livePrograms.length ? mergePrograms(livePrograms) : PROGRAMS_NORM
 
   const [calcState,setCalcState] = useState<CalcState>({
     loanType:'purchase',borrowerType:'individual',loanAmount:initAmount,

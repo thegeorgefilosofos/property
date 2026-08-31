@@ -138,8 +138,17 @@ export function programStatus(p: ProgramDates, today: Date): ProgramStatus {
       badge: closing ? 'Λήγει σύντομα' : 'Ενεργό',
       acceptsApplications: true,
       daysLeft: daysToApply,
+      // ΤΟ ΙΔΙΟ `??` ΠΟΥ ΔΙΟΡΘΩΘΗΚΕ ΠΙΟ ΚΑΤΩ, ΑΔΙΟΡΘΩΤΟ ΕΔΩ. Ο κανονικοποιητής
+      // γράφει `''` όταν λείπει η προθεσμία αίτησης και το `??` δεν πέφτει στην
+      // επόμενη τιμή για κενή συμβολοσειρά: η πρόταση έβγαινε «Οι αιτήσεις
+      // κλείνουν , σε λιγότερο από μία μέρα», με κόμμα να κρέμεται στο κενό.
+      // Μετρημένο στο «Σπίτι μου ΙΙ» στις 31/08/2026.
       note: closing
-        ? `Οι αιτήσεις κλείνουν ${programDateLabel(p.applicationDeadline ?? p.deadline)}, σε ${daysToApply === 0 ? 'λιγότερο από μία μέρα' : daysToApply === 1 ? 'μία μέρα' : `${daysToApply} μέρες`}.`
+        ? (() => {
+            const on = programDateLabel(p.applicationDeadline || p.deadline);
+            const inDays = daysToApply === 0 ? 'λιγότερο από μία μέρα' : daysToApply === 1 ? 'μία μέρα' : `${daysToApply} μέρες`;
+            return on ? `Οι αιτήσεις κλείνουν ${on}, σε ${inDays}.` : `Οι αιτήσεις κλείνουν σε ${inDays}.`;
+          })()
         : '',
     };
   }

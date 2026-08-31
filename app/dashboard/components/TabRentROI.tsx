@@ -1660,9 +1660,19 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                       μηχανής: καθόριζε δόση, ταμειακή ροή, DSCR και IRR χωρίς να
                       φαίνεται πουθενά. Τώρα είναι πεδίο, με την προεπιλογή ρητή. */}
                   <NumberInput label="Διάρκεια δανείου" value={loanYears} onChange={setLoanYears} suffix="έτη" step={5} max={40} />
-                  <NumberInput label="Άτοκο μέρος (Σπίτι μου ΙΙ)" value={ifree} onChange={setIfree} suffix="%" max={100} />
+                  {/* Η παρένθεση «(Σπίτι μου ΙΙ)» έκανε την ετικέτα 27 χαρακτήρες και σε
+                      μισή κάρτα τσάκιζε σε δεύτερη γραμμή, ενώ η «Διάρκεια δανείου»
+                      δίπλα της έμενε σε μία. Δεν είναι μέρος του ονόματος: είναι ο
+                      λόγος που υπάρχει το πεδίο, δηλαδή επεξήγηση. */}
+                  <NumberInput label="Άτοκο μέρος" labelInfo="Το «Σπίτι μου ΙΙ» δίνει άτοκο το μισό δάνειο. Γράψε εδώ το ποσοστό του δανείου που δεν τοκίζεται." value={ifree} onChange={setIfree} suffix="%" max={100} />
                 </div>
-                <div {...fixedCols(3, 16, 'start')} style={{ ...fixedCols(3, 16, 'start').style, marginTop: 14 }}>
+                {/* ΣΤΑ 768 Η ΚΑΡΤΑ ΕΙΝΑΙ ΜΙΣΗ ΚΑΙ ΟΙ ΤΡΕΙΣ ΣΤΗΛΕΣ ΔΙΝΟΥΝ 100. Η
+                    ετικέτα «Απόδοση ιδίων» θέλει 105 στα 11 με την αραίωσή της,
+                    οπότε τσάκιζε σε δεύτερη γραμμή ενώ οι διπλανές της έμεναν σε
+                    μία: η τιμή από κάτω της έπεφτε δεκαοκτώ εικονοστοιχεία πιο
+                    χαμηλά. Κάτω από τα 820 τα τρία μεγέθη πάνε το ένα κάτω από
+                    το άλλο, όπου η ετικέτα έχει όλο το πλάτος της κάρτας. */}
+                <div {...fixedCols(3, 16, 'start', '', 1)} style={{ ...fixedCols(3, 16, 'start', '', 1).style, marginTop: 14 }}>
                   <Figure label="Ίδια κεφάλαια" value={fe(lev.equity)} />
                   <Figure label="Απόδοση ιδίων" value={fp(lev.cashOnCash)} tone={lev.cashOnCash >= 0 ? 'accent' : 'negative'} />
                   <Figure label="Ετήσια ροή" value={fe(lev.cashFlow)} tone={lev.cashFlow >= 0 ? undefined : 'negative'} />
