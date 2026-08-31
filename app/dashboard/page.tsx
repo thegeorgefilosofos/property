@@ -15,6 +15,8 @@ import * as rentStore from '@/lib/data/rent';
 import * as checklist from '@/lib/data/checklist';
 import * as tenantStore from '@/lib/data/tenants';
 import * as expenseStore from '@/lib/data/expenses'
+import * as settings from '@/lib/data/settings'
+import { parseExclusions, countsIn } from '@/lib/expenses/exclusions'
 // Η απογραφή έχει ένα σπίτι: lib/data/inventory.
 import * as inventory from '@/lib/data/inventory';
 // Το προφίλ χρέωσης έχει ένα σπίτι: lib/data/billing.
@@ -513,9 +515,18 @@ export function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }
   const [receivingRent, setReceivingRent] = useState(false);
 
   const propIds = useMemo(() => properties.map(p => p.id), [properties]);
+  // ═══ Ο ΔΙΑΚΟΠΤΗΣ «ΜΕΤΡΑ ΣΤΑ ΣΤΑΤΙΣΤΙΚΑ» ΦΤΑΝΕΙ ΚΑΙ ΕΔΩ ══════════════════════
+  // Ο διακόπτης ζει στις Δαπάνες και η λεζάντα του υπόσχεται ρητά: «Οσα δεν
+  // μετρούν μένουν στη λίστα, έξω από τα σύνολα». Το «Ετήσιες δαπάνες» της
+  // Επισκόπησης — η ΠΡΩΤΗ οθόνη κάθε συνεδρίας — τα μετρούσε κανονικά, μαζί με
+  // την ανάλυση κατηγοριών και την αναφορά PDF που βγαίνουν από το ίδιο σύνολο.
+  // Δηλαδή ο χρήστης έβγαζε μια δαπάνη από τα στατιστικά, γύριζε στην αρχή και
+  // την έβρισκε μέσα. Ο κανόνας διαβάζεται από την ΙΔΙΑ ρύθμιση που τον γράφει.
+  const [exclRaw, setExclRaw] = useState<unknown>(undefined);
+  const excl = useMemo(() => parseExclusions(exclRaw), [exclRaw]);
 
   const load = useCallback(async () => {
-    const [exp,bil,{ data:tsk },ten,ci,iv,ln,hs,allExp,allTen,{ data:allRc },rp,{ data:mnt },{ data:decl }] = await Promise.all([
+    const [exp,bil,{ data:tsk },ten,ci,iv,ln,hs,allExp,allTen,{ data:allRc },rp,{ data:mnt },{ data:decl },budgetsRow] = await Promise.all([
       expenseStore.ledger(supabase,prop.id,{ userId, from:`${year}-01-01`, columns:'*' }),
       billStore.ofProperty<Bill>(supabase,prop.id,'*',userId),
       // Δεν είναι πια πέντε για μια χωριστή κάρτα: τροφοδοτούν την ΕΝΙΑΙΑ
@@ -547,10 +558,14 @@ export function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }
       supabase.from('activity_log').select('created_at')
         .eq('user_id',userId).eq('action','lease_declaration_submitted').eq('entity_id',prop.id)
         .order('created_at',{ascending:false}).limit(1),
+      // Ο χάρτης των εξαιρέσεων ζει στη ρύθμιση «budgets» του ακινήτου, εκεί
+      // όπου τον γράφουν οι Δαπάνες και ο Προϋπολογισμός. Μία ανάγνωση.
+      settings.section<Record<string,unknown>>(supabase,prop.id,'budgets',userId),
     ]);
     setExpenses((exp||[]) as Expense[]); setBills(bil); setTasks(tsk||[]); setTenant(ten?.[0]||null);
     setRentPeriods(rp); setMaint((mnt||[]) as OblMaint[]); setTenantFull(ten?.[0]||null);
     setLeaseDeclaredAt((decl?.[0]?.created_at as string|undefined) ?? null);
+    setExclRaw((budgetsRow as { __excluded?: unknown } | null)?.__excluded);
     setChk(ci); setInv(iv); setLoans(ln); setHostStays(hs); setAllExpenses((allExp||[]) as { amount:number; date:string; category:string; is_recurring?:boolean; recurring_frequency?:string|null }[]);
     // ΑΚΡΙΒΩΣ οι στήλες του select('property_id,actual_rent,target_rent') — όχι
     // ολόκληρη η γραμμή του rent_config. Με `any` το `r.property_id` δεν
@@ -631,7 +646,8 @@ export function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }
   // λογαριασμός χωρίς προθεσμία παίρνει την ημερομηνία δημιουργίας, κάτι που
   // ένα `gte('due_date')` στον διακομιστή θα το πετούσε σιωπηλά έξω.
   const entriesOfYear = useMemo(
-    () => ledger.entries.filter(e => e.date.startsWith(`${year}-`)), [ledger.entries, year]);
+    () => ledger.entries.filter(e => e.date.startsWith(`${year}-`) && countsIn(excl, e)),
+    [ledger.entries, year, excl]);
   const totalExpYTD = ledgerTotal(entriesOfYear);
   // Οι λογαριασμοί που ΔΕΝ έχουν ακόμη δαπάνη από πίσω τους (απλήρωτοι): είναι
   // πραγματικό κόστος του έτους και λείπουν από τον πίνακα `expenses`.
@@ -2263,7 +2279,7 @@ export default function Dashboard() {
                   component που δεν υπάρχει πια και η React το αγνοεί. Το ίδιο
                   ισχύει για κάθε καρτέλα που φορτώνει δικά της δεδομένα. */}
               {navSafe==='overview'  && <OverviewTab key={selected.id} prop={selected} properties={properties} userId={user.id} onNavigate={(t)=> t==='scan' ? setQuickAddOpen(true) : t==='edit' ? setEditProperty(selected) : setNav(t)} tabVisible={navVisible}/>}
-              {nav==='finances'  && <TabFinances propertyId={selected.id} userId={user.id} propertyName={selected.name} profileType={effProfileType} legalForm={taxForm} onScan={()=>setQuickAddOpen(true)}openAddNonce={manualExpense} />}
+              {nav==='finances'  && <TabFinances key={selected.id} propertyId={selected.id} userId={user.id} propertyName={selected.name} profileType={effProfileType} legalForm={taxForm} onScan={()=>setQuickAddOpen(true)}openAddNonce={manualExpense} />}
               {nav==='calendar'  && <TabCalendar key={selected.id} propertyId={selected.id} userId={user.id} openTasks={checklistAlerts} onOpenTasks={()=>setNav('checklist')}/>}
               {/* ═══ Η ΒΡΑΧΥΧΡΟΝΙΑ ΣΤΕΚΕΤΑΙ ΜΟΝΗ ΤΗΣ ═══════════════════════════
                   Ζούσε μέσα στην καρτέλα «Πελάτης», που απαιτεί πακέτο
@@ -2273,7 +2289,7 @@ export default function Dashboard() {
                   επαγγελματικό εργαλείο· η βραχυχρόνια μίσθωση δεν είναι. */}
               {navSafe==='pricing'   && (<>
                 <AmaStrip userId={user.id} propertyId={selected.id}/>
-                <TabPricing propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined}/>
+                <TabPricing key={selected.id} propertyId={selected.id} userId={user.id} propertyName={selected.name} propertyRent={(selected.target_rent??undefined)} propertySqm={selected.sqm??undefined}/>
               </>)}
               {/* Η ΚΕΦΑΛΙΔΑ ΤΗΣ ΑΞΙΟΠΟΙΗΣΗΣ ΕΦΥΓΕ ΑΠΟ ΕΔΩ. Γραφόταν δύο φορές:
                   εδώ ως «ΑΞΙΟΠΟΙΗΣΗ ΑΚΙΝΗΤΟΥ / Κενό· πώς θα μισθωθεί…» και
@@ -2282,7 +2298,7 @@ export default function Dashboard() {
                   εικονοστοιχεία και ο υπότιτλος του PLAN_SUB έλεγε ό,τι λέει
                   ήδη ο τίτλος της καρτέλας με καλύτερα λόγια. Η επικεφαλίδα ζει
                   μέσα στο component, όπως σε κάθε άλλη καρτέλα. */}
-              {navSafe==='plan'      && <TabPlan propertyId={selected.id} userId={user.id} status={readStatus(selected)} property={selected}/>}
+              {navSafe==='plan'      && <TabPlan key={selected.id} propertyId={selected.id} userId={user.id} status={readStatus(selected)} property={selected}/>}
               {navSafe==='tenant'    && <TabTenant key={selected.id} propertyId={selected.id} userId={user.id} plan={effPlan} onStartHandover={(tenantName,tenantPhone,type)=>{ setHandoverIntent({tenantName,tenantPhone,type}); setNav('inventory'); }}/>}
               {/* ═══ ΑΠΟΔΟΣΗ — ΜΙΑ ΚΑΡΤΕΛΑ ΓΙΑ ΜΙΑ ΕΡΩΤΗΣΗ ═══════════════════════
                   Τρεις καρτέλες απαντούσαν στο ίδιο πράγμα από τρεις μεριές:
@@ -2361,7 +2377,7 @@ export default function Dashboard() {
                       component τύπωνε τίτλο σελίδας με υπότιτλο που έλεγε την
                       ίδια πρόταση με άλλες λέξεις. */}
                   <div style={{marginTop:T.sp.section}}>
-                    <TabContacts propertyId={selected.id} userId={user.id} embedded profileType={effProfileType} properties={properties}/>
+                    <TabContacts key={selected.id} propertyId={selected.id} userId={user.id} embedded profileType={effProfileType} properties={properties}/>
                   </div>
                   {/* ΤΑ ΠΡΑΓΜΑΤΑ ΤΟΥ ΑΚΙΝΗΤΟΥ, ΜΑΖΙ ΜΕ ΤΑ ΧΑΡΤΙΑ ΚΑΙ ΤΟΥΣ
                       ΑΝΘΡΩΠΟΥΣ ΤΟΥ. Ο εξοπλισμός ήταν «εργαλείο» στην πλαϊνή
@@ -2390,7 +2406,7 @@ export default function Dashboard() {
                 </>
               )}
               {nav==='referral'  && <TabReferral userId={user.id} plan={plan} profileType={effProfileType}/>}
-              {nav==='settings'  && <TabSettings propertyId={selected.id} userId={user.id} profileType={effProfileType} onProfileChange={setProfileType}/>}
+              {nav==='settings'  && <TabSettings key={selected.id} propertyId={selected.id} userId={user.id} profileType={effProfileType} onProfileChange={setProfileType}/>}
             </div>
             </TabBoundary>
           </>

@@ -76,7 +76,10 @@ ok('stayTotal empty = 0', stayTotal({}) === 0);
   ok('stats lastVisit', st.lastVisit === '2026-03-04');
   ok('stats hasDamage', st.hasDamage === true);
   ok('stats damageTotal', st.damageTotal === 120);
-  ok('stats adr', st.adr === Math.round(950 / 8));
+  // ΛΕΠΤΑ, ΟΧΙ ΑΚΕΡΑΙΑ: 950 σε 8 νύχτες είναι 118,75 και έτσι το τυπώνει η οθόνη.
+  // Ο έλεγχος έγραφε `Math.round(950/8)` = 119, δηλαδή επαναλάμβανε τον κώδικα
+  // αντί να δηλώνει το σωστό αποτέλεσμα: πέρασε πράσινος πάνω από το σφάλμα.
+  ok('stats adr', st.adr === 118.75);
   const empty = clientStats([]);
   ok('stats empty revenue', empty.revenue === 0 && empty.avgRating === null && empty.lastVisit === null && empty.adr === 0);
 }

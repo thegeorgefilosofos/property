@@ -44,14 +44,18 @@ ok(`διαβάστηκαν οι καρτέλες (${NAV_IDS.length})`, NAV_IDS.l
 // αποδίδονται. Μια συγχώνευση που ξεχνά το δεύτερο είναι διαγραφή.
 const MERGED: [string, RegExp][] = [
   ['comparison', /<TabComparison properties=\{properties\} userId=\{user\.id\}\/>/],
-  ['contacts',   /<TabContacts propertyId=\{selected\.id\}/],
+  // ΤΟ ΠΡΟΤΥΠΟ ΔΕΧΕΤΑΙ ΟΤΙ ΠΡΟΗΓΕΙΤΑΙ ΤΟΥ `propertyId`. Ηταν καρφωμένο στη
+  // ΣΕΙΡΑ των ιδιοτήτων, οπότε η προσθήκη του `key={selected.id}` — που είναι
+  // ΔΙΟΡΘΩΣΗ, όχι μετακίνηση — έριχνε τον έλεγχο. Αυτό που φυλάει είναι ότι η
+  // καρτέλα αποδίδεται με το επιλεγμένο ακίνητο, όχι με ποια σειρά γράφτηκε.
+  ['contacts',   /<TabContacts [^>]*propertyId=\{selected\.id\}/],
 ];
 for (const [id, render] of MERGED) {
   ok(`η «${id}» δεν είναι πια ξεχωριστή καρτέλα`, !NAV_IDS.includes(id));
   ok(`αλλά το περιεχόμενό της αποδίδεται`, render.test(src));
 }
 ok('η Βραχυχρόνια αποδίδεται ως δική της καρτέλα',
-   /navSafe==='pricing'/.test(src) && /<TabPricing propertyId=\{selected\.id\}/.test(src));
+   /navSafe==='pricing'/.test(src) && /<TabPricing [^>]*propertyId=\{selected\.id\}/.test(src));
 ok('και ΔΕΝ αποδίδεται δεύτερη φορά μέσα στον Πελάτη',
    (src.match(/<TabPricing /g) || []).length === 1);
 ok('η γραμμή του ΑΜΑ δεν αποδίδεται δύο φορές στην ίδια οθόνη',
@@ -63,7 +67,7 @@ ok('η γραμμή του ΑΜΑ δεν αποδίδεται δύο φορές 
 // αλληλοαποκλειόμενες και το Σχέδιο δεν εμφανίστηκε ποτέ σε κανέναν. Ο έλεγχος
 // φυλάει ότι δεν θα ξαναχωθεί κάτω από καρτέλα με ασύμβατη συνθήκη.
 ok('η Αξιοποίηση αποδίδεται ως δική της καρτέλα',
-   /navSafe==='plan'/.test(src) && /<TabPlan propertyId=\{selected\.id\}/.test(src));
+   /navSafe==='plan'/.test(src) && /<TabPlan [^>]*propertyId=\{selected\.id\}/.test(src));
 ok('και ΟΧΙ μέσα στην Απόδοση, που δεν φαίνεται ποτέ μαζί της',
    (src.match(/<TabPlan /g) || []).length === 1 && !/PLAN_STATUSES\.has/.test(src));
 
