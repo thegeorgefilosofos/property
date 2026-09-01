@@ -178,7 +178,14 @@ function AnalysisCards({items,repairs,kwhPrice,kwhControl}:{items:InventoryItem[
         {byCategory.sort((a,b)=>b.val-a.val).map(({cat,count,val})=>(
           <div key={cat}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:10,marginBottom:5}}>
-              <span style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cat} <span style={{color:'var(--text-tertiary)',fontSize: 11}}>({count})</span></span>
+              {/* ΤΟ ΠΛΗΘΟΣ ΔΕΝ ΚΟΒΕΤΑΙ ΜΑΖΙ ΜΕ ΤΟ ΟΝΟΜΑ. Ηταν φωλιασμένο μέσα στο
+                  ίδιο κουτί με τα αποσιωπητικά, οπότε σε στενή οθόνη με μεγαλωμένο
+                  κείμενο χανόταν το «(4)». Τώρα κόβεται μόνο η κατηγορία· ο αριθμός
+                  των αντικειμένων μένει πάντα ορατός. */}
+              <span style={{display:'flex',alignItems:'baseline',gap:5,minWidth:0,fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>
+                <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cat}</span>
+                <span style={{color:'var(--text-tertiary)',fontSize: 11,flexShrink:0}}>({count})</span>
+              </span>
               <span style={{fontSize:12,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:600,flexShrink:0}}>{fe(val)}</span>
             </div>
             <Bar pct={(val/maxVal)*100} height={4} label={`Μερίδιο αξίας, ${cat}`}/>

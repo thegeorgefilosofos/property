@@ -688,7 +688,7 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
                    ένα πριν φτάσει στην πρώτη πραγματική ημέρα, ακούγοντας
                    «κουμπί» χωρίς τίποτε άλλο. Το `onDayClick` είχε ήδη φρένο
                    (`day&&`), δηλαδή το πάτημα δεν έκανε ποτέ τίποτα. */
-                <div key={idx} {...(day!=null ? pressable(()=>onDayClick(dateStr), `${day} ${monthGen(month)}`) : {})} title={hol||undefined} data-drop-date={day?dateStr:undefined} style={{ minHeight:80, padding:'6px', borderRight:(idx+1)%7===0?'none':'1px solid var(--border-subtle)', borderBottom:idx<cells.length-7?'1px solid var(--border-subtle)':'none', background:cellBg, boxShadow:isSelected&&!isToday?'inset 0 0 0 2px var(--accent)':'none', cursor:day?'pointer':'default', transition:'background 0.1s' }}
+                <div key={idx} className="cal-cell" {...(day!=null ? pressable(()=>onDayClick(dateStr), `${day} ${monthGen(month)}`) : {})} title={hol||undefined} data-drop-date={day?dateStr:undefined} style={{ minHeight:80, padding:'6px', borderRight:(idx+1)%7===0?'none':'1px solid var(--border-subtle)', borderBottom:idx<cells.length-7?'1px solid var(--border-subtle)':'none', background:cellBg, boxShadow:isSelected&&!isToday?'inset 0 0 0 2px var(--accent)':'none', cursor:day?'pointer':'default', transition:'background 0.1s' }}
                   onMouseEnter={e=>{if(day)(e.currentTarget as HTMLElement).style.background='var(--bg-hover)'}}
                   onMouseLeave={e=>{if(day)(e.currentTarget as HTMLElement).style.background=cellBg}}
                 >
@@ -749,7 +749,7 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
                           πάτημα δείχνοντας το πλήρες ποσό, οπότε το δίχτυ
                           υπάρχει. Ενα μέγεθος, το ελάχιστο επιτρεπτό. */}
                       {dayAmt>0&&(
-                        <div style={{ marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                        <div className="cal-day-amt" style={{ marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                           <span style={{ fontSize:11, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', color:'var(--accent)', opacity:0.8 }}>
                             {fn(dayAmt)}<span style={{ marginLeft:1.5, opacity:0.7 }}>€</span>
                           </span>

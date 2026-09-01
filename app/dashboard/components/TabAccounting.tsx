@@ -163,8 +163,17 @@ function Fold({ open, onToggle, title, sub, right, children }: {
   return (
     <div style={card}>
       <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
+        {/* ══ ΤΟ `minWidth: 0` ΕΠΙΤΡΕΠΕΙ ΑΠΕΡΙΟΡΙΣΤΗ ΣΥΝΘΛΙΨΗ ══════════════════
+            ΜΕΤΡΗΜΕΝΟ ΣΤΑ 320 ΜΕ ΚΕΙΜΕΝΟ ×1,3: ο τίτλος «Συμφωνία ενοικίων»
+            έμενε σε κουμπί ΕΙΚΟΣΙ εικονοστοιχείων. Η σειρά έχει `flexWrap`,
+            άρα υπήρχε ο χώρος να κατέβει το δεξί μέρος από κάτω — αλλά με
+            `flex:1` και `minWidth:0` το flexbox προτιμά να συνθλίψει το
+            εύκαμπτο στοιχείο παρά να τυλίξει. Το κουμπί γινόταν στόχος αφής
+            20px αντί για 44 και ο τίτλος ξεχείλιζε έξω από το κουτί του.
+            Με βάση 190 (ποτέ πάνω από το πλάτος του γονέα) η σειρά τυλίγεται
+            όπως σχεδιάστηκε. */}
         <button type="button" onClick={onToggle} aria-expanded={open} className="acc-toggle"
-          style={{ display:'flex', alignItems:'center', gap:9, flex:1, minWidth:0, background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left', fontFamily: T.font.sans }}>
+          style={{ display:'flex', alignItems:'center', gap:9, flex:'1 1 190px', minWidth:'min(100%, 190px)', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left', fontFamily: T.font.sans }}>
           <ChevronRight size={16} aria-hidden style={{ color:'var(--text-tertiary)', flexShrink:0, transform:open?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
           <span style={{ minWidth:0 }}>
             <span style={{ ...cardTitle, margin:0, display:'block' }}>{title}</span>

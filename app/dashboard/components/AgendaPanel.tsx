@@ -151,8 +151,12 @@ export default function AgendaPanel({ items, total, onNavigate }: {
         }
         .agenda-head {
           display: flex; align-items: baseline; justify-content: space-between;
-          gap: 12px; padding: 14px 18px 12px;
+          gap: 4px 12px; padding: 14px 18px 12px;
           border-bottom: 1px solid var(--border-subtle);
+          /* Σε 320 με μεγαλωμένο κείμενο οι δύο λέξεις δεν χωρούν δίπλα δίπλα:
+             μετρημένο 13 εικονοστοιχεία έξω από την κάρτα σε κλίμακα ×1,3.
+             Πέφτουν σε δεύτερη σειρά αντί να βγουν έξω. */
+          flex-wrap: wrap;
         }
         .agenda-title {
           font-family: ${T.font.sans}; font-size: 11px; font-weight: 700;
@@ -160,7 +164,7 @@ export default function AgendaPanel({ items, total, onNavigate }: {
         }
         .agenda-count {
           font-family: ${T.font.sans}; font-size: 12px; color: var(--text-tertiary);
-          font-variant-numeric: tabular-nums; white-space: nowrap;
+          font-variant-numeric: tabular-nums; min-width: 0;
         }
         .agenda-list { list-style: none; margin: 0; padding: 0; }
         .agenda-row {

@@ -116,13 +116,17 @@ export function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCal
 
       {/* Ήρεμη, σαρώσιμη σειρά: τελεία προτεραιότητας + τίτλος + προθεσμία + μία ένδειξη (ανάθεση).
           Δευτερεύοντα (ετικέτες, κόστος, υπο-εργασίες, σχόλια, επανάληψη) ζουν στην προβολή λεπτομερειών. */}
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+      {/* ΣΕ 320 ΜΕ ΜΕΓΑΛΩΜΕΝΟ ΚΕΙΜΕΝΟ Η ΠΡΟΘΕΣΜΙΑ ΔΕΝ ΧΩΡΑΕΙ ΔΙΠΛΑ ΣΤΟΝ ΤΙΤΛΟ.
+          Μετρημένο σε κλίμακα ×1,3: το «20 Νοε 2025 · πριν 285 ημέρες» έβγαινε
+          26 εικονοστοιχεία έξω από την κάρτα, γιατί η σειρά δεν τύλιγε ποτέ.
+          Τυλίγει· και η ίδια η προθεσμία δεν ξεπερνά το πλάτος της γραμμής. */}
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px 10px' }}>
         {priShowDot(item.priority) && <span title={'Προτεραιότητα: ' + getPri(item.priority).label} style={{ width: 7, height: 7, borderRadius: '50%', background: item.priority === 'critical' ? priDotColor(item.priority) : 'transparent', border: item.priority === 'critical' ? 'none' : '1.5px solid var(--text-tertiary)', boxSizing: 'border-box', flexShrink: 0 }} />}
         <span style={{ fontSize: 14, fontWeight: 500, color: done || blocked ? 'var(--text-secondary)' : 'var(--text-primary)', textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.6 : 1, fontFamily: T.font.sans, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', transition: 'opacity 0.3s ease, color 0.3s ease' }}>
           {item.description}
         </span>
         {item.due_date && (
-          <span style={{ flexShrink: 0, fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: overdue && !done ? 'var(--negative)' : due !== null && due <= 3 && due >= 0 && !done ? 'var(--warning)' : 'var(--text-tertiary)', fontWeight: (overdue || (due !== null && due <= 3)) && !done ? 700 : 400 }}>
+          <span style={{ flexShrink: 0, maxWidth: '100%', fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: overdue && !done ? 'var(--negative)' : due !== null && due <= 3 && due >= 0 && !done ? 'var(--warning)' : 'var(--text-tertiary)', fontWeight: (overdue || (due !== null && due <= 3)) && !done ? 700 : 400 }}>
             {fmtDate(item.due_date)}{overdue && !done && due !== null ? ` · πριν ${relDays(due)}` : ''}{!overdue && due !== null && due <= 3 && due >= 0 && !done ? ` · ${due === 0 ? 'σήμερα' : 'σε ' + relDays(due)}` : ''}
           </span>
         )}
