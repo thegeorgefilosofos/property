@@ -5,6 +5,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useLoad } from '@/app/hooks/useLoad';
+import { staleKeys, greekDay, type Provenance, type MarketKey } from '@/lib/market/ecb'
+import { athensToday } from '@/lib/core/time'
 
 export interface LiveMarketRates {
   euribor_3m: number
@@ -20,7 +22,19 @@ export interface LiveMarketRates {
   source_bog: string
   rate_changed: boolean
   isLoading: boolean
-  isStale: boolean  // true if data > 48h old
+  /**
+   * ΠΟΤΕ ΠΑΡΑΤΗΡΗΘΗΚΕ ΚΑΘΕ ΤΙΜΗ, ΠΟΙΟΣ ΤΗ ΛΕΕΙ ΚΑΙ ΤΙ ΜΕΤΡΑ.
+   *
+   * Πριν, η φρεσκάδα βγαινε από την `updated_at` της γραμμής — δηλαδή από το
+   * πότε ΕΤΡΕΞΕ η πρωινή εργασία. Η εργασία έγραφε γραμμή κάθε μέρα ακόμη κι
+   * όταν η ΕΚΤ δεν απαντούσε, οπότε η γραμμή ήταν πάντα σημερινή και ο δείκτης
+   * παλαιότητας δεν μπορούσε να ενεργοποιηθεί ποτέ. Εδώ η ημερομηνία ανήκει
+   * στην ΤΙΜΗ. Κενό μέχρι το πρώτο πέρασμα της νέας τροφοδοσίας.
+   */
+  provenance: Provenance
+  /** Τα κλειδιά που έχουν παλιώσει, με το όριο του καθενός. */
+  stale: MarketKey[]
+  isStale: boolean
 }
 
 export interface LiveBankRate {
@@ -82,7 +96,7 @@ const RATES_FALLBACK: LiveMarketRates = {
   euribor_3m: 2.18, euribor_1m: 2.05, euribor_6m: 2.30, euribor_12m: 2.45,
   ecb_rate: 2.40, ecb_dfl: 2.25, bog_housing_new: 3.43, bog_housing_stock: 3.50,
   updated_at: new Date().toISOString(), source_euribor: 'fallback', source_bog: 'fallback',
-  rate_changed: false, isLoading: true, isStale: false,
+  rate_changed: false, isLoading: true, provenance: {}, stale: [], isStale: false,
 }
 
 export function useMarketRates() {
@@ -100,8 +114,12 @@ export function useMarketRates() {
           .maybeSingle()
 
         if (row) {
-          const age = Date.now() - new Date(row.updated_at).getTime()
-          const isStale = age > 48 * 3600 * 1000 // > 48 hours old
+          // Η ΠΑΛΑΙΟΤΗΤΑ ΒΓΑΙΝΕΙ ΑΠΟ ΤΙΣ ΤΙΜΕΣ, ΟΧΙ ΑΠΟ ΤΗ ΓΡΑΜΜΗ. Και κάθε
+          // είδος έχει δικό του όριο: το Euribor βγαίνει κάθε εργάσιμη, το
+          // επιτόκιο πολιτικής λίγες φορές τον χρόνο. Το παλιό «48 ώρες για
+          // όλα» θα φώναζε ψέματα στο δεύτερο ακόμη κι αν δούλευε.
+          const provenance = (row.provenance ?? {}) as Provenance
+          const stale = staleKeys(provenance, athensToday())
           setData({
             euribor_3m:        row.euribor_3m        ?? RATES_FALLBACK.euribor_3m,
             euribor_1m:        row.euribor_1m        ?? RATES_FALLBACK.euribor_1m,
@@ -116,7 +134,8 @@ export function useMarketRates() {
             source_bog:        row.source_bog        ?? 'fallback',
             rate_changed:      row.rate_changed      ?? false,
             isLoading: false,
-            isStale,
+            provenance, stale,
+            isStale: stale.length > 0,
           })
         } else {
           setData(r => ({ ...r, isLoading: false }))

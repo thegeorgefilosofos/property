@@ -1,0 +1,413 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// Η ΤΡΟΦΟΔΟΣΙΑ ΕΠΙΤΟΚΙΩΝ: ΜΙΑ ΤΙΜΗ, ΜΙΑ ΗΜΕΡΟΜΗΝΙΑ, ΜΙΑ ΠΗΓΗ
+// ─────────────────────────────────────────────────────────────────────────
+// ΓΙΑΤΙ ΟΛΑ ΣΕ ΕΝΑ ΑΡΧΕΙΟ, ΧΩΡΙΣ ΚΑΜΙΑ ΕΙΣΑΓΩΓΗ. Αυτόν τον κώδικα τον τρέχουν
+// ΔΥΟ μηχανές: η συνάρτηση άκρου σε Deno, που τον κατεβάζει την ώρα του
+// χρονοδιαγράμματος· και η εφαρμογή σε Node, που δείχνει το αποτέλεσμα. Το Deno
+// απαιτεί κατάληξη «.ts» στις σχετικές εισαγωγές· η εφαρμογή δεν τη δέχεται.
+// Ενα αρχείο χωρίς ΚΑΜΙΑ σχετική εισαγωγή φορτώνεται και από τις δύο ως έχει.
+//
+// Η εναλλακτική δοκιμάστηκε ήδη αλλού και φαίνεται στο smart-suggestions: ο
+// κώδικας αντιγράφηκε στη συνάρτηση άκρου και ένας έλεγχος συγκρίνει τα δύο
+// αντίγραφα. Δουλεύει, αλλά είναι δύο αλήθειες με φύλακα ανάμεσα. Εδώ υπάρχει
+// μία και η ροή ανάπτυξης παρακολουθεί το «lib/market/**», ώστε μια αλλαγή σε
+// αυτό το αρχείο να ξανανεβάζει και τη συνάρτηση.
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΙ ΦΕΡΝΟΥΜΕ, ΑΠΟ ΠΟΥ, ΜΕ ΠΟΙΑ ΒΑΣΗ ΜΕΤΡΗΣΗΣ, ΚΑΙ ΤΙ ΘΕΩΡΕΙΤΑΙ ΠΙΣΤΕΥΤΟ
+// ─────────────────────────────────────────────────────────────────────────
+// ΤΟ ΠΡΟΒΛΗΜΑ ΠΟΥ ΛΥΝΕΙ ΑΥΤΟ ΤΟ ΑΡΧΕΙΟ. Η ημερομηνία ανήκε στη ΓΡΑΜΜΗ, όχι
+// στην τιμή. Ο πίνακας `market_rates` έχει μία στήλη `updated_at` για οκτώ
+// νούμερα και μία `source_euribor` για τα τέσσερα Euribor μαζί. Ο,τι κι αν
+// συνέβαινε στην πηγή, η εργασία έγραφε γραμμή με σφραγίδα ΤΩΡΑ. Δηλαδή, όταν
+// η ΕΚΤ δεν απαντούσε, η προηγούμενη τιμή ξαναγραφόταν με σημερινή ημερομηνία
+// και η οθόνη έλεγε «σήμερα» για νούμερο εβδομάδων. Ο έλεγχος παλαιότητας των
+// 48 ωρών δεν μπορούσε να χτυπήσει ποτέ: μετρούσε πότε έτρεξε η εργασία, όχι
+// πότε παρατηρήθηκε η τιμή.
+//
+// ΕΔΩ ΚΑΘΕ ΤΙΜΗ ΕΧΕΙ ΔΙΚΗ ΤΗΣ ΤΑΥΤΟΤΗΤΑ: ποια σειρά τη δίνει, πώς λέγεται στον
+// χρήστη, με ποια βάση μετριέται, ποιος είναι ο σύνδεσμος όπου επαληθεύεται και
+// σε ποιο εύρος θεωρείται πιστευτή.
+//
+// ── ΓΙΑΤΙ ΠΕΡΙΣΣΟΤΕΡΕΣ ΑΠΟ ΜΙΑ ΥΠΟΨΗΦΙΕΣ ΣΕΙΡΕΣ ──────────────────────────
+// Η ίδια ποσότητα δημοσιεύεται σε πολλές συχνότητες. Η ημερήσια δίνει το
+// κλείσιμο της ημέρας· η μηνιαία τον μέσο όρο του μήνα. Δοκιμάζονται με τη
+// σειρά και ΚΑΤΑΓΡΑΦΕΤΑΙ ποια απάντησε, γιατί δεν είναι το ίδιο νούμερο: αν
+// πέσει η ημερήσια, ο χρήστης πρέπει να διαβάσει «μέσος όρος μήνα» και όχι να
+// νομίζει ότι βλέπει το σημερινό κλείσιμο.
+//
+// ── ΓΙΑΤΙ ΥΠΑΡΧΕΙ ΕΥΡΟΣ ΠΙΣΤΕΥΤΟΤΗΤΑΣ ────────────────────────────────────
+// Μια αυτόματη τροφοδοσία χωρίς όρια είναι χειρότερη από καμία: αρκεί μια
+// αλλαγή μονάδας στην πηγή για να γραφτεί «Euribor 218%» στη βάση και να το
+// δείξει η οθόνη ως γεγονός. Ο,τι πέφτει έξω από το εύρος ΔΕΝ γράφεται και η
+// προηγούμενη τιμή μένει με την ΠΑΛΙΑ της ημερομηνία: ο χρήστης βλέπει
+// «παλιό», ποτέ «λάθος».
+//
+// ── ΓΙΑΤΙ Η ΕΚΤ ΚΑΙ ΟΧΙ Ο ΙΣΤΟΤΟΠΟΣ ΤΗΣ ΚΑΘΕ ΤΡΑΠΕΖΑΣ ─────────────────────
+// Το Data Portal της ΕΚΤ είναι δημόσιο, χωρίς κλειδί, με σταθερή μορφή και με
+// όρους που επιτρέπουν την επαναχρησιμοποίηση. Το ξύσιμο σελίδων τραπεζών ούτε
+// νόμιμο είναι με βεβαιότητα ούτε σταθερό: η οδηγία ήταν ρητή, «αν δεν γίνεται
+// νόμιμα και δωρεάν, μην το προσπαθήσεις καν».
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Το κλειδί με το οποίο η τιμή ζει στη βάση και στην οθόνη. */
+export type MarketKey =
+  | 'euribor_1m' | 'euribor_3m' | 'euribor_6m' | 'euribor_12m'
+  | 'ecb_rate' | 'ecb_dfl'
+  | 'bog_housing_new' | 'bog_housing_stock';
+
+/** Μία συγκεκριμένη σειρά του Data Portal, με τη βάση μέτρησής της. */
+export interface SeriesCandidate {
+  /** Το σύνολο δεδομένων: «FM» για τις αγορές, «MIR» για τα τραπεζικά επιτόκια. */
+  flow: string;
+  /** Το κλειδί της σειράς μέσα στο σύνολο. */
+  series: string;
+  /** Τι ακριβώς μετρά αυτή η σειρά, με λόγια του χρήστη. */
+  basis: string;
+}
+
+export interface SeriesSpec {
+  key: MarketKey;
+  /** Πώς λέγεται στον χρήστη. */
+  label: string;
+  /** Ποιος τη δημοσιεύει. */
+  source: string;
+  /** Δοκιμάζονται με τη σειρά· η πρώτη που απαντά κερδίζει. */
+  candidates: readonly SeriesCandidate[];
+  /** Εκτός αυτού του εύρους, η τιμή δεν γράφεται. */
+  min: number;
+  max: number;
+}
+
+// Το εύρος είναι φαρδύ επίτηδες: δεν κρίνει αν το επιτόκιο είναι «λογικό», μόνο
+// αν είναι ΕΠΙΤΟΚΙΟ. Το Euribor έχει πάει −0,55% το 2021 και 4% το 2023· ό,τι
+// είναι έξω από το −5 ώς το 25 δεν είναι επιτόκιο της ευρωζώνης, είναι σφάλμα.
+const RATE_MIN = -5, RATE_MAX = 25;
+
+const ECB = 'Ευρωπαϊκή Κεντρική Τράπεζα';
+const DAILY_CLOSE = 'ημερήσιο κλείσιμο';
+const MONTH_MEAN = 'μέσος όρος μήνα';
+const ON_CHANGE = 'ισχύει από την τελευταία μεταβολή';
+
+/** Euribor: ημερήσιο κλείσιμο πρώτα· ο μηνιαίος μέσος όρος ως δεύτερη γραμμή. */
+const euribor = (code: string): SeriesCandidate[] => [
+  { flow: 'FM', series: `D.U2.EUR.RT.MM.${code}.HSTA`, basis: DAILY_CLOSE },
+  { flow: 'FM', series: `M.U2.EUR.RT.MM.${code}.HSTA`, basis: MONTH_MEAN },
+];
+
+export const ECB_SERIES: readonly SeriesSpec[] = [
+  { key: 'euribor_1m',  label: 'Euribor μηνός',    source: ECB, candidates: euribor('EURIBOR1MD_'), min: RATE_MIN, max: RATE_MAX },
+  { key: 'euribor_3m',  label: 'Euribor τριμήνου', source: ECB, candidates: euribor('EURIBOR3MD_'), min: RATE_MIN, max: RATE_MAX },
+  { key: 'euribor_6m',  label: 'Euribor εξαμήνου', source: ECB, candidates: euribor('EURIBOR6MD_'), min: RATE_MIN, max: RATE_MAX },
+  { key: 'euribor_12m', label: 'Euribor έτους',    source: ECB, candidates: euribor('EURIBOR1YD_'), min: RATE_MIN, max: RATE_MAX },
+
+  // Τα δύο επιτόκια πολιτικής αλλάζουν ΜΟΝΟ όταν αποφασίσει το Διοικητικό
+  // Συμβούλιο. Η σειρά γράφει την ημέρα της μεταβολής, οπότε μια ημερομηνία
+  // μηνών πίσω εδώ ΔΕΝ σημαίνει παλιό στοιχείο: σημαίνει ότι δεν άλλαξε.
+  { key: 'ecb_rate', label: 'Επιτόκιο ΕΚΤ', source: ECB, min: RATE_MIN, max: RATE_MAX,
+    candidates: [{ flow: 'FM', series: 'D.U2.EUR.4F.KR.MRR_FR.LEV', basis: ON_CHANGE }] },
+  { key: 'ecb_dfl', label: 'Επιτόκιο αποδοχής καταθέσεων', source: ECB, min: RATE_MIN, max: RATE_MAX,
+    candidates: [{ flow: 'FM', series: 'D.U2.EUR.4F.KR.DFR.LEV', basis: ON_CHANGE }] },
+
+  // Τα ελληνικά στεγαστικά, όπως τα συγκεντρώνει η ΕΚΤ από την Τράπεζα της
+  // Ελλάδος. Δημοσιεύονται με καθυστέρηση περίπου έξι εβδομάδων· η ημερομηνία
+  // της παρατήρησης το δείχνει και δεν το κρύβει σφραγίδα «σήμερα».
+  { key: 'bog_housing_new', label: 'Μέσο νέο στεγαστικό', source: 'ΕΚΤ, στοιχεία Τράπεζας της Ελλάδος',
+    min: RATE_MIN, max: RATE_MAX,
+    candidates: [{ flow: 'MIR', series: 'M.GR.B.A2C.F.R.A.2250.EUR.N', basis: 'νέες χορηγήσεις' }] },
+  { key: 'bog_housing_stock', label: 'Μέσο υφιστάμενο στεγαστικό', source: 'ΕΚΤ, στοιχεία Τράπεζας της Ελλάδος',
+    min: RATE_MIN, max: RATE_MAX,
+    candidates: [{ flow: 'MIR', series: 'M.GR.B.A2C.I.R.A.2250.EUR.N', basis: 'υπόλοιπα δανείων' }] },
+] as const;
+
+/** Η διεύθυνση που ζητά ΜΟΝΟ τις τελευταίες παρατηρήσεις μιας σειράς. */
+export function seriesUrl(c: SeriesCandidate, lastN = 1): string {
+  return `https://data-api.ecb.europa.eu/service/data/${c.flow}/${c.series}`
+    + `?lastNObservations=${lastN}&format=jsondata&detail=dataonly`;
+}
+
+/** Η σελίδα όπου ο χρήστης βλέπει την ΙΔΙΑ σειρά με το μάτι του. */
+export function seriesPage(c: SeriesCandidate): string {
+  return `https://data.ecb.europa.eu/data/datasets/${c.flow}/${c.flow}.${c.series}`;
+}
+
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Ο ΑΝΑΛΥΤΗΣ, ΧΩΡΙΣ ΔΙΚΤΥΟ
+// ─────────────────────────────────────────────────────────────────────────
+// ΓΙΑΤΙ ΧΩΡΙΣΤΑ ΑΠΟ ΤΗΝ ΚΛΗΣΗ. Μια συνάρτηση που κατεβάζει ΚΑΙ διαβάζει δεν
+// δοκιμάζεται: για να ελεγχθεί χρειάζεται δίκτυο και ένα σφάλμα ανάγνωσης δεν
+// ξεχωρίζει από μια πεσμένη πηγή. Εδώ μπαίνει σώμα απάντησης και βγαίνει τιμή
+// με ημερομηνία· η κλήση ζει στη συνάρτηση άκρου.
+// ── Η ΜΟΡΦΗ SDMX-JSON, ΜΕ ΔΥΟ ΛΟΓΙΑ ──────────────────────────────────────
+// Οι τιμές δεν κάθονται δίπλα στις ημερομηνίες τους. Η απάντηση έχει
+// `dataSets[0].series` με τις παρατηρήσεις κλειδωμένες σε ΘΕΣΕΙΣ («0», «1», …)
+// και ξεχωριστά `structure.dimensions.observation[0].values` με τις
+// ημερομηνίες, στην ίδια σειρά. Το «0» της μιας δομής αντιστοιχεί στο πρώτο
+// στοιχείο της άλλης.
+//
+// ── ΤΙ ΘΕΩΡΕΙΤΑΙ ΑΠΟΤΥΧΙΑ ────────────────────────────────────────────────
+// Κάθε τι που δεν είναι πεπερασμένος αριθμός μέσα στο εύρος, με αναγνωρίσιμη
+// ημερομηνία. Η αποτυχία επιστρέφεται ως ΛΟΓΟΣ, όχι ως εξαίρεση, γιατί η
+// διαδρομή φέρνει έξι σειρές και πρέπει να ξέρει ποια χάλασε χωρίς να χάσει
+// τις άλλες πέντε.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface ParsedPoint {
+  /** Η τιμή, σε ποσοστιαίες μονάδες («2,18» για 2,18%). */
+  value: number;
+  /** Η ημέρα της παρατήρησης, ISO «YYYY-MM-DD». */
+  asOf: string;
+}
+
+export type ParseResult =
+  | { ok: true; point: ParsedPoint }
+  | { ok: false; reason: string };
+
+/** Δέχεται «2026-08-29» και «2026-08» (μηνιαία σειρά), τίποτε άλλο. */
+function isoDay(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  // Μηνιαία παρατήρηση: κρατά την πρώτη του μήνα, ώστε να συγκρίνεται.
+  if (/^\d{4}-\d{2}$/.test(raw)) return `${raw}-01`;
+  return null;
+}
+
+/**
+ * Βγάζει την ΤΕΛΕΥΤΑΙΑ παρατήρηση από απάντηση SDMX-JSON της ΕΚΤ.
+ *
+ * @param body το σώμα της απάντησης, ήδη σε αντικείμενο
+ * @param range το εύρος στο οποίο η τιμή θεωρείται πιστευτή
+ */
+export function latestObservation(
+  body: unknown,
+  range: { min: number; max: number },
+): ParseResult {
+  const b = body as {
+    dataSets?: { series?: Record<string, { observations?: Record<string, unknown[]> }> }[];
+    structure?: { dimensions?: { observation?: { values?: { id?: string }[] }[] } };
+  } | null;
+
+  const series = b?.dataSets?.[0]?.series;
+  if (!series || typeof series !== 'object') return { ok: false, reason: 'χωρίς dataSets[0].series' };
+
+  const first = Object.values(series)[0];
+  const obs = first?.observations;
+  if (!obs || typeof obs !== 'object') return { ok: false, reason: 'χωρίς observations' };
+
+  const periods = b?.structure?.dimensions?.observation?.[0]?.values;
+  if (!Array.isArray(periods) || periods.length === 0) return { ok: false, reason: 'χωρίς περιόδους στη δομή' };
+
+  // Οι θέσεις έρχονται ως κείμενο («0», «1»): η ταξινόμηση πρέπει να είναι
+  // ΑΡΙΘΜΗΤΙΚΗ, αλλιώς το «10» μπαίνει πριν από το «2» και η «τελευταία»
+  // παρατήρηση είναι η ενδέκατη από το τέλος.
+  const slots = Object.keys(obs)
+    .map(k => ({ k, n: Number(k) }))
+    .filter(x => Number.isInteger(x.n) && x.n >= 0)
+    .sort((a, b2) => a.n - b2.n);
+  if (!slots.length) return { ok: false, reason: 'κενές observations' };
+
+  const last = slots[slots.length - 1];
+  const raw = obs[last.k]?.[0];
+  // ΤΟ `null` ΔΕΝ ΕΙΝΑΙ ΜΗΔΕΝ. Η ΕΚΤ στέλνει `null` για αργία ή για μήνα που
+  // δεν έχει ακόμη δημοσιευθεί. Το `Number(null)` δίνει 0, πεπερασμένο και
+  // μέσα σε κάθε εύρος: χωρίς αυτόν τον έλεγχο η βάση θα έγραφε «Euribor
+  // τριμήνου 0,00%» ως γεγονός, με σημερινή ημερομηνία, κάθε Δευτέρα του Πάσχα.
+  if (raw === null || raw === undefined || raw === '') {
+    return { ok: false, reason: 'μη αριθμητική τιμή: κενή παρατήρηση' };
+  }
+  const value = typeof raw === 'number' ? raw : Number(raw);
+  if (!Number.isFinite(value)) return { ok: false, reason: `μη αριθμητική τιμή: ${JSON.stringify(raw)}` };
+  if (value < range.min || value > range.max) {
+    return { ok: false, reason: `εκτός εύρους ${range.min}…${range.max}: ${value}` };
+  }
+
+  const asOf = isoDay(periods[last.n]?.id);
+  if (!asOf) return { ok: false, reason: `μη αναγνωρίσιμη περίοδος: ${JSON.stringify(periods[last.n]?.id)}` };
+
+  return { ok: true, point: { value, asOf } };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Η ΗΜΕΡΟΜΗΝΙΑ ΑΝΗΚΕΙ ΣΤΗΝ ΤΙΜΗ, ΟΧΙ ΣΤΗ ΓΡΑΜΜΗ
+// ─────────────────────────────────────────────────────────────────────────
+// Ο ΜΗΧΑΝΙΣΜΟΣ ΠΟΥ ΚΑΤΑΣΚΕΥΑΖΕ ΦΡΕΣΚΑΔΑ. Η πρωινή εργασία ζητούσε οκτώ
+// επιτόκια. Οποιο δεν απαντούσε, το αντικαθιστούσε με την προηγούμενη τιμή —
+// σωστά — αλλά έγραφε ΟΛΟΚΛΗΡΗ τη γραμμή με `updated_at` το τώρα. Το «πότε
+// έτρεξε η εργασία» πήρε τη θέση του «πότε παρατηρήθηκε η τιμή» και η οθόνη
+// διάβαζε το πρώτο νομίζοντας ότι διαβάζει το δεύτερο.
+//
+// Δύο συνέπειες· και οι δύο μετρημένες στην οθόνη:
+//   · Ο δείκτης παλαιότητας 48 ωρών δεν χτυπούσε ΠΟΤΕ, γιατί η γραμμή ήταν
+//     πάντα σημερινή. Παλιά νούμερα περνούσαν για σημερινά χωρίς προειδοποίηση.
+//   · Η καρτέλα Δάνειο έγραφε δίπλα στο Euribor τη λέξη «σήμερα», σταθερά,
+//     ό,τι κι αν είχε συμβεί στην πηγή.
+//
+// ΕΔΩ ΚΑΘΕ ΤΙΜΗ ΚΟΥΒΑΛΑ ΤΗ ΔΙΚΗ ΤΗΣ ΤΑΥΤΟΤΗΤΑ και ο κανόνας συγχώνευσης είναι
+// ένας: ό,τι ΔΕΝ ήρθε φρέσκο, μένει ακριβώς όπως ήταν — ίδια τιμή, ίδια
+// ημερομηνία παρατήρησης, ίδια πηγή. Καμία σφραγίδα δεν μετακινείται επειδή
+// έτρεξε η εργασία.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface RateProvenance {
+  /** Η τιμή, σε ποσοστιαίες μονάδες. */
+  value: number;
+  /** Η ημέρα της παρατήρησης, ISO «YYYY-MM-DD». Οχι η ημέρα που τρέξαμε. */
+  asOf: string;
+  /** Ποιος τη δημοσιεύει. */
+  source: string;
+  /** Τι ακριβώς μετρά: ημερήσιο κλείσιμο, μέσος όρος μήνα και τα λοιπά. */
+  basis: string;
+  /** Πού την επαληθεύει κανείς με το μάτι του. */
+  url: string;
+  /** Πότε την κατεβάσαμε. Χρησιμεύει στη διάγνωση, όχι στην οθόνη. */
+  fetchedAt: string;
+}
+
+export type Provenance = Partial<Record<MarketKey, RateProvenance>>;
+
+/**
+ * Η νέα ταυτότητα κάθε τιμής, μετά από ένα πέρασμα της τροφοδοσίας.
+ *
+ * ΚΑΝΟΝΑΣ: ό,τι ήρθε φρέσκο γράφεται· ό,τι δεν ήρθε μένει ΑΘΙΚΤΟ, με την παλιά
+ * του ημερομηνία. Δεν υπάρχει τρίτη περίπτωση, ώστε καμία διαδρομή να μη
+ * μπορεί να ανανεώσει σφραγίδα χωρίς νέα παρατήρηση.
+ */
+export function nextProvenance(previous: Provenance, fresh: Provenance): Provenance {
+  const out: Provenance = { ...previous };
+  for (const k of Object.keys(fresh) as MarketKey[]) {
+    const p = fresh[k];
+    if (p) out[k] = p;
+  }
+  return out;
+}
+
+/** Οι τιμές, χωρίς την ταυτότητά τους, όπως τις θέλουν οι στήλες του πίνακα. */
+export function valuesOf(p: Provenance): Partial<Record<MarketKey, number>> {
+  const out: Partial<Record<MarketKey, number>> = {};
+  for (const k of Object.keys(p) as MarketKey[]) {
+    const v = p[k];
+    if (v) out[k] = v.value;
+  }
+  return out;
+}
+
+/** Πόσες ημέρες πέρασαν από την παρατήρηση ώς σήμερα. Και οι δύο σε ISO. */
+export function ageDays(asOf: string, today: string): number {
+  const a = Date.parse(`${asOf}T00:00:00Z`), b = Date.parse(`${today}T00:00:00Z`);
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return Number.POSITIVE_INFINITY;
+  return Math.floor((b - a) / 86400000);
+}
+
+/**
+ * Το όριο πέρα από το οποίο μια τιμή λέγεται παλιά, ανά είδος.
+ *
+ * ΔΕΝ ΕΙΝΑΙ ΕΝΑ ΝΟΥΜΕΡΟ ΓΙΑ ΟΛΑ. Το Euribor δημοσιεύεται κάθε εργάσιμη, άρα
+ * τέσσερις ημέρες σιωπής είναι πρόβλημα. Τα επιτόκια πολιτικής αλλάζουν λίγες
+ * φορές τον χρόνο και μια ημερομηνία μηνών πίσω είναι το ΣΩΣΤΟ: σημαίνει «δεν
+ * άλλαξε», όχι «ξεχάστηκε». Τα ελληνικά μέσα επιτόκια βγαίνουν μηνιαία, με
+ * καθυστέρηση περίπου έξι εβδομάδων. Ενα κοινό όριο θα φώναζε ψέματα στα δύο
+ * και θα σιωπούσε λάθος στο τρίτο.
+ */
+export const STALE_AFTER_DAYS: Record<MarketKey, number> = {
+  euribor_1m: 5, euribor_3m: 5, euribor_6m: 5, euribor_12m: 5,
+  ecb_rate: 400, ecb_dfl: 400,
+  bog_housing_new: 75, bog_housing_stock: 75,
+};
+
+/** Είναι παλιά αυτή η τιμή για το είδος της; */
+export function isStale(key: MarketKey, asOf: string, today: string): boolean {
+  return ageDays(asOf, today) > STALE_AFTER_DAYS[key];
+}
+
+/** Τα κλειδιά που έχουν παλιώσει, με τη σειρά του καταλόγου. */
+export function staleKeys(p: Provenance, today: string): MarketKey[] {
+  return (Object.keys(p) as MarketKey[]).filter(k => {
+    const v = p[k];
+    return !!v && isStale(k, v.asOf, today);
+  });
+}
+
+/** «31/08/2026», όπως το γράφει η οθόνη. Κενό όταν η ημερομηνία δεν στέκει. */
+export function greekDay(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : '';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΟ ΠΕΡΑΣΜΑ: ΟΚΤΩ ΚΛΗΣΕΙΣ, ΟΚΤΩ ΑΝΕΞΑΡΤΗΤΕΣ ΜΟΙΡΕΣ
+// ─────────────────────────────────────────────────────────────────────────
+// ΚΑΜΙΑ ΑΠΟΤΥΧΙΑ ΔΕΝ ΠΑΡΑΣΕΡΝΕΙ ΤΙΣ ΥΠΟΛΟΙΠΕΣ. Η προηγούμενη μορφή έπιανε τα
+// σφάλματα ανά σειρά αλλά τα κατέγραφε στην κονσόλα και τα ξεχνούσε: όποιος
+// διάβαζε την απάντηση της εργασίας έβλεπε «success: true» χωρίς να μαθαίνει
+// ότι τέσσερα από τα οκτώ επιτόκια δεν ήρθαν ποτέ. Εδώ κάθε αποτυχία γυρίζει
+// με το όνομά της.
+//
+// Η ΚΛΗΣΗ ΔΙΝΕΤΑΙ ΑΠ' ΕΞΩ, ώστε το πέρασμα να δοκιμάζεται χωρίς δίκτυο. Χωρίς
+// αυτό, ο μόνος τρόπος να ελεγχθεί η σειρά των υποψηφίων και η απομόνωση των
+// σφαλμάτων θα ήταν να πέσει αληθινά η ΕΚΤ.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Οσο περιμένουμε μία σειρά πριν την προσπεράσουμε. */
+export const FETCH_TIMEOUT_MS = 10000;
+
+export interface FeedOutcome {
+  /** Ο,τι ήρθε, με ταυτότητα. Κλειδιά που λείπουν σημαίνουν «δεν ήρθε». */
+  fresh: Provenance;
+  /** Μία γραμμή ανά τιμή που δεν ήρθε, με τον λόγο. */
+  problems: string[];
+}
+
+/** Η ελάχιστη υπογραφή της `fetch` που χρειάζεται το πέρασμα. */
+type Getter = (url: string, init?: { headers?: Record<string, string>; signal?: AbortSignal }) => Promise<{
+  ok: boolean; status: number; json: () => Promise<unknown>;
+}>;
+
+/** Κατεβάζει μία σειρά και τη διαβάζει. Ποτέ δεν πετά: γυρίζει λόγο. */
+async function oneSeries(spec: SeriesSpec, c: SeriesCandidate, get: Getter): Promise<ParseResult> {
+  let res;
+  try {
+    res = await get(seriesUrl(c), {
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
+  } catch (e) {
+    return { ok: false, reason: `η κλήση απέτυχε: ${e instanceof Error ? e.message : String(e)}` };
+  }
+  if (!res.ok) return { ok: false, reason: `η πηγή απάντησε ${res.status}` };
+  let body: unknown;
+  try { body = await res.json(); }
+  catch { return { ok: false, reason: 'η απάντηση δεν ήταν JSON' }; }
+  return latestObservation(body, spec);
+}
+
+/**
+ * Ενα πέρασμα πάνω από όλες τις σειρές.
+ *
+ * @param fetchedAt η στιγμή της εκτέλεσης, ISO. Δίνεται απ' έξω ώστε όλες οι
+ *   τιμές ενός περάσματος να τη μοιράζονται και η δοκιμή να είναι σταθερή.
+ * @param get η κλήση δικτύου. Προεπιλογή η καθολική `fetch`.
+ */
+export async function fetchLatest(fetchedAt: string, get: Getter = fetch as unknown as Getter): Promise<FeedOutcome> {
+  const fresh: Provenance = {};
+  const problems: string[] = [];
+
+  await Promise.all(ECB_SERIES.map(async spec => {
+    const reasons: string[] = [];
+    for (const c of spec.candidates) {
+      const r = await oneSeries(spec, c, get);
+      if (r.ok) {
+        fresh[spec.key] = {
+          value: r.point.value, asOf: r.point.asOf,
+          source: spec.source, basis: c.basis, url: seriesPage(c), fetchedAt,
+        };
+        return;
+      }
+      reasons.push(`${c.flow}.${c.series}: ${r.reason}`);
+    }
+    problems.push(`${spec.label} — ${reasons.join(' · ')}`);
+  }));
+
+  problems.sort();
+  return { fresh, problems };
+}

@@ -882,6 +882,13 @@ export interface MarketRatesRow {
   source_bog: string | null;
   rate_changed: boolean | null;
   updated_at: string;
+  /**
+   * Ταυτότητα ΑΝΑ ΤΙΜΗ: πότε παρατηρήθηκε, ποιος τη δημοσιεύει, τι μετρά και
+   * πού επαληθεύεται. Η `updated_at` λέει πότε έτρεξε η εργασία· δεν λέει πότε
+   * είναι φρέσκο κάθε νούμερο και για μήνες διαβαζόταν σαν να το έλεγε.
+   * Η μορφή ζει στο lib/market/ecb.ts (`Provenance`).
+   */
+  provenance: Record<string, unknown> | null;
 }
 
 export interface MobileWaitlistRow {

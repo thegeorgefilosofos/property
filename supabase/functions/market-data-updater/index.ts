@@ -1,10 +1,17 @@
 // supabase/functions/market-data-updater/index.ts
-// Τρέχει κάθε πρωί 07:00 UTC (cron) ή on-demand
-// Ενημερώνει: ECB Euribor + ΤτΕ rates (market_rates)
+// Τρέχει κάθε πρωί 08:00 UTC από το χρονοδιάγραμμα της βάσης (market-data-daily)
+// ή κατά παραγγελία. Φέρνει Euribor, επιτόκια ΕΚΤ και τα ελληνικά μέσα
+// στεγαστικά, ΜΕ ΗΜΕΡΟΜΗΝΙΑ ΚΑΙ ΠΗΓΗ ΑΝΑ ΤΙΜΗ· και τα γράφει στον market_rates.
 // Deploy: supabase functions deploy market-data-updater --project-ref aromvduuxtcrzmwwvnej
 
 import { createClient } from 'npm:@supabase/supabase-js@2.110.8'
 import { authorizeCron } from '../_shared/auth.ts'
+// Η ΤΡΟΦΟΔΟΣΙΑ ΖΕΙ ΜΙΑ ΦΟΡΑ, ΣΤΟ lib/market/ecb.ts. Το αρχείο δεν έχει καμία
+// σχετική εισαγωγή ακριβώς για να φορτώνεται και από το Deno εδώ και από την
+// εφαρμογή· η ροή ανάπτυξης παρακολουθεί τον φάκελο lib/market, ώστε μια αλλαγή
+// του να ξανανεβάζει και αυτή τη συνάρτηση.
+import { fetchLatest, nextProvenance, valuesOf, staleKeys, greekDay,
+  type Provenance } from '../../../lib/market/ecb.ts'
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
@@ -18,39 +25,6 @@ const supabase = createClient(
 const CRON_SECRET = Deno.env.get('MARKET_DATA_CRON_SECRET') || ''
 async function authorized(req: Request): Promise<boolean> {
   return authorizeCron(req, { serviceKey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '', envSecret: CRON_SECRET, supabase })
-}
-
-// ── ECB SDW API helper ────────────────────────────────────────────────────────
-async function fetchECBSeries(seriesKey: string, lastN = 1): Promise<number | null> {
-  const url = `https://data-api.ecb.europa.eu/service/data/${seriesKey}?lastNObservations=${lastN}&format=jsondata`
-  try {
-    const res = await fetch(url, {
-      headers: { 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(10000),
-    })
-    if (!res.ok) return null
-    const data = await res.json()
-    const seriesData = Object.values(data?.dataSets?.[0]?.series ?? {})?.[0] as { observations?: Record<string, (number | null)[]> } | undefined
-    const obs = seriesData?.observations ?? {}
-    const lastKey = Object.keys(obs).map(Number).sort((a,b)=>b-a)[0]
-    const val = obs[String(lastKey)]?.[0]
-    return typeof val === 'number' && !isNaN(val) ? Math.round(val * 1000) / 1000 : null
-  } catch (e) {
-    console.error(`ECB fetch error for ${seriesKey}:`, e)
-    return null
-  }
-}
-
-// ── ECB series ────────────────────────────────────────────────────────────────
-const SERIES = {
-  euribor_3m:        'FM/B.U2.EUR.RT0.MM.EURIBOR3MD_.HSTA',
-  euribor_1m:        'FM/B.U2.EUR.RT0.MM.EURIBOR1MD_.HSTA',
-  euribor_6m:        'FM/B.U2.EUR.RT0.MM.EURIBOR6MD_.HSTA',
-  euribor_12m:       'FM/B.U2.EUR.RT0.MM.EURIBOR1YD_.HSTA',
-  ecb_rate:          'FM/B.U2.EUR.RT0.MR.MRR_FR.IR.HSTA',
-  ecb_dfl:           'FM/B.U2.EUR.RT0.MR.DFR.IR.HSTA',
-  bog_housing_new:   'MIR/M.GR.B.A2C.F.R.A.2250.EUR.N',
-  bog_housing_stock: 'MIR/M.GR.B.A2C.I.R.A.2250.EUR.N',
 }
 
 // ── ΓΙΑΤΙ ΔΕΝ ΥΠΑΡΧΕΙ ΠΙΑ ΠΙΝΑΚΑΣ ΤΙΜΟΛΟΓΙΩΝ ΕΔΩ ─────────────────────────────
@@ -90,18 +64,11 @@ Deno.serve(async (req: Request) => {
 
   const now   = new Date()
   const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const today = now.toISOString().slice(0, 10)
 
-  // ── 1. Fetch ECB rates in parallel ─────────────────────────────────────────
-  const rateResults = await Promise.all(
-    Object.entries(SERIES).map(async ([key, series]) => {
-      const val = await fetchECBSeries(series)
-      console.log(`${key}: ${val ?? 'NULL — fallback'}`)
-      return [key, val] as const
-    })
-  )
-  const fetched = Object.fromEntries(rateResults)
-
-  // ── 2. Load last known good values ─────────────────────────────────────────
+  // ── 1. Η προηγούμενη ταυτότητα, πριν από οτιδήποτε άλλο ────────────────────
+  // Διαβάζεται ΠΡΩΤΗ γιατί ο κανόνας συγχώνευσης χτίζει πάνω της: ό,τι δεν
+  // απαντήσει σήμερα μένει ακριβώς όπως ήταν, με την ΠΑΛΙΑ του ημερομηνία.
   const { data: last } = await supabase
     .from('market_rates')
     .select('*')
@@ -109,34 +76,61 @@ Deno.serve(async (req: Request) => {
     .limit(1)
     .maybeSingle()
 
+  const previous: Provenance = (last?.provenance ?? {}) as Provenance
   const fb: Record<string, number> = (last as Record<string, number>) ?? {}
 
-  // ── 3. Build rate record ────────────────────────────────────────────────────
-  const newRates = {
-    euribor_3m:        fetched.euribor_3m        ?? fb.euribor_3m        ?? 2.18,
-    euribor_1m:        fetched.euribor_1m        ?? fb.euribor_1m        ?? 2.05,
-    euribor_6m:        fetched.euribor_6m        ?? fb.euribor_6m        ?? 2.30,
-    euribor_12m:       fetched.euribor_12m       ?? fb.euribor_12m       ?? 2.45,
-    ecb_rate:          fetched.ecb_rate          ?? fb.ecb_rate          ?? 2.40,
-    ecb_dfl:           fetched.ecb_dfl           ?? fb.ecb_dfl           ?? 2.25,
-    bog_housing_new:   fetched.bog_housing_new   ?? fb.bog_housing_new   ?? 3.43,
-    bog_housing_stock: fetched.bog_housing_stock ?? fb.bog_housing_stock ?? 3.50,
-    source_euribor: fetched.euribor_3m   ? 'ECB EMMI live' : 'fallback',
-    source_bog:     fetched.bog_housing_new ? 'ECB MIR live' : 'fallback',
+  // ── 2. Ενα πέρασμα πάνω από όλες τις σειρές ────────────────────────────────
+  const { fresh, problems } = await fetchLatest(now.toISOString())
+  for (const p of problems) console.warn('δεν ήρθε:', p)
+
+  const provenance = nextProvenance(previous, fresh)
+  const values = valuesOf(provenance)
+  const stale = staleKeys(provenance, today)
+  for (const k of stale) console.warn(`παλιό: ${k} από ${greekDay(provenance[k]!.asOf)}`)
+
+  // ── 3. Οι στήλες, από την ταυτότητα ────────────────────────────────────────
+  // ΓΙΑΤΙ ΥΠΑΡΧΟΥΝ ΑΚΟΜΗ ΟΙ ΠΑΛΙΕΣ ΣΤΗΛΕΣ. Τις διαβάζουν ο βοηθός, η καρτέλα
+  // Δάνειο και ο εβδομαδιαίος απολογισμός. Γράφονται από την ΙΔΙΑ ταυτότητα,
+  // οπότε δεν μπορούν να αποκλίνουν από αυτήν.
+  //
+  // ΚΑΙ ΓΙΑΤΙ ΕΦΥΓΑΝ ΤΑ ΣΤΑΘΕΡΑ ΝΟΥΜΕΡΑ ΑΠΟ ΕΔΩ. Η προηγούμενη μορφή τελείωνε
+  // κάθε γραμμή με `?? 2.18`, δηλαδή έγραφε στη βάση χειρόγραφο επιτόκιο του
+  // 2026 σαν να ήταν μέτρηση, με σημερινή σφραγίδα και πηγή «fallback». Οταν
+  // δεν ξέρουμε, η στήλη μένει κενή και η οθόνη το λέει.
+  const rateRow: Record<string, unknown> = {
+    euribor_1m:        values.euribor_1m        ?? fb.euribor_1m        ?? null,
+    euribor_3m:        values.euribor_3m        ?? fb.euribor_3m        ?? null,
+    euribor_6m:        values.euribor_6m        ?? fb.euribor_6m        ?? null,
+    euribor_12m:       values.euribor_12m       ?? fb.euribor_12m       ?? null,
+    ecb_rate:          values.ecb_rate          ?? fb.ecb_rate          ?? null,
+    ecb_dfl:           values.ecb_dfl           ?? fb.ecb_dfl           ?? null,
+    bog_housing_new:   values.bog_housing_new   ?? fb.bog_housing_new   ?? null,
+    bog_housing_stock: values.bog_housing_stock ?? fb.bog_housing_stock ?? null,
+    provenance,
+    // Οι δύο παλιές στήλες πηγής κρατούν πλέον την ΗΜΕΡΟΜΗΝΙΑ ΠΑΡΑΤΗΡΗΣΗΣ, όχι
+    // τη λέξη «live» ή «fallback». Οποιος τις διαβάζει μαθαίνει κάτι αληθινό.
+    source_euribor: provenance.euribor_3m
+      ? `ΕΚΤ, ${provenance.euribor_3m.basis} ${greekDay(provenance.euribor_3m.asOf)}` : null,
+    source_bog: provenance.bog_housing_new
+      ? `ΕΚΤ, ${provenance.bog_housing_new.basis} ${greekDay(provenance.bog_housing_new.asOf)}` : null,
     updated_at: now.toISOString(),
     rate_changed: false,
   }
 
-  // Detect significant change
-  const prev3m = fb.euribor_3m ?? newRates.euribor_3m
-  const delta3m = Math.abs(newRates.euribor_3m - prev3m)
+  // ── 4. Σημαντική μεταβολή ──────────────────────────────────────────────────
+  // ΜΟΝΟ ΟΤΑΝ ΗΡΘΕ ΟΝΤΩΣ ΝΕΑ ΠΑΡΑΤΗΡΗΣΗ. Η προηγούμενη μορφή σύγκρινε την τιμή
+  // με τον εαυτό της όταν η πηγή δεν απαντούσε (`prev3m = fb ?? newRates`), άρα
+  // η διαφορά ήταν πάντα μηδέν και η ειδοποίηση δεν χτυπούσε ποτέ σε πραγματική
+  // μεταβολή που είχε χαθεί σε μια μέρα σιωπής.
+  const prev3m = previous.euribor_3m?.value
+  const new3m = fresh.euribor_3m?.value
+  const delta3m = (prev3m !== undefined && new3m !== undefined) ? Math.abs(new3m - prev3m) : 0
   if (delta3m >= 0.10) {
-    newRates.rate_changed = true
-    console.log(`⚠️ Euribor change: ${prev3m}% → ${newRates.euribor_3m}%`)
+    rateRow.rate_changed = true
+    console.log(`Euribor τριμήνου ${prev3m}% → ${new3m}% (Δ ${delta3m.toFixed(2)})`)
   }
 
-  // ── 4. Insert market rates ──────────────────────────────────────────────────
-  const { error: rateErr } = await supabase.from('market_rates').insert(newRates)
+  const { error: rateErr } = await supabase.from('market_rates').insert(rateRow)
   if (rateErr) console.error('market_rates insert error:', rateErr)
 
   // Cleanup old entries (keep 365)
@@ -147,37 +141,28 @@ Deno.serve(async (req: Request) => {
     await supabase.from('market_rates').delete().in('id', toDelete)
   }
 
-  // ── 5. Upsert energy tariffs ────────────────────────────────────────────────
-  // ── 6. Manage program deadlines ─────────────────────────────────────────────
+  // ── 5. Προθεσμίες προγραμμάτων ─────────────────────────────────────────────
+  // Η μεταβολή του Euribor δεν γράφεται δεύτερη φορά εδώ: την καταγράφει ήδη το
+  // βήμα 4 και τη στέλνει στους χρήστες ο εβδομαδιαίος απολογισμός αγοράς, που
+  // διαβάζει τον ίδιο πίνακα. Το `notification_log` δεν χωρά καθολική
+  // ειδοποίηση — οι στήλες του είναι (user_id, event_id, reminder_type) — και
+  // κάθε προσπάθεια εγγραφής εκεί αποτύγχανε σιωπηλά.
   const programResults = await manageProgramDeadlines()
 
-  // ── 7. Log a significant change ─────────────────────────────────────────────
-  // NB: this previously tried to insert into `notification_log`, whose columns are
-  // (user_id, event_id, reminder_type) — none of which fit a global market alert —
-  // so every insert failed and was swallowed. `notification_log` is strictly a
-  // per-user event-reminder ledger. User-facing rate-change alerts are delivered
-  // by the weekly `send-market-digest` job (which reads `market_rates`), so here we
-  // just record the change to the function log for observability.
-  if (newRates.rate_changed) {
-    console.log(`⚠ Euribor 3M ${prev3m.toFixed(2)}% → ${newRates.euribor_3m.toFixed(2)}% (Δ ${delta3m.toFixed(2)}%) — picked up by the weekly market digest.`)
-  }
-
   // ── Response ────────────────────────────────────────────────────────────────
+  // ΛΕΕΙ ΤΙ ΔΕΝ ΗΡΘΕ. Η προηγούμενη απάντηση έγραφε «success: true» ακόμη κι
+  // όταν τέσσερα από τα οκτώ επιτόκια είχαν αποτύχει, γιατί μετρούσε μόνο αν
+  // πέτυχε η εγγραφή στη βάση. Οποιος διάβαζε τα αρχεία του χρονοδιαγράμματος
+  // δεν είχε τρόπο να το μάθει.
   const response = {
     success: !rateErr,
     timestamp: now.toISOString(),
     month,
-    rates: {
-      euribor_3m:      newRates.euribor_3m,
-      euribor_1m:      newRates.euribor_1m,
-      ecb_rate:        newRates.ecb_rate,
-      bog_housing_new: newRates.bog_housing_new,
-    },
-    sources: {
-      euribor: newRates.source_euribor,
-      bog:     newRates.source_bog,
-    },
-    significantChange: newRates.rate_changed,
+    fetched: Object.keys(fresh).length,
+    expected: Object.keys(provenance).length,
+    problems,
+    stale: stale.map(k => `${k}: ${greekDay(provenance[k]!.asOf)}`),
+    significantChange: rateRow.rate_changed,
     programs: programResults,
   }
 

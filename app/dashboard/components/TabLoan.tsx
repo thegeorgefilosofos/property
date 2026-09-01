@@ -21,6 +21,7 @@ import { Gift } from 'lucide-react'
 import { downloadXlsx } from './sheets';
 import TabLoanCalculator, { type LoanCalcState } from './TabLoanCalculator'
 import { useMarketRates, useBankRates, useLoanPrograms, useIsAdmin } from '../../hooks/useMarketData'
+import { greekDay } from '@/lib/market/ecb'
 import { BANKS_NORM, PROGRAMS_NORM, mergeBanks, mergePrograms, normProgram, BANKS_VERIFIED, RATES_DISCLAIMER, type ComparisonBank, type ComparisonProgram, LOAN_TYPES, rateRange, GLOSSARY, EURIBOR_HISTORY, SERVICERS_GUIDE, calcMonthly, fmtEur, fmtPct, LoanType, RateType, SavedLoan, MARKET_FALLBACK } from './TabLoanData'
 import { rankLoans, spitiMouEligibility, type UserLoanNeeds } from '@/lib/loans/recommend'
 import { euriborInsight } from '@/lib/loans/affordability'
@@ -452,7 +453,6 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
     await loadSaved()
   }
 
-  const updStr = market.isLoading?'…' : new Date(market.updated_at).toLocaleDateString('el-GR',{day:'2-digit',month:'short',year:'numeric'})
   const banksUpdStr = new Date(verifiedAt || BANKS_VERIFIED).toLocaleDateString('el-GR',{day:'2-digit',month:'short',year:'numeric'})
   // Έντιμη φρεσκάδα: τα ανά-τράπεζα επιτόκια είναι επαληθευμένα δεδομένα με
   // ημερομηνία (όχι αυτόματη ροή). Αν παλιώσουν, το λέμε καθαρά και παραπέμπουμε
@@ -827,10 +827,10 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
             που δεν πατιέται και δεν ανοίγει τίποτα: κίνηση χωρίς προορισμό. */}
         <div style={{display:'flex',flexWrap:'wrap',alignItems:'baseline',gap:'6px 20px',marginLeft:'auto',minWidth:0}}>
           {[
-            {l:'Euribor τριμήνου',v:market.euribor_3m},
-            {l:'Euribor μηνός',v:market.euribor_1m},
-            {l:'ΕΚΤ',v:market.ecb_rate},
-            ...(market.bog_housing_new?[{l:'ΤτΕ μέσο',v:market.bog_housing_new}]:[]),
+            {l:'Euribor τριμήνου',v:market.euribor_3m,k:'euribor_3m' as const},
+            {l:'Euribor μηνός',v:market.euribor_1m,k:'euribor_1m' as const},
+            {l:'ΕΚΤ',v:market.ecb_rate,k:'ecb_rate' as const},
+            ...(market.bog_housing_new?[{l:'ΤτΕ μέσο',v:market.bog_housing_new,k:'bog_housing_new' as const}]:[]),
           ].map(item=>(
             /* ΤΟ ΔΙΑΧΩΡΙΣΤΙΚΟ ΗΤΑΝ ΑΡΙΣΤΕΡΟ ΠΕΡΙΓΡΑΜΜΑ, ΚΑΙ ΣΤΟ ΤΥΛΙΓΜΑ ΕΠΕΦΤΕ ΣΤΗΝ
                ΑΡΧΗ ΤΗΣ ΓΡΑΜΜΗΣ. Μετρημένο στα 390: η λωρίδα σπάει σε 1+2+1 και
@@ -839,11 +839,30 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                τελειώνει η σειρά του δεν είναι διαχωριστικό. Χωρίζει το κενό: η
                ετικέτα είναι μικρή κεφαλαία και η τιμή έντονη, οπότε το ζευγάρι
                διαβάζεται ως μονάδα χωρίς βοήθεια. */
+            /* ΚΑΙ Η ΗΜΕΡΟΜΗΝΙΑ ΤΗΣ ΚΑΘΕ ΤΙΜΗΣ, ΔΙΠΛΑ ΤΗΣ. Η λωρίδα έδειχνε
+               τέσσερα νούμερα χωρίς να λέει πότε ισχύουν· και πιο κάτω μία
+               κοινή ημερομηνία «ενημέρωσης» που ήταν η ώρα που έτρεξε η
+               εργασία — όχι η ώρα της παρατήρησης. Τα τέσσερα νούμερα ΔΕΝ
+               είναι της ίδιας μέρας: το Euribor βγαίνει κάθε εργάσιμη, το
+               επιτόκιο της ΕΚΤ αλλάζει λίγες φορές τον χρόνο και το ελληνικό
+               μέσο δημοσιεύεται μηνιαία με έξι εβδομάδες καθυστέρηση. Μία
+               κοινή ημερομηνία για όλα ήταν λάθος και στα τέσσερα.
+
+               Οταν η τιμή δεν έχει ταυτότητα (πριν από το πρώτο πέρασμα της
+               τροφοδοσίας) δεν γράφεται τίποτα στη θέση της: ούτε παύλα ούτε
+               «σήμερα». Η απουσία λέγεται με απουσία. */
             <span key={item.l} style={{display:'inline-flex',alignItems:'baseline',gap:6,whiteSpace:'nowrap' as const}}>
               <span style={{fontSize: 11,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.06em',fontWeight:600,fontFamily: T.font.sans}}>{item.l}</span>
               <span style={{fontSize:13,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:market.isLoading?'var(--border-default)':'var(--text-primary)',fontWeight:700,letterSpacing:'-0.01em'}}>
                 {market.isLoading?'…':fmtPct(item.v)}
               </span>
+              {!market.isLoading && market.provenance[item.k] && (
+                <span title={`${market.provenance[item.k]!.basis}, ${market.provenance[item.k]!.source}${market.stale.includes(item.k)?'. Δεν ανανεώθηκε στον αναμενόμενο χρόνο':''}`}
+                  style={{fontSize:11,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:'var(--text-tertiary)',fontWeight:500,
+                    borderBottom:market.stale.includes(item.k)?'1px dotted var(--text-tertiary)':undefined}}>
+                  {greekDay(market.provenance[item.k]!.asOf)}
+                </span>
+              )}
             </span>
           ))}
         </div>
@@ -1088,7 +1107,13 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
             <p style={{fontSize:12,color:'var(--text-tertiary)',lineHeight:1.6,fontFamily: T.font.sans}}>
               Στοιχεία από επίσημες πηγές{' · '}
               <a href="https://greece20.gov.gr/home-loans/" target="_blank" rel="noreferrer" style={{color:'inherit',textDecoration:'none',fontWeight:500,borderBottom:'1px solid var(--border-default)'}}>greece20.gov.gr</a>{', '}
-              <a href="https://ypen.gov.gr" target="_blank" rel="noreferrer" style={{color:'inherit',textDecoration:'none',fontWeight:500,borderBottom:'1px solid var(--border-default)'}}>ypen.gov.gr</a>{' · '}{updStr}
+              {/* ΕΔΩ ΚΑΘΟΤΑΝ ΗΜΕΡΟΜΗΝΙΑ ΠΟΥ ΑΝΗΚΕ ΣΕ ΑΛΛΑ ΔΕΔΟΜΕΝΑ. Ηταν η
+                  `market.updated_at`, δηλαδή η ώρα που έτρεξε η εργασία των
+                  ΕΠΙΤΟΚΙΩΝ, τυπωμένη δίπλα σε δύο κυβερνητικούς συνδέσμους για
+                  τα ΠΡΟΓΡΑΜΜΑΤΑ. Δεν έλεγε πότε ελέγχθηκε το greece20.gov.gr:
+                  έλεγε πότε ρωτήθηκε η ΕΚΤ. Η προθεσμία κάθε προγράμματος
+                  γράφεται στην κάρτα του, με τη δική της ημερομηνία. */}
+              <a href="https://ypen.gov.gr" target="_blank" rel="noreferrer" style={{color:'inherit',textDecoration:'none',fontWeight:500,borderBottom:'1px solid var(--border-default)'}}>ypen.gov.gr</a>
             </p>
           </div>
 
@@ -1807,7 +1832,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
               {[
                 {l:'Ιστορικό χαμηλό',v:fmtPct(Math.min(...EURIBOR_HISTORY.map(p=>p.val))),s:'2021'},
                 {l:'Ιστορικό υψηλό',v:fmtPct(Math.max(...EURIBOR_HISTORY.map(p=>p.val))),s:'Οκτώβριος 2023'},
-                {l:'Τρέχον',v:fmtPct(market.euribor_3m),s:'σήμερα'},
+                {l:'Τρέχον',v:fmtPct(market.euribor_3m),s:market.provenance.euribor_3m?greekDay(market.provenance.euribor_3m.asOf):'χωρίς ημερομηνία'},
                 {l:'Μείωση από το ανώτατο',v:`-${fmtPct(Math.max(...EURIBOR_HISTORY.map(p=>p.val))-market.euribor_3m)}`,s:'από το 2023'},
               ].map(item=>(
                 <div key={item.l} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'11px 13px'}}>

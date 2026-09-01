@@ -65,11 +65,37 @@ const files = globSync(['app/**/*.{ts,tsx}', 'lib/**/*.ts', 'components/**/*.{ts
  * κώδικα. Οι επικεφαλίδες αυτού του αποθετηρίου είναι πάντα σε δική τους
  * γραμμή, που είναι ακριβώς η περίπτωση που μας ενδιαφέρει.
  */
+// ΟΙ ΓΡΑΜΜΕΣ ΠΡΩΤΑ, ΤΑ ΜΠΛΟΚ ΜΕΤΑ. Η αντίστροφη σειρά είχε ένα μετρημένο
+// ελάττωμα: ένα σχόλιο γραμμής που περιέχει «/*» — π.χ. μια διαδρομή με
+// αστεράκια, «lib/market/**» — άνοιγε μπλοκ για τον αναλυτή και έσβηνε ΚΩΔΙΚΑ
+// μέχρι το επόμενο «*/», εκατό γραμμές πιο κάτω. Στην market-data-updater
+// έσβησε ολόκληρη τη γραμμή εισαγωγής και ο φύλακας ονόμασε νεκρή την
+// τροφοδοσία επιτοκίων, που είναι ο μόνος κώδικας που γράφει επιτόκια στη βάση.
+// Ενας φύλακας που δείχνει ζωντανό κώδικα ως νεκρό σπρώχνει σε λάθος διαγραφή.
 const noComments = (t) => t
-  .replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
-  .replace(/^[ \t]*\/\/.*$/gm, m => m.replace(/[^\n]/g, ' '));
+  .replace(/^[ \t]*\/\/.*$/gm, m => m.replace(/[^\n]/g, ' '))
+  .replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '));
 
 const src = new Map(files.map(f => [f, noComments(readFileSync(f, 'utf8'))]));
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ΟΙ ΣΥΝΑΡΤΗΣΕΙΣ ΑΚΡΟΥ ΕΙΝΑΙ ΚΙ ΑΥΤΕΣ ΚΑΤΑΝΑΛΩΤΕΣ
+// ─────────────────────────────────────────────────────────────────────────
+// Το glob διαβάζει app/, lib/ και components/. Το supabase/functions/ τρέχει σε
+// Deno και έμενε απ' έξω — σωστά για το ΠΟΥ ψάχνουμε νεκρές εξαγωγές, λάθος για
+// το ΠΟΙΟΣ τις χρησιμοποιεί. Η market-data-updater εισάγει το lib/market/ecb.ts
+// με κατάληξη «.ts», όπως απαιτεί το Deno· και είναι ο μοναδικός καταναλωτής
+// της τροφοδοσίας: ο φύλακας την έβλεπε νεκρή και θα ζητούσε να σβηστεί ο
+// κώδικας που γράφει τα επιτόκια στη βάση.
+//
+// Μετρούν ΜΟΝΟ ως χρήση, δεν σαρώνονται για δικές τους νεκρές εξαγωγές: εκεί οι
+// εξαγωγές δεν έχουν καταναλωτή στο αποθετήριο ούτως ή άλλως — τις καλεί το
+// Deno.serve την ώρα του χρονοδιαγράμματος.
+// ═══════════════════════════════════════════════════════════════════════════
+const edge = globSync(['supabase/functions/**/*.ts'])
+  .filter(f => !f.includes('node_modules'))
+  .map(f => noComments(readFileSync(f, 'utf8')))
+  .join('\n');
 
 const dead = [];
 for (const [file, s] of src) {
@@ -79,6 +105,7 @@ for (const [file, s] of src) {
     const re = new RegExp(`\\b${name}\\b`, 'g');
     let outside = 0;
     for (const [other, t] of src) { if (other === file) continue; outside += (t.match(re) || []).length; }
+    outside += (edge.match(re) || []).length;
     if (outside > 0) continue;
     if ((s.match(re) || []).length - 1 > 0) continue;
     const ln = s.slice(0, m.index).split('\n').length;
@@ -160,6 +187,7 @@ for (const [file, s] of src) {
       const n = (t.match(re) || []).length;
       if (isTest(other)) inTest += n; else inProd += n;
     }
+    inProd += (edge.match(re) || []).length;
     if (inProd === 0 && inTest > 0 && (s.match(re) || []).length - 1 === 0) {
       testOnly.push(`${file}  ${name}`);
     }

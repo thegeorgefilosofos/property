@@ -32,6 +32,12 @@ on:
       # ΕΙΝΑΙ ΠΡΟΣΒΑΣΙΜΗ. Μια διόρθωση του verify_jwt εκεί δεν ενεργοποιούσε
       # deploy, οπότε το αποθετήριο έλεγε ένα και η παραγωγή έκανε άλλο.
       - 'supabase/config.toml'
+      # Η ΤΡΟΦΟΔΟΣΙΑ ΕΠΙΤΟΚΙΩΝ ΖΕΙ ΕΞΩ ΑΠΟ ΤΟ supabase/. Το lib/market/ecb.ts το
+      # εισάγει η market-data-updater και το διαβάζει και η εφαρμογή: μία πηγή
+      # αλήθειας για τις σειρές, τον αναλυτή και τον κανόνα ταυτότητας. Χωρίς
+      # αυτή τη γραμμή, μια διόρθωση εκεί θα άλλαζε την οθόνη και ΟΧΙ τη
+      # συνάρτηση που γράφει στη βάση — δηλαδή δύο συμπεριφορές από ένα αρχείο.
+      - 'lib/market/**'
       - '.github/workflows/supabase-deploy.yml'
   # Manual trigger: run from a feature branch → deploys to staging; from main → production.
   workflow_dispatch: {}
