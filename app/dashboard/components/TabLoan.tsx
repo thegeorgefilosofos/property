@@ -154,7 +154,12 @@ function FindingRow({lead,title,body,right,last}:{lead?:React.ReactNode;title:Re
       {lead}
       <div style={{flex:1,minWidth:0}}>
         <p style={{fontSize:13,fontWeight:500,fontFamily: T.font.sans,color:'var(--text-primary)',lineHeight:1.45}}>{title}</p>
-        {body&&<p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.55,fontFamily: T.font.sans,marginTop:3}}>{body}</p>}
+        {/* ΚΑΜΙΑ ΜΟΝΗ ΛΕΞΗ ΣΕ ΔΕΥΤΕΡΗ ΓΡΑΜΜΗ. Το κείμενο έσπαγε αφήνοντας το
+            «τόκους.» ολομόναχο από κάτω: μια σχεδόν άδεια γραμμή που κάνει τη
+            σειρά να φαίνεται δύο φορές ψηλότερη απ' όσο χρειάζεται. Το
+            `pretty` μοιράζει τις τελευταίες δύο γραμμές ώστε να μη μένει
+            ορφανή λέξη, χωρίς να κόψει τίποτα από το νόημα. */}
+        {body&&<p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.55,fontFamily: T.font.sans,marginTop:3,textWrap:'pretty' as const}}>{body}</p>}
       </div>
       {right}
     </div>
@@ -1394,9 +1399,9 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                   <FindingRow last
                     right={cost('Τόκοι') ?? cost('Διάρκεια')}
                     title={`Συνολικοί τόκοι ${fmtEur(cs.totalInterest)}, ${fp(interestRatio*100)} επί του κεφαλαίου`}
-                    body={<>Για {fmtEur(cs.loanAmount)} θα αποπληρώσεις συνολικά {fmtEur(totalCost)}.
+                    body={<>Για {fmtEur(cs.loanAmount)} αποπληρώνεις συνολικά {fmtEur(totalCost)}.
                       {cs.years>20&&savedByShortening>0
-                        ? ` Σε 20 χρόνια η δόση γίνεται ${fmtEur(shortMonthly20)}, δηλαδή ${fmtEur(shortMonthly20-cs.monthly)} παραπάνω και γλιτώνεις ${fmtEur(savedByShortening)} τόκους.`
+                        ? ` Σε 20 χρόνια η δόση γίνεται ${fmtEur(shortMonthly20)}, δηλαδή ${fmtEur(shortMonthly20-cs.monthly)} παραπάνω, με ${fmtEur(savedByShortening)} λιγότερους τόκους.`
                         : ` Έκτακτη πληρωμή 100 € τον μήνα κόβει ${extraPay100Saving.toFixed(1).replace('.',',')} χρόνια από τη διάρκεια.`}</>}
                   />
                 </div>
