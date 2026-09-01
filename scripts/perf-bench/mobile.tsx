@@ -70,6 +70,7 @@ import TabRentROI from '@/app/dashboard/components/TabRentROI';
 // ακριβώς οι δύο μορφές που σπάνε πρώτες σε στενή οθόνη. Το ότι δεν είχαν
 // μετρηθεί ΔΕΝ σήμαινε ότι ήταν εντάξει· σήμαινε ότι δεν το ξέραμε.
 import TabAccounting from '@/app/dashboard/components/TabAccounting';
+import TabSettings from '@/app/dashboard/components/TabSettings';
 import TabCalendar from '@/app/dashboard/components/TabCalendar';
 import TabClients from '@/app/dashboard/components/TabClients';
 import TabDocuments from '@/app/dashboard/components/TabDocuments';
@@ -290,6 +291,13 @@ const VIEWS: Record<string, () => React.ReactElement> = {
     </Modal>
   ),
   inventory: () => <TabInventory propertyId="p0" userId="u1" />,
+  // ═══ ΟΙ ΡΥΘΜΙΣΕΙΣ ΔΕΝ ΕΙΧΑΝ ΔΕΙ ΠΟΤΕ ΣΑΡΩΤΗ ══════════════════════════════
+  // Καμία από τις πέντε σαρώσεις δεν τις απέδιδε, γιατί δεν υπήρχαν εδώ. Είναι
+  // η καρτέλα με τα περισσότερα πεδία και τους περισσότερους διακόπτες της
+  // εφαρμογής, δηλαδή ακριβώς εκεί που η στοίχιση σπάει πρώτη. Και οι δύο
+  // μορφές του χρήστη, γιατί η επαγγελματική δείχνει επιπλέον ενότητες.
+  settings: () => <TabSettings propertyId="p0" userId="u1" />,
+  settingsPro: () => <TabSettings propertyId="p0" userId="u1" profileType="professional" />,
   accounting: () => <TabAccounting propertyId="p0" userId="u1" />,
   // Η ΚΕΝΗ ΟΘΟΝΗ ΤΗΣ ΛΟΓΙΣΤΙΚΗΣ, ΣΤΙΣ ΔΥΟ ΑΚΡΕΣ ΤΗΣ. Το κύριο κουμπί της έστελνε
   // πάντα στον Ενοικιαστή, καρτέλα αόρατη σε έξι από τις επτά καταστάσεις: ο

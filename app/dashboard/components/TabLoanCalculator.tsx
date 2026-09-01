@@ -7,7 +7,7 @@ import { fp, fe } from '@/lib/core/format'
 import { money as csvEur } from './sheetFormat';
 import DocChecklist from './DocChecklist'
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rPct, rEsc } from './reportPdf'
-import { T, Badge, ABSENT, TT, fixedCols, KPIGrid, Tile, widestOf } from '@/components/Theme'
+import { T, Badge, ABSENT, TT, fixedCols, KPIGrid, Tile, widestOf, Stat } from '@/components/Theme'
 import { affordability, rentVsBuy } from '@/lib/loans/affordability'
 import { AADE_HOME } from '@/lib/tax/aade'
 import { createClient } from '@/lib/supabase/client'
@@ -628,7 +628,6 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
   const [saving,      setSaving]      = useState(false)
   const [activePreset,setActivePreset]= useState<string|null>(null)
   // Ομοιόμορφοι αριθμοί: όλα λευκά, γαλάζιο μόνο όταν περνά ο κέρσορας/δάχτυλο.
-  const [hoverCap,  setHoverCap]  = useState<number|null>(null)
   const [hoverRow,  setHoverRow]  = useState<number|null>(null)
   const [hoverCost, setHoverCost] = useState<number|null>(null)
   // Το τοπικό toast (state + ref-timer + δικό του JSX κάτω δεξιά) αφαιρέθηκε: το
@@ -1228,11 +1227,16 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
                   κυνηγά· το έπιασε στα 320, στα 360×640 και στα 360×800. Η
                   `fixedCols` κρατά τον κανόνα του έργου: τρία σε στενή οθόνη
                   γίνονται τρεις γεμάτες σειρές, όχι 2+1. */}
+              {/* Η ίδια γραμμή στοιχείων με όλη την εφαρμογή: ένα μέγεθος για τα
+                  τρία, από το μακρύτερο· και ετικέτα που κρατά δύο γραμμές όταν
+                  η στήλη στενεύει. Ηταν γραμμένη εδώ με δικό της μέγεθος 16 και
+                  δικό της letter-spacing, οπότε σε tablet τα τρία νούμερα
+                  κάθονταν σε τρία ύψη. */}
+              {(()=>{ const st=[['Επιτόκιο',fmtPct(item.rate)],['Δόση τον μήνα',fmtEur(item.m)],['Συνολικοί τόκοι',fmtEur(item.m*Y*12-LA)]] as const
+                const w=widestOf(...st.map(([,v])=>v)); return (
               <div {...fixedCols(3, 12, 'start')} style={{...fixedCols(3, 12, 'start').style, marginBottom:12}}>
-                {[['Επιτόκιο',fmtPct(item.rate)],['Δόση τον μήνα',fmtEur(item.m)],['Συνολικοί τόκοι',fmtEur(item.m*Y*12-LA)]].map(([k,v])=>(
-                  <div key={k}><p style={{fontSize: 11,color:'var(--text-tertiary)',marginBottom:2,fontFamily: T.font.sans,textTransform:'uppercase',letterSpacing:'0.5px'}}>{k}</p><p style={{fontSize:16,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:item.c,fontWeight:700}}>{v}</p></div>
-                ))}
-              </div>
+                {st.map(([k,v])=>(<Stat key={k} label={k} value={v} chars={w}/>))}
+              </div>) })()}
               {item.pros.map((p,i)=><div key={i} style={{display:'flex',gap:6,marginBottom:3}}><span style={{color:'var(--text-tertiary)',flexShrink:0,fontWeight:600}}>+</span><p style={{fontSize:11,color:'var(--text-secondary)',lineHeight:1.4,fontFamily: T.font.sans}}>{p}</p></div>)}
               {item.cons.map((c,i)=><div key={i} style={{display:'flex',gap:6,marginBottom:3}}><span style={{color:'var(--text-tertiary)',flexShrink:0,fontWeight:600}}>−</span><p style={{fontSize:11,color:'var(--text-secondary)',lineHeight:1.4,fontFamily: T.font.sans}}>{c}</p></div>)}
             </div>
@@ -1321,29 +1325,24 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
         return (
       <Section title="Δανειοληπτική ικανότητα" sub="Μέγιστο δάνειο βάσει εισοδήματος και ορίων Τράπεζας Ελλάδος" defaultOpen>
         <div style={{marginBottom:16}}><NumberInput label="Μηνιαίο καθαρό εισόδημα" value={income} onChange={setIncome} suffix="€"/></div>
-        {/* ΤΡΙΑ ΠΛΑΚΙΔΙΑ ΣΕ ΔΥΟ ΣΤΗΛΕΣ ΑΦΗΝΟΥΝ ΤΟ ΤΡΙΤΟ ΜΟΝΟ ΤΟΥ. Μετρημένο στα
-            375 και στα 430: «2+1», με το τρίτο σε μισό πλάτος και τρύπα δίπλα.
-            Ιδια κλάση με τους δείκτες του KPIGrid, ίδιοι κανόνες: στα στενά
-            πλάτη μία στήλη, που είναι ζυγισμένη. */}
+        {/* ═══ ΠΕΜΠΤΗ ΓΡΑΦΗ ΤΟΥ ΠΛΑΚΙΔΙΟΥ, ΚΑΙ Η ΠΙΟ ΑΚΡΙΒΗ ═══════════════════════
+            Ζωγράφιζε δικό της κουτί, δική της ανύψωση με κατάσταση React και
+            τέσσερις ακροατές, ετικέτα 700 με 0,06em αντί για την 600 με 0,08em
+            του βιβλίου· και νούμερο ΣΤΑΘΕΡΟ στα 28. Ο χρήστης το φωτογράφισε σε
+            tablet: «ΜΕΓΙΣΤΗ ΔΟΣΗ ΤΟΝ ΜΗΝΑ» σε δύο γραμμές, «ΜΕΓΙΣΤΟ ΔΑΝΕΙΟ» σε
+            μία, τρία νούμερα σε τρία ύψη — και το «800,00 €» ίδιο μέγεθος με το
+            «159.801,00 €», που το δεύτερο χρειαζόταν διπλάσιο χώρο.
+
+            Τρία πλακίδια σε δύο στήλες αφήνουν το τρίτο μόνο του: μετρημένο στα
+            375 και στα 430, «2+1» με τρύπα δίπλα. Οι μεταβλητές του `.kpi-row`
+            κρατούν μία στήλη στα στενά πλάτη, που είναι ζυγισμένη. */}
         <div className="kpi-row" style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:12,marginBottom:16,'--kpi-lg':3,'--kpi-md':3,'--kpi-sm':1} as React.CSSProperties}>
-          {[
-            {k:'Μέγιστη δόση τον μήνα',v:fmtEur(aff.maxMonthly),s:`${fp(aff.limitPct*100)} του εισοδήματος${firstTimeBuyer?', ως πρωτοαγοραστής':''}`,accent:false,neg:false},
-            {k:'Μέγιστο δάνειο',v:fmtEur(aff.maxLoan),s:`με ${fmtPct(effRate)} · ${Y} έτη`,accent:false,neg:aff.maxLoan<LA},
-            {k:'Δείκτης δόσης προς εισόδημα',v:INC>0?fmtPct1(aff.dstiUsedPct):fp(0),s:`όριο ${Math.round(aff.limitPct*100)}%`,accent:false,neg:aff.dstiUsedPct/100>aff.limitPct},
-          ].map((t,i)=>{
-            const on=hoverCap===i
-            return (
-            <div key={t.k}
-              onMouseEnter={()=>setHoverCap(i)} onMouseLeave={()=>setHoverCap(null)}
-              onTouchStart={()=>setHoverCap(i)} onTouchEnd={()=>setHoverCap(null)}
-              style={{position:'relative',background:'var(--bg-elevated)',border:`1px solid ${on?'var(--border-default)':'var(--border-subtle)'}`,borderRadius: T.radius.card,padding:'16px 16px 14px',transition:'border-color 0.15s, box-shadow 0.15s',
-              boxShadow:on?'var(--elev-2)':'var(--elev-1)'}}>
-              <p style={{fontSize: 11,textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:700,color:'var(--text-tertiary)',fontFamily: T.font.sans}}>{t.k}</p>
-              <p style={{fontSize:28,fontWeight:700,letterSpacing:'-0.02em',lineHeight:1,marginTop:8,color:t.neg?'var(--text-primary)':on?'var(--accent)':'var(--text-primary)',fontVariantNumeric:'tabular-nums',fontFamily: T.font.sans,transition:'color 0.15s'}}>{t.v}</p>
-              <p style={{fontSize:12,marginTop:7,color:'var(--text-tertiary)',fontFamily: T.font.sans}}>{t.s}</p>
-            </div>
-            )
-          })}
+          {(()=>{ const cap=[
+            {k:'Μέγιστη δόση τον μήνα',v:fmtEur(aff.maxMonthly),s:`${fp(aff.limitPct*100)} του εισοδήματος${firstTimeBuyer?', ως πρωτοαγοραστής':''}`},
+            {k:'Μέγιστο δάνειο',v:fmtEur(aff.maxLoan),s:`με ${fmtPct(effRate)} · ${Y} έτη`},
+            {k:'Δείκτης δόσης προς εισόδημα',v:INC>0?fmtPct1(aff.dstiUsedPct):fp(0),s:`όριο ${Math.round(aff.limitPct*100)}%`},
+          ]; const w=widestOf(...cap.map(t=>t.v));
+            return cap.map(t=>(<Tile key={t.k} label={t.k} value={t.v} sub={t.s} chars={w}/>)) })()}
         </div>
         {/* Οπτικός μετρητής: πού βρίσκεται η δόση σου σε σχέση με το όριο */}
         {INC>0&&(()=>{

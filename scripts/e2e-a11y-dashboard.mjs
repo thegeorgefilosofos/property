@@ -50,6 +50,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { createRequire } from 'node:module'
 import { chromePath } from './lib/chrome.mjs'
+import { SCENES } from './lib/scenes.mjs'
 import { benchUrl } from './lib/paths.mjs'
 
 const require = createRequire(import.meta.url)
@@ -60,10 +61,6 @@ const { chromium } = pkg
 
 // Οι ίδιες σκηνές με τη σάρωση διάταξης. Γραμμένες ρητά, ώστε μια σκηνή που
 // προστίθεται στον πάγκο να μπαίνει ΣΥΝΕΙΔΗΤΑ και εδώ.
-const SCENES = ['overview', 'portfolio', 'cash', 'rent', 'inbox', 'ledger', 'finances', 'checklist', 'modal',
-  'select', 'compare', 'loan','loanAdvisor', 'pricing', 'bills', 'contacts', 'wizard', 'roi', 'roi-pro',
-  'tenant', 'scan', 'accounting', 'accounting-pro', 'calendar', 'clients', 'documents', 'inventory',
-  'billing', 'branding', 'referral', 'referralPro', 'plan', 'planReno', 'planSale']
 
 const ONLY = process.env.E2E_ONLY ? process.env.E2E_ONLY.split(',') : null
 const RUN = ONLY ? SCENES.filter(s => ONLY.includes(s)) : SCENES

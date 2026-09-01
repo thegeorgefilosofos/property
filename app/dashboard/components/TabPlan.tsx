@@ -65,7 +65,8 @@
 import { useCallback, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { T, TT, Card, SecHdr, PageTitle, fixedCols, settingsField, feAuto, pageShell, Bar } from '@/components/Theme';
-import { InfoHint } from './InfoHint';
+import { InfoHint, HintedText } from './InfoHint';
+import { SegmentControl } from './UIComponents';
 import { feSigned } from '@/lib/core/format';
 import type { PropertyStatus } from '@/lib/property/status';
 import {
@@ -172,14 +173,24 @@ const Caret = ({ open }: { open: boolean }) => (
  * σειρά (επιλογές, προγράμματα, κανόνες): εκεί όλα είναι `plain` και η οθόνη
  * μένει επίπεδη, γιατί όντως είναι.
  */
-const RowTitle = ({ state, children }: { state: 'next' | 'done' | 'plain'; children: ReactNode }) => (
-  <span style={{
+// Ο τίτλος σειράς κρατά ΚΑΙ την επεξήγησή του: το κυκλάκι γράφεται μέσα στο
+// ίδιο κείμενο, ώστε να μη μένει ποτέ μόνο του σε δική του γραμμή. Το γιατί
+// είναι γραμμένο πάνω από το `HintedText`.
+const RowTitle = ({ state, text, hint }: {
+  state: 'next' | 'done' | 'plain';
+  text: string;
+  hint?: { label: string; body: ReactNode };
+}) => {
+  const style: React.CSSProperties = {
     fontFamily: T.font.sans, fontSize: 14, lineHeight: 1.35,
     fontWeight: state === 'next' ? 700 : 500,
     color: state === 'done' ? 'var(--text-tertiary)' : state === 'next' ? 'var(--text-primary)' : 'var(--text-secondary)',
     textDecoration: state === 'done' ? 'line-through' : 'none',
-  }}>{children}</span>
-);
+  };
+  return hint
+    ? <HintedText text={text} label={hint.label} style={style}>{hint.body}</HintedText>
+    : <span style={style}>{text}</span>;
+};
 
 /**
  * ΤΟ ΙΔΙΟ ΧΕΙΡΙΣΤΗΡΙΟ ΜΕ ΤΙΣ ΕΡΓΑΣΙΕΣ, ΓΙΑΤΙ ΕΙΝΑΙ Η ΙΔΙΑ ΠΡΑΞΗ.
@@ -440,10 +451,8 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
         </div>
         <div className="plan-row plan-row-step">
           <span style={{ minWidth: 0 }}>
-            <RowTitle state={on ? 'done' : isNext ? 'next' : 'plain'}>{s.title}</RowTitle>
-            <InfoHint label={`Τι σημαίνει: ${s.title}`}>
-              <Tip lead={s.detail} rows={[['Πότε', s.when], ['Αν παραλειφθεί', s.cost]]} />
-            </InfoHint>
+            <RowTitle state={on ? 'done' : isNext ? 'next' : 'plain'} text={s.title}
+              hint={{ label: `Τι σημαίνει: ${s.title}`, body: <Tip lead={s.detail} rows={[['Πότε', s.when], ['Αν παραλειφθεί', s.cost]]} /> }} />
           </span>
           <Tag>{ACTOR_LABEL[s.who]}</Tag>
         </div>
@@ -616,10 +625,8 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
               <div key={o.id} style={{ display: 'contents' }}>
                 {i > 0 && <span className="plan-span" style={{ borderTop: '1px solid var(--border-subtle)' }} />}
                 <span className="plan-name">
-                  <RowTitle state="plain">{o.title}</RowTitle>
-                  <InfoHint label={`Τι σημαίνει: ${o.title}`}>
-                    <Tip lead={o.payoff} rows={[['Ταιριάζει αν', o.fits], ['Τι πληρώνεις', o.cost]]} />
-                  </InfoHint>
+                  <RowTitle state="plain" text={o.title}
+                    hint={{ label: `Τι σημαίνει: ${o.title}`, body: <Tip lead={o.payoff} rows={[['Ταιριάζει αν', o.fits], ['Τι πληρώνεις', o.cost]]} /> }} />
                 </span>
                 {/* Η ΛΕΞΗ ΤΟΥ ΑΞΟΝΑ ΕΙΝΑΙ ΚΡΥΦΗ ΣΤΗ ΦΑΡΔΙΑ ΟΘΟΝΗ, ΟΧΙ ΑΝΥΠΑΡΚΤΗ.
                     Την τυπώνει η κεφαλίδα των στηλών, οπότε το μάτι δεν τη
@@ -646,11 +653,14 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
               rows={[['Επιβεβαίωσε', sale.note]]} />
           </InfoHint>}
           right={
-            <div style={{ display: 'flex', gap: 6 }}>
-              {[{ k: true, l: 'Με μεσίτη' }, { k: false, l: 'Μόνος σου' }].map(o => (
-                <Pick key={o.l} small on={useAgent === o.k} onClick={() => setUseAgent(o.k)}>{o.l}</Pick>
-              ))}
-            </div>
+            /* ΔΥΟ ΧΩΡΙΣΤΑ ΧΑΠΑΚΙΑ ΓΙΑ ΕΝΑ «Η ΤΟ ΕΝΑ Η ΤΟ ΑΛΛΟ». Η εφαρμογή έχει
+               ήδη χειριστήριο γι' αυτό, το `SegmentControl`· και το χρησιμοποιεί
+               σε δεκατέσσερις οθόνες: μία ράγα, το επιλεγμένο ανασηκωμένο μέσα
+               της. Εδώ ήταν δύο ξεχωριστά κουμπιά με δικό τους περίγραμμα, που
+               διαβάζονται ως δύο ενέργειες αντί για μία επιλογή. */
+            <SegmentControl ariaLabel="Πώς πουλάς" value={useAgent ? 'agent' : 'owner'}
+              onChange={v => setUseAgent(v === 'agent')}
+              options={[{ value: 'agent', label: 'Με μεσίτη' }, { value: 'owner', label: 'Μόνος σου' }]} />
           }>
           {sale.lines.map((l, i) => (
             <div key={l.label} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '10px 0', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
@@ -682,10 +692,8 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
           {plan.funding.map((f, i) => (
             <div key={f.id} className="plan-row plan-row-fund" style={{ borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
               <span style={{ minWidth: 0 }}>
-                <RowTitle state="plain">{f.title}</RowTitle>
-                <InfoHint label={`Τι σημαίνει: ${f.title}`}>
-                  <Tip lead={f.what} rows={[['Επιβεβαίωσε', f.confirm]]} />
-                </InfoHint>
+                <RowTitle state="plain" text={f.title}
+                  hint={{ label: `Τι σημαίνει: ${f.title}`, body: <Tip lead={f.what} rows={[['Επιβεβαίωσε', f.confirm]]} /> }} />
               </span>
               <Tag>{FUNDING_KIND_LABEL[f.kind]}</Tag>
               {/* ΔΥΟ ΜΠΛΕ ΣΤΗΝ ΙΔΙΑ ΟΘΟΝΗ, ΚΑΙ ΤΟ ΕΝΑ ΕΙΧΕ ΔΗΛΩΣΕΙ ΑΠΟΚΛΕΙΣΤΙΚΟΤΗΤΑ.
@@ -782,8 +790,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
             {plan.rules.map((r, i) => (
               <div key={r.id} className="plan-row plan-row-bare" style={{ borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
                 <span style={{ minWidth: 0 }}>
-                  <RowTitle state="plain">{r.title}</RowTitle>
-                  <InfoHint label={`Ο κανόνας: ${r.title}`}>{r.body}</InfoHint>
+                  <RowTitle state="plain" text={r.title} hint={{ label: `Ο κανόνας: ${r.title}`, body: r.body }} />
                 </span>
               </div>
             ))}
@@ -800,10 +807,10 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
                     βάρος του τίτλου κανόνα από πάνω: μια ερώτηση δύο σειρών σε
                     14/600 διαβάζεται σαν κραυγή. */}
                 <span style={{ minWidth: 0 }}>
-                  <span style={{ ...TT.body, color: 'var(--text-secondary)' }}>{v.what}</span>
-                  <InfoHint label={`Πού ελέγχεται: ${v.what}`}>
+                  <HintedText text={v.what} label={`Πού ελέγχεται: ${v.what}`}
+                    style={{ ...TT.body, color: 'var(--text-secondary)' }}>
                     <Tip rows={[['Πού', v.where], ['Γιατί αλλάζει', v.why]]} />
-                  </InfoHint>
+                  </HintedText>
                 </span>
               </div>
             ))}

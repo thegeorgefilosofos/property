@@ -20,10 +20,8 @@
 import { chromium } from 'playwright-core';
 import { chromePath } from './lib/chrome.mjs';
 import { benchUrl } from './lib/paths.mjs';
+import { SCENES } from './lib/scenes.mjs';
 
-const SCENES = ['overview','portfolio','cash','rent','inbox','ledger','finances','checklist',
-  'compare','loan','loanAdvisor','pricing','bills','contacts','wizard','roi','roi-pro','tenant','scan','inventory',
-  'accounting','calendar','clients','documents','plan','billing','branding','referral','modal','select'];
 const WIDTHS = [390, 768, 900, 1024, 1120, 1280, 1440];
 
 const probe = () => {

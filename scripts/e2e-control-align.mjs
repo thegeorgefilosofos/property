@@ -29,14 +29,12 @@
 //     node scripts/perf-bench/build-mobile.mjs && node scripts/e2e-control-align.mjs
 // ═══════════════════════════════════════════════════════════════════════════
 import { chromePath } from './lib/chrome.mjs'
+import { SCENES } from './lib/scenes.mjs'
 import { benchUrl } from './lib/paths.mjs'
 import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
 const { chromium } = require('playwright-core')
 
-const SCENES = ['overview','portfolio','cash','rent','inbox','ledger','finances','checklist',
-  'compare','loan','loanAdvisor','pricing','bills','contacts','wizard','roi','tenant','scan','inventory',
-  'accounting','calendar','clients','documents','plan','billing','branding','referral','modal','select']
 
 // Ενα εικονοστοιχείο δεν είναι αστοχία σχεδίασης, είναι στρογγυλοποίηση του
 // περιηγητή σε κλίμακα οθόνης. Από τα δύο και πάνω, κάποιος έγραψε άλλο ύψος.

@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 // Το προφίλ χρέωσης έχει ένα σπίτι: lib/data/billing.
 import * as billing from '@/lib/data/billing';
-import { T, Btn, Chip } from '@/components/Theme';
+import { T, Btn, Chip, fixedCols } from '@/components/Theme';
 
 type ChipTone = 'accent' | 'neutral';
 
@@ -220,9 +220,12 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
         </div>
       </div>
 
-      {/* Δευτερεύοντα, όλα μαζί σε μία σειρά: ομοιόμορφα, συμπαγή, ισοϋψή.
-          Τέσσερα σε πλάτος στην επιφάνεια εργασίας, αναδιπλώνονται καθαρά. */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 168px), 1fr))', gap: 10, alignItems: 'start' }}>
+      {/* ΤΡΙΑ ΣΕ ΔΥΟ ΣΤΗΛΕΣ ΑΦΗΝΟΥΝ ΤΟ ΤΡΙΤΟ ΜΟΝΟ ΤΟΥ. Το `auto-fit` δίνει όσες
+          στήλες ΧΩΡΑΝΕ, όχι όσες βγαίνουν σε γεμάτες σειρές: μετρημένο στα 412
+          και στα 430, «2+1» με το τρίτο σε μισό πλάτος και τρύπα δίπλα του. Η
+          `fixedCols` κρατά τον κανόνα του έργου — ο μεγαλύτερος διαιρέτης που
+          χωράει, δηλαδή τρία ή ένα, ποτέ δύο. */}
+      <div {...fixedCols(3, 10, 'start')}>
         {ITEMS.map((it, i) => {
           const isOpen = !!open[i];
           return (

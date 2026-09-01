@@ -35,6 +35,7 @@
 //     (οι δημόσιες σελίδες ελέγχονται μόνο αν απαντά το E2E_BASE)
 // ═══════════════════════════════════════════════════════════════════════════
 import { chromePath } from './lib/chrome.mjs'
+import { SCENES } from './lib/scenes.mjs'
 import { abortIfStyleless } from './lib/served-css.mjs'
 import { benchUrl } from './lib/paths.mjs'
 import { createRequire } from 'node:module'
@@ -139,14 +140,21 @@ const PROBE = () => {
       const has = ac.content !== 'none'
       const insetY = has ? Math.abs(Math.min(0, parseFloat(ac.top) || 0)) : 0
       const h = b.height + insetY * 2
-      if (h < 44) add('στόχος αφής', tapTxt, Math.round(h) + 'px')
+      // ΤΟ ΕΒΔΟΜΟ ΨΕΥΔΕΣ ΕΥΡΗΜΑ, ΚΑΙ ΕΙΝΑΙ ΜΙΣΟ ΕΙΚΟΝΟΣΤΟΙΧΕΙΟ. Πέντε οθόνες
+      // των Ρυθμίσεων κατήγγειλλαν «στόχος αφής 44px», δηλαδή το ίδιο το όριο.
+      // Μετρημένα· και τα τρία κουμπιά δηλώνουν `min-height: 44px` και δίνουν
+      // 44,00 — αλλά σε ορισμένα πλάτη ο περιηγητής επιστρέφει 43,99, γιατί το
+      // δοχείο τους έχει κλασματικό πλάτος με κλίμακα οθόνης 2. Στρογγυλοποίηση
+      // πριν τη σύγκριση, όπως γίνεται ήδη στον έλεγχο μεγέθους γραμμάτων: ένα
+      // κουμπί 43 χτυπά, ένα 43,99 όχι.
+      if (Math.round(h) < 44) add('στόχος αφής', tapTxt, Math.round(h) + 'px')
       // ΚΑΙ ΤΟ ΠΛΑΤΟΣ, ΓΙΑΤΙ ΤΟ ΕΙΚΟΝΙΔΙΟ ΕΙΝΑΙ ΣΤΕΝΟ ΣΕ ΔΥΟ ΑΞΟΝΕΣ. Ο έλεγχος
       // μετρούσε μόνο ύψος: ένα ⓘ 14 επί 14 με ζώνη 44 ψηλή και 20 φαρδιά
       // έβγαινε πράσινο. Το κατώτατο εδώ είναι 24, το όριο του WCAG 2.5.8, όσο
       // και η ζώνη που δίνει το `po-tap-inline` οριζόντια.
       const insetX = has ? Math.abs(Math.min(0, parseFloat(ac.left) || 0)) : 0
       const w = b.width + insetX * 2
-      if (w < 24) add('στόχος αφής στενός', tapTxt, Math.round(w) + 'px')
+      if (Math.round(w) < 24) add('στόχος αφής στενός', tapTxt, Math.round(w) + 'px')
     }
   }
   // ═══ ΔΟΧΕΙΟ ΠΟΥ ΞΕΡΝΑΕΙ ΤΟ ΠΕΡΙΕΧΟΜΕΝΟ ΤΟΥ ═══════════════════════════════
@@ -209,8 +217,15 @@ const PROBE = () => {
   // προσωρινά «Περιγραφή, κατηγορία, πάροχος, ημερομηνία ή ποσό της δαπάνης»
   // και ο έλεγχος κοκκίνισε και στα έξι πλάτη («533 σε 290»). Με το κανονικό
   // κείμενο πράσινος.
+  //
+  // ── ΚΑΙ ΤΟ ΕΚΤΟ ΨΕΥΔΕΣ ΕΥΡΗΜΑ: ΤΟ `textarea` ΔΕΝ ΕΙΝΑΙ `input` ──────────
+  // Οταν οι Ρυθμίσεις μπήκαν στη σάρωση, ο έλεγχος έβγαλε δώδεκα ευρήματα για
+  // το ίδιο παράδειγμα, «553 σε 232». Το πεδίο όμως είναι `textarea` και το
+  // παράδειγμά του ΤΥΛΙΓΕΤΑΙ: επαληθεύτηκε με στιγμιότυπο, τρεις γραμμές μέσα
+  // στο κουτί, ολόκληρο και αναγνώσιμο, ενώ το ίδιο κείμενο σε `input` ίδιου
+  // πλάτους κόπηκε στο «δικά σοι». Ο κανόνας ισχύει μόνο εκεί που δεν τυλίγει.
   const cv = document.createElement('canvas').getContext('2d')
-  for (const el of document.querySelectorAll('input[placeholder], textarea[placeholder]')) {
+  for (const el of document.querySelectorAll('input[placeholder]')) {
     const ph = el.getAttribute('placeholder')
     if (!ph || !el.checkVisibility?.()) continue
     const cs = getComputedStyle(el)
@@ -686,7 +701,6 @@ const RUN_DEVICES = PICK_W ? DEVICES.filter(d => PICK_W.includes(d.w)) : DEVICES
 
 const WIDTHS = DEVICES.map(d => d.w)
 const TOUCH = (w) => w < 1100 || w === 1280
-const SCENES = ['overview','portfolio','cash','rent','inbox','ledger','finances','checklist','modal','select','compare','loan','loanAdvisor','pricing','bills','contacts','wizard','roi','roi-pro','tenant','scan','accounting','accounting-pro','calendar','clients','documents','inventory','billing','branding','referral','referralPro','plan','planReno','planSale']
 // ═══ ΤΑ ΠΑΡΑΘΥΡΑ ΠΟΥ ΑΝΟΙΓΟΥΝ ΜΕ ΚΟΥΜΠΙ ═════════════════════════════════════
 // ΜΙΑ ΦΟΡΜΑ ΜΕΣΑ ΣΕ ΠΑΡΑΘΥΡΟ ΔΕΝ ΑΠΟΔΙΔΕΤΑΙ ΑΝ ΔΕΝ ΤΗΝ ΑΝΟΙΞΕΙ ΚΑΠΟΙΟΣ. Η φόρμα
 // ενοικιαστή ζει πίσω από το «Νέος ενοικιαστής» και καμία μέτρηση δεν την είχε
