@@ -35,25 +35,29 @@ begin
       body    := '{}'::jsonb, timeout_milliseconds := 120000);
   $cron$, v_base || '/functions/v1/send-reminders'));
 
-  -- market-data-daily — 08:00 UTC (URL from its own vault secret)
+  -- market-data-daily — 08:00 UTC
+  -- Η διεύθυνση χτίζεται από το `v_base`, όπως και στις άλλες πέντε εργασίες.
+  -- Πριν διαβαζόταν από δικό της μυστικό του vault ΧΩΡΙΣ εφεδρεία: όταν έλειπε,
+  -- το `url` γινόταν NULL και η εργασία δεν έστελνε τίποτα, χωρίς σφάλμα και
+  -- χωρίς κανένα σημάδι. Η διεύθυνση συνάρτησης άκρου δεν είναι μυστικό.
   if exists (select 1 from cron.job where jobname = 'market-data-daily') then perform cron.unschedule('market-data-daily'); end if;
-  perform cron.schedule('market-data-daily', '0 8 * * *', $cron$
+  perform cron.schedule('market-data-daily', '0 8 * * *', format($cron$
     select net.http_post(
-      url     := (select decrypted_secret from vault.decrypted_secrets where name = 'market_data_fn_url'),
+      url     := %L,
       headers := jsonb_build_object('Content-Type','application/json',
                    'x-cron-secret', (select secret from public.cron_secrets where name = 'email_cron')),
       body    := '{}'::jsonb, timeout_milliseconds := 120000);
-  $cron$);
+  $cron$, v_base || '/functions/v1/market-data-updater'));
 
-  -- bank-rates-monthly — 06:30 UTC on the 1st (URL from its own vault secret)
+  -- bank-rates-monthly — 06:30 UTC on the 1st (ίδια διόρθωση)
   if exists (select 1 from cron.job where jobname = 'bank-rates-monthly') then perform cron.unschedule('bank-rates-monthly'); end if;
-  perform cron.schedule('bank-rates-monthly', '30 6 1 * *', $cron$
+  perform cron.schedule('bank-rates-monthly', '30 6 1 * *', format($cron$
     select net.http_post(
-      url     := (select decrypted_secret from vault.decrypted_secrets where name = 'bank_rates_fn_url'),
+      url     := %L,
       headers := jsonb_build_object('Content-Type','application/json',
                    'x-cron-secret', (select secret from public.cron_secrets where name = 'email_cron')),
       body    := '{}'::jsonb, timeout_milliseconds := 180000);
-  $cron$);
+  $cron$, v_base || '/functions/v1/bank-rates-updater'));
 
   -- send-newsletter-weekly — Tue 08:00 UTC
   if exists (select 1 from cron.job where jobname = 'send-newsletter-weekly') then perform cron.unschedule('send-newsletter-weekly'); end if;

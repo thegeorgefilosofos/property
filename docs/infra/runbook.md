@@ -76,3 +76,65 @@ The reference procedure (executed once for a `.env.local` that had been committe
 
 `security-and-automation.md` · `rls-conventions.md` · `security-audit-2026-07.md` ·
 `acquisition-readiness.md` · `../../supabase/README.md`
+
+## Η τροφοδοσία επιτοκίων: πώς ελέγχεται ότι ζει
+
+Η `market-data-daily` τρέχει κάθε πρωί στις 08:00 UTC, καλεί τη
+`market-data-updater` και γράφει στον `public.market_rates` οκτώ επιτόκια, το
+καθένα με τη δική του ημερομηνία παρατήρησης και πηγή (στήλη `provenance`).
+
+**Δεν χρειάζεται καμία χειροκίνητη ρύθμιση.** Το κοινό μυστικό παράγεται από τη
+μετανάστευση `20260901120000` και η διεύθυνση της συνάρτησης χτίζεται από το
+`functions_base_url` του vault, με εφεδρεία τη διεύθυνση της παραγωγής. Και τα
+δύο ήταν, ώς τότε, σιωπηλά σημεία αποτυχίας: η εργασία δεν έβγαζε σφάλμα,
+απλώς δεν έστελνε τίποτα.
+
+### Μία ερώτηση που λέει αν όλα στέκουν
+
+```sql
+select
+  (select count(*) from pg_extension where extname = 'pg_cron')                  as pg_cron,
+  (select count(*) from pg_extension where extname = 'pg_net')                   as pg_net,
+  (select count(*) from public.cron_secrets where name = 'email_cron')           as koino_mystiko,
+  (select count(*) from cron.job where jobname = 'market-data-daily')            as ergasia,
+  (select max(updated_at) from public.market_rates)                              as teleftaia_grammi,
+  (select jsonb_object_keys_count(provenance) from (
+     select provenance from public.market_rates
+      where provenance is not null order by updated_at desc limit 1) x)          as times_me_taftotita;
+```
+
+Οι τέσσερις πρώτες στήλες πρέπει να είναι `1`. Η τελευταία πρέπει να είναι `8`:
+τόσα επιτόκια φέρνει ένα πλήρες πέρασμα. Λιγότερα σημαίνει ότι κάποιες σειρές
+δεν απάντησαν — δεν είναι σφάλμα από μόνο του, γιατί η προηγούμενη τιμή κρατά τη
+θέση της με την ΠΑΛΙΑ της ημερομηνία, αλλά αν μένει έτσι για μέρες αξίζει έλεγχος.
+
+(Αν η `jsonb_object_keys_count` δεν υπάρχει, γράψε
+`(select count(*) from jsonb_object_keys(provenance))` σε υποερώτημα.)
+
+### Πρώτο πέρασμα κατά παραγγελία
+
+```sql
+select net.http_post(
+  url     := coalesce(
+               (select decrypted_secret from vault.decrypted_secrets where name = 'functions_base_url'),
+               'https://aromvduuxtcrzmwwvnej.supabase.co') || '/functions/v1/market-data-updater',
+  headers := jsonb_build_object('Content-Type','application/json',
+               'x-cron-secret', (select secret from public.cron_secrets where name = 'email_cron')),
+  body    := '{}'::jsonb, timeout_milliseconds := 120000);
+```
+
+Μετά από λίγα δευτερόλεπτα:
+
+```sql
+select updated_at, euribor_3m, jsonb_pretty(provenance)
+  from public.market_rates order by updated_at desc limit 1;
+```
+
+### Τι δείχνει η οθόνη όταν κάτι λείπει
+
+Καμία τιμή δεν εμφανίζεται ως «σημερινή» χωρίς παρατήρηση. Οταν η `provenance`
+είναι κενή, η λωρίδα επιτοκίων της καρτέλας Δάνειο δείχνει τιμή ΧΩΡΙΣ
+ημερομηνία: η απουσία λέγεται με απουσία, όχι με παύλα και όχι με «σήμερα».
+Οταν μια τιμή έχει παλιώσει πέρα από το όριο του είδους της (πέντε ημέρες για
+Euribor, τετρακόσιες για επιτόκιο πολιτικής που αλλάζει σπάνια, εβδομήντα πέντε
+για τα ελληνικά μέσα), η ημερομηνία της υπογραμμίζεται διακεκομμένα.
