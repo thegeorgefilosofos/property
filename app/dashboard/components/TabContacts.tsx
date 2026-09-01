@@ -2162,8 +2162,8 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
                   </div>
                   <CField d={cf('contact.messaging')}>
                     <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'center', padding: '12px 16px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Toggle on={!!form.extra.whatsapp} onChange={v => setExtra('whatsapp', v)} ariaLabel="WhatsApp" size="sm" /><span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>WhatsApp</span></div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Toggle on={!!form.extra.viber} onChange={v => setExtra('viber', v)} ariaLabel="Viber" size="sm" /><span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Viber</span></div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Toggle on={!!form.extra.whatsapp} onChange={v => setExtra('whatsapp', v)} ariaLabel="WhatsApp" /><span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>WhatsApp</span></div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Toggle on={!!form.extra.viber} onChange={v => setExtra('viber', v)} ariaLabel="Viber" /><span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Viber</span></div>
                     </div>
                   </CField>
                   <CField d={cf('contact.iban')}>
@@ -2172,7 +2172,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
                   <CField d={cf('contact.iris')}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
                       <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>Δέχεται πληρωμή με IRIS</span>
-                      <Toggle on={!!form.extra.iris} onChange={v => setExtra('iris', v)} ariaLabel="Δέχεται πληρωμή με IRIS" size="sm" />
+                      <Toggle on={!!form.extra.iris} onChange={v => setExtra('iris', v)} ariaLabel="Δέχεται πληρωμή με IRIS" />
                     </div>
                   </CField>
                 </div>
@@ -2217,7 +2217,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
                   </CField>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg-surface)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
                     <div><div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Προτιμώμενη επαφή</div><div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Ανεβαίνει στη γρήγορη πρόσβαση, για να τη βρίσκεις αμέσως</div></div>
-                    <Toggle on={!!form.extra.preferred} onChange={v => setExtra('preferred', v)} ariaLabel="Προτιμώμενη επαφή" size="sm" />
+                    <Toggle on={!!form.extra.preferred} onChange={v => setExtra('preferred', v)} ariaLabel="Προτιμώμενη επαφή" />
                   </div>
                 </div>
 

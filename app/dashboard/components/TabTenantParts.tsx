@@ -16,6 +16,7 @@ import { MONTHS_SHORT } from '@/lib/core/months';
 import { fieldDecision, type FieldContext, type FieldDecision } from '@/lib/property/fields';
 import { InfoDot, fieldLabelStyle } from './UIComponents';
 import type { RentPayment, Tenant } from './TabTenantTypes';
+import { days } from '@/lib/core/greek';
 
 // ─── Micro components ─────────────────────────────────────────────────────────
 // Κεφαλίδα ενότητας: ίδια οπτική με το κοινό SecHdr (χωρίς διακοσμητική τελεία),
@@ -334,7 +335,7 @@ export function PaymentBars({ payments }:{payments:RentPayment[]}) {
           const color=!p.paid?'var(--negative)':late>14?'var(--warning)':late>0?'var(--info)':'var(--positive)';
           return (
             <div key={p.id} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center' }}
-              title={`${MONTHS_SHORT[p.period_month-1]} ${p.period_year}: ${p.paid?'Εξοφλήθη':'Εκκρεμεί'}${late>0?` (${late} ημ. καθυστέρηση)`:''}`}>
+              title={`${MONTHS_SHORT[p.period_month-1]} ${p.period_year}: ${p.paid?'Εξοφλήθη':'Εκκρεμεί'}${late>0?` (καθυστέρηση ${days(late)})`:''}`}>
               <div style={{ width:'100%', height:p.paid?72:36, background:color, borderRadius:'3px 3px 0 0', opacity:0.8, transition:'height 0.4s ease' }}/>
             </div>
           );

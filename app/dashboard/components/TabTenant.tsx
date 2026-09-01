@@ -122,6 +122,7 @@ import {
 } from './TabTenantMoney';
 import { DashboardView, CommView, LegalTaxView, DamagesView, MaintenanceView } from './TabTenantCare';
 import { useLoad } from '@/app/hooks/useLoad';
+import { plural } from '@/lib/core/greek';
 
 // ─── Design tokens, shared source of truth (components/Theme) ────────────────
 
@@ -914,7 +915,10 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
                   ίδιο κείμενο πίσω από τα δύο κυκλάκια· το ένα από τα δύο
                   έλεγε πράγμα που δεν αφορούσε το πεδίο του. */}
               {show('tenant.lease_end')&&<DatePicker label={labelOf('tenant.lease_end')} labelInfo={whyOf('tenant.lease_end')} value={form.lease_end} onChange={v=>sf('lease_end',v)}/>}
-              {form.lease_type==='custom'&&<NumberInput label="Ημέρες" value={String(form.custom_lease_days)} onChange={v=>sf('custom_lease_days',parseInt(v)||0)} suffix="ημ."/>}
+              {/* Η ΣΥΝΤΟΜΟΓΡΑΦΙΑ ΔΕΝ ΕΙΝΑΙ ΕΛΛΗΝΙΚΑ. Το «ημ.» απέφευγε την ερώτηση «ένα ή
+                   πολλά;» και διαβαζόταν ως σύμβολο. Και η ετικέτα έλεγε ήδη «Ημέρες»,
+                   δηλαδή η ίδια λέξη δύο φορές στο ίδιο πεδίο. */}
+              {form.lease_type==='custom'&&<NumberInput label="Διάρκεια" value={String(form.custom_lease_days)} onChange={v=>sf('custom_lease_days',parseInt(v)||0)} suffix={plural(form.custom_lease_days,'ημέρα','ημέρες')}/>}
             </div>
 
             <div style={s.divider}/>

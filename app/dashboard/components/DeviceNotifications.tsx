@@ -92,7 +92,7 @@ export default function DeviceNotifications({ userId }: { userId: string }) {
     <SetRow
       title="Ειδοποιήσεις στη συσκευή"
       desc="Μία ειδοποίηση το πρωί, μόνο όταν κάτι λήγει σήμερα ή αύριο, ακόμη και με την εφαρμογή κλειστή. Οσο είναι ανοιχτή, προειδοποιεί και δέκα λεπτά πριν από κάθε ραντεβού."
-      control={<Toggle on={on} onChange={v => { if (!busy) void (v ? turnOn() : turnOff()) }} size="sm" />}>
+      control={<Toggle on={on} onChange={v => { if (!busy) void (v ? turnOn() : turnOff()) }} />}>
       {note && <div style={{ ...TT.bodySm, color: 'var(--negative)' }}>{note}</div>}
     </SetRow>
   )

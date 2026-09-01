@@ -179,7 +179,7 @@ const SHEET_MARK = 128;
   const png = await shot.screenshot({ type: 'png', omitBackground: true });
   await shot.close();
   const b64 = png.toString('base64');
-  writeFileSync(join(root, 'app/dashboard/components/sheetMark.ts'),
+  writeFileSync(join(root, 'lib/brand/mark.ts'),
     `// ΠΑΡΑΓΟΜΕΝΟ ΑΡΧΕΙΟ. Μην το γράψεις με το χέρι: βγαίνει από το\n`
     + `// scripts/brand/export-logo.mjs, που διαβάζει τη γεωμετρία από το\n`
     + `// components/BrandMark.tsx. Ξανατρέξε το βήμα αν αλλάξει το σήμα.\n`
@@ -188,8 +188,8 @@ const SHEET_MARK = 128;
     + `// Γιατί base64 και όχι αρχείο: η εξαγωγή δεν ζητά τίποτα από το δίκτυο τη\n`
     + `// στιγμή που ο χρήστης πατά «κατέβασμα».\n\n`
     + `/** Το σήμα ως PNG ${SHEET_MARK}×${SHEET_MARK}, σε base64. Σκούρο μελάνι, με διαφάνεια. */\n`
-    + `export const SHEET_MARK_PNG =\n  '${b64}';\n`);
-  console.log(`  ✓ sheetMark.ts  ${SHEET_MARK}×${SHEET_MARK}  ${(b64.length / 1024).toFixed(1)} KB σε base64`);
+    + `export const BRAND_MARK_PNG =\n  '${b64}';\n`);
+  console.log(`  ✓ lib/brand/mark.ts  ${SHEET_MARK}×${SHEET_MARK}  ${(b64.length / 1024).toFixed(1)} KB σε base64`);
 }
 
 for (const a of AVATARS) {

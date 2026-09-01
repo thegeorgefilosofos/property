@@ -198,7 +198,7 @@ export default function NotificationSettings({ userId }: { userId: string }) {
           με σβηστό το email έδειχνε αναμμένο κάτι που δεν έστελνε ποτέ τίποτα.
           Οσο δεν φεύγει email, δεν φαίνεται ρύθμιση email. */}
       <SetRow title="Υπενθυμίσεις με email" desc="Για τα γεγονότα του ημερολογίου σου και για το ληξιπρόθεσμο ενοίκιο."
-        control={<Toggle on={prefs.email_enabled} onChange={v => update({ email_enabled: v })} size="sm" />}>
+        control={<Toggle on={prefs.email_enabled} onChange={v => update({ email_enabled: v })} />}>
         {prefs.email_enabled && (
           <SetList>
             {/* ΤΟ ΔΙΧΤΥ, ΓΙΑ ΟΣΟΥΣ ΣΒΗΝΟΥΝ ΤΟ ΠΕΔΙΟ Η ΕΧΟΥΝ ΗΔΗ ΚΕΝΗ ΓΡΑΜΜΗ.
@@ -211,15 +211,15 @@ export default function NotificationSettings({ userId }: { userId: string }) {
             )}
             <SetGroup>Πόσο πριν</SetGroup>
             <SetRow title="Επτά ημέρες πριν" desc="Εβδομαδιαία προειδοποίηση."
-              control={<Toggle on={prefs.reminder_7days} onChange={v => update({ reminder_7days: v })} size="sm" />} />
+              control={<Toggle on={prefs.reminder_7days} onChange={v => update({ reminder_7days: v })} />} />
             <SetRow title="Τρεις ημέρες πριν" desc="Τριήμερη προειδοποίηση."
-              control={<Toggle on={prefs.reminder_3days} onChange={v => update({ reminder_3days: v })} size="sm" />} />
+              control={<Toggle on={prefs.reminder_3days} onChange={v => update({ reminder_3days: v })} />} />
             <SetRow title="Την προηγούμενη ημέρα" desc="Υπενθύμιση αύριο το πρωί."
-              control={<Toggle on={prefs.reminder_1day} onChange={v => update({ reminder_1day: v })} size="sm" />} />
+              control={<Toggle on={prefs.reminder_1day} onChange={v => update({ reminder_1day: v })} />} />
             <SetRow title="Την ίδια ημέρα" desc="Υπενθύμιση στις 08:00."
-              control={<Toggle on={prefs.reminder_today} onChange={v => update({ reminder_today: v })} size="sm" />} />
+              control={<Toggle on={prefs.reminder_today} onChange={v => update({ reminder_today: v })} />} />
             <SetRow title="Εκπρόθεσμα" desc="Ειδοποίηση για ληξιπρόθεσμες υποχρεώσεις."
-              control={<Toggle on={prefs.reminder_overdue} onChange={v => update({ reminder_overdue: v })} size="sm" />} />
+              control={<Toggle on={prefs.reminder_overdue} onChange={v => update({ reminder_overdue: v })} />} />
 
             <SetGroup>Ενοίκιο</SetGroup>
             {/* ΕΛΕΓΕ «ΔΙΑΚΡΙΤΙΚΗ ΕΝΗΜΕΡΩΣΗ» ΚΑΙ ΔΕΝ ΕΛΕΓΕ ΣΕ ΠΟΙΟΝ.
@@ -228,7 +228,7 @@ export default function NotificationSettings({ userId }: { userId: string }) {
                 τα δύο περάσματα της send-reminders στέλνουν στο mailbox() του
                 ιδιοκτήτη· το tenants.email δεν το διαβάζει κανένας αποστολέας. */}
             <SetRow title="Ληξιπρόθεσμο ενοίκιο" desc="Ενημέρωση στη δική σου διεύθυνση αποστολής όταν μια δόση καθυστερεί. Στον ενοικιαστή δεν στέλνει τίποτα η εφαρμογή."
-              control={<Toggle on={prefs.dunning_enabled} onChange={v => update({ dunning_enabled: v })} size="sm" />}>
+              control={<Toggle on={prefs.dunning_enabled} onChange={v => update({ dunning_enabled: v })} />}>
               {prefs.dunning_enabled && (
                 <>
                 <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
@@ -264,7 +264,7 @@ export default function NotificationSettings({ userId }: { userId: string }) {
           ημερολογίου, κανένας για το ότι άλλαξε ο νόμος. */}
       <SetRow title="Αλλαγές νομοθεσίας"
         desc="Μόνο όσες αφορούν τα ακίνητά σου και ζητούν κίνηση, με τη νομική βάση και σύνδεσμο στην επίσημη πηγή. Εμφανίζονται και ως εκκρεμότητες στο ακίνητο που αφορούν."
-        control={<Toggle on={prefs.legal_updates} onChange={v => update({ legal_updates: v })} size="sm" />} />
+        control={<Toggle on={prefs.legal_updates} onChange={v => update({ legal_updates: v })} />} />
 
       {/* ΤΟ ΔΕΥΤΕΡΟ ΚΑΝΑΛΙ, ΚΑΙ ΤΟ ΜΟΝΟ ΠΟΥ ΦΤΑΝΕΙ ΧΩΡΙΣ ΝΑ ΑΝΟΙΞΕΙ ΤΙΠΟΤΑ.
           Δεν κρέμεται από το `email_enabled`: είναι άλλος δρόμος, όχι ρύθμιση

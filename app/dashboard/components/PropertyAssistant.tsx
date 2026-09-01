@@ -1829,7 +1829,7 @@ function AssistantSettings({ draft, onSave, onCancel, onClearMemory, hasMemory, 
             <div style={{ fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Να θυμάται τις συζητήσεις</div>
             <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.4 }}>Συνεχίζει από εκεί που μείνατε, ανά ακίνητο. Μένει μόνο στη συσκευή σου.</div>
           </div>
-          <Toggle on={memory} onChange={setMemory} ariaLabel="Μνήμη" size="sm" />
+          <Toggle on={memory} onChange={setMemory} ariaLabel="Μνήμη" />
         </div>
         {memory && hasMemory && (
           <button onClick={onClearMemory} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--negative)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 600 }}>Σβήσε τη μνήμη αυτού του ακινήτου</button>
@@ -1857,7 +1857,7 @@ function AssistantSettings({ draft, onSave, onCancel, onClearMemory, hasMemory, 
             <div style={{ fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Σύγκριση μεταξύ ακινήτων</div>
             <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.4 }}>Να βλέπει και τα άλλα σου ακίνητα για συγκρίσεις (ποιο αποδίδει καλύτερα).</div>
           </div>
-          <Toggle on={compare} onChange={setCompare} ariaLabel="Σύγκριση" size="sm" />
+          <Toggle on={compare} onChange={setCompare} ariaLabel="Σύγκριση" />
         </div>
       </div>
 

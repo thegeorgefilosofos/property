@@ -12,7 +12,7 @@ import { downloadFile, safeFilename } from '@/lib/core/download';
 // έδινε στους πάντες έναν εύκολο δρόμο να πάρουν τη `money()` σέρνοντας μαζί
 // της τα 2,5 MB της βιβλιοθήκης — δηλαδή ακριβώς το σφάλμα που διορθώνεται.
 import { FMT, S, ROW, MARGINS, boxAll, MARK_INDENT, sheetName, money, percent, type Cell } from './sheetFormat';
-import { SHEET_MARK_PNG } from './sheetMark';
+import { BRAND_MARK_PNG } from '@/lib/brand/mark';
 export { XLSX };
 
 
@@ -548,7 +548,7 @@ export function workbookBytes(wb: XLSX.WorkBook): Uint8Array {
   });
 
   if (marks > 0) {
-    zip[MEDIA] = fromBase64(SHEET_MARK_PNG);
+    zip[MEDIA] = fromBase64(BRAND_MARK_PNG);
     let ct = strFromU8(zip['[Content_Types].xml']);
     if (!ct.includes('Extension="png"')) {
       ct = ct.replace(/(<Types[^>]*>)/, '$1<Default Extension="png" ContentType="image/png"/>');

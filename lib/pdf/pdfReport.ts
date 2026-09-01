@@ -22,6 +22,7 @@ import { localDay } from '@/lib/core/time';
 import { fp, fn, feCompact, grUpper } from '@/lib/core/format';
 import { INK, INK_FAINT, INK_MUTED, PAPER_ALT, RULE, RULE_SOFT } from '@/lib/print/ink';
 import { BRAND_MARK_INK } from '@/components/BrandMark';
+import { BRAND_MARK_DATA_URL } from '@/lib/brand/mark';
 
 // ── ΜΟΡΦΟΠΟΙΗΣΗ — ΙΔΙΑ ΜΕ ΤΗΝ ΟΘΟΝΗ ΚΑΙ ΜΕ ΤΙΣ ΕΚΤΥΠΩΣΕΙΣ ────────────────────
 // Ήταν τρίτο αντίγραφο των ίδιων τεσσάρων μορφοποιητών, με τις ίδιες τρεις
@@ -274,11 +275,15 @@ export function buildDocDefinition(model: PdfReportModel): Node {
   const asOfLabel = model.meta.asOfLabel ?? 'Ημερομηνία έκδοσης';
   const asOfValue = model.meta.asOfValue ?? pDate(model.meta.issuedAt);
 
-  // Σήμα: λογότυπο (dataURL) ή έγχρωμο τετράγωνο με «P».
+  // ══ ΤΟ ΣΗΜΑ ΜΑΣ, ΟΧΙ ΕΝΑ ΓΡΑΜΜΑ ══════════════════════════════════════════
+  // Οταν ο χρήστης δεν έχει ανεβάσει δικό του λογότυπο, εδώ ζωγραφιζόταν ένα
+  // γαλάζιο τετράγωνο με το γράμμα «P». Δεν ήταν προσωρινό: έβγαινε σε ΚΑΘΕ
+  // πίνακα τοκοχρεολυσίου, κάθε φάκελο λογιστή, κάθε έγγραφο που φεύγει από
+  // τα χέρια του ιδιοκτήτη προς τράπεζα, λογιστή ή ενοικιαστή. Το πραγματικό
+  // σήμα υπήρχε ήδη — απλώς ζούσε σε φάκελο που η βιβλιοθήκη του PDF δεν
+  // εισάγει, οπότε κανείς δεν το είχε συνδέσει.
   const logo = model.branding?.logoUrl && /^data:image\//.test(model.branding.logoUrl) ? model.branding.logoUrl : '';
-  const mark: Node = logo
-    ? { image: logo, fit: [34, 34], width: 34 }
-    : { table: { widths: [34], heights: [26], body: [[{ text: 'P', color: BRAND_MARK_INK, bold: true, fontSize: 17, alignment: 'center', fillColor: accent, margin: [0, 4, 0, 0] }]] }, layout: 'noBorders' };
+  const mark: Node = { image: logo || BRAND_MARK_DATA_URL, fit: [34, 34], width: 34 };
 
   const brandBlock: Node = {
     columns: [

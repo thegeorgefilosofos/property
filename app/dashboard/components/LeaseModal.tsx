@@ -384,8 +384,14 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
 
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '11px 13px', borderRadius: T.radius.inner, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
                 <svg aria-hidden="true" width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55, fontFamily: T.font.sans }}>
-                  Μετά την υπογραφή, υπόβαλε τη <strong style={{ color: 'var(--text-primary)' }}>{LEASE_DECLARATION_NAME}</strong> στο <a href={MYAADE} target="_blank" rel="noreferrer" title={aadeTitle('lease')} style={{ color: 'var(--accent)', textDecoration: 'none' }}>myAADE</a>, έως {grDate(res.declarationDeadline)}.
+                {/* ΤΟ «ΜΕΤΑ ΤΗΝ ΥΠΟΓΡΑΦΗ» ΗΤΑΝ ΔΕΚΑΕΝΝΙΑ ΧΑΡΑΚΤΗΡΕΣ ΠΟΥ ΔΕΝ ΕΛΕΓΑΝ
+                    ΤΙΠΟΤΑ: το κείμενο ζει ΜΕΣΑ στο παράθυρο υπογραφής, οπότε το
+                    «μετά» είναι δεδομένο. Τα κουβαλούσε όμως αρκετά ώστε η
+                    πρόταση να σπάει, αφήνοντας την ΗΜΕΡΟΜΗΝΙΑ μόνη της στη
+                    δεύτερη γραμμή — δηλαδή το μοναδικό νούμερο που πρέπει να
+                    συγκρατήσει ο χρήστης έφευγε από το βλέμμα. */}
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55, fontFamily: T.font.sans, textWrap: 'pretty' as const }}>
+                  Υπόβαλε τη <strong style={{ color: 'var(--text-primary)' }}>{LEASE_DECLARATION_NAME}</strong> στο <a href={MYAADE} target="_blank" rel="noreferrer" title={aadeTitle('lease')} style={{ color: 'var(--accent)', textDecoration: 'none' }}>myAADE</a> έως {grDate(res.declarationDeadline)}.
                 </div>
               </div>
 

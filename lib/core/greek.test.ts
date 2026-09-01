@@ -5,6 +5,7 @@
 // είναι οι είσοδοι στις οποίες το app έδινε δύο διαφορετικές απαντήσεις.
 import {
   parseAmount, parseDate, isValidAfm, afmDigits, normalizePhone, nightsBetween, orthodoxEaster,
+  days, years, months, plural,
 } from './greek';
 
 let pass = 0, fail = 0;
@@ -131,6 +132,22 @@ function ok(name: string, cond: boolean) { if (cond) pass++; else { fail++; cons
     const d = new Date(`${orthodoxEaster(y)}T00:00:00Z`);
     return d.getUTCDay() === 0;
   }));
+}
+
+
+// ══ ΕΝΙΚΟΣ ΚΑΙ ΠΛΗΘΥΝΤΙΚΟΣ ══════════════════════════════════════════════════
+{
+  eq('μία ημέρα',   days(1),  '1 ημέρα');
+  eq('μηδέν ημέρες', days(0), '0 ημέρες');
+  eq('πέντε ημέρες', days(5), '5 ημέρες');
+  // Η καθυστέρηση γράφεται και με πρόσημο: «πριν από 1 ημέρα», όχι «ημέρες».
+  eq('μείον μία ημέρα', days(-1), '-1 ημέρα');
+  eq('ένας χρόνος', years(1), '1 χρόνο');
+  eq('επτά χρόνια', years(7), '7 χρόνια');
+  eq('ένας μήνας',  months(1), '1 μήνα');
+  eq('εννέα μήνες', months(9), '9 μήνες');
+  eq('γενικός κανόνας', plural(1, 'ακίνητο', 'ακίνητα'), 'ακίνητο');
+  eq('γενικός κανόνας, πληθυντικός', plural(3, 'ακίνητο', 'ακίνητα'), 'ακίνητα');
 }
 
 console.log(fail === 0 ? `✓ core/greek: ${pass} έλεγχοι πέρασαν` : `✗ core/greek: ${fail} απέτυχαν από ${pass + fail}`);

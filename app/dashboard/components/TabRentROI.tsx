@@ -528,7 +528,7 @@ const g4box = fixedCols(4, 12, 'stretch');
 function Toggle({ checked, onChange, label, note }: { checked: boolean; onChange: (v: boolean) => void; label: string; note: string }) {
   return (
     <div>
-      <Switch on={checked} onChange={onChange} label={label} size="sm" />
+      <Switch on={checked} onChange={onChange} label={label} />
       {/* ΜΑΚΡΙΑ ΓΡΑΜΜΗ, ΠΕΡΙΣΣΟΤΕΡΟΣ ΑΕΡΑΣ. Χωρίς όριο πλάτους η σημείωση πιάνει
           όλη την κάρτα και φτάνει τους 103 χαρακτήρες ανά γραμμή στα 820: το
           1,5 του ύψους γραμμής άφηνε το μάτι να χάνει τη σειρά στην επιστροφή. */}

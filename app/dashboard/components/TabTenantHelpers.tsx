@@ -24,6 +24,7 @@ export { SegmentControl };
 // Ο τύπος και η λογική ζουν πλέον στο lib/rent/services.ts. Εδώ μένει μόνο
 // επανεξαγωγή, ώστε οι δώδεκα οθόνες που τα εισάγουν να μην αλλάξουν γραμμή.
 import { serviceLinesFrom, servicesTenantCharge, servicesOwnerCost, type ServiceBy, type ServiceLine } from '@/lib/rent/services';
+import { days } from '@/lib/core/greek';
 export { serviceLinesFrom, servicesTenantCharge, servicesOwnerCost };
 export type { ServiceBy, ServiceLine };
 export type LeaseType = 'monthly' | 'biannual' | 'annual' | '18months' | '24months' | '36months' | 'custom';
@@ -80,8 +81,8 @@ export const daysLeft = (end: string | null) =>
 export const leaseSt = (d: number | null) => {
   if (d == null) return null;
   if (d < 0)   return { label:'Έληξε',    color:'var(--negative)', bg:'var(--negative-dim)' };
-  if (d <= 30) return { label:`${d} ημ.`, color:'var(--warning)',  bg:'var(--warning-dim)'  };
-  if (d <= 90) return { label:`${d} ημ.`, color:'var(--accent)',   bg:'var(--accent-dim)'   };
+  if (d <= 30) return { label:days(d), color:'var(--warning)',  bg:'var(--warning-dim)'  };
+  if (d <= 90) return { label:days(d), color:'var(--accent)',   bg:'var(--accent-dim)'   };
   return                { label:'Ενεργό',  color:'var(--positive)', bg:'var(--positive-dim)' };
 };
 // Η ΛΗΞΗ ΤΗΣ ΜΙΣΘΩΣΗΣ ΕΧΑΝΕ ΜΙΑ ΜΕΡΑ ΣΤΗ ΘΕΡΙΝΗ ΩΡΑ.

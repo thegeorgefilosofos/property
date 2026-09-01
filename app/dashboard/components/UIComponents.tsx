@@ -67,7 +67,7 @@ export function ToggleField({ label, labelInfo, on, onChange }: { label: string;
           κουμπί 44×44 με αρνητικό περιθώριο, οπότε αλλάζει η όψη, όχι η περιοχή
           που δέχεται το δάχτυλο. */}
       <div style={{ height: FIELD_HEIGHT, display: 'flex', alignItems: 'center', boxSizing: 'border-box' }}>
-        <Toggle on={on} onChange={onChange} ariaLabel={label} size="sm"/>
+        <Toggle on={on} onChange={onChange} ariaLabel={label}/>
       </div>
     </div>
   );
@@ -1160,7 +1160,6 @@ interface ToggleProps {
   label?: string;
   /** Το όνομα όταν δεν υπάρχει ορατό κείμενο, γιατί το λέει η ετικέτα από πάνω. */
   ariaLabel?: string;
-  size?: 'sm' | 'md';
 }
 
 // ═══ Η ΜΠΑΡΑ ΜΑΖΙΚΩΝ ΕΝΕΡΓΕΙΩΝ ════════════════════════════════════════════
@@ -1258,13 +1257,18 @@ export function BulkActionBar({ count, countLabel, actions, onClear, minWidth = 
 // Ενα μέγεθος, ίδιο κενό δύο εικονοστοιχείων γύρω γύρω· και στις δύο
 // καταστάσεις. Αλλάζει μόνο η ΘΕΣΗ, όπως σε κάθε σοβαρό διακόπτη.
 // ═══════════════════════════════════════════════════════════════════════════
-export const TOGGLE_SIZE = {
-  sm: { w: 44, h: 26, thumb: 18 },
-  md: { w: 56, h: 32, thumb: 24 },
-} as const;
+// ── ΕΝΑ ΜΕΓΕΘΟΣ, ΧΩΡΙΣ ΕΠΙΛΟΓΗ ────────────────────────────────────────────
+// Υπήρχαν δύο, «sm» και «md»· η επιλογή γινόταν σε κάθε κλήση ξεχωριστά:
+// είκοσι τρία σημεία έγραφαν το ένα, εικοσιένα το άλλο. Δύο διαφορετικοί
+// διακόπτες στην ίδια εφαρμογή, χωρίς κανόνα για το πότε ισχύει ποιος —
+// δηλαδή το μέγεθος το αποφάσιζε όποιος έγραφε τη γραμμή εκείνη τη μέρα.
+//
+// Ενα μέγεθος παντού. Η ΠΡΟΠΑΙΔΕΙΑ ΤΟΥ ΤΥΠΟΥ ΕΙΝΑΙ Ο ΦΥΛΑΚΑΣ: η ιδιότητα
+// `size` δεν υπάρχει πια, οπότε κανείς δεν μπορεί να ζητήσει άλλο.
+export const TOGGLE = { w: 52, h: 30, thumb: 22 } as const;
 
-export function ToggleTrack({ on, size = 'md' }: { on: boolean; size?: 'sm' | 'md' }) {
-  const { w, h, thumb } = TOGGLE_SIZE[size];
+export function ToggleTrack({ on }: { on: boolean }) {
+  const { w, h, thumb } = TOGGLE;
   return (
     <span style={{
       display: 'block',
@@ -1290,8 +1294,8 @@ export function ToggleTrack({ on, size = 'md' }: { on: boolean; size?: 'sm' | 'm
   );
 }
 
-export function Toggle({ on, onChange, label, ariaLabel, size = 'md' }: ToggleProps) {
-  const { w, h } = TOGGLE_SIZE[size];
+export function Toggle({ on, onChange, label, ariaLabel }: ToggleProps) {
+  const { w, h } = TOGGLE;
   // ═══ Ο ΣΤΟΧΟΣ ΑΦΗΣ ΕΙΝΑΙ 44, Η ΟΨΗ ΜΕΝΕΙ ΟΠΩΣ ΗΤΑΝ ══════════════════════
   //
   // Το κουμπί ΗΤΑΝ το ίδιο το ορατό ελατήριο: 52×32 στο κανονικό μέγεθος και
@@ -1324,7 +1328,7 @@ export function Toggle({ on, onChange, label, ariaLabel, size = 'md' }: TogglePr
           flexShrink: 0, cursor: 'pointer',
         }}
       >
-        <ToggleTrack on={on} size={size} />
+        <ToggleTrack on={on} />
       </button>
       {/* ΤΟ ΑΝΟΙΧΤΟ ΔΕΝ ΕΙΝΑΙ ΠΡΑΣΙΝΟ. Το ίδιο το primitive έβαφε το «Ναι» με το
           σημασιολογικό πράσινο — μέσα στο κοινό component, δηλαδή σε κάθε

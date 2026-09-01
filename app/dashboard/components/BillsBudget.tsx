@@ -1116,7 +1116,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
   const settingToggle = (settingKey: string, on: boolean, title: string, desc: string) => (
     <button type="button" role="switch" aria-checked={on} onClick={() => updateBudget(settingKey, on ? 'false' : 'true')}
       style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'var(--bg-elevated)', border: `1px solid ${on ? 'var(--border-accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, cursor: 'pointer', textAlign: 'left', fontFamily: T.font.sans }}>
-      <ToggleTrack on={on} size="sm" />
+      <ToggleTrack on={on} />
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{title}</span>
         <span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{desc}</span>
@@ -1915,7 +1915,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
                           ζωγράφιζε «οπτικά τον ΙΔΙΟ διακόπτη» με το χέρι: ίδια
                           νούμερα, γραμμένα δεύτερη φορά. Την επόμενη φορά που
                           θα αλλάξει το ελατήριο, αυτό εδώ θα έμενε πίσω. */}
-                      <Toggle on={!isEx} size="sm" ariaLabel="Μετρά στον προϋπολογισμό"
+                      <Toggle on={!isEx} ariaLabel="Μετρά στον προϋπολογισμό"
                         onChange={() => { if (isEx) { unexcludeItem(it.id); setExclAmtDraft(d => { const n = { ...d }; delete n[it.id]; return n; }); } else { const snap = budgets.__excluded; excludeItem(it.id); notify(`Εξαιρέθηκε «${it.label}»`, { duration: UNDO_MS, action: { label: 'Αναίρεση', onClick: () => persistCats({ __excluded: snap ?? '{}' }) } }); } }} />
                     </div>
                     {/* ═══ ΤΡΕΙΣ ΣΕΙΡΕΣ ΕΓΙΝΑΝ ΜΙΑ ══════════════════════════════════

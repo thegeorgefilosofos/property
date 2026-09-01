@@ -91,6 +91,7 @@ import {
   type RentComp,
   type PayMethod,
 } from './TabTenantTypes';
+import { days } from '@/lib/core/greek';
 import {
   SectionTitle,
   KpiCard,
@@ -239,7 +240,7 @@ export function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string
           )}
 
           <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16, padding:'12px 14px', background:'var(--bg-elevated)', borderRadius:T.radius.inner }}>
-            <Toggle on={useCustom} onChange={setUseCustom} size="sm"/>
+            <Toggle on={useCustom} onChange={setUseCustom}/>
             <span style={{ fontSize:12, color:'var(--text-primary)', fontFamily:T.font.sans }}>Ποσοστό της σύμβασης</span>
           </div>
           {useCustom&&(
@@ -805,7 +806,7 @@ export function PaymentsView({ tenant, propertyId, userId, payments, onRefresh, 
                   <td style={s.td}><StatusPill p={p}/>{p.tenant_declared&&!p.paid?<span style={{ display:'block', marginTop:4, fontSize: 11, color:'var(--warning)', fontFamily:T.font.sans, fontWeight:600 }}>Δηλώθηκε από μισθωτή</span>:null}</td>
                   <td style={s.tdM}>{p.method||ABSENT}</td>
                   <td style={s.tdM}>{fmtD(p.paid_date)}</td>
-                  <td style={s.tdM}>{fmtD(p.due_date)}{p.days_late&&p.days_late>0?<span style={{ display:'block', fontSize: 11, color:p.days_late>14?'var(--negative)':'var(--warning)' }}>+{p.days_late} ημ.</span>:null}</td>
+                  <td style={s.tdM}>{fmtD(p.due_date)}{p.days_late&&p.days_late>0?<span style={{ display:'block', fontSize: 11, color:p.days_late>14?'var(--negative)':'var(--warning)' }}>+{days(p.days_late)}</span>:null}</td>
                   <td style={s.td}>
                     <div style={{ display:'flex', gap:6, flexWrap:'wrap' as const }}>
                       {!p.paid

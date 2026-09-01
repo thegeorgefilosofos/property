@@ -9,6 +9,7 @@ import { planAtLeast, FEATURE_MIN_PLAN } from '@/lib/billing/entitlements';
 import { sanitizeAccent, sanitizeLogo, DEFAULT_ACCENT } from '@/lib/reportBranding';
 import { INK, INK_MUTED, PAPER } from '@/lib/print/ink';
 import { failed } from '@/lib/core/dbError';
+import { BRAND_MARK_DATA_URL } from '@/lib/brand/mark';
 
 const MAX_LOGO_BYTES = 500_000;
 
@@ -195,7 +196,11 @@ export default function ReportBranding({ userId, plan, onUpgrade }: { userId: st
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 18px', borderBottom: `2px solid ${sanitizeAccent(accent)}` }}>
             {logoUrl
               ? <img src={logoUrl} alt="Λογότυπο επιχείρησης" style={{ height: 34, width: 'auto', maxWidth: 150, objectFit: 'contain' }} />
-              : <div style={{ width: 34, height: 34, borderRadius: 8, background: sanitizeAccent(accent), color: PAPER, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 16 }}>{(previewName[0] || 'P').toUpperCase()}</div>}
+              /* Η ΠΡΟΕΠΙΣΚΟΠΗΣΗ ΔΕΙΧΝΕΙ ΟΤΙ ΘΑ ΤΥΠΩΘΕΙ. Εδώ έμπαινε το αρχικό
+                 γράμμα της επωνυμίας σε έγχρωμο τετράγωνο, ενώ το PDF τύπωνε
+                 σταθερά «P»: η προεπισκόπηση έλεγε άλλα από το αρχείο. Και τα
+                 δύο δείχνουν πλέον το ΙΔΙΟ σήμα, από την ίδια πηγή. */
+              : <img src={BRAND_MARK_DATA_URL} alt="Σήμα PROPERWISE" style={{ height: 34, width: 34, objectFit: 'contain' }} />}
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 16, fontWeight: 700, color: INK, fontFamily: T.font.sans }}>{previewName}</div>
               <div style={{ fontSize: 11, color: INK_MUTED, fontFamily: T.font.sans }}>Αναφορά ακινήτου</div>

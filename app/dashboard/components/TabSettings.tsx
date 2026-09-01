@@ -200,7 +200,7 @@ function MarketDataSharing({ userId }: { userId: string }) {
   };
   return (
     <SetRow title="Συνεισφορά στα δεδομένα κοινότητας"
-      control={loaded ? <Toggle on={on} onChange={toggle} size="sm" /> : null}
+      control={loaded ? <Toggle on={on} onChange={toggle} /> : null}
       desc={<>
         Αν το ενεργοποιήσεις, τα ακίνητά σου συμμετέχουν <strong>ανώνυμα και συγκεντρωτικά</strong> στα δεδομένα
         αγοράς ανά περιοχή (διάμεση απόδοση και τιμή), που βοηθούν κάθε ιδιοκτήτη να συγκρίνει ρεαλιστικά.
@@ -884,9 +884,9 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
                 ]} />
             </div>} />
           <SetRow title="Μειωμένη κίνηση" desc="Περιορίζει τα εφέ κίνησης σε όλη την εφαρμογή, για πιο ήρεμη εμπειρία."
-            control={<Toggle on={reduceMotion} onChange={v => setA11y('a11y-reduce-motion', v, setReduceMotion)} size="sm" />} />
+            control={<Toggle on={reduceMotion} onChange={v => setA11y('a11y-reduce-motion', v, setReduceMotion)} />} />
           <SetRow title="Μεγαλύτερο κείμενο" desc="Ήπια μεγέθυνση της διεπαφής για πιο άνετη ανάγνωση."
-            control={<Toggle on={largeText} onChange={v => setA11y('a11y-large-text', v, setLargeText)} size="sm" />} />
+            control={<Toggle on={largeText} onChange={v => setA11y('a11y-large-text', v, setLargeText)} />} />
           {/* ── ΤΟ «ΑΠΛΟΠΟΙΗΜΕΝΟ ΜΕΝΟΥ» ΕΦΥΓΕ ΑΠΟ ΕΔΩ ────────────────────────
               Η ίδια προτίμηση ρυθμιζόταν σε δύο σημεία, με δύο ονόματα και
               ΑΝΤΙΣΤΡΟΦΗ πολικότητα: στην πλαϊνή μπάρα ως «Όλες οι καρτέλες» /
