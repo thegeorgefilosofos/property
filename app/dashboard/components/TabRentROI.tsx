@@ -459,7 +459,12 @@ function LeverCard({ lever }: { lever: YieldLever }) {
         </InfoHint>
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'baseline', gap: 8, whiteSpace: 'nowrap' }}>
           <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', fontFamily: SANS, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em' }}>{lever.gain}</span>
-          {lever.href && <a href={lever.href} target="_blank" rel="noreferrer" aria-label={`Πηγή: ${lever.title}`} style={{ color: 'var(--text-tertiary)', display: 'inline-flex', alignItems: 'center', minHeight: T.h.md }}><ArrowUpRight size={14} /></a>}
+          {/* ΤΟ ΥΨΟΣ ΔΕΝ ΕΙΝΑΙ ΣΤΟΧΟΣ ΑΦΗΣ ΑΝ ΛΕΙΠΕΙ ΤΟ ΠΛΑΤΟΣ. Εδώ μπήκε
+              `minHeight` και το κουτί έμεινε 14 εικονοστοιχεία φαρδύ, όσο το
+              βελάκι: ο σαρωτής το βρήκε σε πέντε κάρτες επί έξι σκηνές. Ο
+              στόχος θέλει ΚΑΙ τις δύο διαστάσεις· και το εικονίδιο κεντράρεται
+              μέσα του. */}
+          {lever.href && <a href={lever.href} target="_blank" rel="noreferrer" aria-label={`Πηγή: ${lever.title}`} style={{ color: 'var(--text-tertiary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: T.h.md, minHeight: T.h.md, marginRight: -8 }}><ArrowUpRight size={14} /></a>}
         </span>
       </div>
       <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0, fontFamily: SANS, lineHeight: 1.55 }}>{lever.impact}</p>

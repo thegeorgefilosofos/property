@@ -2666,7 +2666,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
      μενού με χώρο για το «Μισθωτός αορίστου χρόνου». */
   grid-template-columns: 0.85fr 1.6fr 1.75fr 2.9fr 2.9fr;
 }
-@media (max-width: 1100px) {
+/* Το σπάσιμο είναι στα 1.200, όχι στα 1.100: στα 1.120 η σειρά είναι πιο στενή
+   από τα 1.194 όπου μετρήθηκαν οι αναλογίες και το «Καθαρό μηνιαίο εισόδημα»
+   ξανατσάκιζε. Οι τρεις στήλες δίνουν εκεί άνετο πλάτος σε κάθε ετικέτα. */
+@media (max-width: 1200px) {
   .approval-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (max-width: 600px) { .approval-row { grid-template-columns: minmax(0, 1fr); } }

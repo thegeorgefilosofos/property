@@ -1047,7 +1047,12 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
               {bankId==='custom'&&<div style={{marginTop:8}}><TextInput label="Όνομα τράπεζας" value={customBank} onChange={setCustomBank} placeholder="Παράδειγμα: Παγκρήτια Τράπεζα"/></div>}
             </div>
             <CustomSelect label="Τύπος επιτοκίου" value={rateType} onChange={v=>{setRateType(v as RateType);setActivePreset(null)}} options={RATE_TYPE_OPTIONS}/>
-            {(rateType==='fixed'||rateType==='mixed')&&<CustomSelect label="Διάρκεια σταθερής περιόδου" value={fixedPeriod} onChange={setFixedPeriod} options={FIXED_PERIOD_OPTIONS}/>}
+            {/* «Διάρκεια σταθερής περιόδου» ήταν 25 χαρακτήρες και στα 900 η
+                στήλη δεν τους χωρούσε: η ετικέτα τσάκιζε σε δεύτερη γραμμή ενώ
+                οι τρεις διπλανές έμεναν σε μία, οπότε το κουτί της ξεκινούσε πιο
+                χαμηλά. Η «Διάρκεια» περισσεύει, γιατί το πεδίο δίπλα λέει ήδη
+                «Τύπος επιτοκίου» και η τιμή του είναι σε έτη. */}
+            {(rateType==='fixed'||rateType==='mixed')&&<CustomSelect label="Σταθερή περίοδος" value={fixedPeriod} onChange={setFixedPeriod} options={FIXED_PERIOD_OPTIONS}/>}
             <div title={rateType==='variable'?'Περιθώριο τράπεζας πάνω από το Euribor':undefined}>
               <NumberInput label={rateType==='variable'?'Περιθώριο τράπεζας (%)':'Ετήσιο επιτόκιο (%)'} value={rate} onChange={v=>{setRate(v);setActivePreset(null)}} suffix="%" step={0.05}/>
               {rateType==='variable'&&(
