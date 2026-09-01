@@ -20,7 +20,7 @@ import { confirmDialog } from '@/components/confirmBus'
 import { Gift } from 'lucide-react'
 import { downloadXlsx } from './sheets';
 import TabLoanCalculator, { type LoanCalcState } from './TabLoanCalculator'
-import { useMarketRates, useBankRates, useLoanPrograms, useIsAdmin } from '../../hooks/useMarketData'
+import { useMarketRates, useBankRates, useLoanPrograms, useIsAdmin, useMarketFeedHealth } from '../../hooks/useMarketData'
 import { greekDay, greekWhen, seriesPage, ECB_SERIES } from '@/lib/market/ecb'
 import { BANKS_NORM, PROGRAMS_NORM, mergeBanks, mergePrograms, normProgram, BANKS_VERIFIED, RATES_DISCLAIMER, type ComparisonBank, type ComparisonProgram, LOAN_TYPES, rateRange, GLOSSARY, EURIBOR_HISTORY, SERVICERS_GUIDE, calcMonthly, fmtEur, fmtPct, LoanType, RateType, SavedLoan, MARKET_FALLBACK } from './TabLoanData'
 import { rankLoans, spitiMouEligibility, type UserLoanNeeds } from '@/lib/loans/recommend'
@@ -365,6 +365,9 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
   const {banks:liveBanks,loading:banksLoading,verifiedAt,reload:reloadBanks} = useBankRates()
   const {programs:livePrograms }   = useLoanPrograms()
   const {isAdmin} = useIsAdmin()
+  // Ρωτιέται ΜΟΝΟ όταν ο χρήστης είναι διαχειριστής: κανένα περιττό αίτημα
+  // στη βάση για τους υπόλοιπους, που ούτως ή άλλως δεν θα έβλεπαν τίποτα.
+  const feedHealth = useMarketFeedHealth(isAdmin)
 
   // Ζωντανά ή εφεδρικά, περνούν από την ΙΔΙΑ κανονικοποίηση. Πριν, τα ζωντανά
   // πήγαιναν κατευθείαν στην οθόνη με άλλα ονόματα πεδίων από τα εφεδρικά και
@@ -866,6 +869,25 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
           ))}
         </div>
       </div>
+
+      {/* ══ Η ΤΡΟΦΟΔΟΣΙΑ ΜΙΛΑ ΜΟΝΟ ΟΤΑΝ ΕΧΕΙ ΧΑΛΑΣΕΙ ═══════════════════════════
+          ΣΙΩΠΗ ΟΤΑΝ ΟΛΑ ΔΟΥΛΕΥΟΥΝ. Ενα μόνιμο «όλα καλά» θα ήταν άλλη μια
+          γραμμή που ο διαχειριστής μαθαίνει να προσπερνά — και ακριβώς τη μέρα
+          που θα άλλαζε, δεν θα το πρόσεχε. Εμφανίζεται μόνο με πρόβλημα.
+
+          ΚΑΙ ΜΟΝΟ ΣΤΟΝ ΔΙΑΧΕΙΡΙΣΤΗ. Ο ιδιοκτήτης βλέπει ήδη την αλήθεια: κάθε
+          τιμή κουβαλά την ημερομηνία της και η παλιά υπογραμμίζεται
+          διακεκομμένα. Δεν έχει τι να κάνει με το «η εργασία δεν έτρεξε» και
+          δεν του χρωστάμε άγχος για κάτι που δεν ελέγχει. */}
+      {isAdmin && feedHealth.checked && !feedHealth.ok && (
+        <div style={{display:'flex',alignItems:'flex-start',gap:10,padding:'10px 13px',marginTop:-4,
+          background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:10}}>
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="1.9" strokeLinecap="round" style={{flexShrink:0,marginTop:1}}><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+          <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.55,fontFamily: T.font.sans}}>
+            Η τροφοδοσία επιτοκίων χρειάζεται έλεγχο: {feedHealth.reason}. Οι τιμές που βλέπεις είναι οι τελευταίες που ήρθαν, με τη δική τους ημερομηνία η καθεμία.
+          </p>
+        </div>
+      )}
 
       {/* ═══ ΤΟ ΔΑΝΕΙΟ ΣΟΥ — ΠΡΩΤΟ, ΠΑΝΤΑ ═══════════════════════════════════
           Ζούσε σε `MiniSection order={8}`, μέσα στον φακό «Μάθε περισσότερα»,

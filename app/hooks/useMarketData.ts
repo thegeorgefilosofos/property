@@ -5,7 +5,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useLoad } from '@/app/hooks/useLoad';
-import { staleKeys, greekDay, type Provenance, type MarketKey } from '@/lib/market/ecb'
+import { staleKeys, type Provenance, type MarketKey } from '@/lib/market/ecb'
 import { athensToday } from '@/lib/core/time'
 
 export interface LiveMarketRates {
@@ -172,6 +172,69 @@ export function useMarketRates() {
 // ΜΟΝΟ τον δικό του πίνακα, οπότε στην ίδια οθόνη φαίνονταν δύο διαφορετικά
 // επιτόκια για την ίδια τράπεζα — το νέο στον πίνακα του διαχειριστή, το παλιό
 // στις κάρτες σύγκρισης από κάτω. Και η ημερομηνία «επιβεβαιώθηκε» έμενε πίσω.
+// ═══════════════════════════════════════════════════════════════════════════
+// Η ΚΑΤΑΣΤΑΣΗ ΤΗΣ ΤΡΟΦΟΔΟΣΙΑΣ, ΓΙΑ ΟΠΟΙΟΝ ΤΗ ΣΥΝΤΗΡΕΙ
+// ─────────────────────────────────────────────────────────────────────────
+// ΜΑΘΑΜΕ ΓΙΑ ΣΠΑΣΜΕΝΗ ΕΡΓΑΣΙΑ ΕΠΕΙΔΗ ΕΤΥΧΕ ΝΑ ΚΟΙΤΑΞΟΥΜΕ. Δύο εργασίες έτρεχαν
+// χαλασμένες επί μήνες: η μία αποτύγχανε κάθε μέρα με ανυποκατάστατη διεύθυνση,
+// η άλλη έγραφε παλιά επιτόκια πάνω από τα σωστά. Καμία δεν ειδοποίησε κανέναν.
+//
+// Ο ΟΡΙΣΜΟΣ ΤΟΥ «ΧΑΛΑΣΕ» ΔΕΝ ΓΡΑΦΕΤΑΙ ΕΔΩ. Ζει στη `market_feed_health()` της
+// βάσης, όπου τον διαβάζει και ο νυχτερινός φύλακας. Δύο ορισμοί θα απέκλιναν
+// ακριβώς τη μέρα που θα άλλαζε ο ένας.
+//
+// ΤΙ ΔΕΝ ΚΑΝΕΙ: δεν το βλέπει ο απλός χρήστης. Εκείνος βλέπει ήδη την αλήθεια —
+// κάθε τιμή κουβαλά την ημερομηνία της και η παλιά υπογραμμίζεται. Αυτό εδώ
+// είναι για όποιον μπορεί να το ΔΙΟΡΘΩΣΕΙ.
+export interface FeedHealth {
+  ok: boolean;
+  reason: string;
+  hoursSilent: number | null;
+  valuesPresent: number;
+  valuesExpected: number;
+  /** Οσο είναι false, δεν ξέρουμε τίποτα και δεν λέμε τίποτα. */
+  checked: boolean;
+}
+
+export function useMarketFeedHealth(enabled: boolean) {
+  const [health, setHealth] = useState<FeedHealth>({
+    ok: true, reason: '', hoursSilent: null, valuesPresent: 0, valuesExpected: 8, checked: false,
+  })
+  const supabase = createClient()
+
+  useEffect(() => {
+    if (!enabled) return
+    let alive = true
+    async function check() {
+      try {
+        const { data, error } = await supabase.rpc('market_feed_health')
+        // ΣΦΑΛΜΑ ΑΝΑΓΝΩΣΗΣ ΔΕΝ ΕΙΝΑΙ «ΟΛΑ ΚΑΛΑ». Αν η κλήση αποτύχει — η
+        // συνάρτηση δεν έχει ανέβει ακόμη, η βάση δεν απαντά — το `data` έρχεται
+        // κενό. Χωρίς αυτόν τον έλεγχο, το κενό θα διαβαζόταν ως «καμία ένδειξη
+        // προβλήματος» και η γραμμή δεν θα εμφανιζόταν ΠΟΤΕ, ακριβώς όπως οι
+        // εργασίες που αποτύγχαναν σιωπηλά επί μήνες. Μένει `checked: false`:
+        // δεν ξέρουμε, άρα δεν λέμε τίποτα· αυτό είναι διαφορετικό από
+        // «ελέγχθηκε και είναι εντάξει».
+        if (error) return
+        const row = Array.isArray(data) ? data[0] : data
+        if (!alive || !row) return
+        setHealth({
+          ok: !!row.ok,
+          reason: row.reason ?? '',
+          hoursSilent: row.hours_silent == null ? null : Number(row.hours_silent),
+          valuesPresent: row.values_present ?? 0,
+          valuesExpected: row.values_expected ?? 8,
+          checked: true,
+        })
+      } catch { /* σιωπή: μια αποτυχία ελέγχου δεν είναι αποτυχία τροφοδοσίας */ }
+    }
+    check()
+    return () => { alive = false }
+  }, [enabled])
+
+  return health
+}
+
 export function useBankRates() {
   const [banks, setBanks] = useState<LiveBankRate[]>([])
   const [loading, setLoading] = useState(true)
