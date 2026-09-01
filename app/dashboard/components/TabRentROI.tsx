@@ -16,7 +16,7 @@ import { readStatus, type StatusRow } from '@/lib/property/status'
 import { useChartWidth } from '@/app/hooks/useChartWidth'
 import { businessFormOf } from '@/lib/accounting/taxProfile'
 import type { LegalForm as DossierLegalForm } from '@/lib/accounting/dossier'
-import { Skeleton, SkeletonKPIs, PageTitle, fe, feCompact, fp, fn, ABSENT, ABSENT_SHORT, T, fixedCols, Bar } from '@/components/Theme';
+import { Skeleton, SkeletonKPIs, PageTitle, fe, feCompact, fp, fn, ABSENT, ABSENT_SHORT, T, fixedCols, Bar, Tile, widestOf } from '@/components/Theme';
 import { NumberInput, CustomSelect, fieldLabelStyle, SegmentControl, Toggle as Switch } from './UIComponents';
 import { ChevronRight, TrendingUp, Landmark, Percent, Wallet, Layers, ArrowUpRight, Info, ShieldCheck } from 'lucide-react';
 import { yields, compound, leverage, compareInvestments, propertyTotalReturn, projectLine, yieldGrade, dealAnalysis, type LeverageResult, type YieldGrade } from '@/lib/market/returns';
@@ -94,23 +94,6 @@ const toolNote: React.CSSProperties = { fontSize: 11, color: 'var(--text-tertiar
 // Προσβάσιμο: πραγματικό κουμπί (πληκτρολόγιο + αφή), ανοίγει σε hover, εστίαση ή άγγιγμα,
 // κλείνει σε Escape/έξοδο. Portal-based popover ώστε να μην «κόβεται» από scroll containers.
 // ═══════════════════════════════════════════════════════════════════════════
-// Η ΕΤΙΚΕΤΑ ΤΟΥ ΠΛΑΚΙΔΙΟΥ, ΜΙΑ ΦΟΡΑ
-// ─────────────────────────────────────────────────────────────────────────
-// Ηταν γραμμένη δύο φορές, στο `KPI` και στο `MetricTile`, με μία διαφορά που
-// δεν είχε αποφασίσει κανείς (`fontWeight: 500` στο ένα, τίποτα στο άλλο).
-//
-// ΤΟ ΥΨΟΣ ΓΡΑΜΜΗΣ ΕΙΝΑΙ 16 ΓΙΑΤΙ 16 ΕΙΝΑΙ ΚΑΙ ΤΟ ΕΙΚΟΝΙΔΙΟ. Με στοίχιση στο
-// κέντρο, μια ετικέτα δύο γραμμών έβαζε το «i» στη ΜΕΣΗ των δύο γραμμών, να
-// αιωρείται ανάμεσά τους. Με στοίχιση στην κορυφή και ίδιο ύψος, κάθεται
-// ακριβώς πάνω στην πρώτη γραμμή — σε ετικέτα μιας γραμμής και σε δύο.
-// ═══════════════════════════════════════════════════════════════════════════
-const KPI_LABEL: React.CSSProperties = {
-  fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary)',
-  textTransform: 'uppercase', letterSpacing: '0.4px', margin: 0, fontFamily: SANS,
-  display: 'flex', alignItems: 'flex-start', lineHeight: '16px',
-};
-
-// ═══════════════════════════════════════════════════════════════════════════
 // ΔΥΟ ΥΛΟΠΟΙΗΣΕΙΣ ΤΟΥ ΙΔΙΟΥ ΚΥΚΛΑΚΙΟΥ· ΜΟΝΟ Η ΜΙΑ ΕΙΧΕ ΔΙΟΡΘΩΘΕΙ
 // ─────────────────────────────────────────────────────────────────────────
 // Εδώ ζούσαν τριάντα γραμμές popover με portal, δικό τους εικονίδιο 12,5 και
@@ -164,23 +147,19 @@ function Section({ icon, title, sub, info, children, defaultOpen = false }: { ic
   );
 }
 
-// ── KPI κάρτα 3D ────────────────────────────────────────────────────────────
-function KPI({ label, value, sub, accent, info }: { label: string; value: string; sub?: string; accent?: boolean; info?: string }) {
-  const [hot, setHot] = useState(false);
-  return (
-    <div onMouseEnter={() => setHot(true)} onMouseLeave={() => setHot(false)}
-      style={{ display: 'flex', flexDirection: 'column', background: 'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border: `1px solid ${hot ? 'var(--border-accent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.card, padding: '15px 16px', boxShadow: hot ? 'var(--elev-2)' : 'var(--elev-1)', transform: hot ? 'translateY(-3px)' : 'none', transition: 'transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease' }}>
-      <p style={KPI_LABEL}>{label}{info && <TermInfo text={info} />}</p>
-      {/* ΤΟ ΝΟΥΜΕΡΟ ΚΟΛΛΑΕΙ ΚΑΤΩ. Χωρίς αυτό, μια ετικέτα δύο γραμμών κατεβάζει
-          το δικό της νούμερο και η σειρά χάνει τη γραμμή βάσης της — τέσσερα
-          ποσοστά δίπλα-δίπλα σε τέσσερα διαφορετικά ύψη. */}
-      <div style={{ marginTop: 'auto', paddingTop: 6 }}>
-        <p style={{ fontSize: 24, fontWeight: 700, color: accent && hot ? 'var(--accent)' : 'var(--text-primary)', margin: 0, fontVariantNumeric: 'tabular-nums', fontFamily: SANS, lineHeight: 1, transition: 'color 0.16s ease' }}>{value}</p>
-        {sub && <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '4px 0 0', fontFamily: SANS }}>{sub}</p>}
-      </div>
-    </div>
-  );
-}
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΟ ΤΡΙΤΟ ΠΛΑΚΙΔΙΟ ΕΦΥΓΕ ΑΠΟ ΕΔΩ
+// ─────────────────────────────────────────────────────────────────────────
+// Ηταν το πιο αποκλίνον από τα τρία: δική του βαθμίδα, δικό του περίγραμμα και
+// δική του σκιά γραμμένα inline, ανύψωση με κατάσταση React και δύο ακροατές
+// ποντικιού· και σταθερός αριθμός 24 εικονοστοιχείων που κοβόταν σε στενή
+// στήλη. Η `.kpi-card` κάνει και τα τρία χωρίς JavaScript, ίδια με τις
+// υπόλοιπες δεκατέσσερις καρτέλες.
+//
+// Το `accent` γίνεται τόνος: το χρώμα αποκαλύπτεται στο hover και στο άγγιγμα,
+// από το φύλλο στυλ, με τον ίδιο κανόνα παντού. Το `info` ταξιδεύει ως κόμβος,
+// γιατί το `TermInfo` ζει εδώ και το πλακίδιο στο Theme.
+// ═══════════════════════════════════════════════════════════════════════════
 
 // ── Κάρτα βαθμού απόδοσης (A–F) — μονόχρωμη· ο βαθμός, ο αριθμός και το μήκος
 //    της μπάρας μεταφέρουν την ποιότητα, χωρίς περιττά χρώματα. ────────────────
@@ -468,16 +447,18 @@ function LeverCard({ lever }: { lever: YieldLever }) {
   );
 }
 
-// Πλακίδιο μετρικής (IRR/NPV/DSCR) — μονόχρωμο· κόκκινο μόνο σε προβληματική τιμή,
-// και αυτό διακριτικά μόνο όταν ο δείκτης/δάχτυλο ακουμπά το πλακίδιο.
-function MetricTile({ label, value, info, tone }: { label: string; value: string; info?: string; tone?: 'neg' }) {
-  return (
-    <div className="po-fig-card" tabIndex={0} style={{ display: 'flex', flexDirection: 'column', padding: '12px 14px', borderRadius: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
-      <p style={KPI_LABEL}>{label}{info && <TermInfo text={info} />}</p>
-      <p className="po-fig" data-tone={tone === 'neg' ? 'negative' : undefined} style={{ fontSize: 20, fontWeight: 700, margin: 0, marginTop: 'auto', paddingTop: 4, fontFamily: SANS, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{value}</p>
-    </div>
-  );
-}
+// ═══════════════════════════════════════════════════════════════════════════
+// ΚΑΙ ΤΟ ΤΕΤΑΡΤΟ ΠΛΑΚΙΔΙΟ ΕΦΥΓΕ ΑΠΟ ΕΔΩ
+// ─────────────────────────────────────────────────────────────────────────
+// Το `MetricTile` (IRR, ΚΠΑ, DSCR, πολλαπλασιαστής) ήταν η τέταρτη γραφή του
+// ίδιου σχήματος, με πέμπτο κουτί: `.po-fig-card` αντί για `.kpi-card`, γωνία
+// 12 αντί 14, περιθώριο 12/14 αντί 14/16, αριθμός σταθερά 20. Το ίδιο πράγμα,
+// με τέσσερις τιμές που δεν διάλεξε κανείς.
+//
+// Ζει τώρα ως `Tile` με `nested`: μέσα σε κάρτα που έχει ήδη περίγραμμα, το
+// βάθος το δίνει η σκιά και όχι δεύτερη κορνίζα. Ο τόνος `negative` κρατά τη
+// συμπεριφορά του `po-fig` — ουδέτερος αριθμός, χρώμα μόνο στο άγγιγμα.
+// ═══════════════════════════════════════════════════════════════════════════
 
 // ΤΟ ΣΤΑΘΕΡΟ ΜΕΓΙΣΤΟ ΣΤΗΛΗΣ ΕΚΟΒΕ ΤΟ ΤΕΤΑΡΤΟ ΠΕΔΙΟ ΚΑΤΩ. Τρία πάνω, ένα από
 // κάτω μόνο του και μισή κάρτα άδεια δεξιά. Τα τέσσερα στοιχεία είναι ΕΝΑ
@@ -1356,16 +1337,16 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
       {!empty && (<>
         {/* KPIs */}
         <div {...g4box}>
-          <KPI label="Μεικτή απόδοση" value={fp(y.grossYield)} sub={`${fe(y.annualRent)} έσοδα τον χρόνο`} info={G.gross_yield} />
-          <KPI label="Καθαρή απόδοση" value={fp(y.netYield)} sub="μετά τα έξοδα" info={G.net_yield} />
-          <KPI label="Απόδοση μετά τον φόρο" value={fp(y.netYieldAfterTax)}
+          <Tile label="Μεικτή απόδοση" value={fp(y.grossYield)} sub={`${fe(y.annualRent)} έσοδα τον χρόνο`} info={<TermInfo text={G.gross_yield} />} />
+          <Tile label="Καθαρή απόδοση" value={fp(y.netYield)} sub="μετά τα έξοδα" info={<TermInfo text={G.net_yield} />} />
+          <Tile label="Απόδοση μετά τον φόρο" value={fp(y.netYieldAfterTax)}
             sub={consolidated ? `μερίδιο φόρου ${fe(annualTax)} τον χρόνο` : `φόρος ${fe(annualTax)} τον χρόνο`}
-            accent info={consolidated ? `${G.after_tax_yield} ${CONSOLIDATION_NOTE}` : G.after_tax_yield} />
+            tone="accent" info={<TermInfo text={consolidated ? `${G.after_tax_yield} ${CONSOLIDATION_NOTE}` : G.after_tax_yield} />} />
           {canInvest
-            ? <KPI label="Απόδοση ιδίων κεφαλαίων" value={fp(lev.cashOnCash)} sub={lev.cashOnCash >= 0 ? 'θετική μόχλευση' : (lev.positiveCarry ? 'θετική μόχλευση, αρνητική ροή' : 'αρνητική μόχλευση')} info={G.cash_on_cash} />
+            ? <Tile label="Απόδοση ιδίων κεφαλαίων" value={fp(lev.cashOnCash)} sub={lev.cashOnCash >= 0 ? 'θετική μόχλευση' : (lev.positiveCarry ? 'θετική μόχλευση, αρνητική ροή' : 'αρνητική μόχλευση')} info={<TermInfo text={G.cash_on_cash} />} />
             : term === 'short'
-              ? <KPI label="Τυπική βραχυχρόνια" value={fp(stRef.grossYield)} sub={reg?.region || 'Ελλάδα'} info={G.region_short_ref} />
-              : <KPI label="Μέσος όρος περιοχής" value={fp(reg?.grossYield || GREECE_AVG_GROSS_YIELD)} sub={reg?.region || 'Ελλάδα'} info={G.region_ref} />}
+              ? <Tile label="Τυπική βραχυχρόνια" value={fp(stRef.grossYield)} sub={reg?.region || 'Ελλάδα'} info={<TermInfo text={G.region_short_ref} />} />
+              : <Tile label="Μέσος όρος περιοχής" value={fp(reg?.grossYield || GREECE_AVG_GROSS_YIELD)} sub={reg?.region || 'Ελλάδα'} info={<TermInfo text={G.region_ref} />} />}
         </div>
 
         {/* Βαθμός απόδοσης A–F */}
@@ -1734,12 +1715,19 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
               <NumberInput label="Κόστη πώλησης" value={sellCosts} onChange={setSellCosts} suffix="%" step={0.5} max={15}
                 labelInfo={<TermInfo text="Κόστη που βαρύνουν τον πωλητή στην έξοδο: μεσιτική αμοιβή, τυπικά περίπου 2% συν ΦΠΑ, νομικός και συμβολαιογραφικός έλεγχος, τεχνικά πιστοποιητικά. Ο φόρος μεταβίβασης 3% βαρύνει τον αγοραστή, γι’ αυτό δεν περιλαμβάνεται εδώ. Προεπιλογή 3%· άλλαξέ το αν γνωρίζεις τα δικά σου κόστη." />} />
             </div>
+            {/* Τέσσερις δείκτες με πολύ διαφορετικό μήκος — ποσοστό, ποσό, λόγος
+                και πολλαπλασιαστής. Ενα μέγεθος για όλη τη σειρά, από το
+                μακρύτερο: αλλιώς το «1,35» θα γραφόταν μεγαλύτερο από την
+                καθαρή παρούσα αξία επειδή είναι απλώς κοντύτερο. */}
+            {(()=>{ const irr=Number.isFinite(deal.irrPct) ? fp(deal.irrPct) : fp(0), npv=fe(deal.npv),
+                          dscr=Number.isFinite(deal.dscr) ? fn(deal.dscr, 2) : '∞', em=`${fn(deal.equityMultiple, 2)}×`,
+                          w=widestOf(irr, npv, dscr, em); return (
             <div {...fixedCols(4, 12, 'stretch')}>
-              <MetricTile label="IRR" value={Number.isFinite(deal.irrPct) ? fp(deal.irrPct) : fp(0)} info={G.irr} />
-              <MetricTile label="Καθαρή παρούσα αξία" value={fe(deal.npv)} info={G.npv} tone={deal.npv < 0 ? 'neg' : undefined} />
-              <MetricTile label="DSCR" value={Number.isFinite(deal.dscr) ? fn(deal.dscr, 2) : '∞'} info={G.dscr} tone={deal.dscr < 1 ? 'neg' : undefined} />
-              <MetricTile label="Πολλαπλασιαστής ιδίων" value={`${fn(deal.equityMultiple, 2)}×`} info={G.equity_multiple} />
-            </div>
+              <Tile nested label="IRR" value={irr} chars={w} info={<TermInfo text={G.irr} />} />
+              <Tile nested label="Καθαρή παρούσα αξία" value={npv} chars={w} info={<TermInfo text={G.npv} />} tone={deal.npv < 0 ? 'negative' : undefined} />
+              <Tile nested label="DSCR" value={dscr} chars={w} info={<TermInfo text={G.dscr} />} tone={deal.dscr < 1 ? 'negative' : undefined} />
+              <Tile nested label="Πολλαπλασιαστής ιδίων" value={em} chars={w} info={<TermInfo text={G.equity_multiple} />} />
+            </div>) })()}
             {/* ΜΙΑ ΠΑΡΑΓΡΑΦΟΣ ΠΟΥ ΕΚΡΥΒΕ ΕΝΑΝ ΠΙΝΑΚΑ. Οι έξι παραδοχές ήταν σε
                 τρέχον κείμενο, χωρισμένες με κόμματα, ανάμεσα σε δύο εξηγήσεις:
                 για να βρεις με ποιο επιτόκιο υπολογίστηκε η NPV έπρεπε να

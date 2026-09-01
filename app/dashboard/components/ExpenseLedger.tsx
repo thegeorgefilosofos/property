@@ -33,7 +33,7 @@ import * as expenseStore from '@/lib/data/expenses'
 import * as billStore from '@/lib/data/bills'
 import ExpenseCompare from './ExpenseCompare';
 import type { Spend } from '@/lib/expenses/compare';
-import { T, TT, PageTitle, fe, fn, Btn, Card, EmptyState, Modal, Skeleton, KpiValue, fixedCols, ABSENT_DATE } from '@/components/Theme';
+import { T, TT, PageTitle, fe, fn, Btn, Card, EmptyState, Modal, Skeleton, KpiValue, fixedCols, ABSENT_DATE, Stat } from '@/components/Theme';
 import { ChevronRight } from 'lucide-react';
 import { notify, notifyError } from '@/components/toastBus';
 import { confirmDialog } from '@/components/ConfirmDialog';
@@ -592,10 +592,10 @@ export default function ExpenseLedger({ propertyId, userId, onScan, openAddNonce
             και «φέτος»: τρεις διαφορετικοί τρόποι να πεις χρόνο, με το μεσαίο να
             μην είναι καν χρόνος. Τώρα και τα τρία ονομάζουν το ίδιο πράγμα, τη
             δαπάνη· ξεχωρίζουν στο εύρος της. */}
-        <Figure label="Μηνιαίες δαπάνες" value={loading ? null : fe(monthTotal)} />
-        <Figure label={'Ανεξόφλητες δαπάνες'} value={loading ? null : fe(unpaidTotal)}
+        <Stat label="Μηνιαίες δαπάνες" value={loading ? null : fe(monthTotal)} />
+        <Stat label={'Ανεξόφλητες δαπάνες'} value={loading ? null : fe(unpaidTotal)}
           sub={unpaid.length ? `${unpaid.length} ${unpaid.length === 1 ? 'γραμμή' : 'γραμμές'}` : undefined} />
-        <Figure label="Ετήσιες δαπάνες" value={loading ? null : fe(yearTotal)} />
+        <Stat label="Ετήσιες δαπάνες" value={loading ? null : fe(yearTotal)} />
       </div>
 
       {/* ── ΤΙ ΛΕΙΠΕΙ ────────────────────────────────────────────────────────
@@ -899,16 +899,6 @@ export default function ExpenseLedger({ propertyId, userId, onScan, openAddNonce
 // ζητήθηκε να χωρέσει, οπότε στα 320 το «1.278,00 €» δούλευε μόνο κατά τύχη.
 // Ενα σημείο γράφει τον αριθμό· εδώ μένει η σκάλα της φόρτωσης, που είναι το
 // μόνο δικό της.
-function Figure({ label, value, sub }: { label: string; value: string | null; sub?: string }) {
-  return (
-    <div className="kpi-plain">
-      <div className="kpi-label" style={{ marginBottom: 8 }}>{label}</div>
-      {value === null ? <Skeleton w={78} h={18} /> : <KpiValue value={value} />}
-      {sub && <div style={{ ...TT.caption, marginTop: 5 }}>{sub}</div>}
-    </div>
-  );
-}
-
 // ── Μία γραμμή ────────────────────────────────────────────────────────────
 /** Κανονικοποίηση για σύγκριση ετικέτας με τίτλο: πεζά, χωρίς τόνους. */
 const bare = (s: string): string =>

@@ -20,23 +20,11 @@
 // το εξηγεί με παράγραφο.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { Modal, Btn, T, TT, KpiValue, fe, fp } from '@/components/Theme';
+import { Modal, Btn, T, TT, KpiValue, fe, fp, Stat } from '@/components/Theme';
 import { DEMO_PROPERTY, demoLedger, demoSummary } from '@/lib/demo/sample';
 import { isoDate } from '@/lib/core/time';
 
 const numStyle = { fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' as const };
-
-// Ιδιο ιδίωμα με κάθε άλλο νούμερο της εφαρμογής: το μέγεθος βγαίνει από το
-// πλάτος του πλαισίου ΚΑΙ από το μήκος του αριθμού, όχι από σταθερά.
-function Figure({ label, value, note }: { label: string; value: string; note: string }) {
-  return (
-    <div className="kpi-plain" style={{ minWidth: 0 }}>
-      <div className="kpi-label">{label}</div>
-      <div style={{ marginTop: 6 }}><KpiValue value={value} /></div>
-      <div style={{ ...TT.caption, marginTop: 4 }}>{note}</div>
-    </div>
-  );
-}
 
 export default function DemoPreview({ open, onClose, onAddProperty }: {
   open: boolean;
@@ -65,12 +53,12 @@ export default function DemoPreview({ open, onClose, onAddProperty }: {
 
       {/* ── ΤΑ ΤΡΙΑ ΠΟΣΑ ─────────────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: T.sp.lg }}>
-        <Figure label="Εισπράχθηκαν" value={fe(s.collected)}
-          note={`${fe(DEMO_PROPERTY.monthlyRent)} τον μήνα, έντεκα μήνες μέσα στη χρονιά`} />
-        <Figure label="Δαπάνες" value={fe(s.expenses)}
-          note={`${ledger.length} κατηγορίες, μαζί με τον ΕΝΦΙΑ`} />
-        <Figure label="Στο ταμείο" value={fe(s.statement.netCash)}
-          note={`μετά από φόρο, ΕΝΦΙΑ και δαπάνες`} />
+        <Stat label="Εισπράχθηκαν" value={fe(s.collected)}
+          sub={`${fe(DEMO_PROPERTY.monthlyRent)} τον μήνα, έντεκα μήνες μέσα στη χρονιά`} />
+        <Stat label="Δαπάνες" value={fe(s.expenses)}
+          sub={`${ledger.length} κατηγορίες, μαζί με τον ΕΝΦΙΑ`} />
+        <Stat label="Στο ταμείο" value={fe(s.statement.netCash)}
+          sub={`μετά από φόρο, ΕΝΦΙΑ και δαπάνες`} />
       </div>
 
       {/* ── Η ΚΑΤΑΣΤΑΣΗ ──────────────────────────────────────────────────── */}

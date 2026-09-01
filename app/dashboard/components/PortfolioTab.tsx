@@ -17,7 +17,7 @@ import * as checklist from '@/lib/data/checklist';
 import * as expenses from '@/lib/data/expenses'
 import * as tenantStore from '@/lib/data/tenants'
 import { CustomSelect, BulkActionBar } from './UIComponents';
-import { T, PageTitle, KPIGrid, KpiValue, Badge, Btn, ExportButton, EmptyState, InfoBanner, SecHdr, SelectBox, SkeletonKPIs, Skeleton, fe, fn, fp, fixedCols, ABSENT_SHORT, Modal, TT } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, KpiValue, Badge, Btn, ExportButton, EmptyState, InfoBanner, SecHdr, SelectBox, SkeletonKPIs, Skeleton, fe, fn, fp, fixedCols, ABSENT_SHORT, Modal, TT, Stat } from '@/components/Theme';
 import { resolveRent } from '@/lib/billing/propertyFacts';
 import { statusLabel, type StatusRow } from '@/lib/property/status';
 import { propertyTypeLabel } from '@/lib/property/types';
@@ -639,15 +639,15 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
               ανάμεσα στα πλακίδια και στον πίνακα των ακινήτων, μετρημένο σε
               Galaxy A. Είναι νούμερα, όχι πεδία φόρμας. */}
           <div {...fixedCols(4, 16, 'start', 'fc-xs-2')} style={{ ...fixedCols(4, 16, 'start').style, marginTop: 14 }}>
-            <PStat label="Αξία χαρτοφυλακίου" value={eur(agg.totalValue)} chars={aggWidest} />
-            <PStat label="Ετήσια έσοδα" value={eur(agg.totalRevenue)} chars={aggWidest} />
+            <Stat label="Αξία χαρτοφυλακίου" value={eur(agg.totalValue)} chars={aggWidest} />
+            <Stat label="Ετήσια έσοδα" value={eur(agg.totalRevenue)} chars={aggWidest} />
             {/* ΔΥΟ ΔΕΚΑΔΙΚΑ, ΟΠΩΣ ΠΑΝΤΟΥ. Εγραφαν «6,7%» με ένα δεκαδικό, ενώ
                 τρία πλακίδια πιο πάνω η μέση πληρότητα γράφει «19,50%» από τον
                 κοινό μορφοποιητή. Στην ίδια οθόνη, δύο ακρίβειες για το ίδιο
                 είδος μεγέθους: ο αναγνώστης δεν ξέρει ποια από τις δύο είναι
                 στρογγυλεμένη. Το fp() δίνει πάντα δύο. */}
-            <PStat label="Μεικτή απόδοση" value={fp(agg.grossYield)} chars={aggWidest} />
-            <PStat label="Καθαρή απόδοση" value={fp(agg.netYield)} chars={aggWidest} />
+            <Stat label="Μεικτή απόδοση" value={fp(agg.grossYield)} chars={aggWidest} />
+            <Stat label="Καθαρή απόδοση" value={fp(agg.netYield)} chars={aggWidest} />
           </div>
         </div>
       );
@@ -887,19 +887,6 @@ function Th({ label, k, sort, asc, onSort, align = 'right', pin }: { label: stri
         </svg>
       )}
     </th>
-  );
-}
-
-// ΤΡΙΤΗ ΓΡΑΦΗ ΤΟΥ ΙΔΙΟΥ ΠΡΑΓΜΑΤΟΣ, ΚΑΙ Η ΤΕΛΕΥΤΑΙΑ. Ητανε ετικέτα 11 κεφαλαία
-// και νούμερο 22, γραμμένα στο χέρι: δηλαδή το `.kpi-label` και το `.kpi-value`
-// με άλλο μέγεθος και χωρίς τίποτα από όσα έμαθαν αυτά τα δύο. Το «652.500,00 €»
-// στα 22 θέλει 150 εικονοστοιχεία και σε δύο στήλες τηλεφώνου υπάρχουν 146.
-function PStat({ label, value, chars }: { label: string; value: string; chars?: number }) {
-  return (
-    <div className="kpi-plain">
-      <div className="kpi-label">{label}</div>
-      <KpiValue value={value} chars={chars} />
-    </div>
   );
 }
 

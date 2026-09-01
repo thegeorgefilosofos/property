@@ -13,7 +13,7 @@ import { fdLong, ABSENT } from '@/components/tokens'
 import { loanProgress } from '@/lib/loans/progress'
 import { AADE_HOME } from '@/lib/tax/aade'
 import { programStatus, programDateLabel, PROGRAM_ORDER } from '@/lib/loans/programStatus'
-import { T, ExportButton, EmptyState, fixedCols, Bar } from '@/components/Theme'
+import { T, ExportButton, EmptyState, fixedCols, Bar, Tile, widestOf } from '@/components/Theme'
 import { loanEventTitle, UNSET_BANK } from './TabCalendar'
 import { notifyOk, notifyError } from '@/components/Toast'
 import { confirmDialog } from '@/components/confirmBus'
@@ -32,7 +32,7 @@ import ApprovalPanel from './ApprovalPanel'
 import EsisScanPanel from './EsisScanPanel'
 import BankRatesAdmin from './BankRatesAdmin'
 import { InfoDot, InfoChip } from './UIComponents'
-import { KPI, LensBar, labelStyle, cardStyle, panelStyle } from './LoanShared'
+import { LensBar, labelStyle, cardStyle, panelStyle } from './LoanShared'
 import { athensToday, isoDate } from '@/lib/core/time';
 import { MONTHS_SHORT } from '@/lib/core/months';
 import { failed } from '@/lib/core/dbError';
@@ -608,11 +608,13 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
         const totalInterest = rows.reduce((s,r)=>s+r.ti,0)
         const blended = totalBalance>0 ? rows.reduce((s,r)=>s+r.balance*r.l.rate,0)/totalBalance : 0
         const tiles = [
-          { k:'Συνολικό υπόλοιπο', v:fmtEur(totalBalance), accent:false },
-          { k:'Συνολική δόση τον μήνα', v:fmtEur(totalMonthly), accent:false },
-          { k:'Μέσο σταθμισμένο επιτόκιο', v:fmtPct(blended), accent:false },
-          { k:'Τόκοι που απομένουν', v:fmtEur(totalInterest), accent:false },
+          { k:'Συνολικό υπόλοιπο', v:fmtEur(totalBalance) },
+          { k:'Συνολική δόση τον μήνα', v:fmtEur(totalMonthly) },
+          { k:'Σταθμισμένο επιτόκιο', v:fmtPct(blended) },
+          { k:'Τόκοι που απομένουν', v:fmtEur(totalInterest) },
         ]
+        // Ενα μέγεθος για όλη τη σειρά: το μακρύτερο ποσό δίνει τον ρυθμό.
+        const tilesWidest = widestOf(...tiles.map(t=>t.v))
         return (
           <div style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius: T.radius.card,padding:'16px 18px'}}>
             {/* «2 δάνεια» γραφόταν και στη γραμμή από πάνω, δίπλα στην εξαγωγή.
@@ -646,7 +648,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                 είναι το δικό της υπόλοιπο και τα υπόλοιπα μεγέθη κατεβαίνουν σε
                 γραμμή στοιχείων. */}
             <div {...fixedCols(4, 10, 'stretch', 'fc-xs-2 fc-roomy fc-xxs-1')} style={{...fixedCols(4, 10, 'stretch', 'fc-xs-2 fc-roomy fc-xxs-1').style, marginBottom:16}}>
-              {tiles.map(t=>(<KPI key={t.k} label={t.k} value={t.v}/>))}
+              {tiles.map(t=>(<Tile key={t.k} label={t.k} value={t.v} chars={tilesWidest}/>))}
             </div>
             {/* ══ ΤΟ ΥΠΟΜΝΗΜΑ ΞΑΝΑΕΓΡΑΦΕ ΤΙΣ ΚΑΡΤΕΣ ΠΟΥ ΑΚΟΛΟΥΘΟΥΝ ═══════════════
                 Καθε γραμμή του έλεγε τράπεζα, επιτόκιο και δόση — τα ίδια τρία

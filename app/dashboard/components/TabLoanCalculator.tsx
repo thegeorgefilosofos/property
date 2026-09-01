@@ -1,13 +1,13 @@
 'use client'
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { CustomSelect, NumberInput, TextInput, DatePicker, InfoDot , ToggleField, fieldLabelStyle} from './UIComponents'
-import { KPI, LensBar, axisGutter, cardStyle, panelStyle } from './LoanShared'
+import { LensBar, axisGutter, cardStyle, panelStyle } from './LoanShared'
 import { downloadTableXlsx } from './exportCsv'
 import { fp, fe } from '@/lib/core/format'
 import { money as csvEur } from './sheetFormat';
 import DocChecklist from './DocChecklist'
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rPct, rEsc } from './reportPdf'
-import { T, Badge, ABSENT, TT, fixedCols, KPIGrid } from '@/components/Theme'
+import { T, Badge, ABSENT, TT, fixedCols, KPIGrid, Tile, widestOf } from '@/components/Theme'
 import { affordability, rentVsBuy } from '@/lib/loans/affordability'
 import { AADE_HOME } from '@/lib/tax/aade'
 import { createClient } from '@/lib/supabase/client'
@@ -1391,11 +1391,13 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
           {rentTouched ? 'Δική σου υπόθεση.' : rentAssumptionText}
           {rentTouched && <> <button type="button" onClick={()=>{setMonthlyRent('');setRentTouched(false)}} style={{border:'none',background:'none',padding:0,color:'var(--accent)',fontSize:11,fontFamily: T.font.sans,fontWeight:600,cursor:'pointer',textDecoration:'underline'}}>Επαναφορά στο τεκμηριωμένο ({fmtEur(rentRef.monthly)})</button></>}
         </p>
+        {/* Ενα μέγεθος για όλη τη σειρά: το μακρύτερο ποσό δίνει τον ρυθμό. */}
+        {(()=>{ const w=widestOf(fmtEur(rvb.buyNetAtHorizon), fmtEur(rvb.rentAtHorizon), fmtEur(Math.abs(rvb.advantageAtHorizon))); return (
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:8,marginBottom:14}}>
-          <KPI label="Καθαρό κόστος αγοράς" value={fmtEur(rvb.buyNetAtHorizon)} sub={`σε ${horizon} έτη, μετά την περιουσία`}/>
-          <KPI label="Κόστος ενοικίασης" value={fmtEur(rvb.rentAtHorizon)} sub={`σε ${horizon} έτη`}/>
-          <KPI label={buys?'Πλεονέκτημα αγοράς':'Πλεονέκτημα ενοικίασης'} value={fmtEur(Math.abs(rvb.advantageAtHorizon))} emphasis={buys} sub={rvb.breakEvenYear?`ισοσκελισμός στο έτος ${rvb.breakEvenYear}`:'χωρίς ισοσκελισμό στον ορίζοντα'}/>
-        </div>
+          <Tile label="Καθαρό κόστος αγοράς" value={fmtEur(rvb.buyNetAtHorizon)} chars={w} sub={`σε ${horizon} έτη, μετά την περιουσία`}/>
+          <Tile label="Κόστος ενοικίασης" value={fmtEur(rvb.rentAtHorizon)} chars={w} sub={`σε ${horizon} έτη`}/>
+          <Tile label={buys?'Πλεονέκτημα αγοράς':'Πλεονέκτημα ενοικίασης'} value={fmtEur(Math.abs(rvb.advantageAtHorizon))} chars={w} sub={rvb.breakEvenYear?`ισοσκελισμός στο έτος ${rvb.breakEvenYear}`:'χωρίς ισοσκελισμό στον ορίζοντα'}/>
+        </div>) })()}
         <RentBuyChart buy={rvb.buyNetCostByYear} rent={rvb.rentCostByYear} horizon={horizon} breakEvenYear={rvb.breakEvenYear} fmt={fmtEur}/>
         <div style={{display:'flex',gap:16,marginTop:8}}>
           <span style={{display:'flex',alignItems:'center',gap:6,fontSize:11,color:'var(--text-secondary)',fontFamily: T.font.sans}}><span style={{width:14,height:2.4,background:'var(--accent)',display:'inline-block'}}/>Αγορά (καθαρό)</span>
@@ -1430,11 +1432,12 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
               </div>
             )}
             {/* Τρία πλακίδια, ο ίδιος κανόνας με τη Δανειοληπτική ικανότητα. */}
+            {(()=>{ const a=isCommercial?fmtEur(fmaOwed):fmtEur(fmaEx), b=fmaOwed===0?'Απαλλαγή':fmtEur(fmaOwed), c=fmtEur(PV), w=widestOf(a,b,c); return (
             <div {...fixedCols(3, 10, 'end', '', 3)} style={{...fixedCols(3, 10, 'end', '', 3).style, marginBottom:10}}>
-              <KPI label={isCommercial?'ΦΜΑ 3,09%':'Όριο απαλλαγής ΦΜΑ'} value={isCommercial?fmtEur(fmaOwed):fmtEur(fmaEx)} emphasis={!isCommercial}/>
-              <KPI label="ΦΜΑ που αναλογεί" value={fmaOwed===0?'Απαλλαγή':fmtEur(fmaOwed)} emphasis={fmaOwed===0}/>
-              <KPI label="Αξία ακινήτου" value={fmtEur(PV)}/>
-            </div>
+              <Tile label={isCommercial?'ΦΜΑ 3,09%':'Όριο απαλλαγής ΦΜΑ'} value={a} chars={w}/>
+              <Tile label="ΦΜΑ που αναλογεί" value={b} chars={w}/>
+              <Tile label="Αξία ακινήτου" value={c} chars={w}/>
+            </div>) })()}
             {loanType==='first_home'&&PV<=fmaEx&&!isCommercial&&<div style={{padding:'10px 14px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:8}}><p title="ΦΜΑ: Φόρος Μεταβίβασης Ακινήτου" style={{fontSize:13,color:'var(--text-primary)',fontFamily: T.font.sans,fontWeight:500}}>Δικαιούστε πλήρη απαλλαγή ΦΜΑ, εξοικονόμηση {fmtEur(PV*TRANSFER_TAX_RATE)}</p></div>}
           </div>
           {loanType==='investment'&&(
@@ -1514,14 +1517,15 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
           <NumberInput label="Νέο επιτόκιο" value={newRate} onChange={setNewRate} suffix="%" step={0.05}/>
           <NumberInput label="Κόστος μεταφοράς" value={xferCost} onChange={setXferCost} suffix="€"/>
         </div>
+        {(()=>{ const brk=brkEven?`${brkEven} μήνες`:'Δεν αποσβένεται', w=widestOf(fmtEur(currM), fmtEur(newM), fmtEur(Math.max(0,refSav)), brk); return (
         <div {...fixedCols(4, 8)}>
-          <KPI label="Τρέχουσα δόση" value={fmtEur(currM)}/>
-          <KPI label="Νέα δόση" value={fmtEur(newM)} emphasis sub={`${fmtEur(mSav)} τον μήνα`}/>
-          <KPI label="Καθαρή εξοικονόμηση" value={fmtEur(Math.max(0,refSav))} emphasis={refSav>0} sub={refSav>0?'Αξίζει':'Δεν συμφέρει'}/>
+          <Tile label="Τρέχουσα δόση" value={fmtEur(currM)} chars={w}/>
+          <Tile label="Νέα δόση" value={fmtEur(newM)} chars={w} sub={`${fmtEur(mSav)} τον μήνα`}/>
+          <Tile label="Καθαρή εξοικονόμηση" value={fmtEur(Math.max(0,refSav))} chars={w} sub={refSav>0?'Αξίζει':'Δεν συμφέρει'}/>
           {/* Η σημείωση «Απόσβεση εξόδων μεταφοράς» έλεγε ξανά την ετικέτα με
               άλλα λόγια. Ο ορισμός ζει στο γλωσσάρι, μία φορά. */}
-          <KPI label="Σημείο απόσβεσης" value={brkEven?`${brkEven} μήνες`:'Δεν αποσβένεται'} emphasis={!!brkEven && brkEven < 24}/>
-        </div>
+          <Tile label="Σημείο απόσβεσης" value={brk} chars={w}/>
+        </div>) })()}
       </Section>
       </>)}
 
