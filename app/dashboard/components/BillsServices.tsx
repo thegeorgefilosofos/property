@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import * as expenseStore from '@/lib/data/expenses';
 import { NumberInput, CustomSelect, TextInput, Toggle, DatePicker, addBtn, FIELD_HEIGHT, FIELD_RADIUS, fieldLabelStyle } from './UIComponents';
 import { useBillsSettings } from './BillsSettings';
-import { T, fe, fieldRow, fixedCols, fp, Spinner, histInputStyle } from '@/components/Theme';
+import { T, fe, fieldRow, fixedCols, fp, Spinner, histInputStyle, Bar } from '@/components/Theme';
 import { estimateENFIA, enfiaInUse, enfiaLastYearAnnual } from '@/lib/billing/enfia';
 import { MONTHS_SHORT } from '@/lib/core/months';
 import { averageMonthly, feeOriginNote, feeShare, monthlyFees, TYPICAL_SHARE, type FeeSourceRow } from '@/lib/expenses/municipalFees';
@@ -553,9 +553,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                   <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 10, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(r.amount * 12)} / έτος</span>
                 </div>
               </div>
-              <div style={{ height: 4, background: 'var(--bg-overlay)', borderRadius: 3, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${totalServices > 0 ? (r.amount / totalServices) * 100 : 0}%`, background: 'var(--accent)', borderRadius: 3, transition: 'width 0.3s' }}/>
-              </div>
+              <Bar pct={totalServices > 0 ? (r.amount / totalServices) * 100 : 0} height={4} track="var(--bg-overlay)" label={`Μερίδιο, ${r.label}`} />
             </div>
           ))}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderTop: '2px solid var(--border-subtle)', marginTop: 8 }}>

@@ -92,10 +92,18 @@ export interface LiveProgram {
   source_url: string
 }
 
+// ΤΟ `new Date()` ΕΔΩ ΗΤΑΝ ΣΦΡΑΓΙΔΑ ΣΗΜΕΡΙΝΗ ΠΑΝΩ ΣΕ ΝΟΥΜΕΡΑ ΤΟΥ ΚΩΔΙΚΑ.
+// Οταν η βάση δεν απαντούσε, ο πίνακας γύριζε αυτές τις χειρόγραφες τιμές με
+// ημερομηνία «τώρα» και ο έλεγχος παλαιότητας των 48 ωρών έβρισκε πάντα
+// φρέσκα δεδομένα. Σταθερή ημερομηνία, όση αξίζουν: είναι το τελευταίο σημείο
+// που ξέρουμε, όχι μέτρηση της στιγμής. Η `provenance` μένει κενή επίτηδες· και
+// η οθόνη δεν γράφει ημερομηνία δίπλα σε καμία από αυτές.
+const FALLBACK_AS_OF = '2026-06-30T00:00:00Z';
+
 const RATES_FALLBACK: LiveMarketRates = {
   euribor_3m: 2.18, euribor_1m: 2.05, euribor_6m: 2.30, euribor_12m: 2.45,
   ecb_rate: 2.40, ecb_dfl: 2.25, bog_housing_new: 3.43, bog_housing_stock: 3.50,
-  updated_at: new Date().toISOString(), source_euribor: 'fallback', source_bog: 'fallback',
+  updated_at: FALLBACK_AS_OF, source_euribor: 'fallback', source_bog: 'fallback',
   rate_changed: false, isLoading: true, provenance: {}, stale: [], isStale: false,
 }
 

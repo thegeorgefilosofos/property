@@ -64,7 +64,7 @@
 
 import { useCallback, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { ChevronRight } from 'lucide-react';
-import { T, TT, Card, SecHdr, PageTitle, fixedCols, settingsField, feAuto, pageShell } from '@/components/Theme';
+import { T, TT, Card, SecHdr, PageTitle, fixedCols, settingsField, feAuto, pageShell, Bar } from '@/components/Theme';
 import { InfoHint } from './InfoHint';
 import { feSigned } from '@/lib/core/format';
 import type { PropertyStatus } from '@/lib/property/status';
@@ -545,12 +545,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
              δεν χρειάζεται ουσιαστικό για να διαβαστεί. */
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
             {plan.progress.done > 0 && (
-              <div style={{ width: 88, height: 3, borderRadius: 2, background: 'var(--border-subtle)', overflow: 'hidden' }}>
-                <div style={{
-                  width: `${plan.progress.pct}%`, height: '100%',
-                  background: 'var(--text-primary)', transition: `width .3s ${T.ease.standard}`,
-                }} />
-              </div>
+              <Bar pct={plan.progress.pct} height={3} tone="var(--text-primary)" label="Πρόοδος σχεδίου" style={{ width: 88 }} />
             )}
             <span style={{ ...TT.caption, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
               {plan.progress.done} από {plan.progress.total}

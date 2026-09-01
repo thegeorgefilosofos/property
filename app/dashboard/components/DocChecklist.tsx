@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import type { LoanDoc } from './TabLoanData'
-import { T } from '@/components/Theme'
+import { T, Bar } from '@/components/Theme'
 import { useRemembered } from '@/components/useRememberedFlag'
 
 // Επαγγελματική, ελεγχόμενη λίστα δικαιολογητικών: τικάρεις ό,τι έχεις μαζέψει,
@@ -36,9 +36,7 @@ export default function DocChecklist({ docs, storageKey, title = 'Δικαιολ
         <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', fontFamily: font, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{title}</p>
         <span style={{ fontSize: 11, fontWeight: 500, color: complete ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: font, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{count}/{total} έτοιμα</span>
       </div>
-      <div style={{ height: 4, borderRadius: 3, background: 'var(--bg-surface)', overflow: 'hidden', marginBottom: compact ? 10 : 12 }}>
-        <div style={{ width: `${pct}%`, height: '100%', borderRadius: 3, background: 'var(--accent)', transition: 'width 0.35s ease' }} />
-      </div>
+      <Bar pct={pct} height={4} track="var(--bg-surface)" label="Ετοιμα δικαιολογητικά" style={{ marginBottom: compact ? 10 : 12 }} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: compact ? 6 : 7 }}>
         {docs.map((d, i) => {
           const on = done.has(i)

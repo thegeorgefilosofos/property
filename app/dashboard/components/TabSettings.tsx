@@ -16,7 +16,7 @@ import * as settings from '@/lib/data/settings';
 import * as billing from '@/lib/data/billing';
 import NotificationSettings from './NotificationSettings';
 import { CustomSelect, Toggle } from './UIComponents';
-import { T, TT, Card, SecHdr, Btn, InfoBanner, PageTitle, fdLong, fn, settingsField, ABSENT, pageShell } from '@/components/Theme';
+import { T, TT, Card, SecHdr, Btn, InfoBanner, PageTitle, fdLong, fn, settingsField, ABSENT, pageShell, Bar } from '@/components/Theme';
 import { SetList, SetRow, SaveNote, useAutosave } from './SettingsKit';
 import { AppPreferences, DEFAULT_PREFERENCES } from './useAppPreferences';
 import { downloadTableXlsx } from './exportCsv';
@@ -732,9 +732,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric: 'tabular-nums' }}>{propertyCount} από {propLimitLabel}</span>
             </div>
             {propLimit !== Infinity && (
-              <div style={{ height: 6, borderRadius: T.radius.pill, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
-                <div style={{ width: `${usagePct}%`, height: '100%', borderRadius: T.radius.pill, background: atLimit ? 'var(--warning)' : 'var(--accent)', transition: 'width 0.4s cubic-bezier(0.2,0,0,1)' }} />
-              </div>
+              <Bar pct={usagePct} tone={atLimit ? 'var(--warning)' : 'var(--accent)'} track="var(--bg-elevated)" label="Ακίνητα σε χρήση" />
             )}
             {(atLimit || nearLimit) && (
               <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 8, lineHeight: 1.5 }}>

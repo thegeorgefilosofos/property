@@ -702,6 +702,103 @@ export function KPIGrid({ items, columns, nested }: { items: KPIItem[]; columns?
 // σχήμα για μικρό μέγεθος: χωρίς κάτω ουρές και χωρίς ψηλά γράμματα, το μάτι
 // δεν έχει σε τι να πιαστεί και διαβάζει σχήμα αντί για λέξη. Έντεκα
 // εικονοστοιχεία σε Badge και Chip, ένα μέγεθος και για τα δύο.
+// ═══════════════════════════════════════════════════════════════════════════
+// Η ΜΠΑΡΑ — ΤΟ ΤΕΤΑΡΤΟ ΣΥΣΤΑΤΙΚΟ ΤΟΥ ΒΙΒΛΙΟΥ
+// ─────────────────────────────────────────────────────────────────────────
+// ΤΟ ΠΛΑΚΙΔΙΟ ΕΙΧΕ ΟΝΟΜΑ (`KPIGrid`), Η ΚΑΡΤΑ ΕΙΧΕ (`Card`), Η ΜΠΑΡΑ ΟΧΙ. Το
+// ίδιο σχήμα ήταν γραμμένο με το χέρι σε τριάντα σημεία, μέσα σε είκοσι αρχεία:
+// μια αυλακιά, ένα γέμισμα σε ποσοστό, μια στρογγυλή γωνία, μια μετάβαση.
+//
+// ΤΙ ΚΟΣΤΙΣΕ Η ΑΠΟΥΣΙΑ ΤΟΥ, ΜΕΤΡΗΜΕΝΟ ΣΤΑ ΙΔΙΑ ΤΡΙΑΝΤΑ ΣΗΜΕΙΑ:
+//
+//  · ΥΨΗ 2, 3, 4, 6, 11 ΚΑΙ 12 ΓΙΑ ΤΟ ΙΔΙΟ ΠΡΑΓΜΑ. Καμία απόφαση δεν τα διάλεξε·
+//    το καθένα γράφτηκε τη μέρα του.
+//  · ΑΛΛΟΣ ΚΑΝΕΙ ΣΥΓΚΡΑΤΗΣΗ, ΑΛΛΟΣ ΟΧΙ. Δεκατρία σημεία γράφουν σκέτο
+//    `width: ${pct}%`. Οταν το ποσοστό ξεπεράσει το εκατό — υπέρβαση
+//    προϋπολογισμού, δόση πάνω από το εισόδημα — το γέμισμα βγαίνει ΕΞΩ από την
+//    αυλακιά του. Δεν είναι θέμα γούστου: η μπάρα δείχνει τότε ψέματα, γιατί
+//    «γεμάτη» και «διπλάσια από γεμάτη» φαίνονται ίδιες.
+//  · ΤΟ ΠΟΣΟΣΤΟ ΔΕΝ ΕΦΤΑΝΕ ΠΟΤΕ ΣΕ ΑΝΑΓΝΩΣΤΗ ΟΘΟΝΗΣ. Μια χρωματιστή λωρίδα
+//    χωρίς κείμενο είναι, για όποιον δεν τη βλέπει, τίποτα.
+//
+// Εδώ γράφεται μία φορά, με συγκράτηση στο μηδέν και στο εκατό και με ρόλο
+// `meter` όταν υπάρχει ένα γέμισμα. Πολλά κομμάτια δίπλα δίπλα (σύνθεση δόσης,
+// άτοκο σκέλος, έσοδα και έξοδα) είναι το ΙΔΙΟ συστατικό με πολλά μέρη, όχι
+// δεύτερο συστατικό.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Ενα κομμάτι της μπάρας: πόσο πιάνει, με τι χρώμα και τι λέει. */
+export interface BarPart {
+  /** Ποσοστό του πλάτους, 0 ώς 100. Συγκρατείται. */
+  pct: number;
+  /** Χρώμα γεμίσματος. Προεπιλογή ο τόνος της εφαρμογής. */
+  tone?: string;
+  /** Τι είναι αυτό το κομμάτι, για το ποντίκι και για τον αναγνώστη οθόνης. */
+  title?: string;
+}
+
+/**
+ * Μία αυλακιά με ένα ή περισσότερα γεμίσματα.
+ *
+ * @param pct   ένα γέμισμα, σε ποσοστό. Αγνοείται αν δοθούν `parts`.
+ * @param parts πολλά γεμίσματα, το ένα δίπλα στο άλλο.
+ * @param label τι μετρά η μπάρα. Φτάνει σε αναγνώστη οθόνης, όχι στο μάτι:
+ *   δίπλα της υπάρχει ήδη γραμμένος ο αριθμός σε κάθε οθόνη που τη δείχνει.
+ */
+export function Bar({
+  pct, parts, height = 6, tone = 'var(--accent)', track = 'var(--border-subtle)',
+  label, title, animate = true, grow = false, style,
+}: {
+  pct?: number; parts?: readonly BarPart[]; height?: number;
+  tone?: string; track?: string; label?: string; title?: string;
+  animate?: boolean;
+  /**
+   * Γεμίζει από το μηδέν στην πρώτη εμφάνιση, αντί να είναι ήδη γεμάτη.
+   *
+   * ΖΕΙ ΕΔΩ ΚΑΙ ΟΧΙ ΣΤΟΝ ΚΑΛΟΥΝΤΑ. Ηταν δικό του component στις Συστάσεις, με
+   * `useState` και `requestAnimationFrame` — και με σωστό χειρισμό της σβηστής
+   * κίνησης, που ο επόμενος που θα το αντέγραφε δεν θα κουβαλούσε.
+   */
+  grow?: boolean;
+  style?: CSSProperties;
+}) {
+  const clamp = (n: number) => Math.max(0, Math.min(100, Number.isFinite(n) ? n : 0));
+  // Με σβηστή την κίνηση ξεκινά γεμάτη: καμία δεύτερη απόδοση, κανένα τρεμόπαιγμα.
+  const [grown, setGrown] = useState(() => !grow || (
+    typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches));
+  useEffect(() => {
+    if (!grow) return;
+    const id = requestAnimationFrame(() => setGrown(true));
+    return () => cancelAnimationFrame(id);
+  }, [grow, pct, parts]);
+  const scale = grown ? 1 : 0;
+  const list: BarPart[] = parts
+    ? parts.map(p => ({ ...p, pct: clamp(p.pct) * scale }))
+    : [{ pct: clamp(pct ?? 0) * scale, tone }];
+  const r = Math.min(height / 2, 6);
+  // Ο ρόλος `meter` έχει νόημα μόνο για ΜΙΑ ποσότητα. Με πολλά κομμάτια, η
+  // μπάρα είναι σύνθεση και ο αριθμός που θα ανακοίνωνε δεν θα ήταν κανενός.
+  const single = list.length === 1 && !!label;
+  return (
+    <div
+      title={title}
+      role={single ? 'meter' : undefined}
+      aria-label={single ? label : undefined}
+      aria-valuenow={single ? Math.round(clamp(pct ?? 0)) : undefined}
+      aria-valuemin={single ? 0 : undefined}
+      aria-valuemax={single ? 100 : undefined}
+      style={{ display: 'flex', height, background: track, borderRadius: r, overflow: 'hidden', ...style }}
+    >
+      {list.map((p, i) => (
+        <div key={i} title={p.title} style={{
+          width: `${p.pct}%`, background: p.tone || tone,
+          transition: animate ? `width .45s ${T.ease.emphasized}` : undefined,
+        }}/>
+      ))}
+    </div>
+  );
+}
+
 export function Badge({ children, tone = 'neutral' }: { children: ReactNode; tone?: Tone }) {
   const tv = toneVars(tone);
   return (

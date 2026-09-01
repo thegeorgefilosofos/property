@@ -5,7 +5,7 @@ import { SITE } from '@/lib/core/site';
 import { downloadTableXlsx, csvDate } from './exportCsv';
 import { saved } from '@/components/dbWrite';
 import { drawQrToCanvas } from '@/lib/qr';
-import { T, TT, Badge, PageTitle, ExportButton, EmptyState, Modal, SkeletonKPIs, fn, fixedCols, pageShell } from '@/components/Theme';
+import { T, TT, Badge, PageTitle, ExportButton, EmptyState, Modal, SkeletonKPIs, fn, fixedCols, pageShell, Bar } from '@/components/Theme';
 import { PLANS, TRIAL_DAYS, type PlanId } from '@/lib/billing/plans';
 import { UserPlus } from 'lucide-react';
 import {
@@ -102,8 +102,6 @@ const PILL: React.CSSProperties = {
 };
 const PILL_TEXT = 'color-mix(in srgb, var(--accent) 68%, var(--text-primary))';
 
-const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-
 // Πόσες ημέρες απομένουν ως το τέλος του τρέχοντος μήνα (για επείγουσα ώθηση).
 const daysLeftInMonth = () => {
   const now = new Date();
@@ -119,23 +117,8 @@ const Num = ({ value }: { value: number }) => (
 );
 
 // Μπάρα που γεμίζει από το 0 στο mount, με ομαλή καμπύλη.
-function Bar({ pct, tone = 'var(--accent)' }: { pct: number; tone?: string }) {
-  // Η ΜΠΑΡΑ ΓΕΜΙΖΕΙ ΜΕ ΜΕΤΑΒΑΣΗ CSS, ΟΧΙ ΜΕ ΔΕΥΤΕΡΗ ΑΠΟΔΟΣΗ. Ηταν `useState(0)`
-  // και effect που έγραφε την πραγματική τιμή στο επόμενο καρέ: με σβηστή την
-  // κίνηση, η γραφή ήταν ΣΥΓΧΡΟΝΗ μέσα σε effect, δηλαδή ακριβώς το μοτίβο που
-  // απαγορεύεται. Το ίδιο αποτέλεσμα βγαίνει από το `transition` που ήδη
-  // υπάρχει: η μπάρα ξεκινά από μηδέν στην πρώτη προσάρτηση επειδή το πλάτος
-  // της αλλάζει, χωρίς καμία κατάσταση.
-  // Η αρχική τιμή υπολογίζεται ΜΙΑ φορά, με τεμπέλικη αρχικοποίηση: με σβηστή
-  // την κίνηση η μπάρα ξεκινά ήδη γεμάτη και δεν χρειάζεται δεύτερη απόδοση.
-  const [w, setW] = useState(() => (reducedMotion() ? pct : 0));
-  useEffect(() => { const id = requestAnimationFrame(() => setW(pct)); return () => cancelAnimationFrame(id); }, [pct]);
-  return (
-    <div style={{ height: 8, background: 'var(--ring-track)', borderRadius: T.radius.pill, overflow: 'hidden' }}>
-      <div style={{ height: '100%', width: `${Math.max(0, Math.min(100, w))}%`, background: tone, borderRadius: T.radius.pill, transition: `width 0.65s ${T.ease.emphasized}` }} />
-    </div>
-  );
-}
+// Η μπάρα ζει στο βιβλίο συστατικών (components/Theme). Εδώ υπήρχε δικό της
+// αντίγραφο ΜΟΝΟ για να γεμίζει από το μηδέν· αυτό είναι πλέον το `grow`.
 
 // Το κομφετί έφυγε: χρησιμοποιούσε τα σημασιολογικά χρώματα (--positive,
 // --warning) ως ΔΙΑΚΟΣΜΗΣΗ, δηλαδή έσπαγε τον κανόνα «το χρώμα σημαίνει κάτι ή
@@ -240,7 +223,7 @@ function Milestone({ title, icon, count, target, unit, kind, rewardTitle, claimS
           <span className={pr.reached ? undefined : 'ref-kpi-hover'} style={{ ...TT.kpi, flexShrink: 0, color: pr.reached ? 'var(--positive)' : undefined }}><Num value={pr.count} /><span style={{ ...TT.caption }}> / {target}{unit ? ` ${unit}` : ''}</span></span>
         </div>
         <div style={{ ...TT.displaySm, marginBottom: 10 }}>{rewardTitle}</div>
-        <Bar pct={pr.pct} tone={pr.reached ? 'var(--positive)' : 'var(--accent)'} />
+        <Bar pct={pr.pct} tone={pr.reached ? 'var(--positive)' : 'var(--accent)'} height={8} track="var(--ring-track)" grow label="Πρόοδος συστάσεων" />
         <p style={{ ...TT.bodySm, marginTop: 12, lineHeight: 1.55 }}>
           {note ?? (pr.reached
             ? 'Μπράβο, το πέτυχες.'

@@ -6,7 +6,7 @@ import * as expenses from '@/lib/data/expenses';
 // Οι ρυθμίσεις ανά ενότητα έχουν ένα σπίτι: lib/data/settings.
 import * as settings from '@/lib/data/settings';
 import { NumberInput, TextInput, DatePicker, CustomSelect, addBtn } from './UIComponents';
-import { T, TT, fe, formGrid, fieldRow, fixedCols, InfoBanner, Card, EmptyState, fp, histInputStyle, localDay, ABSENT_SHORT } from '@/components/Theme';
+import { T, TT, fe, formGrid, fieldRow, fixedCols, InfoBanner, Card, EmptyState, fp, histInputStyle, localDay, ABSENT_SHORT, Bar } from '@/components/Theme';
 import { notifyOk } from '@/components/Toast';
 import { saved } from '@/components/dbWrite';
 import { HandCoins, BarChart3 } from 'lucide-react';
@@ -609,9 +609,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
                   <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 12, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(r.amount * 12)} / έτος</span>
                 </div>
               </div>
-              <div style={{ height: 4, background: 'var(--bg-overlay)', borderRadius: 3, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${totalCommon > 0 ? (r.amount / totalCommon) * 100 : 0}%`, background: 'var(--accent)', borderRadius: 3 }}/>
-              </div>
+              <Bar pct={totalCommon > 0 ? (r.amount / totalCommon) * 100 : 0} height={4} track="var(--bg-overlay)" label={`Μερίδιο, ${r.label}`} />
             </div>
           ))}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderTop: '2px solid var(--border-subtle)', marginTop: 8 }}>

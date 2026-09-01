@@ -13,7 +13,7 @@ import { fdLong, ABSENT } from '@/components/tokens'
 import { loanProgress } from '@/lib/loans/progress'
 import { AADE_HOME } from '@/lib/tax/aade'
 import { programStatus, programDateLabel, PROGRAM_ORDER } from '@/lib/loans/programStatus'
-import { T, ExportButton, EmptyState , fixedCols} from '@/components/Theme'
+import { T, ExportButton, EmptyState, fixedCols, Bar } from '@/components/Theme'
 import { loanEventTitle, UNSET_BANK } from './TabCalendar'
 import { notifyOk, notifyError } from '@/components/Toast'
 import { confirmDialog } from '@/components/confirmBus'
@@ -21,7 +21,7 @@ import { Gift } from 'lucide-react'
 import { downloadXlsx } from './sheets';
 import TabLoanCalculator, { type LoanCalcState } from './TabLoanCalculator'
 import { useMarketRates, useBankRates, useLoanPrograms, useIsAdmin } from '../../hooks/useMarketData'
-import { greekDay } from '@/lib/market/ecb'
+import { greekDay, seriesPage, ECB_SERIES } from '@/lib/market/ecb'
 import { BANKS_NORM, PROGRAMS_NORM, mergeBanks, mergePrograms, normProgram, BANKS_VERIFIED, RATES_DISCLAIMER, type ComparisonBank, type ComparisonProgram, LOAN_TYPES, rateRange, GLOSSARY, EURIBOR_HISTORY, SERVICERS_GUIDE, calcMonthly, fmtEur, fmtPct, LoanType, RateType, SavedLoan, MARKET_FALLBACK } from './TabLoanData'
 import { rankLoans, spitiMouEligibility, type UserLoanNeeds } from '@/lib/loans/recommend'
 import { euriborInsight } from '@/lib/loans/affordability'
@@ -651,11 +651,12 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                 γραμμή που τυλίγεται. Το επιτόκιο και η δόση ζουν στην κάρτα
                 τους, όπου έχουν και το μέγεθος που τους αξίζει. */}
             {rows.length>1&&(<>
-              <div style={{display:'flex',height:10,borderRadius: T.radius.pill,overflow:'hidden',border:'1px solid var(--border-subtle)',marginBottom:9}}>
-                {rows.map((r,i)=>(
-                  <div key={r.l.id} title={`${r.l.bank}: ${fmtEur(r.m)} τον μήνα`} style={{width:`${totalMonthly>0?(r.m/totalMonthly)*100:0}%`,height:'100%',background:`color-mix(in srgb, var(--accent) ${Math.max(20,100-i*14)}%, var(--bg-elevated))`}}/>
-                ))}
-              </div>
+              <Bar height={10} style={{borderRadius: T.radius.pill,border:'1px solid var(--border-subtle)',marginBottom:9}}
+                parts={rows.map((r,i)=>({
+                  pct: totalMonthly>0?(r.m/totalMonthly)*100:0,
+                  tone: `color-mix(in srgb, var(--accent) ${Math.max(20,100-i*14)}%, var(--bg-elevated))`,
+                  title: `${r.l.bank}: ${fmtEur(r.m)} τον μήνα`,
+                }))}/>
               <div style={{display:'flex',flexWrap:'wrap',gap:'4px 16px'}}>
                 {rows.map((r,i)=>(
                   <span key={r.l.id} style={{display:'inline-flex',alignItems:'center',gap:7,minWidth:0}}>
@@ -742,9 +743,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                   φαίνεται αλλού: στα πρώτα χρόνια πληρώνεις κυρίως τόκους, οπότε
                   η μπάρα υπολείπεται πάντα του χρόνου που πέρασε. */}
               <div style={{marginBottom:14}}>
-                <div style={{height:6,borderRadius: T.radius.pill,background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',overflow:'hidden'}}>
-                  <div style={{width:`${Math.min(100,Math.max(0,prog.percentRepaid))}%`,height:'100%',background:'var(--accent)',borderRadius: T.radius.pill}}/>
-                </div>
+                <Bar pct={prog.percentRepaid} label="Ποσοστό αποπληρωμής" track="var(--bg-elevated)" style={{borderRadius: T.radius.pill,border:'1px solid var(--border-subtle)'}}/>
                 <div style={{display:'flex',justifyContent:'space-between',gap:12,marginTop:6}}>
                   <span style={{fontSize:11,color:'var(--text-secondary)',fontFamily:T.font.sans}}>
                     Εξοφλήθηκε {fp(prog.percentRepaid)} του κεφαλαίου σε {prog.paidMonths} από {prog.totalMonths} δόσεις
@@ -1850,6 +1849,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
           {/* Γλωσσάρι — σωστά ελληνικά, καθαρή λίστα ορισμών, ανάλογα με το προφίλ */}
           {/* ── Διαχειριστές (servicers) & κόκκινα δάνεια ── */}
           <MiniSection title="Δάνεια σε διαχειριστές και κόκκινα δάνεια">
+            <p style={{fontSize:15,color:'var(--text-primary)',lineHeight:1.55,fontFamily: T.font.sans,fontWeight:500,letterSpacing:'-0.01em',marginBottom:8}}>{SERVICERS_GUIDE.lead}</p>
             <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.7,fontFamily: T.font.sans,marginBottom:16}}>{SERVICERS_GUIDE.intro}</p>
 
             {/* Μαζεμένες σειρές· η επεξήγηση κρύβεται πίσω από ⓘ (όχι κατεβατό). */}
@@ -1929,7 +1929,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
             {[
               {category:'Ρύθμιση οφειλών και διαχειριστές',links:SERVICERS_GUIDE.sources.map(x=>({label:x.label,sub:x.sub,url:x.url}))},
               {category:'Κρατικά προγράμματα',links:[
-                {label:'Σπίτι μου ΙΙ · επίσημη σελίδα',sub:'Αίτηση, κριτήρια, προθεσμία συμβολαίων 31/08/2026',url:'https://greece20.gov.gr/home-loans/'},
+                {label:'Σπίτι μου ΙΙ · επίσημη σελίδα',sub:'Κριτήρια και όροι του προγράμματος',url:'https://greece20.gov.gr/home-loans/'},
                 {label:'Αναβαθμίζω το Σπίτι μου',sub:'Ελληνική Αναπτυξιακή Τράπεζα, επίσημη πλατφόρμα',url:'https://hdb.gr/anavathmizo-to-spiti-mou/'},
                 {label:'Εξοικονομώ 2025',sub:'Επιδότηση ενεργειακής αναβάθμισης',url:'https://exoikonomo2025.gov.gr/'},
                 {label:'Ανακαινίζω και Νοικιάζω · ΟΠΕΚΑ',sub:'40% επιδότηση και εγγυημένο ενοίκιο',url:'https://www.opeka.gr'},
@@ -1950,7 +1950,12 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                 {label:'Ελληνική Αναπτυξιακή Τράπεζα',sub:'Διαχείριση κρατικών προγραμμάτων δανείων',url:'https://hdb.gr'},
                 {label:'Υπουργείο Περιβάλλοντος και Ενέργειας',sub:'Ενεργειακά προγράμματα, παρατάσεις, ανακοινώσεις',url:'https://ypen.gov.gr'},
                 {label:'Ταμείο Αλληλοβοηθείας Στρατού',sub:'Στεγαστικά για στελέχη Ενόπλων Δυνάμεων',url:'https://www.tap.gr'},
-                {label:'Ευρωπαϊκή Κεντρική Τράπεζα · Euribor',sub:'Επίσημα ιστορικά δεδομένα Euribor',url:'https://data.ecb.europa.eu/data/datasets/FM/FM.B.U2.EUR.RT0.MM.EURIBOR3MD_.HSTA'},
+                /* Ο ΣΥΝΔΕΣΜΟΣ ΕΒΓΑΖΕ ΣΕ ΣΕΙΡΑ ΠΟΥ ΔΕΝ ΤΡΟΦΟΔΟΤΕΙ ΤΙΠΟΤΑ. Ηταν γραμμένο με το
+                 χέρι το ΠΑΛΙΟ κλειδί («RT0»), το ίδιο που χρησιμοποιούσε η εργασία
+                 πριν διορθωθεί: ο χρήστης πατούσε «Επίσημα δεδομένα» και έφτανε σε
+                 άλλη σειρά από αυτήν που δείχνει η οθόνη του. Παράγεται πλέον από
+                 τον κατάλογο, οπότε δεν μπορεί να αποκλίνει. */
+              {label:'Ευρωπαϊκή Κεντρική Τράπεζα · Euribor',sub:'Η σειρά που τροφοδοτεί την εφαρμογή',url:seriesPage(ECB_SERIES.find(x=>x.key==='euribor_3m')!.candidates[0])},
               ]},
             ].map(group=>(
               <div key={group.category} style={{marginBottom:16}}>

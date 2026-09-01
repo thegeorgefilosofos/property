@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import * as tenantStore from '@/lib/data/tenants'
 import { CustomSelect, TextInput } from './UIComponents'
-import { T, PageTitle, KPIGrid, Btn, EmptyState, Skeleton, SkeletonKPIs, fe, feRate, fn, pressable } from '@/components/Theme'
+import { T, PageTitle, KPIGrid, Btn, EmptyState, Skeleton, SkeletonKPIs, fe, feRate, fn, pressable, Bar } from '@/components/Theme'
 import { PackageOpen, SearchX, Archive } from 'lucide-react'
 import { portfolioSummary, replacementSuggestion, NOT_TAX_DEPRECIATION_NOTE } from '@/lib/inventory/depreciation'
 import type { FieldContext } from '@/lib/property/fields'
@@ -181,7 +181,7 @@ function AnalysisCards({items,repairs,kwhPrice,kwhControl}:{items:InventoryItem[
               <span style={{fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cat} <span style={{color:'var(--text-tertiary)',fontSize: 11}}>({count})</span></span>
               <span style={{fontSize:12,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:600,flexShrink:0}}>{fe(val)}</span>
             </div>
-            <div style={{height:4,background:'var(--border-subtle)',borderRadius:3}}><div style={{height:4,borderRadius:3,background:'var(--accent)',width:`${(val/maxVal)*100}%`,transition:'width 0.5s'}}/></div>
+            <Bar pct={(val/maxVal)*100} height={4} label={`Μερίδιο αξίας, ${cat}`}/>
           </div>
         ))}
       </div>
@@ -210,7 +210,7 @@ function AnalysisCards({items,repairs,kwhPrice,kwhControl}:{items:InventoryItem[
                 </div>
                 <span style={{fontSize:11,fontFamily:T.font.num,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:700,flexShrink:0}}>{kwhPrice>0?`${fe(mc)} τον μήνα`:`${fn(calcMonthlyKwh(item),1)} kWh`}</span>
               </div>
-              <div style={{height:3,background:'var(--border-subtle)',borderRadius:3}}><div style={{height:3,borderRadius:3,background:'var(--accent)',width:`${maxMc>0?(mc/maxMc)*100:0}%`}}/></div>
+              <Bar pct={maxMc>0?(mc/maxMc)*100:0} height={3} label={`Μερίδιο κατανάλωσης, ${item.name}`}/>
             </div>
           )
         })}

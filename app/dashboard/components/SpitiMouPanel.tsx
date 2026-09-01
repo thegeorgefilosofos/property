@@ -6,6 +6,7 @@ import {
   annuityMonthly, rankLoans, type UserLoanNeeds, type BankInput,
 } from '@/lib/loans/recommend'
 import { T } from '@/components/tokens'
+import { Bar } from '@/components/Theme'
 import { athensToday } from '@/lib/core/time'
 
 // ── «Σπίτι μου ΙΙ — για σένα» ────────────────────────────────────────────────
@@ -123,10 +124,8 @@ export default function SpitiMouPanel({
 
       {/* Κατανομή 50/50 */}
       <div>
-        <div style={{ display: 'flex', height: 12, borderRadius: 6, overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
-          <div title="Άτοκο σκέλος" style={{ width: `${Math.round(elig.interestFreeShare * 100)}%`, background: 'var(--accent)' }} />
-          <div title="Τραπεζικό σκέλος" style={{ flex: 1, background: 'var(--bg-elevated)' }} />
-        </div>
+        <Bar height={12} track="var(--bg-elevated)" style={{ border: '1px solid var(--border-subtle)' }}
+          parts={[{ pct: elig.interestFreeShare * 100, title: 'Άτοκο σκέλος' }]} />
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
           <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: FONT }}>{Math.round(elig.interestFreeShare * 100)}% άτοκο · {fmtEur(amount * elig.interestFreeShare)}</span>
           <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: FONT }}>{100 - Math.round(elig.interestFreeShare * 100)}% τραπεζικό · {fmtEur(amount - amount * elig.interestFreeShare)}</span>

@@ -71,8 +71,19 @@ export function KPI({label,value,emphasis,sub,title}:{label:string;value:string;
           24 της `.kpi-value`, ένα «1.234,56 €» θα έσπαγε σε δεύτερη γραμμή σε
           κάθε στενή στήλη. Κλιμακώνεται με το πλάτος της κάρτας όπως παντού,
           απλώς με χαμηλότερο ταβάνι. */}
-      <p className="kpi-value" style={{fontSize:'clamp(15px, 12cqi, 18px)',marginBottom:0,fontWeight:emphasis?700:600}}>{value}</p>
-      {sub&&<p style={{fontSize: 11,color:'var(--text-tertiary)',fontFamily: T.font.sans,lineHeight:1.4}}>{sub}</p>}
+      {/* ══ Η ΣΗΜΕΙΩΣΗ ΔΙΠΛΑ ΣΤΗΝ ΤΙΜΗ, ΟΧΙ ΑΠΟ ΚΑΤΩ ═══════════════════════════
+          Καθόταν σε δική της γραμμή, οπότε μια σειρά τεσσάρων πλακιδίων όπου
+          το ΕΝΑ δεν είχε σημείωση έβγαινε ραγισμένη: τρεις τιμές με κείμενο
+          από κάτω και μία μόνη της, τέσσερα διαφορετικά κάτω άκρα μέσα σε
+          κουτιά ίδιου ύψους. Στη βασική γραμμή, τα τέσσερα πλακίδια έχουν
+          ΙΔΙΑ δομή: ετικέτα, μετά μία γραμμή με την τιμή και ό,τι τη
+          συνοδεύει. Οι τιμές διαβάζονται σε ευθεία, όπως στις κορυφαίες
+          εφαρμογές πληρωμών· και η σημείωση μένει δεύτερη σε βάρος χωρίς να
+          χρειάζεται δεύτερη σειρά. */}
+      <div style={{display:'flex',alignItems:'baseline',gap:7,flexWrap:'wrap' as const,rowGap:2}}>
+        <p className="kpi-value" style={{fontSize:'clamp(15px, 12cqi, 18px)',marginBottom:0,fontWeight:emphasis?700:600}}>{value}</p>
+        {sub&&<span style={{fontSize: 11,color:'var(--text-tertiary)',fontFamily: T.font.sans,lineHeight:1.4}}>{sub}</span>}
+      </div>
     </div>
   )
 }

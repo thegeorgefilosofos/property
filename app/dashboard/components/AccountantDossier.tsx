@@ -22,7 +22,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { T, TT, Badge, SelectBox } from '@/components/Theme'
+import { T, TT, Badge, SelectBox, Bar } from '@/components/Theme'
 import { ChevronRight, Download } from 'lucide-react'
 import {
   requirementsFor, readiness, groupByWho, traps, defaultBookkeeping,
@@ -323,9 +323,7 @@ export default function AccountantDossier({
 
         {/* Πρόοδος: μία λεπτή γραμμή, χωρίς ποσοστά σε μεγάλα γράμματα. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '18px 0 0' }}>
-          <div style={{ flex: 1, height: 4, borderRadius: 2, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
-            <div style={{ width: `${pct}%`, height: '100%', borderRadius: 2, background: 'var(--accent)', transition: 'width 0.3s' }} />
-          </div>
+          <Bar pct={pct} height={4} track="var(--bg-elevated)" label="Πρόοδος φακέλου" style={{ flex: 1 }} />
           <span style={{ ...num, fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600 }}>{ready.done} / {ready.total}</span>
         </div>
 

@@ -14,7 +14,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { qrDataUrl } from '@/lib/qr'
-import { T, TT, Modal, SecHdr, Btn, pressable, fp } from '@/components/Theme'
+import { T, TT, Modal, SecHdr, Btn, pressable, fp, Bar } from '@/components/Theme'
 // Το πλαίσιο επιλογής ζει στο Theme, ένα για όλη την εφαρμογή. Ξαναβγαίνει από
 // εδώ ώστε τα σημεία που το εισάγουν από τα Bits να μη χρειαστεί να αλλάξουν.
 export { SelectBox } from '@/components/Theme'
@@ -160,9 +160,7 @@ export const DepBar = ({pct,left,hasData=true,hasValue=true,compact}:{pct:number
   // πάτημα.
   return (
     <div>
-      <div style={{height:3,background:'var(--border-subtle)',borderRadius:3,overflow:'hidden'}}>
-        <div style={{height:'100%',width:`${remaining}%`,background:c,borderRadius:3,transition:'width 0.4s'}}/>
-      </div>
+      <Bar pct={remaining} tone={c} height={3} label="Υπόλοιπη ζωή"/>
       <div style={{display:'flex',justifyContent:'space-between',marginTop:3}}>
         <span style={{fontSize: 11,color:'var(--text-tertiary)',fontFamily:T.font.num,fontVariantNumeric:'tabular-nums'}}>{compact?'μένει ':'Εκτιμώμενη υπολειπόμενη αξία '}{fp(remaining)}</span>
         {left>0

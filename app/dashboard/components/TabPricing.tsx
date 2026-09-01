@@ -34,7 +34,7 @@ import * as stayStore from '@/lib/data/stays';
 import * as billStore from '@/lib/data/bills';
 import * as expenses from '@/lib/data/expenses'
 import * as calendar from '@/lib/data/calendar'
-import { T, PageTitle, KPIGrid, InfoBanner, Btn, ExportButton, SecHdr, EmptyState, Skeleton, SkeletonKPIs, fe, fd, fp, fn, pressable, formGrid , fieldRow} from '@/components/Theme';
+import { T, PageTitle, KPIGrid, InfoBanner, Btn, ExportButton, SecHdr, EmptyState, Skeleton, SkeletonKPIs, fe, fd, fp, fn, pressable, formGrid, fieldRow, Bar } from '@/components/Theme';
 import { navLabel } from '@/lib/nav/labels';
 import { shortTermYearSummary, isHouseType } from '@/lib/tax/shortTermTax';
 import { shortTermCashflow } from '@/lib/tax/shortTermCashflow';
@@ -639,9 +639,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
 
               {/* Η αναλογία με μια ματιά: πόσο από τη μπάρα μένει δικό σου. */}
               {cashflow.keptPct != null && cashflow.net > 0 && (
-                <div style={{ marginTop: 14, height: 6, background: 'var(--bg-overlay)', borderRadius: 3, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${Math.min(100, cashflow.keptPct)}%`, background: 'var(--accent)', borderRadius: 3, transition: 'width 0.5s' }} />
-                </div>
+                <Bar pct={cashflow.keptPct} track="var(--bg-overlay)" label="Μερίδιο που σου μένει" style={{ marginTop: 14 }} />
               )}
 
               {/* ΟΠΟΥ ΤΟ ΝΟΥΜΕΡΟ ΕΙΝΑΙ ΕΚΤΙΜΗΣΗ, ΤΟ ΛΕΜΕ ΔΙΠΛΑ ΤΟΥ. Διαμονές με

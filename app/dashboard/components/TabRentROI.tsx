@@ -16,7 +16,7 @@ import { readStatus, type StatusRow } from '@/lib/property/status'
 import { useChartWidth } from '@/app/hooks/useChartWidth'
 import { businessFormOf } from '@/lib/accounting/taxProfile'
 import type { LegalForm as DossierLegalForm } from '@/lib/accounting/dossier'
-import { Skeleton, SkeletonKPIs, PageTitle, fe, feCompact, fp, fn, ABSENT, ABSENT_SHORT, T, fixedCols } from '@/components/Theme';
+import { Skeleton, SkeletonKPIs, PageTitle, fe, feCompact, fp, fn, ABSENT, ABSENT_SHORT, T, fixedCols, Bar } from '@/components/Theme';
 import { NumberInput, CustomSelect, fieldLabelStyle, SegmentControl, Toggle as Switch } from './UIComponents';
 import { ChevronRight, TrendingUp, Landmark, Percent, Wallet, Layers, ArrowUpRight, Info, ShieldCheck } from 'lucide-react';
 import { yields, compound, leverage, compareInvestments, propertyTotalReturn, projectLine, yieldGrade, dealAnalysis, type LeverageResult, type YieldGrade } from '@/lib/market/returns';
@@ -196,9 +196,7 @@ function GradeCard({ grade, note }: { grade: YieldGrade; note: string }) {
           <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', margin: 0, fontFamily: SANS, display: 'flex', alignItems: 'center' }}>Βαθμός απόδοσης<TermInfo text={G.grade} /></p>
           <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{grade.label} · {grade.score} / 100</span>
         </div>
-        <div style={{ marginTop: 8, height: 6, borderRadius: 6, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
-          <div style={{ width: `${Math.max(3, grade.score)}%`, height: '100%', borderRadius: 6, background: 'var(--accent)', transition: 'width 0.5s ease' }} />
-        </div>
+        <Bar pct={Math.max(3, grade.score)} track="var(--bg-elevated)" label="Βαθμός απόδοσης" style={{ marginTop: 8 }} />
         <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--text-tertiary)', fontFamily: SANS, lineHeight: 1.5 }}>{note}</p>
       </div>
     </div>
@@ -233,9 +231,7 @@ function BarRow({ label, value, max, valueLabel, tone = 'neutral', hint }: { lab
        εικονοστοιχεία ύψους· η μισή πρόταση κοστίζει το νόημα. */
     <div className="bar-row" style={{ display: 'grid', alignItems: 'center', columnGap: 12, rowGap: 6, padding: '5px 0' }} title={hint}>
       <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: SANS, lineHeight: 1.35 }}>{label}</span>
-      <div style={{ height: 8, borderRadius: 6, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
-        <div style={{ width: `${pct}%`, height: '100%', borderRadius: 6, background: bg, transition: 'width 0.4s ease' }} />
-      </div>
+      <Bar pct={pct} tone={bg} height={8} track="var(--bg-elevated)" label={label} />
       <span style={{ textAlign: 'right', fontSize: 12, fontWeight: 600, color: tone === 'accent' ? 'var(--accent)' : 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', fontFamily: SANS }}>{valueLabel}</span>
     </div>
   );

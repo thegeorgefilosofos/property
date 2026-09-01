@@ -7,7 +7,7 @@ import { fp, fe } from '@/lib/core/format'
 import { money as csvEur } from './sheetFormat';
 import DocChecklist from './DocChecklist'
 import { reportHead, reportHeader, reportSection, reportRow, reportKpi, reportDisclaimer, openReport, rEur, rPct, rEsc } from './reportPdf'
-import { T, Badge, ABSENT, TT, formGrid, fixedCols, KPIGrid } from '@/components/Theme'
+import { T, Badge, ABSENT, TT, fixedCols, KPIGrid } from '@/components/Theme'
 import { affordability, rentVsBuy } from '@/lib/loans/affordability'
 import { AADE_HOME } from '@/lib/tax/aade'
 import { createClient } from '@/lib/supabase/client'
@@ -1414,13 +1414,23 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
             <p title="ΦΜΑ: Φόρος Μεταβίβασης Ακινήτου · ΦΠΑ: Φόρος Προστιθέμενης Αξίας" style={{...labelStyle,marginBottom:4}}>{isCommercial?'ΦΜΑ 3,09% + Ψηφιακό Τέλος':'ΦΜΑ 3,09%'}</p>
             <p style={{fontSize:11,color:'var(--text-tertiary)',marginBottom:12,lineHeight:1.5,fontFamily: T.font.sans}}>{isCommercial?'Φόρος Μεταβίβασης Ακινήτου και Ψηφιακό Τέλος Συναλλαγής μίσθωσης':'Φόρος Μεταβίβασης Ακινήτου'}</p>
             {!isCommercial&&(
-              <div style={{...formGrid(200, 270),gap:10,marginBottom:12}}>
+              /* ══ ΤΑ ΠΕΔΙΑ ΣΤΟΙΧΙΖΟΝΤΑΙ ΜΕ ΤΑ ΠΛΑΚΙΔΙΑ ΠΟΥ ΥΠΟΛΟΓΙΖΟΥΝ ═══════
+                  Δύο πεδία με `formGrid(200, 270)` πάνω από τρία πλακίδια με
+                  `auto-fit` στα 150: τρία διαφορετικά πλάτη στηλών σε δύο
+                  σειρές που ΣΧΕΤΙΖΟΝΤΑΙ, γιατί τα πεδία είναι η είσοδος και
+                  τα πλακίδια το αποτέλεσμα. Καμία κάθετη ακμή δεν συνέπιπτε.
+
+                  Ιδιο πλέγμα, τρεις στήλες και στις δύο σειρές. Η οικογενειακή
+                  κατάσταση κάθεται πάνω από το όριο απαλλαγής που ορίζει, τα
+                  τέκνα πάνω από τον φόρο που αναλογεί· και η τρίτη στήλη μένει
+                  κενή γιατί η αξία του ακινήτου δεν ρυθμίζεται εδώ. */
+              <div {...fixedCols(3, 10, 'end', '', 3)} style={{...fixedCols(3, 10, 'end', '', 3).style, marginBottom:12}}>
                 <CustomSelect label="Οικογενειακή κατάσταση" value={marital} onChange={v=>setMarital(v === 'married' ? 'married' : 'single')} options={MARITAL_OPTIONS}/>
                 <CustomSelect label="Εξαρτώμενα τέκνα" value={children} onChange={setChildren} options={CHILDREN_OPTIONS}/>
               </div>
             )}
             {/* Τρία πλακίδια, ο ίδιος κανόνας με τη Δανειοληπτική ικανότητα. */}
-            <div className="kpi-row" style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',gap:8,marginBottom:10,'--kpi-lg':3,'--kpi-md':3,'--kpi-sm':1} as React.CSSProperties}>
+            <div {...fixedCols(3, 10, 'end', '', 3)} style={{...fixedCols(3, 10, 'end', '', 3).style, marginBottom:10}}>
               <KPI label={isCommercial?'ΦΜΑ 3,09%':'Όριο απαλλαγής ΦΜΑ'} value={isCommercial?fmtEur(fmaOwed):fmtEur(fmaEx)} emphasis={!isCommercial}/>
               <KPI label="ΦΜΑ που αναλογεί" value={fmaOwed===0?'Απαλλαγή':fmtEur(fmaOwed)} emphasis={fmaOwed===0}/>
               <KPI label="Αξία ακινήτου" value={fmtEur(PV)}/>
@@ -1489,18 +1499,28 @@ export default function TabLoanCalculator({propertyId,userId,market,initial,appl
       </Section>
 
       <Section title="Ανάλυση αναχρηματοδότησης" sub="Σημείο απόσβεσης, πότε αξίζει η μεταφορά">
-        <div style={{...formGrid(120, 180),gap:10,marginBottom:14}}>
+        {/* ══ ΠΕΝΤΕ ΠΕΔΙΑ, ΜΙΑ ΕΥΘΕΙΑ ═══════════════════════════════════════════
+            Το `formGrid` γεμίζει με `auto-fill` και ΚΟΒΕΙ κάθε στήλη στα 180:
+            σε κάρτα 1.350 εικονοστοιχείων χωρούσαν τέσσερα και το πέμπτο
+            έπεφτε μόνο του σε δεύτερη σειρά, με τρεις άδειες στήλες δεξιά
+            του. Πέντε πεδία της ίδιας ερώτησης —τι δάνειο έχεις τώρα και τι
+            σου προσφέρουν— διαβάζονται ως πέντε, όχι ως τέσσερα συν ένα.
+            Το `fixedCols` γράφει το πλήθος αντί να το αφήνει στο πλάτος, με
+            τρεις στήλες σε ταμπλέτα (το πέντε δεν έχει διαιρέτη που χωρά). */}
+        <div {...fixedCols(5, 10, 'end', '', 3)} style={{...fixedCols(5, 10, 'end', '', 3).style, marginBottom:14}}>
           <NumberInput label="Υπόλοιπο" value={remBal} onChange={setRemBal} suffix="€"/>
           <NumberInput label="Χρόνια που μένουν" value={remYears} onChange={setRemYears} suffix="έτη"/>
           <NumberInput label="Τρέχον επιτόκιο" value={curRate} onChange={setCurRate} suffix="%" step={0.05}/>
           <NumberInput label="Νέο επιτόκιο" value={newRate} onChange={setNewRate} suffix="%" step={0.05}/>
           <NumberInput label="Κόστος μεταφοράς" value={xferCost} onChange={setXferCost} suffix="€"/>
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 120px), 1fr))',gap:8}}>
+        <div {...fixedCols(4, 8)}>
           <KPI label="Τρέχουσα δόση" value={fmtEur(currM)}/>
           <KPI label="Νέα δόση" value={fmtEur(newM)} emphasis sub={`${fmtEur(mSav)} τον μήνα`}/>
           <KPI label="Καθαρή εξοικονόμηση" value={fmtEur(Math.max(0,refSav))} emphasis={refSav>0} sub={refSav>0?'Αξίζει':'Δεν συμφέρει'}/>
-          <KPI label="Σημείο απόσβεσης" value={brkEven?`${brkEven} μήνες`:'Δεν αποσβένεται'} emphasis={!!brkEven && brkEven < 24} sub="Απόσβεση εξόδων μεταφοράς"/>
+          {/* Η σημείωση «Απόσβεση εξόδων μεταφοράς» έλεγε ξανά την ετικέτα με
+              άλλα λόγια. Ο ορισμός ζει στο γλωσσάρι, μία φορά. */}
+          <KPI label="Σημείο απόσβεσης" value={brkEven?`${brkEven} μήνες`:'Δεν αποσβένεται'} emphasis={!!brkEven && brkEven < 24}/>
         </div>
       </Section>
       </>)}
