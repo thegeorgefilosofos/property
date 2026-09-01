@@ -98,11 +98,18 @@ export interface LiveProgram {
 // φρέσκα δεδομένα. Σταθερή ημερομηνία, όση αξίζουν: είναι το τελευταίο σημείο
 // που ξέρουμε, όχι μέτρηση της στιγμής. Η `provenance` μένει κενή επίτηδες· και
 // η οθόνη δεν γράφει ημερομηνία δίπλα σε καμία από αυτές.
-const FALLBACK_AS_OF = '2026-06-30T00:00:00Z';
+//
+// ΚΑΙ ΤΑ ΝΟΥΜΕΡΑ ΗΤΑΝ ΛΑΘΟΣ, ΟΧΙ ΑΠΛΩΣ ΠΑΛΙΑ. Στην πρώτη αληθινή εκτέλεση της
+// τροφοδοσίας, 01/09/2026, η ΕΚΤ έδωσε Euribor τριμήνου 2,51% εκεί που ο
+// κώδικας έγραφε 2,18: τριάντα τρεις μονάδες βάσης κάτω, πάνω στο νούμερο που
+// στηρίζει κάθε υπολογισμό κυμαινόμενου δανείου. Το ελληνικό μέσο υφιστάμενο
+// έγραφε 3,50 και είναι 3,01. Αντικαταστάθηκαν με τις τιμές που επιστρέφει η
+// πηγή, με την ημερομηνία της παρατήρησης και όχι με σφραγίδα «τώρα».
+const FALLBACK_AS_OF = '2026-08-01T00:00:00Z';
 
 const RATES_FALLBACK: LiveMarketRates = {
-  euribor_3m: 2.18, euribor_1m: 2.05, euribor_6m: 2.30, euribor_12m: 2.45,
-  ecb_rate: 2.40, ecb_dfl: 2.25, bog_housing_new: 3.43, bog_housing_stock: 3.50,
+  euribor_3m: 2.513, euribor_1m: 2.221, euribor_6m: 2.713, euribor_12m: 2.954,
+  ecb_rate: 2.40, ecb_dfl: 2.25, bog_housing_new: 3.56, bog_housing_stock: 3.01,
   updated_at: FALLBACK_AS_OF, source_euribor: 'fallback', source_bog: 'fallback',
   rate_changed: false, isLoading: true, provenance: {}, stale: [], isStale: false,
 }

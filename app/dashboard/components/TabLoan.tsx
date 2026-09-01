@@ -21,7 +21,7 @@ import { Gift } from 'lucide-react'
 import { downloadXlsx } from './sheets';
 import TabLoanCalculator, { type LoanCalcState } from './TabLoanCalculator'
 import { useMarketRates, useBankRates, useLoanPrograms, useIsAdmin } from '../../hooks/useMarketData'
-import { greekDay, seriesPage, ECB_SERIES } from '@/lib/market/ecb'
+import { greekDay, greekWhen, seriesPage, ECB_SERIES } from '@/lib/market/ecb'
 import { BANKS_NORM, PROGRAMS_NORM, mergeBanks, mergePrograms, normProgram, BANKS_VERIFIED, RATES_DISCLAIMER, type ComparisonBank, type ComparisonProgram, LOAN_TYPES, rateRange, GLOSSARY, EURIBOR_HISTORY, SERVICERS_GUIDE, calcMonthly, fmtEur, fmtPct, LoanType, RateType, SavedLoan, MARKET_FALLBACK } from './TabLoanData'
 import { rankLoans, spitiMouEligibility, type UserLoanNeeds } from '@/lib/loans/recommend'
 import { euriborInsight } from '@/lib/loans/affordability'
@@ -859,7 +859,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
                 <span title={`${market.provenance[item.k]!.basis}, ${market.provenance[item.k]!.source}${market.stale.includes(item.k)?'. Δεν ανανεώθηκε στον αναμενόμενο χρόνο':''}`}
                   style={{fontSize:11,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',color:'var(--text-tertiary)',fontWeight:500,
                     borderBottom:market.stale.includes(item.k)?'1px dotted var(--text-tertiary)':undefined}}>
-                  {greekDay(market.provenance[item.k]!.asOf)}
+                  {greekWhen(market.provenance[item.k]!.asOf, market.provenance[item.k]!.basis)}
                 </span>
               )}
             </span>
@@ -1831,7 +1831,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
               {[
                 {l:'Ιστορικό χαμηλό',v:fmtPct(Math.min(...EURIBOR_HISTORY.map(p=>p.val))),s:'2021'},
                 {l:'Ιστορικό υψηλό',v:fmtPct(Math.max(...EURIBOR_HISTORY.map(p=>p.val))),s:'Οκτώβριος 2023'},
-                {l:'Τρέχον',v:fmtPct(market.euribor_3m),s:market.provenance.euribor_3m?greekDay(market.provenance.euribor_3m.asOf):'χωρίς ημερομηνία'},
+                {l:'Τρέχον',v:fmtPct(market.euribor_3m),s:market.provenance.euribor_3m?greekWhen(market.provenance.euribor_3m.asOf,market.provenance.euribor_3m.basis):'χωρίς ημερομηνία'},
                 {l:'Μείωση από το ανώτατο',v:`-${fmtPct(Math.max(...EURIBOR_HISTORY.map(p=>p.val))-market.euribor_3m)}`,s:'από το 2023'},
               ].map(item=>(
                 <div key={item.l} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'11px 13px'}}>
