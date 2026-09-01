@@ -93,14 +93,14 @@ The reference procedure (executed once for a `.env.local` that had been committe
 
 ```sql
 select
-  (select count(*) from pg_extension where extname = 'pg_cron')                  as pg_cron,
-  (select count(*) from pg_extension where extname = 'pg_net')                   as pg_net,
-  (select count(*) from public.cron_secrets where name = 'email_cron')           as koino_mystiko,
-  (select count(*) from cron.job where jobname = 'market-data-daily')            as ergasia,
-  (select max(updated_at) from public.market_rates)                              as teleftaia_grammi,
-  (select jsonb_object_keys_count(provenance) from (
-     select provenance from public.market_rates
-      where provenance is not null order by updated_at desc limit 1) x)          as times_me_taftotita;
+  (select count(*) from pg_extension where extname = 'pg_cron')        as pg_cron,
+  (select count(*) from pg_extension where extname = 'pg_net')         as pg_net,
+  (select count(*) from public.cron_secrets where name = 'email_cron') as koino_mystiko,
+  (select count(*) from cron.job where jobname = 'market-data-daily')  as ergasia,
+  (select max(updated_at) from public.market_rates)                    as teleftaia_grammi,
+  (select count(*) from jsonb_object_keys(
+     (select provenance from public.market_rates
+       where provenance is not null order by updated_at desc limit 1))) as times_me_taftotita;
 ```
 
 Οι τέσσερις πρώτες στήλες πρέπει να είναι `1`. Η τελευταία πρέπει να είναι `8`:
@@ -108,8 +108,26 @@ select
 δεν απάντησαν — δεν είναι σφάλμα από μόνο του, γιατί η προηγούμενη τιμή κρατά τη
 θέση της με την ΠΑΛΙΑ της ημερομηνία, αλλά αν μένει έτσι για μέρες αξίζει έλεγχος.
 
-(Αν η `jsonb_object_keys_count` δεν υπάρχει, γράψε
-`(select count(*) from jsonb_object_keys(provenance))` σε υποερώτημα.)
+Επαληθεύτηκε στην παραγωγή την 01/09/2026: και οι πέντε στήλες σωστές.
+
+### Οι εργασίες που ΔΕΝ ξέρει το αποθετήριο
+
+Το `supabase db dump` δεν κατεβάζει εργασίες pg_cron: ζουν στο σχήμα `cron`.
+Οποια φτιαχτεί από το ταμπλό δεν υπάρχει πουθενά στον κώδικα και δεν την ελέγχει
+κανείς. Την 01/09/2026 βρέθηκαν τέσσερις τέτοιες, ανάμεσά τους μία που
+αποτύγχανε κάθε μέρα με ανυποκατάστατο πρότυπο στη διεύθυνση και μία που έγραφε
+παλιά επιτόκια στον ίδιο πίνακα μία ώρα πριν από τη σωστή εργασία.
+
+Η λίστα ελέγχεται περιοδικά· ό,τι δεν αντιστοιχεί σε μετανάστευση είναι ύποπτο:
+
+```sql
+select j.jobname, j.schedule, j.active,
+       max(r.end_time) as teleftaia,
+       (array_agg(r.status order by r.end_time desc))[1] as katastasi,
+       (array_agg(left(coalesce(r.return_message,''), 80) order by r.end_time desc))[1] as minima
+  from cron.job j left join cron.job_run_details r on r.jobid = j.jobid
+ group by j.jobname, j.schedule, j.active order by j.jobname;
+```
 
 ### Πρώτο πέρασμα κατά παραγγελία
 
