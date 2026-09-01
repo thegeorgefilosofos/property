@@ -1143,14 +1143,26 @@ export function ExportButton({ onClick, label = 'Εξαγωγή Excel', disabled
 // μια πρόταση 150 χαρακτήρων σπάει σε τρεις γραμμές. Στα 620px χωρά σε δύο και
 // διαβάζεται σαν πρόταση αντί για στήλη. Το εικονίδιο δεν χάθηκε — μετακόμισε
 // δίπλα στον τίτλο, όπου κάνει την ίδια δουλειά με το ένα τρίτο του ύψους.
+// ═══ Η ΚΕΝΗ ΚΑΤΑΣΤΑΣΗ ΔΕΝ ΚΕΝΤΡΑΡΕΤΑΙ ═══════════════════════════════════════
+// ΤΟ ΚΕΝΤΡΑΡΙΣΜΑ ΣΠΑΕΙ ΤΟ ΚΕΙΜΕΝΟ ΣΕ ΣΚΑΛΟΠΑΤΙΑ. Μετρημένο στην κάρτα των
+// λογαριασμών: ο τίτλος έπεφτε σε δύο γραμμές («Κανένας λογαριασμός / ακόμη»)
+// και η υπόδειξη σε τρεις, με ΚΑΘΕ γραμμή να ξεκινά και να τελειώνει αλλού.
+// Καμία κάθετη ακμή, τέσσερα διαφορετικά αριστερά άκρα, το εικονίδιο να
+// κολυμπά κάπου στη μέση. Το ίδιο κείμενο στοιχισμένο αριστερά είναι δύο
+// ευθείες γραμμές που πιάνουν όλο το πλάτος της κάρτας.
+//
+// ΚΑΙ ΤΟ ΚΕΝΤΡΟ ΔΕΝ ΕΙΝΑΙ ΟΥΔΕΤΕΡΗ ΕΠΙΛΟΓΗ. Είναι το σχήμα «δεν υπάρχει τίποτα
+// εδώ, λυπάμαι» — αφίσα, όχι διεπαφή. Οι κορυφαίες εφαρμογές πληρωμών γράφουν
+// την κενή κατάσταση σαν κάθε άλλη σειρά της οθόνης: αριστερά, πέρα πέρα, με
+// την πράξη ακριβώς από κάτω. Η κενή κατάσταση δεν είναι λιγότερο οθόνη.
 export function EmptyState({ title, hint, action, icon }: { title: string; hint?: string; action?: ReactNode; icon?: ReactNode }) {
   return (
-    <div style={{ textAlign: 'center' as const, padding: '26px 20px', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 6 }}>
+    <div style={{ padding: '22px 2px', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
         {icon && <span aria-hidden style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--text-tertiary)', flexShrink: 0 }}>{icon}</span>}
         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>{title}</span>
       </div>
-      {hint && <div style={{ fontSize: 12, lineHeight: 1.6, margin: '0 auto', textWrap: 'pretty' as const }}>{hint}</div>}
+      {hint && <div style={{ fontSize: 12, lineHeight: 1.6, textWrap: 'pretty' as const }}>{hint}</div>}
       {action && <div style={{ marginTop: 14 }}>{action}</div>}
     </div>
   );

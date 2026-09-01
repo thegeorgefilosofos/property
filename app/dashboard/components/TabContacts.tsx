@@ -567,7 +567,7 @@ function HistoryModal({ contact, propertyId, onClose }: { contact: Contact; prop
             {[{ label: 'Συνολικές Δαπάνες', value: totalExpenses > 0 ? fe(totalExpenses) : fe(0), color: 'var(--text-primary)' },
               { label: 'Παραστατικά με το ΑΦΜ του', value: docs.length > 0 ? `${docs.length}${docsTotal > 0 ? ' · ' + fe(docsTotal) : ''}` : (afm.length === 9 ? '0' : ABSENT_SHORT), color: 'var(--text-primary)' },
               { label: 'Σημειώσεις', value: notesLog.length > 0 ? `${notesLog.length}` : '0', color: 'var(--text-primary)' }].map(s => (
-              <div key={s.label} style={{ background: 'var(--bg-surface)', borderRadius: T.radius.inner, padding: '14px', border: '1px solid var(--border-subtle)', textAlign: 'center' }}>
+              <div key={s.label} style={{ background: 'var(--bg-surface)', borderRadius: T.radius.inner, padding: '14px', border: '1px solid var(--border-subtle)' }}>
                 <div style={{ fontSize: 20, fontWeight: 700, color: s.color, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginBottom: 4 }}>{s.value}</div>
                 <div style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</div>
               </div>
