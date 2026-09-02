@@ -27,7 +27,7 @@ env:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
 
@@ -164,25 +164,38 @@ jobs:
       - name: Κανένα μυστικό στο πακέτο του πελάτη — blocking
         run: npm run security:bundle
 
-      # ═══ Ο CHROMIUM ΕΓΚΑΘΙΣΤΑΤΑΙ, ΔΕΝ ΥΠΟΤΙΘΕΤΑΙ ═════════════════════════════
-      # ΤΟ CI ΗΤΑΝ ΚΟΚΚΙΝΟ ΣΕ ΚΑΘΕ ΕΚΤΕΛΕΣΗ ΚΑΙ ΚΑΝΕΙΣ ΔΕΝ ΤΟ ΕΒΛΕΠΕ. Τα σενάρια
-      # έγραφαν καρφωτά μια διαδρομή του container ανάπτυξης, ο δρομέας δεν την
-      # έχει και το πρώτο βήμα περιηγητή έσκαγε με «executable doesn't exist».
-      # Το job σταματά στο πρώτο σφάλμα, άρα ΟΛΑ τα επόμενα βήματα δεν
-      # εκτελούνταν ποτέ: τα μισά «blocking» ήταν διακοσμητικά.
-      #
-      # Η έκδοση δένεται με το playwright-core του package.json: αν αποκλίνουν,
-      # ο δρομέας κατεβάζει build που το playwright-core δεν ψάχνει.
+  # ═══ Ο,ΤΙ ΚΡΙΝΕΤΑΙ ΜΟΝΟ ΑΦΟΥ ΖΩΓΡΑΦΙΣΤΕΙ, ΣΕ ΔΙΚΟ ΤΟΥ JOB ═══════════════════
+  # Διάταξη σε οκτώ παράθυρα από 320 ώς 1440 και σε πλάγιο κινητό, αντίθεση στα
+  # δύο θέματα και ορατότητα εστίασης μετρημένη σε εικονοστοιχεία. Καμία από τις
+  # τρεις δεν υπάρχει πριν την υπολογίσει ο περιηγητής, οπότε κανένας έλεγχος
+  # πηγαίου δεν τις πιάνει.
+  #
+  # ΓΙΑΤΙ ΜΟΝΟ ΤΟΥ. Είναι η μακρύτερη σάρωση της εφαρμογής — μετρημένο 731
+  # δευτερόλεπτα — και είναι η μόνη που θέλει ζωντανό διακομιστή, δηλαδή και το
+  # χτίσιμο από πάνω της. Μέσα στο `verify` το πήγαινε στα είκοσι τέσσερα λεπτά,
+  # δηλαδή πάλι στο χείλος της ακύρωσης. Το χτίσιμο γίνεται δεύτερη φορά εδώ και
+  # αυτό κοστίζει: κοστίζει λιγότερο από έναν έλεγχο που δεν τελειώνει.
+  rendered:
+    name: Ο,τι κρίνεται αφού ζωγραφιστεί
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Chromium για τις σουίτες περιηγητή
         run: npx --yes playwright@1.62.1 install --with-deps chromium
 
-      # ═══ Ο,ΤΙ ΚΡΙΝΕΤΑΙ ΜΟΝΟ ΑΦΟΥ ΖΩΓΡΑΦΙΣΤΕΙ ══════════════════════════════
-      # Διάταξη σε οκτώ παράθυρα από 320 ώς 1440 και σε πλάγιο κινητό,
-      # αντίθεση στα δύο θέματα και ορατότητα εστίασης μετρημένη σε
-      # εικονοστοιχεία. Καμία από τις τρεις δεν υπάρχει πριν την υπολογίσει ο
-      # περιηγητής, οπότε κανένας έλεγχος πηγαίου δεν τις πιάνει.
-      #
-      # Θέλει τον διακομιστή ζωντανό: το build έχει ήδη γίνει από πάνω.
+      - name: Production build
+        run: npm run build
+
       - name: Ο,τι κρίνεται αφού ζωγραφιστεί — blocking
         run: |
           npm run start &
@@ -354,14 +367,16 @@ jobs:
   gate:
     name: Ολα πράσινα
     runs-on: ubuntu-latest
-    needs: [verify, scans, layout]
+    needs: [verify, scans, layout, rendered]
     if: always()
     steps:
       - name: Καμία πύλη δεν έμεινε ανοιχτή
         run: |
-          echo "verify: ${{ needs.verify.result }}"
-          echo "scans:  ${{ needs.scans.result }}"
-          echo "layout: ${{ needs.layout.result }}"
-          test "${{ needs.verify.result }}" = success
-          test "${{ needs.scans.result }}"  = success
-          test "${{ needs.layout.result }}" = success
+          echo "verify:   ${{ needs.verify.result }}"
+          echo "scans:    ${{ needs.scans.result }}"
+          echo "layout:   ${{ needs.layout.result }}"
+          echo "rendered: ${{ needs.rendered.result }}"
+          test "${{ needs.verify.result }}"   = success
+          test "${{ needs.scans.result }}"    = success
+          test "${{ needs.layout.result }}"   = success
+          test "${{ needs.rendered.result }}" = success
