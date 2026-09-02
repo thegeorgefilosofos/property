@@ -8,9 +8,10 @@
 import BrandMark from '@/components/BrandMark';
 import { T } from '@/components/tokens';
 import { Btn } from '@/components/Theme';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useLoad } from '@/app/hooks/useLoad';
 
 export default function Unsubscribe() {
   const token = String(useParams()?.token || '');
@@ -43,7 +44,12 @@ export default function Unsubscribe() {
     setProduct(row.product_news); setMarket(row.market_news); setState('ok');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
-  useEffect(() => { void load(); }, [load]);
+  // ΤΟ ΙΔΙΩΜΑ ΤΟΥ ΕΡΓΟΥ ΓΙΑ ΦΟΡΤΩΣΗ ΣΤΗΝ ΠΡΟΣΑΡΤΗΣΗ. Το γυμνό useEffect που
+  // καλούσε τη συνάρτηση έγραφε κατάσταση σύγχρονα μέσα στο effect (το
+  // «loading» της πρώτης γραμμής), που ο κανόνας set-state-in-effect του React
+  // Compiler σημαίνει ως σφάλμα. Το useLoad κάνει ακριβώς αυτό, μία φορά, με
+  // τον σωστό χρόνο.
+  useLoad(load);
 
   // ═══ Η ΑΠΕΓΓΡΑΦΗ ΠΟΥ ΑΠΕΤΥΧΕ ΣΙΩΠΗΛΑ ══════════════════════════════════════
   // ΤΙ ΕΒΛΕΠΕ Ο ΠΑΡΑΛΗΠΤΗΣ. Πατούσε «Απεγγραφή από όλα», το κουμπί σταματούσε

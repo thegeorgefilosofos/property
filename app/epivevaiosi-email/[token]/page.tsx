@@ -17,9 +17,10 @@
 import BrandMark from '@/components/BrandMark';
 import { T } from '@/components/tokens';
 import { Btn } from '@/components/Theme';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useLoad } from '@/app/hooks/useLoad';
 
 export default function ConfirmReminderEmail() {
   const token = String(useParams()?.token || '');
@@ -42,7 +43,12 @@ export default function ConfirmReminderEmail() {
     setState(error ? 'offline' : data === true ? 'ok' : 'invalid');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
-  useEffect(() => { void confirm(); }, [confirm]);
+  // ΤΟ ΙΔΙΩΜΑ ΤΟΥ ΕΡΓΟΥ ΓΙΑ ΦΟΡΤΩΣΗ ΣΤΗΝ ΠΡΟΣΑΡΤΗΣΗ. Το γυμνό useEffect που
+  // καλούσε τη συνάρτηση έγραφε κατάσταση σύγχρονα μέσα στο effect (το
+  // «loading» της πρώτης γραμμής), που ο κανόνας set-state-in-effect του React
+  // Compiler σημαίνει ως σφάλμα. Το useLoad κάνει ακριβώς αυτό, μία φορά, με
+  // τον σωστό χρόνο.
+  useLoad(confirm);
 
   const wrap: React.CSSProperties = { minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: 'Inter, system-ui, Arial, sans-serif', color: 'var(--text-primary)' };
   const card: React.CSSProperties = { width: '100%', maxWidth: 440, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '30px 28px', boxShadow: 'var(--elev-1)' };
