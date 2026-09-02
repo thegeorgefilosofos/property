@@ -37,13 +37,24 @@ const PROBE = () => {
   const out = []
   // Ποσό ή ποσοστό: ο,τι διαβάζει το μάτι ως αριθμό σε στήλη.
   const NUM = /^[+\-−]?\s?[\d.]{1,15}(,\d+)?\s?(€|%)$/
-  const numberIn = (el) => {
+  // ΤΟ «ΤΕΛΕΥΤΑΙΟ ΝΟΥΜΕΡΟ ΤΗΣ ΓΡΑΜΜΗΣ» ΔΕΝ ΕΙΝΑΙ ΚΕΛΙ ΣΤΗΛΗΣ, ΚΑΙ ΤΟ ΕΜΑΘΑ ΑΠΟ
+  // ΨΕΥΔΗ ΕΥΡΗΜΑΤΑ. Στα Εγγραφα κάθε γραμμή είναι ΟΜΑΔΑ μηνός με φωλιασμένα
+  // αρχεία, το καθένα με δικό του ποσό: το τελευταίο νούμερο έβγαινε στα 99, στα
+  // 635 και στα 720 μέσα σε γραμμή 1.240 — τρία ποσά που δεν ανήκουν σε καμία
+  // στήλη και δεν όφειλαν ποτέ να στοιχιστούν. Τέσσερα ψευδή ευρήματα σε μία
+  // οθόνη· ένας ανιχνευτής με ψευδή ευρήματα μαθαίνει τον κόσμο να τον προσπερνά.
+  //
+  // ΣΤΗΛΗ ΕΙΝΑΙ Ο,ΤΙ ΚΑΘΕΤΑΙ ΣΤΟ ΔΕΞΙ ΤΡΙΤΟ ΤΗΣ ΓΡΑΜΜΗΣ. Εκεί ζει το ποσό που
+  // διαβάζεται ως στήλη· ό,τι είναι στη μέση είναι κείμενο με νούμερο μέσα.
+  const numberIn = (el, rowRight, rowWidth) => {
+    const edge = rowRight - rowWidth / 3
     let last = null
     for (const n of el.querySelectorAll('*')) {
       if (n.children.length) continue
       const t = (n.textContent || '').trim()
       if (!t || !NUM.test(t)) continue
       if (!n.checkVisibility?.()) continue
+      if (n.getBoundingClientRect().right < edge) continue
       last = n
     }
     return last
@@ -58,12 +69,16 @@ const PROBE = () => {
     // «τελευταίο ποσό» ανά παιδί, αλλά τα ποσά της ΔΕΝ ανήκουν σε στήλη.
     const tops = kids.map(c => Math.round(c.getBoundingClientRect().top))
     if (new Set(tops).size < kids.length) continue
-    const nums = kids.map(numberIn)
-    if (nums.some(n => !n)) continue
     // Ολα τα παιδιά πρέπει να έχουν το ΙΔΙΟ δεξί άκρο κουτιού: αλλιώς δεν είναι
     // λίστα ίσου πλάτους και η στοίχιση των αριθμών δεν ορίζεται.
     const rights = kids.map(c => Math.round(c.getBoundingClientRect().right))
     if (Math.max(...rights) - Math.min(...rights) > 2) continue
+    const rowRight = rights[0]
+    const rowWidth = kids[0].getBoundingClientRect().width
+    const nums = kids.map(c => numberIn(c, rowRight, rowWidth))
+    // Αν έστω μία γραμμή δεν έχει νούμερο στο δεξί τρίτο, η λίστα ΔΕΝ είναι
+    // στήλη αριθμών και δεν κρίνεται ως τέτοια.
+    if (nums.some(n => !n)) continue
     const edges = nums.map(n => Math.round(n.getBoundingClientRect().right))
     const spread = Math.max(...edges) - Math.min(...edges)
     if (spread <= 4) continue
