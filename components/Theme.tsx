@@ -48,7 +48,7 @@ export function SkeletonKPIs({ n = 4 }: { n?: number }) {
     return 1;
   };
   return (
-    <div className="kpi-row kpi-grid" style={{ display: 'grid', gap: 10, marginBottom: 16, '--kpi-xl': n, '--kpi-lg': step(4), '--kpi-md': step(3), '--kpi-sm': Math.min(n, 2) } as CSSProperties}>
+    <div className="kpi-row kpi-grid" style={{ display: 'grid', gap: 10, marginBottom: 16, '--kpi-xl': n, '--kpi-lg': step(5), '--kpi-md': step(3), '--kpi-sm': Math.min(n, 2) } as CSSProperties}>
       {Array.from({ length: n }).map((_, i) => (
         <div key={i} className="kpi-card" style={{ pointerEvents: 'none' }}>
           <Skeleton w={70} h={9} style={{ marginBottom: 12 }} />
@@ -742,7 +742,18 @@ export function KPIGrid({ items, columns, nested }: { items: KPIItem[]; columns?
   // ΚΑΙ Ο ΚΑΝΟΝΑΣ ΕΓΙΝΕ ΑΥΣΤΗΡΟΤΕΡΟΣ. Οταν δεν υπάρχει διαιρέτης, δεν αρκεί
   // «πάρε το ταβάνι»: πέντε πλακίδια σε τέσσερις στήλες δίνουν 4+1, δηλαδή
   // ακριβώς το ορφανό που αποφεύγουμε. Δεύτερο πέρασμα διαλέγει το μεγαλύτερο
-  // πλήθος στηλών που ΔΕΝ αφήνει υπόλοιπο ένα: πέντε σε τρεις δίνει 3+2.
+  // πλήθος στηλών που ΔΕΝ αφήνει υπόλοιπο ένα.
+  //
+  // ΚΑΙ ΤΟ ΤΑΒΑΝΙ ΤΟΥ ΠΛΑΤΙΟΥ ΣΚΑΛΙΟΥ ΕΓΙΝΕ ΠΕΝΤΕ, ΟΧΙ ΤΕΣΣΕΡΑ. Με ταβάνι
+  // τέσσερα, πέντε δείκτες δεν βρίσκουν διαιρέτη και πέφτουν στους ΤΡΕΙΣ: «3+2»
+  // με μια τρύπα ολόκληρου πλακιδίου στη δεύτερη σειρά. Ο χρήστης το
+  // φωτογράφισε στο Χαρτοφυλάκιο και αναπαράχθηκε στα 1.100, στα 1.200 και στα
+  // 1.279 — παντού κάτω από το πλατύ σκαλί.
+  //
+  // ΓΙΑΤΙ ΧΩΡΑΝΕ ΤΑ ΠΕΝΤΕ: μετρημένο στα 1.279, η σειρά είναι 1.231 φαρδιά, που
+  // δίνει πλακίδιο 238 — περισσότερο από τα 185 που θέλει το μακρύτερο ποσό.
+  // Μετρημένο και στα 1.100: πλακίδιο 200. Το ταβάνι υπάρχει για να μη βγουν
+  // εννιά πλακίδια σε σειρά, όχι για να σπάσει μια σειρά που χωράει.
   const step = (cap: number) => {
     for (let d = Math.min(cols, cap); d >= 2; d--) if (cols % d === 0) return d;
     for (let d = Math.min(cols, cap); d >= 2; d--) if (cols % d !== 1) return d;
@@ -774,7 +785,7 @@ export function KPIGrid({ items, columns, nested }: { items: KPIItem[]; columns?
   // πλήθος το ορίζουν και στα τέσσερα σκαλιά οι μεταβλητές, το φύλλο στυλ τις
   // διαβάζει, ενώ το inline κρατά μόνο ό,τι δεν είναι διάταξη.
   return (
-    <div className="kpi-row kpi-grid" style={{ display: 'grid', gap: 12, marginBottom: 16, '--kpi-xl': cols, '--kpi-lg': step(4), '--kpi-md': step(3), '--kpi-sm': sm } as React.CSSProperties}>
+    <div className="kpi-row kpi-grid" style={{ display: 'grid', gap: 12, marginBottom: 16, '--kpi-xl': cols, '--kpi-lg': step(5), '--kpi-md': step(3), '--kpi-sm': sm } as React.CSSProperties}>
       {/* Η σειρά κρατά ό,τι είναι σειρά — πλήθος στηλών, κοινό μήκος αριθμού,
           το πλατύ τελευταίο πλακίδιο. Το ίδιο το πλακίδιο το ζωγραφίζει το
           `Tile`, που το ζωγραφίζει και για όποιον στήνει δικό του πλέγμα. */}

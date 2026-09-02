@@ -626,7 +626,12 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
       const aggWidest = Math.max(eur(agg.totalValue).length, eur(agg.totalRevenue).length,
         fp(agg.grossYield).length, fp(agg.netYield).length);
       return (
-        <div className="card" style={{ marginTop: 12, padding: 16 }}>
+        /* ΤΑ ΔΥΟ ΚΟΥΤΙΑ ΚΟΛΛΟΥΣΑΝ. Η κάρτα της απόδοσης κρατούσε κενό μόνο από
+           ΠΑΝΩ της· ο πίνακας των ακινήτων από κάτω δεν κρατούσε κανένα, οπότε
+           τα δύο περιγράμματα ακουμπούσαν και διαβάζονταν ως ένα σπασμένο
+           κουτί. Ο χρήστης το φωτογράφισε. Ιδιο κενό πάνω και κάτω: η σελίδα
+           έχει έναν ρυθμό, όχι δύο. */
+        <div className="card" style={{ marginTop: 12, marginBottom: 12, padding: 16 }}>
           {/* ΟΤΑΝ ΜΕΣΑ ΣΤΟ ΠΟΣΟΣΤΟ ΥΠΑΡΧΕΙ ΕΚΤΙΜΗΣΗ, ΛΕΓΕΤΑΙ. Ακίνητο χωρίς καμία
               καταχωρημένη δόση μπαίνει με τον στόχο ενοικίου· η στήλη «Έσοδα
               έτους» το σημαίνει ήδη γραμμή-γραμμή και η σύνοψη δεν επιτρέπεται
