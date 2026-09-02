@@ -62,15 +62,17 @@
 // ακίνητο, χωρίς να απαιτείται νέος πίνακας στη βάση.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { T, TT, Btn, Card, SecHdr, PageTitle, fixedCols, settingsField, feAuto, pageShell, Bar } from '@/components/Theme';
 import { InfoHint, HintedText } from './InfoHint';
 import { SegmentControl } from './UIComponents';
 import { createClient } from '@/lib/supabase/client';
 import * as checklist from '@/lib/data/checklist';
+import * as planData from '@/lib/data/plan';
+import { readCosts, EMPTY_PLAN, type PlanState } from '@/lib/data/plan';
 import { saved } from '@/components/dbWrite';
-import { notifyOk } from '@/components/Toast';
+import { notify, notifyOk } from '@/components/Toast';
 import { feSigned } from '@/lib/core/format';
 import type { PropertyStatus } from '@/lib/property/status';
 import {
@@ -298,12 +300,24 @@ function MoneyField({ label, hint, value, onChange }: {
   );
 }
 
-// ── Η ΜΝΗΜΗ ΤΟΥ ΧΡΗΣΤΗ ────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// Η ΜΝΗΜΗ ΤΟΥ ΣΧΕΔΙΟΥ ΕΦΥΓΕ ΑΠΟ ΤΗ ΣΥΣΚΕΥΗ
+// ─────────────────────────────────────────────────────────────────────────
+// ΗΤΑΝ ΟΛΗ ΣΤΟ `localStorage`: ο ιδιοκτήτης που τσέκαρε οκτώ βήματα στο κινητό
+// τα έβρισκε ΑΤΣΕΚΑΡΙΣΤΑ στον υπολογιστή· και τα έχανε ολότελα με ένα καθάρισμα
+// ιστορικού ή με αλλαγή συσκευής. Το σχέδιο ζει τώρα στη βάση, μία γραμμή ανά
+// ΑΚΙΝΗΤΟ — το γιατί όχι ανά χρήστη είναι γραμμένο στη μετανάστευση.
 //
-// Τι έχει τσεκάρει, τι είδος εκκρεμότητας δήλωσε, τι δεδομένα έβαλε. Τοπικά, ανά
-// χρήστη και ανά ακίνητο: σε κοινό υπολογιστή τα βήματα του ενός δεν
-// εμφανίζονται στον άλλον. Χωρίς τοπική αποθήκευση (ιδιωτική περιήγηση) η οθόνη
-// δουλεύει κανονικά — απλώς δεν θυμάται. Δεν είναι λόγος να μη φορτώσει.
+// ── ΚΑΙ ΟΤΙ ΥΠΑΡΧΕΙ ΗΔΗ ΣΤΗ ΣΥΣΚΕΥΗ ΔΕΝ ΠΕΤΙΕΤΑΙ ─────────────────────────
+// Οποιος έχει ήδη τσεκάρει βήματα θα άνοιγε την καρτέλα και θα τα έβρισκε όλα
+// άδεια: η αλλαγή θα φαινόταν ως ΑΠΩΛΕΙΑ, όχι ως βελτίωση. Στο πρώτο άνοιγμα,
+// αν η βάση δεν έχει γραμμή, ό,τι βρεθεί τοπικά ανεβαίνει μία φορά. Διαβάζονται
+// ΟΛΕΣ οι καταστάσεις, όχι μόνο η τρέχουσα: το ακίνητο μπορεί να έχει περάσει
+// από κενό σε ανακαίνιση και τα παλιά τσεκαρίσματα μετράνε αν γυρίσει πίσω.
+//
+// Οι παλιές τιμές μένουν στη συσκευή, δεν σβήνονται: αν η μία εγγραφή αποτύχει,
+// η δεύτερη προσπάθεια θα τις ξαναβρεί. Το κόστος τους είναι μερικά κιλοβάιτ.
+// ═══════════════════════════════════════════════════════════════════════════
 
 function readLocal<V>(key: string, fallback: V, valid: (v: unknown) => boolean): V {
   if (typeof window === 'undefined') return fallback;
@@ -317,13 +331,34 @@ function readLocal<V>(key: string, fallback: V, valid: (v: unknown) => boolean):
   }
 }
 
-const writeLocal = (key: string, value: unknown): void => {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* δες παραπάνω */ }
-};
-
 const isStringArray = (v: unknown): boolean => Array.isArray(v) && v.every(x => typeof x === 'string');
 const isObject = (v: unknown): boolean => !!v && typeof v === 'object' && !Array.isArray(v);
 const isKind = (v: unknown): boolean => DISPUTE_KINDS.some(k => k.key === v);
+
+/**
+ * Ο,τι κρατά ακόμη η συσκευή για αυτό το ακίνητο, ή `null` αν δεν κρατά τίποτα.
+ *
+ * Τα κλειδιά των βημάτων είναι `<βάση>-done-<κατάσταση>` και δεν ξέρουμε ποιες
+ * καταστάσεις έχει δει το ακίνητο: σαρώνονται όσα κλειδιά αρχίζουν με το
+ * πρόθεμα, αντί να μαντευτεί ο κατάλογος των καταστάσεων.
+ */
+function importLocal(base: string): PlanState | null {
+  if (typeof window === 'undefined') return null;
+  const done: Record<string, string[]> = {};
+  const prefix = `${base}-done-`;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key || !key.startsWith(prefix)) continue;
+      const ids = readLocal<string[]>(key, [], isStringArray);
+      if (ids.length) done[key.slice(prefix.length)] = ids;
+    }
+  } catch { /* ιδιωτική περιήγηση: δεν υπάρχει τίποτα να μεταφερθεί */ }
+  const kind = readLocal<string>(`${base}-kind`, 'unknown', isKind);
+  const costs = readCosts(readLocal<unknown>(`${base}-cost`, {}, isObject));
+  const empty = Object.keys(done).length === 0 && kind === 'unknown' && Object.keys(costs).length === 0;
+  return empty ? null : { done, disputeKind: kind === 'unknown' ? null : kind, vacancyCosts: costs, useAgent: true };
+}
 
 // ── Η καρτέλα ─────────────────────────────────────────────────────────────
 
@@ -348,13 +383,13 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
   property: P;
 }) {
   const base = `pos-plan-${userId}-${propertyId}`;
-  const doneKey = `${base}-done-${status}`;
-  const kindKey = `${base}-kind`;
-  const costKey = `${base}-cost`;
 
-  const [done, setDone] = useState<string[]>(() => readLocal<string[]>(doneKey, [], isStringArray));
-  const [kind, setKind] = useState<DisputeKind>(() => readLocal<DisputeKind>(kindKey, 'unknown', isKind));
-  const [costs, setCosts] = useState<VacancyCostInput>(() => readLocal<VacancyCostInput>(costKey, {}, isObject));
+  // Η οθόνη ανοίγει άδεια και γεμίζει μόλις απαντήσει η βάση. Δεν αντιγράφει
+  // τοπικές τιμές ως «προσωρινή αλήθεια»: θα έδειχνε βήματα τσεκαρισμένα και
+  // μετά από ένα δευτερόλεπτο θα τα ξετσέκαρε μπροστά στα μάτια του χρήστη.
+  const [done, setDone] = useState<string[]>([]);
+  const [kind, setKind] = useState<DisputeKind>('unknown');
+  const [costs, setCosts] = useState<VacancyCostInput>({});
   const [loanAmount, setLoanAmount] = useState<number | null>(null);
   // ΤΟ «ΚΑΘΑΡΟ ΕΣΟΔΟ» ΧΡΕΩΝΕ ΠΑΝΤΑ ΜΕΣΙΤΗ, ΧΩΡΙΣ ΝΑ ΤΟ ΛΕΕΙ. Η `saleEstimate`
   // δέχεται `useAgent` με προεπιλογή «ναι» και καλούνταν χωρίς όρισμα. Στην
@@ -362,6 +397,12 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
   // σου». Του δείχναμε το καθαρό ποσό της μίας επιλογής και το παρουσιάζαμε ως
   // το καθαρό ποσό της πώλησης. Τώρα το νούμερο ακολουθεί την επιλογή.
   const [useAgent, setUseAgent] = useState(true);
+
+  // ΤΟ ΣΧΕΔΙΟ ΟΛΟΚΛΗΡΟ, ΣΕ ΑΝΑΦΟΡΑ. Η οθόνη δείχνει ΜΙΑ κατάσταση ακινήτου, η
+  // γραμμή όμως κρατά όλες: χωρίς αυτό, μια αποθήκευση από την «ανακαίνιση» θα
+  // έσβηνε ό,τι είχε τσεκαριστεί όσο ήταν «κενό».
+  const whole = useRef<PlanState>(EMPTY_PLAN);
+  const [loaded, setLoaded] = useState(false);
 
   // ── ΤΙ ΕΙΝΑΙ ΑΝΟΙΧΤΟ ─────────────────────────────────────────────────────
   // ΔΥΟ ΚΑΤΑΣΤΑΣΕΙΣ, ΟΧΙ ΕΞΙ. Ήταν `openStep`, `shutGroups`, `openFund`,
@@ -418,28 +459,86 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
     }
   }, [propertyId, userId]);
 
-  const write = useCallback((key: string, value: unknown) => { writeLocal(key, value); }, []);
+  // ══ ΤΟ ΑΝΟΙΓΜΑ: Η ΒΑΣΗ, ΚΑΙ ΜΙΑ ΦΟΡΑ ΟΤΙ ΕΜΕΙΝΕ ΣΤΗ ΣΥΣΚΕΥΗ ════════════════
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const db = createClient();
+      const { plan: fromDb, error } = await planData.read(db, propertyId);
+      // ΑΠΟΤΥΧΗΜΕΝΗ ΑΝΑΓΝΩΣΗ ΣΗΜΑΙΝΕΙ ΣΙΩΠΗ, ΟΧΙ ΑΔΕΙΟ ΣΧΕΔΙΟ. Το `loaded`
+      // μένει ψευδές, οπότε καμία αποθήκευση δεν ξεκινά: αλλιώς η οθόνη θα
+      // έγραφε το άδειο ΠΑΝΩ στη γραμμή που υπάρχει και ο χρήστης θα έχανε ό,τι
+      // είχε τσεκάρει, χωρίς να το πατήσει ποτέ.
+      if (error) { if (alive) notify('Το σχέδιο δεν φορτώθηκε. Δοκίμασε ανανέωση.'); return }
+      let st = fromDb;
+      const blank = Object.keys(st.done).length === 0 && !st.disputeKind
+        && Object.keys(st.vacancyCosts).length === 0;
+      if (blank) {
+        const local = importLocal(base);
+        if (local) {
+          st = local;
+          // Δεν φωνάζει και δεν μπλοκάρει: αν αποτύχει, η επόμενη επίσκεψη
+          // ξαναβρίσκει τα τοπικά και ξαναπροσπαθεί.
+          void planData.save(db, propertyId, userId, st);
+        }
+      }
+      if (!alive) return;
+      whole.current = st;
+      setDone(st.done[status] ?? []);
+      setKind((st.disputeKind ?? 'unknown') as DisputeKind);
+      setCosts(st.vacancyCosts as VacancyCostInput);
+      setUseAgent(st.useAgent);
+      // Η φόρμα των παγίων ανοίγει μόνο όταν δεν ξέρουμε ακόμη κόστος. Το
+      // κριτήριο κρίνεται ΜΕ ΟΣΑ ΗΡΘΑΝ, όχι με το άδειο αρχικό.
+      setCostsOpen(vacancyCost(st.vacancyCosts as VacancyCostInput).monthly === 0);
+      setLoaded(true);
+    })().catch(() => { if (alive) setLoaded(true) });
+    return () => { alive = false };
+  }, [propertyId, userId, status, base]);
+
+  // ══ Η ΑΠΟΘΗΚΕΥΣΗ: ΜΙΑ ΕΓΓΡΑΦΗ, ΜΕ ΑΝΑΣΑ ══════════════════════════════════
+  // ΓΙΑΤΙ ΚΑΘΥΣΤΕΡΗΣΗ. Τα τέσσερα πεδία των παγίων γράφονται ψηφίο ψηφίο: χωρίς
+  // ανάσα, ένα «1.250» είναι πέντε εγγραφές στη βάση για μία τιμή. Τα 700
+  // χιλιοστά είναι πάνω από τον ρυθμό πληκτρολόγησης και κάτω από τον χρόνο που
+  // χρειάζεται ο χρήστης για να φύγει από την οθόνη.
+  //
+  // ΚΑΙ ΓΡΑΦΕΤΑΙ ΟΛΟΚΛΗΡΟ ΤΟ ΣΧΕΔΙΟ, ΟΧΙ Η ΑΛΛΑΓΗ. Η γραμμή είναι ένα έγγραφο:
+  // «διάβασε, άλλαξε, γράψε» σε τρία γρήγορα τσεκαρίσματα θα έχανε τα δύο.
+  useEffect(() => {
+    if (!loaded) return;
+    // ΚΑΤΑΣΤΑΣΗ ΧΩΡΙΣ ΤΣΕΚΑΡΙΣΜΕΝΟ ΒΗΜΑ ΔΕΝ ΓΡΑΦΕΤΑΙ ΚΑΘΟΛΟΥ. Με άδειο πίνακα,
+    // ένα ακίνητο που απλώς άνοιξε την καρτέλα θα διέφερε από τη γραμμή του και
+    // θα προκαλούσε εγγραφή σε κάθε επίσκεψη. Ιδιος κανόνας με το `readDone`,
+    // που ήδη πετά τις άδειες λίστες: το έγγραφο λέει μόνο ό,τι έγινε.
+    const nextDone = { ...whole.current.done };
+    if (done.length) nextDone[status] = done; else delete nextDone[status];
+    const next: PlanState = {
+      done: nextDone,
+      disputeKind: kind === 'unknown' ? null : kind,
+      vacancyCosts: costs as Record<string, number>,
+      useAgent,
+    };
+    // ΚΑΙ ΚΑΜΙΑ ΕΓΓΡΑΦΗ ΧΩΡΙΣ ΑΛΛΑΓΗ. Μόλις φορτώσει η γραμμή, το `loaded`
+    // αλλάζει και το εφέ τρέχει μία φορά με ό,τι μόλις διάβασε: χωρίς αυτή τη
+    // σύγκριση, κάθε άνοιγμα της καρτέλας θα έγραφε πίσω τα ίδια δεδομένα και
+    // το `updated_at` θα σήμαινε «κάποιος την άνοιξε», όχι «κάτι άλλαξε».
+    if (JSON.stringify(next) === JSON.stringify(whole.current)) return;
+    whole.current = next;
+    const t = setTimeout(() => {
+      void saved('Το σχέδιο δεν αποθηκεύτηκε', planData.save(createClient(), propertyId, userId, next));
+    }, 700);
+    return () => clearTimeout(t);
+  }, [loaded, done, kind, costs, useAgent, status, propertyId, userId]);
 
   const toggle = useCallback((id: string) => {
-    setDone(prev => {
-      const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
-      write(doneKey, next);
-      return next;
-    });
-  }, [doneKey, write]);
+    setDone(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }, []);
 
-  const pickKind = useCallback((k: DisputeKind) => {
-    setKind(k);
-    write(kindKey, k);
-  }, [kindKey, write]);
+  const pickKind = useCallback((k: DisputeKind) => { setKind(k); }, []);
 
   const setCost = useCallback((field: keyof VacancyCostInput, v: number | undefined) => {
-    setCosts(prev => {
-      const next = { ...prev, [field]: v };
-      write(costKey, next);
-      return next;
-    });
-  }, [costKey, write]);
+    setCosts(prev => ({ ...prev, [field]: v }));
+  }, []);
 
   const plan = useMemo(() => planFor({
     status, done, disputeKind: kind,

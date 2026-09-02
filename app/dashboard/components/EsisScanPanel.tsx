@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { NumberInput, CustomSelect, Toggle, InfoChip } from './UIComponents'
-import { T, TT, fp, fn, fixedCols } from '@/components/Theme'
+import { T, TT, fp, fn, fixedCols, Stat, widestOf } from '@/components/Theme'
 import { useDocScan, scanNum, ScanUploadRow, ScanErrorNote } from './LoanDocScan'
 import { analyzeEsis, esisVerdictLabel } from '@/lib/loans/esis'
 
@@ -64,7 +64,6 @@ export default function EsisScanPanel({
   defaultAmount?:number; defaultYears?:number; benchmarkAprc?:number; fmtEur:(n:number)=>string;
 }) {
   const font = T.font.sans
-  const [ht,setHt] = useState<number|null>(null)
   const [vhE,setVhE] = useState(false)
   const [scanned,setScanned] = useState(false)
 
@@ -108,12 +107,12 @@ export default function EsisScanPanel({
   }, benchmarkAprc!=null ? { benchmarkAprc } : undefined)
 
   const costTiles = [
-    { l:'ΣΕΠΠΕ (πραγματικό)', v:fp(res.aprc), hi:true },
-    { l:'Ονομαστικό επιτόκιο', v:fp(res.nominal), hi:false },
-    { l:'Δόση', v:fmtEur(res.monthly), hi:false },
-    { l:'Σύνολο τόκων', v:fmtEur(res.totalInterest), hi:false },
-    { l:'Έξοδα', v:fmtEur(res.totalFees), hi:false },
-    { l:'Ασφάλειες (διάρκεια)', v:fmtEur(res.totalInsurance), hi:false },
+    { l:'ΣΕΠΠΕ (πραγματικό)', v:fp(res.aprc) },
+    { l:'Ονομαστικό επιτόκιο', v:fp(res.nominal) },
+    { l:'Δόση', v:fmtEur(res.monthly) },
+    { l:'Σύνολο τόκων', v:fmtEur(res.totalInterest) },
+    { l:'Έξοδα', v:fmtEur(res.totalFees) },
+    { l:'Ασφάλειες (διάρκεια)', v:fmtEur(res.totalInsurance) },
   ]
 
   return (
@@ -155,12 +154,21 @@ export default function EsisScanPanel({
           {res.vsMarketPct!=null && <p style={{fontSize:12,fontFamily:font,fontVariantNumeric:'tabular-nums',color:'var(--text-tertiary)',fontWeight:600}}>{res.vsMarketPct<=0?'στα επίπεδα αγοράς':`+${fn(res.vsMarketPct,2)} μονάδες έναντι αγοράς`}</p>}
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 110px), 1fr))',gap:12}}>
-          {costTiles.map((t,i)=>(
-            <div key={t.l} onMouseEnter={()=>setHt(i)} onMouseLeave={()=>setHt(null)} onTouchStart={()=>setHt(i)} onTouchEnd={()=>setHt(null)}>
-              <p style={{...TT.label,color:'var(--text-tertiary)',marginBottom:4}}>{t.l}</p>
-              <p style={{fontSize:t.hi?16:13,fontFamily:font,fontVariantNumeric:'tabular-nums',fontWeight:700,lineHeight:1,color:(t.hi&&res.verdict==='expensive')?'var(--negative)':ht===i?'var(--accent)':'var(--text-primary)',transition:'color 0.15s'}}>{t.v}</p>
-            </div>
-          ))}
+        {/* ═══ ΕΒΔΟΜΗ ΓΡΑΦΗ ΤΗΣ ΓΡΑΜΜΗΣ ΣΤΟΙΧΕΙΩΝ, ΜΕ ΔΥΟ ΜΕΓΕΘΗ ΚΑΙ ΕΝΑ ΚΟΚΚΙΝΟ
+            ΤΙ ΗΤΑΝ: νούμερο 16 για το ένα και 13 για τα άλλα πέντε, ανύψωση με
+            κατάσταση React και τέσσερις ακροατές ανά πλακίδιο· και το ΣΕΠΠΕ σε
+            `--negative` όταν η προσφορά κρίνεται ακριβή. Ο χρήστης το
+            φωτογράφισε σε tablet: το «ΟΝΟΜΑΣΤΙΚΟ ΕΠΙΤΟΚΙΟ» και το «ΑΣΦΑΛΕΙΕΣ
+            (ΔΙΑΡΚΕΙΑ)» τύλιγαν σε δύο γραμμές και τα νούμερά τους έπεφταν πιο
+            κάτω από τα διπλανά — έξι τιμές σε τρία ύψη.
+
+            ΚΑΙ ΤΟ ΚΟΚΚΙΝΟ ΕΛΕΓΕ ΤΟ ΙΔΙΟ ΤΡΙΤΗ ΦΟΡΑ. Η ετυμηγορία γράφεται με
+            λέξεις ακριβώς από πάνω («Ακριβότερη από την αγορά») και δίπλα της
+            με νούμερο («+0,91 μονάδες έναντι αγοράς). Ενα κόκκινο ποσοστό δεν
+            πρόσθετε πληροφορία· πρόσθετε ετυμηγορία σε αριθμό. */}
+        {(() => { const w = widestOf(...costTiles.map(t => t.v)); return costTiles.map(t => (
+          <Stat key={t.l} label={t.l} value={t.v} chars={w} />
+        )) })()}
         </div>
         <div style={{marginTop:14,paddingTop:12,borderTop:'1px solid var(--border-subtle)',display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:12}}>
           <span style={{fontSize:12,color:'var(--text-secondary)',fontFamily:font}}>Συνολικό κόστος πέραν κεφαλαίου</span>

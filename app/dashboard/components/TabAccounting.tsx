@@ -10,7 +10,7 @@ import * as tenantStore from '@/lib/data/tenants';
 import { rentCollectionMode, collectionModeReason } from '@/lib/tax/rentCollectionMode';
 import * as expenseStore from '@/lib/data/expenses'
 import { ownerShareOf, ownerShareOfAmount } from '@/lib/expenses/sharing';
-import { T, TT, Skeleton, SkeletonKPIs, fe, fp, fn, fixedCols } from '@/components/Theme'
+import { T, TT, Skeleton, SkeletonKPIs, fe, fp, fn, fixedCols, Stat, widestOf } from '@/components/Theme'
 import { ActionMenu } from '@/components/ActionMenu'
 import { ChevronLeft, ChevronRight, Download, Layers, Lightbulb, ArrowUpRight } from 'lucide-react'
 import { buildAdvisory, referLabel, type AdvisoryTone } from '@/lib/accounting/advisory'
@@ -1651,10 +1651,18 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
                 <p style={{ fontSize:13, color:'var(--text-tertiary)', fontFamily: T.font.sans, padding:'8px 0' }}>Δεν υπάρχουν έσοδα σε άλλα ακίνητα για το {year}.</p>
               ):(<>
                 <p style={{ fontSize:12, color:'var(--text-secondary)', margin:'0 0 12px', fontFamily: T.font.sans, lineHeight:1.5 }}>Ο φόρος φυσικού προσώπου είναι προοδευτικός στο <strong style={{ color:'var(--text-primary)' }}>σύνολο</strong> των ενοικίων (όπως στο Ε1), όχι ανά ακίνητο.</p>
-                <div style={{ display:'flex', gap:16, flexWrap:'wrap', marginBottom:12 }}>
-                  <div><p style={{ fontSize:11, color:'var(--text-tertiary)', margin:0, textTransform:'uppercase', letterSpacing:'0.4px', fontFamily: T.font.sans }}>Συνολικά έσοδα</p><p style={{ fontSize:16, fontWeight:700, color:'var(--text-primary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{eur(portfolio.con.grossIncome)}</p></div>
-                  <div><p style={{ fontSize:11, color:'var(--text-tertiary)', margin:0, textTransform:'uppercase', letterSpacing:'0.4px', fontFamily: T.font.sans }}>Συνολικός φόρος</p><p style={{ fontSize:16, fontWeight:700, color:'var(--text-primary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{eur(portfolio.con.incomeTax)}</p></div>
-                  <div><p style={{ fontSize:11, color:'var(--text-tertiary)', margin:0, textTransform:'uppercase', letterSpacing:'0.4px', fontFamily: T.font.sans }}>Μέσος συντ.</p><p style={{ fontSize:16, fontWeight:700, color:'var(--text-primary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{pct(portfolio.con.effectiveRate)}</p></div>
+                {/* ΤΡΙΑ ΝΟΥΜΕΡΑ ΓΡΑΜΜΕΝΑ ΜΕ ΤΟ ΧΕΡΙ, ΜΕ ΔΙΚΟ ΤΟΥΣ ΜΕΓΕΘΟΣ. Ετικέτα
+                    11 με 0,4px γράμμα και νούμερο σταθερά 16, ενώ η γραμμή
+                    στοιχείων του βιβλίου κλιμακώνεται με το πλάτος και κρατά ένα
+                    μέγεθος ανά σειρά. Και εδώ, ένα «Συνολικά έσοδα» που τυλίγει
+                    κατέβαζε το νούμερό του κάτω από τα διπλανά. */}
+                <div {...fixedCols(3, 16, 'start')} style={{ ...fixedCols(3, 16, 'start').style, marginBottom:12 }}>
+                  {(() => { const row = [
+                    ['Συνολικά έσοδα', eur(portfolio.con.grossIncome)] as const,
+                    ['Συνολικός φόρος', eur(portfolio.con.incomeTax)] as const,
+                    ['Μέσος συντελεστής', pct(portfolio.con.effectiveRate)] as const,
+                  ]; const w = widestOf(...row.map(([, v]) => v));
+                    return row.map(([k, v]) => <Stat key={k} label={k} value={v} chars={w} />) })()}
                 </div>
                 <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                   {portfolio.con.perProperty.map(pp=>(
@@ -1671,10 +1679,20 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
 
             <div style={card}>
               <p style={cardTitle}>Εκπιπτόμενα έξοδα</p>
-              <div style={{ display:'flex', gap:16, flexWrap:'wrap', marginBottom:12 }}>
-                <div><p style={{ fontSize:11, color:'var(--text-tertiary)', margin:0, textTransform:'uppercase', letterSpacing:'0.4px', fontFamily: T.font.sans }}>Εκπιπτόμενα</p><p style={{ fontSize:16, fontWeight:700, color:'var(--text-primary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{eur(deductibleTotal)}</p></div>
-                <div><p style={{ fontSize:11, color:'var(--text-tertiary)', margin:0, textTransform:'uppercase', letterSpacing:'0.4px', fontFamily: T.font.sans }}>Μη εκπιπτόμενα</p><p style={{ fontSize:16, fontWeight:700, color:'var(--text-secondary)', margin:'2px 0 0', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{eur(expensesTotal-deductibleTotal)}</p></div>
-              </div>
+              {/* ΤΟ ΖΕΥΓΟΣ ΠΟΥ ΠΡΕΠΕΙ ΝΑ ΔΙΑΒΑΖΕΤΑΙ ΜΑΖΙ. Δύο ποσά που αθροίζουν
+                  στο σύνολο των δαπανών, γραμμένα με το χέρι στα 16 και με
+                  ετικέτα άλλου ρυθμού από το βιβλίο. Ενα μέγεθος, από το
+                  μακρύτερο: αλλιώς το «1.152,00 €» δίπλα στο «0,00 €» φαίνεται
+                  σημαντικότερο επειδή είναι απλώς μακρύτερο. */}
+              {(() => { const row = [
+                ['Εκπιπτόμενα', eur(deductibleTotal)] as const,
+                ['Μη εκπιπτόμενα', eur(expensesTotal - deductibleTotal)] as const,
+              ]; const w = widestOf(...row.map(([, v]) => v))
+                return (
+                  <div {...fixedCols(2, 16, 'start')} style={{ ...fixedCols(2, 16, 'start').style, marginBottom:12 }}>
+                    {row.map(([k, v]) => <Stat key={k} label={k} value={v} chars={w} />)}
+                  </div>
+                ) })()}
               <p style={{ fontSize:12, color:'var(--text-secondary)', margin:0, fontFamily: T.font.sans, lineHeight:1.5 }}>Για ιδιώτη τα έξοδα δεν εκπίπτουν αναλυτικά. Στο καθεστώς <strong style={{ color:'var(--text-primary)' }}>Επιχείρηση (ΕΛΠ)</strong> εκπίπτουν πλήρως.<InfoHint>Για φυσικό πρόσωπο με μακροχρόνια μίσθωση κατοικίας ισχύει η τεκμαρτή έκπτωση 5% (όχι αναλυτικά έξοδα). Στο καθεστώς Επιχείρηση (ΕΛΠ) εκπίπτουν αναλυτικά, μαζί με αποσβέσεις εξοπλισμού ({eur(inventoryDepr)} τον χρόνο) και τόκους δανείων ({eur(loanInterestYear)} τον χρόνο).</InfoHint></p>
             </div>
           </div>

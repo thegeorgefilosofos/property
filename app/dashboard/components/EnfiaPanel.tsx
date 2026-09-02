@@ -311,17 +311,17 @@ export default function EnfiaPanel({ propertyId, userId }: { propertyId: string;
                 {SOURCE_LABEL[inUse.source]}
               </span>
             </div>
-            <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 10, maxWidth: 720 }}>
+            <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 10 }}>
               Σύνολο για τη χρονιά. Το ένα δωδέκατο είναι {fe(inUse.monthly)} τον μήνα, για να το βάζεις στην άκρη.
             </div>
-            <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border-subtle)', maxWidth: 720 }}>
+            <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border-subtle)' }}>
               {SOURCE_NOTE[inUse.source]}
             </div>
             {/* ΤΟ ΠΛΗΘΟΣ ΤΩΝ ΔΟΣΕΩΝ ΔΕΝ ΓΡΑΦΕΤΑΙ ΩΣ ΒΕΒΑΙΟΤΗΤΑ. Άλλαξε τρεις
                 φορές την τελευταία δεκαετία και η ίδια η εφαρμογή το έλεγε με
                 τρία διαφορετικά νούμερα σε τρία σημεία. Οι ημερομηνίες ζουν στο
                 φορολογικό ημερολόγιο, όπου φέρουν και την επιφύλαξή τους. */}
-            <div style={{ ...TT.caption, marginTop: 8, maxWidth: 720 }}>
+            <div style={{ ...TT.caption, marginTop: 8 }}>
               Το πόσες δόσεις ορίζονται και πότε λήγει η καθεμία αλλάζει ανά έτος και το κρατά το Ημερολόγιο.
             </div>
           </>
@@ -340,7 +340,7 @@ export default function EnfiaPanel({ propertyId, userId }: { propertyId: string;
               active={activeRoute === r} onSelect={() => setRoute(r)}/>
           ))}
         </div>
-        <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border-subtle)', maxWidth: 720 }}>
+        <div style={{ ...TT.bodySm, color: 'var(--text-secondary)', marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
           {ROUTE_HELP[activeRoute]}
           {/* Η ΜΟΝΗ ΠΡΟΤΑΣΗ ΠΟΥ ΧΡΕΙΑΖΕΤΑΙ Η ΙΕΡΑΡΧΙΑ, ΚΑΙ ΜΟΝΟ ΟΤΑΝ ΧΡΕΙΑΖΕΤΑΙ.
               Δύο γεμάτοι δρόμοι ταυτόχρονα είναι η στιγμή που ο ιδιοκτήτης

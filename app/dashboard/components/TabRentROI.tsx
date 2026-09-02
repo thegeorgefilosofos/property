@@ -16,7 +16,7 @@ import { readStatus, type StatusRow } from '@/lib/property/status'
 import { useChartWidth } from '@/app/hooks/useChartWidth'
 import { businessFormOf } from '@/lib/accounting/taxProfile'
 import type { LegalForm as DossierLegalForm } from '@/lib/accounting/dossier'
-import { Skeleton, SkeletonKPIs, PageTitle, fe, feCompact, fp, fn, ABSENT, ABSENT_SHORT, T, fixedCols, Bar, Tile, widestOf } from '@/components/Theme';
+import { Skeleton, SkeletonKPIs, PageTitle, fe, feCompact, fp, fn, ABSENT, ABSENT_SHORT, T, fixedCols, Bar, Tile, widestOf, Stat } from '@/components/Theme';
 import { NumberInput, CustomSelect, fieldLabelStyle, SegmentControl, Toggle as Switch } from './UIComponents';
 import { ChevronRight, TrendingUp, Landmark, Percent, Wallet, Layers, ArrowUpRight, Info, ShieldCheck } from 'lucide-react';
 import { yields, compound, leverage, compareInvestments, propertyTotalReturn, projectLine, yieldGrade, dealAnalysis, type LeverageResult, type YieldGrade } from '@/lib/market/returns';
@@ -380,14 +380,21 @@ const yearOpts = (...years: number[]) => years.map(y => ({ value: String(y), lab
  * κάθε διόρθωση γινόταν σε ένα και ξεχνιόταν στα υπόλοιπα επτά — γι' αυτό η
  * «Ιστορική διαδρομή» είχε άλλο μέγεθος νούμερου από τα «Εργαλεία απόδοσης».
  */
-function Figure({ label, value, tone }: { label: string; value: string; tone?: 'accent' | 'negative' }) {
-  return (
-    <div>
-      <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.4px', fontFamily: SANS }}>{label}</p>
-      <p className="po-fig" data-tone={tone} style={{ fontSize: 16, fontWeight: 700, margin: '3px 0 0', fontFamily: SANS, fontVariantNumeric: 'tabular-nums', lineHeight: 1.15 }}>{value}</p>
-    </div>
-  );
-}
+// ═══════════════════════════════════════════════════════════════════════════
+// ΑΚΟΜΗ ΜΙΑ ΓΡΑΜΜΗ ΣΤΟΙΧΕΙΩΝ ΠΟΥ ΕΦΥΓΕ
+// ─────────────────────────────────────────────────────────────────────────
+// Ετικέτα 11 με 0,4px γράμμα και νούμερο ΣΤΑΘΕΡΟ στα 16, δίπλα σε γραμμές του
+// βιβλίου που κλιμακώνονται με το πλάτος και το μήκος τους. Δύο ρυθμοί στην
+// ίδια οθόνη· και μια ετικέτα δύο γραμμών κατέβαζε το νούμερό της κάτω από τα
+// διπλανά. Το `Stat` κρατά ένα μέγεθος ανά σειρά, από το μακρύτερο.
+//
+// ΚΑΙ Ο ΤΟΝΟΣ ΕΦΥΓΕ ΜΑΖΙ. Το `accent` στην «Τελική αξία» δεν έλεγε τίποτα που
+// δεν λέει ο αριθμός: ήταν έμφαση χωρίς σημασία, ακριβώς αυτό που η εφαρμογή
+// έβγαλε από τα πλακίδια του Δανείου. Το `negative` στην αρνητική ροή το λέει
+// ήδη το πρόσημο, που είναι πιο ακριβές από ένα χρώμα.
+const Figure = ({ label, value, chars }: { label: string; value: string; chars?: number }) => (
+  <Stat label={label} value={value} chars={chars} />
+);
 
 // Κάρτα μοχλού — στο hover γίνεται accent ΜΟΝΟ ο τίτλος (καθαρή, διακριτική ένδειξη).
 /* ── Ο ΜΟΧΛΟΣ ΛΕΕΙ ΤΟ ΠΟΣΟ ΚΑΙ ΚΡΥΒΕΙ ΤΑ ΨΙΛΑ ────────────────────────────
@@ -1369,7 +1376,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
             const m = Math.max(y.grossYield, reg?.grossYield || 5, ATHENS_AVG_GROSS_YIELD) * 1.1;
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <BarRow label="Το ακίνητό σου" value={y.grossYield} max={m} valueLabel={fp(y.grossYield)} tone="accent" />
+                <BarRow label="Το ακίνητό σου" value={y.grossYield} max={m} valueLabel={fp(y.grossYield)} />
                 <BarRow label={reg?.label || 'Περιοχή'} value={reg?.grossYield || 0} max={m} valueLabel={fp(reg?.grossYield || 0)} tone="neutral" hint={reg?.note} />
                 <BarRow label="Μέσος όρος Αθήνας" value={ATHENS_AVG_GROSS_YIELD} max={m} valueLabel={fp(ATHENS_AVG_GROSS_YIELD)} tone="muted" />
                 <BarRow label="Εθνικός μέσος όρος" value={GREECE_AVG_GROSS_YIELD} max={m} valueLabel={fp(GREECE_AVG_GROSS_YIELD)} tone="muted" />
@@ -1444,11 +1451,18 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
               <span key={l} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: SANS }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: c }} />{l}</span>
             ))}
           </div>
-          <div className="po-fig-card" tabIndex={0} style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 12 }}>
-            <div><p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.4px', fontFamily: SANS }}>{hist[0]?.year}</p><p className="po-fig" style={{ fontSize: 15, fontWeight: 700, margin: '2px 0 0', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{fe(histStart)}</p></div>
-            <div><p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.4px', fontFamily: SANS }}>Σήμερα</p><p className="po-fig" data-tone="accent" style={{ fontSize: 15, fontWeight: 700, margin: '2px 0 0', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{fe(histEnd)}</p></div>
-            <div><p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.4px', fontFamily: SANS }}>Μεταβολή</p><p className="po-fig" style={{ fontSize: 15, fontWeight: 700, margin: '2px 0 0', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{histStart > 0 ? `${histEnd >= histStart ? '+' : ''}${fp(((histEnd - histStart) / histStart) * 100)}` : ABSENT_SHORT}</p></div>
-          </div>
+          {/* ΤΡΙΤΗ ΓΡΑΦΗ ΤΗΣ ΙΔΙΑΣ ΓΡΑΜΜΗΣ, ΜΕ ΤΕΤΑΡΤΟ ΜΕΓΕΘΟΣ. Ετικέτα 11 με
+              0,4px γράμμα και νούμερο σταθερά 15, ενώ δύο ενότητες πιο κάτω η
+              ίδια πληροφορία γράφεται στα 16 και αλλού στα 24. Το `Stat` δίνει
+              ένα μέγεθος ανά σειρά, από το μακρύτερο νούμερο. */}
+          {(() => { const chg = histStart > 0 ? `${histEnd >= histStart ? '+' : ''}${fp(((histEnd - histStart) / histStart) * 100)}` : ABSENT_SHORT
+            const row = [[String(hist[0]?.year ?? ''), fe(histStart)], ['Σήμερα', fe(histEnd)], ['Μεταβολή', chg]] as const
+            const w = widestOf(...row.map(([, v]) => v))
+            return (
+              <div {...fixedCols(3, 16, 'start')} style={{ ...fixedCols(3, 16, 'start').style, marginTop: 12 }}>
+                {row.map(([k, v]) => <Stat key={k} label={k} value={v} chars={w} />)}
+              </div>
+            ) })()}
           {/* Η μακρά ιστορία λέγεται μόνο όταν φαίνεται. Κάτω από γράφημα που
               ξεκινά το 2016, μια πρόταση για την κορυφή του 2008 ζητά από τον
               αναγνώστη να πιστέψει κάτι που δεν μπορεί να δει. */}
@@ -1607,9 +1621,12 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                   <NumberInput label="Απόδοση επανεπένδυσης" value={compRate} onChange={setCompRate} suffix="%" step={0.5} />
                   <div><label style={fieldLabelStyle}>Ορίζοντας ανατοκισμού</label><SegmentControl ariaLabel="Ορίζοντας ανατοκισμού" value={compYears} onChange={v => setCompYears(v as typeof compYears)} options={yearOpts(10, 20)} /></div>
                 </div>
+                {/* Ενα μέγεθος για τη σειρά, από το μακρύτερο νούμερο: αλλιώς
+                    το «335.343,55 €» και το «123.313,55 €» βγαίνουν σε δύο
+                    μεγέθη δίπλα δίπλα και το μάτι το διαβάζει ως σημασία. */}
                 <div {...fixedCols(2, 16, 'start')} style={{ ...fixedCols(2, 16, 'start').style, marginTop: 14 }}>
-                  <Figure label="Τελική αξία" value={fe(comp.futureValue)} tone="accent" />
-                  <Figure label="Κέρδος ανατοκισμού" value={fe(comp.totalGrowth)} />
+                  <Figure label="Τελική αξία" value={fe(comp.futureValue)} chars={widestOf(fe(comp.futureValue), fe(comp.totalGrowth))} />
+                  <Figure label="Κέρδος ανατοκισμού" value={fe(comp.totalGrowth)} chars={widestOf(fe(comp.futureValue), fe(comp.totalGrowth))} />
                 </div>
                 {/* Ητανε 84 χαρακτήρες και τσάκιζε σε δεύτερη γραμμή μέσα στη
                     στήλη του εργαλείου. Η ίδια πρόταση χωρίς τα γεμίσματα: το
@@ -1655,9 +1672,9 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                     χαμηλά. Κάτω από τα 820 τα τρία μεγέθη πάνε το ένα κάτω από
                     το άλλο, όπου η ετικέτα έχει όλο το πλάτος της κάρτας. */}
                 <div {...fixedCols(3, 16, 'start', '', 1)} style={{ ...fixedCols(3, 16, 'start', '', 1).style, marginTop: 14 }}>
-                  <Figure label="Ίδια κεφάλαια" value={fe(lev.equity)} />
-                  <Figure label="Απόδοση ιδίων" value={fp(lev.cashOnCash)} tone={lev.cashOnCash >= 0 ? 'accent' : 'negative'} />
-                  <Figure label="Ετήσια ροή" value={fe(lev.cashFlow)} tone={lev.cashFlow >= 0 ? undefined : 'negative'} />
+                  <Figure label="Ίδια κεφάλαια" value={fe(lev.equity)} chars={widestOf(fe(lev.equity), fp(lev.cashOnCash), fe(lev.cashFlow))} />
+                  <Figure label="Απόδοση ιδίων" value={fp(lev.cashOnCash)} chars={widestOf(fe(lev.equity), fp(lev.cashOnCash), fe(lev.cashFlow))} />
+                  <Figure label="Ετήσια ροή" value={fe(lev.cashFlow)} chars={widestOf(fe(lev.equity), fp(lev.cashOnCash), fe(lev.cashFlow))} />
                 </div>
                 {/* ══ ΔΥΟ ΓΚΡΙΖΕΣ ΠΑΡΑΓΡΑΦΟΙ ΓΙΑ ΜΙΑ ΕΤΥΜΗΓΟΡΙΑ ΚΑΙ ΤΕΣΣΕΡΑ ΜΕΓΕΘΗ
                     Το κουτί έκλεινε με δύο μπλοκ κειμένου στο ίδιο μέγεθος και
@@ -1724,8 +1741,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                           w=widestOf(irr, npv, dscr, em); return (
             <div {...fixedCols(4, 12, 'stretch')}>
               <Tile nested label="IRR" value={irr} chars={w} info={<TermInfo text={G.irr} />} />
-              <Tile nested label="Καθαρή παρούσα αξία" value={npv} chars={w} info={<TermInfo text={G.npv} />} tone={deal.npv < 0 ? 'negative' : undefined} />
-              <Tile nested label="DSCR" value={dscr} chars={w} info={<TermInfo text={G.dscr} />} tone={deal.dscr < 1 ? 'negative' : undefined} />
+              <Tile nested label="Καθαρή παρούσα αξία" value={npv} chars={w} info={<TermInfo text={G.npv} />} />
+              <Tile nested label="DSCR" value={dscr} chars={w} info={<TermInfo text={G.dscr} />} />
               <Tile nested label="Πολλαπλασιαστής ιδίων" value={em} chars={w} info={<TermInfo text={G.equity_multiple} />} />
             </div>) })()}
             {/* ΜΙΑ ΠΑΡΑΓΡΑΦΟΣ ΠΟΥ ΕΚΡΥΒΕ ΕΝΑΝ ΠΙΝΑΚΑ. Οι έξι παραδοχές ήταν σε

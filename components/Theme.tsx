@@ -617,16 +617,16 @@ export function KpiValue({ value, tone, chars, half }: { value: string; tone?: T
 //    Αξιοποίηση σταθερά 24, που κοβόταν σε στενή στήλη.
 //  · Η ΣΗΜΕΙΩΣΗ. Αλλού από κάτω, αλλού δίπλα στην τιμή.
 //
-// ΠΟΥ ΚΑΤΑΛΗΓΕΙ Η ΣΗΜΕΙΩΣΗ, ΤΟ ΑΠΟΦΑΣΙΖΕΙ Ο ΧΩΡΟΣ. Μια σειρά τεσσάρων
-// πλακιδίων όπου το ΕΝΑ δεν έχει σημείωση έβγαινε ραγισμένη όταν η σημείωση
-// έπαιρνε πάντα δική της γραμμή: τρεις τιμές με κείμενο από κάτω και μία μόνη
-// της. Με τη σημείωση στη γραμμή βάσης της τιμής και τύλιγμα, η σύντομη
-// («σε 5 έτη») κάθεται δίπλα και η μακρύτερη πέφτει από μόνη της από κάτω.
-// Μία συμπεριφορά, που διαλέγει η διάταξη· καμία παράμετρος να ξεχαστεί.
+// ── Η ΣΗΜΕΙΩΣΗ ΠΑΕΙ ΠΑΝΤΑ ΑΠΟ ΚΑΤΩ, ΚΑΙ ΤΟ ΕΜΑΘΑ ΑΠΟ ΛΑΘΟΣ ────────────────
+// ΠΡΩΤΗ ΓΡΑΦΗ ΤΗΝ ΑΦΗΝΕ ΣΤΗ ΔΙΑΤΑΞΗ: στη γραμμή βάσης της τιμής, με τύλιγμα,
+// ώστε η σύντομη («σε 5 έτη») να κάθεται δίπλα και η μακριά να πέφτει από κάτω.
+// Στα χαρτιά ήταν κομψό. Στην οθόνη, μια σειρά τεσσάρων πλακιδίων έβγαζε δύο
+// σημειώσεις δίπλα στο νούμερο και δύο από κάτω του — ο χρήστης το φωτογράφισε
+// σε δύο διαφορετικές καρτέλες. Το μάτι διαβάζει τη διαφορά θέσης ως διαφορά
+// είδους, οπότε η ίδια πληροφορία φαινόταν δύο διαφορετικά πράγματα.
 //
-// ΚΑΙ Ο ΑΡΙΘΜΟΣ ΚΟΛΛΑΕΙ ΚΑΤΩ. Ηταν σωστό μόνο στο τρίτο πλακίδιο: χωρίς αυτό,
-// μια ετικέτα δύο γραμμών κατεβάζει το δικό της νούμερο και η σειρά χάνει τη
-// γραμμή βάσης της, τέσσερα ποσοστά δίπλα δίπλα σε τέσσερα ύψη.
+// Μία θέση, πάντα η ίδια. Η σειρά είναι ζυγισμένη όταν κάθε πλακίδιο έχει την
+// ΙΔΙΑ δομή, όχι όταν κάθε πλακίδιο βρίσκει μόνο του την καλύτερη δική του.
 // ═══════════════════════════════════════════════════════════════════════════
 /**
  * ΤΟ ΜΗΚΟΣ ΤΟΥ ΜΑΚΡΥΤΕΡΟΥ ΑΡΙΘΜΟΥ ΜΙΑΣ ΣΕΙΡΑΣ.
@@ -641,11 +641,13 @@ export function KpiValue({ value, tone, chars, half }: { value: string; tone?: T
 export const widestOf = (...values: string[]): number =>
   values.reduce((m, v) => Math.max(m, v.length), 0);
 
-export function Tile({ label, value, sub, subTone, tone, title, info, chars, half, nested }: KPIItem & {
+export function Tile({ label, value, sub, subTone, tone, title, info, chars, half, nested, compact }: KPIItem & {
   /** Το ⓘ δίπλα στην ετικέτα. Δίνεται ως κόμβος από τον καλούντα: το `InfoHint`
    *  ζει στον πίνακα ελέγχου και διαβάζει από εδώ, οπότε δεν μπορεί να εισαχθεί. */
   info?: ReactNode;
   chars?: number; half?: boolean; nested?: boolean;
+  /** Πέντε σε μία σειρά, μέσα σε κάρτα: πιο σφιχτό κουτί, χαμηλότερο ταβάνι αριθμού. */
+  compact?: boolean;
 }) {
   const toned = !!(tone && tone !== 'neutral');
   return (
@@ -656,18 +658,16 @@ export function Tile({ label, value, sub, subTone, tone, title, info, chars, hal
     // Μέσα σε κάρτα που έχει ήδη περίγραμμα, η κανονική `.kpi-card` βάζει
     // δεύτερη κορνίζα σε απόσταση δεκαέξι εικονοστοιχείων και το μάτι πιάνει
     // τη γραμμή πριν τον αριθμό. Η ένθετη εκδοχή δίνει το βάθος με σκιά.
-    <div className={nested ? 'kpi-card nested' : 'kpi-card'} title={title} tabIndex={toned ? 0 : undefined}
+    <div className={['kpi-card', nested && 'nested', compact && 'compact'].filter(Boolean).join(' ')} title={title} tabIndex={toned ? 0 : undefined}
       style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {/* Το ύψος γραμμής είναι 16 γιατί 16 είναι και το εικονίδιο: με στοίχιση
           στην κορυφή, το ⓘ κάθεται πάνω στην ΠΡΩΤΗ γραμμή της ετικέτας, σε
           ετικέτα μιας γραμμής και σε δύο. Στο κέντρο, αιωρούνταν ανάμεσά τους. */}
       <div className="kpi-label" style={info ? { display: 'flex', alignItems: 'flex-start', lineHeight: '16px' } : undefined}>{label}{info}</div>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, flexWrap: 'wrap', rowGap: 2 }}>
-        {/* Ουδέτερο by default· ο σημασιολογικός τόνος αποκαλύπτεται στο hover ή
-            στο άγγιγμα (data-tone + globals.css), για χαμηλού θορύβου look. */}
-        <KpiValue value={value} chars={chars} half={half} tone={toned ? tone : undefined} />
-        {sub && <span style={{ fontSize: 11, lineHeight: 1.4, fontWeight: subTone ? 600 : 400, color: (subTone && TONE_COLOR[subTone]) || 'var(--text-tertiary)', fontFamily: T.font.sans }}>{sub}</span>}
-      </div>
+      {/* Ουδέτερο by default· ο σημασιολογικός τόνος αποκαλύπτεται στο hover ή
+          στο άγγιγμα (data-tone + globals.css), για χαμηλού θορύβου look. */}
+      <KpiValue value={value} chars={chars} half={half} tone={toned ? tone : undefined} />
+      {sub && <div style={{ fontSize: 11, lineHeight: 1.4, fontWeight: subTone ? 600 : 400, color: (subTone && TONE_COLOR[subTone]) || 'var(--text-tertiary)', fontFamily: T.font.sans }}>{sub}</div>}
     </div>
   );
 }

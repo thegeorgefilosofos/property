@@ -731,8 +731,14 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
             </div>
 
             {prog ? (<>
-              {/* Ο ΕΝΑΣ ΑΡΙΘΜΟΣ. Μεγαλύτερος από όλα τα υπόλοιπα, μόνος στη σειρά του. */}
-              <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:20,flexWrap:'wrap',marginBottom:14}}>
+              {/* Ο ΕΝΑΣ ΑΡΙΘΜΟΣ. Μεγαλύτερος από όλα τα υπόλοιπα, μόνος στη σειρά του.
+                  ΚΑΙ ΣΤΟΙΧΙΖΕΤΑΙ ΑΠΟ ΠΑΝΩ, ΟΧΙ ΑΠΟ ΚΑΤΩ. Με `flex-end` έδεναν τα
+                  κάτω άκρα, οπότε τα δύο νούμερα κάθονταν σε διαφορετικό ύψος —
+                  μετρημένο σε tablet, οκτώ εικονοστοιχεία διαφορά — και η σκόπιμη
+                  ιεραρχία μεγέθους διαβαζόταν ως αστοχία στοίχισης. Με τις δύο
+                  ετικέτες στην ίδια γραμμή, τα νούμερα ξεκινούν στο ίδιο ύψος και
+                  διαφέρουν ΜΟΝΟ σε μέγεθος, που είναι το ζητούμενο. */}
+              <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:20,flexWrap:'wrap',marginBottom:14}}>
                 <div>
                   <p style={{...labelStyle,marginBottom:4}}>Υπόλοιπο σήμερα</p>
                   <p style={{fontSize:28,fontWeight:700,letterSpacing:'-0.025em',lineHeight:1.05,color:'var(--text-primary)',fontFamily:T.font.sans}}>{fe(prog.balance)}</p>

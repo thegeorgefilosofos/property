@@ -48,7 +48,7 @@ import * as properties from '@/lib/data/properties';
 import * as stayStore from '@/lib/data/stays';
 // Η απογραφή έχει ένα σπίτι: lib/data/inventory.
 import * as inventory from '@/lib/data/inventory';
-import { T, PageTitle, KPIGrid, Badge, InfoBanner, Btn, ExportButton, EmptyState, Skeleton, SkeletonKPIs, SecHdr, Modal, SideSheet, fe, fd, fp, ABSENT_DATE, formGrid, fixedCols } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, Badge, InfoBanner, Btn, ExportButton, EmptyState, Skeleton, SkeletonKPIs, SecHdr, Modal, SideSheet, fe, fd, fp, ABSENT_DATE, formGrid, fixedCols, Tile } from '@/components/Theme';
 import { confirmDialog } from '@/components/confirmBus';
 import { NumberInput, TextInput, CustomSelect, DatePicker, Textarea, Toggle } from './UIComponents';
 import MonthBars from '@/components/MonthBars';
@@ -203,24 +203,22 @@ const avatar = (name: string, size: number) => (
 // κόκκινο εκεί σήμαινε «κάτι έσπασε» και εδώ σήμαινε «πρόσεξε», δηλαδή δύο
 // πράγματα με το ίδιο χρώμα. Το «πρόσεξε» το λέει το σήμα δίπλα στο όνομα, με
 // τον τόνο της προειδοποίησης που χρησιμοποιεί ήδη κάθε προθεσμία.
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΟ ΣΥΜΠΑΓΕΣ ΠΛΑΚΙΔΙΟ ΕΦΥΓΕ ΑΠΟ ΕΔΩ
+// ─────────────────────────────────────────────────────────────────────────
+// Ηταν ένα ακόμη χειρόγραφο πλακίδιο: ίδια ετικέτα με το βιβλίο (11, 600,
+// 0,06em), δικό του κουτί, δικό του νούμερο στα 16 σταθερά· και ετικέτα με
+// `min-height` ΜΙΑΣ γραμμής. Οταν το «Προμήθειες πλατφορμών» ή το «Πληρότητα
+// υψηλής περιόδου» τύλιγε σε δεύτερη γραμμή, το νούμερό του έπεφτε πιο κάτω από
+// των διπλανών: πέντε νούμερα σε τρία ύψη, μέσα στην ίδια σειρά. Ο χρήστης το
+// φωτογράφισε δύο φορές.
+//
+// Ζει τώρα ως `Tile` με `compact`: το ίδιο κουτί με κάθε άλλο πλακίδιο της
+// εφαρμογής, σε πιο σφιχτή πυκνότητα — ένα συστατικό, δύο πυκνότητες, όχι δύο
+// συστατικά. Η ετικέτα κρατά δύο γραμμές όταν το πλακίδιο στενεύει, οπότε τα
+// νούμερα μένουν σε ευθεία όποιο κι αν είναι το μήκος των λέξεων.
 const statTile = (label: string, value: React.ReactNode, opts?: { title?: string }) => (
-  <div title={opts?.title} style={{
-    background: 'var(--surface-raised)', border: '1px solid var(--border-raised)',
-    borderRadius: T.radius.card, padding: '10px 12px', minWidth: 0,
-    boxShadow: 'var(--highlight-inset), var(--elev-1)',
-  }}>
-    {/* ═══ Η ΕΤΙΚΕΤΑ ΤΥΛΙΓΕΙ, ΔΕΝ ΚΟΒΕΤΑΙ ══════════════════════════════════════
-        ΜΕΤΡΗΜΕΝΟ ΣΕ ΚΑΘΕ ΠΛΑΤΟΣ, ΑΠΟ 360 ΩΣ 1.440: «Μέση τιμή νύχτας» ζητούσε
-        134 σε κουτί 108 και «Τελευταία επίσκεψη» 146 σε 108. Ο χρήστης διάβαζε
-        «ΜΕΣΗ ΤΙΜΗ ΝΥ…» και «ΤΕΛΕΥΤΑΙΑ ΕΠΙ…» ΠΑΝΤΟΥ, όχι σε στενή οθόνη: το
-        πλέγμα έδινε 108 και η ellipsis έκοβε σιωπηλά.
-
-        Τα αδέλφια του πλέγματος ισοϋψώνονται μόνα τους, οπότε μια ετικέτα δύο
-        γραμμών δεν αφήνει τίποτα ασύμμετρο. Το `min-height` κρατά ίδιο ύψος και
-        όταν ΟΛΕΣ οι ετικέτες μιας σειράς χωρούν σε μία γραμμή. */}
-    <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 6, lineHeight: 1.3, minHeight: 15, fontFamily: T.font.sans }}>{label}</div>
-    <div style={{ fontSize: 16, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>{value}</div>
-  </div>
+  <Tile compact label={label} value={String(value ?? '')} title={opts?.title} />
 );
 
 export default function TabClients({ userId, onSelectProperty }: { userId: string; onSelectProperty?: (id: string) => void }) {
@@ -1223,10 +1221,17 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 δαπανών (components/MonthBars.tsx) και οι μπάρες των καναλιών
                 μιλούν την ίδια γλώσσα: ίδια πίστα, ίδιο μελάνι σε δύο εντάσεις,
                 ίδιο δαχτυλίδι εστίασης. */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 14, alignItems: 'start' }}>
-              <div>
+            {/* ΤΑ ΔΥΟ ΚΟΥΤΙΑ ΕΧΟΥΝ ΤΟ ΙΔΙΟ ΥΨΟΣ. Με `align-items: start` κρατούσε
+                το καθένα το φυσικό του ύψος: τρία κανάλια αριστερά, δωδεκάμηνο
+                γράφημα δεξιά· και η αριστερή κάρτα τελείωνε εξήντα
+                εικονοστοιχεία πιο ψηλά από τη δεξιά. Ο χρήστης το φωτογράφισε.
+                Δύο κάρτες που κάθονται δίπλα δίπλα στην ίδια σειρά είναι ΜΙΑ
+                σειρά: τεντώνονται μαζί και το κενό μένει μέσα τους, όχι κάτω
+                από τη μία. */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 14, alignItems: 'stretch' }}>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <div style={{ ...lbl, marginBottom: 8 }}>Ανά κανάλι</div>
-                <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.card, padding: 14, boxShadow: 'var(--highlight-inset), var(--elev-1)', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ flex: 1, background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.card, padding: 14, boxShadow: 'var(--highlight-inset), var(--elev-1)', display: 'flex', flexDirection: 'column', gap: 14 }}>
                   {chRows.map(r => {
                     const pct = Math.max(2, (r.revenue / maxCh) * 100);
                     return (
@@ -1260,9 +1265,9 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 </div>
               </div>
 
-              <div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <div style={{ ...lbl, marginBottom: 8 }}>Ανά μήνα</div>
-                <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.card, padding: 14, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
+                <div style={{ flex: 1, background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.card, padding: 14, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
                   <MonthBars
                     points={months.map((v, i) => ({ key: `${reportYear}-${String(i + 1).padStart(2, '0')}`, label: `${MONTHS_NOM[i]} ${reportYear}`, total: v }))}
                     currentKey={`${reportYear}-${String(new Date().getMonth() + 1).padStart(2, '0')}`}
@@ -1608,7 +1613,18 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                     const declared = isDeclared(s);
                     const dmgItem = s.damage_item_id ? inv.find(i => i.id === s.damage_item_id) : undefined;
                     return (
-                      <div key={s.id} style={{ background: 'var(--surface-raised)', border: `1px solid ${declared ? 'var(--border-raised)' : 'var(--negative-border)'}`, borderRadius: T.radius.card, padding: 12, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
+                      /* ΤΟ ΚΟΚΚΙΝΟ ΠΕΡΙΓΡΑΜΜΑ ΕΦΥΓΕ, ΓΙΑΤΙ ΤΟ ΕΛΕΓΕ ΔΕΥΤΕΡΗ ΦΟΡΑ.
+                         Η αδήλωτη διαμονή κουβαλά ήδη το σήμα «ΑΔΗΛΩΤΗ», με λέξη.
+                         Το κόκκινο πλαίσιο γύρω από ολόκληρη την κάρτα πρόσθετε
+                         μηδέν πληροφορία και έσπαγε την ομοιομορφία της λίστας: σε
+                         δέκα διαμονές, άλλες με γκρι κορνίζα και άλλες με κόκκινη,
+                         το μάτι διαβάζει «χάλασε κάτι» αντί για «λείπει μια
+                         δήλωση». Ο χρήστης το φωτογράφισε.
+
+                         Και δεν είναι γούστο: ο κανόνας του έργου λέει ότι η
+                         κατάσταση γράφεται με λέξη, όχι με χρώμα — τον ίδιο λόγο
+                         που έφυγε το κόκκινο από τα πλακίδια του Δανείου. */
+                      <div key={s.id} style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.card, padding: 12, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', alignItems: 'flex-start' }}>
                           <div style={{ minWidth: 0 }}>
                             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -1643,7 +1659,8 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                         )}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
                           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                            {s.damages && <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--negative)' }}>Φθορά {fe(s.damage_cost || 0)}{dmgItem ? ` · ${dmgItem.name}` : s.damage_note ? ` · ${s.damage_note}` : ''}</span>}
+                            {/* Η λέξη «Φθορά» λέει ήδη ό,τι θα έλεγε το κόκκινο. */}
+                            {s.damages && <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)' }}>Φθορά {fe(s.damage_cost || 0)}{dmgItem ? ` · ${dmgItem.name}` : s.damage_note ? ` · ${s.damage_note}` : ''}</span>}
                           </div>
                           <div style={{ display: 'flex', gap: 10 }}>
                             {/* Ένα κλικ. Η προθεσμία της δήλωσης δεν περιμένει φόρμα. */}

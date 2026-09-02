@@ -882,13 +882,7 @@ export interface MarketRatesRow {
   source_bog: string | null;
   rate_changed: boolean | null;
   updated_at: string;
-  /**
-   * Ταυτότητα ΑΝΑ ΤΙΜΗ: πότε παρατηρήθηκε, ποιος τη δημοσιεύει, τι μετρά και
-   * πού επαληθεύεται. Η `updated_at` λέει πότε έτρεξε η εργασία· δεν λέει πότε
-   * είναι φρέσκο κάθε νούμερο και για μήνες διαβαζόταν σαν να το έλεγε.
-   * Η μορφή ζει στο lib/market/ecb.ts (`Provenance`).
-   */
-  provenance: Record<string, unknown> | null;
+  provenance: Json | null;
 }
 
 export interface MobileWaitlistRow {
@@ -1032,6 +1026,16 @@ export interface PropertyDocumentsRow {
   period_from: string | null;
   period_to: string | null;
   issue_date: string | null;
+}
+
+export interface PropertyPlanRow {
+  property_id: string | null;
+  user_id: string;
+  done_steps: Json;
+  dispute_kind: string | null;
+  vacancy_costs: Json;
+  use_agent: boolean;
+  updated_at: string;
 }
 
 export interface PropertySettingsRow {
@@ -1179,6 +1183,16 @@ export interface SendQuotaRow {
   bucket: string;
   units: number;
   updated_at: string;
+}
+
+export interface StoragePurgeQueueRow {
+  id: number | null;
+  bucket_id: string;
+  name: string;
+  subject_id: string;
+  queued_at: string;
+  attempts: string;
+  last_error: string | null;
 }
 
 export interface TenantCommLogRow {
@@ -1428,6 +1442,7 @@ export interface Tables {
   product_updates: ProductUpdatesRow;
   property_data: PropertyDataRow;
   property_documents: PropertyDocumentsRow;
+  property_plan: PropertyPlanRow;
   property_settings: PropertySettingsRow;
   push_subscriptions: PushSubscriptionsRow;
   referral_codes: ReferralCodesRow;
@@ -1439,6 +1454,7 @@ export interface Tables {
   rent_payments: RentPaymentsRow;
   report_branding: ReportBrandingRow;
   send_quota: SendQuotaRow;
+  storage_purge_queue: StoragePurgeQueueRow;
   tenant_comm_log: TenantCommLogRow;
   tenant_damages: TenantDamagesRow;
   tenants: TenantsRow;

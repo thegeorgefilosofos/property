@@ -51,6 +51,18 @@ if (!array) {
 }
 const guarded = new Set([...array[1].matchAll(/'([a-z_0-9]+)'/g)].map(m => m[1]))
 
+// ── ΚΑΙ ΟΣΟΙ ΦΕΡΝΟΥΝ ΜΟΝΟΙ ΤΟΥΣ ΤΗΝ ΠΟΛΙΤΙΚΗ ΤΟΥΣ ─────────────────────────
+// Η λίστα του 20260810060000 έχει ήδη εφαρμοστεί στην παραγωγή. Ενας πίνακας
+// που γεννιέται ΜΕΤΑ από αυτήν δεν μπορεί να μπει εκεί — μια εκτελεσμένη
+// μετανάστευση δεν ξανατρέχει — οπότε γράφει τη δική του `parent_ins_<πίνακας>`
+// στη δική του μετανάστευση. Η εγγύηση είναι η ίδια· η πηγή είναι δύο.
+//
+// Ζητείται ρητά η `for insert`: μια πολιτική μόνο για `update` αφήνει την
+// είσοδο ανοιχτή, που είναι ακριβώς η τρύπα που κλείνει ο φύλακας.
+for (const m of code.matchAll(/create\s+policy\s+"?parent_ins_([a-z_0-9]+)"?\s+on\s+(?:"?public"?\.)?"?[a-z_0-9]+"?\s+as\s+restrictive\s+for\s+insert/gi)) {
+  guarded.add(m[1])
+}
+
 const missing = [...withProperty].filter(t => !guarded.has(t)).sort()
 const ghosts = [...guarded].filter(t => !withProperty.has(t)).sort()
 
