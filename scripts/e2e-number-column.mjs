@@ -55,6 +55,15 @@ const PROBE = () => {
       if (!t || !NUM.test(t)) continue
       if (!n.checkVisibility?.()) continue
       if (n.getBoundingClientRect().right < edge) continue
+      // ΕΝΑ ΝΟΥΜΕΡΟ ΜΕΣΑ ΣΕ ΠΡΟΤΑΣΗ ΔΕΝ ΕΙΝΑΙ ΚΕΛΙ. Στην Τιμολόγηση, όταν
+      // αλλάζει το τέλος ανθεκτικότητας, η κάρτα κλείνει με μια φράση: «Από 18
+      // Οκτ το τέλος γίνεται 2,00 € και μένουν 71,00 €.» Το «2,00 €» έπεφτε στο
+      // δεξί τρίτο και κρινόταν ως στήλη — αλλά είναι λέξη μέσα σε πρόταση, που
+      // τελειώνει όπου τελειώνει το κείμενο. Το κελί στήλης κάθεται μόνο του:
+      // ο περιέχων του δεν κουβαλά ολόκληρη πρόταση γύρω από τον αριθμό.
+      const holder = n.closest('div, td, li') || n.parentElement
+      const around = ((holder?.textContent || '').trim().length) - t.length
+      if (around > 16) continue
       last = n
     }
     return last
