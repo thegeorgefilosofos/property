@@ -35,6 +35,20 @@
 -- δεύτερο πράγμα που μπορεί να διαφωνήσει με το πρώτο.
 -- ═══════════════════════════════════════════════════════════════════════════
 
+-- ── ΟΙ ΒΟΗΘΟΙ ΖΟΥΝ ΣΤΟ `private`, ΚΑΙ ΤΟ ΕΜΑΘΑ ΑΠΟ ΑΠΟΤΥΧΙΑ ────────────────
+-- ΠΡΩΤΗ ΓΡΑΦΗ ΤΟΥΣ ΚΑΛΟΥΣΕ ΩΣ `public.*`, αντιγραμμένους από το baseline. Το
+-- `supabase db push` έσκασε στην παραγωγή με 42883, `function
+-- public.org_owner_ids(uuid) does not exist`: η 20260812160000 τους μετακίνησε
+-- και τους εννιά στο `private` πριν από τρεις εβδομάδες.
+--
+-- Το ίδιο ακριβώς λάθος περιγράφεται ήδη στην 20260813120000, γραμμένο «για τον
+-- επόμενο»: όταν μετακινείς συνάρτηση σε άλλο σχήμα, οι ΡΗΤΑ ΣΧΗΜΑΤΙΣΜΕΝΟΙ
+-- καλούντες δεν σπάνε από το `search_path` — σπάνε επειδή δείχνουν σε διεύθυνση
+-- που άδειασε. Ημουν ο επόμενος και δεν το διάβασα.
+--
+-- Η μετανάστευση είναι επαναληπτική (`if not exists`, `drop policy if exists`),
+-- οπότε η δεύτερη προσπάθεια δεν αφήνει μισοφτιαγμένο πίνακα πίσω της.
+
 create table if not exists public.property_plan (
   property_id   uuid primary key references public.user_properties(id) on delete cascade,
   -- Ποιος έγραψε τελευταίος. Δεν είναι κλειδί: η πρόσβαση κρίνεται από το ακίνητο.
@@ -76,25 +90,25 @@ create policy org_read_property_plan on public.property_plan for select
   using (exists (
     select 1 from public.user_properties p
      where p.id = property_plan.property_id
-       and p.user_id in (select public.org_owner_ids((select auth.uid())))));
+       and p.user_id in (select private.org_owner_ids((select auth.uid())))));
 
 drop policy if exists org_write_property_plan on public.property_plan;
 create policy org_write_property_plan on public.property_plan for insert
   with check (exists (
     select 1 from public.user_properties p
      where p.id = property_plan.property_id
-       and p.user_id in (select public.org_owner_ids((select auth.uid())))));
+       and p.user_id in (select private.org_owner_ids((select auth.uid())))));
 
 drop policy if exists org_edit_property_plan on public.property_plan;
 create policy org_edit_property_plan on public.property_plan for update
   using (exists (
     select 1 from public.user_properties p
      where p.id = property_plan.property_id
-       and p.user_id in (select public.org_owner_ids((select auth.uid())))))
+       and p.user_id in (select private.org_owner_ids((select auth.uid())))))
   with check (exists (
     select 1 from public.user_properties p
      where p.id = property_plan.property_id
-       and p.user_id in (select public.org_owner_ids((select auth.uid())))));
+       and p.user_id in (select private.org_owner_ids((select auth.uid())))));
 
 -- ── ΤΟ ΕΥΡΟΣ ΑΚΙΝΗΤΩΝ ΤΟΥ ΜΕΛΟΥΣ ────────────────────────────────────────
 -- Περιοριστική πολιτική, ίδια με τους τριάντα πίνακες του
@@ -102,8 +116,8 @@ create policy org_edit_property_plan on public.property_plan for update
 -- ακίνητο εκτός του. Γράφεται ρητά εδώ, γιατί ο πίνακας δεν υπήρχε τότε.
 drop policy if exists scope_property_property_plan on public.property_plan;
 create policy scope_property_property_plan on public.property_plan as restrictive for all
-  using (public.member_sees_property(property_id))
-  with check (public.member_sees_property(property_id));
+  using (private.member_sees_property(property_id))
+  with check (private.member_sees_property(property_id));
 
 -- ── ΚΑΜΙΑ ΓΡΑΜΜΗ ΣΕ ΞΕΝΟ ΑΚΙΝΗΤΟ ────────────────────────────────────────
 -- Ο ίδιος κανόνας με τους τριάντα πίνακες του 20260810060000: οι πολιτικές
@@ -119,11 +133,11 @@ create policy scope_property_property_plan on public.property_plan as restrictiv
 -- γραμμή από τον ίδιο τον ιδιοκτήτη της. Η τρύπα είναι στην είσοδο.
 drop policy if exists parent_ins_property_plan on public.property_plan;
 create policy parent_ins_property_plan on public.property_plan as restrictive for insert
-  with check (public.owns_parent_property(property_id));
+  with check (private.owns_parent_property(property_id));
 
 drop policy if exists parent_upd_property_plan on public.property_plan;
 create policy parent_upd_property_plan on public.property_plan as restrictive for update
-  with check (public.owns_parent_property(property_id));
+  with check (private.owns_parent_property(property_id));
 
 -- Ο χρόνος ενημέρωσης δεν τον γράφει η οθόνη: τον βάζει η βάση.
 create or replace function public.touch_property_plan()
