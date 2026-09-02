@@ -62,11 +62,15 @@
 // ακίνητο, χωρίς να απαιτείται νέος πίνακας στη βάση.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { useCallback, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { ChevronRight } from 'lucide-react';
-import { T, TT, Card, SecHdr, PageTitle, fixedCols, settingsField, feAuto, pageShell, Bar } from '@/components/Theme';
+import { T, TT, Btn, Card, SecHdr, PageTitle, fixedCols, settingsField, feAuto, pageShell, Bar } from '@/components/Theme';
 import { InfoHint, HintedText } from './InfoHint';
 import { SegmentControl } from './UIComponents';
+import { createClient } from '@/lib/supabase/client';
+import * as checklist from '@/lib/data/checklist';
+import { saved } from '@/components/dbWrite';
+import { notifyOk } from '@/components/Toast';
 import { feSigned } from '@/lib/core/format';
 import type { PropertyStatus } from '@/lib/property/status';
 import {
@@ -176,6 +180,15 @@ const Caret = ({ open }: { open: boolean }) => (
 // Ο τίτλος σειράς κρατά ΚΑΙ την επεξήγησή του: το κυκλάκι γράφεται μέσα στο
 // ίδιο κείμενο, ώστε να μη μένει ποτέ μόνο του σε δική του γραμμή. Το γιατί
 // είναι γραμμένο πάνω από το `HintedText`.
+/**
+ * ΤΟ ΠΡΟΘΕΜΑ ΕΙΝΑΙ ΤΟ ΚΛΕΙΔΙ ΤΗΣ ΜΗ ΔΙΠΛΟΕΓΓΡΑΦΗΣ.
+ *
+ * Καθε βήμα που περνά στις Εργασίες κρατά `plan:<id βήματος>` στο `template_id`.
+ * Με ένα ερώτημα προθέματος η οθόνη ξέρει ποια βήματα έχουν ήδη περάσει, οπότε
+ * δεύτερο πάτημα δεν φτιάχνει δεύτερη εργασία — ίδιο ιδίωμα με τον Ενοικιαστή.
+ */
+const TASK_PREFIX = 'plan:';
+
 const RowTitle = ({ state, text, hint }: {
   state: 'next' | 'done' | 'plain';
   text: string;
@@ -366,6 +379,45 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
   // αποτέλεσμα, όποιος τα γράφει τώρα δεν χάνει τη φόρμα από μπροστά του.
   const [costsOpen, setCostsOpen] = useState(() => vacancyCost(costs).monthly === 0);
 
+  // ══ ΠΟΙΑ ΒΗΜΑΤΑ ΕΧΟΥΝ ΗΔΗ ΓΙΝΕΙ ΕΡΓΑΣΙΕΣ ═════════════════════════════════
+  // Διαβάζεται ΜΙΑ φορά, από τη βάση, με πρόθεμα `plan:`. Χωρίς αυτό το κουμπί
+  // θα έλεγε «Βάλ᾽ το στις Εργασίες» και μετά από ανανέωση σελίδας θα το ξανάλεγε
+  // για εργασία που υπάρχει ήδη — δηλαδή θα υποσχόταν κάτι που δεν θα έκανε.
+  const [pushedIds, setPushedIds] = useState<string[]>([]);
+  const [pushing, setPushing] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const have = await checklist.templateIds(createClient(), propertyId, userId, TASK_PREFIX);
+      if (alive) setPushedIds([...have].map(t => t.slice(TASK_PREFIX.length)));
+    })().catch(() => { /* η ανάγνωση δεν πρέπει να μπλοκάρει την οθόνη */ });
+    return () => { alive = false };
+  }, [propertyId, userId]);
+
+  // ══ ΤΟ ΒΗΜΑ ΓΙΝΕΤΑΙ ΕΡΓΑΣΙΑ, ΜΕ ΟΛΑ ΤΑ ΣΥΜΦΡΑΖΟΜΕΝΑ ΤΟΥ ══════════════════
+  // Η σημείωση κουβαλά ό,τι ξέρει το βήμα και δεν χωρά στον τίτλο: τι σημαίνει,
+  // πότε γίνεται, τι κοστίζει αν παραλειφθεί. Χωρίς αυτά, στις Εργασίες θα
+  // έφτανε μια προστακτική χωρίς συμφραζόμενα.
+  const pushToTasks = useCallback(async (step: Step) => {
+    setPushing(true);
+    try {
+      const note = [step.detail, step.when && `Πότε: ${step.when}`, step.cost && `Αν παραλειφθεί: ${step.cost}`]
+        .filter(Boolean).join('\n');
+      const ok = await saved('Η εργασία δεν δημιουργήθηκε', checklist.add(createClient(), {
+        property_id: propertyId, user_id: userId, status: 'pending', completed: false,
+        template_id: `${TASK_PREFIX}${step.id}`, category: 'legal', priority: 'normal',
+        recurring: 'none', due_date: null, note, estimated_cost: 0, actual_cost: 0, sort_order: 0,
+        description: step.title,
+      }));
+      if (ok) {
+        setPushedIds(prev => prev.includes(step.id) ? prev : [...prev, step.id]);
+        notifyOk('Μπήκε στις Εργασίες, χωρίς προθεσμία');
+      }
+    } finally {
+      setPushing(false);
+    }
+  }, [propertyId, userId]);
+
   const write = useCallback((key: string, value: unknown) => { writeLocal(key, value); }, []);
 
   const toggle = useCallback((id: string) => {
@@ -451,7 +503,13 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
         </div>
         <div className="plan-row plan-row-step">
           <span style={{ minWidth: 0 }}>
-            <RowTitle state={on ? 'done' : isNext ? 'next' : 'plain'} text={s.title}
+            {/* ΤΟ ΕΝΤΟΝΟ ΒΑΡΟΣ ΕΦΥΓΕ ΑΠΟ ΕΔΩ, ΓΙΑΤΙ ΤΟ ΣΗΜΑ ΑΝΕΒΗΚΕ. Οσο η λίστα
+                ήταν το μόνο μέρος που έλεγε ποιο είναι το επόμενο βήμα, το
+                βάρος ήταν το σήμα του. Τώρα το λέει η κάρτα από πάνω, με τον
+                τίτλο, το ποιος και το τι κοστίζει: τρία σήματα για ένα γεγονός
+                (κάρτα, κρίκος, βάρος) είναι ακριβώς η επανάληψη που το αρχείο
+                αυτό κυνηγά. Ο κρίκος κρατά τη ΘΕΣΗ στη σειρά, η κάρτα την ΠΡΑΞΗ. */}
+            <RowTitle state={on ? 'done' : 'plain'} text={s.title}
               hint={{ label: `Τι σημαίνει: ${s.title}`, body: <Tip lead={s.detail} rows={[['Πότε', s.when], ['Αν παραλειφθεί', s.cost]]} /> }} />
           </span>
           <Tag>{ACTOR_LABEL[s.who]}</Tag>
@@ -470,6 +528,58 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
           «Κενό» δύο φορές μέσα σε εξήντα εικονοστοιχεία. Μία κεφαλίδα, από το
           κοινό PageTitle που χρησιμοποιούν οι άλλες έντεκα καρτέλες. */}
       <PageTitle over={`Αξιοποίηση · ${plan.label}`} title={plan.headline} lede={plan.lede} />
+
+      {/* ═══ Η ΣΕΛΙΔΑ ΑΠΑΝΤΑΕΙ ΠΡΙΝ ΤΗ ΡΩΤΗΣΕΙΣ ═══════════════════════════════
+          ΤΙ ΕΛΕΙΠΕ. Η καρτέλα ήξερε ήδη ποιο είναι το επόμενο βήμα — το
+          `plan.next` υπολογίζεται από την πρώτη γραμμή — αλλά δεν το έλεγε
+          πουθενά. Το έδειχνε ΜΟΝΟ με τυπογραφικό βάρος, μέσα σε λίστα δώδεκα
+          βημάτων, εκατόν πενήντα εικονοστοιχεία πιο κάτω, μετά από δύο άλλα
+          πάνελ. Ο χρήστης έμπαινε με μία ερώτηση, «τι κάνω τώρα»· και έπρεπε να
+          τη λύσει μόνος του διαβάζοντας βάρη γραμματοσειράς.
+
+          ΤΟ ΣΥΜΠΕΡΑΣΜΑ ΠΑΝΩ, ΤΑ ΣΤΟΙΧΕΙΑ ΚΑΤΩ. Ιδια ιεραρχία με κάθε σοβαρή
+          εφαρμογή χρημάτων: το ποσό που πρέπει να πληρώσεις πρώτο, η ανάλυση
+          από κάτω. Εδώ το «ποσό» είναι μία πράξη, ποιος την κάνει και τι
+          κοστίζει αν παραλειφθεί — τρία στοιχεία που ΥΠΑΡΧΟΥΝ ήδη στο βήμα.
+
+          ΚΑΜΙΑ ΝΕΑ ΓΝΩΣΗ, ΚΑΜΙΑ ΕΠΑΝΑΛΗΨΗ. Το βήμα δεν ξαναγράφεται από κάτω
+          με άλλα λόγια: είναι το ίδιο κείμενο, μία φορά ψηλά. Στη λίστα μένει,
+          γιατί εκεί είναι η σειρά του. */}
+      {plan.next && (
+        <Card pad="lg" style={{ marginBottom: T.sp.lg }}>
+          <div style={{ ...TT.label, fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 8 }}>Το επόμενο βήμα</div>
+          <div style={{ ...TT.h2, marginBottom: 6 }}>{plan.next.title}</div>
+          {/* Ποιος το κάνει και πότε, σε μία γραμμή: το «πότε» μπαίνει μόνο όταν
+              η στιγμή κοστίζει, οπότε συχνά λείπει και δεν αφήνει κενό. */}
+          <div style={{ ...TT.bodySm, color: 'var(--text-secondary)' }}>
+            {[ACTOR_LABEL[plan.next.who], plan.next.when].filter(Boolean).join(' · ')}
+          </div>
+          {plan.next.cost && (
+            <div style={{ ...TT.caption, color: 'var(--text-tertiary)', marginTop: 8, lineHeight: 1.6 }}>
+              {plan.next.cost}
+            </div>
+          )}
+          {/* ══ ΑΠΟ ΤΟ ΣΧΕΔΙΟ ΣΤΗ ΛΙΣΤΑ ΤΟΥ, ΜΕ ΕΝΑ ΠΑΤΗΜΑ ═══════════════════
+              Το σχέδιο ζούσε ολόκληρο στον περιηγητή: ό,τι τσέκαρε ο χρήστης
+              έμενε στο `localStorage` αυτής της συσκευής και δεν έφτανε ποτέ
+              στις Εργασίες, στο Ημερολόγιο ή στις υπενθυμίσεις. Δηλαδή η
+              εφαρμογή ήξερε τι πρέπει να γίνει και δεν το θύμιζε ποτέ.
+
+              ΚΑΙ ΔΕΝ ΕΠΙΝΟΕΙΤΑΙ ΠΡΟΘΕΣΜΙΑ. Το βήμα λέει «πριν βγει η αγγελία»,
+              όχι μια ημερομηνία: μια ημερομηνία βγαλμένη από το πουθενά θα
+              γινόταν ειδοποίηση για προθεσμία που δεν υπάρχει. Η εργασία μπαίνει
+              χωρίς προθεσμία και ο χρήστης της βάζει τη δική του.
+
+              Ο διπλός έλεγχος γίνεται με `template_id`, όπως και στον Ενοικιαστή:
+              δεύτερο πάτημα δεν φτιάχνει δεύτερη εργασία. */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: T.sp.md }}>
+            <Btn variant="primary" onClick={() => toggle(plan.next!.id)}>Ολοκληρώθηκε</Btn>
+            <Btn onClick={() => pushToTasks(plan.next!)} disabled={pushing}>
+              {pushedIds.includes(plan.next.id) ? 'Είναι στις Εργασίες' : 'Βάλ᾽ το στις Εργασίες'}
+            </Btn>
+          </div>
+        </Card>
+      )}
 
       {/* ── ΤΙ ΕΙΔΟΥΣ ΕΚΚΡΕΜΟΤΗΤΑ: αλλάζει ΟΛΗ τη σειρά, άρα ρωτιέται πρώτο ──
           Ο υπότιτλος ήταν η εξήγηση του ΕΠΙΛΕΓΜΕΝΟΥ είδους, τυπωμένη κάτω από
