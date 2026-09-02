@@ -1,3 +1,10 @@
+'use client'
+// ΕΙΝΑΙ MODULE ΠΕΛΑΤΗ, ΚΑΙ ΤΩΡΑ ΤΟ ΛΕΕΙ. Εξάγει ΜΟΝΟ hooks: τρέχει
+// αποκλειστικά σε component πελάτη και όλοι οι καταναλωτές του δηλώνουν ήδη
+// 'use client'. Χωρίς τη δήλωση, ο `check-server-imports` το έβλεπε ως Server
+// Component που διαβάζει τιμή από module πελάτη (το `useLoad`) — εύρημα
+// σωστό στη μορφή του, γιατί ένα module χωρίς τη δήλωση ΜΠΟΡΕΙ να αποδοθεί
+// στον διακομιστή, όπου η τιμή θα ερχόταν undefined.
 // src/hooks/useMarketData.ts
 // Fetches live market data from Supabase (which gets it from ECB + ΤτΕ daily)
 // Πέφτει σε σταθερές τιμές όταν η βάση δεν απαντά

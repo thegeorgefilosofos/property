@@ -1,3 +1,10 @@
+'use client'
+// ΕΙΝΑΙ MODULE ΠΕΛΑΤΗ, ΚΑΙ ΤΩΡΑ ΤΟ ΛΕΕΙ. Εξάγει ΜΟΝΟ hooks: τρέχει
+// αποκλειστικά σε component πελάτη και όλοι οι καταναλωτές του δηλώνουν ήδη
+// 'use client'. Χωρίς τη δήλωση, ο `check-server-imports` το έβλεπε ως Server
+// Component που διαβάζει τιμή από module πελάτη (το `useLoad`) — εύρημα
+// σωστό στη μορφή του, γιατί ένα module χωρίς τη δήλωση ΜΠΟΡΕΙ να αποδοθεί
+// στον διακομιστή, όπου η τιμή θα ερχόταν undefined.
 // app/dashboard/components/useAppPreferences.ts
 // Single source of truth για τις προτιμήσεις & δυνατότητες της εφαρμογής.
 // Αποθηκεύονται στον πίνακα bills_settings (section: 'app_preferences') ως JSON blob.

@@ -17,7 +17,7 @@
 --     purge-orphan-files · send-market-digest-weekly · send-monthly-statements
 --     send-newsletter-weekly · send-reminders-daily
 --
--- Τίποτα δεν έγινε, και ο λόγος είναι λεπτός: το `x-cron-secret` του staging
+-- Τίποτα δεν έγινε και ο λόγος είναι λεπτός: το `x-cron-secret` του staging
 -- δεν ταιριάζει με της παραγωγής, οπότε κάθε κλήση γύριζε 401. Στο
 -- `net._http_response` του staging υπάρχουν 401 κάθε πέντε λεπτά, επί μήνες.
 -- Δηλαδή μας έσωσε ο έλεγχος ταυτότητας, όχι ο σχεδιασμός — και το
