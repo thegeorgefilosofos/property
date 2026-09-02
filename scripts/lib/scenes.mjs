@@ -16,6 +16,7 @@ export const SCENES = [
   'overview', 'portfolio', 'cash', 'rent', 'inbox', 'ledger', 'finances', 'checklist',
   'modal', 'select', 'compare', 'loan', 'loanAdvisor', 'pricing', 'bills', 'contacts',
   'wizard', 'roi', 'roi-pro', 'tenant', 'scan', 'accounting', 'accounting-pro',
+  'budget', 'budgetPro',
   'calendar', 'clients', 'documents', 'inventory', 'settings', 'settingsPro',
   'billing', 'branding', 'referral', 'referralPro', 'plan', 'planReno', 'planSale',
 ];

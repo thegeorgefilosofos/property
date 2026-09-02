@@ -227,7 +227,15 @@ export function InfoDot({ text }: { text: string }) {
  * απόφαση για το τι θα διαβάσει ο χρήστης.
  */
 export function InfoChip({ label, detail, icon, tone = 'default' }: {
-  label: string; detail?: string; icon?: ReactNode; tone?: 'default' | 'negative';
+  label: string; detail?: string; icon?: ReactNode;
+  /**
+   * ΤΟ ΚΟΚΚΙΝΟ ΕΙΝΑΙ ΓΙΑ ΤΟ ΛΑΘΟΣ, ΟΧΙ ΓΙΑ ΤΗ ΓΝΩΜΗ. Η σάρωση ΣΕΠΠΕ έβαφε
+   * κόκκινο το «Ακριβότερο της αγοράς»: μια σύγκριση με τον δείκτη αγοράς, όχι
+   * σφάλμα του χρήστη ούτε κίνδυνος. Δίπλα σε τρία ουδέτερα σήματα, το κόκκινο
+   * διάβαζε «κάτι χάλασε». Ο τόνος «warning» λέει «πρόσεξέ το» χωρίς να
+   * τρομάζει και το «negative» μένει για ό,τι είναι πράγματι αρνητικό.
+   */
+  tone?: 'default' | 'negative' | 'warning';
 }) {
   return (
     <div style={{
@@ -238,7 +246,7 @@ export function InfoChip({ label, detail, icon, tone = 'default' }: {
       {icon && <span style={{ flexShrink: 0, display: 'inline-flex' }} aria-hidden="true">{icon}</span>}
       <span style={{
         flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, fontFamily: T.font.sans,
-        color: tone === 'negative' ? 'var(--negative)' : 'var(--text-primary)', lineHeight: 1.4,
+        color: tone === 'negative' ? 'var(--negative)' : tone === 'warning' ? 'var(--warning)' : 'var(--text-primary)', lineHeight: 1.4,
       }}>{label}</span>
       {detail && <InfoDot text={detail} />}
     </div>

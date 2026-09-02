@@ -42,6 +42,11 @@ import TabPricing from '@/app/dashboard/components/TabPricing';
 import TabInventory from '@/app/dashboard/components/TabInventory';
 import TabContacts from '@/app/dashboard/components/TabContacts';
 import TabBills from '@/app/dashboard/components/TabBills';
+// Ο ΠΡΟΫΠΟΛΟΓΙΣΜΟΣ ΔΕΝ ΕΙΧΕ ΣΚΗΝΗ, ΚΑΙ ΕΙΝΑΙ 2.005 ΓΡΑΜΜΕΣ. Εννιά γραμμές
+// κατηγορίας με ποσό, στόχο, ποσοστό, μπάρα και αναλυτικές κινήσεις — καμία
+// μέτρηση, ποτέ. Ο χρήστης φωτογράφισε εκεί ποσά που δεν στοιχίζονταν μεταξύ
+// τους· ο σαρωτής δεν μπορούσε να το δει, γιατί η οθόνη δεν αποδιδόταν πουθενά.
+import BillsBudget from '@/app/dashboard/components/BillsBudget';
 // Η ΠΡΩΤΗ ΟΘΟΝΗ ΠΟΥ ΒΛΕΠΕΙ ΑΝΘΡΩΠΟΣ ΠΟΥ ΜΟΛΙΣ ΕΓΡΑΨΕ ΛΟΓΑΡΙΑΣΜΟ· ήταν επίσης η
 // μόνη που κανένας έλεγχος δεν κοίταζε ποτέ: ζει μέσα σε παράθυρο που ανοίγει
 // με πάτημα, οπότε καμία σκηνή του πάγκου δεν την αποδίδει.
@@ -272,6 +277,8 @@ const VIEWS: Record<string, () => React.ReactElement> = {
   loanAdvisor: () => <TabLoan propertyId="p0" userId="u1" propertyValue={185000} propertySqm={78} propertyYearBuilt={1998} />,
   pricing: () => <TabPricing propertyId="p0" userId="u1" propertyName="Στούντιο Κουκάκι" propertySqm={42} />,
   bills: () => <TabBills propertyId="p0" userId="u1" />,
+  budget: () => <BillsBudget propertyId="p0" userId="u1" />,
+  budgetPro: () => <BillsBudget propertyId="p0" userId="u1" profileType="professional" />,
   contacts: () => <TabContacts propertyId="p0" userId="u1" />,
   wizard: () => <AddPropertyWizard userId="u1" onClose={() => {}} onSaved={() => {}} />,
   roi: () => <TabRentROI propertyId="p0" userId="u1" propertyValue={185000} />,
