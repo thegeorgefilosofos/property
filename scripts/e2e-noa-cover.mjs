@@ -16,7 +16,7 @@
 //     node scripts/perf-bench/build-mobile.mjs && node scripts/e2e-noa-cover.mjs
 // ═══════════════════════════════════════════════════════════════════════════
 import { chromePath } from './lib/chrome.mjs'
-import { benchUrl } from './lib/paths.mjs'
+import { sweep } from './lib/sweep.mjs'
 import { scenesToRun } from './lib/scenes.mjs'
 import { createRequire } from 'node:module'
 import { readFileSync } from 'node:fs'
@@ -50,25 +50,33 @@ const PROBE = (where) => {
 }
 
 const browser = await chromium.launch({ executablePath: chromePath(), args: ['--no-sandbox'] })
-const findings = []
-let scenes = 0, missing = 0, withdrawn = 0
-for (const width of WIDTHS) for (const scene of scenesToRun()) {
-  const page = await browser.newPage({ viewport: { width, height: width < 700 ? 800 : 1000 } })
-  try {
-    await page.goto(benchUrl(scene) + '&noa=1', { waitUntil: 'networkidle', timeout: 30000 })
-    await page.waitForTimeout(400)
-    scenes++
+// ΔΥΟ ΜΕΤΡΗΣΕΙΣ ΑΝΑ ΣΚΗΝΗ: στην κορυφή και στο τέλος της κύλισης. Ο βρόχος
+// πλάτους × σκηνής, με τις παράλληλες θέσεις του, ζει στο scripts/lib/sweep.mjs.
+const swept = await sweep(browser, {
+  widths: WIDTHS, height: (w) => (w < 700 ? 800 : 1000), scenes: scenesToRun(),
+  suffix: '&noa=1', settle: 400,
+  visit: async (page) => {
     const top = await page.evaluate(PROBE, 'κορυφή')
-    if (top.withdrawn) { withdrawn++; continue }
-    if (top.missing) { missing++; continue }
+    // ΟΤΑΝ ΤΟ ΚΟΥΜΠΙ ΑΠΟΣΥΡΘΗΚΕ Ή ΔΕΝ ΑΠΟΔΟΘΗΚΕ, ΔΕΝ ΜΕΤΡΑΕΙ ΤΙΠΟΤΑ. Ο ανιχνευτής
+    // γυρίζει και τότε ό,τι πρόλαβε να δει· αν αυτά τα σημεία μπουν στο άθροισμα,
+    // χρεώνονται στη Νόα τομές σε σκηνές όπου η Νόα δεν είναι καν εκεί.
+    if (top.withdrawn) return { withdrawn: true }
+    if (top.missing) return { missing: true }
     await page.evaluate(() => { const c = document.querySelector('.app-content'); if (c) c.scrollTop = c.scrollHeight })
     await page.waitForTimeout(150)
     const end = await page.evaluate(PROBE, 'τέλος')
-    for (const h of [...(top.hits || []), ...(end.hits || [])]) findings.push(`${scene}@${width}  ${h}`)
-  } catch (e) { findings.push(`${scene}@${width}  δεν φόρτωσε: ${String(e.message).slice(0, 60)}`) }
-  await page.close()
-}
+    return { hits: [...(top.hits || []), ...(end.hits || [])] }
+  },
+  onError: (e) => ({ broke: String(e.message).slice(0, 60) }),
+})
 await browser.close()
+
+const scenes = swept.length
+const withdrawn = swept.filter(r => r.value.withdrawn).length
+const missing = swept.filter(r => r.value.missing).length
+const findings = swept.flatMap(({ scene, width, value }) =>
+  value.broke ? [`${scene}@${width}  δεν φόρτωσε: ${value.broke}`]
+              : (value.hits || []).map(h => `${scene}@${width}  ${h}`))
 
 if (missing) { console.error(`✗ σε ${missing} σκηνές δεν αποδόθηκε το κουμπί της Νόας: ο πάγκος δεν τη φόρτωσε`); process.exit(1) }
 // ΔΥΟ ΚΑΝΟΝΕΣ, ΓΙΑΤΙ ΕΙΝΑΙ ΔΥΟ ΔΙΑΦΟΡΕΤΙΚΑ ΠΡΑΓΜΑΤΑ. Στο τέλος της κύλισης

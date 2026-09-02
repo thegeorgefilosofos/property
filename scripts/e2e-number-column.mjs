@@ -24,7 +24,7 @@
 //     node scripts/perf-bench/build-mobile.mjs && node scripts/e2e-number-column.mjs
 // ═══════════════════════════════════════════════════════════════════════════
 import { chromePath } from './lib/chrome.mjs'
-import { benchUrl } from './lib/paths.mjs'
+import { sweep } from './lib/sweep.mjs'
 import { scenesToRun } from './lib/scenes.mjs'
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -99,27 +99,16 @@ const PROBE = () => {
 
 const BASE = JSON.parse(readFileSync(new URL('./number-column-baseline.json', import.meta.url), 'utf8'))
 const browser = await chromium.launch({ executablePath: chromePath(), args: ['--no-sandbox'] })
-const findings = []
-for (const width of WIDTHS) for (const scene of scenesToRun()) {
-  const page = await browser.newPage({ viewport: { width, height: 1200 } })
-  try {
-    await page.goto(benchUrl(scene), { waitUntil: 'networkidle', timeout: 30000 })
-    await page.waitForTimeout(350)
-    // ΤΑ ΔΙΠΛΩΜΕΝΑ ΠΑΝΕΛ ΕΙΝΑΙ ΤΟ ΜΙΣΟ ΠΡΟΪΟΝ, ΚΑΙ ΕΚΕΙ ΗΤΑΝ ΤΟ ΣΦΑΛΜΑ. Ο
-    // προϋπολογισμός ανά κατηγορία —η λίστα που φωτογράφισε ο χρήστης— ζει πίσω
-    // από πτυσσόμενη ενότητα: χωρίς άνοιγμα, η σάρωση έβγαινε καθαρή για οθόνη
-    // που δεν είχε δει. Δύο περάσματα, γιατί ενότητα μπορεί να κρύβει ενότητα.
-    for (let pass = 0; pass < 2; pass++) {
-      await page.evaluate(() => {
-        for (const b of document.querySelectorAll('[aria-expanded="false"]')) (b instanceof HTMLElement) && b.click()
-      })
-      await page.waitForTimeout(400)
-    }
-    for (const f of await page.evaluate(PROBE)) findings.push(`${scene}@${width}  ${f}`)
-  } catch { /* η σκηνή που δεν φορτώνει το λέει η σάρωση διάταξης */ }
-  await page.close()
-}
+// ΤΑ ΔΙΠΛΩΜΕΝΑ ΠΑΝΕΛ ΕΙΝΑΙ ΤΟ ΜΙΣΟ ΠΡΟΪΟΝ, ΚΑΙ ΕΚΕΙ ΗΤΑΝ ΤΟ ΣΦΑΛΜΑ. Ο
+// προϋπολογισμός ανά κατηγορία —η λίστα που φωτογράφισε ο χρήστης— ζει πίσω από
+// πτυσσόμενη ενότητα: χωρίς άνοιγμα, η σάρωση έβγαινε καθαρή για οθόνη που δεν
+// είχε δει. Δύο περάσματα, γιατί ενότητα μπορεί να κρύβει ενότητα.
+const swept = await sweep(browser, {
+  widths: WIDTHS, height: 1200, scenes: scenesToRun(), passes: 2,
+  visit: (page) => page.evaluate(PROBE),
+})
 await browser.close()
+const findings = swept.flatMap(({ scene, width, value }) => value.map(f => `${scene}@${width}  ${f}`))
 
 if (findings.length > BASE.max) {
   console.error(`\n✗ ${findings.length} στήλες αριθμών χωρίς κοινό δεξί άκρο (όριο ${BASE.max}):\n`)

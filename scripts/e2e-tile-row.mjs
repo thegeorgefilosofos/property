@@ -20,11 +20,12 @@
 //     node scripts/perf-bench/build-mobile.mjs && node scripts/e2e-tile-row.mjs
 // ═══════════════════════════════════════════════════════════════════════════
 import { chromePath } from './lib/chrome.mjs'
-import { benchUrl } from './lib/paths.mjs'
+import { sweep } from './lib/sweep.mjs'
 import { scenesToRun } from './lib/scenes.mjs'
 import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
 const { chromium } = require('playwright-core')
+
 
 const WIDTHS = [390, 820, 1280]
 
@@ -58,26 +59,15 @@ const PROBE = () => {
 }
 
 const browser = await chromium.launch({ executablePath: chromePath(), args: ['--no-sandbox'] })
-const findings = []
-let scanned = 0
-for (const width of WIDTHS) for (const scene of scenesToRun()) {
-  const page = await browser.newPage({ viewport: { width, height: 1200 } })
-  try {
-    await page.goto(benchUrl(scene), { waitUntil: 'networkidle', timeout: 30000 })
-    await page.waitForTimeout(350)
-    // Τα διπλωμένα πάνελ κρύβουν τις μισές σειρές πλακιδίων της εφαρμογής.
-    for (let pass = 0; pass < 2; pass++) {
-      await page.evaluate(() => {
-        for (const b of document.querySelectorAll('[aria-expanded="false"]')) (b instanceof HTMLElement) && b.click()
-      })
-      await page.waitForTimeout(350)
-    }
-    scanned++
-    for (const f of await page.evaluate(PROBE)) findings.push(`${scene}@${width}  ${f}`)
-  } catch { /* η σκηνή που δεν φορτώνει το λέει η σάρωση διάταξης */ }
-  await page.close()
-}
+// Τα διπλωμένα πάνελ κρύβουν τις μισές σειρές πλακιδίων της εφαρμογής, γι' αυτό
+// τα δύο περάσματα. Ο βρόχος πλάτους × σκηνής ζει στο scripts/lib/sweep.mjs.
+const swept = await sweep(browser, {
+  widths: WIDTHS, height: 1200, scenes: scenesToRun(), passes: 2, passWait: 350,
+  visit: (page) => page.evaluate(PROBE),
+})
 await browser.close()
+const scanned = swept.length
+const findings = swept.flatMap(({ scene, width, value }) => value.map(f => `${scene}@${width}  ${f}`))
 
 if (findings.length) {
   console.error(`\n✗ ${findings.length} σειρές πλακιδίων που δεν είναι ζυγισμένες:\n`)

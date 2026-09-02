@@ -19,7 +19,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { chromium } from 'playwright-core';
 import { chromePath } from './lib/chrome.mjs';
-import { benchUrl } from './lib/paths.mjs';
+import { sweep } from './lib/sweep.mjs';
 import { SCENES } from './lib/scenes.mjs';
 
 const WIDTHS = [390, 768, 900, 1024, 1120, 1280, 1440];
@@ -87,29 +87,16 @@ const probe = () => {
 };
 
 const browser = await chromium.launch({ executablePath: chromePath(), args: ['--no-sandbox'] });
-const findings = [];
-for (const width of WIDTHS) {
-  for (const scene of SCENES) {
-    const page = await browser.newPage({ viewport: { width, height: 1000 } });
-    try {
-      await page.goto(benchUrl(scene), { waitUntil: 'networkidle', timeout: 30000 });
-      await page.waitForTimeout(350);
-      // ΤΑ ΔΙΠΛΩΜΕΝΑ ΠΑΝΕΛ ΔΕΝ ΕΙΝΑΙ ΕΚΤΟΣ ΕΛΕΓΧΟΥ, ΕΙΝΑΙ ΤΟ ΜΙΣΟ ΠΡΟΪΟΝ. Το
-      // πάνελ έγκρισης και η ανάλυση ESIS ζουν πίσω από πτυσσόμενη ενότητα:
-      // χωρίς άνοιγμα, ο σαρωτής έβγαζε καθαρή σκηνή για οθόνη που δεν είχε δει.
-      // Δύο περάσματα, γιατί ενότητα μπορεί να κρύβει ενότητα.
-      for (let pass = 0; pass < 2; pass++) {
-        await page.evaluate(() => {
-          for (const b of document.querySelectorAll('[aria-expanded="false"]')) (b instanceof HTMLElement) && b.click();
-        });
-        await page.waitForTimeout(400);
-      }
-      for (const f of await page.evaluate(probe)) findings.push({ where: `${scene}@${width}`, ...f });
-    } catch { /* η σκηνή που δεν φορτώνει το λέει η σάρωση διάταξης */ }
-    await page.close();
-  }
-}
+// ΤΑ ΔΙΠΛΩΜΕΝΑ ΠΑΝΕΛ ΔΕΝ ΕΙΝΑΙ ΕΚΤΟΣ ΕΛΕΓΧΟΥ, ΕΙΝΑΙ ΤΟ ΜΙΣΟ ΠΡΟΪΟΝ. Το πάνελ
+// έγκρισης και η ανάλυση ESIS ζουν πίσω από πτυσσόμενη ενότητα: χωρίς άνοιγμα,
+// ο σαρωτής έβγαζε καθαρή σκηνή για οθόνη που δεν είχε δει. Δύο περάσματα,
+// γιατί ενότητα μπορεί να κρύβει ενότητα.
+const swept = await sweep(browser, {
+  widths: WIDTHS, height: 1000, scenes: SCENES, passes: 2,
+  visit: (page) => page.evaluate(probe),
+});
 await browser.close();
+const findings = swept.flatMap(({ scene, width, value }) => value.map(f => ({ where: `${scene}@${width}`, ...f })));
 
 if (findings.length) {
   console.error(`\n✗ ${findings.length} σειρές με ετικέτες σε διαφορετικό αριθμό γραμμών:\n`);
