@@ -117,7 +117,7 @@ export function TemplateModal({ onSelect, onLoadObligations, onClose, ctx, pendi
                   <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{path.split(' M').map((seg, j) => <path key={j} d={(j === 0 ? '' : 'M') + seg} />)}</svg>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.label}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{t.label}</div>
                   {/* ΚΑΝΕΝΑ «~1.850 €» ΕΔΩ. Το σύνολο ήταν άθροισμα 24 σταθερών
                       χωρίς πηγή, έτος ή περιοχή. Στη θέση του μπαίνει ο λόγος
                       που το πρότυπο εμφανίζεται σε αυτόν τον χρήστη. */}

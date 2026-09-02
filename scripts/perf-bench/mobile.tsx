@@ -78,6 +78,10 @@ import TabReferral from '@/app/dashboard/components/TabReferral';
 import Billing from '@/app/dashboard/components/Billing';
 import ReportBranding from '@/app/dashboard/components/ReportBranding';
 import { OverviewTab } from '@/app/dashboard/page';
+// Η ΝΟΑ ΠΑΝΩ ΑΠΟ ΚΑΘΕ ΣΚΗΝΗ, ΟΤΑΝ ΖΗΤΗΘΕΙ. Το πλωτό κουμπί ζει σε κάθε καρτέλα
+// της εφαρμογής και σε καμία σκηνή του πάγκου: ό,τι σκέπαζε δεν το μετρούσε
+// κανείς. Με `?noa=1` αποδίδεται ΠΑΝΩ από τη σκηνή, όπως στο app/dashboard/page.tsx.
+import PropertyAssistant from '@/app/dashboard/components/PropertyAssistant';
 import TabPlan from '@/app/dashboard/components/TabPlan';
 import PropertySwitcher from '@/app/dashboard/components/PropertySwitcher';
 import { T, Modal, Btn, PageTitle, InfoBanner, fieldRow } from '@/components/Theme';
@@ -284,7 +288,10 @@ const VIEWS: Record<string, () => React.ReactElement> = {
   // υπάρχουν σε πραγματικούς χρήστες, οπότε και οι δύο μετριούνται.
   'roi-pro': () => <TabRentROI propertyId="p0" userId="u1" propertyValue={185000} profileType="professional" legalForm="company" plan="agency" />,
   'accounting-pro': () => <TabAccounting propertyId="p0" userId="u1" profileType="professional" legalForm="company" plan="agency" />,
-  tenant: () => <TabTenant propertyId="p0" userId="u1" onStartHandover={() => {}} />,
+  // ΣΤΟ p1, ΟΧΙ ΣΤΟ p0. Το p0 είναι βραχυχρόνιο (`short = i % 4 === 0`) και δεν
+  // έχει μισθωτή: η σκηνή απέδιδε την ΚΕΝΗ κατάσταση και η κάρτα ενοικιαστή —
+  // με τη λωρίδα μεγεθών και τις κομμένες ετικέτες της — δεν είχε δει σαρωτή ποτέ.
+  tenant: () => <TabTenant propertyId="p1" userId="u1" onStartHandover={() => {}} />,
   scan: () => (
     <Modal open onClose={() => {}} size="lg" title="Σάρωση εγγράφου">
       <DocumentScan propertyId="p0" userId="u1" onSaved={async () => {}} onBusyChange={() => {}} onManual={() => {}} />
@@ -376,9 +383,9 @@ function BenchTopbar() {
         <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, rowGap: 8, minWidth: 0 }}>
           <PropertySwitcher items={BENCH_PROPS} activeId={id} onSelect={setId} onAdd={() => {}} canAdd />
           <div style={{ position: 'relative', minWidth: 0 }}>
-            <button className="topbar-status" style={{ display: 'flex', alignItems: 'center', gap: 7, height: T.h.sm, padding: '0 10px 0 12px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'transparent', cursor: 'pointer', fontFamily: T.font.sans, fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>
+            <button className="topbar-status" style={{ display: 'flex', alignItems: 'center', gap: 7, minHeight: T.h.sm, padding: '0 10px 0 12px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'transparent', cursor: 'pointer', fontFamily: T.font.sans, fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
-              <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Βραχυχρόνια μίσθωση</span>
+              <span className="topbar-status-label">Βραχυχρόνια μίσθωση</span>
               <svg aria-hidden="true" width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.65, marginLeft: 1, flexShrink: 0 }}><path d="m6 9 6 6 6-6" /></svg>
             </button>
           </div>
@@ -422,5 +429,8 @@ const View: () => React.ReactElement = VIEWS[which] || (() => (
   </div>
 ));
 window.__t.start = performance.now();
-createRoot(host).render(<View />);
+const withNoa = params.get('noa') === '1';
+createRoot(host).render(withNoa
+  ? <><View /><PropertyAssistant propertyId="p1" userId="u1" propContext={{ name: 'Ακίνητο 2' }} onNavigate={() => {}} onScan={() => {}} /></>
+  : <View />);
 requestAnimationFrame(() => { window.__t.firstPaint = performance.now(); });

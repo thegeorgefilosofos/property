@@ -771,12 +771,11 @@ export function CustomSelect({
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
           {selected?.dot && <div style={{ width: 8, height: 8, borderRadius: '50%', background: selected.dot, flexShrink: 0 }}/>}
           {selected?.color && <div style={{ width: 10, height: 10, borderRadius: 3, background: selected.color, flexShrink: 0 }}/>}
-          <span style={{
+          <span className="po-elide" style={{
             fontFamily: T.font.sans,
             fontSize: 14,
             letterSpacing: '0.25px',
             color: selected ? 'var(--text-primary)' : 'var(--text-tertiary)',
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>
             {selected?.label || placeholder}
           </span>

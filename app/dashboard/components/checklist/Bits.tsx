@@ -99,7 +99,7 @@ export function FilterSelect({ value, onChange, options, minWidth = 168, idle }:
     <>
       <button ref={btnRef} type="button" onClick={() => setOpen(o => !o)}
         style={{ display: 'flex', alignItems: 'center', gap: 8, height: T.h.lg, padding: '0 12px 0 14px', minWidth, borderRadius: T.radius.pill, border: '1px solid ' + (open || active ? 'var(--accent)' : 'var(--border-subtle)'), background: active ? 'var(--accent-soft)' : 'var(--bg-surface)', color: active ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 13, fontWeight: active ? 600 : 500, cursor: 'pointer', fontFamily: T.font.sans, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s', whiteSpace: 'nowrap' }}>
-        <span style={{ flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis' }}>{!active && idle ? idle : current.label}</span>
+        <span style={{ flex: 1, textAlign: 'left', whiteSpace: 'nowrap' }}>{!active && idle ? idle : current.label}</span>
         <svg aria-hidden="true" width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0, opacity: 0.7 }}><path d="M6 9l6 6 6-6"/></svg>
       </button>
       {open && createPortal(

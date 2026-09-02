@@ -532,7 +532,7 @@ export default function TabComparison({ properties, userId }: Props) {
                 <th style={{ ...th, width: CMP_LABEL, position: 'sticky', left: 0, zIndex: 1, background: 'var(--bg-surface)' }} />
                 {rowsData.map(r => (
                   <th key={r.p.id} style={{ ...th, width: `calc((100% - ${CMP_LABEL}) / ${rowsData.length})`, textAlign: 'right' }}>
-                    <div title={r.p.name} style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'none', letterSpacing: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{r.p.name}</div>
+                    <div className="po-elide" title={r.p.name} style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'none', letterSpacing: 0, maxWidth: '100%' }}>{r.p.name}</div>
                     {/* Ταυτότητα, όχι μετρική: εμβαδόν, αξία και τιμή/τ.μ. λένε ποιο
                         ακίνητο κοιτάζεις. Δεν έχουν «καλύτερη τιμή», γι' αυτό δεν
                         είναι γραμμές του πίνακα. Ό,τι λείπει, απλώς λείπει —

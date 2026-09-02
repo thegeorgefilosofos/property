@@ -102,7 +102,8 @@
     "e2e:signup": "node scripts/e2e-signup/build.mjs && node scripts/e2e-signup.mjs",
     "xlsx": "node scripts/xlsx/readers.mjs",
     "e2e:align": "node scripts/perf-bench/build-mobile.mjs && node scripts/e2e-control-align.mjs",
-    "e2e:labels": "node scripts/perf-bench/build-mobile.mjs && node scripts/e2e-label-lines.mjs"
+    "e2e:labels": "node scripts/perf-bench/build-mobile.mjs && node scripts/e2e-label-lines.mjs",
+    "e2e:noa": "node scripts/perf-bench/build-mobile.mjs && node scripts/e2e-noa-cover.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

@@ -144,6 +144,27 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
   const [open, setOpen] = useState(false);
   const [fabPos, setFabPos] = useState<{ x: number; y: number } | null>(null);
   const [dragging, setDragging] = useState(false);
+  // ═══ Η ΠΡΟΣΚΛΗΣΗ ΜΑΖΕΥΕΤΑΙ ΜΟΛΙΣ ΚΥΛΗΣΕΙ Η ΣΕΛΙΔΑ ═══════════════════════
+  // ΜΕΤΡΗΜΕΝΟ (scripts/e2e-noa-cover.mjs, 36 σκηνές × 3 πλάτη): στο τέλος της
+  // κύλισης το κουμπί δεν σκέπαζε τίποτα — το κάτω περιθώριο του .app-content
+  // κάνει τη δουλειά του. Στο πρώτο κάδρο σκέπαζε κείμενο σε 64 σημεία, και
+  // αυτό που το σκέπαζε ήταν η ΠΡΟΣΚΛΗΣΗ: «Ρώτα τη Νόα» κάνει το κουμπί 190
+  // εικονοστοιχεία φαρδύ αντί για 52. Ο χρήστης το φωτογράφισε πάνω στη στήλη
+  // «Δάνειο προς αξία» του πίνακα επιτοκίων.
+  //
+  // Η πρόσκληση υπάρχει για να μάθει ο χρήστης ΠΟΙΑ είναι· μόλις αρχίσει να
+  // διαβάζει (κυλάει), το όνομα μαζεύεται στο σήμα, όπως κάθε εκτεταμένο
+  // πλωτό κουμπί. Και σε οθόνη κάτω από 1.280 μένει σήμα από την αρχή: εκεί
+  // το περιεχόμενο φτάνει ώς την άκρη και δεν υπάρχει άδεια γωνία να καθίσει.
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const el = document.querySelector('.app-content');
+    if (!(el instanceof HTMLElement)) return;
+    const read = () => setScrolled(el.scrollTop > 4);
+    read();
+    el.addEventListener('scroll', read, { passive: true });
+    return () => el.removeEventListener('scroll', read);
+  }, []);
   // ΟΙ ΠΡΟΤΙΜΗΣΕΙΣ ΤΟΥ ΒΟΗΘΟΥ ΖΟΥΝ ΣΤΟΝ ΠΕΡΙΗΓΗΤΗ. Ηταν προεπιλογή που ένα
   // effect αντικαθιστούσε μετά την πρώτη απόδοση: όποιος είχε ζητήσει πληθυντικό
   // άκουγε τη Νόα να τον προσφωνεί στον ενικό για ένα καρέ, σε κάθε άνοιγμα.
@@ -1478,7 +1499,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
           Ονομαστικό, όχι διακοσμητικό: λέει ΠΟΙΑ είναι και ΤΙ κάνεις μαζί της,
           γιατί ένα ανώνυμο πλωτό κουκκί δεν το πατά κανείς δεύτερη φορά. */}
       {!open && !overlayOpen && (
-        <div className="pa-fab-wrap" style={fabFixed}>
+        <div className="pa-fab-wrap" style={fabFixed} data-scrolled={scrolled ? '1' : undefined}>
           <button ref={fabRef} className="pa-fab" onPointerDown={startFabDrag} onClick={fabToggle(true)}
             aria-label={openAria()} title="Σύρετε για μετακίνηση"
             style={{ cursor: dragging ? 'grabbing' : 'pointer' }}>
@@ -1772,9 +1793,12 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
           .pa-fab{bottom:82px;right:16px}
           .pa-panel{right:8px;left:8px;bottom:78px;width:auto;max-width:none;height:min(560px,calc(100dvh - 100px))}
         }
-        /* Στο κινητό ο χώρος είναι ιερός: μένει το σήμα, φεύγει η πρόσκληση.
-           Αυτό είναι όντως θέμα ΠΛΑΤΟΥΣ, γι' αυτό κρατά το δικό του όριο. */
-        @media (max-width:600px){
+        /* Η πρόσκληση μαζεύεται στο σήμα: μόλις κυλήσει η σελίδα, και εξαρχής
+           κάτω από τα 1.280, όπου το περιεχόμενο φτάνει ώς την άκρη. Ο λόγος και
+           η μέτρηση είναι γραμμένα πάνω από την κατάσταση scrolled πιο πάνω. */
+        .pa-fab-wrap[data-scrolled] .pa-fab{padding:0 8px;gap:0}
+        .pa-fab-wrap[data-scrolled] .pa-fab-cta{display:none}
+        @media (max-width:1279px){
           .pa-fab{padding:0 8px;gap:0}
           .pa-fab-cta{display:none}
         }
@@ -1843,7 +1867,7 @@ function AssistantSettings({ draft, onSave, onCancel, onClearMemory, hasMemory, 
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {facts.map(f => (
                 <span key={f.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, padding: '5px 6px 5px 11px', fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-primary)', maxWidth: '100%' }}>
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}>{f.text}</span>
+                  <span className="po-elide" style={{ maxWidth: 220 }}>{f.text}</span>
                   <button onClick={() => onForgetFact(f.id)} aria-label="Ξέχασέ το" title="Ξέχασέ το" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, flexShrink: 0, borderRadius: '50%', border: 'none', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer' }}>
                     <svg aria-hidden="true" width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
                   </button>

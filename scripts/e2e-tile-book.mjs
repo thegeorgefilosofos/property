@@ -56,7 +56,10 @@ const PROBE = () => {
     if (parseFloat(cs.fontSize) < 15 || Number(cs.fontWeight) < 600) continue
     if (!el.checkVisibility?.()) continue
     if (el.closest('table')) continue
-    if (el.closest('.kpi-card, .kpi-plain')) continue
+    // Η λωρίδα μεγεθών της κάρτας εγγραφής (StatStrip) ΕΙΝΑΙ το βιβλίο: γράφει
+    // τον αριθμό με το KpiValue και την ετικέτα με το .kpi-label, χωρίς
+    // `.kpi-plain` στο κελί γιατί ο περιορισμός μεγέθους του ακύρωνε το subgrid.
+    if (el.closest('.kpi-card, .kpi-plain, .stat-strip')) continue
     const prev = el.previousElementSibling || (el.parentElement && el.parentElement.previousElementSibling)
     if (!prev) continue
     const pcs = getComputedStyle(prev)

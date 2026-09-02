@@ -55,7 +55,7 @@ export default function PropertyPicker({ items, selected, onChange, loading, pla
     <div ref={ref} style={{ position: 'relative' }}>
       <button type="button" onClick={() => !loading && items.length > 0 && setOpen(o => !o)} disabled={loading || items.length === 0}
         style={{ width: '100%', height: T.h.lg, padding: '0 13px', borderRadius: 10, border: `1px solid ${open ? 'var(--accent)' : 'var(--border-default)'}`, background: 'var(--bg-surface)', color: selected.size ? 'var(--text-primary)' : 'var(--text-tertiary)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 10, cursor: (loading || !items.length) ? 'default' : 'pointer', transition: 'border-color 0.15s', opacity: (loading || !items.length) ? 0.6 : 1 }}>
-        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'left' }}>{summary}</span>
+        <span className="po-elide" style={{ flex: 1, textAlign: 'left' }}>{summary}</span>
         <svg aria-hidden="true" width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-tertiary)', flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="M6 9l6 6 6-6"/></svg>
       </button>
 
@@ -80,7 +80,7 @@ export default function PropertyPicker({ items, selected, onChange, loading, pla
                 <button key={i.id} type="button" onClick={() => toggle(i.id)} style={row}
                   onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}>
                   <span style={box(on)}>{on ? check : null}</span>
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.name}</span>
+                  <span className="po-elide">{i.name}</span>
                 </button>
               );
             })}

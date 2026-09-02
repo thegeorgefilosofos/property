@@ -1117,7 +1117,7 @@ function FileCard({ i, a }: { i: Item; a: FileActions }) {
         )}
       </div>
       <div style={{ padding: '9px 11px' }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{i.title}</div>
+        <div className="po-elide" style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)' }}>{i.title}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 5, flexWrap: 'wrap' }}>
           <OriginTag i={i}/>
           {i.value != null && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{fe(i.value)}</span>}
@@ -1160,7 +1160,7 @@ function FileRow({ i, a }: { i: Item; a: FileActions }) {
           </div>}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 300 }}>{i.title}</span>
+          <span className="po-elide" style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', maxWidth: 300 }}>{i.title}</span>
           <OriginTag i={i}/>
           {a.showFolder && <span style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 600 }}>{FOLDER_LABEL[i.folder]}</span>}
         </div>
@@ -1269,7 +1269,7 @@ function DraftCard({ d, onToggle, onPatch, onPatchDoc, onCommit, onRemove }: {
           </svg>
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.file.name}</div>
+          <div className="po-elide" style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{d.file.name}</div>
           <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
             {STAGE_TEXT[d.status] || (d.kind === 'photo'
               ? `Φωτογραφία χώρου · ${d.category}`

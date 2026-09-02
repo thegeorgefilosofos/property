@@ -186,7 +186,7 @@ export function ReplacementHint({item,compact}:{item:InventoryItem;compact?:bool
   if (due) return (
     <div title={tip} style={{display:'inline-flex',alignItems:'center',gap:6,padding:compact?'2px 8px':'6px 10px',borderRadius:compact?20:8,background:'var(--warning-soft)',border:'1px solid var(--warning-border)',maxWidth:'100%'}}>
       <svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-      <span style={{fontSize:11,color:'var(--warning)',fontFamily:T.font.sans,fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>Προτείνεται αντικατάσταση</span>
+      <span style={{fontSize:11,color:'var(--warning)',fontFamily:T.font.sans,fontWeight:600,lineHeight:1.3}}>Προτείνεται αντικατάσταση</span>
     </div>
   )
   // soft: πλησιάζει τέλος ωφέλιμης ζωής
