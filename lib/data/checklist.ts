@@ -159,6 +159,17 @@ export function removeMany(db: Db, ids: string[]) {
 }
 
 /**
+ * Η ΕΡΓΑΣΙΑ ΠΟΥ ΓΕΝΝΗΘΗΚΕ ΑΠΟ ΠΡΟΤΥΠΟ ΦΕΥΓΕΙ ΑΠΟ ΤΟ ΠΡΟΤΥΠΟ ΤΗΣ.
+ *
+ * Το βήμα του σχεδίου δεν ξέρει το `id` της εργασίας που έφτιαξε — ξέρει μόνο
+ * το `template_id` με το οποίο τη σφράγισε (`plan:<βήμα>`). Το ίδιο κλειδί που
+ * εμποδίζει δεύτερη εγγραφή είναι και το κλειδί που την αφαιρεί.
+ */
+export function removeByTemplate(db: Db, propertyId: string, userId: string, templateId: string) {
+  return db.from(TABLE).delete().eq('property_id', propertyId).eq('user_id', userId).eq('template_id', templateId);
+}
+
+/**
  * Οι τρεις στήλες που λένε «κλειστή», μαζί.
  *
  * ΓΙΑΤΙ ΣΥΝΑΡΤΗΣΗ ΚΑΙ ΟΧΙ ΣΤΑΘΕΡΑ: η ώρα ολοκλήρωσης είναι η ώρα ΤΗΣ ΕΝΕΡΓΕΙΑΣ.

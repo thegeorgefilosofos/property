@@ -459,6 +459,24 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
     }
   }, [propertyId, userId]);
 
+  // ══ ΚΑΙ ΒΓΑΙΝΕΙ, ΜΕ ΤΟ ΙΔΙΟ ΚΛΕΙΔΙ ══════════════════════════════════════
+  // Το «Είναι στις Εργασίες» ήταν κουμπί που δεν έκανε τίποτα: έλεγε μια
+  // κατάσταση και δεν έδινε δρόμο πίσω. Οποιος το έβαλε κατά λάθος, ή άλλαξε
+  // γνώμη, έπρεπε να πάει στις Εργασίες και να ψάξει ποια ήταν. Η αφαίρεση
+  // γίνεται από εδώ, με το `template_id` που το έβαλε.
+  const removeFromTasks = useCallback(async (step: Step) => {
+    setPushing(true);
+    try {
+      const ok = await saved('Η εργασία δεν αφαιρέθηκε', checklist.removeByTemplate(createClient(), propertyId, userId, `${TASK_PREFIX}${step.id}`));
+      if (ok) {
+        setPushedIds(prev => prev.filter(id => id !== step.id));
+        notifyOk('Βγήκε από τις Εργασίες');
+      }
+    } finally {
+      setPushing(false);
+    }
+  }, [propertyId, userId]);
+
   // ══ ΤΟ ΑΝΟΙΓΜΑ: Η ΒΑΣΗ, ΚΑΙ ΜΙΑ ΦΟΡΑ ΟΤΙ ΕΜΕΙΝΕ ΣΤΗ ΣΥΣΚΕΥΗ ════════════════
   useEffect(() => {
     let alive = true;
@@ -673,9 +691,9 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
               δεύτερο πάτημα δεν φτιάχνει δεύτερη εργασία. */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: T.sp.md }}>
             <Btn variant="primary" onClick={() => toggle(plan.next!.id)}>Ολοκληρώθηκε</Btn>
-            <Btn onClick={() => pushToTasks(plan.next!)} disabled={pushing}>
-              {pushedIds.includes(plan.next.id) ? 'Είναι στις Εργασίες' : 'Βάλ᾽ το στις Εργασίες'}
-            </Btn>
+            {pushedIds.includes(plan.next.id)
+              ? <Btn onClick={() => removeFromTasks(plan.next!)} disabled={pushing}>Βγάλ᾽ το από τις Εργασίες</Btn>
+              : <Btn onClick={() => pushToTasks(plan.next!)} disabled={pushing}>Βάλ᾽ το στις Εργασίες</Btn>}
           </div>
         </Card>
       )}

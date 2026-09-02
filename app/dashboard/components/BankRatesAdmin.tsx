@@ -1,5 +1,5 @@
 'use client'
-import { T, TT, formGrid } from '@/components/Theme'
+import { T, TT, formGrid, ABSENT } from '@/components/Theme'
 import { notify, notifyOk, notifyError } from '@/components/Toast'
 import { useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -49,10 +49,25 @@ export default function BankRatesAdmin({ onSaved }:{
   const [selId,setSelId] = useState<string|null>(null)
   const [saving,setSaving] = useState(false)
   const [refreshing,setRefreshing] = useState(false)
+  // ═══ ΤΙ ΕΚΑΝΕ Η ΤΡΟΦΟΔΟΣΙΑ ΚΑΙ ΤΙ ΚΡΑΤΗΣΕ ═══════════════════════════════
+  // Ο διαχειριστής είναι ο μόνος που μπορεί να ΔΙΟΡΘΩΣΕΙ: βλέπει πότε έτρεξε
+  // τελευταία ο καθημερινός έλεγχος, αν πέτυχε και ποιες μεταβολές κρατήθηκαν
+  // επειδή ήταν μεγάλες και δεν επιβεβαιώθηκαν ακόμη από δεύτερο πέρασμα. Οι
+  // κρατημένες δεν εφαρμόζονται από εδώ με ένα πάτημα: αν είναι σωστές, το
+  // επόμενο πέρασμα θα τις επιβεβαιώσει μόνο του· αν είναι λάθος, ο
+  // διαχειριστής γράφει τη σωστή τιμή στη φόρμα από κάτω.
+  type Health = { ok:boolean; reason:string; last_check:string|null; last_ok:string|null; held_changes:number }
+  type Held = { ran_at:string; bank_id:string; field:string; old_value:number|null; new_value:number; reason:string }
+  const [health,setHealth] = useState<Health|null>(null)
+  const [held,setHeld] = useState<Held[]>([])
 
   async function load() {
     const { data } = await supabase.from('bank_rates').select('*').order('fixed_min',{ascending:true})
     if (data) setRows(data as AdminBank[])
+    const [{ data: h }, { data: hd }] = await Promise.all([supabase.rpc('bank_feed_health'), supabase.rpc('bank_feed_held')])
+    const row = Array.isArray(h) ? h[0] : h
+    if (row) setHealth(row as Health)
+    if (Array.isArray(hd)) setHeld(hd as Held[])
   }
   // Φορτώνει μία φορά, όταν ανοίξει το πάνελ. Το `rows.length` δεν είναι
   // εξάρτηση: αν ήταν, η φόρτωση θα ξανάτρεχε μόλις γέμιζε ο πίνακας.
@@ -122,6 +137,25 @@ export default function BankRatesAdmin({ onSaved }:{
             </button>
             <span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily: T.font.sans}}>Έρευνα ιστού · γράφει μόνο έγκυρες τιμές</span>
           </div>
+
+          {health && (
+            <p style={{fontSize:12,color:health.ok?'var(--text-secondary)':'var(--negative)',fontFamily: T.font.sans,lineHeight:1.5}}>
+              {health.ok
+                ? `Καθημερινός έλεγχος: τελευταίο πέρασμα ${health.last_check ? new Date(health.last_check).toLocaleString('el-GR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : ABSENT}, πέτυχε.`
+                : `Καθημερινός έλεγχος: ${health.reason}.`}
+            </p>
+          )}
+          {held.length>0 && (
+            <div style={{border:'1px solid var(--warning-border)',background:'var(--warning-soft)',borderRadius: T.radius.inner,padding:'10px 12px',display:'flex',flexDirection:'column',gap:4}}>
+              <p style={{fontSize:12,fontWeight:600,color:'var(--text-primary)',fontFamily: T.font.sans}}>Μεταβολές που περιμένουν δεύτερη επιβεβαίωση</p>
+              {held.map((c,i)=>(
+                <p key={i} style={{fontSize:12,color:'var(--text-secondary)',fontFamily: T.font.sans}}>
+                  <span style={{fontFamily: T.font.mono}}>{c.bank_id} · {c.field}</span>: από {c.old_value==null?ABSENT:String(c.old_value).replace('.',',')} σε {String(c.new_value).replace('.',',')} · {c.reason}
+                </p>
+              ))}
+              <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily: T.font.sans}}>Αν το επόμενο πέρασμα επιστρέψει την ίδια τιμή, εφαρμόζεται μόνη της. Αν είναι λάθος, γράψε τη σωστή τιμή στη φόρμα της τράπεζας.</p>
+            </div>
+          )}
 
           {/* Λίστα τραπεζών — διάλεξε για επεξεργασία */}
           <div style={{display:'flex',flexDirection:'column',gap:6}}>
