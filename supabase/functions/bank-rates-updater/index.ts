@@ -128,12 +128,22 @@ Deno.serve(async (req) => {
   // ΤΟ ΙΧΝΟΣ ΓΡΑΦΕΤΑΙ ΣΕ ΚΑΘΕ ΕΞΟΔΟ. Ενα πέρασμα που απέτυχε και δεν το είπε
   // είναι ίδιο με πέρασμα που δεν έγινε — και αυτή ακριβώς η σιωπή κράτησε την
   // οθόνη στο «56 ημέρες».
+  // ΚΑΙ ΟΤΑΝ ΑΠΟΤΥΧΕΙ Η ΙΔΙΑ Η ΚΑΤΑΓΡΑΦΗ, ΤΟ ΛΕΕΙ ΔΥΝΑΤΑ. Το πρώτο πέρασμα που
+  // έτρεξε ποτέ στην παραγωγή (03/09/2026 06:24) δεν άφησε γραμμή: οι πίνακες
+  // είχαν γεννηθεί δευτερόλεπτα πριν και το PostgREST κρατούσε ακόμη το παλιό
+  // σχήμα, οπότε το `insert` γύρισε σφάλμα. Το σφάλμα πήγαινε ΜΟΝΟ στην
+  // κονσόλα, δηλαδή ένα σύστημα φτιαγμένο για να μην υπάρχει σιωπή απέτυχε
+  // σιωπηλά — και μάλιστα στην πρώτη του εγγραφή.
+  let logFailure: string | null = null
   const log = async (ok: boolean, reason: string, extra: Record<string, unknown> = {}) => {
     const { error } = await supabase.from('bank_rate_checks').insert({
       ok, reason, banks_found: Number(extra.found ?? 0), banks_applied: Number(extra.applied ?? 0),
       banks_held: Number(extra.held ?? 0), details: extra,
     })
-    if (error) console.error('bank_rate_checks insert:', error.message)
+    if (error) {
+      logFailure = error.message
+      console.error('bank_rate_checks insert:', error.message)
+    }
   }
 
   try {
@@ -144,7 +154,7 @@ Deno.serve(async (req) => {
     // Αμυντικό: λίγες τράπεζες σημαίνει κακή αναζήτηση, όχι κακή αγορά.
     if (found.length < MIN_BANKS) {
       await log(false, `insufficient_valid_rows: ${found.length} από ${MIN_BANKS}`, { found: found.length })
-      return json({ ok: false, reason: 'insufficient_valid_rows', found: found.length })
+      return json({ ok: false, reason: 'insufficient_valid_rows', found: found.length, logFailure })
     }
 
     // ── Ο,τι ισχύει σήμερα, για σύγκριση ─────────────────────────────────
@@ -204,12 +214,12 @@ Deno.serve(async (req) => {
     const summary = { found: found.length, applied, held: heldNow, unchanged, banks: perBank, verified_at: today }
     await log(true, 'εντάξει', summary)
     console.log('bank-rates-updater:', JSON.stringify(summary))
-    return json({ ok: true, ...summary })
+    return json({ ok: true, ...summary, logFailure })
   } catch (e) {
     const msg = (e as Error).message
     console.error('bank-rates-updater error:', msg)
     await log(false, msg.slice(0, 300))
     // Κράτα τα υπάρχοντα δεδομένα σε οποιαδήποτε αποτυχία.
-    return json({ ok: false, error: msg })
+    return json({ ok: false, error: msg, logFailure })
   }
 })
