@@ -122,7 +122,7 @@ export default function BankRatesAdmin({ onSaved }:{
     <div style={{border:'1px solid var(--border-subtle)',borderRadius: T.radius.card,background:'var(--bg-surface)',overflow:'hidden'}}>
       {/* Κεφαλίδα — συμπτυσσόμενη */}
       <button onClick={()=>setOpen(o=>!o)} style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'11px 14px',background:'transparent',border:'none',cursor:'pointer',textAlign:'left' as const}}>
-        <span style={{flex:1,fontSize:13,fontWeight:600,color:'var(--text-primary)',fontFamily: T.font.sans}}>Διαχείριση επιτοκίων</span>
+        <span style={{flex:1,fontSize: 'var(--fs-base)',fontWeight:600,color:'var(--text-primary)',fontFamily: T.font.sans}}>Διαχείριση επιτοκίων</span>
         <InfoDot text="Ορατό μόνο σε διαχειριστές. Διόρθωσε χειροκίνητα ένα επιτόκιο ή τρέξε αυτόματη επικαιροποίηση με έρευνα ιστού. Η ημερομηνία επιβεβαίωσης ενημερώνεται αυτόματα."/>
         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{transform:open?'rotate(180deg)':'none',transition:'transform 0.2s',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
       </button>
@@ -135,7 +135,7 @@ export default function BankRatesAdmin({ onSaved }:{
               <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
               {refreshing?'Επικαιροποίηση…':'Αυτόματη επικαιροποίηση με AI'}
             </button>
-            <span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily: T.font.sans}}>Έρευνα ιστού · γράφει μόνο έγκυρες τιμές</span>
+            <span style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',fontFamily: T.font.sans}}>Έρευνα ιστού · γράφει μόνο έγκυρες τιμές</span>
           </div>
 
           {health && (
@@ -153,7 +153,7 @@ export default function BankRatesAdmin({ onSaved }:{
                   <span style={{fontFamily: T.font.mono}}>{c.bank_id} · {c.field}</span>: από {c.old_value==null?ABSENT:String(c.old_value).replace('.',',')} σε {String(c.new_value).replace('.',',')} · {c.reason}
                 </p>
               ))}
-              <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily: T.font.sans}}>Αν το επόμενο πέρασμα επιστρέψει την ίδια τιμή, εφαρμόζεται μόνη της. Αν είναι λάθος, γράψε τη σωστή τιμή στη φόρμα της τράπεζας.</p>
+              <p style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',fontFamily: T.font.sans}}>Αν το επόμενο πέρασμα επιστρέψει την ίδια τιμή, εφαρμόζεται μόνη της. Αν είναι λάθος, γράψε τη σωστή τιμή στη φόρμα της τράπεζας.</p>
             </div>
           )}
 
@@ -164,9 +164,9 @@ export default function BankRatesAdmin({ onSaved }:{
               return (
                 <div key={b.bank_id} style={{border:`1px solid ${on?'var(--border-accent)':'var(--border-subtle)'}`,borderRadius:10,background:'var(--bg-elevated)',overflow:'hidden'}}>
                   <button onClick={()=>pick(b)} style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'9px 12px',background:'transparent',border:'none',cursor:'pointer',textAlign:'left' as const}}>
-                    <span style={{flex:1,fontSize:13,fontWeight:600,color:'var(--text-primary)',fontFamily: T.font.sans}}>{b.bank_name}</span>
-                    <span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums'}}>από {String(b.fixed_min).replace('.',',')}%</span>
-                    <span style={{fontSize: 11,color:'var(--text-tertiary)',fontFamily: T.font.sans}}>{b.verified_at}</span>
+                    <span style={{flex:1,fontSize: 'var(--fs-base)',fontWeight:600,color:'var(--text-primary)',fontFamily: T.font.sans}}>{b.bank_name}</span>
+                    <span style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',fontFamily: T.font.mono,fontVariantNumeric:'tabular-nums'}}>από {String(b.fixed_min).replace('.',',')}%</span>
+                    <span style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',fontFamily: T.font.sans}}>{b.verified_at}</span>
                   </button>
 
                   {on && edit && (
@@ -189,11 +189,11 @@ export default function BankRatesAdmin({ onSaved }:{
                         <div style={{flex:1,minWidth:180}}><TextInput label="Επίσημη πηγή (σύνδεσμος)" value={edit.source_url ?? ''} onChange={v=>set('source_url', v)} placeholder="https://…"/></div>
                       </div>
                       <div style={{display:'flex',gap:8,alignItems:'center'}}>
-                        <button onClick={save} disabled={saving} style={{display:'inline-flex',alignItems:'center',gap:7,height:T.h.md,padding:'0 18px',borderRadius: T.radius.pill,cursor:saving?'wait':'pointer',background:'var(--accent)',border:'1px solid var(--accent)',color:'var(--accent-text)',fontSize:13,fontWeight:700,fontFamily: T.font.sans}}>
+                        <button onClick={save} disabled={saving} style={{display:'inline-flex',alignItems:'center',gap:7,height:T.h.md,padding:'0 18px',borderRadius: T.radius.pill,cursor:saving?'wait':'pointer',background:'var(--accent)',border:'1px solid var(--accent)',color:'var(--accent-text)',fontSize: 'var(--fs-base)',fontWeight:700,fontFamily: T.font.sans}}>
                           {saving?'Αποθήκευση…':'Αποθήκευση'}
                         </button>
-                        <button onClick={()=>{setSelId(null);setEdit(null)}} style={{height:T.h.md,padding:'0 16px',borderRadius: T.radius.pill,cursor:'pointer',background:'transparent',border:'1px solid var(--border-default)',color:'var(--text-secondary)',fontSize:13,fontWeight:500,fontFamily: T.font.sans}}>Ακύρωση</button>
-                        <span style={{fontSize:11,color:'var(--text-tertiary)',marginLeft:'auto',fontFamily: T.font.sans}}>Η επιβεβαίωση ορίζεται στο σήμερα</span>
+                        <button onClick={()=>{setSelId(null);setEdit(null)}} style={{height:T.h.md,padding:'0 16px',borderRadius: T.radius.pill,cursor:'pointer',background:'transparent',border:'1px solid var(--border-default)',color:'var(--text-secondary)',fontSize: 'var(--fs-base)',fontWeight:500,fontFamily: T.font.sans}}>Ακύρωση</button>
+                        <span style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',marginLeft:'auto',fontFamily: T.font.sans}}>Η επιβεβαίωση ορίζεται στο σήμερα</span>
                       </div>
                     </div>
                   )}

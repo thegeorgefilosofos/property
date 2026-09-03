@@ -81,10 +81,10 @@ interface Membership {
 
 // ── Κοινά στυλ πεδίων: ίδιο primitive με όλες τις Ρυθμίσεις (focus με .po-field).
 const fieldStyle: CSSProperties = settingsField;
-const subLabel: CSSProperties = { fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans };
+const subLabel: CSSProperties = { fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans };
 const descStyle: CSSProperties = { fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, fontFamily: T.font.sans, marginTop: 3 };
 const errStyle: CSSProperties = { fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, marginTop: 8 };
-const microLabel: CSSProperties = { fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans };
+const microLabel: CSSProperties = { fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans };
 
 // Πλέγμα σειράς μητρώου (κοινό σε κεφαλίδα & γραμμές, για τέλεια ευθυγράμμιση).
 const ROW_COLS = 'minmax(180px, 1fr) 104px 116px 250px 232px';
@@ -371,12 +371,12 @@ export default function OrgTeam({ userId }: { userId: string }) {
           <div style={descStyle}>Η πρόσβασή σου στο χαρτοφυλάκιο του οργανισμού.</div>
           <div style={{ marginTop: 12 }}>
             {me.canEdit ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--positive)', fontFamily: T.font.sans }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--positive)', fontFamily: T.font.sans }}>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--positive)', flexShrink: 0 }} />
                 Έχεις δικαιώματα επεξεργασίας στο χαρτοφυλάκιο.
               </div>
             ) : editPending ? (
-              <div style={{ fontSize: 13, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+              <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
                 Το αίτημα επεξεργασίας στάλθηκε στον ιδιοκτήτη.
               </div>
             ) : (
@@ -391,7 +391,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
           <div style={descStyle}>Ζήτησε από τον ιδιοκτήτη να αναβαθμίσει τη συνδρομή του οργανισμού.</div>
           <div style={{ marginTop: 12 }}>
             {upgradeSent ? (
-              <div style={{ fontSize: 13, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+              <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
                 Το αίτημα στάλθηκε στον ιδιοκτήτη.
               </div>
             ) : (
@@ -514,7 +514,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
                     {/* Μέλος (email + «Εσύ») */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                       <span style={{
-                        fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans,
+                        fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans,
                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }}>{m.email || ABSENT}</span>
                       {isYou && <Chip tone="neutral">Εσύ</Chip>}
@@ -571,7 +571,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
                         <div style={{ marginTop: 12, padding: 14, borderRadius: 12, background: 'var(--bg-base)', display: 'flex', flexDirection: 'column', gap: 14 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                             <div style={{ minWidth: 0, flex: 1 }}>
-                              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Οικονομικά στοιχεία</div>
+                              <div style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Οικονομικά στοιχεία</div>
                               <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2 }}>Ενοίκια, δαπάνες, λογαριασμοί, δάνεια και λογιστική.</div>
                             </div>
                             <div style={{ display: 'inline-flex', border: '1px solid var(--border-default)', borderRadius: 8, overflow: 'hidden', opacity: busy ? 0.6 : 1 }}>
@@ -583,7 +583,7 @@ export default function OrgTeam({ userId }: { userId: string }) {
                           <div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: scoped ? 10 : 0 }}>
                               <div style={{ minWidth: 0, flex: 1 }}>
-                                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Ακίνητα</div>
+                                <div style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Ακίνητα</div>
                                 <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2 }}>Σε ποια ακίνητα έχει πρόσβαση το μέλος.</div>
                               </div>
                               <div style={{ display: 'inline-flex', border: '1px solid var(--border-default)', borderRadius: 8, overflow: 'hidden', opacity: busy ? 0.6 : 1 }}>

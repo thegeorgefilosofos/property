@@ -67,9 +67,9 @@ export default function MonthlyFeedbackNudge() {
 
       {/* Η επικεφαλίδα κρατά δεξιά περιθώριο όσο το κουμπί· μόνο αυτή, γιατί
           μόνο αυτή περνά από κάτω του. */}
-      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--accent)', paddingRight: 40 }}>Η γνώμη σου</div>
+      <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--accent)', paddingRight: 40 }}>Η γνώμη σου</div>
       <div style={{ fontSize: 15, fontWeight: 650, letterSpacing: '-.015em', color: 'var(--text-primary)', marginTop: 5, paddingRight: 40, textWrap: 'balance' as const }}>Μια κουβέντα, μία φορά τον μήνα</div>
-      <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55, margin: '7px 0 0' }}>
+      <p style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', lineHeight: 1.55, margin: '7px 0 0' }}>
         Πες μας τη γνώμη σου για το PROPERWISE και μπες στην κλήρωση για <b style={{ color: 'var(--text-primary)', fontWeight: 650 }}>έναν χρόνο δωρεάν Επαγγελματία</b>. Ένα λεπτό φτάνει.
       </p>
 
@@ -79,11 +79,11 @@ export default function MonthlyFeedbackNudge() {
           μια λεπτή γραμμή, όπου ζουν οι νομικές λεπτομέρειες σε κάθε σοβαρή
           εφαρμογή πληρωμών. Πάνω μένουν δύο πράξεις με σαφή ιεραρχία. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14 }}>
-        <button onClick={give} style={{ flex: 1, height: T.h.lg, background: 'var(--accent)', color: 'var(--on-tone)', border: 0, borderRadius: T.radius.pill, padding: '0 16px', fontSize: 13, fontWeight: 650, cursor: 'pointer', fontFamily: T.font.sans }}>Πες τη γνώμη σου</button>
-        <button onClick={close} style={{ height: T.h.lg, padding: '0 14px', background: 'none', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontFamily: T.font.sans }}>Άλλη φορά</button>
+        <button onClick={give} style={{ flex: 1, height: T.h.lg, background: 'var(--accent)', color: 'var(--on-tone)', border: 0, borderRadius: T.radius.pill, padding: '0 16px', fontSize: 'var(--fs-base)', fontWeight: 650, cursor: 'pointer', fontFamily: T.font.sans }}>Πες τη γνώμη σου</button>
+        <button onClick={close} style={{ height: T.h.lg, padding: '0 14px', background: 'none', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, color: 'var(--text-secondary)', fontSize: 'var(--fs-base)', cursor: 'pointer', fontFamily: T.font.sans }}>Άλλη φορά</button>
       </div>
       <div style={{ marginTop: 11, paddingTop: 10, borderTop: '1px solid var(--border-subtle)' }}>
-        <a href="/terms#klirosi" target="_blank" rel="noreferrer" style={{ fontSize: 11, color: 'var(--text-tertiary)', textDecoration: 'none', borderBottom: '1px solid var(--border-default)' }}>Όροι κλήρωσης</a>
+        <a href="/terms#klirosi" target="_blank" rel="noreferrer" style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', textDecoration: 'none', borderBottom: '1px solid var(--border-default)' }}>Όροι κλήρωσης</a>
       </div>
     </div>
   );

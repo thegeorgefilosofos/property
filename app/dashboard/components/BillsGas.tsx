@@ -32,8 +32,8 @@ const card: React.CSSProperties = { background: 'var(--bg-surface)', border: '1p
 const secHdr = (label: string, sub?: string) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
     <div>
-      <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{label}</div>
-      {sub && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2, fontFamily: T.font.sans }}>{sub}</div>}
+      <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{label}</div>
+      {sub && <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 2, fontFamily: T.font.sans }}>{sub}</div>}
     </div>
   </div>
 );
@@ -182,7 +182,7 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
     <div style={{ display: 'flex', flexDirection: 'column' }}>
 
       {/* ── Διαφάνεια τιμών, τι ακριβώς βλέπεις ── */}
-      <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, padding: '12px 16px', marginBottom: 14, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.6 }}>
+      <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, padding: '12px 16px', marginBottom: 14, fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.6 }}>
         <strong style={{ color: 'var(--text-primary)' }}>Διαφάνεια τιμών:</strong> Και τα {TARIFF_COUNT} τιμολόγια είναι όπως τα δημοσιεύει το εργαλείο σύγκρισης της <span title={RAAEY_NAME}>ΡΑΑΕΥ</span>, κατάσταση {GAS_LABEL}.
         Αφορούν μόνο τη <strong>χρέωση προμήθειας</strong> (ανταγωνιστικό σκέλος): χωρίς ρυθμιζόμενες χρεώσεις δικτύου, χωρίς <span title="Ειδικός Φόρος Κατανάλωσης">ΕΦΚ</span> και χωρίς <span title="Φόρος Προστιθέμενης Αξίας">ΦΠΑ</span> 6%, οπότε ο λογαριασμός σου βγαίνει υψηλότερος. Τα κυμαινόμενα (ΚΙΤΡΙΝΟ) αναθεωρούνται κάθε μήνα.
       </div>
@@ -202,17 +202,17 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
                 αριθμός που ο ιδιοκτήτης θα σύγκρινε με τον πίνακα παρόχων
                 ήταν 20 έως 30% μεγαλύτερος από ό,τι ο πίνακας μετρά. Τώρα η
                 ετικέτα λέει ποιο από τα δύο βλέπει. ══ */}
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{manual > 0 ? 'Ο λογαριασμός σου' : 'Μηνιαίο κόστος προμήθειας'}</div>
+            <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{manual > 0 ? 'Ο λογαριασμός σου' : 'Μηνιαίο κόστος προμήθειας'}</div>
             <div style={{ fontSize: 22, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--accent)', lineHeight: 1 }}>{fe(effective)}</div>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6, fontFamily: T.font.sans }}>{manual > 0 ? 'Με δίκτυο, ΕΦΚ και ΦΠΑ' : 'Χωρίς δίκτυο, ΕΦΚ και ΦΠΑ'}</div>
+            <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 6, fontFamily: T.font.sans }}>{manual > 0 ? 'Με δίκτυο, ΕΦΚ και ΦΠΑ' : 'Χωρίς δίκτυο, ΕΦΚ και ΦΠΑ'}</div>
           </div>
           <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Ετήσιο κόστος, εκτίμηση</div>
+            <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Ετήσιο κόστος, εκτίμηση</div>
             <div style={{ fontSize: 22, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)', lineHeight: 1 }}>{fe(effective * 12)}</div>
           </div>
           <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Δίκτυο διανομής</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, lineHeight: 1.2 }}>{NETWORK_OPERATORS.find(n => n.value === s.networkOperator)?.label}</div>
+            <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>Δίκτυο διανομής</div>
+            <div style={{ fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.mono, lineHeight: 1.2 }}>{NETWORK_OPERATORS.find(n => n.value === s.networkOperator)?.label}</div>
           </div>
         </div>
       </div>
@@ -270,20 +270,20 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
           <div style={{ marginTop: 14, padding: '12px 16px', background: 'var(--bg-base)', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' as const, gap: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' as const }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{tariff.name}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: T.radius.badge, ...badgeStyle }}>{tariff.badge}</span>
+                <span style={{ fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--text-primary)' }}>{tariff.name}</span>
+                <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, padding: '3px 9px', borderRadius: T.radius.badge, ...badgeStyle }}>{tariff.badge}</span>
               </div>
               <a href={provider?.url} target="_blank" rel="noopener noreferrer" className="tap-link"
-                style={{ fontSize: 11, color: 'var(--accent)', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, padding: '4px 12px', textDecoration: 'none', whiteSpace: 'nowrap' as const, fontFamily: T.font.sans, fontWeight: 600 }}>
+                style={{ fontSize: 'var(--fs-xs)', color: 'var(--accent)', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, padding: '4px 12px', textDecoration: 'none', whiteSpace: 'nowrap' as const, fontFamily: T.font.sans, fontWeight: 600 }}>
                 Επίσημη σελίδα
               </a>
             </div>
-            {tariff.desc && <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{tariff.desc}</div>}
+            {tariff.desc && <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{tariff.desc}</div>}
             <div style={{ display: 'flex', gap: 20, marginTop: 10, flexWrap: 'wrap' as const }}>
-              <span title="Κιλοβατώρα, μονάδα μέτρησης κατανάλωσης ενέργειας" style={{ fontSize: 11, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>Χρέωση kWh:{'  '}<strong style={{ color: 'var(--text-primary)' }}>{fk(tariff.kwh)} / kWh</strong></span>
-              <span style={{ fontSize: 11, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>Πάγιο:{'  '}<strong>{fe(tariff.fixed)} / μήνα</strong></span>
+              <span title="Κιλοβατώρα, μονάδα μέτρησης κατανάλωσης ενέργειας" style={{ fontSize: 'var(--fs-xs)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>Χρέωση kWh:{'  '}<strong style={{ color: 'var(--text-primary)' }}>{fk(tariff.kwh)} / kWh</strong></span>
+              <span style={{ fontSize: 'var(--fs-xs)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>Πάγιο:{'  '}<strong>{fe(tariff.fixed)} / μήνα</strong></span>
               {tariff.contract_months != null && (
-                <span style={{ fontSize: 11, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>Δέσμευση:{'  '}<strong>{tariff.contract_months} μήνες</strong></span>
+                <span style={{ fontSize: 'var(--fs-xs)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>Δέσμευση:{'  '}<strong>{tariff.contract_months} μήνες</strong></span>
               )}
             </div>
           </div>
@@ -298,7 +298,7 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
             <div style={{ display: 'flex', background: 'var(--bg-base)', borderRadius: T.radius.pill, padding: 3, border: '1px solid var(--border-default)' }}>
               {(['residential', 'business'] as const).map(seg => (
                 <button key={seg} onClick={() => setSegmentFilter(seg)}
-                  style={{ padding: '6px 16px', borderRadius: T.radius.pill, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700,
+                  style={{ padding: '6px 16px', borderRadius: T.radius.pill, border: 'none', cursor: 'pointer', fontSize: 'var(--fs-xs)', fontWeight: 700,
                     background: segmentFilter === seg ? 'var(--accent)' : 'transparent',
                     color: segmentFilter === seg ? 'var(--accent-text)' : 'var(--text-secondary)' }}>
                   {seg === 'residential' ? 'Οικιακό' : 'Επιχειρηματικό'}
@@ -325,7 +325,7 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
           )}
 
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--fs-xs)' }}>
               <thead>
                 {/* Η στήλη «Τιμή» έδειχνε τη σήμανση αξιοπιστίας, όχι τιμή, δίπλα
                     στη στήλη «kWh» που έδειχνε την πραγματική τιμή. Δύο κεφαλίδες
@@ -333,7 +333,7 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
                     μπαίνει η δέσμευση, που ο ιδιοκτήτης πρέπει να ξέρει πριν
                     αλλάξει πάροχο. */}
                 <tr>{['Πάροχος', 'Τιμολόγιο', 'Τύπος', 'Δέσμευση', 'kWh', 'Πάγιο', 'Μήνας', 'Έτος', 'Διαφορά'].map(h => (
-                  <th key={h} style={{ fontSize: 11, color: 'var(--text-secondary)', padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.05em', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, background: 'var(--bg-elevated)' }}>{h}</th>
+                  <th key={h} style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)', padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.05em', fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, background: 'var(--bg-elevated)' }}>{h}</th>
                 ))}</tr>
               </thead>
               <tbody>
@@ -343,12 +343,12 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
                   return (
                     <tr key={t.id} style={{ background: t.isCurrent ? 'var(--accent-soft)' : isBest ? 'var(--bg-elevated)' : 'transparent' }}>
                       <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', fontWeight: 600 }}>
-                        {canRank && !t.isCurrent && isBest && <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginRight: 6, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Φθηνότερο</span>}
+                        {canRank && !t.isCurrent && isBest && <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginRight: 6, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Φθηνότερο</span>}
                         {t.providerLabel}
                       </td>
                       <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)' }}>{t.name}</td>
                       <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)' }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: T.radius.badge, ...badgeStyle }}>{t.badge}</span>
+                        <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, padding: '2px 8px', borderRadius: T.radius.badge, ...badgeStyle }}>{t.badge}</span>
                       </td>
                       <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>{t.contract_months != null ? `${t.contract_months} μήνες` : 'Χωρίς'}</td>
                       <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fk(t.kwh)}</td>
@@ -368,7 +368,7 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
               </tbody>
             </table>
           </div>
-          <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, background: 'var(--bg-elevated)', padding: '6px 12px', borderRadius: T.radius.badge, lineHeight: 1.5 }}>
+          <div style={{ marginTop: 8, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.sans, background: 'var(--bg-elevated)', padding: '6px 12px', borderRadius: T.radius.badge, lineHeight: 1.5 }}>
             * Χρέωση προμήθειας χωρίς δίκτυο, ΕΦΚ και ΦΠΑ. Πηγή: εργαλείο σύγκρισης της ΡΑΑΕΥ, {GAS_LABEL}. Οι εκπτώσεις συνέπειας και συνδυασμού που περιγράφονται είναι ήδη μέσα στην τιμή· χάνονται με μία εκπρόθεσμη πληρωμή.
           </div>
         </div>
@@ -406,7 +406,7 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
               return (
                 <div key={i} style={{ background: sv.bg, border: `1px solid ${sv.border}`, borderRadius: T.radius.inner, padding: '10px 14px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                   <div style={{ width: 6, height: 6, borderRadius: '50%', background: sv.dot, flexShrink: 0, marginTop: 5 }}/>
-                  <div style={{ flex: 1, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>{h.text}</div>
+                  <div style={{ flex: 1, fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>{h.text}</div>
                 </div>
               );
             })}
@@ -432,13 +432,13 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
               b: 'Ο TTF είναι η ευρωπαϊκή χονδρεμπορική αγορά αερίου και ανεβαίνει συνήθως τον χειμώνα, με τη ζήτηση θέρμανσης. Αν θέλεις σιγουριά, κλείδωσε σταθερό πριν την ψυχρή περίοδο.' },
           ].map((x, i, arr) => (
             <div key={x.t} style={{ padding: '12px 0', borderBottom: i === arr.length - 1 ? 'none' : '1px solid var(--border-subtle)' }}>
-              <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', fontFamily: T.font.sans, lineHeight: 1.45 }}>{x.t}</p>
+              <p style={{ fontSize: 'var(--fs-base)', fontWeight: 500, color: 'var(--text-primary)', fontFamily: T.font.sans, lineHeight: 1.45 }}>{x.t}</p>
               <p style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.7, marginTop: 3 }}>{x.b}</p>
             </div>
           ))}
         </div>
         <a href={RAAEY_COMPARE} target="_blank" rel="noopener noreferrer" className="tap-link"
-          style={{ display: 'inline-block', marginTop: 14, fontSize: 11, fontWeight: 600, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.pill, padding: '8px 18px', textDecoration: 'none' }}>
+          style={{ display: 'inline-block', marginTop: 14, fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.pill, padding: '8px 18px', textDecoration: 'none' }}>
           Επίσημη σύγκριση τιμών <span title={RAAEY_NAME}>ΡΑΑΕΥ</span> στο gov.gr
         </a>
       </div>

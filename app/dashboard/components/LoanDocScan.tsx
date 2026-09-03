@@ -75,7 +75,7 @@ export function ScanErrorNote({ error, text, hint }: { error: DocScanError; text
   if (!error) return null
   return (
     <div style={{ padding: '11px 14px', background: 'var(--negative-dim)', border: '1px solid var(--negative-border)', borderRadius: 10 }}>
-      <p style={{ fontSize: 13, color: 'var(--negative)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
+      <p style={{ fontSize: 'var(--fs-base)', color: 'var(--negative)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
         {text || SCAN_ERROR_TEXT[error]}{hint ? ` ${hint}` : ''}
       </p>
     </div>
@@ -113,7 +113,7 @@ export function ScanUploadRow({ title, description, action, icon, scanning, onFi
         <p style={{ ...TT.bodySm, color: 'var(--text-tertiary)', lineHeight: 1.65 }}>{description}</p>
       </div>
       <button onClick={() => inputRef.current?.click()} disabled={scanning}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0 16px', height: T.h.lg, borderRadius: T.radius.inner, background: 'var(--accent)', border: '1px solid transparent', color: 'var(--accent-text)', fontSize: 13, fontFamily: T.font.sans, fontWeight: 600, cursor: scanning ? 'wait' : 'pointer', flexShrink: 0 }}>
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0 16px', height: T.h.lg, borderRadius: T.radius.inner, background: 'var(--accent)', border: '1px solid transparent', color: 'var(--accent-text)', fontSize: 'var(--fs-base)', fontFamily: T.font.sans, fontWeight: 600, cursor: scanning ? 'wait' : 'pointer', flexShrink: 0 }}>
         {icon}
         {scanning ? 'Ανάλυση…' : action}
       </button>
@@ -343,7 +343,7 @@ export default function LoanDocScan({ banks, euribor, defaultPropertyValue, onAp
 
       {ex && !scanning && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {ex.summary && <p style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: font, lineHeight: 1.6, padding: '11px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10 }}>{ex.summary}</p>}
+          {ex.summary && <p style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', fontFamily: font, lineHeight: 1.6, padding: '11px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10 }}>{ex.summary}</p>}
 
           {chips.length > 0 && (
             <div>
@@ -351,7 +351,7 @@ export default function LoanDocScan({ banks, euribor, defaultPropertyValue, onAp
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {chips.map(c => (
                   <span key={c.k} style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6, padding: '6px 11px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10 }}>
-                    <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: font }}>{c.k}</span>
+                    <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: font }}>{c.k}</span>
                     <span style={{ fontSize: 12, color: 'var(--text-primary)', fontFamily: font, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{c.v}</span>
                   </span>
                 ))}
@@ -369,23 +369,23 @@ export default function LoanDocScan({ banks, euribor, defaultPropertyValue, onAp
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   <p style={{ fontSize: 22, fontWeight: 700, color: 'var(--accent)', fontFamily: font, fontVariantNumeric: 'tabular-nums', lineHeight: 1, letterSpacing: '-0.02em' }}>{fmtPct(best.effectiveRatePct)}</p>
-                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 5, fontFamily: font, fontVariantNumeric: 'tabular-nums' }}>{fmtEur(best.monthlyPayment)} τον μήνα</p>
-                  <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1, fontFamily: font, fontVariantNumeric: 'tabular-nums' }}>Σύνολο {fmtEur(best.totalCost)}</p>
+                  <p style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', marginTop: 5, fontFamily: font, fontVariantNumeric: 'tabular-nums' }}>{fmtEur(best.monthlyPayment)} τον μήνα</p>
+                  <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 1, fontFamily: font, fontVariantNumeric: 'tabular-nums' }}>Σύνολο {fmtEur(best.totalCost)}</p>
                 </div>
               </div>
             </div>
           ) : (
-            <p style={{ fontSize: 13, color: 'var(--text-tertiary)', fontFamily: font }}>Δεν προέκυψαν αρκετά στοιχεία (ποσό ή αξία ακινήτου) για πρόταση. Δοκίμασε πιο πλήρες έγγραφο.</p>
+            <p style={{ fontSize: 'var(--fs-base)', color: 'var(--text-tertiary)', fontFamily: font }}>Δεν προέκυψαν αρκετά στοιχεία (ποσό ή αξία ακινήτου) για πρόταση. Δοκίμασε πιο πλήρες έγγραφο.</p>
           )}
 
           {needs && (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button onClick={applyToCalc} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '0 16px', height: T.h.lg, borderRadius: 10, background: 'var(--accent)', border: 'none', color: 'var(--accent-text)', fontSize: 13, fontFamily: font, fontWeight: 600, cursor: 'pointer' }}>Εφαρμογή στον υπολογιστή</button>
-              {onSaveLoan && best && <button onClick={saveAsLoan} disabled={saving} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '0 16px', height: T.h.lg, borderRadius: 10, background: 'var(--bg-surface)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)', fontSize: 13, fontFamily: font, fontWeight: 500, cursor: saving ? 'wait' : 'pointer' }}>{saving ? 'Αποθήκευση…' : 'Αποθήκευση ως δάνειο'}</button>}
-              <button onClick={() => setEx(null)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '0 14px', height: T.h.lg, borderRadius: 10, background: 'transparent', border: '1px solid var(--border-subtle)', color: 'var(--text-tertiary)', fontSize: 13, fontFamily: font, fontWeight: 500, cursor: 'pointer' }}>Καθαρισμός</button>
+              <button onClick={applyToCalc} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '0 16px', height: T.h.lg, borderRadius: 10, background: 'var(--accent)', border: 'none', color: 'var(--accent-text)', fontSize: 'var(--fs-base)', fontFamily: font, fontWeight: 600, cursor: 'pointer' }}>Εφαρμογή στον υπολογιστή</button>
+              {onSaveLoan && best && <button onClick={saveAsLoan} disabled={saving} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '0 16px', height: T.h.lg, borderRadius: 10, background: 'var(--bg-surface)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)', fontSize: 'var(--fs-base)', fontFamily: font, fontWeight: 500, cursor: saving ? 'wait' : 'pointer' }}>{saving ? 'Αποθήκευση…' : 'Αποθήκευση ως δάνειο'}</button>}
+              <button onClick={() => setEx(null)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '0 14px', height: T.h.lg, borderRadius: 10, background: 'transparent', border: '1px solid var(--border-subtle)', color: 'var(--text-tertiary)', fontSize: 'var(--fs-base)', fontFamily: font, fontWeight: 500, cursor: 'pointer' }}>Καθαρισμός</button>
             </div>
           )}
-          <p style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.6, fontFamily: font }}>Ενδεικτική ανάλυση βάσει των στοιχείων του εγγράφου. Επιβεβαίωσε τους ακριβείς όρους με την τράπεζα.</p>
+          <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', lineHeight: 1.6, fontFamily: font }}>Ενδεικτική ανάλυση βάσει των στοιχείων του εγγράφου. Επιβεβαίωσε τους ακριβείς όρους με την τράπεζα.</p>
         </div>
       )}
     </div>

@@ -80,7 +80,7 @@ export const addBtn = (disabled = false): React.CSSProperties => ({
   border: disabled ? '1px solid var(--border-default)' : 'none',
   background: disabled ? 'transparent' : 'var(--accent)',
   color: disabled ? 'var(--text-tertiary)' : 'var(--accent-text)',
-  fontSize: 13,
+  fontSize: 'var(--fs-base)',
   fontWeight: 700,
   fontFamily: T.font.sans,
   letterSpacing: 0,
@@ -204,7 +204,7 @@ export function InfoDot({ text }: { text: string }) {
       </button>
       {open && typeof document !== 'undefined' && createPortal(
         <div role="tooltip" style={{ position: 'fixed', top: pos.top, left: pos.left, transform: pos.up ? 'translateY(-100%)' : 'none', width: 260, maxWidth: 'calc(100vw - 16px)', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '10px 12px', boxShadow: 'var(--elev-3)', zIndex: 3000, pointerEvents: 'none' }}>
-          <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>{text}</p>
+          <p style={{ margin: 0, fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>{text}</p>
         </div>,
         document.body,
       )}
@@ -245,7 +245,7 @@ export function InfoChip({ label, detail, icon, tone = 'default' }: {
     }}>
       {icon && <span style={{ flexShrink: 0, display: 'inline-flex' }} aria-hidden="true">{icon}</span>}
       <span style={{
-        flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, fontFamily: T.font.sans,
+        flex: 1, minWidth: 0, fontSize: 'var(--fs-base)', fontWeight: 600, fontFamily: T.font.sans,
         color: tone === 'negative' ? 'var(--negative)' : tone === 'warning' ? 'var(--warning)' : 'var(--text-primary)', lineHeight: 1.4,
       }}>{label}</span>
       {detail && <InfoDot text={detail} />}
@@ -816,7 +816,7 @@ export function CustomSelect({
             <Fragment key={opt.value}>
             {opt.header && (
               <div style={{
-                padding: '10px 12px 5px', fontFamily: T.font.sans, fontSize: 11,
+                padding: '10px 12px 5px', fontFamily: T.font.sans, fontSize: 'var(--fs-xs)',
                 fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
                 color: 'var(--text-tertiary)', userSelect: 'none', pointerEvents: 'none',
               }}>{opt.header}</div>
@@ -1070,7 +1070,7 @@ export function DatePicker({ label, labelInfo, ariaLabel, value, onChange, disab
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 0, marginBottom: 4 }}>
             {DAYS_GR.map(d => (
-              <div key={d} style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 500, color: 'var(--text-secondary)', textAlign: 'center', padding: '4px 0', letterSpacing: '0.5px' }}>{d}</div>
+              <div key={d} style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 500, color: 'var(--text-secondary)', textAlign: 'center', padding: '4px 0', letterSpacing: '0.5px' }}>{d}</div>
             ))}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 0 }}>
@@ -1103,7 +1103,7 @@ export function DatePicker({ label, labelInfo, ariaLabel, value, onChange, disab
                     background: isSelected ? 'var(--accent)' : 'transparent',
                     color: isSelected ? 'var(--accent-text)' : isToday ? 'var(--accent)' : 'var(--text-primary)',
                     fontFamily: T.font.sans,
-                    fontSize: 13,
+                    fontSize: 'var(--fs-base)',
                     fontWeight: isToday ? 700 : 400,
                     cursor: 'pointer',
                     position: 'relative',
@@ -1206,12 +1206,12 @@ export function BulkActionBar({ count, countLabel, actions, onClear, minWidth = 
     <div style={{ position: 'fixed', bottom: 'var(--float-bottom)', left: '50%', transform: 'translateX(-50%)', zIndex: 'var(--float-z)', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: T.radius.modal, boxShadow: 'var(--elev-3)', overflow: 'hidden', minWidth: `min(${minWidth}px, calc(100vw - 24px))`, maxWidth: 'calc(100vw - 24px)' }}>
       <div style={{ padding: '12px 18px', borderRight: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 9, flexShrink: 0 }}>
         <div style={{ minWidth: 24, height: 26, padding: '0 6px', borderRadius: T.radius.pill, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--accent-text)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{count}</div>
-        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', fontFamily: T.font.sans }}>{countLabel}</span>
+        <span style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', fontFamily: T.font.sans }}>{countLabel}</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
         {actions.map((a, i, arr) => (
           <button key={a.label} type="button" onClick={a.onClick}
-            style={{ flex: 1, padding: '12px 6px', border: 'none', borderRight: i < arr.length - 1 ? '1px solid var(--border-subtle)' : 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: ink(a.tone), fontWeight: 600, fontSize: 13, transition: 'background 0.15s', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}
+            style={{ flex: 1, padding: '12px 6px', border: 'none', borderRight: i < arr.length - 1 ? '1px solid var(--border-subtle)' : 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: ink(a.tone), fontWeight: 600, fontSize: 'var(--fs-base)', transition: 'background 0.15s', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}
             onMouseEnter={e => { e.currentTarget.style.background = hover(a.tone); }}
             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
             {a.label}
@@ -1505,7 +1505,7 @@ export function ServiceBySelect({ label, value, onChange }: { label: string; val
               flex: 1,
               height: T.h.md,
               fontFamily: T.font.sans,
-              fontSize: 13,
+              fontSize: 'var(--fs-base)',
               fontWeight: 500,
               letterSpacing: '0.1px',
               cursor: 'pointer',
@@ -1581,7 +1581,7 @@ export function SegmentControl({ options, value, onChange, ariaLabel }: { option
             paddingLeft: 16,
             paddingRight: 16,
             fontFamily: T.font.sans,
-            fontSize: 13,
+            fontSize: 'var(--fs-base)',
             fontWeight: value === o.value ? 500 : 400,
             letterSpacing: '0.1px',
             cursor: 'pointer',

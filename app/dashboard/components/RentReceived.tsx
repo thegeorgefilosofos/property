@@ -238,7 +238,7 @@ export default function RentReceived({
                   <span style={{ ...TT.body, fontWeight: on ? 700 : 400, display: 'block' }}>{rowLabel(l)}</span>
                   <span style={{ ...TT.caption, display: 'block', marginTop: 2 }}>{lateNote(l)}</span>
                 </span>
-                <span style={{ fontFamily: T.font.num, fontSize: 13, fontWeight: 700,
+                <span style={{ fontFamily: T.font.num, fontSize: 'var(--fs-base)', fontWeight: 700,
                                fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)',
                                whiteSpace: 'nowrap' }}>{fe(l.amount)}</span>
               </button>

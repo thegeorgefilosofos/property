@@ -150,10 +150,10 @@ export default function ApprovalPanel({
               ματιά και το μπλοκ χάνει μια γραμμή σε κάθε μέγεθος. */}
           {metrics.map((m,i)=>(
             <div key={m.l} onMouseEnter={()=>setHm(i)} onMouseLeave={()=>setHm(null)} onTouchStart={()=>setHm(i)} onTouchEnd={()=>setHm(null)}>
-              <p style={{fontSize: 11,color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.06em',fontWeight:700,fontFamily: T.font.sans,marginBottom:5}}>{m.l}</p>
+              <p style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',textTransform:'uppercase' as const,letterSpacing:'0.06em',fontWeight:700,fontFamily: T.font.sans,marginBottom:5}}>{m.l}</p>
               <p style={{display:'flex',alignItems:'baseline',gap:7,flexWrap:'wrap' as const,lineHeight:1.1}}>
                 <span style={{fontSize:16,fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums',fontWeight:700,color:m.over?'var(--negative)':hm===i?'var(--accent)':'var(--text-primary)',transition:'color 0.15s'}}>{m.v}</span>
-                <span style={{fontSize:11,color:'var(--text-tertiary)',fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums'}}>{m.sub}</span>
+                <span style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',fontFamily: T.font.sans,fontVariantNumeric:'tabular-nums'}}>{m.sub}</span>
               </p>
             </div>
           ))}
@@ -185,14 +185,14 @@ export default function ApprovalPanel({
             {res.suggestions.map((s,i)=>(
               <div key={i} style={{display:'flex',alignItems:'flex-start',gap:9}}>
                 <span style={{width:5,height:5,borderRadius:'50%',background:'var(--border-default)',flexShrink:0,marginTop:6}}/>
-                <span style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.55,fontFamily: T.font.sans}}>{s}</span>
+                <span style={{fontSize: 'var(--fs-base)',color:'var(--text-secondary)',lineHeight:1.55,fontFamily: T.font.sans}}>{s}</span>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      <p style={{fontSize:11,color:'var(--text-tertiary)',lineHeight:1.6,fontFamily: T.font.sans}}>
+      <p style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',lineHeight:1.6,fontFamily: T.font.sans}}>
         Ενδεικτική εκτίμηση βάσει των στοιχείων που δηλώνεις και των ορίων Τράπεζας Ελλάδος. Η τελική απόφαση ανήκει στην τράπεζα μετά από πλήρη αξιολόγηση.
       </p>
     </div>

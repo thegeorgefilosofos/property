@@ -110,7 +110,7 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
       {/* Επικεφαλίδα ενότητας */}
       <div className="acc-section" style={{ marginBottom: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', fontFamily: T.font.sans, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--text-secondary)', fontFamily: T.font.sans, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Τι έρχεται
           </span>
         </div>
@@ -255,7 +255,7 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
               </div>
 
               <span style={{
-                fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3,
+                fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3,
                 display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
               }}>{it.name}</span>
 
@@ -271,7 +271,7 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
               )}
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 'auto', paddingTop: 10, color: 'var(--text-tertiary)' }}>
-                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.02em' }}>
+                <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: '0.02em' }}>
                   {isOpen ? 'Λιγότερα' : 'Περισσότερα'}
                 </span>
                 <svg aria-hidden="true" focusable="false" width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.18s cubic-bezier(0.2,0,0,1)', transform: isOpen ? 'rotate(180deg)' : 'none' }}>

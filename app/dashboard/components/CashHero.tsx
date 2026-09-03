@@ -65,7 +65,7 @@ function Side({ label, side, kind, onOpen, actionLabel, action, compact }: {
       onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
     >
       <span style={{
-        fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em',
+        fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: '0.08em',
         textTransform: 'uppercase', color: 'var(--text-tertiary)',
       }}>{label}</span>
       {/* Ο αριθμός κλιμακώνεται με το πλάτος του ΠΛΑΙΣΙΟΥ (container query), ώστε

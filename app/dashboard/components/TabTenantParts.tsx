@@ -287,7 +287,7 @@ export function FilePickRow({ label, hint, busy, docs, onPick }: {
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' as const }}>
         <div style={{ minWidth:0 }}>
           <div style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans }}>{label}</div>
-          {hint&&<div style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans, marginTop:3 }}>{hint}</div>}
+          {hint&&<div style={{ fontSize: 'var(--fs-xs)', color:'var(--text-tertiary)', fontFamily:T.font.sans, marginTop:3 }}>{hint}</div>}
         </div>
         <label style={{ ...sty.btnSm, cursor:busy?'default':'pointer', opacity:busy?0.6:1, whiteSpace:'nowrap' as const }}>
           {busy?'Ανέβασμα…':'Επιλογή αρχείου'}
@@ -343,7 +343,7 @@ export function PaymentBars({ payments }:{payments:RentPayment[]}) {
       </div>
       <div style={{ display:'flex', gap:5 }}>
         {last12.map((p,i)=>(
-          <div key={i} style={{ flex:1, fontSize: 11, color:'var(--text-tertiary)', textAlign:'center' as const, fontFamily:T.font.sans }}>
+          <div key={i} style={{ flex:1, fontSize: 'var(--fs-xs)', color:'var(--text-tertiary)', textAlign:'center' as const, fontFamily:T.font.sans }}>
             {MONTHS_SHORT[p.period_month-1]}
           </div>
         ))}
@@ -352,7 +352,7 @@ export function PaymentBars({ payments }:{payments:RentPayment[]}) {
         {[['var(--positive)','Εμπρόθεσμη'],['var(--info)','Μικρή καθυστέρηση'],['var(--warning)','Μεγάλη καθυστέρηση'],['var(--negative)','Εκκρεμεί']].map(([c,l])=>(
           <div key={l} style={{ display:'flex', alignItems:'center', gap:5 }}>
             <div style={{ width:8, height:8, borderRadius:3, background:c, flexShrink:0 }}/>
-            <span style={{ fontSize: 11, color:'var(--text-secondary)', fontFamily:T.font.sans }}>{l}</span>
+            <span style={{ fontSize: 'var(--fs-xs)', color:'var(--text-secondary)', fontFamily:T.font.sans }}>{l}</span>
           </div>
         ))}
       </div>

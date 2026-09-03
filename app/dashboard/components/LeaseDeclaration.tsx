@@ -200,7 +200,7 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
           <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{f.label}</div>
           {f.value
             ? <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.mono, marginTop: 1 }}>{f.value}</div>
-            : <div style={{ fontSize: 13, color: c, fontWeight: 600, marginTop: 1, fontFamily: T.font.sans }}>Λείπει</div>}
+            : <div style={{ fontSize: 'var(--fs-base)', color: c, fontWeight: 600, marginTop: 1, fontFamily: T.font.sans }}>Λείπει</div>}
           {f.hint && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3, lineHeight: 1.45 }}>
             {f.hint}{f.fixIn && <> <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Συμπληρώνεται στην καρτέλα {TAB_LABEL[f.fixIn]}</span></>}
           </div>}
@@ -236,7 +236,7 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
           <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: '50%', background: toneVar, color: 'var(--on-tone)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, marginTop: 1 }}>
             {decl.readiness === 'ready' ? '✓' : decl.readiness === 'invalid' ? '✕' : '!'}
           </span>
-          <span style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.5 }}>{decl.summary}</span>
+          <span style={{ fontSize: 'var(--fs-base)', color: 'var(--text-primary)', lineHeight: 1.5 }}>{decl.summary}</span>
         </div>
 
         {/* Προθεσμία */}
@@ -245,7 +245,7 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
                       background: decl.deadline.state === 'overdue' ? 'var(--negative-soft)' : 'var(--bg-elevated)' }}>
           {decl.deadline.state === 'overdue' ? <AlertTriangle size={15} style={{ color: 'var(--negative)', flexShrink: 0 }} />
                                              : <Clock size={15} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />}
-          <span style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.5 }}>{decl.deadline.label}</span>
+          <span style={{ fontSize: 'var(--fs-base)', color: 'var(--text-primary)', lineHeight: 1.5 }}>{decl.deadline.label}</span>
         </div>
 
         {/* Πεδία στη σειρά της φόρμας */}
@@ -272,7 +272,7 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
           {submitted ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '11px 15px', borderRadius: T.radius.inner, background: 'var(--positive-soft)', border: '1px solid var(--positive-border)' }}>
               <Check size={15} style={{ color: 'var(--positive)', flexShrink: 0 }} />
-              <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>
+              <span style={{ fontSize: 'var(--fs-base)', color: 'var(--text-primary)' }}>
                 Καταγράφηκε στις {new Date(submitted.at).toLocaleDateString('el-GR')}
                 {submitted.ref && <> · αρ. δήλωσης <strong style={{ fontFamily: T.font.num }}>{submitted.ref}</strong></>}
               </span>

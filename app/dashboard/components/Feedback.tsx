@@ -103,13 +103,13 @@ export default function Feedback({ target = 'general', onDone, embedded }: {
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, letterSpacing: '-0.01em' }}>
               Ευχαριστούμε, σε ακούσαμε.
             </div>
-            <div style={{ fontSize: 13, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 6 }}>
+            <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 6 }}>
               {done
                 ? `Το κρατήσαμε και το κοιτάζει η ομάδα. Έχεις κι άλλη ιδέα; Πες μας την ξανά ${dayPhrase}.`
                 : `Έχουμε ήδη το μήνυμά σου αυτόν τον μήνα και το επεξεργαζόμαστε. Πες μας ξανά τη γνώμη σου ${dayPhrase}.`}
             </div>
             {pooled && (
-              <div style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 8 }}>
+              <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.55, marginTop: 8 }}>
                 Μπήκες και στην κλήρωση για μία δωρεάν ετήσια συνδρομή «Επαγγελματίας».
               </div>
             )}
@@ -225,7 +225,7 @@ export default function Feedback({ target = 'general', onDone, embedded }: {
             {busy ? 'Αποστολή…' : 'Αποστολή'}
           </Btn>
           {embedded && onDone && <Btn variant="ghost" onClick={onDone}>Άλλη φορά</Btn>}
-          <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+          <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
             Με το όνομά σου, μία φορά τον μήνα.
           </span>
         </div>

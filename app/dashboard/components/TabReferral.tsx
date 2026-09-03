@@ -468,7 +468,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
         ariaLabel="Κωδικός QR πρόσκλησης"
         title="Σάρωσε για να προσκαλέσεις"
         subtitle="Δείξε τον κωδικό ώστε να ανοίξει τον σύνδεσμό σου από το κινητό."
-        footer={<button onClick={() => setQrOpen(false)} className="ref-cta" style={{ height: T.h.lg, padding: '0 22px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 13, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer' }}>Έτοιμο</button>}>
+        footer={<button onClick={() => setQrOpen(false)} className="ref-cta" style={{ height: T.h.lg, padding: '0 22px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 'var(--fs-base)', fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer' }}>Έτοιμο</button>}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ background: 'var(--qr-paper)', padding: 14, borderRadius: T.radius.inner, display: 'inline-block', boxShadow: 'var(--well-inset)' }}>
             <canvas ref={qrCanvasRef} role="img" aria-label="Κωδικός QR πρόσκλησης" style={{ display: 'block' }} />
@@ -534,7 +534,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
           {/* Το 44 μένει σκόπιμα εκτός κλίμακας (T.h.lg = 40): είναι το ελάχιστο μέγεθος
               στόχου αφής και ζευγαρώνει με το minHeight:44 του πλαισίου συνδέσμου δίπλα.
               Αν πέσει στα 40, τα δύο στοιχεία της ίδιας γραμμής παύουν να ευθυγραμμίζονται. */}
-          <button onClick={copy} className="ref-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 44, padding: '0 20px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.inner, fontSize: 13, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          <button onClick={copy} className="ref-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 44, padding: '0 20px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.inner, fontSize: 'var(--fs-base)', fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer', whiteSpace: 'nowrap' }}>
             <Ic d={copied ? 'M20 6 9 17l-5-5' : 'M8 4h10a2 2 0 0 1 2 2v10|M4 8h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z'} s={15} />
             {copied ? 'Αντιγράφηκε' : 'Αντιγραφή'}
           </button>
@@ -593,7 +593,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
           {/* Ήταν «Κάρτα προόδου»: ένα PNG 1080×1350 με νόμισμα, ακτίνες και τέσσερα
               καρφωμένα χρώματα εκτός του σχεδιαστικού συστήματος. Στη θέση του, η
               ενέργεια που όντως φέρνει την επόμενη ανταμοιβή. */}
-          <button onClick={async () => { await nativeShare(); copy(); }} className="ref-cta" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8, height: T.h.lg, padding: '0 18px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 13, fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          <button onClick={async () => { await nativeShare(); copy(); }} className="ref-cta" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8, height: T.h.lg, padding: '0 18px', background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: T.radius.pill, fontSize: 'var(--fs-base)', fontWeight: 700, fontFamily: T.font.sans, cursor: 'pointer', whiteSpace: 'nowrap' }}>
             <Ic d="M4 12v8h16v-8|M12 16V4|M8 8l4-4 4 4" s={15} />Στείλε άλλη πρόσκληση
           </button>
         </div>
@@ -758,7 +758,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
               <span className="ref-step-n" style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--bg-overlay)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, transition: 'background .18s, color .18s' }}>{st.n}</span>
               <span className="ref-step-ic" style={{ color: 'var(--text-tertiary)', transition: 'color .18s' }}><Ic d={st.d2} s={20} /></span>
             </div>
-            <div style={{ ...TT.h2, fontSize: 13 }}>{st.t}</div>
+            <div style={{ ...TT.h2, fontSize: 'var(--fs-base)' }}>{st.t}</div>
             <div style={{ ...TT.bodySm, lineHeight: 1.55 }}>{st.d}</div>
           </div>
         ))}
@@ -782,7 +782,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                     <Ic d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2|M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" s={18} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ ...TT.h2, fontSize: 13 }}>{stage}</div>
+                    <div style={{ ...TT.h2, fontSize: 'var(--fs-base)' }}>{stage}</div>
                     {/* Έλεγε «Εκκρεμεί ενεργοποίηση» χωρίς να λέει ΤΙ λείπει, ενώ ο
                         κανόνας είναι γραμμένος στη βάση (mark_referral_activated: ακίνητο +
                         σαρωμένο έγγραφο). Δύο λέξεις παραπάνω κλείνουν το χωνί. */}
@@ -822,7 +822,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                     <Ic d="M20 12v9H4v-9|M2 7h20v5H2z|M12 22V7|M12 7S9 2 6.5 4.5 12 7 12 7z|M12 7s3-5 5.5-2.5S12 7 12 7z" s={19} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ ...TT.h2, fontSize: 13 }}>{title}</div>
+                    <div style={{ ...TT.h2, fontSize: 'var(--fs-base)' }}>{title}</div>
                     <div style={{ ...TT.bodySm, marginTop: 2 }}>{reasonLabel}</div>
                   </div>
                   <Badge tone={granted ? 'positive' : 'warning'}>{granted ? 'Ενεργό' : 'Σε εκκρεμότητα'}</Badge>

@@ -126,12 +126,12 @@ export function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCal
           {item.description}
         </span>
         {item.due_date && (
-          <span style={{ flexShrink: 0, maxWidth: '100%', fontSize: 11, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: overdue && !done ? 'var(--negative)' : due !== null && due <= 3 && due >= 0 && !done ? 'var(--warning)' : 'var(--text-tertiary)', fontWeight: (overdue || (due !== null && due <= 3)) && !done ? 700 : 400 }}>
+          <span style={{ flexShrink: 0, maxWidth: '100%', fontSize: 'var(--fs-xs)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: overdue && !done ? 'var(--negative)' : due !== null && due <= 3 && due >= 0 && !done ? 'var(--warning)' : 'var(--text-tertiary)', fontWeight: (overdue || (due !== null && due <= 3)) && !done ? 700 : 400 }}>
             {fmtDate(item.due_date)}{overdue && !done && due !== null ? ` · πριν ${relDays(due)}` : ''}{!overdue && due !== null && due <= 3 && due >= 0 && !done ? ` · ${due === 0 ? 'σήμερα' : 'σε ' + relDays(due)}` : ''}
           </span>
         )}
         {item.assigned_contact_name && (
-          <span title={'Ανατέθηκε σε ' + item.assigned_contact_name} style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 4, maxWidth: 150, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+          <span title={'Ανατέθηκε σε ' + item.assigned_contact_name} style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 4, maxWidth: 150, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
             <svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.7, flexShrink: 0 }}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             <span className="po-elide">{item.assigned_contact_name}</span>
           </span>
@@ -140,14 +140,14 @@ export function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCal
             λογιστή. «Το κάνει ο λογιστής» πάνω σε μια γραμμή είναι η διαφορά
             μεταξύ μιας λίστας που αγχώνει και μιας που καθησυχάζει. */}
         {item._who && item._who !== 'owner' && (
-          <span title={WHO_LABEL[item._who]} style={{ flexShrink: 0, padding: '1px 8px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
+          <span title={WHO_LABEL[item._who]} style={{ flexShrink: 0, padding: '1px 8px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
             {WHO_LABEL[item._who]}
           </span>
         )}
         {/* ΤΟ ΠΑΡΑΣΤΑΤΙΚΟ ΚΑΙ ΤΟ ΠΟΣΟ ΤΟΥ. Φαίνεται μόνο όταν υπάρχει αρχείο:
             ποσό χωρίς χαρτί δεν εμφανίζεται πουθενά σε αυτή την οθόνη. */}
         {item._receipt && item.actual_cost > 0 && (
-          <span title={`Παραστατικό: ${item._receipt.name}`} style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>
+          <span title={`Παραστατικό: ${item._receipt.name}`} style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>
             <svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
             {fe(item.actual_cost)}
           </span>
@@ -200,8 +200,8 @@ export function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCal
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
               <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={a.danger ? 'var(--negative)' : 'var(--text-tertiary)'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>{a.icon.split(' M').map((seg, j) => <path key={j} d={(j === 0 ? '' : 'M') + seg} />)}</svg>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 13, color: a.danger ? 'var(--negative)' : 'var(--text-primary)', fontWeight: 500, fontFamily: T.font.sans }}>{a.label}</div>
-                {a.sub ? <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{a.sub}</div> : null}
+                <div style={{ fontSize: 'var(--fs-base)', color: a.danger ? 'var(--negative)' : 'var(--text-primary)', fontWeight: 500, fontFamily: T.font.sans }}>{a.label}</div>
+                {a.sub ? <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 1 }}>{a.sub}</div> : null}
               </div>
             </button>
           ))}

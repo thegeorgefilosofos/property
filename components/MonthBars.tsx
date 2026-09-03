@@ -99,7 +99,7 @@ export default function MonthBars({
                 }} />
               </span>
               <span style={{
-                marginTop: 6, textAlign: 'center', fontSize: 11, fontFamily: T.font.sans,
+                marginTop: 6, textAlign: 'center', fontSize: 'var(--fs-xs)', fontFamily: T.font.sans,
                 fontWeight: isSel ? 700 : 400,
                 color: isSel ? 'var(--text-secondary)' : 'var(--text-tertiary)',
               }}>{MONTHS_SHORT[m]}</span>

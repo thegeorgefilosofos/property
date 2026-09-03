@@ -64,7 +64,7 @@ export default function AssistantStrip({ ctx }: { ctx: OpenerContext | null }) {
         width: 30, height: 30, borderRadius: '50%', flexShrink: 0, marginTop: 1,
         background: 'var(--accent-soft)', border: '1px solid var(--accent-border)',
         color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontFamily: T.font.sans, fontSize: 13, fontWeight: 700,
+        fontFamily: T.font.sans, fontSize: 'var(--fs-base)', fontWeight: 700,
       }} aria-hidden>{ASSISTANT_NAME.charAt(0)}</div>
 
       <div style={{ flex: 1, minWidth: 220 }}>
@@ -84,7 +84,7 @@ export default function AssistantStrip({ ctx }: { ctx: OpenerContext | null }) {
                 style={{
                   padding: '6px 13px', minHeight: T.h.sm, borderRadius: T.radius.pill,
                   border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)',
-                  color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 13, lineHeight: 1.35,
+                  color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 'var(--fs-base)', lineHeight: 1.35,
                   cursor: 'pointer', textAlign: 'left', maxWidth: '100%',
                 }}>
                 {q}

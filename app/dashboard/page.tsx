@@ -974,7 +974,7 @@ export function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }
           κατάσταση, η ώρα Ελλάδας και η ενέργεια στη σειρά της. */}
       <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:16,flexWrap:'wrap',marginBottom:20}}>
         <div style={{minWidth:0}}>
-          <AthensNow style={{fontFamily:T.font.sans,fontSize:11,fontWeight:600,color:'var(--text-tertiary)',letterSpacing:'0.02em',marginBottom:4,minHeight:15}}/>
+          <AthensNow style={{fontFamily:T.font.sans,fontSize: 'var(--fs-xs)',fontWeight:600,color:'var(--text-tertiary)',letterSpacing:'0.02em',marginBottom:4,minHeight:15}}/>
           {/* Η ΤΑΥΤΟΤΗΤΑ ΤΟΥ ΑΚΙΝΗΤΟΥ ΛΕΓΕΤΑΙ ΜΙΑ ΦΟΡΑ, ΚΑΙ ΤΗ ΛΕΕΙ Η ΜΠΑΡΑ.
               Εδώ γραφόταν ξανά, εξήντα εικονοστοιχεία κάτω από την ίδια
               πρόταση: όνομα, τύπος, κατάσταση, διεύθυνση — τα ίδια τέσσερα
@@ -1103,8 +1103,8 @@ export function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }
                     παίρνει ΟΛΟ το πλάτος της στήλης και τυλίγεται όσο χρειάζεται.
                     Ιδιο ιδίωμα με τη γραμμή στοιχείων της κάρτας δανείου: όνομα
                     πάνω, μέγεθος κάτω, τίποτα κρυμμένο πίσω από τελείες. */}
-                <span style={{display:'block',fontFamily:T.font.sans,color:'var(--text-tertiary)',fontSize:11,textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:600,marginBottom:3}}>{k}</span>
-                <span style={{display:'block',fontFamily:T.font.sans,color:'var(--text-primary)',fontSize:13,letterSpacing:'0.25px',minWidth:0,overflowWrap:'anywhere'}}>{v}</span>
+                <span style={{display:'block',fontFamily:T.font.sans,color:'var(--text-tertiary)',fontSize: 'var(--fs-xs)',textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:600,marginBottom:3}}>{k}</span>
+                <span style={{display:'block',fontFamily:T.font.sans,color:'var(--text-primary)',fontSize: 'var(--fs-base)',letterSpacing:'0.25px',minWidth:0,overflowWrap:'anywhere'}}>{v}</span>
               </div>
             ))}
           </div>
@@ -1116,14 +1116,14 @@ export function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }
             : <div style={{display:'flex',flexDirection:'column',gap:8}}>
                 {billAverages.slice(0,5).map(b => (
                   <div key={b.type} style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:12}}>
-                    <div style={{minWidth:0,fontFamily: T.font.sans,fontSize:13,color:'var(--text-secondary)',letterSpacing:'0.25px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                    <div style={{minWidth:0,fontFamily: T.font.sans,fontSize: 'var(--fs-base)',color:'var(--text-secondary)',letterSpacing:'0.25px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
                       {b.type}
                       {/* ΤΟ ΠΛΗΘΟΣ ΛΕΓΕΤΑΙ. Ένας «μέσος όρος» από έναν λογαριασμό δεν
                           είναι μέσος όρος και ο χρήστης πρέπει να ξέρει σε πόσα
                           στηρίζεται το νούμερο πριν χτίσει πάνω του προϋπολογισμό. */}
-                      <span style={{color:'var(--text-tertiary)',fontSize:11}}> ({b.count})</span>
+                      <span style={{color:'var(--text-tertiary)',fontSize: 'var(--fs-xs)'}}> ({b.count})</span>
                     </div>
-                    <div style={{fontFamily: T.font.mono,fontSize:13,color:'var(--text-primary)',fontVariantNumeric:'tabular-nums',flexShrink:0}}>{fmtEur(b.avg)}</div>
+                    <div style={{fontFamily: T.font.mono,fontSize: 'var(--fs-base)',color:'var(--text-primary)',fontVariantNumeric:'tabular-nums',flexShrink:0}}>{fmtEur(b.avg)}</div>
                   </div>
                 ))}
               </div>
@@ -2061,7 +2061,7 @@ export default function Dashboard() {
                 title="Η εφαρμογή δείχνει πρώτα όσα χρειάζεσαι τώρα. Οι υπόλοιπες καρτέλες εμφανίζονται μόλις αποκτήσουν νόημα, ή τώρα με ένα κλικ.">
                 <span className="sidebar-item-icon" aria-hidden>{ic('M4 6h16|M4 12h16|M4 18h16')}</span>
                 <span className="sidebar-item-label">Όλες οι καρτέλες</span>
-                <span style={{ marginLeft: 'auto', fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>+{hidden}</span>
+                <span style={{ marginLeft: 'auto', fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>+{hidden}</span>
               </button>
             );
           })()}
@@ -2136,7 +2136,7 @@ export default function Dashboard() {
                           πληκτρολόγιο κλείνει με Escape. */}
                       <div aria-hidden onClick={()=>setStatusDropdown(false)} style={{position:'fixed',inset:0,zIndex:99}}/>
                       <div role="menu" style={{position:'absolute',top:'calc(100% + 8px)',left:0,maxHeight:'min(440px, calc(100vh - 96px))',overflowY:'auto',overscrollBehavior:'contain',background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:10,padding:'6px 0',zIndex:100,minWidth:224,boxShadow:'var(--shadow-lg)'}}>
-                        <div style={{fontFamily: T.font.sans,fontSize:11,fontWeight:600,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--text-tertiary)',padding:'6px 16px 4px'}}>Κατάσταση</div>
+                        <div style={{fontFamily: T.font.sans,fontSize: 'var(--fs-xs)',fontWeight:600,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--text-tertiary)',padding:'6px 16px 4px'}}>Κατάσταση</div>
                         {STATUSES.map(({ key: k, label: v, hint }) => {
                           const active = readStatus(selected)===k;
                           return (
@@ -2155,7 +2155,7 @@ export default function Dashboard() {
                           );
                         })}
                         <div style={{height:1,background:'var(--border-subtle)',margin:'6px 12px'}}/>
-                        <div style={{fontFamily: T.font.sans,fontSize:11,fontWeight:600,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--text-tertiary)',padding:'6px 16px 4px'}}>Εργαλεία ακινήτου</div>
+                        <div style={{fontFamily: T.font.sans,fontSize: 'var(--fs-xs)',fontWeight:600,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--text-tertiary)',padding:'6px 16px 4px'}}>Εργαλεία ακινήτου</div>
                         <button role="menuitem" onClick={()=>{setStatusDropdown(false);setEditProperty(selected);}} style={{display:'flex',alignItems:'center',gap:12,width:'100%',padding:'9px 16px',border:'none',background:'transparent',cursor:'pointer',fontFamily: T.font.sans,fontSize:14,color:'var(--text-primary)',textAlign:'left'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                           <svg aria-hidden="true" width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
                           Επεξεργασία στοιχείων
@@ -2198,7 +2198,7 @@ export default function Dashboard() {
                   ξένο σώμα σε μια επίπεδη, ήσυχη διεπαφή. */}
               <button onClick={()=>setCmdkOpen(true)} className="topbar-search" title={`Αναζήτηση και γρήγορες ενέργειες (${kbdHint})`} aria-label="Αναζήτηση" style={{display:'flex',alignItems:'center',gap:8,height:T.h.md,padding:'0 10px 0 12px',borderRadius: T.radius.modal,border:'1px solid var(--border-default)',background:'transparent',color:'var(--text-secondary)',cursor:'pointer',marginRight:4,flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                 <svg aria-hidden="true" width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-                <span className="desktop-only" style={{fontSize:11,fontFamily: T.font.mono,color:'var(--text-tertiary)',border:'1px solid var(--border-subtle)',borderRadius:6,padding:'1px 5px'}}>{kbdHint}</span>
+                <span className="desktop-only" style={{fontSize: 'var(--fs-xs)',fontFamily: T.font.mono,color:'var(--text-tertiary)',border:'1px solid var(--border-subtle)',borderRadius:6,padding:'1px 5px'}}>{kbdHint}</span>
               </button>
             </>
           ) : (
@@ -2231,8 +2231,8 @@ export default function Dashboard() {
                   {t:'Ενοικιαστής και Συμβόλαιο',d:'Πληρωμές, λήξεις, εγγύηση, ιστορικό'},
                 ].map((f,i)=>(
                   <div key={i} style={{background:'var(--bg-surface)',border:'1px solid var(--border-subtle)',borderRadius:12,padding:'14px 16px'}}>
-                    <div style={{fontFamily: T.font.sans,fontSize:13,fontWeight:700,color:'var(--text-primary)',marginBottom:4}}>{f.t}</div>
-                    <div style={{fontFamily: T.font.sans,fontSize:11,color:'var(--text-tertiary)',lineHeight:1.5}}>{f.d}</div>
+                    <div style={{fontFamily: T.font.sans,fontSize: 'var(--fs-base)',fontWeight:700,color:'var(--text-primary)',marginBottom:4}}>{f.t}</div>
+                    <div style={{fontFamily: T.font.sans,fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',lineHeight:1.5}}>{f.d}</div>
                   </div>
                 ))}
               </div>
@@ -2264,7 +2264,7 @@ export default function Dashboard() {
                   Επισκόπηση και στο Χαρτοφυλάκιο που στέκει πάνω από αυτήν. */}
               {navSafe !== 'overview' && navSafe !== 'portfolio' && (
                 <button onClick={()=>setNav(backTab)} title={`Πίσω: ${backLabel}`} aria-label={`Πίσω: ${backLabel}`}
-                  style={{display:'inline-flex',alignItems:'center',gap:6,marginBottom:14,padding:'4px 4px 4px 0',border:'none',background:'transparent',color:'var(--text-tertiary)',fontFamily: T.font.sans,fontSize:13,fontWeight:600,cursor:'pointer'}}
+                  style={{display:'inline-flex',alignItems:'center',gap:6,marginBottom:14,padding:'4px 4px 4px 0',border:'none',background:'transparent',color:'var(--text-tertiary)',fontFamily: T.font.sans,fontSize: 'var(--fs-base)',fontWeight:600,cursor:'pointer'}}
                   onMouseEnter={e=>e.currentTarget.style.color='var(--text-primary)'} onMouseLeave={e=>e.currentTarget.style.color='var(--text-tertiary)'}>
                   <svg aria-hidden="true" width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
                   {backLabel}

@@ -50,12 +50,12 @@ export default function PropertyPicker({ items, selected, onChange, loading, pla
     background: on || mixed ? 'var(--accent)' : 'var(--bg-surface)', transition: 'border-color 0.14s, background 0.14s',
   });
   const check = <svg aria-hidden="true" width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>;
-  const row: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 11, width: '100%', padding: '9px 13px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: T.font.sans, fontSize: 13, color: 'var(--text-primary)' };
+  const row: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 11, width: '100%', padding: '9px 13px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: T.font.sans, fontSize: 'var(--fs-base)', color: 'var(--text-primary)' };
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <button type="button" onClick={() => !loading && items.length > 0 && setOpen(o => !o)} disabled={loading || items.length === 0}
-        style={{ width: '100%', height: T.h.lg, padding: '0 13px', borderRadius: 10, border: `1px solid ${open ? 'var(--accent)' : 'var(--border-default)'}`, background: 'var(--bg-surface)', color: selected.size ? 'var(--text-primary)' : 'var(--text-tertiary)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 10, cursor: (loading || !items.length) ? 'default' : 'pointer', transition: 'border-color 0.15s', opacity: (loading || !items.length) ? 0.6 : 1 }}>
+        style={{ width: '100%', height: T.h.lg, padding: '0 13px', borderRadius: 10, border: `1px solid ${open ? 'var(--accent)' : 'var(--border-default)'}`, background: 'var(--bg-surface)', color: selected.size ? 'var(--text-primary)' : 'var(--text-tertiary)', fontFamily: T.font.sans, fontSize: 'var(--fs-base)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 10, cursor: (loading || !items.length) ? 'default' : 'pointer', transition: 'border-color 0.15s', opacity: (loading || !items.length) ? 0.6 : 1 }}>
         <span className="po-elide" style={{ flex: 1, textAlign: 'left' }}>{summary}</span>
         <svg aria-hidden="true" width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-tertiary)', flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="M6 9l6 6 6-6"/></svg>
       </button>
@@ -65,7 +65,7 @@ export default function PropertyPicker({ items, selected, onChange, loading, pla
           {items.length > 6 && (
             <div style={{ padding: 8, borderBottom: '1px solid var(--border-subtle)' }}>
               <input autoFocus value={q} onChange={e => setQ(e.target.value)} placeholder="Όνομα ή διεύθυνση" aria-label="Αναζήτηση ακινήτου"
-                style={{ width: '100%', height: T.h.sm, padding: '0 11px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 13, outline: 'none' }} />
+                style={{ width: '100%', height: T.h.sm, padding: '0 11px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 'var(--fs-base)', outline: 'none' }} />
             </div>
           )}
           <div style={{ maxHeight: 260, overflowY: 'auto', padding: 4 }}>
@@ -85,7 +85,7 @@ export default function PropertyPicker({ items, selected, onChange, loading, pla
                 </button>
               );
             })}
-            {filtered.length === 0 && <div style={{ padding: '12px 13px', fontSize: 13, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Κανένα ακίνητο δεν ταιριάζει.</div>}
+            {filtered.length === 0 && <div style={{ padding: '12px 13px', fontSize: 'var(--fs-base)', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Κανένα ακίνητο δεν ταιριάζει.</div>}
           </div>
         </div>
       )}

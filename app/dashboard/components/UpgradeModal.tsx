@@ -52,7 +52,7 @@ export default function UpgradeModal({ currentCount, planId, profileType = 'indi
         className="md-scrim" style={{ fontFamily: T.font.sans }}>
         <div style={{ background: 'var(--bg-surface)', borderRadius: T.radius.modal, width: '100%', maxWidth: 520, boxShadow: 'var(--shadow-xl)', padding: 'clamp(24px, 3vw, 34px)' }}>
           <h2 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: '0 0 8px' }}>Διαχειρίζεσαι μεγάλο χαρτοφυλάκιο</h2>
-          <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 20px', lineHeight: 1.6 }}>
+          <p style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', margin: '0 0 20px', lineHeight: 1.6 }}>
             Το πακέτο Επαγγελματίας καλύπτει έως {PLANS.agency.maxProperties} ακίνητα και τα έχεις ήδη συμπληρώσει.
             Για περισσότερα, στήνουμε πακέτο στα μέτρα σου. Γράψε μας στο <strong style={{ color: 'var(--text-primary)' }}>{IDENTITY.supportEmail}</strong> και απαντάμε την ίδια ημέρα.
           </p>
@@ -74,7 +74,7 @@ export default function UpgradeModal({ currentCount, planId, profileType = 'indi
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 8 }}>
           <div>
             <h2 style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: '0 0 6px' }}>Χρειάζεσαι λίγο περισσότερο χώρο</h2>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.55 }}>
+            <p style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.55 }}>
               Το πακέτο σου ({PLANS[current].name}) καλύπτει {PLANS[current].maxProperties === Infinity ? 'απεριόριστα' : PLANS[current].maxProperties} {PLANS[current].maxProperties === 1 ? 'ακίνητο' : 'ακίνητα'}.{' '}
               {needsProfileSwitch
                 ? <>Με περισσότερα από {PLANS.owner.maxProperties} ακίνητα η διαχείριση γίνεται επαγγελματική δουλειά. Στις Ρυθμίσεις άλλαξε τον τρόπο χρήσης σε «Επαγγελματίας» (περνά αμέσως, χωρίς προϋπόθεση) και ξεκλειδώνει η αγορά του πακέτου Επαγγελματίας: έως {PLANS.agency.maxProperties} ακίνητα, χαρτοφυλάκιο και ομάδα.</>
@@ -91,11 +91,11 @@ export default function UpgradeModal({ currentCount, planId, profileType = 'indi
             const isCurrent = id === current;
             return (
               <div key={id} style={{ background: 'var(--bg-elevated)', border: `1px solid ${isRec ? 'color-mix(in srgb, var(--accent) 55%, transparent)' : 'var(--border-subtle)'}`, borderRadius: T.radius.card, padding: 16, position: 'relative', display: 'flex', flexDirection: 'column' }}>
-                {isRec && <div style={{ position: 'absolute', top: -10, left: 16, background: 'var(--accent)', color: 'var(--accent-text)', borderRadius: T.radius.pill, padding: '3px 10px', fontSize: 11, fontWeight: 700 }}>Προτεινόμενο</div>}
-                <div style={{ fontSize: 13, fontWeight: 700, color: isRec ? 'var(--accent)' : 'var(--text-primary)', marginBottom: 6 }}>{p.name}</div>
+                {isRec && <div style={{ position: 'absolute', top: -10, left: 16, background: 'var(--accent)', color: 'var(--accent-text)', borderRadius: T.radius.pill, padding: '3px 10px', fontSize: 'var(--fs-xs)', fontWeight: 700 }}>Προτεινόμενο</div>}
+                <div style={{ fontSize: 'var(--fs-base)', fontWeight: 700, color: isRec ? 'var(--accent)' : 'var(--text-primary)', marginBottom: 6 }}>{p.name}</div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 2 }}>
                   <span style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{feAuto(p.priceMonthly)}</span>
-                  {p.priceMonthly > 0 && <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>/μήνα</span>}
+                  {p.priceMonthly > 0 && <span style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)' }}>/μήνα</span>}
                 </div>
                 {/* ΤΟ «ΓΙΑ ΠΑΝΤΑ» ΚΑΤΩ ΑΠΟ ΤΟ 0,00 € ΗΤΑΝ ΥΠΟΣΧΕΣΗ ΠΟΥ ΔΕΝ ΤΗΡΕΙΤΑΙ.
                     Το «Χωρίς συνδρομή» δεν είναι δωρεάν πακέτο: είναι η κατάσταση
@@ -103,7 +103,7 @@ export default function UpgradeModal({ currentCount, planId, profileType = 'indi
                     εργαλεία. Δωρεάν είναι μόνο η δοκιμή και οι μήνες από συστάσεις.
                     Η γραμμή δεν γράφει δεύτερη διατύπωση: παίρνει το tagline του
                     ίδιου του πακέτου, ώστε να μην μπορεί να αποκλίνει από αυτό. */}
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', minHeight: 16 }}>
+                <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', minHeight: 16 }}>
                   {p.priceAnnual > 0 ? `ή ${feAuto(p.priceAnnual)}/χρόνο (${feAuto(annualPerMonth(id as PlanId))}/μήνα)` : p.tagline}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '10px 0 0', lineHeight: 1.5 }}>
@@ -112,14 +112,14 @@ export default function UpgradeModal({ currentCount, planId, profileType = 'indi
                 {!isCurrent && p.id !== 'free' && (
                   <ul style={{ listStyle: 'none', margin: '10px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {p.features.slice(0, 3).map((f, i) => (
-                      <li key={i} style={{ display: 'flex', gap: 7, fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                      <li key={i} style={{ display: 'flex', gap: 7, fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
                         <svg aria-hidden="true" width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M20 6 9 17l-5-5" /></svg>
                         <span>{f}</span>
                       </li>
                     ))}
                   </ul>
                 )}
-                {isCurrent && <div style={{ marginTop: 'auto', paddingTop: 12, fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 600 }}>Το τρέχον πακέτο σου</div>}
+                {isCurrent && <div style={{ marginTop: 'auto', paddingTop: 12, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontWeight: 600 }}>Το τρέχον πακέτο σου</div>}
               </div>
             );
           })}

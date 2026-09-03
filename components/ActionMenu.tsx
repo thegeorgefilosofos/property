@@ -149,7 +149,7 @@ export function ActionMenu({
           // «Σάρωση κάρτας» στην ίδια σειρά με τέσσερα εικονοστοιχεία διαφορά.
           display: 'inline-flex', alignItems: 'center', gap: 7, minHeight: T.h.md, padding: '0 13px', borderRadius: T.radius.modal,
           border: `1px solid ${open ? 'var(--accent)' : 'var(--border-default)'}`, background: 'var(--bg-surface)',
-          color: open ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 13, fontWeight: 500, cursor: 'pointer',
+          color: open ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 'var(--fs-base)', fontWeight: 500, cursor: 'pointer',
           fontFamily: T.font.sans, transition: 'background-color 0.13s, border-color 0.13s, color 0.13s, box-shadow 0.13s, transform 0.13s, opacity 0.13s', whiteSpace: 'nowrap',
         }}
       >
@@ -194,7 +194,7 @@ export function ActionMenu({
                   }}>{it.icon}</span>
                 )}
                 <span style={{ minWidth: 0, flex: 1 }}>
-                  <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: it.danger ? 'var(--negative)' : 'var(--text-primary)', lineHeight: 1.3 }}>
+                  <span style={{ display: 'block', fontSize: 'var(--fs-base)', fontWeight: 600, color: it.danger ? 'var(--negative)' : 'var(--text-primary)', lineHeight: 1.3 }}>
                     {it.busy ? (it.busyLabel || 'Δημιουργία…') : it.label}
                   </span>
                   {it.description && (

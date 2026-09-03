@@ -125,6 +125,15 @@ export default function TabFinances({
               aria-pressed={on}
               style={{
                 appearance: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+                // ═══ ΜΙΑ ΓΡΑΜΜΗ ΠΟΥ ΚΥΛΑΕΙ ΔΕΝ ΣΥΡΡΙΚΝΩΝΕΤΑΙ ═══════════════
+                // Το δοχείο έχει «overflow-x: auto», δηλαδή η πρόθεση ήταν
+                // «αν δεν χωρούν, κύλησε». Σε flex όμως τα παιδιά συρρικνώνονται
+                // ΠΡΩΤΑ (flex-shrink: 1 από προεπιλογή) και μόνο αν δεν
+                // συρρικνώνονται άλλο εμφανίζεται κύλιση. Με «nowrap» το κείμενο
+                // δεν μαζεύεται, οπότε τα τρία κουμπιά έμπαιναν το ένα πάνω στο
+                // άλλο: μετρημένο στα 320, το «Προϋπολογισμός» έπεφτε 7
+                // εικονοστοιχεία πάνω στο «Συμβόλαια».
+                flexShrink: 0,
                 // ══ Η ΟΜΑΔΑ ΤΩΝ ΚΑΡΤΕΛΩΝ ΕΒΓΑΙΝΕ 44 ΔΙΠΛΑ ΣΕ ΚΟΥΜΠΙ 36 ════
                 // Το κουτί της ομάδας δεν έχει δικό του ύψος: το παίρνει από τα
                 // κουμπιά της συν 3 γέμισμα και 1 περίγραμμα πάνω κάτω. Με
@@ -132,7 +141,7 @@ export default function TabFinances({
                 // τη «Νέα δαπάνη» ακριβώς δίπλα της. Με 32 βγαίνει 40, όσο και
                 // κάθε άλλο χειριστήριο που κάθεται σε σειρά.
                 height: T.h.sm, padding: '0 18px', borderRadius: T.radius.pill,
-                fontFamily: T.font.sans, fontSize: 13, fontWeight: on ? 700 : 500,
+                fontFamily: T.font.sans, fontSize: 'var(--fs-base)', fontWeight: on ? 700 : 500,
                 background: on ? 'var(--bg-surface)' : 'transparent',
                 border: on ? '1px solid var(--border-default)' : '1px solid transparent',
                 color: on ? 'var(--text-primary)' : 'var(--text-secondary)',

@@ -95,14 +95,14 @@ export default function SpitiMouPanel({
           <div style={{ minWidth: 0 }}>
             {/* Όσο δεν δέχεται αιτήσεις, το «Πιθανώς επιλέξιμο» είναι υπόσχεση
                 που δεν μπορεί να τηρηθεί, όσο σωστά κι αν βγαίνουν τα κριτήρια. */}
-            <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: T.radius.pill, background: (hardFail || !status.acceptsApplications) ? 'var(--bg-elevated)' : 'var(--accent)', color: (hardFail || !status.acceptsApplications) ? 'var(--text-secondary)' : 'var(--accent-text)', fontWeight: 700, fontFamily: FONT }}>{!status.acceptsApplications ? status.badge : hardFail ? 'Δεν πληρούνται κριτήρια' : 'Πιθανώς επιλέξιμο'}</span>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 8, lineHeight: 1.5, fontFamily: FONT }}>
+            <span style={{ fontSize: 'var(--fs-xs)', padding: '3px 9px', borderRadius: T.radius.pill, background: (hardFail || !status.acceptsApplications) ? 'var(--bg-elevated)' : 'var(--accent)', color: (hardFail || !status.acceptsApplications) ? 'var(--text-secondary)' : 'var(--accent-text)', fontWeight: 700, fontFamily: FONT }}>{!status.acceptsApplications ? status.badge : hardFail ? 'Δεν πληρούνται κριτήρια' : 'Πιθανώς επιλέξιμο'}</span>
+            <p style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', marginTop: 8, lineHeight: 1.5, fontFamily: FONT }}>
               Το 50% του δανείου είναι <strong style={{ color: 'var(--text-primary)' }}>άτοκο</strong> (Ταμείο Ανάκαμψης) και το 50% με το επιτόκιο της τράπεζας{elig.rateSubsidyShare > 0 ? ', με επιπλέον 50% επιδότηση επιτοκίου για πολύτεκνους' : ''}.
             </p>
           </div>
           <div style={{ textAlign: 'right' as const, flexShrink: 0 }}>
             <p style={{ fontSize: 28, fontWeight: 700, color: hi ? 'var(--accent)' : 'var(--text-primary)', fontFamily: FONT, fontVariantNumeric: 'tabular-nums', lineHeight: 1, letterSpacing: '-0.02em', transition: 'color 0.15s' }}>{fmtPct(pay.blendedRatePct)}</p>
-            <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4, fontFamily: FONT }}>μέσο πραγματικό επιτόκιο</p>
+            <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 4, fontFamily: FONT }}>μέσο πραγματικό επιτόκιο</p>
           </div>
         </div>
       </div>
@@ -115,9 +115,9 @@ export default function SpitiMouPanel({
           { k: 'Εξοικονόμηση τον μήνα', v: fmtEur(saveMonthly), s: `${fmtEur(saveTotal)} συνολικά` },
         ].map(t => (
           <div key={t.k} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16 }}>
-            <p style={{ fontSize: 11, textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontWeight: 700, color: 'var(--text-tertiary)', fontFamily: FONT }}>{t.k}</p>
+            <p style={{ fontSize: 'var(--fs-xs)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontWeight: 700, color: 'var(--text-tertiary)', fontFamily: FONT }}>{t.k}</p>
             <p style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1, marginTop: 7, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', fontFamily: FONT }}>{t.v}</p>
-            <p style={{ fontSize: 11, marginTop: 5, color: 'var(--text-tertiary)', fontFamily: FONT }}>{t.s}</p>
+            <p style={{ fontSize: 'var(--fs-xs)', marginTop: 5, color: 'var(--text-tertiary)', fontFamily: FONT }}>{t.s}</p>
           </div>
         ))}
       </div>
@@ -127,14 +127,14 @@ export default function SpitiMouPanel({
         <Bar height={12} track="var(--bg-elevated)" style={{ border: '1px solid var(--border-subtle)' }}
           parts={[{ pct: elig.interestFreeShare * 100, title: 'Άτοκο σκέλος' }]} />
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-          <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: FONT }}>{Math.round(elig.interestFreeShare * 100)}% άτοκο · {fmtEur(amount * elig.interestFreeShare)}</span>
-          <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: FONT }}>{100 - Math.round(elig.interestFreeShare * 100)}% τραπεζικό · {fmtEur(amount - amount * elig.interestFreeShare)}</span>
+          <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)', fontFamily: FONT }}>{Math.round(elig.interestFreeShare * 100)}% άτοκο · {fmtEur(amount * elig.interestFreeShare)}</span>
+          <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)', fontFamily: FONT }}>{100 - Math.round(elig.interestFreeShare * 100)}% τραπεζικό · {fmtEur(amount - amount * elig.interestFreeShare)}</span>
         </div>
       </div>
 
       {/* Κριτήρια ένα-ένα */}
       <div>
-        <p style={{ fontSize: 11, textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontWeight: 700, color: 'var(--text-secondary)', fontFamily: FONT, marginBottom: 9 }}>Κριτήρια ένταξης</p>
+        <p style={{ fontSize: 'var(--fs-xs)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontWeight: 700, color: 'var(--text-secondary)', fontFamily: FONT, marginBottom: 9 }}>Κριτήρια ένταξης</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 7 }}>
           {crit.map(c => (
             <div key={c.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10 }}>
@@ -146,8 +146,8 @@ export default function SpitiMouPanel({
                   : <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--text-tertiary)' }} />}
               </span>
               <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: 'block', fontSize: 13, color: c.status === 'fail' ? 'var(--negative)' : 'var(--text-primary)', fontFamily: FONT, fontWeight: 500 }}>{c.label}</span>
-                <span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: FONT, marginTop: 1 }}>{c.detail}</span>
+                <span style={{ display: 'block', fontSize: 'var(--fs-base)', color: c.status === 'fail' ? 'var(--negative)' : 'var(--text-primary)', fontFamily: FONT, fontWeight: 500 }}>{c.label}</span>
+                <span style={{ display: 'block', fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: FONT, marginTop: 1 }}>{c.detail}</span>
               </span>
             </div>
           ))}
@@ -157,15 +157,15 @@ export default function SpitiMouPanel({
       {/* Συμμετέχουσες τράπεζες */}
       {ranked.length > 0 && (
         <div>
-          <p style={{ fontSize: 11, textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontWeight: 700, color: 'var(--text-secondary)', fontFamily: FONT, marginBottom: 9 }}>Συμμετέχουσες τράπεζες, κατά συνολικό κόστος</p>
+          <p style={{ fontSize: 'var(--fs-xs)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontWeight: 700, color: 'var(--text-secondary)', fontFamily: FONT, marginBottom: 9 }}>Συμμετέχουσες τράπεζες, κατά συνολικό κόστος</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
             {ranked.map((r, i) => (
               <div key={r.bankId} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', background: 'var(--bg-surface)', border: `1px solid ${i === 0 ? 'var(--border-accent)' : 'var(--border-subtle)'}`, borderRadius: 10 }}>
-                <span style={{ width: 22, height: 22, flexShrink: 0, borderRadius: '50%', background: i === 0 ? 'var(--accent-dim)' : 'var(--bg-elevated)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: i === 0 ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: FONT }}>{i + 1}</span>
-                <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', fontFamily: FONT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.bankName}</span>
+                <span style={{ width: 22, height: 22, flexShrink: 0, borderRadius: '50%', background: i === 0 ? 'var(--accent-dim)' : 'var(--bg-elevated)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--fs-xs)', fontWeight: 700, color: i === 0 ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: FONT }}>{i + 1}</span>
+                <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--fs-base)', fontWeight: 500, color: 'var(--text-primary)', fontFamily: FONT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.bankName}</span>
                 <span style={{ textAlign: 'right' as const, flexShrink: 0 }}>
-                  <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: FONT, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fmtEur(r.monthlyPayment)}</span>
-                  <span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: FONT, marginTop: 2 }}>τον μήνα · {fmtPct(r.effectiveRatePct)}</span>
+                  <span style={{ display: 'block', fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--text-primary)', fontFamily: FONT, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fmtEur(r.monthlyPayment)}</span>
+                  <span style={{ display: 'block', fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: FONT, marginTop: 2 }}>τον μήνα · {fmtPct(r.effectiveRatePct)}</span>
                 </span>
               </div>
             ))}
@@ -183,14 +183,14 @@ export default function SpitiMouPanel({
             <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: FONT }}>ημέρες ως τη λήξη σύναψης συμβολαίων</span>
           </span>
         ) : (
-          <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: FONT, fontWeight: 500, lineHeight: 1.55 }}>{status.note || 'Η προθεσμία σύναψης συμβολαίων έχει παρέλθει'}</span>
+          <span style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', fontFamily: FONT, fontWeight: 500, lineHeight: 1.55 }}>{status.note || 'Η προθεσμία σύναψης συμβολαίων έχει παρέλθει'}</span>
         )}
-        {status.acceptsApplications && <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: FONT, marginLeft: 'auto' }}>Προθεσμία {deadlineStr}</span>}
+        {status.acceptsApplications && <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: FONT, marginLeft: 'auto' }}>Προθεσμία {deadlineStr}</span>}
       </div>
-      <p style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.6, fontFamily: FONT }}>
+      <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', lineHeight: 1.6, fontFamily: FONT }}>
         Επιτρέπεται αίτηση σε <strong style={{ color: 'var(--text-secondary)' }}>μία μόνο τράπεζα</strong>, οπότε επίλεξε προσεκτικά με βάση το συνολικό κόστος. Ενδεικτικά στοιχεία, επιβεβαίωσε την επιλεξιμότητα στην{' '}
         <a href="https://www.gov.gr/ipiresies/periousia-kai-phorologia/akinhta/elegkhos-epile3imotetas-programmatos-spiti-mou-ii" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 500 }}>επίσημη πύλη</a>.
-        {onOpenCalculator && <> Συμπλήρωσε ηλικία, εισόδημα και στοιχεία ακινήτου στον <button onClick={onOpenCalculator} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--accent)', cursor: 'pointer', fontWeight: 500, fontFamily: FONT, fontSize: 11 }}>Υπολογιστή</button> για ακριβέστερο έλεγχο.</>}
+        {onOpenCalculator && <> Συμπλήρωσε ηλικία, εισόδημα και στοιχεία ακινήτου στον <button onClick={onOpenCalculator} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--accent)', cursor: 'pointer', fontWeight: 500, fontFamily: FONT, fontSize: 'var(--fs-xs)' }}>Υπολογιστή</button> για ακριβέστερο έλεγχο.</>}
       </p>
     </div>
   )

@@ -271,7 +271,7 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
               ο χρήστης να δει με μια ματιά ότι μιλάει στο ίδιο πρόσωπο. */}
           <div aria-hidden style={{ width: 32, height: 32, flexShrink: 0, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}><AssistantMark size={16} /></div>
           <div style={{ minWidth: 0 }}>
-            <p style={{ ...TT.h2, fontSize: 13 }}>{suggestionsTitle()}</p>
+            <p style={{ ...TT.h2, fontSize: 'var(--fs-base)' }}>{suggestionsTitle()}</p>
             <p style={{ ...TT.caption, marginTop: 2 }}>{suggestionsSub()}</p>
           </div>
         </div>
@@ -329,11 +329,11 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, flexWrap: 'wrap' }}>
                     <span style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>{s.title}</span>
-                    {amt != null && <span style={{ fontFamily: T.font.num, fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em', color: 'var(--text-secondary)' }}>~{fe(amt)}</span>}
+                    {amt != null && <span style={{ fontFamily: T.font.num, fontSize: 'var(--fs-base)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em', color: 'var(--text-secondary)' }}>~{fe(amt)}</span>}
                   </div>
                   <p style={{ ...TT.caption, marginTop: 3 }}>{s.reason}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
-                    <span style={{ ...TT.label, fontSize: 11, color: 'var(--text-tertiary)' }}>{label}</span>
+                    <span style={{ ...TT.label, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>{label}</span>
                     {s.recurring && (
                       <span style={{ ...TT.caption, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                         {/* Χωρίς αναγνωρίσιμη συχνότητα λέμε μόνο ότι επαναλαμβάνεται.

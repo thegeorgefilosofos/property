@@ -108,7 +108,7 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
     }catch(_){ setError('Σφάλμα κατά την καταχώρηση. Δοκίμασε ξανά.'); setStep('review') }
   }
 
-  const field:React.CSSProperties = { width:'100%', minHeight:104, padding:'11px 14px', borderRadius:T.radius.inner, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize:13, fontFamily:T.font.mono, lineHeight:'19px', resize:'vertical', outline:'none', transition:'border-color 0.14s' }
+  const field:React.CSSProperties = { width:'100%', minHeight:104, padding:'11px 14px', borderRadius:T.radius.inner, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-primary)', fontSize: 'var(--fs-base)', fontFamily:T.font.mono, lineHeight:'19px', resize:'vertical', outline:'none', transition:'border-color 0.14s' }
   const row:React.CSSProperties = { display:'flex', alignItems:'center', gap:12, padding:'10px 12px', borderRadius:T.radius.inner, background:'var(--bg-surface)', border:'1px solid var(--border-subtle)' }
 
   function Box({ checked, onClick }:{ checked:boolean; onClick:()=>void }){
@@ -128,7 +128,7 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
   const requestClose = () => { if (step !== 'saving') onClose() }
   // Το αρχείο ανοίγει από <label>: το ίδιο το <input type="file"> είναι κρυμμένο.
   const filePicker = (
-    <label style={{ fontSize:13, color:'var(--accent)', cursor:'pointer', fontFamily: T.font.sans }}>
+    <label style={{ fontSize: 'var(--fs-base)', color:'var(--accent)', cursor:'pointer', fontFamily: T.font.sans }}>
       Άνοιγμα αρχείου CSV
       <input type="file" accept=".csv,text/csv,text/plain" style={{ display:'none' }} onChange={e=>{ const f=e.target.files?.[0]; if(f){ const r=new FileReader(); r.onload=()=>{ const v=String(r.result||''); setText(v); analyze(v) }; r.readAsText(f) } }}/>
     </label>
@@ -154,10 +154,10 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
         </>) : undefined
       }>
       {step==='input'&&(<div>
-        <p style={{ fontSize:13, color:'var(--text-secondary)', margin:'0 0 10px', fontFamily: T.font.sans, lineHeight:1.55 }}>Επικόλλησε την κίνηση από το e-banking (CSV) ή ανέβασε αρχείο. Αναγνωρίζονται στήλες ημερομηνία, περιγραφή και ποσό (ή χρέωση/πίστωση).</p>
+        <p style={{ fontSize: 'var(--fs-base)', color:'var(--text-secondary)', margin:'0 0 10px', fontFamily: T.font.sans, lineHeight:1.55 }}>Επικόλλησε την κίνηση από το e-banking (CSV) ή ανέβασε αρχείο. Αναγνωρίζονται στήλες ημερομηνία, περιγραφή και ποσό (ή χρέωση/πίστωση).</p>
         <textarea aria-label="Κινήσεις λογαριασμού, επικολλημένες από το e-banking" value={text} onChange={e=>setText(e.target.value)} placeholder={'Ημερομηνία;Περιγραφή;Ποσό\n05/03/2026;Κατάθεση ενοικίου;800,00'} style={field}
           onFocus={e=>e.currentTarget.style.borderColor='var(--accent)'} onBlur={e=>e.currentTarget.style.borderColor='var(--border-default)'}/>
-        {error&&<p style={{ fontSize:13, color:'var(--negative)', margin:'12px 0 0', fontFamily: T.font.sans }}>{error}</p>}
+        {error&&<p style={{ fontSize: 'var(--fs-base)', color:'var(--negative)', margin:'12px 0 0', fontFamily: T.font.sans }}>{error}</p>}
       </div>)}
 
       {step==='review'&&(<div>
@@ -170,31 +170,31 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
           <EmptyState icon={<SearchX size={20}/>} title="Δεν βρέθηκαν νέες αντιστοιχίσεις" hint={skipped>0?`${skipped} ${skipped===1?'κίνηση είχε':'κινήσεις είχαν'} ήδη εισαχθεί.`:'Καμία νέα κίνηση στο αρχείο.'}/>
         ):(<>
           {rentMatches.length>0&&(<>
-            <p style={{ fontSize: 11, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--text-secondary)', margin:'0 0 8px', fontFamily: T.font.sans }}>Ενοίκια που εισπράχθηκαν</p>
+            <p style={{ fontSize: 'var(--fs-xs)', fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--text-secondary)', margin:'0 0 8px', fontFamily: T.font.sans }}>Ενοίκια που εισπράχθηκαν</p>
             <div style={{ display:'flex', flexDirection:'column', gap:7, marginBottom:16 }}>
               {rentMatches.map((m,i)=>(
                 <div key={i} style={row}>
                   <Box checked={m.confirm} onClick={()=>setRentMatches(a=>a.map((x,j)=>j===i?{...x,confirm:!x.confirm}:x))}/>
                   <div style={{ flex:1, minWidth:0 }}>
-                    <p style={{ fontSize:13, color:'var(--text-primary)', margin:0, fontFamily: T.font.sans }}>{m.label}</p>
-                    <p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'1px 0 0', fontFamily: T.font.sans, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.txn.date} · {m.txn.description}</p>
+                    <p style={{ fontSize: 'var(--fs-base)', color:'var(--text-primary)', margin:0, fontFamily: T.font.sans }}>{m.label}</p>
+                    <p style={{ fontSize: 'var(--fs-xs)', color:'var(--text-tertiary)', margin:'1px 0 0', fontFamily: T.font.sans, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.txn.date} · {m.txn.description}</p>
                   </div>
-                  <span style={{ fontSize:13, fontWeight:600, color:'var(--positive)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{feAuto(m.txn.amount)}</span>
+                  <span style={{ fontSize: 'var(--fs-base)', fontWeight:600, color:'var(--positive)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{feAuto(m.txn.amount)}</span>
                 </div>
               ))}
             </div>
           </>)}
           {expenses.length>0&&(<>
-            <p style={{ fontSize: 11, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--text-secondary)', margin:'0 0 8px', fontFamily: T.font.sans }}>Πιθανά έξοδα</p>
+            <p style={{ fontSize: 'var(--fs-xs)', fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--text-secondary)', margin:'0 0 8px', fontFamily: T.font.sans }}>Πιθανά έξοδα</p>
             <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
               {expenses.map((e,i)=>(
                 <div key={i} style={row}>
                   <Box checked={e.confirm} onClick={()=>setExpenses(a=>a.map((x,j)=>j===i?{...x,confirm:!x.confirm}:x))}/>
                   <div style={{ flex:1, minWidth:0 }}>
-                    <p style={{ fontSize:13, color:'var(--text-primary)', margin:0, fontFamily: T.font.sans, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{e.description}</p>
-                    <p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'1px 0 0', fontFamily: T.font.sans }}>{e.txn.date}</p>
+                    <p style={{ fontSize: 'var(--fs-base)', color:'var(--text-primary)', margin:0, fontFamily: T.font.sans, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{e.description}</p>
+                    <p style={{ fontSize: 'var(--fs-xs)', color:'var(--text-tertiary)', margin:'1px 0 0', fontFamily: T.font.sans }}>{e.txn.date}</p>
                   </div>
-                  <span style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{feAuto(e.amount)}</span>
+                  <span style={{ fontSize: 'var(--fs-base)', fontWeight:600, color:'var(--text-primary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{feAuto(e.amount)}</span>
                 </div>
               ))}
             </div>
@@ -204,24 +204,24 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
               χρήστης πατήσει «Καταχώρηση»: το dedup της ανάλυσης θα τις έκρυβε
               στην επόμενη εισαγωγή, δηλαδή το ίδιο σφάλμα με άλλο τρόπο. */}
           {unmatched.length>0&&(<>
-            <p style={{ fontSize: 11, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--text-secondary)', margin:'16px 0 8px', fontFamily: T.font.sans }}>Κινήσεις χωρίς αντιστοίχιση</p>
-            <p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'0 0 8px', fontFamily: T.font.sans, lineHeight:1.5 }}>Δεν ταιριάζουν σε ανεξόφλητο ενοίκιο του {year} και δεν καταχωρούνται από εδώ. Επανεμφανίζονται σε κάθε εισαγωγή, μέχρι να τακτοποιηθούν.</p>
+            <p style={{ fontSize: 'var(--fs-xs)', fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--text-secondary)', margin:'16px 0 8px', fontFamily: T.font.sans }}>Κινήσεις χωρίς αντιστοίχιση</p>
+            <p style={{ fontSize: 'var(--fs-xs)', color:'var(--text-tertiary)', margin:'0 0 8px', fontFamily: T.font.sans, lineHeight:1.5 }}>Δεν ταιριάζουν σε ανεξόφλητο ενοίκιο του {year} και δεν καταχωρούνται από εδώ. Επανεμφανίζονται σε κάθε εισαγωγή, μέχρι να τακτοποιηθούν.</p>
             <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
               {unmatched.map((t,i)=>(
                 <div key={i} style={row}>
                   <div style={{ flex:1, minWidth:0 }}>
-                    <p style={{ fontSize:13, color:'var(--text-primary)', margin:0, fontFamily: T.font.sans, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{t.description||'Χωρίς περιγραφή'}</p>
-                    <p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'1px 0 0', fontFamily: T.font.sans }}>{t.date||ABSENT_DATE}</p>
+                    <p style={{ fontSize: 'var(--fs-base)', color:'var(--text-primary)', margin:0, fontFamily: T.font.sans, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{t.description||'Χωρίς περιγραφή'}</p>
+                    <p style={{ fontSize: 'var(--fs-xs)', color:'var(--text-tertiary)', margin:'1px 0 0', fontFamily: T.font.sans }}>{t.date||ABSENT_DATE}</p>
                   </div>
-                  <span style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{feAuto(t.amount)}</span>
+                  <span style={{ fontSize: 'var(--fs-base)', fontWeight:600, color:'var(--text-primary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{feAuto(t.amount)}</span>
                 </div>
               ))}
             </div>
           </>)}
-          {skipped>0&&<p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'12px 0 0', fontFamily: T.font.sans }}>{skipped} {skipped===1?'κίνηση παραλείφθηκε: είχε':'κινήσεις παραλείφθηκαν: είχαν'} ήδη εισαχθεί.</p>}
+          {skipped>0&&<p style={{ fontSize: 'var(--fs-xs)', color:'var(--text-tertiary)', margin:'12px 0 0', fontFamily: T.font.sans }}>{skipped} {skipped===1?'κίνηση παραλείφθηκε: είχε':'κινήσεις παραλείφθηκαν: είχαν'} ήδη εισαχθεί.</p>}
         </>)}
-        {unreadable>0&&<p style={{ fontSize:11, color:'var(--text-tertiary)', margin:'12px 0 0', fontFamily: T.font.sans }}>{unreadable} {unreadable===1?'γραμμή του αρχείου δεν διαβάστηκε':'γραμμές του αρχείου δεν διαβάστηκαν'}: χωρίς αναγνωρίσιμο ποσό.</p>}
-        {error&&<p style={{ fontSize:13, color:'var(--negative)', margin:'12px 0 0', fontFamily: T.font.sans }}>{error}</p>}
+        {unreadable>0&&<p style={{ fontSize: 'var(--fs-xs)', color:'var(--text-tertiary)', margin:'12px 0 0', fontFamily: T.font.sans }}>{unreadable} {unreadable===1?'γραμμή του αρχείου δεν διαβάστηκε':'γραμμές του αρχείου δεν διαβάστηκαν'}: χωρίς αναγνωρίσιμο ποσό.</p>}
+        {error&&<p style={{ fontSize: 'var(--fs-base)', color:'var(--negative)', margin:'12px 0 0', fontFamily: T.font.sans }}>{error}</p>}
       </div>)}
 
       {step==='saving'&&(

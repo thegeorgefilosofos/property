@@ -339,6 +339,11 @@ export const MUTATIONS = {
   // γύριζε 401 σε κάθε εκτέλεση επί μήνες.
   'cron-auth': { file: 'supabase/functions/ical-sync/index.ts',
     from: 'await authorizeCron(req', to: 'handRolledCronCheck(req' },
+  // Πλωτό στοιχείο σε άκρη οθόνης χωρίς όριο ασφαλείας: ακριβώς η πάνω μπάρα
+  // που καθόταν κάτω από το Dynamic Island σε κάθε iPhone από το X και μετά.
+  'safe-area': { file: 'app/globals.css',
+    from: 'padding-top: env(safe-area-inset-top, 0px);\n    padding-bottom: env(safe-area-inset-bottom, 0px);',
+    to: 'padding-top: 0;' },
   'ci-minutes': { file: '.github/workflows/health.yml', from: 'cron:', to: "cron: '*/5 * * * *'   # μετάλλαξη\n    # cron:" },
   // Ένα npm script που δείχνει σε αρχείο του scripts/ και δεν το καλεί κανένα
   // workflow: ακριβώς το «γραμμένος και μη συνδεδεμένος».

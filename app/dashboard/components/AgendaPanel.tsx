@@ -74,7 +74,7 @@ export default function AgendaPanel({ items, total, onNavigate }: {
 
           Ο τίτλος μόνος του είναι η πληροφορία. Μία γραμμή, στη ροή της κάρτας. */}
       {items.length === 0 ? (
-        <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '4px 0 8px' }}>Δεν εκκρεμεί τίποτα.</p>
+        <p style={{ fontSize: 'var(--fs-base)', color: 'var(--text-tertiary)', margin: '4px 0 8px' }}>Δεν εκκρεμεί τίποτα.</p>
       ) : (
         <ul className="agenda-list">
           {items.map(it => {

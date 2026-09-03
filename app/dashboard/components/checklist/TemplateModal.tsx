@@ -42,7 +42,7 @@ export function TemplateModal({ onSelect, onLoadObligations, onClose, ctx, pendi
       subtitle="Έτοιμες λίστες εργασιών και οι υποχρεώσεις που προκύπτουν από τον νόμο για αυτό το ακίνητο.">
       {visibleSmart.length > 0 && (
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 10 }}>Προτεινόμενα για εσένα</div>
+          <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 10 }}>Προτεινόμενα για εσένα</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {visibleSmart.map(s => {
               const t = TEMPLATES[s.templateKey]
@@ -55,7 +55,7 @@ export function TemplateModal({ onSelect, onLoadObligations, onClose, ctx, pendi
                     <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7.4-6.3-4.6L5.7 21 8 14 2 9.4h7.6z"/></svg>
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{s.title}</div>
+                    <div style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{s.title}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{s.reason}{t ? ` · ${t.items.length} εργασίες` : ''}</div>
                   </div>
                   <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M9 18l6-6-6-6"/></svg>
@@ -66,7 +66,7 @@ export function TemplateModal({ onSelect, onLoadObligations, onClose, ctx, pendi
         </div>
       )}
       <div>
-        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 10 }}>Υποχρεώσεις &amp; νομοθεσία</div>
+        <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 10 }}>Υποχρεώσεις &amp; νομοθεσία</div>
         {/* ΟΧΙ «Ημερολόγιο ΑΑΔΕ 2026» με δέκα σταθερές ημερομηνίες 1ης του
             μήνα. Οι υποχρεώσεις υπολογίζονται για ΑΥΤΟ το ακίνητο, από το ένα
             φορολογικό ημερολόγιο και από τις αλλαγές νομοθεσίας που το
@@ -95,7 +95,7 @@ export function TemplateModal({ onSelect, onLoadObligations, onClose, ctx, pendi
         </button>
       </div>
       <div>
-        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 10 }}>Λίστες εργασιών</div>
+        <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 10 }}>Λίστες εργασιών</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 230px), 1fr))', gap: 10 }}>
           {entries.map(([key, t]) => {
             const icons: Record<string, string> = {
@@ -117,11 +117,11 @@ export function TemplateModal({ onSelect, onLoadObligations, onClose, ctx, pendi
                   <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{path.split(' M').map((seg, j) => <path key={j} d={(j === 0 ? '' : 'M') + seg} />)}</svg>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{t.label}</div>
+                  <div style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{t.label}</div>
                   {/* ΚΑΝΕΝΑ «~1.850 €» ΕΔΩ. Το σύνολο ήταν άθροισμα 24 σταθερών
                       χωρίς πηγή, έτος ή περιοχή. Στη θέση του μπαίνει ο λόγος
                       που το πρότυπο εμφανίζεται σε αυτόν τον χρήστη. */}
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{t.items.length} εργασίες{t.why ? ` · ${t.why}` : ''}</div>
+                  <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 2 }}>{t.items.length} εργασίες{t.why ? ` · ${t.why}` : ''}</div>
                 </div>
               </button>
             )

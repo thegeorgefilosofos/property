@@ -102,8 +102,8 @@ export function BankLinkTile({ minHeight = 172 }: { minHeight?: number }) {
       onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'var(--accent-dim)'; }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.background = 'var(--bg-elevated)'; }}>
       <span style={{ marginBottom: 12, display: 'inline-flex' }}><BankGlyph /></span>
-      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4, color: 'var(--text-primary)' }}>{BANK_LINK_TITLE}</div>
-      <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+      <div style={{ fontSize: 'var(--fs-base)', fontWeight: 700, marginBottom: 4, color: 'var(--text-primary)' }}>{BANK_LINK_TITLE}</div>
+      <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>
         {state === 'open' ? 'Οι κινήσεις σου, έτοιμες' : 'Σύντομα διαθέσιμο'}
       </div>
     </div>

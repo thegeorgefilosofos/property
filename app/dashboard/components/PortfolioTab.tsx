@@ -706,8 +706,8 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
                     <SelectBox checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} label={`Επιλογή ${r.name}`} />
                   </td>
                   <td className="pf-pin-2" style={{ padding: '13px 14px' }}>
-                    <div style={{ fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{r.name}</div>
-                    <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)' }}>{r.typeLabel}</div>
+                    <div style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)' }}>{r.name}</div>
+                    <div style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>{r.typeLabel}</div>
                   </td>
                   <td style={{ padding: '13px 14px' }}>
                     {/* Η κατάσταση είναι ΟΝΟΜΑ, όχι κρίση: το «Κενό» δεν είναι
@@ -720,7 +720,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
                   <Num v={eur(r.net)} bold />
                   <td style={{ padding: '13px 14px', textAlign: 'right' }} title={occupancyTitle(r)}>
                     {r.occupancy != null
-                      ? <span style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 13, color: 'var(--text-primary)' }}>{fp(r.occupancy)}</span>
+                      ? <span style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 'var(--fs-base)', color: 'var(--text-primary)' }}>{fp(r.occupancy)}</span>
                       : <span style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-tertiary)' }}>{r.mode === 'short' ? ABSENT_SHORT : 'Δεν ισχύει'}</span>}
                   </td>
                   <td style={{ padding: '13px 14px', textAlign: 'right' }}>
@@ -746,7 +746,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
           </table>
         </div>
       </div>
-      <div style={{ marginTop: 10, fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
+      <div style={{ marginTop: 10, fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
         {/* Ήταν τέσσερις προτάσεις σε τρεις σειρές, κάτω από πίνακα δύο γραμμών.
             Οι δύο εξηγούσαν ορισμούς που ζουν ήδη ως επεξήγηση πάνω σε κάθε
             κελί και η τελευταία περιέγραφε ότι μια γραμμή πίνακα ανοίγει. */}
@@ -846,14 +846,14 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
                 <tbody>
                   {stmt.rows.map(r => (
                     <tr key={r.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                      <td style={{ padding: '11px 14px', fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{r.name}</td>
+                      <td style={{ padding: '11px 14px', fontFamily: T.font.sans, fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)' }}>{r.name}</td>
                       <Num v={eur(r.revenue)} mark={r.revenueEstimated ? 'εκτίμηση' : undefined} title={revenueTitle(r)} />
                       <Num v={eur(r.expenses)} muted />
                       <Num v={eur(r.net)} bold />
                     </tr>
                   ))}
                   <tr style={{ borderTop: '2px solid var(--border-subtle)' }}>
-                    <td style={{ padding: '13px 14px', fontFamily: T.font.sans, fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Σύνολο</td>
+                    <td style={{ padding: '13px 14px', fontFamily: T.font.sans, fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--text-primary)' }}>Σύνολο</td>
                     <Num v={eur(stmt.revenue)} bold />
                     <Num v={eur(stmt.expenses)} muted bold />
                     <Num v={eur(stmt.net)} bold />
@@ -879,7 +879,7 @@ function Th({ label, k, sort, asc, onSort, align = 'right', pin }: { label: stri
   const active = k && sort === k;
   return (
     <th onClick={k && onSort ? () => onSort(k) : undefined} className={pin ? 'pf-pin-2' : undefined}
-      style={{ padding: '11px 14px', textAlign: align, fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: active ? 'var(--accent)' : 'var(--text-tertiary)', cursor: k ? 'pointer' : 'default', whiteSpace: 'nowrap', userSelect: 'none' }}>
+      style={{ padding: '11px 14px', textAlign: align, fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: active ? 'var(--accent)' : 'var(--text-tertiary)', cursor: k ? 'pointer' : 'default', whiteSpace: 'nowrap', userSelect: 'none' }}>
       {/* Ο ΔΕΙΚΤΗΣ ΤΑΞΙΝΟΜΗΣΗΣ ΕΙΝΑΙ ΣΧΗΜΑ, ΟΧΙ ΧΑΡΑΚΤΗΡΑΣ. Ήταν «↑» και «↓»
           μέσα στο κείμενο της επικεφαλίδας: άλλαζε το πλάτος της στήλης όταν
           εμφανιζόταν, δεν κληρονομούσε το βάρος της γραμματοσειράς και σε
@@ -901,10 +901,10 @@ function Num({ v, muted, bold, tone, mark, title }: { v: string; muted?: boolean
   // ενώ τα πλακίδια από πάνω τα έγραφαν στην αριθμητική του θέματος: το ίδιο
   // «0,00 €» φαινόταν δύο διαφορετικά πράγματα σε απόσταση εκατό εικονοστοιχείων.
   return (
-    <td title={title} style={{ padding: '13px 14px', textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 13, fontWeight: bold ? 700 : 400, color: tone || (muted ? 'var(--text-secondary)' : 'var(--text-primary)') }}>
+    <td title={title} style={{ padding: '13px 14px', textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 'var(--fs-base)', fontWeight: bold ? 700 : 400, color: tone || (muted ? 'var(--text-secondary)' : 'var(--text-primary)') }}>
       {v}
       {/* Η σήμανση της εκτίμησης μπαίνει ΔΙΠΛΑ ΣΤΟ ΠΟΣΟ: σε υποσημείωση δεν τη διαβάζει κανείς. */}
-      {mark && <span style={{ marginLeft: 5, fontFamily: T.font.sans, fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)' }}>{mark}</span>}
+      {mark && <span style={{ marginLeft: 5, fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-tertiary)' }}>{mark}</span>}
     </td>
   );
 }

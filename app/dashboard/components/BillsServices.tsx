@@ -156,12 +156,12 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
   const secHdr = (label: string, sub?: string, link?: { url: string; text: string }) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
       <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>{label}</div>
-        {sub && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 1 }}>{sub}</div>}
+        <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontFamily: T.font.sans }}>{label}</div>
+        {sub && <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 1 }}>{sub}</div>}
       </div>
       {link?.url && (
         <a href={link.url} target="_blank" rel="noopener noreferrer"
-          style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.pill, padding: '3px 10px', whiteSpace: 'nowrap' as const }}>
+          style={{ fontSize: 'var(--fs-xs)', color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, fontFamily: T.font.sans, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.pill, padding: '3px 10px', whiteSpace: 'nowrap' as const }}>
           {link.text}
         </a>
       )}
@@ -178,9 +178,9 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
   const svcHdr = (label: string, active: boolean, onToggle: (v: boolean) => void, cost?: number) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: active ? 16 : 0, paddingBottom: active ? 10 : 0, borderBottom: active ? '1px solid var(--border-subtle)' : 'none' }}>
       <Toggle on={active} onChange={onToggle} ariaLabel={label}/>
-      <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.06em', color: active ? 'var(--text-primary)' : 'var(--text-secondary)', fontFamily: T.font.sans }}>{label}</span>
+      <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.06em', color: active ? 'var(--text-primary)' : 'var(--text-secondary)', fontFamily: T.font.sans }}>{label}</span>
       {active && typeof cost === 'number' && cost > 0 && (
-        <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(cost)} / μήνα</span>
+        <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(cost)} / μήνα</span>
       )}
     </div>
   );
@@ -221,9 +221,9 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap: 10, marginBottom: 16 }}>
             {kpis.map(k => (
               <div key={k.label} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '16px 18px' }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{k.label}</div>
+                <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>{k.label}</div>
                 <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.value}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 6 }}>{k.sub}</div>
+                <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 6 }}>{k.sub}</div>
               </div>
             ))}
           </div>
@@ -301,7 +301,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
               : `Συνήθως ${fp(TYPICAL_SHARE.min)} έως ${fp(TYPICAL_SHARE.max)} του λογαριασμού`}
           </div>
         </div>
-        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>
+        <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10, fontFamily: T.font.sans }}>
           Ο χρόνος σε μήνες{dimotikaAvg > 0 ? `, μέσος όρος ${fe(dimotikaAvg)}` : ''}
         </div>
         {/* ΙΔΙΑ ΚΛΑΣΗ ΜΕ ΤΑ ΠΕΔΙΑ ΑΠΟ ΚΑΤΩ, ώστε η στήλη κάθε μήνα να πέφτει
@@ -320,7 +320,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                 {/* ΤΟ ΨΗΛΟ ΤΟ ΛΕΕΙ ΤΟ ΥΨΟΣ. Ο μήνας πάνω από τον μέσο όρο ήταν
                     ΚΑΙ κόκκινος — η ίδια πληροφορία δεύτερη φορά, σε χρώμα που
                     σημαίνει σφάλμα. Ενας ακριβός μήνας δεν είναι σφάλμα. */}
-                <div style={{ fontSize: 11, color: isCur ? 'var(--accent)' : isHov ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', height: 14, display: 'flex', alignItems: 'flex-end' }}>
+                <div style={{ fontSize: 'var(--fs-xs)', color: isCur ? 'var(--accent)' : isHov ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', height: 14, display: 'flex', alignItems: 'flex-end' }}>
                   {val != null && val > 0 ? Math.round(val) : ''}
                 </div>
                 {/* Ο άγνωστος μήνας δεν παίρνει στήλη δύο εικονοστοιχείων: μια
@@ -339,7 +339,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
         <div className="po-year" style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 10 }}>
           {MONTHS_SHORT.map((mo, i) => (
             <div key={i}>
-              <label style={{ fontSize: 11, color: i === currentMonth ? 'var(--accent)' : 'var(--text-secondary)', display: 'block', marginBottom: 4, textAlign: 'center' as const, fontFamily: T.font.sans, transition: 'color 0.15s' }}>
+              <label style={{ fontSize: 'var(--fs-xs)', color: i === currentMonth ? 'var(--accent)' : 'var(--text-secondary)', display: 'block', marginBottom: 4, textAlign: 'center' as const, fontFamily: T.font.sans, transition: 'color 0.15s' }}>
                 <span style={{ display: 'block', marginBottom: 4 }}>{mo}</span>
                 {/* Ο υπολογισμένος μήνας μπαίνει ως placeholder, όχι ως τιμή: ο
                     χρήστης βλέπει τι ξέρει η εφαρμογή και το πεδίο μένει άδειο
@@ -382,7 +382,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
               <TextInput   label="Σημειώσεις"         value={s.cleaningNotes} onChange={v => upd({ cleaningNotes: v })} placeholder="κάθε Τετάρτη"/>
             </div>
             {cleaningM > 0 && (
-              <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, border: '1px solid var(--border-subtle)' }}>
+              <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)', fontFamily: T.font.sans, border: '1px solid var(--border-subtle)' }}>
                 Μηνιαίο: <strong style={{ color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(cleaningM)}</strong>
                 {s.cleaningHours && s.cleaningCostPerVisit && parseFloat(s.cleaningHours) > 0 && (
                   <span style={{ marginLeft: 14 }}>Ωριαίο: <strong style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(parseFloat(s.cleaningCostPerVisit) / parseFloat(s.cleaningHours))} / ώρα</strong></span>
@@ -441,7 +441,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
               <TextInput  label="Σημειώσεις"        value={s.acNotes}      onChange={v => upd({ acNotes: v })}      placeholder="Κάθε Απρίλιο"/>
             </div>
             {s.acServiceCost && s.acUnits && parseFloat(s.acServiceCost) > 0 && (
-              <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, border: '1px solid var(--border-subtle)' }}>
+              <div style={{ background: 'var(--bg-elevated)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)', fontFamily: T.font.sans, border: '1px solid var(--border-subtle)' }}>
                 Ετήσιο σέρβις: <strong style={{ color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe((parseFloat(s.acServiceCost) || 0) * (parseInt(s.acUnits) || 1))}</strong>
                 <span style={{ marginLeft: 14 }}>Μηνιαία αναγωγή: <strong style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe((parseFloat(s.acServiceCost) || 0) * (parseInt(s.acUnits) || 1) / 12)}</strong></span>
               </div>
@@ -512,9 +512,9 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
             <div>
               <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{o.name}</span>
-              {o.contact && <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 10, fontFamily: T.font.sans }}>{o.contact}</span>}
-              {o.phone   && <span style={{ fontSize: 11, color: 'var(--accent)',           marginLeft: 10, fontFamily: T.font.sans }}>{o.phone}</span>}
-              <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 10, fontFamily: T.font.sans }}>{FREQ.find(f => f.value === o.freq)?.label}</span>
+              {o.contact && <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginLeft: 10, fontFamily: T.font.sans }}>{o.contact}</span>}
+              {o.phone   && <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--accent)',           marginLeft: 10, fontFamily: T.font.sans }}>{o.phone}</span>}
+              <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginLeft: 10, fontFamily: T.font.sans }}>{FREQ.find(f => f.value === o.freq)?.label}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(toMonthly(o.cost, o.freq))} / μήνα</span>
@@ -550,17 +550,17 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
                 <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{r.label}</span>
                 <div>
                   <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(r.amount)} / μήνα</span>
-                  <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 10, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(r.amount * 12)} / έτος</span>
+                  <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginLeft: 10, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(r.amount * 12)} / έτος</span>
                 </div>
               </div>
               <Bar pct={totalServices > 0 ? (r.amount / totalServices) * 100 : 0} height={4} track="var(--bg-overlay)" label={`Μερίδιο, ${r.label}`} />
             </div>
           ))}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderTop: '2px solid var(--border-subtle)', marginTop: 8 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, fontFamily: T.font.sans }}>Σύνολο υπηρεσιών</span>
+            <span style={{ fontSize: 'var(--fs-base)', fontWeight: 700, fontFamily: T.font.sans }}>Σύνολο υπηρεσιών</span>
             <div style={{ textAlign: 'right' as const }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(totalServices)} / μήνα</div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginTop: 3 }}>{fe(totalServices * 12)} / έτος</div>
+              <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginTop: 3 }}>{fe(totalServices * 12)} / έτος</div>
             </div>
           </div>
         </div>

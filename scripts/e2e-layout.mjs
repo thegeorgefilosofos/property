@@ -660,9 +660,22 @@ const DEVICES = [
   { w: 320, h: 640,  name: 'Samsung μεγάλη γραμματοσειρά' },
   { w: 360, h: 640,  name: 'Galaxy A5, A6' },
   { w: 360, h: 800,  name: 'Galaxy A12 ώς A55' },
-  { w: 375, h: 812,  name: 'iPhone SE, 13 mini' },
+  { w: 375, h: 812,  name: 'iPhone SE 2/3, 8, 13 mini' },
+  // ═══ ΤΑ IPHONE ΠΟΥ ΔΕΝ ΣΑΡΩΝΟΝΤΑΝ ΠΟΤΕ ═══════════════════════════════════
+  // Ο κατάλογος είχε 320, 375, 412 και 430: τρία Android και δύο άκρα. Εξι από
+  // τα εννέα πραγματικά πλάτη iPhone έλειπαν — ΚΑΙ ΤΑ ΔΥΟ ΠΙΟ ΚΟΙΝΑ. Το 390
+  // είναι κάθε iPhone 12, 13, 14 και 16e· το 393 είναι 14 Pro, 15 και 16. Ο
+  // ιδιοκτήτης ανέφερε σφάλματα στο δικό του τηλέφωνο και είχε δίκιο: κοιτάζαμε
+  // δίπλα του. Τρία εικονοστοιχεία αρκούν όταν μια στήλη χάνει τη στοίχισή της
+  // στα 391.
+  { w: 390, h: 844,  name: 'iPhone 12, 13, 14, 16e' },
+  { w: 393, h: 852,  name: 'iPhone 14 Pro, 15, 16' },
+  { w: 402, h: 874,  name: 'iPhone 16 Pro' },
   { w: 412, h: 915,  name: 'Galaxy A71, Pixel' },
-  { w: 430, h: 932,  name: 'iPhone Pro Max' },
+  { w: 414, h: 896,  name: 'iPhone XR, 11, 8 Plus' },
+  { w: 428, h: 926,  name: 'iPhone 12, 13, 14 Pro Max' },
+  { w: 430, h: 932,  name: 'iPhone 15, 16 Plus και Pro Max' },
+  { w: 440, h: 956,  name: 'iPhone 16 Pro Max' },
   { w: 768, h: 1024, name: 'ταμπλέτα κάθετη' },
   { w: 820, h: 1180, name: 'iPad Air' },
   { w: 900, h: 1200, name: 'ταμπλέτα οριζόντια' },
@@ -714,7 +727,6 @@ function inflateText(k) {
 const PICK_W = process.env.E2E_WIDTHS ? process.env.E2E_WIDTHS.split(',').map(Number) : null
 const RUN_DEVICES = PICK_W ? DEVICES.filter(d => PICK_W.includes(d.w)) : DEVICES
 
-const WIDTHS = DEVICES.map(d => d.w)
 const TOUCH = (w) => w < 1100 || w === 1280
 // ═══ ΤΑ ΠΑΡΑΘΥΡΑ ΠΟΥ ΑΝΟΙΓΟΥΝ ΜΕ ΚΟΥΜΠΙ ═════════════════════════════════════
 // ΜΙΑ ΦΟΡΜΑ ΜΕΣΑ ΣΕ ΠΑΡΑΘΥΡΟ ΔΕΝ ΑΠΟΔΙΔΕΤΑΙ ΑΝ ΔΕΝ ΤΗΝ ΑΝΟΙΞΕΙ ΚΑΠΟΙΟΣ. Η φόρμα

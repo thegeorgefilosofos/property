@@ -316,7 +316,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
   const onFieldBlur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => { e.currentTarget.style.borderColor = 'var(--border-default)'; };
   // Ύψος από την κοινή κλίμακα: το ίδιο segmented control ζει αυτούσιο και στο
   // LeaseModal με το ίδιο literal 34, οπότε κάθε τοπική αλλαγή τα ξεσυγχρόνιζε.
-  const seg = (m: AdjMethod): React.CSSProperties => ({ flex: 1, fontSize: 13, fontWeight: 600, height: T.h.md, borderRadius: T.radius.inner, cursor: 'pointer', textAlign: 'center', border: 'none', background: method === m ? 'var(--accent)' : 'transparent', color: method === m ? 'var(--accent-text)' : 'var(--text-secondary)', fontFamily: T.font.sans, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' });
+  const seg = (m: AdjMethod): React.CSSProperties => ({ flex: 1, fontSize: 'var(--fs-base)', fontWeight: 600, height: T.h.md, borderRadius: T.radius.inner, cursor: 'pointer', textAlign: 'center', border: 'none', background: method === m ? 'var(--accent)' : 'transparent', color: method === m ? 'var(--accent-text)' : 'var(--text-secondary)', fontFamily: T.font.sans, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' });
   // ΤΟ ΔΙΑΚΡΙΤΙΚΟ ΠΟΥ ΛΕΕΙ ΑΠΟ ΠΟΥ ΗΡΘΕ Ο ΑΡΙΘΜΟΣ, ΓΙΑ ΠΟΙΑ ΠΕΡΙΟΔΟ ΚΑΙ ΠΟΤΕ
   // ΕΝΗΜΕΡΩΘΗΚΕ. Ένα πεδίο που γεμίζει μόνο του χωρίς να πει από πού, σε έγγραφο
   // που θα υπογραφεί, είναι χειρότερο από άδειο πεδίο: ο χρήστης δεν ξέρει τι
@@ -393,7 +393,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
 
   const footerInfo = pending ? (
     <span style={{ display: 'inline-block', minWidth: 220 }}>
-      <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+      <span style={{ display: 'block', fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)' }}>
         {archived ? 'Αποθηκεύτηκε στα έγγραφα του ακινήτου.' : SAY.archiveAsk}
       </span>
       {/* Η ΣΙΩΠΗΛΗ ΕΓΓΡΑΦΗ ΣΕ ΧΡΗΜΑΤΙΚΟ ΠΕΔΙΟ ΛΕΓΕΤΑΙ. Η γραμμή βγαίνει μόνο
@@ -480,7 +480,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
                   μίσθωμα, με τον ίδιο δείκτη του ίδιου μήνα. */}
               {priorReady && priorUnknown && !priorSameMonth && (
                 <div style={{ border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', borderRadius: T.radius.card, padding: '12px 16px', marginBottom: 16 }}>
-                  <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>
+                  <p style={{ margin: 0, fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>
                     Το μητρώο εγγράφων δεν απάντησε.
                   </p>
                   <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>
@@ -489,14 +489,14 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, cursor: 'pointer', minHeight: 44 }}>
                     <input type="checkbox" checked={priorAck} onChange={e => setPriorAck(e.target.checked)}
                       style={{ width: 16, height: 16, accentColor: 'var(--accent)', flexShrink: 0 }} />
-                    <span style={{ fontSize: 13, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Το έλεγξα, προχώρα</span>
+                    <span style={{ fontSize: 'var(--fs-base)', color: 'var(--text-primary)', fontFamily: T.font.sans }}>Το έλεγξα, προχώρα</span>
                   </label>
                 </div>
               )}
 
               {priorSameMonth && (
                 <div style={{ border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', borderRadius: T.radius.card, padding: '12px 16px', marginBottom: 16 }}>
-                  <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>
+                  <p style={{ margin: 0, fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>
                     Έχει ήδη εκδοθεί ειδοποίηση για αυτόν τον μήνα ισχύος.
                   </p>
                   <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.55 }}>
@@ -511,7 +511,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, cursor: 'pointer', minHeight: 44 }}>
                     <input type="checkbox" checked={priorAck} onChange={e => setPriorAck(e.target.checked)}
                       style={{ width: 16, height: 16, accentColor: 'var(--accent)', flexShrink: 0 }} />
-                    <span style={{ fontSize: 13, color: 'var(--text-primary)', fontFamily: T.font.sans }}>Το ξέρω, θέλω δεύτερη ειδοποίηση</span>
+                    <span style={{ fontSize: 'var(--fs-base)', color: 'var(--text-primary)', fontFamily: T.font.sans }}>Το ξέρω, θέλω δεύτερη ειδοποίηση</span>
                   </label>
                 </div>
               )}
@@ -569,7 +569,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
                 </div>
               </div>
 
-              {err && <div style={{ fontSize: 13, color: 'var(--negative)', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.inner, padding: '10px 14px' }}>{err}</div>}
+              {err && <div style={{ fontSize: 'var(--fs-base)', color: 'var(--negative)', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.inner, padding: '10px 14px' }}>{err}</div>}
             </>
           )}
       </>

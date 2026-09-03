@@ -63,7 +63,7 @@ export default function DemoPreview({ open, onClose, onAddProperty }: {
 
       {/* ── Η ΚΑΤΑΣΤΑΣΗ ──────────────────────────────────────────────────── */}
       <div>
-        <div style={{ ...TT.label, fontSize: 11, marginBottom: 10 }}>ΑΠΟ ΤΟ ΕΝΟΙΚΙΟ ΣΤΟ ΤΑΜΕΙΟ</div>
+        <div style={{ ...TT.label, fontSize: 'var(--fs-xs)', marginBottom: 10 }}>ΑΠΟ ΤΟ ΕΝΟΙΚΙΟ ΣΤΟ ΤΑΜΕΙΟ</div>
         <div style={{ border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, overflow: 'hidden' }}>
           {lines.map((l, i) => {
             const strong = l.kind === 'subtotal' || l.kind === 'result';
@@ -75,7 +75,7 @@ export default function DemoPreview({ open, onClose, onAddProperty }: {
                 background: strong ? 'var(--bg-elevated)' : 'transparent',
               }}>
                 <span style={{ ...TT.bodySm, color: strong ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: strong ? 700 : 400 }}>{l.label}</span>
-                <span style={{ ...numStyle, fontSize: 13, fontWeight: strong ? 700 : 500, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                <span style={{ ...numStyle, fontSize: 'var(--fs-base)', fontWeight: strong ? 700 : 500, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
                   {l.negative ? `− ${fe(l.amount)}` : fe(l.amount)}
                 </span>
               </div>
@@ -96,7 +96,7 @@ export default function DemoPreview({ open, onClose, onAddProperty }: {
 
       {/* ── ΤΟ ΙΣΟΖΥΓΙΟ ──────────────────────────────────────────────────── */}
       <div>
-        <div style={{ ...TT.label, fontSize: 11, marginBottom: 10 }}>ΟΙ ΔΑΠΑΝΕΣ ΚΑΙ Ο ΛΟΓΑΡΙΑΣΜΟΣ ΤΟΥΣ</div>
+        <div style={{ ...TT.label, fontSize: 'var(--fs-xs)', marginBottom: 10 }}>ΟΙ ΔΑΠΑΝΕΣ ΚΑΙ Ο ΛΟΓΑΡΙΑΣΜΟΣ ΤΟΥΣ</div>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {ledger.map((r, i) => (
             <div key={r.category} style={{
@@ -105,7 +105,7 @@ export default function DemoPreview({ open, onClose, onAddProperty }: {
             }}>
               <span style={{ ...TT.bodySm, color: 'var(--text-primary)', flex: 1, minWidth: 0 }}>{r.label}</span>
               <span style={{ ...TT.caption, fontFamily: T.font.mono, whiteSpace: 'nowrap' }}>{r.account}</span>
-              <span style={{ ...numStyle, fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', minWidth: 84, textAlign: 'right' }}>{fe(r.amount)}</span>
+              <span style={{ ...numStyle, fontSize: 'var(--fs-base)', fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', minWidth: 84, textAlign: 'right' }}>{fe(r.amount)}</span>
             </div>
           ))}
         </div>

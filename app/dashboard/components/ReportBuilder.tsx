@@ -282,7 +282,7 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
   // ίδια κλίμακα.
   const field: React.CSSProperties = {
     height: T.h.md, padding: '0 13px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)',
-    background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 13, fontWeight: 500, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box', cursor: 'pointer',
+    background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 'var(--fs-base)', fontWeight: 500, fontFamily: T.font.sans, outline: 'none', boxSizing: 'border-box', cursor: 'pointer',
   };
   // Ουδέτερη επιλογή: η κάρτα μένει ήρεμη· μόνο το κουτάκι ελέγχου παίρνει accent.
   const pill = (on: boolean): React.CSSProperties => ({
@@ -383,7 +383,7 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
                     </span>
                     <span>
                       <span style={{ display: 'block', fontWeight: 660, letterSpacing: '-0.01em' }}>{s.label}</span>
-                      <span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3, fontWeight: 400, lineHeight: 1.4 }}>{s.hint}</span>
+                      <span style={{ display: 'block', fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 3, fontWeight: 400, lineHeight: 1.4 }}>{s.hint}</span>
                     </span>
                   </button>
                 );
@@ -400,7 +400,7 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
             </div>
           </div>
 
-          {err && <div style={{ fontSize: 13, color: 'var(--negative)', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 14px' }}>{err}</div>}
+          {err && <div style={{ fontSize: 'var(--fs-base)', color: 'var(--negative)', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 14px' }}>{err}</div>}
       </>
     </Modal>
   );

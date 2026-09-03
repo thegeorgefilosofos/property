@@ -126,7 +126,7 @@ function BasisSwitch({ value, onChange, enabled, labels }: {
 function Drivers({ c }: { c: Comparison }) {
   const max = Math.max(...c.drivers.map(d => Math.abs(d.diff)), 1);
   const anyFlag = c.drivers.some(d => d.isNew || d.vanished);
-  const flag: React.CSSProperties = { fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight: 400, whiteSpace: 'nowrap' };
+  const flag: React.CSSProperties = { fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight: 400, whiteSpace: 'nowrap' };
   return (
     <div style={{
       display: 'grid', alignItems: 'center', columnGap: 12, rowGap: 10,
@@ -149,7 +149,7 @@ function Drivers({ c }: { c: Comparison }) {
                 background: 'color-mix(in srgb, var(--text-primary) 30%, transparent)',
               }} />
             </span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', justifySelf: 'end' }}>
+            <span style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)', justifySelf: 'end' }}>
               <Eur value={d.diff} sign />
             </span>
             {anyFlag && <span style={flag}>{d.isNew ? 'νέο' : d.vanished ? 'σταμάτησε' : ''}</span>}
@@ -211,7 +211,7 @@ function HistoryBars({ points, currentKey }: { points: MonthPoint[]; currentKey:
             <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>{p.label}</span>
             <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}><Eur value={p.total} /></span>
             {yoy !== null && Math.abs(yoy) >= 1 && (
-              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+              <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>
                 <Eur value={yoy} sign dim={false} /> από πέρσι
               </span>
             )}
@@ -229,7 +229,7 @@ function HistoryBars({ points, currentKey }: { points: MonthPoint[]; currentKey:
            του μήνα, δηλαδή το ίδιο νούμερο δύο φορές με το δεύτερο ντυμένο ως
            σύγκριση. Χρειάζονται δύο τιμές για να υπάρχει μέση τιμή. */
         avg > 0 && months >= 2 ? (
-          <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
             μέσος όρος <span style={{ color: 'var(--text-secondary)' }}><Eur value={avg} dim={false} /></span>
             {months < points.length && ` σε ${months === 1 ? 'έναν μήνα' : `${months} μήνες`} με δαπάνες`}
           </span>
@@ -332,7 +332,7 @@ export default function ExpenseCompare({ spends, today }: Props) {
               Η πλήρης φράση ΔΕΝ σβήνεται: ζει για τη μηνιαία ειδοποίηση, που
               φτάνει χωρίς κάρτα, χωρίς ράβδους και χωρίς επικεφαλίδα. */}
           {c.drivers.length === 0 && (
-            <p style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--text-secondary)', fontFamily: T.font.sans, margin: '0 0 12px' }}>
+            <p style={{ fontSize: 'var(--fs-base)', lineHeight: 1.55, color: 'var(--text-secondary)', fontFamily: T.font.sans, margin: '0 0 12px' }}>
               {c.flat
                 ? 'Χωρίς ουσιαστική αλλαγή.'
                 : 'Η διαφορά είναι μοιρασμένη: καμία κατηγορία δεν ξεχωρίζει.'}

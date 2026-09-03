@@ -29,17 +29,17 @@ export function TimelineView({ items, onEdit }: { items: ChecklistItem[]; onEdit
                 onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent)')} onMouseLeave={e => (e.currentTarget.style.borderColor = overdue ? 'var(--negative-border)' : 'var(--border-subtle)')}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: done ? 'var(--text-secondary)' : 'var(--text-primary)', textDecoration: done ? 'line-through' : 'none', marginBottom: 4, fontFamily: T.font.sans }}>{item.description}</div>
+                    <div style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: done ? 'var(--text-secondary)' : 'var(--text-primary)', textDecoration: done ? 'line-through' : 'none', marginBottom: 4, fontFamily: T.font.sans }}>{item.description}</div>
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{cat.label}</span>
+                      <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)' }}>{cat.label}</span>
                       <PriorityCue priority={item.priority} />
-                      {item.assigned_contact_name && <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{item.assigned_contact_name}</span>}
+                      {item.assigned_contact_name && <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)' }}>{item.assigned_contact_name}</span>}
                     </div>
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 12 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: overdue ? 'var(--negative)' : due !== null && due <= 3 && due >= 0 ? 'var(--warning)' : 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{fmtDate(item.due_date)}</div>
-                    {overdue && <div style={{ fontSize: 11, color: 'var(--negative)' }}>πριν {relDays(due || 0)}</div>}
-                    {!overdue && due !== null && due <= 7 && due >= 0 && <div style={{ fontSize: 11, color: 'var(--warning)' }}>{due === 0 ? 'σήμερα' : 'σε ' + relDays(due)}</div>}
+                    {overdue && <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--negative)' }}>πριν {relDays(due || 0)}</div>}
+                    {!overdue && due !== null && due <= 7 && due >= 0 && <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--warning)' }}>{due === 0 ? 'σήμερα' : 'σε ' + relDays(due)}</div>}
                   </div>
                 </div>
               </div>
@@ -54,8 +54,8 @@ export function TimelineView({ items, onEdit }: { items: ChecklistItem[]; onEdit
             const cat = getCat(item.category)
             return (
               <div key={item.id} {...pressable(() => onEdit(item))} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, marginBottom: 6, cursor: 'pointer' }}>
-                <span style={{ fontSize: 13, color: 'var(--text-primary)', flex: 1, fontFamily: T.font.sans }}>{item.description}</span>
-                <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{cat.label}</span>
+                <span style={{ fontSize: 'var(--fs-base)', color: 'var(--text-primary)', flex: 1, fontFamily: T.font.sans }}>{item.description}</span>
+                <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)' }}>{cat.label}</span>
               </div>
             )
           })}

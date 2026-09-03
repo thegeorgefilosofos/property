@@ -532,6 +532,29 @@ export default function ExpenseLedger({ propertyId, userId, onScan, openAddNonce
              ίδιο πράγμα χωρίς να πάρει ούτε ένα pixel. */
           .exp-actions .po-btn[data-variant="secondary"] { color: var(--accent) !important; }
         }
+
+        /* ΚΑΤΩ ΑΠΟ ΤΑ 360 Ο ΤΙΤΛΟΣ ΤΥΛΙΓΕΤΑΙ ΑΝΤΙ ΝΑ ΚΟΠΕΙ. Με τη γραμματοσειρά
+           του σώματος στα 14 σε δάχτυλο, η «Συντήρηση καυστήρα» θέλει 152
+           εικονοστοιχεία και η στήλη δίνει 137 στα 320: έβγαινε «Συντήρηση
+           καυστή…». Μια ετικέτα με αποσιωπητικά δεν είναι ετικέτα, γι' αυτό
+           άλλωστε ο σαρωτής σταμάτησε να τη συγχωρεί.
+           Δύο γραμμές το πολύ, ώστε μια πολύ μεγάλη περιγραφή να μη σπρώξει τη
+           λίστα.
+           Ο ΚΑΝΟΝΑΣ ΑΝΗΚΕΙ ΣΤΗ ΣΥΣΚΕΥΗ, ΟΧΙ ΣΤΟ ΠΛΑΤΟΣ. Η ταμπλέτα στα 768 είναι
+           κι αυτή δάχτυλο, άρα παίρνει το μεγαλύτερο κείμενο — και ταυτόχρονα
+           τη ΦΑΡΔΙΑ διάταξη των τεσσάρων στηλών, όπου ο τίτλος στριμώχνεται
+           δίπλα στα κουμπιά: μετρημένο, κοβόταν 8 εικονοστοιχεία. Με ποντίκι το
+           κείμενο μένει 13 και ο τίτλος χωράει σε μία γραμμή όπως πάντα· το
+           line-clamp δεν τυλίγει ό,τι χωράει. */
+        @media (max-width: 360px), (pointer: coarse) {
+          .exp-title {
+            white-space: normal !important;
+            overflow-wrap: anywhere;
+            display: -webkit-box !important;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+          }
+        }
         /* ═══ ΣΤΑ 320 ΤΟ «ΕΠΕΞΕΡΓΑΣΙΑ» ΘΕΛΕΙ ΕΝΑ ΣΗΜΕΙΟ ΛΙΓΟΤΕΡΟ ══════════════
            ΜΕΤΡΗΜΕΝΟ: η γραμμή δίνει 236 στα τρία κουμπιά, δηλαδή 76 στο καθένα
            μείον τέσσερα κενά· η λέξη «Επεξεργασία» στα 12 θέλει 74 και με το
@@ -707,7 +730,7 @@ export default function ExpenseLedger({ propertyId, userId, onScan, openAddNonce
             height: T.h.md, padding: '0 14px', boxSizing: 'border-box',
             borderRadius: T.radius.btn, border: '1px solid var(--border-default)',
             background: 'var(--bg-surface)', color: 'var(--text-primary)',
-            fontSize: 13, fontFamily: T.font.sans, outline: 'none',
+            fontSize: 'var(--fs-base)', fontFamily: T.font.sans, outline: 'none',
           }}
         />
       </div>}
@@ -853,7 +876,7 @@ export default function ExpenseLedger({ propertyId, userId, onScan, openAddNonce
               <button type="button" className="acc-toggle" onClick={() => setWholeHistory(v => !v)}
                 aria-expanded={wholeHistory}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 44, padding: '0 4px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: T.font.sans }}>
-                <span style={{ ...TT.label, fontSize: 11, color: 'var(--text-secondary)' }}>
+                <span style={{ ...TT.label, fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)' }}>
                   {wholeHistory ? 'Λιγότερα' : 'Περισσότερα'}
                 </span>
                 <span style={{ ...TT.caption, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
@@ -924,7 +947,14 @@ function Row({ e, busy, counts, onPaid, onEdit, onDelete }: { e: LedgerEntry; bu
         {shortDate(e.date)}
       </span>
       <span style={{ minWidth: 0 }}>
-        <span style={{ ...TT.body, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {/* ΣΕ ΠΟΛΥ ΣΤΕΝΗ ΟΘΟΝΗ Ο ΤΙΤΛΟΣ ΤΥΛΙΓΕΤΑΙ ΑΝΤΙ ΝΑ ΚΟΠΕΙ. Με τη γραμματοσειρά
+            του σώματος στα 14 σε δάχτυλο, η «Συντήρηση καυστήρα» θέλει 152
+            εικονοστοιχεία και η στήλη δίνει 137 στα 320: έβγαινε «Συντήρηση
+            καυστή…». Μια ετικέτα με αποσιωπητικά δεν είναι ετικέτα — και το
+            ξέρουμε, γι' αυτό ο σαρωτής σταμάτησε να τη συγχωρεί.
+            Δεύτερη γραμμή σε δύο οθόνες στις έντεκα κοστίζει λιγότερο από μια
+            δαπάνη που δεν διαβάζεται. Πάνω από τα 360 τίποτα δεν αλλάζει. */}
+        <span className="exp-title" style={{ ...TT.body, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {e.title}
         </span>
         {(meta || due) && (
@@ -1463,7 +1493,7 @@ function QuickAdd({ propertyId, userId, seed, onDone }: { propertyId: string; us
       <button type="button" onClick={() => setMoreOpen(o => !o)} aria-expanded={moreOpen}
         className="acc-toggle"
         style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', minHeight: T.h.sm, marginTop: 12, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' as const, padding: 0, fontFamily: T.font.sans }}>
-        <span style={{ ...TT.label, fontSize: 11, color: 'var(--text-secondary)', flex: 1, minWidth: 0 }}>
+        <span style={{ ...TT.label, fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)', flex: 1, minWidth: 0 }}>
           {moreOpen ? 'Λιγότερα' : `Περισσότερα: ποιος πληρώνει${paid ? ', ΑΦΜ προμηθευτή' : ''}`}
         </span>
         <ChevronRight aria-hidden size={15} style={{ flexShrink: 0, color: 'var(--text-tertiary)', transform: moreOpen ? 'rotate(90deg)' : 'none', transition: 'transform .18s' }} />

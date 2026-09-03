@@ -107,11 +107,11 @@ export default function OccupancyPanel({ propertyId, userId }: {
   if (!loading && !isShort) return null;
 
   const label: React.CSSProperties = {
-    fontFamily: T.font.sans, fontSize: 11, fontWeight: 700,
+    fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 700,
     textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)',
   };
   const note: React.CSSProperties = {
-    fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.65,
+    fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', lineHeight: 1.65,
   };
   const num: React.CSSProperties = { fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' };
 
@@ -196,9 +196,9 @@ export default function OccupancyPanel({ propertyId, userId }: {
                       const h = peakNights > 0 ? Math.max(3, Math.round((n / peakNights) * 40)) : 3;
                       return (
                         <div key={i} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                          <span style={{ ...num, fontSize: 11, color: n > 0 ? 'var(--text-secondary)' : 'var(--text-tertiary)' }}>{n}</span>
+                          <span style={{ ...num, fontSize: 'var(--fs-xs)', color: n > 0 ? 'var(--text-secondary)' : 'var(--text-tertiary)' }}>{n}</span>
                           <div style={{ width: '100%', maxWidth: 48, height: h, borderRadius: 3, background: n > 0 ? 'var(--accent)' : 'var(--border-default)', opacity: n > 0 ? 1 : 0.5 }} />
-                          <span style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)' }}>{MONTHS_SHORT[i]}</span>
+                          <span style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>{MONTHS_SHORT[i]}</span>
                         </div>
                       );
                     })}
@@ -240,7 +240,7 @@ export default function OccupancyPanel({ propertyId, userId }: {
                   {tax.levy > 0 && (
                     <>
                       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, marginTop: 12 }}>
-                        <span style={{ fontFamily: T.font.sans, fontSize: 13, color: 'var(--text-secondary)' }}>Τέλος ανθεκτικότητας</span>
+                        <span style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-base)', color: 'var(--text-secondary)' }}>Τέλος ανθεκτικότητας</span>
                         <span style={{ ...num, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{fe(tax.levy)}</span>
                       </div>
                       <div style={{ ...note, marginTop: 8 }}>

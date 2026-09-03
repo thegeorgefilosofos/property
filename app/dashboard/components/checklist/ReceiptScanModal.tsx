@@ -198,7 +198,7 @@ export function ReceiptScanModal({ item, propertyId, userId, onClose, onSaved }:
           </button>
           {/* Το περιθώριο 12 έγινε 0: το σώμα του <Modal> έχει ήδη δικό του gap
               ανάμεσα στα παιδιά και τα δύο μαζί έδιναν διπλό κενό. */}
-          <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, margin: 0, lineHeight: 1.5 }}>
+          <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.sans, margin: 0, lineHeight: 1.5 }}>
             Το αρχείο μπαίνει στο Αρχείο του ακινήτου και η δαπάνη καταχωρείται πληρωμένη. Χωρίς αρχείο δεν γράφεται ποσό πουθενά.
           </p>
         </>
@@ -207,7 +207,7 @@ export function ReceiptScanModal({ item, propertyId, userId, onClose, onSaved }:
       {stage === 'reading' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '16px 0' }}>
           <Skeleton h={16} r={6} /><Skeleton h={16} r={6} /><Skeleton h={16} r={6} />
-          <p style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans, margin: 0 }}>Διαβάζω το έγγραφο…</p>
+          <p style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', fontFamily: T.font.sans, margin: 0 }}>Διαβάζω το έγγραφο…</p>
         </div>
       )}
 
@@ -221,7 +221,7 @@ export function ReceiptScanModal({ item, propertyId, userId, onClose, onSaved }:
                 έδωσε, το πεδίο λείπει και η θέση μένει κενή: το «Διαβάστηκε
                 καθαρά» ήταν κρίση πάνω σε προεπιλογή 70 που δεν είπε κανείς. */}
             {typeof doc.confidence === 'number' && (
-              <span style={{ marginLeft: 'auto', fontSize: 11, color: doc.confidence >= 80 ? 'var(--text-tertiary)' : 'var(--warning)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
+              <span style={{ marginLeft: 'auto', fontSize: 'var(--fs-xs)', color: doc.confidence >= 80 ? 'var(--text-tertiary)' : 'var(--warning)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
                 {doc.confidence >= 80 ? 'Διαβάστηκε καθαρά' : 'Έλεγξε τα πεδία'}
               </span>
             )}
@@ -232,7 +232,7 @@ export function ReceiptScanModal({ item, propertyId, userId, onClose, onSaved }:
           </div>
           <div><FL>Πάροχος</FL><Inp ariaLabel="Πάροχος" value={provider} onChange={setProvider} placeholder="Παράδειγμα: Υδραυλικές Εργασίες ΕΠΕ" /></div>
           <div><FL>Περιγραφή δαπάνης</FL><Inp ariaLabel="Περιγραφή δαπάνης" value={desc} onChange={setDesc} placeholder="Περιγραφή" /></div>
-          <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, margin: 0, lineHeight: 1.5 }}>
+          <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.sans, margin: 0, lineHeight: 1.5 }}>
             Καταχωρείται ως <strong style={{ color: 'var(--text-secondary)' }}>{expenseCategoryFor(item.category).cat}</strong>, πληρωμένη, με το αρχείο συνημμένο στο Αρχείο.
           </p>
         </div>

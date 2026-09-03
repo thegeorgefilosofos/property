@@ -458,8 +458,8 @@ export function SecHdr({ label, sub, info, right }: { label: string; sub?: strin
           στον τίτλο κρατά δεκατέσσερα εικονοστοιχεία και λέει τα ίδια. Τα δύο
           δεν αποκλείονται: όποια κεφαλίδα χρειάζεται ΚΑΙ τα δύο, τα έχει. */}
       <div style={{ flex: '1 1 200px', minWidth: 0 }}>
-        <div style={{ ...TT.label, fontSize: 11 }}>{label}{info}</div>
-        {sub && <div style={{ ...TT.caption, fontSize: 11, marginTop: 2 }}>{sub}</div>}
+        <div style={{ ...TT.label, fontSize: 'var(--fs-xs)' }}>{label}{info}</div>
+        {sub && <div style={{ ...TT.caption, fontSize: 'var(--fs-xs)', marginTop: 2 }}>{sub}</div>}
       </div>
       {right}
     </div>
@@ -673,7 +673,7 @@ export function Tile({ label, value, sub, subTone, tone, title, info, chars, hal
       {/* Ουδέτερο by default· ο σημασιολογικός τόνος αποκαλύπτεται στο hover ή
           στο άγγιγμα (data-tone + globals.css), για χαμηλού θορύβου look. */}
       <KpiValue value={value} chars={chars} half={half} tone={toned ? tone : undefined} />
-      {sub && <div style={{ fontSize: 11, lineHeight: 1.4, fontWeight: subTone ? 600 : 400, color: (subTone && TONE_COLOR[subTone]) || 'var(--text-tertiary)', fontFamily: T.font.sans }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 'var(--fs-xs)', lineHeight: 1.4, fontWeight: subTone ? 600 : 400, color: (subTone && TONE_COLOR[subTone]) || 'var(--text-tertiary)', fontFamily: T.font.sans }}>{sub}</div>}
     </div>
   );
 }
@@ -1057,7 +1057,7 @@ export function Bar({
 export function Badge({ children, tone = 'neutral' }: { children: ReactNode; tone?: Tone }) {
   const tv = toneVars(tone);
   return (
-    <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: T.radius.badge, background: tv.bg, border: `1px solid ${tv.border}`, color: tv.color, fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, textTransform: 'uppercase' as const, letterSpacing: '0.04em' }}>
+    <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, padding: '3px 9px', borderRadius: T.radius.badge, background: tv.bg, border: `1px solid ${tv.border}`, color: tv.color, fontFamily: T.font.sans, whiteSpace: 'nowrap' as const, textTransform: 'uppercase' as const, letterSpacing: '0.04em' }}>
       {children}
     </span>
   );
@@ -1081,7 +1081,7 @@ export function Badge({ children, tone = 'neutral' }: { children: ReactNode; ton
 export function Chip({ children, tone = 'neutral', title }: { children: ReactNode; tone?: Tone; title?: string }) {
   const tv = toneVars(tone);
   return (
-    <span title={title} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: T.radius.pill, background: tv.bg, border: `1px solid ${tv.border}`, color: tv.color, fontFamily: T.font.sans, maxWidth: '100%', whiteSpace: 'normal' as const, overflowWrap: 'anywhere' as const, letterSpacing: '0.01em', lineHeight: 1.4 }}>
+    <span title={title} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-xs)', fontWeight: 700, padding: '3px 9px', borderRadius: T.radius.pill, background: tv.bg, border: `1px solid ${tv.border}`, color: tv.color, fontFamily: T.font.sans, maxWidth: '100%', whiteSpace: 'normal' as const, overflowWrap: 'anywhere' as const, letterSpacing: '0.01em', lineHeight: 1.4 }}>
       {children}
     </span>
   );
@@ -1109,7 +1109,7 @@ export function InfoBanner({ children, tone = 'info' }: { children: ReactNode; t
   return (
     <div style={{ background: tv.bg, border: `1px solid ${tv.border}`, borderRadius: T.radius.inner, padding: '10px 16px', marginBottom: 10, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
       <div style={{ width: 6, height: 6, borderRadius: '50%', background: tv.color, flexShrink: 0, marginTop: 6 }}/>
-      <div style={{ flex: 1, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.6 }}>{children}</div>
+      <div style={{ flex: 1, fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.6 }}>{children}</div>
     </div>
   );
 }
@@ -1415,7 +1415,7 @@ export function EmptyState({ title, hint, action, icon }: { title: string; hint?
     <div style={{ padding: '22px 2px', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
         {icon && <span aria-hidden style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--text-tertiary)', flexShrink: 0 }}>{icon}</span>}
-        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>{title}</span>
+        <span style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-secondary)' }}>{title}</span>
       </div>
       {hint && <div style={{ fontSize: 12, lineHeight: 1.6, textWrap: 'pretty' as const }}>{hint}</div>}
       {action && <div style={{ marginTop: 14 }}>{action}</div>}

@@ -180,7 +180,7 @@ export default function PropertySwitcher({ items, activeId, onSelect, onAdd, can
                 style={{
                   width: '100%', height: 36, padding: '0 10px', borderRadius: 8,
                   border: '1px solid var(--border-default)', background: 'var(--bg-base)',
-                  color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 13,
+                  color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 'var(--fs-base)',
                 }} />
             </div>
           )}
@@ -190,7 +190,7 @@ export default function PropertySwitcher({ items, activeId, onSelect, onAdd, can
             aria-activedescendant={searchable ? undefined : activeOptionId}
             style={{ maxHeight: 'min(340px, calc(100vh - 180px))', overflowY: 'auto', overscrollBehavior: 'contain', padding: 4, outline: 'none' }}>
             {shown.length === 0 ? (
-              <p style={{ margin: 0, padding: '14px 12px', fontFamily: T.font.sans, fontSize: 13, color: 'var(--text-tertiary)' }}>
+              <p style={{ margin: 0, padding: '14px 12px', fontFamily: T.font.sans, fontSize: 'var(--fs-base)', color: 'var(--text-tertiary)' }}>
                 Κανένα ακίνητο δεν ταιριάζει.
               </p>
             ) : shown.map((it, k) => {
