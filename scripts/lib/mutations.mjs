@@ -335,6 +335,10 @@ export const MUTATIONS = {
   'single-source': { add: 'lib/core/__mut__.ts', content: 'export const parseAmount = (v: string) => Number(v.replace(",", "."))\n' },
   'landing-stats': { file: 'app/page.tsx', from: "{ n: '11', u: 'πάροχοι ρεύματος'", to: "{ n: '12', u: 'πάροχοι ρεύματος'" },
   'public-routes': { file: 'proxy.ts', from: '"/kathari-apodosi",', to: '' },
+  // Μια συνάρτηση cron που κρίνει μόνη της το μυστικό, όπως το ical-sync που
+  // γύριζε 401 σε κάθε εκτέλεση επί μήνες.
+  'cron-auth': { file: 'supabase/functions/ical-sync/index.ts',
+    from: 'await authorizeCron(req', to: 'handRolledCronCheck(req' },
   'ci-minutes': { file: '.github/workflows/health.yml', from: 'cron:', to: "cron: '*/5 * * * *'   # μετάλλαξη\n    # cron:" },
   // Ένα npm script που δείχνει σε αρχείο του scripts/ και δεν το καλεί κανένα
   // workflow: ακριβώς το «γραμμένος και μη συνδεδεμένος».

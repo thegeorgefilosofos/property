@@ -15,12 +15,30 @@
 //   • Απλός έλεγχος SSRF: μπλοκάρει localhost/ιδιωτικά δίκτυα.
 // ═══════════════════════════════════════════════════════════════════════════
 import { createClient } from 'npm:@supabase/supabase-js@2.110.8'
-import { timingSafeEqual } from '../_shared/auth.ts'
+import { authorizeCron } from '../_shared/auth.ts'
 import { reportEdgeError } from '../_shared/report.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SERVICE_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const ANON_KEY     = Deno.env.get('SUPABASE_ANON_KEY')!
+// ═══ ΤΟ ΜΥΣΤΙΚΟ ΖΕΙ ΣΕ ΔΥΟ ΣΠΙΤΙΑ ΚΑΙ ΤΟ ΕΝΑ ΗΤΑΝ ΑΔΕΙΟ ═══════════════════════
+// ΜΕΤΡΗΜΕΝΟ ΣΤΗΝ ΠΑΡΑΓΩΓΗ, 03/09/2026: μέσα στο παράθυρο που κρατά το pg_net
+// (~6 ώρες) το `ical-sync-3h` έτρεξε ΔΥΟ φορές —03:20 και 06:20— και ΚΑΙ ΟΙ ΔΥΟ
+// γύρισαν 401. Δηλαδή ο συγχρονισμός ημερολογίων από Airbnb και Booking, που
+// είναι ολόκληρο χαρακτηριστικό της βραχυχρόνιας μίσθωσης, ήταν ΝΕΚΡΟΣ — και
+// σιωπηλά, γιατί κανείς δεν κοιτάζει το `net._http_response`.
+//
+// ΤΟ ΑΙΤΙΟ ΕΙΝΑΙ Η ΑΣΥΜΦΩΝΙΑ ΤΩΝ ΔΥΟ ΣΠΙΤΙΩΝ. Η εργασία cron στέλνει το μυστικό
+// που ζει στον πίνακα `public.cron_secrets` (`ical_cron`, με εφεδρικό το
+// `email_cron`). Αυτή η συνάρτηση διάβαζε μεταβλητή περιβάλλοντος
+// `ICAL_CRON_SECRET`, που δεν είχε τεθεί ποτέ — και το `if (!CRON_SECRET)`
+// γύριζε 401 πριν καν συγκρίνει.
+//
+// Οι νεότερες συναρτήσεις δεν έχουν αυτό το πρόβλημα επειδή περνούν από τον
+// κοινό `authorizeCron`, που δέχεται ΚΑΙ τα τρία: το κλειδί υπηρεσίας, τη
+// μεταβλητή περιβάλλοντος όταν υπάρχει, ΚΑΙ το μυστικό από τη βάση. Ενα σπίτι
+// λιγότερο να ξεχαστεί. Η διόρθωση είναι κώδικας, όχι ρύθμιση: δεν χρειάζεται
+// να τεθεί καμία μεταβλητή πουθενά.
 const CRON_SECRET  = Deno.env.get('ICAL_CRON_SECRET') || ''
 
 const admin = createClient(SUPABASE_URL, SERVICE_KEY)
@@ -373,7 +391,7 @@ Deno.serve(async (req) => {
 
     // ── Cron/service: συγχρονισμός ΟΛΩΝ των ενεργών συνδέσμων ──
     if (action === 'sync-all' || cronHeader) {
-      if (!CRON_SECRET || !timingSafeEqual(cronHeader || '', CRON_SECRET)) return json({ error: 'unauthorized' }, 401)
+      if (!(await authorizeCron(req, { serviceKey: SERVICE_KEY, envSecret: CRON_SECRET, supabase: admin, dbSecretName: ['ical_cron', 'email_cron'] }))) return json({ error: 'unauthorized' }, 401)
       const { data: feeds } = await admin.from('ical_feeds').select('*').eq('active', true)
       const results = []
       for (const f of (feeds || []) as Feed[]) results.push(await syncFeed(f))

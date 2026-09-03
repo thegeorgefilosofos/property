@@ -56,7 +56,7 @@ interface CronAuthOpts {
   serviceKey?: string        // SUPABASE_SERVICE_ROLE_KEY — accepted as Bearer
   envSecret?: string         // per-function *_CRON_SECRET env (optional)
   supabase?: MinimalSupabaseClient
-  dbSecretName?: string      // row name in public.cron_secrets (default 'email_cron')
+  dbSecretName?: string | string[]  // row name(s) in public.cron_secrets (default 'email_cron')
 }
 
 // Authorize a cron/service request (zero-config): accepts (a) the service-role
@@ -69,13 +69,23 @@ export async function authorizeCron(req: Request, opts: CronAuthOpts): Promise<b
   if (serviceKey && timingSafeEqual(bearer, serviceKey)) return true
   const header = req.headers.get('x-cron-secret') || ''
   if (envSecret && timingSafeEqual(header, envSecret)) return true
+  // ═══ ΤΟ ΟΝΟΜΑ ΜΠΟΡΕΙ ΝΑ ΕΙΝΑΙ ΠΕΡΙΣΣΟΤΕΡΑ ΑΠΟ ΕΝΑ, ΟΠΩΣ ΣΤΟΝ ΚΑΛΟΥΝΤΑ ═══════
+  // Οι εργασίες cron γράφουν `coalesce((… 'ical_cron'), (… 'email_cron'))`:
+  // στέλνουν το ειδικό μυστικό αν υπάρχει, αλλιώς το κοινό. Η συνάρτηση όμως
+  // συνέκρινε με ΕΝΑ όνομα. Οταν τα δύο δεν συμπίπτουν, η κλήση γυρίζει 401 —
+  // και επειδή κανείς δεν κοιτάζει το `net._http_response`, το χαρακτηριστικό
+  // πεθαίνει αθόρυβα. Ο κατάλογος δοκιμάζεται με τη ΣΕΙΡΑ που τον γράφει ο
+  // καλών, δηλαδή ίδια προτεραιότητα με το `coalesce`.
+  const names = Array.isArray(dbSecretName) ? dbSecretName : [dbSecretName]
   if (supabase && header) {
-    try {
-      const table = supabase.from('cron_secrets') as CronSecretTable
-      const { data } = await table.select('secret').eq('name', dbSecretName).maybeSingle()
-      const dbSecret = data?.secret || ''
-      if (dbSecret && timingSafeEqual(header, dbSecret)) return true
-    } catch { /* fall through to unauthorized */ }
+    for (const name of names) {
+      try {
+        const table = supabase.from('cron_secrets') as CronSecretTable
+        const { data } = await table.select('secret').eq('name', name).maybeSingle()
+        const dbSecret = data?.secret || ''
+        if (dbSecret && timingSafeEqual(header, dbSecret)) return true
+      } catch { /* fall through to unauthorized */ }
+    }
   }
   return false
 }
