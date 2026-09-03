@@ -21,7 +21,6 @@ import { localDay } from '@/lib/core/time';
 // ιδιοκτήτης δίνει στον λογιστή ή στην τράπεζα.
 import { fp, fn, feCompact, grUpper } from '@/lib/core/format';
 import { INK, INK_FAINT, INK_MUTED, PAPER_ALT, RULE, RULE_SOFT } from '@/lib/print/ink';
-import { BRAND_MARK_INK } from '@/components/BrandMark';
 import { BRAND_MARK_DATA_URL } from '@/lib/brand/mark';
 
 // ── ΜΟΡΦΟΠΟΙΗΣΗ — ΙΔΙΑ ΜΕ ΤΗΝ ΟΘΟΝΗ ΚΑΙ ΜΕ ΤΙΣ ΕΚΤΥΠΩΣΕΙΣ ────────────────────

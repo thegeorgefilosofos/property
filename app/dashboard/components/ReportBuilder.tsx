@@ -27,6 +27,7 @@ import { MONTHS_NOM } from '@/lib/core/months';
 import { failed } from '@/lib/core/dbError';
 import { monthEndIso } from '@/lib/core/time';
 import { useRemembered } from '@/components/useRememberedFlag';
+import { toggleIn } from '@/lib/core/toggleSet';
 
 interface Prop { id: string; name: string; address: string | null }
 interface RentRow { property_id: string | null; period_year: number | null; period_month: number | null; amount: number | null; paid: boolean | null }
@@ -104,7 +105,7 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
   const yearsAvail = useMemo(() => Array.from({ length: 7 }, (_, i) => nowYear - i), [nowYear]);
   const selProps = useMemo(() => props.filter(p => propIds.has(p.id)), [props, propIds]);
 
-  const toggle = <X,>(set: Set<X>, v: X, setter: (s: Set<X>) => void) => { const n = new Set(set); n.has(v) ? n.delete(v) : n.add(v); setter(n); };
+  const toggle = <X,>(set: Set<X>, v: X, setter: (s: Set<X>) => void) => { setter(toggleIn(set, v)); };
 
   if (!open) return null;
 

@@ -25,7 +25,7 @@ import * as inventoryStore from '@/lib/data/inventory';
 import * as accountantLink from '@/lib/data/accountantLink';
 import type { LoanView } from '@/lib/loans/shape'
 import type { TaxStay } from '@/lib/tax/shortTermTax'
-import { saved, savedData } from '@/components/dbWrite'
+import { saved } from '@/components/dbWrite'
 import BankImport from './BankImport'
 import E2ReconcileCard from './E2ReconcileCard'
 import { Landmark, Lock, Unlock } from 'lucide-react'

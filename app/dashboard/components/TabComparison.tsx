@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as expenses from '@/lib/data/expenses';
 import * as billStore from '@/lib/data/bills';
@@ -20,7 +20,7 @@ import { resolveValue } from '@/lib/billing/propertyFacts';
 import { mergeLedger, ledgerTotal, recurringMonthly, monthlyAverage } from '@/lib/expenses/ledger';
 import { loanInstalment } from '@/lib/loans/shape';
 import { athensToday } from '@/lib/core/time';
-import type { ExpensesRow, BillsRow, TenantsRow } from '@/lib/supabase/tables';
+import type { BillsRow } from '@/lib/supabase/tables';
 import { useLoad } from '@/app/hooks/useLoad';
 
 interface Property {

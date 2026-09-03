@@ -33,7 +33,7 @@ import * as expenseStore from '@/lib/data/expenses'
 import * as billStore from '@/lib/data/bills'
 import ExpenseCompare from './ExpenseCompare';
 import type { Spend } from '@/lib/expenses/compare';
-import { T, TT, PageTitle, fe, fn, Btn, Card, EmptyState, Modal, Skeleton, KpiValue, fixedCols, ABSENT_DATE, Stat } from '@/components/Theme';
+import { T, TT, PageTitle, fe, fn, Btn, Card, EmptyState, Modal, Skeleton, fixedCols, ABSENT_DATE, Stat } from '@/components/Theme';
 import { ChevronRight } from 'lucide-react';
 import { notify, notifyError } from '@/components/toastBus';
 import { confirmDialog } from '@/components/ConfirmDialog';

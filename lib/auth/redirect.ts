@@ -26,7 +26,6 @@ export function safeNext(raw: string | null | undefined, fallback: string = HOME
   // Δεύτερος χαρακτήρας κάθετος ή ανάποδη κάθετος: διεύθυνση άλλου τόπου.
   if (v[1] === '/' || v[1] === '\\') return fallback;
   // Χαρακτήρες ελέγχου στην κεφαλίδα «Location» σπάνε την απόκριση στα δύο.
-  // eslint-disable-next-line no-control-regex
   if (/[\u0000-\u001f\u007f]/.test(v)) return fallback;
   return v;
 }

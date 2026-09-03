@@ -20,7 +20,6 @@
 // την εγγραφή — που είναι ο γρηγορότερος τρόπος να χάσεις την εμπιστοσύνη του.
 // ═══════════════════════════════════════════════════════════════════════════
 import { useMemo, useId } from 'react';
-import Link from 'next/link';
 import { T, TT, feAuto, fn, fp, fixedCols } from '@/components/tokens';
 import {
   rentalIncomeTax, marginalRate, effectiveRentalRate,

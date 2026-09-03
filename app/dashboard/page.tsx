@@ -73,7 +73,7 @@ import { printPropertyStatement } from './components/statement';
 import { useReportBranding } from '@/lib/reportBranding';
 import { computeInsights } from '@/lib/insights/engine';
 import { annuityMonthly } from '@/lib/loans/recommend';
-import { LOAN_COLUMNS, toLoanViews, type LoanView } from '@/lib/loans/shape';
+import { type LoanView } from '@/lib/loans/shape';
 import { stayTotal } from '@/lib/clients/clients';
 import { clearHistory as clearAssistantHistory, planBriefing } from './components/assistantPersona';
 import { leaveDevice } from '@/lib/localPrivacy';

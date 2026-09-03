@@ -39,8 +39,7 @@
 // όχι με κόκκινο. Το κόκκινο θα ήταν ετυμηγορία· η σειρά είναι πληροφορία.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { T, EmptyState } from '@/components/Theme';
-import { CircleCheckBig } from 'lucide-react';
+import { T } from '@/components/Theme';
 import { dueParts, overdueCount, type AgendaItem } from '@/lib/home/agenda';
 
 export default function AgendaPanel({ items, total, onNavigate }: {

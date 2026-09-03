@@ -8,6 +8,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { T } from '@/components/Theme';
+import { toggleIn } from '@/lib/core/toggleSet';
 
 interface Item { id: string; name: string }
 
@@ -33,7 +34,7 @@ export default function PropertyPicker({ items, selected, onChange, loading, pla
     return t ? items.filter(i => i.name.toLowerCase().includes(t)) : items;
   }, [items, q]);
 
-  const toggle = (id: string) => { const n = new Set(selected); n.has(id) ? n.delete(id) : n.add(id); onChange(n); };
+  const toggle = (id: string) => { onChange(toggleIn(selected, id)); };
   const toggleAll = () => onChange(allOn ? new Set() : new Set(items.map(i => i.id)));
 
   const summary = loading ? 'Φόρτωση…'

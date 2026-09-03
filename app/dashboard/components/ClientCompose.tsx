@@ -17,6 +17,7 @@ import { T, TT, Btn, Badge, Modal, ABSENT } from '@/components/Theme';
 import { escHtml as esc } from '@/lib/reportBranding';
 import { INK, INK_FAINT, INK_MUTED, PAPER, PAPER_ALT, RULE } from '@/lib/print/ink';
 import { failed } from '@/lib/core/dbError';
+import { toggleIn } from '@/lib/core/toggleSet';
 
 // Ελάχιστο σχήμα πελάτη που χρειάζεται η σύνθεση (το Client του TabClients το ικανοποιεί).
 export interface ComposeClient {
@@ -85,7 +86,7 @@ export default function ClientCompose({ open, onClose, clients, supabase }: {
   }, [emailable, q]);
 
   const selCount = selected.size;
-  const toggle = (id: string) => setSelected(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggle = (id: string) => setSelected(s => { return toggleIn(s, id); });
   const setMany = (ids: string[]) => setSelected(new Set(ids));
 
   if (!open) return null;

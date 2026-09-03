@@ -20,7 +20,7 @@
 // το εξηγεί με παράγραφο.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { Modal, Btn, T, TT, KpiValue, fe, fp, Stat } from '@/components/Theme';
+import { Modal, Btn, T, TT, fe, fp, Stat } from '@/components/Theme';
 import { DEMO_PROPERTY, demoLedger, demoSummary } from '@/lib/demo/sample';
 import { isoDate } from '@/lib/core/time';
 

@@ -20,7 +20,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Send } from 'lucide-react'
-import { T, TT, Btn, settingsField } from '@/components/Theme'
+import { TT, Btn, settingsField } from '@/components/Theme'
 import { Toggle } from './UIComponents'
 import { SetList, SetRow, SetGroup, SaveNote, useAutosave } from './SettingsKit'
 import DeviceNotifications from './DeviceNotifications'

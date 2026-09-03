@@ -7,7 +7,7 @@
 // παγιώνεται σε στιγμιότυπο με ημερομηνία και το έντυπο τυπώνεται με θέσεις
 // υπογραφής: δεν είναι λογιστική κατάσταση, είναι έγγραφο που υπογράφεται.
 // ═══════════════════════════════════════════════════════════════════════════
-import { useState, useEffect, useId } from 'react'
+import { useState, useId } from 'react'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { T, Btn, EmptyState, ABSENT, formGrid, fieldRow } from '@/components/Theme'
 import { CustomSelect, TextInput, DatePicker } from '../UIComponents'

@@ -5,8 +5,7 @@
 // εργαλεία, με διάκριση φυσικού/νομικού προσώπου όπου έχει σημασία.
 // Πραγματικά δεδομένα αγοράς (lib/market/greekMarket) + μηχανή (lib/market/returns).
 // ═══════════════════════════════════════════════════════════════════════════
-import { useState, useEffect, useMemo, useRef, useId } from 'react';
-import { createPortal } from 'react-dom';
+import { useState, useEffect, useMemo, useId } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import * as properties from '@/lib/data/properties';
 import * as loanStore from '@/lib/data/loans';

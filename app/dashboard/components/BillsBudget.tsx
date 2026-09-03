@@ -13,7 +13,7 @@ import * as tenantStore from '@/lib/data/tenants';
 import * as expenses from '@/lib/data/expenses'
 import * as calendar from '@/lib/data/calendar'
 import { TextInput, Toggle, ToggleTrack } from './UIComponents';
-import { T, TT, fe, feAuto, fp, fn, fixedCols, KPIGrid, Skeleton, SkeletonKPIs, pressable } from '@/components/Theme';
+import { T, fe, feAuto, fp, fn, KPIGrid, Skeleton, SkeletonKPIs, pressable } from '@/components/Theme';
 import { waterMonthly } from '@/lib/energy/tariff';
 import { monthAcc, monthGen, monthYearLabel } from '@/lib/core/months';
 import { randomSuffix } from '@/lib/core/uploadPath';
@@ -35,6 +35,7 @@ import { climateLevyRates, isHighSeasonMonth } from '@/lib/billing/greekTax';
 import { isHouseType } from '@/lib/tax/shortTermTax';
 import { useLoad } from '@/app/hooks/useLoad';
 import { useRemembered } from '@/components/useRememberedFlag';
+import { toggleIn } from '@/lib/core/toggleSet';
 
 // Μήνες-παράθυρα εισφοράς μέχρι την προθεσμία: 0 αν λείπει ή έχει περάσει (σύγκριση
 // ΗΜΕΡΑΣ)· τουλάχιστον 1 για μελλοντική προθεσμία, ακόμη κι αργότερα μέσα στον μήνα.
@@ -348,7 +349,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
     COLLAPSED_SERVER,
   );
   const toggleCollapse = (key: string) => setCollapsedStore((() => {
-    const n = new Set(collapsed); n.has(key) ? n.delete(key) : n.add(key);
+    const n = toggleIn(collapsed, key);
     return n;
   })());
 
@@ -1725,7 +1726,7 @@ export default function BillsBudget({ propertyId, userId = '', profileType = 'in
             const bdItems = isCurMonth ? (catBreakdown[cat.key] || []) : [];
             const hasBd = bdItems.length > 0;
             const openCat = openCats.has(cat.key);
-            const toggleCat = () => setOpenCats(s => { const n = new Set(s); n.has(cat.key) ? n.delete(cat.key) : n.add(cat.key); return n; });
+            const toggleCat = () => setOpenCats(s => { return toggleIn(s, cat.key); });
             return (
               <div key={cat.key} className="po-fig-card" tabIndex={0}
                 onMouseEnter={() => setHoverCat(cat.key)} onMouseLeave={() => setHoverCat(null)}
