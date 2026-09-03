@@ -13,7 +13,7 @@ import * as billing from '@/lib/data/billing'
 import { T, fn, fe, PageTitle, InfoBanner, Btn, EmptyState, Skeleton, SkeletonKPIs, isOverlayOpen, pageShell } from '@/components/Theme'
 import { confirmDialog } from '@/components/confirmBus'
 import { notify, notifyOk } from '@/components/Toast'
-import { saved, savedData } from '@/components/dbWrite'
+import { saved, savedData, optimistic } from '@/components/dbWrite'
 import { ClipboardCheck, SearchX } from 'lucide-react'
 import { useReportBranding } from '@/lib/reportBranding'
 import { annuityMonthly } from '@/lib/loans/recommend'
@@ -380,9 +380,22 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     togglingRef.current.add(item.id)
     try {
       const newStatus: Status = item.status === 'done' ? 'pending' : 'done'
-      // Το τσεκάρισμα είναι η πιο συχνή ενέργεια της οθόνης. Αν αποτύχει σιωπηλά,
-      // ο χρήστης βλέπει το κουτάκι γεμάτο, φεύγει, γυρίζει και το βρίσκει άδειο.
-      if (!await saved('Η κατάσταση δεν αποθηκεύτηκε',
+      // ═══ ΤΟ ΚΟΥΤΑΚΙ ΓΕΜΙΖΕΙ ΠΡΙΝ ΦΥΓΕΙ ΤΟ ΑΙΤΗΜΑ ═══════════════════════════
+      // Το τσεκάρισμα είναι η πιο συχνή ενέργεια της οθόνης — και ήταν η πιο
+      // αργή. Πριν, το κουτάκι δεν κουνιόταν ώσπου να απαντήσει η Φρανκφούρτη
+      // ΚΑΙ να ξανακατέβει ολόκληρο το `fetchAll()`: δύο διαδρομές δικτύου για
+      // ένα κλικ, 300 με 800 χιλιοστά σε ελληνικό κινητό. Στο μεσοδιάστημα η
+      // οθόνη έμοιαζε νεκρή, οπότε ο χρήστης ξαναπατούσε — γι' αυτό υπάρχει και
+      // ο `togglingRef` από πάνω.
+      //
+      // Ο φόβος —«μένει τσεκαρισμένο κάτι που δεν αποθηκεύτηκε»— είναι σωστός
+      // και γι' αυτό η `optimistic` επαναφέρει ΚΑΙ στο σφάλμα του διακομιστή
+      // ΚΑΙ στο πεσμένο δίκτυο, με το μήνυμα να το λέει. Η επαναφορά εδώ είναι
+      // ακριβές αντίστροφο: η ίδια γραμμή, η προηγούμενη κατάστασή της.
+      const before = item.status
+      if (!await optimistic('Η κατάσταση δεν αποθηκεύτηκε',
+          () => setItems(list => list.map(i => i.id === item.id ? { ...i, status: newStatus } : i)),
+          () => setItems(list => list.map(i => i.id === item.id ? { ...i, status: before } : i)),
           checklist.setStatus(supabase, item.id, newStatus))) return
       if (newStatus === 'done') {
         // ΤΟ ΠΑΡΑΣΤΑΤΙΚΟ ΔΕΝ ΞΕ-ΠΛΗΡΩΝΕΤΑΙ ΚΑΙ ΔΕΝ ΞΑΝΑ-ΠΛΗΡΩΝΕΤΑΙ. Εδώ η
