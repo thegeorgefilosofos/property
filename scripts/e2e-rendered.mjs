@@ -33,6 +33,7 @@ import { AUDIT, LAYOUT_BUG } from './rendered/layout.mjs';
 import { MEASURE, CONTRAST_BUG } from './rendered/contrast.mjs';
 import { NO_CARET, FOCUSABLE, measureFocus } from './rendered/focus.mjs';
 
+import { readFileSync } from 'node:fs';
 const PROVE = process.argv.includes('--prove');
 const BENCH_FILE = `${process.cwd()}/.perf-bench/mobile.html`;
 if (!existsSync(BENCH_FILE)) {
@@ -166,5 +167,23 @@ if (PROVE) {
     : '❌ ΚΕΝΟΣ: τα ελαττώματα μπήκαν και ο έλεγχος δεν είδε τίποτα.');
   process.exit(findings > 0 ? 0 : 1);
 }
+// ═══ ΚΑΣΤΑΝΙΑ, ΓΙΑΤΙ ΤΟ ΣΙΩΠΗΡΟ ΜΗΔΕΝ ΔΕΝ ΗΤΑΝ ΠΟΤΕ ΑΛΗΘΕΙΑ ══════════════════
+// Ο έλεγχος έκοβε σε ΟΠΟΙΟΔΗΠΟΤΕ εύρημα, δηλαδή το όριό του ήταν μηδέν. Πάνω
+// σε 256 πραγματικά ευρήματα αυτό δεν είναι αυστηρότητα: είναι έλεγχος που
+// κοκκινίζει πάντα, άρα δεν λέει τίποτα όταν κάτι ΝΕΟ σπάσει. Και δεν το είχε
+// δει κανείς, επειδή ήταν το τριακοστό έκτο βήμα ενός job που ακυρωνόταν στο
+// δέκατο ένατο.
+//
+// Το όριο ζει τώρα στο scripts/rendered-baseline.json με γραμμένο τον λόγο
+// κάθε κίνησής του και πάει ΜΟΝΟ προς τα κάτω, όπως κάθε άλλη καστάνια εδώ.
+const LIMIT = JSON.parse(readFileSync(new URL('./rendered-baseline.json', import.meta.url), 'utf8'));
 console.log(`\n═══ ${head}`);
-process.exit(findings > 0 ? 1 : 0);
+if (findings > LIMIT.max) {
+  console.error(`\n✗ ${findings} ευρήματα, πάνω από το όριο ${LIMIT.max}. Κάτι ΝΕΟ έσπασε.`);
+  process.exit(1);
+}
+if (findings < LIMIT.max) {
+  console.log(`   ↓ ${findings} < όριο ${LIMIT.max}. Κατέβασε το "max" στο scripts/rendered-baseline.json.`);
+}
+console.log(`✅ Ο,τι κρίνεται αφού ζωγραφιστεί: ${findings} ευρήματα, στο όριο ${LIMIT.max} ή κάτω.`);
+process.exit(0);

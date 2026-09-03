@@ -5,18 +5,27 @@ name: CI
 # the domain test-suite, and a production build must all pass. Fast, no secrets,
 # no deploy — this only verifies the code is sound before it can be merged.
 
+# ═══ ΕΝΑ ΣΥΜΒΑΝ, ΟΧΙ ΔΥΟ ═══════════════════════════════════════════════════
+# ΚΑΘΕ PUSH ΕΤΡΕΧΕ ΤΟ CI ΔΥΟ ΦΟΡΕΣ. Υπήρχε και «push: claude/**» και
+# «pull_request»: σε κλάδο με ανοιχτό PR ξυπνούσαν ΚΑΙ ΤΑ ΔΥΟ, η ομάδα
+# συγχρονισμού ακύρωνε το ένα και τα τέσσερα jobs του είχαν ήδη κάνει checkout
+# και «npm ci». Μετρημένο στην εκτέλεση 33661927759: τέσσερα jobs ακυρωμένα
+# στο ένα λεπτό και πέντε δευτερόλεπτα το καθένα, δηλαδή έξι λεπτά δρομέα
+# πεταμένα σε κάθε push, σε όριο 2.000 λεπτών τον μήνα.
+#
+# ΤΟ «pull_request» ΚΑΛΥΠΤΕΙ ΗΔΗ ΤΟ PUSH. Ξυπνά και στο άνοιγμα του PR και σε
+# κάθε νέο commit πάνω του (synchronize), οπότε δεν χάνεται κανένας έλεγχος.
+# Το μόνο που αλλάζει: κλάδος ΧΩΡΙΣ PR δεν τρέχει CI — το τρέχει τη στιγμή που
+# ανοίγει το PR, δηλαδή τη στιγμή που ο κώδικας ζητά να μπει στο main.
 on:
   pull_request:
     branches: [main]
-  push:
-    branches: ['claude/**']
 
 permissions:
   contents: read
 
-# Collapse the PR-event and push-event runs of the SAME branch into one group
-# (head_ref is set on pull_request, ref_name on push — both resolve to the branch
-# name), so a feature branch with an open PR doesn't run CI twice in parallel.
+# Δύο commit στο ίδιο PR δεν χρειάζεται να τρέξουν παράλληλα: το δεύτερο
+# ακυρώνει το πρώτο, γιατί μόνο το τελευταίο κρίνεται.
 concurrency:
   group: ci-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
