@@ -21,7 +21,7 @@ import type { Tenant } from './TabTenantTypes';
 import { T, TT, Btn, Spinner, EmptyState, Modal, fp, fixedCols } from '@/components/Theme';
 import { Building2 } from 'lucide-react';
 import { InfoHint } from './InfoHint';
-import { saved, savedData } from '@/components/dbWrite';
+import { savedData } from '@/components/dbWrite';
 
 import { CustomSelect as Select, DatePicker } from './UIComponents';
 import ScanButton from './ScanButton';

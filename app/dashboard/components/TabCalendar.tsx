@@ -19,7 +19,7 @@ import * as feedStore from '@/lib/data/calendarFeed'
 import { feedUrl } from '@/lib/data/calendarFeed'
 // Ο πίνακας των δανείων έχει ένα σπίτι: lib/data/loans.
 import * as loanStore from '@/lib/data/loans'
-import type { BillsRow, CalendarEventsRow, ClientStaysRow, MaintenanceTasksRow } from '@/lib/supabase/tables'
+import type { BillsRow, ClientStaysRow, MaintenanceTasksRow } from '@/lib/supabase/tables'
 import type { TenantScheduleInput } from './TabTenantHelpers'
 
 // Ό,τι διαβάζει ο συγχρονισμός από κάθε πίνακα, γραμμένο εδώ και μόνο εδώ.
@@ -42,7 +42,6 @@ const joinedFullName = (v: unknown): string | null => {
   if (!one || typeof one !== 'object' || !('full_name' in one)) return null
   return typeof one.full_name === 'string' ? one.full_name : null
 }
-import { savedData } from '@/components/dbWrite'
 import { T, Modal, Spinner, Skeleton, EmptyState, Chip, feAuto, fe, fn, localDay, pressable, CloseButton } from '@/components/Theme'
 import { fixedCols } from '@/components/tokens'
 import type { XlsxSheet, XlsxCol } from './exportXlsx';
@@ -82,6 +81,7 @@ import { MONTHS_NOM, MONTHS_SHORT, DAY_NAMES_SHORT, mondayFirst, monthGen } from
 import { INK, INK_MUTED } from '@/lib/print/ink';
 import { reportHead, reportHeader, reportDisclaimer, openReport, rEsc, rEur } from './reportPdf';
 import { downloadFile } from '@/lib/core/download'
+import { toggleIn } from '@/lib/core/toggleSet'
 
 // Οι τρεις απαριθμήσεις του γεγονότος ζουν στο στρώμα δεδομένων, όχι εδώ: τις
 // γράφουν και άλλες οθόνες και μία λάθος συμβολοσειρά είναι αόρατη μέχρι να
@@ -1895,7 +1895,7 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
     await load(); setDeleteScope(null)
   }
 
-  function toggleSelect(id:string){setSelectedIds(prev=>{const n=new Set(prev);n.has(id)?n.delete(id):n.add(id);return n})}
+  function toggleSelect(id:string){setSelectedIds(prev=>{return toggleIn(prev, id)})}
   async function bulkMarkPaid(){
     if(!selectedIds.size)return
     await saved('Τα γεγονότα δεν σημειώθηκαν ως πληρωμένα', calendar.updateMany(supabase,[...selectedIds],{status:'paid'}))

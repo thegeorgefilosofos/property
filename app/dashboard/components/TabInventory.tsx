@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import * as tenantStore from '@/lib/data/tenants'
 import { CustomSelect, TextInput } from './UIComponents'
@@ -39,6 +39,7 @@ import { HandoverTab } from './inventory/HandoverTab'
 import { MaintenanceTab } from './inventory/MaintenanceTab'
 import { inventoryExports } from './inventory/exports'
 import { useLoad } from '@/app/hooks/useLoad';
+import { toggleIn } from '@/lib/core/toggleSet';
 
 export { INVENTORY_CATEGORIES }
 export type { HandoverIntent }
@@ -280,7 +281,7 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
 }) {
   const [selectMode,setSelectMode] = useState(false)
   const [selected,setSelected] = useState<Set<string>>(new Set())
-  const toggleSel = (id:string) => setSelected(p=>{const n=new Set(p);n.has(id)?n.delete(id):n.add(id);return n})
+  const toggleSel = (id:string) => setSelected(p=>{return toggleIn(p, id)})
   const exitSelect = () => {setSelectMode(false);setSelected(new Set())}
   const [filterCat,setFilterCat] = useState('Όλες')
   const [filterRoom,setFilterRoom] = useState('Όλα')

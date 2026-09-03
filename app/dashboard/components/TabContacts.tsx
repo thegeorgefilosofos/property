@@ -11,7 +11,7 @@ import * as calendar from '@/lib/data/calendar'
 import * as contactStore from '@/lib/data/contacts';
 import { inferRole } from '@/lib/contacts/roles'
 import { alphaBucket, buildAlphaIndex, compareNames, initialsOf, type AlphaEntry } from '@/lib/contacts/alpha'
-import { Phone, Mail, X, Search, Globe, MapPin, FileText, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, Pencil, Trash2, Copy, MessageSquare, UserPlus, Camera, Check, Minus, SearchX } from 'lucide-react'
+import { Phone, Mail, X, Search, Globe, MapPin, FileText, QrCode, Printer, History, Receipt, CalendarPlus, Users, Building2, Wrench, Trees, UserCheck, Zap, Wifi, Landmark, Shield, Pencil, Trash2, Copy, MessageSquare, UserPlus, Camera, SearchX } from 'lucide-react'
 import { DatePicker, CustomSelect, Toggle, InfoDot } from './UIComponents'
 import { T, PageTitle, fieldRow, SecHdr, Btn, EmptyState, fn, fe, Skeleton, SkeletonKPIs, SelectBox, ABSENT, ABSENT_SHORT, Modal, SideSheet, localDay, pressable, pageShell } from '@/components/Theme'
 import { showTool, SHOW_FROM } from '@/lib/ui/thresholds'
@@ -31,6 +31,7 @@ import { MSG, SAY, failed } from '@/lib/core/dbError';
 // Το Αρχείο έχει ένα σπίτι: lib/data/documents.
 import * as documents from '@/lib/data/documents';
 import { useLoad } from '@/app/hooks/useLoad';
+import { toggleIn } from '@/lib/core/toggleSet';
 
 // ── Δομικά του ντοσιέ επαφής ──────────────────────────────────────────────
 // ΣΕ MODULE SCOPE: ορισμένα μέσα στο DossierPanel, ξαναγεννιούνταν σε κάθε
@@ -1630,7 +1631,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
     if (!await confirmDialog({ title: 'Διαγραφή Επαφής;', message: 'Αυτή η ενέργεια δεν αναιρείται.', confirmLabel: 'Διαγραφή', tone: 'negative' })) return
     await handleDelete(c.id)
   }
-  const toggleSelect = (id: string) => setSelected(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n })
+  const toggleSelect = (id: string) => setSelected(p => { return toggleIn(p, id) })
   const bulkDelete = async () => {
     // Το στιγμιότυπο των ids παίρνεται ΠΡΙΝ την ερώτηση. Με το native confirm η
     // σελίδα πάγωνε, οπότε το `selected` δεν μπορούσε να αλλάξει όσο ρωτούσαμε.

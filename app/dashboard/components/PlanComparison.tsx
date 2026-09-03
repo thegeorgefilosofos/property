@@ -14,7 +14,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState, type ReactNode } from 'react';
-import { PLANS, PLAN_ORDER, annualPerMonth, TRIAL_DAYS, type PlanId } from '@/lib/billing/plans';
+import { PLANS, PLAN_ORDER, annualPerMonth, type PlanId } from '@/lib/billing/plans';
 import { aiLimitsFor } from '@/lib/billing/aiLimits';
 import { ASSISTANT_NAME, ASSISTANT_ACC } from '@/lib/assistant/identity';
 import { FEATURE_LABEL, FEATURE_MIN_PLAN, planAtLeast, type Feature } from '@/lib/billing/entitlements';

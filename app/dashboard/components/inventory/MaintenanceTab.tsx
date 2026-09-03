@@ -8,7 +8,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { useState, useId } from 'react'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
-import { T, EmptyState, fe, formGrid } from '@/components/Theme'
+import { T, fe, formGrid } from '@/components/Theme'
 import { CustomSelect, NumberInput, TextInput, DatePicker } from '../UIComponents'
 import * as calendar from '@/lib/data/calendar'
 import * as expenses from '@/lib/data/expenses'
@@ -21,7 +21,6 @@ import { DEFAULT_MAINTENANCE, type InventoryItem, type MaintenanceSchedule } fro
 import { addMonths, daysUntil, fmtDate } from './calc'
 import { Badge, OverflowMenu, IconTrash, SectionLabel, labelStyle, cardStyle } from './Bits'
 import { ActionMenu } from '@/components/ActionMenu'
-import { ClipboardCheck } from 'lucide-react'
 
 const supabase = createSupabaseClient()
 

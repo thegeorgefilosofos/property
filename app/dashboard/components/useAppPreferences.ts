@@ -9,7 +9,7 @@
 // Single source of truth για τις προτιμήσεις & δυνατότητες της εφαρμογής.
 // Αποθηκεύονται στον πίνακα bills_settings (section: 'app_preferences') ως JSON blob.
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 // Οι ρυθμίσεις ανά ενότητα έχουν ένα σπίτι: lib/data/settings.
 import * as settings from '@/lib/data/settings';

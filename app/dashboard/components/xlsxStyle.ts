@@ -11,7 +11,7 @@ import { downloadFile, safeFilename } from '@/lib/core/download';
 // ΤΟ ΚΑΘΑΡΟ ΣΤΥΛ ΖΕΙ ΔΙΠΛΑ, ΚΑΙ ΔΕΝ ΞΑΝΑΕΞΑΓΕΤΑΙ ΑΠΟ ΕΔΩ. Μια επανεξαγωγή θα
 // έδινε στους πάντες έναν εύκολο δρόμο να πάρουν τη `money()` σέρνοντας μαζί
 // της τα 2,5 MB της βιβλιοθήκης — δηλαδή ακριβώς το σφάλμα που διορθώνεται.
-import { FMT, S, ROW, MARGINS, boxAll, MARK_INDENT, sheetName, money, percent, type Cell } from './sheetFormat';
+import { S, ROW, MARGINS, MARK_INDENT, type Cell } from './sheetFormat';
 import { BRAND_MARK_PNG } from '@/lib/brand/mark';
 export { XLSX };
 

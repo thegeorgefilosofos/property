@@ -17,7 +17,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { supplyOf, type Supply } from '../tax/placeOfSupply';
-import { isValidAfm, afmDigits } from '../core/greek';
+import { isValidAfm } from '../core/greek';
 
 /**
  * ΤΟ ΠΡΟΘΕΜΑ ΤΟΥ ΑΡΙΘΜΟΥ ΦΠΑ ΕΙΝΑΙ Η ΧΩΡΑ, ΚΑΙ ΤΟ ΓΡΑΦΕΙ ΚΑΘΕ ΤΙΜΟΛΟΓΙΟ.

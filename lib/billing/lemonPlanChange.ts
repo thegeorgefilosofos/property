@@ -32,7 +32,6 @@
 // ξαναρχίσει —ούτε να κόψει— δοκιμή που ήδη τρέχει.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import type { PlanId, BillingCycle } from './plans';
 import { lemonRequest, subscriptionOf } from './lemonApi';
 import { isMorStatus, type MorStatus, type ChangeKind } from './subscription';
 

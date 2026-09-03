@@ -918,7 +918,6 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
   // εταιρείας και ίδιο αναγνωριστικό προγράμματος, ο υπολογισμός έμενε στην
   // παλιά — και η στήλη «εξοικονόμηση» έβγαινε από λάθος ασφάλιστρο, δηλαδή
   // λάθος νούμερο σε οθόνη που ζητά απόφαση αλλαγής παρόχου.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveSqm, insPropValue, insContentValue, effectiveFloor, effectiveAge, insCustomPrice, insPlanId, insCompany?.plans, quotesKey]);
 
   const insPlan    = (insCompany?.plans ?? []).find(p => p.id === insPlanId);

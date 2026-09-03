@@ -1,8 +1,8 @@
 'use client'
-import { useEffect, useState } from 'react'
 import type { LoanDoc } from './TabLoanData'
 import { T, Bar } from '@/components/Theme'
 import { useRemembered } from '@/components/useRememberedFlag'
+import { toggleIn } from '@/lib/core/toggleSet'
 
 // Επαγγελματική, ελεγχόμενη λίστα δικαιολογητικών: τικάρεις ό,τι έχεις μαζέψει,
 // βλέπεις πρόοδο και η κατάσταση διατηρείται (ανά ακίνητο/τύπο δανείου).
@@ -22,7 +22,7 @@ export default function DocChecklist({ docs, storageKey, title = 'Δικαιολ
     NONE,
   )
   const toggle = (i: number) => {
-    const n = new Set(done); n.has(i) ? n.delete(i) : n.add(i)
+    const n = toggleIn(done, i)
     if (storageKey) setDone(n)
   }
   const total = docs.length

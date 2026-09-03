@@ -37,6 +37,7 @@ import { navLabel } from '@/lib/nav/labels';
 import { applyFilters, facetOptions, toggleValue, clearAll, groupByMonth, sumValues, isSelectionEmpty, FACET_KEYS, FACET_LABEL, type Selection, type TimeGroup } from '@/lib/archive/facets';
 import { SAY } from '@/lib/core/dbError';
 import { useLoad } from '@/app/hooks/useLoad';
+import { toggleIn } from '@/lib/core/toggleSet';
 
 /* ════════════════════════════════════════════════════════════════════════
    ΑΡΧΕΙΟ — μία επίπεδη λίστα με όψεις, ΧΩΡΙΣ φακέλους.
@@ -592,7 +593,7 @@ export default function TabDocuments({
   const applyRename = async (title: string) => { if (renameItem && title.trim()) await updateDocs([renameItem], { title: title.trim().slice(0, 200) }); setRenameItem(null); };
   const applyFix = async (p: Record<string, unknown>) => { if (fixItems?.length) await updateDocs(fixItems, p); setFixItems(null); setSelected(new Set()); };
 
-  const toggleSel = (id: string) => setSelected(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleSel = (id: string) => setSelected(p => { return toggleIn(p, id); });
   const selItems = useMemo(() => items.filter(i => selected.has(i.id)), [items, selected]);
   const selDocs = useMemo(() => selItems.filter(i => i.raw && i.raw.kind === 'document'), [selItems]);
   const selRaw = useMemo(() => selItems.filter(i => i.raw), [selItems]);

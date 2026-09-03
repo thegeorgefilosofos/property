@@ -10,7 +10,7 @@ import { BulkActionBar } from './UIComponents'
 import * as loanStore from '@/lib/data/loans'
 import * as contactStore from '@/lib/data/contacts'
 import * as billing from '@/lib/data/billing'
-import { T, fn, fe, fp, PageTitle, InfoBanner, Btn, EmptyState, Skeleton, SkeletonKPIs, isOverlayOpen, pageShell } from '@/components/Theme'
+import { T, fn, fe, PageTitle, InfoBanner, Btn, EmptyState, Skeleton, SkeletonKPIs, isOverlayOpen, pageShell } from '@/components/Theme'
 import { confirmDialog } from '@/components/confirmBus'
 import { notify, notifyOk } from '@/components/Toast'
 import { saved, savedData } from '@/components/dbWrite'
@@ -60,6 +60,7 @@ import { ItemModal } from './checklist/ItemModal'
 import { ReceiptScanModal } from './checklist/ReceiptScanModal'
 import { exportChecklistExcel, exportChecklistPDF, exportHandoverProtocol } from './checklist/reports'
 import { useLoad } from '@/app/hooks/useLoad'
+import { toggleIn } from '@/lib/core/toggleSet'
 
 const supabase = createSupabaseClient()
 
@@ -523,7 +524,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     fetchAll(); notifyOk(`«${tpl.label}» φορτώθηκε, ${tpl.items.length} εργασίες`)
   }
 
-  const toggleSelect = (id: string) => setSelected(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n })
+  const toggleSelect = (id: string) => setSelected(p => { return toggleIn(p, id) })
   const bulkComplete = async () => {
     const count = selected.size; if (!count) return
     const ids = [...selected]

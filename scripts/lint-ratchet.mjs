@@ -23,6 +23,18 @@ import { readFileSync } from 'node:fs'
 
 const baseline = JSON.parse(readFileSync(new URL('./lint-baseline.json', import.meta.url), 'utf8'))
 const cap = baseline.maxErrors
+// ═══ ΤΟ «0 ERRORS» ΗΤΑΝ ΑΛΗΘΕΙΑ ΚΑΙ ΔΙΑΒΑΖΟΤΑΝ ΩΣ «ΚΑΘΑΡΟ» ═══════════════════
+// Ο μετρητής κοιτούσε ΜΟΝΟ severity 2. Το μήνυμα «Lint ratchet passed — 0
+// errors» είναι σωστό και ταυτόχρονα παραπλανητικό: την ίδια στιγμή ο κώδικας
+// έβγαζε 235 προειδοποιήσεις, από τις οποίες 119 αχρησιμοποίητες μεταβλητές σε
+// κώδικα παραγωγής και 63 εξαρτήσεις hooks. Χρέος που δεν μετριέται δεν πέφτει
+// ποτέ — και χειρότερα, μεγαλώνει χωρίς να το πάρει κανείς είδηση, επειδή το
+// βήμα από πάνω τυπώνει πράσινο.
+//
+// Οι προειδοποιήσεις παίρνουν δικό τους ταβάνι, με την ΙΔΙΑ αρχή: μόνο προς τα
+// κάτω. Δεν γίνονται σφάλματα — δεν είναι όλες λάθη — αλλά παύουν να είναι
+// αόρατες.
+const warnCap = baseline.maxWarnings
 
 // Κανόνες μηδενικής ανοχής: παραβίασή τους δεν είναι ύφος, είναι κατάρρευση.
 //   · rules-of-hooks  → «rendered more hooks than during the previous render»
@@ -52,13 +64,18 @@ try {
 let errors = 0
 const byRule = {}
 const fatal = []
+let warnings = 0
+const byWarnRule = {}
 for (const file of results) {
   for (const m of file.messages) {
+    const r = m.ruleId || '(parse)'
     if (m.severity === 2) {
       errors++
-      const r = m.ruleId || '(parse)'
       byRule[r] = (byRule[r] || 0) + 1
       if (FATAL_RULES.has(r)) fatal.push(`${file.filePath.replace(process.cwd() + '/', '')}:${m.line}  ${r}`)
+    } else if (m.severity === 1) {
+      warnings++
+      byWarnRule[r] = (byWarnRule[r] || 0) + 1
     }
   }
 }
@@ -81,7 +98,23 @@ if (errors > cap) {
   process.exit(1)
 }
 
-console.log(`✅ Lint ratchet passed — ${errors} errors ≤ baseline ${cap}.`)
+const topWarn = Object.entries(byWarnRule).sort((a, b) => b[1] - a[1]).slice(0, 6)
+
+if (warnings > warnCap) {
+  console.error(`🔴 Lint ratchet FAILED — ${warnings} προειδοποιήσεις > όριο ${warnCap} (+${warnings - warnCap}).`)
+  console.error('   Το χρέος που δεν μετριέται δεν πέφτει ποτέ. Οι κορυφαίοι κανόνες:')
+  for (const [r, c] of topWarn) console.error(`     ${String(c).padStart(4)}  ${r}`)
+  process.exit(1)
+}
+
+console.log(`✅ Lint ratchet passed — ${errors} errors ≤ ${cap}, ${warnings} προειδοποιήσεις ≤ ${warnCap}.`)
 if (errors < cap) {
   console.log(`   ↓ Improved by ${cap - errors}. Lower "maxErrors" in scripts/lint-baseline.json to ${errors} to lock it in.`)
+}
+if (warnings < warnCap) {
+  console.log(`   ↓ ${warnCap - warnings} λιγότερες προειδοποιήσεις. Κατέβασε το "maxWarnings" στο ${warnings}.`)
+}
+if (warnings > 0) {
+  console.log('   Το υπόλοιπο χρέος, ονομαστικά:')
+  for (const [r, c] of topWarn) console.log(`     ${String(c).padStart(4)}  ${r}`)
 }

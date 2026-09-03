@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useId, ReactNode, Fragment, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { T, TT, localDay } from '@/components/Theme';
+import { T, localDay } from '@/components/Theme';
 import { acceptNumeric, forDisplay } from '@/lib/core/numInput';
 import { athensToday, isoYear, isoMonth } from '@/lib/core/time';
 import { MONTHS_SHORT } from '@/lib/core/months';

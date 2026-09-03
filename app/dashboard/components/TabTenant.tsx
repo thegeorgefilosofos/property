@@ -77,7 +77,6 @@ import {
   formFields,
   missingCritical,
 } from '@/lib/property/fields';
-import { escHtml as esc } from '@/lib/reportBranding';
 import { failed } from '@/lib/core/dbError';
 // Το Αρχείο έχει ένα σπίτι: lib/data/documents.
 import * as documents from '@/lib/data/documents';

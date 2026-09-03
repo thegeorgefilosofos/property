@@ -17,7 +17,7 @@ import * as checklist from '@/lib/data/checklist';
 import * as expenses from '@/lib/data/expenses'
 import * as tenantStore from '@/lib/data/tenants'
 import { CustomSelect, BulkActionBar } from './UIComponents';
-import { T, PageTitle, KPIGrid, KpiValue, Badge, Btn, ExportButton, EmptyState, InfoBanner, SecHdr, SelectBox, SkeletonKPIs, Skeleton, fe, fn, fp, fixedCols, ABSENT_SHORT, Modal, TT, Stat } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, Badge, Btn, ExportButton, EmptyState, InfoBanner, SecHdr, SelectBox, SkeletonKPIs, Skeleton, fe, fp, fixedCols, ABSENT_SHORT, Modal, TT, Stat } from '@/components/Theme';
 import { resolveRent } from '@/lib/billing/propertyFacts';
 import { statusLabel, type StatusRow } from '@/lib/property/status';
 import { propertyTypeLabel } from '@/lib/property/types';
@@ -44,6 +44,7 @@ import { failed, MSG } from '@/lib/core/dbError';
 import RentReceived from './RentReceived';
 import { collectableLines, allViaBank, type CollectableRent } from '@/lib/rent/collect';
 import { useLoad } from '@/app/hooks/useLoad';
+import { toggleIn } from '@/lib/core/toggleSet';
 
 interface PropLite { id: string; name: string; prop_type: string | null; address: string | null; target_rent: number | null; value: number | null; }
 /** Δόση ενοικίου όπως την καταχωρεί ο ιδιοκτήτης — `paid` = εισπράχθηκε. */
@@ -401,7 +402,7 @@ export default function PortfolioTab({ properties, userId, onSelectProperty }: P
 
   // ── Μαζική επιλογή ──────────────────────────────────────────────────────
   const allSelected = rows.length > 0 && selected.size === rows.length;
-  const toggleSelect = (id: string) => setSelected(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleSelect = (id: string) => setSelected(p => { return toggleIn(p, id); });
   const toggleAll = () => setSelected(allSelected ? new Set() : new Set(rows.map(r => r.id)));
   const clearSelection = () => setSelected(new Set());
 

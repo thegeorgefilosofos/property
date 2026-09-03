@@ -25,6 +25,24 @@ const generatedDirs = readFileSync(join(ROOT, ".gitignore"), "utf8")
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  // ═══ Η ΚΑΤΩ ΠΑΥΛΑ ΣΗΜΑΙΝΕΙ «ΞΕΡΩ ΟΤΙ ΔΕΝ ΤΟ ΧΡΗΣΙΜΟΠΟΙΩ» ══════════════════
+  // Σε αποδόμηση, το `const [, _rest] = x` ή το `catch (_e)` δηλώνουν ΡΗΤΑ ότι
+  // η τιμή αγνοείται. Ο κανόνας τα μετρούσε ως χρέος: δέκα ευρήματα που δεν
+  // είναι λάθη αλλά σύμβαση — και το χρέος που περιέχει ψεύτικες γραμμές
+  // παύει να διαβάζεται, γιατί κανείς δεν ξέρει ποιες από τις εκατό μετράνε.
+  //
+  // Η σύμβαση γίνεται ρύθμιση ώστε ο αριθμός να λέει την αλήθεια. Δεν είναι
+  // χαλάρωση: μια μεταβλητή που ΔΕΝ ξεκινά με παύλα εξακολουθεί να μετράει.
+  {
+    rules: {
+      '@typescript-eslint/no-unused-vars': ['warn', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+        destructuredArrayIgnorePattern: '^_',
+      }],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
