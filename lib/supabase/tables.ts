@@ -139,6 +139,28 @@ export interface BankConnectionsRow {
   updated_at: string;
 }
 
+export interface BankRateChangesRow {
+  id: number | null;
+  ran_at: string;
+  bank_id: string;
+  field: string;
+  old_value: number | null;
+  new_value: number;
+  applied: boolean;
+  reason: string;
+}
+
+export interface BankRateChecksRow {
+  id: number | null;
+  ran_at: string;
+  ok: boolean;
+  reason: string;
+  banks_found: number;
+  banks_applied: number;
+  banks_held: number;
+  details: Json;
+}
+
 export interface BankRatesRow {
   bank_id: string;
   bank_name: string;
@@ -1388,6 +1410,8 @@ export interface Tables {
   app_admins: AppAdminsRow;
   bank_connection_refs: BankConnectionRefsRow;
   bank_connections: BankConnectionsRow;
+  bank_rate_changes: BankRateChangesRow;
+  bank_rate_checks: BankRateChecksRow;
   bank_rates: BankRatesRow;
   bank_transactions: BankTransactionsRow;
   billing_profiles: BillingProfilesRow;

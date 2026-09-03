@@ -1,15 +1,31 @@
 // supabase/functions/bank-rates-updater/index.ts
-// Ενημερώνει τα στεγαστικά επιτόκια τραπεζών (bank_rates) με έρευνα web μέσω του
-// Anthropic Messages API (server tool web_search) — δεν υπάρχει δημόσιο feed, οπότε
-// το μοντέλο ψάχνει τρέχουσες τιμές και επιστρέφει δομημένο JSON. Αμυντικό: γράφει
-// ΜΟΝΟ έγκυρες γραμμές· σε αποτυχία/λίγα αποτελέσματα κρατά τα υπάρχοντα δεδομένα.
+// ═══════════════════════════════════════════════════════════════════════════
+// Η ΤΡΟΦΟΔΟΣΙΑ ΤΩΝ ΣΤΕΓΑΣΤΙΚΩΝ ΕΠΙΤΟΚΙΩΝ: ΚΑΘΕ ΜΕΡΑ, ΜΕ ΔΙΑΣΤΑΥΡΩΣΗ, ΜΕ ΙΧΝΟΣ
+// ─────────────────────────────────────────────────────────────────────────
+// Δεν υπάρχει δημόσιο feed επιτοκίων τραπεζών. Το μοντέλο ψάχνει στο web
+// (server tool web_search) τις τρέχουσες τιμές και επιστρέφει δομημένο JSON.
+// Ο,τι επιστρέφει είναι ΠΡΟΤΑΣΗ, όχι γεγονός — και έτσι αντιμετωπίζεται:
+//
+//   • Συγκρίνεται με τη γραμμή που ισχύει (lib/loans/rateFeed.ts). Μικρή
+//     μεταβολή εφαρμόζεται. Μεγάλη μεταβολή κρατιέται, γράφεται στο
+//     `bank_rate_changes` και εφαρμόζεται μόνο αν το επόμενο, ανεξάρτητο
+//     πέρασμα επιστρέψει την ίδια τιμή.
+//   • Κάθε πέρασμα, πετυχημένο ή όχι, γράφει γραμμή στο `bank_rate_checks`.
+//     Το «ελέγχθηκε σήμερα, αμετάβλητα» στην οθόνη βγαίνει από εκεί.
+//   • Οι τράπεζες που βρέθηκαν παίρνουν `verified_at` σήμερα, ακόμη κι αν
+//     τίποτα δεν άλλαξε: επιβεβαίωση είναι και το «ίδιο με χθες».
 //
 // Deploy: supabase functions deploy bank-rates-updater --no-verify-jwt
 // Secret:  supabase secrets set ANTHROPIC_API_KEY="sk-ant-..."
-// Τρέχει μηνιαία μέσω pg_cron (βλ. migration 20260715130000_bank_rates_pg_cron.sql).
+// Τρέχει καθημερινά μέσω pg_cron (migration 20260902120000).
+// ═══════════════════════════════════════════════════════════════════════════
 
 import { createClient } from 'npm:@supabase/supabase-js@2.110.8'
 import { authorizeCron, type MinimalSupabaseClient } from '../_shared/auth.ts'
+import {
+  diffBank, decide, changeKey, MIN_BANKS,
+  type CurrentBank, type ProposedBank, type Change, type CheckedField,
+} from '../../../lib/loans/rateFeed.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -38,35 +54,28 @@ function sanePct(v: unknown): number | null {
   const x = typeof v === 'number' ? v : parseFloat(String(v ?? '').replace(',', '.'))
   return Number.isFinite(x) && x >= 0.3 && x <= 8 ? Math.round(x * 100) / 100 : null
 }
-function pctStr(v: unknown): string | null { const x = sanePct(v); return x === null ? null : x.toFixed(2) }
+function saneUrl(v: unknown): string | null {
+  return typeof v === 'string' && /^https:\/\/[^\s]+$/.test(v) ? v.slice(0, 300) : null
+}
 
 const SYSTEM = `Είσαι αναλυτής στεγαστικών δανείων στην Ελλάδα. Χρησιμοποίησε αναζήτηση στο web για να βρεις τα ΤΡΕΧΟΝΤΑ στεγαστικά επιτόκια των ελληνικών τραπεζών (επίσημες σελίδες τραπεζών, vresdaneio.gr, e-stegastiko.gr, Τράπεζα Ελλάδος).
-Για κάθε τράπεζα βρες: το χαμηλότερο («από») σταθερό επιτόκιο ανά διάρκεια 3/5/10/15/20 ετών, το περιθώριο (spread) πάνω από Euribor για κυμαινόμενο, το ανώτατο δάνειο προς αξία (LTV %) και αν συμμετέχει στο πρόγραμμα «Σπίτι μου ΙΙ».
+Για κάθε τράπεζα βρες: το χαμηλότερο («από») σταθερό επιτόκιο ανά διάρκεια 3/5/10/15/20 ετών, το περιθώριο (spread) πάνω από Euribor για κυμαινόμενο, το ανώτατο δάνειο προς αξία (LTV %), αν συμμετέχει στο πρόγραμμα «Σπίτι μου ΙΙ» και τη σελίδα (URL) από την οποία πήρες τις τιμές.
 Τράπεζες: Εθνική, Alpha Bank, Eurobank, Τράπεζα Πειραιώς, Optima Bank, CrediaBank, Attica Bank.
 Επίστρεψε ΑΠΟΚΛΕΙΣΤΙΚΑ έγκυρο JSON, χωρίς κείμενο εκτός JSON:
-{"banks":[{"bank":"Εθνική","fixed_3yr":2.9,"fixed_5yr":3.3,"fixed_10yr":3.8,"fixed_15yr":4.1,"fixed_20yr":4.2,"variable_spread_min":1.6,"variable_spread_max":2.8,"max_ltv":90,"spiti_mou":true}]}
-Παρέλειψε όποιο πεδίο δεν βρίσκεις με ασφάλεια. Αριθμοί με τελεία δεκαδικό, χωρίς σύμβολα.`
+{"banks":[{"bank":"Εθνική","fixed_3yr":2.9,"fixed_5yr":3.3,"fixed_10yr":3.8,"fixed_15yr":4.1,"fixed_20yr":4.2,"variable_spread_min":1.6,"variable_spread_max":2.8,"max_ltv":90,"spiti_mou":true,"source_url":"https://..."}]}
+Παρέλειψε όποιο πεδίο δεν βρίσκεις με ασφάλεια. Ποτέ μην μαντεύεις αριθμό. Αριθμοί με τελεία δεκαδικό, χωρίς σύμβολα.`
 
-/** Ό,τι επιστρέφει το μοντέλο ανά τράπεζα. Επικυρώνεται παρακάτω· ο τύπος
- *  υπάρχει για να μη διαφεύγει ορθογραφικό σε όνομα πεδίου. */
 type RateRow = Record<string, unknown>
 
 async function callAnthropic(): Promise<RateRow[]> {
-  const messages: { role: 'user' | 'assistant'; content: string }[] = [{ role: 'user', content: 'Βρες τα τρέχοντα στεγαστικά επιτόκια και επίστρεψε μόνο το JSON.' }]
+  const messages: { role: 'user' | 'assistant'; content: unknown }[] = [{ role: 'user', content: 'Βρες τα τρέχοντα στεγαστικά επιτόκια και επίστρεψε μόνο το JSON.' }]
   let text = ''
-  // Βρόχος για server-tool (web_search): συνέχισε σε pause_turn.
   for (let i = 0; i < 5; i++) {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: {
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
+      headers: { 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 4000,
-        system: SYSTEM,
+        model: MODEL, max_tokens: 4000, system: SYSTEM,
         tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 8 }],
         messages,
       }),
@@ -83,11 +92,21 @@ async function callAnthropic(): Promise<RateRow[]> {
   return Array.isArray(parsed?.banks) ? parsed.banks : []
 }
 
-// CORS επιτρέπει preflight, αλλά αυτή η function είναι ΑΠΟΚΛΕΙΣΤΙΚΑ server/cron:
-// το `authorized()` δέχεται μόνο service-role bearer ή το κοινό cron secret — κανένα
-// από τα δύο ΔΕΝ επιτρέπεται να ζει σε browser. Μη φτιάξεις «κουμπί διαχειριστή» που
-// καλεί απευθείας αυτό το endpoint· αν χρειαστεί admin trigger, πέρασέ τον μέσα από
-// ξεχωριστή, με-JWT function που ελέγχει ρόλο admin και μετά καλεί εσωτερικά αυτήν.
+/** Η πρόταση του μοντέλου, στενεμένη σε αριθμούς που έχουν νόημα. */
+function narrow(b: RateRow): { id: string; proposed: ProposedBank; spiti?: boolean; url: string | null } | null {
+  const nameOf = (v: unknown): string => (typeof v === 'string' ? v : '')
+  const id = resolveBankId(nameOf(b?.bank) || nameOf(b?.bank_id))
+  if (!id) return null
+  const proposed: ProposedBank = {}
+  for (const f of ['fixed_3yr', 'fixed_5yr', 'fixed_10yr', 'fixed_15yr', 'fixed_20yr', 'variable_spread_min', 'variable_spread_max'] as const) {
+    const v = sanePct(b[f]); if (v !== null) proposed[f] = v
+  }
+  const ltv = Number(b.max_ltv); if (ltv >= 50 && ltv <= 95) proposed.max_ltv = Math.round(ltv)
+  // Χρειάζεται τουλάχιστον ένα σταθερό επιτόκιο για να μετρήσει ως εύρημα.
+  if (!['fixed_3yr', 'fixed_5yr', 'fixed_10yr', 'fixed_15yr', 'fixed_20yr'].some(f => f in proposed)) return null
+  return { id, proposed, spiti: typeof b.spiti_mou === 'boolean' ? b.spiti_mou : undefined, url: saneUrl(b.source_url) }
+}
+
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
@@ -96,15 +115,7 @@ const CORS = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, 'content-type': 'application/json' } })
 
-// Authorization gate: this function burns the Anthropic quota and overwrites the
-// public bank_rates sheet — it must never be callable anonymously. Accepts the
-// service-role bearer, an optional env secret, or the shared cron secret from
-// public.cron_secrets (the zero-config path pg_cron uses).
 const CRON_SECRET = Deno.env.get('BANK_RATES_CRON_SECRET') || ''
-// Ο ΙΔΙΟΣ τύπος που δέχεται το authorizeCron, εισαγόμενος αντί για ξαναγραμμένος.
-// Το `ReturnType<typeof createClient>` ΔΕΝ δουλεύει με το npm: specifier: εκεί το
-// createClient είναι generic const arrow, οπότε το ReturnType<> το στιγμιοτυποποιεί
-// με unknown/never και η κλήση σπάει με TS2345.
 async function authorized(req: Request, sb: MinimalSupabaseClient): Promise<boolean> {
   return authorizeCron(req, { serviceKey: SUPABASE_SERVICE_KEY, envSecret: CRON_SECRET, supabase: sb })
 }
@@ -113,58 +124,92 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
   if (!(await authorized(req, supabase))) return json({ error: 'unauthorized' }, 401)
+
+  // ΤΟ ΙΧΝΟΣ ΓΡΑΦΕΤΑΙ ΣΕ ΚΑΘΕ ΕΞΟΔΟ. Ενα πέρασμα που απέτυχε και δεν το είπε
+  // είναι ίδιο με πέρασμα που δεν έγινε — και αυτή ακριβώς η σιωπή κράτησε την
+  // οθόνη στο «56 ημέρες».
+  const log = async (ok: boolean, reason: string, extra: Record<string, unknown> = {}) => {
+    const { error } = await supabase.from('bank_rate_checks').insert({
+      ok, reason, banks_found: Number(extra.found ?? 0), banks_applied: Number(extra.applied ?? 0),
+      banks_held: Number(extra.held ?? 0), details: extra,
+    })
+    if (error) console.error('bank_rate_checks insert:', error.message)
+  }
+
   try {
     if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not set')
     const raw = await callAnthropic()
+    const found = raw.map(narrow).filter((x): x is NonNullable<typeof x> => !!x)
 
-    // Κανονικοποίηση + επικύρωση: κράτα μόνο τράπεζες με έγκυρο id και ≥1 επιτόκιο.
-    const updates: { id: string; row: Record<string, unknown> }[] = []
-    for (const b of raw) {
-      // Το μοντέλο επιστρέφει ό,τι θέλει· η στένωση γίνεται ΕΔΩ, ρητά, αντί να
-      // υποθέτουμε ότι το πεδίο είναι κείμενο. Με `any` περνούσε αντικείμενο
-      // ολόκληρο στο resolveBankId και έβγαινε πάντα κενό, σιωπηλά.
-      const nameOf = (v: unknown): string => (typeof v === 'string' ? v : '')
-      const id = resolveBankId(nameOf(b?.bank) || nameOf(b?.bank_id))
-      if (!id) continue
-      const row: Record<string, unknown> = {}
-      const f3 = pctStr(b.fixed_3yr), f5 = pctStr(b.fixed_5yr), f10 = pctStr(b.fixed_10yr), f15 = pctStr(b.fixed_15yr), f20 = pctStr(b.fixed_20yr)
-      if (f3) row.fixed_3yr = f3
-      if (f5) row.fixed_5yr = f5
-      if (f10) row.fixed_10yr = f10
-      if (f15) row.fixed_15yr = f15
-      if (f20) row.fixed_20yr = f20
-      const sMin = sanePct(b.variable_spread_min), sMax = sanePct(b.variable_spread_max)
-      if (sMin !== null) row.variable_spread_min = sMin
-      if (sMax !== null) row.variable_spread_max = sMax
-      const fixedMin = [f3, f5, f10, f15, f20].map(Number).filter((x) => Number.isFinite(x))
-      if (fixedMin.length) row.fixed_min = Math.min(...fixedMin)
-      const ltv = Number(b.max_ltv); if (ltv >= 50 && ltv <= 95) row.max_ltv = Math.round(ltv)
-      if (typeof b.spiti_mou === 'boolean') row.spiti_mou = b.spiti_mou
-      // Χρειάζεται τουλάχιστον ένα σταθερό επιτόκιο για να θεωρηθεί έγκυρη ενημέρωση.
-      if (f3 || f5 || f10 || f15 || f20) updates.push({ id, row })
+    // Αμυντικό: λίγες τράπεζες σημαίνει κακή αναζήτηση, όχι κακή αγορά.
+    if (found.length < MIN_BANKS) {
+      await log(false, `insufficient_valid_rows: ${found.length} από ${MIN_BANKS}`, { found: found.length })
+      return json({ ok: false, reason: 'insufficient_valid_rows', found: found.length })
     }
 
-    // Αμυντικό: αν βρέθηκαν λίγες έγκυρες τράπεζες, ΜΗΝ γράψεις (κράτα τα υπάρχοντα).
-    if (updates.length < 3) {
-      console.log(`bank-rates-updater: only ${updates.length} valid banks — keeping existing data`)
-      return json({ ok: false, reason: 'insufficient_valid_rows', found: updates.length })
-    }
+    // ── Ο,τι ισχύει σήμερα, για σύγκριση ─────────────────────────────────
+    const { data: rows, error: readErr } = await supabase.from('bank_rates').select('*')
+    if (readErr) throw new Error(`read bank_rates: ${readErr.message}`)
+    const current = new Map<string, CurrentBank>((rows ?? []).map((r: CurrentBank) => [r.bank_id, r]))
+
+    // ── Οι κρατημένες προτάσεις των τελευταίων ημερών, για δεύτερη επιβεβαίωση ──
+    const since = new Date(Date.now() - 3 * 86400000).toISOString()
+    const { data: held } = await supabase.from('bank_rate_changes')
+      .select('bank_id,field,new_value').eq('applied', false).gte('ran_at', since)
+    const confirmed = new Set<string>((held ?? []).map((h: { bank_id: string; field: string; new_value: number }) =>
+      changeKey({ bank_id: h.bank_id, field: h.field, next: Number(h.new_value) })))
 
     const today = new Date().toISOString().slice(0, 10)
-    let written = 0
-    for (const u of updates) {
-      const { error } = await supabase
-        .from('bank_rates')
-        .update({ ...u.row, verified_at: today, source_url: 'web_search (ενημέρωση AI)' })
-        .eq('bank_id', u.id)
-      if (!error) written++
-      else console.error(`update ${u.id}:`, error.message)
+    let applied = 0, heldNow = 0, unchanged = 0
+    const changeRows: Record<string, unknown>[] = []
+    const perBank: Record<string, string> = {}
+
+    for (const f of found) {
+      const cur = current.get(f.id)
+      if (!cur) { perBank[f.id] = 'άγνωστη τράπεζα στον πίνακα'; continue }
+      const changes: Change[] = diffBank(cur, f.proposed)
+      const { apply, hold } = decide(changes, confirmed)
+
+      const patch: Record<string, unknown> = { verified_at: today }
+      if (f.url) patch.source_url = f.url
+      if (f.spiti !== undefined) patch.spiti_mou = f.spiti
+      for (const c of apply) {
+        // Τα σταθερά ζουν ως κείμενο στον πίνακα, τα περιθώρια και το LTV ως αριθμοί.
+        patch[c.field] = (c.field as CheckedField).startsWith('fixed_') ? c.next.toFixed(2) : c.next
+        changeRows.push({ bank_id: c.bank_id, field: c.field, old_value: c.old, new_value: c.next, applied: true,
+          reason: c.delta == null ? 'πρώτη τιμή σε κενό πεδίο' : confirmed.has(changeKey(c)) ? 'επιβεβαιώθηκε από δεύτερο πέρασμα' : `μεταβολή ${c.delta > 0 ? '+' : ''}${c.delta}` })
+      }
+      for (const c of hold) {
+        changeRows.push({ bank_id: c.bank_id, field: c.field, old_value: c.old, new_value: c.next, applied: false,
+          reason: `μεταβολή ${c.delta! > 0 ? '+' : ''}${c.delta}: περιμένει δεύτερη επιβεβαίωση` })
+      }
+      const fixed = ['fixed_3yr', 'fixed_5yr', 'fixed_10yr', 'fixed_15yr', 'fixed_20yr']
+        .map(k => parseFloat(String(patch[k] ?? cur[k as keyof CurrentBank] ?? '')))
+        .filter(x => Number.isFinite(x))
+      if (fixed.length) patch.fixed_min = Math.min(...fixed)
+
+      const { error } = await supabase.from('bank_rates').update(patch).eq('bank_id', f.id)
+      if (error) { perBank[f.id] = `σφάλμα εγγραφής: ${error.message}`; continue }
+      if (apply.length) applied++
+      if (hold.length) heldNow++
+      if (!apply.length && !hold.length) unchanged++
+      perBank[f.id] = `${apply.length} εφαρμόστηκαν, ${hold.length} κρατήθηκαν`
     }
-    console.log(`bank-rates-updater: updated ${written}/${updates.length} banks (${today})`)
-    return json({ ok: true, updated: written, verified_at: today })
+
+    if (changeRows.length) {
+      const { error } = await supabase.from('bank_rate_changes').insert(changeRows)
+      if (error) console.error('bank_rate_changes insert:', error.message)
+    }
+
+    const summary = { found: found.length, applied, held: heldNow, unchanged, banks: perBank, verified_at: today }
+    await log(true, 'εντάξει', summary)
+    console.log('bank-rates-updater:', JSON.stringify(summary))
+    return json({ ok: true, ...summary })
   } catch (e) {
-    console.error('bank-rates-updater error:', (e as Error).message)
+    const msg = (e as Error).message
+    console.error('bank-rates-updater error:', msg)
+    await log(false, msg.slice(0, 300))
     // Κράτα τα υπάρχοντα δεδομένα σε οποιαδήποτε αποτυχία.
-    return json({ ok: false, error: (e as Error).message })
+    return json({ ok: false, error: msg })
   }
 })

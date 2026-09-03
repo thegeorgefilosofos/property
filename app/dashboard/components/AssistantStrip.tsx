@@ -77,12 +77,15 @@ export default function AssistantStrip({ ctx }: { ctx: OpenerContext | null }) {
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
             {asks.map(q => (
               <button key={q} type="button" onClick={() => askAssistant(q, true)}
+                // ΤΥΛΙΓΕΙ, ΔΕΝ ΚΟΒΕΤΑΙ. Ηταν `nowrap` με αποσιωπητικά: στα 360 το
+                // «Από τα 620,00 € τον μήνα, πόσο μου μένει καθαρά;» έγραφε «Από
+                // τα 620,00 € τον μήνα, πόσο…» — μια ερώτηση χωρίς το ερώτημά της.
+                // Η πρόταση είναι το ΟΛΟ κουμπί· αν δεν διαβάζεται, δεν την πατά κανείς.
                 style={{
-                  padding: '0 13px', height: T.h.sm, borderRadius: T.radius.pill,
+                  padding: '6px 13px', minHeight: T.h.sm, borderRadius: T.radius.pill,
                   border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)',
-                  color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 13,
+                  color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 13, lineHeight: 1.35,
                   cursor: 'pointer', textAlign: 'left', maxWidth: '100%',
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>
                 {q}
               </button>

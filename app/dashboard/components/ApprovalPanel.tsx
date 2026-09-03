@@ -96,8 +96,13 @@ export default function ApprovalPanel({
           επιλογές τους είναι μακριές: ο κανόνας ζει στο `.approval-row`. */}
       <div className="approval-row">
         <NumberInput label="Ηλικία" value={age} onChange={setAge} suffix="ετών"/>
-        <NumberInput label="Καθαρό μηνιαίο εισόδημα" value={income} onChange={setIncome} suffix="€"/>
-        <NumberInput label="Υφιστάμενες μηνιαίες δόσεις" value={existing} onChange={setExisting} suffix="€"/>
+        {/* ΔΥΟ ΕΤΙΚΕΤΕΣ ΤΥΛΙΓΑΝ ΚΑΙ ΟΙ ΑΛΛΕΣ ΤΡΕΙΣ ΟΧΙ, ΣΤΗΝ ΙΔΙΑ ΣΕΙΡΑ. Τα
+            κουτιά τους ξεκινούσαν δεκαοκτώ εικονοστοιχεία πιο χαμηλά και η
+            σειρά έχανε τη βάση της — ο χρήστης το φωτογράφισε. Το «μηνιαίο»
+            λεγόταν δύο φορές, μία στην ετικέτα και μία εννοούμενο στο «€»:
+            πάει στην κατάληξη, όπου κοστίζει μηδέν γραμμές και λέει το ίδιο. */}
+        <NumberInput label="Καθαρό εισόδημα" value={income} onChange={setIncome} suffix="€/μήνα"/>
+        <NumberInput label="Υπάρχουσες δόσεις" value={existing} onChange={setExisting} suffix="€/μήνα"/>
         <CustomSelect label="Τύπος απασχόλησης" value={employment} onChange={v=>setEmployment(v as EmploymentType)} options={EMPLOYMENT_OPTIONS}/>
         <CustomSelect label="Πιστοληπτικό ιστορικό" value={credit} onChange={v=>setCredit(v as CreditHistory)} options={CREDIT_OPTIONS}/>
       </div>

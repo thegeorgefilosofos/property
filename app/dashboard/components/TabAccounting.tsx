@@ -1537,7 +1537,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               {(mode==='professional'?book.slice(-14).reverse():recentLedger).map((e,i,arr)=>(
                 <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 0', borderBottom:i<arr.length-1?'1px solid var(--border-subtle)':'none' }}>
                   <span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', width:74, flexShrink:0 }}>{e.date.split('-').reverse().join('/')}</span>
-                  <span style={{ flex:1, fontSize:13, color:'var(--text-primary)', fontFamily: T.font.sans, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{e.description}</span>
+                  <span className="po-elide" style={{ flex:1, fontSize:13, color:'var(--text-primary)', fontFamily: T.font.sans }}>{e.description}</span>
                   {mode==='professional'&&<span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', width:80, textAlign:'right' }}>{eur(e.balance)}</span>}
                   <span style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans, width:92, textAlign:'right' }}>{e.type==='income'?'+':'−'}{eur(e.amount)}</span>
                 </div>
@@ -1667,7 +1667,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
                 <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                   {portfolio.con.perProperty.map(pp=>(
                     <div key={pp.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', borderRadius:10, background:'var(--bg-surface)', border:`1px solid ${pp.id===propertyId?'var(--border-default)':'var(--border-subtle)'}` }}>
-                      <span style={{ flex:1, fontSize:13, color:'var(--text-primary)', fontFamily: T.font.sans, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{portfolio.names[pp.id]}</span>
+                      <span className="po-elide" style={{ flex:1, fontSize:13, color:'var(--text-primary)', fontFamily: T.font.sans }}>{portfolio.names[pp.id]}</span>
                       <span style={{ fontSize:12, color:'var(--text-secondary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans }}>{eur(pp.statement.grossIncome)}</span>
                       <span style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans, minWidth:70, textAlign:'right' }}>φόρος {eur(pp.taxShare)}</span>
                     </div>
@@ -1933,7 +1933,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               {trial.map((r,i)=>(
                 <div key={r.code} style={{ display:'grid', gridTemplateColumns:TRIAL_COLS, gap:8, padding:'8px 14px', borderBottom:i<trial.length-1?'1px solid var(--border-subtle)':'none', alignItems:'center' }}>
                   <span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums' }}>{r.code}</span>
-                  <span style={{ fontSize:13, color:'var(--text-primary)', fontFamily: T.font.sans, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }} title={r.account}>{r.account}</span>
+                  <span className="po-elide" style={{ fontSize:13, color:'var(--text-primary)', fontFamily: T.font.sans }} title={r.account}>{r.account}</span>
                   <span style={{ fontSize:13, color:r.debit?'var(--text-secondary)':'var(--text-tertiary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{r.debit?eur(r.debit):fe(0)}</span>
                   <span style={{ fontSize:13, color:r.credit?'var(--text-secondary)':'var(--text-tertiary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{r.credit?eur(r.credit):fe(0)}</span>
                   <span style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{eur(r.balance)}</span>

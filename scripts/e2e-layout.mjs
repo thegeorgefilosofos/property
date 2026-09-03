@@ -38,6 +38,7 @@ import { chromePath } from './lib/chrome.mjs'
 import { SCENES } from './lib/scenes.mjs'
 import { abortIfStyleless } from './lib/served-css.mjs'
 import { benchUrl } from './lib/paths.mjs'
+import { cpus } from 'node:os'
 import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
 const { chromium } = require('playwright-core')
@@ -87,9 +88,23 @@ const PROBE = () => {
       // σε γονιό 738 εικονοστοιχείων ξεχειλίζει 2px από το δικό του κουτί των
       // 250 και φαίνεται ΟΛΟΚΛΗΡΟ: κανείς δεν το κόβει. Κόβεται μόνο όταν το
       // ίδιο το στοιχείο δηλώνει ότι κρύβει την υπερχείλισή του.
-      const ell = cs.textOverflow === 'ellipsis'
+      //
+      // ═══ ΤΑ ΑΠΟΣΙΩΠΗΤΙΚΑ ΕΠΑΨΑΝ ΝΑ ΕΙΝΑΙ ΑΛΛΟΘΙ ════════════════════════════
+      // Το έκτο ψευδές — και αυτή τη φορά ήταν ψευδές ΑΡΝΗΤΙΚΟ. Ο έλεγχος
+      // προσπερνούσε ό,τι δήλωνε `text-overflow: ellipsis`, με τη σκέψη «κάποιος
+      // το αποφάσισε». Ο χρήστης διάβαζε «ΑΚΑΘΑ…» και «ΜΕΣΗ …» σε κάθε κάρτα
+      // πελάτη, σε ΚΑΘΕ πλάτος από 360 ώς 1.280 και η σάρωση έβγαινε πράσινη.
+      // Μια ετικέτα που δεν διαβάζεται δεν είναι ετικέτα, όσο κομψά κι αν κόπηκε.
+      //
+      // Η ΔΙΑΦΟΡΑ ΕΙΝΑΙ ΠΟΙΟΣ ΟΡΙΖΕΙ ΤΟ ΜΗΚΟΣ. Το όνομα ενός ανθρώπου, ενός
+      // ακινήτου, ενός εγγράφου δεν έχει ταβάνι: εκεί τα αποσιωπητικά είναι η
+      // σωστή απάντηση. Το δηλώνει ρητά η κλάση `.po-elide` (globals.css) και ο
+      // έλεγχος την πιστεύει. Ο,τι κόβεται ΧΩΡΙΣ αυτήν —ετικέτα, σήμα, κουμπί,
+      // πρόταση— το έγραψε το προϊόν, ξέρει το μήκος του και αν δεν χωράει
+      // φταίει η διάταξη: αναφέρεται.
+      const elide = !!el.closest('.po-elide')
       const hides = /hidden|clip|auto|scroll/.test(cs.overflowX)
-      if (!ell && hides && el.scrollWidth > el.clientWidth + 1) add('κομμένο', txt, el.scrollWidth - el.clientWidth + 'px')
+      if (!elide && hides && el.scrollWidth > el.clientWidth + 1) add('κομμένο', txt, el.scrollWidth - el.clientWidth + 'px')
       const clip = clipperOf(el)
       if (clip) {
         const cb = clip.getBoundingClientRect()
@@ -727,15 +742,47 @@ if (live) await abortIfStyleless(browser, BASE)
 // έλεγχος που μοιάζει κολλημένος τον ξαναπατάς: έτρεξαν δύο αντίγραφα μαζί στο
 // ίδιο μηχάνημα, μοιράστηκαν τους πυρήνες και άργησαν και τα δύο. Η γραμμή ανά
 // συσκευή λέει πού βρίσκεται και πόσα έχει βρει ώς εκεί.
-const rows = []
+// ═══ ΟΙ ΣΥΣΚΕΥΕΣ ΣΑΡΩΝΟΝΤΑΙ ΠΑΡΑΛΛΗΛΑ, ΓΙΑΤΙ Η ΣΕΙΡΑ ΔΕΝ ΤΕΛΕΙΩΝΕ ═══════════
+// ΤΟ CI ΑΚΥΡΩΝΟΤΑΝ ΣΤΑ ΕΙΚΟΣΙ ΛΕΠΤΑ ΚΑΙ ΤΟ ΑΚΥΡΩΜΕΝΟ ΔΕΝ ΕΙΝΑΙ ΟΥΤΕ ΠΡΑΣΙΝΟ
+// ΟΥΤΕ ΚΟΚΚΙΝΟ. Δώδεκα συσκευές επί τριάντα οκτώ σκηνές είναι 456 αποδόσεις
+// σελίδας και σε μία σειρά κρατούσαν πάνω από δεκατρία λεπτά· μαζί με τα
+// υπόλοιπα βήματα το job χτυπούσε το ταβάνι του και ο δρομέας το έκοβε στη
+// μέση της σάρωσης. Ενας έλεγχος που δεν προλαβαίνει να απαντήσει δεν
+// φυλάει τίποτα.
+//
+// Κάθε συσκευή έχει ΗΔΗ δικό της context, δηλαδή δική της μνήμη, δικό της
+// localStorage και δικό της viewport: δεν μοιράζονται τίποτα και μπορούν να
+// τρέξουν μαζί χωρίς να αλληλοεπηρεαστούν. Οι θέσεις είναι όσοι οι πυρήνες,
+// με ταβάνι τέσσερις: η απόδοση είναι δουλειά επεξεργαστή και παραπάνω
+// παράλληλες σελίδες από πυρήνες τις κάνει ΟΛΕΣ πιο αργές.
+//
+// ΜΕΤΡΗΜΕΝΟ σε τέσσερις πυρήνες, με τον ίδιο κώδικα και το ΙΔΙΟ αποτέλεσμα
+// (μηδέν ευρήματα): πάνω από 600 δευτερόλεπτα στη σειρά, 324 σε τέσσερις
+// θέσεις. Δεν είναι τετραπλάσια ταχύτητα και δεν πρέπει να είναι: οι πυρήνες
+// μοιράζονται και με τον ίδιο τον περιηγητή.
+//
+// ΤΑ ΕΥΡΗΜΑΤΑ ΜΕΝΟΥΝ ΣΤΗΝ ΙΔΙΑ ΣΕΙΡΑ. Κάθε συσκευή γράφει στον δικό της
+// κουβά και οι κουβάδες ενώνονται με τη σειρά του καταλόγου συσκευών, όχι με
+// τη σειρά που τελείωσαν. Αλλιώς δύο εκτελέσεις πάνω στον ΙΔΙΟ κώδικα θα
+// τύπωναν τα ίδια ευρήματα ανακατεμένα και η διαφορά δεν θα διαβαζόταν.
+const buckets = RUN_DEVICES.map(() => [])
 let done = 0
-for (const dev of RUN_DEVICES) {
+
+async function scanDevice(dev, out) {
   const w = dev.w
   const ctx = await browser.newContext({ viewport:{width:w,height:dev.h}, deviceScaleFactor:2, isMobile:w<1100, hasTouch:TOUCH(w), locale:'el-GR' })
   await ctx.addInitScript(() => { try { localStorage.setItem('pos-cookie-consent', JSON.stringify({v:'2026-08',ts:'x'})) } catch {} })
   for (const s of (ONLY ? SCENES.filter(x => ONLY.includes(x)) : SCENES)) {
     const p = await ctx.newPage()
     await p.goto(benchUrl(s, 6), { waitUntil:'networkidle' })
+    // Το `networkidle` λέει «σταμάτησε το δίκτυο», όχι «ζωγραφίστηκε η οθόνη».
+    // Με τέσσερις συσκευές παράλληλα, μια σταθερή αναμονή είναι στοίχημα στην
+    // ταχύτητα του μηχανήματος. Αν η σκηνή είναι ΟΝΤΩΣ κενή, το λέει ο έλεγχος
+    // από κάτω με μετρημένο αριθμό χαρακτήρων — δεν κρύβεται εδώ.
+    await p.waitForFunction(
+      () => (document.querySelector('.app-content')?.innerText || '').trim().length > 120,
+      { timeout: 8000 },
+    ).catch(() => {})
     await p.waitForTimeout(500)
     // ═══ ΤΑ ΚΛΕΙΣΤΑ ΠΤΥΣΣΟΜΕΝΑ ΔΕΝ ΕΛΕΓΧΟΝΤΑΝ ΠΟΤΕ ══════════════════════════
     // Η Αποδοση έχει επτά ενότητες που ανοίγουν με πάτημα και ΟΛΕΣ ξεκινούν
@@ -760,9 +807,9 @@ for (const dev of RUN_DEVICES) {
     // και η σκηνή έβγαινε ΚΕΝΗ. Σε κενή σελίδα δεν υπάρχει τίποτα κομμένο,
     // τίποτα πάνω στο άλλο, κανένας μικρός στόχος αφής. Πράσινο, χωρίς οθόνη.
     const size = await p.evaluate(() => (document.querySelector('.app-content')?.innerText || '').trim().length)
-    if (size < 120) rows.push({ where: `πάγκος ${s} @${w}×${dev.h}`, r: [`Η ΣΚΗΝΗ ΕΙΝΑΙ ΚΕΝΗ (${size} χαρακτήρες)`] })
+    if (size < 120) out.push({ where: `πάγκος ${s} @${w}×${dev.h}`, r: [`Η ΣΚΗΝΗ ΕΙΝΑΙ ΚΕΝΗ (${size} χαρακτήρες)`] })
     const r = await p.evaluate(PROBE)
-    if (r.length) rows.push({ where: `πάγκος ${s} @${w}×${dev.h}`, r })
+    if (r.length) out.push({ where: `πάγκος ${s} @${w}×${dev.h}`, r })
     // ═══ ΚΑΙ ΤΑ ΠΑΝΕΛ ΠΟΥ ΖΟΥΝ ΠΙΣΩ ΑΠΟ ΔΙΑΚΟΠΤΗ ═══════════════════════════
     // ΤΟ ΔΑΝΕΙΟ ΕΧΕΙ ΠΕΝΤΕ ΦΑΚΟΥΣ (απόσβεση, επιτόκιο, ικανότητα, φόρος και
     // αντοχή, πίνακας) και ΜΟΝΟ ΕΝΑΣ αποδίδεται κάθε φορά. Ο έλεγχος έβλεπε
@@ -775,10 +822,10 @@ for (const dev of RUN_DEVICES) {
         if (!b) return false
         b.click(); return true
       }, label)
-      if (!hit) { rows.push({ where: `πάγκος ${s} @${w}×${dev.h}`, r: [`ΤΟ ΚΟΥΜΠΙ «${label}» ΔΕΝ ΒΡΕΘΗΚΕ`] }); continue }
+      if (!hit) { out.push({ where: `πάγκος ${s} @${w}×${dev.h}`, r: [`ΤΟ ΚΟΥΜΠΙ «${label}» ΔΕΝ ΒΡΕΘΗΚΕ`] }); continue }
       await p.waitForTimeout(400)
       const rr = await p.evaluate(PROBE)
-      if (rr.length) rows.push({ where: `πάγκος ${s}·${label.slice(0, 14)} @${w}×${dev.h}`, r: rr })
+      if (rr.length) out.push({ where: `πάγκος ${s}·${label.slice(0, 14)} @${w}×${dev.h}`, r: rr })
     }
     // ═══ ΕΝΑ ΚΕΛΙ ΔΕΔΟΜΕΝΩΝ ΔΕΝ ΕΙΝΑΙ ΠΑΝΕΛ ══════════════════════════════════
     // Ο βρόχος από κάτω υπάρχει για τα πανέλα που αποδίδονται ένα κάθε φορά.
@@ -809,7 +856,7 @@ for (const dev of RUN_DEVICES) {
       await p.evaluate(() => { document.querySelectorAll('.acc-toggle[aria-expanded="false"]').forEach(b => b.click()) })
       await p.waitForTimeout(250)
       const rr = await p.evaluate(PROBE)
-      if (rr.length) rows.push({ where: `πάγκος ${s}·${label.slice(0, 14)} @${w}×${dev.h}`, r: rr })
+      if (rr.length) out.push({ where: `πάγκος ${s}·${label.slice(0, 14)} @${w}×${dev.h}`, r: rr })
     }
     await p.close()
   }
@@ -818,13 +865,30 @@ for (const dev of RUN_DEVICES) {
     try { await p.goto(BASE + path, { waitUntil:'networkidle', timeout: 30000 }) } catch { await p.close(); continue }
     await p.waitForTimeout(300)
     const r = await p.evaluate(PROBE)
-    if (r.length) rows.push({ where: `${path} @${w}×${dev.h}`, r })
+    if (r.length) out.push({ where: `${path} @${w}×${dev.h}`, r })
     await p.close()
   }
   await ctx.close()
-  done++
-  console.log(`  ${String(done).padStart(2)}/${RUN_DEVICES.length} ${String(w).padStart(4)}×${dev.h} · ${rows.length} οθόνες με εύρημα ώς εδώ`)
 }
+
+// ═══ ΟΙ ΘΕΣΕΙΣ ═══════════════════════════════════════════════════════════════
+// Ενας κοινός δείκτης και τόσοι εργάτες όσες οι θέσεις: μόλις ένας τελειώσει
+// συσκευή, παίρνει την επόμενη αδιάθετη. Ετσι μια αργή συσκευή δεν κρατά
+// άπραγη μια θέση, όπως θα γινόταν με μοίρασμα σε ίσα κομμάτια από την αρχή.
+const LANES = Math.max(1, Math.min(Number(process.env.E2E_LANES || cpus().length), 4, RUN_DEVICES.length))
+console.log(`  ${RUN_DEVICES.length} συσκευές σε ${LANES} παράλληλες θέσεις`)
+let next = 0
+await Promise.all(Array.from({ length: LANES }, async () => {
+  for (;;) {
+    const i = next++
+    if (i >= RUN_DEVICES.length) return
+    const dev = RUN_DEVICES[i]
+    await scanDevice(dev, buckets[i])
+    done++
+    console.log(`  ${String(done).padStart(2)}/${RUN_DEVICES.length} ${String(dev.w).padStart(4)}×${dev.h} · ${buckets[i].length} οθόνες με εύρημα`)
+  }
+}))
+const rows = buckets.flat()
 await browser.close()
 for (const row of rows) console.log('  ✗ ' + row.where.padEnd(32), (process.env.E2E_ALL ? row.r.join('\n      ') : row.r.slice(0,4).join(' · ') + (row.r.length>4 ? ` (+${row.r.length-4})` : '')))
 const total = rows.reduce((a, b) => a + b.r.length, 0)

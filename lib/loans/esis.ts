@@ -115,7 +115,7 @@ export function analyzeEsis(input: EsisInput, opts?: { benchmarkAprc?: number })
       flags.push({ kind: 'warn', label: 'Πάνω από την αγορά', detail: `Το ΣΕΠΠΕ είναι ${vsMarketPct} μονάδες πάνω από τον δείκτη αγοράς. Ζήτησε βελτίωση ή σύγκρινε άλλη τράπεζα.` })
     } else {
       score -= 25
-      flags.push({ kind: 'bad', label: 'Ακριβότερο από την αγορά', detail: `Το ΣΕΠΠΕ είναι ${vsMarketPct} μονάδες πάνω από τον δείκτη αγοράς.` })
+      flags.push({ kind: 'bad', label: 'Ακριβότερο της αγοράς', detail: `Το ΣΕΠΠΕ είναι ${vsMarketPct} μονάδες πάνω από τον δείκτη αγοράς.` })
     }
   }
 

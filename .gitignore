@@ -68,3 +68,6 @@ docs/marketing/reels/*
 !docs/marketing/reels/.gitkeep
 .e2e-signup/
 .brand-icons/
+
+# Πρόχειρα μετρητικά της συνεδρίας — δεν ανήκουν στο αποθετήριο.
+.tmp-probe/

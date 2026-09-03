@@ -22,6 +22,64 @@
 const tsx = (body) => `export default function MutationProbe() {\n  return (\n${body}\n  )\n}\n`
 
 export const MUTATIONS = {
+  // ══ ΤΑ ΔΕΚΑΠΕΝΤΕ ΠΟΥ ΕΛΕΙΠΑΝ (02/09/2026) ═══════════════════════════════
+  // Ο πάγκος τα κατήγγειλλε ως «ΧΩΡΙΣ ΜΕΤΑΛΛΑΞΗ»: δεκαπέντε φύλακες που δεν
+  // κοκκίνισαν ποτέ, δηλαδή διαβάζονταν ως «ελέγχθηκε» χωρίς να ελέγχουν. Ενα
+  // βήμα του CI που δεν έφτανε ποτέ ώς εδώ, γιατί έσκαγε νωρίτερα.
+
+  // Ο λογιστής: η πύλη ρωτά τη συνδρομή σε ΚΑΘΕ πόρτα. Η μετάλλαξη ξαναγράφει
+  // τη view χωρίς τον έλεγχο, δηλαδή ακριβώς το σφάλμα των 6 ημερών.
+  'accountant-plan-gate': { add: 'supabase/migrations/29990101000000_mut.sql', content: "create or replace function public.accountant_clients_overview(p_token text)\nreturns table (afm text) language sql stable as $$\n  select afm from public.accountant_clients where token = p_token;\n$$;\n" },
+
+  // Η μπάρα: ποσοστιαίο πλάτος ΚΑΙ ύψος μπάρας στην ίδια δήλωση.
+  'bar-copies': { add: 'components/__mut__.tsx', content: tsx("    <div style={{ width: `${42}%`, height: 8, background: 'var(--accent)' }} />") },
+
+  // Η κάρτα εγγραφής: div που είναι ΚΑΙ κουμπί ΚΑΙ κουτί κάρτας.
+  'card-copies': { add: 'components/__mut__.tsx', content: "export default function MutationProbe({ open }: { open: () => void }) {\n  return (\n    <div role=\"button\" tabIndex={0} onClick={open}\n      style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 14, padding: 16 }}>Εγγραφή</div>\n  )\n}\n" },
+
+  // Το πλακίδιο και η γραμμή στοιχείων, έξω από το βιβλίο.
+  'tile-copies': { every: [
+    { add: 'components/__mut__.tsx', content: tsx('    <div className="kpi-card"><div className="kpi-label">ΕΣΟΔΑ</div></div>') },
+    { add: 'components/__mut__.tsx', content: tsx('    <div className="kpi-plain"><div className="kpi-label">ΕΣΟΔΑ</div></div>') },
+  ] },
+
+  // Τα κεφαλαία των email κρατούσαν τόνο: `text-transform: uppercase` πάνω σε
+  // ελληνικό κείμενο, χωρίς να περάσει από τον μετατροπέα.
+  'email-uppercase': { add: 'supabase/functions/_shared/__mut__.ts', content: "export const eyebrowHtml = (t: string) => `<p style=\"text-transform:uppercase\">Ληξιπρόθεσμο ενοίκιο ${t}</p>`\n" },
+
+  // Το `style` που σβήνει τις μεταβλητές του πλέγματος.
+  'grid-style': { add: 'components/__mut__.tsx', content: "import { fixedCols } from '@/components/Theme'\nexport default function MutationProbe() {\n  return <div {...fixedCols(3)} style={{ gap: 12 }}>x</div>\n}\n" },
+
+  // Το iOS μεγαλώνει τα γράμματα πίσω από την πλάτη κάθε μέτρησης.
+  'ios-text-inflation': { file: 'app/globals.css', from: '-webkit-text-size-adjust: 100%', to: '-webkit-text-size-adjust: auto' },
+
+  // Η έξοδος που δεν καθαρίζει τη συσκευή.
+  'leave-device': { add: 'components/__mut__.tsx', content: "import { createClient } from '@/lib/supabase/client'\nexport default function MutationProbe() {\n  return <button onClick={() => createClient().auth.signOut()}>Αποσύνδεση</button>\n}\n" },
+
+  // Η καρτέλα ακινήτου χωρίς `key`: οι απαντήσεις του παλιού γράφουν πάνω στο νέο.
+  'property-key': { file: 'app/dashboard/page.tsx', from: 'key={selected.id} propertyId={selected.id}', to: 'propertyId={selected.id}' },
+
+  // Δεύτερη απάντηση στο «είναι μονοκατοικία;», μακριά από τη μία πηγή.
+  'property-vocabulary': { add: 'lib/core/__mut__.ts', content: "export const isHouse = (t: string) => ['house', 'villa'].includes(t)\nexport const LABELS = { apartment: 'Διαμέρισμα', maisonette: 'Μεζονέτα', warehouse: 'Αποθήκη', storage: 'Αποθηκευτικός' }\n" },
+
+  // Οι βοηθοί RLS καλούνται από το `public` αντί για το `private`.
+  'rls-helper-schema': { add: 'supabase/migrations/29990101000000_mut.sql', content: "create policy mut_probe on public.properties using (public.owns_parent_property(id));\n" },
+
+  // Καρφωμένη διεύθυνση έργου: αυτό έστειλε τις εργασίες του staging στην παραγωγή.
+  'project-ref': { add: 'supabase/migrations/29990101000000_mut.sql', content: "do $$ begin\n  perform net.http_post(url := 'https://aromvduuxtcrzmwwvnej.supabase.co/functions/v1/mut-probe');\nend $$;\n" },
+
+  // Ο συντελεστής μεταβίβασης γραμμένος γυμνός, μακριά από τη μία πηγή.
+  'tax-rates': { add: 'lib/core/__mut__.ts', content: "export const fma = (v: number) => v * 0.0309 // ΦΜΑ μεταβίβασης\n" },
+
+  // «Δεν απάντησε ο διακομιστής» που λέγεται «δεν υπάρχει».
+  // ΣΒΗΣΙΜΟ, ΚΑΙ ΤΟ ΓΡΑΦΩ ΓΙΑΤΙ ΔΕΝ ΕΙΝΑΙ Η ΠΡΩΤΗ ΕΠΙΛΟΓΗ. Δοκιμάστηκε αλλαγή σε
+  // υπαρκτή σελίδα: το `'offline'` γράφεται τρεις φορές (τύπος, γραφή, κλάδος
+  // απόδοσης) και η αντικατάσταση του πάγκου πιάνει μόνο την πρώτη — ο φύλακας
+  // έβρισκε ακόμη τις άλλες δύο και έμενε πράσινος. Το σβήσιμο χτυπά τον πρώτο
+  // του κανόνα, που είναι εξίσου πραγματικός: μια σελίδα ετυμηγορίας που έφυγε.
+  'verdict-vs-network': { remove: 'app/checkin/[token]/page.tsx' },
+
+
   // ── Ελληνικό κείμενο οθόνης ────────────────────────────────────────────
   'ampersand': { add: 'components/__mut__.tsx', content: tsx('    <div>Έσοδα & δαπάνες του ακινήτου σου</div>') },
   'no-arrows': { add: 'components/__mut__.tsx', content: tsx('    <div>Πήγαινε στις Δαπάνες → Κατηγορίες</div>') },
@@ -47,7 +105,12 @@ export const MUTATIONS = {
   'style-backtick': { add: 'components/__mut__.tsx', content: tsx("    <style>{`\n      /* το `top` της γραμμής */\n      .x { top: 0 }\n    `}</style>") },
   'style-tags': { add: 'components/__mut__.tsx', content: tsx("    <style>{`\n      /* το <style> της αρχικής */\n      .x { top: 0 }\n    `}</style>") },
   'greek-numbers': { add: 'components/__mut__.tsx', content: tsx('    <div>Απόδοση {(4.25).toFixed(1)}%</div>') },
-  'percent-formatter': { add: 'components/__mut__.ts', content: 'export const line = (r: number) => `Απόδοση ${Math.round(r)}% τον χρόνο`\n' },
+  // ΚΑΣΤΑΝΙΑ, ΟΧΙ ΚΑΝΟΝΑΣ: ο φύλακας κόβει μόνο ΠΑΝΩ από το μετρημένο όριο, οπότε
+  // ένα καινούργιο ποσοστό δεν τον κοκκινίζει από μόνο του — και η προηγούμενη
+  // μετάλλαξη (ένα αρχείο με ένα ωμό ποσοστό) τον άφηνε πράσινο. Το σφάλμα που
+  // ΠΡΕΠΕΙ να πιάσει είναι «ανέβηκε ο αριθμός»: το όριο πέφτει στο μηδέν και ο
+  // φύλακας οφείλει να καταγγείλει τα 78 που ήδη μετρά.
+  'percent-formatter': { file: 'scripts/percent-baseline.json', from: '"max": 78', to: '"max": 0' },
   'number-font': { add: 'components/__mut__.tsx', content: tsx("    <p style={{ fontFamily: T.font.mono }}>Μια ολόκληρη πρόταση γραμμένη σε γραμματοσειρά στηλών</p>") },
 
   // ── Φόρμες και οθόνες ──────────────────────────────────────────────────

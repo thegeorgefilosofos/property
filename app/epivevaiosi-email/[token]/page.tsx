@@ -17,9 +17,10 @@
 import BrandMark from '@/components/BrandMark';
 import { T } from '@/components/tokens';
 import { Btn } from '@/components/Theme';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useLoad } from '@/app/hooks/useLoad';
 
 export default function ConfirmReminderEmail() {
   const token = String(useParams()?.token || '');
@@ -36,13 +37,21 @@ export default function ConfirmReminderEmail() {
   // «offline»· εδώ έλειπε.
   const [state, setState] = useState<'loading' | 'ok' | 'invalid' | 'offline'>('loading');
 
+  // ΤΟ «ΦΟΡΤΩΝΕΙ» ΔΕΝ ΓΡΑΦΕΤΑΙ ΜΕΣΑ ΣΤΗ ΦΟΡΤΩΣΗ. Η αρχική κατάσταση είναι ήδη
+  // «loading», οπότε η σύγχρονη γραφή στην πρώτη γραμμή δεν πρόσθετε τίποτα
+  // στην προσάρτηση — πρόσθετε μόνο μια γραφή κατάστασης πριν από το πρώτο
+  // await, που είναι ακριβώς ό,τι απαγορεύει ο κανόνας (guard-use-load,
+  // set-state-in-effect). Στη ΔΕΥΤΕΡΗ προσπάθεια τη χρειάζεται και εκεί
+  // ανήκει: στον χειριστή του κουμπιού, όπου είναι απάντηση σε πάτημα.
   const confirm = useCallback(async () => {
-    setState('loading');
     const { data, error } = await supabase.rpc('confirm_reminder_email', { p_token: token });
     setState(error ? 'offline' : data === true ? 'ok' : 'invalid');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
-  useEffect(() => { void confirm(); }, [confirm]);
+  // Το ιδίωμα του έργου για φόρτωση στην προσάρτηση: μία φορά, με τον σωστό χρόνο.
+  useLoad(confirm);
+  /** Δεύτερη προσπάθεια από κουμπί: εκεί το «φορτώνει» είναι απάντηση σε πάτημα. */
+  const retry = () => { setState('loading'); void confirm(); };
 
   const wrap: React.CSSProperties = { minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: 'Inter, system-ui, Arial, sans-serif', color: 'var(--text-primary)' };
   const card: React.CSSProperties = { width: '100%', maxWidth: 440, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '30px 28px', boxShadow: 'var(--elev-1)' };
@@ -93,7 +102,7 @@ export default function ConfirmReminderEmail() {
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
               Δεν λάβαμε απάντηση, οπότε ο σύνδεσμος δεν ελέγχθηκε. Μπορεί να είναι μια χαρά έγκυρος.
             </p>
-            <div style={{ marginTop: 16 }}><Btn onClick={() => void confirm()}>Δοκιμή ξανά</Btn></div>
+            <div style={{ marginTop: 16 }}><Btn onClick={retry}>Δοκιμή ξανά</Btn></div>
           </div>
         )}
       </div>

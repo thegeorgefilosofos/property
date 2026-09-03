@@ -105,9 +105,37 @@ export const AUDIT = ({ vw, touch }) => {
     }
 
     // ── 4. Κόβεται από πρόγονο που κρύβει το ξεχείλισμα ──
+    // ═══ ΤΟ ΨΑΛΙΔΙ ΚΟΒΕΙ ΜΟΝΟ ΟΣΑ ΚΡΕΜΟΝΤΑΙ ΑΠΟ ΑΥΤΟ ═══════════════════════
+    // Ο έλεγχος περπατούσε το δέντρο και έβγαζε συμπέρασμα από τη ΣΥΓΓΕΝΕΙΑ.
+    // Ομως το `overflow: hidden` ενός προγόνου δεν αγγίζει απόγονο που έχει
+    // βγει από το περιέχον μπλοκ του:
+    //
+    //   `position: fixed`  → το περιέχον μπλοκ είναι το ΠΑΡΑΘΥΡΟ. Κανένα
+    //     ψαλίδι από πάνω δεν ισχύει, εκτός αν κάποιος πρόγονος φτιάχνει
+    //     περιέχον μπλοκ με transform/filter/perspective/contain.
+    //   `position: absolute` → το περιέχον μπλοκ είναι ο πλησιέστερος
+    //     ΤΟΠΟΘΕΤΗΜΕΝΟΣ πρόγονος. Ενας `static` πρόγονος με overflow hidden
+    //     δεν είναι στη διαδρομή του, άρα δεν το κόβει.
+    //
+    // ΤΙ ΚΟΣΤΙΣΕ Η ΠΑΡΑΛΕΙΨΗ: τα παράθυρα ολόκληρης οθόνης — Σάρωση εγγράφου,
+    // Νέο ακίνητο, Καταστάσεις ιδιοκτήτη, Είσπραξη ενοικίων — και ΚΑΘΕ παιδί
+    // τους αναφέρονταν «κομμένα» από το `.app-content`, που έχει overflow
+    // hidden και ξεκινά στα 151. ΜΕΤΡΗΜΕΝΟ: το παράθυρο είναι top 0, ύψος 844,
+    // όσο ακριβώς το παράθυρο του περιηγητή. Δεν κόβεται ούτε ένα
+    // εικονοστοιχείο. Ηταν 28 από τα 90 ευρήματα, σε επτά πλάτη.
+    let escaped = cs.position === 'fixed';
     for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
       const pc = getComputedStyle(p);
+      if (escaped) {
+        // Μόνο πρόγονος που φτιάχνει περιέχον μπλοκ ξαναπιάνει ένα `fixed`.
+        if (pc.transform !== 'none' || pc.filter !== 'none' || pc.perspective !== 'none'
+          || /paint|layout/.test(pc.contain || '')
+          || /transform|filter|perspective/.test(pc.willChange || '')) escaped = false;
+        else continue;
+      }
+      if (pc.position === 'fixed') { escaped = true; continue; }
       if (pc.overflowY === 'visible') continue;
+      if (cs.position === 'absolute' && pc.position === 'static') continue;
       const pr = p.getBoundingClientRect();
       const top = pr.top + parseFloat(pc.borderTopWidth || 0);
       if (r.top < top - 0.5 && r.bottom > top) {
@@ -137,6 +165,17 @@ export const AUDIT = ({ vw, touch }) => {
     if (layer(taps[i]) !== layer(taps[j])) continue;
     if (taps[i].getClientRects().length > 1 || taps[j].getClientRects().length > 1) continue;
     const a = taps[i].getBoundingClientRect(), b = taps[j].getBoundingClientRect();
+    // ═══ ΣΥΓΚΡΟΥΣΗ ΕΙΝΑΙ Η ΜΕΡΙΚΗ ΕΠΙΚΑΛΥΨΗ, ΟΧΙ Η ΠΛΗΡΗΣ ══════════════════
+    // Το κουμπί ενεργειών «···» κάθεται ΕΠΙΤΗΔΕΣ πάνω στην κάρτα του, σε
+    // απόλυτη θέση· είναι πατήσιμη κι η ίδια η κάρτα. Το `contains` δεν το
+    // πιάνει όταν τα δύο δεν είναι γονιός-παιδί στο DOM, οπότε ο έλεγχος
+    // ανέφερε δεκαέξι φορές μια στρώση που ΕΙΝΑΙ ο σχεδιασμός: το μικρό κουμπί
+    // είναι από πάνω, το παίρνει το πάτημα, η κάρτα παίρνει τα υπόλοιπα.
+    // ΠΛΗΡΗΣ ΕΓΚΛΕΙΣΜΟΣ = ηθελημένη στρώση. ΜΕΡΙΚΗ = δύο στόχοι που τσακώνονται
+    // για τα ίδια εικονοστοιχεία, δηλαδή το πραγματικό ελάττωμα.
+    const inside = (x, y) => x.left >= y.left - 1 && x.right <= y.right + 1
+                          && x.top >= y.top - 1 && x.bottom <= y.bottom + 1;
+    if (inside(a, b) || inside(b, a)) continue;
     if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 2
       && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 2) {
       const k = 'o' + label(taps[i]) + label(taps[j]);

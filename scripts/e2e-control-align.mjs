@@ -29,8 +29,8 @@
 //     node scripts/perf-bench/build-mobile.mjs && node scripts/e2e-control-align.mjs
 // ═══════════════════════════════════════════════════════════════════════════
 import { chromePath } from './lib/chrome.mjs'
+import { sweep } from './lib/sweep.mjs'
 import { SCENES } from './lib/scenes.mjs'
-import { benchUrl } from './lib/paths.mjs'
 import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
 const { chromium } = require('playwright-core')
@@ -83,21 +83,15 @@ const probe = () => {
 const WIDTHS = [1280, 768, 430]
 
 const browser = await chromium.launch({ executablePath: chromePath(), args: ['--no-sandbox'] })
-const findings = []
-for (const width of WIDTHS) {
-  for (const scene of SCENES) {
-    const page = await browser.newPage({ viewport: { width, height: 900 } })
-    try {
-      await page.goto(benchUrl(scene), { waitUntil: 'networkidle', timeout: 25000 })
-      await page.waitForTimeout(400)
-      for (const f of await page.evaluate(probe)) findings.push({ scene: `${scene}@${width}`, ...f })
-    } catch (err) {
-      findings.push({ scene: `${scene}@${width}`, πού: 'δεν φόρτωσε', κείμενο: String(err).slice(0, 60), ύψη: [], κορυφές: [] })
-    }
-    await page.close()
-  }
-}
+// Ο βρόχος πλάτους × σκηνής, με τις θέσεις του, ζει στο scripts/lib/sweep.mjs.
+// Εδώ η σκηνή που δεν φορτώνει ΕΙΝΑΙ εύρημα και δεν προσπερνιέται.
+const swept = await sweep(browser, {
+  widths: WIDTHS, height: 900, scenes: SCENES, settle: 400, timeout: 25000,
+  visit: (page) => page.evaluate(probe),
+  onError: (err) => [{ πού: 'δεν φόρτωσε', κείμενο: String(err).slice(0, 60), ύψη: [], κορυφές: [] }],
+})
 await browser.close()
+const findings = swept.flatMap(({ scene, width, value }) => value.map(f => ({ scene: `${scene}@${width}`, ...f })))
 
 if (findings.length) {
   console.error(`✗ ${findings.length} σειρές με χειριστήρια σε διαφορετικό ύψος:\n`)

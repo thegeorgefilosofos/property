@@ -48,7 +48,7 @@ import * as properties from '@/lib/data/properties';
 import * as stayStore from '@/lib/data/stays';
 // Η απογραφή έχει ένα σπίτι: lib/data/inventory.
 import * as inventory from '@/lib/data/inventory';
-import { T, PageTitle, KPIGrid, Badge, InfoBanner, Btn, ExportButton, EmptyState, Skeleton, SkeletonKPIs, SecHdr, Modal, SideSheet, fe, fd, fp, ABSENT_DATE, formGrid, fixedCols, Tile } from '@/components/Theme';
+import { T, PageTitle, KPIGrid, Badge, InfoBanner, Btn, ExportButton, EmptyState, Skeleton, SkeletonKPIs, SecHdr, Modal, SideSheet, fe, fd, fp, ABSENT_DATE, formGrid, fixedCols, Tile, RecordCard, StatStrip } from '@/components/Theme';
 import { confirmDialog } from '@/components/confirmBus';
 import { NumberInput, TextInput, CustomSelect, DatePicker, Textarea, Toggle } from './UIComponents';
 import MonthBars from '@/components/MonthBars';
@@ -1003,65 +1003,34 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
             const undeclared = undeclaredByClient.get(c.id) || 0;
             const unresolved = cStays.filter(needsAmountReview).length;
             return (
-              <div key={c.id} className="client-card" role="button" tabIndex={0}
-                onClick={() => setOpenId(c.id)}
-                onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) { e.preventDefault(); setOpenId(c.id); } }}
-                style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <RecordCard key={c.id} onOpen={() => setOpenId(c.id)} openLabel={`Άνοιγμα καρτέλας: ${c.full_name}`}
+                lead={avatar(c.full_name, 42)}
+                title={c.full_name}
+                sub={st.lastVisit ? <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>τελ. επίσκεψη {fd(st.lastVisit)}</span> : null}
+                badges={<>
+                  {undeclared > 0 && <Badge>{undeclared} αδήλωτη{undeclared === 1 ? '' : 'ς'}</Badge>}
+                  {unresolved > 0 && <Badge tone="warning">Ποσό προς επιβεβαίωση</Badge>}
+                  {st.hasDamage && <Badge>Φθορές</Badge>}
+                </>}
+                actions={
+                  <button title="Διαγραφή" onClick={e => { e.stopPropagation(); del(c); }}
+                    style={{ background: 'none', border: 'none', borderRadius: 8, width: T.h.sm, height: T.h.sm, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 0, flexShrink: 0 }}>
+                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                  </button>
+                }>
 
-                {/* Κεφαλίδα: avatar + όνομα + σήματα συμμόρφωσης + ενέργειες.
-                    Καμία βαθμολογία, κανένα VIP, καμία «Προσοχή» πάνω σε όνομα ανθρώπου. */}
-                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                  {avatar(c.full_name, 42)}
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.full_name}</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3, flexWrap: 'wrap' }}>
-                      {st.lastVisit && <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>τελ. επίσκεψη {fd(st.lastVisit)}</span>}
-                    </div>
-                  </div>
-                  {/* ══ ΤΟ `flexShrink: 0` ΑΚΥΡΩΝΕ ΤΟ `flexWrap` ΠΟΥ ΕΧΕΙ ΑΠΟ ΚΑΤΩ ΤΟΥ.
-                      Η στήλη κρατούσε το πλάτος του περιεχομένου της, οπότε τα δύο
-                      σήματα έμεναν πάντα δίπλα δίπλα και η αναδίπλωση δεν ενεργοποιούνταν
-                      ποτέ. Μετρημένο στα 360: στήλη 300 εικονοστοιχείων μέσα σε κάρτα
-                      306, με την κεφαλίδα να βγαίνει 33 έξω από την οθόνη. Το σήμα
-                      «Ποσό προς επιβεβαίωση» είναι `nowrap`, δηλαδή δεν σπάει μέσα του:
-                      η μόνη διέξοδος ήταν να πέσει το ένα κάτω από το άλλο, που είναι
-                      ακριβώς αυτό που ζητούσε ήδη το `flexWrap`. ══ */}
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, minWidth: 0 }}>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                      {undeclared > 0 && <Badge>{undeclared} αδήλωτη{undeclared === 1 ? '' : 'ς'}</Badge>}
-                      {unresolved > 0 && <Badge tone="warning">Ποσό προς επιβεβαίωση</Badge>}
-                      {st.hasDamage && <Badge>Φθορές</Badge>}
-                    </div>
-                    <div className="client-card-act">
-                      <button title="Διαγραφή" onClick={e => { e.stopPropagation(); del(c); }}
-                        style={{ background: 'none', border: 'none', borderRadius: 8, width: T.h.sm, height: T.h.sm, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 0, flexShrink: 0 }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--negative)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-tertiary)'; }}>
-                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Λωρίδα στατιστικών: βυθισμένο well με ισομερή micro-stats */}
+                {/* Λωρίδα στατιστικών: το βυθισμένο well του βιβλίου. Οι ετικέτες
+                    ΔΕΝ κόβονται πια — η λωρίδα κρατά λιγότερες στήλες όταν στενεύει. */}
                 {st.stayCount > 0 ? (
-                  <div style={{ background: 'var(--bg-base)', boxShadow: 'var(--well-inset)', borderRadius: T.radius.inner, padding: 12, display: 'flex' }}>
-                    {([
-                      { l: 'Διαμονές', v: String(st.stayCount) },
-                      { l: 'Νύχτες', v: String(st.nights) },
-                      { l: 'Ακαθάριστα', v: fe(totals(cStays).revenue), strong: true, t: 'Δηλωτέο ακαθάριστο, χωρίς το τέλος ανθεκτικότητας' },
-                      { l: 'Μέση νύχτα', v: fe(st.adr), t: 'Δηλωτέο ακαθάριστο διά τις νύχτες' },
-                    ] as { l: string; v: string; strong?: boolean; t?: string }[]).map((m, i) => (
-                      <div key={i} title={m.t} style={{ flex: 1, minWidth: 0, paddingLeft: i ? 12 : 0, borderLeft: i ? '1px solid var(--border-subtle)' : 'none' }}>
-                        <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.l}</div>
-                        <div style={{ fontSize: 13, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: m.strong ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{m.v}</div>
-                      </div>
-                    ))}
-                  </div>
+                  <StatStrip items={[
+                    { label: 'Διαμονές', value: String(st.stayCount) },
+                    { label: 'Νύχτες', value: String(st.nights) },
+                    { label: 'Ακαθάριστα', value: fe(totals(cStays).revenue), strong: true, title: 'Δηλωτέο ακαθάριστο, χωρίς το τέλος ανθεκτικότητας' },
+                    { label: 'Μέση νύχτα', value: fe(st.adr), title: 'Δηλωτέο ακαθάριστο διά τις νύχτες' },
+                  ]} />
                 ) : (
                   <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Χωρίς καταγεγραμμένες διαμονές</div>
                 )}
-
                 {/* Επικοινωνία: compact chips */}
                 {(c.phone || c.email) && (
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -1071,7 +1040,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                     </a>}
                     {c.email && <a onClick={e => e.stopPropagation()} href={`mailto:${c.email}`} style={contactChip}>
                       <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.email}</span>
+                      <span className="po-elide">{c.email}</span>
                     </a>}
                     {/* WhatsApp και Viber ΔΕΝ επαναλαμβάνονται εδώ. Ζουν στην
                         καρτέλα του επισκέπτη, μαζί με τα πρότυπα μηνυμάτων —
@@ -1089,7 +1058,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                     ))}
                   </div>
                 )}
-              </div>
+              </RecordCard>
             );
           })}
         </div>

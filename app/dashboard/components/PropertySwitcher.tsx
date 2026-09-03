@@ -153,14 +153,14 @@ export default function PropertySwitcher({ items, activeId, onSelect, onAdd, can
           εμφανίζεται ΠΟΤΕ σε κινητό — ακριβώς εκεί που δεν υπάρχει πλαϊνή
           μπάρα και η εναλλαγή γίνεται μόνο από εδώ. */}
       {items.length <= 1 && !canAdd ? (
-        <span className="topbar-switch-name" style={{ display: 'block' }}>{active?.name || 'Κανένα ακίνητο ακόμη'}</span>
+        <span className="topbar-switch-name po-elide" style={{ display: 'block' }}>{active?.name || 'Κανένα ακίνητο ακόμη'}</span>
       ) : (
       <button ref={btnRef} type="button" className="topbar-switch"
         onClick={() => (open ? closePanel(false) : openPanel())}
         aria-haspopup="listbox" aria-expanded={open}
         title={items.length > 1 ? 'Αλλαγή ακινήτου' : 'Ακίνητα'}>
         <span className="topbar-switch-face">
-          <span className="topbar-switch-name">{active?.name || 'Κανένα ακίνητο ακόμη'}</span>
+          <span className="topbar-switch-name po-elide">{active?.name || 'Κανένα ακίνητο ακόμη'}</span>
           <svg className="topbar-switch-caret" width={14} height={14} viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="m6 9 6 6 6-6" />
@@ -205,14 +205,12 @@ export default function PropertySwitcher({ items, activeId, onSelect, onAdd, can
                     background: isCursor ? 'var(--bg-hover)' : 'transparent',
                   }}>
                   <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{
+                    <span className="po-elide" style={{
                       display: 'block', fontFamily: T.font.sans, fontSize: 14,
                       fontWeight: isActive ? 600 : 400, color: 'var(--text-primary)',
-                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                     }}>{it.name}</span>
-                    <span style={{
-                      display: 'block', fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-tertiary)',
-                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1,
+                    <span className="po-elide" style={{
+                      display: 'block', fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-tertiary)', marginTop: 1,
                     }}>{[it.status, it.address].filter(Boolean).join(' · ')}</span>
                   </span>
                   {isActive && (

@@ -367,7 +367,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
   const [loadingSaved,setLoadingSaved] = useState(true)
 
   const market      = useMarketRates()
-  const {banks:liveBanks,loading:banksLoading,verifiedAt,reload:reloadBanks} = useBankRates()
+  const {banks:liveBanks,loading:banksLoading,verifiedAt,health:feed,reload:reloadBanks} = useBankRates()
   const {programs:livePrograms }   = useLoanPrograms()
   const {isAdmin} = useIsAdmin()
   // Ρωτιέται ΜΟΝΟ όταν ο χρήστης είναι διαχειριστής: κανένα περιττό αίτημα
@@ -466,7 +466,15 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
   // ημερομηνία (όχι αυτόματη ροή). Αν παλιώσουν, το λέμε καθαρά και παραπέμπουμε
   // στην πηγή, αντί να δίνουμε ψευδή εντύπωση «ζωντανών» τιμών.
   const banksAgeDays = Math.floor((Date.now() - new Date(verifiedAt || BANKS_VERIFIED).getTime())/86400000)
-  const banksStale = banksAgeDays > 45
+  // ═══ «ΕΛΕΓΧΘΗΚΑΝ ΣΗΜΕΡΑ» ΔΕΝ ΕΙΝΑΙ ΤΟ ΙΔΙΟ ΜΕ «ΑΛΛΑΞΑΝ ΣΗΜΕΡΑ» ═════════
+  // Η οθόνη έγραφε «επιβεβαιώθηκαν πριν από 56 ημέρες» επειδή το verified_at
+  // ήταν η μόνη πληροφορία που είχε. Τώρα η τροφοδοσία τρέχει κάθε μέρα και
+  // αφήνει ίχνος (bank_feed_health): αν έτρεξε τις τελευταίες 36 ώρες και
+  // πέτυχε, τα επιτόκια ΕΛΕΓΧΘΗΚΑΝ — και η ημερομηνία που δείχνουμε είναι
+  // πότε επιβεβαιώθηκαν, όχι πότε τα κοίταξε τελευταία κάποιος.
+  const feedFresh = feed.checked && feed.ok && feed.hoursSilent != null && feed.hoursSilent <= 36
+  const feedCheckedStr = feed.lastOk ? new Date(feed.lastOk).toLocaleDateString('el-GR',{day:'2-digit',month:'short'}) : ''
+  const banksStale = !feedFresh && banksAgeDays > 45
   // Μία πηγή αλήθειας: η ανάλυση αντλεί απευθείας τα στοιχεία του Υπολογιστή
   // (χωρίς διπλά πεδία ποσού/διάρκειας/σκοπού).
   /**
@@ -981,7 +989,7 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
           {banksStale&&(
             <div style={{display:'flex',alignItems:'flex-start',gap:10,padding:'11px 14px',background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:10}}>
               <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="1.9" strokeLinecap="round" style={{flexShrink:0,marginTop:1}}><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
-              <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.55,fontFamily: T.font.sans}}>Τα επιτόκια επιβεβαιώθηκαν πριν από {banksAgeDays} ημέρες και ενδέχεται να έχουν αλλάξει. Για δεσμευτική προσφορά επιβεβαιώστε απευθείας με την τράπεζα ή στο <a href="https://vresdaneio.gr/epitokia/index.html" target="_blank" rel="noreferrer" style={{color:'var(--accent)',textDecoration:'none',fontWeight:500}}>vresdaneio.gr</a>.</p>
+              <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.55,fontFamily: T.font.sans}}>{feed.checked && !feed.ok ? `Ο αυτόματος έλεγχος επιτοκίων δεν τρέχει (${feed.reason}). ` : ''}Τα επιτόκια επιβεβαιώθηκαν πριν από {banksAgeDays} ημέρες και ενδέχεται να έχουν αλλάξει. Για δεσμευτική προσφορά επιβεβαιώστε απευθείας με την τράπεζα ή στο <a href="https://vresdaneio.gr/epitokia/index.html" target="_blank" rel="noreferrer" style={{color:'var(--accent)',textDecoration:'none',fontWeight:500}}>vresdaneio.gr</a>.</p>
             </div>
           )}
           <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
@@ -989,8 +997,9 @@ export default function TabLoan({propertyId,userId,propertyValue,propertySqm,pro
               Σπίτι μου ΙΙ
             </button>
             <p style={{fontSize:11,color:'var(--text-tertiary)',marginLeft:'auto',fontFamily: T.font.sans}}>
-              {banksLoading?'Φόρτωση…':`vresdaneio.gr · ${banksUpdStr}`}
-              {liveBanks.length>0&&<span style={{color:'var(--text-secondary)',marginLeft:6}}>Ενημερωμένα στοιχεία</span>}
+              {banksLoading?'Φόρτωση…':feedFresh?`Ελέγχθηκαν ${feedCheckedStr} · επιβεβαιωμένα ${banksUpdStr}`:`vresdaneio.gr · ${banksUpdStr}`}
+              {liveBanks.length>0&&!feedFresh&&<span style={{color:'var(--text-secondary)',marginLeft:6}}>Ενημερωμένα στοιχεία</span>}
+              {feed.heldChanges>0&&<span style={{color:'var(--warning)',marginLeft:6}}>{feed.heldChanges} {feed.heldChanges===1?'μεταβολή περιμένει':'μεταβολές περιμένουν'} επιβεβαίωση</span>}
             </p>
           </div>
 

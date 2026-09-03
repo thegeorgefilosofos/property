@@ -8,9 +8,10 @@
 import BrandMark from '@/components/BrandMark';
 import { T } from '@/components/tokens';
 import { Btn } from '@/components/Theme';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useLoad } from '@/app/hooks/useLoad';
 
 export default function Unsubscribe() {
   const token = String(useParams()?.token || '');
@@ -34,8 +35,13 @@ export default function Unsubscribe() {
   // Το `unsubscribe()` είκοσι γραμμές πιο κάτω, στο ΙΔΙΟ αρχείο, τα ξεχώριζε
   // ήδη σωστά: σφάλμα → «δοκίμασε ξανά», `!data` → «ο σύνδεσμος έληξε». Ο ίδιος
   // κανόνας ισχύει τώρα και στη φόρτωση.
+  // ΤΟ «ΦΟΡΤΩΝΕΙ» ΔΕΝ ΓΡΑΦΕΤΑΙ ΜΕΣΑ ΣΤΗ ΦΟΡΤΩΣΗ. Η αρχική κατάσταση είναι ήδη
+  // «loading», οπότε η σύγχρονη γραφή στην πρώτη γραμμή δεν πρόσθετε τίποτα
+  // στην προσάρτηση — πρόσθετε μόνο μια γραφή κατάστασης πριν από το πρώτο
+  // await, που είναι ακριβώς ό,τι απαγορεύει ο κανόνας (guard-use-load,
+  // set-state-in-effect). Στη ΔΕΥΤΕΡΗ προσπάθεια τη χρειάζεται και εκεί
+  // ανήκει: στον χειριστή του κουμπιού, όπου είναι απάντηση σε πάτημα.
   const load = useCallback(async () => {
-    setState('loading');
     const { data, error } = await supabase.rpc('marketing_prefs_by_token', { p_token: token });
     const row = Array.isArray(data) ? data[0] : data;
     if (error) { setState('error'); return; }
@@ -43,7 +49,10 @@ export default function Unsubscribe() {
     setProduct(row.product_news); setMarket(row.market_news); setState('ok');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
-  useEffect(() => { void load(); }, [load]);
+  // Το ιδίωμα του έργου για φόρτωση στην προσάρτηση: μία φορά, με τον σωστό χρόνο.
+  useLoad(load);
+  /** Δεύτερη προσπάθεια από κουμπί: εκεί το «φορτώνει» είναι απάντηση σε πάτημα. */
+  const retry = () => { setState('loading'); void load(); };
 
   // ═══ Η ΑΠΕΓΓΡΑΦΗ ΠΟΥ ΑΠΕΤΥΧΕ ΣΙΩΠΗΛΑ ══════════════════════════════════════
   // ΤΙ ΕΒΛΕΠΕ Ο ΠΑΡΑΛΗΠΤΗΣ. Πατούσε «Απεγγραφή από όλα», το κουμπί σταματούσε
@@ -101,7 +110,7 @@ export default function Unsubscribe() {
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
               Δεν καταφέραμε να διαβάσουμε τις προτιμήσεις σου. Ο σύνδεσμος δεν ελέγχθηκε, οπότε μπορεί κάλλιστα να είναι έγκυρος.
             </p>
-            <div style={{ marginTop: 16 }}><Btn onClick={() => void load()}>Δοκιμή ξανά</Btn></div>
+            <div style={{ marginTop: 16 }}><Btn onClick={retry}>Δοκιμή ξανά</Btn></div>
           </div>
         )}
 

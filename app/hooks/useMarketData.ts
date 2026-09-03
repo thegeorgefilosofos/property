@@ -1,3 +1,10 @@
+'use client'
+// ΕΙΝΑΙ MODULE ΠΕΛΑΤΗ, ΚΑΙ ΤΩΡΑ ΤΟ ΛΕΕΙ. Εξάγει ΜΟΝΟ hooks: τρέχει
+// αποκλειστικά σε component πελάτη και όλοι οι καταναλωτές του δηλώνουν ήδη
+// 'use client'. Χωρίς τη δήλωση, ο `check-server-imports` το έβλεπε ως Server
+// Component που διαβάζει τιμή από module πελάτη (το `useLoad`) — εύρημα
+// σωστό στη μορφή του, γιατί ένα module χωρίς τη δήλωση ΜΠΟΡΕΙ να αποδοθεί
+// στον διακομιστή, όπου η τιμή θα ερχόταν undefined.
 // src/hooks/useMarketData.ts
 // Fetches live market data from Supabase (which gets it from ECB + ΤτΕ daily)
 // Πέφτει σε σταθερές τιμές όταν η βάση δεν απαντά
@@ -235,10 +242,36 @@ export function useMarketFeedHealth(enabled: boolean) {
   return health
 }
 
+// ═══ Η ΥΓΕΙΑ ΤΗΣ ΤΡΟΦΟΔΟΣΙΑΣ ΕΠΙΤΟΚΙΩΝ ΤΡΑΠΕΖΩΝ ═══════════════════════════
+// Ο ορισμός ζει στη `bank_feed_health()` της βάσης, όπως και για την ΕΚΤ.
+// Εδώ διαβάζεται μόνο, ώστε η οθόνη να μπορεί να πει «ελέγχθηκαν σήμερα,
+// αμετάβλητα από …» αντί να μετρά ημέρες από το `verified_at` και να
+// υποθέτει ότι κανείς δεν κοίταξε.
+export interface BankFeedHealth {
+  ok: boolean;
+  reason: string;
+  /** Πότε έτρεξε τελευταία η τροφοδοσία, ό,τι κι αν βρήκε. */
+  lastCheck: string | null;
+  /** Πότε έτρεξε τελευταία ΚΑΙ πέτυχε. */
+  lastOk: string | null;
+  hoursSilent: number | null;
+  /** Η παλαιότερη επιβεβαίωση ανάμεσα στις ενεργές τράπεζες. */
+  verifiedAt: string | null;
+  /** Μεταβολές που περιμένουν δεύτερη επιβεβαίωση. */
+  heldChanges: number;
+  /** Οσο είναι false, δεν ξέρουμε τίποτα και δεν λέμε τίποτα. */
+  checked: boolean;
+}
+
+const NO_BANK_HEALTH: BankFeedHealth = {
+  ok: true, reason: '', lastCheck: null, lastOk: null, hoursSilent: null, verifiedAt: null, heldChanges: 0, checked: false,
+}
+
 export function useBankRates() {
   const [banks, setBanks] = useState<LiveBankRate[]>([])
   const [loading, setLoading] = useState(true)
   const [verifiedAt, setVerifiedAt] = useState<string>('')
+  const [health, setHealth] = useState<BankFeedHealth>(NO_BANK_HEALTH)
   const supabase = createClient()
 
   const reload = useCallback(async () => {
@@ -253,13 +286,24 @@ export function useBankRates() {
       setVerifiedAt(data[0].verified_at)
     }
     setLoading(false)
+    // Σφάλμα ανάγνωσης δεν είναι «όλα καλά»: μένει `checked: false` και η
+    // οθόνη πέφτει στην παλιά της γλώσσα, τις ημέρες από το verified_at.
+    try {
+      const { data: h, error } = await supabase.rpc('bank_feed_health')
+      const row = Array.isArray(h) ? h[0] : h
+      if (!error && row) setHealth({
+        ok: !!row.ok, reason: row.reason ?? '', lastCheck: row.last_check ?? null, lastOk: row.last_ok ?? null,
+        hoursSilent: row.hours_silent == null ? null : Number(row.hours_silent),
+        verifiedAt: row.verified_at ?? null, heldChanges: Number(row.held_changes ?? 0), checked: true,
+      })
+    } catch { /* μια αποτυχία ελέγχου δεν είναι αποτυχία τροφοδοσίας */ }
   }, [supabase])
 
   // Η αποτυχία σβήνει τον δείκτη φόρτωσης· και τα δύο συμβαίνουν στην απάντηση.
   const boot = useCallback(() => reload().catch(() => setLoading(false)), [reload])
   useLoad(boot)
 
-  return { banks, loading, verifiedAt, reload }
+  return { banks, loading, verifiedAt, health, reload }
 }
 
 // Ελέγχει αν ο συνδεδεμένος χρήστης ανήκει στη λίστα διαχειριστών (app_admins).

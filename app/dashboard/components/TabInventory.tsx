@@ -130,8 +130,8 @@ function AttentionCard({items,onEdit,onWarrantyReminder}:{items:InventoryItem[];
         {attention.slice(0,6).map(({item,label,kind})=>(
           <div key={item.id} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 12px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)'}}>
             <div style={{minWidth:0,flex:1}}>
-              <p style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</p>
-              <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+              <p className="po-elide" style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)'}}>{item.name}</p>
+              <p className="po-elide" style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>
                 {label}{item.room?` · ${item.room}`:''}
                 {kind==='warr'&&item.warranty_expiry?` · ${fmtDate(item.warranty_expiry)}`:''}
                 {kind==='repl'&&item.replacement_cost?` · ${fe(item.replacement_cost)}`:''}
@@ -183,7 +183,7 @@ function AnalysisCards({items,repairs,kwhPrice,kwhControl}:{items:InventoryItem[
                   κείμενο χανόταν το «(4)». Τώρα κόβεται μόνο η κατηγορία· ο αριθμός
                   των αντικειμένων μένει πάντα ορατός. */}
               <span style={{display:'flex',alignItems:'baseline',gap:5,minWidth:0,fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>
-                <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cat}</span>
+                <span className="po-elide">{cat}</span>
                 <span style={{color:'var(--text-tertiary)',fontSize: 11,flexShrink:0}}>({count})</span>
               </span>
               <span style={{fontSize:12,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:600,flexShrink:0}}>{fe(val)}</span>
@@ -213,7 +213,7 @@ function AnalysisCards({items,repairs,kwhPrice,kwhControl}:{items:InventoryItem[
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4,gap:8}}>
                 <div style={{display:'flex',alignItems:'center',gap:6,minWidth:0}}>
                   {item.energy_class&&<EnergyBadge cls={item.energy_class}/>}
-                  <span style={{fontSize:11,color:'var(--text-primary)',fontFamily:T.font.sans,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</span>
+                  <span className="po-elide" style={{fontSize:11,color:'var(--text-primary)',fontFamily:T.font.sans}}>{item.name}</span>
                 </div>
                 <span style={{fontSize:11,fontFamily:T.font.num,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:700,flexShrink:0}}>{kwhPrice>0?`${fe(mc)} τον μήνα`:`${fn(calcMonthlyKwh(item),1)} kWh`}</span>
               </div>
@@ -253,7 +253,7 @@ function HandoverCard({handovers,onOpenHandover}:{handovers:InventoryHandover[];
               <div key={h.id} {...pressable(onOpenHandover)} style={{display:'flex',alignItems:'center',gap:12,padding:'9px 12px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)',cursor:'pointer'}}>
                 <Badge label={h.handover_type==='check_in'?'Είσοδος':'Έξοδος'} color="var(--text-secondary)"/>
                 <div style={{minWidth:0,flex:1}}>
-                  <p style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{h.tenant_name}</p>
+                  <p className="po-elide" style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)'}}>{h.tenant_name}</p>
                   <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{fmtDate(h.handover_date)} · {snap.length} αντικείμενα</p>
                 </div>
                 {bad>0&&<span style={{fontSize:11,color:'var(--text-secondary)',fontFamily:T.font.sans,flexShrink:0}}>{bad} με φθορά</span>}
@@ -445,8 +445,8 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
                 <div style={{padding:'12px 14px',display:'flex',flexDirection:'column',gap:8,flex:1}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:10}}>
                     <div style={{minWidth:0}}>
-                      <p style={{fontSize:14,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:2,lineHeight:1.3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</p>
-                      <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.category}{item.room?` · ${item.room}`:''}</p>
+                      <p className="po-elide" style={{fontSize:14,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:2,lineHeight:1.3}}>{item.name}</p>
+                      <p className="po-elide" style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{item.category}{item.room?` · ${item.room}`:''}</p>
                     </div>
                     {/* ΤΟ «0,00 €» ΕΦΥΓΕ ΑΠΟ ΤΗ ΘΕΣΗ ΤΗΣ ΑΠΑΝΤΗΣΗΣ. Ενα αντικείμενο
                         χωρίς δηλωμένη τιμή αγοράς δεν αξίζει μηδέν: δεν ξέρουμε πόσο
@@ -466,7 +466,7 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
                     <div style={{minWidth:0,overflow:'hidden'}}>
                       {repl.suggested
                         ?<ReplacementHint item={item} compact/>
-                        :ws&&<span style={{fontSize: 11,color:ws.color,fontFamily:T.font.sans,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>Εγγύηση {ws.label}</span>}
+                        :ws&&<span style={{fontSize: 11,color:ws.color,fontFamily:T.font.sans}}>Εγγύηση {ws.label}</span>}
                     </div>
                     {mc>0&&<span title="Εκτιμώμενο κόστος ρεύματος ανά μήνα" style={{fontSize: 11,color:'var(--text-tertiary)',fontFamily:T.font.num,fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap',flexShrink:0}}>{fe(mc)}/μήνα</span>}
                   </div>
@@ -495,10 +495,10 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
                 {selectMode&&<div onClick={e=>e.stopPropagation()}><SelectBox checked={sel} onChange={()=>toggleSel(item.id)} label={`Επιλογή ${item.name}`}/></div>}
                 <div style={{minWidth:0}}>
                   <div style={{display:'flex',alignItems:'center',gap:6}}>
-                    <p style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.name}</p>
+                    <p className="po-elide" style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)'}}>{item.name}</p>
                     {item.energy_class&&<EnergyBadge cls={item.energy_class}/>}
                   </div>
-                  <p style={{fontSize: 11,color:'var(--text-tertiary)',fontFamily:T.font.sans,margin:'2px 0 4px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.category}{item.room?` · ${item.room}`:''}{age?` · ${age}`:''}</p>
+                  <p className="po-elide" style={{fontSize: 11,color:'var(--text-tertiary)',fontFamily:T.font.sans,margin:'2px 0 4px'}}>{item.category}{item.room?` · ${item.room}`:''}{age?` · ${age}`:''}</p>
                   <DepBar pct={calcDepreciationPct(item)} left={calcYearsLeft(item)} hasData={hasDate} hasValue={hasValue} compact/>
                   {replacementSuggestion(item).suggested&&<div style={{marginTop:4}}><ReplacementHint item={item} compact/></div>}
                 </div>

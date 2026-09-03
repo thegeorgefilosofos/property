@@ -50,6 +50,8 @@ import {
   fixedCols,
   type KPIItem,
   TT,
+  RecordCard,
+  StatStrip,
 } from '@/components/Theme';
 import {
   Users,
@@ -618,46 +620,36 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
                 const od=overdueByTenant.get(t.id);
                 const d=daysLeft(t.lease_end);
                 return (
-                  <div key={t.id} role="button" tabIndex={0}
-                    onClick={()=>{setOpenId(t.id);setDossierTab('overview');}}
-                    onKeyDown={e=>{ if((e.key==='Enter'||e.key===' ')&&e.target===e.currentTarget){e.preventDefault();setOpenId(t.id);setDossierTab('overview');} }}
-                    style={{ background:'var(--bg-surface)', border:`1px solid ${od?'var(--negative-border)':'var(--border-subtle)'}`, borderRadius:T.radius.card, padding:16, display:'flex', flexDirection:'column', gap:12, cursor:'pointer', outline:'none' }}>
-                    <div style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
-                      <div style={{ minWidth:0, flex:1 }}>
-                        <div style={{ fontSize:15, fontWeight:600, color:'var(--text-primary)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' as const }}>{t.full_name}</div>
-                        <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:3, flexWrap:'wrap' as const }}>
-                          <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>{t.lease_start||t.lease_end?`${fmtD(t.lease_start)} έως ${fmtD(t.lease_end)}`:'χωρίς περίοδο μίσθωσης'}</span>
-                          {t.afm&&<span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.mono }}>ΑΦΜ {t.afm}</span>}
-                        </div>
-                      </div>
-                      <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8, flexShrink:0 }}>
-                        {statusBadge(t)}
-                        {(declaredByTenant.get(t.id)||0)>0&&<Badge tone="accent">Δηλωμένη πληρωμή</Badge>}
-                        <button title="Διαγραφή" onClick={e=>{e.stopPropagation();delTenant(t);}}
-                          style={{ background:'none', border:'none', borderRadius:8, width:26, height:26, display:'inline-flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'var(--text-tertiary)', padding:0 }}>
-                          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-                        </button>
-                      </div>
-                    </div>
-                    <div style={{ background:'var(--bg-base)', boxShadow:'var(--well-inset)', borderRadius:12, padding:12, display:'flex' }}>
-                      {([
-                        { l:'Μηνιαίο ενοίκιο', v:fmt(t.monthly_rent), strong:true },
-                        { l:'Εγγύηση', v:fmt(t.deposit_amount) },
-                        { l:'Ληξιπρόθεσμη οφειλή', v:fmt(od?od.amount:0), neg:!!od },
-                      ] as {l:string;v:string;strong?:boolean;neg?:boolean}[]).map((m,i)=>(
-                        <div key={i} style={{ flex:1, minWidth:0, paddingLeft:i?12:0, borderLeft:i?'1px solid var(--border-subtle)':'none' }}>
-                          <div style={{ fontSize: 11, fontWeight:600, textTransform:'uppercase' as const, letterSpacing:'0.05em', color:'var(--text-tertiary)', marginBottom:4, whiteSpace:'nowrap' as const, overflow:'hidden', textOverflow:'ellipsis' }}>{m.l}</div>
-                          <div style={{ fontSize:13, fontWeight:700, fontFamily:T.font.num, fontVariantNumeric:'tabular-nums', color:m.neg?'var(--negative)':m.strong?'var(--text-primary)':'var(--text-secondary)' }}>{m.v}</div>
-                        </div>
-                      ))}
-                    </div>
+                  <RecordCard key={t.id} onOpen={()=>{setOpenId(t.id);setDossierTab('overview');}}
+                    openLabel={`Άνοιγμα καρτέλας: ${t.full_name}`}
+                    tone={od?'negative':undefined}
+                    title={t.full_name}
+                    sub={<>
+                      <span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.sans }}>{t.lease_start||t.lease_end?`${fmtD(t.lease_start)} έως ${fmtD(t.lease_end)}`:'χωρίς περίοδο μίσθωσης'}</span>
+                      {t.afm&&<span style={{ fontSize:11, color:'var(--text-tertiary)', fontFamily:T.font.mono }}>ΑΦΜ {t.afm}</span>}
+                    </>}
+                    badges={<>
+                      {statusBadge(t)}
+                      {(declaredByTenant.get(t.id)||0)>0&&<Badge tone="accent">Δηλωμένη πληρωμή</Badge>}
+                    </>}
+                    actions={
+                      <button title="Διαγραφή" onClick={e=>{e.stopPropagation();delTenant(t);}}
+                        style={{ background:'none', border:'none', borderRadius:8, width:T.h.sm, height:T.h.sm, display:'inline-flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'var(--text-tertiary)', padding:0, flexShrink:0 }}>
+                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                      </button>
+                    }>
+                    <StatStrip items={[
+                      { label:'Μηνιαίο ενοίκιο', value:fmt(t.monthly_rent), strong:true },
+                      { label:'Εγγύηση', value:fmt(t.deposit_amount) },
+                      { label:'Ληξιπρόθεσμη οφειλή', value:fmt(od?od.amount:0), tone:od?'negative':undefined },
+                    ]} />
                     {/* ΤΟ ΡΑΝΤΕΒΟΥ ΤΗΣ ΑΝΑΠΡΟΣΑΡΜΟΓΗΣ ΛΕΓΕΤΑΙ. Το «Μηνιαίο ενοίκιο» από
                         πάνω δείχνει το ποσό που ΙΣΧΥΕΙ σήμερα· χωρίς αυτή τη γραμμή, η
                         υπογεγραμμένη ειδοποίηση θα ζούσε μόνο σε ένα PDF και η αλλαγή
                         θα εμφανιζόταν μια νύχτα χωρίς εξήγηση. */}
                     {!isPastTenant(t)&&t.pending_rent!=null&&t.pending_rent_from&&<div style={{ fontSize:11, color:'var(--text-secondary)', fontFamily:T.font.sans }}>Αναπροσαρμογή σε {fmt(t.pending_rent)} από {fmtD(t.pending_rent_from)}</div>}
                     {!isPastTenant(t)&&d!=null&&d>=0&&d<=60&&<div style={{ fontSize:11, color:'var(--warning)', fontFamily:T.font.sans }}>Λήξη μίσθωσης σε {fn(d)} ημέρες</div>}
-                  </div>
+                  </RecordCard>
                 );
               })}
             </div>

@@ -90,6 +90,17 @@ export const MEASURE = () => {
   const seen = new Set();
   for (const el of document.querySelectorAll('body *')) {
     if (!el.checkVisibility || !el.checkVisibility({ checkVisibilityCSS: true, opacityProperty: true })) continue;
+    // ═══ ΤΟ ΚΕΙΜΕΝΟ ΠΟΥ ΓΡΑΦΤΗΚΕ ΓΙΑ ΝΑ ΜΗ ΦΑΙΝΕΤΑΙ ══════════════════════════
+    // Το `.sr-only` υπάρχει για τον αναγνώστη οθόνης: κουτί ένα επί ένα, με
+    // `clip-path: inset(50%)`, δηλαδή τίποτα δεν ζωγραφίζεται. Το
+    // `checkVisibility` το θεωρεί ορατό —σωστά, δεν είναι `display:none`— και ο
+    // έλεγχος μετρούσε την αντίθεσή του: «σε χρήση» στον ΕΝΦΙΑ βγήκε 1,48:1 σε
+    // σκούρο θέμα, δύο φορές. ΚΑΝΕΝΑΣ ΑΝΘΡΩΠΟΣ ΔΕΝ ΤΟ ΒΛΕΠΕΙ, οπότε το εύρημα
+    // ήταν ψεύτικο — και η «διόρθωσή» του θα άλλαζε χρώμα σε κάτι αόρατο.
+    // Η ερώτηση δεν είναι «είναι στο δέντρο;» αλλά «πιάνει χώρο στην οθόνη;».
+    const box = el.getBoundingClientRect();
+    if (box.width <= 1 || box.height <= 1) continue;
+    if (getComputedStyle(el).clipPath !== 'none') continue;
     if (![...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim().length > 1)) continue;
     const cs = getComputedStyle(el);
     const fg0 = parse(cs.color);

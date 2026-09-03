@@ -184,7 +184,7 @@ export default function EsisScanPanel({
               έβγαζε τρεις και μία και η τέταρτη διαβαζόταν σαν υποσημείωση. */}
           <div {...fixedCols(res.flags.length, 6, 'stretch')}>
             {res.flags.map((f,i)=>(
-              <InfoChip key={i} label={f.label} detail={f.detail} tone={f.kind==='bad'?'negative':'default'}/>
+              <InfoChip key={i} label={f.label} detail={f.detail} tone={f.kind==='bad'?'warning':'default'}/>
             ))}
           </div>
         </div>
