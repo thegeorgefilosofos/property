@@ -775,6 +775,14 @@ async function scanDevice(dev, out) {
   for (const s of (ONLY ? SCENES.filter(x => ONLY.includes(x)) : SCENES)) {
     const p = await ctx.newPage()
     await p.goto(benchUrl(s, 6), { waitUntil:'networkidle' })
+    // Το `networkidle` λέει «σταμάτησε το δίκτυο», όχι «ζωγραφίστηκε η οθόνη».
+    // Με τέσσερις συσκευές παράλληλα, μια σταθερή αναμονή είναι στοίχημα στην
+    // ταχύτητα του μηχανήματος. Αν η σκηνή είναι ΟΝΤΩΣ κενή, το λέει ο έλεγχος
+    // από κάτω με μετρημένο αριθμό χαρακτήρων — δεν κρύβεται εδώ.
+    await p.waitForFunction(
+      () => (document.querySelector('.app-content')?.innerText || '').trim().length > 120,
+      { timeout: 8000 },
+    ).catch(() => {})
     await p.waitForTimeout(500)
     // ═══ ΤΑ ΚΛΕΙΣΤΑ ΠΤΥΣΣΟΜΕΝΑ ΔΕΝ ΕΛΕΓΧΟΝΤΑΝ ΠΟΤΕ ══════════════════════════
     // Η Αποδοση έχει επτά ενότητες που ανοίγουν με πάτημα και ΟΛΕΣ ξεκινούν
