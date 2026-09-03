@@ -43,8 +43,8 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '20'
 
@@ -64,7 +64,7 @@ jobs:
 
       - name: Άνοιγμα issue όταν κάτι άλλαξε ή πάλιωσε
         if: steps.check.outputs.stale == 'yes'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           REPORT: ${{ steps.check.outputs.report }}
         with:
@@ -102,7 +102,7 @@ jobs:
 
       - name: Κλείσιμο issue όταν όλα είναι εντάξει
         if: steps.check.outputs.stale == 'no'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const { data: open } = await github.rest.issues.listForRepo({
