@@ -245,7 +245,7 @@ const PROBE = () => {
     const room = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
     const need = cv.measureText(ph).width
     // Ενα εικονοστοιχείο είναι στρογγυλοποίηση· τέσσερα είναι χαμένο γράμμα.
-    if (need > room + 4) add('ΚΟΜΜΕΝΟ ΠΑΡΑΔΕΙΓΜΑ', ph, `${Math.round(need)} σε ${Math.round(room)}`)
+    if (need > room + 4) add('ΚΟΜΜΕΝΟ ΠΑΡΑΔΕΙΓΜΑ', ph, `${Math.round(need)} σε ${Math.round(room)} · ${who(el)}`)
   }
 
   // ═══ Η ΤΙΜΗ ΜΕΣΑ ΣΤΟ ΠΕΔΙΟ ═════════════════════════════════════════════
@@ -258,6 +258,18 @@ const PROBE = () => {
   // και όταν η εστίαση είναι αλλού ο περιηγητής επιστρέφει ίσα νούμερα. Ετσι
   // μετριέται το ΙΔΙΟ πράγμα με το παράδειγμα, με canvas και την πραγματική
   // γραμματοσειρά, ώστε μια αλλαγή σε καθεμιά από τις δύο να μη χαλά την άλλη.
+  // ΤΟ ΕΥΡΗΜΑ ΠΡΕΠΕΙ ΝΑ ΛΕΕΙ ΠΟΙΟ ΠΕΔΙΟ ΕΙΝΑΙ, ΟΧΙ ΜΟΝΟ ΤΙ ΕΓΡΑΦΕ. Το job του
+  // Safari ανέφερε «ΚΟΜΜΕΝΗ ΤΙΜΗ ΠΕΔΙΟΥ «250» 31 σε 17» και το «250» δεν
+  // ξεχωρίζει τίποτα: υπάρχουν τέσσερα αριθμητικά πεδία σε εκείνη την οθόνη και
+  // το εύρημα δεν αναπαράγεται σε Chromium, οπότε δεν βρίσκεται ούτε με σαρωτή
+  // ούτε με ανάγνωση. Μια μέτρηση πάνω στην οποία δεν μπορείς να δράσεις είναι
+  // μισή μέτρηση· εδώ προστίθεται η ετικέτα προσβασιμότητας και η κλάση, που
+  // μαζί δείχνουν πάντα σε μία γραμμή κώδικα.
+  const who = (el) => {
+    const lab = (el.getAttribute('aria-label') || el.getAttribute('placeholder') || '').trim().slice(0, 28)
+    const cls = typeof el.className === 'string' && el.className ? '.' + el.className.split(/\s+/)[0] : ''
+    return `${el.tagName.toLowerCase()}${cls}${lab ? ` [${lab}]` : ''}`
+  }
   for (const el of document.querySelectorAll('input, textarea')) {
     if (/^(checkbox|radio|file|range|color|hidden|submit|button|image)$/.test(el.type || '')) continue
     const v = el.value
@@ -266,7 +278,7 @@ const PROBE = () => {
     cv.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`
     const room = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
     const need = cv.measureText(v).width
-    if (need > room + 4) add('ΚΟΜΜΕΝΗ ΤΙΜΗ ΠΕΔΙΟΥ', v, `${Math.round(need)} σε ${Math.round(room)}`)
+    if (need > room + 4) add('ΚΟΜΜΕΝΗ ΤΙΜΗ ΠΕΔΙΟΥ', v, `${Math.round(need)} σε ${Math.round(room)} · ${who(el)}`)
   }
 
   // ═══ Ο ΠΙΝΑΚΑΣ ΠΟΥ ΚΥΛΑ ΚΑΙ ΧΑΝΕΙ ΤΟ ΟΝΟΜΑ ΤΗΣ ΓΡΑΜΜΗΣ ═════════════════
