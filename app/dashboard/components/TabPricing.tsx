@@ -556,7 +556,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
         const setComp = (i: number, v: string) => setComps(prev => { const n = [...prev]; n[i] = v; return n; });
         return (
           <div className="card" style={{ marginBottom: 18 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, cursor: 'pointer' }} {...pressable(() => setCompsOpen(o => !o))}>
+            <div className="po-disclosure" {...pressable(() => setCompsOpen(o => !o))}>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>Βαθμονόμηση από τον ανταγωνισμό</div>
                 <div style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 1 }}>Βάλε τιμές/νύχτα παρόμοιων ακινήτων της περιοχής και δες μια προτεινόμενη βάση</div>

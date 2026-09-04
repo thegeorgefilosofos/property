@@ -220,7 +220,7 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
 
   return (
     <div className="card" style={{ marginBottom: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, cursor: 'pointer' }} {...pressable(() => setOpen(o => !o))}>
+      <div className="po-disclosure" {...pressable(() => setOpen(o => !o))}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>Πύλη ενοικιαστή</div>
@@ -274,7 +274,7 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
 
               {/* Ρυθμίσεις πύλης: κωδικός προστασίας + σύνδεσμος πληρωμής */}
               <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '10px 12px', marginBottom: 14 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, cursor: 'pointer' }} {...pressable(() => setCfgOpen(o => !o))}>
+                <div className="po-disclosure" style={{ gap: 10 }} {...pressable(() => setCfgOpen(o => !o))}>
                   <div style={{ fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>Ρυθμίσεις πύλης</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 'var(--fs-xs)', fontFamily: T.font.sans, color: pinSet ? 'var(--positive)' : 'var(--text-tertiary)' }}>{pinSet ? 'Κωδικός ενεργός' : 'Χωρίς κωδικό'}</span>
