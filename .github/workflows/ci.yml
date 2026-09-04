@@ -376,6 +376,46 @@ jobs:
       - name: Τίποτα κομμένο, τίποτα πάνω στο άλλο — blocking
         run: npm run e2e:layout
 
+  # ═══ ΚΑΙ ΤΟ ΙΔΙΟ, ΣΤΗ ΜΗΧΑΝΗ ΠΟΥ ΕΧΕΙ ΤΟ IPHONE ═══════════════════════════
+  # ΤΟ ΚΕΝΟ ΠΟΥ ΚΛΕΙΝΕΙ. Εικοσι δύο πλάτη, εικοσιτέσσερις σκηνές, μηδέν
+  # ευρήματα — και ο ιδιοκτήτης έβρισκε λάθη στο δικό του iPhone. Δεν ήταν
+  # αντίφαση: ΟΛΕΣ οι μετρήσεις έτρεχαν σε Chromium, που στο iOS δεν υπάρχει.
+  # Κάθε περιηγητής του iPhone και του iPad ζωγραφίζει με WebKit, οπότε εκεί ο
+  # Chromium ήταν η προσέγγιση και όχι το πραγματικό.
+  #
+  # ΓΙΑΤΙ ΜΟΝΟ ΩΣ ΤΑ 1024 ΚΑΙ ΟΧΙ ΚΑΙ ΤΑ ΔΕΚΑΤΕΣΣΕΡΑ ΕΚΑΤΟΣΤΑ. Το WebKit
+  # μετράει εκεί που ΤΡΕΧΕΙ WebKit. Στα πλάτη του τηλεφώνου και της ταμπλέτας
+  # είναι η μόνη μηχανή· στον υπολογιστή το Safari είναι μειοψηφία και ο
+  # Chromium το κυρίαρχο, που ήδη μετριέται από πάνω. Δεκατέσσερα πλάτη αντί
+  # για εικοσιδύο κρατά το job κάτω από τον χρόνο του διπλανού του.
+  #
+  # ΓΙΑΤΙ ΞΕΧΩΡΙΣΤΟ JOB. Παράλληλα με το προηγούμενο, οπότε ο συνολικός χρόνος
+  # του CI δεν μεγαλώνει καθόλου — μόνο τα λεπτά δρομέα. Και όταν κοκκινίσει,
+  # το όνομα λέει ΑΜΕΣΩΣ ότι το πρόβλημα είναι του Safari.
+  layout-webkit:
+    name: Διάταξη σε Safari, εννέα πλάτη αφής
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: WebKit — η μηχανή κάθε περιηγητή του iOS
+        run: npx --yes playwright@1.62.1 install --with-deps webkit
+
+      - name: Τίποτα κομμένο σε iPhone και iPad — blocking
+        env:
+          E2E_ENGINE: webkit
+          E2E_WIDTHS: "320,375,390,402,414,430,440,768,834"
+        run: npm run e2e:layout
+
   # ═══ ΜΙΑ ΠΟΡΤΑ, ΤΡΙΑ JOBS ══════════════════════════════════════════════════
   # Με τρία ξεχωριστά jobs, «πράσινο CI» παύει να είναι ΕΝΑ σημάδι: κάποιος
   # μπορεί να δει το `verify` πράσινο και να νομίσει ότι πέρασαν όλα. Αυτό το
@@ -395,7 +435,7 @@ jobs:
   gate:
     name: Ολα πράσινα
     runs-on: ubuntu-latest
-    needs: [verify, scans, layout, rendered]
+    needs: [verify, scans, layout, layout-webkit, rendered]
     if: always() && !cancelled()
     steps:
       - name: Καμία πύλη δεν έμεινε ανοιχτή
@@ -403,8 +443,10 @@ jobs:
           echo "verify:   ${{ needs.verify.result }}"
           echo "scans:    ${{ needs.scans.result }}"
           echo "layout:   ${{ needs.layout.result }}"
+          echo "webkit:   ${{ needs['layout-webkit'].result }}"
           echo "rendered: ${{ needs.rendered.result }}"
           test "${{ needs.verify.result }}"   = success
           test "${{ needs.scans.result }}"    = success
           test "${{ needs.layout.result }}"   = success
+          test "${{ needs['layout-webkit'].result }}" = success
           test "${{ needs.rendered.result }}" = success

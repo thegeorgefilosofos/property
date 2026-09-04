@@ -34,14 +34,11 @@
 //     node scripts/perf-bench/build-mobile.mjs && node scripts/e2e-layout.mjs
 //     (οι δημόσιες σελίδες ελέγχονται μόνο αν απαντά το E2E_BASE)
 // ═══════════════════════════════════════════════════════════════════════════
-import { chromePath } from './lib/chrome.mjs'
+import { launchEngine, engineLabel, engineName } from './lib/engine.mjs'
 import { SCENES } from './lib/scenes.mjs'
 import { abortIfStyleless } from './lib/served-css.mjs'
 import { benchUrl } from './lib/paths.mjs'
 import { cpus } from 'node:os'
-import { createRequire } from 'node:module'
-const require = createRequire(import.meta.url)
-const { chromium } = require('playwright-core')
 
 const PROBE = () => {
   const out = []
@@ -618,7 +615,7 @@ const PROBE = () => {
   return out
 }
 
-const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || chromePath(), args: ['--no-sandbox'] })
+const browser = await launchEngine()
 // Η ΤΑΜΠΛΕΤΑ ΣΕ ΟΡΙΖΟΝΤΙΑ ΘΕΣΗ ΔΕΝ ΜΕΤΡΙΟΤΑΝ ΩΣ ΤΑΜΠΛΕΤΑ. Το `hasTouch` ήταν
 // `w < 1100`, οπότε στα 1.024 και πάνω ο έλεγχος έτρεχε ΩΣ ΠΟΝΤΙΚΙ — και ο
 // κανόνας των 44 εικονοστοιχείων ισχύει μόνο σε χοντρό δείκτη, άρα δεν ίσχυε
@@ -904,7 +901,7 @@ async function scanDevice(dev, out) {
 // συσκευή, παίρνει την επόμενη αδιάθετη. Ετσι μια αργή συσκευή δεν κρατά
 // άπραγη μια θέση, όπως θα γινόταν με μοίρασμα σε ίσα κομμάτια από την αρχή.
 const LANES = Math.max(1, Math.min(Number(process.env.E2E_LANES || cpus().length), 4, RUN_DEVICES.length))
-console.log(`  ${RUN_DEVICES.length} συσκευές σε ${LANES} παράλληλες θέσεις`)
+console.log(`  ${RUN_DEVICES.length} συσκευές σε ${LANES} παράλληλες θέσεις · μηχανή ${engineLabel()}`)
 let next = 0
 await Promise.all(Array.from({ length: LANES }, async () => {
   for (;;) {
