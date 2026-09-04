@@ -94,6 +94,17 @@ const MoneySteps = ({ steps, scale = 'lead' }: { steps: MoneyStep[]; scale?: 'le
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
       {steps.map(step => {
+        // ═══ Η ΣΚΑΛΑ ΤΗΣ ΑΝΑΛΥΣΗΣ ΜΙΛΑΕΙ ΤΗ ΓΛΩΣΣΑ ΤΩΝ TOKEN ══════════════════
+        // Εδώ ζούσαν ΤΡΙΑ από τα τέσσερα μεγέθη που δεν ανήκαν σε καμία κλίμακα:
+        // 11,5 · 12,5 · 19. Κανείς δεν σχεδιάζει στα 11,5 δίπλα στο 11 και στο
+        // 12 — είναι το αποτέλεσμα του «λίγο μικρότερο από αυτό», τρεις φορές.
+        //
+        // Και δεν γίνονται απλώς ακέραιοι: γίνονται ΤΑ ΙΔΙΑ token που ορίζουν
+        // το κείμενο παντού αλλού. Κερδίζουν έτσι και κάτι που δεν είχαν —
+        // στην αφή το --fs-xs είναι 12 αντί για 11 και το --fs-base 14 αντί
+        // για 13, οπότε η ανάλυση τιμής μεγαλώνει μόνη της στο τηλέφωνο.
+        // Ο μόνος αριθμός που μένει είναι τα 20 του τελικού ποσού: είναι το
+        // νούμερο-ήρωας της κάρτας και δεν ακολουθεί την κλίμακα του σώματος.
         const isTotal = step.kind === 'total';
         const isOut = step.kind === 'out';
         return (
@@ -102,12 +113,12 @@ const MoneySteps = ({ steps, scale = 'lead' }: { steps: MoneyStep[]; scale?: 'le
               padding: isTotal ? (lead ? '14px 0 2px' : '7px 0 1px') : (lead ? '9px 0' : '4px 0'),
               borderTop: isTotal ? '1px solid var(--border-default)' : 'none',
               marginTop: isTotal ? (lead ? 6 : 4) : 0 }}>
-            <span style={{ fontFamily: T.font.sans, fontSize: lead ? (isTotal ? 14 : 12.5) : 11.5,
+            <span style={{ fontFamily: T.font.sans, fontSize: lead ? (isTotal ? 'var(--fs-md)' : 'var(--fs-base)') : 'var(--fs-xs)',
               fontWeight: isTotal ? 700 : 400,
               color: isTotal ? 'var(--text-primary)' : 'var(--text-secondary)',
               minWidth: 0 }}>{step.label}</span>
             <span style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums',
-              fontSize: lead ? (isTotal ? 19 : 13) : (isTotal ? 13 : 11.5),
+              fontSize: lead ? (isTotal ? 20 : 'var(--fs-base)') : (isTotal ? 'var(--fs-base)' : 'var(--fs-xs)'),
               fontWeight: isTotal ? 700 : 500,
               color: isTotal ? 'var(--text-primary)' : 'var(--text-secondary)',
               whiteSpace: 'nowrap', flexShrink: 0 }}>
@@ -780,7 +791,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                                 Η μονάδα ζει στο υπόμνημα από κάτω, στην υπόδειξη
                                 του κελιού και στην ετικέτα προσιτότητας. */}
                             {!d.booked && (
-                              <span style={{ position: 'relative', fontSize: 'var(--fs-xs)', fontWeight: top ? 800 : 600, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                              <span style={{ position: 'relative', fontSize: 'var(--fs-xs)', fontWeight: top ? 700 : 600, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
                                 {fn(d.price)}
                               </span>
                             )}

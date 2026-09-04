@@ -60,7 +60,7 @@ const UNIT: React.CSSProperties = {
   color: 'var(--text-tertiary)', fontSize: 15, pointerEvents: 'none',
 };
 const HINT: React.CSSProperties = {
-  margin: '7px 0 0', fontSize: 12.5, lineHeight: 1.55, color: 'var(--text-tertiary)',
+  margin: '7px 0 0', fontSize: 13, lineHeight: 1.55, color: 'var(--text-tertiary)',
 };
 const GROUP: React.CSSProperties = {
   fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
@@ -177,7 +177,7 @@ export function ApodosiCalculator({ year, today }: { year: number; today: string
                    .po-tap-inline ως ψευδοστοιχείο, χωρίς να κουνηθεί τίποτα. */
                 style={{
                   border: 'none', background: 'none', padding: '8px 3px', margin: '0 -3px', cursor: 'pointer',
-                  color: 'var(--accent)', fontWeight: 600, fontSize: 12.5,
+                  color: 'var(--accent)', fontWeight: 600, fontSize: 13,
                   fontFamily: T.font.num, textDecoration: 'underline',
                 }}>{feAuto(presumed)}</button>.
             </p>
@@ -273,7 +273,7 @@ export function ApodosiCalculator({ year, today }: { year: number; today: string
             παρουσιασμένη ως «καθαρή» — δηλαδή ακριβώς το λάθος που η σελίδα
             υπάρχει για να διορθώσει. */}
         {noCosts && (
-          <p style={{ margin: '16px 0 0', fontSize: 12.5, lineHeight: 1.6, color: 'var(--text-tertiary)' }}>
+          <p style={{ margin: '16px 0 0', fontSize: 13, lineHeight: 1.6, color: 'var(--text-tertiary)' }}>
             Δεν δηλώθηκε ΕΝΦΙΑ ούτε δαπάνες, οπότε η καθαρή απόδοση παραπάνω κρατά
             μόνο τον φόρο. Με τα δύο πεδία συμπληρωμένα πέφτει.
           </p>

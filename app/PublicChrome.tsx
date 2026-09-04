@@ -254,13 +254,13 @@ export function ToolCta({ title, body }: { title: string; body: ReactNode }) {
       display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14,
     }}>
       <div style={{ flex: 1, minWidth: 240 }}>
-        <p style={{ margin: 0, fontSize: 15, fontWeight: 650, color: 'var(--text-primary)', letterSpacing: '-0.015em' }}>
+        <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.015em' }}>
           {title}
         </p>
         <p style={{ margin: '6px 0 0', fontSize: 14, lineHeight: 1.6, color: 'var(--text-secondary)', textWrap: 'pretty' }}>
           {body}
         </p>
-        <p style={{ margin: '8px 0 0', fontSize: 12.5, color: 'var(--text-tertiary)' }}>
+        <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--text-tertiary)' }}>
           {TRIAL_LINE}
         </p>
       </div>

@@ -234,7 +234,7 @@ export function PanelDashboard() {
                 σημασιολογική χρήση πράσινου, καμία επιβράβευση με χρώμα. Η
                 αύξηση φαίνεται ήδη από τις ίδιες τις μπάρες· η γραμμή απλώς τη
                 μετράει. */}
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 650 }}>+12% φέτος</div>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 600 }}>+12% φέτος</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'clamp(4px, 1.2vw, 9px)', height: 92 }}>
             {months.map((m, i) => (

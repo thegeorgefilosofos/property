@@ -481,7 +481,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' as const }}>
               <span style={{ fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{tariff.name}</span>
-              <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 800, color: tariffBc.color, background: tariffBc.border, padding: '2px 10px', borderRadius: T.radius.pill, textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>{tariff.badge}</span>
+              <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: tariffBc.color, background: tariffBc.border, padding: '2px 10px', borderRadius: T.radius.pill, textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>{tariff.badge}</span>
               {tariff.contract_months ? (
                 <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', padding: '2px 10px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', fontFamily: T.font.sans }}>
                   {tariff.contract_months} μήνες
@@ -809,10 +809,10 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                         </a>
                         <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>{' '}{t.name}</span>
                         {isCur && (
-                          <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--accent)', marginLeft: 8, fontWeight: 800, letterSpacing: '0.06em' }}>ΤΡΕΧΟΝ</span>
+                          <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--accent)', marginLeft: 8, fontWeight: 700, letterSpacing: '0.06em' }}>ΤΡΕΧΟΝ</span>
                         )}
                         {canRank && !isCur && isBest && (
-                          <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-primary)', marginLeft: 8, fontWeight: 800, letterSpacing: '0.06em' }}>ΚΑΛΥΤΕΡΟ</span>
+                          <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-primary)', marginLeft: 8, fontWeight: 700, letterSpacing: '0.06em' }}>ΚΑΛΥΤΕΡΟ</span>
                         )}
                       </div>
                       <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 3, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>
@@ -823,7 +823,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
 
                     <div style={{ textAlign: 'right' as const }}>
                       <div style={{
-                        fontSize: 15, fontWeight: canRank && isBest ? 800 : 700,
+                        fontSize: 15, fontWeight: canRank && isBest ? 700 : 600,
                         fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums',
                         color: isCur ? 'var(--accent)' : 'var(--text-primary)', lineHeight: 1.2,
                       }}>

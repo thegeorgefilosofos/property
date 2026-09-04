@@ -122,7 +122,7 @@ export function BrandLogo({ size = 26, variant = 'full', className, style }: {
         // Η λέξη ισορροπεί οπτικά με το εικονίδιο όταν είναι λίγο μικρότερη
         // από το ύψος του: ίδιο μέγεθος έκανε τη λέξη να το καταπίνει.
         fontSize: Math.round(size * 0.72),
-        fontWeight: 800,
+        fontWeight: 700,
         letterSpacing: '0.02em',
         lineHeight: 1,
         whiteSpace: 'nowrap',

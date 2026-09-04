@@ -3591,7 +3591,7 @@ details.lp-faq-more[open] > div > details.lp-faq:first-child { border-top: none;
 .lg-back {
   display: inline-flex; align-items: center; gap: 7px;
   margin-bottom: clamp(16px, 2.2vw, 24px);
-  font-size: 13.5px; font-weight: 600; text-decoration: none;
+  font-size: 14px; font-weight: 600; text-decoration: none;
   color: var(--text-tertiary); transition: color .15s;
 }
 
@@ -3628,7 +3628,7 @@ details.lp-faq-more[open] > div > details.lp-faq:first-child { border-top: none;
 .lg-toc-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 1px; }
 .lg-toc-link {
   display: flex; gap: 10px; align-items: baseline;
-  padding: 6px 0; font-size: 13.5px; line-height: 1.45;
+  padding: 6px 0; font-size: 14px; line-height: 1.45;
   color: var(--text-secondary); text-decoration: none;
   transition: color .15s;
 }
@@ -3658,12 +3658,12 @@ details.lp-faq-more[open] > div > details.lp-faq:first-child { border-top: none;
    κάτω από τα 560. Το `pretty` μένει για να μην ξεμένει μία λέξη μόνη της
    στην τελευταία σειρά. */
 .lg-p { font-size: 15px; color: var(--text-secondary); line-height: 1.7; margin: 0 0 12px; text-align: justify; text-wrap: pretty; }
-.lg-p strong, .lg-ul strong { color: var(--text-primary); font-weight: 650; }
+.lg-p strong, .lg-ul strong { color: var(--text-primary); font-weight: 600; }
 .lg-p:last-child, .lg-ul:last-child { margin-bottom: 0; }
 .lg-ul { margin: 2px 0 12px; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
 .lg-ul li { font-size: 15px; color: var(--text-secondary); line-height: 1.65; text-align: justify; text-wrap: pretty; }
 .lg-note {
-  font-size: 13.5px; color: var(--text-tertiary); line-height: 1.65; text-align: justify;
+  font-size: 14px; color: var(--text-tertiary); line-height: 1.65; text-align: justify;
   margin: 12px 0 0; padding: 13px 16px;
   background: var(--bg-elevated); border: 1px solid var(--border-subtle);
   border-radius: 12px;

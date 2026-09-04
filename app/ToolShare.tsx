@@ -58,7 +58,7 @@ const btn: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: 7, height: T.h.sm,
   padding: '0 14px', borderRadius: T.radius.pill,
   border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
-  color: 'var(--text-secondary)', fontSize: 12.5, fontWeight: 600,
+  color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600,
   fontFamily: T.font.sans, cursor: 'pointer', whiteSpace: 'nowrap',
 };
 
@@ -131,7 +131,7 @@ export function ToolActions<S extends ToolSpec>(
             marginTop: 10, width: '100%', height: T.h.md, padding: '0 12px',
             borderRadius: T.radius.btn, border: '1px solid var(--border-default)',
             background: 'var(--bg-surface)', color: 'var(--text-secondary)',
-            fontSize: 12.5, fontFamily: T.font.num, boxSizing: 'border-box',
+            fontSize: 13, fontFamily: T.font.num, boxSizing: 'border-box',
           }}/>
       )}
 

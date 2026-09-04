@@ -1161,7 +1161,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
   if(readFailed) return (
     <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
       <div role="alert" style={{ padding:'14px 16px', borderRadius:T.radius.card, background:'var(--bg-elevated)', border:'1px solid var(--border-default)' }}>
-        <p style={{ fontSize:14, fontWeight:650, color:'var(--text-primary)', fontFamily:T.font.sans, margin:0 }}>
+        <p style={{ fontSize:14, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans, margin:0 }}>
           Τα οικονομικά δεδομένα δεν διαβάστηκαν
         </p>
         <p style={{ fontSize: 'var(--fs-base)', lineHeight:1.6, color:'var(--text-secondary)', fontFamily:T.font.sans, margin:'6px 0 0' }}>
@@ -1344,7 +1344,11 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
               const strong = l.kind==='subtotal'||l.kind==='result'
               return (
                 <div key={l.key} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderTop:l.kind==='result'?'1px solid var(--border-subtle)':'none' }}>
-                  <span style={{ flex:1, fontSize:strong?13.5:13, fontFamily: T.font.sans, fontWeight:strong?600:400, color:l.kind==='result'?'var(--text-primary)':'var(--text-secondary)' }}>{l.label}</span>
+                  {/* Η ετικέτα παίρνει το ΙΔΙΟ μέγεθος με το ποσό της ίδιας γραμμής. Ηταν
+                      13,5 δίπλα σε ποσό 14: το τελευταίο μέγεθος της εφαρμογής που
+                      δεν ανήκε σε καμία κλίμακα· προσπαθούσε να πει «σχεδόν 14».
+                      Την έμφαση τη λέει ήδη το βάρος, 600 έναντι 400. */}
+                  <span style={{ flex:1, fontSize:strong?14:13, fontFamily: T.font.sans, fontWeight:strong?600:400, color:l.kind==='result'?'var(--text-primary)':'var(--text-secondary)' }}>{l.label}</span>
                   <span className="po-fig" data-tone={l.kind==='result'?(l.amount>=0?'accent':'negative'):undefined} style={{ fontSize:strong?14:13, fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', fontWeight:strong?700:500 }}>{l.negative?'−':''}{eur(l.amount)}</span>
                 </div>
               )

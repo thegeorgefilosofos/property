@@ -181,7 +181,7 @@ export function RentTaxCalculator({ today }: { today: string }) {
             );
           })}
         </div>
-        <p style={{ margin: '8px 0 0', fontSize: 12.5, lineHeight: 1.55, color: 'var(--text-tertiary)' }}>
+        <p style={{ margin: '8px 0 0', fontSize: 13, lineHeight: 1.55, color: 'var(--text-tertiary)' }}>
           {year >= FIRST_YEAR_NEW_BRACKETS
             ? 'Κλίμακα 15 / 25 / 35 / 45% (ν.5246/2025), για εισοδήματα από 1/1/2026.'
             : 'Κλίμακα 15 / 35 / 45%, χωρίς το ενδιάμεσο κλιμάκιο. Ισχύει για τα εισοδήματα του 2025.'}
@@ -195,13 +195,13 @@ export function RentTaxCalculator({ today }: { today: string }) {
         gap: 16, flexWrap: 'wrap',
       }}>
         <div style={{ flex: 1, minWidth: 210 }}>
-          <div style={{ fontSize: 14, fontWeight: 650, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
             Εισπράττω μέσω τραπέζης
           </div>
           {/* ΤΟ ΚΕΙΜΕΝΟ ΑΛΛΑΖΕΙ ΜΕ ΤΗΝ ΑΠΑΝΤΗΣΗ, ΚΑΙ ΔΕΝ ΛΕΕΙ ΔΥΟ ΦΟΡΕΣ ΤΟ ΙΔΙΟ.
               Όσο ο διακόπτης είναι ανοιχτός αρκεί ο κανόνας· μόλις κλείσει,
               στη θέση του κανόνα μπαίνει το ΠΟΣΟ που κοστίζει η επιλογή. */}
-          <p style={{ margin: '3px 0 0', fontSize: 12.5, lineHeight: 1.55, color: 'var(--text-tertiary)' }}>
+          <p style={{ margin: '3px 0 0', fontSize: 13, lineHeight: 1.55, color: 'var(--text-tertiary)' }}>
             {viaBank
               ? 'Προϋπόθεση για την τεκμαρτή έκπτωση 5%, από 1/1/2026 (ν.5246/2025).'
               : `Με μετρητά φορολογείται το 100% του ενοικίου (ν.5246/2025). Η έκπτωση που χάνεται κοστίζει ${feAuto(r.cashCost)} τον χρόνο.`}

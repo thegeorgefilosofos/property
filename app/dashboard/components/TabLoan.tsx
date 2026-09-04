@@ -118,7 +118,7 @@ function MiniSection({title,badges,meta,defaultOpen,order,flat,open:openProp,onT
       : {order,...panelStyle,border:`1px solid ${open?'var(--border-default)':'var(--border-raised)'}`,transition:'border-color 0.2s'}}>
       <button onClick={()=>setOpen(o=>!o)} aria-expanded={open} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:flat?'13px 2px':'15px 18px',background:'none',border:'none',cursor:'pointer',textAlign:'left' as const}}>
         <div style={{display:'flex',alignItems:'center',gap:10,minWidth:0,flexWrap:'wrap'}}>
-          <span style={{fontSize:flat?13:14.5,fontWeight:600,color:'var(--text-primary)',fontFamily: T.font.sans,letterSpacing:'-0.01em'}}>{title}</span>
+          <span style={{fontSize:flat?13:15,fontWeight:600,color:'var(--text-primary)',fontFamily: T.font.sans,letterSpacing:'-0.01em'}}>{title}</span>
           {badges}
         </div>
         <div style={{display:'flex',alignItems:'center',gap:12,flexShrink:0}}>

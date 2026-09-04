@@ -1107,7 +1107,7 @@ function FileCard({ i, a }: { i: Item; a: FileActions }) {
         {i.isImage && i.url
           ? <img src={i.url} alt={i.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
           : <span style={{ color: 'var(--accent)' }}><svg aria-hidden="true" {...S} width={30} height={30}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>}
-        {isPdfItem(i) && <span style={{ position: 'absolute', bottom: 6, left: 6, fontSize: 'var(--fs-xs)', fontWeight: 800, letterSpacing: '0.05em', color: 'var(--on-media)', background: T.scrim, padding: '2px 6px', borderRadius: 6 }}>PDF</span>}
+        {isPdfItem(i) && <span style={{ position: 'absolute', bottom: 6, left: 6, fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: '0.05em', color: 'var(--on-media)', background: T.scrim, padding: '2px 6px', borderRadius: 6 }}>PDF</span>}
         {selectable && (shown || sel) && <div style={{ position: 'absolute', top: 6, left: 6 }} onClick={e => e.stopPropagation()}><SelectBox checked={sel} onChange={() => a.onToggleSel(i.id)} label={`Επιλογή ${i.title}`}/></div>}
         {shown && i.raw && (
           <div style={{ position: 'absolute', top: 6, right: 6, display: 'flex', gap: 5 }}>

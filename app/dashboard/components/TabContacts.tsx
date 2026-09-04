@@ -386,7 +386,7 @@ function QuickAct({ as, href, target, rel, onClick, title, label, children }: {
   const base: React.CSSProperties = {
     width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
     textDecoration: 'none', border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)',
-    color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 'var(--fs-xs)', fontWeight: 800, flexShrink: 0,
+    color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 'var(--fs-xs)', fontWeight: 700, flexShrink: 0,
     transition: 'border-color 0.15s, color 0.15s, background 0.15s', boxShadow: 'var(--elev-1)',
   }
   const enter = (e: React.MouseEvent<HTMLElement>) => { const s = e.currentTarget.style; s.borderColor = 'var(--accent-border)'; s.color = 'var(--accent)'; s.background = 'var(--accent-soft)' }
@@ -1045,8 +1045,8 @@ function ContactCard({ contact, onOpen, onEdit, onDelete, onQuickExpense, onQuic
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Phone size={12} color="var(--text-tertiary)" style={{ flexShrink: 0 }} />
               <span style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{contact.phone}</span>
-              {extra.whatsapp && <a href={'https://wa.me/' + contact.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', fontSize: 'var(--fs-xs)', color: 'var(--accent)', fontWeight: 800, background: 'var(--accent-soft)', padding: '1px 5px', borderRadius: 6 }}>WA</a>}
-              {extra.viber && <a href={'viber://chat?number=' + contact.phone.replace(/\D/g, '')} style={{ textDecoration: 'none', fontSize: 'var(--fs-xs)', color: 'var(--accent)', fontWeight: 800, background: 'var(--accent-soft)', padding: '1px 5px', borderRadius: 6 }}>VB</a>}
+              {extra.whatsapp && <a href={'https://wa.me/' + contact.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', fontSize: 'var(--fs-xs)', color: 'var(--accent)', fontWeight: 700, background: 'var(--accent-soft)', padding: '1px 5px', borderRadius: 6 }}>WA</a>}
+              {extra.viber && <a href={'viber://chat?number=' + contact.phone.replace(/\D/g, '')} style={{ textDecoration: 'none', fontSize: 'var(--fs-xs)', color: 'var(--accent)', fontWeight: 700, background: 'var(--accent-soft)', padding: '1px 5px', borderRadius: 6 }}>VB</a>}
             </div>
           )}
           {extra.phone2 && <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Phone size={12} color="var(--text-tertiary)" style={{ flexShrink: 0 }} /><span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{extra.phone2}</span><span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>2ο</span></div>}
@@ -1204,7 +1204,7 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
         <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
           {extra.avatar_url
             ? <img src={extra.avatar_url} alt="" style={{ width: 68, height: 68, borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--accent-border)', flexShrink: 0 }} />
-            : <div style={{ width: 68, height: 68, borderRadius: '50%', background: 'var(--accent-soft)', border: '3px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 800, color: 'var(--accent)', flexShrink: 0 }}>{initials || <GroupIcon size={26} />}</div>}
+            : <div style={{ width: 68, height: 68, borderRadius: '50%', background: 'var(--accent-soft)', border: '3px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 700, color: 'var(--accent)', flexShrink: 0 }}>{initials || <GroupIcon size={26} />}</div>}
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em', lineHeight: 1.15 }}>{contact.full_name}</div>
             <div style={{ fontSize: 'var(--fs-base)', color: 'var(--accent)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 }}><GroupIcon size={13} />{meta.label || contact.role}</div>
@@ -1229,7 +1229,7 @@ function ContactDossier({ contact, propertyId, onClose, onEdit, onDelete, onQuic
         <button type="button" onClick={onShowHistory} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '14px 16px', cursor: 'pointer', textAlign: 'left', boxShadow: 'var(--elev-1)', fontFamily: T.font.sans }}>
           <div>
             <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Πληρωμές</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginTop: 4 }}>{fe(exp.total)}</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginTop: 4 }}>{fe(exp.total)}</div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 1 }}>{exp.count} {exp.count === 1 ? 'καταχώρηση' : 'καταχωρήσεις'}{exp.docs > 0 ? ` · ${exp.docs} ${exp.docs === 1 ? 'παραστατικό' : 'παραστατικά'} με το ΑΦΜ του` : ''}</div>
           </div>
           <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600, whiteSpace: 'nowrap' }}>Πλήρες ιστορικό ›</span>
@@ -1849,7 +1849,7 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '11px 16px', marginBottom: 18, flexWrap: 'wrap', boxShadow: 'var(--elev-1)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
               <SelectBox checked={allOn} indeterminate={someOn} onChange={masterToggle} label="Επιλογή όλων" />
-              <span style={{ fontSize: 14, fontWeight: 650, color: none ? 'var(--text-secondary)' : 'var(--text-primary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: 14, fontWeight: 600, color: none ? 'var(--text-secondary)' : 'var(--text-primary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
                 {none ? `Επιλογή όλων (${processed.length})` : `${selected.size} ${selected.size === 1 ? 'επιλεγμένη' : 'επιλεγμένες'}`}
               </span>
             </div>
@@ -1884,8 +1884,8 @@ export default function TabContacts({ propertyId, userId, embedded, profileType 
                   </div>
                   <div style={{ display: 'flex', gap: 4, marginLeft: 4, flexShrink: 0 }}>
                     {c.phone && <a href={'tel:' + c.phone} onClick={e => e.stopPropagation()} style={{ textDecoration: 'none', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', padding: 3 }}><Phone size={13} /></a>}
-                    {c._extra?.whatsapp && c.phone && <a href={'https://wa.me/' + c.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: 'none', fontSize: 'var(--fs-xs)', fontWeight: 800, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '2px 5px', borderRadius: 6 }}>WA</a>}
-                    {c._extra?.viber && c.phone && <a href={'viber://chat?number=' + c.phone.replace(/\D/g, '')} onClick={e => e.stopPropagation()} style={{ textDecoration: 'none', fontSize: 'var(--fs-xs)', fontWeight: 800, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '2px 5px', borderRadius: 6 }}>VB</a>}
+                    {c._extra?.whatsapp && c.phone && <a href={'https://wa.me/' + c.phone.replace(/\D/g, '')} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ textDecoration: 'none', fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '2px 5px', borderRadius: 6 }}>WA</a>}
+                    {c._extra?.viber && c.phone && <a href={'viber://chat?number=' + c.phone.replace(/\D/g, '')} onClick={e => e.stopPropagation()} style={{ textDecoration: 'none', fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '2px 5px', borderRadius: 6 }}>VB</a>}
                   </div>
                 </div>
               )

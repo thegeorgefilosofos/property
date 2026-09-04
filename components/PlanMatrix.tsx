@@ -101,7 +101,7 @@ export function PlanMatrix({ highlight }: { highlight?: PlanId }) {
           <div />
           {COMPARED.map(id => (
             <div key={id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '0 8px' }}>
-              <span style={{ fontSize: 12, fontWeight: id === highlight ? 800 : 700, color: id === highlight ? 'var(--accent)' : 'var(--text-secondary)', fontFamily: T.font.sans, textAlign: 'center' }}>{PLANS[id].name}</span>
+              <span style={{ fontSize: 12, fontWeight: id === highlight ? 700 : 600, color: id === highlight ? 'var(--accent)' : 'var(--text-secondary)', fontFamily: T.font.sans, textAlign: 'center' }}>{PLANS[id].name}</span>
             </div>
           ))}
         </div>

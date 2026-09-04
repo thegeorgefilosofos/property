@@ -1644,13 +1644,13 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                     {reconcile.options.map(o => (
                       <button key={o.id} type="button" onClick={() => commitPendingDoc(o.id)}
                         style={{ textAlign: 'left', padding: '10px 13px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 'var(--fs-base)', cursor: 'pointer', minHeight: T.h.md }}>
-                        <span style={{ fontWeight: 650 }}>{o.label}</span>
+                        <span style={{ fontWeight: 600 }}>{o.label}</span>
                         {o.reasons.length > 0 && <span style={{ display: 'block', marginTop: 3, color: 'var(--text-tertiary)', fontSize: 12 }}>{o.reasons.join(' · ')}</span>}
                       </button>
                     ))}
                     <button type="button" onClick={() => commitPendingDoc(null)}
                       style={{ textAlign: 'left', padding: '10px 13px', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 'var(--fs-base)', cursor: 'pointer', minHeight: T.h.md }}>
-                      <span style={{ fontWeight: 650 }}>{RECONCILE_NONE_LABEL}</span>
+                      <span style={{ fontWeight: 600 }}>{RECONCILE_NONE_LABEL}</span>
                       <span style={{ display: 'block', marginTop: 3, color: 'var(--text-tertiary)', fontSize: 12 }}>{RECONCILE_NONE_HINT}</span>
                     </button>
                   </div>

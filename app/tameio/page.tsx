@@ -139,7 +139,7 @@ export default function CheckoutLanding() {
                   style={{ flex: 1, minHeight: 40, borderRadius: T.radius.inner, border: 'none', cursor: 'pointer',
                     background: cycle === v ? 'var(--accent)' : 'transparent',
                     color: cycle === v ? 'var(--accent-text)' : 'var(--text-secondary)',
-                    fontFamily: T.font.sans, fontSize: 13, fontWeight: 650 }}>
+                    fontFamily: T.font.sans, fontSize: 13, fontWeight: 600 }}>
                   {lab}
                 </button>
               ))}
@@ -159,11 +159,11 @@ export default function CheckoutLanding() {
                       alignItems: 'baseline', width: '100%', minHeight: 58, padding: '11px 14px', textAlign: 'left',
                       borderRadius: T.radius.inner, border: '1px solid var(--border-default)',
                       background: 'var(--bg-surface)', cursor: 'pointer', fontFamily: T.font.sans }}>
-                    <span style={{ fontSize: 15, fontWeight: 650, color: 'var(--text-primary)', letterSpacing: '-0.015em' }}>{p.name}</span>
-                    <span style={{ fontSize: 15, fontWeight: 650, color: 'var(--text-primary)', textAlign: 'right',
+                    <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.015em' }}>{p.name}</span>
+                    <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right',
                       fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{fe(price)}</span>
-                    <span style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-tertiary)' }}>{limit}</span>
-                    <span style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-tertiary)', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-tertiary)' }}>{limit}</span>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-tertiary)', textAlign: 'right', whiteSpace: 'nowrap' }}>
                       {cycle === 'annual' ? 'τον χρόνο' : 'τον μήνα'}
                     </span>
                   </button>
@@ -171,7 +171,7 @@ export default function CheckoutLanding() {
               })}
             </div>
 
-            <p style={{ margin: '14px 0 0', fontSize: 12.5, lineHeight: 1.55, color: 'var(--text-tertiary)' }}>
+            <p style={{ margin: '14px 0 0', fontSize: 13, lineHeight: 1.55, color: 'var(--text-tertiary)' }}>
               Οι πρώτες {TRIAL_DAYS} ημέρες είναι δωρεάν και το πακέτο το αλλάζεις όποτε θέλεις από τις Ρυθμίσεις.
             </p>
           </div>

@@ -99,7 +99,7 @@ export function ShortVsLongCalculator({ today }: { today: string }) {
     height: T.h.sm, padding: '0 14px', borderRadius: T.radius.inner, border: 'none',
     background: on ? 'var(--accent)' : 'transparent',
     color: on ? 'var(--accent-text)' : 'var(--text-secondary)',
-    fontSize: 12.5, fontWeight: 600, fontFamily: T.font.sans, cursor: 'pointer',
+    fontSize: 13, fontWeight: 600, fontFamily: T.font.sans, cursor: 'pointer',
     whiteSpace: 'nowrap', transition: 'background-color 0.15s, color 0.15s',
   });
 
@@ -176,10 +176,10 @@ export function ShortVsLongCalculator({ today }: { today: string }) {
         gap: 16, flexWrap: 'wrap',
       }}>
         <div style={{ flex: 1, minWidth: 230 }}>
-          <div style={{ fontSize: 14, fontWeight: 650, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
             Πότε γεμίζει
           </div>
-          <p style={{ margin: '3px 0 0', fontSize: 12.5, lineHeight: 1.55, color: 'var(--text-tertiary)' }}>
+          <p style={{ margin: '3px 0 0', fontSize: 13, lineHeight: 1.55, color: 'var(--text-tertiary)' }}>
             {input.season === 'high'
               ? `Οι κρατήσεις πέφτουν πρώτα στους επτά μήνες της υψηλής περιόδου, δηλαδή έως ${HIGH_SEASON_NIGHTS} διανυκτερεύσεις, όπου το τέλος είναι ${feAuto(levyRates.high)} τη διανυκτέρευση. Αλλάζει τι πληρώνει ο επισκέπτης, όχι τι κρατάς εσύ.`
               : `Οι κρατήσεις μοιράζονται ισομερώς στους δώδεκα μήνες. Το τέλος είναι ${feAuto(levyRates.high)} τη διανυκτέρευση από Απρίλιο ώς Οκτώβριο και ${feAuto(levyRates.low)} τους υπόλοιπους.`}
@@ -232,7 +232,7 @@ export function ShortVsLongCalculator({ today }: { today: string }) {
             κάποια πλευρά. */}
         <p style={{
           margin: '0 0 18px', fontSize: 'clamp(16px, 2.2vw, 20px)', lineHeight: 1.4,
-          fontWeight: 650, letterSpacing: '-0.02em', color: 'var(--text-primary)', textWrap: 'balance',
+          fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--text-primary)', textWrap: 'balance',
         }}>
           {Math.abs(r.difference) < 1
             ? 'Οι δύο επιλογές αφήνουν ουσιαστικά τα ίδια.'
