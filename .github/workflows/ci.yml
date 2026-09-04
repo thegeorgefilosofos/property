@@ -347,7 +347,7 @@ jobs:
         run: npm run e2e:signup
 
   layout:
-    name: Διάταξη σε είκοσι μία συσκευές
+    name: Διάταξη σε είκοσι δύο συσκευές
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
