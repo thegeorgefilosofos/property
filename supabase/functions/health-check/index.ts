@@ -28,7 +28,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import { createClient } from 'npm:@supabase/supabase-js@2.110.8'
 import { authorizeCron } from '../_shared/auth.ts'
-import { runHealth, diagnose, ROUTES } from '../_shared/probe.mjs'
+import { runHealth, diagnose } from '../_shared/probe.mjs'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
