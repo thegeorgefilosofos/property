@@ -1054,22 +1054,58 @@ const canPreview = (i: Item) => !!i.url && (i.isImage || isPdfItem(i));
 function FileList({ items, groups, empty, a }: { items: Item[]; groups?: TimeGroup<Item>[]; empty: React.ReactNode; a: FileActions }) {
   if (items.length === 0) return <div className="card">{empty}</div>;
   if (groups) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {groups.map(({ key: m, label, items: its }) => (
-          <div key={m} className="card" style={{ margin: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)' }}/>
-              <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.06em' }}>{label}</span>
-              <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>{its.length} {its.length === 1 ? 'αρχείο' : 'αρχεία'}</span>
-            </div>
-            <FileInner items={its} a={a}/>
-          </div>
-        ))}
-      </div>
-    );
+    return <MonthGroups groups={groups} a={a}/>;
   }
   return <div className="card"><FileInner items={items} a={a}/></div>;
+}
+
+/* ═══ ΤΟ ΑΡΧΕΙΟ ΑΝΟΙΓΕΙ ΣΤΟΝ ΜΗΝΑ ΠΟΥ ΔΟΥΛΕΥΕΙΣ, ΟΧΙ ΣΕ ΟΛΟΥΣ ═══════════════
+   ΤΙ ΜΕΤΡΗΘΗΚΕ (04/09/2026, 390×844, είκοσι έγγραφα). Η καρτέλα έβγαινε 9.320
+   εικονοστοιχεία, δηλαδή 11,2 οθόνες, με ΚΑΘΕ μήνα ανοιχτό ταυτόχρονα. Και η
+   πυκνότητά της ήταν 32 λέξεις ανά οθόνη — ένα τέταρτο της Τιμολόγησης, που
+   κάνει 124. Δεν είναι πολλά λόγια· είναι πολύς αέρας. Με έναν χρόνο χρήσης
+   πίσω του, το ίδιο μοτίβο δίνει πενήντα οθόνες.
+
+   ΤΙ ΑΛΛΑΖΕΙ. Ανοιχτοί μένουν οι ΔΥΟ πιο πρόσφατοι μήνες — «Αυτόν τον μήνα»
+   και «Τον προηγούμενο» — που είναι το σύνολο εργασίας. Οι παλιότεροι
+   διπλώνουν. Δεν κρύβεται τίποτα χωρίς σήμα: ο μετρητής αρχείων μένει πάντα
+   στην κεφαλίδα, οπότε βλέπεις ότι υπάρχουν και πόσα.
+
+   ΚΑΙ Η ΑΝΑΖΗΤΗΣΗ ΔΕΝ ΧΑΝΕΤΑΙ: η οθόνη έχει ήδη όψεις και αναζήτηση, που
+   είναι ο πραγματικός δρόμος προς ένα παλιό χαρτί. Το ξετύλιγμα έντεκα οθονών
+   δεν ήταν ποτέ αυτός ο δρόμος.
+
+   ΓΙΑΤΙ `acc-toggle` ΚΑΙ ΟΧΙ ΔΙΚΟ ΜΑΣ ΚΟΥΜΠΙ. Είναι η σύμβαση που ήδη
+   χρησιμοποιούν το Σχέδιο και το Καθολικό — ίδια εστίαση, ίδιο aria-expanded.
+   ΚΑΙ, το κρίσιμο: ο σαρωτής διάταξης ανοίγει ό,τι φοράει αυτή την κλάση πριν
+   μετρήσει. Χωρίς αυτήν, όλες οι καστάνιες θα «βελτιώνονταν» απότομα επειδή
+   θα μετρούσαν κρυμμένο περιεχόμενο — δηλαδή θα λέγαμε ψέματα στα ίδια μας τα
+   όργανα. Ετσι συνεχίζουν να μετρούν ολόκληρο το αρχείο. */
+function MonthGroups({ groups, a }: { groups: readonly { key: string; label: string; items: Item[] }[]; a: FileActions }) {
+  const OPEN_BY_DEFAULT = 2;
+  const [shut, setShut] = useState<Record<string, boolean>>({});
+  const isShut = (key: string, i: number) => shut[key] ?? i >= OPEN_BY_DEFAULT;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {groups.map(({ key: m, label, items: its }, i) => {
+        const closed = isShut(m, i);
+        return (
+          <div key={m} className="card" style={{ margin: 0 }}>
+            <button type="button" className="acc-toggle acc-month" data-open={!closed} aria-expanded={!closed}
+              aria-label={`${label}, ${its.length} ${its.length === 1 ? 'αρχείο' : 'αρχεία'}`}
+              onClick={() => setShut(prev => ({ ...prev, [m]: !closed }))}>
+              <span className="acc-month-dot"/>
+              <span className="acc-month-label">{label}</span>
+              <span className="acc-month-count">{its.length} {its.length === 1 ? 'αρχείο' : 'αρχεία'}</span>
+              <svg aria-hidden="true" className="acc-month-chevron" width={16} height={16} viewBox="0 0 24 24" fill="none"
+                stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            {!closed && <FileInner items={its} a={a}/>}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function FileInner({ items, a }: { items: Item[]; a: FileActions }) {

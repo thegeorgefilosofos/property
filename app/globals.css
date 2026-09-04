@@ -811,6 +811,35 @@ body {
   gap: 12px; min-height: 44px; cursor: pointer;
 }
 
+/* Η ΚΕΦΑΛΙΔΑ ΜΗΝΑ ΤΟΥ ΑΡΧΕΙΟΥ ══════════════════════════════════════════════
+   Αδελφή της .po-disclosure, με δύο διαφορές που δικαιολογούν χωριστή κλάση:
+   είναι <button> και όχι μπλοκ με role· τα παιδιά της στοιχίζονται
+   αριστερά με το βελάκι να σπρώχνεται δεξιά — όχι μοιρασμένα στο πλάτος.
+
+   ΓΙΑΤΙ ΕΔΩ ΚΑΙ ΟΧΙ ΕΝΣΩΜΑΤΑ. Ο φύλακας hand-buttons μετρά κάθε <button> που
+   γράφει δικό του style· ο λόγος δεν είναι αισθητικός: ενσωματωμένο style
+   νικά κάθε κανόνα κλάσης, οπότε όσο το γράφουμε εκεί κανένα :hover και κανένα
+   :focus-visible δεν μπορεί να ισχύσει. Γραμμένο εδώ, η κεφαλίδα αποκτά και τα
+   δύο δωρεάν.
+
+   Το `data-open` κρατά το χώρισμα και το κενό ΜΟΝΟ όταν ο μήνας είναι
+   ανοιχτός: κλειστός, η κάρτα είναι μια καθαρή σειρά χωρίς γραμμή από κάτω. */
+.acc-month {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  min-height: 44px; padding: 0; background: none; border: none;
+  text-align: left; cursor: pointer; font: inherit;
+}
+.acc-month[data-open="true"] {
+  margin-bottom: 14px; padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.acc-month:hover .acc-month-label { color: var(--text-primary); }
+.acc-month-chevron { margin-left: auto; flex-shrink: 0; transition: transform .2s; }
+.acc-month-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-tertiary); flex-shrink: 0; }
+.acc-month-label { font-size: var(--fs-xs); font-weight: 700; color: var(--text-secondary); letter-spacing: 0.06em; transition: color .15s; }
+.acc-month-count { font-size: var(--fs-xs); color: var(--text-tertiary); }
+.acc-month[data-open="true"] .acc-month-chevron { transform: rotate(180deg); }
+
 /* Η ΣΤΗΛΗ ΤΟΥ ΜΗΝΑ ΣΤΗ ΣΥΓΚΡΙΣΗ ΔΑΠΑΝΩΝ ΕΙΝΑΙ ΣΤΑΣΗ ΠΛΗΚΤΡΟΛΟΓΙΟΥ. Δώδεκα
    στήλες με `tabIndex={0}` και ενσώματο `outline: none`: μετρημένο με Tab, καμία
    δεν άλλαζε όψη. Το δαχτυλίδι μπαίνει γύρω από ολόκληρη τη στήλη, με απόσταση,
