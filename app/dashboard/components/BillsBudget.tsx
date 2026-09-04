@@ -182,7 +182,14 @@ function InlineNumber({ raw, display, onCommit, width = 66, align = 'right', ari
           onChange={e => setDraft(e.target.value.replace(/[^\d.,]/g, ''))}
           onKeyDown={e => { if (e.key === 'Enter') { onCommit(draft.trim().replace(',', '.')); setEditing(false); } else if (e.key === 'Escape') setEditing(false); }}
           onBlur={() => { onCommit(draft.trim().replace(',', '.')); setEditing(false); }}
-          style={{ width, height: big ? 30 : 22, padding: '0 6px', textAlign: align, borderRadius: 6, border: '1px solid var(--border-accent)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: big ? 18 : 12, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', outline: 'none' }} />
+          /* ΤΟ ΠΕΔΙΟ ΔΕΝ ΣΥΡΡΙΚΝΩΝΕΤΑΙ ΚΑΤΩ ΑΠΟ ΤΟΝ ΑΡΙΘΜΟ ΤΟΥ. Το «width» είναι
+             αρχικό μέγεθος, όχι όριο: μέσα σε flex το πεδίο έπεφτε στα 29
+             εικονοστοιχεία στα 320 και έμεναν 17 ωφέλιμα για το «250», δηλαδή
+             ο χρήστης διόρθωνε ποσό που δεν έβλεπε. Ο σαρωτής σε WebKit το
+             μέτρησε 31 σε 17· σε Chromium ήταν 21 σε 17, οριακά κάτω από το
+             κατώφλι, γι' αυτό δεν είχε αναφερθεί ποτέ. Ηταν σπασμένο και στα
+             δύο — απλώς ο ένας μετρητής δεν το έλεγε. */
+          style={{ width, flexShrink: 0, height: big ? 30 : 22, padding: '0 6px', textAlign: align, borderRadius: 6, border: '1px solid var(--border-accent)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: big ? 18 : 12, fontWeight: 700, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', outline: 'none' }} />
       </span>
     );
   }

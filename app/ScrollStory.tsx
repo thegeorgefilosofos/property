@@ -106,7 +106,6 @@ export default function ScrollStory() {
         .story-grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: clamp(28px, 4vw, 64px); align-items: start; }
         .story-stick { position: sticky; top: clamp(72px, 12vh, 120px); }
         .story-frame { position: relative; height: clamp(400px, 52vh, 500px); border-radius: 18px; background: var(--bg-surface); border: 1px solid var(--border-default); overflow: hidden; box-shadow: 0 24px 70px -32px rgba(0,0,0,.35), 0 0 120px -50px color-mix(in srgb, var(--accent) 55%, transparent); container-type: inline-size; }
-        .story-panel-inline { container-type: inline-size; }
         /* Σε στενό πλαίσιο (όχι στενή οθόνη), το πλευρικό μενού του πίνακα δεν χωρά. */
         @container (max-width: 470px) { .lp-rail { display: none; } }
         .story-panel { position: absolute; inset: 0; padding: clamp(18px, 2.4vw, 30px); display: flex; align-items: center; justify-content: center; opacity: 0; transform: translateY(14px) scale(.985); transition: opacity .5s cubic-bezier(.2,0,0,1), transform .5s cubic-bezier(.2,0,0,1); pointer-events: none; }
@@ -128,12 +127,45 @@ export default function ScrollStory() {
            αλλάξει η επόμενη — κάτω από ~50vh η εναλλαγή γίνεται νευρική. */
         .story-step { min-height: 58vh; display: flex; flex-direction: column; justify-content: center; opacity: .35; transition: opacity .45s cubic-bezier(.2,0,0,1); }
         .story-step.on { opacity: 1; }
-        .story-panel-inline { display: none; }
+        /* ═══ ΣΤΟ ΤΗΛΕΦΩΝΟ ΤΟ ΚΑΡΦΩΜΕΝΟ ΠΑΝΕΛ ΔΕΝ ΣΒΗΝΕΙ, ΓΥΡΙΖΕΙ ΠΑΝΩ ══════
+           ΤΙ ΜΕΤΡΗΘΗΚΕ (04/09/2026, 390×844). Η ενότητα έπιανε 2,9 οθόνες: 1,23
+           το κείμενο των τριών βημάτων και 1,43 ΤΡΙΑ πάνελ προϊόντος, ένα κάτω
+           από κάθε βήμα. Στον υπολογιστή το πάνελ είναι ΕΝΑ και μένει καρφωμένο
+           ενώ διαβάζεις τις τρεις πράξεις — αυτή είναι όλη η ιδέα της ενότητας.
+           Στο τηλέφωνο το sticky απλώς ΣΒΗΝΟΤΑΝ αντί να αντικατασταθεί, οπότε το
+           ίδιο πράγμα παιζόταν τρεις φορές στη σειρά.
+
+           ΤΩΡΑ ΕΙΝΑΙ Η ΙΔΙΑ ΣΧΕΔΙΑΣΗ, ΓΥΡΙΣΜΕΝΗ ΚΑΤΑ 90 ΜΟΙΡΕΣ: το πάνελ πάει
+           πάνω και καρφώνεται, το κείμενο κυλάει από κάτω και το αλλάζει. Καμία
+           λέξη δεν φεύγει, καμία από τις τρεις πράξεις δεν χάνεται — φεύγει η
+           επανάληψη. Κόστος 1,75 οθόνες αντί για 2,9.
+
+           ΓΙΑΤΙ ΔΟΥΛΕΥΕΙ ΤΟ STICKY ΕΔΩ: αυτή η ενότητα είναι επίτηδες ΧΩΡΙΣ
+           «lp-reveal», γιατί transform σε πρόγονο σπάει το position: sticky.
+           Γράφεται και στο page.tsx, δίπλα στην ίδια την ενότητα. */
         @media (max-width: 900px) {
-          .story-grid { grid-template-columns: 1fr; }
-          .story-stick { display: none; }
-          .story-step { min-height: 0; opacity: 1; padding: 8px 0 40px; }
-          .story-panel-inline { display: block; margin-top: 24px; border-radius: 16px; background: var(--bg-surface); border: 1px solid var(--border-default); padding: 18px; }
+          .story-grid { grid-template-columns: 1fr; gap: 20px; }
+          .story-stick { top: 64px; z-index: 1; padding-bottom: 8px; background: var(--bg-base); }
+          /* ΤΟ ΥΨΟΣ ΤΟ ΔΙΝΕΙ ΤΟ ΠΕΡΙΕΧΟΜΕΝΟ, ΟΧΙ ΕΝΑΣ ΑΡΙΘΜΟΣ. Πρώτη προσπάθεια
+             ήταν σταθερό «clamp(240px, 38vh, 330px)» και ο σαρωτής βρήκε αμέσως
+             έξι κομμένα: τα πάνελ σχεδιάστηκαν για πλαίσιο 400-500 και στα 330
+             έχαναν ώς 30 εικονοστοιχεία. Καρφωμένο ύψος για περιεχόμενο που δεν
+             το ξέρεις είναι στοίχημα και το έχασα.
+             Εδώ το ενεργό πάνελ μπαίνει στη ΡΟΗ και τα υπόλοιπα σβήνουν, οπότε
+             το πλαίσιο παίρνει ακριβώς το ύψος που χρειάζεται. Κόψιμο δεν
+             μπορεί να υπάρξει εξ ορισμού, όχι επειδή βρήκαμε τον σωστό αριθμό. */
+          .story-frame { height: auto; }
+          .story-panel { position: static; display: none; opacity: 1; transform: none; }
+          .story-panel.on { display: flex; }
+          .story-rail { margin-top: 12px; }
+          .story-step { min-height: 0; opacity: 1; padding: 8px 0 28px; }
+        }
+        /* ΣΕ ΧΑΜΗΛΟ ΠΑΡΑΘΥΡΟ ΤΟ ΚΑΡΦΩΜΕΝΟ ΠΛΑΙΣΙΟ ΤΡΩΕΙ ΟΛΗ ΤΗΝ ΟΘΟΝΗ. Τηλέφωνο
+           πλάγια είναι 390 εικονοστοιχεία ύψος: ένα πάνελ 360 δεν αφήνει τίποτα
+           για το κείμενο που υποτίθεται ότι το οδηγεί. Εκεί ξεκαρφώνεται και
+           κυλάει κανονικά μαζί με τα υπόλοιπα. */
+        @media (max-width: 900px) and (max-height: 620px) {
+          .story-stick { position: static; background: transparent; }
         }
         @media (prefers-reduced-motion: reduce) {
           .story-panel { transition: none; }
@@ -226,7 +258,6 @@ export default function ScrollStory() {
                 </li>
               ))}
             </ul>
-            <div className="story-panel-inline"><a.Panel /></div>
           </div>
         ))}
       </div>
