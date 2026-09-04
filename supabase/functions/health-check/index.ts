@@ -34,7 +34,12 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const CRON_SECRET = Deno.env.get('LIFECYCLE_CRON_SECRET') || ''
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || ''
-const FROM_EMAIL = Deno.env.get('FROM_EMAIL') || ''
+// ΤΟ ΟΝΟΜΑ ΤΗΣ ΜΕΤΑΒΛΗΤΗΣ ΕΙΝΑΙ ΑΥΤΟ ΠΟΥ ΧΡΗΣΙΜΟΠΟΙΟΥΝ ΟΙ ΑΛΛΕΣ ΕΝΝΙΑ. Ειχα
+// γράψει `FROM_EMAIL` και θα ήταν πάντα κενό: καμία άλλη function δεν το λέει
+// έτσι, άρα δεν υπάρχει στα secrets. Η ειδοποίηση διακοπής δεν θα έφευγε ποτέ
+// και το μόνο σημάδι θα ήταν ένα «δεν έχει ρυθμιστεί παραλήπτης» που κανείς
+// δεν διαβάζει. Ενα monitor που δεν ειδοποιεί είναι χειρότερο από κανένα.
+const FROM_EMAIL = Deno.env.get('RESEND_FROM') || ''
 const ALERT_EMAIL = Deno.env.get('HEALTH_ALERT_EMAIL') || ''
 
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY)
