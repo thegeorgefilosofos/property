@@ -56,6 +56,7 @@ import { T, fe, fp, Skeleton, pressable } from '@/components/Theme';
 import { readStatus, type StatusRow } from '@/lib/property/status';
 import { occupancyFromMonths, type ReportStay } from '@/lib/clients/reports';
 import { isHouseType, shortTermYearSummary } from '@/lib/tax/shortTermTax';
+import { FIRST_YEAR_CURRENT_LEVY } from '@/lib/billing/greekTax';
 import { MONTHS_SHORT, MONTHS_ACC } from '@/lib/core/months';
 
 interface StayRow extends ReportStay { declared_at?: string | null }
@@ -249,6 +250,18 @@ export default function OccupancyPanel({ propertyId, userId }: {
                           ? ` Καταγράφηκαν ${fe(tax.collectedLevy)} από επισκέπτες, οπότε τα υπόλοιπα ${fe(tax.levyShortfall)} τα πληρώνεις εσύ.`
                           : ' Καλύφθηκε ολόκληρο από τους επισκέπτες, άρα δεν είναι δικό σου κόστος.'}
                       </div>
+                      {/* ΤΟ ΤΕΛΟΣ ΔΕΝ ΕΙΧΕ ΠΑΝΤΑ ΑΥΤΑ ΤΑ ΠΟΣΑ. Ο επιλογέας έτους
+                          είναι βηματάκι ±1 και φτάνει στο 2024 με δύο κλικ. Ο
+                          φόρος εισοδήματος αλλάζει κλίμακα με το έτος· το ΤΑΚΚ
+                          δεν έχει πίνακα για πριν το 2025, οπότε ο αριθμός από
+                          πάνω είναι σημερινοί συντελεστές σε παλιά χρήση. Το
+                          λέει, αντί να το κρύβει. */}
+                      {tax.levyRegimeAssumed && (
+                        <div style={{ ...note, marginTop: 8 }}>
+                          Οι συντελεστές του τέλους άλλαξαν από 1/1/{FIRST_YEAR_CURRENT_LEVY}. Για τη χρήση {year} το ποσό
+                          είναι υπολογισμένο με τους σημερινούς· επιβεβαίωσέ το στην ΑΑΔΕ ή με τον λογιστή σου.
+                        </div>
+                      )}
                     </>
                   )}
                   {tax.grossRevenue === 0 && tax.totalNights > 0 && (

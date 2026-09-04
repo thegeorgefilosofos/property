@@ -26,6 +26,7 @@ import { presumptiveDeductionRate } from '@/lib/billing/consolidate';
 import {
   climateLevyForNights, climateLevyRates, isHighSeasonMonth,
   rentalIncomeTax, rentalBracketsForYear, municipalAccommodationTax,
+  currentLevyRegime,
 } from '@/lib/billing/greekTax';
 
 export interface PropertyTaxMeta { sqm?: number | null; isHouse?: boolean; propertyCount?: number; individual?: boolean; rentsPaidViaBank?: boolean }
@@ -197,6 +198,16 @@ export interface ShortTermYearSummary {
   unresolvedAmount: number;
   /** Διαμονές χωρίς Δήλωση Βραχυχρόνιας Διαμονής (declared_at). */
   undeclaredCount: number;
+  /**
+   * ΤΟ ΤΕΛΟΣ ΥΠΟΛΟΓΙΣΤΗΚΕ ΜΕ ΣΥΝΤΕΛΕΣΤΕΣ ΠΟΥ ΔΕΝ ΙΣΧΥΑΝ ΤΟΤΕ.
+   *
+   * Ο επιλογέας έτους είναι ελεύθερο βηματάκι ±1 και ο χρήστης φτάνει στο 2024
+   * με δύο κλικ. Ο φόρος εισοδήματος σέβεται το έτος· το ΤΑΚΚ, που άλλαξε ποσά
+   * ΚΑΙ όρια περιόδου με τον ν.5162/2024, δεν έχει πίνακα για πριν το 2025.
+   * Ο υπολογισμός συνεχίζει με τους σημερινούς συντελεστές — η σημαία υπάρχει
+   * ώστε η οθόνη να μη δείχνει βεβαιότητα που δεν υπάρχει.
+   */
+  levyRegimeAssumed: boolean;
   byChannel: TaxChannelRow[];
 }
 
@@ -276,6 +287,7 @@ export function shortTermYearSummary(stays: TaxStay[], year: number, meta?: Prop
     unresolvedCount: unresolved.length,
     unresolvedAmount: unresolved.reduce((sum, s) => sum + declarableGrossOrTotal(s), 0),
     undeclaredCount: inYear.filter(s => !isDeclared(s)).length,
+    levyRegimeAssumed: !currentLevyRegime(year),
     byChannel: channelBreakdownForYear(stays, year),
   };
 }

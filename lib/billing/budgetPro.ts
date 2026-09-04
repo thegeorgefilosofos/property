@@ -98,7 +98,7 @@ export function investmentReturns(i: InvestmentInput): InvestmentReturns {
 // ── ΑΦΑΙΡΕΘΗΚΕ: climateFeePerNight ─────────────────────────────────────────
 // Επέστρεφε 1,50 €/νύχτα στην υψηλή περίοδο και 0,50 € στη χαμηλή. Η πηγή
 // αλήθειας του τέλους ανθεκτικότητας είναι το lib/billing/greekTax.ts
-// (CLIMATE_LEVY_STR_2025 / climateLevyRates): 8 € και 2 € για διαμέρισμα,
+// (CLIMATE_LEVY_FROM_2025 / climateLevyRates): 8 € και 2 € για διαμέρισμα,
 // 15 € και 4 € για μονοκατοικία άνω των 80 τ.μ.
 //
 // Δηλαδή αυτή η συνάρτηση υπολόγιζε το ΙΔΙΟ νόμιμο τέλος πέντε ως δέκα φορές

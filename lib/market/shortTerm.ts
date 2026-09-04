@@ -3,7 +3,7 @@
 // τέλος παρεπιδημούντων. Καθαρές συναρτήσεις· επαναχρησιμοποιεί τις πηγές αλήθειας
 // για ΤΑΚΚ και τέλος παρεπιδημούντων (lib/billing/greekTax).
 // ═══════════════════════════════════════════════════════════════════════════
-import { CLIMATE_LEVY_STR_2025, municipalAccommodationTax } from '@/lib/billing/greekTax'
+import { climateLevyRates, municipalAccommodationTax } from '@/lib/billing/greekTax'
 
 const num = (n: number): number => (Number.isFinite(n) ? n : 0)
 const max0 = (n: number): number => Math.max(0, num(n))
@@ -60,7 +60,12 @@ export function shortTermEstimate(i: ShortTermInput): ShortTermResult {
   const stays = avgN > 0 ? nights / avgN : 0
   const cleaning = stays * max0(i.cleaningPerStay ?? 0)
   // ΤΑΚΚ: υψηλή/χαμηλή περίοδος, ανά τύπο (μονοκατοικία >80τ.μ. στο υψηλό κλιμάκιο).
-  const rate = (i.isHouse && (i.sqm ?? 0) > 80) ? CLIMATE_LEVY_STR_2025.large : CLIMATE_LEVY_STR_2025.small
+  // Ο ΚΑΝΟΝΑΣ ΤΩΝ 80 Τ.Μ. ΓΡΑΦΕΤΑΙ ΜΙΑ ΦΟΡΑ. Εδώ ήταν ξαναγραμμένος με το χέρι,
+  // τέταρτο αντίγραφο, με άλλη ορθογραφία για το κενό εμβαδόν (`?? 0` αντί για
+  // `!= null`). Ιδιο αποτέλεσμα σήμερα — αλλά ο νόμος ΤΟΥ ΙΔΙΟΥ ορίου έχει ήδη
+  // αλλάξει μία φορά· την επόμενη το `climateLevyRates` θα ενημερωνόταν ενώ
+  // η Αξιοποίηση θα συνέχιζε με το δικό της.
+  const rate = climateLevyRates(i.sqm, i.isHouse)
   const hs = clamp(i.highSeasonShare ?? 0.6, 0, 1)
   const climateLevy = nights * hs * rate.high + nights * (1 - hs) * rate.low
   const municipalTax = municipalAccommodationTax(grossRevenue, { sqm: i.sqm, isHouse: i.isHouse, propertyCount: i.propertyCount, individual: i.individual })
