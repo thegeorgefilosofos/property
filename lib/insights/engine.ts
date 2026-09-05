@@ -23,6 +23,20 @@ export interface Insight {
   action?: { label: string; tab: string };
   /** Προαιρετική μετρική για εμφάνιση δεξιά (π.χ. «1.240 €»). */
   metric?: string;
+  /**
+   * ΤΟ ΔΙΑΚΥΒΕΥΜΑ ΣΕ ΕΥΡΩ, ΩΣ ΑΡΙΘΜΟΣ.
+   *
+   * ΓΙΑΤΙ ΔΕΝ ΑΡΚΕΙ ΤΟ `metric`. Εκείνο είναι ΚΕΙΜΕΝΟ για την οθόνη —
+   * «1.240,00 €», «4,8%», «320,00 €/μήνα» — με ελληνική μορφοποίηση, μονάδες
+   * και σύμβολα. Για να ταξινομηθεί θα έπρεπε να ξαναδιαβαστεί με regex, που
+   * σημαίνει ότι μια αλλαγή στη μορφοποίηση θα άλλαζε σιωπηλά τη ΣΕΙΡΑ των
+   * ειδοποιήσεων. Ο αριθμός γράφεται μία φορά, δίπλα στο κείμενο που τον λέει.
+   *
+   * ΜΕΝΕΙ `undefined` ΟΤΑΝ ΔΕΝ ΥΠΑΡΧΕΙ ΠΟΣΟ· αυτό είναι σημασία και όχι
+   * παράλειψη: μια ασφάλεια που έληξε δεν έχει «διακύβευμα σε ευρώ», έχει
+   * απεριόριστο ρίσκο. Το μηδέν θα έλεγε «δεν αξίζει τίποτα».
+   */
+  stake?: number;
 }
 
 export interface InsightInput {
@@ -113,7 +127,7 @@ export function computeInsights(input: InsightInput): Insight[] {
   const unpaid = bills.filter(b => !b.paid);
   const overdue = unpaid.filter(b => { const x = daysUntil(b.due_date, now); return x !== null && x < 0; });
   const overdueTotal = overdue.reduce((s, b) => s + (b.amount || 0), 0);
-  if (overdue.length) out.push({ id: 'bills-overdue', kind: 'urgent', title: `${overdue.length} ${overdue.length === 1 ? 'ληξιπρόθεσμος λογαριασμός' : 'ληξιπρόθεσμοι λογαριασμοί'}`, detail: 'Έχει περάσει η ημερομηνία πληρωμής. Εξόφλησέ τους για να αποφύγεις προσαυξήσεις ή διακοπή παροχής.', metric: overdueTotal > 0 ? eur(overdueTotal) : undefined, action: { label: navLabel('finances'), tab: 'finances' } });
+  if (overdue.length) out.push({ id: 'bills-overdue', kind: 'urgent', title: `${overdue.length} ${overdue.length === 1 ? 'ληξιπρόθεσμος λογαριασμός' : 'ληξιπρόθεσμοι λογαριασμοί'}`, detail: 'Έχει περάσει η ημερομηνία πληρωμής. Εξόφλησέ τους για να αποφύγεις προσαυξήσεις ή διακοπή παροχής.', metric: overdueTotal > 0 ? eur(overdueTotal) : undefined, stake: overdueTotal > 0 ? overdueTotal : undefined, action: { label: navLabel('finances'), tab: 'finances' } });
   else if (unpaid.length) out.push({ id: 'bills-unpaid', kind: 'attention', title: `${unpaid.length} ${unpaid.length === 1 ? 'εκκρεμής λογαριασμός' : 'εκκρεμείς λογαριασμοί'}`, detail: 'Αναμένουν πληρωμή. Τακτοποίησέ τους όσο υπάρχει χρόνος.', action: { label: navLabel('finances'), tab: 'finances' } });
 
   // ── 4. Συντήρηση & Checklist εκπρόθεσμα ──────────────────────────────────
@@ -138,7 +152,7 @@ export function computeInsights(input: InsightInput): Insight[] {
     // ΜΟΝΟ σε κενό. Οι δύο συνθήκες αποκλείονται μεταξύ τους, άρα το κουμπί δεν
     // οδήγησε ποτέ πουθενά. Η «Αξιοποίηση» είναι κυριολεκτικά η καρτέλα που
     // απαντά «τι να το κάνω;» και φαίνεται ακριβώς στο κενό ακίνητο.
-    out.push({ id: 'vacant', kind: 'opportunity', title: 'Το ακίνητο είναι κενό', detail: `Κάθε μήνας χωρίς ενοικιαστή είναι περίπου ${eur(rent)} χαμένο εισόδημα. Αν ψάχνεις, δες πρώτα τι ενοίκιο πιάνει η περιοχή σου.`, metric: `${eur(rent)}/μήνα`, action: { label: navLabel('plan'), tab: 'plan' } });
+    out.push({ id: 'vacant', kind: 'opportunity', title: 'Το ακίνητο είναι κενό', detail: `Κάθε μήνας χωρίς ενοικιαστή είναι περίπου ${eur(rent)} χαμένο εισόδημα. Αν ψάχνεις, δες πρώτα τι ενοίκιο πιάνει η περιοχή σου.`, metric: `${eur(rent)}/μήνα`, stake: rent, action: { label: navLabel('plan'), tab: 'plan' } });
   } else if (isVacant && shortTerm) {
     // Βραχυχρόνια: το «κενό» ανάμεσα σε κρατήσεις είναι φυσιολογικό. Εστίασε σε πληρότητα/τιμολόγηση.
     out.push({ id: 'vacant-st', kind: 'opportunity', title: 'Ελεύθερες ημερομηνίες', detail: 'Το κενό ανάμεσα σε κρατήσεις είναι φυσιολογικό. Πριν από την υψηλή σεζόν δες τιμή, φωτογραφίες και αξιολογήσεις.', action: { label: navLabel('roi'), tab: 'roi' } });
@@ -158,7 +172,7 @@ export function computeInsights(input: InsightInput): Insight[] {
   const energyBills = bills.filter(b => (b.type || '').toLowerCase().includes('electric') || b.type === 'electricity' || b.type === 'ρεύμα');
   const energyTotal = energyBills.reduce((s, b) => s + (b.amount || 0), 0);
   if (energyTotal > 0 && expensesYTD > 0 && energyTotal / Math.max(expensesYTD, energyTotal) > 0.25) {
-    out.push({ id: 'energy-review', kind: 'opportunity', title: 'Το ρεύμα «τρώει» μεγάλο μέρος των εξόδων', detail: 'Οι τιμές ρεύματος αλλάζουν συχνά. Μια σύγκριση παρόχων γλιτώνει αρκετά, ειδικά στους άδειους μήνες.', metric: eur(energyTotal), action: { label: navLabel('finances'), tab: 'finances' } });
+    out.push({ id: 'energy-review', kind: 'opportunity', title: 'Το ρεύμα «τρώει» μεγάλο μέρος των εξόδων', detail: 'Οι τιμές ρεύματος αλλάζουν συχνά. Μια σύγκριση παρόχων γλιτώνει αρκετά, ειδικά στους άδειους μήνες.', metric: eur(energyTotal), stake: energyTotal, action: { label: navLabel('finances'), tab: 'finances' } });
   }
 
   // ── 9. Πλαίσιο απόδοσης ───────────────────────────────────────────────────
@@ -205,13 +219,13 @@ export function computeInsights(input: InsightInput): Insight[] {
       id: 'loan-cash-negative', kind: 'attention',
       title: 'Η δόση ξεπερνά όσα αφήνει το ακίνητο',
       detail: `Με ενοίκιο ${eur(rent)} και δόση ${eur(loanPayment)}, μετά τις δαπάνες μένουν ${eur(cash)} τον μήνα. Οι δαπάνες είναι ο φετινός μηνιαίος μέσος όρος.`,
-      metric: `${eur(cash)}/μήνα`, action: { label: navLabel('loan'), tab: 'loan' },
+      metric: `${eur(cash)}/μήνα`, stake: Math.abs(cash), action: { label: navLabel('loan'), tab: 'loan' },
     });
     else out.push({
       id: 'loan-cash-positive', kind: 'positive',
       title: 'Το ενοίκιο καλύπτει τη δόση',
       detail: `Μετά τη δόση ${eur(loanPayment)} και τις δαπάνες μένουν ${eur(cash)} τον μήνα, με βάση τον φετινό μέσο όρο.`,
-      metric: `${eur(cash)}/μήνα`, action: { label: navLabel('loan'), tab: 'loan' },
+      metric: `${eur(cash)}/μήνα`, stake: Math.abs(cash), action: { label: navLabel('loan'), tab: 'loan' },
     });
   }
 

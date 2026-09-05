@@ -43,6 +43,8 @@ export interface AgendaItem {
   origin: AgendaOrigin;
   /** Κρίνει μόνο όσα ΔΕΝ έχουν κοντινή προθεσμία. */
   weight: number;
+  /** Πόσα ευρώ παίζονται, όταν παίζονται. Σπάει τις ισοπαλίες. */
+  stake?: number;
   /** Ποιος το κάνει — μόνο οι υποχρεώσεις το ξέρουν. */
   who?: string;
 }
@@ -54,6 +56,7 @@ export interface InsightLike {
   title: string;
   detail: string;
   metric?: string;
+  stake?: number;
   action?: { label: string; tab: string };
 }
 
@@ -147,6 +150,9 @@ function merge(a: AgendaItem, b: AgendaItem): AgendaItem {
     daysLeft: win.due != null ? win.daysLeft : lose.daysLeft,
     action: win.action ?? lose.action,
     weight: Math.max(win.weight, lose.weight),
+    // Ιδιος κανόνας με το βάρος: όταν δύο πηγές λένε το ίδιο πράγμα, κρατάμε
+    // τη σοβαρότερη εκδοχή του. Δύο «undefined» μένουν undefined.
+    stake: win.stake == null ? lose.stake : lose.stake == null ? win.stake : Math.max(win.stake, lose.stake),
     who: win.who ?? lose.who,
   };
 }
@@ -246,6 +252,7 @@ export function buildAgenda(input: {
       due: null, daysLeft: null,
       action: i.action || null, origin: 'insight',
       weight: KIND_WEIGHT[i.kind] ?? 5,
+      stake: i.stake,
     });
   }
 
@@ -265,12 +272,34 @@ export function buildAgenda(input: {
   // Ίδιος κανόνας με το orderSteps: προθεσμία ΜΟΝΟ όταν είναι κοντά (≤30 ημ.)
   // παίρνει προβάδισμα. Μια προθεσμία του Δεκεμβρίου δεν προσπερνά μια
   // ληξιπρόθεσμη ασφάλεια επειδή τυχαίνει να έχει ημερομηνία.
+  // ═══ ΣΕ ΙΣΟΠΑΛΙΑ ΑΠΟΦΑΣΙΖΟΥΝ ΤΑ ΧΡΗΜΑΤΑ, ΟΧΙ ΤΟ ΑΛΦΑΒΗΤΟ ═══════════════
+  // ΤΙ ΕΚΑΝΕ ΠΡΙΝ. Οταν δύο γραμμές είχαν ίδια προθεσμία και ίδιο βάρος, τις
+  // ξεχώριζε το `key.localeCompare` — δηλαδή η αλφαβητική σειρά ενός εσωτερικού
+  // αναγνωριστικού. Ηταν εκεί για ΣΤΑΘΕΡΟΤΗΤΑ, ώστε η ίδια είσοδος να δίνει την
+  // ίδια σειρά — σωστό ζητούμενο. Αλλά η αλφαβητική σειρά δεν λέει
+  // τίποτα στον άνθρωπο: ένας λογαριασμός 18 € μπορούσε να κάθεται πάνω από έναν
+  // 640 € επειδή το κλειδί του άρχιζε από «b».
+  //
+  // ΤΙ ΚΑΝΕΙ ΤΩΡΑ. Πρώτο ό,τι κοστίζει περισσότερο. Το αλφάβητο μένει ΠΙΣΩ από
+  // το ποσό, οπότε η σταθερότητα δεν χάνεται — απλώς παύει να αποφασίζει.
+  //
+  // ΤΟ `undefined` ΠΑΕΙ ΤΕΛΕΥΤΑΙΟ, ΚΑΙ ΕΙΝΑΙ ΣΩΣΤΟ. Οσα δεν έχουν ποσό δεν
+  // είναι «μηδέν ευρώ»: είναι πράγματα που δεν μετριούνται σε ευρώ. Σε ισοβαρή
+  // με κάτι που ΞΕΡΟΥΜΕ ότι κοστίζει, προηγείται το μετρημένο — γιατί γι' αυτό
+  // μπορούμε να πούμε στον χρήστη πόσο.
+  const byStake = (a: AgendaItem, b: AgendaItem) => {
+    const sa = a.stake, sb = b.stake;
+    if ((sa == null) !== (sb == null)) return sa == null ? 1 : -1;
+    if (sa != null && sb != null && sa !== sb) return sb - sa;
+    return a.key.localeCompare(b.key);
+  };
+
   const HORIZON = 30;
   const urgent = (x: AgendaItem) => x.daysLeft != null && x.daysLeft <= HORIZON;
   const sorted = [...bySubject.values()].sort((a, b) => {
     const ua = urgent(a), ub = urgent(b);
     if (ua !== ub) return ua ? -1 : 1;
-    if (ua && ub) return (a.daysLeft as number) - (b.daysLeft as number) || a.key.localeCompare(b.key);
+    if (ua && ub) return (a.daysLeft as number) - (b.daysLeft as number) || byStake(a, b);
     if (a.weight !== b.weight) return b.weight - a.weight;
     // ΕΞΩ ΑΠΟ ΤΟΝ ΟΡΙΖΟΝΤΑ, Η ΗΜΕΡΟΜΗΝΙΑ ΔΕΝ ΕΙΝΑΙ ΕΠΕΙΓΟΝ.
     // Σε ισοβαρή, ό,τι ΔΕΝ έχει προθεσμία πάει πρώτο: ένα ληξιπρόθεσμο τιμολόγιο
@@ -280,7 +309,7 @@ export function buildAgenda(input: {
     const da = a.daysLeft, db = b.daysLeft;
     if ((da == null) !== (db == null)) return da == null ? -1 : 1;
     if (da != null && db != null && da !== db) return da - db;
-    return a.key.localeCompare(b.key);
+    return byStake(a, b);
   });
 
   const limit = input.limit ?? 0;
