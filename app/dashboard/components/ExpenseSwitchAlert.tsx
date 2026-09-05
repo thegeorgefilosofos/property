@@ -76,7 +76,7 @@ export default function ExpenseSwitchAlert({ propertyId, userId, onOpen }: {
           borderRadius: T.radius.card, padding: '12px 16px',
           boxShadow: 'var(--highlight-inset), var(--elev-1)',
         }}>
-          <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0, marginTop: 7 }} />
+          <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0, marginTop: 8 }} />
           <div style={{ flex: 1, minWidth: 200 }}>
             <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-primary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
               {r.title}: πληρώνεις{' '}

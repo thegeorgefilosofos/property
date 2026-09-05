@@ -131,7 +131,7 @@ export default function BankRatesAdmin({ onSaved }:{
         <div style={{padding:'2px 14px 14px',display:'flex',flexDirection:'column',gap:12}}>
           {/* Αυτόματη επικαιροποίηση */}
           <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
-            <button onClick={refreshAI} disabled={refreshing} style={{display:'inline-flex',alignItems:'center',gap:7,height:T.h.sm,padding:'0 14px',borderRadius: T.radius.pill,cursor:refreshing?'wait':'pointer',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontSize:12,fontWeight:500,fontFamily: T.font.sans}}>
+            <button onClick={refreshAI} disabled={refreshing} style={{display:'inline-flex',alignItems:'center',gap: 8,height:T.h.sm,padding:'0 14px',borderRadius: T.radius.pill,cursor:refreshing?'wait':'pointer',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',color:'var(--text-secondary)',fontSize:12,fontWeight:500,fontFamily: T.font.sans}}>
               <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
               {refreshing?'Επικαιροποίηση…':'Αυτόματη επικαιροποίηση με AI'}
             </button>
@@ -170,8 +170,8 @@ export default function BankRatesAdmin({ onSaved }:{
                   </button>
 
                   {on && edit && (
-                    <div style={{padding:'2px 12px 13px',display:'flex',flexDirection:'column',gap:11,borderTop:'1px solid var(--border-subtle)'}}>
-                      <p style={{...labelStyle,marginTop:11}}>Σταθερά επιτόκια (κείμενο, π.χ. «2,90» ή «2,50-2,90»)</p>
+                    <div style={{padding:'2px 12px 13px',display:'flex',flexDirection:'column',gap: 12,borderTop:'1px solid var(--border-subtle)'}}>
+                      <p style={{...labelStyle,marginTop: 12}}>Σταθερά επιτόκια (κείμενο, π.χ. «2,90» ή «2,50-2,90»)</p>
                       <div style={{...formGrid(150, 210),gap:10}}>
                         {RATE_FIELDS.map(f=>(
                           <TextInput key={f.k} label={f.label} value={String(edit[f.k] ?? '')} onChange={v=>set(f.k, v)} placeholder=""/>
@@ -189,7 +189,7 @@ export default function BankRatesAdmin({ onSaved }:{
                         <div style={{flex:1,minWidth:180}}><TextInput label="Επίσημη πηγή (σύνδεσμος)" value={edit.source_url ?? ''} onChange={v=>set('source_url', v)} placeholder="https://…"/></div>
                       </div>
                       <div style={{display:'flex',gap:8,alignItems:'center'}}>
-                        <button onClick={save} disabled={saving} style={{display:'inline-flex',alignItems:'center',gap:7,height:T.h.md,padding:'0 18px',borderRadius: T.radius.pill,cursor:saving?'wait':'pointer',background:'var(--accent)',border:'1px solid var(--accent)',color:'var(--accent-text)',fontSize: 'var(--fs-base)',fontWeight:700,fontFamily: T.font.sans}}>
+                        <button onClick={save} disabled={saving} style={{display:'inline-flex',alignItems:'center',gap: 8,height:T.h.md,padding:'0 18px',borderRadius: T.radius.pill,cursor:saving?'wait':'pointer',background:'var(--accent)',border:'1px solid var(--accent)',color:'var(--accent-text)',fontSize: 'var(--fs-base)',fontWeight:700,fontFamily: T.font.sans}}>
                           {saving?'Αποθήκευση…':'Αποθήκευση'}
                         </button>
                         <button onClick={()=>{setSelId(null);setEdit(null)}} style={{height:T.h.md,padding:'0 16px',borderRadius: T.radius.pill,cursor:'pointer',background:'transparent',border:'1px solid var(--border-default)',color:'var(--text-secondary)',fontSize: 'var(--fs-base)',fontWeight:500,fontFamily: T.font.sans}}>Ακύρωση</button>

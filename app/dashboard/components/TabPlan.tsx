@@ -137,7 +137,7 @@ function Tip({ lead, rows }: { lead?: string; rows?: readonly (readonly [string,
     <>
       {lead && <span style={{ display: 'block' }}>{lead}</span>}
       {(rows ?? []).filter(([, v]) => v).map(([k, v]) => (
-        <span key={k} style={{ display: 'block', marginTop: 9 }}>
+        <span key={k} style={{ display: 'block', marginTop: 8 }}>
           <span style={{ ...TT.label, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', display: 'block', marginBottom: 2 }}>{k}</span>
           {v}
         </span>
@@ -295,7 +295,7 @@ function MoneyField({ label, hint, value, onChange }: {
           fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.num, pointerEvents: 'none',
         }}>€</span>
       </span>
-      {hint && <span style={{ ...TT.caption, color: 'var(--text-tertiary)', display: 'block', marginTop: 5 }}>{hint}</span>}
+      {hint && <span style={{ ...TT.caption, color: 'var(--text-tertiary)', display: 'block', marginTop: 4 }}>{hint}</span>}
     </label>
   );
 }

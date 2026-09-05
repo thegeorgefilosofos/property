@@ -319,7 +319,7 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
                             <span style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)', textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.6 : 1 }}>{r.title}</span>
                             <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: `var(--${st.tone})`, background: `var(--${st.tone}-soft)`, border: `1px solid var(--${st.tone}-border)`, borderRadius: T.radius.badge, padding: '3px 9px', fontFamily: T.font.sans }}>{st.label}</span>
                           </div>
-                          {r.description && <div style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 3, lineHeight: 1.5 }}>{r.description}</div>}
+                          {r.description && <div style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 4, lineHeight: 1.5 }}>{r.description}</div>}
                           {(signedPhotos[r.id]?.length ?? 0) > 0 && (
                             <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
                               {signedPhotos[r.id].slice(0, 4).map((url, pi) => (

@@ -82,7 +82,7 @@ interface Membership {
 // ── Κοινά στυλ πεδίων: ίδιο primitive με όλες τις Ρυθμίσεις (focus με .po-field).
 const fieldStyle: CSSProperties = settingsField;
 const subLabel: CSSProperties = { fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans };
-const descStyle: CSSProperties = { fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, fontFamily: T.font.sans, marginTop: 3 };
+const descStyle: CSSProperties = { fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, fontFamily: T.font.sans, marginTop: 4 };
 const errStyle: CSSProperties = { fontSize: 12, color: 'var(--negative)', fontFamily: T.font.sans, marginTop: 8 };
 const microLabel: CSSProperties = { fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans };
 

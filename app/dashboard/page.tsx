@@ -1103,7 +1103,7 @@ export function OverviewTab({ prop, properties, userId, onNavigate, tabVisible }
                     παίρνει ΟΛΟ το πλάτος της στήλης και τυλίγεται όσο χρειάζεται.
                     Ιδιο ιδίωμα με τη γραμμή στοιχείων της κάρτας δανείου: όνομα
                     πάνω, μέγεθος κάτω, τίποτα κρυμμένο πίσω από τελείες. */}
-                <span style={{display:'block',fontFamily:T.font.sans,color:'var(--text-tertiary)',fontSize: 'var(--fs-xs)',textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:600,marginBottom:3}}>{k}</span>
+                <span style={{display:'block',fontFamily:T.font.sans,color:'var(--text-tertiary)',fontSize: 'var(--fs-xs)',textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:600,marginBottom: 4}}>{k}</span>
                 <span style={{display:'block',fontFamily:T.font.sans,color:'var(--text-primary)',fontSize: 'var(--fs-base)',letterSpacing:'0.25px',minWidth:0,overflowWrap:'anywhere'}}>{v}</span>
               </div>
             ))}
@@ -2119,7 +2119,7 @@ export default function Dashboard() {
                     canAdd={canAddProperty(ent, properties.length)} />
                   {/* Ένα κουμπί: κατάσταση ακινήτου + εργαλεία (επεξεργασία, διαγραφή) στο ίδιο μενού. */}
                   <div style={{position:'relative',minWidth:0}}>
-                    <button onClick={()=>setStatusDropdown(v=>!v)} className="topbar-status" title="Κατάσταση ακινήτου και εργαλεία (επεξεργασία, διαγραφή)" aria-haspopup="menu" aria-expanded={statusDropdown} style={{display:'flex',alignItems:'center',gap:7,minHeight:T.h.sm,padding:'0 10px 0 12px',borderRadius:8,border:'1px solid var(--border-default)',background:statusDropdown?'var(--bg-hover)':'transparent',cursor:'pointer',fontFamily: T.font.sans,fontSize:12,fontWeight:500,color:'var(--text-primary)',transition:'background 0.15s'}} onMouseEnter={e=>{if(!statusDropdown)e.currentTarget.style.background='var(--bg-hover)'}} onMouseLeave={e=>{if(!statusDropdown)e.currentTarget.style.background='transparent'}}>
+                    <button onClick={()=>setStatusDropdown(v=>!v)} className="topbar-status" title="Κατάσταση ακινήτου και εργαλεία (επεξεργασία, διαγραφή)" aria-haspopup="menu" aria-expanded={statusDropdown} style={{display:'flex',alignItems:'center',gap: 8,minHeight:T.h.sm,padding:'0 10px 0 12px',borderRadius:8,border:'1px solid var(--border-default)',background:statusDropdown?'var(--bg-hover)':'transparent',cursor:'pointer',fontFamily: T.font.sans,fontSize:12,fontWeight:500,color:'var(--text-primary)',transition:'background 0.15s'}} onMouseEnter={e=>{if(!statusDropdown)e.currentTarget.style.background='var(--bg-hover)'}} onMouseLeave={e=>{if(!statusDropdown)e.currentTarget.style.background='transparent'}}>
                       <div style={{width:6,height:6,borderRadius:'50%',background:statusColor,flexShrink:0}}/>
                       {/* ΤΟ ΨΑΛΙΔΙ ΘΕΛΕΙ ΣΤΟΙΧΕΙΟ ΓΙΑ ΝΑ ΠΙΑΣΕΙ. Η ετικέτα ήταν
                           γυμνό κείμενο ανάμεσα σε δύο στοιχεία, οπότε το

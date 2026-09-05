@@ -180,7 +180,7 @@ const Field = ({ label, value, onChange, type = 'text', invalid = false, bad = f
           onBlur={e => (e.target.style.borderColor = tone || 'var(--border-default)')}
         />
       )}
-      {hint && <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 3, fontFamily: T.font.sans }}>{hint}</div>}
+      {hint && <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 4, fontFamily: T.font.sans }}>{hint}</div>}
     </div>
   );
 };
@@ -677,14 +677,14 @@ export default function DocumentScan({ propertyId, userId = '', onSaved, onBusyC
                       style={{ textAlign: 'left', background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: T.radius.inner, padding: '10px 14px', cursor: saving ? 'default' : 'pointer', fontFamily: T.font.sans }}>
                       <div style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)' }}>{o.label}</div>
                       {o.reasons.length > 0 && (
-                        <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 3, lineHeight: 1.45 }}>{o.reasons.join(' · ')}</div>
+                        <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 4, lineHeight: 1.45 }}>{o.reasons.join(' · ')}</div>
                       )}
                     </button>
                   ))}
                   <button onClick={() => save(null)} disabled={saving}
                     style={{ textAlign: 'left', background: 'transparent', border: '1px dashed var(--border-default)', borderRadius: T.radius.inner, padding: '10px 14px', cursor: saving ? 'default' : 'pointer', fontFamily: T.font.sans }}>
                     <div style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-secondary)' }}>{RECONCILE_NONE_LABEL}</div>
-                    <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 3 }}>{RECONCILE_NONE_HINT}</div>
+                    <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 4 }}>{RECONCILE_NONE_HINT}</div>
                   </button>
                 </div>
               </div>

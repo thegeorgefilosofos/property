@@ -147,7 +147,7 @@ export function ActionMenu({
           // ΤΟ ΜΕΝΟΥ ΕΙΝΑΙ ΚΟΥΜΠΙ, ΟΧΙ ΚΟΥΜΠΑΚΙ. Με `T.h.sm` έβγαινε 32 ενώ το
           // `Btn` δίπλα του είναι 36: μετρημένο στις Επαφές, «Περισσότερα» και
           // «Σάρωση κάρτας» στην ίδια σειρά με τέσσερα εικονοστοιχεία διαφορά.
-          display: 'inline-flex', alignItems: 'center', gap: 7, minHeight: T.h.md, padding: '0 13px', borderRadius: T.radius.modal,
+          display: 'inline-flex', alignItems: 'center', gap: 8, minHeight: T.h.md, padding: '0 13px', borderRadius: T.radius.modal,
           border: `1px solid ${open ? 'var(--accent)' : 'var(--border-default)'}`, background: 'var(--bg-surface)',
           color: open ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 'var(--fs-base)', fontWeight: 500, cursor: 'pointer',
           fontFamily: T.font.sans, transition: 'background-color 0.13s, border-color 0.13s, color 0.13s, box-shadow 0.13s, transform 0.13s, opacity 0.13s', whiteSpace: 'nowrap',
@@ -182,7 +182,7 @@ export function ActionMenu({
                 onClick={() => { if (inert) return; setOpen(false); it.onClick(); }}
                 className="po-hov-row"
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 11, width: '100%', textAlign: 'left', padding: '9px 10px',
+                  display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left', padding: '9px 10px',
                   borderRadius: 8, border: 'none', background: 'transparent', cursor: inert ? 'default' : 'pointer',
                   opacity: it.disabled ? 0.5 : 1, fontFamily: T.font.sans, transition: 'background 0.12s',
                 }}

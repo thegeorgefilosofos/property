@@ -147,10 +147,10 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
       footerInfo={step==='input' ? filePicker : undefined}
       footer={
         step==='input' ? (
-          <button disabled={!text.trim()} onClick={()=>analyze(text)} style={{ display:'inline-flex', alignItems:'center', gap:7, padding:'9px 18px', borderRadius:T.radius.btn, border:'none', background:text.trim()?'var(--accent)':'var(--bg-surface)', color:text.trim()?'var(--accent-text)':'var(--text-tertiary)', fontSize:12, fontWeight:700, cursor:text.trim()?'pointer':'default', fontFamily: T.font.sans }}>Ανάλυση<ArrowRight size={15}/></button>
+          <button disabled={!text.trim()} onClick={()=>analyze(text)} style={{ display:'inline-flex', alignItems:'center', gap: 8, padding:'9px 18px', borderRadius:T.radius.btn, border:'none', background:text.trim()?'var(--accent)':'var(--bg-surface)', color:text.trim()?'var(--accent-text)':'var(--text-tertiary)', fontSize:12, fontWeight:700, cursor:text.trim()?'pointer':'default', fontFamily: T.font.sans }}>Ανάλυση<ArrowRight size={15}/></button>
         ) : step==='review' ? (<>
           <button onClick={()=>setStep('input')} style={{ padding:'9px 18px', borderRadius:T.radius.btn, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:'var(--text-secondary)', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily: T.font.sans }}>Πίσω</button>
-          <button disabled={!canSave} onClick={save} style={{ display:'inline-flex', alignItems:'center', gap:7, padding:'9px 18px', borderRadius:T.radius.btn, border:'none', background:canSave?'var(--accent)':'var(--bg-surface)', color:canSave?'var(--accent-text)':'var(--text-tertiary)', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily: T.font.sans }}>Καταχώρηση</button>
+          <button disabled={!canSave} onClick={save} style={{ display:'inline-flex', alignItems:'center', gap: 8, padding:'9px 18px', borderRadius:T.radius.btn, border:'none', background:canSave?'var(--accent)':'var(--bg-surface)', color:canSave?'var(--accent-text)':'var(--text-tertiary)', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily: T.font.sans }}>Καταχώρηση</button>
         </>) : undefined
       }>
       {step==='input'&&(<div>
@@ -171,7 +171,7 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
         ):(<>
           {rentMatches.length>0&&(<>
             <p style={{ fontSize: 'var(--fs-xs)', fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--text-secondary)', margin:'0 0 8px', fontFamily: T.font.sans }}>Ενοίκια που εισπράχθηκαν</p>
-            <div style={{ display:'flex', flexDirection:'column', gap:7, marginBottom:16 }}>
+            <div style={{ display:'flex', flexDirection:'column', gap: 8, marginBottom:16 }}>
               {rentMatches.map((m,i)=>(
                 <div key={i} style={row}>
                   <Box checked={m.confirm} onClick={()=>setRentMatches(a=>a.map((x,j)=>j===i?{...x,confirm:!x.confirm}:x))}/>
@@ -186,7 +186,7 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
           </>)}
           {expenses.length>0&&(<>
             <p style={{ fontSize: 'var(--fs-xs)', fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--text-secondary)', margin:'0 0 8px', fontFamily: T.font.sans }}>Πιθανά έξοδα</p>
-            <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
+            <div style={{ display:'flex', flexDirection:'column', gap: 8 }}>
               {expenses.map((e,i)=>(
                 <div key={i} style={row}>
                   <Box checked={e.confirm} onClick={()=>setExpenses(a=>a.map((x,j)=>j===i?{...x,confirm:!x.confirm}:x))}/>
@@ -206,7 +206,7 @@ export default function BankImport({ propertyId, userId, year, onClose, onDone }
           {unmatched.length>0&&(<>
             <p style={{ fontSize: 'var(--fs-xs)', fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--text-secondary)', margin:'16px 0 8px', fontFamily: T.font.sans }}>Κινήσεις χωρίς αντιστοίχιση</p>
             <p style={{ fontSize: 'var(--fs-xs)', color:'var(--text-tertiary)', margin:'0 0 8px', fontFamily: T.font.sans, lineHeight:1.5 }}>Δεν ταιριάζουν σε ανεξόφλητο ενοίκιο του {year} και δεν καταχωρούνται από εδώ. Επανεμφανίζονται σε κάθε εισαγωγή, μέχρι να τακτοποιηθούν.</p>
-            <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
+            <div style={{ display:'flex', flexDirection:'column', gap: 8 }}>
               {unmatched.map((t,i)=>(
                 <div key={i} style={row}>
                   <div style={{ flex:1, minWidth:0 }}>

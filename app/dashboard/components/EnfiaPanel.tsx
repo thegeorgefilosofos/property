@@ -190,7 +190,7 @@ function RouteTile({ route, value, inUse, active, onSelect }: {
         </span>
         {inUse && <span className="sr-only">σε χρήση</span>}
       </span>
-      <span style={{ ...TT.figure, fontSize: 15, display: 'block', marginTop: 5, color: value > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
+      <span style={{ ...TT.figure, fontSize: 15, display: 'block', marginTop: 4, color: value > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
         {value > 0 ? fe(value) : 'Κενό'}
       </span>
     </button>

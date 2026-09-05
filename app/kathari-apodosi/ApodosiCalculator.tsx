@@ -42,7 +42,7 @@ const amount = (s: string): number => Math.max(0, parseAmount(s) ?? 0);
 
 const LBL: React.CSSProperties = {
   display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
-  textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 7,
+  textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 8,
 };
 const FIELD: React.CSSProperties = {
   width: '100%', height: T.h.lg, padding: '0 14px', borderRadius: T.radius.btn,
@@ -253,7 +253,7 @@ export function ApodosiCalculator({ year, today }: { year: number; today: string
           </div>
         )}
 
-        <dl {...fixedCols(2, 24, 'start')} style={{ ...fixedCols(2, 24, 'start').style, rowGap: 11, margin: 0 }}>
+        <dl {...fixedCols(2, 24, 'start')} style={{ ...fixedCols(2, 24, 'start').style, rowGap: 12, margin: 0 }}>
           <Row k="Ετήσιο ενοίκιο" v={feAuto(r.gross)}/>
           <Row k="Φόρος εισοδήματος" v={feAuto(r.tax)}/>
           <Row k="ΕΝΦΙΑ" v={feAuto(r.enfia)}/>
@@ -329,7 +329,7 @@ function Figure({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-        color: 'var(--text-tertiary)', marginBottom: 7 }}>{label}</div>
+        color: 'var(--text-tertiary)', marginBottom: 8 }}>{label}</div>
       <div style={{
         fontFamily: T.font.num, fontSize: 'clamp(24px, 4.4vw, 32px)',
         fontWeight: 680, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', lineHeight: 1.1,

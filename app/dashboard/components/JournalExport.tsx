@@ -262,7 +262,7 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
   const footer = (
     <>
       <button onClick={e => { e.currentTarget.blur(); doPreview(); }} disabled={busy || !selIds.length}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 13px', borderRadius: T.radius.btn, background: 'none', border: 'none', fontFamily: T.font.sans, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', cursor: (busy || !selIds.length) ? 'not-allowed' : 'pointer', opacity: (busy || !selIds.length) ? 0.5 : 1, transition: 'background 0.15s, color 0.15s' }}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 13px', borderRadius: T.radius.btn, background: 'none', border: 'none', fontFamily: T.font.sans, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', cursor: (busy || !selIds.length) ? 'not-allowed' : 'pointer', opacity: (busy || !selIds.length) ? 0.5 : 1, transition: 'background 0.15s, color 0.15s' }}
         onMouseEnter={e => { if (!(busy || !selIds.length)) { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)'; } }}
         onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-secondary)'; }}>
         <svg aria-hidden="true" width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
@@ -389,14 +389,14 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
                               <div key={c.key} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 14, alignItems: 'start', padding: '11px 2px', borderTop: i ? '1px solid var(--border-subtle)' : 'none' }}>
                                 <span style={{ minWidth: 0 }}>
                                   <div style={{ fontSize: 'var(--fs-base)', fontWeight: 560, color: 'var(--text-primary)' }}>{c.label}</div>
-                                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3, lineHeight: 1.5 }}>{c.detail}</div>
+                                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4, lineHeight: 1.5 }}>{c.detail}</div>
                                   {!isPass && c.fix && (
                                     <>
-                                      <div style={{ marginTop: 9, display: 'flex', gap: 8, alignItems: 'flex-start', padding: '9px 11px', borderRadius: 8, background: 'var(--bg-elevated)' }}>
+                                      <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'flex-start', padding: '9px 11px', borderRadius: 8, background: 'var(--bg-elevated)' }}>
                                         <svg aria-hidden="true" width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-tertiary)', flexShrink: 0, marginTop: 1 }}><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2h6c0-.8.4-1.5 1-2A7 7 0 0 0 12 2z"/></svg>
                                         <span style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--text-secondary)' }}><b style={{ color: 'var(--text-primary)', fontWeight: 640 }}>Πρόταση:</b> {c.fix}</span>
                                       </div>
-                                      <button onClick={() => askAboutCheck(c)} style={{ marginTop: 7, background: 'none', border: 'none', padding: 0, fontFamily: T.font.sans, fontSize: 12, fontWeight: 600, color: 'var(--accent)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                      <button onClick={() => askAboutCheck(c)} style={{ marginTop: 8, background: 'none', border: 'none', padding: 0, fontFamily: T.font.sans, fontSize: 12, fontWeight: 600, color: 'var(--accent)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                                         <svg aria-hidden="true" width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 4.6L18.5 9l-4.6 1.9L12 15l-1.9-4.1L5.5 9l4.6-1.4z"/></svg>
                                         {askCta()}
                                       </button>

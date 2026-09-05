@@ -679,7 +679,7 @@ export default function ExpenseLedger({ propertyId, userId, onScan, openAddNonce
             <div style={{ ...TT.bodySm, color: 'var(--text-primary)', fontWeight: 600 }}>
               {changed.length === 1 ? 'Μία χρέωση άλλαξε ποσό' : `${changed.length} χρεώσεις άλλαξαν ποσό`}
             </div>
-            <div style={{ ...TT.caption, marginTop: 3, lineHeight: 1.6 }}>
+            <div style={{ ...TT.caption, marginTop: 4, lineHeight: 1.6 }}>
               {changed.slice(0, 3).map(c => c.message).join(' ')}
               {changed.length > 3 ? ` Και άλλες ${changed.length - 3}.` : ''}
             </div>
@@ -1047,7 +1047,7 @@ const FIELD: React.CSSProperties = {
   border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
   color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans, outline: 'none', width: '100%', boxSizing: 'border-box',
 };
-const LAB: React.CSSProperties = { display: 'block', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 5 };
+const LAB: React.CSSProperties = { display: 'block', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 };
 
 // ── ΤΟ ΑΦΜ ΤΟΥ ΠΡΟΜΗΘΕΥΤΗ ─────────────────────────────────────────────────
 /**

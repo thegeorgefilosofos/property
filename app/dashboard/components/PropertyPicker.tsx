@@ -50,7 +50,7 @@ export default function PropertyPicker({ items, selected, onChange, loading, pla
     background: on || mixed ? 'var(--accent)' : 'var(--bg-surface)', transition: 'border-color 0.14s, background 0.14s',
   });
   const check = <svg aria-hidden="true" width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>;
-  const row: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 11, width: '100%', padding: '9px 13px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: T.font.sans, fontSize: 'var(--fs-base)', color: 'var(--text-primary)' };
+  const row: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '9px 13px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: T.font.sans, fontSize: 'var(--fs-base)', color: 'var(--text-primary)' };
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>

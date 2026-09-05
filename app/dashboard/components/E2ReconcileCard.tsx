@@ -262,7 +262,7 @@ export default function E2ReconcileCard({ userId, year, plan = 'free', onUpgrade
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
                 <div style={{ flex: 1, minWidth: 200 }}>
                   <div style={{ ...TT.body, fontWeight: 600 }}>{r.address || r.atak || 'Ακίνητο'}</div>
-                  <div style={{ ...TT.caption, marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>
+                  <div style={{ ...TT.caption, marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>
                     {r.atak ? `ΑΤΑΚ ${r.atak} · ` : ''}Τα δικά σου: {fe(r.grossIncome)}
                     {r.months ? ` · ${r.months} μήνες` : ''}
                   </div>
@@ -320,7 +320,7 @@ export default function E2ReconcileCard({ userId, year, plan = 'free', onUpgrade
                       </span>}
                   </div>
                   {line.reasons.map(reason => (
-                    <p key={reason.code} style={{ ...TT.caption, marginTop: 5 }}>
+                    <p key={reason.code} style={{ ...TT.caption, marginTop: 4 }}>
                       {reason.text}
                     </p>
                   ))}

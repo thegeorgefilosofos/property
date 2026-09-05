@@ -30,7 +30,7 @@ export const InfoBlock = ({ title, children, tone }: { title: string; children: 
       <div style={{ width:5, height:5, borderRadius:'50%', background:tone||'var(--accent)' }}/>
       <span style={{ fontSize:12, fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans }}>{title}</span>
     </div>
-    <div style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans, lineHeight:1.7, paddingLeft:13 }}>{children}</div>
+    <div style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans, lineHeight:1.7, paddingLeft: 12 }}>{children}</div>
   </div>
 );
 
@@ -287,7 +287,7 @@ export function FilePickRow({ label, hint, busy, docs, onPick }: {
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' as const }}>
         <div style={{ minWidth:0 }}>
           <div style={{ fontSize:12, color:'var(--text-secondary)', fontFamily:T.font.sans }}>{label}</div>
-          {hint&&<div style={{ fontSize: 'var(--fs-xs)', color:'var(--text-tertiary)', fontFamily:T.font.sans, marginTop:3 }}>{hint}</div>}
+          {hint&&<div style={{ fontSize: 'var(--fs-xs)', color:'var(--text-tertiary)', fontFamily:T.font.sans, marginTop: 4 }}>{hint}</div>}
         </div>
         <label style={{ ...sty.btnSm, cursor:busy?'default':'pointer', opacity:busy?0.6:1, whiteSpace:'nowrap' as const }}>
           {busy?'Ανέβασμα…':'Επιλογή αρχείου'}
@@ -329,7 +329,7 @@ export function PaymentBars({ payments }:{payments:RentPayment[]}) {
   const last12=[...payments].sort((a,b)=>b.period_year-a.period_year||b.period_month-a.period_month).slice(0,12).reverse();
   return (
     <div>
-      <div style={{ display:'flex', alignItems:'flex-end', gap:5, height:72, marginBottom:6 }}>
+      <div style={{ display:'flex', alignItems:'flex-end', gap: 4, height:72, marginBottom:6 }}>
         {last12.map((p)=>{
           const late=p.days_late||0;
           const color=!p.paid?'var(--negative)':late>14?'var(--warning)':late>0?'var(--info)':'var(--positive)';
@@ -341,7 +341,7 @@ export function PaymentBars({ payments }:{payments:RentPayment[]}) {
           );
         })}
       </div>
-      <div style={{ display:'flex', gap:5 }}>
+      <div style={{ display:'flex', gap: 4 }}>
         {last12.map((p,i)=>(
           <div key={i} style={{ flex:1, fontSize: 'var(--fs-xs)', color:'var(--text-tertiary)', textAlign:'center' as const, fontFamily:T.font.sans }}>
             {MONTHS_SHORT[p.period_month-1]}
@@ -350,7 +350,7 @@ export function PaymentBars({ payments }:{payments:RentPayment[]}) {
       </div>
       <div style={{ display:'flex', flexWrap:'wrap' as const, gap:'10px 16px', marginTop:12 }}>
         {[['var(--positive)','Εμπρόθεσμη'],['var(--info)','Μικρή καθυστέρηση'],['var(--warning)','Μεγάλη καθυστέρηση'],['var(--negative)','Εκκρεμεί']].map(([c,l])=>(
-          <div key={l} style={{ display:'flex', alignItems:'center', gap:5 }}>
+          <div key={l} style={{ display:'flex', alignItems:'center', gap: 4 }}>
             <div style={{ width:8, height:8, borderRadius:3, background:c, flexShrink:0 }}/>
             <span style={{ fontSize: 'var(--fs-xs)', color:'var(--text-secondary)', fontFamily:T.font.sans }}>{l}</span>
           </div>

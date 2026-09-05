@@ -203,7 +203,7 @@ export default function AgendaPanel({ items, total, onNavigate }: {
           color: var(--text-tertiary); margin-top: 2px;
         }
         .agenda-word { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-top: 0; }
-        .agenda-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+        .agenda-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
         .agenda-item-title {
           font-family: ${T.font.sans}; font-size: 14px; font-weight: 600;
           line-height: 1.4; color: var(--text-primary);

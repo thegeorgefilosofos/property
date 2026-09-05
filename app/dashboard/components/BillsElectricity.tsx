@@ -684,7 +684,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                 αριθμό και η κατάταξη έχει κουμπί για τα υπόλοιπα. */}
             {secHdr('Κατάταξη Τιμολογίων',
               `${allTariffs.length} τιμολόγια για ${kwh} κιλοβατώρες τον μήνα, τιμές ${LAST_UPDATED}`)}
-            <div style={{ display: 'flex', background: 'var(--bg-base)', borderRadius: T.radius.pill, padding: 3, border: '1px solid var(--border-default)' }}>
+            <div style={{ display: 'flex', background: 'var(--bg-base)', borderRadius: T.radius.pill, padding: 4, border: '1px solid var(--border-default)' }}>
               {(['residential', 'business'] as const).map(seg => (
                 <button key={seg} onClick={() => setSegmentFilter(seg)}
                   style={{
@@ -815,7 +815,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                           <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-primary)', marginLeft: 8, fontWeight: 700, letterSpacing: '0.06em' }}>ΚΑΛΥΤΕΡΟ</span>
                         )}
                       </div>
-                      <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 3, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>
+                      <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 4, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>
                         <span title={BADGE_MEANING[t.badge]} style={{ color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em' }}>{t.badge}</span>
                         {' · '}{facts.join(' · ')}
                       </div>
@@ -829,7 +829,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
                       }}>
                         {t.priced ? fe(t.monthly) : 'Χωρίς τιμή'}
                       </div>
-                      <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 3, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const }}>
+                      <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 4, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' as const }}>
                         {relative}
                       </div>
                     </div>
@@ -977,7 +977,7 @@ export default function BillsElectricity({ propertyId, userId, onNavigateTab }: 
               const s = SEV_STYLE[h.severity];
               return (
                 <div key={i} style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: T.radius.inner, padding: '10px 14px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: s.dot, flexShrink: 0, marginTop: 5 }}/>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: s.dot, flexShrink: 0, marginTop: 4 }}/>
                   <div style={{ flex: 1, fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
                     {h.text}
                   </div>

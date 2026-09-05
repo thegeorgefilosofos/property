@@ -277,7 +277,7 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
 
         {/* ── ΔΕΙΚΤΕΣ ΚΑΙ ΕΝΕΡΓΕΙΕΣ, ΣΤΗΝ ΙΔΙΑ ΓΡΑΜΜΗ ────────────────────── */}
         <div style={{ display: 'flex', alignItems: 'center', gap: T.sp.md, marginTop: 22, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: 7, flex: 1 }}>
+          <div style={{ display: 'flex', gap: 8, flex: 1 }}>
             {cards.map((_, i) => (
               <span key={i} style={{ width: i === step ? 22 : 7, height: 7, borderRadius: 6, background: i === step ? 'var(--accent)' : 'var(--border-default)', transition: `width 0.28s ${T.ease.standard}, background-color 0.28s ${T.ease.standard}` }} />
             ))}

@@ -295,7 +295,7 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
         <div style={card}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4, flexWrap: 'wrap' as const, gap: 10 }}>
             {secHdr('Σύγκριση παρόχων', `${allTariffs.length} τιμολόγια της ΡΑΑΕΥ σε ${kwh} kWh τον μήνα, χρέωση προμήθειας`)}
-            <div style={{ display: 'flex', background: 'var(--bg-base)', borderRadius: T.radius.pill, padding: 3, border: '1px solid var(--border-default)' }}>
+            <div style={{ display: 'flex', background: 'var(--bg-base)', borderRadius: T.radius.pill, padding: 4, border: '1px solid var(--border-default)' }}>
               {(['residential', 'business'] as const).map(seg => (
                 <button key={seg} onClick={() => setSegmentFilter(seg)}
                   style={{ padding: '6px 16px', borderRadius: T.radius.pill, border: 'none', cursor: 'pointer', fontSize: 'var(--fs-xs)', fontWeight: 700,
@@ -405,7 +405,7 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
               const sv = SEV_STYLE[h.severity];
               return (
                 <div key={i} style={{ background: sv.bg, border: `1px solid ${sv.border}`, borderRadius: T.radius.inner, padding: '10px 14px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: sv.dot, flexShrink: 0, marginTop: 5 }}/>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: sv.dot, flexShrink: 0, marginTop: 4 }}/>
                   <div style={{ flex: 1, fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>{h.text}</div>
                 </div>
               );
@@ -433,7 +433,7 @@ export default function BillsGas({ propertyId, userId = '' }: Props) {
           ].map((x, i, arr) => (
             <div key={x.t} style={{ padding: '12px 0', borderBottom: i === arr.length - 1 ? 'none' : '1px solid var(--border-subtle)' }}>
               <p style={{ fontSize: 'var(--fs-base)', fontWeight: 500, color: 'var(--text-primary)', fontFamily: T.font.sans, lineHeight: 1.45 }}>{x.t}</p>
-              <p style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.7, marginTop: 3 }}>{x.b}</p>
+              <p style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.7, marginTop: 4 }}>{x.b}</p>
             </div>
           ))}
         </div>

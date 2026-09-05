@@ -90,7 +90,7 @@ export function EnfiaCalculator({ year, today }: { year: number; today: string }
   const numField: React.CSSProperties = { ...field, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' };
   const label: React.CSSProperties = {
     display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
-    textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 7,
+    textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 8,
   };
   // Η ΜΟΝΑΔΑ ΜΕΣΑ ΣΤΟ ΠΕΔΙΟ, ΟΧΙ ΜΕΣΑ ΣΤΗΝ ΕΤΙΚΕΤΑ. Οι ετικέτες έγραφαν «ΤΙΜΗ
   // ΖΩΝΗΣ (€/Τ.Μ.)» και «ΠΟΣΟΣΤΟ ΙΔΙΟΚΤΗΣΙΑΣ (%)»: κεφαλαία με παρένθεση και
@@ -215,7 +215,7 @@ export function EnfiaCalculator({ year, today }: { year: number; today: string }
                 16 κάνει 192: ο επισκέπτης διάβαζε δύο νούμερα που δεν βγαίνουν
                 μεταξύ τους. Σε σελίδα που ρωτά «πόσο θα πληρώσεις», η διαίρεση
                 γίνεται ακριβής. */}
-            <dl {...fixedCols(2, 24, 'start')} style={{ ...fixedCols(2, 24, 'start').style, rowGap: 11, margin: 0 }}>
+            <dl {...fixedCols(2, 24, 'start')} style={{ ...fixedCols(2, 24, 'start').style, rowGap: 12, margin: 0 }}>
               <Row k="Αντικειμενική αξία (εκτίμηση)" v={feAuto(r.value)}/>
               <Row k="Βασικός φόρος ζώνης" v={`${feRate(ENFIA_ZONE_TAX[r.zone] ?? 0)}/τ.μ.`}/>
               <Row k="Συντελεστής ορόφου" v={fn(enfiaFloorCoef(floor), 2)}/>

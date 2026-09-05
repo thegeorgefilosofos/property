@@ -494,7 +494,7 @@ export default function SignupPage() {
                   και το κρίνει ο server. */}
               {isReferralCode(refCode) && (
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', marginBottom: chosenPlan ? 12 : 24, borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0, marginTop: 7 }} />
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0, marginTop: 8 }} />
                   <span style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
                     Ηρθες με πρόσκληση. Ο κωδικός <strong style={{ color: 'var(--text-primary)' }}>{refCode.trim()}</strong> καταγράφεται στον λογαριασμό σου με την εγγραφή και μετράει σε εκείνον που σε κάλεσε. Η δοκιμή των {TRIAL_DAYS} ημερών είναι η ίδια για κάθε νέο λογαριασμό, με πρόσκληση ή χωρίς.
                   </span>

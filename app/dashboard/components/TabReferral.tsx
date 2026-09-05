@@ -86,7 +86,7 @@ const PAD = T.sp.xl;
 // ένα· τα υπόλοιπα τα έδωσαν δύο ετικέτες που ήταν διπλάσιες από κάθε αδελφή
 // τους σε σειρά όπου όλες οι άλλες είναι μία λέξη.
 const CHIP: React.CSSProperties = {
-  display: 'inline-flex', alignItems: 'center', gap: 7, height: T.h.md, padding: '0 12px',
+  display: 'inline-flex', alignItems: 'center', gap: 8, height: T.h.md, padding: '0 12px',
   background: 'transparent', border: '1px solid var(--border-default)', borderRadius: T.radius.pill,
   fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textDecoration: 'none',
 };
@@ -540,7 +540,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
           </button>
         </div>
         <span aria-live="polite" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>{copied ? 'Ο σύνδεσμος αντιγράφηκε' : msgCopied ? 'Το μήνυμα αντιγράφηκε' : ''}</span>
-        <div style={{ display: 'flex', gap: 7, marginTop: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           {shares.map(s => (
             <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" className="ref-chip" style={CHIP}>
               <Ic d={s.d} s={15} c="var(--text-tertiary)" />{s.label}
@@ -587,7 +587,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                      φτιαγμένο στο μάτι, μόνο γι' αυτά τα τρία πλακίδια. Το 24 είναι το
                      αμέσως επόμενο σκαλί και το ίδιο που χρησιμοποιεί το TT.displaySm. */
                   style={{ ...TT.kpi, fontSize: 24, color: hi ? undefined : 'var(--text-primary)' }}><Num value={Number(v)} /></div>
-              <div style={{ ...TT.caption, marginTop: 3 }}>{l}</div>
+              <div style={{ ...TT.caption, marginTop: 4 }}>{l}</div>
             </div>
           ))}
           {/* Ήταν «Κάρτα προόδου»: ένα PNG 1080×1350 με νόμισμα, ακτίνες και τέσσερα
@@ -627,7 +627,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                 'Δικός σου σύνδεσμος ανά πελάτη, μόνο για ανάγνωση. Χωρίς πελατολόγιο ή στοιχεία τρίτων.',
               ].map((t, i) => (
                 <li key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                  <span style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 3 }}><Ic d="M20 6 9 17l-5-5" s={14} /></span>{t}
+                  <span style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 4 }}><Ic d="M20 6 9 17l-5-5" s={14} /></span>{t}
                 </li>
               ))}
             </ul>
@@ -673,7 +673,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
                   'Προτεραιότητα σε νέες κυκλοφορίες και αναβαθμίσεις',
                 ].map((t, i) => (
                   <li key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                    <span style={{ color: partner ? 'var(--accent)' : 'var(--text-tertiary)', flexShrink: 0, marginTop: 3 }}><Ic d="M20 6 9 17l-5-5" s={14} /></span>{t}
+                    <span style={{ color: partner ? 'var(--accent)' : 'var(--text-tertiary)', flexShrink: 0, marginTop: 4 }}><Ic d="M20 6 9 17l-5-5" s={14} /></span>{t}
                   </li>
                 ))}
               </ul>
@@ -685,7 +685,7 @@ export default function TabReferral({ userId, plan = 'free', profileType }: {
               const r = PRO_PAID_TARGET - (stats?.m_paid ?? 0);
               if (!(streak >= 1 && r > 0 && d <= 10)) return null;
               return (
-                <div style={{ marginTop: 12, display: 'flex', gap: 9, alignItems: 'flex-start', padding: '10px 12px', borderRadius: T.radius.inner, background: 'color-mix(in srgb, var(--warning) 9%, transparent)', border: '1px solid color-mix(in srgb, var(--warning) 26%, transparent)' }}>
+                <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'flex-start', padding: '10px 12px', borderRadius: T.radius.inner, background: 'color-mix(in srgb, var(--warning) 9%, transparent)', border: '1px solid color-mix(in srgb, var(--warning) 26%, transparent)' }}>
                   <span style={{ color: 'var(--warning)', flexShrink: 0, marginTop: 1 }}><Ic d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z|M12 9v4|M12 17h.01" s={15} /></span>
                   <span style={{ ...TT.bodySm, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                     {d === 1 ? 'Ο μήνας κλείνει αύριο.' : `Ο μήνας κλείνει σε ${d} ημέρες.`} {r === 1 ? 'Σου λείπει ένας συνδρομητής' : `Σου λείπουν ${r} συνδρομητές`} {partner ? 'για να εξασφαλίσεις τον δωρεάν μήνα.' : 'για να διατηρήσεις τους συνεχόμενους μήνες σου.'}

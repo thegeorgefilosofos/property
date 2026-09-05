@@ -60,12 +60,12 @@ export default function VerifyDocument() {
   const wrap: React.CSSProperties = { minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: 'Inter, system-ui, Arial, sans-serif', color: 'var(--text-primary)' };
   const card: React.CSSProperties = { width: '100%', maxWidth: 460, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '30px 30px 26px', boxShadow: 'var(--elev-1)' };
   const label: React.CSSProperties = { fontSize: 11, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700 };
-  const value: React.CSSProperties = { fontSize: 14, color: 'var(--text-primary)', fontWeight: 600, marginTop: 3 };
+  const value: React.CSSProperties = { fontSize: 14, color: 'var(--text-primary)', fontWeight: 600, marginTop: 4 };
 
   return (
     <div style={wrap}>
       <div style={card}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 11, paddingBottom: 18, borderBottom: '1px solid var(--border-subtle)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingBottom: 18, borderBottom: '1px solid var(--border-subtle)' }}>
           <BrandMark size={34} />
           <div>
             <div style={{ fontSize: 15, fontWeight: 700 }}>PROPERWISE</div>

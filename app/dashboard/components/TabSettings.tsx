@@ -739,7 +739,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
         {/* Μετρητής ακινήτων: προ-πουλά ήρεμα το όριο, χωρίς τοίχο-έκπληξη */}
         {propertyCount != null && (
           <div style={{ marginTop: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 7 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
               <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Ακίνητα</span>
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric: 'tabular-nums' }}>{propertyCount} από {propLimitLabel}</span>
             </div>
@@ -797,7 +797,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
 
         {/* Τρόπος χρήσης: Ιδιώτης / Επαγγελματίας */}
         <div style={divider}>
-          <div style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 3 }}>Τρόπος χρήσης</div>
+          <div style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 4 }}>Τρόπος χρήσης</div>
           <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 14, lineHeight: 1.5 }}>
             Αλλάζει όποτε θες.{partner ? ' Είσαι ενεργός Συνεργάτης PROPERWISE.' : ''}
           </div>
@@ -821,7 +821,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginTop: 5, lineHeight: 1.5 }}>{o.sub}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginTop: 4, lineHeight: 1.5 }}>{o.sub}</div>
                   {requiresUpgrade && (
                     <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 8 }}>Απαιτεί αναβάθμιση στο πακέτο Επαγγελματίας.</div>
                   )}

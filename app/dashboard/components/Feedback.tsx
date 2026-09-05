@@ -199,7 +199,7 @@ export default function Feedback({ target = 'general', onDone, embedded }: {
         />
 
         {/* Μετρητής λέξεων / ένδειξη ετοιμότητας */}
-        <div style={{ fontSize: 12, color: ready ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 7, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 12, color: ready ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 8, lineHeight: 1.5 }}>
           {ready
             ? 'Ωραία, το μήνυμά σου είναι έτοιμο.'
             : `Γράψε λίγες λέξεις ακόμη και βοήθησέ μας να βελτιωθούμε (${words}/${MIN_WORDS}).`}

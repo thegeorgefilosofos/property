@@ -102,7 +102,7 @@ import { useLoad } from '@/app/hooks/useLoad';
 // ═══════════════════════════════════════════════════════════════════════════
 
 // ─── Design tokens, shared source of truth (components/Theme) ────────────────
-const labelStyle = { ...TT.label, marginBottom:7 };
+const labelStyle = { ...TT.label, marginBottom: 8 };
 
 // ─── HTML escaping for values interpolated into document.write() templates ────
 
@@ -595,7 +595,7 @@ export function DamagesView({ tenant, propertyId, userId, damages, onRefresh }:{
                   <div style={{ display:'flex', justifyContent:'space-between', gap:10, flexWrap:'wrap' as const, alignItems:'flex-start' }}>
                     <div style={{ minWidth:0, flex:1 }}>
                       <div style={{ fontSize: 'var(--fs-base)', fontWeight:600, color:'var(--text-primary)', fontFamily:T.font.sans }}>{d.description}</div>
-                      <div style={{ fontSize:12, color:'var(--text-secondary)', marginTop:3, display:'flex', gap:8, flexWrap:'wrap' as const, alignItems:'center' }}>
+                      <div style={{ fontSize:12, color:'var(--text-secondary)', marginTop: 4, display:'flex', gap:8, flexWrap:'wrap' as const, alignItems:'center' }}>
                         {d.occurred_on&&<span>{fmtD(d.occurred_on)}</span>}
                         {d.repaired?<Badge tone="positive">Επισκευάστηκε{d.repaired_on?` ${fmtD(d.repaired_on)}`:''}</Badge>:<Badge tone="warning">Εκκρεμεί</Badge>}
                         {d.charged_to_tenant&&<Badge tone="accent">Χρέωση ενοικιαστή</Badge>}
@@ -809,7 +809,7 @@ export function MaintenanceView({ tenant, propertyId, userId, requests, others, 
             ενοικιαστή, που αλλιώς δεν θα φαίνονταν πουθενά. Μαζεμένο by default. */}
         {others.length>0&&(
           <div style={{ borderTop:'1px solid var(--border-subtle)', marginTop:20, paddingTop:14 }}>
-            <button onClick={()=>setHistOpen(o=>!o)} style={{ display:'flex', alignItems:'center', gap:9, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left' as const, fontFamily:T.font.sans }}>
+            <button onClick={()=>setHistOpen(o=>!o)} style={{ display:'flex', alignItems:'center', gap: 8, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left' as const, fontFamily:T.font.sans }}>
               <svg aria-hidden="true" width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ color:'var(--text-tertiary)', transform:histOpen?'rotate(90deg)':'none', transition:'transform 0.2s', flexShrink:0 }}><path d="M9 6l6 6-6 6"/></svg>
               <span style={{ fontSize: 'var(--fs-base)', fontWeight:600, color:'var(--text-secondary)' }}>Ιστορικό ακινήτου</span>
               <span style={{ marginLeft:'auto', fontSize:12, color:'var(--text-tertiary)', fontWeight:600 }}>{others.length} {others.length===1?'αίτημα':'αιτήματα'}</span>

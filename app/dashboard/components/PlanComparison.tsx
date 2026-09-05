@@ -161,7 +161,7 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
       {/* ── 1+2. Κεφαλίδα με διακόπτη κύκλου + στήλες πλάνων ───────────────── */}
       <Card className="acc-section" style={{ animationDelay: '0ms' }}>
         <SecHdr label="Σύγκριση πακέτων" right={
-          <div style={{ display: 'inline-flex', padding: 3, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill }}>
+          <div style={{ display: 'inline-flex', padding: 4, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill }}>
             {(['monthly', 'annual'] as const).map(c => (
               <button key={c} onClick={() => setCycle(c)}
                 style={{ appearance: 'none', border: 'none', cursor: 'pointer', padding: '5px 12px', borderRadius: T.radius.pill, fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 700, color: cycle === c ? 'var(--text-primary)' : 'var(--text-tertiary)', background: cycle === c ? 'var(--bg-surface)' : 'transparent', boxShadow: cycle === c ? 'var(--elev-1)' : 'none', transition: 'background-color 0.15s cubic-bezier(0.2,0,0,1), border-color 0.15s cubic-bezier(0.2,0,0,1), color 0.15s cubic-bezier(0.2,0,0,1), box-shadow 0.15s cubic-bezier(0.2,0,0,1), transform 0.15s cubic-bezier(0.2,0,0,1), opacity 0.15s cubic-bezier(0.2,0,0,1)' }}>
@@ -288,7 +288,7 @@ export default function PlanComparison({ profileType, currentPlan, onUpgrade }: 
                 <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, marginTop: 6, minHeight: 34 }}>{p.tagline}</div>
 
                 {/* Τιμή */}
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginTop: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 12 }}>
                   <span style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em', color: isCurrent ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{priceMain}</span>
                   <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>τον μήνα</span>
                 </div>

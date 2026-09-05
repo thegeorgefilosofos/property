@@ -161,7 +161,7 @@ export default function ReportBranding({ userId, plan, onUpgrade }: { userId: st
           <div style={{ minWidth: 220 }}>
             <div style={rowLabel}>Λογότυπο</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-              {logoUrl && <img src={logoUrl} alt="Λογότυπο επιχείρησης" style={{ height: 40, width: 'auto', maxWidth: 160, objectFit: 'contain', background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: 5 }} />}
+              {logoUrl && <img src={logoUrl} alt="Λογότυπο επιχείρησης" style={{ height: 40, width: 'auto', maxWidth: 160, objectFit: 'contain', background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: 4 }} />}
               <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={onFile} style={{ display: 'none' }} />
               <Btn variant="secondary" size="lg" onClick={() => fileRef.current?.click()}>{logoUrl ? 'Αλλαγή' : 'Μεταφόρτωση'}</Btn>
               {logoUrl && <Btn variant="ghost" onClick={() => setLogoUrl('')}>Αφαίρεση</Btn>}
@@ -180,7 +180,7 @@ export default function ReportBranding({ userId, plan, onUpgrade }: { userId: st
                    ψηλότερο και ορατά μεγαλύτερο στην ίδια σειρά, ενώ η διπλανή στήλη
                    («Λογότυπο») είχε το κουμπί της δύο πιο πάνω. Το `T.h.lg` δίνει 40
                    στο ποντίκι και 44 στο δάχτυλο, από τον καθολικό κανόνα. */
-                style={{ width: T.h.lg, height: T.h.lg, border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, background: 'transparent', cursor: 'pointer', padding: 3, flexShrink: 0, boxSizing: 'border-box' }} />
+                style={{ width: T.h.lg, height: T.h.lg, border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, background: 'transparent', cursor: 'pointer', padding: 4, flexShrink: 0, boxSizing: 'border-box' }} />
               <div style={{ width: 132 }}>
                 <TextInput label="" value={accent} onChange={v => setAccent(v)} placeholder="#1a73e8" />
               </div>

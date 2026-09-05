@@ -109,7 +109,7 @@ import {
 // ═══════════════════════════════════════════════════════════════════════════
 
 // ─── Design tokens, shared source of truth (components/Theme) ────────────────
-const labelStyle = { ...TT.label, marginBottom:7 };
+const labelStyle = { ...TT.label, marginBottom: 8 };
 
 // ─── HTML escaping for values interpolated into document.write() templates ────
 
@@ -254,13 +254,13 @@ export function RentAdjustView({ tenant, userId }:{ tenant:Tenant; userId:string
                   πεδίο μένει κενό και η υπόδειξη πάει από κάτω, με λέξεις. */}
               <input aria-label="Ποσοστό αναπροσαρμογής" type="number" min={0} value={customPct} onChange={e=>setCustomPct(e.target.value)} placeholder="" step="0.1"
                 style={{ ...selectStyle, border:'1px solid var(--border-default)', fontFamily:T.font.mono, fontVariantNumeric:'tabular-nums', fontSize:14 }}/>
-              <div style={{ fontSize: 'var(--fs-xs)', color:'var(--text-tertiary)', fontFamily:T.font.sans, marginTop:5 }}>Όπως το γράφει η σύμβαση, για παράδειγμα τρία και μισό.</div>
+              <div style={{ fontSize: 'var(--fs-xs)', color:'var(--text-tertiary)', fontFamily:T.font.sans, marginTop: 4 }}>Όπως το γράφει η σύμβαση, για παράδειγμα τρία και μισό.</div>
             </div>
           )}
 
           {/* Ιστορικό ΔΤΚ */}
           <div title="ΔΤΚ: Δείκτης Τιμών Καταναλωτή, βάση αναπροσαρμογής ενοικίου" style={{ ...labelStyle, marginBottom:10 }}>Ιστορικό ΔΤΚ</div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 105px), 1fr))', gap:5 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 105px), 1fr))', gap: 4 }}>
             {Object.entries(TDE).sort(([a],[b])=>parseInt(b)-parseInt(a)).map(([year,rate])=>{
               const active=parseInt(year)===parseInt(yr);
               return (

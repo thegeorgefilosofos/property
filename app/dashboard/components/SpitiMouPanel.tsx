@@ -116,8 +116,8 @@ export default function SpitiMouPanel({
         ].map(t => (
           <div key={t.k} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: 16 }}>
             <p style={{ fontSize: 'var(--fs-xs)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontWeight: 700, color: 'var(--text-tertiary)', fontFamily: FONT }}>{t.k}</p>
-            <p style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1, marginTop: 7, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', fontFamily: FONT }}>{t.v}</p>
-            <p style={{ fontSize: 'var(--fs-xs)', marginTop: 5, color: 'var(--text-tertiary)', fontFamily: FONT }}>{t.s}</p>
+            <p style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1, marginTop: 8, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', fontFamily: FONT }}>{t.v}</p>
+            <p style={{ fontSize: 'var(--fs-xs)', marginTop: 4, color: 'var(--text-tertiary)', fontFamily: FONT }}>{t.s}</p>
           </div>
         ))}
       </div>
@@ -134,8 +134,8 @@ export default function SpitiMouPanel({
 
       {/* Κριτήρια ένα-ένα */}
       <div>
-        <p style={{ fontSize: 'var(--fs-xs)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontWeight: 700, color: 'var(--text-secondary)', fontFamily: FONT, marginBottom: 9 }}>Κριτήρια ένταξης</p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 7 }}>
+        <p style={{ fontSize: 'var(--fs-xs)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontWeight: 700, color: 'var(--text-secondary)', fontFamily: FONT, marginBottom: 8 }}>Κριτήρια ένταξης</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 8 }}>
           {crit.map(c => (
             <div key={c.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 10 }}>
               <span style={{ width: 18, height: 18, flexShrink: 0, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: c.status === 'pass' ? 'var(--accent-dim)' : 'var(--bg-elevated)', border: c.status === 'pass' ? 'none' : '1px solid var(--border-subtle)' }}>
@@ -157,8 +157,8 @@ export default function SpitiMouPanel({
       {/* Συμμετέχουσες τράπεζες */}
       {ranked.length > 0 && (
         <div>
-          <p style={{ fontSize: 'var(--fs-xs)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontWeight: 700, color: 'var(--text-secondary)', fontFamily: FONT, marginBottom: 9 }}>Συμμετέχουσες τράπεζες, κατά συνολικό κόστος</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+          <p style={{ fontSize: 'var(--fs-xs)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontWeight: 700, color: 'var(--text-secondary)', fontFamily: FONT, marginBottom: 8 }}>Συμμετέχουσες τράπεζες, κατά συνολικό κόστος</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {ranked.map((r, i) => (
               <div key={r.bankId} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', background: 'var(--bg-surface)', border: `1px solid ${i === 0 ? 'var(--border-accent)' : 'var(--border-subtle)'}`, borderRadius: 10 }}>
                 <span style={{ width: 22, height: 22, flexShrink: 0, borderRadius: '50%', background: i === 0 ? 'var(--accent-dim)' : 'var(--bg-elevated)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--fs-xs)', fontWeight: 700, color: i === 0 ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: FONT }}>{i + 1}</span>

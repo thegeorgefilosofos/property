@@ -171,7 +171,7 @@ const num: React.CSSProperties = { fontVariantNumeric: 'tabular-nums', fontFamil
 // οι δύο κλάδοι έγιναν ένας.
 function Row({ r, checked, onToggle }: { r: Requirement; checked: boolean; onToggle: () => void }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '11px 0', borderTop: '1px solid var(--border-subtle)' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '11px 0', borderTop: '1px solid var(--border-subtle)' }}>
       <SelectBox checked={checked} onChange={onToggle} label={r.title} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -447,7 +447,7 @@ export default function AccountantDossier({
       {/* ── Οι παραδοχές: κλειστές, γιατί σπάνια αλλάζουν ─────────────────── */}
       <div style={card}>
         <button onClick={() => setAssumptionsOpen(o => !o)} aria-expanded={assumptionsOpen} className="acc-toggle"
-          style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
           <ChevronRight size={16} style={{ color: 'var(--text-tertiary)', flexShrink: 0, transform: assumptionsOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.18s' }} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={eyebrow}>Από τι βγαίνει αυτή η λίστα</p>
@@ -502,7 +502,7 @@ export default function AccountantDossier({
                   ['hasLoan', 'Υπάρχει δάνειο για το ακίνητο', 'Χρειάζεται η ετήσια βεβαίωση τόκων από την τράπεζα.'],
                   ['ownershipChanged', 'Άλλαξε κάτι στην ιδιοκτησία (αγορά, πώληση, κληρονομιά)', 'Τότε και μόνο τότε υποβάλλεται Ε9.'],
                 ] as [keyof DossierProfile, string, string][]).map(([key, label, hint]) => (
-                  <div key={key} style={{ display: 'flex', alignItems: 'flex-start', gap: 11 }}>
+                  <div key={key} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                     <SelectBox checked={!!profile[key]} onChange={() => setProfile({ [key]: !profile[key] } as Partial<DossierProfile>)} label={label} />
                     <div style={{ minWidth: 0 }}>
                       <p style={{ fontSize: 'var(--fs-base)', color: 'var(--text-primary)', margin: 0, fontFamily: T.font.sans, lineHeight: 1.4 }}>{label}</p>
@@ -516,7 +516,7 @@ export default function AccountantDossier({
             {properties.length > 0 && (
               <div>
                 <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 8px', fontFamily: T.font.sans }}>Τα ακίνητά σου</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {properties.map((p, i) => (
                     <div key={`${p.name}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 'var(--fs-base)', fontFamily: T.font.sans }}>
                       <span style={{ flex: 1, minWidth: 0, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>

@@ -178,12 +178,12 @@ function AnalysisCards({items,repairs,kwhPrice,kwhControl}:{items:InventoryItem[
       <div style={{display:'flex',flexDirection:'column',gap:10}}>
         {byCategory.sort((a,b)=>b.val-a.val).map(({cat,count,val})=>(
           <div key={cat}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:10,marginBottom:5}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:10,marginBottom: 4}}>
               {/* ΤΟ ΠΛΗΘΟΣ ΔΕΝ ΚΟΒΕΤΑΙ ΜΑΖΙ ΜΕ ΤΟ ΟΝΟΜΑ. Ηταν φωλιασμένο μέσα στο
                   ίδιο κουτί με τα αποσιωπητικά, οπότε σε στενή οθόνη με μεγαλωμένο
                   κείμενο χανόταν το «(4)». Τώρα κόβεται μόνο η κατηγορία· ο αριθμός
                   των αντικειμένων μένει πάντα ορατός. */}
-              <span style={{display:'flex',alignItems:'baseline',gap:5,minWidth:0,fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>
+              <span style={{display:'flex',alignItems:'baseline',gap: 4,minWidth:0,fontSize:12,color:'var(--text-secondary)',fontFamily:T.font.sans}}>
                 <span className="po-elide">{cat}</span>
                 <span style={{color:'var(--text-tertiary)',fontSize: 'var(--fs-xs)',flexShrink:0}}>({count})</span>
               </span>
@@ -370,7 +370,7 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
         </button>
         {/* 32 το κουμπί, 3 το γέμισμα, 1 το περίγραμμα: η ομάδα βγαίνει 40, όσο
             και οι επιλογείς δίπλα της. Με γέμισμα 2 έβγαινε 38. */}
-        <div style={{display:'flex',border:'1px solid var(--border-subtle)',borderRadius:T.radius.pill,overflow:'hidden',padding:3,background:'var(--bg-elevated)'}}>
+        <div style={{display:'flex',border:'1px solid var(--border-subtle)',borderRadius:T.radius.pill,overflow:'hidden',padding: 4,background:'var(--bg-elevated)'}}>
           {(['grid','list'] as const).map(m=>(
             <button key={m} onClick={()=>setViewMode(m)} style={{height:T.h.sm,padding:'0 14px',fontSize:12,fontFamily:T.font.sans,cursor:'pointer',border:'none',borderRadius:T.radius.pill,background:viewMode===m?'var(--accent)':'transparent',color:viewMode===m?'var(--accent-text)':'var(--text-secondary)',fontWeight:viewMode===m?500:400,transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s'}}>{m==='grid'?'Κάρτες':'Λίστα'}</button>
           ))}
@@ -429,7 +429,7 @@ function ItemsTab({items,kwhPrice,onAdd,onEdit,onDelete,onRepair,onQR,onUpdateCo
                     </div>
                   }
                   {selectMode
-                    ?<div style={{position:'absolute',top:8,left:8,background:'rgba(0,0,0,0.35)',borderRadius:8,padding:3,backdropFilter:'blur(4px)'}} onClick={e=>e.stopPropagation()}><SelectBox checked={sel} onChange={()=>toggleSel(item.id)} label={`Επιλογή ${item.name}`}/></div>
+                    ?<div style={{position:'absolute',top:8,left:8,background:'rgba(0,0,0,0.35)',borderRadius:8,padding: 4,backdropFilter:'blur(4px)'}} onClick={e=>e.stopPropagation()}><SelectBox checked={sel} onChange={()=>toggleSel(item.id)} label={`Επιλογή ${item.name}`}/></div>
                     :<>
                       <div style={{position:'absolute',top:8,left:8}} onClick={e=>e.stopPropagation()}>
                         <InlineConditionEdit item={item} onUpdate={onUpdateCondition}/>

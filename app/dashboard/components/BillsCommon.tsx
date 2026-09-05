@@ -407,7 +407,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
                 { label: 'Εισφορά / έτος',  value: fe((parseFloat(fundMonthly) || 0) * 12),       color: 'var(--text-primary)' },
               ].map((k, i) => (
                 <div key={i}>
-                  <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 5, fontFamily: T.font.sans }}>{k.label}</div>
+                  <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 4, fontFamily: T.font.sans }}>{k.label}</div>
                   <div style={{ fontSize: 18, fontWeight: 700, color: k.color, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.value}</div>
                 </div>
               ))}
@@ -557,8 +557,8 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
                   αριθμού, €» χωρίς να πει ποιον μήνα. Και τα 8 εικονοστοιχεία
                   ήταν αδιάβαστα σε κινητό — 10 είναι το ελάχιστο που έχει νόημα
                   για ετικέτα δίπλα σε ποσό. */}
-              <label style={{ fontSize: 'var(--fs-xs)', color: i === currentMonth ? 'var(--accent)' : hoveredMonth === i ? 'var(--text-secondary)' : 'var(--text-tertiary)', display: 'block', marginBottom: 3, textAlign: 'center', fontFamily: T.font.sans, fontWeight: i === currentMonth ? 700 : 400, transition: 'color 0.15s' }}>
-                <span style={{ display: 'block', marginBottom: 3 }}>{m}</span>
+              <label style={{ fontSize: 'var(--fs-xs)', color: i === currentMonth ? 'var(--accent)' : hoveredMonth === i ? 'var(--text-secondary)' : 'var(--text-tertiary)', display: 'block', marginBottom: 4, textAlign: 'center', fontFamily: T.font.sans, fontWeight: i === currentMonth ? 700 : 400, transition: 'color 0.15s' }}>
+                <span style={{ display: 'block', marginBottom: 4 }}>{m}</span>
               <input
                 aria-label={`${m}, ποσό σε ευρώ`}
                 type="number" min={0}
@@ -616,7 +616,7 @@ export default function BillsCommon({ propertyId, userId = '' }: Props) {
             <span style={{ fontSize: 'var(--fs-base)', fontWeight: 700, fontFamily: T.font.sans }}>Σύνολο κοινοχρήστων</span>
             <div style={{ textAlign: 'right' as const }}>
               <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(totalCommon)} / μήνα</div>
-              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginTop: 3 }}>{fe(totalCommon * 12)} / έτος</div>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginTop: 4 }}>{fe(totalCommon * 12)} / έτος</div>
             </div>
           </div>
         </Card>

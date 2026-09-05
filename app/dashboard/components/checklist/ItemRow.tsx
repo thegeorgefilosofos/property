@@ -195,7 +195,7 @@ export function ItemRow({ item, allItems, onToggle, onEdit, onDelete, onAddToCal
             { label: 'Διαγραφή', sub: '', icon: 'M3 6h18 M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2 M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6', danger: true, fn: () => { onDelete(); setShowMenu(false) } },
           ] as RowAction[]).map((a, i) => (
             <button key={i} type="button" onClick={a.fn}
-              style={{ display: 'flex', alignItems: 'center', gap: 11, width: '100%', padding: '9px 12px', borderRadius: T.radius.inner, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', transition: 'background 0.1s' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '9px 12px', borderRadius: T.radius.inner, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', transition: 'background 0.1s' }}
               onMouseEnter={e => (e.currentTarget.style.background = a.danger ? 'var(--negative-dim)' : 'var(--bg-surface)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
               <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={a.danger ? 'var(--negative)' : 'var(--text-tertiary)'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>{a.icon.split(' M').map((seg, j) => <path key={j} d={(j === 0 ? '' : 'M') + seg} />)}</svg>

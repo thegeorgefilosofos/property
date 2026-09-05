@@ -261,7 +261,7 @@ export default function ClientCompose({ open, onClose, clients, supabase }: {
                       {visible.map((c, i) => {
                         const on = selected.has(c.id);
                         return (
-                          <button key={c.id} onClick={() => toggle(c.id)} style={{ display: 'flex', alignItems: 'center', gap: 11, width: '100%', textAlign: 'left', padding: '9px 12px', border: 'none', borderTop: i ? '1px solid var(--border-subtle)' : 'none', background: on ? 'var(--accent-soft)' : 'transparent', cursor: 'pointer', fontFamily: T.font.sans }}>
+                          <button key={c.id} onClick={() => toggle(c.id)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left', padding: '9px 12px', border: 'none', borderTop: i ? '1px solid var(--border-subtle)' : 'none', background: on ? 'var(--accent-soft)' : 'transparent', cursor: 'pointer', fontFamily: T.font.sans }}>
                             <span style={{ width: 18, height: 18, borderRadius: 6, flexShrink: 0, border: `1.5px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               {on && <svg aria-hidden="true" width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>}
                             </span>

@@ -55,7 +55,7 @@ export function useToolState<S extends ToolSpec>(spec: S, path: string) {
 }
 
 const btn: React.CSSProperties = {
-  display: 'inline-flex', alignItems: 'center', gap: 7, height: T.h.sm,
+  display: 'inline-flex', alignItems: 'center', gap: 8, height: T.h.sm,
   padding: '0 14px', borderRadius: T.radius.pill,
   border: '1px solid var(--border-default)', background: 'var(--bg-surface)',
   color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600,

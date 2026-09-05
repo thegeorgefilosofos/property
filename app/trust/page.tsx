@@ -73,7 +73,7 @@ function Point({ title, children }: { title: string; children: React.ReactNode }
     <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
       <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 4 }} aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>
       <div>
-        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>{title}</div>
+        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>{title}</div>
         <div className="lg-just" style={{ fontSize: 15, color: 'var(--text-secondary)', lineHeight: 1.65 }}>{children}</div>
       </div>
     </div>

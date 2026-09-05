@@ -714,7 +714,7 @@ export default function TabTenant({ propertyId, userId, onStartHandover, plan='f
                   <span style={{ fontSize:20, fontWeight:700, color:'var(--text-primary)' }}>{dc.full_name}</span>
                   {statusBadge(dc)}
                 </div>
-                <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:5, flexWrap:'wrap' as const }}>
+                <div style={{ display:'flex', alignItems:'center', gap:10, marginTop: 4, flexWrap:'wrap' as const }}>
                   {dc.profession&&<span style={{ fontSize:12, color:'var(--text-tertiary)' }}>{dc.profession}</span>}
                   {dc.email&&<span style={{ fontSize:12, color:'var(--text-secondary)' }}>{dc.email}</span>}
                   {dc.phone&&<span style={{ fontSize:12, color:'var(--text-secondary)' }}>{dc.phone}</span>}

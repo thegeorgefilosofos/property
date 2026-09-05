@@ -125,7 +125,7 @@ export function FilterSelect({ value, onChange, options, minWidth = 168, idle }:
 export function PriorityCue({ priority }: { priority: string }) {
   const label = getPri(priority).label
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
       {priShowDot(priority) && <span style={{ width: 6, height: 6, borderRadius: '50%', background: priority === 'critical' ? priDotColor(priority) : 'transparent', border: priority === 'critical' ? 'none' : '1.5px solid var(--text-tertiary)', boxSizing: 'border-box', flexShrink: 0 }} />}
       <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight: priority === 'critical' ? 600 : 400 }}>{label}</span>
     </span>

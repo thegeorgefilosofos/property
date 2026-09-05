@@ -77,7 +77,7 @@ export function RepairModal({item,repairs,onAdd,onClose,propertyId,userId}:{item
           <SectionLabel label="Ιστορικό" right={<span style={{fontSize:12,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)'}}>{fe(totalCost)}</span>}/>
           {itemRepairs.map(r=>(
             <div key={r.id} style={{background:'var(--bg-elevated)',borderRadius:8,padding:'10px 14px',border:'1px solid var(--border-subtle)'}}>
-              <div style={{display:'flex',justifyContent:'space-between',marginBottom:3}}>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom: 4}}>
                 <p style={{fontSize: 'var(--fs-base)',fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)'}}>{r.description}</p>
                 <p style={{fontSize: 'var(--fs-base)',fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',color:'var(--text-primary)',fontWeight:700}}>{fe(r.cost)}</p>
               </div>

@@ -91,7 +91,7 @@ export function BulkPicker({label,icon,options,onPick,accent}:{label:string;icon
         <svg aria-hidden="true" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4l3 3 3-3"/></svg>
       </button>
       {open&&rect&&typeof document!=='undefined'&&createPortal(
-        <div ref={menuRef} style={{position:'fixed',top:rect.top,left:rect.left,background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.card,padding:5,zIndex:9000,minWidth:180,maxHeight:300,overflowY:'auto',boxShadow:'var(--shadow-xl)'}}>
+        <div ref={menuRef} style={{position:'fixed',top:rect.top,left:rect.left,background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.card,padding: 4,zIndex:9000,minWidth:180,maxHeight:300,overflowY:'auto',boxShadow:'var(--shadow-xl)'}}>
           {options.length===0
             ?<p style={{fontSize:12,color:'var(--text-tertiary)',fontFamily:T.font.sans,padding:'8px 12px'}}>Καμία επιλογή</p>
             :options.map(o=>(
@@ -161,7 +161,7 @@ export const DepBar = ({pct,left,hasData=true,hasValue=true,compact}:{pct:number
   return (
     <div>
       <Bar pct={remaining} tone={c} height={3} label="Υπόλοιπη ζωή"/>
-      <div style={{display:'flex',justifyContent:'space-between',marginTop:3}}>
+      <div style={{display:'flex',justifyContent:'space-between',marginTop: 4}}>
         <span style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',fontFamily:T.font.num,fontVariantNumeric:'tabular-nums'}}>{compact?'μένει ':'Εκτιμώμενη υπολειπόμενη αξία '}{fp(remaining)}</span>
         {left>0
           ?<span style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',fontFamily:T.font.num,fontVariantNumeric:'tabular-nums'}}>περίπου {left} χρόνια</span>
@@ -295,7 +295,7 @@ export function OverflowMenu({actions,align='right',dark}:{actions:OverflowActio
       </button>
       {open&&rect&&typeof document!=='undefined'&&createPortal(
         <div ref={menuRef} onClick={e=>e.stopPropagation()}
-          style={{position:'fixed',top:rect.top,...(align==='right'?{right:rect.right}:{left:rect.left}),transform:rect.up?'translateY(-100%)':'none',maxHeight:rect.maxH,overflowY:'auto',overscrollBehavior:'contain',background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.card,padding:5,zIndex:9000,minWidth:180,boxShadow:'var(--shadow-xl)'}}>
+          style={{position:'fixed',top:rect.top,...(align==='right'?{right:rect.right}:{left:rect.left}),transform:rect.up?'translateY(-100%)':'none',maxHeight:rect.maxH,overflowY:'auto',overscrollBehavior:'contain',background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.card,padding: 4,zIndex:9000,minWidth:180,boxShadow:'var(--shadow-xl)'}}>
           {actions.map((a,i)=>(
             <button key={i} onClick={()=>{a.onClick();setOpen(false)}}
               style={{display:'flex',alignItems:'center',gap:10,width:'100%',textAlign:'left',padding:'8px 12px',borderRadius:8,fontSize: 'var(--fs-base)',fontFamily:T.font.sans,fontWeight:500,color:a.danger?'var(--negative)':'var(--text-primary)',background:'transparent',border:'none',cursor:'pointer'}}
@@ -383,7 +383,7 @@ export function Field({d,children}:{d?:FieldDecision;children:React.ReactNode}) 
     <div>
       <label style={labelStyle}>{d.label}{d.critical?' *':''}</label>
       {children}
-      <p style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.45,marginTop:5}}>{d.why}</p>
+      <p style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.45,marginTop: 4}}>{d.why}</p>
     </div>
   )
 }

@@ -244,7 +244,7 @@ export function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice,start
                 :<svg aria-hidden="true" width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>}
             </button>
           </div>
-          <p style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',marginTop:7,fontFamily:T.font.sans}}>Κάθε νέα φωτογραφία διαβάζεται αυτόματα με AI. Κλικ σε φωτογραφία για να οριστεί ως κύρια.</p>
+          <p style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',marginTop: 8,fontFamily:T.font.sans}}>Κάθε νέα φωτογραφία διαβάζεται αυτόματα με AI. Κλικ σε φωτογραφία για να οριστεί ως κύρια.</p>
         </div>
       )}
 
@@ -377,7 +377,7 @@ export function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice,start
             </div>
             {/* Η ΠΗΓΗ ΜΕΝΕΙ ΟΡΑΤΗ. Νούμερα που μπήκαν μόνα τους χωρίς τρόπο να
                 ελεγχθούν είναι χειρότερα από νούμερα που έγραψε ο χρήστης. */}
-            <p style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.45,marginTop:5}}>
+            <p style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.45,marginTop: 4}}>
               {eprelSource
                 ? <>Συμπληρώθηκαν από τον κατασκευαστή. <a href={eprelSource} target="_blank" rel="noopener noreferrer" style={{color:'var(--accent)'}}>Η καταχώρηση στο μητρώο</a></>
                 : 'Σάρωσε το QR της ενεργειακής ετικέτας και επικόλλησε τον σύνδεσμο. Μάρκα, μοντέλο, κλάση και κατανάλωση έρχονται όπως τα δηλώνει ο κατασκευαστής.'}

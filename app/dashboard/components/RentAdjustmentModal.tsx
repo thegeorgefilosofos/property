@@ -450,7 +450,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
 
               <div>
                 <div style={lbl}>Μέθοδος αναπροσαρμογής</div>
-                <div style={{ display: 'flex', gap: 3, padding: 3, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
+                <div style={{ display: 'flex', gap: 4, padding: 4, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
                   <button onClick={() => setMethod('percent')} style={seg('percent')}>Ποσοστό</button>
                   <button onClick={() => setMethod('cpi')} style={seg('cpi')}>ΔΤΚ (ΕΛΣΤΑΤ)</button>
                   <button onClick={() => setMethod('manual')} style={seg('manual')}>Χειροκίνητο</button>
@@ -462,7 +462,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
                     σε έγγραφο που υπογράφει ο ίδιος. */}
                 {method === 'cpi' && (
                   <>
-                    <div style={{ display: 'flex', gap: 3, padding: 3, marginTop: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
+                    <div style={{ display: 'flex', gap: 4, padding: 4, marginTop: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
                       <button onClick={() => setCpiShare75(false)} style={share(false)}>Ολόκληρη η μεταβολή</button>
                       <button onClick={() => setCpiShare75(true)} style={share(true)}>75% της μεταβολής</button>
                     </div>
@@ -527,7 +527,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
                   : method === 'cpi'
                     ? <div><div style={lbl}>Μεταβολή ΔΤΚ</div>{readOnlyPct(cpiPct)}</div>
                     : <div><div style={lbl}>Ποσοστό</div>{money(percent, setPercent, '%', 'Ποσοστό αναπροσαρμογής', PCT_MAX)}</div>}
-                <div><div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 5 }}>Ισχύς από<InfoHint>Η ημερομηνία από την οποία εφαρμόζεται το νέο μίσθωμα. Κοινοποίησε την ειδοποίηση στον μισθωτή εγκαίρως, τηρώντας την προθεσμία που ορίζει το μισθωτήριο ή ο νόμος.</InfoHint></div><DatePicker value={effective} onChange={setEffective} /></div>
+                <div><div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 4 }}>Ισχύς από<InfoHint>Η ημερομηνία από την οποία εφαρμόζεται το νέο μίσθωμα. Κοινοποίησε την ειδοποίηση στον μισθωτή εγκαίρως, τηρώντας την προθεσμία που ορίζει το μισθωτήριο ή ο νόμος.</InfoHint></div><DatePicker value={effective} onChange={setEffective} /></div>
               </div>
 
               {/* ΤΟ ΑΠΟΤΕΛΕΣΜΑ, ΖΩΝΤΑΝΑ: Τρέχον → Νέο και δίπλα η μεταβολή.
@@ -539,12 +539,12 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', padding: '13px 16px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card }}>
                 <div>
                   <div style={TT.label}>Τρέχον</div>
-                  <div style={{ ...TT.h2, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums', marginTop: 3 }}>{pEur(res.currentRent)}</div>
+                  <div style={{ ...TT.h2, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums', marginTop: 4 }}>{pEur(res.currentRent)}</div>
                 </div>
                 <svg aria-hidden="true" width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M5 12h14M13 6l6 6-6 6" /></svg>
                 <div>
                   <div style={TT.label}>Νέο μίσθωμα</div>
-                  <div style={{ ...TT.kpi, marginTop: 3 }}>{pEur(res.newRent)}</div>
+                  <div style={{ ...TT.kpi, marginTop: 4 }}>{pEur(res.newRent)}</div>
                 </div>
                 <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
                   <div style={TT.label}>Μεταβολή</div>
@@ -558,7 +558,7 @@ export default function RentAdjustmentModal({ open, onClose, userId, supabase, b
               </div>
 
               <div>
-                <div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 5 }}>Ηλεκτρονική υπογραφή<InfoHint>Η υπογραφή ενσωματώνεται στο PDF και, μαζί με το QR, το καθιστά επαληθεύσιμο έγγραφο.</InfoHint></div>
+                <div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 4 }}>Ηλεκτρονική υπογραφή<InfoHint>Η υπογραφή ενσωματώνεται στο PDF και, μαζί με το QR, το καθιστά επαληθεύσιμο έγγραφο.</InfoHint></div>
                 <SignaturePad onChange={setSig} height={92} />
               </div>
 

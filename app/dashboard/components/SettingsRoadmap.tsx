@@ -119,7 +119,7 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
             πολιτική της λίστας, που ο χρήστης τη βλέπει ούτως ή άλλως: κανένα
             από τα τρία στοιχεία δεν έχει ημερομηνία. Μένει η μία λέξη που δεν
             φαίνεται από μόνη της. */}
-        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, marginTop: 5 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5, marginTop: 4 }}>
           Χωρίς ημερομηνίες.
         </div>
       </div>
@@ -245,7 +245,7 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
                 display: 'flex', flexDirection: 'column',
                 width: '100%', minHeight: 190, textAlign: 'left', cursor: 'pointer',
                 background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
-                borderRadius: T.radius.inner, padding: 13, fontFamily: T.font.sans,
+                borderRadius: T.radius.inner, padding: 12, fontFamily: T.font.sans,
                 animationDelay: `${120 + i * 55}ms`,
               }}
             >
@@ -270,7 +270,7 @@ export default function SettingsRoadmap({ userId }: { userId: string }) {
                 </div>
               )}
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 'auto', paddingTop: 10, color: 'var(--text-tertiary)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 'auto', paddingTop: 10, color: 'var(--text-tertiary)' }}>
                 <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: '0.02em' }}>
                   {isOpen ? 'Λιγότερα' : 'Περισσότερα'}
                 </span>

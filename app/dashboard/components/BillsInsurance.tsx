@@ -1844,7 +1844,7 @@ const u = (patch: Partial<InsuranceSettings>) => updPs(patch);
               </div>
               <div style={{ textAlign: 'right' as const }}>
                 <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(total)} / μήνα</div>
-                <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginTop: 3 }}>{fe(total * 12)} / έτος</div>
+                <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginTop: 4 }}>{fe(total * 12)} / έτος</div>
               </div>
             </div>
           )}

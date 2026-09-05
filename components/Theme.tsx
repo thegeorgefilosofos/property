@@ -849,7 +849,7 @@ export function RecordCard({ lead, title, sub, badges, actions, tone, onOpen, op
         <div style={{ flex: '999 1 140px', minWidth: 96 }}>
           <div className="po-elide" title={title}
             style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans }}>{title}</div>
-          {sub && <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3, flexWrap: 'wrap' }}>{sub}</div>}
+          {sub && <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>{sub}</div>}
         </div>
         {/* Τα σήματα: δίπλα στο όνομα όταν χωρούν, από κάτω του όταν όχι — το
             τύλιγμα του flex αποφασίζει, γιατί μόνο αυτό ξέρει πόσα σήματα έχει
@@ -1413,7 +1413,7 @@ export function ExportButton({ onClick, label = 'Εξαγωγή Excel', disabled
 export function EmptyState({ title, hint, action, icon }: { title: string; hint?: string; action?: ReactNode; icon?: ReactNode }) {
   return (
     <div style={{ padding: '22px 2px', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
         {icon && <span aria-hidden style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--text-tertiary)', flexShrink: 0 }}>{icon}</span>}
         <span style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-secondary)' }}>{title}</span>
       </div>

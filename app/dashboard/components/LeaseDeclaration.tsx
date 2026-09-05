@@ -201,7 +201,7 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
           {f.value
             ? <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.mono, marginTop: 1 }}>{f.value}</div>
             : <div style={{ fontSize: 'var(--fs-base)', color: c, fontWeight: 600, marginTop: 1, fontFamily: T.font.sans }}>Λείπει</div>}
-          {f.hint && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3, lineHeight: 1.45 }}>
+          {f.hint && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4, lineHeight: 1.45 }}>
             {f.hint}{f.fixIn && <> <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Συμπληρώνεται στην καρτέλα {TAB_LABEL[f.fixIn]}</span></>}
           </div>}
         </span>
@@ -231,7 +231,7 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
       {loading ? <Spinner size={18} label="Φόρτωση…" /> : <>
 
         {/* Ετυμηγορία */}
-        <div style={{ display: 'flex', gap: 11, alignItems: 'flex-start', padding: '13px 15px', borderRadius: T.radius.inner,
+        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '13px 15px', borderRadius: T.radius.inner,
                       background: `color-mix(in srgb, ${toneVar} 8%, transparent)`, border: `1px solid color-mix(in srgb, ${toneVar} 28%, transparent)` }}>
           <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: '50%', background: toneVar, color: 'var(--on-tone)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, marginTop: 1 }}>
             {decl.readiness === 'ready' ? '✓' : decl.readiness === 'invalid' ? '✕' : '!'}
@@ -270,7 +270,7 @@ export default function LeaseDeclaration({ open, onClose, propertyId, userId, su
         <div>
           <div style={{ ...TT.label, marginBottom: 8 }}>ΜΕΤΑ ΤΗΝ ΥΠΟΒΟΛΗ</div>
           {submitted ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '11px 15px', borderRadius: T.radius.inner, background: 'var(--positive-soft)', border: '1px solid var(--positive-border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 15px', borderRadius: T.radius.inner, background: 'var(--positive-soft)', border: '1px solid var(--positive-border)' }}>
               <Check size={15} style={{ color: 'var(--positive)', flexShrink: 0 }} />
               <span style={{ fontSize: 'var(--fs-base)', color: 'var(--text-primary)' }}>
                 Καταγράφηκε στις {new Date(submitted.at).toLocaleDateString('el-GR')}

@@ -383,7 +383,7 @@ export default function ReportBuilder({ open, onClose, userId, supabase, brandin
                     </span>
                     <span>
                       <span style={{ display: 'block', fontWeight: 660, letterSpacing: '-0.01em' }}>{s.label}</span>
-                      <span style={{ display: 'block', fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 3, fontWeight: 400, lineHeight: 1.4 }}>{s.hint}</span>
+                      <span style={{ display: 'block', fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 4, fontWeight: 400, lineHeight: 1.4 }}>{s.hint}</span>
                     </span>
                   </button>
                 );

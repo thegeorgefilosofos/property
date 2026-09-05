@@ -122,7 +122,7 @@ export default function SignaturePad({ onChange, height = 116 }: { onChange: (da
           πλαίσιο ήταν κουμπί που δεν έκανε τίποτα — και το «τίποτα» το μαθαίνει
           ο χρήστης μόνο αφού το πατήσει. */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
-        <div style={{ display: 'flex', gap: 3, padding: 3, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
+        <div style={{ display: 'flex', gap: 4, padding: 4, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
           <button type="button" style={seg('draw')} onClick={() => setMode('draw')}>Σχέδιο</button>
           <button type="button" style={seg('type')} onClick={() => setMode('type')}>Πληκτρολόγηση</button>
         </div>

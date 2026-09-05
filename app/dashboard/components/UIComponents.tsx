@@ -1223,7 +1223,7 @@ export function BulkActionBar({ count, countLabel, actions, onClear, minWidth = 
   const hover = (t: BulkAction['tone']) => (t === 'accent' ? 'var(--accent-soft)' : 'var(--bg-surface)');
   return (
     <div style={{ position: 'fixed', bottom: 'var(--float-bottom)', left: '50%', transform: 'translateX(-50%)', zIndex: 'var(--float-z)', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: T.radius.modal, boxShadow: 'var(--elev-3)', overflow: 'hidden', minWidth: `min(${minWidth}px, calc(100vw - 24px))`, maxWidth: 'calc(100vw - 24px)' }}>
-      <div style={{ padding: '12px 18px', borderRight: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 9, flexShrink: 0 }}>
+      <div style={{ padding: '12px 18px', borderRight: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
         <div style={{ minWidth: 24, height: 26, padding: '0 6px', borderRadius: T.radius.pill, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--accent-text)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{count}</div>
         <span style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', fontFamily: T.font.sans }}>{countLabel}</span>
       </div>

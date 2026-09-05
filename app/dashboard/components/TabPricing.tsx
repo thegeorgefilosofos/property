@@ -687,7 +687,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                           {g.hard && <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, padding: '1px 6px' }}>δύσκολο κενό</span>}
                           {g.soon && <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, padding: '1px 6px' }}>άμεσα</span>}
                         </div>
-                        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>{g.nights} {g.nights === 1 ? 'νύχτα' : 'νύχτες'} · εποχή {SEASON_LABELS[g.season]} · πρόταση πλήρωσης <strong className="po-fig" data-tone="accent" style={{ fontFamily: T.font.num }}>{fe(g.fillPrice)}</strong>/νύχτα</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>{g.nights} {g.nights === 1 ? 'νύχτα' : 'νύχτες'} · εποχή {SEASON_LABELS[g.season]} · πρόταση πλήρωσης <strong className="po-fig" data-tone="accent" style={{ fontFamily: T.font.num }}>{fe(g.fillPrice)}</strong>/νύχτα</div>
                       </div>
                       {/* ΤΑ ΔΥΟ ΚΟΥΜΠΙΑ ΤΥΛΙΓΟΝΤΑΙ ΜΕΤΑΞΥ ΤΟΥΣ. Με `flexShrink: 0`
                           και χωρίς άδεια αναδίπλωσης, το ζευγάρι ήταν ένα
@@ -808,7 +808,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
               <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 44, height: 10, borderRadius: 3, background: 'linear-gradient(90deg, color-mix(in srgb, var(--accent) 12%, transparent), var(--accent))' }} />τιμή ανά νύχτα σε ευρώ, από χαμηλή σε υψηλή</span>
               {/* «υψηλή ζήτηση» έφυγε: το σημάδι δηλώνει ΑΡΓΙΑ, που είναι
                   ημερολογιακό γεγονός. Δεδομένο ζήτησης δεν έχουμε. */}
-              <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent)' }} />αργία</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent)' }} />αργία</span>
               {/* ΤΟ ΥΠΟΜΝΗΜΑ ΞΑΝΑΠΟΚΤΑ ΤΗΝ ΤΡΙΤΗ ΓΡΑΜΜΗ ΤΟΥ, ΤΩΡΑ ΜΕ ΛΟΓΟ.
                   Είχε αφαιρεθεί σωστά, όταν εξηγούσε μια παύλα που δεν υπήρχε
                   πουθενά. Στη συνέχεια η κλεισμένη ημέρα έγραφε τη λέξη

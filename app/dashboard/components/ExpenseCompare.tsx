@@ -81,7 +81,7 @@ function BasisSwitch({ value, onChange, enabled, labels }: {
 }) {
   const opts: Basis[] = ['previous_month', 'same_month_last_year'];
   return (
-    <div style={{ display: 'inline-flex', gap: 2, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, padding: 3 }}>
+    <div style={{ display: 'inline-flex', gap: 2, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, padding: 4 }}>
       {opts.map(id => {
         const on = value === id;
         const can = enabled[id];
@@ -340,10 +340,10 @@ export default function ExpenseCompare({ spends, today }: Props) {
           )}
 
           {c.caveats.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: c.drivers.length > 0 ? 16 : 0 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: c.drivers.length > 0 ? 16 : 0 }}>
               {c.caveats.map((t, i) => (
                 <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                  <span aria-hidden style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0, marginTop: 7 }} />
+                  <span aria-hidden style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0, marginTop: 8 }} />
                   <span style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{t}</span>
                 </div>
               ))}

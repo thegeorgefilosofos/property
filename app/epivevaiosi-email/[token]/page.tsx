@@ -59,7 +59,7 @@ export default function ConfirmReminderEmail() {
   return (
     <div style={wrap}>
       <div style={card}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 11, paddingBottom: 18, borderBottom: '1px solid var(--border-subtle)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingBottom: 18, borderBottom: '1px solid var(--border-subtle)' }}>
           <BrandMark size={34} />
           <div>
             <div style={{ fontSize: 15, fontWeight: 700 }}>PROPERWISE</div>

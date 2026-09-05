@@ -91,9 +91,9 @@ export default function FeatureLock({ title, benefit, requiredPlan, currentPlanN
             <p style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', margin: '0 0 16px', lineHeight: 1.6 }}>{benefit}</p>
 
             {/* Τι ξεκλειδώνεις, όχι τι πληρώνεις */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginBottom: 16 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
               {perks.map((f, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                   <Check />
                   <span style={{ fontSize: 'var(--fs-base)', color: 'var(--text-primary)', lineHeight: 1.45 }}>{f}</span>
                 </div>

@@ -432,7 +432,7 @@ function LeverCard({ lever }: { lever: YieldLever }) {
           τίτλος αριστερά, που λέει τι είναι· η πρόταση από κάτω σε κανονικό
           βάρος, που λέει πώς βγαίνει. Οι προϋποθέσεις και ο κίνδυνος μένουν
           πίσω από το κυκλάκι, όπως ήταν. */}
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 5, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
         <p style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: hot ? 'var(--accent)' : 'var(--text-primary)', margin: 0, fontFamily: SANS, transition: 'color 0.15s', minWidth: 0 }}>{lever.title}</p>
         <InfoHint label={`Προϋποθέσεις και κίνδυνος: ${lever.title}`}>
           <span style={{ display: 'block' }}>{lever.detail}</span>
@@ -1451,7 +1451,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
               .concat(hist.some(p => p.year === HISTORY_ANCHORS.peakYear) ? [[`Κορυφή ${HISTORY_ANCHORS.peakYear}`, 'var(--text-tertiary)']] : [])
               .concat(hist.some(p => p.year === HISTORY_ANCHORS.troughYear) ? [[`Πυθμένας ${HISTORY_ANCHORS.troughYear}`, 'var(--text-tertiary)']] : [])
             ).map(([l, c]) => (
-              <span key={l} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: SANS }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: c }} />{l}</span>
+              <span key={l} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: SANS }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: c }} />{l}</span>
             ))}
           </div>
           {/* ΤΡΙΤΗ ΓΡΑΦΗ ΤΗΣ ΙΔΙΑΣ ΓΡΑΜΜΗΣ, ΜΕ ΤΕΤΑΡΤΟ ΜΕΓΕΘΟΣ. Ετικέτα 11 με
@@ -1565,7 +1565,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           ) : <LineChart series={projSeries} />}
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', margin: '2px 0 14px' }}>
             {projSeries.map(s => (
-              <span key={s.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: SANS }}><span style={{ width: 12, height: 2.5, borderRadius: 3, background: s.color }} />{s.label}</span>
+              <span key={s.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: SANS }}><span style={{ width: 12, height: 2.5, borderRadius: 3, background: s.color }} />{s.label}</span>
             ))}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

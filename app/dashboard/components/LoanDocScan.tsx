@@ -365,11 +365,11 @@ export default function LoanDocScan({ banks, euribor, defaultPropertyValue, onAp
                 <div style={{ minWidth: 0 }}>
                   <p style={{ ...TT.label, color: 'var(--accent)', marginBottom: 4 }}>Προτεινόμενο δάνειο</p>
                   <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', fontFamily: font, letterSpacing: '-0.01em' }}>{best.bankName}{best.spitiMouApplied ? ' · Σπίτι μου ΙΙ' : ''}</p>
-                  <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 3, fontFamily: font, lineHeight: 1.5 }}>{best.eligible ? best.why : best.blockers.join(' · ')}</p>
+                  <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, fontFamily: font, lineHeight: 1.5 }}>{best.eligible ? best.why : best.blockers.join(' · ')}</p>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   <p style={{ fontSize: 22, fontWeight: 700, color: 'var(--accent)', fontFamily: font, fontVariantNumeric: 'tabular-nums', lineHeight: 1, letterSpacing: '-0.02em' }}>{fmtPct(best.effectiveRatePct)}</p>
-                  <p style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', marginTop: 5, fontFamily: font, fontVariantNumeric: 'tabular-nums' }}>{fmtEur(best.monthlyPayment)} τον μήνα</p>
+                  <p style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', marginTop: 4, fontFamily: font, fontVariantNumeric: 'tabular-nums' }}>{fmtEur(best.monthlyPayment)} τον μήνα</p>
                   <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 1, fontFamily: font, fontVariantNumeric: 'tabular-nums' }}>Σύνολο {fmtEur(best.totalCost)}</p>
                 </div>
               </div>
@@ -380,9 +380,9 @@ export default function LoanDocScan({ banks, euribor, defaultPropertyValue, onAp
 
           {needs && (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button onClick={applyToCalc} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '0 16px', height: T.h.lg, borderRadius: 10, background: 'var(--accent)', border: 'none', color: 'var(--accent-text)', fontSize: 'var(--fs-base)', fontFamily: font, fontWeight: 600, cursor: 'pointer' }}>Εφαρμογή στον υπολογιστή</button>
-              {onSaveLoan && best && <button onClick={saveAsLoan} disabled={saving} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '0 16px', height: T.h.lg, borderRadius: 10, background: 'var(--bg-surface)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)', fontSize: 'var(--fs-base)', fontFamily: font, fontWeight: 500, cursor: saving ? 'wait' : 'pointer' }}>{saving ? 'Αποθήκευση…' : 'Αποθήκευση ως δάνειο'}</button>}
-              <button onClick={() => setEx(null)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '0 14px', height: T.h.lg, borderRadius: 10, background: 'transparent', border: '1px solid var(--border-subtle)', color: 'var(--text-tertiary)', fontSize: 'var(--fs-base)', fontFamily: font, fontWeight: 500, cursor: 'pointer' }}>Καθαρισμός</button>
+              <button onClick={applyToCalc} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0 16px', height: T.h.lg, borderRadius: 10, background: 'var(--accent)', border: 'none', color: 'var(--accent-text)', fontSize: 'var(--fs-base)', fontFamily: font, fontWeight: 600, cursor: 'pointer' }}>Εφαρμογή στον υπολογιστή</button>
+              {onSaveLoan && best && <button onClick={saveAsLoan} disabled={saving} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0 16px', height: T.h.lg, borderRadius: 10, background: 'var(--bg-surface)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)', fontSize: 'var(--fs-base)', fontFamily: font, fontWeight: 500, cursor: saving ? 'wait' : 'pointer' }}>{saving ? 'Αποθήκευση…' : 'Αποθήκευση ως δάνειο'}</button>}
+              <button onClick={() => setEx(null)} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0 14px', height: T.h.lg, borderRadius: 10, background: 'transparent', border: '1px solid var(--border-subtle)', color: 'var(--text-tertiary)', fontSize: 'var(--fs-base)', fontFamily: font, fontWeight: 500, cursor: 'pointer' }}>Καθαρισμός</button>
             </div>
           )}
           <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', lineHeight: 1.6, fontFamily: font }}>Ενδεικτική ανάλυση βάσει των στοιχείων του εγγράφου. Επιβεβαίωσε τους ακριβείς όρους με την τράπεζα.</p>

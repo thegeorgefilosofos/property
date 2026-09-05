@@ -1517,7 +1517,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       {open && (
         <div className="pa-panel" style={panelFixed}>
           {/* Κεφαλίδα */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 16px', borderBottom: '1px solid var(--border-subtle)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderBottom: '1px solid var(--border-subtle)' }}>
             {/* Το 15 δεν υπάρχει στην κλίμακα (…13, 14, 16, 18…) — ήταν ένα από
                 τα δύο μεγέθη όλου του αρχείου εκτός κλίμακας. Στα 16 κρατά την
                 ίδια αναλογία μέσα στον δίσκο των 34 (0,44 → 0,47). */}
@@ -1565,7 +1565,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
           ) : (
             <>
               {/* Σώμα */}
-              <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 11 }}>
+              <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {/* Η ΠΡΩΤΗ ΟΘΟΝΗ. Ο χαιρετισμός ΔΕΝ είναι συννεφάκι συνομιλίας: είναι
                     δήλωση για το τι βλέπει αυτή τη στιγμή στο ακίνητό σου, άρα διαβάζεται
                     σαν κείμενο και όχι σαν μήνυμα. Από κάτω, οι ερωτήσεις-εκκίνησης σε
@@ -1645,17 +1645,17 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                       <button key={o.id} type="button" onClick={() => commitPendingDoc(o.id)}
                         style={{ textAlign: 'left', padding: '10px 13px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 'var(--fs-base)', cursor: 'pointer', minHeight: T.h.md }}>
                         <span style={{ fontWeight: 600 }}>{o.label}</span>
-                        {o.reasons.length > 0 && <span style={{ display: 'block', marginTop: 3, color: 'var(--text-tertiary)', fontSize: 12 }}>{o.reasons.join(' · ')}</span>}
+                        {o.reasons.length > 0 && <span style={{ display: 'block', marginTop: 4, color: 'var(--text-tertiary)', fontSize: 12 }}>{o.reasons.join(' · ')}</span>}
                       </button>
                     ))}
                     <button type="button" onClick={() => commitPendingDoc(null)}
                       style={{ textAlign: 'left', padding: '10px 13px', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 'var(--fs-base)', cursor: 'pointer', minHeight: T.h.md }}>
                       <span style={{ fontWeight: 600 }}>{RECONCILE_NONE_LABEL}</span>
-                      <span style={{ display: 'block', marginTop: 3, color: 'var(--text-tertiary)', fontSize: 12 }}>{RECONCILE_NONE_HINT}</span>
+                      <span style={{ display: 'block', marginTop: 4, color: 'var(--text-tertiary)', fontSize: 12 }}>{RECONCILE_NONE_HINT}</span>
                     </button>
                   </div>
                 )}
-                {busy && <div style={{ display: 'flex', gap: 5, padding: '4px 2px' }}>{[0, 1, 2].map(i => <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', animation: `pa-bounce 1s ${i * 0.15}s infinite ease-in-out` }} />)}</div>}
+                {busy && <div style={{ display: 'flex', gap: 4, padding: '4px 2px' }}>{[0, 1, 2].map(i => <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', animation: `pa-bounce 1s ${i * 0.15}s infinite ease-in-out` }} />)}</div>}
                 {err && (
                   <div style={{ background: err === 'key' ? 'var(--bg-elevated)' : 'var(--warning-soft)', border: `1px solid ${err === 'key' ? 'var(--border-subtle)' : 'var(--warning-border)'}`, borderRadius: T.radius.inner, padding: '10px 13px', fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                     {err === 'key'
@@ -1835,7 +1835,7 @@ function AssistantSettings({ draft, onSave, onCancel, onClearMemory, hasMemory, 
       <div>
         <div style={{ ...TT.label, fontSize: 'var(--fs-xs)', marginBottom: 4 }}>Πώς θέλεις να σου μιλάει;</div>
         <div style={{ ...TT.caption, marginBottom: 8 }}>Στον ενικό για πιο φιλική κουβέντα ή στον πληθυντικό για πιο επίσημο ύφος.</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           {ADDRESS_OPTIONS.map(a => {
             const active = formal === a.value;
             return (
@@ -1862,7 +1862,7 @@ function AssistantSettings({ draft, onSave, onCancel, onClearMemory, hasMemory, 
         )}
         {memory && facts.length > 0 && (
           <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '11px 12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 9 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
               <div style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--text-secondary)' }}>Τι θυμάται για σένα</div>
               <button onClick={onForgetAllFacts} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 600 }}>Ξέχασέ τα όλα</button>
             </div>

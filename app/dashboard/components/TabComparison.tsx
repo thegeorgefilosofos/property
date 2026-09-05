@@ -569,7 +569,7 @@ export default function TabComparison({ properties, userId }: Props) {
                         στη λέξη ΠΡΙΝ, οπότε το σπάσιμο πέφτει πάντα ανάμεσα σε
                         δύο στοιχεία. */}
                     <div title={r.p.value ? 'Εμπορική αξία' : 'Αντικειμενική αξία (Ε9), επειδή δεν έχει καταχωρηθεί εμπορική'}
-                      style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginTop: 3, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', maxWidth: '100%', whiteSpace: 'normal', lineHeight: 1.45 }}>
+                      style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginTop: 4, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', maxWidth: '100%', whiteSpace: 'normal', lineHeight: 1.45 }}>
                       {[statusLabel(r.p as StatusRow) || null, r.sqm > 0 ? `${fn(r.sqm)} τ.μ.` : null, r.value != null ? fe(r.value) : null, r.perSqm != null ? `${fe(r.perSqm)}/τ.μ.` : null].filter(Boolean).join('\u00a0· ') || ABSENT}
                     </div>
                   </th>

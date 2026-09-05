@@ -888,7 +888,7 @@ function Th({ label, k, sort, asc, onSort, align = 'right', pin }: { label: stri
       {active && (
         <svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.4"
           strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
-          style={{ marginLeft: 5, verticalAlign: 'middle', transform: asc ? 'rotate(180deg)' : 'none' }}>
+          style={{ marginLeft: 4, verticalAlign: 'middle', transform: asc ? 'rotate(180deg)' : 'none' }}>
           <path d="M6 9l6 6 6-6" />
         </svg>
       )}
@@ -904,7 +904,7 @@ function Num({ v, muted, bold, tone, mark, title }: { v: string; muted?: boolean
     <td title={title} style={{ padding: '13px 14px', textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 'var(--fs-base)', fontWeight: bold ? 700 : 400, color: tone || (muted ? 'var(--text-secondary)' : 'var(--text-primary)') }}>
       {v}
       {/* Η σήμανση της εκτίμησης μπαίνει ΔΙΠΛΑ ΣΤΟ ΠΟΣΟ: σε υποσημείωση δεν τη διαβάζει κανείς. */}
-      {mark && <span style={{ marginLeft: 5, fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-tertiary)' }}>{mark}</span>}
+      {mark && <span style={{ marginLeft: 4, fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-tertiary)' }}>{mark}</span>}
     </td>
   );
 }

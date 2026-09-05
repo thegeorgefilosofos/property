@@ -546,7 +546,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
             { label: 'Άλλες Υπηρεσίες',         amount: otherM      },
           ] as { label: string; amount: number }[]).filter(r => r.amount > 0).map((r, i) => (
             <div key={i} style={{ marginBottom: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                 <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>{r.label}</span>
                 <div>
                   <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(r.amount)} / μήνα</span>
@@ -560,7 +560,7 @@ export default function BillsServices({ propertyId, userId = '' }: Props) {
             <span style={{ fontSize: 'var(--fs-base)', fontWeight: 700, fontFamily: T.font.sans }}>Σύνολο υπηρεσιών</span>
             <div style={{ textAlign: 'right' as const }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fe(totalServices)} / μήνα</div>
-              <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginTop: 3 }}>{fe(totalServices * 12)} / έτος</div>
+              <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', marginTop: 4 }}>{fe(totalServices * 12)} / έτος</div>
             </div>
           </div>
         </div>

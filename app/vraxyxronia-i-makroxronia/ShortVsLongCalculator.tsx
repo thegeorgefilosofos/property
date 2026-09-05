@@ -89,7 +89,7 @@ export function ShortVsLongCalculator({ today }: { today: string }) {
   };
   const label: React.CSSProperties = {
     display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
-    textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 7,
+    textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 8,
   };
   // Ίδιο σχήμα με τους επιλογείς της εφαρμογής: ενεργό γεμάτο, ανενεργό διάφανο.
   // Τα δύο κουμπιά της σεζόν είναι αυτοτελή χειριστήρια, όχι λέξεις σε πρόταση:
@@ -201,7 +201,7 @@ export function ShortVsLongCalculator({ today }: { today: string }) {
             κονταίνει ούτε το κουμπί σπάει σε δύο γραμμές: η σειρά αναδιπλώνεται
             και κάτω από τα 380 το κάθε κουμπί πιάνει ολόκληρη τη γραμμή του.
             Πάνω από εκεί τα δύο χωράνε δίπλα και τίποτα δεν αλλάζει. */}
-        <div className="po-seg" style={{ display: 'flex', flexWrap: 'wrap', gap: 3, padding: 3, background: 'var(--bg-surface)',
+        <div className="po-seg" style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: 4, background: 'var(--bg-surface)',
           border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
           <button type="button" onClick={() => set('sezon', 'even')} aria-pressed={input.season === 'even'} className="po-tap" style={segStyle(input.season === 'even')}>Όλο τον χρόνο</button>
           <button type="button" onClick={() => set('sezon', 'high')} aria-pressed={input.season === 'high'} className="po-tap" style={segStyle(input.season === 'high')}>Κυρίως το καλοκαίρι</button>
@@ -255,7 +255,7 @@ export function ShortVsLongCalculator({ today }: { today: string }) {
             απαντά μόνος του. */}
         <div>
           <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-            color: 'var(--text-tertiary)', marginBottom: 7 }}>
+            color: 'var(--text-tertiary)', marginBottom: 8 }}>
             Πληρότητα ισορροπίας
           </div>
           <p style={{ margin: 0, fontSize: 14, lineHeight: 1.65, color: 'var(--text-secondary)' }}>
@@ -410,7 +410,7 @@ export function ShortVsLongCalculator({ today }: { today: string }) {
           background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
         }}>
           <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-            color: 'var(--text-tertiary)', marginBottom: 7 }}>
+            color: 'var(--text-tertiary)', marginBottom: 8 }}>
             Πριν αποφασίσεις
           </div>
           <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, color: 'var(--text-secondary)' }}>
@@ -478,7 +478,7 @@ function Figure({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-        color: 'var(--text-tertiary)', marginBottom: 7 }}>{label}</div>
+        color: 'var(--text-tertiary)', marginBottom: 8 }}>{label}</div>
       <div style={{
         fontFamily: T.font.num, fontSize: 'clamp(24px, 4.4vw, 32px)', fontWeight: 680,
         letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', lineHeight: 1.1,

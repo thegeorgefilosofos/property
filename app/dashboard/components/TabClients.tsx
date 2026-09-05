@@ -900,13 +900,13 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
 
   // ── Κοινά inline styles ────────────────────────────────────────────────────
   const inp: React.CSSProperties = { background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, height: T.h.lg, width: '100%', outline: 'none', boxSizing: 'border-box', fontFamily: T.font.sans };
-  const lbl: React.CSSProperties = { fontSize: 'var(--fs-xs)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)', display: 'block', marginBottom: 7, fontFamily: T.font.sans };
+  const lbl: React.CSSProperties = { fontSize: 'var(--fs-xs)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)', display: 'block', marginBottom: 8, fontFamily: T.font.sans };
   // Το φίλτρο κάθεται στην ίδια σειρά με το πεδίο αναζήτησης, οπότε παίρνει το
   // ύψος του πεδίου. Με `minHeight: T.h.sm` και γέμισμα 8 έβγαινε 32 δίπλα σε 40.
   const chip = (active: boolean): React.CSSProperties => ({ display: 'inline-flex', alignItems: 'center', height: T.h.lg, padding: '0 14px', borderRadius: T.radius.pill, border: `1px solid ${active ? 'var(--accent)' : 'var(--border-subtle)'}`, background: active ? 'var(--accent-soft)' : 'transparent', color: active ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: 12, fontFamily: T.font.sans, fontWeight: 500, whiteSpace: 'nowrap' });
   const msgLink: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', minHeight: T.h.sm, fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', padding: '3px 9px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', background: 'var(--accent-soft)', whiteSpace: 'nowrap' };
   // Chip επικοινωνίας (ίδιο ύφος με msgLink, με inline εικονίδιο).
-  const contactChip: React.CSSProperties = { ...msgLink, display: 'inline-flex', alignItems: 'center', gap: 5, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' };
+  const contactChip: React.CSSProperties = { ...msgLink, display: 'inline-flex', alignItems: 'center', gap: 4, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' };
   const fGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 14 };
   // Επικεφαλίδα ενότητας φόρμας (καθαρή, με τελεία accent και λεπτή γραμμή). Απλή
   // συνάρτηση που επιστρέφει JSX (όχι component) ώστε να μη χάνουν focus τα πεδία.
@@ -1121,7 +1121,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   onKeyDown={e => { if (e.key === 'Escape' && reportYearMenu) { e.stopPropagation(); setReportYearMenu(false); } }}>
                   <button type="button" onClick={() => setReportYearMenu(m => !m)}
                     aria-haspopup="listbox" aria-expanded={reportYearMenu}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: T.h.sm, padding: '0 10px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: T.font.mono, fontSize: 'var(--fs-base)', fontWeight: 700, cursor: 'pointer' }}>
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: T.h.sm, padding: '0 10px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: T.font.mono, fontSize: 'var(--fs-base)', fontWeight: 700, cursor: 'pointer' }}>
                     {reportYear}
                     <svg aria-hidden="true" width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: reportYearMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', opacity: 0.7 }}><path d="m6 9 6 6 6-6" /></svg>
                   </button>
@@ -1312,7 +1312,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   ['Ηλεκτρονικό ταχυδρομείο', dc.email ? <a href={`mailto:${dc.email}`} style={{ color: 'var(--accent)', textDecoration: 'none' }}>{dc.email}</a> : null],
                 ] as [string, React.ReactNode][]).filter(([, v]) => v != null).map(([k, v], i) => (
                   <div key={i}>
-                    <div style={{ fontSize: 'var(--fs-xs)', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 3 }}>{k}</div>
+                    <div style={{ fontSize: 'var(--fs-xs)', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 4 }}>{k}</div>
                     <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-primary)' }}>{v}</div>
                   </div>
                 ))}
@@ -1376,7 +1376,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                         επισκέπτη. Το ABSENT_DATE είναι η καθιερωμένη ένδειξη. */}
                     <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.mono }}>{ci.created_at ? fd(ci.created_at) : ABSENT_DATE}</span>
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 3, lineHeight: 1.5 }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.5 }}>
                     {[ci.id_number && `Ταυτότητα ${ci.id_number}`, ci.nationality, ci.birth_date && `γεν. ${fd(ci.birth_date)}`, ci.phone, ci.arrival_date && `άφιξη ${fd(ci.arrival_date)}`, ci.guests_count && `${ci.guests_count} άτομα`, ci.accepts_rules && 'αποδοχή κανόνων'].filter(Boolean).join(' · ')}
                   </div>
                 </div>
@@ -1614,7 +1614,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                               {!declared && <Badge>Αδήλωτη</Badge>}
                               {review && <Badge tone="warning">Ποσό προς επιβεβαίωση</Badge>}
                             </div>
-                            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 3, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                               {s.check_in && <span>{fd(s.check_in)}{s.check_out ? ` - ${fd(s.check_out)}` : ''}</span>}
                               <span style={{ color: 'var(--text-tertiary)' }}>·</span><span>{n} νύχτες</span>
                               {s.guests != null && <><span style={{ color: 'var(--text-tertiary)' }}>·</span><span>{s.guests} άτομα</span></>}
@@ -1758,7 +1758,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   {notes.map(nt => (
                     <div key={nt.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 3, flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4, flexWrap: 'wrap' }}>
                           <span style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, background: nt.kind === 'damage' ? 'var(--negative)' : 'var(--accent)' }} />
                           <Badge tone={nt.kind === 'damage' ? 'negative' : 'neutral'}>{NOTE_KIND_LABELS[nt.kind as keyof typeof NOTE_KIND_LABELS] || nt.kind}</Badge>
                           <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>{fd(nt.created_at)}</span>

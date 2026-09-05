@@ -275,7 +275,7 @@ function BulkBtn({ icon, label, onClick, disabled, danger }: { icon: React.React
   const active = hov && !disabled;
   return (
     <button type="button" disabled={disabled} onClick={onClick} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
-      style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 12px', borderRadius: T.radius.btn, fontSize: 12, fontWeight: 600, fontFamily: T.font.sans, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.45 : 1,
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '7px 12px', borderRadius: T.radius.btn, fontSize: 12, fontWeight: 600, fontFamily: T.font.sans, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.45 : 1,
         border: `1px solid ${active ? (danger ? 'var(--negative-border)' : 'var(--accent-border)') : 'var(--border-subtle)'}`,
         background: active ? (danger ? 'var(--negative-soft)' : 'var(--accent-soft)') : 'var(--bg-elevated)',
         color: active ? (danger ? 'var(--negative)' : 'var(--accent)') : 'var(--text-secondary)',
@@ -772,7 +772,7 @@ export default function TabDocuments({
                 <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
                   {dragOver ? 'Αφήστε τα αρχεία εδώ' : 'Μεταφορά αρχείων ή επιλογή από τη συσκευή'}
                 </div>
-                <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 5, lineHeight: 1.5 }}>
+                <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 4, lineHeight: 1.5 }}>
                   Φωτογραφία, PDF, Word ή Excel · πολλαπλά αρχεία · έως {MAX_SCAN_MB}MB ανά αρχείο
                 </div>
               </div>
@@ -1146,7 +1146,7 @@ function FileCard({ i, a }: { i: Item; a: FileActions }) {
         {isPdfItem(i) && <span style={{ position: 'absolute', bottom: 6, left: 6, fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: '0.05em', color: 'var(--on-media)', background: T.scrim, padding: '2px 6px', borderRadius: 6 }}>PDF</span>}
         {selectable && (shown || sel) && <div style={{ position: 'absolute', top: 6, left: 6 }} onClick={e => e.stopPropagation()}><SelectBox checked={sel} onChange={() => a.onToggleSel(i.id)} label={`Επιλογή ${i.title}`}/></div>}
         {shown && i.raw && (
-          <div style={{ position: 'absolute', top: 6, right: 6, display: 'flex', gap: 5 }}>
+          <div style={{ position: 'absolute', top: 6, right: 6, display: 'flex', gap: 4 }}>
             <OverlayBtn title="Μετονομασία" onClick={e => { e.stopPropagation(); a.onRename(i); }}><IconPencil size={13}/></OverlayBtn>
             {canFix && <OverlayBtn title="Διόρθωση αναγνώρισης" onClick={e => { e.stopPropagation(); a.onFix(i); }}><IconMoveFolder size={13}/></OverlayBtn>}
             <OverlayBtn title="Διαγραφή" onClick={e => { e.stopPropagation(); a.onDelete(i); }}><IconX/></OverlayBtn>
@@ -1155,7 +1155,7 @@ function FileCard({ i, a }: { i: Item; a: FileActions }) {
       </div>
       <div style={{ padding: '9px 11px' }}>
         <div className="po-elide" style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-primary)' }}>{i.title}</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 5, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
           <OriginTag i={i}/>
           {i.value != null && <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{fe(i.value)}</span>}
           <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.mono, marginLeft: 'auto' }}>{i.date ? fd(i.date) : ABSENT_DATE}</span>

@@ -173,11 +173,11 @@ function Fold({ open, onToggle, title, sub, right, children }: {
             Με βάση 190 (ποτέ πάνω από το πλάτος του γονέα) η σειρά τυλίγεται
             όπως σχεδιάστηκε. */}
         <button type="button" onClick={onToggle} aria-expanded={open} className="acc-toggle"
-          style={{ display:'flex', alignItems:'center', gap:9, flex:'1 1 190px', minWidth:'min(100%, 190px)', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left', fontFamily: T.font.sans }}>
+          style={{ display:'flex', alignItems:'center', gap: 8, flex:'1 1 190px', minWidth:'min(100%, 190px)', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left', fontFamily: T.font.sans }}>
           <ChevronRight size={16} aria-hidden style={{ color:'var(--text-tertiary)', flexShrink:0, transform:open?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
           <span style={{ minWidth:0 }}>
             <span style={{ ...cardTitle, margin:0, display:'block' }}>{title}</span>
-            {sub&&<span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight:400, display:'block', marginTop:3 }}>{sub}</span>}
+            {sub&&<span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight:400, display:'block', marginTop: 4 }}>{sub}</span>}
           </span>
         </button>
         {right}
@@ -205,7 +205,7 @@ const ADVISORY_TONE:Record<AdvisoryTone,string> = { opportunity:'Ευκαιρί�
 function Check({ checked, onChange, label, hint, align='center' }:{ checked:boolean; onChange:(v:boolean)=>void; label:React.ReactNode; hint?:string; align?:'center'|'start' }){
   return (
     <button type="button" role="checkbox" aria-checked={checked} onClick={()=>onChange(!checked)} title={hint}
-      style={{ display:'inline-flex', alignItems:align==='start'?'flex-start':'center', gap:9, background:'none', border:'none', padding:0, cursor:'pointer', fontSize: 'var(--fs-base)', color:'var(--text-secondary)', fontFamily: T.font.sans, textAlign:'left', lineHeight:1.5 }}>
+      style={{ display:'inline-flex', alignItems:align==='start'?'flex-start':'center', gap: 8, background:'none', border:'none', padding:0, cursor:'pointer', fontSize: 'var(--fs-base)', color:'var(--text-secondary)', fontFamily: T.font.sans, textAlign:'left', lineHeight:1.5 }}>
       <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:17, height:17, borderRadius:6, border:`1.5px solid ${checked?'var(--accent)':'var(--border-default)'}`, background:checked?'var(--accent)':'var(--bg-surface)', transition:'border-color 0.14s, background 0.14s', flexShrink:0, marginTop:align==='start'?1:0 }}>
         {checked&&<svg aria-hidden="true" width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2.5 6.3l2.2 2.2L9.5 3.6" stroke="var(--accent-text)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>}
       </span>
@@ -1133,7 +1133,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           </span>
           <input aria-label="Σύνδεσμος λογιστή" readOnly value={acctLink} onFocus={e=>e.currentTarget.select()} style={{ flex:1, minWidth:150, border:'none', background:'transparent', color:'var(--text-secondary)', fontSize:12, fontFamily: T.font.sans, outline:'none', textOverflow:'ellipsis' }} />
           <button onClick={()=>{ try{ navigator.clipboard?.writeText(acctLink); setAcctCopied(true); setTimeout(()=>setAcctCopied(false),2000) }catch{ /* ignore */ } }} style={{ height:T.h.sm, padding:'0 12px', borderRadius:T.radius.pill, border:'1px solid var(--border-default)', background:'var(--bg-surface)', color:acctCopied?'var(--positive)':'var(--text-secondary)', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily: T.font.sans, whiteSpace:'nowrap' }}>{acctCopied?'Αντιγράφηκε':'Αντιγραφή'}</button>
-          <a href={acctLink} target="_blank" rel="noreferrer" style={{ display:'inline-flex', alignItems:'center', gap:5, height:T.h.sm, padding:'0 13px', borderRadius:T.radius.pill, background:'var(--accent)', color:'var(--accent-text)', fontSize:12, fontWeight:600, textDecoration:'none', fontFamily: T.font.sans, whiteSpace:'nowrap' }}>Άνοιγμα πύλης<ArrowUpRight size={13}/></a>
+          <a href={acctLink} target="_blank" rel="noreferrer" style={{ display:'inline-flex', alignItems:'center', gap: 4, height:T.h.sm, padding:'0 13px', borderRadius:T.radius.pill, background:'var(--accent)', color:'var(--accent-text)', fontSize:12, fontWeight:600, textDecoration:'none', fontFamily: T.font.sans, whiteSpace:'nowrap' }}>Άνοιγμα πύλης<ArrowUpRight size={13}/></a>
           <div style={{ width:'100%', display:'flex', alignItems:'center', gap:10, marginTop:2, paddingLeft:2 }}>
             {/* Η ΕΜΒΕΛΕΙΑ ΛΕΓΕΤΑΙ ΕΚΕΙ ΠΟΥ ΠΑΙΡΝΕΤΑΙ Η ΑΠΟΦΑΣΗ. Ο πίνακας
                 accountant_links δεν έχει στήλη ακινήτου: ο σύνδεσμος είναι ΑΝΑ
@@ -1269,7 +1269,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
                     γραμμή λέγεται «Ταμειακό υπόλοιπο». Οποιος το ψάχνει μετά την
                     πρώτη καταχώρηση δεν το βρίσκει με το όνομα που του δόθηκε. */}
                 {['Έσοδα και πρόβλεψη φόρου','Ταμειακό υπόλοιπο','Αναφορές και PDF'].map(t=>(
-                  <span key={t} style={{ display:'inline-flex', alignItems:'center', gap:7, fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>
+                  <span key={t} style={{ display:'inline-flex', alignItems:'center', gap: 8, fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>
                     <span style={{ width:5, height:5, borderRadius:'50%', background:'var(--border-default)', flexShrink:0 }}/>{t}
                   </span>
                 ))}
@@ -1368,7 +1368,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
                   οι ερωτήσεις μας δεν αλλάζουν τίποτα. */}
               {regime==='individual_longterm' && bankMatters && (
                 <div>
-                  <div style={{ display:'flex', alignItems:'center', gap:7, flexWrap:'wrap' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap: 8, flexWrap:'wrap' }}>
                     <Check checked={rentsBank} onChange={v=>setRentsBankOverride(v===collection.viaBank?null:v)} label={<span style={{ fontSize:12, color:'var(--text-secondary)' }}>Τα ενοίκια εισπράττονται <strong style={{ color:'var(--text-primary)' }}>μέσω τραπέζης</strong>.</span>}/>
                     <InfoHint>Από 1/1/2026 (ν.5246/2025) τα μισθώματα κατοικίας πρέπει να εισπράττονται με τραπεζικό ή ηλεκτρονικό μέσο (κατάθεση, IRIS, έμβασμα). Με μετρητά χάνεται η τεκμαρτή έκπτωση 5% και φορολογείσαι στο 100% του ενοικίου.</InfoHint>
                   </div>
@@ -1456,7 +1456,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
       {businessMode&&(
         <div style={{ ...card, display:'flex', gap:14, flexWrap:'wrap', alignItems:'stretch' }}>
           {elpForm==='sole'&&(
-            <div style={{ display:'flex', flexDirection:'column', gap:5, minWidth:150 }}>
+            <div style={{ display:'flex', flexDirection:'column', gap: 4, minWidth:150 }}>
               <span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily: T.font.sans, fontWeight:500 }}>Εισφορές ΕΦΚΑ / έτος</span>
               <input aria-label="Εισφορές ΕΦΚΑ ανά έτος" type="number" inputMode="numeric" min={0} value={ekfa} onChange={e=>updateEkfa(e.target.value===''?'':Math.max(0,Number(e.target.value)))} placeholder=""
                 onFocus={e=>e.currentTarget.style.borderColor='var(--accent)'} onBlur={e=>e.currentTarget.style.borderColor='var(--border-default)'}
@@ -1465,7 +1465,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             </div>
           )}
           {elpForm==='sole'&&(
-            <div style={{ display:'flex', flexDirection:'column', gap:5, minWidth:150 }}>
+            <div style={{ display:'flex', flexDirection:'column', gap: 4, minWidth:150 }}>
               <span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily: T.font.sans, fontWeight:500 }}>Ηλικία</span>
               <input aria-label="Ηλικία" type="number" inputMode="numeric" min={16} max={99} value={age} onChange={e=>updateAge(e.target.value===''?'':Math.max(0,Number(e.target.value)))} placeholder="Παράδειγμα: 30"
                 title="Προαιρετικό. Ενεργοποιεί τη μειωμένη κλίμακα νέων (ν.5246/2025) στην ατομική επιχείρηση."
@@ -1475,7 +1475,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             </div>
           )}
           {elpForm==='company'&&(
-            <div style={{ display:'flex', flexDirection:'column', gap:5, minWidth:150 }}>
+            <div style={{ display:'flex', flexDirection:'column', gap: 4, minWidth:150 }}>
               <span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily: T.font.sans, fontWeight:500 }}>Διανομή κερδών</span>
               <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                 <input aria-label="Διανομή κερδών σε ποσοστό" type="number" inputMode="numeric" min={0} max={100} value={distribution} onChange={e=>setDistribution(e.target.value===''?'':Math.min(100,Math.max(0,Number(e.target.value))))} placeholder=""
@@ -1566,7 +1566,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           δεύτερα. Ζουν εδώ, ένα κλικ μακριά, αντί να γεμίζουν την πρώτη ματιά
           του ανθρώπου που θέλει μόνο να ξέρει πού βρίσκεται. */}
       <div style={card}>
-        <button onClick={()=>setAdvancedOpen(o=>!o)} aria-expanded={advancedOpen} className="acc-toggle" style={{ display:'flex', alignItems:'center', gap:9, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left' }}>
+        <button onClick={()=>setAdvancedOpen(o=>!o)} aria-expanded={advancedOpen} className="acc-toggle" style={{ display:'flex', alignItems:'center', gap: 8, width:'100%', background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left' }}>
           <ChevronRight size={16} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:advancedOpen?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
           <div style={{ flex:1, minWidth:0 }}>
             <p style={{ ...cardTitle, margin:0 }}>Προχωρημένα εργαλεία</p>
@@ -1640,7 +1640,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             </div>
             <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minWidth:104, height:76, borderRadius:12, background:'var(--bg-elevated)', border:'1px solid var(--border-subtle)', flexShrink:0 }}>
               <span style={{ fontSize:28, fontWeight:700, color:'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', lineHeight:1 }}>22%</span>
-              <span style={{ fontSize: 'var(--fs-xs)', color:'var(--text-tertiary)', letterSpacing:'0.5px', textTransform:'uppercase', fontFamily: T.font.sans, marginTop:5 }}>Συντελεστής</span>
+              <span style={{ fontSize: 'var(--fs-xs)', color:'var(--text-tertiary)', letterSpacing:'0.5px', textTransform:'uppercase', fontFamily: T.font.sans, marginTop: 4 }}>Συντελεστής</span>
             </div>
           </div>
         )}
@@ -1731,7 +1731,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
                     <div style={{ padding:'0 16px 15px' }}>
                       <p style={{ fontSize: 'var(--fs-base)', color:'var(--text-secondary)', margin:0, fontFamily: T.font.sans, lineHeight:1.6 }}>{a.body}</p>
                       {(a.refer||a.linkHref)&&(
-                        <div style={{ display:'flex', alignItems:'center', gap:14, marginTop:11, flexWrap:'wrap' }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:14, marginTop: 12, flexWrap:'wrap' }}>
                           {a.refer&&<span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans }}>{referLabel(a.refer)}</span>}
                           {a.linkHref&&<OutLink href={a.linkHref} label={a.linkLabel||'Περισσότερα'}/>}
                         </div>
@@ -1774,7 +1774,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
                     {uo && (
                       <div style={{ padding:'0 15px 14px' }}>
                         <p style={{ fontSize: 'var(--fs-base)', color:'var(--text-secondary)', margin:0, lineHeight:1.6, fontFamily: T.font.sans }}>{u.summary}</p>
-                        <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:11, flexWrap:'wrap' }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:12, marginTop: 12, flexWrap:'wrap' }}>
                           <span style={{ fontSize: 'var(--fs-xs)', color:'var(--text-tertiary)', fontFamily: T.font.sans, letterSpacing:'0.3px' }}>Ισχύς: {u.effective} · {u.legalBasis}</span>
                           {u.sourceHref && <OutLink href={u.sourceHref} label={u.sourceLabel||'Πηγή'}/>}
                         </div>
@@ -1800,7 +1800,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
         {/* Κόστος αγοράς & πώλησης, δομημένη εκτίμηση μεταβίβασης */}
         <div style={card}>
           <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, flexWrap:'wrap', marginBottom:xferOpen?16:0 }}>
-            <button onClick={()=>setXferOpen(o=>!o)} aria-expanded={xferOpen} className="acc-toggle" style={{ display:'flex', alignItems:'center', gap:9, background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left', flex:1, minWidth:0 }}>
+            <button onClick={()=>setXferOpen(o=>!o)} aria-expanded={xferOpen} className="acc-toggle" style={{ display:'flex', alignItems:'center', gap: 8, background:'none', border:'none', padding:0, cursor:'pointer', textAlign:'left', flex:1, minWidth:0 }}>
               <ChevronRight size={16} style={{ color:'var(--text-tertiary)', flexShrink:0, transform:xferOpen?'rotate(90deg)':'none', transition:'transform 0.18s' }}/>
               <div>
                 <p style={{ ...cardTitle, margin:0 }}>Κόστος αγοράς και πώλησης</p>
@@ -1948,7 +1948,7 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
                 <span style={{ fontSize: 'var(--fs-xs)', fontWeight:700, color:'var(--text-primary)', fontFamily: T.font.sans, textTransform:'uppercase', letterSpacing:'0.05em' }}>Σύνολα</span>
                 <span style={{ fontSize: 'var(--fs-base)', fontWeight:700, color:'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{eur(jTotals.debit)}</span>
                 <span style={{ fontSize: 'var(--fs-base)', fontWeight:700, color:'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', textAlign:'right' }}>{eur(jTotals.credit)}</span>
-                <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'flex-end', gap:5, fontSize: 'var(--fs-xs)', fontWeight:600, color:jTotals.balanced?'var(--text-tertiary)':'var(--negative)', fontFamily: T.font.sans, whiteSpace:'nowrap' }}>
+                <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'flex-end', gap: 4, fontSize: 'var(--fs-xs)', fontWeight:600, color:jTotals.balanced?'var(--text-tertiary)':'var(--negative)', fontFamily: T.font.sans, whiteSpace:'nowrap' }}>
                   {jTotals.balanced?<><svg aria-hidden="true" width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="var(--positive)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}><path d="M20 6 9 17l-5-5"/></svg>Ισοσκελισμένο</>:<>Διαφορά {eur(jTotals.debit-jTotals.credit)}</>}
                 </span>
               </div>

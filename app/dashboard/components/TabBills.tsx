@@ -157,7 +157,7 @@ function ContractTile({ card, active, onOpen }: { card: ContractCard; active: bo
              «75,00 € τον μήνα» φαινόταν να μην προκύπτει από πουθενά: 34,50 και
              40,50 «κάθε δίμηνο» δίνουν 37,50 τον μήνα, όχι 75. Με τη μονάδα, η
              πρόσθεση γίνεται με το μάτι. */
-          <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5, whiteSpace: 'nowrap' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4, whiteSpace: 'nowrap' }}>
             <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em', lineHeight: 1.1 }}>
               {fe(card.monthly)}
             </span>
@@ -250,7 +250,7 @@ export default function TabBills({
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
         <div>
-          <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 3, fontFamily: T.font.sans }}>
+          <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 4, fontFamily: T.font.sans }}>
             Λογαριασμοί και πάγιες δαπάνες
           </div>
           <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
