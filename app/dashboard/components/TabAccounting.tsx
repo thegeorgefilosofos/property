@@ -1506,7 +1506,20 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
           το άλλο λίστα. Το `alignItems: 'start'` αφήνει την καθεμιά στο ύψος του
           περιεχομένου της. (Ο κανόνας «ίδιο ύψος» ισχύει για ΣΕΙΡΑ ομοειδών
           καρτών, όχι για δύο διαφορετικά πράγματα δίπλα-δίπλα.) */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap:16, alignItems:'start' }}>
+      {/* ═══ ΤΟ ΚΑΘΟΛΙΚΟ ΘΕΛΕΙ ΠΛΑΤΟΣ, ΟΧΙ ΜΙΣΗ ΚΑΡΤΑ ══════════════════════════
+          ΤΙ ΜΕΤΡΗΘΗΚΕ (05/09/2026, 768). Το πλέγμα έσπαγε σε δύο στήλες των 352
+          και το καθολικό είναι ΤΕΤΡΑΣΤΗΛΟ: ημερομηνία, περιγραφή, χρέωση,
+          πίστωση. Στην περιγραφή έμεναν 72 εικονοστοιχεία για κείμενο που ζητά
+          152 — «Συντήρηση καυστήρα» γινόταν «Συντήρη…».
+
+          Το 320 ήταν σωστό για κάρτες με μία στήλη αριθμών· εδώ οι στήλες είναι
+          τέσσερις. Στα 430 το καθολικό παίρνει ολόκληρο το πλάτος ώς τα 876 και
+          σπάει σε δύο μόνο όταν υπάρχει πραγματικά χώρος και για τις δύο.
+
+          ΑΛΛΑΖΕΙ ΜΟΝΟ ΑΥΤΟ ΤΟ ΠΛΕΓΜΑ. Τα άλλα τρία της καρτέλας μένουν στα 320:
+          κρατούν κάρτες με λίγες στήλες, όπου δύο δίπλα δίπλα διαβάζονται μια
+          χαρά και η αλλαγή θα τους έτρωγε χώρο χωρίς λόγο. */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 430px), 1fr))', gap:16, alignItems:'start' }}>
         {!isShort && (
           <Fold open={reconOpen} onToggle={()=>setReconOpen(o=>!o)} title="Συμφωνία ενοικίων"
             right={<span style={{ fontSize:12, color:'var(--text-secondary)', fontFamily: T.font.sans }}>Εισπράχθηκαν <strong style={{ color:'var(--text-primary)' }}>{eur(rs.collectedTotal)}</strong> / {eur(rs.expectedTotal)}</span>}>
@@ -1538,10 +1551,23 @@ export default function TabAccounting({ propertyId, userId, profileType='individ
             <p style={{ fontSize: 'var(--fs-base)', color:'var(--text-tertiary)', fontFamily: T.font.sans, padding:'8px 0' }}>Καμία κίνηση για το {year}.</p>
           ):(
             <div style={{ display:'flex', flexDirection:'column' }}>
+                {/* ═══ Η ΧΡΟΝΙΑ ΕΙΝΑΙ ΛΙΠΟΣ ΣΕ ΚΑΡΤΕΛΑ ΠΟΥ ΕΧΕΙ ΗΔΗ ΧΡΟΝΙΑ ══════════════
+                    ΤΙ ΜΕΤΡΗΘΗΚΕ (05/09/2026, 768). Η γραμμή είναι τέσσερις στήλες μέσα σε
+                    320 εικονοστοιχεία: ημερομηνία 74, ετικέτα, δύο ποσά 172. Στην ετικέτα
+                    έμεναν 44 και το «Συντήρηση καυστήρα» ζητούσε 141 — έχανε το 71% του.
+                    Δίπλα του το «Συντήρηση κλιματιστικού» θα έδειχνε το ίδιο στέλεχος.
+
+                    Το `book` βγαίνει από το `buildLedger(yearEntries)`: η καρτέλα ΕΙΝΑΙ ήδη
+                    μιας χρήσης, με τον επιλογέα έτους από πάνω. Το «/2026» σε δεκατέσσερις
+                    σειρές δεν προσθέτει τίποτα — απλώς κρατά 28 εικονοστοιχεία που τα
+                    χρειάζεται η μόνη στήλη που ΛΕΕΙ κάτι.
+
+                    Και η ετικέτα αποκτά δάπεδο οκτώ χαρακτήρων, ώστε να μη γίνει ξανά
+                    στέλεχος αν προστεθεί κάποτε πέμπτη στήλη. */}
               {(mode==='professional'?book.slice(-14).reverse():recentLedger).map((e,i,arr)=>(
                 <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 0', borderBottom:i<arr.length-1?'1px solid var(--border-subtle)':'none' }}>
-                  <span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', width:74, flexShrink:0 }}>{e.date.split('-').reverse().join('/')}</span>
-                  <span className="po-elide" style={{ flex:1, fontSize: 'var(--fs-base)', color:'var(--text-primary)', fontFamily: T.font.sans }}>{e.description}</span>
+                  <span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', width:46, flexShrink:0 }}>{e.date.slice(8,10)}/{e.date.slice(5,7)}</span>
+                  <span className="po-elide" style={{ flex:1, minWidth:'8ch', fontSize: 'var(--fs-base)', color:'var(--text-primary)', fontFamily: T.font.sans }}>{e.description}</span>
                   {mode==='professional'&&<span style={{ fontSize:12, color:'var(--text-tertiary)', fontFamily: T.font.sans, fontVariantNumeric:'tabular-nums', width:80, textAlign:'right' }}>{eur(e.balance)}</span>}
                   <span style={{ fontSize: 'var(--fs-base)', fontWeight:600, color:'var(--text-primary)', fontVariantNumeric:'tabular-nums', fontFamily: T.font.sans, width:92, textAlign:'right' }}>{e.type==='income'?'+':'−'}{eur(e.amount)}</span>
                 </div>
