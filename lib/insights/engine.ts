@@ -10,6 +10,8 @@
 import { vocative } from '../greekName';
 import { fp, fe } from '../core/format';
 import { navLabel } from '../nav/labels';
+import { findAnomalies } from './anomaly';
+import { categoryLabel } from '../expenses/taxonomy';
 import { athensParts, daysUntil as athensDaysUntil } from '../core/time';
 
 export type InsightKind = 'urgent' | 'attention' | 'opportunity' | 'positive';
@@ -173,6 +175,34 @@ export function computeInsights(input: InsightInput): Insight[] {
   const energyTotal = energyBills.reduce((s, b) => s + (b.amount || 0), 0);
   if (energyTotal > 0 && expensesYTD > 0 && energyTotal / Math.max(expensesYTD, energyTotal) > 0.25) {
     out.push({ id: 'energy-review', kind: 'opportunity', title: 'Το ρεύμα «τρώει» μεγάλο μέρος των εξόδων', detail: 'Οι τιμές ρεύματος αλλάζουν συχνά. Μια σύγκριση παρόχων γλιτώνει αρκετά, ειδικά στους άδειους μήνες.', metric: eur(energyTotal), stake: energyTotal, action: { label: navLabel('finances'), tab: 'finances' } });
+  }
+
+  // ── 8β. Η κατηγορία που ξέφυγε τον περασμένο μήνα ──────────────────────
+  // ΤΟ ΕΙΔΟΣ ΕΥΡΗΜΑΤΟΣ ΠΟΥ ΕΛΕΙΠΕ. Οι υπόλοιποι κανόνες κοιτάζουν ΗΜΕΡΟΛΟΓΙΟ:
+  // τι λήγει, τι είναι ληξιπρόθεσμο, τι δεν συμπληρώθηκε. Κανένας δεν κοιτάζει
+  // ΣΥΜΠΕΡΙΦΟΡΑ. Το «ξόδεψες περισσότερα από ό,τι συνήθως εδώ» είναι αυτό που
+  // κάνει τον χρήστη να ανοίξει την εφαρμογή χωρίς να του το ζητήσει κανείς,
+  // και τα δεδομένα υπήρχαν από την πρώτη μέρα.
+  //
+  // ΜΟΝΟ ΤΟ ΠΡΩΤΟ, ΚΑΙ ΕΙΝΑΙ ΑΠΟΦΑΣΗ. Ο ανιχνευτής μπορεί να επιστρέψει τρεις
+  // κατηγορίες· τρεις γραμμές για το ίδιο πράγμα στην ίδια οθόνη είναι ακριβώς
+  // τα «διπλά και τριπλά σημεία» που δεν θέλουμε. Λέγεται η ακριβότερη, με το
+  // πλήθος των υπολοίπων δίπλα· η οθόνη των Οικονομικών τα δείχνει όλα.
+  const spikes = findAnomalies(expenses, now);
+  if (spikes.length) {
+    const top = spikes[0];
+    const more = spikes.length - 1;
+    out.push({
+      id: 'spend-spike',
+      kind: 'attention',
+      title: `${categoryLabel(top.category)}: ${top.overPct}% πάνω από το συνηθισμένο σου`,
+      detail: `Τον περασμένο μήνα ${eur(top.amount)} έναντι ${eur(top.usual)} που είναι ο διάμεσος των τελευταίων ${top.basedOn} μηνών.`
+        + (more > 0 ? ` Ακόμη ${more === 1 ? 'μία κατηγορία ξέφυγε' : `${more} κατηγορίες ξέφυγαν`}.` : '')
+        + ' Αν είναι λάθος χρέωση, τώρα προλαβαίνεις να το πεις.',
+      metric: `+${eur(top.excess)}`,
+      stake: top.excess,
+      action: { label: navLabel('finances'), tab: 'finances' },
+    });
   }
 
   // ── 9. Πλαίσιο απόδοσης ───────────────────────────────────────────────────
