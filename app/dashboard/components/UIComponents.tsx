@@ -1430,7 +1430,18 @@ export function TextInput({ label, labelInfo, ariaLabel, id, value, onChange, pl
             {prefix}
           </div>
         )}
+        {/* ΤΟ ΔΑΠΕΔΟ ΑΦΗΣ ΤΩΝ 44 ΕΦΑΡΜΟΖΟΤΑΝ ΔΥΟ ΦΟΡΕΣ, ΚΑΙ Η ΔΕΥΤΕΡΗ ΕΚΟΒΕ.
+            Το περίβλημα είναι ΗΔΗ 44 ψηλό με `box-sizing: border-box`, οπότε
+            μέσα του μένουν 42. Ο καθολικός κανόνας του globals.css έδινε στο
+            ίδιο το `input` κι άλλα 44: δύο εικονοστοιχεία παραπάνω, που το
+            `overflow: hidden` του περιβλήματος έκοβε — ένα πάνω, ένα κάτω.
+            Ο σαρωτής το ανέφερε σε τρία πλάτη ως «κόβεται 1px».
+
+            Η κλάση `po-field-inner` υπάρχει ακριβώς γι' αυτό: εξαιρεί από το
+            δάπεδο τα πεδία που ζουν μέσα σε στόχο ο οποίος το τηρεί ήδη.
+            Ο στόχος αφής ΔΕΝ μικραίνει: μένει το περίβλημα των 44. */}
         <input
+          className="po-field-inner"
           id={inputId}
           aria-label={label ? undefined : ariaLabel}
           type={type}

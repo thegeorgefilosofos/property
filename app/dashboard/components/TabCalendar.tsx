@@ -42,8 +42,9 @@ const joinedFullName = (v: unknown): string | null => {
   if (!one || typeof one !== 'object' || !('full_name' in one)) return null
   return typeof one.full_name === 'string' ? one.full_name : null
 }
-import { T, Modal, Spinner, Skeleton, EmptyState, Chip, feAuto, fe, fn, localDay, pressable, CloseButton } from '@/components/Theme'
+import { T, Btn, Modal, Spinner, Skeleton, EmptyState, Chip, feAuto, fe, fn, localDay, pressable, CloseButton } from '@/components/Theme'
 import { fixedCols } from '@/components/tokens'
+import { useCoarsePointer } from '@/components/useCoarsePointer'
 import type { XlsxSheet, XlsxCol } from './exportXlsx';
 import { downloadXlsx } from './sheets';
 import {
@@ -547,9 +548,62 @@ function textWidth(text: string, font: string): number {
   return holCanvas.measureText(text).width
 }
 
-function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick, upcomingAll, drag, stays=[] }: {
-  events: CalEvent[]; currentDate: Date; selectedDate?:string; onDayClick:(date:string)=>void; onEventClick:(e:CalEvent)=>void; upcomingAll:CalEvent[]; drag?:DragCtl; stays?:StaySpan[]
+// ═══════════════════════════════════════════════════════════════════════════
+// ΤΟ ΦΥΛΛΟ ΤΗΣ ΗΜΕΡΑΣ: ΟΠΟΥ ΤΑ ΓΕΓΟΝΟΤΑ ΕΧΟΥΝ ΕΠΙΤΕΛΟΥΣ ΥΨΟΣ
+// ─────────────────────────────────────────────────────────────────────────
+// Στο πλέγμα του μήνα ένα γεγονός είναι μια λωρίδα 20 εικονοστοιχείων: αρκετή
+// για να ΔΕΙΣ τι τρέχει, πολύ λίγη για να την ΠΑΤΗΣΕΙΣ με δάχτυλο. Εδώ η ίδια
+// μέρα ανοίγει σε γραμμές των 48, με την ώρα, την κατηγορία και το ποσό στη
+// θέση τους. Ενα πάτημα ανοίγει τη σύνταξη, όπως και στο πλέγμα με ποντίκι.
+//
+// Δεν είναι νέα «οθόνη»: είναι η ίδια πληροφορία του κελιού, ξεδιπλωμένη όταν
+// το χέρι το χρειάζεται. Γι' αυτό δεν έχει φίλτρα, ταξινομήσεις ούτε δεύτερο
+// επίπεδο — μόνο τη λίστα και το «Νέο».
+// ═══════════════════════════════════════════════════════════════════════════
+function DaySheet({ date, events, onClose, onPick, onNew }: {
+  date: string; events: CalEvent[]; onClose: () => void; onPick: (e: CalEvent) => void; onNew: () => void
 }) {
+  const d = new Date(date + 'T00:00:00')
+  const title = `${d.getDate()} ${monthGen(d.getMonth())}`
+  const sorted = [...events].sort((a, b) => (a.event_time || '99').localeCompare(b.event_time || '99'))
+  return (
+    <Modal open onClose={onClose} title={title} subtitle={`${events.length} ${events.length === 1 ? 'γεγονός' : 'γεγονότα'}`} size="sm"
+      footer={<Btn variant="primary" onClick={onNew}>Νέο γεγονός</Btn>}>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {sorted.map((ev, i) => (
+          <button key={ev.id} onClick={() => onPick(ev)} className="po-hov-row cal-day-row" data-last={i === sorted.length - 1}>
+            {/* Η ώρα κρατά σταθερή στήλη ώστε οι τίτλοι να ξεκινούν όλοι από το
+                ίδιο σημείο· χωρίς ώρα μένει κενή αντί να μετακινήσει τη γραμμή. */}
+            <span style={{ width: '5ch', flexShrink: 0, fontSize: 'var(--fs-xs)', fontVariantNumeric: 'tabular-nums', color: 'var(--text-tertiary)' }}>{ev.event_time || ''}</span>
+            <span style={{ flexShrink: 0, display: 'flex', color: CATEGORIES[ev.category].color }}>{CATEGORIES[ev.category].icon}</span>
+            <span className="po-elide" style={{ flex: 1, minWidth: '6ch', fontSize: 'var(--fs-base)', fontWeight: 500, color: 'var(--text-primary)', textDecoration: ev.status === 'paid' ? 'line-through' : 'none', opacity: ev.status === 'paid' ? 0.55 : 1 }}>{ev.title}</span>
+            {ev.amount ? <span style={{ flexShrink: 0, fontSize: 'var(--fs-base)', fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>{fe(ev.amount)}</span> : null}
+          </button>
+        ))}
+      </div>
+    </Modal>
+  )
+}
+
+function MonthView({ events, currentDate, selectedDate, onDayClick, onDayOpen, onEventClick, upcomingAll, drag, stays=[] }: {
+  events: CalEvent[]; currentDate: Date; selectedDate?:string; onDayClick:(date:string)=>void; onDayOpen:(date:string)=>void; onEventClick:(e:CalEvent)=>void; upcomingAll:CalEvent[]; drag?:DragCtl; stays?:StaySpan[]
+}) {
+  // ═══ ΔΥΟ ΣΤΟΧΟΙ ΟΝΤΑΣ Ο ΕΝΑΣ ΜΕΣΑ ΣΤΟΝ ΑΛΛΟ, ΚΑΙ Ο ΕΣΩΤΕΡΙΚΟΣ 20 ΨΗΛΟΣ ═══
+  // Το τσιπάκι του γεγονότος είχε δικό του `role="button"` μέσα σε κελί που
+  // είναι κι αυτό πατήσιμο. Μετρημένο στα 390: 39×20 το τσιπάκι, 43×80 το
+  // κελί. Με δάχτυλο, ένα πάτημα πάνω στο τσιπάκι πετυχαίνει το κελί τις πιο
+  // πολλές φορές — δηλαδή ο χρήστης πατάει ένα γεγονός και ανοίγει η μέρα, ή
+  // πατάει τη μέρα και ανοίγει λάθος γεγονός. Δώδεκα ευρήματα «στόχος < 44»
+  // στη σάρωση ήταν ΟΛΑ αυτό το τσιπάκι.
+  //
+  // Το ύψος δεν λύνεται: εφτά στήλες σε 320 δίνουν 43 πλάτος · τρία
+  // τσιπάκια των 44 θα ζητούσαν κελί 190 — δηλαδή έναν μήνα έξι οθονών.
+  // Η λύση είναι η ίδια που έχει κάθε ημερολόγιο κινητού: με δάχτυλο το
+  // ΚΕΛΙ είναι ο στόχος και ανοίγει το φύλλο της ημέρας, όπου τα γεγονότα
+  // κάθονται σε γραμμές πλήρους ύψους. Με ποντίκι δεν αλλάζει τίποτα: το
+  // τσιπάκι μένει πατήσιμο και συρόμενο, γιατί εκεί ο δείκτης είναι ακριβής.
+  const coarse = useCoarsePointer()
+
   // Το πλάτος του πλέγματος, μετρημένο. Χρειάζεται για να κριθεί αν το όνομα
   // της αργίας χωράει σε μία γραμμή. Μηδέν στην πρώτη απόδοση και στον
   // διακομιστή: τότε κρατιέται μία γραμμή και η δεύτερη μπαίνει μόλις γίνει η
@@ -595,7 +649,7 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
   return (
     <div className="cal-layout" style={{ display:'flex', gap:12 }}>
       <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, overflow:'hidden', boxShadow:'var(--shadow-sm)' }}>
+        <div className="cal-bleed" style={{ background:'var(--bg-surface)', border:'1px solid var(--border-subtle)', borderRadius:T.radius.card, overflow:'hidden', boxShadow:'var(--shadow-sm)' }}>
           <div style={{ display:'flex', alignItems:'center', gap:16, padding:'8px 16px', borderBottom:'1px solid var(--border-subtle)', background:'var(--bg-elevated)' }}>
             {/* ═══ ΕΠΤΑ ΚΟΥΚΚΙΔΕΣ ΣΤΟ ΙΔΙΟ ΓΚΡΙ ══════════════════════════════
                 Ο υπόμνημα κατηγοριών έπιανε όλη τη δεξιά πλευρά της γραμμής:
@@ -688,7 +742,7 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
                    ένα πριν φτάσει στην πρώτη πραγματική ημέρα, ακούγοντας
                    «κουμπί» χωρίς τίποτε άλλο. Το `onDayClick` είχε ήδη φρένο
                    (`day&&`), δηλαδή το πάτημα δεν έκανε ποτέ τίποτα. */
-                <div key={idx} className="cal-cell" {...(day!=null ? pressable(()=>onDayClick(dateStr), `${day} ${monthGen(month)}`) : {})} title={hol||undefined} data-drop-date={day?dateStr:undefined} style={{ minHeight:80, padding:'6px', borderRight:(idx+1)%7===0?'none':'1px solid var(--border-subtle)', borderBottom:idx<cells.length-7?'1px solid var(--border-subtle)':'none', background:cellBg, boxShadow:isSelected&&!isToday?'inset 0 0 0 2px var(--accent)':'none', cursor:day?'pointer':'default', transition:'background 0.1s' }}
+                <div key={idx} className="cal-cell" {...(day!=null ? pressable(()=>{ if(coarse&&dayEvents.length) onDayOpen(dateStr); else onDayClick(dateStr) }, `${day} ${monthGen(month)}${coarse&&dayEvents.length?`, ${dayEvents.length} ${dayEvents.length===1?'γεγονός':'γεγονότα'}`:''}`) : {})} title={hol||undefined} data-drop-date={day?dateStr:undefined} style={{ minHeight:80, padding:'6px', borderRight:(idx+1)%7===0?'none':'1px solid var(--border-subtle)', borderBottom:idx<cells.length-7?'1px solid var(--border-subtle)':'none', background:cellBg, boxShadow:isSelected&&!isToday?'inset 0 0 0 2px var(--accent)':'none', cursor:day?'pointer':'default', transition:'background 0.1s' }}
                   onMouseEnter={e=>{if(day)(e.currentTarget as HTMLElement).style.background='var(--bg-hover)'}}
                   onMouseLeave={e=>{if(day)(e.currentTarget as HTMLElement).style.background=cellBg}}
                 >
@@ -715,7 +769,7 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onEventClick
                       <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
                         {dayEvents.slice(0,3).map(ev=>(
                           <Tooltip key={ev.id} text={`${ev.title}${ev.event_time?` · ${ev.event_time}`:''}${ev.amount?` · ${fe(ev.amount)}` :''}${ev._virtual?'\n(επαναλαμβανόμενο)':''}${ev.notes?`\n${ev.notes}`:''}`}>
-                            <div onPointerDown={!ev._virtual&&drag?drag.onDown(ev.id,ev.title):undefined} role="button" tabIndex={0} aria-label={`Άνοιγμα: ${ev.title}`} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();onEventClick(ev)}}} onClick={e=>{e.stopPropagation();onEventClick(ev)}} className="po-elide cal-chip" style={{ touchAction:'none', padding:'1px 4px', borderRadius:6, background:CATEGORIES[ev.category].bg, color:CATEGORIES[ev.category].color, cursor:ev._virtual?'pointer':'grab', width:'100%', opacity:ev.status==='paid'?0.4:ev._virtual?0.72:1, textDecoration:ev.status==='paid'?'line-through':'none', fontFamily: T.font.sans, letterSpacing:'0.25px' }}>
+                            <div {...(coarse ? {} : { onPointerDown: !ev._virtual&&drag?drag.onDown(ev.id,ev.title):undefined, role:'button', tabIndex:0, 'aria-label':`Άνοιγμα: ${ev.title}`, onKeyDown:(e:React.KeyboardEvent)=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();onEventClick(ev)}}, onClick:(e:React.MouseEvent)=>{e.stopPropagation();onEventClick(ev)} })} className="po-elide cal-chip" style={{ touchAction:'none', padding:'1px 4px', borderRadius:6, background:CATEGORIES[ev.category].bg, color:CATEGORIES[ev.category].color, cursor:coarse?'inherit':ev._virtual?'pointer':'grab', width:'100%', opacity:ev.status==='paid'?0.4:ev._virtual?0.72:1, textDecoration:ev.status==='paid'?'line-through':'none', fontFamily: T.font.sans, letterSpacing:'0.25px' }}>
                               {(ev.recurring||ev._virtual)&&<RotateCcw size={9} style={{ marginRight: 4, verticalAlign:'middle', opacity:0.7 }}/>}{ev.event_time?ev.event_time+' ':''}{ev.title}
                             </div>
                           </Tooltip>
@@ -1598,6 +1652,8 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
   const [events,setEvents]=useState<CalEvent[]>([])
   const [loading,setLoading]=useState(true)
   const [viewMode,setViewMode]=useState<ViewMode>('month')
+  // Η ημέρα που άνοιξε με δάχτυλο από το πλέγμα· κενή με ποντίκι.
+  const [sheetDate,setSheetDate]=useState<string>('')
   const [currentDate,setCurrentDate]=useState(athensNow())
   const [selectedDate,setSelectedDate]=useState<string>(todayStr())
   const [showModal,setShowModal]=useState(false)
@@ -2267,6 +2323,16 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
         )
       })()}
 
+      {/* Το φύλλο της ημέρας ζει δίπλα στα υπόλοιπα παράθυρα, όχι μέσα στο
+          πλέγμα: το πλέγμα ξαναζωγραφίζεται σε κάθε σύρσιμο και το παράθυρο
+          δεν έχει λόγο να ακολουθεί. */}
+      {sheetDate&&(
+        <DaySheet date={sheetDate} events={monthEvents.filter(e=>e.event_date===sheetDate&&!(e.source||'').startsWith('booking:'))}
+          onClose={()=>setSheetDate('')}
+          onPick={e=>{setSheetDate('');openEdit(e)}}
+          onNew={()=>{const d=sheetDate;setSheetDate('');openNew(d)}}/>
+      )}
+
       {showAutoPull&&<AutoPullPanel propertyId={propertyId} userId={userId} onRefresh={load} onClose={()=>setShowAutoPull(false)}/>}
 
       {/* Σκελετός στο σχήμα του πλέγματος του μήνα: ο δείκτης φόρτωσης άφηνε τη
@@ -2275,7 +2341,7 @@ export default function TabCalendar({ propertyId, userId, openTasks = 0, onOpenT
 
       {!loading&&viewMode==='month'&&(
         <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-          <MonthView events={monthEvents} currentDate={currentDate} selectedDate={selectedDate} onDayClick={d=>{setSelectedDate(d);setCurrentDate(new Date(d+'T00:00:00'))}} onEventClick={openEdit} upcomingAll={filtered} drag={drag} stays={stays}/>
+          <MonthView events={monthEvents} currentDate={currentDate} selectedDate={selectedDate} onDayClick={d=>{setSelectedDate(d);setCurrentDate(new Date(d+'T00:00:00'))}} onDayOpen={d=>{setSelectedDate(d);setSheetDate(d)}} onEventClick={openEdit} upcomingAll={filtered} drag={drag} stays={stays}/>
           {monthEvents.length>0&&(
             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
               {/* Ο μήνας τον λέει ο επιλογέας από πάνω, μαζί με τη χρονιά του. */}

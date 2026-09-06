@@ -154,6 +154,33 @@ export const AUDIT = ({ vw, touch }) => {
     }
     return null;
   };
+  // ═══ ΤΟ ΟΡΘΟΓΩΝΙΟ ΠΟΥ ΦΑΙΝΕΤΑΙ, ΟΧΙ ΤΟ ΟΡΘΟΓΩΝΙΟ ΠΟΥ ΔΗΛΩΝΕΤΑΙ ═══════════
+  // Το `getBoundingClientRect` επιστρέφει τη ΓΕΩΜΕΤΡΙΑ, όχι ό,τι βλέπει το
+  // μάτι: ένα κουμπί μέσα σε περιοχή κύλισης κρατά ολόκληρο το ύψος του ακόμη
+  // κι όταν το δοχείο το κόβει στη μέση. Μετρημένο στον οδηγό ακινήτου, σε
+  // 1024×768: η επιλογή «Ιδιοχρησία» δηλώνει 656→745, ο κύλινδρός της
+  // τελειώνει στο 663 και το υποσέλιδο ξεκινά στο 678. Το ορατό κομμάτι της
+  // επιλογής είναι εφτά εικονοστοιχεία και ΔΕΝ αγγίζει το υποσέλιδο — ο
+  // έλεγχος όμως σύγκρινε τα 745 και ανέφερε σύγκρουση με «Ακύρωση» και
+  // «Συνέχεια». Τρία ευρήματα που περιέγραφαν κύλιση, όχι ελάττωμα.
+  //
+  // Ενα ψευδές εύρημα κοστίζει διπλά: τρώει προσοχή και ανεβάζει το όριο του
+  // καστάνιου, δηλαδή κρύβει τρία ΑΛΗΘΙΝΑ που θα χωρούσαν από κάτω του.
+  const clipped = (el) => {
+    let r = el.getBoundingClientRect();
+    let box = { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+    for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+      const c = getComputedStyle(p);
+      const clipsY = c.overflowY === 'auto' || c.overflowY === 'scroll' || c.overflowY === 'hidden';
+      const clipsX = c.overflowX === 'auto' || c.overflowX === 'scroll' || c.overflowX === 'hidden';
+      if (!clipsY && !clipsX) continue;
+      const pr = p.getBoundingClientRect();
+      if (clipsY) { box.top = Math.max(box.top, pr.top); box.bottom = Math.min(box.bottom, pr.bottom); }
+      if (clipsX) { box.left = Math.max(box.left, pr.left); box.right = Math.min(box.right, pr.right); }
+    }
+    return box;
+  };
+
   const taps = [...document.querySelectorAll('a,button,summary,[role="button"]')].filter(e => {
     if (!shown(e)) return false;
     const r = e.getBoundingClientRect();
@@ -164,7 +191,7 @@ export const AUDIT = ({ vw, touch }) => {
     if (taps[i].contains(taps[j]) || taps[j].contains(taps[i])) continue;
     if (layer(taps[i]) !== layer(taps[j])) continue;
     if (taps[i].getClientRects().length > 1 || taps[j].getClientRects().length > 1) continue;
-    const a = taps[i].getBoundingClientRect(), b = taps[j].getBoundingClientRect();
+    const a = clipped(taps[i]), b = clipped(taps[j]);
     // ═══ ΣΥΓΚΡΟΥΣΗ ΕΙΝΑΙ Η ΜΕΡΙΚΗ ΕΠΙΚΑΛΥΨΗ, ΟΧΙ Η ΠΛΗΡΗΣ ══════════════════
     // Το κουμπί ενεργειών «···» κάθεται ΕΠΙΤΗΔΕΣ πάνω στην κάρτα του, σε
     // απόλυτη θέση· είναι πατήσιμη κι η ίδια η κάρτα. Το `contains` δεν το

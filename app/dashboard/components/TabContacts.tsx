@@ -980,7 +980,20 @@ function ContactCard({ contact, onOpen, onEdit, onDelete, onQuickExpense, onQuic
       {bulkMode && <div style={{ position: 'absolute', top: 17, left: 15, zIndex: 2 }}><SelectBox checked={!!selected} onChange={() => onSelect?.()} label={`Επιλογή ${contact.full_name}`} /></div>}
       {overdue && <div style={{ position: 'absolute', top: 0, right: 0, background: 'var(--negative)', color: 'var(--text-inverse)', fontSize: 'var(--fs-xs)', fontWeight: 700, padding: '3px 10px', borderRadius: '0 16px 0 8px', letterSpacing: '0.07em' }}>ΛΗΞΗ ΡΑΝΤΕΒΟΥ</div>}
       {(hov || showActions || coarse) && !bulkMode && (
-        <div ref={actionsRef} style={{ position: 'absolute', top: 12, right: 12, zIndex: 20 }}>
+        <div ref={actionsRef} style={{ position: 'absolute', top: 28, right: 18, zIndex: 20 }}>
+          {/* ═══ ΟΙ ΕΝΕΡΓΕΙΕΣ ΔΕΝ ΗΤΑΝ ΣΤΟ ΥΨΟΣ ΤΗΣ ΓΡΑΜΜΗΣ ΠΟΥ ΑΦΟΡΟΥΝ ═══════
+            Μετρημένο στα 390: η γραμμή του ονόματος πιάνει 601→651, δηλαδή
+            κέντρο στο 626. Τα κουμπιά κάθονταν 595→625, κέντρο 610 — δεκαέξι
+            εικονοστοιχεία πιο ψηλά από αυτό που χειρίζονται, σε κάθε κάρτα
+            επαφής. Και το `right: 12` τα έσπρωχνε έξι πιο δεξιά από τη στήλη
+            του περιεχομένου, δηλαδή έβγαιναν από τη στοίχιση της κάρτας.
+
+            Τα νούμερα δεν είναι διάλεγμα ματιού: η εσωτερική απόσταση της
+            κάρτας είναι 18, το πλακίδιο του αρχικού 50 ψηλό και το κουμπί 30 —
+            18 + (50−30)/2 = 28. Το `right: 18` ισοφαρίζει την ίδια απόσταση,
+            οπότε η δεξιά άκρη των κουμπιών πέφτει ΑΚΡΙΒΩΣ πάνω στη δεξιά άκρη
+            του κειμένου από κάτω. Ο σαρωτής ανέφερε τη διαφορά ως σύγκρουση
+            στόχων σε τέσσερα πλάτη: το σφάλμα ήταν η στοίχιση, όχι η στρώση. */}
           {/* Ορατές μόνο οι πιο συχνές ενέργειες — όλες οι υπόλοιπες μπαίνουν στο «···» */}
           <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
             {contact.phone && <QuickAct as="a" href={'tel:' + contact.phone} title="Κλήση"><Phone size={13} /></QuickAct>}
