@@ -1281,7 +1281,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                 πέντε ποσά που ο ίδιος έγραψε και βλέπει ολόκληρα με ένα πάτημα
                 από κάτω. Μήκος που δεν ορίζει το προϊόν: `.po-elide`, ώστε ο
                 σαρωτής να ξέρει ότι η αποκοπή είναι απόφαση και όχι ατύχημα. */}
-            <p className={empty ? undefined : 'po-elide'} style={subStyle}>
+            <p className={empty ? undefined : 'po-elide-lines'} style={subStyle}>
               {empty
                 ? (term === 'short' ? 'Συμπλήρωσε αξία, πληρότητα και τιμή ανά νύχτα' : 'Συμπλήρωσε αξία ακινήτου και μηνιαίο μίσθωμα')
                 : [

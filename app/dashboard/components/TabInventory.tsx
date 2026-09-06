@@ -132,7 +132,7 @@ function AttentionCard({items,onEdit,onWarrantyReminder}:{items:InventoryItem[];
           <div key={item.id} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 12px',background:'var(--bg-elevated)',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)'}}>
             <div style={{minWidth:0,flex:1}}>
               <p className="po-elide" style={{fontSize: 'var(--fs-base)',fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)'}}>{item.name}</p>
-              <p className="po-elide" style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',fontFamily:T.font.sans}}>
+              <p className="po-elide-lines" style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',fontFamily:T.font.sans}}>
                 {label}{item.room?` · ${item.room}`:''}
                 {kind==='warr'&&item.warranty_expiry?` · ${fmtDate(item.warranty_expiry)}`:''}
                 {kind==='repl'&&item.replacement_cost?` · ${fe(item.replacement_cost)}`:''}
