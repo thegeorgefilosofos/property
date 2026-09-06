@@ -320,6 +320,9 @@ export const MUTATIONS = {
   'filenames': { add: 'lib/core/__mut__.ts', content: "import { downloadCsv } from '@/lib/core/download'\nexport const save = () => downloadCsv('logistiki-katastasi.csv', 'a,b')\n" },
   'page-heading': { add: 'app/__mut__/page.tsx', content: 'export default function P() {\n  return <div>Σελίδα χωρίς επικεφαλίδα</div>\n}\n' },
   'keyboard': { add: 'components/__mut__.tsx', content: 'export function P({ go }: { go: () => void }) {\n  return <div onClick={go}>Άνοιγμα</div>\n}\n' },
+  // Ένας νέος κανόνας εστίασης που σβήνει το outline και μένει μόνο με σκιά:
+  // ακριβώς το ελάττωμα που ο φύλακας υπάρχει για να πιάσει.
+  'forced-colors-focus': { file: 'app/globals.css', from: '::selection {', to: '.mut-probe:focus-visible { outline: none; box-shadow: 0 0 0 2px red; }\n::selection {' },
   'contrast': { file: 'app/globals.css', from: '--text-secondary:', to: '--text-secondary: #8f8f8f; --text-secondary-unused:' },
   // Δηλώνεται ΜΟΝΟ στο φωτεινό, και κάποιος τη ζητά: στο σκοτεινό είναι κενή.
   'theme-tokens': { steps: [
