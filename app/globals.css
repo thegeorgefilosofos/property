@@ -4177,12 +4177,17 @@ details.lp-faq-more[open] > div > details.lp-faq:first-child { border-top: none;
    γεγονός δεν μπορεί να ξεπεράσει τα 20 εικονοστοιχεία χωρίς να γίνει ο μήνας
    έξι οθόνες. Γραμμένο σε κλάση και όχι ενσώματα, ώστε η αιώρηση και η εστίαση
    με πληκτρολόγιο να μπορούν να ισχύσουν. */
+/* Ο επιλογέας είναι διπλός ΕΠΙΤΗΔΕΣ. Το δάπεδο αφής γράφεται
+   `.app-content button:not(.po-box)`, δηλαδή ειδικότητα (0,2,1): μια σκέτη
+   κλάση χάνει και η γραμμή έβγαινε 44 αντί 48 — μετρημένο, όχι υποτιθέμενο. */
+.app-content button.cal-day-row,
 .cal-day-row {
   display: flex; align-items: center; gap: 12px;
   min-height: 48px; width: 100%; text-align: left;
   padding: 8px 4px; border: none; border-bottom: 1px solid var(--border-subtle);
   background: transparent; cursor: pointer; font-family: inherit;
 }
+.app-content button.cal-day-row[data-last='true'],
 .cal-day-row[data-last='true'] { border-bottom: none; }
 
 /* ═══════════════════════════════════════════════════════════════════════════

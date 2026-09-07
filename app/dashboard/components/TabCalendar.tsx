@@ -95,7 +95,7 @@ type EventStatus   = calendar.EventStatus
 // επαναλαμβάνονταν με τρεις διαφορετικές εμβέλειες σε τρεις προβολές.
 type ViewMode      = 'month' | 'agenda'
 
-interface CalEvent {
+export interface CalEvent {
   id: string; property_id: string; user_id: string; title: string
   category: EventCategory; event_date: string; event_time?: string | null; duration_minutes?: number | null
   amount?: number | null
@@ -560,12 +560,17 @@ function textWidth(text: string, font: string): number {
 // το χέρι το χρειάζεται. Γι' αυτό δεν έχει φίλτρα, ταξινομήσεις ούτε δεύτερο
 // επίπεδο — μόνο τη λίστα και το «Νέο».
 // ═══════════════════════════════════════════════════════════════════════════
-function DaySheet({ date, events, onClose, onPick, onNew }: {
+export function DaySheet({ date, events, onClose, onPick, onNew }: {
   date: string; events: CalEvent[]; onClose: () => void; onPick: (e: CalEvent) => void; onNew: () => void
 }) {
   const d = new Date(date + 'T00:00:00')
   const title = `${d.getDate()} ${monthGen(d.getMonth())}`
   const sorted = [...events].sort((a, b) => (a.event_time || '99').localeCompare(b.event_time || '99'))
+  // Η ΣΤΗΛΗ ΤΗΣ ΩΡΑΣ ΚΡΑΤΙΕΤΑΙ ΜΟΝΟ ΟΤΑΝ ΥΠΑΡΧΕΙ ΩΡΑ. Οι περισσότερες
+  // υποχρεώσεις ενός ακινήτου — ΕΝΦΙΑ, δόση, λογαριασμός — είναι ΗΜΕΡΕΣ, όχι
+  // ραντεβού. Δεσμευμένη στήλη πέντε χαρακτήρων για όλες τους αφήνει μια τρύπα
+  // αριστερά από κάθε τίτλο και δεν λέει τίποτα.
+  const anyTime = sorted.some(e => !!e.event_time)
   return (
     <Modal open onClose={onClose} title={title} subtitle={`${events.length} ${events.length === 1 ? 'γεγονός' : 'γεγονότα'}`} size="sm"
       footer={<Btn variant="primary" onClick={onNew}>Νέο γεγονός</Btn>}>
@@ -574,7 +579,7 @@ function DaySheet({ date, events, onClose, onPick, onNew }: {
           <button key={ev.id} onClick={() => onPick(ev)} className="po-hov-row cal-day-row" data-last={i === sorted.length - 1}>
             {/* Η ώρα κρατά σταθερή στήλη ώστε οι τίτλοι να ξεκινούν όλοι από το
                 ίδιο σημείο· χωρίς ώρα μένει κενή αντί να μετακινήσει τη γραμμή. */}
-            <span style={{ width: '5ch', flexShrink: 0, fontSize: 'var(--fs-xs)', fontVariantNumeric: 'tabular-nums', color: 'var(--text-tertiary)' }}>{ev.event_time || ''}</span>
+            {anyTime && <span style={{ width: '5ch', flexShrink: 0, fontSize: 'var(--fs-xs)', fontVariantNumeric: 'tabular-nums', color: 'var(--text-tertiary)' }}>{ev.event_time || ''}</span>}
             <span style={{ flexShrink: 0, display: 'flex', color: CATEGORIES[ev.category].color }}>{CATEGORIES[ev.category].icon}</span>
             <span className="po-elide" style={{ flex: 1, minWidth: '6ch', fontSize: 'var(--fs-base)', fontWeight: 500, color: 'var(--text-primary)', textDecoration: ev.status === 'paid' ? 'line-through' : 'none', opacity: ev.status === 'paid' ? 0.55 : 1 }}>{ev.title}</span>
             {ev.amount ? <span style={{ flexShrink: 0, fontSize: 'var(--fs-base)', fontVariantNumeric: 'tabular-nums', color: 'var(--text-secondary)' }}>{fe(ev.amount)}</span> : null}
