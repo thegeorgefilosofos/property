@@ -157,7 +157,7 @@ export function PanelDashboard() {
           <div style={{ fontSize: 13, fontWeight: 700 }}>PROPERWISE</div>
         </div>
         {['Επισκόπηση', 'Ενοίκιο', 'Δαπάνες', 'Λογαριασμοί', 'Ημερολόγιο'].map((r, i) => (
-          <div key={i} className="lp-live" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 10px', borderRadius: 8, background: i === 0 ? 'var(--bg-elevated)' : 'transparent', border: i === 0 ? '1px solid var(--border-subtle)' : '1px solid transparent', color: i === 0 ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontSize: 13, fontWeight: i === 0 ? 700 : 500 }}>
+          <div key={i} className="lp-live" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 10px', borderRadius: 8, background: i === 0 ? 'var(--bg-elevated)' : 'transparent', border: i === 0 ? '1px solid var(--border-subtle)' : '1px solid transparent', color: i === 0 ? 'var(--text-secondary)' : 'var(--text-tertiary)', fontSize: 13, fontWeight: i === 0 ? 700 : 500 }}>
             <span style={{ width: 6, height: 6, borderRadius: 3, background: i === 0 ? 'var(--text-secondary)' : 'var(--border-strong)' }} />{r}
           </div>
         ))}
@@ -234,7 +234,7 @@ export function PanelDashboard() {
                 σημασιολογική χρήση πράσινου, καμία επιβράβευση με χρώμα. Η
                 αύξηση φαίνεται ήδη από τις ίδιες τις μπάρες· η γραμμή απλώς τη
                 μετράει. */}
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 650 }}>+12% φέτος</div>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 600 }}>+12% φέτος</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'clamp(4px, 1.2vw, 9px)', height: 92 }}>
             {months.map((m, i) => (
@@ -316,7 +316,7 @@ export function PanelScan() {
 export function PanelAssistant() {
   return (
     <div style={{ maxWidth: 460, margin: '0 auto', textAlign: 'left' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 11, paddingBottom: 12, marginBottom: 4, borderBottom: '1px solid var(--border-subtle)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingBottom: 12, marginBottom: 4, borderBottom: '1px solid var(--border-subtle)' }}>
         <div style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--accent)', color: 'var(--accent-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 15 }}>Ν</div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 14, fontWeight: 700 }}>Νόα</div>

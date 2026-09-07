@@ -600,7 +600,7 @@ body {
    περισσεύει μήνας. Και τα δύο πλέγματα χρησιμοποιούν ΤΗΝ ΙΔΙΑ κλάση, άρα δεν
    μπορούν να αποκλίνουν.
 ══════════════════════════════════════════════════════════════ */
-.po-year { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 5px; }
+.po-year { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 4px; }
 @media (max-width: 1180px) { .po-year { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
 @media (max-width: 640px)  { .po-year { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 @media (max-width: 420px)  { .po-year { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
@@ -792,6 +792,76 @@ body {
    ══════════════════════════════════════════════════════════════════════════ */
 .po-elide { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* ΟΤΑΝ ΜΙΑ ΓΡΑΜΜΗ ΔΕΝ ΦΤΑΝΕΙ, ΔΥΟ ΕΙΝΑΙ ΤΙΜΙΟΤΕΡΕΣ ΑΠΟ ΜΙΣΗ ═══════════════
+   ΤΙ ΜΕΤΡΗΘΗΚΕ (05/09/2026, 390). Η σύνοψη των Αποδόσεων είναι ΤΕΣΣΕΡΑ
+   στοιχεία σε μία σειρά — «Αξία 185.000,00 € · 400,00 € τον μήνα · 1.152,00 €
+   έξοδα τον χρόνο · Κέντρο Αθήνας». Ζητά 519 εικονοστοιχεία και παίρνει 257:
+   ο χρήστης έβλεπε τα δύο πρώτα και τίποτα άλλο. Το `.po-elide` ήταν γραμμένο
+   επίτηδες, ώστε ο σαρωτής να ξέρει ότι η αποκοπή είναι απόφαση — αλλά η
+   απόφαση δεν είχε μετρηθεί· έκρυβε τα μισά.
+
+   ΤΡΕΙΣ ΓΡΑΜΜΕΣ, ΚΑΙ ΤΟ ΕΜΑΘΑ ΜΕΤΡΩΝΤΑΣ. Πρώτη γραφή ήταν δύο, με το σκεπτικό
+   ότι μια κεφαλίδα δεν πρέπει να γίνει παράγραφος. Η μέτρηση είπε άλλα: στα
+   390 το κείμενο θέλει 42 εικονοστοιχεία και οι δύο γραμμές δίνουν 28, δηλαδή
+   έμενε κρυφό το 33% — ακριβώς η περιοχή στο τέλος. Στις τρεις χωρά ολόκληρο.
+
+   ΤΟ ΟΡΙΟ ΔΕΝ ΚΟΣΤΙΖΕΙ ΤΙΠΟΤΑ ΟΠΟΥ ΔΕΝ ΧΡΕΙΑΖΕΤΑΙ: στον υπολογιστή η σειρά
+   χωρά σε ΜΙΑ και η δεύτερη δεν γεννιέται ποτέ. Το clamp είναι ανώτατο όριο,
+   όχι ύψος. Γι' αυτό δεν μπαίνει media query — δεν έχει τι να χωρίσει. */
+.po-elide-lines {
+  min-width: 0; overflow: hidden;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3;
+  white-space: normal; overflow-wrap: anywhere;
+}
+
+/* Η ΚΕΦΑΛΙΔΑ ΠΟΥ ΑΝΟΙΓΕΙ ΚΑΙ ΚΛΕΙΝΕΙ ΜΙΑ ΚΑΡΤΑ ═════════════════════════════
+   ΤΙ ΜΕΤΡΗΘΗΚΕ. Στον πάγκο pricing στα 768 η κεφαλίδα «Βαθμονόμηση από τον
+   ανταγωνισμό» βγήκε 686×37: δύο σειρές κειμένου των 11 εικονοστοιχείων και
+   τίποτα να κρατήσει το ύψος. Είναι ολόκληρη στόχος αφής, όχι λέξη μέσα σε
+   πρόταση, οπότε τα 37 είναι λάθος σε κάθε συσκευή.
+
+   ΓΙΑΤΙ ΚΛΑΣΗ. Η ίδια σειρά ήταν γραμμένη τρεις φορές ενσώματα, σε δύο αρχεία,
+   με ίδιο flex και ίδιο cursor. Οποια από τις τρεις διόρθωνα, οι άλλες δύο θα
+   έμεναν πίσω· εδώ διορθώνονται μαζί.
+
+   ΓΙΑΤΙ ΧΩΡΙΣ `pointer: coarse`. Το `.po-tap` κρατά τα 44 μόνο στην αφή επειδή
+   φοριέται πάνω σε ενσωματωμένο κείμενο, όπου το ύψος σπάει την παράγραφο. Εδώ
+   το στοιχείο είναι μπλοκ σε κάρτα: τα 44 δεν χαλάνε τίποτα στο ποντίκι, δίνουν
+   στη σειρά τον ρυθμό των υπόλοιπων κεφαλίδων. */
+.po-disclosure {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; min-height: 44px; cursor: pointer;
+}
+
+/* Η ΚΕΦΑΛΙΔΑ ΜΗΝΑ ΤΟΥ ΑΡΧΕΙΟΥ ══════════════════════════════════════════════
+   Αδελφή της .po-disclosure, με δύο διαφορές που δικαιολογούν χωριστή κλάση:
+   είναι <button> και όχι μπλοκ με role· τα παιδιά της στοιχίζονται
+   αριστερά με το βελάκι να σπρώχνεται δεξιά — όχι μοιρασμένα στο πλάτος.
+
+   ΓΙΑΤΙ ΕΔΩ ΚΑΙ ΟΧΙ ΕΝΣΩΜΑΤΑ. Ο φύλακας hand-buttons μετρά κάθε <button> που
+   γράφει δικό του style· ο λόγος δεν είναι αισθητικός: ενσωματωμένο style
+   νικά κάθε κανόνα κλάσης, οπότε όσο το γράφουμε εκεί κανένα :hover και κανένα
+   :focus-visible δεν μπορεί να ισχύσει. Γραμμένο εδώ, η κεφαλίδα αποκτά και τα
+   δύο δωρεάν.
+
+   Το `data-open` κρατά το χώρισμα και το κενό ΜΟΝΟ όταν ο μήνας είναι
+   ανοιχτός: κλειστός, η κάρτα είναι μια καθαρή σειρά χωρίς γραμμή από κάτω. */
+.acc-month {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  min-height: 44px; padding: 0; background: none; border: none;
+  text-align: left; cursor: pointer; font: inherit;
+}
+.acc-month[data-open="true"] {
+  margin-bottom: 14px; padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.acc-month:hover .acc-month-label { color: var(--text-primary); }
+.acc-month-chevron { margin-left: auto; flex-shrink: 0; transition: transform .2s; }
+.acc-month-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-tertiary); flex-shrink: 0; }
+.acc-month-label { font-size: var(--fs-xs); font-weight: 700; color: var(--text-secondary); letter-spacing: 0.06em; transition: color .15s; }
+.acc-month-count { font-size: var(--fs-xs); color: var(--text-tertiary); }
+.acc-month[data-open="true"] .acc-month-chevron { transform: rotate(180deg); }
+
 /* Η ΣΤΗΛΗ ΤΟΥ ΜΗΝΑ ΣΤΗ ΣΥΓΚΡΙΣΗ ΔΑΠΑΝΩΝ ΕΙΝΑΙ ΣΤΑΣΗ ΠΛΗΚΤΡΟΛΟΓΙΟΥ. Δώδεκα
    στήλες με `tabIndex={0}` και ενσώματο `outline: none`: μετρημένο με Tab, καμία
    δεν άλλαζε όψη. Το δαχτυλίδι μπαίνει γύρω από ολόκληρη τη στήλη, με απόσταση,
@@ -967,7 +1037,7 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
   letter-spacing: -0.025em;
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);
-  margin-bottom: 5px;
+  margin-bottom: 4px;
   transition: color 0.15s cubic-bezier(0.2,0,0,1);
 }
 /* Ενα νούμερο KPI χωρίς πλακίδιο γύρω του: μέσα σε κάρτα που έχει ήδη δικό της
@@ -1136,13 +1206,24 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
 
    Το `min-height` κρατά την ίδια εικόνα όπου η μπάρα είναι μονόγραμμη.
 ══════════════════════════════════════════════════════════════════════════ */
+/* ═══ ΣΕ IPHONE Η ΜΠΑΡΑ ΞΕΚΙΝΑΕΙ ΚΑΤΩ ΑΠΟ ΤΟ DYNAMIC ISLAND ══════════════════
+   ΤΟ MANIFEST ΛΕΕΙ «standalone» ΚΑΙ ΤΟ VIEWPORT ΛΕΕΙ «cover». Μαζί σημαίνουν:
+   όταν κάποιος προσθέσει την εφαρμογή στην αρχική οθόνη του iPhone και την
+   ανοίξει, ΔΕΝ υπάρχει μπάρα διευθύνσεων — η σελίδα ζωγραφίζει από το απόλυτο
+   πάνω άκρο της οθόνης, δηλαδή ΚΑΤΩ από την εγκοπή ή το Dynamic Island.
+   Η μπάρα είχε «padding: 0 24px»: μηδέν επάνω. Το όνομα του ακινήτου, η
+   αναζήτηση και το σήμα κατάστασης κάθονταν κάτω από το μαύρο νησί, μισά
+   κρυμμένα, σε κάθε iPhone από το X και μετά.
+   Στον περιηγητή το inset είναι μηδέν —εκεί τη θέση την κρατά η μπάρα
+   διευθύνσεων— οπότε ο κανόνας δεν αλλάζει τίποτα για όποιον δεν το έχει
+   εγκαταστήσει. Η εφεδρική τιμή κρατά τα υπόλοιπα προγράμματα ασφαλή. */
 .app-topbar {
   height: auto;
-  min-height: 64px;          /* Google's exact app bar height */
+  min-height: calc(64px + env(safe-area-inset-top, 0px));
   border-bottom: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
-  padding: 0 24px;
+  padding: env(safe-area-inset-top, 0px) 24px 0;
   gap: 16px;
   flex-shrink: 0;
   background: var(--bg-surface);
@@ -1408,6 +1489,49 @@ input[type="password"]::-webkit-strong-password-auto-fill-button {
    γράφεται και μένει μόνο το εικονίδιο των 16, δηλαδή κουτί 40 × 44 με
    στρογγυλή άκρη: μετρημένο, δύο ίσιες πλευρές δεξιά και αριστερά που το
    προδίδουν. Το δάπεδο αφής των 44 μπαίνει και στο πλάτος. */
+/* ═══ Η ΚΛΙΜΑΚΑ ΚΕΙΜΕΝΟΥ, ΚΑΙ ΓΙΑΤΙ ΑΝΕΒΑΙΝΕΙ ΜΟΝΟ ΣΤΟ ΔΑΧΤΥΛΟ ═══════════════
+   ΜΕΤΡΗΘΗΚΕ ΣΕ 38 ΣΚΗΝΕΣ: το 63% του ορατού κειμένου της εφαρμογής ήταν 11 ή 12
+   εικονοστοιχεία — 1.660 και 1.158 στοιχεία. Το iOS ορίζει σώμα κειμένου στα 17,
+   το Material στα 14. Τα 11 σε τηλέφωνο είναι κάτω από το όριο άνετης ανάγνωσης·
+   το κοινό εδώ είναι Ελληνες ιδιοκτήτες ακινήτων, δηλαδή κατά κύριο λόγο
+   σαράντα πέντε και πάνω.
+
+   ΤΟ ΚΟΣΤΟΣ ΜΕΤΡΗΘΗΚΕ ΠΡΙΝ ΑΠΟΦΑΣΙΣΤΕΙ, στα 375×812, με δύο περάσματα στην ΙΔΙΑ
+   σελίδα ώστε η μόνη μεταβλητή να είναι το μέγεθος:
+
+       portfolio 2,0→2,1   ledger 2,5→2,6   pricing 6,9→7,1   bills 1,7→1,8
+       cash 1,0→1,0        inbox 4,4→4,4    contacts 2,5→2,5  loan 4,4→4,5
+       ΣΥΝΟΛΟ 32,0 → 32,7 οθόνες κύλισης, δηλαδή +2,4%
+
+   Ενα δέκατο της οθόνης ανά καρτέλα για να διαβάζεται το 63% του κειμένου. Οι
+   286 ετικέτες των 11 στην Τιμολόγηση κόστισαν 3%, επειδή οι περισσότερες
+   κάθονται σε κελιά σταθερού ύψους και δεν σπρώχνουν τίποτα.
+
+   ΓΙΑΤΙ ΜΟΝΟ ΣΤΟ ΔΑΧΤΥΛΟ. Σε υπολογιστή η οθόνη είναι μακριά από το μάτι κατά
+   εξήντα εκατοστά αντί για τριάντα, το δείκτη τον οδηγεί ποντίκι και η
+   πυκνότητα ΕΙΝΑΙ το ζητούμενο: ένα φύλλο με φόρους και δόσεις θέλει να
+   χωράει. Το `pointer: coarse` κρίνει τη ΣΥΣΚΕΥΗ και όχι το πλάτος, οπότε ένα
+   στενό παράθυρο σε επιτραπέζιο δεν παίρνει μεγέθη τηλεφώνου.
+
+   ΓΙΑΤΙ ΜΕΤΑΒΛΗΤΕΣ ΚΑΙ ΟΧΙ 916 ΑΛΛΑΓΕΣ ΣΕ ΑΡΙΘΜΟΥΣ. Τα μεγέθη γράφονται
+   ενσωματωμένα (`style={{ fontSize: 11 }}`) και ένα ενσωματωμένο στιλ ΔΕΝ
+   δέχεται media query. Μια μεταβλητή CSS όμως το δέχεται: το `var(--fs-xs)`
+   λύνεται τη στιγμή της απόδοσης, άρα η ΙΔΙΑ γραμμή κώδικα δίνει 11 σε ποντίκι
+   και 12 σε δάχτυλο. Χωρίς αυτό θα χρειαζόταν διπλή γραφή σε κάθε σημείο.
+   ══════════════════════════════════════════════════════════════════════════ */
+:root {
+  --fs-xs: 11px;    /* ετικέτες, υποσημειώσεις, σήματα */
+  --fs-sm: 12px;    /* δευτερεύον κείμενο, κουμπιά */
+  --fs-base: 13px;  /* σώμα */
+  --fs-md: 14px;    /* σώμα με έμφαση, πεδία */
+}
+@media (pointer: coarse) {
+  :root {
+    --fs-xs: 12px;
+    --fs-base: 14px;
+  }
+}
+
 @media (pointer: coarse) {
   .topbar-search { min-width: 44px; justify-content: center; }
   /* Ο στόχος αφής του εναλλάκτη, δηλωμένος ως ύψος και όχι ως γέμισμα που
@@ -2460,6 +2584,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .app-sidebar {
     position: fixed;
     top: 0; left: 0; bottom: 0;
+    /* Το συρόμενο μενού πιάνει ΟΛΟ το ύψος της οθόνης: σε standalone iPhone και
+       iPad αυτό σημαίνει κάτω από την εγκοπή και πάνω από τη μπάρα αφής. Το
+       φόντο ΠΡΕΠΕΙ να φτάνει ώς τα άκρα —αλλιώς φαίνεται λωρίδα από κάτω— αλλά
+       το ΠΕΡΙΕΧΟΜΕΝΟ όχι: ο τίτλος έμπαινε κάτω από το Dynamic Island και το
+       τελευταίο στοιχείο του μενού πίσω από τη μπάρα αφής. */
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-sizing: border-box;
     width: 280px;
     max-width: 86vw;
     z-index: 1200;
@@ -2827,8 +2959,59 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
    το κείμενο ενώ το πλάτος του κελιού μένει ίδιο, οπότε μόλις το κείμενο
    μεγαλώσει το ποσό αποσύρεται. Η ημέρα ανοίγει με πάτημα και το δείχνει
    ολόκληρο· η κουκκίδα και τα πλακίδια των γεγονότων μένουν στη θέση τους. */
-.cal-cell { container-type: inline-size; font-size: 11px; }
+/* ΤΟ ΚΕΛΙ ΔΙΑΒΑΖΕΙ ΤΗΝ ΚΛΙΜΑΚΑ, ΑΛΛΙΩΣ ΤΟ ΕΡΩΤΗΜΑ ΨΕΥΔΕΤΑΙ. Το μέγεθος εδώ ήταν
+   καρφωμένο στα 11. Οταν η κλίμακα κειμένου ανέβηκε σε δάχτυλο (11→12), το
+   κείμενο μέσα στο κελί μεγάλωσε αλλά το `2.6em` του ερωτήματος έμεινε
+   υπολογισμένο σε 11, δηλαδή 28,6 εικονοστοιχεία: το κελί των 30 περνούσε το
+   κατώφλι, το ποσό ΔΕΝ αποσυρόταν και το «€» ξέφευγε 2 εικονοστοιχεία έξω από
+   το κελί. Με τη μεταβλητή, το `em` μεγαλώνει μαζί με το κείμενο —2,6 × 12 =
+   31,2— και ο μηχανισμός κάνει ακριβώς αυτό που περιγράφει το σχόλιο από πάνω:
+   το ποσό αποσύρεται μόνο του μόλις πάψει να χωράει. */
+.cal-cell { container-type: inline-size; font-size: var(--fs-xs); }
 @container (max-width: 2.6em) { .cal-day-amt { display: none; } }
+
+/* ═══ ΣΤΕΝΟ ΚΕΛΙ: Η ΜΠΑΡΑ ΛΕΕΙ ΤΗΝ ΑΛΗΘΕΙΑ, ΤΟ ΚΟΜΜΕΝΟ ΚΕΙΜΕΝΟ ΟΧΙ ══════════
+   ΤΙ ΜΕΤΡΗΘΗΚΕ (05/09/2026). Σάρωσα πόσο κείμενο κόβεται πραγματικά σε 38
+   σκηνές επί δύο πλάτη: 27 σημεία, όλα με `po-elide`. Το χειρότερο ήταν εδώ —
+   «Λογαριασμός ΕΥΔΑΠ» σε κελί 39 εικονοστοιχείων έχανε το 72% του, δηλαδή ο
+   χρήστης διάβαζε «Λογαρ…». Δίπλα του «Λογαριασμός ΔΕΗ» θα έδειχνε ΤΟ ΙΔΙΟ
+   «Λογαρ…»: δύο διαφορετικά πράγματα, ίδια εικόνα.
+
+   ΤΟ ΚΟΜΜΕΝΟ ΚΕΙΜΕΝΟ ΠΡΟΣΠΟΙΕΙΤΑΙ ΟΤΙ ΕΝΗΜΕΡΩΝΕΙ. Τέσσερις χαρακτήρες δεν
+   ξεχωρίζουν τίποτα· απλώς γεμίζουν τον χώρο και κάνουν το πλέγμα θορυβώδες.
+   Μια μπάρα λέει ακριβώς όσα ξέρει: «κάτι υπάρχει εδώ, πάτα το». Ετσι κάνει
+   κάθε ημερολόγιο τηλεφώνου, από το iOS ώς το Google.
+
+   ΤΙΠΟΤΑ ΔΕΝ ΧΑΝΕΤΑΙ. Ο τίτλος μένει στο `aria-label`, στο tooltip και στο
+   πάτημα — δηλαδή για τον αναγνώστη οθόνης και για όποιον ρωτήσει. Φεύγει
+   μόνο η ΨΕΥΤΙΚΗ πληροφορία των τεσσάρων χαρακτήρων.
+
+   ΤΟ ΚΑΤΩΦΛΙ ΓΡΑΦΕΤΑΙ ΣΕ ΕΙΚΟΝΟΣΤΟΙΧΕΙΑ, ΚΑΙ ΤΟ ΕΜΑΘΑ ΜΕΤΡΩΝΤΑΣ. Πρώτη γραφή
+   ήταν «4.5em», με τη σκέψη ότι το em θα λυνόταν πάνω στο κελί (12) και θα
+   ακολουθούσε μόνο του την κλίμακα αφής. Δεν λύνεται εκεί: με κελιά 43, 52 και
+   58 να γίνονται όλα μπάρες και το 103 όχι, το κατώφλι έβγαινε ~72 — δηλαδή
+   λύθηκε στη ΡΙΖΑ. Ενα κατώφλι που δεν ξέρεις πού λύνεται δεν είναι κατώφλι.
+
+   ΤΑ 80 ΒΓΑΙΝΟΥΝ ΑΠΟ ΤΗ ΜΕΤΡΗΣΗ. Με κείμενο 11-12, δέκα ελληνικοί χαρακτήρες
+   θέλουν περίπου 72 συν τα περιθώρια. Κάτω από αυτό η ετικέτα γίνεται στέλεχος
+   («Λογαρ…») που δεν ξεχωρίζει τον έναν λογαριασμό από τον άλλο· από πάνω
+   («Συντήρηση καυ…») ενημερώνει πραγματικά. */
+@container (max-width: 80px) {
+  /* ΤΟ ΤΣΙΠ ΚΡΑΤΑ ΤΟ ΥΨΟΣ ΤΟΥ. ΜΟΝΟ ΤΟ ΚΕΙΜΕΝΟ ΦΕΥΓΕΙ ═══════════════════
+     ΠΡΩΤΗ ΓΡΑΦΗ ΗΤΑΝ `font-size: 0` ΜΕ ΥΨΟΣ 4, ΚΑΙ ΗΤΑΝ ΧΕΙΡΟΤΕΡΗ ΑΠΟ ΤΟ
+     ΠΡΟΒΛΗΜΑ. Η σάρωση απόδοσης το είπε με δύο τρόπους ταυτόχρονα: δώδεκα
+     νέα ευρήματα, «κείμενο < 11px … 0px» και «στόχος < 44 … 39×4». Δηλαδή
+     διόρθωνα την αναγνωσιμότητα σπάζοντας την αφή — το τσιπ είναι
+     role="button" και το έκανα τέσσερα εικονοστοιχεία ψηλό.
+
+     ΤΟ ΖΗΤΟΥΜΕΝΟ ΗΤΑΝ ΠΑΝΤΑ ΜΟΝΟ ΤΟ ΚΕΙΜΕΝΟ. Το `text-indent` το σπρώχνει
+     έξω από το πλαίσιο και το `overflow` το κόβει: το τσιπ μένει ΑΚΡΙΒΩΣ
+     όπως ήταν σε ύψος, χρώμα και στόχο αφής, απλώς χωρίς τους τέσσερις
+     χαρακτήρες που δεν έλεγαν τίποτα. Το κείμενο παραμένει 11 για τον
+     μετρητή και για τον αναγνώστη οθόνης· απλώς δεν ζωγραφίζεται. */
+  .cal-chip { text-indent: -999px; overflow: hidden; }
+  .cal-chip svg { display: none; }
+}
 
 /* Γραμμή κόστους υπηρεσίας (Ενοικιαστής): τα δύο πεδία πάνε από κάτω σε κινητό */
 @media (max-width: 560px) {
@@ -3117,13 +3300,21 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
      άκρο και πάνω της το κουμπί του βοηθού (bottom:82px). Το περιθώριο πρέπει
      να καθαρίζει το ψηλότερο από τα δύο — τα 80px κάλυπταν μόνο την πλοήγηση,
      οπότε το κουμπί συνέχιζε να κάθεται πάνω στην τελευταία κάρτα. */
-  .app-content { padding-bottom: calc(82px + var(--fab-h) + 16px); }
+  /* ═══ ΚΑΙ Η ΜΠΑΡΑ ΑΦΗΣ ΤΟΥ IPHONE ΜΕΤΡΑΕΙ ══════════════════════════════
+     Τα 82 ήταν το ύψος της πλοήγησης ΧΩΡΙΣ το κάτω όριο ασφαλείας. Η ίδια η
+     πλοήγηση το κρατά σωστά (padding-bottom με env), άρα στο iPhone είναι
+     ψηλότερη κατά τη μπάρα αφής — περίπου 34 εικονοστοιχεία. Ο,τι υπολόγιζε
+     82 κρατούσε 34 λιγότερα απ' όσα χρειάζονταν: η τελευταία κάρτα κάθε
+     λίστας κρυβόταν πίσω από την πλοήγηση και το μήνυμα επιβεβαίωσης
+     εμφανιζόταν από κάτω της. Στο Android το inset είναι μηδέν και τίποτα
+     δεν αλλάζει. */
+  .app-content { padding-bottom: calc(82px + env(safe-area-inset-bottom, 0px) + var(--fab-h) + 16px); }
   /* Πάνω από την πλοήγηση ΚΑΙ πάνω από το κουμπί του βοηθού: ακριβώς το ίδιο
      ύψος που κρατά ήδη ελεύθερο η `.app-content` από πάνω. */
-  :root { --float-bottom: calc(82px + var(--fab-h) + 12px); }
+  :root { --float-bottom: calc(82px + env(safe-area-inset-bottom, 0px) + var(--fab-h) + 12px); }
 }
 .bottom-nav-item {
-  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
   padding: 6px 2px; border: none; background: none; cursor: pointer;
   color: var(--text-tertiary); font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500;
   min-height: 48px; border-radius: 12px; transition: color 0.15s;
@@ -3156,7 +3347,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 .cmdk-list { max-height: 52vh; overflow-y: auto; padding: 6px; }
 .cmdk-item {
-  display: flex; align-items: center; gap: 12px; padding: 11px 14px; cursor: pointer;
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px; cursor: pointer;
   font-size: 14px; color: var(--text-primary); font-family: 'Inter', sans-serif;
   border-radius: 10px;
 }
@@ -3337,7 +3528,7 @@ html.a11y-large-text { zoom: 1.08; }
    περιθώρια ενός inline κουτιού δεν μετακινούν τη γραμμή από κάτω, οπότε το
    margin-bottom απλώς δεν θα ίσχυε και ο τίτλος θα κολλούσε στην ετικέτα. */
 .lp-eyebrow {
-  display: flex; width: fit-content; align-items: center; gap: 9px;
+  display: flex; width: fit-content; align-items: center; gap: 8px;
   font-size: 12px; font-weight: 700; letter-spacing: 0.13em;
   text-transform: uppercase; color: var(--text-tertiary);
   margin-bottom: 13px;
@@ -3494,7 +3685,7 @@ details.lp-faq-more[open] > div > details.lp-faq:first-child { border-top: none;
 .lg-back {
   display: inline-flex; align-items: center; gap: 7px;
   margin-bottom: clamp(16px, 2.2vw, 24px);
-  font-size: 13.5px; font-weight: 600; text-decoration: none;
+  font-size: 14px; font-weight: 600; text-decoration: none;
   color: var(--text-tertiary); transition: color .15s;
 }
 
@@ -3531,7 +3722,7 @@ details.lp-faq-more[open] > div > details.lp-faq:first-child { border-top: none;
 .lg-toc-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 1px; }
 .lg-toc-link {
   display: flex; gap: 10px; align-items: baseline;
-  padding: 6px 0; font-size: 13.5px; line-height: 1.45;
+  padding: 6px 0; font-size: 14px; line-height: 1.45;
   color: var(--text-secondary); text-decoration: none;
   transition: color .15s;
 }
@@ -3561,12 +3752,12 @@ details.lp-faq-more[open] > div > details.lp-faq:first-child { border-top: none;
    κάτω από τα 560. Το `pretty` μένει για να μην ξεμένει μία λέξη μόνη της
    στην τελευταία σειρά. */
 .lg-p { font-size: 15px; color: var(--text-secondary); line-height: 1.7; margin: 0 0 12px; text-align: justify; text-wrap: pretty; }
-.lg-p strong, .lg-ul strong { color: var(--text-primary); font-weight: 650; }
+.lg-p strong, .lg-ul strong { color: var(--text-primary); font-weight: 600; }
 .lg-p:last-child, .lg-ul:last-child { margin-bottom: 0; }
 .lg-ul { margin: 2px 0 12px; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
 .lg-ul li { font-size: 15px; color: var(--text-secondary); line-height: 1.65; text-align: justify; text-wrap: pretty; }
 .lg-note {
-  font-size: 13.5px; color: var(--text-tertiary); line-height: 1.65; text-align: justify;
+  font-size: 14px; color: var(--text-tertiary); line-height: 1.65; text-align: justify;
   margin: 12px 0 0; padding: 13px 16px;
   background: var(--bg-elevated); border: 1px solid var(--border-subtle);
   border-radius: 12px;
@@ -3856,7 +4047,7 @@ details.lp-faq-more[open] > div > details.lp-faq:first-child { border-top: none;
    παίρνει όλο το πλάτος και διαβάζεται σε μία ή δύο σειρές. */
 .tariff-row {
   display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 14px; align-items: baseline; padding: 11px 14px;
+  gap: 14px; align-items: baseline; padding: 12px 14px;
 }
 @media (max-width: 560px) {
   .tariff-row { grid-template-columns: auto minmax(0, 1fr); row-gap: 6px; }
@@ -3881,7 +4072,7 @@ details.lp-faq-more[open] > div > details.lp-faq:first-child { border-top: none;
 .lens-bar {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
-  gap: 3px;
+  gap: 4px;
 }
 /* Η ΕΤΙΚΕΤΑ ΣΠΑΕΙ ΣΕ ΔΕΥΤΕΡΗ ΓΡΑΜΜΗ ΑΝΤΙ ΝΑ ΒΓΕΙ ΕΞΩ. Μετρημένο: το «Πίνακας
    και έγγραφα» θέλει 168 εικονοστοιχεία με το περιθώριό του και στα 360 η στήλη
@@ -3907,4 +4098,121 @@ details.lp-faq-more[open] > div > details.lp-faq:first-child { border-top: none;
    στήλες αρχίζουν να χωρούν. */
 @media (min-width: 701px) and (max-width: 910px) {
   .lens-bar:has(> :nth-child(5)) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ΥΨΗΛΗ ΑΝΤΙΘΕΣΗ ΤΟΥ ΛΕΙΤΟΥΡΓΙΚΟΥ: ΤΟ ΔΑΧΤΥΛΙΔΙ ΕΣΤΙΑΣΗΣ ΕΞΑΦΑΝΙΖΟΤΑΝ
+   ─────────────────────────────────────────────────────────────────────────
+   Στη λειτουργία υψηλής αντίθεσης των Windows (και στην αντίστοιχη των
+   Edge/Chrome/Firefox) ο περιηγητής ΠΕΤΑΕΙ κάθε `box-shadow`. Είναι ρητή
+   απαίτηση του προτύπου CSS Forced Colors, όχι σφάλμα υλοποίησης.
+
+   Τρία σημεία της εφαρμογής δήλωναν την εστίαση ΜΟΝΟ με `box-shadow`, αφού
+   είχαν σβήσει το `outline` για να μη θορυβεί: `.po-box` (κάθε κουμπί/σύνδεσμος
+   κουτιού), `.acc-toggle` (κάθε πτυσσόμενη κεφαλίδα) · `.po-sec-toggle`.
+   Δηλαδή ακριβώς ο χρήστης που εξαρτάται περισσότερο από την ένδειξη — αυτός
+   που δουλεύει με πληκτρολόγιο σε υψηλή αντίθεση — δεν έβλεπε πουθενά πού
+   βρίσκεται. Καμία σάρωση δεν το έπιανε: οι μετρήσεις τρέχουν με κανονικά
+   χρώματα, όπου η σκιά υπάρχει.
+
+   Το `Highlight` είναι το χρώμα εστίασης που ορίζει ο ΧΡΗΣΤΗΣ στο σύστημά
+   του — δεν επιβάλλουμε δικό μας, γιατί σε αυτή τη λειτουργία η παλέτα
+   ανήκει σε εκείνον. Το `forced-color-adjust: none` δεν χρησιμοποιείται
+   πουθενά εδώ για τον ίδιο λόγο.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (forced-colors: active) {
+  .po-box:focus-visible,
+  .acc-toggle:focus-visible,
+  .po-sec-toggle:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+  /* Οι κάρτες και τα πλακίδια στηρίζονται σε σκιά για ανάγλυφο· χωρίς αυτήν
+     κολλάνε οπτικά μεταξύ τους. Ένα όριο συστήματος τις ξαναχωρίζει. */
+  .record-card, .kpi-card, .po-fig-card {
+    border: 1px solid CanvasText;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   «ΑΥΞΗΣΗ ΑΝΤΙΘΕΣΗΣ» ΤΟΥ ΣΥΣΤΗΜΑΤΟΣ: Η ΕΦΑΡΜΟΓΗ ΔΕΝ ΑΠΑΝΤΟΥΣΕ ΚΑΘΟΛΟΥ
+   ─────────────────────────────────────────────────────────────────────────
+   Η ρύθμιση υπάρχει σε iOS (Ρυθμίσεις > Προσβασιμότητα > Οθόνη > Αύξηση
+   αντίθεσης), σε macOS · σε Android. Ζητά κάτι συγκεκριμένο: πιο έντονο
+   κείμενο δεύτερης/τρίτης βαθμίδας και πιο ευδιάκριτα όρια. Η εφαρμογή είχε
+   μηδέν κανόνες γι' αυτήν, δηλαδή ο χρήστης άλλαζε τη ρύθμιση και δεν έβλεπε
+   καμία διαφορά.
+
+   Οι τιμές δεν είναι αυθαίρετες: κρατούν την ΙΕΡΑΡΧΙΑ των τριών βαθμίδων —
+   δεν γίνονται όλες μαύρες — αλλά ανεβάζουν τη χειρότερη περίπτωση. Στο
+   φωτεινό θέμα η 2η βαθμίδα πάει 5,02 → 8,59:1 και η 3η 4,67 → 7,00:1 στην
+   πιο δύσκολη επιφάνεια. Στο σκούρο, 5,78 → 9,85:1 και 4,67 → 8,02:1.
+   Τα όρια περνούν στην αμέσως εντονότερη βαθμίδα που ήδη υπάρχει, οπότε δεν
+   εισάγεται κανένα νέο χρώμα στην παλέτα. */
+@media (prefers-contrast: more) {
+  /* Οι επιλογείς είναι ΑΚΡΙΒΩΣ οι ίδιοι με τους ορισμούς της παλέτας
+     (γραμμές 120 · 286). Ένα σκέτο `:root` έχει μικρότερη ειδικότητα από το
+     `:root[data-mode="light"]` και δεν θα ίσχυε ποτέ — ο κανόνας θα υπήρχε
+     στο αρχείο χωρίς να αλλάζει τίποτα στην οθόνη. */
+  :root[data-mode="light"] {
+    --text-secondary: #3c4043;
+    --text-tertiary:  #494f54;
+    --border-subtle:  #bdc1c6;
+    --border-default: #9aa0a6;
+    --border-strong:  #5f6368;
+  }
+  [data-mode="dark"] {
+    --text-secondary: #e8eaed;
+    --text-tertiary:  #d2d6da;
+    --border-subtle:  #5f6368;
+    --border-default: #80868b;
+    --border-strong:  #9aa0a6;
+  }
+  /* Η εστίαση δεν χάνεται μέσα στο πιο έντονο περιβάλλον: παχύτερο δαχτυλίδι. */
+  :focus-visible { outline-width: 3px; }
+}
+
+/* ΤΟ ΦΥΛΛΟ ΤΗΣ ΗΜΕΡΑΣ: ΓΡΑΜΜΗ 48, ΓΙΑΤΙ ΤΟ ΤΣΙΠΑΚΙ ΤΟΥ ΠΛΕΓΜΑΤΟΣ ΕΙΝΑΙ 20.
+   Το ύψος είναι ο λόγος ύπαρξης αυτής της λίστας: στο πλέγμα του μήνα ένα
+   γεγονός δεν μπορεί να ξεπεράσει τα 20 εικονοστοιχεία χωρίς να γίνει ο μήνας
+   έξι οθόνες. Γραμμένο σε κλάση και όχι ενσώματα, ώστε η αιώρηση και η εστίαση
+   με πληκτρολόγιο να μπορούν να ισχύσουν. */
+/* Ο επιλογέας είναι διπλός ΕΠΙΤΗΔΕΣ. Το δάπεδο αφής γράφεται
+   `.app-content button:not(.po-box)`, δηλαδή ειδικότητα (0,2,1): μια σκέτη
+   κλάση χάνει και η γραμμή έβγαινε 44 αντί 48 — μετρημένο, όχι υποτιθέμενο. */
+.app-content button.cal-day-row,
+.cal-day-row {
+  display: flex; align-items: center; gap: 12px;
+  min-height: 48px; width: 100%; text-align: left;
+  padding: 8px 4px; border: none; border-bottom: 1px solid var(--border-subtle);
+  background: transparent; cursor: pointer; font-family: inherit;
+}
+.app-content button.cal-day-row[data-last='true'],
+.cal-day-row[data-last='true'] { border-bottom: none; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ΤΟ ΠΛΕΓΜΑ ΤΟΥ ΜΗΝΑ ΦΤΑΝΕΙ ΠΕΡΑ ΠΕΡΑ ΣΤΟ ΚΙΝΗΤΟ
+   ─────────────────────────────────────────────────────────────────────────
+   Εφτά στήλες μοιράζονται ό,τι μένει από το πλάτος της οθόνης. Μετρημένο στα
+   320: το `.app-content` κρατά 10 δεξιά κι αριστερά, η κάρτα άλλο 1 για το
+   περίγραμμά της, οπότε στις στήλες μένουν 298 — δηλαδή 42,6 η καθεμία, που ο
+   σαρωτής αναφέρει ως 43. Ο στόχος αφής των 44 έπεφτε για έναν πόντο, σε ΚΑΘΕ
+   ημέρα του μήνα.
+
+   Η κάρτα ακυρώνει το περιθώριο του κελύφους αντί να ζητήσει μικρότερα κελιά:
+   318 προς 7 δίνει 45,4. Κερδίζουν και τα ποσά, που εδώ ακριβώς έβγαιναν έξω.
+   Οι πλαϊνές γραμμές φεύγουν μαζί με την ακτίνα — μια κάρτα που ακουμπά τις
+   δύο άκρες δεν έχει πλευρές να δείξει · ένα μισό περίγραμμα διαβάζεται ως
+   λάθος. Πάνω από 430 τίποτα δεν αλλάζει: εκεί οι στήλες περνούν άνετα.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 430px) {
+  .cal-bleed {
+    margin-inline: -12px;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+}
+@media (max-width: 360px) {
+  .cal-bleed { margin-inline: -10px; }
 }

@@ -220,15 +220,15 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
 
   return (
     <div className="card" style={{ marginBottom: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, cursor: 'pointer' }} {...pressable(() => setOpen(o => !o))}>
+      <div className="po-disclosure" {...pressable(() => setOpen(o => !o))}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>Πύλη ενοικιαστή</div>
-            <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>Κοινοποίηση συνδέσμου και αιτήματα βλάβης</div>
+            <div style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>Πύλη ενοικιαστή</div>
+            <div style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 1 }}>Κοινοποίηση συνδέσμου και αιτήματα βλάβης</div>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-          {pending.length > 0 && <span style={{ minWidth: 20, height: 20, borderRadius: 10, background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px', fontFamily: T.font.sans }}>{pending.length}</span>}
+          {pending.length > 0 && <span style={{ minWidth: 20, height: 20, borderRadius: 10, background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 'var(--fs-xs)', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px', fontFamily: T.font.sans }}>{pending.length}</span>}
           <svg aria-hidden="true" width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="m6 9 6 6 6-6"/></svg>
         </div>
       </div>
@@ -252,18 +252,18 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
                   έβλεπε τα στοιχεία του νέου. Μία πρόταση, ένα κουμπί. */}
               {staleLink && (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: 10, padding: '10px 12px', marginBottom: 12 }}>
-                  <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--warning-on-container)', lineHeight: 1.5, flex: 1, minWidth: 200 }}>
+                  <div style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', color: 'var(--warning-on-container)', lineHeight: 1.5, flex: 1, minWidth: 200 }}>
                     Ο σύνδεσμος ανήκει στον προηγούμενο ενοικιαστή. Έκδωσε νέον για <strong>{tenant?.full_name || 'τον σημερινό ενοικιαστή'}</strong>, ο παλιός παύει αμέσως να ισχύει.
                   </div>
-                  <button onClick={reissue} disabled={busy} style={{ height: T.h.sm, padding: '0 14px', borderRadius: T.radius.pill, border: 'none', background: 'var(--warning)', color: 'var(--on-tone)', fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, cursor: busy ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>{busy ? 'Έκδοση…' : 'Έκδοση νέου συνδέσμου'}</button>
+                  <button onClick={reissue} disabled={busy} style={{ height: T.h.sm, padding: '0 14px', borderRadius: T.radius.pill, border: 'none', background: 'var(--warning)', color: 'var(--on-tone)', fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 700, cursor: busy ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>{busy ? 'Έκδοση…' : 'Έκδοση νέου συνδέσμου'}</button>
                 </div>
               )}
               {unboundLink && (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '10px 12px', marginBottom: 12 }}>
-                  <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5, flex: 1, minWidth: 200 }}>
+                  <div style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)', lineHeight: 1.5, flex: 1, minWidth: 200 }}>
                     Ο σύνδεσμος δεν είναι δεμένος σε ενοικιαστή, οπότε θα ακολουθεί όποιον μένει κάθε φορά. Δέσ&apos; τον στον <strong>{tenant?.full_name || 'σημερινό ενοικιαστή'}</strong>, ο ίδιος σύνδεσμος συνεχίζει να δουλεύει.
                   </div>
-                  <button onClick={bind} disabled={busy} style={{ height: T.h.sm, padding: '0 14px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, cursor: busy ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>{busy ? 'Δέσιμο…' : 'Δέσιμο στον ενοικιαστή'}</button>
+                  <button onClick={bind} disabled={busy} style={{ height: T.h.sm, padding: '0 14px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 700, cursor: busy ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>{busy ? 'Δέσιμο…' : 'Δέσιμο στον ενοικιαστή'}</button>
                 </div>
               )}
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
@@ -274,26 +274,26 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
 
               {/* Ρυθμίσεις πύλης: κωδικός προστασίας + σύνδεσμος πληρωμής */}
               <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '10px 12px', marginBottom: 14 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, cursor: 'pointer' }} {...pressable(() => setCfgOpen(o => !o))}>
+                <div className="po-disclosure" style={{ gap: 10 }} {...pressable(() => setCfgOpen(o => !o))}>
                   <div style={{ fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>Ρυθμίσεις πύλης</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 11, fontFamily: T.font.sans, color: pinSet ? 'var(--positive)' : 'var(--text-tertiary)' }}>{pinSet ? 'Κωδικός ενεργός' : 'Χωρίς κωδικό'}</span>
+                    <span style={{ fontSize: 'var(--fs-xs)', fontFamily: T.font.sans, color: pinSet ? 'var(--positive)' : 'var(--text-tertiary)' }}>{pinSet ? 'Κωδικός ενεργός' : 'Χωρίς κωδικό'}</span>
                     <svg aria-hidden="true" width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: cfgOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="m6 9 6 6 6-6"/></svg>
                   </div>
                 </div>
                 {cfgOpen && (
                   <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div>
-                      <div style={{ fontSize: 11, fontFamily: T.font.sans, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 6 }}>Σύνδεσμος πληρωμής (προαιρετικό)</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 8, lineHeight: 1.5 }}>Επικόλλησε τον σύνδεσμο του παρόχου σου (Stripe, Viva, PayPal, Revolut). Ο ενοικιαστής βλέπει κουμπί «Πληρωμή τώρα» και πληρώνει εκεί, όχι εδώ.</div>
+                      <div style={{ fontSize: 'var(--fs-xs)', fontFamily: T.font.sans, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 6 }}>Σύνδεσμος πληρωμής (προαιρετικό)</div>
+                      <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 8, lineHeight: 1.5 }}>Επικόλλησε τον σύνδεσμο του παρόχου σου (Stripe, Viva, PayPal, Revolut). Ο ενοικιαστής βλέπει κουμπί «Πληρωμή τώρα» και πληρώνει εκεί, όχι εδώ.</div>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         <input aria-label="Σύνδεσμος πληρωμής" value={payLink} onChange={e => setPayLink(e.target.value)} placeholder="https://..." style={{ flex: 1, minWidth: 180, background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '9px 12px', fontSize: 12, color: 'var(--text-primary)', fontFamily: T.font.mono, outline: 'none' }} />
                         <button onClick={saveLink} disabled={busy} style={{ height: T.h.md, padding: '0 16px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Αποθήκευση</button>
                       </div>
                     </div>
                     <div>
-                      <div style={{ fontSize: 11, fontFamily: T.font.sans, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 6 }}>Κωδικός προστασίας</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 8, lineHeight: 1.5 }}>Χωρίς αυτόν δεν ανοίγει η πύλη. Δώσ&apos; τον μόνο στον ενοικιαστή σου.</div>
+                      <div style={{ fontSize: 'var(--fs-xs)', fontFamily: T.font.sans, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 6 }}>Κωδικός προστασίας</div>
+                      <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 8, lineHeight: 1.5 }}>Χωρίς αυτόν δεν ανοίγει η πύλη. Δώσ&apos; τον μόνο στον ενοικιαστή σου.</div>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         <input aria-label="Κωδικός PIN" value={pinInput} onChange={e => setPinInput(e.target.value)} inputMode="numeric" placeholder={pinSet ? 'Νέος κωδικός' : 'π.χ. 4 ψηφία'} style={{ flex: 1, minWidth: 140, background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '9px 12px', fontSize: 12, color: 'var(--text-primary)', fontFamily: T.font.num, outline: 'none' }} />
                         <button onClick={savePin} disabled={busy || !pinInput.trim()} style={{ height: T.h.md, padding: '0 16px', borderRadius: T.radius.pill, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontFamily: T.font.sans, fontSize: 12, fontWeight: 700, cursor: pinInput.trim() ? 'pointer' : 'not-allowed', opacity: pinInput.trim() ? 1 : 0.6 }}>{pinSet ? 'Αλλαγή' : 'Ορισμός'}</button>
@@ -304,7 +304,7 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
                 )}
               </div>
 
-              <div style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 8 }}>Αιτήματα ({pending.length} εκκρεμή)</div>
+              <div style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 8 }}>Αιτήματα ({pending.length} εκκρεμή)</div>
               {reqs.length === 0 ? (
                 <EmptyState icon={<Inbox size={20} />} title="Κανένα αίτημα ακόμη" hint="Όταν ο ενοικιαστής στείλει αίτημα βλάβης από την πύλη, θα εμφανιστεί εδώ." />
               ) : (
@@ -316,10 +316,10 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
                       <div key={r.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 10, padding: '10px 12px' }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                            <span style={{ fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.6 : 1 }}>{r.title}</span>
-                            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: `var(--${st.tone})`, background: `var(--${st.tone}-soft)`, border: `1px solid var(--${st.tone}-border)`, borderRadius: T.radius.badge, padding: '3px 9px', fontFamily: T.font.sans }}>{st.label}</span>
+                            <span style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)', textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.6 : 1 }}>{r.title}</span>
+                            <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: `var(--${st.tone})`, background: `var(--${st.tone}-soft)`, border: `1px solid var(--${st.tone}-border)`, borderRadius: T.radius.badge, padding: '3px 9px', fontFamily: T.font.sans }}>{st.label}</span>
                           </div>
-                          {r.description && <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3, lineHeight: 1.5 }}>{r.description}</div>}
+                          {r.description && <div style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 4, lineHeight: 1.5 }}>{r.description}</div>}
                           {(signedPhotos[r.id]?.length ?? 0) > 0 && (
                             <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
                               {signedPhotos[r.id].slice(0, 4).map((url, pi) => (
@@ -330,20 +330,20 @@ export default function PortalShare({ propertyId, userId }: { propertyId: string
                               ))}
                             </div>
                           )}
-                          <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>{fd(r.created_at)}{r.contact ? ` · ${r.contact}` : ''}</div>
+                          <div style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 4 }}>{fd(r.created_at)}{r.contact ? ` · ${r.contact}` : ''}</div>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
-                          {r.status === 'new' && <button onClick={() => setStatus(r.id, 'in_progress')} style={{ height: T.h.sm, padding: '0 10px', borderRadius: T.radius.pill, border: '1px solid var(--accent-border)', background: 'var(--bg-surface)', color: 'var(--accent)', fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>Ξεκίνησε</button>}
-                          {r.status === 'in_progress' && <button onClick={() => setStatus(r.id, 'done')} style={{ height: T.h.sm, padding: '0 10px', borderRadius: T.radius.pill, border: '1px solid var(--accent-border)', background: 'var(--bg-surface)', color: 'var(--accent)', fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>Ολοκλήρωση</button>}
-                          {!done && <button onClick={() => toCalendar(r)} disabled={synced.has(r.id)} style={{ height: T.h.sm, padding: '0 10px', borderRadius: T.radius.pill, border: '1px solid var(--accent-border)', background: 'transparent', color: synced.has(r.id) ? 'var(--text-tertiary)' : 'var(--accent)', fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, cursor: synced.has(r.id) ? 'default' : 'pointer', whiteSpace: 'nowrap', opacity: synced.has(r.id) ? 0.6 : 1 }}>{synced.has(r.id) ? 'Στο Ημερολόγιο' : 'Ημερολόγιο'}</button>}
-                          {done && costFor !== r.id && <button onClick={() => { setCostFor(r.id); setCost(''); }} style={{ height: T.h.sm, padding: '0 10px', borderRadius: T.radius.pill, border: '1px solid var(--accent-border)', background: 'transparent', color: 'var(--accent)', fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>ως Δαπάνη</button>}
+                          {r.status === 'new' && <button onClick={() => setStatus(r.id, 'in_progress')} style={{ height: T.h.sm, padding: '0 10px', borderRadius: T.radius.pill, border: '1px solid var(--accent-border)', background: 'var(--bg-surface)', color: 'var(--accent)', fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>Ξεκίνησε</button>}
+                          {r.status === 'in_progress' && <button onClick={() => setStatus(r.id, 'done')} style={{ height: T.h.sm, padding: '0 10px', borderRadius: T.radius.pill, border: '1px solid var(--accent-border)', background: 'var(--bg-surface)', color: 'var(--accent)', fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>Ολοκλήρωση</button>}
+                          {!done && <button onClick={() => toCalendar(r)} disabled={synced.has(r.id)} style={{ height: T.h.sm, padding: '0 10px', borderRadius: T.radius.pill, border: '1px solid var(--accent-border)', background: 'transparent', color: synced.has(r.id) ? 'var(--text-tertiary)' : 'var(--accent)', fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 700, cursor: synced.has(r.id) ? 'default' : 'pointer', whiteSpace: 'nowrap', opacity: synced.has(r.id) ? 0.6 : 1 }}>{synced.has(r.id) ? 'Στο Ημερολόγιο' : 'Ημερολόγιο'}</button>}
+                          {done && costFor !== r.id && <button onClick={() => { setCostFor(r.id); setCost(''); }} style={{ height: T.h.sm, padding: '0 10px', borderRadius: T.radius.pill, border: '1px solid var(--accent-border)', background: 'transparent', color: 'var(--accent)', fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>ως Δαπάνη</button>}
                           {done && costFor === r.id && (
                             <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                              <input aria-label="Ποσό δαπάνης σε ευρώ" autoFocus value={cost} onChange={e => setCost(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') toExpense(r); if (e.key === 'Escape') setCostFor(null); }} placeholder="€" inputMode="decimal" style={{ width: 56, height: T.h.sm, background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '0 8px', fontSize: 11, color: 'var(--text-primary)', fontFamily: T.font.mono, outline: 'none', textAlign: 'right' }} />
-                              <button onClick={() => toExpense(r)} style={{ height: T.h.sm, padding: '0 8px', borderRadius: T.radius.badge, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>OK</button>
+                              <input aria-label="Ποσό δαπάνης σε ευρώ" autoFocus value={cost} onChange={e => setCost(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') toExpense(r); if (e.key === 'Escape') setCostFor(null); }} placeholder="€" inputMode="decimal" style={{ width: 56, height: T.h.sm, background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '0 8px', fontSize: 'var(--fs-xs)', color: 'var(--text-primary)', fontFamily: T.font.mono, outline: 'none', textAlign: 'right' }} />
+                              <button onClick={() => toExpense(r)} style={{ height: T.h.sm, padding: '0 8px', borderRadius: T.radius.badge, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 700, cursor: 'pointer' }}>OK</button>
                             </div>
                           )}
-                          {done && <button onClick={() => setStatus(r.id, 'new')} style={{ height: T.h.sm, padding: '0 10px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>Επαναφορά</button>}
+                          {done && <button onClick={() => setStatus(r.id, 'new')} style={{ height: T.h.sm, padding: '0 10px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>Επαναφορά</button>}
                         </div>
                       </div>
                     );

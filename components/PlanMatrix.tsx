@@ -101,21 +101,21 @@ export function PlanMatrix({ highlight }: { highlight?: PlanId }) {
           <div />
           {COMPARED.map(id => (
             <div key={id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '0 8px' }}>
-              <span style={{ fontSize: 12, fontWeight: id === highlight ? 800 : 700, color: id === highlight ? 'var(--accent)' : 'var(--text-secondary)', fontFamily: T.font.sans, textAlign: 'center' }}>{PLANS[id].name}</span>
+              <span style={{ fontSize: 12, fontWeight: id === highlight ? 700 : 600, color: id === highlight ? 'var(--accent)' : 'var(--text-secondary)', fontFamily: T.font.sans, textAlign: 'center' }}>{PLANS[id].name}</span>
             </div>
           ))}
         </div>
         {MATRIX.map(row => (
           <div key={row.label} style={{ display: 'grid', gridTemplateColumns: GRID, alignItems: 'center', borderBottom: '1px solid var(--border-subtle)' }}>
-            <div className="plan-matrix-row-label" style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.4, padding: '13px 12px 13px 2px' }}>{row.label}</div>
+            <div className="plan-matrix-row-label" style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.4, padding: '13px 12px 13px 2px' }}>{row.label}</div>
             {COMPARED.map(id => {
               const v = row.values[id];
               return (
                 <div key={id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '13px 8px' }}>
                   {typeof v === 'string'
-                    ? <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{v}</span>
+                    ? <span style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{v}</span>
                     : v === true ? <Tick />
-                    : <span style={{ color: 'var(--text-tertiary)', fontSize: 13, fontFamily: T.font.sans }}>Όχι</span>}
+                    : <span style={{ color: 'var(--text-tertiary)', fontSize: 'var(--fs-base)', fontFamily: T.font.sans }}>Όχι</span>}
                 </div>
               );
             })}

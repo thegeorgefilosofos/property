@@ -99,7 +99,7 @@ export default function AmaStrip({ userId, propertyId }: { userId: string; prope
   const tone = AMA_COPY[worst].tone;
 
   const lbl: React.CSSProperties = {
-    fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
+    fontSize: 'var(--fs-xs)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
     color: 'var(--text-tertiary)', fontFamily: T.font.sans,
   };
 
@@ -117,10 +117,10 @@ export default function AmaStrip({ userId, propertyId }: { userId: string; prope
           background: allOk ? 'var(--border-strong)' : `var(--${tone})`,
         }} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: allOk ? 'var(--text-secondary)' : `var(--${tone})` }}>
+          <div style={{ fontSize: 'var(--fs-base)', fontWeight: 700, color: allOk ? 'var(--text-secondary)' : `var(--${tone})` }}>
             {AMA_COPY[worst].title}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, marginTop: 3 }}>
+          <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)', lineHeight: 1.6, marginTop: 4 }}>
             {AMA_COPY[worst].body}
           </div>
 
@@ -157,7 +157,7 @@ export default function AmaStrip({ userId, propertyId }: { userId: string; prope
                       </button>
                       {/* Η επιβεβαίωση είναι ρητή πράξη με ημερομηνία, όχι σιωπηλή
                           παραδοχή: όποιος αλλάξει αγγελία πρέπει να την ξανακάνει. */}
-                      <label style={{ display: 'inline-flex', alignItems: 'center', gap: 7, cursor: 'pointer', fontSize: 12, color: 'var(--text-secondary)' }}>
+                      <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12, color: 'var(--text-secondary)' }}>
                         <input type="checkbox" checked={st === 'ok'} disabled={busy}
                           onChange={e => confirmListed(p, e.target.checked)}
                           style={{ width: 15, height: 15, accentColor: 'var(--accent)', cursor: 'pointer' }} />
@@ -174,7 +174,7 @@ export default function AmaStrip({ userId, propertyId }: { userId: string; prope
           </div>
 
           {editing && amaLengthLooksUnusual(draft) && (
-            <div style={{ fontSize: 11, color: 'var(--warning)', marginTop: 8 }}>
+            <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--warning)', marginTop: 8 }}>
               Ο αριθμός έχει {draft.length} ψηφία, που είναι ασυνήθιστο. Έλεγξέ τον στο myAADE πριν τον αποθηκεύσεις.
             </div>
           )}

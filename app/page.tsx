@@ -1307,7 +1307,7 @@ export default async function Landing() {
         <div className="lp-works">
           {WORKS_WITH.map((w, i) => (
             <div key={i}>
-              <div style={{ fontSize: 15, fontWeight: 680, color: TEXT, letterSpacing: '-0.01em', marginBottom: 5 }}>{w.t}</div>
+              <div style={{ fontSize: 15, fontWeight: 680, color: TEXT, letterSpacing: '-0.01em', marginBottom: 4 }}>{w.t}</div>
               <div className="lp-even" style={{ fontSize: 14, color: FAINT, lineHeight: 1.5 }}>{w.d}</div>
             </div>
           ))}
@@ -1563,7 +1563,7 @@ export default async function Landing() {
               </div>
               <h3 style={{ fontSize: 16, fontWeight: 680, margin: '0 0 8px', letterSpacing: '-0.02em' }}>{r.t}</h3>
               <p style={{ fontSize: 15, color: MUTED, lineHeight: 1.6, margin: '0 0 18px' }}>{r.d}</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {r.items.map((t, j) => (
                   <div key={j} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>{check}<span className="lp-k" style={{ fontSize: 15, color: TEXT, lineHeight: 1.5 }}>{t}</span></div>
                 ))}
@@ -1764,7 +1764,7 @@ function PlanCard({ planId, name, nameColor, sub, price, per, note, annual, inhe
   return (
     <div className="lp-card" style={{ position: 'relative', background: PANEL, border: featured ? `1.5px solid color-mix(in srgb, var(--accent) 50%, transparent)` : `1px solid ${LINE}`, borderRadius: T.radius.card, padding: 'clamp(16px, 1.6vw, 20px)', boxShadow: featured ? '0 24px 60px -30px color-mix(in srgb, var(--accent) 60%, transparent)' : 'none' }}>
       {featured && <span style={{ position: 'absolute', top: -9, left: 16, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)', background: PANEL, border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)', borderRadius: T.radius.pill, padding: '2px 9px', whiteSpace: 'nowrap' }}>Προτεινόμενο</span>}
-      <div style={{ fontSize: 14, fontWeight: 700, color: nameColor, marginBottom: 3 }}>{name}</div>
+      <div style={{ fontSize: 14, fontWeight: 700, color: nameColor, marginBottom: 4 }}>{name}</div>
       <div style={{ fontSize: 12, color: FAINT, marginBottom: 14, lineHeight: 1.35 }}>{sub}</div>
       {/* ΤΟ ΠΟΣΟ ΚΑΙ Η ΠΕΡΙΟΔΟΣ ΕΙΝΑΙ ΕΝΑ ΠΡΑΓΜΑ: «3,90 € τον μήνα» διαβάζεται
           σαν φράση, όχι σαν αριθμός με λεζάντα από κάτω. Το `baseline` τα
@@ -1778,7 +1778,7 @@ function PlanCard({ planId, name, nameColor, sub, price, per, note, annual, inhe
         <span style={{ fontVariantNumeric: 'tabular-nums', fontSize: 'clamp(24px, 2.4vw, 29px)', fontWeight: 680, letterSpacing: '-0.03em', color: TEXT, lineHeight: 1.1 }}>{price}</span>
         <span style={{ fontSize: 13, color: MUTED }}>{per}</span>
       </div>
-      <div style={{ fontSize: 12, color: FAINT, marginTop: 5 }}>{note}</div>
+      <div style={{ fontSize: 12, color: FAINT, marginTop: 4 }}>{note}</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, textAlign: 'left', margin: '14px 0 16px' }}>
         {inherits && <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent)', letterSpacing: '-0.01em', marginBottom: 1 }}>{inherits}</div>}
         {/* ΤΟ ΠΑΚΕΤΟ ΕΡΩΤΗΣΕΩΝ ΜΕ ΝΟΥΜΕΡΟ, ΟΧΙ ΜΕ ΕΠΙΘΕΤΟ. Οι λίστες έλεγαν
@@ -1788,7 +1788,7 @@ function PlanCard({ planId, name, nameColor, sub, price, per, note, annual, inhe
             τον έχει». Ο αριθμός υπάρχει και είναι ακριβής (aiLimits.ts): μπαίνει.
             Διαφορετικό εικονίδιο επίτηδες — είναι η μία γραμμή που έχουν ΟΛΑ τα
             πακέτα και το μάτι πρέπει να τη βρίσκει στην ίδια θέση σε κάθε κάρτα. */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
           {/* Το ΞΕΧΩΡΙΣΤΟ εικονίδιο εξυπηρετεί το μάτι, που το βρίσκει στην ίδια
               θέση σε κάθε κάρτα. Δεν κουβαλά όμως πληροφορία που δεν λέει η
               διπλανή γραμμή, γι’ αυτό μένει έξω από το προσβάσιμο δέντρο. */}
@@ -1796,7 +1796,7 @@ function PlanCard({ planId, name, nameColor, sub, price, per, note, annual, inhe
           <span className="lp-even" style={{ fontSize: 12, color: TEXT, lineHeight: 1.4 }}>{ai} ερωτήσεις τον μήνα</span>
         </div>
         {items.map((t, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 7 }}>{check}<span className="lp-even" style={{ fontSize: 12, color: TEXT, lineHeight: 1.4 }}>{t}</span></div>
+          <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>{check}<span className="lp-even" style={{ fontSize: 12, color: TEXT, lineHeight: 1.4 }}>{t}</span></div>
         ))}
       </div>
       {/* ══ Η ΕΠΙΛΟΓΗ ΤΑΞΙΔΕΥΕΙ ΜΑΖΙ ΜΕ ΤΟ ΚΛΙΚ, ΚΑΙ ΟΙ ΕΠΙΛΟΓΕΣ ΕΙΝΑΙ ΔΥΟ ══

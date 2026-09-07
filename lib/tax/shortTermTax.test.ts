@@ -1,6 +1,6 @@
 // Δοκιμές φορολογικής σύνοψης βραχυχρόνιας. Τρέξε: npx tsx lib/tax/shortTermTax.test.ts
 import { nightsByMonthForYear, channelBreakdownForYear, shortTermYearSummary, yearsWithStays, guestPriceBreakdown, type TaxStay } from './shortTermTax';
-import { climateLevyForNights, rentalIncomeTax, CLIMATE_LEVY_STR_2025 } from '../billing/greekTax';
+import { climateLevyForNights, rentalIncomeTax, CLIMATE_LEVY_FROM_2025 } from '../billing/greekTax';
 
 let passed = 0, failed = 0; const fails: string[] = [];
 const ok = (name: string, cond: boolean) => { if (cond) passed++; else { failed++; fails.push(name); } };
@@ -156,14 +156,14 @@ ok('με declared_at → μετριέται ως δηλωμένη', shortTermYea
 
 // ── guestPriceBreakdown: η γραμμή κάτω από κάθε προτεινόμενη τιμή ─────────────
 const bdHigh = guestPriceBreakdown('2026-08-15', 100);
-ok('υψηλή περίοδος (Αύγουστος)', bdHigh.highSeason && bdHigh.climateLevy === CLIMATE_LEVY_STR_2025.small.high);
-ok('δηλωτέο ακαθάριστο = τιμή − τέλος', bdHigh.declarableGross === 100 - CLIMATE_LEVY_STR_2025.small.high);
+ok('υψηλή περίοδος (Αύγουστος)', bdHigh.highSeason && bdHigh.climateLevy === CLIMATE_LEVY_FROM_2025.small.high);
+ok('δηλωτέο ακαθάριστο = τιμή − τέλος', bdHigh.declarableGross === 100 - CLIMATE_LEVY_FROM_2025.small.high);
 ok('χωρίς ιστορικό προμήθειας → δεν την επινοούμε', bdHigh.platformFeeRate === null && bdHigh.platformFee === null && bdHigh.payout === null);
 const bdLow = guestPriceBreakdown('2026-01-15', 100);
-ok('χαμηλή περίοδος (Ιανουάριος)', !bdLow.highSeason && bdLow.climateLevy === CLIMATE_LEVY_STR_2025.small.low);
+ok('χαμηλή περίοδος (Ιανουάριος)', !bdLow.highSeason && bdLow.climateLevy === CLIMATE_LEVY_FROM_2025.small.low);
 ok('χαμηλό τέλος → μεγαλύτερο ακαθάριστο', bdLow.declarableGross > bdHigh.declarableGross);
 const bdHouse = guestPriceBreakdown('2026-08-15', 100, { sqm: 120, isHouse: true });
-ok('μονοκατοικία >80τμ → υψηλό κλιμάκιο τέλους', bdHouse.climateLevy === CLIMATE_LEVY_STR_2025.large.high);
+ok('μονοκατοικία >80τμ → υψηλό κλιμάκιο τέλους', bdHouse.climateLevy === CLIMATE_LEVY_FROM_2025.large.high);
 const bdFee = guestPriceBreakdown('2026-08-15', 100, { platformFeeRate: 0.15 });
 ok('με ιστορικό προμήθειας → payout = ακαθάριστο − προμήθεια', bdFee.platformFee === 15 && bdFee.payout === 100 - 8 - 15);
 ok('η προμήθεια δεν αγγίζει το δηλωτέο ακαθάριστο', bdFee.declarableGross === bdHigh.declarableGross);
@@ -254,6 +254,22 @@ ok('η προμήθεια δεν αγγίζει το δηλωτέο ακαθάρ
   const r = shortTermYearSummary(inside, 2026);
   ok('ολόκληρο το ακαθάριστο στο έτος του', near(r.grossRevenue, 392, 0.02));
   ok('όλες οι νύχτες στο έτος του', r.totalNights === 4);
+}
+
+// ═══ ΤΟ ΚΑΘΕΣΤΩΣ ΤΟΥ ΤΕΛΟΥΣ ΕΧΕΙ ΕΤΟΣ ΕΝΑΡΞΗΣ ══════════════════════════════
+// Ο επιλογέας έτους στη Λογιστική είναι ελεύθερο βηματάκι ±1: το 2024 απέχει
+// δύο κλικ. Οι συντελεστές του ΤΑΚΚ άλλαξαν με τον ν.5162/2024 από 1/1/2025,
+// οπότε για παλιότερη χρήση ο αριθμός είναι σημερινοί συντελεστές σε παλιά
+// χρονιά. Η σημαία είναι το μόνο πράγμα που το λέει στην οθόνη· αν σβήσει,
+// η οθόνη ξαναγίνεται σιωπηλή.
+{
+  const st: TaxStay[] = [{
+    check_in: '2024-06-01', check_out: '2024-06-05', nights: 4,
+    gross_guest_paid: 400, climate_levy: 8, channel: 'booking',
+  }];
+  ok('χρήση 2024 → το καθεστώς του τέλους σημαδεύεται', shortTermYearSummary(st, 2024).levyRegimeAssumed === true);
+  ok('χρήση 2025 → δεν σημαδεύεται', shortTermYearSummary(st, 2025).levyRegimeAssumed === false);
+  ok('χρήση 2026 → δεν σημαδεύεται', shortTermYearSummary(st, 2026).levyRegimeAssumed === false);
 }
 
 console.log(`\nshortTermTax — ${passed} passed, ${failed} failed (σύνολο ${passed + failed})`);

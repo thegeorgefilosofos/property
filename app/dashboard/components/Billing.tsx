@@ -368,7 +368,7 @@ function Subscription({ d, wantPlan = null, wishPlan = null, wishCycle = 'monthl
   const [code, setCode] = useState('');
   const linkish: React.CSSProperties = {
     background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-    fontSize: 13, fontFamily: T.font.sans, color: 'var(--text-secondary)',
+    fontSize: 'var(--fs-base)', fontFamily: T.font.sans, color: 'var(--text-secondary)',
     textDecoration: 'underline', textUnderlineOffset: 3,
   };
 
@@ -515,7 +515,7 @@ function Subscription({ d, wantPlan = null, wishPlan = null, wishCycle = 'monthl
       {/* Η ΤΙΜΗ ΛΕΕΙ ΤΗ ΜΟΝΑΔΑ ΤΗΣ. Το ετήσιο δείχνεται ανά μήνα, όπως και στη
           σύγκριση πακέτων, ώστε τα δύο νούμερα να συγκρίνονται μεταξύ τους. */}
       <div style={{ marginTop: 16 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{plan.name}</div>
+        <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{plan.name}</div>
         <div style={{ fontFamily: T.font.num, fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em', lineHeight: 1.1, marginTop: 4 }}>{fe(price)}</div>
         <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginTop: 2 }}>
           τον μήνα{cycle === 'annual' ? `, με ετήσια χρέωση ${fe(plan.priceAnnual)}` : ''}

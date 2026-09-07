@@ -128,7 +128,7 @@ export default function EsisScanPanel({
       <ScanErrorNote error={error} text={errorText} hint="Μπορείς να πληκτρολογήσεις τα νούμερα παρακάτω." />
 
       {scanned && !scanning && !error && (
-        <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:font}}>Τα πεδία συμπληρώθηκαν από την προσφορά. Έλεγξε και διόρθωσε αν χρειάζεται.</p>
+        <p style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',fontFamily:font}}>Τα πεδία συμπληρώθηκαν από την προσφορά. Έλεγξε και διόρθωσε αν χρειάζεται.</p>
       )}
 
       {/* Στοιχεία προσφοράς — πληκτρολόγηση/διόρθωση (θαμπώνουν όσο τρέχει η ανάλυση AI) */}
@@ -190,7 +190,7 @@ export default function EsisScanPanel({
         </div>
       )}
 
-      <p style={{fontSize:11,color:'var(--text-tertiary)',lineHeight:1.6,fontFamily:font}}>
+      <p style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',lineHeight:1.6,fontFamily:font}}>
         Το ΣΕΠΠΕ (Συνολικό Ετήσιο Πραγματικό Ποσοστό Επιβάρυνσης) ενσωματώνει τόκους, έξοδα και υποχρεωτικές ασφάλειες, ώστε να συγκρίνεις σωστά προσφορές. Ενδεικτική ανάλυση, επιβεβαίωσε τους όρους με την τράπεζα.
       </p>
     </div>

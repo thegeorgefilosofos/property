@@ -161,7 +161,7 @@ export function useAccountantDossier(userId: string, year: number, seed?: Partia
 // ═══ Εικόνα ════════════════════════════════════════════════════════════════
 
 const card: React.CSSProperties = { position: 'relative', background: 'var(--surface-raised)', border: 'none', borderRadius: T.radius.card, padding: 18, boxShadow: 'var(--elev-1)' }
-const eyebrow: React.CSSProperties = { fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans, margin: 0 }
+const eyebrow: React.CSSProperties = { fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans, margin: 0 }
 const num: React.CSSProperties = { fontVariantNumeric: 'tabular-nums', fontFamily: T.font.sans }
 
 /** Μία γραμμή καταλόγου: τι, γιατί, πού και αν μπλοκάρει. */
@@ -171,7 +171,7 @@ const num: React.CSSProperties = { fontVariantNumeric: 'tabular-nums', fontFamil
 // οι δύο κλάδοι έγιναν ένας.
 function Row({ r, checked, onToggle }: { r: Requirement; checked: boolean; onToggle: () => void }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '11px 0', borderTop: '1px solid var(--border-subtle)' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '11px 0', borderTop: '1px solid var(--border-subtle)' }}>
       <SelectBox checked={checked} onChange={onToggle} label={r.title} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -316,7 +316,7 @@ export default function AccountantDossier({
               {ready.message}
             </p>
           </div>
-          <button onClick={download} disabled={preparing} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: T.h.md, padding: '0 17px', borderRadius: 10, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 13, fontWeight: 600, cursor: preparing ? 'default' : 'pointer', opacity: preparing ? 0.6 : 1, fontFamily: T.font.sans, flexShrink: 0 }}>
+          <button onClick={download} disabled={preparing} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: T.h.md, padding: '0 17px', borderRadius: 10, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 'var(--fs-base)', fontWeight: 600, cursor: preparing ? 'default' : 'pointer', opacity: preparing ? 0.6 : 1, fontFamily: T.font.sans, flexShrink: 0 }}>
             <Download size={14} />{preparing ? 'Ετοιμάζεται' : downloaded ? 'Κατέβηκε' : 'Κατέβασε τον φάκελο'}
           </button>
         </div>
@@ -372,7 +372,7 @@ export default function AccountantDossier({
             δύο σειρές κάτω από ένα κουμπί που ήδη λέει τι κατεβάζει: ο χρήστης
             διάβαζε παράγραφο για να μάθει τρία πράγματα. Τρεις όροι μετά την
             άνω κάτω τελεία λένε τα ίδια τρία σε 87 χαρακτήρες. */}
-        <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '14px 0 0', fontFamily: T.font.sans, lineHeight: 1.6 }}>
+        <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', margin: '14px 0 0', fontFamily: T.font.sans, lineHeight: 1.6 }}>
           Ένα βιβλίο εργασίας: σύνοψη μπροστά, φύλλο ανά ερώτημα, τα παραστατικά μαζί αριθμημένα.
         </p>
 
@@ -436,7 +436,7 @@ export default function AccountantDossier({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 360px), 1fr))', gap: '18px 24px', alignItems: 'start' }}>
             {warnings.map(t => (
               <div key={t.title} style={{ paddingLeft: 12, borderLeft: '2px solid var(--border-default)' }}>
-                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: 0, fontFamily: T.font.sans, lineHeight: 1.4 }}>{t.title}</p>
+                <p style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)', margin: 0, fontFamily: T.font.sans, lineHeight: 1.4 }}>{t.title}</p>
                 <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '4px 0 0', fontFamily: T.font.sans, lineHeight: 1.55 }}>{t.trap}</p>
               </div>
             ))}
@@ -447,7 +447,7 @@ export default function AccountantDossier({
       {/* ── Οι παραδοχές: κλειστές, γιατί σπάνια αλλάζουν ─────────────────── */}
       <div style={card}>
         <button onClick={() => setAssumptionsOpen(o => !o)} aria-expanded={assumptionsOpen} className="acc-toggle"
-          style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
           <ChevronRight size={16} style={{ color: 'var(--text-tertiary)', flexShrink: 0, transform: assumptionsOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.18s' }} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={eyebrow}>Από τι βγαίνει αυτή η λίστα</p>
@@ -465,7 +465,7 @@ export default function AccountantDossier({
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {(Object.keys(LEGAL_FORM_LABEL) as LegalForm[]).map(f => (
                   <button key={f} onClick={() => setProfile({ form: f })}
-                    style={{ height: T.h.sm, padding: '0 13px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontFamily: T.font.sans, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s',
+                    style={{ height: T.h.sm, padding: '0 13px', borderRadius: 8, cursor: 'pointer', fontSize: 'var(--fs-base)', fontFamily: T.font.sans, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s',
                       fontWeight: profile.form === f ? 600 : 500,
                       border: `1px solid ${profile.form === f ? 'var(--accent)' : 'var(--border-subtle)'}`,
                       background: profile.form === f ? 'var(--accent)' : 'var(--bg-surface)',
@@ -481,7 +481,7 @@ export default function AccountantDossier({
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {(['single_entry', 'double_entry'] as BookKeeping[]).map(b => (
                     <button key={b} onClick={() => setProfile({ books: b })}
-                      style={{ height: T.h.sm, padding: '0 13px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontFamily: T.font.sans, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s',
+                      style={{ height: T.h.sm, padding: '0 13px', borderRadius: 8, cursor: 'pointer', fontSize: 'var(--fs-base)', fontFamily: T.font.sans, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s',
                         fontWeight: profile.books === b ? 600 : 500,
                         border: `1px solid ${profile.books === b ? 'var(--accent)' : 'var(--border-subtle)'}`,
                         background: profile.books === b ? 'var(--accent)' : 'var(--bg-surface)',
@@ -502,10 +502,10 @@ export default function AccountantDossier({
                   ['hasLoan', 'Υπάρχει δάνειο για το ακίνητο', 'Χρειάζεται η ετήσια βεβαίωση τόκων από την τράπεζα.'],
                   ['ownershipChanged', 'Άλλαξε κάτι στην ιδιοκτησία (αγορά, πώληση, κληρονομιά)', 'Τότε και μόνο τότε υποβάλλεται Ε9.'],
                 ] as [keyof DossierProfile, string, string][]).map(([key, label, hint]) => (
-                  <div key={key} style={{ display: 'flex', alignItems: 'flex-start', gap: 11 }}>
+                  <div key={key} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                     <SelectBox checked={!!profile[key]} onChange={() => setProfile({ [key]: !profile[key] } as Partial<DossierProfile>)} label={label} />
                     <div style={{ minWidth: 0 }}>
-                      <p style={{ fontSize: 13, color: 'var(--text-primary)', margin: 0, fontFamily: T.font.sans, lineHeight: 1.4 }}>{label}</p>
+                      <p style={{ fontSize: 'var(--fs-base)', color: 'var(--text-primary)', margin: 0, fontFamily: T.font.sans, lineHeight: 1.4 }}>{label}</p>
                       <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '2px 0 0', fontFamily: T.font.sans, lineHeight: 1.45 }}>{hint}</p>
                     </div>
                   </div>
@@ -516,9 +516,9 @@ export default function AccountantDossier({
             {properties.length > 0 && (
               <div>
                 <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 8px', fontFamily: T.font.sans }}>Τα ακίνητά σου</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {properties.map((p, i) => (
-                    <div key={`${p.name}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, fontFamily: T.font.sans }}>
+                    <div key={`${p.name}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 'var(--fs-base)', fontFamily: T.font.sans }}>
                       <span style={{ flex: 1, minWidth: 0, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
                       <span style={{ color: 'var(--text-tertiary)' }}>{statusForAccountant(p.status)}</span>
                     </div>
@@ -573,13 +573,13 @@ function AccountantAsks() {
 
   return (
     <div style={{ margin: '16px 0 0', paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
-      <p style={{ fontSize: 11, letterSpacing: '0.5px', textTransform: 'uppercase', color: 'var(--text-tertiary)', margin: 0, fontFamily: T.font.sans }}>
+      <p style={{ fontSize: 'var(--fs-xs)', letterSpacing: '0.5px', textTransform: 'uppercase', color: 'var(--text-tertiary)', margin: 0, fontFamily: T.font.sans }}>
         {asks.length === 1 ? 'Ο λογιστής σου ζήτησε' : `Ο λογιστής σου ζήτησε ${asks.length} πράγματα`}
       </p>
       <ul style={{ listStyle: 'none', padding: 0, margin: '10px 0 0', display: 'grid', gap: 1 }}>
         {asks.map(a => (
           <li key={a.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '9px 0', borderTop: '1px solid var(--border-subtle)' }}>
-            <span style={{ fontSize: 13, color: 'var(--text-primary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
+            <span style={{ fontSize: 'var(--fs-base)', color: 'var(--text-primary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
               {a.item}
               {a.note ? <span style={{ color: 'var(--text-tertiary)' }}>{` · ${a.note}`}</span> : null}
             </span>

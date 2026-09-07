@@ -13,7 +13,7 @@ import * as billing from '@/lib/data/billing'
 import { T, fn, fe, PageTitle, InfoBanner, Btn, EmptyState, Skeleton, SkeletonKPIs, isOverlayOpen, pageShell } from '@/components/Theme'
 import { confirmDialog } from '@/components/confirmBus'
 import { notify, notifyOk } from '@/components/Toast'
-import { saved, savedData } from '@/components/dbWrite'
+import { saved, savedData, optimistic } from '@/components/dbWrite'
 import { ClipboardCheck, SearchX } from 'lucide-react'
 import { useReportBranding } from '@/lib/reportBranding'
 import { annuityMonthly } from '@/lib/loans/recommend'
@@ -380,9 +380,22 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
     togglingRef.current.add(item.id)
     try {
       const newStatus: Status = item.status === 'done' ? 'pending' : 'done'
-      // Το τσεκάρισμα είναι η πιο συχνή ενέργεια της οθόνης. Αν αποτύχει σιωπηλά,
-      // ο χρήστης βλέπει το κουτάκι γεμάτο, φεύγει, γυρίζει και το βρίσκει άδειο.
-      if (!await saved('Η κατάσταση δεν αποθηκεύτηκε',
+      // ═══ ΤΟ ΚΟΥΤΑΚΙ ΓΕΜΙΖΕΙ ΠΡΙΝ ΦΥΓΕΙ ΤΟ ΑΙΤΗΜΑ ═══════════════════════════
+      // Το τσεκάρισμα είναι η πιο συχνή ενέργεια της οθόνης — και ήταν η πιο
+      // αργή. Πριν, το κουτάκι δεν κουνιόταν ώσπου να απαντήσει η Φρανκφούρτη
+      // ΚΑΙ να ξανακατέβει ολόκληρο το `fetchAll()`: δύο διαδρομές δικτύου για
+      // ένα κλικ, 300 με 800 χιλιοστά σε ελληνικό κινητό. Στο μεσοδιάστημα η
+      // οθόνη έμοιαζε νεκρή, οπότε ο χρήστης ξαναπατούσε — γι' αυτό υπάρχει και
+      // ο `togglingRef` από πάνω.
+      //
+      // Ο φόβος —«μένει τσεκαρισμένο κάτι που δεν αποθηκεύτηκε»— είναι σωστός
+      // και γι' αυτό η `optimistic` επαναφέρει ΚΑΙ στο σφάλμα του διακομιστή
+      // ΚΑΙ στο πεσμένο δίκτυο, με το μήνυμα να το λέει. Η επαναφορά εδώ είναι
+      // ακριβές αντίστροφο: η ίδια γραμμή, η προηγούμενη κατάστασή της.
+      const before = item.status
+      if (!await optimistic('Η κατάσταση δεν αποθηκεύτηκε',
+          () => setItems(list => list.map(i => i.id === item.id ? { ...i, status: newStatus } : i)),
+          () => setItems(list => list.map(i => i.id === item.id ? { ...i, status: before } : i)),
           checklist.setStatus(supabase, item.id, newStatus))) return
       if (newStatus === 'done') {
         // ΤΟ ΠΑΡΑΣΤΑΤΙΚΟ ΔΕΝ ΞΕ-ΠΛΗΡΩΝΕΤΑΙ ΚΑΙ ΔΕΝ ΞΑΝΑ-ΠΛΗΡΩΝΕΤΑΙ. Εδώ η
@@ -705,7 +718,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
                           transition: `width .4s ${T.ease.standard}` }} />
           </div>
           {(stats.totalEstimated > 0 || stats.totalActual > 0) && (
-            <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans,
+            <div style={{ marginTop: 6, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.sans,
                           fontVariantNumeric: 'tabular-nums' }}>
               {stats.totalActual > 0 ? `${fe(stats.totalActual)} με παραστατικό` : ''}
               {stats.totalActual > 0 && stats.totalEstimated > 0 ? ' · ' : ''}
@@ -752,7 +765,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
         {viewMode === 'list' && items.length > 3 && (
           <button type="button" onClick={() => { if (selectMode) exitSelectMode(); else setSelectMode(true) }}
             title="Επιλογή εργασιών για μαζικές ενέργειες"
-            style={{ height: T.h.lg, padding: '0 14px', borderRadius: T.radius.pill, border: '1px solid ' + (selectMode ? 'var(--accent)' : 'var(--border-subtle)'), background: selectMode ? 'var(--accent-soft)' : 'var(--bg-surface)', color: selectMode ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: 500, whiteSpace: 'nowrap', fontFamily: T.font.sans, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' }}>
+            style={{ height: T.h.lg, padding: '0 14px', borderRadius: T.radius.pill, border: '1px solid ' + (selectMode ? 'var(--accent)' : 'var(--border-subtle)'), background: selectMode ? 'var(--accent-soft)' : 'var(--bg-surface)', color: selectMode ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 'var(--fs-base)', cursor: 'pointer', fontWeight: 500, whiteSpace: 'nowrap', fontFamily: T.font.sans, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' }}>
             {selectMode ? 'Τέλος επιλογής' : 'Επιλογή'}
           </button>
         )}
@@ -790,7 +803,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
                 style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: T.radius.pill, border: '1px solid ' + (filterCat === c.id ? 'var(--accent)' : 'var(--border-subtle)'), background: filterCat === c.id ? 'var(--accent-soft)' : 'transparent', color: filterCat === c.id ? 'var(--accent)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: filterCat === c.id ? 700 : 400, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: c.color, flexShrink: 0 }} />
                 {c.label}
-                <span style={{ fontSize: 11, opacity: 0.8, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{catDone}/{count}</span>
+                <span style={{ fontSize: 'var(--fs-xs)', opacity: 0.8, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums' }}>{catDone}/{count}</span>
               </button>
             )
           })}
@@ -877,7 +890,7 @@ export default function TabChecklist({ propertyId, userId, embedded, profileType
                       εικονοστοιχεία πιο κάτω, η μπάρα προόδου ΕΙΝΑΙ το ίδιο
                       ποσοστό, σχεδιασμένο. Μένει ο αριθμός των εργασιών, που η
                       μπάρα δεν τον δίνει, μαζί με το κόστος. */}
-                  <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>{catDone}/{catItems.length}{catEst > 0 ? ` · ${fe(catEst)}` : ''}</span>
+                  <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)', fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>{catDone}/{catItems.length}{catEst > 0 ? ` · ${fe(catEst)}` : ''}</span>
                 </div>
                 {/* Η ΜΠΑΡΑ ΤΗΣ ΚΑΤΗΓΟΡΙΑΣ ΕΦΥΓΕ. Τρία εικονοστοιχεία ύψος για να
                     ειπωθεί ξανά το «1/3» που κάθεται έξι εικονοστοιχεία από

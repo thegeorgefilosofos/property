@@ -90,10 +90,10 @@ export const TT = {
   h1:      { fontFamily: T.font.sans, fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.25, color: 'var(--text-primary)', ...BALANCE },
   h2:      { fontFamily: T.font.sans, fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.3,  color: 'var(--text-primary)', ...BALANCE },
   // Ετικέτα ενότητας, η uppercase «τελεία» των Bills, τυποποιημένη.
-  label:   { fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-secondary)', ...BALANCE },
-  body:    { fontFamily: T.font.sans, fontSize: 13, fontWeight: 400, lineHeight: 1.55, color: 'var(--text-primary)', ...PRETTY },
+  label:   { fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-secondary)', ...BALANCE },
+  body:    { fontFamily: T.font.sans, fontSize: 'var(--fs-base)', fontWeight: 400, lineHeight: 1.55, color: 'var(--text-primary)', ...PRETTY },
   bodySm:  { fontFamily: T.font.sans, fontSize: 12, fontWeight: 400, lineHeight: 1.5,  color: 'var(--text-secondary)', ...PRETTY },
-  caption: { fontFamily: T.font.sans, fontSize: 11, fontWeight: 400, lineHeight: 1.45, color: 'var(--text-tertiary)', ...PRETTY },
+  caption: { fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 400, lineHeight: 1.45, color: 'var(--text-tertiary)', ...PRETTY },
   // Μεγάλοι αριθμοί KPI: σφιχτή sans (num) + tabular. Το πυκνό mono μένει για πίνακες.
   kpi:     { fontFamily: T.font.num, fontSize: 22, fontWeight: 700, fontVariantNumeric: 'tabular-nums' as const, letterSpacing: '-0.01em', lineHeight: 1, color: 'var(--text-primary)' },
   /**
@@ -101,7 +101,7 @@ export const TT = {
    * που διαβάζεται ΧΑΡΑΚΤΗΡΑ ΧΑΡΑΚΤΗΡΑ, όπως ένας κωδικός ανάκτησης: εκεί η
    * διάκριση του «l» από το «1» αξίζει το τίμημα.
    */
-  mono:    { fontFamily: T.font.mono, fontSize: 13, fontWeight: 500, fontVariantNumeric: 'tabular-nums' as const, color: 'var(--text-primary)' },
+  mono:    { fontFamily: T.font.mono, fontSize: 'var(--fs-base)', fontWeight: 500, fontVariantNumeric: 'tabular-nums' as const, color: 'var(--text-primary)' },
   /**
    * ΕΝΑΣ ΑΡΙΘΜΟΣ ΜΕΣΑ ΣΕ ΓΡΑΜΜΗ, ΣΤΗΝ ΑΡΙΘΜΗΤΙΚΗ ΤΟΥ ΘΕΜΑΤΟΣ.
    *
@@ -113,7 +113,7 @@ export const TT = {
    * Η στοίχιση δεν χάνεται: το `tabular-nums` δίνει ίσο πλάτος στα ψηφία, που
    * είναι ο πραγματικός λόγος που ήθελε κανείς μονοδιάστημη σε στήλη ποσών.
    */
-  figure:  { fontFamily: T.font.num, fontSize: 13, fontWeight: 500, fontVariantNumeric: 'tabular-nums' as const, color: 'var(--text-primary)' },
+  figure:  { fontFamily: T.font.num, fontSize: 'var(--fs-base)', fontWeight: 500, fontVariantNumeric: 'tabular-nums' as const, color: 'var(--text-primary)' },
 } as const;
 
 // ── Κελί ιστορικού λογαριασμών ─────────────────────────────────────────────
@@ -128,7 +128,7 @@ export const histInputStyle = (isCurrent: boolean, isHovered = false) => ({
   borderRadius: T.radius.badge,
   padding: '6px 4px',
   color: 'var(--text-primary)',
-  fontSize: 11,
+  fontSize: 'var(--fs-xs)',
   fontFamily: T.font.mono,
   fontVariantNumeric: 'tabular-nums' as const,
   outline: 'none',

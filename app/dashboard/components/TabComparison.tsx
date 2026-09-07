@@ -472,8 +472,8 @@ export default function TabComparison({ properties, userId }: Props) {
   // σε πίνακα έξι γραμμών, έξι πράσινα κελιά — δηλαδή χρώμα σε κάθε δεύτερη
   // ματιά, που έπαυε να ξεχωρίζει οτιδήποτε. Η ανάδειξη γίνεται με ΒΑΡΟΣ και
   // ένταση κειμένου, όπως σε κάθε άλλον πίνακα της εφαρμογής.
-  const th: React.CSSProperties = { fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', padding: '9px 14px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 700, fontFamily: T.font.sans, whiteSpace: 'nowrap' };
-  const td: React.CSSProperties = { padding: '9px 14px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 13, whiteSpace: 'nowrap', textAlign: 'right' };
+  const th: React.CSSProperties = { fontSize: 'var(--fs-xs)', letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', padding: '9px 14px', borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', fontWeight: 700, fontFamily: T.font.sans, whiteSpace: 'nowrap' };
+  const td: React.CSSProperties = { padding: '9px 14px', borderBottom: '1px solid var(--border-subtle)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 'var(--fs-base)', whiteSpace: 'nowrap', textAlign: 'right' };
 
   return (
     <div style={{ fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
@@ -532,7 +532,12 @@ export default function TabComparison({ properties, userId }: Props) {
                 <th style={{ ...th, width: CMP_LABEL, position: 'sticky', left: 0, zIndex: 1, background: 'var(--bg-surface)' }} />
                 {rowsData.map(r => (
                   <th key={r.p.id} style={{ ...th, width: `calc((100% - ${CMP_LABEL}) / ${rowsData.length})`, textAlign: 'right' }}>
-                    <div className="po-elide" title={r.p.name} style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'none', letterSpacing: 0, maxWidth: '100%' }}>{r.p.name}</div>
+                    {/* ΔΥΟ ΓΡΑΜΜΕΣ ΑΝΤΙ ΓΙΑ ΜΙΣΟ ΟΝΟΜΑ. Η στήλη είναι 150 στα 390 και
+                        το «Διαμέρισμα Παγκράτι» έχανε το 28% του: «Διαμέρισμα Παγκρ…».
+                        Το όνομα ΕΙΝΑΙ η ταυτότητα της στήλης — αν κοπεί, δύο ακίνητα
+                        στην ίδια περιοχή γίνονται δυσδιάκριτα. Στον υπολογιστή χωρά σε
+                        μία γραμμή και δεν αλλάζει τίποτα. */}
+                    <div className="po-elide-lines" title={r.p.name} style={{ fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'none', letterSpacing: 0, maxWidth: '100%' }}>{r.p.name}</div>
                     {/* Ταυτότητα, όχι μετρική: εμβαδόν, αξία και τιμή/τ.μ. λένε ποιο
                         ακίνητο κοιτάζεις. Δεν έχουν «καλύτερη τιμή», γι' αυτό δεν
                         είναι γραμμές του πίνακα. Ό,τι λείπει, απλώς λείπει —
@@ -569,7 +574,7 @@ export default function TabComparison({ properties, userId }: Props) {
                         στη λέξη ΠΡΙΝ, οπότε το σπάσιμο πέφτει πάντα ανάμεσα σε
                         δύο στοιχεία. */}
                     <div title={r.p.value ? 'Εμπορική αξία' : 'Αντικειμενική αξία (Ε9), επειδή δεν έχει καταχωρηθεί εμπορική'}
-                      style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginTop: 3, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', maxWidth: '100%', whiteSpace: 'normal', lineHeight: 1.45 }}>
+                      style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginTop: 4, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', maxWidth: '100%', whiteSpace: 'normal', lineHeight: 1.45 }}>
                       {[statusLabel(r.p as StatusRow) || null, r.sqm > 0 ? `${fn(r.sqm)} τ.μ.` : null, r.value != null ? fe(r.value) : null, r.perSqm != null ? `${fe(r.perSqm)}/τ.μ.` : null].filter(Boolean).join('\u00a0· ') || ABSENT}
                     </div>
                   </th>
@@ -598,7 +603,7 @@ export default function TabComparison({ properties, userId }: Props) {
                           {/* Ήταν παύλα. Σε στήλη αριθμών η παύλα δεν έχει
                               υποδιαστολή, δεν στοιχίζεται με τίποτα και τρυπάει
                               τη γραμμή. Η λέξη το λέει και διαβάζεται. */}
-                          {v == null ? <span style={{ fontFamily: T.font.sans, fontSize: 11 }}>{ABSENT_SHORT}</span> : m.fmt(v)}
+                          {v == null ? <span style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-xs)' }}>{ABSENT_SHORT}</span> : m.fmt(v)}
                         </td>
                       );
                     })}
@@ -615,7 +620,7 @@ export default function TabComparison({ properties, userId }: Props) {
           επαναλάμβαναν όσα λέει ήδη το tooltip κάθε μετρικής και ο τίτλος της
           οθόνης. Μένει μόνο ό,τι δεν λέγεται αλλού: πώς διαβάζεται ο πίνακας. */}
       {!loading && (
-        <div className="fineprint" style={{ marginTop: 10, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
+        <div className="fineprint" style={{ marginTop: 10, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>
           {/* ΚΑΘΕ ΠΡΟΤΑΣΗ ΕΜΦΑΝΙΖΕΤΑΙ ΜΟΝΟ ΟΤΑΝ ΕΧΕΙ ΑΝΤΙΚΕΙΜΕΝΟ. Με άδεια λίστα, το
               «η καλύτερη τιμή σε» έμενε να κρέμεται πριν από μια τελεία. */}
           {marked.length > 0 && (<>

@@ -78,7 +78,7 @@ export default function StartPanel({ state, collapsed, onToggle, onNavigate, onP
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
           <div style={{ ...TT.caption }}>Απομένουν</div>
-          <div style={{ ...TT.kpi, fontSize: 20, marginTop: 3 }}>{daysLabel(state.daysLeft)}</div>
+          <div style={{ ...TT.kpi, fontSize: 20, marginTop: 4 }}>{daysLabel(state.daysLeft)}</div>
         </div>
       </div>
 

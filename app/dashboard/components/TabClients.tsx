@@ -900,13 +900,13 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
 
   // ── Κοινά inline styles ────────────────────────────────────────────────────
   const inp: React.CSSProperties = { background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '10px 16px', color: 'var(--text-primary)', fontSize: 14, height: T.h.lg, width: '100%', outline: 'none', boxSizing: 'border-box', fontFamily: T.font.sans };
-  const lbl: React.CSSProperties = { fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)', display: 'block', marginBottom: 7, fontFamily: T.font.sans };
+  const lbl: React.CSSProperties = { fontSize: 'var(--fs-xs)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)', display: 'block', marginBottom: 8, fontFamily: T.font.sans };
   // Το φίλτρο κάθεται στην ίδια σειρά με το πεδίο αναζήτησης, οπότε παίρνει το
   // ύψος του πεδίου. Με `minHeight: T.h.sm` και γέμισμα 8 έβγαινε 32 δίπλα σε 40.
   const chip = (active: boolean): React.CSSProperties => ({ display: 'inline-flex', alignItems: 'center', height: T.h.lg, padding: '0 14px', borderRadius: T.radius.pill, border: `1px solid ${active ? 'var(--accent)' : 'var(--border-subtle)'}`, background: active ? 'var(--accent-soft)' : 'transparent', color: active ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: 12, fontFamily: T.font.sans, fontWeight: 500, whiteSpace: 'nowrap' });
-  const msgLink: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', minHeight: T.h.sm, fontSize: 11, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', padding: '3px 9px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', background: 'var(--accent-soft)', whiteSpace: 'nowrap' };
+  const msgLink: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', minHeight: T.h.sm, fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', padding: '3px 9px', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)', background: 'var(--accent-soft)', whiteSpace: 'nowrap' };
   // Chip επικοινωνίας (ίδιο ύφος με msgLink, με inline εικονίδιο).
-  const contactChip: React.CSSProperties = { ...msgLink, display: 'inline-flex', alignItems: 'center', gap: 5, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' };
+  const contactChip: React.CSSProperties = { ...msgLink, display: 'inline-flex', alignItems: 'center', gap: 4, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' };
   const fGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 14 };
   // Επικεφαλίδα ενότητας φόρμας (καθαρή, με τελεία accent και λεπτή γραμμή). Απλή
   // συνάρτηση που επιστρέφει JSX (όχι component) ώστε να μη χάνουν focus τα πεδία.
@@ -917,7 +917,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
   // ετικέτα ύψους 10. Παντού αλλού μένει 18, γιατί εκεί χωρίζει δύο ενότητες.
   const secHead = (t: string, top = 18) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: `${top}px 0 10px` }}>
-      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>{t}</span>
+      <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>{t}</span>
       <span style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
     </div>
   );
@@ -980,7 +980,17 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
         <input value={search} onChange={e => setSearch(e.target.value)} className="po-field field-wide" aria-label="Αναζήτηση επισκέπτη" placeholder="Όνομα, τηλέφωνο ή email"
-          style={{ ...inp, maxWidth: 280, width: 'auto', flex: '1 1 220px' }} />
+          /* ═══ Η ΒΑΣΗ ΕΙΝΑΙ 240 ΚΑΙ ΟΧΙ 220, ΓΙΑΤΙ ΤΟΣΟ ΘΕΛΕΙ ΤΟ ΚΕΙΜΕΝΟ ═══════
+              Στο iPhone 16 Pro Max (440) το πεδίο και το κουμπί «Με αδήλωτες
+              διαμονές» χωρούσαν ΟΡΙΑΚΑ στην ίδια σειρά, οπότε αντί να τυλιχτεί
+              το κουμπί συρρικνωνόταν το πεδίο: 202 εικονοστοιχεία για ένα
+              «Όνομα, τηλέφωνο ή email» που θέλει 208. Το παράδειγμα κοβόταν στη
+              μέση — και το παράδειγμα ΕΙΝΑΙ η οδηγία: λέει τι μπορείς να
+              γράψεις εκεί.
+              Με βάση 240 το άθροισμα δεν χωρά, το κουμπί κατεβαίνει από κάτω και
+              το πεδίο παίρνει όλο το πλάτος. Σε φαρδιά οθόνη δεν αλλάζει τίποτα:
+              το ταβάνι των 280 κρατά το πεδίο στο ίδιο μέγεθος. */
+          style={{ ...inp, maxWidth: 280, width: 'auto', flex: '1 1 240px' }} />
         {/* Ένα φίλτρο και είναι το χρήσιμο. Τα «VIP / Επαναλαμβανόμενοι /
             Με επισήμανση» έφυγαν: το πρώτο είχε επινοημένο κατώφλι 1.000 €, το
             δεύτερο θα ήταν πάντα κενό, το τρίτο ήταν η μαύρη λίστα. */}
@@ -1006,7 +1016,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               <RecordCard key={c.id} onOpen={() => setOpenId(c.id)} openLabel={`Άνοιγμα καρτέλας: ${c.full_name}`}
                 lead={avatar(c.full_name, 42)}
                 title={c.full_name}
-                sub={st.lastVisit ? <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>τελ. επίσκεψη {fd(st.lastVisit)}</span> : null}
+                sub={st.lastVisit ? <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>τελ. επίσκεψη {fd(st.lastVisit)}</span> : null}
                 badges={<>
                   {undeclared > 0 && <Badge>{undeclared} αδήλωτη{undeclared === 1 ? '' : 'ς'}</Badge>}
                   {unresolved > 0 && <Badge tone="warning">Ποσό προς επιβεβαίωση</Badge>}
@@ -1052,7 +1062,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 {linked.length > 0 && (
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingTop: 2 }}>
                     {linked.map(p => (
-                      <button key={p.id} onClick={e => { e.stopPropagation(); onSelectProperty?.(p.id); }} title={`Άνοιγμα: ${p.name}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, padding: '4px 9px', borderRadius: 8, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--accent)', cursor: 'pointer', fontFamily: T.font.sans }}>
+                      <button key={p.id} onClick={e => { e.stopPropagation(); onSelectProperty?.(p.id); }} title={`Άνοιγμα: ${p.name}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-xs)', padding: '4px 9px', borderRadius: 8, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--accent)', cursor: 'pointer', fontFamily: T.font.sans }}>
                         <svg aria-hidden="true" width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5 12 3l9 6.5" /><path d="M5 10v10h14V10" /></svg>{p.name}
                       </button>
                     ))}
@@ -1111,7 +1121,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   onKeyDown={e => { if (e.key === 'Escape' && reportYearMenu) { e.stopPropagation(); setReportYearMenu(false); } }}>
                   <button type="button" onClick={() => setReportYearMenu(m => !m)}
                     aria-haspopup="listbox" aria-expanded={reportYearMenu}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: T.h.sm, padding: '0 10px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: T.font.mono, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: T.h.sm, padding: '0 10px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontFamily: T.font.mono, fontSize: 'var(--fs-base)', fontWeight: 700, cursor: 'pointer' }}>
                     {reportYear}
                     <svg aria-hidden="true" width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: reportYearMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', opacity: 0.7 }}><path d="m6 9 6 6 6-6" /></svg>
                   </button>
@@ -1135,7 +1145,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                       <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, zIndex: 50, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, boxShadow: 'var(--elev-3)', padding: 6, minWidth: 96, maxHeight: 220, overflowY: 'auto' }}>
                         {yearsAvail.map(y => (
                           <button key={y} type="button" onClick={() => { setReportYear(y); setReportYearMenu(false); }}
-                            style={{ display: 'block', width: '100%', padding: '7px 10px', borderRadius: 8, border: 'none', background: y === reportYear ? 'var(--accent-dim)' : 'transparent', color: y === reportYear ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.mono, fontSize: 13, fontWeight: y === reportYear ? 700 : 500, cursor: 'pointer', textAlign: 'left' }}>{y}</button>
+                            style={{ display: 'block', width: '100%', padding: '7px 10px', borderRadius: 8, border: 'none', background: y === reportYear ? 'var(--accent-dim)' : 'transparent', color: y === reportYear ? 'var(--accent)' : 'var(--text-primary)', fontFamily: T.font.mono, fontSize: 'var(--fs-base)', fontWeight: y === reportYear ? 700 : 500, cursor: 'pointer', textAlign: 'left' }}>{y}</button>
                         ))}
                       </div>
                     </>
@@ -1222,12 +1232,12 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                         <div className="cl-ch-head">
                           <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.label}</span>
                           <span style={{ fontSize: 12, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap' }}>{fe(r.revenue)}</span>
-                          <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', textAlign: 'right', whiteSpace: 'nowrap' }}>{r.nights} νύχτες · {r.count} {r.count === 1 ? 'διαμονή' : 'διαμονές'}</span>
+                          <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', textAlign: 'right', whiteSpace: 'nowrap' }}>{r.nights} νύχτες · {r.count} {r.count === 1 ? 'διαμονή' : 'διαμονές'}</span>
                         </div>
                         <div style={{ height: 8, borderRadius: 6, background: 'var(--ring-track)', overflow: 'hidden', marginTop: 6 }}>
                           <div className="cl-ch-fill" style={{ width: `${pct}%` }} />
                         </div>
-                        {r.unresolved > 0 && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>{r.unresolved} με απροσδιόριστο ποσό</div>}
+                        {r.unresolved > 0 && <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 4 }}>{r.unresolved} με απροσδιόριστο ποσό</div>}
                       </div>
                     );
                   })}
@@ -1302,8 +1312,8 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   ['Ηλεκτρονικό ταχυδρομείο', dc.email ? <a href={`mailto:${dc.email}`} style={{ color: 'var(--accent)', textDecoration: 'none' }}>{dc.email}</a> : null],
                 ] as [string, React.ReactNode][]).filter(([, v]) => v != null).map(([k, v], i) => (
                   <div key={i}>
-                    <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 3 }}>{k}</div>
-                    <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>{v}</div>
+                    <div style={{ fontSize: 'var(--fs-xs)', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 4 }}>{k}</div>
+                    <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-primary)' }}>{v}</div>
                   </div>
                 ))}
               </div>
@@ -1313,7 +1323,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   <a href={viberLink(dc.phone)} style={msgLink}>Viber</a>
                 </div>
               )}
-              {dc.notes && dc.notes.trim() && <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-subtle)', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{dc.notes}</div>}
+              {dc.notes && dc.notes.trim() && <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-subtle)', fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{dc.notes}</div>}
             </div>
 
             {/* Συνδεδεμένα ακίνητα (ο έλεγχος σύνδεσης ζει εδώ, όχι στην κάρτα) */}
@@ -1355,7 +1365,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
               {checkins.map(ci => (
                 <div key={ci.id} style={{ background: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 14px', marginTop: 8 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{ci.full_name}</span>
+                    <span style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)' }}>{ci.full_name}</span>
                     {/* ΤΟ `any[]` ΕΚΡΥΒΕ ΟΤΙ ΤΟ `created_at` ΕΙΝΑΙ NULLABLE — μόλις
                         μπήκε ο τύπος `Checkin`, ο tsc το έσκασε (TS2345: το `fd`
                         δέχεται `string|Date`). ΛΑΝΘΑΝΟΝ, ΟΧΙ ΠΑΡΑΤΗΡΗΜΕΝΟ: η στήλη
@@ -1364,9 +1374,9 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                         βγαίνει null στην πράξη. Αν όμως έβγαινε, το `new Date(null)`
                         δίνει την εποχή Unix: «01 Ιαν 1970» δίπλα στο όνομα του
                         επισκέπτη. Το ABSENT_DATE είναι η καθιερωμένη ένδειξη. */}
-                    <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.mono }}>{ci.created_at ? fd(ci.created_at) : ABSENT_DATE}</span>
+                    <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.mono }}>{ci.created_at ? fd(ci.created_at) : ABSENT_DATE}</span>
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 3, lineHeight: 1.5 }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.5 }}>
                     {[ci.id_number && `Ταυτότητα ${ci.id_number}`, ci.nationality, ci.birth_date && `γεν. ${fd(ci.birth_date)}`, ci.phone, ci.arrival_date && `άφιξη ${fd(ci.arrival_date)}`, ci.guests_count && `${ci.guests_count} άτομα`, ci.accepts_rules && 'αποδοχή κανόνων'].filter(Boolean).join(' · ')}
                   </div>
                 </div>
@@ -1472,7 +1482,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                     const sug = suggestLevy(stayForm);
                     if (!sug || parseFloat(stayForm.climate_levy) > 0) return null;
                     return (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 10, fontSize: 11, color: 'var(--text-tertiary)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 10, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>
                         <span>Με βάση τους συντελεστές της ΑΑΔΕ και το ακίνητο, το τέλος για αυτή τη διαμονή βγαίνει <strong style={{ fontFamily: T.font.num, color: 'var(--text-secondary)' }}>{fe(sug)}</strong>. Επιβεβαίωσε το ακριβές ποσό στο myAADE.</span>
                         <Btn variant="secondary" onClick={() => setStayForm(f => ({ ...f, climate_levy: String(sug) }))}>Χρησιμοποίησέ το</Btn>
                       </div>
@@ -1597,14 +1607,14 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', alignItems: 'flex-start' }}>
                           <div style={{ minWidth: 0 }}>
                             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{s.property_id ? propName(s.property_id) : 'Χωρίς ακίνητο'}</span>
+                              <span style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)' }}>{s.property_id ? propName(s.property_id) : 'Χωρίς ακίνητο'}</span>
                               {/* ΤΟ ΣΗΜΑ ΠΟΥ ΕΛΕΙΠΕ: μία δήλωση ανά κράτηση και
                                   το app είχε όλες τις κρατήσεις χωρίς να
                                   παρακολουθεί καμία. */}
                               {!declared && <Badge>Αδήλωτη</Badge>}
                               {review && <Badge tone="warning">Ποσό προς επιβεβαίωση</Badge>}
                             </div>
-                            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 3, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                               {s.check_in && <span>{fd(s.check_in)}{s.check_out ? ` - ${fd(s.check_out)}` : ''}</span>}
                               <span style={{ color: 'var(--text-tertiary)' }}>·</span><span>{n} νύχτες</span>
                               {s.guests != null && <><span style={{ color: 'var(--text-tertiary)' }}>·</span><span>{s.guests} άτομα</span></>}
@@ -1614,13 +1624,13 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                           </div>
                           <div style={{ textAlign: 'right' }}>
                             <div style={{ fontSize: 14, fontWeight: 700, fontFamily: T.font.num }}>{fe(gross ?? stayTotal(s))}</div>
-                            <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{gross != null ? 'δηλωτέο ακαθάριστο' : 'ποσό απροσδιόριστο'}</div>
-                            {pay != null && pay !== gross && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.num }}>{fe(pay)} σε εσένα</div>}
+                            <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>{gross != null ? 'δηλωτέο ακαθάριστο' : 'ποσό απροσδιόριστο'}</div>
+                            {pay != null && pay !== gross && <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.num }}>{fe(pay)} σε εσένα</div>}
                           </div>
                         </div>
                         {/* Η ανάλυση, ρητά, όπου υπάρχει. */}
                         {(s.gross_guest_paid != null || s.climate_levy != null || s.platform_fee != null) && (
-                          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6, lineHeight: 1.6 }}>
+                          <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 6, lineHeight: 1.6 }}>
                             {s.gross_guest_paid != null && <>πλήρωσε ο επισκέπτης {fe(s.gross_guest_paid)}</>}
                             {(s.climate_levy || 0) > 0 && <> · τέλος {fe(s.climate_levy || 0)} (όχι έσοδό σου)</>}
                             {(s.platform_fee || 0) > 0 && <> · προμήθεια {fe(s.platform_fee || 0)} (δαπάνη)</>}
@@ -1629,7 +1639,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
                           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                             {/* Η λέξη «Φθορά» λέει ήδη ό,τι θα έλεγε το κόκκινο. */}
-                            {s.damages && <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)' }}>Φθορά {fe(s.damage_cost || 0)}{dmgItem ? ` · ${dmgItem.name}` : s.damage_note ? ` · ${s.damage_note}` : ''}</span>}
+                            {s.damages && <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-secondary)' }}>Φθορά {fe(s.damage_cost || 0)}{dmgItem ? ` · ${dmgItem.name}` : s.damage_note ? ` · ${s.damage_note}` : ''}</span>}
                           </div>
                           <div style={{ display: 'flex', gap: 10 }}>
                             {/* Ένα κλικ. Η προθεσμία της δήλωσης δεν περιμένει φόρμα. */}
@@ -1666,13 +1676,13 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 const text = buildMessage(active.id, msgCtx!);
                 return (
                   <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.card, padding: 16, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
-                    <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>{text}</div>
+                    <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>{text}</div>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-subtle)' }}>
                       <a href={whatsappLink(dc.phone ? msgDigits(dc.phone) : '', text)} target="_blank" rel="noopener noreferrer" style={msgLink}>WhatsApp</a>
                       <a href={viberTextLink(text)} style={msgLink}>Viber</a>
                       <button onClick={() => { navigator.clipboard?.writeText(text); setMsgCopied(true); }}
                         style={{ ...msgLink, cursor: 'pointer', fontFamily: T.font.sans }}>{msgCopied ? 'Αντιγράφηκε' : 'Αντιγραφή'}</button>
-                      {!dc.phone && <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Χωρίς αποθηκευμένο τηλέφωνο θα διαλέξεις επαφή μέσα στην εφαρμογή.</span>}
+                      {!dc.phone && <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>Χωρίς αποθηκευμένο τηλέφωνο θα διαλέξεις επαφή μέσα στην εφαρμογή.</span>}
                     </div>
                   </div>
                 );
@@ -1712,8 +1722,8 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                         <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></svg>
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name}</div>
-                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                        <div style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name}</div>
+                        <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 2 }}>
                           {DOC_KIND_LABELS[d.kind] || 'Άλλο'}{fmtBytes(d.size) ? ` · ${fmtBytes(d.size)}` : ''} · {fd(d.created_at)}
                         </div>
                       </div>
@@ -1748,12 +1758,12 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                   {notes.map(nt => (
                     <div key={nt.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 3, flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4, flexWrap: 'wrap' }}>
                           <span style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, background: nt.kind === 'damage' ? 'var(--negative)' : 'var(--accent)' }} />
                           <Badge tone={nt.kind === 'damage' ? 'negative' : 'neutral'}>{NOTE_KIND_LABELS[nt.kind as keyof typeof NOTE_KIND_LABELS] || nt.kind}</Badge>
-                          <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{fd(nt.created_at)}</span>
+                          <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>{fd(nt.created_at)}</span>
                         </div>
-                        <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.5 }}>{nt.body}</div>
+                        <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-primary)', lineHeight: 1.5 }}>{nt.body}</div>
                       </div>
                       <button onClick={() => delNote(nt)} title="Διαγραφή" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 16, padding: 0, flexShrink: 0 }}>×</button>
                     </div>
@@ -1788,7 +1798,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
       {!emailDraft ? (
         <>
           <Textarea label="Κείμενο email" value={emailText} onChange={setEmailText} rows={8} placeholder="Επικόλλησε εδώ το περιεχόμενο του email κράτησης…" />
-          {emailErr && <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 13, color: 'var(--negative)' }}>{emailErr}</div>}
+          {emailErr && <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.inner, padding: '10px 14px', fontSize: 'var(--fs-base)', color: 'var(--negative)' }}>{emailErr}</div>}
         </>
       ) : (
         <>
@@ -1860,9 +1870,9 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                 <div key={f.id} style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.card, padding: 12, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                     <div style={{ minWidth: 0, flex: '1 1 220px' }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{f.channel === 'airbnb' ? 'Airbnb' : f.channel === 'booking' ? 'Booking' : 'Άλλο'}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.url}</div>
-                      <div style={{ fontSize: 11, color: f.last_status?.startsWith('error') ? 'var(--negative)' : 'var(--text-secondary)', marginTop: 4 }}>
+                      <div style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)' }}>{f.channel === 'airbnb' ? 'Airbnb' : f.channel === 'booking' ? 'Booking' : 'Άλλο'}</div>
+                      <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.url}</div>
+                      <div style={{ fontSize: 'var(--fs-xs)', color: f.last_status?.startsWith('error') ? 'var(--negative)' : 'var(--text-secondary)', marginTop: 4 }}>
                         {f.last_synced_at ? `Τελευταίος συγχρονισμός: ${fd(f.last_synced_at)}${f.last_status ? ` · ${f.last_status}` : ''}` : 'Δεν έχει συγχρονιστεί ακόμη'}
                       </div>
                     </div>
@@ -1913,7 +1923,7 @@ export default function TabClients({ userId, onSelectProperty }: { userId: strin
                       <span style={{ color: 'var(--text-tertiary)' }}>{d.nights} νύχτες{d.blocked ? ' · μπλοκάρισμα' : ''}</span>
                     </div>
                   ))}
-                  {toImport.length > 40 && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textAlign: 'center', padding: 4 }}>και άλλες {toImport.length - 40}…</div>}
+                  {toImport.length > 40 && <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', textAlign: 'center', padding: 4 }}>και άλλες {toImport.length - 40}…</div>}
                 </div>
               </div>
             );

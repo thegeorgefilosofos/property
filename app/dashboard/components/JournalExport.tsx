@@ -262,7 +262,7 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
   const footer = (
     <>
       <button onClick={e => { e.currentTarget.blur(); doPreview(); }} disabled={busy || !selIds.length}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 13px', borderRadius: T.radius.btn, background: 'none', border: 'none', fontFamily: T.font.sans, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', cursor: (busy || !selIds.length) ? 'not-allowed' : 'pointer', opacity: (busy || !selIds.length) ? 0.5 : 1, transition: 'background 0.15s, color 0.15s' }}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 13px', borderRadius: T.radius.btn, background: 'none', border: 'none', fontFamily: T.font.sans, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', cursor: (busy || !selIds.length) ? 'not-allowed' : 'pointer', opacity: (busy || !selIds.length) ? 0.5 : 1, transition: 'background 0.15s, color 0.15s' }}
         onMouseEnter={e => { if (!(busy || !selIds.length)) { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)'; } }}
         onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-secondary)'; }}>
         <svg aria-hidden="true" width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
@@ -306,8 +306,8 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
                 return (
                   <button key={f.key} onClick={() => setFormat(f.key)} style={{ textAlign: 'left', padding: '9px 12px', borderRadius: 10, border: `1px solid ${on ? 'var(--accent)' : 'var(--border-default)'}`, background: on ? 'var(--accent-soft)' : 'var(--bg-surface)', cursor: 'pointer', fontFamily: T.font.sans, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6, transition: 'border-color 0.15s, background 0.15s' }}>
                     <span style={{ minWidth: 0 }}>
-                      <span style={{ display: 'block', fontSize: 13, fontWeight: 660, letterSpacing: '-0.01em', color: on ? 'var(--accent)' : 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.label}</span>
-                      <span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.hint}</span>
+                      <span style={{ display: 'block', fontSize: 'var(--fs-base)', fontWeight: 660, letterSpacing: '-0.01em', color: on ? 'var(--accent)' : 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.label}</span>
+                      <span style={{ display: 'block', fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.hint}</span>
                     </span>
                     {on && <svg aria-hidden="true" width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M20 6 9 17l-5-5"/></svg>}
                   </button>
@@ -323,22 +323,22 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
                 <svg aria-hidden="true" width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-tertiary)', transform: showBalance ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}><path d="M9 6l6 6-6 6"/></svg>
                 <span style={{ ...TT.label }}>ΙΣΟΖΥΓΙΟ</span>
                 <Badge tone={audit ? (audit.tone === 'positive' ? 'neutral' : audit.tone) : (totals.balanced ? 'neutral' : 'negative')}>{audit ? (audit.tone === 'positive' ? 'Ισοσκελισμένο' : audit.tone === 'warning' ? 'Ισοσκελισμένο · προσοχή' : 'Απαιτεί διόρθωση') : (totals.balanced ? 'Ισοσκελισμένο' : 'Ασυμφωνία')}</Badge>
-                <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight: 600 }}>{showBalance ? 'Σύμπτυξη' : 'Προβολή'}</span>
+                <span style={{ marginLeft: 'auto', fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontWeight: 600 }}>{showBalance ? 'Σύμπτυξη' : 'Προβολή'}</span>
               </button>
               {showBalance && (<>
               <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 12, overflow: 'hidden' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px', gap: 12, padding: '10px 16px', background: 'var(--bg-elevated)', fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-tertiary)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px', gap: 12, padding: '10px 16px', background: 'var(--bg-elevated)', fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-tertiary)' }}>
                   <span>ΛΟΓΑΡΙΑΣΜΟΣ</span><span style={{ textAlign: 'right' }}>ΧΡΕΩΣΗ</span><span style={{ textAlign: 'right' }}>ΠΙΣΤΩΣΗ</span>
                 </div>
                 {preview.map(r => (
-                  <div key={r.code} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px', gap: 12, padding: '9px 16px', borderTop: '1px solid var(--border-subtle)', fontSize: 13 }}>
+                  <div key={r.code} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px', gap: 12, padding: '9px 16px', borderTop: '1px solid var(--border-subtle)', fontSize: 'var(--fs-base)' }}>
                     <span style={{ color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><span style={{ fontFamily: T.font.mono, fontSize: 12, color: 'var(--text-tertiary)', marginRight: 10 }}>{r.code}</span>{r.account}</span>
                     <span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.debit ? eur(r.debit) : ''}</span>
                     <span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.credit ? eur(r.credit) : ''}</span>
                   </div>
                 ))}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px', gap: 12, padding: '12px 16px', borderTop: '1px solid var(--border-default)', background: 'var(--bg-elevated)', fontSize: 13, fontWeight: 700 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>ΣΥΝΟΛΑ</span>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px', gap: 12, padding: '12px 16px', borderTop: '1px solid var(--border-default)', background: 'var(--bg-elevated)', fontSize: 'var(--fs-base)', fontWeight: 700 }}>
+                  <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>ΣΥΝΟΛΑ</span>
                   <span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{eur(totals.debit)}</span>
                   <span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{eur(totals.credit)}</span>
                 </div>
@@ -352,7 +352,7 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
                   <span style={{ position: 'absolute', top: '50%', left: '50%', width: 'calc(50% - 7px)', height: 1.5, transform: 'translateY(-50%)', background: totals.balanced ? 'var(--text-tertiary)' : 'var(--negative)' }} />
                   <span style={{ position: 'absolute', top: '50%', left: '50%', width: 9, height: 9, transform: 'translate(-50%,-50%) rotate(45deg)', background: 'var(--bg-surface)', border: `1.5px solid ${totals.balanced ? 'var(--text-secondary)' : 'var(--negative)'}` }} />
                 </div>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)' }}>Χρέωση <span style={{ fontWeight: 700, color: 'var(--text-tertiary)' }}>=</span> Πίστωση · {totals.balanced ? 'ισοσκελισμένο' : 'ασυμφωνία'}</span>
+                <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-tertiary)' }}>Χρέωση <span style={{ fontWeight: 700, color: 'var(--text-tertiary)' }}>=</span> Πίστωση · {totals.balanced ? 'ισοσκελισμένο' : 'ασυμφωνία'}</span>
               </div>
               </>)}
 
@@ -365,7 +365,7 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
                   <div style={{ marginTop: 18 }}>
                     {/* Ετυμηγορία — ήρεμη, σαν λογιστής */}
                     <div style={{ paddingLeft: 14, borderLeft: `2px solid ${toneVar}` }}>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.55 }}>{audit.summary}</div>
+                      <div style={{ fontSize: 'var(--fs-base)', fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.55 }}>{audit.summary}</div>
                     </div>
 
                     {/* Αναλυτικοί έλεγχοι — μαζεύουν από default */}
@@ -388,22 +388,22 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
                             return (
                               <div key={c.key} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 14, alignItems: 'start', padding: '11px 2px', borderTop: i ? '1px solid var(--border-subtle)' : 'none' }}>
                                 <span style={{ minWidth: 0 }}>
-                                  <div style={{ fontSize: 13, fontWeight: 560, color: 'var(--text-primary)' }}>{c.label}</div>
-                                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3, lineHeight: 1.5 }}>{c.detail}</div>
+                                  <div style={{ fontSize: 'var(--fs-base)', fontWeight: 560, color: 'var(--text-primary)' }}>{c.label}</div>
+                                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4, lineHeight: 1.5 }}>{c.detail}</div>
                                   {!isPass && c.fix && (
                                     <>
-                                      <div style={{ marginTop: 9, display: 'flex', gap: 8, alignItems: 'flex-start', padding: '9px 11px', borderRadius: 8, background: 'var(--bg-elevated)' }}>
+                                      <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'flex-start', padding: '9px 11px', borderRadius: 8, background: 'var(--bg-elevated)' }}>
                                         <svg aria-hidden="true" width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-tertiary)', flexShrink: 0, marginTop: 1 }}><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2h6c0-.8.4-1.5 1-2A7 7 0 0 0 12 2z"/></svg>
                                         <span style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--text-secondary)' }}><b style={{ color: 'var(--text-primary)', fontWeight: 640 }}>Πρόταση:</b> {c.fix}</span>
                                       </div>
-                                      <button onClick={() => askAboutCheck(c)} style={{ marginTop: 7, background: 'none', border: 'none', padding: 0, fontFamily: T.font.sans, fontSize: 12, fontWeight: 650, color: 'var(--accent)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                      <button onClick={() => askAboutCheck(c)} style={{ marginTop: 8, background: 'none', border: 'none', padding: 0, fontFamily: T.font.sans, fontSize: 12, fontWeight: 600, color: 'var(--accent)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                                         <svg aria-hidden="true" width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 4.6L18.5 9l-4.6 1.9L12 15l-1.9-4.1L5.5 9l4.6-1.4z"/></svg>
                                         {askCta()}
                                       </button>
                                     </>
                                   )}
                                 </span>
-                                <span style={{ flexShrink: 0, marginTop: 1, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 600, ...(isPass ? { color: 'var(--text-tertiary)' } : { color: ink, background: `color-mix(in srgb, ${col} 12%, transparent)`, padding: '3px 10px', borderRadius: T.radius.pill }) }}>
+                                <span style={{ flexShrink: 0, marginTop: 1, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-xs)', fontWeight: 600, ...(isPass ? { color: 'var(--text-tertiary)' } : { color: ink, background: `color-mix(in srgb, ${col} 12%, transparent)`, padding: '3px 10px', borderRadius: T.radius.pill }) }}>
                                   {isPass && <svg aria-hidden="true" width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>}
                                   {c.status === 'pass' ? 'Εντάξει' : c.status === 'warn' ? 'Προσοχή' : 'Σφάλμα'}
                                 </span>
@@ -419,7 +419,7 @@ export default function JournalExport({ open, onClose, userId, supabase }: {
             </div>
           )}
 
-          {err && <div style={{ fontSize: 13, color: 'var(--negative)', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 14px' }}>{err}</div>}
+          {err && <div style={{ fontSize: 'var(--fs-base)', color: 'var(--negative)', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 14px' }}>{err}</div>}
       </>
     </Modal>
   );

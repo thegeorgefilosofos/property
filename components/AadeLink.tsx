@@ -52,7 +52,7 @@ export function AadeLink({ action, emphasis = false }: { action: AadeAction; emp
       style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', marginBottom: 8, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderLeft: `3px solid ${emphasis ? 'var(--border-strong)' : 'var(--border-subtle)'}`, borderRadius: T.radius.inner, textDecoration: 'none' }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 2 }}>{d.label}</div>
-        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
           {aadePath(action)}{d.login ? ` · ${LOGIN_NOTE}` : ''}
         </div>
       </div>
@@ -76,7 +76,7 @@ export function AadePill({ action, label }: { action: AadeAction; label?: string
     // τα 44 της αφής ως αόρατη ζώνη, χωρίς να αλλάξει το σχήμα: μια πιλούλα με
     // κείμενο 11 και ύψος 44 θα ήταν χοντρή δίπλα στα υπόλοιπα chip.
     <a className="po-tap-inline" href={d.url} target="_blank" rel="noopener noreferrer" title={aadeTitle(action)}
-      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text-secondary)', fontFamily: T.font.sans, fontWeight: 600, textDecoration: 'none', padding: '4px 12px', background: 'var(--bg-elevated)', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)' }}>
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontWeight: 600, textDecoration: 'none', padding: '4px 12px', background: 'var(--bg-elevated)', borderRadius: T.radius.pill, border: '1px solid var(--border-subtle)' }}>
       {label ?? d.label}
     </a>
   );

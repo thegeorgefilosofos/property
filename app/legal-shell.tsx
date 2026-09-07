@@ -99,7 +99,7 @@ export function LegalLayout({ eyebrow, title, intro, meta, blocks, closing }: {
             από μόνη της άφηνε τριακόσια εικονοστοιχεία λευκά στα δεξιά της. Η
             ημερομηνία τα γεμίζει και η σειρά κλείνει πέρα ως πέρα. */}
         <div className="lg-lede">
-          <p style={{ fontSize: 15.5, color: 'var(--text-secondary)', lineHeight: 1.65, margin: 0 }}>{intro}</p>
+          <p style={{ fontSize: 16, color: 'var(--text-secondary)', lineHeight: 1.65, margin: 0 }}>{intro}</p>
           {meta && <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: 0, whiteSpace: 'nowrap' }}>{meta}</p>}
         </div>
 

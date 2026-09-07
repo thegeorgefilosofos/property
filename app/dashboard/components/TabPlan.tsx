@@ -137,8 +137,8 @@ function Tip({ lead, rows }: { lead?: string; rows?: readonly (readonly [string,
     <>
       {lead && <span style={{ display: 'block' }}>{lead}</span>}
       {(rows ?? []).filter(([, v]) => v).map(([k, v]) => (
-        <span key={k} style={{ display: 'block', marginTop: 9 }}>
-          <span style={{ ...TT.label, fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 2 }}>{k}</span>
+        <span key={k} style={{ display: 'block', marginTop: 8 }}>
+          <span style={{ ...TT.label, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', display: 'block', marginBottom: 2 }}>{k}</span>
           {v}
         </span>
       ))}
@@ -157,7 +157,7 @@ function Tip({ lead, rows }: { lead?: string; rows?: readonly (readonly [string,
  * καταργεί σε κινητό.
  */
 const Tag = ({ children }: { children: ReactNode }) => (
-  <span className="plan-tag" style={{ ...TT.label, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.3 }}>
+  <span className="plan-tag" style={{ ...TT.label, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', lineHeight: 1.3 }}>
     {children}
   </span>
 );
@@ -280,7 +280,7 @@ function MoneyField({ label, hint, value, onChange }: {
 }) {
   return (
     <label style={{ display: 'block' }}>
-      <span style={{ ...TT.label, fontSize: 11, color: 'var(--text-tertiary)', display: 'block', minHeight: 33 }}>{label}</span>
+      <span style={{ ...TT.label, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', display: 'block', minHeight: 33 }}>{label}</span>
       <span style={{ position: 'relative', display: 'block', marginTop: 6 }}>
         {/* ΤΟ placeholder ΗΤΑΝ «0» ΚΑΙ ΤΑ ΠΕΔΙΑ ΔΙΑΒΑΖΟΝΤΑΝ ΩΣ ΜΗΔΕΝΙΚΑ. Το ίδιο
             σφάλμα είχε ήδη βρεθεί στο ιστορικό κατανάλωσης του ρεύματος: κενή
@@ -289,13 +289,13 @@ function MoneyField({ label, hint, value, onChange }: {
         <input type="number" min={0} inputMode="decimal" className="po-field" placeholder=""
           value={value ?? ''}
           onChange={e => onChange(e.target.value === '' ? undefined : Number(e.target.value))}
-          style={{ ...settingsField, height: T.h.md, fontSize: 13, paddingRight: 30 }} />
+          style={{ ...settingsField, height: T.h.md, fontSize: 'var(--fs-base)', paddingRight: 30 }} />
         <span aria-hidden style={{
           position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%)',
           fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.num, pointerEvents: 'none',
         }}>€</span>
       </span>
-      {hint && <span style={{ ...TT.caption, color: 'var(--text-tertiary)', display: 'block', marginTop: 5 }}>{hint}</span>}
+      {hint && <span style={{ ...TT.caption, color: 'var(--text-tertiary)', display: 'block', marginTop: 4 }}>{hint}</span>}
     </label>
   );
 }
@@ -664,7 +664,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
           γιατί εκεί είναι η σειρά του. */}
       {plan.next && (
         <Card pad="lg" style={{ marginBottom: T.sp.lg }}>
-          <div style={{ ...TT.label, fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 8 }}>Το επόμενο βήμα</div>
+          <div style={{ ...TT.label, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginBottom: 8 }}>Το επόμενο βήμα</div>
           <div style={{ ...TT.h2, marginBottom: 6 }}>{plan.next.title}</div>
           {/* Ποιος το κάνει και πότε, σε μία γραμμή: το «πότε» μπαίνει μόνο όταν
               η στιγμή κοστίζει, οπότε συχνά λείπει και δεν αφήνει κενό. */}
@@ -805,7 +805,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
                     minHeight: 44, textAlign: 'left', cursor: 'pointer', background: 'none',
                     border: 'none', opacity: finished ? 0.5 : 1, transition: 'opacity .15s',
                   }}>
-                  <span style={{ ...TT.label, fontSize: 11, color: 'var(--text-tertiary)', flex: 1, minWidth: 0 }}>{g.group}</span>
+                  <span style={{ ...TT.label, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', flex: 1, minWidth: 0 }}>{g.group}</span>
                   <span style={{ ...TT.caption, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
                     {doneHere} από {g.items.length}
                   </span>
@@ -896,11 +896,11 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
                   `feSigned` υπάρχει στο `lib/core/format` ακριβώς γι’ αυτό, με δικό
                   του test — και δεν το καλούσε ΚΑΝΕΝΑ σημείο της εφαρμογής. Μια
                   συνάρτηση που κανείς δεν χρησιμοποιεί δεν φυλάει τίποτα. */}
-              <span style={{ ...TT.figure, fontSize: 13, color: 'var(--text-primary)' }}>{feSigned(-l.amount)}</span>
+              <span style={{ ...TT.figure, fontSize: 'var(--fs-base)', color: 'var(--text-primary)' }}>{feSigned(-l.amount)}</span>
             </div>
           ))}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, padding: '14px 0 0', borderTop: '1px solid var(--border-default)', marginTop: 4 }}>
-            <span style={{ fontFamily: T.font.sans, fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Καθαρό έσοδο</span>
+            <span style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--text-primary)' }}>Καθαρό έσοδο</span>
             <span style={{ ...TT.kpi, fontSize: 20 }}>{feAuto(sale.net)}</span>
           </div>
         </Panel>
@@ -990,7 +990,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
           onClick={() => setRefOpen(o => !o)}
           style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: T.font.sans }}>
           <span style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', minWidth: 0 }}>
-            <span style={{ ...TT.label, fontSize: 11, color: 'var(--text-secondary)' }}>Αναφορά</span>
+            <span style={{ ...TT.label, fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)' }}>Αναφορά</span>
             <span style={{ ...TT.caption, color: 'var(--text-tertiary)' }}>
               Κανόνες που κοστίζουν χρήματα και όσα αλλάζουν από χρονιά σε χρονιά.
             </span>
@@ -1005,7 +1005,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
              πριν την άλλη και καμία από τις δύο δεν έφτανε στην άκρη της κάρτας.
              Το πλέγμα δεν διορθώνεται με ρυθμίσεις — αφαιρείται. */
           <div className="budget-rise" style={{ paddingTop: T.sp.md, marginTop: 2, borderTop: '1px solid var(--border-subtle)' }}>
-            <div style={{ ...TT.label, fontSize: 11, color: 'var(--text-tertiary)', paddingBottom: 6, marginBottom: 2, borderBottom: '1px solid var(--border-subtle)' }}>
+            <div style={{ ...TT.label, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', paddingBottom: 6, marginBottom: 2, borderBottom: '1px solid var(--border-subtle)' }}>
               Οι κανόνες που κοστίζουν χρήματα
             </div>
             {/* ΟΙ ΓΡΑΜΜΕΣ ΤΗΣ ΑΝΑΦΟΡΑΣ ΕΠΛΕΑΝ ΧΩΡΙΣ ΤΙΠΟΤΑ ΝΑ ΤΙΣ ΧΩΡΙΖΕΙ. Επτά
@@ -1025,7 +1025,7 @@ function PlanScreen<P extends PlanProperty>({ propertyId, userId, status, proper
             {/* ΤΟ ΠΟΡΤΟΚΑΛΙ ΣΗΜΑ ΜΕ ΤΟ «3» ΕΦΥΓΕ. Ένα γυμνό «3» δεν λέει καν
                 τρία τι και ήταν γραμμένο στο χρώμα που η εφαρμογή κρατά για
                 εκκρεμότητες — σε ενότητα που ρητά δεν ζητά καμία ενέργεια. */}
-            <div style={{ ...TT.label, fontSize: 11, color: 'var(--text-tertiary)', paddingBottom: 6, marginTop: T.sp.lg, marginBottom: 2, borderBottom: '1px solid var(--border-subtle)' }}>
+            <div style={{ ...TT.label, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', paddingBottom: 6, marginTop: T.sp.lg, marginBottom: 2, borderBottom: '1px solid var(--border-subtle)' }}>
               Προς επιβεβαίωση
             </div>
             {plan.verify.map((v, i) => (

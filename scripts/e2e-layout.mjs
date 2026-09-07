@@ -34,14 +34,11 @@
 //     node scripts/perf-bench/build-mobile.mjs && node scripts/e2e-layout.mjs
 //     (οι δημόσιες σελίδες ελέγχονται μόνο αν απαντά το E2E_BASE)
 // ═══════════════════════════════════════════════════════════════════════════
-import { chromePath } from './lib/chrome.mjs'
+import { launchEngine, engineLabel, engineName } from './lib/engine.mjs'
 import { SCENES } from './lib/scenes.mjs'
 import { abortIfStyleless } from './lib/served-css.mjs'
 import { benchUrl } from './lib/paths.mjs'
 import { cpus } from 'node:os'
-import { createRequire } from 'node:module'
-const require = createRequire(import.meta.url)
-const { chromium } = require('playwright-core')
 
 const PROBE = () => {
   const out = []
@@ -248,7 +245,7 @@ const PROBE = () => {
     const room = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
     const need = cv.measureText(ph).width
     // Ενα εικονοστοιχείο είναι στρογγυλοποίηση· τέσσερα είναι χαμένο γράμμα.
-    if (need > room + 4) add('ΚΟΜΜΕΝΟ ΠΑΡΑΔΕΙΓΜΑ', ph, `${Math.round(need)} σε ${Math.round(room)}`)
+    if (need > room + 4) add('ΚΟΜΜΕΝΟ ΠΑΡΑΔΕΙΓΜΑ', ph, `${Math.round(need)} σε ${Math.round(room)} · ${who(el)}`)
   }
 
   // ═══ Η ΤΙΜΗ ΜΕΣΑ ΣΤΟ ΠΕΔΙΟ ═════════════════════════════════════════════
@@ -261,6 +258,18 @@ const PROBE = () => {
   // και όταν η εστίαση είναι αλλού ο περιηγητής επιστρέφει ίσα νούμερα. Ετσι
   // μετριέται το ΙΔΙΟ πράγμα με το παράδειγμα, με canvas και την πραγματική
   // γραμματοσειρά, ώστε μια αλλαγή σε καθεμιά από τις δύο να μη χαλά την άλλη.
+  // ΤΟ ΕΥΡΗΜΑ ΠΡΕΠΕΙ ΝΑ ΛΕΕΙ ΠΟΙΟ ΠΕΔΙΟ ΕΙΝΑΙ, ΟΧΙ ΜΟΝΟ ΤΙ ΕΓΡΑΦΕ. Το job του
+  // Safari ανέφερε «ΚΟΜΜΕΝΗ ΤΙΜΗ ΠΕΔΙΟΥ «250» 31 σε 17» και το «250» δεν
+  // ξεχωρίζει τίποτα: υπάρχουν τέσσερα αριθμητικά πεδία σε εκείνη την οθόνη και
+  // το εύρημα δεν αναπαράγεται σε Chromium, οπότε δεν βρίσκεται ούτε με σαρωτή
+  // ούτε με ανάγνωση. Μια μέτρηση πάνω στην οποία δεν μπορείς να δράσεις είναι
+  // μισή μέτρηση· εδώ προστίθεται η ετικέτα προσβασιμότητας και η κλάση, που
+  // μαζί δείχνουν πάντα σε μία γραμμή κώδικα.
+  const who = (el) => {
+    const lab = (el.getAttribute('aria-label') || el.getAttribute('placeholder') || '').trim().slice(0, 28)
+    const cls = typeof el.className === 'string' && el.className ? '.' + el.className.split(/\s+/)[0] : ''
+    return `${el.tagName.toLowerCase()}${cls}${lab ? ` [${lab}]` : ''}`
+  }
   for (const el of document.querySelectorAll('input, textarea')) {
     if (/^(checkbox|radio|file|range|color|hidden|submit|button|image)$/.test(el.type || '')) continue
     const v = el.value
@@ -269,7 +278,7 @@ const PROBE = () => {
     cv.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`
     const room = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
     const need = cv.measureText(v).width
-    if (need > room + 4) add('ΚΟΜΜΕΝΗ ΤΙΜΗ ΠΕΔΙΟΥ', v, `${Math.round(need)} σε ${Math.round(room)}`)
+    if (need > room + 4) add('ΚΟΜΜΕΝΗ ΤΙΜΗ ΠΕΔΙΟΥ', v, `${Math.round(need)} σε ${Math.round(room)} · ${who(el)}`)
   }
 
   // ═══ Ο ΠΙΝΑΚΑΣ ΠΟΥ ΚΥΛΑ ΚΑΙ ΧΑΝΕΙ ΤΟ ΟΝΟΜΑ ΤΗΣ ΓΡΑΜΜΗΣ ═════════════════
@@ -618,7 +627,7 @@ const PROBE = () => {
   return out
 }
 
-const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || chromePath(), args: ['--no-sandbox'] })
+const browser = await launchEngine()
 // Η ΤΑΜΠΛΕΤΑ ΣΕ ΟΡΙΖΟΝΤΙΑ ΘΕΣΗ ΔΕΝ ΜΕΤΡΙΟΤΑΝ ΩΣ ΤΑΜΠΛΕΤΑ. Το `hasTouch` ήταν
 // `w < 1100`, οπότε στα 1.024 και πάνω ο έλεγχος έτρεχε ΩΣ ΠΟΝΤΙΚΙ — και ο
 // κανόνας των 44 εικονοστοιχείων ισχύει μόνο σε χοντρό δείκτη, άρα δεν ίσχυε
@@ -660,13 +669,42 @@ const DEVICES = [
   { w: 320, h: 640,  name: 'Samsung μεγάλη γραμματοσειρά' },
   { w: 360, h: 640,  name: 'Galaxy A5, A6' },
   { w: 360, h: 800,  name: 'Galaxy A12 ώς A55' },
-  { w: 375, h: 812,  name: 'iPhone SE, 13 mini' },
+  { w: 375, h: 812,  name: 'iPhone SE 2/3, 8, 13 mini' },
+  // ═══ ΤΑ IPHONE ΠΟΥ ΔΕΝ ΣΑΡΩΝΟΝΤΑΝ ΠΟΤΕ ═══════════════════════════════════
+  // Ο κατάλογος είχε 320, 375, 412 και 430: τρία Android και δύο άκρα. Εξι από
+  // τα εννέα πραγματικά πλάτη iPhone έλειπαν — ΚΑΙ ΤΑ ΔΥΟ ΠΙΟ ΚΟΙΝΑ. Το 390
+  // είναι κάθε iPhone 12, 13, 14 και 16e· το 393 είναι 14 Pro, 15 και 16. Ο
+  // ιδιοκτήτης ανέφερε σφάλματα στο δικό του τηλέφωνο και είχε δίκιο: κοιτάζαμε
+  // δίπλα του. Τρία εικονοστοιχεία αρκούν όταν μια στήλη χάνει τη στοίχισή της
+  // στα 391.
+  { w: 390, h: 844,  name: 'iPhone 12, 13, 14, 16e' },
+  { w: 393, h: 852,  name: 'iPhone 14 Pro, 15, 16' },
+  { w: 402, h: 874,  name: 'iPhone 16 Pro' },
   { w: 412, h: 915,  name: 'Galaxy A71, Pixel' },
-  { w: 430, h: 932,  name: 'iPhone Pro Max' },
-  { w: 768, h: 1024, name: 'ταμπλέτα κάθετη' },
-  { w: 820, h: 1180, name: 'iPad Air' },
-  { w: 900, h: 1200, name: 'ταμπλέτα οριζόντια' },
-  { w: 1024, h: 1366, name: 'iPad Pro' },
+  { w: 414, h: 896,  name: 'iPhone XR, 11, 8 Plus' },
+  // ΤΟ 420 ΕΙΝΑΙ ΤΟ ΙΔΙΟ ΤΟ ΟΡΙΟ, ΟΧΙ ΑΚΟΜΗ ΜΙΑ ΣΥΣΚΕΥΗ. Το globals.css έχει
+  // κανόνα `max-width: 420px` και καμία από τις υπόλοιπες μετρήσεις δεν έπεφτε
+  // ΠΑΝΩ του: το 414 είναι μέσα, το 428 έξω, το ίδιο το 420 δεν δοκιμαζόταν
+  // ποτέ. Εκεί ζουν τα σφάλματα του ενός εικονοστοιχείου. Και είναι πλάτος
+  // πραγματικών συσκευών — iPhone Air, Oppo Find X8.
+  { w: 420, h: 912,  name: 'iPhone Air, Oppo Find X8 · το όριο των 420' },
+  { w: 428, h: 926,  name: 'iPhone 12, 13, 14 Pro Max' },
+  { w: 430, h: 932,  name: 'iPhone 15, 16 Plus και Pro Max' },
+  { w: 440, h: 956,  name: 'iPhone 16 Pro Max' },
+  // ═══ ΚΑΙ ΤΑ IPAD, ΜΕ ΤΑ ΠΡΑΓΜΑΤΙΚΑ ΤΟΥΣ ΠΛΑΤΗ ════════════════════════════
+  // Ιδιο σφάλμα με τα iPhone, μικρότερο σε έκταση: υπήρχαν 768, 820 και 1024,
+  // δηλαδή κάθετα. Το 834 είναι iPad Pro 11 και Air 10.5 — από τα πιο κοινά
+  // στην αγορά. Οριζόντια δεν υπήρχε ΚΑΝΕΝΑ πραγματικό πλάτος: το «900» ήταν
+  // επινοημένο. Το 1180 είναι iPad Air 10.9 και το 1366 iPad Pro 12.9, που
+  // είναι και το πλατύτερο ταμπλέτας — εκεί σπάνε οι διατάξεις που υποθέτουν
+  // «φαρδύ σημαίνει ποντίκι», γιατί το iPad είναι φαρδύ ΚΑΙ δάχτυλο.
+  { w: 768, h: 1024, name: 'iPad mini, iPad 9.7 κάθετα' },
+  { w: 810, h: 1080, name: 'iPad 10.2 κάθετα' },
+  { w: 820, h: 1180, name: 'iPad Air 10.9 κάθετα' },
+  { w: 834, h: 1194, name: 'iPad Pro 11, Air 10.5 κάθετα' },
+  { w: 1024, h: 1366, name: 'iPad Pro 12.9 κάθετα' },
+  { w: 1180, h: 820, name: 'iPad Air 10.9 οριζόντια' },
+  { w: 1366, h: 1024, name: 'iPad Pro 12.9 οριζόντια' },
   { w: 1280, h: 800, name: 'φορητός με αφή' },
   { w: 1440, h: 900, name: 'φορητός' },
 ]
@@ -714,7 +752,6 @@ function inflateText(k) {
 const PICK_W = process.env.E2E_WIDTHS ? process.env.E2E_WIDTHS.split(',').map(Number) : null
 const RUN_DEVICES = PICK_W ? DEVICES.filter(d => PICK_W.includes(d.w)) : DEVICES
 
-const WIDTHS = DEVICES.map(d => d.w)
 const TOUCH = (w) => w < 1100 || w === 1280
 // ═══ ΤΑ ΠΑΡΑΘΥΡΑ ΠΟΥ ΑΝΟΙΓΟΥΝ ΜΕ ΚΟΥΜΠΙ ═════════════════════════════════════
 // ΜΙΑ ΦΟΡΜΑ ΜΕΣΑ ΣΕ ΠΑΡΑΘΥΡΟ ΔΕΝ ΑΠΟΔΙΔΕΤΑΙ ΑΝ ΔΕΝ ΤΗΝ ΑΝΟΙΞΕΙ ΚΑΠΟΙΟΣ. Η φόρμα
@@ -876,7 +913,7 @@ async function scanDevice(dev, out) {
 // συσκευή, παίρνει την επόμενη αδιάθετη. Ετσι μια αργή συσκευή δεν κρατά
 // άπραγη μια θέση, όπως θα γινόταν με μοίρασμα σε ίσα κομμάτια από την αρχή.
 const LANES = Math.max(1, Math.min(Number(process.env.E2E_LANES || cpus().length), 4, RUN_DEVICES.length))
-console.log(`  ${RUN_DEVICES.length} συσκευές σε ${LANES} παράλληλες θέσεις`)
+console.log(`  ${RUN_DEVICES.length} συσκευές σε ${LANES} παράλληλες θέσεις · μηχανή ${engineLabel()}`)
 let next = 0
 await Promise.all(Array.from({ length: LANES }, async () => {
   for (;;) {

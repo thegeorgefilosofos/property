@@ -71,16 +71,16 @@ export default function ActivityLog() {
         }}>
           <span aria-hidden style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--border-raised)', flexShrink: 0, marginTop: 6 }} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, color: 'var(--text-primary)', fontFamily: T.font.sans, lineHeight: 1.4 }}>
+            <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-primary)', fontFamily: T.font.sans, lineHeight: 1.4 }}>
               {activityLabel(r)}
             </div>
             {r.actor_email && (
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {r.actor_email}
               </div>
             )}
           </div>
-          <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, flexShrink: 0, whiteSpace: 'nowrap' }} title={new Date(r.created_at).toLocaleString('el-GR')}>
+          <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.sans, flexShrink: 0, whiteSpace: 'nowrap' }} title={new Date(r.created_at).toLocaleString('el-GR')}>
             {relTime(r.created_at)}
           </span>
         </div>

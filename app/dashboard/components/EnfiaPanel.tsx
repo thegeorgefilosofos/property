@@ -185,12 +185,12 @@ function RouteTile({ route, value, inUse, active, onSelect }: {
         {/* Η κουκκίδα λέει «από εδώ βγαίνει το ποσό πάνω». Για όποιον δεν τη
             βλέπει, το ίδιο πράγμα γίνεται λέξη μέσα στο κουμπί. */}
         {inUse && <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />}
-        <span style={{ ...TT.label, fontSize: 11, color: active ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+        <span style={{ ...TT.label, fontSize: 'var(--fs-xs)', color: active ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
           {SOURCE_LABEL[route]}
         </span>
         {inUse && <span className="sr-only">σε χρήση</span>}
       </span>
-      <span style={{ ...TT.figure, fontSize: 15, display: 'block', marginTop: 5, color: value > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
+      <span style={{ ...TT.figure, fontSize: 15, display: 'block', marginTop: 4, color: value > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
         {value > 0 ? fe(value) : 'Κενό'}
       </span>
     </button>
@@ -307,7 +307,7 @@ export default function EnfiaPanel({ propertyId, userId }: { propertyId: string;
                 <div style={{ ...TT.label, color: 'var(--text-tertiary)', marginBottom: 8 }}>ΕΝΦΙΑ τον χρόνο</div>
                 <div style={{ ...TT.display }}>{fe(inUse.annual)}</div>
               </div>
-              <span style={{ ...TT.label, fontSize: 11, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, padding: '4px 12px' }}>
+              <span style={{ ...TT.label, fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, padding: '4px 12px' }}>
                 {SOURCE_LABEL[inUse.source]}
               </span>
             </div>

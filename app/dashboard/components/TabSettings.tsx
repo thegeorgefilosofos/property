@@ -98,9 +98,22 @@ function CollapsibleSection({ title, hint, defaultOpen = false, delay, children 
   return (
     <Card className="acc-section" style={{ animationDelay: delay }}>
       <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} aria-controls={panelId} className="po-sec-toggle"
-        style={{ appearance: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none', borderBottom: open ? '1px solid var(--border-subtle)' : 'none', background: 'transparent', width: '100%', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, padding: 0, textAlign: 'left', marginBottom: open ? 16 : 0, paddingBottom: open ? 10 : 0 }}>
-        <span style={{ ...TT.label, flex: 1, minWidth: 0 }}>{title}</span>
-        {hint && !open && <span style={{ ...TT.caption, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{hint}</span>}
+        style={{ appearance: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none', borderBottom: open ? '1px solid var(--border-subtle)' : 'none', background: 'transparent', width: '100%', cursor: 'pointer', display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: 2, gap: 10, padding: 0, textAlign: 'left', marginBottom: open ? 16 : 0, paddingBottom: open ? 10 : 0 }}>
+        {/* ΤΟ ΒΕΛΑΚΙ ΜΕΝΕΙ ΔΙΠΛΑ ΣΤΟΝ ΤΙΤΛΟ ΟΤΑΝ Η ΣΕΙΡΑ ΤΥΛΙΓΕΤΑΙ. Χωρίς το
+            `999`, ο τίτλος και το βελάκι μοιράζονταν τον χώρο ισότιμα και το
+            βελάκι έφευγε μόνο του σε τρίτη γραμμή. */}
+        <span style={{ ...TT.label, flex: '999 1 auto', minWidth: 0 }}>{title}</span>
+        {/* ═══ Η ΥΠΟΣΗΜΕΙΩΣΗ ΠΑΕΙ ΣΕ ΔΕΥΤΕΡΗ ΓΡΑΜΜΗ ΑΝΤΙ ΝΑ ΚΟΠΕΙ ══════════════
+            Με τη γραμματοσειρά στα 12 σε δάχτυλο, το «Κωδικός και επαλήθευση δύο
+            βημάτων» δίπλα στο «Ασφάλεια» θέλει 4 εικονοστοιχεία παραπάνω απ' όσα
+            υπάρχουν στα 320· το «Εισαγωγή, εξαγωγή, λογιστής, διαγραφή»
+            δεκαεπτά. Εβγαινε «Κωδικός και επαλήθευση δύο…», δηλαδή μια πρόταση
+            που σταματά στη μέση.
+            Σε οθόνη 320 ο τίτλος και η περιγραφή του ΔΕΝ χωρούν στην ίδια σειρά,
+            όσο κι αν το θέλουμε. Τυλίγεται — τίτλος πάνω, περιγραφή από κάτω,
+            που είναι έτσι κι αλλιώς το φυσικό σχήμα. Οπου χωράει, τίποτα δεν
+            αλλάζει: το `flex-wrap` δεν τυλίγει ό,τι χωράει. */}
+        {hint && !open && <span style={{ ...TT.caption, minWidth: 0, flex: '1 1 auto', overflowWrap: 'anywhere' }}>{hint}</span>}
         <svg aria-hidden="true" focusable="false" width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, transition: 'transform 0.2s cubic-bezier(0.2,0,0,1)', transform: open ? 'rotate(180deg)' : 'none' }}>
           <path d="M6 9l6 6 6-6" />
         </svg>
@@ -276,7 +289,7 @@ function DeleteAccount() {
         // Ο λογαριασμός έφυγε, κάτι όμως έμεινε πίσω. Η αποσύνδεση περιμένει
         // τον χρήστη, ώστε το μήνυμα να μην περάσει με μια ανακατεύθυνση.
         <div style={{ background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: T.radius.inner, padding: 16 }}>
-          <div style={{ fontSize: 13, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 12 }}>
+          <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 12 }}>
             {leftover}
           </div>
           <button onClick={signOut}
@@ -297,7 +310,7 @@ function DeleteAccount() {
         </button>
       ) : (
         <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: T.radius.inner, padding: 16 }}>
-          <div style={{ fontSize: 13, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 10 }}>
+          <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 10 }}>
             Για επιβεβαίωση, γράψε <strong>ΔΙΑΓΡΑΦΗ</strong> στο πεδίο και πάτησε την οριστική διαγραφή.
           </div>
           <input aria-label="Επιβεβαίωση διαγραφής" value={confirmText} onChange={e => setConfirmText(e.target.value)} placeholder="ΔΙΑΓΡΑΦΗ" autoFocus className="po-field"
@@ -715,7 +728,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
                 background: on ? 'var(--accent-dim)' : 'var(--bg-surface)',
               }}>
                 <div style={{ fontSize: 12, fontWeight: on ? 700 : 500, color: on ? 'var(--accent)' : 'var(--text-secondary)', fontFamily: T.font.sans, lineHeight: 1.3 }}>{PLANS[id].name}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
+                <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
                   {PLANS[id].maxProperties === Infinity ? 'απεριόριστα' : `${PLANS[id].maxProperties} ${PLANS[id].maxProperties === 1 ? 'ακίνητο' : 'ακίνητα'}`}
                 </div>
               </div>
@@ -726,7 +739,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
         {/* Μετρητής ακινήτων: προ-πουλά ήρεμα το όριο, χωρίς τοίχο-έκπληξη */}
         {propertyCount != null && (
           <div style={{ marginTop: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 7 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
               <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans }}>Ακίνητα</span>
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, fontVariantNumeric: 'tabular-nums' }}>{propertyCount} από {propLimitLabel}</span>
             </div>
@@ -784,7 +797,7 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
 
         {/* Τρόπος χρήσης: Ιδιώτης / Επαγγελματίας */}
         <div style={divider}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 3 }}>Τρόπος χρήσης</div>
+          <div style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)', fontFamily: T.font.sans, marginBottom: 4 }}>Τρόπος χρήσης</div>
           <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 14, lineHeight: 1.5 }}>
             Αλλάζει όποτε θες.{partner ? ' Είσαι ενεργός Συνεργάτης PROPERWISE.' : ''}
           </div>
@@ -808,9 +821,9 @@ export default function TabSettings({ propertyId, userId, profileType = 'individ
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginTop: 5, lineHeight: 1.5 }}>{o.sub}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: T.font.sans, marginTop: 4, lineHeight: 1.5 }}>{o.sub}</div>
                   {requiresUpgrade && (
-                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 8 }}>Απαιτεί αναβάθμιση στο πακέτο Επαγγελματίας.</div>
+                    <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 8 }}>Απαιτεί αναβάθμιση στο πακέτο Επαγγελματίας.</div>
                   )}
                 </button>
               );

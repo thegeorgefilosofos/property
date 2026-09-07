@@ -94,6 +94,17 @@ const MoneySteps = ({ steps, scale = 'lead' }: { steps: MoneyStep[]; scale?: 'le
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
       {steps.map(step => {
+        // ═══ Η ΣΚΑΛΑ ΤΗΣ ΑΝΑΛΥΣΗΣ ΜΙΛΑΕΙ ΤΗ ΓΛΩΣΣΑ ΤΩΝ TOKEN ══════════════════
+        // Εδώ ζούσαν ΤΡΙΑ από τα τέσσερα μεγέθη που δεν ανήκαν σε καμία κλίμακα:
+        // 11,5 · 12,5 · 19. Κανείς δεν σχεδιάζει στα 11,5 δίπλα στο 11 και στο
+        // 12 — είναι το αποτέλεσμα του «λίγο μικρότερο από αυτό», τρεις φορές.
+        //
+        // Και δεν γίνονται απλώς ακέραιοι: γίνονται ΤΑ ΙΔΙΑ token που ορίζουν
+        // το κείμενο παντού αλλού. Κερδίζουν έτσι και κάτι που δεν είχαν —
+        // στην αφή το --fs-xs είναι 12 αντί για 11 και το --fs-base 14 αντί
+        // για 13, οπότε η ανάλυση τιμής μεγαλώνει μόνη της στο τηλέφωνο.
+        // Ο μόνος αριθμός που μένει είναι τα 20 του τελικού ποσού: είναι το
+        // νούμερο-ήρωας της κάρτας και δεν ακολουθεί την κλίμακα του σώματος.
         const isTotal = step.kind === 'total';
         const isOut = step.kind === 'out';
         return (
@@ -102,12 +113,12 @@ const MoneySteps = ({ steps, scale = 'lead' }: { steps: MoneyStep[]; scale?: 'le
               padding: isTotal ? (lead ? '14px 0 2px' : '7px 0 1px') : (lead ? '9px 0' : '4px 0'),
               borderTop: isTotal ? '1px solid var(--border-default)' : 'none',
               marginTop: isTotal ? (lead ? 6 : 4) : 0 }}>
-            <span style={{ fontFamily: T.font.sans, fontSize: lead ? (isTotal ? 14 : 12.5) : 11.5,
+            <span style={{ fontFamily: T.font.sans, fontSize: lead ? (isTotal ? 'var(--fs-md)' : 'var(--fs-base)') : 'var(--fs-xs)',
               fontWeight: isTotal ? 700 : 400,
               color: isTotal ? 'var(--text-primary)' : 'var(--text-secondary)',
               minWidth: 0 }}>{step.label}</span>
             <span style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums',
-              fontSize: lead ? (isTotal ? 19 : 13) : (isTotal ? 13 : 11.5),
+              fontSize: lead ? (isTotal ? 20 : 'var(--fs-base)') : (isTotal ? 'var(--fs-base)' : 'var(--fs-xs)'),
               fontWeight: isTotal ? 700 : 500,
               color: isTotal ? 'var(--text-primary)' : 'var(--text-secondary)',
               whiteSpace: 'nowrap', flexShrink: 0 }}>
@@ -459,7 +470,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
       <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border-subtle)' }}>
         <MoneySteps steps={steps} scale="note" />
         {change && after && (
-          <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.6, fontFamily: T.font.sans }}>
+          <div style={{ marginTop: 6, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', lineHeight: 1.6, fontFamily: T.font.sans }}>
             Από {fd(change.date)} το τέλος γίνεται <strong style={{ fontFamily: T.font.num }}>{fe(after.climateLevy)}</strong>
             {after.payout != null && <> και μένουν <strong style={{ fontFamily: T.font.num }}>{fe(after.payout)}</strong></>}.
           </div>
@@ -475,7 +486,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
   // τέλος ανήκει στο κράτος και ότι η προμήθεια είναι δαπάνη ισχύει για όλη την
   // καρτέλα. Λέγεται μία φορά, εκεί που πρωτοεμφανίζεται η ανάλυση.
   const priceAnatomy = (
-    <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.65, fontFamily: T.font.sans }}>
+    <div style={{ marginTop: 10, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', lineHeight: 1.65, fontFamily: T.font.sans }}>
       Το τέλος ανθεκτικότητας εισπράττεται για το κράτος και δεν είναι έσοδό σου.{' '}
       {feeRate != null && feeRate > 0
         ? `Η προμήθεια (${fp(feeRate * 100)}, από τις δικές σου καταγεγραμμένες διαμονές) είναι δαπάνη και δεν μειώνει το δηλωτέο έσοδο.`
@@ -523,7 +534,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
           σαββατοκύριακου» έσπαγε σε δύο γραμμές. Είναι επιλογή προβολής του
           ημερολογίου από κάτω: μικρότερο, πιο διακριτικό, στη θέση του. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 14px' }}>
-        <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Έτος</span>
+        <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Έτος</span>
         {/* ΤΟ ΚΑΡΦΩΜΕΝΟ ΥΨΟΣ ΕΚΟΒΕ ΤΟΝ ΣΤΟΧΟ ΑΦΗΣ ΣΤΗ ΜΕΣΗ. Με «height: 28» και
             «overflow: hidden», τα δύο κουμπιά έπαιρναν κανονικά το δάπεδο των 44
             σε συσκευή αφής και το κουτί τα έκοβε στα 28: ο στόχος έμενε 28 ΚΑΙ
@@ -543,7 +554,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
           ))}
         </div>
       </div>
-      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 16, minHeight: 16 }}>
+      <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginBottom: 16, minHeight: 16 }}>
         {adr > 0 && <>Μέση πραγματική τιμή (ADR): <strong style={{ color: 'var(--text-secondary)', fontFamily: T.font.num }}>{fe(adr)}</strong> / νύχτα από {stays.length} διαμονές. </>}
         {saveNote && <span style={{ color: 'var(--text-secondary)' }}>{saveNote}</span>}
       </div>
@@ -556,13 +567,13 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
         const setComp = (i: number, v: string) => setComps(prev => { const n = [...prev]; n[i] = v; return n; });
         return (
           <div className="card" style={{ marginBottom: 18 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, cursor: 'pointer' }} {...pressable(() => setCompsOpen(o => !o))}>
+            <div className="po-disclosure" {...pressable(() => setCompsOpen(o => !o))}>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>Βαθμονόμηση από τον ανταγωνισμό</div>
-                <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>Βάλε τιμές/νύχτα παρόμοιων ακινήτων της περιοχής και δες μια προτεινόμενη βάση</div>
+                <div style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>Βαθμονόμηση από τον ανταγωνισμό</div>
+                <div style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 1 }}>Βάλε τιμές/νύχτα παρόμοιων ακινήτων της περιοχής και δες μια προτεινόμενη βάση</div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                {median > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.num }}>διάμεση {fe(median)}</span>}
+                {median > 0 && <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--accent)', fontFamily: T.font.num }}>διάμεση {fe(median)}</span>}
                 <svg aria-hidden="true" width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: compsOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="m6 9 6 6 6-6" /></svg>
               </div>
             </div>
@@ -582,7 +593,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                     <Btn variant="secondary" onClick={() => { mark(setBase)(compBase); const g = suggestGuardrails(compBase); mark(setMin)(g.min); mark(setMax)(g.max); }}>Χρησιμοποίησε αυτή τη βάση</Btn>
                   </div>
                 ) : (
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Πρόσθεσε 1-4 τιμές ανταγωνιστών (π.χ. από Airbnb/Booking για παρόμοια ακίνητα) για να δεις προτεινόμενη βάση. Αποθηκεύεται τοπικά στη συσκευή σου.</div>
+                  <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Πρόσθεσε 1-4 τιμές ανταγωνιστών (π.χ. από Airbnb/Booking για παρόμοια ακίνητα) για να δεις προτεινόμενη βάση. Αποθηκεύεται τοπικά στη συσκευή σου.</div>
                 )}
               </div>
             )}
@@ -632,7 +643,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
               <SecHdr label={`Τι μένει σε εσένα, ${nowYear}`}
                 sub={`Από ${fn(taxSummary.totalNights)} διανυκτερεύσεις σε ${taxSummary.stayCount === 1 ? 'μία διαμονή' : `${fn(taxSummary.stayCount)} διαμονές`}`}
                 right={cashflow.keptPct != null
-                  ? <span title="Ποσοστό των ακαθαρίστων που καταλήγει σε εσένα" style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{fp(cashflow.keptPct)}</span>
+                  ? <span title="Ποσοστό των ακαθαρίστων που καταλήγει σε εσένα" style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--text-primary)' }}>{fp(cashflow.keptPct)}</span>
                   : undefined} />
 
               <MoneySteps scale="lead" steps={cashflow.steps.map(st => ({ ...st, negative: st.kind === 'total' && cashflow.net < 0 }))} />
@@ -645,7 +656,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
               {/* ΟΠΟΥ ΤΟ ΝΟΥΜΕΡΟ ΕΙΝΑΙ ΕΚΤΙΜΗΣΗ, ΤΟ ΛΕΜΕ ΔΙΠΛΑ ΤΟΥ. Διαμονές με
                   απροσδιόριστη βάση ποσού κάνουν τα ακαθάριστα εκτίμηση· διαμονές
                   χωρίς Δήλωση Βραχυχρόνιας είναι εκκρεμότητα, όχι λογιστικό λάθος. */}
-              <div style={{ marginTop: 14, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.65 }}>
+              <div style={{ marginTop: 14, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.65 }}>
                 Ο φόρος υπολογίζεται στα ακαθάριστα με την κλίμακα ενοικίων, όχι στο υπόλοιπο μετά τα έξοδα. Δεν περιλαμβάνονται δόσεις δανείου.
                 {taxSummary.unresolvedCount > 0 && ` ${taxSummary.unresolvedCount === 1 ? 'Μία διαμονή' : `${fn(taxSummary.unresolvedCount)} διαμονές`} χωρίς ανάλυση ποσού σε ακαθάριστο, προμήθεια και τέλος: τα ακαθάριστα είναι εκτίμηση ως τότε.`}
                 {taxSummary.undeclaredCount > 0 && ` ${taxSummary.undeclaredCount === 1 ? 'Μία διαμονή δεν έχει' : `${fn(taxSummary.undeclaredCount)} διαμονές δεν έχουν`} Δήλωση Βραχυχρόνιας Διαμονής.`}
@@ -671,12 +682,12 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                   <div key={i} className="po-fig-card" tabIndex={0} style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.card, padding: 16, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                       <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <div style={{ fontSize: 'var(--fs-base)', fontWeight: 600, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                           {fd(g.start)} - {fd(g.end)}
-                          {g.hard && <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, padding: '1px 6px' }}>δύσκολο κενό</span>}
-                          {g.soon && <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, padding: '1px 6px' }}>άμεσα</span>}
+                          {g.hard && <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, padding: '1px 6px' }}>δύσκολο κενό</span>}
+                          {g.soon && <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, padding: '1px 6px' }}>άμεσα</span>}
                         </div>
-                        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>{g.nights} {g.nights === 1 ? 'νύχτα' : 'νύχτες'} · εποχή {SEASON_LABELS[g.season]} · πρόταση πλήρωσης <strong className="po-fig" data-tone="accent" style={{ fontFamily: T.font.num }}>{fe(g.fillPrice)}</strong>/νύχτα</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>{g.nights} {g.nights === 1 ? 'νύχτα' : 'νύχτες'} · εποχή {SEASON_LABELS[g.season]} · πρόταση πλήρωσης <strong className="po-fig" data-tone="accent" style={{ fontFamily: T.font.num }}>{fe(g.fillPrice)}</strong>/νύχτα</div>
                       </div>
                       {/* ΤΑ ΔΥΟ ΚΟΥΜΠΙΑ ΤΥΛΙΓΟΝΤΑΙ ΜΕΤΑΞΥ ΤΟΥΣ. Με `flexShrink: 0`
                           και χωρίς άδεια αναδίπλωσης, το ζευγάρι ήταν ένα
@@ -715,7 +726,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                   <div key={key} className="cal-month" style={{ flex: '1 1 300px', minWidth: 280, background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.card, padding: 16, boxShadow: 'var(--highlight-inset), var(--elev-1)' }}>
                     <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>{MONTHS_NOM[mm - 1]} {yy}</div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
-                      {WEEKDAYS.map(w => <div key={w} style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', paddingBottom: 4 }}>{w}</div>)}
+                      {WEEKDAYS.map(w => <div key={w} style={{ textAlign: 'center', fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-tertiary)', paddingBottom: 4 }}>{w}</div>)}
                       {Array.from({ length: lead }).map((_, i) => <div key={'b' + i} />)}
                       {Array.from({ length: daysInMonth }).map((_, i) => {
                         const dayNum = i + 1;
@@ -762,7 +773,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                                 σχηματίζουν ΕΝΙΑΙΑ ζώνη, δηλαδή η κράτηση φαίνεται
                                 ως κράτηση αντί για επτά ξεχωριστά τετράγωνα. */}
                             {d.booked && <span aria-hidden style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(45deg, transparent 0 4px, var(--border-default) 4px 5px)', opacity: 0.75 }} />}
-                            <span style={{ position: 'relative', fontSize: 11, fontWeight: 600, color: d.booked ? 'var(--text-tertiary)' : 'var(--text-tertiary)' }}>{dayNum}</span>
+                            <span style={{ position: 'relative', fontSize: 'var(--fs-xs)', fontWeight: 600, color: d.booked ? 'var(--text-tertiary)' : 'var(--text-tertiary)' }}>{dayNum}</span>
                             {/* Κλεισμένη ημέρα: δεν έχει προτεινόμενη τιμή και η
                                 παύλα που έμπαινε στη θέση της διαβαζόταν ως
                                 «λείπει τιμή» αντί για «είναι πιασμένη». */}
@@ -780,7 +791,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                                 Η μονάδα ζει στο υπόμνημα από κάτω, στην υπόδειξη
                                 του κελιού και στην ετικέτα προσιτότητας. */}
                             {!d.booked && (
-                              <span style={{ position: 'relative', fontSize: 11, fontWeight: top ? 800 : 600, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                              <span style={{ position: 'relative', fontSize: 'var(--fs-xs)', fontWeight: top ? 700 : 600, fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
                                 {fn(d.price)}
                               </span>
                             )}
@@ -793,11 +804,11 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                 );
               })}
             </div>
-            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 14, fontSize: 11, color: 'var(--text-tertiary)', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 14, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', alignItems: 'center' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 44, height: 10, borderRadius: 3, background: 'linear-gradient(90deg, color-mix(in srgb, var(--accent) 12%, transparent), var(--accent))' }} />τιμή ανά νύχτα σε ευρώ, από χαμηλή σε υψηλή</span>
               {/* «υψηλή ζήτηση» έφυγε: το σημάδι δηλώνει ΑΡΓΙΑ, που είναι
                   ημερολογιακό γεγονός. Δεδομένο ζήτησης δεν έχουμε. */}
-              <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent)' }} />αργία</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent)' }} />αργία</span>
               {/* ΤΟ ΥΠΟΜΝΗΜΑ ΞΑΝΑΠΟΚΤΑ ΤΗΝ ΤΡΙΤΗ ΓΡΑΜΜΗ ΤΟΥ, ΤΩΡΑ ΜΕ ΛΟΓΟ.
                   Είχε αφαιρεθεί σωστά, όταν εξηγούσε μια παύλα που δεν υπήρχε
                   πουθενά. Στη συνέχεια η κλεισμένη ημέρα έγραφε τη λέξη
@@ -822,7 +833,7 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div className="po-fig" data-tone="accent" style={{ fontSize: 22, fontWeight: 700, fontFamily: T.font.num }}>{fe(sel.price)}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>ανά νύχτα</div>
+                  <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>ανά νύχτα</div>
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -837,13 +848,13 @@ export default function TabPricing({ propertyId, userId, propertyName, propertyS
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 12, color: 'var(--text-secondary)' }}>
                       <span style={{ minWidth: 0 }}>
                         {f.label}
-                        <span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, marginTop: 1 }}>από: {f.source}</span>
+                        <span style={{ display: 'block', fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', lineHeight: 1.5, marginTop: 1 }}>από: {f.source}</span>
                       </span>
                       <span className="po-fig" data-tone={pct > 0 ? 'positive' : pct < 0 ? 'negative' : undefined} style={{ fontFamily: T.font.num, flexShrink: 0 }}>{pct > 0 ? '+' : ''}{pct}%</span>
                     </div>
                   );
                 })}
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700, borderTop: '1px solid var(--border-subtle)', paddingTop: 8, marginTop: 2 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--fs-base)', fontWeight: 700, borderTop: '1px solid var(--border-subtle)', paddingTop: 8, marginTop: 2 }}>
                   <span>Προτεινόμενη τιμή</span><span className="po-fig" data-tone="accent" style={{ fontFamily: T.font.num }}>{fe(sel.price)}</span>
                 </div>
               </div>

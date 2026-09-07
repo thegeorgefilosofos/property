@@ -78,3 +78,9 @@ verify_jwt = false
 [functions.purge-orphan-files]
 enabled = true
 verify_jwt = false
+
+# Την καλεί το pg_cron κάθε τέταρτο με «x-cron-secret», χωρίς συνεδρία χρήστη:
+# κρίνει μόνη της την ταυτότητα με authorizeCron.
+[functions.health-check]
+enabled = true
+verify_jwt = false

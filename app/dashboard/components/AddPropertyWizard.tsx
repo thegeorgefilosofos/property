@@ -205,7 +205,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 // Επικεφαλίδα υποενότητας (ίδιο accent uppercase look με το panel απόδοσης)
 const sectionLabelStyle: React.CSSProperties = {
-  fontFamily: T.font.sans, fontSize: 11, fontWeight: 600,
+  fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 600,
   textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', marginBottom: 4,
 };
 
@@ -290,7 +290,7 @@ function StepBody({ rows, place, after }: {
             <svg aria-hidden="true" width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-tertiary)', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}><path d="m9 18 6-6-6-6" /></svg>
             {/* Η ΚΛΕΙΣΤΗ ΚΕΦΑΛΙΔΑ ΛΕΕΙ ΤΙ ΚΡΥΒΕΙ. Το σκέτο «Περισσότερα»
                 υποχρεώνει σε άνοιγμα για να μάθει ο χρήστης αν τον αφορά. */}
-            <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>
+            <span style={{ flex: 1, fontSize: 'var(--fs-base)', fontWeight: 500, color: 'var(--text-primary)' }}>
               {open ? 'Λιγότερα' : `Περισσότερα: ${more.slice(0, 3).map(r => (r.label ?? labelOf(r.id)).toLowerCase()).join(', ')}${more.length > 3 ? ` και ${more.length - 3} ακόμη` : ''}`}
             </span>
           </button>
@@ -644,7 +644,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                   background: on ? 'var(--accent)' : 'var(--bg-overlay)', color: on ? 'var(--accent-text)' : 'var(--text-tertiary)',
                   border: active ? '2px solid var(--accent)' : '2px solid transparent',
                   boxShadow: active ? '0 0 0 4px var(--accent-soft)' : 'none',
-                  fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, transition: 'background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s, opacity 0.2s',
+                  fontFamily: T.font.sans, fontSize: 'var(--fs-base)', fontWeight: 600, transition: 'background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s, opacity 0.2s',
                 }}>{done ? '✓' : i + 1}</div>
                 {/* ═══ ΣΕ ΣΤΕΝΗ ΟΘΟΝΗ ΓΡΑΦΕΤΑΙ ΜΟΝΟ ΤΟ ΒΗΜΑ ΠΟΥ ΠΑΤΑΣ ═══════════
                     Τα πέντε ονόματα μαζί θέλουν 293 εικονοστοιχεία και το
@@ -660,7 +660,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                     τικ στα περασμένα και το όνομα του βήματος που πατάς. Δηλαδή
                     πού είσαι, πόσα έκανες και πόσα μένουν. Τα ονόματα των
                     επόμενων βημάτων εμφανίζονται καθώς φτάνεις σε αυτά. */}
-                <div className={`wiz-step${active ? ' wiz-step-on' : ''}`} style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 500, color: on ? 'var(--text-primary)' : 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{label}</div>
+                <div className={`wiz-step${active ? ' wiz-step-on' : ''}`} style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 500, color: on ? 'var(--text-primary)' : 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{label}</div>
               </div>
               {i < STEPS.length - 1 && <div style={{ height: 2, background: i < step ? 'var(--accent)' : 'var(--border-subtle)', margin: '13px 8px 0', transition: 'background 0.2s' }} />}
             </Fragment>
@@ -733,8 +733,8 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
                     background: sel ? 'var(--accent-soft)' : 'var(--bg-surface)',
                     fontFamily: T.font.sans, width: '100%',
                   }}>
-                    <span style={{ fontSize: 13, fontWeight: sel ? 700 : 500, color: 'var(--text-primary)' }}>{st.label}</span>
-                    <span style={{ fontSize: 11, lineHeight: 1.4, color: 'var(--text-tertiary)' }}>{st.hint}</span>
+                    <span style={{ fontSize: 'var(--fs-base)', fontWeight: sel ? 700 : 500, color: 'var(--text-primary)' }}>{st.label}</span>
+                    <span style={{ fontSize: 'var(--fs-xs)', lineHeight: 1.4, color: 'var(--text-tertiary)' }}>{st.hint}</span>
                   </button>
                 );
               };
@@ -879,7 +879,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
           ]}
           after={grossYield != null && (
             <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.card, padding: 16 }}>
-              <div style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', marginBottom: 6 }}>Εκτιμώμενη μεικτή απόδοση</div>
+              <div style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', marginBottom: 6 }}>Εκτιμώμενη μεικτή απόδοση</div>
               <div style={{ fontFamily: T.font.mono, fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fp(grossYield)}</div>
               <div style={{ fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
                 {`Ετήσια έσοδα ${fe(annualRent!)} επί ${valueN != null ? 'εμπορικής' : 'αντικειμενικής'} αξίας ${fe(effValueN!)}`}
@@ -904,7 +904,7 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
               {/* Λέμε από πού ήρθαν τα στοιχεία. Προσυμπληρωμένο ΑΦΜ που δεν
                   ελέγχθηκε είναι χειρότερο από κενό: φαίνεται επιβεβαιωμένο. */}
               {!existing?.id && (settings.owner_name || settings.owner_afm) && (
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 6 }}>
+                <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginBottom: 6 }}>
                   Συμπληρώθηκαν από το προφίλ σου. Έλεγξέ τα και άλλαξε ό,τι χρειάζεται.
                 </div>
               )}
@@ -979,14 +979,14 @@ export default function AddPropertyWizard({ userId, onClose, onSaved, existing }
               ['Εκτιμώμενη μεικτή απόδοση', grossYield != null ? `${fp(grossYield)}` : fp(0)],
             ].filter(Boolean) as [string, string][]).map(([k, v], i) => (
               <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
-                <span title={k === 'ΑΤΑΚ' ? 'Αριθμός Ταυτότητας Ακινήτου (από το Ε9)' : k === 'ΕΝΦΙΑ που πληρώνεις' ? 'Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων, ετήσιος. Σε συνιδιοκτησία, το δικό σου μερίδιο.' : undefined} style={{ fontFamily: T.font.sans, fontSize: 13, color: 'var(--text-secondary)', letterSpacing: '0.25px' }}>{k}</span>
-                <span style={{ fontFamily: k === 'Τύπος' || k === 'Κατάσταση' || k === 'Διεύθυνση' || k === 'Βραχυχρόνια μίσθωση' || k === 'Θέρμανση' || k === 'Ενεργειακή Κλάση' || k === 'Ημερομηνία Αγοράς' ? "'Inter', sans-serif" : "'Roboto Mono', monospace", fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{v}</span>
+                <span title={k === 'ΑΤΑΚ' ? 'Αριθμός Ταυτότητας Ακινήτου (από το Ε9)' : k === 'ΕΝΦΙΑ που πληρώνεις' ? 'Ενιαίος Φόρος Ιδιοκτησίας Ακινήτων, ετήσιος. Σε συνιδιοκτησία, το δικό σου μερίδιο.' : undefined} style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', letterSpacing: '0.25px' }}>{k}</span>
+                <span style={{ fontFamily: k === 'Τύπος' || k === 'Κατάσταση' || k === 'Διεύθυνση' || k === 'Βραχυχρόνια μίσθωση' || k === 'Θέρμανση' || k === 'Ενεργειακή Κλάση' || k === 'Ημερομηνία Αγοράς' ? "'Inter', sans-serif" : "'Roboto Mono', monospace", fontSize: 'var(--fs-base)', fontWeight: 500, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>{v}</span>
               </div>
             ))}
           </div>
 
           {error && (
-            <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 14px', fontFamily: T.font.sans, fontSize: 13, color: 'var(--negative)' }}>{error}</div>
+            <div style={{ background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 14px', fontFamily: T.font.sans, fontSize: 'var(--fs-base)', color: 'var(--negative)' }}>{error}</div>
           )}
         </div>
       )}

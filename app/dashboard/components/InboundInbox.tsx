@@ -159,7 +159,7 @@ export default function InboundInbox({ propertyId, userId, propertyName, onFiled
               border: '1px solid var(--border-subtle)',
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline', flexWrap: 'wrap' }}>
-                <span style={{ ...TT.body, fontWeight: 650, color: 'var(--text-primary)' }}>
+                <span style={{ ...TT.body, fontWeight: 600, color: 'var(--text-primary)' }}>
                   {r.vendor || r.from_address || 'Άγνωστος αποστολέας'}
                 </span>
               </div>

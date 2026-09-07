@@ -447,10 +447,10 @@ export default function SignupPage() {
               {resendErr && (
                 <p role="alert" style={{ margin: '12px 0 0', fontSize: 13, lineHeight: 1.6, color: 'var(--negative)', fontWeight: 600 }}>{resendErr}</p>
               )}
-              <p style={{ margin: '18px 0 0', fontSize: 12.5, lineHeight: 1.6, color: 'var(--text-tertiary)' }}>
+              <p style={{ margin: '18px 0 0', fontSize: 13, lineHeight: 1.6, color: 'var(--text-tertiary)' }}>
                 Λάθος διεύθυνση;{' '}
                 <button type="button" onClick={() => { setDone(false); setResent(false); setResendErr(''); }}
-                  style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent)', fontWeight: 600, fontSize: 12.5, fontFamily: 'inherit', textDecoration: 'underline' }}>
+                  style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent)', fontWeight: 600, fontSize: 13, fontFamily: 'inherit', textDecoration: 'underline' }}>
                   Γράψε άλλη
                 </button>
                 {' · '}
@@ -494,7 +494,7 @@ export default function SignupPage() {
                   και το κρίνει ο server. */}
               {isReferralCode(refCode) && (
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', marginBottom: chosenPlan ? 12 : 24, borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0, marginTop: 7 }} />
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', flexShrink: 0, marginTop: 8 }} />
                   <span style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
                     Ηρθες με πρόσκληση. Ο κωδικός <strong style={{ color: 'var(--text-primary)' }}>{refCode.trim()}</strong> καταγράφεται στον λογαριασμό σου με την εγγραφή και μετράει σε εκείνον που σε κάλεσε. Η δοκιμή των {TRIAL_DAYS} ημερών είναι η ίδια για κάθε νέο λογαριασμό, με πρόσκληση ή χωρίς.
                   </span>
@@ -562,16 +562,16 @@ export default function SignupPage() {
                   alignItems: 'baseline', padding: '14px 16px', marginBottom: 24, borderRadius: 10,
                   background: 'var(--accent-dim)', border: '1px solid var(--accent-border)',
                 }}>
-                  <span style={{ fontSize: 15, fontWeight: 650, lineHeight: 1.45, color: 'var(--text-primary)', letterSpacing: '-0.015em' }}>
+                  <span style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.45, color: 'var(--text-primary)', letterSpacing: '-0.015em' }}>
                     {PLANS[chosenPlan].name}
                   </span>
-                  <span style={{ fontSize: 15, fontWeight: 650, lineHeight: 1.45, color: 'var(--text-primary)', textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.45, color: 'var(--text-primary)', textAlign: 'right', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
                     {fe(chosenCycle === 'annual' ? PLANS[chosenPlan].priceAnnual : PLANS[chosenPlan].priceMonthly)}
                   </span>
-                  <span style={{ fontSize: 12.5, fontWeight: 500, lineHeight: 1.45, color: 'var(--text-tertiary)' }}>
+                  <span style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.45, color: 'var(--text-tertiary)' }}>
                     {chosenCycle === 'annual' ? 'Ετήσια χρέωση' : 'Μηνιαία χρέωση'}
                   </span>
-                  <span style={{ fontSize: 12.5, fontWeight: 500, lineHeight: 1.45, color: 'var(--text-tertiary)', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.45, color: 'var(--text-tertiary)', textAlign: 'right', whiteSpace: 'nowrap' }}>
                     {TRIAL_DAYS} ημέρες δωρεάν
                   </span>
                 </div>

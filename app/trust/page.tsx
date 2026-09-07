@@ -73,7 +73,7 @@ function Point({ title, children }: { title: string; children: React.ReactNode }
     <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
       <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 4 }} aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>
       <div>
-        <div style={{ fontSize: 15, fontWeight: 650, color: 'var(--text-primary)', marginBottom: 3 }}>{title}</div>
+        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>{title}</div>
         <div className="lg-just" style={{ fontSize: 15, color: 'var(--text-secondary)', lineHeight: 1.65 }}>{children}</div>
       </div>
     </div>
@@ -139,7 +139,7 @@ export default function TrustPage() {
           </p>
           <p className="lg-p">
             Μία εξαίρεση στο TLS, γιατί την επιλέγεις εσύ: αν συνδέσεις ημερολόγιο κρατήσεων (iCal) που ο πάροχός
-            του δίνει σε <code style={{ fontSize: 13.5 }}>http://</code>, ο συγχρονισμός γίνεται όπως τον δίνει
+            του δίνει σε <code style={{ fontSize: 13 }}>http://</code>, ο συγχρονισμός γίνεται όπως τον δίνει
             εκείνος, χωρίς κρυπτογράφηση. Δεν μένουν επίσης όλα μέσα στην ΕΕ και προτιμούμε να το διαβάσεις εδώ
             παρά να το ανακαλύψεις:
           </p>
@@ -247,7 +247,7 @@ export default function TrustPage() {
           <div style={{ marginTop: 16, border: '1px solid var(--border-subtle)', borderRadius: 12, overflow: 'hidden' }}>
             {subprocessorRows().map((s, i) => (
               <div key={s.name} style={{ display: 'grid', gridTemplateColumns: 'minmax(84px, 0.62fr) minmax(0, 1.7fr) minmax(96px, 0.72fr)', gap: 14, padding: '13px 16px', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)', background: 'var(--bg-surface)' }}>
-                <span style={{ fontSize: 14, fontWeight: 650, color: s.planned ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>{s.name}</span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: s.planned ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>{s.name}</span>
                 <span style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{s.what}</span>
                 <span style={{ fontSize: 14, color: 'var(--text-tertiary)', textAlign: 'right' }}>{s.where}</span>
               </div>

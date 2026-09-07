@@ -74,7 +74,7 @@ export default function AgendaPanel({ items, total, onNavigate }: {
 
           Ο τίτλος μόνος του είναι η πληροφορία. Μία γραμμή, στη ροή της κάρτας. */}
       {items.length === 0 ? (
-        <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '4px 0 8px' }}>Δεν εκκρεμεί τίποτα.</p>
+        <p style={{ fontSize: 'var(--fs-base)', color: 'var(--text-tertiary)', margin: '4px 0 8px' }}>Δεν εκκρεμεί τίποτα.</p>
       ) : (
         <ul className="agenda-list">
           {items.map(it => {
@@ -203,7 +203,7 @@ export default function AgendaPanel({ items, total, onNavigate }: {
           color: var(--text-tertiary); margin-top: 2px;
         }
         .agenda-word { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-top: 0; }
-        .agenda-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+        .agenda-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
         .agenda-item-title {
           font-family: ${T.font.sans}; font-size: 14px; font-weight: 600;
           line-height: 1.4; color: var(--text-primary);

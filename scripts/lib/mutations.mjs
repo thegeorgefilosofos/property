@@ -320,6 +320,9 @@ export const MUTATIONS = {
   'filenames': { add: 'lib/core/__mut__.ts', content: "import { downloadCsv } from '@/lib/core/download'\nexport const save = () => downloadCsv('logistiki-katastasi.csv', 'a,b')\n" },
   'page-heading': { add: 'app/__mut__/page.tsx', content: 'export default function P() {\n  return <div>Σελίδα χωρίς επικεφαλίδα</div>\n}\n' },
   'keyboard': { add: 'components/__mut__.tsx', content: 'export function P({ go }: { go: () => void }) {\n  return <div onClick={go}>Άνοιγμα</div>\n}\n' },
+  // Ένας νέος κανόνας εστίασης που σβήνει το outline και μένει μόνο με σκιά:
+  // ακριβώς το ελάττωμα που ο φύλακας υπάρχει για να πιάσει.
+  'forced-colors-focus': { file: 'app/globals.css', from: '::selection {', to: '.mut-probe:focus-visible { outline: none; box-shadow: 0 0 0 2px red; }\n::selection {' },
   'contrast': { file: 'app/globals.css', from: '--text-secondary:', to: '--text-secondary: #8f8f8f; --text-secondary-unused:' },
   // Δηλώνεται ΜΟΝΟ στο φωτεινό, και κάποιος τη ζητά: στο σκοτεινό είναι κενή.
   'theme-tokens': { steps: [
@@ -339,7 +342,18 @@ export const MUTATIONS = {
   // γύριζε 401 σε κάθε εκτέλεση επί μήνες.
   'cron-auth': { file: 'supabase/functions/ical-sync/index.ts',
     from: 'await authorizeCron(req', to: 'handRolledCronCheck(req' },
-  'ci-minutes': { file: '.github/workflows/health.yml', from: 'cron:', to: "cron: '*/5 * * * *'   # μετάλλαξη\n    # cron:" },
+  // Πλωτό στοιχείο σε άκρη οθόνης χωρίς όριο ασφαλείας: ακριβώς η πάνω μπάρα
+  // που καθόταν κάτω από το Dynamic Island σε κάθε iPhone από το X και μετά.
+  'safe-area': { file: 'app/globals.css',
+    from: 'padding-top: env(safe-area-inset-top, 0px);\n    padding-bottom: env(safe-area-inset-bottom, 0px);',
+    to: 'padding-top: 0;' },
+  // Η ΜΕΤΑΛΛΑΞΗ ΜΕΤΑΚΟΜΙΣΕ ΑΠΟ ΤΟ health.yml. Εκεί χτυπούσε το ωριαίο πρόγραμμα
+  // του ελέγχου υγείας· στις 04/09/2026 ο έλεγχος έφυγε στη Supabase και το
+  // workflow έμεινε ΧΩΡΙΣ `cron:`, οπότε η μετάλλαξη δεν εφαρμοζόταν πια και ο
+  // φύλακας έπαψε να αποδεικνύει ότι πιάνει κάτι. Ο πάγκος το είπε αμέσως.
+  // Το db-backup είναι ο σωστός νέος στόχος: πραγματικό ημερήσιο πρόγραμμα που
+  // αν γίνει πεντάλεπτο τινάζει τον προϋπολογισμό, ακριβώς ό,τι φυλάει.
+  'ci-minutes': { file: '.github/workflows/db-backup.yml', from: 'cron:', to: "cron: '*/5 * * * *'   # μετάλλαξη\n    # cron:" },
   // Ένα npm script που δείχνει σε αρχείο του scripts/ και δεν το καλεί κανένα
   // workflow: ακριβώς το «γραμμένος και μη συνδεδεμένος».
   'ci-coverage': { steps: [

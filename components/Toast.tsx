@@ -98,7 +98,7 @@ export function ToastHost() {
             background: 'var(--bg-elevated)', border: '1px solid var(--border-default)',
             borderRadius: T.radius.inner + 2, padding: '12px 18px',
             boxShadow: 'var(--elev-2)',
-            fontFamily: T.font.sans, fontSize: 13, lineHeight: 1.45,
+            fontFamily: T.font.sans, fontSize: 'var(--fs-base)', lineHeight: 1.45,
             color: 'var(--text-primary)', animation: 'po-toast-in 180ms ease-out',
           }}
         >
@@ -110,7 +110,7 @@ export function ToastHost() {
               onClick={() => { t.action!.onClick(); dismiss(t.id); }}
               style={{
                 marginLeft: 4, background: 'none', border: 'none', padding: '2px 4px',
-                color: 'var(--accent)', fontFamily: T.font.sans, fontSize: 13,
+                color: 'var(--accent)', fontFamily: T.font.sans, fontSize: 'var(--fs-base)',
                 fontWeight: 600, cursor: 'pointer', flexShrink: 0,
               }}
             >{t.action.label}</button>

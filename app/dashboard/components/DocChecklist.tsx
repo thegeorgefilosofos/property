@@ -33,8 +33,8 @@ export default function DocChecklist({ docs, storageKey, title = 'Δικαιολ
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: compact ? 10 : 12 }}>
-        <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', fontFamily: font, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{title}</p>
-        <span style={{ fontSize: 11, fontWeight: 500, color: complete ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: font, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{count}/{total} έτοιμα</span>
+        <p style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--text-secondary)', fontFamily: font, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{title}</p>
+        <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 500, color: complete ? 'var(--accent)' : 'var(--text-tertiary)', fontFamily: font, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{count}/{total} έτοιμα</span>
       </div>
       <Bar pct={pct} height={4} track="var(--bg-surface)" label="Ετοιμα δικαιολογητικά" style={{ marginBottom: compact ? 10 : 12 }} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: compact ? 6 : 7 }}>
@@ -54,7 +54,7 @@ export default function DocChecklist({ docs, storageKey, title = 'Δικαιολ
               </span>
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ fontSize: compact ? 12 : 13, fontWeight: 500, fontFamily: font, color: on ? 'var(--text-tertiary)' : 'var(--text-primary)', textDecoration: on ? 'line-through' : 'none' }}>{d.name}</span>
-                {d.where && <span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: font, marginTop: 2 }}>Από: {d.where}</span>}
+                {d.where && <span style={{ display: 'block', fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: font, marginTop: 2 }}>Από: {d.where}</span>}
               </span>
             </button>
           )

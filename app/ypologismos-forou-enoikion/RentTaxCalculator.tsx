@@ -123,7 +123,7 @@ export function RentTaxCalculator({ today }: { today: string }) {
   };
   const label: React.CSSProperties = {
     display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
-    textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 7,
+    textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 8,
   };
 
   return (
@@ -165,7 +165,7 @@ export function RentTaxCalculator({ today }: { today: string }) {
           εφάρμοζε σιωπηλά το 2026 σε ανθρώπους που ρωτούσαν για το 2025. */}
       <div className="po-tool-controls" style={{ marginTop: 16 }}>
         <div style={{ ...TT.label, marginBottom: 8 }}>Εισόδημα ποιας χρονιάς</div>
-        <div style={{ display: 'flex', gap: 3, padding: 3, background: 'var(--bg-elevated)',
+        <div style={{ display: 'flex', gap: 4, padding: 4, background: 'var(--bg-elevated)',
           border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
           {([['2025', '2025', 'δηλώνεται τώρα'], ['2026', '2026', 'δηλώνεται το 2027']] as const).map(([val, lab, sub]) => {
             const on = v.etos === val;
@@ -181,7 +181,7 @@ export function RentTaxCalculator({ today }: { today: string }) {
             );
           })}
         </div>
-        <p style={{ margin: '8px 0 0', fontSize: 12.5, lineHeight: 1.55, color: 'var(--text-tertiary)' }}>
+        <p style={{ margin: '8px 0 0', fontSize: 13, lineHeight: 1.55, color: 'var(--text-tertiary)' }}>
           {year >= FIRST_YEAR_NEW_BRACKETS
             ? 'Κλίμακα 15 / 25 / 35 / 45% (ν.5246/2025), για εισοδήματα από 1/1/2026.'
             : 'Κλίμακα 15 / 35 / 45%, χωρίς το ενδιάμεσο κλιμάκιο. Ισχύει για τα εισοδήματα του 2025.'}
@@ -195,13 +195,13 @@ export function RentTaxCalculator({ today }: { today: string }) {
         gap: 16, flexWrap: 'wrap',
       }}>
         <div style={{ flex: 1, minWidth: 210 }}>
-          <div style={{ fontSize: 14, fontWeight: 650, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
             Εισπράττω μέσω τραπέζης
           </div>
           {/* ΤΟ ΚΕΙΜΕΝΟ ΑΛΛΑΖΕΙ ΜΕ ΤΗΝ ΑΠΑΝΤΗΣΗ, ΚΑΙ ΔΕΝ ΛΕΕΙ ΔΥΟ ΦΟΡΕΣ ΤΟ ΙΔΙΟ.
               Όσο ο διακόπτης είναι ανοιχτός αρκεί ο κανόνας· μόλις κλείσει,
               στη θέση του κανόνα μπαίνει το ΠΟΣΟ που κοστίζει η επιλογή. */}
-          <p style={{ margin: '3px 0 0', fontSize: 12.5, lineHeight: 1.55, color: 'var(--text-tertiary)' }}>
+          <p style={{ margin: '3px 0 0', fontSize: 13, lineHeight: 1.55, color: 'var(--text-tertiary)' }}>
             {viaBank
               ? 'Προϋπόθεση για την τεκμαρτή έκπτωση 5%, από 1/1/2026 (ν.5246/2025).'
               : `Με μετρητά φορολογείται το 100% του ενοικίου (ν.5246/2025). Η έκπτωση που χάνεται κοστίζει ${feAuto(r.cashCost)} τον χρόνο.`}
@@ -268,7 +268,7 @@ export function RentTaxCalculator({ today }: { today: string }) {
             δική της γραμμή, η αλυσίδα διαβάζεται ολόκληρη — ενοίκιο, έκπτωση,
             φορολογητέο — και το πλέγμα βγαίνει έξι κελιά σε τρεις ισόποσες
             σειρές, χωρίς ορφανό. */}
-        <dl {...fixedCols(2, 24, 'start')} style={{ ...fixedCols(2, 24, 'start').style, rowGap: 11, margin: 0 }}>
+        <dl {...fixedCols(2, 24, 'start')} style={{ ...fixedCols(2, 24, 'start').style, rowGap: 12, margin: 0 }}>
           <Row k="Ετήσιο ενοίκιο" v={feAuto(r.gross)} />
           {/* Η ΕΤΙΚΕΤΑ ΕΛΕΓΕ «5%» ΚΑΙ ΜΕ ΤΟΝ ΔΙΑΚΟΠΤΗ ΚΛΕΙΣΤΟ ΘΑ ΕΛΕΓΕ ΨΕΜΑ:
               «Τεκμαρτή έκπτωση 5%: 0,00 €». Ο συντελεστής ζει πλέον στην
@@ -407,7 +407,7 @@ function Figure({ label, value, big }: { label: string; value: string; big?: boo
   return (
     <div>
       <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-        color: 'var(--text-tertiary)', marginBottom: 7 }}>{label}</div>
+        color: 'var(--text-tertiary)', marginBottom: 8 }}>{label}</div>
       <div style={{
         fontFamily: T.font.num, fontSize: big ? 'clamp(24px, 4.4vw, 32px)' : 'clamp(18px, 3vw, 21px)',
         fontWeight: 680, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', lineHeight: 1.1,

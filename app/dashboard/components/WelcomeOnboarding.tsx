@@ -173,7 +173,7 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
     transition: `filter 0.15s ${T.ease.standard}, transform 0.15s ${T.ease.standard}`,
   };
   const linkBtn: React.CSSProperties = {
-    background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: T.font.sans,
+    background: 'none', border: 'none', cursor: 'pointer', fontSize: 'var(--fs-base)', fontWeight: 600, fontFamily: T.font.sans,
     // Πρώτη οθόνη κάθε νέου λογαριασμού και τα δύο κουμπιά της ήταν 32ψηλά.
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: T.h.md,
     padding: '8px 12px', textAlign: 'center',
@@ -215,7 +215,7 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
             σταθερά ύψη, ώστε καμία λέξη να μη μετακινείται από κάρτα σε κάρτα. */}
         <div style={{ ...TT.label, color: 'var(--accent)' }}>{c.label}</div>
         <div style={{ ...TT.h1, fontSize: 20, marginTop: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.title}</div>
-        <div style={{ ...TT.bodySm, fontSize: 13, lineHeight: 1.55, marginTop: 8, minHeight: 40 }}>{c.copy}</div>
+        <div style={{ ...TT.bodySm, fontSize: 'var(--fs-base)', lineHeight: 1.55, marginTop: 8, minHeight: 40 }}>{c.copy}</div>
 
         <div style={{ marginTop: 16, border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, background: 'var(--bg-elevated)', padding: '12px 14px' }}>
           {c.rows.map((r, i) => (
@@ -277,7 +277,7 @@ export default function WelcomeOnboarding({ userId, onAddProperty, onScanCreate,
 
         {/* ── ΔΕΙΚΤΕΣ ΚΑΙ ΕΝΕΡΓΕΙΕΣ, ΣΤΗΝ ΙΔΙΑ ΓΡΑΜΜΗ ────────────────────── */}
         <div style={{ display: 'flex', alignItems: 'center', gap: T.sp.md, marginTop: 22, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: 7, flex: 1 }}>
+          <div style={{ display: 'flex', gap: 8, flex: 1 }}>
             {cards.map((_, i) => (
               <span key={i} style={{ width: i === step ? 22 : 7, height: 7, borderRadius: 6, background: i === step ? 'var(--accent)' : 'var(--border-default)', transition: `width 0.28s ${T.ease.standard}, background-color 0.28s ${T.ease.standard}` }} />
             ))}

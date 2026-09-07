@@ -6,7 +6,7 @@ import {
   RENTAL_TAX_BRACKETS_2026, RENTAL_TAX_BRACKETS_2025, rentalRowsForYear,
   bracketRows, BUSINESS_INCOME_ROWS_2026, BUSINESS_INCOME_BRACKETS_2026, taxRateLabel,
   selfEmployedMinNetIncome, SELF_EMPLOYED_MIN_NET_INCOME, LAST_KNOWN_MIN_INCOME_YEAR,
-  climateLevyForNights, isHighSeasonMonth, shortTermNet, CLIMATE_LEVY_PER_NIGHT_2025,
+  climateLevyForNights, isHighSeasonMonth, shortTermNet, CLIMATE_LEVY_FROM_2025,
 } from './greekTax';
 
 let passed = 0, failed = 0;
@@ -138,7 +138,7 @@ ok('high season Απρ–Οκτ', [3,4,5,6,7,8,9].every(isHighSeasonMonth) && ![
 ok('levy low month', climateLevyForNights([10,0,0,0,0,0,0,0,0,0,0,0]) === 20);
 ok('levy high month', climateLevyForNights([0,0,0,0,0,0,10,0,0,0,0,0]) === 80);
 ok('levy empty', climateLevyForNights(Array(12).fill(0)) === 0);
-ok('levy rates', CLIMATE_LEVY_PER_NIGHT_2025.high === 8 && CLIMATE_LEVY_PER_NIGHT_2025.low === 2);
+ok('levy rates', CLIMATE_LEVY_FROM_2025.small.high === 8 && CLIMATE_LEVY_FROM_2025.small.low === 2);
 // καθαρά έσοδα: 100 νύχτες Ιούλιο × 100 € = 10.000 μεικτά· 15% προμήθεια=1.500·
 // διαμονές=100/4=25 × 50 καθαρισμός=1.250· ΤΑΚΚ=100×8=800· καθαρά=10.000-1.500-1.250-800=6.450
 {

@@ -232,8 +232,8 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
   const requestClose = () => { if (!busy) onClose(); };
   const miniStat = (label: string, value: string, strong = false): React.ReactNode => (
     <div>
-      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{label}</div>
-      <div style={{ fontSize: strong ? 16 : 14, fontWeight: strong ? 700 : 600, color: strong ? 'var(--text-primary)' : 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums', marginTop: 3, fontFamily: T.font.sans }}>{value}</div>
+      <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{label}</div>
+      <div style={{ fontSize: strong ? 16 : 14, fontWeight: strong ? 700 : 600, color: strong ? 'var(--text-primary)' : 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums', marginTop: 4, fontFamily: T.font.sans }}>{value}</div>
     </div>
   );
 
@@ -245,7 +245,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
     <Modal open onClose={requestClose} size="lg"
       ariaLabel="Ποσοστά συνιδιοκτησίας"
       icon={<svg aria-hidden="true" width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>}
-      title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>Κατανομή σε ιδιοκτήτες<InfoHint>Μοιράζει τα καθαρά έσοδα της περιόδου στους συνιδιοκτήτες, ανάλογα με το ποσοστό του καθενός. Αφαιρεί πρώτα τα έξοδα και τη διαχειριστική αμοιβή και βγάζει επίσημη «Κατάσταση κατανομής» σε PDF, με αριθμό εγγράφου και QR επαλήθευσης, για τον κάθε ιδιοκτήτη.</InfoHint></span>}
+      title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>Κατανομή σε ιδιοκτήτες<InfoHint>Μοιράζει τα καθαρά έσοδα της περιόδου στους συνιδιοκτήτες, ανάλογα με το ποσοστό του καθενός. Αφαιρεί πρώτα τα έξοδα και τη διαχειριστική αμοιβή και βγάζει επίσημη «Κατάσταση κατανομής» σε PDF, με αριθμό εγγράφου και QR επαλήθευσης, για τον κάθε ιδιοκτήτη.</InfoHint></span>}
       subtitle="Το καθαρό κάθε συνιδιοκτήτη, μετά τα έξοδα και τη διαχειριστική αμοιβή"
       footerInfo={`${prop?.name || ABSENT} · ${periodLabel}`}
       footer={<>
@@ -268,7 +268,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
 
         {/* Ιδιοκτήτες */}
         <div>
-          <div style={{ ...TT.label, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>Ιδιοκτήτες και ποσοστά<InfoHint>Πρόσθεσε κάθε συνιδιοκτήτη με το ποσοστό ιδιοκτησίας του. Τα ποσοστά πρέπει να αθροίζουν στο 100%. Το ΑΦΜ είναι προαιρετικό και εμφανίζεται στην επίσημη κατάσταση.</InfoHint></div>
+          <div style={{ ...TT.label, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 4 }}>Ιδιοκτήτες και ποσοστά<InfoHint>Πρόσθεσε κάθε συνιδιοκτήτη με το ποσοστό ιδιοκτησίας του. Τα ποσοστά πρέπει να αθροίζουν στο 100%. Το ΑΦΜ είναι προαιρετικό και εμφανίζεται στην επίσημη κατάσταση.</InfoHint></div>
           <div style={{ marginBottom: 10 }}>
             <ScanButton onExtract={doc => {
               const ex = (doc.owners || []).filter(o => o?.name);
@@ -290,7 +290,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
                       κάθε συνιδιοκτήτη έβγαινε από εκεί — σε κατάσταση που
                       κατεβαίνει ως PDF και πάει στον λογιστή. */}
                   <input aria-label="Ποσοστό συνιδιοκτησίας" value={r.pct} onChange={e => { const v = acceptNumeric(e.target.value, PCT_MAX); if (v !== null) setRow(i, 'pct', v); }} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="" style={{ ...field, width: '100%', paddingRight: 32, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} inputMode="decimal" />
-                  <span style={{ position: 'absolute', right: 13, top: 0, height: T.h.lg, display: 'flex', alignItems: 'center', color: 'var(--text-tertiary)', fontSize: 13, pointerEvents: 'none' }}>%</span>
+                  <span style={{ position: 'absolute', right: 13, top: 0, height: T.h.lg, display: 'flex', alignItems: 'center', color: 'var(--text-tertiary)', fontSize: 'var(--fs-base)', pointerEvents: 'none' }}>%</span>
                 </div>
                 <button onClick={() => delRow(i)} aria-label="Αφαίρεση ιδιοκτήτη" title="Αφαίρεση"
                   style={{ width: 26, flexShrink: 0, background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 0, visibility: rows.length > 1 && hoverRow === i ? 'visible' : 'hidden', transition: 'opacity 0.14s' }}
@@ -304,7 +304,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
         {/* Αμοιβή διαχείρισης */}
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ flex: '1 1 160px' }}>
-            <div style={{ ...TT.label, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>Αμοιβή διαχείρισης<InfoHint>Η αμοιβή του διαχειριστή, ως ποσοστό επί των εσόδων. Αφαιρείται από το σύνολο πριν μοιραστεί το καθαρό στους ιδιοκτήτες. Άφησέ την κενή αν δεν υπάρχει.</InfoHint></div>
+            <div style={{ ...TT.label, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>Αμοιβή διαχείρισης<InfoHint>Η αμοιβή του διαχειριστή, ως ποσοστό επί των εσόδων. Αφαιρείται από το σύνολο πριν μοιραστεί το καθαρό στους ιδιοκτήτες. Άφησέ την κενή αν δεν υπάρχει.</InfoHint></div>
             <div style={{ position: 'relative' }}>
               <input aria-label="Αμοιβή διαχείρισης σε ποσοστό εσόδων" value={feePct} onChange={e => { const v = acceptNumeric(e.target.value, PCT_MAX); if (v !== null) setFeePct(v); }} onFocus={onFieldFocus} onBlur={onFieldBlur} placeholder="" style={{ ...field, width: '100%', paddingRight: 84, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }} inputMode="decimal" />
               <span style={{ position: 'absolute', right: 13, top: 0, height: T.h.lg, display: 'flex', alignItems: 'center', color: 'var(--text-tertiary)', fontSize: 12, pointerEvents: 'none', whiteSpace: 'nowrap' }}>% εσόδων</span>
@@ -338,13 +338,13 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
               </span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: 12, padding: '8px 16px', borderTop: '1px solid var(--border-subtle)' }}>
-              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Ιδιοκτήτης</span>
-              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans, textAlign: 'right' }}>Ποσοστό</span>
-              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans, textAlign: 'right' }}>Παρακράτηση</span>
-              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans, textAlign: 'right', minWidth: 84 }}>Καθαρό</span>
+              <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>Ιδιοκτήτης</span>
+              <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans, textAlign: 'right' }}>Ποσοστό</span>
+              <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans, textAlign: 'right' }}>Παρακράτηση</span>
+              <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans, textAlign: 'right', minWidth: 84 }}>Καθαρό</span>
             </div>
             {result.owners.map((o, i) => (
-              <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: 12, padding: '9px 16px', borderTop: '1px solid var(--border-subtle)', fontSize: 13, alignItems: 'center' }}>
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: 12, padding: '9px 16px', borderTop: '1px solid var(--border-subtle)', fontSize: 'var(--fs-base)', alignItems: 'center' }}>
                 <span style={{ color: 'var(--text-primary)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: T.font.sans }}>{o.name}</span>
                 <span style={{ color: 'var(--text-tertiary)', fontSize: 12, fontVariantNumeric: 'tabular-nums', textAlign: 'right', whiteSpace: 'nowrap', fontFamily: T.font.sans }}>{pPct(o.pct)}</span>
                 <span style={{ color: 'var(--text-tertiary)', fontSize: 12, fontVariantNumeric: 'tabular-nums', textAlign: 'right', fontFamily: T.font.sans }}>{o.expenseShare + o.feeShare > 0 ? `−${pEur(o.expenseShare + o.feeShare)}` : pEur(0)}</span>
@@ -358,7 +358,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
                 ψάχνει γιατί οι γραμμές δεν βγάζουν το σύνολο, το λείπον ποσό
                 γράφεται εδώ σε ευρώ: δείχνει ακριβώς πόσα δεν έχουν ιδιοκτήτη. */}
             {unassigned !== null && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: 12, padding: '9px 16px', borderTop: '1px solid var(--border-subtle)', fontSize: 13, alignItems: 'center', background: 'var(--bg-elevated)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: 12, padding: '9px 16px', borderTop: '1px solid var(--border-subtle)', fontSize: 'var(--fs-base)', alignItems: 'center', background: 'var(--bg-elevated)' }}>
                 <span style={{ color: 'var(--text-secondary)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: T.font.sans }}>{unassigned.label}</span>
                 <span style={{ color: 'var(--text-tertiary)', fontSize: 12, fontVariantNumeric: 'tabular-nums', textAlign: 'right', whiteSpace: 'nowrap', fontFamily: T.font.sans }}>{pPct(unassigned.pct)}</span>
                 <span style={{ color: 'var(--text-tertiary)', fontSize: 12, fontVariantNumeric: 'tabular-nums', textAlign: 'right', fontFamily: T.font.sans }}>{pEur(0)}</span>
@@ -368,7 +368,7 @@ export default function OwnerSplit({ open, onClose, userId, supabase, branding }
           </div>
         )}
 
-        {err && <div style={{ fontSize: 13, color: 'var(--negative)', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 14px' }}>{err}</div>}
+        {err && <div style={{ fontSize: 'var(--fs-base)', color: 'var(--negative)', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: 10, padding: '10px 14px' }}>{err}</div>}
       </>
       )}
     </Modal>

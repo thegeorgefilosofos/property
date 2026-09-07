@@ -76,9 +76,9 @@ export default function ExpenseSwitchAlert({ propertyId, userId, onOpen }: {
           borderRadius: T.radius.card, padding: '12px 16px',
           boxShadow: 'var(--highlight-inset), var(--elev-1)',
         }}>
-          <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0, marginTop: 7 }} />
+          <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0, marginTop: 8 }} />
           <div style={{ flex: 1, minWidth: 200 }}>
-            <div style={{ fontSize: 13, color: 'var(--text-primary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-primary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
               {r.title}: πληρώνεις{' '}
               <strong style={{ fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{feAuto(r.current)}</strong>
               {' '}τον μήνα. Με {r.bestLabel}{' '}
@@ -88,7 +88,7 @@ export default function ExpenseSwitchAlert({ propertyId, userId, onOpen }: {
               {' τον μήνα, '}
               <span style={{ color: 'var(--text-secondary)' }}>{feAuto(r.savingsMonthly * 12)} τον χρόνο.</span>
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 4 }}>
+            <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.sans, marginTop: 4 }}>
               Βάσει: {r.basedOn}
             </div>
           </div>

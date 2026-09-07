@@ -60,7 +60,48 @@ const PAIRS = [
 // χανόταν ολόκληρο: μέσα του υπάρχει σχόλιο με άγκιστρα, που έσπαγε το
 // ταίριασμα του σώματος. Ο φύλακας τύπωνε «περνούν» έχοντας μετρήσει ΜΟΝΟ το
 // σκοτεινό. Γι' αυτό υπάρχει και ο έλεγχος ότι μετρήθηκαν ΚΑΙ ΤΑ ΔΥΟ θέματα.
-const css = readFileSync(CSS, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+const raw = readFileSync(CSS, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+
+/**
+ * ΤΟ `@media` ΕΞΑΦΑΝΙΖΕ ΤΗ ΜΕΤΑΛΛΑΞΗ, ΚΑΙ ΜΑΖΙ ΤΗΣ ΤΗΝ ΑΞΙΑ ΤΟΥ ΦΥΛΑΚΑ.
+ *
+ * Η `blocks()` δεν βλέπει περιτύλιγμα: το `@media (prefers-contrast: more) {
+ * :root[data-mode="light"] { --text-secondary: … } }` της έδινε απλώς άλλο
+ * ένα μπλοκ φωτεινού θέματος, γραμμένο πιο κάτω στο αρχείο. Μόλις μπήκε η
+ * παλέτα αυξημένης αντίθεσης, ΚΑΘΕ κακή τιμή του βασικού θέματος σκεπαζόταν
+ * από την καλή τιμή της εξαίρεσης: ο πάγκος μεταλλάξεων έδειξε τον φύλακα να
+ * μένει πράσινος με το σφάλμα του μέσα.
+ *
+ * Τα περιτυλίγματα κόβονται με μέτρημα αγκίστρων, όχι με regex: το φύλλο έχει
+ * ένθετα `@media` μέσα σε `@supports` και ένα regex θα έκοβε ώς το πρώτο `}`.
+ * Ο κάθε χώρος μετριέται μετά ΧΩΡΙΣΤΑ, ως δικό του θέμα.
+ */
+function splitAtRules(text) {
+  let base = '', i = 0
+  const wrapped = []
+  while (i < text.length) {
+    const at = text.indexOf('@media', i)
+    if (at < 0) { base += text.slice(i); break }
+    base += text.slice(i, at)
+    const open = text.indexOf('{', at)
+    if (open < 0) { base += text.slice(at); break }
+    let depth = 1, j = open + 1
+    for (; j < text.length && depth > 0; j++) {
+      if (text[j] === '{') depth++
+      else if (text[j] === '}') depth--
+    }
+    wrapped.push({ condition: text.slice(at + 6, open).trim(), body: text.slice(open + 1, j - 1) })
+    i = j
+  }
+  return { base, wrapped }
+}
+
+const { base: css, wrapped } = splitAtRules(raw)
+
+// Η παλέτα της «αύξησης αντίθεσης» είναι ΞΕΧΩΡΙΣΤΟ θέμα, όχι διακόσμηση: αν
+// πέσει κάτω από τα όρια, ο χρήστης που ζήτησε ΠΕΡΙΣΣΟΤΕΡΗ αντίθεση παίρνει
+// λιγότερη. Μετριέται με τα ίδια ζεύγη, στρωμένη πάνω στη βάση.
+const contrastCss = wrapped.filter(w => /prefers-contrast/.test(w.condition)).map(w => w.body).join('\n')
 
 /**
  * Ολα τα μπλοκ, με τον επιλογέα τους.
@@ -97,24 +138,34 @@ function declarations(body) {
 // ορίζει το σκοτεινό ΚΑΙ γίνεται η προεπιλογή κάθε νέου επισκέπτη. Το φωτεινό
 // θέμα ΔΕΝ ξαναγράφει τα πάντα — γράφει μόνο όσα αλλάζουν. Αρα το φωτεινό
 // χτίζεται πάνω στην ίδια βάση, αλλιώς ο φύλακας μετρά ελλιπή παλέτα.
-const all = blocks(css)
-const base = new Map()
-const overrides = { light: new Map(), dark: new Map() }
-for (const b of all) {
-  const hitsRoot = /(^|,)\s*:root\s*(,|$)/.test(b.selector)
-  const dark = b.selector.includes('[data-mode="dark"]')
-  const light = b.selector.includes('[data-mode="light"]')
-  if (!hitsRoot && !dark && !light) continue
-  for (const [k, v] of declarations(b.body)) {
-    if (hitsRoot) base.set(k, v)
-    if (dark) overrides.dark.set(k, v)
-    if (light) overrides.light.set(k, v)
+function palette(text, seed) {
+  const base = new Map(seed?.base ?? [])
+  const overrides = { light: new Map(seed?.light ?? []), dark: new Map(seed?.dark ?? []) }
+  for (const b of blocks(text)) {
+    const hitsRoot = /(^|,)\s*:root\s*(,|$)/.test(b.selector)
+    const dark = b.selector.includes('[data-mode="dark"]')
+    const light = b.selector.includes('[data-mode="light"]')
+    if (!hitsRoot && !dark && !light) continue
+    for (const [k, v] of declarations(b.body)) {
+      if (hitsRoot) base.set(k, v)
+      if (dark) overrides.dark.set(k, v)
+      if (light) overrides.light.set(k, v)
+    }
+  }
+  return {
+    parts: { base, light: overrides.light, dark: overrides.dark },
+    light: new Map([...base, ...overrides.light]),
+    dark: new Map([...base, ...overrides.dark]),
   }
 }
-const theme = {
-  light: new Map([...base, ...overrides.light]),
-  dark: new Map([...base, ...overrides.dark]),
-}
+
+const basePalette = palette(css)
+const theme = basePalette
+// Οι χώροι που μετριούνται. Το `@media print` έχει δικό του φύλακα μελανιού
+// (lib/print/ink.ts) και δεν μπαίνει εδώ.
+const SPACES = [{ name: 'βασικό', theme: basePalette }]
+if (contrastCss.trim())
+  SPACES.push({ name: 'αυξημένη αντίθεση', theme: palette(contrastCss, basePalette.parts) })
 
 /** Λύνει var(--x) όσο χρειάζεται. Επιστρέφει null για ό,τι δεν είναι hex. */
 function resolve(map, name, depth = 0) {
@@ -143,18 +194,20 @@ const fails = []
 const skipped = []
 let checked = 0
 
-for (const mode of ['light', 'dark']) {
-  const map = theme[mode]
-  for (const p of PAIRS) {
-    const ink = resolve(map, p.ink)
-    const on = resolve(map, p.on)
-    if (!ink || !on) {
-      skipped.push(`${mode} · ${p.ink} πάνω σε ${p.on} — ${!ink ? p.ink : p.on} δεν λύνεται σε hex`)
-      continue
+for (const space of SPACES) {
+  for (const mode of ['light', 'dark']) {
+    const map = space.theme[mode]
+    for (const p of PAIRS) {
+      const ink = resolve(map, p.ink)
+      const on = resolve(map, p.on)
+      if (!ink || !on) {
+        skipped.push(`${space.name} · ${mode} · ${p.ink} πάνω σε ${p.on} — ${!ink ? p.ink : p.on} δεν λύνεται σε hex`)
+        continue
+      }
+      checked++
+      const r = ratio(ink, on)
+      if (r < p.min) fails.push({ space: space.name, mode, ...p, ink2: ink, on2: on, r })
     }
-    checked++
-    const r = ratio(ink, on)
-    if (r < p.min) fails.push({ mode, ...p, ink2: ink, on2: on, r })
   }
 }
 
@@ -185,7 +238,7 @@ for (const s of skipped) console.log(`  ⋯ ${s}`)
 if (fails.length) {
   console.error(`✗ ${fails.length} ${fails.length === 1 ? 'ζεύγος' : 'ζεύγη'} κάτω από το όριο αντίθεσης:\n`)
   for (const f of fails) {
-    console.error(`  ${f.mode} · ${f.why}`)
+    console.error(`  ${f.space} · ${f.mode} · ${f.why}`)
     console.error(`    ${f.ink} (${f.ink2}) πάνω σε ${f.on} (${f.on2})`)
     console.error(`    ${gr(f.r)}:1, όριο ${gr(f.min)}:1\n`)
   }
@@ -194,4 +247,4 @@ if (fails.length) {
   process.exit(1)
 }
 
-console.log(`✅ Αντίθεση: ${checked} ζεύγη σε δύο θέματα περνούν τα όριά τους${skipped.length ? `, ${skipped.length} εκτός μέτρησης` : ''}.`)
+console.log(`✅ Αντίθεση: ${checked} ζεύγη σε ${SPACES.length * 2} θέματα περνούν τα όριά τους${skipped.length ? `, ${skipped.length} εκτός μέτρησης` : ''}.`)

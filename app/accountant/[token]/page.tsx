@@ -270,7 +270,7 @@ export default function AccountantPortal() {
                 <Card key={x.p.name}>
                   <div style={{ fontSize: 16, fontWeight: 700 }}>{x.p.name}</div>
                   {ident && (
-                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3, fontFamily: T.font.sans }}>{ident}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4, fontFamily: T.font.sans }}>{ident}</div>
                   )}
 
                   {quiet ? (

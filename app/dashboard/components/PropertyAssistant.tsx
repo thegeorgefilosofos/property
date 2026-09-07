@@ -1517,7 +1517,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
       {open && (
         <div className="pa-panel" style={panelFixed}>
           {/* Κεφαλίδα */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 16px', borderBottom: '1px solid var(--border-subtle)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderBottom: '1px solid var(--border-subtle)' }}>
             {/* Το 15 δεν υπάρχει στην κλίμακα (…13, 14, 16, 18…) — ήταν ένα από
                 τα δύο μεγέθη όλου του αρχείου εκτός κλίμακας. Στα 16 κρατά την
                 ίδια αναλογία μέσα στον δίσκο των 34 (0,44 → 0,47). */}
@@ -1565,7 +1565,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
           ) : (
             <>
               {/* Σώμα */}
-              <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 11 }}>
+              <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {/* Η ΠΡΩΤΗ ΟΘΟΝΗ. Ο χαιρετισμός ΔΕΝ είναι συννεφάκι συνομιλίας: είναι
                     δήλωση για το τι βλέπει αυτή τη στιγμή στο ακίνητό σου, άρα διαβάζεται
                     σαν κείμενο και όχι σαν μήνυμα. Από κάτω, οι ερωτήσεις-εκκίνησης σε
@@ -1574,11 +1574,11 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                     <p style={{ ...TT.body, fontSize: 14, lineHeight: 1.6, margin: 0, maxWidth: '36ch' }}>{greeting}</p>
                     <div>
-                      <div style={{ ...TT.label, fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6 }}>Ρώτα κάτι δικό σου</div>
+                      <div style={{ ...TT.label, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginBottom: 6 }}>Ρώτα κάτι δικό σου</div>
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
                         {suggestedOpeners(openerCtx).map((s, i) => (
                           <button key={s} onClick={() => ask(s)}
-                            style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', padding: '11px 2px', background: 'transparent', border: 'none', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)', cursor: 'pointer', fontFamily: T.font.sans, fontSize: 13, lineHeight: 1.45, color: 'var(--text-secondary)', transition: 'color 0.15s' }}
+                            style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', padding: '11px 2px', background: 'transparent', border: 'none', borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)', cursor: 'pointer', fontFamily: T.font.sans, fontSize: 'var(--fs-base)', lineHeight: 1.45, color: 'var(--text-secondary)', transition: 'color 0.15s' }}
                             onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; }}
                             onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; }}>
                             <span style={{ flex: 1, minWidth: 0 }}>{s}</span>
@@ -1643,19 +1643,19 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 2 }}>
                     {reconcile.options.map(o => (
                       <button key={o.id} type="button" onClick={() => commitPendingDoc(o.id)}
-                        style={{ textAlign: 'left', padding: '10px 13px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 13, cursor: 'pointer', minHeight: T.h.md }}>
-                        <span style={{ fontWeight: 650 }}>{o.label}</span>
-                        {o.reasons.length > 0 && <span style={{ display: 'block', marginTop: 3, color: 'var(--text-tertiary)', fontSize: 12 }}>{o.reasons.join(' · ')}</span>}
+                        style={{ textAlign: 'left', padding: '10px 13px', borderRadius: T.radius.inner, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontFamily: T.font.sans, fontSize: 'var(--fs-base)', cursor: 'pointer', minHeight: T.h.md }}>
+                        <span style={{ fontWeight: 600 }}>{o.label}</span>
+                        {o.reasons.length > 0 && <span style={{ display: 'block', marginTop: 4, color: 'var(--text-tertiary)', fontSize: 12 }}>{o.reasons.join(' · ')}</span>}
                       </button>
                     ))}
                     <button type="button" onClick={() => commitPendingDoc(null)}
-                      style={{ textAlign: 'left', padding: '10px 13px', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 13, cursor: 'pointer', minHeight: T.h.md }}>
-                      <span style={{ fontWeight: 650 }}>{RECONCILE_NONE_LABEL}</span>
-                      <span style={{ display: 'block', marginTop: 3, color: 'var(--text-tertiary)', fontSize: 12 }}>{RECONCILE_NONE_HINT}</span>
+                      style={{ textAlign: 'left', padding: '10px 13px', borderRadius: T.radius.inner, border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 'var(--fs-base)', cursor: 'pointer', minHeight: T.h.md }}>
+                      <span style={{ fontWeight: 600 }}>{RECONCILE_NONE_LABEL}</span>
+                      <span style={{ display: 'block', marginTop: 4, color: 'var(--text-tertiary)', fontSize: 12 }}>{RECONCILE_NONE_HINT}</span>
                     </button>
                   </div>
                 )}
-                {busy && <div style={{ display: 'flex', gap: 5, padding: '4px 2px' }}>{[0, 1, 2].map(i => <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', animation: `pa-bounce 1s ${i * 0.15}s infinite ease-in-out` }} />)}</div>}
+                {busy && <div style={{ display: 'flex', gap: 4, padding: '4px 2px' }}>{[0, 1, 2].map(i => <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', animation: `pa-bounce 1s ${i * 0.15}s infinite ease-in-out` }} />)}</div>}
                 {err && (
                   <div style={{ background: err === 'key' ? 'var(--bg-elevated)' : 'var(--warning-soft)', border: `1px solid ${err === 'key' ? 'var(--border-subtle)' : 'var(--warning-border)'}`, borderRadius: T.radius.inner, padding: '10px 13px', fontFamily: T.font.sans, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                     {err === 'key'
@@ -1681,7 +1681,7 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
                   </button>
                 )}
                 <input value={input} aria-label="Η ερώτησή σου προς τη Νόα" onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') ask(input); }} placeholder={listening ? 'Ακούω…' : placeholder} disabled={busy}
-                  style={{ flex: 1, minWidth: 0, background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, padding: '10px 15px', color: 'var(--text-primary)', fontSize: 13, fontFamily: T.font.sans, outline: 'none' }}
+                  style={{ flex: 1, minWidth: 0, background: 'var(--bg-base)', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, padding: '10px 15px', color: 'var(--text-primary)', fontSize: 'var(--fs-base)', fontFamily: T.font.sans, outline: 'none' }}
                   onFocus={e => e.currentTarget.style.borderColor = 'var(--accent)'} onBlur={e => e.currentTarget.style.borderColor = 'var(--border-default)'} />
                 <button onClick={() => ask(input)} disabled={busy || !input.trim()} aria-label="Αποστολή"
                   style={{ width: 42, height: 42, flexShrink: 0, borderRadius: '50%', border: 'none', background: input.trim() && !busy ? 'var(--accent)' : 'var(--bg-elevated)', color: input.trim() && !busy ? 'var(--accent-text)' : 'var(--text-tertiary)', cursor: input.trim() && !busy ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1788,8 +1788,11 @@ export default function PropertyAssistant({ propertyId, userId, propContext, all
            πλοήγησης και κάθιζε ακριβώς πάνω στα δύο δεξιά της στοιχεία.
            Δύο διαφορετικά όρια για το ίδιο γεγονός είναι πάντα σφάλμα. */
         @media (max-width:768px){
-          .pa-fab-wrap{bottom:82px;right:16px}
-          .pa-fab{bottom:82px;right:16px}
+          /* Το ίδιο όριο ασφαλείας με την .app-content: η πλοήγηση από κάτω
+             είναι ψηλότερη κατά τη μπάρα αφής του iPhone, οπότε το κουμπί
+             καθόταν 34 εικονοστοιχεία χαμηλότερα απ' όσο νόμιζε — πάνω της. */
+          .pa-fab-wrap{bottom:calc(82px + env(safe-area-inset-bottom, 0px));right:16px}
+          .pa-fab{bottom:calc(82px + env(safe-area-inset-bottom, 0px));right:16px}
           .pa-panel{right:8px;left:8px;bottom:78px;width:auto;max-width:none;height:min(560px,calc(100dvh - 100px))}
         }
         /* Η πρόσκληση μαζεύεται στο σήμα: μόλις κυλήσει η σελίδα και εξαρχής
@@ -1825,20 +1828,20 @@ function AssistantSettings({ draft, onSave, onCancel, onClearMemory, hasMemory, 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div>
-        <div style={{ ...TT.h2, fontSize: 13 }}>{settingsTitle()}</div>
+        <div style={{ ...TT.h2, fontSize: 'var(--fs-base)' }}>{settingsTitle()}</div>
         <div style={{ ...TT.bodySm, marginTop: 4 }}>Πώς θέλεις να δουλεύει μαζί σου. Αλλάζει όποτε θες.</div>
       </div>
 
       <div>
-        <div style={{ ...TT.label, fontSize: 11, marginBottom: 4 }}>Πώς θέλεις να σου μιλάει;</div>
+        <div style={{ ...TT.label, fontSize: 'var(--fs-xs)', marginBottom: 4 }}>Πώς θέλεις να σου μιλάει;</div>
         <div style={{ ...TT.caption, marginBottom: 8 }}>Στον ενικό για πιο φιλική κουβέντα ή στον πληθυντικό για πιο επίσημο ύφος.</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           {ADDRESS_OPTIONS.map(a => {
             const active = formal === a.value;
             return (
               <button key={String(a.value)} onClick={() => setFormal(a.value)}
                 style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6, fontFamily: T.font.sans, fontSize: 12, fontWeight: active ? 700 : 500, padding: '8px 14px', borderRadius: T.radius.pill, cursor: 'pointer', border: `1px solid ${active ? 'var(--accent)' : 'var(--border-default)'}`, background: active ? 'var(--accent)' : 'transparent', color: active ? 'var(--accent-text)' : 'var(--text-secondary)' }}>
-                {a.label}<span style={{ fontSize: 11, fontWeight: 500, opacity: 0.8 }}>{a.hint}</span>
+                {a.label}<span style={{ fontSize: 'var(--fs-xs)', fontWeight: 500, opacity: 0.8 }}>{a.hint}</span>
               </button>
             );
           })}
@@ -1849,8 +1852,8 @@ function AssistantSettings({ draft, onSave, onCancel, onClearMemory, hasMemory, 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid var(--border-subtle)', paddingTop: 14 }}>
         <div style={row}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Να θυμάται τις συζητήσεις</div>
-            <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.4 }}>Συνεχίζει από εκεί που μείνατε, ανά ακίνητο. Μένει μόνο στη συσκευή σου.</div>
+            <div style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)' }}>Να θυμάται τις συζητήσεις</div>
+            <div style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', lineHeight: 1.4 }}>Συνεχίζει από εκεί που μείνατε, ανά ακίνητο. Μένει μόνο στη συσκευή σου.</div>
           </div>
           <Toggle on={memory} onChange={setMemory} ariaLabel="Μνήμη" />
         </div>
@@ -1859,9 +1862,9 @@ function AssistantSettings({ draft, onSave, onCancel, onClearMemory, hasMemory, 
         )}
         {memory && facts.length > 0 && (
           <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '11px 12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 9 }}>
-              <div style={{ fontFamily: T.font.sans, fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)' }}>Τι θυμάται για σένα</div>
-              <button onClick={onForgetAllFacts} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontSize: 11, fontWeight: 600 }}>Ξέχασέ τα όλα</button>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+              <div style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--text-secondary)' }}>Τι θυμάται για σένα</div>
+              <button onClick={onForgetAllFacts} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text-tertiary)', fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 600 }}>Ξέχασέ τα όλα</button>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {facts.map(f => (
@@ -1877,16 +1880,16 @@ function AssistantSettings({ draft, onSave, onCancel, onClearMemory, hasMemory, 
         )}
         <div style={row}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Σύγκριση μεταξύ ακινήτων</div>
-            <div style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.4 }}>Να βλέπει και τα άλλα σου ακίνητα για συγκρίσεις (ποιο αποδίδει καλύτερα).</div>
+            <div style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)' }}>Σύγκριση μεταξύ ακινήτων</div>
+            <div style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', lineHeight: 1.4 }}>Να βλέπει και τα άλλα σου ακίνητα για συγκρίσεις (ποιο αποδίδει καλύτερα).</div>
           </div>
           <Toggle on={compare} onChange={setCompare} ariaLabel="Σύγκριση" />
         </div>
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
-        <button onClick={onCancel} style={{ flex: '0 0 auto', height: T.h.lg, padding: '0 18px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Ακύρωση</button>
-        <button onClick={() => onSave({ memory, compare, formal })} style={{ flex: 1, height: T.h.lg, borderRadius: T.radius.pill, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontFamily: T.font.sans, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Αποθήκευση</button>
+        <button onClick={onCancel} style={{ flex: '0 0 auto', height: T.h.lg, padding: '0 18px', borderRadius: T.radius.pill, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: T.font.sans, fontSize: 'var(--fs-base)', fontWeight: 600, cursor: 'pointer' }}>Ακύρωση</button>
+        <button onClick={() => onSave({ memory, compare, formal })} style={{ flex: 1, height: T.h.lg, borderRadius: T.radius.pill, border: 'none', background: 'var(--accent)', color: 'var(--accent-text)', fontFamily: T.font.sans, fontSize: 'var(--fs-base)', fontWeight: 700, cursor: 'pointer' }}>Αποθήκευση</button>
       </div>
     </div>
   );

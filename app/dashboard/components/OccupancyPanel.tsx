@@ -56,6 +56,7 @@ import { T, fe, fp, Skeleton, pressable } from '@/components/Theme';
 import { readStatus, type StatusRow } from '@/lib/property/status';
 import { occupancyFromMonths, type ReportStay } from '@/lib/clients/reports';
 import { isHouseType, shortTermYearSummary } from '@/lib/tax/shortTermTax';
+import { FIRST_YEAR_CURRENT_LEVY } from '@/lib/billing/greekTax';
 import { MONTHS_SHORT, MONTHS_ACC } from '@/lib/core/months';
 
 interface StayRow extends ReportStay { declared_at?: string | null }
@@ -107,11 +108,11 @@ export default function OccupancyPanel({ propertyId, userId }: {
   if (!loading && !isShort) return null;
 
   const label: React.CSSProperties = {
-    fontFamily: T.font.sans, fontSize: 11, fontWeight: 700,
+    fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', fontWeight: 700,
     textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)',
   };
   const note: React.CSSProperties = {
-    fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.65,
+    fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', lineHeight: 1.65,
   };
   const num: React.CSSProperties = { fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' };
 
@@ -196,9 +197,9 @@ export default function OccupancyPanel({ propertyId, userId }: {
                       const h = peakNights > 0 ? Math.max(3, Math.round((n / peakNights) * 40)) : 3;
                       return (
                         <div key={i} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                          <span style={{ ...num, fontSize: 11, color: n > 0 ? 'var(--text-secondary)' : 'var(--text-tertiary)' }}>{n}</span>
+                          <span style={{ ...num, fontSize: 'var(--fs-xs)', color: n > 0 ? 'var(--text-secondary)' : 'var(--text-tertiary)' }}>{n}</span>
                           <div style={{ width: '100%', maxWidth: 48, height: h, borderRadius: 3, background: n > 0 ? 'var(--accent)' : 'var(--border-default)', opacity: n > 0 ? 1 : 0.5 }} />
-                          <span style={{ fontFamily: T.font.sans, fontSize: 11, color: 'var(--text-tertiary)' }}>{MONTHS_SHORT[i]}</span>
+                          <span style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>{MONTHS_SHORT[i]}</span>
                         </div>
                       );
                     })}
@@ -240,7 +241,7 @@ export default function OccupancyPanel({ propertyId, userId }: {
                   {tax.levy > 0 && (
                     <>
                       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, marginTop: 12 }}>
-                        <span style={{ fontFamily: T.font.sans, fontSize: 13, color: 'var(--text-secondary)' }}>Τέλος ανθεκτικότητας</span>
+                        <span style={{ fontFamily: T.font.sans, fontSize: 'var(--fs-base)', color: 'var(--text-secondary)' }}>Τέλος ανθεκτικότητας</span>
                         <span style={{ ...num, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{fe(tax.levy)}</span>
                       </div>
                       <div style={{ ...note, marginTop: 8 }}>
@@ -249,6 +250,18 @@ export default function OccupancyPanel({ propertyId, userId }: {
                           ? ` Καταγράφηκαν ${fe(tax.collectedLevy)} από επισκέπτες, οπότε τα υπόλοιπα ${fe(tax.levyShortfall)} τα πληρώνεις εσύ.`
                           : ' Καλύφθηκε ολόκληρο από τους επισκέπτες, άρα δεν είναι δικό σου κόστος.'}
                       </div>
+                      {/* ΤΟ ΤΕΛΟΣ ΔΕΝ ΕΙΧΕ ΠΑΝΤΑ ΑΥΤΑ ΤΑ ΠΟΣΑ. Ο επιλογέας έτους
+                          είναι βηματάκι ±1 και φτάνει στο 2024 με δύο κλικ. Ο
+                          φόρος εισοδήματος αλλάζει κλίμακα με το έτος· το ΤΑΚΚ
+                          δεν έχει πίνακα για πριν το 2025, οπότε ο αριθμός από
+                          πάνω είναι σημερινοί συντελεστές σε παλιά χρήση. Το
+                          λέει, αντί να το κρύβει. */}
+                      {tax.levyRegimeAssumed && (
+                        <div style={{ ...note, marginTop: 8 }}>
+                          Οι συντελεστές του τέλους άλλαξαν από 1/1/{FIRST_YEAR_CURRENT_LEVY}. Για τη χρήση {year} το ποσό
+                          είναι υπολογισμένο με τους σημερινούς· επιβεβαίωσέ το στην ΑΑΔΕ ή με τον λογιστή σου.
+                        </div>
+                      )}
                     </>
                   )}
                   {tax.grossRevenue === 0 && tax.totalNights > 0 && (

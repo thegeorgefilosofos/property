@@ -83,11 +83,11 @@ const BENCH_SHORT: Record<string, string> = {
 const benchShort = (key: string, fallback: string) => BENCH_SHORT[key] || fallback;
 const SANS = T.font.sans;
 const card: React.CSSProperties = { position: 'relative', background: 'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '18px 20px', boxShadow: 'var(--highlight-inset), var(--elev-2)' };
-const titleStyle: React.CSSProperties = { fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', margin: 0, fontFamily: SANS, letterSpacing: '0.1px' };
+const titleStyle: React.CSSProperties = { fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--text-primary)', margin: 0, fontFamily: SANS, letterSpacing: '0.1px' };
 const subStyle: React.CSSProperties = { fontSize: 12, color: 'var(--text-tertiary)', margin: '2px 0 0', fontFamily: SANS };
 /** Οι δύο κάρτες των «Εργαλείων απόδοσης»: ίδιο κουτί, ίδια σημείωση, ίδιο ύψος. */
 const toolCard: React.CSSProperties = { padding: 14, borderRadius: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column' };
-const toolNote: React.CSSProperties = { fontSize: 11, color: 'var(--text-tertiary)', margin: 0, fontFamily: SANS, lineHeight: 1.5 };
+const toolNote: React.CSSProperties = { fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', margin: 0, fontFamily: SANS, lineHeight: 1.5 };
 
 // ── Επεξήγηση όρου (διακριτικό εικονίδιο· επαγγελματικός ορισμός) ─────────────
 // Προσβάσιμο: πραγματικό κουμπί (πληκτρολόγιο + αφή), ανοίγει σε hover, εστίαση ή άγγιγμα,
@@ -432,8 +432,8 @@ function LeverCard({ lever }: { lever: YieldLever }) {
           τίτλος αριστερά, που λέει τι είναι· η πρόταση από κάτω σε κανονικό
           βάρος, που λέει πώς βγαίνει. Οι προϋποθέσεις και ο κίνδυνος μένουν
           πίσω από το κυκλάκι, όπως ήταν. */}
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 5, flexWrap: 'wrap' }}>
-        <p style={{ fontSize: 13, fontWeight: 600, color: hot ? 'var(--accent)' : 'var(--text-primary)', margin: 0, fontFamily: SANS, transition: 'color 0.15s', minWidth: 0 }}>{lever.title}</p>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
+        <p style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: hot ? 'var(--accent)' : 'var(--text-primary)', margin: 0, fontFamily: SANS, transition: 'color 0.15s', minWidth: 0 }}>{lever.title}</p>
         <InfoHint label={`Προϋποθέσεις και κίνδυνος: ${lever.title}`}>
           <span style={{ display: 'block' }}>{lever.detail}</span>
           <span style={{ display: 'block', marginTop: 8 }}><strong>Προσοχή:</strong> {lever.risk}</span>
@@ -519,7 +519,7 @@ function Toggle({ checked, onChange, label, note }: { checked: boolean; onChange
       {/* ΜΑΚΡΙΑ ΓΡΑΜΜΗ, ΠΕΡΙΣΣΟΤΕΡΟΣ ΑΕΡΑΣ. Χωρίς όριο πλάτους η σημείωση πιάνει
           όλη την κάρτα και φτάνει τους 103 χαρακτήρες ανά γραμμή στα 820: το
           1,5 του ύψους γραμμής άφηνε το μάτι να χάνει τη σειρά στην επιστροφή. */}
-      <p style={{ margin: '4px 0 0 48px', fontSize: 11, color: 'var(--text-tertiary)', fontFamily: SANS, lineHeight: 1.7 }}>{note}</p>
+      <p style={{ margin: '4px 0 0 48px', fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: SANS, lineHeight: 1.7 }}>{note}</p>
     </div>
   );
 }
@@ -1248,10 +1248,10 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         title={navLabel('roi')}
         sub={`${regimeLabel} · η απόδοση του ακινήτου σου και σύγκριση με την αγορά.`}
         right={empty ? undefined : (<>
-          <button onClick={printReport} className="acc-toggle" style={{ height: T.h.md, padding: '0 14px', borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 13, fontFamily: SANS, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+          <button onClick={printReport} className="acc-toggle" style={{ height: T.h.md, padding: '0 14px', borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 'var(--fs-base)', fontFamily: SANS, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
             <ArrowUpRight size={14} /> Για μένα
           </button>
-          <button onClick={officialReport} disabled={genOfficial} className="acc-toggle" title="Επίσημο true-PDF με αριθμό εγγράφου και QR επαλήθευσης· κατάλληλο για τράπεζες, ΔΟΥ και φορείς" style={{ height: T.h.md, padding: '0 14px', borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 13, fontFamily: SANS, fontWeight: 600, cursor: genOfficial ? 'wait' : 'pointer', opacity: genOfficial ? 0.6 : 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+          <button onClick={officialReport} disabled={genOfficial} className="acc-toggle" title="Επίσημο true-PDF με αριθμό εγγράφου και QR επαλήθευσης· κατάλληλο για τράπεζες, ΔΟΥ και φορείς" style={{ height: T.h.md, padding: '0 14px', borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)', color: 'var(--text-secondary)', fontSize: 'var(--fs-base)', fontFamily: SANS, fontWeight: 600, cursor: genOfficial ? 'wait' : 'pointer', opacity: genOfficial ? 0.6 : 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
             <ShieldCheck size={14} /> {genOfficial ? 'Δημιουργία…' : 'Για τράπεζα ή λογιστή'}
           </button>
         </>)}
@@ -1281,7 +1281,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                 πέντε ποσά που ο ίδιος έγραψε και βλέπει ολόκληρα με ένα πάτημα
                 από κάτω. Μήκος που δεν ορίζει το προϊόν: `.po-elide`, ώστε ο
                 σαρωτής να ξέρει ότι η αποκοπή είναι απόφαση και όχι ατύχημα. */}
-            <p className={empty ? undefined : 'po-elide'} style={subStyle}>
+            <p className={empty ? undefined : 'po-elide-lines'} style={subStyle}>
               {empty
                 ? (term === 'short' ? 'Συμπλήρωσε αξία, πληρότητα και τιμή ανά νύχτα' : 'Συμπλήρωσε αξία ακινήτου και μηνιαίο μίσθωμα')
                 : [
@@ -1307,12 +1307,12 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           <CustomSelect label="Περιοχή" value={region} onChange={setRegion} options={REGIONS.map((r, i) => ({ value: r.key, label: r.label, header: r.region !== REGIONS[i - 1]?.region ? r.region : undefined }))} />
         </div>
         {opexYear !== null && (
-          <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '10px 0 0', fontFamily: SANS, lineHeight: 1.55 }}>
+          <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', margin: '10px 0 0', fontFamily: SANS, lineHeight: 1.55 }}>
             Τα «Ετήσια έξοδα» προσυμπληρώθηκαν με όσα έξοδα του {opexYear} έχεις καταχωρήσει. Η χρονιά δεν έχει κλείσει, οπότε το ετήσιο ποσό μπορεί να είναι μεγαλύτερο.
           </p>
         )}
         {showEstValue && (
-          <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: 13, fontFamily: SANS, color: 'var(--text-secondary)' }}>
+          <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: 'var(--fs-base)', fontFamily: SANS, color: 'var(--text-secondary)' }}>
             <span>Ενδεικτική εκτίμηση αξίας για την περιοχή{pSqm ? ` (${pSqm} τ.μ.)` : ''}: <strong style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{fe(estValue)}</strong></span>
             <TermInfo text={`Ενδεικτικός υπολογισμός: μέση τιμή ανά τετραγωνικό μέτρο στην περιοχή, επί τα τ.μ. και τον συντελεστή τύπου του ακινήτου. Δεν υποκαθιστά την αντικειμενική αξία ούτε την εκτίμηση πιστοποιημένου εκτιμητή. Χρησιμοποίησέ την ως αφετηρία και προσάρμοσέ την στην πραγματική κατάσταση, τον όροφο και τη θέση του ακινήτου.`} />
             <button onClick={() => setValue(String(estValue))} className="acc-toggle" style={{ height: 28, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border-accent)', background: 'var(--accent-dim)', color: 'var(--accent)', fontSize: 12, fontFamily: SANS, fontWeight: 600, cursor: 'pointer' }}>Χρήση</button>
@@ -1321,8 +1321,8 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
         {term === 'short' && (
           <div style={{ marginTop: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: SANS }}>Παράμετροι βραχυχρόνιας</span>
-              <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: SANS }}>· προσυμπληρωμένες από τα δεδομένα αναφοράς της περιοχής{pSqm ? `, για ${pSqm} τ.μ.` : ''}</span>
+              <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: SANS }}>Παράμετροι βραχυχρόνιας</span>
+              <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: SANS }}>· προσυμπληρωμένες από τα δεδομένα αναφοράς της περιοχής{pSqm ? `, για ${pSqm} τ.μ.` : ''}</span>
             </div>
             <div {...g4}>
               <NumberInput label="Ετήσια πληρότητα" value={stOcc} onChange={setStOcc} suffix="%" max={100} labelInfo={<TermInfo text={G.occupancy} />} />
@@ -1387,7 +1387,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
             );
           })()}
           <div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
-            <p style={{ margin: 0, fontSize: 13, color: 'var(--text-primary)', fontFamily: SANS, fontWeight: 600 }}>{verdictLabel}</p>
+            <p style={{ margin: 0, fontSize: 'var(--fs-base)', color: 'var(--text-primary)', fontFamily: SANS, fontWeight: 600 }}>{verdictLabel}</p>
             {reg && <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-tertiary)', fontFamily: SANS, lineHeight: 1.5 }}>{reg.note}</p>}
           </div>
           {commStat && (
@@ -1451,7 +1451,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
               .concat(hist.some(p => p.year === HISTORY_ANCHORS.peakYear) ? [[`Κορυφή ${HISTORY_ANCHORS.peakYear}`, 'var(--text-tertiary)']] : [])
               .concat(hist.some(p => p.year === HISTORY_ANCHORS.troughYear) ? [[`Πυθμένας ${HISTORY_ANCHORS.troughYear}`, 'var(--text-tertiary)']] : [])
             ).map(([l, c]) => (
-              <span key={l} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: SANS }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: c }} />{l}</span>
+              <span key={l} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: SANS }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: c }} />{l}</span>
             ))}
           </div>
           {/* ΤΡΙΤΗ ΓΡΑΦΗ ΤΗΣ ΙΔΙΑΣ ΓΡΑΜΜΗΣ, ΜΕ ΤΕΤΑΡΤΟ ΜΕΓΕΘΟΣ. Ετικέτα 11 με
@@ -1480,7 +1480,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
               γυρίζοντας αριστερά. Ο σαρωτής το έπιασε σε δέκα οθόνες, μόλις ο
               κοινός επιλογέας ετών του επέτρεψε να φτάσει ώς εκείνη την
               κατάσταση — με τον προηγούμενο, χειρόγραφο, δεν την είχε δει ποτέ. */}
-          <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: SANS, lineHeight: 1.7 }}>{hist.some(p => p.year === HISTORY_ANCHORS.peakYear) ? `${HISTORY_ANCHORS.long} ${HISTORY_ANCHORS.recent}` : HISTORY_ANCHORS.recent}</p>
+          <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: SANS, lineHeight: 1.7 }}>{hist.some(p => p.year === HISTORY_ANCHORS.peakYear) ? `${HISTORY_ANCHORS.long} ${HISTORY_ANCHORS.recent}` : HISTORY_ANCHORS.recent}</p>
         </Section>
 
         {/* 3) Σύγκριση με εναλλακτικές */}
@@ -1500,7 +1500,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                   «10,5» με περιθώριο. */}
               <div style={{ width: 120 }}><NumberInput id={apprId} value={apprShown} onChange={v => { setAppreciation(v); setApprTouched(true); }} suffix="%" step={0.5} max={20} /></div>
               {/* Το ίδιο σήμα με δύο λεκτικά· το στυλ γραφόταν δύο φορές. */}
-              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: SANS, border: '1px solid var(--border-default)', borderRadius: 8, padding: '3px 7px' }}>{apprTouched ? 'δική σου υπόθεση' : 'δείκτης ΤτΕ'}</span>
+              <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: SANS, border: '1px solid var(--border-default)', borderRadius: 8, padding: '3px 7px' }}>{apprTouched ? 'δική σου υπόθεση' : 'δείκτης ΤτΕ'}</span>
               {apprTouched && (
                 <button type="button" onClick={() => { setAppreciation(''); setApprTouched(false); }} className="acc-toggle"
                   style={{ height: 26, padding: '0 10px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, fontFamily: SANS, fontWeight: 600, cursor: 'pointer' }}>
@@ -1544,7 +1544,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                  Ζητώντας 20 έτη ο δείκτης δίνει 19 (2007 ώς 2026), ενώ οι
                  εναλλακτικές τρέχουν με πραγματική 20ετία. Ο ισχυρισμός
                  γράφεται πλέον μόνο όταν τα δύο νούμερα συμπίπτουν. */}
-          <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '0 0 12px', fontFamily: SANS, lineHeight: 1.55 }}>
+          <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', margin: '0 0 12px', fontFamily: SANS, lineHeight: 1.55 }}>
             {/* Μένει Η ΠΗΓΗ του νούμερου, που είναι ο λόγος να το εμπιστευτείς.
                 Τα υπόλοιπα τετρακόσια είναι επιχειρηματολογία: γιατί άλλη
                 περίοδος δίνει άλλο νούμερο και τι σημαίνει αν το αλλάξεις. */}
@@ -1557,7 +1557,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           {/* Προβολή-γραμμή: ακίνητο vs κορυφαία εναλλακτική στον χρόνο */}
           {projSeries.length === 0 ? (
             <div style={{ padding: '18px 16px', borderRadius: 12, border: '1px dashed var(--border-default)', background: 'var(--bg-elevated)', marginBottom: 12 }}>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, fontFamily: SANS, lineHeight: 1.55 }}>
+              <p style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', margin: 0, fontFamily: SANS, lineHeight: 1.55 }}>
                 Συμπλήρωσε την <strong style={{ color: 'var(--text-primary)' }}>αξία του ακινήτου</strong> για να συγκριθεί με τις εναλλακτικές επενδύσεις.
                 Χωρίς αυτήν δεν υπάρχει ποσό να προβληθεί και ένα νούμερο βγαλμένο από το πουθενά θα διάβαζε σαν δικό σου.
               </p>
@@ -1565,7 +1565,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
           ) : <LineChart series={projSeries} />}
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', margin: '2px 0 14px' }}>
             {projSeries.map(s => (
-              <span key={s.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--text-tertiary)', fontFamily: SANS }}><span style={{ width: 12, height: 2.5, borderRadius: 3, background: s.color }} />{s.label}</span>
+              <span key={s.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: SANS }}><span style={{ width: 12, height: 2.5, borderRadius: 3, background: s.color }} />{s.label}</span>
             ))}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -1594,7 +1594,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
               ΚΑΙ Η ΚΡΙΣΗ ΑΝΑΦΕΡΕΤΑΙ ΜΟΝΟ ΟΤΑΝ ΕΙΝΑΙ ΜΕΣΑ ΣΤΟΝ ΟΡΙΖΟΝΤΑ. Η
               πρόταση για τη 20ετία γραφόταν και με επιλεγμένη τη 10ετία, δηλαδή
               περιέγραφε γράφημα που ο χρήστης δεν έβλεπε. */}
-          <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: SANS, lineHeight: 1.55 }}>
+          <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: SANS, lineHeight: 1.55 }}>
             Οι εναλλακτικές τρέχουν με τη <strong style={{ color: 'var(--text-secondary)' }}>μέση ετήσια ονομαστική απόδοσή τους της τελευταίας {cmpYears}ετίας</strong>, ως συνολική απόδοση σε ευρώ από επίσημες πηγές, με ορίζοντα {BENCHMARKS_ASOF}. Το ακίνητο τρέχει με τη δική σου καθαρή απόδοση συν ανατίμηση. Όλα προ φόρου εισοδήματος.{' '}
             <InfoHint label="Τι δεν δείχνει η σύγκριση">
               <span style={{ display: 'block' }}>Τα νούμερα είναι μετρημένα, όχι εξομαλυμένες υποθέσεις. Ονομαστικά και τα δύο σκέλη, χωρίς αφαίρεση πληθωρισμού: γι’ αυτό ο πληθωρισμός στέκει ως δική του γραμμή αναφοράς παραπάνω.{cmpYears === '20' ? ' Η 20ετία περιλαμβάνει την κρίση: το Χρηματιστήριο Αθηνών και το ομόλογο είναι σχεδόν μηδενικά.' : ''}</span>
@@ -1692,7 +1692,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                     δίπλα της, οι παραδοχές σε ήσυχη γραμμή στοιχείων από κάτω.
                     Ιδιο ιδίωμα με την κάρτα δανείου: όνομα πάνω, μέγεθος κάτω. */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '6px 18px', marginTop: 14 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, fontFamily: SANS, color: 'var(--text-primary)' }}>
+                  <span style={{ fontSize: 'var(--fs-base)', fontWeight: 700, fontFamily: SANS, color: 'var(--text-primary)' }}>
                     {lev.positiveCarry ? 'Θετική μόχλευση' : 'Αρνητική μόχλευση'}
                   </span>
                   <span style={{ fontSize: 12, fontFamily: SANS, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>καθαρή απόδοση {fp(lev.unleveredYield)}</span>
@@ -1754,7 +1754,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                 διαβάσεις πενήντα λέξεις. Ό,τι είναι ζευγάρι «όνομα, τιμή» δεν
                 είναι πρόταση, είναι γραμμή. */}
             <div style={{ marginTop: 14, padding: '12px 14px', borderRadius: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
-              <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: SANS, margin: '0 0 10px' }}>Οι παραδοχές του υπολογισμού</p>
+              <p style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: SANS, margin: '0 0 10px' }}>Οι παραδοχές του υπολογισμού</p>
               <div {...fixedCols(3, 14, 'start')}>
                 {[
                   ['Ανατίμηση ακινήτου', fp(nAppr), apprTouched ? 'δική σου υπόθεση' : `δείκτης ΤτΕ ${apprRef.fromYear} ως ${apprRef.toYear}`],
@@ -1767,12 +1767,12 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                   <div key={l}>
                     <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: 0, fontFamily: SANS }}>{l}</p>
                     <p className="po-fig" style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', margin: '2px 0 0', fontFamily: SANS, fontVariantNumeric: 'tabular-nums' }}>{v}</p>
-                    <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '1px 0 0', fontFamily: SANS, lineHeight: 1.4 }}>{sub}</p>
+                    <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', margin: '1px 0 0', fontFamily: SANS, lineHeight: 1.4 }}>{sub}</p>
                   </div>
                 ))}
               </div>
             </div>
-            <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: SANS, lineHeight: 1.55 }}>
+            <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', margin: '12px 0 0', fontFamily: SANS, lineHeight: 1.55 }}>
               {/* Μένουν τα τρία ποσά που χαρακτηρίζουν τους δείκτες από πάνω.
                   Ο ορισμός του IRR και η επιφύλαξη «όχι επενδυτική συμβουλή»
                   έφυγαν: η δεύτερη γραφόταν ΤΕΤΑΡΤΗ φορά στην ίδια καρτέλα και
@@ -1792,25 +1792,25 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
               <div className="po-fig-card" tabIndex={0} style={{ minWidth: 460, display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 1fr', gap: 8, padding: '0 12px 8px' }}>
                   {['Σενάριο', 'Συνολική απόδοση', 'Απόδοση ιδίων', 'Ετήσια ροή'].map((h, i) => (
-                    <span key={h} style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: SANS, textAlign: i === 0 ? 'left' : 'right' }}>{h}</span>
+                    <span key={h} style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: SANS, textAlign: i === 0 ? 'left' : 'right' }}>{h}</span>
                   ))}
                 </div>
                 {scenarios.map(s => (
                   <div key={s.key} style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 1fr', gap: 8, alignItems: 'center', padding: '10px 12px', borderRadius: 10, background: s.key === 'base' ? 'var(--bg-elevated)' : 'transparent', border: `1px solid ${s.key === 'base' ? 'var(--border-subtle)' : 'transparent'}` }}>
                     <div style={{ minWidth: 0 }}>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: 0, fontFamily: SANS }}>{s.label}</p>
-                      <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '1px 0 0', fontFamily: SANS }}>{s.note}</p>
+                      <p style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)', margin: 0, fontFamily: SANS }}>{s.label}</p>
+                      <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', margin: '1px 0 0', fontFamily: SANS }}>{s.note}</p>
                     </div>
-                    <span className="po-fig" style={{ textAlign: 'right', fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums', fontFamily: SANS }}>{fp(s.totalReturn)}</span>
-                    <span className="po-fig" data-tone={s.roe >= 0 ? undefined : 'negative'} style={{ textAlign: 'right', fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums', fontFamily: SANS }}>{fp(s.roe)}</span>
-                    <span className="po-fig" data-tone={s.cashFlow >= 0 ? undefined : 'negative'} style={{ textAlign: 'right', fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums', fontFamily: SANS }}>{fe(s.cashFlow)}</span>
+                    <span className="po-fig" style={{ textAlign: 'right', fontSize: 'var(--fs-base)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', fontFamily: SANS }}>{fp(s.totalReturn)}</span>
+                    <span className="po-fig" data-tone={s.roe >= 0 ? undefined : 'negative'} style={{ textAlign: 'right', fontSize: 'var(--fs-base)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', fontFamily: SANS }}>{fp(s.roe)}</span>
+                    <span className="po-fig" data-tone={s.cashFlow >= 0 ? undefined : 'negative'} style={{ textAlign: 'right', fontSize: 'var(--fs-base)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', fontFamily: SANS }}>{fe(s.cashFlow)}</span>
                   </div>
                 ))}
               </div>
             </div>
             {term === 'short' && breakEvenOcc !== null && (
               <div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
-                <p style={{ margin: 0, fontSize: 13, color: 'var(--text-primary)', fontFamily: SANS, fontWeight: 600, display: 'flex', alignItems: 'center' }}>
+                <p style={{ margin: 0, fontSize: 'var(--fs-base)', color: 'var(--text-primary)', fontFamily: SANS, fontWeight: 600, display: 'flex', alignItems: 'center' }}>
                   Πληρότητα ισοσκελισμού: {isFinite(breakEvenOcc) ? fp(Math.min(100, breakEvenOcc)) : 'μη εφικτή'}<TermInfo text={G.break_even} />
                 </p>
                 <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-tertiary)', fontFamily: SANS, lineHeight: 1.5 }}>
@@ -1837,7 +1837,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
             {!empty && (
               <div style={{ marginTop: 0, padding: '12px 14px', borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                  <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: SANS }}>Τέλη και φορολογία βραχυχρόνιας</span>
+                  <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: SANS }}>Τέλη και φορολογία βραχυχρόνιας</span>
                 </div>
                 <div {...fixedCols(2, 16, 'start')}>
                   <div>
@@ -1846,7 +1846,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                     {/* ΤΟ ΠΟΣΟ ΕΙΝΑΙ ΤΟ ΙΔΙΟ, Η ΤΣΕΠΗ ΟΧΙ. Χωρίς αυτή τη γραμμή
                         ο ίδιος αριθμός διαβαζόταν ως κόστος του ιδιοκτήτη ακόμη
                         και όταν τον πληρώνει ο επισκέπτης. */}
-                    <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '2px 0 0', fontFamily: SANS, lineHeight: 1.45 }}>
+                    <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', margin: '2px 0 0', fontFamily: SANS, lineHeight: 1.45 }}>
                       {levyToGuest ? 'Το εισπράττεις και το αποδίδεις· δεν βαραίνει τα καθαρά σου.' : 'Δεν το χρεώνεις στον επισκέπτη, οπότε μετρά ως δικό σου κόστος.'}
                     </p>
                   </div>
@@ -1894,7 +1894,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
             άνοιγε σε ΑΔΕΙΟ κουτί, αφού δεν του έμενε τίποτε να δείξει. */}
         {!empty && (
           <div style={{ marginTop: 12, padding: '12px 14px', borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
-            <span style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: SANS, marginBottom: 10 }}>Φορολογικές παραδοχές</span>
+            <span style={{ display: 'block', fontSize: 'var(--fs-xs)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: SANS, marginBottom: 10 }}>Φορολογικές παραδοχές</span>
             <Toggle checked={rentsBank} onChange={setRentsBank}
               label="Τα ενοίκια εισπράττονται μέσω τραπέζης"
               note={PRESUMPTIVE_RULE_2026} />
@@ -1952,7 +1952,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                   εικονοστοιχεία μέσα σε κάρτα 1.358, δηλαδή 860 κενά δεξιά του.
                   Το `fineprint` το αφήνει να πιάσει ολόκληρο το μέτρο της
                   κάρτας, σε μία στήλη, όπως κάθε άλλο κείμενο της οθόνης. */}
-              <p className="fineprint" style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: 0, fontFamily: SANS }}>{MARKET_DISCLAIMER}</p>
+              <p className="fineprint" style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', margin: 0, fontFamily: SANS }}>{MARKET_DISCLAIMER}</p>
               {/* Μία σειρά. Το `flexWrap` μένει ως δίχτυ για πολύ στενή οθόνη ή
                   για τη ρύθμιση «μεγαλύτερο κείμενο» — δεν είναι η κανονική
                   κατάσταση, είναι η υποχώρηση. */}
@@ -1961,7 +1961,7 @@ export default function TabRentROI({ propertyId, userId, propertyValue, profileT
                     δηλαδή τέσσερις στόχοι αφής στο 39% του ορίου των 44. Η
                     κλάση δίνει το ύψος ΜΟΝΟ στο δάχτυλο· στο ποντίκι η γραμμή
                     μένει όσο ήταν. */}
-                {MARKET_SOURCES.map(s => <a key={s.href} href={s.href} target="_blank" rel="noreferrer" className="tap-link" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontFamily: SANS }}>{s.label}</a>)}
+                {MARKET_SOURCES.map(s => <a key={s.href} href={s.href} target="_blank" rel="noreferrer" className="tap-link" style={{ fontSize: 'var(--fs-xs)', color: 'var(--accent)', textDecoration: 'none', fontFamily: SANS }}>{s.label}</a>)}
               </div>
             </div>
           </div>

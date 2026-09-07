@@ -50,7 +50,7 @@ export function SetRow({ title, desc, control, children }: {
       <div style={{ display: 'flex', alignItems: control ? 'center' : 'flex-start', justifyContent: 'space-between', gap: T.sp.lg }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ ...TT.body, fontWeight: 600 }}>{title}</div>
-          {desc && <div style={{ ...TT.bodySm, color: 'var(--text-tertiary)', marginTop: 3 }}>{desc}</div>}
+          {desc && <div style={{ ...TT.bodySm, color: 'var(--text-tertiary)', marginTop: 4 }}>{desc}</div>}
         </div>
         {control && <div style={{ flexShrink: 0 }}>{control}</div>}
       </div>

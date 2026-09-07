@@ -89,7 +89,7 @@ export function ShortVsLongCalculator({ today }: { today: string }) {
   };
   const label: React.CSSProperties = {
     display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
-    textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 7,
+    textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 8,
   };
   // Ίδιο σχήμα με τους επιλογείς της εφαρμογής: ενεργό γεμάτο, ανενεργό διάφανο.
   // Τα δύο κουμπιά της σεζόν είναι αυτοτελή χειριστήρια, όχι λέξεις σε πρόταση:
@@ -99,7 +99,7 @@ export function ShortVsLongCalculator({ today }: { today: string }) {
     height: T.h.sm, padding: '0 14px', borderRadius: T.radius.inner, border: 'none',
     background: on ? 'var(--accent)' : 'transparent',
     color: on ? 'var(--accent-text)' : 'var(--text-secondary)',
-    fontSize: 12.5, fontWeight: 600, fontFamily: T.font.sans, cursor: 'pointer',
+    fontSize: 13, fontWeight: 600, fontFamily: T.font.sans, cursor: 'pointer',
     whiteSpace: 'nowrap', transition: 'background-color 0.15s, color 0.15s',
   });
 
@@ -176,10 +176,10 @@ export function ShortVsLongCalculator({ today }: { today: string }) {
         gap: 16, flexWrap: 'wrap',
       }}>
         <div style={{ flex: 1, minWidth: 230 }}>
-          <div style={{ fontSize: 14, fontWeight: 650, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
             Πότε γεμίζει
           </div>
-          <p style={{ margin: '3px 0 0', fontSize: 12.5, lineHeight: 1.55, color: 'var(--text-tertiary)' }}>
+          <p style={{ margin: '3px 0 0', fontSize: 13, lineHeight: 1.55, color: 'var(--text-tertiary)' }}>
             {input.season === 'high'
               ? `Οι κρατήσεις πέφτουν πρώτα στους επτά μήνες της υψηλής περιόδου, δηλαδή έως ${HIGH_SEASON_NIGHTS} διανυκτερεύσεις, όπου το τέλος είναι ${feAuto(levyRates.high)} τη διανυκτέρευση. Αλλάζει τι πληρώνει ο επισκέπτης, όχι τι κρατάς εσύ.`
               : `Οι κρατήσεις μοιράζονται ισομερώς στους δώδεκα μήνες. Το τέλος είναι ${feAuto(levyRates.high)} τη διανυκτέρευση από Απρίλιο ώς Οκτώβριο και ${feAuto(levyRates.low)} τους υπόλοιπους.`}
@@ -201,7 +201,7 @@ export function ShortVsLongCalculator({ today }: { today: string }) {
             κονταίνει ούτε το κουμπί σπάει σε δύο γραμμές: η σειρά αναδιπλώνεται
             και κάτω από τα 380 το κάθε κουμπί πιάνει ολόκληρη τη γραμμή του.
             Πάνω από εκεί τα δύο χωράνε δίπλα και τίποτα δεν αλλάζει. */}
-        <div className="po-seg" style={{ display: 'flex', flexWrap: 'wrap', gap: 3, padding: 3, background: 'var(--bg-surface)',
+        <div className="po-seg" style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: 4, background: 'var(--bg-surface)',
           border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
           <button type="button" onClick={() => set('sezon', 'even')} aria-pressed={input.season === 'even'} className="po-tap" style={segStyle(input.season === 'even')}>Όλο τον χρόνο</button>
           <button type="button" onClick={() => set('sezon', 'high')} aria-pressed={input.season === 'high'} className="po-tap" style={segStyle(input.season === 'high')}>Κυρίως το καλοκαίρι</button>
@@ -232,7 +232,7 @@ export function ShortVsLongCalculator({ today }: { today: string }) {
             κάποια πλευρά. */}
         <p style={{
           margin: '0 0 18px', fontSize: 'clamp(16px, 2.2vw, 20px)', lineHeight: 1.4,
-          fontWeight: 650, letterSpacing: '-0.02em', color: 'var(--text-primary)', textWrap: 'balance',
+          fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--text-primary)', textWrap: 'balance',
         }}>
           {Math.abs(r.difference) < 1
             ? 'Οι δύο επιλογές αφήνουν ουσιαστικά τα ίδια.'
@@ -255,7 +255,7 @@ export function ShortVsLongCalculator({ today }: { today: string }) {
             απαντά μόνος του. */}
         <div>
           <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-            color: 'var(--text-tertiary)', marginBottom: 7 }}>
+            color: 'var(--text-tertiary)', marginBottom: 8 }}>
             Πληρότητα ισορροπίας
           </div>
           <p style={{ margin: 0, fontSize: 14, lineHeight: 1.65, color: 'var(--text-secondary)' }}>
@@ -410,7 +410,7 @@ export function ShortVsLongCalculator({ today }: { today: string }) {
           background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
         }}>
           <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-            color: 'var(--text-tertiary)', marginBottom: 7 }}>
+            color: 'var(--text-tertiary)', marginBottom: 8 }}>
             Πριν αποφασίσεις
           </div>
           <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, color: 'var(--text-secondary)' }}>
@@ -478,7 +478,7 @@ function Figure({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-        color: 'var(--text-tertiary)', marginBottom: 7 }}>{label}</div>
+        color: 'var(--text-tertiary)', marginBottom: 8 }}>{label}</div>
       <div style={{
         fontFamily: T.font.num, fontSize: 'clamp(24px, 4.4vw, 32px)', fontWeight: 680,
         letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', lineHeight: 1.1,

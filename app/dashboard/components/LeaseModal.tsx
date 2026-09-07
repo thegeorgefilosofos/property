@@ -216,7 +216,7 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
   const lbl = { ...TT.label, marginBottom: 6 } as React.CSSProperties;
   const onF = (e: React.FocusEvent<HTMLInputElement>) => { e.currentTarget.style.borderColor = 'var(--accent)'; };
   const onB = (e: React.FocusEvent<HTMLInputElement>) => { e.currentTarget.style.borderColor = 'var(--border-default)'; };
-  const seg = (u: LeaseUse): React.CSSProperties => ({ flex: 1, fontSize: 13, fontWeight: 600, height: T.h.md, borderRadius: T.radius.inner, cursor: 'pointer', textAlign: 'center', border: 'none', background: use === u ? 'var(--accent)' : 'transparent', color: use === u ? 'var(--accent-text)' : 'var(--text-secondary)', fontFamily: T.font.sans, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' });
+  const seg = (u: LeaseUse): React.CSSProperties => ({ flex: 1, fontSize: 'var(--fs-base)', fontWeight: 600, height: T.h.md, borderRadius: T.radius.inner, cursor: 'pointer', textAlign: 'center', border: 'none', background: use === u ? 'var(--accent)' : 'transparent', color: use === u ? 'var(--accent-text)' : 'var(--text-secondary)', fontFamily: T.font.sans, transition: 'background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s' });
   // ΤΟ ΦΙΛΤΡΟ ΔΕΝ ΕΙΝΑΙ ΚΑΛΛΩΠΙΣΜΟΣ. Το πεδίο δεχόταν «-500» και «12ε» και το
   // αποτέλεσμα έφτανε σε υπογεγραμμένο μισθωτήριο με QR επαλήθευσης: αρνητικό
   // μίσθωμα σε συμφωνητικό που υπογράφουν δύο μέρη. Όπου υπάρχει φυσικό
@@ -247,14 +247,14 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
           padding: '0 6px 0 13px', textAlign: 'right', fontVariantNumeric: 'tabular-nums',
           color: 'var(--text-primary)', fontSize: 14, fontFamily: T.font.sans,
         }} />
-      <span style={{ paddingRight: 13, color: 'var(--text-tertiary)', fontSize: 14, flexShrink: 0, whiteSpace: 'nowrap' }}>{suffix}</span>
+      <span style={{ paddingRight: 12, color: 'var(--text-tertiary)', fontSize: 14, flexShrink: 0, whiteSpace: 'nowrap' }}>{suffix}</span>
     </div>
   );
   const stat = (label: string, value: string, strong = false) => (
     <div>
-      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{label}</div>
+      <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontFamily: T.font.sans }}>{label}</div>
       {/* Ήταν 13.5 — μισό εικονοστοιχείο, εκτός της κλίμακας μεγεθών. */}
-      <div style={{ fontSize: strong ? 16 : 13, fontWeight: strong ? 700 : 600, color: strong ? 'var(--text-primary)' : 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums', marginTop: 3, fontFamily: T.font.sans }}>{value}</div>
+      <div style={{ fontSize: strong ? 16 : 13, fontWeight: strong ? 700 : 600, color: strong ? 'var(--text-primary)' : 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums', marginTop: 4, fontFamily: T.font.sans }}>{value}</div>
     </div>
   );
 
@@ -284,7 +284,7 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
 
   const footerInfo = pending ? (
     <span style={{ display: 'inline-block', minWidth: 220 }}>
-      <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+      <span style={{ display: 'block', fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)' }}>
         {archived ? 'Αποθηκεύτηκε και ενημερώθηκε ο ενοικιαστής.' : SAY.archiveAsk}
       </span>
       {!archived && <span style={{ display: 'block', fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>Αρχειοθετείται με ημερομηνία έναρξης {grDate(res.start)} και ενημερώνει την καρτέλα ενοικιαστή.</span>}
@@ -308,7 +308,7 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
   return (
     <Modal open={open} onClose={closeIfIdle} size="lg"
       ariaLabel="Σύνταξη μισθωτηρίου"
-      title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>Μισθωτήριο<InfoHint>Το PDF βγαίνει με αριθμό εγγράφου και QR επαλήθευσης, αρχειοθετείται στα έγγραφα του ακινήτου και ενημερώνει την καρτέλα ενοικιαστή.</InfoHint></span>}
+      title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>Μισθωτήριο<InfoHint>Το PDF βγαίνει με αριθμό εγγράφου και QR επαλήθευσης, αρχειοθετείται στα έγγραφα του ακινήτου και ενημερώνει την καρτέλα ενοικιαστή.</InfoHint></span>}
       subtitle="Ιδιωτικό συμφωνητικό με υπογραφή και των δύο μερών"
       icon={<svg aria-hidden="true" width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M9 13h6M9 17h4" /></svg>}
       footer={footer} footerInfo={footerInfo}>
@@ -328,7 +328,7 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
                 <div><div style={lbl}>Ακίνητο</div><Select ariaLabel="Ακίνητο" value={propId} onChange={setPropId} options={props.map(p => ({ value: p.id, label: p.name }))} placeholder="Επιλογή ακινήτου" /></div>
                 <div>
                   <div style={lbl}>Χρήση</div>
-                  <div style={{ display: 'flex', gap: 3, padding: 3, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
+                  <div style={{ display: 'flex', gap: 4, padding: 4, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner }}>
                     <button onClick={() => setUse('residence')} style={seg('residence')}>Κατοικία</button>
                     <button onClick={() => setUse('professional')} style={seg('professional')}>Επαγγελματική</button>
                   </div>
@@ -344,9 +344,9 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
 
               <div {...fixedCols(3, 12, 'start')}>
                 <div><div style={lbl}>Μηνιαίο μίσθωμα</div>{money(rent, setRent, '€', 'Μηνιαίο μίσθωμα')}</div>
-                <div><div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 5 }}>Εγγύηση<InfoHint>Συνήθως ένα ή δύο μισθώματα. Δεν συμψηφίζεται με μισθώματα και επιστρέφεται ατόκως στη λήξη, εφόσον δεν υπάρχουν φθορές ή οφειλές.</InfoHint></div>{money(deposit, setDeposit, '€', 'Εγγύηση')}</div>
+                <div><div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 4 }}>Εγγύηση<InfoHint>Συνήθως ένα ή δύο μισθώματα. Δεν συμψηφίζεται με μισθώματα και επιστρέφεται ατόκως στη λήξη, εφόσον δεν υπάρχουν φθορές ή οφειλές.</InfoHint></div>{money(deposit, setDeposit, '€', 'Εγγύηση')}</div>
                 <div><div style={lbl}>Έναρξη</div><DatePicker value={start} onChange={setStart} /></div>
-                <div><div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 5 }}>Διάρκεια<InfoHint>Στις μισθώσεις κατοικίας ισχύει η κατά νόμο ελάχιστη τριετής διάρκεια, ακόμη και αν συμφωνηθεί μικρότερη.</InfoHint></div>{money(years, setYears, 'έτη', 'Διάρκεια σε έτη')}</div>
+                <div><div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 4 }}>Διάρκεια<InfoHint>Στις μισθώσεις κατοικίας ισχύει η κατά νόμο ελάχιστη τριετής διάρκεια, ακόμη και αν συμφωνηθεί μικρότερη.</InfoHint></div>{money(years, setYears, 'έτη', 'Διάρκεια σε έτη')}</div>
                 <div><div style={lbl}>Αναπροσαρμογή</div>{money(adjust, setAdjust, '%', 'Ετήσια αναπροσαρμογή', PCT_MAX)}</div>
                 <div><div style={lbl}>Ημέρα πληρωμής</div>{money(payDay, setPayDay, 'ημ.', 'Ημέρα πληρωμής', 31)}</div>
               </div>
@@ -368,7 +368,7 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 14 }}>
                 <div>
-                  <div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 5 }}>Υπογραφή εκμισθωτή<InfoHint>Η υπογραφή ενσωματώνεται στο PDF και, μαζί με το QR, το καθιστά επαληθεύσιμο.</InfoHint></div>
+                  <div style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 4 }}>Υπογραφή εκμισθωτή<InfoHint>Η υπογραφή ενσωματώνεται στο PDF και, μαζί με το QR, το καθιστά επαληθεύσιμο.</InfoHint></div>
                   <SignaturePad onChange={setSigL} height={92} />
                 </div>
                 <div>
@@ -395,7 +395,7 @@ export default function LeaseModal({ open, onClose, userId, supabase, branding, 
                 </div>
               </div>
 
-              {err && <div style={{ fontSize: 13, color: 'var(--negative)', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.inner, padding: '10px 14px' }}>{err}</div>}
+              {err && <div style={{ fontSize: 'var(--fs-base)', color: 'var(--negative)', background: 'var(--negative-soft)', border: '1px solid var(--negative-border)', borderRadius: T.radius.inner, padding: '10px 14px' }}>{err}</div>}
             </>
           )}
       </>

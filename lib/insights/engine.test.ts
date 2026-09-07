@@ -111,6 +111,27 @@ ok(greeting(new Date('2026-07-06T17:00:00Z').getTime()) === 'Καλησπέρα'
   const neg = get(base({ loanPayment: 900 }), 'loan-cash-negative')!;
   ok(!/Infinity|NaN/.test(neg.detail) && neg.action?.tab === 'loan', 'η γραμμή οδηγεί στο Δάνειο, χωρίς σκουπίδια'); }
 
+// ── Η κατηγορία που ξέφυγε ────────────────────────────────────────────────
+// NOW είναι 6 Ιουλίου 2026, άρα ο τελευταίος ΚΛΕΙΣΜΕΝΟΣ μήνας είναι ο Ιούνιος.
+{
+  const spike: InsightInput['expenses'] = [
+    { category: 'Ρεύμα', amount: 60, date: '2026-03-10', paid: true },
+    { category: 'Ρεύμα', amount: 62, date: '2026-04-10', paid: true },
+    { category: 'Ρεύμα', amount: 58, date: '2026-05-10', paid: true },
+    { category: 'Ρεύμα', amount: 160, date: '2026-06-10', paid: true },
+  ];
+  const i = get(base({ expenses: spike }), 'spend-spike');
+  ok(!!i, 'spend-spike: το ρεύμα που ξέφυγε γίνεται εύρημα');
+  ok(i?.kind === 'attention', 'spend-spike: είναι «προσοχή», όχι «επείγον» — δεν έχει προθεσμία');
+  ok(i?.stake === 100, 'spend-spike: το διακύβευμα είναι η ΥΠΕΡΒΑΣΗ, όχι όλο το ποσό');
+  ok((i?.title || '').includes('167%'), 'spend-spike: ο τίτλος λέει το ποσοστό');
+  ok((i?.detail || '').includes('3 μηνών'), 'spend-spike: λέει σε πόσους μήνες στηρίχτηκε');
+
+  // Η ΒΑΣΙΚΗ ΠΕΡΙΠΤΩΣΗ ΔΕΝ ΠΑΡΑΓΕΙ ΕΥΡΗΜΑ, ΚΑΙ ΑΥΤΟ ΕΙΝΑΙ ΤΟ ΖΗΤΟΥΜΕΝΟ:
+  // τρεις δαπάνες σε τρεις διαφορετικές κατηγορίες δεν έχουν «συνήθως».
+  ok(!has(base(), 'spend-spike'), 'spend-spike: χωρίς ιστορικό δεν λέει τίποτα');
+}
+
 console.log(`\ninsights/engine.ts — ${passed} passed, ${failed} failed`);
 if (failed > 0) process.exit(1);
 console.log('όλα πέρασαν');

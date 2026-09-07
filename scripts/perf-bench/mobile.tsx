@@ -76,7 +76,7 @@ import TabRentROI from '@/app/dashboard/components/TabRentROI';
 // μετρηθεί ΔΕΝ σήμαινε ότι ήταν εντάξει· σήμαινε ότι δεν το ξέραμε.
 import TabAccounting from '@/app/dashboard/components/TabAccounting';
 import TabSettings from '@/app/dashboard/components/TabSettings';
-import TabCalendar from '@/app/dashboard/components/TabCalendar';
+import TabCalendar, { DaySheet, type CalEvent } from '@/app/dashboard/components/TabCalendar';
 import TabClients from '@/app/dashboard/components/TabClients';
 import TabDocuments from '@/app/dashboard/components/TabDocuments';
 import TabReferral from '@/app/dashboard/components/TabReferral';
@@ -165,6 +165,33 @@ const comparePair = [
 ];
 
 const OPTS = Array.from({ length: 14 }, (_, i) => ({ value: `v${i}`, label: `Κατηγορία δαπάνης πολύ μακρύ όνομα ${i + 1}` }));
+
+// ΤΟ ΦΥΛΛΟ ΤΗΣ ΗΜΕΡΑΣ ΔΕΝ ΤΟ ΕΒΛΕΠΕ ΚΑΝΕΝΑΣ ΣΑΡΩΤΗΣ. Ανοίγει μόνο με πάτημα σε
+// κελί του μήνα και μόνο με δάχτυλο, δηλαδή καμία σκηνή του πάγκου δεν το
+// έφτανε. Εδώ στήνεται με τη ΔΥΣΚΟΛΗ μέρα: εφτά γεγονότα, τρία με ώρα, τίτλοι
+// που ξεπερνούν το πλάτος, ποσά τεσσάρων ψηφίων, ένα πληρωμένο.
+const DAY_EVENTS: CalEvent[] = ([
+  ['Δόση δανείου', 'financial', '09:00', 435, 'pending'],
+  ['ΕΝΦΙΑ, δεύτερη δόση έτους', 'tax', null, 1284.5, 'pending'],
+  ['Λογαριασμός ΕΥΔΑΠ, δίμηνο Ιουλίου Αυγούστου', 'bills', null, 87.3, 'paid'],
+  ['Ελεγχος υγρασίας στο υπόγειο, συνεργείο Παπαδόπουλος', 'maintenance', '11:30', null, 'pending'],
+  ['Λήξη μίσθωσης', 'contract', null, null, 'pending'],
+  ['Καθαρισμός μετά την αναχώρηση', 'maintenance', '14:00', 45, 'pending'],
+  ['Ασφάλιστρα', 'financial', null, 312, 'pending'],
+] as const).map(([title, category, event_time, amount, status], i) => ({
+  id: 'd' + i, property_id: 'p0', user_id: 'u1', title,
+  category: category as CalEvent['category'], event_date: '2026-09-15',
+  event_time, amount, priority: 'medium' as CalEvent['priority'],
+  status: status as CalEvent['status'], recurring: false, source: 'manual',
+  created_at: '2026-09-01T00:00:00Z',
+}));
+
+function DaySheetDemo() {
+  const [open, setOpen] = useState(true);
+  return open
+    ? <DaySheet date="2026-09-15" events={DAY_EVENTS} onClose={() => setOpen(false)} onPick={() => {}} onNew={() => {}} />
+    : <PageTitle title="Φύλλο ημέρας" sub="κλειστό" right={<Btn variant="primary" onClick={() => setOpen(true)}>Άνοιγμα</Btn>} />;
+}
 
 function ModalDemo() {
   const [open, setOpen] = useState(true);
@@ -346,6 +373,7 @@ const VIEWS: Record<string, () => React.ReactElement> = {
   referral: () => <TabReferral userId="u1" plan="solo" profileType="individual" />,
   referralPro: () => <TabReferral userId="u1" plan="agency" profileType="professional" />,
   modal: () => <ModalDemo />,
+  calendarDay: () => <DaySheetDemo />,
   select: () => <SelectDemo />,
 };
 

@@ -275,7 +275,7 @@ function BulkBtn({ icon, label, onClick, disabled, danger }: { icon: React.React
   const active = hov && !disabled;
   return (
     <button type="button" disabled={disabled} onClick={onClick} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
-      style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 12px', borderRadius: T.radius.btn, fontSize: 12, fontWeight: 600, fontFamily: T.font.sans, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.45 : 1,
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '7px 12px', borderRadius: T.radius.btn, fontSize: 12, fontWeight: 600, fontFamily: T.font.sans, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.45 : 1,
         border: `1px solid ${active ? (danger ? 'var(--negative-border)' : 'var(--accent-border)') : 'var(--border-subtle)'}`,
         background: active ? (danger ? 'var(--negative-soft)' : 'var(--accent-soft)') : 'var(--bg-elevated)',
         color: active ? (danger ? 'var(--negative)' : 'var(--accent)') : 'var(--text-secondary)',
@@ -737,9 +737,9 @@ export default function TabDocuments({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 160px), 1fr))', gap: 10 }}>
             {paperTotals.years.map(([y, e]) => (
               <div key={y} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.inner, padding: '10px 12px' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', letterSpacing: '0.06em' }}>{y}</div>
+                <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--text-tertiary)', letterSpacing: '0.06em' }}>{y}</div>
                 <div style={{ fontSize: 16, fontWeight: 700, fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)', marginTop: 2 }}>{fe(e.sum)}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 2 }}>
                   {fn(e.withAmount)} {e.withAmount === 1 ? 'παραστατικό' : 'παραστατικά'}{e.missing ? ` · ${fn(e.missing)} χωρίς ποσό` : ''}
                 </div>
               </div>
@@ -772,7 +772,7 @@ export default function TabDocuments({
                 <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
                   {dragOver ? 'Αφήστε τα αρχεία εδώ' : 'Μεταφορά αρχείων ή επιλογή από τη συσκευή'}
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 5, lineHeight: 1.5 }}>
+                <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 4, lineHeight: 1.5 }}>
                   Φωτογραφία, PDF, Word ή Excel · πολλαπλά αρχεία · έως {MAX_SCAN_MB}MB ανά αρχείο
                 </div>
               </div>
@@ -812,7 +812,7 @@ export default function TabDocuments({
             </div>
           )}
 
-          {msg && <div style={{ marginTop: 12, fontSize: 11, fontWeight: 600, color: msg.error ? 'var(--negative)' : 'var(--positive)' }}>{msg.text}</div>}
+          {msg && <div style={{ marginTop: 12, fontSize: 'var(--fs-xs)', fontWeight: 600, color: msg.error ? 'var(--negative)' : 'var(--positive)' }}>{msg.text}</div>}
           </>)}
         </div>
       )}
@@ -827,7 +827,7 @@ export default function TabDocuments({
             («πόσα χαρτιά και πόσα ευρώ για το 2025;») — και η απάντηση πρέπει
             να φαίνεται χωρίς να κατεβάσει τίποτα. */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flex: 1, minWidth: 220, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 13, fontWeight: 700, fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
+          <span style={{ fontSize: 'var(--fs-base)', fontWeight: 700, fontFamily: T.font.sans, color: 'var(--text-primary)' }}>
             {visible.length === items.length
               ? `${items.length} ${items.length === 1 ? 'αρχείο' : 'αρχεία'}`
               : `${visible.length} από ${items.length}`}
@@ -869,7 +869,7 @@ export default function TabDocuments({
               απαριθμεί τι δέχεται το πεδίο. */}
           <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Όνομα ή πάροχος" aria-label="Αναζήτηση στο αρχείο, με όνομα, πάροχο ή έτος"
             style={{ width: '100%', height: T.h.lg, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: T.radius.pill, padding: '0 34px 0 34px', color: 'var(--text-primary)', fontSize: 12, fontFamily: T.font.sans, boxSizing: 'border-box' }}/>
-          {query && <button onClick={() => setQuery('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 13 }}><IconX/></button>}
+          {query && <button onClick={() => setQuery('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 'var(--fs-base)' }}><IconX/></button>}
         </div>
         )}
 
@@ -904,7 +904,7 @@ export default function TabDocuments({
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
           {facets.map(({ key, options }) => (
             <div key={key} style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+              <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
                 fontFamily: T.font.sans, color: 'var(--text-tertiary)', width: 78, flexShrink: 0 }}>
                 {FACET_LABEL[key]}
               </span>
@@ -924,7 +924,7 @@ export default function TabDocuments({
                       transition: `background .15s ${T.ease.standard}, border-color .15s ${T.ease.standard}`,
                     }}>
                     {o.value}
-                    <span style={{ fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 11,
+                    <span style={{ fontFamily: T.font.mono, fontVariantNumeric: 'tabular-nums', fontSize: 'var(--fs-xs)',
                       opacity: o.selected ? 0.85 : 0.6 }}>{o.count}</span>
                   </button>
                 ))}
@@ -937,7 +937,7 @@ export default function TabDocuments({
       {/* ── Μπάρα μαζικών ενεργειών (όταν υπάρχει επιλογή) ───────────────── */}
       {selected.size > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.card, padding: '10px 14px', marginBottom: 16, flexWrap: 'wrap', boxShadow: 'var(--shadow-sm)' }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>{selected.size} {selected.size === 1 ? 'επιλεγμένο' : 'επιλεγμένα'}</span>
+          <span style={{ fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>{selected.size} {selected.size === 1 ? 'επιλεγμένο' : 'επιλεγμένα'}</span>
           <div style={{ width: 1, height: 20, background: 'var(--border-subtle)', flexShrink: 0 }}/>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <BulkBtn icon={<IconDownload/>} label="Λήψη" onClick={bulkDownload} disabled={!selItems.some(i => i.url)}/>
@@ -1013,7 +1013,7 @@ export default function TabDocuments({
             <div style={{ opacity: 0.7, marginTop: 2 }}>{[lightbox.category, lightbox.provider, lightbox.date ? fd(lightbox.date) : null].filter(Boolean).join(' · ')}</div>
             {/* Ήταν padding 7/14, δηλαδή ~29px ύψος: κάτω από τον στόχο αφής. Με
                 T.h.sm γίνεται 32 στο ποντίκι και 40 στο δάχτυλο, χωρίς άλλη αλλαγή. */}
-            <a href={lightbox.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: T.sp.sm, height: T.h.sm, fontSize: 11, fontWeight: 600, color: 'var(--on-media)', textDecoration: 'none', padding: `0 ${T.sp.lg}px`, borderRadius: T.radius.pill, background: 'rgba(255,255,255,0.14)' }}><IconDownload size={13}/>Άνοιγμα σε νέα καρτέλα</a>
+            <a href={lightbox.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: T.sp.sm, height: T.h.sm, fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--on-media)', textDecoration: 'none', padding: `0 ${T.sp.lg}px`, borderRadius: T.radius.pill, background: 'rgba(255,255,255,0.14)' }}><IconDownload size={13}/>Άνοιγμα σε νέα καρτέλα</a>
           </div>
         </div>
       )}
@@ -1054,22 +1054,58 @@ const canPreview = (i: Item) => !!i.url && (i.isImage || isPdfItem(i));
 function FileList({ items, groups, empty, a }: { items: Item[]; groups?: TimeGroup<Item>[]; empty: React.ReactNode; a: FileActions }) {
   if (items.length === 0) return <div className="card">{empty}</div>;
   if (groups) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {groups.map(({ key: m, label, items: its }) => (
-          <div key={m} className="card" style={{ margin: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border-subtle)' }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)' }}/>
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.06em' }}>{label}</span>
-              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{its.length} {its.length === 1 ? 'αρχείο' : 'αρχεία'}</span>
-            </div>
-            <FileInner items={its} a={a}/>
-          </div>
-        ))}
-      </div>
-    );
+    return <MonthGroups groups={groups} a={a}/>;
   }
   return <div className="card"><FileInner items={items} a={a}/></div>;
+}
+
+/* ═══ ΤΟ ΑΡΧΕΙΟ ΑΝΟΙΓΕΙ ΣΤΟΝ ΜΗΝΑ ΠΟΥ ΔΟΥΛΕΥΕΙΣ, ΟΧΙ ΣΕ ΟΛΟΥΣ ═══════════════
+   ΤΙ ΜΕΤΡΗΘΗΚΕ (04/09/2026, 390×844, είκοσι έγγραφα). Η καρτέλα έβγαινε 9.320
+   εικονοστοιχεία, δηλαδή 11,2 οθόνες, με ΚΑΘΕ μήνα ανοιχτό ταυτόχρονα. Και η
+   πυκνότητά της ήταν 32 λέξεις ανά οθόνη — ένα τέταρτο της Τιμολόγησης, που
+   κάνει 124. Δεν είναι πολλά λόγια· είναι πολύς αέρας. Με έναν χρόνο χρήσης
+   πίσω του, το ίδιο μοτίβο δίνει πενήντα οθόνες.
+
+   ΤΙ ΑΛΛΑΖΕΙ. Ανοιχτοί μένουν οι ΔΥΟ πιο πρόσφατοι μήνες — «Αυτόν τον μήνα»
+   και «Τον προηγούμενο» — που είναι το σύνολο εργασίας. Οι παλιότεροι
+   διπλώνουν. Δεν κρύβεται τίποτα χωρίς σήμα: ο μετρητής αρχείων μένει πάντα
+   στην κεφαλίδα, οπότε βλέπεις ότι υπάρχουν και πόσα.
+
+   ΚΑΙ Η ΑΝΑΖΗΤΗΣΗ ΔΕΝ ΧΑΝΕΤΑΙ: η οθόνη έχει ήδη όψεις και αναζήτηση, που
+   είναι ο πραγματικός δρόμος προς ένα παλιό χαρτί. Το ξετύλιγμα έντεκα οθονών
+   δεν ήταν ποτέ αυτός ο δρόμος.
+
+   ΓΙΑΤΙ `acc-toggle` ΚΑΙ ΟΧΙ ΔΙΚΟ ΜΑΣ ΚΟΥΜΠΙ. Είναι η σύμβαση που ήδη
+   χρησιμοποιούν το Σχέδιο και το Καθολικό — ίδια εστίαση, ίδιο aria-expanded.
+   ΚΑΙ, το κρίσιμο: ο σαρωτής διάταξης ανοίγει ό,τι φοράει αυτή την κλάση πριν
+   μετρήσει. Χωρίς αυτήν, όλες οι καστάνιες θα «βελτιώνονταν» απότομα επειδή
+   θα μετρούσαν κρυμμένο περιεχόμενο — δηλαδή θα λέγαμε ψέματα στα ίδια μας τα
+   όργανα. Ετσι συνεχίζουν να μετρούν ολόκληρο το αρχείο. */
+function MonthGroups({ groups, a }: { groups: readonly { key: string; label: string; items: Item[] }[]; a: FileActions }) {
+  const OPEN_BY_DEFAULT = 2;
+  const [shut, setShut] = useState<Record<string, boolean>>({});
+  const isShut = (key: string, i: number) => shut[key] ?? i >= OPEN_BY_DEFAULT;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {groups.map(({ key: m, label, items: its }, i) => {
+        const closed = isShut(m, i);
+        return (
+          <div key={m} className="card" style={{ margin: 0 }}>
+            <button type="button" className="acc-toggle acc-month" data-open={!closed} aria-expanded={!closed}
+              aria-label={`${label}, ${its.length} ${its.length === 1 ? 'αρχείο' : 'αρχεία'}`}
+              onClick={() => setShut(prev => ({ ...prev, [m]: !closed }))}>
+              <span className="acc-month-dot"/>
+              <span className="acc-month-label">{label}</span>
+              <span className="acc-month-count">{its.length} {its.length === 1 ? 'αρχείο' : 'αρχεία'}</span>
+              <svg aria-hidden="true" className="acc-month-chevron" width={16} height={16} viewBox="0 0 24 24" fill="none"
+                stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            {!closed && <FileInner items={its} a={a}/>}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function FileInner({ items, a }: { items: Item[]; a: FileActions }) {
@@ -1107,10 +1143,10 @@ function FileCard({ i, a }: { i: Item; a: FileActions }) {
         {i.isImage && i.url
           ? <img src={i.url} alt={i.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
           : <span style={{ color: 'var(--accent)' }}><svg aria-hidden="true" {...S} width={30} height={30}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>}
-        {isPdfItem(i) && <span style={{ position: 'absolute', bottom: 6, left: 6, fontSize: 11, fontWeight: 800, letterSpacing: '0.05em', color: 'var(--on-media)', background: T.scrim, padding: '2px 6px', borderRadius: 6 }}>PDF</span>}
+        {isPdfItem(i) && <span style={{ position: 'absolute', bottom: 6, left: 6, fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: '0.05em', color: 'var(--on-media)', background: T.scrim, padding: '2px 6px', borderRadius: 6 }}>PDF</span>}
         {selectable && (shown || sel) && <div style={{ position: 'absolute', top: 6, left: 6 }} onClick={e => e.stopPropagation()}><SelectBox checked={sel} onChange={() => a.onToggleSel(i.id)} label={`Επιλογή ${i.title}`}/></div>}
         {shown && i.raw && (
-          <div style={{ position: 'absolute', top: 6, right: 6, display: 'flex', gap: 5 }}>
+          <div style={{ position: 'absolute', top: 6, right: 6, display: 'flex', gap: 4 }}>
             <OverlayBtn title="Μετονομασία" onClick={e => { e.stopPropagation(); a.onRename(i); }}><IconPencil size={13}/></OverlayBtn>
             {canFix && <OverlayBtn title="Διόρθωση αναγνώρισης" onClick={e => { e.stopPropagation(); a.onFix(i); }}><IconMoveFolder size={13}/></OverlayBtn>}
             <OverlayBtn title="Διαγραφή" onClick={e => { e.stopPropagation(); a.onDelete(i); }}><IconX/></OverlayBtn>
@@ -1118,11 +1154,11 @@ function FileCard({ i, a }: { i: Item; a: FileActions }) {
         )}
       </div>
       <div style={{ padding: '9px 11px' }}>
-        <div className="po-elide" style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)' }}>{i.title}</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 5, flexWrap: 'wrap' }}>
+        <div className="po-elide" style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-primary)' }}>{i.title}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
           <OriginTag i={i}/>
-          {i.value != null && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{fe(i.value)}</span>}
-          <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.mono, marginLeft: 'auto' }}>{i.date ? fd(i.date) : ABSENT_DATE}</span>
+          {i.value != null && <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--text-secondary)', fontFamily: T.font.mono }}>{fe(i.value)}</span>}
+          <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.mono, marginLeft: 'auto' }}>{i.date ? fd(i.date) : ABSENT_DATE}</span>
         </div>
         {/* ═══ ΤΟ ΔΑΠΕΔΟ ΤΩΝ 44 ΔΕΝ ΠΙΑΝΕΙ ΤΟΥΣ ΣΥΝΔΕΣΜΟΥΣ ═══════════════════
             Ο κανόνας του globals.css τεντώνει `button`, `select` και `input`.
@@ -1131,7 +1167,7 @@ function FileCard({ i, a }: { i: Item; a: FileActions }) {
             Παίρνει το σχήμα του διπλανού του «Άνοιγμα» της γραμμής λίστας, ώστε
             τα δύο να είναι το ίδιο πράγμα, συν το `po-box` που δίνει αόρατη
             ζώνη γύρω γύρω χωρίς να μεγαλώσει το σχήμα. */}
-        {i.url && <a className="po-box" href={i.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 11, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', padding: '6px 12px', border: '1px solid var(--accent-border)', borderRadius: T.radius.badge }}>Άνοιγμα</a>}
+        {i.url && <a className="po-box" href={i.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', padding: '6px 12px', border: '1px solid var(--accent-border)', borderRadius: T.radius.badge }}>Άνοιγμα</a>}
       </div>
     </div>
   );
@@ -1163,9 +1199,9 @@ function FileRow({ i, a }: { i: Item; a: FileActions }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span className="po-elide" style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', maxWidth: 300 }}>{i.title}</span>
           <OriginTag i={i}/>
-          {a.showFolder && <span style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 600 }}>{FOLDER_LABEL[i.folder]}</span>}
+          {a.showFolder && <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--accent)', fontWeight: 600 }}>{FOLDER_LABEL[i.folder]}</span>}
         </div>
-        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
+        <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 2 }}>
           {[i.date ? fd(i.date) : null, i.sizeBytes ? fmtBytes(i.sizeBytes) : null, i.note].filter(Boolean).join(' · ')}
         </div>
       </div>
@@ -1177,7 +1213,7 @@ function FileRow({ i, a }: { i: Item; a: FileActions }) {
         </>
       )}
       {i.url && <a className="po-box" href={i.url} target="_blank" rel="noopener noreferrer"
-        style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', padding: '6px 12px', border: '1px solid var(--accent-border)', borderRadius: T.radius.badge, whiteSpace: 'nowrap' }}>Άνοιγμα</a>}
+        style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', padding: '6px 12px', border: '1px solid var(--accent-border)', borderRadius: T.radius.badge, whiteSpace: 'nowrap' }}>Άνοιγμα</a>}
       {i.raw && <RowBtn title="Διαγραφή" onClick={() => a.onDelete(i)}><IconX/></RowBtn>}
     </div>
   );
@@ -1271,22 +1307,22 @@ function DraftCard({ d, onToggle, onPatch, onPatchDoc, onCommit, onRemove }: {
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="po-elide" style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{d.file.name}</div>
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
+          <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 2 }}>
             {STAGE_TEXT[d.status] || (d.kind === 'photo'
               ? `Φωτογραφία χώρου · ${d.category}`
               : `${DOC_TYPE_LABELS[doc?.doc_type || 'other']} · ${d.category} · ${folder}`)}
           </div>
         </div>
         {d.status === 'saved' && (d.saved || []).map(t => (
-          <span key={t} style={{ fontSize: 11, fontWeight: 700, color: 'var(--positive)', background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', borderRadius: T.radius.pill, padding: '2px 8px', whiteSpace: 'nowrap' }}>{t}</span>
+          <span key={t} style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--positive)', background: 'var(--positive-soft)', border: '1px solid var(--positive-border)', borderRadius: T.radius.pill, padding: '2px 8px', whiteSpace: 'nowrap' }}>{t}</span>
         ))}
         {d.status === 'ready' && (v.blocking.length > 0 || v.invalid.length > 0) && (
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--warning)', background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: T.radius.pill, padding: '2px 8px', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--warning)', background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: T.radius.pill, padding: '2px 8px', whiteSpace: 'nowrap' }}>
             {v.blocking.length ? 'Χρειάζεται συμπλήρωση' : 'Έλεγξε τα στοιχεία'}
           </span>
         )}
         {d.status === 'ready' && (
-          <button onClick={onToggle} style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, color: 'var(--text-secondary)', fontSize: 11, fontWeight: 600, padding: '4px 9px', cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
+          <button onClick={onToggle} style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: T.radius.badge, color: 'var(--text-secondary)', fontSize: 'var(--fs-xs)', fontWeight: 600, padding: '4px 9px', cursor: 'pointer', fontFamily: T.font.sans, whiteSpace: 'nowrap' }}>
             {d.open ? 'Σύμπτυξη' : 'Διόρθωση'}
           </button>
         )}
@@ -1297,10 +1333,10 @@ function DraftCard({ d, onToggle, onPatch, onPatchDoc, onCommit, onRemove }: {
 
       {/* Δεν διαβάστηκε: λέμε γιατί και τι να κάνει. */}
       {d.status === 'failed' && d.scanError && (
-        <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5, marginTop: 8 }}>{d.scanErrorText || SCAN_ERROR_TEXT[d.scanError]}</div>
+        <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)', lineHeight: 1.5, marginTop: 8 }}>{d.scanErrorText || SCAN_ERROR_TEXT[d.scanError]}</div>
       )}
       {d.status === 'error' && d.errorText && (
-        <div style={{ fontSize: 11, color: 'var(--warning)', marginTop: 8 }}>{d.errorText}</div>
+        <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--warning)', marginTop: 8 }}>{d.errorText}</div>
       )}
 
       {/* Ερώτηση συμφωνίας — πριν γραφτεί οτιδήποτε. */}
@@ -1312,13 +1348,13 @@ function DraftCard({ d, onToggle, onPatch, onPatchDoc, onCommit, onRemove }: {
               <button key={o.id} onClick={() => onCommit(o.id)}
                 style={{ textAlign: 'left', background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: T.radius.badge, padding: '8px 11px', cursor: 'pointer', fontFamily: T.font.sans }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{o.label}</div>
-                {o.reasons.length > 0 && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{o.reasons.join(' · ')}</div>}
+                {o.reasons.length > 0 && <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 2 }}>{o.reasons.join(' · ')}</div>}
               </button>
             ))}
             <button onClick={() => onCommit(null)}
               style={{ textAlign: 'left', background: 'transparent', border: '1px dashed var(--border-default)', borderRadius: T.radius.badge, padding: '8px 11px', cursor: 'pointer', fontFamily: T.font.sans }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>{RECONCILE_NONE_LABEL}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{RECONCILE_NONE_HINT}</div>
+              <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 2 }}>{RECONCILE_NONE_HINT}</div>
             </button>
           </div>
         </div>
@@ -1335,7 +1371,7 @@ function DraftCard({ d, onToggle, onPatch, onPatchDoc, onCommit, onRemove }: {
             </div>
           ) : doc ? (<>
             {(v.blocking.length > 0 || v.invalid.length > 0 || v.recommended.length > 0) && (
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+              <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                 {v.blocking.length > 0 && <>Χρειάζεται: <strong>{v.blocking.map(f => DOC_FIELD_LABELS[f] || f).join(', ')}</strong>. </>}
                 {v.invalid.length > 0 && <>Δεν είναι έγκυρο: <strong>{v.invalid.map(f => DOC_FIELD_LABELS[f] || f).join(', ')}</strong>. </>}
                 {v.recommended.length > 0 && <>Δεν διάβασα: <strong>{v.recommended.map(f => DOC_FIELD_LABELS[f] || f).join(', ')}</strong>.</>}
@@ -1370,7 +1406,7 @@ function DraftCard({ d, onToggle, onPatch, onPatchDoc, onCommit, onRemove }: {
                   <DatePicker label={mark('Περίοδος από', 'period_from')} value={doc.period_from || ''} onChange={t => onPatchDoc({ period_from: t, period: undefined })}/>
                   <DatePicker label={mark('Περίοδος έως', 'period_to')} value={doc.period_to || ''} onChange={t => onPatchDoc({ period_to: t, period: undefined })}/>
                 </div>
-                {doc.period && <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Στο χαρτί: {doc.period}</div>}
+                {doc.period && <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>Στο χαρτί: {doc.period}</div>}
               </>
             )}
             {!hasMoney(doc.doc_type) && (
@@ -1462,7 +1498,7 @@ function FixModal({ items, onCancel, onSave }: { items: Item[]; onCancel: () => 
           <TextInput label="Πάροχος ή εκδότης" value={supplier} onChange={setSupplier} placeholder="Όπως γράφεται στο παραστατικό"/>
           <TextInput label="ΑΦΜ παρόχου" value={afm} onChange={setAfm} placeholder="9 ψηφία"/>
         </div>
-        {afmBad && <div style={{ fontSize: 11, color: 'var(--negative)', fontFamily: T.font.sans }}>Το ΑΦΜ δεν περνά τον έλεγχο της ΑΑΔΕ. Διόρθωσέ το ή άφησέ το κενό.</div>}
+        {afmBad && <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--negative)', fontFamily: T.font.sans }}>Το ΑΦΜ δεν περνά τον έλεγχο της ΑΑΔΕ. Διόρθωσέ το ή άφησέ το κενό.</div>}
         <div style={g2x}>
           <NumberInput label="Ποσό" suffix="€" value={amount} onChange={setAmount} placeholder=""/>
           <DatePicker label="Ημερομηνία έκδοσης" value={issue} onChange={setIssue}/>
@@ -1471,7 +1507,7 @@ function FixModal({ items, onCancel, onSave }: { items: Item[]; onCancel: () => 
           <DatePicker label="Περίοδος από" value={from} onChange={setFrom}/>
           <DatePicker label="Περίοδος έως" value={to} onChange={setTo}/>
         </div>
-        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, fontFamily: T.font.sans }}>
+        <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', lineHeight: 1.5, fontFamily: T.font.sans }}>
           Ο πάροχος, το ΑΦΜ, το ποσό, η ημερομηνία και η περίοδος είναι τα πέντε πεδία
           με τα οποία το app διαπιστώνει ότι ένας λογαριασμός πληρώθηκε.
         </div>

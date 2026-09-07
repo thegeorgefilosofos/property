@@ -93,7 +93,7 @@ export default function Unsubscribe() {
   return (
     <div style={wrap}>
       <div style={card}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 11, paddingBottom: 18, borderBottom: '1px solid var(--border-subtle)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingBottom: 18, borderBottom: '1px solid var(--border-subtle)' }}>
           <BrandMark size={34} />
           {/* Ο τίτλος της σελίδας είναι η δεύτερη γραμμή· το «PROPERWISE» είναι
               σήμα. Χωρίς `h1` η σελίδα ανακοινωνόταν ανώνυμη. */}

@@ -266,12 +266,12 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
   return (
     <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-raised)', borderRadius: T.radius.card, padding: 18, boxShadow: 'var(--highlight-inset), var(--elev-1)', marginBottom: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
           {/* Το σήμα είναι το αρχικό του ονόματος: ίδιο με το πλωτό κουμπί, ώστε
               ο χρήστης να δει με μια ματιά ότι μιλάει στο ίδιο πρόσωπο. */}
           <div aria-hidden style={{ width: 32, height: 32, flexShrink: 0, background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', borderRadius: T.radius.inner, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}><AssistantMark size={16} /></div>
           <div style={{ minWidth: 0 }}>
-            <p style={{ ...TT.h2, fontSize: 13 }}>{suggestionsTitle()}</p>
+            <p style={{ ...TT.h2, fontSize: 'var(--fs-base)' }}>{suggestionsTitle()}</p>
             <p style={{ ...TT.caption, marginTop: 2 }}>{suggestionsSub()}</p>
           </div>
         </div>
@@ -327,13 +327,13 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
                 padding: '14px 2px', borderTop: first ? 'none' : '1px solid var(--border-subtle)',
               }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
                     <span style={{ fontFamily: T.font.sans, fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>{s.title}</span>
-                    {amt != null && <span style={{ fontFamily: T.font.num, fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em', color: 'var(--text-secondary)' }}>~{fe(amt)}</span>}
+                    {amt != null && <span style={{ fontFamily: T.font.num, fontSize: 'var(--fs-base)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em', color: 'var(--text-secondary)' }}>~{fe(amt)}</span>}
                   </div>
-                  <p style={{ ...TT.caption, marginTop: 3 }}>{s.reason}</p>
+                  <p style={{ ...TT.caption, marginTop: 4 }}>{s.reason}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
-                    <span style={{ ...TT.label, fontSize: 11, color: 'var(--text-tertiary)' }}>{label}</span>
+                    <span style={{ ...TT.label, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>{label}</span>
                     {s.recurring && (
                       <span style={{ ...TT.caption, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                         {/* Χωρίς αναγνωρίσιμη συχνότητα λέμε μόνο ότι επαναλαμβάνεται.
@@ -346,7 +346,7 @@ export default function SmartSuggestions({ userId, propertyId }: { userId: strin
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                   <button onClick={() => addSuggestion(s, idx)} disabled={isAdded} style={{
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4,
                     height: T.h.sm, padding: '0 13px',
                     background: 'transparent', border: `1px solid ${isAdded ? 'var(--border-subtle)' : 'var(--border-default)'}`,
                     borderRadius: T.radius.pill, cursor: isAdded ? 'default' : 'pointer',

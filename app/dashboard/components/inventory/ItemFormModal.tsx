@@ -236,7 +236,7 @@ export function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice,start
               <div key={i} {...pressable(()=>set('photo_url',url), url===form.photo_url?'Κύρια φωτογραφία':'Ορισμός ως κύρια φωτογραφία')} title={url===form.photo_url?'Κύρια φωτογραφία':'Ορισμός ως κύρια'} style={{position:'relative',height:84,borderRadius:10,overflow:'hidden',border:`2px solid ${url===form.photo_url?'var(--accent)':'var(--border-subtle)'}`,cursor:'pointer'}}>
                 <img src={url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=""/>
                 <button onClick={e=>{e.stopPropagation();removePhoto(url)}} aria-label="Αφαίρεση" style={{position:'absolute',top:5,right:5,width:20,height:20,borderRadius:'50%',background:'rgba(0,0,0,0.55)',border:'none',color:'var(--on-media)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1}}><svg aria-hidden="true" width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
-                {url===form.photo_url&&<div style={{position:'absolute',inset:'auto 0 0 0',background:'var(--accent)',fontSize: 11,color:'var(--accent-text)',textAlign:'center',fontWeight:700,fontFamily:T.font.sans,padding:'2px',letterSpacing:'0.5px'}}>ΚΥΡΙΑ</div>}
+                {url===form.photo_url&&<div style={{position:'absolute',inset:'auto 0 0 0',background:'var(--accent)',fontSize: 'var(--fs-xs)',color:'var(--accent-text)',textAlign:'center',fontWeight:700,fontFamily:T.font.sans,padding:'2px',letterSpacing:'0.5px'}}>ΚΥΡΙΑ</div>}
               </div>
             ))}
             <button onClick={()=>{if(!scanning&&!photoBusy)scanRef.current?.click()}} disabled={scanning||photoBusy} title="Προσθήκη φωτογραφίας" style={{height:84,borderRadius:10,border:'1.5px dashed var(--border-accent)',background:'var(--accent-dim)',display:'flex',alignItems:'center',justifyContent:'center',cursor:(scanning||photoBusy)?'wait':'pointer',color:'var(--accent)'}}>
@@ -244,7 +244,7 @@ export function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice,start
                 :<svg aria-hidden="true" width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>}
             </button>
           </div>
-          <p style={{fontSize:11,color:'var(--text-tertiary)',marginTop:7,fontFamily:T.font.sans}}>Κάθε νέα φωτογραφία διαβάζεται αυτόματα με AI. Κλικ σε φωτογραφία για να οριστεί ως κύρια.</p>
+          <p style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',marginTop: 8,fontFamily:T.font.sans}}>Κάθε νέα φωτογραφία διαβάζεται αυτόματα με AI. Κλικ σε φωτογραφία για να οριστεί ως κύρια.</p>
         </div>
       )}
 
@@ -285,11 +285,11 @@ export function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice,start
           {form.receipt_doc_url
             ?<div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:'var(--bg-elevated)',border:'1px solid var(--border-subtle)',borderRadius:T.radius.inner}}>
                 <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
-                <span style={{flex:1,minWidth:0,fontSize:13,color:'var(--text-primary)',fontFamily:T.font.sans,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{form.receipt_doc_name||'Συνημμένο αρχείο'}</span>
+                <span style={{flex:1,minWidth:0,fontSize: 'var(--fs-base)',color:'var(--text-primary)',fontFamily:T.font.sans,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{form.receipt_doc_name||'Συνημμένο αρχείο'}</span>
                 <button onClick={()=>openInventoryDoc(form.receipt_doc_url)} style={{fontSize:12,color:'var(--accent)',fontFamily:T.font.sans,fontWeight:500,background:'none',border:'none',cursor:'pointer',whiteSpace:'nowrap',padding:0}}>Άνοιγμα</button>
                 <button onClick={async()=>{const old=form.receipt_doc_url;setForm(f2=>({...f2,receipt_doc_url:'',receipt_doc_name:''}));/* Διέγραψε αμέσως μόνο αν είναι αρχείο αυτής της συνεδρίας· το αρχικά αποθηκευμένο καθαρίζεται με το save. */ if(old&&old!==item?.receipt_doc_url&&!/^https?:\/\//.test(old))await supabase.storage.from(DOCS_BUCKET).remove([old])}} title="Αφαίρεση" style={{width:26,height:26,borderRadius:'50%',border:'1px solid var(--border-subtle)',background:'var(--bg-surface)',color:'var(--text-tertiary)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
               </div>
-            :<label style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,height:44,border:'1.5px dashed var(--border-default)',borderRadius:T.radius.inner,cursor:'pointer',color:'var(--text-secondary)',fontSize:13,fontFamily:T.font.sans}}>
+            :<label style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,height:44,border:'1.5px dashed var(--border-default)',borderRadius:T.radius.inner,cursor:'pointer',color:'var(--text-secondary)',fontSize: 'var(--fs-base)',fontFamily:T.font.sans}}>
                 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
                 {docUp?'Ανέβασμα…':'Φωτογράφισε ή επισύναψε την απόδειξη'}
                 <input type="file" accept=".pdf,image/*" style={{display:'none'}} onChange={e=>{const fl=e.target.files?.[0];if(fl)uploadReceiptDoc(fl)}}/>
@@ -307,18 +307,18 @@ export function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice,start
             ].map((k,i)=>(
               <div key={i} style={{textAlign:'center'}}>
                 <p style={{fontSize:14,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:700,color:'var(--text-primary)',marginBottom:2}}>{k.value}</p>
-                <p style={{fontSize: 11,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.5px',fontFamily:T.font.sans}}>{k.label}</p>
+                <p style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.5px',fontFamily:T.font.sans}}>{k.label}</p>
               </div>
             ))}
           </div>
-          <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.45,marginTop:8}}>{NOT_TAX_DEPRECIATION_NOTE}</p>
+          <p style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.45,marginTop:8}}>{NOT_TAX_DEPRECIATION_NOTE}</p>
         </div>
       )}
 
       {/* ΤΟ ΧΕΡΙ, ΓΙΑ ΟΣΑ ΔΕΝ ΦΩΤΟΓΡΑΦΙΖΟΝΤΑΙ. Παλιό έπιπλο χωρίς ετικέτα,
           αντικείμενο που δεν έχει πια συσκευασία, χρήστης που βιάζεται. */}
       {!revealed && (
-        <button onClick={()=>setManual(true)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,width:'100%',padding:'11px 14px',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)',background:'transparent',cursor:'pointer',fontFamily:T.font.sans,fontSize:13,fontWeight:500,color:'var(--text-secondary)'}}>
+        <button onClick={()=>setManual(true)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,width:'100%',padding:'11px 14px',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)',background:'transparent',cursor:'pointer',fontFamily:T.font.sans,fontSize: 'var(--fs-base)',fontWeight:500,color:'var(--text-secondary)'}}>
           Συμπλήρωση με το χέρι
         </button>
       )}
@@ -327,7 +327,7 @@ export function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice,start
       {revealed && fields.more.length>0 && (
         <button onClick={()=>setShowMore(m=>!m)} style={{display:'flex',alignItems:'center',gap:8,width:'100%',textAlign:'left',padding:'11px 14px',borderRadius:T.radius.inner,border:'1px solid var(--border-subtle)',background:'var(--bg-elevated)',cursor:'pointer',fontFamily:T.font.sans}}>
           <svg aria-hidden="true" width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{color:'var(--text-tertiary)',transform:showMore?'rotate(90deg)':'none',transition:'transform 0.15s'}}><path d="m9 18 6-6-6-6"/></svg>
-          <span style={{flex:1,fontSize:13,fontWeight:500,color:'var(--text-primary)'}}>Περισσότερα: εγγύηση, ταυτότητα συσκευής{isElectric?', ενέργεια':''} και κόστος αντικατάστασης</span>
+          <span style={{flex:1,fontSize: 'var(--fs-base)',fontWeight:500,color:'var(--text-primary)'}}>Περισσότερα: εγγύηση, ταυτότητα συσκευής{isElectric?', ενέργεια':''} και κόστος αντικατάστασης</span>
         </button>
       )}
       {revealed&&showMore&&(<>
@@ -377,7 +377,7 @@ export function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice,start
             </div>
             {/* Η ΠΗΓΗ ΜΕΝΕΙ ΟΡΑΤΗ. Νούμερα που μπήκαν μόνα τους χωρίς τρόπο να
                 ελεγχθούν είναι χειρότερα από νούμερα που έγραψε ο χρήστης. */}
-            <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.45,marginTop:5}}>
+            <p style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.45,marginTop: 4}}>
               {eprelSource
                 ? <>Συμπληρώθηκαν από τον κατασκευαστή. <a href={eprelSource} target="_blank" rel="noopener noreferrer" style={{color:'var(--accent)'}}>Η καταχώρηση στο μητρώο</a></>
                 : 'Σάρωσε το QR της ενεργειακής ετικέτας και επικόλλησε τον σύνδεσμο. Μάρκα, μοντέλο, κλάση και κατανάλωση έρχονται όπως τα δηλώνει ο κατασκευαστής.'}
@@ -433,11 +433,11 @@ export function ItemFormModal({item,onSave,onClose,propertyId,ctx,kwhPrice,start
                 {label:'Κόστος/μήνα',value:kwhPrice>0?fe(liveKwh*kwhPrice):fe(0)},
                 {label:'Κόστος/έτος',value:kwhPrice>0?fe(liveKwh*kwhPrice*12):fe(0)}].map((k,i)=>(
                 <div key={i} style={{textAlign:'center'}}>
-                  <p style={{fontSize:13,fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:700,color:'var(--text-primary)',marginBottom:2}}>{k.value}</p>
-                  <p style={{fontSize: 11,color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.5px',fontFamily:T.font.sans}}>{k.label}</p>
+                  <p style={{fontSize: 'var(--fs-base)',fontFamily:T.font.mono,fontVariantNumeric:'tabular-nums',fontWeight:700,color:'var(--text-primary)',marginBottom:2}}>{k.value}</p>
+                  <p style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',textTransform:'uppercase',letterSpacing:'0.5px',fontFamily:T.font.sans}}>{k.label}</p>
                 </div>
               ))}
-              <p style={{gridColumn:'1/-1',fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.45}}>
+              <p style={{gridColumn:'1/-1',fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.45}}>
                 {kwhPrice>0
                   ? `Στην τιμή ${feRate(kwhPrice)} ανά κιλοβατώρα, όπως προκύπτει από τον λογαριασμό ρεύματός σου.`
                   : 'Για να δεις κόστος σε ευρώ, σάρωσε έναν λογαριασμό ρεύματος ή δήλωσε την τιμή €/kWh στην Επισκόπηση. Δεν βάζουμε δική μας τιμή.'}

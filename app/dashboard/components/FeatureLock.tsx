@@ -88,14 +88,14 @@ export default function FeatureLock({ title, benefit, requiredPlan, currentPlanN
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>Πακέτο {plan.name}</span>
             </div>
             <h2 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', margin: '0 0 8px', lineHeight: 1.2 }}>{title}</h2>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 16px', lineHeight: 1.6 }}>{benefit}</p>
+            <p style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', margin: '0 0 16px', lineHeight: 1.6 }}>{benefit}</p>
 
             {/* Τι ξεκλειδώνεις, όχι τι πληρώνεις */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginBottom: 16 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
               {perks.map((f, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                   <Check />
-                  <span style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.45 }}>{f}</span>
+                  <span style={{ fontSize: 'var(--fs-base)', color: 'var(--text-primary)', lineHeight: 1.45 }}>{f}</span>
                 </div>
               ))}
             </div>
@@ -112,7 +112,7 @@ export default function FeatureLock({ title, benefit, requiredPlan, currentPlanN
               <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Τρέχον πακέτο: {currentPlanName}</span>
             )}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
+          <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
             Χωρίς δέσμευση. Αναβαθμίζεις ή προσαρμόζεις όποτε θες, με ένα κλικ.
           </div>
         </div>

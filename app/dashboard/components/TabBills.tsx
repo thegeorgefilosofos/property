@@ -140,7 +140,7 @@ function ContractTile({ card, active, onOpen }: { card: ContractCard; active: bo
           Ο τίτλος δεν παλεύει ποτέ με τον αριθμό και οι δύο μορφές κάρτας
           διαβάζονται ως ένα πράγμα. ══ */}
       <span style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', lineHeight: 1.35 }}>
+        <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-secondary)', lineHeight: 1.35 }}>
           {card.label}
         </span>
         {/* Η ΙΕΡΑΡΧΙΑ ΒΓΑΙΝΕΙ ΑΠΟ ΜΕΓΕΘΟΣ ΚΑΙ ΒΑΡΟΣ, ΟΧΙ ΑΠΟ ΧΡΩΜΑ. Το ποσό
@@ -157,11 +157,11 @@ function ContractTile({ card, active, onOpen }: { card: ContractCard; active: bo
              «75,00 € τον μήνα» φαινόταν να μην προκύπτει από πουθενά: 34,50 και
              40,50 «κάθε δίμηνο» δίνουν 37,50 τον μήνα, όχι 75. Με τη μονάδα, η
              πρόσθεση γίνεται με το μάτι. */
-          <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5, whiteSpace: 'nowrap' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4, whiteSpace: 'nowrap' }}>
             <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em', lineHeight: 1.1 }}>
               {fe(card.monthly)}
             </span>
-            <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>τον μήνα</span>
+            <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>τον μήνα</span>
           </span>
         )}
       </span>
@@ -172,7 +172,7 @@ function ContractTile({ card, active, onOpen }: { card: ContractCard; active: bo
           μόνο που έκαναν ήταν να λένε δεύτερη φορά αυτό που λέει ήδη ο δείκτης
           του ποντικιού και η ίδια η κάρτα. Ο τίτλος, το ποσό και ο πάροχος
           μένουν· ο θόρυβος όχι. */}
-      <span style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
+      <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
         {meta}
       </span>
     </button>
@@ -250,10 +250,10 @@ export default function TabBills({
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 3, fontFamily: T.font.sans }}>
+          <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 4, fontFamily: T.font.sans }}>
             Λογαριασμοί και πάγιες δαπάνες
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: T.font.sans, lineHeight: 1.5 }}>
             Τι έχεις, τι πληρώνεις. Οι καταχωρήσεις γίνονται στις Δαπάνες.
           </div>
         </div>
@@ -266,7 +266,7 @@ export default function TabBills({
           {showSkeleton
             ? <Skeleton w={110} h={24} r={T.radius.pill} />
             : strip.recurringPerMonth !== null && strip.recurringPerMonth > 0 && (
-              <span title="Το άθροισμα των καρτών από κάτω. Κάθε κατηγορία μετριέται από το ιστορικό της με διάμεσο και ο διμηνιαίος λογαριασμός μοιράζεται στους μήνες του. Κατηγορία χωρίς αρκετό ιστορικό δεν μπαίνει στο άθροισμα." style={{ padding: '4px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(strip.recurringPerMonth)} τον μήνα</span>
+              <span title="Το άθροισμα των καρτών από κάτω. Κάθε κατηγορία μετριέται από το ιστορικό της με διάμεσο και ο διμηνιαίος λογαριασμός μοιράζεται στους μήνες του. Κατηγορία χωρίς αρκετό ιστορικό δεν μπαίνει στο άθροισμα." style={{ padding: '4px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: T.radius.pill, fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--text-primary)', fontFamily: T.font.num, fontVariantNumeric: 'tabular-nums' }}>{fe(strip.recurringPerMonth)} τον μήνα</span>
             )}
         </div>
       </div>

@@ -63,7 +63,7 @@ export const quietAction: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: 6,
   height: T.h.sm, padding: '0 12px', borderRadius: T.radius.pill,
   border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)',
-  color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500,
+  color: 'var(--text-secondary)', fontSize: 'var(--fs-base)', fontWeight: 500,
   fontFamily: T.font.sans, cursor: 'pointer',
 }
 
@@ -91,11 +91,11 @@ export function BulkPicker({label,icon,options,onPick,accent}:{label:string;icon
         <svg aria-hidden="true" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4l3 3 3-3"/></svg>
       </button>
       {open&&rect&&typeof document!=='undefined'&&createPortal(
-        <div ref={menuRef} style={{position:'fixed',top:rect.top,left:rect.left,background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.card,padding:5,zIndex:9000,minWidth:180,maxHeight:300,overflowY:'auto',boxShadow:'var(--shadow-xl)'}}>
+        <div ref={menuRef} style={{position:'fixed',top:rect.top,left:rect.left,background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.card,padding: 4,zIndex:9000,minWidth:180,maxHeight:300,overflowY:'auto',boxShadow:'var(--shadow-xl)'}}>
           {options.length===0
             ?<p style={{fontSize:12,color:'var(--text-tertiary)',fontFamily:T.font.sans,padding:'8px 12px'}}>Καμία επιλογή</p>
             :options.map(o=>(
-              <div key={o} {...pressable(()=>{onPick(o);setOpen(false)})} style={{padding:'8px 12px',cursor:'pointer',borderRadius:8,fontSize:13,fontFamily:T.font.sans,color:'var(--text-primary)'}}
+              <div key={o} {...pressable(()=>{onPick(o);setOpen(false)})} style={{padding:'8px 12px',cursor:'pointer',borderRadius:8,fontSize: 'var(--fs-base)',fontFamily:T.font.sans,color:'var(--text-primary)'}}
                 onMouseEnter={e=>e.currentTarget.style.background='var(--bg-hover)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>{o}</div>
             ))}
         </div>,
@@ -106,7 +106,7 @@ export function BulkPicker({label,icon,options,onPick,accent}:{label:string;icon
 }
 
 export const Badge = ({label,color}:{label:string;color:string}) => (
-  <span style={{display:'inline-flex',alignItems:'center',padding:'2px 8px',borderRadius:T.radius.pill,fontSize: 11,fontWeight:500,fontFamily:T.font.sans,color,background:`color-mix(in srgb, ${color} 10%, transparent)`,border:`1px solid color-mix(in srgb, ${color} 26%, transparent)`,whiteSpace:'nowrap'}}>{label}</span>
+  <span style={{display:'inline-flex',alignItems:'center',padding:'2px 8px',borderRadius:T.radius.pill,fontSize: 'var(--fs-xs)',fontWeight:500,fontFamily:T.font.sans,color,background:`color-mix(in srgb, ${color} 10%, transparent)`,border:`1px solid color-mix(in srgb, ${color} 26%, transparent)`,whiteSpace:'nowrap'}}>{label}</span>
 )
 
 export const EnergyBadge = ({cls}:{cls:string}) => { if(!cls) return null; const tone=ENERGY_TONE[cls]
@@ -114,7 +114,7 @@ export const EnergyBadge = ({cls}:{cls:string}) => { if(!cls) return null; const
   const bg = tone?`var(--${tone}-soft)`:'var(--bg-elevated)'
   const bd = tone?`var(--${tone}-border)`:'var(--border-subtle)'
   return (
-  <span title={`Ενεργειακή κλάση ${cls}`} style={{display:'inline-flex',alignItems:'center',padding:'2px 8px',borderRadius:6,fontSize: 11,fontWeight:700,color:fg,background:bg,border:`1px solid ${bd}`,letterSpacing:'0.5px',fontFamily:T.font.sans}}>{cls}</span>
+  <span title={`Ενεργειακή κλάση ${cls}`} style={{display:'inline-flex',alignItems:'center',padding:'2px 8px',borderRadius:6,fontSize: 'var(--fs-xs)',fontWeight:700,color:fg,background:bg,border:`1px solid ${bd}`,letterSpacing:'0.5px',fontFamily:T.font.sans}}>{cls}</span>
 ) }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -143,7 +143,7 @@ export const EnergyBadge = ({cls}:{cls:string}) => { if(!cls) return null; const
 export const DepBar = ({pct,left,hasData=true,hasValue=true,compact}:{pct:number;left:number;hasData?:boolean;hasValue?:boolean;compact?:boolean}) => {
   if (!hasValue || !hasData) {
     return (
-      <div style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.45}}>
+      <div style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.45}}>
         {!hasValue ? 'Χωρίς τιμή αγοράς' : 'Χωρίς ημερομηνία αγοράς'}
       </div>
     )
@@ -161,11 +161,11 @@ export const DepBar = ({pct,left,hasData=true,hasValue=true,compact}:{pct:number
   return (
     <div>
       <Bar pct={remaining} tone={c} height={3} label="Υπόλοιπη ζωή"/>
-      <div style={{display:'flex',justifyContent:'space-between',marginTop:3}}>
-        <span style={{fontSize: 11,color:'var(--text-tertiary)',fontFamily:T.font.num,fontVariantNumeric:'tabular-nums'}}>{compact?'μένει ':'Εκτιμώμενη υπολειπόμενη αξία '}{fp(remaining)}</span>
+      <div style={{display:'flex',justifyContent:'space-between',marginTop: 4}}>
+        <span style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',fontFamily:T.font.num,fontVariantNumeric:'tabular-nums'}}>{compact?'μένει ':'Εκτιμώμενη υπολειπόμενη αξία '}{fp(remaining)}</span>
         {left>0
-          ?<span style={{fontSize: 11,color:'var(--text-tertiary)',fontFamily:T.font.num,fontVariantNumeric:'tabular-nums'}}>περίπου {left} χρόνια</span>
-          :<span style={{fontSize: 11,color:'var(--text-secondary)',fontFamily:T.font.sans}}>Τέλος ωφέλιμης ζωής</span>
+          ?<span style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',fontFamily:T.font.num,fontVariantNumeric:'tabular-nums'}}>περίπου {left} χρόνια</span>
+          :<span style={{fontSize: 'var(--fs-xs)',color:'var(--text-secondary)',fontFamily:T.font.sans}}>Τέλος ωφέλιμης ζωής</span>
         }
       </div>
     </div>
@@ -186,12 +186,12 @@ export function ReplacementHint({item,compact}:{item:InventoryItem;compact?:bool
   if (due) return (
     <div title={tip} style={{display:'inline-flex',alignItems:'center',gap:6,padding:compact?'2px 8px':'6px 10px',borderRadius:compact?20:8,background:'var(--warning-soft)',border:'1px solid var(--warning-border)',maxWidth:'100%'}}>
       <svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-      <span style={{fontSize:11,color:'var(--warning)',fontFamily:T.font.sans,fontWeight:600,lineHeight:1.3}}>Προτείνεται αντικατάσταση</span>
+      <span style={{fontSize: 'var(--fs-xs)',color:'var(--warning)',fontFamily:T.font.sans,fontWeight:600,lineHeight:1.3}}>Προτείνεται αντικατάσταση</span>
     </div>
   )
   // soft: πλησιάζει τέλος ωφέλιμης ζωής
   return (
-    <span title={tip} style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,whiteSpace:'nowrap'}}>Πλησιάζει το τέλος ζωής</span>
+    <span title={tip} style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',fontFamily:T.font.sans,whiteSpace:'nowrap'}}>Πλησιάζει το τέλος ζωής</span>
   )
 }
 
@@ -227,7 +227,7 @@ export function InlineConditionEdit({item,onUpdate}:{item:InventoryItem;onUpdate
   },[open,place])
   return (
     <div style={{display:'inline-block'}}>
-      <button ref={btnRef} onClick={e=>{e.stopPropagation();setOpen(v=>!v)}} style={{display:'inline-flex',alignItems:'center',gap:4,padding:'3px 10px',borderRadius:T.radius.pill,fontSize: 11,fontWeight:500,fontFamily:T.font.sans,color:CONDITION_COLOR[item.condition],background:CONDITION_COLOR[item.condition]+'18',border:`1px solid ${CONDITION_COLOR[item.condition]}40`,cursor:'pointer'}}>
+      <button ref={btnRef} onClick={e=>{e.stopPropagation();setOpen(v=>!v)}} style={{display:'inline-flex',alignItems:'center',gap:4,padding:'3px 10px',borderRadius:T.radius.pill,fontSize: 'var(--fs-xs)',fontWeight:500,fontFamily:T.font.sans,color:CONDITION_COLOR[item.condition],background:CONDITION_COLOR[item.condition]+'18',border:`1px solid ${CONDITION_COLOR[item.condition]}40`,cursor:'pointer'}}>
         {item.condition}
         <svg aria-hidden="true" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" style={{transform:open?'rotate(180deg)':'none',transition:'transform 0.15s'}}><path d="M2 4l3 3 3-3"/></svg>
       </button>
@@ -295,10 +295,10 @@ export function OverflowMenu({actions,align='right',dark}:{actions:OverflowActio
       </button>
       {open&&rect&&typeof document!=='undefined'&&createPortal(
         <div ref={menuRef} onClick={e=>e.stopPropagation()}
-          style={{position:'fixed',top:rect.top,...(align==='right'?{right:rect.right}:{left:rect.left}),transform:rect.up?'translateY(-100%)':'none',maxHeight:rect.maxH,overflowY:'auto',overscrollBehavior:'contain',background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.card,padding:5,zIndex:9000,minWidth:180,boxShadow:'var(--shadow-xl)'}}>
+          style={{position:'fixed',top:rect.top,...(align==='right'?{right:rect.right}:{left:rect.left}),transform:rect.up?'translateY(-100%)':'none',maxHeight:rect.maxH,overflowY:'auto',overscrollBehavior:'contain',background:'var(--bg-surface)',border:'1px solid var(--border-default)',borderRadius:T.radius.card,padding: 4,zIndex:9000,minWidth:180,boxShadow:'var(--shadow-xl)'}}>
           {actions.map((a,i)=>(
             <button key={i} onClick={()=>{a.onClick();setOpen(false)}}
-              style={{display:'flex',alignItems:'center',gap:10,width:'100%',textAlign:'left',padding:'8px 12px',borderRadius:8,fontSize:13,fontFamily:T.font.sans,fontWeight:500,color:a.danger?'var(--negative)':'var(--text-primary)',background:'transparent',border:'none',cursor:'pointer'}}
+              style={{display:'flex',alignItems:'center',gap:10,width:'100%',textAlign:'left',padding:'8px 12px',borderRadius:8,fontSize: 'var(--fs-base)',fontFamily:T.font.sans,fontWeight:500,color:a.danger?'var(--negative)':'var(--text-primary)',background:'transparent',border:'none',cursor:'pointer'}}
               onMouseEnter={e=>e.currentTarget.style.background=a.danger?'var(--negative-dim)':'var(--bg-hover)'}
               onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
               <span style={{display:'flex',width:15,color:a.danger?'var(--negative)':'var(--text-tertiary)',flexShrink:0}}>{a.icon}</span>
@@ -367,8 +367,8 @@ export function QRModal({item,onClose}:{item:InventoryItem;onClose:()=>void}) {
       footer={<Btn variant="primary" onClick={print}>Εκτύπωση καρτέλας</Btn>}>
       <div style={{background:'var(--qr-paper)',padding:12,borderRadius:T.radius.card,alignSelf:'center'}}><img src={qr} width={200} height={200} alt="QR"/></div>
       <div style={{textAlign:'center'}}>
-        <p style={{fontSize:13,fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:2}}>{item.name}</p>
-        <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{item.brand} {item.model}{item.serial_number?` · Σειριακός ${item.serial_number}`:''}</p>
+        <p style={{fontSize: 'var(--fs-base)',fontWeight:500,fontFamily:T.font.sans,color:'var(--text-primary)',marginBottom:2}}>{item.name}</p>
+        <p style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',fontFamily:T.font.sans}}>{item.brand} {item.model}{item.serial_number?` · Σειριακός ${item.serial_number}`:''}</p>
       </div>
     </Modal>
   )
@@ -383,7 +383,7 @@ export function Field({d,children}:{d?:FieldDecision;children:React.ReactNode}) 
     <div>
       <label style={labelStyle}>{d.label}{d.critical?' *':''}</label>
       {children}
-      <p style={{fontSize:11,color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.45,marginTop:5}}>{d.why}</p>
+      <p style={{fontSize: 'var(--fs-xs)',color:'var(--text-tertiary)',fontFamily:T.font.sans,lineHeight:1.45,marginTop: 4}}>{d.why}</p>
     </div>
   )
 }
