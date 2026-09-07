@@ -609,6 +609,43 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onDayOpen, o
   // τσιπάκι μένει πατήσιμο και συρόμενο, γιατί εκεί ο δείκτης είναι ακριβής.
   const coarse = useCoarsePointer()
 
+  // ═══ ΤΡΙΑΝΤΑ ΤΕΣΣΕΡΙΣ ΣΤΑΣΕΙΣ TAB ΓΙΑ ΝΑ ΠΕΡΑΣΕΙΣ ΕΝΑΝ ΜΗΝΑ ═══════════════
+  // ΜΕΤΡΗΜΕΝΟ ΣΤΑ 1280: η καρτέλα έχει 54 στάσεις πληκτρολογίου συνολικά και οι
+  // 34 είναι ΜΕΣΑ στο πλέγμα — 30 ημέρες συν τα τσιπάκια. Οποιος δουλεύει με
+  // πληκτρολόγιο και θέλει τη λίστα από κάτω πατά Tab τριάντα τέσσερις φορές,
+  // ακούγοντας «κουμπί, 1 Σεπτεμβρίου… κουμπί, 2 Σεπτεμβρίου…».
+  //
+  // Το πρότυπο για πλέγμα ημερομηνιών λέει άλλο πράγμα: ΜΙΑ στάση για όλο το
+  // πλέγμα · μέσα του κινείσαι με βελάκια. Είναι ο ίδιος τρόπος που έχει
+  // κάθε ημερολόγιο — και ο τρόπος που ήδη περιμένει όποιος έχει ξαναδεί ένα.
+  // Home και End πάνε στην αρχή και στο τέλος της εβδομάδας.
+  //
+  // Τα βελάκια ΔΕΝ βγαίνουν από τον μήνα: η μετακίνηση γίνεται μόνο αν υπάρχει
+  // κελί για την ημερομηνία. Σιωπηλό πήδημα σε άλλον μήνα θα άλλαζε ό,τι
+  // βλέπει η οθόνη χωρίς να το ζητήσει κανείς.
+  const [focusKey, setFocusKey] = useState('')
+  const cellRefs = useRef(new Map<string, HTMLDivElement>())
+  const p2 = (n: number) => String(n).padStart(2, '0')
+  const shift = (from: string, days: number) => {
+    const d = new Date(from + 'T00:00:00')
+    d.setDate(d.getDate() + days)
+    return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`
+  }
+  const moveTo = (next: string) => {
+    const el = cellRefs.current.get(next)
+    if (!el) return
+    setFocusKey(next)
+    el.focus()
+  }
+  const gridKeys = (e: React.KeyboardEvent, dateStr: string) => {
+    const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key]
+    if (step != null) { e.preventDefault(); moveTo(shift(dateStr, step)); return }
+    // Δευτέρα πρώτη, όπως και το πλέγμα: 0 η Δευτέρα, 6 η Κυριακή.
+    const wd = (new Date(dateStr + 'T00:00:00').getDay() + 6) % 7
+    if (e.key === 'Home') { e.preventDefault(); moveTo(shift(dateStr, -wd)) }
+    else if (e.key === 'End') { e.preventDefault(); moveTo(shift(dateStr, 6 - wd)) }
+  }
+
   // Το πλάτος του πλέγματος, μετρημένο. Χρειάζεται για να κριθεί αν το όνομα
   // της αργίας χωράει σε μία γραμμή. Μηδέν στην πρώτη απόδοση και στον
   // διακομιστή: τότε κρατιέται μία γραμμή και η δεύτερη μπαίνει μόλις γίνει η
@@ -626,6 +663,13 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onDayOpen, o
   },[])
 
   const year=currentDate.getFullYear(); const month=currentDate.getMonth()
+  // Η ΜΙΑ ΣΤΑΣΗ ΤΟΥ ΠΛΕΓΜΑΤΟΣ. Προτεραιότητα στην ημέρα που κρατά ήδη την
+  // εστίαση· αλλιώς στην επιλεγμένη· αλλιώς στην πρώτη του μήνα. Ο έλεγχος
+  // προθέματος κόβει τιμές από άλλον μήνα, ώστε η αλλαγή μήνα να μην αφήνει
+  // το πλέγμα ΧΩΡΙΣ καμία εστιάσιμη ημέρα — που θα το έβγαζε τελείως από τη
+  // σειρά του Tab.
+  const monthPrefix=`${year}-${p2(month+1)}`
+  const rovingKey=[focusKey, selectedDate].find(k=>k?.startsWith(monthPrefix)) ?? `${monthPrefix}-01`
   const firstDay=mondayFirst(new Date(year,month,1).getDay())
   const daysInMonth=new Date(year,month+1,0).getDate()
   const today=todayStr()
@@ -679,9 +723,18 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onDayOpen, o
                 κάτι πληρωμένο· αλλιώς μιλά η κενή κατάσταση από κάτω. */}
             {monthPaid.length>0&&<span style={{ fontSize:12, fontFamily: T.font.sans, color:'var(--text-secondary)' }}>{monthPaid.length===1?'1 πληρωμένο':`${monthPaid.length} πληρωμένα`}</span>}
           </div>
-          <div ref={gridRef} style={{ display:'grid', gridTemplateColumns:'repeat(7, minmax(0, 1fr))', borderBottom:'1px solid var(--border-subtle)' }}>
+          {/* ═══ ΤΟ ΠΛΕΓΜΑ ΕΙΝΑΙ ΠΛΕΓΜΑ, ΟΧΙ ΤΡΙΑΝΤΑ ΚΟΥΜΠΙΑ ΣΤΗ ΣΕΙΡΑ ═══════════
+              Με μία μόνο στάση Tab, ο ρόλος πρέπει να το ΛΕΕΙ. Ενα `role="button"`
+              που δεν δέχεται Tab είναι χειρότερο από πριν: ο αναγνώστης οθόνης
+              ανακοινώνει κουμπί, ο χρήστης δεν φτάνει σε αυτό και τίποτα δεν του
+              λέει ότι δουλεύουν τα βελάκια. Με `grid` / `row` / `gridcell` η
+              πλοήγηση με βελάκια είναι η ΑΝΑΜΕΝΟΜΕΝΗ, όχι κρυφή — και οι
+              κεφαλίδες των ημερών γίνονται επιτέλους κεφαλίδες στηλών, ώστε η
+              «Τρίτη» να ακούγεται μαζί με την ημερομηνία. */}
+          <div role="grid" aria-label={`${MONTHS_NOM[month]} ${year}`} aria-rowcount={weeks.length + 1} aria-colcount={7}>
+          <div ref={gridRef} role="row" style={{ display:'grid', gridTemplateColumns:'repeat(7, minmax(0, 1fr))', borderBottom:'1px solid var(--border-subtle)' }}>
             {DAY_NAMES_GR.map(d=>(
-              <div key={d} style={{ padding:'8px 0', textAlign:'center', fontSize:12, fontFamily: T.font.sans, fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase' }}>{d}</div>
+              <div key={d} role="columnheader" style={{ padding:'8px 0', textAlign:'center', fontSize:12, fontFamily: T.font.sans, fontWeight:500, color:'var(--text-secondary)', letterSpacing:'0.5px', textTransform:'uppercase' }}>{d}</div>
             ))}
           </div>
           {weeks.map((week,wIdx)=>{
@@ -714,7 +767,7 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onDayOpen, o
             const shownLanes=Math.min(lanes,MAX_LANES)
             const railH=shownLanes*(BAR_H+BAR_GAP)
             return (
-            <div key={wIdx} style={{ position:'relative', display:'grid', gridTemplateColumns:'repeat(7, minmax(0, 1fr))' }}>
+            <div key={wIdx} role="row" style={{ position:'relative', display:'grid', gridTemplateColumns:'repeat(7, minmax(0, 1fr))' }}>
             {week.map((day,col)=>{
               const idx=wIdx*7+col
               const dateStr=day?`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`:''
@@ -739,7 +792,10 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onDayOpen, o
               // (τι κοιτάς) και πρέπει να ξεχωρίζει από το σήμερα (τι μέρα είναι).
               const cellBg=isSelected?'color-mix(in srgb, var(--accent) 12%, transparent)':hol?'color-mix(in srgb, var(--accent) 5%, transparent)':wknd?'color-mix(in srgb, var(--text-tertiary) 5%, transparent)':'transparent'
               return (
-                /* ΤΑ ΑΔΕΙΑ ΚΕΛΙΑ ΔΕΝ ΕΙΝΑΙ ΚΟΥΜΠΙΑ. Ο μήνας ξεκινά και τελειώνει
+                /* ΤΑ ΑΔΕΙΑ ΚΕΛΙΑ ΕΙΝΑΙ ΚΕΛΙΑ, ΟΧΙ ΚΟΥΜΠΙΑ. Κρατούν `gridcell`
+                   ώστε η σειρά να έχει και τις εφτά στήλες της — αλλιώς το
+                   `aria-colcount` λέει εφτά και ο αναγνώστης βρίσκει τέσσερις.
+                   Χωρίς tabIndex και χωρίς ενέργεια. Ο μήνας ξεκινά και τελειώνει
                    στη μέση της εβδομάδας, οπότε το πλέγμα έχει ώς έντεκα κελιά
                    χωρίς ημέρα. Επαιρναν κι αυτά `role="button"` και `tabIndex`:
                    μετρημένο στο δέντρο προσβασιμότητας του Chrome, έντεκα
@@ -747,7 +803,15 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onDayOpen, o
                    ένα πριν φτάσει στην πρώτη πραγματική ημέρα, ακούγοντας
                    «κουμπί» χωρίς τίποτε άλλο. Το `onDayClick` είχε ήδη φρένο
                    (`day&&`), δηλαδή το πάτημα δεν έκανε ποτέ τίποτα. */
-                <div key={idx} className="cal-cell" {...(day!=null ? pressable(()=>{ if(coarse&&dayEvents.length) onDayOpen(dateStr); else onDayClick(dateStr) }, `${day} ${monthGen(month)}${coarse&&dayEvents.length?`, ${dayEvents.length} ${dayEvents.length===1?'γεγονός':'γεγονότα'}`:''}`) : {})} title={hol||undefined} data-drop-date={day?dateStr:undefined} style={{ minHeight:80, padding:'6px', borderRight:(idx+1)%7===0?'none':'1px solid var(--border-subtle)', borderBottom:idx<cells.length-7?'1px solid var(--border-subtle)':'none', background:cellBg, boxShadow:isSelected&&!isToday?'inset 0 0 0 2px var(--accent)':'none', cursor:day?'pointer':'default', transition:'background 0.1s' }}
+                <div key={idx} className="cal-cell"
+                  ref={el=>{ if(day==null) return; if(el) cellRefs.current.set(dateStr, el); else cellRefs.current.delete(dateStr) }}
+                  {...(day!=null ? (()=>{ const pr = pressable(()=>{ if(coarse&&dayEvents.length) onDayOpen(dateStr); else onDayClick(dateStr) }, `${day} ${monthGen(month)}${coarse&&dayEvents.length?`, ${dayEvents.length} ${dayEvents.length===1?'γεγονός':'γεγονότα'}`:''}`)
+                    // Το `pressable` δίνει tabIndex 0 σε ΚΑΘΕ κελί. Εδώ μένει μία
+                    // στάση για όλο το πλέγμα και τα υπόλοιπα κελιά βγαίνουν από
+                    // τη σειρά του Tab χωρίς να χάσουν το Enter και το κενό.
+                    return { ...pr, role: 'gridcell' as const, tabIndex: dateStr===rovingKey ? 0 : -1,
+                      onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => { gridKeys(e, dateStr); if(!e.defaultPrevented) pr.onKeyDown(e) } }
+                  })() : { role: 'gridcell' as const })} title={hol||undefined} data-drop-date={day?dateStr:undefined} style={{ minHeight:80, padding:'6px', borderRight:(idx+1)%7===0?'none':'1px solid var(--border-subtle)', borderBottom:idx<cells.length-7?'1px solid var(--border-subtle)':'none', background:cellBg, boxShadow:isSelected&&!isToday?'inset 0 0 0 2px var(--accent)':'none', cursor:day?'pointer':'default', transition:'background 0.1s' }}
                   onMouseEnter={e=>{if(day)(e.currentTarget as HTMLElement).style.background='var(--bg-hover)'}}
                   onMouseLeave={e=>{if(day)(e.currentTarget as HTMLElement).style.background=cellBg}}
                 >
@@ -853,6 +917,7 @@ function MonthView({ events, currentDate, selectedDate, onDayClick, onDayOpen, o
             </div>
             )
           })}
+          </div>
         </div>
       </div>
       {/* ═══ ΚΑΜΙΑ ΛΩΡΙΔΑ ΓΙΑ ΤΟ ΤΙΠΟΤΑ ═══════════════════════════════════════
